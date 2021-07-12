@@ -1,14 +1,14 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/data/state"
+import "github.com/ElrondNetwork/elrond-vm-common"
 
 // AccountsFactoryStub -
 type AccountsFactoryStub struct {
-	CreateAccountCalled func(address []byte) (state.AccountHandler, error)
+	CreateAccountCalled func(address []byte) (vmcommon.AccountHandler, error)
 }
 
 // CreateAccount -
-func (afs *AccountsFactoryStub) CreateAccount(address []byte) (state.AccountHandler, error) {
+func (afs *AccountsFactoryStub) CreateAccount(address []byte) (vmcommon.AccountHandler, error) {
 	return afs.CreateAccountCalled(address)
 }
 

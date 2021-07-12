@@ -300,6 +300,11 @@ func (ic *ImmunityCache) Diagnose(_ bool) {
 	)
 }
 
+// Close does nothing for this cacher implementation
+func (ic *ImmunityCache) Close() error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (ic *ImmunityCache) IsInterfaceNil() bool {
 	return ic == nil

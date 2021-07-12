@@ -67,6 +67,9 @@ var ErrSmallMetachainEligibleListSize = errors.New("small metachain eligible lis
 // ErrMapSizeZero signals that there are no elements in the map
 var ErrMapSizeZero = errors.New("map size zero")
 
+// ErrNilPreviousEpochConfig signals that the previous epoch config is nil
+var ErrNilPreviousEpochConfig = errors.New("nil previous epoch config")
+
 // ErrEpochNodesConfigDoesNotExist signals that the epoch nodes configuration is missing
 var ErrEpochNodesConfigDoesNotExist = errors.New("epoch nodes configuration does not exist")
 
@@ -118,6 +121,9 @@ var ErrNilBlockBody = errors.New("nil block body")
 // ErrNilShuffledOutHandler signals that a nil shuffled out handler has been provided
 var ErrNilShuffledOutHandler = errors.New("nil shuffled out handler")
 
+// ErrNilEpochNotifier signals that the provided epoch notifier is nil
+var ErrNilEpochNotifier = errors.New("nil epoch notifier")
+
 // ErrNilOwnPublicKey signals that a nil own public key has been provided
 var ErrNilOwnPublicKey = errors.New("nil own public key")
 
@@ -129,3 +135,12 @@ var ErrNilOrEmptyDestinationForDistribute = errors.New("nil or empty destination
 
 // ErrNilNodeShufflerArguments signals that a nil argument pointer was provided for creating the nodes shuffler instance
 var ErrNilNodeShufflerArguments = errors.New("nil arguments for the creation of a node shuffler")
+
+// ErrNilNodeStopChannel signals that a nil node stop channel has been provided
+var ErrNilNodeStopChannel = errors.New("nil node stop channel")
+
+// ErrValidatorCannotBeFullArchive signals a configuration issue because a validator cannot be a full archive node
+var ErrValidatorCannotBeFullArchive = errors.New("validator cannot be a full archive node")
+
+// ErrNilNodeTypeProvider signals that a nil node type provider has been given
+var ErrNilNodeTypeProvider = errors.New("nil node type provider")

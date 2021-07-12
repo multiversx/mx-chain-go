@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,7 +19,7 @@ func TestCreateInterceptedDebugHandler_NilNodeWrapperShouldErr(t *testing.T) {
 
 	err := CreateInterceptedDebugHandler(
 		nil,
-		&mock.InterceptorsContainerStub{},
+		&testscommon.InterceptorsContainerStub{},
 		&mock.ResolversFinderStub{},
 		config.InterceptorResolverDebugConfig{},
 	)
@@ -44,7 +45,7 @@ func TestCreateInterceptedDebugHandler_NilReolversShouldErr(t *testing.T) {
 
 	err := CreateInterceptedDebugHandler(
 		&mock.NodeWrapperStub{},
-		&mock.InterceptorsContainerStub{},
+		&testscommon.InterceptorsContainerStub{},
 		nil,
 		config.InterceptorResolverDebugConfig{},
 	)
@@ -57,7 +58,7 @@ func TestCreateInterceptedDebugHandler_InvalidDebugConfigShouldErr(t *testing.T)
 
 	err := CreateInterceptedDebugHandler(
 		&mock.NodeWrapperStub{},
-		&mock.InterceptorsContainerStub{},
+		&testscommon.InterceptorsContainerStub{},
 		&mock.ResolversFinderStub{},
 		config.InterceptorResolverDebugConfig{
 			Enabled:   true,
@@ -83,9 +84,9 @@ func TestCreateInterceptedDebugHandler_SettingOnInterceptorsErrShouldErr(t *test
 				return nil
 			},
 		},
-		&mock.InterceptorsContainerStub{
+		&testscommon.InterceptorsContainerStub{
 			IterateCalled: func(handler func(key string, interceptor process.Interceptor) bool) {
-				handler("key", &mock.InterceptorStub{
+				handler("key", &testscommon.InterceptorStub{
 					SetInterceptedDebugHandlerCalled: func(handler process.InterceptedDebugger) error {
 						return expectedErr
 					},
@@ -124,9 +125,9 @@ func TestCreateInterceptedDebugHandler_SettingOnResolverErrShouldErr(t *testing.
 				return nil
 			},
 		},
-		&mock.InterceptorsContainerStub{
+		&testscommon.InterceptorsContainerStub{
 			IterateCalled: func(handler func(key string, interceptor process.Interceptor) bool) {
-				handler("key", &mock.InterceptorStub{})
+				handler("key", &testscommon.InterceptorStub{})
 				interceptorsIterateCalled = true
 			},
 		},
@@ -164,9 +165,9 @@ func TestCreateInterceptedDebugHandler_ShouldWork(t *testing.T) {
 				return nil
 			},
 		},
-		&mock.InterceptorsContainerStub{
+		&testscommon.InterceptorsContainerStub{
 			IterateCalled: func(handler func(key string, interceptor process.Interceptor) bool) {
-				handler("key", &mock.InterceptorStub{})
+				handler("key", &testscommon.InterceptorStub{})
 				interceptorsIterateCalled = true
 			},
 		},

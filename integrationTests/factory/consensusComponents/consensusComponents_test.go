@@ -58,6 +58,9 @@ func TestConsensusComponents_Close_ShouldWork(t *testing.T) {
 		managedBootstrapComponents.ShardCoordinator().SelfId(),
 		managedBootstrapComponents.EpochBootstrapParams(),
 		managedBootstrapComponents.EpochBootstrapParams().Epoch(),
+		configs.EpochConfig.EnableEpochs.WaitingListFixEnableEpoch,
+		managedCoreComponents.ChanStopNodeProcess(),
+		managedCoreComponents.NodeTypeProvider(),
 	)
 	require.Nil(t, err)
 	managedStatusComponents, err := nr.CreateManagedStatusComponents(
@@ -97,12 +100,6 @@ func TestConsensusComponents_Close_ShouldWork(t *testing.T) {
 	managedStatusComponents.SetForkDetector(managedProcessComponents.ForkDetector())
 	err = managedStatusComponents.StartPolling()
 	require.Nil(t, err)
-
-	elasticIndexer := managedStatusComponents.ElasticIndexer()
-	if !elasticIndexer.IsNilIndexer() {
-		elasticIndexer.SetTxLogsProcessor(managedProcessComponents.TxLogsProcessor())
-		managedProcessComponents.TxLogsProcessor().EnableLogToBeSavedInCache()
-	}
 
 	managedConsensusComponents, err := nr.CreateManagedConsensusComponents(
 		managedCoreComponents,

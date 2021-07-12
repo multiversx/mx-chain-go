@@ -149,7 +149,7 @@ func TestStatusMetrics_NetworkConfig(t *testing.T) {
 
 	sm := statusHandler.NewStatusMetrics()
 
-	sm.SetUInt64Value(core.MetricNumShardsWithoutMetacahin, 1)
+	sm.SetUInt64Value(core.MetricNumShardsWithoutMetachain, 1)
 	sm.SetUInt64Value(core.MetricNumNodesPerShard, 100)
 	sm.SetUInt64Value(core.MetricNumMetachainNodes, 50)
 	sm.SetUInt64Value(core.MetricShardConsensusGroupSize, 20)
@@ -218,6 +218,7 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 	sm.SetUInt64Value(core.MetricGovernanceEnableEpoch, 3)
 	sm.SetUInt64Value(core.MetricDelegationManagerEnableEpoch, 1)
 	sm.SetUInt64Value(core.MetricDelegationSmartContractEnableEpoch, 2)
+	sm.SetUInt64Value(core.MetricIncrementSCRNonceInMultiTransferEnableEpoch, 3)
 
 	expectedMetrics := map[string]interface{}{
 		core.MetricScDeployEnableEpoch:                    uint64(4),
@@ -240,6 +241,8 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 		core.MetricGovernanceEnableEpoch:                  uint64(3),
 		core.MetricDelegationManagerEnableEpoch:           uint64(1),
 		core.MetricDelegationSmartContractEnableEpoch:     uint64(2),
+
+		core.MetricIncrementSCRNonceInMultiTransferEnableEpoch: uint64(3),
 	}
 
 	epochsMetrics := sm.EnableEpochsMetrics()

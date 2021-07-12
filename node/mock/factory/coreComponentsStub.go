@@ -46,6 +46,7 @@ type CoreComponentsMock struct {
 	Shuffler                    sharding.NodesShuffler
 	TxVersionCheckHandler       process.TxVersionCheckerHandler
 	StartTime                   time.Time
+	NodeTypeProviderField       core.NodeTypeProviderHandler
 }
 
 // Create -
@@ -208,12 +209,17 @@ func (ccm *CoreComponentsMock) TxVersionChecker() process.TxVersionCheckerHandle
 
 // EncodedAddressLen -
 func (ccm *CoreComponentsMock) EncodedAddressLen() uint32 {
-	return uint32(ccm.AddressPubKeyConverter().Len()*2)
+	return uint32(ccm.AddressPubKeyConverter().Len() * 2)
 }
 
 // ChanStopNodeProcess -
 func (ccm *CoreComponentsMock) ChanStopNodeProcess() chan endProcess.ArgEndProcess {
 	return ccm.ChanStopProcess
+}
+
+// NodeTypeProvider -
+func (ccm *CoreComponentsMock) NodeTypeProvider() core.NodeTypeProviderHandler {
+	return ccm.NodeTypeProviderField
 }
 
 // IsInterfaceNil -

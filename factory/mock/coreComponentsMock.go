@@ -50,6 +50,7 @@ type CoreComponentsMock struct {
 	TxVersionCheckHandler       process.TxVersionCheckerHandler
 	ChanStopProcess             chan endProcess.ArgEndProcess
 	StartTime                   time.Time
+	NodeTypeProviderField       core.NodeTypeProviderHandler
 }
 
 // InternalMarshalizer -
@@ -168,7 +169,7 @@ func (ccm *CoreComponentsMock) TxVersionChecker() process.TxVersionCheckerHandle
 
 // EncodedAddressLen -
 func (ccm *CoreComponentsMock) EncodedAddressLen() uint32 {
-	return uint32(ccm.AddressPubKeyConverter().Len()*2)
+	return uint32(ccm.AddressPubKeyConverter().Len() * 2)
 }
 
 // RoundHandler -
@@ -214,6 +215,11 @@ func (ccm *CoreComponentsMock) EpochStartNotifierWithConfirm() factory.EpochStar
 // ChanStopNodeProcess -
 func (ccm *CoreComponentsMock) ChanStopNodeProcess() chan endProcess.ArgEndProcess {
 	return ccm.ChanStopProcess
+}
+
+// NodeTypeProvider -
+func (ccm *CoreComponentsMock) NodeTypeProvider() core.NodeTypeProviderHandler {
+	return ccm.NodeTypeProviderField
 }
 
 // IsInterfaceNil -

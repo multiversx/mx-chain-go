@@ -2,7 +2,6 @@ package block
 
 import (
 	"bytes"
-	"context"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -481,7 +480,7 @@ func (mp *metaProcessor) verifyCrossShardMiniBlockDstMe(header *block.MetaBlock)
 		return err
 	}
 
-	//if all miniblockshards hashes are in header miniblocks as well
+	// if all miniblockshards hashes are in header miniblocks as well
 	mapMetaMiniBlockHdrs := make(map[string]struct{}, len(header.MiniBlockHeaders))
 	for _, metaMiniBlock := range header.MiniBlockHeaders {
 		mapMetaMiniBlockHdrs[string(metaMiniBlock.Hash)] = struct{}{}
@@ -568,6 +567,7 @@ func (mp *metaProcessor) indexBlock(
 		Txs:     mp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock),
 		Scrs:    mp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock),
 		Rewards: rewardsTxs,
+		Logs:    mp.txCoordinator.GetAllCurrentLogs(),
 	}
 
 	publicKeys, err := mp.nodesCoordinator.GetConsensusValidatorsPublicKeys(
@@ -1352,9 +1352,8 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.HeaderHandler) {
 
 	if lastMetaBlock.IsStartOfEpochBlock() {
 		log.Debug("trie snapshot", "rootHash", lastMetaBlock.GetRootHash())
-		ctx := context.Background()
-		mp.accountsDB[state.UserAccountsState].SnapshotState(lastMetaBlock.GetRootHash(), ctx)
-		mp.accountsDB[state.PeerAccountsState].SnapshotState(lastMetaBlock.GetValidatorStatsRootHash(), ctx)
+		mp.accountsDB[state.UserAccountsState].SnapshotState(lastMetaBlock.GetRootHash())
+		mp.accountsDB[state.PeerAccountsState].SnapshotState(lastMetaBlock.GetValidatorStatsRootHash())
 		go func() {
 			metaBlock, ok := lastMetaBlock.(*block.MetaBlock)
 			if !ok {

@@ -12,9 +12,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/vm"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 const delegationConfigKey = "delegationConfig"
@@ -30,6 +30,7 @@ const maxNumOfUnStakedFunds = 50
 
 const initFromValidatorData = "initFromValidatorData"
 const mergeValidatorDataToDelegation = "mergeValidatorDataToDelegation"
+const deleteWhitelistForMerge = "deleteWhitelistForMerge"
 const whitelistedAddress = "whitelistedAddress"
 
 const (
@@ -45,6 +46,7 @@ type delegation struct {
 	stakingSCAddr                      []byte
 	validatorSCAddr                    []byte
 	endOfEpochAddr                     []byte
+	governanceSCAddr                   []byte
 	gasCost                            vm.GasCost
 	marshalizer                        marshal.Marshalizer
 	delegationEnabled                  atomic.Flag
@@ -75,6 +77,7 @@ type ArgsNewDelegation struct {
 	StakingSCAddress       []byte
 	ValidatorSCAddress     []byte
 	EndOfEpochAddress      []byte
+	GovernanceSCAddress    []byte
 	GasCost                vm.GasCost
 	Marshalizer            marshal.Marshalizer
 	EpochNotifier          vm.EpochNotifier
@@ -93,6 +96,9 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 	}
 	if len(args.DelegationMgrSCAddress) < 1 {
 		return nil, fmt.Errorf("%w for delegation sc address", vm.ErrInvalidAddress)
+	}
+	if len(args.GovernanceSCAddress) < 1 {
+		return nil, fmt.Errorf("%w for governance sc address", vm.ErrInvalidAddress)
 	}
 	if check.IfNil(args.Marshalizer) {
 		return nil, vm.ErrNilMarshalizer
@@ -124,6 +130,7 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 		sigVerifier:                        args.SigVerifier,
 		unBondPeriodInEpochs:               args.StakingSCConfig.UnBondPeriodInEpochs,
 		endOfEpochAddr:                     args.EndOfEpochAddress,
+		governanceSCAddr:                   args.GovernanceSCAddress,
 		stakingV2EnableEpoch:               args.EpochConfig.EnableEpochs.StakingV2EnableEpoch,
 		stakingV2Enabled:                   atomic.Flag{},
 		validatorToDelegationEnableEpoch:   args.EpochConfig.EnableEpochs.ValidatorToDelegationEnableEpoch,
@@ -182,8 +189,10 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.mergeValidatorDataToDelegation(args)
 	case "whitelistForMerge":
 		return d.whitelistForMerge(args)
-	case "deleteWhitelistForMerge":
+	case deleteWhitelistForMerge:
 		return d.deleteWhitelistForMerge(args)
+	case "getWhitelistForMerge":
+		return d.getWhitelistForMerge(args)
 	case "addNodes":
 		return d.addNodes(args)
 	case "removeNodes":
@@ -565,8 +574,9 @@ func (d *delegation) checkInputForWhitelisting(args *vmcommon.ContractCallInput)
 		d.eei.AddReturnMessage(args.Function + " is an unknown function")
 		return vmcommon.UserError
 	}
-	if !d.isOwner(args.CallerAddr) {
-		d.eei.AddReturnMessage("can be called by owner only")
+	isAuthorizedToCall := d.isOwner(args.CallerAddr) || bytes.Equal(args.CallerAddr, vm.DelegationManagerSCAddress)
+	if !isAuthorizedToCall {
+		d.eei.AddReturnMessage("can be called by owner or the delegation manager")
 		return vmcommon.UserError
 	}
 	if args.CallValue.Cmp(zero) != 0 {
@@ -614,6 +624,22 @@ func (d *delegation) deleteWhitelistForMerge(args *vmcommon.ContractCallInput) v
 	}
 
 	d.eei.SetStorage([]byte(whitelistedAddress), nil)
+	return vmcommon.Ok
+}
+
+func (d *delegation) getWhitelistForMerge(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !d.flagValidatorToDelegation.IsSet() {
+		d.eei.AddReturnMessage(args.Function + " is an unknown function")
+		return vmcommon.UserError
+	}
+	returnCode := d.checkArgumentsForGeneralViewFunc(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	whitelistedAddr := d.eei.GetStorage([]byte(whitelistedAddress))
+	d.eei.Finish(whitelistedAddr)
+
 	return vmcommon.Ok
 }
 
@@ -1563,6 +1589,11 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 	}
 	if activeFund.Value.Cmp(valueToUnDelegate) < 0 {
 		d.eei.AddReturnMessage("invalid value to undelegate")
+		return vmcommon.UserError
+	}
+
+	if isStakeLocked(d.eei, d.governanceSCAddr, args.CallerAddr) {
+		d.eei.AddReturnMessage("stake is locked for voting")
 		return vmcommon.UserError
 	}
 

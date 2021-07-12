@@ -41,16 +41,13 @@
     BlockGasAndFeesReCheckEnableEpoch = 1
 
     # BalanceWaitingListsEnableEpoch represents the epoch when the shard waiting lists are balanced at the start of an epoch
-    BalanceWaitingListsEnableEpoch = 2
+    BalanceWaitingListsEnableEpoch = 1
 
     # ReturnDataToLastTransferEnableEpoch represents the epoch when returned data is added to last output transfer for callbacks
-    ReturnDataToLastTransferEnableEpoch = 2
-
-    # ArwenESDTFunctionsEnableEpoch represents the epoch when the new ESDT functions are enabled in arwen
-    ArwenESDTFunctionsEnableEpoch = 2
+    ReturnDataToLastTransferEnableEpoch = 1
 
     # SenderInOutTransferEnableEpoch represents the epoch when the feature of having different senders in output transfer is enabled
-    SenderInOutTransferEnableEpoch = 2
+    SenderInOutTransferEnableEpoch = 1
 
     # StakeEnableEpoch represents the epoch when staking is enabled
     StakeEnableEpoch = 0
@@ -61,7 +58,7 @@
     DoubleKeyProtectionEnableEpoch = 1
 
     # ESDTEnableEpoch represents the epoch when ESDT is enabled
-    ESDTEnableEpoch = 2
+    ESDTEnableEpoch = 1
 
     # GovernanceEnableEpoch represents the epoch when governance is enabled
     GovernanceEnableEpoch = 2
@@ -75,24 +72,30 @@
     DelegationSmartContractEnableEpoch = 1
 
     # CorrectLastUnjailedEnableEpoch represents the epoch when the fix regaring the last unjailed node should apply
-    CorrectLastUnjailedEnableEpoch = 2
+    CorrectLastUnjailedEnableEpoch = 1
 
     # RelayedTransactionsV2EnableEpoch represents the epoch when the relayed transactions V2 will be enabled
     RelayedTransactionsV2EnableEpoch = 2
 
     # UnbondTokensV2EnableEpoch represents the epoch when the new implementation of the unbond tokens function is available
-    UnbondTokensV2EnableEpoch = 2
+    UnbondTokensV2EnableEpoch = 1
 
     # SaveJailedAlwaysEnableEpoch represents the epoch when saving jailed status at end of epoch will happen in all cases
-    SaveJailedAlwaysEnableEpoch = 3
+    SaveJailedAlwaysEnableEpoch = 1
 
     # ReDelegateBelowMinCheckEnableEpoch represents the epoch when the check for the re-delegated value will be enabled
-    ReDelegateBelowMinCheckEnableEpoch = 3
+    ReDelegateBelowMinCheckEnableEpoch = 1
 
     # ValidatorToDelegationEnableEpoch represents the epoch when the validator-to-delegation feature will be enabled
-    ValidatorToDelegationEnableEpoch = 3
+    ValidatorToDelegationEnableEpoch = 1
 
-    # TO BE CHANGED IN MAINNET AND PUBLIC TESTNET CONFIGS
+    # WaitingListFixEnableEpoch represents the epoch when the 6 epoch waiting list fix is enabled
+    WaitingListFixEnableEpoch = 1000000
+
+    # IncrementSCRNonceInMultiTransferEnableEpoch represents the epoch when the fix for preventing the generation of the same SCRs
+    # is enabled. The fix is done by adding an extra increment.
+    IncrementSCRNonceInMultiTransferEnableEpoch = 3
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },

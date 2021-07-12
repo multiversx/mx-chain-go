@@ -2,9 +2,7 @@ package factory
 
 import (
 	"fmt"
-	"io"
 	"math/big"
-	"os"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -15,46 +13,27 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
-	factoryViews "github.com/ElrondNetwork/elrond-go/statusHandler/factory"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/persister"
-	"github.com/ElrondNetwork/elrond-go/statusHandler/view"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-const defaultTermuiRefreshTimeInMilliseconds = 500
 var log = logger.GetOrCreate("main")
-
-// StatusHandlersFactoryArgs is a struct that stores arguments needed to create status handlers factory
-type StatusHandlersFactoryArgs struct {
-	UseTermUI                    bool
-}
 
 // StatusHandlersInfo is struct that stores all components that are returned when status handlers are created
 type statusHandlersInfo struct {
-	UseTermUI                bool
-	AppStatusHandler         core.AppStatusHandler
-	StatusMetrics            external.StatusMetricsHandler
-	PersistentHandler        *persister.PersistentStatusHandler
-	chanStartViews           chan struct{}
-	chanLogRewrite           chan struct{}
+	AppStatusHandler  core.AppStatusHandler
+	StatusMetrics     external.StatusMetricsHandler
+	PersistentHandler *persister.PersistentStatusHandler
+	chanStartViews    chan struct{}
+	chanLogRewrite    chan struct{}
 }
 
 type statusHandlerUtilsFactory struct {
-	useTermUI                    bool
 }
 
 // NewStatusHandlersFactory will return the status handler factory
-func NewStatusHandlersFactory(
-	args *StatusHandlersFactoryArgs,
-) (*statusHandlerUtilsFactory, error) {
-	baseErrMessage := "error creating status handler factory"
-	if args == nil {
-		return nil, fmt.Errorf("%s: nil arguments", baseErrMessage)
-	}
-
-	return &statusHandlerUtilsFactory{
-		useTermUI: args.UseTermUI,
-	}, nil
+func NewStatusHandlersFactory() (*statusHandlerUtilsFactory, error) {
+	return &statusHandlerUtilsFactory{}, nil
 }
 
 // Create will return a slice of status handlers
@@ -63,7 +42,6 @@ func (shuf *statusHandlerUtilsFactory) Create(
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 ) (StatusHandlersUtils, error) {
 	var appStatusHandlers []core.AppStatusHandler
-	var views []factoryViews.Viewer
 	var err error
 	var handler core.AppStatusHandler
 	chanStartViews := make(chan struct{}, 1)
@@ -75,41 +53,6 @@ func (shuf *statusHandlerUtilsFactory) Create(
 	}
 	if check.IfNil(uint64ByteSliceConverter) {
 		return nil, fmt.Errorf("%s: nil uint64 byte slice converter", baseErrMessage)
-	}
-
-	presenterStatusHandler := createStatusHandlerPresenter()
-
-	if shuf.useTermUI {
-		views, err = createViews(presenterStatusHandler, chanStartViews)
-		if err != nil {
-			return nil, err
-		}
-
-		go func() {
-			<-chanLogRewrite
-			writer, ok := presenterStatusHandler.(io.Writer)
-			if !ok {
-				return
-			}
-			err = logger.RemoveLogObserver(os.Stdout)
-			if err != nil {
-				log.Warn("cannot remove the log observer for std out", "error", err)
-			}
-
-			err = logger.AddLogObserver(writer, &logger.PlainFormatter{})
-			if err != nil {
-				log.Warn("cannot add log observer for TermUI", "error", err)
-			}
-		}()
-
-		appStatusHandler, ok := presenterStatusHandler.(core.AppStatusHandler)
-		if ok {
-			appStatusHandlers = append(appStatusHandlers, appStatusHandler)
-		}
-	}
-
-	if len(views) == 0 {
-		log.Info("current mode is log-view")
 	}
 
 	statusMetrics := statusHandler.NewStatusMetrics()
@@ -128,14 +71,13 @@ func (shuf *statusHandlerUtilsFactory) Create(
 		}
 	} else {
 		handler = statusHandler.NewNilStatusHandler()
-		log.Info("no AppStatusHandler used: started with NilStatusHandler")
+		log.Debug("no AppStatusHandler used: started with NilStatusHandler")
 	}
 
 	statusHandlersInfoObject := new(statusHandlersInfo)
 	statusHandlersInfoObject.chanStartViews = chanStartViews
 	statusHandlersInfoObject.chanLogRewrite = chanLogRewrite
 	statusHandlersInfoObject.AppStatusHandler = handler
-	statusHandlersInfoObject.UseTermUI = shuf.useTermUI
 	statusHandlersInfoObject.StatusMetrics = statusMetrics
 	statusHandlersInfoObject.PersistentHandler = persistentHandler
 
@@ -248,33 +190,4 @@ func (shi *statusHandlersInfo) updateTpsMetrics(metricsMap map[string]interface{
 			shi.AppStatusHandler.SetUInt64Value(key, uint64Value)
 		}
 	}
-}
-
-// CreateStatusHandlerPresenter will return an instance of PresenterStatusHandler
-func createStatusHandlerPresenter() view.Presenter {
-	presenterStatusHandlerFactory := factoryViews.NewPresenterFactory()
-
-	return presenterStatusHandlerFactory.Create()
-}
-
-// CreateViews will start an termui console  and will return an object if cannot create and start termuiConsole
-func createViews(presenter view.Presenter, chanStart chan struct{}) ([]factoryViews.Viewer, error) {
-	viewsFactory, err := factoryViews.NewViewsFactory(presenter, defaultTermuiRefreshTimeInMilliseconds)
-	if err != nil {
-		return nil, err
-	}
-
-	views, err := viewsFactory.Create()
-	if err != nil {
-		return nil, err
-	}
-
-	for _, v := range views {
-		err = v.Start(chanStart)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return views, nil
 }

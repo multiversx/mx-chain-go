@@ -10,12 +10,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
+	trieFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	errorsErd "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -405,10 +407,14 @@ func getDefaultNetworkComponents() *mock.NetworkComponentsMock {
 
 func getDefaultStateComponents() *testscommon.StateComponentsMock {
 	return &testscommon.StateComponentsMock{
-		PeersAcc:        &mock.AccountsStub{},
-		Accounts:        &mock.AccountsStub{},
-		Tries:           &mock.TriesHolderStub{},
-		StorageManagers: map[string]data.StorageManager{"0": &mock.StorageManagerStub{}},
+		PeersAcc: &testscommon.AccountsStub{},
+		Accounts: &testscommon.AccountsStub{},
+		Tries:    &mock.TriesHolderStub{},
+		StorageManagers: map[string]data.StorageManager{
+			"0":                         &testscommon.StorageManagerStub{},
+			trieFactory.UserAccountTrie: &testscommon.StorageManagerStub{},
+			trieFactory.PeerAccountTrie: &testscommon.StorageManagerStub{},
+		},
 	}
 }
 
@@ -425,7 +431,7 @@ func getDefaultProcessComponents(shardCoordinator sharding.Coordinator) *mock.Pr
 	return &mock.ProcessComponentsMock{
 		NodesCoord:               &mock.NodesCoordinatorMock{},
 		ShardCoord:               shardCoordinator,
-		IntContainer:             &mock.InterceptorsContainerStub{},
+		IntContainer:             &testscommon.InterceptorsContainerStub{},
 		ResFinder:                &mock.ResolversFinderStub{},
 		RoundHandlerField:        &testscommon.RoundHandlerMock{},
 		EpochTrigger:             &testscommon.EpochStartTriggerStub{},
@@ -440,10 +446,10 @@ func getDefaultProcessComponents(shardCoordinator sharding.Coordinator) *mock.Pr
 		ValidatorProvider:        &mock.ValidatorsProviderStub{},
 		BlockTrack:               &mock.BlockTrackerStub{},
 		PendingMiniBlocksHdl:     &mock.PendingMiniBlocksHandlerStub{},
-		ReqHandler:               &mock.RequestHandlerStub{},
+		ReqHandler:               &testscommon.RequestHandlerStub{},
 		TxLogsProcess:            &mock.TxLogProcessorMock{},
 		HeaderConstructValidator: &mock.HeaderValidatorStub{},
-		PeerMapper:               &mock.NetworkShardingCollectorStub{},
+		PeerMapper:               &p2pmocks.NetworkShardingCollectorStub{},
 		FallbackHdrValidator:     &testscommon.FallBackHeaderValidatorStub{},
 		NodeRedundancyHandlerInternal: &mock.RedundancyHandlerStub{
 			IsRedundancyNodeCalled: func() bool {

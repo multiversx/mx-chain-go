@@ -8,14 +8,15 @@ import (
 
 // ChainStorerStub is a mock implementation of the ChainStorer interface
 type ChainStorerStub struct {
-	AddStorerCalled func(key dataRetriever.UnitType, s storage.Storer)
-	GetStorerCalled func(unitType dataRetriever.UnitType) storage.Storer
-	HasCalled       func(unitType dataRetriever.UnitType, key []byte) error
-	GetCalled       func(unitType dataRetriever.UnitType, key []byte) ([]byte, error)
-	PutCalled       func(unitType dataRetriever.UnitType, key []byte, value []byte) error
-	GetAllCalled    func(unitType dataRetriever.UnitType, keys [][]byte) (map[string][]byte, error)
-	DestroyCalled   func() error
-	CloseAllCalled  func() error
+	AddStorerCalled     func(key dataRetriever.UnitType, s storage.Storer)
+	GetStorerCalled     func(unitType dataRetriever.UnitType) storage.Storer
+	HasCalled           func(unitType dataRetriever.UnitType, key []byte) error
+	GetCalled           func(unitType dataRetriever.UnitType, key []byte) ([]byte, error)
+	PutCalled           func(unitType dataRetriever.UnitType, key []byte, value []byte) error
+	GetAllCalled        func(unitType dataRetriever.UnitType, keys [][]byte) (map[string][]byte, error)
+	GetAllStorersCalled func() map[dataRetriever.UnitType]storage.Storer
+	DestroyCalled       func() error
+	CloseAllCalled      func() error
 }
 
 // CloseAll -
@@ -79,6 +80,15 @@ func (bc *ChainStorerStub) GetAll(unitType dataRetriever.UnitType, keys [][]byte
 		return bc.GetAllCalled(unitType, keys)
 	}
 	return nil, nil
+}
+
+// GetAllStorers -
+func (bc *ChainStorerStub) GetAllStorers() map[dataRetriever.UnitType]storage.Storer {
+	if bc.GetAllStorersCalled != nil {
+		return bc.GetAllStorersCalled()
+	}
+
+	return nil
 }
 
 // SetEpochForPutOperation won't do anything

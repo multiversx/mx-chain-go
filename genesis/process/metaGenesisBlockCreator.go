@@ -7,13 +7,12 @@ import (
 	"math/big"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
-	"github.com/ElrondNetwork/elrond-go/core/parsers"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -27,12 +26,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/update"
 	hardForkProcess "github.com/ElrondNetwork/elrond-go/update/process"
 	"github.com/ElrondNetwork/elrond-go/vm"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
+	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 )
 
 const unreachableEpoch = uint32(1000000)
@@ -237,7 +239,7 @@ func saveGenesisMetaToStorage(
 }
 
 func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpochs config.EnableEpochs) (*genesisProcessors, error) {
-	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
+	builtInFuncs := vmcommonBuiltInFunctions.NewBuiltInFunctionContainer()
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:           arg.Accounts,
 		PubkeyConv:         arg.Core.AddressPubKeyConverter(),
@@ -276,6 +278,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		ChanceComputer:      &disabled.Rater{},
 		EpochNotifier:       epochNotifier,
 		EpochConfig:         arg.EpochConfig,
+		ShardCoordinator:    arg.ShardCoordinator,
 	}
 	virtualMachineFactory, err := metachain.NewVMContainerFactory(argsNewVMContainerFactory)
 	if err != nil {
@@ -350,7 +353,6 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		TxTypeHandler:                       txTypeHandler,
 		GasHandler:                          gasHandler,
 		GasSchedule:                         arg.GasSchedule,
-		BuiltInFunctions:                    virtualMachineFactory.BlockChainHookImpl().GetBuiltInFunctions(),
 		TxLogsProcessor:                     arg.TxLogsProcessor,
 		BadTxForwarder:                      badTxForwarder,
 		EpochNotifier:                       epochNotifier,
@@ -362,6 +364,10 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		SenderInOutTransferEnableEpoch:      enableEpochs.SenderInOutTransferEnableEpoch,
 		IsGenesisProcessing:                 true,
 		StakingV2EnableEpoch:                arg.EpochConfig.EnableEpochs.StakingV2EnableEpoch,
+		ArwenChangeLocker:                   &sync.RWMutex{}, // local Locker as to not interfere with the rest of the components
+		VMOutputCacher:                      txcache.NewDisabledCache(),
+
+		IncrementSCRNonceInMultiTransferEnableEpoch: enableEpochs.IncrementSCRNonceInMultiTransferEnableEpoch,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 	if err != nil {
@@ -432,18 +438,21 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		EconomicsFee:                      genesisFeeHandler,
 		TxTypeHandler:                     txTypeHandler,
 		BlockGasAndFeesReCheckEnableEpoch: enableEpochs.BlockGasAndFeesReCheckEnableEpoch,
+		TransactionsLogProcessor:          arg.TxLogsProcessor,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
 		return nil, err
 	}
 
-	queryService, err := smartContract.NewSCQueryService(
-		vmContainer,
-		arg.Economics,
-		virtualMachineFactory.BlockChainHookImpl(),
-		arg.Data.Blockchain(),
-	)
+	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
+		VmContainer:       vmContainer,
+		EconomicsFee:      arg.Economics,
+		BlockChainHook:    virtualMachineFactory.BlockChainHookImpl(),
+		BlockChain:        arg.Data.Blockchain(),
+		ArwenChangeLocker: &sync.RWMutex{},
+	}
+	queryService, err := smartContract.NewSCQueryService(argsNewSCQueryService)
 	if err != nil {
 		return nil, err
 	}

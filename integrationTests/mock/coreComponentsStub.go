@@ -46,6 +46,7 @@ type CoreComponentsStub struct {
 	ChanStopNodeProcessField           chan endProcess.ArgEndProcess
 	GenesisTimeField                   time.Time
 	TxVersionCheckField                process.TxVersionCheckerHandler
+	NodeTypeProviderField              core.NodeTypeProviderHandler
 }
 
 // Create -
@@ -208,12 +209,17 @@ func (ccs *CoreComponentsStub) TxVersionChecker() process.TxVersionCheckerHandle
 
 // EncodedAddressLen -
 func (ccs *CoreComponentsStub) EncodedAddressLen() uint32 {
-	return uint32(ccs.AddressPubKeyConverter().Len()*2)
+	return uint32(ccs.AddressPubKeyConverter().Len() * 2)
 }
 
 // ChanStopNodeProcess -
 func (ccs *CoreComponentsStub) ChanStopNodeProcess() chan endProcess.ArgEndProcess {
 	return ccs.ChanStopNodeProcessField
+}
+
+// NodeTypeProvider -
+func (ccs *CoreComponentsStub) NodeTypeProvider() core.NodeTypeProviderHandler {
+	return ccs.NodeTypeProviderField
 }
 
 // IsInterfaceNil -

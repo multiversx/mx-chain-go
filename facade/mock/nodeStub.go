@@ -6,11 +6,11 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/api"
-	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
+	"github.com/ElrondNetwork/elrond-vm-common/data/esdt"
 )
 
 // NodeStub -
@@ -25,8 +25,8 @@ type NodeStub struct {
 	ValidateTransactionForSimulationCalled         func(tx *transaction.Transaction, bypassSignature bool) error
 	GetTransactionHandler                          func(hash string, withEvents bool) (*transaction.ApiTransactionResult, error)
 	SendBulkTransactionsHandler                    func(txs []*transaction.Transaction) (uint64, error)
-	GetAccountHandler                              func(address string) (state.UserAccountHandler, error)
-	GetCodeCalled                                  func(state.UserAccountHandler) []byte
+	GetAccountHandler                              func(address string) (api.AccountResponse, error)
+	GetCodeCalled                                  func(codeHash []byte) []byte
 	GetCurrentPublicKeyHandler                     func() string
 	GenerateAndSendBulkTransactionsHandler         func(destination string, value *big.Int, nrTransactions uint64) error
 	GenerateAndSendBulkTransactionsOneByOneHandler func(destination string, value *big.Int, nrTransactions uint64) error
@@ -42,6 +42,8 @@ type NodeStub struct {
 	GetUsernameCalled                              func(address string) (string, error)
 	GetESDTDataCalled                              func(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error)
 	GetAllESDTTokensCalled                         func(address string) (map[string]*esdt.ESDigitalToken, error)
+	GetNFTTokenIDsRegisteredByAddressCalled        func(address string) ([]string, error)
+	GetESDTsWithRoleCalled                         func(address string, role string) ([]string, error)
 	GetKeyValuePairsCalled                         func(address string) (map[string]string, error)
 	GetAllIssuedESDTsCalled                        func(tokenType string) ([]string, error)
 }
@@ -126,14 +128,14 @@ func (ns *NodeStub) SendBulkTransactions(txs []*transaction.Transaction) (uint64
 }
 
 // GetAccount -
-func (ns *NodeStub) GetAccount(address string) (state.UserAccountHandler, error) {
+func (ns *NodeStub) GetAccount(address string) (api.AccountResponse, error) {
 	return ns.GetAccountHandler(address)
 }
 
 // GetCode -
-func (ns *NodeStub) GetCode(account state.UserAccountHandler) []byte {
+func (ns *NodeStub) GetCode(codeHash []byte) []byte {
 	if ns.GetCodeCalled != nil {
-		return ns.GetCodeCalled(account)
+		return ns.GetCodeCalled(codeHash)
 	}
 
 	return nil
@@ -186,6 +188,15 @@ func (ns *NodeStub) GetESDTData(address, tokenID string, nonce uint64) (*esdt.ES
 	return &esdt.ESDigitalToken{Value: big.NewInt(0)}, nil
 }
 
+// GetESDTsWithRole -
+func (ns *NodeStub) GetESDTsWithRole(address string, role string) ([]string, error) {
+	if ns.GetESDTsWithRoleCalled != nil {
+		return ns.GetESDTsWithRoleCalled(address, role)
+	}
+
+	return make([]string, 0), nil
+}
+
 // GetAllESDTTokens -
 func (ns *NodeStub) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error) {
 	if ns.GetAllESDTTokensCalled != nil {
@@ -200,6 +211,15 @@ func (ns *NodeStub) GetAllIssuedESDTs(tokenType string) ([]string, error) {
 	if ns.GetAllIssuedESDTsCalled != nil {
 		return ns.GetAllIssuedESDTsCalled(tokenType)
 	}
+	return make([]string, 0), nil
+}
+
+// GetNFTTokenIDsRegisteredByAddress -
+func (ns *NodeStub) GetNFTTokenIDsRegisteredByAddress(address string) ([]string, error) {
+	if ns.GetNFTTokenIDsRegisteredByAddressCalled != nil {
+		return ns.GetNFTTokenIDsRegisteredByAddressCalled(address)
+	}
+
 	return make([]string, 0), nil
 }
 

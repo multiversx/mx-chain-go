@@ -1,7 +1,6 @@
 package node
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -11,7 +10,6 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
-	"runtime/pprof"
 	"syscall"
 	"time"
 
@@ -27,7 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/closing"
 	dbLookupFactory "github.com/ElrondNetwork/elrond-go/core/dblookupext/factory"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
-	"github.com/ElrondNetwork/elrond-go/core/logging"
+	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/facade"
@@ -47,9 +45,9 @@ import (
 )
 
 const (
-	defaultLogsPath = "logs"
-	logFilePrefix   = "elrond-go"
-	maxTimeToClose  = 10 * time.Second
+	maxTimeToClose = 10 * time.Second
+	// SoftRestartMessage is the custom message used when the node does a soft restart operation
+	SoftRestartMessage = "Shuffled out - soft restart"
 )
 
 // nodeRunner holds the node runner configuration and controls running of a node
@@ -75,22 +73,18 @@ func (nr *nodeRunner) Start() error {
 	configurationPaths := configs.ConfigurationPathsHolder
 	chanStopNodeProcess := make(chan endProcess.ArgEndProcess, 1)
 
-	log.Info("starting node", "version", flagsConfig.Version, "pid", os.Getpid())
-	log.Debug("config", "file", configurationPaths.Genesis)
-
 	enableGopsIfNeeded(flagsConfig.EnableGops)
 
-	fileLogging, err := nr.attachFileLogger()
-	if err != nil {
-		return err
-	}
-
+	var err error
 	configurationPaths.Nodes, err = nr.getNodesFileName()
 	if err != nil {
 		return err
 	}
 
 	log.Debug("config", "file", configurationPaths.Nodes)
+	log.Debug("config", "file", configurationPaths.Genesis)
+
+	log.Info("starting node", "version", flagsConfig.Version, "pid", os.Getpid())
 
 	err = cleanupStorageIfNecessary(flagsConfig.WorkingDir, flagsConfig.CleanupStorage)
 	if err != nil {
@@ -99,17 +93,11 @@ func (nr *nodeRunner) Start() error {
 
 	printEnableEpochs(nr.configs)
 
-	logGoroutinesNumber(0)
+	core.DumpGoRoutinesToLog(0)
 
 	err = nr.startShufflingProcessLoop(chanStopNodeProcess)
 	if err != nil {
 		return err
-	}
-
-	log.Debug("closing node")
-	if !check.IfNil(fileLogging) {
-		err = fileLogging.Close()
-		log.LogIfError(err)
 	}
 
 	return nil
@@ -150,6 +138,8 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("save jailed always"), "epoch", enableEpochs.SaveJailedAlwaysEnableEpoch)
 	log.Debug(readEpochFor("validator to delegation"), "epoch", enableEpochs.ValidatorToDelegationEnableEpoch)
 	log.Debug(readEpochFor("re-delegate below minimum check"), "epoch", enableEpochs.ReDelegateBelowMinCheckEnableEpoch)
+	log.Debug(readEpochFor("waiting waiting list"), "epoch", enableEpochs.WaitingListFixEnableEpoch)
+	log.Debug(readEpochFor("increment SCR nonce in multi transfer"), "epoch", enableEpochs.IncrementSCRNonceInMultiTransferEnableEpoch)
 
 	gasSchedule := configs.EpochConfig.GasSchedule
 
@@ -157,230 +147,278 @@ func printEnableEpochs(configs *config.Configs) {
 }
 
 func (nr *nodeRunner) startShufflingProcessLoop(
-	chanStopNodeProcess1 chan endProcess.ArgEndProcess,
+	chanStopNodeProcess chan endProcess.ArgEndProcess,
 ) error {
+	for {
+		log.Debug("\n\n====================Starting managedComponents creation================================")
+
+		shouldStop, err := nr.executeOneComponentCreationCycle(chanStopNodeProcess)
+		if shouldStop {
+			return err
+		}
+
+		nr.shuffleOutStatsAndGC()
+	}
+}
+
+func (nr *nodeRunner) shuffleOutStatsAndGC() {
+	debugConfig := nr.configs.GeneralConfig.Debug.ShuffleOut
+
+	extraMessage := ""
+	if debugConfig.CallGCWhenShuffleOut {
+		extraMessage = " before running GC"
+	}
+	if debugConfig.ExtraPrintsOnShuffleOut {
+		log.Debug("node statistics"+extraMessage, statistics.GetRuntimeStatistics()...)
+	}
+	if debugConfig.CallGCWhenShuffleOut {
+		log.Debug("running runtime.GC()")
+		runtime.GC()
+	}
+	shouldPrintAnotherNodeStatistics := debugConfig.CallGCWhenShuffleOut && debugConfig.ExtraPrintsOnShuffleOut
+	if shouldPrintAnotherNodeStatistics {
+		log.Debug("node statistics after running GC", statistics.GetRuntimeStatistics()...)
+	}
+
+	if debugConfig.DoProfileOnShuffleOut {
+		log.Debug("running profile job")
+		parentPath := filepath.Join(nr.configs.FlagsConfig.WorkingDir, nr.configs.GeneralConfig.Health.FolderPath)
+		var stats runtime.MemStats
+		runtime.ReadMemStats(&stats)
+		err := health.WriteMemoryUseInfo(stats, time.Now(), parentPath, "softrestart")
+		log.LogIfError(err)
+	}
+}
+
+func (nr *nodeRunner) executeOneComponentCreationCycle(
+	chanStopNodeProcess chan endProcess.ArgEndProcess,
+) (bool, error) {
+	goRoutinesNumberStart := runtime.NumGoroutine()
 	configs := nr.configs
 	flagsConfig := configs.FlagsConfig
 	configurationPaths := configs.ConfigurationPathsHolder
-	for {
-		goRoutinesNumberStart := runtime.NumGoroutine()
 
-		log.Debug("\n\n====================Starting managedComponents creation================================")
-
-		log.Debug("creating core components")
-		managedCoreComponents, err := nr.CreateManagedCoreComponents(
-			chanStopNodeProcess1,
-		)
-		if err != nil {
-			return err
-		}
-
-		log.Debug("creating crypto components")
-		managedCryptoComponents, err := nr.CreateManagedCryptoComponents(managedCoreComponents)
-		if err != nil {
-			return err
-		}
-
-		log.Debug("creating network components")
-		managedNetworkComponents, err := nr.CreateManagedNetworkComponents(managedCoreComponents)
-		if err != nil {
-			return err
-		}
-
-		log.Debug("creating disabled API services")
-		httpServerWrapper, err := nr.createInitialHttpServer()
-		if err != nil {
-			return err
-		}
-
-		log.Debug("creating bootstrap components")
-		managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
-		if err != nil {
-			return err
-		}
-
-		nr.logInformation(managedCoreComponents, managedCryptoComponents, managedBootstrapComponents)
-
-		log.Debug("creating state components")
-		managedStateComponents, err := nr.CreateManagedStateComponents(managedCoreComponents, managedBootstrapComponents)
-		if err != nil {
-			return err
-		}
-
-		log.Debug("creating data components")
-		managedDataComponents, err := nr.CreateManagedDataComponents(managedCoreComponents, managedBootstrapComponents)
-		if err != nil {
-			return err
-		}
-
-		log.Debug("creating healthService")
-		healthService := nr.createHealthService(flagsConfig, managedDataComponents)
-
-		log.Trace("creating metrics")
-		err = nr.createMetrics(managedCoreComponents, managedCryptoComponents, managedBootstrapComponents)
-		if err != nil {
-			return err
-		}
-
-		nodesShufflerOut, err := mainFactory.CreateNodesShuffleOut(
-			managedCoreComponents.GenesisNodesSetup(),
-			configs.GeneralConfig.EpochStartConfig,
-			managedCoreComponents.ChanStopNodeProcess(),
-		)
-		if err != nil {
-			return err
-		}
-
-		log.Debug("creating nodes coordinator")
-		nodesCoordinator, err := mainFactory.CreateNodesCoordinator(
-			nodesShufflerOut,
-			managedCoreComponents.GenesisNodesSetup(),
-			configs.PreferencesConfig.Preferences,
-			managedCoreComponents.EpochStartNotifierWithConfirm(),
-			managedCryptoComponents.PublicKey(),
-			managedCoreComponents.InternalMarshalizer(),
-			managedCoreComponents.Hasher(),
-			managedCoreComponents.Rater(),
-			managedDataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit),
-			managedCoreComponents.NodesShuffler(),
-			managedBootstrapComponents.ShardCoordinator().SelfId(),
-			managedBootstrapComponents.EpochBootstrapParams(),
-			managedBootstrapComponents.EpochBootstrapParams().Epoch(),
-		)
-		if err != nil {
-			return err
-		}
-
-		log.Trace("starting status pooling components")
-		managedStatusComponents, err := nr.CreateManagedStatusComponents(
-			managedCoreComponents,
-			managedNetworkComponents,
-			managedBootstrapComponents,
-			managedDataComponents,
-			managedStateComponents,
-			nodesCoordinator,
-			configurationPaths.ElasticSearchTemplatesPath,
-			configs.ImportDbConfig.IsImportDBMode,
-		)
-		if err != nil {
-			return err
-		}
-
-		argsGasScheduleNotifier := forking.ArgsNewGasScheduleNotifier{
-			GasScheduleConfig: configs.EpochConfig.GasSchedule,
-			ConfigDir:         configurationPaths.GasScheduleDirectoryName,
-			EpochNotifier:     managedCoreComponents.EpochNotifier(),
-		}
-		gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
-		if err != nil {
-			return err
-		}
-
-		log.Trace("creating process components")
-		managedProcessComponents, err := nr.CreateManagedProcessComponents(
-			managedCoreComponents,
-			managedCryptoComponents,
-			managedNetworkComponents,
-			managedBootstrapComponents,
-			managedStateComponents,
-			managedDataComponents,
-			managedStatusComponents,
-			gasScheduleNotifier,
-			nodesCoordinator,
-		)
-		if err != nil {
-			return err
-		}
-
-		managedStatusComponents.SetForkDetector(managedProcessComponents.ForkDetector())
-		err = managedStatusComponents.StartPolling()
-		if err != nil {
-			return err
-		}
-
-		elasticIndexer := managedStatusComponents.ElasticIndexer()
-		if !elasticIndexer.IsNilIndexer() {
-			elasticIndexer.SetTxLogsProcessor(managedProcessComponents.TxLogsProcessor())
-			managedProcessComponents.TxLogsProcessor().EnableLogToBeSavedInCache()
-		}
-
-		log.Debug("starting node...")
-
-		managedConsensusComponents, err := nr.CreateManagedConsensusComponents(
-			managedCoreComponents,
-			managedNetworkComponents,
-			managedCryptoComponents,
-			managedBootstrapComponents,
-			managedDataComponents,
-			managedStateComponents,
-			managedStatusComponents,
-			managedProcessComponents,
-			nodesCoordinator,
-			nodesShufflerOut,
-		)
-		if err != nil {
-			return err
-		}
-
-		managedHeartbeatComponents, err := nr.CreateManagedHeartbeatComponents(
-			managedCoreComponents,
-			managedNetworkComponents,
-			managedCryptoComponents,
-			managedDataComponents,
-			managedProcessComponents,
-			managedConsensusComponents.HardforkTrigger(),
-			managedProcessComponents.NodeRedundancyHandler(),
-		)
-
-		if err != nil {
-			return err
-		}
-
-		log.Trace("creating node structure")
-		currentNode, err := CreateNode(
-			configs.GeneralConfig,
-			managedBootstrapComponents,
-			managedCoreComponents,
-			managedCryptoComponents,
-			managedDataComponents,
-			managedNetworkComponents,
-			managedProcessComponents,
-			managedStateComponents,
-			managedStatusComponents,
-			managedHeartbeatComponents,
-			managedConsensusComponents,
-			flagsConfig.BootstrapRoundIndex,
-			configs.ImportDbConfig.IsImportDBMode,
-		)
-		if err != nil {
-			return err
-		}
-
-		if managedBootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
-			log.Trace("activating nodesCoordinator's validators indexing")
-			indexValidatorsListIfNeeded(
-				elasticIndexer,
-				nodesCoordinator,
-				managedProcessComponents.EpochStartTrigger().Epoch(),
-			)
-		}
-
-		log.Debug("updating the API service after creating the node facade")
-		ef, err := nr.createApiFacade(currentNode, httpServerWrapper, gasScheduleNotifier)
-		if err != nil {
-			return err
-		}
-
-		log.Info("application is now running")
-		sigs := make(chan os.Signal, 1)
-		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-
-		err = waitForSignal(sigs, managedCoreComponents.ChanStopNodeProcess(), healthService, ef, httpServerWrapper, currentNode, goRoutinesNumberStart)
-		if err != nil {
-			break
-		}
+	log.Debug("creating core components")
+	managedCoreComponents, err := nr.CreateManagedCoreComponents(
+		chanStopNodeProcess,
+	)
+	if err != nil {
+		return true, err
 	}
-	return nil
+
+	log.Debug("creating crypto components")
+	managedCryptoComponents, err := nr.CreateManagedCryptoComponents(managedCoreComponents)
+	if err != nil {
+		return true, err
+	}
+
+	log.Debug("creating network components")
+	managedNetworkComponents, err := nr.CreateManagedNetworkComponents(managedCoreComponents)
+	if err != nil {
+		return true, err
+	}
+
+	log.Debug("creating disabled API services")
+	httpServerWrapper, err := nr.createInitialHttpServer()
+	if err != nil {
+		return true, err
+	}
+
+	log.Debug("creating bootstrap components")
+	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
+	if err != nil {
+		return true, err
+	}
+
+	nr.logInformation(managedCoreComponents, managedCryptoComponents, managedBootstrapComponents)
+
+	log.Debug("creating state components")
+	managedStateComponents, err := nr.CreateManagedStateComponents(managedCoreComponents, managedBootstrapComponents)
+	if err != nil {
+		return true, err
+	}
+
+	log.Debug("creating data components")
+	managedDataComponents, err := nr.CreateManagedDataComponents(managedCoreComponents, managedBootstrapComponents)
+	if err != nil {
+		return true, err
+	}
+
+	log.Debug("creating healthService")
+	healthService := nr.createHealthService(flagsConfig, managedDataComponents)
+
+	log.Trace("creating metrics")
+	err = nr.createMetrics(managedCoreComponents, managedCryptoComponents, managedBootstrapComponents)
+	if err != nil {
+		return true, err
+	}
+
+	nodesShufflerOut, err := mainFactory.CreateNodesShuffleOut(
+		managedCoreComponents.GenesisNodesSetup(),
+		configs.GeneralConfig.EpochStartConfig,
+		managedCoreComponents.ChanStopNodeProcess(),
+	)
+	if err != nil {
+		return true, err
+	}
+
+	log.Debug("creating nodes coordinator")
+	nodesCoordinator, err := mainFactory.CreateNodesCoordinator(
+		nodesShufflerOut,
+		managedCoreComponents.GenesisNodesSetup(),
+		configs.PreferencesConfig.Preferences,
+		managedCoreComponents.EpochStartNotifierWithConfirm(),
+		managedCryptoComponents.PublicKey(),
+		managedCoreComponents.InternalMarshalizer(),
+		managedCoreComponents.Hasher(),
+		managedCoreComponents.Rater(),
+		managedDataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit),
+		managedCoreComponents.NodesShuffler(),
+		managedBootstrapComponents.ShardCoordinator().SelfId(),
+		managedBootstrapComponents.EpochBootstrapParams(),
+		managedBootstrapComponents.EpochBootstrapParams().Epoch(),
+		configs.EpochConfig.EnableEpochs.WaitingListFixEnableEpoch,
+		managedCoreComponents.ChanStopNodeProcess(),
+		managedCoreComponents.NodeTypeProvider(),
+	)
+	if err != nil {
+		return true, err
+	}
+
+	log.Trace("starting status pooling components")
+	managedStatusComponents, err := nr.CreateManagedStatusComponents(
+		managedCoreComponents,
+		managedNetworkComponents,
+		managedBootstrapComponents,
+		managedDataComponents,
+		managedStateComponents,
+		nodesCoordinator,
+		configurationPaths.ElasticSearchTemplatesPath,
+		configs.ImportDbConfig.IsImportDBMode,
+	)
+	if err != nil {
+		return true, err
+	}
+
+	argsGasScheduleNotifier := forking.ArgsNewGasScheduleNotifier{
+		GasScheduleConfig: configs.EpochConfig.GasSchedule,
+		ConfigDir:         configurationPaths.GasScheduleDirectoryName,
+		EpochNotifier:     managedCoreComponents.EpochNotifier(),
+	}
+	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
+	if err != nil {
+		return true, err
+	}
+
+	log.Trace("creating process components")
+	managedProcessComponents, err := nr.CreateManagedProcessComponents(
+		managedCoreComponents,
+		managedCryptoComponents,
+		managedNetworkComponents,
+		managedBootstrapComponents,
+		managedStateComponents,
+		managedDataComponents,
+		managedStatusComponents,
+		gasScheduleNotifier,
+		nodesCoordinator,
+	)
+	if err != nil {
+		return true, err
+	}
+
+	managedStatusComponents.SetForkDetector(managedProcessComponents.ForkDetector())
+	err = managedStatusComponents.StartPolling()
+	if err != nil {
+		return true, err
+	}
+
+	elasticIndexer := managedStatusComponents.ElasticIndexer()
+
+	log.Debug("starting node... executeOneComponentCreationCycle")
+
+	managedConsensusComponents, err := nr.CreateManagedConsensusComponents(
+		managedCoreComponents,
+		managedNetworkComponents,
+		managedCryptoComponents,
+		managedBootstrapComponents,
+		managedDataComponents,
+		managedStateComponents,
+		managedStatusComponents,
+		managedProcessComponents,
+		nodesCoordinator,
+		nodesShufflerOut,
+	)
+	if err != nil {
+		return true, err
+	}
+
+	managedHeartbeatComponents, err := nr.CreateManagedHeartbeatComponents(
+		managedCoreComponents,
+		managedNetworkComponents,
+		managedCryptoComponents,
+		managedDataComponents,
+		managedProcessComponents,
+		managedConsensusComponents.HardforkTrigger(),
+		managedProcessComponents.NodeRedundancyHandler(),
+	)
+
+	if err != nil {
+		return true, err
+	}
+
+	log.Trace("creating node structure")
+	currentNode, err := CreateNode(
+		configs.GeneralConfig,
+		managedBootstrapComponents,
+		managedCoreComponents,
+		managedCryptoComponents,
+		managedDataComponents,
+		managedNetworkComponents,
+		managedProcessComponents,
+		managedStateComponents,
+		managedStatusComponents,
+		managedHeartbeatComponents,
+		managedConsensusComponents,
+		flagsConfig.BootstrapRoundIndex,
+		configs.ImportDbConfig.IsImportDBMode,
+	)
+	if err != nil {
+		return true, err
+	}
+
+	if managedBootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
+		log.Trace("activating nodesCoordinator's validators indexing")
+		indexValidatorsListIfNeeded(
+			elasticIndexer,
+			nodesCoordinator,
+			managedProcessComponents.EpochStartTrigger().Epoch(),
+		)
+	}
+
+	log.Debug("updating the API service after creating the node facade")
+	ef, err := nr.createApiFacade(currentNode, httpServerWrapper, gasScheduleNotifier)
+	if err != nil {
+		return true, err
+	}
+
+	log.Info("application is now running")
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+	err = waitForSignal(
+		sigs,
+		managedCoreComponents.ChanStopNodeProcess(),
+		healthService,
+		ef,
+		httpServerWrapper,
+		currentNode,
+		goRoutinesNumberStart,
+	)
+	if err != nil {
+		return true, nil
+	}
+
+	return false, nil
 }
 
 func (nr *nodeRunner) createApiFacade(
@@ -646,6 +684,9 @@ func waitForSignal(
 ) error {
 	var sig endProcess.ArgEndProcess
 	reshuffled := false
+	wrongConfig := false
+	wrongConfigDescription := ""
+
 	select {
 	case <-sigs:
 		log.Info("terminating at user's signal...")
@@ -653,6 +694,10 @@ func waitForSignal(
 		log.Info("terminating at internal stop signal", "reason", sig.Reason, "description", sig.Description)
 		if sig.Reason == core.ShuffledOut {
 			reshuffled = true
+		}
+		if sig.Reason == core.WrongConfiguration {
+			wrongConfig = true
+			wrongConfigDescription = sig.Description
 		}
 	}
 
@@ -669,14 +714,23 @@ func waitForSignal(
 		return fmt.Errorf("did NOT close all components gracefully")
 	}
 
-	if reshuffled {
-		log.Info("=============================Shuffled out - soft restart==================================")
-		logGoroutinesNumber(goRoutinesNumberStart)
-	} else {
-		return fmt.Errorf("not reshuffled, closing")
+	if wrongConfig {
+		// hang the node's process because it cannot continue with the current configuration and a restart doesn't
+		// change this behaviour
+		for {
+			log.Error("wrong configuration. stopped processing", "description", wrongConfigDescription)
+			time.Sleep(1 * time.Minute)
+		}
 	}
 
-	return nil
+	if reshuffled {
+		log.Info("=============================" + SoftRestartMessage + "==================================")
+		core.DumpGoRoutinesToLog(goRoutinesNumberStart)
+
+		return nil
+	}
+
+	return fmt.Errorf("not reshuffled, closing")
 }
 
 func (nr *nodeRunner) logInformation(
@@ -715,26 +769,13 @@ func (nr *nodeRunner) getNodesFileName() (string, error) {
 	exportFolder := filepath.Join(flagsConfig.WorkingDir, nr.configs.GeneralConfig.Hardfork.ImportFolder)
 	if nr.configs.GeneralConfig.Hardfork.AfterHardFork {
 		exportFolderNodesSetupPath := filepath.Join(exportFolder, core.NodesSetupJsonFileName)
-		if !core.DoesFileExist(exportFolderNodesSetupPath) {
+		if !core.FileExists(exportFolderNodesSetupPath) {
 			return "", fmt.Errorf("cannot find %s in the export folder", core.NodesSetupJsonFileName)
 		}
 
 		nodesFileName = exportFolderNodesSetupPath
 	}
 	return nodesFileName, nil
-}
-
-func logGoroutinesNumber(goRoutinesNumberStart int) {
-	buffer := new(bytes.Buffer)
-	err := pprof.Lookup("goroutine").WriteTo(buffer, 2)
-	if err != nil {
-		log.Error("could not dump goroutines")
-	}
-	log.Debug("go routines number",
-		"start", goRoutinesNumberStart,
-		"end", runtime.NumGoroutine())
-
-	log.Debug(buffer.String())
 }
 
 // CreateManagedStatusComponents is the managed status components factory
@@ -948,6 +989,7 @@ func (nr *nodeRunner) CreateManagedDataComponents(
 
 	dataArgs := mainFactory.DataComponentsFactoryArgs{
 		Config:                        *configs.GeneralConfig,
+		PrefsConfig:                   configs.PreferencesConfig.Preferences,
 		ShardCoordinator:              managedBootstrapComponents.ShardCoordinator(),
 		Core:                          managedCoreComponents,
 		EpochStartNotifier:            managedCoreComponents.EpochStartNotifierWithConfirm(),
@@ -1050,6 +1092,10 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 func (nr *nodeRunner) CreateManagedNetworkComponents(
 	managedCoreComponents mainFactory.CoreComponentsHandler,
 ) (mainFactory.NetworkComponentsHandler, error) {
+	decodedPreferredPubKeys, err := decodeValidatorPubKeys(*nr.configs.PreferencesConfig, managedCoreComponents.ValidatorPubKeyConverter())
+	if err != nil {
+		return nil, err
+	}
 
 	networkComponentsFactoryArgs := mainFactory.NetworkComponentsFactoryArgs{
 		P2pConfig:            *nr.configs.P2pConfig,
@@ -1058,6 +1104,7 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 		StatusHandler:        managedCoreComponents.StatusHandler(),
 		Marshalizer:          managedCoreComponents.InternalMarshalizer(),
 		Syncer:               managedCoreComponents.SyncTimer(),
+		PreferredPublicKeys:  decodedPreferredPubKeys,
 		BootstrapWaitSeconds: core.SecondsToWaitForP2PBootstrap,
 	}
 	if nr.configs.ImportDbConfig.IsImportDBMode {
@@ -1084,12 +1131,7 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 func (nr *nodeRunner) CreateManagedCoreComponents(
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 ) (mainFactory.CoreComponentsHandler, error) {
-
-	statusHandlersFactoryArgs := &factory.StatusHandlersFactoryArgs{
-		UseTermUI: !nr.configs.FlagsConfig.UseLogView,
-	}
-
-	statusHandlersFactory, err := factory.NewStatusHandlersFactory(statusHandlersFactoryArgs)
+	statusHandlersFactory, err := factory.NewStatusHandlersFactory()
 	if err != nil {
 		return nil, err
 	}
@@ -1210,17 +1252,16 @@ func createStringFromRatingsData(ratingsData process.RatingsInfoHandler) string 
 }
 
 func cleanupStorageIfNecessary(workingDir string, cleanupStorage bool) error {
-	if cleanupStorage {
-		dbPath := filepath.Join(
-			workingDir,
-			core.DefaultDBPath)
-		log.Trace("cleaning storage", "path", dbPath)
-		err := os.RemoveAll(dbPath)
-		if err != nil {
-			return err
-		}
+	if !cleanupStorage {
+		return nil
 	}
-	return nil
+
+	dbPath := filepath.Join(
+		workingDir,
+		core.DefaultDBPath)
+	log.Trace("cleaning storage", "path", dbPath)
+
+	return os.RemoveAll(dbPath)
 }
 
 func copyConfigToStatsFolder(statsFolder string, gasScheduleFolder string, configs []string) {
@@ -1326,55 +1367,24 @@ func enableGopsIfNeeded(gopsEnabled bool) {
 	log.Trace("gops", "enabled", gopsEnabled)
 }
 
+func decodeValidatorPubKeys(prefConfig config.Preferences, validatorPubKeyConverter core.PubkeyConverter) ([][]byte, error) {
+	decodedPublicKeys := make([][]byte, 0)
+	for _, pubKey := range prefConfig.Preferences.PreferredConnections {
+		pubKeyBytes, err := validatorPubKeyConverter.Decode(pubKey)
+		if err != nil {
+			return nil, fmt.Errorf("cannot decode preferred public key(%s) : %w", pubKey, err)
+		}
+
+		decodedPublicKeys = append(decodedPublicKeys, pubKeyBytes)
+	}
+
+	return decodedPublicKeys, nil
+}
+
 func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteListHandler, error) {
 	whiteListCacheVerified, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(generalConfig.WhiteListerVerifiedTxs))
 	if err != nil {
 		return nil, err
 	}
 	return interceptors.NewWhiteListDataVerifier(whiteListCacheVerified)
-}
-
-func (nr *nodeRunner) attachFileLogger() (factory.FileLoggingHandler, error) {
-	configs := nr.configs
-	flagsConfig := configs.FlagsConfig
-	var fileLogging factory.FileLoggingHandler
-	var err error
-	if flagsConfig.SaveLogFile {
-		fileLogging, err = logging.NewFileLogging(flagsConfig.WorkingDir, defaultLogsPath, logFilePrefix)
-		if err != nil {
-			return nil, fmt.Errorf("%w creating a log file", err)
-		}
-	}
-
-	err = logger.SetDisplayByteSlice(logger.ToHex)
-	log.LogIfError(err)
-	logger.ToggleCorrelation(flagsConfig.EnableLogCorrelation)
-	logger.ToggleLoggerName(flagsConfig.EnableLogName)
-	logLevelFlagValue := flagsConfig.LogLevel
-	err = logger.SetLogLevel(logLevelFlagValue)
-	if err != nil {
-		return nil, err
-	}
-
-	if flagsConfig.DisableAnsiColor {
-		err = logger.RemoveLogObserver(os.Stdout)
-		if err != nil {
-			return nil, err
-		}
-
-		err = logger.AddLogObserver(os.Stdout, &logger.PlainFormatter{})
-		if err != nil {
-			return nil, err
-		}
-	}
-	log.Trace("logger updated", "level", logLevelFlagValue, "disable ANSI color", flagsConfig.DisableAnsiColor)
-
-	if !check.IfNil(fileLogging) {
-		err = fileLogging.ChangeFileLifeSpan(time.Second * time.Duration(configs.GeneralConfig.Logs.LogFileLifeSpanInSec))
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return fileLogging, nil
 }

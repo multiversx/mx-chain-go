@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -90,7 +91,7 @@ func createMockArgument(
 		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 		ValidityAttester:        &mock.ValidityAttesterStub{},
 		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
-		WhiteListerVerifiedTxs:  &mock.WhiteListHandlerStub{},
+		WhiteListerVerifiedTxs:  &testscommon.WhiteListHandlerStub{},
 		ArgsParser:              &mock.ArgumentParserMock{},
 		PeerSignatureHandler:    &mock.PeerSignatureHandlerStub{},
 	}

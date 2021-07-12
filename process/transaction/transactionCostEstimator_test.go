@@ -1,38 +1,27 @@
 package transaction
 
 import (
+	"errors"
+	"math"
 	"math/big"
+	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
-
-func createGasMap(value uint64) map[string]map[string]uint64 {
-	gasMap := make(map[string]map[string]uint64)
-
-	baseOpMap := make(map[string]uint64)
-
-	baseOpMap["StorePerByte"] = value
-	baseOpMap["CompilePerByte"] = value
-	baseOpMap["AoTPreparePerByte"] = value
-	baseOpMap["GetCode"] = value
-	gasMap[core.BaseOperationCost] = baseOpMap
-
-	return gasMap
-}
 
 func TestTransactionCostEstimator_NilTxTypeHandler(t *testing.T) {
 	t.Parallel()
 
-	gasSchedule := mock.NewGasScheduleNotifierMock(createGasMap(1))
-	tce, err := NewTransactionCostEstimator(nil, &mock.FeeHandlerStub{}, &mock.ScQueryStub{}, gasSchedule)
+	tce, err := NewTransactionCostEstimator(nil, &mock.FeeHandlerStub{}, &mock.TransactionSimulatorStub{}, &testscommon.AccountsStub{}, &mock.ShardCoordinatorStub{})
 
 	require.Nil(t, tce)
 	require.Equal(t, process.ErrNilTxTypeHandler, err)
@@ -41,28 +30,25 @@ func TestTransactionCostEstimator_NilTxTypeHandler(t *testing.T) {
 func TestTransactionCostEstimator_NilFeeHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	gasSchedule := mock.NewGasScheduleNotifierMock(createGasMap(1))
-	tce, err := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{}, nil, &mock.ScQueryStub{}, gasSchedule)
+	tce, err := NewTransactionCostEstimator(&testscommon.TxTypeHandlerMock{}, nil, &mock.TransactionSimulatorStub{}, &testscommon.AccountsStub{}, &mock.ShardCoordinatorStub{})
 
 	require.Nil(t, tce)
 	require.Equal(t, process.ErrNilEconomicsFeeHandler, err)
 }
 
-func TestTransactionCostEstimator_NilQueryServiceShouldErr(t *testing.T) {
+func TestTransactionCostEstimator_NilTransactionSimulatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	gasSchedule := mock.NewGasScheduleNotifierMock(createGasMap(1))
-	tce, err := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{}, &mock.FeeHandlerStub{}, nil, gasSchedule)
+	tce, err := NewTransactionCostEstimator(&testscommon.TxTypeHandlerMock{}, &mock.FeeHandlerStub{}, nil, &testscommon.AccountsStub{}, &mock.ShardCoordinatorStub{})
 
 	require.Nil(t, tce)
-	require.Equal(t, external.ErrNilSCQueryService, err)
+	require.Equal(t, txsimulator.ErrNilTxSimulatorProcessor, err)
 }
 
 func TestTransactionCostEstimator_Ok(t *testing.T) {
 	t.Parallel()
 
-	gasSchedule := mock.NewGasScheduleNotifierMock(createGasMap(1))
-	tce, err := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{}, &mock.FeeHandlerStub{}, &mock.ScQueryStub{}, gasSchedule)
+	tce, err := NewTransactionCostEstimator(&testscommon.TxTypeHandlerMock{}, &mock.FeeHandlerStub{}, &mock.TransactionSimulatorStub{}, &testscommon.AccountsStub{}, &mock.ShardCoordinatorStub{})
 
 	require.Nil(t, err)
 	require.False(t, check.IfNil(tce))
@@ -71,17 +57,27 @@ func TestTransactionCostEstimator_Ok(t *testing.T) {
 func TestComputeTransactionGasLimit_MoveBalance(t *testing.T) {
 	t.Parallel()
 
-	gasSchedule := mock.NewGasScheduleNotifierMock(createGasMap(1))
 	consumedGasUnits := uint64(1000)
-	tce, _ := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{
+	tce, _ := NewTransactionCostEstimator(&testscommon.TxTypeHandlerMock{
 		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 			return process.MoveBalance, process.MoveBalance
 		},
 	}, &mock.FeeHandlerStub{
+		MaxGasLimitPerBlockCalled: func() uint64 {
+			return math.MaxUint64
+		},
 		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
 			return consumedGasUnits
 		},
-	}, &mock.ScQueryStub{}, gasSchedule)
+	}, &mock.TransactionSimulatorStub{
+		ProcessTxCalled: func(tx *transaction.Transaction) (*transaction.SimulationResults, error) {
+			return &transaction.SimulationResults{}, nil
+		},
+	}, &testscommon.AccountsStub{
+		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
+			return &mock.UserAccountStub{Balance: big.NewInt(100000)}, nil
+		},
+	}, &mock.ShardCoordinatorStub{})
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -90,94 +86,142 @@ func TestComputeTransactionGasLimit_MoveBalance(t *testing.T) {
 }
 
 func TestComputeTransactionGasLimit_BuiltInFunction(t *testing.T) {
-	gasSchedule := mock.NewGasScheduleNotifierMock(createGasMap(1))
-	consumedGasUnits := uint64(5000)
-	tce, _ := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{
+	consumedGasUnits := uint64(4000)
+	tce, _ := NewTransactionCostEstimator(&testscommon.TxTypeHandlerMock{
 		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
 		},
 	}, &mock.FeeHandlerStub{
-		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
-			return consumedGasUnits
+		MaxGasLimitPerBlockCalled: func() uint64 {
+			return math.MaxUint64
 		},
-	}, &mock.ScQueryStub{
-		ComputeScCallGasLimitHandler: func(tx *transaction.Transaction) (uint64, error) {
-			return 1000, nil
-		},
-	}, gasSchedule)
+	},
+		&mock.TransactionSimulatorStub{
+			ProcessTxCalled: func(tx *transaction.Transaction) (*transaction.SimulationResults, error) {
+				return &transaction.SimulationResults{
+					VMOutput: &vmcommon.VMOutput{
+						ReturnCode:   vmcommon.Ok,
+						GasRemaining: math.MaxUint64 - 1 - consumedGasUnits,
+					},
+				}, nil
+			},
+		}, &testscommon.AccountsStub{
+			LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
+				return &mock.UserAccountStub{Balance: big.NewInt(100000)}, nil
+			},
+		}, &mock.ShardCoordinatorStub{})
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
 	require.Nil(t, err)
-	require.Equal(t, consumedGasUnits+uint64(1000), cost.GasUnits)
+	require.Equal(t, consumedGasUnits, cost.GasUnits)
 }
 
-func TestComputeTransactionGasLimit_SmartContractDeploy(t *testing.T) {
-	t.Parallel()
-
-	gasSchedule := mock.NewGasScheduleNotifierMock(createGasMap(2))
-	gasLimitBaseTx := uint64(500)
-	tce, _ := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{
+func TestComputeTransactionGasLimit_BuiltInFunctionShouldErr(t *testing.T) {
+	localErr := errors.New("local err")
+	tce, _ := NewTransactionCostEstimator(&testscommon.TxTypeHandlerMock{
 		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-			return process.SCDeployment, process.SCDeployment
+			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
 		},
 	}, &mock.FeeHandlerStub{
-		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
-			return gasLimitBaseTx
+		MaxGasLimitPerBlockCalled: func() uint64 {
+			return math.MaxUint64
 		},
-	}, &mock.ScQueryStub{}, gasSchedule)
-
-	tx := &transaction.Transaction{
-		Data: []byte("data"),
-	}
-	cost, err := tce.ComputeTransactionGasLimit(tx)
-	require.Nil(t, err)
-	require.Equal(t, gasLimitBaseTx+uint64(16), cost.GasUnits)
-}
-
-func TestComputeTransactionGasLimit_SmartContractCall(t *testing.T) {
-	t.Parallel()
-
-	gasSchedule := mock.NewGasScheduleNotifierMock(createGasMap(1))
-	gasLimitBaseTx := uint64(500)
-	consumedGasUnits := big.NewInt(1000)
-	tce, _ := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-			return process.SCInvoking, process.SCInvoking
-		},
-	}, &mock.FeeHandlerStub{
-		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
-			return gasLimitBaseTx
-		},
-	}, &mock.ScQueryStub{
-		ComputeScCallGasLimitHandler: func(tx *transaction.Transaction) (u uint64, err error) {
-			return consumedGasUnits.Uint64(), nil
-		},
-	}, gasSchedule)
+	},
+		&mock.TransactionSimulatorStub{
+			ProcessTxCalled: func(tx *transaction.Transaction) (*transaction.SimulationResults, error) {
+				return nil, localErr
+			},
+		}, &testscommon.AccountsStub{
+			LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
+				return &mock.UserAccountStub{Balance: big.NewInt(100000)}, nil
+			},
+		}, &mock.ShardCoordinatorStub{})
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
 	require.Nil(t, err)
-	require.Equal(t, consumedGasUnits.Uint64()+gasLimitBaseTx, cost.GasUnits)
+	require.Equal(t, localErr.Error(), cost.ReturnMessage)
+}
+
+func TestComputeTransactionGasLimit_NilVMOutput(t *testing.T) {
+	tce, _ := NewTransactionCostEstimator(&testscommon.TxTypeHandlerMock{
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
+		},
+	}, &mock.FeeHandlerStub{
+		MaxGasLimitPerBlockCalled: func() uint64 {
+			return math.MaxUint64
+		},
+	},
+		&mock.TransactionSimulatorStub{
+			ProcessTxCalled: func(tx *transaction.Transaction) (*transaction.SimulationResults, error) {
+				return &transaction.SimulationResults{}, nil
+			},
+		}, &testscommon.AccountsStub{
+			LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
+				return &mock.UserAccountStub{Balance: big.NewInt(100000)}, nil
+			},
+		}, &mock.ShardCoordinatorStub{})
+
+	tx := &transaction.Transaction{}
+	cost, err := tce.ComputeTransactionGasLimit(tx)
+	require.Nil(t, err)
+	require.Equal(t, process.ErrNilVMOutput.Error(), cost.ReturnMessage)
+}
+
+func TestComputeTransactionGasLimit_RetCodeNotOk(t *testing.T) {
+	tce, _ := NewTransactionCostEstimator(&testscommon.TxTypeHandlerMock{
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
+		},
+	}, &mock.FeeHandlerStub{
+		MaxGasLimitPerBlockCalled: func() uint64 {
+			return math.MaxUint64
+		},
+	},
+		&mock.TransactionSimulatorStub{
+			ProcessTxCalled: func(tx *transaction.Transaction) (*transaction.SimulationResults, error) {
+				return &transaction.SimulationResults{
+					VMOutput: &vmcommon.VMOutput{
+						ReturnCode: vmcommon.UserError,
+					},
+				}, nil
+			},
+		}, &testscommon.AccountsStub{
+			LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
+				return &mock.UserAccountStub{Balance: big.NewInt(100000)}, nil
+			},
+		}, &mock.ShardCoordinatorStub{})
+
+	tx := &transaction.Transaction{}
+	cost, err := tce.ComputeTransactionGasLimit(tx)
+	require.Nil(t, err)
+	require.True(t, strings.Contains(cost.ReturnMessage, vmcommon.UserError.String()))
 }
 
 func TestTransactionCostEstimator_RelayedTxShouldErr(t *testing.T) {
 	t.Parallel()
 
-	gasSchedule := mock.NewGasScheduleNotifierMock(createGasMap(1))
 	tce, _ := NewTransactionCostEstimator(
-		&mock.TxTypeHandlerMock{
+		&testscommon.TxTypeHandlerMock{
 			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 				return process.RelayedTx, process.RelayedTx
 			},
 		},
 		&mock.FeeHandlerStub{},
-		&mock.ScQueryStub{},
-		gasSchedule,
+		&mock.TransactionSimulatorStub{}, &testscommon.AccountsStub{}, &mock.ShardCoordinatorStub{},
 	)
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
 	require.Nil(t, err)
-	require.Equal(t, "cannot compute cost of the relayed transaction", cost.RetMessage)
+	require.Equal(t, "cannot compute cost of the relayed transaction", cost.ReturnMessage)
+}
+func TestExtractGasNeededFromMessage(t *testing.T) {
+	t.Parallel()
+
+	require.Equal(t, uint64(500000000), extractGasRemainedFromMessage("too much gas provided, gas needed = 10000, gas remained = 500000000"))
+	require.Equal(t, uint64(0), extractGasRemainedFromMessage(""))
+	require.Equal(t, uint64(0), extractGasRemainedFromMessage("too much gas provided, gas needed = 10000, gas remained = wrong"))
 }

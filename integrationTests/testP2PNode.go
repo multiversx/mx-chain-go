@@ -27,6 +27,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
 )
 
@@ -83,6 +85,7 @@ func NewTestP2PNode(
 		FallbackPkShardCache:  pkShardId,
 		FallbackPidShardCache: pidShardId,
 		NodesCoordinator:      coordinator,
+		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
 		StartEpoch:            startInEpoch,
 	}
 	tP2pNode.NetworkShardingUpdater, err = networksharding.NewPeerShardMapper(arg)
@@ -92,7 +95,7 @@ func NewTestP2PNode(
 
 	tP2pNode.Messenger = CreateMessengerFromConfig(p2pConfig)
 	localId := tP2pNode.Messenger.ID()
-	tP2pNode.NetworkShardingUpdater.UpdatePeerIdShardId(localId, shardCoordinator.SelfId())
+	tP2pNode.NetworkShardingUpdater.UpdatePeerIDInfo(localId, []byte(""), shardCoordinator.SelfId())
 
 	err = tP2pNode.Messenger.SetPeerShardResolver(tP2pNode.NetworkShardingUpdater)
 	if err != nil {
@@ -328,21 +331,25 @@ func CreateNodesWithTestP2PNodes(
 	cache, _ := storageUnit.NewCache(cacherCfg)
 	for shardId, validatorList := range validatorsMap {
 		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
-			ShardConsensusGroupSize: shardConsensusGroupSize,
-			MetaConsensusGroupSize:  metaConsensusGroupSize,
-			Marshalizer:             TestMarshalizer,
-			Hasher:                  TestHasher,
-			ShardIDAsObserver:       shardId,
-			NbShards:                uint32(numShards),
-			EligibleNodes:           validatorsForNodesCoordinator,
-			SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
-			ConsensusGroupCache:     cache,
-			Shuffler:                &mock.NodeShufflerMock{},
-			BootStorer:              CreateMemUnit(),
-			WaitingNodes:            make(map[uint32][]sharding.Validator),
-			Epoch:                   0,
-			EpochStartNotifier:      notifier.NewEpochStartSubscriptionHandler(),
-			ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
+			ShardConsensusGroupSize:    shardConsensusGroupSize,
+			MetaConsensusGroupSize:     metaConsensusGroupSize,
+			Marshalizer:                TestMarshalizer,
+			Hasher:                     TestHasher,
+			ShardIDAsObserver:          shardId,
+			NbShards:                   uint32(numShards),
+			EligibleNodes:              validatorsForNodesCoordinator,
+			SelfPublicKey:              []byte(strconv.Itoa(int(shardId))),
+			ConsensusGroupCache:        cache,
+			Shuffler:                   &mock.NodeShufflerMock{},
+			BootStorer:                 CreateMemUnit(),
+			WaitingNodes:               make(map[uint32][]sharding.Validator),
+			Epoch:                      0,
+			EpochStartNotifier:         notifier.NewEpochStartSubscriptionHandler(),
+			ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
+			WaitingListFixEnabledEpoch: 0,
+			ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
+			NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
+			IsFullArchive:              false,
 		}
 		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 		log.LogIfError(err)
@@ -369,21 +376,25 @@ func CreateNodesWithTestP2PNodes(
 			}
 
 			argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
-				ShardConsensusGroupSize: shardConsensusGroupSize,
-				MetaConsensusGroupSize:  metaConsensusGroupSize,
-				Marshalizer:             TestMarshalizer,
-				Hasher:                  TestHasher,
-				ShardIDAsObserver:       shardId,
-				NbShards:                uint32(numShards),
-				EligibleNodes:           validatorsForNodesCoordinator,
-				SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
-				ConsensusGroupCache:     cache,
-				Shuffler:                &mock.NodeShufflerMock{},
-				BootStorer:              CreateMemUnit(),
-				WaitingNodes:            make(map[uint32][]sharding.Validator),
-				Epoch:                   0,
-				EpochStartNotifier:      notifier.NewEpochStartSubscriptionHandler(),
-				ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
+				ShardConsensusGroupSize:    shardConsensusGroupSize,
+				MetaConsensusGroupSize:     metaConsensusGroupSize,
+				Marshalizer:                TestMarshalizer,
+				Hasher:                     TestHasher,
+				ShardIDAsObserver:          shardId,
+				NbShards:                   uint32(numShards),
+				EligibleNodes:              validatorsForNodesCoordinator,
+				SelfPublicKey:              []byte(strconv.Itoa(int(shardId))),
+				ConsensusGroupCache:        cache,
+				Shuffler:                   &mock.NodeShufflerMock{},
+				BootStorer:                 CreateMemUnit(),
+				WaitingNodes:               make(map[uint32][]sharding.Validator),
+				Epoch:                      0,
+				EpochStartNotifier:         notifier.NewEpochStartSubscriptionHandler(),
+				ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
+				WaitingListFixEnabledEpoch: 0,
+				ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
+				NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
+				IsFullArchive:              false,
 			}
 			nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 			log.LogIfError(err)

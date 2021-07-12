@@ -4,15 +4,15 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/api"
-	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/data/esdt"
 )
 
 // NodeHandler contains all functions that a node should contain.
@@ -35,6 +35,12 @@ type NodeHandler interface {
 	// GetESDTData returns the esdt data from a given account, given key and given nonce
 	GetESDTData(address, tokenID string, nonce uint64) (*esdt.ESDigitalToken, error)
 
+	// GetNFTTokenIDsRegisteredByAddress returns all the token identifiers for semi or non fungible tokens registered by the address
+	GetNFTTokenIDsRegisteredByAddress(address string) ([]string, error)
+
+	// GetESDTsWithRole returns the token identifiers where the specified address has the given role
+	GetESDTsWithRole(address string, role string) ([]string, error)
+
 	// GetAllESDTTokens returns the value of a key from a given account
 	GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error)
 
@@ -54,10 +60,10 @@ type NodeHandler interface {
 
 	// GetAccount returns an accountResponse containing information
 	//  about the account correlated with provided address
-	GetAccount(address string) (state.UserAccountHandler, error)
+	GetAccount(address string) (api.AccountResponse, error)
 
-	// GetCode returns the code for the given account
-	GetCode(account state.UserAccountHandler) []byte
+	// GetCode returns the code for the given code hash
+	GetCode(codeHash []byte) []byte
 
 	// GetHeartbeats returns the heartbeat status for each public key defined in genesis.json
 	GetHeartbeats() []data.PubKeyHeartbeat

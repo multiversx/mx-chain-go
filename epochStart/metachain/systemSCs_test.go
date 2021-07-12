@@ -17,13 +17,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
+	dataMock "github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
+	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager"
+	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
@@ -38,7 +40,6 @@ import (
 	vmFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	metaProcess "github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/peer"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -47,6 +48,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -864,7 +867,9 @@ func createAccountsDB(
 	trieStorageManager data.StorageManager,
 ) *state.AccountsDB {
 	tr, _ := trie.NewTrie(trieStorageManager, marshalizer, hasher, 5)
-	adb, _ := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory)
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(10, dataMock.NewMemDbMock(), marshalizer)
+	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
+	adb, _ := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory, spm)
 	return adb
 }
 
@@ -903,7 +908,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 		ShardCoordinator:   &mock.ShardCoordinatorStub{},
 		Marshalizer:        marshalizer,
 		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
+		BuiltInFunctions:   vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
 		DataPool:           testDataPool,
 		CompiledSCPool:     testDataPool.SmartContracts(),
 		NilCompiledSCStore: true,
@@ -928,11 +933,13 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 				OwnerAddress:    "aaaaaa",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
-				ProposalCost:     "500",
-				NumNodes:         100,
-				MinQuorum:        50,
-				MinPassThreshold: 50,
-				MinVetoThreshold: 50,
+				Active: config.GovernanceSystemSCConfigActive{
+					ProposalCost:     "500",
+					MinQuorum:        "50",
+					MinPassThreshold: "50",
+					MinVetoThreshold: "50",
+				},
+				FirstWhitelistedAddress: "3132333435363738393031323334353637383930313233343536373839303234",
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     "1000",
@@ -950,7 +957,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 				MinCreationDeposit:  "100",
 				MinStakeAmount:      "100",
-				ConfigChangeAddress: "aabb00",
+				ConfigChangeAddress: "3132333435363738393031323334353637383930313233343536373839303234",
 			},
 			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
 				MinServiceFee: 0,
@@ -968,6 +975,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 				DelegationSmartContractEnableEpoch: 0,
 			},
 		},
+		ShardCoordinator: &mock.ShardCoordinatorStub{},
 	}
 	metaVmFactory, _ := metaProcess.NewVMContainerFactory(argsNewVMContainerFactory)
 
@@ -989,8 +997,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 		ChanceComputer:          &mock.ChanceComputerStub{},
 		EpochNotifier:           epochNotifier,
 		GenesisNodesConfig:      nodesSetup,
-
-		StakingDataProvider: stakingSCprovider,
+		StakingDataProvider:     stakingSCprovider,
 		NodesConfigProvider: &mock.NodesCoordinatorStub{
 			ConsensusGroupSizeCalled: func(shardID uint32) int {
 				if shardID == core.MetachainShardId {

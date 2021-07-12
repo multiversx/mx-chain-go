@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // VMOutputApi is a wrapper over the vmcommon's VMOutput

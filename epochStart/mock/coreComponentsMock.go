@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -28,7 +29,26 @@ type CoreComponentsMock struct {
 	StatusHandlerCalled         func() core.AppStatusHandler
 	GenesisNodesSetupCalled     func() sharding.GenesisNodesSetupHandler
 	TxVersionCheckField         process.TxVersionCheckerHandler
+	ChanStopNode                chan endProcess.ArgEndProcess
+	NodeTypeProviderField       core.NodeTypeProviderHandler
 	mutCore                     sync.RWMutex
+}
+
+// ChanStopNodeProcess -
+func (ccm *CoreComponentsMock) ChanStopNodeProcess() chan endProcess.ArgEndProcess {
+	ccm.mutCore.RLock()
+	defer ccm.mutCore.RUnlock()
+
+	if ccm.ChanStopNode != nil {
+		return ccm.ChanStopNode
+	}
+
+	return endProcess.GetDummyEndProcessChannel()
+}
+
+// NodeTypeProvider -
+func (ccm *CoreComponentsMock) NodeTypeProvider() core.NodeTypeProviderHandler {
+	return ccm.NodeTypeProviderField
 }
 
 // InternalMarshalizer -

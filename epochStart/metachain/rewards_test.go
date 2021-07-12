@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -523,13 +524,13 @@ func TestRewardsCreator_SaveTxBlockToStorage(t *testing.T) {
 	putMbWasCalled := false
 
 	args := getRewardsArguments()
-	args.RewardsStorage = &mock.StorerStub{
+	args.RewardsStorage = &testscommon.StorerStub{
 		PutCalled: func(_, _ []byte) error {
 			putRwdTxWasCalled = true
 			return nil
 		},
 	}
-	args.MiniBlockStorage = &mock.StorerStub{
+	args.MiniBlockStorage = &testscommon.StorerStub{
 		PutCalled: func(_, _ []byte) error {
 			putMbWasCalled = true
 			return nil

@@ -70,9 +70,6 @@ var ErrHashNotFound = errors.New("hash not found")
 // ErrNilTrieStorage is raised when a nil trie storage is provided
 var ErrNilTrieStorage = errors.New("nil trie storage provided")
 
-// ErrNilEvictionWaitingList is raised when a nil eviction waiting list is provided
-var ErrNilEvictionWaitingList = errors.New("nil eviction waiting list provided")
-
 // ErrNilPathManager signals that a nil path manager has been provided
 var ErrNilPathManager = errors.New("nil path manager")
 
@@ -81,9 +78,6 @@ var ErrInvalidTrieTopic = errors.New("invalid trie topic")
 
 // ErrNilContext signals that nil context has been provided
 var ErrNilContext = errors.New("nil context")
-
-// ErrInvalidIdentifier signals that the root hash has an  invalid identifier
-var ErrInvalidIdentifier = errors.New("invalid identifier")
 
 // ErrInvalidLevelValue signals that the given value for maxTrieLevelInMemory is invalid
 var ErrInvalidLevelValue = errors.New("invalid trie level in memory value")
@@ -102,3 +96,6 @@ var ErrInvalidMaxHardCapForMissingNodes = errors.New("invalid max hardcap for mi
 
 // ErrInvalidTrieSyncerVersion signals that an invalid trie syncer version was provided
 var ErrInvalidTrieSyncerVersion = errors.New("invalid trie syncer version")
+
+// ErrNilCheckpointHashesHolder signals that a nil checkpoint hashes holder was provided
+var ErrNilCheckpointHashesHolder = errors.New("nil checkpoint hashes holder")

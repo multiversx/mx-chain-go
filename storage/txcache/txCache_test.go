@@ -399,6 +399,9 @@ func Test_NotImplementedFunctions(t *testing.T) {
 
 	require.NotPanics(t, func() { cache.RegisterHandler(nil, "") })
 	require.Zero(t, cache.MaxSize())
+
+	err := cache.Close()
+	require.Nil(t, err)
 }
 
 func Test_IsInterfaceNil(t *testing.T) {

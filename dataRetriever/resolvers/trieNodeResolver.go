@@ -11,9 +11,6 @@ import (
 
 var _ dataRetriever.Resolver = (*TrieNodeResolver)(nil)
 
-// maxBuffToSendTrieNodes represents max buffer size to send in bytes
-var maxBuffToSendTrieNodes = 1 << 18 //256KB
-
 // ArgTrieNodeResolver is the argument structure used to create new TrieNodeResolver instance
 type ArgTrieNodeResolver struct {
 	SenderResolver   dataRetriever.TopicResolverSender
@@ -80,15 +77,15 @@ func (tnRes *TrieNodeResolver) ProcessReceivedMessage(message p2p.MessageP2P, fr
 
 	switch rd.Type {
 	case dataRetriever.HashType:
-		return tnRes.resolveOneHash(rd.Value, message)
+		return tnRes.resolveOneHash(rd.Value, rd.ChunkIndex, message)
 	case dataRetriever.HashArrayType:
-		return tnRes.resolveMultipleHashes(rd.Value, message)
+		return tnRes.resolveMultipleHashes(rd.Value, rd.ChunkIndex, message)
 	default:
 		return dataRetriever.ErrRequestTypeNotImplemented
 	}
 }
 
-func (tnRes *TrieNodeResolver) resolveMultipleHashes(hashesBuff []byte, message p2p.MessageP2P) error {
+func (tnRes *TrieNodeResolver) resolveMultipleHashes(hashesBuff []byte, chunkIndex uint32, message p2p.MessageP2P) error {
 	b := batch.Batch{}
 	err := tnRes.marshalizer.Unmarshal(&b, hashesBuff)
 	if err != nil {
@@ -99,25 +96,26 @@ func (tnRes *TrieNodeResolver) resolveMultipleHashes(hashesBuff []byte, message 
 	nodes := make(map[string]struct{})
 	spaceUsed, usedAllSpace := tnRes.resolveOnlyRequestedHashes(hashes, nodes)
 	if usedAllSpace {
-		return tnRes.sendResponse(convertMapToSlice(nodes), message)
+		return tnRes.sendResponse(convertMapToSlice(nodes), hashes, chunkIndex, message)
 	}
 
 	tnRes.resolveSubTries(hashes, nodes, spaceUsed)
 
-	return tnRes.sendResponse(convertMapToSlice(nodes), message)
+	return tnRes.sendResponse(convertMapToSlice(nodes), hashes, chunkIndex, message)
 }
 
 func (tnRes *TrieNodeResolver) resolveOnlyRequestedHashes(hashes [][]byte, nodes map[string]struct{}) (int, bool) {
 	spaceUsed := 0
 	usedAllSpace := false
-	remainingSpace := maxBuffToSendTrieNodes
+	remainingSpace := core.MaxBufferSizeToSendTrieNodes
 	for _, hash := range hashes {
 		serializedNode, err := tnRes.trieDataGetter.GetSerializedNode(hash)
 		if err != nil {
 			continue
 		}
 
-		if remainingSpace-len(serializedNode) < 0 {
+		isNotFirstLargeElement := spaceUsed > 0 && (remainingSpace-len(serializedNode)) < 0
+		if isNotFirstLargeElement {
 			usedAllSpace = true
 			break
 		}
@@ -132,21 +130,21 @@ func (tnRes *TrieNodeResolver) resolveOnlyRequestedHashes(hashes [][]byte, nodes
 }
 
 func (tnRes *TrieNodeResolver) resolveSubTries(hashes [][]byte, nodes map[string]struct{}, spaceUsedAlready int) {
-	var serialiazedNodes [][]byte
+	var serializedNodes [][]byte
 	var err error
 	var serializedNode []byte
 	for _, hash := range hashes {
-		remainingForSubtries := maxBuffToSendTrieNodes - spaceUsedAlready
+		remainingForSubtries := core.MaxBufferSizeToSendTrieNodes - spaceUsedAlready
 		if remainingForSubtries < 0 {
 			return
 		}
 
-		serialiazedNodes, _, err = tnRes.getSubTrie(hash, uint64(remainingForSubtries))
+		serializedNodes, _, err = tnRes.getSubTrie(hash, uint64(remainingForSubtries))
 		if err != nil {
 			continue
 		}
 
-		for _, serializedNode = range serialiazedNodes {
+		for _, serializedNode = range serializedNodes {
 			_, exists := nodes[string(serializedNode)]
 			if exists {
 				continue
@@ -170,13 +168,13 @@ func convertMapToSlice(m map[string]struct{}) [][]byte {
 	return buff
 }
 
-func (tnRes *TrieNodeResolver) resolveOneHash(hash []byte, message p2p.MessageP2P) error {
+func (tnRes *TrieNodeResolver) resolveOneHash(hash []byte, chunkIndex uint32, message p2p.MessageP2P) error {
 	serializedNode, err := tnRes.trieDataGetter.GetSerializedNode(hash)
 	if err != nil {
 		return err
 	}
 
-	return tnRes.sendResponse([][]byte{serializedNode}, message)
+	return tnRes.sendResponse([][]byte{serializedNode}, [][]byte{hash}, chunkIndex, message)
 }
 
 func (tnRes *TrieNodeResolver) getSubTrie(hash []byte, remainingSpace uint64) ([][]byte, uint64, error) {
@@ -196,13 +194,57 @@ func (tnRes *TrieNodeResolver) getSubTrie(hash []byte, remainingSpace uint64) ([
 	return serializedNodes, remainingSpace, nil
 }
 
-func (tnRes *TrieNodeResolver) sendResponse(serializedNodes [][]byte, message p2p.MessageP2P) error {
+func (tnRes *TrieNodeResolver) sendResponse(
+	serializedNodes [][]byte,
+	hashes [][]byte,
+	chunkIndex uint32,
+	message p2p.MessageP2P,
+) error {
+
 	if len(serializedNodes) == 0 {
 		//do not send useless message
 		return nil
 	}
 
+	if len(serializedNodes) == 1 && len(serializedNodes[0]) > core.MaxBufferSizeToSendTrieNodes {
+		return tnRes.sendLargeMessage(serializedNodes[0], hashes[0], int(chunkIndex), message)
+	}
+
 	buff, err := tnRes.marshalizer.Marshal(&batch.Batch{Data: serializedNodes})
+	if err != nil {
+		return err
+	}
+
+	return tnRes.Send(buff, message.Peer())
+}
+
+func (tnRes *TrieNodeResolver) sendLargeMessage(
+	largeBuff []byte,
+	reference []byte,
+	chunkIndex int,
+	message p2p.MessageP2P,
+) error {
+
+	log.Trace("assembling chunk", "reference", reference, "len", len(largeBuff))
+	maxChunks := len(largeBuff) / core.MaxBufferSizeToSendTrieNodes
+	if len(largeBuff)%core.MaxBufferSizeToSendTrieNodes != 0 {
+		maxChunks++
+	}
+	chunkIndexOutOfBounds := chunkIndex < 0 || chunkIndex > maxChunks
+	if chunkIndexOutOfBounds {
+		return nil
+	}
+
+	startIndex := chunkIndex * core.MaxBufferSizeToSendTrieNodes
+	endIndex := startIndex + core.MaxBufferSizeToSendTrieNodes
+	if endIndex > len(largeBuff) {
+		endIndex = len(largeBuff)
+	}
+	chunkBuffer := largeBuff[startIndex:endIndex]
+	chunk := batch.NewChunk(uint32(chunkIndex), reference, uint32(maxChunks), chunkBuffer)
+	log.Trace("assembled chunk", "index", chunkIndex, "reference", reference, "max chunks", maxChunks, "len", len(chunkBuffer))
+
+	buff, err := tnRes.marshalizer.Marshal(chunk)
 	if err != nil {
 		return err
 	}
@@ -237,6 +279,18 @@ func (tnRes *TrieNodeResolver) RequestDataFromHashArray(hashes [][]byte, _ uint3
 			Value: buffHashes,
 		},
 		hashes,
+	)
+}
+
+// RequestDataFromReferenceAndChunk requests a trie node's chunk by specifying the reference and the chunk index
+func (tnRes *TrieNodeResolver) RequestDataFromReferenceAndChunk(hash []byte, chunkIndex uint32) error {
+	return tnRes.SendOnRequestTopic(
+		&dataRetriever.RequestData{
+			Type:       dataRetriever.HashType,
+			Value:      hash,
+			ChunkIndex: chunkIndex,
+		},
+		[][]byte{hash},
 	)
 }
 

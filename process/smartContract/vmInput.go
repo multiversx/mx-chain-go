@@ -4,10 +4,10 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/process"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 func (sc *scProcessor) createVMDeployInput(tx data.TransactionHandler) (*vmcommon.ContractCreateInput, []byte, error) {
@@ -100,6 +100,8 @@ func (sc *scProcessor) createVMCallInput(
 		vmCallInput.OriginalTxHash = txHash
 		vmCallInput.PrevTxHash = txHash
 	}
+
+	vmCallInput.ReturnCallAfterError = isSCR && len(scr.ReturnMessage) > 0
 
 	err = sc.initializeVMInputFromTx(&vmCallInput.VMInput, tx)
 	if err != nil {

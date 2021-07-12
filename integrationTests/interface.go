@@ -6,7 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	dataApi "github.com/ElrondNetwork/elrond-go/data/api"
-	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/vm"
@@ -16,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-vm-common/data/esdt"
 )
 
 // TestBootstrapper extends the Bootstrapper interface with some functions intended to be used only in tests
@@ -45,9 +45,7 @@ type NodesCoordinatorFactory interface {
 // NetworkShardingUpdater defines the updating methods used by the network sharding component
 type NetworkShardingUpdater interface {
 	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
-	UpdatePeerIdPublicKey(pid core.PeerID, pk []byte)
-	UpdatePublicKeyShardId(pk []byte, shardId uint32)
-	UpdatePeerIdShardId(pid core.PeerID, shardId uint32)
+	UpdatePeerIDInfo(pid core.PeerID, pk []byte, shardID uint32)
 	UpdatePeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType)
 	IsInterfaceNil() bool
 }
@@ -57,9 +55,10 @@ type Facade interface {
 	GetBalance(address string) (*big.Int, error)
 	GetUsername(address string) (string, error)
 	GetValueForKey(address string, key string) (string, error)
-	GetAccount(address string) (state.UserAccountHandler, error)
-	GetCode(account state.UserAccountHandler) []byte
+	GetAccount(address string) (dataApi.AccountResponse, error)
 	GetESDTData(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error)
+	GetNFTTokenIDsRegisteredByAddress(address string) ([]string, error)
+	GetESDTsWithRole(address string, role string) ([]string, error)
 	GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error)
 	GetBlockByHash(hash string, withTxs bool) (*dataApi.Block, error)
 	GetBlockByNonce(nonce uint64, withTxs bool) (*dataApi.Block, error)

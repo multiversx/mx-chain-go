@@ -56,7 +56,10 @@ func (v *validatorAccountsSyncer) SyncAccounts(rootHash []byte) error {
 	defer v.mutex.Unlock()
 
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	defer func() {
+		v.cacher.Clear()
+		cancel()
+	}()
 
 	tss := statistics.NewTrieSyncStatistics()
 	go v.printStatistics(tss, ctx)

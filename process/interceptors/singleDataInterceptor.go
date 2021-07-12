@@ -10,13 +10,14 @@ import (
 
 // ArgSingleDataInterceptor is the argument for the single-data interceptor
 type ArgSingleDataInterceptor struct {
-	Topic            string
-	DataFactory      process.InterceptedDataFactory
-	Processor        process.InterceptorProcessor
-	Throttler        process.InterceptorThrottler
-	AntifloodHandler process.P2PAntifloodHandler
-	WhiteListRequest process.WhiteListHandler
-	CurrentPeerId    core.PeerID
+	Topic                string
+	DataFactory          process.InterceptedDataFactory
+	Processor            process.InterceptorProcessor
+	Throttler            process.InterceptorThrottler
+	AntifloodHandler     process.P2PAntifloodHandler
+	WhiteListRequest     process.WhiteListHandler
+	PreferredPeersHolder process.PreferredPeersHolderHandler
+	CurrentPeerId        core.PeerID
 }
 
 // SingleDataInterceptor is used for intercepting packed multi data
@@ -37,13 +38,14 @@ func NewSingleDataInterceptor(arg ArgSingleDataInterceptor) (*SingleDataIntercep
 
 	interceptor := &SingleDataInterceptor{
 		baseDataInterceptor: &baseDataInterceptor{
-			throttler:        arg.Throttler,
-			antifloodHandler: arg.AntifloodHandler,
-			topic:            arg.Topic,
-			currentPeerId:    arg.CurrentPeerId,
-			processor:        arg.Processor,
-			debugHandler:     resolver.NewDisabledInterceptorResolver(),
-			factory:          arg.DataFactory,
+			throttler:            arg.Throttler,
+			antifloodHandler:     arg.AntifloodHandler,
+			topic:                arg.Topic,
+			currentPeerId:        arg.CurrentPeerId,
+			processor:            arg.Processor,
+			debugHandler:         resolver.NewDisabledInterceptorResolver(),
+			preferredPeersHolder: arg.PreferredPeersHolder,
+			factory:              arg.DataFactory,
 		},
 		whiteListRequest: arg.WhiteListRequest,
 	}
@@ -123,6 +125,11 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 		sdi.throttler.EndProcessing()
 	}()
 
+	return nil
+}
+
+// Close returns nil
+func (sdi *SingleDataInterceptor) Close() error {
 	return nil
 }
 

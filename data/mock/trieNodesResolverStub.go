@@ -1,9 +1,13 @@
 package mock
 
 import (
+	"errors"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
+
+var errNotImplemented = errors.New("not implemented")
 
 // TrieNodesResolverStub -
 type TrieNodesResolverStub struct {

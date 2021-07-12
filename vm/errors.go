@@ -95,6 +95,9 @@ var ErrNilValidatorSmartContractAddress = errors.New("nil validator smart contra
 // ErrInvalidStakingAccessAddress signals that invalid staking access address was provided
 var ErrInvalidStakingAccessAddress = errors.New("invalid staking access address")
 
+// ErrInvalidGovernanceSCAddress signals that invalid governance address was provided
+var ErrInvalidGovernanceSCAddress = errors.New("invalid governance smart contract address")
+
 // ErrInvalidJailAccessAddress signals that invalid jailing access address was provided
 var ErrInvalidJailAccessAddress = errors.New("invalid jailing access address")
 
@@ -135,10 +138,10 @@ var ErrInvalidStartEndVoteNonce = errors.New("invalid start/end vote nonce")
 var ErrEmptyStorage = errors.New("storage is nil for given key")
 
 // ErrVotedForAnExpiredProposal signals that voting was done for an expired proposal
-var ErrVotedForAnExpiredProposal = errors.New("voted for an expired proposal")
+var ErrVotedForAnExpiredProposal = errors.New("voting period is over for this proposal")
 
-// ErrVotedForAProposalThatNotBeginsYet signals that voting was done for a proposal that not begins yet
-var ErrVotedForAProposalThatNotBeginsYet = errors.New("voted for a proposal that not begins yet")
+// ErrVotingNotStartedForProposal signals that voting was done for a proposal that not begins yet
+var ErrVotingNotStartedForProposal = errors.New("voting has not yet started for this proposal")
 
 // ErrNilPublicKey signals that nil public key has been provided
 var ErrNilPublicKey = errors.New("nil public key")
@@ -232,3 +235,15 @@ var ErrNFTCreateRoleAlreadyExists = errors.New("NFT create role already exists")
 
 // ErrRedelegateValueBelowMinimum signals that the re-delegate added to the remaining value will be below the minimum required
 var ErrRedelegateValueBelowMinimum = errors.New("can not re-delegate as the remaining value will be below the minimum required")
+
+// ErrWrongRewardAddress signals that a wrong reward address was provided
+var ErrWrongRewardAddress = errors.New("wrong reward address")
+
+// ErrNilShardCoordinator signals that a nil shard coordinator was provided
+var ErrNilShardCoordinator = errors.New("nil shard coordinator")
+
+// ErrProposalNotFound signals that the storage is empty for given key
+var ErrProposalNotFound = errors.New("proposal was not found in storage")
+
+// ErrInvalidNumOfInitialWhiteListedAddress signals that 0 initial whiteListed addresses were provided to the governance contract
+var ErrInvalidNumOfInitialWhiteListedAddress = errors.New("0 initial whiteListed addresses provided to the governance contract")

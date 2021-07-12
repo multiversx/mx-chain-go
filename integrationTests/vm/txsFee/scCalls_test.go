@@ -1,3 +1,7 @@
+// +build !race
+
+// TODO remove build condition above to allow -race -short, after Arwen fix
+
 package txsFee
 
 import (
@@ -6,11 +10,11 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
 	"github.com/ElrondNetwork/elrond-go/process"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
 

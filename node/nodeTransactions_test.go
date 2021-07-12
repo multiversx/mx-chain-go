@@ -3,9 +3,12 @@ package node_test
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math/big"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
@@ -19,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	dblookupextMock "github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -57,8 +61,17 @@ func TestNode_GetTransactionFromPool(t *testing.T) {
 	require.Nil(t, err)
 
 	require.Equal(t, txA.Nonce, actualA.Nonce)
+	require.Equal(t, uint32(1), actualA.SourceShard)
+	require.Equal(t, uint32(2), actualA.DestinationShard)
+
 	require.Equal(t, txB.Nonce, actualB.Nonce)
+	require.Equal(t, uint32(2), actualB.SourceShard)
+	require.Equal(t, uint32(1), actualB.DestinationShard)
+
 	require.Equal(t, txC.Nonce, actualC.Nonce)
+	require.Equal(t, uint32(1), actualC.SourceShard)
+	require.Equal(t, uint32(1), actualC.DestinationShard)
+
 	require.Equal(t, transaction.TxStatusPending, actualA.Status)
 	require.Equal(t, transaction.TxStatusPending, actualB.Status)
 	require.Equal(t, transaction.TxStatusPending, actualC.Status)
@@ -205,15 +218,21 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			switch unitType {
 			case dataRetriever.TransactionUnit:
-				return &mock.StorerStub{
+				return &testscommon.StorerStub{
 					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 						return marshalizer.Marshal(tx)
 					},
 				}
 			case dataRetriever.UnsignedTransactionUnit:
-				return &mock.StorerStub{
+				return &testscommon.StorerStub{
 					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 						return marshalizer.Marshal(scResult)
+					},
+				}
+			case dataRetriever.TxLogsUnit:
+				return &testscommon.StorerStub{
+					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+						return nil, errors.New("dummy")
 					},
 				}
 			default:
@@ -221,7 +240,7 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 			}
 		},
 	}
-	historyRepo := &testscommon.HistoryRepositoryStub{
+	historyRepo := &dblookupextMock.HistoryRepositoryStub{
 		GetMiniblockMetadataByTxHashCalled: func(hash []byte) (*dblookupext.MiniblockMetadata, error) {
 			return &dblookupext.MiniblockMetadata{}, nil
 		},
@@ -443,12 +462,12 @@ func TestNode_PutHistoryFieldsInTransaction(t *testing.T) {
 	require.Equal(t, "0c", tx.NotarizedAtDestinationInMetaHash)
 }
 
-func createNode(t *testing.T, epoch uint32, withDbLookupExt bool) (*node.Node, *genericMocks.ChainStorerMock, *testscommon.PoolsHolderMock, *testscommon.HistoryRepositoryStub) {
+func createNode(t *testing.T, epoch uint32, withDbLookupExt bool) (*node.Node, *genericMocks.ChainStorerMock, *testscommon.PoolsHolderMock, *dblookupextMock.HistoryRepositoryStub) {
 	chainStorer := genericMocks.NewChainStorerMock(epoch)
 	dataPool := testscommon.NewPoolsHolderMock()
 	marshalizer := &mock.MarshalizerFake{}
 
-	historyRepo := &testscommon.HistoryRepositoryStub{
+	historyRepo := &dblookupextMock.HistoryRepositoryStub{
 		IsEnabledCalled: func() bool {
 			return withDbLookupExt
 		},
@@ -496,7 +515,7 @@ func createShardCoordinator() *mock.ShardCoordinatorMock {
 }
 
 func setupGetMiniblockMetadataByTxHash(
-	historyRepo *testscommon.HistoryRepositoryStub,
+	historyRepo *dblookupextMock.HistoryRepositoryStub,
 	blockType block.Type,
 	sourceShard uint32,
 	destinationShard uint32,
@@ -568,4 +587,28 @@ func TestPrepareUnsignedTx(t *testing.T) {
 		OriginalSender: "erd1qurswpc8qurswpc8qurswpc8qurswpc8qurswpc8qurswpc8qurstywtnm",
 	}
 	assert.Equal(t, scrResult2, expectedScr2)
+}
+
+func TestNode_ComputeTimestampForRound(t *testing.T) {
+	genesis := getTime(t, "1596117600")
+	n, _ := node.NewNode(
+		node.WithGenesisTime(genesis),
+		node.WithRoundDuration(6000),
+	)
+
+	res := n.ComputeTimestampForRound(0)
+	require.Equal(t, int64(0), res)
+
+	res = n.ComputeTimestampForRound(4837403)
+	require.Equal(t, int64(1625142018), res)
+}
+
+func getTime(t *testing.T, timestamp string) time.Time {
+	i, err := strconv.ParseInt(timestamp, 10, 64)
+	if err != nil {
+		require.NoError(t, err)
+	}
+	tm := time.Unix(i, 0)
+
+	return tm
 }

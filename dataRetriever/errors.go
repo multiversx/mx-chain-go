@@ -116,6 +116,9 @@ var ErrCacheConfigInvalidSharding = errors.New("cache-sharding parameter is not 
 // ErrNilTrieNodesPool signals that a nil trie nodes data pool was provided
 var ErrNilTrieNodesPool = errors.New("nil trie nodes data pool")
 
+// ErrNilTrieNodesChunksPool signals that a nil trie nodes chunks data pool was provided
+var ErrNilTrieNodesChunksPool = errors.New("nil trie nodes chunks data pool")
+
 // ErrNoSuchStorageUnit defines the error for using an invalid storage unit
 var ErrNoSuchStorageUnit = errors.New("no such unit type")
 
@@ -154,6 +157,12 @@ var ErrBadRequest = errors.New("request should not be done as it doesn't follow 
 
 // ErrNilAntifloodHandler signals that a nil antiflood handler has been provided
 var ErrNilAntifloodHandler = errors.New("nil antiflood handler")
+
+// ErrNilPreferredPeersHolder signals that a nil preferred peers holder handler has been provided
+var ErrNilPreferredPeersHolder = errors.New("nil preferred peers holder")
+
+// ErrNilSelfShardIDProvider signals that a nil self shard ID provider has been provided
+var ErrNilSelfShardIDProvider = errors.New("nil self shard ID provider")
 
 // ErrNilCurrentNetworkEpochProvider signals that a nil CurrentNetworkEpochProvider handler has been provided
 var ErrNilCurrentNetworkEpochProvider = errors.New("nil current network epoch provider")
@@ -205,6 +214,9 @@ var ErrNilHasher = errors.New("nil hasher")
 
 // ErrNilTrieStorageManager signals that a nil trie storage manager has been provided
 var ErrNilTrieStorageManager = errors.New("nil trie storage manager")
+
+// ErrNilPathManager signals that a nil path manager has been provided
+var ErrNilPathManager = errors.New("nil path manager")
 
 // ErrNilPeerAuthenticationPool signals that a nil peer authentication pool has been provided
 var ErrNilPeerAuthenticationPool = errors.New("nil peer authentication pool")
