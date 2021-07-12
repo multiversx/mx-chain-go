@@ -37,8 +37,6 @@ var _ closing.Closer = (*trigger)(nil)
 // sleepTime defines the time in milliseconds between each iteration made in requestMissingMiniblocks method
 const sleepTime = 1 * time.Second
 
-var dumper = core.NewGoRoutinesAnalyser()
-
 // ArgsShardEpochStartTrigger struct { defines the arguments needed for new start of epoch trigger
 type ArgsShardEpochStartTrigger struct {
 	Marshalizer marshal.Marshalizer
@@ -267,7 +265,7 @@ func (t *trigger) requestMissingMiniblocks(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			log.Debug("trigger's go routine is stopping...")
+			log.Debug("trigger's go goroutine is stopping...")
 			return
 		case <-time.After(sleepTime):
 		}
@@ -289,7 +287,7 @@ func (t *trigger) requestMissingMiniblocks(ctx context.Context) {
 
 		select {
 		case <-ctx.Done():
-			log.Debug("trigger's go routine is stopping...")
+			log.Debug("trigger's go goroutine is stopping...")
 			return
 		case <-time.After(waitTime):
 		}
@@ -544,8 +542,6 @@ func (t *trigger) updateTriggerFromMeta() {
 			t.epochStartMeta = currMetaInfo.hdr
 			t.saveCurrentState(currMetaInfo.hdr.GetRound())
 			t.epochStartNotifier.NotifyEpochChangeConfirmed(t.metaEpoch)
-
-			dumper.DumpGoRoutinesToLogWithTypes()
 
 			msg := fmt.Sprintf("EPOCH %d BEGINS IN ROUND (%d)", t.metaEpoch, t.epochStartRound)
 			log.Debug(display.Headline(msg, "", "#"))

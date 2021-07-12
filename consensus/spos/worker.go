@@ -556,7 +556,7 @@ func (wrk *Worker) executeMessage(cnsDtaList []*consensus.Message) {
 		select {
 		case wrk.executeMessageChannel <- cnsDta:
 		case <-wrk.closer.ChanClose():
-			log.Debug("worker's executeMessage go routine is stopping...")
+			log.Debug("worker's executeMessage go goroutine is stopping...")
 			return
 		}
 	}
@@ -570,7 +570,7 @@ func (wrk *Worker) checkChannels(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			log.Debug("worker's go routine is stopping...")
+			log.Debug("worker's go goroutine is stopping...")
 			return
 		case rcvDta = <-wrk.executeMessageChannel:
 		case <-time.After(sleepTime):
@@ -643,7 +643,7 @@ func (wrk *Worker) ExecuteStoredMessages() {
 	wrk.mutReceivedMessages.Unlock()
 }
 
-// Close will close the endless running go routine
+// Close will close the endless running go goroutine
 func (wrk *Worker) Close() error {
 	//calling close on the SafeCloser instance should be the last instruction called
 	//(just to close some go routines started as edge cases that would otherwise hang)
