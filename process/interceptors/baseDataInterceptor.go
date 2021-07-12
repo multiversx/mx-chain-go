@@ -130,37 +130,45 @@ func (bdi *baseDataInterceptor) SetInterceptedDebugHandler(handler process.Inter
 	return nil
 }
 
-func (bdi *baseDataInterceptor) unmarshalReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) ([][]byte, error) {
-	b := batch.Batch{}
-	err := bdi.marshalizer.Unmarshal(&b, message.Data())
+func (bdi *baseDataInterceptor) unmarshalReceivedMessage(
+	message p2p.MessageP2P,
+	fromConnectedPeer core.PeerID,
+) ([][]byte, *batch.Batch, error) {
+
+	b := &batch.Batch{}
+	err := bdi.marshalizer.Unmarshal(b, message.Data())
 	if err != nil {
 		bdi.throttler.EndProcessing()
 
 		//this situation is so severe that we need to black list de peers
 		bdi.blackListPeers("unmarshalable data", err, message.Peer(), fromConnectedPeer)
 
-		return nil, err
+		return nil, nil, err
 	}
 
 	multiDataBuff := b.Data
 	lenMultiData := len(multiDataBuff)
 	if lenMultiData == 0 {
 		bdi.throttler.EndProcessing()
-		return nil, process.ErrNoDataInMessage
+		return nil, nil, process.ErrNoDataInMessage
 	}
 
-	return multiDataBuff, nil
+	return multiDataBuff, b, nil
 }
 
-func (bdi *baseDataInterceptor) preProcessMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) ([][]byte, error) {
+func (bdi *baseDataInterceptor) preProcessMessage(
+	message p2p.MessageP2P,
+	fromConnectedPeer core.PeerID,
+) ([][]byte, *batch.Batch, error) {
+
 	err := bdi.checkMessage(message, fromConnectedPeer)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	multiDataBuff, err := bdi.unmarshalReceivedMessage(message, fromConnectedPeer)
+	multiDataBuff, b, err := bdi.unmarshalReceivedMessage(message, fromConnectedPeer)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = bdi.antifloodHandler.CanProcessMessagesOnTopic(
@@ -172,10 +180,10 @@ func (bdi *baseDataInterceptor) preProcessMessage(message p2p.MessageP2P, fromCo
 	)
 	if err != nil {
 		bdi.throttler.EndProcessing()
-		return nil, err
+		return nil, nil, err
 	}
 
-	return multiDataBuff, nil
+	return multiDataBuff, b, nil
 }
 
 func (bdi *baseDataInterceptor) interceptedData(dataBuff []byte, originator core.PeerID, fromConnectedPeer core.PeerID) (process.InterceptedData, error) {

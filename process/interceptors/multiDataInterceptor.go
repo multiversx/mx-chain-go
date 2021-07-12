@@ -64,13 +64,13 @@ func NewMultiDataInterceptor(arg ArgMultiDataInterceptor) (*MultiDataInterceptor
 // ProcessReceivedMessage is the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
 func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
-	multiDataBuff, err := mdi.preProcessMessage(message, fromConnectedPeer)
+	multiDataBuff, b, err := mdi.preProcessMessage(message, fromConnectedPeer)
 	if err != nil {
 		return err
 	}
 
 	mdi.mutChunksProcessor.RLock()
-	checkChunksRes, err := mdi.chunksProcessor.CheckBatch(&b, mdi.whiteListRequest)
+	checkChunksRes, err := mdi.chunksProcessor.CheckBatch(b, mdi.whiteListRequest)
 	mdi.mutChunksProcessor.RUnlock()
 	if err != nil {
 		mdi.throttler.EndProcessing()
@@ -134,7 +134,6 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 
 	return nil
 }
-
 
 // SetChunkProcessor sets the intercepted chunks processor
 func (mdi *MultiDataInterceptor) SetChunkProcessor(processor process.InterceptedChunksProcessor) error {

@@ -15,19 +15,22 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func createMockArgPeerAuthenticationInterceptor() interceptors.ArgPeerAuthenticationInterceptor {
 	argSingle := interceptors.ArgSingleDataInterceptor{
-		Topic:            "test topic",
-		DataFactory:      &mock.InterceptedDataFactoryStub{},
-		Processor:        &mock.InterceptorProcessorStub{},
-		Throttler:        createMockThrottler(),
-		AntifloodHandler: &mock.P2PAntifloodHandlerStub{},
-		WhiteListRequest: &mock.WhiteListHandlerStub{},
-		CurrentPeerId:    "pid",
+		Topic:                "test topic",
+		DataFactory:          &mock.InterceptedDataFactoryStub{},
+		Processor:            &mock.InterceptorProcessorStub{},
+		Throttler:            createMockThrottler(),
+		AntifloodHandler:     &mock.P2PAntifloodHandlerStub{},
+		WhiteListRequest:     &testscommon.WhiteListHandlerStub{},
+		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+		CurrentPeerId:        "pid",
 	}
 
 	return interceptors.ArgPeerAuthenticationInterceptor{
@@ -174,7 +177,7 @@ func TestPeerAuthenticationInterceptor_ProcessReceivedMessageNotAValidIntercepte
 	numBlackListedCalled := 0
 	arg.DataFactory = &mock.InterceptedDataFactoryStub{
 		CreateCalled: func(buff []byte) (process.InterceptedData, error) {
-			return &mock.InterceptedDataStub{}, nil
+			return &testscommon.InterceptedDataStub{}, nil
 		},
 	}
 	arg.AntifloodHandler = &mock.P2PAntifloodHandlerStub{
@@ -212,7 +215,7 @@ func TestPeerAuthenticationInterceptor_ProcessReceivedMessageObserversMoreObserv
 	arg := createMockArgPeerAuthenticationInterceptor()
 	arg.DataFactory = &mock.InterceptedDataFactoryStub{
 		CreateCalled: func(buff []byte) (process.InterceptedData, error) {
-			return &mock.InterceptedPeerHeartbeatStub{}, nil
+			return &testscommon.InterceptedPeerHeartbeatStub{}, nil
 		},
 	}
 	arg.AuthenticationProcessor = &mock.PeerAuthenticationProcessorStub{
@@ -256,7 +259,7 @@ func TestPeerAuthenticationInterceptor_ProcessReceivedMessageObserversShouldProc
 	arg := createMockArgPeerAuthenticationInterceptor()
 	arg.DataFactory = &mock.InterceptedDataFactoryStub{
 		CreateCalled: func(buff []byte) (process.InterceptedData, error) {
-			return &mock.InterceptedPeerHeartbeatStub{}, nil
+			return &testscommon.InterceptedPeerHeartbeatStub{}, nil
 		},
 	}
 	arg.AuthenticationProcessor = &mock.PeerAuthenticationProcessorStub{
@@ -300,7 +303,7 @@ func TestPeerAuthenticationInterceptor_ProcessReceivedMessageObserversShouldNotP
 	arg := createMockArgPeerAuthenticationInterceptor()
 	arg.DataFactory = &mock.InterceptedDataFactoryStub{
 		CreateCalled: func(buff []byte) (process.InterceptedData, error) {
-			return &mock.InterceptedPeerHeartbeatStub{}, nil
+			return &testscommon.InterceptedPeerHeartbeatStub{}, nil
 		},
 	}
 	arg.AuthenticationProcessor = &mock.PeerAuthenticationProcessorStub{
@@ -351,7 +354,7 @@ func TestPeerAuthenticationInterceptor_ProcessReceivedMessageProcessError(t *tes
 	arg := createMockArgPeerAuthenticationInterceptor()
 	arg.DataFactory = &mock.InterceptedDataFactoryStub{
 		CreateCalled: func(buff []byte) (process.InterceptedData, error) {
-			return &mock.InterceptedPeerHeartbeatStub{}, nil
+			return &testscommon.InterceptedPeerHeartbeatStub{}, nil
 		},
 	}
 	arg.AntifloodHandler = &mock.P2PAntifloodHandlerStub{
@@ -398,7 +401,7 @@ func TestPeerAuthenticationInterceptor_ProcessReceivedMessageValidatorsShouldWor
 	arg := createMockArgPeerAuthenticationInterceptor()
 	arg.DataFactory = &mock.InterceptedDataFactoryStub{
 		CreateCalled: func(buff []byte) (process.InterceptedData, error) {
-			return &mock.InterceptedPeerHeartbeatStub{}, nil
+			return &testscommon.InterceptedPeerHeartbeatStub{}, nil
 		},
 	}
 	arg.AuthenticationProcessor = &mock.PeerAuthenticationProcessorStub{

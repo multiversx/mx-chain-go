@@ -72,6 +72,9 @@ func checkArguments(arg ArgSingleDataInterceptor) error {
 	if len(arg.CurrentPeerId) == 0 {
 		return process.ErrEmptyPeerID
 	}
+	if check.IfNil(arg.PreferredPeersHolder) {
+		return process.ErrNilPreferredPeersHolder
+	}
 
 	return nil
 }

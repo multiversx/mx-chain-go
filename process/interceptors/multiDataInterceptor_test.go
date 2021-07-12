@@ -338,7 +338,6 @@ func testProcessReceiveMessageMultiData(t *testing.T, isForCurrentShard bool, ex
 	marshalizer := &mock.MarshalizerMock{}
 	checkCalledNum := int32(0)
 	processCalledNum := int32(0)
-	throttler := createMockThrottler()
 	interceptedData := &testscommon.InterceptedDataStub{
 		CheckValidityCalled: func() error {
 			return expectedErr

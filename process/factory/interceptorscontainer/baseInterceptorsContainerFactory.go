@@ -469,19 +469,18 @@ func (bicf *baseInterceptorsContainerFactory) createOneMiniBlocksInterceptor(top
 
 	interceptor, err := interceptors.NewMultiDataInterceptor(
 		interceptors.ArgMultiDataInterceptor{
-			interceptors.ArgMultiDataInterceptor{
-				ArgSingleDataInterceptor: interceptors.ArgSingleDataInterceptor{
-					Topic:                topic,
-					DataFactory:          miniblockFactory,
-					Processor:            miniblockProcessor,
-					Throttler:            bicf.globalThrottler,
-					AntifloodHandler:     bicf.antifloodHandler,
-					WhiteListRequest:     bicf.whiteListHandler,
-					CurrentPeerId:        bicf.messenger.ID(),
-					PreferredPeersHolder: bicf.preferredPeersHolder,
-				},
-				Marshalizer: internalMarshalizer,
+			ArgSingleDataInterceptor: interceptors.ArgSingleDataInterceptor{
+				Topic:                topic,
+				DataFactory:          miniblockFactory,
+				Processor:            miniblockProcessor,
+				Throttler:            bicf.globalThrottler,
+				AntifloodHandler:     bicf.antifloodHandler,
+				WhiteListRequest:     bicf.whiteListHandler,
+				CurrentPeerId:        bicf.messenger.ID(),
+				PreferredPeersHolder: bicf.preferredPeersHolder,
 			},
+
+			Marshalizer: internalMarshalizer,
 		},
 	)
 	if err != nil {

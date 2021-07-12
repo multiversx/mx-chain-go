@@ -208,7 +208,7 @@ func TestPreProcessMessage_CanProcessFromPreferredPeer(t *testing.T) {
 	}
 	bdi := newBaseDataInterceptorForPreProcess(throttler, antifloodHandler, peersHolderStub)
 	bdi.currentPeerId = "new peer ID"
-	err := bdi.preProcessMesage(msg, "new peer id")
+	err := bdi.checkMessage(msg, "new peer id")
 
 	assert.Nil(t, err)
 	assert.Equal(t, int32(1), throttler.StartProcessingCount())
