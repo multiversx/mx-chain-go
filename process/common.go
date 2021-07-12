@@ -700,41 +700,50 @@ func GetSortedStorageUpdates(account *vmcommon.OutputAccount) []*vmcommon.Storag
 	return storageUpdates
 }
 
-// GetScheduledSCRsFromStorage gets the scheduled scrs of the given header from storage
-func GetScheduledSCRsFromStorage(
+// GetScheduledSCRsAndRootHashFromStorage gets the scheduled scrs and the root hash of the given header from storage
+func GetScheduledSCRsAndRootHashFromStorage(
 	headerHash []byte,
 	storageService dataRetriever.StorageService,
 	marshalizer marshal.Marshalizer,
-) (map[block.Type][]data.TransactionHandler, error) {
+) (map[block.Type][]data.TransactionHandler, []byte, error) {
 	if check.IfNil(storageService) {
-		return nil, ErrNilStorage
+		return nil, nil, ErrNilStorage
 	}
 	if check.IfNil(marshalizer) {
-		return nil, ErrNilMarshalizer
+		return nil, nil, ErrNilMarshalizer
 	}
 
 	scheduledSCRsStorer := storageService.GetStorer(dataRetriever.ScheduledSCRsUnit)
 	if check.IfNil(scheduledSCRsStorer) {
-		return nil, ErrNilStorage
+		return nil, nil, ErrNilStorage
 	}
 
 	marshalizedSCRsBatch, err := scheduledSCRsStorer.Get(headerHash)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	b := &batch.Batch{}
 	err = marshalizer.Unmarshal(b, marshalizedSCRsBatch)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+
+	rootHash := make([]byte, 0)
+	if len(b.Data) > 0 {
+		rootHash = b.Data[0]
 	}
 
 	mapScheduledSCRs := make(map[block.Type][]data.TransactionHandler)
-	for _, marshalizedScheduledSCRs := range b.Data {
+	for index, marshalizedScheduledSCRs := range b.Data {
+		if index == 0 {
+			continue
+		}
+
 		scheduledSCRs := &ScheduledSCRs{}
 		err = marshalizer.Unmarshal(scheduledSCRs, marshalizedScheduledSCRs)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		if len(scheduledSCRs.TxHandlers) == 0 {
@@ -747,5 +756,27 @@ func GetScheduledSCRsFromStorage(
 		}
 	}
 
-	return mapScheduledSCRs, nil
+	return mapScheduledSCRs, rootHash, nil
+}
+
+// SetScheduledSCRsAndRootHash sets the scheduled scrs and the root hash of the given header from storage
+func SetScheduledSCRsAndRootHash(
+	headerHash []byte,
+	storageService dataRetriever.StorageService,
+	marshalizer marshal.Marshalizer,
+	scheduledTxsExecutionHandler ScheduledTxsExecutionHandler,
+) {
+	mapScheduledSCRs, rootHash, err := GetScheduledSCRsAndRootHashFromStorage(headerHash, storageService, marshalizer)
+	if err != nil {
+		log.Debug("SetScheduledSCRsAndRootHash: get scheduled scrs from storage",
+			"error", err.Error(),
+			"header hash", headerHash,
+		)
+	}
+
+	scheduledTxsExecutionHandler.SetScheduledSCRs(mapScheduledSCRs)
+
+	if len(rootHash) > 0 {
+		scheduledTxsExecutionHandler.SetRootHash(rootHash)
+	}
 }

@@ -26,6 +26,7 @@ type scheduledTxsExecution struct {
 	mapScheduledTxs  map[string]data.TransactionHandler
 	mapScheduledSCRs map[block.Type][]data.TransactionHandler
 	scheduledTxs     []data.TransactionHandler
+	rootHash         []byte
 	mutScheduledTxs  sync.RWMutex
 }
 
@@ -48,6 +49,7 @@ func NewScheduledTxsExecution(
 		mapScheduledTxs:  make(map[string]data.TransactionHandler),
 		mapScheduledSCRs: make(map[block.Type][]data.TransactionHandler),
 		scheduledTxs:     make([]data.TransactionHandler, 0),
+		rootHash:         make([]byte, 0),
 	}
 
 	return ste, nil
@@ -237,6 +239,22 @@ func (ste *scheduledTxsExecution) SetScheduledSCRs(mapScheduledSCRs map[block.Ty
 	}
 
 	log.Debug("scheduledTxsExecution.SetScheduledSCRs", "num of scheduled scrs", numScheduledSCRs)
+}
+
+// GetRootHash gets the root hash after the execution of scheduled transactions
+func (ste *scheduledTxsExecution) GetRootHash() []byte {
+	ste.mutScheduledTxs.RLock()
+	rootHash := ste.rootHash
+	ste.mutScheduledTxs.RUnlock()
+
+	return rootHash
+}
+
+// SetRootHash sets the root hash after the execution of scheduled transactions
+func (ste *scheduledTxsExecution) SetRootHash(rootHash []byte) {
+	ste.mutScheduledTxs.Lock()
+	ste.rootHash = rootHash
+	ste.mutScheduledTxs.Unlock()
 }
 
 // SetTransactionProcessor sets the transaction processor needed by scheduled txs execution component

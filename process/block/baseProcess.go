@@ -1153,13 +1153,15 @@ func (bp *baseProcessor) updateStateStorage(
 }
 
 // RevertAccountState reverts the account state for cleanup failed process
-func (bp *baseProcessor) RevertAccountState(_ data.HeaderHandler) {
+func (bp *baseProcessor) RevertAccountState(headerHandler data.HeaderHandler) {
 	for key := range bp.accountsDB {
 		err := bp.accountsDB[key].RevertToSnapshot(0)
 		if err != nil {
 			log.Debug("RevertToSnapshot", "error", err.Error())
 		}
 	}
+
+	process.SetScheduledSCRsAndRootHash(headerHandler.GetPrevHash(), bp.store, bp.marshalizer, bp.scheduledTxsExecutionHandler)
 }
 
 // GetAccountsDBSnapshot returns the account snapshot
@@ -1410,18 +1412,32 @@ func (bp *baseProcessor) Close() error {
 
 // ProcessScheduledBlock processes a scheduled block
 func (bp *baseProcessor) ProcessScheduledBlock(header data.HeaderHandler, _ data.BodyHandler, haveTime func() time.Duration) error {
+	var err error
+	defer func() {
+		if err != nil {
+			// TODO: check if possible to revert only the scheduled
+			bp.RevertAccountState(header)
+		}
+	}()
+
 	startTime := time.Now()
-	err := bp.scheduledTxsExecutionHandler.ExecuteAll(haveTime)
+	err = bp.scheduledTxsExecutionHandler.ExecuteAll(haveTime)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to execute all scheduled transactions",
 		"time [s]", elapsedTime,
 	)
 	if err != nil {
-		// TODO: check if possible to revert only the scheduled
-		bp.RevertAccountState(header)
+		return err
 	}
 
-	return err
+	rootHash, err := bp.accountsDB[state.UserAccountsState].RootHash()
+	if err != nil {
+		return err
+	}
+
+	bp.scheduledTxsExecutionHandler.SetRootHash(rootHash)
+
+	return nil
 }
 
 func (bp *baseProcessor) getMarshalizedScheduledSCRs(mapSCRs map[block.Type][]data.TransactionHandler) ([]byte, error) {
