@@ -1294,19 +1294,51 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 	}
 
 	balanceSum := big.NewInt(0)
+	nrAccounts := 0
+	nrAccountsWithDataTrie := 0
+	nrNotAccounts := 0
+	totalSizeAccounts := 0
+	totalSizeAccountsDataTries := 0
+	totalSizeNonAccounts := 0
 	for leaf := range allLeavesChan {
 		userAccount, errUnmarshal := unmarshalUserAccount(leaf.Key(), leaf.Value(), bp.marshalizer)
 		if errUnmarshal != nil {
+			nrNotAccounts++
+			totalSizeNonAccounts += len(leaf.Value())
 			log.Trace("cannot unmarshal user account. it may be a code leaf", "error", errUnmarshal)
 			continue
 		}
+
+		rh := userAccount.GetRootHash()
+		if len(rh) != 0 {
+			dataTrie, err2 := userAccountsDb.GetAllLeaves(rh)
+			if err2 != nil {
+				continue
+			}
+
+			currentSize := 0
+			for lf := range dataTrie {
+				currentSize += len(lf.Value())
+			}
+
+			totalSizeAccountsDataTries += currentSize
+			nrAccountsWithDataTrie++
+		}
+
+		nrAccounts++
+		totalSizeAccounts += len(leaf.Value())
+
 		balanceSum.Add(balanceSum, userAccount.GetBalance())
 	}
 
 	log.Debug("sum of addresses in shard at epoch start",
 		"shard", bp.shardCoordinator.SelfId(),
 		"epoch", metaBlock.Epoch,
-		"sum", balanceSum.String())
+		"sum", balanceSum.String(),
+		"nrAccounts", nrAccounts,
+		"totalSizeAccounts", totalSizeAccounts,
+		"nrNonAccounts", nrNotAccounts,
+		"totalSizeNonAccounts", totalSizeNonAccounts)
 
 	return nil
 }

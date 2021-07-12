@@ -37,6 +37,8 @@ var _ closing.Closer = (*trigger)(nil)
 // sleepTime defines the time in milliseconds between each iteration made in requestMissingMiniblocks method
 const sleepTime = 1 * time.Second
 
+var dumper = core.NewGoRoutinesAnalyser()
+
 // ArgsShardEpochStartTrigger struct { defines the arguments needed for new start of epoch trigger
 type ArgsShardEpochStartTrigger struct {
 	Marshalizer marshal.Marshalizer
@@ -542,6 +544,8 @@ func (t *trigger) updateTriggerFromMeta() {
 			t.epochStartMeta = currMetaInfo.hdr
 			t.saveCurrentState(currMetaInfo.hdr.GetRound())
 			t.epochStartNotifier.NotifyEpochChangeConfirmed(t.metaEpoch)
+
+			dumper.DumpGoRoutinesToLogWithTypes()
 
 			msg := fmt.Sprintf("EPOCH %d BEGINS IN ROUND (%d)", t.metaEpoch, t.epochStartRound)
 			log.Debug(display.Headline(msg, "", "#"))
