@@ -1046,12 +1046,13 @@ func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler, h
 	}
 
 	mapScheduledSCRs := bp.scheduledTxsExecutionHandler.GetScheduledSCRs()
-	marshalizedScheduledSCRs, errNotCritical := bp.getMarshalizedScheduledSCRs(mapScheduledSCRs)
+	rootHash := bp.scheduledTxsExecutionHandler.GetRootHash()
+	marshalizedRootHashAndScheduledSCRs, errNotCritical := bp.getMarshalizedRootHashAndScheduledSCRs(rootHash, mapScheduledSCRs)
 	if errNotCritical != nil {
 		log.Warn("saveBody.getMarshalizedScheduledSCRs", "error", errNotCritical.Error())
 	} else {
-		if len(marshalizedScheduledSCRs) > 0 {
-			errNotCritical = bp.store.Put(dataRetriever.ScheduledSCRsUnit, headerHash, marshalizedScheduledSCRs)
+		if len(marshalizedRootHashAndScheduledSCRs) > 0 {
+			errNotCritical = bp.store.Put(dataRetriever.ScheduledSCRsUnit, headerHash, marshalizedRootHashAndScheduledSCRs)
 			if errNotCritical != nil {
 				log.Warn("saveBody.Put -> ScheduledSCRsUnit", "error", errNotCritical.Error())
 			}
@@ -1161,7 +1162,12 @@ func (bp *baseProcessor) RevertAccountState(headerHandler data.HeaderHandler) {
 		}
 	}
 
-	process.SetScheduledSCRsAndRootHash(headerHandler.GetPrevHash(), bp.store, bp.marshalizer, bp.scheduledTxsExecutionHandler)
+	var headerHash []byte
+	if headerHandler != nil {
+		headerHash = headerHandler.GetPrevHash()
+	}
+
+	process.SetRootHashAndScheduledSCRs(headerHash, bp.store, bp.marshalizer, bp.scheduledTxsExecutionHandler)
 }
 
 // GetAccountsDBSnapshot returns the account snapshot
@@ -1440,8 +1446,12 @@ func (bp *baseProcessor) ProcessScheduledBlock(header data.HeaderHandler, _ data
 	return nil
 }
 
-func (bp *baseProcessor) getMarshalizedScheduledSCRs(mapSCRs map[block.Type][]data.TransactionHandler) ([]byte, error) {
+func (bp *baseProcessor) getMarshalizedRootHashAndScheduledSCRs(
+	rootHash []byte,
+	mapSCRs map[block.Type][]data.TransactionHandler,
+) ([]byte, error) {
 	scrsBatch := &batch.Batch{}
+	scrsBatch.Data = append(scrsBatch.Data, rootHash)
 	for blockType, scrs := range mapSCRs {
 		if len(scrs) == 0 {
 			continue
@@ -1464,7 +1474,7 @@ func (bp *baseProcessor) getMarshalizedScheduledSCRs(mapSCRs map[block.Type][]da
 		scrsBatch.Data = append(scrsBatch.Data, marshalizedScheduledSCRs)
 	}
 
-	if len(scrsBatch.Data) == 0 {
+	if len(scrsBatch.Data) <= 1 {
 		return make([]byte, 0), nil
 	}
 

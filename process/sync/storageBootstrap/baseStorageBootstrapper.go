@@ -176,7 +176,7 @@ func (st *storageBootstrapper) loadBlocks() error {
 		log.Debug("cannot save last round in storage ", "error", err.Error())
 	}
 
-	process.SetScheduledSCRsAndRootHash(headerInfo.LastHeader.Hash, st.store, st.marshalizer, st.scheduledTxsExecutionHandler)
+	process.SetRootHashAndScheduledSCRs(headerInfo.LastHeader.Hash, st.store, st.marshalizer, st.scheduledTxsExecutionHandler)
 
 	st.highestNonce = headerInfo.LastHeader.Nonce
 

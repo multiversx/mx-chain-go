@@ -700,12 +700,12 @@ func GetSortedStorageUpdates(account *vmcommon.OutputAccount) []*vmcommon.Storag
 	return storageUpdates
 }
 
-// GetScheduledSCRsAndRootHashFromStorage gets the scheduled scrs and the root hash of the given header from storage
-func GetScheduledSCRsAndRootHashFromStorage(
+// GetRootHashAndScheduledSCRsFromStorage gets root hash and scheduled scrs of the given header from storage
+func GetRootHashAndScheduledSCRsFromStorage(
 	headerHash []byte,
 	storageService dataRetriever.StorageService,
 	marshalizer marshal.Marshalizer,
-) (map[block.Type][]data.TransactionHandler, []byte, error) {
+) ([]byte, map[block.Type][]data.TransactionHandler, error) {
 	if check.IfNil(storageService) {
 		return nil, nil, ErrNilStorage
 	}
@@ -756,27 +756,29 @@ func GetScheduledSCRsAndRootHashFromStorage(
 		}
 	}
 
-	return mapScheduledSCRs, rootHash, nil
+	return rootHash, mapScheduledSCRs, nil
 }
 
-// SetScheduledSCRsAndRootHash sets the scheduled scrs and the root hash of the given header from storage
-func SetScheduledSCRsAndRootHash(
+// SetRootHashAndScheduledSCRs sets root hash and scheduled scrs of the given header from storage
+func SetRootHashAndScheduledSCRs(
 	headerHash []byte,
 	storageService dataRetriever.StorageService,
 	marshalizer marshal.Marshalizer,
 	scheduledTxsExecutionHandler ScheduledTxsExecutionHandler,
 ) {
-	mapScheduledSCRs, rootHash, err := GetScheduledSCRsAndRootHashFromStorage(headerHash, storageService, marshalizer)
+	rootHash, mapScheduledSCRs, err := GetRootHashAndScheduledSCRsFromStorage(headerHash, storageService, marshalizer)
 	if err != nil {
 		log.Debug("SetScheduledSCRsAndRootHash: get scheduled scrs from storage",
 			"error", err.Error(),
 			"header hash", headerHash,
 		)
+
+		//TODO: Analyze if root hash should be also set
+		scheduledTxsExecutionHandler.SetScheduledSCRs(make(map[block.Type][]data.TransactionHandler))
+
+		return
 	}
 
+	scheduledTxsExecutionHandler.SetRootHash(rootHash)
 	scheduledTxsExecutionHandler.SetScheduledSCRs(mapScheduledSCRs)
-
-	if len(rootHash) > 0 {
-		scheduledTxsExecutionHandler.SetRootHash(rootHash)
-	}
 }
