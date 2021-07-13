@@ -81,7 +81,7 @@ func TestTrieFactory_CreateNotSupportedCacheType(t *testing.T) {
 	trieStorageCfg := config.StorageConfig{}
 
 	maxTrieLevelInMemory := uint(5)
-	_, tr, err := tf.Create(trieStorageCfg, "0", false, maxTrieLevelInMemory)
+	_, tr, err := tf.Create(trieStorageCfg, "0", false, false, maxTrieLevelInMemory)
 	require.Nil(t, tr)
 	require.Equal(t, storage.ErrNotSupportedCacheType, err)
 }
@@ -94,7 +94,7 @@ func TestTrieFactory_CreateWithoutPruningShouldWork(t *testing.T) {
 	trieStorageCfg := createTrieStorageCfg()
 
 	maxTrieLevelInMemory := uint(5)
-	_, tr, err := tf.Create(trieStorageCfg, "0", false, maxTrieLevelInMemory)
+	_, tr, err := tf.Create(trieStorageCfg, "0", false, false, maxTrieLevelInMemory)
 	require.NotNil(t, tr)
 	require.Nil(t, err)
 }
@@ -107,7 +107,20 @@ func TestTrieCreator_CreateWithPruningShouldWork(t *testing.T) {
 	trieStorageCfg := createTrieStorageCfg()
 
 	maxTrieLevelInMemory := uint(5)
-	_, tr, err := tf.Create(trieStorageCfg, "0", true, maxTrieLevelInMemory)
+	_, tr, err := tf.Create(trieStorageCfg, "0", true, false, maxTrieLevelInMemory)
+	require.NotNil(t, tr)
+	require.Nil(t, err)
+}
+
+func TestTrieCreator_CreateWithoutCheckpointShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := getArgs()
+	tf, _ := NewTrieFactory(args)
+	trieStorageCfg := createTrieStorageCfg()
+
+	maxTrieLevelInMemory := uint(5)
+	_, tr, err := tf.Create(trieStorageCfg, "0", true, true, maxTrieLevelInMemory)
 	require.NotNil(t, tr)
 	require.Nil(t, err)
 }

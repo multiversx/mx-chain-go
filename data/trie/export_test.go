@@ -21,3 +21,7 @@ func (ts *trieSyncer) trieNodeIntercepted(hash []byte, val interface{}) {
 		received: true,
 	}
 }
+
+func (tsm *trieStorageManagerWithoutCheckpoints) PruningBlockingOperations() uint32 {
+	return tsm.pruningBlockingOps
+}

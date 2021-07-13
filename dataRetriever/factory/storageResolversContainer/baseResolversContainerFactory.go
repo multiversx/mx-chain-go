@@ -217,6 +217,7 @@ func (brcf *baseResolversContainerFactory) newImportDBTrieStorage(
 		trieStorageConfig,
 		core.GetShardIDString(brcf.shardIDForTries),
 		brcf.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
+		brcf.generalConfig.StateTriesConfig.CheckpointsEnabled,
 		brcf.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
 	)
 }

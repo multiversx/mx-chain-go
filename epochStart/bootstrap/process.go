@@ -902,6 +902,7 @@ func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) er
 		e.generalConfig.AccountsTrieStorage,
 		core.GetShardIDString(shardId),
 		e.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
+		e.generalConfig.StateTriesConfig.CheckpointsEnabled,
 		e.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
 	)
 	if err != nil {
@@ -917,6 +918,7 @@ func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) er
 		e.generalConfig.PeerAccountsTrieStorage,
 		core.GetShardIDString(shardId),
 		e.generalConfig.StateTriesConfig.PeerStatePruningEnabled,
+		e.generalConfig.StateTriesConfig.CheckpointsEnabled,
 		e.generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
 	)
 	if err != nil {
