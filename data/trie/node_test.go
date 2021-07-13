@@ -1,8 +1,6 @@
 package trie
 
 import (
-	"runtime"
-	"strconv"
 	"testing"
 	"time"
 
@@ -597,59 +595,6 @@ func TestPatriciaMerkleTrie_oldRootAndoldHashesAreResetAfterEveryCommit(t *testi
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(tr.oldHashes))
 	assert.Equal(t, 0, len(tr.oldRoot))
-}
-
-func TestPatriciaMerkleTrie_Close(t *testing.T) {
-	numLeavesToAdd := 200
-	tr, _ := newEmptyTrie()
-
-	for i := 0; i < numLeavesToAdd; i++ {
-		_ = tr.Update([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
-	}
-	_ = tr.Commit()
-
-	numBefore := runtime.NumGoroutine()
-
-	rootHash, _ := tr.RootHash()
-	leavesChannel1, _ := tr.GetAllLeavesOnChannel(rootHash)
-	numGoRoutines := runtime.NumGoroutine()
-	assert.Equal(t, 1, numGoRoutines-numBefore)
-
-	_, _ = tr.GetAllLeavesOnChannel(rootHash)
-	numGoRoutines = runtime.NumGoroutine()
-	assert.Equal(t, 2, numGoRoutines-numBefore)
-
-	_ = tr.Update([]byte("god"), []byte("puppy"))
-	_ = tr.Commit()
-
-	rootHash, _ = tr.RootHash()
-	_, _ = tr.GetAllLeavesOnChannel(rootHash)
-	numGoRoutines = runtime.NumGoroutine()
-	assert.Equal(t, 3, numGoRoutines-numBefore)
-
-	_ = tr.Update([]byte("eggod"), []byte("cat"))
-	_ = tr.Commit()
-
-	rootHash, _ = tr.RootHash()
-	leavesChannel2, _ := tr.GetAllLeavesOnChannel(rootHash)
-	numGoRoutines = runtime.NumGoroutine()
-	assert.Equal(t, 4, numGoRoutines-numBefore)
-
-	for range leavesChannel1 {
-	}
-	numGoRoutines = runtime.NumGoroutine()
-	assert.Equal(t, 3, numGoRoutines-numBefore)
-
-	for range leavesChannel2 {
-	}
-	numGoRoutines = runtime.NumGoroutine()
-	assert.Equal(t, 2, numGoRoutines-numBefore)
-
-	err := tr.Close()
-	assert.Nil(t, err)
-	time.Sleep(time.Second * 1)
-	numGoRoutines = runtime.NumGoroutine()
-	assert.Equal(t, 0, numGoRoutines-numBefore)
 }
 
 func TestNode_NodeExtension(t *testing.T) {
