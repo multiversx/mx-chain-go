@@ -8,7 +8,7 @@ require (
 	github.com/ElrondNetwork/concurrent-map v0.1.3
 	github.com/ElrondNetwork/elastic-indexer-go v1.0.7
 	github.com/ElrondNetwork/elrond-go-logger v1.0.4
-	github.com/ElrondNetwork/elrond-vm-common v1.0.1-0.20210713101706-dce2fde1fb27
+	github.com/ElrondNetwork/elrond-vm-common v1.0.1-0.20210713105939-b6bc55e23cc0
 	github.com/beevik/ntp v0.3.0
 	github.com/btcsuite/btcd v0.22.0-beta
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce
@@ -51,4 +51,4 @@ replace github.com/gogo/protobuf => github.com/ElrondNetwork/protobuf v1.3.2
 
 replace github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.26 => github.com/ElrondNetwork/arwen-wasm-vm v1.2.26
 
-replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.23 => github.com/ElrondNetwork/arwen-wasm-vm v1.3.20-0.20210713103251-087dc03fdb3c
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.23 => github.com/ElrondNetwork/arwen-wasm-vm v1.3.20-0.20210713110601-9530342076ab
