@@ -426,13 +426,14 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 			return vm, nil
 		}}
 
+	esdtTransferParser, _ := parsers.NewESDTTransferParser(testMarshalizer)
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:  pubkeyConv,
-		ShardCoordinator: oneShardCoordinator,
-		BuiltInFunctions: builtInFuncs,
-		ArgumentParser:   parsers.NewCallArgsParser(),
-		EpochNotifier:    forking.NewGenericEpochNotifier(),
-		Marshalizer:      testMarshalizer,
+		PubkeyConverter:    pubkeyConv,
+		ShardCoordinator:   oneShardCoordinator,
+		BuiltInFunctions:   builtInFuncs,
+		ArgumentParser:     parsers.NewCallArgsParser(),
+		EpochNotifier:      forking.NewGenericEpochNotifier(),
+		ESDTTransferParser: esdtTransferParser,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	gasSchedule := make(map[string]map[string]uint64)
@@ -757,13 +758,14 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		poolsHolder = testscommon.NewPoolsHolderMock()
 	}
 
+	esdtTransferParser, _ := parsers.NewESDTTransferParser(testMarshalizer)
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:  pubkeyConv,
-		ShardCoordinator: shardCoordinator,
-		BuiltInFunctions: blockChainHook.GetBuiltinFunctionsContainer(),
-		ArgumentParser:   parsers.NewCallArgsParser(),
-		EpochNotifier:    forking.NewGenericEpochNotifier(),
-		Marshalizer:      testMarshalizer,
+		PubkeyConverter:    pubkeyConv,
+		ShardCoordinator:   shardCoordinator,
+		BuiltInFunctions:   blockChainHook.GetBuiltinFunctionsContainer(),
+		ArgumentParser:     parsers.NewCallArgsParser(),
+		EpochNotifier:      forking.NewGenericEpochNotifier(),
+		ESDTTransferParser: esdtTransferParser,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 

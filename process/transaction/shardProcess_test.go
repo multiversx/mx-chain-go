@@ -1281,13 +1281,14 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 		return vmcommon.UserError, process.ErrNoVM
 	}
 
+	esdtTransferParser, _ := parsers.NewESDTTransferParser(&mock.MarshalizerMock{})
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:  mock.NewPubkeyConverterMock(32),
-		ShardCoordinator: shardCoordinator,
-		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
-		ArgumentParser:   parsers.NewCallArgsParser(),
-		EpochNotifier:    &mock.EpochNotifierStub{},
-		Marshalizer:      &mock.MarshalizerMock{},
+		PubkeyConverter:    mock.NewPubkeyConverterMock(32),
+		ShardCoordinator:   shardCoordinator,
+		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
+		ArgumentParser:     parsers.NewCallArgsParser(),
+		EpochNotifier:      &mock.EpochNotifierStub{},
+		ESDTTransferParser: esdtTransferParser,
 	}
 	computeType, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 
@@ -1665,13 +1666,14 @@ func TestTxProcessor_ProcessRelayedTransactionV2NotActiveShouldErr(t *testing.T)
 	scProcessorMock := &testscommon.SCProcessorMock{}
 	shardC, _ := sharding.NewMultiShardCoordinator(1, 0)
 
+	esdtTransferParser, _ := parsers.NewESDTTransferParser(&mock.MarshalizerMock{})
 	argTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:  pubKeyConverter,
-		ShardCoordinator: shardC,
-		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
-		ArgumentParser:   parsers.NewCallArgsParser(),
-		EpochNotifier:    &mock.EpochNotifierStub{},
-		Marshalizer:      &mock.MarshalizerMock{},
+		PubkeyConverter:    pubKeyConverter,
+		ShardCoordinator:   shardC,
+		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
+		ArgumentParser:     parsers.NewCallArgsParser(),
+		EpochNotifier:      &mock.EpochNotifierStub{},
+		ESDTTransferParser: esdtTransferParser,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argTxTypeHandler)
 
@@ -1745,13 +1747,14 @@ func TestTxProcessor_ProcessRelayedTransactionV2WithValueShouldErr(t *testing.T)
 	scProcessorMock := &testscommon.SCProcessorMock{}
 	shardC, _ := sharding.NewMultiShardCoordinator(1, 0)
 
+	esdtTransferParser, _ := parsers.NewESDTTransferParser(&mock.MarshalizerMock{})
 	argTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:  pubKeyConverter,
-		ShardCoordinator: shardC,
-		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
-		ArgumentParser:   parsers.NewCallArgsParser(),
-		EpochNotifier:    &mock.EpochNotifierStub{},
-		Marshalizer:      &mock.MarshalizerMock{},
+		PubkeyConverter:    pubKeyConverter,
+		ShardCoordinator:   shardC,
+		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
+		ArgumentParser:     parsers.NewCallArgsParser(),
+		EpochNotifier:      &mock.EpochNotifierStub{},
+		ESDTTransferParser: esdtTransferParser,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argTxTypeHandler)
 
@@ -1824,13 +1827,14 @@ func TestTxProcessor_ProcessRelayedTransactionV2ArgsParserShouldErr(t *testing.T
 	scProcessorMock := &testscommon.SCProcessorMock{}
 	shardC, _ := sharding.NewMultiShardCoordinator(1, 0)
 
+	esdtTransferParser, _ := parsers.NewESDTTransferParser(&mock.MarshalizerMock{})
 	argTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:  pubKeyConverter,
-		ShardCoordinator: shardC,
-		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
-		ArgumentParser:   parsers.NewCallArgsParser(),
-		EpochNotifier:    &mock.EpochNotifierStub{},
-		Marshalizer:      &mock.MarshalizerMock{},
+		PubkeyConverter:    pubKeyConverter,
+		ShardCoordinator:   shardC,
+		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
+		ArgumentParser:     parsers.NewCallArgsParser(),
+		EpochNotifier:      &mock.EpochNotifierStub{},
+		ESDTTransferParser: esdtTransferParser,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argTxTypeHandler)
 
@@ -1910,13 +1914,14 @@ func TestTxProcessor_ProcessRelayedTransactionV2InvalidParamCountShouldErr(t *te
 	scProcessorMock := &testscommon.SCProcessorMock{}
 	shardC, _ := sharding.NewMultiShardCoordinator(1, 0)
 
+	esdtTransferParser, _ := parsers.NewESDTTransferParser(&mock.MarshalizerMock{})
 	argTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:  pubKeyConverter,
-		ShardCoordinator: shardC,
-		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
-		ArgumentParser:   parsers.NewCallArgsParser(),
-		EpochNotifier:    &mock.EpochNotifierStub{},
-		Marshalizer:      &mock.MarshalizerMock{},
+		PubkeyConverter:    pubKeyConverter,
+		ShardCoordinator:   shardC,
+		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
+		ArgumentParser:     parsers.NewCallArgsParser(),
+		EpochNotifier:      &mock.EpochNotifierStub{},
+		ESDTTransferParser: esdtTransferParser,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argTxTypeHandler)
 
@@ -1989,13 +1994,14 @@ func TestTxProcessor_ProcessRelayedTransactionV2(t *testing.T) {
 	scProcessorMock := &testscommon.SCProcessorMock{}
 	shardC, _ := sharding.NewMultiShardCoordinator(1, 0)
 
+	esdtTransferParser, _ := parsers.NewESDTTransferParser(&mock.MarshalizerMock{})
 	argTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:  pubKeyConverter,
-		ShardCoordinator: shardC,
-		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
-		ArgumentParser:   parsers.NewCallArgsParser(),
-		EpochNotifier:    &mock.EpochNotifierStub{},
-		Marshalizer:      &mock.MarshalizerMock{},
+		PubkeyConverter:    pubKeyConverter,
+		ShardCoordinator:   shardC,
+		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
+		ArgumentParser:     parsers.NewCallArgsParser(),
+		EpochNotifier:      &mock.EpochNotifierStub{},
+		ESDTTransferParser: esdtTransferParser,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argTxTypeHandler)
 
@@ -2063,13 +2069,14 @@ func TestTxProcessor_ProcessRelayedTransaction(t *testing.T) {
 	scProcessorMock := &testscommon.SCProcessorMock{}
 	shardC, _ := sharding.NewMultiShardCoordinator(1, 0)
 
+	esdtTransferParser, _ := parsers.NewESDTTransferParser(&mock.MarshalizerMock{})
 	argTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:  pubKeyConverter,
-		ShardCoordinator: shardC,
-		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
-		ArgumentParser:   parsers.NewCallArgsParser(),
-		EpochNotifier:    &mock.EpochNotifierStub{},
-		Marshalizer:      &mock.MarshalizerMock{},
+		PubkeyConverter:    pubKeyConverter,
+		ShardCoordinator:   shardC,
+		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
+		ArgumentParser:     parsers.NewCallArgsParser(),
+		EpochNotifier:      &mock.EpochNotifierStub{},
+		ESDTTransferParser: esdtTransferParser,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argTxTypeHandler)
 
@@ -2590,13 +2597,14 @@ func TestTxProcessor_ProcessRelayedTransactionDisabled(t *testing.T) {
 	scProcessorMock := &testscommon.SCProcessorMock{}
 	shardC, _ := sharding.NewMultiShardCoordinator(1, 0)
 
+	esdtTransferParser, _ := parsers.NewESDTTransferParser(&mock.MarshalizerMock{})
 	argTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:  pubKeyConverter,
-		ShardCoordinator: shardC,
-		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
-		ArgumentParser:   parsers.NewCallArgsParser(),
-		EpochNotifier:    &mock.EpochNotifierStub{},
-		Marshalizer:      &mock.MarshalizerMock{},
+		PubkeyConverter:    pubKeyConverter,
+		ShardCoordinator:   shardC,
+		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
+		ArgumentParser:     parsers.NewCallArgsParser(),
+		EpochNotifier:      &mock.EpochNotifierStub{},
+		ESDTTransferParser: esdtTransferParser,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argTxTypeHandler)
 

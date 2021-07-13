@@ -18,13 +18,14 @@ import (
 )
 
 func createMockArguments() ArgNewTxTypeHandler {
+	esdtTransferParser, _ := parsers.NewESDTTransferParser(&mock.MarshalizerMock{})
 	return ArgNewTxTypeHandler{
-		PubkeyConverter:  createMockPubkeyConverter(),
-		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(3),
-		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
-		ArgumentParser:   parsers.NewCallArgsParser(),
-		EpochNotifier:    &mock.EpochNotifierStub{},
-		Marshalizer:      &mock.MarshalizerMock{},
+		PubkeyConverter:    createMockPubkeyConverter(),
+		ShardCoordinator:   mock.NewMultiShardsCoordinatorMock(3),
+		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
+		ArgumentParser:     parsers.NewCallArgsParser(),
+		EpochNotifier:      &mock.EpochNotifierStub{},
+		ESDTTransferParser: esdtTransferParser,
 	}
 }
 

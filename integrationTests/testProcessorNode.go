@@ -1412,13 +1412,14 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 
 	tpn.FeeAccumulator, _ = postprocess.NewFeeAccumulator()
 	tpn.ArgsParser = smartContract.NewArgumentParser()
+	esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:  TestAddressPubkeyConverter,
-		ShardCoordinator: tpn.ShardCoordinator,
-		BuiltInFunctions: builtInFuncs,
-		ArgumentParser:   parsers.NewCallArgsParser(),
-		EpochNotifier:    tpn.EpochNotifier,
-		Marshalizer:      TestMarshalizer,
+		PubkeyConverter:    TestAddressPubkeyConverter,
+		ShardCoordinator:   tpn.ShardCoordinator,
+		BuiltInFunctions:   builtInFuncs,
+		ArgumentParser:     parsers.NewCallArgsParser(),
+		EpochNotifier:      tpn.EpochNotifier,
+		ESDTTransferParser: esdtTransferParser,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler, tpn.EpochNotifier, tpn.DeployEnableEpoch)
@@ -1644,13 +1645,14 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 
 	tpn.FeeAccumulator, _ = postprocess.NewFeeAccumulator()
 	tpn.ArgsParser = smartContract.NewArgumentParser()
+	esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:  TestAddressPubkeyConverter,
-		ShardCoordinator: tpn.ShardCoordinator,
-		BuiltInFunctions: builtInFuncs,
-		ArgumentParser:   parsers.NewCallArgsParser(),
-		EpochNotifier:    tpn.EpochNotifier,
-		Marshalizer:      TestMarshalizer,
+		PubkeyConverter:    TestAddressPubkeyConverter,
+		ShardCoordinator:   tpn.ShardCoordinator,
+		BuiltInFunctions:   builtInFuncs,
+		ArgumentParser:     parsers.NewCallArgsParser(),
+		EpochNotifier:      tpn.EpochNotifier,
+		ESDTTransferParser: esdtTransferParser,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler, tpn.EpochNotifier, tpn.DeployEnableEpoch)

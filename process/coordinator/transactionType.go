@@ -8,11 +8,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 )
 
 var _ process.TxTypeHandler = (*txTypeHandler)(nil)
@@ -35,7 +33,7 @@ type ArgNewTxTypeHandler struct {
 	ArgumentParser         process.CallArgumentsParser
 	RelayedTxV2EnableEpoch uint32
 	EpochNotifier          process.EpochNotifier
-	Marshalizer            marshal.Marshalizer
+	ESDTTransferParser     vmcommon.ESDTTransferParser
 }
 
 // NewTxTypeHandler creates a transaction type handler
@@ -57,8 +55,8 @@ func NewTxTypeHandler(
 	if check.IfNil(args.EpochNotifier) {
 		return nil, process.ErrNilEpochNotifier
 	}
-	if check.IfNil(args.Marshalizer) {
-		return nil, process.ErrNilMarshalizer
+	if check.IfNil(args.ESDTTransferParser) {
+		return nil, process.ErrNilESDTTransferParser
 	}
 
 	tc := &txTypeHandler{
@@ -67,12 +65,7 @@ func NewTxTypeHandler(
 		argumentParser:         args.ArgumentParser,
 		builtInFunctions:       args.BuiltInFunctions,
 		relayedTxV2EnableEpoch: args.RelayedTxV2EnableEpoch,
-	}
-
-	var err error
-	tc.esdtTransferParser, err = parsers.NewESDTTransferParser(args.Marshalizer)
-	if err != nil {
-		return nil, err
+		esdtTransferParser:     args.ESDTTransferParser,
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(tc)

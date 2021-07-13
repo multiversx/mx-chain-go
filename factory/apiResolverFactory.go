@@ -103,6 +103,11 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, err
 	}
 
+	esdtTransferParser, err := parsers.NewESDTTransferParser(args.CoreComponents.InternalMarshalizer())
+	if err != nil {
+		return nil, err
+	}
+
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:        args.CoreComponents.AddressPubKeyConverter(),
 		ShardCoordinator:       args.ProcessComponents.ShardCoordinator(),
@@ -110,7 +115,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		ArgumentParser:         parsers.NewCallArgsParser(),
 		EpochNotifier:          args.CoreComponents.EpochNotifier(),
 		RelayedTxV2EnableEpoch: args.Configs.EpochConfig.EnableEpochs.RelayedTransactionsV2EnableEpoch,
-		Marshalizer:            args.CoreComponents.InternalMarshalizer(),
+		ESDTTransferParser:     esdtTransferParser,
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
