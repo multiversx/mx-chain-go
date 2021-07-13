@@ -10,7 +10,7 @@ func NewDisabledCheckpointHashesHolder() *disabledCheckpointHashesHolder {
 	return &disabledCheckpointHashesHolder{}
 }
 
-// Put does nothing for this implementation
+// Put returns false
 func (d *disabledCheckpointHashesHolder) Put(_ []byte, _ data.ModifiedHashes) bool {
 	return false
 }
@@ -23,7 +23,7 @@ func (d *disabledCheckpointHashesHolder) RemoveCommitted(_ []byte) {
 func (d *disabledCheckpointHashesHolder) Remove(_ []byte) {
 }
 
-// ShouldCommit does nothing for this implementation
+// ShouldCommit returns true
 func (d *disabledCheckpointHashesHolder) ShouldCommit(_ []byte) bool {
 	return true
 }

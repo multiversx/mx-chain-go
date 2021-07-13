@@ -51,29 +51,23 @@ func NewTrieFactory(
 }
 
 // Create creates a new trie
-func (tc *trieCreator) Create(
-	trieStorageCfg config.StorageConfig,
-	shardID string,
-	pruningEnabled bool,
-	checkpointsEnabled bool,
-	maxTrieLevelInMem uint,
-) (data.StorageManager, data.Trie, error) {
-	trieStoragePath, mainDb := path.Split(tc.pathManager.PathForStatic(shardID, trieStorageCfg.DB.FilePath))
+func (tc *trieCreator) Create(args data.TrieCreateArgs) (data.StorageManager, data.Trie, error) {
+	trieStoragePath, mainDb := path.Split(tc.pathManager.PathForStatic(args.ShardID, args.TrieStorageConfig.DB.FilePath))
 
-	dbConfig := factory.GetDBFromConfig(trieStorageCfg.DB)
+	dbConfig := factory.GetDBFromConfig(args.TrieStorageConfig.DB)
 	dbConfig.FilePath = path.Join(trieStoragePath, mainDb)
 	accountsTrieStorage, err := storageUnit.NewStorageUnitFromConf(
-		factory.GetCacherFromConfig(trieStorageCfg.Cache),
+		factory.GetCacherFromConfig(args.TrieStorageConfig.Cache),
 		dbConfig,
-		factory.GetBloomFromConfig(trieStorageCfg.Bloom),
+		factory.GetBloomFromConfig(args.TrieStorageConfig.Bloom),
 	)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	log.Debug("trie pruning status", "enabled", pruningEnabled)
-	if !pruningEnabled {
-		return tc.newTrieAndTrieStorageWithoutPruning(accountsTrieStorage, maxTrieLevelInMem)
+	log.Debug("trie pruning status", "enabled", args.PruningEnabled)
+	if !args.PruningEnabled {
+		return tc.newTrieAndTrieStorageWithoutPruning(accountsTrieStorage, args.MaxTrieLevelInMem)
 	}
 
 	snapshotDbCfg := config.DBConfig{
@@ -88,7 +82,7 @@ func (tc *trieCreator) Create(
 		tc.trieStorageManagerConfig.CheckpointHashesHolderMaxSize,
 		uint64(tc.hasher.Size()),
 	)
-	args := trie.NewTrieStorageManagerArgs{
+	storageManagerArgs := trie.NewTrieStorageManagerArgs{
 		DB:                     accountsTrieStorage,
 		Marshalizer:            tc.marshalizer,
 		Hasher:                 tc.hasher,
@@ -97,12 +91,12 @@ func (tc *trieCreator) Create(
 		CheckpointHashesHolder: checkpointHashesHolder,
 	}
 
-	log.Debug("trie checkpoints status", "enabled", checkpointsEnabled)
-	if !checkpointsEnabled {
-		return tc.newTrieAndTrieStorageWithoutCheckpoints(args, maxTrieLevelInMem)
+	log.Debug("trie checkpoints status", "enabled", args.CheckpointsEnabled)
+	if !args.CheckpointsEnabled {
+		return tc.newTrieAndTrieStorageWithoutCheckpoints(storageManagerArgs, args.MaxTrieLevelInMem)
 	}
 
-	return tc.newTrieAndTrieStorage(args, maxTrieLevelInMem)
+	return tc.newTrieAndTrieStorage(storageManagerArgs, args.MaxTrieLevelInMem)
 }
 
 func (tc *trieCreator) newTrieAndTrieStorage(

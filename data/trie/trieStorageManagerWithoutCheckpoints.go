@@ -27,7 +27,7 @@ func (tsm *trieStorageManagerWithoutCheckpoints) SetCheckpoint(_ []byte, _ chan 
 	log.Debug("trieStorageManagerWithoutCheckpoints - SetCheckpoint is disabled")
 }
 
-// AddDirtyCheckpointHashes does nothing for this implementation
+// AddDirtyCheckpointHashes returns false
 func (tsm *trieStorageManagerWithoutCheckpoints) AddDirtyCheckpointHashes(_ []byte, _ data.ModifiedHashes) bool {
 	return false
 }

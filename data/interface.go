@@ -223,9 +223,18 @@ type StorageManager interface {
 	IsInterfaceNil() bool
 }
 
+// TrieCreateArgs holds arguments for calling the Create method on the TrieFactory
+type TrieCreateArgs struct {
+	TrieStorageConfig  config.StorageConfig
+	ShardID            string
+	PruningEnabled     bool
+	CheckpointsEnabled bool
+	MaxTrieLevelInMem  uint
+}
+
 // TrieFactory creates new tries
 type TrieFactory interface {
-	Create(config.StorageConfig, string, bool, bool, uint) (StorageManager, Trie, error)
+	Create(TrieCreateArgs) (StorageManager, Trie, error)
 	IsInterfaceNil() bool
 }
 
