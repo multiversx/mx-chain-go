@@ -1355,7 +1355,7 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 			"from which totalSizeAccountsDataTries", totalSizeAccountsDataTries}...)
 	}
 
-	log.Debug("sum of addresses in shard at epoch start", stats)
+	log.Debug("sum of addresses in shard at epoch start", stats...)
 
 	return nil
 }

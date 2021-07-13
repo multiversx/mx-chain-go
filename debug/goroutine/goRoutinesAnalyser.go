@@ -70,6 +70,7 @@ func dumpGoRoutinesDataToLog(latestData map[string]debug.GoRoutineHandlerMap) {
 		runningTime := currentTime.Sub(gr.FirstOccurrence())
 		if runningTime > time.Hour {
 			log.Debug("remaining goroutine - more than an hour", "ID", gr.ID(), "running seconds", runningTime)
+			continue
 		}
 		log.Debug("remaining goroutine", "ID", gr.ID(), "running seconds", runningTime)
 	}
