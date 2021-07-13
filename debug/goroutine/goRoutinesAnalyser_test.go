@@ -7,13 +7,14 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
+	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGoRoutinesAnalyser_NewGoRoutinesAnalyser(t *testing.T) {
 	t.Parallel()
 
-	grpm := &mock.GoRoutineProcessorMock{
+	grpm := &mock.GoRoutineProcessorStub{
 		ProcessGoRoutineBufferCalled: func(previousData map[string]mock.GoRoutineHandlerMap, buffer *bytes.Buffer) map[string]mock.GoRoutineHandlerMap {
 			return make(map[string]mock.GoRoutineHandlerMap)
 		},
@@ -34,13 +35,13 @@ func TestGoRoutinesAnalyser_NewGoRoutinesAnalyserNilProcessorShouldErr(t *testin
 func TestGoRoutinesAnalyser_DumpGoRoutinesToLogWithTypesRoutineCountOk(t *testing.T) {
 	t.Parallel()
 
-	grpm := &mock.GoRoutineProcessorMock{}
+	grpm := &mock.GoRoutineProcessorStub{}
 	analyser, _ := NewGoRoutinesAnalyser(grpm)
 
 	grpm.ProcessGoRoutineBufferCalled =
 		func(previousData map[string]mock.GoRoutineHandlerMap, buffer *bytes.Buffer) map[string]mock.GoRoutineHandlerMap {
 			newMap := make(map[string]mock.GoRoutineHandlerMap)
-			newMap[newRoutine] = map[string]core.GoRoutineHandler{
+			newMap[newRoutine] = map[string]debug.GoRoutineHandler{
 				"1": &goRoutineData{
 					id:              "1",
 					firstOccurrence: time.Now(),
@@ -57,7 +58,7 @@ func TestGoRoutinesAnalyser_DumpGoRoutinesToLogWithTypesRoutineCountOk(t *testin
 	grpm.ProcessGoRoutineBufferCalled =
 		func(previousData map[string]mock.GoRoutineHandlerMap, buffer *bytes.Buffer) map[string]mock.GoRoutineHandlerMap {
 			newMap := make(map[string]mock.GoRoutineHandlerMap)
-			newMap[oldRoutine] = map[string]core.GoRoutineHandler{
+			newMap[oldRoutine] = map[string]debug.GoRoutineHandler{
 				"1": &goRoutineData{
 					id:              "1",
 					firstOccurrence: time.Now(),
@@ -80,4 +81,18 @@ func TestGoRoutinesAnalyser_DumpGoRoutinesToLogWithTypesRoutineCountOk(t *testin
 	analyser.DumpGoRoutinesToLogWithTypes()
 	assert.Equal(t, 0, len(analyser.goRoutinesData[newRoutine]))
 	assert.Equal(t, 0, len(analyser.goRoutinesData[oldRoutine]))
+}
+
+func Benchmark_GetGoroutineId(b *testing.B) {
+	goRoutineString := "goroutine 13 [runnable]:" +
+		"github.com/libp2p/go-cidranger/net.NetworkNumberMask.Mask(0x15, 0xc000d26c60, 0x4, 0x4, 0x10, 0x10, 0xc000d26c70)" +
+		"\t/home/radu/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/net/ip.go:276 +0xe5" +
+		"github.com/libp2p/go-cidranger/net.Network.Masked(...)" +
+		"\t/home/radu/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/net/ip.go:190" +
+		"github.com/libp2p/go-cidranger.newPathprefixTrie(0xc000d26c60, 0x4, 0x4, 0x30, 0x15, 0x4)" +
+		"\t/home/radu/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:82 +0x19f"
+
+	for i := 0; i < b.N; i++ {
+		_ = getGoroutineId(goRoutineString)
+	}
 }

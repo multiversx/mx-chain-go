@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,7 +26,7 @@ func TestGoRoutinesProcessor_ProcessGoRoutineBufferWithNilBuffer(t *testing.T) {
 
 	grp := NewGoRoutinesProcessor()
 
-	previousData := make(map[string]core.GoRoutineHandlerMap)
+	previousData := make(map[string]debug.GoRoutineHandlerMap)
 	result := grp.ProcessGoRoutineBuffer(previousData, &bytes.Buffer{})
 
 	assert.Equal(t, 0, len(result[newRoutine]))
@@ -38,7 +38,7 @@ func TestGoRoutinesProcessor_ProcessGoRoutineBufferOkNew(t *testing.T) {
 
 	grp := NewGoRoutinesProcessor()
 
-	previousData := make(map[string]core.GoRoutineHandlerMap)
+	previousData := make(map[string]debug.GoRoutineHandlerMap)
 
 	goRoutineId := "7"
 	goRoutineStack := "testStack"
@@ -68,8 +68,8 @@ func TestGoRoutinesProcessor_ProcessGoRoutineBufferOkOld(t *testing.T) {
 	goRoutineStack := "testStack"
 	goRoutineString := fmt.Sprintf(goRoutineFormat, goRoutineId, goRoutineStack)
 
-	previousData := make(map[string]core.GoRoutineHandlerMap)
-	previousData[newRoutine] = make(map[string]core.GoRoutineHandler)
+	previousData := make(map[string]debug.GoRoutineHandlerMap)
+	previousData[newRoutine] = make(map[string]debug.GoRoutineHandler)
 	previousData[newRoutine][goRoutineId] = &goRoutineData{
 		id:              goRoutineId,
 		firstOccurrence: time.Now(),

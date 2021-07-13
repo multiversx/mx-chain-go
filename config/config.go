@@ -402,7 +402,7 @@ type DebugConfig struct {
 	InterceptorResolver InterceptorResolverDebugConfig
 	Antiflood           AntifloodDebugConfig
 	ShuffleOut          ShuffleOutDebugConfig
-	Epoch               EpochDebugConfig
+	EpochStart          EpochStartDebugConfig
 }
 
 // HealthServiceConfig will hold health service (monitoring) configuration
@@ -440,9 +440,10 @@ type ShuffleOutDebugConfig struct {
 	DoProfileOnShuffleOut   bool
 }
 
-// EpochDebugConfig will hold the epoch debug configuration
-type EpochDebugConfig struct {
-	Enabled bool
+// EpochStartDebugConfig will hold the epoch debug configuration
+type EpochStartDebugConfig struct {
+	GoRoutineAnalyserEnabled     bool
+	ProcessDataTrieOnCommitEpoch bool
 }
 
 // ApiRoutesConfig holds the configuration related to Rest API routes

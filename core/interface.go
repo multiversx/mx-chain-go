@@ -1,7 +1,6 @@
 package core
 
 import (
-	"bytes"
 	"time"
 )
 
@@ -115,20 +114,4 @@ type SafeCloser interface {
 	Close()
 	ChanClose() <-chan struct{}
 	IsInterfaceNil() bool
-}
-
-// GoRoutineHandlerMap represents an alias of a map of gorutineHandlers
-type GoRoutineHandlerMap = map[string]GoRoutineHandler
-
-// GoRoutinesProcessor is a component that can extract go routines from a buffer
-type GoRoutinesProcessor interface {
-	ProcessGoRoutineBuffer(previousData map[string]GoRoutineHandlerMap, buffer *bytes.Buffer) map[string]GoRoutineHandlerMap
-	IsInterfaceNil() bool
-}
-
-// GoRoutineHandler contains go routine information
-type GoRoutineHandler interface {
-	ID() string
-	FirstOccurrence() time.Time
-	StackTrace() string
 }

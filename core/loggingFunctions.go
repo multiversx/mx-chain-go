@@ -16,6 +16,7 @@ func DumpGoRoutinesToLog(goRoutinesNumberStart int) {
 	log.Debug(buffer.String())
 }
 
+// GetRunningGoRoutines gets the currently running go routines stack trace as a bytes.Buffer
 func GetRunningGoRoutines() *bytes.Buffer {
 	buffer := new(bytes.Buffer)
 	err := pprof.Lookup("goroutine").WriteTo(buffer, 2)

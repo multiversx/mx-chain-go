@@ -5,29 +5,33 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/debug"
 )
+
+const newRoutineMarker = "\n\n"
 
 type goRoutinesProcessor struct {
 }
 
 // NewGoRoutinesProcessor creates a new GoRoutinesProcessor
-func NewGoRoutinesProcessor() core.GoRoutinesProcessor {
+func NewGoRoutinesProcessor() *goRoutinesProcessor {
 	return &goRoutinesProcessor{}
 }
 
 // ProcessGoRoutineBuffer processes a new go routine stack dump based on the previous data
 func (grp *goRoutinesProcessor) ProcessGoRoutineBuffer(
-	previousData map[string]core.GoRoutineHandlerMap, buffer *bytes.Buffer) map[string]core.GoRoutineHandlerMap {
+	previousData map[string]debug.GoRoutineHandlerMap,
+	buffer *bytes.Buffer,
+) map[string]debug.GoRoutineHandlerMap {
 	allGoRoutinesString := buffer.String()
 
-	splits := strings.Split(allGoRoutinesString, "\n\n")
+	splits := strings.Split(allGoRoutinesString, newRoutineMarker)
 
-	oldGoRoutines := make(core.GoRoutineHandlerMap)
-	newGoRoutines := make(core.GoRoutineHandlerMap)
+	oldGoRoutines := make(debug.GoRoutineHandlerMap)
+	newGoRoutines := make(debug.GoRoutineHandlerMap)
 
 	if previousData[oldRoutine] == nil {
-		previousData[oldRoutine] = make(core.GoRoutineHandlerMap)
+		previousData[oldRoutine] = make(debug.GoRoutineHandlerMap)
 	}
 
 	for k, val := range previousData[newRoutine] {
@@ -52,7 +56,7 @@ func (grp *goRoutinesProcessor) ProcessGoRoutineBuffer(
 		oldGoRoutines[val.ID()] = val
 	}
 
-	latestData := make(map[string]core.GoRoutineHandlerMap)
+	latestData := make(map[string]debug.GoRoutineHandlerMap)
 	latestData[newRoutine] = newGoRoutines
 	latestData[oldRoutine] = oldGoRoutines
 

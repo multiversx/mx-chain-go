@@ -3,22 +3,26 @@ package mock
 import (
 	"bytes"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/debug"
 )
 
-type GoRoutineHandlerMap = map[string]core.GoRoutineHandler
+// GoRoutineHandlerMap is an alias on the map of GoRoutineHandler
+type GoRoutineHandlerMap = map[string]debug.GoRoutineHandler
 
-type GoRoutineProcessorMock struct {
+// GoRoutineProcessorStub -
+type GoRoutineProcessorStub struct {
 	ProcessGoRoutineBufferCalled func(previousData map[string]GoRoutineHandlerMap, buffer *bytes.Buffer) map[string]GoRoutineHandlerMap
 }
 
-func (grpm *GoRoutineProcessorMock) ProcessGoRoutineBuffer(previousData map[string]GoRoutineHandlerMap, buffer *bytes.Buffer) map[string]GoRoutineHandlerMap {
-	if grpm.ProcessGoRoutineBufferCalled != nil {
-		return grpm.ProcessGoRoutineBufferCalled(previousData, buffer)
+// ProcessGoRoutineBuffer -
+func (grps *GoRoutineProcessorStub) ProcessGoRoutineBuffer(previousData map[string]GoRoutineHandlerMap, buffer *bytes.Buffer) map[string]GoRoutineHandlerMap {
+	if grps.ProcessGoRoutineBufferCalled != nil {
+		return grps.ProcessGoRoutineBufferCalled(previousData, buffer)
 	}
 	return make(map[string]GoRoutineHandlerMap)
 }
 
-func (grpm *GoRoutineProcessorMock) IsInterfaceNil() bool {
-	return grpm == nil
+// IsInterfaceNil -
+func (grps *GoRoutineProcessorStub) IsInterfaceNil() bool {
+	return grps == nil
 }
