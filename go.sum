@@ -30,6 +30,8 @@ github.com/ElrondNetwork/arwen-wasm-vm v1.2.26 h1:L2es+JjdfaiKd2IxicVhkRCZfu8E1h
 github.com/ElrondNetwork/arwen-wasm-vm v1.2.26/go.mod h1:6TqZmq72m8T4SK7F2q8Bgvbz/FrzvXrGLfmMHt1Td+E=
 github.com/ElrondNetwork/arwen-wasm-vm v1.3.20-0.20210712103947-bff6903b86bf h1:1ejhQzbqiDOG2B1lIht/CkgH+02/UtILVaFQLVzfNcA=
 github.com/ElrondNetwork/arwen-wasm-vm v1.3.20-0.20210712103947-bff6903b86bf/go.mod h1:1Sj+a873ZrkFt9WEtPs7kFrovkyVIeCmDAUo+hTWzoc=
+github.com/ElrondNetwork/arwen-wasm-vm v1.3.20-0.20210713103251-087dc03fdb3c h1:NnCfBSNXQEYuhptyRXWwKcYic3zoyzGMU+2Nk2vYeUY=
+github.com/ElrondNetwork/arwen-wasm-vm v1.3.20-0.20210713103251-087dc03fdb3c/go.mod h1:O3ZA1jz85mqiOtkEcgEJGkOgKrBj8iM5A9r0DHjwIPI=
 github.com/ElrondNetwork/big-int-util v0.0.5/go.mod h1:96viBvoTXLjZOhEvE0D+QnAwg1IJLPAK6GVHMbC7Aw4=
 github.com/ElrondNetwork/big-int-util v0.1.0 h1:vTMoJ5azhVmr7jhpSD3JUjQdkdyXoEPVkOvhdw1RjV4=
 github.com/ElrondNetwork/big-int-util v0.1.0/go.mod h1:96viBvoTXLjZOhEvE0D+QnAwg1IJLPAK6GVHMbC7Aw4=
@@ -78,6 +80,8 @@ github.com/ElrondNetwork/elrond-vm-common v0.3.4-0.20210625102705-01a81e6a1fa4/g
 github.com/ElrondNetwork/elrond-vm-common v1.0.1-0.20210709121514-acfacaa06d62/go.mod h1:w3i6f8uiuRkE68Ie/gebRcLgTuHqvruJSYrFyZWuLrE=
 github.com/ElrondNetwork/elrond-vm-common v1.0.1-0.20210712175732-c8b4cdc8fcaa h1:Q8bQIsn1a+YTY1+39lqDyBUcyW5Ipb3at3IkLaa3IQw=
 github.com/ElrondNetwork/elrond-vm-common v1.0.1-0.20210712175732-c8b4cdc8fcaa/go.mod h1:w3i6f8uiuRkE68Ie/gebRcLgTuHqvruJSYrFyZWuLrE=
+github.com/ElrondNetwork/elrond-vm-common v1.0.1-0.20210713101706-dce2fde1fb27 h1:OpKydfD55PTeYRINOxB22zSkGlpKpr3OA/EI8meIEmQ=
+github.com/ElrondNetwork/elrond-vm-common v1.0.1-0.20210713101706-dce2fde1fb27/go.mod h1:w3i6f8uiuRkE68Ie/gebRcLgTuHqvruJSYrFyZWuLrE=
 github.com/ElrondNetwork/elrond-vm-util v0.3.5/go.mod h1:+ecDJZLTwN/yeRXXEqd+sa9WoalLsT4nFtQWCo0YKWA=
 github.com/ElrondNetwork/elrond-vm-util v0.4.5/go.mod h1:YqFO7HkKfBnVQesisZuJ/Qce0/oTOnqx562iZCb8El0=
 github.com/ElrondNetwork/protobuf v1.3.2 h1:qoCSYiO+8GtXBEZWEjw0WPcZfM3g7QuuJrwpN+y6Mvg=

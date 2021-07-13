@@ -19,7 +19,7 @@ type ArgsCreateBuiltInFunctionContainer struct {
 	Marshalizer          marshal.Marshalizer
 	Accounts             state.AccountsAdapter
 	ShardCoordinator     sharding.Coordinator
-	EpochNotifier        interface{}
+	EpochNotifier        core.EpochNotifier
 }
 
 // CreateBuiltInFunctionContainer creates a container that will hold all the available built in functions
@@ -39,18 +39,13 @@ func CreateBuiltInFunctionContainer(args ArgsCreateBuiltInFunctionContainer) (vm
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if check.IfNilReflect(args.EpochNotifier) {
+	if check.IfNil(args.EpochNotifier) {
 		return nil, process.ErrNilEpochNotifier
 	}
 
 	vmcommonAccounts, ok := args.Accounts.(vmcommon.AccountsAdapter)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
-	}
-
-	castedEpochNotifier, ok := args.EpochNotifier.(vmcommon.EpochNotifier)
-	if !ok {
-		return nil, process.ErrNilEpochNotifier
 	}
 
 	modifiedArgs := vmcommonBuiltInFunctions.ArgsCreateBuiltInFunctionContainer{
@@ -60,7 +55,7 @@ func CreateBuiltInFunctionContainer(args ArgsCreateBuiltInFunctionContainer) (vm
 		Marshalizer:          args.Marshalizer,
 		Accounts:             vmcommonAccounts,
 		ShardCoordinator:     args.ShardCoordinator,
-		EpochNotifier:        castedEpochNotifier,
+		EpochNotifier:        args.EpochNotifier,
 	}
 
 	bContainerFactory, err := vmcommonBuiltInFunctions.NewBuiltInFunctionsFactory(modifiedArgs)

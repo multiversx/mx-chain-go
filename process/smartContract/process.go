@@ -1165,6 +1165,7 @@ func (sc *scProcessor) isCrossShardESDTTransfer(tx data.TransactionHandler) (str
 			returnData += hex.EncodeToString(args[i]) + "@"
 		}
 		returnData += hex.EncodeToString(args[numTransferArgs-1])
+		return returnData, true
 	}
 
 	return "", false
