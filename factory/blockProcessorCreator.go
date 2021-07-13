@@ -97,12 +97,13 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:      pcf.gasSchedule,
-		MapDNSAddresses:  mapDNSAddresses,
-		Marshalizer:      pcf.coreData.InternalMarshalizer(),
-		Accounts:         pcf.state.AccountsAdapter(),
-		ShardCoordinator: pcf.bootstrapComponents.ShardCoordinator(),
-		EpochNotifier:    pcf.epochNotifier,
+		GasSchedule:                  pcf.gasSchedule,
+		MapDNSAddresses:              mapDNSAddresses,
+		Marshalizer:                  pcf.coreData.InternalMarshalizer(),
+		Accounts:                     pcf.state.AccountsAdapter(),
+		ShardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
+		EpochNotifier:                pcf.epochNotifier,
+		ESDTMultiTransferEnableEpoch: pcf.epochConfig.EnableEpochs.ESDTMultiTransferEnableEpoch,
 	}
 
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
@@ -422,12 +423,13 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 ) (process.BlockProcessor, error) {
 
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:      pcf.gasSchedule,
-		MapDNSAddresses:  make(map[string]struct{}), // no dns for meta
-		Marshalizer:      pcf.coreData.InternalMarshalizer(),
-		Accounts:         pcf.state.AccountsAdapter(),
-		ShardCoordinator: pcf.bootstrapComponents.ShardCoordinator(),
-		EpochNotifier:    pcf.epochNotifier,
+		GasSchedule:                  pcf.gasSchedule,
+		MapDNSAddresses:              make(map[string]struct{}), // no dns for meta
+		Marshalizer:                  pcf.coreData.InternalMarshalizer(),
+		Accounts:                     pcf.state.AccountsAdapter(),
+		ShardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
+		EpochNotifier:                pcf.epochNotifier,
+		ESDTMultiTransferEnableEpoch: pcf.epochConfig.EnableEpochs.ESDTMultiTransferEnableEpoch,
 	}
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	if err != nil {

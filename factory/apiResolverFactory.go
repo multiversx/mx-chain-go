@@ -97,6 +97,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		args.StateComponents.AccountsAdapter(),
 		args.BootstrapComponents.ShardCoordinator(),
 		args.CoreComponents.EpochNotifier(),
+		args.Configs.EpochConfig.EnableEpochs.ESDTMultiTransferEnableEpoch,
 	)
 	if err != nil {
 		return nil, err
@@ -222,6 +223,7 @@ func createScQueryElement(
 		args.stateComponents.AccountsAdapter(),
 		args.processComponents.ShardCoordinator(),
 		args.coreComponents.EpochNotifier(),
+		args.epochConfig.EnableEpochs.ESDTMultiTransferEnableEpoch,
 	)
 	if err != nil {
 		return nil, err
@@ -323,14 +325,16 @@ func createBuiltinFuncs(
 	accnts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
 	epochNotifier core.EpochNotifier,
+	esdtMultiTransferEnableEpoch uint32,
 ) (vmcommon.BuiltInFunctionContainer, error) {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:      gasScheduleNotifier,
-		MapDNSAddresses:  make(map[string]struct{}),
-		Marshalizer:      marshalizer,
-		Accounts:         accnts,
-		ShardCoordinator: shardCoordinator,
-		EpochNotifier:    epochNotifier,
+		GasSchedule:                  gasScheduleNotifier,
+		MapDNSAddresses:              make(map[string]struct{}),
+		Marshalizer:                  marshalizer,
+		Accounts:                     accnts,
+		ShardCoordinator:             shardCoordinator,
+		EpochNotifier:                epochNotifier,
+		ESDTMultiTransferEnableEpoch: esdtMultiTransferEnableEpoch,
 	}
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	if err != nil {

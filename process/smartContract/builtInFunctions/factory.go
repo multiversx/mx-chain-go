@@ -13,13 +13,14 @@ import (
 
 // ArgsCreateBuiltInFunctionContainer -
 type ArgsCreateBuiltInFunctionContainer struct {
-	GasSchedule          core.GasScheduleNotifier
-	MapDNSAddresses      map[string]struct{}
-	EnableUserNameChange bool
-	Marshalizer          marshal.Marshalizer
-	Accounts             state.AccountsAdapter
-	ShardCoordinator     sharding.Coordinator
-	EpochNotifier        core.EpochNotifier
+	GasSchedule                  core.GasScheduleNotifier
+	MapDNSAddresses              map[string]struct{}
+	EnableUserNameChange         bool
+	Marshalizer                  marshal.Marshalizer
+	Accounts                     state.AccountsAdapter
+	ShardCoordinator             sharding.Coordinator
+	EpochNotifier                core.EpochNotifier
+	ESDTMultiTransferEnableEpoch uint32
 }
 
 // CreateBuiltInFunctionContainer creates a container that will hold all the available built in functions
@@ -49,13 +50,14 @@ func CreateBuiltInFunctionContainer(args ArgsCreateBuiltInFunctionContainer) (vm
 	}
 
 	modifiedArgs := vmcommonBuiltInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasMap:               args.GasSchedule.LatestGasSchedule(),
-		MapDNSAddresses:      args.MapDNSAddresses,
-		EnableUserNameChange: args.EnableUserNameChange,
-		Marshalizer:          args.Marshalizer,
-		Accounts:             vmcommonAccounts,
-		ShardCoordinator:     args.ShardCoordinator,
-		EpochNotifier:        args.EpochNotifier,
+		GasMap:                              args.GasSchedule.LatestGasSchedule(),
+		MapDNSAddresses:                     args.MapDNSAddresses,
+		EnableUserNameChange:                args.EnableUserNameChange,
+		Marshalizer:                         args.Marshalizer,
+		Accounts:                            vmcommonAccounts,
+		ShardCoordinator:                    args.ShardCoordinator,
+		EpochNotifier:                       args.EpochNotifier,
+		ESDTNFTImprovementV1ActivationEpoch: args.ESDTMultiTransferEnableEpoch,
 	}
 
 	bContainerFactory, err := vmcommonBuiltInFunctions.NewBuiltInFunctionsFactory(modifiedArgs)
