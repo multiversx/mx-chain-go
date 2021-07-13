@@ -60,7 +60,7 @@ func dumpGoRoutinesDataToLog(latestData map[string]debug.GoRoutineHandlerMap) {
 
 	sort.Slice(goRoutines, func(i, j int) bool {
 		if goRoutines[i].FirstOccurrence().Equal(goRoutines[j].FirstOccurrence()) {
-			return strings.Compare(goRoutines[i].ID(), goRoutines[j].ID()) < 0
+			return goRoutines[i].ID() < goRoutines[j].ID()
 		}
 		return goRoutines[i].FirstOccurrence().Before(goRoutines[j].FirstOccurrence())
 	})
