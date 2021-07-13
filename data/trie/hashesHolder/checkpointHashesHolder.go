@@ -84,7 +84,7 @@ func (c *checkpointHashesHolder) RemoveCommitted(lastCommittedRootHash []byte) {
 		mapHashes := c.hashes[index]
 		sizeOfRemovedHashes = sizeOfRemovedHashes + getMapSize(mapHashes, c.hashSize) + uint64(len(rootHash))
 
-		lastCommittedRootHashNotFound := !bytes.Equal(c.rootHashes[index], lastCommittedRootHash)
+		lastCommittedRootHashNotFound := !bytes.Equal(rootHash, lastCommittedRootHash)
 		if lastCommittedRootHashNotFound {
 			continue
 		}
@@ -140,19 +140,8 @@ func (c *checkpointHashesHolder) removeHashFromMap(hash []byte, hashesMap data.M
 		return
 	}
 
-	c.currentSize = c.currentSize - c.hashSize
+	c.currentSize -= c.hashSize
 }
-
-//func isInMap(hash []byte, hashesMap map[string]data.ModifiedHashes) bool {
-//	for _, hashes := range hashesMap {
-//		_, ok := hashes[string(hash)]
-//		if ok {
-//			return true
-//		}
-//	}
-//
-//	return false
-//}
 
 func getMapSize(hashesMap data.ModifiedHashes, hashSize uint64) uint64 {
 	return uint64(len(hashesMap)) * hashSize
