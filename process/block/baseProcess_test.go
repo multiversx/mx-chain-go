@@ -14,6 +14,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/keyValStorage"
 	"github.com/ElrondNetwork/elrond-go/core/queue"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -1373,6 +1374,76 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldWork(t *testing.T) {
 	mb := &block.MetaBlock{Epoch: epoch}
 	err := sp.CommitTrieEpochRootHashIfNeeded(mb, []byte("root"))
 	require.NoError(t, err)
+}
+
+func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldUseDataTrieIfNeededWork(t *testing.T) {
+	t.Parallel()
+
+	var processDataTrieTests = []struct {
+		processDataTrie        bool
+		calledWithUserRootHash bool
+	}{
+		{false, false},
+		{true, true},
+	}
+
+	for _, tt := range processDataTrieTests {
+		epoch := uint32(37)
+		rootHash := []byte("userAcc-root-hash")
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.UInt64ByteSliceConv = uint64ByteSlice.NewBigEndianConverter()
+		coreComponents.IntMarsh = &mock.MarshalizerStub{
+			UnmarshalCalled: func(obj interface{}, buff []byte) error {
+				userAccount := obj.(state.UserAccountHandler)
+				userAccount.SetRootHash(rootHash)
+				return nil
+			},
+		}
+
+		store := dataRetriever.NewChainStorer()
+		store.AddStorer(dataRetriever.TrieEpochRootHashUnit,
+			&testscommon.StorerStub{
+				PutCalled: func(key, data []byte) error {
+					restoredEpoch, err := coreComponents.UInt64ByteSliceConv.ToUint64(key)
+					require.NoError(t, err)
+					require.Equal(t, epoch, uint32(restoredEpoch))
+					return nil
+				},
+			},
+		)
+		dataComponents.Storage = store
+		calledWithUserAccountRootHash := false
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.AccountsDB = map[state.AccountsDbIdentifier]state.AccountsAdapter{
+			state.UserAccountsState: &testscommon.AccountsStub{
+				GetAllLeavesCalled: func(rh []byte) (chan core.KeyValueHolder, error) {
+					channel := make(chan core.KeyValueHolder)
+					if bytes.Equal(rootHash, rh) {
+						calledWithUserAccountRootHash = true
+						close(channel)
+						return channel, nil
+					}
+
+					go func() {
+						channel <- keyValStorage.NewKeyValStorage([]byte("address"), []byte("bytes"))
+						close(channel)
+					}()
+
+					return channel, nil
+				},
+			},
+		}
+
+		arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch = tt.processDataTrie
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		mb := &block.MetaBlock{Epoch: epoch}
+		err := sp.CommitTrieEpochRootHashIfNeeded(mb, []byte("root"))
+		require.NoError(t, err)
+
+		require.Equal(t, tt.calledWithUserRootHash, calledWithUserAccountRootHash)
+	}
 }
 
 func TestBaseProcessor_updateState(t *testing.T) {
