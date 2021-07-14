@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -27,29 +28,33 @@ type ArgTxLogProcessor struct {
 }
 
 type txLogProcessor struct {
-	saveLogsInStorageEnabled bool
-	logs                     map[string]data.LogHandler
-	mut                      sync.RWMutex
-	storer                   storage.Storer
-	marshalizer              marshal.Marshalizer
+	logs        map[string]data.LogHandler
+	mut         sync.RWMutex
+	storer      storage.Storer
+	marshalizer marshal.Marshalizer
 }
 
 // NewTxLogProcessor creates a transaction log processor capable of parsing logs from the VM
 //  and saving them into the injected storage
 func NewTxLogProcessor(args ArgTxLogProcessor) (*txLogProcessor, error) {
-	if check.IfNil(args.Storer) {
+	storer := args.Storer
+	if check.IfNil(storer) && args.SaveInStorageEnabled {
 		return nil, process.ErrNilStore
 	}
+
+	if !args.SaveInStorageEnabled {
+		storer = storageUnit.NewNilStorer()
+	}
+
 	if check.IfNil(args.Marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
 
 	return &txLogProcessor{
-		storer:                   args.Storer,
-		marshalizer:              args.Marshalizer,
-		logs:                     make(map[string]data.LogHandler),
-		mut:                      sync.RWMutex{},
-		saveLogsInStorageEnabled: args.SaveInStorageEnabled,
+		storer:      storer,
+		marshalizer: args.Marshalizer,
+		logs:        make(map[string]data.LogHandler),
+		mut:         sync.RWMutex{},
 	}, nil
 }
 
@@ -57,10 +62,6 @@ func NewTxLogProcessor(args ArgTxLogProcessor) (*txLogProcessor, error) {
 func (tlp *txLogProcessor) GetLog(txHash []byte) (data.LogHandler, error) {
 	tlp.mut.RLock()
 	defer tlp.mut.RUnlock()
-
-	if !tlp.saveLogsInStorageEnabled {
-		return nil, process.ErrLogsNotSavedInStorage
-	}
 
 	txLogFromCache, ok := tlp.logs[string(txHash)]
 	if ok {
@@ -157,10 +158,6 @@ func (tlp *txLogProcessor) SaveLog(txHash []byte, tx data.TransactionHandler, lo
 	}
 
 	tlp.saveLogToCache(txHash, txLog)
-
-	if !tlp.saveLogsInStorageEnabled {
-		return nil
-	}
 
 	buff, err := tlp.marshalizer.Marshal(txLog)
 	if err != nil {

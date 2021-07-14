@@ -21,7 +21,8 @@ func TestNewTxLogProcessor_NilParameters(t *testing.T) {
 	require.Equal(t, process.ErrNilMarshalizer, nilMarshalizer)
 
 	_, nilStorer := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
-		Marshalizer: &mock.MarshalizerMock{},
+		Marshalizer:          &mock.MarshalizerMock{},
+		SaveInStorageEnabled: true,
 	})
 
 	require.Equal(t, process.ErrNilStore, nilStorer)
@@ -62,18 +63,6 @@ func TestTxLogProcessor_SaveLogsEmptyLogsReturnsNil(t *testing.T) {
 
 	err := txLogProcessor.SaveLog([]byte("txhash"), &transaction.Transaction{}, make([]*vmcommon.LogEntry, 0))
 	require.Nil(t, err)
-}
-
-func TestTxLogProcessor_GetLogsFromStorageNotEnabled(t *testing.T) {
-	t.Parallel()
-
-	txLogsProc, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
-		Storer:      &testscommon.StorerStub{},
-		Marshalizer: &mock.MarshalizerMock{},
-	})
-
-	_, err := txLogsProc.GetLog([]byte("hash"))
-	require.Equal(t, process.ErrLogsNotSavedInStorage, err)
 }
 
 func TestTxLogProcessor_Clean(t *testing.T) {

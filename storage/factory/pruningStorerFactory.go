@@ -97,7 +97,6 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	var unsignedTxUnit storage.Storer
 	var rewardTxUnit storage.Storer
 	var bootstrapUnit storage.Storer
-	var txLogsUnit storage.Storer
 	var receiptsUnit storage.Storer
 	var err error
 
@@ -248,7 +247,6 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	store.AddStorer(dataRetriever.HeartbeatUnit, heartbeatStorageUnit)
 	store.AddStorer(dataRetriever.BootstrapUnit, bootstrapUnit)
 	store.AddStorer(dataRetriever.StatusMetricsUnit, statusMetricsStorageUnit)
-	store.AddStorer(dataRetriever.TxLogsUnit, txLogsUnit)
 	store.AddStorer(dataRetriever.ReceiptsUnit, receiptsUnit)
 	store.AddStorer(dataRetriever.TrieEpochRootHashUnit, trieEpochRootHashStorageUnit)
 
