@@ -668,7 +668,7 @@ func (s *systemSCProcessor) updateMaxNodes(validatorInfos map[uint32][]*state.Va
 	sw.Start("total")
 	defer func() {
 		sw.Stop("total")
-		log.Info("systemSCProcessor.updateMaxNodes", sw.GetMeasurements()...)
+		log.Debug("systemSCProcessor.updateMaxNodes", sw.GetMeasurements()...)
 	}()
 
 	maxNumberOfNodes := s.maxNodes
@@ -1047,7 +1047,7 @@ func (s *systemSCProcessor) updateOwnersForBlsKeys() error {
 	sw.Start("systemSCProcessor")
 	defer func() {
 		sw.Stop("systemSCProcessor")
-		log.Info("systemSCProcessor.updateOwnersForBlsKeys time measurements", sw.GetMeasurements()...)
+		log.Debug("systemSCProcessor.updateOwnersForBlsKeys time measurements", sw.GetMeasurements()...)
 	}()
 
 	sw.Start("getValidatorSystemAccount")
@@ -1243,7 +1243,7 @@ func (s *systemSCProcessor) cleanAdditionalQueue() error {
 	sw.Start("systemSCProcessor")
 	defer func() {
 		sw.Stop("systemSCProcessor")
-		log.Info("systemSCProcessor.cleanAdditionalQueue time measurements", sw.GetMeasurements()...)
+		log.Debug("systemSCProcessor.cleanAdditionalQueue time measurements", sw.GetMeasurements()...)
 	}()
 
 	vmInput := &vmcommon.ContractCallInput{
@@ -1486,7 +1486,7 @@ func (s *systemSCProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 	log.Debug("systemSCProcessor: correct last unjailed", "enabled", s.flagCorrectNumNodesToStake.IsSet())
 
 	s.flagESDTEnabled.Toggle(epoch == s.esdtEnableEpoch)
-	log.Debug("systemSCProcessor: ESDT", "enabled", s.flagESDTEnabled.IsSet())
+	log.Debug("systemSCProcessor: ESDT initialization", "enabled", s.flagESDTEnabled.IsSet())
 
 	s.flagSaveJailedAlwaysEnabled.Toggle(epoch >= s.saveJailedAlwaysEnableEpoch)
 	log.Debug("systemSCProcessor: save jailed always", "enabled", s.flagSaveJailedAlwaysEnabled.IsSet())

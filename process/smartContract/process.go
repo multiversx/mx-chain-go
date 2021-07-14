@@ -859,6 +859,8 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 		if len(newSCRTxs) > 0 {
 			scrResults = append(scrResults, newSCRTxs...)
 		}
+
+		mergeVMOutputLogs(newVMOutput, vmOutput)
 	}
 
 	isSCCallCrossShard := !isSCCallSelfShard && txTypeOnDst == process.SCInvoking
@@ -887,6 +889,17 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 	}
 
 	return sc.finishSCExecution(scrResults, txHash, tx, newVMOutput, builtInFuncGasUsed)
+}
+
+func mergeVMOutputLogs(newVMOutput *vmcommon.VMOutput, vmOutput *vmcommon.VMOutput) {
+	if len(vmOutput.Logs) == 0 {
+		return
+	}
+
+	if newVMOutput.Logs == nil {
+		newVMOutput.Logs = make([]*vmcommon.LogEntry, 0, len(vmOutput.Logs))
+	}
+	newVMOutput.Logs = append(newVMOutput.Logs, vmOutput.Logs...)
 }
 
 func (sc *scProcessor) processSCRForSenderAfterBuiltIn(
@@ -1020,15 +1033,16 @@ func (sc *scProcessor) isSCExecutionAfterBuiltInFunc(
 
 	newVMInput := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
-			CallerAddr:     vmInput.CallerAddr,
-			Arguments:      arguments,
-			CallValue:      big.NewInt(0),
-			CallType:       callType,
-			GasPrice:       vmInput.GasPrice,
-			GasProvided:    scExecuteOutTransfer.GasLimit,
-			GasLocked:      vmInput.GasLocked,
-			OriginalTxHash: vmInput.OriginalTxHash,
-			CurrentTxHash:  vmInput.CurrentTxHash,
+			CallerAddr:           vmInput.CallerAddr,
+			Arguments:            arguments,
+			CallValue:            big.NewInt(0),
+			CallType:             callType,
+			GasPrice:             vmInput.GasPrice,
+			GasProvided:          scExecuteOutTransfer.GasLimit,
+			GasLocked:            vmInput.GasLocked,
+			OriginalTxHash:       vmInput.OriginalTxHash,
+			CurrentTxHash:        vmInput.CurrentTxHash,
+			ReturnCallAfterError: vmInput.ReturnCallAfterError,
 		},
 		RecipientAddr:     recipient,
 		Function:          function,
@@ -1060,15 +1074,16 @@ func (sc *scProcessor) createVMInputWithAsyncCallBack(vmInput *vmcommon.Contract
 
 	newVMInput := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
-			CallerAddr:     vmInput.CallerAddr,
-			Arguments:      arguments,
-			CallValue:      big.NewInt(0),
-			CallType:       vmcommon.AsynchronousCallBack,
-			GasPrice:       vmInput.GasPrice,
-			GasProvided:    gasLimit,
-			GasLocked:      vmInput.GasLocked,
-			OriginalTxHash: vmInput.OriginalTxHash,
-			CurrentTxHash:  vmInput.CurrentTxHash,
+			CallerAddr:           vmInput.CallerAddr,
+			Arguments:            arguments,
+			CallValue:            big.NewInt(0),
+			CallType:             vmcommon.AsynchronousCallBack,
+			GasPrice:             vmInput.GasPrice,
+			GasProvided:          gasLimit,
+			GasLocked:            vmInput.GasLocked,
+			OriginalTxHash:       vmInput.OriginalTxHash,
+			CurrentTxHash:        vmInput.CurrentTxHash,
+			ReturnCallAfterError: vmInput.ReturnCallAfterError,
 		},
 		RecipientAddr:     vmInput.RecipientAddr,
 		Function:          "callBack",
@@ -2143,7 +2158,7 @@ func (sc *scProcessor) updateSmartContractCode(
 		stateAccount.SetOwnerAddress(outputAccount.CodeDeployerAddress)
 		stateAccount.SetCodeMetadata(outputAccount.CodeMetadata)
 		stateAccount.SetCode(outputAccount.Code)
-		log.Info("updateSmartContractCode(): created", "address", sc.pubkeyConv.Encode(outputAccount.Address), "upgradeable", newCodeMetadata.Upgradeable)
+		log.Debug("updateSmartContractCode(): created", "address", sc.pubkeyConv.Encode(outputAccount.Address), "upgradeable", newCodeMetadata.Upgradeable)
 		return
 	}
 
