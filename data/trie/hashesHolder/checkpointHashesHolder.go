@@ -43,6 +43,14 @@ func (c *checkpointHashesHolder) Put(rootHash []byte, hashes data.ModifiedHashes
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
+	if len(c.rootHashes) != 0 {
+		lastRootHash := c.rootHashes[len(c.rootHashes)-1]
+		if bytes.Equal(lastRootHash, rootHash) {
+			log.Debug("checkpoint hashes holder rootHash did not change")
+			return false
+		}
+	}
+
 	c.rootHashes = append(c.rootHashes, rootHash)
 	c.hashes = append(c.hashes, hashes)
 
