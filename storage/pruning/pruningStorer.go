@@ -683,7 +683,7 @@ func (ps *PruningStorer) changeEpoch(header data.HeaderHandler) error {
 			log.Warn("change epoch", "epoch", epoch, "error", err)
 			return err
 		}
-		log.Info("change epoch pruning storer success", "persister", ps.identifier, "epoch", epoch)
+		log.Debug("change epoch pruning storer success", "persister", ps.identifier, "epoch", epoch)
 
 		return nil
 	}

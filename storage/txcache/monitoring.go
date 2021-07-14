@@ -243,5 +243,5 @@ func (cache *TxCache) displaySendersSummary() {
 	}
 
 	summary := builder.String()
-	log.Info("TxCache.displaySendersSummary()", "name", cache.name, "summary\n", summary)
+	log.Debug("TxCache.displaySendersSummary()", "name", cache.name, "summary\n", summary)
 }
