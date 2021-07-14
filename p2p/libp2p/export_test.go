@@ -75,3 +75,9 @@ func (ip *identityProvider) HandleStreams(s network.Stream) {
 func (ip *identityProvider) ProcessReceivedData(recvBuff []byte) error {
 	return ip.processReceivedData(recvBuff)
 }
+
+// NewNetworkMessengerWithoutPortReuse creates a libP2P messenger by opening a port on the current machine but is
+// not able to reuse ports
+func NewNetworkMessengerWithoutPortReuse(args ArgsNetworkMessenger) (*networkMessenger, error) {
+	return newNetworkMessenger(args, true, false)
+}

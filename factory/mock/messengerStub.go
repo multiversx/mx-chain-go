@@ -20,6 +20,7 @@ type MessengerStub struct {
 	BroadcastOnChannelBlockingCalled func(channel string, topic string, buff []byte) error
 	IsConnectedToTheNetworkCalled    func() bool
 	PeersCalled                      func() []core.PeerID
+	PortCalled                       func() int
 }
 
 // ConnectedFullHistoryPeersOnTopic -
@@ -185,4 +186,13 @@ func (ms *MessengerStub) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo {
 // UnjoinAllTopics -
 func (ms *MessengerStub) UnjoinAllTopics() error {
 	return nil
+}
+
+// Port -
+func (ms *MessengerStub) Port() int {
+	if ms.PortCalled != nil {
+		return ms.PortCalled()
+	}
+
+	return 0
 }

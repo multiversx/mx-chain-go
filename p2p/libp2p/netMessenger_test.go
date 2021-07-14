@@ -1693,6 +1693,48 @@ func TestNetworkMessenger_ApplyOptionsShouldWork(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestNetworkMessenger_ChooseAnotherPortIfBindFails(t *testing.T) {
+	port := "37000-37100" //use a larger interval as some ports might already be used by the OS
+
+	mutMessengers := sync.Mutex{}
+	messengers := make([]p2p.Messenger, 0)
+
+	numMessengers := 10
+	for i := 0; i < numMessengers; i++ {
+		go func() {
+			time.Sleep(time.Millisecond)
+			args := createMockNetworkArgs()
+			args.P2pConfig.Node.Port = port
+
+			netMes, err := libp2p.NewNetworkMessengerWithoutPortReuse(args)
+			assert.Nil(t, err)
+			require.False(t, check.IfNil(netMes))
+
+			mutMessengers.Lock()
+			messengers = append(messengers, netMes)
+			mutMessengers.Unlock()
+		}()
+	}
+
+	time.Sleep(time.Second)
+
+	mutMessengers.Lock()
+	for index1, mes1 := range messengers {
+		for index2, mes2 := range messengers {
+			if index1 == index2 {
+				continue
+			}
+
+			assert.NotEqual(t, mes1.Port(), mes2.Port())
+		}
+	}
+
+	for _, mes := range messengers {
+		_ = mes.Close()
+	}
+	mutMessengers.Unlock()
+}
+
 func TestNetworkMessenger_Bootstrap(t *testing.T) {
 	t.Skip("long test used to debug go routines closing on the netMessenger")
 
