@@ -40,6 +40,9 @@ func FillGasMapBuiltInCosts(value uint64) map[string]uint64 {
 	gasMap["ESDTNFTBurn"] = value
 	gasMap["ESDTNFTTransfer"] = value
 	gasMap["ESDTNFTChangeCreateOwner"] = value
+	gasMap["ESDTNFTAddUri"] = value
+	gasMap["ESDTNFTUpdateAttributes"] = value
+	gasMap["ESDTNFTMultiTransfer"] = value
 
 	return gasMap
 }

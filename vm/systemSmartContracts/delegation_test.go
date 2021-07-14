@@ -242,7 +242,7 @@ func TestNewDelegationSystemSC_OkParamsShouldWork(t *testing.T) {
 	args := createMockArgumentsForDelegation()
 
 	epochNotifier := &mock.EpochNotifierStub{}
-	epochNotifier.RegisterNotifyHandlerCalled = func(handler core.EpochSubscriberHandler) {
+	epochNotifier.RegisterNotifyHandlerCalled = func(handler vmcommon.EpochSubscriberHandler) {
 		registerHandler = true
 	}
 	args.EpochNotifier = epochNotifier
