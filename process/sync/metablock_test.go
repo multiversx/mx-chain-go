@@ -328,16 +328,16 @@ func TestNewMetaBootstrap_NilMiniblocksProviderShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilMiniBlocksProvider, err)
 }
 
-func TestNewMetaBootstrap_NilIndexerProviderShouldErr(t *testing.T) {
+func TestNewMetaBootstrap_NilOutportProviderShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
-	args.Indexer = nil
+	args.OutportHandler = nil
 
 	bs, err := sync.NewMetaBootstrap(args)
 
 	assert.Nil(t, bs)
-	assert.Equal(t, process.ErrNilIndexer, err)
+	assert.Equal(t, process.ErrNilOutportHandler, err)
 }
 
 func TestNewMetaBootstrap_NilCurrentEpochProviderShouldErr(t *testing.T) {
