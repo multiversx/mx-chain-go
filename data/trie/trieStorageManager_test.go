@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -21,12 +20,6 @@ const (
 	checkpointHashesHolderMaxSize = 10000000
 	hashSize                      = 32
 )
-
-func waitForOperationToComplete(tsm data.StorageManager) {
-	for tsm.IsPruningBlocked() {
-		time.Sleep(10 * time.Millisecond)
-	}
-}
 
 func getNewTrieStorageManagerArgs() NewTrieStorageManagerArgs {
 	return NewTrieStorageManagerArgs{
@@ -122,7 +115,7 @@ func TestNewTrieStorageManagerWithExistingSnapshot(t *testing.T) {
 	_ = tr.Commit()
 	rootHash, _ := tr.RootHash()
 	trieStorage.TakeSnapshot(rootHash, true, nil)
-	waitForOperationToComplete(trieStorage)
+	WaitForOperationToComplete(trieStorage)
 
 	trieStorage.storageOperationMutex.Lock()
 	_ = trieStorage.snapshots[0].Close()
@@ -175,7 +168,7 @@ func TestNewTrieStorageManagerLoadsSnapshotsInOrder(t *testing.T) {
 	_ = tr.Commit()
 	rootHash, _ := tr.RootHash()
 	trieStorage.TakeSnapshot(rootHash, true, nil)
-	waitForOperationToComplete(trieStorage)
+	WaitForOperationToComplete(trieStorage)
 
 	numSnapshots := 10
 	for i := 0; i < numSnapshots; i++ {
@@ -183,7 +176,7 @@ func TestNewTrieStorageManagerLoadsSnapshotsInOrder(t *testing.T) {
 		_ = tr.Commit()
 		rootHash, _ = tr.RootHash()
 		trieStorage.TakeSnapshot(rootHash, true, nil)
-		waitForOperationToComplete(trieStorage)
+		WaitForOperationToComplete(trieStorage)
 	}
 
 	trieStorage.storageOperationMutex.Lock()
@@ -228,7 +221,7 @@ func TestRecreateTrieFromSnapshotDb(t *testing.T) {
 	storageManager := tr.GetStorageManager()
 	rootHash, _ := tr.RootHash()
 	storageManager.TakeSnapshot(rootHash, true, nil)
-	waitForOperationToComplete(storageManager)
+	WaitForOperationToComplete(storageManager)
 
 	err := storageManager.Database().Remove(rootHash)
 	assert.Nil(t, err)
@@ -260,7 +253,7 @@ func TestEachSnapshotCreatesOwnDatabase(t *testing.T) {
 		_ = tr.Update(testVal.key, testVal.value)
 		_ = tr.Commit()
 		trieStorage.TakeSnapshot(tr.root.getHash(), true, nil)
-		waitForOperationToComplete(trieStorage)
+		WaitForOperationToComplete(trieStorage)
 
 		trieStorage.storageOperationMutex.Lock()
 		snapshotId := strconv.Itoa(trieStorage.snapshotId - 1)
@@ -295,7 +288,7 @@ func TestDeleteOldSnapshots(t *testing.T) {
 		_ = tr.Commit()
 		trieStorage.TakeSnapshot(tr.root.getHash(), true, nil)
 	}
-	waitForOperationToComplete(trieStorage)
+	WaitForOperationToComplete(trieStorage)
 
 	snapshots, _ := ioutil.ReadDir(trieStorage.snapshotDbCfg.FilePath)
 	assert.Equal(t, 2, len(snapshots))
@@ -319,7 +312,7 @@ func TestTrieCheckpoint(t *testing.T) {
 
 	_ = tr.Commit()
 	trieStorage.TakeSnapshot(tr.root.getHash(), true, nil)
-	waitForOperationToComplete(trieStorage)
+	WaitForOperationToComplete(trieStorage)
 
 	_ = tr.Update([]byte("doge"), []byte("reindeer"))
 	newHashes, _ := tr.GetDirtyHashes()
@@ -349,7 +342,7 @@ func TestTrieCheckpoint(t *testing.T) {
 	assert.Nil(t, val)
 
 	trieStorage.SetCheckpoint(tr.root.getHash(), nil)
-	waitForOperationToComplete(trieStorage)
+	WaitForOperationToComplete(trieStorage)
 
 	val, err = snapshotTrie.Get([]byte("doge"))
 	assert.Nil(t, err)
@@ -368,7 +361,7 @@ func TestTrieCheckpointWithNoSnapshotCreatesSnapshot(t *testing.T) {
 
 	_ = tr.Commit()
 	trieStorage.SetCheckpoint(tr.root.getHash(), nil)
-	waitForOperationToComplete(trieStorage)
+	WaitForOperationToComplete(trieStorage)
 
 	trieStorage.storageOperationMutex.Lock()
 	assert.Equal(t, 1, len(trieStorage.snapshots))
@@ -385,7 +378,7 @@ func TestTrieSnapshottingAndCheckpointConcurrently(t *testing.T) {
 	_ = tr.Commit()
 
 	trieStorage.TakeSnapshot(tr.root.getHash(), true, nil)
-	waitForOperationToComplete(trieStorage)
+	WaitForOperationToComplete(trieStorage)
 
 	numSnapshots := 5
 	numCheckpoints := 5
@@ -426,7 +419,7 @@ func TestTrieSnapshottingAndCheckpointConcurrently(t *testing.T) {
 
 	snapshotWg.Wait()
 	checkpointWg.Wait()
-	waitForOperationToComplete(trieStorage)
+	WaitForOperationToComplete(trieStorage)
 
 	trieStorage.storageOperationMutex.Lock()
 	assert.Equal(t, totalNumSnapshot, trieStorage.snapshotId)
@@ -454,14 +447,14 @@ func TestIsPresentInLastSnapshotDb(t *testing.T) {
 	_ = tr.Commit()
 	rootHash1, _ := tr.RootHash()
 	trieStorage.TakeSnapshot(rootHash1, true, nil)
-	waitForOperationToComplete(trieStorage)
+	WaitForOperationToComplete(trieStorage)
 
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
 
 	_ = tr.Commit()
 	rootHash2, _ := tr.RootHash()
 	trieStorage.TakeSnapshot(rootHash2, true, nil)
-	waitForOperationToComplete(trieStorage)
+	WaitForOperationToComplete(trieStorage)
 
 	trieStorage.storageOperationMutex.Lock()
 	val, err := trieStorage.snapshots[0].Get(rootHash2)
@@ -485,14 +478,14 @@ func TestTrieSnapshotChecksOnlyLastSnapshotDbForTheHash(t *testing.T) {
 	_ = tr.Commit()
 	rootHash1, _ := tr.RootHash()
 	trieStorage.TakeSnapshot(rootHash1, true, nil)
-	waitForOperationToComplete(trieStorage)
+	WaitForOperationToComplete(trieStorage)
 
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
 
 	_ = tr.Commit()
 	rootHash2, _ := tr.RootHash()
 	trieStorage.TakeSnapshot(rootHash2, true, nil)
-	waitForOperationToComplete(trieStorage)
+	WaitForOperationToComplete(trieStorage)
 
 	trieStorage.storageOperationMutex.Lock()
 	val, err := trieStorage.snapshots[0].Get(rootHash1)
@@ -516,14 +509,14 @@ func TestShouldNotRemoveSnapshotDbIfItIsStillInUse(t *testing.T) {
 	_ = tr.Commit()
 	rootHash1, _ := tr.RootHash()
 	trieStorage.TakeSnapshot(rootHash1, true, nil)
-	waitForOperationToComplete(trieStorage)
+	WaitForOperationToComplete(trieStorage)
 
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
 
 	_ = tr.Commit()
 	rootHash2, _ := tr.RootHash()
 	trieStorage.TakeSnapshot(rootHash2, true, nil)
-	waitForOperationToComplete(trieStorage)
+	WaitForOperationToComplete(trieStorage)
 
 	db := trieStorage.GetSnapshotThatContainsHash(rootHash1)
 
@@ -532,7 +525,7 @@ func TestShouldNotRemoveSnapshotDbIfItIsStillInUse(t *testing.T) {
 	_ = tr.Commit()
 	rootHash3, _ := tr.RootHash()
 	trieStorage.TakeSnapshot(rootHash3, true, nil)
-	waitForOperationToComplete(trieStorage)
+	WaitForOperationToComplete(trieStorage)
 
 	val, err := db.Get(rootHash1)
 	assert.Nil(t, err)
@@ -558,7 +551,7 @@ func TestShouldNotRemoveSnapshotDbsIfKeepSnapshotsTrue(t *testing.T) {
 		_ = tr.Commit()
 		rootHash, _ := tr.RootHash()
 		trieStorage.TakeSnapshot(rootHash, true, nil)
-		waitForOperationToComplete(trieStorage)
+		WaitForOperationToComplete(trieStorage)
 	}
 
 	for i := 0; i < nrOfSnapshots; i++ {
@@ -586,7 +579,7 @@ func TestShouldRemoveSnapshotDbsIfKeepSnapshotsFalse(t *testing.T) {
 		_ = tr.Commit()
 		rootHash, _ := tr.RootHash()
 		trieStorage.TakeSnapshot(rootHash, true, nil)
-		waitForOperationToComplete(trieStorage)
+		WaitForOperationToComplete(trieStorage)
 	}
 
 	for i := 0; i < nrOfSnapshots-int(trieStorage.maxSnapshots); i++ {
@@ -617,14 +610,14 @@ func TestShouldNotDisconnectSnapshotDbIfItIsStillInUse(t *testing.T) {
 	_ = tr.Commit()
 	rootHash1, _ := tr.RootHash()
 	trieStorage.TakeSnapshot(rootHash1, true, nil)
-	waitForOperationToComplete(trieStorage)
+	WaitForOperationToComplete(trieStorage)
 
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
 
 	_ = tr.Commit()
 	rootHash2, _ := tr.RootHash()
 	trieStorage.TakeSnapshot(rootHash2, true, nil)
-	waitForOperationToComplete(trieStorage)
+	WaitForOperationToComplete(trieStorage)
 
 	db := trieStorage.GetSnapshotThatContainsHash(rootHash1)
 
@@ -633,7 +626,7 @@ func TestShouldNotDisconnectSnapshotDbIfItIsStillInUse(t *testing.T) {
 	_ = tr.Commit()
 	rootHash3, _ := tr.RootHash()
 	trieStorage.TakeSnapshot(rootHash3, true, nil)
-	waitForOperationToComplete(trieStorage)
+	WaitForOperationToComplete(trieStorage)
 
 	val, err := db.Get(rootHash1)
 	assert.Nil(t, err)
