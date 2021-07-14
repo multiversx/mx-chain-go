@@ -78,11 +78,9 @@ func TestTxLogProcessor_Clean(t *testing.T) {
 	}
 	err := txLogsProc.SaveLog([]byte("txhash"), &transaction.Transaction{}, logs)
 	require.Nil(t, err)
-
 	require.Len(t, txLogsProc.GetAllCurrentLogs(), 1)
 
 	txLogsProc.Clean()
-
 	require.Len(t, txLogsProc.GetAllCurrentLogs(), 0)
 }
 
