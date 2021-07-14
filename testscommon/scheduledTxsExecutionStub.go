@@ -16,8 +16,8 @@ type ScheduledTxsExecutionStub struct {
 	ExecuteAllCalled                func(func() time.Duration) error
 	GetScheduledSCRsCalled          func() map[block.Type][]data.TransactionHandler
 	SetScheduledSCRsCalled          func(map[block.Type][]data.TransactionHandler)
-	GetRootHashCalled               func() []byte
-	SetRootHashCalled               func([]byte)
+	GetScheduledRootHashCalled      func() []byte
+	SetScheduledRootHashCalled      func([]byte)
 	SetTransactionProcessorCalled   func(process.TransactionProcessor)
 	SetTransactionCoordinatorCalled func(process.TransactionCoordinator)
 }
@@ -68,19 +68,19 @@ func (stes *ScheduledTxsExecutionStub) SetScheduledSCRs(mapScheduledSCRs map[blo
 	}
 }
 
-// GetRootHash -
-func (stes *ScheduledTxsExecutionStub) GetRootHash() []byte {
-	if stes.GetRootHashCalled != nil {
-		return stes.GetRootHashCalled()
+// GetScheduledRootHash -
+func (stes *ScheduledTxsExecutionStub) GetScheduledRootHash() []byte {
+	if stes.GetScheduledRootHashCalled != nil {
+		return stes.GetScheduledRootHashCalled()
 	}
 
 	return make([]byte, 0)
 }
 
-// SetRootHash -
-func (stes *ScheduledTxsExecutionStub) SetRootHash(rootHash []byte) {
-	if stes.SetRootHashCalled != nil {
-		stes.SetRootHashCalled(rootHash)
+// SetScheduledRootHash -
+func (stes *ScheduledTxsExecutionStub) SetScheduledRootHash(rootHash []byte) {
+	if stes.SetScheduledRootHashCalled != nil {
+		stes.SetScheduledRootHashCalled(rootHash)
 	}
 }
 

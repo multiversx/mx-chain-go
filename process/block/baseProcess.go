@@ -1045,9 +1045,9 @@ func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler, h
 		}
 	}
 
+	scheduledRootHash := bp.scheduledTxsExecutionHandler.GetScheduledRootHash()
 	mapScheduledSCRs := bp.scheduledTxsExecutionHandler.GetScheduledSCRs()
-	rootHash := bp.scheduledTxsExecutionHandler.GetRootHash()
-	marshalizedRootHashAndScheduledSCRs, errNotCritical := bp.getMarshalizedRootHashAndScheduledSCRs(rootHash, mapScheduledSCRs)
+	marshalizedRootHashAndScheduledSCRs, errNotCritical := bp.getMarshalizedScheduledRootHashAndSCRs(scheduledRootHash, mapScheduledSCRs)
 	if errNotCritical != nil {
 		log.Warn("saveBody.getMarshalizedScheduledSCRs", "error", errNotCritical.Error())
 	} else {
@@ -1162,12 +1162,23 @@ func (bp *baseProcessor) RevertAccountState(headerHandler data.HeaderHandler) {
 		}
 	}
 
-	var headerHash []byte
-	if headerHandler != nil {
-		headerHash = headerHandler.GetPrevHash()
+	bp.revertScheduledRootHashAndSCRs(headerHandler)
+}
+
+func (bp *baseProcessor) revertScheduledRootHashAndSCRs(headerHandler data.HeaderHandler) {
+	if headerHandler == nil {
+		return
 	}
 
-	process.SetRootHashAndScheduledSCRs(headerHash, bp.store, bp.marshalizer, bp.scheduledTxsExecutionHandler)
+	additionalData := headerHandler.GetAdditionalData()
+	if additionalData != nil {
+		process.SetScheduledRootHashAndSCRs(
+			additionalData.GetScheduledRootHash(),
+			headerHandler.GetPrevHash(),
+			bp.store,
+			bp.marshalizer,
+			bp.scheduledTxsExecutionHandler)
+	}
 }
 
 // GetAccountsDBSnapshot returns the account snapshot
@@ -1441,18 +1452,18 @@ func (bp *baseProcessor) ProcessScheduledBlock(header data.HeaderHandler, _ data
 		return err
 	}
 
-	bp.scheduledTxsExecutionHandler.SetRootHash(rootHash)
+	bp.scheduledTxsExecutionHandler.SetScheduledRootHash(rootHash)
 
 	return nil
 }
 
-func (bp *baseProcessor) getMarshalizedRootHashAndScheduledSCRs(
-	rootHash []byte,
-	mapSCRs map[block.Type][]data.TransactionHandler,
+func (bp *baseProcessor) getMarshalizedScheduledRootHashAndSCRs(
+	scheduledRootHash []byte,
+	mapScheduledSCRs map[block.Type][]data.TransactionHandler,
 ) ([]byte, error) {
 	scrsBatch := &batch.Batch{}
-	scrsBatch.Data = append(scrsBatch.Data, rootHash)
-	for blockType, scrs := range mapSCRs {
+	scrsBatch.Data = append(scrsBatch.Data, scheduledRootHash)
+	for blockType, scrs := range mapScheduledSCRs {
 		if len(scrs) == 0 {
 			continue
 		}

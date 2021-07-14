@@ -700,8 +700,8 @@ func GetSortedStorageUpdates(account *vmcommon.OutputAccount) []*vmcommon.Storag
 	return storageUpdates
 }
 
-// GetRootHashAndScheduledSCRsFromStorage gets root hash and scheduled scrs of the given header from storage
-func GetRootHashAndScheduledSCRsFromStorage(
+// GetScheduledRootHashAndSCRsFromStorage gets scheduled root hash and SCRs of the given header from storage
+func GetScheduledRootHashAndSCRsFromStorage(
 	headerHash []byte,
 	storageService dataRetriever.StorageService,
 	marshalizer marshal.Marshalizer,
@@ -729,9 +729,9 @@ func GetRootHashAndScheduledSCRsFromStorage(
 		return nil, nil, err
 	}
 
-	rootHash := make([]byte, 0)
+	scheduledRootHash := make([]byte, 0)
 	if len(b.Data) > 0 {
-		rootHash = b.Data[0]
+		scheduledRootHash = b.Data[0]
 	}
 
 	mapScheduledSCRs := make(map[block.Type][]data.TransactionHandler)
@@ -756,29 +756,30 @@ func GetRootHashAndScheduledSCRsFromStorage(
 		}
 	}
 
-	return rootHash, mapScheduledSCRs, nil
+	return scheduledRootHash, mapScheduledSCRs, nil
 }
 
-// SetRootHashAndScheduledSCRs sets root hash and scheduled scrs of the given header from storage
-func SetRootHashAndScheduledSCRs(
+// SetScheduledRootHashAndSCRs sets scheduled root hash and SCRs of the given header from storage
+func SetScheduledRootHashAndSCRs(
+	rootHash []byte,
 	headerHash []byte,
 	storageService dataRetriever.StorageService,
 	marshalizer marshal.Marshalizer,
 	scheduledTxsExecutionHandler ScheduledTxsExecutionHandler,
 ) {
-	rootHash, mapScheduledSCRs, err := GetRootHashAndScheduledSCRsFromStorage(headerHash, storageService, marshalizer)
+	scheduledRootHash, mapScheduledSCRs, err := GetScheduledRootHashAndSCRsFromStorage(headerHash, storageService, marshalizer)
 	if err != nil {
-		log.Debug("SetScheduledSCRsAndRootHash: get scheduled scrs from storage",
+		log.Debug("GetScheduledRootHashAndSCRsFromStorage: get scheduled root hash and SCRs from storage",
 			"error", err.Error(),
 			"header hash", headerHash,
 		)
 
-		//TODO: Analyze if root hash should be also set
+		scheduledTxsExecutionHandler.SetScheduledRootHash(rootHash)
 		scheduledTxsExecutionHandler.SetScheduledSCRs(make(map[block.Type][]data.TransactionHandler))
 
 		return
 	}
 
-	scheduledTxsExecutionHandler.SetRootHash(rootHash)
+	scheduledTxsExecutionHandler.SetScheduledRootHash(scheduledRootHash)
 	scheduledTxsExecutionHandler.SetScheduledSCRs(mapScheduledSCRs)
 }

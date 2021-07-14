@@ -714,7 +714,15 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			)
 		}
 
-		process.SetRootHashAndScheduledSCRs(prevHeaderHash, boot.store, boot.marshalizer, boot.scheduledTxsExecutionHandler)
+		additionalData := currHeader.GetAdditionalData()
+		if additionalData != nil {
+			process.SetScheduledRootHashAndSCRs(
+				additionalData.GetScheduledRootHash(),
+				currHeader.GetPrevHash(),
+				boot.store,
+				boot.marshalizer,
+				boot.scheduledTxsExecutionHandler)
+		}
 
 		boot.indexer.RevertIndexedBlock(currHeader, currBody)
 
@@ -853,7 +861,12 @@ func (boot *baseBootstrap) restoreState(
 		log.Debug("RevertState", "error", err.Error())
 	}
 
-	process.SetRootHashAndScheduledSCRs(currHeaderHash, boot.store, boot.marshalizer, boot.scheduledTxsExecutionHandler)
+	process.SetScheduledRootHashAndSCRs(
+		currHeader.GetRootHash(),
+		currHeaderHash,
+		boot.store,
+		boot.marshalizer,
+		boot.scheduledTxsExecutionHandler)
 }
 
 func (boot *baseBootstrap) setCurrentBlockInfo(
