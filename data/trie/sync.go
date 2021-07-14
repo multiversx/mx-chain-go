@@ -33,7 +33,7 @@ type trieSyncer struct {
 	hasher                    hashing.Hasher
 	db                        data.DBWriteCacher
 	requestHandler            RequestHandler
-	interceptedNodes          storage.Cacher
+	interceptedNodesCacher    storage.Cacher
 	mutOperation              sync.RWMutex
 	handlerID                 string
 	trieSyncStatistics        data.SyncStatisticsHandler
@@ -68,7 +68,7 @@ func NewTrieSyncer(arg ArgTrieSyncer) (*trieSyncer, error) {
 
 	ts := &trieSyncer{
 		requestHandler:            arg.RequestHandler,
-		interceptedNodes:          arg.InterceptedNodes,
+		interceptedNodesCacher:    arg.InterceptedNodes,
 		db:                        arg.DB,
 		marshalizer:               arg.Marshalizer,
 		hasher:                    arg.Hasher,
@@ -289,13 +289,29 @@ func (ts *trieSyncer) getNode(hash []byte) (node, error) {
 		return nodeInfo.trieNode, nil
 	}
 
-	n, ok := ts.interceptedNodes.Get(hash)
+	return getNodeFromStorage(
+		hash,
+		ts.interceptedNodesCacher,
+		ts.db,
+		ts.marshalizer,
+		ts.hasher,
+	)
+}
+
+func getNodeFromStorage(
+	hash []byte,
+	interceptedNodesCacher storage.Cacher,
+	db data.DBWriteCacher,
+	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
+) (node, error) {
+	n, ok := interceptedNodesCacher.Get(hash)
 	if ok {
-		ts.interceptedNodes.Remove(hash)
-		return trieNode(n)
+		interceptedNodesCacher.Remove(hash)
+		return trieNode(n, marshalizer, hasher)
 	}
 
-	existingNode, err := getNodeFromDBAndDecode(hash, ts.db, ts.marshalizer, ts.hasher)
+	existingNode, err := getNodeFromDBAndDecode(hash, db, marshalizer, hasher)
 	if err != nil {
 		return nil, ErrNodeNotFound
 	}
@@ -307,13 +323,32 @@ func (ts *trieSyncer) getNode(hash []byte) (node, error) {
 	return existingNode, nil
 }
 
-func trieNode(data interface{}) (node, error) {
+func trieNode(
+	data interface{},
+	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
+) (node, error) {
 	n, ok := data.(*InterceptedTrieNode)
 	if !ok {
 		return nil, ErrWrongTypeAssertion
 	}
 
-	return n.node, nil
+	if n.node != nil {
+		return n.node, nil
+	}
+
+	decodedNode, err := decodeNode(n.GetSerialized(), marshalizer, hasher)
+	if err != nil {
+		return nil, err
+	}
+
+	err = decodedNode.setHash()
+	if err != nil {
+		return nil, err
+	}
+	decodedNode.setDirty(true)
+
+	return decodedNode, nil
 }
 
 func (ts *trieSyncer) requestNodes() uint32 {

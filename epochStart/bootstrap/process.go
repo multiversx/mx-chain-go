@@ -313,6 +313,8 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 			Config:           &e.generalConfig,
 			EconomicsData:    e.economicsData,
 			ShardCoordinator: e.shardCoordinator,
+			Marshalizer:      e.coreComponentsHolder.InternalMarshalizer(),
+			PathManager:      e.coreComponentsHolder.PathHandler(),
 		},
 	)
 	if err != nil {
@@ -340,6 +342,13 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	if err != nil {
 		return Parameters{}, err
 	}
+
+	defer func() {
+		errClose := e.interceptorContainer.Close()
+		if errClose != nil {
+			log.Warn("prepareEpochFromStorage interceptorContainer.Close()", "error", errClose)
+		}
+	}()
 
 	params, err = e.requestAndProcessing()
 	if err != nil {
@@ -673,6 +682,7 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
 		ShardIdAsObserver:         shardId,
 		WaitingListFixEnableEpoch: e.waitingListFixEnableEpoch,
 		ChanNodeStop:              e.coreComponentsHolder.ChanStopNodeProcess(),
+		NodeTypeProvider:          e.coreComponentsHolder.NodeTypeProvider(),
 		IsFullArchive:             e.prefsConfig.FullArchive,
 	}
 
@@ -690,8 +700,8 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
 func (e *epochStartBootstrap) requestAndProcessForMeta() error {
 	var err error
 
-	log.Debug("start in epoch bootstrap: started syncPeerAccountsState")
-	err = e.syncPeerAccountsState(e.epochStartMeta.ValidatorStatsRootHash)
+	log.Debug("start in epoch bootstrap: started syncValidatorAccountsState")
+	err = e.syncValidatorAccountsState(e.epochStartMeta.ValidatorStatsRootHash)
 	if err != nil {
 		return err
 	}
@@ -719,6 +729,7 @@ func (e *epochStartBootstrap) requestAndProcessForMeta() error {
 		e.coreComponentsHolder.Hasher(),
 		e.epochStartMeta.Epoch,
 		e.coreComponentsHolder.Uint64ByteSliceConverter(),
+		e.coreComponentsHolder.NodeTypeProvider(),
 	)
 	if err != nil {
 		return err
@@ -819,6 +830,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 		e.coreComponentsHolder.Hasher(),
 		e.baseData.lastEpoch,
 		e.coreComponentsHolder.Uint64ByteSliceConverter(),
+		e.coreComponentsHolder.NodeTypeProvider(),
 	)
 	if err != nil {
 		return err
@@ -875,7 +887,6 @@ func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) er
 	e.tryCloseExisting(factory.PeerAccountTrie)
 
 	trieFactoryArgs := factory.TrieFactoryArgs{
-		EvictionWaitingListCfg:   e.generalConfig.EvictionWaitingList,
 		SnapshotDbCfg:            e.generalConfig.TrieSnapshotDB,
 		Marshalizer:              e.coreComponentsHolder.InternalMarshalizer(),
 		Hasher:                   e.coreComponentsHolder.Hasher(),
@@ -932,7 +943,7 @@ func (e *epochStartBootstrap) tryCloseExisting(trieType string) {
 	}
 }
 
-func (e *epochStartBootstrap) syncPeerAccountsState(rootHash []byte) error {
+func (e *epochStartBootstrap) syncValidatorAccountsState(rootHash []byte) error {
 	e.mutTrieStorageManagers.RLock()
 	peerTrieStorageManager := e.trieStorageManagers[factory.PeerAccountTrie]
 	e.mutTrieStorageManagers.RUnlock()
@@ -1049,6 +1060,12 @@ func (e *epochStartBootstrap) Close() error {
 			err := tsm.Close()
 			log.LogIfError(err)
 		}
+	}
+
+	if !check.IfNil(e.dataPool) && !check.IfNil(e.dataPool.TrieNodes()) {
+		log.Debug("closing trie nodes data pool....")
+		err := e.dataPool.TrieNodes().Close()
+		log.LogIfError(err)
 	}
 
 	return nil

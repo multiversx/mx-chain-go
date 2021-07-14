@@ -23,7 +23,7 @@ func createMockMiniblockProviderArgs(
 
 	return provider.ArgMiniBlockProvider{
 		Marshalizer: marshalizer,
-		MiniBlockStorage: &mock.StorerStub{
+		MiniBlockStorage: &testscommon.StorerStub{
 			GetCalled: func(key []byte) ([]byte, error) {
 				if isByteSliceInSlice(key, storerExistingHashes) {
 					buff, _ := marshalizer.Marshal(&dataBlock.MiniBlock{})

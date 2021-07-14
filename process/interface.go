@@ -1058,6 +1058,7 @@ type CoreComponentsHolder interface {
 	GenesisNodesSetup() sharding.GenesisNodesSetupHandler
 	EpochNotifier() EpochNotifier
 	ChanStopNodeProcess() chan endProcess.ArgEndProcess
+	NodeTypeProvider() core.NodeTypeProviderHandler
 	IsInterfaceNil() bool
 }
 
@@ -1114,5 +1115,17 @@ type CheckedChunkResult struct {
 type InterceptedChunksProcessor interface {
 	CheckBatch(b *batch.Batch, whiteListHandler WhiteListHandler) (CheckedChunkResult, error)
 	Close() error
+	IsInterfaceNil() bool
+}
+
+// AccountsDBSyncer defines the methods for the accounts db syncer
+type AccountsDBSyncer interface {
+	SyncAccounts(rootHash []byte) error
+	IsInterfaceNil() bool
+}
+
+// CurrentNetworkEpochProviderHandler is an interface able to compute if the provided epoch is active on the network or not
+type CurrentNetworkEpochProviderHandler interface {
+	EpochIsActiveInNetwork(epoch uint32) bool
 	IsInterfaceNil() bool
 }

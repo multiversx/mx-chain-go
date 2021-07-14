@@ -14,16 +14,16 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/leveldb"
-	"github.com/stretchr/testify/require"
-
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/factory/directoryhandler"
+	"github.com/ElrondNetwork/elrond-go/storage/leveldb"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/mock"
 	"github.com/ElrondNetwork/elrond-go/storage/pruning"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func getDummyConfig() (storageUnit.CacheConfig, storageUnit.DBConfig, storageUnit.BloomConfig) {
@@ -63,19 +63,19 @@ func getDefaultArgs() *pruning.StorerArgs {
 		},
 	}
 	return &pruning.StorerArgs{
-		PruningEnabled:        true,
-		Identifier:            "id",
-		CleanOldEpochsData:    false,
-		ShardCoordinator:      mock.NewShardCoordinatorMock(0, 2),
-		PathManager:           &mock.PathManagerStub{},
-		CacheConf:             cacheConf,
-		DbPath:                dbConf.FilePath,
-		PersisterFactory:      persisterFactory,
-		BloomFilterConf:       blConf,
-		NumOfEpochsToKeep:     2,
-		NumOfActivePersisters: 2,
-		Notifier:              &mock.EpochStartNotifierStub{},
-		MaxBatchSize:          10,
+		PruningEnabled:         true,
+		Identifier:             "id",
+		ShardCoordinator:       mock.NewShardCoordinatorMock(0, 2),
+		PathManager:            &testscommon.PathManagerStub{},
+		CacheConf:              cacheConf,
+		DbPath:                 dbConf.FilePath,
+		PersisterFactory:       persisterFactory,
+		BloomFilterConf:        blConf,
+		NumOfEpochsToKeep:      2,
+		NumOfActivePersisters:  2,
+		Notifier:               &mock.EpochStartNotifierStub{},
+		OldDataCleanerProvider: &testscommon.OldDataCleanerProviderStub{},
+		MaxBatchSize:           10,
 	}
 }
 
@@ -87,23 +87,23 @@ func getDefaultArgsSerialDB() *pruning.StorerArgs {
 			return leveldb.NewSerialDB(path, 1, 20, 10)
 		},
 	}
-	pathManager := &mock.PathManagerStub{PathForEpochCalled: func(shardId string, epoch uint32, identifier string) string {
+	pathManager := &testscommon.PathManagerStub{PathForEpochCalled: func(shardId string, epoch uint32, identifier string) string {
 		return fmt.Sprintf("TestOnly-Epoch_%d/Shard_%s/%s", epoch, shardId, identifier)
 	}}
 	return &pruning.StorerArgs{
-		PruningEnabled:        true,
-		Identifier:            "id",
-		CleanOldEpochsData:    false,
-		ShardCoordinator:      mock.NewShardCoordinatorMock(0, 2),
-		PathManager:           pathManager,
-		CacheConf:             cacheConf,
-		DbPath:                dbConf.FilePath,
-		PersisterFactory:      persisterFactory,
-		BloomFilterConf:       blConf,
-		NumOfEpochsToKeep:     3,
-		NumOfActivePersisters: 2,
-		Notifier:              &mock.EpochStartNotifierStub{},
-		MaxBatchSize:          20,
+		PruningEnabled:         true,
+		Identifier:             "id",
+		ShardCoordinator:       mock.NewShardCoordinatorMock(0, 2),
+		PathManager:            pathManager,
+		CacheConf:              cacheConf,
+		DbPath:                 dbConf.FilePath,
+		PersisterFactory:       persisterFactory,
+		BloomFilterConf:        blConf,
+		NumOfEpochsToKeep:      3,
+		NumOfActivePersisters:  2,
+		Notifier:               &mock.EpochStartNotifierStub{},
+		OldDataCleanerProvider: &testscommon.OldDataCleanerProviderStub{},
+		MaxBatchSize:           20,
 	}
 }
 
@@ -508,7 +508,7 @@ func TestNewPruningStorer_ChangeEpochConcurrentPut(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	defer func() {
-		dr := factory.NewDirectoryReader()
+		dr := directoryhandler.NewDirectoryReader()
 		directories, errList := dr.ListDirectoriesAsString(".")
 		assert.NoError(t, errList)
 		for _, dir := range directories {
@@ -539,7 +539,6 @@ func TestNewPruningStorer_ChangeEpochConcurrentPut(t *testing.T) {
 		for {
 			select {
 			case <-ctx.Done():
-				fmt.Println("destroy called")
 				_ = ps.DestroyUnit()
 				return
 			default:
@@ -809,21 +808,4 @@ func TestRegex(t *testing.T) {
 	for _, path := range testPaths {
 		assert.Equal(t, expectedRes, rg.ReplaceAllString(path, replacementEpoch))
 	}
-}
-
-func TestDirectories(t *testing.T) {
-	pathToCreate := "user-directory/go/src/workspace/db/Epoch_2/Shard_27"
-	pathParameter := pathToCreate + "/MiniBlock"
-	// should become user-directory/go/src/workspace/db
-
-	err := os.MkdirAll(pathToCreate, os.ModePerm)
-	assert.Nil(t, err)
-
-	pruning.RemoveDirectoryIfEmpty(pathParameter)
-
-	if _, err = os.Stat(pathParameter); !os.IsNotExist(err) {
-		assert.Fail(t, "directory should have been removed")
-	}
-
-	_ = os.RemoveAll("user-directory")
 }

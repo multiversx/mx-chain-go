@@ -36,6 +36,12 @@ func TestNewDataPoolFromConfig_MissingDependencyShouldErr(t *testing.T) {
 	holder, err = NewDataPoolFromConfig(args)
 	require.Nil(t, holder)
 	require.Equal(t, dataRetriever.ErrNilShardCoordinator, err)
+
+	args = getGoodArgs()
+	args.PathManager = nil
+	holder, err = NewDataPoolFromConfig(args)
+	require.Nil(t, holder)
+	require.Equal(t, dataRetriever.ErrNilPathManager, err)
 }
 
 func TestNewDataPoolFromConfig_BadConfigShouldErr(t *testing.T) {
@@ -81,7 +87,7 @@ func TestNewDataPoolFromConfig_BadConfigShouldErr(t *testing.T) {
 	require.NotNil(t, err)
 
 	args = getGoodArgs()
-	args.Config.TrieNodesDataPool.Capacity = 0
+	args.Config.TrieSyncStorage.Capacity = 0
 	holder, err = NewDataPoolFromConfig(args)
 	require.Nil(t, holder)
 	fmt.Println(err)
@@ -100,5 +106,7 @@ func getGoodArgs() ArgsDataPool {
 		Config:           &config,
 		EconomicsData:    testEconomics,
 		ShardCoordinator: mock.NewMultipleShardsCoordinatorMock(),
+		Marshalizer:      &mock.MarshalizerMock{},
+		PathManager:      &testscommon.PathManagerStub{},
 	}
 }

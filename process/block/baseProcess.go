@@ -2,7 +2,6 @@ package block
 
 import (
 	"bytes"
-	"context"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -1097,8 +1096,7 @@ func (bp *baseProcessor) updateStateStorage(
 	if bp.stateCheckpointModulus != 0 {
 		if finalHeader.GetNonce()%uint64(bp.stateCheckpointModulus) == 0 {
 			log.Debug("trie checkpoint", "rootHash", rootHash)
-			ctx := context.Background()
-			accounts.SetStateCheckpoint(rootHash, ctx)
+			accounts.SetStateCheckpoint(rootHash)
 		}
 	}
 
@@ -1291,8 +1289,7 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 		return err
 	}
 
-	ctx := context.Background()
-	allLeavesChan, err := userAccountsDb.GetAllLeaves(rootHash, ctx)
+	allLeavesChan, err := userAccountsDb.GetAllLeaves(rootHash)
 	if err != nil {
 		return err
 	}

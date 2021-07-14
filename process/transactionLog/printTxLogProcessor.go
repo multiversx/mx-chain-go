@@ -45,7 +45,7 @@ func (tlp *printTxLogProcessor) SaveLog(txHash []byte, _ data.TransactionHandler
 		return nil
 	}
 
-	log.Info("printTxLogProcessor.SaveLog", "transaction hash", hex.EncodeToString(txHash))
+	log.Debug("printTxLogProcessor.SaveLog", "transaction hash", hex.EncodeToString(txHash))
 	for _, entry := range logEntries {
 		log.Debug("printTxLogProcessor.entry",
 			"identifier", string(entry.Identifier),

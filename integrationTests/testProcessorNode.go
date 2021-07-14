@@ -2,7 +2,6 @@ package integrationTests
 
 import (
 	"bytes"
-	"context"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -85,6 +84,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/bootstrapMocks"
+	dblookupextMock "github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
@@ -400,7 +400,7 @@ func newBaseTestProcessorNode(
 		ChainID:                 ChainID,
 		MinTransactionVersion:   MinTransactionVersion,
 		NodesSetup:              nodesSetup,
-		HistoryRepository:       &testscommon.HistoryRepositoryStub{},
+		HistoryRepository:       &dblookupextMock.HistoryRepositoryStub{},
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor: transactionLog.NewPrintTxLogProcessor(),
@@ -582,7 +582,7 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 			},
 		},
 		MinTransactionVersion:   MinTransactionVersion,
-		HistoryRepository:       &testscommon.HistoryRepositoryStub{},
+		HistoryRepository:       &dblookupextMock.HistoryRepositoryStub{},
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor: transactionLog.NewPrintTxLogProcessor(),
@@ -2803,6 +2803,7 @@ func GetDefaultProcessComponents() *mock.ProcessComponentsStub {
 				return &mock.PrivateKeyMock{}
 			},
 		},
+		CurrentEpochProviderInternal: &testscommon.CurrentEpochProviderStub{},
 	}
 }
 
@@ -2837,10 +2838,14 @@ func GetDefaultCryptoComponents() *mock.CryptoComponentsStub {
 // GetDefaultStateComponents -
 func GetDefaultStateComponents() *testscommon.StateComponentsMock {
 	return &testscommon.StateComponentsMock{
-		PeersAcc:        &mock.AccountsStub{},
-		Accounts:        &mock.AccountsStub{},
-		Tries:           &mock.TriesHolderStub{},
-		StorageManagers: map[string]data.StorageManager{"0": &mock.StorageManagerStub{}},
+		PeersAcc: &testscommon.AccountsStub{},
+		Accounts: &testscommon.AccountsStub{},
+		Tries:    &mock.TriesHolderStub{},
+		StorageManagers: map[string]data.StorageManager{
+			"0":                         &testscommon.StorageManagerStub{},
+			trieFactory.UserAccountTrie: &testscommon.StorageManagerStub{},
+			trieFactory.PeerAccountTrie: &testscommon.StorageManagerStub{},
+		},
 	}
 }
 
@@ -2869,7 +2874,7 @@ func GetDefaultBootstrapComponents(shardCoordinator sharding.Coordinator) *mainF
 	return &mainFactoryMocks.BootstrapComponentsStub{
 		Bootstrapper: &bootstrapMocks.EpochStartBootstrapperStub{
 			TrieHolder:      &mock.TriesHolderStub{},
-			StorageManagers: map[string]data.StorageManager{"0": &mock.StorageManagerStub{}},
+			StorageManagers: map[string]data.StorageManager{"0": &testscommon.StorageManagerStub{}},
 			BootstrapCalled: nil,
 		},
 		BootstrapParams:      &bootstrapMocks.BootstrapParamsHandlerMock{},
@@ -2895,8 +2900,7 @@ func GetTokenIdentifier(nodes []*TestProcessorNode, ticker []byte) []byte {
 		userAcc, _ := acc.(state.UserAccountHandler)
 
 		rootHash, _ := userAcc.DataTrie().RootHash()
-		ctx := context.Background()
-		chLeaves, _ := userAcc.DataTrie().GetAllLeavesOnChannel(rootHash, ctx)
+		chLeaves, _ := userAcc.DataTrie().GetAllLeavesOnChannel(rootHash)
 		for leaf := range chLeaves {
 			if !bytes.HasPrefix(leaf.Key(), ticker) {
 				continue

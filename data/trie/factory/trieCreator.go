@@ -4,12 +4,12 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
-	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
+	"github.com/ElrondNetwork/elrond-go/data/trie/hashesHolder"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -18,7 +18,6 @@ import (
 )
 
 type trieCreator struct {
-	evictionWaitingListCfg   config.EvictionWaitingListConfig
 	snapshotDbCfg            config.DBConfig
 	marshalizer              marshal.Marshalizer
 	hasher                   hashing.Hasher
@@ -43,7 +42,6 @@ func NewTrieFactory(
 	}
 
 	return &trieCreator{
-		evictionWaitingListCfg:   args.EvictionWaitingListCfg,
 		snapshotDbCfg:            args.SnapshotDbCfg,
 		marshalizer:              args.Marshalizer,
 		hasher:                   args.Hasher,
@@ -87,23 +85,6 @@ func (tc *trieCreator) Create(
 		return trieStorage, newTrie, nil
 	}
 
-	arg := storageUnit.ArgDB{
-		DBType:            storageUnit.DBType(tc.evictionWaitingListCfg.DB.Type),
-		Path:              filepath.Join(trieStoragePath, tc.evictionWaitingListCfg.DB.FilePath),
-		BatchDelaySeconds: tc.evictionWaitingListCfg.DB.BatchDelaySeconds,
-		MaxBatchSize:      tc.evictionWaitingListCfg.DB.MaxBatchSize,
-		MaxOpenFiles:      tc.evictionWaitingListCfg.DB.MaxOpenFiles,
-	}
-	evictionDb, err := storageUnit.NewDB(arg)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	ewl, err := evictionWaitingList.NewEvictionWaitingList(tc.evictionWaitingListCfg.Size, evictionDb, tc.marshalizer)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	snapshotDbCfg := config.DBConfig{
 		FilePath:          filepath.Join(trieStoragePath, tc.snapshotDbCfg.FilePath),
 		Type:              tc.snapshotDbCfg.Type,
@@ -112,14 +93,20 @@ func (tc *trieCreator) Create(
 		MaxOpenFiles:      tc.snapshotDbCfg.MaxOpenFiles,
 	}
 
-	trieStorage, err := trie.NewTrieStorageManager(
-		accountsTrieStorage,
-		tc.marshalizer,
-		tc.hasher,
-		snapshotDbCfg,
-		ewl,
-		tc.trieStorageManagerConfig,
+	checkpointHashesHolder := hashesHolder.NewCheckpointHashesHolder(
+		tc.trieStorageManagerConfig.CheckpointHashesHolderMaxSize,
+		uint64(tc.hasher.Size()),
 	)
+	args := trie.NewTrieStorageManagerArgs{
+		DB:                     accountsTrieStorage,
+		Marshalizer:            tc.marshalizer,
+		Hasher:                 tc.hasher,
+		SnapshotDbConfig:       snapshotDbCfg,
+		GeneralConfig:          tc.trieStorageManagerConfig,
+		CheckpointHashesHolder: checkpointHashesHolder,
+	}
+
+	trieStorage, err := trie.NewTrieStorageManager(args)
 	if err != nil {
 		return nil, nil, err
 	}

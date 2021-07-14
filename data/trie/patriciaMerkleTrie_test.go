@@ -1,9 +1,7 @@
 package trie_test
 
 import (
-	"context"
 	cryptoRand "crypto/rand"
-	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -16,10 +14,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/data/trie/hashesHolder"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -51,9 +51,15 @@ func getDefaultTrieParameters() (data.StorageManager, marshal.Marshalizer, hashi
 		SnapshotsBufferLen: 10,
 		MaxSnapshots:       2,
 	}
-
-	evictionWaitingList, _ := mock.NewEvictionWaitingList(100, mock.NewMemDbMock(), marshalizer)
-	trieStorageManager, _ := trie.NewTrieStorageManager(db, marshalizer, hasher, cfg, evictionWaitingList, generalCfg)
+	args := trie.NewTrieStorageManagerArgs{
+		DB:                     db,
+		Marshalizer:            marshalizer,
+		Hasher:                 hasher,
+		SnapshotDbConfig:       cfg,
+		GeneralConfig:          generalCfg,
+		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, testscommon.HashSize),
+	}
+	trieStorageManager, _ := trie.NewTrieStorageManager(args)
 	maxTrieLevelInMemory := uint(5)
 
 	return trieStorageManager, marshalizer, hasher, maxTrieLevelInMemory
@@ -389,49 +395,6 @@ func TestPatriciaMerkleTrie_RecreateWithInvalidRootHash(t *testing.T) {
 	assert.Equal(t, emptyTrieHash, root)
 }
 
-func TestPatriciaMerkleTrie_PruneAfterCancelPruneShouldFail(t *testing.T) {
-	t.Parallel()
-
-	tr := initTrie()
-	_ = tr.Commit()
-	rootHash, _ := tr.RootHash()
-
-	_ = tr.Update([]byte("dog"), []byte("value of dog"))
-	_ = tr.Commit()
-
-	storageManager := tr.GetStorageManager()
-	storageManager.CancelPrune(rootHash, data.OldRoot)
-	storageManager.Prune(rootHash, data.OldRoot)
-
-	newTr, err := tr.Recreate(rootHash)
-	assert.Nil(t, err)
-	assert.NotNil(t, newTr)
-}
-
-func TestPatriciaMerkleTrie_Prune(t *testing.T) {
-	t.Parallel()
-
-	tr, _ := trie.NewTrie(getDefaultTrieParameters())
-
-	_ = tr.Update([]byte("doe"), []byte("reindeer"))
-	_ = tr.Update([]byte("dog"), []byte("puppy"))
-	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
-	_ = tr.Commit()
-	rootHash, _ := tr.RootHash()
-
-	_ = tr.Update([]byte("dog"), []byte("value of dog"))
-	_ = tr.Commit()
-
-	tr.GetStorageManager().CancelPrune(rootHash, data.NewRoot)
-	tr.GetStorageManager().Prune(rootHash, data.OldRoot)
-	time.Sleep(time.Second)
-
-	expectedErr := fmt.Errorf("key: %s not found", base64.StdEncoding.EncodeToString(rootHash))
-	val, err := tr.GetStorageManager().Database().Get(rootHash)
-	assert.Nil(t, val)
-	assert.Equal(t, expectedErr, err)
-}
-
 func TestPatriciaMerkleTrie_GetSerializedNodes(t *testing.T) {
 	t.Parallel()
 
@@ -467,13 +430,12 @@ func TestPatriciaMerkleTrie_GetSerializedNodesGetFromSnapshot(t *testing.T) {
 	_ = tr.Commit()
 	rootHash, _ := tr.RootHash()
 
-	dirtyHashes, _ := tr.GetDirtyHashes()
-	tr.SetNewHashes(dirtyHashes)
 	storageManager := tr.GetStorageManager()
-
-	storageManager.TakeSnapshot(rootHash)
+	storageManager.TakeSnapshot(rootHash, true, nil)
 	time.Sleep(time.Second)
-	storageManager.Prune(rootHash, data.NewRoot)
+
+	err := storageManager.Database().Remove(rootHash)
+	assert.Nil(t, err)
 
 	maxBuffToSend := uint64(500)
 	expectedNodes := 6
@@ -510,7 +472,7 @@ func TestPatriciaMerkleTree_reduceBranchNodeReturnsOldHashesCorrectly(t *testing
 	_ = tr.Update(key1, nil)
 	_ = tr.Update(key1, val1)
 
-	oldHashes := tr.ResetOldHashes()
+	oldHashes := tr.GetObsoleteHashes()
 	newHashes, _ := tr.GetDirtyHashes()
 
 	assert.Equal(t, len(oldHashes), len(newHashes))
@@ -520,16 +482,15 @@ func TestPatriciaMerkleTrie_GetSerializedNodesFromSnapshotShouldNotCommitToMainD
 	t.Parallel()
 
 	tr := initTrie()
-	newHashes, _ := tr.GetDirtyHashes()
-	tr.SetNewHashes(newHashes)
 	_ = tr.Commit()
 	storageManager := tr.GetStorageManager()
 
 	rootHash, _ := tr.RootHash()
-	storageManager.TakeSnapshot(rootHash)
+	storageManager.TakeSnapshot(rootHash, true, nil)
 	time.Sleep(time.Second)
 
-	storageManager.Prune(rootHash, data.NewRoot)
+	err := storageManager.Database().Remove(rootHash)
+	assert.Nil(t, err)
 
 	val, err := storageManager.Database().Get(rootHash)
 	assert.NotNil(t, err)
@@ -552,7 +513,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodesShouldCheckFirstInSnapshotsDB(t *t
 	getDbCalled := false
 	getSnapshotCalled := false
 
-	trieStorageManager := &mock.StorageManagerStub{
+	trieStorageManager := &testscommon.StorageManagerStub{
 		GetDbThatContainsHashCalled: func(bytes []byte) data.DBWriteCacher {
 			getDbCalled = true
 			return nil
@@ -598,7 +559,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannelEmptyTrie(t *testing.T) {
 
 	tr := emptyTrie()
 
-	leavesChannel, err := tr.GetAllLeavesOnChannel([]byte{}, context.Background())
+	leavesChannel, err := tr.GetAllLeavesOnChannel([]byte{})
 	assert.Nil(t, err)
 	assert.NotNil(t, leavesChannel)
 
@@ -618,7 +579,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 	_ = tr.Commit()
 	rootHash, _ := tr.RootHash()
 
-	leavesChannel, err := tr.GetAllLeavesOnChannel(rootHash, context.Background())
+	leavesChannel, err := tr.GetAllLeavesOnChannel(rootHash)
 	assert.Nil(t, err)
 	assert.NotNil(t, leavesChannel)
 
@@ -813,6 +774,19 @@ func TestPatriciaMerkleTrie_GetNumNodes(t *testing.T) {
 	assert.Equal(t, 3, numNodes.Leaves)
 	assert.Equal(t, 2, numNodes.Extensions)
 	assert.Equal(t, 2, numNodes.Branches)
+}
+
+func TestPatriciaMerkleTrie_GetOldRoot(t *testing.T) {
+	t.Parallel()
+
+	tr := emptyTrie()
+	_ = tr.Update([]byte("eod"), []byte("reindeer"))
+	_ = tr.Update([]byte("god"), []byte("puppy"))
+	_ = tr.Commit()
+	expecterOldRoot, _ := tr.RootHash()
+
+	_ = tr.Update([]byte("eggod"), []byte("cat"))
+	assert.Equal(t, expecterOldRoot, tr.GetOldRoot())
 }
 
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {

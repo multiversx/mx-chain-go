@@ -22,10 +22,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager"
+	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager/evictionWaitingList"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
 	dataTx "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
-	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
+	"github.com/ElrondNetwork/elrond-go/data/trie/hashesHolder"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	processDisabled "github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
@@ -293,23 +295,25 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 		SnapshotsBufferLen: 10,
 		MaxSnapshots:       2,
 	}
-	trieStorage, _ := trie.NewTrieStorageManager(
-		store,
-		marsh,
-		testHasher,
-		config.DBConfig{
+	args := trie.NewTrieStorageManagerArgs{
+		DB:          store,
+		Marshalizer: marsh,
+		Hasher:      testHasher,
+		SnapshotDbConfig: config.DBConfig{
 			FilePath:          "TrieStorage",
 			Type:              "MemoryDB",
 			BatchDelaySeconds: 30,
 			MaxBatchSize:      6,
 			MaxOpenFiles:      10,
 		},
-		ewl,
-		generalCfg,
-	)
+		GeneralConfig:          generalCfg,
+		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(testHasher.Size())),
+	}
+	trieStorage, _ := trie.NewTrieStorageManager(args)
 
 	tr, _ := trie.NewTrie(trieStorage, marsh, testHasher, maxTrieLevelInMemory)
-	adb, _ := state.NewAccountsDB(tr, testHasher, marsh, &accountFactory{})
+	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
+	adb, _ := state.NewAccountsDB(tr, testHasher, marsh, &accountFactory{}, spm)
 
 	return adb
 }

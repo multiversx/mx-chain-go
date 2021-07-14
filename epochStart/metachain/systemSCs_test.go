@@ -20,9 +20,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
+	dataMock "github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
+	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager"
+	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
@@ -864,7 +867,9 @@ func createAccountsDB(
 	trieStorageManager data.StorageManager,
 ) *state.AccountsDB {
 	tr, _ := trie.NewTrie(trieStorageManager, marshalizer, hasher, 5)
-	adb, _ := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory)
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(10, dataMock.NewMemDbMock(), marshalizer)
+	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
+	adb, _ := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory, spm)
 	return adb
 }
 
