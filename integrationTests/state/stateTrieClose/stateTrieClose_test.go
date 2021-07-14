@@ -1,12 +1,17 @@
 package stateTrieClose
 
 import (
+	"errors"
 	"runtime"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/data/trie/hashesHolder"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/stretchr/testify/assert"
 )
@@ -62,4 +67,63 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	time.Sleep(time.Second)
 	numGoRoutines = runtime.NumGoroutine()
 	assert.True(t, numGoRoutines-numBefore <= 1)
+}
+
+func TestTrieStorageManager_Close(t *testing.T) {
+	closeCalled := false
+	args := trie.NewTrieStorageManagerArgs{
+		DB: &mock.StorerStub{
+			CloseCalled: func() error {
+				closeCalled = true
+				return nil
+			},
+		},
+		Marshalizer:            &mock.MarshalizerMock{},
+		Hasher:                 &mock.HasherMock{},
+		SnapshotDbConfig:       config.DBConfig{},
+		GeneralConfig:          config.TrieStorageManagerConfig{},
+		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, 32),
+	}
+
+	numBefore := runtime.NumGoroutine()
+	ts, _ := trie.NewTrieStorageManager(args)
+	numGoRoutines := runtime.NumGoroutine()
+	assert.Equal(t, 1, numGoRoutines-numBefore)
+
+	err := ts.Close()
+	assert.Nil(t, err)
+	time.Sleep(time.Second)
+	numAfterClose := runtime.NumGoroutine()
+	assert.True(t, numAfterClose-numBefore <= 1)
+	assert.True(t, closeCalled)
+}
+
+func TestTrieStorageManager_CloseErr(t *testing.T) {
+	closeCalled := false
+	closeErr := errors.New("close error")
+	args := trie.NewTrieStorageManagerArgs{
+		DB: &mock.StorerStub{
+			CloseCalled: func() error {
+				closeCalled = true
+				return closeErr
+			},
+		},
+		Marshalizer:            &mock.MarshalizerMock{},
+		Hasher:                 &mock.HasherMock{},
+		SnapshotDbConfig:       config.DBConfig{},
+		GeneralConfig:          config.TrieStorageManagerConfig{},
+		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, 32),
+	}
+	numBefore := runtime.NumGoroutine()
+	ts, _ := trie.NewTrieStorageManager(args)
+	numGoRoutines := runtime.NumGoroutine()
+	assert.Equal(t, 1, numGoRoutines-numBefore)
+
+	err := ts.Close()
+	assert.NotNil(t, err)
+	assert.True(t, strings.Contains(err.Error(), closeErr.Error()))
+	time.Sleep(time.Second)
+	numAfterClose := runtime.NumGoroutine()
+	assert.True(t, numAfterClose-numBefore <= 1)
+	assert.True(t, closeCalled)
 }

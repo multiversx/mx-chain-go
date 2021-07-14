@@ -2,7 +2,6 @@ package trie
 
 import (
 	"testing"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	dataMock "github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
@@ -564,7 +563,8 @@ func TestPatriciaMerkleTrie_RecreateFromSnapshotSavesStateToMainDb(t *testing.T)
 
 	rootHash, _ := tr.RootHash()
 	tsm.TakeSnapshot(rootHash, true, nil)
-	time.Sleep(snapshotDelay * 2)
+	waitForOperationToComplete(tsm)
+
 	err := tsm.db.Remove(rootHash)
 	assert.Nil(t, err)
 
@@ -572,7 +572,8 @@ func TestPatriciaMerkleTrie_RecreateFromSnapshotSavesStateToMainDb(t *testing.T)
 	assert.Nil(t, val)
 	assert.NotNil(t, err)
 
-	newTr, _ := tr.Recreate(rootHash)
+	newTr, err := tr.Recreate(rootHash)
+	assert.Nil(t, err)
 	newPmt, _ := newTr.(*patriciaMerkleTrie)
 	newTsm, _ := newPmt.trieStorage.(*trieStorageManager)
 

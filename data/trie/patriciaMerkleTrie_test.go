@@ -432,7 +432,9 @@ func TestPatriciaMerkleTrie_GetSerializedNodesGetFromSnapshot(t *testing.T) {
 
 	storageManager := tr.GetStorageManager()
 	storageManager.TakeSnapshot(rootHash, true, nil)
-	time.Sleep(time.Second)
+	for storageManager.IsPruningBlocked() {
+		time.Sleep(10 * time.Millisecond)
+	}
 
 	err := storageManager.Database().Remove(rootHash)
 	assert.Nil(t, err)
@@ -487,7 +489,9 @@ func TestPatriciaMerkleTrie_GetSerializedNodesFromSnapshotShouldNotCommitToMainD
 
 	rootHash, _ := tr.RootHash()
 	storageManager.TakeSnapshot(rootHash, true, nil)
-	time.Sleep(time.Second)
+	for storageManager.IsPruningBlocked() {
+		time.Sleep(10 * time.Millisecond)
+	}
 
 	err := storageManager.Database().Remove(rootHash)
 	assert.Nil(t, err)
