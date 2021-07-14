@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -149,6 +150,7 @@ func getSyncValidatorStatusArgs() ArgsNewSyncValidatorStatus {
 		PubKey:            []byte("public key"),
 		ShardIdAsObserver: 0,
 		ChanNodeStop:      endProcess.GetDummyEndProcessChannel(),
+		NodeTypeProvider:  &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:     false,
 	}
 }

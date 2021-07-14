@@ -12,6 +12,8 @@ import (
 )
 
 func (n *Node) putResultsInTransaction(hash []byte, tx *transaction.ApiTransactionResult, epoch uint32) {
+	n.putLogsInTransaction(hash, tx, epoch)
+
 	resultsHashes, err := n.processComponents.HistoryRepository().GetResultsHashesByTxHash(hash, epoch)
 	if err != nil {
 		return
@@ -52,8 +54,8 @@ func (n *Node) getReceiptFromStorage(hash []byte, epoch uint32) (*receipt.Receip
 	return rec, nil
 }
 
-func (n *Node) adaptReceipt(rcpt *receipt.Receipt) *transaction.ReceiptApi {
-	return &transaction.ReceiptApi{
+func (n *Node) adaptReceipt(rcpt *receipt.Receipt) *transaction.ApiReceipt {
+	return &transaction.ApiReceipt{
 		Value:   rcpt.Value,
 		SndAddr: n.coreComponents.AddressPubKeyConverter().Encode(rcpt.SndAddr),
 		Data:    string(rcpt.Data),
@@ -75,12 +77,35 @@ func (n *Node) putSmartContractResultsInTransaction(
 				continue
 			}
 
-			tx.SmartContractResults = append(tx.SmartContractResults, n.adaptSmartContractResult(scrHash, scr))
+			scrAPI := n.adaptSmartContractResult(scrHash, scr)
+			n.putLogsInSCR(scrHash, scrHashesE.Epoch, scrAPI)
+
+			tx.SmartContractResults = append(tx.SmartContractResults, scrAPI)
 		}
 	}
 
 	statusFilters := filters.NewStatusFilters(n.processComponents.ShardCoordinator().SelfId())
 	statusFilters.SetStatusIfIsFailedESDTTransfer(tx)
+}
+
+func (n *Node) putLogsInTransaction(hash []byte, tx *transaction.ApiTransactionResult, epoch uint32) {
+	logsAndEvents, err := n.getLogsAndEvents(hash, epoch)
+	if err != nil || logsAndEvents == nil {
+		return
+	}
+
+	logsAPI := n.prepareLogsAndEvents(logsAndEvents)
+	tx.Logs = logsAPI
+}
+
+func (n *Node) putLogsInSCR(scrHash []byte, epoch uint32, scr *transaction.ApiSmartContractResult) {
+	logsAndEvents, err := n.getLogsAndEvents(scrHash, epoch)
+	if err != nil {
+		return
+	}
+
+	logsAPI := n.prepareLogsAndEvents(logsAndEvents)
+	scr.Logs = logsAPI
 }
 
 func (n *Node) getScrFromStorage(hash []byte, epoch uint32) (*smartContractResult.SmartContractResult, error) {
@@ -116,22 +141,59 @@ func (n *Node) adaptSmartContractResult(scrHash []byte, scr *smartContractResult
 		ReturnMessage:  string(scr.ReturnMessage),
 	}
 
-	adressPubKeyConverter := n.coreComponents.AddressPubKeyConverter()
+	addressPubKeyConverter := n.coreComponents.AddressPubKeyConverter()
 	if len(scr.SndAddr) != 0 {
-		apiSCR.SndAddr = adressPubKeyConverter.Encode(scr.SndAddr)
+		apiSCR.SndAddr = addressPubKeyConverter.Encode(scr.SndAddr)
 	}
 
 	if len(scr.RcvAddr) != 0 {
-		apiSCR.RcvAddr = adressPubKeyConverter.Encode(scr.RcvAddr)
+		apiSCR.RcvAddr = addressPubKeyConverter.Encode(scr.RcvAddr)
 	}
 
 	if len(scr.RelayerAddr) != 0 {
-		apiSCR.RelayerAddr = adressPubKeyConverter.Encode(scr.RelayerAddr)
+		apiSCR.RelayerAddr = addressPubKeyConverter.Encode(scr.RelayerAddr)
 	}
 
 	if len(scr.OriginalSender) != 0 {
-		apiSCR.OriginalSender = adressPubKeyConverter.Encode(scr.OriginalSender)
+		apiSCR.OriginalSender = addressPubKeyConverter.Encode(scr.OriginalSender)
 	}
 
 	return apiSCR
+}
+
+func (n *Node) prepareLogsAndEvents(logsAndEvents *transaction.Log) *transaction.ApiLogs {
+	addressPubKeyConverter := n.coreComponents.AddressPubKeyConverter()
+	addrEncoded := addressPubKeyConverter.Encode(logsAndEvents.Address)
+
+	logsAPI := &transaction.ApiLogs{
+		Address: addrEncoded,
+		Events:  make([]*transaction.Events, 0, len(logsAndEvents.Events)),
+	}
+
+	for _, event := range logsAndEvents.Events {
+		logsAPI.Events = append(logsAPI.Events, &transaction.Events{
+			Address:    addressPubKeyConverter.Encode(event.Address),
+			Identifier: string(event.Identifier),
+			Topics:     event.Topics,
+			Data:       event.Data,
+		})
+	}
+
+	return logsAPI
+}
+
+func (n *Node) getLogsAndEvents(hash []byte, epoch uint32) (*transaction.Log, error) {
+	logsAndEventsStorer := n.dataComponents.StorageService().GetStorer(dataRetriever.TxLogsUnit)
+	logsAndEventsBytes, err := logsAndEventsStorer.GetFromEpoch(hash, epoch)
+	if err != nil {
+		return nil, err
+	}
+
+	txLog := &transaction.Log{}
+	err = n.coreComponents.InternalMarshalizer().Unmarshal(txLog, logsAndEventsBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return txLog, nil
 }

@@ -71,6 +71,11 @@ func (sm *StorerMock) SearchFirst(_ []byte) ([]byte, error) {
 	return nil, errors.New("not implemented")
 }
 
+// GetOldestEpoch -
+func (sm *StorerMock) GetOldestEpoch() (uint32, error) {
+	return 0, nil
+}
+
 // Close -
 func (sm *StorerMock) Close() error {
 	return nil

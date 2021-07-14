@@ -10,8 +10,9 @@ import (
 // MemDbMock represents the memory database storage. It holds a map of key value pairs
 // and a mutex to handle concurrent accesses to the map
 type MemDbMock struct {
-	db   map[string][]byte
-	mutx sync.RWMutex
+	db        map[string][]byte
+	mutx      sync.RWMutex
+	PutCalled func(key, val []byte) error
 }
 
 // NewMemDbMock creates a new memorydb object
@@ -28,6 +29,10 @@ func (s *MemDbMock) Put(key, val []byte) error {
 	defer s.mutx.Unlock()
 
 	s.db[string(key)] = val
+
+	if s.PutCalled != nil {
+		return s.PutCalled(key, val)
+	}
 
 	return nil
 }

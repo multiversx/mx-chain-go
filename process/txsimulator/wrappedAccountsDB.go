@@ -1,8 +1,6 @@
 package txsimulator
 
 import (
-	"context"
-
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -88,11 +86,11 @@ func (w *readOnlyAccountsDB) CancelPrune(_ []byte, _ data.TriePruningIdentifier)
 }
 
 // SnapshotState won't do anything as write operations are disabled on this component
-func (w *readOnlyAccountsDB) SnapshotState(_ []byte, _ context.Context) {
+func (w *readOnlyAccountsDB) SnapshotState(_ []byte) {
 }
 
 // SetStateCheckpoint won't do anything as write operations are disabled on this component
-func (w *readOnlyAccountsDB) SetStateCheckpoint(_ []byte, _ context.Context) {
+func (w *readOnlyAccountsDB) SetStateCheckpoint(_ []byte) {
 }
 
 // IsPruningEnabled will call the original accounts' function with the same name
@@ -101,18 +99,23 @@ func (w *readOnlyAccountsDB) IsPruningEnabled() bool {
 }
 
 // GetAllLeaves will call the original accounts' function with the same name
-func (w *readOnlyAccountsDB) GetAllLeaves(rootHash []byte, ctx context.Context) (chan core.KeyValueHolder, error) {
-	return w.originalAccounts.GetAllLeaves(rootHash, ctx)
+func (w *readOnlyAccountsDB) GetAllLeaves(rootHash []byte) (chan core.KeyValueHolder, error) {
+	return w.originalAccounts.GetAllLeaves(rootHash)
 }
 
 // RecreateAllTries will return an error which indicates that this operation is not supported
-func (w *readOnlyAccountsDB) RecreateAllTries(_ []byte, _ context.Context) (map[string]data.Trie, error) {
+func (w *readOnlyAccountsDB) RecreateAllTries(_ []byte) (map[string]data.Trie, error) {
 	return nil, nil
 }
 
 // GetTrie will return an error which indicates that this operation is not supported
 func (w *readOnlyAccountsDB) GetTrie(_ []byte) (data.Trie, error) {
 	return nil, nil
+}
+
+// Close will handle the closing of the underlying components
+func (w *readOnlyAccountsDB) Close() error {
+	return w.originalAccounts.Close()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -94,7 +94,7 @@ func (rm *ResourceMonitor) GenerateStatistics() []interface{} {
 		"peerTrieDbMem", getDirMemSize(peerTrieDbFilePath),
 		"peerTrieEvictionDbMem", getDirMemSize(peerTrieEvictionWaitingListDbFilePath),
 		"peerTrieSnapshotsDbMem", getDirMemSize(peerTrieSnapshotsDbFilePath),
-	},
+	}...,
 	)
 
 	return stats

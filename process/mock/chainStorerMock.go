@@ -8,14 +8,23 @@ import (
 
 // ChainStorerMock is a mock implementation of the ChainStorer interface
 type ChainStorerMock struct {
-	AddStorerCalled func(key dataRetriever.UnitType, s storage.Storer)
-	GetStorerCalled func(unitType dataRetriever.UnitType) storage.Storer
-	HasCalled       func(unitType dataRetriever.UnitType, key []byte) error
-	GetCalled       func(unitType dataRetriever.UnitType, key []byte) ([]byte, error)
-	PutCalled       func(unitType dataRetriever.UnitType, key []byte, value []byte) error
-	GetAllCalled    func(unitType dataRetriever.UnitType, keys [][]byte) (map[string][]byte, error)
-	DestroyCalled   func() error
-	CloseAllCalled  func() error
+	AddStorerCalled               func(key dataRetriever.UnitType, s storage.Storer)
+	GetStorerCalled               func(unitType dataRetriever.UnitType) storage.Storer
+	HasCalled                     func(unitType dataRetriever.UnitType, key []byte) error
+	GetCalled                     func(unitType dataRetriever.UnitType, key []byte) ([]byte, error)
+	PutCalled                     func(unitType dataRetriever.UnitType, key []byte, value []byte) error
+	GetAllCalled                  func(unitType dataRetriever.UnitType, keys [][]byte) (map[string][]byte, error)
+	DestroyCalled                 func() error
+	CloseAllCalled                func() error
+	SetEpochForPutOperationCalled func(epoch uint32)
+	GetAllStorersCalled           func() map[dataRetriever.UnitType]storage.Storer
+}
+
+// SetEpochForPutOperation -
+func (csm *ChainStorerMock) SetEpochForPutOperation(epoch uint32) {
+	if csm.SetEpochForPutOperationCalled != nil {
+		csm.SetEpochForPutOperationCalled(epoch)
+	}
 }
 
 // CloseAll -
@@ -72,6 +81,15 @@ func (csm *ChainStorerMock) Put(unitType dataRetriever.UnitType, key []byte, val
 	return nil
 }
 
+// GetAllStorers -
+func (csm *ChainStorerMock) GetAllStorers() map[dataRetriever.UnitType]storage.Storer {
+	if csm.GetAllStorersCalled != nil {
+		return csm.GetAllStorersCalled()
+	}
+
+	return nil
+}
+
 // GetAll gets all the elements with keys in the keys array, from the selected storage unit
 // It can report an error if the provided unit type is not supported, if there is a missing
 // key in the unit, or if the underlying implementation of the storage unit reports an error.
@@ -80,10 +98,6 @@ func (csm *ChainStorerMock) GetAll(unitType dataRetriever.UnitType, keys [][]byt
 		return csm.GetAllCalled(unitType, keys)
 	}
 	return nil, nil
-}
-
-// SetEpochForPutOperation won't do anything
-func (csm *ChainStorerMock) SetEpochForPutOperation(_ uint32) {
 }
 
 // Destroy removes the underlying files/resources used by the storage service

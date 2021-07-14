@@ -38,6 +38,13 @@ type TimersScheduler interface {
 	IsInterfaceNil() bool
 }
 
+// NodeTypeProviderHandler defines the actions needed for a component that can handle the node type
+type NodeTypeProviderHandler interface {
+	SetType(nodeType NodeType)
+	GetType() NodeType
+	IsInterfaceNil() bool
+}
+
 // WatchdogTimer is used to set alarms for different components
 type WatchdogTimer interface {
 	Set(callback func(alarmID string), duration time.Duration, alarmID string)

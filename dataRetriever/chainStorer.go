@@ -124,6 +124,18 @@ func (bc *ChainStorer) GetAll(unitType UnitType, keys [][]byte) (map[string][]by
 	return m, nil
 }
 
+// GetAllStorers returns all the available storers
+func (bc *ChainStorer) GetAllStorers() map[UnitType]storage.Storer {
+	bc.lock.RLock()
+	chainMapCopy := make(map[UnitType]storage.Storer, len(bc.chain))
+	for key, value := range bc.chain {
+		chainMapCopy[key] = value
+	}
+	bc.lock.RUnlock()
+
+	return chainMapCopy
+}
+
 // Destroy removes the underlying files/resources used by the storage service
 func (bc *ChainStorer) Destroy() error {
 	bc.lock.Lock()

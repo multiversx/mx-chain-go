@@ -126,7 +126,7 @@ func InitMetrics(
 	appStatusHandler.SetUInt64Value(core.MetricMinTransactionVersion, uint64(minTransactionVersion))
 	appStatusHandler.SetStringValue(core.MetricTotalSupply, economicsConfig.GlobalSettings.GenesisTotalSupply)
 	appStatusHandler.SetStringValue(core.MetricInflation, initZeroString)
-	appStatusHandler.SetStringValue(core.MetricDevRewards, initZeroString)
+	appStatusHandler.SetStringValue(core.MetricDevRewardsInEpoch, initZeroString)
 	appStatusHandler.SetStringValue(core.MetricTotalFees, initZeroString)
 	appStatusHandler.SetUInt64Value(core.MetricEpochForEconomicsData, initUint)
 

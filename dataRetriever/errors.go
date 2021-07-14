@@ -214,3 +214,6 @@ var ErrNilHasher = errors.New("nil hasher")
 
 // ErrNilTrieStorageManager signals that a nil trie storage manager has been provided
 var ErrNilTrieStorageManager = errors.New("nil trie storage manager")
+
+// ErrNilPathManager signals that a nil path manager has been provided
+var ErrNilPathManager = errors.New("nil path manager")
