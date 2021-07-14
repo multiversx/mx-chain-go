@@ -31,9 +31,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
+	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager"
+	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
-	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
+	"github.com/ElrondNetwork/elrond-go/data/trie/hashesHolder"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/display"
@@ -342,8 +344,6 @@ func CreateStore(numOfShards uint32) dataRetriever.StorageService {
 
 // CreateTrieStorageManager creates the trie storage manager for the tests
 func CreateTrieStorageManager(store storage.Storer) (data.StorageManager, storage.Storer) {
-	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), TestMarshalizer)
-
 	// TODO change this implementation with a factory
 	tempDir, _ := ioutil.TempDir("", "integrationTests")
 	cfg := config.DBConfig{
@@ -358,7 +358,15 @@ func CreateTrieStorageManager(store storage.Storer) (data.StorageManager, storag
 		SnapshotsBufferLen: 10,
 		MaxSnapshots:       3,
 	}
-	trieStorageManager, _ := trie.NewTrieStorageManager(store, TestMarshalizer, TestHasher, cfg, ewl, generalCfg)
+	args := trie.NewTrieStorageManagerArgs{
+		DB:                     store,
+		Marshalizer:            TestMarshalizer,
+		Hasher:                 TestHasher,
+		SnapshotDbConfig:       cfg,
+		GeneralConfig:          generalCfg,
+		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(TestHasher.Size())),
+	}
+	trieStorageManager, _ := trie.NewTrieStorageManager(args)
 
 	return trieStorageManager, store
 }
@@ -370,8 +378,10 @@ func CreateAccountsDB(
 ) (*state.AccountsDB, data.Trie) {
 	tr, _ := trie.NewTrie(trieStorageManager, TestMarshalizer, TestHasher, maxTrieLevelInMemory)
 
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), TestMarshalizer)
 	accountFactory := getAccountFactory(accountType)
-	adb, _ := state.NewAccountsDB(tr, sha256.NewSha256(), TestMarshalizer, accountFactory)
+	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
+	adb, _ := state.NewAccountsDB(tr, sha256.NewSha256(), TestMarshalizer, accountFactory, spm)
 
 	return adb, tr
 }
@@ -899,9 +909,9 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 		Marshalizer:      TestMarshalizer,
 		SignMarshalizer:  TestTxSignMarshalizer,
 		ShardCoordinator: shardCoordinator,
-		ScProcessor:      &mock.SCProcessorMock{},
-		TxFeeHandler:     &mock.UnsignedTxHandlerMock{},
-		TxTypeHandler:    &mock.TxTypeHandlerMock{},
+		ScProcessor:      &testscommon.SCProcessorMock{},
+		TxFeeHandler:     &testscommon.UnsignedTxHandlerStub{},
+		TxTypeHandler:    &testscommon.TxTypeHandlerMock{},
 		EconomicsFee: &mock.FeeHandlerStub{
 			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
 				return tx.GetGasLimit()
@@ -929,13 +939,20 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 
 // CreateNewDefaultTrie returns a new trie with test hasher and marsahalizer
 func CreateNewDefaultTrie() data.Trie {
-	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), TestMarshalizer)
 	generalCfg := config.TrieStorageManagerConfig{
 		PruningBufferLen:   1000,
 		SnapshotsBufferLen: 10,
 		MaxSnapshots:       2,
 	}
-	trieStorage, _ := trie.NewTrieStorageManager(CreateMemUnit(), TestMarshalizer, TestHasher, config.DBConfig{}, ewl, generalCfg)
+	args := trie.NewTrieStorageManagerArgs{
+		DB:                     CreateMemUnit(),
+		Marshalizer:            TestMarshalizer,
+		Hasher:                 TestHasher,
+		SnapshotDbConfig:       config.DBConfig{},
+		GeneralConfig:          generalCfg,
+		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(TestHasher.Size())),
+	}
+	trieStorage, _ := trie.NewTrieStorageManager(args)
 
 	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher, maxTrieLevelInMemory)
 	return tr
@@ -1176,38 +1193,6 @@ func CreateHeaderIntegrityVerifier() process.HeaderIntegrityVerifier {
 	)
 
 	return headerVersioning
-}
-
-// CreateNodesWithGasSchedule creates multiple nodes in different shards
-func CreateNodesWithGasSchedule(
-	numOfShards int,
-	nodesPerShard int,
-	numMetaChainNodes int,
-	gasSchedule map[string]map[string]uint64,
-) []*TestProcessorNode {
-	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
-	connectableNodes := make([]Connectable, len(nodes))
-
-	idx := 0
-	for shardId := uint32(0); shardId < uint32(numOfShards); shardId++ {
-		for j := 0; j < nodesPerShard; j++ {
-			n := NewTestProcessorNodeWithStorageTrieAndGasModel(uint32(numOfShards), shardId, shardId, CreateMemUnit(), gasSchedule)
-			nodes[idx] = n
-			connectableNodes[idx] = n
-			idx++
-		}
-	}
-
-	for i := 0; i < numMetaChainNodes; i++ {
-		metaNode := NewTestProcessorNodeWithStorageTrieAndGasModel(uint32(numOfShards), core.MetachainShardId, 0, CreateMemUnit(), gasSchedule)
-		idx = i + numOfShards*nodesPerShard
-		nodes[idx] = metaNode
-		connectableNodes[idx] = metaNode
-	}
-
-	ConnectNodes(connectableNodes)
-
-	return nodes
 }
 
 // CreateNodes creates multiple nodes in different shards

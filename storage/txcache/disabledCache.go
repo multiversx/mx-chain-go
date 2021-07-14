@@ -117,6 +117,11 @@ func (cache *DisabledCache) ImmunizeTxsAgainstEviction(_ [][]byte) {
 func (cache *DisabledCache) Diagnose(_ bool) {
 }
 
+// Close does nothing
+func (cache *DisabledCache) Close() error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (cache *DisabledCache) IsInterfaceNil() bool {
 	return cache == nil

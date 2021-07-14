@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core/parsers"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
 	nodeFacade "github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -22,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
+	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -135,10 +135,7 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		Accounts:         tpn.AccntState,
 		ShardCoordinator: tpn.ShardCoordinator,
 	}
-	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
-	log.LogIfError(err)
-
-	builtInFuncs, err := builtInFuncFactory.CreateBuiltInFunctionContainer()
+	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	log.LogIfError(err)
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{

@@ -12,12 +12,13 @@ var _ storage.PathManagerHandler = (*PathManager)(nil)
 
 // PathManager will handle creation of paths for storers
 type PathManager struct {
+	databasePath        string
 	pruningPathTemplate string
 	staticPathTemplate  string
 }
 
 // NewPathManager will return a new instance of PathManager if the provided arguments are fine
-func NewPathManager(pruningPathTemplate string, staticPathTemplate string) (*PathManager, error) {
+func NewPathManager(pruningPathTemplate string, staticPathTemplate string, databasePath string) (*PathManager, error) {
 	if len(pruningPathTemplate) == 0 {
 		return nil, storage.ErrEmptyPruningPathTemplate
 	}
@@ -35,9 +36,14 @@ func NewPathManager(pruningPathTemplate string, staticPathTemplate string) (*Pat
 		return nil, storage.ErrInvalidStaticPathTemplate
 	}
 
+	if len(databasePath) == 0 {
+		return nil, storage.ErrInvalidDatabasePath
+	}
+
 	return &PathManager{
 		pruningPathTemplate: pruningPathTemplate,
 		staticPathTemplate:  staticPathTemplate,
+		databasePath:        databasePath,
 	}, nil
 }
 
@@ -58,6 +64,11 @@ func (pm *PathManager) PathForStatic(shardId string, identifier string) string {
 	path = strings.Replace(path, core.PathIdentifierPlaceholder, identifier, 1)
 
 	return path
+}
+
+// DatabasePath returns the path for the databases directory
+func (pm *PathManager) DatabasePath() string {
+	return pm.databasePath
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

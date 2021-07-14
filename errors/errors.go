@@ -454,3 +454,6 @@ var ErrNilNodeRedundancyHandler = errors.New("nil node redundancy handler")
 
 // ErrNilLocker signals that a nil locker was provided
 var ErrNilLocker = errors.New("nil locker")
+
+// ErrNilCurrentEpochProvider signals that a nil current epoch provider was provided
+var ErrNilCurrentEpochProvider = errors.New("nil current epoch provider")

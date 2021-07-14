@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -87,7 +88,10 @@ type indexHashedNodesCoordinator struct {
 	startEpoch                    uint32
 	publicKeyToValidatorMap       map[string]*validatorWithShardID
 	waitingListFixEnableEpoch     uint32
+	isFullArchive                 bool
+	chanStopNode                  chan endProcess.ArgEndProcess
 	flagWaitingListFix            atomicFlags.Flag
+	nodeTypeProvider              NodeTypeProviderHandler
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
@@ -129,6 +133,9 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		startEpoch:                    arguments.StartEpoch,
 		publicKeyToValidatorMap:       make(map[string]*validatorWithShardID),
 		waitingListFixEnableEpoch:     arguments.WaitingListFixEnabledEpoch,
+		chanStopNode:                  arguments.ChanStopNode,
+		nodeTypeProvider:              arguments.NodeTypeProvider,
+		isFullArchive:                 arguments.IsFullArchive,
 	}
 	log.Debug("indexHashedNodesCoordinator: enable epoch for waiting waiting list", "epoch", ihgs.waitingListFixEnableEpoch)
 
@@ -200,6 +207,12 @@ func checkArguments(arguments ArgNodesCoordinator) error {
 	if check.IfNil(arguments.ShuffledOutHandler) {
 		return ErrNilShuffledOutHandler
 	}
+	if check.IfNil(arguments.NodeTypeProvider) {
+		return ErrNilNodeTypeProvider
+	}
+	if nil == arguments.ChanStopNode {
+		return ErrNilNodeStopChannel
+	}
 
 	return nil
 }
@@ -242,12 +255,13 @@ func (ihgs *indexHashedNodesCoordinator) setNodesPerShards(
 	}
 
 	var err error
+	var isValidator bool
 	// nbShards holds number of shards without meta
 	nodesConfig.nbShards = uint32(len(eligible) - 1)
 	nodesConfig.eligibleMap = eligible
 	nodesConfig.waitingMap = waiting
 	nodesConfig.leavingMap = leaving
-	nodesConfig.shardID = ihgs.computeShardForSelfPublicKey(nodesConfig)
+	nodesConfig.shardID, isValidator = ihgs.computeShardForSelfPublicKey(nodesConfig)
 	nodesConfig.selectors, err = ihgs.createSelectors(nodesConfig)
 	if err != nil {
 		return err
@@ -255,8 +269,27 @@ func (ihgs *indexHashedNodesCoordinator) setNodesPerShards(
 
 	ihgs.nodesConfig[epoch] = nodesConfig
 	ihgs.numTotalEligible = numTotalEligible
+	ihgs.setNodeType(isValidator)
+
+	if ihgs.isFullArchive && isValidator {
+		ihgs.chanStopNode <- endProcess.ArgEndProcess{
+			Reason:      core.WrongConfiguration,
+			Description: ErrValidatorCannotBeFullArchive.Error(),
+		}
+
+		return nil
+	}
 
 	return nil
+}
+
+func (ihgs *indexHashedNodesCoordinator) setNodeType(isValidator bool) {
+	if isValidator {
+		ihgs.nodeTypeProvider.SetType(core.NodeTypeValidator)
+		return
+	}
+
+	ihgs.nodeTypeProvider.SetType(core.NodeTypeObserver)
 }
 
 // ComputeAdditionalLeaving - computes extra leaving validators based on computation at the start of epoch
@@ -939,7 +972,7 @@ func (ihgs *indexHashedNodesCoordinator) createPublicKeyToValidatorMap(
 	return publicKeyToValidatorMap
 }
 
-func (ihgs *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfig *epochNodesConfig) uint32 {
+func (ihgs *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfig *epochNodesConfig) (uint32, bool) {
 	pubKey := ihgs.selfPubKey
 	selfShard := ihgs.shardIDAsObserver
 	epNodesConfig, ok := ihgs.nodesConfig[ihgs.currentEpoch]
@@ -957,7 +990,7 @@ func (ihgs *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfi
 			"shard", shardId,
 			"validator PK", pubKey,
 		)
-		return shardId
+		return shardId, true
 	}
 
 	found, shardId = searchInMap(nodesConfig.waitingMap, pubKey)
@@ -967,7 +1000,7 @@ func (ihgs *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfi
 			"shard", shardId,
 			"validator PK", pubKey,
 		)
-		return shardId
+		return shardId, true
 	}
 
 	found, shardId = searchInMap(nodesConfig.leavingMap, pubKey)
@@ -977,13 +1010,13 @@ func (ihgs *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfi
 			"shard", shardId,
 			"validator PK", pubKey,
 		)
-		return shardId
+		return shardId, true
 	}
 
 	log.Trace("computeShardForSelfPublicKey returned default",
 		"shard", selfShard,
 	)
-	return selfShard
+	return selfShard, false
 }
 
 // ConsensusGroupSize returns the consensus group size for a specific shard

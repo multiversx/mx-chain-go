@@ -73,6 +73,16 @@ func (sm *ChainStorerMock) SetEpochForPutOperation(_ uint32) {
 	panic("not supported")
 }
 
+// GetAllStorers -
+func (sm *ChainStorerMock) GetAllStorers() map[dataRetriever.UnitType]storage.Storer {
+	return map[dataRetriever.UnitType]storage.Storer{
+		dataRetriever.TransactionUnit:          sm.Transactions,
+		dataRetriever.RewardTransactionUnit:    sm.Rewards,
+		dataRetriever.UnsignedTransactionUnit:  sm.Unsigned,
+		dataRetriever.MetaHdrNonceHashDataUnit: sm.HdrNonce,
+	}
+}
+
 // Destroy -
 func (sm *ChainStorerMock) Destroy() error {
 	return nil

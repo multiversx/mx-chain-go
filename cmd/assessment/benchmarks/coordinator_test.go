@@ -95,4 +95,5 @@ func TestCoordinator_RunAllShouldWork(t *testing.T) {
 	require.Equal(t, 2, len(result.Results))
 	assert.Equal(t, time.Duration(2), result.Results[0].Duration)
 	assert.Equal(t, time.Duration(3), result.Results[1].Duration)
+	assert.True(t, result.EnoughComputingPower)
 }

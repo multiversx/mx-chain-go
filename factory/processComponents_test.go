@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/stretchr/testify/require"
 )
 
@@ -200,7 +201,7 @@ func getProcessArgs(
 			},
 		},
 		Version:     "v1.0.0",
-		HistoryRepo: &testscommon.HistoryRepositoryStub{},
+		HistoryRepo: &dblookupext.HistoryRepositoryStub{},
 	}
 }
 

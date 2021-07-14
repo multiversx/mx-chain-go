@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -602,14 +603,14 @@ func TestHistoryRepository_getMiniblockMetadataByMiniblockHashGetFromEpochErrors
 	expectedErr := errors.New("expected error")
 	hr := &historyRepository{
 		epochByHashIndex: newHashToEpochIndex(
-			&mock.StorerStub{
+			&testscommon.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					return []byte("{}"), nil
 				},
 			},
 			&mock.MarshalizerMock{},
 		),
-		miniblocksMetadataStorer: &mock.StorerStub{
+		miniblocksMetadataStorer: &testscommon.StorerStub{
 			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 				return nil, expectedErr
 			},

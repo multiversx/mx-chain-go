@@ -18,16 +18,16 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
-	"github.com/ElrondNetwork/elrond-go/core/parsers"
 	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager"
+	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager/evictionWaitingList"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
 	dataTx "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
-	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
+	"github.com/ElrondNetwork/elrond-go/data/trie/hashesHolder"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	processDisabled "github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
@@ -56,6 +56,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
+	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -255,7 +258,7 @@ type accountFactory struct {
 }
 
 // CreateAccount -
-func (af *accountFactory) CreateAccount(address []byte) (state.AccountHandler, error) {
+func (af *accountFactory) CreateAccount(address []byte) (vmcommon.AccountHandler, error) {
 	return state.NewUserAccount(address)
 }
 
@@ -292,23 +295,25 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 		SnapshotsBufferLen: 10,
 		MaxSnapshots:       2,
 	}
-	trieStorage, _ := trie.NewTrieStorageManager(
-		store,
-		marsh,
-		testHasher,
-		config.DBConfig{
+	args := trie.NewTrieStorageManagerArgs{
+		DB:          store,
+		Marshalizer: marsh,
+		Hasher:      testHasher,
+		SnapshotDbConfig: config.DBConfig{
 			FilePath:          "TrieStorage",
 			Type:              "MemoryDB",
 			BatchDelaySeconds: 30,
 			MaxBatchSize:      6,
 			MaxOpenFiles:      10,
 		},
-		ewl,
-		generalCfg,
-	)
+		GeneralConfig:          generalCfg,
+		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(testHasher.Size())),
+	}
+	trieStorage, _ := trie.NewTrieStorageManager(args)
 
 	tr, _ := trie.NewTrie(trieStorage, marsh, testHasher, maxTrieLevelInMemory)
-	adb, _ := state.NewAccountsDB(tr, testHasher, marsh, &accountFactory{})
+	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
+	adb, _ := state.NewAccountsDB(tr, testHasher, marsh, &accountFactory{}, spm)
 
 	return adb
 }
@@ -395,7 +400,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 	arwenChangeLocker process.Locker,
 ) (process.TransactionProcessor, error) {
 
-	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
+	builtInFuncs := vmcommonBuiltInFunctions.NewBuiltInFunctionContainer()
 	datapool := testscommon.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
 		Accounts:           accnts,
@@ -448,14 +453,13 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		ShardCoordinator: oneShardCoordinator,
 		ScrForwarder:     &mock.IntermediateTransactionHandlerMock{},
 		BadTxForwarder:   &mock.IntermediateTransactionHandlerMock{},
-		TxFeeHandler:     &mock.UnsignedTxHandlerMock{},
+		TxFeeHandler:     &testscommon.UnsignedTxHandlerStub{},
 		EconomicsFee:     economicsData,
 		TxTypeHandler:    txTypeHandler,
 		GasHandler: &mock.GasHandlerMock{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 		GasSchedule:                    mock.NewGasScheduleNotifierMock(gasSchedule),
-		BuiltInFunctions:               blockChainHook.GetBuiltInFunctions(),
 		TxLogsProcessor:                &mock.TxLogsProcessorStub{},
 		EpochNotifier:                  forking.NewGenericEpochNotifier(),
 		PenalizedTooMuchGasEnableEpoch: argEnableEpoch.PenalizedTooMuchGasEnableEpoch,
@@ -474,7 +478,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		SignMarshalizer:                testMarshalizer,
 		ShardCoordinator:               oneShardCoordinator,
 		ScProcessor:                    scProcessor,
-		TxFeeHandler:                   &mock.UnsignedTxHandlerMock{},
+		TxFeeHandler:                   &testscommon.UnsignedTxHandlerStub{},
 		TxTypeHandler:                  txTypeHandler,
 		EconomicsFee:                   economicsData,
 		ReceiptForwarder:               &mock.IntermediateTransactionHandlerMock{},
@@ -501,7 +505,7 @@ func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutio
 		ShardCoordinator:   oneShardCoordinator,
 		Marshalizer:        testMarshalizer,
 		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
+		BuiltInFunctions:   vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
 		DataPool:           datapool,
 		CompiledSCPool:     datapool.SmartContracts(),
 		NilCompiledSCStore: true,
@@ -536,8 +540,7 @@ func CreateVMAndBlockchainHookAndDataPool(
 		Accounts:         accnts,
 		ShardCoordinator: shardCoordinator,
 	}
-	builtInFuncFactory, _ := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
-	builtInFuncs, _ := builtInFuncFactory.CreateBuiltInFunctionContainer()
+	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 
 	datapool := testscommon.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
@@ -578,7 +581,7 @@ func CreateVMAndBlockchainHookAndDataPool(
 	}
 
 	blockChainHook, _ := vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
-	_ = builtInFunctions.SetPayableHandler(builtInFuncs, blockChainHook)
+	_ = vmcommonBuiltInFunctions.SetPayableHandler(builtInFuncs, blockChainHook)
 
 	return vmContainer, blockChainHook, datapool
 }
@@ -605,8 +608,7 @@ func CreateVMAndBlockchainHookMeta(
 		Accounts:         accnts,
 		ShardCoordinator: shardCoordinator,
 	}
-	builtInFuncFactory, _ := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
-	builtInFuncs, _ := builtInFuncFactory.CreateBuiltInFunctionContainer()
+	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 
 	datapool := testscommon.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
@@ -655,7 +657,7 @@ func CreateVMAndBlockchainHookMeta(
 	}
 
 	blockChainHook, _ := vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
-	_ = builtInFunctions.SetPayableHandler(builtInFuncs, blockChainHook)
+	_ = vmcommonBuiltInFunctions.SetPayableHandler(builtInFuncs, blockChainHook)
 
 	return vmContainer, blockChainHook
 }
@@ -755,7 +757,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:  pubkeyConv,
 		ShardCoordinator: shardCoordinator,
-		BuiltInFuncNames: blockChainHook.GetBuiltInFunctions().Keys(),
+		BuiltInFuncNames: blockChainHook.GetBuiltinFunctionNames(),
 		ArgumentParser:   parsers.NewCallArgsParser(),
 		EpochNotifier:    forking.NewGenericEpochNotifier(),
 	}
@@ -790,7 +792,6 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		TxTypeHandler:                  txTypeHandler,
 		GasHandler:                     gasComp,
 		GasSchedule:                    mock.NewGasScheduleNotifierMock(gasSchedule),
-		BuiltInFunctions:               blockChainHook.GetBuiltInFunctions(),
 		TxLogsProcessor:                &mock.TxLogsProcessorStub{},
 		EpochNotifier:                  forking.NewGenericEpochNotifier(),
 		PenalizedTooMuchGasEnableEpoch: argEnableEpoch.PenalizedTooMuchGasEnableEpoch,

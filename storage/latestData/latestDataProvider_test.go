@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -111,7 +112,7 @@ func TestLatestDataProvider_Get(t *testing.T) {
 	state := &shardchain.TriggerRegistry{
 		EpochStartRound: startRound,
 	}
-	storer := &mock.StorerStub{
+	storer := &testscommon.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			stateBytes, _ := json.Marshal(state)
 			return stateBytes, nil
@@ -162,7 +163,7 @@ func TestLoadEpochStartRoundShard(t *testing.T) {
 	state := &shardchain.TriggerRegistry{
 		EpochStartRound: startRound,
 	}
-	storer := &mock.StorerStub{
+	storer := &testscommon.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			stateBytes, _ := json.Marshal(state)
 			return stateBytes, nil
@@ -186,7 +187,7 @@ func TestLoadEpochStartRoundMetachain(t *testing.T) {
 	state := &metachain.TriggerRegistry{
 		CurrEpochStartRound: startRound,
 	}
-	storer := &mock.StorerStub{
+	storer := &testscommon.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			stateBytes, _ := json.Marshal(state)
 			return stateBytes, nil

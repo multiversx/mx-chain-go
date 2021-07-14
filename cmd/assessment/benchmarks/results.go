@@ -18,9 +18,10 @@ type SingleResult struct {
 
 // TestResults represents the output structure containing the test results data
 type TestResults struct {
-	TotalDuration time.Duration
-	Error         error
-	Results       []SingleResult
+	TotalDuration        time.Duration
+	Error                error
+	Results              []SingleResult
+	EnoughComputingPower bool
 }
 
 // ToDisplayTable will output the contained data as an ASCII table

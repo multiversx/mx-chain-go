@@ -25,7 +25,7 @@ type doubleListTrieSyncer struct {
 	hasher                    hashing.Hasher
 	db                        data.DBWriteCacher
 	requestHandler            RequestHandler
-	interceptedNodes          storage.Cacher
+	interceptedNodesCacher    storage.Cacher
 	mutOperation              sync.RWMutex
 	handlerID                 string
 	trieSyncStatistics        data.SyncStatisticsHandler
@@ -47,7 +47,7 @@ func NewDoubleListTrieSyncer(arg ArgTrieSyncer) (*doubleListTrieSyncer, error) {
 
 	d := &doubleListTrieSyncer{
 		requestHandler:            arg.RequestHandler,
-		interceptedNodes:          arg.InterceptedNodes,
+		interceptedNodesCacher:    arg.InterceptedNodes,
 		db:                        arg.DB,
 		marshalizer:               arg.Marshalizer,
 		hasher:                    arg.Hasher,
@@ -75,9 +75,7 @@ func (d *doubleListTrieSyncer) StartSyncing(rootHash []byte, ctx context.Context
 	}
 
 	d.mutOperation.Lock()
-	defer func() {
-		d.mutOperation.Unlock()
-	}()
+	defer d.mutOperation.Unlock()
 
 	d.lastSyncedTrieNode = time.Now()
 	d.existingNodes = make(map[string]node)
@@ -152,12 +150,15 @@ func (d *doubleListTrieSyncer) processMissingHashes() {
 
 func (d *doubleListTrieSyncer) processExistingNodes() error {
 	for hash, element := range d.existingNodes {
-		err := encodeNodeAndCommitToDB(element, d.db)
+		numBytes, err := encodeNodeAndCommitToDB(element, d.db)
 		if err != nil {
 			return err
 		}
 
 		d.trieSyncStatistics.AddNumReceived(1)
+		if numBytes > core.MaxBufferSizeToSendTrieNodes {
+			d.trieSyncStatistics.AddNumLarge(1)
+		}
 		d.resetWatchdog()
 
 		var children []node
@@ -190,22 +191,13 @@ func (d *doubleListTrieSyncer) resetWatchdog() {
 }
 
 func (d *doubleListTrieSyncer) getNode(hash []byte) (node, error) {
-	n, ok := d.interceptedNodes.Get(hash)
-	if ok {
-		d.interceptedNodes.Remove(hash)
-		return trieNode(n)
-	}
-
-	existingNode, err := getNodeFromDBAndDecode(hash, d.db, d.marshalizer, d.hasher)
-	if err != nil {
-		return nil, ErrNodeNotFound
-	}
-	err = existingNode.setHash()
-	if err != nil {
-		return nil, ErrNodeNotFound
-	}
-
-	return existingNode, nil
+	return getNodeFromStorage(
+		hash,
+		d.interceptedNodesCacher,
+		d.db,
+		d.marshalizer,
+		d.hasher,
+	)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

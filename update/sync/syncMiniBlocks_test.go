@@ -19,12 +19,12 @@ import (
 
 func createMockArgsPendingMiniBlock() ArgsNewPendingMiniBlocksSyncer {
 	return ArgsNewPendingMiniBlocksSyncer{
-		Storage: &mock.StorerStub{},
+		Storage: &testscommon.StorerStub{},
 		Cache: &testscommon.CacherStub{
 			RegisterHandlerCalled: func(f func(key []byte, val interface{})) {},
 		},
 		Marshalizer:    &mock.MarshalizerFake{},
-		RequestHandler: &mock.RequestHandlerStub{},
+		RequestHandler: &testscommon.RequestHandlerStub{},
 	}
 }
 
@@ -90,7 +90,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPool(t *testing.T) {
 	mbHash := []byte("mbHash")
 	mb := &block.MiniBlock{}
 	args := ArgsNewPendingMiniBlocksSyncer{
-		Storage: &mock.StorerStub{},
+		Storage: &testscommon.StorerStub{},
 		Cache: &testscommon.CacherStub{
 			RegisterHandlerCalled: func(f func(key []byte, val interface{})) {},
 			PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -99,7 +99,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPool(t *testing.T) {
 			},
 		},
 		Marshalizer:    &mock.MarshalizerFake{},
-		RequestHandler: &mock.RequestHandlerStub{},
+		RequestHandler: &testscommon.RequestHandlerStub{},
 	}
 
 	pendingMiniBlocksSyncer, err := NewPendingMiniBlocksSyncer(args)
@@ -144,7 +144,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPoolWithRewards(t *testing.T)
 		Type:            block.RewardsBlock,
 	}
 	args := ArgsNewPendingMiniBlocksSyncer{
-		Storage: &mock.StorerStub{},
+		Storage: &testscommon.StorerStub{},
 		Cache: &testscommon.CacherStub{
 			RegisterHandlerCalled: func(f func(key []byte, val interface{})) {},
 			PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -159,7 +159,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPoolWithRewards(t *testing.T)
 			},
 		},
 		Marshalizer:    &mock.MarshalizerFake{},
-		RequestHandler: &mock.RequestHandlerStub{},
+		RequestHandler: &testscommon.RequestHandlerStub{},
 	}
 
 	pendingMiniBlocksSyncer, err := NewPendingMiniBlocksSyncer(args)
@@ -213,7 +213,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPoolMissingTimeout(t *testing
 	mbHash := []byte("mbHash")
 	localErr := errors.New("not found")
 	args := ArgsNewPendingMiniBlocksSyncer{
-		Storage: &mock.StorerStub{
+		Storage: &testscommon.StorerStub{
 			GetCalled: func(key []byte) (bytes []byte, err error) {
 				return nil, localErr
 			},
@@ -228,7 +228,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPoolMissingTimeout(t *testing
 			},
 		},
 		Marshalizer:    &mock.MarshalizerFake{},
-		RequestHandler: &mock.RequestHandlerStub{},
+		RequestHandler: &testscommon.RequestHandlerStub{},
 	}
 
 	pendingMiniBlocksSyncer, err := NewPendingMiniBlocksSyncer(args)
@@ -264,7 +264,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPoolReceive(t *testing.T) {
 	mb := &block.MiniBlock{}
 	localErr := errors.New("not found")
 	args := ArgsNewPendingMiniBlocksSyncer{
-		Storage: &mock.StorerStub{
+		Storage: &testscommon.StorerStub{
 			GetCalled: func(key []byte) (bytes []byte, err error) {
 				return nil, localErr
 			},
@@ -274,7 +274,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPoolReceive(t *testing.T) {
 		},
 		Cache:          testscommon.NewCacherMock(),
 		Marshalizer:    &mock.MarshalizerFake{},
-		RequestHandler: &mock.RequestHandlerStub{},
+		RequestHandler: &testscommon.RequestHandlerStub{},
 	}
 
 	pendingMiniBlocksSyncer, err := NewPendingMiniBlocksSyncer(args)
@@ -314,7 +314,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInStorageReceive(t *testing.T) 
 	mb := &block.MiniBlock{}
 	marshalizer := &mock.MarshalizerMock{}
 	args := ArgsNewPendingMiniBlocksSyncer{
-		Storage: &mock.StorerStub{
+		Storage: &testscommon.StorerStub{
 			GetCalled: func(key []byte) (bytes []byte, err error) {
 				mbBytes, _ := marshalizer.Marshal(mb)
 				return mbBytes, nil
@@ -327,7 +327,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInStorageReceive(t *testing.T) 
 			},
 		},
 		Marshalizer:    &mock.MarshalizerFake{},
-		RequestHandler: &mock.RequestHandlerStub{},
+		RequestHandler: &testscommon.RequestHandlerStub{},
 	}
 
 	pendingMiniBlocksSyncer, err := NewPendingMiniBlocksSyncer(args)
@@ -365,7 +365,7 @@ func TestSyncPendingMiniBlocksFromMeta_GetMiniBlocksShouldWork(t *testing.T) {
 	localErr := errors.New("not found")
 	marshalizer := &mock.MarshalizerMock{}
 	args := ArgsNewPendingMiniBlocksSyncer{
-		Storage: &mock.StorerStub{
+		Storage: &testscommon.StorerStub{
 			GetCalled: func(key []byte) (bytes []byte, err error) {
 				mbBytes, _ := marshalizer.Marshal(mb)
 				return mbBytes, nil
@@ -381,7 +381,7 @@ func TestSyncPendingMiniBlocksFromMeta_GetMiniBlocksShouldWork(t *testing.T) {
 			},
 		},
 		Marshalizer:    &mock.MarshalizerFake{},
-		RequestHandler: &mock.RequestHandlerStub{},
+		RequestHandler: &testscommon.RequestHandlerStub{},
 	}
 
 	pendingMiniBlocksSyncer, err := NewPendingMiniBlocksSyncer(args)

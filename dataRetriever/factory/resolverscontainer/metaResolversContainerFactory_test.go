@@ -72,15 +72,15 @@ func createDataPoolsForMeta() dataRetriever.PoolsHolder {
 func createStoreForMeta() dataRetriever.StorageService {
 	return &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &mock.StorerStub{}
+			return &testscommon.StorerStub{}
 		},
 	}
 }
 
 func createTriesHolderForMeta() state.TriesHolder {
 	triesHolder := state.NewDataTriesHolder()
-	triesHolder.Put([]byte(triesFactory.UserAccountTrie), &mock.TrieStub{})
-	triesHolder.Put([]byte(triesFactory.PeerAccountTrie), &mock.TrieStub{})
+	triesHolder.Put([]byte(triesFactory.UserAccountTrie), &testscommon.TrieStub{})
+	triesHolder.Put([]byte(triesFactory.PeerAccountTrie), &testscommon.TrieStub{})
 	return triesHolder
 }
 

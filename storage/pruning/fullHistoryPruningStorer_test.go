@@ -107,7 +107,6 @@ func TestNewFullHistoryPruningStorer_GetAfterEvictShouldWork(t *testing.T) {
 	args := getDefaultArgs()
 	args.DbPath = "Epoch_0"
 	args.NumOfActivePersisters = 1
-	args.CleanOldEpochsData = true
 	args.NumOfEpochsToKeep = 2
 
 	fhArgs := &pruning.FullHistoryStorerArgs{

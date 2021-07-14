@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -818,7 +819,7 @@ func TestBaseRewardsCreator_isSystemDelegationSC(t *testing.T) {
 	userAccount, err := state.NewUserAccount([]byte("userAddress"))
 	require.Nil(t, err)
 
-	userAccount.SetDataTrie(&mock.TrieStub{
+	userAccount.SetDataTrie(&testscommon.TrieStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			if bytes.Equal(key, []byte(core.DelegationSystemSCKey)) {
 				return []byte("delegation"), nil
@@ -833,8 +834,8 @@ func TestBaseRewardsCreator_isSystemDelegationSCTrue(t *testing.T) {
 	t.Parallel()
 
 	args := getBaseRewardsArguments()
-	args.UserAccountsDB = &mock.AccountsStub{
-		GetExistingAccountCalled: func(address []byte) (state.AccountHandler, error) {
+	args.UserAccountsDB = &testscommon.AccountsStub{
+		GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			return &mock.UserAccountStub{
 				DataTrieTrackerCalled: func() state.DataTrieTracker {
 					return &mock.DataTrieTrackerStub{
