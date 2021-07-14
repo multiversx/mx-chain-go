@@ -1694,8 +1694,9 @@ func TestNetworkMessenger_ApplyOptionsShouldWork(t *testing.T) {
 }
 
 func TestNetworkMessenger_ChooseAnotherPortIfBindFails(t *testing.T) {
-	port := "37000-37100" //use a larger interval as some ports might already be used by the OS
+	t.Skip("complex test used to debug port reuse mechanism on netMessenger")
 
+	port := "37000-37010"
 	mutMessengers := sync.Mutex{}
 	messengers := make([]p2p.Messenger, 0)
 
