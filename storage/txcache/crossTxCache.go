@@ -15,7 +15,7 @@ type CrossTxCache struct {
 
 // NewCrossTxCache creates a new transactions cache
 func NewCrossTxCache(config ConfigDestinationMe) (*CrossTxCache, error) {
-	log.Info("NewCrossTxCache", "config", config.String())
+	log.Debug("NewCrossTxCache", "config", config.String())
 
 	err := config.verify()
 	if err != nil {

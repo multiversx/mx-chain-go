@@ -10,13 +10,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/keyValStorage"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -90,8 +91,8 @@ func TestDirectStakedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 			return &block.MetaBlock{}
 		},
 	}
-	arg.Accounts.AccountsAdapter = &mock.AccountsStub{
-		GetExistingAccountCalled: func(addressContainer []byte) (state.AccountHandler, error) {
+	arg.Accounts.AccountsAdapter = &testscommon.AccountsStub{
+		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 			return createValidatorScAccount(addressContainer, validators, addressContainer), nil
 		},
 		RecreateTrieCalled: func(rootHash []byte) error {
@@ -123,7 +124,7 @@ func TestDirectStakedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 //
 func createValidatorScAccount(address []byte, leaves [][]byte, rootHash []byte) state.UserAccountHandler {
 	acc, _ := state.NewUserAccount(address)
-	acc.SetDataTrie(&mock.TrieStub{
+	acc.SetDataTrie(&testscommon.TrieStub{
 		RootCalled: func() ([]byte, error) {
 			return rootHash, nil
 		},

@@ -2,7 +2,7 @@ package accumulator
 
 import "time"
 
-const MinimumAlowedTime = minimumAlowedTime
+const MinimumAllowedTime = minimumAllowedTime
 
 func (ta *timeAccumulator) Data() []interface{} {
 	ta.mut.Lock()

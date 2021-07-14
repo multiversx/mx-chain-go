@@ -2,7 +2,6 @@ package block
 
 import (
 	"bytes"
-	"context"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -84,36 +83,37 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 
 	genesisHdr := arguments.DataComponents.Blockchain().GetGenesisHeader()
 	base := &baseProcessor{
-		accountsDB:              arguments.AccountsDB,
-		blockSizeThrottler:      arguments.BlockSizeThrottler,
-		forkDetector:            arguments.ForkDetector,
-		hasher:                  arguments.CoreComponents.Hasher(),
-		marshalizer:             arguments.CoreComponents.InternalMarshalizer(),
-		store:                   arguments.DataComponents.StorageService(),
-		shardCoordinator:        arguments.BootstrapComponents.ShardCoordinator(),
-		feeHandler:              arguments.FeeHandler,
-		nodesCoordinator:        arguments.NodesCoordinator,
-		uint64Converter:         arguments.CoreComponents.Uint64ByteSliceConverter(),
-		requestHandler:          arguments.RequestHandler,
-		appStatusHandler:        arguments.CoreComponents.StatusHandler(),
-		blockChainHook:          arguments.BlockChainHook,
-		txCoordinator:           arguments.TxCoordinator,
-		epochStartTrigger:       arguments.EpochStartTrigger,
-		headerValidator:         arguments.HeaderValidator,
-		roundHandler:            arguments.CoreComponents.RoundHandler(),
-		bootStorer:              arguments.BootStorer,
-		blockTracker:            arguments.BlockTracker,
-		dataPool:                arguments.DataComponents.Datapool(),
-		blockChain:              arguments.DataComponents.Blockchain(),
-		stateCheckpointModulus:  arguments.Config.StateTriesConfig.CheckpointRoundsModulus,
-		indexer:                 arguments.StatusComponents.ElasticIndexer(),
-		tpsBenchmark:            arguments.StatusComponents.TpsBenchmark(),
-		genesisNonce:            genesisHdr.GetNonce(),
-		headerIntegrityVerifier: arguments.BootstrapComponents.HeaderIntegrityVerifier(),
-		historyRepo:             arguments.HistoryRepository,
-		epochNotifier:           arguments.EpochNotifier,
-		vmContainerFactory:      arguments.VMContainersFactory,
-		vmContainer:             arguments.VmContainer,
+		accountsDB:                    arguments.AccountsDB,
+		blockSizeThrottler:            arguments.BlockSizeThrottler,
+		forkDetector:                  arguments.ForkDetector,
+		hasher:                        arguments.CoreComponents.Hasher(),
+		marshalizer:                   arguments.CoreComponents.InternalMarshalizer(),
+		store:                         arguments.DataComponents.StorageService(),
+		shardCoordinator:              arguments.BootstrapComponents.ShardCoordinator(),
+		feeHandler:                    arguments.FeeHandler,
+		nodesCoordinator:              arguments.NodesCoordinator,
+		uint64Converter:               arguments.CoreComponents.Uint64ByteSliceConverter(),
+		requestHandler:                arguments.RequestHandler,
+		appStatusHandler:              arguments.CoreComponents.StatusHandler(),
+		blockChainHook:                arguments.BlockChainHook,
+		txCoordinator:                 arguments.TxCoordinator,
+		epochStartTrigger:             arguments.EpochStartTrigger,
+		headerValidator:               arguments.HeaderValidator,
+		roundHandler:                  arguments.CoreComponents.RoundHandler(),
+		bootStorer:                    arguments.BootStorer,
+		blockTracker:                  arguments.BlockTracker,
+		dataPool:                      arguments.DataComponents.Datapool(),
+		blockChain:                    arguments.DataComponents.Blockchain(),
+		stateCheckpointModulus:        arguments.Config.StateTriesConfig.CheckpointRoundsModulus,
+		indexer:                       arguments.StatusComponents.ElasticIndexer(),
+		tpsBenchmark:                  arguments.StatusComponents.TpsBenchmark(),
+		genesisNonce:                  genesisHdr.GetNonce(),
+		headerIntegrityVerifier:       arguments.BootstrapComponents.HeaderIntegrityVerifier(),
+		historyRepo:                   arguments.HistoryRepository,
+		epochNotifier:                 arguments.EpochNotifier,
+		vmContainerFactory:            arguments.VMContainersFactory,
+		vmContainer:                   arguments.VmContainer,
+		processDataTriesOnCommitEpoch: arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
 	}
 
 	mp := metaProcessor{
@@ -1353,9 +1353,8 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.HeaderHandler) {
 
 	if lastMetaBlock.IsStartOfEpochBlock() {
 		log.Debug("trie snapshot", "rootHash", lastMetaBlock.GetRootHash())
-		ctx := context.Background()
-		mp.accountsDB[state.UserAccountsState].SnapshotState(lastMetaBlock.GetRootHash(), ctx)
-		mp.accountsDB[state.PeerAccountsState].SnapshotState(lastMetaBlock.GetValidatorStatsRootHash(), ctx)
+		mp.accountsDB[state.UserAccountsState].SnapshotState(lastMetaBlock.GetRootHash())
+		mp.accountsDB[state.PeerAccountsState].SnapshotState(lastMetaBlock.GetValidatorStatsRootHash())
 		go func() {
 			metaBlock, ok := lastMetaBlock.(*block.MetaBlock)
 			if !ok {

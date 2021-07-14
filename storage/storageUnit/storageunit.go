@@ -139,6 +139,11 @@ func (u *Unit) PutInEpoch(key, data []byte, _ uint32) error {
 	return u.Put(key, data)
 }
 
+// GetOldestEpoch will return an error that signals that the oldest epoch fetching is not available
+func (u *Unit) GetOldestEpoch() (uint32, error) {
+	return 0, storage.ErrOldestEpochNotAvailable
+}
+
 // Close will close unit
 func (u *Unit) Close() error {
 	err := u.persister.Close()

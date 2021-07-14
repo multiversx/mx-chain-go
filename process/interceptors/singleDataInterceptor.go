@@ -151,6 +151,11 @@ func (sdi *SingleDataInterceptor) RegisterHandler(handler func(topic string, has
 	sdi.processor.RegisterHandler(handler)
 }
 
+// Close returns nil
+func (sdi *SingleDataInterceptor) Close() error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (sdi *SingleDataInterceptor) IsInterfaceNil() bool {
 	return sdi == nil

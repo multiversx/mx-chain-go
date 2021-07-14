@@ -15,7 +15,7 @@ import (
 var _ core.Accumulator = (*timeAccumulator)(nil)
 var log = logger.GetOrCreate("core/accumulator")
 
-const minimumAlowedTime = time.Millisecond * 10
+const minimumAllowedTime = time.Millisecond * 10
 
 // timeAccumulator is a structure that is able to accumulate data and will try to write on the output channel
 //once per provided interval
@@ -30,10 +30,10 @@ type timeAccumulator struct {
 
 // NewTimeAccumulator returns a new accumulator instance
 func NewTimeAccumulator(maxAllowedTime time.Duration, maxOffset time.Duration) (*timeAccumulator, error) {
-	if maxAllowedTime < minimumAlowedTime {
+	if maxAllowedTime < minimumAllowedTime {
 		return nil, fmt.Errorf("%w for maxAllowedTime as minimum allowed time is %v",
 			core.ErrInvalidValue,
-			minimumAlowedTime,
+			minimumAllowedTime,
 		)
 	}
 	if maxOffset < 0 {

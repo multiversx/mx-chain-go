@@ -102,8 +102,10 @@ type baseBootstrap struct {
 	syncStarter          syncStarter
 	bootStorer           process.BootStorer
 	storageBootstrapper  process.BootstrapperFromStorage
+	currentEpochProvider process.CurrentNetworkEpochProviderHandler
 
-	indexer process.Indexer
+	indexer          process.Indexer
+	accountsDBSyncer process.AccountsDBSyncer
 
 	chRcvMiniBlocks    chan bool
 	mutRcvMiniBlocks   sync.Mutex
@@ -236,6 +238,16 @@ func (boot *baseBootstrap) getNonceForCurrentBlock() uint64 {
 		nonce = currentBlockHeader.GetNonce()
 	}
 	return nonce
+}
+
+// getEpochOfCurrentBlock will get the epoch for the current block as stored in the chain handler implementation
+func (boot *baseBootstrap) getEpochOfCurrentBlock() uint32 {
+	epoch := boot.chainHandler.GetGenesisHeader().GetEpoch()
+	currentBlockHeader := boot.chainHandler.GetCurrentBlockHeader()
+	if !check.IfNil(currentBlockHeader) {
+		epoch = currentBlockHeader.GetEpoch()
+	}
+	return epoch
 }
 
 // waitForHeaderNonce method wait for header with the requested nonce to be received
@@ -439,6 +451,12 @@ func checkBootstrapNilParameters(arguments ArgBaseBootstrapper) error {
 	if check.IfNil(arguments.Indexer) {
 		return process.ErrNilIndexer
 	}
+	if check.IfNil(arguments.AccountsDBSyncer) {
+		return process.ErrNilAccountsDBSyncer
+	}
+	if check.IfNil(arguments.CurrentEpochProvider) {
+		return process.ErrNilCurrentNetworkEpochProvider
+	}
 
 	return nil
 }
@@ -622,6 +640,16 @@ func (boot *baseBootstrap) syncBlock() error {
 	boot.cleanNoncesSyncedWithErrorsBehindFinal()
 
 	return nil
+}
+
+func (boot *baseBootstrap) syncUserAccountsState() error {
+	rootHash, err := boot.accounts.RootHash()
+	if err != nil {
+		return err
+	}
+
+	log.Warn("base sync: started syncUserAccountsState")
+	return boot.accountsDBSyncer.SyncAccounts(rootHash)
 }
 
 func (boot *baseBootstrap) cleanNoncesSyncedWithErrorsBehindFinal() {
@@ -989,6 +1017,10 @@ func (boot *baseBootstrap) requestHeaders(fromNonce uint64, toNonce uint64) {
 // connected to the network, GetNodeState could return 'NsNotSynchronized' but the SyncBlock is not automatically called.
 func (boot *baseBootstrap) GetNodeState() core.NodeState {
 	if boot.isInImportMode {
+		return core.NsNotSynchronized
+	}
+	currentSyncedEpoch := boot.getEpochOfCurrentBlock()
+	if !boot.currentEpochProvider.EpochIsActiveInNetwork(currentSyncedEpoch) {
 		return core.NsNotSynchronized
 	}
 

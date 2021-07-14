@@ -4,12 +4,12 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
-	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
+	"github.com/ElrondNetwork/elrond-go/data/trie/hashesHolder"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -18,7 +18,6 @@ import (
 )
 
 type trieCreator struct {
-	evictionWaitingListCfg   config.EvictionWaitingListConfig
 	snapshotDbCfg            config.DBConfig
 	marshalizer              marshal.Marshalizer
 	hasher                   hashing.Hasher
@@ -43,7 +42,6 @@ func NewTrieFactory(
 	}
 
 	return &trieCreator{
-		evictionWaitingListCfg:   args.EvictionWaitingListCfg,
 		snapshotDbCfg:            args.SnapshotDbCfg,
 		marshalizer:              args.Marshalizer,
 		hasher:                   args.Hasher,
@@ -53,55 +51,23 @@ func NewTrieFactory(
 }
 
 // Create creates a new trie
-func (tc *trieCreator) Create(
-	trieStorageCfg config.StorageConfig,
-	shardID string,
-	pruningEnabled bool,
-	maxTrieLevelInMem uint,
-) (data.StorageManager, data.Trie, error) {
-	trieStoragePath, mainDb := path.Split(tc.pathManager.PathForStatic(shardID, trieStorageCfg.DB.FilePath))
+func (tc *trieCreator) Create(args data.TrieCreateArgs) (data.StorageManager, data.Trie, error) {
+	trieStoragePath, mainDb := path.Split(tc.pathManager.PathForStatic(args.ShardID, args.TrieStorageConfig.DB.FilePath))
 
-	dbConfig := factory.GetDBFromConfig(trieStorageCfg.DB)
+	dbConfig := factory.GetDBFromConfig(args.TrieStorageConfig.DB)
 	dbConfig.FilePath = path.Join(trieStoragePath, mainDb)
 	accountsTrieStorage, err := storageUnit.NewStorageUnitFromConf(
-		factory.GetCacherFromConfig(trieStorageCfg.Cache),
+		factory.GetCacherFromConfig(args.TrieStorageConfig.Cache),
 		dbConfig,
-		factory.GetBloomFromConfig(trieStorageCfg.Bloom),
+		factory.GetBloomFromConfig(args.TrieStorageConfig.Bloom),
 	)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	log.Trace("trie pruning status", "enabled", pruningEnabled)
-	if !pruningEnabled {
-		trieStorage, errNewTrie := trie.NewTrieStorageManagerWithoutPruning(accountsTrieStorage)
-		if errNewTrie != nil {
-			return nil, nil, errNewTrie
-		}
-
-		newTrie, errNewTrie := trie.NewTrie(trieStorage, tc.marshalizer, tc.hasher, maxTrieLevelInMem)
-		if errNewTrie != nil {
-			return nil, nil, errNewTrie
-		}
-
-		return trieStorage, newTrie, nil
-	}
-
-	arg := storageUnit.ArgDB{
-		DBType:            storageUnit.DBType(tc.evictionWaitingListCfg.DB.Type),
-		Path:              filepath.Join(trieStoragePath, tc.evictionWaitingListCfg.DB.FilePath),
-		BatchDelaySeconds: tc.evictionWaitingListCfg.DB.BatchDelaySeconds,
-		MaxBatchSize:      tc.evictionWaitingListCfg.DB.MaxBatchSize,
-		MaxOpenFiles:      tc.evictionWaitingListCfg.DB.MaxOpenFiles,
-	}
-	evictionDb, err := storageUnit.NewDB(arg)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	ewl, err := evictionWaitingList.NewEvictionWaitingList(tc.evictionWaitingListCfg.Size, evictionDb, tc.marshalizer)
-	if err != nil {
-		return nil, nil, err
+	log.Debug("trie pruning status", "enabled", args.PruningEnabled)
+	if !args.PruningEnabled {
+		return tc.newTrieAndTrieStorageWithoutPruning(accountsTrieStorage, args.MaxTrieLevelInMem)
 	}
 
 	snapshotDbCfg := config.DBConfig{
@@ -112,14 +78,66 @@ func (tc *trieCreator) Create(
 		MaxOpenFiles:      tc.snapshotDbCfg.MaxOpenFiles,
 	}
 
-	trieStorage, err := trie.NewTrieStorageManager(
-		accountsTrieStorage,
-		tc.marshalizer,
-		tc.hasher,
-		snapshotDbCfg,
-		ewl,
-		tc.trieStorageManagerConfig,
+	checkpointHashesHolder := hashesHolder.NewCheckpointHashesHolder(
+		tc.trieStorageManagerConfig.CheckpointHashesHolderMaxSize,
+		uint64(tc.hasher.Size()),
 	)
+	storageManagerArgs := trie.NewTrieStorageManagerArgs{
+		DB:                     accountsTrieStorage,
+		Marshalizer:            tc.marshalizer,
+		Hasher:                 tc.hasher,
+		SnapshotDbConfig:       snapshotDbCfg,
+		GeneralConfig:          tc.trieStorageManagerConfig,
+		CheckpointHashesHolder: checkpointHashesHolder,
+	}
+
+	log.Debug("trie checkpoints status", "enabled", args.CheckpointsEnabled)
+	if !args.CheckpointsEnabled {
+		return tc.newTrieAndTrieStorageWithoutCheckpoints(storageManagerArgs, args.MaxTrieLevelInMem)
+	}
+
+	return tc.newTrieAndTrieStorage(storageManagerArgs, args.MaxTrieLevelInMem)
+}
+
+func (tc *trieCreator) newTrieAndTrieStorage(
+	args trie.NewTrieStorageManagerArgs,
+	maxTrieLevelInMem uint,
+) (data.StorageManager, data.Trie, error) {
+	trieStorage, err := trie.NewTrieStorageManager(args)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	newTrie, err := trie.NewTrie(trieStorage, tc.marshalizer, tc.hasher, maxTrieLevelInMem)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return trieStorage, newTrie, nil
+}
+
+func (tc *trieCreator) newTrieAndTrieStorageWithoutCheckpoints(
+	args trie.NewTrieStorageManagerArgs,
+	maxTrieLevelInMem uint,
+) (data.StorageManager, data.Trie, error) {
+	trieStorage, err := trie.NewTrieStorageManagerWithoutCheckpoints(args)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	newTrie, err := trie.NewTrie(trieStorage, tc.marshalizer, tc.hasher, maxTrieLevelInMem)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return trieStorage, newTrie, nil
+}
+
+func (tc *trieCreator) newTrieAndTrieStorageWithoutPruning(
+	accountsTrieStorage data.DBWriteCacher,
+	maxTrieLevelInMem uint,
+) (data.StorageManager, data.Trie, error) {
+	trieStorage, err := trie.NewTrieStorageManagerWithoutPruning(accountsTrieStorage)
 	if err != nil {
 		return nil, nil, err
 	}

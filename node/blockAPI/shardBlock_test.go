@@ -11,7 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -38,7 +38,7 @@ func createMockShardAPIProcessor(
 				},
 			},
 			Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
-			HistoryRepo: &testscommon.HistoryRepositoryStub{
+			HistoryRepo: &dblookupext.HistoryRepositoryStub{
 				GetEpochByHashCalled: func(hash []byte) (uint32, error) {
 					return 1, nil
 				},

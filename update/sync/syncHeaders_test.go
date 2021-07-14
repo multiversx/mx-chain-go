@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/require"
@@ -26,7 +27,7 @@ func createMockHeadersSyncHandlerArgs() ArgsNewHeadersSyncHandler {
 		Marshalizer:      &mock.MarshalizerFake{},
 		Hasher:           &mock.HasherMock{},
 		EpochHandler:     &mock.EpochStartTriggerStub{},
-		RequestHandler:   &mock.RequestHandlerStub{},
+		RequestHandler:   &testscommon.RequestHandlerStub{},
 		Uint64Converter:  &mock.Uint64ByteSliceConverterStub{},
 		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
 	}
@@ -140,7 +141,7 @@ func TestSyncEpochStartMetaHeader_MetaBlockInStorage(t *testing.T) {
 		}}
 	args := createMockHeadersSyncHandlerArgs()
 	args.StorageService = &mock.ChainStorerMock{GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-		return &mock.StorerStub{
+		return &testscommon.StorerStub{
 			GetCalled: func(key []byte) (bytes []byte, err error) {
 				return json.Marshal(meta)
 			},
@@ -164,7 +165,7 @@ func TestSyncEpochStartMetaHeader_MissingHeaderTimeout(t *testing.T) {
 	localErr := errors.New("not found")
 	args := createMockHeadersSyncHandlerArgs()
 	args.StorageService = &mock.ChainStorerMock{GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-		return &mock.StorerStub{
+		return &testscommon.StorerStub{
 			GetCalled: func(key []byte) (bytes []byte, err error) {
 				return nil, localErr
 			},
@@ -197,7 +198,7 @@ func TestSyncEpochStartMetaHeader_ReceiveWrongHeaderTimeout(t *testing.T) {
 	}}
 
 	args.StorageService = &mock.ChainStorerMock{GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-		return &mock.StorerStub{
+		return &testscommon.StorerStub{
 			GetCalled: func(key []byte) (bytes []byte, err error) {
 				return nil, localErr
 			},
@@ -250,7 +251,7 @@ func TestSyncEpochStartMetaHeader_ReceiveHeaderOk(t *testing.T) {
 
 	metaBytes, _ := args.Marshalizer.Marshal(meta)
 	args.StorageService = &mock.ChainStorerMock{GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-		return &mock.StorerStub{
+		return &testscommon.StorerStub{
 			GetCalled: func(key []byte) (bytes []byte, err error) {
 				return metaBytes, nil
 			},

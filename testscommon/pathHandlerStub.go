@@ -8,6 +8,7 @@ import (
 type PathManagerStub struct {
 	PathForEpochCalled  func(shardId string, epoch uint32, identifier string) string
 	PathForStaticCalled func(shardId string, identifier string) string
+	DatabasePathCalled  func() string
 }
 
 // PathForEpoch -
@@ -26,6 +27,15 @@ func (p *PathManagerStub) PathForStatic(shardId string, identifier string) strin
 	}
 
 	return fmt.Sprintf("Static/Shard_%s/%s", shardId, identifier)
+}
+
+// DatabasePath -
+func (p *PathManagerStub) DatabasePath() string {
+	if p.DatabasePathCalled != nil {
+		return p.DatabasePathCalled()
+	}
+
+	return "db"
 }
 
 // IsInterfaceNil -

@@ -29,6 +29,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update"
 	updateMock "github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -63,7 +64,7 @@ func createMockArgument(
 			MinTxVersion:        1,
 		},
 		Data: &mock.DataComponentsMock{
-			Storage: &mock.ChainStorerMock{
+			Storage: &mock.ChainStorerStub{
 				GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 					return mock.NewStorerMock()
 				},
@@ -144,17 +145,17 @@ func createMockArgument(
 	)
 	require.Nil(t, err)
 
-	arg.ValidatorAccounts = &mock.AccountsStub{
+	arg.ValidatorAccounts = &testscommon.AccountsStub{
 		RootHashCalled: func() ([]byte, error) {
 			return make([]byte, 0), nil
 		},
 		CommitCalled: func() ([]byte, error) {
 			return make([]byte, 0), nil
 		},
-		SaveAccountCalled: func(account state.AccountHandler) error {
+		SaveAccountCalled: func(account vmcommon.AccountHandler) error {
 			return nil
 		},
-		LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
+		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			return state.NewEmptyPeerAccount(), nil
 		},
 	}
@@ -472,7 +473,7 @@ func TestCreateHardForkBlockProcessors_ShouldWork(t *testing.T) {
 	)
 	arg.importHandler = &updateMock.ImportHandlerStub{
 		GetAccountsDBForShardCalled: func(shardID uint32) state.AccountsAdapter {
-			return &mock.AccountsStub{}
+			return &testscommon.AccountsStub{}
 		},
 	}
 	gbc, err := NewGenesisBlockCreator(arg)

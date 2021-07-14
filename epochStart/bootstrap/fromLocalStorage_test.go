@@ -8,9 +8,9 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -36,7 +36,7 @@ func TestGetEpochStartMetaFromStorage(t *testing.T) {
 
 	meta := &block.MetaBlock{Nonce: 1}
 	metaBytes, _ := json.Marshal(meta)
-	storer := &mock.StorerStub{
+	storer := &testscommon.StorerStub{
 		GetCalled: func(key []byte) (bytes []byte, err error) {
 			return metaBytes, nil
 		},
@@ -70,7 +70,7 @@ func TestGetLastBootstrapData(t *testing.T) {
 		NodesCoordinatorConfigKey: nodesCoordinatorConfigKey,
 	}
 
-	storer := &mock.StorerStub{
+	storer := &testscommon.StorerStub{
 		GetCalled: func(key []byte) (b []byte, err error) {
 			switch {
 			case bytes.Equal([]byte(core.HighestRoundFromBootStorage), key):

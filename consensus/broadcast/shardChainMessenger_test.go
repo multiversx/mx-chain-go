@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -36,9 +37,9 @@ func createDelayData(prefix string) ([]byte, *block.Header, map[uint32][]byte, m
 }
 
 func createInterceptorContainer() process.InterceptorsContainer {
-	return &mock.InterceptorsContainerStub{
+	return &testscommon.InterceptorsContainerStub{
 		GetCalled: func(topic string) (process.Interceptor, error) {
-			return &mock.InterceptorStub{
+			return &testscommon.InterceptorStub{
 				ProcessReceivedMessageCalled: func(message p2p.MessageP2P) error {
 					return nil
 				},

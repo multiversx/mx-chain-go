@@ -4,17 +4,18 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
 
 func TestNewTxLogProcessor_NilParameters(t *testing.T) {
 	_, nilMarshalizer := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
-		Storer: &mock.StorerStub{},
+		Storer: &testscommon.StorerStub{},
 	})
 
 	require.Equal(t, process.ErrNilMarshalizer, nilMarshalizer)
@@ -26,7 +27,7 @@ func TestNewTxLogProcessor_NilParameters(t *testing.T) {
 	require.Equal(t, process.ErrNilStore, nilStorer)
 
 	_, nilError := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
-		Storer:      &mock.StorerStub{},
+		Storer:      &testscommon.StorerStub{},
 		Marshalizer: &mock.MarshalizerMock{},
 	})
 
@@ -35,7 +36,7 @@ func TestNewTxLogProcessor_NilParameters(t *testing.T) {
 
 func TestTxLogProcessor_SaveLogsNilTxHash(t *testing.T) {
 	txLogProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
-		Storer:      &mock.StorerStub{},
+		Storer:      &testscommon.StorerStub{},
 		Marshalizer: &mock.MarshalizerMock{},
 	})
 
@@ -45,7 +46,7 @@ func TestTxLogProcessor_SaveLogsNilTxHash(t *testing.T) {
 
 func TestTxLogProcessor_SaveLogsNilTx(t *testing.T) {
 	txLogProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
-		Storer:      &mock.StorerStub{},
+		Storer:      &testscommon.StorerStub{},
 		Marshalizer: &mock.MarshalizerMock{},
 	})
 
@@ -55,7 +56,7 @@ func TestTxLogProcessor_SaveLogsNilTx(t *testing.T) {
 
 func TestTxLogProcessor_SaveLogsEmptyLogsReturnsNil(t *testing.T) {
 	txLogProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
-		Storer:      &mock.StorerStub{},
+		Storer:      &testscommon.StorerStub{},
 		Marshalizer: &mock.MarshalizerMock{},
 	})
 
@@ -66,7 +67,7 @@ func TestTxLogProcessor_SaveLogsEmptyLogsReturnsNil(t *testing.T) {
 func TestTxLogProcessor_SaveLogsMarshalErr(t *testing.T) {
 	retErr := errors.New("marshal err")
 	txLogProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
-		Storer: &mock.StorerStub{},
+		Storer: &testscommon.StorerStub{},
 		Marshalizer: &mock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) (bytes []byte, err error) {
 				return nil, retErr
@@ -84,7 +85,7 @@ func TestTxLogProcessor_SaveLogsMarshalErr(t *testing.T) {
 func TestTxLogProcessor_SaveLogsStoreErr(t *testing.T) {
 	retErr := errors.New("put err")
 	txLogProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
-		Storer: &mock.StorerStub{
+		Storer: &testscommon.StorerStub{
 			PutCalled: func(key, data []byte) error {
 				return retErr
 			},
@@ -107,7 +108,7 @@ func TestTxLogProcessor_SaveLogsCallsPutWithMarshalBuff(t *testing.T) {
 	buffExpected := []byte("marshaled log")
 	buffActual := []byte("currently wrong value")
 	txLogProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
-		Storer: &mock.StorerStub{
+		Storer: &testscommon.StorerStub{
 			PutCalled: func(key, data []byte) error {
 				buffActual = data
 				return nil
@@ -130,7 +131,7 @@ func TestTxLogProcessor_SaveLogsCallsPutWithMarshalBuff(t *testing.T) {
 
 func TestTxLogProcessor_GetLogErrNotFound(t *testing.T) {
 	txLogProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
-		Storer: &mock.StorerStub{
+		Storer: &testscommon.StorerStub{
 			GetCalled: func(key []byte) (bytes []byte, err error) {
 				return nil, errors.New("storer error")
 			},
@@ -146,7 +147,7 @@ func TestTxLogProcessor_GetLogErrNotFound(t *testing.T) {
 func TestTxLogProcessor_GetLogUnmarshalErr(t *testing.T) {
 	retErr := errors.New("marshal error")
 	txLogProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
-		Storer: &mock.StorerStub{
+		Storer: &testscommon.StorerStub{
 			GetCalled: func(key []byte) (bytes []byte, err error) {
 				return make([]byte, 0), nil
 			},
@@ -165,7 +166,7 @@ func TestTxLogProcessor_GetLogUnmarshalErr(t *testing.T) {
 
 func TestTxLogProcessor_GetLogFromCache(t *testing.T) {
 	txLogProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
-		Storer: &mock.StorerStub{
+		Storer: &testscommon.StorerStub{
 			PutCalled: func(key, data []byte) error {
 				return nil
 			},
@@ -192,7 +193,7 @@ func TestTxLogProcessor_GetLogFromCacheNotInCacheShouldReturnFromStorage(t *test
 
 	marshalizer := &mock.MarshalizerMock{}
 	txLogProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
-		Storer: &mock.StorerStub{
+		Storer: &testscommon.StorerStub{
 			PutCalled: func(key, data []byte) error {
 				return nil
 			},

@@ -21,6 +21,7 @@ type PoolsHolderMock struct {
 	miniBlocks           storage.Cacher
 	peerChangesBlocks    storage.Cacher
 	trieNodes            storage.Cacher
+	trieNodesChunks      storage.Cacher
 	smartContracts       storage.Cacher
 	currBlockTxs         dataRetriever.TransactionCacher
 }
@@ -78,6 +79,9 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 	holder.trieNodes, err = storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.SizeLRUCache, Capacity: 900000, Shards: 1, SizeInBytes: 314572800})
 	panicIfError("NewPoolsHolderMock", err)
 
+	holder.trieNodesChunks, err = storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.SizeLRUCache, Capacity: 900000, Shards: 1, SizeInBytes: 314572800})
+	panicIfError("NewPoolsHolderMock", err)
+
 	holder.smartContracts, err = storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})
 	panicIfError("NewPoolsHolderMock", err)
 
@@ -132,6 +136,11 @@ func (holder *PoolsHolderMock) SetUnsignedTransactions(pool dataRetriever.Sharde
 // TrieNodes -
 func (holder *PoolsHolderMock) TrieNodes() storage.Cacher {
 	return holder.trieNodes
+}
+
+// TrieNodesChunks -
+func (holder *PoolsHolderMock) TrieNodesChunks() storage.Cacher {
+	return holder.trieNodesChunks
 }
 
 // SmartContracts -

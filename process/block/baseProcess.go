@@ -2,7 +2,6 @@ package block
 
 import (
 	"bytes"
-	"context"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -83,6 +82,8 @@ type baseProcessor struct {
 	epochNotifier      process.EpochNotifier
 	vmContainerFactory process.VirtualMachinesContainerFactory
 	vmContainer        process.VirtualMachinesContainer
+
+	processDataTriesOnCommitEpoch bool
 }
 
 type bootStorerDataArgs struct {
@@ -1096,8 +1097,7 @@ func (bp *baseProcessor) updateStateStorage(
 	if bp.stateCheckpointModulus != 0 {
 		if finalHeader.GetNonce()%uint64(bp.stateCheckpointModulus) == 0 {
 			log.Debug("trie checkpoint", "rootHash", rootHash)
-			ctx := context.Background()
-			accounts.SetStateCheckpoint(rootHash, ctx)
+			accounts.SetStateCheckpoint(rootHash)
 		}
 	}
 
@@ -1290,26 +1290,72 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 		return err
 	}
 
-	ctx := context.Background()
-	allLeavesChan, err := userAccountsDb.GetAllLeaves(rootHash, ctx)
+	allLeavesChan, err := userAccountsDb.GetAllLeaves(rootHash)
 	if err != nil {
 		return err
 	}
 
+	processDataTries := bp.processDataTriesOnCommitEpoch
 	balanceSum := big.NewInt(0)
+	numAccountLeaves := 0
+	numAccountsWithDataTrie := 0
+	numCodeLeaves := 0
+	totalSizeAccounts := 0
+	totalSizeAccountsDataTries := 0
+	totalSizeCodeLeaves := 0
 	for leaf := range allLeavesChan {
 		userAccount, errUnmarshal := unmarshalUserAccount(leaf.Key(), leaf.Value(), bp.marshalizer)
 		if errUnmarshal != nil {
+			numCodeLeaves++
+			totalSizeCodeLeaves += len(leaf.Value())
 			log.Trace("cannot unmarshal user account. it may be a code leaf", "error", errUnmarshal)
 			continue
 		}
+
+		if processDataTries {
+			rh := userAccount.GetRootHash()
+			if len(rh) != 0 {
+				dataTrie, errDataTrieGet := userAccountsDb.GetAllLeaves(rh)
+				if errDataTrieGet != nil {
+					continue
+				}
+
+				currentSize := 0
+				for lf := range dataTrie {
+					currentSize += len(lf.Value())
+				}
+
+				totalSizeAccountsDataTries += currentSize
+				numAccountsWithDataTrie++
+			}
+		}
+
+		numAccountLeaves++
+		totalSizeAccounts += len(leaf.Value())
+
 		balanceSum.Add(balanceSum, userAccount.GetBalance())
 	}
 
-	log.Debug("sum of addresses in shard at epoch start",
+	totalSizeAccounts += totalSizeAccountsDataTries
+
+	stats := []interface{}{
 		"shard", bp.shardCoordinator.SelfId(),
 		"epoch", metaBlock.Epoch,
-		"sum", balanceSum.String())
+		"sum", balanceSum.String(),
+		"processDataTries", processDataTries,
+		"numCodeLeaves", numCodeLeaves,
+		"totalSizeCodeLeaves", totalSizeCodeLeaves,
+		"numAccountLeaves", numAccountLeaves,
+		"totalSizeAccountsLeaves", totalSizeAccounts,
+	}
+
+	if processDataTries {
+		stats = append(stats, []interface{}{
+			"from which numAccountsWithDataTrie", numAccountsWithDataTrie,
+			"from which totalSizeAccountsDataTries", totalSizeAccountsDataTries}...)
+	}
+
+	log.Debug("sum of addresses in shard at epoch start", stats...)
 
 	return nil
 }

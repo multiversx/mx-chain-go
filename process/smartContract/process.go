@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -24,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/vm"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var _ process.SmartContractResultProcessor = (*scProcessor)(nil)
@@ -50,7 +50,6 @@ type scProcessor struct {
 	shardCoordinator                            sharding.Coordinator
 	vmContainer                                 process.VirtualMachinesContainer
 	argsParser                                  process.ArgumentsParser
-	builtInFunctions                            process.BuiltInFunctionContainer
 	deployEnableEpoch                           uint32
 	builtinEnableEpoch                          uint32
 	penalizedTooMuchGasEnableEpoch              uint32
@@ -99,7 +98,6 @@ type ArgsNewSmartContractProcessor struct {
 	TxTypeHandler                               process.TxTypeHandler
 	GasHandler                                  process.GasHandler
 	GasSchedule                                 core.GasScheduleNotifier
-	BuiltInFunctions                            process.BuiltInFunctionContainer
 	TxLogsProcessor                             process.TransactionLogProcessor
 	BadTxForwarder                              process.IntermediateTransactionHandler
 	DeployEnableEpoch                           uint32
@@ -160,9 +158,6 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	if check.IfNil(args.GasSchedule) || args.GasSchedule.LatestGasSchedule() == nil {
 		return nil, process.ErrNilGasSchedule
 	}
-	if check.IfNil(args.BuiltInFunctions) {
-		return nil, process.ErrNilBuiltInFunction
-	}
 	if check.IfNil(args.TxLogsProcessor) {
 		return nil, process.ErrNilTxLogsProcessor
 	}
@@ -195,7 +190,6 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		txTypeHandler:                       args.TxTypeHandler,
 		gasHandler:                          args.GasHandler,
 		builtInGasCosts:                     builtInFuncCost,
-		builtInFunctions:                    args.BuiltInFunctions,
 		txLogsProcessor:                     args.TxLogsProcessor,
 		badTxForwarder:                      args.BadTxForwarder,
 		deployEnableEpoch:                   args.DeployEnableEpoch,
@@ -711,7 +705,7 @@ func (sc *scProcessor) deleteSCRsWithValueZeroGoingToMeta(scrs []data.Transactio
 	return cleanSCRs
 }
 
-func (sc *scProcessor) saveAccounts(acntSnd, acntDst state.AccountHandler) error {
+func (sc *scProcessor) saveAccounts(acntSnd, acntDst vmcommon.AccountHandler) error {
 	if !check.IfNil(acntSnd) {
 		err := sc.accounts.SaveAccount(acntSnd)
 		if err != nil {
@@ -785,11 +779,17 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 	}
 
 	var vmOutput *vmcommon.VMOutput
-	vmOutput, err = sc.resolveBuiltInFunctions(acntSnd, acntDst, vmInput)
+	vmOutput, err = sc.resolveBuiltInFunctions(vmInput)
 	if err != nil {
 		log.Debug("processed built in functions error", "error", err.Error())
 		return 0, err
 	}
+
+	acntSnd, err = sc.reloadLocalAccount(acntSnd)
+	if err != nil {
+		return 0, err
+	}
+
 	_, txTypeOnDst := sc.txTypeHandler.ComputeTransactionType(tx)
 	builtInFuncGasUsed, err := sc.computeBuiltInFuncGasUsed(txTypeOnDst, vmInput.Function, vmInput.GasProvided, vmOutput.GasRemaining)
 	log.LogIfError(err, "function", "ExecuteBuiltInFunction.computeBuiltInFuncGasUsed")
@@ -859,6 +859,8 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 		if len(newSCRTxs) > 0 {
 			scrResults = append(scrResults, newSCRTxs...)
 		}
+
+		mergeVMOutputLogs(newVMOutput, vmOutput)
 	}
 
 	isSCCallCrossShard := !isSCCallSelfShard && txTypeOnDst == process.SCInvoking
@@ -887,6 +889,17 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 	}
 
 	return sc.finishSCExecution(scrResults, txHash, tx, newVMOutput, builtInFuncGasUsed)
+}
+
+func mergeVMOutputLogs(newVMOutput *vmcommon.VMOutput, vmOutput *vmcommon.VMOutput) {
+	if len(vmOutput.Logs) == 0 {
+		return
+	}
+
+	if newVMOutput.Logs == nil {
+		newVMOutput.Logs = make([]*vmcommon.LogEntry, 0, len(vmOutput.Logs))
+	}
+	newVMOutput.Logs = append(newVMOutput.Logs, vmOutput.Logs...)
 }
 
 func (sc *scProcessor) processSCRForSenderAfterBuiltIn(
@@ -919,32 +932,18 @@ func (sc *scProcessor) processSCRForSenderAfterBuiltIn(
 }
 
 func (sc *scProcessor) resolveBuiltInFunctions(
-	acntSnd, acntDst state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,
 ) (*vmcommon.VMOutput, error) {
 
-	vmOutput := &vmcommon.VMOutput{
-		ReturnCode: vmcommon.UserError,
-	}
-
-	builtIn, err := sc.builtInFunctions.Get(vmInput.Function)
-	if err != nil {
-		vmOutput.ReturnMessage = err.Error()
-		return vmOutput, nil
-	}
-
-	vmOutput, err = builtIn.ProcessBuiltinFunction(acntSnd, acntDst, vmInput)
+	vmOutput, err := sc.blockChainHook.ProcessBuiltInFunction(vmInput)
 	if err != nil {
 		vmOutput = &vmcommon.VMOutput{
 			ReturnCode:    vmcommon.UserError,
 			ReturnMessage: err.Error(),
 			GasRemaining:  0,
 		}
-	}
 
-	err = sc.saveAccounts(acntSnd, acntDst)
-	if err != nil {
-		return nil, err
+		return vmOutput, nil
 	}
 
 	return vmOutput, nil
@@ -1034,15 +1033,16 @@ func (sc *scProcessor) isSCExecutionAfterBuiltInFunc(
 
 	newVMInput := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
-			CallerAddr:     vmInput.CallerAddr,
-			Arguments:      arguments,
-			CallValue:      big.NewInt(0),
-			CallType:       callType,
-			GasPrice:       vmInput.GasPrice,
-			GasProvided:    scExecuteOutTransfer.GasLimit,
-			GasLocked:      vmInput.GasLocked,
-			OriginalTxHash: vmInput.OriginalTxHash,
-			CurrentTxHash:  vmInput.CurrentTxHash,
+			CallerAddr:           vmInput.CallerAddr,
+			Arguments:            arguments,
+			CallValue:            big.NewInt(0),
+			CallType:             callType,
+			GasPrice:             vmInput.GasPrice,
+			GasProvided:          scExecuteOutTransfer.GasLimit,
+			GasLocked:            vmInput.GasLocked,
+			OriginalTxHash:       vmInput.OriginalTxHash,
+			CurrentTxHash:        vmInput.CurrentTxHash,
+			ReturnCallAfterError: vmInput.ReturnCallAfterError,
 		},
 		RecipientAddr:     recipient,
 		Function:          function,
@@ -1074,15 +1074,16 @@ func (sc *scProcessor) createVMInputWithAsyncCallBack(vmInput *vmcommon.Contract
 
 	newVMInput := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
-			CallerAddr:     vmInput.CallerAddr,
-			Arguments:      arguments,
-			CallValue:      big.NewInt(0),
-			CallType:       vmcommon.AsynchronousCallBack,
-			GasPrice:       vmInput.GasPrice,
-			GasProvided:    gasLimit,
-			GasLocked:      vmInput.GasLocked,
-			OriginalTxHash: vmInput.OriginalTxHash,
-			CurrentTxHash:  vmInput.CurrentTxHash,
+			CallerAddr:           vmInput.CallerAddr,
+			Arguments:            arguments,
+			CallValue:            big.NewInt(0),
+			CallType:             vmcommon.AsynchronousCallBack,
+			GasPrice:             vmInput.GasPrice,
+			GasProvided:          gasLimit,
+			GasLocked:            vmInput.GasLocked,
+			OriginalTxHash:       vmInput.OriginalTxHash,
+			CurrentTxHash:        vmInput.CurrentTxHash,
+			ReturnCallAfterError: vmInput.ReturnCallAfterError,
 		},
 		RecipientAddr:     vmInput.RecipientAddr,
 		Function:          "callBack",
@@ -1178,6 +1179,11 @@ func (sc *scProcessor) ProcessIfError(
 
 	if len(returnMessage) == 0 && sc.flagDeploy.IsSet() {
 		returnMessage = []byte(returnCode)
+	}
+
+	acntSnd, err = sc.reloadLocalAccount(acntSnd)
+	if err != nil {
+		return err
 	}
 
 	scrIfError, consumedFee := sc.createSCRsWhenError(acntSnd, txHash, tx, returnCode, returnMessage, gasLocked)
@@ -1921,11 +1927,6 @@ func (sc *scProcessor) isTransferWithNoAdditionalData(data []byte) bool {
 		return false
 	}
 
-	_, err = sc.builtInFunctions.Get(function)
-	if err != nil {
-		return false
-	}
-
 	if function == core.BuiltInFunctionESDTTransfer {
 		return len(args) == core.MinLenArgumentsESDTTransfer
 	}
@@ -2157,7 +2158,7 @@ func (sc *scProcessor) updateSmartContractCode(
 		stateAccount.SetOwnerAddress(outputAccount.CodeDeployerAddress)
 		stateAccount.SetCodeMetadata(outputAccount.CodeMetadata)
 		stateAccount.SetCode(outputAccount.Code)
-		log.Info("updateSmartContractCode(): created", "address", sc.pubkeyConv.Encode(outputAccount.Address), "upgradeable", newCodeMetadata.Upgradeable)
+		log.Debug("updateSmartContractCode(): created", "address", sc.pubkeyConv.Encode(outputAccount.Address), "upgradeable", newCodeMetadata.Upgradeable)
 		return
 	}
 

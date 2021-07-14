@@ -35,7 +35,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/protocol"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	pubsubPb "github.com/libp2p/go-libp2p-pubsub/pb"
-	secio "github.com/libp2p/go-libp2p-secio"
 )
 
 // ListenAddrWithIp4AndTcp defines the listening address with ip v.4 and TCP
@@ -146,8 +145,6 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 		//we need the disable relay option in order to save the node's bandwidth as much as possible
 		libp2p.DisableRelay(),
 		libp2p.NATPortMap(),
-		//backwards compatibility
-		libp2p.Security(secio.ID, secio.New),
 	}
 
 	setupExternalP2PLoggers()
@@ -1186,14 +1183,14 @@ func (netMes *networkMessenger) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo 
 			}
 		case core.ObserverPeer:
 			connPeerInfo.NumObserversOnShard[peerInfo.ShardID]++
-			if selfPeerInfo.ShardID != peerInfo.ShardID {
-				connPeerInfo.CrossShardObservers[peerInfo.ShardID] = append(connPeerInfo.CrossShardObservers[peerInfo.ShardID], connString)
-				connPeerInfo.NumCrossShardObservers++
-				break
-			}
 			if peerInfo.PeerSubType == core.FullHistoryObserver {
 				connPeerInfo.FullHistoryObservers[peerInfo.ShardID] = append(connPeerInfo.FullHistoryObservers[peerInfo.ShardID], connString)
 				connPeerInfo.NumFullHistoryObservers++
+				break
+			}
+			if selfPeerInfo.ShardID != peerInfo.ShardID {
+				connPeerInfo.CrossShardObservers[peerInfo.ShardID] = append(connPeerInfo.CrossShardObservers[peerInfo.ShardID], connString)
+				connPeerInfo.NumCrossShardObservers++
 				break
 			}
 
