@@ -8,8 +8,8 @@ import (
 	"sync"
 	"testing"
 
-	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
-	ipcNodePart1_2 "github.com/ElrondNetwork/arwen-wasm-vm/ipc/nodepart"
+	ipcNodePart1_2 "github.com/ElrondNetwork/arwen-wasm-vm/v1_2/ipc/nodepart"
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_3/config"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/data"
