@@ -3,12 +3,12 @@ module github.com/ElrondNetwork/elrond-go
 go 1.13
 
 require (
-	github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.25
-	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.19
+	github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.26
+	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.24
 	github.com/ElrondNetwork/concurrent-map v0.1.3
 	github.com/ElrondNetwork/elastic-indexer-go v1.0.7
 	github.com/ElrondNetwork/elrond-go-logger v1.0.4
-	github.com/ElrondNetwork/elrond-vm-common v1.0.0
+	github.com/ElrondNetwork/elrond-vm-common v1.1.0
 	github.com/beevik/ntp v0.3.0
 	github.com/btcsuite/btcd v0.22.0-beta
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce
@@ -51,6 +51,6 @@ require (
 
 replace github.com/gogo/protobuf => github.com/ElrondNetwork/protobuf v1.3.2
 
-replace github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.25 => github.com/ElrondNetwork/arwen-wasm-vm v1.2.25
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.26 => github.com/ElrondNetwork/arwen-wasm-vm v1.2.26
 
-replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.19 => github.com/ElrondNetwork/arwen-wasm-vm v1.3.20-0.20210709090429-e03405ee6e0b
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.24 => github.com/ElrondNetwork/arwen-wasm-vm v1.3.24
