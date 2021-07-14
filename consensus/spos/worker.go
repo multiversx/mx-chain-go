@@ -620,7 +620,7 @@ func (wrk *Worker) Extend(subroundId int) {
 	wrk.scheduledProcessor.ForceStopScheduledExecutionBlocking()
 
 	log.Debug("account state is reverted to snapshot")
-	wrk.blockProcessor.RevertAccountState(wrk.consensusState.Header)
+	wrk.blockProcessor.RevertAccountState()
 }
 
 // DisplayStatistics logs the consensus messages split on proposed headers

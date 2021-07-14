@@ -254,7 +254,7 @@ func (sp *shardProcessor) ProcessBlock(
 
 	defer func() {
 		if err != nil {
-			sp.RevertAccountState(header)
+			sp.RevertAccountState()
 		}
 	}()
 
@@ -332,14 +332,15 @@ func (sp *shardProcessor) requestEpochStartInfo(header data.ShardHeaderHandler, 
 	return process.ErrTimeIsOut
 }
 
-// RevertStateToBlock recreates the state tries to the root hashes indicated by the provided header
-func (sp *shardProcessor) RevertStateToBlock(header data.HeaderHandler) error {
+// RevertStateToBlock recreates the state tries to the root hashes indicated by the provided root hash and header
+func (sp *shardProcessor) RevertStateToBlock(header data.HeaderHandler, rootHash []byte) error {
 
-	err := sp.accountsDB[state.UserAccountsState].RecreateTrie(header.GetRootHash())
+	err := sp.accountsDB[state.UserAccountsState].RecreateTrie(rootHash)
 	if err != nil {
 		log.Debug("recreate trie with error for header",
 			"nonce", header.GetNonce(),
-			"hash", header.GetRootHash(),
+			"header root hash", header.GetRootHash(),
+			"given root hash", rootHash,
 			"error", err,
 		)
 
@@ -766,7 +767,7 @@ func (sp *shardProcessor) CommitBlock(
 	var err error
 	defer func() {
 		if err != nil {
-			sp.RevertAccountState(headerHandler)
+			sp.RevertAccountState()
 		}
 	}()
 

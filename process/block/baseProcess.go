@@ -1154,7 +1154,7 @@ func (bp *baseProcessor) updateStateStorage(
 }
 
 // RevertAccountState reverts the account state for cleanup failed process
-func (bp *baseProcessor) RevertAccountState(headerHandler data.HeaderHandler) {
+func (bp *baseProcessor) RevertAccountState() {
 	for key := range bp.accountsDB {
 		err := bp.accountsDB[key].RevertToSnapshot(0)
 		if err != nil {
@@ -1162,23 +1162,29 @@ func (bp *baseProcessor) RevertAccountState(headerHandler data.HeaderHandler) {
 		}
 	}
 
-	bp.revertScheduledRootHashAndSCRs(headerHandler)
+	bp.revertScheduledRootHashAndSCRs()
 }
 
-func (bp *baseProcessor) revertScheduledRootHashAndSCRs(headerHandler data.HeaderHandler) {
-	if headerHandler == nil {
-		return
+func (bp *baseProcessor) revertScheduledRootHashAndSCRs() {
+	header, headerHash := bp.getCurrentHeaderAndHash()
+	process.SetScheduledRootHashAndSCRs(
+		headerHash,
+		header.GetRootHash(),
+		make(map[block.Type][]data.TransactionHandler),
+		bp.store,
+		bp.marshalizer,
+		bp.scheduledTxsExecutionHandler)
+}
+
+func (bp *baseProcessor) getCurrentHeaderAndHash() (data.HeaderHandler, []byte) {
+	headerHandler := bp.blockChain.GetCurrentBlockHeader()
+	headerHash := bp.blockChain.GetCurrentBlockHeaderHash()
+	if check.IfNil(headerHandler) {
+		headerHandler = bp.blockChain.GetGenesisHeader()
+		headerHash = bp.blockChain.GetGenesisHeaderHash()
 	}
 
-	additionalData := headerHandler.GetAdditionalData()
-	if additionalData != nil {
-		process.SetScheduledRootHashAndSCRs(
-			additionalData.GetScheduledRootHash(),
-			headerHandler.GetPrevHash(),
-			bp.store,
-			bp.marshalizer,
-			bp.scheduledTxsExecutionHandler)
-	}
+	return headerHandler, headerHash
 }
 
 // GetAccountsDBSnapshot returns the account snapshot
@@ -1428,12 +1434,12 @@ func (bp *baseProcessor) Close() error {
 }
 
 // ProcessScheduledBlock processes a scheduled block
-func (bp *baseProcessor) ProcessScheduledBlock(header data.HeaderHandler, _ data.BodyHandler, haveTime func() time.Duration) error {
+func (bp *baseProcessor) ProcessScheduledBlock(_ data.HeaderHandler, _ data.BodyHandler, haveTime func() time.Duration) error {
 	var err error
 	defer func() {
 		if err != nil {
 			// TODO: check if possible to revert only the scheduled
-			bp.RevertAccountState(header)
+			bp.RevertAccountState()
 		}
 	}()
 

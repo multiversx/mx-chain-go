@@ -714,15 +714,13 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			)
 		}
 
-		additionalData := currHeader.GetAdditionalData()
-		if additionalData != nil {
-			process.SetScheduledRootHashAndSCRs(
-				additionalData.GetScheduledRootHash(),
-				currHeader.GetPrevHash(),
-				boot.store,
-				boot.marshalizer,
-				boot.scheduledTxsExecutionHandler)
-		}
+		process.SetScheduledRootHashAndSCRs(
+			prevHeaderHash,
+			prevHeader.GetRootHash(),
+			make(map[block.Type][]data.TransactionHandler),
+			boot.store,
+			boot.marshalizer,
+			boot.scheduledTxsExecutionHandler)
 
 		boot.indexer.RevertIndexedBlock(currHeader, currBody)
 
@@ -770,7 +768,9 @@ func (boot *baseBootstrap) rollBackOneBlock(
 		}
 	}
 
-	err = boot.blockProcessor.RevertStateToBlock(prevHeader)
+	rootHash := process.GetScheduledRootHash(prevHeaderHash, prevHeader.GetRootHash(), boot.store, boot.marshalizer)
+
+	err = boot.blockProcessor.RevertStateToBlock(prevHeader, rootHash)
 	if err != nil {
 		return nil, err
 	}
@@ -856,17 +856,18 @@ func (boot *baseBootstrap) restoreState(
 
 	boot.chainHandler.SetCurrentBlockHeaderHash(currHeaderHash)
 
-	err = boot.blockProcessor.RevertStateToBlock(currHeader)
-	if err != nil {
-		log.Debug("RevertState", "error", err.Error())
-	}
-
 	process.SetScheduledRootHashAndSCRs(
-		currHeader.GetRootHash(),
 		currHeaderHash,
+		currHeader.GetRootHash(),
+		make(map[block.Type][]data.TransactionHandler),
 		boot.store,
 		boot.marshalizer,
 		boot.scheduledTxsExecutionHandler)
+
+	err = boot.blockProcessor.RevertStateToBlock(currHeader, boot.scheduledTxsExecutionHandler.GetScheduledRootHash())
+	if err != nil {
+		log.Debug("RevertState", "error", err.Error())
+	}
 }
 
 func (boot *baseBootstrap) setCurrentBlockInfo(

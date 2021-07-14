@@ -356,11 +356,11 @@ func CreateMockArguments(
 					return nil
 				},
 			},
-			BlockTracker:       mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders),
-			BlockSizeThrottler: &mock.BlockSizeThrottlerStub{},
-			Version:            "softwareVersion",
-			HistoryRepository:  &dblookupext.HistoryRepositoryStub{},
-			EpochNotifier:      &mock.EpochNotifierStub{},
+			BlockTracker:                 mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders),
+			BlockSizeThrottler:           &mock.BlockSizeThrottlerStub{},
+			Version:                      "softwareVersion",
+			HistoryRepository:            &dblookupext.HistoryRepositoryStub{},
+			EpochNotifier:                &mock.EpochNotifierStub{},
 			ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		},
 	}
@@ -489,7 +489,7 @@ func TestBaseProcessor_RevertStateRecreateTrieFailsShouldErr(t *testing.T) {
 	bp, _ := blproc.NewShardProcessor(arguments)
 
 	hdr := block.Header{Nonce: 37}
-	err := bp.RevertStateToBlock(&hdr)
+	err := bp.RevertStateToBlock(&hdr, hdr.RootHash)
 	assert.Equal(t, expectedErr, err)
 }
 

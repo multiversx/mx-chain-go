@@ -759,27 +759,48 @@ func GetScheduledRootHashAndSCRsFromStorage(
 	return scheduledRootHash, mapScheduledSCRs, nil
 }
 
-// SetScheduledRootHashAndSCRs sets scheduled root hash and SCRs of the given header from storage
+// SetScheduledRootHashAndSCRs sets scheduled root hash and SCRs of the given header hash
 func SetScheduledRootHashAndSCRs(
-	rootHash []byte,
 	headerHash []byte,
+	defaultScheduledRootHash []byte,
+	defaultMapScheduledSCRs map[block.Type][]data.TransactionHandler,
 	storageService dataRetriever.StorageService,
 	marshalizer marshal.Marshalizer,
 	scheduledTxsExecutionHandler ScheduledTxsExecutionHandler,
 ) {
 	scheduledRootHash, mapScheduledSCRs, err := GetScheduledRootHashAndSCRsFromStorage(headerHash, storageService, marshalizer)
 	if err != nil {
-		log.Debug("GetScheduledRootHashAndSCRsFromStorage: get scheduled root hash and SCRs from storage",
+		log.Debug("SetScheduledRootHashAndSCRs: get scheduled root hash and SCRs from storage",
 			"error", err.Error(),
 			"header hash", headerHash,
 		)
 
-		scheduledTxsExecutionHandler.SetScheduledRootHash(rootHash)
-		scheduledTxsExecutionHandler.SetScheduledSCRs(make(map[block.Type][]data.TransactionHandler))
+		scheduledTxsExecutionHandler.SetScheduledRootHash(defaultScheduledRootHash)
+		scheduledTxsExecutionHandler.SetScheduledSCRs(defaultMapScheduledSCRs)
 
 		return
 	}
 
 	scheduledTxsExecutionHandler.SetScheduledRootHash(scheduledRootHash)
 	scheduledTxsExecutionHandler.SetScheduledSCRs(mapScheduledSCRs)
+}
+
+// GetScheduledRootHash gets scheduled root hash of the given header hash
+func GetScheduledRootHash(
+	headerHash []byte,
+	defaultScheduledRootHash []byte,
+	storageService dataRetriever.StorageService,
+	marshalizer marshal.Marshalizer,
+) []byte {
+	scheduledRootHash, _, err := GetScheduledRootHashAndSCRsFromStorage(headerHash, storageService, marshalizer)
+	if err != nil {
+		log.Debug("GetScheduledRootHash: get scheduled root hash from storage",
+			"error", err.Error(),
+			"header hash", headerHash,
+		)
+
+		return defaultScheduledRootHash
+	}
+
+	return scheduledRootHash
 }
