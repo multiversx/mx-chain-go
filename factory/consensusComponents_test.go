@@ -202,7 +202,7 @@ func TestConsensusComponentsFactory_Create_ConsensusTopicCreateTopicError(t *tes
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args := getConsensusArgs(shardCoordinator)
 	networkComponents := getDefaultNetworkComponents()
-	networkComponents.Messenger = &mock.MessengerStub{
+	networkComponents.Messenger = &p2pmocks.MessengerStub{
 		HasTopicValidatorCalled: func(name string) bool {
 			return false
 		},
@@ -398,7 +398,7 @@ func getConsensusArgs(shardCoordinator sharding.Coordinator) factory.ConsensusCo
 
 func getDefaultNetworkComponents() *mock.NetworkComponentsMock {
 	return &mock.NetworkComponentsMock{
-		Messenger:       &mock.MessengerStub{},
+		Messenger:       &p2pmocks.MessengerStub{},
 		InputAntiFlood:  &mock.P2PAntifloodHandlerStub{},
 		OutputAntiFlood: &mock.P2PAntifloodHandlerStub{},
 		PeerBlackList:   &mock.PeerBlackListHandlerStub{},

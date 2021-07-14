@@ -2859,7 +2859,7 @@ func GetDefaultStateComponents() *testscommon.StateComponentsMock {
 // GetDefaultNetworkComponents -
 func GetDefaultNetworkComponents() *mock.NetworkComponentsStub {
 	return &mock.NetworkComponentsStub{
-		Messenger:       &mock.MessengerStub{},
+		Messenger:       &p2pmocks.MessengerStub{},
 		InputAntiFlood:  &mock.P2PAntifloodHandlerStub{},
 		OutputAntiFlood: &mock.P2PAntifloodHandlerStub{},
 		PeerBlackList:   &mock.PeerBlackListCacherStub{},
