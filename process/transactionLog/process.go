@@ -21,15 +21,17 @@ var log = logger.GetOrCreate("process/transactionLog")
 
 // ArgTxLogProcessor defines the arguments needed for transaction logs processor
 type ArgTxLogProcessor struct {
-	Storer      storage.Storer
-	Marshalizer marshal.Marshalizer
+	Storer               storage.Storer
+	Marshalizer          marshal.Marshalizer
+	SaveInStorageEnabled bool
 }
 
 type txLogProcessor struct {
-	logs        map[string]data.LogHandler
-	mut         sync.RWMutex
-	storer      storage.Storer
-	marshalizer marshal.Marshalizer
+	saveLogsInStorageEnabled bool
+	logs                     map[string]data.LogHandler
+	mut                      sync.RWMutex
+	storer                   storage.Storer
+	marshalizer              marshal.Marshalizer
 }
 
 // NewTxLogProcessor creates a transaction log processor capable of parsing logs from the VM
@@ -43,10 +45,11 @@ func NewTxLogProcessor(args ArgTxLogProcessor) (*txLogProcessor, error) {
 	}
 
 	return &txLogProcessor{
-		storer:      args.Storer,
-		marshalizer: args.Marshalizer,
-		logs:        make(map[string]data.LogHandler),
-		mut:         sync.RWMutex{},
+		storer:                   args.Storer,
+		marshalizer:              args.Marshalizer,
+		logs:                     make(map[string]data.LogHandler),
+		mut:                      sync.RWMutex{},
+		saveLogsInStorageEnabled: args.SaveInStorageEnabled,
 	}, nil
 }
 
@@ -54,6 +57,10 @@ func NewTxLogProcessor(args ArgTxLogProcessor) (*txLogProcessor, error) {
 func (tlp *txLogProcessor) GetLog(txHash []byte) (data.LogHandler, error) {
 	tlp.mut.RLock()
 	defer tlp.mut.RUnlock()
+
+	if !tlp.saveLogsInStorageEnabled {
+		return nil, process.ErrLogsNotSavedInStorage
+	}
 
 	txLogFromCache, ok := tlp.logs[string(txHash)]
 	if ok {
@@ -150,6 +157,10 @@ func (tlp *txLogProcessor) SaveLog(txHash []byte, tx data.TransactionHandler, lo
 	}
 
 	tlp.saveLogToCache(txHash, txLog)
+
+	if !tlp.saveLogsInStorageEnabled {
+		return nil
+	}
 
 	buff, err := tlp.marshalizer.Marshal(txLog)
 	if err != nil {
