@@ -53,8 +53,8 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilPool(t *testing.T
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -78,8 +78,8 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilStore(t *testing.
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -103,8 +103,8 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilHasher(t *testing
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -128,8 +128,8 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilMarsalizer(t *tes
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -153,8 +153,8 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilTxProce(t *testin
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -178,8 +178,8 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilShardCoord(t *tes
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -203,8 +203,8 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilAccounts(t *testi
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -227,8 +227,8 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilRequestFunc(t *te
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -252,8 +252,8 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilGasHandler(t *tes
 		nil,
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -277,8 +277,8 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorShouldWork(t *testin
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, err)
@@ -302,8 +302,8 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilPubkeyConverter(t
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
 		nil,
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -328,7 +328,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilBlockSizeComputat
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
 		nil,
-		&mock.BalanceComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -352,7 +352,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilBalanceComputatio
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
 		nil,
 	)
 
@@ -377,8 +377,8 @@ func TestScrsPreProcessor_GetTransactionFromPool(t *testing.T) {
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	txHash := []byte("tx1_hash")
@@ -406,8 +406,8 @@ func TestScrsPreprocessor_RequestTransactionNothingToRequestAsGeneratedAtProcess
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	shardId := uint32(1)
@@ -443,8 +443,8 @@ func TestScrsPreprocessor_RequestTransactionFromNetwork(t *testing.T) {
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	shardId := uint32(1)
@@ -479,8 +479,8 @@ func TestScrsPreprocessor_RequestBlockTransactionFromMiniBlockFromNetwork(t *tes
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	shardId := uint32(1)
@@ -526,8 +526,8 @@ func TestScrsPreprocessor_ReceivedTransactionShouldEraseRequested(t *testing.T) 
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	//add 3 tx hashes on requested list
@@ -599,8 +599,8 @@ func TestScrsPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) {
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	mb := &block.MiniBlock{
@@ -641,8 +641,8 @@ func TestScrsPreprocessor_RemoveBlockDataFromPoolsNilBlockShouldErr(t *testing.T
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	err := txs.RemoveBlockDataFromPools(nil, tdp.MiniBlocks())
@@ -668,8 +668,8 @@ func TestScrsPreprocessor_RemoveBlockDataFromPoolsOK(t *testing.T) {
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	body := &block.Body{}
@@ -708,8 +708,8 @@ func TestScrsPreprocessor_IsDataPreparedErr(t *testing.T) {
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	err := txs.IsDataPrepared(1, haveTime)
@@ -735,8 +735,8 @@ func TestScrsPreprocessor_IsDataPrepared(t *testing.T) {
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	go func() {
@@ -767,8 +767,8 @@ func TestScrsPreprocessor_SaveTxsToStorage(t *testing.T) {
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	body := &block.Body{}
@@ -806,8 +806,8 @@ func TestScrsPreprocessor_SaveTxsToStorageMissingTransactionsShouldErr(t *testin
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	body := &block.Body{}
@@ -851,8 +851,8 @@ func TestScrsPreprocessor_ProcessBlockTransactions(t *testing.T) {
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	body := &block.Body{}
@@ -922,8 +922,8 @@ func TestScrsPreprocessor_ProcessMiniBlock(t *testing.T) {
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	txHash := []byte("tx1_hash")
@@ -960,8 +960,8 @@ func TestScrsPreprocessor_ProcessMiniBlockWrongTypeMiniblockShouldErr(t *testing
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	miniblock := block.MiniBlock{
@@ -1017,8 +1017,8 @@ func TestScrsPreprocessor_RestoreBlockDataIntoPools(t *testing.T) {
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	body := &block.Body{}
@@ -1059,8 +1059,8 @@ func TestScrsPreprocessor_RestoreBlockDataIntoPoolsNilMiniblockPoolShouldErr(t *
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	body := &block.Body{}
@@ -1091,8 +1091,8 @@ func TestSmartContractResults_CreateBlockStartedShouldEmptyTxHashAndInfo(t *test
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	scr.CreateBlockStarted()
@@ -1117,8 +1117,8 @@ func TestSmartContractResults_GetAllCurrentUsedTxs(t *testing.T) {
 		&mock.GasHandlerMock{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	txshardInfo := txShardInfo{0, 3}

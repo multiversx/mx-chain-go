@@ -211,8 +211,8 @@ func createMockTransactionCoordinatorArguments() ArgTransactionCoordinator {
 		InterProcessors:                   &mock.InterimProcessorContainerMock{},
 		GasHandler:                        &mock.GasHandlerMock{},
 		FeeHandler:                        &mock.FeeAccumulatorStub{},
-		BlockSizeComputation:              &mock.BlockSizeComputationStub{},
-		BalanceComputation:                &mock.BalanceComputationStub{},
+		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
+		BalanceComputation:                &testscommon.BalanceComputationStub{},
 		EconomicsFee:                      &mock.FeeHandlerStub{},
 		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
@@ -458,8 +458,8 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		FeeHandlerMock(),
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
 		&testscommon.TxTypeHandlerMock{},
@@ -553,8 +553,8 @@ func createPreProcessorContainerWithDataPool(
 			},
 		},
 		&mock.BlockTrackerMock{},
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
 		&testscommon.TxTypeHandlerMock{},
@@ -812,8 +812,8 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 			},
 		},
 		&mock.BlockTrackerMock{},
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
 		&testscommon.TxTypeHandlerMock{},
@@ -945,8 +945,8 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 			},
 		},
 		&mock.BlockTrackerMock{},
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
 		&testscommon.TxTypeHandlerMock{},
@@ -1050,8 +1050,8 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 			},
 		},
 		&mock.BlockTrackerMock{},
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
 		&testscommon.TxTypeHandlerMock{},
@@ -1574,8 +1574,8 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 		&mock.BlockTrackerMock{},
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
 		&testscommon.TxTypeHandlerMock{},
@@ -1696,8 +1696,8 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		FeeHandlerMock(),
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
 		&testscommon.TxTypeHandlerMock{},
@@ -1835,8 +1835,8 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 			},
 		},
 		&mock.BlockTrackerMock{},
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
 		&testscommon.TxTypeHandlerMock{},
@@ -1968,8 +1968,8 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 			},
 		},
 		&mock.BlockTrackerMock{},
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
 		&testscommon.TxTypeHandlerMock{},
@@ -2316,7 +2316,7 @@ func TestTransactionCoordinator_IsMaxBlockSizeReachedShouldWork(t *testing.T) {
 	t.Parallel()
 
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
-	argsTransactionCoordinator.BlockSizeComputation = &mock.BlockSizeComputationStub{
+	argsTransactionCoordinator.BlockSizeComputation = &testscommon.BlockSizeComputationStub{
 		IsMaxBlockSizeWithoutThrottleReachedCalled: func(i int, i2 int) bool {
 			return i+i2 > 4
 		},
@@ -2438,8 +2438,8 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldReturnWhenEpochIsNo
 		InterProcessors:                   createInterimProcessorContainer(),
 		GasHandler:                        &mock.GasHandlerMock{},
 		FeeHandler:                        &mock.FeeAccumulatorStub{},
-		BlockSizeComputation:              &mock.BlockSizeComputationStub{},
-		BalanceComputation:                &mock.BalanceComputationStub{},
+		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
+		BalanceComputation:                &testscommon.BalanceComputationStub{},
 		EconomicsFee:                      &mock.FeeHandlerStub{},
 		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 1,
@@ -2472,8 +2472,8 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxGasLimitPerMi
 		InterProcessors:      createInterimProcessorContainer(),
 		GasHandler:           &mock.GasHandlerMock{},
 		FeeHandler:           &mock.FeeAccumulatorStub{},
-		BlockSizeComputation: &mock.BlockSizeComputationStub{},
-		BalanceComputation:   &mock.BalanceComputationStub{},
+		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
+		BalanceComputation:   &testscommon.BalanceComputationStub{},
 		EconomicsFee: &mock.FeeHandlerStub{
 			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
 				return maxGasLimitPerBlock + 1
@@ -2529,8 +2529,8 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxAccumulatedFe
 		InterProcessors:      createInterimProcessorContainer(),
 		GasHandler:           &mock.GasHandlerMock{},
 		FeeHandler:           &mock.FeeAccumulatorStub{},
-		BlockSizeComputation: &mock.BlockSizeComputationStub{},
-		BalanceComputation:   &mock.BalanceComputationStub{},
+		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
+		BalanceComputation:   &testscommon.BalanceComputationStub{},
 		EconomicsFee: &mock.FeeHandlerStub{
 			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
 				return maxGasLimitPerBlock
@@ -2595,8 +2595,8 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxDeveloperFees
 		InterProcessors:      createInterimProcessorContainer(),
 		GasHandler:           &mock.GasHandlerMock{},
 		FeeHandler:           &mock.FeeAccumulatorStub{},
-		BlockSizeComputation: &mock.BlockSizeComputationStub{},
-		BalanceComputation:   &mock.BalanceComputationStub{},
+		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
+		BalanceComputation:   &testscommon.BalanceComputationStub{},
 		EconomicsFee: &mock.FeeHandlerStub{
 			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
 				return maxGasLimitPerBlock
@@ -2661,8 +2661,8 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldWork(t *testing.T) 
 		InterProcessors:      createInterimProcessorContainer(),
 		GasHandler:           &mock.GasHandlerMock{},
 		FeeHandler:           &mock.FeeAccumulatorStub{},
-		BlockSizeComputation: &mock.BlockSizeComputationStub{},
-		BalanceComputation:   &mock.BalanceComputationStub{},
+		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
+		BalanceComputation:   &testscommon.BalanceComputationStub{},
 		EconomicsFee: &mock.FeeHandlerStub{
 			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
 				return maxGasLimitPerBlock
@@ -2726,8 +2726,8 @@ func TestTransactionCoordinator_GetAllTransactionsShouldWork(t *testing.T) {
 		InterProcessors:                   createInterimProcessorContainer(),
 		GasHandler:                        &mock.GasHandlerMock{},
 		FeeHandler:                        &mock.FeeAccumulatorStub{},
-		BlockSizeComputation:              &mock.BlockSizeComputationStub{},
-		BalanceComputation:                &mock.BalanceComputationStub{},
+		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
+		BalanceComputation:                &testscommon.BalanceComputationStub{},
 		EconomicsFee:                      &mock.FeeHandlerStub{},
 		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
@@ -2795,8 +2795,8 @@ func TestTransactionCoordinator_VerifyGasLimitShouldErrMaxGasLimitPerMiniBlockIn
 		InterProcessors:      createInterimProcessorContainer(),
 		GasHandler:           &mock.GasHandlerMock{},
 		FeeHandler:           &mock.FeeAccumulatorStub{},
-		BlockSizeComputation: &mock.BlockSizeComputationStub{},
-		BalanceComputation:   &mock.BalanceComputationStub{},
+		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
+		BalanceComputation:   &testscommon.BalanceComputationStub{},
 		EconomicsFee: &mock.FeeHandlerStub{
 			MaxGasLimitPerBlockCalled: func() uint64 {
 				return tx1GasLimit + tx2GasLimit + tx3GasLimit - 1
@@ -2881,8 +2881,8 @@ func TestTransactionCoordinator_VerifyGasLimitShouldWork(t *testing.T) {
 		InterProcessors:      createInterimProcessorContainer(),
 		GasHandler:           &mock.GasHandlerMock{},
 		FeeHandler:           &mock.FeeAccumulatorStub{},
-		BlockSizeComputation: &mock.BlockSizeComputationStub{},
-		BalanceComputation:   &mock.BalanceComputationStub{},
+		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
+		BalanceComputation:   &testscommon.BalanceComputationStub{},
 		EconomicsFee: &mock.FeeHandlerStub{
 			MaxGasLimitPerBlockCalled: func() uint64 {
 				return tx1GasLimit + tx2GasLimit + tx3GasLimit
@@ -2963,8 +2963,8 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 		InterProcessors:                   createInterimProcessorContainer(),
 		GasHandler:                        &mock.GasHandlerMock{},
 		FeeHandler:                        &mock.FeeAccumulatorStub{},
-		BlockSizeComputation:              &mock.BlockSizeComputationStub{},
-		BalanceComputation:                &mock.BalanceComputationStub{},
+		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
+		BalanceComputation:                &testscommon.BalanceComputationStub{},
 		EconomicsFee:                      &mock.FeeHandlerStub{},
 		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
@@ -3001,8 +3001,8 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 		InterProcessors:      createInterimProcessorContainer(),
 		GasHandler:           &mock.GasHandlerMock{},
 		FeeHandler:           &mock.FeeAccumulatorStub{},
-		BlockSizeComputation: &mock.BlockSizeComputationStub{},
-		BalanceComputation:   &mock.BalanceComputationStub{},
+		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
+		BalanceComputation:   &testscommon.BalanceComputationStub{},
 		EconomicsFee: &mock.FeeHandlerStub{
 			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
 				return tx.GetGasLimit() + 1
@@ -3054,8 +3054,8 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 		InterProcessors:      createInterimProcessorContainer(),
 		GasHandler:           &mock.GasHandlerMock{},
 		FeeHandler:           &mock.FeeAccumulatorStub{},
-		BlockSizeComputation: &mock.BlockSizeComputationStub{},
-		BalanceComputation:   &mock.BalanceComputationStub{},
+		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
+		BalanceComputation:   &testscommon.BalanceComputationStub{},
 		EconomicsFee: &mock.FeeHandlerStub{
 			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
 				return 0
@@ -3112,8 +3112,8 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 		InterProcessors:      createInterimProcessorContainer(),
 		GasHandler:           &mock.GasHandlerMock{},
 		FeeHandler:           &mock.FeeAccumulatorStub{},
-		BlockSizeComputation: &mock.BlockSizeComputationStub{},
-		BalanceComputation:   &mock.BalanceComputationStub{},
+		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
+		BalanceComputation:   &testscommon.BalanceComputationStub{},
 		EconomicsFee: &mock.FeeHandlerStub{
 			MaxGasLimitPerBlockCalled: func() uint64 {
 				return tx1GasLimit + tx2GasLimit + tx3GasLimit - 1
@@ -3172,8 +3172,8 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 		InterProcessors:      createInterimProcessorContainer(),
 		GasHandler:           &mock.GasHandlerMock{},
 		FeeHandler:           &mock.FeeAccumulatorStub{},
-		BlockSizeComputation: &mock.BlockSizeComputationStub{},
-		BalanceComputation:   &mock.BalanceComputationStub{},
+		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
+		BalanceComputation:   &testscommon.BalanceComputationStub{},
 		EconomicsFee: &mock.FeeHandlerStub{
 			MaxGasLimitPerBlockCalled: func() uint64 {
 				return tx1GasLimit + tx2GasLimit + tx3GasLimit
@@ -3229,8 +3229,8 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMissingTransaction(t *testing
 		InterProcessors:                   createInterimProcessorContainer(),
 		GasHandler:                        &mock.GasHandlerMock{},
 		FeeHandler:                        &mock.FeeAccumulatorStub{},
-		BlockSizeComputation:              &mock.BlockSizeComputationStub{},
-		BalanceComputation:                &mock.BalanceComputationStub{},
+		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
+		BalanceComputation:                &testscommon.BalanceComputationStub{},
 		EconomicsFee:                      &mock.FeeHandlerStub{},
 		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
@@ -3279,8 +3279,8 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxAccumulatedFeesExceeded(t 
 		InterProcessors:      createInterimProcessorContainer(),
 		GasHandler:           &mock.GasHandlerMock{},
 		FeeHandler:           &mock.FeeAccumulatorStub{},
-		BlockSizeComputation: &mock.BlockSizeComputationStub{},
-		BalanceComputation:   &mock.BalanceComputationStub{},
+		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
+		BalanceComputation:   &testscommon.BalanceComputationStub{},
 		EconomicsFee: &mock.FeeHandlerStub{
 			DeveloperPercentageCalled: func() float64 {
 				return 0.1
@@ -3343,8 +3343,8 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxDeveloperFeesExceeded(t *t
 		InterProcessors:      createInterimProcessorContainer(),
 		GasHandler:           &mock.GasHandlerMock{},
 		FeeHandler:           &mock.FeeAccumulatorStub{},
-		BlockSizeComputation: &mock.BlockSizeComputationStub{},
-		BalanceComputation:   &mock.BalanceComputationStub{},
+		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
+		BalanceComputation:   &testscommon.BalanceComputationStub{},
 		EconomicsFee: &mock.FeeHandlerStub{
 			DeveloperPercentageCalled: func() float64 {
 				return 0.1
@@ -3406,8 +3406,8 @@ func TestTransactionCoordinator_VerifyFeesShouldWork(t *testing.T) {
 		InterProcessors:      createInterimProcessorContainer(),
 		GasHandler:           &mock.GasHandlerMock{},
 		FeeHandler:           &mock.FeeAccumulatorStub{},
-		BlockSizeComputation: &mock.BlockSizeComputationStub{},
-		BalanceComputation:   &mock.BalanceComputationStub{},
+		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
+		BalanceComputation:   &testscommon.BalanceComputationStub{},
 		EconomicsFee: &mock.FeeHandlerStub{
 			DeveloperPercentageCalled: func() float64 {
 				return 0.1
@@ -3467,8 +3467,8 @@ func TestTransactionCoordinator_GetMaxAccumulatedAndDeveloperFeesShouldErr(t *te
 		InterProcessors:                   createInterimProcessorContainer(),
 		GasHandler:                        &mock.GasHandlerMock{},
 		FeeHandler:                        &mock.FeeAccumulatorStub{},
-		BlockSizeComputation:              &mock.BlockSizeComputationStub{},
-		BalanceComputation:                &mock.BalanceComputationStub{},
+		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
+		BalanceComputation:                &testscommon.BalanceComputationStub{},
 		EconomicsFee:                      &mock.FeeHandlerStub{},
 		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
@@ -3511,8 +3511,8 @@ func TestTransactionCoordinator_GetMaxAccumulatedAndDeveloperFeesShouldWork(t *t
 		InterProcessors:      createInterimProcessorContainer(),
 		GasHandler:           &mock.GasHandlerMock{},
 		FeeHandler:           &mock.FeeAccumulatorStub{},
-		BlockSizeComputation: &mock.BlockSizeComputationStub{},
-		BalanceComputation:   &mock.BalanceComputationStub{},
+		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
+		BalanceComputation:   &testscommon.BalanceComputationStub{},
 		EconomicsFee: &mock.FeeHandlerStub{
 			DeveloperPercentageCalled: func() float64 {
 				return 0.1

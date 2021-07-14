@@ -1049,5 +1049,9 @@ var ErrNilIsShardStuckHandler = errors.New("nil handler for checking stuck shard
 // ErrNilIsMaxBlockSizeReachedHandler signals a nil max block size reached handler
 var ErrNilIsMaxBlockSizeReachedHandler = errors.New("nil handler for max block size reached")
 
-// ErrNilComputeGasConsumedHandler signals a nil compute consumed gas handler
-var ErrNilComputeGasConsumedHandler = errors.New("nil compute gas consumed handler")
+// ErrNilTxMaxTotalCostHandler signals a nil transaction max total cost
+var ErrNilTxMaxTotalCostHandler = errors.New("nil transaction max total cost")
+
+// ErrNilAccountTxsPerShard signals a nil mapping for account transactions to shard
+var ErrNilAccountTxsPerShard = errors.New("nil account transactions per shard mapping")
+

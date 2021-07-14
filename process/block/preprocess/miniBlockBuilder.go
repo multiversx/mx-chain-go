@@ -95,8 +95,17 @@ func checkMiniBlocksBuilderArgs(args miniBlocksBuilderArgs) error {
 	if check.IfNil(args.gasTracker.gasHandler) {
 		return process.ErrNilGasHandler
 	}
+	if check.IfNil(args.accounts) {
+		return process.ErrNilAccountsAdapter
+	}
 	if check.IfNil(args.balanceComputationHandler) {
 		return process.ErrNilBalanceComputationHandler
+	}
+	if check.IfNil(args.blockSizeComputation) {
+		return process.ErrNilBlockSizeComputationHandler
+	}
+	if args.accountTxsShards == nil {
+		return process.ErrNilAccountTxsPerShard
 	}
 	if args.haveTime == nil {
 		return process.ErrNilHaveTimeHandler
@@ -106,6 +115,9 @@ func checkMiniBlocksBuilderArgs(args miniBlocksBuilderArgs) error {
 	}
 	if args.isMaxBlockSizeReached == nil {
 		return process.ErrNilIsMaxBlockSizeReachedHandler
+	}
+	if args.getTxMaxTotalCost == nil {
+		return process.ErrNilTxMaxTotalCostHandler
 	}
 
 	return nil

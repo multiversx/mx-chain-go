@@ -32,8 +32,8 @@ func TestNewRewardTxPreprocessor_NilRewardTxDataPoolShouldErr(t *testing.T) {
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -55,8 +55,8 @@ func TestNewRewardTxPreprocessor_NilStoreShouldErr(t *testing.T) {
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -78,8 +78,8 @@ func TestNewRewardTxPreprocessor_NilHasherShouldErr(t *testing.T) {
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -101,8 +101,8 @@ func TestNewRewardTxPreprocessor_NilMarshalizerShouldErr(t *testing.T) {
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -124,8 +124,8 @@ func TestNewRewardTxPreprocessor_NilRewardTxProcessorShouldErr(t *testing.T) {
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -147,8 +147,8 @@ func TestNewRewardTxPreprocessor_NilShardCoordinatorShouldErr(t *testing.T) {
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -170,8 +170,8 @@ func TestNewRewardTxPreprocessor_NilAccountsShouldErr(t *testing.T) {
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -193,8 +193,8 @@ func TestNewRewardTxPreprocessor_NilRequestHandlerShouldErr(t *testing.T) {
 		nil,
 		&mock.GasHandlerMock{},
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -216,8 +216,8 @@ func TestNewRewardTxPreprocessor_NilGasHandlerShouldErr(t *testing.T) {
 		func(shardID uint32, txHashes [][]byte) {},
 		nil,
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -239,8 +239,8 @@ func TestNewRewardTxPreprocessor_NilPubkeyConverterShouldErr(t *testing.T) {
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
 		nil,
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -263,7 +263,7 @@ func TestNewRewardTxPreprocessor_NilBlockSizeComputationHandlerShouldErr(t *test
 		&mock.GasHandlerMock{},
 		createMockPubkeyConverter(),
 		nil,
-		&mock.BalanceComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -285,7 +285,7 @@ func TestNewRewardTxPreprocessor_NilBalanceComputationHandlerShouldErr(t *testin
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
 		nil,
 	)
 
@@ -308,8 +308,8 @@ func TestNewRewardTxPreprocessor_OkValsShouldWork(t *testing.T) {
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, rtp)
@@ -331,8 +331,8 @@ func TestRewardTxPreprocessor_CreateMarshalizedDataShouldWork(t *testing.T) {
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	txHashes := [][]byte{[]byte(txHash)}
@@ -361,8 +361,8 @@ func TestRewardTxPreprocessor_ProcessMiniBlockInvalidMiniBlockTypeShouldErr(t *t
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	txHashes := [][]byte{[]byte(txHash)}
@@ -393,8 +393,8 @@ func TestRewardTxPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	txHashes := [][]byte{[]byte(txHash)}
@@ -433,8 +433,8 @@ func TestRewardTxPreprocessor_ProcessMiniBlockNotFromMeta(t *testing.T) {
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	txHashes := [][]byte{[]byte(txHash)}
@@ -468,8 +468,8 @@ func TestRewardTxPreprocessor_SaveTxsToStorageShouldWork(t *testing.T) {
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	txHashes := [][]byte{[]byte(txHash)}
@@ -512,8 +512,8 @@ func TestRewardTxPreprocessor_RequestBlockTransactionsNoMissingTxsShouldWork(t *
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	txHashes := [][]byte{[]byte(txHash)}
@@ -555,8 +555,8 @@ func TestRewardTxPreprocessor_RequestTransactionsForMiniBlockShouldWork(t *testi
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	txHashes := [][]byte{[]byte(txHash)}
@@ -587,8 +587,8 @@ func TestRewardTxPreprocessor_ProcessBlockTransactions(t *testing.T) {
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	txHashes := [][]byte{[]byte(txHash)}
@@ -630,8 +630,8 @@ func TestRewardTxPreprocessor_IsDataPreparedShouldErr(t *testing.T) {
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	err := rtp.IsDataPrepared(1, haveTime)
@@ -654,8 +654,8 @@ func TestRewardTxPreprocessor_IsDataPrepared(t *testing.T) {
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	go func() {
@@ -699,8 +699,8 @@ func TestRewardTxPreprocessor_RestoreBlockDataIntoPools(t *testing.T) {
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	txHashes := [][]byte{[]byte("tx_hash1")}
@@ -743,8 +743,8 @@ func TestRewardTxPreprocessor_CreateAndProcessMiniBlocksShouldWork(t *testing.T)
 			},
 		},
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	mBlocksSlice, err := rtp.CreateAndProcessMiniBlocks(haveTimeTrue)
@@ -767,8 +767,8 @@ func TestRewardTxPreprocessor_CreateBlockStartedShouldCleanMap(t *testing.T) {
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	rtp.CreateBlockStarted()
