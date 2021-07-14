@@ -4,9 +4,9 @@ import (
 	"sync"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var log = logger.GetOrCreate("core/forking")
@@ -17,14 +17,14 @@ type genericEpochNotifier struct {
 	currentEpoch     uint32
 	currentTimestamp uint64
 	mutHandler       sync.RWMutex
-	handlers         []core.EpochSubscriberHandler
+	handlers         []vmcommon.EpochSubscriberHandler
 }
 
 // NewGenericEpochNotifier creates a new instance of a genericEpochNotifier component
 func NewGenericEpochNotifier() *genericEpochNotifier {
 	return &genericEpochNotifier{
 		wasInitialized: false,
-		handlers:       make([]core.EpochSubscriberHandler, 0),
+		handlers:       make([]vmcommon.EpochSubscriberHandler, 0),
 	}
 }
 
@@ -50,7 +50,7 @@ func (gen *genericEpochNotifier) CheckEpoch(header data.HeaderHandler) {
 	gen.mutData.Unlock()
 
 	gen.mutHandler.RLock()
-	handlersCopy := make([]core.EpochSubscriberHandler, len(gen.handlers))
+	handlersCopy := make([]vmcommon.EpochSubscriberHandler, len(gen.handlers))
 	copy(handlersCopy, gen.handlers)
 	gen.mutHandler.RUnlock()
 
@@ -66,7 +66,7 @@ func (gen *genericEpochNotifier) CheckEpoch(header data.HeaderHandler) {
 }
 
 // RegisterNotifyHandler will register the provided handler to be called whenever a new epoch has changed
-func (gen *genericEpochNotifier) RegisterNotifyHandler(handler core.EpochSubscriberHandler) {
+func (gen *genericEpochNotifier) RegisterNotifyHandler(handler vmcommon.EpochSubscriberHandler) {
 	if check.IfNil(handler) {
 		return
 	}
@@ -97,7 +97,7 @@ func (gen *genericEpochNotifier) CurrentEpoch() uint32 {
 // UnRegisterAll removes all registered handlers queue
 func (gen *genericEpochNotifier) UnRegisterAll() {
 	gen.mutHandler.Lock()
-	gen.handlers = make([]core.EpochSubscriberHandler, 0)
+	gen.handlers = make([]vmcommon.EpochSubscriberHandler, 0)
 	gen.mutHandler.Unlock()
 }
 

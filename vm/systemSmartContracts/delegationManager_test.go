@@ -169,7 +169,7 @@ func TestNewDelegationManagerSystemSC(t *testing.T) {
 	registerNotifyHandlerCalled := false
 	args := createMockArgumentsForDelegationManager()
 	args.EpochNotifier = &mock.EpochNotifierStub{
-		RegisterNotifyHandlerCalled: func(handler core.EpochSubscriberHandler) {
+		RegisterNotifyHandlerCalled: func(handler vmcommon.EpochSubscriberHandler) {
 			registerNotifyHandlerCalled = true
 		}}
 

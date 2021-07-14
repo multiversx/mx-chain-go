@@ -134,16 +134,18 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		Marshalizer:      TestMarshalizer,
 		Accounts:         tpn.AccntState,
 		ShardCoordinator: tpn.ShardCoordinator,
+		EpochNotifier:    tpn.EpochNotifier,
 	}
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	log.LogIfError(err)
-
+	esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:  TestAddressPubkeyConverter,
-		ShardCoordinator: tpn.ShardCoordinator,
-		BuiltInFuncNames: builtInFuncs.Keys(),
-		ArgumentParser:   parsers.NewCallArgsParser(),
-		EpochNotifier:    tpn.EpochNotifier,
+		PubkeyConverter:    TestAddressPubkeyConverter,
+		ShardCoordinator:   tpn.ShardCoordinator,
+		BuiltInFunctions:   builtInFuncs,
+		ArgumentParser:     parsers.NewCallArgsParser(),
+		EpochNotifier:      tpn.EpochNotifier,
+		ESDTTransferParser: esdtTransferParser,
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	log.LogIfError(err)

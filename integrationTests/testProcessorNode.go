@@ -788,6 +788,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 		Marshalizer:      TestMarshalizer,
 		Accounts:         tpn.AccntState,
 		ShardCoordinator: tpn.ShardCoordinator,
+		EpochNotifier:    tpn.EpochNotifier,
 	}
 	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 
@@ -1356,6 +1357,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		Marshalizer:      TestMarshalizer,
 		Accounts:         tpn.AccntState,
 		ShardCoordinator: tpn.ShardCoordinator,
+		EpochNotifier:    tpn.EpochNotifier,
 	}
 	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 
@@ -1410,12 +1412,14 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 
 	tpn.FeeAccumulator, _ = postprocess.NewFeeAccumulator()
 	tpn.ArgsParser = smartContract.NewArgumentParser()
+	esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:  TestAddressPubkeyConverter,
-		ShardCoordinator: tpn.ShardCoordinator,
-		BuiltInFuncNames: builtInFuncs.Keys(),
-		ArgumentParser:   parsers.NewCallArgsParser(),
-		EpochNotifier:    tpn.EpochNotifier,
+		PubkeyConverter:    TestAddressPubkeyConverter,
+		ShardCoordinator:   tpn.ShardCoordinator,
+		BuiltInFunctions:   builtInFuncs,
+		ArgumentParser:     parsers.NewCallArgsParser(),
+		EpochNotifier:      tpn.EpochNotifier,
+		ESDTTransferParser: esdtTransferParser,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler, tpn.EpochNotifier, tpn.DeployEnableEpoch)
@@ -1547,6 +1551,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		Marshalizer:      TestMarshalizer,
 		Accounts:         tpn.AccntState,
 		ShardCoordinator: tpn.ShardCoordinator,
+		EpochNotifier:    tpn.EpochNotifier,
 	}
 	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	argsHook := hooks.ArgBlockChainHook{
@@ -1640,12 +1645,14 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 
 	tpn.FeeAccumulator, _ = postprocess.NewFeeAccumulator()
 	tpn.ArgsParser = smartContract.NewArgumentParser()
+	esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:  TestAddressPubkeyConverter,
-		ShardCoordinator: tpn.ShardCoordinator,
-		BuiltInFuncNames: builtInFuncs.Keys(),
-		ArgumentParser:   parsers.NewCallArgsParser(),
-		EpochNotifier:    tpn.EpochNotifier,
+		PubkeyConverter:    TestAddressPubkeyConverter,
+		ShardCoordinator:   tpn.ShardCoordinator,
+		BuiltInFunctions:   builtInFuncs,
+		ArgumentParser:     parsers.NewCallArgsParser(),
+		EpochNotifier:      tpn.EpochNotifier,
+		ESDTTransferParser: esdtTransferParser,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler, tpn.EpochNotifier, tpn.DeployEnableEpoch)

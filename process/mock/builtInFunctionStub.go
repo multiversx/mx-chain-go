@@ -8,6 +8,7 @@ import (
 type BuiltInFunctionStub struct {
 	ProcessBuiltinFunctionCalled func(acntSnd, acntDst vmcommon.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
 	SetNewGasConfigCalled        func(gasCost *vmcommon.GasCost)
+	IsActiveCalled               func() bool
 }
 
 // ProcessBuiltinFunction -
@@ -23,6 +24,14 @@ func (b *BuiltInFunctionStub) SetNewGasConfig(gasCost *vmcommon.GasCost) {
 	if b.SetNewGasConfigCalled != nil {
 		b.SetNewGasConfigCalled(gasCost)
 	}
+}
+
+// IsActive -
+func (b *BuiltInFunctionStub) IsActive() bool {
+	if b.IsActiveCalled != nil {
+		return b.IsActiveCalled()
+	}
+	return true
 }
 
 // IsInterfaceNil -

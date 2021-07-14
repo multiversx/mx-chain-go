@@ -976,3 +976,6 @@ var ErrNilAccountsDBSyncer = errors.New("nil accounts DB syncer")
 
 // ErrNilCurrentNetworkEpochProvider signals that a nil CurrentNetworkEpochProvider handler has been provided
 var ErrNilCurrentNetworkEpochProvider = errors.New("nil current network epoch provider")
+
+// ErrNilESDTTransferParser signals that a nil ESDT transfer parser has been provider
+var ErrNilESDTTransferParser = errors.New("nil esdt transfer parser")
