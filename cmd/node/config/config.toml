@@ -607,6 +607,7 @@
 
 [StateTriesConfig]
     CheckpointRoundsModulus = 100
+    CheckpointsEnabled = true
     AccountsStatePruningEnabled = true
     PeerStatePruningEnabled = true
     MaxStateTrieLevelInMemory = 5
@@ -717,6 +718,9 @@
         CallGCWhenShuffleOut = true
         ExtraPrintsOnShuffleOut = true
         DoProfileOnShuffleOut = true
+    [Debug.EpochStart]
+        GoRoutineAnalyserEnabled = true
+        ProcessDataTrieOnCommitEpoch = true
 
 [Health]
     IntervalVerifyMemoryInSeconds = 5
