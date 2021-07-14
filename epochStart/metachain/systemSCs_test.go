@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"testing"
 
-	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_3/config"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
