@@ -96,6 +96,9 @@
     # is enabled. The fix is done by adding an extra increment.
     IncrementSCRNonceInMultiTransferEnableEpoch = 1000000
 
+    # ESDTMultiTransferEnableEpoch represents the epoch when esdt multitransfer built in function is enabled
+    ESDTMultiTransferEnableEpoch = 5
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 0, MaxNumNodes = 2169, NodesToShufflePerShard = 143 },

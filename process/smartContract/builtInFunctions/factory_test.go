@@ -23,6 +23,7 @@ func createMockArguments() ArgsCreateBuiltInFunctionContainer {
 		Marshalizer:          &mock.MarshalizerMock{},
 		Accounts:             &testscommon.AccountsStub{},
 		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(1),
+		EpochNotifier:        &mock.EpochNotifierStub{},
 	}
 
 	return args
@@ -68,6 +69,9 @@ func fillGasMapBuiltInCosts(value uint64) map[string]uint64 {
 	gasMap["ESDTNFTBurn"] = value
 	gasMap["ESDTNFTTransfer"] = value
 	gasMap["ESDTNFTChangeCreateOwner"] = value
+	gasMap["ESDTNFTAddUri"] = value
+	gasMap["ESDTNFTUpdateAttributes"] = value
+	gasMap["ESDTNFTMultiTransfer"] = value
 
 	return gasMap
 }
@@ -90,7 +94,7 @@ func TestCreateBuiltInFunctionContainer_Errors(t *testing.T) {
 	args = createMockArguments()
 	container, err = CreateBuiltInFunctionContainer(args)
 	assert.Nil(t, err)
-	assert.Equal(t, len(container.Keys()), 20)
+	assert.Equal(t, len(container.Keys()), 23)
 
 	err = vmcommonBuiltInFunctions.SetPayableHandler(container, &mock.BlockChainHookHandlerMock{})
 	assert.Nil(t, err)
