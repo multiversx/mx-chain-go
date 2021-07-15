@@ -168,7 +168,7 @@ type Config struct {
 	GeneralSettings     GeneralSettingsConfig
 	Consensus           ConsensusConfig
 	StoragePruning      StoragePruningConfig
-	TxLogsStorage       StorageConfig
+	LogsAndEvents       LogsAndEventsConfig
 
 	NTPConfig               NTPConfig
 	HeadersPoolConfig       HeadersPoolConfig
@@ -387,6 +387,12 @@ type HardforkConfig struct {
 	EnableTriggerFromP2P         bool
 	MustImport                   bool
 	AfterHardFork                bool
+}
+
+// LogsAndEventsConfig hold the configuration for the logs and events
+type LogsAndEventsConfig struct {
+	SaveInStorageEnabled bool
+	TxLogsStorage        StorageConfig
 }
 
 // DbLookupExtensionsConfig holds the configuration for the db lookup extensions
