@@ -13,12 +13,14 @@ import (
 
 // ArgsCreateBuiltInFunctionContainer -
 type ArgsCreateBuiltInFunctionContainer struct {
-	GasSchedule          core.GasScheduleNotifier
-	MapDNSAddresses      map[string]struct{}
-	EnableUserNameChange bool
-	Marshalizer          marshal.Marshalizer
-	Accounts             state.AccountsAdapter
-	ShardCoordinator     sharding.Coordinator
+	GasSchedule                  core.GasScheduleNotifier
+	MapDNSAddresses              map[string]struct{}
+	EnableUserNameChange         bool
+	Marshalizer                  marshal.Marshalizer
+	Accounts                     state.AccountsAdapter
+	ShardCoordinator             sharding.Coordinator
+	EpochNotifier                core.EpochNotifier
+	ESDTMultiTransferEnableEpoch uint32
 }
 
 // CreateBuiltInFunctionContainer creates a container that will hold all the available built in functions
@@ -38,6 +40,9 @@ func CreateBuiltInFunctionContainer(args ArgsCreateBuiltInFunctionContainer) (vm
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
+	if check.IfNil(args.EpochNotifier) {
+		return nil, process.ErrNilEpochNotifier
+	}
 
 	vmcommonAccounts, ok := args.Accounts.(vmcommon.AccountsAdapter)
 	if !ok {
@@ -45,12 +50,14 @@ func CreateBuiltInFunctionContainer(args ArgsCreateBuiltInFunctionContainer) (vm
 	}
 
 	modifiedArgs := vmcommonBuiltInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasMap:               args.GasSchedule.LatestGasSchedule(),
-		MapDNSAddresses:      args.MapDNSAddresses,
-		EnableUserNameChange: args.EnableUserNameChange,
-		Marshalizer:          args.Marshalizer,
-		Accounts:             vmcommonAccounts,
-		ShardCoordinator:     args.ShardCoordinator,
+		GasMap:                              args.GasSchedule.LatestGasSchedule(),
+		MapDNSAddresses:                     args.MapDNSAddresses,
+		EnableUserNameChange:                args.EnableUserNameChange,
+		Marshalizer:                         args.Marshalizer,
+		Accounts:                            vmcommonAccounts,
+		ShardCoordinator:                    args.ShardCoordinator,
+		EpochNotifier:                       args.EpochNotifier,
+		ESDTNFTImprovementV1ActivationEpoch: args.ESDTMultiTransferEnableEpoch,
 	}
 
 	bContainerFactory, err := vmcommonBuiltInFunctions.NewBuiltInFunctionsFactory(modifiedArgs)

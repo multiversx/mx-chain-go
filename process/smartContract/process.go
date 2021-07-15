@@ -24,6 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 )
 
 var _ process.SmartContractResultProcessor = (*scProcessor)(nil)
@@ -58,6 +59,7 @@ type scProcessor struct {
 	shardCoordinator                            sharding.Coordinator
 	vmContainer                                 process.VirtualMachinesContainer
 	argsParser                                  process.ArgumentsParser
+	esdtTransferParser                          vmcommon.ESDTTransferParser
 	deployEnableEpoch                           uint32
 	builtinEnableEpoch                          uint32
 	penalizedTooMuchGasEnableEpoch              uint32
@@ -212,6 +214,12 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		vmOutputCacher:                      args.VMOutputCacher,
 
 		incrementSCRNonceInMultiTransferEnableEpoch: args.IncrementSCRNonceInMultiTransferEnableEpoch,
+	}
+
+	var err error
+	sc.esdtTransferParser, err = parsers.NewESDTTransferParser(args.Marshalizer)
+	if err != nil {
+		return nil, err
 	}
 
 	log.Debug("smartContract/process: enable epoch for sc deploy", "epoch", sc.deployEnableEpoch)
@@ -1005,27 +1013,30 @@ func (sc *scProcessor) isSCExecutionAfterBuiltInFunc(
 	if vmOutput.ReturnCode != vmcommon.Ok {
 		return false, nil, nil
 	}
-	recipient := vmInput.RecipientAddr
-	if vmInput.Function == core.BuiltInFunctionESDTNFTTransfer && bytes.Equal(vmInput.CallerAddr, vmInput.RecipientAddr) {
-		if len(vmInput.Arguments) <= 4 {
-			return false, nil, nil
-		}
-		recipient = vmInput.Arguments[3]
-	}
-	if !core.IsSmartContractAddress(recipient) {
+
+	parsedTransfer, err := sc.esdtTransferParser.ParseESDTTransfers(vmInput.CallerAddr, vmInput.RecipientAddr, vmInput.Function, vmInput.Arguments)
+	if err != nil {
 		return false, nil, nil
 	}
-	if sc.shardCoordinator.ComputeId(recipient) != sc.shardCoordinator.SelfId() {
+	if !core.IsSmartContractAddress(parsedTransfer.RcvAddr) {
+		return false, nil, nil
+	}
+
+	if sc.shardCoordinator.ComputeId(parsedTransfer.RcvAddr) != sc.shardCoordinator.SelfId() {
 		return false, nil, nil
 	}
 
 	callType := determineCallType(tx)
 	if callType == vmcommon.AsynchronousCallBack {
-		newVMInput := sc.createVMInputWithAsyncCallBack(vmInput, vmOutput)
+		newVMInput := sc.createVMInputWithAsyncCallBack(vmInput, vmOutput, parsedTransfer)
 		return true, newVMInput, nil
 	}
 
-	outAcc, ok := vmOutput.OutputAccounts[string(recipient)]
+	if len(parsedTransfer.CallFunction) == 0 {
+		return false, nil, nil
+	}
+
+	outAcc, ok := vmOutput.OutputAccounts[string(parsedTransfer.RcvAddr)]
 	if !ok {
 		return false, nil, nil
 	}
@@ -1034,15 +1045,10 @@ func (sc *scProcessor) isSCExecutionAfterBuiltInFunc(
 	}
 
 	scExecuteOutTransfer := outAcc.OutputTransfers[0]
-	function, arguments, err := sc.argsParser.ParseCallData(string(scExecuteOutTransfer.Data))
-	if err != nil {
-		return true, nil, err
-	}
-
 	newVMInput := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
 			CallerAddr:           vmInput.CallerAddr,
-			Arguments:            arguments,
+			Arguments:            parsedTransfer.CallArgs,
 			CallValue:            big.NewInt(0),
 			CallType:             callType,
 			GasPrice:             vmInput.GasPrice,
@@ -1052,17 +1058,20 @@ func (sc *scProcessor) isSCExecutionAfterBuiltInFunc(
 			CurrentTxHash:        vmInput.CurrentTxHash,
 			ReturnCallAfterError: vmInput.ReturnCallAfterError,
 		},
-		RecipientAddr:     recipient,
-		Function:          function,
+		RecipientAddr:     parsedTransfer.RcvAddr,
+		Function:          parsedTransfer.CallFunction,
 		AllowInitFunction: false,
 	}
-
-	fillWithESDTValue(vmInput, newVMInput)
+	newVMInput.ESDTTransfers = parsedTransfer.ESDTTransfers
 
 	return true, newVMInput, nil
 }
 
-func (sc *scProcessor) createVMInputWithAsyncCallBack(vmInput *vmcommon.ContractCallInput, vmOutput *vmcommon.VMOutput) *vmcommon.ContractCallInput {
+func (sc *scProcessor) createVMInputWithAsyncCallBack(
+	vmInput *vmcommon.ContractCallInput,
+	vmOutput *vmcommon.VMOutput,
+	parsedTransfer *vmcommon.ParsedESDTTransfers,
+) *vmcommon.ContractCallInput {
 	arguments := [][]byte{
 		big.NewInt(int64(vmOutput.ReturnCode)).Bytes(),
 	}
@@ -1097,26 +1106,12 @@ func (sc *scProcessor) createVMInputWithAsyncCallBack(vmInput *vmcommon.Contract
 		Function:          "callBack",
 		AllowInitFunction: false,
 	}
+	newVMInput.ESDTTransfers = parsedTransfer.ESDTTransfers
 
-	fillWithESDTValue(vmInput, newVMInput)
 	return newVMInput
 }
 
-func fillWithESDTValue(fullVMInput *vmcommon.ContractCallInput, newVMInput *vmcommon.ContractCallInput) {
-	if fullVMInput.Function == core.BuiltInFunctionESDTTransfer {
-		newVMInput.ESDTTokenName = fullVMInput.Arguments[0]
-		newVMInput.ESDTValue = big.NewInt(0).SetBytes(fullVMInput.Arguments[1])
-		newVMInput.ESDTTokenType = uint32(core.Fungible)
-	}
-
-	if fullVMInput.Function == core.BuiltInFunctionESDTNFTTransfer {
-		newVMInput.ESDTTokenName = fullVMInput.Arguments[0]
-		newVMInput.ESDTTokenNonce = big.NewInt(0).SetBytes(fullVMInput.Arguments[1]).Uint64()
-		newVMInput.ESDTValue = big.NewInt(0).SetBytes(fullVMInput.Arguments[2])
-		newVMInput.ESDTTokenType = uint32(core.NonFungible)
-	}
-}
-
+// isCrossShardESDTTransfer is called when return is created out of the esdt transfer as of failed transaction
 func (sc *scProcessor) isCrossShardESDTTransfer(tx data.TransactionHandler) (string, bool) {
 	sndShardID := sc.shardCoordinator.ComputeId(tx.GetSndAddr())
 	if sndShardID == sc.shardCoordinator.SelfId() {
@@ -1137,9 +1132,15 @@ func (sc *scProcessor) isCrossShardESDTTransfer(tx data.TransactionHandler) (str
 		return "", false
 	}
 
+	parsedTransfer, err := sc.esdtTransferParser.ParseESDTTransfers(tx.GetSndAddr(), tx.GetRcvAddr(), function, args)
+	if err != nil {
+		return "", false
+	}
+
+	returnData := ""
+	returnData += function + "@"
+
 	if function == core.BuiltInFunctionESDTTransfer {
-		returnData := ""
-		returnData += function + "@"
 		returnData += hex.EncodeToString(args[0]) + "@"
 		returnData += hex.EncodeToString(args[1])
 
@@ -1151,13 +1152,27 @@ func (sc *scProcessor) isCrossShardESDTTransfer(tx data.TransactionHandler) (str
 			return "", false
 		}
 
-		returnData := ""
-		returnData += function + "@"
 		returnData += hex.EncodeToString(args[0]) + "@"
 		returnData += hex.EncodeToString(args[1]) + "@"
 		returnData += hex.EncodeToString(args[2]) + "@"
 		returnData += hex.EncodeToString(args[3])
 
+		return returnData, true
+	}
+
+	if function == vmcommon.BuiltInFunctionMultiESDTNFTTransfer {
+		numTransferArgs := len(args)
+		if len(parsedTransfer.CallFunction) > 0 {
+			numTransferArgs -= len(parsedTransfer.CallArgs) + 1
+		}
+		if numTransferArgs < 4 {
+			return "", false
+		}
+
+		for i := 0; i < numTransferArgs-1; i++ {
+			returnData += hex.EncodeToString(args[i]) + "@"
+		}
+		returnData += hex.EncodeToString(args[numTransferArgs-1])
 		return returnData, true
 	}
 
