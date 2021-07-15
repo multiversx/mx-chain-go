@@ -282,14 +282,17 @@ func GetGeneralConfig() config.Config {
 				MaxOpenFiles:      10,
 			},
 		},
-		TxLogsStorage: config.StorageConfig{
-			Cache: getLRUCacheConfig(),
-			DB: config.DBConfig{
-				FilePath:          AddTimestampSuffix("Logs"),
-				Type:              string(storageUnit.MemoryDB),
-				BatchDelaySeconds: 2,
-				MaxBatchSize:      100,
-				MaxOpenFiles:      10,
+		LogsAndEvents: config.LogsAndEventsConfig{
+			SaveInStorageEnabled: false,
+			TxLogsStorage: config.StorageConfig{
+				Cache: getLRUCacheConfig(),
+				DB: config.DBConfig{
+					FilePath:          AddTimestampSuffix("Logs"),
+					Type:              string(storageUnit.MemoryDB),
+					BatchDelaySeconds: 2,
+					MaxBatchSize:      100,
+					MaxOpenFiles:      10,
+				},
 			},
 		},
 		ReceiptsStorage: config.StorageConfig{
