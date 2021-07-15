@@ -33,12 +33,6 @@ var _ process.SmartContractProcessor = (*scProcessor)(nil)
 var log = logger.GetOrCreate("process/smartcontract")
 
 const (
-	// SCDeployIdentifier is the identifier for a smart contract deploy
-	SCDeployIdentifier = "SCDeploy"
-
-	// SCUpgradeIdentifier is the identifier for a smart contract upgrade
-	SCUpgradeIdentifier = "SCUpgrade"
-
 	// TooMuchGasProvidedMessage is the message for the too much gas provided error
 	TooMuchGasProvidedMessage = "too much gas provided"
 
@@ -2195,7 +2189,7 @@ func (sc *scProcessor) updateSmartContractCode(
 		stateAccount.SetCode(outputAccount.Code)
 		log.Debug("updateSmartContractCode(): created", "address", sc.pubkeyConv.Encode(outputAccount.Address), "upgradeable", newCodeMetadata.Upgradeable)
 
-		entry.Identifier = []byte(SCDeployIdentifier)
+		entry.Identifier = []byte(core.SCDeployIdentifier)
 		vmOutput.Logs = append(vmOutput.Logs, entry)
 		return
 	}
@@ -2205,7 +2199,7 @@ func (sc *scProcessor) updateSmartContractCode(
 		stateAccount.SetCode(outputAccount.Code)
 		log.Debug("updateSmartContractCode(): upgraded", "address", sc.pubkeyConv.Encode(outputAccount.Address), "upgradeable", newCodeMetadata.Upgradeable)
 
-		entry.Identifier = []byte(SCUpgradeIdentifier)
+		entry.Identifier = []byte(core.SCUpgradeIdentifier)
 		vmOutput.Logs = append(vmOutput.Logs, entry)
 		return
 	}
