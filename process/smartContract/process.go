@@ -2177,6 +2177,7 @@ func (sc *scProcessor) updateSmartContractCode(
 	isUpgrade := !isDeployment && isCodeDeployerOwner && isUpgradeable
 
 	entry := &vmcommon.LogEntry{
+		Address: stateAccount.AddressBytes(),
 		Topics: [][]byte{
 			outputAccount.Address, outputAccount.CodeDeployerAddress,
 		},
