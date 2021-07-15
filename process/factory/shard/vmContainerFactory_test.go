@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	ipcNodePart1_2 "github.com/ElrondNetwork/arwen-wasm-vm/v1_2/ipc/nodepart"
-	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_3/config"
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -195,7 +195,7 @@ func TestVmContainerFactory_ResolveArwenVersion(t *testing.T) {
 	require.False(t, isOutOfProcess(t, container))
 
 	epochNotifier.CheckEpoch(makeHeaderHandlerStub(20))
-	require.Equal(t, "v1.3", getArwenVersion(t, container))
+	require.Equal(t, "v1.4", getArwenVersion(t, container))
 	require.False(t, isOutOfProcess(t, container))
 }
 
@@ -228,6 +228,7 @@ func makeVMConfig() config.VirtualMachineConfig {
 			{StartEpoch: 0, Version: "v1.2"},
 			{StartEpoch: 10, Version: "v1.2"},
 			{StartEpoch: 12, Version: "v1.3"},
+			{StartEpoch: 14, Version: "v1.4"},
 		},
 	}
 }

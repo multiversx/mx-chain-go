@@ -9,6 +9,8 @@ import (
 	arwenHost12 "github.com/ElrondNetwork/arwen-wasm-vm/v1_2/arwen/host"
 	arwen13 "github.com/ElrondNetwork/arwen-wasm-vm/v1_3/arwen"
 	arwenHost13 "github.com/ElrondNetwork/arwen-wasm-vm/v1_3/arwen/host"
+	arwen14 "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/arwen"
+	arwenHost14 "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/arwen/host"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -233,8 +235,10 @@ func (vmf *vmContainerFactory) createInProcessArwenVMByVersion(version config.Ar
 	switch version.Version {
 	case "v1.2":
 		return vmf.createInProcessArwenVMV12()
-	default:
+	case "v1.3":
 		return vmf.createInProcessArwenVMV13()
+	default:
+		return vmf.createInProcessArwenVMV14()
 	}
 }
 
@@ -266,6 +270,21 @@ func (vmf *vmContainerFactory) createInProcessArwenVMV13() (vmcommon.VMExecution
 		ArwenV3EnableEpoch:       vmf.arwenV3EnableEpoch,
 	}
 	return arwenHost13.NewArwenVM(vmf.blockChainHookImpl, hostParameters)
+}
+
+func (vmf *vmContainerFactory) createInProcessArwenVMV14() (vmcommon.VMExecutionHandler, error) {
+	hostParameters := &arwen14.VMHostParameters{
+		VMType:                   factory.ArwenVirtualMachine,
+		BlockGasLimit:            vmf.blockGasLimit,
+		GasSchedule:              vmf.gasSchedule.LatestGasSchedule(),
+		BuiltInFuncContainer:     vmf.builtinFunctions,
+		ElrondProtectedKeyPrefix: []byte(core.ElrondProtectedKeyPrefix),
+		ArwenV2EnableEpoch:       vmf.deployEnableEpoch,
+		AheadOfTimeEnableEpoch:   vmf.aheadOfTimeGasUsageEnableEpoch,
+		DynGasLockEnableEpoch:    vmf.deployEnableEpoch,
+		ArwenV3EnableEpoch:       vmf.arwenV3EnableEpoch,
+	}
+	return arwenHost14.NewArwenVM(vmf.blockChainHookImpl, hostParameters)
 }
 
 func (vmf *vmContainerFactory) closePreviousVM(vm vmcommon.VMExecutionHandler) {
