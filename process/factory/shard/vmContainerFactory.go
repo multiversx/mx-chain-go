@@ -40,6 +40,7 @@ type vmContainerFactory struct {
 	container                      process.VirtualMachinesContainer
 	arwenVersions                  []config.ArwenVersionByEpoch
 	arwenChangeLocker              process.Locker
+	eSDTTransferParser             vmcommon.ESDTTransferParser
 }
 
 // ArgVMContainerFactory defines the arguments needed to the new VM factory
@@ -53,6 +54,7 @@ type ArgVMContainerFactory struct {
 	AheadOfTimeGasUsageEnableEpoch uint32
 	ArwenV3EnableEpoch             uint32
 	ArwenChangeLocker              process.Locker
+	ESDTTransferParser             vmcommon.ESDTTransferParser
 }
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
@@ -65,6 +67,9 @@ func NewVMContainerFactory(args ArgVMContainerFactory) (*vmContainerFactory, err
 	}
 	if check.IfNilReflect(args.ArwenChangeLocker) {
 		return nil, process.ErrNilLocker
+	}
+	if check.IfNil(args.ESDTTransferParser) {
+		return nil, process.ErrNilESDTTransferParser
 	}
 
 	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(args.ArgBlockChainHook)
@@ -87,6 +92,7 @@ func NewVMContainerFactory(args ArgVMContainerFactory) (*vmContainerFactory, err
 		arwenV3EnableEpoch:             args.ArwenV3EnableEpoch,
 		container:                      nil,
 		arwenChangeLocker:              args.ArwenChangeLocker,
+		eSDTTransferParser:             args.ESDTTransferParser,
 	}
 
 	vmf.arwenVersions = args.Config.ArwenVersions
@@ -273,6 +279,7 @@ func (vmf *vmContainerFactory) createInProcessArwenVMV13() (vmcommon.VMExecution
 }
 
 func (vmf *vmContainerFactory) createInProcessArwenVMV14() (vmcommon.VMExecutionHandler, error) {
+
 	hostParameters := &arwen14.VMHostParameters{
 		VMType:                   factory.ArwenVirtualMachine,
 		BlockGasLimit:            vmf.blockGasLimit,
@@ -283,6 +290,7 @@ func (vmf *vmContainerFactory) createInProcessArwenVMV14() (vmcommon.VMExecution
 		AheadOfTimeEnableEpoch:   vmf.aheadOfTimeGasUsageEnableEpoch,
 		DynGasLockEnableEpoch:    vmf.deployEnableEpoch,
 		ArwenV3EnableEpoch:       vmf.arwenV3EnableEpoch,
+		ESDTTransferParser:       vmf.eSDTTransferParser,
 	}
 	return arwenHost14.NewArwenVM(vmf.blockChainHookImpl, hostParameters)
 }
