@@ -234,7 +234,7 @@ type BlockProcessor interface {
 	ProcessScheduledBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlock(header data.HeaderHandler, body data.BodyHandler) error
 	RevertAccountState()
-	PruneStateOnRollback(currHeader data.HeaderHandler, prevHeader data.HeaderHandler)
+	PruneStateOnRollback(currHeader data.HeaderHandler, currHeaderHash []byte, prevHeader data.HeaderHandler, prevHeaderHash []byte)
 	RevertStateToBlock(header data.HeaderHandler, rootHash []byte) error
 	CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error)
 	RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error

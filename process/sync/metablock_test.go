@@ -33,6 +33,9 @@ func createMetaBlockProcessor(blk data.ChainHandler) *mock.BlockProcessorMock {
 		CommitBlockCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
 			return nil
 		},
+		ProcessScheduledBlockCalled: func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
+			return nil
+		},
 	}
 
 	return blockProcessorMock

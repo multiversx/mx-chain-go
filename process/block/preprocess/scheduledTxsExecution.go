@@ -129,6 +129,9 @@ func (ste *scheduledTxsExecution) ExecuteAll(haveTime func() time.Duration) erro
 }
 
 func (ste *scheduledTxsExecution) execute(txHandler data.TransactionHandler) error {
+	//TODO: Remove this line when processing of scheduled mini blocks will be done in the source shard
+	return nil
+
 	tx, ok := txHandler.(*transaction.Transaction)
 	if !ok {
 		return fmt.Errorf("%w: in scheduledTxsExecution.execute", process.ErrWrongTypeAssertion)
@@ -247,6 +250,8 @@ func (ste *scheduledTxsExecution) GetScheduledRootHash() []byte {
 	rootHash := ste.scheduledRootHash
 	ste.mutScheduledTxs.RUnlock()
 
+	log.Debug("scheduledTxsExecution.GetScheduledRootHash", "scheduled root hash", rootHash)
+
 	return rootHash
 }
 
@@ -255,6 +260,8 @@ func (ste *scheduledTxsExecution) SetScheduledRootHash(rootHash []byte) {
 	ste.mutScheduledTxs.Lock()
 	ste.scheduledRootHash = rootHash
 	ste.mutScheduledTxs.Unlock()
+
+	log.Debug("scheduledTxsExecution.SetScheduledRootHash", "scheduled root hash", rootHash)
 }
 
 // SetTransactionProcessor sets the transaction processor needed by scheduled txs execution component

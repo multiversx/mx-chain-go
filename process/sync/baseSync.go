@@ -609,6 +609,16 @@ func (boot *baseBootstrap) syncBlock() error {
 		return err
 	}
 
+	startProcessScheduledBlockTime := time.Now()
+	err = boot.blockProcessor.ProcessScheduledBlock(header, body, haveTime)
+	elapsedTime = time.Since(startProcessScheduledBlockTime)
+	log.Debug("elapsed time to process scheduled block",
+		"time [s]", elapsedTime,
+	)
+	if err != nil {
+		return err
+	}
+
 	startCommitBlockTime := time.Now()
 	err = boot.blockProcessor.CommitBlock(header, body)
 	elapsedTime = time.Since(startCommitBlockTime)
@@ -774,7 +784,8 @@ func (boot *baseBootstrap) rollBackOneBlock(
 	if err != nil {
 		return nil, err
 	}
-	boot.blockProcessor.PruneStateOnRollback(currHeader, prevHeader)
+
+	boot.blockProcessor.PruneStateOnRollback(currHeader, currHeaderHash, prevHeader, prevHeaderHash)
 
 	currBlockBody, errNotCritical := boot.blockBootstrapper.getBlockBody(currHeader)
 	if errNotCritical != nil {

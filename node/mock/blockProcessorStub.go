@@ -23,7 +23,7 @@ type BlockProcessorStub struct {
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdrCalled        func(shardId uint32, processedHdr data.HeaderHandler)
 	CreateNewHeaderCalled            func(round uint64, nonce uint64) (data.HeaderHandler, error)
-	PruneStateOnRollbackCalled       func(currHeader data.HeaderHandler, prevHeader data.HeaderHandler)
+	PruneStateOnRollbackCalled       func(currHeader data.HeaderHandler, currHeaderHash []byte, prevHeader data.HeaderHandler, prevHeaderHash []byte)
 	RevertStateToBlockCalled         func(header data.HeaderHandler, rootHash []byte) error
 	RevertIndexedBlockCalled         func(header data.HeaderHandler)
 }
@@ -62,9 +62,9 @@ func (bps *BlockProcessorStub) CreateGenesisBlock(balances map[string]*big.Int) 
 }
 
 // PruneStateOnRollback recreates thee state tries to the root hashes indicated by the provided header
-func (bps *BlockProcessorStub) PruneStateOnRollback(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) {
+func (bps *BlockProcessorStub) PruneStateOnRollback(currHeader data.HeaderHandler, currHeaderHash []byte, prevHeader data.HeaderHandler, prevHeaderHash []byte) {
 	if bps.PruneStateOnRollbackCalled != nil {
-		bps.PruneStateOnRollbackCalled(currHeader, prevHeader)
+		bps.PruneStateOnRollbackCalled(currHeader, currHeaderHash, prevHeader, prevHeaderHash)
 	}
 }
 

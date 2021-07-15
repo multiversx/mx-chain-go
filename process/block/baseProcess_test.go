@@ -1031,7 +1031,7 @@ func TestBlockProcessor_PruneStateOnRollbackPrunesPeerTrieIfAccPruneIsDisabled(t
 		ValidatorStatsRootHash: []byte("currValidatorRootHash"),
 	}
 
-	bp.PruneStateOnRollback(currHeader, prevHeader)
+	bp.PruneStateOnRollback(currHeader, []byte("currHeaderHash"), prevHeader, []byte("prevHeaderHash"))
 	assert.Equal(t, 2, pruningCalled)
 }
 
@@ -1077,7 +1077,7 @@ func TestBlockProcessor_PruneStateOnRollbackPrunesPeerTrieIfSameRootHashButDiffe
 		ValidatorStatsRootHash: []byte("currValidatorRootHash"),
 	}
 
-	bp.PruneStateOnRollback(currHeader, prevHeader)
+	bp.PruneStateOnRollback(currHeader, []byte("currHeaderHash"), prevHeader, []byte("prevHeaderHash"))
 	assert.Equal(t, 2, pruningCalled)
 }
 

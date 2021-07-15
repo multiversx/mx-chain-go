@@ -283,7 +283,7 @@ func addMissingNonces(diff int64, lastNonce uint64, maxNumNoncesToAdd int) []uin
 }
 
 func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
-	var valStatRootHash, epochStartMetaHash []byte
+	var valStatRootHash, epochStartMetaHash, scheduledRootHash []byte
 	metaHeader, isMetaHeader := headerHandler.(data.MetaHeaderHandler)
 	if isMetaHeader {
 		valStatRootHash = metaHeader.GetValidatorStatsRootHash()
@@ -292,6 +292,10 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 		if isShardHeader {
 			epochStartMetaHash = shardHeader.GetEpochStartMetaHash()
 		}
+	}
+	additionalData := headerHandler.GetAdditionalData()
+	if !check.IfNil(additionalData) {
+		scheduledRootHash = additionalData.GetScheduledRootHash()
 	}
 	return []*display.LineData{
 		display.NewLineData(false, []string{
@@ -338,6 +342,10 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 			"",
 			"Leader's Signature",
 			logger.DisplayByteSlice(headerHandler.GetLeaderSignature())}),
+		display.NewLineData(false, []string{
+			"",
+			"Scheduled root hash",
+			logger.DisplayByteSlice(scheduledRootHash)}),
 		display.NewLineData(false, []string{
 			"",
 			"Root hash",
@@ -1218,14 +1226,19 @@ func (bp *baseProcessor) commitAll() error {
 	return nil
 }
 
-// PruneStateOnRollback recreates the state tries to the root hashes indicated by the provided header
-func (bp *baseProcessor) PruneStateOnRollback(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) {
+// PruneStateOnRollback recreates the state tries to the root hashes indicated by the provided headers
+func (bp *baseProcessor) PruneStateOnRollback(currHeader data.HeaderHandler, currHeaderHash []byte, prevHeader data.HeaderHandler, prevHeaderHash []byte) {
 	for key := range bp.accountsDB {
 		if !bp.accountsDB[key].IsPruningEnabled() {
 			continue
 		}
 
 		rootHash, prevRootHash := bp.getRootHashes(currHeader, prevHeader, key)
+
+		if key == state.UserAccountsState {
+			rootHash = process.GetScheduledRootHash(currHeaderHash, rootHash, bp.store, bp.marshalizer)
+			prevRootHash = process.GetScheduledRootHash(prevHeaderHash, prevRootHash, bp.store, bp.marshalizer)
+		}
 
 		if bytes.Equal(rootHash, prevRootHash) {
 			continue
