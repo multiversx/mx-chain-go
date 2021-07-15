@@ -76,6 +76,23 @@ func TestCheckpointHashesHolder_Put(t *testing.T) {
 	assert.Equal(t, uint64(315), chh.currentSize)
 }
 
+func TestCheckpointHashesHolder_PutSameRootHashDoesNotAppend(t *testing.T) {
+	t.Parallel()
+
+	chh := NewCheckpointHashesHolder(500, testscommon.HashSize)
+	testData := getTestValues()
+
+	_ = chh.Put(testData.rootHashes[0], testData.values[0])
+	_ = chh.Put(testData.rootHashes[0], testData.values[1])
+	_ = chh.Put(testData.rootHashes[0], testData.values[2])
+
+	assert.Equal(t, 1, len(chh.hashes))
+	assert.Equal(t, 1, len(chh.rootHashes))
+
+	assert.Equal(t, testData.rootHashes[0], chh.rootHashes[0])
+	assert.Equal(t, testData.values[0], chh.hashes[0])
+}
+
 func TestCheckpointHashesHolder_ShouldCommit(t *testing.T) {
 	t.Parallel()
 
