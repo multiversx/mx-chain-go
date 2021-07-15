@@ -1002,13 +1002,14 @@ func (sp *shardProcessor) displayPoolsInfo() {
 func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeader data.ShardHeaderHandler) {
 	sp.snapShotEpochStartFromMeta(currentHeader)
 
-	for _, hdr := range headers {
-		if sp.forkDetector.GetHighestFinalBlockNonce() < hdr.GetNonce() {
+	for _, header := range headers {
+		if sp.forkDetector.GetHighestFinalBlockNonce() < header.GetNonce() {
 			break
 		}
 
+		prevHeaderHash := header.GetPrevHash()
 		prevHeader, errNotCritical := process.GetShardHeader(
-			hdr.GetPrevHash(),
+			prevHeaderHash,
 			sp.dataPool.Headers(),
 			sp.marshalizer,
 			sp.store,
@@ -1017,28 +1018,41 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 			log.Debug("could not get shard header from storage")
 			return
 		}
-		if hdr.IsStartOfEpochBlock() {
-			sp.nodesCoordinator.ShuffleOutForEpoch(hdr.GetEpoch())
+		if header.IsStartOfEpochBlock() {
+			sp.nodesCoordinator.ShuffleOutForEpoch(header.GetEpoch())
 		}
+
+		headerHash, err := core.CalculateHash(sp.marshalizer, sp.hasher, header)
+		if err != nil {
+			log.Debug("updateState.CalculateHash", "error", err.Error())
+			return
+		}
+
+		headerRootHash := process.GetScheduledRootHash(headerHash, header.GetRootHash(), sp.store, sp.marshalizer)
+		prevHeaderRootHash := process.GetScheduledRootHash(prevHeaderHash, prevHeader.GetRootHash(), sp.store, sp.marshalizer)
 
 		log.Trace("updateState: prevHeader",
 			"shard", prevHeader.GetShardID(),
 			"epoch", prevHeader.GetEpoch(),
 			"round", prevHeader.GetRound(),
 			"nonce", prevHeader.GetNonce(),
-			"root hash", prevHeader.GetRootHash())
+			"root hash", prevHeader.GetRootHash(),
+			"scheduled root hash", prevHeaderRootHash,
+		)
 
 		log.Trace("updateState: currHeader",
-			"shard", hdr.GetShardID(),
-			"epoch", hdr.GetEpoch(),
-			"round", hdr.GetRound(),
-			"nonce", hdr.GetNonce(),
-			"root hash", hdr.GetRootHash())
+			"shard", header.GetShardID(),
+			"epoch", header.GetEpoch(),
+			"round", header.GetRound(),
+			"nonce", header.GetNonce(),
+			"root hash", header.GetRootHash(),
+			"scheduled root hash", headerRootHash,
+		)
 
 		sp.updateStateStorage(
-			hdr,
-			hdr.GetRootHash(),
-			prevHeader.GetRootHash(),
+			header,
+			headerRootHash,
+			prevHeaderRootHash,
 			sp.accountsDB[state.UserAccountsState],
 			sp.userStatePruningQueue,
 		)

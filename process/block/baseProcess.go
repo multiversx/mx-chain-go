@@ -1131,7 +1131,7 @@ func getLastSelfNotarizedHeaderByItself(chainHandler data.ChainHandler) (data.He
 
 func (bp *baseProcessor) updateStateStorage(
 	finalHeader data.HeaderHandler,
-	rootHash []byte,
+	currRootHash []byte,
 	prevRootHash []byte,
 	accounts state.AccountsAdapter,
 	statePruningQueue core.Queue,
@@ -1143,12 +1143,12 @@ func (bp *baseProcessor) updateStateStorage(
 	// TODO generate checkpoint on a trigger
 	if bp.stateCheckpointModulus != 0 {
 		if finalHeader.GetNonce()%uint64(bp.stateCheckpointModulus) == 0 {
-			log.Debug("trie checkpoint", "rootHash", rootHash)
-			accounts.SetStateCheckpoint(rootHash)
+			log.Debug("trie checkpoint", "currRootHash", currRootHash)
+			accounts.SetStateCheckpoint(currRootHash)
 		}
 	}
 
-	if bytes.Equal(prevRootHash, rootHash) {
+	if bytes.Equal(prevRootHash, currRootHash) {
 		return
 	}
 
