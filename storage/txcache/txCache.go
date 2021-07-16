@@ -30,7 +30,7 @@ type TxCache struct {
 
 // NewTxCache creates a new transaction cache
 func NewTxCache(config ConfigSourceMe, txGasHandler TxGasHandler) (*TxCache, error) {
-	log.Info("NewTxCache", "config", config.String())
+	log.Debug("NewTxCache", "config", config.String())
 	storage.MonitorNewCache(config.Name, uint64(config.NumBytesThreshold))
 
 	err := config.verify()
@@ -290,6 +290,11 @@ func (cache *TxCache) NotifyAccountNonce(accountKey []byte, nonce uint64) {
 
 // ImmunizeTxsAgainstEviction does nothing for this type of cache
 func (cache *TxCache) ImmunizeTxsAgainstEviction(_ [][]byte) {
+}
+
+// Close does nothing for this cacher implementation
+func (cache *TxCache) Close() error {
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -12,16 +12,21 @@ func NewDisabledWhiteListDataVerifier() (*disabledWhiteListVerifier, error) {
 	return &disabledWhiteListVerifier{}, nil
 }
 
-// IsWhiteListed return true if intercepted data is accepted
+// IsWhiteListed returns true
 func (w *disabledWhiteListVerifier) IsWhiteListed(_ process.InterceptedData) bool {
 	return true
 }
 
-// Add adds all the list to the cache
+// IsWhiteListedAtLeastOne returns true
+func (w *disabledWhiteListVerifier) IsWhiteListedAtLeastOne(_ [][]byte) bool {
+	return true
+}
+
+// Add does nothing
 func (w *disabledWhiteListVerifier) Add(_ [][]byte) {
 }
 
-// Remove removes all the keys from the cache
+// Remove does nothing
 func (w *disabledWhiteListVerifier) Remove(_ [][]byte) {
 }
 

@@ -64,6 +64,9 @@ var ErrNilShardCoordinator = errors.New("nil shard coordinator")
 // ErrNilPathManager signals that a nil path manager has been provided
 var ErrNilPathManager = errors.New("nil path manager")
 
+// ErrNilStorageListProvider signals that a nil storage list provided has been provided
+var ErrNilStorageListProvider = errors.New("nil storage list provider")
+
 // ErrEmptyPruningPathTemplate signals that an empty path template for pruning storers has been provided
 var ErrEmptyPruningPathTemplate = errors.New("empty path template for pruning storers")
 
@@ -75,6 +78,12 @@ var ErrInvalidPruningPathTemplate = errors.New("invalid path template for prunin
 
 // ErrInvalidStaticPathTemplate signals that an invalid path template for static storers has been provided
 var ErrInvalidStaticPathTemplate = errors.New("invalid path template for static storers")
+
+// ErrInvalidDatabasePath signals that an invalid database path has been provided
+var ErrInvalidDatabasePath = errors.New("invalid database path")
+
+// ErrOldestEpochNotAvailable signals that fetching the oldest epoch is not available
+var ErrOldestEpochNotAvailable = errors.New("oldest epoch not available")
 
 // ErrInvalidNumberOfEpochsToSave signals that an invalid number of epochs to save has been provided
 var ErrInvalidNumberOfEpochsToSave = errors.New("invalid number of epochs to save")
@@ -127,3 +136,14 @@ var ErrNilTimeCache = errors.New("nil time cache")
 // ErrNilTxGasHandler signals that a nil tx gas handler was provided
 var ErrNilTxGasHandler = errors.New("nil tx gas handler")
 
+// ErrCannotComputeStorageOldestEpoch signals an issue when computing the oldest epoch for storage
+var ErrCannotComputeStorageOldestEpoch = errors.New("could not compute the oldest epoch for storage")
+
+// ErrNilNodeTypeProvider signals that a nil node type provider has been provided
+var ErrNilNodeTypeProvider = errors.New("nil node type provider")
+
+// ErrNilOldDataCleanerProvider signals that a nil old data cleaner provider has been given
+var ErrNilOldDataCleanerProvider = errors.New("nil old data cleaner provider")
+
+// ErrNilStoredDataFactory signals that a nil stored data factory has been provided
+var ErrNilStoredDataFactory = errors.New("nil stored data factory")

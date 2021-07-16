@@ -24,6 +24,7 @@ type DBConfig struct {
 	BatchDelaySeconds int
 	MaxBatchSize      int
 	MaxOpenFiles      int
+	UseTmpAsFilePath  bool
 }
 
 // BloomFilterConfig will map the bloom filter configuration
@@ -37,6 +38,13 @@ type StorageConfig struct {
 	Cache CacheConfig
 	DB    DBConfig
 	Bloom BloomFilterConfig
+}
+
+// TrieSyncStorageConfig will map trie sync storage configuration
+type TrieSyncStorageConfig struct {
+	DB          DBConfig
+	Capacity    uint32
+	SizeInBytes uint64
 }
 
 // PubkeyConfig will map the public key configuration
@@ -132,10 +140,11 @@ type Config struct {
 	TxDataPool                  CacheConfig
 	UnsignedTransactionDataPool CacheConfig
 	RewardTransactionDataPool   CacheConfig
-	TrieNodesDataPool           CacheConfig
+	TrieNodesChunksDataPool     CacheConfig
 	WhiteListPool               CacheConfig
 	WhiteListerVerifiedTxs      CacheConfig
 	SmartContractDataPool       CacheConfig
+	TrieSyncStorage             TrieSyncStorageConfig
 	EpochStartConfig            EpochStartConfig
 	AddressPubkeyConverter      PubkeyConfig
 	ValidatorPubkeyConverter    PubkeyConfig
@@ -159,7 +168,7 @@ type Config struct {
 	GeneralSettings     GeneralSettingsConfig
 	Consensus           ConsensusConfig
 	StoragePruning      StoragePruningConfig
-	TxLogsStorage       StorageConfig
+	LogsAndEvents       LogsAndEventsConfig
 
 	NTPConfig               NTPConfig
 	HeadersPoolConfig       HeadersPoolConfig
@@ -187,10 +196,10 @@ type LogsConfig struct {
 // StoragePruningConfig will hold settings related to storage pruning
 type StoragePruningConfig struct {
 	Enabled                        bool
-	CleanOldEpochsData             bool
+	ValidatorCleanOldEpochsData    bool
+	ObserverCleanOldEpochsData     bool
 	NumEpochsToKeep                uint64
 	NumActivePersisters            uint64
-	FullArchive                    bool
 	FullArchiveNumActivePersisters uint32
 }
 
@@ -242,6 +251,7 @@ type FacadeConfig struct {
 // StateTriesConfig will hold information about state tries
 type StateTriesConfig struct {
 	CheckpointRoundsModulus     uint
+	CheckpointsEnabled          bool
 	AccountsStatePruningEnabled bool
 	PeerStatePruningEnabled     bool
 	MaxStateTrieLevelInMemory   uint
@@ -252,10 +262,11 @@ type StateTriesConfig struct {
 
 // TrieStorageManagerConfig will hold config information about trie storage manager
 type TrieStorageManagerConfig struct {
-	PruningBufferLen   uint32
-	SnapshotsBufferLen uint32
-	MaxSnapshots       uint32
-	KeepSnapshots      bool
+	PruningBufferLen              uint32
+	SnapshotsBufferLen            uint32
+	MaxSnapshots                  uint32
+	KeepSnapshots                 bool
+	CheckpointHashesHolderMaxSize uint64
 }
 
 // EndpointsThrottlersConfig holds a pair of an endpoint and its maximum number of simultaneous go routines
@@ -378,6 +389,12 @@ type HardforkConfig struct {
 	AfterHardFork                bool
 }
 
+// LogsAndEventsConfig hold the configuration for the logs and events
+type LogsAndEventsConfig struct {
+	SaveInStorageEnabled bool
+	TxLogsStorage        StorageConfig
+}
+
 // DbLookupExtensionsConfig holds the configuration for the db lookup extensions
 type DbLookupExtensionsConfig struct {
 	Enabled                            bool
@@ -392,6 +409,7 @@ type DebugConfig struct {
 	InterceptorResolver InterceptorResolverDebugConfig
 	Antiflood           AntifloodDebugConfig
 	ShuffleOut          ShuffleOutDebugConfig
+	EpochStart          EpochStartDebugConfig
 }
 
 // HealthServiceConfig will hold health service (monitoring) configuration
@@ -427,6 +445,12 @@ type ShuffleOutDebugConfig struct {
 	CallGCWhenShuffleOut    bool
 	ExtraPrintsOnShuffleOut bool
 	DoProfileOnShuffleOut   bool
+}
+
+// EpochStartDebugConfig will hold the epoch debug configuration
+type EpochStartDebugConfig struct {
+	GoRoutineAnalyserEnabled     bool
+	ProcessDataTrieOnCommitEpoch bool
 }
 
 // ApiRoutesConfig holds the configuration related to Rest API routes

@@ -38,7 +38,12 @@
    Enabled = true
 
    # If this flag is set to false, the node won't delete any database between epochs
-   CleanOldEpochsData = false
+   # Applicable only for validators
+   ValidatorCleanOldEpochsData = true
+
+   # If this flag is set to false, the node won't delete any database between epochs
+   # Applicable only for observers
+   ObserverCleanOldEpochsData = false
 
    # NumEpochsToKeep - if the flag above is set to true, this will set the number of epochs to keep in the storage.
    # Epochs older that (current epoch - NumOfEpochsToKeep) will be removed
@@ -48,10 +53,6 @@
    # the node removes old epochs data or not. In case of a node which removes old epochs data, this value has to be
    # smaller or equal to the NumOfEpochsToKeep flag
    NumActivePersisters = 3
-
-   # FullArchive, if enabled, will make the node able to respond to requests from past, old epochs.
-   # It is highly recommended to enable this flag on an observer (not on a validator node)
-   FullArchive = false
 
    # FullArchiveNumActivePersisters represents the number of persisters to be kept in cache as to allow better response
    # to inquiring peers. This value will get multiplied by the number of persisters required by the node to function so
@@ -147,19 +148,6 @@
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 30000
-        MaxOpenFiles = 10
-
-[TxLogsStorage]
-    [TxLogsStorage.Cache]
-        Name = "TxLogsStorage"
-        Capacity = 1000
-        Type = "SizeLRU"
-        SizeInBytes = 20971520 #20MB
-    [TxLogsStorage.DB]
-        FilePath = "Logs"
-        Type = "LvlDBSerial"
-        BatchDelaySeconds = 2
-        MaxBatchSize = 100
         MaxOpenFiles = 10
 
 [UnsignedTransactionStorage]
@@ -299,6 +287,7 @@
     SnapshotsBufferLen = 1000000
     MaxSnapshots = 3
     KeepSnapshots = false
+    CheckpointHashesHolderMaxSize = 52428800 #50MB
 
 [PeerAccountsTrieStorage]
     [PeerAccountsTrieStorage.Cache]
@@ -344,9 +333,9 @@
     Type = "TxCache"
     Shards = 16
 
-[TrieNodesDataPool]
+[TrieNodesChunksDataPool]
     Name = "TrieNodesDataPool"
-    Capacity = 300000
+    Capacity = 400
     Type = "SizeLRU"
     SizeInBytes = 104857600 #100MB
 
@@ -414,6 +403,17 @@
     Name = "VMOutputCacher"
     Capacity = 10000
     Type = "LRU"
+
+[TrieSyncStorage]
+    Capacity = 300000
+    SizeInBytes = 104857600 #100MB
+    [TrieSyncStorage.DB]
+        FilePath = "TrieSyncStorageDB"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 45000
+        MaxOpenFiles = 10
+        UseTmpAsFilePath = true
 
 [Antiflood]
     Enabled = true
@@ -593,7 +593,8 @@
    Version = 0  # Setting 0 means 'use default value'
 
 [StateTriesConfig]
-    CheckpointRoundsModulus = 10000000
+    CheckpointRoundsModulus = 100
+    CheckpointsEnabled = true
     AccountsStatePruningEnabled = true
     PeerStatePruningEnabled = true
     MaxStateTrieLevelInMemory = 5
@@ -704,6 +705,9 @@
         CallGCWhenShuffleOut = true
         ExtraPrintsOnShuffleOut = true
         DoProfileOnShuffleOut = true
+    [Debug.EpochStart]
+        GoRoutineAnalyserEnabled = true
+        ProcessDataTrieOnCommitEpoch = true
 
 [Health]
     IntervalVerifyMemoryInSeconds = 5
@@ -716,6 +720,20 @@
 [SoftwareVersionConfig]
     StableTagLocation = "https://api.github.com/repos/ElrondNetwork/elrond-go/releases/latest"
     PollingIntervalInMinutes = 65
+
+[LogsAndEvents]
+    SaveInStorageEnabled = false
+    [LogsAndEvents.TxLogsStorage.Cache]
+        Name = "TxLogsStorage"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 20971520 #20MB
+    [LogsAndEvents.TxLogsStorage.DB]
+        FilePath = "Logs"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
 
 [DbLookupExtensions]
     Enabled = false

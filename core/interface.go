@@ -2,6 +2,8 @@ package core
 
 import (
 	"time"
+
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // AppStatusHandler interface will handle different implementations of monitoring tools, such as term-ui or status metrics
@@ -38,6 +40,13 @@ type TimersScheduler interface {
 	IsInterfaceNil() bool
 }
 
+// NodeTypeProviderHandler defines the actions needed for a component that can handle the node type
+type NodeTypeProviderHandler interface {
+	SetType(nodeType NodeType)
+	GetType() NodeType
+	IsInterfaceNil() bool
+}
+
 // WatchdogTimer is used to set alarms for different components
 type WatchdogTimer interface {
 	Set(callback func(alarmID string), duration time.Duration, alarmID string)
@@ -62,12 +71,6 @@ type KeyValueHolder interface {
 	ValueWithoutSuffix(suffix []byte) ([]byte, error)
 }
 
-// EpochSubscriberHandler defines the behavior of a component that can be notified if a new epoch was confirmed
-type EpochSubscriberHandler interface {
-	EpochConfirmed(epoch uint32, timestamp uint64)
-	IsInterfaceNil() bool
-}
-
 // Accumulator defines the interface able to accumulate data and periodically evict them
 type Accumulator interface {
 	AddData(data interface{})
@@ -84,7 +87,7 @@ type GasScheduleSubscribeHandler interface {
 
 // EpochNotifier can notify upon an epoch change and provide the current epoch
 type EpochNotifier interface {
-	RegisterNotifyHandler(handler EpochSubscriberHandler)
+	RegisterNotifyHandler(handler vmcommon.EpochSubscriberHandler)
 	IsInterfaceNil() bool
 }
 

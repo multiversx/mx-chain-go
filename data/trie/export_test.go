@@ -1,5 +1,11 @@
 package trie
 
+import (
+	"time"
+
+	"github.com/ElrondNetwork/elrond-go/data"
+)
+
 func (ts *trieSyncer) trieNodeIntercepted(hash []byte, val interface{}) {
 	ts.mutOperation.Lock()
 	defer ts.mutOperation.Unlock()
@@ -11,7 +17,7 @@ func (ts *trieSyncer) trieNodeIntercepted(hash []byte, val interface{}) {
 		return
 	}
 
-	interceptedNode, err := trieNode(val)
+	interceptedNode, err := trieNode(val, marshalizer, hasher)
 	if err != nil {
 		return
 	}
@@ -19,5 +25,15 @@ func (ts *trieSyncer) trieNodeIntercepted(hash []byte, val interface{}) {
 	ts.nodesForTrie[string(hash)] = trieNodeInfo{
 		trieNode: interceptedNode,
 		received: true,
+	}
+}
+
+func (tsm *trieStorageManagerWithoutCheckpoints) PruningBlockingOperations() uint32 {
+	return tsm.pruningBlockingOps
+}
+
+func WaitForOperationToComplete(tsm data.StorageManager) {
+	for tsm.IsPruningBlocked() {
+		time.Sleep(10 * time.Millisecond)
 	}
 }

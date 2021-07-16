@@ -58,10 +58,11 @@ func GetGeneralConfig() config.Config {
 		WhiteListPool:          getLRUCacheConfig(),
 		WhiteListerVerifiedTxs: getLRUCacheConfig(),
 		StoragePruning: config.StoragePruningConfig{
-			Enabled:             false,
-			CleanOldEpochsData:  false,
-			NumEpochsToKeep:     3,
-			NumActivePersisters: 3,
+			Enabled:                     false,
+			ValidatorCleanOldEpochsData: false,
+			ObserverCleanOldEpochsData:  false,
+			NumEpochsToKeep:             3,
+			NumActivePersisters:         3,
 		},
 		EvictionWaitingList: config.EvictionWaitingListConfig{
 			Size: 100,
@@ -135,8 +136,20 @@ func GetGeneralConfig() config.Config {
 		},
 		TxBlockBodyDataPool:   getLRUCacheConfig(),
 		PeerBlockBodyDataPool: getLRUCacheConfig(),
-		TrieNodesDataPool:     getLRUCacheConfig(),
-		SmartContractDataPool: getLRUCacheConfig(),
+		TrieSyncStorage: config.TrieSyncStorageConfig{
+			DB: config.DBConfig{
+				FilePath:          AddTimestampSuffix("TrieSync"),
+				Type:              string(storageUnit.MemoryDB),
+				BatchDelaySeconds: 2,
+				MaxBatchSize:      1000,
+				MaxOpenFiles:      10,
+				UseTmpAsFilePath:  true,
+			},
+			Capacity:    10,
+			SizeInBytes: 10000,
+		},
+		TrieNodesChunksDataPool: getLRUCacheConfig(),
+		SmartContractDataPool:   getLRUCacheConfig(),
 		TxStorage: config.StorageConfig{
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
@@ -269,14 +282,17 @@ func GetGeneralConfig() config.Config {
 				MaxOpenFiles:      10,
 			},
 		},
-		TxLogsStorage: config.StorageConfig{
-			Cache: getLRUCacheConfig(),
-			DB: config.DBConfig{
-				FilePath:          AddTimestampSuffix("Logs"),
-				Type:              string(storageUnit.MemoryDB),
-				BatchDelaySeconds: 2,
-				MaxBatchSize:      100,
-				MaxOpenFiles:      10,
+		LogsAndEvents: config.LogsAndEventsConfig{
+			SaveInStorageEnabled: false,
+			TxLogsStorage: config.StorageConfig{
+				Cache: getLRUCacheConfig(),
+				DB: config.DBConfig{
+					FilePath:          AddTimestampSuffix("Logs"),
+					Type:              string(storageUnit.MemoryDB),
+					BatchDelaySeconds: 2,
+					MaxBatchSize:      100,
+					MaxOpenFiles:      10,
+				},
 			},
 		},
 		ReceiptsStorage: config.StorageConfig{

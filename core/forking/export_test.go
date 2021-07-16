@@ -1,9 +1,9 @@
 package forking
 
-import "github.com/ElrondNetwork/elrond-go/core"
+import vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 
 // Handlers -
-func (gen *genericEpochNotifier) Handlers() []core.EpochSubscriberHandler {
+func (gen *genericEpochNotifier) Handlers() []vmcommon.EpochSubscriberHandler {
 	gen.mutHandler.RLock()
 	defer gen.mutHandler.RUnlock()
 

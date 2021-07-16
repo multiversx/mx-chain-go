@@ -1,6 +1,9 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/data"
+import (
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
+)
 
 // TriesHolderStub -
 type TriesHolderStub struct {
@@ -30,7 +33,7 @@ func (ths *TriesHolderStub) Get(key []byte) data.Trie {
 	if ths.GetCalled != nil {
 		return ths.GetCalled(key)
 	}
-	return &TrieStub{}
+	return &testscommon.TrieStub{}
 }
 
 // GetAll -

@@ -4,7 +4,7 @@ import (
 	"math/big"
 	"testing"
 
-	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_3/config"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	factory2 "github.com/ElrondNetwork/elrond-go/data/state/factory"
@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/stretchr/testify/require"
 )
 
@@ -200,7 +201,7 @@ func getProcessArgs(
 			},
 		},
 		Version:     "v1.0.0",
-		HistoryRepo: &testscommon.HistoryRepositoryStub{},
+		HistoryRepo: &dblookupext.HistoryRepositoryStub{},
 	}
 }
 

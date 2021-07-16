@@ -5,7 +5,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/receipt"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
@@ -15,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // ArgsTxSimulator holds the arguments required for creating a new transaction simulator
@@ -164,7 +164,7 @@ func (ts *transactionSimulator) addIntermediateTxsToResult(result *transaction.S
 		return err
 	}
 
-	receipts := make(map[string]*transaction.ReceiptApi)
+	receipts := make(map[string]*transaction.ApiReceipt)
 	for hash, value := range receiptsForwarder.GetAllCurrentFinishedTxs() {
 		rcpt, ok := value.(*receipt.Receipt)
 		if !ok {
@@ -205,8 +205,8 @@ func (ts *transactionSimulator) adaptSmartContractResult(scr *smartContractResul
 	return resScr
 }
 
-func (ts *transactionSimulator) adaptReceipt(rcpt *receipt.Receipt) *transaction.ReceiptApi {
-	return &transaction.ReceiptApi{
+func (ts *transactionSimulator) adaptReceipt(rcpt *receipt.Receipt) *transaction.ApiReceipt {
+	return &transaction.ApiReceipt{
 		Value:   rcpt.Value,
 		SndAddr: ts.addressPubKeyConverter.Encode(rcpt.SndAddr),
 		Data:    string(rcpt.Data),

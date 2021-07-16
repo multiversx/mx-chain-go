@@ -29,35 +29,53 @@ import (
 	logging "github.com/ipfs/go-log"
 	"github.com/libp2p/go-libp2p"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	pubsubPb "github.com/libp2p/go-libp2p-pubsub/pb"
-	secio "github.com/libp2p/go-libp2p-secio"
+	stream "github.com/libp2p/go-libp2p-transport-upgrader"
+	"github.com/libp2p/go-tcp-transport"
 )
 
-// ListenAddrWithIp4AndTcp defines the listening address with ip v.4 and TCP
-const ListenAddrWithIp4AndTcp = "/ip4/0.0.0.0/tcp/"
+const (
+	// ListenAddrWithIp4AndTcp defines the listening address with ip v.4 and TCP
+	ListenAddrWithIp4AndTcp = "/ip4/0.0.0.0/tcp/"
 
-// ListenLocalhostAddrWithIp4AndTcp defines the local host listening ip v.4 address and TCP
-const ListenLocalhostAddrWithIp4AndTcp = "/ip4/127.0.0.1/tcp/"
+	// ListenLocalhostAddrWithIp4AndTcp defines the local host listening ip v.4 address and TCP
+	ListenLocalhostAddrWithIp4AndTcp = "/ip4/127.0.0.1/tcp/"
 
-// DirectSendID represents the protocol ID for sending and receiving direct P2P messages
-const DirectSendID = protocol.ID("/erd/directsend/1.0.0")
+	// DirectSendID represents the protocol ID for sending and receiving direct P2P messages
+	DirectSendID = protocol.ID("/erd/directsend/1.0.0")
 
-const durationBetweenSends = time.Microsecond * 10
-const durationCheckConnections = time.Second
-const refreshPeersOnTopic = time.Second * 3
-const ttlPeersOnTopic = time.Second * 10
-const pubsubTimeCacheDuration = 10 * time.Minute
-const acceptMessagesInAdvanceDuration = 20 * time.Second //we are accepting the messages with timestamp in the future only for this delta
-const broadcastGoRoutines = 1000
-const timeBetweenPeerPrints = time.Second * 20
-const timeBetweenExternalLoggersCheck = time.Second * 20
-const minRangePortValue = 1025
-const noSignPolicy = pubsub.MessageSignaturePolicy(0) //should be used only in tests
+	durationBetweenSends            = time.Microsecond * 10
+	durationCheckConnections        = time.Second
+	refreshPeersOnTopic             = time.Second * 3
+	ttlPeersOnTopic                 = time.Second * 10
+	pubsubTimeCacheDuration         = 10 * time.Minute
+	acceptMessagesInAdvanceDuration = 20 * time.Second //we are accepting the messages with timestamp in the future only for this delta
+	broadcastGoRoutines             = 1000
+	timeBetweenPeerPrints           = time.Second * 20
+	timeBetweenExternalLoggersCheck = time.Second * 20
+	minRangePortValue               = 1025
+	noSignPolicy                    = pubsub.MessageSignaturePolicy(0) //should be used only in tests
+	msgBindError                    = "address already in use"
+	maxRetriesIfBindError           = 10
+)
+
+type messageSigningConfig bool
+
+const (
+	withMessageSigning    messageSigningConfig = true
+	withoutMessageSigning messageSigningConfig = false
+)
+
+type reusePortsConfig bool
+
+const (
+	allowReusePorts   reusePortsConfig = true
+	preventReusePorts reusePortsConfig = false
+)
 
 //TODO remove the header size of the message when commit d3c5ecd3a3e884206129d9f2a9a4ddfd5e7c8951 from
 // https://github.com/libp2p/go-libp2p-pubsub/pull/189/commits will be part of a new release
@@ -81,6 +99,7 @@ type networkMessenger struct {
 	ctx        context.Context
 	cancelFunc context.CancelFunc
 	p2pHost    ConnectableHost
+	port       int
 	pb         *pubsub.PubSub
 	ds         p2p.DirectSender
 	//TODO refactor this (connMonitor & connMonitorWrapper)
@@ -116,6 +135,10 @@ type ArgsNetworkMessenger struct {
 
 // NewNetworkMessenger creates a libP2P messenger by opening a port on the current machine
 func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
+	return newNetworkMessenger(args, withMessageSigning, allowReusePorts)
+}
+
+func newNetworkMessenger(args ArgsNetworkMessenger, messageSigning messageSigningConfig, reusePort reusePortsConfig) (*networkMessenger, error) {
 	if check.IfNil(args.Marshalizer) {
 		return nil, fmt.Errorf("%w when creating a new network messenger", p2p.ErrNilMarshalizer)
 	}
@@ -131,9 +154,41 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 		return nil, err
 	}
 
+	setupExternalP2PLoggers()
+
+	p2pNode, err := constructNodeWithPortRetry(args, p2pPrivKey, reusePort)
+	if err != nil {
+		return nil, err
+	}
+
+	err = addComponentsToNode(args, p2pNode, messageSigning)
+	if err != nil {
+		log.LogIfError(p2pNode.p2pHost.Close())
+		return nil, err
+	}
+
+	return p2pNode, nil
+}
+
+func constructNode(
+	args ArgsNetworkMessenger,
+	p2pPrivKey *libp2pCrypto.Secp256k1PrivateKey,
+	portReuse reusePortsConfig,
+) (*networkMessenger, error) {
+
 	port, err := getPort(args.P2pConfig.Node.Port, checkFreePort)
 	if err != nil {
 		return nil, err
+	}
+
+	transportOption := libp2p.DefaultTransports
+	if portReuse == preventReusePorts {
+		log.Warn("port reuse is turned off in network messenger instance. NOT recommended in production environment")
+		transportOption = libp2p.Transport(func(u *stream.Upgrader) *tcp.TcpTransport {
+			tpt := tcp.NewTCPTransport(u)
+			tpt.DisableReuseport = true
+			return tpt
+		})
 	}
 
 	address := fmt.Sprintf(args.ListenAddress+"%d", port)
@@ -142,15 +197,11 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 		libp2p.Identity(p2pPrivKey),
 		libp2p.DefaultMuxers,
 		libp2p.DefaultSecurity,
-		libp2p.DefaultTransports,
+		transportOption,
 		//we need the disable relay option in order to save the node's bandwidth as much as possible
 		libp2p.DisableRelay(),
 		libp2p.NATPortMap(),
-		//backwards compatibility
-		libp2p.Security(secio.ID, secio.New),
 	}
-
-	setupExternalP2PLoggers()
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	h, err := libp2p.New(ctx, opts...)
@@ -159,13 +210,39 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 		return nil, err
 	}
 
-	p2pNode, err := createMessenger(args, h, ctx, cancelFunc, true)
-	if err != nil {
-		log.LogIfError(h.Close())
-		return nil, err
+	p2pNode := &networkMessenger{
+		ctx:        ctx,
+		cancelFunc: cancelFunc,
+		p2pHost:    NewConnectableHost(h),
+		port:       port,
 	}
 
 	return p2pNode, nil
+}
+
+func constructNodeWithPortRetry(
+	args ArgsNetworkMessenger,
+	p2pPrivKey *libp2pCrypto.Secp256k1PrivateKey,
+	portReuse reusePortsConfig,
+) (*networkMessenger, error) {
+
+	var lastErr error
+	for i := 0; i < maxRetriesIfBindError; i++ {
+		p2pNode, err := constructNode(args, p2pPrivKey, portReuse)
+		if err == nil {
+			return p2pNode, nil
+		}
+
+		lastErr = err
+		if !strings.Contains(err.Error(), msgBindError) {
+			//not a bind error, return directly
+			return nil, err
+		}
+
+		log.Debug("bind error in network messenger", "retry number", i+1, "error", err)
+	}
+
+	return nil, lastErr
 }
 
 func setupExternalP2PLoggers() {
@@ -190,70 +267,64 @@ func createP2PPrivKey(seed string) (*libp2pCrypto.Secp256k1PrivateKey, error) {
 	return (*libp2pCrypto.Secp256k1PrivateKey)(prvKey), nil
 }
 
-func createMessenger(
+func addComponentsToNode(
 	args ArgsNetworkMessenger,
-	p2pHost host.Host,
-	ctx context.Context,
-	cancelFunc context.CancelFunc,
-	withMessageSigning bool,
-) (*networkMessenger, error) {
+	p2pNode *networkMessenger,
+	messageSigning messageSigningConfig,
+) error {
 	var err error
-	netMes := networkMessenger{
-		ctx:                  ctx,
-		cancelFunc:           cancelFunc,
-		p2pHost:              NewConnectableHost(p2pHost),
-		processors:           make(map[string]*topicProcessors),
-		topics:               make(map[string]*pubsub.Topic),
-		subscriptions:        make(map[string]*pubsub.Subscription),
-		outgoingPLB:          loadBalancer.NewOutgoingChannelLoadBalancer(),
-		peerShardResolver:    &unknownPeerShardResolver{},
-		marshalizer:          args.Marshalizer,
-		syncTimer:            args.SyncTimer,
-		preferredPeersHolder: args.PreferredPeersHolder,
-	}
-	netMes.debugger = p2pDebug.NewP2PDebugger(core.PeerID(p2pHost.ID()))
 
-	err = netMes.createPubSub(withMessageSigning)
+	p2pNode.processors = make(map[string]*topicProcessors)
+	p2pNode.topics = make(map[string]*pubsub.Topic)
+	p2pNode.subscriptions = make(map[string]*pubsub.Subscription)
+	p2pNode.outgoingPLB = loadBalancer.NewOutgoingChannelLoadBalancer()
+	p2pNode.peerShardResolver = &unknownPeerShardResolver{}
+	p2pNode.marshalizer = args.Marshalizer
+	p2pNode.syncTimer = args.SyncTimer
+	p2pNode.preferredPeersHolder = args.PreferredPeersHolder
+	p2pNode.debugger = p2pDebug.NewP2PDebugger(core.PeerID(p2pNode.p2pHost.ID()))
+
+	err = p2pNode.createPubSub(messageSigning)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	err = netMes.createSharder(args.P2pConfig)
+	err = p2pNode.createSharder(args.P2pConfig)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	err = netMes.createDiscoverer(args.P2pConfig)
+	err = p2pNode.createDiscoverer(args.P2pConfig)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	err = netMes.createConnectionMonitor(args.P2pConfig)
+	err = p2pNode.createConnectionMonitor(args.P2pConfig)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	netMes.createConnectionsMetric()
+	p2pNode.createConnectionsMetric()
 
-	netMes.ds, err = NewDirectSender(ctx, p2pHost, netMes.directMessageHandler)
+	p2pNode.ds, err = NewDirectSender(p2pNode.ctx, p2pNode.p2pHost, p2pNode.directMessageHandler)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	netMes.goRoutinesThrottler, err = throttler.NewNumGoRoutinesThrottler(broadcastGoRoutines)
+	p2pNode.goRoutinesThrottler, err = throttler.NewNumGoRoutinesThrottler(broadcastGoRoutines)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	netMes.printLogs()
+	p2pNode.printLogs()
 
-	return &netMes, nil
+	return nil
 }
 
-func (netMes *networkMessenger) createPubSub(withMessageSigning bool) error {
+func (netMes *networkMessenger) createPubSub(messageSigning messageSigningConfig) error {
 	optsPS := make([]pubsub.Option, 0)
-	if !withMessageSigning {
-		log.Warn("signature verification is turned off in network messenger instance")
+	if messageSigning == withoutMessageSigning {
+		log.Warn("signature verification is turned off in network messenger instance. NOT recommended in production environment")
 		optsPS = append(optsPS, pubsub.WithMessageSignaturePolicy(noSignPolicy))
 	}
 
@@ -1186,14 +1257,14 @@ func (netMes *networkMessenger) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo 
 			}
 		case core.ObserverPeer:
 			connPeerInfo.NumObserversOnShard[peerInfo.ShardID]++
-			if selfPeerInfo.ShardID != peerInfo.ShardID {
-				connPeerInfo.CrossShardObservers[peerInfo.ShardID] = append(connPeerInfo.CrossShardObservers[peerInfo.ShardID], connString)
-				connPeerInfo.NumCrossShardObservers++
-				break
-			}
 			if peerInfo.PeerSubType == core.FullHistoryObserver {
 				connPeerInfo.FullHistoryObservers[peerInfo.ShardID] = append(connPeerInfo.FullHistoryObservers[peerInfo.ShardID], connString)
 				connPeerInfo.NumFullHistoryObservers++
+				break
+			}
+			if selfPeerInfo.ShardID != peerInfo.ShardID {
+				connPeerInfo.CrossShardObservers[peerInfo.ShardID] = append(connPeerInfo.CrossShardObservers[peerInfo.ShardID], connString)
+				connPeerInfo.NumCrossShardObservers++
 				break
 			}
 
@@ -1207,6 +1278,11 @@ func (netMes *networkMessenger) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo 
 	}
 
 	return connPeerInfo
+}
+
+// Port returns the port that this network messenger is using
+func (netMes *networkMessenger) Port() int {
+	return netMes.port
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

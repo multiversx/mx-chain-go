@@ -68,6 +68,9 @@ func createShardDataPools() dataRetriever.PoolsHolder {
 	pools.TrieNodesCalled = func() storage.Cacher {
 		return testscommon.NewCacherStub()
 	}
+	pools.TrieNodesChunksCalled = func() storage.Cacher {
+		return testscommon.NewCacherStub()
+	}
 	pools.CurrBlockTxsCalled = func() dataRetriever.TransactionCacher {
 		return &mock.TxForCurrentBlockStub{}
 	}
@@ -77,7 +80,7 @@ func createShardDataPools() dataRetriever.PoolsHolder {
 func createShardStore() *mock.ChainStorerMock {
 	return &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &mock.StorerStub{}
+			return &testscommon.StorerStub{}
 		},
 	}
 }
@@ -530,7 +533,7 @@ func TestShardInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 			return nil
 		},
 	}
-	args.WhiteListerVerifiedTxs = &mock.WhiteListHandlerStub{}
+	args.WhiteListerVerifiedTxs = &testscommon.WhiteListHandlerStub{}
 
 	icf, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
 
@@ -556,7 +559,7 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		NbShards:           uint32(noOfShards),
 	}
 
-	mesenger := &mock.TopicHandlerStub{
+	messenger := &mock.TopicHandlerStub{
 		CreateTopicCalled: func(name string, createChannelForTopic bool) error {
 			return nil
 		},
@@ -570,7 +573,7 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	args := getArgumentsShard(coreComp, cryptoComp)
 	args.ShardCoordinator = shardCoordinator
 	args.NodesCoordinator = nodesCoordinator
-	args.Messenger = mesenger
+	args.Messenger = messenger
 	args.PreferredPeersHolder = &p2pmocks.PeersHolderStub{}
 
 	icf, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
@@ -622,11 +625,11 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 func getArgumentsShard(
 	coreComp *mock.CoreComponentsMock,
 	cryptoComp *mock.CryptoComponentsMock,
-) interceptorscontainer.ShardInterceptorsContainerFactoryArgs {
-	return interceptorscontainer.ShardInterceptorsContainerFactoryArgs{
+) interceptorscontainer.CommonInterceptorsContainerFactoryArgs {
+	return interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
 		CoreComponents:          coreComp,
 		CryptoComponents:        cryptoComp,
-		Accounts:                &mock.AccountsStub{},
+		Accounts:                &testscommon.AccountsStub{},
 		ShardCoordinator:        mock.NewOneShardCoordinatorMock(),
 		NodesCoordinator:        mock.NewNodesCoordinatorMock(),
 		Messenger:               &mock.TopicHandlerStub{},
@@ -641,9 +644,10 @@ func getArgumentsShard(
 		ValidityAttester:        &mock.ValidityAttesterStub{},
 		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
 		AntifloodHandler:        &mock.P2PAntifloodHandlerStub{},
-		WhiteListHandler:        &mock.WhiteListHandlerStub{},
-		WhiteListerVerifiedTxs:  &mock.WhiteListHandlerStub{},
+		WhiteListHandler:        &testscommon.WhiteListHandlerStub{},
+		WhiteListerVerifiedTxs:  &testscommon.WhiteListHandlerStub{},
 		ArgumentsParser:         &mock.ArgumentParserMock{},
 		PreferredPeersHolder:    &p2pmocks.PeersHolderStub{},
+		RequestHandler:          &testscommon.RequestHandlerStub{},
 	}
 }

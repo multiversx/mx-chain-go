@@ -17,9 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
-	"github.com/ElrondNetwork/elrond-go/core/parsers"
 	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
@@ -43,6 +41,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
+	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/require"
 )
 
@@ -157,8 +158,8 @@ func SetupTestContext(t *testing.T) *TestContext {
 }
 
 func (context *TestContext) initFeeHandlers() {
-	context.UnsignexTxHandler = &mock.UnsignedTxHandlerMock{
-		ProcessTransactionFeeCalled: func(cost *big.Int, hash []byte) {
+	context.UnsignexTxHandler = &testscommon.UnsignedTxHandlerStub{
+		ProcessTransactionFeeCalled: func(cost *big.Int, devFee *big.Int, hash []byte) {
 			context.LastConsumedFee = cost.Uint64()
 		},
 	}
@@ -216,10 +217,9 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		Marshalizer:      marshalizer,
 		Accounts:         context.Accounts,
 		ShardCoordinator: oneShardCoordinator,
+		EpochNotifier:    context.EpochNotifier,
 	}
-	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
-	require.Nil(context.T, err)
-	builtInFuncs, err := builtInFuncFactory.CreateBuiltInFunctionContainer()
+	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	require.Nil(context.T, err)
 
 	blockchainMock := &mock.BlockChainMock{}
@@ -276,16 +276,18 @@ func (context *TestContext) initVMAndBlockchainHook() {
 	require.Nil(context.T, err)
 
 	context.BlockchainHook = vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
-	_ = builtInFunctions.SetPayableHandler(builtInFuncs, context.BlockchainHook)
+	_ = vmcommonBuiltInFunctions.SetPayableHandler(builtInFuncs, context.BlockchainHook)
 }
 
 func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
+	esdtTransferParser, _ := parsers.NewESDTTransferParser(marshalizer)
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:  pkConverter,
-		ShardCoordinator: oneShardCoordinator,
-		BuiltInFuncNames: context.BlockchainHook.GetBuiltInFunctions().Keys(),
-		ArgumentParser:   parsers.NewCallArgsParser(),
-		EpochNotifier:    forking.NewGenericEpochNotifier(),
+		PubkeyConverter:    pkConverter,
+		ShardCoordinator:   oneShardCoordinator,
+		BuiltInFunctions:   context.BlockchainHook.GetBuiltinFunctionsContainer(),
+		ArgumentParser:     parsers.NewCallArgsParser(),
+		EpochNotifier:      forking.NewGenericEpochNotifier(),
+		ESDTTransferParser: esdtTransferParser,
 	}
 
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
@@ -313,7 +315,6 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 		GasSchedule:       mock.NewGasScheduleNotifierMock(gasSchedule),
-		BuiltInFunctions:  context.BlockchainHook.GetBuiltInFunctions(),
 		TxLogsProcessor:   &mock.TxLogsProcessorStub{},
 		EpochNotifier:     forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker: context.ArwenChangeLocker,

@@ -14,6 +14,10 @@
    # 1 = first backup, 2 = second backup, etc.)
    RedundancyLevel = 0
 
+   # FullArchive, if enabled, will make the node able to respond to requests from past, old epochs.
+   # It is highly recommended to enable this flag on an observer (not on a validator node)
+   FullArchive = false
+
    # PreferredConnections holds an array containing the public keys of the nodes to connect with (in top of other connections)
    # Example:
    # PreferredConnections = [

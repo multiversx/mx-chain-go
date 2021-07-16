@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -40,15 +41,16 @@ func createPkBytes(numShards uint32) map[uint32][]byte {
 
 func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComponentsMock) {
 	return &mock.CoreComponentsMock{
-			IntMarsh:            &mock.MarshalizerMock{},
-			Marsh:               &mock.MarshalizerMock{},
-			Hash:                &mock.HasherMock{},
-			TxSignHasherField:   &mock.HasherMock{},
-			UInt64ByteSliceConv: &mock.Uint64ByteSliceConverterMock{},
-			AddrPubKeyConv:      &mock.PubkeyConverterMock{},
-			PathHdl:             &mock.PathManagerStub{},
-			EpochNotifierField:  &mock.EpochNotifierStub{},
-			TxVersionCheckField: versioning.NewTxVersionChecker(1),
+			IntMarsh:              &mock.MarshalizerMock{},
+			Marsh:                 &mock.MarshalizerMock{},
+			Hash:                  &mock.HasherMock{},
+			TxSignHasherField:     &mock.HasherMock{},
+			UInt64ByteSliceConv:   &mock.Uint64ByteSliceConverterMock{},
+			AddrPubKeyConv:        &mock.PubkeyConverterMock{},
+			PathHdl:               &testscommon.PathManagerStub{},
+			EpochNotifierField:    &mock.EpochNotifierStub{},
+			TxVersionCheckField:   versioning.NewTxVersionChecker(1),
+			NodeTypeProviderField: &nodeTypeProviderMock.NodeTypeProviderStub{},
 		}, &mock.CryptoComponentsMock{
 			PubKey:   &mock.PublicKeyMock{},
 			BlockSig: &mock.SignerStub{},
@@ -381,9 +383,9 @@ func TestCreateSyncers(t *testing.T) {
 			return testscommon.NewCacherStub()
 		},
 	}
-	epochStartProvider.whiteListHandler = &mock.WhiteListHandlerStub{}
-	epochStartProvider.whiteListerVerifiedTxs = &mock.WhiteListHandlerStub{}
-	epochStartProvider.requestHandler = &mock.RequestHandlerStub{}
+	epochStartProvider.whiteListHandler = &testscommon.WhiteListHandlerStub{}
+	epochStartProvider.whiteListerVerifiedTxs = &testscommon.WhiteListHandlerStub{}
+	epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}
 
 	err := epochStartProvider.createSyncers()
 	assert.Nil(t, err)
@@ -428,7 +430,7 @@ func TestSyncHeadersFrom_MockHeadersSyncerShouldSyncHeaders(t *testing.T) {
 	assert.Equal(t, header2, headers[string(hdrHash2)])
 }
 
-func TestSyncPeerAccountsState_NilRequestHandlerErr(t *testing.T) {
+func TestSyncValidatorAccountsState_NilRequestHandlerErr(t *testing.T) {
 	coreComp, cryptoComp := createComponentsForEpochStart()
 	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
@@ -443,7 +445,7 @@ func TestSyncPeerAccountsState_NilRequestHandlerErr(t *testing.T) {
 	}
 	_ = epochStartProvider.createTriesComponentsForShardId(args.GenesisShardCoordinator.SelfId())
 	rootHash := []byte("rootHash")
-	err := epochStartProvider.syncPeerAccountsState(rootHash)
+	err := epochStartProvider.syncValidatorAccountsState(rootHash)
 	assert.Equal(t, state.ErrNilRequestHandler, err)
 }
 
@@ -562,7 +564,8 @@ func getNodesConfigMock(numOfShards uint32) sharding.GenesisNodesSetupHandler {
 func TestRequestAndProcessing(t *testing.T) {
 	coreComp, cryptoComp := createComponentsForEpochStart()
 	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
-	args.GeneralConfig.StoragePruning.CleanOldEpochsData = true
+	args.GeneralConfig.StoragePruning.ObserverCleanOldEpochsData = true
+	args.GeneralConfig.StoragePruning.ValidatorCleanOldEpochsData = true
 	args.GenesisNodesConfig = getNodesConfigMock(1)
 
 	hdrHash1 := []byte("hdrHash1")
@@ -613,12 +616,12 @@ func TestRequestAndProcessing(t *testing.T) {
 			}
 		},
 	}
-	epochStartProvider.requestHandler = &mock.RequestHandlerStub{}
+	epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}
 	epochStartProvider.miniBlocksSyncer = &mock.PendingMiniBlockSyncHandlerStub{}
 
 	params, err := epochStartProvider.requestAndProcessing()
 	assert.Equal(t, Parameters{}, params)
-	assert.Equal(t, storage.ErrInvalidNumberOfEpochsToSave, err)
+	assert.Equal(t, storage.ErrInvalidNumberOfActivePersisters, err)
 }
 
 func TestEpochStartBootstrap_WithDisabledShardIDAsOBserver(t *testing.T) {
@@ -653,7 +656,7 @@ func TestEpochStartBootstrap_WithDisabledShardIDAsOBserver(t *testing.T) {
 			return testscommon.NewCacherStub()
 		},
 	}
-	epochStartProvider.requestHandler = &mock.RequestHandlerStub{}
+	epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}
 	epochStartProvider.epochStartMeta = &block.MetaBlock{Epoch: 0}
 	err = epochStartProvider.processNodesConfig([]byte("something"))
 	assert.Nil(t, err)

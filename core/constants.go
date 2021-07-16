@@ -360,8 +360,8 @@ const MetricTopUpValue = "erd_total_top_up_value"
 // MetricInflation holds the inflation value for the last epoch
 const MetricInflation = "erd_inflation"
 
-// MetricDevRewards holds the developers' rewards value for the last epoch
-const MetricDevRewards = "erd_dev_rewards"
+// MetricDevRewardsInEpoch holds the developers' rewards value for the last epoch
+const MetricDevRewardsInEpoch = "erd_dev_rewards"
 
 // MetricTotalFees holds the total fees value for the last epoch
 const MetricTotalFees = "erd_total_fees"
@@ -448,7 +448,7 @@ const (
 	//MetricStakeEnableEpoch represents the epoch when staking is enabled
 	MetricStakeEnableEpoch = "erd_stake_enable_epoch"
 
-	//MetricDoubleKeyProtectionEnableEpoch represents the epoch when the double key protection is enabled
+	//MetricDoubleKeyProtectionEnableEpoch represents the epoch when double key protection is enabled
 	MetricDoubleKeyProtectionEnableEpoch = "erd_double_key_protection_enable_epoch"
 
 	//MetricEsdtEnableEpoch represents the epoch when ESDT is enabled
@@ -480,6 +480,8 @@ const (
 	IndexerOrder
 	// NetStatisticsOrder defines the order in which netStatistic component is notified of a start of epoch event
 	NetStatisticsOrder
+	// OldDatabaseCleanOrder defines the order in which oldDatabaseCleaner component is notified of a start of epoch event
+	OldDatabaseCleanOrder
 )
 
 // NodeState specifies what type of state a node could have
@@ -639,6 +641,9 @@ const SCDeployInitFunctionName = "_init"
 // ShuffledOut signals that a restart is pending because the node was shuffled out
 const ShuffledOut = "shuffledOut"
 
+// WrongConfiguration signals that the node has a malformed configuration and cannot continue processing
+const WrongConfiguration = "wrongConfiguration"
+
 // ImportComplete signals that a node restart will be done because the import did complete
 const ImportComplete = "importComplete"
 
@@ -750,7 +755,12 @@ const MaxRoundsWithoutCommittedStartInEpochBlock = 50
 const MinMetaTxExtraGasCost = uint64(1_000_000)
 
 // MaxLeafSize represents maximum amount of data which can be saved under one leaf
-const MaxLeafSize = uint64(1<<18) + uint64(1<<19) //786KB
+const MaxLeafSize = uint64(1 << 26) //64MB
+
+// MaxBufferSizeToSendTrieNodes represents max buffer size to send in bytes used when resolving trie nodes
+// Every trie node that has a greater size than this constant is considered a large trie node and should be split in
+// smaller chunks
+const MaxBufferSizeToSendTrieNodes = 1 << 18 //256KB
 
 // MaxUserNameLength represents the maximum number of bytes a UserName can have
 const MaxUserNameLength = 32
@@ -780,3 +790,6 @@ const HardforkResolversIdentifier = "hardfork resolver"
 
 // EpochStartInterceptorsIdentifier represents the identifier that is used in the start-in-epoch process
 const EpochStartInterceptorsIdentifier = "epoch start interceptor"
+
+// GetNodeFromDBErrorString represents the string which is returned when a getting node from DB returns an error
+const GetNodeFromDBErrorString = "getNodeFromDB error"

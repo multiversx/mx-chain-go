@@ -194,6 +194,11 @@ func (sm *StorerMock) RangeKeys(handler func(key []byte, value []byte) bool) {
 	}
 }
 
+// GetOldestEpoch -
+func (sm *StorerMock) GetOldestEpoch() (uint32, error) {
+	return 0, nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (sm *StorerMock) IsInterfaceNil() bool {
 	return sm == nil

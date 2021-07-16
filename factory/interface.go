@@ -119,6 +119,7 @@ type CoreComponentsHolder interface {
 	MinTransactionVersion() uint32
 	TxVersionChecker() process.TxVersionCheckerHandler
 	EncodedAddressLen() uint32
+	NodeTypeProvider() core.NodeTypeProviderHandler
 	IsInterfaceNil() bool
 }
 
@@ -251,6 +252,7 @@ type ProcessComponentsHolder interface {
 	RequestedItemsHandler() dataRetriever.RequestedItemsHandler
 	NodeRedundancyHandler() consensus.NodeRedundancyHandler
 	ArwenChangeLocker() process.Locker
+	CurrentEpochProvider() process.CurrentNetworkEpochProviderHandler
 	IsInterfaceNil() bool
 }
 

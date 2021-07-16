@@ -1,4 +1,4 @@
-package factory
+package factory_test
 
 import (
 	"testing"
@@ -8,17 +8,29 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func getArgs() TrieFactoryArgs {
-	return TrieFactoryArgs{
+func getArgs() factory.TrieFactoryArgs {
+	return factory.TrieFactoryArgs{
 		Marshalizer: &mock.MarshalizerMock{},
 		Hasher:      &mock.HasherMock{},
-		PathManager: &mock.PathManagerStub{},
+		PathManager: &testscommon.PathManagerStub{},
+	}
+}
+
+func getCreateArgs() data.TrieCreateArgs {
+	return data.TrieCreateArgs{
+		TrieStorageConfig:  createTrieStorageCfg(),
+		ShardID:            "0",
+		PruningEnabled:     false,
+		CheckpointsEnabled: false,
+		MaxTrieLevelInMem:  5,
 	}
 }
 
@@ -35,7 +47,7 @@ func TestNewTrieFactory_NilMarshalizerShouldErr(t *testing.T) {
 
 	args := getArgs()
 	args.Marshalizer = nil
-	tf, err := NewTrieFactory(args)
+	tf, err := factory.NewTrieFactory(args)
 
 	assert.Nil(t, tf)
 	assert.Equal(t, trie.ErrNilMarshalizer, err)
@@ -46,7 +58,7 @@ func TestNewTrieFactory_NilHasherShouldErr(t *testing.T) {
 
 	args := getArgs()
 	args.Hasher = nil
-	tf, err := NewTrieFactory(args)
+	tf, err := factory.NewTrieFactory(args)
 
 	assert.Nil(t, tf)
 	assert.Equal(t, trie.ErrNilHasher, err)
@@ -57,7 +69,7 @@ func TestNewTrieFactory_NilPathManagerShouldErr(t *testing.T) {
 
 	args := getArgs()
 	args.PathManager = nil
-	tf, err := NewTrieFactory(args)
+	tf, err := factory.NewTrieFactory(args)
 
 	assert.Nil(t, tf)
 	assert.Equal(t, trie.ErrNilPathManager, err)
@@ -68,7 +80,7 @@ func TestNewTrieFactory_ShouldWork(t *testing.T) {
 
 	args := getArgs()
 
-	tf, err := NewTrieFactory(args)
+	tf, err := factory.NewTrieFactory(args)
 	require.Nil(t, err)
 	require.False(t, check.IfNil(tf))
 }
@@ -77,70 +89,49 @@ func TestTrieFactory_CreateNotSupportedCacheType(t *testing.T) {
 	t.Parallel()
 
 	args := getArgs()
-	tf, _ := NewTrieFactory(args)
-	trieStorageCfg := config.StorageConfig{}
+	tf, _ := factory.NewTrieFactory(args)
 
-	maxTrieLevelInMemory := uint(5)
-	_, tr, err := tf.Create(trieStorageCfg, "0", false, maxTrieLevelInMemory)
+	createArgs := getCreateArgs()
+	createArgs.TrieStorageConfig = config.StorageConfig{}
+	_, tr, err := tf.Create(createArgs)
 	require.Nil(t, tr)
 	require.Equal(t, storage.ErrNotSupportedCacheType, err)
 }
 
-func TestTrieFactory_CreateWithoutPrunningWork(t *testing.T) {
+func TestTrieFactory_CreateWithoutPruningShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := getArgs()
-	tf, _ := NewTrieFactory(args)
-	trieStorageCfg := createTrieStorageCfg()
+	tf, _ := factory.NewTrieFactory(args)
 
-	maxTrieLevelInMemory := uint(5)
-	_, tr, err := tf.Create(trieStorageCfg, "0", false, maxTrieLevelInMemory)
+	_, tr, err := tf.Create(getCreateArgs())
 	require.NotNil(t, tr)
 	require.Nil(t, err)
 }
 
-func TestTrieFactory_CreateWithPrunningWrongDbType(t *testing.T) {
+func TestTrieCreator_CreateWithPruningShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := getArgs()
-	tf, _ := NewTrieFactory(args)
-	trieStorageCfg := createTrieStorageCfg()
+	tf, _ := factory.NewTrieFactory(args)
 
-	maxTrieLevelInMemory := uint(5)
-	_, tr, err := tf.Create(trieStorageCfg, "0", true, maxTrieLevelInMemory)
-	require.Nil(t, tr)
-	require.Equal(t, storage.ErrNotSupportedDBType, err)
+	createArgs := getCreateArgs()
+	createArgs.PruningEnabled = true
+	_, tr, err := tf.Create(createArgs)
+	require.NotNil(t, tr)
+	require.Nil(t, err)
 }
 
-func TestTrieFactory_CreateInvalidCacheSize(t *testing.T) {
+func TestTrieCreator_CreateWithoutCheckpointShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := getArgs()
-	args.EvictionWaitingListCfg = config.EvictionWaitingListConfig{
-		DB: config.DBConfig{Type: string(storageUnit.MemoryDB)},
-	}
-	tf, _ := NewTrieFactory(args)
-	trieStorageCfg := createTrieStorageCfg()
+	tf, _ := factory.NewTrieFactory(args)
 
-	maxTrieLevelInMemory := uint(5)
-	_, tr, err := tf.Create(trieStorageCfg, "0", true, maxTrieLevelInMemory)
-	require.Nil(t, tr)
-	require.Equal(t, data.ErrInvalidCacheSize, err)
-}
-
-func TestTrieFactory_CreateWithPRunningShouldWork(t *testing.T) {
-	t.Parallel()
-
-	args := getArgs()
-	args.EvictionWaitingListCfg = config.EvictionWaitingListConfig{
-		DB:   config.DBConfig{Type: string(storageUnit.MemoryDB)},
-		Size: 100,
-	}
-	tf, _ := NewTrieFactory(args)
-	trieStorageCfg := createTrieStorageCfg()
-
-	maxTrieLevelInMemory := uint(5)
-	_, tr, err := tf.Create(trieStorageCfg, "0", true, maxTrieLevelInMemory)
+	createArgs := getCreateArgs()
+	createArgs.PruningEnabled = true
+	createArgs.CheckpointsEnabled = true
+	_, tr, err := tf.Create(createArgs)
 	require.NotNil(t, tr)
 	require.Nil(t, err)
 }
