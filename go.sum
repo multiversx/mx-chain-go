@@ -74,6 +74,7 @@ github.com/ElrondNetwork/elrond-go v1.1.59-0.20210526130950-2a93e2e11c39/go.mod 
 github.com/ElrondNetwork/elrond-go v1.1.64-0.20210617123526-cf2f884b9cec/go.mod h1:bGnt6NgYeLm5tkbUhqjsUvH13hZpxXEdyl2Nd5XMiVg=
 github.com/ElrondNetwork/elrond-go v1.2.4-0.20210625084351-7915cdd77085/go.mod h1:VNDQ3rVD/nN7ZHigyISwUIqSEd5B3/Gc7k5x5JMYwJs=
 github.com/ElrondNetwork/elrond-go v1.2.5-0.20210716101146-d54a8831e764/go.mod h1:41VxgVdZtxsolu8lc3NI2otTjw0IUoJH7WO+8gkRb4U=
+github.com/ElrondNetwork/elrond-go v1.2.5-0.20210716103052-679f8862a346/go.mod h1:LyYwvJUiD1anAxEsq3LZg4IHRZZXj9txX5DlRXfctCU=
 github.com/ElrondNetwork/elrond-go-logger v1.0.2/go.mod h1:e5D+c97lKUfFdAzFX7rrI2Igl/z4Y0RkKYKWyzprTGk=
 github.com/ElrondNetwork/elrond-go-logger v1.0.4 h1:i5Yu4qyjTZDwvBY/ykbNpp2SP9jxwk/QTivRwSZSTAQ=
 github.com/ElrondNetwork/elrond-go-logger v1.0.4/go.mod h1:e5D+c97lKUfFdAzFX7rrI2Igl/z4Y0RkKYKWyzprTGk=
@@ -98,6 +99,8 @@ github.com/ElrondNetwork/notifier-go v0.0.0-20210716085432-523e3b0b9bf5 h1:Sy3BN
 github.com/ElrondNetwork/notifier-go v0.0.0-20210716085432-523e3b0b9bf5/go.mod h1:LlGb93sW4COVqI5sCSOBgQZNh6oDcZAHRyc2iy7PviI=
 github.com/ElrondNetwork/notifier-go v0.0.0-20210716102841-a578e3b81b51 h1:Qiz/oGNzwlqmBH4K43eEme4po2KBa4XxWoG6lfZrgdc=
 github.com/ElrondNetwork/notifier-go v0.0.0-20210716102841-a578e3b81b51/go.mod h1:gsw3fTFm51oK32fRSeR3no7f0CWt24xG0KPSbk0Dst8=
+github.com/ElrondNetwork/notifier-go v0.0.0-20210716105126-eb0419145a15 h1:5GAn0WOVoMSq2OzI/E2lIO062kQ7AbcdmzD4d1SfcT8=
+github.com/ElrondNetwork/notifier-go v0.0.0-20210716105126-eb0419145a15/go.mod h1:G/NkLkh2N/DcL/Ta+o7KqWB6w23AkX2w1yFMxCDegsE=
 github.com/ElrondNetwork/protobuf v1.3.2 h1:qoCSYiO+8GtXBEZWEjw0WPcZfM3g7QuuJrwpN+y6Mvg=
 github.com/ElrondNetwork/protobuf v1.3.2/go.mod h1:SlYgWuQ5SjCEi6WLHjHCa1yvBfUnHcTbrrZtXPKa29o=
 github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
