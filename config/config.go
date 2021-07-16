@@ -168,7 +168,7 @@ type Config struct {
 	GeneralSettings     GeneralSettingsConfig
 	Consensus           ConsensusConfig
 	StoragePruning      StoragePruningConfig
-	TxLogsStorage       StorageConfig
+	LogsAndEvents       LogsAndEventsConfig
 
 	NTPConfig               NTPConfig
 	HeadersPoolConfig       HeadersPoolConfig
@@ -251,6 +251,7 @@ type FacadeConfig struct {
 // StateTriesConfig will hold information about state tries
 type StateTriesConfig struct {
 	CheckpointRoundsModulus     uint
+	CheckpointsEnabled          bool
 	AccountsStatePruningEnabled bool
 	PeerStatePruningEnabled     bool
 	MaxStateTrieLevelInMemory   uint
@@ -388,6 +389,12 @@ type HardforkConfig struct {
 	AfterHardFork                bool
 }
 
+// LogsAndEventsConfig hold the configuration for the logs and events
+type LogsAndEventsConfig struct {
+	SaveInStorageEnabled bool
+	TxLogsStorage        StorageConfig
+}
+
 // DbLookupExtensionsConfig holds the configuration for the db lookup extensions
 type DbLookupExtensionsConfig struct {
 	Enabled                            bool
@@ -402,6 +409,7 @@ type DebugConfig struct {
 	InterceptorResolver InterceptorResolverDebugConfig
 	Antiflood           AntifloodDebugConfig
 	ShuffleOut          ShuffleOutDebugConfig
+	EpochStart          EpochStartDebugConfig
 }
 
 // HealthServiceConfig will hold health service (monitoring) configuration
@@ -437,6 +445,12 @@ type ShuffleOutDebugConfig struct {
 	CallGCWhenShuffleOut    bool
 	ExtraPrintsOnShuffleOut bool
 	DoProfileOnShuffleOut   bool
+}
+
+// EpochStartDebugConfig will hold the epoch debug configuration
+type EpochStartDebugConfig struct {
+	GoRoutineAnalyserEnabled     bool
+	ProcessDataTrieOnCommitEpoch bool
 }
 
 // ApiRoutesConfig holds the configuration related to Rest API routes

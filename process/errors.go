@@ -146,6 +146,9 @@ var ErrNilBlockProcessor = errors.New("nil block processor")
 // ErrNilMarshalizer signals that an operation has been attempted to or with a nil Marshalizer implementation
 var ErrNilMarshalizer = errors.New("nil Marshalizer")
 
+// ErrLogsNotSavedInStorage signals that logs are not save in storage
+var ErrLogsNotSavedInStorage = errors.New("logs are not saved in storage, check config")
+
 // ErrNilNodesConfigProvider signals that an operation has been attempted to or with a nil nodes config provider
 var ErrNilNodesConfigProvider = errors.New("nil nodes config provider")
 
@@ -973,3 +976,6 @@ var ErrNilAccountsDBSyncer = errors.New("nil accounts DB syncer")
 
 // ErrNilCurrentNetworkEpochProvider signals that a nil CurrentNetworkEpochProvider handler has been provided
 var ErrNilCurrentNetworkEpochProvider = errors.New("nil current network epoch provider")
+
+// ErrNilESDTTransferParser signals that a nil ESDT transfer parser has been provider
+var ErrNilESDTTransferParser = errors.New("nil esdt transfer parser")

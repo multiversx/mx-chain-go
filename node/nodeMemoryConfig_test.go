@@ -27,7 +27,7 @@ func TestMemoryConfig(t *testing.T) {
 	plannedMemory += nodeConfig.BlockHeaderStorage.Cache.SizeInBytes
 	plannedMemory += nodeConfig.MetaBlockStorage.Cache.SizeInBytes
 	plannedMemory += nodeConfig.TxStorage.Cache.SizeInBytes
-	plannedMemory += nodeConfig.TxLogsStorage.Cache.SizeInBytes
+	plannedMemory += nodeConfig.LogsAndEvents.TxLogsStorage.Cache.SizeInBytes
 	plannedMemory += nodeConfig.UnsignedTransactionStorage.Cache.SizeInBytes
 	plannedMemory += nodeConfig.RewardTxStorage.Cache.SizeInBytes
 	plannedMemory += nodeConfig.ShardHdrNonceHashStorage.Cache.SizeInBytes
