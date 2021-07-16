@@ -9,9 +9,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var log = logger.GetOrCreate("integrationtests/p2p/peerdisconnecting")
@@ -53,8 +55,11 @@ func TestSeedersDisconnectionWith2AdvertiserAnd3Peers(t *testing.T) {
 			P2pConfig:            p2pConfig,
 			PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 			NodeOperationMode:    p2p.NormalOperation,
+			Marshalizer:          &testscommon.MarshalizerMock{},
+			SyncTimer:            &testscommon.SyncTimerStub{},
 		}
-		node, _ := libp2p.NewMockMessenger(arg, netw)
+		node, err := libp2p.NewMockMessenger(arg, netw)
+		require.Nil(t, err)
 		peers[i] = node
 	}
 
@@ -122,6 +127,8 @@ func createBootstrappedSeeders(baseP2PConfig config.P2PConfig, numSeeders int, n
 		P2pConfig:            p2pConfigSeeder,
 		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 		NodeOperationMode:    p2p.NormalOperation,
+		Marshalizer:          &testscommon.MarshalizerMock{},
+		SyncTimer:            &testscommon.SyncTimerStub{},
 	}
 	seeders[0], _ = libp2p.NewMockMessenger(argSeeder, netw)
 	_ = seeders[0].Bootstrap()
@@ -135,6 +142,8 @@ func createBootstrappedSeeders(baseP2PConfig config.P2PConfig, numSeeders int, n
 			P2pConfig:            p2pConfigSeeder,
 			PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 			NodeOperationMode:    p2p.NormalOperation,
+			Marshalizer:          &testscommon.MarshalizerMock{},
+			SyncTimer:            &testscommon.SyncTimerStub{},
 		}
 		seeders[i], _ = libp2p.NewMockMessenger(argSeeder, netw)
 		_ = netw.LinkAll()
