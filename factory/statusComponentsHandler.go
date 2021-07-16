@@ -13,6 +13,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/statistics/machine"
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/debug/goroutine"
+	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -127,6 +130,8 @@ func (msc *managedStatusComponents) StartPolling() error {
 	if err != nil {
 		return err
 	}
+
+	msc.attachEpochGoRoutineAnalyser()
 
 	return nil
 }
@@ -420,4 +425,24 @@ func registerCpuStatistics(ctx context.Context, appStatusPollingHandler *appStat
 // String returns the name of the component
 func (msc *managedStatusComponents) String() string {
 	return "managedStatusComponents"
+}
+
+func (msc *managedStatusComponents) attachEpochGoRoutineAnalyser() {
+	currentConfig := msc.statusComponentsFactory.config
+	enabledEpochDebug := currentConfig.Debug.EpochStart.GoRoutineAnalyserEnabled
+	log.Debug("attachEpochGoRoutineAnalyser", "GoRoutineAnalyserEnabled", enabledEpochDebug)
+	if enabledEpochDebug {
+		analyser, err := goroutine.NewGoRoutinesAnalyser(goroutine.NewGoRoutinesProcessor())
+
+		if err != nil {
+			log.Debug("attachEpochGoRoutineAnalyser", "error", err)
+			return
+		}
+
+		subscribeHandler := notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {
+			analyser.DumpGoRoutinesToLogWithTypes()
+		}, func(_ data.HeaderHandler) {}, core.NetStatisticsOrder)
+
+		msc.statusComponentsFactory.epochStartNotifier.RegisterHandler(subscribeHandler)
+	}
 }

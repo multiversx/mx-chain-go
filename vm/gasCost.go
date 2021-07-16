@@ -51,6 +51,9 @@ type BuiltInCost struct {
 	ESDTNFTBurn              uint64
 	ESDTNFTTransfer          uint64
 	ESDTNFTChangeCreateOwner uint64
+	ESDTNFTAddUri            uint64
+	ESDTNFTUpdateAttributes  uint64
+	ESDTNFTMultiTransfer     uint64
 }
 
 // GasCost holds all the needed gas costs for system smart contracts

@@ -333,7 +333,7 @@ func TestNewSmartContractProcessor_ShouldRegisterNotifiers(t *testing.T) {
 
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.EpochNotifier = &mock.EpochNotifierStub{
-		RegisterNotifyHandlerCalled: func(handler core.EpochSubscriberHandler) {
+		RegisterNotifyHandlerCalled: func(handler vmcommon.EpochSubscriberHandler) {
 			epochNotifierRegisterCalled = true
 		},
 	}

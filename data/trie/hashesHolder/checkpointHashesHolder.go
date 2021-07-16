@@ -1,6 +1,7 @@
 package hashesHolder
 
 import (
+	"bytes"
 	"sync"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -9,7 +10,8 @@ import (
 )
 
 type checkpointHashesHolder struct {
-	hashes      []map[string]data.ModifiedHashes
+	hashes      []data.ModifiedHashes
+	rootHashes  [][]byte
 	currentSize uint64
 	maxSize     uint64
 	hashSize    uint64
@@ -26,7 +28,8 @@ func NewCheckpointHashesHolder(maxSize uint64, hashSize uint64) *checkpointHashe
 	)
 
 	return &checkpointHashesHolder{
-		hashes:      make([]map[string]data.ModifiedHashes, 0),
+		hashes:      make([]data.ModifiedHashes, 0),
+		rootHashes:  make([][]byte, 0),
 		currentSize: 0,
 		maxSize:     maxSize,
 		hashSize:    hashSize,
@@ -40,12 +43,19 @@ func (c *checkpointHashesHolder) Put(rootHash []byte, hashes data.ModifiedHashes
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
-	newHashes := make(map[string]data.ModifiedHashes)
-	newHashes[string(rootHash)] = hashes
-	c.hashes = append(c.hashes, newHashes)
+	if len(c.rootHashes) != 0 {
+		lastRootHash := c.rootHashes[len(c.rootHashes)-1]
+		if bytes.Equal(lastRootHash, rootHash) {
+			log.Debug("checkpoint hashes holder rootHash did not change")
+			return false
+		}
+	}
 
-	mapSize := getMapSize(newHashes, c.hashSize)
-	c.currentSize = c.currentSize + mapSize
+	c.rootHashes = append(c.rootHashes, rootHash)
+	c.hashes = append(c.hashes, hashes)
+
+	mapSize := getMapSize(hashes, c.hashSize)
+	c.currentSize = c.currentSize + mapSize + uint64(len(rootHash))
 
 	log.Debug("checkpoint hashes holder size after put",
 		"current size", core.ConvertBytes(c.currentSize),
@@ -63,7 +73,8 @@ func (c *checkpointHashesHolder) ShouldCommit(hash []byte) bool {
 	defer c.mutex.RUnlock()
 
 	for _, hashesMap := range c.hashes {
-		if isInMap(hash, hashesMap) {
+		_, found := hashesMap[string(hash)]
+		if found {
 			return true
 		}
 	}
@@ -77,16 +88,19 @@ func (c *checkpointHashesHolder) RemoveCommitted(lastCommittedRootHash []byte) {
 	defer c.mutex.Unlock()
 
 	sizeOfRemovedHashes := uint64(0)
-	for index, hashesMap := range c.hashes {
-		sizeOfRemovedHashes = sizeOfRemovedHashes + getMapSize(hashesMap, c.hashSize)
+	for index, rootHash := range c.rootHashes {
+		mapHashes := c.hashes[index]
+		sizeOfRemovedHashes = sizeOfRemovedHashes + getMapSize(mapHashes, c.hashSize) + uint64(len(rootHash))
 
-		_, ok := hashesMap[string(lastCommittedRootHash)]
-		if !ok {
+		lastCommittedRootHashNotFound := !bytes.Equal(rootHash, lastCommittedRootHash)
+		if lastCommittedRootHashNotFound {
 			continue
 		}
 
 		c.hashes = c.hashes[index+1:]
-		ok = checkCorrectSize(c.currentSize, sizeOfRemovedHashes)
+		c.rootHashes = c.rootHashes[index+1:]
+
+		ok := checkCorrectSize(c.currentSize, sizeOfRemovedHashes)
 		if !ok {
 			c.computeCurrentSize()
 			return
@@ -103,8 +117,8 @@ func (c *checkpointHashesHolder) RemoveCommitted(lastCommittedRootHash []byte) {
 
 func (c *checkpointHashesHolder) computeCurrentSize() {
 	totalSize := uint64(0)
-	for _, hashesMap := range c.hashes {
-		totalSize += getMapSize(hashesMap, c.hashSize)
+	for index, hashesMap := range c.hashes {
+		totalSize += getMapSize(hashesMap, c.hashSize) + uint64(len(c.rootHashes[index]))
 	}
 
 	c.currentSize = totalSize
@@ -120,45 +134,25 @@ func (c *checkpointHashesHolder) Remove(hash []byte) {
 	}
 }
 
-func (c *checkpointHashesHolder) removeHashFromMap(hash []byte, hashesMap map[string]data.ModifiedHashes) {
-	for _, hashes := range hashesMap {
-		_, ok := hashes[string(hash)]
-		if !ok {
-			continue
-		}
-
-		delete(hashes, string(hash))
-
-		ok = checkCorrectSize(c.currentSize, c.hashSize)
-		if !ok {
-			c.computeCurrentSize()
-			continue
-		}
-
-		c.currentSize = c.currentSize - c.hashSize
+func (c *checkpointHashesHolder) removeHashFromMap(hash []byte, hashesMap data.ModifiedHashes) {
+	_, ok := hashesMap[string(hash)]
+	if !ok {
+		return
 	}
+
+	delete(hashesMap, string(hash))
+
+	ok = checkCorrectSize(c.currentSize, c.hashSize)
+	if !ok {
+		c.computeCurrentSize()
+		return
+	}
+
+	c.currentSize -= c.hashSize
 }
 
-func isInMap(hash []byte, hashesMap map[string]data.ModifiedHashes) bool {
-	for _, hashes := range hashesMap {
-		_, ok := hashes[string(hash)]
-		if ok {
-			return true
-		}
-	}
-
-	return false
-}
-
-func getMapSize(hashesMap map[string]data.ModifiedHashes, hashSize uint64) uint64 {
-	mapSize := uint64(0)
-	for key, values := range hashesMap {
-		keySize := uint64(len(key))
-		hashesSize := uint64(len(values)) * hashSize
-		mapSize = mapSize + keySize + hashesSize
-	}
-
-	return mapSize
+func getMapSize(hashesMap data.ModifiedHashes, hashSize uint64) uint64 {
+	return uint64(len(hashesMap)) * hashSize
 }
 
 func checkCorrectSize(currentSize uint64, sizeToRemove uint64) bool {

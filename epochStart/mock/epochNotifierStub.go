@@ -1,10 +1,10 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // EpochNotifierStub -
@@ -12,7 +12,7 @@ type EpochNotifierStub struct {
 	NewEpochCalled              func(epoch uint32)
 	CheckEpochCalled            func(header data.HeaderHandler)
 	CurrentEpochCalled          func() uint32
-	RegisterNotifyHandlerCalled func(handler core.EpochSubscriberHandler)
+	RegisterNotifyHandlerCalled func(handler vmcommon.EpochSubscriberHandler)
 	RegisterHandlerCalled       func(handler epochStart.ActionHandler)
 }
 
@@ -38,7 +38,7 @@ func (ens *EpochNotifierStub) CheckEpoch(header data.HeaderHandler) {
 }
 
 // RegisterNotifyHandler -
-func (ens *EpochNotifierStub) RegisterNotifyHandler(handler core.EpochSubscriberHandler) {
+func (ens *EpochNotifierStub) RegisterNotifyHandler(handler vmcommon.EpochSubscriberHandler) {
 	if ens.RegisterNotifyHandlerCalled != nil {
 		ens.RegisterNotifyHandlerCalled(handler)
 	} else {
