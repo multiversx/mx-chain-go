@@ -19,10 +19,9 @@ type ElasticSearchConfig struct {
 
 // EventNotifierConfig will hold the configuration for the events notifier driver
 type EventNotifierConfig struct {
-	Enabled      bool
-	TcpPort      string
-	Username     string
-	Password     string
-	HubType      string
-	DispatchType string
+	Enabled          bool
+	UseAuthorization bool
+	ProxyUrl         string
+	Username         string
+	Password         string
 }
