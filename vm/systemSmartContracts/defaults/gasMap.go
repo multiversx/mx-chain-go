@@ -1,6 +1,6 @@
 package defaults
 
-import "github.com/ElrondNetwork/elrond-go/core"
+import "github.com/ElrondNetwork/elrond-go-core/core"
 
 // FillGasMapInternal -
 func FillGasMapInternal(gasMap map[string]map[string]uint64, value uint64) map[string]map[string]uint64 {

@@ -8,11 +8,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/appStatusPolling"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/statistics"
-	"github.com/ElrondNetwork/elrond-go/core/statistics/machine"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/appStatusPolling"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/common/statistics"
+	"github.com/ElrondNetwork/elrond-go/common/statistics/machine"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -176,6 +176,7 @@ func (msc *managedStatusComponents) startStatusPolling(ctx context.Context) erro
 	appStatusPollingHandler, err := appStatusPolling.NewAppStatusPolling(
 		msc.statusComponentsFactory.coreComponents.StatusHandler(),
 		time.Duration(msc.statusComponentsFactory.config.GeneralSettings.StatusPollingIntervalSec)*time.Second,
+		log,
 	)
 	if err != nil {
 		return errors.ErrStatusPollingInit
@@ -326,7 +327,7 @@ func registerPollProbableHighestNonce(
 }
 
 func (msc *managedStatusComponents) startMachineStatisticsPolling(ctx context.Context) error {
-	appStatusPollingHandler, err := appStatusPolling.NewAppStatusPolling(msc.statusComponentsFactory.coreComponents.StatusHandler(), time.Second)
+	appStatusPollingHandler, err := appStatusPolling.NewAppStatusPolling(msc.statusComponentsFactory.coreComponents.StatusHandler(), time.Second, log)
 	if err != nil {
 		return fmt.Errorf("%w, cannot init AppStatusPolling", err)
 	}

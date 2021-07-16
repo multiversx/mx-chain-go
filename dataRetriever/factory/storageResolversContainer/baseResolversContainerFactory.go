@@ -3,20 +3,20 @@ package storageResolversContainers
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/endProcess"
-	trieFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/storageResolvers"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
+	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 )
 
 const defaultBeforeGracefulClose = time.Minute
@@ -190,7 +190,7 @@ func (brcf *baseResolversContainerFactory) createMiniBlocksResolver(responseTopi
 
 func (brcf *baseResolversContainerFactory) newImportDBTrieStorage(
 	trieStorageConfig config.StorageConfig,
-) (data.StorageManager, dataRetriever.TrieDataGetter, error) {
+) (temporary.StorageManager, dataRetriever.TrieDataGetter, error) {
 	pathManager, err := storageFactory.CreatePathManager(
 		storageFactory.ArgCreatePathManager{
 			WorkingDir: brcf.workingDir,

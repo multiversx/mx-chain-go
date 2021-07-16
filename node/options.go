@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -32,7 +32,7 @@ func WithBootstrapComponents(bootstrapComponents factory.BootstrapComponentsHand
 	}
 }
 
-// WithCoreComponents sets up the Node core components
+// WithCoreComponents sets up the Node common components
 func WithCoreComponents(coreComponents factory.CoreComponentsHandler) Option {
 	return func(n *Node) error {
 		if check.IfNil(coreComponents) {

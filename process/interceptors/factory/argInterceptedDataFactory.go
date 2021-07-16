@@ -1,16 +1,16 @@
 package factory
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-// interceptedDataCoreComponentsHolder holds the core components required by the intercepted data factory
+// interceptedDataCoreComponentsHolder holds the common components required by the intercepted data factory
 type interceptedDataCoreComponentsHolder interface {
 	InternalMarshalizer() marshal.Marshalizer
 	TxMarshalizer() marshal.Marshalizer

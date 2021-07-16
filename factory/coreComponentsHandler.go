@@ -7,13 +7,13 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -24,14 +24,14 @@ var _ ComponentHandler = (*managedCoreComponents)(nil)
 var _ CoreComponentsHolder = (*managedCoreComponents)(nil)
 var _ CoreComponentsHandler = (*managedCoreComponents)(nil)
 
-// managedCoreComponents is an implementation of core components handler that can create, close and access the core components
+// managedCoreComponents is an implementation of common components handler that can create, close and access the common components
 type managedCoreComponents struct {
 	coreComponentsFactory *coreComponentsFactory
 	*coreComponents
 	mutCoreComponents sync.RWMutex
 }
 
-// NewManagedCoreComponents creates a new core components handler implementation
+// NewManagedCoreComponents creates a new common components handler implementation
 func NewManagedCoreComponents(ccf *coreComponentsFactory) (*managedCoreComponents, error) {
 	if ccf == nil {
 		return nil, errors.ErrNilCoreComponentsFactory
@@ -44,7 +44,7 @@ func NewManagedCoreComponents(ccf *coreComponentsFactory) (*managedCoreComponent
 	return mcc, nil
 }
 
-// Create creates the core components
+// Create creates the common components
 func (mcc *managedCoreComponents) Create() error {
 	cc, err := mcc.coreComponentsFactory.Create()
 	if err != nil {
@@ -58,7 +58,7 @@ func (mcc *managedCoreComponents) Create() error {
 	return nil
 }
 
-// Close closes the managed core components
+// Close closes the managed common components
 func (mcc *managedCoreComponents) Close() error {
 	mcc.mutCoreComponents.Lock()
 	defer mcc.mutCoreComponents.Unlock()
@@ -151,7 +151,7 @@ func (mcc *managedCoreComponents) CheckSubcomponents() error {
 	return nil
 }
 
-// InternalMarshalizer returns the core components internal marshalizer
+// InternalMarshalizer returns the common components internal marshalizer
 func (mcc *managedCoreComponents) InternalMarshalizer() marshal.Marshalizer {
 	mcc.mutCoreComponents.RLock()
 	defer mcc.mutCoreComponents.RUnlock()
@@ -177,7 +177,7 @@ func (mcc *managedCoreComponents) SetInternalMarshalizer(m marshal.Marshalizer) 
 	return nil
 }
 
-// TxMarshalizer returns the core components tx marshalizer
+// TxMarshalizer returns the common components tx marshalizer
 func (mcc *managedCoreComponents) TxMarshalizer() marshal.Marshalizer {
 	mcc.mutCoreComponents.RLock()
 	defer mcc.mutCoreComponents.RUnlock()
@@ -189,7 +189,7 @@ func (mcc *managedCoreComponents) TxMarshalizer() marshal.Marshalizer {
 	return mcc.coreComponents.txSignMarshalizer
 }
 
-// VmMarshalizer returns the core components vm marshalizer
+// VmMarshalizer returns the common components vm marshalizer
 func (mcc *managedCoreComponents) VmMarshalizer() marshal.Marshalizer {
 	mcc.mutCoreComponents.RLock()
 	defer mcc.mutCoreComponents.RUnlock()
@@ -201,7 +201,7 @@ func (mcc *managedCoreComponents) VmMarshalizer() marshal.Marshalizer {
 	return mcc.coreComponents.vmMarshalizer
 }
 
-// Hasher returns the core components Hasher
+// Hasher returns the common components Hasher
 func (mcc *managedCoreComponents) Hasher() hashing.Hasher {
 	mcc.mutCoreComponents.RLock()
 	defer mcc.mutCoreComponents.RUnlock()
@@ -213,7 +213,7 @@ func (mcc *managedCoreComponents) Hasher() hashing.Hasher {
 	return mcc.coreComponents.hasher
 }
 
-// TxSignHasher returns the core components hasher to be used for signed transaction hashes
+// TxSignHasher returns the common components hasher to be used for signed transaction hashes
 func (mcc *managedCoreComponents) TxSignHasher() hashing.Hasher {
 	mcc.mutCoreComponents.RLock()
 	defer mcc.mutCoreComponents.RUnlock()
@@ -225,7 +225,7 @@ func (mcc *managedCoreComponents) TxSignHasher() hashing.Hasher {
 	return mcc.coreComponents.txSignHasher
 }
 
-// Uint64ByteSliceConverter returns the core component converter between a byte slice and uint64
+// Uint64ByteSliceConverter returns the common component converter between a byte slice and uint64
 func (mcc *managedCoreComponents) Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter {
 	mcc.mutCoreComponents.RLock()
 	defer mcc.mutCoreComponents.RUnlock()
@@ -261,7 +261,7 @@ func (mcc *managedCoreComponents) ValidatorPubKeyConverter() core.PubkeyConverte
 	return mcc.coreComponents.validatorPubKeyConverter
 }
 
-// StatusHandlerUtils returns the core components status handler utils
+// StatusHandlerUtils returns the common components status handler utils
 func (mcc *managedCoreComponents) StatusHandlerUtils() factory.StatusHandlersUtils {
 	mcc.mutCoreComponents.RLock()
 	defer mcc.mutCoreComponents.RUnlock()
@@ -285,7 +285,7 @@ func (mcc *managedCoreComponents) StatusHandler() core.AppStatusHandler {
 	return mcc.coreComponents.statusHandlersUtils.StatusHandler()
 }
 
-// PathHandler returns the core components path handler
+// PathHandler returns the common components path handler
 func (mcc *managedCoreComponents) PathHandler() storage.PathManagerHandler {
 	mcc.mutCoreComponents.RLock()
 	defer mcc.mutCoreComponents.RUnlock()
@@ -297,7 +297,7 @@ func (mcc *managedCoreComponents) PathHandler() storage.PathManagerHandler {
 	return mcc.coreComponents.pathHandler
 }
 
-// ChainID returns the core components chainID
+// ChainID returns the common components chainID
 func (mcc *managedCoreComponents) ChainID() string {
 	mcc.mutCoreComponents.RLock()
 	defer mcc.mutCoreComponents.RUnlock()

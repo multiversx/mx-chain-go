@@ -1,6 +1,6 @@
 package factory
 
-import "github.com/ElrondNetwork/elrond-go/data/trie"
+import "github.com/ElrondNetwork/elrond-go/trie"
 
 type trieNodeFactory struct {
 }

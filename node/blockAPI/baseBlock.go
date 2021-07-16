@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/data/api"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go/common/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 )
 
 // BlockStatus is the status of a block
@@ -33,8 +33,8 @@ type baseAPIBockProcessor struct {
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	historyRepo              dblookupext.HistoryRepository
 	// TODO: use an interface instead of this function
-	unmarshalTx              func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
-	txStatusComputer         transaction.StatusComputerHandler
+	unmarshalTx      func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
+	txStatusComputer transaction.StatusComputerHandler
 }
 
 var log = logger.GetOrCreate("node/blockAPI")

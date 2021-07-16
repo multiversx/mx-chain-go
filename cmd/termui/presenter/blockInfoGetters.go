@@ -1,7 +1,7 @@
 package presenter
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 )
 
 // GetNumTxInBlock will return how many transactions are in block

@@ -4,20 +4,20 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	factoryState "github.com/ElrondNetwork/elrond-go/data/state/factory"
-	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager/disabled"
-	"github.com/ElrondNetwork/elrond-go/data/trie"
-	trieFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
+	"github.com/ElrondNetwork/elrond-go/state"
+	factoryState "github.com/ElrondNetwork/elrond-go/state/factory"
+	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/disabled"
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/trie"
+	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
@@ -79,7 +79,7 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	memDBMock := mock.NewMemDbMock()
 	storageManager, _ := trie.NewTrieStorageManagerWithoutPruning(memDBMock)
 
-	trieStorageManagers := make(map[string]data.StorageManager)
+	trieStorageManagers := make(map[string]temporary.StorageManager)
 	trieStorageManagers[trieFactory.UserAccountTrie] = storageManager
 	trieStorageManagers[trieFactory.PeerAccountTrie] = storageManager
 
@@ -114,7 +114,7 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 		TriesContainerCalled: func() state.TriesHolder {
 			return &mock.TriesHolderStub{}
 		},
-		TrieStorageManagersCalled: func() map[string]data.StorageManager {
+		TrieStorageManagersCalled: func() map[string]temporary.StorageManager {
 			return trieStorageManagers
 		},
 	}
@@ -158,7 +158,7 @@ func createAccountAdapter(
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	accountFactory state.AccountFactory,
-	trieStorage data.StorageManager,
+	trieStorage temporary.StorageManager,
 ) (state.AccountsAdapter, error) {
 	tr, err := trie.NewTrie(trieStorage, marshalizer, hasher, 5)
 	if err != nil {

@@ -3,11 +3,12 @@ package blockAPI
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/txstatus"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/stretchr/testify/assert"
@@ -35,7 +36,7 @@ func createMockArgumentsWithTx(
 			}
 		},
 	}
-	statusComputer, _ := transaction.NewStatusComputer(srcShardID, mock.NewNonceHashConverterMock(), storerMock)
+	statusComputer, _ := txstatus.NewStatusComputer(srcShardID, mock.NewNonceHashConverterMock(), storerMock)
 	return baseAPIBockProcessor{
 		selfShardID: srcShardID,
 		marshalizer: marshalizer,

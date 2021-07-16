@@ -6,10 +6,10 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/facade"
-	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/trieIterators"
 	trieIteratorsFactory "github.com/ElrondNetwork/elrond-go/node/trieIterators/factory"
@@ -329,7 +329,7 @@ func createBuiltinFuncs(
 	marshalizer marshal.Marshalizer,
 	accnts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
-	epochNotifier core.EpochNotifier,
+	epochNotifier vmcommon.EpochNotifier,
 	esdtMultiTransferEnableEpoch uint32,
 ) (vmcommon.BuiltInFunctionContainer, error) {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{

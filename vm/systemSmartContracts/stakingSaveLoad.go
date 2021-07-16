@@ -4,7 +4,7 @@ import (
 	"math"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 )
 
 func (s *stakingSC) getConfig() *StakingNodesConfig {

@@ -5,15 +5,16 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/closing"
+	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/closing"
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
@@ -33,7 +34,7 @@ func CreateShardCoordinator(
 		nodeType = core.NodeTypeObserver
 		log.Info("starting as observer node")
 
-		selfShardId, err = core.ProcessDestinationShardAsObserver(prefsConfig.DestinationShardAsObserver)
+		selfShardId, err = common.ProcessDestinationShardAsObserver(prefsConfig.DestinationShardAsObserver)
 		if err != nil {
 			return nil, "", err
 		}
@@ -44,7 +45,7 @@ func CreateShardCoordinator(
 				return nil, core.NodeTypeObserver, fmt.Errorf("%w while assigning random shard ID for observer", err)
 			}
 
-			selfShardId = core.AssignShardForPubKeyWhenNotSpecified(pubKeyBytes, nodesConfig.NumberOfShards())
+			selfShardId = common.AssignShardForPubKeyWhenNotSpecified(pubKeyBytes, nodesConfig.NumberOfShards())
 		}
 	}
 	if err != nil {
@@ -107,7 +108,7 @@ func CreateNodesCoordinator(
 	if chanNodeStop == nil {
 		return nil, sharding.ErrNilNodeStopChannel
 	}
-	shardIDAsObserver, err := core.ProcessDestinationShardAsObserver(prefsConfig.DestinationShardAsObserver)
+	shardIDAsObserver, err := common.ProcessDestinationShardAsObserver(prefsConfig.DestinationShardAsObserver)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +119,7 @@ func CreateNodesCoordinator(
 			return nil, fmt.Errorf("%w while assigning random shard ID for observer", err)
 		}
 
-		shardIDAsObserver = core.AssignShardForPubKeyWhenNotSpecified(pubKeyBytes, nodesConfig.NumberOfShards())
+		shardIDAsObserver = common.AssignShardForPubKeyWhenNotSpecified(pubKeyBytes, nodesConfig.NumberOfShards())
 	}
 
 	nbShards := nodesConfig.NumberOfShards()
@@ -239,6 +240,7 @@ func CreateNodesShuffleOut(
 		minDurationInterval,
 		maxDurationInterval,
 		chanStopNodeProcess,
+		log,
 	)
 	if err != nil {
 		return nil, err

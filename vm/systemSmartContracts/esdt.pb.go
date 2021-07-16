@@ -6,7 +6,7 @@ package systemSmartContracts
 import (
 	bytes "bytes"
 	fmt "fmt"
-	github_com_ElrondNetwork_elrond_go_data "github.com/ElrondNetwork/elrond-go/data"
+	github_com_ElrondNetwork_elrond_go_data "github.com/ElrondNetwork/elrond-go-core/data"
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
 	io "io"

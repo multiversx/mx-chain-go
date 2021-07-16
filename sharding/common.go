@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 )
 
 var log = logger.GetOrCreate("sharding")

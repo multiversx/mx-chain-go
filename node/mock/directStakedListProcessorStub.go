@@ -1,6 +1,6 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/data/api"
+import "github.com/ElrondNetwork/elrond-go-core/data/api"
 
 // DirectStakedListProcessorStub -
 type DirectStakedListProcessorStub struct {

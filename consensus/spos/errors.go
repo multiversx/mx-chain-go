@@ -29,7 +29,7 @@ var ErrNilMultiSigner = errors.New("multiSigner is nil")
 var ErrNilConsensusState = errors.New("consensus state is nil")
 
 // ErrNilConsensusCore is raised when a valid ConsensusCore is expected but nil used
-var ErrNilConsensusCore = errors.New("consensus core is nil")
+var ErrNilConsensusCore = errors.New("consensus common is nil")
 
 // ErrNilConsensusService is raised when a valid ConsensusService is expected but nil used
 var ErrNilConsensusService = errors.New("consensus service is nil")

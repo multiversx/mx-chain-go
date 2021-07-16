@@ -9,7 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/config"
-	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
+	dataTransaction "github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	nodeFacade "github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/node/external"

@@ -5,17 +5,18 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
+	"github.com/ElrondNetwork/elrond-go-core/core/mock"
+	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519/singlesig"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
-	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/stretchr/testify/require"
 )
 
-var addressEncoder, _ = pubkeyConverter.NewBech32PubkeyConverter(32)
+var addressEncoder, _ = pubkeyConverter.NewBech32PubkeyConverter(32, &mock.LoggerFake{})
 var signingMarshalizer = &marshal.JsonMarshalizer{}
 var signer = &singlesig.Ed25519Signer{}
 var signingCryptoSuite = ed25519.NewEd25519()

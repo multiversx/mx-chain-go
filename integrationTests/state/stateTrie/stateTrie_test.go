@@ -16,26 +16,26 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	transaction2 "github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/state/factory"
-	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager"
-	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager/evictionWaitingList"
-	transaction2 "github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/data/trie"
-	factory2 "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/state/factory"
+	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager"
+	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/trie"
+	factory2 "github.com/ElrondNetwork/elrond-go/trie/factory"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1047,7 +1047,7 @@ func createAccounts(
 	nrOfAccounts int,
 	balance int,
 	persist storage.Persister,
-) (*state.AccountsDB, [][]byte, data.Trie) {
+) (*state.AccountsDB, [][]byte, temporary.Trie) {
 	cache, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 10, Shards: 1, SizeInBytes: 0})
 	store, _ := storageUnit.NewStorageUnit(cache, persist)
 	evictionWaitListSize := uint(100)
@@ -1158,7 +1158,7 @@ func TestTrieDbPruning_GetAccountAfterPruning(t *testing.T) {
 	_ = account.(state.UserAccountHandler).AddToBalance(big.NewInt(1))
 	_ = adb.SaveAccount(account)
 	rootHash2, _ := adb.Commit()
-	adb.PruneTrie(rootHash1, data.OldRoot)
+	adb.PruneTrie(rootHash1, temporary.OldRoot)
 
 	err := adb.RecreateTrie(rootHash2)
 	assert.Nil(t, err)
@@ -1276,7 +1276,7 @@ func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 	_ = adb.SaveAccount(state2)
 
 	newRootHash, _ := adb.Commit()
-	adb.PruneTrie(oldRootHash, data.OldRoot)
+	adb.PruneTrie(oldRootHash, temporary.OldRoot)
 
 	err := adb.RecreateTrie(newRootHash)
 	assert.Nil(t, err)

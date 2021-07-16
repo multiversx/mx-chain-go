@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/cmd/termui/view"
-	"github.com/ElrondNetwork/elrond-go/core"
 	ui "github.com/gizak/termui/v3"
 	"github.com/gizak/termui/v3/widgets"
 )
@@ -163,7 +163,7 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 
 	// TODO: repair the rewards estimation or replace these 2 rows with rating details
 	//switch instanceType {
-	//case string(core.NodeTypeValidator):
+	//case string(common.NodeTypeValidator):
 	//	rewardsPerHour := wr.presenter.CalculateRewardsPerHour()
 	//	rows[5] = []string{fmt.Sprintf("Rewards estimation: %s ERD/h (without fees)", rewardsPerHour)}
 	//

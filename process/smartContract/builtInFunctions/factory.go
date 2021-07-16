@@ -1,10 +1,10 @@
 package builtInFunctions
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -19,7 +19,7 @@ type ArgsCreateBuiltInFunctionContainer struct {
 	Marshalizer                  marshal.Marshalizer
 	Accounts                     state.AccountsAdapter
 	ShardCoordinator             sharding.Coordinator
-	EpochNotifier                core.EpochNotifier
+	EpochNotifier                vmcommon.EpochNotifier
 	ESDTMultiTransferEnableEpoch uint32
 }
 

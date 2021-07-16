@@ -5,7 +5,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 )
 
 // statusMetrics will handle displaying at /node/details all metrics already collected for other status handlers

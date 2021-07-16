@@ -13,20 +13,20 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/closing"
+	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/api/gin"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
+	dbLookupFactory "github.com/ElrondNetwork/elrond-go/common/dblookupext/factory"
+	"github.com/ElrondNetwork/elrond-go/common/forking"
+	"github.com/ElrondNetwork/elrond-go/common/statistics"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/closing"
-	dbLookupFactory "github.com/ElrondNetwork/elrond-go/core/dblookupext/factory"
-	"github.com/ElrondNetwork/elrond-go/core/forking"
-	"github.com/ElrondNetwork/elrond-go/core/statistics"
-	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/facade/disabled"
@@ -93,7 +93,7 @@ func (nr *nodeRunner) Start() error {
 
 	printEnableEpochs(nr.configs)
 
-	core.DumpGoRoutinesToLog(0)
+	core.DumpGoRoutinesToLog(0, log)
 
 	err = nr.startShufflingProcessLoop(chanStopNodeProcess)
 	if err != nil {
@@ -199,7 +199,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	flagsConfig := configs.FlagsConfig
 	configurationPaths := configs.ConfigurationPathsHolder
 
-	log.Debug("creating core components")
+	log.Debug("creating common components")
 	managedCoreComponents, err := nr.CreateManagedCoreComponents(
 		chanStopNodeProcess,
 	)
@@ -726,7 +726,7 @@ func waitForSignal(
 
 	if reshuffled {
 		log.Info("=============================" + SoftRestartMessage + "==================================")
-		core.DumpGoRoutinesToLog(goRoutinesNumberStart)
+		core.DumpGoRoutinesToLog(goRoutinesNumberStart, log)
 
 		return nil
 	}
@@ -1128,7 +1128,7 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 	return managedNetworkComponents, nil
 }
 
-// CreateManagedCoreComponents is the managed core components factory
+// CreateManagedCoreComponents is the managed common components factory
 func (nr *nodeRunner) CreateManagedCoreComponents(
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 ) (mainFactory.CoreComponentsHandler, error) {

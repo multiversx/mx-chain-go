@@ -3,8 +3,8 @@ package metachain
 import (
 	"encoding/json"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 )
 
 // TriggerRegistry holds the data required to correctly initialize the trigger when booting from saved state

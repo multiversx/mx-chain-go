@@ -7,13 +7,14 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
+	"github.com/ElrondNetwork/elrond-go-core/core/mock"
+	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519/singlesig"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -69,7 +70,7 @@ func TestTxDataFieldContainingUTF8Characters(t *testing.T) {
 
 func sign(tx *transaction.Transaction, signer crypto.SingleSigner, sk crypto.PrivateKey) []byte {
 	marshalizer := &marshal.JsonMarshalizer{}
-	converter, _ := pubkeyConverter.NewBech32PubkeyConverter(32)
+	converter, _ := pubkeyConverter.NewBech32PubkeyConverter(32, &mock.LoggerFake{})
 
 	ftx := &transaction.FrontendTransaction{
 		Nonce:            tx.Nonce,

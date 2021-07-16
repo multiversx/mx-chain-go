@@ -3,7 +3,7 @@ package processor
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 )
 
 // InterceptedTransactionHandler defines an intercepted data wrapper over transaction handler that has

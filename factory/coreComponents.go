@@ -5,38 +5,38 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/alarm"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/nodetype"
+	"github.com/ElrondNetwork/elrond-go-core/core/versioning"
+	"github.com/ElrondNetwork/elrond-go-core/core/watchdog"
+	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters/uint64ByteSlice"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	hasherFactory "github.com/ElrondNetwork/elrond-go-core/hashing/factory"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	marshalizerFactory "github.com/ElrondNetwork/elrond-go-core/marshal/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
+	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/alarm"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/forking"
-	"github.com/ElrondNetwork/elrond-go/core/nodetype"
-	"github.com/ElrondNetwork/elrond-go/core/versioning"
-	"github.com/ElrondNetwork/elrond-go/core/watchdog"
-	"github.com/ElrondNetwork/elrond-go/data/endProcess"
-	stateFactory "github.com/ElrondNetwork/elrond-go/data/state/factory"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	hasherFactory "github.com/ElrondNetwork/elrond-go/hashing/factory"
-	"github.com/ElrondNetwork/elrond-go/marshal"
-	marshalizerFactory "github.com/ElrondNetwork/elrond-go/marshal/factory"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	stateFactory "github.com/ElrondNetwork/elrond-go/state/factory"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 )
 
-// CoreComponentsFactoryArgs holds the arguments needed for creating a core components factory
+// CoreComponentsFactoryArgs holds the arguments needed for creating a common components factory
 type CoreComponentsFactoryArgs struct {
 	Config                config.Config
 	ConfigPathsHolder     config.ConfigurationPathsHolder
@@ -50,7 +50,7 @@ type CoreComponentsFactoryArgs struct {
 	StatusHandlersFactory factory.StatusHandlerUtilsFactory
 }
 
-// coreComponentsFactory is responsible for creating the core components
+// coreComponentsFactory is responsible for creating the common components
 type coreComponentsFactory struct {
 	config                config.Config
 	configPathsHolder     config.ConfigurationPathsHolder
@@ -64,7 +64,7 @@ type coreComponentsFactory struct {
 	statusHandlersFactory factory.StatusHandlerUtilsFactory
 }
 
-// coreComponents is the DTO used for core components
+// coreComponents is the DTO used for common components
 type coreComponents struct {
 	hasher                        hashing.Hasher
 	txSignHasher                  hashing.Hasher
@@ -96,7 +96,7 @@ type coreComponents struct {
 	encodedAddressLen             uint32
 }
 
-// NewCoreComponentsFactory initializes the factory which is responsible to creating core components
+// NewCoreComponentsFactory initializes the factory which is responsible to creating common components
 func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) (*coreComponentsFactory, error) {
 	return &coreComponentsFactory{
 		config:                args.Config,
@@ -112,7 +112,7 @@ func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) (*coreComponentsFa
 	}, nil
 }
 
-// Create creates the core components
+// Create creates the common components
 func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	hasher, err := hasherFactory.NewHasher(ccf.config.Hasher.Type)
 	if err != nil {
@@ -211,7 +211,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	}
 
 	alarmScheduler := alarm.NewAlarmScheduler()
-	watchdogTimer, err := watchdog.NewWatchdog(alarmScheduler, ccf.chanStopNodeProcess)
+	watchdogTimer, err := watchdog.NewWatchdog(alarmScheduler, ccf.chanStopNodeProcess, log)
 	if err != nil {
 		return nil, err
 	}

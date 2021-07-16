@@ -3,8 +3,8 @@ package dblookupext
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/common/dblookupext"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 )
 
 // HistoryRepositoryStub -
