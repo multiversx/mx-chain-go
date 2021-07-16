@@ -33,6 +33,9 @@ func TestSeedersDisconnectionWith2AdvertiserAnd3Peers(t *testing.T) {
 		MaxCrossShardObservers:  1,
 		MaxSeeders:              3,
 		Type:                    p2p.ListsSharder,
+		AdditionalConnections: config.AdditionalConnectionsConfig{
+			MaxFullHistoryObservers: 0,
+		},
 	}
 	p2pConfig.Node.ThresholdMinConnectedPeers = 3
 
@@ -49,6 +52,7 @@ func TestSeedersDisconnectionWith2AdvertiserAnd3Peers(t *testing.T) {
 			ListenAddress:        libp2p.ListenLocalhostAddrWithIp4AndTcp,
 			P2pConfig:            p2pConfig,
 			PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+			NodeOperationMode:    p2p.NormalOperation,
 		}
 		node, _ := libp2p.NewMockMessenger(arg, netw)
 		peers[i] = node
@@ -117,6 +121,7 @@ func createBootstrappedSeeders(baseP2PConfig config.P2PConfig, numSeeders int, n
 		ListenAddress:        libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:            p2pConfigSeeder,
 		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+		NodeOperationMode:    p2p.NormalOperation,
 	}
 	seeders[0], _ = libp2p.NewMockMessenger(argSeeder, netw)
 	_ = seeders[0].Bootstrap()
@@ -129,6 +134,7 @@ func createBootstrappedSeeders(baseP2PConfig config.P2PConfig, numSeeders int, n
 			ListenAddress:        libp2p.ListenLocalhostAddrWithIp4AndTcp,
 			P2pConfig:            p2pConfigSeeder,
 			PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+			NodeOperationMode:    p2p.NormalOperation,
 		}
 		seeders[i], _ = libp2p.NewMockMessenger(argSeeder, netw)
 		_ = netw.LinkAll()

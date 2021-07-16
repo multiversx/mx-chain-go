@@ -38,8 +38,10 @@ func TestPeerDisconnectionWithOneAdvertiserWithShardingWithLists(t *testing.T) {
 		MaxIntraShardObservers:  1,
 		MaxCrossShardObservers:  1,
 		MaxSeeders:              1,
-		MaxFullHistoryObservers: 1,
 		Type:                    p2p.ListsSharder,
+		AdditionalConnections: config.AdditionalConnectionsConfig{
+			MaxFullHistoryObservers: 1,
+		},
 	}
 	p2pConfig.Node.ThresholdMinConnectedPeers = 3
 
@@ -59,6 +61,7 @@ func testPeerDisconnectionWithOneAdvertiser(t *testing.T, p2pConfig config.P2PCo
 		ListenAddress:        libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:            p2pConfigSeeder,
 		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+		NodeOperationMode:    p2p.NormalOperation,
 	}
 	//Step 1. Create advertiser
 	advertiser, _ := libp2p.NewMockMessenger(argSeeder, netw)
