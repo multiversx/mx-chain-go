@@ -217,6 +217,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		Marshalizer:      marshalizer,
 		Accounts:         context.Accounts,
 		ShardCoordinator: oneShardCoordinator,
+		EpochNotifier:    context.EpochNotifier,
 	}
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	require.Nil(context.T, err)
@@ -279,12 +280,14 @@ func (context *TestContext) initVMAndBlockchainHook() {
 }
 
 func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
+	esdtTransferParser, _ := parsers.NewESDTTransferParser(marshalizer)
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:  pkConverter,
-		ShardCoordinator: oneShardCoordinator,
-		BuiltInFuncNames: context.BlockchainHook.GetBuiltinFunctionNames(),
-		ArgumentParser:   parsers.NewCallArgsParser(),
-		EpochNotifier:    forking.NewGenericEpochNotifier(),
+		PubkeyConverter:    pkConverter,
+		ShardCoordinator:   oneShardCoordinator,
+		BuiltInFunctions:   context.BlockchainHook.GetBuiltinFunctionsContainer(),
+		ArgumentParser:     parsers.NewCallArgsParser(),
+		EpochNotifier:      forking.NewGenericEpochNotifier(),
+		ESDTTransferParser: esdtTransferParser,
 	}
 
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)

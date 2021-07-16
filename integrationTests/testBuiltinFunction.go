@@ -18,6 +18,11 @@ func (bf *TestBuiltinFunction) ProcessBuiltinFunction(acntSnd, acntDst vmcommon.
 func (bf *TestBuiltinFunction) SetNewGasConfig(_ *vmcommon.GasCost) {
 }
 
+// IsActive -
+func (bf *TestBuiltinFunction) IsActive() bool {
+	return true
+}
+
 // IsInterfaceNil --
 func (bf *TestBuiltinFunction) IsInterfaceNil() bool {
 	return bf == nil

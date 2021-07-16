@@ -12,17 +12,20 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/assert"
 )
 
 func createMockArguments() ArgNewTxTypeHandler {
+	esdtTransferParser, _ := parsers.NewESDTTransferParser(&mock.MarshalizerMock{})
 	return ArgNewTxTypeHandler{
-		PubkeyConverter:  createMockPubkeyConverter(),
-		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(3),
-		BuiltInFuncNames: make(map[string]struct{}),
-		ArgumentParser:   parsers.NewCallArgsParser(),
-		EpochNotifier:    &mock.EpochNotifierStub{},
+		PubkeyConverter:    createMockPubkeyConverter(),
+		ShardCoordinator:   mock.NewMultiShardsCoordinatorMock(3),
+		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
+		ArgumentParser:     parsers.NewCallArgsParser(),
+		EpochNotifier:      &mock.EpochNotifierStub{},
+		ESDTTransferParser: esdtTransferParser,
 	}
 }
 
@@ -67,7 +70,7 @@ func TestNewTxTypeHandler_NilBuiltInFuncs(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArguments()
-	arg.BuiltInFuncNames = nil
+	arg.BuiltInFunctions = nil
 	tth, err := NewTxTypeHandler(arg)
 
 	assert.Nil(t, tth)
@@ -176,9 +179,9 @@ func TestTxTypeHandler_ComputeTransactionTypeBuiltInFunctionCallNftTransfer(t *t
 	t.Parallel()
 
 	arg := createMockArguments()
-	arg.BuiltInFuncNames = map[string]struct{}{
-		core.BuiltInFunctionESDTNFTTransfer: {},
-	}
+	arg.BuiltInFunctions = builtInFunctions.NewBuiltInFunctionContainer()
+	_ = arg.BuiltInFunctions.Add(core.BuiltInFunctionESDTNFTTransfer, &mock.BuiltInFunctionStub{})
+
 	tth, err := NewTxTypeHandler(arg)
 
 	assert.NotNil(t, tth)
@@ -211,9 +214,10 @@ func TestTxTypeHandler_ComputeTransactionTypeBuiltInFunctionCallEsdtTransfer(t *
 	t.Parallel()
 
 	arg := createMockArguments()
-	arg.BuiltInFuncNames = map[string]struct{}{
-		core.BuiltInFunctionESDTTransfer: {},
-	}
+
+	arg.BuiltInFunctions = builtInFunctions.NewBuiltInFunctionContainer()
+	_ = arg.BuiltInFunctions.Add(core.BuiltInFunctionESDTTransfer, &mock.BuiltInFunctionStub{})
+
 	tth, err := NewTxTypeHandler(arg)
 
 	assert.NotNil(t, tth)
@@ -320,7 +324,8 @@ func TestTxTypeHandler_ComputeTransactionTypeBuiltInFunc(t *testing.T) {
 		},
 	}
 	builtIn := "builtIn"
-	arg.BuiltInFuncNames[builtIn] = struct{}{}
+	arg.BuiltInFunctions = builtInFunctions.NewBuiltInFunctionContainer()
+	_ = arg.BuiltInFunctions.Add(builtIn, &mock.BuiltInFunctionStub{})
 	tth, err := NewTxTypeHandler(arg)
 
 	assert.NotNil(t, tth)
@@ -329,6 +334,68 @@ func TestTxTypeHandler_ComputeTransactionTypeBuiltInFunc(t *testing.T) {
 	txTypeIn, txTypeCross := tth.ComputeTransactionType(tx)
 	assert.Equal(t, process.BuiltInFunctionCall, txTypeIn)
 	assert.Equal(t, process.BuiltInFunctionCall, txTypeCross)
+}
+
+func TestTxTypeHandler_ComputeTransactionTypeBuiltInFuncNotActiveMoveBalance(t *testing.T) {
+	t.Parallel()
+
+	tx := &transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("000")
+	tx.RcvAddr = []byte("001")
+	tx.Data = []byte("builtIn")
+	tx.Value = big.NewInt(45)
+
+	arg := createMockArguments()
+	arg.PubkeyConverter = &mock.PubkeyConverterStub{
+		LenCalled: func() int {
+			return len(tx.RcvAddr)
+		},
+	}
+	builtIn := "builtIn"
+	arg.BuiltInFunctions = builtInFunctions.NewBuiltInFunctionContainer()
+	_ = arg.BuiltInFunctions.Add(builtIn, &mock.BuiltInFunctionStub{IsActiveCalled: func() bool {
+		return false
+	}})
+	tth, err := NewTxTypeHandler(arg)
+
+	assert.NotNil(t, tth)
+	assert.Nil(t, err)
+
+	txTypeIn, txTypeCross := tth.ComputeTransactionType(tx)
+	assert.Equal(t, process.MoveBalance, txTypeIn)
+	assert.Equal(t, process.MoveBalance, txTypeCross)
+}
+
+func TestTxTypeHandler_ComputeTransactionTypeBuiltInFuncNotActiveSCCall(t *testing.T) {
+	t.Parallel()
+
+	tx := &transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("000")
+	tx.RcvAddr = vmcommon.ESDTSCAddress
+	tx.Data = []byte("builtIn")
+	tx.Value = big.NewInt(45)
+
+	arg := createMockArguments()
+	arg.PubkeyConverter = &mock.PubkeyConverterStub{
+		LenCalled: func() int {
+			return len(tx.RcvAddr)
+		},
+	}
+	builtIn := "builtIn"
+	arg.BuiltInFunctions = builtInFunctions.NewBuiltInFunctionContainer()
+	_ = arg.BuiltInFunctions.Add(builtIn, &mock.BuiltInFunctionStub{IsActiveCalled: func() bool {
+		return false
+	}})
+	tth, err := NewTxTypeHandler(arg)
+
+	assert.NotNil(t, tth)
+	assert.Nil(t, err)
+
+	txTypeIn, txTypeCross := tth.ComputeTransactionType(tx)
+	assert.Equal(t, process.SCInvoking, txTypeIn)
+	assert.Equal(t, process.SCInvoking, txTypeCross)
 }
 
 func TestTxTypeHandler_ComputeTransactionTypeRelayedFunc(t *testing.T) {

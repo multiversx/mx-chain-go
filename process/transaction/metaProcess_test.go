@@ -14,6 +14,7 @@ import (
 	txproc "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/assert"
 )
@@ -350,12 +351,14 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 		return nil
 	}
 
+	esdtTransferParser, _ := parsers.NewESDTTransferParser(&mock.MarshalizerMock{})
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:  createMockPubkeyConverter(),
-		ShardCoordinator: shardCoordinator,
-		BuiltInFuncNames: make(map[string]struct{}),
-		ArgumentParser:   parsers.NewCallArgsParser(),
-		EpochNotifier:    &mock.EpochNotifierStub{},
+		PubkeyConverter:    createMockPubkeyConverter(),
+		ShardCoordinator:   shardCoordinator,
+		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
+		ArgumentParser:     parsers.NewCallArgsParser(),
+		EpochNotifier:      &mock.EpochNotifierStub{},
+		ESDTTransferParser: esdtTransferParser,
 	}
 	computeType, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 

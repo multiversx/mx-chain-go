@@ -263,9 +263,16 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	txLogsStorage := pcf.data.StorageService().GetStorer(dataRetriever.TxLogsUnit)
+
+	if !pcf.config.LogsAndEvents.SaveInStorageEnabled && pcf.config.DbLookupExtensions.Enabled {
+		log.Warn("processComponentsFactory.Create() node will save logs in storage because DbLookupExtensions is enabled")
+	}
+
+	saveLogsInStorage := pcf.config.LogsAndEvents.SaveInStorageEnabled || pcf.config.DbLookupExtensions.Enabled
 	txLogsProcessor, err := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
-		Storer:      txLogsStorage,
-		Marshalizer: pcf.coreData.InternalMarshalizer(),
+		Storer:               txLogsStorage,
+		Marshalizer:          pcf.coreData.InternalMarshalizer(),
+		SaveInStorageEnabled: saveLogsInStorage,
 	})
 	if err != nil {
 		return nil, err
