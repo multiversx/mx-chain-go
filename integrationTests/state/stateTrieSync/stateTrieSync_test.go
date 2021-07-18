@@ -263,10 +263,10 @@ func TestNode_RequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t *testi
 	}()
 
 	go func() {
-		//sudden close the resolver after 2 seconds
+		//sudden close of the resolver node after just 2 seconds
 		time.Sleep(time.Second * 2)
 		_ = nResolver.Messenger.Close()
-		log.Info("resolver node close, the requester should soon fail in error")
+		log.Info("resolver node closed, the requester should soon fail in error")
 	}()
 
 	err = trieSyncer.StartSyncing(rootHash, context.Background())
@@ -355,7 +355,7 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 			Marshalizer:               integrationTests.TestMarshalizer,
 			TrieStorageManager:        nRequester.TrieStorageManagers[trieFactory.UserAccountTrie],
 			RequestHandler:            nRequester.RequestHandler,
-			Timeout:                   time.Second * 10,
+			Timeout:                   core.TimeoutGettingTrieNode,
 			Cacher:                    nRequester.DataPool.TrieNodes(),
 			MaxTrieLevelInMemory:      200,
 			MaxHardCapForMissingNodes: 5000,

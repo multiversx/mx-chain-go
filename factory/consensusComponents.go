@@ -1,8 +1,6 @@
 package factory
 
 import (
-	"time"
-
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
@@ -23,8 +21,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
-
-const timeoutGettingTrieNode = time.Minute
 
 // ConsensusComponentsFactoryArgs holds the arguments needed to create a consensus components factory
 type ConsensusComponentsFactoryArgs struct {
@@ -470,7 +466,7 @@ func (ccf *consensusComponentsFactory) createArgsBaseAccountsSyncer(trieStorageM
 		Marshalizer:               ccf.coreComponents.InternalMarshalizer(),
 		TrieStorageManager:        trieStorageManager,
 		RequestHandler:            ccf.processComponents.RequestHandler(),
-		Timeout:                   timeoutGettingTrieNode,
+		Timeout:                   core.TimeoutGettingTrieNode,
 		Cacher:                    ccf.dataComponents.Datapool().TrieNodes(),
 		MaxTrieLevelInMemory:      ccf.config.StateTriesConfig.MaxStateTrieLevelInMemory,
 		MaxHardCapForMissingNodes: ccf.config.TrieSync.MaxHardCapForMissingNodes,
