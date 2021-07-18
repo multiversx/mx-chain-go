@@ -131,16 +131,16 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	timeout := 10 * time.Second
 	tss := statistics.NewTrieSyncStatistics()
 	arg := trie.ArgTrieSyncer{
-		RequestHandler:                 nRequester.RequestHandler,
-		InterceptedNodes:               nRequester.DataPool.TrieNodes(),
-		DB:                             requesterTrie.GetStorageManager().Database(),
-		Marshalizer:                    integrationTests.TestMarshalizer,
-		Hasher:                         integrationTests.TestHasher,
-		ShardId:                        shardID,
-		Topic:                          factory.AccountTrieNodesTopic,
-		TrieSyncStatistics:             tss,
-		TimeoutBetweenTrieNodesCommits: timeout,
-		MaxHardCapForMissingNodes:      10000,
+		RequestHandler:            nRequester.RequestHandler,
+		InterceptedNodes:          nRequester.DataPool.TrieNodes(),
+		DB:                        requesterTrie.GetStorageManager().Database(),
+		Marshalizer:               integrationTests.TestMarshalizer,
+		Hasher:                    integrationTests.TestHasher,
+		ShardId:                   shardID,
+		Topic:                     factory.AccountTrieNodesTopic,
+		TrieSyncStatistics:        tss,
+		TimeoutNodesReceived:      timeout,
+		MaxHardCapForMissingNodes: 10000,
 	}
 	trieSyncer, _ := trie.NewDoubleListTrieSyncer(arg)
 
@@ -174,6 +174,104 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 		numLeaves++
 	}
 	assert.Equal(t, numTrieLeaves, numLeaves)
+}
+
+func TestNode_RequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	var nrOfShards uint32 = 1
+	var shardID uint32 = 0
+	var txSignPrivKeyShardId uint32 = 0
+
+	fmt.Println("Requester:	")
+	nRequester, trieStorageRequester := createTestProcessorNodeAndTrieStorage(t, nrOfShards, shardID, txSignPrivKeyShardId)
+
+	fmt.Println("Resolver:")
+	nResolver, trieStorageResolver := createTestProcessorNodeAndTrieStorage(t, nrOfShards, shardID, txSignPrivKeyShardId)
+
+	defer func() {
+		_ = trieStorageRequester.DestroyUnit()
+		_ = trieStorageResolver.DestroyUnit()
+
+		_ = nRequester.Messenger.Close()
+		_ = nResolver.Messenger.Close()
+	}()
+
+	time.Sleep(time.Second)
+	err := nRequester.ConnectTo(nResolver)
+	require.Nil(t, err)
+
+	time.Sleep(integrationTests.SyncDelay)
+
+	resolverTrie := nResolver.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
+	//we have tested even with the 1000000 value and found out that it worked in a reasonable amount of time ~3.5 minutes
+	numTrieLeaves := 10000
+	for i := 0; i < numTrieLeaves; i++ {
+		_ = resolverTrie.Update([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
+	}
+
+	nodes := resolverTrie.GetNumNodes()
+	log.Info("trie nodes",
+		"total", nodes.Branches+nodes.Extensions+nodes.Leaves,
+		"branches", nodes.Branches,
+		"extensions", nodes.Extensions,
+		"leaves", nodes.Leaves,
+		"max level", nodes.MaxLevel,
+	)
+
+	_ = resolverTrie.Commit()
+	rootHash, _ := resolverTrie.RootHash()
+
+	leavesChannel, _ := resolverTrie.GetAllLeavesOnChannel(rootHash)
+	numLeaves := 0
+	for range leavesChannel {
+		numLeaves++
+	}
+	assert.Equal(t, numTrieLeaves, numLeaves)
+
+	requesterTrie := nRequester.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
+
+	timeout := 10 * time.Second
+	tss := statistics.NewTrieSyncStatistics()
+	arg := trie.ArgTrieSyncer{
+		RequestHandler:            nRequester.RequestHandler,
+		InterceptedNodes:          nRequester.DataPool.TrieNodes(),
+		DB:                        requesterTrie.GetStorageManager().Database(),
+		Marshalizer:               integrationTests.TestMarshalizer,
+		Hasher:                    integrationTests.TestHasher,
+		ShardId:                   shardID,
+		Topic:                     factory.AccountTrieNodesTopic,
+		TrieSyncStatistics:        tss,
+		TimeoutNodesReceived:      timeout,
+		MaxHardCapForMissingNodes: 10000,
+	}
+	trieSyncer, _ := trie.NewDoubleListTrieSyncer(arg)
+
+	ctxPrint, cancel := context.WithCancel(context.Background())
+	go func() {
+		for {
+			select {
+			case <-ctxPrint.Done():
+				fmt.Printf("Sync done: received: %d, large: %d, missing: %d\n", tss.NumReceived(), tss.NumLarge(), tss.NumMissing())
+				return
+			case <-time.After(time.Millisecond * 100):
+				fmt.Printf("Sync in progress: received: %d, large: %d, missing: %d\n", tss.NumReceived(), tss.NumLarge(), tss.NumMissing())
+			}
+		}
+	}()
+
+	go func() {
+		//sudden close the resolver after 2 seconds
+		time.Sleep(time.Second * 2)
+		_ = nResolver.Messenger.Close()
+		log.Info("resolver node close, the requester should soon fail in error")
+	}()
+
+	err = trieSyncer.StartSyncing(rootHash, context.Background())
+	assert.Equal(t, trie.ErrTrieSyncTimeout, err)
+	cancel()
 }
 
 func createTestGasMap() map[string]map[string]uint64 {

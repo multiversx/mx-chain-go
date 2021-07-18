@@ -30,7 +30,7 @@ type doubleListTrieSyncer struct {
 	handlerID                 string
 	trieSyncStatistics        data.SyncStatisticsHandler
 	lastSyncedTrieNode        time.Time
-	timeoutBetweenCommits     time.Duration
+	timeoutNodeReceived       time.Duration
 	maxHardCapForMissingNodes int
 	existingNodes             map[string]node
 	missingHashes             map[string]struct{}
@@ -56,11 +56,15 @@ func NewDoubleListTrieSyncer(arg ArgTrieSyncer) (*doubleListTrieSyncer, error) {
 		waitTimeBetweenChecks:     time.Millisecond * 100,
 		handlerID:                 core.UniqueIdentifier(),
 		trieSyncStatistics:        arg.TrieSyncStatistics,
-		timeoutBetweenCommits:     arg.TimeoutBetweenTrieNodesCommits,
+		timeoutNodeReceived:       arg.TimeoutNodesReceived,
 		maxHardCapForMissingNodes: arg.MaxHardCapForMissingNodes,
 	}
 
 	return d, nil
+}
+
+func getCurrentTime() time.Time {
+	return time.Now()
 }
 
 // StartSyncing completes the trie, asking for missing trie nodes on the network. All concurrent calls will be serialized
@@ -77,7 +81,7 @@ func (d *doubleListTrieSyncer) StartSyncing(rootHash []byte, ctx context.Context
 	d.mutOperation.Lock()
 	defer d.mutOperation.Unlock()
 
-	d.lastSyncedTrieNode = time.Now()
+	d.lastSyncedTrieNode = getCurrentTime()
 	d.existingNodes = make(map[string]node)
 	d.missingHashes = make(map[string]struct{})
 
@@ -105,7 +109,12 @@ func (d *doubleListTrieSyncer) StartSyncing(rootHash []byte, ctx context.Context
 }
 
 func (d *doubleListTrieSyncer) checkIsSyncedWhileProcessingMissingAndExisting() (bool, error) {
-	err := d.processMissingAndExisting()
+	err := d.checkTimeout()
+	if err != nil {
+		return false, err
+	}
+
+	err = d.processMissingAndExisting()
 	if err != nil {
 		return false, err
 	}
@@ -187,7 +196,7 @@ func (d *doubleListTrieSyncer) processExistingNodes() error {
 }
 
 func (d *doubleListTrieSyncer) resetWatchdog() {
-	d.lastSyncedTrieNode = time.Now()
+	d.lastSyncedTrieNode = getCurrentTime()
 }
 
 func (d *doubleListTrieSyncer) getNode(hash []byte) (node, error) {
@@ -198,6 +207,16 @@ func (d *doubleListTrieSyncer) getNode(hash []byte) (node, error) {
 		d.marshalizer,
 		d.hasher,
 	)
+}
+
+func (d *doubleListTrieSyncer) checkTimeout() error {
+	currentTime := getCurrentTime()
+	isTimeout := currentTime.Sub(d.lastSyncedTrieNode) > d.timeoutNodeReceived
+	if isTimeout {
+		return ErrTrieSyncTimeout
+	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

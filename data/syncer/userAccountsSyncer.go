@@ -166,16 +166,16 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ssh data.SyncStatisti
 	u.syncerMutex.Unlock()
 
 	arg := trie.ArgTrieSyncer{
-		RequestHandler:                 u.requestHandler,
-		InterceptedNodes:               u.cacher,
-		DB:                             u.trieStorageManager.Database(),
-		Marshalizer:                    u.marshalizer,
-		Hasher:                         u.hasher,
-		ShardId:                        u.shardId,
-		Topic:                          factory.AccountTrieNodesTopic,
-		TrieSyncStatistics:             ssh,
-		TimeoutBetweenTrieNodesCommits: u.timeout,
-		MaxHardCapForMissingNodes:      u.maxHardCapForMissingNodes,
+		RequestHandler:            u.requestHandler,
+		InterceptedNodes:          u.cacher,
+		DB:                        u.trieStorageManager.Database(),
+		Marshalizer:               u.marshalizer,
+		Hasher:                    u.hasher,
+		ShardId:                   u.shardId,
+		Topic:                     factory.AccountTrieNodesTopic,
+		TrieSyncStatistics:        ssh,
+		TimeoutNodesReceived:      u.timeout,
+		MaxHardCapForMissingNodes: u.maxHardCapForMissingNodes,
 	}
 	trieSyncer, err := trie.CreateTrieSyncer(arg, u.trieSyncerVersion)
 	if err != nil {

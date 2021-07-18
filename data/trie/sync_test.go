@@ -16,16 +16,16 @@ import (
 
 func createMockArgument() ArgTrieSyncer {
 	return ArgTrieSyncer{
-		RequestHandler:                 &mock.RequestHandlerStub{},
-		InterceptedNodes:               mock.NewCacherMock(),
-		DB:                             mock.NewMemDbMock(),
-		Hasher:                         mock.HasherMock{},
-		Marshalizer:                    &mock.MarshalizerMock{},
-		ShardId:                        0,
-		Topic:                          "topic",
-		TrieSyncStatistics:             statistics.NewTrieSyncStatistics(),
-		TimeoutBetweenTrieNodesCommits: minTimeoutBetweenNodesCommits,
-		MaxHardCapForMissingNodes:      500,
+		RequestHandler:            &mock.RequestHandlerStub{},
+		InterceptedNodes:          mock.NewCacherMock(),
+		DB:                        mock.NewMemDbMock(),
+		Hasher:                    mock.HasherMock{},
+		Marshalizer:               &mock.MarshalizerMock{},
+		ShardId:                   0,
+		Topic:                     "topic",
+		TrieSyncStatistics:        statistics.NewTrieSyncStatistics(),
+		TimeoutNodesReceived:      time.Minute,
+		MaxHardCapForMissingNodes: 500,
 	}
 }
 
@@ -110,7 +110,7 @@ func TestNewTrieSyncer_InvalidTimeoutBetweenTrieNodesCommitsShouldErr(t *testing
 	t.Parallel()
 
 	arg := createMockArgument()
-	arg.TimeoutBetweenTrieNodesCommits = time.Duration(0)
+	arg.TimeoutNodesReceived = time.Duration(0)
 
 	ts, err := NewTrieSyncer(arg)
 	assert.True(t, check.IfNil(ts))
@@ -143,7 +143,7 @@ func TestTrieSync_InterceptedNodeShouldNotBeAddedToNodesForTrieIfNodeReceived(t 
 
 	marshalizer, hasher := getTestMarshalizerAndHasher()
 	arg := createMockArgument()
-	arg.TimeoutBetweenTrieNodesCommits = time.Second * 10
+	arg.TimeoutNodesReceived = time.Second * 10
 	arg.MaxHardCapForMissingNodes = 500
 
 	ts, err := NewTrieSyncer(arg)
@@ -174,7 +174,7 @@ func TestTrieSync_InterceptedNodeTimedOut(t *testing.T) {
 
 	timeout := time.Second * 2
 	arg := createMockArgument()
-	arg.TimeoutBetweenTrieNodesCommits = timeout
+	arg.TimeoutNodesReceived = timeout
 	ts, err := NewTrieSyncer(arg)
 	require.Nil(t, err)
 
@@ -209,7 +209,7 @@ func TestTrieSync_FoundInStorageShouldNotRequest(t *testing.T) {
 	arg.DB = db
 	arg.Marshalizer = marshalizer
 	arg.Hasher = hasher
-	arg.TimeoutBetweenTrieNodesCommits = timeout
+	arg.TimeoutNodesReceived = timeout
 
 	ts, err := NewTrieSyncer(arg)
 	require.Nil(t, err)

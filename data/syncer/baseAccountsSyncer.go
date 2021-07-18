@@ -90,16 +90,16 @@ func (b *baseAccountsSyncer) syncMainTrie(
 
 	b.dataTries[string(rootHash)] = struct{}{}
 	arg := trie.ArgTrieSyncer{
-		RequestHandler:                 b.requestHandler,
-		InterceptedNodes:               b.cacher,
-		DB:                             b.trieStorageManager.Database(),
-		Marshalizer:                    b.marshalizer,
-		Hasher:                         b.hasher,
-		ShardId:                        b.shardId,
-		Topic:                          trieTopic,
-		TrieSyncStatistics:             ssh,
-		TimeoutBetweenTrieNodesCommits: b.timeout,
-		MaxHardCapForMissingNodes:      b.maxHardCapForMissingNodes,
+		RequestHandler:            b.requestHandler,
+		InterceptedNodes:          b.cacher,
+		DB:                        b.trieStorageManager.Database(),
+		Marshalizer:               b.marshalizer,
+		Hasher:                    b.hasher,
+		ShardId:                   b.shardId,
+		Topic:                     trieTopic,
+		TrieSyncStatistics:        ssh,
+		TimeoutNodesReceived:      b.timeout,
+		MaxHardCapForMissingNodes: b.maxHardCapForMissingNodes,
 	}
 	trieSyncer, err := trie.CreateTrieSyncer(arg, b.trieSyncerVersion)
 	if err != nil {

@@ -193,6 +193,23 @@ func TestDoubleListTrieSyncer_StartSyncingCanTimeout(t *testing.T) {
 	require.Equal(t, ErrContextClosing, err)
 }
 
+func TestDoubleListTrieSyncer_StartSyncingTimeoutNoNodesReceived(t *testing.T) {
+	numKeysValues := 10
+	trSource, _ := createInMemoryTrie()
+	addDataToTrie(numKeysValues, trSource)
+	_ = trSource.Commit()
+	roothash, _ := trSource.RootHash()
+	log.Info("source trie", "root hash", roothash)
+
+	arg := createMockArgument()
+	arg.TimeoutNodesReceived = time.Second
+
+	d, _ := NewDoubleListTrieSyncer(arg)
+
+	err := d.StartSyncing(roothash, context.Background())
+	require.Equal(t, ErrTrieSyncTimeout, err)
+}
+
 func TestDoubleListTrieSyncer_StartSyncingNewTrieShouldWork(t *testing.T) {
 	numKeysValues := 100
 	trSource, _ := createInMemoryTrie()

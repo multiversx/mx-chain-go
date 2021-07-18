@@ -38,25 +38,25 @@ type trieSyncer struct {
 	handlerID                 string
 	trieSyncStatistics        data.SyncStatisticsHandler
 	lastSyncedTrieNode        time.Time
-	timeoutBetweenCommits     time.Duration
+	timeoutNodesReceived      time.Duration
 	maxHardCapForMissingNodes int
 }
 
 const maxNewMissingAddedPerTurn = 10
-const minTimeoutBetweenNodesCommits = time.Second
+const minTimeoutNodesReceived = time.Second
 
 // ArgTrieSyncer is the argument for the trie syncer
 type ArgTrieSyncer struct {
-	Marshalizer                    marshal.Marshalizer
-	Hasher                         hashing.Hasher
-	DB                             data.DBWriteCacher
-	RequestHandler                 RequestHandler
-	InterceptedNodes               storage.Cacher
-	ShardId                        uint32
-	Topic                          string
-	TrieSyncStatistics             data.SyncStatisticsHandler
-	TimeoutBetweenTrieNodesCommits time.Duration
-	MaxHardCapForMissingNodes      int
+	Marshalizer               marshal.Marshalizer
+	Hasher                    hashing.Hasher
+	DB                        data.DBWriteCacher
+	RequestHandler            RequestHandler
+	InterceptedNodes          storage.Cacher
+	ShardId                   uint32
+	Topic                     string
+	TrieSyncStatistics        data.SyncStatisticsHandler
+	TimeoutNodesReceived      time.Duration
+	MaxHardCapForMissingNodes int
 }
 
 // NewTrieSyncer creates a new instance of trieSyncer
@@ -78,7 +78,7 @@ func NewTrieSyncer(arg ArgTrieSyncer) (*trieSyncer, error) {
 		waitTimeBetweenRequests:   time.Second,
 		handlerID:                 core.UniqueIdentifier(),
 		trieSyncStatistics:        arg.TrieSyncStatistics,
-		timeoutBetweenCommits:     arg.TimeoutBetweenTrieNodesCommits,
+		timeoutNodesReceived:      arg.TimeoutNodesReceived,
 		maxHardCapForMissingNodes: arg.MaxHardCapForMissingNodes,
 	}
 
@@ -107,9 +107,9 @@ func checkArguments(arg ArgTrieSyncer) error {
 	if check.IfNil(arg.TrieSyncStatistics) {
 		return ErrNilTrieSyncStatistics
 	}
-	if arg.TimeoutBetweenTrieNodesCommits < minTimeoutBetweenNodesCommits {
+	if arg.TimeoutNodesReceived < minTimeoutNodesReceived {
 		return fmt.Errorf("%w provided: %v, minimum %v",
-			ErrInvalidTimeout, arg.TimeoutBetweenTrieNodesCommits, minTimeoutBetweenNodesCommits)
+			ErrInvalidTimeout, arg.TimeoutNodesReceived, minTimeoutNodesReceived)
 	}
 	if arg.MaxHardCapForMissingNodes < 1 {
 		return fmt.Errorf("%w provided: %v", ErrInvalidMaxHardCapForMissingNodes, arg.MaxHardCapForMissingNodes)
@@ -260,7 +260,7 @@ func (ts *trieSyncer) resetWatchdog() {
 
 func (ts *trieSyncer) isTimeoutWhileSyncing() bool {
 	duration := time.Since(ts.lastSyncedTrieNode)
-	return duration > ts.timeoutBetweenCommits
+	return duration > ts.timeoutNodesReceived
 }
 
 // adds new elements to needed hash map, lock ts.nodeHashesMutex before calling
