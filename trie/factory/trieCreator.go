@@ -51,7 +51,7 @@ func NewTrieFactory(
 }
 
 // Create creates a new trie
-func (tc *trieCreator) Create(args data.TrieCreateArgs) (temporary.StorageManager, temporary.Trie, error) {
+func (tc *trieCreator) Create(args temporary.TrieCreateArgs) (temporary.StorageManager, temporary.Trie, error) {
 	trieStoragePath, mainDb := path.Split(tc.pathManager.PathForStatic(args.ShardID, args.TrieStorageConfig.DB.FilePath))
 
 	dbConfig := factory.GetDBFromConfig(args.TrieStorageConfig.DB)
@@ -102,7 +102,7 @@ func (tc *trieCreator) Create(args data.TrieCreateArgs) (temporary.StorageManage
 func (tc *trieCreator) newTrieAndTrieStorage(
 	args trie.NewTrieStorageManagerArgs,
 	maxTrieLevelInMem uint,
-) (data.StorageManager, data.Trie, error) {
+) (temporary.StorageManager, temporary.Trie, error) {
 	trieStorage, err := trie.NewTrieStorageManager(args)
 	if err != nil {
 		return nil, nil, err
@@ -119,7 +119,7 @@ func (tc *trieCreator) newTrieAndTrieStorage(
 func (tc *trieCreator) newTrieAndTrieStorageWithoutCheckpoints(
 	args trie.NewTrieStorageManagerArgs,
 	maxTrieLevelInMem uint,
-) (data.StorageManager, data.Trie, error) {
+) (temporary.StorageManager, temporary.Trie, error) {
 	trieStorage, err := trie.NewTrieStorageManagerWithoutCheckpoints(args)
 	if err != nil {
 		return nil, nil, err
@@ -134,9 +134,9 @@ func (tc *trieCreator) newTrieAndTrieStorageWithoutCheckpoints(
 }
 
 func (tc *trieCreator) newTrieAndTrieStorageWithoutPruning(
-	accountsTrieStorage data.DBWriteCacher,
+	accountsTrieStorage temporary.DBWriteCacher,
 	maxTrieLevelInMem uint,
-) (data.StorageManager, data.Trie, error) {
+) (temporary.StorageManager, temporary.Trie, error) {
 	trieStorage, err := trie.NewTrieStorageManagerWithoutPruning(accountsTrieStorage)
 	if err != nil {
 		return nil, nil, err

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go/config"
 )
 
 //TODO: move this interfaces in the packages where they are used
@@ -44,6 +45,15 @@ type NumNodesDTO struct {
 type TrieSyncer interface {
 	StartSyncing(rootHash []byte, ctx context.Context) error
 	IsInterfaceNil() bool
+}
+
+// TrieCreateArgs holds arguments for calling the Create method on the TrieFactory
+type TrieCreateArgs struct {
+	TrieStorageConfig  config.StorageConfig
+	ShardID            string
+	PruningEnabled     bool
+	CheckpointsEnabled bool
+	MaxTrieLevelInMem  uint
 }
 
 //Trie is an interface for Merkle Trees implementations

@@ -134,7 +134,7 @@ func (c *checkpointHashesHolder) Remove(hash []byte) {
 	}
 }
 
-func (c *checkpointHashesHolder) removeHashFromMap(hash []byte, hashesMap data.ModifiedHashes) {
+func (c *checkpointHashesHolder) removeHashFromMap(hash []byte, hashesMap temporary.ModifiedHashes) {
 	_, ok := hashesMap[string(hash)]
 	if !ok {
 		return
@@ -151,7 +151,7 @@ func (c *checkpointHashesHolder) removeHashFromMap(hash []byte, hashesMap data.M
 	c.currentSize -= c.hashSize
 }
 
-func getMapSize(hashesMap data.ModifiedHashes, hashSize uint64) uint64 {
+func getMapSize(hashesMap temporary.ModifiedHashes, hashSize uint64) uint64 {
 	return uint64(len(hashesMap)) * hashSize
 }
 

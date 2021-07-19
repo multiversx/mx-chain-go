@@ -3,7 +3,7 @@ package trie
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
 )
 
 func (ts *trieSyncer) trieNodeIntercepted(hash []byte, val interface{}) {
@@ -32,7 +32,7 @@ func (tsm *trieStorageManagerWithoutCheckpoints) PruningBlockingOperations() uin
 	return tsm.pruningBlockingOps
 }
 
-func WaitForOperationToComplete(tsm data.StorageManager) {
+func WaitForOperationToComplete(tsm temporary.StorageManager) {
 	for tsm.IsPruningBlocked() {
 		time.Sleep(10 * time.Millisecond)
 	}

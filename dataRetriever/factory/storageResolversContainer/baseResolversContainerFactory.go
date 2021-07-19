@@ -213,7 +213,7 @@ func (brcf *baseResolversContainerFactory) newImportDBTrieStorage(
 		return nil, nil, err
 	}
 
-	args := data.TrieCreateArgs{
+	args := temporary.TrieCreateArgs{
 		TrieStorageConfig:  trieStorageConfig,
 		ShardID:            core.GetShardIDString(brcf.shardIDForTries),
 		PruningEnabled:     brcf.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,

@@ -899,7 +899,7 @@ func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) er
 		return err
 	}
 
-	args := data.TrieCreateArgs{
+	args := temporary.TrieCreateArgs{
 		TrieStorageConfig:  e.generalConfig.AccountsTrieStorage,
 		ShardID:            core.GetShardIDString(shardId),
 		PruningEnabled:     e.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
@@ -916,7 +916,7 @@ func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) er
 	e.trieStorageManagers[factory.UserAccountTrie] = userStorageManager
 	e.mutTrieStorageManagers.Unlock()
 
-	args = data.TrieCreateArgs{
+	args = temporary.TrieCreateArgs{
 		TrieStorageConfig:  e.generalConfig.PeerAccountsTrieStorage,
 		ShardID:            core.GetShardIDString(shardId),
 		PruningEnabled:     e.generalConfig.StateTriesConfig.PeerStatePruningEnabled,

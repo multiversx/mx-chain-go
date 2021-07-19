@@ -4,10 +4,10 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/mock"
-	"github.com/ElrondNetwork/elrond-go/data/trie"
-	"github.com/ElrondNetwork/elrond-go/data/trie/hashesHolder"
+	"github.com/ElrondNetwork/elrond-go/mock"
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
+	"github.com/ElrondNetwork/elrond-go/trie"
+	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -90,7 +90,7 @@ func TestTrieStorageManagerWithoutCheckpoints_Remove(t *testing.T) {
 	value := []byte("value")
 
 	_ = args.DB.Put(key, value)
-	hashes := make(data.ModifiedHashes)
+	hashes := make(temporary.ModifiedHashes)
 	hashes[string(value)] = struct{}{}
 	hashes[string(key)] = struct{}{}
 

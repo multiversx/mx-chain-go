@@ -6,10 +6,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/mock"
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/trie"
+	"github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -22,8 +24,8 @@ func getArgs() factory.TrieFactoryArgs {
 	}
 }
 
-func getCreateArgs() data.TrieCreateArgs {
-	return data.TrieCreateArgs{
+func getCreateArgs() temporary.TrieCreateArgs {
+	return temporary.TrieCreateArgs{
 		TrieStorageConfig:  createTrieStorageCfg(),
 		ShardID:            "0",
 		PruningEnabled:     false,

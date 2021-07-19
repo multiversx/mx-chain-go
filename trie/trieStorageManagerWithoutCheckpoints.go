@@ -1,9 +1,9 @@
 package trie
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/trie/hashesHolder/disabled"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
+	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder/disabled"
 )
 
 // trieStorageManagerWithoutCheckpoints manages the storage operations of the trie, but does not create checkpoints
@@ -28,7 +28,7 @@ func (tsm *trieStorageManagerWithoutCheckpoints) SetCheckpoint(_ []byte, _ chan 
 }
 
 // AddDirtyCheckpointHashes returns false
-func (tsm *trieStorageManagerWithoutCheckpoints) AddDirtyCheckpointHashes(_ []byte, _ data.ModifiedHashes) bool {
+func (tsm *trieStorageManagerWithoutCheckpoints) AddDirtyCheckpointHashes(_ []byte, _ temporary.ModifiedHashes) bool {
 	return false
 }
 
