@@ -95,6 +95,9 @@ func checkMiniBlocksBuilderArgs(args miniBlocksBuilderArgs) error {
 	if check.IfNil(args.gasTracker.gasHandler) {
 		return process.ErrNilGasHandler
 	}
+	if check.IfNil(args.gasTracker.economicsFee){
+		return process.ErrNilEconomicsFeeHandler
+	}
 	if check.IfNil(args.accounts) {
 		return process.ErrNilAccountsAdapter
 	}
@@ -134,7 +137,7 @@ func (mbb *miniBlocksBuilder) updateAccountShardsInfo(tx *transaction.Transactio
 
 // function returns through the first parameter if the given transaction can be added to the miniBlock
 // second return values returns an error in case no more transactions can be added to the miniBlocks
-func (mbb *miniBlocksBuilder) addTransaction(wtx *txcache.WrappedTransaction) (addedTx bool, canAddMore bool, tx *transaction.Transaction) {
+func (mbb *miniBlocksBuilder) addTransaction(wtx *txcache.WrappedTransaction) (canAddTx bool, canAddMore bool, tx *transaction.Transaction) {
 	tx, ok := wtx.Tx.(*transaction.Transaction)
 	if !ok {
 		log.Debug("wrong type assertion",
@@ -319,13 +322,17 @@ func (mbb *miniBlocksBuilder) updateBlockSize(tx *transaction.Transaction, wtx *
 	miniBlock.TxHashes = append(miniBlock.TxHashes, wtx.TxHash)
 	mbb.blockSizeComputation.AddNumTxs(1)
 	if isCrossShardScCallOrSpecialTx(wtx.ReceiverShardID, mbb.shardCoordinator.SelfId(), tx) {
-		if !mbb.stats.firstCrossShardScCallOrSpecialTxFound {
-			mbb.stats.firstCrossShardScCallOrSpecialTxFound = true
-			mbb.blockSizeComputation.AddNumMiniBlocks(1)
-		}
-		//we need to increment this as to account for the corresponding SCR hash
-		mbb.blockSizeComputation.AddNumTxs(core.AdditionalScrForEachScCallOrSpecialTx)
-		mbb.stats.numCrossShardSCCallsOrSpecialTxs++
+		mbb.handleCrossShardScCallOrSpecialTx()
 	}
 	mbb.stats.numTxsAdded++
+}
+
+func (mbb *miniBlocksBuilder) handleCrossShardScCallOrSpecialTx(){
+	if !mbb.stats.firstCrossShardScCallOrSpecialTxFound {
+		mbb.stats.firstCrossShardScCallOrSpecialTxFound = true
+		mbb.blockSizeComputation.AddNumMiniBlocks(1)
+	}
+	//we need to increment this as to account for the corresponding SCR hash
+	mbb.blockSizeComputation.AddNumTxs(core.AdditionalScrForEachScCallOrSpecialTx)
+	mbb.stats.numCrossShardSCCallsOrSpecialTxs++
 }

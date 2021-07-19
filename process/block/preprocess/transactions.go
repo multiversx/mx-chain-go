@@ -500,7 +500,7 @@ func (txs *transactions) processTxsFromMe(
 		return err
 	}
 
-	SortTransactionsBySenderAndNonce(txsFromMe)
+	sortTransactionsBySenderAndNonce(txsFromMe)
 
 	isShardStuckFalse := func(uint32) bool {
 		return false
@@ -590,7 +590,7 @@ func (txs *transactions) createAndProcessScheduledMiniBlocksFromMeAsValidator(
 		return nil, err
 	}
 
-	SortTransactionsBySenderAndNonce(scheduledTxsFromMe)
+	sortTransactionsBySenderAndNonce(scheduledTxsFromMe)
 
 	haveAdditionalTime := getAdditionalTimeFunc()
 	scheduledMiniBlocks := txs.createScheduledMiniBlocks(
@@ -1115,7 +1115,7 @@ func (txs *transactions) computeSortedTxs(
 	log.Debug("computeSortedTxs.GetSortedTransactions")
 	sortedTxs := sortedTransactionsProvider.GetSortedTransactions()
 
-	SortTransactionsBySenderAndNonce(sortedTxs)
+	sortTransactionsBySenderAndNonce(sortedTxs)
 	return sortedTxs, nil
 }
 
@@ -1265,8 +1265,8 @@ func (txs *transactions) IsInterfaceNil() bool {
 	return txs == nil
 }
 
-// SortTransactionsBySenderAndNonce sorts the provided transactions and hashes simultaneously
-func SortTransactionsBySenderAndNonce(transactions []*txcache.WrappedTransaction) {
+// sortTransactionsBySenderAndNonce sorts the provided transactions and hashes simultaneously
+func sortTransactionsBySenderAndNonce(transactions []*txcache.WrappedTransaction) {
 	sorter := func(i, j int) bool {
 		txI := transactions[i].Tx
 		txJ := transactions[j].Tx

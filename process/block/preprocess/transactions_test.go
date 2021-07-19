@@ -1183,7 +1183,7 @@ func ExampleSortTransactionsBySenderAndNonce() {
 		{Tx: &transaction.Transaction{Nonce: 3, SndAddr: []byte("eeee")}, TxHash: []byte("c")},
 	}
 
-	SortTransactionsBySenderAndNonce(txs)
+	sortTransactionsBySenderAndNonce(txs)
 
 	for _, item := range txs {
 		fmt.Println(item.Tx.GetNonce(), string(item.Tx.GetSndAddr()), string(item.TxHash))
@@ -1215,7 +1215,7 @@ func BenchmarkSortTransactionsByNonceAndSender_WhenReversedNonces(b *testing.B) 
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		SortTransactionsBySenderAndNonce(txs)
+		sortTransactionsBySenderAndNonce(txs)
 	}
 }
 
