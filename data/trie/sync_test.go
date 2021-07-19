@@ -24,7 +24,7 @@ func createMockArgument() ArgTrieSyncer {
 		ShardId:                   0,
 		Topic:                     "topic",
 		TrieSyncStatistics:        statistics.NewTrieSyncStatistics(),
-		TimeoutNodesReceived:      time.Minute,
+		ReceivedNodesTimeout:      time.Minute,
 		MaxHardCapForMissingNodes: 500,
 	}
 }
@@ -110,7 +110,7 @@ func TestNewTrieSyncer_InvalidTimeoutBetweenTrieNodesCommitsShouldErr(t *testing
 	t.Parallel()
 
 	arg := createMockArgument()
-	arg.TimeoutNodesReceived = time.Duration(0)
+	arg.ReceivedNodesTimeout = time.Duration(0)
 
 	ts, err := NewTrieSyncer(arg)
 	assert.True(t, check.IfNil(ts))
@@ -141,19 +141,19 @@ func TestNewTrieSyncer_ShouldWork(t *testing.T) {
 func TestTrieSync_InterceptedNodeShouldNotBeAddedToNodesForTrieIfNodeReceived(t *testing.T) {
 	t.Parallel()
 
-	marshalizer, hasher := getTestMarshalizerAndHasher()
+	testMarshalizer, testHasher := getTestMarshalizerAndHasher()
 	arg := createMockArgument()
-	arg.TimeoutNodesReceived = time.Second * 10
+	arg.ReceivedNodesTimeout = time.Second * 10
 	arg.MaxHardCapForMissingNodes = 500
 
 	ts, err := NewTrieSyncer(arg)
 	require.Nil(t, err)
 
-	bn, collapsedBn := getBnAndCollapsedBn(marshalizer, hasher)
+	bn, collapsedBn := getBnAndCollapsedBn(testMarshalizer, testHasher)
 	encodedNode, err := collapsedBn.getEncodedNode()
 	assert.Nil(t, err)
 
-	interceptedNode, err := NewInterceptedTrieNode(encodedNode, marshalizer, hasher)
+	interceptedNode, err := NewInterceptedTrieNode(encodedNode, testMarshalizer, testHasher)
 	assert.Nil(t, err)
 
 	hash := "nodeHash"
@@ -174,7 +174,7 @@ func TestTrieSync_InterceptedNodeTimedOut(t *testing.T) {
 
 	timeout := time.Second * 2
 	arg := createMockArgument()
-	arg.TimeoutNodesReceived = timeout
+	arg.ReceivedNodesTimeout = timeout
 	ts, err := NewTrieSyncer(arg)
 	require.Nil(t, err)
 
@@ -190,8 +190,8 @@ func TestTrieSync_FoundInStorageShouldNotRequest(t *testing.T) {
 	t.Parallel()
 
 	timeout := time.Second * 200
-	marshalizer, hasher := getTestMarshalizerAndHasher()
-	bn, _ := getBnAndCollapsedBn(marshalizer, hasher)
+	testMarshalizer, testHasher := getTestMarshalizerAndHasher()
+	bn, _ := getBnAndCollapsedBn(testMarshalizer, testHasher)
 	err := bn.setHash()
 	require.Nil(t, err)
 	rootHash := bn.getHash()
@@ -207,9 +207,9 @@ func TestTrieSync_FoundInStorageShouldNotRequest(t *testing.T) {
 		},
 	}
 	arg.DB = db
-	arg.Marshalizer = marshalizer
-	arg.Hasher = hasher
-	arg.TimeoutNodesReceived = timeout
+	arg.Marshalizer = testMarshalizer
+	arg.Hasher = testHasher
+	arg.ReceivedNodesTimeout = timeout
 
 	ts, err := NewTrieSyncer(arg)
 	require.Nil(t, err)

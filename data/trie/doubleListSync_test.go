@@ -202,7 +202,7 @@ func TestDoubleListTrieSyncer_StartSyncingTimeoutNoNodesReceived(t *testing.T) {
 	log.Info("source trie", "root hash", roothash)
 
 	arg := createMockArgument()
-	arg.TimeoutNodesReceived = time.Second
+	arg.ReceivedNodesTimeout = time.Second
 
 	d, _ := NewDoubleListTrieSyncer(arg)
 

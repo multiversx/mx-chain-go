@@ -98,7 +98,7 @@ func (b *baseAccountsSyncer) syncMainTrie(
 		ShardId:                   b.shardId,
 		Topic:                     trieTopic,
 		TrieSyncStatistics:        ssh,
-		TimeoutNodesReceived:      b.timeout,
+		ReceivedNodesTimeout:      b.timeout,
 		MaxHardCapForMissingNodes: b.maxHardCapForMissingNodes,
 	}
 	trieSyncer, err := trie.CreateTrieSyncer(arg, b.trieSyncerVersion)

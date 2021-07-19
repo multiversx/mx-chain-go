@@ -139,7 +139,7 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 		ShardId:                   shardID,
 		Topic:                     factory.AccountTrieNodesTopic,
 		TrieSyncStatistics:        tss,
-		TimeoutNodesReceived:      timeout,
+		ReceivedNodesTimeout:      timeout,
 		MaxHardCapForMissingNodes: 10000,
 	}
 	trieSyncer, _ := trie.NewDoubleListTrieSyncer(arg)
@@ -244,7 +244,7 @@ func TestNode_RequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t *testi
 		ShardId:                   shardID,
 		Topic:                     factory.AccountTrieNodesTopic,
 		TrieSyncStatistics:        tss,
-		TimeoutNodesReceived:      timeout,
+		ReceivedNodesTimeout:      timeout,
 		MaxHardCapForMissingNodes: 10000,
 	}
 	trieSyncer, _ := trie.NewDoubleListTrieSyncer(arg)

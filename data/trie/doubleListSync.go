@@ -30,7 +30,7 @@ type doubleListTrieSyncer struct {
 	handlerID                 string
 	trieSyncStatistics        data.SyncStatisticsHandler
 	lastSyncedTrieNode        time.Time
-	timeoutNodeReceived       time.Duration
+	receivedNodesTimeout      time.Duration
 	maxHardCapForMissingNodes int
 	existingNodes             map[string]node
 	missingHashes             map[string]struct{}
@@ -56,7 +56,7 @@ func NewDoubleListTrieSyncer(arg ArgTrieSyncer) (*doubleListTrieSyncer, error) {
 		waitTimeBetweenChecks:     time.Millisecond * 100,
 		handlerID:                 core.UniqueIdentifier(),
 		trieSyncStatistics:        arg.TrieSyncStatistics,
-		timeoutNodeReceived:       arg.TimeoutNodesReceived,
+		receivedNodesTimeout:      arg.ReceivedNodesTimeout,
 		maxHardCapForMissingNodes: arg.MaxHardCapForMissingNodes,
 	}
 
@@ -211,7 +211,7 @@ func (d *doubleListTrieSyncer) getNode(hash []byte) (node, error) {
 
 func (d *doubleListTrieSyncer) checkTimeout() error {
 	currentTime := getCurrentTime()
-	isTimeout := currentTime.Sub(d.lastSyncedTrieNode) > d.timeoutNodeReceived
+	isTimeout := currentTime.Sub(d.lastSyncedTrieNode) > d.receivedNodesTimeout
 	if isTimeout {
 		return ErrTrieSyncTimeout
 	}

@@ -174,7 +174,7 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ssh data.SyncStatisti
 		ShardId:                   u.shardId,
 		Topic:                     factory.AccountTrieNodesTopic,
 		TrieSyncStatistics:        ssh,
-		TimeoutNodesReceived:      u.timeout,
+		ReceivedNodesTimeout:      u.timeout,
 		MaxHardCapForMissingNodes: u.maxHardCapForMissingNodes,
 	}
 	trieSyncer, err := trie.CreateTrieSyncer(arg, u.trieSyncerVersion)

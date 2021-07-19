@@ -38,7 +38,7 @@ type trieSyncer struct {
 	handlerID                 string
 	trieSyncStatistics        data.SyncStatisticsHandler
 	lastSyncedTrieNode        time.Time
-	timeoutNodesReceived      time.Duration
+	receivedNodesTimeout      time.Duration
 	maxHardCapForMissingNodes int
 }
 
@@ -55,7 +55,7 @@ type ArgTrieSyncer struct {
 	ShardId                   uint32
 	Topic                     string
 	TrieSyncStatistics        data.SyncStatisticsHandler
-	TimeoutNodesReceived      time.Duration
+	ReceivedNodesTimeout      time.Duration
 	MaxHardCapForMissingNodes int
 }
 
@@ -78,7 +78,7 @@ func NewTrieSyncer(arg ArgTrieSyncer) (*trieSyncer, error) {
 		waitTimeBetweenRequests:   time.Second,
 		handlerID:                 core.UniqueIdentifier(),
 		trieSyncStatistics:        arg.TrieSyncStatistics,
-		timeoutNodesReceived:      arg.TimeoutNodesReceived,
+		receivedNodesTimeout:      arg.ReceivedNodesTimeout,
 		maxHardCapForMissingNodes: arg.MaxHardCapForMissingNodes,
 	}
 
@@ -107,9 +107,9 @@ func checkArguments(arg ArgTrieSyncer) error {
 	if check.IfNil(arg.TrieSyncStatistics) {
 		return ErrNilTrieSyncStatistics
 	}
-	if arg.TimeoutNodesReceived < minTimeoutNodesReceived {
+	if arg.ReceivedNodesTimeout < minTimeoutNodesReceived {
 		return fmt.Errorf("%w provided: %v, minimum %v",
-			ErrInvalidTimeout, arg.TimeoutNodesReceived, minTimeoutNodesReceived)
+			ErrInvalidTimeout, arg.ReceivedNodesTimeout, minTimeoutNodesReceived)
 	}
 	if arg.MaxHardCapForMissingNodes < 1 {
 		return fmt.Errorf("%w provided: %v", ErrInvalidMaxHardCapForMissingNodes, arg.MaxHardCapForMissingNodes)
@@ -260,7 +260,7 @@ func (ts *trieSyncer) resetWatchdog() {
 
 func (ts *trieSyncer) isTimeoutWhileSyncing() bool {
 	duration := time.Since(ts.lastSyncedTrieNode)
-	return duration > ts.timeoutNodesReceived
+	return duration > ts.receivedNodesTimeout
 }
 
 // adds new elements to needed hash map, lock ts.nodeHashesMutex before calling
