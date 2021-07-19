@@ -5,11 +5,8 @@ import (
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -38,7 +35,7 @@ func NewInterceptedHeader(arg *ArgInterceptedBlockHeader) (*InterceptedHeader, e
 		return nil, err
 	}
 
-	hdr, err := createShardHdr(arg.Marshalizer, arg.HdrBuff)
+	hdr, err := process.CreateShardHeader(arg.Marshalizer, arg.HdrBuff)
 	if err != nil {
 		return nil, err
 	}
@@ -55,39 +52,6 @@ func NewInterceptedHeader(arg *ArgInterceptedBlockHeader) (*InterceptedHeader, e
 	inHdr.processFields(arg.HdrBuff)
 
 	return inHdr, nil
-}
-
-func createShardHdr(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.HeaderHandler, error) {
-	hdr, err := createHeaderV2(marshalizer, hdrBuff)
-	if err == nil {
-		return hdr, nil
-	}
-
-	hdr, err = createHeaderV1(marshalizer, hdrBuff)
-	return hdr, err
-}
-
-func createHeaderV2(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.HeaderHandler, error) {
-	hdrV2 := &block.HeaderV2{}
-	err := marshalizer.Unmarshal(hdrV2, hdrBuff)
-	if err != nil {
-		return nil, err
-	}
-	if check.IfNil(hdrV2.Header){
-		return nil, fmt.Errorf("%w while checking inner header", process.ErrNilHeaderHandler)
-	}
-
-	return hdrV2, nil
-}
-
-func createHeaderV1(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.HeaderHandler, error) {
-	hdr := &block.Header{}
-	err := marshalizer.Unmarshal(hdr, hdrBuff)
-	if err != nil {
-		return nil, err
-	}
-
-	return hdr, nil
 }
 
 func (inHdr *InterceptedHeader) processFields(txBuff []byte) {

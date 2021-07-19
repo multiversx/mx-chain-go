@@ -2377,3 +2377,19 @@ func (mp *metaProcessor) removeStartOfEpochBlockDataFromPools(
 func (mp *metaProcessor) Close() error {
 	return mp.baseProcessor.Close()
 }
+
+// DecodeBlockHeader method decodes block header from a given byte array
+func (mp *metaProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
+	if dta == nil {
+		return nil
+	}
+
+	metaBlock := &block.MetaBlock{}
+	err := mp.marshalizer.Unmarshal(metaBlock, dta)
+	if err != nil {
+		log.Debug("DecodeBlockHeader.Unmarshal", "error", err.Error())
+		return nil
+	}
+
+	return metaBlock
+}

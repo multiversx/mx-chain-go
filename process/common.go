@@ -770,8 +770,7 @@ func SetScheduledRootHashAndSCRs(
 ) {
 	scheduledRootHash, mapScheduledSCRs, err := GetScheduledRootHashAndSCRsFromStorage(headerHash, storageService, marshalizer)
 	if err != nil {
-		log.Debug("SetScheduledRootHashAndSCRs: get scheduled root hash and SCRs from storage",
-			"error", err.Error(),
+		log.Debug("SetScheduledRootHashAndSCRs: header hash not found in ScheduledSCRs storage",
 			"header hash", headerHash,
 		)
 
@@ -794,8 +793,7 @@ func GetScheduledRootHash(
 ) []byte {
 	scheduledRootHash, _, err := GetScheduledRootHashAndSCRsFromStorage(headerHash, storageService, marshalizer)
 	if err != nil {
-		log.Debug("GetScheduledRootHash: get scheduled root hash from storage",
-			"error", err.Error(),
+		log.Debug("GetScheduledRootHash: header hash not found in ScheduledSCRs storage",
 			"header hash", headerHash,
 		)
 
@@ -803,4 +801,40 @@ func GetScheduledRootHash(
 	}
 
 	return scheduledRootHash
+}
+
+// CreateShardHeader creates a shard header from the given byte array
+func CreateShardHeader(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.HeaderHandler, error) {
+	hdr, err := CreateHeaderV2(marshalizer, hdrBuff)
+	if err == nil {
+		return hdr, nil
+	}
+
+	hdr, err = CreateHeaderV1(marshalizer, hdrBuff)
+	return hdr, err
+}
+
+// CreateHeaderV2 creates a header with version 2 from the given byte array
+func CreateHeaderV2(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.HeaderHandler, error) {
+	hdrV2 := &block.HeaderV2{}
+	err := marshalizer.Unmarshal(hdrV2, hdrBuff)
+	if err != nil {
+		return nil, err
+	}
+	if check.IfNil(hdrV2.Header) {
+		return nil, fmt.Errorf("%w while checking inner header", ErrNilHeaderHandler)
+	}
+
+	return hdrV2, nil
+}
+
+// CreateHeaderV1 creates a header with version 1 from the given byte array
+func CreateHeaderV1(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.HeaderHandler, error) {
+	hdr := &block.Header{}
+	err := marshalizer.Unmarshal(hdr, hdrBuff)
+	if err != nil {
+		return nil, err
+	}
+
+	return hdr, nil
 }
