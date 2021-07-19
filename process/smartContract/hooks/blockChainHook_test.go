@@ -132,6 +132,25 @@ func TestNewBlockChainHookImpl_ShouldWork(t *testing.T) {
 	assert.False(t, bh.IsInterfaceNil())
 }
 
+func TestBlTestBlockChainHookImpl_GetUserAccountNotASystemAccountInCrossShard(t *testing.T) {
+	t.Parallel()
+
+	args := createMockVMAccountsArguments()
+	args.ShardCoordinator = &mock.ShardCoordinatorStub{
+		ComputeIdCalled: func(address []byte) uint32 {
+			return 0
+		},
+		SelfIdCalled: func() uint32 {
+			return 1
+		},
+	}
+	args.Accounts = &testscommon.AccountsStub{}
+	bh, _ := hooks.NewBlockChainHookImpl(args)
+	addr := bytes.Repeat([]byte{0}, 32)
+	_, err := bh.GetUserAccount(addr)
+	assert.Equal(t, state.ErrAccNotFound, err)
+}
+
 func TestBlTestBlockChainHookImpl_GetUserAccountGetAccFromAddressErr(t *testing.T) {
 	t.Parallel()
 

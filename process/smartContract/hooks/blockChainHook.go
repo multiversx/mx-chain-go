@@ -402,7 +402,6 @@ func (bh *BlockChainHookImpl) IsPayable(address []byte) (bool, error) {
 	}
 
 	if bh.isNotSystemAccountAndCrossShard(address) {
-		//backwards compatibility
 		return true, nil
 	}
 
