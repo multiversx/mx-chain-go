@@ -97,7 +97,6 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	var unsignedTxUnit storage.Storer
 	var rewardTxUnit storage.Storer
 	var bootstrapUnit storage.Storer
-	var txLogsUnit storage.Storer
 	var receiptsUnit storage.Storer
 	var err error
 
@@ -227,13 +226,6 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, bootstrapUnit)
 
-	txLogsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.TxLogsStorage)
-	txLogsUnit, err = psf.createPruningPersister(txLogsUnitArgs)
-	if err != nil {
-		return nil, err
-	}
-	successfullyCreatedStorers = append(successfullyCreatedStorers, txLogsUnit)
-
 	receiptsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.ReceiptsStorage)
 	receiptsUnit, err = psf.createPruningPersister(receiptsUnitArgs)
 	if err != nil {
@@ -255,11 +247,15 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	store.AddStorer(dataRetriever.HeartbeatUnit, heartbeatStorageUnit)
 	store.AddStorer(dataRetriever.BootstrapUnit, bootstrapUnit)
 	store.AddStorer(dataRetriever.StatusMetricsUnit, statusMetricsStorageUnit)
-	store.AddStorer(dataRetriever.TxLogsUnit, txLogsUnit)
 	store.AddStorer(dataRetriever.ReceiptsUnit, receiptsUnit)
 	store.AddStorer(dataRetriever.TrieEpochRootHashUnit, trieEpochRootHashStorageUnit)
 
 	err = psf.setupDbLookupExtensions(store, &successfullyCreatedStorers)
+	if err != nil {
+		return nil, err
+	}
+
+	err = psf.setupLogsAndEventsStorer(store, &successfullyCreatedStorers)
 	if err != nil {
 		return nil, err
 	}
@@ -281,7 +277,6 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	var unsignedTxUnit storage.Storer
 	var rewardTxUnit storage.Storer
 	var bootstrapUnit storage.Storer
-	var txLogsUnit storage.Storer
 	var receiptsUnit storage.Storer
 	var err error
 
@@ -409,13 +404,6 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, bootstrapUnit)
 
-	txLogsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.TxLogsStorage)
-	txLogsUnit, err = psf.createPruningPersister(txLogsUnitArgs)
-	if err != nil {
-		return nil, err
-	}
-	successfullyCreatedStorers = append(successfullyCreatedStorers, txLogsUnit)
-
 	receiptsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.ReceiptsStorage)
 	receiptsUnit, err = psf.createPruningPersister(receiptsUnitArgs)
 	if err != nil {
@@ -438,11 +426,15 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	store.AddStorer(dataRetriever.HeartbeatUnit, heartbeatStorageUnit)
 	store.AddStorer(dataRetriever.BootstrapUnit, bootstrapUnit)
 	store.AddStorer(dataRetriever.StatusMetricsUnit, statusMetricsStorageUnit)
-	store.AddStorer(dataRetriever.TxLogsUnit, txLogsUnit)
 	store.AddStorer(dataRetriever.ReceiptsUnit, receiptsUnit)
 	store.AddStorer(dataRetriever.TrieEpochRootHashUnit, trieEpochRootHashStorageUnit)
 
 	err = psf.setupDbLookupExtensions(store, &successfullyCreatedStorers)
+	if err != nil {
+		return nil, err
+	}
+
+	err = psf.setupLogsAndEventsStorer(store, &successfullyCreatedStorers)
 	if err != nil {
 		return nil, err
 	}
@@ -453,6 +445,27 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	}
 
 	return store, err
+}
+
+func (psf *StorageServiceFactory) setupLogsAndEventsStorer(chainStorer *dataRetriever.ChainStorer, createdStorers *[]storage.Storer) error {
+	// Should not create logs and events storer in the next case:
+	// - LogsAndEvents.Enabled = false and DbLookupExtensions.Enabled = false
+	// If we have DbLookupExtensions ACTIVE node by default should save logs no matter if is enabled or not
+	shouldCreateStorer := psf.generalConfig.LogsAndEvents.SaveInStorageEnabled || psf.generalConfig.DbLookupExtensions.Enabled
+	if !shouldCreateStorer {
+		return nil
+	}
+
+	txLogsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.LogsAndEvents.TxLogsStorage)
+	txLogsUnit, err := psf.createPruningPersister(txLogsUnitArgs)
+	if err != nil {
+		return err
+	}
+
+	*createdStorers = append(*createdStorers, txLogsUnit)
+	chainStorer.AddStorer(dataRetriever.TxLogsUnit, txLogsUnit)
+
+	return nil
 }
 
 func (psf *StorageServiceFactory) setupDbLookupExtensions(chainStorer *dataRetriever.ChainStorer, createdStorers *[]storage.Storer) error {

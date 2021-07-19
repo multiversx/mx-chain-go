@@ -62,8 +62,8 @@ func getPrivateKey() *mock.PrivateKeyStub {
 	return &mock.PrivateKeyStub{}
 }
 
-func getMessenger() *mock.MessengerStub {
-	messenger := &mock.MessengerStub{
+func getMessenger() *p2pmocks.MessengerStub {
+	messenger := &p2pmocks.MessengerStub{
 		CloseCalled: func() error {
 			return nil
 		},
@@ -2120,7 +2120,7 @@ func TestCreateTransaction_TxSignedWithHashNoEnabledShouldErr(t *testing.T) {
 func TestSendBulkTransactions_NoTxShouldErr(t *testing.T) {
 	t.Parallel()
 
-	mes := &mock.MessengerStub{}
+	mes := &p2pmocks.MessengerStub{}
 	marshalizer := &mock.MarshalizerFake{}
 	hasher := &mock.HasherFake{}
 	coreComponents := getDefaultCoreComponents()
@@ -2792,7 +2792,7 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 		chDone <- struct{}{}
 	}()
 
-	mes := &mock.MessengerStub{
+	mes := &p2pmocks.MessengerStub{
 		BroadcastOnChannelBlockingCalled: func(pipe string, topic string, buff []byte) error {
 
 			b := &batch.Batch{}
@@ -3015,7 +3015,7 @@ func TestNode_GetPeerInfoUnknownPeerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	networkComponents := getDefaultNetworkComponents()
-	networkComponents.Messenger = &mock.MessengerStub{
+	networkComponents.Messenger = &p2pmocks.MessengerStub{
 		PeersCalled: func() []core.PeerID {
 			return make([]core.PeerID, 0)
 		},
@@ -3038,7 +3038,7 @@ func TestNode_ShouldWork(t *testing.T) {
 	pid1 := "pid1"
 	pid2 := "pid2"
 	networkComponents := getDefaultNetworkComponents()
-	networkComponents.Messenger = &mock.MessengerStub{
+	networkComponents.Messenger = &p2pmocks.MessengerStub{
 		PeersCalled: func() []core.PeerID {
 			//return them unsorted
 			return []core.PeerID{core.PeerID(pid2), core.PeerID(pid1)}

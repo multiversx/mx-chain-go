@@ -2127,7 +2127,9 @@ func TestAccountsDB_SetStateCheckpointCommitsOnlyMissingData(t *testing.T) {
 	}
 
 	assert.Equal(t, len(newHashes), numPresent)
-	assert.True(t, numAbsent > 0)
+	if len(allStateHashes) > len(newHashes) {
+		assert.True(t, numAbsent > 0)
+	}
 }
 
 func TestAccountsDB_CheckpointHashesHolderReceivesOnly32BytesData(t *testing.T) {

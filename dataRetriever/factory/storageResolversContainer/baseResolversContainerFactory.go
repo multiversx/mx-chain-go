@@ -213,10 +213,13 @@ func (brcf *baseResolversContainerFactory) newImportDBTrieStorage(
 		return nil, nil, err
 	}
 
-	return trieFactoryInstance.Create(
-		trieStorageConfig,
-		core.GetShardIDString(brcf.shardIDForTries),
-		brcf.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
-		brcf.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
-	)
+	args := data.TrieCreateArgs{
+		TrieStorageConfig:  trieStorageConfig,
+		ShardID:            core.GetShardIDString(brcf.shardIDForTries),
+		PruningEnabled:     brcf.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
+		CheckpointsEnabled: brcf.generalConfig.StateTriesConfig.CheckpointsEnabled,
+		MaxTrieLevelInMem:  brcf.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
+	}
+
+	return trieFactoryInstance.Create(args)
 }

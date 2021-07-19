@@ -143,6 +143,7 @@ type Messenger interface {
 	SetPeerDenialEvaluator(handler PeerDenialEvaluator) error
 	GetConnectedPeersInfo() *ConnectedPeersInfo
 	UnjoinAllTopics() error
+	Port() int
 
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool

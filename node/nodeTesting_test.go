@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -299,7 +300,7 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 		chDone <- struct{}{}
 	}()
 
-	mes := &mock.MessengerStub{
+	mes := &p2pmocks.MessengerStub{
 		BroadcastOnChannelBlockingCalled: func(pipe string, topic string, buff []byte) error {
 			identifier := factory.TransactionTopic + shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId())
 
@@ -411,7 +412,7 @@ func getDefaultStateComponents() *testscommon.StateComponentsMock {
 
 func getDefaultNetworkComponents() *factoryMock.NetworkComponentsMock {
 	return &factoryMock.NetworkComponentsMock{
-		Messenger:       &mock.MessengerStub{},
+		Messenger:       &p2pmocks.MessengerStub{},
 		InputAntiFlood:  &mock.P2PAntifloodHandlerStub{},
 		OutputAntiFlood: &mock.P2PAntifloodHandlerStub{},
 		PeerBlackList:   &mock.PeerBlackListHandlerStub{},

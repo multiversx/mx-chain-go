@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/keccak"
@@ -432,7 +431,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodesGetFromSnapshot(t *testing.T) {
 
 	storageManager := tr.GetStorageManager()
 	storageManager.TakeSnapshot(rootHash, true, nil)
-	time.Sleep(time.Second)
+	trie.WaitForOperationToComplete(storageManager)
 
 	err := storageManager.Database().Remove(rootHash)
 	assert.Nil(t, err)
@@ -487,7 +486,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodesFromSnapshotShouldNotCommitToMainD
 
 	rootHash, _ := tr.RootHash()
 	storageManager.TakeSnapshot(rootHash, true, nil)
-	time.Sleep(time.Second)
+	trie.WaitForOperationToComplete(storageManager)
 
 	err := storageManager.Database().Remove(rootHash)
 	assert.Nil(t, err)

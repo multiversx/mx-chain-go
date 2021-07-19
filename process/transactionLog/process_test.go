@@ -21,7 +21,8 @@ func TestNewTxLogProcessor_NilParameters(t *testing.T) {
 	require.Equal(t, process.ErrNilMarshalizer, nilMarshalizer)
 
 	_, nilStorer := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
-		Marshalizer: &mock.MarshalizerMock{},
+		Marshalizer:          &mock.MarshalizerMock{},
+		SaveInStorageEnabled: true,
 	})
 
 	require.Equal(t, process.ErrNilStore, nilStorer)
@@ -64,6 +65,25 @@ func TestTxLogProcessor_SaveLogsEmptyLogsReturnsNil(t *testing.T) {
 	require.Nil(t, err)
 }
 
+func TestTxLogProcessor_Clean(t *testing.T) {
+	t.Parallel()
+
+	txLogsProc, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
+		Storer:      &testscommon.StorerStub{},
+		Marshalizer: &mock.MarshalizerMock{},
+	})
+
+	logs := []*vmcommon.LogEntry{
+		{Address: []byte("first log")},
+	}
+	err := txLogsProc.SaveLog([]byte("txhash"), &transaction.Transaction{}, logs)
+	require.Nil(t, err)
+	require.Len(t, txLogsProc.GetAllCurrentLogs(), 1)
+
+	txLogsProc.Clean()
+	require.Len(t, txLogsProc.GetAllCurrentLogs(), 0)
+}
+
 func TestTxLogProcessor_SaveLogsMarshalErr(t *testing.T) {
 	retErr := errors.New("marshal err")
 	txLogProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
@@ -73,6 +93,7 @@ func TestTxLogProcessor_SaveLogsMarshalErr(t *testing.T) {
 				return nil, retErr
 			},
 		},
+		SaveInStorageEnabled: true,
 	})
 
 	logs := []*vmcommon.LogEntry{
@@ -95,6 +116,7 @@ func TestTxLogProcessor_SaveLogsStoreErr(t *testing.T) {
 				return nil, nil
 			},
 		},
+		SaveInStorageEnabled: true,
 	})
 
 	logs := []*vmcommon.LogEntry{
@@ -119,6 +141,7 @@ func TestTxLogProcessor_SaveLogsCallsPutWithMarshalBuff(t *testing.T) {
 				return buffExpected, nil
 			},
 		},
+		SaveInStorageEnabled: true,
 	})
 
 	logs := []*vmcommon.LogEntry{
@@ -136,7 +159,8 @@ func TestTxLogProcessor_GetLogErrNotFound(t *testing.T) {
 				return nil, errors.New("storer error")
 			},
 		},
-		Marshalizer: &mock.MarshalizerStub{},
+		Marshalizer:          &mock.MarshalizerStub{},
+		SaveInStorageEnabled: true,
 	})
 
 	_, err := txLogProcessor.GetLog([]byte("texhash"))
@@ -157,6 +181,7 @@ func TestTxLogProcessor_GetLogUnmarshalErr(t *testing.T) {
 				return retErr
 			},
 		},
+		SaveInStorageEnabled: true,
 	})
 
 	_, err := txLogProcessor.GetLog([]byte("texhash"))
