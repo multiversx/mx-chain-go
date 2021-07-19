@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	coreMock "github.com/ElrondNetwork/elrond-go-core/core/mock"
 	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
@@ -1148,7 +1149,7 @@ func TestEsdt_ExecuteToggleFreezeShouldWorkWithRealBech32Address(t *testing.T) {
 		&testscommon.AccountsStub{},
 		&mock.RaterMock{})
 
-	bech32C, _ := pubkeyConverter.NewBech32PubkeyConverter(32)
+	bech32C, _ := pubkeyConverter.NewBech32PubkeyConverter(32, &coreMock.LoggerFake{})
 	args.AddressPubKeyConverter = bech32C
 
 	tokensMap := map[string][]byte{}
@@ -1201,7 +1202,7 @@ func TestEsdt_ExecuteToggleFreezeShouldFailWithBech32Converter(t *testing.T) {
 		&testscommon.AccountsStub{},
 		&mock.RaterMock{})
 
-	bech32C, _ := pubkeyConverter.NewBech32PubkeyConverter(32)
+	bech32C, _ := pubkeyConverter.NewBech32PubkeyConverter(32, &coreMock.LoggerFake{})
 	args.AddressPubKeyConverter = bech32C
 
 	tokensMap := map[string][]byte{}
@@ -2714,7 +2715,7 @@ func TestEsdt_GetSpecialRolesShouldWork(t *testing.T) {
 		&mock.RaterMock{})
 	args.Eei = eei
 
-	bech32C, _ := pubkeyConverter.NewBech32PubkeyConverter(32)
+	bech32C, _ := pubkeyConverter.NewBech32PubkeyConverter(32, &coreMock.LoggerFake{})
 
 	addr1 := "erd1kzzv2uw97q5k9mt458qk3q9u3cwhwqykvyk598q2f6wwx7gvrd9s8kszxk"
 	addr1Bytes, _ := bech32C.Decode(addr1)
@@ -2774,7 +2775,7 @@ func TestEsdt_UnsetSpecialRoleWithRemoveEntryFromSpecialRoles(t *testing.T) {
 		&mock.RaterMock{})
 	args.Eei = eei
 
-	bech32C, _ := pubkeyConverter.NewBech32PubkeyConverter(32)
+	bech32C, _ := pubkeyConverter.NewBech32PubkeyConverter(32, &coreMock.LoggerFake{})
 
 	owner := "erd1e7n8rzxdtl2n2fl6mrsg4l7stp2elxhfy6l9p7eeafspjhhrjq7qk05usw"
 	ownerBytes, _ := bech32C.Decode(owner)
