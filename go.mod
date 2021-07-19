@@ -6,7 +6,7 @@ require (
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.26
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.24
 	github.com/ElrondNetwork/concurrent-map v0.1.3
-	github.com/ElrondNetwork/elastic-indexer-go v1.1.3-0.20210716081617-ba61de30264c
+	github.com/ElrondNetwork/elastic-indexer-go v1.0.8-0.20210719081449-9d1c7a4ee205
 	github.com/ElrondNetwork/elrond-go-core v0.0.1
 	github.com/ElrondNetwork/elrond-go-logger v1.0.4
 	github.com/ElrondNetwork/elrond-vm-common v1.1.0
@@ -49,4 +49,3 @@ replace github.com/gogo/protobuf => github.com/ElrondNetwork/protobuf v1.3.2
 replace github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.26 => github.com/ElrondNetwork/arwen-wasm-vm v1.2.26
 
 replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.24 => github.com/ElrondNetwork/arwen-wasm-vm v1.3.24
-
