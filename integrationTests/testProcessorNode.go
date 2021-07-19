@@ -2823,7 +2823,7 @@ func GetDefaultCoreComponents() *mock.CoreComponentsStub {
 		AlarmSchedulerField:    &testscommon.AlarmSchedulerStub{},
 		SyncTimerField:         &testscommon.SyncTimerStub{},
 		RoundHandlerField:      &testscommon.RoundHandlerMock{},
-		EconomicsDataField:     &economicsmocks.EconomicsHandlerMock{},
+		EconomicsDataField:     &economicsmocks.EconomicsHandlerStub{},
 		RatingsDataField:       &testscommon.RatingsInfoMock{},
 		RaterField:             &testscommon.RaterMock{},
 		GenesisNodesSetupField: &testscommon.NodesSetupStub{},

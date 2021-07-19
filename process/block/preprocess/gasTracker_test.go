@@ -63,7 +63,7 @@ func createDefaultGasTracker(
 	shardCoordinator := &testscommon.ShardsCoordinatorMock{
 		CurrentShard: selfShardID,
 	}
-	economicsFee := &economicsmocks.EconomicsHandlerMock{
+	economicsFee := &economicsmocks.EconomicsHandlerStub{
 		MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
 			if shardID == core.MetachainShardId {
 				return 15000000000
