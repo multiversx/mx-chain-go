@@ -40,27 +40,42 @@ type EconomicsHandlerMock struct {
 
 // LeaderPercentage -
 func (ehm *EconomicsHandlerMock) LeaderPercentage() float64 {
-	return ehm.LeaderPercentageCalled()
+	if ehm.LeaderPercentageCalled != nil {
+		return ehm.LeaderPercentageCalled()
+	}
+	return 0.1
 }
 
 // ProtocolSustainabilityPercentage will return the protocol sustainability percentage value
 func (ehm *EconomicsHandlerMock) ProtocolSustainabilityPercentage() float64 {
-	return ehm.ProtocolSustainabilityPercentageCalled()
+	if ehm.ProtocolSustainabilityPercentageCalled != nil {
+		return ehm.ProtocolSustainabilityPercentageCalled()
+	}
+	return 0.1
 }
 
 // ProtocolSustainabilityAddress will return the protocol sustainability address
 func (ehm *EconomicsHandlerMock) ProtocolSustainabilityAddress() string {
-	return ehm.ProtocolSustainabilityAddressCalled()
+	if ehm.ProtocolSustainabilityAddressCalled != nil {
+		return ehm.ProtocolSustainabilityAddressCalled()
+	}
+	return "erd14uqxan5rgucsf6537ll4vpwyc96z7us5586xhc5euv8w96rsw95sfl6a49"
 }
 
 // MinInflationRate -
 func (ehm *EconomicsHandlerMock) MinInflationRate() float64 {
-	return ehm.MinInflationRateCalled()
+	if ehm.MinInflationRateCalled != nil {
+		return ehm.MinInflationRateCalled()
+	}
+	return 0.01
 }
 
 // MaxInflationRate -
 func (ehm *EconomicsHandlerMock) MaxInflationRate(year uint32) float64 {
-	return ehm.MaxInflationRateCalled(year)
+	if ehm.MaxInflationRateCalled != nil {
+		return ehm.MaxInflationRateCalled(year)
+	}
+	return 0.1
 }
 
 // MinGasPrice -
@@ -83,7 +98,10 @@ func (ehm *EconomicsHandlerMock) GasPerDataByte() uint64 {
 
 // DeveloperPercentage -
 func (ehm *EconomicsHandlerMock) DeveloperPercentage() float64 {
-	return ehm.DeveloperPercentageCalled()
+	if ehm.DeveloperPercentageCalled != nil {
+		return ehm.DeveloperPercentageCalled()
+	}
+	return 0
 }
 
 // GenesisTotalSupply -
@@ -93,22 +111,31 @@ func (ehm *EconomicsHandlerMock) GenesisTotalSupply() *big.Int {
 
 // SetMaxGasLimitPerBlock -
 func (ehm *EconomicsHandlerMock) SetMaxGasLimitPerBlock(maxGasLimitPerBlock uint64) {
-	ehm.SetMaxGasLimitPerBlockCalled(maxGasLimitPerBlock)
+	if ehm.SetMaxGasLimitPerBlockCalled != nil {
+		ehm.SetMaxGasLimitPerBlockCalled(maxGasLimitPerBlock)
+	}
 }
 
 // SetMinGasPrice -
 func (ehm *EconomicsHandlerMock) SetMinGasPrice(minGasPrice uint64) {
-	ehm.SetMinGasPriceCalled(minGasPrice)
+	if ehm.SetMinGasPriceCalled != nil {
+		ehm.SetMinGasPriceCalled(minGasPrice)
+	}
 }
 
 // SetMinGasLimit -
 func (ehm *EconomicsHandlerMock) SetMinGasLimit(minGasLimit uint64) {
-	ehm.SetMinGasLimitCalled(minGasLimit)
+	if ehm.SetMinGasLimitCalled != nil {
+		ehm.SetMinGasLimitCalled(minGasLimit)
+	}
 }
 
 // MaxGasLimitPerBlock -
 func (ehm *EconomicsHandlerMock) MaxGasLimitPerBlock(shard uint32) uint64 {
-	return ehm.MaxGasLimitPerBlockCalled(shard)
+	if ehm.MaxGasLimitPerBlockCalled != nil {
+		return ehm.MaxGasLimitPerBlockCalled(shard)
+	}
+	return 1500000000
 }
 
 // ComputeGasLimit -

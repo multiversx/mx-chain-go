@@ -2,6 +2,7 @@ package preprocess
 
 import (
 	"encoding/hex"
+	"errors"
 	"math/big"
 	"sync"
 	"testing"
@@ -147,7 +148,7 @@ func Test_checkMiniBlocksBuilderArgsOK(t *testing.T) {
 	require.Nil(t, err)
 }
 
-func Test_updateAccountShardsInfo(t *testing.T) {
+func Test_MiniBlocksBuilderUpdateAccountShardsInfo(t *testing.T) {
 	t.Parallel()
 
 	args := createDefaultMiniBlockBuilderArgs()
@@ -220,7 +221,7 @@ func Test_MiniBlocksBuilderHandleGasRefundCrossShard(t *testing.T) {
 	require.Equal(t, initGas, mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID])
 }
 
-func Test_handleFailedTransactionAddsToCount(t *testing.T) {
+func Test_MiniBlocksBuilderHandleFailedTransactionAddsToCount(t *testing.T) {
 	t.Parallel()
 
 	args := createDefaultMiniBlockBuilderArgs()
@@ -235,7 +236,7 @@ func Test_handleFailedTransactionAddsToCount(t *testing.T) {
 	require.Equal(t, uint32(2), mbb.stats.numTxsFailed)
 }
 
-func Test_handleCrossShardScCallOrSpecialTx(t *testing.T) {
+func Test_MiniBlocksBuilderHandleCrossShardScCallOrSpecialTx(t *testing.T) {
 	t.Parallel()
 
 	args := createDefaultMiniBlockBuilderArgs()
@@ -294,7 +295,7 @@ func Test_isCrossShardScCallOrSpecialTxCrossShardWithUsername(t *testing.T) {
 	assert.True(t, crossOrSpecial)
 }
 
-func Test_wouldExceedBlockSizeWithTxWithNormalTxWithinBlockLimit(t *testing.T) {
+func Test_MiniBlocksBuilderWouldExceedBlockSizeWithTxWithNormalTxWithinBlockLimit(t *testing.T) {
 	t.Parallel()
 
 	args := createDefaultMiniBlockBuilderArgs()
@@ -313,7 +314,7 @@ func Test_wouldExceedBlockSizeWithTxWithNormalTxWithinBlockLimit(t *testing.T) {
 	require.False(t, result)
 }
 
-func Test_wouldExceedBlockSizeWithTxWithNormalTxBlockLimitExceeded(t *testing.T) {
+func Test_MiniBlocksBuilderWouldExceedBlockSizeWithTxWithNormalTxBlockLimitExceeded(t *testing.T) {
 	t.Parallel()
 
 	args := createDefaultMiniBlockBuilderArgs()
@@ -332,7 +333,7 @@ func Test_wouldExceedBlockSizeWithTxWithNormalTxBlockLimitExceeded(t *testing.T)
 	require.True(t, result)
 }
 
-func Test_wouldExceedBlockSizeWithTxWithSpecialTxWithinBlockLimit(t *testing.T) {
+func Test_MiniBlocksBuilderWouldExceedBlockSizeWithTxWithSpecialTxWithinBlockLimit(t *testing.T) {
 	t.Parallel()
 
 	args := createDefaultMiniBlockBuilderArgs()
@@ -351,7 +352,7 @@ func Test_wouldExceedBlockSizeWithTxWithSpecialTxWithinBlockLimit(t *testing.T) 
 	require.False(t, result)
 }
 
-func Test_wouldExceedBlockSizeWithTxWithSpecialTxBlockLimitExceededDueToSCR(t *testing.T) {
+func Test_MiniBlocksBuilderWouldExceedBlockSizeWithTxWithSpecialTxBlockLimitExceededDueToSCR(t *testing.T) {
 	t.Parallel()
 
 	args := createDefaultMiniBlockBuilderArgs()
@@ -370,7 +371,7 @@ func Test_wouldExceedBlockSizeWithTxWithSpecialTxBlockLimitExceededDueToSCR(t *t
 	require.True(t, result)
 }
 
-func Test_addTxAndUpdateBlockSize(t *testing.T) {
+func Test_MiniBlocksBuilderAddTxAndUpdateBlockSize(t *testing.T) {
 	t.Parallel()
 
 	args := createDefaultMiniBlockBuilderArgs()
@@ -391,7 +392,7 @@ func Test_addTxAndUpdateBlockSize(t *testing.T) {
 	require.Equal(t, uint32(0), mbb.stats.numCrossShardSCCallsOrSpecialTxs)
 }
 
-func Test_addTxAndUpdateBlockSizeCrossShardSmartContractCall(t *testing.T) {
+func Test_MiniBlocksBuilderAddTxAndUpdateBlockSizeCrossShardSmartContractCall(t *testing.T) {
 	t.Parallel()
 
 	args := createDefaultMiniBlockBuilderArgs()
@@ -412,6 +413,438 @@ func Test_addTxAndUpdateBlockSizeCrossShardSmartContractCall(t *testing.T) {
 	require.Equal(t, uint32(1), mbb.stats.numCrossShardSCCallsOrSpecialTxs)
 }
 
+func Test_MiniBlocksBuilderHandleBadTransactionWithSkip(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultMiniBlockBuilderArgs()
+	mbb, _ := newMiniBlockBuilder(args)
+	sender, _ := hex.DecodeString("aaaaaaaaaa" + suffixShard0)
+	receiver, _ := hex.DecodeString(smartContractAddressStart + suffixShard1)
+	tx := createDefaultTx(sender, receiver, 50000)
+	senderShardID := uint32(0)
+	receiverShardID := uint32(1)
+	wtx := createWrappedTransaction(tx, senderShardID, receiverShardID)
+	mbb.gasInfo = gasConsumedInfo{
+		gasConsumedByMiniBlocksInSenderShard:  10,
+		gasConsumedByMiniBlockInReceiverShard: 20,
+		totalGasConsumedInSelfShard:           30,
+	}
+	mbb.prevGasInfo = gasConsumedInfo{
+		gasConsumedByMiniBlocksInSenderShard:  5,
+		gasConsumedByMiniBlockInReceiverShard: 10,
+		totalGasConsumedInSelfShard:           20,
+	}
+	mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID] = mbb.gasInfo.gasConsumedByMiniBlockInReceiverShard
+	mbb.handleBadTransaction(process.ErrHigherNonceInTransaction, wtx, tx)
+
+	require.Equal(t, tx.SndAddr, mbb.senderToSkip)
+	require.Equal(t, mbb.prevGasInfo, mbb.gasInfo)
+	require.Equal(t, mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID], mbb.gasInfo.gasConsumedByMiniBlockInReceiverShard)
+}
+
+func Test_MiniBlocksBuilderHandleBadTransactionNoSkip(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultMiniBlockBuilderArgs()
+	mbb, _ := newMiniBlockBuilder(args)
+	sender, _ := hex.DecodeString("aaaaaaaaaa" + suffixShard0)
+	receiver, _ := hex.DecodeString(smartContractAddressStart + suffixShard1)
+	tx := createDefaultTx(sender, receiver, 50000)
+	senderShardID := uint32(0)
+	receiverShardID := uint32(1)
+	wtx := createWrappedTransaction(tx, senderShardID, receiverShardID)
+	mbb.gasInfo = gasConsumedInfo{
+		gasConsumedByMiniBlocksInSenderShard:  10,
+		gasConsumedByMiniBlockInReceiverShard: 20,
+		totalGasConsumedInSelfShard:           30,
+	}
+	mbb.prevGasInfo = gasConsumedInfo{
+		gasConsumedByMiniBlocksInSenderShard:  5,
+		gasConsumedByMiniBlockInReceiverShard: 10,
+		totalGasConsumedInSelfShard:           20,
+	}
+	mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID] = mbb.gasInfo.gasConsumedByMiniBlockInReceiverShard
+	mbb.handleBadTransaction(process.ErrAccountNotFound, wtx, tx)
+
+	require.Equal(t, []byte(""), mbb.senderToSkip)
+	require.Equal(t, mbb.prevGasInfo, mbb.gasInfo)
+	require.Equal(t, mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID], mbb.gasInfo.gasConsumedByMiniBlockInReceiverShard)
+}
+
+func Test_MiniBlocksBuilderShouldSenderBeSkippedNoConfiguredSenderToSkip(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultMiniBlockBuilderArgs()
+	mbb, _ := newMiniBlockBuilder(args)
+	mbb.senderToSkip = []byte("")
+	shouldSkip := mbb.shouldSenderBeSkipped([]byte("currentSender"))
+	require.False(t, shouldSkip)
+}
+
+func Test_MiniBlocksBuilderShouldSenderBeSkippedDifferentConfiguredSenderToSkip(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultMiniBlockBuilderArgs()
+	mbb, _ := newMiniBlockBuilder(args)
+	mbb.senderToSkip = []byte("differentSender")
+	shouldSkip := mbb.shouldSenderBeSkipped([]byte("currentSender"))
+	require.False(t, shouldSkip)
+}
+
+func Test_MiniBlocksBuilderShouldSenderBeSkippedSenderConfiguredToSkip(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultMiniBlockBuilderArgs()
+	mbb, _ := newMiniBlockBuilder(args)
+	mbb.senderToSkip = []byte("currentSender")
+	shouldSkip := mbb.shouldSenderBeSkipped([]byte("currentSender"))
+	require.True(t, shouldSkip)
+}
+
+func Test_MiniBlocksBuilderAccountGasForTxComputeGasConsumedWithErr(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultMiniBlockBuilderArgs()
+	expectedErr := errors.New("expectedError")
+	args.gasTracker = gasTracker{
+		shardCoordinator: args.gasTracker.shardCoordinator,
+		economicsFee:     args.gasTracker.economicsFee,
+		gasHandler: &testscommon.GasHandlerStub{
+			RemoveGasConsumedCalled: func(hashes [][]byte) {},
+			RemoveGasRefundedCalled: func(hashes [][]byte) {},
+			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+				return 0, 0, expectedErr
+			},
+		},
+	}
+	mbb, _ := newMiniBlockBuilder(args)
+	sender, _ := hex.DecodeString("aaaaaaaaaa" + suffixShard0)
+	receiver, _ := hex.DecodeString(smartContractAddressStart + suffixShard1)
+	tx := createDefaultTx(sender, receiver, 50000)
+	senderShardID := uint32(0)
+	receiverShardID := uint32(1)
+	wtx := createWrappedTransaction(tx, senderShardID, receiverShardID)
+	expectedGasConsumedInReceiverShard := uint64(10)
+	mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID] = expectedGasConsumedInReceiverShard
+
+	err := mbb.accountGasForTx(tx, wtx)
+	require.Equal(t, expectedErr, err)
+	require.Equal(t, expectedGasConsumedInReceiverShard, mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID])
+}
+
+func Test_MiniBlocksBuilderAccountGasForTxComputeGasConsumedOK(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultMiniBlockBuilderArgs()
+	gasConsumedByTxInReceiverShard := uint64(20)
+	gasConsumedByTxInSenderShard := uint64(10)
+	args.gasTracker = gasTracker{
+		shardCoordinator: args.gasTracker.shardCoordinator,
+		economicsFee:     args.gasTracker.economicsFee,
+		gasHandler: &testscommon.GasHandlerStub{
+			RemoveGasConsumedCalled: func(hashes [][]byte) {},
+			RemoveGasRefundedCalled: func(hashes [][]byte) {},
+			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+				return gasConsumedByTxInSenderShard, gasConsumedByTxInReceiverShard, nil
+			},
+		},
+	}
+	mbb, _ := newMiniBlockBuilder(args)
+	sender, _ := hex.DecodeString("aaaaaaaaaa" + suffixShard0)
+	receiver, _ := hex.DecodeString(smartContractAddressStart + suffixShard1)
+	tx := createDefaultTx(sender, receiver, 50000)
+	senderShardID := uint32(0)
+	receiverShardID := uint32(1)
+	wtx := createWrappedTransaction(tx, senderShardID, receiverShardID)
+
+	gasConsumedByMiniBlockInReceiverShard := uint64(100)
+	gasConsumedByMiniBlocksInSenderShard := uint64(200)
+	mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID] = gasConsumedByMiniBlockInReceiverShard
+
+	mbb.gasInfo = gasConsumedInfo{
+		gasConsumedByMiniBlocksInSenderShard:  gasConsumedByMiniBlocksInSenderShard,
+		gasConsumedByMiniBlockInReceiverShard: gasConsumedByMiniBlockInReceiverShard,
+		totalGasConsumedInSelfShard:           gasConsumedByMiniBlocksInSenderShard,
+	}
+
+	err := mbb.accountGasForTx(tx, wtx)
+
+	expectedConsumedReceiverShard := gasConsumedByMiniBlockInReceiverShard + gasConsumedByTxInReceiverShard
+	expectedConsumedSenderShard := gasConsumedByMiniBlocksInSenderShard + gasConsumedByTxInSenderShard
+	require.Nil(t, err)
+	require.Equal(t, expectedConsumedReceiverShard, mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID])
+	require.Equal(t, expectedConsumedReceiverShard, mbb.gasInfo.gasConsumedByMiniBlockInReceiverShard)
+	require.Equal(t, expectedConsumedSenderShard, mbb.gasInfo.gasConsumedByMiniBlocksInSenderShard)
+	require.Equal(t, expectedConsumedSenderShard, mbb.gasInfo.totalGasConsumedInSelfShard)
+}
+
+func Test_MiniBlocksBuilderAccountHasEnoughBalanceAddressNotSet(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultMiniBlockBuilderArgs()
+	args.balanceComputationHandler = &testscommon.BalanceComputationStub{
+		IsAddressSetCalled: func(address []byte) bool {
+			return false
+		},
+	}
+
+	mbb, _ := newMiniBlockBuilder(args)
+	sender, _ := hex.DecodeString("aaaaaaaaaa" + suffixShard0)
+	receiver, _ := hex.DecodeString(smartContractAddressStart + suffixShard1)
+	tx := createDefaultTx(sender, receiver, 50000)
+
+	enoughBalance := mbb.accountHasEnoughBalance(tx)
+	require.True(t, enoughBalance)
+}
+
+func Test_MiniBlocksBuilderAccountHasEnoughBalanceAddressSetNotEnoughBalance(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultMiniBlockBuilderArgs()
+	args.balanceComputationHandler = &testscommon.BalanceComputationStub{
+		IsAddressSetCalled: func(address []byte) bool {
+			return true
+		},
+		AddressHasEnoughBalanceCalled: func(address []byte, value *big.Int) bool {
+			return false
+		},
+	}
+
+	mbb, _ := newMiniBlockBuilder(args)
+	sender, _ := hex.DecodeString("aaaaaaaaaa" + suffixShard0)
+	receiver, _ := hex.DecodeString(smartContractAddressStart + suffixShard1)
+	tx := createDefaultTx(sender, receiver, 50000)
+
+	enoughBalance := mbb.accountHasEnoughBalance(tx)
+	require.False(t, enoughBalance)
+}
+
+func Test_MiniBlocksBuilderAccountHasEnoughBalanceAddressSetEnoughBalance(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultMiniBlockBuilderArgs()
+	args.balanceComputationHandler = &testscommon.BalanceComputationStub{
+		IsAddressSetCalled: func(address []byte) bool {
+			return true
+		},
+		AddressHasEnoughBalanceCalled: func(address []byte, value *big.Int) bool {
+			return true
+		},
+	}
+
+	mbb, _ := newMiniBlockBuilder(args)
+	sender, _ := hex.DecodeString("aaaaaaaaaa" + suffixShard0)
+	receiver, _ := hex.DecodeString(smartContractAddressStart + suffixShard1)
+	tx := createDefaultTx(sender, receiver, 50000)
+
+	enoughBalance := mbb.accountHasEnoughBalance(tx)
+	require.True(t, enoughBalance)
+}
+
+func Test_MiniBlocksBuilderCheckAddTransactionWrongTypeAssertion(t *testing.T) {
+	t.Parallel()
+
+	wtx := &txcache.WrappedTransaction{
+		Tx:                   nil,
+		TxHash:               nil,
+		SenderShardID:        0,
+		ReceiverShardID:      0,
+		Size:                 0,
+		TxFeeScoreNormalized: 0,
+	}
+
+	args := createDefaultMiniBlockBuilderArgs()
+	mbb, _ := newMiniBlockBuilder(args)
+
+	canAddTx, canAddMore, tx := mbb.checkAddTransaction(wtx)
+	require.False(t, canAddTx)
+	require.True(t, canAddMore)
+	require.Nil(t, tx)
+}
+
+func Test_MiniBlocksBuilderCheckAddTransactionNotEnoughTime(t *testing.T) {
+	t.Parallel()
+
+	sender, _ := hex.DecodeString("aaaaaaaaaa" + suffixShard0)
+	receiver, _ := hex.DecodeString(smartContractAddressStart + suffixShard1)
+	txInitial := createDefaultTx(sender, receiver, 50000)
+	senderShardID := uint32(0)
+	receiverShardID := uint32(1)
+	wtx := createWrappedTransaction(txInitial, senderShardID, receiverShardID)
+
+	args := createDefaultMiniBlockBuilderArgs()
+	args.haveTime = func() bool {
+		return false
+	}
+	mbb, _ := newMiniBlockBuilder(args)
+	canAddTx, canAddMore, tx := mbb.checkAddTransaction(wtx)
+	require.False(t, canAddTx)
+	require.False(t, canAddMore)
+	require.Equal(t, txInitial, tx)
+}
+
+func Test_MiniBlocksBuilderCheckAddTransactionInitializedMiniBlockNotFound(t *testing.T) {
+	t.Parallel()
+
+	sender, _ := hex.DecodeString("aaaaaaaaaa" + suffixShard0)
+	receiver, _ := hex.DecodeString(smartContractAddressStart + suffixShard1)
+	txInitial := createDefaultTx(sender, receiver, 50000)
+	senderShardID := uint32(0)
+	receiverShardID := uint32(1)
+	wtx := createWrappedTransaction(txInitial, senderShardID, receiverShardID)
+
+	args := createDefaultMiniBlockBuilderArgs()
+
+	mbb, _ := newMiniBlockBuilder(args)
+	delete(mbb.miniBlocks, receiverShardID)
+
+	canAddTx, canAddMore, tx := mbb.checkAddTransaction(wtx)
+	require.False(t, canAddTx)
+	require.True(t, canAddMore)
+	require.Equal(t, txInitial, tx)
+}
+
+func Test_MiniBlocksBuilderCheckAddTransactionExceedsBlockSize(t *testing.T) {
+	t.Parallel()
+
+	sender, _ := hex.DecodeString("aaaaaaaaaa" + suffixShard0)
+	receiver, _ := hex.DecodeString(smartContractAddressStart + suffixShard1)
+	txInitial := createDefaultTx(sender, receiver, 50000)
+	senderShardID := uint32(0)
+	receiverShardID := uint32(1)
+	wtx := createWrappedTransaction(txInitial, senderShardID, receiverShardID)
+
+	args := createDefaultMiniBlockBuilderArgs()
+	args.isMaxBlockSizeReached = func(i int, i2 int) bool {
+		return true
+	}
+	mbb, _ := newMiniBlockBuilder(args)
+
+	canAddTx, canAddMore, tx := mbb.checkAddTransaction(wtx)
+	require.False(t, canAddTx)
+	require.False(t, canAddMore)
+	require.Equal(t, txInitial, tx)
+}
+
+func Test_MiniBlocksBuilderCheckAddTransactionStuckShard(t *testing.T) {
+	t.Parallel()
+
+	sender, _ := hex.DecodeString("aaaaaaaaaa" + suffixShard0)
+	receiver, _ := hex.DecodeString(smartContractAddressStart + suffixShard1)
+	txInitial := createDefaultTx(sender, receiver, 50000)
+	senderShardID := uint32(0)
+	receiverShardID := uint32(1)
+	wtx := createWrappedTransaction(txInitial, senderShardID, receiverShardID)
+
+	args := createDefaultMiniBlockBuilderArgs()
+	args.isShardStuck = func(u uint32) bool {
+		return true
+	}
+	mbb, _ := newMiniBlockBuilder(args)
+
+	canAddTx, canAddMore, tx := mbb.checkAddTransaction(wtx)
+	require.False(t, canAddTx)
+	require.True(t, canAddMore)
+	require.Equal(t, txInitial, tx)
+}
+
+func Test_MiniBlocksBuilderCheckAddTransactionWithSenderSkip(t *testing.T) {
+	t.Parallel()
+
+	sender, _ := hex.DecodeString("aaaaaaaaaa" + suffixShard0)
+	receiver, _ := hex.DecodeString(smartContractAddressStart + suffixShard1)
+	txInitial := createDefaultTx(sender, receiver, 50000)
+	senderShardID := uint32(0)
+	receiverShardID := uint32(1)
+	wtx := createWrappedTransaction(txInitial, senderShardID, receiverShardID)
+
+	args := createDefaultMiniBlockBuilderArgs()
+	mbb, _ := newMiniBlockBuilder(args)
+	mbb.senderToSkip = sender
+
+	canAddTx, canAddMore, tx := mbb.checkAddTransaction(wtx)
+	require.False(t, canAddTx)
+	require.True(t, canAddMore)
+	require.Equal(t, txInitial, tx)
+}
+
+func Test_MiniBlocksBuilderCheckAddTransactionNotEnoughBalance(t *testing.T) {
+	t.Parallel()
+
+	sender, _ := hex.DecodeString("aaaaaaaaaa" + suffixShard0)
+	receiver, _ := hex.DecodeString(smartContractAddressStart + suffixShard1)
+	txInitial := createDefaultTx(sender, receiver, 50000)
+	senderShardID := uint32(0)
+	receiverShardID := uint32(1)
+	wtx := createWrappedTransaction(txInitial, senderShardID, receiverShardID)
+
+	args := createDefaultMiniBlockBuilderArgs()
+	args.balanceComputationHandler = &testscommon.BalanceComputationStub{
+		IsAddressSetCalled: func(address []byte) bool {
+			return true
+		},
+		AddressHasEnoughBalanceCalled: func(address []byte, value *big.Int) bool {
+			return false
+		},
+	}
+	mbb, _ := newMiniBlockBuilder(args)
+
+	canAddTx, canAddMore, tx := mbb.checkAddTransaction(wtx)
+	require.False(t, canAddTx)
+	require.True(t, canAddMore)
+	require.Equal(t, txInitial, tx)
+}
+
+func Test_MiniBlocksBuilderCheckAddTransactionGasAccountingError(t *testing.T) {
+	t.Parallel()
+
+	sender, _ := hex.DecodeString("aaaaaaaaaa" + suffixShard0)
+	receiver, _ := hex.DecodeString(smartContractAddressStart + suffixShard1)
+	txInitial := createDefaultTx(sender, receiver, 50000)
+	senderShardID := uint32(0)
+	receiverShardID := uint32(1)
+	wtx := createWrappedTransaction(txInitial, senderShardID, receiverShardID)
+
+	args := createDefaultMiniBlockBuilderArgs()
+	expectedErr := errors.New("expectedError")
+	args.gasTracker = gasTracker{
+		shardCoordinator: args.gasTracker.shardCoordinator,
+		economicsFee:     args.gasTracker.economicsFee,
+		gasHandler: &testscommon.GasHandlerStub{
+			RemoveGasConsumedCalled: func(hashes [][]byte) {},
+			RemoveGasRefundedCalled: func(hashes [][]byte) {},
+			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+				return 0, 0, expectedErr
+			},
+		},
+	}
+	mbb, _ := newMiniBlockBuilder(args)
+
+	canAddTx, canAddMore, tx := mbb.checkAddTransaction(wtx)
+	require.False(t, canAddTx)
+	require.True(t, canAddMore)
+	require.Equal(t, txInitial, tx)
+}
+
+func Test_MiniBlocksBuilderCheckAddTransactionOK(t *testing.T) {
+	t.Parallel()
+
+	sender, _ := hex.DecodeString("aaaaaaaaaa" + suffixShard0)
+	receiver, _ := hex.DecodeString(smartContractAddressStart + suffixShard1)
+	txInitial := createDefaultTx(sender, receiver, 50000)
+	senderShardID := uint32(0)
+	receiverShardID := uint32(1)
+	wtx := createWrappedTransaction(txInitial, senderShardID, receiverShardID)
+
+	args := createDefaultMiniBlockBuilderArgs()
+	mbb, _ := newMiniBlockBuilder(args)
+
+	canAddTx, canAddMore, tx := mbb.checkAddTransaction(wtx)
+	require.True(t, canAddTx)
+	require.True(t, canAddMore)
+	require.Equal(t, txInitial, tx)
+}
+
 func createDefaultMiniBlockBuilderArgs() miniBlocksBuilderArgs {
 	return miniBlocksBuilderArgs{
 		gasTracker: gasTracker{
@@ -426,7 +859,12 @@ func createDefaultMiniBlockBuilderArgs() miniBlocksBuilderArgs {
 				},
 			},
 			economicsFee: &economicsmocks.EconomicsHandlerMock{},
-			gasHandler:   &testscommon.GasHandlerStub{},
+			gasHandler: &testscommon.GasHandlerStub{
+				RemoveGasConsumedCalled: func(hashes [][]byte) {
+				},
+				RemoveGasRefundedCalled: func(hashes [][]byte) {
+				},
+			},
 		},
 		accounts: &testscommon.AccountsStub{},
 		accountTxsShards: &accountTxsShards{

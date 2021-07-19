@@ -144,7 +144,7 @@ func (mbb *miniBlocksBuilder) checkAddTransaction(wtx *txcache.WrappedTransactio
 			"hash", wtx.TxHash,
 			"sender shard", wtx.SenderShardID,
 			"receiver shard", wtx.ReceiverShardID)
-		return true, false, nil
+		return false, true, nil
 	}
 
 	if !mbb.haveTime() {
@@ -156,7 +156,7 @@ func (mbb *miniBlocksBuilder) checkAddTransaction(wtx *txcache.WrappedTransactio
 	miniBlock, ok := mbb.miniBlocks[receiverShardID]
 	if !ok {
 		log.Debug("mini block is not created", "shard", receiverShardID)
-		return true, true, tx
+		return false, true, tx
 	}
 
 	if mbb.wouldExceedBlockSizeWithTx(tx, receiverShardID, miniBlock) {
