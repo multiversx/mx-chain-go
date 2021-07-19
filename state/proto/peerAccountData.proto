@@ -42,7 +42,7 @@ message PeerAccountData {
     uint32      ValidatorIgnoredSignaturesRate      = 6 [(gogoproto.jsontag) = "validatorIgnoredSignaturesRate"];
     uint32      Rating                              = 7 [(gogoproto.jsontag) = "rating"];
     uint32      TempRating                          = 8 [(gogoproto.jsontag) = "tempRating"];
-    bytes       AccumulatedFees                     = 9 [(gogoproto.jsontag) = "accumulatedFees,omitempty", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes       AccumulatedFees                     = 9 [(gogoproto.jsontag) = "accumulatedFees,omitempty", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go-core/data.BigIntCaster"];
     uint32      NumSelectedInSuccessBlocks          = 10 [(gogoproto.jsontag) = "numSelectedInSuccessBlocks"];
     uint32      IndexInList                         = 11 [(gogoproto.jsontag) = "indexInList"];
     string      List                                = 12 [(gogoproto.jsontag) = "list,omitempty"];
