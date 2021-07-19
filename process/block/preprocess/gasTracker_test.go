@@ -36,8 +36,8 @@ func computeGasLimitFromResultAndRefund(result *gasConsumedResult, refundGas uin
 }
 
 func createDefaultTx(
-	rcvAddr []byte,
 	sndAddr []byte,
+	rcvAddr []byte,
 	gasLimit uint64,
 ) *transaction.Transaction {
 	return &transaction.Transaction{
@@ -111,7 +111,7 @@ func Test_computeGasConsumedSelfSenderMoveBalanceIntra(t *testing.T) {
 
 	gt := createDefaultGasTracker(senderShardID, gasConsumed, gasRefund)
 	gasLimit := computeGasLimitFromResultAndRefund(gasConsumed, gasRefund)
-	tx := createDefaultTx(rcvAddr, sndAddr, gasLimit)
+	tx := createDefaultTx(sndAddr, rcvAddr, gasLimit)
 
 	txm, _ := marshaller.Marshal(tx)
 	txHash := hasher.Compute(string(txm))
@@ -146,7 +146,7 @@ func Test_computeGasConsumedSelfSenderSCCallIntra(t *testing.T) {
 
 	gasLimit := computeGasLimitFromResultAndRefund(gasConsumed, gasRefund)
 	gt := createDefaultGasTracker(senderShardID, gasConsumed, gasRefund)
-	tx := createDefaultTx(rcvAddr, sndAddr, gasLimit)
+	tx := createDefaultTx(sndAddr, rcvAddr, gasLimit)
 	tx.Data = []byte("sc invoking data")
 
 	txm, _ := marshaller.Marshal(tx)
@@ -182,7 +182,7 @@ func Test_computeGasConsumedByTxSelfSenderMoveBalanceCross(t *testing.T) {
 
 	gasLimit := computeGasLimitFromResultAndRefund(gasConsumed, gasRefund)
 	gt := createDefaultGasTracker(senderShardID, gasConsumed, gasRefund)
-	tx := createDefaultTx(rcvAddr, sndAddr, gasLimit)
+	tx := createDefaultTx(sndAddr, rcvAddr, gasLimit)
 
 	txm, _ := marshaller.Marshal(tx)
 	txHash := hasher.Compute(string(txm))
@@ -217,7 +217,7 @@ func Test_computeGasConsumedByTxSelfSenderScCallCross(t *testing.T) {
 	gasRefund := uint64(25000)
 	gasLimit := computeGasLimitFromResultAndRefund(gasConsumed, gasRefund)
 	gt := createDefaultGasTracker(senderShardID, gasConsumed, gasRefund)
-	tx := createDefaultTx(rcvAddr, sndAddr, gasLimit)
+	tx := createDefaultTx(sndAddr, rcvAddr, gasLimit)
 	tx.Data = []byte("tx invoking data")
 
 	txm, _ := marshaller.Marshal(tx)
@@ -253,7 +253,7 @@ func Test_computeGasConsumedByTxGasHandlerComputeGasErrors(t *testing.T) {
 	gasRefund := uint64(25000)
 	gasLimit := computeGasLimitFromResultAndRefund(gasConsumed, gasRefund)
 	gt := createDefaultGasTracker(senderShardID, gasConsumed, gasRefund)
-	tx := createDefaultTx(rcvAddr, sndAddr, gasLimit)
+	tx := createDefaultTx(sndAddr, rcvAddr, gasLimit)
 	tx.Data = []byte("tx invoking data")
 
 	expectedError := errors.New("expecterd error")
@@ -296,7 +296,7 @@ func Test_computeGasConsumedByTxGasHandlerRefundGasLargerThanLimit(t *testing.T)
 	gasRefund := uint64(25000)
 	gasLimit := computeGasLimitFromResultAndRefund(gasConsumed, gasRefund)
 	gt := createDefaultGasTracker(senderShardID, gasConsumed, gasRefund)
-	tx := createDefaultTx(rcvAddr, sndAddr, gasLimit)
+	tx := createDefaultTx(sndAddr, rcvAddr, gasLimit)
 	tx.Data = []byte("tx invoking data")
 
 	gc := uint64(1000000)
@@ -342,7 +342,7 @@ func Test_computeGasConsumedWithErrorForGasConsumedForTx(t *testing.T) {
 	gasRefund := uint64(25000)
 	gasLimit := computeGasLimitFromResultAndRefund(gasConsumed, gasRefund)
 	gt := createDefaultGasTracker(senderShardID, gasConsumed, gasRefund)
-	tx := createDefaultTx(rcvAddr, sndAddr, gasLimit)
+	tx := createDefaultTx(sndAddr, rcvAddr, gasLimit)
 	tx.Data = []byte("tx invoking data")
 
 	expectedError := errors.New("expecterd error")
@@ -384,7 +384,7 @@ func Test_computeGasConsumedMaxGasLimitInSenderShardReached(t *testing.T) {
 	gasRefund := uint64(25000)
 	gasLimit := computeGasLimitFromResultAndRefund(gasConsumed, gasRefund)
 	gt := createDefaultGasTracker(senderShardID, gasConsumed, gasRefund)
-	tx := createDefaultTx(rcvAddr, sndAddr, gasLimit)
+	tx := createDefaultTx(sndAddr, rcvAddr, gasLimit)
 	tx.Data = []byte("tx invoking data")
 
 	txm, _ := marshaller.Marshal(tx)
@@ -421,7 +421,7 @@ func Test_computeGasConsumedMaxGasLimitInReceiverShardReached(t *testing.T) {
 	gasRefund := uint64(25000)
 	gasLimit := computeGasLimitFromResultAndRefund(gasConsumed, gasRefund)
 	gt := createDefaultGasTracker(receiverShardID, gasConsumed, gasRefund)
-	tx := createDefaultTx(rcvAddr, sndAddr, gasLimit)
+	tx := createDefaultTx(sndAddr, rcvAddr, gasLimit)
 	tx.Data = []byte("tx invoking data")
 
 	txm, _ := marshaller.Marshal(tx)
@@ -458,7 +458,7 @@ func Test_computeGasConsumedMaxGasLimitPerBlockReached(t *testing.T) {
 	gasRefund := uint64(25000)
 	gasLimit := computeGasLimitFromResultAndRefund(gasConsumed, gasRefund)
 	gt := createDefaultGasTracker(senderShardID, gasConsumed, gasRefund)
-	tx := createDefaultTx(rcvAddr, sndAddr, gasLimit)
+	tx := createDefaultTx(sndAddr, rcvAddr, gasLimit)
 	tx.Data = []byte("tx invoking data")
 
 	txm, _ := marshaller.Marshal(tx)
@@ -495,7 +495,7 @@ func Test_computeGasConsumedOK(t *testing.T) {
 	gasRefund := uint64(25000)
 	gasLimit := computeGasLimitFromResultAndRefund(gasConsumed, gasRefund)
 	gt := createDefaultGasTracker(senderShardID, gasConsumed, gasRefund)
-	tx := createDefaultTx(rcvAddr, sndAddr, gasLimit)
+	tx := createDefaultTx(sndAddr, rcvAddr, gasLimit)
 	tx.Data = []byte("tx invoking data")
 
 	txm, _ := marshaller.Marshal(tx)

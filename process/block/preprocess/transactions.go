@@ -948,11 +948,11 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV1(
 	}()
 
 	for _, wtx := range sortedTxs {
-		addedTx, canContinue, tx := mbBuilder.addTransaction(wtx)
+		canAddTx, canContinue, tx := mbBuilder.checkAddTransaction(wtx)
 		if !canContinue {
 			break
 		}
-		if !addedTx {
+		if !canAddTx {
 			continue
 		}
 
@@ -961,7 +961,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV1(
 			continue
 		}
 
-		mbBuilder.updateBlockSize(tx, wtx)
+		mbBuilder.addTxAndUpdateBlockSize(tx, wtx)
 	}
 
 	miniBlocks := txs.getMiniBlockSliceFromMap(mbBuilder.miniBlocks)

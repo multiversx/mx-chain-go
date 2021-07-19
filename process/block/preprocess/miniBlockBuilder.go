@@ -95,7 +95,7 @@ func checkMiniBlocksBuilderArgs(args miniBlocksBuilderArgs) error {
 	if check.IfNil(args.gasTracker.gasHandler) {
 		return process.ErrNilGasHandler
 	}
-	if check.IfNil(args.gasTracker.economicsFee){
+	if check.IfNil(args.gasTracker.economicsFee) {
 		return process.ErrNilEconomicsFeeHandler
 	}
 	if check.IfNil(args.accounts) {
@@ -137,7 +137,7 @@ func (mbb *miniBlocksBuilder) updateAccountShardsInfo(tx *transaction.Transactio
 
 // function returns through the first parameter if the given transaction can be added to the miniBlock
 // second return values returns an error in case no more transactions can be added to the miniBlocks
-func (mbb *miniBlocksBuilder) addTransaction(wtx *txcache.WrappedTransaction) (canAddTx bool, canAddMore bool, tx *transaction.Transaction) {
+func (mbb *miniBlocksBuilder) checkAddTransaction(wtx *txcache.WrappedTransaction) (canAddTx bool, canAddMore bool, tx *transaction.Transaction) {
 	tx, ok := wtx.Tx.(*transaction.Transaction)
 	if !ok {
 		log.Debug("wrong type assertion",
@@ -312,7 +312,7 @@ func (mbb *miniBlocksBuilder) handleFailedTransaction() {
 	mbb.stats.numTxsFailed++
 }
 
-func (mbb *miniBlocksBuilder) updateBlockSize(tx *transaction.Transaction, wtx *txcache.WrappedTransaction) {
+func (mbb *miniBlocksBuilder) addTxAndUpdateBlockSize(tx *transaction.Transaction, wtx *txcache.WrappedTransaction) {
 	miniBlock := mbb.miniBlocks[wtx.ReceiverShardID]
 
 	if len(miniBlock.TxHashes) == 0 {
@@ -327,7 +327,7 @@ func (mbb *miniBlocksBuilder) updateBlockSize(tx *transaction.Transaction, wtx *
 	mbb.stats.numTxsAdded++
 }
 
-func (mbb *miniBlocksBuilder) handleCrossShardScCallOrSpecialTx(){
+func (mbb *miniBlocksBuilder) handleCrossShardScCallOrSpecialTx() {
 	if !mbb.stats.firstCrossShardScCallOrSpecialTxFound {
 		mbb.stats.firstCrossShardScCallOrSpecialTxFound = true
 		mbb.blockSizeComputation.AddNumMiniBlocks(1)

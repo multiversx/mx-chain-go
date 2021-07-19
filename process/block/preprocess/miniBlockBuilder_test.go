@@ -1,20 +1,25 @@
 package preprocess
 
 import (
+	"encoding/hex"
 	"math/big"
 	"sync"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func Test_newMiniBlockBuilderWithError(t *testing.T) {
+	t.Parallel()
+
 	args := createDefaultMiniBlockBuilderArgs()
 	args.accounts = nil
 
@@ -24,6 +29,8 @@ func Test_newMiniBlockBuilderWithError(t *testing.T) {
 }
 
 func Test_newMiniBlockBuilderOK(t *testing.T) {
+	t.Parallel()
+
 	args := createDefaultMiniBlockBuilderArgs()
 
 	mbb, err := newMiniBlockBuilder(args)
@@ -32,6 +39,8 @@ func Test_newMiniBlockBuilderOK(t *testing.T) {
 }
 
 func Test_checkMiniBlocksBuilderArgsNilShardCoordinatorShouldErr(t *testing.T) {
+	t.Parallel()
+
 	args := createDefaultMiniBlockBuilderArgs()
 	args.gasTracker.shardCoordinator = nil
 
@@ -40,6 +49,8 @@ func Test_checkMiniBlocksBuilderArgsNilShardCoordinatorShouldErr(t *testing.T) {
 }
 
 func Test_checkMiniBlocksBuilderArgsNilGasHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
 	args := createDefaultMiniBlockBuilderArgs()
 	args.gasTracker.gasHandler = nil
 
@@ -48,6 +59,8 @@ func Test_checkMiniBlocksBuilderArgsNilGasHandlerShouldErr(t *testing.T) {
 }
 
 func Test_checkMiniBlocksBuilderArgsNilFeeHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
 	args := createDefaultMiniBlockBuilderArgs()
 	args.gasTracker.economicsFee = nil
 
@@ -56,6 +69,8 @@ func Test_checkMiniBlocksBuilderArgsNilFeeHandlerShouldErr(t *testing.T) {
 }
 
 func Test_checkMiniBlocksBuilderArgsNilBlockSizeComputationHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
 	args := createDefaultMiniBlockBuilderArgs()
 	args.blockSizeComputation = nil
 
@@ -64,6 +79,8 @@ func Test_checkMiniBlocksBuilderArgsNilBlockSizeComputationHandlerShouldErr(t *t
 }
 
 func Test_checkMiniBlocksBuilderArgsNilAccountsTxsPerShardsShouldErr(t *testing.T) {
+	t.Parallel()
+
 	args := createDefaultMiniBlockBuilderArgs()
 	args.accountTxsShards = nil
 
@@ -72,6 +89,8 @@ func Test_checkMiniBlocksBuilderArgsNilAccountsTxsPerShardsShouldErr(t *testing.
 }
 
 func Test_checkMiniBlocksBuilderArgsNilBalanceComputationHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
 	args := createDefaultMiniBlockBuilderArgs()
 	args.balanceComputationHandler = nil
 
@@ -80,6 +99,8 @@ func Test_checkMiniBlocksBuilderArgsNilBalanceComputationHandlerShouldErr(t *tes
 }
 
 func Test_checkMiniBlocksBuilderArgsNilHaveTimeHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
 	args := createDefaultMiniBlockBuilderArgs()
 	args.haveTime = nil
 
@@ -88,6 +109,8 @@ func Test_checkMiniBlocksBuilderArgsNilHaveTimeHandlerShouldErr(t *testing.T) {
 }
 
 func Test_checkMiniBlocksBuilderArgsNilShardStuckHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
 	args := createDefaultMiniBlockBuilderArgs()
 	args.isShardStuck = nil
 
@@ -96,6 +119,8 @@ func Test_checkMiniBlocksBuilderArgsNilShardStuckHandlerShouldErr(t *testing.T) 
 }
 
 func Test_checkMiniBlocksBuilderArgsNilMaxBlockSizeReachedHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
 	args := createDefaultMiniBlockBuilderArgs()
 	args.isMaxBlockSizeReached = nil
 
@@ -104,6 +129,8 @@ func Test_checkMiniBlocksBuilderArgsNilMaxBlockSizeReachedHandlerShouldErr(t *te
 }
 
 func Test_checkMiniBlocksBuilderArgsNilTxMaxTotalCostHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
 	args := createDefaultMiniBlockBuilderArgs()
 	args.getTxMaxTotalCost = nil
 
@@ -112,6 +139,8 @@ func Test_checkMiniBlocksBuilderArgsNilTxMaxTotalCostHandlerShouldErr(t *testing
 }
 
 func Test_checkMiniBlocksBuilderArgsOK(t *testing.T) {
+	t.Parallel()
+
 	args := createDefaultMiniBlockBuilderArgs()
 
 	err := checkMiniBlocksBuilderArgs(args)
@@ -119,6 +148,8 @@ func Test_checkMiniBlocksBuilderArgsOK(t *testing.T) {
 }
 
 func Test_updateAccountShardsInfo(t *testing.T) {
+	t.Parallel()
+
 	args := createDefaultMiniBlockBuilderArgs()
 
 	mbb, _ := newMiniBlockBuilder(args)
@@ -140,6 +171,8 @@ func Test_updateAccountShardsInfo(t *testing.T) {
 }
 
 func Test_MiniBlocksBuilderHandleGasRefundIntraShard(t *testing.T) {
+	t.Parallel()
+
 	args := createDefaultMiniBlockBuilderArgs()
 	mbb, _ := newMiniBlockBuilder(args)
 	senderAddr := []byte("senderAddr")
@@ -163,6 +196,8 @@ func Test_MiniBlocksBuilderHandleGasRefundIntraShard(t *testing.T) {
 }
 
 func Test_MiniBlocksBuilderHandleGasRefundCrossShard(t *testing.T) {
+	t.Parallel()
+
 	args := createDefaultMiniBlockBuilderArgs()
 	mbb, _ := newMiniBlockBuilder(args)
 	senderAddr := []byte("senderAddr")
@@ -186,6 +221,8 @@ func Test_MiniBlocksBuilderHandleGasRefundCrossShard(t *testing.T) {
 }
 
 func Test_handleFailedTransactionAddsToCount(t *testing.T) {
+	t.Parallel()
+
 	args := createDefaultMiniBlockBuilderArgs()
 	mbb, _ := newMiniBlockBuilder(args)
 
@@ -199,6 +236,8 @@ func Test_handleFailedTransactionAddsToCount(t *testing.T) {
 }
 
 func Test_handleCrossShardScCallOrSpecialTx(t *testing.T) {
+	t.Parallel()
+
 	args := createDefaultMiniBlockBuilderArgs()
 	mbb, _ := newMiniBlockBuilder(args)
 
@@ -211,16 +250,183 @@ func Test_handleCrossShardScCallOrSpecialTx(t *testing.T) {
 	require.Equal(t, uint32(2), mbb.stats.numCrossShardSCCallsOrSpecialTxs)
 }
 
-func Test_isCrossShardScCallOrSpecialTx(t *testing.T){
+func Test_isCrossShardScCallOrSpecialTxIntraShard(t *testing.T) {
+	t.Parallel()
 
+	sender, _ := hex.DecodeString("aaaaaaaaaa" + suffixShard0)
+	receiver, _ := hex.DecodeString("bbbbbbbbbb" + suffixShard0)
+	tx := createDefaultTx(sender, receiver, 50000)
+	crossOrSpecial := isCrossShardScCallOrSpecialTx(0, 0, tx)
+	assert.False(t, crossOrSpecial)
+}
+
+func Test_isCrossShardScCallOrSpecialTxCrossShardTransferTx(t *testing.T) {
+	t.Parallel()
+
+	sender, _ := hex.DecodeString("aaaaaaaaaa" + suffixShard0)
+	receiver, _ := hex.DecodeString("bbbbbbbbbb" + suffixShard1)
+	tx := createDefaultTx(sender, receiver, 50000)
+	crossOrSpecial := isCrossShardScCallOrSpecialTx(0, 1, tx)
+	assert.False(t, crossOrSpecial)
+}
+
+func Test_isCrossShardScCallOrSpecialTxCrossShardScCall(t *testing.T) {
+	t.Parallel()
+
+	sender, _ := hex.DecodeString("aaaaaaaaaa" + suffixShard0)
+	receiver, _ := hex.DecodeString(smartContractAddressStart + suffixShard1)
+	tx := createDefaultTx(sender, receiver, 50000)
+	crossOrSpecial := isCrossShardScCallOrSpecialTx(0, 1, tx)
+	assert.True(t, crossOrSpecial)
+}
+
+func Test_isCrossShardScCallOrSpecialTxCrossShardWithUsername(t *testing.T) {
+	t.Parallel()
+
+	sender := "aaaaaaaaaa.elrond"
+	receiver := "bbbbbbbbbb.elrond"
+	tx := createDefaultTx(nil, nil, 50000)
+	tx.SndUserName = make([]byte, 64)
+	tx.RcvUserName = make([]byte, 64)
+	_ = hex.Encode(tx.RcvUserName, []byte(receiver))
+	_ = hex.Encode(tx.SndUserName, []byte(sender))
+	crossOrSpecial := isCrossShardScCallOrSpecialTx(0, 1, tx)
+	assert.True(t, crossOrSpecial)
+}
+
+func Test_wouldExceedBlockSizeWithTxWithNormalTxWithinBlockLimit(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultMiniBlockBuilderArgs()
+	args.isMaxBlockSizeReached = func(newMbs int, newTxs int) bool {
+		return newMbs > 1 || newTxs > 1
+	}
+	mbb, _ := newMiniBlockBuilder(args)
+
+	sender, _ := hex.DecodeString("aaaaaaaaaa" + suffixShard0)
+	receiver, _ := hex.DecodeString("bbbbbbbbbb" + suffixShard0)
+	tx := createDefaultTx(sender, receiver, 50000)
+	mbs := &block.MiniBlock{
+		TxHashes: make([][]byte, 0),
+	}
+	result := mbb.wouldExceedBlockSizeWithTx(tx, 0, mbs)
+	require.False(t, result)
+}
+
+func Test_wouldExceedBlockSizeWithTxWithNormalTxBlockLimitExceeded(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultMiniBlockBuilderArgs()
+	args.isMaxBlockSizeReached = func(newMbs int, newTxs int) bool {
+		return newTxs > 0 || newMbs > 0
+	}
+	mbb, _ := newMiniBlockBuilder(args)
+
+	sender, _ := hex.DecodeString("aaaaaaaaaa" + suffixShard0)
+	receiver, _ := hex.DecodeString("bbbbbbbbbb" + suffixShard0)
+	tx := createDefaultTx(sender, receiver, 50000)
+	mbs := &block.MiniBlock{
+		TxHashes: make([][]byte, 1),
+	}
+	result := mbb.wouldExceedBlockSizeWithTx(tx, 0, mbs)
+	require.True(t, result)
+}
+
+func Test_wouldExceedBlockSizeWithTxWithSpecialTxWithinBlockLimit(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultMiniBlockBuilderArgs()
+	args.isMaxBlockSizeReached = func(newMbs int, newTxs int) bool {
+		return newMbs > 2 || newTxs > 4
+	}
+	mbb, _ := newMiniBlockBuilder(args)
+
+	sender, _ := hex.DecodeString("aaaaaaaaaa" + suffixShard0)
+	receiver, _ := hex.DecodeString(smartContractAddressStart + suffixShard1)
+	tx := createDefaultTx(sender, receiver, 50000)
+	mbs := &block.MiniBlock{
+		TxHashes: make([][]byte, 0),
+	}
+	result := mbb.wouldExceedBlockSizeWithTx(tx, 1, mbs)
+	require.False(t, result)
+}
+
+func Test_wouldExceedBlockSizeWithTxWithSpecialTxBlockLimitExceededDueToSCR(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultMiniBlockBuilderArgs()
+	args.isMaxBlockSizeReached = func(newMbs int, newTxs int) bool {
+		return newTxs > 1
+	}
+	mbb, _ := newMiniBlockBuilder(args)
+
+	sender, _ := hex.DecodeString("aaaaaaaaaa" + suffixShard0)
+	receiver, _ := hex.DecodeString(smartContractAddressStart + suffixShard1)
+	tx := createDefaultTx(sender, receiver, 50000)
+	mbs := &block.MiniBlock{
+		TxHashes: make([][]byte, 1),
+	}
+	result := mbb.wouldExceedBlockSizeWithTx(tx, 1, mbs)
+	require.True(t, result)
+}
+
+func Test_addTxAndUpdateBlockSize(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultMiniBlockBuilderArgs()
+	mbb, _ := newMiniBlockBuilder(args)
+	sender, _ := hex.DecodeString("aaaaa" + suffixShard0)
+	receiver, _ := hex.DecodeString("bbbbb" + suffixShard0)
+	tx := createDefaultTx(sender, receiver, 50000)
+	senderShardID := uint32(0)
+	receiverShardID := uint32(0)
+	wtx := createWrappedTransaction(tx, senderShardID, receiverShardID)
+
+	require.NotNil(t, mbb.miniBlocks[receiverShardID])
+	nbTxHashes := len(mbb.miniBlocks[receiverShardID].TxHashes)
+
+	mbb.addTxAndUpdateBlockSize(tx, wtx)
+	require.Equal(t, nbTxHashes+1, len(mbb.miniBlocks[receiverShardID].TxHashes))
+	require.Equal(t, uint32(1), mbb.stats.numTxsAdded)
+	require.Equal(t, uint32(0), mbb.stats.numCrossShardSCCallsOrSpecialTxs)
+}
+
+func Test_addTxAndUpdateBlockSizeCrossShardSmartContractCall(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultMiniBlockBuilderArgs()
+	mbb, _ := newMiniBlockBuilder(args)
+	sender, _ := hex.DecodeString("aaaaaaaaaa" + suffixShard0)
+	receiver, _ := hex.DecodeString(smartContractAddressStart + suffixShard1)
+	tx := createDefaultTx(sender, receiver, 50000)
+	senderShardID := uint32(0)
+	receiverShardID := uint32(1)
+	wtx := createWrappedTransaction(tx, senderShardID, receiverShardID)
+
+	require.NotNil(t, mbb.miniBlocks[receiverShardID])
+	nbTxHashes := len(mbb.miniBlocks[receiverShardID].TxHashes)
+
+	mbb.addTxAndUpdateBlockSize(tx, wtx)
+	require.Equal(t, nbTxHashes+1, len(mbb.miniBlocks[receiverShardID].TxHashes))
+	require.Equal(t, uint32(1), mbb.stats.numTxsAdded)
+	require.Equal(t, uint32(1), mbb.stats.numCrossShardSCCallsOrSpecialTxs)
 }
 
 func createDefaultMiniBlockBuilderArgs() miniBlocksBuilderArgs {
 	return miniBlocksBuilderArgs{
 		gasTracker: gasTracker{
-			shardCoordinator: &testscommon.ShardsCoordinatorMock{},
-			economicsFee:     &economicsmocks.EconomicsHandlerMock{},
-			gasHandler:       &testscommon.GasHandlerStub{},
+			shardCoordinator: &testscommon.ShardsCoordinatorMock{
+				NoShards:     3,
+				CurrentShard: 0,
+				ComputeIdCalled: func(address []byte) uint32 {
+					return 0
+				},
+				SelfIDCalled: func() uint32 {
+					return 0
+				},
+			},
+			economicsFee: &economicsmocks.EconomicsHandlerMock{},
+			gasHandler:   &testscommon.GasHandlerStub{},
 		},
 		accounts: &testscommon.AccountsStub{},
 		accountTxsShards: &accountTxsShards{
