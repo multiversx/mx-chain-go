@@ -4,8 +4,8 @@ import (
 	"bytes"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 // NodesCoordinatorMock defines the behaviour of a struct able to do validator group selection

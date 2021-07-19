@@ -6,17 +6,17 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	heartbeatProcess "github.com/ElrondNetwork/elrond-go/heartbeat/process"
 	heartbeatStorage "github.com/ElrondNetwork/elrond-go/heartbeat/storage"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/peer"
+	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 // HeartbeatComponentsFactoryArgs holds the arguments needed to create a heartbeat components factory

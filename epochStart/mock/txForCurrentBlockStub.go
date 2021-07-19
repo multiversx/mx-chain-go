@@ -35,4 +35,3 @@ func (t *TxForCurrentBlockStub) AddTx(txHash []byte, tx data.TransactionHandler)
 func (t *TxForCurrentBlockStub) IsInterfaceNil() bool {
 	return t == nil
 }
-

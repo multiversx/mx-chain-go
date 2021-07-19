@@ -1,8 +1,8 @@
 package networksharding_test
 
 import (
-	state "github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	state "github.com/ElrondNetwork/elrond-go/state"
 )
 
 // NodesCoordinatorStub can not be moved inside mock package as it generates cyclic imports.

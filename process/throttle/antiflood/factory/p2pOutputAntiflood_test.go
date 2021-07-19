@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/disabled"
 	"github.com/stretchr/testify/assert"
 )

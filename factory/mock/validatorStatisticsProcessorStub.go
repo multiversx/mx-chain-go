@@ -117,8 +117,8 @@ func (vsp *ValidatorStatisticsProcessorStub) DisplayRatings(_ uint32) {
 }
 
 // SaveNodesCoordinatorUpdates -
-func (vsp *ValidatorStatisticsProcessorStub) SaveNodesCoordinatorUpdates(epoch uint32) (bool, error){
-	if vsp.SaveNodesCoordinatorUpdatesCalled !=nil{
+func (vsp *ValidatorStatisticsProcessorStub) SaveNodesCoordinatorUpdates(epoch uint32) (bool, error) {
+	if vsp.SaveNodesCoordinatorUpdatesCalled != nil {
 		return vsp.SaveNodesCoordinatorUpdatesCalled(epoch)
 	}
 	return false, nil

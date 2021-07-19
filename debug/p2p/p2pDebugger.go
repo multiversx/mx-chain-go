@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/display"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 )
 
 var log = logger.GetOrCreate("debug/p2p")
