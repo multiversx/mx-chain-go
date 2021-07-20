@@ -168,7 +168,7 @@ func (e *epochStartData) createShardStartDataAndLastProcessedHeaders() (*block.E
 			return nil, nil, err
 		}
 
-		shardHeader, ok := lastCrossNotarizedHeaderForShard.(*block.Header)
+		shardHeader, ok := lastCrossNotarizedHeaderForShard.(data.ShardHeaderHandler)
 		if !ok {
 			return nil, nil, process.ErrWrongTypeAssertion
 		}

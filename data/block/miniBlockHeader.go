@@ -2,7 +2,7 @@ package block
 
 import "github.com/ElrondNetwork/elrond-go/data"
 
-// SetType sets the type
+// GetTypeInt32 gets the miniBlock type
 func (m *MiniBlockHeader) GetTypeInt32() int32 {
 	if m == nil {
 		return -1
@@ -11,7 +11,7 @@ func (m *MiniBlockHeader) GetTypeInt32() int32 {
 	return int32(m.Type)
 }
 
-// SetHash sets the miniBlock header hash
+// SetHash sets the miniBlock hash
 func (m *MiniBlockHeader) SetHash(hash []byte) error {
 	if m == nil {
 		return data.ErrNilPointerReceiver
@@ -22,7 +22,7 @@ func (m *MiniBlockHeader) SetHash(hash []byte) error {
 	return nil
 }
 
-// SetSenderShardID sets the sender shardID
+// SetSenderShardID sets the miniBlock sender shardID
 func (m *MiniBlockHeader) SetSenderShardID(shardID uint32) error {
 	if m == nil {
 		return data.ErrNilPointerReceiver
@@ -33,7 +33,7 @@ func (m *MiniBlockHeader) SetSenderShardID(shardID uint32) error {
 	return nil
 }
 
-// SetReceiverShardID sets the receiver ShardID
+// SetReceiverShardID sets the miniBlock receiver ShardID
 func (m *MiniBlockHeader) SetReceiverShardID(shardID uint32) error {
 	if m == nil {
 		return data.ErrNilPointerReceiver
@@ -44,7 +44,7 @@ func (m *MiniBlockHeader) SetReceiverShardID(shardID uint32) error {
 	return nil
 }
 
-// SetTxCount -
+// SetTxCount sets the miniBlock txs count
 func (m *MiniBlockHeader) SetTxCount(count uint32) error {
 	if m == nil {
 		return data.ErrNilPointerReceiver
@@ -55,8 +55,8 @@ func (m *MiniBlockHeader) SetTxCount(count uint32) error {
 	return nil
 }
 
-// SetType -
-func (m *MiniBlockHeader) SetType(t int32) error {
+// SetTypeInt32 sets the miniBlock type
+func (m *MiniBlockHeader) SetTypeInt32(t int32) error {
 	if m == nil {
 		return data.ErrNilPointerReceiver
 	}
@@ -66,7 +66,7 @@ func (m *MiniBlockHeader) SetType(t int32) error {
 	return nil
 }
 
-// SetReserved -
+// SetReserved sets the miniBlock reserved field
 func (m *MiniBlockHeader) SetReserved(reserved []byte) error {
 	if m == nil {
 		return data.ErrNilPointerReceiver
@@ -77,7 +77,7 @@ func (m *MiniBlockHeader) SetReserved(reserved []byte) error {
 	return nil
 }
 
-// ShallowClone -
+// ShallowClone returns the miniBlockHeader swallow clone
 func (m *MiniBlockHeader) ShallowClone() data.MiniBlockHeaderHandler {
 	if m == nil {
 		return nil
