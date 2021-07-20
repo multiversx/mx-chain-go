@@ -3,6 +3,7 @@ package trie
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/mock"
 	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/stretchr/testify/assert"
