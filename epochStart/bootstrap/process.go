@@ -746,7 +746,7 @@ func (e *epochStartBootstrap) requestAndProcessForMeta() error {
 func (e *epochStartBootstrap) findSelfShardEpochStartData() (data.EpochStartShardDataHandler, error) {
 	var epochStartData data.EpochStartShardDataHandler
 	lastFinalizedHeaderHandlers := e.epochStartMeta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers()
-	for i, shardData := range  lastFinalizedHeaderHandlers{
+	for i, shardData := range lastFinalizedHeaderHandlers {
 		if shardData.GetShardID() == e.shardCoordinator.SelfId() {
 			return lastFinalizedHeaderHandlers[i], nil
 		}
@@ -800,13 +800,13 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 		e.syncedHeaders[hash] = hdr
 	}
 
-	ownShardHdr, ok := e.syncedHeaders[string(epochStartData.GetHeaderHash())].(*block.Header)
+	ownShardHdr, ok := e.syncedHeaders[string(epochStartData.GetHeaderHash())].(data.ShardHeaderHandler)
 	if !ok {
 		return epochStart.ErrWrongTypeAssertion
 	}
 
 	log.Debug("start in epoch bootstrap: started syncUserAccountsState")
-	err = e.syncUserAccountsState(ownShardHdr.RootHash)
+	err = e.syncUserAccountsState(ownShardHdr.GetRootHash())
 	if err != nil {
 		return err
 	}

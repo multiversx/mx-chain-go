@@ -88,7 +88,7 @@ func GetShardHeaderFromPool(
 		return nil, err
 	}
 
-	hdr, ok := obj.(*block.Header)
+	hdr, ok := obj.(data.ShardHeaderHandler)
 	if !ok {
 		return nil, ErrWrongTypeAssertion
 	}
@@ -249,7 +249,7 @@ func GetShardHeaderFromPoolWithNonce(
 		return nil, nil, err
 	}
 
-	hdr, ok := obj.(*block.Header)
+	hdr, ok := obj.(data.ShardHeaderHandler)
 	if !ok {
 		return nil, nil, ErrWrongTypeAssertion
 	}

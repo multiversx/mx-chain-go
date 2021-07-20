@@ -916,7 +916,7 @@ func (vs *validatorStatistics) searchInMap(hash []byte, cacheMap map[string]data
 			process.ErrMissingHeader, logger.DisplayByteSlice(hash))
 	}
 
-	blk, ok := blkHandler.(*block.Header)
+	blk, ok := blkHandler.(data.ShardHeaderHandler)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}

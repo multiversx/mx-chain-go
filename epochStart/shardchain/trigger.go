@@ -826,7 +826,7 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, _ data.BodyHandler) {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
-	shardHdr, ok := header.(*block.Header)
+	shardHdr, ok := header.(data.ShardHeaderHandler)
 	if !ok {
 		return
 	}
@@ -835,13 +835,13 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, _ data.BodyHandler) {
 		return
 	}
 
-	t.appStatusHandler.SetUInt64Value(core.MetricRoundAtEpochStart, shardHdr.Round)
-	t.appStatusHandler.SetUInt64Value(core.MetricNonceAtEpochStart, shardHdr.Nonce)
+	t.appStatusHandler.SetUInt64Value(core.MetricRoundAtEpochStart, shardHdr.GetRound())
+	t.appStatusHandler.SetUInt64Value(core.MetricNonceAtEpochStart, shardHdr.GetNonce())
 
-	t.epoch = shardHdr.Epoch
+	t.epoch = shardHdr.GetEpoch()
 	if t.metaEpoch < t.epoch {
 		t.metaEpoch = t.epoch
-		t.epochMetaBlockHash = shardHdr.EpochStartMetaHash
+		t.epochMetaBlockHash = shardHdr.GetEpochStartMetaHash()
 	}
 
 	t.isEpochStart = false
@@ -865,7 +865,7 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, _ data.BodyHandler) {
 		log.Warn("SetProcessed marshal error", "error", errNotCritical)
 	}
 
-	epochStartIdentifier := core.EpochStartIdentifier(shardHdr.Epoch)
+	epochStartIdentifier := core.EpochStartIdentifier(shardHdr.GetEpoch())
 	errNotCritical = t.shardHdrStorage.Put([]byte(epochStartIdentifier), shardHdrBuff)
 	if errNotCritical != nil {
 		log.Warn("SetProcessed put to shard header storage error", "error", errNotCritical)
