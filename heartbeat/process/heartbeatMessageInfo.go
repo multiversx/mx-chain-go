@@ -4,8 +4,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 )
 
@@ -227,5 +227,5 @@ func (hbmi *heartbeatMessageInfo) GetIsActive() bool {
 func (hbmi *heartbeatMessageInfo) GetIsValidator() bool {
 	hbmi.updateMutex.Lock()
 	defer hbmi.updateMutex.Unlock()
-	return hbmi.peerType == string(core.EligibleList) || hbmi.peerType == string(core.WaitingList)
+	return hbmi.peerType == string(common.EligibleList) || hbmi.peerType == string(common.WaitingList)
 }

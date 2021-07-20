@@ -3,10 +3,10 @@ package txsimulator
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
@@ -53,10 +53,10 @@ func TestReadOnlyAccountsDB_WriteOperationsShouldNotCalled(t *testing.T) {
 			t.Errorf(failErrMsg)
 			return nil
 		},
-		PruneTrieCalled: func(_ []byte, _ data.TriePruningIdentifier) {
+		PruneTrieCalled: func(_ []byte, _ temporary.TriePruningIdentifier) {
 			t.Errorf(failErrMsg)
 		},
-		CancelPruneCalled: func(_ []byte, _ data.TriePruningIdentifier) {
+		CancelPruneCalled: func(_ []byte, _ temporary.TriePruningIdentifier) {
 			t.Errorf(failErrMsg)
 		},
 		SnapshotStateCalled: func(_ []byte) {
@@ -65,7 +65,7 @@ func TestReadOnlyAccountsDB_WriteOperationsShouldNotCalled(t *testing.T) {
 		SetStateCheckpointCalled: func(_ []byte) {
 			t.Errorf(failErrMsg)
 		},
-		RecreateAllTriesCalled: func(_ []byte) (map[string]data.Trie, error) {
+		RecreateAllTriesCalled: func(_ []byte) (map[string]temporary.Trie, error) {
 			t.Errorf(failErrMsg)
 			return nil, nil
 		},
@@ -89,9 +89,9 @@ func TestReadOnlyAccountsDB_WriteOperationsShouldNotCalled(t *testing.T) {
 	err = roAccDb.RecreateTrie(nil)
 	require.NoError(t, err)
 
-	roAccDb.PruneTrie(nil, data.NewRoot)
+	roAccDb.PruneTrie(nil, temporary.NewRoot)
 
-	roAccDb.CancelPrune(nil, data.NewRoot)
+	roAccDb.CancelPrune(nil, temporary.NewRoot)
 
 	roAccDb.SnapshotState(nil)
 

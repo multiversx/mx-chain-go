@@ -69,13 +69,13 @@ func getDefaultHeartbeatComponents(shardCoordinator sharding.Coordinator) factor
 				CacheRefreshIntervalInSec: uint32(100),
 			},
 		},
-		Prefs:             config.Preferences{},
-		AppVersion:        "test",
-		GenesisTime:       time.Time{},
-		HardforkTrigger:   &mock.HardforkTriggerStub{},
+		Prefs:           config.Preferences{},
+		AppVersion:      "test",
+		GenesisTime:     time.Time{},
+		HardforkTrigger: &mock.HardforkTriggerStub{},
 		RedundancyHandler: &mock.RedundancyHandlerStub{
 			ObserverPrivateKeyCalled: func() crypto.PrivateKey {
-				return  &mock.PrivateKeyStub{
+				return &mock.PrivateKeyStub{
 					GeneratePublicHandler: func() crypto.PublicKey {
 						return &mock.PublicKeyMock{}
 					},

@@ -3,7 +3,7 @@ package dataValidators_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
 	"github.com/stretchr/testify/assert"
 )

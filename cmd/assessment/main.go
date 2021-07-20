@@ -10,11 +10,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/cmd/assessment/benchmarks"
 	"github.com/ElrondNetwork/elrond-go/cmd/assessment/benchmarks/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/assessment/hostParameters"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/urfave/cli"
 )
 

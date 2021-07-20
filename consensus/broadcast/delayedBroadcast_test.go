@@ -8,14 +8,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/alarm"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus/broadcast"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/alarm"
-	"github.com/ElrondNetwork/elrond-go/core/atomic"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
@@ -230,8 +231,8 @@ func TestDelayedBlockBroadcaster_HeaderReceivedForRegisteredDelayedDataShouldBro
 	assert.False(t, txBroadcastCalled.IsSet())
 
 	dbb.HeaderReceived(metaBlock, []byte("meta hash"))
-	sleepTime := core.ExtraDelayForBroadcastBlockInfo +
-		core.ExtraDelayBetweenBroadcastMbsAndTxs +
+	sleepTime := common.ExtraDelayForBroadcastBlockInfo +
+		common.ExtraDelayBetweenBroadcastMbsAndTxs +
 		10*time.Millisecond
 	time.Sleep(sleepTime)
 	assert.True(t, mbBroadcastCalled.IsSet())
@@ -329,8 +330,8 @@ func TestDelayedBlockBroadcaster_HeaderReceivedForNextRegisteredDelayedDataShoul
 	metaBlock.ShardInfo[0].HeaderHash = headerHash2
 
 	dbb.HeaderReceived(metaBlock, []byte("meta hash"))
-	sleepTime := core.ExtraDelayForBroadcastBlockInfo +
-		core.ExtraDelayBetweenBroadcastMbsAndTxs +
+	sleepTime := common.ExtraDelayForBroadcastBlockInfo +
+		common.ExtraDelayBetweenBroadcastMbsAndTxs +
 		10*time.Millisecond
 	time.Sleep(sleepTime)
 	assert.Equal(t, int64(2), mbBroadcastCalled.Get())
@@ -512,8 +513,8 @@ func TestDelayedBlockBroadcaster_SetValidatorDataFinalizedMetaHeaderShouldSetAla
 	require.Equal(t, int64(0), txBroadcastCalled.Get())
 
 	sleepTime := broadcast.ValidatorDelayPerOrder()*time.Duration(vArgs.order) +
-		core.ExtraDelayForBroadcastBlockInfo +
-		core.ExtraDelayBetweenBroadcastMbsAndTxs +
+		common.ExtraDelayForBroadcastBlockInfo +
+		common.ExtraDelayBetweenBroadcastMbsAndTxs +
 		time.Millisecond*100
 	time.Sleep(sleepTime)
 
@@ -718,8 +719,8 @@ func TestDelayedBlockBroadcaster_InterceptedHeaderInvalidOrDifferentShouldIgnore
 	dbb.InterceptedHeaderData("headerTopic", headerHash, differentHeader)
 	dbb.InterceptedMiniBlockData("headerTopic", headerHash, invalidHeader)
 	sleepTime := broadcast.ValidatorDelayPerOrder()*time.Duration(vArgs.order) +
-		core.ExtraDelayForBroadcastBlockInfo +
-		core.ExtraDelayBetweenBroadcastMbsAndTxs +
+		common.ExtraDelayForBroadcastBlockInfo +
+		common.ExtraDelayBetweenBroadcastMbsAndTxs +
 		time.Millisecond*100
 	time.Sleep(sleepTime)
 
@@ -930,8 +931,8 @@ func TestDelayedBlockBroadcaster_ScheduleValidatorBroadcastSameRoundAndPrevRandS
 
 	dbb.ScheduleValidatorBroadcast([]*broadcast.HeaderDataForValidator{hdfv})
 	sleepTime := time.Duration(vArgs.order)*broadcast.ValidatorDelayPerOrder() +
-		core.ExtraDelayForBroadcastBlockInfo +
-		core.ExtraDelayBetweenBroadcastMbsAndTxs +
+		common.ExtraDelayForBroadcastBlockInfo +
+		common.ExtraDelayBetweenBroadcastMbsAndTxs +
 		100*time.Millisecond
 	time.Sleep(sleepTime)
 
@@ -984,7 +985,7 @@ func TestDelayedBlockBroadcaster_AlarmExpiredShouldBroadcastTheDataForRegistered
 	require.Equal(t, 1, len(vbd))
 
 	dbb.AlarmExpired(hex.EncodeToString(vArgs.headerHash))
-	sleepTime := core.ExtraDelayBetweenBroadcastMbsAndTxs +
+	sleepTime := common.ExtraDelayBetweenBroadcastMbsAndTxs +
 		time.Millisecond*100
 	time.Sleep(sleepTime)
 
@@ -1194,8 +1195,8 @@ func TestDelayedBlockBroadcaster_InterceptedMiniBlockForNotSetValDataShouldBroad
 
 	dbb.ScheduleValidatorBroadcast([]*broadcast.HeaderDataForValidator{hdfv})
 	sleepTime := time.Duration(vArgs.order)*broadcast.ValidatorDelayPerOrder() +
-		core.ExtraDelayForBroadcastBlockInfo +
-		core.ExtraDelayBetweenBroadcastMbsAndTxs +
+		common.ExtraDelayForBroadcastBlockInfo +
+		common.ExtraDelayBetweenBroadcastMbsAndTxs +
 		100*time.Millisecond
 	time.Sleep(sleepTime)
 
@@ -1258,8 +1259,8 @@ func TestDelayedBlockBroadcaster_InterceptedMiniBlockOutOfManyForSetValDataShoul
 	dbb.ScheduleValidatorBroadcast([]*broadcast.HeaderDataForValidator{hdfv})
 	dbb.InterceptedMiniBlockData("txBlockBodies_0_"+strconv.Itoa(destShardID), miniBlockHashToNotify, &block.MiniBlock{})
 	sleepTime := time.Duration(vArgs.order)*broadcast.ValidatorDelayPerOrder() +
-		core.ExtraDelayForBroadcastBlockInfo +
-		core.ExtraDelayBetweenBroadcastMbsAndTxs +
+		common.ExtraDelayForBroadcastBlockInfo +
+		common.ExtraDelayBetweenBroadcastMbsAndTxs +
 		100*time.Millisecond
 	time.Sleep(sleepTime)
 

@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
 )
 
 var _ ComponentHandler = (*managedStateComponents)(nil)
@@ -142,7 +142,7 @@ func (msc *managedStateComponents) TriesContainer() state.TriesHolder {
 }
 
 // TrieStorageManagers returns the trie storage manager for the given account type
-func (msc *managedStateComponents) TrieStorageManagers() map[string]data.StorageManager {
+func (msc *managedStateComponents) TrieStorageManagers() map[string]temporary.StorageManager {
 	msc.mutStateComponents.RLock()
 	defer msc.mutStateComponents.RUnlock()
 
@@ -150,7 +150,7 @@ func (msc *managedStateComponents) TrieStorageManagers() map[string]data.Storage
 		return nil
 	}
 
-	retMap := make(map[string]data.StorageManager)
+	retMap := make(map[string]temporary.StorageManager)
 
 	// give back a map copy
 	for key, val := range msc.stateComponents.trieStorageManagers {
@@ -174,7 +174,7 @@ func (msc *managedStateComponents) SetTriesContainer(triesContainer state.TriesH
 }
 
 // SetTriesStorageManagers sets the internal map with the given parameter
-func (msc *managedStateComponents) SetTriesStorageManagers(managers map[string]data.StorageManager) error {
+func (msc *managedStateComponents) SetTriesStorageManagers(managers map[string]temporary.StorageManager) error {
 	if len(managers) == 0 {
 		return errors.ErrNilTriesStorageManagers
 	}

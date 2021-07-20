@@ -3,7 +3,7 @@ package builtInFunctions
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -30,8 +30,8 @@ func createMockArguments() ArgsCreateBuiltInFunctionContainer {
 }
 
 func fillGasMapInternal(gasMap map[string]map[string]uint64, value uint64) map[string]map[string]uint64 {
-	gasMap[core.BaseOperationCost] = fillGasMapBaseOperationCosts(value)
-	gasMap[core.BuiltInCost] = fillGasMapBuiltInCosts(value)
+	gasMap[common.BaseOperationCost] = fillGasMapBaseOperationCosts(value)
+	gasMap[common.BuiltInCost] = fillGasMapBuiltInCosts(value)
 
 	return gasMap
 }

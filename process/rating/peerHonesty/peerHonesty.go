@@ -7,10 +7,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -240,10 +241,10 @@ func (pph *p2pPeerHonesty) checkBlacklistNoLock(ps *peerScore) {
 
 	log.Debug("p2pPeerHonesty.checkBlacklist: added blacklisted pk",
 		"pk", core.GetTrimmedPk(hex.EncodeToString([]byte(ps.pk))),
-		"duration", core.PublicKeyBlacklistDuration,
+		"duration", common.PublicKeyBlacklistDuration,
 	)
 
-	err := pph.blackListedPkCache.Upsert(ps.pk, core.PublicKeyBlacklistDuration)
+	err := pph.blackListedPkCache.Upsert(ps.pk, common.PublicKeyBlacklistDuration)
 	if err != nil {
 		log.Warn("p2pPeerHonesty.checkBlacklist",
 			"pk", core.GetTrimmedPk(hex.EncodeToString([]byte(ps.pk))),

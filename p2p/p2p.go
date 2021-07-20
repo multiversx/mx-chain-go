@@ -6,7 +6,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 )
 
 const displayLastPidChars = 12
