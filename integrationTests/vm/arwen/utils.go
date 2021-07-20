@@ -40,6 +40,7 @@ import (
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
@@ -125,7 +126,7 @@ func SetupTestContext(t *testing.T) *TestContext {
 	context := &TestContext{}
 	context.T = t
 	context.Round = 500
-	context.EpochNotifier = &mock.EpochNotifierStub{}
+	context.EpochNotifier = &epochNotifier.EpochNotifierStub{}
 	context.ArwenChangeLocker = &sync.RWMutex{}
 
 	context.initAccounts()

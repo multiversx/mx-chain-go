@@ -54,6 +54,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -385,7 +386,7 @@ func createEconomicsData(penalizedTooMuchGasEnableEpoch uint32) (process.Economi
 			},
 		},
 		PenalizedTooMuchGasEnableEpoch: penalizedTooMuchGasEnableEpoch,
-		EpochNotifier:                  &mock.EpochNotifierStub{},
+		EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
 		BuiltInFunctionsCostHandler:    builtInCost,
 	}
 
@@ -641,7 +642,7 @@ func CreateVMAndBlockchainHookMeta(
 		SystemSCConfig:      createSystemSCConfig(),
 		ValidatorAccountsDB: accnts,
 		ChanceComputer:      &mock.NodesCoordinatorMock{},
-		EpochNotifier:       &mock.EpochNotifierStub{},
+		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
 		EpochConfig:         createEpochConfig(),
 		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(1),
 	}

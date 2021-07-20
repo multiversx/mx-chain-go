@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -64,7 +65,7 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 			return "chainID"
 		},
 		TxVersionCheckField: versioning.NewTxVersionChecker(1),
-		EpochNotifierField:  &mock.EpochNotifierStub{},
+		EpochNotifierField:  &epochNotifier.EpochNotifierStub{},
 	}
 	cryptoComponents := &mock.CryptoComponentsMock{
 		BlockSig: createMockSigner(),

@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -34,7 +35,7 @@ func createMockArgumentsNewStakingToPeer() ArgStakingToPeer {
 		ArgParser:     &mock.ArgumentParserMock{},
 		CurrTxs:       &mock.TxForCurrentBlockStub{},
 		RatingsData:   &mock.RatingsInfoMock{},
-		EpochNotifier: &mock.EpochNotifierStub{},
+		EpochNotifier: &epochNotifier.EpochNotifierStub{},
 	}
 }
 

@@ -21,6 +21,7 @@ import (
 	txproc "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
@@ -83,7 +84,7 @@ func createArgsForTxProcessor() txproc.ArgsNewTxProcessor {
 		BadTxForwarder:   &mock.IntermediateTransactionHandlerMock{},
 		ArgsParser:       &mock.ArgumentParserMock{},
 		ScrForwarder:     &mock.IntermediateTransactionHandlerMock{},
-		EpochNotifier:    &mock.EpochNotifierStub{},
+		EpochNotifier:    &epochNotifier.EpochNotifierStub{},
 	}
 	return args
 }
@@ -1285,7 +1286,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 		ShardCoordinator: shardCoordinator,
 		BuiltInFuncNames: make(map[string]struct{}),
 		ArgumentParser:   parsers.NewCallArgsParser(),
-		EpochNotifier:    &mock.EpochNotifierStub{},
+		EpochNotifier:    &epochNotifier.EpochNotifierStub{},
 	}
 	computeType, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 
@@ -1668,7 +1669,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2NotActiveShouldErr(t *testing.T)
 		ShardCoordinator: shardC,
 		BuiltInFuncNames: make(map[string]struct{}),
 		ArgumentParser:   parsers.NewCallArgsParser(),
-		EpochNotifier:    &mock.EpochNotifierStub{},
+		EpochNotifier:    &epochNotifier.EpochNotifierStub{},
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argTxTypeHandler)
 
@@ -1747,7 +1748,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2WithValueShouldErr(t *testing.T)
 		ShardCoordinator: shardC,
 		BuiltInFuncNames: make(map[string]struct{}),
 		ArgumentParser:   parsers.NewCallArgsParser(),
-		EpochNotifier:    &mock.EpochNotifierStub{},
+		EpochNotifier:    &epochNotifier.EpochNotifierStub{},
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argTxTypeHandler)
 
@@ -1825,7 +1826,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2ArgsParserShouldErr(t *testing.T
 		ShardCoordinator: shardC,
 		BuiltInFuncNames: make(map[string]struct{}),
 		ArgumentParser:   parsers.NewCallArgsParser(),
-		EpochNotifier:    &mock.EpochNotifierStub{},
+		EpochNotifier:    &epochNotifier.EpochNotifierStub{},
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argTxTypeHandler)
 
@@ -1910,7 +1911,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2InvalidParamCountShouldErr(t *te
 		ShardCoordinator: shardC,
 		BuiltInFuncNames: make(map[string]struct{}),
 		ArgumentParser:   parsers.NewCallArgsParser(),
-		EpochNotifier:    &mock.EpochNotifierStub{},
+		EpochNotifier:    &epochNotifier.EpochNotifierStub{},
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argTxTypeHandler)
 
@@ -1988,7 +1989,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2(t *testing.T) {
 		ShardCoordinator: shardC,
 		BuiltInFuncNames: make(map[string]struct{}),
 		ArgumentParser:   parsers.NewCallArgsParser(),
-		EpochNotifier:    &mock.EpochNotifierStub{},
+		EpochNotifier:    &epochNotifier.EpochNotifierStub{},
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argTxTypeHandler)
 
@@ -2061,7 +2062,7 @@ func TestTxProcessor_ProcessRelayedTransaction(t *testing.T) {
 		ShardCoordinator: shardC,
 		BuiltInFuncNames: make(map[string]struct{}),
 		ArgumentParser:   parsers.NewCallArgsParser(),
-		EpochNotifier:    &mock.EpochNotifierStub{},
+		EpochNotifier:    &epochNotifier.EpochNotifierStub{},
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argTxTypeHandler)
 
@@ -2587,7 +2588,7 @@ func TestTxProcessor_ProcessRelayedTransactionDisabled(t *testing.T) {
 		ShardCoordinator: shardC,
 		BuiltInFuncNames: make(map[string]struct{}),
 		ArgumentParser:   parsers.NewCallArgsParser(),
-		EpochNotifier:    &mock.EpochNotifierStub{},
+		EpochNotifier:    &epochNotifier.EpochNotifierStub{},
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argTxTypeHandler)
 

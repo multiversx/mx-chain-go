@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 )
 
 func (bp *baseProcessor) ComputeHeaderHash(hdr data.HeaderHandler) ([]byte, error) {
@@ -132,7 +133,7 @@ func NewShardProcessorEmptyWith3shards(
 			BlockSizeThrottler:           &mock.BlockSizeThrottlerStub{},
 			Version:                      "softwareVersion",
 			HistoryRepository:            &dblookupext.HistoryRepositoryStub{},
-			EpochNotifier:                &mock.EpochNotifierStub{},
+			EpochNotifier:                &epochNotifier.EpochNotifierStub{},
 			ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		},
 	}

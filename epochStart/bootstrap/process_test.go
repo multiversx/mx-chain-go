@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/stretchr/testify/assert"
 )
@@ -48,7 +49,7 @@ func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComp
 			UInt64ByteSliceConv:   &mock.Uint64ByteSliceConverterMock{},
 			AddrPubKeyConv:        &mock.PubkeyConverterMock{},
 			PathHdl:               &testscommon.PathManagerStub{},
-			EpochNotifierField:    &mock.EpochNotifierStub{},
+			EpochNotifierField:    &epochNotifier.EpochNotifierStub{},
 			TxVersionCheckField:   versioning.NewTxVersionChecker(1),
 			NodeTypeProviderField: &nodeTypeProviderMock.NodeTypeProviderStub{},
 		}, &mock.CryptoComponentsMock{

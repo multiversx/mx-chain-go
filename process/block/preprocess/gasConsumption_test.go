@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,7 +22,7 @@ func TestNewGasConsumption_NilEconomicsFeeHandlerShouldErr(t *testing.T) {
 	gc, err := preprocess.NewGasComputation(
 		nil,
 		&testscommon.TxTypeHandlerMock{},
-		&mock.EpochNotifierStub{},
+		&epochNotifier.EpochNotifierStub{},
 		0,
 	)
 
@@ -35,7 +36,7 @@ func TestNewGasConsumption_ShouldWork(t *testing.T) {
 	gc, err := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
-		&mock.EpochNotifierStub{},
+		&epochNotifier.EpochNotifierStub{},
 		0,
 	)
 
@@ -49,7 +50,7 @@ func TestGasConsumed_ShouldWork(t *testing.T) {
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
-		&mock.EpochNotifierStub{},
+		&epochNotifier.EpochNotifierStub{},
 		0,
 	)
 
@@ -74,7 +75,7 @@ func TestGasRefunded_ShouldWork(t *testing.T) {
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
-		&mock.EpochNotifierStub{},
+		&epochNotifier.EpochNotifierStub{},
 		0,
 	)
 
@@ -99,7 +100,7 @@ func TestComputeGasConsumedByTx_ShouldErrWrongTypeAssertion(t *testing.T) {
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
-		&mock.EpochNotifierStub{},
+		&epochNotifier.EpochNotifierStub{},
 		0,
 	)
 
@@ -117,7 +118,7 @@ func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsNotASmartContra
 			},
 		},
 		&testscommon.TxTypeHandlerMock{},
-		&mock.EpochNotifierStub{},
+		&epochNotifier.EpochNotifierStub{},
 		0,
 	)
 
@@ -141,7 +142,7 @@ func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractI
 			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 				return process.SCInvoking, process.SCInvoking
 			}},
-		&mock.EpochNotifierStub{},
+		&epochNotifier.EpochNotifierStub{},
 		0,
 	)
 
@@ -165,7 +166,7 @@ func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractC
 			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 				return process.MoveBalance, process.SCInvoking
 			}},
-		&mock.EpochNotifierStub{},
+		&epochNotifier.EpochNotifierStub{},
 		0,
 	)
 
@@ -189,7 +190,7 @@ func TestComputeGasConsumedByTx_ShouldReturnZeroIf0GasLimit(t *testing.T) {
 			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 				return process.MoveBalance, process.SCInvoking
 			}},
-		&mock.EpochNotifierStub{},
+		&epochNotifier.EpochNotifierStub{},
 		0,
 	)
 
@@ -213,7 +214,7 @@ func TestComputeGasConsumedByTx_ShouldReturnGasLimitIfLessThanMoveBalance(t *tes
 			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 				return process.MoveBalance, process.SCInvoking
 			}},
-		&mock.EpochNotifierStub{},
+		&epochNotifier.EpochNotifierStub{},
 		0,
 	)
 
@@ -237,7 +238,7 @@ func TestComputeGasConsumedByTx_ShouldReturnGasLimitWhenRelayed(t *testing.T) {
 			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 				return process.RelayedTx, process.RelayedTx
 			}},
-		&mock.EpochNotifierStub{},
+		&epochNotifier.EpochNotifierStub{},
 		0,
 	)
 
@@ -261,7 +262,7 @@ func TestComputeGasConsumedByTx_ShouldReturnGasLimitWhenRelayedV2(t *testing.T) 
 			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 				return process.RelayedTxV2, process.RelayedTxV2
 			}},
-		&mock.EpochNotifierStub{},
+		&epochNotifier.EpochNotifierStub{},
 		0,
 	)
 
@@ -282,7 +283,7 @@ func TestComputeGasConsumedByMiniBlock_ShouldErrMissingTransaction(t *testing.T)
 			},
 		},
 		&testscommon.TxTypeHandlerMock{},
-		&mock.EpochNotifierStub{},
+		&epochNotifier.EpochNotifierStub{},
 		0,
 	)
 
@@ -312,7 +313,7 @@ func TestComputeGasConsumedByMiniBlock_ShouldReturnZeroWhenOneTxIsMissing(t *tes
 			},
 		},
 		&testscommon.TxTypeHandlerMock{},
-		&mock.EpochNotifierStub{},
+		&epochNotifier.EpochNotifierStub{},
 		0,
 	)
 
@@ -351,7 +352,7 @@ func TestComputeGasConsumedByMiniBlock_ShouldWork(t *testing.T) {
 				}
 				return process.MoveBalance, process.MoveBalance
 			}},
-		&mock.EpochNotifierStub{},
+		&epochNotifier.EpochNotifierStub{},
 		0,
 	)
 
@@ -392,7 +393,7 @@ func TestComputeGasConsumedByMiniBlock_ShouldWorkV1(t *testing.T) {
 				}
 				return process.MoveBalance, process.MoveBalance
 			}},
-		&mock.EpochNotifierStub{},
+		&epochNotifier.EpochNotifierStub{},
 		10,
 	)
 
@@ -427,7 +428,7 @@ func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsNotASmartContra
 			},
 		},
 		&testscommon.TxTypeHandlerMock{},
-		&mock.EpochNotifierStub{},
+		&epochNotifier.EpochNotifierStub{},
 		10,
 	)
 
@@ -451,7 +452,7 @@ func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractI
 			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 				return process.SCInvoking, process.SCInvoking
 			}},
-		&mock.EpochNotifierStub{},
+		&epochNotifier.EpochNotifierStub{},
 		10,
 	)
 
@@ -475,7 +476,7 @@ func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractC
 			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 				return process.SCInvoking, process.SCInvoking
 			}},
-		&mock.EpochNotifierStub{},
+		&epochNotifier.EpochNotifierStub{},
 		10,
 	)
 

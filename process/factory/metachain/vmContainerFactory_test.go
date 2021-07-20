@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
@@ -81,7 +82,7 @@ func createVmContainerMockArgument(gasSchedule core.GasScheduleNotifier) ArgsNew
 		},
 		ValidatorAccountsDB: &testscommon.AccountsStub{},
 		ChanceComputer:      &mock.RaterMock{},
-		EpochNotifier:       &mock.EpochNotifierStub{},
+		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: config.EnableEpochs{
 				StakingV2EnableEpoch: 10,
@@ -284,7 +285,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 			},
 		},
 		PenalizedTooMuchGasEnableEpoch: 0,
-		EpochNotifier:                  &mock.EpochNotifierStub{},
+		EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
 		BuiltInFunctionsCostHandler:    &mock.BuiltInCostHandlerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
@@ -336,7 +337,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 		},
 		ValidatorAccountsDB: &testscommon.AccountsStub{},
 		ChanceComputer:      &mock.RaterMock{},
-		EpochNotifier:       &mock.EpochNotifierStub{},
+		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: config.EnableEpochs{
 				StakingV2EnableEpoch:               10,

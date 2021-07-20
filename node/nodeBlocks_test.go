@@ -25,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/bootstrapMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
@@ -544,7 +545,7 @@ func getDefaultCoreComponents() *factory.CoreComponentsMock {
 		RatingHandler:         &testscommon.RaterMock{},
 		NodesConfig:           &testscommon.NodesSetupStub{},
 		StartTime:             time.Time{},
-		EpochChangeNotifier:   &mock.EpochNotifierStub{},
+		EpochChangeNotifier:   &epochNotifier.EpochNotifierStub{},
 		TxVersionCheckHandler: versioning.NewTxVersionChecker(0),
 	}
 }

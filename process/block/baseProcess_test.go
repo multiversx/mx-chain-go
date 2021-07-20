@@ -35,6 +35,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -360,7 +361,7 @@ func CreateMockArguments(
 			BlockSizeThrottler: &mock.BlockSizeThrottlerStub{},
 			Version:            "softwareVersion",
 			HistoryRepository:  &dblookupext.HistoryRepositoryStub{},
-			EpochNotifier:      &mock.EpochNotifierStub{},
+			EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 			ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		},
 	}

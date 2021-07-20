@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	txproc "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/assert"
@@ -29,7 +30,7 @@ func createMockNewMetaTxArgs() txproc.ArgsNewMetaTxProcessor {
 		TxTypeHandler:    &testscommon.TxTypeHandlerMock{},
 		EconomicsFee:     createFreeTxFeeHandler(),
 		ESDTEnableEpoch:  0,
-		EpochNotifier:    &mock.EpochNotifierStub{},
+		EpochNotifier:    &epochNotifier.EpochNotifierStub{},
 	}
 	return args
 }
@@ -355,7 +356,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 		ShardCoordinator: shardCoordinator,
 		BuiltInFuncNames: make(map[string]struct{}),
 		ArgumentParser:   parsers.NewCallArgsParser(),
-		EpochNotifier:    &mock.EpochNotifierStub{},
+		EpochNotifier:    &epochNotifier.EpochNotifierStub{},
 	}
 	computeType, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 

@@ -23,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -115,7 +116,7 @@ func createMockMetaArguments(
 			BlockTracker:                 mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders),
 			BlockSizeThrottler:           &mock.BlockSizeThrottlerStub{},
 			HistoryRepository:            &dblookupext.HistoryRepositoryStub{},
-			EpochNotifier:                &mock.EpochNotifierStub{},
+			EpochNotifier:                &epochNotifier.EpochNotifierStub{},
 			ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		},
 		SCToProtocol:                 &mock.SCToProtocolStub{},

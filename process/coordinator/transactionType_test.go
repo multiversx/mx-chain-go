@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/assert"
@@ -22,7 +23,7 @@ func createMockArguments() ArgNewTxTypeHandler {
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(3),
 		BuiltInFuncNames: make(map[string]struct{}),
 		ArgumentParser:   parsers.NewCallArgsParser(),
-		EpochNotifier:    &mock.EpochNotifierStub{},
+		EpochNotifier:    &epochNotifier.EpochNotifierStub{},
 	}
 }
 
