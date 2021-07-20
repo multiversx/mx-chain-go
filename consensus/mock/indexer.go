@@ -1,7 +1,7 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data/indexer"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 )
 
 // IndexerMock is a mock implementation fot the Indexer interface

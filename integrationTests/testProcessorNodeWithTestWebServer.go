@@ -6,10 +6,10 @@ import (
 	"sync"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_3/config"
+	dataTransaction "github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/api"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/config"
-	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
 	nodeFacade "github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/node/external"

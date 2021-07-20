@@ -1,6 +1,6 @@
 package spos
 
-import "github.com/ElrondNetwork/elrond-go/core/check"
+import "github.com/ElrondNetwork/elrond-go-core/core/check"
 
 // ValidateConsensusCore checks for nil all the container objects
 func ValidateConsensusCore(container ConsensusCoreHandler) error {

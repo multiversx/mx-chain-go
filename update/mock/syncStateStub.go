@@ -1,8 +1,9 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
 )
 
 // SyncStateStub -
@@ -10,7 +11,7 @@ type SyncStateStub struct {
 	GetEpochStartMetaBlockCalled  func() (*block.MetaBlock, error)
 	GetUnFinishedMetaBlocksCalled func() (map[string]*block.MetaBlock, error)
 	SyncAllStateCalled            func(epoch uint32) error
-	GetAllTriesCalled             func() (map[string]data.Trie, error)
+	GetAllTriesCalled             func() (map[string]temporary.Trie, error)
 	GetAllTransactionsCalled      func() (map[string]data.TransactionHandler, error)
 	GetAllMiniBlocksCalled        func() (map[string]*block.MiniBlock, error)
 }
@@ -40,7 +41,7 @@ func (sss *SyncStateStub) SyncAllState(epoch uint32) error {
 }
 
 // GetAllTries -
-func (sss *SyncStateStub) GetAllTries() (map[string]data.Trie, error) {
+func (sss *SyncStateStub) GetAllTries() (map[string]temporary.Trie, error) {
 	if sss.GetAllTriesCalled != nil {
 		return sss.GetAllTriesCalled()
 	}

@@ -3,8 +3,8 @@ package testscommon
 import (
 	"errors"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
 )
 
 var errNotImplemented = errors.New("not implemented")
@@ -16,7 +16,7 @@ type TrieStub struct {
 	DeleteCalled                func(key []byte) error
 	RootCalled                  func() ([]byte, error)
 	CommitCalled                func() error
-	RecreateCalled              func(root []byte) (data.Trie, error)
+	RecreateCalled              func(root []byte) (temporary.Trie, error)
 	GetObsoleteHashesCalled     func() [][]byte
 	AppendToOldHashesCalled     func([][]byte)
 	GetSerializedNodesCalled    func([]byte, uint64) ([][]byte, uint64, error)
@@ -24,15 +24,15 @@ type TrieStub struct {
 	GetAllLeavesOnChannelCalled func(rootHash []byte) (chan core.KeyValueHolder, error)
 	GetProofCalled              func(key []byte) ([][]byte, error)
 	VerifyProofCalled           func(key []byte, proof [][]byte) (bool, error)
-	GetStorageManagerCalled     func() data.StorageManager
+	GetStorageManagerCalled     func() temporary.StorageManager
 	GetSerializedNodeCalled     func(bytes []byte) ([]byte, error)
-	GetNumNodesCalled           func() data.NumNodesDTO
+	GetNumNodesCalled           func() temporary.NumNodesDTO
 	GetOldRootCalled            func() []byte
 	CloseCalled                 func() error
 }
 
 // GetStorageManager -
-func (ts *TrieStub) GetStorageManager() data.StorageManager {
+func (ts *TrieStub) GetStorageManager() temporary.StorageManager {
 	if ts.GetStorageManagerCalled != nil {
 		return ts.GetStorageManagerCalled()
 	}
@@ -116,7 +116,7 @@ func (ts *TrieStub) Commit() error {
 }
 
 // Recreate -
-func (ts *TrieStub) Recreate(root []byte) (data.Trie, error) {
+func (ts *TrieStub) Recreate(root []byte) (temporary.Trie, error) {
 	if ts.RecreateCalled != nil {
 		return ts.RecreateCalled(root)
 	}
@@ -152,12 +152,12 @@ func (ts *TrieStub) GetSerializedNodes(hash []byte, maxBuffToSend uint64) ([][]b
 }
 
 // GetDirtyHashes -
-func (ts *TrieStub) GetDirtyHashes() (data.ModifiedHashes, error) {
+func (ts *TrieStub) GetDirtyHashes() (temporary.ModifiedHashes, error) {
 	return nil, nil
 }
 
 // SetNewHashes -
-func (ts *TrieStub) SetNewHashes(_ data.ModifiedHashes) {
+func (ts *TrieStub) SetNewHashes(_ temporary.ModifiedHashes) {
 }
 
 // GetAllHashes -
@@ -179,12 +179,12 @@ func (ts *TrieStub) GetSerializedNode(bytes []byte) ([]byte, error) {
 }
 
 // GetNumNodes -
-func (ts *TrieStub) GetNumNodes() data.NumNodesDTO {
+func (ts *TrieStub) GetNumNodes() temporary.NumNodesDTO {
 	if ts.GetNumNodesCalled != nil {
 		return ts.GetNumNodesCalled()
 	}
 
-	return data.NumNodesDTO{}
+	return temporary.NumNodesDTO{}
 }
 
 // GetOldRoot -
