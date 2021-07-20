@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -3,8 +3,8 @@ package factory
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/stretchr/testify/assert"
 )
 

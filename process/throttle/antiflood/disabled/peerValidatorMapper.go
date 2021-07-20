@@ -1,6 +1,6 @@
 package disabled
 
-import "github.com/ElrondNetwork/elrond-go/core"
+import "github.com/ElrondNetwork/elrond-go-core/core"
 
 // PeerValidatorMapper is a disabled validator mapper
 type PeerValidatorMapper struct {

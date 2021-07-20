@@ -1,7 +1,7 @@
 package redundancy
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 )
 
 // P2PMessenger defines a subset of the p2p.Messenger interface

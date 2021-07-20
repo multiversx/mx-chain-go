@@ -5,14 +5,14 @@ import (
 	"testing"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	factory2 "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	factory2 "github.com/ElrondNetwork/elrond-go/state/factory"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/stretchr/testify/require"
@@ -66,7 +66,7 @@ func getProcessArgs(
 	gasSchedule["BuiltInCost"]["SaveKeyValue"] = 1
 	gasSchedule["BuiltInCost"]["ESDTTransfer"] = 1
 	gasSchedule["BuiltInCost"]["ESDTBurn"] = 1
-	gasSchedule[core.MetaChainSystemSCsCost] = FillGasMapMetaChainSystemSCsCosts(1)
+	gasSchedule[common.MetaChainSystemSCsCost] = FillGasMapMetaChainSystemSCsCosts(1)
 
 	gasScheduleNotifier := &mock.GasScheduleNotifierMock{
 		GasSchedule: gasSchedule,

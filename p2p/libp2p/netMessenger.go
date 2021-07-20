@@ -10,11 +10,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	p2pDebug "github.com/ElrondNetwork/elrond-go/debug/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/data"
@@ -938,8 +939,8 @@ func (netMes *networkMessenger) transformAndCheckMessage(pbMsg *pubsub.Message, 
 		//this error is so severe that will need to blacklist both the originator and the connected peer as there is
 		// no way this node can communicate with them
 		pidFrom := core.PeerID(pbMsg.From)
-		netMes.blacklistPid(pid, core.WrongP2PMessageBlacklistDuration)
-		netMes.blacklistPid(pidFrom, core.WrongP2PMessageBlacklistDuration)
+		netMes.blacklistPid(pid, common.WrongP2PMessageBlacklistDuration)
+		netMes.blacklistPid(pidFrom, common.WrongP2PMessageBlacklistDuration)
 
 		return nil, errUnmarshal
 	}

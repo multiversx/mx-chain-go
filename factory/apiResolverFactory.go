@@ -5,11 +5,11 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/facade"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/trieIterators"
 	trieIteratorsFactory "github.com/ElrondNetwork/elrond-go/node/trieIterators/factory"
@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -72,7 +73,7 @@ type scQueryElementArgs struct {
 // CreateApiResolver is able to create an ApiResolver instance that will solve the REST API requests through the node facade
 // TODO: refactor to further decrease node's codebase
 func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
-	apiWorkingDir := filepath.Join(args.Configs.FlagsConfig.WorkingDir, core.TemporaryPath)
+	apiWorkingDir := filepath.Join(args.Configs.FlagsConfig.WorkingDir, common.TemporaryPath)
 	argsSCQuery := &scQueryServiceArgs{
 		generalConfig:       args.Configs.GeneralConfig,
 		epochConfig:         args.Configs.EpochConfig,
@@ -334,7 +335,7 @@ func createBuiltinFuncs(
 	marshalizer marshal.Marshalizer,
 	accnts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
-	epochNotifier core.EpochNotifier,
+	epochNotifier vmcommon.EpochNotifier,
 	esdtMultiTransferEnableEpoch uint32,
 ) (vmcommon.BuiltInFunctionContainer, error) {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{

@@ -7,18 +7,19 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/state/factory"
-	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager/disabled"
-	"github.com/ElrondNetwork/elrond-go/data/trie"
-	triesFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/state/factory"
+	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/disabled"
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
+	"github.com/ElrondNetwork/elrond-go/trie"
+	triesFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
@@ -32,7 +33,7 @@ type ArgsNewStateImport struct {
 	Marshalizer         marshal.Marshalizer
 	ShardID             uint32
 	StorageConfig       config.StorageConfig
-	TrieStorageManagers map[string]data.StorageManager
+	TrieStorageManagers map[string]temporary.StorageManager
 	HardforkStorer      update.HardforkStorer
 }
 
@@ -42,7 +43,7 @@ type stateImport struct {
 	miniBlocks                   map[string]*block.MiniBlock
 	importedEpochStartMetaBlock  *block.MetaBlock
 	importedUnFinishedMetaBlocks map[string]*block.MetaBlock
-	tries                        map[string]data.Trie
+	tries                        map[string]temporary.Trie
 	accountDBsMap                map[uint32]state.AccountsDBImporter
 	validatorDB                  state.AccountsDBImporter
 	hardforkStorer               update.HardforkStorer
@@ -51,7 +52,7 @@ type stateImport struct {
 	marshalizer         marshal.Marshalizer
 	shardID             uint32
 	storageConfig       config.StorageConfig
-	trieStorageManagers map[string]data.StorageManager
+	trieStorageManagers map[string]temporary.StorageManager
 }
 
 // NewStateImport creates an importer which reads all the files for a new start
@@ -75,7 +76,7 @@ func NewStateImport(args ArgsNewStateImport) (*stateImport, error) {
 		miniBlocks:                   make(map[string]*block.MiniBlock),
 		importedEpochStartMetaBlock:  &block.MetaBlock{},
 		importedUnFinishedMetaBlocks: make(map[string]*block.MetaBlock),
-		tries:                        make(map[string]data.Trie),
+		tries:                        make(map[string]temporary.Trie),
 		hasher:                       args.Hasher,
 		marshalizer:                  args.Marshalizer,
 		accountDBsMap:                make(map[uint32]state.AccountsDBImporter),
@@ -273,7 +274,7 @@ func newAccountCreator(accType Type) (state.AccountFactory, error) {
 	return nil, update.ErrUnknownType
 }
 
-func (si *stateImport) getTrie(shardID uint32, accType Type) (data.Trie, error) {
+func (si *stateImport) getTrie(shardID uint32, accType Type) (temporary.Trie, error) {
 	trieString := core.ShardIdToString(shardID)
 	if accType == ValidatorAccount {
 		trieString = "validator"
@@ -379,7 +380,7 @@ func (si *stateImport) importDataTrie(identifier string, shID uint32, keys [][]b
 	return nil
 }
 
-func (si *stateImport) getAccountsDB(accType Type, shardID uint32) (state.AccountsDBImporter, data.Trie, error) {
+func (si *stateImport) getAccountsDB(accType Type, shardID uint32) (state.AccountsDBImporter, temporary.Trie, error) {
 	accountFactory, err := newAccountCreator(accType)
 	if err != nil {
 		return nil, nil, err
@@ -503,7 +504,7 @@ func (si *stateImport) unMarshalAndSaveAccount(
 	accType Type,
 	address, buffer []byte,
 	accountsDB state.AccountsDBImporter,
-	mainTrie data.Trie,
+	mainTrie temporary.Trie,
 ) error {
 	account, err := NewEmptyAccount(accType, address)
 	if err != nil {

@@ -5,19 +5,20 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data"
-	trieFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	errorsErd "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/stretchr/testify/require"
 )
 
@@ -410,7 +411,7 @@ func getDefaultStateComponents() *testscommon.StateComponentsMock {
 		PeersAcc: &testscommon.AccountsStub{},
 		Accounts: &testscommon.AccountsStub{},
 		Tries:    &mock.TriesHolderStub{},
-		StorageManagers: map[string]data.StorageManager{
+		StorageManagers: map[string]temporary.StorageManager{
 			"0":                         &testscommon.StorageManagerStub{},
 			trieFactory.UserAccountTrie: &testscommon.StorageManagerStub{},
 			trieFactory.PeerAccountTrie: &testscommon.StorageManagerStub{},

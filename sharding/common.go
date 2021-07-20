@@ -4,8 +4,8 @@ import (
 	"encoding/hex"
 	"strconv"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core"
 )
 
 var log = logger.GetOrCreate("sharding")

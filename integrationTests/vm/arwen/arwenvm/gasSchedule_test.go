@@ -10,7 +10,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/stretchr/testify/require"
 )
 
@@ -111,7 +111,7 @@ func Benchmark_TestCryptoDoNothing(b *testing.B) {
 }
 
 func Benchmark_TestStorageRust(b *testing.B) {
-	gasSchedule, _ := core.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
+	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
 	buff := make([]byte, 100)
 	_, _ = rand.Read(buff)
 	arguments := [][]byte{buff, big.NewInt(100).Bytes()}
@@ -119,7 +119,7 @@ func Benchmark_TestStorageRust(b *testing.B) {
 }
 
 func TestGasModel(t *testing.T) {
-	gasSchedule, _ := core.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
+	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
 
 	totalOp := uint64(0)
 	for _, opCodeClass := range gasSchedule {

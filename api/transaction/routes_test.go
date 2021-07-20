@@ -13,6 +13,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	dataTx "github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	apiErrors "github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
@@ -20,8 +22,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/transaction"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	tr "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -99,8 +99,8 @@ func TestGetTransaction_WithCorrectHashShouldReturnTransaction(t *testing.T) {
 	txData := []byte("data")
 	hash := "hash"
 	facade := mock.Facade{
-		GetTransactionHandler: func(hash string, withEvents bool) (i *tr.ApiTransactionResult, e error) {
-			return &tr.ApiTransactionResult{
+		GetTransactionHandler: func(hash string, withEvents bool) (i *dataTx.ApiTransactionResult, e error) {
+			return &dataTx.ApiTransactionResult{
 				Sender:   sender,
 				Receiver: receiver,
 				Data:     txData,
@@ -132,11 +132,11 @@ func TestGetTransaction_WithUnknownHashShouldReturnNil(t *testing.T) {
 	txData := []byte("data")
 	wrongHash := "wronghash"
 	facade := mock.Facade{
-		GetTransactionHandler: func(hash string, withEvents bool) (*tr.ApiTransactionResult, error) {
+		GetTransactionHandler: func(hash string, withEvents bool) (*dataTx.ApiTransactionResult, error) {
 			if hash == wrongHash {
 				return nil, errors.New("local error")
 			}
-			return &tr.ApiTransactionResult{
+			return &dataTx.ApiTransactionResult{
 				Sender:   sender,
 				Receiver: receiver,
 				Data:     txData,
@@ -294,13 +294,13 @@ func TestSendTransaction_ErrorWhenFacadeSendTransactionError(t *testing.T) {
 	errorString := "send transaction error"
 
 	facade := mock.Facade{
-		CreateTransactionHandler: func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*tr.Transaction, []byte, error) {
+		CreateTransactionHandler: func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*dataTx.Transaction, []byte, error) {
 			return nil, nil, nil
 		},
-		SendBulkTransactionsHandler: func(txs []*tr.Transaction) (u uint64, err error) {
+		SendBulkTransactionsHandler: func(txs []*dataTx.Transaction) (u uint64, err error) {
 			return 0, errors.New(errorString)
 		},
-		ValidateTransactionHandler: func(tx *tr.Transaction) error {
+		ValidateTransactionHandler: func(tx *dataTx.Transaction) error {
 			return nil
 		},
 	}
@@ -338,14 +338,14 @@ func TestSendTransaction_ReturnsSuccessfully(t *testing.T) {
 	hexTxHash := "deadbeef"
 
 	facade := mock.Facade{
-		CreateTransactionHandler: func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*tr.Transaction, []byte, error) {
+		CreateTransactionHandler: func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*dataTx.Transaction, []byte, error) {
 			txHash, _ := hex.DecodeString(hexTxHash)
 			return nil, txHash, nil
 		},
-		SendBulkTransactionsHandler: func(txs []*tr.Transaction) (u uint64, err error) {
+		SendBulkTransactionsHandler: func(txs []*dataTx.Transaction) (u uint64, err error) {
 			return 1, nil
 		},
-		ValidateTransactionHandler: func(tx *tr.Transaction) error {
+		ValidateTransactionHandler: func(tx *dataTx.Transaction) error {
 			return nil
 		},
 	}
@@ -460,15 +460,15 @@ func TestSendMultipleTransactions_OkPayloadShouldWork(t *testing.T) {
 	sendBulkTxsWasCalled := false
 
 	facade := mock.Facade{
-		CreateTransactionHandler: func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*tr.Transaction, []byte, error) {
+		CreateTransactionHandler: func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*dataTx.Transaction, []byte, error) {
 			createTxWasCalled = true
-			return &tr.Transaction{}, make([]byte, 0), nil
+			return &dataTx.Transaction{}, make([]byte, 0), nil
 		},
-		SendBulkTransactionsHandler: func(txs []*tr.Transaction) (u uint64, e error) {
+		SendBulkTransactionsHandler: func(txs []*dataTx.Transaction) (u uint64, e error) {
 			sendBulkTxsWasCalled = true
 			return 0, nil
 		},
-		ValidateTransactionHandler: func(tx *tr.Transaction) error {
+		ValidateTransactionHandler: func(tx *dataTx.Transaction) error {
 			return nil
 		},
 	}
@@ -523,11 +523,11 @@ func TestComputeTransactionGasLimit(t *testing.T) {
 	expectedGasLimit := uint64(37)
 
 	facade := mock.Facade{
-		CreateTransactionHandler: func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*tr.Transaction, []byte, error) {
-			return &tr.Transaction{}, nil, nil
+		CreateTransactionHandler: func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*dataTx.Transaction, []byte, error) {
+			return &dataTx.Transaction{}, nil, nil
 		},
-		ComputeTransactionGasLimitHandler: func(tx *tr.Transaction) (*tr.CostResponse, error) {
-			return &tr.CostResponse{
+		ComputeTransactionGasLimitHandler: func(tx *dataTx.Transaction) (*dataTx.CostResponse, error) {
+			return &dataTx.CostResponse{
 				GasUnits:      expectedGasLimit,
 				ReturnMessage: "",
 			}, nil
@@ -584,9 +584,9 @@ func TestSimulateTransaction_CreateErrorsShouldErr(t *testing.T) {
 
 	expectedErr := errors.New("expected error")
 	facade := mock.Facade{
-		SimulateTransactionExecutionHandler: func(tx *tr.Transaction) (*tr.SimulationResults, error) {
+		SimulateTransactionExecutionHandler: func(tx *dataTx.Transaction) (*dataTx.SimulationResults, error) {
 			processTxWasCalled = true
-			return &tr.SimulationResults{
+			return &dataTx.SimulationResults{
 				Status:     "ok",
 				FailReason: "no reason",
 				ScResults:  nil,
@@ -594,10 +594,10 @@ func TestSimulateTransaction_CreateErrorsShouldErr(t *testing.T) {
 				Hash:       "hash",
 			}, nil
 		},
-		CreateTransactionHandler: func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*tr.Transaction, []byte, error) {
+		CreateTransactionHandler: func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*dataTx.Transaction, []byte, error) {
 			return nil, nil, expectedErr
 		},
-		ValidateTransactionForSimulationHandler: func(tx *tr.Transaction, bypassSignature bool) error {
+		ValidateTransactionForSimulationHandler: func(tx *dataTx.Transaction, bypassSignature bool) error {
 			return nil
 		},
 	}
@@ -635,9 +635,9 @@ func TestSimulateTransaction_ValidateErrorsShouldErr(t *testing.T) {
 
 	expectedErr := errors.New("expected error")
 	facade := mock.Facade{
-		SimulateTransactionExecutionHandler: func(tx *tr.Transaction) (*tr.SimulationResults, error) {
+		SimulateTransactionExecutionHandler: func(tx *dataTx.Transaction) (*dataTx.SimulationResults, error) {
 			processTxWasCalled = true
-			return &tr.SimulationResults{
+			return &dataTx.SimulationResults{
 				Status:     "ok",
 				FailReason: "no reason",
 				ScResults:  nil,
@@ -645,10 +645,10 @@ func TestSimulateTransaction_ValidateErrorsShouldErr(t *testing.T) {
 				Hash:       "hash",
 			}, nil
 		},
-		CreateTransactionHandler: func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*tr.Transaction, []byte, error) {
-			return &tr.Transaction{}, []byte("hash"), nil
+		CreateTransactionHandler: func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*dataTx.Transaction, []byte, error) {
+			return &dataTx.Transaction{}, []byte("hash"), nil
 		},
-		ValidateTransactionForSimulationHandler: func(tx *tr.Transaction, bypassSignature bool) error {
+		ValidateTransactionForSimulationHandler: func(tx *dataTx.Transaction, bypassSignature bool) error {
 			return expectedErr
 		},
 	}
@@ -713,15 +713,15 @@ func TestSimulateTransaction_UseQueryParameterShouldWork(t *testing.T) {
 	t.Parallel()
 
 	facade := mock.Facade{
-		ValidateTransactionForSimulationHandler: func(tx *tr.Transaction, bypassSignature bool) error {
+		ValidateTransactionForSimulationHandler: func(tx *dataTx.Transaction, bypassSignature bool) error {
 			assert.True(t, bypassSignature)
 			return nil
 		},
-		CreateTransactionHandler: func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*tr.Transaction, []byte, error) {
-			return &tr.Transaction{}, []byte("hash"), nil
+		CreateTransactionHandler: func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*dataTx.Transaction, []byte, error) {
+			return &dataTx.Transaction{}, []byte("hash"), nil
 		},
-		SimulateTransactionExecutionHandler: func(tx *tr.Transaction) (*tr.SimulationResults, error) {
-			return &tr.SimulationResults{}, nil
+		SimulateTransactionExecutionHandler: func(tx *dataTx.Transaction) (*dataTx.SimulationResults, error) {
+			return &dataTx.SimulationResults{}, nil
 		},
 	}
 	ws := startNodeServer(&facade)
@@ -754,13 +754,13 @@ func TestSimulateTransaction_ProcessErrorsShouldErr(t *testing.T) {
 
 	expectedErr := errors.New("expected error")
 	facade := mock.Facade{
-		SimulateTransactionExecutionHandler: func(tx *tr.Transaction) (*tr.SimulationResults, error) {
+		SimulateTransactionExecutionHandler: func(tx *dataTx.Transaction) (*dataTx.SimulationResults, error) {
 			return nil, expectedErr
 		},
-		CreateTransactionHandler: func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*tr.Transaction, []byte, error) {
-			return &tr.Transaction{}, []byte("hash"), nil
+		CreateTransactionHandler: func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*dataTx.Transaction, []byte, error) {
+			return &dataTx.Transaction{}, []byte("hash"), nil
 		},
-		ValidateTransactionForSimulationHandler: func(tx *tr.Transaction, bypassSignature bool) error {
+		ValidateTransactionForSimulationHandler: func(tx *dataTx.Transaction, bypassSignature bool) error {
 			return nil
 		},
 	}
@@ -796,9 +796,9 @@ func TestSimulateTransaction(t *testing.T) {
 	processTxWasCalled := false
 
 	facade := mock.Facade{
-		SimulateTransactionExecutionHandler: func(tx *tr.Transaction) (*tr.SimulationResults, error) {
+		SimulateTransactionExecutionHandler: func(tx *dataTx.Transaction) (*dataTx.SimulationResults, error) {
 			processTxWasCalled = true
-			return &tr.SimulationResults{
+			return &dataTx.SimulationResults{
 				Status:     "ok",
 				FailReason: "no reason",
 				ScResults:  nil,
@@ -806,10 +806,10 @@ func TestSimulateTransaction(t *testing.T) {
 				Hash:       "hash",
 			}, nil
 		},
-		CreateTransactionHandler: func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*tr.Transaction, []byte, error) {
-			return &tr.Transaction{}, []byte("hash"), nil
+		CreateTransactionHandler: func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*dataTx.Transaction, []byte, error) {
+			return &dataTx.Transaction{}, []byte("hash"), nil
 		},
-		ValidateTransactionForSimulationHandler: func(tx *tr.Transaction, bypassSignature bool) error {
+		ValidateTransactionForSimulationHandler: func(tx *dataTx.Transaction, bypassSignature bool) error {
 			return nil
 		},
 	}
