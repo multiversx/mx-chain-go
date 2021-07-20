@@ -105,7 +105,7 @@ func (sbt *shardBlockTrack) getTrackedShardHeaderWithNonceAndHash(
 			continue
 		}
 
-		header, ok := headers[i].(*block.Header)
+		header, ok := headers[i].(data.ShardHeaderHandler)
 		if !ok {
 			return nil, process.ErrWrongTypeAssertion
 		}

@@ -127,9 +127,9 @@ func (bbt *baseBlockTrack) receivedHeader(headerHandler data.HeaderHandler, head
 }
 
 func (bbt *baseBlockTrack) receivedShardHeader(headerHandler data.HeaderHandler, shardHeaderHash []byte) {
-	shardHeader, ok := headerHandler.(*block.Header)
+	shardHeader, ok := headerHandler.(data.ShardHeaderHandler)
 	if !ok {
-		log.Warn("cannot convert data.HeaderHandler in *block.Header")
+		log.Warn("cannot convert data.HeaderHandler in data.ShardHeaderHandler")
 		return
 	}
 

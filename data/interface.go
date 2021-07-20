@@ -94,6 +94,7 @@ type ShardHeaderHandler interface {
 	SetEpochStartMetaHash(hash []byte) error
 	GetBlockBodyTypeInt32() int32
 	SetMetaBlockHashes(hashes [][]byte) error
+	MapMiniBlockHashesToShards() map[string]uint32
 }
 
 // MetaHeaderHandler defines getters and setters for the meta block header
@@ -122,7 +123,7 @@ type MiniBlockHeaderHandler interface {
 	SetSenderShardID(shardID uint32) error
 	SetReceiverShardID(shardID uint32) error
 	SetTxCount(count uint32) error
-	SetType(t int32) error
+	SetTypeInt32(t int32) error
 	SetReserved(reserved []byte) error
 	ShallowClone() MiniBlockHeaderHandler
 }
