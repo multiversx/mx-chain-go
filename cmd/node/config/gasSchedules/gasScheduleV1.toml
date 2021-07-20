@@ -140,6 +140,9 @@
     BigIntAdd                = 100
     BigIntSub                = 100
     BigIntMul                = 600
+    BigIntSqrt               = 6000
+    BigIntPow                = 6000
+    BigIntLog                = 6000
     BigIntTDiv               = 100
     BigIntTMod               = 100
     BigIntEDiv               = 100
