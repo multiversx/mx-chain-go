@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/cmd/termui/view"
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/common"
 	ui "github.com/gizak/termui/v3"
 	"github.com/gizak/termui/v3/widgets"
 )
@@ -14,7 +15,7 @@ const statusSyncing = "currently syncing"
 const statusSynchronized = "synchronized"
 const invalidKey = "invalid key"
 
-//WidgetsRender will define termui widgets that need to display a termui console
+// WidgetsRender will define termui widgets that need to display a termui console
 type WidgetsRender struct {
 	container    *DrawableContainer
 	lLog         *widgets.List
@@ -122,7 +123,7 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 	peerType := wr.presenter.GetPeerType()
 
 	nodeTypeAndListDisplay := instanceType
-	if peerType != string(core.ObserverList) && !strings.Contains(peerType, invalidKey) {
+	if peerType != string(common.ObserverList) && !strings.Contains(peerType, invalidKey) {
 		nodeTypeAndListDisplay += fmt.Sprintf(" - %s", peerType)
 	}
 	shardIdStr := fmt.Sprintf("%d", shardId)
@@ -163,7 +164,7 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 
 	// TODO: repair the rewards estimation or replace these 2 rows with rating details
 	//switch instanceType {
-	//case string(core.NodeTypeValidator):
+	//case string(common.NodeTypeValidator):
 	//	rewardsPerHour := wr.presenter.CalculateRewardsPerHour()
 	//	rows[5] = []string{fmt.Sprintf("Rewards estimation: %s ERD/h (without fees)", rewardsPerHour)}
 	//

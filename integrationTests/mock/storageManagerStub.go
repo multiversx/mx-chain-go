@@ -1,16 +1,16 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
 )
 
 // StorageManagerStub -
 type StorageManagerStub struct {
-	DatabaseCalled                    func() data.DBWriteCacher
+	DatabaseCalled                    func() temporary.DBWriteCacher
 	TakeSnapshotCalled                func([]byte)
 	SetCheckpointCalled               func([]byte)
-	GetDbThatContainsHashCalled       func([]byte) data.DBWriteCacher
-	GetSnapshotThatContainsHashCalled func(rootHash []byte) data.SnapshotDbHandler
+	GetDbThatContainsHashCalled       func([]byte) temporary.DBWriteCacher
+	GetSnapshotThatContainsHashCalled func(rootHash []byte) temporary.SnapshotDbHandler
 	IsPruningEnabledCalled            func() bool
 	IsPruningBlockedCalled            func() bool
 	EnterPruningBufferingModeCalled   func()
@@ -19,7 +19,7 @@ type StorageManagerStub struct {
 }
 
 // Database -
-func (sms *StorageManagerStub) Database() data.DBWriteCacher {
+func (sms *StorageManagerStub) Database() temporary.DBWriteCacher {
 	if sms.DatabaseCalled != nil {
 		return sms.DatabaseCalled()
 	}
@@ -37,7 +37,7 @@ func (sms *StorageManagerStub) SetCheckpoint([]byte) {
 }
 
 // GetSnapshotThatContainsHash -
-func (sms *StorageManagerStub) GetSnapshotThatContainsHash(d []byte) data.SnapshotDbHandler {
+func (sms *StorageManagerStub) GetSnapshotThatContainsHash(d []byte) temporary.SnapshotDbHandler {
 	if sms.GetSnapshotThatContainsHashCalled != nil {
 		return sms.GetSnapshotThatContainsHashCalled(d)
 	}

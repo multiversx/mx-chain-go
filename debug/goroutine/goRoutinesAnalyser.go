@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/debug"
 )
 
@@ -41,7 +41,7 @@ func NewGoRoutinesAnalyser(processor debug.GoRoutinesProcessor) (*goRoutinesAnal
 
 // DumpGoRoutinesToLogWithTypes will print the currently running go routines stats in the log
 func (grd *goRoutinesAnalyser) DumpGoRoutinesToLogWithTypes() {
-	buffer := core.GetRunningGoRoutines()
+	buffer := core.GetRunningGoRoutines(log)
 	log.Debug("GoRoutinesAnalyser - DumpGoRoutinesToLogWithTypes", "goroutines number", runtime.NumGoroutine())
 
 	newData := grd.goRoutinesProcessor.ProcessGoRoutineBuffer(grd.goRoutinesData, buffer)

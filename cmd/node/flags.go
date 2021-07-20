@@ -5,9 +5,10 @@ import (
 	"math"
 	"os"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/urfave/cli"
 )
@@ -466,7 +467,7 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 
 	var err error
 
-	importDbFlags.ImportDBTargetShardID, err = core.ProcessDestinationShardAsObserver(prefsConfig.Preferences.DestinationShardAsObserver)
+	importDbFlags.ImportDBTargetShardID, err = common.ProcessDestinationShardAsObserver(prefsConfig.Preferences.DestinationShardAsObserver)
 	if err != nil {
 		return err
 	}

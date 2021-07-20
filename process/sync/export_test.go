@@ -1,9 +1,9 @@
 package sync
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -116,13 +116,13 @@ func (hi *headerInfo) GetBlockHeaderState() process.BlockHeaderState {
 
 // NotifySyncStateListeners -
 func (boot *ShardBootstrap) NotifySyncStateListeners() {
-	isNodeSynchronized := boot.GetNodeState() == core.NsSynchronized
+	isNodeSynchronized := boot.GetNodeState() == common.NsSynchronized
 	boot.notifySyncStateListeners(isNodeSynchronized)
 }
 
 // NotifySyncStateListeners -
 func (boot *MetaBootstrap) NotifySyncStateListeners() {
-	isNodeSynchronized := boot.GetNodeState() == core.NsSynchronized
+	isNodeSynchronized := boot.GetNodeState() == common.NsSynchronized
 	boot.notifySyncStateListeners(isNodeSynchronized)
 }
 

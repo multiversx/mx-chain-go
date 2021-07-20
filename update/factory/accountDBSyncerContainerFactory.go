@@ -3,16 +3,16 @@ package factory
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/throttler"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/syncer"
-	"github.com/ElrondNetwork/elrond-go/data/trie"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state/syncer"
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/update"
 	containers "github.com/ElrondNetwork/elrond-go/update/container"
 	"github.com/ElrondNetwork/elrond-go/update/genesis"
@@ -25,7 +25,7 @@ type ArgsNewAccountsDBSyncersContainerFactory struct {
 	ShardCoordinator          sharding.Coordinator
 	Hasher                    hashing.Hasher
 	Marshalizer               marshal.Marshalizer
-	TrieStorageManager        data.StorageManager
+	TrieStorageManager        temporary.StorageManager
 	TimoutGettingTrieNode     time.Duration
 	MaxTrieLevelInMemory      uint
 	NumConcurrentTrieSyncers  int
@@ -41,7 +41,7 @@ type accountDBSyncersContainerFactory struct {
 	hasher                    hashing.Hasher
 	marshalizer               marshal.Marshalizer
 	timeoutGettingTrieNode    time.Duration
-	trieStorageManager        data.StorageManager
+	trieStorageManager        temporary.StorageManager
 	maxTrieLevelinMemory      uint
 	numConcurrentTrieSyncers  int
 	maxHardCapForMissingNodes int

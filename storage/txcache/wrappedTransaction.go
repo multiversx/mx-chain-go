@@ -3,7 +3,7 @@ package txcache
 import (
 	"bytes"
 
-	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 )
 
 const processFeeFactor = float64(0.8) // 80%
