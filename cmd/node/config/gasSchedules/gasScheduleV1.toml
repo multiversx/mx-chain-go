@@ -171,6 +171,16 @@
     VerifyBLS       = 1000
     VerifyEd25519   = 1000
     VerifySecp256k1 = 1000
+    EllipticCurveNew       = 10000
+    AddECC                 = 75000
+    DoubleECC              = 65000
+    IsOnCurveECC           = 10000
+    ScalarMultECC          = 400000
+    MarshalECC             = 13000
+    MarshalCompressedECC   = 15000
+    UnmarshalECC           = 20000
+    UnmarshalCompressedECC = 270000
+    GenerateKeyECC         = 700000
 
 [WASMOpcodeCost]
     Unreachable = 1
