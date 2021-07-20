@@ -38,7 +38,7 @@ func (bc *blockChain) SetGenesisHeader(genesisBlock data.HeaderHandler) error {
 		return nil
 	}
 
-	gb, ok := genesisBlock.(*block.Header)
+	gb, ok := genesisBlock.(data.ShardHeaderHandler)
 	if !ok {
 		return data.ErrInvalidHeaderType
 	}
@@ -59,13 +59,13 @@ func (bc *blockChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
 		return nil
 	}
 
-	h, ok := header.(*block.Header)
+	h, ok := header.(data.ShardHeaderHandler)
 	if !ok {
 		return data.ErrInvalidHeaderType
 	}
 
-	bc.appStatusHandler.SetUInt64Value(core.MetricNonce, h.Nonce)
-	bc.appStatusHandler.SetUInt64Value(core.MetricSynchronizedRound, h.Round)
+	bc.appStatusHandler.SetUInt64Value(core.MetricNonce, h.GetNonce())
+	bc.appStatusHandler.SetUInt64Value(core.MetricSynchronizedRound, h.GetRound())
 
 	bc.mut.Lock()
 	bc.currentBlockHeader = h.ShallowClone()

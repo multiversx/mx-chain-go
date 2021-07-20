@@ -144,7 +144,7 @@ func (sp *shardProcessor) ProcessBlock(
 		"nonce", headerHandler.GetNonce(),
 	)
 
-	header, ok := headerHandler.(*block.Header)
+	header, ok := headerHandler.(data.ShardHeaderHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
@@ -617,13 +617,13 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 		return process.ErrNilBlockHeader
 	}
 
-	header, ok := headerHandler.(*block.Header)
+	header, ok := headerHandler.(data.ShardHeaderHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
 
 	miniBlockHashes := header.MapMiniBlockHashesToShards()
-	err := sp.restoreMetaBlockIntoPool(miniBlockHashes, header.MetaBlockHashes)
+	err := sp.restoreMetaBlockIntoPool(miniBlockHashes, header.GetMetaBlockHashes())
 	if err != nil {
 		return err
 	}
@@ -789,7 +789,7 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	header, ok := headerHandler.(*block.Header)
+	header, ok := headerHandler.(data.ShardHeaderHandler)
 	if !ok {
 		err = process.ErrWrongTypeAssertion
 		return err
@@ -847,10 +847,10 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	log.Info("shard block has been committed successfully",
-		"epoch", header.Epoch,
-		"round", header.Round,
-		"nonce", header.Nonce,
-		"shard id", header.ShardID,
+		"epoch", header.GetEpoch(),
+		"round", header.GetRound(),
+		"nonce", header.GetNonce(),
+		"shard id", header.GetShardID(),
 		"hash", headerHash,
 	)
 
@@ -917,7 +917,7 @@ func (sp *shardProcessor) CommitBlock(
 
 	args := bootStorerDataArgs{
 		headerInfo:                 headerInfo,
-		round:                      header.Round,
+		round:                      header.GetRound(),
 		lastSelfNotarizedHeaders:   sp.getBootstrapHeadersInfo(selfNotarizedHeaders, selfNotarizedHeadersHashes),
 		highestFinalBlockNonce:     sp.forkDetector.GetHighestFinalBlockNonce(),
 		processedMiniBlocks:        sp.processedMiniBlocks.ConvertProcessedMiniBlocksMapToSlice(),
@@ -939,7 +939,7 @@ func (sp *shardProcessor) CommitBlock(
 		sp.blockTracker,
 	)
 
-	sp.blockSizeThrottler.Succeed(header.Round)
+	sp.blockSizeThrottler.Succeed(header.GetRound())
 
 	sp.displayPoolsInfo()
 
@@ -1975,7 +1975,7 @@ func (sp *shardProcessor) IsInterfaceNil() bool {
 
 // GetBlockBodyFromPool returns block body from pool for a given header
 func (sp *shardProcessor) GetBlockBodyFromPool(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
-	header, ok := headerHandler.(*block.Header)
+	header, ok := headerHandler.(data.ShardHeaderHandler)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}
@@ -1983,8 +1983,8 @@ func (sp *shardProcessor) GetBlockBodyFromPool(headerHandler data.HeaderHandler)
 	miniBlocksPool := sp.dataPool.MiniBlocks()
 	var miniBlocks block.MiniBlockSlice
 
-	for _, mbHeader := range header.MiniBlockHeaders {
-		obj, hashInPool := miniBlocksPool.Get(mbHeader.Hash)
+	for _, mbHeader := range header.GetMiniBlockHeaderHandlers() {
+		obj, hashInPool := miniBlocksPool.Get(mbHeader.GetHash())
 		if !hashInPool {
 			continue
 		}

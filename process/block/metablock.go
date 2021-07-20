@@ -513,7 +513,7 @@ func (mp *metaProcessor) getAllMiniBlockDstMeFromShards(metaHdr *block.MetaBlock
 		if !ok {
 			continue
 		}
-		shardHeader, ok := headerInfo.hdr.(*block.Header)
+		shardHeader, ok := headerInfo.hdr.(data.ShardHeaderHandler)
 		if !ok {
 			continue
 		}
@@ -1298,12 +1298,12 @@ func (mp *metaProcessor) updateCrossShardInfo(metaBlock *block.MetaBlock) ([]str
 				process.ErrMissingHeader, logger.DisplayByteSlice(shardHeaderHash))
 		}
 
-		shardHeader, ok := headerInfo.hdr.(*block.Header)
+		shardHeader, ok := headerInfo.hdr.(data.ShardHeaderHandler)
 		if !ok {
 			return nil, process.ErrWrongTypeAssertion
 		}
 
-		mp.updateShardHeadersNonce(shardHeader.ShardID, shardHeader.Nonce)
+		mp.updateShardHeadersNonce(shardHeader.GetShardID(), shardHeader.GetNonce())
 
 		marshalizedShardHeader, err := mp.marshalizer.Marshal(shardHeader)
 		if err != nil {
@@ -1434,7 +1434,7 @@ func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(
 			continue
 		}
 
-		shardHeader, ok := headerInfo.hdr.(*block.Header)
+		shardHeader, ok := headerInfo.hdr.(data.ShardHeaderHandler)
 		if !ok {
 			log.Debug("getLastSelfNotarizedHeaderByShard",
 				"error", process.ErrWrongTypeAssertion,
@@ -1442,7 +1442,7 @@ func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(
 			continue
 		}
 
-		for _, metaHash := range shardHeader.MetaBlockHashes {
+		for _, metaHash := range shardHeader.GetMetaBlockHashes() {
 			metaHeader, errGet := process.GetMetaHeader(
 				metaHash,
 				mp.dataPool.Headers(),
@@ -1606,14 +1606,14 @@ func (mp *metaProcessor) saveLastNotarizedHeader(header *block.MetaBlock) error 
 				process.ErrMissingHeader, logger.DisplayByteSlice(shardHeaderHash))
 		}
 
-		shardHeader, ok := headerInfo.hdr.(*block.Header)
+		shardHeader, ok := headerInfo.hdr.(data.ShardHeaderHandler)
 		if !ok {
 			mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 			return process.ErrWrongTypeAssertion
 		}
 
-		if lastCrossNotarizedHeaderForShard[shardHeader.ShardID].hdr.GetNonce() < shardHeader.Nonce {
-			lastCrossNotarizedHeaderForShard[shardHeader.ShardID] = &hashAndHdr{hdr: shardHeader, hash: shardHeaderHash}
+		if lastCrossNotarizedHeaderForShard[shardHeader.GetShardID()].hdr.GetNonce() < shardHeader.GetNonce() {
+			lastCrossNotarizedHeaderForShard[shardHeader.GetShardID()] = &hashAndHdr{hdr: shardHeader, hash: shardHeaderHash}
 		}
 	}
 	mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
@@ -1686,18 +1686,18 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 			return nil, fmt.Errorf("%w : checkShardHeadersValidity -> hash not found %s ", process.ErrHeaderShardDataMismatch, shardData.HeaderHash)
 		}
 		actualHdr := headerInfo.hdr
-		shardHdr, ok := actualHdr.(*block.Header)
+		shardHdr, ok := actualHdr.(data.ShardHeaderHandler)
 		if !ok {
 			return nil, process.ErrWrongTypeAssertion
 		}
 
-		if len(shardData.ShardMiniBlockHeaders) != len(shardHdr.MiniBlockHeaders) {
+		if len(shardData.ShardMiniBlockHeaders) != len(shardHdr.GetMiniBlockHeaderHandlers()) {
 			return nil, process.ErrHeaderShardDataMismatch
 		}
-		if shardData.AccumulatedFees.Cmp(shardHdr.AccumulatedFees) != 0 {
+		if shardData.AccumulatedFees.Cmp(shardHdr.GetAccumulatedFees()) != 0 {
 			return nil, process.ErrAccumulatedFeesDoNotMatch
 		}
-		if shardData.DeveloperFees.Cmp(shardHdr.DeveloperFees) != 0 {
+		if shardData.DeveloperFees.Cmp(shardHdr.GetDeveloperFees()) != 0 {
 			return nil, process.ErrDeveloperFeesDoNotMatch
 		}
 
@@ -1706,8 +1706,8 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 			mapMiniBlockHeadersInMetaBlock[string(shardMiniBlockHdr.Hash)] = struct{}{}
 		}
 
-		for _, actualMiniBlockHdr := range shardHdr.MiniBlockHeaders {
-			if _, hashExists := mapMiniBlockHeadersInMetaBlock[string(actualMiniBlockHdr.Hash)]; !hashExists {
+		for _, actualMiniBlockHdr := range shardHdr.GetMiniBlockHeaderHandlers() {
+			if _, hashExists := mapMiniBlockHeadersInMetaBlock[string(actualMiniBlockHdr.GetHash())]; !hashExists {
 				return nil, process.ErrHeaderShardDataMismatch
 			}
 		}
@@ -1770,15 +1770,15 @@ func (mp *metaProcessor) checkShardHeadersFinality(
 // receivedShardHeader is a call back function which is called when a new header
 // is added in the headers pool
 func (mp *metaProcessor) receivedShardHeader(headerHandler data.HeaderHandler, shardHeaderHash []byte) {
-	shardHeader, ok := headerHandler.(*block.Header)
+	shardHeader, ok := headerHandler.(data.ShardHeaderHandler)
 	if !ok {
 		return
 	}
 
 	log.Trace("received shard header from network",
-		"shard", shardHeader.ShardID,
-		"round", shardHeader.Round,
-		"nonce", shardHeader.Nonce,
+		"shard", shardHeader.GetShardID(),
+		"round", shardHeader.GetRound(),
+		"nonce", shardHeader.GetNonce(),
 		"hash", shardHeaderHash,
 	)
 
@@ -1793,8 +1793,8 @@ func (mp *metaProcessor) receivedShardHeader(headerHandler data.HeaderHandler, s
 			hdrInfoForHash.hdr = shardHeader
 			mp.hdrsForCurrBlock.missingHdrs--
 
-			if shardHeader.Nonce > mp.hdrsForCurrBlock.highestHdrNonce[shardHeader.ShardID] {
-				mp.hdrsForCurrBlock.highestHdrNonce[shardHeader.ShardID] = shardHeader.Nonce
+			if shardHeader.GetNonce() > mp.hdrsForCurrBlock.highestHdrNonce[shardHeader.GetShardID()] {
+				mp.hdrsForCurrBlock.highestHdrNonce[shardHeader.GetShardID()] = shardHeader.GetNonce()
 			}
 		}
 
@@ -1913,40 +1913,40 @@ func (mp *metaProcessor) createShardInfo() ([]data.ShardDataHandler, error) {
 			continue
 		}
 
-		shardHdr, ok := headerInfo.hdr.(*block.Header)
+		shardHdr, ok := headerInfo.hdr.(data.ShardHeaderHandler)
 		if !ok {
 			return nil, process.ErrWrongTypeAssertion
 		}
 
 		shardData := block.ShardData{}
-		shardData.TxCount = shardHdr.TxCount
-		shardData.ShardID = shardHdr.ShardID
+		shardData.TxCount = shardHdr.GetTxCount()
+		shardData.ShardID = shardHdr.GetShardID()
 		shardData.HeaderHash = []byte(hdrHash)
-		shardData.Round = shardHdr.Round
-		shardData.PrevHash = shardHdr.PrevHash
-		shardData.Nonce = shardHdr.Nonce
-		shardData.PrevRandSeed = shardHdr.PrevRandSeed
-		shardData.PubKeysBitmap = shardHdr.PubKeysBitmap
+		shardData.Round = shardHdr.GetRound()
+		shardData.PrevHash = shardHdr.GetPrevHash()
+		shardData.Nonce = shardHdr.GetNonce()
+		shardData.PrevRandSeed = shardHdr.GetPrevRandSeed()
+		shardData.PubKeysBitmap = shardHdr.GetPubKeysBitmap()
 		shardData.NumPendingMiniBlocks = uint32(len(mp.pendingMiniBlocksHandler.GetPendingMiniBlocks(shardData.ShardID)))
-		header, _, err := mp.blockTracker.GetLastSelfNotarizedHeader(shardHdr.ShardID)
+		header, _, err := mp.blockTracker.GetLastSelfNotarizedHeader(shardHdr.GetShardID())
 		if err != nil {
 			return nil, err
 		}
 		shardData.LastIncludedMetaNonce = header.GetNonce()
-		shardData.AccumulatedFees = shardHdr.AccumulatedFees
-		shardData.DeveloperFees = shardHdr.DeveloperFees
+		shardData.AccumulatedFees = shardHdr.GetAccumulatedFees()
+		shardData.DeveloperFees = shardHdr.GetDeveloperFees()
 
-		if len(shardHdr.MiniBlockHeaders) > 0 {
-			shardData.ShardMiniBlockHeaders = make([]block.MiniBlockHeader, 0, len(shardHdr.MiniBlockHeaders))
+		if len(shardHdr.GetMiniBlockHeaderHandlers()) > 0 {
+			shardData.ShardMiniBlockHeaders = make([]block.MiniBlockHeader, 0, len(shardHdr.GetMiniBlockHeaderHandlers()))
 		}
 
-		for i := 0; i < len(shardHdr.MiniBlockHeaders); i++ {
+		for i := 0; i < len(shardHdr.GetMiniBlockHeaderHandlers()); i++ {
 			shardMiniBlockHeader := block.MiniBlockHeader{}
-			shardMiniBlockHeader.SenderShardID = shardHdr.MiniBlockHeaders[i].SenderShardID
-			shardMiniBlockHeader.ReceiverShardID = shardHdr.MiniBlockHeaders[i].ReceiverShardID
-			shardMiniBlockHeader.Hash = shardHdr.MiniBlockHeaders[i].Hash
-			shardMiniBlockHeader.TxCount = shardHdr.MiniBlockHeaders[i].TxCount
-			shardMiniBlockHeader.Type = shardHdr.MiniBlockHeaders[i].Type
+			shardMiniBlockHeader.SenderShardID = shardHdr.GetMiniBlockHeaderHandlers()[i].GetSenderShardID()
+			shardMiniBlockHeader.ReceiverShardID = shardHdr.GetMiniBlockHeaderHandlers()[i].GetReceiverShardID()
+			shardMiniBlockHeader.Hash = shardHdr.GetMiniBlockHeaderHandlers()[i].GetHash()
+			shardMiniBlockHeader.TxCount = shardHdr.GetMiniBlockHeaderHandlers()[i].GetTxCount()
+			shardMiniBlockHeader.Type = block.Type(shardHdr.GetMiniBlockHeaderHandlers()[i].GetTypeInt32())
 
 			shardData.ShardMiniBlockHeaders = append(shardData.ShardMiniBlockHeaders, shardMiniBlockHeader)
 		}
