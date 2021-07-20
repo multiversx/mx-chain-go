@@ -10,8 +10,8 @@ var ErrNilMessage = errors.New("nil message")
 // ErrNilAccountsAdapter defines the error when trying to use a nil AccountsAddapter
 var ErrNilAccountsAdapter = errors.New("nil AccountsAdapter")
 
-// ErrNilCoreComponentsHolder signals that a nil common components holder was provided
-var ErrNilCoreComponentsHolder = errors.New("nil common components holder")
+// ErrNilCoreComponentsHolder signals that a nil core components holder was provided
+var ErrNilCoreComponentsHolder = errors.New("nil core components holder")
 
 // ErrNilBootstrapComponentsHolder signals that a nil bootstrap components holder was provided
 var ErrNilBootstrapComponentsHolder = errors.New("nil bootstrap components holder")

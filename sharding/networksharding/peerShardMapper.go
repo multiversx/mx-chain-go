@@ -199,7 +199,7 @@ func (psm *PeerShardMapper) getPeerSubType(pid core.PeerID) core.P2PPeerSubType 
 
 	subType, ok := subTypeObj.(core.P2PPeerSubType)
 	if !ok {
-		log.Warn("PeerShardMapper.getPeerInfoSearchingPidInFallbackCache: the contained element should have been of type common.P2PPeerSubType")
+		log.Warn("PeerShardMapper.getPeerInfoSearchingPidInFallbackCache: the contained element should have been of type core.P2PPeerSubType")
 		return core.RegularPeer
 	}
 

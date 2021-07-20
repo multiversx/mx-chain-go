@@ -102,7 +102,7 @@ func (ewl *EvictionWaitingList) IsInterfaceNil() bool {
 	return ewl == nil
 }
 
-// ShouldKeepHash --
+// ShouldKeepHash -
 func (ewl *EvictionWaitingList) ShouldKeepHash(hash string, identifier temporary.TriePruningIdentifier) (bool, error) {
 	ewl.OpMutex.Lock()
 	defer ewl.OpMutex.Unlock()

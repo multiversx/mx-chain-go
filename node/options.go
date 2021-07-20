@@ -32,7 +32,7 @@ func WithBootstrapComponents(bootstrapComponents factory.BootstrapComponentsHand
 	}
 }
 
-// WithCoreComponents sets up the Node common components
+// WithCoreComponents sets up the Node core components
 func WithCoreComponents(coreComponents factory.CoreComponentsHandler) Option {
 	return func(n *Node) error {
 		if check.IfNil(coreComponents) {

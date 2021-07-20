@@ -97,8 +97,8 @@ var ErrInvalidTransactionVersion = errors.New("invalid transaction version")
 // ErrNilBootstrapComponents signals that a nil bootstrap components instance has been provided
 var ErrNilBootstrapComponents = errors.New("nil bootstrap componennts")
 
-// ErrNilCoreComponents signals that a nil common components instance has been provided
-var ErrNilCoreComponents = errors.New("nil common components")
+// ErrNilCoreComponents signals that a nil core components instance has been provided
+var ErrNilCoreComponents = errors.New("nil core components")
 
 // ErrNilCryptoComponents signals that a nil crypto components instance has been provided
 var ErrNilCryptoComponents = errors.New("nil crypto components")

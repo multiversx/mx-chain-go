@@ -15,7 +15,7 @@ const statusSyncing = "currently syncing"
 const statusSynchronized = "synchronized"
 const invalidKey = "invalid key"
 
-//WidgetsRender will define termui widgets that need to display a termui console
+// WidgetsRender will define termui widgets that need to display a termui console
 type WidgetsRender struct {
 	container    *DrawableContainer
 	lLog         *widgets.List

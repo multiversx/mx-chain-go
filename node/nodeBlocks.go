@@ -7,7 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go/node/blockAPI"
-	"github.com/ElrondNetwork/elrond-go/storage/txstatus"
+	"github.com/ElrondNetwork/elrond-go/process/txstatus"
 )
 
 // GetBlockByHash return the block for a given hash

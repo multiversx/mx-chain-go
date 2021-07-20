@@ -4,7 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state/temporary"
 )
 
-// StorageManagerStub --
+// StorageManagerStub -
 type StorageManagerStub struct {
 	DatabaseCalled                    func() temporary.DBWriteCacher
 	TakeSnapshotCalled                func([]byte)
@@ -20,7 +20,7 @@ type StorageManagerStub struct {
 	IsInterfaceNilCalled              func() bool
 }
 
-// Database --
+// Database -
 func (sms *StorageManagerStub) Database() temporary.DBWriteCacher {
 	if sms.DatabaseCalled != nil {
 		return sms.DatabaseCalled()
@@ -28,27 +28,27 @@ func (sms *StorageManagerStub) Database() temporary.DBWriteCacher {
 	return nil
 }
 
-// TakeSnapshot --
+// TakeSnapshot -
 func (sms *StorageManagerStub) TakeSnapshot([]byte) {
 
 }
 
-// SetCheckpoint --
+// SetCheckpoint -
 func (sms *StorageManagerStub) SetCheckpoint([]byte) {
 
 }
 
-// Prune --
+// Prune -
 func (sms *StorageManagerStub) Prune([]byte, temporary.TriePruningIdentifier) {
 
 }
 
-// CancelPrune --
+// CancelPrune -
 func (sms *StorageManagerStub) CancelPrune([]byte, temporary.TriePruningIdentifier) {
 
 }
 
-// MarkForEviction --
+// MarkForEviction -
 func (sms *StorageManagerStub) MarkForEviction(d []byte, m temporary.ModifiedHashes) error {
 	if sms.MarkForEvictionCalled != nil {
 		return sms.MarkForEvictionCalled(d, m)
@@ -56,7 +56,7 @@ func (sms *StorageManagerStub) MarkForEviction(d []byte, m temporary.ModifiedHas
 	return nil
 }
 
-// GetSnapshotThatContainsHash --
+// GetSnapshotThatContainsHash -
 func (sms *StorageManagerStub) GetSnapshotThatContainsHash(d []byte) temporary.SnapshotDbHandler {
 	if sms.GetSnapshotThatContainsHashCalled != nil {
 		return sms.GetSnapshotThatContainsHashCalled(d)
@@ -65,7 +65,7 @@ func (sms *StorageManagerStub) GetSnapshotThatContainsHash(d []byte) temporary.S
 	return nil
 }
 
-// IsPruningEnabled --
+// IsPruningEnabled -
 func (sms *StorageManagerStub) IsPruningEnabled() bool {
 	if sms.IsPruningEnabledCalled != nil {
 		return sms.IsPruningEnabledCalled()
@@ -73,14 +73,14 @@ func (sms *StorageManagerStub) IsPruningEnabled() bool {
 	return false
 }
 
-// EnterSnapshotMode --
+// EnterSnapshotMode -
 func (sms *StorageManagerStub) EnterSnapshotMode() {
 	if sms.EnterSnapshotModeCalled != nil {
 		sms.EnterSnapshotModeCalled()
 	}
 }
 
-// ExitSnapshotMode --
+// ExitSnapshotMode -
 func (sms *StorageManagerStub) ExitSnapshotMode() {
 	if sms.ExitSnapshotModeCalled != nil {
 		sms.ExitSnapshotModeCalled()
@@ -97,7 +97,7 @@ func (sms *StorageManagerStub) Close() error {
 	return nil
 }
 
-// IsInterfaceNil --
+// IsInterfaceNil -
 func (sms *StorageManagerStub) IsInterfaceNil() bool {
 	return sms == nil
 }

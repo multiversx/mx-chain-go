@@ -22,7 +22,7 @@ var log = logger.GetOrCreate("dataretriever/requesthandlers")
 const bytesInUint32 = 4
 const timeToAccumulateTrieHashes = 100 * time.Millisecond
 
-//TODO move the keys definitions that are whitelisted in common and use them in InterceptedData implementations, Identifiers() function
+//TODO move the keys definitions that are whitelisted in core and use them in InterceptedData implementations, Identifiers() function
 
 type resolverRequestHandler struct {
 	mutEpoch              sync.RWMutex

@@ -89,8 +89,8 @@ var ErrNilConsensusComponentsFactory = errors.New("nil consensus components fact
 // ErrNilCryptoComponentsFactory signals that the provided crypto components factory is nil
 var ErrNilCryptoComponentsFactory = errors.New("nil crypto components factory")
 
-// ErrNilCoreComponentsFactory signals that the provided common components factory is nil
-var ErrNilCoreComponentsFactory = errors.New("nil common components factory")
+// ErrNilCoreComponentsFactory signals that the provided core components factory is nil
+var ErrNilCoreComponentsFactory = errors.New("nil core components factory")
 
 // ErrNilDataComponentsFactory signals that the provided data components factory is nil
 var ErrNilDataComponentsFactory = errors.New("nil data components factory")
@@ -125,11 +125,11 @@ var ErrNilConsensusComponentsHolder = errors.New("nil consensus components holde
 // ErrNilConsensusWorker signals that a nil consensus worker was provided
 var ErrNilConsensusWorker = errors.New("nil consensus worker")
 
-// ErrNilCoreComponents signals that an operation has been attempted with nil common components
-var ErrNilCoreComponents = errors.New("nil common components provided")
+// ErrNilCoreComponents signals that an operation has been attempted with nil core components
+var ErrNilCoreComponents = errors.New("nil core components provided")
 
-// ErrNilCoreComponentsHolder signals that a nil common components holder was provided
-var ErrNilCoreComponentsHolder = errors.New("nil common components holder")
+// ErrNilCoreComponentsHolder signals that a nil core components holder was provided
+var ErrNilCoreComponentsHolder = errors.New("nil core components holder")
 
 // ErrNilCryptoComponents signals that a nil crypto components has been provided
 var ErrNilCryptoComponents = errors.New("nil crypto components provided")

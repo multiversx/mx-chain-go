@@ -2,6 +2,8 @@ package mock
 
 import "github.com/ElrondNetwork/elrond-vm-common"
 
+// TODO: move all the mocks from the mock package to testscommon
+
 // AccountsFactoryStub -
 type AccountsFactoryStub struct {
 	CreateAccountCalled func(address []byte) (vmcommon.AccountHandler, error)

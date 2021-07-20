@@ -11,7 +11,7 @@ import (
 )
 
 type metaAPIBlockProcessor struct {
-	*baseAPIBockProcessor
+	*baseAPIBlockProcessor
 }
 
 // NewMetaApiBlockProcessor will create a new instance of meta api block processor
@@ -19,7 +19,7 @@ func NewMetaApiBlockProcessor(arg *APIBlockProcessorArg) *metaAPIBlockProcessor 
 	hasDbLookupExtensions := arg.HistoryRepo.IsEnabled()
 
 	return &metaAPIBlockProcessor{
-		baseAPIBockProcessor: &baseAPIBockProcessor{
+		baseAPIBlockProcessor: &baseAPIBlockProcessor{
 			hasDbLookupExtensions:    hasDbLookupExtensions,
 			selfShardID:              arg.SelfShardID,
 			store:                    arg.Store,

@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/common/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/dblookupext"
 )
 
 // HistoryRepositoryStub -

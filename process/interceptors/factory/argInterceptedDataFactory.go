@@ -10,7 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-// interceptedDataCoreComponentsHolder holds the common components required by the intercepted data factory
+// interceptedDataCoreComponentsHolder holds the core components required by the intercepted data factory
 type interceptedDataCoreComponentsHolder interface {
 	InternalMarshalizer() marshal.Marshalizer
 	TxMarshalizer() marshal.Marshalizer

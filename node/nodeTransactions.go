@@ -10,9 +10,9 @@ import (
 	rewardTxData "github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/common/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/storage/txstatus"
+	"github.com/ElrondNetwork/elrond-go/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/process/txstatus"
 )
 
 // GetTransaction gets the transaction based on the given hash. It will search in the cache and the storage and

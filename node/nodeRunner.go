@@ -23,12 +23,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/common"
-	dbLookupFactory "github.com/ElrondNetwork/elrond-go/common/dblookupext/factory"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/common/statistics"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	dbLookupFactory "github.com/ElrondNetwork/elrond-go/dblookupext/factory"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/facade/disabled"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
@@ -200,7 +200,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	flagsConfig := configs.FlagsConfig
 	configurationPaths := configs.ConfigurationPathsHolder
 
-	log.Debug("creating common components")
+	log.Debug("creating core components")
 	managedCoreComponents, err := nr.CreateManagedCoreComponents(
 		chanStopNodeProcess,
 	)
@@ -1129,7 +1129,7 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 	return managedNetworkComponents, nil
 }
 
-// CreateManagedCoreComponents is the managed common components factory
+// CreateManagedCoreComponents is the managed core components factory
 func (nr *nodeRunner) CreateManagedCoreComponents(
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 ) (mainFactory.CoreComponentsHandler, error) {

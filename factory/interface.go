@@ -13,11 +13,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
-	"github.com/ElrondNetwork/elrond-go/common/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/common/statistics"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
@@ -88,7 +88,7 @@ type ComponentHandler interface {
 	CheckSubcomponents() error
 }
 
-// CoreComponentsHolder holds the common components
+// CoreComponentsHolder holds the core components
 type CoreComponentsHolder interface {
 	InternalMarshalizer() marshal.Marshalizer
 	SetInternalMarshalizer(marshalizer marshal.Marshalizer) error
@@ -123,7 +123,7 @@ type CoreComponentsHolder interface {
 	IsInterfaceNil() bool
 }
 
-// CoreComponentsHandler defines the common components handler actions
+// CoreComponentsHandler defines the core components handler actions
 type CoreComponentsHandler interface {
 	ComponentHandler
 	CoreComponentsHolder

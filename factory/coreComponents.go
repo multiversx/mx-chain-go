@@ -36,7 +36,7 @@ import (
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 )
 
-// CoreComponentsFactoryArgs holds the arguments needed for creating a common components factory
+// CoreComponentsFactoryArgs holds the arguments needed for creating a core components factory
 type CoreComponentsFactoryArgs struct {
 	Config                config.Config
 	ConfigPathsHolder     config.ConfigurationPathsHolder
@@ -50,7 +50,7 @@ type CoreComponentsFactoryArgs struct {
 	StatusHandlersFactory factory.StatusHandlerUtilsFactory
 }
 
-// coreComponentsFactory is responsible for creating the common components
+// coreComponentsFactory is responsible for creating the core components
 type coreComponentsFactory struct {
 	config                config.Config
 	configPathsHolder     config.ConfigurationPathsHolder
@@ -64,7 +64,7 @@ type coreComponentsFactory struct {
 	statusHandlersFactory factory.StatusHandlerUtilsFactory
 }
 
-// coreComponents is the DTO used for common components
+// coreComponents is the DTO used for core components
 type coreComponents struct {
 	hasher                        hashing.Hasher
 	txSignHasher                  hashing.Hasher
@@ -96,7 +96,7 @@ type coreComponents struct {
 	encodedAddressLen             uint32
 }
 
-// NewCoreComponentsFactory initializes the factory which is responsible to creating common components
+// NewCoreComponentsFactory initializes the factory which is responsible to creating core components
 func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) (*coreComponentsFactory, error) {
 	return &coreComponentsFactory{
 		config:                args.Config,
@@ -112,7 +112,7 @@ func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) (*coreComponentsFa
 	}, nil
 }
 
-// Create creates the common components
+// Create creates the core components
 func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	hasher, err := hasherFactory.NewHasher(ccf.config.Hasher.Type)
 	if err != nil {

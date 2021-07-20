@@ -7,8 +7,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
+	"github.com/ElrondNetwork/elrond-go/process/txstatus"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/txstatus"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/stretchr/testify/assert"
@@ -23,7 +23,7 @@ func createMockArgumentsWithTx(
 	txHash string,
 	txBytes []byte,
 	marshalizer *mock.MarshalizerFake,
-) baseAPIBockProcessor {
+) baseAPIBlockProcessor {
 	storerMock := &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return &testscommon.StorerStub{
@@ -37,7 +37,7 @@ func createMockArgumentsWithTx(
 		},
 	}
 	statusComputer, _ := txstatus.NewStatusComputer(srcShardID, mock.NewNonceHashConverterMock(), storerMock)
-	return baseAPIBockProcessor{
+	return baseAPIBlockProcessor{
 		selfShardID: srcShardID,
 		marshalizer: marshalizer,
 		store:       storerMock,

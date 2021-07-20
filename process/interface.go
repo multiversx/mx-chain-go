@@ -1041,7 +1041,7 @@ type FallbackHeaderValidator interface {
 	IsInterfaceNil() bool
 }
 
-// CoreComponentsHolder holds the common components needed by the interceptors
+// CoreComponentsHolder holds the core components needed by the interceptors
 type CoreComponentsHolder interface {
 	InternalMarshalizer() marshal.Marshalizer
 	SetInternalMarshalizer(marshalizer marshal.Marshalizer) error

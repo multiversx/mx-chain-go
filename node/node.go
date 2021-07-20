@@ -1132,7 +1132,7 @@ func (n *Node) GetHardforkTrigger() HardforkTrigger {
 	return n.hardforkTrigger
 }
 
-// GetCoreComponents returns the common components
+// GetCoreComponents returns the core components
 func (n *Node) GetCoreComponents() mainFactory.CoreComponentsHolder {
 	return n.coreComponents
 }
