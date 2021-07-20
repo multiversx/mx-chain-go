@@ -409,7 +409,7 @@ func (bpp *basePreProcess) getBalanceForAddress(address []byte) (*big.Int, error
 	return account.GetBalance(), nil
 }
 
-func (bpp *basePreProcess) getTxMaxTotalCost(txHandler data.TransactionHandler) *big.Int {
+func getTxMaxTotalCost(txHandler data.TransactionHandler) *big.Int {
 	cost := big.NewInt(0)
 	cost.Mul(big.NewInt(0).SetUint64(txHandler.GetGasPrice()), big.NewInt(0).SetUint64(txHandler.GetGasLimit()))
 

@@ -112,7 +112,7 @@ func (txs *transactions) hasAddressEnoughInitialBalance(tx *transaction.Transact
 	addressHasEnoughBalance := true
 	isAddressSet := txs.balanceComputation.IsAddressSet(tx.GetSndAddr())
 	if isAddressSet {
-		addressHasEnoughBalance = txs.balanceComputation.AddressHasEnoughBalance(tx.GetSndAddr(), txs.getTxMaxTotalCost(tx))
+		addressHasEnoughBalance = txs.balanceComputation.AddressHasEnoughBalance(tx.GetSndAddr(), getTxMaxTotalCost(tx))
 	}
 
 	return addressHasEnoughBalance
@@ -606,7 +606,7 @@ func (txs *transactions) applyExecutedTransaction(
 	mbInfo.senderAddressToSkip = []byte("")
 
 	if txs.balanceComputation.IsAddressSet(tx.GetSndAddr()) {
-		txMaxTotalCost := txs.getTxMaxTotalCost(tx)
+		txMaxTotalCost := getTxMaxTotalCost(tx)
 		ok := txs.balanceComputation.SubBalanceFromAddress(tx.GetSndAddr(), txMaxTotalCost)
 		if !ok {
 			log.Error("applyExecutedTransaction.SubBalanceFromAddress",
@@ -786,7 +786,7 @@ func (txs *transactions) applyVerifiedTransaction(
 	mbInfo *createScheduledMiniBlocksInfo,
 ) {
 	if txs.balanceComputation.IsAddressSet(tx.GetSndAddr()) {
-		txMaxTotalCost := txs.getTxMaxTotalCost(tx)
+		txMaxTotalCost := getTxMaxTotalCost(tx)
 		ok := txs.balanceComputation.SubBalanceFromAddress(tx.GetSndAddr(), txMaxTotalCost)
 		if !ok {
 			log.Error("applyVerifiedTransaction.SubBalanceFromAddress",

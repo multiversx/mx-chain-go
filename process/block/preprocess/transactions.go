@@ -935,7 +935,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV1(
 		haveTime:                  haveTime,
 		isShardStuck:              isShardStuck,
 		isMaxBlockSizeReached:     isMaxBlockSizeReached,
-		getTxMaxTotalCost:         txs.getTxMaxTotalCost,
+		getTxMaxTotalCost:         getTxMaxTotalCost,
 	}
 
 	mbBuilder, err := newMiniBlockBuilder(args)
