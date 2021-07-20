@@ -128,8 +128,8 @@ func TestNewTrieStorageManagerWithExistingSnapshot(t *testing.T) {
 	args.GeneralConfig = generalCfg
 	args.CheckpointHashesHolder = hashesHolder.NewCheckpointHashesHolder(checkpointHashesHolderMaxSize, hashSize)
 	newTrieStorage, _ := NewTrieStorageManager(args)
-	snapshot := newTrieStorage.GetSnapshotThatContainsHash(rootHash)
-	assert.NotNil(t, snapshot)
+	foundSnapshot := newTrieStorage.GetSnapshotThatContainsHash(rootHash)
+	assert.NotNil(t, foundSnapshot)
 	assert.Equal(t, 1, newTrieStorage.snapshotId)
 }
 

@@ -84,7 +84,7 @@ func removeDuplicatedKeys(oldHashes map[string]struct{}, newHashes map[string]st
 		if ok {
 			delete(oldHashes, key)
 			delete(newHashes, key)
-			log.Trace("found in newHashes and oldHashes", "hash", key)
+			log.Trace("found in newHashes and oldHashes", "hash", []byte(key))
 		}
 	}
 }
@@ -92,7 +92,7 @@ func removeDuplicatedKeys(oldHashes map[string]struct{}, newHashes map[string]st
 func logMapWithTrace(message string, paramName string, hashes data.ModifiedHashes) {
 	if log.GetLevel() == logger.LogTrace {
 		for key := range hashes {
-			log.Trace(message, paramName, key)
+			log.Trace(message, paramName, []byte(key))
 		}
 	}
 }
@@ -196,20 +196,19 @@ func (spm *storagePruningManager) removeFromDb(
 	}()
 
 	for key := range hashes {
-		shouldKeepHash, err := spm.dbEvictionWaitingList.ShouldKeepHash(key, identifier)
-		if err != nil {
-			return err
+		shouldKeepHash, errShouldKeep := spm.dbEvictionWaitingList.ShouldKeepHash(key, identifier)
+		if errShouldKeep != nil {
+			return errShouldKeep
 		}
 		if shouldKeepHash {
 			continue
 		}
 
 		hash := []byte(key)
-
-		log.Trace("remove hash from trie db", "hash", hex.EncodeToString(hash))
-		err = tsm.Remove(hash)
-		if err != nil {
-			return err
+		log.Trace("remove hash from trie db", "hash", hash)
+		errRemove := tsm.Remove(hash)
+		if errRemove != nil {
+			return errRemove
 		}
 	}
 
