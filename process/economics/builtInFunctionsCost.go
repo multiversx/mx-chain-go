@@ -3,6 +3,7 @@ package economics
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/mitchellh/mapstructure"
 )
@@ -139,7 +140,7 @@ func (bc *builtInFunctionsCost) IsInterfaceNil() bool {
 
 func createGasConfig(gasMap map[string]map[string]uint64) (*process.GasCost, error) {
 	baseOps := &process.BaseOperationCost{}
-	err := mapstructure.Decode(gasMap[core.BaseOperationCost], baseOps)
+	err := mapstructure.Decode(gasMap[common.BaseOperationCost], baseOps)
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +151,7 @@ func createGasConfig(gasMap map[string]map[string]uint64) (*process.GasCost, err
 	}
 
 	builtInOps := &process.BuiltInCost{}
-	err = mapstructure.Decode(gasMap[core.BuiltInCost], builtInOps)
+	err = mapstructure.Decode(gasMap[common.BuiltInCost], builtInOps)
 	if err != nil {
 		return nil, err
 	}

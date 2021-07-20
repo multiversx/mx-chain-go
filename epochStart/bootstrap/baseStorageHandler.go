@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -46,7 +47,7 @@ func (bsh *baseStorageHandler) saveNodesCoordinatorRegistry(
 	metaBlock *block.MetaBlock,
 	nodesConfig *sharding.NodesCoordinatorRegistry,
 ) ([]byte, error) {
-	key := append([]byte(core.NodesCoordinatorRegistryKeyPrefix), metaBlock.PrevRandSeed...)
+	key := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), metaBlock.PrevRandSeed...)
 
 	// TODO: replace hardcoded json - although it is hardcoded in nodesCoordinator as well.
 	registryBytes, err := json.Marshal(nodesConfig)

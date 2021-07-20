@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	disabledSig "github.com/ElrondNetwork/elrond-go/crypto/signing/disabled/singlesig"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -767,7 +768,7 @@ func (n *Node) commonTransactionValidation(
 		n.processComponents.ShardCoordinator(),
 		whiteListRequest,
 		n.coreComponents.AddressPubKeyConverter(),
-		core.MaxTxNonceDeltaAllowed,
+		common.MaxTxNonceDeltaAllowed,
 	)
 	if err != nil {
 		log.Warn("node.ValidateTransaction: can not instantiate a TxValidator",
@@ -838,7 +839,7 @@ func (n *Node) sendBulkTransactionsFromShard(transactions [][]byte, senderShardI
 	//the topic identifier is made of the current shard id and sender's shard id
 	identifier := factory.TransactionTopic + n.processComponents.ShardCoordinator().CommunicationIdentifier(senderShardId)
 
-	packets, err := dataPacker.PackDataInChunks(transactions, core.MaxBulkTransactionSize)
+	packets, err := dataPacker.PackDataInChunks(transactions, common.MaxBulkTransactionSize)
 	if err != nil {
 		return err
 	}

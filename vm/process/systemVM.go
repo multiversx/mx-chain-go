@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -41,7 +42,7 @@ func NewSystemVM(args ArgsNewSystemVM) (*systemVM, error) {
 		return nil, vm.ErrNilGasSchedule
 	}
 
-	apiCosts := args.GasSchedule.LatestGasSchedule()[core.ElrondAPICost]
+	apiCosts := args.GasSchedule.LatestGasSchedule()[common.ElrondAPICost]
 	if apiCosts == nil {
 		return nil, vm.ErrNilGasSchedule
 	}
@@ -50,8 +51,8 @@ func NewSystemVM(args ArgsNewSystemVM) (*systemVM, error) {
 		systemEI:             args.SystemEI,
 		systemContracts:      args.SystemContracts,
 		vmType:               make([]byte, len(args.VmType)),
-		asyncCallStepCost:    apiCosts[core.AsyncCallStepField],
-		asyncCallbackGasLock: apiCosts[core.AsyncCallbackGasLockField],
+		asyncCallStepCost:    apiCosts[common.AsyncCallStepField],
+		asyncCallbackGasLock: apiCosts[common.AsyncCallbackGasLockField],
 	}
 	copy(s.vmType, args.VmType)
 
@@ -133,13 +134,13 @@ func (s *systemVM) GasScheduleChange(gasSchedule map[string]map[string]uint64) {
 	s.mutGasLock.Lock()
 	defer s.mutGasLock.Unlock()
 
-	apiCosts := gasSchedule[core.ElrondAPICost]
+	apiCosts := gasSchedule[common.ElrondAPICost]
 	if apiCosts == nil {
 		return
 	}
 
-	s.asyncCallStepCost = apiCosts[core.AsyncCallStepField]
-	s.asyncCallbackGasLock = apiCosts[core.AsyncCallbackGasLockField]
+	s.asyncCallStepCost = apiCosts[common.AsyncCallStepField]
+	s.asyncCallbackGasLock = apiCosts[common.AsyncCallbackGasLockField]
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

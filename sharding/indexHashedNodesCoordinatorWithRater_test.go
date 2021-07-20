@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/sharding/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
@@ -564,7 +565,7 @@ func TestIndexHashedGroupSelectorWithRater_ComputeAdditionalLeaving(t *testing.T
 	leavingValidator := &state.ShardValidatorInfo{
 		PublicKey:  []byte("eligible"),
 		ShardId:    core.MetachainShardId,
-		List:       string(core.EligibleList),
+		List:       string(common.EligibleList),
 		Index:      7,
 		TempRating: 5,
 	}
@@ -605,21 +606,21 @@ func TestIndexHashedGroupSelectorWithRater_ComputeAdditionalLeaving_ShouldAddNew
 	newValidator := &state.ShardValidatorInfo{
 		PublicKey:  []byte("new"),
 		ShardId:    0,
-		List:       string(core.NewList),
+		List:       string(common.NewList),
 		Index:      1,
 		TempRating: 5,
 	}
 	eligibleValidator := &state.ShardValidatorInfo{
 		PublicKey:  []byte("eligible"),
 		ShardId:    core.MetachainShardId,
-		List:       string(core.EligibleList),
+		List:       string(common.EligibleList),
 		Index:      1,
 		TempRating: 5,
 	}
 	waitingValidator := &state.ShardValidatorInfo{
 		PublicKey:  []byte("waiting"),
 		ShardId:    1,
-		List:       string(core.WaitingList),
+		List:       string(common.WaitingList),
 		Index:      1,
 		TempRating: 5,
 	}
@@ -662,14 +663,14 @@ func TestIndexHashedGroupSelectorWithRater_ComputeAdditionalLeaving_ShouldNotAdd
 	inactiveValidator := &state.ShardValidatorInfo{
 		PublicKey:  []byte("inactive"),
 		ShardId:    0,
-		List:       string(core.InactiveList),
+		List:       string(common.InactiveList),
 		Index:      1,
 		TempRating: 5,
 	}
 	jailedValidator := &state.ShardValidatorInfo{
 		PublicKey:  []byte("jailed"),
 		ShardId:    core.MetachainShardId,
-		List:       string(core.JailedList),
+		List:       string(common.JailedList),
 		Index:      1,
 		TempRating: 5,
 	}
@@ -712,14 +713,14 @@ func TestIndexHashedGroupSelectorWithRater_ComputeAdditionalLeaving_ShouldAddBel
 	eligibleValidator := &state.ShardValidatorInfo{
 		PublicKey:  []byte("eligible"),
 		ShardId:    0,
-		List:       string(core.EligibleList),
+		List:       string(common.EligibleList),
 		Index:      1,
 		TempRating: 50,
 	}
 	belowRatingValidator := &state.ShardValidatorInfo{
 		PublicKey:  []byte("eligibleBelow"),
 		ShardId:    core.MetachainShardId,
-		List:       string(core.EligibleList),
+		List:       string(common.EligibleList),
 		Index:      1,
 		TempRating: 5,
 	}

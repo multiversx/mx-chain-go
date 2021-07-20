@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
 	"github.com/ElrondNetwork/elrond-go-core/core/watchdog"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
@@ -599,7 +600,7 @@ func (ccf *consensusComponentsFactory) createConsensusTopic(cc *consensusCompone
 		return errors.ErrNilMessenger
 	}
 
-	cc.consensusTopic = core.ConsensusTopic + shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId())
+	cc.consensusTopic = common.ConsensusTopic + shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId())
 	if !ccf.networkComponents.NetworkMessenger().HasTopic(cc.consensusTopic) {
 		err := ccf.networkComponents.NetworkMessenger().CreateTopic(cc.consensusTopic, true)
 		if err != nil {
@@ -607,7 +608,7 @@ func (ccf *consensusComponentsFactory) createConsensusTopic(cc *consensusCompone
 		}
 	}
 
-	return ccf.networkComponents.NetworkMessenger().RegisterMessageProcessor(cc.consensusTopic, core.DefaultInterceptorsIdentifier, cc.worker)
+	return ccf.networkComponents.NetworkMessenger().RegisterMessageProcessor(cc.consensusTopic, common.DefaultInterceptorsIdentifier, cc.worker)
 }
 
 func (ccf *consensusComponentsFactory) addCloserInstances(closers ...update.Closer) error {

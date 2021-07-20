@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	heartbeatData "github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -77,7 +78,7 @@ type P2PAntifloodHandler interface {
 
 // PeerTypeProviderHandler defines what a component which computes the type of a peer should do
 type PeerTypeProviderHandler interface {
-	ComputeForPubKey(pubKey []byte) (core.PeerType, uint32, error)
+	ComputeForPubKey(pubKey []byte) (common.PeerType, uint32, error)
 	GetAllPeerTypeInfos() []*state.PeerTypeInfo
 	IsInterfaceNil() bool
 }

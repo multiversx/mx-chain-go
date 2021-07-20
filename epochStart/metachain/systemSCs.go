@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	vInfo "github.com/ElrondNetwork/elrond-go/common/validatorInfo"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -362,7 +363,7 @@ func (s *systemSCProcessor) unStakeNodesWithNotEnoughFunds(
 			continue
 		}
 
-		validatorInfo.List = string(core.LeavingList)
+		validatorInfo.List = string(common.LeavingList)
 	}
 
 	err = s.updateDelegationContracts(mapOwnersKeys)
@@ -414,7 +415,7 @@ func (s *systemSCProcessor) unStakeOneNode(blsKey []byte, epoch uint32) error {
 		return epochStart.ErrWrongTypeAssertion
 	}
 
-	peerAccount.SetListAndIndex(peerAccount.GetShardId(), string(core.LeavingList), peerAccount.GetIndexInList())
+	peerAccount.SetListAndIndex(peerAccount.GetShardId(), string(common.LeavingList), peerAccount.GetIndexInList())
 	peerAccount.SetUnStakedEpoch(epoch)
 	err = s.peerAccountsDB.SaveAccount(peerAccount)
 	if err != nil {
@@ -697,7 +698,7 @@ func (s *systemSCProcessor) computeNumWaitingPerShard(validatorInfos map[uint32]
 		totalInWaiting := uint32(0)
 		for _, validatorInfo := range validatorInfoList {
 			switch validatorInfo.List {
-			case string(core.WaitingList):
+			case string(common.WaitingList):
 				totalInWaiting++
 			}
 		}
@@ -825,9 +826,9 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 		deleteNewValidatorIfExistsFromMap(validatorInfos, blsPubKey, account.GetShardId())
 	}
 
-	account.SetListAndIndex(jailedValidator.ShardId, string(core.NewList), uint32(stakingData.StakedNonce))
+	account.SetListAndIndex(jailedValidator.ShardId, string(common.NewList), uint32(stakingData.StakedNonce))
 	account.SetTempRating(s.startRating)
-	account.SetUnStakedEpoch(core.DefaultUnstakedEpoch)
+	account.SetUnStakedEpoch(common.DefaultUnstakedEpoch)
 
 	err = s.peerAccountsDB.SaveAccount(account)
 	if err != nil {
@@ -839,7 +840,7 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 		return nil, err
 	}
 
-	jailedAccount.SetListAndIndex(jailedValidator.ShardId, string(core.JailedList), jailedValidator.Index)
+	jailedAccount.SetListAndIndex(jailedValidator.ShardId, string(common.JailedList), jailedValidator.Index)
 	jailedAccount.ResetAtNewEpoch()
 	err = s.peerAccountsDB.SaveAccount(jailedAccount)
 	if err != nil {
@@ -857,7 +858,7 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 }
 
 func isValidator(validator *state.ValidatorInfo) bool {
-	return validator.List == string(core.WaitingList) || validator.List == string(core.EligibleList)
+	return validator.List == string(common.WaitingList) || validator.List == string(common.EligibleList)
 }
 
 func deleteNewValidatorIfExistsFromMap(
@@ -946,7 +947,7 @@ func (s *systemSCProcessor) getSortedJailedNodes(validatorInfos map[uint32][]*st
 	minChance := s.chanceComputer.GetChance(0)
 	for _, listValidators := range validatorInfos {
 		for _, validatorInfo := range listValidators {
-			if validatorInfo.List == string(core.JailedList) {
+			if validatorInfo.List == string(common.JailedList) {
 				oldJailedValidators = append(oldJailedValidators, validatorInfo)
 			} else if s.chanceComputer.GetChance(validatorInfo.TempRating) < minChance {
 				newJailedValidators = append(newJailedValidators, validatorInfo)
@@ -1357,9 +1358,9 @@ func (s *systemSCProcessor) addNewlyStakedNodesToValidatorTrie(
 			return err
 		}
 
-		peerAcc.SetListAndIndex(peerAcc.GetShardId(), string(core.NewList), uint32(nonce))
+		peerAcc.SetListAndIndex(peerAcc.GetShardId(), string(common.NewList), uint32(nonce))
 		peerAcc.SetTempRating(s.startRating)
-		peerAcc.SetUnStakedEpoch(core.DefaultUnstakedEpoch)
+		peerAcc.SetUnStakedEpoch(common.DefaultUnstakedEpoch)
 
 		err = s.peerAccountsDB.SaveAccount(peerAcc)
 		if err != nil {
@@ -1369,7 +1370,7 @@ func (s *systemSCProcessor) addNewlyStakedNodesToValidatorTrie(
 		validatorInfo := &state.ValidatorInfo{
 			PublicKey:       blsKey,
 			ShardId:         peerAcc.GetShardId(),
-			List:            string(core.NewList),
+			List:            string(common.NewList),
 			Index:           uint32(nonce),
 			TempRating:      s.startRating,
 			Rating:          s.startRating,

@@ -4,7 +4,7 @@ package state
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go/common"
 )
 
 // PeerAccount is the struct used in serialization/deserialization
@@ -19,7 +19,7 @@ func NewEmptyPeerAccount() *peerAccount {
 		baseAccount: &baseAccount{},
 		PeerAccountData: PeerAccountData{
 			AccumulatedFees: big.NewInt(0),
-			UnStakedEpoch:   core.DefaultUnstakedEpoch,
+			UnStakedEpoch:   common.DefaultUnstakedEpoch,
 		},
 	}
 }
@@ -37,7 +37,7 @@ func NewPeerAccount(address []byte) (*peerAccount, error) {
 		},
 		PeerAccountData: PeerAccountData{
 			AccumulatedFees: big.NewInt(0),
-			UnStakedEpoch:   core.DefaultUnstakedEpoch,
+			UnStakedEpoch:   common.DefaultUnstakedEpoch,
 		},
 	}, nil
 }

@@ -8,13 +8,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/fnv"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/keccak"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/bloom"
 	"github.com/ElrondNetwork/elrond-go/storage/fifocache"
@@ -432,7 +432,7 @@ func NewDB(argDB ArgDB) (storage.Persister, error) {
 	var db storage.Persister
 	var err error
 
-	for i := 0; i < core.MaxRetriesToCreateDB; i++ {
+	for i := 0; i < common.MaxRetriesToCreateDB; i++ {
 		switch argDB.DBType {
 		case LvlDB:
 			db, err = leveldb.NewDB(argDB.Path, argDB.BatchDelaySeconds, argDB.MaxBatchSize, argDB.MaxOpenFiles)
@@ -449,7 +449,7 @@ func NewDB(argDB ArgDB) (storage.Persister, error) {
 		}
 
 		//TODO: extract this in a parameter and inject it
-		time.Sleep(core.SleepTimeBetweenCreateDBRetries)
+		time.Sleep(common.SleepTimeBetweenCreateDBRetries)
 	}
 	if err != nil {
 		return nil, err

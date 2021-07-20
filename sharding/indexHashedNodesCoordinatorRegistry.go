@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go/common"
 )
 
 // SerializableValidator holds the minimal data required for marshalling and un-marshalling a validator
@@ -40,7 +40,7 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) LoadState(key []byte) error {
 }
 
 func (ihgs *indexHashedNodesCoordinator) baseLoadState(key []byte) error {
-	ncInternalkey := append([]byte(core.NodesCoordinatorRegistryKeyPrefix), key...)
+	ncInternalkey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), key...)
 
 	log.Debug("getting nodes coordinator config", "key", ncInternalkey)
 
@@ -94,7 +94,7 @@ func (ihgs *indexHashedNodesCoordinator) saveState(key []byte) error {
 		return err
 	}
 
-	ncInternalkey := append([]byte(core.NodesCoordinatorRegistryKeyPrefix), key...)
+	ncInternalkey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), key...)
 
 	log.Debug("saving nodes coordinator config", "key", ncInternalkey)
 

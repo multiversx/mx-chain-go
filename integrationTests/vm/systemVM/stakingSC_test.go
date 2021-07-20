@@ -10,6 +10,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/endOfEpoch"
 	integrationTestsVm "github.com/ElrondNetwork/elrond-go/integrationTests/vm"
@@ -404,7 +405,7 @@ func manualSetToInactiveStateStakedPeers(t *testing.T, nodes []*integrationTests
 		for index := range nodes {
 			pubKey, _ := hex.DecodeString(generateUniqueKey(index))
 			peerAccount, _ := state.NewPeerAccount(pubKey)
-			peerAccount.List = string(core.InactiveList)
+			peerAccount.List = string(common.InactiveList)
 			peerAccount.BLSPublicKey = pubKey
 			err := node.PeerState.SaveAccount(peerAccount)
 			require.Nil(t, err)

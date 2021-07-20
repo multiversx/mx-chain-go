@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -259,7 +260,7 @@ func TestValidatorsProvider_Cancel_startRefreshProcess(t *testing.T) {
 func TestValidatorsProvider_UpdateCache(t *testing.T) {
 	pk := []byte("pk1")
 	initialShardId := uint32(1)
-	initialList := string(core.EligibleList)
+	initialList := string(common.EligibleList)
 	validatorsMap := make(map[uint32][]*state.ValidatorInfo)
 	validatorsMap[initialShardId] = []*state.ValidatorInfo{
 		{
@@ -302,13 +303,13 @@ func TestValidatorsProvider_aggregatePType_equal(t *testing.T) {
 	pubKeyConverter := mock.NewPubkeyConverterMock(32)
 	pkInactive := []byte("pk1")
 	trieInctiveShardId := uint32(0)
-	inactiveList := string(core.InactiveList)
+	inactiveList := string(common.InactiveList)
 	pkEligible := []byte("pk2")
 	trieEligibleShardId := uint32(1)
-	eligibleList := string(core.EligibleList)
+	eligibleList := string(common.EligibleList)
 	pkLeaving := []byte("pk3")
 	trieLeavingShardId := uint32(2)
-	leavingList := string(core.LeavingList)
+	leavingList := string(common.LeavingList)
 
 	encodedEligible := pubKeyConverter.Encode(pkEligible)
 	encondedInactive := pubKeyConverter.Encode(pkInactive)
@@ -330,7 +331,7 @@ func TestValidatorsProvider_aggregatePType_equal(t *testing.T) {
 		pubkeyConverter: pubKeyConverter,
 	}
 
-	vp.aggregateLists(cache, validatorsMap, core.EligibleList)
+	vp.aggregateLists(cache, validatorsMap, common.EligibleList)
 
 	assert.Equal(t, trieInctiveShardId, cache[encondedInactive].ShardId)
 	assert.Equal(t, inactiveList, cache[encondedInactive].ValidatorStatus)
@@ -345,15 +346,15 @@ func TestValidatorsProvider_aggregatePType_equal(t *testing.T) {
 
 func TestValidatorsProvider_createCache(t *testing.T) {
 	pkEligible := []byte("pk1")
-	eligibleList := string(core.EligibleList)
+	eligibleList := string(common.EligibleList)
 	pkWaiting := []byte("pk2")
-	waitingList := string(core.WaitingList)
+	waitingList := string(common.WaitingList)
 	pkLeaving := []byte("pk3")
-	leavingList := string(core.LeavingList)
+	leavingList := string(common.LeavingList)
 	pkInactive := []byte("pk4")
-	inactiveList := string(core.InactiveList)
+	inactiveList := string(common.InactiveList)
 	pkNew := []byte("pk5")
-	newList := string(core.NewList)
+	newList := string(common.NewList)
 
 	validatorsMap := make(map[uint32][]*state.ValidatorInfo)
 	eligibleShardId := uint32(0)
@@ -434,11 +435,11 @@ func TestValidatorsProvider_createCache(t *testing.T) {
 
 func TestValidatorsProvider_createCache_combined(t *testing.T) {
 	pkEligibleInTrie := []byte("pk1")
-	eligibleList := string(core.EligibleList)
+	eligibleList := string(common.EligibleList)
 	pkInactive := []byte("pk2")
-	inactiveList := string(core.InactiveList)
+	inactiveList := string(common.InactiveList)
 	pkLeavingInTrie := []byte("pk3")
-	leavingList := string(core.LeavingList)
+	leavingList := string(common.LeavingList)
 
 	validatorsMap := make(map[uint32][]*state.ValidatorInfo)
 	eligibleShardId := uint32(0)
@@ -493,7 +494,7 @@ func TestValidatorsProvider_createCache_combined(t *testing.T) {
 	assert.Equal(t, nodesCoordinatorEligibleShardId, cache[encodedPkEligible].ShardId)
 
 	encodedPkLeavingInTrie := arg.PubKeyConverter.Encode(pkLeavingInTrie)
-	computedPeerType := fmt.Sprintf(core.CombinedPeerType, core.EligibleList, core.LeavingList)
+	computedPeerType := fmt.Sprintf(common.CombinedPeerType, common.EligibleList, common.LeavingList)
 	assert.NotNil(t, cache[encodedPkLeavingInTrie])
 	assert.Equal(t, computedPeerType, cache[encodedPkLeavingInTrie].ValidatorStatus)
 	assert.Equal(t, nodesCoordinatorLeavingShardId, cache[encodedPkLeavingInTrie].ShardId)
@@ -561,7 +562,7 @@ func TestValidatorsProvider_CallsUpdateCacheOnEpochChange(t *testing.T) {
 			0: {
 				{
 					PublicKey: pkEligibleInTrie,
-					List:      string(core.EligibleList),
+					List:      string(common.EligibleList),
 				},
 			},
 		}, nil
@@ -600,7 +601,7 @@ func TestValidatorsProvider_DoesntCallUpdateUpdateCacheWithoutRequests(t *testin
 			0: {
 				{
 					PublicKey: pkEligibleInTrie,
-					List:      string(core.EligibleList),
+					List:      string(common.EligibleList),
 				},
 			},
 		}, nil

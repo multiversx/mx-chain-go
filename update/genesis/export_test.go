@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -323,7 +324,7 @@ func TestStateExport_ExportTrieShouldExportNodesSetupJson(t *testing.T) {
 			ch := make(chan core.KeyValueHolder)
 
 			mm := &mock.MarshalizerMock{}
-			valInfo := &state.ValidatorInfo{List: string(core.EligibleList)}
+			valInfo := &state.ValidatorInfo{List: string(common.EligibleList)}
 			pacB, _ := mm.Marshal(valInfo)
 
 			go func() {
@@ -384,12 +385,12 @@ func TestStateExport_ExportNodesSetupJsonShouldExportKeysInAlphabeticalOrder(t *
 	require.False(t, check.IfNil(stateExporter))
 
 	vals := make(map[uint32][]*state.ValidatorInfo)
-	val50 := &state.ValidatorInfo{ShardId: 5, PublicKey: []byte("aaa"), List: string(core.EligibleList)}
-	val51 := &state.ValidatorInfo{ShardId: 5, PublicKey: []byte("bbb"), List: string(core.EligibleList)}
-	val10 := &state.ValidatorInfo{ShardId: 5, PublicKey: []byte("ccc"), List: string(core.EligibleList)}
-	val11 := &state.ValidatorInfo{ShardId: 5, PublicKey: []byte("ddd"), List: string(core.EligibleList)}
-	val00 := &state.ValidatorInfo{ShardId: 5, PublicKey: []byte("aaaaaa"), List: string(core.EligibleList)}
-	val01 := &state.ValidatorInfo{ShardId: 5, PublicKey: []byte("bbbbbb"), List: string(core.EligibleList)}
+	val50 := &state.ValidatorInfo{ShardId: 5, PublicKey: []byte("aaa"), List: string(common.EligibleList)}
+	val51 := &state.ValidatorInfo{ShardId: 5, PublicKey: []byte("bbb"), List: string(common.EligibleList)}
+	val10 := &state.ValidatorInfo{ShardId: 5, PublicKey: []byte("ccc"), List: string(common.EligibleList)}
+	val11 := &state.ValidatorInfo{ShardId: 5, PublicKey: []byte("ddd"), List: string(common.EligibleList)}
+	val00 := &state.ValidatorInfo{ShardId: 5, PublicKey: []byte("aaaaaa"), List: string(common.EligibleList)}
+	val01 := &state.ValidatorInfo{ShardId: 5, PublicKey: []byte("bbbbbb"), List: string(common.EligibleList)}
 	vals[1] = []*state.ValidatorInfo{val50, val51}
 	vals[0] = []*state.ValidatorInfo{val00, val01}
 	vals[2] = []*state.ValidatorInfo{val10, val11}
@@ -398,7 +399,7 @@ func TestStateExport_ExportNodesSetupJsonShouldExportKeysInAlphabeticalOrder(t *
 
 	var nodesSetup sharding.NodesSetup
 
-	nsBytes, err := ioutil.ReadFile(filepath.Join(testFolderName, core.NodesSetupJsonFileName))
+	nsBytes, err := ioutil.ReadFile(filepath.Join(testFolderName, common.NodesSetupJsonFileName))
 	require.NoError(t, err)
 
 	err = json.Unmarshal(nsBytes, &nodesSetup)

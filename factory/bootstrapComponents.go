@@ -117,15 +117,15 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 
 	parentDir := filepath.Join(
 		bcf.workingDir,
-		core.DefaultDBPath,
+		common.DefaultDBPath,
 		bcf.coreComponents.ChainID())
 
 	latestStorageDataProvider, err := CreateLatestStorageDataProvider(
 		bootstrapDataProvider,
 		bcf.config,
 		parentDir,
-		core.DefaultEpochString,
-		core.DefaultShardString,
+		common.DefaultEpochString,
+		common.DefaultShardString,
 		bcf.prefConfig.Preferences.FullArchive,
 	)
 	if err != nil {
@@ -136,8 +136,8 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		bootstrapDataProvider,
 		latestStorageDataProvider,
 		bcf.config,
-		core.DefaultEpochString,
-		core.DefaultShardString,
+		common.DefaultEpochString,
+		common.DefaultShardString,
 	)
 	if err != nil {
 		return nil, err

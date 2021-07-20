@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -151,7 +152,7 @@ func (vp *validatorsProvider) epochStartEventHandler() sharding.EpochStartAction
 			}()
 		},
 		func(_ data.HeaderHandler) {},
-		core.IndexerOrder,
+		common.IndexerOrder,
 	)
 
 	return subscribeHandler
@@ -205,13 +206,13 @@ func (vp *validatorsProvider) createNewCache(
 	if err != nil {
 		log.Debug("validatorsProvider - GetAllEligibleValidatorsPublicKeys failed", "epoch", epoch)
 	}
-	vp.aggregateLists(newCache, nodesMapEligible, core.EligibleList)
+	vp.aggregateLists(newCache, nodesMapEligible, common.EligibleList)
 
 	nodesMapWaiting, err := vp.nodesCoordinator.GetAllWaitingValidatorsPublicKeys(epoch)
 	if err != nil {
 		log.Debug("validatorsProvider - GetAllWaitingValidatorsPublicKeys failed", "epoch", epoch)
 	}
-	vp.aggregateLists(newCache, nodesMapWaiting, core.WaitingList)
+	vp.aggregateLists(newCache, nodesMapWaiting, common.WaitingList)
 
 	return newCache
 }
@@ -247,7 +248,7 @@ func (vp *validatorsProvider) createValidatorApiResponseMapFromValidatorInfoMap(
 func (vp *validatorsProvider) aggregateLists(
 	newCache map[string]*state.ValidatorApiResponse,
 	validatorsMap map[uint32][][]byte,
-	currentList core.PeerType,
+	currentList common.PeerType,
 ) {
 	for shardID, shardValidators := range validatorsMap {
 		for _, val := range shardValidators {
@@ -263,9 +264,9 @@ func (vp *validatorsProvider) aggregateLists(
 				continue
 			}
 
-			trieList := core.PeerType(foundInTrieValidator.ValidatorStatus)
+			trieList := common.PeerType(foundInTrieValidator.ValidatorStatus)
 			if shouldCombine(trieList, currentList) {
-				peerType = fmt.Sprintf(core.CombinedPeerType, currentList, trieList)
+				peerType = fmt.Sprintf(common.CombinedPeerType, currentList, trieList)
 			}
 
 			newCache[encodedKey].ShardId = shardID
@@ -274,11 +275,11 @@ func (vp *validatorsProvider) aggregateLists(
 	}
 }
 
-func shouldCombine(triePeerType core.PeerType, currentPeerType core.PeerType) bool {
+func shouldCombine(triePeerType common.PeerType, currentPeerType common.PeerType) bool {
 	// currently just "eligible (leaving)" or "waiting (leaving)" are allowed
-	isLeaving := triePeerType == core.LeavingList
-	isEligibleOrWaiting := currentPeerType == core.EligibleList ||
-		currentPeerType == core.WaitingList
+	isLeaving := triePeerType == common.LeavingList
+	isEligibleOrWaiting := currentPeerType == common.EligibleList ||
+		currentPeerType == common.WaitingList
 
 	return isLeaving && isEligibleOrWaiting
 }

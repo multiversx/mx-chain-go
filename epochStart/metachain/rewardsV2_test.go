@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -102,7 +103,7 @@ func TestNewRewardsCreatorV2_initNodesRewardsInfo(t *testing.T) {
 	require.NotNil(t, rwd)
 
 	valInfoEligible := createDefaultValidatorInfo(400, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
-	valInfoEligibleWithExtra := addNonEligibleValidatorInfo(100, valInfoEligible, string(core.WaitingList))
+	valInfoEligibleWithExtra := addNonEligibleValidatorInfo(100, valInfoEligible, string(common.WaitingList))
 
 	nodesRewardInfo := rwd.initNodesRewardsInfo(valInfoEligibleWithExtra)
 	require.Equal(t, len(valInfoEligible), len(nodesRewardInfo))
@@ -1413,7 +1414,7 @@ func TestNewRewardsCreatorV2_computeValidatorInfoPerRewardAddressWithLeavingVali
 	valInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, proposerFee, defaultBlocksPerShard)
 	for _, valList := range valInfo {
 		for i := 0; i < int(nbLeavingPerShard); i++ {
-			valList[i].List = string(core.LeavingList)
+			valList[i].List = string(common.LeavingList)
 		}
 	}
 
@@ -1907,7 +1908,7 @@ func createDefaultValidatorInfo(
 				ValidatorSuccess:           nbBlocksSelected - leaderSuccess,
 				NumSelectedInSuccessBlocks: nbBlocksSelected,
 				AccumulatedFees:            big.NewInt(int64(proposerFeesPerNode)),
-				List:                       string(core.EligibleList),
+				List:                       string(common.EligibleList),
 			}
 		}
 	}

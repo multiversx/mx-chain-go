@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -93,14 +93,14 @@ func (o *openStorageUnits) GetMostRecentBootstrapStorageUnit() (storage.Storer, 
 func createDB(persisterFactory *PersisterFactory, persisterPath string) (storage.Persister, error) {
 	var persister storage.Persister
 	var err error
-	for i := 0; i < core.MaxRetriesToCreateDB; i++ {
+	for i := 0; i < common.MaxRetriesToCreateDB; i++ {
 		persister, err = persisterFactory.Create(persisterPath)
 		if err == nil {
 			return persister, nil
 		}
 		log.Warn("Create Persister failed", "path", persisterPath, "error", err)
 		//TODO: extract this in a parameter and inject it
-		time.Sleep(core.SleepTimeBetweenCreateDBRetries)
+		time.Sleep(common.SleepTimeBetweenCreateDBRetries)
 	}
 	return nil, err
 }

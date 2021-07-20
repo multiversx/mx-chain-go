@@ -8,9 +8,9 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -78,7 +78,7 @@ func TestNewHeaderIntegrityVerifier_InvalidVersionElementOnStringTooLongShouldEr
 		[]config.VersionByEpochs{
 			{
 				StartEpoch: 0,
-				Version:    strings.Repeat("a", core.MaxSoftwareVersionLengthInBytes+1),
+				Version:    strings.Repeat("a", common.MaxSoftwareVersionLengthInBytes+1),
 			},
 		},
 		defaultVersion,

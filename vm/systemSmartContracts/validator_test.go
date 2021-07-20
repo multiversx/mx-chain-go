@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -367,7 +368,7 @@ func TestStakingValidatorSC_ExecuteStakeAddedNewPubKeysShouldWork(t *testing.T) 
 
 	key1 := []byte("Key1")
 	key2 := []byte("Key2")
-	rewardAddr := []byte("tralala2")
+	rewardAddr := []byte("dummyAddress2")
 	maxStakePerNonce := big.NewInt(500)
 
 	args := createMockArgumentsForValidatorSC()
@@ -553,8 +554,8 @@ func TestStakingValidatorSC_ExecuteStakeUnStakeOneBlsPubKey(t *testing.T) {
 		RegisterNonce: 0,
 		Staked:        true,
 		UnStakedNonce: 1,
-		UnStakedEpoch: core.DefaultUnstakedEpoch,
-		RewardAddress: []byte("tralala1"),
+		UnStakedEpoch: common.DefaultUnstakedEpoch,
+		RewardAddress: []byte("address"),
 		StakeValue:    big.NewInt(0),
 	}
 	stakedDataBytes, _ := json.Marshal(&stakedData)
@@ -1465,8 +1466,8 @@ func TestStakingValidatorSC_ExecuteUnBond(t *testing.T) {
 		RegisterNonce: 0,
 		Staked:        false,
 		UnStakedNonce: 1,
-		UnStakedEpoch: core.DefaultUnstakedEpoch,
-		RewardAddress: []byte("tralala1"),
+		UnStakedEpoch: common.DefaultUnstakedEpoch,
+		RewardAddress: []byte("dummyAddress1"),
 		StakeValue:    big.NewInt(12500000),
 	}
 	stakedDataBytes, _ := json.Marshal(&stakedData)
@@ -2284,7 +2285,7 @@ func TestValidatorStakingSC_ExecuteUnStake(t *testing.T) {
 		RegisterNonce: 0,
 		Staked:        true,
 		UnStakedNonce: 0,
-		UnStakedEpoch: core.DefaultUnstakedEpoch,
+		UnStakedEpoch: common.DefaultUnstakedEpoch,
 		RewardAddress: arguments.CallerAddr,
 		StakeValue:    nodePrice,
 		JailedRound:   math.MaxUint64,
@@ -3015,7 +3016,7 @@ func TestValidatorStakingSC_getBlsStatusShouldWork(t *testing.T) {
 
 	registrationData1 := &StakedDataV2_0{
 		Staked:        true,
-		UnStakedEpoch: core.DefaultUnstakedEpoch,
+		UnStakedEpoch: common.DefaultUnstakedEpoch,
 		RewardAddress: []byte("rewards addr"),
 		JailedRound:   math.MaxUint64,
 		StakedNonce:   math.MaxUint64,
@@ -3023,7 +3024,7 @@ func TestValidatorStakingSC_getBlsStatusShouldWork(t *testing.T) {
 	serializedRegistrationData1, _ := args.Marshalizer.Marshal(registrationData1)
 
 	registrationData2 := &StakedDataV2_0{
-		UnStakedEpoch: core.DefaultUnstakedEpoch,
+		UnStakedEpoch: common.DefaultUnstakedEpoch,
 		RewardAddress: []byte("rewards addr"),
 		JailedRound:   math.MaxUint64,
 		StakedNonce:   math.MaxUint64,
@@ -3074,7 +3075,7 @@ func TestValidatorStakingSC_getBlsStatusShouldWorkEvenIfAnErrorOccursForOneOfThe
 
 	registrationData := &StakedDataV2_0{
 		Staked:        true,
-		UnStakedEpoch: core.DefaultUnstakedEpoch,
+		UnStakedEpoch: common.DefaultUnstakedEpoch,
 		RewardAddress: []byte("rewards addr"),
 		JailedRound:   math.MaxUint64,
 		StakedNonce:   math.MaxUint64,

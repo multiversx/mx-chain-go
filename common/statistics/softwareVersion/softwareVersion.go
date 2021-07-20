@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 )
 
 type tagVersion struct {
@@ -81,7 +82,7 @@ func (svc *SoftwareVersionChecker) readLatestStableVersion() {
 		svc.mostRecentSoftwareVersion = tagVersionFromURL
 	}
 
-	svc.statusHandler.SetStringValue(core.MetricLatestTagSoftwareVersion, svc.mostRecentSoftwareVersion)
+	svc.statusHandler.SetStringValue(common.MetricLatestTagSoftwareVersion, svc.mostRecentSoftwareVersion)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/gin-gonic/gin"
 )
@@ -154,8 +155,8 @@ func EconomicsMetrics(c *gin.Context) {
 	}
 
 	metrics := facade.StatusMetrics().EconomicsMetrics()
-	metrics[core.MetricTotalBaseStakedValue] = stakeValues.BaseStaked.String()
-	metrics[core.MetricTopUpValue] = stakeValues.TopUp.String()
+	metrics[common.MetricTotalBaseStakedValue] = stakeValues.BaseStaked.String()
+	metrics[common.MetricTopUpValue] = stakeValues.TopUp.String()
 
 	c.JSON(
 		http.StatusOK,

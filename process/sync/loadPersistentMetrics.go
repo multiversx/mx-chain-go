@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/metrics"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/persister"
 )
@@ -25,12 +26,12 @@ func updateMetricsFromStorage(
 }
 
 func getTotalTxsAndHdrs(metrics map[string]uint64) (uint64, uint64) {
-	numTxs, ok := metrics[core.MetricNumProcessedTxs]
+	numTxs, ok := metrics[common.MetricNumProcessedTxs]
 	if !ok {
 		numTxs = 0
 	}
 
-	numHdrs, ok := metrics[core.MetricNumShardHeadersProcessed]
+	numHdrs, ok := metrics[common.MetricNumShardHeadersProcessed]
 	if !ok {
 		numHdrs = 0
 	}
@@ -83,20 +84,20 @@ func prepareMetricMaps(metricsMap map[string]interface{}) (map[string]uint64, ma
 	uint64Map := make(map[string]uint64)
 	stringMap := make(map[string]string)
 
-	uint64Map[core.MetricCountConsensus] = persister.GetUint64(metricsMap[core.MetricCountConsensus])
-	uint64Map[core.MetricCountConsensusAcceptedBlocks] = persister.GetUint64(metricsMap[core.MetricCountConsensusAcceptedBlocks])
-	uint64Map[core.MetricCountAcceptedBlocks] = persister.GetUint64(metricsMap[core.MetricCountAcceptedBlocks])
-	uint64Map[core.MetricCountLeader] = persister.GetUint64(metricsMap[core.MetricCountLeader])
-	uint64Map[core.MetricNumProcessedTxs] = persister.GetUint64(metricsMap[core.MetricNumProcessedTxs])
-	uint64Map[core.MetricNumShardHeadersProcessed] = persister.GetUint64(metricsMap[core.MetricNumShardHeadersProcessed])
-	uint64Map[core.MetricRoundAtEpochStart] = persister.GetUint64(metricsMap[core.MetricRoundAtEpochStart])
-	uint64Map[core.MetricNonceAtEpochStart] = persister.GetUint64(metricsMap[core.MetricNonceAtEpochStart])
-	uint64Map[core.MetricEpochForEconomicsData] = persister.GetUint64(metricsMap[core.MetricEpochForEconomicsData])
+	uint64Map[common.MetricCountConsensus] = persister.GetUint64(metricsMap[common.MetricCountConsensus])
+	uint64Map[common.MetricCountConsensusAcceptedBlocks] = persister.GetUint64(metricsMap[common.MetricCountConsensusAcceptedBlocks])
+	uint64Map[common.MetricCountAcceptedBlocks] = persister.GetUint64(metricsMap[common.MetricCountAcceptedBlocks])
+	uint64Map[common.MetricCountLeader] = persister.GetUint64(metricsMap[common.MetricCountLeader])
+	uint64Map[common.MetricNumProcessedTxs] = persister.GetUint64(metricsMap[common.MetricNumProcessedTxs])
+	uint64Map[common.MetricNumShardHeadersProcessed] = persister.GetUint64(metricsMap[common.MetricNumShardHeadersProcessed])
+	uint64Map[common.MetricRoundAtEpochStart] = persister.GetUint64(metricsMap[common.MetricRoundAtEpochStart])
+	uint64Map[common.MetricNonceAtEpochStart] = persister.GetUint64(metricsMap[common.MetricNonceAtEpochStart])
+	uint64Map[common.MetricEpochForEconomicsData] = persister.GetUint64(metricsMap[common.MetricEpochForEconomicsData])
 
-	stringMap[core.MetricTotalSupply] = persister.GetString(metricsMap[core.MetricTotalSupply])
-	stringMap[core.MetricTotalFees] = persister.GetString(metricsMap[core.MetricTotalFees])
-	stringMap[core.MetricDevRewardsInEpoch] = persister.GetString(metricsMap[core.MetricDevRewardsInEpoch])
-	stringMap[core.MetricInflation] = persister.GetString(metricsMap[core.MetricInflation])
+	stringMap[common.MetricTotalSupply] = persister.GetString(metricsMap[common.MetricTotalSupply])
+	stringMap[common.MetricTotalFees] = persister.GetString(metricsMap[common.MetricTotalFees])
+	stringMap[common.MetricDevRewardsInEpoch] = persister.GetString(metricsMap[common.MetricDevRewardsInEpoch])
+	stringMap[common.MetricInflation] = persister.GetString(metricsMap[common.MetricInflation])
 
 	return uint64Map, stringMap
 }

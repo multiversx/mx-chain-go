@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -642,7 +643,7 @@ func TestStakingToPeer_UpdatePeerState(t *testing.T) {
 		RegisterNonce: 0,
 		Staked:        false,
 		UnStakedNonce: 0,
-		UnStakedEpoch: core.DefaultUnstakedEpoch,
+		UnStakedEpoch: common.DefaultUnstakedEpoch,
 		RewardAddress: []byte("rwd"),
 		StakeValue:    big.NewInt(0),
 		JailedRound:   0,
@@ -663,29 +664,29 @@ func TestStakingToPeer_UpdatePeerState(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, bytes.Equal(blsPubKey, peerAccount.GetBLSPublicKey()))
 	assert.True(t, bytes.Equal(stakingData.RewardAddress, peerAccount.GetRewardAddress()))
-	assert.Equal(t, string(core.NewList), peerAccount.GetList())
+	assert.Equal(t, string(common.NewList), peerAccount.GetList())
 
 	stakingData.UnStakedNonce = 11
 	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.UnStakedNonce)
-	assert.Equal(t, string(core.LeavingList), peerAccount.GetList())
+	assert.Equal(t, string(common.LeavingList), peerAccount.GetList())
 
-	peerAccount.SetListAndIndex(0, string(core.EligibleList), 5)
+	peerAccount.SetListAndIndex(0, string(common.EligibleList), 5)
 	stakingData.JailedNonce = 12
 	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.JailedNonce)
-	assert.Equal(t, string(core.LeavingList), peerAccount.GetList())
+	assert.Equal(t, string(common.LeavingList), peerAccount.GetList())
 
 	// it is still jailed - no change allowed
 	stakingData.UnStakedNonce = 13
 	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.UnStakedNonce)
-	assert.Equal(t, string(core.LeavingList), peerAccount.GetList())
+	assert.Equal(t, string(common.LeavingList), peerAccount.GetList())
 
 	stakingData.UnJailedNonce = 14
 	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.UnJailedNonce)
-	assert.Equal(t, string(core.NewList), peerAccount.GetList())
+	assert.Equal(t, string(common.NewList), peerAccount.GetList())
 
 	stakingData.UnStakedNonce = 15
 	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.UnStakedNonce)
-	assert.Equal(t, string(core.LeavingList), peerAccount.GetList())
+	assert.Equal(t, string(common.LeavingList), peerAccount.GetList())
 }
 
 func TestStakingToPeer_UnJailFromInactive(t *testing.T) {
@@ -708,7 +709,7 @@ func TestStakingToPeer_UnJailFromInactive(t *testing.T) {
 		RegisterNonce: 0,
 		Staked:        false,
 		UnStakedNonce: 0,
-		UnStakedEpoch: core.DefaultUnstakedEpoch,
+		UnStakedEpoch: common.DefaultUnstakedEpoch,
 		RewardAddress: []byte("rwd"),
 		StakeValue:    big.NewInt(0),
 		JailedRound:   0,
@@ -724,16 +725,16 @@ func TestStakingToPeer_UnJailFromInactive(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, bytes.Equal(blsPubKey, peerAccount.GetBLSPublicKey()))
 	assert.True(t, bytes.Equal(stakingData.RewardAddress, peerAccount.GetRewardAddress()))
-	assert.Equal(t, string(core.NewList), peerAccount.GetList())
+	assert.Equal(t, string(common.NewList), peerAccount.GetList())
 
 	stakingData.UnStakedNonce = 11
 	stakingData.Staked = false
 	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.UnStakedNonce)
-	assert.Equal(t, string(core.LeavingList), peerAccount.GetList())
+	assert.Equal(t, string(common.LeavingList), peerAccount.GetList())
 
-	peerAccount.SetListAndIndex(0, string(core.JailedList), 5)
+	peerAccount.SetListAndIndex(0, string(common.JailedList), 5)
 	stakingData.UnJailedNonce = 14
 	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.UnJailedNonce)
-	assert.Equal(t, string(core.InactiveList), peerAccount.GetList())
+	assert.Equal(t, string(common.InactiveList), peerAccount.GetList())
 	assert.Equal(t, stp.unJailRating, peerAccount.GetTempRating())
 }

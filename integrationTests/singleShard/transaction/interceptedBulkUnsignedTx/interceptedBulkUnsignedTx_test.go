@@ -10,11 +10,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -149,7 +149,7 @@ func generateAndSendBulkSmartContractResults(
 	//the topic identifier is made of the current shard id and sender's shard id
 	identifier := factory.UnsignedTransactionTopic + shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId())
 
-	packets, err := dataPacker.PackDataInChunks(unsigedTxs, core.MaxBulkTransactionSize)
+	packets, err := dataPacker.PackDataInChunks(unsigedTxs, common.MaxBulkTransactionSize)
 	if err != nil {
 		return err
 	}

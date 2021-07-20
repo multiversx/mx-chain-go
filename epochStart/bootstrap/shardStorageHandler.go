@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -136,7 +137,7 @@ func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededFo
 		return err
 	}
 
-	err = bootStorer.Put([]byte(core.HighestRoundFromBootStorage), roundNumBytes)
+	err = bootStorer.Put([]byte(common.HighestRoundFromBootStorage), roundNumBytes)
 	if err != nil {
 		return err
 	}
@@ -303,7 +304,7 @@ func (ssh *shardStorageHandler) saveTriggerRegistry(components *ComponentsNeeded
 	}
 
 	bootstrapKey := []byte(fmt.Sprint(shardHeader.Round))
-	trigInternalKey := append([]byte(core.TriggerRegistryKeyPrefix), bootstrapKey...)
+	trigInternalKey := append([]byte(common.TriggerRegistryKeyPrefix), bootstrapKey...)
 
 	triggerRegBytes, err := json.Marshal(&triggerReg)
 	if err != nil {

@@ -49,7 +49,7 @@ const NodeTypeValidator NodeType = "validator"
 // shard to start in as observer
 const DisabledShardIDAsObserver = uint32(0xFFFFFFFF) - 7
 
-// pkPrefixSize specifies the max numbers of chars to be displayed from one publc key
+// pkPrefixSize specifies the max numbers of chars to be displayed from one public key
 const pkPrefixSize = 12
 
 // FileModeUserReadWrite represents the permission for a file which allows the user for reading and writing

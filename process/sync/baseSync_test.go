@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -146,7 +146,7 @@ func TestBaseBootstrap_GetNodeState(t *testing.T) {
 		chainHandler:          getMockChainHandler(),
 		currentEpochProvider:  &testscommon.CurrentEpochProviderStub{},
 	}
-	assert.Equal(t, core.NsNotSynchronized, boot.GetNodeState())
+	assert.Equal(t, common.NsNotSynchronized, boot.GetNodeState())
 
 	boot = &baseBootstrap{
 		isInImportMode:        false,
@@ -155,7 +155,7 @@ func TestBaseBootstrap_GetNodeState(t *testing.T) {
 		chainHandler:          getMockChainHandler(),
 		currentEpochProvider:  &testscommon.CurrentEpochProviderStub{},
 	}
-	assert.Equal(t, core.NsNotSynchronized, boot.GetNodeState())
+	assert.Equal(t, common.NsNotSynchronized, boot.GetNodeState())
 
 	boot = &baseBootstrap{
 		roundIndex:            1,
@@ -165,7 +165,7 @@ func TestBaseBootstrap_GetNodeState(t *testing.T) {
 		chainHandler:          getMockChainHandler(),
 		currentEpochProvider:  &testscommon.CurrentEpochProviderStub{},
 	}
-	assert.Equal(t, core.NsNotCalculated, boot.GetNodeState())
+	assert.Equal(t, common.NsNotCalculated, boot.GetNodeState())
 
 	boot = &baseBootstrap{
 		roundIndex:            1,
@@ -179,7 +179,7 @@ func TestBaseBootstrap_GetNodeState(t *testing.T) {
 			},
 		},
 	}
-	assert.Equal(t, core.NsNotSynchronized, boot.GetNodeState())
+	assert.Equal(t, common.NsNotSynchronized, boot.GetNodeState())
 }
 
 func TestBaseSync_getEpochOfCurrentBlockGenesis(t *testing.T) {

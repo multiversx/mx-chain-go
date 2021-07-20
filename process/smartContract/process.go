@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -176,7 +177,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		return nil, process.ErrNilCacher
 	}
 
-	builtInFuncCost := args.GasSchedule.LatestGasSchedule()[core.BuiltInCost]
+	builtInFuncCost := args.GasSchedule.LatestGasSchedule()[common.BuiltInCost]
 	sc := &scProcessor{
 		vmContainer:                         args.VmContainer,
 		argsParser:                          args.ArgsParser,
@@ -233,7 +234,7 @@ func (sc *scProcessor) GasScheduleChange(gasSchedule map[string]map[string]uint6
 	sc.mutGasLock.Lock()
 	defer sc.mutGasLock.Unlock()
 
-	builtInFuncCost := gasSchedule[core.BuiltInCost]
+	builtInFuncCost := gasSchedule[common.BuiltInCost]
 	if builtInFuncCost == nil {
 		return
 	}

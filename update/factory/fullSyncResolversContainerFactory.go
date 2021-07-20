@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/random"
 	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	factoryDataRetriever "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
@@ -154,7 +155,7 @@ func (rcf *resolversContainerFactory) createTrieNodesResolver(baseTopic string, 
 		return nil, err
 	}
 
-	targetConsensusStopic := core.ConsensusTopic + targetShardCoordinator.CommunicationIdentifier(targetShardID)
+	targetConsensusStopic := common.ConsensusTopic + targetShardCoordinator.CommunicationIdentifier(targetShardID)
 	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(
 		rcf.messenger,
 		baseTopic,
@@ -198,7 +199,7 @@ func (rcf *resolversContainerFactory) createTrieNodesResolver(baseTopic string, 
 		return nil, err
 	}
 
-	err = rcf.messenger.RegisterMessageProcessor(resolver.RequestTopic(), core.HardforkResolversIdentifier, resolver)
+	err = rcf.messenger.RegisterMessageProcessor(resolver.RequestTopic(), common.HardforkResolversIdentifier, resolver)
 	if err != nil {
 		return nil, err
 	}

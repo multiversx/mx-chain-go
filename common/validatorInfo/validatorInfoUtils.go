@@ -1,7 +1,7 @@
 package validatorInfo
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
 
@@ -17,7 +17,7 @@ func WasLeavingEligibleInCurrentEpoch(valInfo *state.ValidatorInfo) bool {
 		return false
 	}
 
-	return valInfo.List == string(core.LeavingList) && WasActiveInCurrentEpoch(valInfo)
+	return valInfo.List == string(common.LeavingList) && WasActiveInCurrentEpoch(valInfo)
 }
 
 // WasJailedEligibleInCurrentEpoch returns true if the validator was jailed in the epoch but also active/eligible due to not enough
@@ -27,12 +27,12 @@ func WasJailedEligibleInCurrentEpoch(valInfo *state.ValidatorInfo) bool {
 		return false
 	}
 
-	return valInfo.List == string(core.JailedList) && WasActiveInCurrentEpoch(valInfo)
+	return valInfo.List == string(common.JailedList) && WasActiveInCurrentEpoch(valInfo)
 }
 
 // WasEligibleInCurrentEpoch returns true if the validator was eligible for consensus in current epoch
 func WasEligibleInCurrentEpoch(valInfo *state.ValidatorInfo) bool {
-	wasEligibleInShard := valInfo.List == string(core.EligibleList) ||
+	wasEligibleInShard := valInfo.List == string(common.EligibleList) ||
 		WasLeavingEligibleInCurrentEpoch(valInfo) ||
 		WasJailedEligibleInCurrentEpoch(valInfo)
 

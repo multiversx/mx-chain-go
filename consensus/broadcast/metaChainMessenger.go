@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -129,7 +130,7 @@ func (mcm *metaChainMessenger) BroadcastBlockDataLeader(
 	miniBlocks map[uint32][]byte,
 	transactions map[string][][]byte,
 ) error {
-	go mcm.BroadcastBlockData(miniBlocks, transactions, core.ExtraDelayForBroadcastBlockInfo)
+	go mcm.BroadcastBlockData(miniBlocks, transactions, common.ExtraDelayForBroadcastBlockInfo)
 	return nil
 }
 

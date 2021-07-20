@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/display"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 )
@@ -214,7 +215,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	startTime := time.Now()
 	err = sr.BlockProcessor().CommitBlock(sr.Header, sr.Body)
 	elapsedTime := time.Since(startTime)
-	if elapsedTime >= core.CommitMaxTime {
+	if elapsedTime >= common.CommitMaxTime {
 		log.Warn("doEndRoundJobByLeader.CommitBlock", "elapsed time", elapsedTime)
 	} else {
 		log.Debug("elapsed time to commit block",
@@ -320,7 +321,7 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 	startTime := time.Now()
 	err := sr.BlockProcessor().CommitBlock(header, sr.Body)
 	elapsedTime := time.Since(startTime)
-	if elapsedTime >= core.CommitMaxTime {
+	if elapsedTime >= common.CommitMaxTime {
 		log.Warn("doEndRoundJobByParticipant.CommitBlock", "elapsed time", elapsedTime)
 	} else {
 		log.Debug("elapsed time to commit block",
@@ -419,8 +420,8 @@ func (sr *subroundEndRound) signBlockHeader() ([]byte, error) {
 }
 
 func (sr *subroundEndRound) updateMetricsForLeader() {
-	sr.appStatusHandler.Increment(core.MetricCountAcceptedBlocks)
-	sr.appStatusHandler.SetStringValue(core.MetricConsensusRoundState,
+	sr.appStatusHandler.Increment(common.MetricCountAcceptedBlocks)
+	sr.appStatusHandler.SetStringValue(common.MetricConsensusRoundState,
 		fmt.Sprintf("valid block produced in %f sec", time.Since(sr.RoundHandler().TimeStamp()).Seconds()))
 }
 

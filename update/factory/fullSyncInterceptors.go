@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
@@ -445,7 +446,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createTopicAndAssignHandler(
 		return nil, err
 	}
 
-	return interceptor, ficf.messenger.RegisterMessageProcessor(topic, core.HardforkInterceptorsIdentifier, interceptor)
+	return interceptor, ficf.messenger.RegisterMessageProcessor(topic, common.HardforkInterceptorsIdentifier, interceptor)
 }
 
 func (ficf *fullSyncInterceptorsContainerFactory) generateTxInterceptors() error {

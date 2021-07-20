@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"strings"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/gorilla/websocket"
 )
 
@@ -96,7 +96,7 @@ func (ls *logSender) waitForProfile() error {
 		return err
 	}
 
-	if bytes.Equal(message, []byte(core.DefaultLogProfileIdentifier)) {
+	if bytes.Equal(message, []byte(common.DefaultLogProfileIdentifier)) {
 		return nil
 	}
 

@@ -25,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node"
@@ -2570,7 +2571,7 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 func TestNode_AppStatusHandlersShouldIncrement(t *testing.T) {
 	t.Parallel()
 
-	metricKey := core.MetricCurrentRound
+	metricKey := common.MetricCurrentRound
 	incrementCalled := make(chan bool, 1)
 
 	appStatusHandlerStub := mock.AppStatusHandlerStub{
@@ -2598,7 +2599,7 @@ func TestNode_AppStatusHandlersShouldIncrement(t *testing.T) {
 func TestNode_AppStatusHandlerShouldDecrement(t *testing.T) {
 	t.Parallel()
 
-	metricKey := core.MetricCurrentRound
+	metricKey := common.MetricCurrentRound
 	decrementCalled := make(chan bool, 1)
 
 	appStatusHandlerStub := mock.AppStatusHandlerStub{
@@ -2626,7 +2627,7 @@ func TestNode_AppStatusHandlerShouldDecrement(t *testing.T) {
 func TestNode_AppStatusHandlerShouldSetInt64Value(t *testing.T) {
 	t.Parallel()
 
-	metricKey := core.MetricCurrentRound
+	metricKey := common.MetricCurrentRound
 	setInt64ValueCalled := make(chan bool, 1)
 
 	appStatusHandlerStub := mock.AppStatusHandlerStub{
@@ -2654,7 +2655,7 @@ func TestNode_AppStatusHandlerShouldSetInt64Value(t *testing.T) {
 func TestNode_AppStatusHandlerShouldSetUInt64Value(t *testing.T) {
 	t.Parallel()
 
-	metricKey := core.MetricCurrentRound
+	metricKey := common.MetricCurrentRound
 	setUInt64ValueCalled := make(chan bool, 1)
 
 	appStatusHandlerStub := mock.AppStatusHandlerStub{

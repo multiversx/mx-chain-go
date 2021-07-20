@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters/uint64ByteSlice"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	factoryDataPool "github.com/ElrondNetwork/elrond-go/dataRetriever/factory"
@@ -617,7 +618,7 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	}
 	log.Debug("start in epoch bootstrap: shardCoordinator", "numOfShards", e.baseData.numberOfShards, "shardId", e.baseData.shardId)
 
-	err = e.messenger.CreateTopic(core.ConsensusTopic+e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId()), true)
+	err = e.messenger.CreateTopic(common.ConsensusTopic+e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId()), true)
 	if err != nil {
 		return Parameters{}, err
 	}
@@ -1038,14 +1039,14 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 
 func (e *epochStartBootstrap) setEpochStartMetrics() {
 	if e.epochStartMeta != nil {
-		e.statusHandler.SetUInt64Value(core.MetricNonceAtEpochStart, e.epochStartMeta.Nonce)
-		e.statusHandler.SetUInt64Value(core.MetricRoundAtEpochStart, e.epochStartMeta.Round)
+		e.statusHandler.SetUInt64Value(common.MetricNonceAtEpochStart, e.epochStartMeta.Nonce)
+		e.statusHandler.SetUInt64Value(common.MetricRoundAtEpochStart, e.epochStartMeta.Round)
 	}
 }
 
 func (e *epochStartBootstrap) applyShardIDAsObserverIfNeeded(receivedShardID uint32) uint32 {
 	if e.nodeType == core.NodeTypeObserver &&
-		e.destinationShardAsObserver != core.DisabledShardIDAsObserver &&
+		e.destinationShardAsObserver != common.DisabledShardIDAsObserver &&
 		e.destinationShardAsObserver != receivedShardID {
 		log.Debug("shard id as observer applied", "destination shard ID", e.destinationShardAsObserver, "computed", receivedShardID)
 		receivedShardID = e.destinationShardAsObserver

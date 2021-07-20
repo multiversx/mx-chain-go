@@ -6,8 +6,8 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -229,29 +229,29 @@ func TestVmContext_IsValidator(t *testing.T) {
 	t.Parallel()
 
 	type testIO struct {
-		peerType       core.PeerType
+		peerType       common.PeerType
 		expectedResult bool
 	}
 
 	testData := []testIO{
 		{
-			peerType:       core.LeavingList,
+			peerType:       common.LeavingList,
 			expectedResult: true,
 		},
 		{
-			peerType:       core.EligibleList,
+			peerType:       common.EligibleList,
 			expectedResult: true,
 		},
 		{
-			peerType:       core.WaitingList,
+			peerType:       common.WaitingList,
 			expectedResult: true,
 		},
 		{
-			peerType:       core.NewList,
+			peerType:       common.NewList,
 			expectedResult: false,
 		},
 		{
-			peerType:       core.JailedList,
+			peerType:       common.JailedList,
 			expectedResult: false,
 		},
 	}

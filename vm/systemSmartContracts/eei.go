@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -606,8 +607,8 @@ func (host *vmContext) IsValidator(blsKey []byte) bool {
 	}
 
 	// TODO: rename GetList from validator account
-	isValidator := validatorAccount.GetList() == string(core.EligibleList) ||
-		validatorAccount.GetList() == string(core.WaitingList) || validatorAccount.GetList() == string(core.LeavingList)
+	isValidator := validatorAccount.GetList() == string(common.EligibleList) ||
+		validatorAccount.GetList() == string(common.WaitingList) || validatorAccount.GetList() == string(common.LeavingList)
 	return isValidator
 }
 
@@ -615,12 +616,12 @@ func (host *vmContext) IsValidator(blsKey []byte) bool {
 func (host *vmContext) StatusFromValidatorStatistics(blsKey []byte) string {
 	acc, err := host.validatorAccountsDB.GetExistingAccount(blsKey)
 	if err != nil {
-		return string(core.InactiveList)
+		return string(common.InactiveList)
 	}
 
 	validatorAccount, castOk := acc.(state.PeerAccountHandler)
 	if !castOk {
-		return string(core.InactiveList)
+		return string(common.InactiveList)
 	}
 
 	return validatorAccount.GetList()
@@ -638,7 +639,7 @@ func (host *vmContext) CanUnJail(blsKey []byte) bool {
 		return false
 	}
 
-	return validatorAccount.GetList() == string(core.JailedList)
+	return validatorAccount.GetList() == string(common.JailedList)
 }
 
 // IsBadRating returns true if the validators temp rating is under jailed limit

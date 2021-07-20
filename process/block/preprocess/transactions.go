@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -845,7 +846,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 			if !firstCrossShardScCallOrSpecialTxFound {
 				numNewMiniBlocks++
 			}
-			numNewTxs += core.AdditionalScrForEachScCallOrSpecialTx
+			numNewTxs += common.AdditionalScrForEachScCallOrSpecialTx
 		}
 
 		if isMaxBlockSizeReached(numNewMiniBlocks, numNewTxs) {
@@ -987,7 +988,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 				txs.blockSizeComputation.AddNumMiniBlocks(1)
 			}
 			//we need to increment this as to account for the corresponding SCR hash
-			txs.blockSizeComputation.AddNumTxs(core.AdditionalScrForEachScCallOrSpecialTx)
+			txs.blockSizeComputation.AddNumTxs(common.AdditionalScrForEachScCallOrSpecialTx)
 			numCrossShardScCallsOrSpecialTxs++
 		}
 		numTxsAdded++

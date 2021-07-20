@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/gorilla/websocket"
 	"github.com/urfave/cli"
 )
@@ -275,7 +276,7 @@ func sendProfile(conn *websocket.Conn, profile *logger.Profile) error {
 }
 
 func sendDefaultProfileIdentifier(conn *websocket.Conn) error {
-	return conn.WriteMessage(websocket.TextMessage, []byte(core.DefaultLogProfileIdentifier))
+	return conn.WriteMessage(websocket.TextMessage, []byte(common.DefaultLogProfileIdentifier))
 }
 
 func listeningOnWebSocket() {

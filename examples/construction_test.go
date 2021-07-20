@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var addressEncoder, _ = pubkeyConverter.NewBech32PubkeyConverter(32, &mock.LoggerFake{})
+var addressEncoder, _ = pubkeyConverter.NewBech32PubkeyConverter(32, &mock.LoggerMock{})
 var signingMarshalizer = &marshal.JsonMarshalizer{}
 var signer = &singlesig.Ed25519Signer{}
 var signingCryptoSuite = ed25519.NewEd25519()

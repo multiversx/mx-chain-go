@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -80,7 +80,7 @@ func (hdrIntVer *headerIntegrityVerifier) prepareVersions(versionsByEpochs []con
 		}
 		currentEpoch = ver.StartEpoch
 
-		if len(ver.Version) > core.MaxSoftwareVersionLengthInBytes {
+		if len(ver.Version) > common.MaxSoftwareVersionLengthInBytes {
 			return nil, fmt.Errorf("%w for version %s",
 				ErrInvalidVersionStringTooLong, ver.Version)
 		}
@@ -157,7 +157,7 @@ func (hdrIntVer *headerIntegrityVerifier) Verify(hdr data.HeaderHandler) error {
 }
 
 func (hdrIntVer *headerIntegrityVerifier) checkVersionLength(version []byte) error {
-	if len(version) == 0 || len(version) > core.MaxSoftwareVersionLengthInBytes {
+	if len(version) == 0 || len(version) > common.MaxSoftwareVersionLengthInBytes {
 		return fmt.Errorf("%w when checking lenghts", ErrInvalidSoftwareVersion)
 	}
 

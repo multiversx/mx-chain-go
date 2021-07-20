@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/cmd/termui/view"
+	"github.com/ElrondNetwork/elrond-go/common"
 	ui "github.com/gizak/termui/v3"
 	"github.com/gizak/termui/v3/widgets"
 )
@@ -122,7 +123,7 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 	peerType := wr.presenter.GetPeerType()
 
 	nodeTypeAndListDisplay := instanceType
-	if peerType != string(core.ObserverList) && !strings.Contains(peerType, invalidKey) {
+	if peerType != string(common.ObserverList) && !strings.Contains(peerType, invalidKey) {
 		nodeTypeAndListDisplay += fmt.Sprintf(" - %s", peerType)
 	}
 	shardIdStr := fmt.Sprintf("%d", shardId)

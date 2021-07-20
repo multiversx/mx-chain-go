@@ -39,7 +39,7 @@ func CreateShardCoordinator(
 			return nil, "", err
 		}
 		var pubKeyBytes []byte
-		if selfShardId == core.DisabledShardIDAsObserver {
+		if selfShardId == common.DisabledShardIDAsObserver {
 			pubKeyBytes, err = pubKey.ToByteArray()
 			if err != nil {
 				return nil, core.NodeTypeObserver, fmt.Errorf("%w while assigning random shard ID for observer", err)
@@ -54,7 +54,7 @@ func CreateShardCoordinator(
 
 	var shardName string
 	if selfShardId == core.MetachainShardId {
-		shardName = core.MetachainShardName
+		shardName = common.MetachainShardName
 	} else {
 		shardName = fmt.Sprintf("%d", selfShardId)
 	}
@@ -113,7 +113,7 @@ func CreateNodesCoordinator(
 		return nil, err
 	}
 	var pubKeyBytes []byte
-	if shardIDAsObserver == core.DisabledShardIDAsObserver {
+	if shardIDAsObserver == common.DisabledShardIDAsObserver {
 		pubKeyBytes, err = pubKey.ToByteArray()
 		if err != nil {
 			return nil, fmt.Errorf("%w while assigning random shard ID for observer", err)

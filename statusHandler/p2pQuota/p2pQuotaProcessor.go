@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
@@ -82,18 +83,18 @@ func (pqp *p2pQuotaProcessor) moveStatisticsInAppStatusHandler(
 	peakNumReceiverPeers uint64,
 ) {
 
-	pqp.handler.SetUInt64Value(pqp.getMetric(core.MetricP2PPeerNumReceivedMessages), uint64(peerQuota.numReceivedMessages))
-	pqp.handler.SetUInt64Value(pqp.getMetric(core.MetricP2PPeerSizeReceivedMessages), peerQuota.sizeReceivedMessages)
-	pqp.handler.SetUInt64Value(pqp.getMetric(core.MetricP2PPeerNumProcessedMessages), uint64(peerQuota.numProcessedMessages))
-	pqp.handler.SetUInt64Value(pqp.getMetric(core.MetricP2PPeerSizeProcessedMessages), peerQuota.sizeProcessedMessages)
+	pqp.handler.SetUInt64Value(pqp.getMetric(common.MetricP2PPeerNumReceivedMessages), uint64(peerQuota.numReceivedMessages))
+	pqp.handler.SetUInt64Value(pqp.getMetric(common.MetricP2PPeerSizeReceivedMessages), peerQuota.sizeReceivedMessages)
+	pqp.handler.SetUInt64Value(pqp.getMetric(common.MetricP2PPeerNumProcessedMessages), uint64(peerQuota.numProcessedMessages))
+	pqp.handler.SetUInt64Value(pqp.getMetric(common.MetricP2PPeerSizeProcessedMessages), peerQuota.sizeProcessedMessages)
 
-	pqp.handler.SetUInt64Value(pqp.getMetric(core.MetricP2PPeakPeerNumReceivedMessages), uint64(pqp.peakPeerQuota.numReceivedMessages))
-	pqp.handler.SetUInt64Value(pqp.getMetric(core.MetricP2PPeakPeerSizeReceivedMessages), pqp.peakPeerQuota.sizeReceivedMessages)
-	pqp.handler.SetUInt64Value(pqp.getMetric(core.MetricP2PPeakPeerNumProcessedMessages), uint64(pqp.peakPeerQuota.numProcessedMessages))
-	pqp.handler.SetUInt64Value(pqp.getMetric(core.MetricP2PPeakPeerSizeProcessedMessages), pqp.peakPeerQuota.sizeProcessedMessages)
+	pqp.handler.SetUInt64Value(pqp.getMetric(common.MetricP2PPeakPeerNumReceivedMessages), uint64(pqp.peakPeerQuota.numReceivedMessages))
+	pqp.handler.SetUInt64Value(pqp.getMetric(common.MetricP2PPeakPeerSizeReceivedMessages), pqp.peakPeerQuota.sizeReceivedMessages)
+	pqp.handler.SetUInt64Value(pqp.getMetric(common.MetricP2PPeakPeerNumProcessedMessages), uint64(pqp.peakPeerQuota.numProcessedMessages))
+	pqp.handler.SetUInt64Value(pqp.getMetric(common.MetricP2PPeakPeerSizeProcessedMessages), pqp.peakPeerQuota.sizeProcessedMessages)
 
-	pqp.handler.SetUInt64Value(pqp.getMetric(core.MetricP2PNumReceiverPeers), numReceiverPeers)
-	pqp.handler.SetUInt64Value(pqp.getMetric(core.MetricP2PPeakNumReceiverPeers), peakNumReceiverPeers)
+	pqp.handler.SetUInt64Value(pqp.getMetric(common.MetricP2PNumReceiverPeers), numReceiverPeers)
+	pqp.handler.SetUInt64Value(pqp.getMetric(common.MetricP2PPeakNumReceiverPeers), peakNumReceiverPeers)
 }
 
 func (pqp *p2pQuotaProcessor) getMetric(metric string) string {

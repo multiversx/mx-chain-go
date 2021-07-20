@@ -8,6 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/accumulator"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/node/nodeDebugFactory"
@@ -124,12 +125,12 @@ func prepareOpenTopics(
 ) {
 	selfID := shardCoordinator.SelfId()
 	if selfID == core.MetachainShardId {
-		antiflood.SetTopicsForAll(core.HeartbeatTopic)
+		antiflood.SetTopicsForAll(common.HeartbeatTopic)
 		return
 	}
 
 	selfShardTxTopic := procFactory.TransactionTopic + core.CommunicationIdentifierBetweenShards(selfID, selfID)
-	antiflood.SetTopicsForAll(core.HeartbeatTopic, selfShardTxTopic)
+	antiflood.SetTopicsForAll(common.HeartbeatTopic, selfShardTxTopic)
 }
 
 // CreateNode is the node factory

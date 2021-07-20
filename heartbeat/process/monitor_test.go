@@ -9,6 +9,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
@@ -60,7 +61,7 @@ func createMockArgHeartbeatMonitor() process.ArgHeartbeatMonitor {
 		MessageHandler:              &mock.MessageHandlerStub{},
 		Storer:                      createMockStorer(),
 		PeerTypeProvider: &mock.PeerTypeProviderStub{
-			ComputeForPubKeyCalled: func(pubKey []byte) (core.PeerType, uint32, error) {
+			ComputeForPubKeyCalled: func(pubKey []byte) (common.PeerType, uint32, error) {
 				if string(pubKey) == "pk0" {
 					return "", 0, nil
 				}
@@ -511,18 +512,18 @@ func TestMonitor_RemoveInactiveValidatorsIfIntervalExceeded(t *testing.T) {
 		MessageHandler: &mock.MessageHandlerStub{},
 		Storer:         storer,
 		PeerTypeProvider: &mock.PeerTypeProviderStub{
-			ComputeForPubKeyCalled: func(pubKey []byte) (core.PeerType, uint32, error) {
+			ComputeForPubKeyCalled: func(pubKey []byte) (common.PeerType, uint32, error) {
 				switch string(pubKey) {
 				case pubKey1:
-					return core.EligibleList, 0, nil
+					return common.EligibleList, 0, nil
 				case pubKey2:
-					return core.WaitingList, 0, nil
+					return common.WaitingList, 0, nil
 				case pubKey3:
-					return core.ObserverList, 0, nil
+					return common.ObserverList, 0, nil
 				case pubKey4:
-					return core.InactiveList, 0, nil
+					return common.InactiveList, 0, nil
 				}
-				return core.ObserverList, 0, nil
+				return common.ObserverList, 0, nil
 			},
 		},
 		Timer:                              timer,
@@ -625,24 +626,24 @@ func TestMonitor_AddAndGetDoubleSignerPeersShouldWork(t *testing.T) {
 	arg.MaxDurationPeerUnresponsive = time.Millisecond * 100
 	mon, _ := process.NewMonitor(arg)
 
-	assert.Equal(t, uint64(0), mon.GetNumInstancesOfPublicKey(string("pk0")))
+	assert.Equal(t, uint64(0), mon.GetNumInstancesOfPublicKey("pk0"))
 
 	mon.AddDoubleSignerPeers(&data.Heartbeat{Pubkey: []byte("pk1"), Pid: []byte("pid1")})
-	assert.Equal(t, uint64(1), mon.GetNumInstancesOfPublicKey(string("pk1")))
+	assert.Equal(t, uint64(1), mon.GetNumInstancesOfPublicKey("pk1"))
 
 	mon.AddDoubleSignerPeers(&data.Heartbeat{Pubkey: []byte("pk2"), Pid: []byte("pid2.1")})
 	mon.AddDoubleSignerPeers(&data.Heartbeat{Pubkey: []byte("pk2"), Pid: []byte("pid2.2")})
-	assert.Equal(t, uint64(2), mon.GetNumInstancesOfPublicKey(string("pk2")))
+	assert.Equal(t, uint64(2), mon.GetNumInstancesOfPublicKey("pk2"))
 
 	mon.AddDoubleSignerPeers(&data.Heartbeat{Pubkey: []byte("pk3"), Pid: []byte("pid3.1")})
 	mon.AddDoubleSignerPeers(&data.Heartbeat{Pubkey: []byte("pk3"), Pid: []byte("pid3.2")})
 	mon.AddDoubleSignerPeers(&data.Heartbeat{Pubkey: []byte("pk3"), Pid: []byte("pid3.3")})
-	assert.Equal(t, uint64(3), mon.GetNumInstancesOfPublicKey(string("pk3")))
+	assert.Equal(t, uint64(3), mon.GetNumInstancesOfPublicKey("pk3"))
 
 	time.Sleep(time.Millisecond * 100)
 
 	mon.AddDoubleSignerPeers(&data.Heartbeat{Pubkey: []byte("pk3"), Pid: []byte("pid3.4")})
-	assert.Equal(t, uint64(1), mon.GetNumInstancesOfPublicKey(string("pk3")))
+	assert.Equal(t, uint64(1), mon.GetNumInstancesOfPublicKey("pk3"))
 }
 
 func TestMonitor_CleanupShouldWork(t *testing.T) {

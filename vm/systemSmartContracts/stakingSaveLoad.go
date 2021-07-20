@@ -4,7 +4,7 @@ import (
 	"math"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go/common"
 )
 
 func (s *stakingSC) getConfig() *StakingNodesConfig {
@@ -48,7 +48,7 @@ func (s *stakingSC) getOrCreateRegisteredData(key []byte) (*StakedDataV2_0, erro
 		RegisterNonce: 0,
 		Staked:        false,
 		UnStakedNonce: 0,
-		UnStakedEpoch: core.DefaultUnstakedEpoch,
+		UnStakedEpoch: common.DefaultUnstakedEpoch,
 		RewardAddress: nil,
 		StakeValue:    big.NewInt(0),
 		JailedRound:   math.MaxUint64,

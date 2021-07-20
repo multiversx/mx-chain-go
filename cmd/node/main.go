@@ -47,7 +47,7 @@ VERSION:
 // windows:
 //            for /f %i in ('git describe --tags --long --dirty') do set VERS=%i
 //            go build -i -v -ldflags="-X main.appVersion=%VERS%"
-var appVersion = core.UnVersionedAppString
+var appVersion = common.UnVersionedAppString
 
 func main() {
 	_ = logger.SetDisplayByteSlice(logger.ToHexShort)

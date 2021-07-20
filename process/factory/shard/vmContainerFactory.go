@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -121,7 +122,7 @@ func (vmf *vmContainerFactory) validateArwenVersions() error {
 		}
 		currentEpoch = ver.StartEpoch
 
-		if len(ver.Version) > core.MaxSoftwareVersionLengthInBytes {
+		if len(ver.Version) > common.MaxSoftwareVersionLengthInBytes {
 			return fmt.Errorf("%w for version %s",
 				ErrInvalidVersionStringTooLong, ver.Version)
 		}

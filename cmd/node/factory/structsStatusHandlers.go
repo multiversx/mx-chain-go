@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/statistics"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -107,7 +108,7 @@ func (shi *statusHandlersInfo) LoadTpsBenchmarkFromStorage(
 		TotalProcessedTxCount: big.NewInt(0),
 		LastBlockTxCount:      0,
 	}
-	lastNonceBytes, err := store.Get([]byte(core.LastNonceKeyMetricsStorage))
+	lastNonceBytes, err := store.Get([]byte(common.LastNonceKeyMetricsStorage))
 	if err != nil {
 		log.Debug("cannot load last nonce from metrics storage", "error", err, "key", []byte("lastNonce"))
 		return emptyTpsBenchmarks
@@ -130,12 +131,12 @@ func (shi *statusHandlersInfo) LoadTpsBenchmarkFromStorage(
 
 	okTpsBenchmarks := &statistics.TpsPersistentData{}
 
-	okTpsBenchmarks.BlockNumber = persister.GetUint64(metricsMap[core.MetricNonceForTPS])
-	okTpsBenchmarks.RoundNumber = persister.GetUint64(metricsMap[core.MetricCurrentRound])
-	okTpsBenchmarks.LastBlockTxCount = uint32(persister.GetUint64(metricsMap[core.MetricLastBlockTxCount]))
-	okTpsBenchmarks.PeakTPS = float64(persister.GetUint64(metricsMap[core.MetricPeakTPS]))
-	okTpsBenchmarks.TotalProcessedTxCount = big.NewInt(int64(persister.GetUint64(metricsMap[core.MetricNumProcessedTxsTPSBenchmark])))
-	okTpsBenchmarks.AverageBlockTxCount = persister.GetBigIntFromString(metricsMap[core.MetricAverageBlockTxCount])
+	okTpsBenchmarks.BlockNumber = persister.GetUint64(metricsMap[common.MetricNonceForTPS])
+	okTpsBenchmarks.RoundNumber = persister.GetUint64(metricsMap[common.MetricCurrentRound])
+	okTpsBenchmarks.LastBlockTxCount = uint32(persister.GetUint64(metricsMap[common.MetricLastBlockTxCount]))
+	okTpsBenchmarks.PeakTPS = float64(persister.GetUint64(metricsMap[common.MetricPeakTPS]))
+	okTpsBenchmarks.TotalProcessedTxCount = big.NewInt(int64(persister.GetUint64(metricsMap[common.MetricNumProcessedTxsTPSBenchmark])))
+	okTpsBenchmarks.AverageBlockTxCount = persister.GetBigIntFromString(metricsMap[common.MetricAverageBlockTxCount])
 
 	shi.updateTpsMetrics(metricsMap)
 

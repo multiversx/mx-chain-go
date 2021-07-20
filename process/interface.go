@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/statistics"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -324,7 +325,7 @@ type HashAccesser interface {
 type Bootstrapper interface {
 	Close() error
 	AddSyncStateListener(func(isSyncing bool))
-	GetNodeState() core.NodeState
+	GetNodeState() common.NodeState
 	StartSyncingBlocks()
 	IsInterfaceNil() bool
 }

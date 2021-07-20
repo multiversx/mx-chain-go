@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
@@ -230,7 +231,7 @@ func (s *TpsBenchmark) updateStatistics(header *block.MetaBlock) error {
 	shouldUpdateTotalNumAndPeak := s.shouldUpdateFields(header)
 	if shouldUpdateTotalNumAndPeak {
 		s.totalProcessedTxCount.Add(s.totalProcessedTxCount, big.NewInt(0).SetUint64(totalTxsForCount))
-		s.statusHandler.AddUint64(core.MetricNumProcessedTxsTPSBenchmark, totalTxsForCount)
+		s.statusHandler.AddUint64(common.MetricNumProcessedTxsTPSBenchmark, totalTxsForCount)
 	}
 	s.averageBlockTxCount.Quo(s.totalProcessedTxCount, big.NewInt(int64(header.Nonce)))
 
@@ -239,10 +240,10 @@ func (s *TpsBenchmark) updateStatistics(header *block.MetaBlock) error {
 		s.peakTPS = currentTPS
 	}
 
-	s.statusHandler.SetUInt64Value(core.MetricNonceForTPS, header.Nonce)
-	s.statusHandler.SetUInt64Value(core.MetricLastBlockTxCount, totalTxsForTPS)
-	s.statusHandler.SetUInt64Value(core.MetricPeakTPS, uint64(s.peakTPS))
-	s.statusHandler.SetStringValue(core.MetricAverageBlockTxCount, s.averageBlockTxCount.String())
+	s.statusHandler.SetUInt64Value(common.MetricNonceForTPS, header.Nonce)
+	s.statusHandler.SetUInt64Value(common.MetricLastBlockTxCount, totalTxsForTPS)
+	s.statusHandler.SetUInt64Value(common.MetricPeakTPS, uint64(s.peakTPS))
+	s.statusHandler.SetStringValue(common.MetricAverageBlockTxCount, s.averageBlockTxCount.String())
 
 	for _, shardInfo := range header.ShardInfo {
 		shardStat, ok := s.shardStatistics[shardInfo.ShardID]

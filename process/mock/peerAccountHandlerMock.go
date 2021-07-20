@@ -3,7 +3,7 @@ package mock
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/state/temporary"
 )
@@ -37,7 +37,7 @@ func (p *PeerAccountHandlerMock) GetUnStakedEpoch() uint32 {
 	if p.GetUnStakedEpochCalled != nil {
 		return p.GetUnStakedEpochCalled()
 	}
-	return core.DefaultUnstakedEpoch
+	return common.DefaultUnstakedEpoch
 }
 
 // SetUnStakedEpoch -

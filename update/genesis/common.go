@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
@@ -69,20 +70,20 @@ func peerAccountToValidatorInfo(peerAccount state.PeerAccountHandler) *state.Val
 
 func getActualList(peerAccount state.PeerAccountHandler) string {
 	savedList := peerAccount.GetList()
-	if peerAccount.GetUnStakedEpoch() == core.DefaultUnstakedEpoch {
-		if savedList == string(core.InactiveList) {
-			return string(core.JailedList)
+	if peerAccount.GetUnStakedEpoch() == common.DefaultUnstakedEpoch {
+		if savedList == string(common.InactiveList) {
+			return string(common.JailedList)
 		}
 		return savedList
 	}
-	if savedList == string(core.InactiveList) {
+	if savedList == string(common.InactiveList) {
 		return savedList
 	}
 
-	return string(core.LeavingList)
+	return string(common.LeavingList)
 }
 
-func shouldExportValidator(validator *state.ValidatorInfo, allowedLists []core.PeerType) bool {
+func shouldExportValidator(validator *state.ValidatorInfo, allowedLists []common.PeerType) bool {
 	validatorList := validator.GetList()
 
 	for _, list := range allowedLists {

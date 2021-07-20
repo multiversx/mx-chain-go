@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -110,7 +111,7 @@ func (cm *commonMessenger) BroadcastConsensusMessage(message *consensus.Message)
 		return err
 	}
 
-	consensusTopic := core.ConsensusTopic +
+	consensusTopic := common.ConsensusTopic +
 		cm.shardCoordinator.CommunicationIdentifier(cm.shardCoordinator.SelfId())
 
 	cm.messenger.Broadcast(consensusTopic, buff)
@@ -148,7 +149,7 @@ func (cm *commonMessenger) BroadcastTransactions(transactions map[string][][]byt
 	for topic, v := range transactions {
 		txs += len(v)
 		// forward txs to the destination shards in packets
-		packets, err = dataPacker.PackDataInChunks(v, core.MaxBulkTransactionSize)
+		packets, err = dataPacker.PackDataInChunks(v, common.MaxBulkTransactionSize)
 		if err != nil {
 			return err
 		}
@@ -182,7 +183,7 @@ func (cm *commonMessenger) BroadcastBlockData(
 		}
 	}
 
-	time.Sleep(core.ExtraDelayBetweenBroadcastMbsAndTxs)
+	time.Sleep(common.ExtraDelayBetweenBroadcastMbsAndTxs)
 
 	if len(transactions) > 0 {
 		err := cm.BroadcastTransactions(transactions)

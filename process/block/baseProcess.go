@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/common/statistics"
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -828,7 +829,7 @@ func (bp *baseProcessor) prepareDataForBootStorer(args bootStorerDataArgs) {
 	}
 
 	elapsedTime := time.Since(startTime)
-	if elapsedTime >= core.PutInStorerMaxTime {
+	if elapsedTime >= common.PutInStorerMaxTime {
 		log.Warn("saveDataForBootStorer", "elapsed time", elapsedTime)
 	}
 }
@@ -1022,7 +1023,7 @@ func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler) {
 	}
 
 	elapsedTime := time.Since(startTime)
-	if elapsedTime >= core.PutInStorerMaxTime {
+	if elapsedTime >= common.PutInStorerMaxTime {
 		log.Warn("saveBody", "elapsed time", elapsedTime)
 	}
 }
@@ -1046,7 +1047,7 @@ func (bp *baseProcessor) saveShardHeader(header data.HeaderHandler, headerHash [
 	}
 
 	elapsedTime := time.Since(startTime)
-	if elapsedTime >= core.PutInStorerMaxTime {
+	if elapsedTime >= common.PutInStorerMaxTime {
 		log.Warn("saveShardHeader", "elapsed time", elapsedTime)
 	}
 }
@@ -1067,7 +1068,7 @@ func (bp *baseProcessor) saveMetaHeader(header data.HeaderHandler, headerHash []
 	}
 
 	elapsedTime := time.Since(startTime)
-	if elapsedTime >= core.PutInStorerMaxTime {
+	if elapsedTime >= common.PutInStorerMaxTime {
 		log.Warn("saveMetaHeader", "elapsed time", elapsedTime)
 	}
 }
@@ -1234,7 +1235,7 @@ func (bp *baseProcessor) requestMiniBlocksIfNeeded(headerHandler data.HeaderHand
 		return
 	}
 
-	waitTime := core.ExtraDelayForRequestBlockInfo
+	waitTime := common.ExtraDelayForRequestBlockInfo
 	roundDifferences := bp.roundHandler.Index() - int64(headerHandler.GetRound())
 	if roundDifferences > 1 {
 		waitTime = 0

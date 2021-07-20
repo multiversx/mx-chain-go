@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -254,7 +255,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		resolversFinder,
 		pcf.requestedItemsHandler,
 		pcf.whiteListHandler,
-		core.MaxTxsToRequest,
+		common.MaxTxsToRequest,
 		pcf.bootstrapComponents.ShardCoordinator().SelfId(),
 		time.Second,
 	)
@@ -1150,7 +1151,7 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 		Messenger:                 pcf.network.NetworkMessenger(),
 		Store:                     pcf.data.StorageService(),
 		DataPool:                  pcf.data.Datapool(),
-		MaxTxNonceDeltaAllowed:    core.MaxTxNonceDeltaAllowed,
+		MaxTxNonceDeltaAllowed:    common.MaxTxNonceDeltaAllowed,
 		TxFeeHandler:              pcf.coreData.EconomicsData(),
 		BlockBlackList:            headerBlackList,
 		HeaderSigVerifier:         headerSigVerifier,
@@ -1193,7 +1194,7 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 		Store:                     pcf.data.StorageService(),
 		DataPool:                  pcf.data.Datapool(),
 		Accounts:                  pcf.state.AccountsAdapter(),
-		MaxTxNonceDeltaAllowed:    core.MaxTxNonceDeltaAllowed,
+		MaxTxNonceDeltaAllowed:    common.MaxTxNonceDeltaAllowed,
 		TxFeeHandler:              pcf.coreData.EconomicsData(),
 		BlockBlackList:            headerBlackList,
 		HeaderSigVerifier:         headerSigVerifier,

@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -73,7 +73,7 @@ func TestGetLastBootstrapData(t *testing.T) {
 	storer := &testscommon.StorerStub{
 		GetCalled: func(key []byte) (b []byte, err error) {
 			switch {
-			case bytes.Equal([]byte(core.HighestRoundFromBootStorage), key):
+			case bytes.Equal([]byte(common.HighestRoundFromBootStorage), key):
 				return roundBytes, nil
 			case bytes.Equal([]byte(strconv.FormatInt(round, 10)), key):
 

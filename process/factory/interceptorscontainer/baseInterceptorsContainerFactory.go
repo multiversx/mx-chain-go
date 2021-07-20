@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
@@ -153,7 +154,7 @@ func (bicf *baseInterceptorsContainerFactory) createTopicAndAssignHandler(
 		return nil, err
 	}
 
-	return interceptor, bicf.messenger.RegisterMessageProcessor(topic, core.DefaultInterceptorsIdentifier, interceptor)
+	return interceptor, bicf.messenger.RegisterMessageProcessor(topic, common.DefaultInterceptorsIdentifier, interceptor)
 }
 
 //------- Tx interceptors

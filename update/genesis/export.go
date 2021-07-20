@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/state/temporary"
@@ -280,7 +281,7 @@ func (se *stateExport) exportTrie(key string, trie temporary.Trie) error {
 			return err
 		}
 
-		nodesSetupFilePath := filepath.Join(se.exportFolder, core.NodesSetupJsonFileName)
+		nodesSetupFilePath := filepath.Join(se.exportFolder, common.NodesSetupJsonFileName)
 		err = se.exportNodesSetupJson(validatorData)
 		if err == nil {
 			log.Debug("hardfork nodesSetup.json exported successfully", "file path", nodesSetupFilePath)
@@ -391,7 +392,7 @@ func (se *stateExport) exportTx(key string, tx data.TransactionHandler) error {
 }
 
 func (se *stateExport) exportNodesSetupJson(validators map[uint32][]*state.ValidatorInfo) error {
-	acceptedListsForExport := []core.PeerType{core.EligibleList, core.WaitingList, core.JailedList}
+	acceptedListsForExport := []common.PeerType{common.EligibleList, common.WaitingList, common.JailedList}
 	initialNodes := make([]*sharding.InitialNode, 0)
 
 	for _, validatorsInShard := range validators {
@@ -428,7 +429,7 @@ func (se *stateExport) exportNodesSetupJson(validators map[uint32][]*state.Valid
 		return err
 	}
 
-	return ioutil.WriteFile(filepath.Join(se.exportFolder, core.NodesSetupJsonFileName), nodesSetupBytes, 0664)
+	return ioutil.WriteFile(filepath.Join(se.exportFolder, common.NodesSetupJsonFileName), nodesSetupBytes, 0664)
 }
 
 // IsInterfaceNil returns true if underlying object is nil

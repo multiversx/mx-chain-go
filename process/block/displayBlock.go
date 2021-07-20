@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -58,14 +59,14 @@ func (txc *transactionCounter) displayLogInfo(
 	headerHash []byte,
 	numShards uint32,
 	selfId uint32,
-	dataPool dataRetriever.PoolsHolder,
+	_ dataRetriever.PoolsHolder,
 	appStatusHandler core.AppStatusHandler,
 	blockTracker process.BlockTracker,
 ) {
 	dispHeader, dispLines := txc.createDisplayableShardHeaderAndBlockBody(header, body)
 
 	txc.mutex.RLock()
-	appStatusHandler.SetUInt64Value(core.MetricNumProcessedTxs, txc.totalTxs)
+	appStatusHandler.SetUInt64Value(common.MetricNumProcessedTxs, txc.totalTxs)
 	txc.mutex.RUnlock()
 
 	tblString, err := display.CreateTableString(dispHeader, dispLines)

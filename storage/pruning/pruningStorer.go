@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/clean"
@@ -646,7 +647,7 @@ func (ps *PruningStorer) registerHandler(handler EpochStartNotifier) {
 				log.Warn("prepare epoch change in storer", "error", err.Error())
 			}
 		},
-		core.StorerOrder)
+		common.StorerOrder)
 
 	handler.RegisterHandler(subscribeHandler)
 }

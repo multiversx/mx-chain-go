@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/stretchr/testify/assert"
 )
@@ -60,7 +60,7 @@ func TestStorageResolver_signalGracefullyClose(t *testing.T) {
 	}
 
 	assert.True(t, timeToWait <= endTime.Sub(startTime))
-	assert.Equal(t, endArg.Reason, core.ImportComplete)
+	assert.Equal(t, endArg.Reason, common.ImportComplete)
 }
 
 func TestStorageResolver_signalGracefullyCloseCanNotWriteOnChanShouldNotPanic(t *testing.T) {

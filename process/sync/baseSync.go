@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -307,7 +308,7 @@ func (boot *baseBootstrap) computeNodeState() {
 		result = uint64(0)
 	}
 
-	boot.statusHandler.SetUInt64Value(core.MetricIsSyncing, result)
+	boot.statusHandler.SetUInt64Value(common.MetricIsSyncing, result)
 
 	if boot.shouldTryToRequestHeaders() {
 		go boot.requestHeadersIfSyncIsStuck()
@@ -546,7 +547,7 @@ func (boot *baseBootstrap) incrementSyncedWithErrorsForNonce(nonce uint64) uint3
 func (boot *baseBootstrap) syncBlock() error {
 	boot.computeNodeState()
 	nodeState := boot.GetNodeState()
-	if nodeState != core.NsNotSynchronized {
+	if nodeState != common.NsNotSynchronized {
 		return nil
 	}
 
@@ -557,7 +558,7 @@ func (boot *baseBootstrap) syncBlock() error {
 	}()
 
 	if boot.forkInfo.IsDetected {
-		boot.statusHandler.Increment(core.MetricNumTimesInForkChoice)
+		boot.statusHandler.Increment(common.MetricNumTimesInForkChoice)
 
 		if boot.isForcedRollBackOneBlock() {
 			log.Debug("roll back one block has been forced")
@@ -622,7 +623,7 @@ func (boot *baseBootstrap) syncBlock() error {
 	startCommitBlockTime := time.Now()
 	err = boot.blockProcessor.CommitBlock(header, body)
 	elapsedTime = time.Since(startCommitBlockTime)
-	if elapsedTime >= core.CommitMaxTime {
+	if elapsedTime >= common.CommitMaxTime {
 		log.Warn("syncBlock.CommitBlock", "elapsed time", elapsedTime)
 	} else {
 		log.Debug("elapsed time to commit block",
@@ -1015,13 +1016,13 @@ func (boot *baseBootstrap) requestHeaders(fromNonce uint64, toNonce uint64) {
 // that the node is already synced and it can participate to the consensus. This method could also returns 'NsNotCalculated'
 // which means that the state of the node in the current round is not calculated yet. Note that when the node is not
 // connected to the network, GetNodeState could return 'NsNotSynchronized' but the SyncBlock is not automatically called.
-func (boot *baseBootstrap) GetNodeState() core.NodeState {
+func (boot *baseBootstrap) GetNodeState() common.NodeState {
 	if boot.isInImportMode {
-		return core.NsNotSynchronized
+		return common.NsNotSynchronized
 	}
 	currentSyncedEpoch := boot.getEpochOfCurrentBlock()
 	if !boot.currentEpochProvider.EpochIsActiveInNetwork(currentSyncedEpoch) {
-		return core.NsNotSynchronized
+		return common.NsNotSynchronized
 	}
 
 	boot.mutNodeState.RLock()
@@ -1030,14 +1031,14 @@ func (boot *baseBootstrap) GetNodeState() core.NodeState {
 	boot.mutNodeState.RUnlock()
 
 	if !isNodeStateCalculatedInCurrentRound {
-		return core.NsNotCalculated
+		return common.NsNotCalculated
 	}
 
 	if isNodeSynchronized {
-		return core.NsSynchronized
+		return common.NsSynchronized
 	}
 
-	return core.NsNotSynchronized
+	return common.NsNotSynchronized
 }
 
 // Close will close the endless running go routine
