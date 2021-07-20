@@ -778,5 +778,9 @@ const EpochStartInterceptorsIdentifier = "epoch start interceptor"
 // GetNodeFromDBErrorString represents the string which is returned when a getting node from DB returns an error
 const GetNodeFromDBErrorString = "getNodeFromDB error"
 
-// TimeoutGettingTrieNode defines the timeout in trie sync operation if no node is received
-const TimeoutGettingTrieNode = 2 * time.Minute //to consider syncing a very large trie node of 64MB at ~1MB/s
+// TimeoutGettingTrieNodes defines the timeout in trie sync operation if no node is received
+const TimeoutGettingTrieNodes = 2 * time.Minute //to consider syncing a very large trie node of 64MB at ~1MB/s
+
+// TimeoutGettingTrieNodesInHardfork represents the maximum time allowed between 2 nodes fetches (and commits)
+// during the hardfork process
+const TimeoutGettingTrieNodesInHardfork = time.Minute * 10

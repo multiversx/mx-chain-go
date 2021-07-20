@@ -1,8 +1,6 @@
 package factory
 
 import (
-	"time"
-
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
@@ -469,7 +467,7 @@ func (ccf *consensusComponentsFactory) createArgsBaseAccountsSyncer(trieStorageM
 		Marshalizer:               ccf.coreComponents.InternalMarshalizer(),
 		TrieStorageManager:        trieStorageManager,
 		RequestHandler:            ccf.processComponents.RequestHandler(),
-		Timeout:                   core.TimeoutGettingTrieNode,
+		Timeout:                   common.TimeoutGettingTrieNodes,
 		Cacher:                    ccf.dataComponents.Datapool().TrieNodes(),
 		MaxTrieLevelInMemory:      ccf.config.StateTriesConfig.MaxStateTrieLevelInMemory,
 		MaxHardCapForMissingNodes: ccf.config.TrieSync.MaxHardCapForMissingNodes,

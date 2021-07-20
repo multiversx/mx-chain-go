@@ -355,7 +355,7 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 			Marshalizer:               integrationTests.TestMarshalizer,
 			TrieStorageManager:        nRequester.TrieStorageManagers[trieFactory.UserAccountTrie],
 			RequestHandler:            nRequester.RequestHandler,
-			Timeout:                   core.TimeoutGettingTrieNode,
+			Timeout:                   common.TimeoutGettingTrieNodes,
 			Cacher:                    nRequester.DataPool.TrieNodes(),
 			MaxTrieLevelInMemory:      200,
 			MaxHardCapForMissingNodes: 5000,
