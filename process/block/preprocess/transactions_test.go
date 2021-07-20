@@ -185,7 +185,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilPool(t *testing.T) {
 		&testscommon.AccountsStub{},
 		requestTransaction,
 		feeHandlerMock(),
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
 		createMockPubkeyConverter(),
@@ -216,7 +216,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilStore(t *testing.T) {
 		&testscommon.AccountsStub{},
 		requestTransaction,
 		feeHandlerMock(),
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
 		createMockPubkeyConverter(),
@@ -247,7 +247,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilHasher(t *testing.T) {
 		&testscommon.AccountsStub{},
 		requestTransaction,
 		feeHandlerMock(),
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
 		createMockPubkeyConverter(),
@@ -278,7 +278,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilMarsalizer(t *testing.T) {
 		&testscommon.AccountsStub{},
 		requestTransaction,
 		feeHandlerMock(),
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
 		createMockPubkeyConverter(),
@@ -309,7 +309,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilTxProce(t *testing.T) {
 		&testscommon.AccountsStub{},
 		requestTransaction,
 		feeHandlerMock(),
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
 		createMockPubkeyConverter(),
@@ -340,7 +340,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilShardCoord(t *testing.T) {
 		&testscommon.AccountsStub{},
 		requestTransaction,
 		feeHandlerMock(),
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
 		createMockPubkeyConverter(),
@@ -371,7 +371,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilAccounts(t *testing.T) {
 		nil,
 		requestTransaction,
 		feeHandlerMock(),
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
 		createMockPubkeyConverter(),
@@ -401,7 +401,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilRequestFunc(t *testing.T) 
 		&testscommon.AccountsStub{},
 		nil,
 		feeHandlerMock(),
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
 		createMockPubkeyConverter(),
@@ -432,7 +432,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilFeeHandler(t *testing.T) {
 		&testscommon.AccountsStub{},
 		requestTransaction,
 		nil,
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
 		createMockPubkeyConverter(),
@@ -494,7 +494,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilBlockTracker(t *testing.T)
 		&testscommon.AccountsStub{},
 		requestTransaction,
 		feeHandlerMock(),
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		nil,
 		block.TxBlock,
 		createMockPubkeyConverter(),
@@ -525,7 +525,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilPubkeyConverter(t *testing
 		&testscommon.AccountsStub{},
 		requestTransaction,
 		feeHandlerMock(),
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
 		nil,
@@ -556,7 +556,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilBlockSizeComputationHandle
 		&testscommon.AccountsStub{},
 		requestTransaction,
 		feeHandlerMock(),
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
 		createMockPubkeyConverter(),
@@ -587,7 +587,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilBalanceComputationHandler(
 		&testscommon.AccountsStub{},
 		requestTransaction,
 		feeHandlerMock(),
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
 		createMockPubkeyConverter(),
@@ -618,7 +618,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilEpochNotifier(t *testing.T
 		&testscommon.AccountsStub{},
 		requestTransaction,
 		feeHandlerMock(),
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
 		createMockPubkeyConverter(),
@@ -649,7 +649,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilTxTypeHandler(t *testing.T
 		&testscommon.AccountsStub{},
 		requestTransaction,
 		feeHandlerMock(),
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
 		createMockPubkeyConverter(),
@@ -680,7 +680,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilScheduledTxsExecutionHandl
 		&testscommon.AccountsStub{},
 		requestTransaction,
 		feeHandlerMock(),
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
 		createMockPubkeyConverter(),
@@ -711,7 +711,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorOkValsShouldWork(t *testing.T
 		&testscommon.AccountsStub{},
 		requestTransaction,
 		feeHandlerMock(),
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
 		createMockPubkeyConverter(),
@@ -924,7 +924,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testi
 		&testscommon.AccountsStub{},
 		requestTransaction,
 		feeHandlerMock(),
-		&mock.GasHandlerMock{
+		&testscommon.GasHandlerStub{
 			SetGasConsumedCalled: func(gasConsumed uint64, hash []byte) {
 				totalGasConsumed += gasConsumed
 			},
@@ -999,7 +999,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCal
 		&testscommon.AccountsStub{},
 		requestTransaction,
 		feeHandlerMock(),
-		&mock.GasHandlerMock{
+		&testscommon.GasHandlerStub{
 			SetGasConsumedCalled: func(gasConsumed uint64, hash []byte) {
 				totalGasConsumed += gasConsumed
 			},
@@ -1079,7 +1079,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 		&testscommon.AccountsStub{},
 		requestTransaction,
 		feeHandlerMock(),
-		&mock.GasHandlerMock{
+		&testscommon.GasHandlerStub{
 			SetGasConsumedCalled: func(gasConsumed uint64, hash []byte) {
 				totalGasConsumed += gasConsumed
 			},
@@ -1172,7 +1172,7 @@ func TestTransactions_IsDataPrepared_NumMissingTxsGreaterThanZeroShouldWork(t *t
 	assert.Nil(t, err)
 }
 
-func Example_SortTransactionsBySenderAndNonce() {
+func Example_sortTransactionsBySenderAndNonce() {
 	txs := []*
 		txcache.WrappedTransaction{
 		{Tx: &transaction.Transaction{Nonce: 3, SndAddr: []byte("bbbb")}, TxHash: []byte("w")},
@@ -1233,7 +1233,7 @@ func createGoodPreprocessor(dataPool dataRetriever.PoolsHolder) *transactions {
 		&testscommon.AccountsStub{},
 		requestTransaction,
 		feeHandlerMock(),
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
 		createMockPubkeyConverter(),
@@ -1282,7 +1282,7 @@ func TestTransactionPreprocessor_ProcessTxsToMeShouldUseCorrectSenderAndReceiver
 		&testscommon.AccountsStub{},
 		requestTransaction,
 		feeHandlerMock(),
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
 		createMockPubkeyConverter(),
@@ -1363,7 +1363,7 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 		&testscommon.AccountsStub{},
 		requestTransaction,
 		feeHandlerMock(),
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
 		createMockPubkeyConverter(),

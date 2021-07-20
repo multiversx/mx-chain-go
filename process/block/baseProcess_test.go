@@ -387,7 +387,7 @@ func createMockTransactionCoordinatorArguments(
 				return []block.Type{block.SmartContractResultBlock}
 			},
 		},
-		GasHandler:                        &mock.GasHandlerMock{},
+		GasHandler:                        &testscommon.GasHandlerStub{},
 		FeeHandler:                        &mock.FeeAccumulatorStub{},
 		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:                &testscommon.BalanceComputationStub{},

@@ -92,7 +92,7 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 			},
 		},
 		TxTypeHandler: &testscommon.TxTypeHandlerMock{},
-		GasHandler: &mock.GasHandlerMock{
+		GasHandler: &testscommon.GasHandlerStub{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 		GasSchedule:          mock.NewGasScheduleNotifierMock(gasSchedule),

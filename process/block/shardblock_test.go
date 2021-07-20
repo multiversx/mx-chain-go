@@ -508,7 +508,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 				return MaxGasLimitPerBlock
 			},
 		},
-		&mock.GasHandlerMock{
+		&testscommon.GasHandlerStub{
 			ComputeGasConsumedByMiniBlockCalled: func(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error) {
 				return 0, 0, nil
 			},
@@ -530,7 +530,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 	container, _ := factory.Create()
 
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments(accounts, tdp, container)
-	argsTransactionCoordinator.GasHandler = &mock.GasHandlerMock{
+	argsTransactionCoordinator.GasHandler = &testscommon.GasHandlerStub{
 		InitCalled: func() {
 		},
 	}
@@ -729,7 +729,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 				return MaxGasLimitPerBlock
 			},
 		},
-		&mock.GasHandlerMock{
+		&testscommon.GasHandlerStub{
 			ComputeGasConsumedByMiniBlockCalled: func(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error) {
 				return 0, 0, nil
 			},
@@ -752,7 +752,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 
 	totalGasConsumed := uint64(0)
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments(accounts, tdp, container)
-	argsTransactionCoordinator.GasHandler = &mock.GasHandlerMock{
+	argsTransactionCoordinator.GasHandler = &testscommon.GasHandlerStub{
 		InitCalled: func() {
 			totalGasConsumed = 0
 		},
@@ -2312,7 +2312,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		&testscommon.SmartContractResultsProcessorMock{},
 		&testscommon.RewardTxProcessorMock{},
 		&mock.FeeHandlerStub{},
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
@@ -2420,7 +2420,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		&testscommon.SmartContractResultsProcessorMock{},
 		&testscommon.RewardTxProcessorMock{},
 		&mock.FeeHandlerStub{},
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
@@ -2798,7 +2798,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 				return MaxGasLimitPerBlock
 			},
 		},
-		&mock.GasHandlerMock{
+		&testscommon.GasHandlerStub{
 			SetGasConsumedCalled: func(gasConsumed uint64, hash []byte) {
 				totalGasConsumed += gasConsumed
 			},
@@ -2993,7 +2993,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		&testscommon.SmartContractResultsProcessorMock{},
 		&testscommon.RewardTxProcessorMock{},
 		&mock.FeeHandlerStub{},
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},

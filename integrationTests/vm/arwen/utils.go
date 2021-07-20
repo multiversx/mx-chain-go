@@ -309,7 +309,7 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		TxFeeHandler:     context.UnsignexTxHandler,
 		EconomicsFee:     context.EconomicsFee,
 		TxTypeHandler:    txTypeHandler,
-		GasHandler: &mock.GasHandlerMock{
+		GasHandler: &testscommon.GasHandlerStub{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 		GasSchedule:       mock.NewGasScheduleNotifierMock(gasSchedule),

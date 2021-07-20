@@ -457,7 +457,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		TxFeeHandler:     &testscommon.UnsignedTxHandlerStub{},
 		EconomicsFee:     economicsData,
 		TxTypeHandler:    txTypeHandler,
-		GasHandler: &mock.GasHandlerMock{
+		GasHandler: &testscommon.GasHandlerStub{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 		GasSchedule:                    mock.NewGasScheduleNotifierMock(gasSchedule),

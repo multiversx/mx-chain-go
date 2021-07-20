@@ -210,7 +210,7 @@ func createMockTransactionCoordinatorArguments() ArgTransactionCoordinator {
 		RequestHandler:                    &testscommon.RequestHandlerStub{},
 		PreProcessors:                     &mock.PreProcessorContainerMock{},
 		InterProcessors:                   &mock.InterimProcessorContainerMock{},
-		GasHandler:                        &mock.GasHandlerMock{},
+		GasHandler:                        &testscommon.GasHandlerStub{},
 		FeeHandler:                        &mock.FeeAccumulatorStub{},
 		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:                &testscommon.BalanceComputationStub{},
@@ -457,7 +457,7 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		&testscommon.SmartContractResultsProcessorMock{},
 		&testscommon.RewardTxProcessorMock{},
 		FeeHandlerMock(),
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
@@ -510,7 +510,7 @@ func createPreProcessorContainerWithDataPool(
 		&testscommon.SmartContractResultsProcessorMock{},
 		&testscommon.RewardTxProcessorMock{},
 		FeeHandlerMock(),
-		&mock.GasHandlerMock{
+		&testscommon.GasHandlerStub{
 			SetGasConsumedCalled: func(gasConsumed uint64, hash []byte) {
 				totalGasConsumed += gasConsumed
 			},
@@ -571,7 +571,7 @@ func TestTransactionCoordinator_CreateBlockStarted(t *testing.T) {
 
 	totalGasConsumed := uint64(0)
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
-	argsTransactionCoordinator.GasHandler = &mock.GasHandlerMock{
+	argsTransactionCoordinator.GasHandler = &testscommon.GasHandlerStub{
 		InitCalled: func() {
 			totalGasConsumed = uint64(0)
 		},
@@ -797,7 +797,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		&testscommon.SmartContractResultsProcessorMock{},
 		&testscommon.RewardTxProcessorMock{},
 		FeeHandlerMock(),
-		&mock.GasHandlerMock{
+		&testscommon.GasHandlerStub{
 			SetGasConsumedCalled: func(gasConsumed uint64, hash []byte) {
 				totalGasConsumed += gasConsumed
 			},
@@ -825,7 +825,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
 	argsTransactionCoordinator.MiniBlockPool = tdp.MiniBlocks()
 	argsTransactionCoordinator.PreProcessors = container
-	argsTransactionCoordinator.GasHandler = &mock.GasHandlerMock{
+	argsTransactionCoordinator.GasHandler = &testscommon.GasHandlerStub{
 		TotalGasConsumedCalled: func() uint64 {
 			return totalGasConsumed
 		},
@@ -930,7 +930,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 		&testscommon.SmartContractResultsProcessorMock{},
 		&testscommon.RewardTxProcessorMock{},
 		FeeHandlerMock(),
-		&mock.GasHandlerMock{
+		&testscommon.GasHandlerStub{
 			SetGasConsumedCalled: func(gasConsumed uint64, hash []byte) {
 				totalGasConsumed += gasConsumed
 			},
@@ -958,7 +958,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
 	argsTransactionCoordinator.MiniBlockPool = tdp.MiniBlocks()
 	argsTransactionCoordinator.PreProcessors = container
-	argsTransactionCoordinator.GasHandler = &mock.GasHandlerMock{
+	argsTransactionCoordinator.GasHandler = &testscommon.GasHandlerStub{
 		TotalGasConsumedCalled: func() uint64 {
 			return totalGasConsumed
 		},
@@ -1045,7 +1045,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		&testscommon.SmartContractResultsProcessorMock{},
 		&testscommon.RewardTxProcessorMock{},
 		FeeHandlerMock(),
-		&mock.GasHandlerMock{
+		&testscommon.GasHandlerStub{
 			TotalGasConsumedCalled: func() uint64 {
 				return totalGasConsumed
 			},
@@ -1100,7 +1100,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNoSpace(t *
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
 	argsTransactionCoordinator.MiniBlockPool = tdp.MiniBlocks()
 	argsTransactionCoordinator.PreProcessors = createPreProcessorContainerWithDataPool(tdp, FeeHandlerMock())
-	argsTransactionCoordinator.GasHandler = &mock.GasHandlerMock{
+	argsTransactionCoordinator.GasHandler = &testscommon.GasHandlerStub{
 		TotalGasConsumedCalled: func() uint64 {
 			return totalGasConsumed
 		},
@@ -1337,7 +1337,7 @@ func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
 	argsTransactionCoordinator.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(nrShards)
 	argsTransactionCoordinator.MiniBlockPool = tdp.MiniBlocks()
 	argsTransactionCoordinator.PreProcessors = createPreProcessorContainerWithDataPool(tdp, FeeHandlerMock())
-	argsTransactionCoordinator.GasHandler = &mock.GasHandlerMock{
+	argsTransactionCoordinator.GasHandler = &testscommon.GasHandlerStub{
 		ComputeGasConsumedByTxCalled: func(txSndShId uint32, txRcvShId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
 			return 0, 0, nil
 		},
@@ -1565,7 +1565,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		&testscommon.SmartContractResultsProcessorMock{},
 		&testscommon.RewardTxProcessorMock{},
 		FeeHandlerMock(),
-		&mock.GasHandlerMock{
+		&testscommon.GasHandlerStub{
 			ComputeGasConsumedByMiniBlockCalled: func(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error) {
 				return 0, 0, nil
 			},
@@ -1695,7 +1695,7 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		&testscommon.SmartContractResultsProcessorMock{},
 		&testscommon.RewardTxProcessorMock{},
 		FeeHandlerMock(),
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
@@ -1820,7 +1820,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		&testscommon.SmartContractResultsProcessorMock{},
 		&testscommon.RewardTxProcessorMock{},
 		FeeHandlerMock(),
-		&mock.GasHandlerMock{
+		&testscommon.GasHandlerStub{
 			SetGasConsumedCalled: func(gasConsumed uint64, hash []byte) {
 				totalGasConsumed += gasConsumed
 			},
@@ -1850,7 +1850,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 	argsTransactionCoordinator.Accounts = accounts
 	argsTransactionCoordinator.MiniBlockPool = dataPool.MiniBlocks()
 	argsTransactionCoordinator.PreProcessors = container
-	argsTransactionCoordinator.GasHandler = &mock.GasHandlerMock{
+	argsTransactionCoordinator.GasHandler = &testscommon.GasHandlerStub{
 		TotalGasConsumedCalled: func() uint64 {
 			return 0
 		},
@@ -1951,7 +1951,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		&testscommon.SmartContractResultsProcessorMock{},
 		&testscommon.RewardTxProcessorMock{},
 		FeeHandlerMock(),
-		&mock.GasHandlerMock{
+		&testscommon.GasHandlerStub{
 			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
 				return 0, 0, nil
 			},
@@ -1984,7 +1984,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 	argsTransactionCoordinator.Accounts = accounts
 	argsTransactionCoordinator.MiniBlockPool = dataPool.MiniBlocks()
 	argsTransactionCoordinator.PreProcessors = container
-	argsTransactionCoordinator.GasHandler = &mock.GasHandlerMock{
+	argsTransactionCoordinator.GasHandler = &testscommon.GasHandlerStub{
 		TotalGasConsumedCalled: func() uint64 {
 			return totalGasConsumed
 		},
@@ -2437,7 +2437,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldReturnWhenEpochIsNo
 		RequestHandler:                    &testscommon.RequestHandlerStub{},
 		PreProcessors:                     createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
 		InterProcessors:                   createInterimProcessorContainer(),
-		GasHandler:                        &mock.GasHandlerMock{},
+		GasHandler:                        &testscommon.GasHandlerStub{},
 		FeeHandler:                        &mock.FeeAccumulatorStub{},
 		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:                &testscommon.BalanceComputationStub{},
@@ -2471,7 +2471,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxGasLimitPerMi
 		RequestHandler:       &testscommon.RequestHandlerStub{},
 		PreProcessors:        createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
 		InterProcessors:      createInterimProcessorContainer(),
-		GasHandler:           &mock.GasHandlerMock{},
+		GasHandler:           &testscommon.GasHandlerStub{},
 		FeeHandler:           &mock.FeeAccumulatorStub{},
 		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:   &testscommon.BalanceComputationStub{},
@@ -2528,7 +2528,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxAccumulatedFe
 		RequestHandler:       &testscommon.RequestHandlerStub{},
 		PreProcessors:        createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
 		InterProcessors:      createInterimProcessorContainer(),
-		GasHandler:           &mock.GasHandlerMock{},
+		GasHandler:           &testscommon.GasHandlerStub{},
 		FeeHandler:           &mock.FeeAccumulatorStub{},
 		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:   &testscommon.BalanceComputationStub{},
@@ -2594,7 +2594,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxDeveloperFees
 		RequestHandler:       &testscommon.RequestHandlerStub{},
 		PreProcessors:        createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
 		InterProcessors:      createInterimProcessorContainer(),
-		GasHandler:           &mock.GasHandlerMock{},
+		GasHandler:           &testscommon.GasHandlerStub{},
 		FeeHandler:           &mock.FeeAccumulatorStub{},
 		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:   &testscommon.BalanceComputationStub{},
@@ -2660,7 +2660,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldWork(t *testing.T) 
 		RequestHandler:       &testscommon.RequestHandlerStub{},
 		PreProcessors:        createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
 		InterProcessors:      createInterimProcessorContainer(),
-		GasHandler:           &mock.GasHandlerMock{},
+		GasHandler:           &testscommon.GasHandlerStub{},
 		FeeHandler:           &mock.FeeAccumulatorStub{},
 		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:   &testscommon.BalanceComputationStub{},
@@ -2725,7 +2725,7 @@ func TestTransactionCoordinator_GetAllTransactionsShouldWork(t *testing.T) {
 		RequestHandler:                    &testscommon.RequestHandlerStub{},
 		PreProcessors:                     createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
 		InterProcessors:                   createInterimProcessorContainer(),
-		GasHandler:                        &mock.GasHandlerMock{},
+		GasHandler:                        &testscommon.GasHandlerStub{},
 		FeeHandler:                        &mock.FeeAccumulatorStub{},
 		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:                &testscommon.BalanceComputationStub{},
@@ -2794,7 +2794,7 @@ func TestTransactionCoordinator_VerifyGasLimitShouldErrMaxGasLimitPerMiniBlockIn
 		RequestHandler:       &testscommon.RequestHandlerStub{},
 		PreProcessors:        createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
 		InterProcessors:      createInterimProcessorContainer(),
-		GasHandler:           &mock.GasHandlerMock{},
+		GasHandler:           &testscommon.GasHandlerStub{},
 		FeeHandler:           &mock.FeeAccumulatorStub{},
 		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:   &testscommon.BalanceComputationStub{},
@@ -2880,7 +2880,7 @@ func TestTransactionCoordinator_VerifyGasLimitShouldWork(t *testing.T) {
 		RequestHandler:       &testscommon.RequestHandlerStub{},
 		PreProcessors:        createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
 		InterProcessors:      createInterimProcessorContainer(),
-		GasHandler:           &mock.GasHandlerMock{},
+		GasHandler:           &testscommon.GasHandlerStub{},
 		FeeHandler:           &mock.FeeAccumulatorStub{},
 		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:   &testscommon.BalanceComputationStub{},
@@ -2962,7 +2962,7 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 		RequestHandler:                    &testscommon.RequestHandlerStub{},
 		PreProcessors:                     createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
 		InterProcessors:                   createInterimProcessorContainer(),
-		GasHandler:                        &mock.GasHandlerMock{},
+		GasHandler:                        &testscommon.GasHandlerStub{},
 		FeeHandler:                        &mock.FeeAccumulatorStub{},
 		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:                &testscommon.BalanceComputationStub{},
@@ -3000,7 +3000,7 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 		RequestHandler:       &testscommon.RequestHandlerStub{},
 		PreProcessors:        createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
 		InterProcessors:      createInterimProcessorContainer(),
-		GasHandler:           &mock.GasHandlerMock{},
+		GasHandler:           &testscommon.GasHandlerStub{},
 		FeeHandler:           &mock.FeeAccumulatorStub{},
 		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:   &testscommon.BalanceComputationStub{},
@@ -3053,7 +3053,7 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 		RequestHandler:       &testscommon.RequestHandlerStub{},
 		PreProcessors:        createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
 		InterProcessors:      createInterimProcessorContainer(),
-		GasHandler:           &mock.GasHandlerMock{},
+		GasHandler:           &testscommon.GasHandlerStub{},
 		FeeHandler:           &mock.FeeAccumulatorStub{},
 		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:   &testscommon.BalanceComputationStub{},
@@ -3111,7 +3111,7 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 		RequestHandler:       &testscommon.RequestHandlerStub{},
 		PreProcessors:        createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
 		InterProcessors:      createInterimProcessorContainer(),
-		GasHandler:           &mock.GasHandlerMock{},
+		GasHandler:           &testscommon.GasHandlerStub{},
 		FeeHandler:           &mock.FeeAccumulatorStub{},
 		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:   &testscommon.BalanceComputationStub{},
@@ -3171,7 +3171,7 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 		RequestHandler:       &testscommon.RequestHandlerStub{},
 		PreProcessors:        createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
 		InterProcessors:      createInterimProcessorContainer(),
-		GasHandler:           &mock.GasHandlerMock{},
+		GasHandler:           &testscommon.GasHandlerStub{},
 		FeeHandler:           &mock.FeeAccumulatorStub{},
 		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:   &testscommon.BalanceComputationStub{},
@@ -3228,7 +3228,7 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMissingTransaction(t *testing
 		RequestHandler:                    &testscommon.RequestHandlerStub{},
 		PreProcessors:                     createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
 		InterProcessors:                   createInterimProcessorContainer(),
-		GasHandler:                        &mock.GasHandlerMock{},
+		GasHandler:                        &testscommon.GasHandlerStub{},
 		FeeHandler:                        &mock.FeeAccumulatorStub{},
 		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:                &testscommon.BalanceComputationStub{},
@@ -3278,7 +3278,7 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxAccumulatedFeesExceeded(t 
 		RequestHandler:       &testscommon.RequestHandlerStub{},
 		PreProcessors:        createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
 		InterProcessors:      createInterimProcessorContainer(),
-		GasHandler:           &mock.GasHandlerMock{},
+		GasHandler:           &testscommon.GasHandlerStub{},
 		FeeHandler:           &mock.FeeAccumulatorStub{},
 		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:   &testscommon.BalanceComputationStub{},
@@ -3342,7 +3342,7 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxDeveloperFeesExceeded(t *t
 		RequestHandler:       &testscommon.RequestHandlerStub{},
 		PreProcessors:        createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
 		InterProcessors:      createInterimProcessorContainer(),
-		GasHandler:           &mock.GasHandlerMock{},
+		GasHandler:           &testscommon.GasHandlerStub{},
 		FeeHandler:           &mock.FeeAccumulatorStub{},
 		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:   &testscommon.BalanceComputationStub{},
@@ -3405,7 +3405,7 @@ func TestTransactionCoordinator_VerifyFeesShouldWork(t *testing.T) {
 		RequestHandler:       &testscommon.RequestHandlerStub{},
 		PreProcessors:        createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
 		InterProcessors:      createInterimProcessorContainer(),
-		GasHandler:           &mock.GasHandlerMock{},
+		GasHandler:           &testscommon.GasHandlerStub{},
 		FeeHandler:           &mock.FeeAccumulatorStub{},
 		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:   &testscommon.BalanceComputationStub{},
@@ -3466,7 +3466,7 @@ func TestTransactionCoordinator_GetMaxAccumulatedAndDeveloperFeesShouldErr(t *te
 		RequestHandler:                    &testscommon.RequestHandlerStub{},
 		PreProcessors:                     createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
 		InterProcessors:                   createInterimProcessorContainer(),
-		GasHandler:                        &mock.GasHandlerMock{},
+		GasHandler:                        &testscommon.GasHandlerStub{},
 		FeeHandler:                        &mock.FeeAccumulatorStub{},
 		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:                &testscommon.BalanceComputationStub{},
@@ -3510,7 +3510,7 @@ func TestTransactionCoordinator_GetMaxAccumulatedAndDeveloperFeesShouldWork(t *t
 		RequestHandler:       &testscommon.RequestHandlerStub{},
 		PreProcessors:        createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
 		InterProcessors:      createInterimProcessorContainer(),
-		GasHandler:           &mock.GasHandlerMock{},
+		GasHandler:           &testscommon.GasHandlerStub{},
 		FeeHandler:           &mock.FeeAccumulatorStub{},
 		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:   &testscommon.BalanceComputationStub{},
