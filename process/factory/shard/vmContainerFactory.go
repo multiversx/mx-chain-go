@@ -285,10 +285,6 @@ func (vmf *vmContainerFactory) createInProcessArwenVMV14() (vmcommon.VMExecution
 		GasSchedule:              vmf.gasSchedule.LatestGasSchedule(),
 		BuiltInFuncContainer:     vmf.builtinFunctions,
 		ElrondProtectedKeyPrefix: []byte(core.ElrondProtectedKeyPrefix),
-		ArwenV2EnableEpoch:       vmf.deployEnableEpoch,
-		AheadOfTimeEnableEpoch:   vmf.aheadOfTimeGasUsageEnableEpoch,
-		DynGasLockEnableEpoch:    vmf.deployEnableEpoch,
-		ArwenV3EnableEpoch:       vmf.arwenV3EnableEpoch,
 		ESDTTransferParser:       vmf.esdtTransferParser,
 	}
 	return arwenHost14.NewArwenVM(vmf.blockChainHookImpl, hostParameters)
