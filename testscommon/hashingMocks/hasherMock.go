@@ -1,4 +1,4 @@
-package mock
+package hashingMocks
 
 import "crypto/sha256"
 

@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -25,7 +26,7 @@ func createMockEpochEconomicsArguments() ArgsNewEpochEconomics {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
 
 	argsNewEpochEconomics := ArgsNewEpochEconomics{
-		Hasher:                &mock.HasherMock{},
+		Hasher:                &hashingMocks.HasherMock{},
 		Marshalizer:           &mock.MarshalizerMock{},
 		Store:                 createMetaStore(),
 		ShardCoordinator:      shardCoordinator,
@@ -468,7 +469,7 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 		63,                                    // random
 	}
 
-	hdrPrevEpochStartHash, _ := core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, hdrPrevEpochStart)
+	hdrPrevEpochStartHash, _ := core.CalculateHash(&mock.MarshalizerMock{}, &hashingMocks.HasherMock{}, hdrPrevEpochStart)
 	for _, numBlocksInEpoch := range numBlocksInEpochSlice {
 		expectedTotalToDistribute := big.NewInt(int64(expRwdPerBlock * numBlocksInEpoch * 3)) // 2 shards + meta
 		expectedTotalNewlyMinted := big.NewInt(0).Sub(expectedTotalToDistribute, accFeesInEpoch)
@@ -670,7 +671,7 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentFees(t *testing.T) {
 		},
 	}
 
-	hdrPrevEpochStartHash, _ := core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, hdrPrevEpochStart)
+	hdrPrevEpochStartHash, _ := core.CalculateHash(&mock.MarshalizerMock{}, &hashingMocks.HasherMock{}, hdrPrevEpochStart)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			totalBlocksInEpoch := int64(tt.numBlocksInEpoch * numberOfShards)
@@ -863,7 +864,7 @@ func TestEconomics_VerifyRewardsPerBlock_MoreFeesThanInflation(t *testing.T) {
 		},
 	}
 
-	hdrPrevEpochStartHash, _ := core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, hdrPrevEpochStart)
+	hdrPrevEpochStartHash, _ := core.CalculateHash(&mock.MarshalizerMock{}, &hashingMocks.HasherMock{}, hdrPrevEpochStart)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			currentMaxBaseRewardPerBlock := maxBaseRewardPerBlock
@@ -1050,7 +1051,7 @@ func TestEconomics_VerifyRewardsPerBlock_InflationZero(t *testing.T) {
 		},
 	}
 
-	hdrPrevEpochStartHash, _ := core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, hdrPrevEpochStart)
+	hdrPrevEpochStartHash, _ := core.CalculateHash(&mock.MarshalizerMock{}, &hashingMocks.HasherMock{}, hdrPrevEpochStart)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			totalBlocksInEpoch := int64(tt.numBlocksInEpoch * numberOfShards)
@@ -1715,7 +1716,7 @@ func getArguments() ArgsNewEpochEconomics {
 	genesisSupply, _ := big.NewInt(0).SetString("20000000"+"000000000000000000", 10)
 	return ArgsNewEpochEconomics{
 		Marshalizer:           &mock.MarshalizerMock{},
-		Hasher:                mock.HasherMock{},
+		Hasher:                hashingMocks.HasherMock{},
 		Store:                 &mock.ChainStorerStub{},
 		ShardCoordinator:      mock.NewMultipleShardsCoordinatorMock(),
 		RewardsHandler:        &mock.RewardsHandlerStub{},

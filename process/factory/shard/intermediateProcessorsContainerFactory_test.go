@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -55,7 +56,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilShardCoord(t *testing.T) {
 	ipcf, err := shard.NewIntermediateProcessorsContainerFactory(
 		nil,
 		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		dPool,
@@ -73,7 +74,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilMarshalizer(t *testing.T) 
 	ipcf, err := shard.NewIntermediateProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
 		nil,
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		dPool,
@@ -109,7 +110,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilAdrConv(t *testing.T) {
 	ipcf, err := shard.NewIntermediateProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		nil,
 		&mock.ChainStorerMock{},
 		dPool,
@@ -127,7 +128,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilStorer(t *testing.T) {
 	ipcf, err := shard.NewIntermediateProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		createMockPubkeyConverter(),
 		nil,
 		dPool,
@@ -144,7 +145,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilPoolsHolder(t *testing.T) 
 	ipcf, err := shard.NewIntermediateProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		nil,
@@ -162,7 +163,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilEconomicsFeeHandler(t *tes
 	ipcf, err := shard.NewIntermediateProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		dPool,
@@ -180,7 +181,7 @@ func TestNewIntermediateProcessorsContainerFactory(t *testing.T) {
 	ipcf, err := shard.NewIntermediateProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		dPool,
@@ -199,7 +200,7 @@ func TestIntermediateProcessorsContainerFactory_Create(t *testing.T) {
 	ipcf, err := shard.NewIntermediateProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		dPool,

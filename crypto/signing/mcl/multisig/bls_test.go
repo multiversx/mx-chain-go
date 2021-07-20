@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/multisig"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/herumi/bls-go-binary/bls"
 	"github.com/stretchr/testify/require"
 )
@@ -739,7 +740,7 @@ func Test_HashPublicKeyPointsNilPubKeyShouldErr(t *testing.T) {
 func Test_HashPublicKeyPointsWrongSizeHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	hasher := &mock.HasherMock{}
+	hasher := &hashingMocks.HasherMock{}
 	msg := testMessage
 	pubKeys, _ := createSigSharesBLS(20, []byte(msg))
 	concatPubKeys, err := multisig.ConcatPubKeys(pubKeys)
@@ -753,7 +754,7 @@ func Test_HashPublicKeyPointsWrongSizeHasherShouldErr(t *testing.T) {
 func Test_HashPublicKeyPointsNilConcatPubKeysShouldErr(t *testing.T) {
 	t.Parallel()
 
-	hasher := &mock.HasherMock{}
+	hasher := &hashingMocks.HasherMock{}
 	msg := testMessage
 	pubKeys, _ := createSigSharesBLS(20, []byte(msg))
 	hash, err := multisig.HashPublicKeyPoints(hasher, pubKeys[0].Point(), nil)

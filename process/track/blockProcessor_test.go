@@ -8,6 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
@@ -23,7 +24,7 @@ import (
 func CreateBlockProcessorMockArguments() track.ArgBlockProcessor {
 	shardCoordinatorMock := mock.NewMultipleShardsCoordinatorMock()
 	argsHeaderValidator := processBlock.ArgsHeaderValidator{
-		Hasher:      &mock.HasherMock{},
+		Hasher:      &hashingMocks.HasherMock{},
 		Marshalizer: &mock.MarshalizerMock{},
 	}
 	headerValidator, _ := processBlock.NewHeaderValidator(argsHeaderValidator)
@@ -274,7 +275,7 @@ func TestDoJobOnReceivedHeader_ShouldWork(t *testing.T) {
 func TestDoJobOnReceivedCrossNotarizedHeader_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	hasherMock := &mock.HasherMock{}
+	hasherMock := &hashingMocks.HasherMock{}
 	marshalizerMock := &mock.MarshalizerMock{}
 
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
@@ -395,7 +396,7 @@ func TestComputeLongestChainFromLastCrossNotarized_ShouldReturnNil(t *testing.T)
 func TestComputeLongestChainFromLastCrossNotarized_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	hasherMock := &mock.HasherMock{}
+	hasherMock := &hashingMocks.HasherMock{}
 	marshalizerMock := &mock.MarshalizerMock{}
 
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
@@ -500,7 +501,7 @@ func TestComputeSelfNotarizedHeaders_ShouldReturnEmptySliceWhenSortHeadersFromNo
 func TestBlockProcessorComputeLongestChain_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	hasherMock := &mock.HasherMock{}
+	hasherMock := &hashingMocks.HasherMock{}
 	marshalizerMock := &mock.MarshalizerMock{}
 
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
@@ -590,7 +591,7 @@ func TestGetNextHeader_ShouldReturnEmptySliceWhenHeaderConstructionIsNotValid(t 
 func TestGetNextHeader_ShouldReturnEmptySliceWhenHeaderFinalityIsNotChecked(t *testing.T) {
 	t.Parallel()
 
-	hasherMock := &mock.HasherMock{}
+	hasherMock := &hashingMocks.HasherMock{}
 	marshalizerMock := &mock.MarshalizerMock{}
 
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
@@ -621,7 +622,7 @@ func TestGetNextHeader_ShouldReturnEmptySliceWhenHeaderFinalityIsNotChecked(t *t
 func TestGetNextHeader_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	hasherMock := &mock.HasherMock{}
+	hasherMock := &hashingMocks.HasherMock{}
 	marshalizerMock := &mock.MarshalizerMock{}
 
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
@@ -686,7 +687,7 @@ func TestCheckHeaderFinality_ShouldErrHeaderNotFinal(t *testing.T) {
 func TestCheckHeaderFinality_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	hasherMock := &mock.HasherMock{}
+	hasherMock := &hashingMocks.HasherMock{}
 	marshalizerMock := &mock.MarshalizerMock{}
 
 	blockProcessorArguments := CreateBlockProcessorMockArguments()

@@ -23,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -170,28 +171,28 @@ func initRoundHandler() consensus.RoundHandler {
 
 func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 	argsBaseBootstrapper := sync.ArgBaseBootstrapper{
-		PoolsHolder:         createMockPools(),
-		Store:               createStore(),
-		ChainHandler:        initBlockchain(),
-		RoundHandler:        &mock.RoundHandlerMock{},
-		BlockProcessor:      &mock.BlockProcessorMock{},
-		WaitTime:            waitTime,
-		Hasher:              &mock.HasherMock{},
-		Marshalizer:         &mock.MarshalizerMock{},
-		ForkDetector:        &mock.ForkDetectorMock{},
-		RequestHandler:      &testscommon.RequestHandlerStub{},
-		ShardCoordinator:    mock.NewOneShardCoordinatorMock(),
-		Accounts:            &testscommon.AccountsStub{},
-		BlackListHandler:    &mock.BlackListHandlerStub{},
-		NetworkWatcher:      initNetworkWatcher(),
-		BootStorer:          &mock.BoostrapStorerMock{},
-		StorageBootstrapper: &mock.StorageBootstrapperMock{},
-		EpochHandler:        &mock.EpochStartTriggerStub{},
-		MiniblocksProvider:  &mock.MiniBlocksProviderStub{},
-		Uint64Converter:     &mock.Uint64ByteSliceConverterMock{},
-		AppStatusHandler:    &mock.AppStatusHandlerStub{},
-		Indexer:             &mock.IndexerMock{},
-		AccountsDBSyncer:    &mock.AccountsDBSyncerStub{},
+		PoolsHolder:                  createMockPools(),
+		Store:                        createStore(),
+		ChainHandler:                 initBlockchain(),
+		RoundHandler:                 &mock.RoundHandlerMock{},
+		BlockProcessor:               &mock.BlockProcessorMock{},
+		WaitTime:                     waitTime,
+		Hasher:                       &hashingMocks.HasherMock{},
+		Marshalizer:                  &mock.MarshalizerMock{},
+		ForkDetector:                 &mock.ForkDetectorMock{},
+		RequestHandler:               &testscommon.RequestHandlerStub{},
+		ShardCoordinator:             mock.NewOneShardCoordinatorMock(),
+		Accounts:                     &testscommon.AccountsStub{},
+		BlackListHandler:             &mock.BlackListHandlerStub{},
+		NetworkWatcher:               initNetworkWatcher(),
+		BootStorer:                   &mock.BoostrapStorerMock{},
+		StorageBootstrapper:          &mock.StorageBootstrapperMock{},
+		EpochHandler:                 &mock.EpochStartTriggerStub{},
+		MiniblocksProvider:           &mock.MiniBlocksProviderStub{},
+		Uint64Converter:              &mock.Uint64ByteSliceConverterMock{},
+		AppStatusHandler:             &mock.AppStatusHandlerStub{},
+		Indexer:                      &mock.IndexerMock{},
+		AccountsDBSyncer:             &mock.AccountsDBSyncerStub{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 	}
 

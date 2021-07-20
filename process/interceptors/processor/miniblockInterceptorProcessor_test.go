@@ -11,11 +11,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
 var testMarshalizer = &mock.MarshalizerMock{}
-var testHasher = mock.HasherMock{}
+var testHasher = hashingMocks.HasherMock{}
 
 func createMockMiniblockArgument() *processor.ArgMiniblockInterceptorProcessor {
 	return &processor.ArgMiniblockInterceptorProcessor{

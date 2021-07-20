@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
@@ -71,7 +72,7 @@ func createAccountStub(sndAddr, rcvAddr []byte,
 func createArgsForTxProcessor() txproc.ArgsNewTxProcessor {
 	args := txproc.ArgsNewTxProcessor{
 		Accounts:         &testscommon.AccountsStub{},
-		Hasher:           mock.HasherMock{},
+		Hasher:           hashingMocks.HasherMock{},
 		PubkeyConv:       createMockPubkeyConverter(),
 		Marshalizer:      &mock.MarshalizerMock{},
 		SignMarshalizer:  &mock.MarshalizerMock{},

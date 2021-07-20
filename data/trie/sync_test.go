@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/trie/statistics"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -19,7 +20,7 @@ func createMockArgument() ArgTrieSyncer {
 		RequestHandler:                 &mock.RequestHandlerStub{},
 		InterceptedNodes:               mock.NewCacherMock(),
 		DB:                             mock.NewMemDbMock(),
-		Hasher:                         mock.HasherMock{},
+		Hasher:                         hashingMocks.HasherMock{},
 		Marshalizer:                    &mock.MarshalizerMock{},
 		ShardId:                        0,
 		Topic:                          "topic",

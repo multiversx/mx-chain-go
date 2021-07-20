@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/assert"
@@ -50,7 +51,7 @@ func initStore() dataRetriever.StorageService {
 
 func createMockArgsNewShardBlockCreatorAfterHardFork() ArgsNewShardBlockCreatorAfterHardFork {
 	return ArgsNewShardBlockCreatorAfterHardFork{
-		Hasher:             &mock.HasherMock{},
+		Hasher:             &hashingMocks.HasherMock{},
 		ImportHandler:      &mock.ImportHandlerStub{},
 		Marshalizer:        &mock.MarshalizerMock{},
 		PendingTxProcessor: &mock.PendingTransactionProcessorStub{},

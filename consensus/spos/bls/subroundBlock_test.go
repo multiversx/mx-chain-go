@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -371,7 +372,7 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 	hdr := &block.Header{}
 	hdr.Nonce = 2
 	hdrStr, _ := mock.MarshalizerMock{}.Marshal(hdr)
-	hdrHash := mock.HasherMock{}.Compute(string(hdrStr))
+	hdrHash := hashingMocks.HasherMock{}.Compute(string(hdrStr))
 	cnsMsg = consensus.NewConsensusMessage(
 		hdrHash,
 		nil,
@@ -412,7 +413,7 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 	hdr = &block.Header{}
 	hdr.Nonce = 1
 	hdrStr, _ = mock.MarshalizerMock{}.Marshal(hdr)
-	hdrHash = mock.HasherMock{}.Compute(string(hdrStr))
+	hdrHash = hashingMocks.HasherMock{}.Compute(string(hdrStr))
 	cnsMsg.BlockHeaderHash = hdrHash
 	cnsMsg.Header = hdrStr
 	r = sr.ReceivedBlockHeader(cnsMsg)

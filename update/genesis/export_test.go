@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/assert"
@@ -262,7 +263,7 @@ func TestExportAll(t *testing.T) {
 		Marshalizer:              &mock.MarshalizerMock{},
 		StateSyncer:              stateSyncer,
 		HardforkStorer:           hs,
-		Hasher:                   &mock.HasherMock{},
+		Hasher:                   &hashingMocks.HasherMock{},
 		AddressPubKeyConverter:   &mock.PubkeyConverterStub{},
 		ValidatorPubKeyConverter: &mock.PubkeyConverterStub{},
 		ExportFolder:             "test",
@@ -308,7 +309,7 @@ func TestStateExport_ExportTrieShouldExportNodesSetupJson(t *testing.T) {
 		Marshalizer:              &mock.MarshalizerMock{},
 		StateSyncer:              &mock.SyncStateStub{},
 		HardforkStorer:           hs,
-		Hasher:                   &mock.HasherMock{},
+		Hasher:                   &hashingMocks.HasherMock{},
 		ExportFolder:             testFolderName,
 		AddressPubKeyConverter:   pubKeyConv,
 		ValidatorPubKeyConverter: pubKeyConv,
@@ -371,7 +372,7 @@ func TestStateExport_ExportNodesSetupJsonShouldExportKeysInAlphabeticalOrder(t *
 		Marshalizer:              &mock.MarshalizerMock{},
 		StateSyncer:              &mock.SyncStateStub{},
 		HardforkStorer:           hs,
-		Hasher:                   &mock.HasherMock{},
+		Hasher:                   &hashingMocks.HasherMock{},
 		ExportFolder:             testFolderName,
 		AddressPubKeyConverter:   pubKeyConv,
 		ValidatorPubKeyConverter: pubKeyConv,
@@ -442,7 +443,7 @@ func TestStateExport_ExportUnfinishedMetaBlocksShouldWork(t *testing.T) {
 		Marshalizer:              &mock.MarshalizerMock{},
 		StateSyncer:              stateSyncer,
 		HardforkStorer:           hs,
-		Hasher:                   &mock.HasherMock{},
+		Hasher:                   &hashingMocks.HasherMock{},
 		AddressPubKeyConverter:   &mock.PubkeyConverterStub{},
 		ValidatorPubKeyConverter: &mock.PubkeyConverterStub{},
 		ExportFolder:             "test",

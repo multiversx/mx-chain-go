@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
@@ -224,6 +225,6 @@ func getTxSimulatorArgs() ArgsTxSimulator {
 		ShardCoordinator:          mock.NewMultiShardsCoordinatorMock(2),
 		VMOutputCacher:            txcache.NewDisabledCache(),
 		Marshalizer:               &mock.MarshalizerMock{},
-		Hasher:                    &mock.HasherMock{},
+		Hasher:                    &hashingMocks.HasherMock{},
 	}
 }

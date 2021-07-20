@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -888,7 +889,7 @@ func createWrappedTransaction(
 	senderShardID uint32,
 	receiverShardID uint32,
 ) *txcache.WrappedTransaction {
-	hasher := &testscommon.HasherMock{}
+	hasher := &hashingMocks.HasherMock{}
 	marshaller := &testscommon.MarshalizerMock{}
 	txMarshalled, _ := marshaller.Marshal(tx)
 	txHash := hasher.Compute(string(txMarshalled))

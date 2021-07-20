@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,7 +25,7 @@ func TestNewRewardTxPreprocessor_NilRewardTxDataPoolShouldErr(t *testing.T) {
 	rtp, err := NewRewardTxPreprocessor(
 		nil,
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -47,7 +48,7 @@ func TestNewRewardTxPreprocessor_NilStoreShouldErr(t *testing.T) {
 	rtp, err := NewRewardTxPreprocessor(
 		tdp.Transactions(),
 		nil,
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -93,7 +94,7 @@ func TestNewRewardTxPreprocessor_NilMarshalizerShouldErr(t *testing.T) {
 	rtp, err := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		nil,
 		&testscommon.RewardTxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -116,7 +117,7 @@ func TestNewRewardTxPreprocessor_NilRewardTxProcessorShouldErr(t *testing.T) {
 	rtp, err := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		nil,
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -139,7 +140,7 @@ func TestNewRewardTxPreprocessor_NilShardCoordinatorShouldErr(t *testing.T) {
 	rtp, err := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
 		nil,
@@ -162,7 +163,7 @@ func TestNewRewardTxPreprocessor_NilAccountsShouldErr(t *testing.T) {
 	rtp, err := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -185,7 +186,7 @@ func TestNewRewardTxPreprocessor_NilRequestHandlerShouldErr(t *testing.T) {
 	rtp, err := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -208,7 +209,7 @@ func TestNewRewardTxPreprocessor_NilGasHandlerShouldErr(t *testing.T) {
 	rtp, err := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -231,7 +232,7 @@ func TestNewRewardTxPreprocessor_NilPubkeyConverterShouldErr(t *testing.T) {
 	rtp, err := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -254,7 +255,7 @@ func TestNewRewardTxPreprocessor_NilBlockSizeComputationHandlerShouldErr(t *test
 	rtp, err := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -277,7 +278,7 @@ func TestNewRewardTxPreprocessor_NilBalanceComputationHandlerShouldErr(t *testin
 	rtp, err := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -300,7 +301,7 @@ func TestNewRewardTxPreprocessor_OkValsShouldWork(t *testing.T) {
 	rtp, err := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -323,7 +324,7 @@ func TestRewardTxPreprocessor_CreateMarshalizedDataShouldWork(t *testing.T) {
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -353,7 +354,7 @@ func TestRewardTxPreprocessor_ProcessMiniBlockInvalidMiniBlockTypeShouldErr(t *t
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -385,7 +386,7 @@ func TestRewardTxPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -425,7 +426,7 @@ func TestRewardTxPreprocessor_ProcessMiniBlockNotFromMeta(t *testing.T) {
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -460,7 +461,7 @@ func TestRewardTxPreprocessor_SaveTxsToStorageShouldWork(t *testing.T) {
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -504,7 +505,7 @@ func TestRewardTxPreprocessor_RequestBlockTransactionsNoMissingTxsShouldWork(t *
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -547,7 +548,7 @@ func TestRewardTxPreprocessor_RequestTransactionsForMiniBlockShouldWork(t *testi
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -579,7 +580,7 @@ func TestRewardTxPreprocessor_ProcessBlockTransactions(t *testing.T) {
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -622,7 +623,7 @@ func TestRewardTxPreprocessor_IsDataPreparedShouldErr(t *testing.T) {
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -646,7 +647,7 @@ func TestRewardTxPreprocessor_IsDataPrepared(t *testing.T) {
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -691,7 +692,7 @@ func TestRewardTxPreprocessor_RestoreBlockDataIntoPools(t *testing.T) {
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&storer,
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -728,7 +729,7 @@ func TestRewardTxPreprocessor_CreateAndProcessMiniBlocksShouldWork(t *testing.T)
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -759,7 +760,7 @@ func TestRewardTxPreprocessor_CreateBlockStartedShouldCleanMap(t *testing.T) {
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),

@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -72,6 +73,6 @@ func getArgs() *factory.ArgsHistoryRepositoryFactory {
 		Config:      config.DbLookupExtensionsConfig{},
 		Store:       &mock.ChainStorerMock{},
 		Marshalizer: &mock.MarshalizerMock{},
-		Hasher:      &mock.HasherMock{},
+		Hasher:      &hashingMocks.HasherMock{},
 	}
 }

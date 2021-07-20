@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1133,7 +1134,7 @@ func getBaseRewardsArguments() BaseRewardsCreatorArgs {
 		PubkeyConverter:               mock.NewPubkeyConverterMock(32),
 		RewardsStorage:                mock.NewStorerMock(),
 		MiniBlockStorage:              mock.NewStorerMock(),
-		Hasher:                        &mock.HasherMock{},
+		Hasher:                        &hashingMocks.HasherMock{},
 		Marshalizer:                   &mock.MarshalizerMock{},
 		DataPool:                      testscommon.NewPoolsHolderMock(),
 		ProtocolSustainabilityAddress: "11", // string hex => 17 decimal

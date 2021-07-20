@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -206,7 +207,7 @@ func getArgumentsShard() storageResolversContainers.FactoryArgs {
 		ShardIDForTries:          0,
 		ChainID:                  "T",
 		WorkingDirectory:         "",
-		Hasher:                   mock.HasherMock{},
+		Hasher:                   hashingMocks.HasherMock{},
 		ShardCoordinator:         mock.NewOneShardCoordinatorMock(),
 		Messenger:                createStubTopicMessageHandlerForShard("", ""),
 		Store:                    createStoreForShard(),

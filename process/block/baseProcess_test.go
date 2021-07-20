@@ -36,6 +36,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -326,7 +327,7 @@ func CreateMockArguments(
 ) blproc.ArgShardProcessor {
 	nodesCoordinator := mock.NewNodesCoordinatorMock()
 	argsHeaderValidator := blproc.ArgsHeaderValidator{
-		Hasher:      &mock.HasherMock{},
+		Hasher:      &hashingMocks.HasherMock{},
 		Marshalizer: &mock.MarshalizerMock{},
 	}
 	headerValidator, _ := blproc.NewHeaderValidator(argsHeaderValidator)
@@ -357,11 +358,11 @@ func CreateMockArguments(
 					return nil
 				},
 			},
-			BlockTracker:       mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders),
-			BlockSizeThrottler: &mock.BlockSizeThrottlerStub{},
-			Version:            "softwareVersion",
-			HistoryRepository:  &dblookupext.HistoryRepositoryStub{},
-			EpochNotifier:      &epochNotifier.EpochNotifierStub{},
+			BlockTracker:                 mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders),
+			BlockSizeThrottler:           &mock.BlockSizeThrottlerStub{},
+			Version:                      "softwareVersion",
+			HistoryRepository:            &dblookupext.HistoryRepositoryStub{},
+			EpochNotifier:                &epochNotifier.EpochNotifierStub{},
 			ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		},
 	}
@@ -375,7 +376,7 @@ func createMockTransactionCoordinatorArguments(
 	preProcessorsContainer process.PreProcessorsContainer,
 ) coordinator.ArgTransactionCoordinator {
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
-		Hasher:           &mock.HasherMock{},
+		Hasher:           &hashingMocks.HasherMock{},
 		Marshalizer:      &mock.MarshalizerMock{},
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(3),
 		Accounts:         accountAdapter,
@@ -404,7 +405,7 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 	t.Parallel()
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	coreComponents.Hash = &mock.HasherMock{}
+	coreComponents.Hash = &hashingMocks.HasherMock{}
 	blkc := createTestBlockchain()
 	dataComponents.BlockChain = blkc
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -668,11 +669,11 @@ func TestBaseProcessor_SaveLastNotarizedInOneShardHdrsSliceForShardIsNil(t *test
 	t.Parallel()
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	coreComponents.Hash = &mock.HasherMock{}
+	coreComponents.Hash = &hashingMocks.HasherMock{}
 	coreComponents.IntMarsh = &mock.MarshalizerMock{}
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	sp, _ := blproc.NewShardProcessor(arguments)
-	prHdrs := createShardProcessHeadersToSaveLastNotarized(10, &block.Header{}, mock.HasherMock{}, &mock.MarshalizerMock{})
+	prHdrs := createShardProcessHeadersToSaveLastNotarized(10, &block.Header{}, hashingMocks.HasherMock{}, &mock.MarshalizerMock{})
 
 	err := sp.SaveLastNotarizedHeader(2, prHdrs)
 
@@ -684,13 +685,13 @@ func TestBaseProcessor_SaveLastNotarizedInMultiShardHdrsSliceForShardIsNil(t *te
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	coreComponents.Hash = &mock.HasherMock{}
+	coreComponents.Hash = &hashingMocks.HasherMock{}
 	coreComponents.IntMarsh = &mock.MarshalizerMock{}
 	bootstrapComponents.Coordinator = shardCoordinator
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	sp, _ := blproc.NewShardProcessor(arguments)
 
-	prHdrs := createShardProcessHeadersToSaveLastNotarized(10, &block.Header{}, mock.HasherMock{}, &mock.MarshalizerMock{})
+	prHdrs := createShardProcessHeadersToSaveLastNotarized(10, &block.Header{}, hashingMocks.HasherMock{}, &mock.MarshalizerMock{})
 
 	err := sp.SaveLastNotarizedHeader(6, prHdrs)
 
@@ -702,7 +703,7 @@ func TestBaseProcessor_SaveLastNotarizedHdrShardGood(t *testing.T) {
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	coreComponents.Hash = &mock.HasherMock{}
+	coreComponents.Hash = &hashingMocks.HasherMock{}
 	coreComponents.IntMarsh = &mock.MarshalizerMock{}
 	bootstrapComponents.Coordinator = shardCoordinator
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -736,7 +737,7 @@ func TestBaseProcessor_SaveLastNotarizedHdrMetaGood(t *testing.T) {
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	coreComponents.Hash = &mock.HasherMock{}
+	coreComponents.Hash = &hashingMocks.HasherMock{}
 	coreComponents.IntMarsh = &mock.MarshalizerMock{}
 	bootstrapComponents.Coordinator = shardCoordinator
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)

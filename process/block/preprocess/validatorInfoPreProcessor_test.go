@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,7 +28,7 @@ func TestNewValidatorInfoPreprocessor_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	rtp, err := NewValidatorInfoPreprocessor(
-		&testscommon.HasherMock{},
+		&hashingMocks.HasherMock{},
 		nil,
 		&testscommon.BlockSizeComputationStub{},
 	)
@@ -40,7 +41,7 @@ func TestNewValidatorInfoPreprocessor_NilBlockSizeComputationHandlerShouldErr(t 
 	t.Parallel()
 
 	rtp, err := NewValidatorInfoPreprocessor(
-		&testscommon.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&testscommon.MarshalizerMock{},
 		nil,
 	)
@@ -53,7 +54,7 @@ func TestNewValidatorInfoPreprocessor_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	rtp, err := NewValidatorInfoPreprocessor(
-		&testscommon.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&testscommon.MarshalizerMock{},
 		&testscommon.BlockSizeComputationStub{},
 	)
@@ -65,7 +66,7 @@ func TestNewValidatorInfoPreprocessor_CreateMarshalizedDataShouldWork(t *testing
 	t.Parallel()
 
 	rtp, _ := NewValidatorInfoPreprocessor(
-		&testscommon.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&testscommon.MarshalizerMock{},
 		&testscommon.BlockSizeComputationStub{},
 	)
@@ -81,7 +82,7 @@ func TestNewValidatorInfoPreprocessor_ProcessMiniBlockInvalidMiniBlockTypeShould
 	t.Parallel()
 
 	rtp, _ := NewValidatorInfoPreprocessor(
-		&testscommon.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&testscommon.MarshalizerMock{},
 		&testscommon.BlockSizeComputationStub{},
 	)
@@ -102,7 +103,7 @@ func TestNewValidatorInfoPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 	t.Parallel()
 
 	rtp, _ := NewValidatorInfoPreprocessor(
-		&testscommon.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&testscommon.MarshalizerMock{},
 		&testscommon.BlockSizeComputationStub{},
 	)
@@ -123,7 +124,7 @@ func TestNewValidatorInfoPreprocessor_ProcessMiniBlockNotFromMeta(t *testing.T) 
 	t.Parallel()
 
 	rtp, _ := NewValidatorInfoPreprocessor(
-		&testscommon.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&testscommon.MarshalizerMock{},
 		&testscommon.BlockSizeComputationStub{},
 	)
@@ -143,7 +144,7 @@ func TestNewValidatorInfoPreprocessor_ProcessMiniBlockNotFromMeta(t *testing.T) 
 func TestNewValidatorInfoPreprocessor_RestorePeerBlockIntoPools(t *testing.T) {
 	t.Parallel()
 
-	hasher := &testscommon.HasherMock{}
+	hasher := &hashingMocks.HasherMock{}
 	marshalizer := &testscommon.MarshalizerMock{}
 	blockSizeComputation := &testscommon.BlockSizeComputationStub{}
 
@@ -184,7 +185,7 @@ func TestNewValidatorInfoPreprocessor_RestorePeerBlockIntoPools(t *testing.T) {
 func TestNewValidatorInfoPreprocessor_RestoreOtherBlockTypeIntoPoolsShouldNotRestore(t *testing.T) {
 	t.Parallel()
 
-	hasher := &testscommon.HasherMock{}
+	hasher := &hashingMocks.HasherMock{}
 	marshalizer := &testscommon.MarshalizerMock{}
 	blockSizeComputation := &testscommon.BlockSizeComputationStub{}
 
@@ -225,7 +226,7 @@ func TestNewValidatorInfoPreprocessor_RestoreOtherBlockTypeIntoPoolsShouldNotRes
 func TestNewValidatorInfoPreprocessor_RemovePeerBlockFromPool(t *testing.T) {
 	t.Parallel()
 
-	hasher := &testscommon.HasherMock{}
+	hasher := &hashingMocks.HasherMock{}
 	marshalizer := &testscommon.MarshalizerMock{}
 	blockSizeComputation := &testscommon.BlockSizeComputationStub{}
 
@@ -266,7 +267,7 @@ func TestNewValidatorInfoPreprocessor_RemovePeerBlockFromPool(t *testing.T) {
 func TestNewValidatorInfoPreprocessor_RemoveOtherBlockTypeFromPoolShouldNotRemove(t *testing.T) {
 	t.Parallel()
 
-	hasher := &testscommon.HasherMock{}
+	hasher := &hashingMocks.HasherMock{}
 	marshalizer := &testscommon.MarshalizerMock{}
 	blockSizeComputation := &testscommon.BlockSizeComputationStub{}
 

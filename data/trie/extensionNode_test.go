@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -832,7 +833,7 @@ func getCollapsedEn(t *testing.T, n node) *extensionNode {
 func TestExtensionNode_newExtensionNodeNilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	en, err := newExtensionNode([]byte("key"), &branchNode{}, nil, mock.HasherMock{})
+	en, err := newExtensionNode([]byte("key"), &branchNode{}, nil, hashingMocks.HasherMock{})
 	assert.Nil(t, en)
 	assert.Equal(t, ErrNilMarshalizer, err)
 }

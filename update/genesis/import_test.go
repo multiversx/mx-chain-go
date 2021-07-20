@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/assert"
@@ -86,7 +87,7 @@ func TestImportAll(t *testing.T) {
 
 	args := ArgsNewStateImport{
 		HardforkStorer:      &mock.HardforkStorerStub{},
-		Hasher:              &mock.HasherMock{},
+		Hasher:              &hashingMocks.HasherMock{},
 		Marshalizer:         &mock.MarshalizerMock{},
 		TrieStorageManagers: trieStorageManagers,
 		ShardID:             0,
@@ -106,7 +107,7 @@ func TestStateImport_ImportUnFinishedMetaBlocksShouldWork(t *testing.T) {
 	trieStorageManagers := make(map[string]data.StorageManager)
 	trieStorageManagers[factory.UserAccountTrie] = &testscommon.StorageManagerStub{}
 
-	hasher := &mock.HasherMock{}
+	hasher := &hashingMocks.HasherMock{}
 	marshahlizer := &mock.MarshalizerMock{}
 	metaBlock := &block.MetaBlock{
 		Round:   1,
