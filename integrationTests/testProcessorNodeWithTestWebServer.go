@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
+	"github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
@@ -154,8 +155,8 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		txTypeHandler,
 		tpn.EconomicsData,
 		&mock.TransactionSimulatorStub{
-			ProcessTxCalled: func(tx *dataTransaction.Transaction) (*dataTransaction.SimulationResults, error) {
-				return &dataTransaction.SimulationResults{}, nil
+			ProcessTxCalled: func(tx *dataTransaction.Transaction) (*data.SimulationResults, error) {
+				return &data.SimulationResults{}, nil
 			},
 		},
 		tpn.AccntState,

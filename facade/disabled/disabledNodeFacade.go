@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go/api/address"
@@ -22,8 +23,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
+	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-vm-common/data/esdt"
 )
 
 var _ = address.FacadeHandler(&disabledNodeFacade{})
@@ -150,7 +151,7 @@ func (nf *disabledNodeFacade) SendBulkTransactions(_ []*transaction.Transaction)
 }
 
 // SimulateTransactionExecution returns nil and error
-func (nf *disabledNodeFacade) SimulateTransactionExecution(_ *transaction.Transaction) (*transaction.SimulationResults, error) {
+func (nf *disabledNodeFacade) SimulateTransactionExecution(_ *transaction.Transaction) (*txSimData.SimulationResults, error) {
 	return nil, errNodeStarting
 }
 
