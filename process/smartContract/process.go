@@ -9,18 +9,19 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/atomic"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -176,7 +177,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		return nil, process.ErrNilCacher
 	}
 
-	builtInFuncCost := args.GasSchedule.LatestGasSchedule()[core.BuiltInCost]
+	builtInFuncCost := args.GasSchedule.LatestGasSchedule()[common.BuiltInCost]
 	sc := &scProcessor{
 		vmContainer:                         args.VmContainer,
 		argsParser:                          args.ArgsParser,
@@ -233,7 +234,7 @@ func (sc *scProcessor) GasScheduleChange(gasSchedule map[string]map[string]uint6
 	sc.mutGasLock.Lock()
 	defer sc.mutGasLock.Unlock()
 
-	builtInFuncCost := gasSchedule[core.BuiltInCost]
+	builtInFuncCost := gasSchedule[common.BuiltInCost]
 	if builtInFuncCost == nil {
 		return
 	}

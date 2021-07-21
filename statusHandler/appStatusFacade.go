@@ -1,7 +1,7 @@
 package statusHandler
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 )
 
 // AppStatusFacade will be used for handling multiple monitoring tools at once

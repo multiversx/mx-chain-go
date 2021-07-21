@@ -1,12 +1,13 @@
 package fallback
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -62,7 +63,7 @@ func (fhv *fallbackHeaderValidator) ShouldApplyFallbackValidation(headerHandler 
 		return false
 	}
 
-	isRoundTooOld := int64(headerHandler.GetRound())-int64(previousHeader.GetRound()) >= core.MaxRoundsWithoutCommittedStartInEpochBlock
+	isRoundTooOld := int64(headerHandler.GetRound())-int64(previousHeader.GetRound()) >= common.MaxRoundsWithoutCommittedStartInEpochBlock
 	return isRoundTooOld
 }
 

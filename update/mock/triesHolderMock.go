@@ -1,32 +1,34 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/data"
+import (
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
+)
 
 // TriesHolderMock -
 type TriesHolderMock struct {
-	PutCalled    func([]byte, data.Trie)
-	RemoveCalled func([]byte, data.Trie)
-	GetCalled    func([]byte) data.Trie
-	GetAllCalled func() []data.Trie
+	PutCalled    func([]byte, temporary.Trie)
+	RemoveCalled func([]byte, temporary.Trie)
+	GetCalled    func([]byte) temporary.Trie
+	GetAllCalled func() []temporary.Trie
 	ResetCalled  func()
 }
 
 // Put -
-func (thm *TriesHolderMock) Put(key []byte, trie data.Trie) {
+func (thm *TriesHolderMock) Put(key []byte, trie temporary.Trie) {
 	if thm.PutCalled != nil {
 		thm.PutCalled(key, trie)
 	}
 }
 
 // Replace -
-func (thm *TriesHolderMock) Replace(key []byte, trie data.Trie) {
+func (thm *TriesHolderMock) Replace(key []byte, trie temporary.Trie) {
 	if thm.RemoveCalled != nil {
 		thm.RemoveCalled(key, trie)
 	}
 }
 
 // Get -
-func (thm *TriesHolderMock) Get(key []byte) data.Trie {
+func (thm *TriesHolderMock) Get(key []byte) temporary.Trie {
 	if thm.GetCalled != nil {
 		return thm.GetCalled(key)
 	}
@@ -34,7 +36,7 @@ func (thm *TriesHolderMock) Get(key []byte) data.Trie {
 }
 
 // GetAll -
-func (thm *TriesHolderMock) GetAll() []data.Trie {
+func (thm *TriesHolderMock) GetAll() []temporary.Trie {
 	if thm.GetAllCalled != nil {
 		return thm.GetAllCalled()
 	}

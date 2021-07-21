@@ -3,7 +3,7 @@ package singlesig_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/mock"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"

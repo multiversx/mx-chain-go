@@ -1,9 +1,9 @@
 package sharding
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 var _ NodesCoordinatorHelper = (*indexHashedNodesCoordinatorWithRater)(nil)
@@ -59,7 +59,7 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) ComputeAdditionalLeaving(allVa
 	extraLeavingNodesMap := make(map[uint32][]Validator)
 	minChances := ihgs.GetChance(0)
 	for _, vInfo := range allValidators {
-		if vInfo.List == string(core.InactiveList) || vInfo.List == string(core.JailedList) {
+		if vInfo.List == string(common.InactiveList) || vInfo.List == string(common.JailedList) {
 			continue
 		}
 		chances := ihgs.GetChance(vInfo.TempRating)

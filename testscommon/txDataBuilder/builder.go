@@ -4,7 +4,7 @@ import (
 	"encoding/hex"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 )
 
 // txDataBuilder constructs a string to be used for transaction arguments

@@ -1,26 +1,26 @@
 package bootstrapMocks
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
+	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
 )
 
 // EpochStartBootstrapperStub -
 type EpochStartBootstrapperStub struct {
 	TrieHolder      state.TriesHolder
-	StorageManagers map[string]data.StorageManager
+	StorageManagers map[string]temporary.StorageManager
 	BootstrapCalled func() (bootstrap.Parameters, error)
 }
 
 // GetTriesComponents -
-func (esbs *EpochStartBootstrapperStub) GetTriesComponents() (state.TriesHolder, map[string]data.StorageManager) {
+func (esbs *EpochStartBootstrapperStub) GetTriesComponents() (state.TriesHolder, map[string]temporary.StorageManager) {
 	return esbs.TrieHolder, esbs.StorageManagers
 }
 
 // Bootstrap -
 func (esbs *EpochStartBootstrapperStub) Bootstrap() (bootstrap.Parameters, error) {
-	if esbs.BootstrapCalled!=nil {
+	if esbs.BootstrapCalled != nil {
 		return esbs.BootstrapCalled()
 	}
 

@@ -140,6 +140,9 @@
     BigIntAdd                = 2000
     BigIntSub                = 2000
     BigIntMul                = 6000
+    BigIntSqrt               = 6000
+    BigIntPow                = 6000
+    BigIntLog                = 6000
     BigIntTDiv               = 6000
     BigIntTMod               = 6000
     BigIntEDiv               = 6000
@@ -171,6 +174,16 @@
     VerifyBLS       = 5000000
     VerifyEd25519   = 2000000
     VerifySecp256k1 = 2000000
+    EllipticCurveNew       = 10000
+    AddECC                 = 75000
+    DoubleECC              = 65000
+    IsOnCurveECC           = 10000
+    ScalarMultECC          = 400000
+    MarshalECC             = 13000
+    MarshalCompressedECC   = 15000
+    UnmarshalECC           = 20000
+    UnmarshalCompressedECC = 270000
+    GenerateKeyECC         = 700000
 
 [WASMOpcodeCost]
     Unreachable = 1

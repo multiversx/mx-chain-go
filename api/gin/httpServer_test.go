@@ -3,8 +3,8 @@ package gin
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/api/errors"
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/stretchr/testify/require"
 )
 

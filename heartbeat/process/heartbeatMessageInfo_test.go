@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/process"
@@ -247,7 +247,7 @@ func TestHeartbeatMessageInfo_GetIsValidator_PeerTypeEligibleShouldReturnTrue(t 
 	genesisTime := time.Unix(1, 0)
 	hbmi, _ := process.NewHeartbeatMessageInfo(
 		100*time.Second,
-		string(core.EligibleList),
+		string(common.EligibleList),
 		genesisTime,
 		mockTimer,
 	)
@@ -262,7 +262,7 @@ func TestHeartbeatMessageInfo_GetIsValidator_PeerTypeWaitingShouldReturnTrue(t *
 	genesisTime := time.Unix(1, 0)
 	hbmi, _ := process.NewHeartbeatMessageInfo(
 		100*time.Second,
-		string(core.WaitingList),
+		string(common.WaitingList),
 		genesisTime,
 		mockTimer,
 	)

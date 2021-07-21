@@ -1,6 +1,6 @@
 package containers
 
-import "github.com/ElrondNetwork/elrond-go/core/container"
+import "github.com/ElrondNetwork/elrond-go-core/core/container"
 
 func (rc *resolversContainer) Insert(key string, value interface{}) bool {
 	return rc.objects.Insert(key, value)

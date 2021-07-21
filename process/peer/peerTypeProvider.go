@@ -3,17 +3,18 @@ package peer
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 type peerListAndShard struct {
-	pType    core.PeerType
+	pType    common.PeerType
 	pSubType core.P2PPeerSubType
 	pShard   uint32
 }
@@ -55,7 +56,7 @@ func NewPeerTypeProvider(arg ArgPeerTypeProvider) (*PeerTypeProvider, error) {
 }
 
 // ComputeForPubKey returns the peer type for a given public key and shard id
-func (ptp *PeerTypeProvider) ComputeForPubKey(pubKey []byte) (core.PeerType, uint32, error) {
+func (ptp *PeerTypeProvider) ComputeForPubKey(pubKey []byte) (common.PeerType, uint32, error) {
 	ptp.mutCache.RLock()
 	peerData, ok := ptp.cache[string(pubKey)]
 	ptp.mutCache.RUnlock()
@@ -64,7 +65,7 @@ func (ptp *PeerTypeProvider) ComputeForPubKey(pubKey []byte) (core.PeerType, uin
 		return peerData.pType, peerData.pShard, nil
 	}
 
-	return core.ObserverList, 0, nil
+	return common.ObserverList, 0, nil
 }
 
 // GetAllPeerTypeInfos returns all known peer type infos
@@ -96,7 +97,7 @@ func (ptp *PeerTypeProvider) epochStartEventHandler() sharding.EpochStartActionH
 			ptp.updateCache(hdr.GetEpoch())
 		},
 		func(_ data.HeaderHandler) {},
-		core.IndexerOrder,
+		common.IndexerOrder,
 	)
 
 	return subscribeHandler
@@ -119,13 +120,13 @@ func (ptp *PeerTypeProvider) createNewCache(
 	if err != nil {
 		log.Debug("peerTypeProvider - GetAllEligibleValidatorsPublicKeys failed", "epoch", epoch)
 	}
-	computePeerTypeAndShardId(newCache, nodesMapEligible, core.EligibleList)
+	computePeerTypeAndShardId(newCache, nodesMapEligible, common.EligibleList)
 
 	nodesMapWaiting, err := ptp.nodesCoordinator.GetAllWaitingValidatorsPublicKeys(epoch)
 	if err != nil {
 		log.Debug("peerTypeProvider - GetAllWaitingValidatorsPublicKeys failed", "epoch", epoch)
 	}
-	computePeerTypeAndShardId(newCache, nodesMapWaiting, core.WaitingList)
+	computePeerTypeAndShardId(newCache, nodesMapWaiting, common.WaitingList)
 
 	return newCache
 }
@@ -133,7 +134,7 @@ func (ptp *PeerTypeProvider) createNewCache(
 func computePeerTypeAndShardId(
 	newCache map[string]*peerListAndShard,
 	validatorsMap map[uint32][][]byte,
-	currentPeerType core.PeerType,
+	currentPeerType common.PeerType,
 ) {
 	for shardID, shardValidators := range validatorsMap {
 		for _, val := range shardValidators {

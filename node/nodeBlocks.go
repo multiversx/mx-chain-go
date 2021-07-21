@@ -4,10 +4,10 @@ import (
 	"encoding/hex"
 	"errors"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/api"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go/node/blockAPI"
+	"github.com/ElrondNetwork/elrond-go/process/txstatus"
 )
 
 // GetBlockByHash return the block for a given hash
@@ -36,7 +36,7 @@ func (n *Node) GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error) {
 }
 
 func (n *Node) createAPIBlockProcessor() (blockAPI.APIBlockHandler, error) {
-	statusComputer, err := transaction.NewStatusComputer(n.processComponents.ShardCoordinator().SelfId(), n.coreComponents.Uint64ByteSliceConverter(), n.dataComponents.StorageService())
+	statusComputer, err := txstatus.NewStatusComputer(n.processComponents.ShardCoordinator().SelfId(), n.coreComponents.Uint64ByteSliceConverter(), n.dataComponents.StorageService())
 	if err != nil {
 		return nil, errors.New("error creating transaction status computer " + err.Error())
 	}

@@ -12,25 +12,26 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/keyValStorage"
+	"github.com/ElrondNetwork/elrond-go-core/core/queue"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters/uint64ByteSlice"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/keyValStorage"
-	"github.com/ElrondNetwork/elrond-go/core/queue"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/blockchain"
-	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
 	"github.com/ElrondNetwork/elrond-go/process"
 	blproc "github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -1001,10 +1002,10 @@ func TestBlockProcessor_PruneStateOnRollbackPrunesPeerTrieIfAccPruneIsDisabled(t
 
 	pruningCalled := 0
 	peerAccDb := &testscommon.AccountsStub{
-		PruneTrieCalled: func(rootHash []byte, identifier data.TriePruningIdentifier) {
+		PruneTrieCalled: func(rootHash []byte, identifier temporary.TriePruningIdentifier) {
 			pruningCalled++
 		},
-		CancelPruneCalled: func(rootHash []byte, identifier data.TriePruningIdentifier) {
+		CancelPruneCalled: func(rootHash []byte, identifier temporary.TriePruningIdentifier) {
 			pruningCalled++
 		},
 		IsPruningEnabledCalled: func() bool {
@@ -1034,10 +1035,10 @@ func TestBlockProcessor_PruneStateOnRollbackPrunesPeerTrieIfSameRootHashButDiffe
 
 	pruningCalled := 0
 	peerAccDb := &testscommon.AccountsStub{
-		PruneTrieCalled: func(rootHash []byte, identifier data.TriePruningIdentifier) {
+		PruneTrieCalled: func(rootHash []byte, identifier temporary.TriePruningIdentifier) {
 			pruningCalled++
 		},
-		CancelPruneCalled: func(rootHash []byte, identifier data.TriePruningIdentifier) {
+		CancelPruneCalled: func(rootHash []byte, identifier temporary.TriePruningIdentifier) {
 			pruningCalled++
 		},
 		IsPruningEnabledCalled: func() bool {
@@ -1046,10 +1047,10 @@ func TestBlockProcessor_PruneStateOnRollbackPrunesPeerTrieIfSameRootHashButDiffe
 	}
 
 	accDb := &testscommon.AccountsStub{
-		PruneTrieCalled: func(rootHash []byte, identifier data.TriePruningIdentifier) {
+		PruneTrieCalled: func(rootHash []byte, identifier temporary.TriePruningIdentifier) {
 			pruningCalled++
 		},
-		CancelPruneCalled: func(rootHash []byte, identifier data.TriePruningIdentifier) {
+		CancelPruneCalled: func(rootHash []byte, identifier temporary.TriePruningIdentifier) {
 			pruningCalled++
 		},
 		IsPruningEnabledCalled: func() bool {
@@ -1492,10 +1493,10 @@ func TestBaseProcessor_updateState(t *testing.T) {
 		IsPruningEnabledCalled: func() bool {
 			return true
 		},
-		PruneTrieCalled: func(rootHashParam []byte, identifier data.TriePruningIdentifier) {
+		PruneTrieCalled: func(rootHashParam []byte, identifier temporary.TriePruningIdentifier) {
 			pruneRootHash = rootHashParam
 		},
-		CancelPruneCalled: func(rootHash []byte, identifier data.TriePruningIdentifier) {
+		CancelPruneCalled: func(rootHash []byte, identifier temporary.TriePruningIdentifier) {
 			cancelPruneRootHash = rootHash
 		},
 	}

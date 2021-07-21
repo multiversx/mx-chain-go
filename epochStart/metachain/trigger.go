@@ -7,18 +7,19 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/closing"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/display"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/closing"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -113,7 +114,7 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 		return nil, epochStart.ErrNilMetaBlockStorage
 	}
 
-	trigggerStateKey := core.TriggerRegistryInitialKeyPrefix + fmt.Sprintf("%d", args.Epoch)
+	trigggerStateKey := common.TriggerRegistryInitialKeyPrefix + fmt.Sprintf("%d", args.Epoch)
 	trig := &trigger{
 		triggerStateKey:             []byte(trigggerStateKey),
 		roundsPerEpoch:              uint64(args.Settings.RoundsPerEpoch),
@@ -234,8 +235,8 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, body data.BodyHandler)
 		log.Debug("SetProcessed marshal", "error", errNotCritical.Error())
 	}
 
-	t.appStatusHandler.SetUInt64Value(core.MetricRoundAtEpochStart, metaBlock.Round)
-	t.appStatusHandler.SetUInt64Value(core.MetricNonceAtEpochStart, metaBlock.Nonce)
+	t.appStatusHandler.SetUInt64Value(common.MetricRoundAtEpochStart, metaBlock.Round)
+	t.appStatusHandler.SetUInt64Value(common.MetricNonceAtEpochStart, metaBlock.Nonce)
 
 	metaHash := t.hasher.Compute(string(metaBuff))
 

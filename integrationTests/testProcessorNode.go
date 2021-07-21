@@ -10,45 +10,44 @@ import (
 	"sync/atomic"
 	"time"
 
-	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_3/config"
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/accumulator"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/partitioning"
+	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
+	"github.com/ElrondNetwork/elrond-go-core/core/versioning"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	dataBlock "github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
+	dataTransaction "github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters/uint64ByteSlice"
+	"github.com/ElrondNetwork/elrond-go-core/hashing/keccak"
+	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/accumulator"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/core/forking"
-	"github.com/ElrondNetwork/elrond-go/core/partitioning"
-	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
-	"github.com/ElrondNetwork/elrond-go/core/versioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
 	mclsig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/singlesig"
-	"github.com/ElrondNetwork/elrond-go/data"
-	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
-	trieFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
+	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
-	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
-	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/nodeDebugFactory"
@@ -78,6 +77,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
@@ -88,6 +89,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -117,7 +119,7 @@ var TestVmMarshalizer = &marshal.JsonMarshalizer{}
 var TestTxSignMarshalizer = &marshal.JsonMarshalizer{}
 
 // TestAddressPubkeyConverter represents an address public key converter
-var TestAddressPubkeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32)
+var TestAddressPubkeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32, log)
 
 // TestValidatorPubkeyConverter represents an address public key converter
 var TestValidatorPubkeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(96)
@@ -231,7 +233,7 @@ type TestProcessorNode struct {
 	Storage             dataRetriever.StorageService
 	PeerState           state.AccountsAdapter
 	AccntState          state.AccountsAdapter
-	TrieStorageManagers map[string]data.StorageManager
+	TrieStorageManagers map[string]temporary.StorageManager
 	TrieContainer       state.TriesHolder
 	BlockChain          data.ChainHandler
 	GenesisBlocks       map[uint32]data.HeaderHandler
@@ -626,15 +628,15 @@ func (tpn *TestProcessorNode) GetConnectableAddress() string {
 func (tpn *TestProcessorNode) initAccountDBs(store storage.Storer) {
 	trieStorageManager, _ := CreateTrieStorageManager(store)
 	tpn.TrieContainer = state.NewDataTriesHolder()
-	var stateTrie data.Trie
+	var stateTrie temporary.Trie
 	tpn.AccntState, stateTrie = CreateAccountsDB(UserAccount, trieStorageManager)
 	tpn.TrieContainer.Put([]byte(trieFactory.UserAccountTrie), stateTrie)
 
-	var peerTrie data.Trie
+	var peerTrie temporary.Trie
 	tpn.PeerState, peerTrie = CreateAccountsDB(ValidatorAccount, trieStorageManager)
 	tpn.TrieContainer.Put([]byte(trieFactory.PeerAccountTrie), peerTrie)
 
-	tpn.TrieStorageManagers = make(map[string]data.StorageManager)
+	tpn.TrieStorageManagers = make(map[string]temporary.StorageManager)
 	tpn.TrieStorageManagers[trieFactory.UserAccountTrie] = trieStorageManager
 	tpn.TrieStorageManagers[trieFactory.PeerAccountTrie] = trieStorageManager
 }
@@ -878,6 +880,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 		}
 		vmFactory, _ = metaProcess.NewVMContainerFactory(argsNewVmFactory)
 	} else {
+		esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
 		argsNewVMFactory := shard.ArgVMContainerFactory{
 			Config: config.VirtualMachineConfig{
 				ArwenVersions: []config.ArwenVersionByEpoch{
@@ -892,6 +895,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 			AheadOfTimeGasUsageEnableEpoch: 0,
 			ArwenV3EnableEpoch:             0,
 			ArwenChangeLocker:              tpn.ArwenChangeLocker,
+			ESDTTransferParser:             esdtTransferParser,
 		}
 		vmFactory, _ = shard.NewVMContainerFactory(argsNewVMFactory)
 	}
@@ -1246,7 +1250,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 func (tpn *TestProcessorNode) initResolvers() {
 	dataPacker, _ := partitioning.NewSimpleDataPacker(TestMarshalizer)
 
-	_ = tpn.Messenger.CreateTopic(core.ConsensusTopic+tpn.ShardCoordinator.CommunicationIdentifier(tpn.ShardCoordinator.SelfId()), true)
+	_ = tpn.Messenger.CreateTopic(common.ConsensusTopic+tpn.ShardCoordinator.CommunicationIdentifier(tpn.ShardCoordinator.SelfId()), true)
 
 	resolverContainerFactory := resolverscontainer.FactoryArgs{
 		ShardCoordinator:            tpn.ShardCoordinator,
@@ -1379,6 +1383,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		CompiledSCPool:     tpn.DataPool.SmartContracts(),
 		NilCompiledSCStore: true,
 	}
+	esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
 	argsNewVMFactory := shard.ArgVMContainerFactory{
 		Config: config.VirtualMachineConfig{
@@ -1394,6 +1399,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		AheadOfTimeGasUsageEnableEpoch: 0,
 		ArwenV3EnableEpoch:             0,
 		ArwenChangeLocker:              tpn.ArwenChangeLocker,
+		ESDTTransferParser:             esdtTransferParser,
 	}
 	vmFactory, _ := shard.NewVMContainerFactory(argsNewVMFactory)
 
@@ -1412,7 +1418,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 
 	tpn.FeeAccumulator, _ = postprocess.NewFeeAccumulator()
 	tpn.ArgsParser = smartContract.NewArgumentParser()
-	esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
+
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:    TestAddressPubkeyConverter,
 		ShardCoordinator:   tpn.ShardCoordinator,
@@ -2105,7 +2111,7 @@ func (tpn *TestProcessorNode) setGenesisBlock() {
 func (tpn *TestProcessorNode) initNode() {
 	var err error
 
-	txAccumulator, _ := accumulator.NewTimeAccumulator(time.Millisecond*10, time.Millisecond)
+	txAccumulator, _ := accumulator.NewTimeAccumulator(time.Millisecond*10, time.Millisecond, log)
 	coreComponents := GetDefaultCoreComponents()
 	coreComponents.InternalMarshalizerField = TestMarshalizer
 	coreComponents.VmMarshalizerField = TestVmMarshalizer
@@ -2848,7 +2854,7 @@ func GetDefaultStateComponents() *testscommon.StateComponentsMock {
 		PeersAcc: &testscommon.AccountsStub{},
 		Accounts: &testscommon.AccountsStub{},
 		Tries:    &mock.TriesHolderStub{},
-		StorageManagers: map[string]data.StorageManager{
+		StorageManagers: map[string]temporary.StorageManager{
 			"0":                         &testscommon.StorageManagerStub{},
 			trieFactory.UserAccountTrie: &testscommon.StorageManagerStub{},
 			trieFactory.PeerAccountTrie: &testscommon.StorageManagerStub{},
@@ -2881,7 +2887,7 @@ func GetDefaultBootstrapComponents(shardCoordinator sharding.Coordinator) *mainF
 	return &mainFactoryMocks.BootstrapComponentsStub{
 		Bootstrapper: &bootstrapMocks.EpochStartBootstrapperStub{
 			TrieHolder:      &mock.TriesHolderStub{},
-			StorageManagers: map[string]data.StorageManager{"0": &testscommon.StorageManagerStub{}},
+			StorageManagers: map[string]temporary.StorageManager{"0": &testscommon.StorageManagerStub{}},
 			BootstrapCalled: nil,
 		},
 		BootstrapParams:      &bootstrapMocks.BootstrapParamsHandlerMock{},
