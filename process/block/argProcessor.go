@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
-	"github.com/ElrondNetwork/elrond-go/common/statistics"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -41,7 +40,6 @@ type bootstrapComponentsHolder interface {
 
 type statusComponentsHolder interface {
 	ElasticIndexer() process.Indexer
-	TpsBenchmark() statistics.TPSBenchmark
 	IsInterfaceNil() bool
 }
 

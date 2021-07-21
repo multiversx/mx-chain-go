@@ -17,7 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/statistics"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -1082,7 +1081,6 @@ type Indexer interface {
 	SaveBlock(args *indexer.ArgsSaveBlockData)
 	RevertIndexedBlock(header data.HeaderHandler, body data.BodyHandler)
 	SaveRoundsInfo(roundsInfos []*indexer.RoundInfo)
-	UpdateTPS(tpsBenchmark statistics.TPSBenchmark)
 	SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte, epoch uint32)
 	SaveValidatorsRating(indexID string, infoRating []*indexer.ValidatorRatingInfo)
 	SaveAccounts(blockTimestamp uint64, acc []state.UserAccountHandler)

@@ -91,9 +91,6 @@ func (msc *managedStatusComponents) CheckSubcomponents() error {
 	if msc.statusComponents == nil {
 		return errors.ErrNilStatusComponents
 	}
-	if check.IfNil(msc.tpsBenchmark) {
-		return errors.ErrNilTpsBenchmark
-	}
 	if check.IfNil(msc.elasticIndexer) {
 		return errors.ErrNilElasticIndexer
 	}
@@ -134,18 +131,6 @@ func (msc *managedStatusComponents) StartPolling() error {
 	msc.attachEpochGoRoutineAnalyser()
 
 	return nil
-}
-
-// TpsBenchmark returns the tps benchmark handler
-func (msc *managedStatusComponents) TpsBenchmark() statistics.TPSBenchmark {
-	msc.mutStatusComponents.RLock()
-	defer msc.mutStatusComponents.RUnlock()
-
-	if msc.statusComponents == nil {
-		return nil
-	}
-
-	return msc.statusComponents.tpsBenchmark
 }
 
 // ElasticIndexer returns the elastic indexer handler

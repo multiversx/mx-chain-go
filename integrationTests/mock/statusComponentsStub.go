@@ -8,7 +8,6 @@ import (
 
 // StatusComponentsStub -
 type StatusComponentsStub struct {
-	TPSBench             statistics.TPSBenchmark
 	Indexer              process.Indexer
 	SoftwareVersionCheck statistics.SoftwareVersionChecker
 	AppStatusHandler     core.AppStatusHandler
@@ -27,11 +26,6 @@ func (scs *StatusComponentsStub) Close() error {
 // CheckSubcomponents -
 func (scs *StatusComponentsStub) CheckSubcomponents() error {
 	return nil
-}
-
-// TpsBenchmark -
-func (scs *StatusComponentsStub) TpsBenchmark() statistics.TPSBenchmark {
-	return scs.TPSBench
 }
 
 // ElasticIndexer -

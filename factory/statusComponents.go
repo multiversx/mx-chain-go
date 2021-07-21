@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common/statistics"
 	"github.com/ElrondNetwork/elrond-go/common/statistics/softwareVersion/factory"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -21,7 +20,6 @@ import (
 
 type statusComponents struct {
 	statusHandler   core.AppStatusHandler
-	tpsBenchmark    statistics.TPSBenchmark
 	elasticIndexer  process.Indexer
 	softwareVersion statistics.SoftwareVersionChecker
 	resourceMonitor statistics.ResourceMonitorHandler
@@ -134,23 +132,9 @@ func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
 
 	softwareVersionChecker.StartCheckSoftwareVersion()
 
-	initialTpsBenchmark := scf.coreComponents.StatusHandlerUtils().LoadTpsBenchmarkFromStorage(
-		scf.dataComponents.StorageService().GetStorer(dataRetriever.StatusMetricsUnit),
-		scf.coreComponents.InternalMarshalizer(),
-	)
-
 	roundDurationSec := scf.coreComponents.GenesisNodesSetup().GetRoundDuration() / 1000
 	if roundDurationSec < 1 {
 		return nil, errors.ErrInvalidRoundDuration
-	}
-	tpsBenchmark, err := statistics.NewTPSBenchmarkWithInitialData(
-		scf.coreComponents.StatusHandler(),
-		initialTpsBenchmark,
-		scf.shardCoordinator.NumberOfShards(),
-		roundDurationSec,
-	)
-	if err != nil {
-		return nil, err
 	}
 
 	elasticIndexer, err := scf.createElasticIndexer()
@@ -161,7 +145,6 @@ func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
 	_, cancelFunc := context.WithCancel(context.Background())
 	return &statusComponents{
 		softwareVersion: softwareVersionChecker,
-		tpsBenchmark:    tpsBenchmark,
 		elasticIndexer:  elasticIndexer,
 		statusHandler:   scf.coreComponents.StatusHandler(),
 		resourceMonitor: resMon,
