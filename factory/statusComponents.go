@@ -149,7 +149,7 @@ func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
 
 	_, cancelFunc := context.WithCancel(context.Background())
 
-	statusComps := &statusComponents{
+	statusComponentsInstance := &statusComponents{
 		nodesCoordinator: scf.nodesCoordinator,
 		softwareVersion:  softwareVersionChecker,
 		elasticIndexer:   elasticIndexer,
@@ -159,10 +159,10 @@ func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
 	}
 
 	if scf.shardCoordinator.SelfId() == core.MetachainShardId {
-		scf.epochStartNotifier.RegisterHandler(statusComps.epochStartEventHandler())
+		scf.epochStartNotifier.RegisterHandler(statusComponentsInstance.epochStartEventHandler())
 	}
 
-	return statusComps, nil
+	return statusComponentsInstance, nil
 }
 
 func (pc *statusComponents) epochStartEventHandler() epochStart.ActionHandler {
