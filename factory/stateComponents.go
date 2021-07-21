@@ -179,11 +179,11 @@ func (scf *stateComponentsFactory) newStoragePruningManager(trieStorageCfg confi
 		return nil, err
 	}
 
-	trieEvictionWaitingList, err := evictionWaitingList.NewEvictionWaitingList(
+	trieEvictionWaitingList, err := evictionWaitingList.NewEvictionWaitingListV2(
 		scf.config.EvictionWaitingList.Size,
 		evictionDb,
 		scf.core.InternalMarshalizer(),
-	)
+	) //TODO add a factory
 	if err != nil {
 		return nil, err
 	}

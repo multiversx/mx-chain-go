@@ -5,58 +5,52 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/state/temporary"
-	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/stretchr/testify/assert"
 )
 
-func getDefaultParameters() (uint, storage.Persister, marshal.Marshalizer) {
-	return 10, memorydb.New(), &mock.MarshalizerMock{}
-}
-
-func TestNewEvictionWaitingList(t *testing.T) {
+func TestNewEvictionWaitingListV2(t *testing.T) {
 	t.Parallel()
 
-	ec, err := NewEvictionWaitingList(getDefaultParameters())
+	ec, err := NewEvictionWaitingListV2(getDefaultParameters())
 	assert.Nil(t, err)
 	assert.NotNil(t, ec)
 }
 
-func TestNewEvictionWaitingList_InvalidCacheSize(t *testing.T) {
+func TestNewEvictionWaitingListV2_InvalidCacheSize(t *testing.T) {
 	t.Parallel()
 
 	_, db, marsh := getDefaultParameters()
-	ec, err := NewEvictionWaitingList(0, db, marsh)
+	ec, err := NewEvictionWaitingListV2(0, db, marsh)
 	assert.Nil(t, ec)
 	assert.Equal(t, data.ErrInvalidCacheSize, err)
 }
 
-func TestNewEvictionWaitingList_NilDatabase(t *testing.T) {
+func TestNewEvictionWaitingListV2_NilDatabase(t *testing.T) {
 	t.Parallel()
 
 	size, _, marsh := getDefaultParameters()
-	ec, err := NewEvictionWaitingList(size, nil, marsh)
+	ec, err := NewEvictionWaitingListV2(size, nil, marsh)
 	assert.Nil(t, ec)
 	assert.Equal(t, data.ErrNilDatabase, err)
 }
 
-func TestNewEvictionWaitingList_NilDMarshalizer(t *testing.T) {
+func TestNewEvictionWaitingListV2_NilDMarshalizer(t *testing.T) {
 	t.Parallel()
 
 	size, db, _ := getDefaultParameters()
-	ec, err := NewEvictionWaitingList(size, db, nil)
+	ec, err := NewEvictionWaitingListV2(size, db, nil)
 	assert.Nil(t, ec)
 	assert.Equal(t, data.ErrNilMarshalizer, err)
 }
 
-func TestEvictionWaitingList_Put(t *testing.T) {
+func TestEvictionWaitingListV2_Put(t *testing.T) {
 	t.Parallel()
 
-	ec, _ := NewEvictionWaitingList(getDefaultParameters())
+	ec, _ := NewEvictionWaitingListV2(getDefaultParameters())
 
 	hashesMap := temporary.ModifiedHashes{
 		"hash1": {},
@@ -71,12 +65,12 @@ func TestEvictionWaitingList_Put(t *testing.T) {
 	assert.Equal(t, hashesMap, ec.cache[string(root)])
 }
 
-func TestEvictionWaitingList_PutMultiple(t *testing.T) {
+func TestEvictionWaitingListV2_PutMultiple(t *testing.T) {
 	t.Parallel()
 
 	cacheSize := uint(2)
 	_, db, marsh := getDefaultParameters()
-	ec, _ := NewEvictionWaitingList(cacheSize, db, marsh)
+	ec, _ := NewEvictionWaitingListV2(cacheSize, db, marsh)
 
 	hashesMap := temporary.ModifiedHashes{
 		"hash0": {},
@@ -116,10 +110,10 @@ func TestEvictionWaitingList_PutMultiple(t *testing.T) {
 	}
 }
 
-func TestEvictionWaitingList_Evict(t *testing.T) {
+func TestEvictionWaitingListV2_Evict(t *testing.T) {
 	t.Parallel()
 
-	ec, _ := NewEvictionWaitingList(getDefaultParameters())
+	ec, _ := NewEvictionWaitingListV2(getDefaultParameters())
 
 	expectedHashesMap := temporary.ModifiedHashes{
 		"hash1": {},
@@ -135,12 +129,12 @@ func TestEvictionWaitingList_Evict(t *testing.T) {
 	assert.Equal(t, expectedHashesMap, evicted)
 }
 
-func TestEvictionWaitingList_EvictFromDB(t *testing.T) {
+func TestEvictionWaitingListV2_EvictFromDB(t *testing.T) {
 	t.Parallel()
 
 	cacheSize := uint(2)
 	_, db, marsh := getDefaultParameters()
-	ec, _ := NewEvictionWaitingList(cacheSize, db, marsh)
+	ec, _ := NewEvictionWaitingListV2(cacheSize, db, marsh)
 
 	hashesMap := temporary.ModifiedHashes{
 		"hash0": {},
@@ -167,10 +161,10 @@ func TestEvictionWaitingList_EvictFromDB(t *testing.T) {
 	assert.Nil(t, val)
 }
 
-func TestEvictionWaitingList_ShouldKeepHash(t *testing.T) {
+func TestEvictionWaitingListV2_ShouldKeepHash(t *testing.T) {
 	t.Parallel()
 
-	ewl, _ := NewEvictionWaitingList(getDefaultParameters())
+	ewl, _ := NewEvictionWaitingListV2(getDefaultParameters())
 
 	hashesMap := temporary.ModifiedHashes{
 		"hash0": {},
@@ -191,10 +185,10 @@ func TestEvictionWaitingList_ShouldKeepHash(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestEvictionWaitingList_ShouldKeepHashShouldReturnFalse(t *testing.T) {
+func TestEvictionWaitingListV2_ShouldKeepHashShouldReturnFalse(t *testing.T) {
 	t.Parallel()
 
-	ewl, _ := NewEvictionWaitingList(getDefaultParameters())
+	ewl, _ := NewEvictionWaitingListV2(getDefaultParameters())
 
 	hashesMap := temporary.ModifiedHashes{
 		"hash0": {},
@@ -214,10 +208,10 @@ func TestEvictionWaitingList_ShouldKeepHashShouldReturnFalse(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestEvictionWaitingList_ShouldKeepHashShouldReturnTrueIfPresentInOldHashes(t *testing.T) {
+func TestEvictionWaitingListV2_ShouldKeepHashShouldReturnTrueIfPresentInOldHashes(t *testing.T) {
 	t.Parallel()
 
-	ewl, _ := NewEvictionWaitingList(getDefaultParameters())
+	ewl, _ := NewEvictionWaitingListV2(getDefaultParameters())
 
 	hashesMap := temporary.ModifiedHashes{
 		"hash0": {},
@@ -237,12 +231,12 @@ func TestEvictionWaitingList_ShouldKeepHashShouldReturnTrueIfPresentInOldHashes(
 	assert.Nil(t, err)
 }
 
-func TestEvictionWaitingList_ShouldKeepHashSearchInDb(t *testing.T) {
+func TestEvictionWaitingListV2_ShouldKeepHashSearchInDb(t *testing.T) {
 	t.Parallel()
 
 	cacheSize := uint(2)
 	_, db, marsh := getDefaultParameters()
-	ewl, _ := NewEvictionWaitingList(cacheSize, db, marsh)
+	ewl, _ := NewEvictionWaitingListV2(cacheSize, db, marsh)
 
 	root1 := []byte{1, 2, 3, 4, 5, 0}
 	root2 := []byte{6, 7, 8, 9, 10, 0}
@@ -277,10 +271,10 @@ func TestEvictionWaitingList_ShouldKeepHashSearchInDb(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestEvictionWaitingList_ShouldKeepHashInvalidKey(t *testing.T) {
+func TestEvictionWaitingListV2_ShouldKeepHashInvalidKey(t *testing.T) {
 	t.Parallel()
 
-	ewl, _ := NewEvictionWaitingList(getDefaultParameters())
+	ewl, _ := NewEvictionWaitingListV2(getDefaultParameters())
 
 	hashesMap := temporary.ModifiedHashes{
 		"hash0": {},
@@ -294,11 +288,11 @@ func TestEvictionWaitingList_ShouldKeepHashInvalidKey(t *testing.T) {
 	assert.Equal(t, state.ErrInvalidKey, err)
 }
 
-func TestNewEvictionWaitingList_Close(t *testing.T) {
+func TestNewEvictionWaitingListV2_Close(t *testing.T) {
 	t.Parallel()
 
 	db := memorydb.New()
-	ewl, err := NewEvictionWaitingList(10, db, &mock.MarshalizerMock{})
+	ewl, err := NewEvictionWaitingListV2(10, db, &mock.MarshalizerMock{})
 	assert.Nil(t, err)
 	assert.NotNil(t, ewl)
 
