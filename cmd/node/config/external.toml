@@ -16,8 +16,8 @@
 
 # EventNotifierConnector defines settings needed to configure and launch the event notifier component
 [EventNotifierConnector]
-    # Enabled signals whether the driver is enabled or not
-    Enabled = true
+    # Enabled will turn on or off the event notifier connector
+    Enabled = false
 
     # UseAuthorization signals the proxy to use authorization
     # Never run a production setup without authorization

@@ -6,6 +6,7 @@ import (
 	notifierFactory "github.com/ElrondNetwork/notifier-go/factory"
 )
 
+// OutportFactoryArgs holds the factory arguments of different outport drivers
 type OutportFactoryArgs struct {
 	ElasticIndexerFactoryArgs *indexerFactory.ArgsIndexerFactory
 	EventNotifierFactoryArgs  *notifierFactory.EventNotifierFactoryArgs
