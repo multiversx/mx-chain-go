@@ -57,12 +57,10 @@ func CreateTestIndexer(
 	elasticProcessor := ti.createElasticProcessor(coordinator, txFeeCalculator)
 
 	arguments := elasticIndexer.ArgDataIndexer{
-		Marshalizer:        testMarshalizer,
-		NodesCoordinator:   &mock.NodesCoordinatorMock{},
-		EpochStartNotifier: &mock.EpochStartNotifierStub{},
-		ShardCoordinator:   coordinator,
-		ElasticProcessor:   elasticProcessor,
-		DataDispatcher:     dispatcher,
+		Marshalizer:      testMarshalizer,
+		ShardCoordinator: coordinator,
+		ElasticProcessor: elasticProcessor,
+		DataDispatcher:   dispatcher,
 	}
 
 	testIndexer, err := elasticIndexer.NewDataIndexer(arguments)

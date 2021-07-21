@@ -99,8 +99,7 @@ func NewShardProcessorEmptyWith3shards(
 		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 	}
 	statusComponents := &mock.StatusComponentsMock{
-		Indexer:      &mock.IndexerMock{},
-		TPSBenchmark: &testscommon.TpsBenchmarkMock{},
+		Indexer: &mock.IndexerMock{},
 	}
 
 	arguments := ArgShardProcessor{

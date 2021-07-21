@@ -3,7 +3,6 @@ package mock
 import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
-	"github.com/ElrondNetwork/elrond-go/common/statistics"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
@@ -27,11 +26,6 @@ func (im *IndexerStub) Close() error {
 
 // SetTxLogsProcessor will do nothing
 func (im *IndexerStub) SetTxLogsProcessor(_ process.TransactionLogProcessorDatabase) {
-}
-
-// UpdateTPS -
-func (im *IndexerStub) UpdateTPS(_ statistics.TPSBenchmark) {
-	panic("implement me")
 }
 
 // SaveRoundsInfo -
