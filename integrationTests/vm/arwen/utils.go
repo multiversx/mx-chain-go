@@ -259,6 +259,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		},
 	}
 
+	esdtTransferParser, _ := parsers.NewESDTTransferParser(marshalizer)
 	argsNewVMFactory := shard.ArgVMContainerFactory{
 		Config:                         vmFactoryConfig,
 		BlockGasLimit:                  maxGasLimit,
@@ -269,6 +270,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		AheadOfTimeGasUsageEnableEpoch: 0,
 		ArwenV3EnableEpoch:             0,
 		ArwenChangeLocker:              context.ArwenChangeLocker,
+		ESDTTransferParser:             esdtTransferParser,
 	}
 	vmFactory, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	require.Nil(context.T, err)
