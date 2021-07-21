@@ -27,8 +27,8 @@
     # The indexer instance will broadcast data using ProxyUrl
     ProxyUrl = "http://localhost:5000"
 
-    #
+    # Username and Password need to be specified if UseAuthorization is set to true
     Username = ""
 
-    #
+    # Password is used to authorize an observer to push event data
     Password = ""
