@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
+	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	testVm "github.com/ElrondNetwork/elrond-go/integrationTests/vm"
@@ -337,7 +338,7 @@ func TestESDTIssueFromASmartContractSimulated(t *testing.T) {
 		OriginalTxHash: []byte("hash"),
 		GasLimit:       10000000,
 		GasPrice:       1,
-		CallType:       vmcommon.AsynchronousCall,
+		CallType:       vmData.AsynchronousCall,
 		OriginalSender: metaNode.OwnAccount.Address,
 	}
 
