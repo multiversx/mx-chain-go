@@ -258,14 +258,14 @@ func (e *epochStartBootstrap) getLastBootstrapData(storer storage.Storer) (*boot
 
 func (e *epochStartBootstrap) getEpochStartMetaFromStorage(storer storage.Storer) (data.MetaHeaderHandler, error) {
 	epochIdentifier := core.EpochStartIdentifier(e.baseData.lastEpoch)
-	data, err := storer.SearchFirst([]byte(epochIdentifier))
+	epochStartMetaBlock, err := storer.SearchFirst([]byte(epochIdentifier))
 	if err != nil {
 		log.Debug("getEpochStartMetaFromStorage", "key", epochIdentifier, "error", err)
 		return nil, err
 	}
 
 	metaBlock := &block.MetaBlock{}
-	err = e.coreComponentsHolder.InternalMarshalizer().Unmarshal(metaBlock, data)
+	err = e.coreComponentsHolder.InternalMarshalizer().Unmarshal(metaBlock, epochStartMetaBlock)
 	if err != nil {
 		return nil, err
 	}

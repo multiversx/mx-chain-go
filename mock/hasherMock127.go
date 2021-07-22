@@ -5,7 +5,7 @@ type HasherMock127 struct {
 }
 
 // Compute -
-func (HasherMock127) Compute(s string) []byte {
+func (HasherMock127) Compute(_ string) []byte {
 	buff := make([]byte, 0)
 
 	var i byte

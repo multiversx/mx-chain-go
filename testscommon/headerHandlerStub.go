@@ -325,7 +325,7 @@ func (hhs *HeaderHandlerStub) SetAccumulatedFeesInEpoch(_ *big.Int) error {
 }
 
 // SetScheduledRootHash -
-func (hhs *HeaderHandlerStub) SetScheduledRootHash(rootHash []byte) error {
+func (hhs *HeaderHandlerStub) SetScheduledRootHash(_ []byte) error {
 	panic("implement me")
 }
 

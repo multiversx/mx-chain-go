@@ -26,7 +26,7 @@ func (t *trigger) LoadState(key []byte) error {
 	trigInternalKey := append([]byte(common.TriggerRegistryKeyPrefix), key...)
 	log.Debug("getting start of epoch trigger state", "key", trigInternalKey)
 
-	data, err := t.triggerStorage.Get(trigInternalKey)
+	triggerData, err := t.triggerStorage.Get(trigInternalKey)
 	if err != nil {
 		return err
 	}
@@ -34,7 +34,7 @@ func (t *trigger) LoadState(key []byte) error {
 	state := &TriggerRegistry{
 		EpochStartShardHeader: &block.Header{},
 	}
-	err = json.Unmarshal(data, state)
+	err = json.Unmarshal(triggerData, state)
 	if err != nil {
 		return err
 	}

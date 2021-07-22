@@ -61,7 +61,7 @@ func (t *trigger) saveState(key []byte) error {
 	registry.Epoch = t.epoch
 	registry.EpochStartMetaHash = t.epochStartMetaHash
 	registry.EpochStartMeta = t.epochStartMeta
-	data, err := json.Marshal(registry)
+	triggerData, err := json.Marshal(registry)
 	if err != nil {
 		return err
 	}
@@ -69,5 +69,5 @@ func (t *trigger) saveState(key []byte) error {
 	trigInternalKey := append([]byte(common.TriggerRegistryKeyPrefix), key...)
 	log.Debug("saving start of epoch trigger state", "key", trigInternalKey)
 
-	return t.triggerStorage.Put(trigInternalKey, data)
+	return t.triggerStorage.Put(trigInternalKey, triggerData)
 }
