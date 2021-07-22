@@ -281,7 +281,6 @@ type StateComponentsHolder interface {
 
 // StatusComponentsHolder holds the status components
 type StatusComponentsHolder interface {
-	TpsBenchmark() statistics.TPSBenchmark
 	ElasticIndexer() process.Indexer
 	SoftwareVersionChecker() statistics.SoftwareVersionChecker
 	IsInterfaceNil() bool

@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/vm"
-	"github.com/ElrondNetwork/elrond-go/common/statistics"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
@@ -22,7 +21,6 @@ import (
 type Facade struct {
 	ShouldErrorStart           bool
 	ShouldErrorStop            bool
-	TpsBenchmarkHandler        func() statistics.TPSBenchmark
 	GetHeartbeatsHandler       func() ([]data.PubKeyHeartbeat, error)
 	BalanceHandler             func(string) (*big.Int, error)
 	GetAccountHandler          func(address string) (api.AccountResponse, error)
@@ -120,14 +118,6 @@ func (f *Facade) RestAPIServerDebugMode() bool {
 // PprofEnabled -
 func (f *Facade) PprofEnabled() bool {
 	return false
-}
-
-// TpsBenchmark is the mock implementation for retreiving the TpsBenchmark
-func (f *Facade) TpsBenchmark() statistics.TPSBenchmark {
-	if f.TpsBenchmarkHandler != nil {
-		return f.TpsBenchmarkHandler()
-	}
-	return nil
 }
 
 // GetHeartbeats returns the slice of heartbeat info

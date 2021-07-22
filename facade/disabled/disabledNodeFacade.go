@@ -17,7 +17,6 @@ import (
 	transactionApi "github.com/ElrondNetwork/elrond-go/api/transaction"
 	"github.com/ElrondNetwork/elrond-go/api/validator"
 	"github.com/ElrondNetwork/elrond-go/api/vmValues"
-	"github.com/ElrondNetwork/elrond-go/common/statistics"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
@@ -55,15 +54,6 @@ func NewDisabledNodeFacade(apiInterface string) *disabledNodeFacade {
 
 // SetSyncer does nothing
 func (nf *disabledNodeFacade) SetSyncer(_ ntp.SyncTimer) {
-}
-
-// SetTpsBenchmark does nothing
-func (nf *disabledNodeFacade) SetTpsBenchmark(_ statistics.TPSBenchmark) {
-}
-
-// TpsBenchmark returns nil
-func (nf *disabledNodeFacade) TpsBenchmark() statistics.TPSBenchmark {
-	return nil
 }
 
 // RestAPIServerDebugMode returns false

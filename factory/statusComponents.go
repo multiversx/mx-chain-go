@@ -7,10 +7,13 @@ import (
 	indexerFactory "github.com/ElrondNetwork/elastic-indexer-go/factory"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	nodeData "github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/statistics"
 	"github.com/ElrondNetwork/elrond-go/common/statistics/softwareVersion/factory"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -20,12 +23,12 @@ import (
 // TODO: move app status handler initialization here
 
 type statusComponents struct {
-	statusHandler   core.AppStatusHandler
-	tpsBenchmark    statistics.TPSBenchmark
-	elasticIndexer  process.Indexer
-	softwareVersion statistics.SoftwareVersionChecker
-	resourceMonitor statistics.ResourceMonitorHandler
-	cancelFunc      func()
+	nodesCoordinator sharding.NodesCoordinator
+	statusHandler    core.AppStatusHandler
+	elasticIndexer   process.Indexer
+	softwareVersion  statistics.SoftwareVersionChecker
+	resourceMonitor  statistics.ResourceMonitorHandler
+	cancelFunc       func()
 }
 
 // StatusComponentsFactoryArgs redefines the arguments structure needed for the status components factory
@@ -134,23 +137,9 @@ func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
 
 	softwareVersionChecker.StartCheckSoftwareVersion()
 
-	initialTpsBenchmark := scf.coreComponents.StatusHandlerUtils().LoadTpsBenchmarkFromStorage(
-		scf.dataComponents.StorageService().GetStorer(dataRetriever.StatusMetricsUnit),
-		scf.coreComponents.InternalMarshalizer(),
-	)
-
 	roundDurationSec := scf.coreComponents.GenesisNodesSetup().GetRoundDuration() / 1000
 	if roundDurationSec < 1 {
 		return nil, errors.ErrInvalidRoundDuration
-	}
-	tpsBenchmark, err := statistics.NewTPSBenchmarkWithInitialData(
-		scf.coreComponents.StatusHandler(),
-		initialTpsBenchmark,
-		scf.shardCoordinator.NumberOfShards(),
-		roundDurationSec,
-	)
-	if err != nil {
-		return nil, err
 	}
 
 	elasticIndexer, err := scf.createElasticIndexer()
@@ -159,14 +148,38 @@ func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
 	}
 
 	_, cancelFunc := context.WithCancel(context.Background())
-	return &statusComponents{
-		softwareVersion: softwareVersionChecker,
-		tpsBenchmark:    tpsBenchmark,
-		elasticIndexer:  elasticIndexer,
-		statusHandler:   scf.coreComponents.StatusHandler(),
-		resourceMonitor: resMon,
-		cancelFunc:      cancelFunc,
-	}, nil
+
+	statusComponentsInstance := &statusComponents{
+		nodesCoordinator: scf.nodesCoordinator,
+		softwareVersion:  softwareVersionChecker,
+		elasticIndexer:   elasticIndexer,
+		statusHandler:    scf.coreComponents.StatusHandler(),
+		resourceMonitor:  resMon,
+		cancelFunc:       cancelFunc,
+	}
+
+	if scf.shardCoordinator.SelfId() == core.MetachainShardId {
+		scf.epochStartNotifier.RegisterHandler(statusComponentsInstance.epochStartEventHandler())
+	}
+
+	return statusComponentsInstance, nil
+}
+
+func (pc *statusComponents) epochStartEventHandler() epochStart.ActionHandler {
+	subscribeHandler := notifier.NewHandlerForEpochStart(func(hdr nodeData.HeaderHandler) {
+		currentEpoch := hdr.GetEpoch()
+		validatorsPubKeys, err := pc.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(currentEpoch)
+		if err != nil {
+			log.Warn("pc.nodesCoordinator.GetAllEligibleValidatorPublicKeys for current epoch failed",
+				"epoch", currentEpoch,
+				"error", err.Error())
+		}
+
+		pc.elasticIndexer.SaveValidatorsPubKeys(validatorsPubKeys, currentEpoch)
+
+	}, func(_ nodeData.HeaderHandler) {}, common.IndexerOrder)
+
+	return subscribeHandler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
@@ -202,8 +215,6 @@ func (scf *statusComponentsFactory) createElasticIndexer() (process.Indexer, err
 		Password:                 elasticSearchConfig.Password,
 		Marshalizer:              scf.coreComponents.InternalMarshalizer(),
 		Hasher:                   scf.coreComponents.Hasher(),
-		EpochStartNotifier:       scf.epochStartNotifier,
-		NodesCoordinator:         scf.nodesCoordinator,
 		AddressPubkeyConverter:   scf.coreComponents.AddressPubKeyConverter(),
 		ValidatorPubkeyConverter: scf.coreComponents.ValidatorPubKeyConverter(),
 		EnabledIndexes:           elasticSearchConfig.EnabledIndexes,
