@@ -66,7 +66,7 @@ func TestComputeTransactionGasLimit_MoveBalance(t *testing.T) {
 		MaxGasLimitPerBlockCalled: func() uint64 {
 			return math.MaxUint64
 		},
-		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+		ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 			return consumedGasUnits
 		},
 	}, &mock.TransactionSimulatorStub{

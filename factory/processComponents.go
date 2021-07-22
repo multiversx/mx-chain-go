@@ -733,7 +733,12 @@ func (pcf *processComponentsFactory) indexGenesisAccounts() error {
 		genesisAccounts = append(genesisAccounts, userAccount)
 	}
 
-	pcf.statusComponents.ElasticIndexer().SaveAccounts(uint64(pcf.coreData.GenesisNodesSetup().GetStartTime()), genesisAccounts)
+	genesisAccountsData := make([]data.UserAccountHandler, 0, len(genesisAccounts))
+	for idx := 0; idx < len(genesisAccounts); idx++ {
+		genesisAccountsData = append(genesisAccountsData, genesisAccounts[idx])
+	}
+
+	pcf.statusComponents.ElasticIndexer().SaveAccounts(uint64(pcf.coreData.GenesisNodesSetup().GetStartTime()), genesisAccountsData)
 	return nil
 }
 

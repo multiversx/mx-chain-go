@@ -84,10 +84,10 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 			DeveloperPercentageCalled: func() float64 {
 				return 0.0
 			},
-			ComputeTxFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+			ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 				return core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
 			},
-			ComputeFeeForProcessingCalled: func(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
+			ComputeFeeForProcessingCalled: func(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
 				return core.SafeMul(tx.GetGasPrice(), gasToUse)
 			},
 		},
@@ -896,7 +896,7 @@ func TestScProcessor_DeploySmartContractEconomicsFeeValidateFails(t *testing.T) 
 	arguments.ArgsParser = argParser
 
 	arguments.EconomicsFee = &mock.FeeHandlerStub{
-		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+		CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 			return expectedError
 		},
 	}
@@ -1115,14 +1115,14 @@ func TestScProcessor_DeploySmartContractUpdateDeveloperRewardsFails(t *testing.T
 		DeveloperPercentageCalled: func() float64 {
 			return 0.0
 		},
-		ComputeTxFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+		ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
 		},
-		ComputeFeeForProcessingCalled: func(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
+		ComputeFeeForProcessingCalled: func(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
 			return core.SafeMul(tx.GetGasPrice(), gasToUse)
 		},
 		// second call is in rewards and will fail
-		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+		ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 			if nrCalls == 0 {
 				nrCalls++
 				return 0
@@ -1856,7 +1856,7 @@ func TestScProcessor_InitializeVMInputFromTx_ShouldErrNotEnoughGas(t *testing.T)
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
 	arguments.EconomicsFee = &mock.FeeHandlerStub{
-		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+		ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 			return 1000
 		},
 	}
@@ -2236,7 +2236,7 @@ func TestScProcessor_ProcessSCPaymentNotEnoughBalance(t *testing.T) {
 
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
-		ComputeTxFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+		ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return core.SafeMul(tx.GetGasPrice(), tx.GetGasLimit())
 		}}
 	sc, err := NewSmartContractProcessor(arguments)
@@ -2300,10 +2300,10 @@ func TestScProcessor_ProcessSCPaymentWithNewFlags(t *testing.T) {
 		DeveloperPercentageCalled: func() float64 {
 			return 0.0
 		},
-		ComputeTxFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+		ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return txFee
 		},
-		ComputeFeeForProcessingCalled: func(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
+		ComputeFeeForProcessingCalled: func(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
 			return core.SafeMul(tx.GetGasPrice(), gasToUse)
 		},
 	}
@@ -3430,13 +3430,13 @@ func TestSmartContractProcessor_computeTotalConsumedFeeAndDevRwd(t *testing.T) {
 		return 0
 	}}
 	feeHandler := &mock.FeeHandlerStub{
-		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+		ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 			return 0
 		},
-		ComputeTxFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+		ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
 		},
-		ComputeFeeForProcessingCalled: func(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
+		ComputeFeeForProcessingCalled: func(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
 			return core.SafeMul(tx.GetGasPrice(), gasToUse)
 		},
 	}
@@ -3462,7 +3462,7 @@ func TestSmartContractProcessor_computeTotalConsumedFeeAndDevRwd(t *testing.T) {
 	assert.Equal(t, totalFee.Int64(), int64(50))
 	assert.Equal(t, devFees.Int64(), int64(20))
 
-	feeHandler.ComputeGasLimitCalled = func(tx process.TransactionWithFeeHandler) uint64 {
+	feeHandler.ComputeGasLimitCalled = func(tx data.TransactionWithFeeHandler) uint64 {
 		return 10
 	}
 	shardCoordinator.SelfIdCalled = func() uint32 {
@@ -3643,7 +3643,7 @@ func TestScProcessor_CreateRefundForRelayerFromAnotherShard(t *testing.T) {
 			return 0
 		}}
 	arguments.ShardCoordinator = shardCoordinator
-	arguments.EconomicsFee = &mock.FeeHandlerStub{ComputeFeeForProcessingCalled: func(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
+	arguments.EconomicsFee = &mock.FeeHandlerStub{ComputeFeeForProcessingCalled: func(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
 		return big.NewInt(100)
 	}}
 	sc, _ := NewSmartContractProcessor(arguments)
@@ -3734,7 +3734,7 @@ func TestProcessIfErrorCheckBackwardsCompatibilityProcessTransactionFeeCalledSho
 		}}
 	arguments.ShardCoordinator = shardCoordinator
 	arguments.EconomicsFee = &mock.FeeHandlerStub{
-		ComputeFeeForProcessingCalled: func(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
+		ComputeFeeForProcessingCalled: func(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
 			return big.NewInt(100)
 		},
 	}
@@ -3773,7 +3773,7 @@ func TestProcessIfErrorCheckBackwardsCompatibilityProcessTransactionFeeCalledSho
 		}}
 	arguments.ShardCoordinator = shardCoordinator
 	arguments.EconomicsFee = &mock.FeeHandlerStub{
-		ComputeFeeForProcessingCalled: func(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
+		ComputeFeeForProcessingCalled: func(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
 			return big.NewInt(100)
 		},
 	}

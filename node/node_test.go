@@ -1368,7 +1368,7 @@ func TestCreateTransaction_SenderShardIdIsInDifferentShardShouldNotValidate(t *t
 		return version
 	}
 	coreComponents.EconomicsHandler = &economicsmocks.EconomicsHandlerMock{
-		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+		CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 			return nil
 		},
 	}
@@ -1960,7 +1960,7 @@ func TestCreateTransaction_TxSignedWithHashShouldErrVersionShoudBe2(t *testing.T
 	}
 
 	feeHandler := &mock.EconomicsHandlerStub{
-		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+		CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 			return nil
 		},
 	}
@@ -2053,7 +2053,7 @@ func TestCreateTransaction_TxSignedWithHashNoEnabledShouldErr(t *testing.T) {
 	}
 
 	feeHandler := &mock.EconomicsHandlerStub{
-		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+		CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 			return nil
 		},
 	}
@@ -2833,13 +2833,13 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 		},
 	}
 	feeHandler := &mock.EconomicsHandlerStub{
-		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+		ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 			return 100
 		},
-		ComputeMoveBalanceFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+		ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return big.NewInt(100)
 		},
-		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+		CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 			return nil
 		},
 	}
