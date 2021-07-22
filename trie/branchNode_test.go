@@ -21,8 +21,8 @@ import (
 
 func getTestMarshalizerAndHasher() (marshal.Marshalizer, hashing.Hasher) {
 	marsh := &marshal.GogoProtoMarshalizer{}
-	hasher := &mock.KeccakMock{}
-	return marsh, hasher
+	hash := &mock.KeccakMock{}
+	return marsh, hash
 }
 
 func getBnAndCollapsedBn(marshalizer marshal.Marshalizer, hasher hashing.Hasher) (*branchNode, *branchNode) {
