@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -87,7 +87,7 @@ func TestTxInterceptorProcessor_ValidateReturnsFalseShouldErr(t *testing.T) {
 	txip, _ := processor.NewTxInterceptorProcessor(arg)
 
 	txInterceptedData := &struct {
-		mock.InterceptedDataStub
+		testscommon.InterceptedDataStub
 		mock.InterceptedTxHandlerStub
 	}{}
 	err := txip.Validate(txInterceptedData, "")
@@ -108,7 +108,7 @@ func TestTxInterceptorProcessor_ValidateReturnsTrueShouldWork(t *testing.T) {
 	txip, _ := processor.NewTxInterceptorProcessor(arg)
 
 	txInterceptedData := &struct {
-		mock.InterceptedDataStub
+		testscommon.InterceptedDataStub
 		mock.InterceptedTxHandlerStub
 	}{}
 	err := txip.Validate(txInterceptedData, "")
@@ -133,10 +133,10 @@ func TestTxInterceptorProcessor_SaveShouldWork(t *testing.T) {
 
 	addedWasCalled := false
 	txInterceptedData := &struct {
-		mock.InterceptedDataStub
+		testscommon.InterceptedDataStub
 		mock.InterceptedTxHandlerStub
 	}{
-		InterceptedDataStub: mock.InterceptedDataStub{
+		InterceptedDataStub: testscommon.InterceptedDataStub{
 			HashCalled: func() []byte {
 				return make([]byte, 0)
 			},

@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
@@ -36,7 +36,7 @@ func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
 		},
 		Storage: &mock.ChainStorerStub{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-				return &mock.StorerStub{
+				return &testscommon.StorerStub{
 					GetCalled: func(key []byte) (bytes []byte, err error) {
 						return []byte("hash"), nil
 					},
@@ -46,10 +46,11 @@ func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
 				}
 			},
 		},
-		RequestHandler:       &mock.RequestHandlerStub{},
+		RequestHandler:       &testscommon.RequestHandlerStub{},
 		EpochStartNotifier:   &mock.EpochStartNotifierStub{},
 		PeerMiniBlocksSyncer: &mock.ValidatorInfoSyncerStub{},
-		Rounder:              &mock.RounderStub{},
+		RoundHandler:         &mock.RoundHandlerStub{},
+		AppStatusHandler:     &mock.AppStatusHandlerStub{},
 	}
 }
 
@@ -175,7 +176,7 @@ func TestNewEpochStartTrigger_NilMetaNonceHashStorageShouldErr(t *testing.T) {
 			case dataRetriever.MetaHdrNonceHashDataUnit:
 				return nil
 			default:
-				return &mock.StorerStub{}
+				return &testscommon.StorerStub{}
 			}
 		},
 	}
@@ -224,7 +225,7 @@ func TestNewEpochStartTrigger_NiBootstrapUnitStorageShouldErr(t *testing.T) {
 			case dataRetriever.BootstrapUnit:
 				return nil
 			default:
-				return &mock.StorerStub{}
+				return &testscommon.StorerStub{}
 			}
 		},
 	}
@@ -244,7 +245,7 @@ func TestNewEpochStartTrigger_NilBlockHeaderUnitStorageErr(t *testing.T) {
 			case dataRetriever.BlockHeaderUnit:
 				return nil
 			default:
-				return &mock.StorerStub{}
+				return &testscommon.StorerStub{}
 			}
 		},
 	}
@@ -254,15 +255,15 @@ func TestNewEpochStartTrigger_NilBlockHeaderUnitStorageErr(t *testing.T) {
 	assert.Equal(t, epochStart.ErrNilShardHeaderStorage, err)
 }
 
-func TestNewEpochStartTrigger_NilRounderShouldErr(t *testing.T) {
+func TestNewEpochStartTrigger_NilRoundHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockShardEpochStartTriggerArguments()
-	args.Rounder = nil
+	args.RoundHandler = nil
 	epochStartTrigger, err := NewEpochStartTrigger(args)
 
 	assert.Nil(t, epochStartTrigger)
-	assert.Equal(t, epochStart.ErrNilRounder, err)
+	assert.Equal(t, epochStart.ErrNilRoundHandler, err)
 }
 
 func TestNewEpochStartTrigger_ShouldOk(t *testing.T) {
@@ -398,7 +399,7 @@ func TestTrigger_ReceivedHeaderIsEpochStartTrueWithPeerMiniblocks(t *testing.T) 
 	}
 	args.Storage = &mock.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &mock.StorerStub{
+			return &testscommon.StorerStub{
 				GetCalled: func(key []byte) (bytes []byte, err error) {
 					return noncesToHeader[string(key)], nil
 				},
@@ -448,9 +449,11 @@ func TestTrigger_RequestEpochStartIfNeeded(t *testing.T) {
 
 	args := createMockShardEpochStartTriggerArguments()
 	called := false
-	args.RequestHandler = &mock.RequestHandlerStub{RequestStartOfEpochMetaBlockCalled: func(_ uint32) {
-		called = true
-	}}
+	args.RequestHandler = &testscommon.RequestHandlerStub{
+		RequestStartOfEpochMetaBlockCalled: func(_ uint32) {
+			called = true
+		},
+	}
 	et, _ := NewEpochStartTrigger(args)
 	et.epoch = 2
 
@@ -483,7 +486,7 @@ func TestTrigger_RevertStateToBlockBehindEpochStart(t *testing.T) {
 
 	args.Storage = &mock.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &mock.StorerStub{
+			return &testscommon.StorerStub{
 				GetCalled: func(key []byte) (bytes []byte, err error) {
 					return []byte("hash"), nil
 				},
@@ -535,7 +538,7 @@ func TestTrigger_RevertStateToBlockBehindEpochStartNoBlockInAnEpoch(t *testing.T
 
 	args.Storage = &mock.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &mock.StorerStub{
+			return &testscommon.StorerStub{
 				GetCalled: func(key []byte) (bytes []byte, err error) {
 					return []byte("hash"), nil
 				},

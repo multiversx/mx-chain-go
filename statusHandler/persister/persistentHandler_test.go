@@ -5,10 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -61,7 +62,7 @@ func TestPersistentStatusHandler_SetStorage(t *testing.T) {
 	uit64Converter := &mock.Uint64ByteSliceConverterMock{}
 	marshalizer := &mock.MarshalizerStub{}
 	persistentHandler, _ := NewPersistentStatusHandler(marshalizer, uit64Converter)
-	storer := &mock.StorerStub{}
+	storer := &testscommon.StorerStub{}
 
 	err := persistentHandler.SetStorage(storer)
 	assert.Nil(t, err)
@@ -90,7 +91,7 @@ func TestPersistentStatusHandler_SetUInt64Value(t *testing.T) {
 	marshalizer := &mock.MarshalizerStub{}
 	persistentHandler, _ := NewPersistentStatusHandler(marshalizer, uit64Converter)
 
-	key := core.MetricCountConsensus
+	key := common.MetricCountConsensus
 	value := uint64(100)
 	persistentHandler.SetUInt64Value(key, value)
 
@@ -116,7 +117,7 @@ func TestPersistentStatusHandler_IncrementNoMetricShouldReturn(t *testing.T) {
 func TestPersistentStatusHandler_Increment(t *testing.T) {
 	t.Parallel()
 
-	key := core.MetricCountAcceptedBlocks
+	key := common.MetricCountAcceptedBlocks
 	value := uint64(100)
 	marshalizer := &mock.MarshalizerStub{}
 	uit64Converter := &mock.Uint64ByteSliceConverterMock{}
@@ -152,7 +153,7 @@ func TestPersistentStatusHandler_AddSetUInt64Value(t *testing.T) {
 	uit64Converter := &mock.Uint64ByteSliceConverterMock{}
 	persistentHandler, _ := NewPersistentStatusHandler(marshalizer, uit64Converter)
 
-	key := core.MetricCountConsensus
+	key := common.MetricCountConsensus
 	value := uint64(100)
 	persistentHandler.SetUInt64Value(key, value)
 	persistentHandler.AddUint64(key, value)
@@ -171,7 +172,7 @@ func TestPersistentStatusHandler_saveMetricsInDbMarshalError(t *testing.T) {
 		flag++
 		return nil, errors.New("error")
 	}
-	storer := &mock.StorerStub{}
+	storer := &testscommon.StorerStub{}
 	uit64Converter := &mock.Uint64ByteSliceConverterMock{}
 	persistentHandler, _ := NewPersistentStatusHandler(marshalizer, uit64Converter)
 	_ = persistentHandler.SetStorage(storer)
@@ -190,7 +191,7 @@ func TestPersistentStatusHandler_saveMetricsInDbPutError(t *testing.T) {
 		flag++
 		return nil, nil
 	}
-	storer := &mock.StorerStub{}
+	storer := &testscommon.StorerStub{}
 	storer.PutCalled = func(key, data []byte) error {
 		flag++
 		return errors.New("error")
@@ -219,7 +220,7 @@ func TestPersistentStatusHandler_DecrementNoMetricShouldReturn(t *testing.T) {
 func TestPersistentStatusHandler_Decrement(t *testing.T) {
 	t.Parallel()
 
-	key := core.MetricCountAcceptedBlocks
+	key := common.MetricCountAcceptedBlocks
 	value := uint64(100)
 	marshalizer := &mock.MarshalizerStub{}
 	uit64Converter := &mock.Uint64ByteSliceConverterMock{}
@@ -235,7 +236,7 @@ func TestPersistentStatusHandler_Decrement(t *testing.T) {
 func TestPersistentStatusHandler_DecrementKeyValueZeroShouldReturn(t *testing.T) {
 	t.Parallel()
 
-	key := core.MetricCountAcceptedBlocks
+	key := common.MetricCountAcceptedBlocks
 	value := uint64(0)
 	marshalizer := &mock.MarshalizerStub{}
 	uit64Converter := &mock.Uint64ByteSliceConverterMock{}
@@ -252,7 +253,7 @@ func TestPersistentStatusHandler_SetMetricNonce(t *testing.T) {
 	t.Parallel()
 
 	called := false
-	storer := &mock.StorerStub{}
+	storer := &testscommon.StorerStub{}
 	marshalizer := &mock.MarshalizerStub{
 		MarshalCalled: func(obj interface{}) (bytes []byte, err error) {
 			called = true
@@ -264,6 +265,6 @@ func TestPersistentStatusHandler_SetMetricNonce(t *testing.T) {
 	_ = persistentHandler.SetStorage(storer)
 	time.Sleep(2 * time.Second)
 
-	persistentHandler.SetUInt64Value(core.MetricNonce, 1)
+	persistentHandler.SetUInt64Value(common.MetricNonce, 1)
 	require.True(t, called)
 }

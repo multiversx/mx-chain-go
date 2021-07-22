@@ -3,7 +3,7 @@ package disabled
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -44,6 +44,11 @@ func (a *antiFloodHandler) BlacklistPeer(_ core.PeerID, _ string, _ time.Duratio
 
 // IsOriginatorEligibleForTopic returns nil
 func (a *antiFloodHandler) IsOriginatorEligibleForTopic(_ core.PeerID, _ string) error {
+	return nil
+}
+
+// Close returns nil
+func (af *antiFloodHandler) Close() error {
 	return nil
 }
 

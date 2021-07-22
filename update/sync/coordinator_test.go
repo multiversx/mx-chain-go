@@ -7,12 +7,12 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	dataTransaction "github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -37,7 +37,7 @@ func createHeaderSyncHandler(retErr bool) update.HeaderSyncHandler {
 	}
 	args := createMockHeadersSyncHandlerArgs()
 	args.StorageService = &mock.ChainStorerMock{GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-		return &mock.StorerStub{
+		return &testscommon.StorerStub{
 			GetCalled: func(key []byte) (bytes []byte, err error) {
 				if retErr {
 					return nil, errors.New("err")
@@ -66,7 +66,7 @@ func createPendingMiniBlocksSyncHandler() update.EpochStartPendingMiniBlocksSync
 	txHash := []byte("txHash")
 	mb := &block.MiniBlock{TxHashes: [][]byte{txHash}}
 	args := ArgsNewPendingMiniBlocksSyncer{
-		Storage: &mock.StorerStub{},
+		Storage: &testscommon.StorerStub{},
 		Cache: &testscommon.CacherStub{
 			RegisterHandlerCalled: func(f func(key []byte, val interface{})) {},
 			PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -74,7 +74,7 @@ func createPendingMiniBlocksSyncHandler() update.EpochStartPendingMiniBlocksSync
 			},
 		},
 		Marshalizer:    &mock.MarshalizerFake{},
-		RequestHandler: &mock.RequestHandlerStub{},
+		RequestHandler: &testscommon.RequestHandlerStub{},
 	}
 
 	pendingMiniBlocksSyncer, _ := NewPendingMiniBlocksSyncer(args)
@@ -85,7 +85,7 @@ func createPendingTxSyncHandler() update.PendingTransactionsSyncHandler {
 	args := createMockArgs()
 	args.Storages = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &mock.StorerStub{
+			return &testscommon.StorerStub{
 				GetCalled: func(key []byte) (bytes []byte, err error) {
 					tx := &dataTransaction.Transaction{
 						Nonce: 1, Value: big.NewInt(10), SndAddr: []byte("snd"), RcvAddr: []byte("rcv"),
@@ -121,10 +121,10 @@ func createSyncTrieState(retErr bool) update.EpochStartTriesSyncHandler {
 		ActiveAccountsDBs: make(map[state.AccountsDbIdentifier]state.AccountsAdapter),
 	}
 
-	args.ActiveAccountsDBs[state.UserAccountsState] = &mock.AccountsStub{
-		RecreateAllTriesCalled: func(rootHash []byte) (map[string]data.Trie, error) {
-			tries := make(map[string]data.Trie)
-			tries[string(rootHash)] = &mock.TrieStub{
+	args.ActiveAccountsDBs[state.UserAccountsState] = &testscommon.AccountsStub{
+		RecreateAllTriesCalled: func(rootHash []byte) (map[string]temporary.Trie, error) {
+			tries := make(map[string]temporary.Trie)
+			tries[string(rootHash)] = &testscommon.TrieStub{
 				CommitCalled: func() error {
 					if retErr {
 						return errors.New("err")
@@ -136,10 +136,10 @@ func createSyncTrieState(retErr bool) update.EpochStartTriesSyncHandler {
 		},
 	}
 
-	args.ActiveAccountsDBs[state.PeerAccountsState] = &mock.AccountsStub{
-		RecreateAllTriesCalled: func(rootHash []byte) (map[string]data.Trie, error) {
-			tries := make(map[string]data.Trie)
-			tries[string(rootHash)] = &mock.TrieStub{
+	args.ActiveAccountsDBs[state.PeerAccountsState] = &testscommon.AccountsStub{
+		RecreateAllTriesCalled: func(rootHash []byte) (map[string]temporary.Trie, error) {
+			tries := make(map[string]temporary.Trie)
+			tries[string(rootHash)] = &testscommon.TrieStub{
 				CommitCalled: func() error {
 					if retErr {
 						return errors.New("err")

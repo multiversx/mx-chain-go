@@ -3,7 +3,7 @@ package txcache
 import (
 	"bytes"
 
-	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 )
 
 const processFeeFactor = float64(0.8) // 80%
@@ -68,5 +68,5 @@ func computeProcessingGasPriceAdjustment(
 		actualPriceFactor = float64(txGasHandler.GasPriceForProcessing(tx.Tx)) / float64(txGasHandler.MinGasPriceForProcessing())
 	}
 
-	return uint64(float64(txFeeHelper.minGasPriceFactor()) * processFeeFactor / float64(actualPriceFactor))
+	return uint64(float64(txFeeHelper.minGasPriceFactor()) * processFeeFactor / actualPriceFactor)
 }

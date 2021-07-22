@@ -3,11 +3,12 @@ package builtInFunctions
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
+	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func createMockArguments() ArgsCreateBuiltInFunctionContainer {
@@ -20,16 +21,17 @@ func createMockArguments() ArgsCreateBuiltInFunctionContainer {
 		MapDNSAddresses:      make(map[string]struct{}),
 		EnableUserNameChange: false,
 		Marshalizer:          &mock.MarshalizerMock{},
-		Accounts:             &mock.AccountsStub{},
+		Accounts:             &testscommon.AccountsStub{},
 		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(1),
+		EpochNotifier:        &mock.EpochNotifierStub{},
 	}
 
 	return args
 }
 
 func fillGasMapInternal(gasMap map[string]map[string]uint64, value uint64) map[string]map[string]uint64 {
-	gasMap[core.BaseOperationCost] = fillGasMapBaseOperationCosts(value)
-	gasMap[core.BuiltInCost] = fillGasMapBuiltInCosts(value)
+	gasMap[common.BaseOperationCost] = fillGasMapBaseOperationCosts(value)
+	gasMap[common.BuiltInCost] = fillGasMapBuiltInCosts(value)
 
 	return gasMap
 }
@@ -67,6 +69,9 @@ func fillGasMapBuiltInCosts(value uint64) map[string]uint64 {
 	gasMap["ESDTNFTBurn"] = value
 	gasMap["ESDTNFTTransfer"] = value
 	gasMap["ESDTNFTChangeCreateOwner"] = value
+	gasMap["ESDTNFTAddUri"] = value
+	gasMap["ESDTNFTUpdateAttributes"] = value
+	gasMap["ESDTNFTMultiTransfer"] = value
 
 	return gasMap
 }
@@ -76,64 +81,23 @@ func TestCreateBuiltInFunctionContainer_Errors(t *testing.T) {
 
 	args := createMockArguments()
 	args.GasSchedule = nil
-	factory, err := NewBuiltInFunctionsFactory(args)
+	container, err := CreateBuiltInFunctionContainer(args)
 	assert.NotNil(t, err)
-	assert.Nil(t, factory)
+	assert.Nil(t, container)
 
 	args = createMockArguments()
 	args.MapDNSAddresses = nil
-	factory, err = NewBuiltInFunctionsFactory(args)
+	container, err = CreateBuiltInFunctionContainer(args)
 	assert.Equal(t, process.ErrNilDnsAddresses, err)
-	assert.Nil(t, factory)
+	assert.Nil(t, container)
 
 	args = createMockArguments()
-	factory, err = NewBuiltInFunctionsFactory(args)
+	container, err = CreateBuiltInFunctionContainer(args)
 	assert.Nil(t, err)
-	container, err := factory.CreateBuiltInFunctionContainer()
-	assert.Nil(t, err)
-	assert.Equal(t, len(container.Keys()), 20)
+	assert.Equal(t, len(container.Keys()), 23)
 
-	err = SetPayableHandler(container, &mock.BlockChainHookHandlerMock{})
+	err = vmcommonBuiltInFunctions.SetPayableHandler(container, &mock.BlockChainHookHandlerMock{})
 	assert.Nil(t, err)
 
-	assert.False(t, factory.IsInterfaceNil())
-}
-
-func TestBuiltInFuncFactory_GasScheduleChange(t *testing.T) {
-	t.Parallel()
-
-	args := createMockArguments()
-	factory, _ := NewBuiltInFunctionsFactory(args)
-
-	baseOpCosts := map[string]uint64{
-		"StorePerByte":      100,
-		"ReleasePerByte":    100,
-		"DataCopyPerByte":   100,
-		"PersistPerByte":    100,
-		"CompilePerByte":    100,
-		"AoTPreparePerByte": 100,
-	}
-
-	builtInCosts := map[string]uint64{
-		"ChangeOwnerAddress":       100,
-		"ClaimDeveloperRewards":    100,
-		"SaveUserName":             100,
-		"SaveKeyValue":             100,
-		"ESDTTransfer":             100,
-		"ESDTBurn":                 100,
-		"ESDTLocalMint":            100,
-		"ESDTLocalBurn":            100,
-		"ESDTNFTCreate":            100,
-		"ESDTNFTAddQuantity":       100,
-		"ESDTNFTBurn":              100,
-		"ESDTNFTTransfer":          100,
-		"ESDTNFTChangeCreateOwner": 100,
-	}
-	gasMap := map[string]map[string]uint64{
-		core.BaseOperationCost: baseOpCosts,
-		core.BuiltInCost:       builtInCosts,
-	}
-	factory.GasScheduleChange(gasMap)
-
-	require.Equal(t, builtInCosts["ChangeOwnerAddress"], factory.gasConfig.BuiltInCost.ChangeOwnerAddress)
+	assert.False(t, container.IsInterfaceNil())
 }

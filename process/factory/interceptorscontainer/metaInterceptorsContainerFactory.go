@@ -1,10 +1,10 @@
 package interceptorscontainer
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/throttler"
-	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -23,46 +23,40 @@ type metaInterceptorsContainerFactory struct {
 
 // NewMetaInterceptorsContainerFactory is responsible for creating a new interceptors factory object
 func NewMetaInterceptorsContainerFactory(
-	args MetaInterceptorsContainerFactoryArgs,
+	args CommonInterceptorsContainerFactoryArgs,
 ) (*metaInterceptorsContainerFactory, error) {
-	if args.SizeCheckDelta > 0 {
-		args.ProtoMarshalizer = marshal.NewSizeCheckUnmarshalizer(args.ProtoMarshalizer, args.SizeCheckDelta)
-	}
-
 	err := checkBaseParams(
+		args.CoreComponents,
+		args.CryptoComponents,
 		args.ShardCoordinator,
 		args.Accounts,
-		args.ProtoMarshalizer,
-		args.TxSignMarshalizer,
-		args.Hasher,
 		args.Store,
 		args.DataPool,
 		args.Messenger,
-		args.MultiSigner,
 		args.NodesCoordinator,
-		args.BlackList,
+		args.BlockBlackList,
 		args.AntifloodHandler,
 		args.WhiteListHandler,
 		args.WhiteListerVerifiedTxs,
-		args.AddressPubkeyConverter,
+		args.PreferredPeersHolder,
+		args.RequestHandler,
 	)
 	if err != nil {
 		return nil, err
 	}
-	if check.IfNil(args.SingleSigner) {
-		return nil, process.ErrNilSingleSigner
+	if args.SizeCheckDelta > 0 {
+		sizeCheckMarshalizer := marshal.NewSizeCheckUnmarshalizer(
+			args.CoreComponents.InternalMarshalizer(),
+			args.SizeCheckDelta,
+		)
+		err = args.CoreComponents.SetInternalMarshalizer(sizeCheckMarshalizer)
+		if err != nil {
+			return nil, err
+		}
 	}
-	if check.IfNil(args.KeyGen) {
-		return nil, process.ErrNilKeyGen
-	}
+
 	if check.IfNil(args.TxFeeHandler) {
 		return nil, process.ErrNilEconomicsFeeHandler
-	}
-	if check.IfNil(args.BlockKeyGen) {
-		return nil, process.ErrNilKeyGen
-	}
-	if check.IfNil(args.BlockSingleSigner) {
-		return nil, process.ErrNilSingleSigner
 	}
 	if check.IfNil(args.HeaderSigVerifier) {
 		return nil, process.ErrNilHeaderSigVerifier
@@ -76,31 +70,12 @@ func NewMetaInterceptorsContainerFactory(
 	if check.IfNil(args.ValidityAttester) {
 		return nil, process.ErrNilValidityAttester
 	}
-	if len(args.ChainID) == 0 {
-		return nil, process.ErrInvalidChainID
-	}
-	if args.MinTransactionVersion == 0 {
-		return nil, process.ErrInvalidTransactionVersion
-	}
-	if check.IfNil(args.TxSignHasher) {
-		return nil, process.ErrNilHasher
-	}
-	if check.IfNil(args.EpochNotifier) {
-		return nil, process.ErrNilEpochNotifier
-	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
-		ProtoMarshalizer:          args.ProtoMarshalizer,
-		TxSignMarshalizer:         args.TxSignMarshalizer,
-		Hasher:                    args.Hasher,
+		CoreComponents:            args.CoreComponents,
+		CryptoComponents:          args.CryptoComponents,
 		ShardCoordinator:          args.ShardCoordinator,
 		NodesCoordinator:          args.NodesCoordinator,
-		MultiSigVerifier:          args.MultiSigner,
-		KeyGen:                    args.KeyGen,
-		BlockKeyGen:               args.BlockKeyGen,
-		Signer:                    args.SingleSigner,
-		BlockSigner:               args.BlockSingleSigner,
-		AddressPubkeyConv:         args.AddressPubkeyConverter,
 		FeeHandler:                args.TxFeeHandler,
 		HeaderSigVerifier:         args.HeaderSigVerifier,
 		HeaderIntegrityVerifier:   args.HeaderIntegrityVerifier,
@@ -108,11 +83,7 @@ func NewMetaInterceptorsContainerFactory(
 		EpochStartTrigger:         args.EpochStartTrigger,
 		WhiteListerVerifiedTxs:    args.WhiteListerVerifiedTxs,
 		ArgsParser:                args.ArgumentsParser,
-		ChainID:                   args.ChainID,
-		MinTransactionVersion:     args.MinTransactionVersion,
 		EnableSignTxWithHashEpoch: args.EnableSignTxWithHashEpoch,
-		TxSignHasher:              args.TxSignHasher,
-		EpochNotifier:             args.EpochNotifier,
 	}
 
 	container := containers.NewInterceptorsContainer()
@@ -121,19 +92,18 @@ func NewMetaInterceptorsContainerFactory(
 		shardCoordinator:       args.ShardCoordinator,
 		messenger:              args.Messenger,
 		store:                  args.Store,
-		marshalizer:            args.ProtoMarshalizer,
-		hasher:                 args.Hasher,
-		multiSigner:            args.MultiSigner,
 		dataPool:               args.DataPool,
 		nodesCoordinator:       args.NodesCoordinator,
-		blockBlackList:         args.BlackList,
+		blockBlackList:         args.BlockBlackList,
 		argInterceptorFactory:  argInterceptorFactory,
 		maxTxNonceDeltaAllowed: args.MaxTxNonceDeltaAllowed,
 		accounts:               args.Accounts,
 		antifloodHandler:       args.AntifloodHandler,
 		whiteListHandler:       args.WhiteListHandler,
 		whiteListerVerifiedTxs: args.WhiteListerVerifiedTxs,
-		addressPubkeyConverter: args.AddressPubkeyConverter,
+		preferredPeersHolder:   args.PreferredPeersHolder,
+		hasher:                 args.CoreComponents.Hasher(),
+		requestHandler:         args.RequestHandler,
 	}
 
 	icf := &metaInterceptorsContainerFactory{
@@ -261,13 +231,14 @@ func (micf *metaInterceptorsContainerFactory) createOneShardHeaderInterceptor(to
 
 	interceptor, err := processInterceptors.NewSingleDataInterceptor(
 		processInterceptors.ArgSingleDataInterceptor{
-			Topic:            topic,
-			DataFactory:      hdrFactory,
-			Processor:        hdrProcessor,
-			Throttler:        micf.globalThrottler,
-			AntifloodHandler: micf.antifloodHandler,
-			WhiteListRequest: micf.whiteListHandler,
-			CurrentPeerId:    micf.messenger.ID(),
+			Topic:                topic,
+			DataFactory:          hdrFactory,
+			Processor:            hdrProcessor,
+			Throttler:            micf.globalThrottler,
+			AntifloodHandler:     micf.antifloodHandler,
+			WhiteListRequest:     micf.whiteListHandler,
+			CurrentPeerId:        micf.messenger.ID(),
+			PreferredPeersHolder: micf.preferredPeersHolder,
 		},
 	)
 	if err != nil {

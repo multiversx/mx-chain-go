@@ -107,9 +107,9 @@ func TestDefaultScoreComputer_DifferentSenders(t *testing.T) {
 	txGasHandler, txFeeHelper := dummyParamsWithGasPrice(oneBillion)
 	computer := newDefaultScoreComputer(txFeeHelper)
 
-	A := createTxWithParams([]byte("a"), "a", 1, 128, 50000, oneBillion)    // min value normal tx
+	A := createTxWithParams([]byte("a"), "a", 1, 128, 50000, oneBillion)                // min value normal tx
 	B := createTxWithParams([]byte("b"), "b", 1, 128, 50000, uint64(1.5*oneBillion))    // 50% higher value normal tx
-	C := createTxWithParams([]byte("c"), "c", 1, 128, 10000000, oneBillion) // min value SC call
+	C := createTxWithParams([]byte("c"), "c", 1, 128, 10000000, oneBillion)             // min value SC call
 	D := createTxWithParams([]byte("d"), "d", 1, 128, 10000000, uint64(1.5*oneBillion)) // 50% higher value SC call
 
 	listA := newUnconstrainedListToTest()

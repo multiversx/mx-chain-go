@@ -1,19 +1,19 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
 )
 
 // StorageManagerStub --
 type StorageManagerStub struct {
-	DatabaseCalled                    func() data.DBWriteCacher
+	DatabaseCalled                    func() temporary.DBWriteCacher
 	TakeSnapshotCalled                func([]byte)
 	SetCheckpointCalled               func([]byte)
 	PruneCalled                       func([]byte)
 	CancelPruneCalled                 func([]byte)
-	MarkForEvictionCalled             func([]byte, data.ModifiedHashes) error
-	GetDbThatContainsHashCalled       func([]byte) data.DBWriteCacher
-	GetSnapshotThatContainsHashCalled func(rootHash []byte) data.SnapshotDbHandler
+	MarkForEvictionCalled             func([]byte, temporary.ModifiedHashes) error
+	GetDbThatContainsHashCalled       func([]byte) temporary.DBWriteCacher
+	GetSnapshotThatContainsHashCalled func(rootHash []byte) temporary.SnapshotDbHandler
 	IsPruningEnabledCalled            func() bool
 	EnterSnapshotModeCalled           func()
 	ExitSnapshotModeCalled            func()
@@ -21,7 +21,7 @@ type StorageManagerStub struct {
 }
 
 // Database --
-func (sms *StorageManagerStub) Database() data.DBWriteCacher {
+func (sms *StorageManagerStub) Database() temporary.DBWriteCacher {
 	if sms.DatabaseCalled != nil {
 		return sms.DatabaseCalled()
 	}
@@ -39,17 +39,17 @@ func (sms *StorageManagerStub) SetCheckpoint([]byte) {
 }
 
 // Prune --
-func (sms *StorageManagerStub) Prune([]byte, data.TriePruningIdentifier) {
+func (sms *StorageManagerStub) Prune([]byte, temporary.TriePruningIdentifier) {
 
 }
 
 // CancelPrune --
-func (sms *StorageManagerStub) CancelPrune([]byte, data.TriePruningIdentifier) {
+func (sms *StorageManagerStub) CancelPrune([]byte, temporary.TriePruningIdentifier) {
 
 }
 
 // MarkForEviction --
-func (sms *StorageManagerStub) MarkForEviction(d []byte, m data.ModifiedHashes) error {
+func (sms *StorageManagerStub) MarkForEviction(d []byte, m temporary.ModifiedHashes) error {
 	if sms.MarkForEvictionCalled != nil {
 		return sms.MarkForEvictionCalled(d, m)
 	}
@@ -57,7 +57,7 @@ func (sms *StorageManagerStub) MarkForEviction(d []byte, m data.ModifiedHashes) 
 }
 
 // GetSnapshotThatContainsHash --
-func (sms *StorageManagerStub) GetSnapshotThatContainsHash(d []byte) data.SnapshotDbHandler {
+func (sms *StorageManagerStub) GetSnapshotThatContainsHash(d []byte) temporary.SnapshotDbHandler {
 	if sms.GetSnapshotThatContainsHashCalled != nil {
 		return sms.GetSnapshotThatContainsHashCalled(d)
 	}
@@ -90,6 +90,11 @@ func (sms *StorageManagerStub) ExitSnapshotMode() {
 // GetSnapshotDbBatchDelay -
 func (sms *StorageManagerStub) GetSnapshotDbBatchDelay() int {
 	return 0
+}
+
+// Close -
+func (sms *StorageManagerStub) Close() error {
+	return nil
 }
 
 // IsInterfaceNil --

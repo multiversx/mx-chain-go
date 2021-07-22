@@ -4,12 +4,13 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/assert"
@@ -24,7 +25,7 @@ func createMockBlockCreatorAfterHardFork() ArgsNewMetaBlockCreatorAfterHardFork 
 		ShardCoordinator:   mock.NewOneShardCoordinatorMock(),
 		Storage:            initStore(),
 		TxCoordinator:      &mock.TransactionCoordinatorMock{},
-		ValidatorAccounts: &mock.AccountsStub{
+		ValidatorAccounts: &testscommon.AccountsStub{
 			CommitCalled: func() ([]byte, error) {
 				return []byte("roothash"), nil
 			},
@@ -135,7 +136,7 @@ func TestMetaBlockCreator_CreateBlock(t *testing.T) {
 	}
 	args.ImportHandler = &mock.ImportHandlerStub{
 		GetAccountsDBForShardCalled: func(shardID uint32) state.AccountsAdapter {
-			return &mock.AccountsStub{
+			return &testscommon.AccountsStub{
 				CommitCalled: func() ([]byte, error) {
 					return rootHash, nil
 				},

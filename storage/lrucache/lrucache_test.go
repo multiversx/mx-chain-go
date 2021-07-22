@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/stretchr/testify/assert"
@@ -408,4 +408,13 @@ func TestLRUCache_CacherRegisterHasOrAddAddedDataHandlerNotAddedShouldNotCall(t 
 	}
 
 	assert.Equal(t, 1, len(c.AddedDataHandlers()))
+}
+
+func TestLRUCache_CloseShouldNotErr(t *testing.T) {
+	t.Parallel()
+
+	c, _ := lrucache.NewCache(1)
+
+	err := c.Close()
+	assert.Nil(t, err)
 }

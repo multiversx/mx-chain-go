@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"math"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -20,14 +20,14 @@ type shardForkDetector struct {
 
 // NewShardForkDetector method creates a new shardForkDetector object
 func NewShardForkDetector(
-	rounder consensus.Rounder,
+	roundHandler consensus.RoundHandler,
 	blackListHandler process.TimeCacher,
 	blockTracker process.BlockTracker,
 	genesisTime int64,
 ) (*shardForkDetector, error) {
 
-	if check.IfNil(rounder) {
-		return nil, process.ErrNilRounder
+	if check.IfNil(roundHandler) {
+		return nil, process.ErrNilRoundHandler
 	}
 	if check.IfNil(blackListHandler) {
 		return nil, process.ErrNilBlackListCacher
@@ -42,7 +42,7 @@ func NewShardForkDetector(
 	}
 
 	bfd := &baseForkDetector{
-		rounder:          rounder,
+		roundHandler:     roundHandler,
 		blackListHandler: blackListHandler,
 		genesisTime:      genesisTime,
 		blockTracker:     blockTracker,

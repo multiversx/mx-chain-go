@@ -57,7 +57,7 @@ func (computer *defaultScoreComputer) computeRawScore(params senderScoreParams) 
 	countPow2 := params.count * params.count
 	countScore := math.Log(float64(countPow2)+1) + 1
 
-	rawScore := float64(ppuScoreAdjusted) / countScore
+	rawScore := ppuScoreAdjusted / countScore
 	// We apply the logistic function,
 	// and then subtract 0.5, since we only deal with positive scores,
 	// and then we multiply by 2, to have full [0..1] range.

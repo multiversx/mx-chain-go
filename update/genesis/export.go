@@ -4,14 +4,17 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
@@ -91,15 +94,15 @@ func NewStateExporter(args ArgsNewStateExporter) (*stateExport, error) {
 
 // ExportAll syncs and exports all the data from every shard for a certain epoch start block
 func (se *stateExport) ExportAll(epoch uint32) error {
-	err := se.stateSyncer.SyncAllState(epoch, se.shardCoordinator.SelfId())
-	if err != nil {
-		return err
-	}
-
 	defer func() {
 		errClose := se.hardforkStorer.Close()
 		log.LogIfError(errClose)
 	}()
+
+	err := se.stateSyncer.SyncAllState(epoch, se.shardCoordinator.SelfId())
+	if err != nil {
+		return err
+	}
 
 	err = se.exportEpochStartMetaBlock()
 	if err != nil {

@@ -11,7 +11,7 @@ import (
 func TestNewPathManager_EmptyPruningPathTemplateShouldErr(t *testing.T) {
 	t.Parallel()
 
-	pm, err := pathmanager.NewPathManager("", "shard_[S]/[I]")
+	pm, err := pathmanager.NewPathManager("", "shard_[S]/[I]", "db")
 	assert.Nil(t, pm)
 	assert.Equal(t, storage.ErrEmptyPruningPathTemplate, err)
 }
@@ -19,7 +19,7 @@ func TestNewPathManager_EmptyPruningPathTemplateShouldErr(t *testing.T) {
 func TestNewPathManager_EmptyStaticPathTemplateShouldErr(t *testing.T) {
 	t.Parallel()
 
-	pm, err := pathmanager.NewPathManager("epoch_[E]/shard_[S]/[I]", "")
+	pm, err := pathmanager.NewPathManager("epoch_[E]/shard_[S]/[I]", "", "db")
 	assert.Nil(t, pm)
 	assert.Equal(t, storage.ErrEmptyStaticPathTemplate, err)
 }
@@ -27,7 +27,7 @@ func TestNewPathManager_EmptyStaticPathTemplateShouldErr(t *testing.T) {
 func TestNewPathManager_InvalidPruningPathTemplate_NoShardPlaceholder_ShouldErr(t *testing.T) {
 	t.Parallel()
 
-	pm, err := pathmanager.NewPathManager("epoch_[E]/shard/[I]", "shard_[S]/[I]")
+	pm, err := pathmanager.NewPathManager("epoch_[E]/shard/[I]", "shard_[S]/[I]", "db")
 	assert.Nil(t, pm)
 	assert.Equal(t, storage.ErrInvalidPruningPathTemplate, err)
 }
@@ -35,7 +35,7 @@ func TestNewPathManager_InvalidPruningPathTemplate_NoShardPlaceholder_ShouldErr(
 func TestNewPathManager_InvalidPruningPathTemplate_NoEpochPlaceholder_ShouldErr(t *testing.T) {
 	t.Parallel()
 
-	pm, err := pathmanager.NewPathManager("epoch/shard_[S]/[I]", "shard_[S]/[I]")
+	pm, err := pathmanager.NewPathManager("epoch/shard_[S]/[I]", "shard_[S]/[I]", "db")
 	assert.Nil(t, pm)
 	assert.Equal(t, storage.ErrInvalidPruningPathTemplate, err)
 }
@@ -43,7 +43,7 @@ func TestNewPathManager_InvalidPruningPathTemplate_NoEpochPlaceholder_ShouldErr(
 func TestNewPathManager_InvalidPathPruningTemplate_NoIdentifierPlaceholder_ShouldErr(t *testing.T) {
 	t.Parallel()
 
-	pm, err := pathmanager.NewPathManager("epoch_[E]/shard_[S]", "shard_[S]/[I]")
+	pm, err := pathmanager.NewPathManager("epoch_[E]/shard_[S]", "shard_[S]/[I]", "db")
 	assert.Nil(t, pm)
 	assert.Equal(t, storage.ErrInvalidPruningPathTemplate, err)
 }
@@ -51,7 +51,7 @@ func TestNewPathManager_InvalidPathPruningTemplate_NoIdentifierPlaceholder_Shoul
 func TestNewPathManager_InvalidStaticPathTemplate_NoShardPlaceholder_ShouldErr(t *testing.T) {
 	t.Parallel()
 
-	pm, err := pathmanager.NewPathManager("epoch_[E]/shard_[S]/[I]", "shard/[I]")
+	pm, err := pathmanager.NewPathManager("epoch_[E]/shard_[S]/[I]", "shard/[I]", "db")
 	assert.Nil(t, pm)
 	assert.Equal(t, storage.ErrInvalidStaticPathTemplate, err)
 }
@@ -59,7 +59,7 @@ func TestNewPathManager_InvalidStaticPathTemplate_NoShardPlaceholder_ShouldErr(t
 func TestNewPathManager_InvalidStaticPathTemplate_NoIdentifierPlaceholder_ShouldErr(t *testing.T) {
 	t.Parallel()
 
-	pm, err := pathmanager.NewPathManager("epoch_[E]/shard_[S]/[I]", "shard_[S]")
+	pm, err := pathmanager.NewPathManager("epoch_[E]/shard_[S]/[I]", "shard_[S]", "db")
 	assert.Nil(t, pm)
 	assert.Equal(t, storage.ErrInvalidStaticPathTemplate, err)
 }
@@ -67,7 +67,7 @@ func TestNewPathManager_InvalidStaticPathTemplate_NoIdentifierPlaceholder_Should
 func TestNewPathManager_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	pm, err := pathmanager.NewPathManager("epoch_[E]/shard_[S]/[I]", "shard_[S]/[I]")
+	pm, err := pathmanager.NewPathManager("epoch_[E]/shard_[S]/[I]", "shard_[S]/[I]", "db")
 	assert.NotNil(t, pm)
 	assert.Nil(t, err)
 }
@@ -104,7 +104,7 @@ func TestPathManager_PathForEpoch(t *testing.T) {
 	}
 	pruningPathTemplate := "Epoch_[E]/Shard_[S]/[I]"
 	staticPathTemplate := "Shard_[S]/[I]"
-	pm, _ := pathmanager.NewPathManager(pruningPathTemplate, staticPathTemplate)
+	pm, _ := pathmanager.NewPathManager(pruningPathTemplate, staticPathTemplate, "db")
 	for _, tt := range tests {
 		ttCopy := tt
 		t.Run(tt.name, func(t *testing.T) {
@@ -142,7 +142,7 @@ func TestPathManager_PathForStatic(t *testing.T) {
 	}
 	pruningPathTemplate := "Epoch_[E]/Shard_[S]/[I]"
 	staticPathTemplate := "Static/Shard_[S]/[I]"
-	pm, _ := pathmanager.NewPathManager(pruningPathTemplate, staticPathTemplate)
+	pm, _ := pathmanager.NewPathManager(pruningPathTemplate, staticPathTemplate, "db")
 	for _, tt := range tests {
 		ttCopy := tt
 		t.Run(tt.name, func(t *testing.T) {

@@ -5,11 +5,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/stretchr/testify/assert"
 )
@@ -108,7 +110,7 @@ func TestSliceResolver_RequestDataFromHashNotFoundShouldErr(t *testing.T) {
 	expectedErr := errors.New("expected error")
 	sendWasCalled := false
 	arg := createMockSliceResolverArg()
-	arg.Storage = &mock.StorerStub{
+	arg.Storage = &testscommon.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			return nil, expectedErr
 		},
@@ -131,7 +133,7 @@ func TestSliceResolver_RequestDataFromHashNotFoundShouldErr(t *testing.T) {
 
 	select {
 	case argClose := <-arg.ChanGracefullyClose:
-		assert.Equal(t, core.ImportComplete, argClose.Reason)
+		assert.Equal(t, common.ImportComplete, argClose.Reason)
 	default:
 		assert.Fail(t, "did not wrote on end chan")
 	}
@@ -142,7 +144,7 @@ func TestSliceResolver_RequestDataFromHashShouldWork(t *testing.T) {
 
 	sendWasCalled := false
 	arg := createMockSliceResolverArg()
-	arg.Storage = &mock.StorerStub{
+	arg.Storage = &testscommon.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			return make([]byte, 0), nil
 		},
@@ -167,7 +169,7 @@ func TestSliceResolver_RequestDataFromHashesShouldWork(t *testing.T) {
 	numSendCalled := 0
 	numGetCalled := 0
 	arg := createMockSliceResolverArg()
-	arg.Storage = &mock.StorerStub{
+	arg.Storage = &testscommon.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			numGetCalled++
 			return make([]byte, 0), nil
@@ -196,7 +198,7 @@ func TestSliceResolver_GetErroredShouldReturnErr(t *testing.T) {
 	numGetCalled := 0
 	expectedErr := errors.New("expected err")
 	arg := createMockSliceResolverArg()
-	arg.Storage = &mock.StorerStub{
+	arg.Storage = &testscommon.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			numGetCalled++
 			if numGetCalled == 1 {
@@ -226,7 +228,7 @@ func TestSliceResolver_GetErroredShouldReturnErr(t *testing.T) {
 
 	select {
 	case argClose := <-arg.ChanGracefullyClose:
-		assert.Equal(t, core.ImportComplete, argClose.Reason)
+		assert.Equal(t, common.ImportComplete, argClose.Reason)
 	default:
 		assert.Fail(t, "did not wrote on end chan")
 	}
@@ -239,7 +241,7 @@ func TestSliceResolver_SendErroredShouldReturnErr(t *testing.T) {
 	numGetCalled := 0
 	expectedErr := errors.New("expected err")
 	arg := createMockSliceResolverArg()
-	arg.Storage = &mock.StorerStub{
+	arg.Storage = &testscommon.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			numGetCalled++
 			return make([]byte, 0), nil
@@ -262,4 +264,21 @@ func TestSliceResolver_SendErroredShouldReturnErr(t *testing.T) {
 	assert.True(t, errors.Is(err, expectedErr))
 	assert.Equal(t, 1, numSendCalled)
 	assert.Equal(t, len(hashes), numGetCalled)
+}
+
+func TestSliceResolver_Close(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockSliceResolverArg()
+	closeCalled := 0
+	arg.Storage = &testscommon.StorerStub{
+		CloseCalled: func() error {
+			closeCalled++
+			return nil
+		},
+	}
+	sr, _ := NewSliceResolver(arg)
+
+	assert.Nil(t, sr.Close())
+	assert.Equal(t, 1, closeCalled)
 }

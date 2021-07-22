@@ -3,12 +3,12 @@ package interceptors
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-const maxElementSize = 32
+const maxElementSize = 32 + 4 // hash + chunk_index_as_uint32
 
 var _ process.WhiteListHandler = (*whiteListDataVerifier)(nil)
 
@@ -33,7 +33,12 @@ func (w *whiteListDataVerifier) IsWhiteListed(interceptedData process.Intercepte
 		return false
 	}
 
-	for _, identifier := range interceptedData.Identifiers() {
+	return w.IsWhiteListedAtLeastOne(interceptedData.Identifiers())
+}
+
+// IsWhiteListedAtLeastOne return true if at least one identifier from the slice is whitelisted
+func (w *whiteListDataVerifier) IsWhiteListedAtLeastOne(identifiers [][]byte) bool {
+	for _, identifier := range identifiers {
 		if w.cache.Has(identifier) {
 			return true
 		}

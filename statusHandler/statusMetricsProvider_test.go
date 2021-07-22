@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
@@ -122,7 +122,7 @@ func TestStatusMetrics_StatusMetricsWithoutP2PPrometheusStringShouldPutDefaultSh
 
 	strRes := sm.StatusMetricsWithoutP2PPrometheusString()
 
-	expectedMetricOutput := fmt.Sprintf("%s{%s=\"%d\"} %v", key1, core.MetricShardId, 0, value1)
+	expectedMetricOutput := fmt.Sprintf("%s{%s=\"%d\"} %v", key1, common.MetricShardId, 0, value1)
 	assert.True(t, strings.Contains(strRes, expectedMetricOutput))
 }
 
@@ -133,14 +133,14 @@ func TestStatusMetrics_StatusMetricsWithoutP2PPrometheusStringShouldPutCorrectSh
 	sm := statusHandler.NewStatusMetrics()
 	key1, value1 := "test-key7", uint64(100)
 	key2, value2 := "test-key8", "value8"
-	key3, value3 := core.MetricShardId, shardID
+	key3, value3 := common.MetricShardId, shardID
 	sm.SetUInt64Value(key1, value1)
 	sm.SetStringValue(key2, value2)
 	sm.SetUInt64Value(key3, uint64(value3))
 
 	strRes := sm.StatusMetricsWithoutP2PPrometheusString()
 
-	expectedMetricOutput := fmt.Sprintf("%s{%s=\"%d\"} %v", key1, core.MetricShardId, shardID, value1)
+	expectedMetricOutput := fmt.Sprintf("%s{%s=\"%d\"} %v", key1, common.MetricShardId, shardID, value1)
 	assert.True(t, strings.Contains(strRes, expectedMetricOutput))
 }
 
@@ -149,24 +149,24 @@ func TestStatusMetrics_NetworkConfig(t *testing.T) {
 
 	sm := statusHandler.NewStatusMetrics()
 
-	sm.SetUInt64Value(core.MetricNumShardsWithoutMetachain, 1)
-	sm.SetUInt64Value(core.MetricNumNodesPerShard, 100)
-	sm.SetUInt64Value(core.MetricNumMetachainNodes, 50)
-	sm.SetUInt64Value(core.MetricShardConsensusGroupSize, 20)
-	sm.SetUInt64Value(core.MetricMetaConsensusGroupSize, 25)
-	sm.SetUInt64Value(core.MetricMinGasPrice, 1000)
-	sm.SetUInt64Value(core.MetricMinGasLimit, 50000)
-	sm.SetStringValue(core.MetricRewardsTopUpGradientPoint, "12345")
-	sm.SetUInt64Value(core.MetricGasPerDataByte, 1500)
-	sm.SetStringValue(core.MetricChainId, "local-id")
-	sm.SetUInt64Value(core.MetricRoundDuration, 5000)
-	sm.SetUInt64Value(core.MetricStartTime, 9999)
-	sm.SetStringValue(core.MetricLatestTagSoftwareVersion, "version1.0")
-	sm.SetUInt64Value(core.MetricDenomination, 18)
-	sm.SetUInt64Value(core.MetricMinTransactionVersion, 2)
-	sm.SetStringValue(core.MetricTopUpFactor, fmt.Sprintf("%g", 12.134))
-	sm.SetStringValue(core.MetricGasPriceModifier, fmt.Sprintf("%g", 0.5))
-	sm.SetUInt64Value(core.MetricRoundsPerEpoch, uint64(144))
+	sm.SetUInt64Value(common.MetricNumShardsWithoutMetachain, 1)
+	sm.SetUInt64Value(common.MetricNumNodesPerShard, 100)
+	sm.SetUInt64Value(common.MetricNumMetachainNodes, 50)
+	sm.SetUInt64Value(common.MetricShardConsensusGroupSize, 20)
+	sm.SetUInt64Value(common.MetricMetaConsensusGroupSize, 25)
+	sm.SetUInt64Value(common.MetricMinGasPrice, 1000)
+	sm.SetUInt64Value(common.MetricMinGasLimit, 50000)
+	sm.SetStringValue(common.MetricRewardsTopUpGradientPoint, "12345")
+	sm.SetUInt64Value(common.MetricGasPerDataByte, 1500)
+	sm.SetStringValue(common.MetricChainId, "local-id")
+	sm.SetUInt64Value(common.MetricRoundDuration, 5000)
+	sm.SetUInt64Value(common.MetricStartTime, 9999)
+	sm.SetStringValue(common.MetricLatestTagSoftwareVersion, "version1.0")
+	sm.SetUInt64Value(common.MetricDenomination, 18)
+	sm.SetUInt64Value(common.MetricMinTransactionVersion, 2)
+	sm.SetStringValue(common.MetricTopUpFactor, fmt.Sprintf("%g", 12.134))
+	sm.SetStringValue(common.MetricGasPriceModifier, fmt.Sprintf("%g", 0.5))
+	sm.SetUInt64Value(common.MetricRoundsPerEpoch, uint64(144))
 
 	expectedConfig := map[string]interface{}{
 		"erd_chain_id":                      "local-id",
@@ -191,4 +191,60 @@ func TestStatusMetrics_NetworkConfig(t *testing.T) {
 
 	configMetrics := sm.ConfigMetrics()
 	assert.Equal(t, expectedConfig, configMetrics)
+}
+
+func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
+	t.Parallel()
+
+	sm := statusHandler.NewStatusMetrics()
+
+	sm.SetUInt64Value(common.MetricScDeployEnableEpoch, 4)
+	sm.SetUInt64Value(common.MetricBuiltInFunctionsEnableEpoch, 2)
+	sm.SetUInt64Value(common.MetricRelayedTransactionsEnableEpoch, 4)
+	sm.SetUInt64Value(common.MetricPenalizedTooMuchGasEnableEpoch, 2)
+	sm.SetUInt64Value(common.MetricSwitchJailWaitingEnableEpoch, 2)
+	sm.SetUInt64Value(common.MetricSwitchHysteresisForMinNodesEnableEpoch, 4)
+	sm.SetUInt64Value(common.MetricBelowSignedThresholdEnableEpoch, 2)
+	sm.SetUInt64Value(common.MetricTransactionSignedWithTxHashEnableEpoch, 4)
+	sm.SetUInt64Value(common.MetricMetaProtectionEnableEpoch, 6)
+	sm.SetUInt64Value(common.MetricAheadOfTimeGasUsageEnableEpoch, 2)
+	sm.SetUInt64Value(common.MetricGasPriceModifierEnableEpoch, 2)
+	sm.SetUInt64Value(common.MetricRepairCallbackEnableEpoch, 2)
+	sm.SetUInt64Value(common.MetricBlockGasAndFreeRecheckEnableEpoch, 2)
+	sm.SetUInt64Value(common.MetricStakingV2EnableEpoch, 2)
+	sm.SetUInt64Value(common.MetricStakeEnableEpoch, 2)
+	sm.SetUInt64Value(common.MetricDoubleKeyProtectionEnableEpoch, 2)
+	sm.SetUInt64Value(common.MetricEsdtEnableEpoch, 4)
+	sm.SetUInt64Value(common.MetricGovernanceEnableEpoch, 3)
+	sm.SetUInt64Value(common.MetricDelegationManagerEnableEpoch, 1)
+	sm.SetUInt64Value(common.MetricDelegationSmartContractEnableEpoch, 2)
+	sm.SetUInt64Value(common.MetricIncrementSCRNonceInMultiTransferEnableEpoch, 3)
+
+	expectedMetrics := map[string]interface{}{
+		common.MetricScDeployEnableEpoch:                    uint64(4),
+		common.MetricBuiltInFunctionsEnableEpoch:            uint64(2),
+		common.MetricRelayedTransactionsEnableEpoch:         uint64(4),
+		common.MetricPenalizedTooMuchGasEnableEpoch:         uint64(2),
+		common.MetricSwitchJailWaitingEnableEpoch:           uint64(2),
+		common.MetricSwitchHysteresisForMinNodesEnableEpoch: uint64(4),
+		common.MetricBelowSignedThresholdEnableEpoch:        uint64(2),
+		common.MetricTransactionSignedWithTxHashEnableEpoch: uint64(4),
+		common.MetricMetaProtectionEnableEpoch:              uint64(6),
+		common.MetricAheadOfTimeGasUsageEnableEpoch:         uint64(2),
+		common.MetricGasPriceModifierEnableEpoch:            uint64(2),
+		common.MetricRepairCallbackEnableEpoch:              uint64(2),
+		common.MetricBlockGasAndFreeRecheckEnableEpoch:      uint64(2),
+		common.MetricStakingV2EnableEpoch:                   uint64(2),
+		common.MetricStakeEnableEpoch:                       uint64(2),
+		common.MetricDoubleKeyProtectionEnableEpoch:         uint64(2),
+		common.MetricEsdtEnableEpoch:                        uint64(4),
+		common.MetricGovernanceEnableEpoch:                  uint64(3),
+		common.MetricDelegationManagerEnableEpoch:           uint64(1),
+		common.MetricDelegationSmartContractEnableEpoch:     uint64(2),
+
+		common.MetricIncrementSCRNonceInMultiTransferEnableEpoch: uint64(3),
+	}
+
+	epochsMetrics := sm.EnableEpochsMetrics()
+	assert.Equal(t, expectedMetrics, epochsMetrics)
 }

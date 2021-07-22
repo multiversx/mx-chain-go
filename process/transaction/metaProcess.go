@@ -1,16 +1,16 @@
 package transaction
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/atomic"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var _ process.TransactionProcessor = (*metaTxProcessor)(nil)
@@ -72,7 +72,7 @@ func NewMetaTxProcessor(args ArgsNewMetaTxProcessor) (*metaTxProcessor, error) {
 		scProcessor:             args.ScProcessor,
 		flagPenalizedTooMuchGas: atomic.Flag{},
 	}
-	//backwards compatibility
+	// backwards compatibility
 	baseTxProcess.flagPenalizedTooMuchGas.Unset()
 
 	txProc := &metaTxProcessor{
@@ -80,6 +80,7 @@ func NewMetaTxProcessor(args ArgsNewMetaTxProcessor) (*metaTxProcessor, error) {
 		txTypeHandler:   args.TxTypeHandler,
 		esdtEnableEpoch: args.ESDTEnableEpoch,
 	}
+	log.Debug("metaProcess: enable epoch for esdt", "epoch", txProc.esdtEnableEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(txProc)
 
@@ -165,7 +166,7 @@ func (txProc *metaTxProcessor) processSCInvoking(
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
-func (txProc *metaTxProcessor) EpochConfirmed(epoch uint32) {
+func (txProc *metaTxProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 	txProc.flagESDTEnabled.Toggle(epoch >= txProc.esdtEnableEpoch)
 	log.Debug("txProcessor: esdt", "enabled", txProc.flagESDTEnabled.IsSet())
 }

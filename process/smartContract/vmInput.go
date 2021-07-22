@@ -3,11 +3,12 @@ package smartContract
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
+	"github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go/process"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 func (sc *scProcessor) createVMDeployInput(tx data.TransactionHandler) (*vmcommon.ContractCreateInput, []byte, error) {
@@ -101,6 +102,8 @@ func (sc *scProcessor) createVMCallInput(
 		vmCallInput.PrevTxHash = txHash
 	}
 
+	vmCallInput.ReturnCallAfterError = isSCR && len(scr.ReturnMessage) > 0
+
 	err = sc.initializeVMInputFromTx(&vmCallInput.VMInput, tx)
 	if err != nil {
 		return nil, err
@@ -119,8 +122,8 @@ func (sc *scProcessor) createVMCallInput(
 	return vmCallInput, nil
 }
 
-func (sc *scProcessor) getAsyncCallGasLockFromTxData(callType vmcommon.CallType, arguments [][]byte) ([][]byte, uint64) {
-	if callType != vmcommon.AsynchronousCall {
+func (sc *scProcessor) getAsyncCallGasLockFromTxData(callType vm.CallType, arguments [][]byte) ([][]byte, uint64) {
+	if callType != vm.AsynchronousCall {
 		return arguments, 0
 	}
 	lenArgs := len(arguments)
@@ -137,17 +140,17 @@ func (sc *scProcessor) getAsyncCallGasLockFromTxData(callType vmcommon.CallType,
 	return argsWithoutGasLocked, gasLocked
 }
 
-func determineCallType(tx data.TransactionHandler) vmcommon.CallType {
+func determineCallType(tx data.TransactionHandler) vm.CallType {
 	scr, isSCR := tx.(*smartContractResult.SmartContractResult)
 	if isSCR {
 		return scr.CallType
 	}
 
-	return vmcommon.DirectCall
+	return vm.DirectCall
 }
 
-func prependCallbackToTxDataIfAsyncCallBack(txData []byte, callType vmcommon.CallType) []byte {
-	if callType == vmcommon.AsynchronousCallBack {
+func prependCallbackToTxDataIfAsyncCallBack(txData []byte, callType vm.CallType) []byte {
+	if callType == vm.AsynchronousCallBack {
 		return append([]byte("callBack"), txData...)
 	}
 

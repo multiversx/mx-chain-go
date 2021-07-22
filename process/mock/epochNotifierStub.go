@@ -1,31 +1,32 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // EpochNotifierStub -
 type EpochNotifierStub struct {
-	CheckEpochCalled            func(epoch uint32)
+	CheckEpochCalled            func(header data.HeaderHandler)
 	CurrentEpochCalled          func() uint32
-	RegisterNotifyHandlerCalled func(handler core.EpochSubscriberHandler)
+	RegisterNotifyHandlerCalled func(handler vmcommon.EpochSubscriberHandler)
 }
 
 // CheckEpoch -
-func (ens *EpochNotifierStub) CheckEpoch(epoch uint32) {
+func (ens *EpochNotifierStub) CheckEpoch(header data.HeaderHandler) {
 	if ens.CheckEpochCalled != nil {
-		ens.CheckEpochCalled(epoch)
+		ens.CheckEpochCalled(header)
 	}
 }
 
 // RegisterNotifyHandler -
-func (ens *EpochNotifierStub) RegisterNotifyHandler(handler core.EpochSubscriberHandler) {
+func (ens *EpochNotifierStub) RegisterNotifyHandler(handler vmcommon.EpochSubscriberHandler) {
 	if ens.RegisterNotifyHandlerCalled != nil {
 		ens.RegisterNotifyHandlerCalled(handler)
 	} else {
 		if !check.IfNil(handler) {
-			handler.EpochConfirmed(0)
+			handler.EpochConfirmed(0, 0)
 		}
 	}
 }

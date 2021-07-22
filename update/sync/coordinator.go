@@ -6,10 +6,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
@@ -148,6 +149,7 @@ func (ss *syncState) SyncAllState(epoch uint32, ownShardId uint32) error {
 		}
 	}()
 
+	// TODO: might think of a way to stop waiting at a signal
 	wg.Wait()
 
 	if errFound != nil {

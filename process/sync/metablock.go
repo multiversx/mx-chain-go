@@ -2,20 +2,25 @@ package sync
 
 import (
 	"context"
+	"strings"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 // MetaBootstrap implements the bootstrap mechanism
 type MetaBootstrap struct {
 	*baseBootstrap
-	epochBootstrapper process.EpochBootstrapper
+	epochBootstrapper           process.EpochBootstrapper
+	validatorStatisticsDBSyncer process.AccountsDBSyncer
+	validatorAccountsDB         state.AccountsAdapter
 }
 
 // NewMetaBootstrap creates a new Bootstrap object
@@ -32,6 +37,12 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 	if check.IfNil(arguments.EpochHandler) {
 		return nil, process.ErrNilEpochHandler
 	}
+	if check.IfNil(arguments.ValidatorStatisticsDBSyncer) {
+		return nil, process.ErrNilAccountsDBSyncer
+	}
+	if check.IfNil(arguments.ValidatorAccountsDB) {
+		return nil, process.ErrNilPeerAccountsAdapter
+	}
 
 	err := checkBootstrapNilParameters(arguments.ArgBaseBootstrapper)
 	if err != nil {
@@ -39,28 +50,31 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 	}
 
 	base := &baseBootstrap{
-		chainHandler:        arguments.ChainHandler,
-		blockProcessor:      arguments.BlockProcessor,
-		store:               arguments.Store,
-		headers:             arguments.PoolsHolder.Headers(),
-		rounder:             arguments.Rounder,
-		waitTime:            arguments.WaitTime,
-		hasher:              arguments.Hasher,
-		marshalizer:         arguments.Marshalizer,
-		forkDetector:        arguments.ForkDetector,
-		requestHandler:      arguments.RequestHandler,
-		shardCoordinator:    arguments.ShardCoordinator,
-		accounts:            arguments.Accounts,
-		blackListHandler:    arguments.BlackListHandler,
-		networkWatcher:      arguments.NetworkWatcher,
-		bootStorer:          arguments.BootStorer,
-		storageBootstrapper: arguments.StorageBootstrapper,
-		epochHandler:        arguments.EpochHandler,
-		miniBlocksProvider:  arguments.MiniblocksProvider,
-		uint64Converter:     arguments.Uint64Converter,
-		poolsHolder:         arguments.PoolsHolder,
-		indexer:             arguments.Indexer,
-		isInImportMode:      arguments.IsInImportMode,
+		chainHandler:         arguments.ChainHandler,
+		blockProcessor:       arguments.BlockProcessor,
+		store:                arguments.Store,
+		headers:              arguments.PoolsHolder.Headers(),
+		roundHandler:         arguments.RoundHandler,
+		waitTime:             arguments.WaitTime,
+		hasher:               arguments.Hasher,
+		marshalizer:          arguments.Marshalizer,
+		forkDetector:         arguments.ForkDetector,
+		requestHandler:       arguments.RequestHandler,
+		shardCoordinator:     arguments.ShardCoordinator,
+		accounts:             arguments.Accounts,
+		blackListHandler:     arguments.BlackListHandler,
+		networkWatcher:       arguments.NetworkWatcher,
+		bootStorer:           arguments.BootStorer,
+		storageBootstrapper:  arguments.StorageBootstrapper,
+		epochHandler:         arguments.EpochHandler,
+		miniBlocksProvider:   arguments.MiniblocksProvider,
+		uint64Converter:      arguments.Uint64Converter,
+		poolsHolder:          arguments.PoolsHolder,
+		statusHandler:        arguments.AppStatusHandler,
+		indexer:              arguments.Indexer,
+		accountsDBSyncer:     arguments.AccountsDBSyncer,
+		currentEpochProvider: arguments.CurrentEpochProvider,
+		isInImportMode:       arguments.IsInImportMode,
 	}
 
 	if base.isInImportMode {
@@ -68,8 +82,10 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 	}
 
 	boot := MetaBootstrap{
-		baseBootstrap:     base,
-		epochBootstrapper: arguments.EpochBootstrapper,
+		baseBootstrap:               base,
+		epochBootstrapper:           arguments.EpochBootstrapper,
+		validatorStatisticsDBSyncer: arguments.ValidatorStatisticsDBSyncer,
+		validatorAccountsDB:         arguments.ValidatorAccountsDB,
 	}
 
 	base.blockBootstrapper = &boot
@@ -156,7 +172,51 @@ func (boot *MetaBootstrap) setLastEpochStartRound() {
 // These methods will execute the block and its transactions. Finally if everything works, the block will be committed
 // in the blockchain, and all this mechanism will be reiterated for the next block.
 func (boot *MetaBootstrap) SyncBlock() error {
-	return boot.syncBlock()
+	err := boot.syncBlock()
+	isErrGetNodeFromDB := err != nil && strings.Contains(err.Error(), common.GetNodeFromDBErrorString)
+	if isErrGetNodeFromDB {
+		errSync := boot.syncAccountsDBs()
+		if errSync != nil {
+			log.Debug("SyncBlock syncTrie", "error", errSync)
+		}
+	}
+
+	return err
+}
+
+func (boot *MetaBootstrap) syncAccountsDBs() error {
+	var err error
+
+	err = boot.syncValidatorAccountsState()
+	if err != nil {
+		return err
+	}
+
+	err = boot.syncUserAccountsState()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (boot *MetaBootstrap) syncValidatorAccountsState() error {
+	rootHash, err := boot.validatorAccountsDB.RootHash()
+	if err != nil {
+		return err
+	}
+
+	log.Warn("base sync: started syncValidatorAccountsState")
+	return boot.validatorStatisticsDBSyncer.SyncAccounts(rootHash)
+}
+
+// Close closes the synchronization loop
+func (boot *MetaBootstrap) Close() error {
+	if check.IfNil(boot.baseBootstrap) {
+		return nil
+	}
+
+	return boot.baseBootstrap.Close()
 }
 
 // requestHeaderWithNonce method requests a block header from network when it is not found in the pool

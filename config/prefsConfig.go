@@ -11,4 +11,6 @@ type PreferencesConfig struct {
 	NodeDisplayName            string
 	Identity                   string
 	RedundancyLevel            int64
+	PreferredConnections       []string
+	FullArchive                bool
 }

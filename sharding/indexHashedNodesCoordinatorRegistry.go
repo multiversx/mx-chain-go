@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/common"
 )
 
 // SerializableValidator holds the minimal data required for marshalling and un-marshalling a validator
@@ -40,7 +40,7 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) LoadState(key []byte) error {
 }
 
 func (ihgs *indexHashedNodesCoordinator) baseLoadState(key []byte) error {
-	ncInternalkey := append([]byte(core.NodesCoordinatorRegistryKeyPrefix), key...)
+	ncInternalkey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), key...)
 
 	log.Debug("getting nodes coordinator config", "key", ncInternalkey)
 
@@ -94,7 +94,7 @@ func (ihgs *indexHashedNodesCoordinator) saveState(key []byte) error {
 		return err
 	}
 
-	ncInternalkey := append([]byte(core.NodesCoordinatorRegistryKeyPrefix), key...)
+	ncInternalkey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), key...)
 
 	log.Debug("saving nodes coordinator config", "key", ncInternalkey)
 
@@ -144,7 +144,7 @@ func (ihgs *indexHashedNodesCoordinator) registryToNodesCoordinator(
 
 		// shards without metachain shard
 		nodesConfig.nbShards = nbShards - 1
-		nodesConfig.shardID = ihgs.computeShardForSelfPublicKey(nodesConfig)
+		nodesConfig.shardID, _ = ihgs.computeShardForSelfPublicKey(nodesConfig)
 		epoch32 := uint32(epoch)
 		result[epoch32] = nodesConfig
 		log.Debug("registry to nodes coordinator", "epoch", epoch32)

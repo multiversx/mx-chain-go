@@ -9,15 +9,16 @@ import (
 
 	elasticIndexer "github.com/ElrondNetwork/elastic-indexer-go"
 	indexerTypes "github.com/ElrondNetwork/elastic-indexer-go/data"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/indexer"
-	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
 
@@ -56,12 +57,10 @@ func CreateTestIndexer(
 	elasticProcessor := ti.createElasticProcessor(coordinator, txFeeCalculator)
 
 	arguments := elasticIndexer.ArgDataIndexer{
-		Marshalizer:        testMarshalizer,
-		NodesCoordinator:   &mock.NodesCoordinatorMock{},
-		EpochStartNotifier: &mock.EpochStartNotifierStub{},
-		ShardCoordinator:   coordinator,
-		ElasticProcessor:   elasticProcessor,
-		DataDispatcher:     dispatcher,
+		Marshalizer:      testMarshalizer,
+		ShardCoordinator: coordinator,
+		ElasticProcessor: elasticProcessor,
+		DataDispatcher:   dispatcher,
 	}
 
 	testIndexer, err := elasticIndexer.NewDataIndexer(arguments)
@@ -100,7 +99,7 @@ func (ti *testIndexer) createElasticProcessor(
 		ValidatorPubkeyConverter: pubkeyConv,
 		DBClient:                 databaseClient,
 		EnabledIndexes:           enabledIndexesMap,
-		AccountsDB:               &mock.AccountsStub{},
+		AccountsDB:               &testscommon.AccountsStub{},
 		Denomination:             18,
 		TransactionFeeCalculator: transactionFeeCalculator,
 		IsInImportDBMode:         false,

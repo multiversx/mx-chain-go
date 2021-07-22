@@ -1,25 +1,25 @@
 package peer
 
 import (
-	"context"
 	"encoding/hex"
 	"fmt"
 	"math"
 	"math/big"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/atomic"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/validatorInfo"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/validatorInfo"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 var log = logger.GetOrCreate("process/peer")
@@ -138,6 +138,9 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 		belowSignedThresholdEnableEpoch: arguments.BelowSignedThresholdEnableEpoch,
 		stakingV2EnableEpoch:            arguments.StakingV2EnableEpoch,
 	}
+	log.Debug("peer/process: enable epoch for switch jail waiting", "epoch", vs.jailedEnableEpoch)
+	log.Debug("peer/process: enable epoch for below signed threshold", "epoch", vs.belowSignedThresholdEnableEpoch)
+	log.Debug("peer/process: enable epoch for staking v2", "epoch", vs.stakingV2EnableEpoch)
 
 	arguments.EpochNotifier.RegisterNotifyHandler(vs)
 
@@ -160,7 +163,7 @@ func (vs *validatorStatistics) saveNodesCoordinatorUpdates(epoch uint32) (bool, 
 	}
 
 	var tmpNodeForcedToRemain, nodeForcedToRemain bool
-	tmpNodeForcedToRemain, err = vs.saveUpdatesForNodesMap(nodesMap, core.EligibleList)
+	tmpNodeForcedToRemain, err = vs.saveUpdatesForNodesMap(nodesMap, common.EligibleList)
 	if err != nil {
 		return false, err
 	}
@@ -171,7 +174,7 @@ func (vs *validatorStatistics) saveNodesCoordinatorUpdates(epoch uint32) (bool, 
 		return false, err
 	}
 
-	tmpNodeForcedToRemain, err = vs.saveUpdatesForNodesMap(nodesMap, core.WaitingList)
+	tmpNodeForcedToRemain, err = vs.saveUpdatesForNodesMap(nodesMap, common.WaitingList)
 	if err != nil {
 		return false, err
 	}
@@ -182,7 +185,7 @@ func (vs *validatorStatistics) saveNodesCoordinatorUpdates(epoch uint32) (bool, 
 		return false, err
 	}
 
-	tmpNodeForcedToRemain, err = vs.saveUpdatesForNodesMap(nodesMap, core.InactiveList)
+	tmpNodeForcedToRemain, err = vs.saveUpdatesForNodesMap(nodesMap, common.InactiveList)
 	if err != nil {
 		return false, err
 	}
@@ -193,7 +196,7 @@ func (vs *validatorStatistics) saveNodesCoordinatorUpdates(epoch uint32) (bool, 
 
 func (vs *validatorStatistics) saveUpdatesForNodesMap(
 	nodesMap map[uint32][][]byte,
-	peerType core.PeerType,
+	peerType common.PeerType,
 ) (bool, error) {
 	nodeForcedToRemain := false
 	for shardID := uint32(0); shardID < vs.shardCoordinator.NumberOfShards(); shardID++ {
@@ -217,7 +220,7 @@ func (vs *validatorStatistics) saveUpdatesForNodesMap(
 func (vs *validatorStatistics) saveUpdatesForList(
 	pks [][]byte,
 	shardID uint32,
-	peerType core.PeerType,
+	peerType common.PeerType,
 ) (bool, error) {
 	nodeForcedToStay := false
 	for index, pubKey := range pks {
@@ -227,13 +230,13 @@ func (vs *validatorStatistics) saveUpdatesForList(
 			return false, err
 		}
 
-		isNodeLeaving := (peerType == core.WaitingList || peerType == core.EligibleList) && peerAcc.GetList() == string(core.LeavingList)
+		isNodeLeaving := (peerType == common.WaitingList || peerType == common.EligibleList) && peerAcc.GetList() == string(common.LeavingList)
 		isNodeWithLowRating := vs.isValidatorWithLowRating(peerAcc)
-		isNodeJailed := vs.flagJailedEnabled.IsSet() && peerType == core.InactiveList && isNodeWithLowRating
+		isNodeJailed := vs.flagJailedEnabled.IsSet() && peerType == common.InactiveList && isNodeWithLowRating
 		if isNodeJailed {
-			peerAcc.SetListAndIndex(shardID, string(core.JailedList), uint32(index))
+			peerAcc.SetListAndIndex(shardID, string(common.JailedList), uint32(index))
 		} else if isNodeLeaving {
-			peerAcc.SetListAndIndex(shardID, string(core.LeavingList), uint32(index))
+			peerAcc.SetListAndIndex(shardID, string(common.LeavingList), uint32(index))
 		} else {
 			peerAcc.SetListAndIndex(shardID, string(peerType), uint32(index))
 		}
@@ -252,12 +255,12 @@ func (vs *validatorStatistics) saveUpdatesForList(
 // saveInitialState takes an initial peer list, validates it and sets up the initial state for each of the peers
 func (vs *validatorStatistics) saveInitialState(nodesConfig sharding.GenesisNodesSetupHandler) error {
 	eligibleNodesInfo, waitingNodesInfo := nodesConfig.InitialNodesInfo()
-	err := vs.saveInitialValueForMap(eligibleNodesInfo, core.EligibleList)
+	err := vs.saveInitialValueForMap(eligibleNodesInfo, common.EligibleList)
 	if err != nil {
 		return err
 	}
 
-	err = vs.saveInitialValueForMap(waitingNodesInfo, core.WaitingList)
+	err = vs.saveInitialValueForMap(waitingNodesInfo, common.WaitingList)
 	if err != nil {
 		return err
 	}
@@ -274,7 +277,7 @@ func (vs *validatorStatistics) saveInitialState(nodesConfig sharding.GenesisNode
 
 func (vs *validatorStatistics) saveInitialValueForMap(
 	nodesInfo map[uint32][]sharding.GenesisNodeInfoHandler,
-	peerType core.PeerType,
+	peerType common.PeerType,
 ) error {
 	if len(nodesInfo) == 0 {
 		return nil
@@ -454,17 +457,17 @@ func (vs *validatorStatistics) getValidatorDataFromLeaves(
 
 func getActualList(peerAccount state.PeerAccountHandler) string {
 	savedList := peerAccount.GetList()
-	if peerAccount.GetUnStakedEpoch() == core.DefaultUnstakedEpoch {
-		if savedList == string(core.InactiveList) {
-			return string(core.JailedList)
+	if peerAccount.GetUnStakedEpoch() == common.DefaultUnstakedEpoch {
+		if savedList == string(common.InactiveList) {
+			return string(common.JailedList)
 		}
 		return savedList
 	}
-	if savedList == string(core.InactiveList) {
+	if savedList == string(common.InactiveList) {
 		return savedList
 	}
 
-	return string(core.LeavingList)
+	return string(common.LeavingList)
 }
 
 // PeerAccountToValidatorInfo creates a validator info from the given peer account
@@ -529,14 +532,14 @@ func (vs *validatorStatistics) jailValidatorIfBadRatingAndInactive(validatorAcco
 		return
 	}
 
-	if validatorAccount.GetList() != string(core.InactiveList) {
+	if validatorAccount.GetList() != string(common.InactiveList) {
 		return
 	}
 	if !vs.isValidatorWithLowRating(validatorAccount) {
 		return
 	}
 
-	validatorAccount.SetListAndIndex(validatorAccount.GetShardId(), string(core.JailedList), validatorAccount.GetIndexInList())
+	validatorAccount.SetListAndIndex(validatorAccount.GetShardId(), string(common.JailedList), validatorAccount.GetIndexInList())
 }
 
 func (vs *validatorStatistics) unmarshalPeer(pa []byte) (state.PeerAccountHandler, error) {
@@ -557,8 +560,7 @@ func (vs *validatorStatistics) GetValidatorInfoForRootHash(rootHash []byte) (map
 		log.Debug("GetValidatorInfoForRootHash", sw.GetMeasurements()...)
 	}()
 
-	ctx := context.Background()
-	leavesChannel, err := vs.peerAdapter.GetAllLeaves(rootHash, ctx)
+	leavesChannel, err := vs.peerAdapter.GetAllLeaves(rootHash)
 	if err != nil {
 		return nil, err
 	}
@@ -588,11 +590,11 @@ func (vs *validatorStatistics) ProcessRatingsEndOfEpoch(
 	for shardId, validators := range validatorInfos {
 		for _, validator := range validators {
 			if !vs.flagStakingV2Enabled.IsSet() {
-				if validator.List != string(core.EligibleList) {
+				if validator.List != string(common.EligibleList) {
 					continue
 				}
 			} else {
-				if validator.List != string(core.EligibleList) && !validatorInfo.WasLeavingEligibleInCurrentEpoch(validator) {
+				if validator.List != string(common.EligibleList) && !validatorInfo.WasLeavingEligibleInCurrentEpoch(validator) {
 					continue
 				}
 			}
@@ -698,17 +700,17 @@ func (vs *validatorStatistics) setToJailedIfNeeded(
 		return
 	}
 
-	if validator.List == string(core.WaitingList) || validator.List == string(core.EligibleList) {
+	if validator.List == string(common.WaitingList) || validator.List == string(common.EligibleList) {
 		return
 	}
 
-	if validator.List == string(core.JailedList) && peerAccount.GetList() != string(core.JailedList) {
-		peerAccount.SetListAndIndex(validator.ShardId, string(core.JailedList), validator.Index)
+	if validator.List == string(common.JailedList) && peerAccount.GetList() != string(common.JailedList) {
+		peerAccount.SetListAndIndex(validator.ShardId, string(common.JailedList), validator.Index)
 		return
 	}
 
 	if vs.isValidatorWithLowRating(peerAccount) {
-		peerAccount.SetListAndIndex(validator.ShardId, string(core.JailedList), validator.Index)
+		peerAccount.SetListAndIndex(validator.ShardId, string(common.JailedList), validator.Index)
 	}
 }
 
@@ -926,7 +928,7 @@ func (vs *validatorStatistics) searchInMap(hash []byte, cacheMap map[string]data
 func (vs *validatorStatistics) initializeNode(
 	node sharding.GenesisNodeInfoHandler,
 	shardID uint32,
-	peerType core.PeerType,
+	peerType common.PeerType,
 	index uint32,
 ) error {
 	peerAccount, err := vs.loadPeerAccount(node.PubKeyBytes())
@@ -942,7 +944,7 @@ func (vs *validatorStatistics) savePeerAccountData(
 	node sharding.GenesisNodeInfoHandler,
 	startRating uint32,
 	shardID uint32,
-	peerType core.PeerType,
+	peerType common.PeerType,
 	index uint32,
 ) error {
 	log.Trace("validatorStatistics - savePeerAccountData",
@@ -1223,7 +1225,7 @@ func (vs *validatorStatistics) LastFinalizedRootHash() []byte {
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
-func (vs *validatorStatistics) EpochConfirmed(epoch uint32) {
+func (vs *validatorStatistics) EpochConfirmed(epoch uint32, _ uint64) {
 	vs.flagJailedEnabled.Toggle(epoch >= vs.jailedEnableEpoch)
 	log.Debug("validatorStatistics: jailed", "enabled", vs.flagJailedEnabled.IsSet())
 	vs.flagStakingV2Enabled.Toggle(epoch > vs.stakingV2EnableEpoch)

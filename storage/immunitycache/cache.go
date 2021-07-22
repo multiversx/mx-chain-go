@@ -3,8 +3,8 @@ package immunitycache
 import (
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -298,6 +298,11 @@ func (ic *ImmunityCache) Diagnose(_ bool) {
 		"numBytes", numBytes,
 		"hospitality", hospitality,
 	)
+}
+
+// Close does nothing for this cacher implementation
+func (ic *ImmunityCache) Close() error {
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

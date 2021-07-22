@@ -3,13 +3,13 @@ package bls
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -62,9 +62,9 @@ func (fct *factory) MultiSigner() crypto.MultiSigner {
 	return fct.consensusCore.MultiSigner()
 }
 
-// Rounder gets the rounder object
-func (fct *factory) Rounder() consensus.Rounder {
-	return fct.consensusCore.Rounder()
+// RoundHandler gets the roundHandler object
+func (fct *factory) RoundHandler() consensus.RoundHandler {
+	return fct.consensusCore.RoundHandler()
 }
 
 // ShardCoordinator gets the shard coordinator object

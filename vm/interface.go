@@ -3,8 +3,8 @@ package vm
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // SystemSmartContract interface defines the function a system smart contract should have
@@ -54,6 +54,7 @@ type SystemEI interface {
 	StatusFromValidatorStatistics(blsKey []byte) string
 	CanUnJail(blsKey []byte) bool
 	IsBadRating(blsKey []byte) bool
+	CleanStorageUpdates()
 
 	IsInterfaceNil() bool
 }
@@ -99,9 +100,9 @@ type NodesConfigProvider interface {
 
 // EpochNotifier can notify upon an epoch change and provide the current epoch
 type EpochNotifier interface {
-	RegisterNotifyHandler(handler core.EpochSubscriberHandler)
+	RegisterNotifyHandler(handler vmcommon.EpochSubscriberHandler)
 	CurrentEpoch() uint32
-	CheckEpoch(epoch uint32)
+	CheckEpoch(header data.HeaderHandler)
 	IsInterfaceNil() bool
 }
 
@@ -118,6 +119,7 @@ type BlockchainHook interface {
 	IsPayable(address []byte) (bool, error)
 	NumberOfShards() uint32
 	CurrentRandomSeed() []byte
+	Close() error
 	GetSnapshot() int
 	RevertToSnapshot(snapshot int) error
 }

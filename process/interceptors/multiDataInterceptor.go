@@ -1,36 +1,43 @@
 package interceptors
 
 import (
+	"sync"
+
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/batch"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/batch"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/debug/resolver"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/interceptors/disabled"
 )
 
 var log = logger.GetOrCreate("process/interceptors")
 
 // ArgMultiDataInterceptor is the argument for the multi-data interceptor
 type ArgMultiDataInterceptor struct {
-	Topic            string
-	Marshalizer      marshal.Marshalizer
-	DataFactory      process.InterceptedDataFactory
-	Processor        process.InterceptorProcessor
-	Throttler        process.InterceptorThrottler
-	AntifloodHandler process.P2PAntifloodHandler
-	WhiteListRequest process.WhiteListHandler
-	CurrentPeerId    core.PeerID
+	Topic                string
+	Marshalizer          marshal.Marshalizer
+	DataFactory          process.InterceptedDataFactory
+	Processor            process.InterceptorProcessor
+	Throttler            process.InterceptorThrottler
+	AntifloodHandler     process.P2PAntifloodHandler
+	WhiteListRequest     process.WhiteListHandler
+	PreferredPeersHolder process.PreferredPeersHolderHandler
+	CurrentPeerId        core.PeerID
 }
 
 // MultiDataInterceptor is used for intercepting packed multi data
 type MultiDataInterceptor struct {
 	*baseDataInterceptor
-	marshalizer      marshal.Marshalizer
-	factory          process.InterceptedDataFactory
-	whiteListRequest process.WhiteListHandler
+	marshalizer        marshal.Marshalizer
+	factory            process.InterceptedDataFactory
+	whiteListRequest   process.WhiteListHandler
+	mutChunksProcessor sync.RWMutex
+	chunksProcessor    process.InterceptedChunksProcessor
 }
 
 // NewMultiDataInterceptor hooks a new interceptor for packed multi data
@@ -56,22 +63,27 @@ func NewMultiDataInterceptor(arg ArgMultiDataInterceptor) (*MultiDataInterceptor
 	if check.IfNil(arg.WhiteListRequest) {
 		return nil, process.ErrNilWhiteListHandler
 	}
+	if check.IfNil(arg.PreferredPeersHolder) {
+		return nil, process.ErrNilPreferredPeersHolder
+	}
 	if len(arg.CurrentPeerId) == 0 {
 		return nil, process.ErrEmptyPeerID
 	}
 
 	multiDataIntercept := &MultiDataInterceptor{
 		baseDataInterceptor: &baseDataInterceptor{
-			throttler:        arg.Throttler,
-			antifloodHandler: arg.AntifloodHandler,
-			topic:            arg.Topic,
-			currentPeerId:    arg.CurrentPeerId,
-			processor:        arg.Processor,
-			debugHandler:     resolver.NewDisabledInterceptorResolver(),
+			throttler:            arg.Throttler,
+			antifloodHandler:     arg.AntifloodHandler,
+			topic:                arg.Topic,
+			currentPeerId:        arg.CurrentPeerId,
+			processor:            arg.Processor,
+			preferredPeersHolder: arg.PreferredPeersHolder,
+			debugHandler:         resolver.NewDisabledInterceptorResolver(),
 		},
 		marshalizer:      arg.Marshalizer,
 		factory:          arg.DataFactory,
 		whiteListRequest: arg.WhiteListRequest,
+		chunksProcessor:  disabled.NewDisabledInterceptedChunksProcessor(),
 	}
 
 	return multiDataIntercept, nil
@@ -92,8 +104,8 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 
 		//this situation is so severe that we need to black list de peers
 		reason := "unmarshalable data got on topic " + mdi.topic
-		mdi.antifloodHandler.BlacklistPeer(message.Peer(), reason, core.InvalidMessageBlacklistDuration)
-		mdi.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, core.InvalidMessageBlacklistDuration)
+		mdi.antifloodHandler.BlacklistPeer(message.Peer(), reason, common.InvalidMessageBlacklistDuration)
+		mdi.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, common.InvalidMessageBlacklistDuration)
 
 		return err
 	}
@@ -114,6 +126,24 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 	if err != nil {
 		mdi.throttler.EndProcessing()
 		return err
+	}
+
+	mdi.mutChunksProcessor.RLock()
+	checkChunksRes, err := mdi.chunksProcessor.CheckBatch(&b, mdi.whiteListRequest)
+	mdi.mutChunksProcessor.RUnlock()
+	if err != nil {
+		mdi.throttler.EndProcessing()
+		return err
+	}
+
+	isIncompleteChunk := checkChunksRes.IsChunk && !checkChunksRes.HaveAllChunks
+	if isIncompleteChunk {
+		mdi.throttler.EndProcessing()
+		return nil
+	}
+	isCompleteChunk := checkChunksRes.IsChunk && checkChunksRes.HaveAllChunks
+	if isCompleteChunk {
+		multiDataBuff = [][]byte{checkChunksRes.CompleteBuffer}
 	}
 
 	listInterceptedData := make([]process.InterceptedData, len(multiDataBuff))
@@ -169,8 +199,8 @@ func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte, originator cor
 	if err != nil {
 		//this situation is so severe that we need to black list de peers
 		reason := "can not create object from received bytes, topic " + mdi.topic + ", error " + err.Error()
-		mdi.antifloodHandler.BlacklistPeer(originator, reason, core.InvalidMessageBlacklistDuration)
-		mdi.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, core.InvalidMessageBlacklistDuration)
+		mdi.antifloodHandler.BlacklistPeer(originator, reason, common.InvalidMessageBlacklistDuration)
+		mdi.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, common.InvalidMessageBlacklistDuration)
 
 		return nil, err
 	}
@@ -185,8 +215,8 @@ func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte, originator cor
 		if isWrongVersion {
 			//this situation is so severe that we need to black list de peers
 			reason := "wrong version of received intercepted data, topic " + mdi.topic + ", error " + err.Error()
-			mdi.antifloodHandler.BlacklistPeer(originator, reason, core.InvalidMessageBlacklistDuration)
-			mdi.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, core.InvalidMessageBlacklistDuration)
+			mdi.antifloodHandler.BlacklistPeer(originator, reason, common.InvalidMessageBlacklistDuration)
+			mdi.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, common.InvalidMessageBlacklistDuration)
 		}
 
 		return nil, err
@@ -198,6 +228,27 @@ func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte, originator cor
 // RegisterHandler registers a callback function to be notified on received data
 func (mdi *MultiDataInterceptor) RegisterHandler(handler func(topic string, hash []byte, data interface{})) {
 	mdi.processor.RegisterHandler(handler)
+}
+
+// SetChunkProcessor sets the intercepted chunks processor
+func (mdi *MultiDataInterceptor) SetChunkProcessor(processor process.InterceptedChunksProcessor) error {
+	if check.IfNil(processor) {
+		return process.ErrNilChunksProcessor
+	}
+
+	mdi.mutChunksProcessor.Lock()
+	mdi.chunksProcessor = processor
+	mdi.mutChunksProcessor.Unlock()
+
+	return nil
+}
+
+// Close will call the chunk processor's close method
+func (mdi *MultiDataInterceptor) Close() error {
+	mdi.mutChunksProcessor.RLock()
+	defer mdi.mutChunksProcessor.RUnlock()
+
+	return mdi.chunksProcessor.Close()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

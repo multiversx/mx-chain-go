@@ -6,11 +6,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
@@ -26,6 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -121,6 +123,9 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	generalConfig := getGeneralConfig()
 	roundDurationMillis := 4000
 	epochDurationMillis := generalConfig.EpochStartConfig.RoundsPerEpoch * int64(roundDurationMillis)
+	prefsConfig := config.PreferencesConfig{
+		FullArchive: false,
+	}
 
 	pksBytes := integrationTests.CreatePkBytes(uint32(numOfShards))
 	address := []byte("afafafafafafafafafafafafafafafaf")
@@ -176,39 +181,47 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		_ = n.ConnectTo(nodeToJoinLate)
 	}
 
-	rounder := &mock.RounderMock{IndexField: int64(round)}
+	roundHandler := &mock.RoundHandlerMock{IndexField: int64(round)}
+	cryptoComponents := integrationTests.GetDefaultCryptoComponents()
+	cryptoComponents.PubKey = nodeToJoinLate.NodeKeys.Pk
+	cryptoComponents.BlockSig = &mock.SignerMock{}
+	cryptoComponents.TxSig = &mock.SignerMock{}
+	cryptoComponents.BlKeyGen = &mock.KeyGenMock{}
+	cryptoComponents.TxKeyGen = &mock.KeyGenMock{}
+
+	coreComponents := integrationTests.GetDefaultCoreComponents()
+	coreComponents.InternalMarshalizerField = integrationTests.TestMarshalizer
+	coreComponents.TxMarshalizerField = integrationTests.TestMarshalizer
+	coreComponents.HasherField = integrationTests.TestHasher
+	coreComponents.AddressPubKeyConverterField = integrationTests.TestAddressPubkeyConverter
+	coreComponents.Uint64ByteSliceConverterField = uint64Converter
+	coreComponents.PathHandlerField = &testscommon.PathManagerStub{}
+	coreComponents.ChainIdCalled = func() string {
+		return string(integrationTests.ChainID)
+	}
+	coreComponents.NodeTypeProviderField = &nodeTypeProviderMock.NodeTypeProviderStub{}
+	coreComponents.ChanStopNodeProcessField = endProcess.GetDummyEndProcessChannel()
+
 	argsBootstrapHandler := bootstrap.ArgsEpochStartBootstrap{
-		PublicKey:                  nodeToJoinLate.NodeKeys.Pk,
-		Marshalizer:                integrationTests.TestMarshalizer,
-		TxSignMarshalizer:          integrationTests.TestTxSignMarshalizer,
-		Hasher:                     integrationTests.TestHasher,
-		Messenger:                  nodeToJoinLate.Messenger,
-		GeneralConfig:              generalConfig,
+		CryptoComponentsHolder: cryptoComponents,
+		CoreComponentsHolder:   coreComponents,
+		Messenger:              nodeToJoinLate.Messenger,
+		GeneralConfig:          generalConfig,
+		PrefsConfig: config.PreferencesConfig{
+			FullArchive: false,
+		},
 		GenesisShardCoordinator:    genesisShardCoordinator,
 		EconomicsData:              nodeToJoinLate.EconomicsData,
-		SingleSigner:               &mock.SignerMock{},
-		BlockSingleSigner:          &mock.SignerMock{},
-		KeyGen:                     &mock.KeyGenMock{},
-		BlockKeyGen:                &mock.KeyGenMock{},
 		LatestStorageDataProvider:  &mock.LatestStorageDataProviderStub{},
 		StorageUnitOpener:          &mock.UnitOpenerStub{},
 		GenesisNodesConfig:         nodesConfig,
-		PathManager:                &mock.PathManagerStub{},
-		WorkingDir:                 "test_directory",
-		DefaultDBPath:              "test_db",
-		DefaultEpochString:         "test_epoch",
-		DefaultShardString:         "test_shard",
 		Rater:                      &mock.RaterMock{},
 		DestinationShardAsObserver: shardID,
-		Uint64Converter:            uint64Converter,
 		NodeShuffler:               &mock.NodeShufflerMock{},
-		Rounder:                    rounder,
-		AddressPubkeyConverter:     integrationTests.TestAddressPubkeyConverter,
+		RoundHandler:               roundHandler,
 		ArgumentsParser:            smartContract.NewArgumentParser(),
 		StatusHandler:              &mock.AppStatusHandlerStub{},
 		HeaderIntegrityVerifier:    integrationTests.CreateHeaderIntegrityVerifier(),
-		TxSignHasher:               integrationTests.TestHasher,
-		EpochNotifier:              &mock.EpochNotifierStub{},
 	}
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)
 	assert.Nil(t, err)
@@ -222,10 +235,14 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 
 	storageFactory, err := factory.NewStorageServiceFactory(
 		&generalConfig,
+		&prefsConfig,
 		shardC,
-		&mock.PathManagerStub{},
+		&testscommon.PathManagerStub{},
 		notifier.NewEpochStartSubscriptionHandler(),
-		0)
+		&nodeTypeProviderMock.NodeTypeProviderStub{},
+		0,
+		false,
+	)
 	assert.NoError(t, err)
 	storageServiceShard, err := storageFactory.CreateForMeta()
 	assert.NoError(t, err)

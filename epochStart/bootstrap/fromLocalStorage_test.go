@@ -6,17 +6,18 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestPrepareEpochFromStorage(t *testing.T) {
-	args := createMockEpochStartBootstrapArgs()
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 	epochStartProvider, err := NewEpochStartBootstrap(args)
 	require.Nil(t, err)
 	epochStartProvider.initializeFromLocalStorage()
@@ -27,13 +28,15 @@ func TestPrepareEpochFromStorage(t *testing.T) {
 }
 
 func TestGetEpochStartMetaFromStorage(t *testing.T) {
-	args := createMockEpochStartBootstrapArgs()
-	epochStartProvider, _ := NewEpochStartBootstrap(args)
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+	epochStartProvider, err := NewEpochStartBootstrap(args)
+	require.Nil(t, err)
 	epochStartProvider.initializeFromLocalStorage()
 
 	meta := &block.MetaBlock{Nonce: 1}
 	metaBytes, _ := json.Marshal(meta)
-	storer := &mock.StorerStub{
+	storer := &testscommon.StorerStub{
 		GetCalled: func(key []byte) (bytes []byte, err error) {
 			return metaBytes, nil
 		},
@@ -47,7 +50,8 @@ func TestGetEpochStartMetaFromStorage(t *testing.T) {
 }
 
 func TestGetLastBootstrapData(t *testing.T) {
-	args := createMockEpochStartBootstrapArgs()
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
 	epochStartProvider.initializeFromLocalStorage()
 
@@ -66,10 +70,10 @@ func TestGetLastBootstrapData(t *testing.T) {
 		NodesCoordinatorConfigKey: nodesCoordinatorConfigKey,
 	}
 
-	storer := &mock.StorerStub{
+	storer := &testscommon.StorerStub{
 		GetCalled: func(key []byte) (b []byte, err error) {
 			switch {
-			case bytes.Equal([]byte(core.HighestRoundFromBootStorage), key):
+			case bytes.Equal([]byte(common.HighestRoundFromBootStorage), key):
 				return roundBytes, nil
 			case bytes.Equal([]byte(strconv.FormatInt(round, 10)), key):
 
@@ -92,7 +96,8 @@ func TestGetLastBootstrapData(t *testing.T) {
 }
 
 func TestCheckIfShuffledOut_ValidatorIsInWaitingList(t *testing.T) {
-	args := createMockEpochStartBootstrapArgs()
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
 	epochStartProvider.initializeFromLocalStorage()
 	epochStartProvider.baseData.lastEpoch = 0
@@ -115,7 +120,8 @@ func TestCheckIfShuffledOut_ValidatorIsInWaitingList(t *testing.T) {
 }
 
 func TestCheckIfShuffledOut_ValidatorIsInEligibleList(t *testing.T) {
-	args := createMockEpochStartBootstrapArgs()
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
 	epochStartProvider.initializeFromLocalStorage()
 	epochStartProvider.baseData.lastEpoch = 0
@@ -138,7 +144,8 @@ func TestCheckIfShuffledOut_ValidatorIsInEligibleList(t *testing.T) {
 }
 
 func TestCheckIfShuffledOut_ValidatorIsShuffledToEligibleList(t *testing.T) {
-	args := createMockEpochStartBootstrapArgs()
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
 	epochStartProvider.initializeFromLocalStorage()
 	epochStartProvider.baseData.lastEpoch = 0
@@ -162,7 +169,8 @@ func TestCheckIfShuffledOut_ValidatorIsShuffledToEligibleList(t *testing.T) {
 }
 
 func TestCheckIfShuffledOut_ValidatorNotInEligibleOrWaiting(t *testing.T) {
-	args := createMockEpochStartBootstrapArgs()
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
 	epochStartProvider.initializeFromLocalStorage()
 	epochStartProvider.baseData.lastEpoch = 0

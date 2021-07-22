@@ -4,19 +4,19 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
 func createMockArguments() ArgsNewSystemVM {
 	gasMap := make(map[string]map[string]uint64)
-	gasMap[core.ElrondAPICost] = make(map[string]uint64)
-	gasMap[core.ElrondAPICost][core.AsyncCallStepField] = 1000
-	gasMap[core.ElrondAPICost][core.AsyncCallbackGasLockField] = 3000
+	gasMap[common.ElrondAPICost] = make(map[string]uint64)
+	gasMap[common.ElrondAPICost][common.AsyncCallStepField] = 1000
+	gasMap[common.ElrondAPICost][common.AsyncCallbackGasLockField] = 3000
 	args := ArgsNewSystemVM{
 		SystemEI:        &mock.SystemEIStub{},
 		SystemContracts: &mock.SystemSCContainerStub{},
@@ -81,7 +81,7 @@ func TestNewSystemVM_NoApiCost(t *testing.T) {
 	assert.Nil(t, sVM)
 	assert.Equal(t, vm.ErrNilGasSchedule, err)
 
-	gasMap[core.ElrondAPICost] = make(map[string]uint64)
+	gasMap[common.ElrondAPICost] = make(map[string]uint64)
 	args.GasSchedule = mock.NewGasScheduleNotifierMock(gasMap)
 	sVM, err = NewSystemVM(args)
 
@@ -123,7 +123,7 @@ func TestSystemVM_RunSmartContractCallWrongSmartContract(t *testing.T) {
 	}}
 	sVM, _ := NewSystemVM(args)
 
-	vmOutput, err := sVM.RunSmartContractCall(&vmcommon.ContractCallInput{RecipientAddr: []byte("tralala")})
+	vmOutput, err := sVM.RunSmartContractCall(&vmcommon.ContractCallInput{RecipientAddr: []byte("dummyAddress")})
 	assert.Nil(t, vmOutput)
 	assert.Equal(t, vm.ErrUnknownSystemSmartContract, err)
 }
@@ -134,7 +134,7 @@ func TestSystemVM_RunSmartContractCall(t *testing.T) {
 	sc := &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return vmcommon.Ok
 	}}
-	scAddress := []byte("tralala")
+	scAddress := []byte("dummyAddress")
 
 	container := &mock.SystemSCContainerStub{GetCalled: func(key []byte) (contract vm.SystemSmartContract, e error) {
 		if bytes.Equal(scAddress, key) {

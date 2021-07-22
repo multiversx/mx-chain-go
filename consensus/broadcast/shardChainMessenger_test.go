@@ -4,14 +4,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/consensus/broadcast"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/core/atomic"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -36,9 +37,9 @@ func createDelayData(prefix string) ([]byte, *block.Header, map[uint32][]byte, m
 }
 
 func createInterceptorContainer() process.InterceptorsContainer {
-	return &mock.InterceptorsContainerStub{
+	return &testscommon.InterceptorsContainerStub{
 		GetCalled: func(topic string) (process.Interceptor, error) {
-			return &mock.InterceptorStub{
+			return &testscommon.InterceptorStub{
 				ProcessReceivedMessageCalled: func(message p2p.MessageP2P) error {
 					return nil
 				},
@@ -59,6 +60,7 @@ func createDefaultShardChainArgs() broadcast.ShardChainMessengerArgs {
 	peerSigHandler := &mock.PeerSignatureHandler{
 		Signer: singleSignerMock,
 	}
+	alarmScheduler := &mock.AlarmSchedulerStub{}
 
 	return broadcast.ShardChainMessengerArgs{
 		CommonMessengerArgs: broadcast.CommonMessengerArgs{
@@ -72,6 +74,7 @@ func createDefaultShardChainArgs() broadcast.ShardChainMessengerArgs {
 			InterceptorsContainer:      interceptorsContainer,
 			MaxDelayCacheSize:          1,
 			MaxValidatorDelayCacheSize: 1,
+			AlarmScheduler:             alarmScheduler,
 		},
 	}
 }
@@ -223,7 +226,7 @@ func TestShardChainMessenger_BroadcastMiniBlocksShouldBeDone(t *testing.T) {
 }
 
 func TestShardChainMessenger_BroadcastTransactionsShouldNotBeCalled(t *testing.T) {
-	channelCalled := make(chan bool)
+	channelCalled := make(chan bool, 1)
 
 	messenger := &mock.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
@@ -262,7 +265,7 @@ func TestShardChainMessenger_BroadcastTransactionsShouldNotBeCalled(t *testing.T
 }
 
 func TestShardChainMessenger_BroadcastTransactionsShouldBeCalled(t *testing.T) {
-	channelCalled := make(chan bool)
+	channelCalled := make(chan bool, 1)
 
 	messenger := &mock.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
@@ -300,7 +303,7 @@ func TestShardChainMessenger_BroadcastHeaderNilHeaderShouldErr(t *testing.T) {
 }
 
 func TestShardChainMessenger_BroadcastHeaderShouldWork(t *testing.T) {
-	channelCalled := make(chan bool)
+	channelCalled := make(chan bool, 1)
 
 	messenger := &mock.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {

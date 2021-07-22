@@ -3,7 +3,7 @@ package track_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -16,7 +16,7 @@ import (
 func TestNewMiniBlockTrack_NilDataPoolHolderErr(t *testing.T) {
 	t.Parallel()
 
-	mbt, err := track.NewMiniBlockTrack(nil, mock.NewMultipleShardsCoordinatorMock(), &mock.WhiteListHandlerStub{})
+	mbt, err := track.NewMiniBlockTrack(nil, mock.NewMultipleShardsCoordinatorMock(), &testscommon.WhiteListHandlerStub{})
 
 	assert.Nil(t, mbt)
 	assert.Equal(t, process.ErrNilPoolsHolder, err)
@@ -30,7 +30,7 @@ func TestNewMiniBlockTrack_NilTxsPoolErr(t *testing.T) {
 			return nil
 		},
 	}
-	mbt, err := track.NewMiniBlockTrack(dataPool, mock.NewMultipleShardsCoordinatorMock(), &mock.WhiteListHandlerStub{})
+	mbt, err := track.NewMiniBlockTrack(dataPool, mock.NewMultipleShardsCoordinatorMock(), &testscommon.WhiteListHandlerStub{})
 
 	assert.Nil(t, mbt)
 	assert.Equal(t, process.ErrNilTransactionPool, err)
@@ -47,7 +47,7 @@ func TestNewMiniBlockTrack_NilRewardTxsPoolErr(t *testing.T) {
 			return nil
 		},
 	}
-	mbt, err := track.NewMiniBlockTrack(dataPool, mock.NewMultipleShardsCoordinatorMock(), &mock.WhiteListHandlerStub{})
+	mbt, err := track.NewMiniBlockTrack(dataPool, mock.NewMultipleShardsCoordinatorMock(), &testscommon.WhiteListHandlerStub{})
 
 	assert.Nil(t, mbt)
 	assert.Equal(t, process.ErrNilRewardTxDataPool, err)
@@ -67,7 +67,7 @@ func TestNewMiniBlockTrack_NilUnsignedTxsPoolErr(t *testing.T) {
 			return nil
 		},
 	}
-	mbt, err := track.NewMiniBlockTrack(dataPool, mock.NewMultipleShardsCoordinatorMock(), &mock.WhiteListHandlerStub{})
+	mbt, err := track.NewMiniBlockTrack(dataPool, mock.NewMultipleShardsCoordinatorMock(), &testscommon.WhiteListHandlerStub{})
 
 	assert.Nil(t, mbt)
 	assert.Equal(t, process.ErrNilUnsignedTxDataPool, err)
@@ -90,7 +90,7 @@ func TestNewMiniBlockTrack_NilMiniBlockPoolShouldErr(t *testing.T) {
 			return nil
 		},
 	}
-	mbt, err := track.NewMiniBlockTrack(dataPool, mock.NewMultipleShardsCoordinatorMock(), &mock.WhiteListHandlerStub{})
+	mbt, err := track.NewMiniBlockTrack(dataPool, mock.NewMultipleShardsCoordinatorMock(), &testscommon.WhiteListHandlerStub{})
 
 	assert.Nil(t, mbt)
 	assert.Equal(t, process.ErrNilMiniBlockPool, err)
@@ -100,7 +100,7 @@ func TestNewMiniBlockTrack_NilShardCoordinatorErr(t *testing.T) {
 	t.Parallel()
 
 	dataPool := createDataPool()
-	miniBlockTrack, err := track.NewMiniBlockTrack(dataPool, nil, &mock.WhiteListHandlerStub{})
+	miniBlockTrack, err := track.NewMiniBlockTrack(dataPool, nil, &testscommon.WhiteListHandlerStub{})
 
 	assert.Nil(t, miniBlockTrack)
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
@@ -120,7 +120,7 @@ func TestNewMiniBlockTrack_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	dataPool := createDataPool()
-	mbt, err := track.NewMiniBlockTrack(dataPool, mock.NewMultipleShardsCoordinatorMock(), &mock.WhiteListHandlerStub{})
+	mbt, err := track.NewMiniBlockTrack(dataPool, mock.NewMultipleShardsCoordinatorMock(), &testscommon.WhiteListHandlerStub{})
 
 	assert.Nil(t, err)
 	assert.NotNil(t, mbt)
@@ -130,7 +130,7 @@ func TestReceivedMiniBlock_ShouldReturnIfKeyIsNil(t *testing.T) {
 	t.Parallel()
 
 	dataPool := createDataPool()
-	mbt, _ := track.NewMiniBlockTrack(dataPool, mock.NewMultipleShardsCoordinatorMock(), &mock.WhiteListHandlerStub{})
+	mbt, _ := track.NewMiniBlockTrack(dataPool, mock.NewMultipleShardsCoordinatorMock(), &testscommon.WhiteListHandlerStub{})
 
 	wasCalled := false
 	blockTransactionsPool := &testscommon.ShardedDataStub{
@@ -148,7 +148,7 @@ func TestReceivedMiniBlock_ShouldReturnIfWrongTypeAssertion(t *testing.T) {
 	t.Parallel()
 
 	dataPool := createDataPool()
-	mbt, _ := track.NewMiniBlockTrack(dataPool, mock.NewMultipleShardsCoordinatorMock(), &mock.WhiteListHandlerStub{})
+	mbt, _ := track.NewMiniBlockTrack(dataPool, mock.NewMultipleShardsCoordinatorMock(), &testscommon.WhiteListHandlerStub{})
 
 	wasCalled := false
 	blockTransactionsPool := &testscommon.ShardedDataStub{
@@ -166,7 +166,7 @@ func TestReceivedMiniBlock_ShouldReturnIfMiniBlockIsNotCrossShardDestMe(t *testi
 	t.Parallel()
 
 	dataPool := createDataPool()
-	mbt, _ := track.NewMiniBlockTrack(dataPool, mock.NewMultipleShardsCoordinatorMock(), &mock.WhiteListHandlerStub{})
+	mbt, _ := track.NewMiniBlockTrack(dataPool, mock.NewMultipleShardsCoordinatorMock(), &testscommon.WhiteListHandlerStub{})
 
 	wasCalled := false
 	blockTransactionsPool := &testscommon.ShardedDataStub{
@@ -184,7 +184,7 @@ func TestReceivedMiniBlock_ShouldReturnIfMiniBlockTypeIsWrong(t *testing.T) {
 	t.Parallel()
 
 	dataPool := createDataPool()
-	mbt, _ := track.NewMiniBlockTrack(dataPool, mock.NewMultipleShardsCoordinatorMock(), &mock.WhiteListHandlerStub{})
+	mbt, _ := track.NewMiniBlockTrack(dataPool, mock.NewMultipleShardsCoordinatorMock(), &testscommon.WhiteListHandlerStub{})
 
 	wasCalled := false
 	blockTransactionsPool := &testscommon.ShardedDataStub{
@@ -207,7 +207,7 @@ func TestReceivedMiniBlock_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	dataPool := createDataPool()
-	mbt, _ := track.NewMiniBlockTrack(dataPool, mock.NewMultipleShardsCoordinatorMock(), &mock.WhiteListHandlerStub{})
+	mbt, _ := track.NewMiniBlockTrack(dataPool, mock.NewMultipleShardsCoordinatorMock(), &testscommon.WhiteListHandlerStub{})
 
 	wasCalled := false
 	blockTransactionsPool := &testscommon.ShardedDataStub{
@@ -258,7 +258,7 @@ func TestGetTransactionPool_ShouldWork(t *testing.T) {
 			return testscommon.NewCacherStub()
 		},
 	}
-	mbt, _ := track.NewMiniBlockTrack(dataPool, mock.NewMultipleShardsCoordinatorMock(), &mock.WhiteListHandlerStub{})
+	mbt, _ := track.NewMiniBlockTrack(dataPool, mock.NewMultipleShardsCoordinatorMock(), &testscommon.WhiteListHandlerStub{})
 
 	tp := mbt.GetTransactionPool(block.TxBlock)
 	assert.Equal(t, blockTransactionsPool, tp)

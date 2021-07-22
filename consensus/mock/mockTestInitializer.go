@@ -3,10 +3,10 @@ package mock
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 )
 
@@ -124,7 +124,7 @@ func InitConsensusCore() *ConsensusCoreMock {
 		},
 	}
 	multiSignerMock := InitMultiSignerMock()
-	rounderMock := &RounderMock{}
+	roundHandlerMock := &RoundHandlerMock{}
 	shardCoordinatorMock := ShardCoordinatorMock{}
 	syncTimerMock := &SyncTimerMock{}
 	validatorGroupSelector := &NodesCoordinatorMock{}
@@ -148,7 +148,7 @@ func InitConsensusCore() *ConsensusCoreMock {
 		blsPrivateKey:           blsPrivateKeyMock,
 		blsSingleSigner:         blsSingleSignerMock,
 		multiSigner:             multiSignerMock,
-		rounder:                 rounderMock,
+		roundHandler:            roundHandlerMock,
 		shardCoordinator:        shardCoordinatorMock,
 		syncTimer:               syncTimerMock,
 		validatorGroupSelector:  validatorGroupSelector,

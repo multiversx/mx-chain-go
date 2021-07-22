@@ -8,13 +8,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
+	"github.com/ElrondNetwork/elrond-go-core/hashing/fnv"
+	"github.com/ElrondNetwork/elrond-go-core/hashing/keccak"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
-	"github.com/ElrondNetwork/elrond-go/hashing/fnv"
-	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/bloom"
 	"github.com/ElrondNetwork/elrond-go/storage/fifocache"
@@ -139,6 +139,11 @@ func (u *Unit) PutInEpoch(key, data []byte, _ uint32) error {
 	return u.Put(key, data)
 }
 
+// GetOldestEpoch will return an error that signals that the oldest epoch fetching is not available
+func (u *Unit) GetOldestEpoch() (uint32, error) {
+	return 0, storage.ErrOldestEpochNotAvailable
+}
+
 // Close will close unit
 func (u *Unit) Close() error {
 	err := u.persister.Close()
@@ -234,11 +239,6 @@ func (u *Unit) Has(key []byte) error {
 // SearchFirst will call the Get method as this storer doesn't handle epochs
 func (u *Unit) SearchFirst(key []byte) ([]byte, error) {
 	return u.Get(key)
-}
-
-// HasInEpoch will call the Has method as this storer doesn't handle epochs
-func (u *Unit) HasInEpoch(key []byte, _ uint32) error {
-	return u.Has(key)
 }
 
 // Remove removes the data associated to the given key from both cache and persistence medium
@@ -432,7 +432,7 @@ func NewDB(argDB ArgDB) (storage.Persister, error) {
 	var db storage.Persister
 	var err error
 
-	for i := 0; i < core.MaxRetriesToCreateDB; i++ {
+	for i := 0; i < common.MaxRetriesToCreateDB; i++ {
 		switch argDB.DBType {
 		case LvlDB:
 			db, err = leveldb.NewDB(argDB.Path, argDB.BatchDelaySeconds, argDB.MaxBatchSize, argDB.MaxOpenFiles)
@@ -449,7 +449,7 @@ func NewDB(argDB ArgDB) (storage.Persister, error) {
 		}
 
 		//TODO: extract this in a parameter and inject it
-		time.Sleep(core.SleepTimeBetweenCreateDBRetries)
+		time.Sleep(common.SleepTimeBetweenCreateDBRetries)
 	}
 	if err != nil {
 		return nil, err
@@ -486,11 +486,11 @@ func NewBloomFilter(conf BloomConfig) (storage.BloomFilter, error) {
 func (h HasherType) NewHasher() (hashing.Hasher, error) {
 	switch h {
 	case Keccak:
-		return keccak.Keccak{}, nil
+		return keccak.NewKeccak(), nil
 	case Blake2b:
-		return &blake2b.Blake2b{}, nil
+		return blake2b.NewBlake2b(), nil
 	case Fnv:
-		return fnv.Fnv{}, nil
+		return fnv.NewFnv(), nil
 	default:
 		return nil, storage.ErrNotSupportedHashType
 	}

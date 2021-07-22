@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 type scQueryServiceDispatcher struct {
@@ -66,6 +66,23 @@ func (sqsd *scQueryServiceDispatcher) getNewIndex() int {
 	sqsd.mutIndex.Unlock()
 
 	return updatedValue
+}
+
+// Close closes all underlying components
+func (sqsd *scQueryServiceDispatcher) Close() error {
+	sqsd.mutList.RLock()
+	defer sqsd.mutList.RUnlock()
+
+	var errFound error
+	for _, scQueryService := range sqsd.list {
+		err := scQueryService.Close()
+		if err != nil {
+			log.Error("error while closing inner SC query service in scQueryServiceDispatcher.Close", "error", err)
+			errFound = err
+		}
+	}
+
+	return errFound
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

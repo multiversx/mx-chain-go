@@ -5,15 +5,17 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	triesFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	triesFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -35,7 +37,7 @@ func createStubTopicMessageHandlerForShard(matchStrToErrOnCreate string, matchSt
 		return nil
 	}
 
-	tmhs.RegisterMessageProcessorCalled = func(topic string, handler p2p.MessageProcessor) error {
+	tmhs.RegisterMessageProcessorCalled = func(topic string, identifier string, handler p2p.MessageProcessor) error {
 		if matchStrToErrOnRegister == "" {
 			return nil
 		}
@@ -77,15 +79,15 @@ func createDataPoolsForShard() dataRetriever.PoolsHolder {
 func createStoreForShard() dataRetriever.StorageService {
 	return &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &mock.StorerStub{}
+			return &testscommon.StorerStub{}
 		},
 	}
 }
 
 func createTriesHolderForShard() state.TriesHolder {
 	triesHolder := state.NewDataTriesHolder()
-	triesHolder.Put([]byte(triesFactory.UserAccountTrie), &mock.TrieStub{})
-	triesHolder.Put([]byte(triesFactory.PeerAccountTrie), &mock.TrieStub{})
+	triesHolder.Put([]byte(triesFactory.UserAccountTrie), &testscommon.TrieStub{})
+	triesHolder.Put([]byte(triesFactory.PeerAccountTrie), &testscommon.TrieStub{})
 	return triesHolder
 }
 
@@ -180,6 +182,17 @@ func TestNewShardResolversContainerFactory_NilDataPackerShouldErr(t *testing.T) 
 	assert.Equal(t, dataRetriever.ErrNilDataPacker, err)
 }
 
+func TestNewShardResolversContainerFactory_NilPreferredPeersHolderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgumentsShard()
+	args.PreferredPeersHolder = nil
+	rcf, err := resolverscontainer.NewShardResolversContainerFactory(args)
+
+	assert.Nil(t, rcf)
+	assert.Equal(t, dataRetriever.ErrNilPreferredPeersHolder, err)
+}
+
 func TestNewShardResolversContainerFactory_NilTriesContainerShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -191,6 +204,39 @@ func TestNewShardResolversContainerFactory_NilTriesContainerShouldErr(t *testing
 	assert.Equal(t, dataRetriever.ErrNilTrieDataGetter, err)
 }
 
+func TestNewShardResolversContainerFactory_InvalidNumIntraShardPeersShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgumentsShard()
+	args.ResolverConfig.NumIntraShardPeers = 0
+	rcf, err := resolverscontainer.NewShardResolversContainerFactory(args)
+
+	assert.Nil(t, rcf)
+	assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
+}
+
+func TestNewShardResolversContainerFactory_InvalidNumCrossShardPeersShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgumentsShard()
+	args.ResolverConfig.NumCrossShardPeers = 0
+	rcf, err := resolverscontainer.NewShardResolversContainerFactory(args)
+
+	assert.Nil(t, rcf)
+	assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
+}
+
+func TestNewShardResolversContainerFactory_InvalidNumFullHistoryPeersShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgumentsShard()
+	args.ResolverConfig.NumFullHistoryPeers = 0
+	rcf, err := resolverscontainer.NewShardResolversContainerFactory(args)
+
+	assert.Nil(t, rcf)
+	assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
+}
+
 func TestNewShardResolversContainerFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -200,6 +246,9 @@ func TestNewShardResolversContainerFactory_ShouldWork(t *testing.T) {
 	assert.NotNil(t, rcf)
 	assert.Nil(t, err)
 	require.False(t, rcf.IsInterfaceNil())
+	assert.Equal(t, int(args.ResolverConfig.NumIntraShardPeers), rcf.NumIntraShardPeers())
+	assert.Equal(t, int(args.ResolverConfig.NumCrossShardPeers), rcf.NumCrossShardPeers())
+	assert.Equal(t, int(args.ResolverConfig.NumFullHistoryPeers), rcf.NumFullHistoryPeers())
 }
 
 //------- Create
@@ -298,17 +347,24 @@ func TestShardResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 
 func getArgumentsShard() resolverscontainer.FactoryArgs {
 	return resolverscontainer.FactoryArgs{
-		ShardCoordinator:           mock.NewOneShardCoordinatorMock(),
-		Messenger:                  createStubTopicMessageHandlerForShard("", ""),
-		Store:                      createStoreForShard(),
-		Marshalizer:                &mock.MarshalizerMock{},
-		DataPools:                  createDataPoolsForShard(),
-		Uint64ByteSliceConverter:   &mock.Uint64ByteSliceConverterMock{},
-		DataPacker:                 &mock.DataPackerStub{},
-		TriesContainer:             createTriesHolderForShard(),
-		SizeCheckDelta:             0,
-		InputAntifloodHandler:      &mock.P2PAntifloodHandlerStub{},
-		OutputAntifloodHandler:     &mock.P2PAntifloodHandlerStub{},
-		NumConcurrentResolvingJobs: 10,
+		ShardCoordinator:            mock.NewOneShardCoordinatorMock(),
+		Messenger:                   createStubTopicMessageHandlerForShard("", ""),
+		Store:                       createStoreForShard(),
+		Marshalizer:                 &mock.MarshalizerMock{},
+		DataPools:                   createDataPoolsForShard(),
+		Uint64ByteSliceConverter:    &mock.Uint64ByteSliceConverterMock{},
+		DataPacker:                  &mock.DataPackerStub{},
+		TriesContainer:              createTriesHolderForShard(),
+		SizeCheckDelta:              0,
+		InputAntifloodHandler:       &mock.P2PAntifloodHandlerStub{},
+		OutputAntifloodHandler:      &mock.P2PAntifloodHandlerStub{},
+		NumConcurrentResolvingJobs:  10,
+		CurrentNetworkEpochProvider: &mock.CurrentNetworkEpochProviderStub{},
+		PreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
+		ResolverConfig: config.ResolverConfig{
+			NumCrossShardPeers:  1,
+			NumIntraShardPeers:  2,
+			NumFullHistoryPeers: 3,
+		},
 	}
 }

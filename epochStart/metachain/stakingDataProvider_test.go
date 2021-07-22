@@ -9,13 +9,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
+	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -422,7 +424,9 @@ func createStakingDataProviderWithMockArgs(
 
 func createStakingDataProviderWithRealArgs(t *testing.T, owner []byte, blsKey []byte, topUpVal *big.Int) *stakingDataProvider {
 	args, _ := createFullArgumentsForSystemSCProcessing(1000, createMemUnit())
-	args.EpochNotifier.CheckEpoch(1000000)
+	args.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
+		EpochField: 1000000,
+	})
 	s, _ := NewSystemSCProcessor(args)
 	require.NotNil(t, s)
 
@@ -459,8 +463,10 @@ func saveOutputAccounts(t *testing.T, accountsDB state.AccountsAdapter, vmOutput
 
 func createStakingDataProviderAndUpdateCache(t *testing.T, validatorsInfo map[uint32][]*state.ValidatorInfo, topUpValue *big.Int) *stakingDataProvider {
 	args, _ := createFullArgumentsForSystemSCProcessing(1, createMemUnit())
-	args.StakingV2EnableEpoch = 0
-	args.EpochNotifier.CheckEpoch(1)
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
+	args.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
+		EpochField: 1,
+	})
 	sdp, _ := NewStakingDataProvider(args.SystemVM, "2500")
 	args.StakingDataProvider = sdp
 	s, _ := NewSystemSCProcessor(args)
@@ -469,7 +475,7 @@ func createStakingDataProviderAndUpdateCache(t *testing.T, validatorsInfo map[ui
 	for _, valsList := range validatorsInfo {
 		for _, valInfo := range valsList {
 			stake := big.NewInt(0).Add(big.NewInt(2500), topUpValue)
-			if valInfo.List != string(core.LeavingList) && valInfo.List != string(core.InactiveList) {
+			if valInfo.List != string(common.LeavingList) && valInfo.List != string(common.InactiveList) {
 				doStake(t, s.systemVM, s.userAccountsDB, valInfo.RewardAddress, stake, valInfo.PublicKey)
 			}
 			updateCache(sdp, valInfo.RewardAddress, valInfo.PublicKey, valInfo.List, stake)
@@ -496,8 +502,8 @@ func updateCache(sdp *stakingDataProvider, ownerAddress []byte, blsKey []byte, l
 	}
 
 	owner.blsKeys = append(owner.blsKeys, blsKey)
-	if list != string(core.LeavingList) && list != string(core.InactiveList) {
-		if list == string(core.EligibleList) {
+	if list != string(common.LeavingList) && list != string(common.InactiveList) {
+		if list == string(common.EligibleList) {
 			owner.numEligible++
 		}
 		owner.numStakedNodes++
@@ -515,38 +521,38 @@ func createValidatorsInfo(nbShards uint32, nbEligible, nbWaiting, nbLeaving, nbI
 		valInfoList := make([]*state.ValidatorInfo, 0)
 		for eligible := uint32(0); eligible < nbEligible[shardID]; eligible++ {
 			vInfo := &state.ValidatorInfo{
-				PublicKey:     []byte(fmt.Sprintf("blsKey%s%d%d", core.EligibleList, shardID, eligible)),
+				PublicKey:     []byte(fmt.Sprintf("blsKey%s%d%d", common.EligibleList, shardID, eligible)),
 				ShardId:       shardID,
-				List:          string(core.EligibleList),
-				RewardAddress: []byte(fmt.Sprintf("address%s%d%d", core.EligibleList, shardID, eligible)),
+				List:          string(common.EligibleList),
+				RewardAddress: []byte(fmt.Sprintf("address%s%d%d", common.EligibleList, shardID, eligible)),
 			}
 			valInfoList = append(valInfoList, vInfo)
 		}
 		for waiting := uint32(0); waiting < nbWaiting[shardID]; waiting++ {
 			vInfo := &state.ValidatorInfo{
-				PublicKey:     []byte(fmt.Sprintf("blsKey%s%d%d", core.WaitingList, shardID, waiting)),
+				PublicKey:     []byte(fmt.Sprintf("blsKey%s%d%d", common.WaitingList, shardID, waiting)),
 				ShardId:       shardID,
-				List:          string(core.WaitingList),
-				RewardAddress: []byte(fmt.Sprintf("address%s%d%d", core.WaitingList, shardID, waiting)),
+				List:          string(common.WaitingList),
+				RewardAddress: []byte(fmt.Sprintf("address%s%d%d", common.WaitingList, shardID, waiting)),
 			}
 			valInfoList = append(valInfoList, vInfo)
 		}
 		for leaving := uint32(0); leaving < nbLeaving[shardID]; leaving++ {
 			vInfo := &state.ValidatorInfo{
-				PublicKey:     []byte(fmt.Sprintf("blsKey%s%d%d", core.LeavingList, shardID, leaving)),
+				PublicKey:     []byte(fmt.Sprintf("blsKey%s%d%d", common.LeavingList, shardID, leaving)),
 				ShardId:       shardID,
-				List:          string(core.LeavingList),
-				RewardAddress: []byte(fmt.Sprintf("address%s%d%d", core.LeavingList, shardID, leaving)),
+				List:          string(common.LeavingList),
+				RewardAddress: []byte(fmt.Sprintf("address%s%d%d", common.LeavingList, shardID, leaving)),
 			}
 			valInfoList = append(valInfoList, vInfo)
 		}
 
 		for inactive := uint32(0); inactive < nbInactive[shardID]; inactive++ {
 			vInfo := &state.ValidatorInfo{
-				PublicKey:     []byte(fmt.Sprintf("blsKey%s%d%d", core.InactiveList, shardID, inactive)),
+				PublicKey:     []byte(fmt.Sprintf("blsKey%s%d%d", common.InactiveList, shardID, inactive)),
 				ShardId:       shardID,
-				List:          string(core.InactiveList),
-				RewardAddress: []byte(fmt.Sprintf("address%s%d%d", core.InactiveList, shardID, inactive)),
+				List:          string(common.InactiveList),
+				RewardAddress: []byte(fmt.Sprintf("address%s%d%d", common.InactiveList, shardID, inactive)),
 			}
 			valInfoList = append(valInfoList, vInfo)
 		}

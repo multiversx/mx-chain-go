@@ -22,11 +22,6 @@ type StakingSystemSCConfig struct {
 	MaximumPercentageToBleed             float64
 	BleedPercentagePerRound              float64
 	MaxNumberOfNodesForStake             uint64
-	StakingV2Epoch                       uint32
-	StakeEnableEpoch                     uint32
-	CorrectLastUnjailedEpoch             uint32
-	DoubleKeyProtectionEnableEpoch       uint32
-	UnbondTokensV2EnableEpoch            uint32
 	ActivateBLSPubKeyMessageVerification bool
 }
 
@@ -34,32 +29,43 @@ type StakingSystemSCConfig struct {
 type ESDTSystemSCConfig struct {
 	BaseIssuingCost string
 	OwnerAddress    string
-	EnabledEpoch    uint32
+}
+
+// GovernanceSystemSCConfigV1 holds the initial set of values that were used to initialise the
+//  governance system smart contract at genesis time
+type GovernanceSystemSCConfigV1 struct {
+	NumNodes         int64
+	ProposalCost     string
+	MinQuorum        int32
+	MinPassThreshold int32
+	MinVetoThreshold int32
+}
+
+// GovernanceSystemSCConfigActive defines the set of configuration values used by the governance
+//  system smart contract once it activates
+type GovernanceSystemSCConfigActive struct {
+	ProposalCost     string
+	MinQuorum        string
+	MinPassThreshold string
+	MinVetoThreshold string
 }
 
 // GovernanceSystemSCConfig defines the set of constants to initialize the governance system smart contract
 type GovernanceSystemSCConfig struct {
-	ProposalCost     string
-	NumNodes         int64
-	MinQuorum        int32
-	MinPassThreshold int32
-	MinVetoThreshold int32
-	EnabledEpoch     uint32
+	V1                      GovernanceSystemSCConfigV1
+	Active                  GovernanceSystemSCConfigActive
+	FirstWhitelistedAddress string
 }
 
 // DelegationManagerSystemSCConfig defines a set of constants to initialize the delegation manager system smart contract
 type DelegationManagerSystemSCConfig struct {
-	MinCreationDeposit                 string
-	EnabledEpoch                       uint32
-	ValidatorToDelegationEnableEpoch   uint32
-	ReDelegateBelowMinCheckEnableEpoch uint32
-	MinStakeAmount                     string
-	ConfigChangeAddress                string
+	MinCreationDeposit  string
+	MinStakeAmount      string
+	ConfigChangeAddress string
 }
 
 // DelegationSystemSCConfig defines a set of constants to initialize the delegation system smart contract
 type DelegationSystemSCConfig struct {
-	EnabledEpoch  uint32
 	MinServiceFee uint64
 	MaxServiceFee uint64
 }

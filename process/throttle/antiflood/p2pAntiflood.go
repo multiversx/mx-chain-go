@@ -5,9 +5,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/disabled"
@@ -224,6 +224,7 @@ func (af *p2pAntiflood) SetDebugger(debugger process.AntifloodDebugger) error {
 	}
 
 	af.mutDebugger.Lock()
+	log.LogIfError(af.debugger.Close())
 	af.debugger = debugger
 	af.mutDebugger.Unlock()
 
@@ -255,7 +256,6 @@ func (af *p2pAntiflood) BlacklistPeer(peer core.PeerID, reason string, duration 
 }
 
 // Close will call the close function on all sub components
-// TODO call this after the large components managers will be implemented
 func (af *p2pAntiflood) Close() error {
 	return af.debugger.Close()
 }

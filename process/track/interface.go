@@ -1,7 +1,7 @@
 package track
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 )
 
 type blockNotarizerHandler interface {

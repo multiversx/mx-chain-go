@@ -10,13 +10,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go-core/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go/genesis"
-	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/relayedTx"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/state"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -297,7 +297,7 @@ func checkUserNamesAreDeleted(
 			acnt, _ := node.AccntState.GetExistingAccount([]byte(dnsAddress))
 			dnsAcc, _ := acnt.(state.UserAccountHandler)
 
-			keyFromTrie := "value_state" + string(keccak.Keccak{}.Compute(userName))
+			keyFromTrie := "value_state" + string(keccak.NewKeccak().Compute(userName))
 			value, err := dnsAcc.DataTrie().Get([]byte(keyFromTrie))
 			assert.Nil(t, err)
 			assert.Nil(t, value)
@@ -306,7 +306,7 @@ func checkUserNamesAreDeleted(
 }
 
 func selectDNSAddressFromUserName(sortedDNSAddresses []string, userName string) string {
-	hashedAddr := keccak.Keccak{}.Compute(userName)
+	hashedAddr := keccak.NewKeccak().Compute(userName)
 	return sortedDNSAddresses[hashedAddr[31]]
 }
 

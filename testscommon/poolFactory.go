@@ -1,12 +1,18 @@
 package testscommon
 
 import (
+	"io/ioutil"
+
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCache"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
+	"github.com/ElrondNetwork/elrond-go/storage/lrucache/capacity"
+	"github.com/ElrondNetwork/elrond-go/storage/storageCacherAdapter"
+	trieNodeFactory "github.com/ElrondNetwork/elrond-go/storage/storageCacherAdapter/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txcachemocks"
 )
@@ -69,7 +75,30 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 	panicIfError("CreatePoolsHolder", err)
 
 	cacherConfig = storageUnit.CacheConfig{Capacity: 50000, Type: storageUnit.LRUCache}
-	trieNodes, err := storageUnit.NewCache(cacherConfig)
+	cacher, err := capacity.NewCapacityLRU(10, 10000)
+	panicIfError("Create trieSync cacher", err)
+
+	tempDir, _ := ioutil.TempDir("", "integrationTests")
+	cfg := storageUnit.ArgDB{
+		Path:              tempDir,
+		DBType:            storageUnit.LvlDBSerial,
+		BatchDelaySeconds: 4,
+		MaxBatchSize:      10000,
+		MaxOpenFiles:      10,
+	}
+	persister, err := storageUnit.NewDB(cfg)
+	panicIfError("Create trieSync DB", err)
+	tnf := trieNodeFactory.NewTrieNodeFactory()
+
+	adaptedTrieNodesStorage, err := storageCacherAdapter.NewStorageCacherAdapter(
+		cacher,
+		persister,
+		tnf,
+		&marshal.GogoProtoMarshalizer{},
+	)
+	panicIfError("Create AdaptedTrieNodesStorage", err)
+
+	trieNodesChunks, err := storageUnit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolder", err)
 
 	cacherConfig = storageUnit.CacheConfig{Capacity: 50000, Type: storageUnit.LRUCache}
@@ -79,17 +108,19 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 	currentTx, err := dataPool.NewCurrentBlockPool()
 	panicIfError("CreatePoolsHolder", err)
 
-	holder, err := dataPool.NewDataPool(
-		txPool,
-		unsignedTxPool,
-		rewardsTxPool,
-		headersPool,
-		txBlockBody,
-		peerChangeBlockBody,
-		trieNodes,
-		currentTx,
-		smartContracts,
-	)
+	dataPoolArgs := dataPool.DataPoolArgs{
+		Transactions:             txPool,
+		UnsignedTransactions:     unsignedTxPool,
+		RewardTransactions:       rewardsTxPool,
+		Headers:                  headersPool,
+		MiniBlocks:               txBlockBody,
+		PeerChangesBlocks:        peerChangeBlockBody,
+		TrieNodes:                adaptedTrieNodesStorage,
+		TrieNodesChunks:          trieNodesChunks,
+		CurrentBlockTransactions: currentTx,
+		SmartContracts:           smartContracts,
+	}
+	holder, err := dataPool.NewDataPool(dataPoolArgs)
 	panicIfError("CreatePoolsHolder", err)
 
 	return holder
@@ -131,6 +162,9 @@ func CreatePoolsHolderWithTxPool(txPool dataRetriever.ShardedDataCacherNotifier)
 	trieNodes, err := storageUnit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolderWithTxPool", err)
 
+	trieNodesChunks, err := storageUnit.NewCache(cacherConfig)
+	panicIfError("CreatePoolsHolderWithTxPool", err)
+
 	cacherConfig = storageUnit.CacheConfig{Capacity: 50000, Type: storageUnit.LRUCache}
 	smartContracts, err := storageUnit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolderWithTxPool", err)
@@ -138,17 +172,19 @@ func CreatePoolsHolderWithTxPool(txPool dataRetriever.ShardedDataCacherNotifier)
 	currentTx, err := dataPool.NewCurrentBlockPool()
 	panicIfError("CreatePoolsHolderWithTxPool", err)
 
-	holder, err := dataPool.NewDataPool(
-		txPool,
-		unsignedTxPool,
-		rewardsTxPool,
-		headersPool,
-		txBlockBody,
-		peerChangeBlockBody,
-		trieNodes,
-		currentTx,
-		smartContracts,
-	)
+	dataPoolArgs := dataPool.DataPoolArgs{
+		Transactions:             txPool,
+		UnsignedTransactions:     unsignedTxPool,
+		RewardTransactions:       rewardsTxPool,
+		Headers:                  headersPool,
+		MiniBlocks:               txBlockBody,
+		PeerChangesBlocks:        peerChangeBlockBody,
+		TrieNodes:                trieNodes,
+		TrieNodesChunks:          trieNodesChunks,
+		CurrentBlockTransactions: currentTx,
+		SmartContracts:           smartContracts,
+	}
+	holder, err := dataPool.NewDataPool(dataPoolArgs)
 	panicIfError("CreatePoolsHolderWithTxPool", err)
 
 	return holder

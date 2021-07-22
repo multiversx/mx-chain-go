@@ -66,14 +66,14 @@ func (sm *StorerMock) GetBulkFromEpoch(keys [][]byte, _ uint32) (map[string][]by
 	return retValue, nil
 }
 
-// HasInEpoch -
-func (sm *StorerMock) HasInEpoch(_ []byte, _ uint32) error {
-	return errors.New("not implemented")
-}
-
 // SearchFirst -
 func (sm *StorerMock) SearchFirst(_ []byte) ([]byte, error) {
 	return nil, errors.New("not implemented")
+}
+
+// GetOldestEpoch -
+func (sm *StorerMock) GetOldestEpoch() (uint32, error) {
+	return 0, nil
 }
 
 // Close -

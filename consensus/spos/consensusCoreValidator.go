@@ -1,6 +1,6 @@
 package spos
 
-import "github.com/ElrondNetwork/elrond-go/core/check"
+import "github.com/ElrondNetwork/elrond-go-core/core/check"
 
 // ValidateConsensusCore checks for nil all the container objects
 func ValidateConsensusCore(container ConsensusCoreHandler) error {
@@ -31,8 +31,8 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 	if check.IfNil(container.MultiSigner()) {
 		return ErrNilMultiSigner
 	}
-	if check.IfNil(container.Rounder()) {
-		return ErrNilRounder
+	if check.IfNil(container.RoundHandler()) {
+		return ErrNilRoundHandler
 	}
 	if check.IfNil(container.ShardCoordinator()) {
 		return ErrNilShardCoordinator

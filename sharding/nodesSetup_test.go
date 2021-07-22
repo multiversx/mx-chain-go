@@ -4,7 +4,7 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/sharding/mock"
 	"github.com/stretchr/testify/assert"
 )
@@ -179,7 +179,7 @@ func TestNodesSetup_NewNodesSetupWrongDataInFile(t *testing.T) {
 	t.Parallel()
 
 	ns, err := NewNodesSetup(
-		"mock/invalidNodesSetupMock.json",
+		"mock/testdata/invalidNodesSetupMock.json",
 		mock.NewPubkeyConverterMock(32),
 		mock.NewPubkeyConverterMock(96),
 		100,
@@ -193,7 +193,7 @@ func TestNodesSetup_NewNodesShouldWork(t *testing.T) {
 	t.Parallel()
 
 	ns, err := NewNodesSetup(
-		"mock/nodesSetupMock.json",
+		"mock/testdata/nodesSetupMock.json",
 		mock.NewPubkeyConverterMock(32),
 		mock.NewPubkeyConverterMock(96),
 		100,

@@ -3,12 +3,14 @@ package blockAPI
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
+	"github.com/ElrondNetwork/elrond-go/process/txstatus"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,23 +23,25 @@ func createMockArgumentsWithTx(
 	txHash string,
 	txBytes []byte,
 	marshalizer *mock.MarshalizerFake,
-) baseAPIBockProcessor {
-	return baseAPIBockProcessor{
+) baseAPIBlockProcessor {
+	storerMock := &mock.ChainStorerMock{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			return &testscommon.StorerStub{
+				GetBulkFromEpochCalled: func(keys [][]byte, epoch uint32) (map[string][]byte, error) {
+					return map[string][]byte{txHash: txBytes}, nil
+				},
+				GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+					return miniblockBytes, nil
+				},
+			}
+		},
+	}
+	statusComputer, _ := txstatus.NewStatusComputer(srcShardID, mock.NewNonceHashConverterMock(), storerMock)
+	return baseAPIBlockProcessor{
 		selfShardID: srcShardID,
 		marshalizer: marshalizer,
-		store: &mock.ChainStorerMock{
-			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-				return &mock.StorerStub{
-					GetBulkFromEpochCalled: func(keys [][]byte, epoch uint32) (map[string][]byte, error) {
-						return map[string][]byte{txHash: txBytes}, nil
-					},
-					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
-						return miniblockBytes, nil
-					},
-				}
-			},
-		},
-		historyRepo: &testscommon.HistoryRepositoryStub{
+		store:       storerMock,
+		historyRepo: &dblookupext.HistoryRepositoryStub{
 			IsEnabledCalled: func() bool {
 				return false
 			},
@@ -57,6 +61,7 @@ func createMockArgumentsWithTx(
 				Data:             []byte{},
 			}, nil
 		},
+		txStatusComputer: statusComputer,
 	}
 }
 
