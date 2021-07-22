@@ -25,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
+	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/state/temporary"
@@ -216,7 +217,7 @@ type NetworkComponentsHandler interface {
 
 // TransactionSimulatorProcessor defines the actions which a transaction simulator processor has to implement
 type TransactionSimulatorProcessor interface {
-	ProcessTx(tx *transaction.Transaction) (*transaction.SimulationResults, error)
+	ProcessTx(tx *transaction.Transaction) (*txSimData.SimulationResults, error)
 	IsInterfaceNil() bool
 }
 
@@ -280,7 +281,6 @@ type StateComponentsHolder interface {
 
 // StatusComponentsHolder holds the status components
 type StatusComponentsHolder interface {
-	TpsBenchmark() statistics.TPSBenchmark
 	ElasticIndexer() process.Indexer
 	SoftwareVersionChecker() statistics.SoftwareVersionChecker
 	IsInterfaceNil() bool

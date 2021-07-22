@@ -107,7 +107,6 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		blockChain:                    arguments.DataComponents.Blockchain(),
 		stateCheckpointModulus:        arguments.Config.StateTriesConfig.CheckpointRoundsModulus,
 		indexer:                       arguments.StatusComponents.ElasticIndexer(),
-		tpsBenchmark:                  arguments.StatusComponents.TpsBenchmark(),
 		genesisNonce:                  genesisHdr.GetNonce(),
 		headerIntegrityVerifier:       arguments.BootstrapComponents.HeaderIntegrityVerifier(),
 		historyRepo:                   arguments.HistoryRepository,
@@ -562,8 +561,6 @@ func (mp *metaProcessor) indexBlock(
 	}
 
 	log.Debug("preparing to index block", "hash", headerHash, "nonce", metaBlock.GetNonce(), "round", metaBlock.GetRound())
-
-	mp.indexer.UpdateTPS(mp.tpsBenchmark)
 
 	pool := &indexer.Pool{
 		Txs:     mp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock),
@@ -1210,8 +1207,6 @@ func (mp *metaProcessor) CommitBlock(
 	if !check.IfNil(lastMetaBlock) && lastMetaBlock.IsStartOfEpochBlock() {
 		mp.blockTracker.CleanupInvalidCrossHeaders(header.Epoch, header.Round)
 	}
-
-	mp.tpsBenchmark.Update(lastMetaBlock)
 
 	mp.indexBlock(header, headerHash, body, lastMetaBlock, notarizedHeadersHashes, rewardsTxs)
 	mp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)

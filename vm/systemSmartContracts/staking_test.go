@@ -12,6 +12,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
@@ -83,7 +84,7 @@ func CreateVmContractCallInput() *vmcommon.ContractCallInput {
 			CallValue:   big.NewInt(0),
 			GasPrice:    0,
 			GasProvided: 0,
-			CallType:    vmcommon.DirectCall,
+			CallType:    vmData.DirectCall,
 		},
 		RecipientAddr: []byte("rcpntaddr"),
 		Function:      "something",
