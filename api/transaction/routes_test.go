@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/transaction"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/config"
+	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -584,9 +585,9 @@ func TestSimulateTransaction_CreateErrorsShouldErr(t *testing.T) {
 
 	expectedErr := errors.New("expected error")
 	facade := mock.Facade{
-		SimulateTransactionExecutionHandler: func(tx *dataTx.Transaction) (*dataTx.SimulationResults, error) {
+		SimulateTransactionExecutionHandler: func(tx *dataTx.Transaction) (*txSimData.SimulationResults, error) {
 			processTxWasCalled = true
-			return &dataTx.SimulationResults{
+			return &txSimData.SimulationResults{
 				Status:     "ok",
 				FailReason: "no reason",
 				ScResults:  nil,
@@ -635,9 +636,9 @@ func TestSimulateTransaction_ValidateErrorsShouldErr(t *testing.T) {
 
 	expectedErr := errors.New("expected error")
 	facade := mock.Facade{
-		SimulateTransactionExecutionHandler: func(tx *dataTx.Transaction) (*dataTx.SimulationResults, error) {
+		SimulateTransactionExecutionHandler: func(tx *dataTx.Transaction) (*txSimData.SimulationResults, error) {
 			processTxWasCalled = true
-			return &dataTx.SimulationResults{
+			return &txSimData.SimulationResults{
 				Status:     "ok",
 				FailReason: "no reason",
 				ScResults:  nil,
@@ -720,8 +721,8 @@ func TestSimulateTransaction_UseQueryParameterShouldWork(t *testing.T) {
 		CreateTransactionHandler: func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*dataTx.Transaction, []byte, error) {
 			return &dataTx.Transaction{}, []byte("hash"), nil
 		},
-		SimulateTransactionExecutionHandler: func(tx *dataTx.Transaction) (*dataTx.SimulationResults, error) {
-			return &dataTx.SimulationResults{}, nil
+		SimulateTransactionExecutionHandler: func(tx *dataTx.Transaction) (*txSimData.SimulationResults, error) {
+			return &txSimData.SimulationResults{}, nil
 		},
 	}
 	ws := startNodeServer(&facade)
@@ -754,7 +755,7 @@ func TestSimulateTransaction_ProcessErrorsShouldErr(t *testing.T) {
 
 	expectedErr := errors.New("expected error")
 	facade := mock.Facade{
-		SimulateTransactionExecutionHandler: func(tx *dataTx.Transaction) (*dataTx.SimulationResults, error) {
+		SimulateTransactionExecutionHandler: func(tx *dataTx.Transaction) (*txSimData.SimulationResults, error) {
 			return nil, expectedErr
 		},
 		CreateTransactionHandler: func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*dataTx.Transaction, []byte, error) {
@@ -796,9 +797,9 @@ func TestSimulateTransaction(t *testing.T) {
 	processTxWasCalled := false
 
 	facade := mock.Facade{
-		SimulateTransactionExecutionHandler: func(tx *dataTx.Transaction) (*dataTx.SimulationResults, error) {
+		SimulateTransactionExecutionHandler: func(tx *dataTx.Transaction) (*txSimData.SimulationResults, error) {
 			processTxWasCalled = true
-			return &dataTx.SimulationResults{
+			return &txSimData.SimulationResults{
 				Status:     "ok",
 				FailReason: "no reason",
 				ScResults:  nil,
