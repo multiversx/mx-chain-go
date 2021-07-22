@@ -5,8 +5,8 @@ import (
 	"encoding/hex"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -26,7 +26,7 @@ type deployLibrarySC struct {
 }
 
 // NewDeployLibrarySC returns a new instance of deploy library SC able to deploy library SC that needs to be present
-// on all shards - same contract is deployed core.MaxNumShards == 256 times with addresses which end with all
+// on all shards - same contract is deployed common.MaxNumShards == 256 times with addresses which end with all
 // possibilities of the last byte
 func NewDeployLibrarySC(arg ArgDeployLibrarySC) (*deployLibrarySC, error) {
 	if check.IfNil(arg.Executor) {
@@ -58,7 +58,7 @@ func NewDeployLibrarySC(arg ArgDeployLibrarySC) (*deployLibrarySC, error) {
 	return dp, nil
 }
 
-// GenerateInitialPublicKeys will create public keys for given shard or for all shards in case of deployment to core.MaxNumShards
+// GenerateInitialPublicKeys will create public keys for given shard or for all shards in case of deployment to common.MaxNumShards
 func GenerateInitialPublicKeys(
 	baseAddress []byte,
 	isForCurrentShard func(address []byte) bool,

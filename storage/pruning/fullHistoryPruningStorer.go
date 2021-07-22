@@ -165,6 +165,11 @@ func (fhps *FullHistoryPruningStorer) getOrOpenPersister(epoch uint32) (storage.
 		return nil, err
 	}
 
+	_, ok := fhps.oldEpochsActivePersistersCache.Get([]byte(epochString))
+	if !ok {
+		log.Debug("fhps - getOrOpenPersister - put in cache", "epoch", epochString)
+		fhps.oldEpochsActivePersistersCache.Put([]byte(epochString), pdata, 0)
+	}
 	return persister, nil
 }
 

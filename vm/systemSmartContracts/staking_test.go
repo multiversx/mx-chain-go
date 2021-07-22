@@ -10,11 +10,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
@@ -285,7 +286,7 @@ func TestStakingSC_ExecuteStake(t *testing.T) {
 		RewardAddress: []byte{100},
 		StakeValue:    big.NewInt(100),
 		JailedRound:   math.MaxUint64,
-		UnStakedEpoch: core.DefaultUnstakedEpoch,
+		UnStakedEpoch: common.DefaultUnstakedEpoch,
 		SlashValue:    big.NewInt(0),
 	}
 
@@ -630,7 +631,7 @@ func TestStakingSC_ExecuteUnBoundStillValidator(t *testing.T) {
 	}
 
 	peerAccount := state.NewEmptyPeerAccount()
-	peerAccount.List = string(core.EligibleList)
+	peerAccount.List = string(common.EligibleList)
 	stakeValue := big.NewInt(100)
 	marshalizedRegData, _ := json.Marshal(&registrationData)
 	eei, _ := NewVMContext(
@@ -1446,11 +1447,11 @@ func Test_NoActionAllowedForBadRatingOrJailed(t *testing.T) {
 	accountsStub.GetExistingAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		return peerAccount, nil
 	}
-	peerAccount.List = string(core.JailedList)
+	peerAccount.List = string(common.JailedList)
 	doUnStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("secondKey"), vmcommon.UserError)
 	doUnBond(t, stakingSmartContract, stakingAccessAddress, []byte("secondKey"), vmcommon.UserError)
 
-	peerAccount.List = string(core.EligibleList)
+	peerAccount.List = string(common.EligibleList)
 	peerAccount.TempRating = 9
 	raterStub.GetChancesCalled = func(u uint32) uint32 {
 		if u == 0 {
@@ -1499,11 +1500,11 @@ func Test_UnJailNotAllowedIfJailed(t *testing.T) {
 	accountsStub.GetExistingAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		return peerAccount, nil
 	}
-	peerAccount.List = string(core.EligibleList)
+	peerAccount.List = string(common.EligibleList)
 	doUnJail(t, stakingSmartContract, stakingAccessAddress, []byte("firsstKey"), vmcommon.UserError)
 	doUnJail(t, stakingSmartContract, stakingAccessAddress, []byte("secondKey"), vmcommon.UserError)
 
-	peerAccount.List = string(core.JailedList)
+	peerAccount.List = string(common.JailedList)
 	doUnJail(t, stakingSmartContract, stakingAccessAddress, []byte("firsstKey"), vmcommon.Ok)
 	doUnJail(t, stakingSmartContract, stakingAccessAddress, []byte("secondKey"), vmcommon.Ok)
 }

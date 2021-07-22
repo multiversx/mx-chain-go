@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core"
 )
 
 var log = logger.GetOrCreate("txcache")
@@ -243,5 +243,5 @@ func (cache *TxCache) displaySendersSummary() {
 	}
 
 	summary := builder.String()
-	log.Info("TxCache.displaySendersSummary()", "name", cache.name, "summary\n", summary)
+	log.Debug("TxCache.displaySendersSummary()", "name", cache.name, "summary\n", summary)
 }

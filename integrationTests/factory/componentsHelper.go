@@ -8,8 +8,8 @@ import (
 	"runtime/pprof"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
 )
 
 var log = logger.GetOrCreate("integrationtests")
@@ -40,14 +40,14 @@ func CleanupWorkingDir() {
 func CreateDefaultConfig() *config.Configs {
 	configPathsHolder := createConfigurationsPathsHolder()
 
-	generalConfig, _ := core.LoadMainConfig(configPathsHolder.MainConfig)
-	ratingsConfig, _ := core.LoadRatingsConfig(configPathsHolder.Ratings)
-	economicsConfig, _ := core.LoadEconomicsConfig(configPathsHolder.Economics)
-	prefsConfig, _ := core.LoadPreferencesConfig(configPathsHolder.Preferences)
-	p2pConfig, _ := core.LoadP2PConfig(configPathsHolder.P2p)
-	externalConfig, _ := core.LoadExternalConfig(configPathsHolder.External)
-	systemSCConfig, _ := core.LoadSystemSmartContractsConfig(configPathsHolder.SystemSC)
-	epochConfig, _ := core.LoadEpochConfig(configPathsHolder.Epoch)
+	generalConfig, _ := common.LoadMainConfig(configPathsHolder.MainConfig)
+	ratingsConfig, _ := common.LoadRatingsConfig(configPathsHolder.Ratings)
+	economicsConfig, _ := common.LoadEconomicsConfig(configPathsHolder.Economics)
+	prefsConfig, _ := common.LoadPreferencesConfig(configPathsHolder.Preferences)
+	p2pConfig, _ := common.LoadP2PConfig(configPathsHolder.P2p)
+	externalConfig, _ := common.LoadExternalConfig(configPathsHolder.External)
+	systemSCConfig, _ := common.LoadSystemSmartContractsConfig(configPathsHolder.SystemSC)
+	epochConfig, _ := common.LoadEpochConfig(configPathsHolder.Epoch)
 
 	p2pConfig.KadDhtPeerDiscovery.Enabled = false
 	prefsConfig.Preferences.DestinationShardAsObserver = "0"

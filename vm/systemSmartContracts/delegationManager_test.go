@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -169,7 +169,7 @@ func TestNewDelegationManagerSystemSC(t *testing.T) {
 	registerNotifyHandlerCalled := false
 	args := createMockArgumentsForDelegationManager()
 	args.EpochNotifier = &mock.EpochNotifierStub{
-		RegisterNotifyHandlerCalled: func(handler core.EpochSubscriberHandler) {
+		RegisterNotifyHandlerCalled: func(handler vmcommon.EpochSubscriberHandler) {
 			registerNotifyHandlerCalled = true
 		}}
 

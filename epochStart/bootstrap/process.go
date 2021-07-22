@@ -7,18 +7,16 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/partitioning"
+	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters/uint64ByteSlice"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/partitioning"
-	"github.com/ElrondNetwork/elrond-go/core/throttler"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/syncer"
-	"github.com/ElrondNetwork/elrond-go/data/trie/factory"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	factoryDataPool "github.com/ElrondNetwork/elrond-go/dataRetriever/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
@@ -31,10 +29,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	disabledInterceptors "github.com/ElrondNetwork/elrond-go/process/interceptors/disabled"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/state/syncer"
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/update"
 	updateSync "github.com/ElrondNetwork/elrond-go/update/sync"
 )
@@ -87,7 +89,7 @@ type epochStartBootstrap struct {
 	genesisShardCoordinator    sharding.Coordinator
 	rater                      sharding.ChanceComputer
 	trieContainer              state.TriesHolder
-	trieStorageManagers        map[string]data.StorageManager
+	trieStorageManagers        map[string]temporary.StorageManager
 	mutTrieStorageManagers     sync.RWMutex
 	nodeShuffler               sharding.NodesShuffler
 	roundHandler               epochStart.RoundHandler
@@ -210,7 +212,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 	}
 
 	epochStartProvider.trieContainer = state.NewDataTriesHolder()
-	epochStartProvider.trieStorageManagers = make(map[string]data.StorageManager)
+	epochStartProvider.trieStorageManagers = make(map[string]temporary.StorageManager)
 
 	if epochStartProvider.generalConfig.Hardfork.AfterHardFork {
 		epochStartProvider.startEpoch = epochStartProvider.generalConfig.Hardfork.StartEpoch
@@ -282,11 +284,11 @@ func (e *epochStartBootstrap) isNodeInGenesisNodesConfig() bool {
 }
 
 // GetTriesComponents returns the created tries components according to the shardID for the current epoch
-func (e *epochStartBootstrap) GetTriesComponents() (state.TriesHolder, map[string]data.StorageManager) {
+func (e *epochStartBootstrap) GetTriesComponents() (state.TriesHolder, map[string]temporary.StorageManager) {
 	e.mutTrieStorageManagers.RLock()
 	defer e.mutTrieStorageManagers.RUnlock()
 
-	storageManagers := make(map[string]data.StorageManager)
+	storageManagers := make(map[string]temporary.StorageManager)
 	for k, v := range e.trieStorageManagers {
 		storageManagers[k] = v
 	}
@@ -616,7 +618,7 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	}
 	log.Debug("start in epoch bootstrap: shardCoordinator", "numOfShards", e.baseData.numberOfShards, "shardId", e.baseData.shardId)
 
-	err = e.messenger.CreateTopic(core.ConsensusTopic+e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId()), true)
+	err = e.messenger.CreateTopic(common.ConsensusTopic+e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId()), true)
 	if err != nil {
 		return Parameters{}, err
 	}
@@ -899,12 +901,14 @@ func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) er
 		return err
 	}
 
-	userStorageManager, userAccountTrie, err := trieFactory.Create(
-		e.generalConfig.AccountsTrieStorage,
-		core.GetShardIDString(shardId),
-		e.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
-		e.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
-	)
+	args := temporary.TrieCreateArgs{
+		TrieStorageConfig:  e.generalConfig.AccountsTrieStorage,
+		ShardID:            core.GetShardIDString(shardId),
+		PruningEnabled:     e.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
+		CheckpointsEnabled: e.generalConfig.StateTriesConfig.CheckpointsEnabled,
+		MaxTrieLevelInMem:  e.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
+	}
+	userStorageManager, userAccountTrie, err := trieFactory.Create(args)
 	if err != nil {
 		return err
 	}
@@ -914,12 +918,14 @@ func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) er
 	e.trieStorageManagers[factory.UserAccountTrie] = userStorageManager
 	e.mutTrieStorageManagers.Unlock()
 
-	peerStorageManager, peerAccountsTrie, err := trieFactory.Create(
-		e.generalConfig.PeerAccountsTrieStorage,
-		core.GetShardIDString(shardId),
-		e.generalConfig.StateTriesConfig.PeerStatePruningEnabled,
-		e.generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
-	)
+	args = temporary.TrieCreateArgs{
+		TrieStorageConfig:  e.generalConfig.PeerAccountsTrieStorage,
+		ShardID:            core.GetShardIDString(shardId),
+		PruningEnabled:     e.generalConfig.StateTriesConfig.PeerStatePruningEnabled,
+		CheckpointsEnabled: e.generalConfig.StateTriesConfig.CheckpointsEnabled,
+		MaxTrieLevelInMem:  e.generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
+	}
+	peerStorageManager, peerAccountsTrie, err := trieFactory.Create(args)
 	if err != nil {
 		return err
 	}
@@ -1034,14 +1040,14 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 
 func (e *epochStartBootstrap) setEpochStartMetrics() {
 	if !check.IfNil(e.epochStartMeta) {
-		e.statusHandler.SetUInt64Value(core.MetricNonceAtEpochStart, e.epochStartMeta.GetNonce())
-		e.statusHandler.SetUInt64Value(core.MetricRoundAtEpochStart, e.epochStartMeta.GetRound())
+		e.statusHandler.SetUInt64Value(common.MetricNonceAtEpochStart, e.epochStartMeta.GetNonce())
+		e.statusHandler.SetUInt64Value(common.MetricRoundAtEpochStart, e.epochStartMeta.GetRound())
 	}
 }
 
 func (e *epochStartBootstrap) applyShardIDAsObserverIfNeeded(receivedShardID uint32) uint32 {
 	if e.nodeType == core.NodeTypeObserver &&
-		e.destinationShardAsObserver != core.DisabledShardIDAsObserver &&
+		e.destinationShardAsObserver != common.DisabledShardIDAsObserver &&
 		e.destinationShardAsObserver != receivedShardID {
 		log.Debug("shard id as observer applied", "destination shard ID", e.destinationShardAsObserver, "computed", receivedShardID)
 		receivedShardID = e.destinationShardAsObserver

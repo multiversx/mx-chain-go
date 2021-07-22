@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/factory"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/stretchr/testify/require"

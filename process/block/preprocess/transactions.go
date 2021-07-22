@@ -9,20 +9,21 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/sliceUtil"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/atomic"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/sliceUtil"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -995,7 +996,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV1(
 			if !firstCrossShardScCallOrSpecialTxFound {
 				numNewMiniBlocks++
 			}
-			numNewTxs += core.AdditionalScrForEachScCallOrSpecialTx
+			numNewTxs += common.AdditionalScrForEachScCallOrSpecialTx
 		}
 
 		if isMaxBlockSizeReached(numNewMiniBlocks, numNewTxs) {
@@ -1135,7 +1136,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV1(
 				txs.blockSizeComputation.AddNumMiniBlocks(1)
 			}
 			//we need to increment this as to account for the corresponding SCR hash
-			txs.blockSizeComputation.AddNumTxs(core.AdditionalScrForEachScCallOrSpecialTx)
+			txs.blockSizeComputation.AddNumTxs(common.AdditionalScrForEachScCallOrSpecialTx)
 			numCrossShardScCallsOrSpecialTxs++
 		}
 		numTxsAdded++

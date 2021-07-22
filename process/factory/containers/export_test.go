@@ -1,8 +1,8 @@
 package containers
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/container"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/core/container"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 )
 
 func (ic *interceptorsContainer) Insert(key string, value interface{}) bool {

@@ -3,7 +3,7 @@ package disabled
 import (
 	"errors"
 
-	"github.com/ElrondNetwork/elrond-go/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
 )
 
 var errCannotReturnDirectStakedListFromShardNode = errors.New("direct staked list can not be returned by a shard node")

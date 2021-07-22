@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ElrondNetwork/elrond-go/core/random"
+	"github.com/ElrondNetwork/elrond-go-core/core/random"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
@@ -46,7 +46,7 @@ func getPort(port string, handler func(int) error) (int, error) {
 }
 
 func choosePort(startPort int, endPort int, handler func(int) error) (int, error) {
-	log.Info("generating random free port",
+	log.Debug("generating random free port",
 		"range", fmt.Sprintf("%d-%d", startPort, endPort),
 	)
 
@@ -64,6 +64,7 @@ func choosePort(startPort int, endPort int, handler func(int) error) (int, error
 			continue
 		}
 
+		log.Debug("free port chosen", "port", p)
 		return p, nil
 	}
 

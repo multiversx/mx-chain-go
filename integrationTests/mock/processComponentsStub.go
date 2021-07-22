@@ -2,8 +2,8 @@ package mock
 
 import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -13,36 +13,37 @@ import (
 
 // ProcessComponentsStub -
 type ProcessComponentsStub struct {
-	NodesCoord                     sharding.NodesCoordinator
-	ShardCoord                     sharding.Coordinator
-	IntContainer                   process.InterceptorsContainer
-	ResFinder                      dataRetriever.ResolversFinder
-	RoundHandlerField              consensus.RoundHandler
-	EpochTrigger                   epochStart.TriggerHandler
-	EpochNotifier                  factory.EpochStartNotifier
-	ForkDetect                     process.ForkDetector
-	BlockProcess                   process.BlockProcessor
-	BlackListHdl                   process.TimeCacher
-	BootSore                       process.BootStorer
-	HeaderSigVerif                 process.InterceptedHeaderSigVerifier
-	HeaderIntegrVerif              process.HeaderIntegrityVerifier
-	ValidatorStatistics            process.ValidatorStatisticsProcessor
-	ValidatorProvider              process.ValidatorsProvider
-	BlockTrack                     process.BlockTracker
-	PendingMiniBlocksHdl           process.PendingMiniBlocksHandler
-	ReqHandler                     process.RequestHandler
-	TxLogsProcess                  process.TransactionLogProcessorDatabase
-	HeaderConstructValidator       process.HeaderConstructionValidator
-	PeerMapper                     process.NetworkShardingCollector
-	TxSimulatorProcessor           factory.TransactionSimulatorProcessor
-	FallbackHdrValidator           process.FallbackHeaderValidator
-	WhiteListHandlerInternal       process.WhiteListHandler
-	WhiteListerVerifiedTxsInternal process.WhiteListHandler
-	HistoryRepositoryInternal      dblookupext.HistoryRepository
-	ImportStartHandlerInternal     update.ImportStartHandler
-	RequestedItemsHandlerInternal  dataRetriever.RequestedItemsHandler
-	NodeRedundancyHandlerInternal  consensus.NodeRedundancyHandler
-	ArwenChangeLockerInternal      process.Locker
+	NodesCoord                           sharding.NodesCoordinator
+	ShardCoord                           sharding.Coordinator
+	IntContainer                         process.InterceptorsContainer
+	ResFinder                            dataRetriever.ResolversFinder
+	RoundHandlerField                    consensus.RoundHandler
+	EpochTrigger                         epochStart.TriggerHandler
+	EpochNotifier                        factory.EpochStartNotifier
+	ForkDetect                           process.ForkDetector
+	BlockProcess                         process.BlockProcessor
+	BlackListHdl                         process.TimeCacher
+	BootSore                             process.BootStorer
+	HeaderSigVerif                       process.InterceptedHeaderSigVerifier
+	HeaderIntegrVerif                    process.HeaderIntegrityVerifier
+	ValidatorStatistics                  process.ValidatorStatisticsProcessor
+	ValidatorProvider                    process.ValidatorsProvider
+	BlockTrack                           process.BlockTracker
+	PendingMiniBlocksHdl                 process.PendingMiniBlocksHandler
+	ReqHandler                           process.RequestHandler
+	TxLogsProcess                        process.TransactionLogProcessorDatabase
+	HeaderConstructValidator             process.HeaderConstructionValidator
+	PeerMapper                           process.NetworkShardingCollector
+	TxSimulatorProcessor                 factory.TransactionSimulatorProcessor
+	FallbackHdrValidator                 process.FallbackHeaderValidator
+	WhiteListHandlerInternal             process.WhiteListHandler
+	WhiteListerVerifiedTxsInternal       process.WhiteListHandler
+	HistoryRepositoryInternal            dblookupext.HistoryRepository
+	ImportStartHandlerInternal           update.ImportStartHandler
+	RequestedItemsHandlerInternal        dataRetriever.RequestedItemsHandler
+	NodeRedundancyHandlerInternal        consensus.NodeRedundancyHandler
+	ArwenChangeLockerInternal            process.Locker
+	CurrentEpochProviderInternal         process.CurrentNetworkEpochProviderHandler
 	ScheduledTxsExecutionHandlerInternal process.ScheduledTxsExecutionHandler
 }
 
@@ -209,6 +210,11 @@ func (pcs *ProcessComponentsStub) NodeRedundancyHandler() consensus.NodeRedundan
 // ArwenChangeLocker -
 func (pcs *ProcessComponentsStub) ArwenChangeLocker() process.Locker {
 	return pcs.ArwenChangeLockerInternal
+}
+
+// CurrentEpochProvider -
+func (pcs *ProcessComponentsStub) CurrentEpochProvider() process.CurrentNetworkEpochProviderHandler {
+	return pcs.CurrentEpochProviderInternal
 }
 
 // ScheduledTxsExecutionHandler -

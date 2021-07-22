@@ -12,29 +12,24 @@ import (
 	"sync"
 	"testing"
 
-	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_3/config"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	dataTransaction "github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	dataTx "github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/forking"
-	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager"
-	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager/evictionWaitingList"
-	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
-	dataTx "github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/data/trie"
-	"github.com/ElrondNetwork/elrond-go/data/trie/hashesHolder"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	processDisabled "github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
-	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/postprocess"
@@ -49,12 +44,17 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager"
+	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
+	"github.com/ElrondNetwork/elrond-go/trie"
+	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
@@ -426,12 +426,14 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 			return vm, nil
 		}}
 
+	esdtTransferParser, _ := parsers.NewESDTTransferParser(testMarshalizer)
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:  pubkeyConv,
-		ShardCoordinator: oneShardCoordinator,
-		BuiltInFuncNames: builtInFuncs.Keys(),
-		ArgumentParser:   parsers.NewCallArgsParser(),
-		EpochNotifier:    forking.NewGenericEpochNotifier(),
+		PubkeyConverter:    pubkeyConv,
+		ShardCoordinator:   oneShardCoordinator,
+		BuiltInFunctions:   builtInFuncs,
+		ArgumentParser:     parsers.NewCallArgsParser(),
+		EpochNotifier:      forking.NewGenericEpochNotifier(),
+		ESDTTransferParser: esdtTransferParser,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	gasSchedule := make(map[string]map[string]uint64)
@@ -539,6 +541,7 @@ func CreateVMAndBlockchainHookAndDataPool(
 		Marshalizer:      testMarshalizer,
 		Accounts:         accnts,
 		ShardCoordinator: shardCoordinator,
+		EpochNotifier:    globalEpochNotifier,
 	}
 	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 
@@ -607,6 +610,7 @@ func CreateVMAndBlockchainHookMeta(
 		Marshalizer:      testMarshalizer,
 		Accounts:         accnts,
 		ShardCoordinator: shardCoordinator,
+		EpochNotifier:    globalEpochNotifier,
 	}
 	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 
@@ -754,12 +758,14 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		poolsHolder = testscommon.NewPoolsHolderMock()
 	}
 
+	esdtTransferParser, _ := parsers.NewESDTTransferParser(testMarshalizer)
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:  pubkeyConv,
-		ShardCoordinator: shardCoordinator,
-		BuiltInFuncNames: blockChainHook.GetBuiltinFunctionNames(),
-		ArgumentParser:   parsers.NewCallArgsParser(),
-		EpochNotifier:    forking.NewGenericEpochNotifier(),
+		PubkeyConverter:    pubkeyConv,
+		ShardCoordinator:   shardCoordinator,
+		BuiltInFunctions:   blockChainHook.GetBuiltinFunctionsContainer(),
+		ArgumentParser:     parsers.NewCallArgsParser(),
+		EpochNotifier:      forking.NewGenericEpochNotifier(),
+		ESDTTransferParser: esdtTransferParser,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 

@@ -4,11 +4,17 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core/check"
 )
 
 var log = logger.GetOrCreate("assessment/benchmarks")
+
+// ThresholdEnoughComputingPower represents the threshold considered when deciding if a Node Under Test (NUT) is considered
+// having (or not) enough compute capability when executing SC calls. if the result.TotalDuration exceeds this const, the
+// NUT is considered less powerful (the NUT needed more time to process same amount of work). The value is hardcoded and
+// was decided through testing.
+const ThresholdEnoughComputingPower = 31 * time.Second
 
 type coordinator struct {
 	benchmarks []BenchmarkRunner
@@ -60,6 +66,7 @@ func (c *coordinator) RunAllTests() *TestResults {
 
 	testResult.Error = lastErr
 	testResult.TotalDuration = cumulative
+	testResult.EnoughComputingPower = cumulative < ThresholdEnoughComputingPower
 	return &testResult
 }
 

@@ -7,15 +7,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -1383,8 +1384,8 @@ func TestWorker_ExtendShouldReturnWhenRoundIsCanceled(t *testing.T) {
 	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	executed := false
 	bootstrapperMock := &mock.BootstrapperMock{
-		GetNodeStateCalled: func() core.NodeState {
-			return core.NsNotSynchronized
+		GetNodeStateCalled: func() common.NodeState {
+			return common.NsNotSynchronized
 		},
 		CreateAndCommitEmptyBlockCalled: func(shardForCurrentNode uint32) (data.BodyHandler, data.HeaderHandler, error) {
 			executed = true
@@ -1403,8 +1404,8 @@ func TestWorker_ExtendShouldReturnWhenGetNodeStateNotReturnSynchronized(t *testi
 	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	executed := false
 	bootstrapperMock := &mock.BootstrapperMock{
-		GetNodeStateCalled: func() core.NodeState {
-			return core.NsNotSynchronized
+		GetNodeStateCalled: func() common.NodeState {
+			return common.NsNotSynchronized
 		},
 		CreateAndCommitEmptyBlockCalled: func(shardForCurrentNode uint32) (data.BodyHandler, data.HeaderHandler, error) {
 			executed = true
