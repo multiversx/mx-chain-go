@@ -194,7 +194,7 @@ func (st *syncAccountsDBs) tryRecreateTrie(
 	// TODO investigate if this can raise an OOM issue
 	for hash, tr := range tries {
 		if bytes.Equal(rootHash, []byte(hash)) {
-			err = exportTrie(trieExporter, id, tr, ctx, accountType)
+			err = exportTrie(trieExporter, id, tr, accountType)
 			if err != nil {
 				return false
 			}
@@ -204,7 +204,7 @@ func (st *syncAccountsDBs) tryRecreateTrie(
 
 		dataTrieIdentifier := genesis.CreateTrieIdentifier(shardId, genesis.DataTrie)
 		identifier := genesis.AddRootHashToIdentifier(dataTrieIdentifier, hash)
-		err = trieExporter.ExportDataTrie(identifier, tr, ctx)
+		err = trieExporter.ExportDataTrie(identifier, tr)
 		if err != nil {
 			return false
 		}
@@ -216,16 +216,15 @@ func (st *syncAccountsDBs) tryRecreateTrie(
 func exportTrie(
 	trieExporter update.TrieExporter,
 	id string,
-	tr data.Trie,
-	ctx context.Context,
+	tr temporary.Trie,
 	accountType genesis.Type,
 ) error {
 	if accountType == genesis.UserAccount {
-		_, err := trieExporter.ExportMainTrie(id, tr, ctx)
+		_, err := trieExporter.ExportMainTrie(id, tr)
 		return err
 	}
 
-	return trieExporter.ExportValidatorTrie(tr, ctx)
+	return trieExporter.ExportValidatorTrie(tr)
 }
 
 // IsInterfaceNil returns nil if underlying object is nil

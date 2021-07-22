@@ -1,7 +1,6 @@
 package trieExport
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -10,12 +9,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/keyValStorage"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/keyValStorage"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/assert"
@@ -166,13 +167,13 @@ func TestTrieExport_ExportValidatorTrieInvalidTrieRootHashShouldErr(t *testing.T
 	)
 
 	expectedErr := fmt.Errorf("rootHash err")
-	tr := &mock.TrieStub{
+	tr := &testscommon.TrieStub{
 		RootCalled: func() ([]byte, error) {
 			return nil, expectedErr
 		},
 	}
 
-	err := trieExporter.ExportValidatorTrie(tr, context.Background())
+	err := trieExporter.ExportValidatorTrie(tr)
 	assert.Equal(t, expectedErr, err)
 }
 
@@ -190,7 +191,7 @@ func TestTrieExport_ExportValidatorTrieGetAllLeavesOnChannelErrShouldErr(t *test
 	)
 
 	expectedErr := fmt.Errorf("getAllLeavesOnChannel err")
-	tr := &mock.TrieStub{
+	tr := &testscommon.TrieStub{
 		RootCalled: func() ([]byte, error) {
 			return nil, nil
 		},
@@ -199,7 +200,7 @@ func TestTrieExport_ExportValidatorTrieGetAllLeavesOnChannelErrShouldErr(t *test
 		},
 	}
 
-	err := trieExporter.ExportValidatorTrie(tr, context.Background())
+	err := trieExporter.ExportValidatorTrie(tr)
 	assert.Equal(t, expectedErr, err)
 }
 
@@ -216,7 +217,7 @@ func TestTrieExport_ExportMainTrieInvalidIdentifierShouldErr(t *testing.T) {
 		&mock.GenesisNodesSetupHandlerStub{},
 	)
 
-	rootHashes, err := trieExporter.ExportMainTrie("invalid identifier", &mock.TrieStub{}, context.Background())
+	rootHashes, err := trieExporter.ExportMainTrie("invalid identifier", &testscommon.TrieStub{})
 	assert.Nil(t, rootHashes)
 	assert.NotNil(t, err)
 }
@@ -235,13 +236,13 @@ func TestTrieExport_ExportMainTrieInvalidTrieRootHashShouldErr(t *testing.T) {
 	)
 
 	expectedErr := fmt.Errorf("rootHash err")
-	tr := &mock.TrieStub{
+	tr := &testscommon.TrieStub{
 		RootCalled: func() ([]byte, error) {
 			return nil, expectedErr
 		},
 	}
 
-	rootHashes, err := trieExporter.ExportMainTrie("a@1@8", tr, context.Background())
+	rootHashes, err := trieExporter.ExportMainTrie("a@1@8", tr)
 	assert.Equal(t, expectedErr, err)
 	assert.Nil(t, rootHashes)
 }
@@ -260,7 +261,7 @@ func TestTrieExport_ExportMainTrieGetAllLeavesOnChannelErrShouldErr(t *testing.T
 	)
 
 	expectedErr := fmt.Errorf("getAllLeavesOnChannel err")
-	tr := &mock.TrieStub{
+	tr := &testscommon.TrieStub{
 		RootCalled: func() ([]byte, error) {
 			return nil, nil
 		},
@@ -269,7 +270,7 @@ func TestTrieExport_ExportMainTrieGetAllLeavesOnChannelErrShouldErr(t *testing.T
 		},
 	}
 
-	rootHashes, err := trieExporter.ExportMainTrie("a@1@8", tr, context.Background())
+	rootHashes, err := trieExporter.ExportMainTrie("a@1@8", tr)
 	assert.Equal(t, expectedErr, err)
 	assert.Nil(t, rootHashes)
 }
@@ -287,7 +288,7 @@ func TestTrieExport_ExportMainTrieInvalidShardIdShouldErr(t *testing.T) {
 		&mock.GenesisNodesSetupHandlerStub{},
 	)
 
-	tr := &mock.TrieStub{
+	tr := &testscommon.TrieStub{
 		RootCalled: func() ([]byte, error) {
 			return nil, nil
 		},
@@ -296,7 +297,7 @@ func TestTrieExport_ExportMainTrieInvalidShardIdShouldErr(t *testing.T) {
 		},
 	}
 
-	rootHashes, err := trieExporter.ExportMainTrie("a@5@8", tr, context.Background())
+	rootHashes, err := trieExporter.ExportMainTrie("a@5@8", tr)
 	assert.Equal(t, sharding.ErrInvalidShardId, err)
 	assert.Nil(t, rootHashes)
 }
@@ -319,7 +320,7 @@ func TestTrieExport_ExportMainTrieHardforkStorerWriteErrShouldErr(t *testing.T) 
 		&mock.GenesisNodesSetupHandlerStub{},
 	)
 
-	tr := &mock.TrieStub{
+	tr := &testscommon.TrieStub{
 		RootCalled: func() ([]byte, error) {
 			return nil, nil
 		},
@@ -328,7 +329,7 @@ func TestTrieExport_ExportMainTrieHardforkStorerWriteErrShouldErr(t *testing.T) 
 		},
 	}
 
-	rootHashes, err := trieExporter.ExportMainTrie("a@0@8", tr, context.Background())
+	rootHashes, err := trieExporter.ExportMainTrie("a@0@8", tr)
 	assert.Equal(t, expectedErr, err)
 	assert.Nil(t, rootHashes)
 }
@@ -369,7 +370,7 @@ func TestTrieExport_ExportMainTrieShouldWork(t *testing.T) {
 	serializedAcc2, err := marshalizer.Marshal(account2)
 	assert.Nil(t, err)
 
-	tr := &mock.TrieStub{
+	tr := &testscommon.TrieStub{
 		RootCalled: func() ([]byte, error) {
 			return nil, nil
 		},
@@ -383,7 +384,7 @@ func TestTrieExport_ExportMainTrieShouldWork(t *testing.T) {
 		},
 	}
 
-	rootHashes, err := trieExporter.ExportMainTrie("a@0@8", tr, context.Background())
+	rootHashes, err := trieExporter.ExportMainTrie("a@0@8", tr)
 	assert.Nil(t, err)
 	assert.Equal(t, 4, writeCalled)
 	assert.Equal(t, 1, finishIdentifierCalled)
@@ -404,7 +405,7 @@ func TestTrieExport_ExportDataTrieInvalidIdentifierShouldErr(t *testing.T) {
 		&mock.GenesisNodesSetupHandlerStub{},
 	)
 
-	err := trieExporter.ExportDataTrie("invalid identifier", &mock.TrieStub{}, context.Background())
+	err := trieExporter.ExportDataTrie("invalid identifier", &testscommon.TrieStub{})
 	assert.NotNil(t, err)
 }
 
@@ -422,13 +423,13 @@ func TestTrieExport_ExportDataTrieInvalidTrieRootHashShouldErr(t *testing.T) {
 	)
 
 	expectedErr := fmt.Errorf("rootHash err")
-	tr := &mock.TrieStub{
+	tr := &testscommon.TrieStub{
 		RootCalled: func() ([]byte, error) {
 			return nil, expectedErr
 		},
 	}
 
-	err := trieExporter.ExportDataTrie("a@1@8", tr, context.Background())
+	err := trieExporter.ExportDataTrie("a@1@8", tr)
 	assert.Equal(t, expectedErr, err)
 }
 
@@ -446,7 +447,7 @@ func TestTrieExport_ExportDataTrieGetAllLeavesOnChannelErrShouldErr(t *testing.T
 	)
 
 	expectedErr := fmt.Errorf("getAllLeavesOnChannel err")
-	tr := &mock.TrieStub{
+	tr := &testscommon.TrieStub{
 		RootCalled: func() ([]byte, error) {
 			return nil, nil
 		},
@@ -455,7 +456,7 @@ func TestTrieExport_ExportDataTrieGetAllLeavesOnChannelErrShouldErr(t *testing.T
 		},
 	}
 
-	err := trieExporter.ExportDataTrie("a@1@8", tr, context.Background())
+	err := trieExporter.ExportDataTrie("a@1@8", tr)
 	assert.Equal(t, expectedErr, err)
 }
 
@@ -472,7 +473,7 @@ func TestTrieExport_ExportDataTrieInvalidShardIdShouldErr(t *testing.T) {
 		&mock.GenesisNodesSetupHandlerStub{},
 	)
 
-	tr := &mock.TrieStub{
+	tr := &testscommon.TrieStub{
 		RootCalled: func() ([]byte, error) {
 			return nil, nil
 		},
@@ -481,7 +482,7 @@ func TestTrieExport_ExportDataTrieInvalidShardIdShouldErr(t *testing.T) {
 		},
 	}
 
-	err := trieExporter.ExportDataTrie("a@5@8", tr, context.Background())
+	err := trieExporter.ExportDataTrie("a@5@8", tr)
 	assert.Equal(t, sharding.ErrInvalidShardId, err)
 }
 
@@ -503,7 +504,7 @@ func TestTrieExport_ExportDataTrieHardforkStorerWriteErrShouldErr(t *testing.T) 
 		&mock.GenesisNodesSetupHandlerStub{},
 	)
 
-	tr := &mock.TrieStub{
+	tr := &testscommon.TrieStub{
 		RootCalled: func() ([]byte, error) {
 			return nil, nil
 		},
@@ -512,7 +513,7 @@ func TestTrieExport_ExportDataTrieHardforkStorerWriteErrShouldErr(t *testing.T) 
 		},
 	}
 
-	err := trieExporter.ExportDataTrie("a@0@8", tr, context.Background())
+	err := trieExporter.ExportDataTrie("a@0@8", tr)
 	assert.Equal(t, expectedErr, err)
 }
 
@@ -542,7 +543,7 @@ func TestTrieExport_ExportDataTrieShouldWork(t *testing.T) {
 		&mock.GenesisNodesSetupHandlerStub{},
 	)
 
-	tr := &mock.TrieStub{
+	tr := &testscommon.TrieStub{
 		RootCalled: func() ([]byte, error) {
 			return nil, nil
 		},
@@ -556,7 +557,7 @@ func TestTrieExport_ExportDataTrieShouldWork(t *testing.T) {
 		},
 	}
 
-	err := trieExporter.ExportDataTrie("a@0@8", tr, context.Background())
+	err := trieExporter.ExportDataTrie("a@0@8", tr)
 	assert.Nil(t, err)
 	assert.Equal(t, 4, writeCalled)
 	assert.Equal(t, 1, finishIdentifierCalled)
@@ -584,7 +585,7 @@ func TestTrieExport_ExportTrieShouldExportNodesSetupJson(t *testing.T) {
 		},
 	}
 
-	trie := &mock.TrieStub{
+	trie := &testscommon.TrieStub{
 		RootCalled: func() ([]byte, error) {
 			return []byte{}, nil
 		},
@@ -592,7 +593,7 @@ func TestTrieExport_ExportTrieShouldExportNodesSetupJson(t *testing.T) {
 			ch := make(chan core.KeyValueHolder)
 
 			mm := &mock.MarshalizerMock{}
-			valInfo := &state.ValidatorInfo{List: string(core.EligibleList)}
+			valInfo := &state.ValidatorInfo{List: string(common.EligibleList)}
 			pacB, _ := mm.Marshal(valInfo)
 
 			go func() {
@@ -617,7 +618,7 @@ func TestTrieExport_ExportTrieShouldExportNodesSetupJson(t *testing.T) {
 
 	require.False(t, check.IfNil(stateExporter))
 
-	err = stateExporter.ExportValidatorTrie(trie, context.Background())
+	err = stateExporter.ExportValidatorTrie(trie)
 	require.NoError(t, err)
 }
 
@@ -657,12 +658,12 @@ func TestStateExport_ExportNodesSetupJsonShouldExportKeysInAlphabeticalOrder(t *
 	require.False(t, check.IfNil(stateExporter))
 
 	vals := make(map[uint32][]*state.ValidatorInfo)
-	val50 := &state.ValidatorInfo{ShardId: 5, PublicKey: []byte("aaa"), List: string(core.EligibleList)}
-	val51 := &state.ValidatorInfo{ShardId: 5, PublicKey: []byte("bbb"), List: string(core.EligibleList)}
-	val10 := &state.ValidatorInfo{ShardId: 5, PublicKey: []byte("ccc"), List: string(core.EligibleList)}
-	val11 := &state.ValidatorInfo{ShardId: 5, PublicKey: []byte("ddd"), List: string(core.EligibleList)}
-	val00 := &state.ValidatorInfo{ShardId: 5, PublicKey: []byte("aaaaaa"), List: string(core.EligibleList)}
-	val01 := &state.ValidatorInfo{ShardId: 5, PublicKey: []byte("bbbbbb"), List: string(core.EligibleList)}
+	val50 := &state.ValidatorInfo{ShardId: 5, PublicKey: []byte("aaa"), List: string(common.EligibleList)}
+	val51 := &state.ValidatorInfo{ShardId: 5, PublicKey: []byte("bbb"), List: string(common.EligibleList)}
+	val10 := &state.ValidatorInfo{ShardId: 5, PublicKey: []byte("ccc"), List: string(common.EligibleList)}
+	val11 := &state.ValidatorInfo{ShardId: 5, PublicKey: []byte("ddd"), List: string(common.EligibleList)}
+	val00 := &state.ValidatorInfo{ShardId: 5, PublicKey: []byte("aaaaaa"), List: string(common.EligibleList)}
+	val01 := &state.ValidatorInfo{ShardId: 5, PublicKey: []byte("bbbbbb"), List: string(common.EligibleList)}
 	vals[1] = []*state.ValidatorInfo{val50, val51}
 	vals[0] = []*state.ValidatorInfo{val00, val01}
 	vals[2] = []*state.ValidatorInfo{val10, val11}
@@ -671,7 +672,7 @@ func TestStateExport_ExportNodesSetupJsonShouldExportKeysInAlphabeticalOrder(t *
 
 	var nodesSetup sharding.NodesSetup
 
-	nsBytes, err := ioutil.ReadFile(filepath.Join(testFolderName, core.NodesSetupJsonFileName))
+	nsBytes, err := ioutil.ReadFile(filepath.Join(testFolderName, common.NodesSetupJsonFileName))
 	require.NoError(t, err)
 
 	err = json.Unmarshal(nsBytes, &nodesSetup)

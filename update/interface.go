@@ -15,9 +15,9 @@ import (
 
 // TrieExporter interface defines methods needed to export the state from a trie
 type TrieExporter interface {
-	ExportValidatorTrie(trie data.Trie, ctx context.Context) error
-	ExportMainTrie(key string, trie data.Trie, ctx context.Context) ([][]byte, error)
-	ExportDataTrie(key string, trie data.Trie, ctx context.Context) error
+	ExportValidatorTrie(trie temporary.Trie) error
+	ExportMainTrie(key string, trie temporary.Trie) ([][]byte, error)
+	ExportDataTrie(key string, trie temporary.Trie) error
 	IsInterfaceNil() bool
 }
 

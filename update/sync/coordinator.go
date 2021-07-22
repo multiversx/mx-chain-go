@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 

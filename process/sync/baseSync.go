@@ -650,7 +650,7 @@ func (boot *baseBootstrap) syncUserAccountsState() error {
 	}
 
 	log.Warn("base sync: started syncUserAccountsState")
-	return boot.accountsDBSyncer.SyncAccounts(rootHash)
+	return boot.accountsDBSyncer.SyncAccounts(rootHash, boot.shardCoordinator.SelfId())
 }
 
 func (boot *baseBootstrap) cleanNoncesSyncedWithErrorsBehindFinal() {

@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/update"
+	"github.com/ElrondNetwork/elrond-go/update/genesis/trieExport"
 )
 
 // ConsensusComponentsFactoryArgs holds the arguments needed to create a consensus components factory
@@ -462,6 +463,8 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 }
 
 func (ccf *consensusComponentsFactory) createArgsBaseAccountsSyncer(trieStorageManager temporary.StorageManager) syncer.ArgsNewBaseAccountsSyncer {
+	inactiveTrieExporter, _ := trieExport.NewInactiveTrieExporter(ccf.coreComponents.InternalMarshalizer())
+
 	return syncer.ArgsNewBaseAccountsSyncer{
 		Hasher:                    ccf.coreComponents.Hasher(),
 		Marshalizer:               ccf.coreComponents.InternalMarshalizer(),
@@ -472,6 +475,7 @@ func (ccf *consensusComponentsFactory) createArgsBaseAccountsSyncer(trieStorageM
 		MaxTrieLevelInMemory:      ccf.config.StateTriesConfig.MaxStateTrieLevelInMemory,
 		MaxHardCapForMissingNodes: ccf.config.TrieSync.MaxHardCapForMissingNodes,
 		TrieSyncerVersion:         ccf.config.TrieSync.TrieSyncerVersion,
+		TrieExporter:              inactiveTrieExporter,
 	}
 }
 

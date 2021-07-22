@@ -1,7 +1,6 @@
 package trieExport
 
 import (
-	"context"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -12,13 +11,15 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/genesis"
 )
@@ -85,14 +86,14 @@ func NewTrieExport(
 }
 
 // ExportValidatorTrie exports the validator info from the validator trie
-func (te *trieExport) ExportValidatorTrie(trie data.Trie, ctx context.Context) error {
+func (te *trieExport) ExportValidatorTrie(trie temporary.Trie) error {
 	log.Debug("started validator trie export")
 	rootHash, err := trie.RootHash()
 	if err != nil {
 		return err
 	}
 
-	leavesChannel, err := trie.GetAllLeavesOnChannel(rootHash, ctx)
+	leavesChannel, err := trie.GetAllLeavesOnChannel(rootHash)
 	if err != nil {
 		return err
 	}
@@ -103,7 +104,7 @@ func (te *trieExport) ExportValidatorTrie(trie data.Trie, ctx context.Context) e
 		return err
 	}
 
-	nodesSetupFilePath := filepath.Join(te.exportFolder, core.NodesSetupJsonFileName)
+	nodesSetupFilePath := filepath.Join(te.exportFolder, common.NodesSetupJsonFileName)
 	err = te.exportNodesSetupJson(validatorData)
 	if err != nil {
 		return fmt.Errorf("%w, hardfork nodesSetup.json not exported, file path %s", err, nodesSetupFilePath)
@@ -114,8 +115,8 @@ func (te *trieExport) ExportValidatorTrie(trie data.Trie, ctx context.Context) e
 }
 
 // ExportMainTrie exports the main trie, and returns the root hashes for the data tries
-func (te *trieExport) ExportMainTrie(key string, trie data.Trie, ctx context.Context) ([][]byte, error) {
-	leavesChannel, accType, shId, identifier, err := te.getExportLeavesParameters(key, trie, ctx)
+func (te *trieExport) ExportMainTrie(key string, trie temporary.Trie) ([][]byte, error) {
+	leavesChannel, accType, shId, identifier, err := te.getExportLeavesParameters(key, trie)
 	if err != nil {
 		return nil, err
 	}
@@ -124,8 +125,8 @@ func (te *trieExport) ExportMainTrie(key string, trie data.Trie, ctx context.Con
 }
 
 // ExportDataTrie exports the given data trie
-func (te *trieExport) ExportDataTrie(key string, trie data.Trie, ctx context.Context) error {
-	leavesChannel, accType, shId, identifier, err := te.getExportLeavesParameters(key, trie, ctx)
+func (te *trieExport) ExportDataTrie(key string, trie temporary.Trie) error {
+	leavesChannel, accType, shId, identifier, err := te.getExportLeavesParameters(key, trie)
 	if err != nil {
 		return err
 	}
@@ -135,8 +136,7 @@ func (te *trieExport) ExportDataTrie(key string, trie data.Trie, ctx context.Con
 
 func (te *trieExport) getExportLeavesParameters(
 	key string,
-	trie data.Trie,
-	ctx context.Context,
+	trie temporary.Trie,
 ) (chan core.KeyValueHolder, genesis.Type, uint32, string, error) {
 	identifier := "trie@" + key
 
@@ -150,7 +150,7 @@ func (te *trieExport) getExportLeavesParameters(
 		return nil, 0, 0, "", err
 	}
 
-	leavesChannel, err := trie.GetAllLeavesOnChannel(rootHash, ctx)
+	leavesChannel, err := trie.GetAllLeavesOnChannel(rootHash)
 	if err != nil {
 		return nil, 0, 0, "", err
 	}
@@ -256,7 +256,7 @@ func (te *trieExport) exportAccountLeaves(
 }
 
 func (te *trieExport) exportNodesSetupJson(validators map[uint32][]*state.ValidatorInfo) error {
-	acceptedListsForExport := []core.PeerType{core.EligibleList, core.WaitingList, core.JailedList}
+	acceptedListsForExport := []common.PeerType{common.EligibleList, common.WaitingList, common.JailedList}
 	initialNodes := make([]*sharding.InitialNode, 0)
 
 	for _, validatorsInShard := range validators {
@@ -281,8 +281,6 @@ func (te *trieExport) exportNodesSetupJson(validators map[uint32][]*state.Valida
 		RoundDuration:               genesisNodesSetupHandler.GetRoundDuration(),
 		ConsensusGroupSize:          genesisNodesSetupHandler.GetShardConsensusGroupSize(),
 		MinNodesPerShard:            genesisNodesSetupHandler.MinNumberOfShardNodes(),
-		ChainID:                     genesisNodesSetupHandler.GetChainId(),
-		MinTransactionVersion:       genesisNodesSetupHandler.GetMinTransactionVersion(),
 		MetaChainConsensusGroupSize: genesisNodesSetupHandler.GetMetaConsensusGroupSize(),
 		MetaChainMinNodes:           genesisNodesSetupHandler.MinNumberOfMetaNodes(),
 		Hysteresis:                  genesisNodesSetupHandler.GetHysteresis(),
@@ -295,7 +293,7 @@ func (te *trieExport) exportNodesSetupJson(validators map[uint32][]*state.Valida
 		return err
 	}
 
-	return ioutil.WriteFile(filepath.Join(te.exportFolder, core.NodesSetupJsonFileName), nodesSetupBytes, 0664)
+	return ioutil.WriteFile(filepath.Join(te.exportFolder, common.NodesSetupJsonFileName), nodesSetupBytes, 0664)
 }
 
 // TODO: create a structure or use this function also in process/peer/process.go
@@ -358,20 +356,20 @@ func peerAccountToValidatorInfo(peerAccount state.PeerAccountHandler) *state.Val
 
 func getActualList(peerAccount state.PeerAccountHandler) string {
 	savedList := peerAccount.GetList()
-	if peerAccount.GetUnStakedEpoch() == core.DefaultUnstakedEpoch {
-		if savedList == string(core.InactiveList) {
-			return string(core.JailedList)
+	if peerAccount.GetUnStakedEpoch() == common.DefaultUnstakedEpoch {
+		if savedList == string(common.InactiveList) {
+			return string(common.JailedList)
 		}
 		return savedList
 	}
-	if savedList == string(core.InactiveList) {
+	if savedList == string(common.InactiveList) {
 		return savedList
 	}
 
-	return string(core.LeavingList)
+	return string(common.LeavingList)
 }
 
-func shouldExportValidator(validator *state.ValidatorInfo, allowedLists []core.PeerType) bool {
+func shouldExportValidator(validator *state.ValidatorInfo, allowedLists []common.PeerType) bool {
 	validatorList := validator.GetList()
 
 	for _, list := range allowedLists {

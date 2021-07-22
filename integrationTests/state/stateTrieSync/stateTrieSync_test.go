@@ -24,7 +24,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/trie/statistics"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/update/genesis/trieExport"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/stretchr/testify/assert"

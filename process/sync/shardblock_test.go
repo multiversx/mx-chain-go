@@ -2046,7 +2046,7 @@ func TestShardBootstrap_SyncBlockGetNodeDBErrorShouldSync(t *testing.T) {
 
 	syncCalled := false
 	args.AccountsDBSyncer = &mock.AccountsDBSyncerStub{
-		SyncAccountsCalled: func(rootHash []byte) error {
+		SyncAccountsCalled: func(rootHash []byte, shardId uint32) error {
 			syncCalled = true
 			return nil
 		}}

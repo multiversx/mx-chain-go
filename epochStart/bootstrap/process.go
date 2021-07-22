@@ -38,9 +38,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/update"
-	updateSync "github.com/ElrondNetwork/elrond-go/update/sync"
 	"github.com/ElrondNetwork/elrond-go/update/genesis/trieExport"
-	"github.com/ElrondNetwork/elrond-go/update/sync"
+	updateSync "github.com/ElrondNetwork/elrond-go/update/sync"
 )
 
 var log = logger.GetOrCreate("epochStart/bootstrap")
@@ -704,7 +703,7 @@ func (e *epochStartBootstrap) requestAndProcessForMeta() error {
 	var err error
 
 	log.Debug("start in epoch bootstrap: started syncValidatorAccountsState")
-	err = e.syncValidatorAccountsState(e.epochStartMeta.ValidatorStatsRootHash)
+	err = e.syncPeerAccountsState(e.epochStartMeta.ValidatorStatsRootHash)
 	if err != nil {
 		return err
 	}
@@ -853,7 +852,7 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 		return err
 	}
 
-	inactiveTrieExporter, err := trieExport.NewInactiveTrieExporter(e.marshalizer)
+	inactiveTrieExporter, err := trieExport.NewInactiveTrieExporter(e.coreComponentsHolder.InternalMarshalizer())
 	if err != nil {
 		return err
 	}
@@ -892,9 +891,6 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 }
 
 func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) error {
-	e.tryCloseExisting(factory.UserAccountTrie)
-	e.tryCloseExisting(factory.PeerAccountTrie)
-
 	trieFactoryArgs := factory.TrieFactoryArgs{
 		SnapshotDbCfg:            e.generalConfig.TrieSnapshotDB,
 		Marshalizer:              e.coreComponentsHolder.InternalMarshalizer(),
@@ -945,7 +941,7 @@ func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) er
 }
 
 func (e *epochStartBootstrap) syncPeerAccountsState(rootHash []byte) error {
-	inactiveTrieExporter, err := trieExport.NewInactiveTrieExporter(e.marshalizer)
+	inactiveTrieExporter, err := trieExport.NewInactiveTrieExporter(e.coreComponentsHolder.InternalMarshalizer())
 	if err != nil {
 		return err
 	}
@@ -954,7 +950,7 @@ func (e *epochStartBootstrap) syncPeerAccountsState(rootHash []byte) error {
 		ArgsNewBaseAccountsSyncer: syncer.ArgsNewBaseAccountsSyncer{
 			Hasher:                    e.coreComponentsHolder.Hasher(),
 			Marshalizer:               e.coreComponentsHolder.InternalMarshalizer(),
-			TrieStorageManager:        peerTrieStorageManager,
+			TrieStorageManager:        e.trieStorageManagers[factory.PeerAccountTrie],
 			RequestHandler:            e.requestHandler,
 			Timeout:                   common.TimeoutGettingTrieNodes,
 			Cacher:                    e.dataPool.TrieNodes(),

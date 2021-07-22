@@ -207,7 +207,7 @@ func (boot *MetaBootstrap) syncValidatorAccountsState() error {
 	}
 
 	log.Warn("base sync: started syncValidatorAccountsState")
-	return boot.validatorStatisticsDBSyncer.SyncAccounts(rootHash)
+	return boot.validatorStatisticsDBSyncer.SyncAccounts(rootHash, boot.shardCoordinator.SelfId())
 }
 
 // Close closes the synchronization loop

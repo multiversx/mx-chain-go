@@ -1,21 +1,13 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
+	"github.com/ElrondNetwork/elrond-go/update"
 )
 
 // AccountsDBSyncerStub -
 type AccountsDBSyncerStub struct {
-	GetSyncedTriesCalled func() map[string]temporary.Trie
-	SyncAccountsCalled   func(rootHash []byte, shardId uint32) error
-}
-
-// GetSyncedTries -
-func (a *AccountsDBSyncerStub) GetSyncedTries() map[string]temporary.Trie {
-	if a.GetSyncedTriesCalled != nil {
-		return a.GetSyncedTriesCalled()
-	}
-	return nil
+	GetTrieExporterCalled func() update.TrieExporter
+	SyncAccountsCalled    func(rootHash []byte, shardId uint32) error
 }
 
 // SyncAccounts -

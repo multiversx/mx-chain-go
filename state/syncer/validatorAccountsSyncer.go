@@ -70,5 +70,5 @@ func (v *validatorAccountsSyncer) SyncAccounts(rootHash []byte, _ uint32) error 
 		return err
 	}
 
-	return v.trieExporter.ExportValidatorTrie(mainTrie, ctx)
+	return v.trieExporter.ExportValidatorTrie(mainTrie)
 }

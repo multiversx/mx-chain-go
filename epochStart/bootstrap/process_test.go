@@ -446,7 +446,7 @@ func TestSyncValidatorAccountsState_NilRequestHandlerErr(t *testing.T) {
 	}
 	_ = epochStartProvider.createTriesComponentsForShardId(args.GenesisShardCoordinator.SelfId())
 	rootHash := []byte("rootHash")
-	err := epochStartProvider.syncValidatorAccountsState(rootHash)
+	err := epochStartProvider.syncPeerAccountsState(rootHash)
 	assert.Equal(t, state.ErrNilRequestHandler, err)
 }
 

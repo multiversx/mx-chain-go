@@ -1601,13 +1601,13 @@ func TestMetaBootstrap_SyncBlockErrGetNodeDBShouldSyncAccounts(t *testing.T) {
 	)
 	accountsSyncCalled := false
 	args.AccountsDBSyncer = &mock.AccountsDBSyncerStub{
-		SyncAccountsCalled: func(rootHash []byte) error {
+		SyncAccountsCalled: func(rootHash []byte, shardId uint32) error {
 			accountsSyncCalled = true
 			return nil
 		}}
 	validatorSyncCalled := false
 	args.ValidatorStatisticsDBSyncer = &mock.AccountsDBSyncerStub{
-		SyncAccountsCalled: func(rootHash []byte) error {
+		SyncAccountsCalled: func(rootHash []byte, shardId uint32) error {
 			validatorSyncCalled = true
 			return nil
 		}}

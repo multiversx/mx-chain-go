@@ -364,7 +364,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	arg := storing.ArgHardforkStorer{
 		KeysStore:   keysStorer,
 		KeyValue:    keysVals,
-		Marshalizer: e.marshalizer,
+		Marshalizer: e.CoreComponents.InternalMarshalizer(),
 	}
 	hs, err := storing.NewHardforkStorer(arg)
 	if err != nil {
@@ -374,11 +374,11 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	trieExporter, err := trieExport.NewTrieExport(
 		e.exportFolder,
 		e.shardCoordinator,
-		e.marshalizer,
+		e.CoreComponents.InternalMarshalizer(),
 		hs,
-		e.validatorPubKeyConverter,
-		e.addressPubKeyConverter,
-		e.genesisNodesSetupHandler,
+		e.CoreComponents.ValidatorPubKeyConverter(),
+		e.CoreComponents.AddressPubKeyConverter(),
+		e.CoreComponents.GenesisNodesSetup(),
 	)
 	if err != nil {
 		return nil, err

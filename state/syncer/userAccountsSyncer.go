@@ -101,7 +101,7 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte, shardId uint32) error
 	log.Debug("main trie synced, starting to sync data tries", "num data tries", len(u.dataTries))
 
 	accAdapterIdentifier := genesis.CreateTrieIdentifier(shardId, genesis.UserAccount)
-	rootHashes, err := u.trieExporter.ExportMainTrie(accAdapterIdentifier, mainTrie, ctx)
+	rootHashes, err := u.trieExporter.ExportMainTrie(accAdapterIdentifier, mainTrie)
 	if err != nil {
 		return err
 	}
@@ -215,7 +215,7 @@ func (u *userAccountsSyncer) syncDataTrie(
 		return err
 	}
 
-	err = u.trieExporter.ExportDataTrie(identifier, exportDataTrie, ctx)
+	err = u.trieExporter.ExportDataTrie(identifier, exportDataTrie)
 	if err != nil {
 		return err
 	}

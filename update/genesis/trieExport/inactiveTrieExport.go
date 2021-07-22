@@ -1,12 +1,11 @@
 package trieExport
 
 import (
-	"context"
-
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
 )
 
 type inactiveTrieExport struct {
@@ -23,18 +22,18 @@ func NewInactiveTrieExporter(marshalizer marshal.Marshalizer) (*inactiveTrieExpo
 }
 
 // ExportValidatorTrie does nothing
-func (ite *inactiveTrieExport) ExportValidatorTrie(_ data.Trie, _ context.Context) error {
+func (ite *inactiveTrieExport) ExportValidatorTrie(_ temporary.Trie) error {
 	return nil
 }
 
 // ExportMainTrie exports nothing, but returns the root hashes for the data tries
-func (ite *inactiveTrieExport) ExportMainTrie(_ string, trie data.Trie, ctx context.Context) ([][]byte, error) {
+func (ite *inactiveTrieExport) ExportMainTrie(_ string, trie temporary.Trie) ([][]byte, error) {
 	mainRootHash, err := trie.RootHash()
 	if err != nil {
 		return nil, err
 	}
 
-	leavesChannel, err := trie.GetAllLeavesOnChannel(mainRootHash, ctx)
+	leavesChannel, err := trie.GetAllLeavesOnChannel(mainRootHash)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +56,7 @@ func (ite *inactiveTrieExport) ExportMainTrie(_ string, trie data.Trie, ctx cont
 }
 
 // ExportDataTrie does nothing
-func (ite *inactiveTrieExport) ExportDataTrie(_ string, _ data.Trie, _ context.Context) error {
+func (ite *inactiveTrieExport) ExportDataTrie(_ string, _ temporary.Trie) error {
 	return nil
 }
 

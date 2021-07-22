@@ -1,16 +1,16 @@
 package trieExport
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/keyValStorage"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/keyValStorage"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -34,7 +34,7 @@ func TestInactiveTrieExport_ExportValidatorTrieDoesNothing(t *testing.T) {
 	t.Parallel()
 
 	ite, _ := NewInactiveTrieExporter(&mock.MarshalizerMock{})
-	err := ite.ExportValidatorTrie(nil, nil)
+	err := ite.ExportValidatorTrie(nil)
 	assert.Nil(t, err)
 }
 
@@ -42,7 +42,7 @@ func TestInactiveTrieExport_ExportDataTrieDoesNothing(t *testing.T) {
 	t.Parallel()
 
 	ite, _ := NewInactiveTrieExporter(&mock.MarshalizerMock{})
-	err := ite.ExportDataTrie("", nil, nil)
+	err := ite.ExportDataTrie("", nil)
 	assert.Nil(t, err)
 }
 
@@ -52,13 +52,13 @@ func TestInactiveTrieExport_ExportMainTrieInvalidTrieRootHashShouldErr(t *testin
 	ite, _ := NewInactiveTrieExporter(&mock.MarshalizerMock{})
 
 	expectedErr := fmt.Errorf("rootHash err")
-	tr := &mock.TrieStub{
+	tr := &testscommon.TrieStub{
 		RootCalled: func() ([]byte, error) {
 			return nil, expectedErr
 		},
 	}
 
-	rootHashes, err := ite.ExportMainTrie("", tr, context.Background())
+	rootHashes, err := ite.ExportMainTrie("", tr)
 	assert.Equal(t, expectedErr, err)
 	assert.Nil(t, rootHashes)
 }
@@ -69,7 +69,7 @@ func TestInactiveTrieExport_ExportMainTrieGetAllLeavesOnChannelErrShouldErr(t *t
 	ite, _ := NewInactiveTrieExporter(&mock.MarshalizerMock{})
 
 	expectedErr := fmt.Errorf("getAllLeavesOnChannel err")
-	tr := &mock.TrieStub{
+	tr := &testscommon.TrieStub{
 		RootCalled: func() ([]byte, error) {
 			return nil, nil
 		},
@@ -78,7 +78,7 @@ func TestInactiveTrieExport_ExportMainTrieGetAllLeavesOnChannelErrShouldErr(t *t
 		},
 	}
 
-	rootHashes, err := ite.ExportMainTrie("", tr, context.Background())
+	rootHashes, err := ite.ExportMainTrie("", tr)
 	assert.Equal(t, expectedErr, err)
 	assert.Nil(t, rootHashes)
 }
@@ -99,7 +99,7 @@ func TestInactiveTrieExport_ExportMainTrieShouldReturnDataTrieRootHashes(t *test
 	serializedAcc2, err := marshalizer.Marshal(account2)
 	assert.Nil(t, err)
 
-	tr := &mock.TrieStub{
+	tr := &testscommon.TrieStub{
 		RootCalled: func() ([]byte, error) {
 			return nil, nil
 		},
@@ -113,7 +113,7 @@ func TestInactiveTrieExport_ExportMainTrieShouldReturnDataTrieRootHashes(t *test
 		},
 	}
 
-	rootHashes, err := trieExporter.ExportMainTrie("", tr, context.Background())
+	rootHashes, err := trieExporter.ExportMainTrie("", tr)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(rootHashes))
 	assert.Equal(t, expectedRootHash, rootHashes[0])
