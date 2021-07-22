@@ -39,6 +39,7 @@ func (ba *baseAccount) DataTrieTracker() DataTrieTracker {
 	return ba.dataTrieTracker
 }
 
+// RetrieveValueFromDataTrieTracker  fetches the value from a particular key searching the account data store in the data trie tracker
 func (ba *baseAccount) RetrieveValueFromDataTrieTracker(key []byte) ([]byte, error) {
 	if check.IfNil(ba.dataTrieTracker) {
 		return nil, ErrNilTrackableDataTrie
