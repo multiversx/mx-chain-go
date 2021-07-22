@@ -1,5 +1,5 @@
 CURRENT_DIRECTORY := $(shell pwd)
-TESTS_TO_RUN := $(shell go list ./... | grep -v /integrationTests/ | grep -v /testscommon/ | grep -v mock | grep -v disabled)
+TESTS_TO_RUN := $(shell go list ./... | grep -v /integrationTests/ | grep -v /testscommon/ | grep -v mock | grep -v disabled | grep -v defaults)
 
 build:
 	go build ./...
@@ -76,19 +76,19 @@ benchmark-arwen:
 
 #TODO: this is no longer required should be removed in a subsequent PR
 arwen:
-ifndef ARWEN_PATH
-	$(error ARWEN_PATH is undefined)
-endif
-	# WARNING: the first Arwen version listed in go.mod is built; all others are ignored.
-
-	# When referencing a non-release version, add the commit hash, like this:
-	# go get github.com/ElrondNetwork/arwen-wasm-vm/cmd/arwen@...
-
-	# When referencing a released version, use this instead:
-	go get github.com/ElrondNetwork/arwen-wasm-vm/cmd/arwen@$(shell cat go.mod | grep arwen-wasm-vm | sed 's/.* //' | head -n 1)
-
-	go build -o ${ARWEN_PATH} github.com/ElrondNetwork/arwen-wasm-vm/cmd/arwen
-	stat ${ARWEN_PATH}
+	@echo "Building the Arwen binary has been deprecated."
 
 cli-docs:
 	cd ./cmd && bash ./CLI.md.sh
+
+lint-install:
+ifeq (,$(wildcard test -f bin/golangci-lint))
+	@echo "Installing golint"
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s
+endif
+
+run-lint:
+	@echo "Running golint"
+	bin/golangci-lint run --max-issues-per-linter 0 --max-same-issues 0 --timeout=2m
+
+lint: lint-install run-lint

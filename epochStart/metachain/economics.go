@@ -7,14 +7,14 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/display"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -71,7 +71,7 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, 
 		return nil, epochStart.ErrNilRewardsHandler
 	}
 	if check.IfNil(args.RoundTime) {
-		return nil, process.ErrNilRounder
+		return nil, process.ErrNilRoundHandler
 	}
 	if check.IfNil(args.EconomicsDataNotified) {
 		return nil, epochStart.ErrNilEconomicsDataProvider
@@ -93,6 +93,7 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, 
 		economicsDataNotified: args.EconomicsDataNotified,
 		stakingV2EnableEpoch:  args.StakingV2EnableEpoch,
 	}
+	log.Debug("economics: enable epoch for staking v2", "epoch", e.stakingV2EnableEpoch)
 
 	return e, nil
 }

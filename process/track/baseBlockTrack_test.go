@@ -6,10 +6,10 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	processBlock "github.com/ElrondNetwork/elrond-go/process/block"
@@ -102,15 +102,15 @@ func CreateShardTrackerMockArguments() track.ArgShardTracker {
 		Marshalizer: &mock.MarshalizerMock{},
 	}
 	headerValidator, _ := processBlock.NewHeaderValidator(argsHeaderValidator)
-	whitelistHandler := &mock.WhiteListHandlerStub{}
+	whitelistHandler := &testscommon.WhiteListHandlerStub{}
 
 	arguments := track.ArgShardTracker{
 		ArgBaseTracker: track.ArgBaseTracker{
 			Hasher:           &mock.HasherMock{},
 			HeaderValidator:  headerValidator,
 			Marshalizer:      &mock.MarshalizerMock{},
-			RequestHandler:   &mock.RequestHandlerStub{},
-			Rounder:          &mock.RounderMock{},
+			RequestHandler:   &testscommon.RequestHandlerStub{},
+			RoundHandler:     &mock.RoundHandlerMock{},
 			ShardCoordinator: shardCoordinatorMock,
 			Store:            initStore(),
 			StartHeaders:     genesisBlocks,
@@ -131,15 +131,15 @@ func CreateMetaTrackerMockArguments() track.ArgMetaTracker {
 		Marshalizer: &mock.MarshalizerMock{},
 	}
 	headerValidator, _ := processBlock.NewHeaderValidator(argsHeaderValidator)
-	whitelistHandler := &mock.WhiteListHandlerStub{}
+	whitelistHandler := &testscommon.WhiteListHandlerStub{}
 
 	arguments := track.ArgMetaTracker{
 		ArgBaseTracker: track.ArgBaseTracker{
 			Hasher:           &mock.HasherMock{},
 			HeaderValidator:  headerValidator,
 			Marshalizer:      &mock.MarshalizerMock{},
-			RequestHandler:   &mock.RequestHandlerStub{},
-			Rounder:          &mock.RounderMock{},
+			RequestHandler:   &testscommon.RequestHandlerStub{},
+			RoundHandler:     &mock.RoundHandlerMock{},
 			ShardCoordinator: shardCoordinatorMock,
 			Store:            initStore(),
 			StartHeaders:     genesisBlocks,
@@ -164,8 +164,8 @@ func CreateBaseTrackerMockArguments() track.ArgBaseTracker {
 		Hasher:           &mock.HasherMock{},
 		HeaderValidator:  headerValidator,
 		Marshalizer:      &mock.MarshalizerMock{},
-		RequestHandler:   &mock.RequestHandlerStub{},
-		Rounder:          &mock.RounderMock{},
+		RequestHandler:   &testscommon.RequestHandlerStub{},
+		RoundHandler:     &mock.RoundHandlerMock{},
 		ShardCoordinator: shardCoordinatorMock,
 		Store:            initStore(),
 		StartHeaders:     genesisBlocks,
@@ -1875,7 +1875,7 @@ func TestRegisterSelfNotarizedFromCrossHeadersHandler_ShouldWork(t *testing.T) {
 		PrevHash:     startHeaderHash,
 		PrevRandSeed: startHeader.GetRandSeed(),
 		ShardInfo: []block.ShardData{
-			block.ShardData{
+			{
 				Nonce:      1,
 				HeaderHash: []byte("hash"),
 			},
@@ -2069,15 +2069,15 @@ func TestCheckTrackerNilParameters_ShouldErrNilRequestHandler(t *testing.T) {
 	assert.Equal(t, process.ErrNilRequestHandler, err)
 }
 
-func TestCheckTrackerNilParameters_ShouldErrNilRounder(t *testing.T) {
+func TestCheckTrackerNilParameters_ShouldErrNilRoundHandler(t *testing.T) {
 	t.Parallel()
 
 	baseArguments := CreateBaseTrackerMockArguments()
 
-	baseArguments.Rounder = nil
+	baseArguments.RoundHandler = nil
 	err := track.CheckTrackerNilParameters(baseArguments)
 
-	assert.Equal(t, process.ErrNilRounder, err)
+	assert.Equal(t, process.ErrNilRoundHandler, err)
 }
 
 func TestCheckTrackerNilParameters_ShouldErrNilShardCoordinator(t *testing.T) {
@@ -2178,24 +2178,24 @@ func TestComputeLongestChain_ShouldWorkWithLongestChain(t *testing.T) {
 	assert.Equal(t, longestChain+chains-1, uint64(len(headers)))
 }
 
-//------- CheckBlockAgainstRounder
+//------- CheckBlockAgainstRoundHandler
 
-func TestBaseBlockTrack_CheckBlockAgainstRounderNilHeaderShouldErr(t *testing.T) {
+func TestBaseBlockTrack_CheckBlockAgainstRoundHandlerNilHeaderShouldErr(t *testing.T) {
 	t.Parallel()
 
 	bbt := track.NewBaseBlockTrack()
-	err := bbt.CheckBlockAgainstRounder(nil)
+	err := bbt.CheckBlockAgainstRoundHandler(nil)
 
 	assert.Equal(t, process.ErrNilHeaderHandler, err)
 }
 
-func TestBaseBlockTrack_CheckBlockAgainstRounderHigherRoundShouldErr(t *testing.T) {
+func TestBaseBlockTrack_CheckBlockAgainstRoundHandlerHigherRoundShouldErr(t *testing.T) {
 	t.Parallel()
 
 	bbt := track.NewBaseBlockTrack()
 	currentRound := int64(50)
-	bbt.SetRounder(
-		&mock.RounderMock{
+	bbt.SetRoundHandler(
+		&mock.RoundHandlerMock{
 			RoundIndex: currentRound,
 		},
 	)
@@ -2203,18 +2203,18 @@ func TestBaseBlockTrack_CheckBlockAgainstRounderHigherRoundShouldErr(t *testing.
 	hdr := &block.Header{
 		Round: uint64(currentRound + 2),
 	}
-	err := bbt.CheckBlockAgainstRounder(hdr)
+	err := bbt.CheckBlockAgainstRoundHandler(hdr)
 
 	assert.True(t, errors.Is(err, process.ErrHigherRoundInBlock))
 }
 
-func TestBaseBlockTrack_CheckBlockAgainstRounderShouldWork(t *testing.T) {
+func TestBaseBlockTrack_CheckBlockAgainstRoundHandlerShouldWork(t *testing.T) {
 	t.Parallel()
 
 	bbt := track.NewBaseBlockTrack()
 	currentRound := int64(50)
-	bbt.SetRounder(
-		&mock.RounderMock{
+	bbt.SetRoundHandler(
+		&mock.RoundHandlerMock{
 			RoundIndex: currentRound,
 		},
 	)
@@ -2222,7 +2222,7 @@ func TestBaseBlockTrack_CheckBlockAgainstRounderShouldWork(t *testing.T) {
 	hdr := &block.Header{
 		Round: uint64(currentRound + 1),
 	}
-	err := bbt.CheckBlockAgainstRounder(hdr)
+	err := bbt.CheckBlockAgainstRoundHandler(hdr)
 
 	assert.Nil(t, err)
 }
@@ -2409,7 +2409,7 @@ func TestBaseBlockTrack_DoWhitelistWithMetaBlockIfNeededMetaShouldReturn(t *test
 	mutCache := sync.Mutex{}
 
 	metaArguments := CreateMetaTrackerMockArguments()
-	metaArguments.WhitelistHandler = &mock.WhiteListHandlerStub{
+	metaArguments.WhitelistHandler = &testscommon.WhiteListHandlerStub{
 		AddCalled: func(keys [][]byte) {
 			mutCache.Lock()
 			for _, key := range keys {
@@ -2440,7 +2440,7 @@ func TestBaseBlockTrack_DoWhitelistWithShardHeaderIfNeededShardShouldReturn(t *t
 	mutCache := sync.Mutex{}
 
 	shardArguments := CreateShardTrackerMockArguments()
-	shardArguments.WhitelistHandler = &mock.WhiteListHandlerStub{
+	shardArguments.WhitelistHandler = &testscommon.WhiteListHandlerStub{
 		AddCalled: func(keys [][]byte) {
 			mutCache.Lock()
 			for _, key := range keys {
@@ -2477,7 +2477,7 @@ func TestBaseBlockTrack_DoWhitelistWithMetaBlockIfNeededNilMetaShouldReturnAndNo
 	}()
 
 	shardArguments := CreateShardTrackerMockArguments()
-	shardArguments.WhitelistHandler = &mock.WhiteListHandlerStub{
+	shardArguments.WhitelistHandler = &testscommon.WhiteListHandlerStub{
 		AddCalled: func(keys [][]byte) {
 			mutCache.Lock()
 			for _, key := range keys {
@@ -2504,7 +2504,7 @@ func TestBaseBlockTrack_DoWhitelistWithShardHeaderIfNeededNilShardShouldReturnAn
 	}()
 
 	metaArguments := CreateMetaTrackerMockArguments()
-	metaArguments.WhitelistHandler = &mock.WhiteListHandlerStub{
+	metaArguments.WhitelistHandler = &testscommon.WhiteListHandlerStub{
 		AddCalled: func(keys [][]byte) {
 			mutCache.Lock()
 			for _, key := range keys {
@@ -2525,7 +2525,7 @@ func TestBaseBlockTrack_DoWhitelistWithMetaBlockIfNeededIsHeaderOutOfRangeShould
 	cache := make(map[string]struct{})
 	mutCache := sync.Mutex{}
 	shardArguments := CreateShardTrackerMockArguments()
-	shardArguments.WhitelistHandler = &mock.WhiteListHandlerStub{
+	shardArguments.WhitelistHandler = &testscommon.WhiteListHandlerStub{
 		AddCalled: func(keys [][]byte) {
 			mutCache.Lock()
 			for _, key := range keys {
@@ -2556,7 +2556,7 @@ func TestBaseBlockTrack_DoWhitelistWithShardHeaderIfNeededIsHeaderOutOfRangeShou
 	cache := make(map[string]struct{})
 	mutCache := sync.Mutex{}
 	metaArguments := CreateMetaTrackerMockArguments()
-	metaArguments.WhitelistHandler = &mock.WhiteListHandlerStub{
+	metaArguments.WhitelistHandler = &testscommon.WhiteListHandlerStub{
 		AddCalled: func(keys [][]byte) {
 			mutCache.Lock()
 			for _, key := range keys {
@@ -2587,7 +2587,7 @@ func TestBaseBlockTrack_DoWhitelistWithMetaBlockIfNeededShardShouldWhitelistCros
 	cache := make(map[string]struct{})
 	mutCache := sync.Mutex{}
 	shardArguments := CreateShardTrackerMockArguments()
-	shardArguments.WhitelistHandler = &mock.WhiteListHandlerStub{
+	shardArguments.WhitelistHandler = &testscommon.WhiteListHandlerStub{
 		AddCalled: func(keys [][]byte) {
 			mutCache.Lock()
 			for _, key := range keys {
@@ -2618,7 +2618,7 @@ func TestBaseBlockTrack_DoWhitelistWithShardHeaderIfNeededMetaShouldWhitelistCro
 	cache := make(map[string]struct{})
 	mutCache := sync.Mutex{}
 	metaArguments := CreateMetaTrackerMockArguments()
-	metaArguments.WhitelistHandler = &mock.WhiteListHandlerStub{
+	metaArguments.WhitelistHandler = &testscommon.WhiteListHandlerStub{
 		AddCalled: func(keys [][]byte) {
 			mutCache.Lock()
 			for _, key := range keys {

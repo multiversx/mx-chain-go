@@ -11,6 +11,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/api/address"
 	apiErrors "github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
@@ -18,9 +20,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/data/api"
-	"github.com/ElrondNetwork/elrond-go/data/esdt"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -32,12 +31,13 @@ func init() {
 
 type AccountResponse struct {
 	Account struct {
-		Address  string `json:"address"`
-		Nonce    uint64 `json:"nonce"`
-		Balance  string `json:"balance"`
-		Code     string `json:"code"`
-		CodeHash []byte `json:"codeHash"`
-		RootHash []byte `json:"rootHash"`
+		Address         string `json:"address"`
+		Nonce           uint64 `json:"nonce"`
+		Balance         string `json:"balance"`
+		Code            string `json:"code"`
+		CodeHash        []byte `json:"codeHash"`
+		RootHash        []byte `json:"rootHash"`
+		DeveloperReward string `json:"developerReward"`
 	} `json:"account"`
 }
 
@@ -450,14 +450,11 @@ func TestGetAccount_ReturnsSuccessfully(t *testing.T) {
 	t.Parallel()
 	facade := mock.Facade{
 		GetAccountHandler: func(address string) (api.AccountResponse, error) {
-			acc, _ := state.NewUserAccount([]byte("1234"))
-			_ = acc.AddToBalance(big.NewInt(100))
-			acc.IncreaseNonce(1)
-
 			return api.AccountResponse{
-				Address: "1234",
-				Balance: big.NewInt(100).String(),
-				Nonce:   1,
+				Address:         "1234",
+				Balance:         big.NewInt(100).String(),
+				Nonce:           1,
+				DeveloperReward: big.NewInt(120).String(),
 			}, nil
 		},
 	}
@@ -477,9 +474,10 @@ func TestGetAccount_ReturnsSuccessfully(t *testing.T) {
 	_ = json.Unmarshal(mapResponseBytes, &accountResponse)
 
 	assert.Equal(t, http.StatusOK, resp.Code)
-	assert.Equal(t, accountResponse.Account.Address, reqAddress)
-	assert.Equal(t, accountResponse.Account.Nonce, uint64(1))
-	assert.Equal(t, accountResponse.Account.Balance, "100")
+	assert.Equal(t, reqAddress, accountResponse.Account.Address)
+	assert.Equal(t, uint64(1), accountResponse.Account.Nonce)
+	assert.Equal(t, "100", accountResponse.Account.Balance)
+	assert.Equal(t, "120", accountResponse.Account.DeveloperReward)
 	assert.Empty(t, response.Error)
 }
 

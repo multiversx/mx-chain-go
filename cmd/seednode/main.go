@@ -9,17 +9,19 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/display"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	factoryMarshalizer "github.com/ElrondNetwork/elrond-go-core/marshal/factory"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/seednode/api"
+	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/logging"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/logging"
-	"github.com/ElrondNetwork/elrond-go/display"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/facade"
-	"github.com/ElrondNetwork/elrond-go/marshal"
-	factoryMarshalizer "github.com/ElrondNetwork/elrond-go/marshal/factory"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/urfave/cli"
@@ -167,7 +169,7 @@ func startNode(ctx *cli.Context) error {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
-	p2pConfig, err := core.LoadP2PConfig(p2pConfigurationFile)
+	p2pConfig, err := common.LoadP2PConfig(p2pConfigurationFile)
 	if err != nil {
 		return err
 	}
@@ -233,10 +235,11 @@ func loadMainConfig(filepath string) (*config.Config, error) {
 
 func createNode(p2pConfig config.P2PConfig, marshalizer marshal.Marshalizer) (p2p.Messenger, error) {
 	arg := libp2p.ArgsNetworkMessenger{
-		Marshalizer:   marshalizer,
-		ListenAddress: libp2p.ListenAddrWithIp4AndTcp,
-		P2pConfig:     p2pConfig,
-		SyncTimer:     &libp2p.LocalSyncTimer{},
+		Marshalizer:          marshalizer,
+		ListenAddress:        libp2p.ListenAddrWithIp4AndTcp,
+		P2pConfig:            p2pConfig,
+		SyncTimer:            &libp2p.LocalSyncTimer{},
+		PreferredPeersHolder: disabled.NewPreferredPeersHolder(),
 	}
 
 	return libp2p.NewNetworkMessenger(arg)

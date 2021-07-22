@@ -7,12 +7,13 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
 	"github.com/gin-gonic/gin"
 )
 
@@ -38,7 +39,7 @@ type FacadeHandler interface {
 	ValidateTransaction(tx *transaction.Transaction) error
 	ValidateTransactionForSimulation(tx *transaction.Transaction, checkSignature bool) error
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
-	SimulateTransactionExecution(tx *transaction.Transaction) (*transaction.SimulationResults, error)
+	SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResults, error)
 	GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	EncodeAddressPubkey(pk []byte) (string, error)
@@ -78,7 +79,7 @@ type SendTxRequest struct {
 	Options          uint32 `json:"options,omitempty"`
 }
 
-//TxResponse represents the structure on which the response will be validated against
+// TxResponse represents the structure on which the response will be validated against
 type TxResponse struct {
 	SendTxRequest
 	ShardID     uint32 `json:"shardId"`

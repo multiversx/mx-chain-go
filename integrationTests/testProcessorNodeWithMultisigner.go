@@ -5,24 +5,29 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/crypto/peerSignatureHandler"
+	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	mclmultisig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/multisig"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/multisig"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
@@ -59,12 +64,14 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 		NodesSetup:              nodeSetup,
 		RatingsData:             ratingsData,
 		MinTransactionVersion:   MinTransactionVersion,
-		HistoryRepository:       &testscommon.HistoryRepositoryStub{},
+		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
+		ArwenChangeLocker:       &sync.RWMutex{},
+		TransactionLogProcessor: transactionLog.NewPrintTxLogProcessor(),
 	}
 
 	tpn.NodeKeys = cp.Keys[nodeShardId][keyIndex]
-	blsHasher := &blake2b.Blake2b{HashSize: hashing.BlsHashSize}
+	blsHasher, _ := blake2b.NewBlake2bWithSize(hashing.BlsHashSize)
 	llsig := &mclmultisig.BlsMultiSigner{Hasher: blsHasher}
 
 	pubKeysMap := PubKeysMapFromKeysMap(cp.Keys)
@@ -241,12 +248,14 @@ func CreateNodeWithBLSAndTxKeys(
 		NodesSetup:              nodesSetup,
 		RatingsData:             ratingsData,
 		MinTransactionVersion:   MinTransactionVersion,
-		HistoryRepository:       &testscommon.HistoryRepositoryStub{},
+		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
+		ArwenChangeLocker:       &sync.RWMutex{},
+		TransactionLogProcessor: transactionLog.NewPrintTxLogProcessor(),
 	}
 
 	tpn.NodeKeys = cp.Keys[shardId][keyIndex]
-	blsHasher := &blake2b.Blake2b{HashSize: hashing.BlsHashSize}
+	blsHasher, _ := blake2b.NewBlake2bWithSize(hashing.BlsHashSize)
 	llsig := &mclmultisig.BlsMultiSigner{Hasher: blsHasher}
 
 	pubKeysMap := PubKeysMapFromKeysMap(cp.Keys)
@@ -468,12 +477,14 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 	nodesMap := make(map[uint32][]*TestProcessorNode)
 
 	shufflerArgs := &sharding.NodesShufflerArgs{
-		NodesShard:           uint32(nodesPerShard),
-		NodesMeta:            uint32(nbMetaNodes),
-		Hysteresis:           hysteresis,
-		Adaptivity:           adaptivity,
-		ShuffleBetweenShards: shuffleBetweenShards,
-		MaxNodesEnableConfig: nil,
+		NodesShard:                     uint32(nodesPerShard),
+		NodesMeta:                      uint32(nbMetaNodes),
+		Hysteresis:                     hysteresis,
+		Adaptivity:                     adaptivity,
+		ShuffleBetweenShards:           shuffleBetweenShards,
+		MaxNodesEnableConfig:           nil,
+		WaitingListFixEnableEpoch:      0,
+		BalanceWaitingListsEnableEpoch: 0,
 	}
 	nodeShuffler, _ := sharding.NewHashValidatorsShuffler(shufflerArgs)
 	epochStartSubscriber := notifier.NewEpochStartSubscriptionHandler()
@@ -502,6 +513,9 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 			ConsensusGroupCache:        consensusCache,
 			ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
 			WaitingListFixEnabledEpoch: 0,
+			ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
+			NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
+			IsFullArchive:              false,
 		}
 		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
@@ -598,6 +612,9 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 			ConsensusGroupCache:        cache,
 			ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
 			WaitingListFixEnabledEpoch: 0,
+			ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
+			NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
+			IsFullArchive:              false,
 		}
 		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 

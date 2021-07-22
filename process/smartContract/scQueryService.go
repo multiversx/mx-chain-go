@@ -6,12 +6,13 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/parsers"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go/process"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 )
 
 var _ process.SCQueryService = (*SCQueryService)(nil)
@@ -83,7 +84,7 @@ func (service *SCQueryService) ExecuteQuery(query *process.SCQuery) (*vmcommon.V
 }
 
 func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice uint64) (*vmcommon.VMOutput, error) {
-	log.Debug("executeScCall", "function", query.FuncName, "numQueries", service.numQueries)
+	log.Trace("executeScCall", "function", query.FuncName, "numQueries", service.numQueries)
 	service.numQueries++
 
 	service.blockChainHook.SetCurrentHeader(service.blockChain.GetCurrentBlockHeader())
@@ -133,7 +134,7 @@ func (service *SCQueryService) createVMCallInput(query *process.SCQuery, gasPric
 		GasPrice:    gasPrice,
 		GasProvided: service.gasForQuery,
 		Arguments:   query.Arguments,
-		CallType:    vmcommon.DirectCall,
+		CallType:    vmData.DirectCall,
 	}
 
 	vmContractCallInput := &vmcommon.ContractCallInput{
@@ -184,6 +185,11 @@ func (service *SCQueryService) ComputeScCallGasLimit(tx *transaction.Transaction
 	gasLimit := moveBalanceGasLimit + gasConsumedExecution
 
 	return gasLimit, nil
+}
+
+// Close closes all underlying components
+func (service *SCQueryService) Close() error {
+	return service.vmContainer.Close()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

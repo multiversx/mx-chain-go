@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"crypto/ed25519"
 
-	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 )
 

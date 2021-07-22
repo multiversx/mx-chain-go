@@ -4,7 +4,7 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 )
 
@@ -110,6 +110,11 @@ func (bpm *BlockProcessorMock) DecodeBlockHeader(dta []byte) data.HeaderHandler 
 // AddLastNotarizedHdr -
 func (bpm *BlockProcessorMock) AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler) {
 	bpm.AddLastNotarizedHdrCalled(shardId, processedHdr)
+}
+
+// Close -
+func (bpm *BlockProcessorMock) Close() error {
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

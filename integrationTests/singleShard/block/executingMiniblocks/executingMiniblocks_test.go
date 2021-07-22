@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	testBlock "github.com/ElrondNetwork/elrond-go/integrationTests/singleShard/block"
@@ -45,10 +45,6 @@ func TestShardShouldNotProposeAndExecuteTwoBlocksInSameRound(t *testing.T) {
 			_ = n.Messenger.Close()
 		}
 	}()
-
-	for _, n := range nodes {
-		_ = n.Messenger.Bootstrap()
-	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
 	time.Sleep(integrationTests.P2pBootstrapDelay)

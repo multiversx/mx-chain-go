@@ -1,7 +1,7 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
@@ -14,6 +14,7 @@ type HashSliceResolverStub struct {
 	SetNumPeersToQueryCalled       func(intra int, cross int)
 	NumPeersToQueryCalled          func() (int, int)
 	SetResolverDebugHandlerCalled  func(handler dataRetriever.ResolverDebugHandler) error
+	CloseCalled                    func() error
 }
 
 // SetNumPeersToQuery -
@@ -63,6 +64,15 @@ func (hsrs *HashSliceResolverStub) RequestDataFromHashArray(hashes [][]byte, epo
 func (hsrs *HashSliceResolverStub) SetResolverDebugHandler(handler dataRetriever.ResolverDebugHandler) error {
 	if hsrs.SetResolverDebugHandlerCalled != nil {
 		return hsrs.SetResolverDebugHandlerCalled(handler)
+	}
+
+	return nil
+}
+
+// Close -
+func (hsrs *HashSliceResolverStub) Close() error {
+	if hsrs.CloseCalled != nil {
+		return hsrs.CloseCalled()
 	}
 
 	return nil

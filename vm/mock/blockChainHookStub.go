@@ -1,8 +1,8 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/state"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // BlockChainHookStub -
@@ -31,6 +31,7 @@ type BlockChainHookStub struct {
 	IsPayableCalled               func(address []byte) (bool, error)
 	NumberOfShardsCalled          func() uint32
 	GetCodeCalled                 func(account vmcommon.UserAccountHandler) []byte
+	CloseCalled                   func() error
 	GetSnapshotCalled             func() int
 	RevertToSnapshotCalled        func(snapshot int) error
 }
@@ -224,6 +225,15 @@ func (b *BlockChainHookStub) IsPayable(address []byte) (bool, error) {
 	return true, nil
 }
 
+// Close -
+func (b *BlockChainHookStub) Close() error {
+	if b.CloseCalled != nil {
+		return b.CloseCalled()
+	}
+
+	return nil
+}
+
 // NumberOfShards -
 func (b *BlockChainHookStub) NumberOfShards() uint32 {
 	if b.NumberOfShardsCalled != nil {
@@ -231,7 +241,6 @@ func (b *BlockChainHookStub) NumberOfShards() uint32 {
 	}
 	return 1
 }
-
 
 // GetSnapshot -
 func (b *BlockChainHookStub) GetSnapshot() int {

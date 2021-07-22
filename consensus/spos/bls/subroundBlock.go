@@ -3,11 +3,12 @@ package bls
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 // maxAllowedSizeInBytes defines how many bytes are allowed as payload in a message
@@ -65,7 +66,7 @@ func (sr *subroundBlock) doBlockJob() bool {
 		return false
 	}
 
-	if sr.Rounder().Index() <= sr.getRoundInLastCommittedBlock() {
+	if sr.RoundHandler().Index() <= sr.getRoundInLastCommittedBlock() {
 		return false
 	}
 
@@ -78,7 +79,7 @@ func (sr *subroundBlock) doBlockJob() bool {
 	}
 
 	metricStatTime := time.Now()
-	defer sr.computeSubroundProcessingMetric(metricStatTime, core.MetricCreatedProposedBlock)
+	defer sr.computeSubroundProcessingMetric(metricStatTime, common.MetricCreatedProposedBlock)
 
 	header, err := sr.createHeader()
 	if err != nil {
@@ -144,7 +145,7 @@ func (sr *subroundBlock) createBlock(header data.HeaderHandler) (data.HeaderHand
 	startTime := sr.RoundTimeStamp
 	maxTime := time.Duration(sr.EndTime())
 	haveTimeInCurrentSubround := func() bool {
-		return sr.Rounder().RemainingTime(startTime, maxTime) > 0
+		return sr.RoundHandler().RemainingTime(startTime, maxTime) > 0
 	}
 
 	finalHeader, blockBody, err := sr.BlockProcessor().CreateBlock(
@@ -175,7 +176,7 @@ func (sr *subroundBlock) sendBlockBodyAndHeader(
 		[]byte(sr.SelfPubKey()),
 		nil,
 		int(MtBlockBodyAndHeader),
-		sr.Rounder().Index(),
+		sr.RoundHandler().Index(),
 		sr.ChainID(),
 		nil,
 		nil,
@@ -210,7 +211,7 @@ func (sr *subroundBlock) sendBlockBody(bodyHandler data.BodyHandler, marshalized
 		[]byte(sr.SelfPubKey()),
 		nil,
 		int(MtBlockBody),
-		sr.Rounder().Index(),
+		sr.RoundHandler().Index(),
 		sr.ChainID(),
 		nil,
 		nil,
@@ -243,7 +244,7 @@ func (sr *subroundBlock) sendBlockHeader(headerHandler data.HeaderHandler, marsh
 		[]byte(sr.SelfPubKey()),
 		nil,
 		int(MtBlockHeader),
-		sr.Rounder().Index(),
+		sr.RoundHandler().Index(),
 		sr.ChainID(),
 		nil,
 		nil,
@@ -283,7 +284,7 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 		prevRandSeed = currentHeader.GetRandSeed()
 	}
 
-	round := uint64(sr.Rounder().Index())
+	round := uint64(sr.RoundHandler().Index())
 	hdr := sr.BlockProcessor().CreateNewHeader(round, nonce)
 	hdr.SetPrevHash(prevHash)
 
@@ -293,7 +294,7 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 	}
 
 	hdr.SetShardID(sr.ShardCoordinator().SelfId())
-	hdr.SetTimeStamp(uint64(sr.Rounder().TimeStamp().Unix()))
+	hdr.SetTimeStamp(uint64(sr.RoundHandler().TimeStamp().Unix()))
 	hdr.SetPrevRandSeed(prevRandSeed)
 	hdr.SetRandSeed(randSeed)
 	hdr.SetChainID(sr.ChainID())
@@ -335,7 +336,7 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(cnsDta *consensus.Message) b
 		return false
 	}
 
-	if !sr.CanProcessReceivedMessage(cnsDta, sr.Rounder().Index(), sr.Current()) {
+	if !sr.CanProcessReceivedMessage(cnsDta, sr.RoundHandler().Index(), sr.Current()) {
 		return false
 	}
 
@@ -382,7 +383,7 @@ func (sr *subroundBlock) receivedBlockBody(cnsDta *consensus.Message) bool {
 		return false
 	}
 
-	if !sr.CanProcessReceivedMessage(cnsDta, sr.Rounder().Index(), sr.Current()) {
+	if !sr.CanProcessReceivedMessage(cnsDta, sr.RoundHandler().Index(), sr.Current()) {
 		return false
 	}
 
@@ -429,7 +430,7 @@ func (sr *subroundBlock) receivedBlockHeader(cnsDta *consensus.Message) bool {
 		return false
 	}
 
-	if !sr.CanProcessReceivedMessage(cnsDta, sr.Rounder().Index(), sr.Current()) {
+	if !sr.CanProcessReceivedMessage(cnsDta, sr.RoundHandler().Index(), sr.Current()) {
 		return false
 	}
 
@@ -468,10 +469,10 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *consensus.Message) bool {
 
 	sr.SetProcessingBlock(true)
 
-	shouldNotProcessBlock := sr.ExtendedCalled || cnsDta.RoundIndex < sr.Rounder().Index()
+	shouldNotProcessBlock := sr.ExtendedCalled || cnsDta.RoundIndex < sr.RoundHandler().Index()
 	if shouldNotProcessBlock {
 		log.Debug("canceled round, extended has been called or round index has been changed",
-			"round", sr.Rounder().Index(),
+			"round", sr.RoundHandler().Index(),
 			"subround", sr.Name(),
 			"cnsDta round", cnsDta.RoundIndex,
 			"extended called", sr.ExtendedCalled,
@@ -482,13 +483,13 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *consensus.Message) bool {
 	node := string(cnsDta.PubKey)
 
 	startTime := sr.RoundTimeStamp
-	maxTime := sr.Rounder().TimeDuration() * time.Duration(sr.processingThresholdPercentage) / 100
+	maxTime := sr.RoundHandler().TimeDuration() * time.Duration(sr.processingThresholdPercentage) / 100
 	remainingTimeInCurrentRound := func() time.Duration {
-		return sr.Rounder().RemainingTime(startTime, maxTime)
+		return sr.RoundHandler().RemainingTime(startTime, maxTime)
 	}
 
 	metricStatTime := time.Now()
-	defer sr.computeSubroundProcessingMetric(metricStatTime, core.MetricProcessedProposedBlock)
+	defer sr.computeSubroundProcessingMetric(metricStatTime, common.MetricProcessedProposedBlock)
 
 	err := sr.BlockProcessor().ProcessBlock(
 		sr.Header,
@@ -496,9 +497,9 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *consensus.Message) bool {
 		remainingTimeInCurrentRound,
 	)
 
-	if cnsDta.RoundIndex < sr.Rounder().Index() {
+	if cnsDta.RoundIndex < sr.RoundHandler().Index() {
 		log.Debug("canceled round, round index has been changed",
-			"round", sr.Rounder().Index(),
+			"round", sr.RoundHandler().Index(),
 			"subround", sr.Name(),
 			"cnsDta round", cnsDta.RoundIndex,
 		)
@@ -507,7 +508,7 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *consensus.Message) bool {
 
 	if err != nil {
 		log.Debug("canceled round",
-			"round", sr.Rounder().Index(),
+			"round", sr.RoundHandler().Index(),
 			"subround", sr.Name(),
 			"error", err.Error())
 
@@ -519,7 +520,7 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *consensus.Message) bool {
 	err = sr.SetJobDone(node, sr.Current(), true)
 	if err != nil {
 		log.Debug("canceled round",
-			"round", sr.Rounder().Index(),
+			"round", sr.RoundHandler().Index(),
 			"subround", sr.Name(),
 			"error", err.Error())
 		return false

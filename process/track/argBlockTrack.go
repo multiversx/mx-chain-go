@@ -1,10 +1,10 @@
 package track
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -16,7 +16,7 @@ type ArgBaseTracker struct {
 	HeaderValidator  process.HeaderConstructionValidator
 	Marshalizer      marshal.Marshalizer
 	RequestHandler   process.RequestHandler
-	Rounder          process.Rounder
+	RoundHandler     process.RoundHandler
 	ShardCoordinator sharding.Coordinator
 	Store            dataRetriever.StorageService
 	StartHeaders     map[uint32]data.HeaderHandler

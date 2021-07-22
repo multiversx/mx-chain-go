@@ -3,9 +3,9 @@ package bootstrap
 import (
 	"context"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -35,7 +35,7 @@ type StartInEpochNodesCoordinator interface {
 type Messenger interface {
 	dataRetriever.MessageHandler
 	dataRetriever.TopicHandler
-	UnregisterMessageProcessor(topic string) error
+	UnregisterMessageProcessor(topic string, identifier string) error
 	UnregisterAllMessageProcessors() error
 	UnjoinAllTopics() error
 	ConnectedPeers() []core.PeerID
@@ -46,5 +46,12 @@ type RequestHandler interface {
 	RequestStartOfEpochMetaBlock(epoch uint32)
 	SetNumPeersToQuery(topic string, intra int, cross int) error
 	GetNumPeersToQuery(topic string) (int, int, error)
+	IsInterfaceNil() bool
+}
+
+// NodeTypeProviderHandler defines the actions needed for a component that can handle the node type
+type NodeTypeProviderHandler interface {
+	SetType(nodeType core.NodeType)
+	GetType() core.NodeType
 	IsInterfaceNil() bool
 }

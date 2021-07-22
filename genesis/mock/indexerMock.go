@@ -1,11 +1,10 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/statistics"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/indexer"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 // IndexerMock is a mock implementation fot the Indexer interface
@@ -36,10 +35,6 @@ func (im *IndexerMock) SaveValidatorsRating(_ string, _ []*indexer.ValidatorRati
 
 // SaveMetaBlock -
 func (im *IndexerMock) SaveMetaBlock(_ data.HeaderHandler, _ []uint64) {
-}
-
-// UpdateTPS -
-func (im *IndexerMock) UpdateTPS(_ statistics.TPSBenchmark) {
 }
 
 // SaveRoundsInfo -

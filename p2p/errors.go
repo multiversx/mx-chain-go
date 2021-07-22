@@ -140,3 +140,15 @@ var ErrUnsupportedMessageVersion = errors.New("unsupported message version")
 
 // ErrNilSyncTimer signals that a nil sync timer was provided
 var ErrNilSyncTimer = errors.New("nil sync timer")
+
+// ErrNilPreferredPeersHolder signals that a nil preferred peers holder was provided
+var ErrNilPreferredPeersHolder = errors.New("nil peers holder")
+
+// ErrInvalidSeedersReconnectionInterval signals that an invalid seeders reconnection interval error occurred
+var ErrInvalidSeedersReconnectionInterval = errors.New("invalid seeders reconnection interval")
+
+// ErrMessageProcessorAlreadyDefined signals that a message processor was already defined on the provided topic and identifier
+var ErrMessageProcessorAlreadyDefined = errors.New("message processor already defined")
+
+// ErrMessageProcessorDoesNotExists signals that a message processor does not exist on the provided topic and identifier
+var ErrMessageProcessorDoesNotExists = errors.New("message processor does not exists")

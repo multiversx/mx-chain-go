@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -399,6 +399,9 @@ func Test_NotImplementedFunctions(t *testing.T) {
 
 	require.NotPanics(t, func() { cache.RegisterHandler(nil, "") })
 	require.Zero(t, cache.MaxSize())
+
+	err := cache.Close()
+	require.Nil(t, err)
 }
 
 func Test_IsInterfaceNil(t *testing.T) {

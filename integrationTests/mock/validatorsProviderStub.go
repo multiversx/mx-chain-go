@@ -1,6 +1,6 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/data/state"
+import "github.com/ElrondNetwork/elrond-go/state"
 
 // ValidatorsProviderStub -
 type ValidatorsProviderStub struct {
@@ -12,6 +12,11 @@ func (vp *ValidatorsProviderStub) GetLatestValidators() map[string]*state.Valida
 	if vp.GetLatestValidatorsCalled != nil {
 		return vp.GetLatestValidatorsCalled()
 	}
+	return nil
+}
+
+// Close -
+func (vp *ValidatorsProviderStub) Close() error {
 	return nil
 }
 

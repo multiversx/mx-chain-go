@@ -1,9 +1,9 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 // ImportHandlerStub -
@@ -15,6 +15,7 @@ type ImportHandlerStub struct {
 	GetUnFinishedMetaBlocksCalled func() map[string]*block.MetaBlock
 	GetTransactionsCalled         func() map[string]data.TransactionHandler
 	GetAccountsDBForShardCalled   func(shardID uint32) state.AccountsAdapter
+	CloseCalled                   func() error
 }
 
 // ImportAll -
@@ -70,6 +71,15 @@ func (ihs *ImportHandlerStub) GetAccountsDBForShard(shardID uint32) state.Accoun
 	if ihs.GetAccountsDBForShardCalled != nil {
 		return ihs.GetAccountsDBForShardCalled(shardID)
 	}
+	return nil
+}
+
+// Close -
+func (ihs *ImportHandlerStub) Close() error {
+	if ihs.CloseCalled != nil {
+		return ihs.CloseCalled()
+	}
+
 	return nil
 }
 

@@ -8,5 +8,6 @@ type InterceptorResolverDebugHandler interface {
 	LogFailedToResolveData(topic string, hash []byte, err error)
 	LogSucceededToResolveData(topic string, hash []byte)
 	Query(topic string) []string
+	Close() error
 	IsInterfaceNil() bool
 }

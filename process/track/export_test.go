@@ -1,9 +1,9 @@
 package track
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -95,8 +95,8 @@ func (bbt *baseBlockTrack) DisplayTrackedHeadersForShard(shardID uint32, message
 	bbt.displayTrackedHeadersForShard(shardID, message)
 }
 
-func (bbt *baseBlockTrack) SetRounder(rounder process.Rounder) {
-	bbt.rounder = rounder
+func (bbt *baseBlockTrack) SetRoundHandler(roundHandler process.RoundHandler) {
+	bbt.roundHandler = roundHandler
 }
 
 func (bbt *baseBlockTrack) SetCrossNotarizer(notarizer blockNotarizerHandler) {

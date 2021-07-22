@@ -1,11 +1,11 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
-	"github.com/ElrondNetwork/elrond-go/data/api"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // ApiResolverStub -
@@ -54,6 +54,11 @@ func (ars *ApiResolverStub) GetDelegatorsList() ([]*api.Delegator, error) {
 	}
 
 	return nil, nil
+}
+
+// Close -
+func (ars *ApiResolverStub) Close() error {
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

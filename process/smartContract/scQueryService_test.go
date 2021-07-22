@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -468,4 +468,28 @@ func TestSCQueryService_ComputeScCallGasLimitRetCodeNotOK(t *testing.T) {
 	}
 	_, err := target.ComputeScCallGasLimit(tx)
 	require.Equal(t, errors.New(message), err)
+}
+
+func TestNewSCQueryService_CloseShouldWork(t *testing.T) {
+	t.Parallel()
+
+	closeCalled := false
+	argsNewSCQueryService := ArgsNewSCQueryService{
+		VmContainer: &mock.VMContainerMock{
+			CloseCalled: func() error {
+				closeCalled = true
+				return nil
+			},
+		},
+		EconomicsFee:      &mock.FeeHandlerStub{},
+		BlockChainHook:    &mock.BlockChainHookHandlerMock{},
+		BlockChain:        &mock.BlockChainMock{},
+		ArwenChangeLocker: &sync.RWMutex{},
+	}
+
+	target, _ := NewSCQueryService(argsNewSCQueryService)
+
+	err := target.Close()
+	assert.Nil(t, err)
+	assert.True(t, closeCalled)
 }

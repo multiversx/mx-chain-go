@@ -1,6 +1,6 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/core/vmcommon"
+import vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 
 // VMContainerMock -
 type VMContainerMock struct {
@@ -11,6 +11,7 @@ type VMContainerMock struct {
 	RemoveCalled      func(key []byte)
 	LenCalled         func() int
 	KeysCalled        func() [][]byte
+	CloseCalled       func() error
 }
 
 // Get -
@@ -71,6 +72,10 @@ func (v *VMContainerMock) Keys() [][]byte {
 
 // Close -
 func (v *VMContainerMock) Close() error {
+	if v.CloseCalled != nil {
+		return v.CloseCalled()
+	}
+
 	return nil
 }
 

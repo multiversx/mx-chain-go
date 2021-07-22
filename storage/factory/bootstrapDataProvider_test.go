@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
@@ -78,7 +78,7 @@ func TestBootstrapDataProvider_LoadForPath_ShouldWork(t *testing.T) {
 	expectedBD := &bootstrapStorage.BootstrapData{LastRound: 37}
 	expectedBDBytes, _ := marshalizer.Marshal(expectedBD)
 
-	_ = persisterToUse.Put([]byte(core.HighestRoundFromBootStorage), roundNumBytes)
+	_ = persisterToUse.Put([]byte(common.HighestRoundFromBootStorage), roundNumBytes)
 
 	key := []byte(strconv.FormatInt(expectedRound, 10))
 	_ = persisterToUse.Put(key, expectedBDBytes)

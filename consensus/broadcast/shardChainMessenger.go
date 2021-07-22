@@ -3,12 +3,13 @@ package broadcast
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 )
 
@@ -50,6 +51,7 @@ func NewShardChainMessenger(
 		LeaderCacheSize:       args.MaxDelayCacheSize,
 		ValidatorCacheSize:    args.MaxValidatorDelayCacheSize,
 		ShardCoordinator:      args.ShardCoordinator,
+		AlarmScheduler:        args.AlarmScheduler,
 	}
 
 	dbb, err := NewDelayedBlockBroadcaster(dbbArgs)
@@ -111,8 +113,8 @@ func (scm *shardChainMessenger) BroadcastBlock(blockBody data.BodyHandler, heade
 	headerIdentifier := scm.shardCoordinator.CommunicationIdentifier(core.MetachainShardId)
 	selfIdentifier := scm.shardCoordinator.CommunicationIdentifier(scm.shardCoordinator.SelfId())
 
-	go scm.messenger.Broadcast(factory.ShardBlocksTopic+headerIdentifier, msgHeader)
-	go scm.messenger.Broadcast(factory.MiniBlocksTopic+selfIdentifier, msgBlockBody)
+	scm.messenger.Broadcast(factory.ShardBlocksTopic+headerIdentifier, msgHeader)
+	scm.messenger.Broadcast(factory.MiniBlocksTopic+selfIdentifier, msgBlockBody)
 
 	return nil
 }
@@ -129,7 +131,7 @@ func (scm *shardChainMessenger) BroadcastHeader(header data.HeaderHandler) error
 	}
 
 	shardIdentifier := scm.shardCoordinator.CommunicationIdentifier(core.MetachainShardId)
-	go scm.messenger.Broadcast(factory.ShardBlocksTopic+shardIdentifier, msgHeader)
+	scm.messenger.Broadcast(factory.ShardBlocksTopic+shardIdentifier, msgHeader)
 
 	return nil
 }
@@ -165,7 +167,7 @@ func (scm *shardChainMessenger) BroadcastBlockDataLeader(
 		return err
 	}
 
-	go scm.BroadcastBlockData(metaMiniBlocks, metaTransactions, core.ExtraDelayForBroadcastBlockInfo)
+	go scm.BroadcastBlockData(metaMiniBlocks, metaTransactions, common.ExtraDelayForBroadcastBlockInfo)
 	return nil
 }
 

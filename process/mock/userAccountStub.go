@@ -3,14 +3,15 @@ package mock
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
 )
 
 var _ state.UserAccountHandler = (*UserAccountStub)(nil)
 
 // UserAccountStub -
 type UserAccountStub struct {
+	Balance               *big.Int
 	AddToBalanceCalled    func(value *big.Int) error
 	DataTrieTrackerCalled func() state.DataTrieTracker
 }
@@ -44,7 +45,7 @@ func (u *UserAccountStub) SubFromBalance(_ *big.Int) error {
 
 // GetBalance -
 func (u *UserAccountStub) GetBalance() *big.Int {
-	return nil
+	return u.Balance
 }
 
 // ClaimDeveloperRewards -
@@ -82,7 +83,7 @@ func (u *UserAccountStub) AddressBytes() []byte {
 	return nil
 }
 
-//IncreaseNonce -
+// IncreaseNonce -
 func (u *UserAccountStub) IncreaseNonce(_ uint64) {
 }
 
@@ -126,12 +127,12 @@ func (u *UserAccountStub) GetRootHash() []byte {
 }
 
 // SetDataTrie -
-func (u *UserAccountStub) SetDataTrie(_ data.Trie) {
+func (u *UserAccountStub) SetDataTrie(_ temporary.Trie) {
 
 }
 
 // DataTrie -
-func (u *UserAccountStub) DataTrie() data.Trie {
+func (u *UserAccountStub) DataTrie() temporary.Trie {
 	return nil
 }
 

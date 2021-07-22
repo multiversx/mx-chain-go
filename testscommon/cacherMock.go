@@ -149,3 +149,8 @@ func (cacher *CacherMock) UnRegisterHandler(string) {
 func (cacher *CacherMock) IsInterfaceNil() bool {
 	return cacher == nil
 }
+
+// Close -
+func (cacher *CacherMock) Close() error {
+	return nil
+}

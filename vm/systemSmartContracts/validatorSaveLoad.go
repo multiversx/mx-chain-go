@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	"github.com/ElrondNetwork/elrond-go/common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 func (v *validatorSC) setConfig(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -157,7 +157,7 @@ func (v *validatorSC) getStakedData(key []byte) (*StakedDataV2_0, error) {
 		RegisterNonce: 0,
 		Staked:        false,
 		UnStakedNonce: 0,
-		UnStakedEpoch: core.DefaultUnstakedEpoch,
+		UnStakedEpoch: common.DefaultUnstakedEpoch,
 		RewardAddress: nil,
 		StakeValue:    big.NewInt(0),
 		SlashValue:    big.NewInt(0),

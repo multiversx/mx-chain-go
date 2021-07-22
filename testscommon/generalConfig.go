@@ -8,9 +8,46 @@ import (
 // GetGeneralConfig returns the common configuration used for testing
 func GetGeneralConfig() config.Config {
 	return config.Config{
+		PublicKeyPeerId: config.CacheConfig{
+			Type:     "LRU",
+			Capacity: 5000,
+			Shards:   16,
+		},
+		PublicKeyShardId: config.CacheConfig{
+			Type:     "LRU",
+			Capacity: 5000,
+			Shards:   16,
+		},
+		PeerIdShardId: config.CacheConfig{
+			Type:     "LRU",
+			Capacity: 5000,
+			Shards:   16,
+		},
+		PeerHonesty: config.CacheConfig{
+			Type:     "LRU",
+			Capacity: 5000,
+			Shards:   16,
+		},
+		AddressPubkeyConverter: config.PubkeyConfig{
+			Length:          32,
+			Type:            "bech32",
+			SignatureLength: 0,
+		},
+		ValidatorPubkeyConverter: config.PubkeyConfig{
+			Length:          96,
+			Type:            "hex",
+			SignatureLength: 48,
+		},
+		Consensus: config.ConsensusConfig{
+			Type: "bls",
+		},
+		ValidatorStatistics: config.ValidatorStatisticsConfig{
+			CacheRefreshIntervalInSec: uint32(100),
+		},
 		GeneralSettings: config.GeneralSettingsConfig{
 			StartInEpochEnabled:      true,
 			GenesisMaxNumberOfShards: 100,
+			MaxComputableRounds:      1000,
 		},
 		EpochStartConfig: config.EpochStartConfig{
 			MinRoundsBetweenEpochs:            5,
@@ -21,10 +58,11 @@ func GetGeneralConfig() config.Config {
 		WhiteListPool:          getLRUCacheConfig(),
 		WhiteListerVerifiedTxs: getLRUCacheConfig(),
 		StoragePruning: config.StoragePruningConfig{
-			Enabled:             false,
-			CleanOldEpochsData:  false,
-			NumEpochsToKeep:     3,
-			NumActivePersisters: 3,
+			Enabled:                     false,
+			ValidatorCleanOldEpochsData: false,
+			ObserverCleanOldEpochsData:  false,
+			NumEpochsToKeep:             3,
+			NumActivePersisters:         3,
 		},
 		EvictionWaitingList: config.EvictionWaitingListConfig{
 			Size: 100,
@@ -98,8 +136,20 @@ func GetGeneralConfig() config.Config {
 		},
 		TxBlockBodyDataPool:   getLRUCacheConfig(),
 		PeerBlockBodyDataPool: getLRUCacheConfig(),
-		TrieNodesDataPool:     getLRUCacheConfig(),
-		SmartContractDataPool: getLRUCacheConfig(),
+		TrieSyncStorage: config.TrieSyncStorageConfig{
+			DB: config.DBConfig{
+				FilePath:          AddTimestampSuffix("TrieSync"),
+				Type:              string(storageUnit.MemoryDB),
+				BatchDelaySeconds: 2,
+				MaxBatchSize:      1000,
+				MaxOpenFiles:      10,
+				UseTmpAsFilePath:  true,
+			},
+			Capacity:    10,
+			SizeInBytes: 10000,
+		},
+		TrieNodesChunksDataPool: getLRUCacheConfig(),
+		SmartContractDataPool:   getLRUCacheConfig(),
 		TxStorage: config.StorageConfig{
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
@@ -232,14 +282,17 @@ func GetGeneralConfig() config.Config {
 				MaxOpenFiles:      10,
 			},
 		},
-		TxLogsStorage: config.StorageConfig{
-			Cache: getLRUCacheConfig(),
-			DB: config.DBConfig{
-				FilePath:          AddTimestampSuffix("Logs"),
-				Type:              string(storageUnit.MemoryDB),
-				BatchDelaySeconds: 2,
-				MaxBatchSize:      100,
-				MaxOpenFiles:      10,
+		LogsAndEvents: config.LogsAndEventsConfig{
+			SaveInStorageEnabled: false,
+			TxLogsStorage: config.StorageConfig{
+				Cache: getLRUCacheConfig(),
+				DB: config.DBConfig{
+					FilePath:          AddTimestampSuffix("Logs"),
+					Type:              string(storageUnit.MemoryDB),
+					BatchDelaySeconds: 2,
+					MaxBatchSize:      100,
+					MaxOpenFiles:      10,
+				},
 			},
 		},
 		ReceiptsStorage: config.StorageConfig{
@@ -253,6 +306,11 @@ func GetGeneralConfig() config.Config {
 			},
 		},
 		Versions: config.VersionsConfig{
+			Cache: config.CacheConfig{
+				Type:     "LRU",
+				Capacity: 1000,
+				Shards:   1,
+			},
 			DefaultVersion: "default",
 			VersionsByEpochs: []config.VersionByEpochs{
 				{
@@ -261,10 +319,41 @@ func GetGeneralConfig() config.Config {
 				},
 			},
 		},
+		SoftwareVersionConfig: config.SoftwareVersionConfig{
+			PollingIntervalInMinutes: 30,
+		},
 		TrieSync: config.TrieSyncConfig{
 			NumConcurrentTrieSyncers:  50,
 			MaxHardCapForMissingNodes: 500,
 			TrieSyncerVersion:         2,
+		},
+		Antiflood: config.AntifloodConfig{
+			NumConcurrentResolverJobs: 2,
+		},
+		Resolvers: config.ResolverConfig{
+			NumCrossShardPeers:  2,
+			NumIntraShardPeers:  1,
+			NumFullHistoryPeers: 3,
+		},
+		VirtualMachine: config.VirtualMachineServicesConfig{
+			Execution: config.VirtualMachineConfig{
+				ArwenVersions: []config.ArwenVersionByEpoch{
+					{StartEpoch: 0, Version: "*"},
+				},
+			},
+			Querying: config.QueryVirtualMachineConfig{
+				NumConcurrentVMs: 1,
+				VirtualMachineConfig: config.VirtualMachineConfig{
+					ArwenVersions: []config.ArwenVersionByEpoch{
+						{StartEpoch: 0, Version: "*"},
+					},
+				},
+			},
+		},
+		VMOutputCacher: config.CacheConfig{
+			Type:     "LRU",
+			Capacity: 10000,
+			Name:     "VMOutputCacher",
 		},
 	}
 }

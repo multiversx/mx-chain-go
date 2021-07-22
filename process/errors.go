@@ -10,6 +10,21 @@ var ErrNilMessage = errors.New("nil message")
 // ErrNilAccountsAdapter defines the error when trying to use a nil AccountsAddapter
 var ErrNilAccountsAdapter = errors.New("nil AccountsAdapter")
 
+// ErrNilCoreComponentsHolder signals that a nil core components holder was provided
+var ErrNilCoreComponentsHolder = errors.New("nil core components holder")
+
+// ErrNilBootstrapComponentsHolder signals that a nil bootstrap components holder was provided
+var ErrNilBootstrapComponentsHolder = errors.New("nil bootstrap components holder")
+
+// ErrNilStatusComponentsHolder signals that a nil status components holder was provided
+var ErrNilStatusComponentsHolder = errors.New("nil status components holder")
+
+// ErrNilCryptoComponentsHolder signals that a nil crypto components holder was provided
+var ErrNilCryptoComponentsHolder = errors.New("nil crypto components holder")
+
+// ErrNilDataComponentsHolder signals that a nil data components holder was provided
+var ErrNilDataComponentsHolder = errors.New("nil data components holder")
+
 // ErrNilHasher signals that an operation has been attempted to or with a nil hasher implementation
 var ErrNilHasher = errors.New("nil Hasher")
 
@@ -137,8 +152,8 @@ var ErrNilNodesConfigProvider = errors.New("nil nodes config provider")
 // ErrNilSystemSCConfig signals that nil system sc config was provided
 var ErrNilSystemSCConfig = errors.New("nil system sc config")
 
-// ErrNilRounder signals that an operation has been attempted to or with a nil Rounder implementation
-var ErrNilRounder = errors.New("nil Rounder")
+// ErrNilRoundHandler signals that an operation has been attempted to or with a nil RoundHandler implementation
+var ErrNilRoundHandler = errors.New("nil RoundHandler")
 
 // ErrNilMessenger signals that a nil Messenger object was provided
 var ErrNilMessenger = errors.New("nil Messenger")
@@ -425,6 +440,9 @@ var ErrInvalidPeerAccount = errors.New("invalid peer account")
 // ErrInvalidMetaHeader signals that a wrong implementation of HeaderHandler was provided
 var ErrInvalidMetaHeader = errors.New("invalid header provided, expected MetaBlock")
 
+// ErrInvalidChainID signals that an invalid chain ID was provided
+var ErrInvalidChainID = errors.New("invalid chain ID")
+
 // ErrNilEpochStartTrigger signals that a nil start of epoch trigger was provided
 var ErrNilEpochStartTrigger = errors.New("nil start of epoch trigger")
 
@@ -626,6 +644,9 @@ var ErrNilMiniBlocksProvider = errors.New("nil miniblocks provider")
 // ErrNilWhiteListHandler signals that white list handler is nil
 var ErrNilWhiteListHandler = errors.New("nil whitelist handler")
 
+// ErrNilPreferredPeersHolder signals that preferred peers holder is nil
+var ErrNilPreferredPeersHolder = errors.New("nil preferred peers holder")
+
 // ErrMiniBlocksInWrongOrder signals the miniblocks are in wrong order
 var ErrMiniBlocksInWrongOrder = errors.New("miniblocks in wrong order, should have been only from me")
 
@@ -673,9 +694,6 @@ var ErrNilEpochStartValidatorInfoCreator = errors.New("nil epoch start validator
 
 // ErrInvalidGenesisTotalSupply signals that invalid genesis total supply was provided
 var ErrInvalidGenesisTotalSupply = errors.New("invalid genesis total supply")
-
-// ErrOperationNotPermitted signals that operation is not permitted
-var ErrOperationNotPermitted = errors.New("operation in account not permitted")
 
 // ErrInvalidAddressLength signals that address length is invalid
 var ErrInvalidAddressLength = errors.New("invalid address length")
@@ -749,12 +767,6 @@ var ErrNilDnsAddresses = errors.New("nil dns addresses map")
 // ErrNilProtocolSustainabilityAddress signals that a nil protocol sustainability address was provided
 var ErrNilProtocolSustainabilityAddress = errors.New("nil protocol sustainability address")
 
-// ErrCallerIsNotTheDNSAddress signals that called address is not the DNS address
-var ErrCallerIsNotTheDNSAddress = errors.New("not a dns address")
-
-// ErrUserNameChangeIsDisabled signals the user name change is not allowed
-var ErrUserNameChangeIsDisabled = errors.New("user name change is disabled")
-
 // ErrUserNameDoesNotMatch signals that user name does not match
 var ErrUserNameDoesNotMatch = errors.New("user name does not match")
 
@@ -769,9 +781,6 @@ var ErrNilRatingsInfoHandler = errors.New("nil ratings info handler")
 
 // ErrNilDebugger signals that a nil debug handler has been provided
 var ErrNilDebugger = errors.New("nil debug handler")
-
-// ErrBuiltInFunctionCalledWithValue signals that builtin function was called with value that is not allowed
-var ErrBuiltInFunctionCalledWithValue = errors.New("built in function called with tx value is not allowed")
 
 // ErrEmptyFloodPreventerList signals that an empty flood preventer list has been provided
 var ErrEmptyFloodPreventerList = errors.New("empty flood preventer provided")
@@ -799,9 +808,6 @@ var ErrRelayedTxValueHigherThenUserTxValue = errors.New("relayed tx value is hig
 
 // ErrNilInterceptorContainer signals that nil interceptor container has been provided
 var ErrNilInterceptorContainer = errors.New("nil interceptor container")
-
-// ErrInvalidChainID signals that an invalid chain ID has been provided
-var ErrInvalidChainID = errors.New("invalid chain ID")
 
 // ErrInvalidTransactionVersion signals  that an invalid transaction version has been provided
 var ErrInvalidTransactionVersion = errors.New("invalid transaction version")
@@ -845,6 +851,9 @@ var ErrOnlyValidatorsCanUseThisTopic = errors.New("only validators can use this 
 // ErrTransactionIsNotWhitelisted signals that a transaction is not whitelisted
 var ErrTransactionIsNotWhitelisted = errors.New("transaction is not whitelisted")
 
+// ErrTrieNodeIsNotWhitelisted signals that a trie node is not whitelisted
+var ErrTrieNodeIsNotWhitelisted = errors.New("trie node is not whitelisted")
+
 // ErrInterceptedDataNotForCurrentShard signals that intercepted data is not for current shard
 var ErrInterceptedDataNotForCurrentShard = errors.New("intercepted data not for current shard")
 
@@ -853,9 +862,6 @@ var ErrAccountNotPayable = errors.New("sending value to non payable contract")
 
 // ErrNilIndexer signals that indexer is nil
 var ErrNilIndexer = errors.New("indexer is nil")
-
-// ErrNilTpsBenchmark signals that tps benchmark object is nil
-var ErrNilTpsBenchmark = errors.New("tps benchmark object is nil")
 
 // ErrSmartContractDeploymentIsDisabled signals that smart contract deployment was disabled
 var ErrSmartContractDeploymentIsDisabled = errors.New("smart Contract deployment is disabled")
@@ -868,6 +874,12 @@ var ErrBuiltInFunctionsAreDisabled = errors.New("built in functions are disabled
 
 // ErrRelayedTxDisabled signals that relayed tx are disabled
 var ErrRelayedTxDisabled = errors.New("relayed tx is disabled")
+
+// ErrRelayedTxV2Disabled signals that the v2 version of relayed tx is disabled
+var ErrRelayedTxV2Disabled = errors.New("relayed tx v2 is disabled")
+
+// ErrRelayedTxV2ZeroVal signals that the v2 version of relayed tx should be created with 0 as value
+var ErrRelayedTxV2ZeroVal = errors.New("relayed tx v2 value should be 0")
 
 // ErrEmptyConsensusGroup is raised when an operation is attempted with an empty consensus group
 var ErrEmptyConsensusGroup = errors.New("consensusGroup is empty")
@@ -886,30 +898,6 @@ var ErrNilEpochStartSystemSCProcessor = errors.New("nil epoch start system sc pr
 
 // ErrEmptyPeerID signals that an empty peer ID has been provided
 var ErrEmptyPeerID = errors.New("empty peer ID")
-
-// ErrAddressIsNotESDTSystemSC signals that destination is not a system sc address
-var ErrAddressIsNotESDTSystemSC = errors.New("destination is not system sc address")
-
-// ErrOnlySystemAccountAccepted signals that only system account is accepted
-var ErrOnlySystemAccountAccepted = errors.New("only system account is accepted")
-
-// ErrNilPauseHandler signals that nil pause handler has been provided
-var ErrNilPauseHandler = errors.New("nil pause handler")
-
-// ErrNilRolesHandler signals that nil roles handler has been provided
-var ErrNilRolesHandler = errors.New("nil roles handler")
-
-// ErrESDTTokenIsPaused signals that esdt token is paused
-var ErrESDTTokenIsPaused = errors.New("esdt token is paused")
-
-// ErrESDTIsFrozenForAccount signals that account is frozen for given esdt token
-var ErrESDTIsFrozenForAccount = errors.New("account is frozen for this esdt token")
-
-// ErrCannotWipeAccountNotFrozen signals that account isn't frozen so the wipe is not possible
-var ErrCannotWipeAccountNotFrozen = errors.New("cannot wipe because the account is not frozen for this esdt token")
-
-// ErrNilPayableHandler signals that nil payableHandler was provided
-var ErrNilPayableHandler = errors.New("nil payableHandler was provided")
 
 // ErrNilFallbackHeaderValidator signals that a nil fallback header validator has been provided
 var ErrNilFallbackHeaderValidator = errors.New("nil fallback header validator")
@@ -953,44 +941,35 @@ var ErrMaxAccumulatedFeesExceeded = errors.New("max accumulated fees has been ex
 // ErrMaxDeveloperFeesExceeded signals that max developer fees has been exceeded
 var ErrMaxDeveloperFeesExceeded = errors.New("max developer fees has been exceeded")
 
-// ErrActionNotAllowed signals that action is not allowed
-var ErrActionNotAllowed = errors.New("action is not allowed")
-
-// ErrOnlyFungibleTokensHaveBalanceTransfer signals that only fungible tokens have balance transfer
-var ErrOnlyFungibleTokensHaveBalanceTransfer = errors.New("only fungible tokens have balance transfer")
-
-// ErrNFTTokenDoesNotExist signals that NFT token does not exist
-var ErrNFTTokenDoesNotExist = errors.New("NFT token does not exist")
-
-// ErrNFTDoesNotHaveMetadata signals that NFT does not have metadata
-var ErrNFTDoesNotHaveMetadata = errors.New("NFT does not have metadata")
-
-// ErrInvalidNFTQuantity signals that invalid NFT quantity was provided
-var ErrInvalidNFTQuantity = errors.New("invalid NFT quantity")
-
-// ErrWrongNFTOnDestination signals the NFT is mismatched on destination - should never happen
-var ErrWrongNFTOnDestination = errors.New("wrong NFT on destination")
-
-// ErrNewNFTDataOnSenderAddress signals that a new NFT data was found on the sender address
-var ErrNewNFTDataOnSenderAddress = errors.New("new NFT data on sender")
-
 // ErrNilBuiltInFunctionsCostHandler signals that a nil built in functions cost handler has been provided
 var ErrNilBuiltInFunctionsCostHandler = errors.New("nil built in functions cost handler")
 
 // ErrNilArgsBuiltInFunctionsConstHandler signals that a nil arguments struct for built in functions cost handler has been provided
 var ErrNilArgsBuiltInFunctionsConstHandler = errors.New("nil arguments for built in functions cost handler")
 
+// ErrInvalidEpochStartMetaBlockConsensusPercentage signals that a small epoch start meta block consensus percentage has been provided
+var ErrInvalidEpochStartMetaBlockConsensusPercentage = errors.New("invalid epoch start meta block consensus percentage")
+
+// ErrNilNumConnectedPeersProvider signals that a nil number of connected peers provider has been provided
+var ErrNilNumConnectedPeersProvider = errors.New("nil number of connected peers provider")
+
 // ErrNilLocker signals that a nil locker was provided
 var ErrNilLocker = errors.New("nil locker")
 
-// ErrInvalidVersionOnEpochValues signals that the version element is not accepted because the epoch values are invalid
-var ErrInvalidVersionOnEpochValues = errors.New("invalid version provided on epoch values")
+// ErrNilChunksProcessor signals that a nil chunks processor has been provided
+var ErrNilChunksProcessor = errors.New("nil chunks processor")
 
-// ErrEmptyVersionsByEpochsList signals that an empty versions by epochs list was provided
-var ErrEmptyVersionsByEpochsList = errors.New("empty versions by epochs list")
+// ErrIncompatibleReference signals that an incompatible reference was provided when processing a batch
+var ErrIncompatibleReference = errors.New("incompatible reference when processing batch")
 
-// ErrInvalidVersionStringTooLong signals that the version element is not accepted because it contains too large strings
-var ErrInvalidVersionStringTooLong = errors.New("invalid version provided: string too large")
+// ErrProcessClosed signals that an incomplete processing occurred due to the early process closing
+var ErrProcessClosed = errors.New("incomplete processing: process is closing")
 
-// ErrArwenOutOfProcessUnsupported signals that the version of Arwen does not support out-of-process instantiation
-var ErrArwenOutOfProcessUnsupported = errors.New("out-of-process Arwen instance not supported")
+// ErrNilAccountsDBSyncer signals that a nil accounts db syncer has been provided
+var ErrNilAccountsDBSyncer = errors.New("nil accounts DB syncer")
+
+// ErrNilCurrentNetworkEpochProvider signals that a nil CurrentNetworkEpochProvider handler has been provided
+var ErrNilCurrentNetworkEpochProvider = errors.New("nil current network epoch provider")
+
+// ErrNilESDTTransferParser signals that a nil ESDT transfer parser has been provider
+var ErrNilESDTTransferParser = errors.New("nil esdt transfer parser")

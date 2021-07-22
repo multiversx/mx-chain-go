@@ -9,11 +9,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
-	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
+	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/sharding/mock"
+	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -86,6 +89,9 @@ func TestIndexHashedGroupSelectorWithRater_OkValShouldWork(t *testing.T) {
 		ConsensusGroupCache:        &mock.NodesCoordinatorCacheMock{},
 		ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
 		WaitingListFixEnabledEpoch: 0,
+		ChanStopNode:               make(chan endProcess.ArgEndProcess),
+		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
+		IsFullArchive:              false,
 	}
 	nc, err := NewIndexHashedNodesCoordinator(arguments)
 	assert.Nil(t, err)
@@ -177,6 +183,9 @@ func BenchmarkIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup63of400(b 
 		SelfPublicKey:              []byte("key"),
 		ConsensusGroupCache:        &mock.NodesCoordinatorCacheMock{},
 		WaitingListFixEnabledEpoch: 0,
+		ChanStopNode:               make(chan endProcess.ArgEndProcess),
+		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
+		IsFullArchive:              false,
 	}
 	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
 	require.Nil(b, err)
@@ -247,10 +256,13 @@ func Test_ComputeValidatorsGroup63of400(t *testing.T) {
 		SelfPublicKey:              []byte("key"),
 		ConsensusGroupCache:        &mock.NodesCoordinatorCacheMock{},
 		WaitingListFixEnabledEpoch: 0,
+		ChanStopNode:               make(chan endProcess.ArgEndProcess),
+		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
+		IsFullArchive:              false,
 	}
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
 	numRounds := uint64(1000000)
-	hasher := sha256.Sha256{}
+	hasher := sha256.NewSha256()
 	for i := uint64(0); i < numRounds; i++ {
 		randomness := hasher.Compute(fmt.Sprintf("%v%v", i, time.Millisecond))
 		consensusGroup, _ := ihgs.ComputeConsensusGroup(randomness, uint64(0), 0, 0)
@@ -317,6 +329,9 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 		ConsensusGroupCache:        &mock.NodesCoordinatorCacheMock{},
 		ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
 		WaitingListFixEnabledEpoch: 0,
+		ChanStopNode:               make(chan endProcess.ArgEndProcess),
+		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
+		IsFullArchive:              false,
 	}
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
 	ihgs, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
@@ -366,6 +381,9 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 		ConsensusGroupCache:        &mock.NodesCoordinatorCacheMock{},
 		ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
 		WaitingListFixEnabledEpoch: 0,
+		ChanStopNode:               make(chan endProcess.ArgEndProcess),
+		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
+		IsFullArchive:              false,
 	}
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
 	ihgs, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
@@ -429,6 +447,9 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldWork(t
 		ConsensusGroupCache:        &mock.NodesCoordinatorCacheMock{},
 		ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
 		WaitingListFixEnabledEpoch: 0,
+		ChanStopNode:               make(chan endProcess.ArgEndProcess),
+		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
+		IsFullArchive:              false,
 	}
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
 	ihgs, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
@@ -509,6 +530,9 @@ func TestIndexHashedGroupSelectorWithRater_GetAllEligibleValidatorsPublicKeys(t 
 		ConsensusGroupCache:        &mock.NodesCoordinatorCacheMock{},
 		ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
 		WaitingListFixEnabledEpoch: 0,
+		ChanStopNode:               make(chan endProcess.ArgEndProcess),
+		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
+		IsFullArchive:              false,
 	}
 
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
@@ -541,7 +565,7 @@ func TestIndexHashedGroupSelectorWithRater_ComputeAdditionalLeaving(t *testing.T
 	leavingValidator := &state.ShardValidatorInfo{
 		PublicKey:  []byte("eligible"),
 		ShardId:    core.MetachainShardId,
-		List:       string(core.EligibleList),
+		List:       string(common.EligibleList),
 		Index:      7,
 		TempRating: 5,
 	}
@@ -582,21 +606,21 @@ func TestIndexHashedGroupSelectorWithRater_ComputeAdditionalLeaving_ShouldAddNew
 	newValidator := &state.ShardValidatorInfo{
 		PublicKey:  []byte("new"),
 		ShardId:    0,
-		List:       string(core.NewList),
+		List:       string(common.NewList),
 		Index:      1,
 		TempRating: 5,
 	}
 	eligibleValidator := &state.ShardValidatorInfo{
 		PublicKey:  []byte("eligible"),
 		ShardId:    core.MetachainShardId,
-		List:       string(core.EligibleList),
+		List:       string(common.EligibleList),
 		Index:      1,
 		TempRating: 5,
 	}
 	waitingValidator := &state.ShardValidatorInfo{
 		PublicKey:  []byte("waiting"),
 		ShardId:    1,
-		List:       string(core.WaitingList),
+		List:       string(common.WaitingList),
 		Index:      1,
 		TempRating: 5,
 	}
@@ -639,14 +663,14 @@ func TestIndexHashedGroupSelectorWithRater_ComputeAdditionalLeaving_ShouldNotAdd
 	inactiveValidator := &state.ShardValidatorInfo{
 		PublicKey:  []byte("inactive"),
 		ShardId:    0,
-		List:       string(core.InactiveList),
+		List:       string(common.InactiveList),
 		Index:      1,
 		TempRating: 5,
 	}
 	jailedValidator := &state.ShardValidatorInfo{
 		PublicKey:  []byte("jailed"),
 		ShardId:    core.MetachainShardId,
-		List:       string(core.JailedList),
+		List:       string(common.JailedList),
 		Index:      1,
 		TempRating: 5,
 	}
@@ -689,14 +713,14 @@ func TestIndexHashedGroupSelectorWithRater_ComputeAdditionalLeaving_ShouldAddBel
 	eligibleValidator := &state.ShardValidatorInfo{
 		PublicKey:  []byte("eligible"),
 		ShardId:    0,
-		List:       string(core.EligibleList),
+		List:       string(common.EligibleList),
 		Index:      1,
 		TempRating: 50,
 	}
 	belowRatingValidator := &state.ShardValidatorInfo{
 		PublicKey:  []byte("eligibleBelow"),
 		ShardId:    core.MetachainShardId,
-		List:       string(core.EligibleList),
+		List:       string(common.EligibleList),
 		Index:      1,
 		TempRating: 5,
 	}
@@ -748,7 +772,7 @@ func BenchmarkIndexHashedGroupSelectorWithRater_TestHashes(b *testing.B) {
 	nrElementsInList := int64(4000000)
 	nrHashes := 100
 
-	hasher := blake2b.Blake2b{}
+	hasher := blake2b.NewBlake2b()
 
 	randomBits := ""
 
@@ -813,6 +837,9 @@ func BenchmarkIndexHashedWithRaterGroupSelector_ComputeValidatorsGroup21of400(b 
 		ConsensusGroupCache:        &mock.NodesCoordinatorCacheMock{},
 		ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
 		WaitingListFixEnabledEpoch: 0,
+		ChanStopNode:               make(chan endProcess.ArgEndProcess),
+		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
+		IsFullArchive:              false,
 	}
 	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
 	require.Nil(b, err)

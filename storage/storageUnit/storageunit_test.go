@@ -9,10 +9,10 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
-	"github.com/ElrondNetwork/elrond-go/hashing/fnv"
-	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
+	"github.com/ElrondNetwork/elrond-go-core/hashing/fnv"
+	"github.com/ElrondNetwork/elrond-go-core/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/bloom"
 	"github.com/ElrondNetwork/elrond-go/storage/leveldb"
@@ -719,7 +719,7 @@ func initSUWithBloomFilter(cSize int, bfSize uint) *storageUnit.Unit {
 
 	ldb, err1 := leveldb.NewDB(dir+"/levelDB", 10, 10, 10)
 	cache, err2 := lrucache.NewCache(cSize)
-	bf, err3 := bloom.NewFilter(bfSize, []hashing.Hasher{keccak.Keccak{}, &blake2b.Blake2b{}, fnv.Fnv{}})
+	bf, err3 := bloom.NewFilter(bfSize, []hashing.Hasher{keccak.NewKeccak(), blake2b.NewBlake2b(), fnv.NewFnv()})
 
 	if err1 != nil {
 		fmt.Println(err1)

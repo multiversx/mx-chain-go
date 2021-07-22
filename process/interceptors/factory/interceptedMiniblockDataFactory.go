@@ -1,9 +1,9 @@
 package factory
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -22,10 +22,13 @@ func NewInterceptedMiniblockDataFactory(argument *ArgInterceptedDataFactory) (*i
 	if argument == nil {
 		return nil, process.ErrNilArgumentStruct
 	}
-	if check.IfNil(argument.ProtoMarshalizer) {
+	if check.IfNil(argument.CoreComponents) {
+		return nil, process.ErrNilCoreComponentsHolder
+	}
+	if check.IfNil(argument.CoreComponents.InternalMarshalizer()) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if check.IfNil(argument.Hasher) {
+	if check.IfNil(argument.CoreComponents.Hasher()) {
 		return nil, process.ErrNilHasher
 	}
 	if check.IfNil(argument.ShardCoordinator) {
@@ -33,8 +36,8 @@ func NewInterceptedMiniblockDataFactory(argument *ArgInterceptedDataFactory) (*i
 	}
 
 	return &interceptedMiniblockDataFactory{
-		marshalizer:      argument.ProtoMarshalizer,
-		hasher:           argument.Hasher,
+		marshalizer:      argument.CoreComponents.InternalMarshalizer(),
+		hasher:           argument.CoreComponents.Hasher(),
 		shardCoordinator: argument.ShardCoordinator,
 	}, nil
 }

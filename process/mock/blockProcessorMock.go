@@ -4,7 +4,7 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 )
 
@@ -115,6 +115,11 @@ func (bpm *BlockProcessorMock) PruneStateOnRollback(currHeader data.HeaderHandle
 	if bpm.PruneStateOnRollbackCalled != nil {
 		bpm.PruneStateOnRollbackCalled(currHeader, prevHeader)
 	}
+}
+
+// Close -
+func (bpm *BlockProcessorMock) Close() error {
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

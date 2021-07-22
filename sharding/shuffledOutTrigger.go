@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go/common"
 )
 
 var _ ShuffledOutHandler = (*shuffledOutTrigger)(nil)
@@ -52,7 +52,7 @@ func (sot *shuffledOutTrigger) Process(newShardID uint32) error {
 	sot.currentShardID = newShardID
 	sot.notifyAllHandlers(newShardID)
 	return sot.endProcessHandler(endProcess.ArgEndProcess{
-		Reason:      core.ShuffledOut,
+		Reason:      common.ShuffledOut,
 		Description: description,
 	})
 }

@@ -6,13 +6,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/display"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/display"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
 type subroundEndRound struct {
@@ -23,22 +23,13 @@ type subroundEndRound struct {
 	mutProcessingEndRound         sync.Mutex
 }
 
-// SetAppStatusHandler method set appStatusHandler
-func (sr *subroundEndRound) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if ash == nil || ash.IsInterfaceNil() {
-		return spos.ErrNilAppStatusHandler
-	}
-
-	sr.appStatusHandler = ash
-	return nil
-}
-
 // NewSubroundEndRound creates a subroundEndRound object
 func NewSubroundEndRound(
 	baseSubround *spos.Subround,
 	extend func(subroundId int),
 	processingThresholdPercentage int,
 	displayStatistics func(),
+	appStatusHandler core.AppStatusHandler,
 ) (*subroundEndRound, error) {
 	err := checkNewSubroundEndRoundParams(
 		baseSubround,
@@ -51,7 +42,7 @@ func NewSubroundEndRound(
 		baseSubround,
 		processingThresholdPercentage,
 		displayStatistics,
-		statusHandler.NewNilStatusHandler(),
+		appStatusHandler,
 		sync.Mutex{},
 	}
 	srEndRound.Job = srEndRound.doEndRoundJob
@@ -102,7 +93,7 @@ func (sr *subroundEndRound) receivedBlockHeaderFinalInfo(cnsDta *consensus.Messa
 		return false
 	}
 
-	if !sr.CanProcessReceivedMessage(cnsDta, sr.Rounder().Index(), sr.Current()) {
+	if !sr.CanProcessReceivedMessage(cnsDta, sr.RoundHandler().Index(), sr.Current()) {
 		return false
 	}
 
@@ -202,7 +193,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	}
 	sr.Header.SetLeaderSignature(leaderSignature)
 
-	roundHandler := sr.Rounder()
+	roundHandler := sr.RoundHandler()
 	if roundHandler.RemainingTime(roundHandler.TimeStamp(), roundHandler.TimeDuration()) < 0 {
 		log.Debug("doEndRoundJob: time is out -> cancel broadcasting final info and header",
 			"round time stamp", roundHandler.TimeStamp(),
@@ -210,7 +201,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 		return false
 	}
 
-	// broadcast section
+	// broadcast header and final info section
 
 	// create and broadcast header final info
 	sr.createAndBroadcastHeaderFinalInfo()
@@ -224,7 +215,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	startTime := time.Now()
 	err = sr.BlockProcessor().CommitBlock(sr.Header, sr.Body)
 	elapsedTime := time.Since(startTime)
-	if elapsedTime >= core.CommitMaxTime {
+	if elapsedTime >= common.CommitMaxTime {
 		log.Warn("doEndRoundJobByLeader.CommitBlock", "elapsed time", elapsedTime)
 	} else {
 		log.Debug("elapsed time to commit block",
@@ -264,7 +255,7 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
 		[]byte(sr.SelfPubKey()),
 		nil,
 		int(MtBlockHeaderFinalInfo),
-		sr.Rounder().Index(),
+		sr.RoundHandler().Index(),
 		sr.ChainID(),
 		sr.Header.GetPubKeysBitmap(),
 		sr.Header.GetSignature(),
@@ -312,10 +303,10 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 
 	sr.SetProcessingBlock(true)
 
-	shouldNotCommitBlock := sr.ExtendedCalled || int64(header.GetRound()) < sr.Rounder().Index()
+	shouldNotCommitBlock := sr.ExtendedCalled || int64(header.GetRound()) < sr.RoundHandler().Index()
 	if shouldNotCommitBlock {
 		log.Debug("canceled round, extended has been called or round index has been changed",
-			"round", sr.Rounder().Index(),
+			"round", sr.RoundHandler().Index(),
 			"subround", sr.Name(),
 			"header round", header.GetRound(),
 			"extended called", sr.ExtendedCalled,
@@ -330,7 +321,7 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 	startTime := time.Now()
 	err := sr.BlockProcessor().CommitBlock(header, sr.Body)
 	elapsedTime := time.Since(startTime)
-	if elapsedTime >= core.CommitMaxTime {
+	if elapsedTime >= common.CommitMaxTime {
 		log.Warn("doEndRoundJobByParticipant.CommitBlock", "elapsed time", elapsedTime)
 	} else {
 		log.Debug("elapsed time to commit block",
@@ -429,9 +420,9 @@ func (sr *subroundEndRound) signBlockHeader() ([]byte, error) {
 }
 
 func (sr *subroundEndRound) updateMetricsForLeader() {
-	sr.appStatusHandler.Increment(core.MetricCountAcceptedBlocks)
-	sr.appStatusHandler.SetStringValue(core.MetricConsensusRoundState,
-		fmt.Sprintf("valid block produced in %f sec", time.Since(sr.Rounder().TimeStamp()).Seconds()))
+	sr.appStatusHandler.Increment(common.MetricCountAcceptedBlocks)
+	sr.appStatusHandler.SetStringValue(common.MetricConsensusRoundState,
+		fmt.Sprintf("valid block produced in %f sec", time.Since(sr.RoundHandler().TimeStamp()).Seconds()))
 }
 
 func (sr *subroundEndRound) broadcastBlockDataLeader() error {
@@ -531,10 +522,10 @@ func (sr *subroundEndRound) checkSignaturesValidity(bitmap []byte) error {
 
 func (sr *subroundEndRound) isOutOfTime() bool {
 	startTime := sr.RoundTimeStamp
-	maxTime := sr.Rounder().TimeDuration() * time.Duration(sr.processingThresholdPercentage) / 100
-	if sr.Rounder().RemainingTime(startTime, maxTime) < 0 {
+	maxTime := sr.RoundHandler().TimeDuration() * time.Duration(sr.processingThresholdPercentage) / 100
+	if sr.RoundHandler().RemainingTime(startTime, maxTime) < 0 {
 		log.Debug("canceled round, time is out",
-			"round", sr.SyncTimer().FormattedCurrentTime(), sr.Rounder().Index(),
+			"round", sr.SyncTimer().FormattedCurrentTime(), sr.RoundHandler().Index(),
 			"subround", sr.Name())
 
 		sr.RoundCanceled = true

@@ -4,16 +4,17 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/partitioning"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -56,6 +57,7 @@ type CommonMessengerArgs struct {
 	InterceptorsContainer      process.InterceptorsContainer
 	MaxDelayCacheSize          uint32
 	MaxValidatorDelayCacheSize uint32
+	AlarmScheduler             core.TimersScheduler
 }
 
 func checkCommonMessengerNilParameters(
@@ -85,6 +87,9 @@ func checkCommonMessengerNilParameters(
 	if check.IfNil(args.HeadersSubscriber) {
 		return spos.ErrNilHeadersSubscriber
 	}
+	if check.IfNil(args.AlarmScheduler) {
+		return spos.ErrNilAlarmScheduler
+	}
 	if args.MaxDelayCacheSize == 0 || args.MaxValidatorDelayCacheSize == 0 {
 		return spos.ErrInvalidCacheSize
 	}
@@ -106,10 +111,10 @@ func (cm *commonMessenger) BroadcastConsensusMessage(message *consensus.Message)
 		return err
 	}
 
-	consensusTopic := core.ConsensusTopic +
+	consensusTopic := common.ConsensusTopic +
 		cm.shardCoordinator.CommunicationIdentifier(cm.shardCoordinator.SelfId())
 
-	go cm.messenger.Broadcast(consensusTopic, buff)
+	cm.messenger.Broadcast(consensusTopic, buff)
 
 	return nil
 }
@@ -120,7 +125,7 @@ func (cm *commonMessenger) BroadcastMiniBlocks(miniBlocks map[uint32][]byte) err
 		miniBlocksTopic := factory.MiniBlocksTopic +
 			cm.shardCoordinator.CommunicationIdentifier(k)
 
-		go cm.messenger.Broadcast(miniBlocksTopic, v)
+		cm.messenger.Broadcast(miniBlocksTopic, v)
 	}
 
 	if len(miniBlocks) > 0 {
@@ -144,13 +149,13 @@ func (cm *commonMessenger) BroadcastTransactions(transactions map[string][][]byt
 	for topic, v := range transactions {
 		txs += len(v)
 		// forward txs to the destination shards in packets
-		packets, err = dataPacker.PackDataInChunks(v, core.MaxBulkTransactionSize)
+		packets, err = dataPacker.PackDataInChunks(v, common.MaxBulkTransactionSize)
 		if err != nil {
 			return err
 		}
 
 		for _, buff := range packets {
-			go cm.messenger.Broadcast(topic, buff)
+			cm.messenger.Broadcast(topic, buff)
 		}
 	}
 
@@ -178,7 +183,7 @@ func (cm *commonMessenger) BroadcastBlockData(
 		}
 	}
 
-	time.Sleep(core.ExtraDelayBetweenBroadcastMbsAndTxs)
+	time.Sleep(common.ExtraDelayBetweenBroadcastMbsAndTxs)
 
 	if len(transactions) > 0 {
 		err := cm.BroadcastTransactions(transactions)

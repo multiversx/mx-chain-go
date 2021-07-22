@@ -5,8 +5,8 @@ import (
 	"encoding/hex"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/data"
 	"github.com/libp2p/go-libp2p-core/host"
@@ -178,7 +178,7 @@ func (ip *identityProvider) processReceivedData(recvBuff []byte) error {
 	}
 
 	pid := core.PeerID(receivedAm.Message)
-	ip.networkShardingCollector.UpdatePeerIdPublicKey(pid, receivedAm.Pubkey)
+	ip.networkShardingCollector.UpdatePeerIDInfo(pid, receivedAm.Pubkey, core.AllShardId)
 	log.Trace("received authentication", "from", pid.Pretty(), "pk", hex.EncodeToString(receivedAm.Pubkey))
 
 	return nil

@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/stretchr/testify/assert"
@@ -78,7 +79,7 @@ func TestWithAuthentication_NilSignerVerifierShouldErr(t *testing.T) {
 
 	mes := createStubMessengerFailingIfTriggered(t)
 	opt := WithAuthentication(
-		&mock.NetworkShardingCollectorStub{},
+		&p2pmocks.NetworkShardingCollectorStub{},
 		nil,
 		&mock.MarshalizerStub{},
 	)
@@ -93,7 +94,7 @@ func TestWithAuthentication_NilMarshalizerShouldErr(t *testing.T) {
 
 	mes := createStubMessengerFailingIfTriggered(t)
 	opt := WithAuthentication(
-		&mock.NetworkShardingCollectorStub{},
+		&p2pmocks.NetworkShardingCollectorStub{},
 		&mock.SignerVerifierStub{},
 		nil,
 	)
@@ -117,7 +118,7 @@ func TestWithAuthentication_ShouldWork(t *testing.T) {
 		},
 	)
 	opt := WithAuthentication(
-		&mock.NetworkShardingCollectorStub{},
+		&p2pmocks.NetworkShardingCollectorStub{},
 		&mock.SignerVerifierStub{},
 		&mock.MarshalizerStub{},
 	)

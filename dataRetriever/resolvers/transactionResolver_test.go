@@ -5,14 +5,14 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/batch"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/batch"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
@@ -24,7 +24,7 @@ func createMockArgTxResolver() resolvers.ArgTxResolver {
 	return resolvers.ArgTxResolver{
 		SenderResolver:   &mock.TopicResolverSenderStub{},
 		TxPool:           testscommon.NewShardedDataStub(),
-		TxStorage:        &mock.StorerStub{},
+		TxStorage:        &testscommon.StorerStub{},
 		Marshalizer:      &mock.MarshalizerMock{},
 		DataPacker:       &mock.DataPackerStub{},
 		AntifloodHandler: &mock.P2PAntifloodHandlerStub{},
@@ -292,7 +292,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxStorageShouldRetValAndSend(t 
 		Nonce: 10,
 	}
 	txReturnedAsBuffer, _ := marshalizer.Marshal(txReturned)
-	txStorage := &mock.StorerStub{}
+	txStorage := &testscommon.StorerStub{}
 	txStorage.SearchFirstCalled = func(key []byte) (i []byte, e error) {
 		if bytes.Equal([]byte("aaa"), key) {
 			searchWasCalled = true
@@ -339,7 +339,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxStorageCheckRetError(t *testi
 
 	errExpected := errors.New("expected error")
 
-	txStorage := &mock.StorerStub{}
+	txStorage := &testscommon.StorerStub{}
 	txStorage.SearchFirstCalled = func(key []byte) (i []byte, e error) {
 		if bytes.Equal([]byte("aaa"), key) {
 			return nil, errExpected
@@ -455,7 +455,7 @@ func TestTxResolver_ProcessReceivedMessageRequestedTwoSmallTransactionsFoundOnly
 			return nil
 		},
 	}
-	arg.TxStorage = &mock.StorerStub{
+	arg.TxStorage = &testscommon.StorerStub{
 		SearchFirstCalled: func(key []byte) (i []byte, err error) {
 			return nil, errors.New("not found")
 		},
@@ -563,4 +563,13 @@ func TestTxResolver_SetAndGetNumPeersToQuery(t *testing.T) {
 	actualIntra, actualCross := txRes.NumPeersToQuery()
 	assert.Equal(t, expectedIntra, actualIntra)
 	assert.Equal(t, expectedCross, actualCross)
+}
+
+func TestTxResolver_Close(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgTxResolver()
+	txRes, _ := resolvers.NewTxResolver(arg)
+
+	assert.Nil(t, txRes.Close())
 }

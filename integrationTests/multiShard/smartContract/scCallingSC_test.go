@@ -11,18 +11,19 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/state"
 	systemVm "github.com/ElrondNetwork/elrond-go/vm"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -264,10 +265,11 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 		}
 	}()
 
-	initialVal := big.NewInt(1000000000)
+	initialVal, _ := big.NewInt(0).SetString("100000000000000000000000", 10)
 	integrationTests.MintAllNodes(nodes, initialVal)
 
 	firstSCOwner := nodes[0].OwnAccount.Address
+	nodes[0].OwnAccount.Nonce += 1
 	// deploy the smart contracts
 	firstSCAddress := putDeploySCToDataPool(
 		"../../vm/arwen/testdata/counter/counter.wasm",
@@ -337,7 +339,7 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 	}
 
 	txData := "ClaimDeveloperRewards"
-	integrationTests.CreateAndSendTransaction(nodes[0], nodes, big.NewInt(0), firstSCAddress, txData, 1)
+	integrationTests.CreateAndSendTransaction(nodes[0], nodes, big.NewInt(0), firstSCAddress, txData, integrationTests.AdditionalGasLimit)
 	time.Sleep(time.Second)
 
 	for i := 0; i < 3; i++ {
@@ -476,7 +478,7 @@ func TestSCCallingBuiltinAndFails(t *testing.T) {
 	numMetachainNodes := 1
 
 	testBuiltinFunc := &integrationTests.TestBuiltinFunction{}
-	testBuiltinFunc.Function = func(acntSnd, acntDst state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+	testBuiltinFunc.Function = func(acntSnd, acntDst vmcommon.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 		if !check.IfNil(acntSnd) {
 			fmt.Println("builtin snd", hex.EncodeToString(acntSnd.AddressBytes()))
 		}
@@ -493,7 +495,7 @@ func TestSCCallingBuiltinAndFails(t *testing.T) {
 			GasLimit:  200000,
 			GasLocked: vmInput.GasLocked,
 			Data:      []byte("testfunc@01"),
-			CallType:  vmcommon.AsynchronousCall,
+			CallType:  vmData.AsynchronousCall,
 		}
 		vmOutput.OutputAccounts[string(vmInput.RecipientAddr)] = &vmcommon.OutputAccount{
 			Address:         vmInput.RecipientAddr,

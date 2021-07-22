@@ -4,16 +4,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -36,9 +38,7 @@ func TestGetParentDirAndLastEpoch_ShouldWork(t *testing.T) {
 	lastDirectories := []string{"WrongEpoch_10", "Epoch_1", fmt.Sprintf("Epoch_%d", lastEpoch)}
 
 	args := getLatestDataProviderArgs()
-	args.ChainID = chainID
-	args.DefaultDBPath = defaultDbPath
-	args.WorkingDir = workingDir
+	args.ParentDir = filepath.Join(workingDir, defaultDbPath, chainID)
 	args.DirectoryReader = &mock.DirectoryReaderStub{
 		ListDirectoriesAsStringCalled: func(directoryPath string) ([]string, error) {
 			return lastDirectories, nil
@@ -97,7 +97,7 @@ func TestLatestDataProvider_Get(t *testing.T) {
 	shardID := uint32(0)
 	defaultPath := "db"
 	args := getLatestDataProviderArgs()
-	args.DefaultDBPath = defaultPath
+	args.ParentDir = defaultPath
 	lastEpoch := uint32(1)
 	args.DirectoryReader = &mock.DirectoryReaderStub{
 		ListDirectoriesAsStringCalled: func(directoryPath string) ([]string, error) {
@@ -112,7 +112,7 @@ func TestLatestDataProvider_Get(t *testing.T) {
 	state := &shardchain.TriggerRegistry{
 		EpochStartRound: startRound,
 	}
-	storer := &mock.StorerStub{
+	storer := &testscommon.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			stateBytes, _ := json.Marshal(state)
 			return stateBytes, nil
@@ -146,13 +146,9 @@ func TestLatestDataProvider_Get(t *testing.T) {
 func getLatestDataProviderArgs() ArgsLatestDataProvider {
 	return ArgsLatestDataProvider{
 		GeneralConfig:         config.Config{},
-		Marshalizer:           &mock.MarshalizerMock{},
-		Hasher:                &mock.HasherMock{},
 		BootstrapDataProvider: &mock.BootStrapDataProviderStub{},
 		DirectoryReader:       &mock.DirectoryReaderStub{},
-		WorkingDir:            "",
-		ChainID:               "",
-		DefaultDBPath:         "db",
+		ParentDir:             "db",
 		DefaultEpochString:    "Epoch",
 		DefaultShardString:    "Shard",
 	}
@@ -167,7 +163,7 @@ func TestLoadEpochStartRoundShard(t *testing.T) {
 	state := &shardchain.TriggerRegistry{
 		EpochStartRound: startRound,
 	}
-	storer := &mock.StorerStub{
+	storer := &testscommon.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			stateBytes, _ := json.Marshal(state)
 			return stateBytes, nil
@@ -191,7 +187,7 @@ func TestLoadEpochStartRoundMetachain(t *testing.T) {
 	state := &metachain.TriggerRegistry{
 		CurrEpochStartRound: startRound,
 	}
-	storer := &mock.StorerStub{
+	storer := &testscommon.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			stateBytes, _ := json.Marshal(state)
 			return stateBytes, nil

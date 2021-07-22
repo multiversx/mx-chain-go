@@ -3,11 +3,12 @@ package network
 import (
 	"net/http"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/api"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/gin-gonic/gin"
 )
@@ -16,6 +17,7 @@ const (
 	getConfigPath        = "/config"
 	getStatusPath        = "/status"
 	economicsPath        = "/economics"
+	enableEpochsPath     = "/enable-epochs"
 	getESDTsPath         = "/esdts"
 	getFFTsPath          = "/esdt/fungible-tokens"
 	getSFTsPath          = "/esdt/semi-fungible-tokens"
@@ -39,6 +41,7 @@ func Routes(router *wrapper.RouterWrapper) {
 	router.RegisterHandler(http.MethodGet, getConfigPath, GetNetworkConfig)
 	router.RegisterHandler(http.MethodGet, getStatusPath, GetNetworkStatus)
 	router.RegisterHandler(http.MethodGet, economicsPath, EconomicsMetrics)
+	router.RegisterHandler(http.MethodGet, enableEpochsPath, GetEnableEpochs)
 	router.RegisterHandler(http.MethodGet, getESDTsPath, getHandlerFuncForEsdt(""))
 	router.RegisterHandler(http.MethodGet, getFFTsPath, getHandlerFuncForEsdt(core.FungibleESDT))
 	router.RegisterHandler(http.MethodGet, getSFTsPath, getHandlerFuncForEsdt(core.SemiFungibleESDT))
@@ -95,6 +98,24 @@ func GetNetworkConfig(c *gin.Context) {
 	)
 }
 
+// GetEnableEpochs returns metrics related to the activation epochs of the network
+func GetEnableEpochs(c *gin.Context) {
+	facade, ok := getFacade(c)
+	if !ok {
+		return
+	}
+
+	enableEpochsMetrics := facade.StatusMetrics().EnableEpochsMetrics()
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"enableEpochs": enableEpochsMetrics},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
 // GetNetworkStatus returns metrics related to the network status (shard specific)
 func GetNetworkStatus(c *gin.Context) {
 	facade, ok := getFacade(c)
@@ -134,8 +155,8 @@ func EconomicsMetrics(c *gin.Context) {
 	}
 
 	metrics := facade.StatusMetrics().EconomicsMetrics()
-	metrics[core.MetricTotalBaseStakedValue] = stakeValues.BaseStaked.String()
-	metrics[core.MetricTopUpValue] = stakeValues.TopUp.String()
+	metrics[common.MetricTotalBaseStakedValue] = stakeValues.BaseStaked.String()
+	metrics[common.MetricTopUpValue] = stakeValues.TopUp.String()
 
 	c.JSON(
 		http.StatusOK,

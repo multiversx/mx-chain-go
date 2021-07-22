@@ -8,13 +8,14 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go/state"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -50,7 +51,7 @@ func TestVmGetShouldReturnValue(t *testing.T) {
 	vmOutput, err := service.ExecuteQuery(&query)
 	assert.Nil(t, err)
 
-	returnData, _ := vmOutput.GetFirstReturnData(vmcommon.AsBigInt)
+	returnData, _ := vmOutput.GetFirstReturnData(vmData.AsBigInt)
 	assert.Equal(t, expectedValueForVar, returnData)
 }
 
@@ -82,6 +83,7 @@ func deploySmartContract(t *testing.T) (state.AccountsAdapter, []byte, *big.Int)
 		senderAddressBytes,
 		senderBalance,
 		vm.ArgEnableEpoch{},
+		&sync.RWMutex{},
 	)
 	require.Nil(t, err)
 

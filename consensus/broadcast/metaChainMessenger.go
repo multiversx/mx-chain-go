@@ -1,12 +1,13 @@
 package broadcast
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 )
 
@@ -37,6 +38,7 @@ func NewMetaChainMessenger(
 		LeaderCacheSize:       args.MaxDelayCacheSize,
 		ValidatorCacheSize:    args.MaxValidatorDelayCacheSize,
 		ShardCoordinator:      args.ShardCoordinator,
+		AlarmScheduler:        args.AlarmScheduler,
 	}
 
 	dbb, err := NewDelayedBlockBroadcaster(dbbArgs)
@@ -100,8 +102,8 @@ func (mcm *metaChainMessenger) BroadcastBlock(blockBody data.BodyHandler, header
 
 	selfIdentifier := mcm.shardCoordinator.CommunicationIdentifier(mcm.shardCoordinator.SelfId())
 
-	go mcm.messenger.Broadcast(factory.MetachainBlocksTopic, msgHeader)
-	go mcm.messenger.Broadcast(factory.MiniBlocksTopic+selfIdentifier, msgBlockBody)
+	mcm.messenger.Broadcast(factory.MetachainBlocksTopic, msgHeader)
+	mcm.messenger.Broadcast(factory.MiniBlocksTopic+selfIdentifier, msgBlockBody)
 
 	return nil
 }
@@ -117,7 +119,7 @@ func (mcm *metaChainMessenger) BroadcastHeader(header data.HeaderHandler) error 
 		return err
 	}
 
-	go mcm.messenger.Broadcast(factory.MetachainBlocksTopic, msgHeader)
+	mcm.messenger.Broadcast(factory.MetachainBlocksTopic, msgHeader)
 
 	return nil
 }
@@ -128,7 +130,7 @@ func (mcm *metaChainMessenger) BroadcastBlockDataLeader(
 	miniBlocks map[uint32][]byte,
 	transactions map[string][][]byte,
 ) error {
-	go mcm.BroadcastBlockData(miniBlocks, transactions, core.ExtraDelayForBroadcastBlockInfo)
+	go mcm.BroadcastBlockData(miniBlocks, transactions, common.ExtraDelayForBroadcastBlockInfo)
 	return nil
 }
 
@@ -172,6 +174,11 @@ func (mcm *metaChainMessenger) PrepareBroadcastBlockDataValidator(
 	_ map[string][][]byte,
 	_ int,
 ) {
+}
+
+// Close closes all the started infinite looping goroutines and subcomponents
+func (mcm *metaChainMessenger) Close() {
+	mcm.delayedBlockBroadcaster.Close()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

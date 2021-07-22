@@ -1,19 +1,18 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/process"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // BuiltInFunctionStub -
 type BuiltInFunctionStub struct {
-	ProcessBuiltinFunctionCalled func(acntSnd, acntDst state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
-	SetNewGasConfigCalled        func(gasCost *process.GasCost)
+	ProcessBuiltinFunctionCalled func(acntSnd, acntDst vmcommon.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
+	SetNewGasConfigCalled        func(gasCost *vmcommon.GasCost)
+	IsActiveCalled               func() bool
 }
 
 // ProcessBuiltinFunction -
-func (b *BuiltInFunctionStub) ProcessBuiltinFunction(acntSnd, acntDst state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+func (b *BuiltInFunctionStub) ProcessBuiltinFunction(acntSnd, acntDst vmcommon.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 	if b.ProcessBuiltinFunctionCalled != nil {
 		return b.ProcessBuiltinFunctionCalled(acntSnd, acntDst, vmInput)
 	}
@@ -21,10 +20,18 @@ func (b *BuiltInFunctionStub) ProcessBuiltinFunction(acntSnd, acntDst state.User
 }
 
 // SetNewGasConfig -
-func (b *BuiltInFunctionStub) SetNewGasConfig(gasCost *process.GasCost) {
+func (b *BuiltInFunctionStub) SetNewGasConfig(gasCost *vmcommon.GasCost) {
 	if b.SetNewGasConfigCalled != nil {
 		b.SetNewGasConfigCalled(gasCost)
 	}
+}
+
+// IsActive -
+func (b *BuiltInFunctionStub) IsActive() bool {
+	if b.IsActiveCalled != nil {
+		return b.IsActiveCalled()
+	}
+	return true
 }
 
 // IsInterfaceNil -

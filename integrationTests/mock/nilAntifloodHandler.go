@@ -3,7 +3,7 @@ package mock
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -44,8 +44,22 @@ func (nah *NilAntifloodHandler) ApplyConsensusSize(_ int) {
 func (nah *NilAntifloodHandler) BlacklistPeer(_ core.PeerID, _ string, _ time.Duration) {
 }
 
+// SetPeerValidatorMapper -
+func (nah *NilAntifloodHandler) SetPeerValidatorMapper(_ process.PeerValidatorMapper) error {
+	return nil
+}
+
+// SetTopicsForAll -
+func (nah *NilAntifloodHandler) SetTopicsForAll(_ ...string) {
+}
+
 // IsOriginatorEligibleForTopic returns nil
 func (nah *NilAntifloodHandler) IsOriginatorEligibleForTopic(_ core.PeerID, _ string) error {
+	return nil
+}
+
+// Close does nothing
+func (nah *NilAntifloodHandler) Close() error {
 	return nil
 }
 

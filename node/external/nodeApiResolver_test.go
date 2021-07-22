@@ -3,12 +3,12 @@ package external_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
-	"github.com/ElrondNetwork/elrond-go/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -45,7 +45,7 @@ func TestNewNodeApiResolver_NilStatusMetricsShouldErr(t *testing.T) {
 	assert.Equal(t, external.ErrNilStatusMetrics, err)
 }
 
-func TestNewNodeApiResolver_NilTransactionCostEstsimator(t *testing.T) {
+func TestNewNodeApiResolver_NilTransactionCostEstimator(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockAgrs()
@@ -97,6 +97,25 @@ func TestNewNodeApiResolver_ShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(nar))
+}
+
+func TestNodeApiResolver_CloseShouldReturnNil(t *testing.T) {
+	t.Parallel()
+
+	args := createMockAgrs()
+	closeCalled := false
+	args.SCQueryService = &mock.SCQueryServiceStub{
+		CloseCalled: func() error {
+			closeCalled = true
+
+			return nil
+		},
+	}
+	nar, _ := external.NewNodeApiResolver(args)
+
+	err := nar.Close()
+	assert.Nil(t, err)
+	assert.True(t, closeCalled)
 }
 
 func TestNodeApiResolver_GetDataValueShouldCall(t *testing.T) {

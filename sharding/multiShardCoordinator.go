@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"math"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 )
 
 var _ Coordinator = (*multiShardCoordinator)(nil)

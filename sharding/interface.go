@@ -1,9 +1,10 @@
 package sharding
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 // Coordinator defines what a shard state coordinator should hold
@@ -161,17 +162,30 @@ type EpochStartActionHandler interface {
 
 // GenesisNodesSetupHandler returns the genesis nodes info
 type GenesisNodesSetupHandler interface {
+	AllInitialNodes() []GenesisNodeInfoHandler
+	InitialNodesPubKeys() map[uint32][]string
+	GetShardIDForPubKey(pubkey []byte) (uint32, error)
+	InitialEligibleNodesPubKeysForShard(shardId uint32) ([]string, error)
 	InitialNodesInfoForShard(shardId uint32) ([]GenesisNodeInfoHandler, []GenesisNodeInfoHandler, error)
 	InitialNodesInfo() (map[uint32][]GenesisNodeInfoHandler, map[uint32][]GenesisNodeInfoHandler)
 	GetStartTime() int64
 	GetRoundDuration() uint64
-	GetChainId() string
-	GetMinTransactionVersion() uint32
 	GetShardConsensusGroupSize() uint32
 	GetMetaConsensusGroupSize() uint32
 	NumberOfShards() uint32
 	MinNumberOfNodes() uint32
+	MinNumberOfShardNodes() uint32
+	MinNumberOfMetaNodes() uint32
+	GetHysteresis() float32
+	GetAdaptivity() bool
 	MinNumberOfNodesWithHysteresis() uint32
+	IsInterfaceNil() bool
+}
+
+// NodeTypeProviderHandler defines the actions needed for a component that can handle the node type
+type NodeTypeProviderHandler interface {
+	SetType(nodeType core.NodeType)
+	GetType() core.NodeType
 	IsInterfaceNil() bool
 }
 

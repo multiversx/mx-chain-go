@@ -8,18 +8,19 @@ import (
 	"math/big"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
 	"github.com/ElrondNetwork/elrond-go/api/network"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/gin-contrib/cors"
@@ -69,7 +70,7 @@ func TestNetworkConfigMetrics_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	statusMetricsProvider := statusHandler.NewStatusMetrics()
-	key := core.MetricMinGasLimit
+	key := common.MetricMinGasLimit
 	value := uint64(37)
 	statusMetricsProvider.SetUInt64Value(key, value)
 
@@ -110,7 +111,7 @@ func TestNetworkStatusMetrics_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	statusMetricsProvider := statusHandler.NewStatusMetrics()
-	key := core.MetricEpochNumber
+	key := common.MetricEpochNumber
 	value := uint64(37)
 	statusMetricsProvider.SetUInt64Value(key, value)
 
@@ -163,7 +164,7 @@ func TestEconomicsMetrics_NilContextShouldErr(t *testing.T) {
 
 func TestEconomicsMetrics_ShouldWork(t *testing.T) {
 	statusMetricsProvider := statusHandler.NewStatusMetrics()
-	key := core.MetricTotalSupply
+	key := common.MetricTotalSupply
 	value := "12345"
 	statusMetricsProvider.SetStringValue(key, value)
 
@@ -194,7 +195,7 @@ func TestEconomicsMetrics_ShouldWork(t *testing.T) {
 
 func TestEconomicsMetrics_CannotGetStakeValues(t *testing.T) {
 	statusMetricsProvider := statusHandler.NewStatusMetrics()
-	key := core.MetricTotalSupply
+	key := common.MetricTotalSupply
 	value := "12345"
 	statusMetricsProvider.SetStringValue(key, value)
 
@@ -422,6 +423,61 @@ func TestDelegatedInfo_CannotGetDelegatedList(t *testing.T) {
 	assert.True(t, strings.Contains(respStr, expectedError.Error()))
 }
 
+func TestGetEnableEpochs_NilContextShouldErr(t *testing.T) {
+	t.Parallel()
+	ws := startNodeServer(nil)
+
+	req, _ := http.NewRequest("GET", "/network/enable-epochs", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, errors.ErrNilAppContext.Error()))
+}
+
+func TestGetEnableEpochs_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	statusMetrics := statusHandler.NewStatusMetrics()
+	key := common.MetricScDeployEnableEpoch
+	value := uint64(4)
+	statusMetrics.SetUInt64Value(key, value)
+
+	facade := mock.Facade{}
+	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
+		return statusMetrics
+	}
+
+	ws := startNodeServer(&facade)
+	req, _ := http.NewRequest("GET", "/network/enable-epochs", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	respBytes, _ := ioutil.ReadAll(resp.Body)
+	respStr := string(respBytes)
+	assert.Equal(t, resp.Code, http.StatusOK)
+
+	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, strconv.FormatUint(value, 10))
+	assert.True(t, keyAndValueFoundInResponse)
+}
+
+func TestGetEnableEpochs_FailsWithWrongFacadeTypeConversion(t *testing.T) {
+	t.Parallel()
+
+	ws := startNodeServerWrongFacade()
+	req, _ := http.NewRequest("GET", "/network/enable-epochs", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	statusRsp := GeneralResponse{}
+	loadResponse(resp.Body, &statusRsp)
+
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.Equal(t, statusRsp.Error, errors.ErrInvalidAppContext.Error())
+}
+
 func loadResponse(rsp io.Reader, destination interface{}) {
 	jsonParser := json.NewDecoder(rsp)
 	err := jsonParser.Decode(destination)
@@ -473,6 +529,7 @@ func getRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/economics", Open: true},
 					{Name: "/esdts", Open: true},
 					{Name: "/total-staked", Open: true},
+					{Name: "/enable-epochs", Open: true},
 					{Name: "/direct-staked-info", Open: true},
 					{Name: "/delegated-info", Open: true},
 				},

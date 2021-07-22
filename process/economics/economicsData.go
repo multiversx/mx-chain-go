@@ -7,12 +7,13 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/atomic"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
@@ -117,6 +118,8 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
 		statusHandler:                    statusHandler.NewNilStatusHandler(),
 		builtInFunctionsCostHandler:      args.BuiltInFunctionsCostHandler,
 	}
+	log.Debug("economicsData: enable epoch for penalized too much gas", "epoch", ed.penalizedTooMuchGasEnableEpoch)
+	log.Debug("economicsData: enable epoch for gas price modifier", "epoch", ed.gasPriceModifierEnableEpoch)
 
 	ed.yearSettings = make(map[uint32]*config.YearSetting)
 	for _, yearSetting := range args.Economics.GlobalSettings.YearSettings {
@@ -517,13 +520,13 @@ func (ed *economicsData) ComputeTxFeeBasedOnGasUsed(tx process.TransactionWithFe
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
-func (ed *economicsData) EpochConfirmed(epoch uint32) {
+func (ed *economicsData) EpochConfirmed(epoch uint32, _ uint64) {
 	ed.flagPenalizedTooMuchGas.Toggle(epoch >= ed.penalizedTooMuchGasEnableEpoch)
 	log.Debug("economics: penalized too much gas", "enabled", ed.flagPenalizedTooMuchGas.IsSet())
 
 	ed.flagGasPriceModifier.Toggle(epoch >= ed.gasPriceModifierEnableEpoch)
 	log.Debug("economics: gas price modifier", "enabled", ed.flagGasPriceModifier.IsSet())
-	ed.statusHandler.SetStringValue(core.MetricGasPriceModifier, fmt.Sprintf("%g", ed.GasPriceModifier()))
+	ed.statusHandler.SetStringValue(common.MetricGasPriceModifier, fmt.Sprintf("%g", ed.GasPriceModifier()))
 	ed.setRewardsEpochConfig(epoch)
 }
 
@@ -562,9 +565,9 @@ func (ed *economicsData) setRewardsEpochConfig(currentEpoch uint32) {
 	ed.topUpGradientPoint, _ = big.NewInt(0).SetString(rewardSetting.TopUpGradientPoint, 10)
 
 	// TODO: add all metrics
-	ed.statusHandler.SetStringValue(core.MetricLeaderPercentage, fmt.Sprintf("%f", rewardSetting.LeaderPercentage))
-	ed.statusHandler.SetStringValue(core.MetricRewardsTopUpGradientPoint, rewardSetting.TopUpGradientPoint)
-	ed.statusHandler.SetStringValue(core.MetricTopUpFactor, fmt.Sprintf("%f", rewardSetting.TopUpFactor))
+	ed.statusHandler.SetStringValue(common.MetricLeaderPercentage, fmt.Sprintf("%f", rewardSetting.LeaderPercentage))
+	ed.statusHandler.SetStringValue(common.MetricRewardsTopUpGradientPoint, rewardSetting.TopUpGradientPoint)
+	ed.statusHandler.SetStringValue(common.MetricTopUpFactor, fmt.Sprintf("%f", rewardSetting.TopUpFactor))
 
 	log.Debug("economics: RewardsConfig",
 		"epoch", ed.rewardsSettingEpoch,
@@ -575,6 +578,36 @@ func (ed *economicsData) setRewardsEpochConfig(currentEpoch uint32) {
 		"topUpFactor", ed.topUpFactor,
 		"topUpGradientPoint", ed.topUpGradientPoint,
 	)
+}
+
+// ComputeGasLimitBasedOnBalance will compute gas limit for the given transaction based on the balance
+func (ed *economicsData) ComputeGasLimitBasedOnBalance(tx process.TransactionWithFeeHandler, balance *big.Int) (uint64, error) {
+	balanceWithoutTransferValue := big.NewInt(0).Sub(balance, tx.GetValue())
+	if balanceWithoutTransferValue.Cmp(big.NewInt(0)) < 1 {
+		return 0, process.ErrInsufficientFunds
+	}
+
+	moveBalanceFee := ed.ComputeMoveBalanceFee(tx)
+	if moveBalanceFee.Cmp(balanceWithoutTransferValue) > 0 {
+		return 0, process.ErrInsufficientFunds
+	}
+
+	if !ed.flagGasPriceModifier.IsSet() {
+		gasPriceBig := big.NewInt(0).SetUint64(tx.GetGasPrice())
+		gasLimitBig := big.NewInt(0).Div(balanceWithoutTransferValue, gasPriceBig)
+
+		return gasLimitBig.Uint64(), nil
+	}
+
+	remainedBalanceAfterMoveBalanceFee := big.NewInt(0).Sub(balanceWithoutTransferValue, moveBalanceFee)
+	gasPriceBigForProcessing := ed.GasPriceForProcessing(tx)
+	gasPriceBigForProcessingBig := big.NewInt(0).SetUint64(gasPriceBigForProcessing)
+	gasLimitFromRemainedBalanceBig := big.NewInt(0).Div(remainedBalanceAfterMoveBalanceFee, gasPriceBigForProcessingBig)
+
+	gasLimitMoveBalance := ed.ComputeGasLimit(tx)
+	totalGasLimit := gasLimitMoveBalance + gasLimitFromRemainedBalanceBig.Uint64()
+
+	return totalGasLimit, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

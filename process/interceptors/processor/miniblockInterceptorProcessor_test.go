@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
@@ -23,7 +23,7 @@ func createMockMiniblockArgument() *processor.ArgMiniblockInterceptorProcessor {
 		Marshalizer:      testMarshalizer,
 		Hasher:           testHasher,
 		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
-		WhiteListHandler: &mock.WhiteListHandlerStub{},
+		WhiteListHandler: &testscommon.WhiteListHandlerStub{},
 	}
 }
 
@@ -242,7 +242,7 @@ func TestMiniblockInterceptorProcessor_SaveMiniblockCrossShardForMeNotWhiteListe
 	}
 
 	arg := createMockMiniblockArgument()
-	whiteListHandler := arg.WhiteListHandler.(*mock.WhiteListHandlerStub)
+	whiteListHandler := arg.WhiteListHandler.(*testscommon.WhiteListHandlerStub)
 	whiteListHandler.IsWhiteListedCalled = func(interceptedData process.InterceptedData) bool {
 		return false
 	}
@@ -270,7 +270,7 @@ func TestMiniblockInterceptorProcessor_SaveMiniblockCrossShardForMeWhiteListedSh
 	}
 
 	arg := createMockMiniblockArgument()
-	whiteListHandler := arg.WhiteListHandler.(*mock.WhiteListHandlerStub)
+	whiteListHandler := arg.WhiteListHandler.(*testscommon.WhiteListHandlerStub)
 	whiteListHandler.IsWhiteListedCalled = func(interceptedData process.InterceptedData) bool {
 		return true
 	}

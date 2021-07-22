@@ -3,8 +3,8 @@ package mock
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -32,6 +32,11 @@ type TransactionCoordinatorMock struct {
 	CreatePostProcessMiniBlocksCalled           func() block.MiniBlockSlice
 	CreateMarshalizedReceiptsCalled             func() ([]byte, error)
 	VerifyCreatedMiniBlocksCalled               func(hdr data.HeaderHandler, body *block.Body) error
+}
+
+// GetAllCurrentLogs -
+func (tcm *TransactionCoordinatorMock) GetAllCurrentLogs() map[string]data.LogHandler {
+	return nil
 }
 
 // CreatePostProcessMiniBlocks -

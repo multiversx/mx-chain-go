@@ -6,8 +6,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// ChainStorerMock is a mock implementation of the ChainStorer interface
-type ChainStorerMock struct {
+// ChainStorerStub -
+type ChainStorerStub struct {
 	AddStorerCalled               func(key dataRetriever.UnitType, s storage.Storer)
 	GetStorerCalled               func(unitType dataRetriever.UnitType) storage.Storer
 	HasCalled                     func(unitType dataRetriever.UnitType, key []byte) error
@@ -17,88 +17,90 @@ type ChainStorerMock struct {
 	DestroyCalled                 func() error
 	CloseAllCalled                func() error
 	SetEpochForPutOperationCalled func(epoch uint32)
+	GetAllStorersCalled           func() map[dataRetriever.UnitType]storage.Storer
 }
 
 // SetEpochForPutOperation -
-func (csm *ChainStorerMock) SetEpochForPutOperation(epoch uint32) {
-	if csm.SetEpochForPutOperationCalled != nil {
-		csm.SetEpochForPutOperationCalled(epoch)
+func (css *ChainStorerStub) SetEpochForPutOperation(epoch uint32) {
+	if css.SetEpochForPutOperationCalled != nil {
+		css.SetEpochForPutOperationCalled(epoch)
 	}
 }
 
 // CloseAll -
-func (csm *ChainStorerMock) CloseAll() error {
-	if csm.CloseAllCalled != nil {
-		return csm.CloseAllCalled()
+func (css *ChainStorerStub) CloseAll() error {
+	if css.CloseAllCalled != nil {
+		return css.CloseAllCalled()
 	}
 
 	return nil
 }
 
 // AddStorer will add a new storer to the chain map
-func (csm *ChainStorerMock) AddStorer(key dataRetriever.UnitType, s storage.Storer) {
-	if csm.AddStorerCalled != nil {
-		csm.AddStorerCalled(key, s)
+func (css *ChainStorerStub) AddStorer(key dataRetriever.UnitType, s storage.Storer) {
+	if css.AddStorerCalled != nil {
+		css.AddStorerCalled(key, s)
 	}
 }
 
 // GetStorer returns the storer from the chain map or nil if the storer was not found
-func (csm *ChainStorerMock) GetStorer(unitType dataRetriever.UnitType) storage.Storer {
-	if csm.GetStorerCalled != nil {
-		return csm.GetStorerCalled(unitType)
+func (css *ChainStorerStub) GetStorer(unitType dataRetriever.UnitType) storage.Storer {
+	if css.GetStorerCalled != nil {
+		return css.GetStorerCalled(unitType)
 	}
 	return nil
 }
 
-// Has returns true if the key is found in the selected Unit or false otherwise
-// It can return an error if the provided unit type is not supported or if the
-// underlying implementation of the storage unit reports an error.
-func (csm *ChainStorerMock) Has(unitType dataRetriever.UnitType, key []byte) error {
-	if csm.HasCalled != nil {
-		return csm.HasCalled(unitType, key)
+// Has -
+func (css *ChainStorerStub) Has(unitType dataRetriever.UnitType, key []byte) error {
+	if css.HasCalled != nil {
+		return css.HasCalled(unitType, key)
 	}
 	return errors.New("Key not found")
 }
 
-// Get returns the value for the given key if found in the selected storage unit,
-// nil otherwise. It can return an error if the provided unit type is not supported
-// or if the storage unit underlying implementation reports an error
-func (csm *ChainStorerMock) Get(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
-	if csm.GetCalled != nil {
-		return csm.GetCalled(unitType, key)
+// Get -
+func (css *ChainStorerStub) Get(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+	if css.GetCalled != nil {
+		return css.GetCalled(unitType, key)
 	}
 	return nil, nil
 }
 
-// Put stores the key, value pair in the selected storage unit
-// It can return an error if the provided unit type is not supported
-// or if the storage unit underlying implementation reports an error
-func (csm *ChainStorerMock) Put(unitType dataRetriever.UnitType, key []byte, value []byte) error {
-	if csm.PutCalled != nil {
-		return csm.PutCalled(unitType, key, value)
+// Put -
+func (css *ChainStorerStub) Put(unitType dataRetriever.UnitType, key []byte, value []byte) error {
+	if css.PutCalled != nil {
+		return css.PutCalled(unitType, key, value)
 	}
 	return nil
 }
 
-// GetAll gets all the elements with keys in the keys array, from the selected storage unit
-// It can report an error if the provided unit type is not supported, if there is a missing
-// key in the unit, or if the underlying implementation of the storage unit reports an error.
-func (csm *ChainStorerMock) GetAll(unitType dataRetriever.UnitType, keys [][]byte) (map[string][]byte, error) {
-	if csm.GetAllCalled != nil {
-		return csm.GetAllCalled(unitType, keys)
+// GetAllStorers -
+func (css *ChainStorerStub) GetAllStorers() map[dataRetriever.UnitType]storage.Storer {
+	if css.GetAllStorersCalled != nil {
+		return css.GetAllStorersCalled()
+	}
+
+	return nil
+}
+
+// GetAll -
+func (css *ChainStorerStub) GetAll(unitType dataRetriever.UnitType, keys [][]byte) (map[string][]byte, error) {
+	if css.GetAllCalled != nil {
+		return css.GetAllCalled(unitType, keys)
 	}
 	return nil, nil
 }
 
-// Destroy removes the underlying files/resources used by the storage service
-func (csm *ChainStorerMock) Destroy() error {
-	if csm.DestroyCalled != nil {
-		return csm.DestroyCalled()
+// Destroy -
+func (css *ChainStorerStub) Destroy() error {
+	if css.DestroyCalled != nil {
+		return css.DestroyCalled()
 	}
 	return nil
 }
 
-// IsInterfaceNil returns true if there is no value under the interface
-func (csm *ChainStorerMock) IsInterfaceNil() bool {
-	return csm == nil
+// IsInterfaceNil -
+func (css *ChainStorerStub) IsInterfaceNil() bool {
+	return css == nil
 }

@@ -3,10 +3,12 @@ package integrationTests
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 )
 
 // ArgIndexHashedNodesCoordinatorFactory -
@@ -38,12 +40,14 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 	pubKeyBytes, _ := keys.Pk.ToByteArray()
 
 	nodeShufflerArgs := &sharding.NodesShufflerArgs{
-		NodesShard:           uint32(arg.nodesPerShard),
-		NodesMeta:            uint32(arg.nbMetaNodes),
-		Hysteresis:           hysteresis,
-		Adaptivity:           adaptivity,
-		ShuffleBetweenShards: shuffleBetweenShards,
-		MaxNodesEnableConfig: nil,
+		NodesShard:                     uint32(arg.nodesPerShard),
+		NodesMeta:                      uint32(arg.nbMetaNodes),
+		Hysteresis:                     hysteresis,
+		Adaptivity:                     adaptivity,
+		ShuffleBetweenShards:           shuffleBetweenShards,
+		MaxNodesEnableConfig:           nil,
+		WaitingListFixEnableEpoch:      0,
+		BalanceWaitingListsEnableEpoch: 0,
 	}
 	nodeShuffler, _ := sharding.NewHashValidatorsShuffler(nodeShufflerArgs)
 	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
@@ -62,6 +66,9 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 		BootStorer:                 arg.bootStorer,
 		ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
 		WaitingListFixEnabledEpoch: 0,
+		ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
+		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
+		IsFullArchive:              false,
 	}
 	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 	if err != nil {
@@ -85,12 +92,14 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 	pubKeyBytes, _ := keys.Pk.ToByteArray()
 
 	shufflerArgs := &sharding.NodesShufflerArgs{
-		NodesShard:           uint32(arg.nodesPerShard),
-		NodesMeta:            uint32(arg.nbMetaNodes),
-		Hysteresis:           hysteresis,
-		Adaptivity:           adaptivity,
-		ShuffleBetweenShards: shuffleBetweenShards,
-		MaxNodesEnableConfig: nil,
+		NodesShard:                     uint32(arg.nodesPerShard),
+		NodesMeta:                      uint32(arg.nbMetaNodes),
+		Hysteresis:                     hysteresis,
+		Adaptivity:                     adaptivity,
+		ShuffleBetweenShards:           shuffleBetweenShards,
+		MaxNodesEnableConfig:           nil,
+		BalanceWaitingListsEnableEpoch: 0,
+		WaitingListFixEnableEpoch:      0,
 	}
 	nodeShuffler, _ := sharding.NewHashValidatorsShuffler(shufflerArgs)
 	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
@@ -109,6 +118,9 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 		BootStorer:                 arg.bootStorer,
 		ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
 		WaitingListFixEnabledEpoch: 0,
+		ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
+		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
+		IsFullArchive:              false,
 	}
 
 	baseCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

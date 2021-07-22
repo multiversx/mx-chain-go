@@ -6,33 +6,31 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
-	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
+	chainData "github.com/ElrondNetwork/elrond-go-core/data"
+	apiData "github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/data/vm"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/api"
 	"github.com/ElrondNetwork/elrond-go/api/address"
 	"github.com/ElrondNetwork/elrond-go/api/hardfork"
-	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/node"
 	transactionApi "github.com/ElrondNetwork/elrond-go/api/transaction"
 	"github.com/ElrondNetwork/elrond-go/api/validator"
 	"github.com/ElrondNetwork/elrond-go/api/vmValues"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/statistics"
-	"github.com/ElrondNetwork/elrond-go/core/throttler"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
-	apiData "github.com/ElrondNetwork/elrond-go/data/api"
-	"github.com/ElrondNetwork/elrond-go/data/esdt"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/data/vm"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
+	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
+	"github.com/ElrondNetwork/elrond-go/state"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // DefaultRestInterface is the default interface the rest API will start on if not specified
@@ -51,11 +49,6 @@ var _ = vmValues.FacadeHandler(&nodeFacade{})
 
 var log = logger.GetOrCreate("facade")
 
-type resetHandler interface {
-	Reset()
-	IsInterfaceNil() bool
-}
-
 // ArgNodeFacade represents the argument for the nodeFacade
 type ArgNodeFacade struct {
 	Node                   NodeHandler
@@ -67,6 +60,7 @@ type ArgNodeFacade struct {
 	ApiRoutesConfig        config.ApiRoutesConfig
 	AccountsState          state.AccountsAdapter
 	PeerState              state.AccountsAdapter
+	Blockchain             chainData.ChainHandler
 }
 
 // nodeFacade represents a facade for grouping the functionality for the node
@@ -74,7 +68,6 @@ type nodeFacade struct {
 	node                   NodeHandler
 	apiResolver            ApiResolver
 	syncer                 ntp.SyncTimer
-	tpsBenchmark           *statistics.TpsBenchmark
 	txSimulatorProc        TransactionSimulatorProcessor
 	config                 config.FacadeConfig
 	apiRoutesConfig        config.ApiRoutesConfig
@@ -83,6 +76,7 @@ type nodeFacade struct {
 	restAPIServerDebugMode bool
 	accountsState          state.AccountsAdapter
 	peerState              state.AccountsAdapter
+	blockchain             chainData.ChainHandler
 	ctx                    context.Context
 	cancelFunc             func()
 }
@@ -116,6 +110,9 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 	if check.IfNil(arg.PeerState) {
 		return nil, ErrNilPeerState
 	}
+	if check.IfNil(arg.Blockchain) {
+		return nil, ErrNilBlockchain
+	}
 
 	throttlersMap := computeEndpointsNumGoRoutinesThrottlers(arg.WsAntifloodConfig)
 
@@ -130,6 +127,7 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 		endpointsThrottlers:    throttlersMap,
 		accountsState:          arg.AccountsState,
 		peerState:              arg.PeerState,
+		blockchain:             arg.Blockchain,
 	}
 	nf.ctx, nf.cancelFunc = context.WithCancel(context.Background())
 
@@ -159,26 +157,6 @@ func (nf *nodeFacade) SetSyncer(syncer ntp.SyncTimer) {
 	nf.syncer = syncer
 }
 
-// SetTpsBenchmark sets the tps benchmark handler
-func (nf *nodeFacade) SetTpsBenchmark(tpsBenchmark *statistics.TpsBenchmark) {
-	nf.tpsBenchmark = tpsBenchmark
-}
-
-// TpsBenchmark returns the tps benchmark handler
-func (nf *nodeFacade) TpsBenchmark() *statistics.TpsBenchmark {
-	return nf.tpsBenchmark
-}
-
-// StartNode starts the underlying node
-func (nf *nodeFacade) StartNode() error {
-	return nf.node.StartConsensus()
-}
-
-// StartBackgroundServices starts all background services needed for the correct functionality of the node
-func (nf *nodeFacade) StartBackgroundServices() {
-	go nf.startRest()
-}
-
 // RestAPIServerDebugMode return true is debug mode for Rest API is enabled
 func (nf *nodeFacade) RestAPIServerDebugMode() bool {
 	return nf.restAPIServerDebugMode
@@ -193,68 +171,6 @@ func (nf *nodeFacade) RestApiInterface() string {
 	}
 
 	return nf.config.RestApiInterface
-}
-
-func (nf *nodeFacade) startRest() {
-	log.Trace("starting REST api server")
-
-	switch nf.RestApiInterface() {
-	case DefaultRestPortOff:
-		log.Debug("web server is off")
-	default:
-		log.Debug("creating web server limiters")
-		limiters, err := nf.CreateMiddlewareLimiters()
-		if err != nil {
-			log.Error("error creating web server limiters",
-				"error", err.Error(),
-			)
-			log.Error("web server is off")
-			return
-		}
-
-		log.Debug("starting web server",
-			"SimultaneousRequests", nf.wsAntifloodConfig.SimultaneousRequests,
-			"SameSourceRequests", nf.wsAntifloodConfig.SameSourceRequests,
-			"SameSourceResetIntervalInSec", nf.wsAntifloodConfig.SameSourceResetIntervalInSec,
-		)
-
-		err = api.Start(nf, nf.apiRoutesConfig, limiters...)
-		if err != nil {
-			log.Error("could not start webserver",
-				"error", err.Error(),
-			)
-		}
-	}
-}
-
-// CreateMiddlewareLimiters will create the middleware limiters used in web server
-func (nf *nodeFacade) CreateMiddlewareLimiters() ([]api.MiddlewareProcessor, error) {
-	sourceLimiter, err := middleware.NewSourceThrottler(nf.wsAntifloodConfig.SameSourceRequests)
-	if err != nil {
-		return nil, err
-	}
-	go nf.sourceLimiterReset(sourceLimiter)
-
-	globalLimiter, err := middleware.NewGlobalThrottler(nf.wsAntifloodConfig.SimultaneousRequests)
-	if err != nil {
-		return nil, err
-	}
-
-	return []api.MiddlewareProcessor{sourceLimiter, globalLimiter}, nil
-}
-
-func (nf *nodeFacade) sourceLimiterReset(reset resetHandler) {
-	betweenResetDuration := time.Second * time.Duration(nf.wsAntifloodConfig.SameSourceResetIntervalInSec)
-	for {
-		select {
-		case <-time.After(betweenResetDuration):
-			log.Trace("calling reset on WS source limiter")
-			reset.Reset()
-		case <-nf.ctx.Done():
-			log.Debug("closing nodeFacade.sourceLimiterReset go routine")
-			return
-		}
-	}
 }
 
 // GetBalance gets the current balance for a specified address
@@ -343,7 +259,7 @@ func (nf *nodeFacade) SendBulkTransactions(txs []*transaction.Transaction) (uint
 }
 
 // SimulateTransactionExecution will simulate a transaction's execution and will return the results
-func (nf *nodeFacade) SimulateTransactionExecution(tx *transaction.Transaction) (*transaction.SimulationResults, error) {
+func (nf *nodeFacade) SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
 	return nf.txSimulatorProc.ProcessTx(tx)
 }
 
@@ -464,8 +380,9 @@ func (nf *nodeFacade) GetBlockByNonce(nonce uint64, withTxs bool) (*apiData.Bloc
 }
 
 // Close will cleanup started go routines
-// TODO use this close method
 func (nf *nodeFacade) Close() error {
+	log.LogIfError(nf.apiResolver.Close())
+
 	nf.cancelFunc()
 
 	return nil
@@ -474,6 +391,72 @@ func (nf *nodeFacade) Close() error {
 // GetNumCheckpointsFromAccountState returns the number of checkpoints of the account state
 func (nf *nodeFacade) GetNumCheckpointsFromAccountState() uint32 {
 	return nf.accountsState.GetNumCheckpoints()
+}
+
+// GetProof returns the Merkle proof for the given address and root hash
+func (nf *nodeFacade) GetProof(rootHash string, address string) ([][]byte, error) {
+	rootHashBytes, err := hex.DecodeString(rootHash)
+	if err != nil {
+		return nil, err
+	}
+
+	trie, err := nf.accountsState.GetTrie(rootHashBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	addressBytes, err := nf.DecodeAddressPubkey(address)
+	if err != nil {
+		return nil, err
+	}
+
+	return trie.GetProof(addressBytes)
+}
+
+// GetProofCurrentRootHash returns the Merkle proof for the given address and current root hash
+func (nf *nodeFacade) GetProofCurrentRootHash(address string) ([][]byte, []byte, error) {
+	currentBlockHeader := nf.blockchain.GetCurrentBlockHeader()
+	if check.IfNil(currentBlockHeader) {
+		return nil, nil, ErrNilBlockHeader
+	}
+
+	rootHash := currentBlockHeader.GetRootHash()
+	trie, err := nf.accountsState.GetTrie(rootHash)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	addressBytes, err := nf.DecodeAddressPubkey(address)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	proof, err := trie.GetProof(addressBytes)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return proof, rootHash, nil
+}
+
+// VerifyProof verifies the given Merkle proof
+func (nf *nodeFacade) VerifyProof(rootHash string, address string, proof [][]byte) (bool, error) {
+	rootHashBytes, err := hex.DecodeString(rootHash)
+	if err != nil {
+		return false, err
+	}
+
+	trie, err := nf.accountsState.GetTrie(rootHashBytes)
+	if err != nil {
+		return false, err
+	}
+
+	addressBytes, err := nf.DecodeAddressPubkey(address)
+	if err != nil {
+		return false, err
+	}
+
+	return trie.VerifyProof(addressBytes, proof)
 }
 
 // GetNumCheckpointsFromPeerState returns the number of checkpoints of the peer state

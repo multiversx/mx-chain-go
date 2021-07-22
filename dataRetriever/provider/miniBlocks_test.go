@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	dataBlock "github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/provider"
@@ -23,7 +23,7 @@ func createMockMiniblockProviderArgs(
 
 	return provider.ArgMiniBlockProvider{
 		Marshalizer: marshalizer,
-		MiniBlockStorage: &mock.StorerStub{
+		MiniBlockStorage: &testscommon.StorerStub{
 			GetCalled: func(key []byte) ([]byte, error) {
 				if isByteSliceInSlice(key, storerExistingHashes) {
 					buff, _ := marshalizer.Marshal(&dataBlock.MiniBlock{})

@@ -3,13 +3,13 @@ package metachain
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 var _ process.RewardsCreator = (*rewardsCreator)(nil)
@@ -83,7 +83,7 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(
 
 	totalWithoutDevelopers := big.NewInt(0).Sub(economicsData.TotalToDistribute, metaBlock.DevFeesInEpoch)
 	difference := big.NewInt(0).Sub(totalWithoutDevelopers, rc.accumulatedRewards)
-	log.Debug("arithmetic difference in end of epoch rewards economics", "value", difference)
+	log.Debug("arithmetic difference in end of epoch rewards economics", "epoch", metaBlock.Epoch, "value", difference)
 	rc.adjustProtocolSustainabilityRewards(protSustRwdTx, difference)
 	err = rc.addProtocolRewardToMiniBlocks(protSustRwdTx, miniBlocks, protSustShardId)
 	if err != nil {

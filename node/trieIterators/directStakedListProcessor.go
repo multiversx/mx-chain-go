@@ -1,12 +1,11 @@
 package trieIterators
 
 import (
-	"context"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/api"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
@@ -53,8 +52,7 @@ func (dslp *directStakedListProcessor) getAllStakedAccounts(validatorAccount sta
 		return nil, err
 	}
 
-	ctx := context.Background()
-	chLeaves, err := validatorAccount.DataTrie().GetAllLeavesOnChannel(rootHash, ctx)
+	chLeaves, err := validatorAccount.DataTrie().GetAllLeavesOnChannel(rootHash)
 	if err != nil {
 		return nil, err
 	}

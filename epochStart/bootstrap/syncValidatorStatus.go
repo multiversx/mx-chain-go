@@ -4,14 +4,14 @@ import (
 	"context"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -43,10 +43,17 @@ type ArgsNewSyncValidatorStatus struct {
 	PubKey                    []byte
 	ShardIdAsObserver         uint32
 	WaitingListFixEnableEpoch uint32
+	ChanNodeStop              chan endProcess.ArgEndProcess
+	NodeTypeProvider          NodeTypeProviderHandler
+	IsFullArchive             bool
 }
 
 // NewSyncValidatorStatus creates a new validator status process component
 func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStatus, error) {
+	if args.ChanNodeStop == nil {
+		return nil, sharding.ErrNilNodeStopChannel
+	}
+
 	s := &syncValidatorStatus{
 		dataPool:           args.DataPool,
 		marshalizer:        args.Marshalizer,
@@ -100,6 +107,9 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 		ConsensusGroupCache:        consensusGroupCache,
 		ShuffledOutHandler:         disabled.NewShuffledOutHandler(),
 		WaitingListFixEnabledEpoch: args.WaitingListFixEnableEpoch,
+		ChanStopNode:               args.ChanNodeStop,
+		NodeTypeProvider:           args.NodeTypeProvider,
+		IsFullArchive:              args.IsFullArchive,
 	}
 	baseNodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argsNodesCoordinator)
 	if err != nil {
@@ -170,14 +180,7 @@ func findPeerMiniBlockHeaders(metaBlock *block.MetaBlock) []block.MiniBlockHeade
 			continue
 		}
 
-		shardMBHdr := block.MiniBlockHeader{
-			Hash:            mbHeader.Hash,
-			ReceiverShardID: mbHeader.ReceiverShardID,
-			SenderShardID:   core.MetachainShardId,
-			TxCount:         mbHeader.TxCount,
-			Type:            mbHeader.Type,
-		}
-		shardMBHeaders = append(shardMBHeaders, shardMBHdr)
+		shardMBHeaders = append(shardMBHeaders, mbHeader)
 	}
 	return shardMBHeaders
 }

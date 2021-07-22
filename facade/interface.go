@@ -3,23 +3,21 @@ package facade
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
-	"github.com/ElrondNetwork/elrond-go/data/api"
-	"github.com/ElrondNetwork/elrond-go/data/esdt"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
+	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
+	"github.com/ElrondNetwork/elrond-go/state"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // NodeHandler contains all functions that a node should contain.
 type NodeHandler interface {
-	// StartConsensus will start the consesus service for the current node
-	StartConsensus() error
-
 	// GetBalance returns the balance for a specific address
 	GetBalance(address string) (*big.Int, error)
 
@@ -91,7 +89,7 @@ type NodeHandler interface {
 
 // TransactionSimulatorProcessor defines the actions which a transaction simulator processor has to implement
 type TransactionSimulatorProcessor interface {
-	ProcessTx(tx *transaction.Transaction) (*transaction.SimulationResults, error)
+	ProcessTx(tx *transaction.Transaction) (*txSimData.SimulationResults, error)
 	IsInterfaceNil() bool
 }
 
@@ -103,6 +101,7 @@ type ApiResolver interface {
 	GetTotalStakedValue() (*api.StakeValues, error)
 	GetDirectStakedList() ([]*api.DirectStakedValue, error)
 	GetDelegatorsList() ([]*api.Delegator, error)
+	Close() error
 	IsInterfaceNil() bool
 }
 

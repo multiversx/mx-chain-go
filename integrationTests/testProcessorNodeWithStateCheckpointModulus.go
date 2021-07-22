@@ -1,13 +1,17 @@
 package integrationTests
 
 import (
-	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
+	"sync"
+
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
+	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
-	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 )
 
 // NewTestProcessorNodeWithStateCheckpointModulus creates a new testNodeProcessor with custom state checkpoint modulus
@@ -68,8 +72,10 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		HeaderIntegrityVerifier: CreateHeaderIntegrityVerifier(),
 		ChainID:                 ChainID,
 		MinTransactionVersion:   MinTransactionVersion,
-		HistoryRepository:       &testscommon.HistoryRepositoryStub{},
+		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
+		ArwenChangeLocker:       &sync.RWMutex{},
+		TransactionLogProcessor: transactionLog.NewPrintTxLogProcessor(),
 	}
 	tpn.NodesSetup = nodesSetup
 
@@ -81,7 +87,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 	tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, txSignPrivKeyShardId)
 	tpn.initDataPools()
 	tpn.initHeaderValidator()
-	tpn.initRounder()
+	tpn.initRoundHandler()
 	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
 	tpn.initStorage()
 	tpn.initAccountDBs(CreateMemUnit())
@@ -127,6 +133,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		tpn.OwnAccount.PeerSigHandler,
 		tpn.DataPool.Headers(),
 		tpn.InterceptorsContainer,
+		&testscommon.AlarmSchedulerStub{},
 	)
 	tpn.setGenesisBlock()
 	tpn.initNode()

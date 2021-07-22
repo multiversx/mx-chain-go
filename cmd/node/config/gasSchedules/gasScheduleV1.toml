@@ -12,6 +12,9 @@
     ESDTNFTBurn              = 500000
     ESDTNFTTransfer          = 500000
     ESDTNFTChangeCreateOwner = 1000000
+    ESDTNFTAddUri            = 500000
+    ESDTNFTUpdateAttributes  = 500000
+    ESDTNFTMultiTransfer     = 1000000
 
 [MetaChainSystemSCsCost]
     Stake                 = 5000000
@@ -138,6 +141,9 @@
     BigIntAdd                = 100
     BigIntSub                = 100
     BigIntMul                = 600
+    BigIntSqrt               = 6000
+    BigIntPow                = 6000
+    BigIntLog                = 6000
     BigIntTDiv               = 100
     BigIntTMod               = 100
     BigIntEDiv               = 100
@@ -169,6 +175,16 @@
     VerifyBLS       = 1000
     VerifyEd25519   = 1000
     VerifySecp256k1 = 1000
+    EllipticCurveNew       = 10000
+    AddECC                 = 75000
+    DoubleECC              = 65000
+    IsOnCurveECC           = 10000
+    ScalarMultECC          = 400000
+    MarshalECC             = 13000
+    MarshalCompressedECC   = 15000
+    UnmarshalECC           = 20000
+    UnmarshalCompressedECC = 270000
+    GenerateKeyECC         = 700000
 
 [WASMOpcodeCost]
     Unreachable = 1
