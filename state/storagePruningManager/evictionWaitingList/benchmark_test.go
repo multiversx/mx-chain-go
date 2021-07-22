@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/mock"
@@ -17,35 +16,32 @@ var testHashes map[string]temporary.ModifiedHashes
 var roothashes []string
 var hashes [][]byte
 
-var ewlEvict *evictionWaitingList
-var ewlEvict2 *evictionWaitingListV2
-
 func initTestHashes() {
 	if testHashes == nil {
 		testHashes, roothashes, hashes = generateTestHashes(10000, 100)
 	}
 }
 
-func initEvictEWL() {
-	if check.IfNil(ewlEvict) {
-		initTestHashes()
-		ewlEvict, _ = NewEvictionWaitingList(10000, mock.NewMemDbMock(), &marshal.GogoProtoMarshalizer{})
+func initEWL() *evictionWaitingList {
+	initTestHashes()
+	ewl, _ := NewEvictionWaitingList(100000, mock.NewMemDbMock(), &marshal.GogoProtoMarshalizer{})
 
-		for _, roothash := range roothashes {
-			_ = ewlEvict.Put([]byte(roothash), testHashes[roothash])
-		}
+	for _, roothash := range roothashes {
+		_ = ewl.Put([]byte(roothash), testHashes[roothash])
 	}
+
+	return ewl
 }
 
-func initEvictEWL2() {
-	if check.IfNil(ewlEvict2) {
-		initTestHashes()
-		ewlEvict2, _ = NewEvictionWaitingListV2(10000, mock.NewMemDbMock(), &marshal.GogoProtoMarshalizer{})
+func initMemoryEWL() *memoryEvictionWaitingList {
+	initTestHashes()
+	ewl, _ := NewMemoryEvictionWaitingListV2(100000, &marshal.GogoProtoMarshalizer{})
 
-		for _, roothash := range roothashes {
-			_ = ewlEvict2.Put([]byte(roothash), testHashes[roothash])
-		}
+	for _, roothash := range roothashes {
+		_ = ewl.Put([]byte(roothash), testHashes[roothash])
 	}
+
+	return ewl
 }
 
 func generateTestHashes(numRoothashes int, numHashesOnRoothash int) (map[string]temporary.ModifiedHashes, []string, [][]byte) {
@@ -110,43 +106,8 @@ func BenchmarkEvictionWaitingList_Put(b *testing.B) {
 	}
 }
 
-func BenchmarkEvictionWaitingList_Evict(b *testing.B) {
-	initEvictEWL()
-	b.ResetTimer()
-
-	b.StopTimer()
-	for i := 0; i < b.N; i++ {
-		idx := i % len(roothashes)
-		roothash := roothashes[idx]
-
-		b.StartTimer()
-		evicted, err := ewlEvict.Evict([]byte(roothash))
-		b.StopTimer()
-		require.Nil(b, err)
-		require.True(b, len(evicted) > 0)
-
-		_ = ewlEvict.Put([]byte(roothash), testHashes[roothash])
-	}
-}
-
-func BenchmarkEvictionWaitingList_ShouldKeep(b *testing.B) {
-	initEvictEWL()
-	b.ResetTimer()
-
-	b.StopTimer()
-	for i := 0; i < b.N; i++ {
-		idx := i % len(hashes)
-		hash := hashes[idx]
-
-		b.StartTimer()
-		_, err := ewlEvict.ShouldKeepHash(string(hash), temporary.TriePruningIdentifier(i%2))
-		b.StopTimer()
-		require.Nil(b, err)
-	}
-}
-
-func BenchmarkEvictionWaitingListV2_Put(b *testing.B) {
-	ewl, err := NewEvictionWaitingListV2(10000, mock.NewMemDbMock(), &marshal.GogoProtoMarshalizer{})
+func BenchmarkMemoryEvictionWaitingList_Put(b *testing.B) {
+	ewl, err := NewMemoryEvictionWaitingListV2(10000, &marshal.GogoProtoMarshalizer{})
 	require.Nil(b, err)
 	initTestHashes()
 	b.ResetTimer()
@@ -164,8 +125,8 @@ func BenchmarkEvictionWaitingListV2_Put(b *testing.B) {
 	}
 }
 
-func BenchmarkEvictionWaitingListV2_Evict(b *testing.B) {
-	initEvictEWL2()
+func BenchmarkEvictionWaitingList_Evict(b *testing.B) {
+	ewl := initEWL()
 	b.ResetTimer()
 
 	b.StopTimer()
@@ -174,17 +135,36 @@ func BenchmarkEvictionWaitingListV2_Evict(b *testing.B) {
 		roothash := roothashes[idx]
 
 		b.StartTimer()
-		evicted, err := ewlEvict2.Evict([]byte(roothash))
+		evicted, err := ewl.Evict([]byte(roothash))
 		b.StopTimer()
 		require.Nil(b, err)
 		require.True(b, len(evicted) > 0)
 
-		_ = ewlEvict2.Put([]byte(roothash), testHashes[roothash])
+		_ = ewl.Put([]byte(roothash), testHashes[roothash])
 	}
 }
 
-func BenchmarkEvictionWaitingListV2_ShouldKeep(b *testing.B) {
-	initEvictEWL2()
+func BenchmarkMemoryEvictionWaitingList_Evict(b *testing.B) {
+	ewl := initMemoryEWL()
+	b.ResetTimer()
+
+	b.StopTimer()
+	for i := 0; i < b.N; i++ {
+		idx := i % len(roothashes)
+		roothash := roothashes[idx]
+
+		b.StartTimer()
+		evicted, err := ewl.Evict([]byte(roothash))
+		b.StopTimer()
+		require.Nil(b, err)
+		require.True(b, len(evicted) > 0)
+
+		_ = ewl.Put([]byte(roothash), testHashes[roothash])
+	}
+}
+
+func BenchmarkEvictionWaitingList_ShouldKeep(b *testing.B) {
+	ewl := initEWL()
 	b.ResetTimer()
 
 	b.StopTimer()
@@ -193,7 +173,23 @@ func BenchmarkEvictionWaitingListV2_ShouldKeep(b *testing.B) {
 		hash := hashes[idx]
 
 		b.StartTimer()
-		_, err := ewlEvict2.ShouldKeepHash(string(hash), temporary.TriePruningIdentifier(i%2))
+		_, err := ewl.ShouldKeepHash(string(hash), temporary.TriePruningIdentifier(i%2))
+		b.StopTimer()
+		require.Nil(b, err)
+	}
+}
+
+func BenchmarkMemoryEvictionWaitingList_ShouldKeep(b *testing.B) {
+	ewl := initMemoryEWL()
+	b.ResetTimer()
+
+	b.StopTimer()
+	for i := 0; i < b.N; i++ {
+		idx := i % len(hashes)
+		hash := hashes[idx]
+
+		b.StartTimer()
+		_, err := ewl.ShouldKeepHash(string(hash), temporary.TriePruningIdentifier(i%2))
 		b.StopTimer()
 		require.Nil(b, err)
 	}

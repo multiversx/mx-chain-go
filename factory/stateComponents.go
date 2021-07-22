@@ -2,10 +2,7 @@ package factory
 
 import (
 	"fmt"
-	"path"
-	"path/filepath"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/errors"
@@ -15,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/state/temporary"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 )
 
@@ -109,7 +105,7 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 func (scf *stateComponentsFactory) createAccountsAdapters() (state.AccountsAdapter, state.AccountsAdapter, error) {
 	accountFactory := factoryState.NewAccountCreator()
 	merkleTrie := scf.triesContainer.Get([]byte(trieFactory.UserAccountTrie))
-	storagePruning, err := scf.newStoragePruningManager(scf.config.AccountsTrieStorage)
+	storagePruning, err := scf.newStoragePruningManager()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -142,7 +138,7 @@ func (scf *stateComponentsFactory) createAccountsAdapters() (state.AccountsAdapt
 func (scf *stateComponentsFactory) createPeerAdapter() (state.AccountsAdapter, error) {
 	accountFactory := factoryState.NewPeerAccountCreator()
 	merkleTrie := scf.triesContainer.Get([]byte(trieFactory.PeerAccountTrie))
-	storagePruning, err := scf.newStoragePruningManager(scf.config.PeerAccountsTrieStorage)
+	storagePruning, err := scf.newStoragePruningManager()
 	if err != nil {
 		return nil, err
 	}
@@ -161,29 +157,11 @@ func (scf *stateComponentsFactory) createPeerAdapter() (state.AccountsAdapter, e
 	return peerAdapter, nil
 }
 
-func (scf *stateComponentsFactory) newStoragePruningManager(trieStorageCfg config.StorageConfig) (state.StoragePruningManager, error) {
-	shardID := core.GetShardIDString(scf.shardCoordinator.SelfId())
-	trieStoragePath, _ := path.Split(scf.core.PathHandler().PathForStatic(shardID, trieStorageCfg.DB.FilePath))
-
-	evictionWaitingListCfg := scf.config.EvictionWaitingList
-	arg := storageUnit.ArgDB{
-		DBType:            storageUnit.DBType(evictionWaitingListCfg.DB.Type),
-		Path:              filepath.Join(trieStoragePath, evictionWaitingListCfg.DB.FilePath),
-		BatchDelaySeconds: evictionWaitingListCfg.DB.BatchDelaySeconds,
-		MaxBatchSize:      evictionWaitingListCfg.DB.MaxBatchSize,
-		MaxOpenFiles:      evictionWaitingListCfg.DB.MaxOpenFiles,
-	}
-
-	evictionDb, err := storageUnit.NewDB(arg)
-	if err != nil {
-		return nil, err
-	}
-
-	trieEvictionWaitingList, err := evictionWaitingList.NewEvictionWaitingListV2(
+func (scf *stateComponentsFactory) newStoragePruningManager() (state.StoragePruningManager, error) {
+	trieEvictionWaitingList, err := evictionWaitingList.NewMemoryEvictionWaitingListV2(
 		scf.config.EvictionWaitingList.Size,
-		evictionDb,
 		scf.core.InternalMarshalizer(),
-	) //TODO add a factory
+	)
 	if err != nil {
 		return nil, err
 	}
