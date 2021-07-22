@@ -5,7 +5,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/node/trieIterators"
 	"github.com/ElrondNetwork/elrond-go/testscommon"

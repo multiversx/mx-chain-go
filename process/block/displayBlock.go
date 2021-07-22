@@ -5,15 +5,16 @@ import (
 	"math"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/counting"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/display"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/counting"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/display"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -59,7 +60,7 @@ func (txc *transactionCounter) displayLogInfo(
 	headerHash []byte,
 	numShards uint32,
 	selfId uint32,
-	dataPool dataRetriever.PoolsHolder,
+	_ dataRetriever.PoolsHolder,
 	appStatusHandler core.AppStatusHandler,
 	blockTracker process.BlockTracker,
 ) {
@@ -67,7 +68,7 @@ func (txc *transactionCounter) displayLogInfo(
 	dispHeader, dispLines := txc.createDisplayableShardHeaderAndBlockBody(header, body)
 
 	txc.mutex.RLock()
-	appStatusHandler.SetUInt64Value(core.MetricNumProcessedTxs, txc.totalTxs)
+	appStatusHandler.SetUInt64Value(common.MetricNumProcessedTxs, txc.totalTxs)
 	txc.mutex.RUnlock()
 
 	tblString, err := display.CreateTableString(dispHeader, dispLines)
@@ -175,7 +176,7 @@ func (txc *transactionCounter) displayTxBlockBody(lines []*display.LineData, bod
 
 		mbTypeStr := miniBlock.Type.String()
 		if miniBlock.IsScheduledMiniBlock() {
-			mbTypeStr = core.ScheduledBlock
+			mbTypeStr = common.ScheduledBlock
 		}
 
 		part := fmt.Sprintf("%s_MiniBlock_%d->%d",

@@ -3,10 +3,10 @@ package factory
 import (
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -147,6 +147,9 @@ func (m *managedProcessComponents) CheckSubcomponents() error {
 	}
 	if check.IfNilReflect(m.processComponents.arwenChangeLocker) {
 		return errors.ErrNilLocker
+	}
+	if check.IfNil(m.processComponents.currentEpochProvider) {
+		return errors.ErrNilCurrentEpochProvider
 	}
 	if check.IfNil(m.processComponents.scheduledTxsExecutionHandler) {
 		return errors.ErrNilScheduledTxsExecutionHandler
@@ -513,6 +516,18 @@ func (m *managedProcessComponents) ArwenChangeLocker() process.Locker {
 	}
 
 	return m.processComponents.arwenChangeLocker
+}
+
+// CurrentEpochProvider returns the current epoch provider that can decide if an epoch is active or not on the network
+func (m *managedProcessComponents) CurrentEpochProvider() process.CurrentNetworkEpochProviderHandler {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.currentEpochProvider
 }
 
 // ScheduledTxsExecutionHandler returns the scheduled transactions execution handler

@@ -1,8 +1,8 @@
 package mainFactoryMocks
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )

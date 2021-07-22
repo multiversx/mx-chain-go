@@ -3,8 +3,8 @@ package testscommon
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/headerVersionData"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/headerVersionData"
 )
 
 // HeaderHandlerStub -
@@ -325,7 +325,7 @@ func (hhs *HeaderHandlerStub) SetAccumulatedFeesInEpoch(_ *big.Int) error {
 }
 
 // SetScheduledRootHash -
-func (hhs *HeaderHandlerStub) SetScheduledRootHash(rootHash []byte) error {
+func (hhs *HeaderHandlerStub) SetScheduledRootHash(_ []byte) error {
 	panic("implement me")
 }
 

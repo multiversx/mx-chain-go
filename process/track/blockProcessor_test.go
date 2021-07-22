@@ -6,12 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 
-	"github.com/ElrondNetwork/elrond-go/data"
-	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	dataBlock "github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	processBlock "github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/mock"

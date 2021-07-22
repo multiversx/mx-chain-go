@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/counting"
-	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/counting"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -383,7 +383,7 @@ type ResolverDebugHandler interface {
 	IsInterfaceNil() bool
 }
 
-// CurrentNetworkEpochProviderHandler is an interface needed to get the current epoch from the network
+// CurrentNetworkEpochProviderHandler is an interface able to compute if the provided epoch is active on the network or not
 type CurrentNetworkEpochProviderHandler interface {
 	EpochIsActiveInNetwork(epoch uint32) bool
 	EpochConfirmed(newEpoch uint32, newTimestamp uint64)

@@ -5,11 +5,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus/broadcast"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -206,8 +206,8 @@ func TestMetaChainMessenger_BroadcastBlockDataLeader(t *testing.T) {
 
 	err := mcm.BroadcastBlockDataLeader(nil, miniBlocks, transactions)
 	require.Nil(t, err)
-	sleepTime := core.ExtraDelayBetweenBroadcastMbsAndTxs +
-		core.ExtraDelayForBroadcastBlockInfo +
+	sleepTime := common.ExtraDelayBetweenBroadcastMbsAndTxs +
+		common.ExtraDelayForBroadcastBlockInfo +
 		time.Millisecond*100
 	time.Sleep(sleepTime)
 

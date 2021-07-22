@@ -7,20 +7,21 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/closing"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/closing"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -102,6 +103,7 @@ type baseBootstrap struct {
 	syncStarter          syncStarter
 	bootStorer           process.BootStorer
 	storageBootstrapper  process.BootstrapperFromStorage
+	currentEpochProvider process.CurrentNetworkEpochProviderHandler
 
 	indexer          process.Indexer
 	accountsDBSyncer process.AccountsDBSyncer
@@ -240,6 +242,16 @@ func (boot *baseBootstrap) getNonceForCurrentBlock() uint64 {
 	return nonce
 }
 
+// getEpochOfCurrentBlock will get the epoch for the current block as stored in the chain handler implementation
+func (boot *baseBootstrap) getEpochOfCurrentBlock() uint32 {
+	epoch := boot.chainHandler.GetGenesisHeader().GetEpoch()
+	currentBlockHeader := boot.chainHandler.GetCurrentBlockHeader()
+	if !check.IfNil(currentBlockHeader) {
+		epoch = currentBlockHeader.GetEpoch()
+	}
+	return epoch
+}
+
 // waitForHeaderNonce method wait for header with the requested nonce to be received
 func (boot *baseBootstrap) waitForHeaderNonce() error {
 	select {
@@ -297,7 +309,7 @@ func (boot *baseBootstrap) computeNodeState() {
 		result = uint64(0)
 	}
 
-	boot.statusHandler.SetUInt64Value(core.MetricIsSyncing, result)
+	boot.statusHandler.SetUInt64Value(common.MetricIsSyncing, result)
 
 	if boot.shouldTryToRequestHeaders() {
 		go boot.requestHeadersIfSyncIsStuck()
@@ -444,6 +456,9 @@ func checkBootstrapNilParameters(arguments ArgBaseBootstrapper) error {
 	if check.IfNil(arguments.AccountsDBSyncer) {
 		return process.ErrNilAccountsDBSyncer
 	}
+	if check.IfNil(arguments.CurrentEpochProvider) {
+		return process.ErrNilCurrentNetworkEpochProvider
+	}
 	if check.IfNil(arguments.ScheduledTxsExecutionHandler) {
 		return process.ErrNilScheduledTxsExecutionHandler
 	}
@@ -536,7 +551,7 @@ func (boot *baseBootstrap) incrementSyncedWithErrorsForNonce(nonce uint64) uint3
 func (boot *baseBootstrap) syncBlock() error {
 	boot.computeNodeState()
 	nodeState := boot.GetNodeState()
-	if nodeState != core.NsNotSynchronized {
+	if nodeState != common.NsNotSynchronized {
 		return nil
 	}
 
@@ -547,7 +562,7 @@ func (boot *baseBootstrap) syncBlock() error {
 	}()
 
 	if boot.forkInfo.IsDetected {
-		boot.statusHandler.Increment(core.MetricNumTimesInForkChoice)
+		boot.statusHandler.Increment(common.MetricNumTimesInForkChoice)
 
 		if boot.isForcedRollBackOneBlock() {
 			log.Debug("roll back one block has been forced")
@@ -612,7 +627,7 @@ func (boot *baseBootstrap) syncBlock() error {
 	startCommitBlockTime := time.Now()
 	err = boot.blockProcessor.CommitBlock(header, body)
 	elapsedTime = time.Since(startCommitBlockTime)
-	if elapsedTime >= core.CommitMaxTime {
+	if elapsedTime >= common.CommitMaxTime {
 		log.Warn("syncBlock.CommitBlock", "elapsed time", elapsedTime)
 	} else {
 		log.Debug("elapsed time to commit block",
@@ -1021,9 +1036,13 @@ func (boot *baseBootstrap) requestHeaders(fromNonce uint64, toNonce uint64) {
 // that the node is already synced and it can participate to the consensus. This method could also returns 'NsNotCalculated'
 // which means that the state of the node in the current round is not calculated yet. Note that when the node is not
 // connected to the network, GetNodeState could return 'NsNotSynchronized' but the SyncBlock is not automatically called.
-func (boot *baseBootstrap) GetNodeState() core.NodeState {
+func (boot *baseBootstrap) GetNodeState() common.NodeState {
 	if boot.isInImportMode {
-		return core.NsNotSynchronized
+		return common.NsNotSynchronized
+	}
+	currentSyncedEpoch := boot.getEpochOfCurrentBlock()
+	if !boot.currentEpochProvider.EpochIsActiveInNetwork(currentSyncedEpoch) {
+		return common.NsNotSynchronized
 	}
 
 	boot.mutNodeState.RLock()
@@ -1032,14 +1051,14 @@ func (boot *baseBootstrap) GetNodeState() core.NodeState {
 	boot.mutNodeState.RUnlock()
 
 	if !isNodeStateCalculatedInCurrentRound {
-		return core.NsNotCalculated
+		return common.NsNotCalculated
 	}
 
 	if isNodeSynchronized {
-		return core.NsSynchronized
+		return common.NsSynchronized
 	}
 
-	return core.NsNotSynchronized
+	return common.NsNotSynchronized
 }
 
 // Close will close the endless running go routine

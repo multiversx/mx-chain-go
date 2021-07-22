@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core/versioning"
+	"github.com/ElrondNetwork/elrond-go-core/core/versioning"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"

@@ -9,9 +9,10 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -72,9 +73,23 @@ func (ldp *latestDataProvider) Get() (storage.LatestDataFromStorage, error) {
 
 // GetParentDirAndLastEpoch returns the parent directory and last epoch
 func (ldp *latestDataProvider) GetParentDirAndLastEpoch() (string, uint32, error) {
-	directoriesNames, err := ldp.directoryReader.ListDirectoriesAsString(ldp.parentDir)
+	epochDirs, err := ldp.getEpochDirs()
 	if err != nil {
 		return "", 0, err
+	}
+
+	lastEpoch, err := ldp.GetLastEpochFromDirNames(epochDirs, 0)
+	if err != nil {
+		return "", 0, err
+	}
+
+	return ldp.parentDir, lastEpoch, nil
+}
+
+func (ldp *latestDataProvider) getEpochDirs() ([]string, error) {
+	directoriesNames, err := ldp.directoryReader.ListDirectoriesAsString(ldp.parentDir)
+	if err != nil {
+		return nil, err
 	}
 
 	epochDirs := make([]string, 0, len(directoriesNames))
@@ -86,13 +101,7 @@ func (ldp *latestDataProvider) GetParentDirAndLastEpoch() (string, uint32, error
 
 		epochDirs = append(epochDirs, dirName)
 	}
-
-	lastEpoch, err := ldp.GetLastEpochFromDirNames(epochDirs)
-	if err != nil {
-		return "", 0, err
-	}
-
-	return ldp.parentDir, lastEpoch, nil
+	return epochDirs, nil
 }
 
 func (ldp *latestDataProvider) getLastEpochAndRoundFromStorage(parentDir string, lastEpoch uint32) (storage.LatestDataFromStorage, error) {
@@ -188,7 +197,7 @@ func (ldp *latestDataProvider) loadEpochStartRound(
 	key []byte,
 	storer storage.Storer,
 ) (uint64, error) {
-	trigInternalKey := append([]byte(core.TriggerRegistryKeyPrefix), key...)
+	trigInternalKey := append([]byte(common.TriggerRegistryKeyPrefix), key...)
 	data, err := storer.Get(trigInternalKey)
 	if err != nil {
 		return 0, err
@@ -214,7 +223,7 @@ func (ldp *latestDataProvider) loadEpochStartRound(
 }
 
 // GetLastEpochFromDirNames returns the last epoch found in storage directory
-func (ldp *latestDataProvider) GetLastEpochFromDirNames(epochDirs []string) (uint32, error) {
+func (ldp *latestDataProvider) GetLastEpochFromDirNames(epochDirs []string, index int) (uint32, error) {
 	if len(epochDirs) == 0 {
 		return 0, nil
 	}
@@ -236,7 +245,7 @@ func (ldp *latestDataProvider) GetLastEpochFromDirNames(epochDirs []string) (uin
 		return epochsInDirName[i] > epochsInDirName[j]
 	})
 
-	return epochsInDirName[0], nil
+	return epochsInDirName[index], nil
 }
 
 // GetShardsFromDirectory will return names of shards as string from a provided directory

@@ -7,8 +7,8 @@ package versionswitch_revert
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen/arwenvm"
 	"github.com/stretchr/testify/require"
@@ -31,7 +31,7 @@ func TestSCExecutionWithVMVersionSwitchingEpochRevert(t *testing.T) {
 		},
 	}
 
-	gasSchedule, _ := core.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
+	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
 	testContext, err := vm.CreateTxProcessorArwenWithVMConfig(
 		vm.ArgEnableEpoch{},
 		vmConfig,

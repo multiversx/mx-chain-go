@@ -7,12 +7,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/versioning"
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/versioning"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/api"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	hdrFactory "github.com/ElrondNetwork/elrond-go/factory/block"
 	mock2 "github.com/ElrondNetwork/elrond-go/factory/mock"
@@ -20,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/blockAPI"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/node/mock/factory"
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/bootstrapMocks"
@@ -603,7 +603,7 @@ func getDefaultBootstrapComponents() *mainFactoryMocks.BootstrapComponentsStub {
 	return &mainFactoryMocks.BootstrapComponentsStub{
 		Bootstrapper: &bootstrapMocks.EpochStartBootstrapperStub{
 			TrieHolder:      &mock.TriesHolderStub{},
-			StorageManagers: map[string]data.StorageManager{"0": &testscommon.StorageManagerStub{}},
+			StorageManagers: map[string]temporary.StorageManager{"0": &testscommon.StorageManagerStub{}},
 			BootstrapCalled: nil,
 		},
 		BootstrapParams:      &bootstrapMocks.BootstrapParamsHandlerMock{},

@@ -6,6 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/api/address"
 	"github.com/ElrondNetwork/elrond-go/api/block"
@@ -22,9 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/vmValues"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/facade"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"

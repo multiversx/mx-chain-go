@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	dataBlock "github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/process"

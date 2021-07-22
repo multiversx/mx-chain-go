@@ -164,19 +164,6 @@
         MaxBatchSize = 30000
         MaxOpenFiles = 10
 
-[TxLogsStorage]
-    [TxLogsStorage.Cache]
-        Name = "TxLogsStorage"
-        Capacity = 1000
-        Type = "SizeLRU"
-        SizeInBytes = 20971520 #20MB
-    [TxLogsStorage.DB]
-        FilePath = "Logs"
-        Type = "LvlDBSerial"
-        BatchDelaySeconds = 2
-        MaxBatchSize = 100
-        MaxOpenFiles = 10
-
 [UnsignedTransactionStorage]
     [UnsignedTransactionStorage.Cache]
         Name = "UnsignedTransactionStorage"
@@ -622,6 +609,7 @@
 
 [StateTriesConfig]
     CheckpointRoundsModulus = 100
+    CheckpointsEnabled = true
     AccountsStatePruningEnabled = true
     PeerStatePruningEnabled = true
     MaxStateTrieLevelInMemory = 5
@@ -732,6 +720,9 @@
         CallGCWhenShuffleOut = true
         ExtraPrintsOnShuffleOut = true
         DoProfileOnShuffleOut = true
+    [Debug.EpochStart]
+        GoRoutineAnalyserEnabled = true
+        ProcessDataTrieOnCommitEpoch = true
 
 [Health]
     IntervalVerifyMemoryInSeconds = 5
@@ -744,6 +735,20 @@
 [SoftwareVersionConfig]
     StableTagLocation = "https://api.github.com/repos/ElrondNetwork/elrond-go/releases/latest"
     PollingIntervalInMinutes = 65
+
+[LogsAndEvents]
+    SaveInStorageEnabled = false
+    [LogsAndEvents.TxLogsStorage.Cache]
+        Name = "TxLogsStorage"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 20971520 #20MB
+    [LogsAndEvents.TxLogsStorage.DB]
+        FilePath = "Logs"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
 
 [DbLookupExtensions]
     Enabled = false

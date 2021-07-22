@@ -4,9 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	dataBlock "github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
@@ -29,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/throttle"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
@@ -101,11 +101,13 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:      pcf.gasSchedule,
-		MapDNSAddresses:  mapDNSAddresses,
-		Marshalizer:      pcf.coreData.InternalMarshalizer(),
-		Accounts:         pcf.state.AccountsAdapter(),
-		ShardCoordinator: pcf.bootstrapComponents.ShardCoordinator(),
+		GasSchedule:                  pcf.gasSchedule,
+		MapDNSAddresses:              mapDNSAddresses,
+		Marshalizer:                  pcf.coreData.InternalMarshalizer(),
+		Accounts:                     pcf.state.AccountsAdapter(),
+		ShardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
+		EpochNotifier:                pcf.epochNotifier,
+		ESDTMultiTransferEnableEpoch: pcf.epochConfig.EnableEpochs.ESDTMultiTransferEnableEpoch,
 	}
 
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
@@ -192,13 +194,19 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
+	esdtTransferParser, err := parsers.NewESDTTransferParser(pcf.coreData.InternalMarshalizer())
+	if err != nil {
+		return nil, err
+	}
+
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:        pcf.coreData.AddressPubKeyConverter(),
 		ShardCoordinator:       pcf.bootstrapComponents.ShardCoordinator(),
-		BuiltInFuncNames:       builtInFuncs.Keys(),
+		BuiltInFunctions:       builtInFuncs,
 		ArgumentParser:         parsers.NewCallArgsParser(),
 		EpochNotifier:          pcf.coreData.EpochNotifier(),
 		RelayedTxV2EnableEpoch: pcf.epochConfig.EnableEpochs.RelayedTransactionsV2EnableEpoch,
+		ESDTTransferParser:     esdtTransferParser,
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
@@ -434,11 +442,13 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 ) (process.BlockProcessor, error) {
 
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:      pcf.gasSchedule,
-		MapDNSAddresses:  make(map[string]struct{}), // no dns for meta
-		Marshalizer:      pcf.coreData.InternalMarshalizer(),
-		Accounts:         pcf.state.AccountsAdapter(),
-		ShardCoordinator: pcf.bootstrapComponents.ShardCoordinator(),
+		GasSchedule:                  pcf.gasSchedule,
+		MapDNSAddresses:              make(map[string]struct{}), // no dns for meta
+		Marshalizer:                  pcf.coreData.InternalMarshalizer(),
+		Accounts:                     pcf.state.AccountsAdapter(),
+		ShardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
+		EpochNotifier:                pcf.epochNotifier,
+		ESDTMultiTransferEnableEpoch: pcf.epochConfig.EnableEpochs.ESDTMultiTransferEnableEpoch,
 	}
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	if err != nil {
@@ -516,13 +526,19 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
+	esdtTransferParser, err := parsers.NewESDTTransferParser(pcf.coreData.InternalMarshalizer())
+	if err != nil {
+		return nil, err
+	}
+
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:        pcf.coreData.AddressPubKeyConverter(),
 		ShardCoordinator:       pcf.bootstrapComponents.ShardCoordinator(),
-		BuiltInFuncNames:       builtInFuncs.Keys(),
+		BuiltInFunctions:       builtInFuncs,
 		ArgumentParser:         parsers.NewCallArgsParser(),
 		EpochNotifier:          pcf.coreData.EpochNotifier(),
 		RelayedTxV2EnableEpoch: pcf.epochConfig.EnableEpochs.RelayedTransactionsV2EnableEpoch,
+		ESDTTransferParser:     esdtTransferParser,
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {

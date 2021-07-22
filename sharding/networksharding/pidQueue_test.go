@@ -3,7 +3,7 @@ package networksharding
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -9,16 +9,17 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/postprocess"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -58,11 +59,11 @@ func createAccounts(tx data.TransactionHandler) (state.UserAccountHandler, state
 
 func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 	gasSchedule := make(map[string]map[string]uint64)
-	gasSchedule[core.ElrondAPICost] = make(map[string]uint64)
-	gasSchedule[core.ElrondAPICost][core.AsyncCallStepField] = 1000
-	gasSchedule[core.ElrondAPICost][core.AsyncCallbackGasLockField] = 3000
-	gasSchedule[core.BuiltInCost] = make(map[string]uint64)
-	gasSchedule[core.BuiltInCost][core.BuiltInFunctionESDTTransfer] = 2000
+	gasSchedule[common.ElrondAPICost] = make(map[string]uint64)
+	gasSchedule[common.ElrondAPICost][common.AsyncCallStepField] = 1000
+	gasSchedule[common.ElrondAPICost][common.AsyncCallbackGasLockField] = 3000
+	gasSchedule[common.BuiltInCost] = make(map[string]uint64)
+	gasSchedule[common.BuiltInCost][core.BuiltInFunctionESDTTransfer] = 2000
 
 	return ArgsNewSmartContractProcessor{
 		VmContainer: &mock.VMContainerMock{},
@@ -335,7 +336,7 @@ func TestNewSmartContractProcessor_ShouldRegisterNotifiers(t *testing.T) {
 
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.EpochNotifier = &epochNotifier.EpochNotifierStub{
-		RegisterNotifyHandlerCalled: func(handler core.EpochSubscriberHandler) {
+		RegisterNotifyHandlerCalled: func(handler vmcommon.EpochSubscriberHandler) {
 			epochNotifierRegisterCalled = true
 		},
 	}
@@ -395,13 +396,13 @@ func TestGasScheduleChangeNoApiCostShouldNotChange(t *testing.T) {
 	sc, _ := NewSmartContractProcessor(arguments)
 
 	gasSchedule := make(map[string]map[string]uint64)
-	gasSchedule[core.BuiltInCost] = nil
+	gasSchedule[common.BuiltInCost] = nil
 
 	sc.GasScheduleChange(gasSchedule)
 	require.Equal(t, sc.builtInGasCosts[core.BuiltInFunctionESDTNFTTransfer], uint64(0))
 
-	gasSchedule[core.BuiltInCost] = make(map[string]uint64)
-	gasSchedule[core.BuiltInCost][core.BuiltInFunctionESDTTransfer] = 2000
+	gasSchedule[common.BuiltInCost] = make(map[string]uint64)
+	gasSchedule[common.BuiltInCost][core.BuiltInFunctionESDTTransfer] = 2000
 	sc.GasScheduleChange(gasSchedule)
 	require.Equal(t, sc.builtInGasCosts[core.BuiltInFunctionESDTTransfer], uint64(2000))
 }
@@ -413,8 +414,8 @@ func TestGasScheduleChangeShouldWork(t *testing.T) {
 	sc, _ := NewSmartContractProcessor(arguments)
 
 	gasSchedule := make(map[string]map[string]uint64)
-	gasSchedule[core.BuiltInCost] = make(map[string]uint64)
-	gasSchedule[core.BuiltInCost][core.BuiltInFunctionESDTTransfer] = 20
+	gasSchedule[common.BuiltInCost] = make(map[string]uint64)
+	gasSchedule[common.BuiltInCost][core.BuiltInFunctionESDTTransfer] = 20
 
 	sc.GasScheduleChange(gasSchedule)
 
@@ -3872,4 +3873,47 @@ func computeExpectedResults(
 		expectedDevFees = core.GetApproximatePercentageOfValue(processFee, args.Economics.RewardsSettings.RewardsConfigByEpoch[0].DeveloperPercentage)
 	}
 	return expectedTotalFee, expectedDevFees
+}
+
+func TestMergeVmOutputLogs(t *testing.T) {
+	t.Parallel()
+
+	vmOutput1 := &vmcommon.VMOutput{
+		Logs: nil,
+	}
+
+	vmOutput2 := &vmcommon.VMOutput{
+		Logs: nil,
+	}
+
+	mergeVMOutputLogs(vmOutput1, vmOutput2)
+	require.Nil(t, vmOutput1.Logs)
+
+	vmOutput1 = &vmcommon.VMOutput{
+		Logs: nil,
+	}
+
+	vmOutput2 = &vmcommon.VMOutput{
+		Logs: []*vmcommon.LogEntry{
+			{},
+		},
+	}
+
+	mergeVMOutputLogs(vmOutput1, vmOutput2)
+	require.Len(t, vmOutput1.Logs, 1)
+
+	vmOutput1 = &vmcommon.VMOutput{
+		Logs: []*vmcommon.LogEntry{
+			{},
+		},
+	}
+
+	vmOutput2 = &vmcommon.VMOutput{
+		Logs: []*vmcommon.LogEntry{
+			{},
+		},
+	}
+
+	mergeVMOutputLogs(vmOutput1, vmOutput2)
+	require.Len(t, vmOutput1.Logs, 2)
 }

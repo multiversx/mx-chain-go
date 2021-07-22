@@ -1,6 +1,6 @@
 package disabled
 
-import "github.com/ElrondNetwork/elrond-go/core"
+import "github.com/ElrondNetwork/elrond-go-core/core"
 
 // AntifloodDebugger is a disabled instance of the antoiflood debugger
 type AntifloodDebugger struct {

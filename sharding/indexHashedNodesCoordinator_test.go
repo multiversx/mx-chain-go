@@ -12,14 +12,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
-	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/sharding/mock"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
@@ -1090,13 +1091,13 @@ func TestIndexHashedGroupSelector_GetAllWaitingValidatorsPublicKeys(t *testing.T
 func createBlockBodyFromNodesCoordinator(ihgs *indexHashedNodesCoordinator, epoch uint32) *block.Body {
 	body := &block.Body{MiniBlocks: make([]*block.MiniBlock, 0)}
 
-	mbs := createMiniBlocksForNodesMap(ihgs.nodesConfig[epoch].eligibleMap, string(core.EligibleList), ihgs.marshalizer)
+	mbs := createMiniBlocksForNodesMap(ihgs.nodesConfig[epoch].eligibleMap, string(common.EligibleList), ihgs.marshalizer)
 	body.MiniBlocks = append(body.MiniBlocks, mbs...)
 
-	mbs = createMiniBlocksForNodesMap(ihgs.nodesConfig[epoch].waitingMap, string(core.WaitingList), ihgs.marshalizer)
+	mbs = createMiniBlocksForNodesMap(ihgs.nodesConfig[epoch].waitingMap, string(common.WaitingList), ihgs.marshalizer)
 	body.MiniBlocks = append(body.MiniBlocks, mbs...)
 
-	mbs = createMiniBlocksForNodesMap(ihgs.nodesConfig[epoch].leavingMap, string(core.LeavingList), ihgs.marshalizer)
+	mbs = createMiniBlocksForNodesMap(ihgs.nodesConfig[epoch].leavingMap, string(common.LeavingList), ihgs.marshalizer)
 	body.MiniBlocks = append(body.MiniBlocks, mbs...)
 
 	return body
@@ -1177,7 +1178,7 @@ func TestIndexHashedNodesCoordinator_setNodesPerShardsShouldTriggerWrongConfigur
 	require.NoError(t, err)
 
 	value := <-chanStopNode
-	require.Equal(t, core.WrongConfiguration, value.Reason)
+	require.Equal(t, common.WrongConfiguration, value.Reason)
 }
 
 func TestIndexHashedNodesCoordinator_setNodesPerShardsShouldNotTriggerWrongConfiguration(t *testing.T) {
@@ -2014,14 +2015,14 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromListValidatorsWithFix
 
 	shard0Eligible0 := &state.ShardValidatorInfo{
 		PublicKey:  []byte("pk0"),
-		List:       string(core.EligibleList),
+		List:       string(common.EligibleList),
 		Index:      1,
 		TempRating: 2,
 		ShardId:    0,
 	}
 	shard0Eligible1 := &state.ShardValidatorInfo{
 		PublicKey:  []byte("pk1"),
-		List:       string(core.EligibleList),
+		List:       string(common.EligibleList),
 		Index:      2,
 		TempRating: 2,
 		ShardId:    0,
@@ -2029,35 +2030,35 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromListValidatorsWithFix
 	shardmetaEligible0 := &state.ShardValidatorInfo{
 		PublicKey:  []byte("pk2"),
 		ShardId:    core.MetachainShardId,
-		List:       string(core.EligibleList),
+		List:       string(common.EligibleList),
 		Index:      1,
 		TempRating: 4,
 	}
 	shard0Waiting0 := &state.ShardValidatorInfo{
 		PublicKey: []byte("pk3"),
-		List:      string(core.WaitingList),
+		List:      string(common.WaitingList),
 		Index:     14,
 		ShardId:   0,
 	}
 	shardmetaWaiting0 := &state.ShardValidatorInfo{
 		PublicKey: []byte("pk4"),
 		ShardId:   core.MetachainShardId,
-		List:      string(core.WaitingList),
+		List:      string(common.WaitingList),
 		Index:     15,
 	}
 	shard0New0 := &state.ShardValidatorInfo{
 		PublicKey: []byte("pk5"),
-		List:      string(core.NewList), Index: 3,
+		List:      string(common.NewList), Index: 3,
 		ShardId: 0,
 	}
 	shard0Leaving0 := &state.ShardValidatorInfo{
 		PublicKey: []byte("pk6"),
-		List:      string(core.LeavingList),
+		List:      string(common.LeavingList),
 		ShardId:   0,
 	}
 	shardMetaLeaving1 := &state.ShardValidatorInfo{
 		PublicKey: []byte("pk7"),
-		List:      string(core.LeavingList),
+		List:      string(common.LeavingList),
 		Index:     1,
 		ShardId:   core.MetachainShardId,
 	}
@@ -2142,14 +2143,14 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromListValidatorsNoFix(t
 
 	shard0Eligible0 := &state.ShardValidatorInfo{
 		PublicKey:  []byte("pk0"),
-		List:       string(core.EligibleList),
+		List:       string(common.EligibleList),
 		Index:      1,
 		TempRating: 2,
 		ShardId:    0,
 	}
 	shard0Eligible1 := &state.ShardValidatorInfo{
 		PublicKey:  []byte("pk1"),
-		List:       string(core.EligibleList),
+		List:       string(common.EligibleList),
 		Index:      2,
 		TempRating: 2,
 		ShardId:    0,
@@ -2157,35 +2158,35 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromListValidatorsNoFix(t
 	shardmetaEligible0 := &state.ShardValidatorInfo{
 		PublicKey:  []byte("pk2"),
 		ShardId:    core.MetachainShardId,
-		List:       string(core.EligibleList),
+		List:       string(common.EligibleList),
 		Index:      1,
 		TempRating: 4,
 	}
 	shard0Waiting0 := &state.ShardValidatorInfo{
 		PublicKey: []byte("pk3"),
-		List:      string(core.WaitingList),
+		List:      string(common.WaitingList),
 		Index:     14,
 		ShardId:   0,
 	}
 	shardmetaWaiting0 := &state.ShardValidatorInfo{
 		PublicKey: []byte("pk4"),
 		ShardId:   core.MetachainShardId,
-		List:      string(core.WaitingList),
+		List:      string(common.WaitingList),
 		Index:     15,
 	}
 	shard0New0 := &state.ShardValidatorInfo{
 		PublicKey: []byte("pk5"),
-		List:      string(core.NewList), Index: 3,
+		List:      string(common.NewList), Index: 3,
 		ShardId: 0,
 	}
 	shard0Leaving0 := &state.ShardValidatorInfo{
 		PublicKey: []byte("pk6"),
-		List:      string(core.LeavingList),
+		List:      string(common.LeavingList),
 		ShardId:   0,
 	}
 	shardMetaLeaving1 := &state.ShardValidatorInfo{
 		PublicKey: []byte("pk7"),
-		List:      string(core.LeavingList),
+		List:      string(common.LeavingList),
 		Index:     1,
 		ShardId:   core.MetachainShardId,
 	}

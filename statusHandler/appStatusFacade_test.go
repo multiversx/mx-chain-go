@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/mock"
 	"github.com/stretchr/testify/assert"
@@ -41,7 +41,7 @@ func TestAppStatusFacade_IncrementShouldPass(t *testing.T) {
 	t.Parallel()
 
 	chanDone := make(chan bool, 1)
-	var metricKey = core.MetricSynchronizedRound
+	var metricKey = common.MetricSynchronizedRound
 
 	// we create a new facade which contains a stub handler in order to test
 	appStatusHandlerStub := mock.AppStatusHandlerStub{
@@ -66,7 +66,7 @@ func TestAppStatusFacade_DecrementShouldPass(t *testing.T) {
 	t.Parallel()
 
 	chanDone := make(chan bool, 1)
-	var metricKey = core.MetricSynchronizedRound
+	var metricKey = common.MetricSynchronizedRound
 
 	// we create a new facade which contains a stub handler in order to test
 	appStatusHandlerStub := mock.AppStatusHandlerStub{
@@ -91,7 +91,7 @@ func TestAppStatusFacade_SetInt64ValueShouldPass(t *testing.T) {
 	t.Parallel()
 
 	chanDone := make(chan bool, 1)
-	var metricKey = core.MetricSynchronizedRound
+	var metricKey = common.MetricSynchronizedRound
 
 	// we create a new facade which contains a stub handler in order to test
 	appStatusHandlerStub := mock.AppStatusHandlerStub{
@@ -116,7 +116,7 @@ func TestAppStatusFacade_SetUint64ValueShouldPass(t *testing.T) {
 	t.Parallel()
 
 	chanDone := make(chan bool, 1)
-	var metricKey = core.MetricSynchronizedRound
+	var metricKey = common.MetricSynchronizedRound
 
 	// we create a new facade which contains a stub handler in order to test
 	appStatusHandlerStub := mock.AppStatusHandlerStub{
@@ -141,7 +141,7 @@ func TestAppStatusFacade_AddUint64ShouldPass(t *testing.T) {
 	t.Parallel()
 
 	chanDone := make(chan bool, 1)
-	var metricKey = core.MetricSynchronizedRound
+	var metricKey = common.MetricSynchronizedRound
 
 	// we create a new facade which contains a stub handler in order to test
 	appStatusHandlerStub := mock.AppStatusHandlerStub{
@@ -166,7 +166,7 @@ func TestAppStatusFacade_SetStringValueShouldPass(t *testing.T) {
 	t.Parallel()
 
 	chanDone := make(chan bool, 1)
-	var metricKey = core.MetricNodeDisplayName
+	var metricKey = common.MetricNodeDisplayName
 
 	// we create a new facade which contains a stub handler in order to test
 	appStatusHandlerStub := mock.AppStatusHandlerStub{

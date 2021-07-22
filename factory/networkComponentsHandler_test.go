@@ -3,7 +3,7 @@ package factory_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/stretchr/testify/require"
 )

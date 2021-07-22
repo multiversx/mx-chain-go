@@ -5,7 +5,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/testscommon"

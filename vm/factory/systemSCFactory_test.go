@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"testing"
 
-	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_3/config"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
@@ -213,7 +213,7 @@ func TestNewSystemSCFactory_GasScheduleChangeMissingElementsShouldNotPanic(t *te
 	arguments := createMockNewSystemScFactoryArgs()
 	scFactory, _ := NewSystemSCFactory(arguments)
 
-	gasSchedule, err := core.LoadGasScheduleConfig("../../cmd/node/config/gasSchedules/gasScheduleV3.toml")
+	gasSchedule, err := common.LoadGasScheduleConfig("../../cmd/node/config/gasSchedules/gasScheduleV3.toml")
 	delete(gasSchedule["MetaChainSystemSCsCost"], "UnstakeTokens")
 	require.Nil(t, err)
 
@@ -235,7 +235,7 @@ func TestNewSystemSCFactory_GasScheduleChangeShouldWork(t *testing.T) {
 	arguments := createMockNewSystemScFactoryArgs()
 	scFactory, _ := NewSystemSCFactory(arguments)
 
-	gasSchedule, err := core.LoadGasScheduleConfig("../../cmd/node/config/gasSchedules/gasScheduleV3.toml")
+	gasSchedule, err := common.LoadGasScheduleConfig("../../cmd/node/config/gasSchedules/gasScheduleV3.toml")
 	require.Nil(t, err)
 
 	scFactory.GasScheduleChange(gasSchedule)
