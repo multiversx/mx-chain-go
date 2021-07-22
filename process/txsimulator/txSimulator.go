@@ -12,7 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
+	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -75,7 +75,7 @@ func NewTransactionSimulator(args ArgsTxSimulator) (*transactionSimulator, error
 }
 
 // ProcessTx will process the transaction in a special environment, where state-writing is not allowed
-func (ts *transactionSimulator) ProcessTx(tx *transaction.Transaction) (*data.SimulationResults, error) {
+func (ts *transactionSimulator) ProcessTx(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
 	txStatus := transaction.TxStatusPending
 	failReason := ""
 
@@ -89,7 +89,7 @@ func (ts *transactionSimulator) ProcessTx(tx *transaction.Transaction) (*data.Si
 		}
 	}
 
-	results := &data.SimulationResults{
+	results := &txSimData.SimulationResults{
 		Status:     txStatus,
 		FailReason: failReason,
 	}
@@ -128,7 +128,7 @@ func (ts *transactionSimulator) getVMOutputOfTx(tx *transaction.Transaction) (*v
 	return vmOutput, true
 }
 
-func (ts *transactionSimulator) addIntermediateTxsToResult(result *data.SimulationResults) error {
+func (ts *transactionSimulator) addIntermediateTxsToResult(result *txSimData.SimulationResults) error {
 	defer func() {
 		processorsKeys := ts.intermProcContainer.Keys()
 		for _, procKey := range processorsKeys {

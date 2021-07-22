@@ -11,7 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
-	txSimulatorData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
+	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
 	"github.com/ElrondNetwork/elrond-go/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -89,7 +89,7 @@ type NodeHandler interface {
 
 // TransactionSimulatorProcessor defines the actions which a transaction simulator processor has to implement
 type TransactionSimulatorProcessor interface {
-	ProcessTx(tx *transaction.Transaction) (*txSimulatorData.SimulationResults, error)
+	ProcessTx(tx *transaction.Transaction) (*txSimData.SimulationResults, error)
 	IsInterfaceNil() bool
 }
 
