@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
@@ -44,17 +45,17 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilPool(t *testing.T
 	txs, err := NewSmartContractResultPreprocessor(
 		nil,
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		requestTransaction,
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -69,17 +70,17 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilStore(t *testing.
 	txs, err := NewSmartContractResultPreprocessor(
 		tdp.UnsignedTransactions(),
 		nil,
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		requestTransaction,
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -100,11 +101,11 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilHasher(t *testing
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		requestTransaction,
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -119,17 +120,17 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilMarsalizer(t *tes
 	txs, err := NewSmartContractResultPreprocessor(
 		tdp.UnsignedTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		nil,
 		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		requestTransaction,
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -144,17 +145,17 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilTxProce(t *testin
 	txs, err := NewSmartContractResultPreprocessor(
 		tdp.UnsignedTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		nil,
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		requestTransaction,
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -169,17 +170,17 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilShardCoord(t *tes
 	txs, err := NewSmartContractResultPreprocessor(
 		tdp.UnsignedTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.TxProcessorMock{},
 		nil,
 		&testscommon.AccountsStub{},
 		requestTransaction,
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -194,17 +195,17 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilAccounts(t *testi
 	txs, err := NewSmartContractResultPreprocessor(
 		tdp.UnsignedTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
 		nil,
 		requestTransaction,
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -218,17 +219,17 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilRequestFunc(t *te
 	txs, err := NewSmartContractResultPreprocessor(
 		tdp.UnsignedTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		nil,
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -243,7 +244,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilGasHandler(t *tes
 	txs, err := NewSmartContractResultPreprocessor(
 		tdp.UnsignedTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -252,8 +253,8 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilGasHandler(t *tes
 		nil,
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -268,17 +269,17 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorShouldWork(t *testin
 	txs, err := NewSmartContractResultPreprocessor(
 		tdp.UnsignedTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		requestTransaction,
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, err)
@@ -293,17 +294,17 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilPubkeyConverter(t
 	txs, err := NewSmartContractResultPreprocessor(
 		tdp.UnsignedTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		requestTransaction,
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		feeHandlerMock(),
 		nil,
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -318,17 +319,17 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilBlockSizeComputat
 	txs, err := NewSmartContractResultPreprocessor(
 		tdp.UnsignedTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		requestTransaction,
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
 		nil,
-		&mock.BalanceComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -343,16 +344,16 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilBalanceComputatio
 	txs, err := NewSmartContractResultPreprocessor(
 		tdp.UnsignedTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		requestTransaction,
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
 		nil,
 	)
 
@@ -368,17 +369,17 @@ func TestScrsPreProcessor_GetTransactionFromPool(t *testing.T) {
 	txs, _ := NewSmartContractResultPreprocessor(
 		tdp.UnsignedTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		requestTransaction,
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	txHash := []byte("tx1_hash")
@@ -397,17 +398,17 @@ func TestScrsPreprocessor_RequestTransactionNothingToRequestAsGeneratedAtProcess
 	txs, _ := NewSmartContractResultPreprocessor(
 		tdp.UnsignedTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.TxProcessorMock{},
 		shardCoord,
 		&testscommon.AccountsStub{},
 		requestTransaction,
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	shardId := uint32(1)
@@ -434,17 +435,17 @@ func TestScrsPreprocessor_RequestTransactionFromNetwork(t *testing.T) {
 	txs, _ := NewSmartContractResultPreprocessor(
 		tdp.UnsignedTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.TxProcessorMock{},
 		shardCoord,
 		&testscommon.AccountsStub{},
 		requestTransaction,
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	shardId := uint32(1)
@@ -470,17 +471,17 @@ func TestScrsPreprocessor_RequestBlockTransactionFromMiniBlockFromNetwork(t *tes
 	txs, _ := NewSmartContractResultPreprocessor(
 		tdp.UnsignedTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		requestTransaction,
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	shardId := uint32(1)
@@ -517,17 +518,17 @@ func TestScrsPreprocessor_ReceivedTransactionShouldEraseRequested(t *testing.T) 
 	txs, _ := NewSmartContractResultPreprocessor(
 		dataPool.UnsignedTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		requestTransaction,
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	//add 3 tx hashes on requested list
@@ -552,7 +553,7 @@ func TestScrsPreprocessor_ReceivedTransactionShouldEraseRequested(t *testing.T) 
 func TestScrsPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) {
 	t.Parallel()
 
-	hasher := mock.HasherMock{}
+	hasher := &hashingMocks.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	dataPool := testscommon.NewPoolsHolderMock()
 	senderShardId := uint32(0)
@@ -590,17 +591,17 @@ func TestScrsPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) {
 	txs, _ := NewSmartContractResultPreprocessor(
 		dataPool.UnsignedTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		requestTransaction,
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	mb := &block.MiniBlock{
@@ -632,17 +633,17 @@ func TestScrsPreprocessor_RemoveBlockDataFromPoolsNilBlockShouldErr(t *testing.T
 	txs, _ := NewSmartContractResultPreprocessor(
 		tdp.UnsignedTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		requestTransaction,
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	err := txs.RemoveBlockDataFromPools(nil, tdp.MiniBlocks())
@@ -659,17 +660,17 @@ func TestScrsPreprocessor_RemoveBlockDataFromPoolsOK(t *testing.T) {
 	txs, _ := NewSmartContractResultPreprocessor(
 		tdp.UnsignedTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		requestTransaction,
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	body := &block.Body{}
@@ -699,17 +700,17 @@ func TestScrsPreprocessor_IsDataPreparedErr(t *testing.T) {
 	txs, _ := NewSmartContractResultPreprocessor(
 		tdp.UnsignedTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		requestTransaction,
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	err := txs.IsDataPrepared(1, haveTime)
@@ -726,17 +727,17 @@ func TestScrsPreprocessor_IsDataPrepared(t *testing.T) {
 	txs, _ := NewSmartContractResultPreprocessor(
 		tdp.UnsignedTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		requestTransaction,
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	go func() {
@@ -758,17 +759,17 @@ func TestScrsPreprocessor_SaveTxsToStorage(t *testing.T) {
 	txs, _ := NewSmartContractResultPreprocessor(
 		tdp.UnsignedTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		requestTransaction,
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	body := &block.Body{}
@@ -797,17 +798,17 @@ func TestScrsPreprocessor_SaveTxsToStorageMissingTransactionsShouldErr(t *testin
 	txs, _ := NewSmartContractResultPreprocessor(
 		tdp.UnsignedTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		requestTransaction,
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	body := &block.Body{}
@@ -838,7 +839,7 @@ func TestScrsPreprocessor_ProcessBlockTransactions(t *testing.T) {
 	scr, _ := NewSmartContractResultPreprocessor(
 		tdp.UnsignedTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.TxProcessorMock{
 			ProcessSmartContractResultCalled: func(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error) {
@@ -848,11 +849,11 @@ func TestScrsPreprocessor_ProcessBlockTransactions(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		requestTransaction,
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	body := &block.Body{}
@@ -909,7 +910,7 @@ func TestScrsPreprocessor_ProcessMiniBlock(t *testing.T) {
 	scr, _ := NewSmartContractResultPreprocessor(
 		tdp.UnsignedTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.TxProcessorMock{
 			ProcessSmartContractResultCalled: func(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error) {
@@ -919,11 +920,11 @@ func TestScrsPreprocessor_ProcessMiniBlock(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		requestTransaction,
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	txHash := []byte("tx1_hash")
@@ -951,17 +952,17 @@ func TestScrsPreprocessor_ProcessMiniBlockWrongTypeMiniblockShouldErr(t *testing
 	scr, _ := NewSmartContractResultPreprocessor(
 		tdp.UnsignedTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		requestTransaction,
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	miniblock := block.MiniBlock{
@@ -1008,17 +1009,17 @@ func TestScrsPreprocessor_RestoreBlockDataIntoPools(t *testing.T) {
 	scr, _ := NewSmartContractResultPreprocessor(
 		dataPool.UnsignedTransactions(),
 		&scrstorage,
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		requestTransaction,
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	body := &block.Body{}
@@ -1050,17 +1051,17 @@ func TestScrsPreprocessor_RestoreBlockDataIntoPoolsNilMiniblockPoolShouldErr(t *
 	scr, _ := NewSmartContractResultPreprocessor(
 		tdp.UnsignedTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		requestTransaction,
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	body := &block.Body{}
@@ -1082,17 +1083,17 @@ func TestSmartContractResults_CreateBlockStartedShouldEmptyTxHashAndInfo(t *test
 	scr, _ := NewSmartContractResultPreprocessor(
 		tdp.UnsignedTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		requestTransaction,
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	scr.CreateBlockStarted()
@@ -1108,17 +1109,17 @@ func TestSmartContractResults_GetAllCurrentUsedTxs(t *testing.T) {
 	scr, _ := NewSmartContractResultPreprocessor(
 		tdp.UnsignedTransactions(),
 		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		requestTransaction,
-		&mock.GasHandlerMock{},
+		&testscommon.GasHandlerStub{},
 		feeHandlerMock(),
 		createMockPubkeyConverter(),
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
 	)
 
 	txshardInfo := txShardInfo{0, 3}

@@ -23,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -176,7 +177,7 @@ func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 		RoundHandler:                 &mock.RoundHandlerMock{},
 		BlockProcessor:               &mock.BlockProcessorMock{},
 		WaitTime:                     waitTime,
-		Hasher:                       &mock.HasherMock{},
+		Hasher:                       &hashingMocks.HasherMock{},
 		Marshalizer:                  &mock.MarshalizerMock{},
 		ForkDetector:                 &mock.ForkDetectorMock{},
 		RequestHandler:               &testscommon.RequestHandlerStub{},

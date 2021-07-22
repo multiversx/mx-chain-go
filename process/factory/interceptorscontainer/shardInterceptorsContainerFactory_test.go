@@ -13,6 +13,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
@@ -598,8 +600,8 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 	coreComponents := &mock.CoreComponentsMock{
 		IntMarsh:            &mock.MarshalizerMock{},
 		TxMarsh:             &mock.MarshalizerMock{},
-		TxSignHasherField:   &mock.HasherMock{},
-		Hash:                &mock.HasherMock{},
+		TxSignHasherField:   &hashingMocks.HasherMock{},
+		Hash:                &hashingMocks.HasherMock{},
 		UInt64ByteSliceConv: mock.NewNonceHashConverterMock(),
 		AddrPubKeyConv:      mock.NewPubkeyConverterMock(32),
 		ChainIdCalled: func() string {
@@ -608,7 +610,7 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 		MinTransactionVersionCalled: func() uint32 {
 			return 1
 		},
-		EpochNotifierField:  &mock.EpochNotifierStub{},
+		EpochNotifierField:  &epochNotifier.EpochNotifierStub{},
 		TxVersionCheckField: versioning.NewTxVersionChecker(1),
 	}
 	cryptoComponents := &mock.CryptoComponentsMock{

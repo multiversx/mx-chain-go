@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -111,11 +110,9 @@ type txsForBlock struct {
 }
 
 type basePreProcess struct {
+	gasTracker
 	hasher               hashing.Hasher
 	marshalizer          marshal.Marshalizer
-	shardCoordinator     sharding.Coordinator
-	gasHandler           process.GasHandler
-	economicsFee         process.FeeHandler
 	blockSizeComputation BlockSizeComputationHandler
 	balanceComputation   BalanceComputationHandler
 	accounts             state.AccountsAdapter
@@ -385,80 +382,6 @@ func (bpp *basePreProcess) requestMissingTxsForShard(
 	return requestedTxs
 }
 
-func (bpp *basePreProcess) computeGasConsumed(
-	senderShardId uint32,
-	receiverShardId uint32,
-	tx data.TransactionHandler,
-	txHash []byte,
-	gasInfo *gasConsumedInfo,
-) error {
-	gasConsumedByTxInSenderShard, gasConsumedByTxInReceiverShard, err := bpp.computeGasConsumedByTx(
-		senderShardId,
-		receiverShardId,
-		tx,
-		txHash)
-	if err != nil {
-		return err
-	}
-
-	gasConsumedByTxInSelfShard := uint64(0)
-	if bpp.shardCoordinator.SelfId() == senderShardId {
-		gasConsumedByTxInSelfShard = gasConsumedByTxInSenderShard
-
-		if gasInfo.gasConsumedByMiniBlockInReceiverShard+gasConsumedByTxInReceiverShard > bpp.economicsFee.MaxGasLimitPerBlock(bpp.shardCoordinator.SelfId()) {
-			return process.ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached
-		}
-	} else {
-		gasConsumedByTxInSelfShard = gasConsumedByTxInReceiverShard
-
-		if gasInfo.gasConsumedByMiniBlocksInSenderShard+gasConsumedByTxInSenderShard > bpp.economicsFee.MaxGasLimitPerBlock(senderShardId) {
-			return process.ErrMaxGasLimitPerMiniBlockInSenderShardIsReached
-		}
-	}
-
-	if gasInfo.totalGasConsumedInSelfShard+gasConsumedByTxInSelfShard > bpp.economicsFee.MaxGasLimitPerBlock(bpp.shardCoordinator.SelfId()) {
-		return process.ErrMaxGasLimitPerBlockInSelfShardIsReached
-	}
-
-	gasInfo.gasConsumedByMiniBlocksInSenderShard += gasConsumedByTxInSenderShard
-	gasInfo.gasConsumedByMiniBlockInReceiverShard += gasConsumedByTxInReceiverShard
-	gasInfo.totalGasConsumedInSelfShard += gasConsumedByTxInSelfShard
-	bpp.gasHandler.SetGasConsumed(gasConsumedByTxInSelfShard, txHash)
-
-	return nil
-}
-
-func (bpp *basePreProcess) computeGasConsumedByTx(
-	senderShardId uint32,
-	receiverShardId uint32,
-	tx data.TransactionHandler,
-	txHash []byte,
-) (uint64, uint64, error) {
-
-	txGasLimitInSenderShard, txGasLimitInReceiverShard, err := bpp.gasHandler.ComputeGasConsumedByTx(
-		senderShardId,
-		receiverShardId,
-		tx)
-	if err != nil {
-		return 0, 0, err
-	}
-
-	if core.IsSmartContractAddress(tx.GetRcvAddr()) {
-		txGasRefunded := bpp.gasHandler.GasRefunded(txHash)
-
-		if txGasLimitInReceiverShard < txGasRefunded {
-			return 0, 0, process.ErrInsufficientGasLimitInTx
-		}
-
-		if senderShardId == receiverShardId {
-			txGasLimitInSenderShard -= txGasRefunded
-			txGasLimitInReceiverShard -= txGasRefunded
-		}
-	}
-
-	return txGasLimitInSenderShard, txGasLimitInReceiverShard, nil
-}
-
 func (bpp *basePreProcess) saveAccountBalanceForAddress(address []byte) {
 	if bpp.balanceComputation.IsAddressSet(address) {
 		return
@@ -486,7 +409,7 @@ func (bpp *basePreProcess) getBalanceForAddress(address []byte) (*big.Int, error
 	return account.GetBalance(), nil
 }
 
-func (bpp *basePreProcess) getTxMaxTotalCost(txHandler data.TransactionHandler) *big.Int {
+func getTxMaxTotalCost(txHandler data.TransactionHandler) *big.Int {
 	cost := big.NewInt(0)
 	cost.Mul(big.NewInt(0).SetUint64(txHandler.GetGasPrice()), big.NewInt(0).SetUint64(txHandler.GetGasLimit()))
 

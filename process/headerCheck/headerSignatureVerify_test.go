@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -20,7 +21,7 @@ const defaultChancesSelection = 1
 func createHeaderSigVerifierArgs() *ArgsHeaderSigVerifier {
 	return &ArgsHeaderSigVerifier{
 		Marshalizer:             &mock.MarshalizerMock{},
-		Hasher:                  &mock.HasherMock{},
+		Hasher:                  &hashingMocks.HasherMock{},
 		NodesCoordinator:        &mock.NodesCoordinatorMock{},
 		MultiSigVerifier:        mock.NewMultiSigner(),
 		SingleSigVerifier:       &mock.SignerMock{},

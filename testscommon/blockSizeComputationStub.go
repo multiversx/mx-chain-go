@@ -1,4 +1,4 @@
-package mock
+package testscommon
 
 // BlockSizeComputationStub -
 type BlockSizeComputationStub struct {

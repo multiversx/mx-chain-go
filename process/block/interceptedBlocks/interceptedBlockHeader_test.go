@@ -12,12 +12,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 var testMarshalizer = &mock.MarshalizerMock{}
-var testHasher = mock.HasherMock{}
+var testHasher = &hashingMocks.HasherMock{}
 var hdrNonce = uint64(56)
 var hdrShardId = uint32(1)
 var hdrRound = uint64(67)

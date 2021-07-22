@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	consensusMocks "github.com/ElrondNetwork/elrond-go/testscommon/consensus"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 )
 
 // InitChronologyHandlerMock -
@@ -165,7 +166,7 @@ func InitConsensusCore() *ConsensusCoreMock {
 	}
 
 	chronologyHandlerMock := InitChronologyHandlerMock()
-	hasherMock := HasherMock{}
+	hasherMock := &hashingMocks.HasherMock{}
 	marshalizerMock := MarshalizerMock{}
 	blsPrivateKeyMock := &PrivateKeyMock{}
 	blsSingleSignerMock := &SingleSignerMock{

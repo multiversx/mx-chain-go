@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/disabled"
 	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,7 +19,7 @@ func TestNewPeerAccountsDB_WithNilTrieShouldErr(t *testing.T) {
 
 	adb, err := state.NewPeerAccountsDB(
 		nil,
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsFactoryStub{},
 		disabled.NewDisabledStoragePruningManager(),
@@ -48,7 +49,7 @@ func TestNewPeerAccountsDB_WithNilMarshalizerShouldErr(t *testing.T) {
 
 	adb, err := state.NewPeerAccountsDB(
 		&testscommon.TrieStub{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		nil,
 		&mock.AccountsFactoryStub{},
 		disabled.NewDisabledStoragePruningManager(),
@@ -63,7 +64,7 @@ func TestNewPeerAccountsDB_WithNilAddressFactoryShouldErr(t *testing.T) {
 
 	adb, err := state.NewPeerAccountsDB(
 		&testscommon.TrieStub{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		nil,
 		disabled.NewDisabledStoragePruningManager(),
@@ -78,7 +79,7 @@ func TestNewPeerAccountsDB_WithNilStoragePruningManagerShouldErr(t *testing.T) {
 
 	adb, err := state.NewPeerAccountsDB(
 		&testscommon.TrieStub{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsFactoryStub{},
 		nil,
@@ -101,7 +102,7 @@ func TestNewPeerAccountsDB_OkValsShouldWork(t *testing.T) {
 				}
 			},
 		},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsFactoryStub{},
 		disabled.NewDisabledStoragePruningManager(),
@@ -128,7 +129,7 @@ func TestNewPeerAccountsDB_SnapshotState(t *testing.T) {
 				}
 			},
 		},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsFactoryStub{},
 		disabled.NewDisabledStoragePruningManager(),
@@ -158,7 +159,7 @@ func TestNewPeerAccountsDB_SetStateCheckpoint(t *testing.T) {
 				}
 			},
 		},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsFactoryStub{},
 		disabled.NewDisabledStoragePruningManager(),
@@ -189,7 +190,7 @@ func TestNewPeerAccountsDB_RecreateAllTries(t *testing.T) {
 				return nil, nil
 			},
 		},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsFactoryStub{},
 		disabled.NewDisabledStoragePruningManager(),

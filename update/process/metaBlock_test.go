@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/assert"
@@ -18,7 +19,7 @@ import (
 
 func createMockBlockCreatorAfterHardFork() ArgsNewMetaBlockCreatorAfterHardFork {
 	return ArgsNewMetaBlockCreatorAfterHardFork{
-		Hasher:             &mock.HasherMock{},
+		Hasher:             &hashingMocks.HasherMock{},
 		ImportHandler:      &mock.ImportHandlerStub{},
 		Marshalizer:        &mock.MarshalizerMock{},
 		PendingTxProcessor: &mock.PendingTransactionProcessorStub{},

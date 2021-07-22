@@ -85,10 +85,13 @@ func NewRewardTxPreprocessor(
 	}
 
 	bpp := &basePreProcess{
-		hasher:               hasher,
-		marshalizer:          marshalizer,
-		shardCoordinator:     shardCoordinator,
-		gasHandler:           gasHandler,
+		hasher:      hasher,
+		marshalizer: marshalizer,
+		gasTracker: gasTracker{
+			shardCoordinator: shardCoordinator,
+			gasHandler:       gasHandler,
+			economicsFee:     nil,
+		},
 		blockSizeComputation: blockSizeComputation,
 		balanceComputation:   balanceComputation,
 		accounts:             accounts,

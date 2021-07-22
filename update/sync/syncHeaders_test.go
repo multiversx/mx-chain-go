@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/require"
@@ -25,7 +26,7 @@ func createMockHeadersSyncHandlerArgs() ArgsNewHeadersSyncHandler {
 		StorageService:   &mock.ChainStorerMock{},
 		Cache:            &mock.HeadersCacherStub{},
 		Marshalizer:      &mock.MarshalizerFake{},
-		Hasher:           &mock.HasherMock{},
+		Hasher:           &hashingMocks.HasherMock{},
 		EpochHandler:     &mock.EpochStartTriggerStub{},
 		RequestHandler:   &testscommon.RequestHandlerStub{},
 		Uint64Converter:  &mock.Uint64ByteSliceConverterStub{},

@@ -1,4 +1,4 @@
-package mock
+package epochNotifier
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -9,24 +9,24 @@ import (
 
 // EpochNotifierStub -
 type EpochNotifierStub struct {
-	NewEpochCalled              func(epoch uint32)
+	NewEpochCalled              func(epoch uint32, timestamp uint64)
+	RegisterHandlerCalled       func(handler epochStart.ActionHandler)
 	CheckEpochCalled            func(header data.HeaderHandler)
 	CurrentEpochCalled          func() uint32
 	RegisterNotifyHandlerCalled func(handler vmcommon.EpochSubscriberHandler)
-	RegisterHandlerCalled       func(handler epochStart.ActionHandler)
+}
+
+// NewEpoch -
+func (ens *EpochNotifierStub) NewEpoch(epoch uint32, timestamp uint64) {
+	if ens.NewEpochCalled != nil {
+		ens.NewEpochCalled(epoch, timestamp)
+	}
 }
 
 // RegisterHandler -
 func (ens *EpochNotifierStub) RegisterHandler(handler epochStart.ActionHandler) {
 	if ens.RegisterHandlerCalled != nil {
 		ens.RegisterHandlerCalled(handler)
-	}
-}
-
-// NewEpoch -
-func (ens *EpochNotifierStub) NewEpoch(epoch uint32) {
-	if ens.NewEpochCalled != nil {
-		ens.NewEpochCalled(epoch)
 	}
 }
 

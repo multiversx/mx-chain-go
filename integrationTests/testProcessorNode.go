@@ -89,6 +89,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/bootstrapMocks"
 	dblookupextMock "github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
@@ -669,7 +670,7 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 		RewardsHandler:       tpn.EconomicsData,
 		NodesSetup:           tpn.NodesSetup,
 		GenesisNonce:         tpn.BlockChain.GetGenesisHeader().GetNonce(),
-		EpochNotifier:        &mock.EpochNotifierStub{},
+		EpochNotifier:        &epochNotifier.EpochNotifierStub{},
 		StakingV2EnableEpoch: StakingV2Epoch,
 	}
 
@@ -973,7 +974,7 @@ func (tpn *TestProcessorNode) initEconomicsData(economicsConfig *config.Economic
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
 		Economics:                      economicsConfig,
 		PenalizedTooMuchGasEnableEpoch: 0,
-		EpochNotifier:                  &mock.EpochNotifierStub{},
+		EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
 		BuiltInFunctionsCostHandler:    &mock.BuiltInCostHandlerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
@@ -1132,7 +1133,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 		return tpn.MinTransactionVersion
 	}
 	coreComponents.TxVersionCheckField = versioning.NewTxVersionChecker(tpn.MinTransactionVersion)
-	coreComponents.EpochNotifierField = &mock.EpochNotifierStub{}
+	coreComponents.EpochNotifierField = &epochNotifier.EpochNotifierStub{}
 
 	cryptoComponents := GetDefaultCryptoComponents()
 	cryptoComponents.PubKey = nil
@@ -1959,7 +1960,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			ArgParser:     tpn.ArgsParser,
 			CurrTxs:       tpn.DataPool.CurrentBlockTxs(),
 			RatingsData:   tpn.RatingsData,
-			EpochNotifier: &mock.EpochNotifierStub{},
+			EpochNotifier: &epochNotifier.EpochNotifierStub{},
 		}
 		scToProtocolInstance, _ := scToProtocol.NewStakingToPeer(argsStakingToPeer)
 
@@ -2832,12 +2833,12 @@ func GetDefaultCoreComponents() *mock.CoreComponentsStub {
 		AlarmSchedulerField:    &testscommon.AlarmSchedulerStub{},
 		SyncTimerField:         &testscommon.SyncTimerStub{},
 		RoundHandlerField:      &testscommon.RoundHandlerMock{},
-		EconomicsDataField:     &economicsmocks.EconomicsHandlerMock{},
+		EconomicsDataField:     &economicsmocks.EconomicsHandlerStub{},
 		RatingsDataField:       &testscommon.RatingsInfoMock{},
 		RaterField:             &testscommon.RaterMock{},
 		GenesisNodesSetupField: &testscommon.NodesSetupStub{},
 		GenesisTimeField:       time.Time{},
-		EpochNotifierField:     &mock.EpochNotifierStub{},
+		EpochNotifierField:     &epochNotifier.EpochNotifierStub{},
 		TxVersionCheckField:    versioning.NewTxVersionChecker(MinTransactionVersion),
 	}
 }

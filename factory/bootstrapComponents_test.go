@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -160,11 +161,10 @@ func getDefaultCoreComponents() *mock.CoreComponentsMock {
 		AlarmSch:          &testscommon.AlarmSchedulerStub{},
 		NtpSyncTimer:      &testscommon.SyncTimerStub{},
 		RoundHandlerField: &testscommon.RoundHandlerMock{},
-		//TODO: uncomment this
-		//EconomicsHandler: &testscommon.EconomicsHandlerMock{},
-		RatingsConfig: &testscommon.RatingsInfoMock{},
-		RatingHandler: &testscommon.RaterMock{},
-		NodesConfig:   &testscommon.NodesSetupStub{},
-		StartTime:     time.Time{},
+		EconomicsHandler:  &economicsmocks.EconomicsHandlerStub{},
+		RatingsConfig:     &testscommon.RatingsInfoMock{},
+		RatingHandler:     &testscommon.RaterMock{},
+		NodesConfig:       &testscommon.NodesSetupStub{},
+		StartTime:         time.Time{},
 	}
 }

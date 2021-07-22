@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/sharding/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/stretchr/testify/assert"
@@ -78,7 +79,7 @@ func TestIndexHashedGroupSelectorWithRater_OkValShouldWork(t *testing.T) {
 		ShardConsensusGroupSize:    2,
 		MetaConsensusGroupSize:     1,
 		Marshalizer:                &mock.MarshalizerMock{},
-		Hasher:                     &mock.HasherMock{},
+		Hasher:                     &hashingMocks.HasherMock{},
 		Shuffler:                   nodeShuffler,
 		EpochStartNotifier:         epochStartSubscriber,
 		BootStorer:                 bootStorer,
@@ -173,7 +174,7 @@ func BenchmarkIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup63of400(b 
 		ShardConsensusGroupSize:    consensusGroupSize,
 		MetaConsensusGroupSize:     1,
 		Marshalizer:                &mock.MarshalizerMock{},
-		Hasher:                     &mock.HasherMock{},
+		Hasher:                     &hashingMocks.HasherMock{},
 		Shuffler:                   nodeShuffler,
 		EpochStartNotifier:         epochStartSubscriber,
 		BootStorer:                 bootStorer,
@@ -246,7 +247,7 @@ func Test_ComputeValidatorsGroup63of400(t *testing.T) {
 	arguments := ArgNodesCoordinator{
 		ShardConsensusGroupSize:    consensusGroupSize,
 		MetaConsensusGroupSize:     1,
-		Hasher:                     &mock.HasherMock{},
+		Hasher:                     &hashingMocks.HasherMock{},
 		Shuffler:                   nodeShuffler,
 		EpochStartNotifier:         epochStartSubscriber,
 		BootStorer:                 bootStorer,
@@ -318,7 +319,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 		ShardConsensusGroupSize:    1,
 		MetaConsensusGroupSize:     1,
 		Marshalizer:                &mock.MarshalizerMock{},
-		Hasher:                     &mock.HasherMock{},
+		Hasher:                     &hashingMocks.HasherMock{},
 		Shuffler:                   nodeShuffler,
 		EpochStartNotifier:         epochStartSubscriber,
 		BootStorer:                 bootStorer,
@@ -370,7 +371,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 		ShardConsensusGroupSize:    1,
 		MetaConsensusGroupSize:     1,
 		Marshalizer:                &mock.MarshalizerMock{},
-		Hasher:                     &mock.HasherMock{},
+		Hasher:                     &hashingMocks.HasherMock{},
 		Shuffler:                   nodeShuffler,
 		EpochStartNotifier:         epochStartSubscriber,
 		BootStorer:                 bootStorer,
@@ -436,7 +437,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldWork(t
 		ShardConsensusGroupSize:    1,
 		MetaConsensusGroupSize:     1,
 		Marshalizer:                &mock.MarshalizerMock{},
-		Hasher:                     &mock.HasherMock{},
+		Hasher:                     &hashingMocks.HasherMock{},
 		Shuffler:                   nodeShuffler,
 		EpochStartNotifier:         epochStartSubscriber,
 		BootStorer:                 bootStorer,
@@ -518,7 +519,7 @@ func TestIndexHashedGroupSelectorWithRater_GetAllEligibleValidatorsPublicKeys(t 
 		ShardConsensusGroupSize:    1,
 		MetaConsensusGroupSize:     1,
 		Marshalizer:                &mock.MarshalizerMock{},
-		Hasher:                     &mock.HasherMock{},
+		Hasher:                     &hashingMocks.HasherMock{},
 		Shuffler:                   nodeShuffler,
 		EpochStartNotifier:         epochStartSubscriber,
 		BootStorer:                 bootStorer,
@@ -826,7 +827,7 @@ func BenchmarkIndexHashedWithRaterGroupSelector_ComputeValidatorsGroup21of400(b 
 		ShardConsensusGroupSize:    consensusGroupSize,
 		MetaConsensusGroupSize:     1,
 		Marshalizer:                &mock.MarshalizerMock{},
-		Hasher:                     &mock.HasherMock{},
+		Hasher:                     &hashingMocks.HasherMock{},
 		Shuffler:                   nodeShuffler,
 		EpochStartNotifier:         epochStartSubscriber,
 		BootStorer:                 bootStorer,
