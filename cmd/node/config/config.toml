@@ -594,7 +594,7 @@
 
 [StateTriesConfig]
     CheckpointRoundsModulus = 100
-    CheckpointsEnabled = false
+    CheckpointsEnabled = true
     AccountsStatePruningEnabled = true
     PeerStatePruningEnabled = true
     MaxStateTrieLevelInMemory = 5
