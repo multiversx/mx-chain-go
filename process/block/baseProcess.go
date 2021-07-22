@@ -18,7 +18,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/statistics"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
@@ -79,7 +78,6 @@ type baseProcessor struct {
 	txCounter              *transactionCounter
 
 	indexer            process.Indexer
-	tpsBenchmark       statistics.TPSBenchmark
 	historyRepo        dblookupext.HistoryRepository
 	epochNotifier      process.EpochNotifier
 	vmContainerFactory process.VirtualMachinesContainerFactory
@@ -422,9 +420,6 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.StatusComponents.ElasticIndexer()) {
 		return process.ErrNilIndexer
-	}
-	if check.IfNil(arguments.StatusComponents.TpsBenchmark()) {
-		return process.ErrNilTpsBenchmark
 	}
 	if check.IfNil(arguments.HistoryRepository) {
 		return process.ErrNilHistoryRepository

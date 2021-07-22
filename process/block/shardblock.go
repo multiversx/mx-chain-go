@@ -77,7 +77,6 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		blockChain:                    arguments.DataComponents.Blockchain(),
 		feeHandler:                    arguments.FeeHandler,
 		indexer:                       arguments.StatusComponents.ElasticIndexer(),
-		tpsBenchmark:                  arguments.StatusComponents.TpsBenchmark(),
 		genesisNonce:                  genesisHdr.GetNonce(),
 		headerIntegrityVerifier:       arguments.BootstrapComponents.HeaderIntegrityVerifier(),
 		historyRepo:                   arguments.HistoryRepository,

@@ -5,9 +5,10 @@ go 1.13
 require (
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.26
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.25
+	github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.1
 	github.com/ElrondNetwork/concurrent-map v0.1.3
-	github.com/ElrondNetwork/elastic-indexer-go v1.0.8-0.20210720114535-9cb237812a1b
-	github.com/ElrondNetwork/elrond-go-core v0.0.2-0.20210720103648-e205e64083bc
+	github.com/ElrondNetwork/elastic-indexer-go v1.0.8-0.20210721120803-b76728c4b1ed
+	github.com/ElrondNetwork/elrond-go-core v1.0.0
 	github.com/ElrondNetwork/elrond-go-logger v1.0.4
 	github.com/ElrondNetwork/elrond-vm-common v1.1.0
 	github.com/beevik/ntp v0.3.0
@@ -51,3 +52,5 @@ replace github.com/gogo/protobuf => github.com/ElrondNetwork/protobuf v1.3.2
 replace github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.26 => github.com/ElrondNetwork/arwen-wasm-vm v1.2.26
 
 replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.25 => github.com/ElrondNetwork/arwen-wasm-vm v1.3.25
+
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.1 => github.com/ElrondNetwork/arwen-wasm-vm v1.4.2-0.20210720092934-6b2c1c46a8ae

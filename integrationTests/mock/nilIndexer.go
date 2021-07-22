@@ -3,7 +3,6 @@ package mock
 import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
-	"github.com/ElrondNetwork/elrond-go/common/statistics"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
@@ -18,10 +17,6 @@ func (ni *NilIndexer) SaveBlock(_ *indexer.ArgsSaveBlockData) {
 
 // SetTxLogsProcessor will do nothing
 func (ni *NilIndexer) SetTxLogsProcessor(_ process.TransactionLogProcessorDatabase) {
-}
-
-// UpdateTPS will do nothing
-func (ni *NilIndexer) UpdateTPS(_ statistics.TPSBenchmark) {
 }
 
 // SaveValidatorsRating does nothing

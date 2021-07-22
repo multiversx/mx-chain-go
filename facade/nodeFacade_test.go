@@ -16,7 +16,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/common/statistics"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/facade/mock"
@@ -234,18 +233,6 @@ func TestNodeFacade_GetTransactionWithValidInputsShouldNotReturnError(t *testing
 	tx, err := nf.GetTransaction(testHash, false)
 	assert.Nil(t, err)
 	assert.Equal(t, testTx, tx)
-}
-
-func TestNodeFacade_SetAndGetTpsBenchmark(t *testing.T) {
-	t.Parallel()
-
-	arg := createMockArguments()
-	nf, _ := NewNodeFacade(arg)
-
-	tpsBench, _ := statistics.NewTPSBenchmark(2, 5)
-	nf.SetTpsBenchmark(tpsBench)
-	assert.Equal(t, tpsBench.NrOfShards(), nf.TpsBenchmark().NrOfShards())
-	assert.Equal(t, tpsBench.RoundTime(), nf.TpsBenchmark().RoundTime())
 }
 
 func TestNodeFacade_GetTransactionWithUnknowHashShouldReturnNilAndNoError(t *testing.T) {

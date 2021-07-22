@@ -2,16 +2,12 @@ package factory
 
 import (
 	"fmt"
-	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/metrics"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/statistics"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/persister"
@@ -93,62 +89,6 @@ func (shi *statusHandlersInfo) UpdateStorerAndMetricsForPersistentHandler(store 
 	}
 
 	return nil
-}
-
-// LoadTpsBenchmarkFromStorage will try to load tps benchmark from storage or zero values otherwise
-func (shi *statusHandlersInfo) LoadTpsBenchmarkFromStorage(
-	store storage.Storer,
-	marshalizer marshal.Marshalizer,
-) *statistics.TpsPersistentData {
-	emptyTpsBenchmarks := &statistics.TpsPersistentData{
-		BlockNumber:           0,
-		RoundNumber:           0,
-		PeakTPS:               0,
-		AverageBlockTxCount:   big.NewInt(0),
-		TotalProcessedTxCount: big.NewInt(0),
-		LastBlockTxCount:      0,
-	}
-	lastNonceBytes, err := store.Get([]byte(common.LastNonceKeyMetricsStorage))
-	if err != nil {
-		log.Debug("cannot load last nonce from metrics storage", "error", err, "key", []byte("lastNonce"))
-		return emptyTpsBenchmarks
-	}
-
-	lastDataList, err := store.Get(lastNonceBytes)
-	if err != nil {
-		log.Debug("cannot load metrics from storage", "error", err, "key", lastNonceBytes)
-		return emptyTpsBenchmarks
-	}
-
-	metricsList := &metrics.MetricsList{}
-	err = marshalizer.Unmarshal(metricsList, lastDataList)
-	if err != nil {
-		log.Debug("cannot unmarshal persistent metrics", "error", err)
-		return emptyTpsBenchmarks
-	}
-
-	metricsMap := metrics.MapFromList(metricsList)
-
-	okTpsBenchmarks := &statistics.TpsPersistentData{}
-
-	okTpsBenchmarks.BlockNumber = persister.GetUint64(metricsMap[common.MetricNonceForTPS])
-	okTpsBenchmarks.RoundNumber = persister.GetUint64(metricsMap[common.MetricCurrentRound])
-	okTpsBenchmarks.LastBlockTxCount = uint32(persister.GetUint64(metricsMap[common.MetricLastBlockTxCount]))
-	okTpsBenchmarks.PeakTPS = float64(persister.GetUint64(metricsMap[common.MetricPeakTPS]))
-	okTpsBenchmarks.TotalProcessedTxCount = big.NewInt(int64(persister.GetUint64(metricsMap[common.MetricNumProcessedTxsTPSBenchmark])))
-	okTpsBenchmarks.AverageBlockTxCount = persister.GetBigIntFromString(metricsMap[common.MetricAverageBlockTxCount])
-
-	shi.updateTpsMetrics(metricsMap)
-
-	log.Debug("loaded tps benchmark from storage",
-		"block number", okTpsBenchmarks.BlockNumber,
-		"round number", okTpsBenchmarks.RoundNumber,
-		"peak tps", okTpsBenchmarks.PeakTPS,
-		"last block tx count", okTpsBenchmarks.LastBlockTxCount,
-		"average block tx count", okTpsBenchmarks.AverageBlockTxCount,
-		"total txs processed", okTpsBenchmarks.TotalProcessedTxCount.String())
-
-	return okTpsBenchmarks
 }
 
 // StatusHandler returns the status handler

@@ -53,8 +53,7 @@ func createMockComponentHolders() (
 	}
 
 	statusComponents := &mock.StatusComponentsMock{
-		Indexer:      &mock.IndexerMock{},
-		TPSBenchmark: &testscommon.TpsBenchmarkMock{},
+		Indexer: &mock.IndexerMock{},
 	}
 
 	return coreComponents, dataComponents, boostrapComponents, statusComponents
