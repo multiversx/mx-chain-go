@@ -19,10 +19,7 @@ int unmarshalEC(int xResultHandle, int yResultHandle, int ecHandle, byte *dataOf
 int marshalCompressedEC(int xPairHandle, int yPairHandle, int ecHandle, byte *resultOffset);
 int unmarshalCompressedEC(int xResultHandle, int yResultHandle, int ecHandle, byte *dataOffset, int length);
 int generateKeyEC(int xPubKeyHandle, int yPubKeyHandle, int ecHandle, byte *resultOffset);
-int p224Ec();
-int p256Ec();
-int p384Ec();
-int p521Ec();
+int createEC(byte *dataOffset, int dataLength);
 int getCurveLengthEC(int ecHandle);
 int getPrivKeyByteLengthEC(int ecHandle);
 int ellipticCurveGetValues(int ecHandle, int fieldOrderHandle, int basePointOrderHandle, int eqConstantHandle, int xBasePointHandle, int yBasePointHandle);

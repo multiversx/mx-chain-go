@@ -20,6 +20,8 @@ typedef byte P256MCRESULT[33];
 typedef byte P384MCRESULT[49];
 typedef byte P521MCRESULT[67];
 
+const int ecNameLength = 4;
+
 byte scalar[] = {
         0xff, 0x2a, 0x26, 0x5f, 0x8b, 0xcb, 0xdc, 0xaf, 
         0xd5, 0x85, 0x19, 0x14, 0x1e, 0x57, 0x81, 0x24, 
@@ -40,7 +42,7 @@ byte scalar[] = {
     };
 
 const int numberOfReps = 10000;
-const lengthOfScalar = 60;
+const int lengthOfScalar = 60;
 
 void repeatAddEc(int numberOfTimes, int curveHandle, int xPointHandle, int yPointHandle);
 void repeatDoubleEc(int numberOfTimes, int curveHandle, int xPointHandle, int yPointHandle);
@@ -51,6 +53,10 @@ void repeatDoubleAndMarshalCompressed(int numberOfTimes, int curveHandle, int xP
 void repeatDoubleAndMarshalAndUnmarshalCompressed(int numberOfTimes, int curveHandle, int xPointHandle, int yPointHandle, byte marshalCompressedResult[], int sizeOfMarhsalCompressedResult);
 void repeatGenerateKey(int numberOfTimes, int curveHandle, int xPubKeyHandle, int yPubKeyHandle, byte privKey[]);
 void repeatDoubleAndScalarMult(int numberOfTimes, int curveHandle, int xPointHandle, int yPointHandle);
+int p224Ec();
+int p256Ec();
+int p384Ec();
+int p521Ec();
 
 void init() 
 {
@@ -823,4 +829,28 @@ void repeatDoubleAndScalarMult(int numberOfTimes, int curveHandle, int xPointHan
         doubleEC(xPointHandle, yPointHandle, curveHandle, xPointHandle, yPointHandle);
         scalarMultEC(xResult, yResult, curveHandle, xPointHandle, yPointHandle, scalar, lengthOfScalar);
     }
+}
+
+int p224Ec()
+{
+    byte p224name[] = {'p','2','2','4'};
+    return createEC(p224name,ecNameLength);
+}
+
+int p256Ec()
+{
+    byte p256name[] = {'p','2','5','6'};
+    return createEC(p256name,ecNameLength);
+}
+
+int p384Ec()
+{
+    byte p384name[] = {'p','3','8','4'};
+    return createEC(p384name,ecNameLength);
+}
+
+int p521Ec()
+{
+    byte p521name[] = {'p','5','2','1'};
+    return createEC(p521name,ecNameLength);
 }
