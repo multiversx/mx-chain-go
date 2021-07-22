@@ -233,6 +233,10 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 		return false
 	}
 
+	//TODO: Remove this line
+	if sr.RoundIndex%5 == 0 {
+		time.Sleep(time.Duration(float64(sr.RoundHandler().TimeDuration()) * float64(2)))
+	}
 	// broadcast header and final info section
 
 	// create and broadcast header final info

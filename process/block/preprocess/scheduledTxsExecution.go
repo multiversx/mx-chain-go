@@ -130,7 +130,7 @@ func (ste *scheduledTxsExecution) ExecuteAll(haveTime func() time.Duration) erro
 
 func (ste *scheduledTxsExecution) execute(txHandler data.TransactionHandler) error {
 	//TODO: Remove this line when processing of scheduled mini blocks will be done in the source shard
-	return nil
+	//return nil
 
 	tx, ok := txHandler.(*transaction.Transaction)
 	if !ok {
