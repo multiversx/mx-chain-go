@@ -136,6 +136,7 @@ copyTxGenConfig() {
   pushd $TESTNETDIR
 
   cp $TXGENDIR/config/config.toml ./txgen/config/
+  cp -r $TXGENDIR/config/nodeConfig ./txgen/config/nodeConfig
 
   cp $TXGENDIR/config/sc.toml ./txgen/config/
   cp $TXGENDIR/config/*.wasm ./txgen/config/
