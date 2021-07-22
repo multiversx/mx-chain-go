@@ -6,14 +6,15 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 )
 
@@ -195,7 +196,7 @@ func (mbb *miniBlocksBuilder) wouldExceedBlockSizeWithTx(tx *transaction.Transac
 		if !mbb.stats.firstCrossShardScCallOrSpecialTxFound {
 			numNewMiniBlocks++
 		}
-		numNewTxs += core.AdditionalScrForEachScCallOrSpecialTx
+		numNewTxs += common.AdditionalScrForEachScCallOrSpecialTx
 	}
 
 	return mbb.isMaxBlockSizeReached(numNewMiniBlocks, numNewTxs)
@@ -333,6 +334,6 @@ func (mbb *miniBlocksBuilder) handleCrossShardScCallOrSpecialTx() {
 		mbb.blockSizeComputation.AddNumMiniBlocks(1)
 	}
 	//we need to increment this as to account for the corresponding SCR hash
-	mbb.blockSizeComputation.AddNumTxs(core.AdditionalScrForEachScCallOrSpecialTx)
+	mbb.blockSizeComputation.AddNumTxs(common.AdditionalScrForEachScCallOrSpecialTx)
 	mbb.stats.numCrossShardSCCallsOrSpecialTxs++
 }
