@@ -222,7 +222,7 @@ func getArgumentsMeta() storageResolversContainers.FactoryArgs {
 		ShardIDForTries:          0,
 		ChainID:                  "T",
 		WorkingDirectory:         "",
-		Hasher:                   hashingMocks.HasherMock{},
+		Hasher:                   &hashingMocks.HasherMock{},
 		ShardCoordinator:         mock.NewOneShardCoordinatorMock(),
 		Messenger:                createStubTopicMessageHandlerForMeta("", ""),
 		Store:                    createStoreForMeta(),

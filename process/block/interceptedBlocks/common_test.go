@@ -15,7 +15,7 @@ import (
 func createDefaultBlockHeaderArgument() *ArgInterceptedBlockHeader {
 	arg := &ArgInterceptedBlockHeader{
 		ShardCoordinator:        mock.NewOneShardCoordinatorMock(),
-		Hasher:                  hashingMocks.HasherMock{},
+		Hasher:                  &hashingMocks.HasherMock{},
 		Marshalizer:             &mock.MarshalizerMock{},
 		HdrBuff:                 []byte("test buffer"),
 		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
@@ -29,7 +29,7 @@ func createDefaultBlockHeaderArgument() *ArgInterceptedBlockHeader {
 
 func createDefaultMiniblockArgument() *ArgInterceptedMiniblock {
 	arg := &ArgInterceptedMiniblock{
-		Hasher:           hashingMocks.HasherMock{},
+		Hasher:           &hashingMocks.HasherMock{},
 		Marshalizer:      &mock.MarshalizerMock{},
 		MiniblockBuff:    []byte("test buffer"),
 		ShardCoordinator: mock.NewOneShardCoordinatorMock(),

@@ -372,7 +372,7 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 	hdr := &block.Header{}
 	hdr.Nonce = 2
 	hdrStr, _ := mock.MarshalizerMock{}.Marshal(hdr)
-	hdrHash := hashingMocks.HasherMock{}.Compute(string(hdrStr))
+	hdrHash := (&hashingMocks.HasherMock{}).Compute(string(hdrStr))
 	cnsMsg = consensus.NewConsensusMessage(
 		hdrHash,
 		nil,
@@ -413,7 +413,7 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 	hdr = &block.Header{}
 	hdr.Nonce = 1
 	hdrStr, _ = mock.MarshalizerMock{}.Marshal(hdr)
-	hdrHash = hashingMocks.HasherMock{}.Compute(string(hdrStr))
+	hdrHash = (&hashingMocks.HasherMock{}).Compute(string(hdrStr))
 	cnsMsg.BlockHeaderHash = hdrHash
 	cnsMsg.Header = hdrStr
 	r = sr.ReceivedBlockHeader(cnsMsg)

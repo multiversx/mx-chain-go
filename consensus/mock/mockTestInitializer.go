@@ -166,7 +166,7 @@ func InitConsensusCore() *ConsensusCoreMock {
 	}
 
 	chronologyHandlerMock := InitChronologyHandlerMock()
-	hasherMock := hashingMocks.HasherMock{}
+	hasherMock := &hashingMocks.HasherMock{}
 	marshalizerMock := MarshalizerMock{}
 	blsPrivateKeyMock := &PrivateKeyMock{}
 	blsSingleSignerMock := &SingleSignerMock{

@@ -675,7 +675,7 @@ func TestBaseProcessor_SaveLastNotarizedInOneShardHdrsSliceForShardIsNil(t *test
 	coreComponents.IntMarsh = &mock.MarshalizerMock{}
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	sp, _ := blproc.NewShardProcessor(arguments)
-	prHdrs := createShardProcessHeadersToSaveLastNotarized(10, &block.Header{}, hashingMocks.HasherMock{}, &mock.MarshalizerMock{})
+	prHdrs := createShardProcessHeadersToSaveLastNotarized(10, &block.Header{}, &hashingMocks.HasherMock{}, &mock.MarshalizerMock{})
 
 	err := sp.SaveLastNotarizedHeader(2, prHdrs)
 
@@ -693,7 +693,7 @@ func TestBaseProcessor_SaveLastNotarizedInMultiShardHdrsSliceForShardIsNil(t *te
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	sp, _ := blproc.NewShardProcessor(arguments)
 
-	prHdrs := createShardProcessHeadersToSaveLastNotarized(10, &block.Header{}, hashingMocks.HasherMock{}, &mock.MarshalizerMock{})
+	prHdrs := createShardProcessHeadersToSaveLastNotarized(10, &block.Header{}, &hashingMocks.HasherMock{}, &mock.MarshalizerMock{})
 
 	err := sp.SaveLastNotarizedHeader(6, prHdrs)
 

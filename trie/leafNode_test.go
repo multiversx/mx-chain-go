@@ -604,7 +604,7 @@ func TestLeafNode_deleteDifferentKeyShouldNotModifyTrie(t *testing.T) {
 func TestLeafNode_newLeafNodeNilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ln, err := newLeafNode([]byte("key"), []byte("val"), nil, hashingMocks.HasherMock{})
+	ln, err := newLeafNode([]byte("key"), []byte("val"), nil, &hashingMocks.HasherMock{})
 	assert.Nil(t, ln)
 	assert.Equal(t, ErrNilMarshalizer, err)
 }

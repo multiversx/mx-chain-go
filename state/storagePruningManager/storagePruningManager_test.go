@@ -26,7 +26,7 @@ func getDefaultTrieAndAccountsDbAndStoragePruningManager() (temporary.Trie, *sta
 		MaxSnapshots:       2,
 	}
 	marshalizer := &mock.MarshalizerMock{}
-	hsh := hashingMocks.HasherMock{}
+	hsh := &hashingMocks.HasherMock{}
 	args := trie.NewTrieStorageManagerArgs{
 		DB:          mock.NewMemDbMock(),
 		Marshalizer: marshalizer,

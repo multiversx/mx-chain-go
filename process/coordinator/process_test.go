@@ -1736,7 +1736,7 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNotRevertAccntState(t *testing.T) {
 	t.Parallel()
 
-	hasher := hashingMocks.HasherMock{}
+	hasher := &hashingMocks.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	dataPool := testscommon.NewPoolsHolderMock()
 
@@ -1875,7 +1875,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallRevertAccntState(t *testing.T) {
 	t.Parallel()
 
-	hasher := hashingMocks.HasherMock{}
+	hasher := &hashingMocks.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	dataPool := testscommon.NewPoolsHolderMock()
 

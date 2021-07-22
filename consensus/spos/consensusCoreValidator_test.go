@@ -18,7 +18,7 @@ func initConsensusDataContainer() *ConsensusCore {
 	blsPrivateKeyMock := &mock.PrivateKeyMock{}
 	blsSingleSignerMock := &mock.SingleSignerMock{}
 	multiSignerMock := mock.NewMultiSigner()
-	hasherMock := hashingMocks.HasherMock{}
+	hasherMock := &hashingMocks.HasherMock{}
 	marshalizerMock := mock.MarshalizerMock{}
 	roundHandlerMock := &mock.RoundHandlerMock{}
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}

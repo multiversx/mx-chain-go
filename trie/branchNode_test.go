@@ -1140,7 +1140,7 @@ func BenchmarkMarshallNodeJson(b *testing.B) {
 func TestBranchNode_newBranchNodeNilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	bn, err := newBranchNode(nil, hashingMocks.HasherMock{})
+	bn, err := newBranchNode(nil, &hashingMocks.HasherMock{})
 	assert.Nil(t, bn)
 	assert.Equal(t, ErrNilMarshalizer, err)
 }

@@ -58,8 +58,8 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 	coreComponents := &mock.CoreComponentsMock{
 		IntMarsh:            &mock.MarshalizerMock{},
 		TxMarsh:             &mock.MarshalizerMock{},
-		Hash:                hashingMocks.HasherMock{},
-		TxSignHasherField:   hashingMocks.HasherMock{},
+		Hash:                &hashingMocks.HasherMock{},
+		TxSignHasherField:   &hashingMocks.HasherMock{},
 		UInt64ByteSliceConv: mock.NewNonceHashConverterMock(),
 		AddrPubKeyConv:      createMockPubkeyConverter(),
 		ChainIdCalled: func() string {

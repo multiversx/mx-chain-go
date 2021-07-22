@@ -18,7 +18,7 @@ import (
 )
 
 var testMarshalizer = &mock.MarshalizerMock{}
-var testHasher = hashingMocks.HasherMock{}
+var testHasher = &hashingMocks.HasherMock{}
 var hdrNonce = uint64(56)
 var hdrShardId = uint32(1)
 var hdrRound = uint64(67)

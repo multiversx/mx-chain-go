@@ -610,7 +610,7 @@ func TestWorker_ProcessReceivedMessageComputeReceivedProposedBlockMetric(t *test
 		},
 	})
 	hdr := &block.Header{ChainID: chainID}
-	hdrHash, _ := core.CalculateHash(mock.MarshalizerMock{}, hashingMocks.HasherMock{}, hdr)
+	hdrHash, _ := core.CalculateHash(mock.MarshalizerMock{}, &hashingMocks.HasherMock{}, hdr)
 	hdrStr, _ := mock.MarshalizerMock{}.Marshal(hdr)
 	cnsMsg := consensus.NewConsensusMessage(
 		hdrHash,
@@ -934,7 +934,7 @@ func TestWorker_ProcessReceivedMessageWrongChainIDInProposedBlockShouldError(t *
 	)
 
 	hdr := &block.Header{ChainID: wrongChainID}
-	hdrHash, _ := core.CalculateHash(mock.MarshalizerMock{}, hashingMocks.HasherMock{}, hdr)
+	hdrHash, _ := core.CalculateHash(mock.MarshalizerMock{}, &hashingMocks.HasherMock{}, hdr)
 	cnsMsg := consensus.NewConsensusMessage(
 		hdrHash,
 		nil,
@@ -981,7 +981,7 @@ func TestWorker_ProcessReceivedMessageWithABadOriginatorShouldErr(t *testing.T) 
 	)
 
 	hdr := &block.Header{ChainID: chainID}
-	hdrHash, _ := core.CalculateHash(mock.MarshalizerMock{}, hashingMocks.HasherMock{}, hdr)
+	hdrHash, _ := core.CalculateHash(mock.MarshalizerMock{}, &hashingMocks.HasherMock{}, hdr)
 	hdrStr, _ := mock.MarshalizerMock{}.Marshal(hdr)
 	cnsMsg := consensus.NewConsensusMessage(
 		hdrHash,
@@ -1034,7 +1034,7 @@ func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 	)
 
 	hdr := &block.Header{ChainID: chainID}
-	hdrHash, _ := core.CalculateHash(mock.MarshalizerMock{}, hashingMocks.HasherMock{}, hdr)
+	hdrHash, _ := core.CalculateHash(mock.MarshalizerMock{}, &hashingMocks.HasherMock{}, hdr)
 	hdrStr, _ := mock.MarshalizerMock{}.Marshal(hdr)
 	cnsMsg := consensus.NewConsensusMessage(
 		hdrHash,
@@ -1545,7 +1545,7 @@ func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
 	hdr.Nonce = 1
 	hdr.TimeStamp = uint64(wrk.RoundHandler().TimeStamp().Unix())
 	hdrStr, _ := mock.MarshalizerMock{}.Marshal(hdr)
-	hdrHash := hashingMocks.HasherMock{}.Compute(string(hdrStr))
+	hdrHash := (&hashingMocks.HasherMock{}).Compute(string(hdrStr))
 	cnsMsg := consensus.NewConsensusMessage(
 		hdrHash,
 		nil,

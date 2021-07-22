@@ -207,7 +207,7 @@ func getArgumentsShard() storageResolversContainers.FactoryArgs {
 		ShardIDForTries:          0,
 		ChainID:                  "T",
 		WorkingDirectory:         "",
-		Hasher:                   hashingMocks.HasherMock{},
+		Hasher:                   &hashingMocks.HasherMock{},
 		ShardCoordinator:         mock.NewOneShardCoordinatorMock(),
 		Messenger:                createStubTopicMessageHandlerForShard("", ""),
 		Store:                    createStoreForShard(),

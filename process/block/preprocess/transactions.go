@@ -1025,7 +1025,6 @@ func (txs *transactions) processMiniBlockBuilderTx(
 		return err
 	}
 
-	// TODO: is this really needed? move this somewhere else
 	mb.senderToSkip = []byte("")
 
 	txs.refundGas(wtx, mb)

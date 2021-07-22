@@ -73,7 +73,7 @@ func createAccountStub(sndAddr, rcvAddr []byte,
 func createArgsForTxProcessor() txproc.ArgsNewTxProcessor {
 	args := txproc.ArgsNewTxProcessor{
 		Accounts:         &testscommon.AccountsStub{},
-		Hasher:           hashingMocks.HasherMock{},
+		Hasher:           &hashingMocks.HasherMock{},
 		PubkeyConv:       createMockPubkeyConverter(),
 		Marshalizer:      &mock.MarshalizerMock{},
 		SignMarshalizer:  &mock.MarshalizerMock{},

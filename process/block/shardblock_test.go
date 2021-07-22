@@ -2458,7 +2458,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 func TestShardProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testing.T) {
 	t.Parallel()
 
-	hasher := hashingMocks.HasherMock{}
+	hasher := &hashingMocks.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	datapool := testscommon.NewPoolsHolderMock()
 
@@ -2534,7 +2534,7 @@ func TestShardProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testi
 func TestShardProcessor_ReceivedMetaBlockNoMissingMiniBlocksShouldPass(t *testing.T) {
 	t.Parallel()
 
-	hasher := hashingMocks.HasherMock{}
+	hasher := &hashingMocks.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	datapool := testscommon.NewPoolsHolderMock()
 
@@ -2716,7 +2716,7 @@ func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMeProcessPartOfMiniBlo
 func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T) {
 	t.Parallel()
 
-	hasher := hashingMocks.HasherMock{}
+	hasher := &hashingMocks.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	datapool := testscommon.NewPoolsHolderMock()
 
@@ -2866,7 +2866,7 @@ func TestShardProcessor_GetProcessedMetaBlockFromPoolShouldWork(t *testing.T) {
 
 	destShardId := uint32(2)
 
-	hasher := hashingMocks.HasherMock{}
+	hasher := &hashingMocks.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	datapool := testscommon.NewPoolsHolderMock()
 
@@ -3123,7 +3123,7 @@ func TestShardProcessor_DecodeBlockHeader(t *testing.T) {
 func TestShardProcessor_IsHdrConstructionValid(t *testing.T) {
 	t.Parallel()
 
-	hasher := hashingMocks.HasherMock{}
+	hasher := &hashingMocks.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	datapool := initDataPool([]byte("tx_hash1"))
 
@@ -3206,7 +3206,7 @@ func TestShardProcessor_IsHdrConstructionValid(t *testing.T) {
 func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	t.Parallel()
 
-	hasher := hashingMocks.HasherMock{}
+	hasher := &hashingMocks.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	datapool := testscommon.NewPoolsHolderMock()
 	forkDetector := &mock.ForkDetectorMock{}
@@ -3361,7 +3361,7 @@ func createShardData(hasher hashing.Hasher, marshalizer marshal.Marshalizer, min
 func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNotAllMBFinished(t *testing.T) {
 	t.Parallel()
 
-	hasher := hashingMocks.HasherMock{}
+	hasher := &hashingMocks.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	datapool := testscommon.NewPoolsHolderMock()
 	forkDetector := &mock.ForkDetectorMock{}
@@ -3503,7 +3503,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNotAllMBFinished(t *tes
 func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrAllMBFinished(t *testing.T) {
 	t.Parallel()
 
-	hasher := hashingMocks.HasherMock{}
+	hasher := &hashingMocks.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	datapool := testscommon.NewPoolsHolderMock()
 	forkDetector := &mock.ForkDetectorMock{}

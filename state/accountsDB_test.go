@@ -77,7 +77,7 @@ func getDefaultStateComponents(
 		MaxSnapshots:       2,
 	}
 	marshalizer := &mock.MarshalizerMock{}
-	hsh := hashingMocks.HasherMock{}
+	hsh := &hashingMocks.HasherMock{}
 	args := trie.NewTrieStorageManagerArgs{
 		DB:          mock.NewMemDbMock(),
 		Marshalizer: marshalizer,
@@ -919,7 +919,7 @@ func TestAccountsDB_LoadDataNotFoundRootShouldReturnErr(t *testing.T) {
 		},
 	})
 
-	rootHash := make([]byte, hashingMocks.HasherMock{}.Size())
+	rootHash := make([]byte, (&hashingMocks.HasherMock{}).Size())
 	rootHash[0] = 1
 	account.SetRootHash(rootHash)
 
@@ -932,7 +932,7 @@ func TestAccountsDB_LoadDataNotFoundRootShouldReturnErr(t *testing.T) {
 func TestAccountsDB_LoadDataWithSomeValuesShouldWork(t *testing.T) {
 	t.Parallel()
 
-	rootHash := make([]byte, hashingMocks.HasherMock{}.Size())
+	rootHash := make([]byte, (&hashingMocks.HasherMock{}).Size())
 	rootHash[0] = 1
 	keyRequired := []byte{65, 66, 67}
 	val := []byte{32, 33, 34}
@@ -1478,7 +1478,7 @@ func TestAccountsDB_SaveAccountSavesCodeIfCodeHashIsSet(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-	hsh := hashingMocks.HasherMock{}
+	hsh := &hashingMocks.HasherMock{}
 	tr, adb := getDefaultTrieAndAccountsDb()
 
 	addr := make([]byte, 32)
@@ -1513,7 +1513,7 @@ func TestAccountsDB_saveCode_OldCodeIsNilAndNewCodeIsNotNilAndRevert(t *testing.
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-	hsh := hashingMocks.HasherMock{}
+	hsh := &hashingMocks.HasherMock{}
 	tr, adb := getDefaultTrieAndAccountsDb()
 
 	addr := make([]byte, 32)
@@ -1542,7 +1542,7 @@ func TestAccountsDB_saveCode_OldCodeIsNilAndNewCodeAlreadyExistsAndRevert(t *tes
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-	hsh := hashingMocks.HasherMock{}
+	hsh := &hashingMocks.HasherMock{}
 	tr, adb := getDefaultTrieAndAccountsDb()
 
 	addr := make([]byte, 32)
@@ -1578,7 +1578,7 @@ func TestAccountsDB_saveCode_OldCodeExistsAndNewCodeIsNilAndRevert(t *testing.T)
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-	hsh := hashingMocks.HasherMock{}
+	hsh := &hashingMocks.HasherMock{}
 	tr, adb := getDefaultTrieAndAccountsDb()
 
 	addr := make([]byte, 32)
@@ -1614,7 +1614,7 @@ func TestAccountsDB_saveCode_OldCodeExistsAndNewCodeExistsAndRevert(t *testing.T
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-	hsh := hashingMocks.HasherMock{}
+	hsh := &hashingMocks.HasherMock{}
 	tr, adb := getDefaultTrieAndAccountsDb()
 
 	addr := make([]byte, 32)
@@ -1660,7 +1660,7 @@ func TestAccountsDB_saveCode_OldCodeIsReferencedMultipleTimesAndNewCodeIsNilAndR
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-	hsh := hashingMocks.HasherMock{}
+	hsh := &hashingMocks.HasherMock{}
 	tr, adb := getDefaultTrieAndAccountsDb()
 
 	addr := make([]byte, 32)
@@ -1699,7 +1699,7 @@ func TestAccountsDB_saveCode_OldCodeIsReferencedMultipleTimesAndNewCodeIsNilAndR
 func TestAccountsDB_RemoveAccountAlsoRemovesCodeAndRevertsCorrectly(t *testing.T) {
 	t.Parallel()
 
-	hsh := hashingMocks.HasherMock{}
+	hsh := &hashingMocks.HasherMock{}
 	tr, adb := getDefaultTrieAndAccountsDb()
 
 	addr := make([]byte, 32)
@@ -1735,7 +1735,7 @@ func TestAccountsDB_MainTrieAutomaticallyMarksCodeUpdatesForEviction(t *testing.
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-	hsh := hashingMocks.HasherMock{}
+	hsh := &hashingMocks.HasherMock{}
 	ewl := mock.NewEvictionWaitingList(100, mock.NewMemDbMock(), marshalizer)
 	args := trie.NewTrieStorageManagerArgs{
 		DB:                     mock.NewMemDbMock(),
@@ -1810,7 +1810,7 @@ func TestAccountsDB_RemoveAccountMarksObsoleteHashesForEviction(t *testing.T) {
 
 	maxTrieLevelInMemory := uint(5)
 	marshalizer := &mock.MarshalizerMock{}
-	hsh := hashingMocks.HasherMock{}
+	hsh := &hashingMocks.HasherMock{}
 
 	ewl := mock.NewEvictionWaitingList(100, mock.NewMemDbMock(), marshalizer)
 	args := trie.NewTrieStorageManagerArgs{
@@ -2232,7 +2232,7 @@ func TestAccountsDB_GetCode(t *testing.T) {
 
 	maxTrieLevelInMemory := uint(5)
 	marshalizer := &mock.MarshalizerMock{}
-	hasher := hashingMocks.HasherMock{}
+	hasher := &hashingMocks.HasherMock{}
 
 	args := trie.NewTrieStorageManagerArgs{
 		DB:                     mock.NewMemDbMock(),
@@ -2367,7 +2367,7 @@ func TestAccountsDB_Close(t *testing.T) {
 func BenchmarkAccountsDb_GetCodeEntry(b *testing.B) {
 	maxTrieLevelInMemory := uint(5)
 	marshalizer := &mock.MarshalizerMock{}
-	hasher := hashingMocks.HasherMock{}
+	hasher := &hashingMocks.HasherMock{}
 
 	args := trie.NewTrieStorageManagerArgs{
 		DB:                     mock.NewMemDbMock(),

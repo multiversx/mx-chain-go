@@ -1716,7 +1716,7 @@ func getArguments() ArgsNewEpochEconomics {
 	genesisSupply, _ := big.NewInt(0).SetString("20000000"+"000000000000000000", 10)
 	return ArgsNewEpochEconomics{
 		Marshalizer:           &mock.MarshalizerMock{},
-		Hasher:                hashingMocks.HasherMock{},
+		Hasher:                &hashingMocks.HasherMock{},
 		Store:                 &mock.ChainStorerStub{},
 		ShardCoordinator:      mock.NewMultipleShardsCoordinatorMock(),
 		RewardsHandler:        &mock.RewardsHandlerStub{},

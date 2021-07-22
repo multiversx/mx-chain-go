@@ -16,7 +16,7 @@ import (
 )
 
 var testMarshalizer = &mock.MarshalizerMock{}
-var testHasher = hashingMocks.HasherMock{}
+var testHasher = &hashingMocks.HasherMock{}
 
 func createMockMiniblockArgument() *processor.ArgMiniblockInterceptorProcessor {
 	return &processor.ArgMiniblockInterceptorProcessor{
