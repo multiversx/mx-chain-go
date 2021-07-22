@@ -7,12 +7,13 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/atomic"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
@@ -525,7 +526,7 @@ func (ed *economicsData) EpochConfirmed(epoch uint32, _ uint64) {
 
 	ed.flagGasPriceModifier.Toggle(epoch >= ed.gasPriceModifierEnableEpoch)
 	log.Debug("economics: gas price modifier", "enabled", ed.flagGasPriceModifier.IsSet())
-	ed.statusHandler.SetStringValue(core.MetricGasPriceModifier, fmt.Sprintf("%g", ed.GasPriceModifier()))
+	ed.statusHandler.SetStringValue(common.MetricGasPriceModifier, fmt.Sprintf("%g", ed.GasPriceModifier()))
 	ed.setRewardsEpochConfig(epoch)
 }
 
@@ -564,9 +565,9 @@ func (ed *economicsData) setRewardsEpochConfig(currentEpoch uint32) {
 	ed.topUpGradientPoint, _ = big.NewInt(0).SetString(rewardSetting.TopUpGradientPoint, 10)
 
 	// TODO: add all metrics
-	ed.statusHandler.SetStringValue(core.MetricLeaderPercentage, fmt.Sprintf("%f", rewardSetting.LeaderPercentage))
-	ed.statusHandler.SetStringValue(core.MetricRewardsTopUpGradientPoint, rewardSetting.TopUpGradientPoint)
-	ed.statusHandler.SetStringValue(core.MetricTopUpFactor, fmt.Sprintf("%f", rewardSetting.TopUpFactor))
+	ed.statusHandler.SetStringValue(common.MetricLeaderPercentage, fmt.Sprintf("%f", rewardSetting.LeaderPercentage))
+	ed.statusHandler.SetStringValue(common.MetricRewardsTopUpGradientPoint, rewardSetting.TopUpGradientPoint)
+	ed.statusHandler.SetStringValue(common.MetricTopUpFactor, fmt.Sprintf("%f", rewardSetting.TopUpFactor))
 
 	log.Debug("economics: RewardsConfig",
 		"epoch", ed.rewardsSettingEpoch,

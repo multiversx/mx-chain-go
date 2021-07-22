@@ -12,10 +12,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go-logger/proto"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/gorilla/websocket"
 	"github.com/urfave/cli"
 )
@@ -150,7 +150,7 @@ func waitForProfile(conn *websocket.Conn) error {
 		return err
 	}
 
-	if bytes.Equal(message, []byte(core.DefaultLogProfileIdentifier)) {
+	if bytes.Equal(message, []byte(common.DefaultLogProfileIdentifier)) {
 		return nil
 	}
 

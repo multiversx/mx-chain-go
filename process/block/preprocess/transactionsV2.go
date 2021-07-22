@@ -5,9 +5,10 @@ import (
 	"errors"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 )
@@ -582,7 +583,7 @@ func (txs *transactions) getTxAndMbInfo(
 			numNewMiniBlocks++
 		}
 		if mbInfo.mapCrossShardScCallsOrSpecialTxs[receiverShardID] >= mbInfo.maxCrossShardScCallsOrSpecialTxsPerShard {
-			numNewTxs += core.AdditionalScrForEachScCallOrSpecialTx
+			numNewTxs += common.AdditionalScrForEachScCallOrSpecialTx
 		}
 	}
 
@@ -634,7 +635,7 @@ func (txs *transactions) applyExecutedTransaction(
 		if crossShardScCallsOrSpecialTxs > mbInfo.maxCrossShardScCallsOrSpecialTxsPerShard {
 			mbInfo.maxCrossShardScCallsOrSpecialTxsPerShard = crossShardScCallsOrSpecialTxs
 			//we need to increment this as to account for the corresponding SCR hash
-			txs.blockSizeComputation.AddNumTxs(core.AdditionalScrForEachScCallOrSpecialTx)
+			txs.blockSizeComputation.AddNumTxs(common.AdditionalScrForEachScCallOrSpecialTx)
 		}
 		mbInfo.processingInfo.numCrossShardScCallsOrSpecialTxs++
 	}
@@ -765,7 +766,7 @@ func (txs *transactions) getScheduledTxAndMbInfo(
 			numNewMiniBlocks++
 		}
 		if mbInfo.mapCrossShardScCallTxs[receiverShardID] >= mbInfo.maxCrossShardScCallTxsPerShard {
-			numNewTxs += core.AdditionalScrForEachScCallOrSpecialTx
+			numNewTxs += common.AdditionalScrForEachScCallOrSpecialTx
 		}
 	}
 
@@ -812,7 +813,7 @@ func (txs *transactions) applyVerifiedTransaction(
 		if crossShardScCallTxs > mbInfo.maxCrossShardScCallTxsPerShard {
 			mbInfo.maxCrossShardScCallTxsPerShard = crossShardScCallTxs
 			//we need to increment this as to account for the corresponding SCR hash
-			txs.blockSizeComputation.AddNumTxs(core.AdditionalScrForEachScCallOrSpecialTx)
+			txs.blockSizeComputation.AddNumTxs(common.AdditionalScrForEachScCallOrSpecialTx)
 		}
 		mbInfo.schedulingInfo.numScheduledCrossShardScCalls++
 	}

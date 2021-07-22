@@ -5,10 +5,10 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/state"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // TriggerHandler defines the functionalities for an start of epoch trigger
@@ -200,7 +200,7 @@ type RewardsCreator interface {
 
 // EpochNotifier can notify upon an epoch change and provide the current epoch
 type EpochNotifier interface {
-	RegisterNotifyHandler(handler core.EpochSubscriberHandler)
+	RegisterNotifyHandler(handler vmcommon.EpochSubscriberHandler)
 	CurrentEpoch() uint32
 	CheckEpoch(epoch uint32)
 	IsInterfaceNil() bool

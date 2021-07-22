@@ -5,8 +5,8 @@ import (
 	"math"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	dataMock "github.com/ElrondNetwork/elrond-go/data/mock"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	dataMock "github.com/ElrondNetwork/elrond-go/mock"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageMock "github.com/ElrondNetwork/elrond-go/storage/mock"

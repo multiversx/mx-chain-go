@@ -5,9 +5,10 @@ import (
 	"math"
 	"os"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/urfave/cli"
 )
@@ -464,10 +465,9 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 	p2pConfigs := configs.P2pConfig
 	prefsConfig := configs.PreferencesConfig
 
-	importCheckpointRoundsModulus := uint(math.MaxUint32)
 	var err error
 
-	importDbFlags.ImportDBTargetShardID, err = core.ProcessDestinationShardAsObserver(prefsConfig.Preferences.DestinationShardAsObserver)
+	importDbFlags.ImportDBTargetShardID, err = common.ProcessDestinationShardAsObserver(prefsConfig.Preferences.DestinationShardAsObserver)
 	if err != nil {
 		return err
 	}
@@ -476,9 +476,9 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 		generalConfigs.GeneralSettings.StartInEpochEnabled = false
 	}
 
-	generalConfigs.StateTriesConfig.CheckpointRoundsModulus = importCheckpointRoundsModulus
 	generalConfigs.StoragePruning.NumActivePersisters = generalConfigs.StoragePruning.NumEpochsToKeep
 	generalConfigs.TrieStorageManagerConfig.KeepSnapshots = true
+	generalConfigs.StateTriesConfig.CheckpointsEnabled = false
 	p2pConfigs.Node.ThresholdMinConnectedPeers = 0
 	p2pConfigs.KadDhtPeerDiscovery.Enabled = false
 
@@ -494,7 +494,7 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 
 	log.Warn("the node is in import mode! Will auto-set some config values, including storage config values",
 		"GeneralSettings.StartInEpochEnabled", generalConfigs.GeneralSettings.StartInEpochEnabled,
-		"StateTriesConfig.CheckpointRoundsModulus", importCheckpointRoundsModulus,
+		"StateTriesConfig.CheckpointsEnabled", generalConfigs.StateTriesConfig.CheckpointsEnabled,
 		"StoragePruning.NumActivePersisters", generalConfigs.StoragePruning.NumEpochsToKeep,
 		"TrieStorageManagerConfig.KeepSnapshots", generalConfigs.TrieStorageManagerConfig.KeepSnapshots,
 		"p2p.ThresholdMinConnectedPeers", p2pConfigs.Node.ThresholdMinConnectedPeers,

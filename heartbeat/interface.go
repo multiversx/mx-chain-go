@@ -4,12 +4,13 @@ import (
 	"io"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	heartbeatData "github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 // P2PMessenger defines a subset of the p2p.Messenger interface
@@ -77,7 +78,7 @@ type P2PAntifloodHandler interface {
 
 // PeerTypeProviderHandler defines what a component which computes the type of a peer should do
 type PeerTypeProviderHandler interface {
-	ComputeForPubKey(pubKey []byte) (core.PeerType, uint32, error)
+	ComputeForPubKey(pubKey []byte) (common.PeerType, uint32, error)
 	GetAllPeerTypeInfos() []*state.PeerTypeInfo
 	IsInterfaceNil() bool
 }

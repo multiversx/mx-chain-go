@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/data/api"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/dblookupext"
 )
 
 // BlockStatus is the status of a block
@@ -25,7 +25,7 @@ const (
 	BlockStatusReverted = "reverted"
 )
 
-type baseAPIBockProcessor struct {
+type baseAPIBlockProcessor struct {
 	hasDbLookupExtensions    bool
 	selfShardID              uint32
 	store                    dataRetriever.StorageService
@@ -33,13 +33,13 @@ type baseAPIBockProcessor struct {
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	historyRepo              dblookupext.HistoryRepository
 	// TODO: use an interface instead of this function
-	unmarshalTx              func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
-	txStatusComputer         transaction.StatusComputerHandler
+	unmarshalTx      func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
+	txStatusComputer transaction.StatusComputerHandler
 }
 
 var log = logger.GetOrCreate("node/blockAPI")
 
-func (bap *baseAPIBockProcessor) getTxsByMb(mbHeader *block.MiniBlockHeader, epoch uint32) []*transaction.ApiTransactionResult {
+func (bap *baseAPIBlockProcessor) getTxsByMb(mbHeader *block.MiniBlockHeader, epoch uint32) []*transaction.ApiTransactionResult {
 	miniblockHash := mbHeader.Hash
 	mbBytes, err := bap.getFromStorerWithEpoch(dataRetriever.MiniBlockUnit, miniblockHash, epoch)
 	if err != nil {
@@ -72,7 +72,7 @@ func (bap *baseAPIBockProcessor) getTxsByMb(mbHeader *block.MiniBlockHeader, epo
 	}
 }
 
-func (bap *baseAPIBockProcessor) getTxsFromMiniblock(
+func (bap *baseAPIBlockProcessor) getTxsFromMiniblock(
 	miniblock *block.MiniBlock,
 	miniblockHash []byte,
 	epoch uint32,
@@ -115,7 +115,7 @@ func (bap *baseAPIBockProcessor) getTxsFromMiniblock(
 	return txs
 }
 
-func (bap *baseAPIBockProcessor) getFromStorer(unit dataRetriever.UnitType, key []byte) ([]byte, error) {
+func (bap *baseAPIBlockProcessor) getFromStorer(unit dataRetriever.UnitType, key []byte) ([]byte, error) {
 	if !bap.hasDbLookupExtensions {
 		return bap.store.Get(unit, key)
 	}
@@ -129,12 +129,12 @@ func (bap *baseAPIBockProcessor) getFromStorer(unit dataRetriever.UnitType, key 
 	return storer.GetFromEpoch(key, epoch)
 }
 
-func (bap *baseAPIBockProcessor) getFromStorerWithEpoch(unit dataRetriever.UnitType, key []byte, epoch uint32) ([]byte, error) {
+func (bap *baseAPIBlockProcessor) getFromStorerWithEpoch(unit dataRetriever.UnitType, key []byte, epoch uint32) ([]byte, error) {
 	storer := bap.store.GetStorer(unit)
 	return storer.GetFromEpoch(key, epoch)
 }
 
-func (bap *baseAPIBockProcessor) computeBlockStatus(storerUnit dataRetriever.UnitType, blockAPI *api.Block) (string, error) {
+func (bap *baseAPIBlockProcessor) computeBlockStatus(storerUnit dataRetriever.UnitType, blockAPI *api.Block) (string, error) {
 	nonceToByteSlice := bap.uint64ByteSliceConverter.ToByteSlice(blockAPI.Nonce)
 	headerHash, err := bap.store.Get(storerUnit, nonceToByteSlice)
 	if err != nil {
@@ -148,7 +148,7 @@ func (bap *baseAPIBockProcessor) computeBlockStatus(storerUnit dataRetriever.Uni
 	return BlockStatusOnChain, nil
 }
 
-func (bap *baseAPIBockProcessor) computeStatusAndPutInBlock(blockAPI *api.Block, storerUnit dataRetriever.UnitType) (*api.Block, error) {
+func (bap *baseAPIBlockProcessor) computeStatusAndPutInBlock(blockAPI *api.Block, storerUnit dataRetriever.UnitType) (*api.Block, error) {
 	blockStatus, err := bap.computeBlockStatus(storerUnit, blockAPI)
 	if err != nil {
 		return nil, err

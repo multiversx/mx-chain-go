@@ -6,7 +6,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 )
 
 const displayLastPidChars = 12
@@ -143,6 +143,7 @@ type Messenger interface {
 	SetPeerDenialEvaluator(handler PeerDenialEvaluator) error
 	GetConnectedPeersInfo() *ConnectedPeersInfo
 	UnjoinAllTopics() error
+	Port() int
 
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool

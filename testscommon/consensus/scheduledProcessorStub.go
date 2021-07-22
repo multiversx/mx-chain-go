@@ -1,6 +1,6 @@
 package consensus
 
-import "github.com/ElrondNetwork/elrond-go/data"
+import "github.com/ElrondNetwork/elrond-go-core/data"
 
 // ScheduledProcessorStub -
 type ScheduledProcessorStub struct {

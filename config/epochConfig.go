@@ -46,6 +46,7 @@ type EnableEpochs struct {
 	WaitingListFixEnableEpoch                   uint32
 	IncrementSCRNonceInMultiTransferEnableEpoch uint32
 	ScheduledMiniBlocksEnableEpoch              uint32
+	ESDTMultiTransferEnableEpoch                uint32
 }
 
 // GasScheduleByEpochs represents a gas schedule toml entry that will be applied from the provided epoch

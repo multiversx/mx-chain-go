@@ -3,14 +3,14 @@ package mock
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
 )
 
 // AccountWrapMock -
 type AccountWrapMock struct {
 	MockValue         int
-	dataTrie          data.Trie
+	dataTrie          temporary.Trie
 	nonce             uint64
 	code              []byte
 	codeMetadata      []byte
@@ -132,12 +132,12 @@ func (awm *AccountWrapMock) AddressBytes() []byte {
 }
 
 // DataTrie -
-func (awm *AccountWrapMock) DataTrie() data.Trie {
+func (awm *AccountWrapMock) DataTrie() temporary.Trie {
 	return awm.dataTrie
 }
 
 // SetDataTrie -
-func (awm *AccountWrapMock) SetDataTrie(trie data.Trie) {
+func (awm *AccountWrapMock) SetDataTrie(trie temporary.Trie) {
 	awm.dataTrie = trie
 	awm.trackableDataTrie.SetDataTrie(trie)
 }

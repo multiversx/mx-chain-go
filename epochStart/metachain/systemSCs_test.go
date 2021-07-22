@@ -12,29 +12,24 @@ import (
 	"strconv"
 	"testing"
 
-	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_3/config"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/forking"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/blockchain"
-	dataMock "github.com/ElrondNetwork/elrond-go/data/mock"
-	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/state/factory"
-	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager"
-	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager/evictionWaitingList"
-	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
-	"github.com/ElrondNetwork/elrond-go/marshal"
+	dataMock "github.com/ElrondNetwork/elrond-go/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	economicsHandler "github.com/ElrondNetwork/elrond-go/process/economics"
 	vmFactory "github.com/ElrondNetwork/elrond-go/process/factory"
@@ -42,9 +37,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/peer"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/state/factory"
+	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager"
+	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
@@ -175,7 +176,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContract(t *testing.T) {
 	vInfo := &state.ValidatorInfo{
 		PublicKey:       []byte("jailedPubKey0"),
 		ShardId:         0,
-		List:            string(core.JailedList),
+		List:            string(common.JailedList),
 		TempRating:      1,
 		RewardAddress:   []byte("address"),
 		AccumulatedFees: big.NewInt(0),
@@ -186,7 +187,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContract(t *testing.T) {
 
 	assert.Equal(t, len(validatorInfos[0]), 1)
 	newValidatorInfo := validatorInfos[0][0]
-	assert.Equal(t, newValidatorInfo.List, string(core.NewList))
+	assert.Equal(t, newValidatorInfo.List, string(common.NewList))
 }
 
 func TestSystemSCProcessor_JailedNodesShouldNotBeSwappedAllAtOnce(t *testing.T) {
@@ -230,10 +231,10 @@ func testSystemSCProcessorJailedNodesShouldNotBeSwappedAllAtOnce(t *testing.T, s
 	err := s.ProcessSystemSmartContract(validatorsInfo, 0, 0)
 	assert.Nil(t, err)
 	for i := 0; i < numWaiting; i++ {
-		assert.Equal(t, string(core.NewList), validatorsInfo[0][i].List)
+		assert.Equal(t, string(common.NewList), validatorsInfo[0][i].List)
 	}
 	for i := numWaiting; i < numJailed; i++ {
-		assert.Equal(t, string(core.JailedList), validatorsInfo[0][i].List)
+		assert.Equal(t, string(common.JailedList), validatorsInfo[0][i].List)
 	}
 
 	newJailedNodes := jailed[numWaiting:numJailed]
@@ -291,7 +292,7 @@ func TestSystemSCProcessor_NobodyToSwapWithStakingV2(t *testing.T) {
 	jailed := &state.ValidatorInfo{
 		PublicKey:       blsKeys[0],
 		ShardId:         0,
-		List:            string(core.JailedList),
+		List:            string(common.JailedList),
 		TempRating:      1,
 		RewardAddress:   []byte("owner1"),
 		AccumulatedFees: big.NewInt(0),
@@ -302,7 +303,7 @@ func TestSystemSCProcessor_NobodyToSwapWithStakingV2(t *testing.T) {
 	assert.Nil(t, err)
 
 	for _, vInfo := range validatorsInfo[0] {
-		assert.Equal(t, string(core.JailedList), vInfo.List)
+		assert.Equal(t, string(common.JailedList), vInfo.List)
 	}
 
 	nodesToUnStake, mapOwnersKeys, err := s.stakingDataProvider.ComputeUnQualifiedNodes(validatorsInfo)
@@ -554,7 +555,7 @@ func createJailedNodes(numNodes int, stakingSCAcc state.UserAccountHandler, user
 		vInfo := &state.ValidatorInfo{
 			PublicKey:       []byte(fmt.Sprintf("jailed__%d", i)),
 			ShardId:         0,
-			List:            string(core.JailedList),
+			List:            string(common.JailedList),
 			TempRating:      1,
 			RewardAddress:   []byte("address"),
 			AccumulatedFees: big.NewInt(0),
@@ -661,7 +662,7 @@ func createWaitingNodes(numNodes int, stakingSCAcc state.UserAccountHandler, use
 		vInfo := &state.ValidatorInfo{
 			PublicKey:       []byte(fmt.Sprintf("waiting_%d", i)),
 			ShardId:         0,
-			List:            string(core.WaitingList),
+			List:            string(common.WaitingList),
 			TempRating:      1,
 			RewardAddress:   []byte("address"),
 			AccumulatedFees: big.NewInt(0),
@@ -864,7 +865,7 @@ func createAccountsDB(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	accountFactory state.AccountFactory,
-	trieStorageManager data.StorageManager,
+	trieStorageManager temporary.StorageManager,
 ) *state.AccountsDB {
 	tr, _ := trie.NewTrie(trieStorageManager, marshalizer, hasher, 5)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(10, dataMock.NewMemDbMock(), marshalizer)
@@ -1221,7 +1222,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractMaxNodesStakedFromQueue(t *
 	peerAcc, err := s.getPeerAccount([]byte("waitingPubKey"))
 	assert.Nil(t, err)
 	assert.True(t, bytes.Equal(peerAcc.GetBLSPublicKey(), []byte("waitingPubKey")))
-	assert.Equal(t, peerAcc.GetList(), string(core.NewList))
+	assert.Equal(t, peerAcc.GetList(), string(common.NewList))
 	numRegistered := getTotalNumberOfRegisteredNodes(t, s)
 	assert.Equal(t, 1, numRegistered)
 }
@@ -1273,7 +1274,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractMaxNodesStakedFromQueueOwne
 	peerAcc, err := s.getPeerAccount([]byte("waitingPubKey"))
 	assert.Nil(t, err)
 	assert.True(t, bytes.Equal(peerAcc.GetBLSPublicKey(), []byte("waitingPubKey")))
-	assert.Equal(t, peerAcc.GetList(), string(core.NewList))
+	assert.Equal(t, peerAcc.GetList(), string(common.NewList))
 }
 
 func TestSystemSCProcessor_ESDTInitShouldWork(t *testing.T) {
@@ -1332,25 +1333,25 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeOneNodeStakeOthers(t
 	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey0"),
-		List:            string(core.EligibleList),
+		List:            string(common.EligibleList),
 		RewardAddress:   []byte("rewardAddress"),
 		AccumulatedFees: big.NewInt(0),
 	})
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey1"),
-		List:            string(core.EligibleList),
+		List:            string(common.EligibleList),
 		RewardAddress:   []byte("rewardAddress"),
 		AccumulatedFees: big.NewInt(0),
 	})
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey2"),
-		List:            string(core.EligibleList),
+		List:            string(common.EligibleList),
 		RewardAddress:   []byte("rewardAddress"),
 		AccumulatedFees: big.NewInt(0),
 	})
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey3"),
-		List:            string(core.EligibleList),
+		List:            string(common.EligibleList),
 		RewardAddress:   []byte("rewardAddress"),
 		AccumulatedFees: big.NewInt(0),
 	})
@@ -1366,15 +1367,15 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeOneNodeStakeOthers(t
 	peerAcc, err := s.getPeerAccount([]byte("waitingPubKey"))
 	assert.Nil(t, err)
 	assert.True(t, bytes.Equal(peerAcc.GetBLSPublicKey(), []byte("waitingPubKey")))
-	assert.Equal(t, peerAcc.GetList(), string(core.NewList))
+	assert.Equal(t, peerAcc.GetList(), string(common.NewList))
 
 	peerAcc, _ = s.getPeerAccount([]byte("stakedPubKey1"))
-	assert.Equal(t, peerAcc.GetList(), string(core.LeavingList))
+	assert.Equal(t, peerAcc.GetList(), string(common.LeavingList))
 
-	assert.Equal(t, string(core.LeavingList), validatorInfos[0][1].List)
+	assert.Equal(t, string(common.LeavingList), validatorInfos[0][1].List)
 
 	assert.Equal(t, 5, len(validatorInfos[0]))
-	assert.Equal(t, string(core.NewList), validatorInfos[0][4].List)
+	assert.Equal(t, string(common.NewList), validatorInfos[0][4].List)
 }
 
 func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeTheOnlyNodeShouldWork(t *testing.T) {
@@ -1400,13 +1401,13 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeTheOnlyNodeShouldWor
 	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey0"),
-		List:            string(core.EligibleList),
+		List:            string(common.EligibleList),
 		RewardAddress:   []byte("rewardAddress"),
 		AccumulatedFees: big.NewInt(0),
 	})
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey1"),
-		List:            string(core.EligibleList),
+		List:            string(common.EligibleList),
 		RewardAddress:   []byte("rewardAddress"),
 		AccumulatedFees: big.NewInt(0),
 	})
@@ -1474,25 +1475,25 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeFromDelegationContra
 	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey0"),
-		List:            string(core.EligibleList),
+		List:            string(common.EligibleList),
 		RewardAddress:   delegationAddr,
 		AccumulatedFees: big.NewInt(0),
 	})
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey1"),
-		List:            string(core.EligibleList),
+		List:            string(common.EligibleList),
 		RewardAddress:   delegationAddr,
 		AccumulatedFees: big.NewInt(0),
 	})
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey2"),
-		List:            string(core.WaitingList),
+		List:            string(common.WaitingList),
 		RewardAddress:   delegationAddr,
 		AccumulatedFees: big.NewInt(0),
 	})
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey3"),
-		List:            string(core.WaitingList),
+		List:            string(common.WaitingList),
 		RewardAddress:   delegationAddr,
 		AccumulatedFees: big.NewInt(0),
 	})
@@ -1506,11 +1507,11 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeFromDelegationContra
 	assert.Nil(t, err)
 
 	for _, vInfo := range validatorInfos[0] {
-		assert.NotEqual(t, string(core.NewList), vInfo.List)
+		assert.NotEqual(t, string(common.NewList), vInfo.List)
 	}
 
 	peerAcc, _ := s.getPeerAccount([]byte("stakedPubKey2"))
-	assert.Equal(t, peerAcc.GetList(), string(core.LeavingList))
+	assert.Equal(t, peerAcc.GetList(), string(common.LeavingList))
 	assert.Equal(t, 4, len(validatorInfos[0]))
 
 	delegationSC := loadSCAccount(args.UserAccountsDB, delegationAddr)
@@ -1566,25 +1567,25 @@ func TestSystemSCProcessor_ProcessSystemSmartContractShouldUnStakeFromAdditional
 	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey0"),
-		List:            string(core.EligibleList),
+		List:            string(common.EligibleList),
 		RewardAddress:   delegationAddr,
 		AccumulatedFees: big.NewInt(0),
 	})
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey1"),
-		List:            string(core.EligibleList),
+		List:            string(common.EligibleList),
 		RewardAddress:   delegationAddr,
 		AccumulatedFees: big.NewInt(0),
 	})
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey2"),
-		List:            string(core.EligibleList),
+		List:            string(common.EligibleList),
 		RewardAddress:   delegationAddr,
 		AccumulatedFees: big.NewInt(0),
 	})
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey3"),
-		List:            string(core.EligibleList),
+		List:            string(common.EligibleList),
 		RewardAddress:   delegationAddr,
 		AccumulatedFees: big.NewInt(0),
 	})
@@ -1598,7 +1599,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractShouldUnStakeFromAdditional
 	assert.Nil(t, err)
 
 	for _, vInfo := range validatorInfos[0] {
-		assert.Equal(t, string(core.EligibleList), vInfo.List)
+		assert.Equal(t, string(common.EligibleList), vInfo.List)
 	}
 
 	delegationSC := loadSCAccount(args.UserAccountsDB, delegationAddr)
@@ -1660,25 +1661,25 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeFromAdditionalQueue(
 	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey0"),
-		List:            string(core.EligibleList),
+		List:            string(common.EligibleList),
 		RewardAddress:   delegationAddr,
 		AccumulatedFees: big.NewInt(0),
 	})
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey1"),
-		List:            string(core.EligibleList),
+		List:            string(common.EligibleList),
 		RewardAddress:   delegationAddr,
 		AccumulatedFees: big.NewInt(0),
 	})
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey2"),
-		List:            string(core.EligibleList),
+		List:            string(common.EligibleList),
 		RewardAddress:   delegationAddr,
 		AccumulatedFees: big.NewInt(0),
 	})
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey3"),
-		List:            string(core.EligibleList),
+		List:            string(common.EligibleList),
 		RewardAddress:   delegationAddr,
 		AccumulatedFees: big.NewInt(0),
 	})
@@ -1756,7 +1757,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractWrongValidatorInfoShouldBeC
 	})
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("oneAddress1"),
-		List:            string(core.EligibleList),
+		List:            string(common.EligibleList),
 		RewardAddress:   []byte("oneAddress1"),
 		AccumulatedFees: big.NewInt(0),
 	})
@@ -1828,25 +1829,25 @@ func TestSystemSCProcessor_ProcessSystemSmartContractJailAndUnStake(t *testing.T
 	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey0"),
-		List:            string(core.EligibleList),
+		List:            string(common.EligibleList),
 		RewardAddress:   []byte("ownerKey"),
 		AccumulatedFees: big.NewInt(0),
 	})
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey1"),
-		List:            string(core.EligibleList),
+		List:            string(common.EligibleList),
 		RewardAddress:   []byte("ownerKey"),
 		AccumulatedFees: big.NewInt(0),
 	})
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey2"),
-		List:            string(core.EligibleList),
+		List:            string(common.EligibleList),
 		RewardAddress:   []byte("ownerKey"),
 		AccumulatedFees: big.NewInt(0),
 	})
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey3"),
-		List:            string(core.EligibleList),
+		List:            string(common.EligibleList),
 		RewardAddress:   []byte("ownerKey"),
 		AccumulatedFees: big.NewInt(0),
 	})
@@ -1865,8 +1866,8 @@ func TestSystemSCProcessor_ProcessSystemSmartContractJailAndUnStake(t *testing.T
 
 	assert.Equal(t, 4, len(validatorInfos[0]))
 	for _, vInfo := range validatorInfos[0] {
-		assert.Equal(t, vInfo.List, string(core.LeavingList))
+		assert.Equal(t, vInfo.List, string(common.LeavingList))
 		peerAcc, _ := s.getPeerAccount(vInfo.PublicKey)
-		assert.Equal(t, peerAcc.GetList(), string(core.LeavingList))
+		assert.Equal(t, peerAcc.GetList(), string(common.LeavingList))
 	}
 }
