@@ -722,7 +722,7 @@ func (pcf *processComponentsFactory) indexGenesisAccounts() error {
 		return err
 	}
 
-	genesisAccounts := make([]state.UserAccountHandler, 0)
+	genesisAccounts := make([]data.UserAccountHandler, 0)
 	for leaf := range leavesChannel {
 		userAccount, errUnmarshal := pcf.unmarshalUserAccount(leaf.Key(), leaf.Value())
 		if errUnmarshal != nil {
@@ -733,12 +733,7 @@ func (pcf *processComponentsFactory) indexGenesisAccounts() error {
 		genesisAccounts = append(genesisAccounts, userAccount)
 	}
 
-	genesisAccountsData := make([]data.UserAccountHandler, 0, len(genesisAccounts))
-	for idx := 0; idx < len(genesisAccounts); idx++ {
-		genesisAccountsData = append(genesisAccountsData, genesisAccounts[idx])
-	}
-
-	pcf.statusComponents.ElasticIndexer().SaveAccounts(uint64(pcf.coreData.GenesisNodesSetup().GetStartTime()), genesisAccountsData)
+	pcf.statusComponents.ElasticIndexer().SaveAccounts(uint64(pcf.coreData.GenesisNodesSetup().GetStartTime()), genesisAccounts)
 	return nil
 }
 
