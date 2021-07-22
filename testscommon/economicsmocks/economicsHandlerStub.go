@@ -40,238 +40,238 @@ type EconomicsHandlerStub struct {
 }
 
 // LeaderPercentage -
-func (ehm *EconomicsHandlerStub) LeaderPercentage() float64 {
-	if ehm.LeaderPercentageCalled != nil {
-		return ehm.LeaderPercentageCalled()
+func (ehs *EconomicsHandlerStub) LeaderPercentage() float64 {
+	if ehs.LeaderPercentageCalled != nil {
+		return ehs.LeaderPercentageCalled()
 	}
 	return 0.1
 }
 
 // ProtocolSustainabilityPercentage will return the protocol sustainability percentage value
-func (ehm *EconomicsHandlerStub) ProtocolSustainabilityPercentage() float64 {
-	if ehm.ProtocolSustainabilityPercentageCalled != nil {
-		return ehm.ProtocolSustainabilityPercentageCalled()
+func (ehs *EconomicsHandlerStub) ProtocolSustainabilityPercentage() float64 {
+	if ehs.ProtocolSustainabilityPercentageCalled != nil {
+		return ehs.ProtocolSustainabilityPercentageCalled()
 	}
 	return 0.1
 }
 
 // ProtocolSustainabilityAddress will return the protocol sustainability address
-func (ehm *EconomicsHandlerStub) ProtocolSustainabilityAddress() string {
-	if ehm.ProtocolSustainabilityAddressCalled != nil {
-		return ehm.ProtocolSustainabilityAddressCalled()
+func (ehs *EconomicsHandlerStub) ProtocolSustainabilityAddress() string {
+	if ehs.ProtocolSustainabilityAddressCalled != nil {
+		return ehs.ProtocolSustainabilityAddressCalled()
 	}
 	return "erd14uqxan5rgucsf6537ll4vpwyc96z7us5586xhc5euv8w96rsw95sfl6a49"
 }
 
 // MinInflationRate -
-func (ehm *EconomicsHandlerStub) MinInflationRate() float64 {
-	if ehm.MinInflationRateCalled != nil {
-		return ehm.MinInflationRateCalled()
+func (ehs *EconomicsHandlerStub) MinInflationRate() float64 {
+	if ehs.MinInflationRateCalled != nil {
+		return ehs.MinInflationRateCalled()
 	}
 	return 0.01
 }
 
 // MaxInflationRate -
-func (ehm *EconomicsHandlerStub) MaxInflationRate(year uint32) float64 {
-	if ehm.MaxInflationRateCalled != nil {
-		return ehm.MaxInflationRateCalled(year)
+func (ehs *EconomicsHandlerStub) MaxInflationRate(year uint32) float64 {
+	if ehs.MaxInflationRateCalled != nil {
+		return ehs.MaxInflationRateCalled(year)
 	}
 	return 0.1
 }
 
 // MinGasPrice -
-func (ehm *EconomicsHandlerStub) MinGasPrice() uint64 {
-	if ehm.MinGasPriceCalled != nil {
-		return ehm.MinGasPriceCalled()
+func (ehs *EconomicsHandlerStub) MinGasPrice() uint64 {
+	if ehs.MinGasPriceCalled != nil {
+		return ehs.MinGasPriceCalled()
 	}
 	return 0
 }
 
 // MinGasLimit will return min gas limit
-func (ehm *EconomicsHandlerStub) MinGasLimit() uint64 {
+func (ehs *EconomicsHandlerStub) MinGasLimit() uint64 {
 	return 0
 }
 
 // GasPerDataByte -
-func (ehm *EconomicsHandlerStub) GasPerDataByte() uint64 {
+func (ehs *EconomicsHandlerStub) GasPerDataByte() uint64 {
 	return 0
 }
 
 // DeveloperPercentage -
-func (ehm *EconomicsHandlerStub) DeveloperPercentage() float64 {
-	if ehm.DeveloperPercentageCalled != nil {
-		return ehm.DeveloperPercentageCalled()
+func (ehs *EconomicsHandlerStub) DeveloperPercentage() float64 {
+	if ehs.DeveloperPercentageCalled != nil {
+		return ehs.DeveloperPercentageCalled()
 	}
 	return 0
 }
 
 // GenesisTotalSupply -
-func (ehm *EconomicsHandlerStub) GenesisTotalSupply() *big.Int {
-	if ehm.GenesisTotalSupplyCalled != nil {
-		return ehm.GenesisTotalSupplyCalled()
+func (ehs *EconomicsHandlerStub) GenesisTotalSupply() *big.Int {
+	if ehs.GenesisTotalSupplyCalled != nil {
+		return ehs.GenesisTotalSupplyCalled()
 	}
 	return big.NewInt(0)
 }
 
 // SetMaxGasLimitPerBlock -
-func (ehm *EconomicsHandlerStub) SetMaxGasLimitPerBlock(maxGasLimitPerBlock uint64) {
-	if ehm.SetMaxGasLimitPerBlockCalled != nil {
-		ehm.SetMaxGasLimitPerBlockCalled(maxGasLimitPerBlock)
+func (ehs *EconomicsHandlerStub) SetMaxGasLimitPerBlock(maxGasLimitPerBlock uint64) {
+	if ehs.SetMaxGasLimitPerBlockCalled != nil {
+		ehs.SetMaxGasLimitPerBlockCalled(maxGasLimitPerBlock)
 	}
 }
 
 // SetMinGasPrice -
-func (ehm *EconomicsHandlerStub) SetMinGasPrice(minGasPrice uint64) {
-	if ehm.SetMinGasPriceCalled != nil {
-		ehm.SetMinGasPriceCalled(minGasPrice)
+func (ehs *EconomicsHandlerStub) SetMinGasPrice(minGasPrice uint64) {
+	if ehs.SetMinGasPriceCalled != nil {
+		ehs.SetMinGasPriceCalled(minGasPrice)
 	}
 }
 
 // SetMinGasLimit -
-func (ehm *EconomicsHandlerStub) SetMinGasLimit(minGasLimit uint64) {
-	if ehm.SetMinGasLimitCalled != nil {
-		ehm.SetMinGasLimitCalled(minGasLimit)
+func (ehs *EconomicsHandlerStub) SetMinGasLimit(minGasLimit uint64) {
+	if ehs.SetMinGasLimitCalled != nil {
+		ehs.SetMinGasLimitCalled(minGasLimit)
 	}
 }
 
 // MaxGasLimitPerBlock -
-func (ehm *EconomicsHandlerStub) MaxGasLimitPerBlock(shard uint32) uint64 {
-	if ehm.MaxGasLimitPerBlockCalled != nil {
-		return ehm.MaxGasLimitPerBlockCalled(shard)
+func (ehs *EconomicsHandlerStub) MaxGasLimitPerBlock(shard uint32) uint64 {
+	if ehs.MaxGasLimitPerBlockCalled != nil {
+		return ehs.MaxGasLimitPerBlockCalled(shard)
 	}
 	return 1500000000
 }
 
 // ComputeGasLimit -
-func (ehm *EconomicsHandlerStub) ComputeGasLimit(tx process.TransactionWithFeeHandler) uint64 {
-	if ehm.ComputeGasLimitCalled != nil {
-		return ehm.ComputeGasLimitCalled(tx)
+func (ehs *EconomicsHandlerStub) ComputeGasLimit(tx process.TransactionWithFeeHandler) uint64 {
+	if ehs.ComputeGasLimitCalled != nil {
+		return ehs.ComputeGasLimitCalled(tx)
 	}
 	return 0
 }
 
 // ComputeFee -
-func (ehm *EconomicsHandlerStub) ComputeFee(tx process.TransactionWithFeeHandler) *big.Int {
-	if ehm.ComputeFeeCalled != nil {
-		return ehm.ComputeFeeCalled(tx)
+func (ehs *EconomicsHandlerStub) ComputeFee(tx process.TransactionWithFeeHandler) *big.Int {
+	if ehs.ComputeFeeCalled != nil {
+		return ehs.ComputeFeeCalled(tx)
 	}
 	return big.NewInt(0)
 }
 
 // CheckValidityTxValues -
-func (ehm *EconomicsHandlerStub) CheckValidityTxValues(tx process.TransactionWithFeeHandler) error {
-	if ehm.CheckValidityTxValuesCalled != nil {
-		return ehm.CheckValidityTxValuesCalled(tx)
+func (ehs *EconomicsHandlerStub) CheckValidityTxValues(tx process.TransactionWithFeeHandler) error {
+	if ehs.CheckValidityTxValuesCalled != nil {
+		return ehs.CheckValidityTxValuesCalled(tx)
 	}
 	return nil
 }
 
 // ComputeMoveBalanceFee -
-func (ehm *EconomicsHandlerStub) ComputeMoveBalanceFee(tx process.TransactionWithFeeHandler) *big.Int {
-	if ehm.ComputeMoveBalanceFeeCalled != nil {
-		return ehm.ComputeMoveBalanceFeeCalled(tx)
+func (ehs *EconomicsHandlerStub) ComputeMoveBalanceFee(tx process.TransactionWithFeeHandler) *big.Int {
+	if ehs.ComputeMoveBalanceFeeCalled != nil {
+		return ehs.ComputeMoveBalanceFeeCalled(tx)
 	}
 	return big.NewInt(0)
 
 }
 
 // ComputeGasLimitBasedOnBalance -
-func (ehm *EconomicsHandlerStub) ComputeGasLimitBasedOnBalance(tx process.TransactionWithFeeHandler, balance *big.Int) (uint64, error) {
-	if ehm.ComputeGasLimitBasedOnBalanceCalled != nil {
-		return ehm.ComputeGasLimitBasedOnBalanceCalled(tx, balance)
+func (ehs *EconomicsHandlerStub) ComputeGasLimitBasedOnBalance(tx process.TransactionWithFeeHandler, balance *big.Int) (uint64, error) {
+	if ehs.ComputeGasLimitBasedOnBalanceCalled != nil {
+		return ehs.ComputeGasLimitBasedOnBalanceCalled(tx, balance)
 	}
 	return 0, nil
 }
 
 // ComputeTxFee -
-func (ehm *EconomicsHandlerStub) ComputeTxFee(tx process.TransactionWithFeeHandler) *big.Int {
-	if ehm.ComputeTxFeeCalled != nil {
-		return ehm.ComputeTxFeeCalled(tx)
+func (ehs *EconomicsHandlerStub) ComputeTxFee(tx process.TransactionWithFeeHandler) *big.Int {
+	if ehs.ComputeTxFeeCalled != nil {
+		return ehs.ComputeTxFeeCalled(tx)
 	}
 	return big.NewInt(0)
 }
 
 // RewardsTopUpGradientPoint -
-func (ehm *EconomicsHandlerStub) RewardsTopUpGradientPoint() *big.Int {
-	if ehm.RewardsTopUpGradientPointCalled != nil {
-		return ehm.RewardsTopUpGradientPointCalled()
+func (ehs *EconomicsHandlerStub) RewardsTopUpGradientPoint() *big.Int {
+	if ehs.RewardsTopUpGradientPointCalled != nil {
+		return ehs.RewardsTopUpGradientPointCalled()
 	}
 	return big.NewInt(0)
 }
 
 // RewardsTopUpFactor -
-func (ehm *EconomicsHandlerStub) RewardsTopUpFactor() float64 {
-	if ehm.RewardsTopUpFactorCalled != nil {
-		return ehm.RewardsTopUpFactorCalled()
+func (ehs *EconomicsHandlerStub) RewardsTopUpFactor() float64 {
+	if ehs.RewardsTopUpFactorCalled != nil {
+		return ehs.RewardsTopUpFactorCalled()
 	}
 	return 0
 }
 
 // ComputeFeeForProcessing -
-func (ehm *EconomicsHandlerStub) ComputeFeeForProcessing(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
-	if ehm.ComputeFeeForProcessingCalled != nil {
-		return ehm.ComputeFeeForProcessingCalled(tx, gasToUse)
+func (ehs *EconomicsHandlerStub) ComputeFeeForProcessing(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
+	if ehs.ComputeFeeForProcessingCalled != nil {
+		return ehs.ComputeFeeForProcessingCalled(tx, gasToUse)
 	}
 	return big.NewInt(0)
 }
 
 // GasPriceModifier -
-func (ehm *EconomicsHandlerStub) GasPriceModifier() float64 {
-	if ehm.GasPriceModifierCalled != nil {
-		return ehm.GasPriceModifierCalled()
+func (ehs *EconomicsHandlerStub) GasPriceModifier() float64 {
+	if ehs.GasPriceModifierCalled != nil {
+		return ehs.GasPriceModifierCalled()
 	}
 	return 0
 }
 
 // SplitTxGasInCategories -
-func (ehm *EconomicsHandlerStub) SplitTxGasInCategories(tx process.TransactionWithFeeHandler) (uint64, uint64) {
-	if ehm.SplitTxGasInCategoriesCalled != nil {
-		return ehm.SplitTxGasInCategoriesCalled(tx)
+func (ehs *EconomicsHandlerStub) SplitTxGasInCategories(tx process.TransactionWithFeeHandler) (uint64, uint64) {
+	if ehs.SplitTxGasInCategoriesCalled != nil {
+		return ehs.SplitTxGasInCategoriesCalled(tx)
 	}
 	return 0, 0
 }
 
 // GasPriceForProcessing -
-func (ehm *EconomicsHandlerStub) GasPriceForProcessing(tx process.TransactionWithFeeHandler) uint64 {
-	if ehm.GasPriceForProcessingCalled != nil {
-		return ehm.GasPriceForProcessingCalled(tx)
+func (ehs *EconomicsHandlerStub) GasPriceForProcessing(tx process.TransactionWithFeeHandler) uint64 {
+	if ehs.GasPriceForProcessingCalled != nil {
+		return ehs.GasPriceForProcessingCalled(tx)
 	}
 	return 0
 }
 
 // GasPriceForMove -
-func (ehm *EconomicsHandlerStub) GasPriceForMove(tx process.TransactionWithFeeHandler) uint64 {
-	if ehm.GasPriceForMoveCalled != nil {
-		return ehm.GasPriceForMoveCalled(tx)
+func (ehs *EconomicsHandlerStub) GasPriceForMove(tx process.TransactionWithFeeHandler) uint64 {
+	if ehs.GasPriceForMoveCalled != nil {
+		return ehs.GasPriceForMoveCalled(tx)
 	}
 	return 0
 }
 
 // MinGasPriceForProcessing -
-func (ehm *EconomicsHandlerStub) MinGasPriceForProcessing() uint64 {
-	if ehm.MinGasPriceForProcessingCalled != nil {
-		return ehm.MinGasPriceForProcessingCalled()
+func (ehs *EconomicsHandlerStub) MinGasPriceForProcessing() uint64 {
+	if ehs.MinGasPriceForProcessingCalled != nil {
+		return ehs.MinGasPriceForProcessingCalled()
 	}
 	return 0
 }
 
 // ComputeGasUsedAndFeeBasedOnRefundValue -
-func (ehm *EconomicsHandlerStub) ComputeGasUsedAndFeeBasedOnRefundValue(tx process.TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int) {
-	if ehm.ComputeGasUsedAndFeeBasedOnRefundValueCalled != nil {
-		return ehm.ComputeGasUsedAndFeeBasedOnRefundValueCalled(tx, refundValue)
+func (ehs *EconomicsHandlerStub) ComputeGasUsedAndFeeBasedOnRefundValue(tx process.TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int) {
+	if ehs.ComputeGasUsedAndFeeBasedOnRefundValueCalled != nil {
+		return ehs.ComputeGasUsedAndFeeBasedOnRefundValueCalled(tx, refundValue)
 	}
 	return 0, big.NewInt(0)
 }
 
 // ComputeTxFeeBasedOnGasUsed -
-func (ehm *EconomicsHandlerStub) ComputeTxFeeBasedOnGasUsed(tx process.TransactionWithFeeHandler, gasUsed uint64) *big.Int {
-	if ehm.ComputeTxFeeBasedOnGasUsedCalled != nil {
-		return ehm.ComputeTxFeeBasedOnGasUsedCalled(tx, gasUsed)
+func (ehs *EconomicsHandlerStub) ComputeTxFeeBasedOnGasUsed(tx process.TransactionWithFeeHandler, gasUsed uint64) *big.Int {
+	if ehs.ComputeTxFeeBasedOnGasUsedCalled != nil {
+		return ehs.ComputeTxFeeBasedOnGasUsedCalled(tx, gasUsed)
 	}
 	return big.NewInt(0)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (ehm *EconomicsHandlerStub) IsInterfaceNil() bool {
-	return ehm == nil
+func (ehs *EconomicsHandlerStub) IsInterfaceNil() bool {
+	return ehs == nil
 }

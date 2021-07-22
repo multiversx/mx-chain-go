@@ -90,6 +90,7 @@ func NewRewardTxPreprocessor(
 		gasTracker: gasTracker{
 			shardCoordinator: shardCoordinator,
 			gasHandler:       gasHandler,
+			economicsFee:     nil,
 		},
 		blockSizeComputation: blockSizeComputation,
 		balanceComputation:   balanceComputation,
