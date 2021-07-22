@@ -3,14 +3,14 @@ module github.com/ElrondNetwork/elrond-go
 go 1.13
 
 require (
-	github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.26
-	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.25
-	github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.1
+	github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.28
+	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.27
+	github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.3
 	github.com/ElrondNetwork/concurrent-map v0.1.3
-	github.com/ElrondNetwork/elastic-indexer-go v1.0.8-0.20210721120803-b76728c4b1ed
-	github.com/ElrondNetwork/elrond-go-core v1.0.0
-	github.com/ElrondNetwork/elrond-go-logger v1.0.4
-	github.com/ElrondNetwork/elrond-vm-common v1.1.0
+	github.com/ElrondNetwork/elastic-indexer-go v1.0.8-0.20210722082841-849fea110521
+	github.com/ElrondNetwork/elrond-go-core v1.0.1-0.20210721121720-f02fb03b2e1a
+	github.com/ElrondNetwork/elrond-go-logger v1.0.5
+	github.com/ElrondNetwork/elrond-vm-common v1.1.1-0.20210722060700-90d35cd5b077
 	github.com/beevik/ntp v0.3.0
 	github.com/btcsuite/btcd v0.22.0-beta
 	github.com/davecgh/go-spew v1.1.1
@@ -49,8 +49,8 @@ require (
 
 replace github.com/gogo/protobuf => github.com/ElrondNetwork/protobuf v1.3.2
 
-replace github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.26 => github.com/ElrondNetwork/arwen-wasm-vm v1.2.26
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.28 => github.com/ElrondNetwork/arwen-wasm-vm v1.2.28
 
-replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.25 => github.com/ElrondNetwork/arwen-wasm-vm v1.3.25
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.27 => github.com/ElrondNetwork/arwen-wasm-vm v1.3.27
 
-replace github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.1 => github.com/ElrondNetwork/arwen-wasm-vm v1.4.2-0.20210720092934-6b2c1c46a8ae
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.3 => github.com/ElrondNetwork/arwen-wasm-vm v1.4.3

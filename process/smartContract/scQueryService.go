@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
@@ -133,7 +134,7 @@ func (service *SCQueryService) createVMCallInput(query *process.SCQuery, gasPric
 		GasPrice:    gasPrice,
 		GasProvided: service.gasForQuery,
 		Arguments:   query.Arguments,
-		CallType:    vmcommon.DirectCall,
+		CallType:    vmData.DirectCall,
 	}
 
 	vmContractCallInput := &vmcommon.ContractCallInput{
