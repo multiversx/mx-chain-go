@@ -3,6 +3,7 @@ package blockAPI
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -33,14 +34,14 @@ type baseAPIBockProcessor struct {
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	historyRepo              dblookupext.HistoryRepository
 	// TODO: use an interface instead of this function
-	unmarshalTx              func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
-	txStatusComputer         transaction.StatusComputerHandler
+	unmarshalTx      func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
+	txStatusComputer transaction.StatusComputerHandler
 }
 
 var log = logger.GetOrCreate("node/blockAPI")
 
-func (bap *baseAPIBockProcessor) getTxsByMb(mbHeader *block.MiniBlockHeader, epoch uint32) []*transaction.ApiTransactionResult {
-	miniblockHash := mbHeader.Hash
+func (bap *baseAPIBockProcessor) getTxsByMb(mbHeader data.MiniBlockHeaderHandler, epoch uint32) []*transaction.ApiTransactionResult {
+	miniblockHash := mbHeader.GetHash()
 	mbBytes, err := bap.getFromStorerWithEpoch(dataRetriever.MiniBlockUnit, miniblockHash, epoch)
 	if err != nil {
 		log.Warn("cannot get miniblock from storage",

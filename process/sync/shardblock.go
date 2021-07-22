@@ -235,8 +235,7 @@ func (boot *ShardBootstrap) getPrevHeader(
 		return nil, err
 	}
 
-	prevHeader := &block.Header{}
-	err = boot.marshalizer.Unmarshal(prevHeader, buffHeader)
+	prevHeader, err := process.CreateShardHeader(boot.marshalizer, buffHeader)
 	if err != nil {
 		return nil, err
 	}

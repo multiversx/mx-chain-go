@@ -246,7 +246,6 @@ type ChainHandler interface {
 	GetCurrentBlockHeaderHash() []byte
 	SetCurrentBlockHeaderHash(hash []byte)
 	IsInterfaceNil() bool
-	CreateNewHeader() HeaderHandler
 }
 
 // TransactionHandler defines the type of executable transaction

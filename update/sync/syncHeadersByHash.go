@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -176,13 +175,12 @@ func (m *syncHeadersByHash) getHeaderFromPoolOrStorage(hash []byte) (data.Header
 		return nil, false
 	}
 
-	var hdr block.Header
-	err = m.marshalizer.Unmarshal(&hdr, hdrData)
+	hdr, err := process.CreateShardHeader(m.marshalizer, hdrData)
 	if err != nil {
 		return nil, false
 	}
 
-	return &hdr, true
+	return hdr, true
 }
 
 func (m *syncHeadersByHash) getHeaderFromPool(hash []byte) (data.HeaderHandler, bool) {

@@ -2294,9 +2294,6 @@ func TestMetaProcessor_DecodeBlockHeader(t *testing.T) {
 	marshalizerMock := &mock.MarshalizerMock{}
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 	dataComponents.BlockChain = &mock.BlockChainMock{
-		CreateNewHeaderCalled: func() data.HeaderHandler {
-			return &block.MetaBlock{}
-		},
 		GetGenesisHeaderCalled: func() data.HeaderHandler {
 			return &block.MetaBlock{Nonce: 0}
 		},
