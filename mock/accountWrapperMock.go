@@ -109,6 +109,11 @@ func (awm *AccountWrapMock) SetCode(code []byte) {
 	awm.code = code
 }
 
+// RetrieveValueFromDataTrieTracker -
+func (awm *AccountWrapMock) RetrieveValueFromDataTrieTracker(key []byte) ([]byte, error) {
+	return awm.trackableDataTrie.RetrieveValue(key)
+}
+
 // HasNewCode -
 func (awm *AccountWrapMock) HasNewCode() bool {
 	return len(awm.code) > 0
