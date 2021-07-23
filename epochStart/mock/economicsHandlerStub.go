@@ -3,7 +3,7 @@ package mock
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 )
 
 // EconomicsHandlerStub -
@@ -11,10 +11,10 @@ type EconomicsHandlerStub struct {
 	MaxGasLimitPerBlockCalled                    func() uint64
 	SetMinGasPriceCalled                         func(minasPrice uint64)
 	SetMinGasLimitCalled                         func(minGasLimit uint64)
-	ComputeGasLimitCalled                        func(tx process.TransactionWithFeeHandler) uint64
-	ComputeMoveBalanceFeeCalled                  func(tx process.TransactionWithFeeHandler) *big.Int
-	ComputeTxFeeCalled                           func(tx process.TransactionWithFeeHandler) *big.Int
-	CheckValidityTxValuesCalled                  func(tx process.TransactionWithFeeHandler) error
+	ComputeGasLimitCalled                        func(tx data.TransactionWithFeeHandler) uint64
+	ComputeMoveBalanceFeeCalled                  func(tx data.TransactionWithFeeHandler) *big.Int
+	ComputeTxFeeCalled                           func(tx data.TransactionWithFeeHandler) *big.Int
+	CheckValidityTxValuesCalled                  func(tx data.TransactionWithFeeHandler) error
 	DeveloperPercentageCalled                    func() float64
 	MinGasPriceCalled                            func() uint64
 	LeaderPercentageCalled                       func() float64
@@ -22,21 +22,21 @@ type EconomicsHandlerStub struct {
 	ProtocolSustainabilityAddressCalled          func() string
 	MinInflationRateCalled                       func() float64
 	MaxInflationRateCalled                       func(year uint32) float64
-	ComputeFeeForProcessingCalled                func(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int
+	ComputeFeeForProcessingCalled                func(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int
 	GasPriceModifierCalled                       func() float64
-	SplitTxGasInCategoriesCalled                 func(tx process.TransactionWithFeeHandler) (uint64, uint64)
-	GasPriceForProcessingCalled                  func(tx process.TransactionWithFeeHandler) uint64
-	GasPriceForMoveCalled                        func(tx process.TransactionWithFeeHandler) uint64
+	SplitTxGasInCategoriesCalled                 func(tx data.TransactionWithFeeHandler) (uint64, uint64)
+	GasPriceForProcessingCalled                  func(tx data.TransactionWithFeeHandler) uint64
+	GasPriceForMoveCalled                        func(tx data.TransactionWithFeeHandler) uint64
 	MinGasPriceForProcessingCalled               func() uint64
-	ComputeGasUsedAndFeeBasedOnRefundValueCalled func(tx process.TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int)
-	ComputeTxFeeBasedOnGasUsedCalled             func(tx process.TransactionWithFeeHandler, gasUsed uint64) *big.Int
+	ComputeGasUsedAndFeeBasedOnRefundValueCalled func(tx data.TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int)
+	ComputeTxFeeBasedOnGasUsedCalled             func(tx data.TransactionWithFeeHandler, gasUsed uint64) *big.Int
 	RewardsTopUpGradientPointCalled              func() *big.Int
 	RewardsTopUpFactorCalled                     func() float64
-	ComputeGasLimitBasedOnBalanceCalled          func(tx process.TransactionWithFeeHandler, balance *big.Int) (uint64, error)
+	ComputeGasLimitBasedOnBalanceCalled          func(tx data.TransactionWithFeeHandler, balance *big.Int) (uint64, error)
 }
 
 // ComputeGasLimitBasedOnBalance -
-func (fhs *EconomicsHandlerStub) ComputeGasLimitBasedOnBalance(tx process.TransactionWithFeeHandler, balance *big.Int) (uint64, error) {
+func (fhs *EconomicsHandlerStub) ComputeGasLimitBasedOnBalance(tx data.TransactionWithFeeHandler, balance *big.Int) (uint64, error) {
 	if fhs.ComputeGasLimitBasedOnBalanceCalled != nil {
 		return fhs.ComputeGasLimitBasedOnBalanceCalled(tx, balance)
 	}
@@ -77,22 +77,22 @@ func (fhs *EconomicsHandlerStub) MaxGasLimitPerBlock(uint32) uint64 {
 }
 
 // ComputeGasLimit -
-func (fhs *EconomicsHandlerStub) ComputeGasLimit(tx process.TransactionWithFeeHandler) uint64 {
+func (fhs *EconomicsHandlerStub) ComputeGasLimit(tx data.TransactionWithFeeHandler) uint64 {
 	return fhs.ComputeGasLimitCalled(tx)
 }
 
 // ComputeMoveBalanceFee -
-func (fhs *EconomicsHandlerStub) ComputeMoveBalanceFee(tx process.TransactionWithFeeHandler) *big.Int {
+func (fhs *EconomicsHandlerStub) ComputeMoveBalanceFee(tx data.TransactionWithFeeHandler) *big.Int {
 	return fhs.ComputeMoveBalanceFeeCalled(tx)
 }
 
 // ComputeTxFee -
-func (fhs *EconomicsHandlerStub) ComputeTxFee(tx process.TransactionWithFeeHandler) *big.Int {
+func (fhs *EconomicsHandlerStub) ComputeTxFee(tx data.TransactionWithFeeHandler) *big.Int {
 	return fhs.ComputeTxFeeCalled(tx)
 }
 
 // CheckValidityTxValues -
-func (fhs *EconomicsHandlerStub) CheckValidityTxValues(tx process.TransactionWithFeeHandler) error {
+func (fhs *EconomicsHandlerStub) CheckValidityTxValues(tx data.TransactionWithFeeHandler) error {
 	return fhs.CheckValidityTxValuesCalled(tx)
 }
 
@@ -142,7 +142,7 @@ func (fhs *EconomicsHandlerStub) MaxInflationRate(year uint32) float64 {
 }
 
 // ComputeFeeForProcessing -
-func (fhs *EconomicsHandlerStub) ComputeFeeForProcessing(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
+func (fhs *EconomicsHandlerStub) ComputeFeeForProcessing(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
 	if fhs.ComputeFeeForProcessingCalled != nil {
 		return fhs.ComputeFeeForProcessingCalled(tx, gasToUse)
 	}
@@ -158,7 +158,7 @@ func (fhs *EconomicsHandlerStub) GasPriceModifier() float64 {
 }
 
 // SplitTxGasInCategories -
-func (fhs *EconomicsHandlerStub) SplitTxGasInCategories(tx process.TransactionWithFeeHandler) (uint64, uint64) {
+func (fhs *EconomicsHandlerStub) SplitTxGasInCategories(tx data.TransactionWithFeeHandler) (uint64, uint64) {
 	if fhs.SplitTxGasInCategoriesCalled != nil {
 		return fhs.SplitTxGasInCategoriesCalled(tx)
 	}
@@ -166,7 +166,7 @@ func (fhs *EconomicsHandlerStub) SplitTxGasInCategories(tx process.TransactionWi
 }
 
 // GasPriceForProcessing -
-func (fhs *EconomicsHandlerStub) GasPriceForProcessing(tx process.TransactionWithFeeHandler) uint64 {
+func (fhs *EconomicsHandlerStub) GasPriceForProcessing(tx data.TransactionWithFeeHandler) uint64 {
 	if fhs.GasPriceForProcessingCalled != nil {
 		return fhs.GasPriceForProcessingCalled(tx)
 	}
@@ -174,7 +174,7 @@ func (fhs *EconomicsHandlerStub) GasPriceForProcessing(tx process.TransactionWit
 }
 
 // GasPriceForMove -
-func (fhs *EconomicsHandlerStub) GasPriceForMove(tx process.TransactionWithFeeHandler) uint64 {
+func (fhs *EconomicsHandlerStub) GasPriceForMove(tx data.TransactionWithFeeHandler) uint64 {
 	if fhs.GasPriceForMoveCalled != nil {
 		return fhs.GasPriceForMoveCalled(tx)
 	}
@@ -190,7 +190,7 @@ func (fhs *EconomicsHandlerStub) MinGasPriceForProcessing() uint64 {
 }
 
 // ComputeGasUsedAndFeeBasedOnRefundValue -
-func (fhs *EconomicsHandlerStub) ComputeGasUsedAndFeeBasedOnRefundValue(tx process.TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int) {
+func (fhs *EconomicsHandlerStub) ComputeGasUsedAndFeeBasedOnRefundValue(tx data.TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int) {
 	if fhs.ComputeGasUsedAndFeeBasedOnRefundValueCalled != nil {
 		return fhs.ComputeGasUsedAndFeeBasedOnRefundValueCalled(tx, refundValue)
 	}
@@ -198,7 +198,7 @@ func (fhs *EconomicsHandlerStub) ComputeGasUsedAndFeeBasedOnRefundValue(tx proce
 }
 
 // ComputeTxFeeBasedOnGasUsed -
-func (fhs *EconomicsHandlerStub) ComputeTxFeeBasedOnGasUsed(tx process.TransactionWithFeeHandler, gasUsed uint64) *big.Int {
+func (fhs *EconomicsHandlerStub) ComputeTxFeeBasedOnGasUsed(tx data.TransactionWithFeeHandler, gasUsed uint64) *big.Int {
 	if fhs.ComputeTxFeeBasedOnGasUsedCalled != nil {
 		return fhs.ComputeTxFeeBasedOnGasUsedCalled(tx, gasUsed)
 	}
