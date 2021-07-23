@@ -132,6 +132,7 @@ type ArgsNetworkMessenger struct {
 	P2pConfig            config.P2PConfig
 	SyncTimer            p2p.SyncTimer
 	PreferredPeersHolder p2p.PreferredPeersHolderHandler
+	NodeOperationMode    p2p.NodeOperation
 }
 
 // NewNetworkMessenger creates a libP2P messenger by opening a port on the current machine
@@ -290,7 +291,7 @@ func addComponentsToNode(
 		return err
 	}
 
-	err = p2pNode.createSharder(args.P2pConfig)
+	err = p2pNode.createSharder(args)
 	if err != nil {
 		return err
 	}
@@ -400,13 +401,13 @@ func (netMes *networkMessenger) createMessageBytes(buff []byte) []byte {
 	return buffToSend
 }
 
-func (netMes *networkMessenger) createSharder(p2pConfig config.P2PConfig) error {
+func (netMes *networkMessenger) createSharder(argsNetMes ArgsNetworkMessenger) error {
 	args := factory.ArgsSharderFactory{
 		PeerShardResolver:    &unknownPeerShardResolver{},
 		Pid:                  netMes.p2pHost.ID(),
-		P2pConfig:            p2pConfig,
-		Type:                 p2pConfig.Sharding.Type,
+		P2pConfig:            argsNetMes.P2pConfig,
 		PreferredPeersHolder: netMes.preferredPeersHolder,
+		NodeOperationMode:    argsNetMes.NodeOperationMode,
 	}
 
 	var err error
