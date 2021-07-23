@@ -9,10 +9,13 @@ import (
 	arwenHost12 "github.com/ElrondNetwork/arwen-wasm-vm/v1_2/arwen/host"
 	arwen13 "github.com/ElrondNetwork/arwen-wasm-vm/v1_3/arwen"
 	arwenHost13 "github.com/ElrondNetwork/arwen-wasm-vm/v1_3/arwen/host"
+	arwen14 "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/arwen"
+	arwenHost14 "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/arwen/host"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
@@ -38,6 +41,7 @@ type vmContainerFactory struct {
 	container                      process.VirtualMachinesContainer
 	arwenVersions                  []config.ArwenVersionByEpoch
 	arwenChangeLocker              process.Locker
+	esdtTransferParser             vmcommon.ESDTTransferParser
 }
 
 // ArgVMContainerFactory defines the arguments needed to the new VM factory
@@ -51,6 +55,7 @@ type ArgVMContainerFactory struct {
 	AheadOfTimeGasUsageEnableEpoch uint32
 	ArwenV3EnableEpoch             uint32
 	ArwenChangeLocker              process.Locker
+	ESDTTransferParser             vmcommon.ESDTTransferParser
 }
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
@@ -63,6 +68,9 @@ func NewVMContainerFactory(args ArgVMContainerFactory) (*vmContainerFactory, err
 	}
 	if check.IfNilReflect(args.ArwenChangeLocker) {
 		return nil, process.ErrNilLocker
+	}
+	if check.IfNil(args.ESDTTransferParser) {
+		return nil, process.ErrNilESDTTransferParser
 	}
 
 	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(args.ArgBlockChainHook)
@@ -85,6 +93,7 @@ func NewVMContainerFactory(args ArgVMContainerFactory) (*vmContainerFactory, err
 		arwenV3EnableEpoch:             args.ArwenV3EnableEpoch,
 		container:                      nil,
 		arwenChangeLocker:              args.ArwenChangeLocker,
+		esdtTransferParser:             args.ESDTTransferParser,
 	}
 
 	vmf.arwenVersions = args.Config.ArwenVersions
@@ -121,7 +130,7 @@ func (vmf *vmContainerFactory) validateArwenVersions() error {
 		}
 		currentEpoch = ver.StartEpoch
 
-		if len(ver.Version) > core.MaxSoftwareVersionLengthInBytes {
+		if len(ver.Version) > common.MaxSoftwareVersionLengthInBytes {
 			return fmt.Errorf("%w for version %s",
 				ErrInvalidVersionStringTooLong, ver.Version)
 		}
@@ -233,8 +242,10 @@ func (vmf *vmContainerFactory) createInProcessArwenVMByVersion(version config.Ar
 	switch version.Version {
 	case "v1.2":
 		return vmf.createInProcessArwenVMV12()
-	default:
+	case "v1.3":
 		return vmf.createInProcessArwenVMV13()
+	default:
+		return vmf.createInProcessArwenVMV14()
 	}
 }
 
@@ -266,6 +277,18 @@ func (vmf *vmContainerFactory) createInProcessArwenVMV13() (vmcommon.VMExecution
 		ArwenV3EnableEpoch:       vmf.arwenV3EnableEpoch,
 	}
 	return arwenHost13.NewArwenVM(vmf.blockChainHookImpl, hostParameters)
+}
+
+func (vmf *vmContainerFactory) createInProcessArwenVMV14() (vmcommon.VMExecutionHandler, error) {
+	hostParameters := &arwen14.VMHostParameters{
+		VMType:                   factory.ArwenVirtualMachine,
+		BlockGasLimit:            vmf.blockGasLimit,
+		GasSchedule:              vmf.gasSchedule.LatestGasSchedule(),
+		BuiltInFuncContainer:     vmf.builtinFunctions,
+		ElrondProtectedKeyPrefix: []byte(core.ElrondProtectedKeyPrefix),
+		ESDTTransferParser:       vmf.esdtTransferParser,
+	}
+	return arwenHost14.NewArwenVM(vmf.blockChainHookImpl, hostParameters)
 }
 
 func (vmf *vmContainerFactory) closePreviousVM(vm vmcommon.VMExecutionHandler) {

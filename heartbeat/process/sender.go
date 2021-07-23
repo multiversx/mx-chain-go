@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	heartbeatData "github.com/ElrondNetwork/elrond-go/heartbeat/data"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -213,7 +214,7 @@ func (s *Sender) updateMetrics(hb *heartbeatData.Heartbeat) {
 	result := s.computePeerList(hb.Pubkey)
 
 	nodeType := ""
-	if result == string(core.ObserverList) {
+	if result == string(common.ObserverList) {
 		nodeType = string(core.NodeTypeObserver)
 	} else {
 		nodeType = string(core.NodeTypeValidator)
@@ -221,16 +222,16 @@ func (s *Sender) updateMetrics(hb *heartbeatData.Heartbeat) {
 
 	subType := core.P2PPeerSubType(hb.PeerSubType)
 
-	s.statusHandler.SetStringValue(core.MetricNodeType, nodeType)
-	s.statusHandler.SetStringValue(core.MetricPeerType, result)
-	s.statusHandler.SetStringValue(core.MetricPeerSubType, subType.String())
+	s.statusHandler.SetStringValue(common.MetricNodeType, nodeType)
+	s.statusHandler.SetStringValue(common.MetricPeerType, result)
+	s.statusHandler.SetStringValue(common.MetricPeerSubType, subType.String())
 }
 
 func (s *Sender) computePeerList(pubkey []byte) string {
 	peerType, _, err := s.peerTypeProvider.ComputeForPubKey(pubkey)
 	if err != nil {
 		log.Warn("sender: compute peer type", "error", err)
-		return string(core.ObserverList)
+		return string(common.ObserverList)
 	}
 
 	return string(peerType)

@@ -1,6 +1,6 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/data"
+import "github.com/ElrondNetwork/elrond-go-core/data"
 
 // HeaderSigVerifierStub -
 type HeaderSigVerifierStub struct {

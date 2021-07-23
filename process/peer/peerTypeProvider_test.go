@@ -5,8 +5,8 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -88,7 +88,7 @@ func TestPeerTypeProvider_UpdateCache(t *testing.T) {
 	assert.NotNil(t, ptp.cache)
 	assert.Equal(t, len(eligibleMap[initialShardId]), len(ptp.cache))
 	assert.NotNil(t, ptp.cache[pk])
-	assert.Equal(t, core.EligibleList, ptp.cache[pk].pType)
+	assert.Equal(t, common.EligibleList, ptp.cache[pk].pType)
 	assert.Equal(t, initialShardId, ptp.cache[pk].pShard)
 }
 
@@ -128,11 +128,11 @@ func TestNewPeerTypeProvider_createCache(t *testing.T) {
 	assert.NotNil(t, cache)
 
 	assert.NotNil(t, cache[pkEligible])
-	assert.Equal(t, core.EligibleList, cache[pkEligible].pType)
+	assert.Equal(t, common.EligibleList, cache[pkEligible].pType)
 	assert.Equal(t, eligibleShardId, cache[pkEligible].pShard)
 
 	assert.NotNil(t, cache[pkWaiting])
-	assert.Equal(t, core.WaitingList, cache[pkWaiting].pType)
+	assert.Equal(t, common.WaitingList, cache[pkWaiting].pType)
 	assert.Equal(t, waitingShardId, cache[pkWaiting].pShard)
 }
 
@@ -190,7 +190,7 @@ func TestNewPeerTypeProvider_ComputeForKeyFromCache(t *testing.T) {
 	called := populateCacheCalled
 	popMutex.RUnlock()
 	assert.False(t, called)
-	assert.Equal(t, core.EligibleList, peerType)
+	assert.Equal(t, common.EligibleList, peerType)
 	assert.Equal(t, initialShardId, shardId)
 	assert.Nil(t, err)
 }
@@ -208,7 +208,7 @@ func TestNewPeerTypeProvider_ComputeForKeyNotFoundInCacheReturnsObserver(t *test
 
 	peerType, shardId, err := ptp.ComputeForPubKey(pk)
 
-	assert.Equal(t, core.ObserverList, peerType)
+	assert.Equal(t, common.ObserverList, peerType)
 	assert.Equal(t, uint32(0), shardId)
 	assert.Nil(t, err)
 }

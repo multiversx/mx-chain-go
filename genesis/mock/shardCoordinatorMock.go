@@ -3,7 +3,7 @@ package mock
 import (
 	"math"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 )
 
 // ShardCoordinatorMock -

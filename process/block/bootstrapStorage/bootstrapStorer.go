@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"sync/atomic"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -67,7 +67,7 @@ func (bs *bootstrapStorer) Put(round int64, bootData BootstrapData) error {
 		return err
 	}
 
-	err = bs.store.Put([]byte(core.HighestRoundFromBootStorage), roundBytes)
+	err = bs.store.Put([]byte(common.HighestRoundFromBootStorage), roundBytes)
 	if err != nil {
 		return err
 	}
@@ -96,7 +96,7 @@ func (bs *bootstrapStorer) Get(round int64) (BootstrapData, error) {
 
 // GetHighestRound will return highest round saved in storage
 func (bs *bootstrapStorer) GetHighestRound() int64 {
-	roundBytes, err := bs.store.Get([]byte(core.HighestRoundFromBootStorage))
+	roundBytes, err := bs.store.Get([]byte(common.HighestRoundFromBootStorage))
 	if err != nil {
 		return 0
 	}
@@ -120,7 +120,7 @@ func (bs *bootstrapStorer) SaveLastRound(round int64) error {
 		return err
 	}
 
-	err = bs.store.Put([]byte(core.HighestRoundFromBootStorage), roundBytes)
+	err = bs.store.Put([]byte(common.HighestRoundFromBootStorage), roundBytes)
 	if err != nil {
 		return err
 	}

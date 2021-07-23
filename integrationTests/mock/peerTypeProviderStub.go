@@ -1,17 +1,17 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 // PeerTypeProviderStub -
 type PeerTypeProviderStub struct {
-	ComputeForPubKeyCalled func(pubKey []byte) (core.PeerType, uint32, error)
+	ComputeForPubKeyCalled func(pubKey []byte) (common.PeerType, uint32, error)
 }
 
 // ComputeForPubKey -
-func (p *PeerTypeProviderStub) ComputeForPubKey(pubKey []byte) (core.PeerType, uint32, error) {
+func (p *PeerTypeProviderStub) ComputeForPubKey(pubKey []byte) (common.PeerType, uint32, error) {
 	if p.ComputeForPubKeyCalled != nil {
 		return p.ComputeForPubKeyCalled(pubKey)
 	}

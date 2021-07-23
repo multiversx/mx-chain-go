@@ -1,11 +1,8 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/statistics"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/indexer"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 )
 
 // IndexerMock is a mock implementation fot the Indexer interface
@@ -18,10 +15,6 @@ func (im *IndexerMock) SaveBlock(args *indexer.ArgsSaveBlockData) {
 	if im.SaveBlockCalled != nil {
 		im.SaveBlockCalled(args)
 	}
-}
-
-// SetTxLogsProcessor will do nothing
-func (im *IndexerMock) SetTxLogsProcessor(_ process.TransactionLogProcessorDatabase) {
 }
 
 // Close will do nothing
@@ -38,10 +31,6 @@ func (im *IndexerMock) SaveValidatorsRating(_ string, _ []*indexer.ValidatorRati
 func (im *IndexerMock) SaveMetaBlock(_ data.HeaderHandler, _ []uint64) {
 }
 
-// UpdateTPS -
-func (im *IndexerMock) UpdateTPS(_ statistics.TPSBenchmark) {
-}
-
 // SaveRoundsInfo -
 func (im *IndexerMock) SaveRoundsInfo(_ []*indexer.RoundInfo) {
 }
@@ -56,7 +45,7 @@ func (im *IndexerMock) RevertIndexedBlock(_ data.HeaderHandler, _ data.BodyHandl
 }
 
 // SaveAccounts -
-func (im *IndexerMock) SaveAccounts(_ uint64, _ []state.UserAccountHandler) {
+func (im *IndexerMock) SaveAccounts(_ uint64, _ []data.UserAccountHandler) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -6,12 +6,13 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/assert"
@@ -373,7 +374,7 @@ func TestTxTypeHandler_ComputeTransactionTypeBuiltInFuncNotActiveSCCall(t *testi
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("000")
-	tx.RcvAddr = vmcommon.ESDTSCAddress
+	tx.RcvAddr = vm.ESDTSCAddress
 	tx.Data = []byte("builtIn")
 	tx.Value = big.NewInt(45)
 
@@ -463,7 +464,7 @@ func TestTxTypeHandler_ComputeTransactionTypeForSCRCallBack(t *testing.T) {
 	tx.SndAddr = []byte("000")
 	tx.RcvAddr = []byte("001")
 	tx.Data = []byte("00")
-	tx.CallType = vmcommon.AsynchronousCallBack
+	tx.CallType = vmData.AsynchronousCallBack
 	tx.Value = big.NewInt(45)
 
 	arg := createMockArguments()
