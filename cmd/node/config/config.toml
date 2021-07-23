@@ -541,7 +541,7 @@
 
 [EpochStartConfig]
     MinRoundsBetweenEpochs = 20
-    RoundsPerEpoch         = 200
+    RoundsPerEpoch         = 25
     # Min and Max ShuffledOutRestartThreshold represents the minimum and maximum duration of an epoch (in percentage) after a node which
     # has been shuffled out has to restart its process in order to start in a new shard
     MinShuffledOutRestartThreshold = 0.05
@@ -781,7 +781,11 @@
         MaxOpenFiles = 10
 
 [Logs]
-    LogFileLifeSpanInSec = 86400
+    [Logs.LifeSpan]
+    #available options: second or epoch
+    Type="epoch"
+    #recreate every: 86400 second, 1 epoch etc.
+    RecreateEvery = 2
 
 [TrieSync]
     NumConcurrentTrieSyncers  = 200

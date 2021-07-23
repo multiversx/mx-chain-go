@@ -156,7 +156,7 @@ func startNode(ctx *cli.Context) error {
 			return fmt.Errorf("%w creating a log file", err)
 		}
 
-		err = fileLogging.ChangeFileLifeSpan(time.Second * time.Duration(generalConfig.Logs.LogFileLifeSpanInSec))
+		//err = fileLogging.ChangeFileLifeSpan(time.Second * time.Duration(generalConfig.Logs.LifeSpan.RecreateEvery))
 		if err != nil {
 			return err
 		}

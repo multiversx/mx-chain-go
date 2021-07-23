@@ -11,43 +11,49 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go-logger/check"
 	"github.com/ElrondNetwork/elrond-go-logger/redirects"
 )
 
-const minFileLifeSpan = time.Second
 const defaultFileLifeSpan = time.Hour * 24
 
 var log = logger.GetOrCreate("common/logging")
 
 // fileLogging is able to rotate the log files
 type fileLogging struct {
-	chLifeSpanChanged chan time.Duration
-	mutFile           sync.Mutex
-	currentFile       *os.File
-	workingDir        string
-	defaultLogsPath   string
-	logFilePrefix     string
-	cancelFunc        func()
-	mutIsClosed       sync.Mutex
-	isClosed          bool
+	logLifeSpanner  LogLifeSpanner
+	mutFile         sync.Mutex
+	currentFile     *os.File
+	workingDir      string
+	defaultLogsPath string
+	logFilePrefix   string
+	cancelFunc      func()
+	mutIsClosed     sync.Mutex
+	isClosed        bool
 }
 
 // NewFileLogging creates a file log watcher used to break the log file into multiple smaller files
 func NewFileLogging(workingDir string, defaultLogsPath string, logFilePrefix string) (*fileLogging, error) {
 	fl := &fileLogging{
-		workingDir:        workingDir,
-		defaultLogsPath:   defaultLogsPath,
-		logFilePrefix:     logFilePrefix,
-		chLifeSpanChanged: make(chan time.Duration),
-		isClosed:          false,
+		workingDir:      workingDir,
+		defaultLogsPath: defaultLogsPath,
+		logFilePrefix:   logFilePrefix,
+		isClosed:        false,
 	}
-	fl.recreateLogFile()
+	fl.recreateLogFile("")
 
 	//we need this function as to call file.Close() when the code panics and the defer func associated
 	//with the file pointer in the main func will never be reached
 	runtime.SetFinalizer(fl, func(fileLogHandler *fileLogging) {
 		_ = fileLogHandler.currentFile.Close()
 	})
+
+	secondsLifeSpanner, err := newSecondsLifeSpanner(defaultFileLifeSpan)
+	if err != nil {
+		log.Info("autoRecreateFile NewSecondsLifeSpanner failed", "err", err)
+	}
+	log.Info("setting secondsLifeSpanner")
+	fl.logLifeSpanner = secondsLifeSpanner
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	go fl.autoRecreateFile(ctx)
@@ -56,20 +62,20 @@ func NewFileLogging(workingDir string, defaultLogsPath string, logFilePrefix str
 	return fl, nil
 }
 
-func (fl *fileLogging) createFile() (*os.File, error) {
+func (fl *fileLogging) createFile(identifier string) (*os.File, error) {
 	logDirectory := filepath.Join(fl.workingDir, fl.defaultLogsPath)
 
 	return core.CreateFile(
 		core.ArgCreateFileArgument{
-			Prefix:        fl.logFilePrefix,
+			Prefix:        fmt.Sprintf("%s-%s", fl.logFilePrefix, identifier),
 			Directory:     logDirectory,
 			FileExtension: "log",
 		},
 	)
 }
 
-func (fl *fileLogging) recreateLogFile() {
-	newFile, err := fl.createFile()
+func (fl *fileLogging) recreateLogFile(identifier string) {
+	newFile, err := fl.createFile(identifier)
 	if err != nil {
 		log.Error("error creating new log file", "error", err)
 		return
@@ -102,34 +108,51 @@ func (fl *fileLogging) recreateLogFile() {
 }
 
 func (fl *fileLogging) autoRecreateFile(ctx context.Context) {
-	fileLifeSpan := defaultFileLifeSpan
+	log.Info("autoRecreateFile entered")
+
 	for {
 		select {
 		case <-ctx.Done():
-			log.Debug("closing fileLogging.autoRecreateFile go routine")
+			log.Info("closing fileLogging.autoRecreateFile go routine")
 			return
-		case <-time.After(fileLifeSpan):
-			fl.recreateLogFile()
-		case fileLifeSpan = <-fl.chLifeSpanChanged:
-			log.Debug("changed log file span", "new value", fileLifeSpan)
+		case identifier := <-fl.logLifeSpanner.GetChannel():
+			log.Info("Ticked in autoRecreateFile")
+			fl.recreateLogFile(identifier)
 		}
 	}
+	log.Info("autoRecreateFile exited")
 }
 
 // ChangeFileLifeSpan changes the log file span
-func (fl *fileLogging) ChangeFileLifeSpan(newDuration time.Duration) error {
-	if newDuration < minFileLifeSpan {
-		return fmt.Errorf("%w, provided %v", core.ErrInvalidLogFileMinLifeSpan, newDuration)
+func (fl *fileLogging) ChangeFileLifeSpan(lifeSpanner LogLifeSpanner) error {
+	log.Info("ChangeFileLifeSpan")
+	if check.IfNil(lifeSpanner) {
+		return fmt.Errorf("hello")
 	}
 
 	fl.mutIsClosed.Lock()
 	defer fl.mutIsClosed.Unlock()
 
 	if fl.isClosed {
+		log.Debug("IsClosed")
 		return core.ErrFileLoggingProcessIsClosed
 	}
 
-	fl.chLifeSpanChanged <- newDuration
+	log.Info("testing")
+	fl.cancelFunc()
+
+	fl.logLifeSpanner = lifeSpanner
+
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	go fl.autoRecreateFile(ctx)
+	fl.cancelFunc = cancelFunc
+
+	sizeLogLifeSpanner, ok := lifeSpanner.(SizeLogLifeSpanner)
+	if ok {
+		log.Info("Found a sizeLogLifeSpanner", "new file", fl.currentFile.Name())
+		sizeLogLifeSpanner.SetCurrentFile(fl.currentFile.Name())
+	}
+
 	return nil
 }
 

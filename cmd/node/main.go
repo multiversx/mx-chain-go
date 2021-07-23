@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"runtime"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -91,13 +90,6 @@ func startNodeRunner(c *cli.Context, log logger.Logger, version string) error {
 		return errCfg
 	}
 
-	if !check.IfNil(fileLogging) {
-		err := fileLogging.ChangeFileLifeSpan(time.Second * time.Duration(cfgs.GeneralConfig.Logs.LogFileLifeSpanInSec))
-		if err != nil {
-			return err
-		}
-	}
-
 	err := applyFlags(c, cfgs, flagsConfig, log)
 	if err != nil {
 		return err
@@ -108,6 +100,10 @@ func startNodeRunner(c *cli.Context, log logger.Logger, version string) error {
 	nodeRunner, errRunner := node.NewNodeRunner(cfgs)
 	if errRunner != nil {
 		return errRunner
+	}
+
+	if !check.IfNil(fileLogging) {
+		nodeRunner.SetFileLoggingData(fileLogging)
 	}
 
 	err = nodeRunner.Start()

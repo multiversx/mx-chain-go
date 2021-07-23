@@ -190,7 +190,13 @@ type Config struct {
 
 // LogsConfig will hold settings related to the logging sub-system
 type LogsConfig struct {
-	LogFileLifeSpanInSec int
+	LifeSpan LifeSpanConfig
+}
+
+// LifeSpanConfig will hold settings regarding the lifespan of the log
+type LifeSpanConfig struct {
+	Type          string
+	RecreateEvery int
 }
 
 // StoragePruningConfig will hold settings related to storage pruning

@@ -24,6 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
+	"github.com/ElrondNetwork/elrond-go/common/logging"
 	"github.com/ElrondNetwork/elrond-go/common/statistics"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -53,7 +54,8 @@ const (
 
 // nodeRunner holds the node runner configuration and controls running of a node
 type nodeRunner struct {
-	configs *config.Configs
+	configs            *config.Configs
+	fileLoggingHandler factory.FileLoggingHandler
 }
 
 // NewNodeRunner creates a nodeRunner instance
@@ -1165,7 +1167,30 @@ func (nr *nodeRunner) CreateManagedCoreComponents(
 		return nil, err
 	}
 
+	nr.attachLogLifeSpanner(managedCoreComponents.EpochStartNotifierWithConfirm(), nr.configs.GeneralConfig.Logs.LifeSpan)
+
 	return managedCoreComponents, nil
+}
+
+func (nr *nodeRunner) attachLogLifeSpanner(notifierWithConfirm mainFactory.EpochStartNotifierWithConfirm, spanConfig config.LifeSpanConfig) {
+	log.Info("attachLogLifeSpanner entered")
+	if check.IfNil(nr.fileLoggingHandler) {
+		log.Info("attachLogLifeSpanner nil fileLoggingHandler")
+		return
+	}
+
+	lifeSpannerArgs := logging.LogLifeSpanFactoryArgs{
+		EpochStartNotifierWithConfirm: notifierWithConfirm,
+		LifeSpanConfig:                spanConfig,
+	}
+	lifeSpanner, err := logging.CreateLogLifeSpanner(lifeSpannerArgs)
+	if err != nil {
+		log.LogIfError(err)
+		return
+	}
+
+	nr.fileLoggingHandler.ChangeFileLifeSpan(lifeSpanner)
+	log.Info("attachLogLifeSpanner exited")
 }
 
 // CreateManagedCryptoComponents is the managed crypto components factory
@@ -1201,6 +1226,11 @@ func (nr *nodeRunner) CreateManagedCryptoComponents(
 	}
 
 	return managedCryptoComponents, nil
+}
+
+// SetFileLoggingData sets the fileLogging handler and life spanner factory
+func (nr *nodeRunner) SetFileLoggingData(handler factory.FileLoggingHandler) {
+	nr.fileLoggingHandler = handler
 }
 
 func closeAllComponents(
