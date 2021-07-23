@@ -142,5 +142,5 @@ func saveToFile(hi *hostParameters.HostInfo, results *benchmarks.TestResults, ou
 		return err
 	}
 
-	return ioutil.WriteFile(outputFileName, buff.Bytes(), core.FileModeUserReadWrite)
+	return ioutil.WriteFile(outputFileName, buff.Bytes(), core.FileModeReadWrite)
 }

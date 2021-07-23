@@ -341,7 +341,7 @@ func generateFile(index int, numKeys int, noSplit bool, baseFilenameTemplate str
 		return nil, err
 	}
 
-	return os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, core.FileModeUserReadWrite)
+	return os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, core.FileModeReadWrite)
 }
 
 func generateFolder(index int, numKeys int, noSplit bool) (string, error) {
