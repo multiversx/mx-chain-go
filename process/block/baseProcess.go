@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/data/scheduled"
 	"math/big"
 	"sort"
 	"time"
@@ -1465,18 +1466,23 @@ func (bp *baseProcessor) getMarshalizedScheduledRootHashAndSCRs(
 ) ([]byte, error) {
 	scrsBatch := &batch.Batch{}
 	scrsBatch.Data = append(scrsBatch.Data, scheduledRootHash)
-	for blockType, scrs := range mapScheduledSCRs {
-		if len(scrs) == 0 {
+	for blockType, txs := range mapScheduledSCRs {
+		if len(txs) == 0 {
 			continue
 		}
 
-		scheduledSCRs := &process.ScheduledSCRs{
-			BlockType:  blockType,
-			TxHandlers: make([]data.TransactionHandler, len(scrs)),
+		scheduledSCRs := &scheduled.ScheduledSCRs{
+			BlockType:  int32(blockType),
+			TxHandlers: make([]scheduled.SmartContractResult, len(txs)),
 		}
 
-		for scrIndex, scr := range scrs {
-			scheduledSCRs.TxHandlers[scrIndex] = scr
+		for txIndex, tx := range txs {
+			scr, ok := tx.(*scheduled.SmartContractResult)
+			if !ok {
+				return nil, process.ErrWrongTypeAssertion
+			}
+
+			scheduledSCRs.TxHandlers[txIndex] = *scr
 		}
 
 		marshalizedScheduledSCRs, err := bp.marshalizer.Marshal(scheduledSCRs)
