@@ -1,7 +1,7 @@
 package nodeTypeProviderMock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 )
 
 // NodeTypeProviderStub -

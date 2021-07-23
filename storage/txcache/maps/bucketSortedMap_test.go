@@ -5,7 +5,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core/atomic"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/stretchr/testify/require"
 )
 

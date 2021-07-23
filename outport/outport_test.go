@@ -2,12 +2,11 @@ package outport
 
 import (
 	"errors"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core/statistics"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/indexer"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/outport/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -75,22 +74,6 @@ func TestOutport_SaveRoundsInfo(t *testing.T) {
 
 	outportHandler.SaveRoundsInfo(nil)
 	require.True(t, called1)
-}
-
-func TestOutport_UpdateTPS(t *testing.T) {
-	t.Parallel()
-
-	called := false
-	driver := &mock.DriverStub{
-		UpdateTPSCalled: func(tpsBenchmark statistics.TPSBenchmark) {
-			called = true
-		},
-	}
-	outportHandler := NewOutport()
-	_ = outportHandler.SubscribeDriver(driver)
-
-	outportHandler.UpdateTPS(nil)
-	require.True(t, called)
 }
 
 func TestOutport_SaveValidatorsPubKeys(t *testing.T) {

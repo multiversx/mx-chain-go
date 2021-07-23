@@ -1,11 +1,10 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/statistics"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/indexer"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/outport"
+	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 type nilOutport struct{}
@@ -25,10 +24,6 @@ func (n *nilOutport) RevertIndexedBlock(_ data.HeaderHandler, _ data.BodyHandler
 
 // SaveRoundsInfo -
 func (n *nilOutport) SaveRoundsInfo(_ []*indexer.RoundInfo) {
-}
-
-// UpdateTPS -
-func (n *nilOutport) UpdateTPS(_ statistics.TPSBenchmark) {
 }
 
 // SaveValidatorsPubKeys -

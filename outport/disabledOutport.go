@@ -1,10 +1,9 @@
 package outport
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/statistics"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/indexer"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 type disabledOutport struct{}
@@ -24,10 +23,6 @@ func (n *disabledOutport) RevertIndexedBlock(_ data.HeaderHandler, _ data.BodyHa
 
 // SaveRoundsInfo does nothing
 func (n *disabledOutport) SaveRoundsInfo(_ []*indexer.RoundInfo) {
-}
-
-// UpdateTPS does nothing
-func (n *disabledOutport) UpdateTPS(_ statistics.TPSBenchmark) {
 }
 
 // SaveValidatorsPubKeys does nothing

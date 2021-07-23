@@ -9,9 +9,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	coreMock "github.com/ElrondNetwork/elrond-go-core/core/mock"
+	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
+	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -829,7 +831,7 @@ func TestEsdt_ExecuteMintWithTwoArgsShouldSetOwnerAsDestination(t *testing.T) {
 	assert.Equal(t, uint64(0), outputTransfer.GasLimit)
 	expectedInput := core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString(tokenName) + "@" + hex.EncodeToString(mintValue)
 	assert.Equal(t, []byte(expectedInput), outputTransfer.Data)
-	assert.Equal(t, vmcommon.DirectCall, outputTransfer.CallType)
+	assert.Equal(t, vmData.DirectCall, outputTransfer.CallType)
 }
 
 func TestEsdt_ExecuteMintWithThreeArgsShouldSetThirdArgAsDestination(t *testing.T) {
@@ -878,7 +880,7 @@ func TestEsdt_ExecuteMintWithThreeArgsShouldSetThirdArgAsDestination(t *testing.
 	assert.Equal(t, uint64(0), outputTransfer.GasLimit)
 	expectedInput := core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString(tokenName) + "@" + hex.EncodeToString(mintValue)
 	assert.Equal(t, []byte(expectedInput), outputTransfer.Data)
-	assert.Equal(t, vmcommon.DirectCall, outputTransfer.CallType)
+	assert.Equal(t, vmData.DirectCall, outputTransfer.CallType)
 }
 
 func TestEsdt_ExecuteIssueDisabled(t *testing.T) {
@@ -1148,7 +1150,7 @@ func TestEsdt_ExecuteToggleFreezeShouldWorkWithRealBech32Address(t *testing.T) {
 		&testscommon.AccountsStub{},
 		&mock.RaterMock{})
 
-	bech32C, _ := pubkeyConverter.NewBech32PubkeyConverter(32)
+	bech32C, _ := pubkeyConverter.NewBech32PubkeyConverter(32, &coreMock.LoggerMock{})
 	args.AddressPubKeyConverter = bech32C
 
 	tokensMap := map[string][]byte{}
@@ -1185,7 +1187,7 @@ func TestEsdt_ExecuteToggleFreezeShouldWorkWithRealBech32Address(t *testing.T) {
 	assert.Equal(t, uint64(0), outputTransfer.GasLimit)
 	expectedInput := core.BuiltInFunctionESDTFreeze + "@" + hex.EncodeToString(tokenName)
 	assert.Equal(t, []byte(expectedInput), outputTransfer.Data)
-	assert.Equal(t, vmcommon.DirectCall, outputTransfer.CallType)
+	assert.Equal(t, vmData.DirectCall, outputTransfer.CallType)
 }
 
 func TestEsdt_ExecuteToggleFreezeShouldFailWithBech32Converter(t *testing.T) {
@@ -1201,7 +1203,7 @@ func TestEsdt_ExecuteToggleFreezeShouldFailWithBech32Converter(t *testing.T) {
 		&testscommon.AccountsStub{},
 		&mock.RaterMock{})
 
-	bech32C, _ := pubkeyConverter.NewBech32PubkeyConverter(32)
+	bech32C, _ := pubkeyConverter.NewBech32PubkeyConverter(32, &coreMock.LoggerMock{})
 	args.AddressPubKeyConverter = bech32C
 
 	tokensMap := map[string][]byte{}
@@ -1275,7 +1277,7 @@ func TestEsdt_ExecuteToggleFreezeShouldWork(t *testing.T) {
 	assert.Equal(t, uint64(0), outputTransfer.GasLimit)
 	expectedInput := core.BuiltInFunctionESDTFreeze + "@" + hex.EncodeToString(tokenName)
 	assert.Equal(t, []byte(expectedInput), outputTransfer.Data)
-	assert.Equal(t, vmcommon.DirectCall, outputTransfer.CallType)
+	assert.Equal(t, vmData.DirectCall, outputTransfer.CallType)
 }
 
 func TestEsdt_ExecuteToggleUnFreezeShouldWork(t *testing.T) {
@@ -1323,7 +1325,7 @@ func TestEsdt_ExecuteToggleUnFreezeShouldWork(t *testing.T) {
 	assert.Equal(t, uint64(0), outputTransfer.GasLimit)
 	expectedInput := core.BuiltInFunctionESDTUnFreeze + "@" + hex.EncodeToString(tokenName)
 	assert.Equal(t, []byte(expectedInput), outputTransfer.Data)
-	assert.Equal(t, vmcommon.DirectCall, outputTransfer.CallType)
+	assert.Equal(t, vmData.DirectCall, outputTransfer.CallType)
 }
 
 func TestEsdt_ExecuteToggleFreezeSingleNFTShouldWork(t *testing.T) {
@@ -1372,7 +1374,7 @@ func TestEsdt_ExecuteToggleFreezeSingleNFTShouldWork(t *testing.T) {
 	assert.Equal(t, uint64(0), outputTransfer.GasLimit)
 	expectedInput := core.BuiltInFunctionESDTFreeze + "@" + hex.EncodeToString(append(tokenName, big.NewInt(10).Bytes()...))
 	assert.Equal(t, []byte(expectedInput), outputTransfer.Data)
-	assert.Equal(t, vmcommon.DirectCall, outputTransfer.CallType)
+	assert.Equal(t, vmData.DirectCall, outputTransfer.CallType)
 }
 
 func TestEsdt_ExecuteToggleUnFreezeSingleNFTShouldWork(t *testing.T) {
@@ -1421,7 +1423,7 @@ func TestEsdt_ExecuteToggleUnFreezeSingleNFTShouldWork(t *testing.T) {
 	assert.Equal(t, uint64(0), outputTransfer.GasLimit)
 	expectedInput := core.BuiltInFunctionESDTUnFreeze + "@" + hex.EncodeToString(append(tokenName, big.NewInt(10).Bytes()...))
 	assert.Equal(t, []byte(expectedInput), outputTransfer.Data)
-	assert.Equal(t, vmcommon.DirectCall, outputTransfer.CallType)
+	assert.Equal(t, vmData.DirectCall, outputTransfer.CallType)
 }
 
 func TestEsdt_ExecuteWipeTooFewArgumentsShouldFail(t *testing.T) {
@@ -1734,7 +1736,7 @@ func TestEsdt_ExecuteWipeShouldWork(t *testing.T) {
 	assert.Equal(t, uint64(0), outputTransfer.GasLimit)
 	expectedInput := core.BuiltInFunctionESDTWipe + "@" + hex.EncodeToString(tokenName)
 	assert.Equal(t, []byte(expectedInput), outputTransfer.Data)
-	assert.Equal(t, vmcommon.DirectCall, outputTransfer.CallType)
+	assert.Equal(t, vmData.DirectCall, outputTransfer.CallType)
 }
 
 func TestEsdt_ExecuteWipeSingleNFTShouldWork(t *testing.T) {
@@ -1782,7 +1784,7 @@ func TestEsdt_ExecuteWipeSingleNFTShouldWork(t *testing.T) {
 	assert.Equal(t, uint64(0), outputTransfer.GasLimit)
 	expectedInput := core.BuiltInFunctionESDTWipe + "@" + hex.EncodeToString(append(tokenName, big.NewInt(10).Bytes()...))
 	assert.Equal(t, []byte(expectedInput), outputTransfer.Data)
-	assert.Equal(t, vmcommon.DirectCall, outputTransfer.CallType)
+	assert.Equal(t, vmData.DirectCall, outputTransfer.CallType)
 }
 
 func TestEsdt_ExecutePauseTooFewArgumentsShouldFail(t *testing.T) {
@@ -2034,7 +2036,7 @@ func TestEsdt_ExecuteTogglePauseShouldWork(t *testing.T) {
 	assert.Equal(t, big.NewInt(0), outputTransfer.Value)
 	expectedInput := core.BuiltInFunctionESDTPause + "@" + hex.EncodeToString(tokenName)
 	assert.Equal(t, []byte(expectedInput), outputTransfer.Data)
-	assert.Equal(t, vmcommon.DirectCall, outputTransfer.CallType)
+	assert.Equal(t, vmData.DirectCall, outputTransfer.CallType)
 }
 
 func TestEsdt_ExecuteUnPauseOnAnUnPausedTokenShouldFail(t *testing.T) {
@@ -2147,7 +2149,7 @@ func TestEsdt_ExecuteUnPauseShouldWork(t *testing.T) {
 	assert.Equal(t, big.NewInt(0), outputTransfer.Value)
 	expectedInput := core.BuiltInFunctionESDTUnPause + "@" + hex.EncodeToString(tokenName)
 	assert.Equal(t, []byte(expectedInput), outputTransfer.Data)
-	assert.Equal(t, vmcommon.DirectCall, outputTransfer.CallType)
+	assert.Equal(t, vmData.DirectCall, outputTransfer.CallType)
 }
 
 func TestEsdt_ExecuteTransferOwnershipWrongNumOfArgumentsShouldFail(t *testing.T) {
@@ -2714,7 +2716,7 @@ func TestEsdt_GetSpecialRolesShouldWork(t *testing.T) {
 		&mock.RaterMock{})
 	args.Eei = eei
 
-	bech32C, _ := pubkeyConverter.NewBech32PubkeyConverter(32)
+	bech32C, _ := pubkeyConverter.NewBech32PubkeyConverter(32, &coreMock.LoggerMock{})
 
 	addr1 := "erd1kzzv2uw97q5k9mt458qk3q9u3cwhwqykvyk598q2f6wwx7gvrd9s8kszxk"
 	addr1Bytes, _ := bech32C.Decode(addr1)
@@ -2774,7 +2776,7 @@ func TestEsdt_UnsetSpecialRoleWithRemoveEntryFromSpecialRoles(t *testing.T) {
 		&mock.RaterMock{})
 	args.Eei = eei
 
-	bech32C, _ := pubkeyConverter.NewBech32PubkeyConverter(32)
+	bech32C, _ := pubkeyConverter.NewBech32PubkeyConverter(32, &coreMock.LoggerMock{})
 
 	owner := "erd1e7n8rzxdtl2n2fl6mrsg4l7stp2elxhfy6l9p7eeafspjhhrjq7qk05usw"
 	ownerBytes, _ := bech32C.Decode(owner)

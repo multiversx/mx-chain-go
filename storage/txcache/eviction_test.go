@@ -92,7 +92,7 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfCount(t *testing.T) {
 		CountPerSenderThreshold:       math.MaxUint32,
 		NumSendersToPreemptivelyEvict: 2,
 	}
-	txGasHandler, _ := dummyParamsWithGasPrice(100*oneBillion)
+	txGasHandler, _ := dummyParamsWithGasPrice(100 * oneBillion)
 	cache, err := NewTxCache(config, txGasHandler)
 	require.Nil(t, err)
 	require.NotNil(t, cache)

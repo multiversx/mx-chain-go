@@ -1,10 +1,9 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/statistics"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/indexer"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 // DriverStub -
@@ -12,7 +11,6 @@ type DriverStub struct {
 	SaveBlockCalled             func(args *indexer.ArgsSaveBlockData)
 	RevertBlockCalled           func(header data.HeaderHandler, body data.BodyHandler)
 	SaveRoundsInfoCalled        func(roundsInfos []*indexer.RoundInfo)
-	UpdateTPSCalled             func(tpsBenchmark statistics.TPSBenchmark)
 	SaveValidatorsPubKeysCalled func(validatorsPubKeys map[uint32][][]byte, epoch uint32)
 	SaveValidatorsRatingCalled  func(indexID string, infoRating []*indexer.ValidatorRatingInfo)
 	SaveAccountsCalled          func(timestamp uint64, acc []state.UserAccountHandler)
@@ -37,13 +35,6 @@ func (d *DriverStub) RevertIndexedBlock(header data.HeaderHandler, body data.Bod
 func (d *DriverStub) SaveRoundsInfo(roundsInfos []*indexer.RoundInfo) {
 	if d.SaveRoundsInfoCalled != nil {
 		d.SaveRoundsInfoCalled(roundsInfos)
-	}
-}
-
-// UpdateTPS -
-func (d *DriverStub) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
-	if d.UpdateTPSCalled != nil {
-		d.UpdateTPSCalled(tpsBenchmark)
 	}
 }
 

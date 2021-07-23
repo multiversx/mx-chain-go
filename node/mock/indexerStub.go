@@ -1,11 +1,9 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/statistics"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/indexer"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 // IndexerStub is a mock implementation fot the Indexer interface
@@ -23,15 +21,6 @@ func (im *IndexerStub) SaveBlock(args *indexer.ArgsSaveBlockData) {
 // Close will do nothing
 func (im *IndexerStub) Close() error {
 	return nil
-}
-
-// SetTxLogsProcessor will do nothing
-func (im *IndexerStub) SetTxLogsProcessor(_ process.TransactionLogProcessorDatabase) {
-}
-
-// UpdateTPS -
-func (im *IndexerStub) UpdateTPS(_ statistics.TPSBenchmark) {
-	panic("implement me")
 }
 
 // SaveRoundsInfo -
@@ -60,9 +49,4 @@ func (im *IndexerStub) SaveAccounts(_ uint64, _ []state.UserAccountHandler) {
 // IsInterfaceNil returns true if there is no value under the interface
 func (im *IndexerStub) IsInterfaceNil() bool {
 	return im == nil
-}
-
-// IsNilIndexer -
-func (im *IndexerStub) IsNilIndexer() bool {
-	return false
 }

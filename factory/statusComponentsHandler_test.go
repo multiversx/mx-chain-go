@@ -36,13 +36,11 @@ func TestManagedStatusComponents_Create_ShouldWork(t *testing.T) {
 	require.NoError(t, err)
 	require.Nil(t, managedStatusComponents.OutportHandler())
 	require.Nil(t, managedStatusComponents.SoftwareVersionChecker())
-	require.Nil(t, managedStatusComponents.TpsBenchmark())
 
 	err = managedStatusComponents.Create()
 	require.NoError(t, err)
 	require.NotNil(t, managedStatusComponents.OutportHandler())
 	require.NotNil(t, managedStatusComponents.SoftwareVersionChecker())
-	require.NotNil(t, managedStatusComponents.TpsBenchmark())
 }
 
 func TestManagedStatusComponents_Close(t *testing.T) {

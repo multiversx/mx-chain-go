@@ -5,18 +5,18 @@ import (
 	"path"
 	"path/filepath"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	factoryState "github.com/ElrondNetwork/elrond-go/data/state/factory"
-	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager"
-	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager/evictionWaitingList"
-	trieFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state"
+	factoryState "github.com/ElrondNetwork/elrond-go/state/factory"
+	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager"
+	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 )
 
 //TODO: merge this with data components
@@ -27,7 +27,7 @@ type StateComponentsFactoryArgs struct {
 	ShardCoordinator    sharding.Coordinator
 	Core                CoreComponentsHolder
 	TriesContainer      state.TriesHolder
-	TrieStorageManagers map[string]data.StorageManager
+	TrieStorageManagers map[string]temporary.StorageManager
 }
 
 type stateComponentsFactory struct {
@@ -35,7 +35,7 @@ type stateComponentsFactory struct {
 	shardCoordinator    sharding.Coordinator
 	core                CoreComponentsHolder
 	triesContainer      state.TriesHolder
-	trieStorageManagers map[string]data.StorageManager
+	trieStorageManagers map[string]temporary.StorageManager
 }
 
 // stateComponents struct holds the state components of the Elrond protocol
@@ -44,7 +44,7 @@ type stateComponents struct {
 	accountsAdapter     state.AccountsAdapter
 	accountsAdapterAPI  state.AccountsAdapter
 	triesContainer      state.TriesHolder
-	trieStorageManagers map[string]data.StorageManager
+	trieStorageManagers map[string]temporary.StorageManager
 }
 
 // NewStateComponentsFactory will return a new instance of stateComponentsFactory

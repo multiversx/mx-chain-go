@@ -3,12 +3,11 @@ package outport
 import (
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/statistics"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/indexer"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 type outport struct {
@@ -53,16 +52,6 @@ func (o *outport) SaveRoundsInfo(roundsInfos []*indexer.RoundInfo) {
 
 	for _, driver := range o.drivers {
 		driver.SaveRoundsInfo(roundsInfos)
-	}
-}
-
-// UpdateTPS will update tps for every driver
-func (o *outport) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
-	o.mutex.RLock()
-	defer o.mutex.RUnlock()
-
-	for _, driver := range o.drivers {
-		driver.UpdateTPS(tpsBenchmark)
 	}
 }
 

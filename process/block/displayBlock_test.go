@@ -3,8 +3,8 @@ package block
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/display"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/display"
 	"github.com/stretchr/testify/assert"
 )
 
