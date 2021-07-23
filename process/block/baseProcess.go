@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	receipt "github.com/ElrondNetwork/elrond-go/data/receipt"
 	"github.com/ElrondNetwork/elrond-go/data/scheduled"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"math/big"
 	"sort"
 	"time"
@@ -1464,6 +1466,10 @@ func (bp *baseProcessor) getMarshalizedScheduledRootHashAndSCRs(
 	scheduledRootHash []byte,
 	mapScheduledSCRs map[block.Type][]data.TransactionHandler,
 ) ([]byte, error) {
+
+	var ok bool
+	var scr *scheduled.SmartContractResult
+
 	scrsBatch := &batch.Batch{}
 	scrsBatch.Data = append(scrsBatch.Data, scheduledRootHash)
 	for blockType, txs := range mapScheduledSCRs {
@@ -1477,10 +1483,24 @@ func (bp *baseProcessor) getMarshalizedScheduledRootHashAndSCRs(
 		}
 
 		for txIndex, tx := range txs {
-			scr, ok := tx.(*scheduled.SmartContractResult)
+			_, ok = tx.(*receipt.Receipt)
+			if ok {
+				log.Debug("tx is a receipt", "sender", tx.GetSndAddr(), "receiver", tx.GetRcvAddr())
+				continue
+			}
+
+			_, ok = tx.(*transaction.Transaction)
+			if ok {
+				log.Debug("tx is a transaction", "sender", tx.GetSndAddr(), "receiver", tx.GetRcvAddr())
+				continue
+			}
+
+			scr, ok = tx.(*scheduled.SmartContractResult)
 			if !ok {
 				return nil, process.ErrWrongTypeAssertion
 			}
+
+			log.Debug("tx is a smart contract result", "sender", tx.GetSndAddr(), "receiver", tx.GetRcvAddr())
 
 			scheduledSCRs.TxHandlers[txIndex] = *scr
 		}
