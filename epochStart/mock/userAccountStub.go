@@ -135,6 +135,11 @@ func (u *UserAccountStub) DataTrie() temporary.Trie {
 	return nil
 }
 
+// RetrieveValueFromDataTrieTracker -
+func (u *UserAccountStub) RetrieveValueFromDataTrieTracker(_ []byte) ([]byte, error) {
+	return nil, nil
+}
+
 // DataTrieTracker -
 func (u *UserAccountStub) DataTrieTracker() state.DataTrieTracker {
 	if u.DataTrieTrackerCalled != nil {

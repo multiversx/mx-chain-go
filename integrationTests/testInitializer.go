@@ -922,13 +922,13 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 		TxFeeHandler:     &testscommon.UnsignedTxHandlerStub{},
 		TxTypeHandler:    &testscommon.TxTypeHandlerMock{},
 		EconomicsFee: &mock.FeeHandlerStub{
-			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return tx.GetGasLimit()
 			},
-			CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+			CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 				return nil
 			},
-			ComputeMoveBalanceFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+			ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 				fee := big.NewInt(0).SetUint64(tx.GetGasLimit())
 				fee.Mul(fee, big.NewInt(0).SetUint64(tx.GetGasPrice()))
 
