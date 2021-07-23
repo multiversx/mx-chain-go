@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/data/scheduled"
 	"math"
 	"sort"
 
@@ -22,12 +23,6 @@ import (
 )
 
 var log = logger.GetOrCreate("process")
-
-// ScheduledSCRs holds information about scheduled SCRs per block type
-type ScheduledSCRs struct {
-	BlockType  block.Type
-	TxHandlers []data.TransactionHandler
-}
 
 // GetShardHeader gets the header, which is associated with the given hash, from pool or storage
 func GetShardHeader(
@@ -739,7 +734,7 @@ func GetScheduledRootHashAndSCRsFromStorage(
 			continue
 		}
 
-		scheduledSCRs := &ScheduledSCRs{}
+		scheduledSCRs := &scheduled.ScheduledSCRs{}
 		err = marshalizer.Unmarshal(scheduledSCRs, marshalizedScheduledSCRs)
 		if err != nil {
 			return nil, nil, err
@@ -749,9 +744,9 @@ func GetScheduledRootHashAndSCRsFromStorage(
 			continue
 		}
 
-		mapScheduledSCRs[scheduledSCRs.BlockType] = make([]data.TransactionHandler, len(scheduledSCRs.TxHandlers))
-		for scrIndex, scr := range scheduledSCRs.TxHandlers {
-			mapScheduledSCRs[scheduledSCRs.BlockType][scrIndex] = scr
+		mapScheduledSCRs[block.Type(scheduledSCRs.BlockType)] = make([]data.TransactionHandler, len(scheduledSCRs.TxHandlers))
+		for txIndex, tx := range scheduledSCRs.TxHandlers {
+			mapScheduledSCRs[block.Type(scheduledSCRs.BlockType)][txIndex] = &tx
 		}
 	}
 
