@@ -1472,6 +1472,8 @@ func (bp *baseProcessor) getMarshalizedScheduledRootHashAndSCRs(
 
 	scrsBatch := &batch.Batch{}
 	scrsBatch.Data = append(scrsBatch.Data, scheduledRootHash)
+	var ok bool
+	var scr *scheduled.SmartContractResult
 	for blockType, txs := range mapScheduledSCRs {
 		if len(txs) == 0 {
 			continue
