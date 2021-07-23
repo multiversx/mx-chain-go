@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	receipt "github.com/ElrondNetwork/elrond-go/data/receipt"
+	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"math/big"
@@ -1487,6 +1488,12 @@ func (bp *baseProcessor) getMarshalizedScheduledRootHashAndSCRs(
 			_, ok = tx.(*receipt.Receipt)
 			if ok {
 				log.Debug("tx is a receipt", "sender", tx.GetSndAddr(), "receiver", tx.GetRcvAddr())
+				continue
+			}
+
+			_, ok = tx.(*rewardTx.RewardTx)
+			if ok {
+				log.Debug("tx is a reward tx", "sender", tx.GetSndAddr(), "receiver", tx.GetRcvAddr())
 				continue
 			}
 
