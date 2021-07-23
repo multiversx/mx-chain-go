@@ -1,14 +1,4 @@
 init
-baseLine
-addEcTest
-doubleEcTest
-isOnCurveEcTest
-marshalEcTest
-unmarshalEcTest
-marshalCompressedEcTest
-unmarshalCompressedEcTest
-generateKeyEcTest
-scalarMultEcTest
 p224AddEcTest
 p256AddEcTest
 p384AddEcTest
