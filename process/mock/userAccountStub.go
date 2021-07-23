@@ -144,6 +144,11 @@ func (u *UserAccountStub) DataTrieTracker() state.DataTrieTracker {
 	return nil
 }
 
+// RetrieveValueFromDataTrieTracker -
+func (u *UserAccountStub) RetrieveValueFromDataTrieTracker(_ []byte) ([]byte, error) {
+	return nil, nil
+}
+
 // IsInterfaceNil -
 func (u *UserAccountStub) IsInterfaceNil() bool {
 	return u == nil

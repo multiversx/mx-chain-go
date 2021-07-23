@@ -97,6 +97,11 @@ func (awm *AccountWrapMock) GetCodeHash() []byte {
 	return awm.codeHash
 }
 
+// RetrieveValueFromDataTrieTracker -
+func (awm *AccountWrapMock) RetrieveValueFromDataTrieTracker(key []byte) ([]byte, error) {
+	return awm.trackableDataTrie.RetrieveValue(key)
+}
+
 // SetCodeHash -
 func (awm *AccountWrapMock) SetCodeHash(codeHash []byte) {
 	awm.codeHash = codeHash

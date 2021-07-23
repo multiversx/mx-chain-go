@@ -1,6 +1,7 @@
 package state
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -36,6 +37,15 @@ func (ba *baseAccount) SetDataTrie(trie temporary.Trie) {
 // DataTrieTracker returns the trie wrapper used in managing the SC data
 func (ba *baseAccount) DataTrieTracker() DataTrieTracker {
 	return ba.dataTrieTracker
+}
+
+// RetrieveValueFromDataTrieTracker  fetches the value from a particular key searching the account data store in the data trie tracker
+func (ba *baseAccount) RetrieveValueFromDataTrieTracker(key []byte) ([]byte, error) {
+	if check.IfNil(ba.dataTrieTracker) {
+		return nil, ErrNilTrackableDataTrie
+	}
+
+	return ba.dataTrieTracker.RetrieveValue(key)
 }
 
 // AccountDataHandler returns the account data handler

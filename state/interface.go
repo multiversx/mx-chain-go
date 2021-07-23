@@ -85,6 +85,7 @@ type UserAccountHandler interface {
 	SetDataTrie(trie temporary.Trie)
 	DataTrie() temporary.Trie
 	DataTrieTracker() DataTrieTracker
+	RetrieveValueFromDataTrieTracker(key []byte) ([]byte, error)
 	AddToBalance(value *big.Int) error
 	SubFromBalance(value *big.Int) error
 	GetBalance() *big.Int
