@@ -7,6 +7,7 @@ import (
 	receipt "github.com/ElrondNetwork/elrond-go/data/receipt"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/scheduled"
+	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"math/big"
 	"sort"
@@ -1469,7 +1470,7 @@ func (bp *baseProcessor) getMarshalizedScheduledRootHashAndSCRs(
 ) ([]byte, error) {
 
 	var ok bool
-	var scr *scheduled.SmartContractResult
+	var scr *smartContractResult.SmartContractResult
 
 	scrsBatch := &batch.Batch{}
 	scrsBatch.Data = append(scrsBatch.Data, scheduledRootHash)
@@ -1503,14 +1504,14 @@ func (bp *baseProcessor) getMarshalizedScheduledRootHashAndSCRs(
 				continue
 			}
 
-			scr, ok = tx.(*scheduled.SmartContractResult)
+			scr, ok = tx.(*smartContractResult.SmartContractResult)
 			if !ok {
 				return nil, process.ErrWrongTypeAssertion
 			}
 
 			log.Debug("tx is a smart contract result", "sender", tx.GetSndAddr(), "receiver", tx.GetRcvAddr())
 
-			scheduledSCRs.TxHandlers[txIndex] = *scr
+			scheduledSCRs.TxHandlers[txIndex] = scheduled.SmartContractResult(*scr)
 		}
 
 		marshalizedScheduledSCRs, err := bp.marshalizer.Marshal(scheduledSCRs)
