@@ -281,6 +281,10 @@ func (ws *webServer) Close() error {
 	err := ws.httpServer.Close()
 	ws.Unlock()
 
+	if err != nil {
+		log.Warn("cannot close http server", "error", err)
+	}
+
 	return err
 }
 

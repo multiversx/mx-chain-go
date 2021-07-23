@@ -430,7 +430,7 @@ func (nr *nodeRunner) createApiFacade(
 ) (closing.Closer, error) {
 	configs := nr.configs
 
-	log.Trace("creating api resolver structure")
+	log.Debug("creating api resolver structure")
 
 	apiResolverArgs := &mainFactory.ApiResolverArgs{
 		Configs:             configs,
@@ -448,7 +448,7 @@ func (nr *nodeRunner) createApiFacade(
 		return nil, err
 	}
 
-	log.Trace("creating elrond node facade")
+	log.Debug("creating elrond node facade")
 
 	flagsConfig := configs.FlagsConfig
 
