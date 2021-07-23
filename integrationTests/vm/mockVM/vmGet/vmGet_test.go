@@ -8,6 +8,7 @@ import (
 	"sync"
 	"testing"
 
+	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -50,7 +51,7 @@ func TestVmGetShouldReturnValue(t *testing.T) {
 	vmOutput, err := service.ExecuteQuery(&query)
 	assert.Nil(t, err)
 
-	returnData, _ := vmOutput.GetFirstReturnData(vmcommon.AsBigInt)
+	returnData, _ := vmOutput.GetFirstReturnData(vmData.AsBigInt)
 	assert.Equal(t, expectedValueForVar, returnData)
 }
 

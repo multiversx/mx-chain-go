@@ -475,7 +475,6 @@ func (nr *nodeRunner) createApiFacade(
 	}
 
 	ef.SetSyncer(currentNode.coreComponents.SyncTimer())
-	ef.SetTpsBenchmark(currentNode.statusComponents.TpsBenchmark())
 
 	err = upgradableHttpServer.GetHttpServer().Close()
 	if err != nil {
