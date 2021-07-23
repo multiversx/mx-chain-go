@@ -2,6 +2,7 @@ package trie
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -130,7 +131,12 @@ func (ln *leafNode) commitCheckpoint(
 	targetDb temporary.DBWriteCacher,
 	checkpointHashes temporary.CheckpointHashesHolder,
 	leavesChan chan core.KeyValueHolder,
+	ctx context.Context,
 ) error {
+	if shouldStopIfContextDone(ctx) {
+		return ErrContextClosing
+	}
+
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("commit checkpoint error %w", err)
@@ -165,7 +171,12 @@ func (ln *leafNode) commitSnapshot(
 	_ temporary.DBWriteCacher,
 	targetDb temporary.DBWriteCacher,
 	leavesChan chan core.KeyValueHolder,
+	ctx context.Context,
 ) error {
+	if shouldStopIfContextDone(ctx) {
+		return ErrContextClosing
+	}
+
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("commit snapshot error %w", err)
