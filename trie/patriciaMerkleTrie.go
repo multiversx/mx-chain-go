@@ -2,6 +2,7 @@ package trie
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"fmt"
 	"sync"
@@ -294,7 +295,7 @@ func (tr *patriciaMerkleTrie) recreateFromSnapshotDb(rootHash []byte) (*patricia
 		return nil, err
 	}
 
-	err = newRoot.commitSnapshot(db, tr.trieStorage.Database(), nil)
+	err = newRoot.commitSnapshot(db, tr.trieStorage.Database(), nil, context.Background())
 	if err != nil {
 		return nil, err
 	}

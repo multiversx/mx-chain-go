@@ -2,6 +2,7 @@
 package trie
 
 import (
+	"context"
 	"encoding/hex"
 	"fmt"
 
@@ -257,4 +258,13 @@ func prefixLen(a, b []byte) int {
 	}
 
 	return i
+}
+
+func shouldStopIfContextDone(ctx context.Context) bool {
+	select {
+	case <-ctx.Done():
+		return true
+	default:
+		return false
+	}
 }
