@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 )
 
 var _ record = (*memoryUsageRecord)(nil)

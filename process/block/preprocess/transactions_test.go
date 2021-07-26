@@ -9,15 +9,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
+	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -31,7 +32,7 @@ const MaxGasLimitPerBlock = uint64(100000)
 
 func feeHandlerMock() *mock.FeeHandlerStub {
 	return &mock.FeeHandlerStub{
-		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+		ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 			return 0
 		},
 		MaxGasLimitPerBlockCalled: func() uint64 {
@@ -1217,7 +1218,7 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 		if nbTxsProcessed == 0 {
 			return 0, 0
 		}
-		return nbTxsProcessed + 1, nbTxsProcessed * core.AdditionalScrForEachScCallOrSpecialTx
+		return nbTxsProcessed + 1, nbTxsProcessed * common.AdditionalScrForEachScCallOrSpecialTx
 	}
 	txsToBeReverted, numTxsProcessed, err := txs.ProcessMiniBlock(miniBlock, haveTimeTrue, f)
 
@@ -1229,7 +1230,7 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 		if nbTxsProcessed == 0 {
 			return 0, 0
 		}
-		return nbTxsProcessed, nbTxsProcessed * core.AdditionalScrForEachScCallOrSpecialTx
+		return nbTxsProcessed, nbTxsProcessed * common.AdditionalScrForEachScCallOrSpecialTx
 	}
 	txsToBeReverted, numTxsProcessed, err = txs.ProcessMiniBlock(miniBlock, haveTimeTrue, f)
 

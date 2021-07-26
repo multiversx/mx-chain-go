@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 )
 
 // this structure is only used for sorting

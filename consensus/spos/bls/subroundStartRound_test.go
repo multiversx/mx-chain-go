@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
@@ -264,8 +264,8 @@ func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnTrueWhenRoundI
 func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnTrueWhenInitCurrentRoundReturnTrue(t *testing.T) {
 	t.Parallel()
 
-	bootstrapperMock := &mock.BootstrapperMock{GetNodeStateCalled: func() core.NodeState {
-		return core.NsSynchronized
+	bootstrapperMock := &mock.BootstrapperMock{GetNodeStateCalled: func() common.NodeState {
+		return common.NsSynchronized
 	}}
 
 	container := mock.InitConsensusCore()
@@ -280,8 +280,8 @@ func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnTrueWhenInitCu
 func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnFalseWhenInitCurrentRoundReturnFalse(t *testing.T) {
 	t.Parallel()
 
-	bootstrapperMock := &mock.BootstrapperMock{GetNodeStateCalled: func() core.NodeState {
-		return core.NsNotSynchronized
+	bootstrapperMock := &mock.BootstrapperMock{GetNodeStateCalled: func() common.NodeState {
+		return common.NsNotSynchronized
 	}}
 
 	container := mock.InitConsensusCore()
@@ -299,8 +299,8 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGetNodeStateNot
 
 	bootstrapperMock := &mock.BootstrapperMock{}
 
-	bootstrapperMock.GetNodeStateCalled = func() core.NodeState {
-		return core.NsNotSynchronized
+	bootstrapperMock.GetNodeStateCalled = func() common.NodeState {
+		return common.NsNotSynchronized
 	}
 	container := mock.InitConsensusCore()
 	container.SetBootStrapper(bootstrapperMock)
@@ -424,8 +424,8 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnTrue(t *testing.T) {
 
 	bootstrapperMock := &mock.BootstrapperMock{}
 
-	bootstrapperMock.GetNodeStateCalled = func() core.NodeState {
-		return core.NsSynchronized
+	bootstrapperMock.GetNodeStateCalled = func() common.NodeState {
+		return common.NsSynchronized
 	}
 
 	container := mock.InitConsensusCore()

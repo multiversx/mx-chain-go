@@ -3,7 +3,7 @@ package disabled
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 )
 
 // NilPeerDenialEvaluator is a mock implementation of PeerDenialEvaluator that does not manage black listed keys

@@ -146,9 +146,6 @@ var ErrNilBlockProcessor = errors.New("nil block processor")
 // ErrNilMarshalizer signals that an operation has been attempted to or with a nil Marshalizer implementation
 var ErrNilMarshalizer = errors.New("nil Marshalizer")
 
-// ErrLogsNotSavedInStorage signals that logs are not save in storage
-var ErrLogsNotSavedInStorage = errors.New("logs are not saved in storage, check config")
-
 // ErrNilNodesConfigProvider signals that an operation has been attempted to or with a nil nodes config provider
 var ErrNilNodesConfigProvider = errors.New("nil nodes config provider")
 
@@ -865,9 +862,6 @@ var ErrAccountNotPayable = errors.New("sending value to non payable contract")
 
 // ErrNilOutportHandler signals that outport is nil
 var ErrNilOutportHandler = errors.New("outport handler is nil")
-
-// ErrNilTpsBenchmark signals that tps benchmark object is nil
-var ErrNilTpsBenchmark = errors.New("tps benchmark object is nil")
 
 // ErrSmartContractDeploymentIsDisabled signals that smart contract deployment was disabled
 var ErrSmartContractDeploymentIsDisabled = errors.New("smart Contract deployment is disabled")

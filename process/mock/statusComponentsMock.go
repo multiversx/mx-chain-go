@@ -1,7 +1,6 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/outport"
 )
 
@@ -14,11 +13,6 @@ type StatusComponentsMock struct {
 // OutportHandler -
 func (scm *StatusComponentsMock) OutportHandler() outport.OutportHandler {
 	return scm.Outport
-}
-
-// TpsBenchmark -
-func (scm *StatusComponentsMock) TpsBenchmark() statistics.TPSBenchmark {
-	return scm.TPSBenchmark
 }
 
 // IsInterfaceNil -

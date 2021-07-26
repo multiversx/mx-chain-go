@@ -8,24 +8,25 @@ import (
 	"sort"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go-core/display"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/core/statistics"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/display"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
@@ -77,6 +78,7 @@ type baseProcessor struct {
 	blockProcessor         blockProcessor
 	txCounter              *transactionCounter
 
+	indexer            process.Indexer
 	outportHandler     outport.OutportHandler
 	tpsBenchmark       statistics.TPSBenchmark
 	historyRepo        dblookupext.HistoryRepository
@@ -421,9 +423,6 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.StatusComponents.OutportHandler()) {
 		return process.ErrNilOutportHandler
-	}
-	if check.IfNil(arguments.StatusComponents.TpsBenchmark()) {
-		return process.ErrNilTpsBenchmark
 	}
 	if check.IfNil(arguments.HistoryRepository) {
 		return process.ErrNilHistoryRepository
@@ -828,7 +827,7 @@ func (bp *baseProcessor) prepareDataForBootStorer(args bootStorerDataArgs) {
 	}
 
 	elapsedTime := time.Since(startTime)
-	if elapsedTime >= core.PutInStorerMaxTime {
+	if elapsedTime >= common.PutInStorerMaxTime {
 		log.Warn("saveDataForBootStorer", "elapsed time", elapsedTime)
 	}
 }
@@ -1022,7 +1021,7 @@ func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler) {
 	}
 
 	elapsedTime := time.Since(startTime)
-	if elapsedTime >= core.PutInStorerMaxTime {
+	if elapsedTime >= common.PutInStorerMaxTime {
 		log.Warn("saveBody", "elapsed time", elapsedTime)
 	}
 }
@@ -1046,7 +1045,7 @@ func (bp *baseProcessor) saveShardHeader(header data.HeaderHandler, headerHash [
 	}
 
 	elapsedTime := time.Since(startTime)
-	if elapsedTime >= core.PutInStorerMaxTime {
+	if elapsedTime >= common.PutInStorerMaxTime {
 		log.Warn("saveShardHeader", "elapsed time", elapsedTime)
 	}
 }
@@ -1067,7 +1066,7 @@ func (bp *baseProcessor) saveMetaHeader(header data.HeaderHandler, headerHash []
 	}
 
 	elapsedTime := time.Since(startTime)
-	if elapsedTime >= core.PutInStorerMaxTime {
+	if elapsedTime >= common.PutInStorerMaxTime {
 		log.Warn("saveMetaHeader", "elapsed time", elapsedTime)
 	}
 }
@@ -1111,8 +1110,8 @@ func (bp *baseProcessor) updateStateStorage(
 		return
 	}
 
-	accounts.CancelPrune(rootHashToBePruned, data.NewRoot)
-	accounts.PruneTrie(rootHashToBePruned, data.OldRoot)
+	accounts.CancelPrune(rootHashToBePruned, temporary.NewRoot)
+	accounts.PruneTrie(rootHashToBePruned, temporary.OldRoot)
 }
 
 // RevertAccountState reverts the account state for cleanup failed process
@@ -1149,8 +1148,8 @@ func (bp *baseProcessor) PruneStateOnRollback(currHeader data.HeaderHandler, pre
 			continue
 		}
 
-		bp.accountsDB[key].CancelPrune(prevRootHash, data.OldRoot)
-		bp.accountsDB[key].PruneTrie(rootHash, data.NewRoot)
+		bp.accountsDB[key].CancelPrune(prevRootHash, temporary.OldRoot)
+		bp.accountsDB[key].PruneTrie(rootHash, temporary.NewRoot)
 	}
 }
 
@@ -1234,7 +1233,7 @@ func (bp *baseProcessor) requestMiniBlocksIfNeeded(headerHandler data.HeaderHand
 		return
 	}
 
-	waitTime := core.ExtraDelayForRequestBlockInfo
+	waitTime := common.ExtraDelayForRequestBlockInfo
 	roundDifferences := bp.roundHandler.Index() - int64(headerHandler.GetRound())
 	if roundDifferences > 1 {
 		waitTime = 0

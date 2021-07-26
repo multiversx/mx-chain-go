@@ -14,14 +14,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
 	"github.com/ElrondNetwork/elrond-go/api/node"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
@@ -45,20 +44,6 @@ type StatusResponse struct {
 type QueryResponse struct {
 	GeneralResponse
 	Result []string `json:"result"`
-}
-
-type StatisticsResponse struct {
-	GeneralResponse
-	Statistics struct {
-		LiveTPS               float32 `json:"liveTPS"`
-		PeakTPS               float32 `json:"peakTPS"`
-		NrOfShards            uint32  `json:"nrOfShards"`
-		BlockNumber           uint64  `json:"blockNumber"`
-		RoundTime             uint32  `json:"roundTime"`
-		AverageBlockTxCount   float32 `json:"averageBlockTxCount"`
-		LastBlockTxCount      uint32  `json:"lastBlockTxCount"`
-		TotalProcessedTxCount uint32  `json:"totalProcessedTxCount"`
-	} `json:"statistics"`
 }
 
 func init() {
@@ -144,60 +129,6 @@ func TestHeartbeatstatus(t *testing.T) {
 
 	assert.Equal(t, resp.Code, http.StatusOK)
 	assert.NotEqual(t, "", statusRsp.Message)
-}
-
-func TestStatistics_NilContextShouldError(t *testing.T) {
-	t.Parallel()
-	ws := startNodeServer(nil)
-
-	req, _ := http.NewRequest("GET", "/node/statistics", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-	response := shared.GenericAPIResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
-	assert.True(t, strings.Contains(response.Error, errors.ErrNilAppContext.Error()))
-}
-
-func TestStatistics_FailsWithWrongFacadeTypeConversion(t *testing.T) {
-	t.Parallel()
-	ws := startNodeServerWrongFacade()
-	req, _ := http.NewRequest("GET", "/node/statistics", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	statisticsRsp := StatisticsResponse{}
-	loadResponse(resp.Body, &statisticsRsp)
-	assert.Equal(t, resp.Code, http.StatusInternalServerError)
-	assert.Equal(t, statisticsRsp.Error, errors.ErrInvalidAppContext.Error())
-}
-
-func TestStatistics_ReturnsSuccessfully(t *testing.T) {
-	nrOfShards := uint32(10)
-	roundTime := uint64(4)
-	benchmark, _ := statistics.NewTPSBenchmark(nrOfShards, roundTime)
-
-	facade := mock.Facade{}
-	facade.TpsBenchmarkHandler = func() statistics.TPSBenchmark {
-		return benchmark
-	}
-
-	ws := startNodeServer(&facade)
-	req, _ := http.NewRequest("GET", "/node/statistics", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := shared.GenericAPIResponse{}
-	loadResponse(resp.Body, &response)
-
-	statisticsRsp := StatisticsResponse{}
-	mapResponseData := response.Data.(map[string]interface{})
-	mapResponseDataBytes, _ := json.Marshal(mapResponseData)
-	_ = json.Unmarshal(mapResponseDataBytes, &statisticsRsp)
-
-	assert.Equal(t, resp.Code, http.StatusOK)
-	assert.Equal(t, statisticsRsp.Statistics.NrOfShards, nrOfShards)
 }
 
 func TestStatusMetrics_NilContextShouldError(t *testing.T) {
@@ -554,7 +485,6 @@ func getRoutesConfig() config.ApiRoutesConfig {
 				Routes: []config.RouteConfig{
 					{Name: "/status", Open: true},
 					{Name: "/metrics", Open: true},
-					{Name: "/statistics", Open: true},
 					{Name: "/heartbeatstatus", Open: true},
 					{Name: "/p2pstatus", Open: true},
 					{Name: "/debug", Open: true},

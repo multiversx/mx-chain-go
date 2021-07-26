@@ -1,16 +1,16 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 )
 
 // BootstrapperMock mocks the implementation for a Bootstrapper
 type BootstrapperMock struct {
 	CreateAndCommitEmptyBlockCalled func(uint32) (data.BodyHandler, data.HeaderHandler, error)
 	AddSyncStateListenerCalled      func(func(bool))
-	GetNodeStateCalled              func() core.NodeState
+	GetNodeStateCalled              func() common.NodeState
 	StartSyncingBlocksCalled        func()
 }
 
@@ -31,12 +31,12 @@ func (boot *BootstrapperMock) AddSyncStateListener(syncStateNotifier func(isSync
 }
 
 // GetNodeState -
-func (boot *BootstrapperMock) GetNodeState() core.NodeState {
+func (boot *BootstrapperMock) GetNodeState() common.NodeState {
 	if boot.GetNodeStateCalled != nil {
 		return boot.GetNodeStateCalled()
 	}
 
-	return core.NsSynchronized
+	return common.NsSynchronized
 }
 
 // StartSyncingBlocks -

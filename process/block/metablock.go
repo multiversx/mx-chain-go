@@ -8,18 +8,19 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/queue"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/queue"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/indexer"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
+	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 var _ process.BlockProcessor = (*metaProcessor)(nil)
@@ -106,7 +107,6 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		blockChain:                    arguments.DataComponents.Blockchain(),
 		stateCheckpointModulus:        arguments.Config.StateTriesConfig.CheckpointRoundsModulus,
 		outportHandler:                arguments.StatusComponents.OutportHandler(),
-		tpsBenchmark:                  arguments.StatusComponents.TpsBenchmark(),
 		genesisNonce:                  genesisHdr.GetNonce(),
 		headerIntegrityVerifier:       arguments.BootstrapComponents.HeaderIntegrityVerifier(),
 		historyRepo:                   arguments.HistoryRepository,
@@ -1210,8 +1210,6 @@ func (mp *metaProcessor) CommitBlock(
 		mp.blockTracker.CleanupInvalidCrossHeaders(header.Epoch, header.Round)
 	}
 
-	mp.tpsBenchmark.Update(lastMetaBlock)
-
 	mp.indexBlock(header, headerHash, body, lastMetaBlock, notarizedHeadersHashes, rewardsTxs)
 	mp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
 
@@ -1556,7 +1554,7 @@ func (mp *metaProcessor) saveMetricCrossCheckBlockHeight() {
 		crossCheckBlockHeight += fmt.Sprintf("%d: %d, ", i, heightValue)
 	}
 
-	mp.appStatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, crossCheckBlockHeight)
+	mp.appStatusHandler.SetStringValue(common.MetricCrossCheckBlockHeight, crossCheckBlockHeight)
 }
 
 func (mp *metaProcessor) saveLastNotarizedHeader(header *block.MetaBlock) error {

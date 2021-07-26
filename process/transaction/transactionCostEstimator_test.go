@@ -7,12 +7,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
+	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
@@ -66,12 +67,12 @@ func TestComputeTransactionGasLimit_MoveBalance(t *testing.T) {
 		MaxGasLimitPerBlockCalled: func() uint64 {
 			return math.MaxUint64
 		},
-		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+		ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 			return consumedGasUnits
 		},
 	}, &mock.TransactionSimulatorStub{
-		ProcessTxCalled: func(tx *transaction.Transaction) (*transaction.SimulationResults, error) {
-			return &transaction.SimulationResults{}, nil
+		ProcessTxCalled: func(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
+			return &txSimData.SimulationResults{}, nil
 		},
 	}, &testscommon.AccountsStub{
 		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
@@ -97,8 +98,8 @@ func TestComputeTransactionGasLimit_BuiltInFunction(t *testing.T) {
 		},
 	},
 		&mock.TransactionSimulatorStub{
-			ProcessTxCalled: func(tx *transaction.Transaction) (*transaction.SimulationResults, error) {
-				return &transaction.SimulationResults{
+			ProcessTxCalled: func(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
+				return &txSimData.SimulationResults{
 					VMOutput: &vmcommon.VMOutput{
 						ReturnCode:   vmcommon.Ok,
 						GasRemaining: math.MaxUint64 - 1 - consumedGasUnits,
@@ -129,7 +130,7 @@ func TestComputeTransactionGasLimit_BuiltInFunctionShouldErr(t *testing.T) {
 		},
 	},
 		&mock.TransactionSimulatorStub{
-			ProcessTxCalled: func(tx *transaction.Transaction) (*transaction.SimulationResults, error) {
+			ProcessTxCalled: func(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
 				return nil, localErr
 			},
 		}, &testscommon.AccountsStub{
@@ -155,8 +156,8 @@ func TestComputeTransactionGasLimit_NilVMOutput(t *testing.T) {
 		},
 	},
 		&mock.TransactionSimulatorStub{
-			ProcessTxCalled: func(tx *transaction.Transaction) (*transaction.SimulationResults, error) {
-				return &transaction.SimulationResults{}, nil
+			ProcessTxCalled: func(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
+				return &txSimData.SimulationResults{}, nil
 			},
 		}, &testscommon.AccountsStub{
 			LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
@@ -181,8 +182,8 @@ func TestComputeTransactionGasLimit_RetCodeNotOk(t *testing.T) {
 		},
 	},
 		&mock.TransactionSimulatorStub{
-			ProcessTxCalled: func(tx *transaction.Transaction) (*transaction.SimulationResults, error) {
-				return &transaction.SimulationResults{
+			ProcessTxCalled: func(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
+				return &txSimData.SimulationResults{
 					VMOutput: &vmcommon.VMOutput{
 						ReturnCode: vmcommon.UserError,
 					},

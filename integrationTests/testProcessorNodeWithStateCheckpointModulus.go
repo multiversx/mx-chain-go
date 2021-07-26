@@ -3,9 +3,9 @@ package integrationTests
 import (
 	"sync"
 
-	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_3/config"
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
+	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
-	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/transactionLog"

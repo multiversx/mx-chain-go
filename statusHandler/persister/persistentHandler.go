@@ -4,12 +4,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/metrics"
+	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/metrics"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -62,26 +62,21 @@ func (psh *PersistentStatusHandler) initMap() {
 	initUint := uint64(0)
 	zeroString := "0"
 
-	psh.persistentMetrics.Store(core.MetricCountConsensus, initUint)
-	psh.persistentMetrics.Store(core.MetricCountConsensusAcceptedBlocks, initUint)
-	psh.persistentMetrics.Store(core.MetricCountAcceptedBlocks, initUint)
-	psh.persistentMetrics.Store(core.MetricCountLeader, initUint)
-	psh.persistentMetrics.Store(core.MetricNumProcessedTxs, initUint)
-	psh.persistentMetrics.Store(core.MetricNumProcessedTxsTPSBenchmark, initUint)
-	psh.persistentMetrics.Store(core.MetricNumShardHeadersProcessed, initUint)
-	psh.persistentMetrics.Store(core.MetricNonce, initUint)
-	psh.persistentMetrics.Store(core.MetricNonceForTPS, initUint)
-	psh.persistentMetrics.Store(core.MetricPeakTPS, initUint)
-	psh.persistentMetrics.Store(core.MetricAverageBlockTxCount, zeroString)
-	psh.persistentMetrics.Store(core.MetricLastBlockTxCount, initUint)
-	psh.persistentMetrics.Store(core.MetricCurrentRound, initUint)
-	psh.persistentMetrics.Store(core.MetricNonceAtEpochStart, initUint)
-	psh.persistentMetrics.Store(core.MetricRoundAtEpochStart, initUint)
-	psh.persistentMetrics.Store(core.MetricTotalSupply, zeroString)
-	psh.persistentMetrics.Store(core.MetricTotalFees, zeroString)
-	psh.persistentMetrics.Store(core.MetricDevRewardsInEpoch, zeroString)
-	psh.persistentMetrics.Store(core.MetricInflation, zeroString)
-	psh.persistentMetrics.Store(core.MetricEpochForEconomicsData, initUint)
+	psh.persistentMetrics.Store(common.MetricCountConsensus, initUint)
+	psh.persistentMetrics.Store(common.MetricCountConsensusAcceptedBlocks, initUint)
+	psh.persistentMetrics.Store(common.MetricCountAcceptedBlocks, initUint)
+	psh.persistentMetrics.Store(common.MetricCountLeader, initUint)
+	psh.persistentMetrics.Store(common.MetricNumProcessedTxs, initUint)
+	psh.persistentMetrics.Store(common.MetricNumShardHeadersProcessed, initUint)
+	psh.persistentMetrics.Store(common.MetricNonce, initUint)
+	psh.persistentMetrics.Store(common.MetricCurrentRound, initUint)
+	psh.persistentMetrics.Store(common.MetricNonceAtEpochStart, initUint)
+	psh.persistentMetrics.Store(common.MetricRoundAtEpochStart, initUint)
+	psh.persistentMetrics.Store(common.MetricTotalSupply, zeroString)
+	psh.persistentMetrics.Store(common.MetricTotalFees, zeroString)
+	psh.persistentMetrics.Store(common.MetricDevRewardsInEpoch, zeroString)
+	psh.persistentMetrics.Store(common.MetricInflation, zeroString)
+	psh.persistentMetrics.Store(common.MetricEpochForEconomicsData, initUint)
 }
 
 // SetStorage will set storage for persistent status handler
@@ -121,17 +116,12 @@ func (psh *PersistentStatusHandler) saveMetricsInDb(nonce uint64) {
 		return
 	}
 
-	err = psh.store.Put([]byte(core.LastNonceKeyMetricsStorage), nonceBytes)
+	err = psh.store.Put([]byte(common.LastNonceKeyMetricsStorage), nonceBytes)
 	if err != nil {
 		log.Debug("cannot save last nonce for metrics storage",
 			"error", err)
 		return
 	}
-	log.Trace("saved tps benchmark",
-		"peak tps", metricsMap[core.MetricPeakTPS],
-		"total num processed txs", metricsMap[core.MetricNumProcessedTxsTPSBenchmark],
-		"round", metricsMap[core.MetricCurrentRound],
-		"nonce", metricsMap[core.MetricNonce])
 	log.Trace("saved last nonce metrics",
 		"key", []byte("lastNonce"),
 		"value", nonceBytes)
@@ -156,7 +146,7 @@ func (psh *PersistentStatusHandler) SetUInt64Value(key string, value uint64) {
 	psh.persistentMetrics.Store(key, value)
 
 	//metrics wil be saved in storage every time when a block is committed successfully
-	if key != core.MetricNonce {
+	if key != common.MetricNonce {
 		return
 	}
 

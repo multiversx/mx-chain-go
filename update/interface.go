@@ -4,12 +4,13 @@ import (
 	"context"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
 )
 
 // StateSyncer interface defines the methods needed to sync and get all states
@@ -17,7 +18,7 @@ type StateSyncer interface {
 	GetEpochStartMetaBlock() (*block.MetaBlock, error)
 	GetUnFinishedMetaBlocks() (map[string]*block.MetaBlock, error)
 	SyncAllState(epoch uint32) error
-	GetAllTries() (map[string]data.Trie, error)
+	GetAllTries() (map[string]temporary.Trie, error)
 	GetAllTransactions() (map[string]data.TransactionHandler, error)
 	GetAllMiniBlocks() (map[string]*block.MiniBlock, error)
 	IsInterfaceNil() bool
@@ -26,7 +27,7 @@ type StateSyncer interface {
 // TrieSyncer synchronizes the trie, asking on the network for the missing nodes
 type TrieSyncer interface {
 	StartSyncing(rootHash []byte, ctx context.Context) error
-	Trie() data.Trie
+	Trie() temporary.Trie
 	IsInterfaceNil() bool
 }
 
@@ -127,7 +128,7 @@ type HeaderSyncHandler interface {
 // EpochStartTriesSyncHandler defines the methods to sync all tries from a given epoch start metablock
 type EpochStartTriesSyncHandler interface {
 	SyncTriesFrom(meta *block.MetaBlock) error
-	GetTries() (map[string]data.Trie, error)
+	GetTries() (map[string]temporary.Trie, error)
 	IsInterfaceNil() bool
 }
 
@@ -170,7 +171,7 @@ type WhiteListHandler interface {
 
 // AccountsDBSyncer defines the methods for the accounts db syncer
 type AccountsDBSyncer interface {
-	GetSyncedTries() map[string]data.Trie
+	GetSyncedTries() map[string]temporary.Trie
 	SyncAccounts(rootHash []byte) error
 	IsInterfaceNil() bool
 }

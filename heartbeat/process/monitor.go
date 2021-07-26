@@ -9,12 +9,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
@@ -257,7 +258,7 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPe
 	if err != nil {
 		return err
 	}
-	err = m.antifloodHandler.CanProcessMessagesOnTopic(fromConnectedPeer, core.HeartbeatTopic, 1, uint64(len(message.Data())), message.SeqNo())
+	err = m.antifloodHandler.CanProcessMessagesOnTopic(fromConnectedPeer, common.HeartbeatTopic, 1, uint64(len(message.Data())), message.SeqNo())
 	if err != nil {
 		return err
 	}
@@ -267,8 +268,8 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPe
 		//this situation is so severe that we have to black list both the message originator and the connected peer
 		//that disseminated this message.
 		reason := "blacklisted due to invalid heartbeat message"
-		m.antifloodHandler.BlacklistPeer(message.Peer(), reason, core.InvalidMessageBlacklistDuration)
-		m.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, core.InvalidMessageBlacklistDuration)
+		m.antifloodHandler.BlacklistPeer(message.Peer(), reason, common.InvalidMessageBlacklistDuration)
+		m.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, common.InvalidMessageBlacklistDuration)
 
 		return err
 	}
@@ -282,8 +283,8 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPe
 		//this situation is so severe that we have to black list both the message originator and the connected peer
 		//that disseminated this message.
 		reason := "blacklisted due to inconsistent heartbeat message"
-		m.antifloodHandler.BlacklistPeer(message.Peer(), reason, core.InvalidMessageBlacklistDuration)
-		m.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, core.InvalidMessageBlacklistDuration)
+		m.antifloodHandler.BlacklistPeer(message.Peer(), reason, common.InvalidMessageBlacklistDuration)
+		m.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, common.InvalidMessageBlacklistDuration)
 
 		return fmt.Errorf("%w heartbeat pid %s, message pid %s",
 			heartbeat.ErrHeartbeatPidMismatch,
@@ -368,7 +369,7 @@ func (m *Monitor) computePeerTypeAndShardID(pubkey []byte) (string, uint32) {
 	peerType, shardID, err := m.peerTypeProvider.ComputeForPubKey(pubkey)
 	if err != nil {
 		log.Warn("monitor: compute peer type and shard", "error", err)
-		return string(core.ObserverList), 0
+		return string(common.ObserverList), 0
 	}
 
 	return string(peerType), shardID
@@ -400,8 +401,8 @@ func (m *Monitor) computeAllHeartbeatMessages() {
 	m.mutHeartbeatMessages.Unlock()
 	go m.SaveMultipleHeartbeatMessageInfos(hbChangedStateToInactiveMap)
 
-	m.appStatusHandler.SetUInt64Value(core.MetricLiveValidatorNodes, uint64(counterActiveValidators))
-	m.appStatusHandler.SetUInt64Value(core.MetricConnectedNodes, uint64(counterConnectedNodes))
+	m.appStatusHandler.SetUInt64Value(common.MetricLiveValidatorNodes, uint64(counterActiveValidators))
+	m.appStatusHandler.SetUInt64Value(common.MetricConnectedNodes, uint64(counterConnectedNodes))
 }
 
 func (m *Monitor) getValsForUpdate(hbmiKey string, hbmi *heartbeatMessageInfo) (bool, uint32, string) {
@@ -490,8 +491,8 @@ func (m *Monitor) GetHeartbeats() []data.PubKeyHeartbeat {
 
 func (m *Monitor) shouldSkipValidator(v *heartbeatMessageInfo) bool {
 	isInactiveObserver := !v.GetIsActive() &&
-		(v.peerType != string(core.EligibleList) &&
-			v.peerType != string(core.WaitingList))
+		(v.peerType != string(common.EligibleList) &&
+			v.peerType != string(common.WaitingList))
 	if isInactiveObserver {
 		lastInactiveInterval := m.timer.Now().Sub(v.timeStamp)
 		if lastInactiveInterval.Seconds() > float64(m.hideInactiveValidatorIntervalInSec) {
