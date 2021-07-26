@@ -3,12 +3,10 @@ package outport
 import (
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/statistics"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/indexer"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
 type outport struct {
@@ -56,16 +54,6 @@ func (o *outport) SaveRoundsInfo(roundsInfos []*indexer.RoundInfo) {
 	}
 }
 
-// UpdateTPS will update tps for every driver
-func (o *outport) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
-	o.mutex.RLock()
-	defer o.mutex.RUnlock()
-
-	for _, driver := range o.drivers {
-		driver.UpdateTPS(tpsBenchmark)
-	}
-}
-
 // SaveValidatorsPubKeys will save validators public keys for every driver
 func (o *outport) SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte, epoch uint32) {
 	o.mutex.RLock()
@@ -87,7 +75,7 @@ func (o *outport) SaveValidatorsRating(indexID string, infoRating []*indexer.Val
 }
 
 // SaveAccounts will save accounts  for every driver
-func (o *outport) SaveAccounts(blockTimestamp uint64, acc []state.UserAccountHandler) {
+func (o *outport) SaveAccounts(blockTimestamp uint64, acc []data.UserAccountHandler) {
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 

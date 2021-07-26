@@ -4,30 +4,32 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
+	"github.com/ElrondNetwork/elrond-go/common/statistics"
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
-	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	heartbeatData "github.com/ElrondNetwork/elrond-go/heartbeat/data"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
+	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -216,7 +218,7 @@ type NetworkComponentsHandler interface {
 
 // TransactionSimulatorProcessor defines the actions which a transaction simulator processor has to implement
 type TransactionSimulatorProcessor interface {
-	ProcessTx(tx *transaction.Transaction) (*transaction.SimulationResults, error)
+	ProcessTx(tx *transaction.Transaction) (*txSimData.SimulationResults, error)
 	IsInterfaceNil() bool
 }
 
@@ -274,13 +276,12 @@ type StateComponentsHolder interface {
 	AccountsAdapter() state.AccountsAdapter
 	AccountsAdapterAPI() state.AccountsAdapter
 	TriesContainer() state.TriesHolder
-	TrieStorageManagers() map[string]data.StorageManager
+	TrieStorageManagers() map[string]temporary.StorageManager
 	IsInterfaceNil() bool
 }
 
 // StatusComponentsHolder holds the status components
 type StatusComponentsHolder interface {
-	TpsBenchmark() statistics.TPSBenchmark
 	OutportHandler() outport.OutportHandler
 	SoftwareVersionChecker() statistics.SoftwareVersionChecker
 	IsInterfaceNil() bool
@@ -401,7 +402,7 @@ type BootstrapParamsHolder interface {
 
 // EpochStartBootstrapper defines the epoch start bootstrap functionality
 type EpochStartBootstrapper interface {
-	GetTriesComponents() (state.TriesHolder, map[string]data.StorageManager)
+	GetTriesComponents() (state.TriesHolder, map[string]temporary.StorageManager)
 	Bootstrap() (bootstrap.Parameters, error)
 	IsInterfaceNil() bool
 	Close() error
@@ -440,13 +441,13 @@ type EconomicsHandler interface {
 	DeveloperPercentage() float64
 	GenesisTotalSupply() *big.Int
 	MaxGasLimitPerBlock(shardID uint32) uint64
-	ComputeGasLimit(tx process.TransactionWithFeeHandler) uint64
-	ComputeMoveBalanceFee(tx process.TransactionWithFeeHandler) *big.Int
-	CheckValidityTxValues(tx process.TransactionWithFeeHandler) error
+	ComputeGasLimit(tx data.TransactionWithFeeHandler) uint64
+	ComputeMoveBalanceFee(tx data.TransactionWithFeeHandler) *big.Int
+	CheckValidityTxValues(tx data.TransactionWithFeeHandler) error
 	MinGasPrice() uint64
 	MinGasLimit() uint64
 	GasPerDataByte() uint64
 	GasPriceModifier() float64
-	ComputeFeeForProcessing(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int
+	ComputeFeeForProcessing(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int
 	IsInterfaceNil() bool
 }

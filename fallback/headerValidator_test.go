@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/fallback"
 	"github.com/ElrondNetwork/elrond-go/fallback/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -120,7 +120,7 @@ func TestShouldApplyFallbackConsensus_ShouldReturnFalseWhenRoundIsNotTooOld(t *t
 	prevHash := []byte("prev_hash")
 	headersPool := &mock.HeadersCacherStub{
 		GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
-			if bytes.Equal(hash, prevHash)  {
+			if bytes.Equal(hash, prevHash) {
 				return &block.MetaBlock{}, nil
 			}
 			return nil, errors.New("error")
@@ -130,7 +130,7 @@ func TestShouldApplyFallbackConsensus_ShouldReturnFalseWhenRoundIsNotTooOld(t *t
 	storageService := &mock.ChainStorerStub{}
 	epochStartShardData := block.EpochStartShardData{}
 	metaBlock := &block.MetaBlock{
-		Round: core.MaxRoundsWithoutCommittedStartInEpochBlock - 1,
+		Round: common.MaxRoundsWithoutCommittedStartInEpochBlock - 1,
 		EpochStart: block.EpochStart{
 			LastFinalizedHeaders: []block.EpochStartShardData{
 				epochStartShardData,
@@ -159,7 +159,7 @@ func TestShouldApplyFallbackConsensus_ShouldReturnTrue(t *testing.T) {
 	storageService := &mock.ChainStorerStub{}
 	epochStartShardData := block.EpochStartShardData{}
 	metaBlock := &block.MetaBlock{
-		Round: core.MaxRoundsWithoutCommittedStartInEpochBlock,
+		Round: common.MaxRoundsWithoutCommittedStartInEpochBlock,
 		EpochStart: block.EpochStart{
 			LastFinalizedHeaders: []block.EpochStartShardData{
 				epochStartShardData,

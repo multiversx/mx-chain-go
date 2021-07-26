@@ -1,10 +1,8 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/statistics"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/indexer"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/outport"
 )
 
@@ -27,10 +25,6 @@ func (n *nilOutport) RevertIndexedBlock(_ data.HeaderHandler, _ data.BodyHandler
 func (n *nilOutport) SaveRoundsInfo(_ []*indexer.RoundInfo) {
 }
 
-// UpdateTPS -
-func (n *nilOutport) UpdateTPS(_ statistics.TPSBenchmark) {
-}
-
 // SaveValidatorsPubKeys -
 func (n *nilOutport) SaveValidatorsPubKeys(_ map[uint32][][]byte, _ uint32) {
 }
@@ -40,7 +34,7 @@ func (n *nilOutport) SaveValidatorsRating(_ string, _ []*indexer.ValidatorRating
 }
 
 // SaveAccounts -
-func (n *nilOutport) SaveAccounts(_ uint64, _ []state.UserAccountHandler) {
+func (n *nilOutport) SaveAccounts(_ uint64, _ []data.UserAccountHandler) {
 }
 
 // Close -

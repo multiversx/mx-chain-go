@@ -10,11 +10,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	p2pDebug "github.com/ElrondNetwork/elrond-go/debug/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/data"
@@ -131,6 +132,7 @@ type ArgsNetworkMessenger struct {
 	P2pConfig            config.P2PConfig
 	SyncTimer            p2p.SyncTimer
 	PreferredPeersHolder p2p.PreferredPeersHolderHandler
+	NodeOperationMode    p2p.NodeOperation
 }
 
 // NewNetworkMessenger creates a libP2P messenger by opening a port on the current machine
@@ -289,7 +291,7 @@ func addComponentsToNode(
 		return err
 	}
 
-	err = p2pNode.createSharder(args.P2pConfig)
+	err = p2pNode.createSharder(args)
 	if err != nil {
 		return err
 	}
@@ -399,13 +401,13 @@ func (netMes *networkMessenger) createMessageBytes(buff []byte) []byte {
 	return buffToSend
 }
 
-func (netMes *networkMessenger) createSharder(p2pConfig config.P2PConfig) error {
+func (netMes *networkMessenger) createSharder(argsNetMes ArgsNetworkMessenger) error {
 	args := factory.ArgsSharderFactory{
 		PeerShardResolver:    &unknownPeerShardResolver{},
 		Pid:                  netMes.p2pHost.ID(),
-		P2pConfig:            p2pConfig,
-		Type:                 p2pConfig.Sharding.Type,
+		P2pConfig:            argsNetMes.P2pConfig,
 		PreferredPeersHolder: netMes.preferredPeersHolder,
+		NodeOperationMode:    argsNetMes.NodeOperationMode,
 	}
 
 	var err error
@@ -938,8 +940,8 @@ func (netMes *networkMessenger) transformAndCheckMessage(pbMsg *pubsub.Message, 
 		//this error is so severe that will need to blacklist both the originator and the connected peer as there is
 		// no way this node can communicate with them
 		pidFrom := core.PeerID(pbMsg.From)
-		netMes.blacklistPid(pid, core.WrongP2PMessageBlacklistDuration)
-		netMes.blacklistPid(pidFrom, core.WrongP2PMessageBlacklistDuration)
+		netMes.blacklistPid(pid, common.WrongP2PMessageBlacklistDuration)
+		netMes.blacklistPid(pidFrom, common.WrongP2PMessageBlacklistDuration)
 
 		return nil, errUnmarshal
 	}
