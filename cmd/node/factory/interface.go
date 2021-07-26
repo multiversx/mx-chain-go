@@ -5,7 +5,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -39,7 +38,7 @@ type P2PAntifloodHandler interface {
 
 // FileLoggingHandler will handle log file rotation
 type FileLoggingHandler interface {
-	ChangeFileLifeSpan(logger logger.LogLifeSpanner) error
+	ChangeFileLifeSpan(LogLifeSpanner) error
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -58,4 +57,16 @@ type StatusHandlersUtils interface {
 // StatusHandlerUtilsFactory is the factory for statusHandler utils
 type StatusHandlerUtilsFactory interface {
 	Create(marshalizer marshal.Marshalizer, converter typeConverters.Uint64ByteSliceConverter) (StatusHandlersUtils, error)
+}
+
+// LogLifeSpanner defines a notification channel for the file logging lifespan
+type LogLifeSpanner interface {
+	GetChannel() <-chan string
+	IsInterfaceNil() bool
+}
+
+// SizeLogLifeSpanner defines a notification channel for the file logging lifespan
+type SizeLogLifeSpanner interface {
+	LogLifeSpanner
+	SetCurrentFile(string)
 }

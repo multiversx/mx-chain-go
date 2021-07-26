@@ -13,6 +13,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go-logger/lifespan"
 	"github.com/ElrondNetwork/elrond-go-logger/redirects"
+	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 )
 
 const defaultFileLifeSpan = 86400
@@ -48,9 +49,9 @@ func NewFileLogging(workingDir string, defaultLogsPath string, logFilePrefix str
 		_ = fileLogHandler.currentFile.Close()
 	})
 
-	factory := lifespan.NewTypeLogLifeSpanFactory()
+	lifeSpanFactory := lifespan.NewTypeLogLifeSpanFactory()
 
-	secondsLifeSpanner, err := factory.CreateLogLifeSpanner(logger.LogLifeSpanFactoryArgs{
+	secondsLifeSpanner, err := lifeSpanFactory.CreateLogLifeSpanner(logger.LogLifeSpanFactoryArgs{
 		LifeSpanType:  "second",
 		RecreateEvery: defaultFileLifeSpan,
 	})
@@ -123,7 +124,7 @@ func (fl *fileLogging) autoRecreateFile(ctx context.Context) {
 			log.Info("closing fileLogging.autoRecreateFile go routine")
 			return
 		case identifier := <-fl.logLifeSpanner.GetChannel():
-			log.Debug("autoRecreateFile - recreate log from lifespanner", "identifier", identifier)
+			log.Debug("autoRecreateFile - recreate log from lifeSpanner", "identifier", identifier)
 			fl.recreateLogFile(identifier)
 			sizeLogLifeSpanner, ok := fl.logLifeSpanner.(logger.SizeLogLifeSpanner)
 			if ok {
@@ -136,7 +137,7 @@ func (fl *fileLogging) autoRecreateFile(ctx context.Context) {
 }
 
 // ChangeFileLifeSpan changes the log file span
-func (fl *fileLogging) ChangeFileLifeSpan(lifeSpanner logger.LogLifeSpanner) error {
+func (fl *fileLogging) ChangeFileLifeSpan(lifeSpanner factory.LogLifeSpanner) error {
 	fl.mutIsClosed.Lock()
 	defer fl.mutIsClosed.Unlock()
 
@@ -156,7 +157,7 @@ func (fl *fileLogging) ChangeFileLifeSpan(lifeSpanner logger.LogLifeSpanner) err
 	go fl.autoRecreateFile(ctx)
 	fl.cancelFunc = cancelFunc
 
-	sizeLogLifeSpanner, ok := lifeSpanner.(logger.SizeLogLifeSpanner)
+	sizeLogLifeSpanner, ok := lifeSpanner.(factory.SizeLogLifeSpanner)
 	if ok {
 		log.Info("Found a sizeLogLifeSpanner", "new file", fl.currentFile.Name())
 		sizeLogLifeSpanner.SetCurrentFile(fl.currentFile.Name())
