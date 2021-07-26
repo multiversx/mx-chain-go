@@ -5,7 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common/logging"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -39,7 +39,7 @@ type P2PAntifloodHandler interface {
 
 // FileLoggingHandler will handle log file rotation
 type FileLoggingHandler interface {
-	ChangeFileLifeSpan(logging.LogLifeSpanner) error
+	ChangeFileLifeSpan(logger logger.LogLifeSpanner) error
 	Close() error
 	IsInterfaceNil() bool
 }

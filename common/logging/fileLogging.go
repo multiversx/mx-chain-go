@@ -7,21 +7,21 @@ import (
 	"path/filepath"
 	"runtime"
 	"sync"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go-logger/check"
+	"github.com/ElrondNetwork/elrond-go-logger/lifespan"
 	"github.com/ElrondNetwork/elrond-go-logger/redirects"
 )
 
-const defaultFileLifeSpan = time.Hour * 24
+const defaultFileLifeSpan = 86400
 
 var log = logger.GetOrCreate("common/logging")
 
 // fileLogging is able to rotate the log files
 type fileLogging struct {
-	logLifeSpanner  LogLifeSpanner
+	logLifeSpanner  logger.LogLifeSpanner
 	mutFile         sync.Mutex
 	currentFile     *os.File
 	workingDir      string
@@ -48,7 +48,13 @@ func NewFileLogging(workingDir string, defaultLogsPath string, logFilePrefix str
 		_ = fileLogHandler.currentFile.Close()
 	})
 
-	secondsLifeSpanner, err := newSecondsLifeSpanner(defaultFileLifeSpan)
+	factory := lifespan.NewTypeLogLifeSpanFactory()
+
+	secondsLifeSpanner, err := factory.CreateLogLifeSpanner(logger.LogLifeSpanFactoryArgs{
+		LifeSpanType:  "second",
+		RecreateEvery: defaultFileLifeSpan,
+	})
+
 	if err != nil {
 		log.Debug("autoRecreateFile NewSecondsLifeSpanner failed", "err", err)
 	}
@@ -119,7 +125,7 @@ func (fl *fileLogging) autoRecreateFile(ctx context.Context) {
 		case identifier := <-fl.logLifeSpanner.GetChannel():
 			log.Debug("autoRecreateFile - recreate log from lifespanner", "identifier", identifier)
 			fl.recreateLogFile(identifier)
-			sizeLogLifeSpanner, ok := fl.logLifeSpanner.(SizeLogLifeSpanner)
+			sizeLogLifeSpanner, ok := fl.logLifeSpanner.(logger.SizeLogLifeSpanner)
 			if ok {
 				log.Debug("autoRecreateFile - found a sizeLogLifeSpanner", "new file", fl.currentFile.Name())
 				newFile := fl.currentFile.Name()
@@ -130,7 +136,7 @@ func (fl *fileLogging) autoRecreateFile(ctx context.Context) {
 }
 
 // ChangeFileLifeSpan changes the log file span
-func (fl *fileLogging) ChangeFileLifeSpan(lifeSpanner LogLifeSpanner) error {
+func (fl *fileLogging) ChangeFileLifeSpan(lifeSpanner logger.LogLifeSpanner) error {
 	fl.mutIsClosed.Lock()
 	defer fl.mutIsClosed.Unlock()
 
@@ -150,7 +156,7 @@ func (fl *fileLogging) ChangeFileLifeSpan(lifeSpanner LogLifeSpanner) error {
 	go fl.autoRecreateFile(ctx)
 	fl.cancelFunc = cancelFunc
 
-	sizeLogLifeSpanner, ok := lifeSpanner.(SizeLogLifeSpanner)
+	sizeLogLifeSpanner, ok := lifeSpanner.(logger.SizeLogLifeSpanner)
 	if ok {
 		log.Info("Found a sizeLogLifeSpanner", "new file", fl.currentFile.Name())
 		sizeLogLifeSpanner.SetCurrentFile(fl.currentFile.Name())

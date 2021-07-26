@@ -18,13 +18,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/closing"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go-logger/lifespan"
 	"github.com/ElrondNetwork/elrond-go/api/gin"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
-	"github.com/ElrondNetwork/elrond-go/common/logging"
 	"github.com/ElrondNetwork/elrond-go/common/statistics"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -1184,12 +1184,12 @@ func (nr *nodeRunner) attachLogLifeSpanner(notifierWithConfirm mainFactory.Epoch
 		return
 	}
 
-	lifeSpannerArgs := logging.LogLifeSpanFactoryArgs{
+	lifeSpannerArgs := logger.LogLifeSpanFactoryArgs{
 		EpochStartNotifierWithConfirm: notifierWithConfirm,
 		LifeSpanType:                  spanConfig.Type,
 		RecreateEvery:                 spanConfig.RecreateEvery,
 	}
-	lifeSpanFactory := logging.NewTypeLogLifeSpanFactory()
+	lifeSpanFactory := lifespan.NewTypeLogLifeSpanFactory()
 	lifeSpanner, err := lifeSpanFactory.CreateLogLifeSpanner(lifeSpannerArgs)
 	if err != nil {
 		log.LogIfError(err)

@@ -10,6 +10,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go-logger/lifespan"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
@@ -108,14 +110,14 @@ func TestFileLogging_ChangeFileLifeSpanAfterCloseShouldErr(t *testing.T) {
 	assert.True(t, errors.Is(err, core.ErrFileLoggingProcessIsClosed))
 }
 
-func createSecondsLogLifeSpan(duration time.Duration) LogLifeSpanner {
-	args := LogLifeSpanFactoryArgs{
+func createSecondsLogLifeSpan(duration time.Duration) logger.LogLifeSpanner {
+	args := logger.LogLifeSpanFactoryArgs{
 		EpochStartNotifierWithConfirm: &testscommon.EpochStartNotifierStub{},
 		LifeSpanType:                  "second",
 		RecreateEvery:                 int(duration.Seconds()),
 	}
 
-	factory := &typeLogLifeSpanFactory{}
+	factory := lifespan.NewTypeLogLifeSpanFactory()
 	lls, _ := factory.CreateLogLifeSpanner(args)
 
 	return lls
