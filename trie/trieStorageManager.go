@@ -170,12 +170,12 @@ func getSnapshotsAndSnapshotId(snapshotDbCfg config.DBConfig) ([]temporary.Snaps
 			snapshotId = snapshotName
 		}
 
-		snapshot := &snapshotDb{
+		newSnapshot := &snapshotDb{
 			DBWriteCacher: db,
 		}
 
 		log.Debug("restored snapshot", "snapshot ID", snapshotName)
-		snapshotsMap[snapshotName] = snapshot
+		snapshotsMap[snapshotName] = newSnapshot
 	}
 
 	if len(snapshotsMap) != 0 {
@@ -376,15 +376,15 @@ func (tsm *trieStorageManager) disconnectSnapshot() {
 	if len(tsm.snapshots) <= 0 {
 		return
 	}
-	snapshot := tsm.snapshots[0]
+	firstSnapshot := tsm.snapshots[0]
 	tsm.snapshots = tsm.snapshots[1:]
 
-	if snapshot.IsInUse() {
-		snapshot.MarkForDisconnection()
+	if firstSnapshot.IsInUse() {
+		firstSnapshot.MarkForDisconnection()
 		log.Debug("can't disconnect, snapshot is still in use")
 		return
 	}
-	err := disconnectSnapshot(snapshot)
+	err := disconnectSnapshot(firstSnapshot)
 	if err != nil {
 		log.Error("trie storage manager: disconnectSnapshot", "error", err.Error())
 	}
@@ -397,19 +397,19 @@ func (tsm *trieStorageManager) removeSnapshot() {
 
 	dbUniqueId := strconv.Itoa(tsm.snapshotId - len(tsm.snapshots))
 
-	snapshot := tsm.snapshots[0]
+	firstSnapshot := tsm.snapshots[0]
 	tsm.snapshots = tsm.snapshots[1:]
 	removePath := path.Join(tsm.snapshotDbCfg.FilePath, dbUniqueId)
 
-	if snapshot.IsInUse() {
+	if firstSnapshot.IsInUse() {
 		log.Debug("snapshot is still in use", "path", removePath)
-		snapshot.MarkForRemoval()
-		snapshot.SetPath(removePath)
+		firstSnapshot.MarkForRemoval()
+		firstSnapshot.SetPath(removePath)
 
 		return
 	}
 
-	removeSnapshot(snapshot, removePath)
+	removeSnapshot(firstSnapshot, removePath)
 }
 
 func disconnectSnapshot(db temporary.DBWriteCacher) error {
@@ -470,10 +470,10 @@ func (tsm *trieStorageManager) newSnapshotDb() (storage.Persister, error) {
 
 	tsm.snapshotId++
 
-	snapshot := &snapshotDb{
+	newSnapshot := &snapshotDb{
 		DBWriteCacher: db,
 	}
-	tsm.snapshots = append(tsm.snapshots, snapshot)
+	tsm.snapshots = append(tsm.snapshots, newSnapshot)
 
 	return db, nil
 }

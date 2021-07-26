@@ -119,7 +119,8 @@ func getStateArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator 
 				MaxPeerTrieLevelInMemory:    5,
 			},
 			EvictionWaitingList: config.EvictionWaitingListConfig{
-				Size: 100,
+				HashesSize:     100,
+				RootHashesSize: 100,
 				DB: config.DBConfig{
 					FilePath:          "EvictionWaitingList",
 					Type:              "MemoryDB",
