@@ -6,12 +6,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	dataBlock "github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,7 +23,7 @@ func TestNewStorageEpochStartMetaBlockProcessor_InvalidArgumentsShouldErr(t *tes
 		nil,
 		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 	)
 	assert.True(t, check.IfNil(sesmbp))
 	assert.Equal(t, epochStart.ErrNilMessenger, err)
@@ -31,7 +32,7 @@ func TestNewStorageEpochStartMetaBlockProcessor_InvalidArgumentsShouldErr(t *tes
 		&mock.MessengerStub{},
 		nil,
 		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 	)
 	assert.True(t, check.IfNil(sesmbp))
 	assert.Equal(t, epochStart.ErrNilRequestHandler, err)
@@ -40,7 +41,7 @@ func TestNewStorageEpochStartMetaBlockProcessor_InvalidArgumentsShouldErr(t *tes
 		&mock.MessengerStub{},
 		&testscommon.RequestHandlerStub{},
 		nil,
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 	)
 	assert.True(t, check.IfNil(sesmbp))
 	assert.Equal(t, epochStart.ErrNilMarshalizer, err)
@@ -62,7 +63,7 @@ func TestNewStorageEpochStartMetaBlockProcessor_ShouldWork(t *testing.T) {
 		&mock.MessengerStub{},
 		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 	)
 	assert.False(t, check.IfNil(sesmbp))
 	assert.Nil(t, err)
@@ -75,7 +76,7 @@ func TestStorageEpochStartMetaBlockProcessor_Validate(t *testing.T) {
 		&mock.MessengerStub{},
 		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 	)
 	assert.Nil(t, sesmbp.Validate(nil, ""))
 }
@@ -94,7 +95,7 @@ func TestStorageEpochStartMetaBlockProcessor_RegisterHandlerShouldNotPanic(t *te
 		&mock.MessengerStub{},
 		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 	)
 	sesmbp.RegisterHandler(nil)
 }
@@ -106,7 +107,7 @@ func TestStorageEpochStartMetaBlockProcessor_SaveNilData(t *testing.T) {
 		&mock.MessengerStub{},
 		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 	)
 
 	err := sesmbp.Save(nil, "", "")
@@ -122,7 +123,7 @@ func TestStorageEpochStartMetaBlockProcessor_SaveNotAHeader(t *testing.T) {
 		&mock.MessengerStub{},
 		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 	)
 
 	err := sesmbp.Save(&testscommon.InterceptedDataStub{}, "", "")
@@ -138,7 +139,7 @@ func TestStorageEpochStartMetaBlockProcessor_SaveNotAnEpochStartBlock(t *testing
 		&mock.MessengerStub{},
 		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 	)
 
 	metaBlock := &dataBlock.MetaBlock{
@@ -160,7 +161,7 @@ func TestStorageEpochStartMetaBlockProcessor_SaveShouldWork(t *testing.T) {
 		&mock.MessengerStub{},
 		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 	)
 
 	metaBlock := &dataBlock.MetaBlock{
@@ -204,7 +205,7 @@ func TestStorageEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldRequest
 			},
 		},
 		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 	)
 
 	recoveredMetaBlock, err := sesmbp.GetEpochStartMetaBlock(context.Background())
@@ -220,7 +221,7 @@ func TestStorageEpochStartMetaBlockProcessor_GetEpochStartMetaBlockContextDoneSh
 		&mock.MessengerStub{},
 		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 	)
 
 	ctx, cancelFunc := context.WithCancel(context.Background())

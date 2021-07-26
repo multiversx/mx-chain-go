@@ -3,10 +3,11 @@ package builtInFunctions
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/stretchr/testify/assert"
 )
@@ -23,14 +24,15 @@ func createMockArguments() ArgsCreateBuiltInFunctionContainer {
 		Marshalizer:          &mock.MarshalizerMock{},
 		Accounts:             &testscommon.AccountsStub{},
 		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(1),
+		EpochNotifier:        &epochNotifier.EpochNotifierStub{},
 	}
 
 	return args
 }
 
 func fillGasMapInternal(gasMap map[string]map[string]uint64, value uint64) map[string]map[string]uint64 {
-	gasMap[core.BaseOperationCost] = fillGasMapBaseOperationCosts(value)
-	gasMap[core.BuiltInCost] = fillGasMapBuiltInCosts(value)
+	gasMap[common.BaseOperationCost] = fillGasMapBaseOperationCosts(value)
+	gasMap[common.BuiltInCost] = fillGasMapBuiltInCosts(value)
 
 	return gasMap
 }
@@ -68,6 +70,9 @@ func fillGasMapBuiltInCosts(value uint64) map[string]uint64 {
 	gasMap["ESDTNFTBurn"] = value
 	gasMap["ESDTNFTTransfer"] = value
 	gasMap["ESDTNFTChangeCreateOwner"] = value
+	gasMap["ESDTNFTAddUri"] = value
+	gasMap["ESDTNFTUpdateAttributes"] = value
+	gasMap["ESDTNFTMultiTransfer"] = value
 
 	return gasMap
 }
@@ -90,7 +95,7 @@ func TestCreateBuiltInFunctionContainer_Errors(t *testing.T) {
 	args = createMockArguments()
 	container, err = CreateBuiltInFunctionContainer(args)
 	assert.Nil(t, err)
-	assert.Equal(t, len(container.Keys()), 20)
+	assert.Equal(t, len(container.Keys()), 23)
 
 	err = vmcommonBuiltInFunctions.SetPayableHandler(container, &mock.BlockChainHookHandlerMock{})
 	assert.Nil(t, err)

@@ -10,22 +10,23 @@ import (
 	"math/big"
 	"testing"
 
-	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_3/config"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	factoryState "github.com/ElrondNetwork/elrond-go/data/state/factory"
-	"github.com/ElrondNetwork/elrond-go/data/trie"
-	"github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/mock"
 	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state"
+	factoryState "github.com/ElrondNetwork/elrond-go/state/factory"
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/trie"
+	"github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/update"
 	updateMock "github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
@@ -47,7 +48,7 @@ func createMockArgument(
 	memDBMock := mock.NewMemDbMock()
 	storageManager, _ := trie.NewTrieStorageManagerWithoutPruning(memDBMock)
 
-	trieStorageManagers := make(map[string]data.StorageManager)
+	trieStorageManagers := make(map[string]temporary.StorageManager)
 	trieStorageManagers[factory.UserAccountTrie] = storageManager
 	trieStorageManagers[factory.PeerAccountTrie] = storageManager
 
@@ -57,7 +58,7 @@ func createMockArgument(
 		Core: &mock.CoreComponentsMock{
 			IntMarsh:            &mock.MarshalizerMock{},
 			TxMarsh:             &mock.MarshalizerMock{},
-			Hash:                &mock.HasherMock{},
+			Hash:                &hashingMocks.HasherMock{},
 			UInt64ByteSliceConv: &mock.Uint64ByteSliceConverterMock{},
 			AddrPubKeyConv:      mock.NewPubkeyConverterMock(32),
 			Chain:               "chainID",
@@ -139,7 +140,7 @@ func createMockArgument(
 	var err error
 	arg.Accounts, err = createAccountAdapter(
 		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		factoryState.NewAccountCreator(),
 		trieStorageManagers[factory.UserAccountTrie],
 	)
@@ -167,7 +168,7 @@ func createMockArgument(
 		GenesisTotalSupplyCalled: func() *big.Int {
 			return entireSupply
 		},
-		MaxGasLimitPerBlockCalled: func() uint64 {
+		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return math.MaxUint64
 		},
 	}
@@ -389,7 +390,7 @@ func TestCreateArgsGenesisBlockCreator_ShouldErrWhenGetNewArgForShardFails(t *te
 	)
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{SelfShardId: 1}
-	arg.TrieStorageManagers = make(map[string]data.StorageManager)
+	arg.TrieStorageManagers = make(map[string]temporary.StorageManager)
 	gbc, err := NewGenesisBlockCreator(arg)
 	require.Nil(t, err)
 

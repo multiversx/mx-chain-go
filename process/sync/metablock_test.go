@@ -8,17 +8,19 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -50,28 +52,29 @@ func createMetaStore() dataRetriever.StorageService {
 
 func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 	argsBaseBootstrapper := sync.ArgBaseBootstrapper{
-		PoolsHolder:                  createMockPools(),
-		Store:                        createStore(),
-		ChainHandler:                 initBlockchain(),
-		RoundHandler:                 &mock.RoundHandlerMock{},
-		BlockProcessor:               &mock.BlockProcessorMock{},
-		WaitTime:                     waitTime,
-		Hasher:                       &mock.HasherMock{},
-		Marshalizer:                  &mock.MarshalizerMock{},
-		ForkDetector:                 &mock.ForkDetectorMock{},
-		RequestHandler:               &testscommon.RequestHandlerStub{},
-		ShardCoordinator:             mock.NewOneShardCoordinatorMock(),
-		Accounts:                     &testscommon.AccountsStub{},
-		BlackListHandler:             &mock.BlackListHandlerStub{},
-		NetworkWatcher:               initNetworkWatcher(),
-		BootStorer:                   &mock.BoostrapStorerMock{},
-		StorageBootstrapper:          &mock.StorageBootstrapperMock{},
-		EpochHandler:                 &mock.EpochStartTriggerStub{},
-		MiniblocksProvider:           &mock.MiniBlocksProviderStub{},
-		Uint64Converter:              &mock.Uint64ByteSliceConverterMock{},
-		AppStatusHandler:             &mock.AppStatusHandlerStub{},
-		Indexer:                      &mock.IndexerMock{},
-		AccountsDBSyncer:             &mock.AccountsDBSyncerStub{},
+		PoolsHolder:          createMockPools(),
+		Store:                createStore(),
+		ChainHandler:         initBlockchain(),
+		RoundHandler:         &mock.RoundHandlerMock{},
+		BlockProcessor:       &mock.BlockProcessorMock{},
+		WaitTime:             waitTime,
+		Hasher:               &hashingMocks.HasherMock{},
+		Marshalizer:          &mock.MarshalizerMock{},
+		ForkDetector:         &mock.ForkDetectorMock{},
+		RequestHandler:       &testscommon.RequestHandlerStub{},
+		ShardCoordinator:     mock.NewOneShardCoordinatorMock(),
+		Accounts:             &testscommon.AccountsStub{},
+		BlackListHandler:     &mock.BlackListHandlerStub{},
+		NetworkWatcher:       initNetworkWatcher(),
+		BootStorer:           &mock.BoostrapStorerMock{},
+		StorageBootstrapper:  &mock.StorageBootstrapperMock{},
+		EpochHandler:         &mock.EpochStartTriggerStub{},
+		MiniblocksProvider:   &mock.MiniBlocksProviderStub{},
+		Uint64Converter:      &mock.Uint64ByteSliceConverterMock{},
+		AppStatusHandler:     &mock.AppStatusHandlerStub{},
+		Indexer:              &mock.IndexerMock{},
+		AccountsDBSyncer:     &mock.AccountsDBSyncerStub{},
+		CurrentEpochProvider: &testscommon.CurrentEpochProviderStub{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 	}
 
@@ -293,6 +296,66 @@ func TestNewMetaBootstrap_NilBlackListHandlerShouldErr(t *testing.T) {
 
 	assert.Nil(t, bs)
 	assert.Equal(t, process.ErrNilBlackListCacher, err)
+}
+
+func TestNewMetaBootstrap_NilNetworkWatcherShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := CreateMetaBootstrapMockArguments()
+	args.NetworkWatcher = nil
+
+	bs, err := sync.NewMetaBootstrap(args)
+
+	assert.Nil(t, bs)
+	assert.Equal(t, process.ErrNilNetworkWatcher, err)
+}
+
+func TestNewMetaBootstrap_NilBootStorerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := CreateMetaBootstrapMockArguments()
+	args.BootStorer = nil
+
+	bs, err := sync.NewMetaBootstrap(args)
+
+	assert.Nil(t, bs)
+	assert.Equal(t, process.ErrNilBootStorer, err)
+}
+
+func TestNewMetaBootstrap_NilMiniblocksProviderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := CreateMetaBootstrapMockArguments()
+	args.MiniblocksProvider = nil
+
+	bs, err := sync.NewMetaBootstrap(args)
+
+	assert.Nil(t, bs)
+	assert.Equal(t, process.ErrNilMiniBlocksProvider, err)
+}
+
+func TestNewMetaBootstrap_NilIndexerProviderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := CreateMetaBootstrapMockArguments()
+	args.Indexer = nil
+
+	bs, err := sync.NewMetaBootstrap(args)
+
+	assert.Nil(t, bs)
+	assert.Equal(t, process.ErrNilIndexer, err)
+}
+
+func TestNewMetaBootstrap_NilCurrentEpochProviderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := CreateMetaBootstrapMockArguments()
+	args.CurrentEpochProvider = nil
+
+	bs, err := sync.NewMetaBootstrap(args)
+
+	assert.Nil(t, bs)
+	assert.Equal(t, process.ErrNilCurrentNetworkEpochProvider, err)
 }
 
 func TestNewMetaBootstrap_OkValsShouldWork(t *testing.T) {
@@ -683,7 +746,7 @@ func TestMetaBootstrap_GetNodeStateShouldReturnSynchronizedWhenCurrentBlockIsNil
 	assert.Nil(t, err)
 
 	bs.ComputeNodeState()
-	assert.Equal(t, core.NsSynchronized, bs.GetNodeState())
+	assert.Equal(t, common.NsSynchronized, bs.GetNodeState())
 }
 
 func TestMetaBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenCurrentBlockIsNilAndRoundIndexIsGreaterThanZero(t *testing.T) {
@@ -704,7 +767,7 @@ func TestMetaBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenCurrentBlockIs
 	bs, _ := sync.NewMetaBootstrap(args)
 	bs.ComputeNodeState()
 
-	assert.Equal(t, core.NsNotSynchronized, bs.GetNodeState())
+	assert.Equal(t, common.NsNotSynchronized, bs.GetNodeState())
 }
 
 func TestMetaBootstrap_GetNodeStateShouldReturnSynchronizedWhenNodeIsSynced(t *testing.T) {
@@ -732,7 +795,7 @@ func TestMetaBootstrap_GetNodeStateShouldReturnSynchronizedWhenNodeIsSynced(t *t
 	bs, _ := sync.NewMetaBootstrap(args)
 	bs.ComputeNodeState()
 
-	assert.Equal(t, core.NsSynchronized, bs.GetNodeState())
+	assert.Equal(t, common.NsSynchronized, bs.GetNodeState())
 }
 
 func TestMetaBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenNodeIsNotSynced(t *testing.T) {
@@ -760,7 +823,7 @@ func TestMetaBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenNodeIsNotSynce
 	bs, _ := sync.NewMetaBootstrap(args)
 	bs.ComputeNodeState()
 
-	assert.Equal(t, core.NsNotSynchronized, bs.GetNodeState())
+	assert.Equal(t, common.NsNotSynchronized, bs.GetNodeState())
 }
 
 func TestMetaBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenForkIsDetectedAndItReceivesTheSameWrongHeader(t *testing.T) {
@@ -810,17 +873,17 @@ func TestMetaBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenForkIsDetected
 	_ = args.ForkDetector.AddHeader(&hdr2, hash2, process.BHReceived, nil, nil)
 
 	bs.ComputeNodeState()
-	assert.Equal(t, core.NsNotSynchronized, bs.GetNodeState())
+	assert.Equal(t, common.NsNotSynchronized, bs.GetNodeState())
 	assert.True(t, bs.IsForkDetected())
 
-	if bs.GetNodeState() == core.NsNotSynchronized && bs.IsForkDetected() {
+	if bs.GetNodeState() == common.NsNotSynchronized && bs.IsForkDetected() {
 		args.ForkDetector.RemoveHeader(hdr1.GetNonce(), hash1)
 		bs.ReceivedHeaders(&hdr1, hash1)
 		_ = args.ForkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil, nil)
 	}
 
 	bs.ComputeNodeState()
-	assert.Equal(t, core.NsNotSynchronized, bs.GetNodeState())
+	assert.Equal(t, common.NsNotSynchronized, bs.GetNodeState())
 	assert.True(t, bs.IsForkDetected())
 }
 
@@ -871,10 +934,10 @@ func TestMetaBootstrap_GetNodeStateShouldReturnSynchronizedWhenForkIsDetectedAnd
 	_ = args.ForkDetector.AddHeader(&hdr2, hash2, process.BHReceived, nil, nil)
 
 	bs.ComputeNodeState()
-	assert.Equal(t, core.NsNotSynchronized, bs.GetNodeState())
+	assert.Equal(t, common.NsNotSynchronized, bs.GetNodeState())
 	assert.True(t, bs.IsForkDetected())
 
-	if bs.GetNodeState() == core.NsNotSynchronized && bs.IsForkDetected() {
+	if bs.GetNodeState() == common.NsNotSynchronized && bs.IsForkDetected() {
 		args.ForkDetector.RemoveHeader(hdr1.GetNonce(), hash1)
 		bs.ReceivedHeaders(&hdr2, hash2)
 		_ = args.ForkDetector.AddHeader(&hdr2, hash2, process.BHProcessed, nil, nil)
@@ -884,7 +947,7 @@ func TestMetaBootstrap_GetNodeStateShouldReturnSynchronizedWhenForkIsDetectedAnd
 	time.Sleep(500 * time.Millisecond)
 
 	bs.ComputeNodeState()
-	assert.Equal(t, core.NsSynchronized, bs.GetNodeState())
+	assert.Equal(t, common.NsSynchronized, bs.GetNodeState())
 	assert.False(t, bs.IsForkDetected())
 }
 
@@ -1490,7 +1553,7 @@ func TestMetaBootstrap_SyncBlockErrGetNodeDBShouldSyncAccounts(t *testing.T) {
 	}
 	args.ChainHandler = blkc
 
-	errGetNodeFromDB := errors.New(core.GetNodeFromDBErrorString)
+	errGetNodeFromDB := errors.New(common.GetNodeFromDBErrorString)
 	blockProcessor := createMetaBlockProcessor(args.ChainHandler)
 	blockProcessor.ProcessBlockCalled = func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 		return errGetNodeFromDB

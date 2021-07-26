@@ -4,10 +4,11 @@ import (
 	"errors"
 	"testing"
 
-	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_3/config"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -15,6 +16,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
@@ -51,7 +54,7 @@ func createVmContainerMockArgument(gasSchedule core.GasScheduleNotifier) ArgsNew
 		MessageSignVerifier: &mock.MessageSignVerifierMock{},
 		GasSchedule:         gasSchedule,
 		NodesConfigProvider: &mock.NodesConfigProviderStub{},
-		Hasher:              &mock.HasherMock{},
+		Hasher:              &hashingMocks.HasherMock{},
 		Marshalizer:         &mock.MarshalizerMock{},
 		SystemSCConfig: &config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
@@ -81,7 +84,7 @@ func createVmContainerMockArgument(gasSchedule core.GasScheduleNotifier) ArgsNew
 		},
 		ValidatorAccountsDB: &testscommon.AccountsStub{},
 		ChanceComputer:      &mock.RaterMock{},
-		EpochNotifier:       &mock.EpochNotifierStub{},
+		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: config.EnableEpochs{
 				StakingV2EnableEpoch: 10,
@@ -284,7 +287,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 			},
 		},
 		PenalizedTooMuchGasEnableEpoch: 0,
-		EpochNotifier:                  &mock.EpochNotifierStub{},
+		EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
 		BuiltInFunctionsCostHandler:    &mock.BuiltInCostHandlerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
@@ -295,7 +298,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 		MessageSignVerifier: &mock.MessageSignVerifierMock{},
 		GasSchedule:         makeGasSchedule(),
 		NodesConfigProvider: &mock.NodesConfigProviderStub{},
-		Hasher:              &mock.HasherMock{},
+		Hasher:              &hashingMocks.HasherMock{},
 		Marshalizer:         &mock.MarshalizerMock{},
 		SystemSCConfig: &config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
@@ -336,7 +339,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 		},
 		ValidatorAccountsDB: &testscommon.AccountsStub{},
 		ChanceComputer:      &mock.RaterMock{},
-		EpochNotifier:       &mock.EpochNotifierStub{},
+		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: config.EnableEpochs{
 				StakingV2EnableEpoch:               10,
@@ -376,8 +379,8 @@ func makeGasSchedule() core.GasScheduleNotifier {
 }
 
 func FillGasMapInternal(gasMap map[string]map[string]uint64, value uint64) map[string]map[string]uint64 {
-	gasMap[core.BaseOperationCost] = FillGasMapBaseOperationCosts(value)
-	gasMap[core.MetaChainSystemSCsCost] = FillGasMapMetaChainSystemSCsCosts(value)
+	gasMap[common.BaseOperationCost] = FillGasMapBaseOperationCosts(value)
+	gasMap[common.MetaChainSystemSCsCost] = FillGasMapMetaChainSystemSCsCosts(value)
 
 	return gasMap
 }

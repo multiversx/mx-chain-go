@@ -5,9 +5,10 @@ import (
 	"errors"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 )
@@ -112,7 +113,7 @@ func (txs *transactions) hasAddressEnoughInitialBalance(tx *transaction.Transact
 	addressHasEnoughBalance := true
 	isAddressSet := txs.balanceComputation.IsAddressSet(tx.GetSndAddr())
 	if isAddressSet {
-		addressHasEnoughBalance = txs.balanceComputation.AddressHasEnoughBalance(tx.GetSndAddr(), txs.getTxMaxTotalCost(tx))
+		addressHasEnoughBalance = txs.balanceComputation.AddressHasEnoughBalance(tx.GetSndAddr(), getTxMaxTotalCost(tx))
 	}
 
 	return addressHasEnoughBalance
@@ -160,9 +161,9 @@ func (txs *transactions) processTransaction(
 	elapsedTime = time.Since(startTime)
 	mbInfo.processingInfo.totalTimeUsedForProcess += elapsedTime
 
-	txs.mutAccountsInfo.Lock()
-	txs.accountsInfo[string(tx.GetSndAddr())] = &txShardInfo{senderShardID: senderShardID, receiverShardID: receiverShardID}
-	txs.mutAccountsInfo.Unlock()
+	txs.accountTxsShards.Lock()
+	txs.accountTxsShards.accountsInfo[string(tx.GetSndAddr())] = &txShardInfo{senderShardID: senderShardID, receiverShardID: receiverShardID}
+	txs.accountTxsShards.Unlock()
 
 	if err != nil && !errors.Is(err, process.ErrFailedTransaction) {
 		if errors.Is(err, process.ErrHigherNonceInTransaction) {
@@ -380,9 +381,9 @@ func (txs *transactions) verifyTransaction(
 	elapsedTime = time.Since(startTime)
 	mbInfo.schedulingInfo.totalTimeUsedForScheduledVerify += elapsedTime
 
-	txs.mutAccountsInfo.Lock()
-	txs.accountsInfo[string(tx.GetSndAddr())] = &txShardInfo{senderShardID: senderShardID, receiverShardID: receiverShardID}
-	txs.mutAccountsInfo.Unlock()
+	txs.accountTxsShards.Lock()
+	txs.accountTxsShards.accountsInfo[string(tx.GetSndAddr())] = &txShardInfo{senderShardID: senderShardID, receiverShardID: receiverShardID}
+	txs.accountTxsShards.Unlock()
 
 	if err != nil {
 		isTxTargetedForDeletion := errors.Is(err, process.ErrLowerNonceInTransaction) || errors.Is(err, process.ErrInsufficientFee)
@@ -582,7 +583,7 @@ func (txs *transactions) getTxAndMbInfo(
 			numNewMiniBlocks++
 		}
 		if mbInfo.mapCrossShardScCallsOrSpecialTxs[receiverShardID] >= mbInfo.maxCrossShardScCallsOrSpecialTxsPerShard {
-			numNewTxs += core.AdditionalScrForEachScCallOrSpecialTx
+			numNewTxs += common.AdditionalScrForEachScCallOrSpecialTx
 		}
 	}
 
@@ -606,7 +607,7 @@ func (txs *transactions) applyExecutedTransaction(
 	mbInfo.senderAddressToSkip = []byte("")
 
 	if txs.balanceComputation.IsAddressSet(tx.GetSndAddr()) {
-		txMaxTotalCost := txs.getTxMaxTotalCost(tx)
+		txMaxTotalCost := getTxMaxTotalCost(tx)
 		ok := txs.balanceComputation.SubBalanceFromAddress(tx.GetSndAddr(), txMaxTotalCost)
 		if !ok {
 			log.Error("applyExecutedTransaction.SubBalanceFromAddress",
@@ -634,7 +635,7 @@ func (txs *transactions) applyExecutedTransaction(
 		if crossShardScCallsOrSpecialTxs > mbInfo.maxCrossShardScCallsOrSpecialTxsPerShard {
 			mbInfo.maxCrossShardScCallsOrSpecialTxsPerShard = crossShardScCallsOrSpecialTxs
 			//we need to increment this as to account for the corresponding SCR hash
-			txs.blockSizeComputation.AddNumTxs(core.AdditionalScrForEachScCallOrSpecialTx)
+			txs.blockSizeComputation.AddNumTxs(common.AdditionalScrForEachScCallOrSpecialTx)
 		}
 		mbInfo.processingInfo.numCrossShardScCallsOrSpecialTxs++
 	}
@@ -765,7 +766,7 @@ func (txs *transactions) getScheduledTxAndMbInfo(
 			numNewMiniBlocks++
 		}
 		if mbInfo.mapCrossShardScCallTxs[receiverShardID] >= mbInfo.maxCrossShardScCallTxsPerShard {
-			numNewTxs += core.AdditionalScrForEachScCallOrSpecialTx
+			numNewTxs += common.AdditionalScrForEachScCallOrSpecialTx
 		}
 	}
 
@@ -786,7 +787,7 @@ func (txs *transactions) applyVerifiedTransaction(
 	mbInfo *createScheduledMiniBlocksInfo,
 ) {
 	if txs.balanceComputation.IsAddressSet(tx.GetSndAddr()) {
-		txMaxTotalCost := txs.getTxMaxTotalCost(tx)
+		txMaxTotalCost := getTxMaxTotalCost(tx)
 		ok := txs.balanceComputation.SubBalanceFromAddress(tx.GetSndAddr(), txMaxTotalCost)
 		if !ok {
 			log.Error("applyVerifiedTransaction.SubBalanceFromAddress",
@@ -812,7 +813,7 @@ func (txs *transactions) applyVerifiedTransaction(
 		if crossShardScCallTxs > mbInfo.maxCrossShardScCallTxsPerShard {
 			mbInfo.maxCrossShardScCallTxsPerShard = crossShardScCallTxs
 			//we need to increment this as to account for the corresponding SCR hash
-			txs.blockSizeComputation.AddNumTxs(core.AdditionalScrForEachScCallOrSpecialTx)
+			txs.blockSizeComputation.AddNumTxs(common.AdditionalScrForEachScCallOrSpecialTx)
 		}
 		mbInfo.schedulingInfo.numScheduledCrossShardScCalls++
 	}

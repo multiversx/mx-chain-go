@@ -11,6 +11,7 @@ import (
 	errErd "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -232,7 +233,7 @@ func TestCryptoComponentsFactory_CreateMultiSignerInvalidConsensusTypeShouldErr(
 	require.Nil(t, err)
 
 	cp := ccf.CreateDummyCryptoParams()
-	multiSigner, err := ccf.CreateMultiSigner(mock.HasherMock{}, cp, &mock.KeyGenMock{}, false)
+	multiSigner, err := ccf.CreateMultiSigner(&hashingMocks.HasherMock{}, cp, &mock.KeyGenMock{}, false)
 	require.Nil(t, multiSigner)
 	require.Equal(t, errErd.ErrInvalidConsensusConfig, err)
 }
@@ -387,11 +388,11 @@ func getCryptoArgs(coreComponents factory.CoreComponentsHolder) factory.CryptoCo
 	args := factory.CryptoComponentsFactoryArgs{
 		Config: config.Config{
 			GeneralSettings: config.GeneralSettingsConfig{ChainID: "undefined"},
-			Consensus:       config.ConsensusConfig{
+			Consensus: config.ConsensusConfig{
 				ScheduledExecutionMilliseconds: 10,
-				Type: "bls",
+				Type:                           "bls",
 			},
-			MultisigHasher:  config.TypeConfig{Type: "blake2b"},
+			MultisigHasher: config.TypeConfig{Type: "blake2b"},
 			PublicKeyPIDSignature: config.CacheConfig{
 				Capacity: 1000,
 				Type:     "LRU",

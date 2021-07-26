@@ -5,15 +5,17 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/versioning"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/versioning"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -56,15 +58,15 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 	coreComponents := &mock.CoreComponentsMock{
 		IntMarsh:            &mock.MarshalizerMock{},
 		TxMarsh:             &mock.MarshalizerMock{},
-		Hash:                mock.HasherMock{},
-		TxSignHasherField:   mock.HasherMock{},
+		Hash:                &hashingMocks.HasherMock{},
+		TxSignHasherField:   &hashingMocks.HasherMock{},
 		UInt64ByteSliceConv: mock.NewNonceHashConverterMock(),
 		AddrPubKeyConv:      createMockPubkeyConverter(),
 		ChainIdCalled: func() string {
 			return "chainID"
 		},
 		TxVersionCheckField: versioning.NewTxVersionChecker(1),
-		EpochNotifierField:  &mock.EpochNotifierStub{},
+		EpochNotifierField:  &epochNotifier.EpochNotifierStub{},
 	}
 	cryptoComponents := &mock.CryptoComponentsMock{
 		BlockSig: createMockSigner(),

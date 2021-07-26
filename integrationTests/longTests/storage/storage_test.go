@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/data/trie"
-	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
+	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -6,8 +6,9 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -34,7 +35,7 @@ func createMockGovernanceArgs() ArgsNewGovernanceContract {
 			},
 		},
 		Marshalizer:                 &mock.MarshalizerMock{},
-		Hasher:                      &mock.HasherMock{},
+		Hasher:                      &hashingMocks.HasherMock{},
 		GovernanceSCAddress:         vm.GovernanceSCAddress,
 		DelegationMgrSCAddress:      vm.DelegationManagerSCAddress,
 		ValidatorSCAddress:          vm.ValidatorSCAddress,

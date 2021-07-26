@@ -3,7 +3,7 @@ package crypto
 import (
 	"crypto/cipher"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 )
 
 // A Scalar represents a scalar value by which

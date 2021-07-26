@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/genesis"
 )
@@ -159,7 +160,7 @@ func (st *syncAccountsDBs) syncAccountsOfType(accountType genesis.Type, trieID s
 	return nil
 }
 
-func (st *syncAccountsDBs) setTries(shId uint32, initialID string, rootHash []byte, tries map[string]data.Trie) {
+func (st *syncAccountsDBs) setTries(shId uint32, initialID string, rootHash []byte, tries map[string]temporary.Trie) {
 	for hash, currentTrie := range tries {
 		if bytes.Equal(rootHash, []byte(hash)) {
 			st.tries.setTrie(initialID, currentTrie)
@@ -204,7 +205,7 @@ func (st *syncAccountsDBs) tryRecreateTrie(shardId uint32, id string, trieID sta
 }
 
 // GetTries returns the synced tries
-func (st *syncAccountsDBs) GetTries() (map[string]data.Trie, error) {
+func (st *syncAccountsDBs) GetTries() (map[string]temporary.Trie, error) {
 	st.mutSynced.Lock()
 	defer st.mutSynced.Unlock()
 

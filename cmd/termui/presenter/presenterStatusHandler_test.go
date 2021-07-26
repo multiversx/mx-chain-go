@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/cmd/termui/presenter"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,8 +23,8 @@ func TestPresenterStatusHandler_TestIncrement(t *testing.T) {
 
 	presenterStatusHandler := presenter.NewPresenterStatusHandler()
 
-	presenterStatusHandler.SetUInt64Value(core.MetricNonce, 0)
-	presenterStatusHandler.Increment(core.MetricNonce)
+	presenterStatusHandler.SetUInt64Value(common.MetricNonce, 0)
+	presenterStatusHandler.Increment(common.MetricNonce)
 	result := presenterStatusHandler.GetNonce()
 
 	assert.Equal(t, uint64(1), result)
@@ -34,7 +34,7 @@ func TestPresenterStatusHandler_WrongKeyIncrementShouldDoNothing(t *testing.T) {
 	t.Parallel()
 
 	presenterStatusHandler := presenter.NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(core.MetricNonce, 0)
+	presenterStatusHandler.SetUInt64Value(common.MetricNonce, 0)
 	presenterStatusHandler.Increment("dummyKey")
 	result := presenterStatusHandler.GetNonce()
 
@@ -45,8 +45,8 @@ func TestPresenterStatusHandler_WrongTypeIncrementShouldDoNothing(t *testing.T) 
 	t.Parallel()
 
 	presenterStatusHandler := presenter.NewPresenterStatusHandler()
-	presenterStatusHandler.SetStringValue(core.MetricNonce, "0")
-	presenterStatusHandler.Increment(core.MetricNonce)
+	presenterStatusHandler.SetStringValue(common.MetricNonce, "0")
+	presenterStatusHandler.Increment(common.MetricNonce)
 	result := presenterStatusHandler.GetNonce()
 
 	assert.Equal(t, uint64(0), result)
@@ -57,8 +57,8 @@ func TestPresenterStatusHandler_TestSetInt64(t *testing.T) {
 
 	var intValue = int64(100)
 	presenterStatusHandler := presenter.NewPresenterStatusHandler()
-	presenterStatusHandler.SetInt64Value(core.MetricNonce, intValue)
-	valueI, err := presenterStatusHandler.GetPresenterMetricByKey(core.MetricNonce)
+	presenterStatusHandler.SetInt64Value(common.MetricNonce, intValue)
+	valueI, err := presenterStatusHandler.GetPresenterMetricByKey(common.MetricNonce)
 	assert.Nil(t, err)
 
 	result := valueI.(int64)
@@ -71,7 +71,7 @@ func TestPresenterStatusHandler_TestSetUInt64(t *testing.T) {
 	var intValue = uint64(200)
 
 	presenterStatusHandler := presenter.NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(core.MetricNonce, intValue)
+	presenterStatusHandler.SetUInt64Value(common.MetricNonce, intValue)
 	result := presenterStatusHandler.GetNonce()
 
 	assert.Equal(t, intValue, result)
@@ -83,7 +83,7 @@ func TestPresenterStatusHandler_TestSetString(t *testing.T) {
 	var stringValue = "KEY"
 
 	presenterStatusHandler := presenter.NewPresenterStatusHandler()
-	presenterStatusHandler.SetStringValue(core.MetricPublicKeyBlockSign, stringValue)
+	presenterStatusHandler.SetStringValue(common.MetricPublicKeyBlockSign, stringValue)
 	result := presenterStatusHandler.GetPublicKeyBlockSign()
 
 	assert.Equal(t, stringValue, result)
@@ -124,8 +124,8 @@ func TestPresenterStatusHandler_Increment(t *testing.T) {
 
 	countConsensus := uint64(0)
 	presenterStatusHandler := presenter.NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(core.MetricCountConsensus, countConsensus)
-	presenterStatusHandler.Increment(core.MetricCountConsensus)
+	presenterStatusHandler.SetUInt64Value(common.MetricCountConsensus, countConsensus)
+	presenterStatusHandler.Increment(common.MetricCountConsensus)
 	result := presenterStatusHandler.GetCountConsensus()
 
 	assert.Equal(t, countConsensus+1, result)
@@ -135,8 +135,8 @@ func TestPresenterStatusHandler_WrongTypeDecrement(t *testing.T) {
 	t.Parallel()
 
 	presenterStatusHandler := presenter.NewPresenterStatusHandler()
-	presenterStatusHandler.SetStringValue(core.MetricNonce, "value")
-	presenterStatusHandler.Decrement(core.MetricNonce)
+	presenterStatusHandler.SetStringValue(common.MetricNonce, "value")
+	presenterStatusHandler.Decrement(common.MetricNonce)
 	result := presenterStatusHandler.GetNonce()
 
 	assert.Equal(t, uint64(0), result)
@@ -146,8 +146,8 @@ func TestPresenterStatusHandler_DecrementDoNothing(t *testing.T) {
 	t.Parallel()
 
 	presenterStatusHandler := presenter.NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(core.MetricCountConsensus, 0)
-	presenterStatusHandler.Decrement(core.MetricCountConsensus)
+	presenterStatusHandler.SetUInt64Value(common.MetricCountConsensus, 0)
+	presenterStatusHandler.Decrement(common.MetricCountConsensus)
 	result := presenterStatusHandler.GetCountConsensus()
 
 	assert.Equal(t, uint64(0), result)
@@ -168,8 +168,8 @@ func TestPresenterStatusHandler_Decrement(t *testing.T) {
 
 	countConsensus := uint64(10)
 	presenterStatusHandler := presenter.NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(core.MetricCountConsensus, countConsensus)
-	presenterStatusHandler.Decrement(core.MetricCountConsensus)
+	presenterStatusHandler.SetUInt64Value(common.MetricCountConsensus, countConsensus)
+	presenterStatusHandler.Decrement(common.MetricCountConsensus)
 	result := presenterStatusHandler.GetCountConsensus()
 
 	assert.Equal(t, countConsensus-1, result)
@@ -181,8 +181,8 @@ func TestPresenterStatusHandler_AddUint64(t *testing.T) {
 	countConsensus := uint64(10)
 	value := uint64(5)
 	presenterStatusHandler := presenter.NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(core.MetricCountConsensus, countConsensus)
-	presenterStatusHandler.AddUint64(core.MetricCountConsensus, value)
+	presenterStatusHandler.SetUInt64Value(common.MetricCountConsensus, countConsensus)
+	presenterStatusHandler.AddUint64(common.MetricCountConsensus, value)
 	result := presenterStatusHandler.GetCountConsensus()
 
 	assert.Equal(t, countConsensus+value, result)

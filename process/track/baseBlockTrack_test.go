@@ -6,10 +6,10 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	processBlock "github.com/ElrondNetwork/elrond-go/process/block"
@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -99,7 +100,7 @@ func CreateShardTrackerMockArguments() track.ArgShardTracker {
 	shardCoordinatorMock := mock.NewMultipleShardsCoordinatorMock()
 	genesisBlocks := createGenesisBlocks(shardCoordinatorMock)
 	argsHeaderValidator := processBlock.ArgsHeaderValidator{
-		Hasher:      &mock.HasherMock{},
+		Hasher:      &hashingMocks.HasherMock{},
 		Marshalizer: &mock.MarshalizerMock{},
 	}
 	headerValidator, _ := processBlock.NewHeaderValidator(argsHeaderValidator)
@@ -107,7 +108,7 @@ func CreateShardTrackerMockArguments() track.ArgShardTracker {
 
 	arguments := track.ArgShardTracker{
 		ArgBaseTracker: track.ArgBaseTracker{
-			Hasher:           &mock.HasherMock{},
+			Hasher:           &hashingMocks.HasherMock{},
 			HeaderValidator:  headerValidator,
 			Marshalizer:      &mock.MarshalizerMock{},
 			RequestHandler:   &testscommon.RequestHandlerStub{},
@@ -128,7 +129,7 @@ func CreateMetaTrackerMockArguments() track.ArgMetaTracker {
 	shardCoordinatorMock.CurrentShard = core.MetachainShardId
 	genesisBlocks := createGenesisBlocks(shardCoordinatorMock)
 	argsHeaderValidator := processBlock.ArgsHeaderValidator{
-		Hasher:      &mock.HasherMock{},
+		Hasher:      &hashingMocks.HasherMock{},
 		Marshalizer: &mock.MarshalizerMock{},
 	}
 	headerValidator, _ := processBlock.NewHeaderValidator(argsHeaderValidator)
@@ -136,7 +137,7 @@ func CreateMetaTrackerMockArguments() track.ArgMetaTracker {
 
 	arguments := track.ArgMetaTracker{
 		ArgBaseTracker: track.ArgBaseTracker{
-			Hasher:           &mock.HasherMock{},
+			Hasher:           &hashingMocks.HasherMock{},
 			HeaderValidator:  headerValidator,
 			Marshalizer:      &mock.MarshalizerMock{},
 			RequestHandler:   &testscommon.RequestHandlerStub{},
@@ -156,13 +157,13 @@ func CreateBaseTrackerMockArguments() track.ArgBaseTracker {
 	shardCoordinatorMock := mock.NewMultipleShardsCoordinatorMock()
 	genesisBlocks := createGenesisBlocks(shardCoordinatorMock)
 	argsHeaderValidator := processBlock.ArgsHeaderValidator{
-		Hasher:      &mock.HasherMock{},
+		Hasher:      &hashingMocks.HasherMock{},
 		Marshalizer: &mock.MarshalizerMock{},
 	}
 	headerValidator, _ := processBlock.NewHeaderValidator(argsHeaderValidator)
 
 	arguments := track.ArgBaseTracker{
-		Hasher:           &mock.HasherMock{},
+		Hasher:           &hashingMocks.HasherMock{},
 		HeaderValidator:  headerValidator,
 		Marshalizer:      &mock.MarshalizerMock{},
 		RequestHandler:   &testscommon.RequestHandlerStub{},

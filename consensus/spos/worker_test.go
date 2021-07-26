@@ -7,18 +7,20 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
@@ -69,7 +71,7 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 		},
 	}
 	syncTimerMock := &mock.SyncTimerMock{}
-	hasher := &mock.HasherMock{}
+	hasher := &hashingMocks.HasherMock{}
 	blsService, _ := bls.NewConsensusService()
 	poolAdder := testscommon.NewCacherMock()
 
@@ -608,7 +610,7 @@ func TestWorker_ProcessReceivedMessageComputeReceivedProposedBlockMetric(t *test
 		},
 	})
 	hdr := &block.Header{ChainID: chainID}
-	hdrHash, _ := core.CalculateHash(mock.MarshalizerMock{}, mock.HasherMock{}, hdr)
+	hdrHash, _ := core.CalculateHash(mock.MarshalizerMock{}, &hashingMocks.HasherMock{}, hdr)
 	hdrStr, _ := mock.MarshalizerMock{}.Marshal(hdr)
 	cnsMsg := consensus.NewConsensusMessage(
 		hdrHash,
@@ -932,7 +934,7 @@ func TestWorker_ProcessReceivedMessageWrongChainIDInProposedBlockShouldError(t *
 	)
 
 	hdr := &block.Header{ChainID: wrongChainID}
-	hdrHash, _ := core.CalculateHash(mock.MarshalizerMock{}, mock.HasherMock{}, hdr)
+	hdrHash, _ := core.CalculateHash(mock.MarshalizerMock{}, &hashingMocks.HasherMock{}, hdr)
 	cnsMsg := consensus.NewConsensusMessage(
 		hdrHash,
 		nil,
@@ -979,7 +981,7 @@ func TestWorker_ProcessReceivedMessageWithABadOriginatorShouldErr(t *testing.T) 
 	)
 
 	hdr := &block.Header{ChainID: chainID}
-	hdrHash, _ := core.CalculateHash(mock.MarshalizerMock{}, mock.HasherMock{}, hdr)
+	hdrHash, _ := core.CalculateHash(mock.MarshalizerMock{}, &hashingMocks.HasherMock{}, hdr)
 	hdrStr, _ := mock.MarshalizerMock{}.Marshal(hdr)
 	cnsMsg := consensus.NewConsensusMessage(
 		hdrHash,
@@ -1032,7 +1034,7 @@ func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 	)
 
 	hdr := &block.Header{ChainID: chainID}
-	hdrHash, _ := core.CalculateHash(mock.MarshalizerMock{}, mock.HasherMock{}, hdr)
+	hdrHash, _ := core.CalculateHash(mock.MarshalizerMock{}, &hashingMocks.HasherMock{}, hdr)
 	hdrStr, _ := mock.MarshalizerMock{}.Marshal(hdr)
 	cnsMsg := consensus.NewConsensusMessage(
 		hdrHash,
@@ -1383,8 +1385,8 @@ func TestWorker_ExtendShouldReturnWhenRoundIsCanceled(t *testing.T) {
 	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	executed := false
 	bootstrapperMock := &mock.BootstrapperMock{
-		GetNodeStateCalled: func() core.NodeState {
-			return core.NsNotSynchronized
+		GetNodeStateCalled: func() common.NodeState {
+			return common.NsNotSynchronized
 		},
 		CreateAndCommitEmptyBlockCalled: func(shardForCurrentNode uint32) (data.BodyHandler, data.HeaderHandler, error) {
 			executed = true
@@ -1403,8 +1405,8 @@ func TestWorker_ExtendShouldReturnWhenGetNodeStateNotReturnSynchronized(t *testi
 	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	executed := false
 	bootstrapperMock := &mock.BootstrapperMock{
-		GetNodeStateCalled: func() core.NodeState {
-			return core.NsNotSynchronized
+		GetNodeStateCalled: func() common.NodeState {
+			return common.NsNotSynchronized
 		},
 		CreateAndCommitEmptyBlockCalled: func(shardForCurrentNode uint32) (data.BodyHandler, data.HeaderHandler, error) {
 			executed = true
@@ -1543,7 +1545,7 @@ func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
 	hdr.Nonce = 1
 	hdr.TimeStamp = uint64(wrk.RoundHandler().TimeStamp().Unix())
 	hdrStr, _ := mock.MarshalizerMock{}.Marshal(hdr)
-	hdrHash := mock.HasherMock{}.Compute(string(hdrStr))
+	hdrHash := (&hashingMocks.HasherMock{}).Compute(string(hdrStr))
 	cnsMsg := consensus.NewConsensusMessage(
 		hdrHash,
 		nil,

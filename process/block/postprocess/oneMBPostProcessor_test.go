@@ -5,13 +5,14 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -36,7 +37,7 @@ func TestNewOneMBPostProcessor_NilMarshalizer(t *testing.T) {
 	t.Parallel()
 
 	irp, err := NewOneMiniBlockPostProcessor(
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		nil,
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.ChainStorerMock{},
@@ -53,7 +54,7 @@ func TestNewOneMBPostProcessor_NilShardCoord(t *testing.T) {
 	t.Parallel()
 
 	irp, err := NewOneMiniBlockPostProcessor(
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		nil,
 		&mock.ChainStorerMock{},
@@ -70,7 +71,7 @@ func TestNewOneMBPostProcessor_NilStorer(t *testing.T) {
 	t.Parallel()
 
 	irp, err := NewOneMiniBlockPostProcessor(
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(5),
 		nil,
@@ -87,7 +88,7 @@ func TestNewOneMBPostProcessor_NilEconomicsFeeHandler(t *testing.T) {
 	t.Parallel()
 
 	irp, err := NewOneMiniBlockPostProcessor(
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.ChainStorerMock{},
@@ -104,7 +105,7 @@ func TestNewOneMBPostProcessor_OK(t *testing.T) {
 	t.Parallel()
 
 	irp, err := NewOneMiniBlockPostProcessor(
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.ChainStorerMock{},
@@ -121,7 +122,7 @@ func TestOneMBPostProcessor_CreateAllInterMiniBlocks(t *testing.T) {
 	t.Parallel()
 
 	irp, _ := NewOneMiniBlockPostProcessor(
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.ChainStorerMock{},
@@ -138,7 +139,7 @@ func TestOneMBPostProcessor_CreateAllInterMiniBlocksOneMinBlock(t *testing.T) {
 	t.Parallel()
 
 	irp, _ := NewOneMiniBlockPostProcessor(
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.ChainStorerMock{},
@@ -162,7 +163,7 @@ func TestOneMBPostProcessor_VerifyNilBody(t *testing.T) {
 	t.Parallel()
 
 	irp, _ := NewOneMiniBlockPostProcessor(
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.ChainStorerMock{},
@@ -179,7 +180,7 @@ func TestOneMBPostProcessor_VerifyTooManyBlock(t *testing.T) {
 	t.Parallel()
 
 	irp, _ := NewOneMiniBlockPostProcessor(
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.ChainStorerMock{},
@@ -204,7 +205,7 @@ func TestOneMBPostProcessor_VerifyTooManyBlock(t *testing.T) {
 		Type:            block.TxBlock}
 
 	for i := 0; i < len(txs); i++ {
-		txHash, _ := core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, txs[i])
+		txHash, _ := core.CalculateHash(&mock.MarshalizerMock{}, &hashingMocks.HasherMock{}, txs[i])
 		miniBlock.TxHashes = append(miniBlock.TxHashes, txHash)
 	}
 
@@ -224,7 +225,7 @@ func TestOneMBPostProcessor_VerifyNilMiniBlocks(t *testing.T) {
 	t.Parallel()
 
 	irp, _ := NewOneMiniBlockPostProcessor(
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.ChainStorerMock{},
@@ -248,7 +249,7 @@ func TestOneMBPostProcessor_VerifyOk(t *testing.T) {
 	t.Parallel()
 
 	irp, _ := NewOneMiniBlockPostProcessor(
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.ChainStorerMock{},
@@ -273,7 +274,7 @@ func TestOneMBPostProcessor_VerifyOk(t *testing.T) {
 		Type:            block.TxBlock}
 
 	for i := 0; i < len(txs); i++ {
-		txHash, _ := core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, txs[i])
+		txHash, _ := core.CalculateHash(&mock.MarshalizerMock{}, &hashingMocks.HasherMock{}, txs[i])
 		miniBlock.TxHashes = append(miniBlock.TxHashes, txHash)
 	}
 

@@ -5,20 +5,21 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data"
-	trieFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	errorsErd "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/stretchr/testify/require"
 )
 
@@ -203,7 +204,7 @@ func TestConsensusComponentsFactory_Create_ConsensusTopicCreateTopicError(t *tes
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args := getConsensusArgs(shardCoordinator)
 	networkComponents := getDefaultNetworkComponents()
-	networkComponents.Messenger = &mock.MessengerStub{
+	networkComponents.Messenger = &p2pmocks.MessengerStub{
 		HasTopicValidatorCalled: func(name string) bool {
 			return false
 		},
@@ -407,7 +408,7 @@ func getConsensusArgs(shardCoordinator sharding.Coordinator) factory.ConsensusCo
 
 func getDefaultNetworkComponents() *mock.NetworkComponentsMock {
 	return &mock.NetworkComponentsMock{
-		Messenger:       &mock.MessengerStub{},
+		Messenger:       &p2pmocks.MessengerStub{},
 		InputAntiFlood:  &mock.P2PAntifloodHandlerStub{},
 		OutputAntiFlood: &mock.P2PAntifloodHandlerStub{},
 		PeerBlackList:   &mock.PeerBlackListHandlerStub{},
@@ -419,7 +420,7 @@ func getDefaultStateComponents() *testscommon.StateComponentsMock {
 		PeersAcc: &testscommon.AccountsStub{},
 		Accounts: &testscommon.AccountsStub{},
 		Tries:    &mock.TriesHolderStub{},
-		StorageManagers: map[string]data.StorageManager{
+		StorageManagers: map[string]temporary.StorageManager{
 			"0":                         &testscommon.StorageManagerStub{},
 			trieFactory.UserAccountTrie: &testscommon.StorageManagerStub{},
 			trieFactory.PeerAccountTrie: &testscommon.StorageManagerStub{},

@@ -1,8 +1,8 @@
 package sharding
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
 )
 
 var _ RandomSelector = (*selectorExpandedList)(nil)

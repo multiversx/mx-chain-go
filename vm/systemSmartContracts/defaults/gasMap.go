@@ -1,12 +1,14 @@
 package defaults
 
-import "github.com/ElrondNetwork/elrond-go/core"
+import (
+	"github.com/ElrondNetwork/elrond-go/common"
+)
 
 // FillGasMapInternal -
 func FillGasMapInternal(gasMap map[string]map[string]uint64, value uint64) map[string]map[string]uint64 {
-	gasMap[core.BaseOperationCost] = FillGasMapBaseOperationCosts(value)
-	gasMap[core.BuiltInCost] = FillGasMapBuiltInCosts(value)
-	gasMap[core.MetaChainSystemSCsCost] = FillGasMapMetaChainSystemSCsCosts(value)
+	gasMap[common.BaseOperationCost] = FillGasMapBaseOperationCosts(value)
+	gasMap[common.BuiltInCost] = FillGasMapBuiltInCosts(value)
+	gasMap[common.MetaChainSystemSCsCost] = FillGasMapMetaChainSystemSCsCosts(value)
 
 	return gasMap
 }
@@ -40,6 +42,9 @@ func FillGasMapBuiltInCosts(value uint64) map[string]uint64 {
 	gasMap["ESDTNFTBurn"] = value
 	gasMap["ESDTNFTTransfer"] = value
 	gasMap["ESDTNFTChangeCreateOwner"] = value
+	gasMap["ESDTNFTAddUri"] = value
+	gasMap["ESDTNFTUpdateAttributes"] = value
+	gasMap["ESDTNFTMultiTransfer"] = value
 
 	return gasMap
 }

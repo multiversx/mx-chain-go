@@ -96,6 +96,9 @@
     # is enabled. The fix is done by adding an extra increment.
     IncrementSCRNonceInMultiTransferEnableEpoch = 3
 
+    # ESDTMultiTransferEnableEpoch represents the epoch when esdt multitransfer built in function is enabled
+    ESDTMultiTransferEnableEpoch = 5
+
     # ScheduledMiniBlocksEnableEpoch represents the epoch when scheduled mini blocks would be created if needed
     ScheduledMiniBlocksEnableEpoch = 2
 

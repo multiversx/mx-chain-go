@@ -9,21 +9,22 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	atomicCore "github.com/ElrondNetwork/elrond-go-core/core/atomic"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	nodeData "github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common/statistics"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	atomicCore "github.com/ElrondNetwork/elrond-go/core/atomic"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/statistics"
-	chainData "github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/api"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/facade/mock"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/data/esdt"
@@ -900,7 +901,7 @@ func TestNodeFacade_GetProofGetTrieErrShouldErr(t *testing.T) {
 	getTrieErr := fmt.Errorf("get trie err")
 	arg := createMockArguments()
 	arg.AccountsState = &testscommon.AccountsStub{
-		GetTrieCalled: func(bytes []byte) (chainData.Trie, error) {
+		GetTrieCalled: func(bytes []byte) (temporary.Trie, error) {
 			return nil, getTrieErr
 		},
 	}
@@ -927,7 +928,7 @@ func TestNodeFacade_GetProofShouldWork(t *testing.T) {
 	proof := [][]byte{[]byte("valid"), []byte("proof")}
 	arg := createMockArguments()
 	arg.AccountsState = &testscommon.AccountsStub{
-		GetTrieCalled: func(bytes []byte) (chainData.Trie, error) {
+		GetTrieCalled: func(bytes []byte) (temporary.Trie, error) {
 			return &testscommon.TrieStub{
 				GetProofCalled: func(key []byte) ([][]byte, error) {
 					return proof, nil
@@ -947,7 +948,7 @@ func TestNodeFacade_GetProofCurrentRootHashNilHeaderShouldErr(t *testing.T) {
 
 	arg := createMockArguments()
 	arg.Blockchain = &mock.ChainHandlerStub{
-		GetCurrentBlockHeaderCalled: func() chainData.HeaderHandler {
+		GetCurrentBlockHeaderCalled: func() nodeData.HeaderHandler {
 			return nil
 		},
 	}
@@ -965,7 +966,7 @@ func TestNodeFacade_GetProofCurrentRootHashGetTrieErrShouldErr(t *testing.T) {
 	getTrieErr := fmt.Errorf("get trie err")
 	arg := createMockArguments()
 	arg.AccountsState = &testscommon.AccountsStub{
-		GetTrieCalled: func(bytes []byte) (chainData.Trie, error) {
+		GetTrieCalled: func(bytes []byte) (temporary.Trie, error) {
 			return nil, getTrieErr
 		},
 	}
@@ -995,7 +996,7 @@ func TestNodeFacade_GetProofCurrentRootHashShouldWork(t *testing.T) {
 	rootHash := []byte("rootHash")
 	arg := createMockArguments()
 	arg.AccountsState = &testscommon.AccountsStub{
-		GetTrieCalled: func(bytes []byte) (chainData.Trie, error) {
+		GetTrieCalled: func(bytes []byte) (temporary.Trie, error) {
 			return &testscommon.TrieStub{
 				GetProofCalled: func(key []byte) ([][]byte, error) {
 					return proof, nil
@@ -1004,7 +1005,7 @@ func TestNodeFacade_GetProofCurrentRootHashShouldWork(t *testing.T) {
 		},
 	}
 	arg.Blockchain = &mock.ChainHandlerStub{
-		GetCurrentBlockHeaderCalled: func() chainData.HeaderHandler {
+		GetCurrentBlockHeaderCalled: func() nodeData.HeaderHandler {
 			return &block.Header{RootHash: rootHash}
 		},
 	}
@@ -1032,7 +1033,7 @@ func TestNodeFacade_VerifyProofGetTrieErrShouldErr(t *testing.T) {
 	getTrieErr := fmt.Errorf("get trie err")
 	arg := createMockArguments()
 	arg.AccountsState = &testscommon.AccountsStub{
-		GetTrieCalled: func(bytes []byte) (chainData.Trie, error) {
+		GetTrieCalled: func(bytes []byte) (temporary.Trie, error) {
 			return nil, getTrieErr
 		},
 	}
@@ -1058,7 +1059,7 @@ func TestNodeFacade_VerifyProofShouldWork(t *testing.T) {
 
 	arg := createMockArguments()
 	arg.AccountsState = &testscommon.AccountsStub{
-		GetTrieCalled: func(bytes []byte) (chainData.Trie, error) {
+		GetTrieCalled: func(bytes []byte) (temporary.Trie, error) {
 			return &testscommon.TrieStub{
 				VerifyProofCalled: func(_ []byte, _ [][]byte) (bool, error) {
 					return true, nil

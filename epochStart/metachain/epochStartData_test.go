@@ -5,10 +5,10 @@ import (
 	"crypto/rand"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -390,7 +391,7 @@ func TestMetaProcessor_CreateEpochStartFromMetaBlockEdgeCaseChecking(t *testing.
 			return true
 		},
 	}
-	arguments.Hasher = &mock.HasherMock{}
+	arguments.Hasher = &hashingMocks.HasherMock{}
 	arguments.ShardCoordinator, _ = sharding.NewMultiShardCoordinator(3, core.MetachainShardId)
 	arguments.DataPool = testscommon.CreatePoolsHolder(1, core.MetachainShardId)
 

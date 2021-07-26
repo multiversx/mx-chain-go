@@ -7,12 +7,13 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	dataTransaction "github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -117,8 +118,8 @@ func createSyncTrieState(retErr bool) update.EpochStartTriesSyncHandler {
 	}
 
 	args.ActiveAccountsDBs[state.UserAccountsState] = &testscommon.AccountsStub{
-		RecreateAllTriesCalled: func(rootHash []byte) (map[string]data.Trie, error) {
-			tries := make(map[string]data.Trie)
+		RecreateAllTriesCalled: func(rootHash []byte) (map[string]temporary.Trie, error) {
+			tries := make(map[string]temporary.Trie)
 			tries[string(rootHash)] = &testscommon.TrieStub{
 				CommitCalled: func() error {
 					if retErr {
@@ -132,8 +133,8 @@ func createSyncTrieState(retErr bool) update.EpochStartTriesSyncHandler {
 	}
 
 	args.ActiveAccountsDBs[state.PeerAccountsState] = &testscommon.AccountsStub{
-		RecreateAllTriesCalled: func(rootHash []byte) (map[string]data.Trie, error) {
-			tries := make(map[string]data.Trie)
+		RecreateAllTriesCalled: func(rootHash []byte) (map[string]temporary.Trie, error) {
+			tries := make(map[string]temporary.Trie)
 			tries[string(rootHash)] = &testscommon.TrieStub{
 				CommitCalled: func() error {
 					if retErr {

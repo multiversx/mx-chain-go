@@ -8,10 +8,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go-logger/check"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
 )
 
 var log = logger.GetOrCreate("health")
@@ -31,7 +31,7 @@ type healthService struct {
 
 // NewHealthService creates a new HealthService object
 func NewHealthService(config config.HealthServiceConfig, workingDir string) *healthService {
-	log.Info("NewHealthService", "config", config)
+	log.Debug("NewHealthService", "config", config)
 
 	folder := path.Join(workingDir, config.FolderPath)
 	recordsObj := newRecords(config.NumMemoryUsageRecordsToKeep)
@@ -74,7 +74,7 @@ func (h *healthService) doRegisterComponent(component interface{}) error {
 
 // Start starts the health service
 func (h *healthService) Start() {
-	log.Info("healthService.Start()")
+	log.Debug("healthService.Start()")
 
 	h.prepareFolder()
 	ctx := h.setupCancellation()
@@ -117,7 +117,7 @@ func (h *healthService) monitorContinuously(ctx context.Context) {
 			h.diagnoseComponents(true)
 			chanDiagnoseComponentsDeeply = h.clock.after(intervalDiagnoseComponentsDeeplyInSeconds)
 		case <-ctx.Done():
-			log.Info("healthService.monitorContinuously() ended")
+			log.Debug("healthService.monitorContinuously() ended")
 			return
 		}
 

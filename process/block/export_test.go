@@ -3,19 +3,21 @@ package block
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 )
 
 func (bp *baseProcessor) ComputeHeaderHash(hdr data.HeaderHandler) ([]byte, error) {
@@ -78,7 +80,7 @@ func NewShardProcessorEmptyWith3shards(
 	nodesCoordinator := mock.NewNodesCoordinatorMock()
 
 	argsHeaderValidator := ArgsHeaderValidator{
-		Hasher:      &mock.HasherMock{},
+		Hasher:      &hashingMocks.HasherMock{},
 		Marshalizer: &mock.MarshalizerMock{},
 	}
 	hdrValidator, _ := NewHeaderValidator(argsHeaderValidator)
@@ -88,7 +90,7 @@ func NewShardProcessorEmptyWith3shards(
 
 	coreComponents := &mock.CoreComponentsMock{
 		IntMarsh:            &mock.MarshalizerMock{},
-		Hash:                &mock.HasherMock{},
+		Hash:                &hashingMocks.HasherMock{},
 		UInt64ByteSliceConv: &mock.Uint64ByteSliceConverterMock{},
 		StatusField:         &mock.AppStatusHandlerStub{},
 		RoundField:          &mock.RoundHandlerMock{},
@@ -132,7 +134,7 @@ func NewShardProcessorEmptyWith3shards(
 			BlockSizeThrottler:           &mock.BlockSizeThrottlerStub{},
 			Version:                      "softwareVersion",
 			HistoryRepository:            &dblookupext.HistoryRepositoryStub{},
-			EpochNotifier:                &mock.EpochNotifierStub{},
+			EpochNotifier:                &epochNotifier.EpochNotifierStub{},
 			ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		},
 	}

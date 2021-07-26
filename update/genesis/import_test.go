@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/trie/factory"
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/assert"
@@ -21,7 +22,7 @@ import (
 //TODO increase code coverage
 
 func TestNewStateImport(t *testing.T) {
-	trieStorageManagers := make(map[string]data.StorageManager)
+	trieStorageManagers := make(map[string]temporary.StorageManager)
 	trieStorageManagers[factory.UserAccountTrie] = &testscommon.StorageManagerStub{}
 	tests := []struct {
 		name    string
@@ -80,13 +81,13 @@ func TestNewStateImport(t *testing.T) {
 func TestImportAll(t *testing.T) {
 	t.Parallel()
 
-	trieStorageManagers := make(map[string]data.StorageManager)
+	trieStorageManagers := make(map[string]temporary.StorageManager)
 	trieStorageManagers[factory.UserAccountTrie] = &testscommon.StorageManagerStub{}
 	trieStorageManagers[factory.PeerAccountTrie] = &testscommon.StorageManagerStub{}
 
 	args := ArgsNewStateImport{
 		HardforkStorer:      &mock.HardforkStorerStub{},
-		Hasher:              &mock.HasherMock{},
+		Hasher:              &hashingMocks.HasherMock{},
 		Marshalizer:         &mock.MarshalizerMock{},
 		TrieStorageManagers: trieStorageManagers,
 		ShardID:             0,
@@ -103,10 +104,10 @@ func TestImportAll(t *testing.T) {
 func TestStateImport_ImportUnFinishedMetaBlocksShouldWork(t *testing.T) {
 	t.Parallel()
 
-	trieStorageManagers := make(map[string]data.StorageManager)
+	trieStorageManagers := make(map[string]temporary.StorageManager)
 	trieStorageManagers[factory.UserAccountTrie] = &testscommon.StorageManagerStub{}
 
-	hasher := &mock.HasherMock{}
+	hasher := &hashingMocks.HasherMock{}
 	marshahlizer := &mock.MarshalizerMock{}
 	metaBlock := &block.MetaBlock{
 		Round:   1,

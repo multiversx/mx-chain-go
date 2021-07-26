@@ -3,18 +3,19 @@ package interceptedBlocks
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
 func createDefaultBlockHeaderArgument() *ArgInterceptedBlockHeader {
 	arg := &ArgInterceptedBlockHeader{
 		ShardCoordinator:        mock.NewOneShardCoordinatorMock(),
-		Hasher:                  mock.HasherMock{},
+		Hasher:                  &hashingMocks.HasherMock{},
 		Marshalizer:             &mock.MarshalizerMock{},
 		HdrBuff:                 []byte("test buffer"),
 		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
@@ -28,7 +29,7 @@ func createDefaultBlockHeaderArgument() *ArgInterceptedBlockHeader {
 
 func createDefaultMiniblockArgument() *ArgInterceptedMiniblock {
 	arg := &ArgInterceptedMiniblock{
-		Hasher:           mock.HasherMock{},
+		Hasher:           &hashingMocks.HasherMock{},
 		Marshalizer:      &mock.MarshalizerMock{},
 		MiniblockBuff:    []byte("test buffer"),
 		ShardCoordinator: mock.NewOneShardCoordinatorMock(),

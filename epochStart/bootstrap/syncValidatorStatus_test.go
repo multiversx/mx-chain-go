@@ -3,14 +3,15 @@ package bootstrap
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/stretchr/testify/require"
 )
@@ -101,7 +102,7 @@ func getSyncValidatorStatusArgs() ArgsNewSyncValidatorStatus {
 			},
 		},
 		Marshalizer:    &mock.MarshalizerMock{},
-		Hasher:         &mock.HasherMock{},
+		Hasher:         &hashingMocks.HasherMock{},
 		RequestHandler: &testscommon.RequestHandlerStub{},
 		ChanceComputer: &mock.NodesCoordinatorStub{},
 		GenesisNodesConfig: &mock.NodesSetupStub{

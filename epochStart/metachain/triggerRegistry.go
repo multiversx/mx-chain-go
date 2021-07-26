@@ -3,9 +3,9 @@ package metachain
 import (
 	"encoding/json"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 )
 
 // TriggerRegistry holds the data required to correctly initialize the trigger when booting from saved state
@@ -21,7 +21,7 @@ type TriggerRegistry struct {
 
 // LoadState loads into trigger the saved state
 func (t *trigger) LoadState(key []byte) error {
-	trigInternalKey := append([]byte(core.TriggerRegistryKeyPrefix), key...)
+	trigInternalKey := append([]byte(common.TriggerRegistryKeyPrefix), key...)
 	log.Debug("getting start of epoch trigger state", "key", trigInternalKey)
 
 	d, err := t.triggerStorage.Get(trigInternalKey)
@@ -61,13 +61,13 @@ func (t *trigger) saveState(key []byte) error {
 	registry.Epoch = t.epoch
 	registry.EpochStartMetaHash = t.epochStartMetaHash
 	registry.EpochStartMeta = t.epochStartMeta
-	data, err := json.Marshal(registry)
+	triggerData, err := json.Marshal(registry)
 	if err != nil {
 		return err
 	}
 
-	trigInternalKey := append([]byte(core.TriggerRegistryKeyPrefix), key...)
+	trigInternalKey := append([]byte(common.TriggerRegistryKeyPrefix), key...)
 	log.Debug("saving start of epoch trigger state", "key", trigInternalKey)
 
-	return t.triggerStorage.Put(trigInternalKey, data)
+	return t.triggerStorage.Put(trigInternalKey, triggerData)
 }

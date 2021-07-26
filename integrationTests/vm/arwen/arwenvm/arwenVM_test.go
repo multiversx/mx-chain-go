@@ -11,24 +11,25 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/forking"
-	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -305,7 +306,7 @@ func TestMultipleTimesERC20BigIntInBatches(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	gasSchedule, _ := core.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
+	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
 	durations, err := DeployAndExecuteERC20WithBigInt(3, 1000, gasSchedule, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken")
 	require.Nil(t, err)
 	displayBenchmarksResults(durations)
@@ -319,7 +320,7 @@ func TestMultipleTimesERC20RustBigIntInBatches(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-	gasSchedule, _ := core.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
+	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
 	durations, err := DeployAndExecuteERC20WithBigInt(3, 1000, gasSchedule, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer")
 	require.Nil(t, err)
 	displayBenchmarksResults(durations)
@@ -357,7 +358,7 @@ func displayBenchmarksResults(durations []time.Duration) {
 }
 
 func TestDeployERC20WithNotEnoughGasShouldReturnOutOfGas(t *testing.T) {
-	gasSchedule, _ := core.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
+	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
 	ownerAddressBytes := []byte("12345678901234567890123456789011")
 	ownerNonce := uint64(11)
 	ownerBalance := big.NewInt(1000000000000000)
@@ -496,12 +497,14 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	pubkeyConv, _ := pubkeyConverter.NewHexPubkeyConverter(32)
 	accnts := vm.CreateInMemoryShardAccountsDB()
+	esdtTransferParser, _ := parsers.NewESDTTransferParser(testMarshalizer)
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:  pubkeyConv,
-		ShardCoordinator: shardCoordinator,
-		BuiltInFuncNames: make(map[string]struct{}),
-		ArgumentParser:   parsers.NewCallArgsParser(),
-		EpochNotifier:    forking.NewGenericEpochNotifier(),
+		PubkeyConverter:    pubkeyConv,
+		ShardCoordinator:   shardCoordinator,
+		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
+		ArgumentParser:     parsers.NewCallArgsParser(),
+		EpochNotifier:      forking.NewGenericEpochNotifier(),
+		ESDTTransferParser: esdtTransferParser,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	feeHandler := &mock.FeeHandlerStub{
@@ -712,14 +715,14 @@ func TestAndCatchTrieError(t *testing.T) {
 		require.Nil(t, err)
 		log.Info("finished a set - commit and recreate trie", "index", i)
 		if i%10 == 5 {
-			testContext.Accounts.PruneTrie(extraNewRootHash, data.NewRoot)
+			testContext.Accounts.PruneTrie(extraNewRootHash, temporary.NewRoot)
 			_ = testContext.Accounts.RecreateTrie(rootHash)
 			continue
 		}
 
 		ownerNonce++
 		transferNonce++
-		testContext.Accounts.PruneTrie(rootHash, data.OldRoot)
-		testContext.Accounts.PruneTrie(newRootHash, data.OldRoot)
+		testContext.Accounts.PruneTrie(rootHash, temporary.OldRoot)
+		testContext.Accounts.PruneTrie(newRootHash, temporary.OldRoot)
 	}
 }

@@ -9,12 +9,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
-	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
+	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/sharding/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -77,7 +79,7 @@ func TestIndexHashedGroupSelectorWithRater_OkValShouldWork(t *testing.T) {
 		ShardConsensusGroupSize:    2,
 		MetaConsensusGroupSize:     1,
 		Marshalizer:                &mock.MarshalizerMock{},
-		Hasher:                     &mock.HasherMock{},
+		Hasher:                     &hashingMocks.HasherMock{},
 		Shuffler:                   nodeShuffler,
 		EpochStartNotifier:         epochStartSubscriber,
 		BootStorer:                 bootStorer,
@@ -172,7 +174,7 @@ func BenchmarkIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup63of400(b 
 		ShardConsensusGroupSize:    consensusGroupSize,
 		MetaConsensusGroupSize:     1,
 		Marshalizer:                &mock.MarshalizerMock{},
-		Hasher:                     &mock.HasherMock{},
+		Hasher:                     &hashingMocks.HasherMock{},
 		Shuffler:                   nodeShuffler,
 		EpochStartNotifier:         epochStartSubscriber,
 		BootStorer:                 bootStorer,
@@ -245,7 +247,7 @@ func Test_ComputeValidatorsGroup63of400(t *testing.T) {
 	arguments := ArgNodesCoordinator{
 		ShardConsensusGroupSize:    consensusGroupSize,
 		MetaConsensusGroupSize:     1,
-		Hasher:                     &mock.HasherMock{},
+		Hasher:                     &hashingMocks.HasherMock{},
 		Shuffler:                   nodeShuffler,
 		EpochStartNotifier:         epochStartSubscriber,
 		BootStorer:                 bootStorer,
@@ -317,7 +319,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 		ShardConsensusGroupSize:    1,
 		MetaConsensusGroupSize:     1,
 		Marshalizer:                &mock.MarshalizerMock{},
-		Hasher:                     &mock.HasherMock{},
+		Hasher:                     &hashingMocks.HasherMock{},
 		Shuffler:                   nodeShuffler,
 		EpochStartNotifier:         epochStartSubscriber,
 		BootStorer:                 bootStorer,
@@ -369,7 +371,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 		ShardConsensusGroupSize:    1,
 		MetaConsensusGroupSize:     1,
 		Marshalizer:                &mock.MarshalizerMock{},
-		Hasher:                     &mock.HasherMock{},
+		Hasher:                     &hashingMocks.HasherMock{},
 		Shuffler:                   nodeShuffler,
 		EpochStartNotifier:         epochStartSubscriber,
 		BootStorer:                 bootStorer,
@@ -435,7 +437,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldWork(t
 		ShardConsensusGroupSize:    1,
 		MetaConsensusGroupSize:     1,
 		Marshalizer:                &mock.MarshalizerMock{},
-		Hasher:                     &mock.HasherMock{},
+		Hasher:                     &hashingMocks.HasherMock{},
 		Shuffler:                   nodeShuffler,
 		EpochStartNotifier:         epochStartSubscriber,
 		BootStorer:                 bootStorer,
@@ -517,7 +519,7 @@ func TestIndexHashedGroupSelectorWithRater_GetAllEligibleValidatorsPublicKeys(t 
 		ShardConsensusGroupSize:    1,
 		MetaConsensusGroupSize:     1,
 		Marshalizer:                &mock.MarshalizerMock{},
-		Hasher:                     &mock.HasherMock{},
+		Hasher:                     &hashingMocks.HasherMock{},
 		Shuffler:                   nodeShuffler,
 		EpochStartNotifier:         epochStartSubscriber,
 		BootStorer:                 bootStorer,
@@ -564,7 +566,7 @@ func TestIndexHashedGroupSelectorWithRater_ComputeAdditionalLeaving(t *testing.T
 	leavingValidator := &state.ShardValidatorInfo{
 		PublicKey:  []byte("eligible"),
 		ShardId:    core.MetachainShardId,
-		List:       string(core.EligibleList),
+		List:       string(common.EligibleList),
 		Index:      7,
 		TempRating: 5,
 	}
@@ -605,21 +607,21 @@ func TestIndexHashedGroupSelectorWithRater_ComputeAdditionalLeaving_ShouldAddNew
 	newValidator := &state.ShardValidatorInfo{
 		PublicKey:  []byte("new"),
 		ShardId:    0,
-		List:       string(core.NewList),
+		List:       string(common.NewList),
 		Index:      1,
 		TempRating: 5,
 	}
 	eligibleValidator := &state.ShardValidatorInfo{
 		PublicKey:  []byte("eligible"),
 		ShardId:    core.MetachainShardId,
-		List:       string(core.EligibleList),
+		List:       string(common.EligibleList),
 		Index:      1,
 		TempRating: 5,
 	}
 	waitingValidator := &state.ShardValidatorInfo{
 		PublicKey:  []byte("waiting"),
 		ShardId:    1,
-		List:       string(core.WaitingList),
+		List:       string(common.WaitingList),
 		Index:      1,
 		TempRating: 5,
 	}
@@ -662,14 +664,14 @@ func TestIndexHashedGroupSelectorWithRater_ComputeAdditionalLeaving_ShouldNotAdd
 	inactiveValidator := &state.ShardValidatorInfo{
 		PublicKey:  []byte("inactive"),
 		ShardId:    0,
-		List:       string(core.InactiveList),
+		List:       string(common.InactiveList),
 		Index:      1,
 		TempRating: 5,
 	}
 	jailedValidator := &state.ShardValidatorInfo{
 		PublicKey:  []byte("jailed"),
 		ShardId:    core.MetachainShardId,
-		List:       string(core.JailedList),
+		List:       string(common.JailedList),
 		Index:      1,
 		TempRating: 5,
 	}
@@ -712,14 +714,14 @@ func TestIndexHashedGroupSelectorWithRater_ComputeAdditionalLeaving_ShouldAddBel
 	eligibleValidator := &state.ShardValidatorInfo{
 		PublicKey:  []byte("eligible"),
 		ShardId:    0,
-		List:       string(core.EligibleList),
+		List:       string(common.EligibleList),
 		Index:      1,
 		TempRating: 50,
 	}
 	belowRatingValidator := &state.ShardValidatorInfo{
 		PublicKey:  []byte("eligibleBelow"),
 		ShardId:    core.MetachainShardId,
-		List:       string(core.EligibleList),
+		List:       string(common.EligibleList),
 		Index:      1,
 		TempRating: 5,
 	}
@@ -825,7 +827,7 @@ func BenchmarkIndexHashedWithRaterGroupSelector_ComputeValidatorsGroup21of400(b 
 		ShardConsensusGroupSize:    consensusGroupSize,
 		MetaConsensusGroupSize:     1,
 		Marshalizer:                &mock.MarshalizerMock{},
-		Hasher:                     &mock.HasherMock{},
+		Hasher:                     &hashingMocks.HasherMock{},
 		Shuffler:                   nodeShuffler,
 		EpochStartNotifier:         epochStartSubscriber,
 		BootStorer:                 bootStorer,

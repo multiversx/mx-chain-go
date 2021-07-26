@@ -5,14 +5,15 @@ import (
 	"io"
 	"sort"
 
-	arwen12 "github.com/ElrondNetwork/arwen-wasm-vm/arwen"
-	arwenHost12 "github.com/ElrondNetwork/arwen-wasm-vm/arwen/host"
+	arwen12 "github.com/ElrondNetwork/arwen-wasm-vm/v1_2/arwen"
+	arwenHost12 "github.com/ElrondNetwork/arwen-wasm-vm/v1_2/arwen/host"
 	arwen13 "github.com/ElrondNetwork/arwen-wasm-vm/v1_3/arwen"
 	arwenHost13 "github.com/ElrondNetwork/arwen-wasm-vm/v1_3/arwen/host"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
@@ -30,7 +31,7 @@ type vmContainerFactory struct {
 	cryptoHook                     vmcommon.CryptoHook
 	blockGasLimit                  uint64
 	gasSchedule                    core.GasScheduleNotifier
-	builtinFunctions               vmcommon.FunctionNames
+	builtinFunctions               vmcommon.BuiltInFunctionContainer
 	epochNotifier                  process.EpochNotifier
 	deployEnableEpoch              uint32
 	aheadOfTimeGasUsageEnableEpoch uint32
@@ -71,7 +72,6 @@ func NewVMContainerFactory(args ArgVMContainerFactory) (*vmContainerFactory, err
 	}
 
 	cryptoHook := hooks.NewVMCryptoHook()
-	builtinFunctions := blockChainHookImpl.GetBuiltinFunctionNames()
 
 	vmf := &vmContainerFactory{
 		config:                         args.Config,
@@ -79,7 +79,7 @@ func NewVMContainerFactory(args ArgVMContainerFactory) (*vmContainerFactory, err
 		cryptoHook:                     cryptoHook,
 		blockGasLimit:                  args.BlockGasLimit,
 		gasSchedule:                    args.GasSchedule,
-		builtinFunctions:               builtinFunctions,
+		builtinFunctions:               args.ArgBlockChainHook.BuiltInFunctions,
 		epochNotifier:                  args.EpochNotifier,
 		deployEnableEpoch:              args.DeployEnableEpoch,
 		aheadOfTimeGasUsageEnableEpoch: args.AheadOfTimeGasUsageEnableEpoch,
@@ -122,7 +122,7 @@ func (vmf *vmContainerFactory) validateArwenVersions() error {
 		}
 		currentEpoch = ver.StartEpoch
 
-		if len(ver.Version) > core.MaxSoftwareVersionLengthInBytes {
+		if len(ver.Version) > common.MaxSoftwareVersionLengthInBytes {
 			return fmt.Errorf("%w for version %s",
 				ErrInvalidVersionStringTooLong, ver.Version)
 		}
@@ -244,7 +244,7 @@ func (vmf *vmContainerFactory) createInProcessArwenVMV12() (vmcommon.VMExecution
 		VMType:                   factory.ArwenVirtualMachine,
 		BlockGasLimit:            vmf.blockGasLimit,
 		GasSchedule:              vmf.gasSchedule.LatestGasSchedule(),
-		ProtocolBuiltinFunctions: vmf.builtinFunctions,
+		ProtocolBuiltinFunctions: vmf.builtinFunctions.Keys(),
 		ElrondProtectedKeyPrefix: []byte(core.ElrondProtectedKeyPrefix),
 		ArwenV2EnableEpoch:       vmf.deployEnableEpoch,
 		AheadOfTimeEnableEpoch:   vmf.aheadOfTimeGasUsageEnableEpoch,
@@ -259,7 +259,7 @@ func (vmf *vmContainerFactory) createInProcessArwenVMV13() (vmcommon.VMExecution
 		VMType:                   factory.ArwenVirtualMachine,
 		BlockGasLimit:            vmf.blockGasLimit,
 		GasSchedule:              vmf.gasSchedule.LatestGasSchedule(),
-		ProtocolBuiltinFunctions: vmf.builtinFunctions,
+		BuiltInFuncContainer:     vmf.builtinFunctions,
 		ElrondProtectedKeyPrefix: []byte(core.ElrondProtectedKeyPrefix),
 		ArwenV2EnableEpoch:       vmf.deployEnableEpoch,
 		AheadOfTimeEnableEpoch:   vmf.aheadOfTimeGasUsageEnableEpoch,

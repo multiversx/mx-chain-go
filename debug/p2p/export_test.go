@@ -3,7 +3,7 @@ package p2p
 import (
 	"context"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 )
 
 func newTestP2PDebugger(

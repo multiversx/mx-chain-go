@@ -6,11 +6,11 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
-	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/gin-gonic/gin"
 )
 

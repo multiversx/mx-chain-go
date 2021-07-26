@@ -7,14 +7,13 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	dataBlock "github.com/ElrondNetwork/elrond-go-core/data/block"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/forking"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/intermediate"
@@ -27,6 +26,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/update"
 	hardForkProcess "github.com/ElrondNetwork/elrond-go/update/process"
@@ -274,12 +274,14 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	epochNotifier := forking.NewGenericEpochNotifier()
 
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:          arg.GasSchedule,
-		MapDNSAddresses:      make(map[string]struct{}),
-		EnableUserNameChange: false,
-		Marshalizer:          arg.Core.InternalMarshalizer(),
-		Accounts:             arg.Accounts,
-		ShardCoordinator:     arg.ShardCoordinator,
+		GasSchedule:                  arg.GasSchedule,
+		MapDNSAddresses:              make(map[string]struct{}),
+		EnableUserNameChange:         false,
+		Marshalizer:                  arg.Core.InternalMarshalizer(),
+		Accounts:                     arg.Accounts,
+		ShardCoordinator:             arg.ShardCoordinator,
+		EpochNotifier:                epochNotifier,
+		ESDTMultiTransferEnableEpoch: unreachableEpoch,
 	}
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	if err != nil {
@@ -369,13 +371,19 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	}
 	epochNotifier.CheckEpoch(temporaryBlock)
 
+	esdtTransferParser, err := parsers.NewESDTTransferParser(arg.Core.InternalMarshalizer())
+	if err != nil {
+		return nil, err
+	}
+
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:        arg.Core.AddressPubKeyConverter(),
 		ShardCoordinator:       arg.ShardCoordinator,
-		BuiltInFuncNames:       builtInFuncs.Keys(),
+		BuiltInFunctions:       builtInFuncs,
 		ArgumentParser:         parsers.NewCallArgsParser(),
 		EpochNotifier:          epochNotifier,
 		RelayedTxV2EnableEpoch: arg.EpochConfig.EnableEpochs.RelayedTransactionsV2EnableEpoch,
+		ESDTTransferParser:     esdtTransferParser,
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {

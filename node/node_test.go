@@ -14,23 +14,24 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	atomicCore "github.com/ElrondNetwork/elrond-go/core/atomic"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/keyValStorage"
-	"github.com/ElrondNetwork/elrond-go/core/versioning"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	atomicCore "github.com/ElrondNetwork/elrond-go-core/core/atomic"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/keyValStorage"
+	"github.com/ElrondNetwork/elrond-go-core/core/versioning"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/batch"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/batch"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
@@ -62,8 +63,8 @@ func getPrivateKey() *mock.PrivateKeyStub {
 	return &mock.PrivateKeyStub{}
 }
 
-func getMessenger() *mock.MessengerStub {
-	messenger := &mock.MessengerStub{
+func getMessenger() *p2pmocks.MessengerStub {
+	messenger := &p2pmocks.MessengerStub{
 		CloseCalled: func() error {
 			return nil
 		},
@@ -1366,7 +1367,7 @@ func TestCreateTransaction_SenderShardIdIsInDifferentShardShouldNotValidate(t *t
 	coreComponents.MinTransactionVersionCalled = func() uint32 {
 		return version
 	}
-	coreComponents.EconomicsHandler = &economicsmocks.EconomicsHandlerMock{
+	coreComponents.EconomicsHandler = &economicsmocks.EconomicsHandlerStub{
 		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
 			return nil
 		},
@@ -1429,7 +1430,7 @@ func TestCreateTransaction_SignatureLengthChecks(t *testing.T) {
 	coreComponents.VmMarsh = getMarshalizer()
 	coreComponents.TxMarsh = getMarshalizer()
 	coreComponents.Hash = getHasher()
-	coreComponents.EconomicsHandler = &mock.EconomicsHandlerStub{
+	coreComponents.EconomicsHandler = &economicsmocks.EconomicsHandlerStub{
 		GenesisTotalSupplyCalled: func() *big.Int {
 			str := strings.Repeat("1", maxValueLength)
 			bi := big.NewInt(0)
@@ -1498,7 +1499,7 @@ func TestCreateTransaction_SenderLengthChecks(t *testing.T) {
 	coreComponents.ChainIdCalled = func() string {
 		return chainID
 	}
-	coreComponents.EconomicsHandler = &mock.EconomicsHandlerStub{
+	coreComponents.EconomicsHandler = &economicsmocks.EconomicsHandlerStub{
 		GenesisTotalSupplyCalled: func() *big.Int {
 			str := strings.Repeat("1", maxLength)
 			bi := big.NewInt(0)
@@ -1562,7 +1563,7 @@ func TestCreateTransaction_ReceiverLengthChecks(t *testing.T) {
 	coreComponents.ChainIdCalled = func() string {
 		return chainID
 	}
-	coreComponents.EconomicsHandler = &mock.EconomicsHandlerStub{
+	coreComponents.EconomicsHandler = &economicsmocks.EconomicsHandlerStub{
 		GenesisTotalSupplyCalled: func() *big.Int {
 			str := strings.Repeat("1", maxLength)
 			bi := big.NewInt(0)
@@ -1625,7 +1626,7 @@ func TestCreateTransaction_TooBigSenderUsernameShouldErr(t *testing.T) {
 	coreComponents.ChainIdCalled = func() string {
 		return chainID
 	}
-	coreComponents.EconomicsHandler = &mock.EconomicsHandlerStub{
+	coreComponents.EconomicsHandler = &economicsmocks.EconomicsHandlerStub{
 		GenesisTotalSupplyCalled: func() *big.Int {
 			str := strings.Repeat("1", maxLength)
 			bi := big.NewInt(0)
@@ -1684,7 +1685,7 @@ func TestCreateTransaction_TooBigReceiverUsernameShouldErr(t *testing.T) {
 	coreComponents.ChainIdCalled = func() string {
 		return chainID
 	}
-	coreComponents.EconomicsHandler = &mock.EconomicsHandlerStub{
+	coreComponents.EconomicsHandler = &economicsmocks.EconomicsHandlerStub{
 		GenesisTotalSupplyCalled: func() *big.Int {
 			str := strings.Repeat("1", maxLength)
 			bi := big.NewInt(0)
@@ -1743,7 +1744,7 @@ func TestCreateTransaction_DataFieldSizeExceedsMaxShouldErr(t *testing.T) {
 	coreComponents.ChainIdCalled = func() string {
 		return chainID
 	}
-	coreComponents.EconomicsHandler = &mock.EconomicsHandlerStub{
+	coreComponents.EconomicsHandler = &economicsmocks.EconomicsHandlerStub{
 		GenesisTotalSupplyCalled: func() *big.Int {
 			str := strings.Repeat("1", maxLength)
 			bi := big.NewInt(0)
@@ -1799,7 +1800,7 @@ func TestCreateTransaction_TooLargeValueFieldShouldErr(t *testing.T) {
 	coreComponents.ChainIdCalled = func() string {
 		return chainID
 	}
-	coreComponents.EconomicsHandler = &mock.EconomicsHandlerStub{
+	coreComponents.EconomicsHandler = &economicsmocks.EconomicsHandlerStub{
 		GenesisTotalSupplyCalled: func() *big.Int {
 			str := strings.Repeat("1", maxLength)
 			bi := big.NewInt(0)
@@ -1958,7 +1959,7 @@ func TestCreateTransaction_TxSignedWithHashShouldErrVersionShoudBe2(t *testing.T
 		return chainID
 	}
 
-	feeHandler := &mock.EconomicsHandlerStub{
+	feeHandler := &economicsmocks.EconomicsHandlerStub{
 		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
 			return nil
 		},
@@ -2051,7 +2052,7 @@ func TestCreateTransaction_TxSignedWithHashNoEnabledShouldErr(t *testing.T) {
 		},
 	}
 
-	feeHandler := &mock.EconomicsHandlerStub{
+	feeHandler := &economicsmocks.EconomicsHandlerStub{
 		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
 			return nil
 		},
@@ -2120,7 +2121,7 @@ func TestCreateTransaction_TxSignedWithHashNoEnabledShouldErr(t *testing.T) {
 func TestSendBulkTransactions_NoTxShouldErr(t *testing.T) {
 	t.Parallel()
 
-	mes := &mock.MessengerStub{}
+	mes := &p2pmocks.MessengerStub{}
 	marshalizer := &mock.MarshalizerFake{}
 	hasher := &mock.HasherFake{}
 	coreComponents := getDefaultCoreComponents()
@@ -2570,7 +2571,7 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 func TestNode_AppStatusHandlersShouldIncrement(t *testing.T) {
 	t.Parallel()
 
-	metricKey := core.MetricCurrentRound
+	metricKey := common.MetricCurrentRound
 	incrementCalled := make(chan bool, 1)
 
 	appStatusHandlerStub := mock.AppStatusHandlerStub{
@@ -2598,7 +2599,7 @@ func TestNode_AppStatusHandlersShouldIncrement(t *testing.T) {
 func TestNode_AppStatusHandlerShouldDecrement(t *testing.T) {
 	t.Parallel()
 
-	metricKey := core.MetricCurrentRound
+	metricKey := common.MetricCurrentRound
 	decrementCalled := make(chan bool, 1)
 
 	appStatusHandlerStub := mock.AppStatusHandlerStub{
@@ -2626,7 +2627,7 @@ func TestNode_AppStatusHandlerShouldDecrement(t *testing.T) {
 func TestNode_AppStatusHandlerShouldSetInt64Value(t *testing.T) {
 	t.Parallel()
 
-	metricKey := core.MetricCurrentRound
+	metricKey := common.MetricCurrentRound
 	setInt64ValueCalled := make(chan bool, 1)
 
 	appStatusHandlerStub := mock.AppStatusHandlerStub{
@@ -2654,7 +2655,7 @@ func TestNode_AppStatusHandlerShouldSetInt64Value(t *testing.T) {
 func TestNode_AppStatusHandlerShouldSetUInt64Value(t *testing.T) {
 	t.Parallel()
 
-	metricKey := core.MetricCurrentRound
+	metricKey := common.MetricCurrentRound
 	setUInt64ValueCalled := make(chan bool, 1)
 
 	appStatusHandlerStub := mock.AppStatusHandlerStub{
@@ -2792,7 +2793,7 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 		chDone <- struct{}{}
 	}()
 
-	mes := &mock.MessengerStub{
+	mes := &p2pmocks.MessengerStub{
 		BroadcastOnChannelBlockingCalled: func(pipe string, topic string, buff []byte) error {
 
 			b := &batch.Batch{}
@@ -2831,7 +2832,7 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 			return nil, nil
 		},
 	}
-	feeHandler := &mock.EconomicsHandlerStub{
+	feeHandler := &economicsmocks.EconomicsHandlerStub{
 		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
 			return 100
 		},
@@ -3015,7 +3016,7 @@ func TestNode_GetPeerInfoUnknownPeerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	networkComponents := getDefaultNetworkComponents()
-	networkComponents.Messenger = &mock.MessengerStub{
+	networkComponents.Messenger = &p2pmocks.MessengerStub{
 		PeersCalled: func() []core.PeerID {
 			return make([]core.PeerID, 0)
 		},
@@ -3038,7 +3039,7 @@ func TestNode_ShouldWork(t *testing.T) {
 	pid1 := "pid1"
 	pid2 := "pid2"
 	networkComponents := getDefaultNetworkComponents()
-	networkComponents.Messenger = &mock.MessengerStub{
+	networkComponents.Messenger = &p2pmocks.MessengerStub{
 		PeersCalled: func() []core.PeerID {
 			//return them unsorted
 			return []core.PeerID{core.PeerID(pid2), core.PeerID(pid1)}

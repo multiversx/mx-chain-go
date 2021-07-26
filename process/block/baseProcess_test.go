@@ -12,29 +12,33 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/keyValStorage"
+	"github.com/ElrondNetwork/elrond-go-core/core/queue"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters/uint64ByteSlice"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/queue"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/blockchain"
-	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
 	"github.com/ElrondNetwork/elrond-go/process"
 	blproc "github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -325,7 +329,7 @@ func CreateMockArguments(
 ) blproc.ArgShardProcessor {
 	nodesCoordinator := mock.NewNodesCoordinatorMock()
 	argsHeaderValidator := blproc.ArgsHeaderValidator{
-		Hasher:      &mock.HasherMock{},
+		Hasher:      &hashingMocks.HasherMock{},
 		Marshalizer: &mock.MarshalizerMock{},
 	}
 	headerValidator, _ := blproc.NewHeaderValidator(argsHeaderValidator)
@@ -360,7 +364,7 @@ func CreateMockArguments(
 			BlockSizeThrottler:           &mock.BlockSizeThrottlerStub{},
 			Version:                      "softwareVersion",
 			HistoryRepository:            &dblookupext.HistoryRepositoryStub{},
-			EpochNotifier:                &mock.EpochNotifierStub{},
+			EpochNotifier:                &epochNotifier.EpochNotifierStub{},
 			ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		},
 	}
@@ -374,7 +378,7 @@ func createMockTransactionCoordinatorArguments(
 	preProcessorsContainer process.PreProcessorsContainer,
 ) coordinator.ArgTransactionCoordinator {
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
-		Hasher:           &mock.HasherMock{},
+		Hasher:           &hashingMocks.HasherMock{},
 		Marshalizer:      &mock.MarshalizerMock{},
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(3),
 		Accounts:         accountAdapter,
@@ -386,10 +390,10 @@ func createMockTransactionCoordinatorArguments(
 				return []block.Type{block.SmartContractResultBlock}
 			},
 		},
-		GasHandler:                        &mock.GasHandlerMock{},
+		GasHandler:                        &testscommon.GasHandlerStub{},
 		FeeHandler:                        &mock.FeeAccumulatorStub{},
-		BlockSizeComputation:              &mock.BlockSizeComputationStub{},
-		BalanceComputation:                &mock.BalanceComputationStub{},
+		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
+		BalanceComputation:                &testscommon.BalanceComputationStub{},
 		EconomicsFee:                      &mock.FeeHandlerStub{},
 		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
@@ -403,7 +407,7 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 	t.Parallel()
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	coreComponents.Hash = &mock.HasherMock{}
+	coreComponents.Hash = &hashingMocks.HasherMock{}
 	blkc := createTestBlockchain()
 	dataComponents.BlockChain = blkc
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -667,11 +671,11 @@ func TestBaseProcessor_SaveLastNotarizedInOneShardHdrsSliceForShardIsNil(t *test
 	t.Parallel()
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	coreComponents.Hash = &mock.HasherMock{}
+	coreComponents.Hash = &hashingMocks.HasherMock{}
 	coreComponents.IntMarsh = &mock.MarshalizerMock{}
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	sp, _ := blproc.NewShardProcessor(arguments)
-	prHdrs := createShardProcessHeadersToSaveLastNotarized(10, &block.Header{}, mock.HasherMock{}, &mock.MarshalizerMock{})
+	prHdrs := createShardProcessHeadersToSaveLastNotarized(10, &block.Header{}, &hashingMocks.HasherMock{}, &mock.MarshalizerMock{})
 
 	err := sp.SaveLastNotarizedHeader(2, prHdrs)
 
@@ -683,13 +687,13 @@ func TestBaseProcessor_SaveLastNotarizedInMultiShardHdrsSliceForShardIsNil(t *te
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	coreComponents.Hash = &mock.HasherMock{}
+	coreComponents.Hash = &hashingMocks.HasherMock{}
 	coreComponents.IntMarsh = &mock.MarshalizerMock{}
 	bootstrapComponents.Coordinator = shardCoordinator
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	sp, _ := blproc.NewShardProcessor(arguments)
 
-	prHdrs := createShardProcessHeadersToSaveLastNotarized(10, &block.Header{}, mock.HasherMock{}, &mock.MarshalizerMock{})
+	prHdrs := createShardProcessHeadersToSaveLastNotarized(10, &block.Header{}, &hashingMocks.HasherMock{}, &mock.MarshalizerMock{})
 
 	err := sp.SaveLastNotarizedHeader(6, prHdrs)
 
@@ -701,7 +705,7 @@ func TestBaseProcessor_SaveLastNotarizedHdrShardGood(t *testing.T) {
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	coreComponents.Hash = &mock.HasherMock{}
+	coreComponents.Hash = &hashingMocks.HasherMock{}
 	coreComponents.IntMarsh = &mock.MarshalizerMock{}
 	bootstrapComponents.Coordinator = shardCoordinator
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -735,7 +739,7 @@ func TestBaseProcessor_SaveLastNotarizedHdrMetaGood(t *testing.T) {
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	coreComponents.Hash = &mock.HasherMock{}
+	coreComponents.Hash = &hashingMocks.HasherMock{}
 	coreComponents.IntMarsh = &mock.MarshalizerMock{}
 	bootstrapComponents.Coordinator = shardCoordinator
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -1007,10 +1011,10 @@ func TestBlockProcessor_PruneStateOnRollbackPrunesPeerTrieIfAccPruneIsDisabled(t
 
 	pruningCalled := 0
 	peerAccDb := &testscommon.AccountsStub{
-		PruneTrieCalled: func(rootHash []byte, identifier data.TriePruningIdentifier) {
+		PruneTrieCalled: func(rootHash []byte, identifier temporary.TriePruningIdentifier) {
 			pruningCalled++
 		},
-		CancelPruneCalled: func(rootHash []byte, identifier data.TriePruningIdentifier) {
+		CancelPruneCalled: func(rootHash []byte, identifier temporary.TriePruningIdentifier) {
 			pruningCalled++
 		},
 		IsPruningEnabledCalled: func() bool {
@@ -1040,10 +1044,10 @@ func TestBlockProcessor_PruneStateOnRollbackPrunesPeerTrieIfSameRootHashButDiffe
 
 	pruningCalled := 0
 	peerAccDb := &testscommon.AccountsStub{
-		PruneTrieCalled: func(rootHash []byte, identifier data.TriePruningIdentifier) {
+		PruneTrieCalled: func(rootHash []byte, identifier temporary.TriePruningIdentifier) {
 			pruningCalled++
 		},
-		CancelPruneCalled: func(rootHash []byte, identifier data.TriePruningIdentifier) {
+		CancelPruneCalled: func(rootHash []byte, identifier temporary.TriePruningIdentifier) {
 			pruningCalled++
 		},
 		IsPruningEnabledCalled: func() bool {
@@ -1052,10 +1056,10 @@ func TestBlockProcessor_PruneStateOnRollbackPrunesPeerTrieIfSameRootHashButDiffe
 	}
 
 	accDb := &testscommon.AccountsStub{
-		PruneTrieCalled: func(rootHash []byte, identifier data.TriePruningIdentifier) {
+		PruneTrieCalled: func(rootHash []byte, identifier temporary.TriePruningIdentifier) {
 			pruningCalled++
 		},
-		CancelPruneCalled: func(rootHash []byte, identifier data.TriePruningIdentifier) {
+		CancelPruneCalled: func(rootHash []byte, identifier temporary.TriePruningIdentifier) {
 			pruningCalled++
 		},
 		IsPruningEnabledCalled: func() bool {
@@ -1382,6 +1386,76 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldWork(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldUseDataTrieIfNeededWork(t *testing.T) {
+	t.Parallel()
+
+	var processDataTrieTests = []struct {
+		processDataTrie        bool
+		calledWithUserRootHash bool
+	}{
+		{false, false},
+		{true, true},
+	}
+
+	for _, tt := range processDataTrieTests {
+		epoch := uint32(37)
+		rootHash := []byte("userAcc-root-hash")
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.UInt64ByteSliceConv = uint64ByteSlice.NewBigEndianConverter()
+		coreComponents.IntMarsh = &mock.MarshalizerStub{
+			UnmarshalCalled: func(obj interface{}, buff []byte) error {
+				userAccount := obj.(state.UserAccountHandler)
+				userAccount.SetRootHash(rootHash)
+				return nil
+			},
+		}
+
+		store := dataRetriever.NewChainStorer()
+		store.AddStorer(dataRetriever.TrieEpochRootHashUnit,
+			&testscommon.StorerStub{
+				PutCalled: func(key, data []byte) error {
+					restoredEpoch, err := coreComponents.UInt64ByteSliceConv.ToUint64(key)
+					require.NoError(t, err)
+					require.Equal(t, epoch, uint32(restoredEpoch))
+					return nil
+				},
+			},
+		)
+		dataComponents.Storage = store
+		calledWithUserAccountRootHash := false
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.AccountsDB = map[state.AccountsDbIdentifier]state.AccountsAdapter{
+			state.UserAccountsState: &testscommon.AccountsStub{
+				GetAllLeavesCalled: func(rh []byte) (chan core.KeyValueHolder, error) {
+					channel := make(chan core.KeyValueHolder)
+					if bytes.Equal(rootHash, rh) {
+						calledWithUserAccountRootHash = true
+						close(channel)
+						return channel, nil
+					}
+
+					go func() {
+						channel <- keyValStorage.NewKeyValStorage([]byte("address"), []byte("bytes"))
+						close(channel)
+					}()
+
+					return channel, nil
+				},
+			},
+		}
+
+		arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch = tt.processDataTrie
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		mb := &block.MetaBlock{Epoch: epoch}
+		err := sp.CommitTrieEpochRootHashIfNeeded(mb, []byte("root"))
+		require.NoError(t, err)
+
+		require.Equal(t, tt.calledWithUserRootHash, calledWithUserAccountRootHash)
+	}
+}
+
 func TestBaseProcessor_updateState(t *testing.T) {
 	t.Parallel()
 
@@ -1428,10 +1502,10 @@ func TestBaseProcessor_updateState(t *testing.T) {
 		IsPruningEnabledCalled: func() bool {
 			return true
 		},
-		PruneTrieCalled: func(rootHashParam []byte, identifier data.TriePruningIdentifier) {
+		PruneTrieCalled: func(rootHashParam []byte, identifier temporary.TriePruningIdentifier) {
 			pruneRootHash = rootHashParam
 		},
-		CancelPruneCalled: func(rootHash []byte, identifier data.TriePruningIdentifier) {
+		CancelPruneCalled: func(rootHash []byte, identifier temporary.TriePruningIdentifier) {
 			cancelPruneRootHash = rootHash
 		},
 	}

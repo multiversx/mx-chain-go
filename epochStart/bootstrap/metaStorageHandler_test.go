@@ -4,14 +4,15 @@ import (
 	"os"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/stretchr/testify/assert"
 )
@@ -22,7 +23,7 @@ func TestNewMetaStorageHandler_InvalidConfigErr(t *testing.T) {
 	coordinator := &mock.ShardCoordinatorStub{}
 	pathManager := &testscommon.PathManagerStub{}
 	marshalizer := &mock.MarshalizerMock{}
-	hasher := &mock.HasherMock{}
+	hasher := &hashingMocks.HasherMock{}
 	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
 	nodeTypeProvider := &nodeTypeProviderMock.NodeTypeProviderStub{}
 
@@ -41,7 +42,7 @@ func TestNewMetaStorageHandler_CreateForMetaErr(t *testing.T) {
 	coordinator := &mock.ShardCoordinatorStub{}
 	pathManager := &testscommon.PathManagerStub{}
 	marshalizer := &mock.MarshalizerMock{}
-	hasher := &mock.HasherMock{}
+	hasher := &hashingMocks.HasherMock{}
 	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
 	nodeTypeProvider := &nodeTypeProviderMock.NodeTypeProviderStub{}
 
@@ -60,7 +61,7 @@ func TestMetaStorageHandler_saveLastHeader(t *testing.T) {
 	coordinator := &mock.ShardCoordinatorStub{}
 	pathManager := &testscommon.PathManagerStub{}
 	marshalizer := &mock.MarshalizerMock{}
-	hasher := &mock.HasherMock{}
+	hasher := &hashingMocks.HasherMock{}
 	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
 	nodeTypeProvider := &nodeTypeProviderMock.NodeTypeProviderStub{}
 
@@ -88,7 +89,7 @@ func TestMetaStorageHandler_saveLastCrossNotarizedHeaders(t *testing.T) {
 	coordinator := &mock.ShardCoordinatorStub{}
 	pathManager := &testscommon.PathManagerStub{}
 	marshalizer := &mock.MarshalizerMock{}
-	hasher := &mock.HasherMock{}
+	hasher := &hashingMocks.HasherMock{}
 	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
 	nodeTypeProvider := &nodeTypeProviderMock.NodeTypeProviderStub{}
 
@@ -122,7 +123,7 @@ func TestMetaStorageHandler_saveTriggerRegistry(t *testing.T) {
 	coordinator := &mock.ShardCoordinatorStub{}
 	pathManager := &testscommon.PathManagerStub{}
 	marshalizer := &mock.MarshalizerMock{}
-	hasher := &mock.HasherMock{}
+	hasher := &hashingMocks.HasherMock{}
 	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
 	nodeTypeProvider := &nodeTypeProviderMock.NodeTypeProviderStub{}
 
@@ -147,7 +148,7 @@ func TestMetaStorageHandler_saveDataToStorage(t *testing.T) {
 	coordinator := &mock.ShardCoordinatorStub{}
 	pathManager := &testscommon.PathManagerStub{}
 	marshalizer := &mock.MarshalizerMock{}
-	hasher := &mock.HasherMock{}
+	hasher := &hashingMocks.HasherMock{}
 	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
 	nodeTypeProvider := &nodeTypeProviderMock.NodeTypeProviderStub{}
 

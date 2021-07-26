@@ -1,4 +1,4 @@
-//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. esdt.proto
+//go:generate protoc -I=. -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. esdt.proto
 package systemSmartContracts
 
 import (
@@ -9,12 +9,12 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/atomic"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -1495,7 +1495,7 @@ func (e *esdt) saveESDTConfig(esdtConfig *ESDTConfig) error {
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (e *esdt) EpochConfirmed(epoch uint32, _ uint64) {
 	e.flagEnabled.Toggle(epoch >= e.enabledEpoch)
-	log.Debug("esdt contract", "enabled", e.flagEnabled.IsSet())
+	log.Debug("ESDT contract", "enabled", e.flagEnabled.IsSet())
 }
 
 // SetNewGasCost is called whenever a gas cost was changed

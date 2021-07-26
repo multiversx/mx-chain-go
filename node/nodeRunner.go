@@ -13,22 +13,23 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/closing"
+	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/api/gin"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
+	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/forking"
+	"github.com/ElrondNetwork/elrond-go/common/statistics"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/closing"
-	dbLookupFactory "github.com/ElrondNetwork/elrond-go/core/dblookupext/factory"
-	"github.com/ElrondNetwork/elrond-go/core/forking"
-	"github.com/ElrondNetwork/elrond-go/core/statistics"
-	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	dbLookupFactory "github.com/ElrondNetwork/elrond-go/dblookupext/factory"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/facade/disabled"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
@@ -94,7 +95,7 @@ func (nr *nodeRunner) Start() error {
 
 	printEnableEpochs(nr.configs)
 
-	core.DumpGoRoutinesToLog(0)
+	core.DumpGoRoutinesToLog(0, log)
 
 	err = nr.startShufflingProcessLoop(chanStopNodeProcess)
 	if err != nil {
@@ -141,6 +142,7 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("re-delegate below minimum check"), "epoch", enableEpochs.ReDelegateBelowMinCheckEnableEpoch)
 	log.Debug(readEpochFor("waiting waiting list"), "epoch", enableEpochs.WaitingListFixEnableEpoch)
 	log.Debug(readEpochFor("increment SCR nonce in multi transfer"), "epoch", enableEpochs.IncrementSCRNonceInMultiTransferEnableEpoch)
+	log.Debug(readEpochFor("esdt and NFT multi transfer"), "epoch", enableEpochs.ESDTMultiTransferEnableEpoch)
 	log.Debug(readEpochFor("scheduled mini blocks"), "epoch", enableEpochs.ScheduledMiniBlocksEnableEpoch)
 
 	gasSchedule := configs.EpochConfig.GasSchedule
@@ -544,14 +546,14 @@ func (nr *nodeRunner) createMetrics(
 		return err
 	}
 
-	metrics.SaveStringMetric(coreComponents.StatusHandler(), core.MetricNodeDisplayName, nr.configs.PreferencesConfig.Preferences.NodeDisplayName)
-	metrics.SaveStringMetric(coreComponents.StatusHandler(), core.MetricChainId, coreComponents.ChainID())
-	metrics.SaveUint64Metric(coreComponents.StatusHandler(), core.MetricGasPerDataByte, coreComponents.EconomicsData().GasPerDataByte())
-	metrics.SaveUint64Metric(coreComponents.StatusHandler(), core.MetricMinGasPrice, coreComponents.EconomicsData().MinGasPrice())
-	metrics.SaveUint64Metric(coreComponents.StatusHandler(), core.MetricMinGasLimit, coreComponents.EconomicsData().MinGasLimit())
-	metrics.SaveStringMetric(coreComponents.StatusHandler(), core.MetricRewardsTopUpGradientPoint, coreComponents.EconomicsData().RewardsTopUpGradientPoint().String())
-	metrics.SaveStringMetric(coreComponents.StatusHandler(), core.MetricTopUpFactor, fmt.Sprintf("%g", coreComponents.EconomicsData().RewardsTopUpFactor()))
-	metrics.SaveStringMetric(coreComponents.StatusHandler(), core.MetricGasPriceModifier, fmt.Sprintf("%g", coreComponents.EconomicsData().GasPriceModifier()))
+	metrics.SaveStringMetric(coreComponents.StatusHandler(), common.MetricNodeDisplayName, nr.configs.PreferencesConfig.Preferences.NodeDisplayName)
+	metrics.SaveStringMetric(coreComponents.StatusHandler(), common.MetricChainId, coreComponents.ChainID())
+	metrics.SaveUint64Metric(coreComponents.StatusHandler(), common.MetricGasPerDataByte, coreComponents.EconomicsData().GasPerDataByte())
+	metrics.SaveUint64Metric(coreComponents.StatusHandler(), common.MetricMinGasPrice, coreComponents.EconomicsData().MinGasPrice())
+	metrics.SaveUint64Metric(coreComponents.StatusHandler(), common.MetricMinGasLimit, coreComponents.EconomicsData().MinGasLimit())
+	metrics.SaveStringMetric(coreComponents.StatusHandler(), common.MetricRewardsTopUpGradientPoint, coreComponents.EconomicsData().RewardsTopUpGradientPoint().String())
+	metrics.SaveStringMetric(coreComponents.StatusHandler(), common.MetricTopUpFactor, fmt.Sprintf("%g", coreComponents.EconomicsData().RewardsTopUpFactor()))
+	metrics.SaveStringMetric(coreComponents.StatusHandler(), common.MetricGasPriceModifier, fmt.Sprintf("%g", coreComponents.EconomicsData().GasPriceModifier()))
 
 	return nil
 }
@@ -706,10 +708,10 @@ func waitForSignal(
 		log.Info("terminating at user's signal...")
 	case sig = <-chanStopNodeProcess:
 		log.Info("terminating at internal stop signal", "reason", sig.Reason, "description", sig.Description)
-		if sig.Reason == core.ShuffledOut {
+		if sig.Reason == common.ShuffledOut {
 			reshuffled = true
 		}
-		if sig.Reason == core.WrongConfiguration {
+		if sig.Reason == common.WrongConfiguration {
 			wrongConfig = true
 			wrongConfigDescription = sig.Description
 		}
@@ -739,7 +741,7 @@ func waitForSignal(
 
 	if reshuffled {
 		log.Info("=============================" + SoftRestartMessage + "==================================")
-		core.DumpGoRoutinesToLog(goRoutinesNumberStart)
+		core.DumpGoRoutinesToLog(goRoutinesNumberStart, log)
 
 		return nil
 	}
@@ -782,9 +784,9 @@ func (nr *nodeRunner) getNodesFileName() (string, error) {
 
 	exportFolder := filepath.Join(flagsConfig.WorkingDir, nr.configs.GeneralConfig.Hardfork.ImportFolder)
 	if nr.configs.GeneralConfig.Hardfork.AfterHardFork {
-		exportFolderNodesSetupPath := filepath.Join(exportFolder, core.NodesSetupJsonFileName)
+		exportFolderNodesSetupPath := filepath.Join(exportFolder, common.NodesSetupJsonFileName)
 		if !core.FileExists(exportFolderNodesSetupPath) {
-			return "", fmt.Errorf("cannot find %s in the export folder", core.NodesSetupJsonFileName)
+			return "", fmt.Errorf("cannot find %s in the export folder", common.NodesSetupJsonFileName)
 		}
 
 		nodesFileName = exportFolderNodesSetupPath
@@ -839,7 +841,7 @@ func (nr *nodeRunner) logSessionInformation(
 	sessionInfoFileOutput string,
 	coreComponents mainFactory.CoreComponentsHolder,
 ) {
-	statsFolder := filepath.Join(workingDir, core.DefaultStatsPath)
+	statsFolder := filepath.Join(workingDir, common.DefaultStatsPath)
 	configurationPaths := nr.configs.ConfigurationPathsHolder
 	copyConfigToStatsFolder(
 		statsFolder,
@@ -879,7 +881,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 ) (mainFactory.ProcessComponentsHandler, error) {
 	configs := nr.configs
 	configurationPaths := nr.configs.ConfigurationPathsHolder
-	importStartHandler, err := trigger.NewImportStartHandler(filepath.Join(configs.FlagsConfig.WorkingDir, core.DefaultDBPath), configs.FlagsConfig.Version)
+	importStartHandler, err := trigger.NewImportStartHandler(filepath.Join(configs.FlagsConfig.WorkingDir, common.DefaultDBPath), configs.FlagsConfig.Version)
 	if err != nil {
 		return nil, err
 	}
@@ -1119,7 +1121,7 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 		Marshalizer:          coreComponents.InternalMarshalizer(),
 		Syncer:               coreComponents.SyncTimer(),
 		PreferredPublicKeys:  decodedPreferredPubKeys,
-		BootstrapWaitSeconds: core.SecondsToWaitForP2PBootstrap,
+		BootstrapWaitSeconds: common.SecondsToWaitForP2PBootstrap,
 	}
 	if nr.configs.ImportDbConfig.IsImportDBMode {
 		networkComponentsFactoryArgs.BootstrapWaitSeconds = 0
@@ -1272,7 +1274,7 @@ func cleanupStorageIfNecessary(workingDir string, cleanupStorage bool) error {
 
 	dbPath := filepath.Join(
 		workingDir,
-		core.DefaultDBPath)
+		common.DefaultDBPath)
 	log.Trace("cleaning storage", "path", dbPath)
 
 	return os.RemoveAll(dbPath)

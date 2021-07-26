@@ -6,19 +6,20 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/queue"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/headerVersionData"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/queue"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/headerVersionData"
-	"github.com/ElrondNetwork/elrond-go/data/indexer"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
+	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 var _ process.BlockProcessor = (*shardProcessor)(nil)
@@ -54,38 +55,39 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 
 	genesisHdr := arguments.DataComponents.Blockchain().GetGenesisHeader()
 	base := &baseProcessor{
-		accountsDB:                   arguments.AccountsDB,
-		blockSizeThrottler:           arguments.BlockSizeThrottler,
-		forkDetector:                 arguments.ForkDetector,
-		hasher:                       arguments.CoreComponents.Hasher(),
-		marshalizer:                  arguments.CoreComponents.InternalMarshalizer(),
-		store:                        arguments.DataComponents.StorageService(),
-		shardCoordinator:             arguments.BootstrapComponents.ShardCoordinator(),
-		nodesCoordinator:             arguments.NodesCoordinator,
-		uint64Converter:              arguments.CoreComponents.Uint64ByteSliceConverter(),
-		requestHandler:               arguments.RequestHandler,
-		appStatusHandler:             arguments.CoreComponents.StatusHandler(),
-		blockChainHook:               arguments.BlockChainHook,
-		txCoordinator:                arguments.TxCoordinator,
-		roundHandler:                 arguments.CoreComponents.RoundHandler(),
-		epochStartTrigger:            arguments.EpochStartTrigger,
-		headerValidator:              arguments.HeaderValidator,
-		bootStorer:                   arguments.BootStorer,
-		blockTracker:                 arguments.BlockTracker,
-		dataPool:                     arguments.DataComponents.Datapool(),
-		stateCheckpointModulus:       arguments.Config.StateTriesConfig.CheckpointRoundsModulus,
-		blockChain:                   arguments.DataComponents.Blockchain(),
-		feeHandler:                   arguments.FeeHandler,
-		indexer:                      arguments.StatusComponents.ElasticIndexer(),
-		tpsBenchmark:                 arguments.StatusComponents.TpsBenchmark(),
-		genesisNonce:                 genesisHdr.GetNonce(),
-		versionedHeaderFactory:       arguments.BootstrapComponents.VersionedHeaderFactory(),
-		headerIntegrityVerifier:      arguments.BootstrapComponents.HeaderIntegrityVerifier(),
-		historyRepo:                  arguments.HistoryRepository,
-		epochNotifier:                arguments.EpochNotifier,
-		vmContainerFactory:           arguments.VMContainersFactory,
-		vmContainer:                  arguments.VmContainer,
-		scheduledTxsExecutionHandler: arguments.ScheduledTxsExecutionHandler,
+		accountsDB:                    arguments.AccountsDB,
+		blockSizeThrottler:            arguments.BlockSizeThrottler,
+		forkDetector:                  arguments.ForkDetector,
+		hasher:                        arguments.CoreComponents.Hasher(),
+		marshalizer:                   arguments.CoreComponents.InternalMarshalizer(),
+		store:                         arguments.DataComponents.StorageService(),
+		shardCoordinator:              arguments.BootstrapComponents.ShardCoordinator(),
+		nodesCoordinator:              arguments.NodesCoordinator,
+		uint64Converter:               arguments.CoreComponents.Uint64ByteSliceConverter(),
+		requestHandler:                arguments.RequestHandler,
+		appStatusHandler:              arguments.CoreComponents.StatusHandler(),
+		blockChainHook:                arguments.BlockChainHook,
+		txCoordinator:                 arguments.TxCoordinator,
+		roundHandler:                  arguments.CoreComponents.RoundHandler(),
+		epochStartTrigger:             arguments.EpochStartTrigger,
+		headerValidator:               arguments.HeaderValidator,
+		bootStorer:                    arguments.BootStorer,
+		blockTracker:                  arguments.BlockTracker,
+		dataPool:                      arguments.DataComponents.Datapool(),
+		stateCheckpointModulus:        arguments.Config.StateTriesConfig.CheckpointRoundsModulus,
+		blockChain:                    arguments.DataComponents.Blockchain(),
+		feeHandler:                    arguments.FeeHandler,
+		indexer:                       arguments.StatusComponents.ElasticIndexer(),
+		tpsBenchmark:                  arguments.StatusComponents.TpsBenchmark(),
+		genesisNonce:                  genesisHdr.GetNonce(),
+		versionedHeaderFactory:        arguments.BootstrapComponents.VersionedHeaderFactory(),
+		headerIntegrityVerifier:       arguments.BootstrapComponents.HeaderIntegrityVerifier(),
+		historyRepo:                   arguments.HistoryRepository,
+		epochNotifier:                 arguments.EpochNotifier,
+		vmContainerFactory:            arguments.VMContainersFactory,
+		vmContainer:                   arguments.VmContainer,
+		processDataTriesOnCommitEpoch: arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
+		scheduledTxsExecutionHandler:  arguments.ScheduledTxsExecutionHandler,
 	}
 
 	sp := shardProcessor{
@@ -1907,8 +1909,8 @@ func (sp *shardProcessor) applyBodyToHeader(shardHeader data.ShardHeaderHandler,
 		return nil, err
 	}
 
-	sp.appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, uint64(totalTxCount))
-	sp.appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, uint64(len(body.MiniBlocks)))
+	sp.appStatusHandler.SetUInt64Value(common.MetricNumTxInBlock, uint64(totalTxCount))
+	sp.appStatusHandler.SetUInt64Value(common.MetricNumMiniBlocks, uint64(len(body.MiniBlocks)))
 
 	marshalizedBody, err := sp.marshalizer.Marshal(newBody)
 	if err != nil {

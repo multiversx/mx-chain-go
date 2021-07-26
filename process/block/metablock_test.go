@@ -9,20 +9,22 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/blockchain"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
 	"github.com/ElrondNetwork/elrond-go/process"
 	blproc "github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -115,7 +117,7 @@ func createMockMetaArguments(
 			BlockTracker:                 mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders),
 			BlockSizeThrottler:           &mock.BlockSizeThrottlerStub{},
 			HistoryRepository:            &dblookupext.HistoryRepositoryStub{},
-			EpochNotifier:                &mock.EpochNotifierStub{},
+			EpochNotifier:                &epochNotifier.EpochNotifierStub{},
 			ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		},
 		SCToProtocol:                 &mock.SCToProtocolStub{},
@@ -1739,7 +1741,7 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 	pool := testscommon.NewPoolsHolderMock()
 	noOfShards := uint32(5)
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
-	coreComponents.Hash = &mock.HasherMock{}
+	coreComponents.Hash = &hashingMocks.HasherMock{}
 	dataComponents.DataPool = pool
 	dataComponents.Storage = initStore()
 	bootstrapComponents.Coordinator = mock.NewMultiShardsCoordinatorMock(noOfShards)
@@ -1829,7 +1831,7 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 	pool := testscommon.NewPoolsHolderMock()
 	noOfShards := uint32(5)
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
-	coreComponents.Hash = &mock.HasherMock{}
+	coreComponents.Hash = &hashingMocks.HasherMock{}
 	dataComponents.DataPool = pool
 	dataComponents.Storage = initStore()
 	bootstrapComponents.Coordinator = mock.NewMultiShardsCoordinatorMock(noOfShards)

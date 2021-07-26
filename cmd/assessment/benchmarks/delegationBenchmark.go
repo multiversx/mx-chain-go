@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen/delegation"
 )
 

@@ -3,12 +3,13 @@ package mock
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	consensusMocks "github.com/ElrondNetwork/elrond-go/testscommon/consensus"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 )
 
 // InitChronologyHandlerMock -
@@ -165,7 +166,7 @@ func InitConsensusCore() *ConsensusCoreMock {
 	}
 
 	chronologyHandlerMock := InitChronologyHandlerMock()
-	hasherMock := HasherMock{}
+	hasherMock := &hashingMocks.HasherMock{}
 	marshalizerMock := MarshalizerMock{}
 	blsPrivateKeyMock := &PrivateKeyMock{}
 	blsSingleSignerMock := &SingleSignerMock{
