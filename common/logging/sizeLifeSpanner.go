@@ -41,6 +41,10 @@ func (sls *sizeLifeSpanner) IsInterfaceNil() bool {
 
 // SetCurrentFile sets the file need for monitoring for the size
 func (sls *sizeLifeSpanner) SetCurrentFile(path string) {
+	if sls.cancelFunc != nil {
+		sls.cancelFunc()
+	}
+
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	sls.cancelFunc = cancelFunc
 
@@ -48,24 +52,20 @@ func (sls *sizeLifeSpanner) SetCurrentFile(path string) {
 }
 
 func (sls *sizeLifeSpanner) startTicker(ctx context.Context, path string, maxSize int64) {
-	ct := 0
 	for {
-		ct++
 		select {
 		case <-time.After(time.Minute):
-			log.Info("Ticked once", "path", path, "ct", ct)
 			fi, err := os.Stat(path)
 			if err != nil {
 				log.LogIfError(err)
 				continue
 			}
 			size := fi.Size()
-			log.Info("Ticked inside", "maxSize", maxSize, "size", size)
 			if size > maxSize {
-				sls.tickChannel <- ""
+				sls.lifeSpanChannel <- ""
 			}
 		case <-ctx.Done():
-			log.Debug("closing secondsLifeSpanner go routine")
+			log.Debug("closing sizeLifeSpanner go routine")
 			return
 		}
 	}

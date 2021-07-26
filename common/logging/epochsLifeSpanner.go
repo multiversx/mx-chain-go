@@ -32,7 +32,7 @@ func newEpochsLifeSpanner(es EpochStartNotifierWithConfirm, epochsLifeSpan uint3
 		func(epoch uint32) {
 			if epoch%sls.spanInEpochs == 0 {
 				log.Info("Ticked once", "timespan", sls.spanInEpochs, "epoch", epoch)
-				sls.tickChannel <- fmt.Sprintf("%v", epoch)
+				sls.lifeSpanChannel <- fmt.Sprintf("%v", epoch)
 			}
 		},
 	)

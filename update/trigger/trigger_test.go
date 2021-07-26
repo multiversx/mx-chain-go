@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
@@ -32,7 +33,7 @@ func createMockArgHardforkTrigger() trigger.ArgHardforkTrigger {
 		ExportFactoryHandler:      &mock.ExportFactoryHandlerStub{},
 		CloseAfterExportInMinutes: 2,
 		ChanStopNodeProcess:       make(chan endProcess.ArgEndProcess),
-		EpochConfirmedNotifier:    &mock.EpochStartNotifierStub{},
+		EpochConfirmedNotifier:    &testscommon.EpochStartNotifierStub{},
 		ImportStartHandler:        &mock.ImportStartHandlerStub{},
 		RoundHandler:              &mock.RoundHandlerStub{},
 	}

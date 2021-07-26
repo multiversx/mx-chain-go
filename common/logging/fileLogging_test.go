@@ -10,6 +10,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -40,7 +41,7 @@ func TestNewFileLogging_CloseShouldStopCreatingLogFiles(t *testing.T) {
 	}()
 
 	fl, _ := NewFileLogging(dir, logsDirectory, "elrond-go")
-	_ = fl.ChangeFileLifeSpan(time.Second)
+	_ = fl.ChangeFileLifeSpan(createSecondsLogLifeSpan(time.Second))
 	time.Sleep(time.Second*3 + time.Millisecond*200)
 
 	err := fl.Close()
@@ -83,7 +84,7 @@ func TestFileLogging_ChangeFileLifeSpanInvalidValueShouldErr(t *testing.T) {
 	}()
 
 	fl, _ := NewFileLogging(dir, logsDirectory, "elrond-go")
-	err := fl.ChangeFileLifeSpan(time.Millisecond)
+	err := fl.ChangeFileLifeSpan(createSecondsLogLifeSpan(time.Millisecond))
 
 	assert.True(t, errors.Is(err, core.ErrInvalidLogFileMinLifeSpan))
 }
@@ -98,11 +99,24 @@ func TestFileLogging_ChangeFileLifeSpanAfterCloseShouldErr(t *testing.T) {
 	}()
 
 	fl, _ := NewFileLogging(dir, logsDirectory, "elrond-go")
-	err := fl.ChangeFileLifeSpan(time.Second)
+	err := fl.ChangeFileLifeSpan(createSecondsLogLifeSpan(time.Second))
 	assert.Nil(t, err)
 
 	_ = fl.Close()
 
-	err = fl.ChangeFileLifeSpan(time.Second)
+	err = fl.ChangeFileLifeSpan(createSecondsLogLifeSpan(time.Second))
 	assert.True(t, errors.Is(err, core.ErrFileLoggingProcessIsClosed))
+}
+
+func createSecondsLogLifeSpan(duration time.Duration) LogLifeSpanner {
+	args := LogLifeSpanFactoryArgs{
+		EpochStartNotifierWithConfirm: &testscommon.EpochStartNotifierStub{},
+		LifeSpanType:                  "second",
+		RecreateEvery:                 int(duration.Seconds()),
+	}
+
+	factory := &typeLogLifeSpanFactory{}
+	lls, _ := factory.CreateLogLifeSpanner(args)
+
+	return lls
 }

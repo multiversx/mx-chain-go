@@ -1181,15 +1181,19 @@ func (nr *nodeRunner) attachLogLifeSpanner(notifierWithConfirm mainFactory.Epoch
 
 	lifeSpannerArgs := logging.LogLifeSpanFactoryArgs{
 		EpochStartNotifierWithConfirm: notifierWithConfirm,
-		LifeSpanConfig:                spanConfig,
+		LifeSpanType:                  spanConfig.Type,
+		RecreateEvery:                 spanConfig.RecreateEvery,
 	}
-	lifeSpanner, err := logging.CreateLogLifeSpanner(lifeSpannerArgs)
+	lifeSpanFactory := logging.NewTypeLogLifeSpanFactory()
+	lifeSpanner, err := lifeSpanFactory.CreateLogLifeSpanner(lifeSpannerArgs)
 	if err != nil {
 		log.LogIfError(err)
 		return
 	}
 
-	nr.fileLoggingHandler.ChangeFileLifeSpan(lifeSpanner)
+	err = nr.fileLoggingHandler.ChangeFileLifeSpan(lifeSpanner)
+	log.LogIfError(err)
+
 	log.Info("attachLogLifeSpanner exited")
 }
 

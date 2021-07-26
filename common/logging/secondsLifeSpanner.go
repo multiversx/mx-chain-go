@@ -48,7 +48,7 @@ func (sls *secondsLifeSpanner) startTicker(ctx context.Context) {
 		select {
 		case <-time.After(sls.timeSpanInSeconds):
 			log.Info("Ticked once", "timespan", sls.timeSpanInSeconds, "ct", ct)
-			sls.tickChannel <- ""
+			sls.lifeSpanChannel <- ""
 		case <-ctx.Done():
 			log.Debug("closing secondsLifeSpanner go routine")
 			return

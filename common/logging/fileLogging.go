@@ -118,24 +118,27 @@ func (fl *fileLogging) autoRecreateFile(ctx context.Context) {
 		case identifier := <-fl.logLifeSpanner.GetChannel():
 			log.Info("Ticked in autoRecreateFile")
 			fl.recreateLogFile(identifier)
+			sizeLogLifeSpanner, ok := fl.logLifeSpanner.(SizeLogLifeSpanner)
+			if ok {
+				log.Info("Found a sizeLogLifeSpanner", "new file", fl.currentFile.Name())
+				sizeLogLifeSpanner.SetCurrentFile(fl.currentFile.Name())
+			}
 		}
 	}
-	log.Info("autoRecreateFile exited")
 }
 
 // ChangeFileLifeSpan changes the log file span
 func (fl *fileLogging) ChangeFileLifeSpan(lifeSpanner LogLifeSpanner) error {
-	log.Info("ChangeFileLifeSpan")
-	if check.IfNil(lifeSpanner) {
-		return fmt.Errorf("hello")
-	}
-
 	fl.mutIsClosed.Lock()
 	defer fl.mutIsClosed.Unlock()
 
 	if fl.isClosed {
 		log.Debug("IsClosed")
 		return core.ErrFileLoggingProcessIsClosed
+	}
+
+	if check.IfNil(lifeSpanner) {
+		return fmt.Errorf("%w, error: nil lifespan", core.ErrInvalidLogFileMinLifeSpan)
 	}
 
 	log.Info("testing")

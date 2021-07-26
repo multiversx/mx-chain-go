@@ -8,8 +8,8 @@
    SizeCheckDelta = 10
 
 [Logs]
-   [Logs.LifeSpan]
-   #available options: second or epoch
-   Type="second"
-   #recreate every x: 86400 second, 1 epoch etc.
-   RecreateEvery = 30
+    [Logs.LifeSpan]
+    #available options: second, epoch or megabyte
+    Type="epoch"
+    #recreate every: 86400 second, 1 epoch, 10 megabyte etc.
+    RecreateEvery = 1

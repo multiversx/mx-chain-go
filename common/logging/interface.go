@@ -32,3 +32,6 @@ type EpochStartNotifierWithConfirm interface {
 	EpochStartNotifier
 	RegisterForEpochChangeConfirmed(handler func(epoch uint32))
 }
+type LogLifeSpanFactory interface {
+	CreateLogLifeSpanner(args LogLifeSpanFactoryArgs) (LogLifeSpanner, error)
+}
