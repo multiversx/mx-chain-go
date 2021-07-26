@@ -631,3 +631,12 @@ func Test_ShouldStopIfContextDone(t *testing.T) {
 	cancelFunc()
 	assert.True(t, shouldStopIfContextDone(ctx))
 }
+
+func Benchmark_ShouldStopIfContextDone(b *testing.B) {
+	ctx := context.Background()
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		_ = shouldStopIfContextDone(ctx)
+	}
+}

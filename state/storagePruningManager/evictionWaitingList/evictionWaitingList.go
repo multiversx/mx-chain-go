@@ -171,9 +171,5 @@ func (ewl *evictionWaitingList) ShouldKeepHash(hash string, identifier temporary
 
 // Close - closes the underlying db
 func (ewl *evictionWaitingList) Close() error {
-	if !check.IfNil(ewl.db) {
-		//TODO: @beni verify if a flush is needed before closing the DB
-		return ewl.db.Close()
-	}
-	return nil
+	return ewl.db.Close()
 }

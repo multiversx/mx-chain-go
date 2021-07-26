@@ -1,7 +1,7 @@
 package txcache
 
 import (
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 )
 
 type scoreComputer interface {
@@ -10,9 +10,9 @@ type scoreComputer interface {
 
 // TxGasHandler handles a transaction gas and gas cost
 type TxGasHandler interface {
-	SplitTxGasInCategories(tx process.TransactionWithFeeHandler) (uint64, uint64)
-	GasPriceForProcessing(tx process.TransactionWithFeeHandler) uint64
-	GasPriceForMove(tx process.TransactionWithFeeHandler) uint64
+	SplitTxGasInCategories(tx data.TransactionWithFeeHandler) (uint64, uint64)
+	GasPriceForProcessing(tx data.TransactionWithFeeHandler) uint64
+	GasPriceForMove(tx data.TransactionWithFeeHandler) uint64
 	MinGasPrice() uint64
 	MinGasLimit() uint64
 	MinGasPriceForProcessing() uint64

@@ -24,14 +24,6 @@ type AccountWrapMock struct {
 	SetCodeWithJournalCalled     func(codeHash []byte) error `json:"-"`
 }
 
-// NewAccountWrapMock -
-func NewAccountWrapMock(adr []byte) *AccountWrapMock {
-	return &AccountWrapMock{
-		address:           adr,
-		trackableDataTrie: state.NewTrackableDataTrie([]byte("identifier"), nil),
-	}
-}
-
 // HasNewCode -
 func (awm *AccountWrapMock) HasNewCode() bool {
 	return false
@@ -111,6 +103,11 @@ func (awm *AccountWrapMock) SetCodeMetadata(codeMetadata []byte) {
 	awm.codeMetadata = codeMetadata
 }
 
+// RetrieveValueFromDataTrieTracker -
+func (awm *AccountWrapMock) RetrieveValueFromDataTrieTracker(key []byte) ([]byte, error) {
+	return awm.trackableDataTrie.RetrieveValue(key)
+}
+
 // GetCodeMetadata -
 func (awm *AccountWrapMock) GetCodeMetadata() []byte {
 	return awm.codeMetadata
@@ -147,7 +144,7 @@ func (awm *AccountWrapMock) DataTrieTracker() state.DataTrieTracker {
 	return awm.trackableDataTrie
 }
 
-//IncreaseNonce -
+// IncreaseNonce -
 func (awm *AccountWrapMock) IncreaseNonce(val uint64) {
 	awm.nonce = awm.nonce + val
 }

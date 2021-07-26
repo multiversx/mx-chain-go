@@ -70,6 +70,11 @@ func (uam *UserAccountMock) DataTrie() temporary.Trie {
 	return nil
 }
 
+// RetrieveValueFromDataTrieTracker -
+func (uam *UserAccountMock) RetrieveValueFromDataTrieTracker(_ []byte) ([]byte, error) {
+	return nil, nil
+}
+
 // DataTrieTracker -
 func (uam *UserAccountMock) DataTrieTracker() state.DataTrieTracker {
 	return nil
