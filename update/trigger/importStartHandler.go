@@ -95,7 +95,7 @@ func (ish *importStartHandler) SetStartImport() error {
 	file, err := os.OpenFile(
 		filepath.Join(ish.getFilename()),
 		os.O_CREATE|os.O_APPEND|os.O_WRONLY,
-		core.FileModeUserReadWrite,
+		core.FileModeReadWrite,
 	)
 	if err != nil {
 		return err

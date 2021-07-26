@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -176,7 +177,7 @@ func (host *vmContext) SendGlobalSettingToAll(_ []byte, input []byte) {
 	outputTransfer := vmcommon.OutputTransfer{
 		Value:    big.NewInt(0),
 		Data:     input,
-		CallType: vmcommon.DirectCall,
+		CallType: vmData.DirectCall,
 	}
 
 	for i := uint8(0); i < uint8(host.blockChainHook.NumberOfShards()); i++ {
@@ -234,7 +235,7 @@ func (host *vmContext) Transfer(
 		Value:    big.NewInt(0).Set(value),
 		GasLimit: gasLimit,
 		Data:     input,
-		CallType: vmcommon.DirectCall,
+		CallType: vmData.DirectCall,
 	}
 	destAcc.OutputTransfers = append(destAcc.OutputTransfers, outputTransfer)
 

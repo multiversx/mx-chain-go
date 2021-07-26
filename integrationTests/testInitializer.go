@@ -150,6 +150,7 @@ func CreateMessengerWithKadDht(initialAddr string) p2p.Messenger {
 		P2pConfig:            createP2PConfig(initialAddresses),
 		SyncTimer:            &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+		NodeOperationMode:    p2p.NormalOperation,
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
@@ -172,6 +173,7 @@ func CreateMessengerWithKadDhtAndProtocolID(initialAddr string, protocolID strin
 		P2pConfig:            p2pConfig,
 		SyncTimer:            &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+		NodeOperationMode:    p2p.NormalOperation,
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
@@ -188,6 +190,12 @@ func CreateMessengerFromConfig(p2pConfig config.P2PConfig) p2p.Messenger {
 		P2pConfig:            p2pConfig,
 		SyncTimer:            &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+		NodeOperationMode:    p2p.NormalOperation,
+	}
+
+	if p2pConfig.Sharding.AdditionalConnections.MaxFullHistoryObservers > 0 {
+		//we deliberately set this, automatically choose full archive node mode
+		arg.NodeOperationMode = p2p.FullArchiveMode
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
@@ -914,13 +922,13 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 		TxFeeHandler:     &testscommon.UnsignedTxHandlerStub{},
 		TxTypeHandler:    &testscommon.TxTypeHandlerMock{},
 		EconomicsFee: &mock.FeeHandlerStub{
-			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return tx.GetGasLimit()
 			},
-			CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+			CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 				return nil
 			},
-			ComputeMoveBalanceFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+			ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 				fee := big.NewInt(0).SetUint64(tx.GetGasLimit())
 				fee.Mul(fee, big.NewInt(0).SetUint64(tx.GetGasPrice()))
 

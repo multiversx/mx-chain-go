@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/versioning"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	dataTransaction "github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -63,7 +64,7 @@ func createKeyGenMock() crypto.KeyGenerator {
 
 func createFreeTxFeeHandler() *mock.FeeHandlerStub {
 	return &mock.FeeHandlerStub{
-		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+		CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 			return nil
 		},
 	}
@@ -791,7 +792,7 @@ func TestNewInterceptedTransaction_InsufficientFeeShouldErr(t *testing.T) {
 	}
 	errExpected := errors.New("insufficient fee")
 	feeHandler := &mock.FeeHandlerStub{
-		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+		CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 			return errExpected
 		},
 	}

@@ -45,7 +45,6 @@ var log = logger.GetOrCreate("epochStart/bootstrap")
 
 // DefaultTimeToWaitForRequestedData represents the default timespan until requested data needs to be received from the connected peers
 const DefaultTimeToWaitForRequestedData = time.Minute
-const timeoutGettingTrieNode = time.Minute
 const timeBetweenRequests = 100 * time.Millisecond
 const maxToRequest = 100
 const gracePeriodInPercentage = float64(0.25)
@@ -862,7 +861,7 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 			Marshalizer:               e.coreComponentsHolder.InternalMarshalizer(),
 			TrieStorageManager:        trieStorageManager,
 			RequestHandler:            e.requestHandler,
-			Timeout:                   timeoutGettingTrieNode,
+			Timeout:                   common.TimeoutGettingTrieNodes,
 			Cacher:                    e.dataPool.TrieNodes(),
 			MaxTrieLevelInMemory:      e.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
 			MaxHardCapForMissingNodes: e.maxHardCapForMissingNodes,
@@ -960,7 +959,7 @@ func (e *epochStartBootstrap) syncValidatorAccountsState(rootHash []byte) error 
 			Marshalizer:               e.coreComponentsHolder.InternalMarshalizer(),
 			TrieStorageManager:        peerTrieStorageManager,
 			RequestHandler:            e.requestHandler,
-			Timeout:                   timeoutGettingTrieNode,
+			Timeout:                   common.TimeoutGettingTrieNodes,
 			Cacher:                    e.dataPool.TrieNodes(),
 			MaxTrieLevelInMemory:      e.generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
 			MaxHardCapForMissingNodes: e.maxHardCapForMissingNodes,
