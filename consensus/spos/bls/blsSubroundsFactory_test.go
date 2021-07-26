@@ -2,7 +2,6 @@ package bls_test
 
 import (
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"testing"
 	"time"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
