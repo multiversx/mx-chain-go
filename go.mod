@@ -31,7 +31,7 @@ require (
 	github.com/libp2p/go-libp2p-kad-dht v0.12.2
 	github.com/libp2p/go-libp2p-kbucket v0.4.7
 	github.com/libp2p/go-libp2p-pubsub v0.4.1
-	github.com/libp2p/go-libp2p-transport-upgrader v0.4.2
+	github.com/libp2p/go-libp2p-transport-upgrader v0.4.3
 	github.com/libp2p/go-tcp-transport v0.2.3
 	github.com/mitchellh/mapstructure v1.4.1
 	github.com/multiformats/go-multiaddr v0.3.3
