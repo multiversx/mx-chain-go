@@ -3,33 +3,42 @@ package logging
 import (
 	"context"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-logger/check"
 )
 
 const minMBLifeSpan = 1
+const minRefreshInterval = time.Second
 
 type sizeLifeSpanner struct {
 	*baseLifeSpanner
-	spanInMB    uint32
-	cancelFunc  context.CancelFunc
-	currentFile string
+	spanInMB        uint32
+	refreshInterVal time.Duration
+	cancelFunc      context.CancelFunc
+	currentFile     string
+	fileSizeChecker FileSizeCheckHandler
 }
 
-func newSizeLifeSpanner(sizeLifeSpan uint32) (*sizeLifeSpanner, error) {
-	log.Info("newSizeLifeSpanner entered", "timespan", sizeLifeSpan)
-	if sizeLifeSpan < minMBLifeSpan {
-		return nil, fmt.Errorf("newSizeLifeSpanner %w, provided %v", core.ErrInvalidLogFileMinLifeSpan, sizeLifeSpan)
+func newSizeLifeSpanner(fileSizeChecker FileSizeCheckHandler, sizeLifeSpanInMB uint32, refreshInterval time.Duration) (*sizeLifeSpanner, error) {
+	if check.IfNil(fileSizeChecker) {
+		return nil, fmt.Errorf("newSizeLifeSpanner %w, nil file size checker", core.ErrInvalidLogFileMinLifeSpan)
+	}
+
+	if sizeLifeSpanInMB < minMBLifeSpan {
+		return nil, fmt.Errorf("newSizeLifeSpanner %w, provided size %v, min %v MB", core.ErrInvalidLogFileMinLifeSpan, sizeLifeSpanInMB, minMBLifeSpan)
+	}
+
+	if refreshInterval < minRefreshInterval {
+		return nil, fmt.Errorf("newSizeLifeSpanner %w, provided refreshInterval %v, min %v", core.ErrInvalidLogFileMinLifeSpan, refreshInterval, minRefreshInterval)
 	}
 
 	sls := &sizeLifeSpanner{
-		spanInMB:        sizeLifeSpan * 1024 * 1024,
+		spanInMB:        sizeLifeSpanInMB * 1024 * 1024,
 		baseLifeSpanner: newBaseLifeSpanner(),
+		fileSizeChecker: fileSizeChecker,
 	}
-
-	log.Info("the newSizeLifeSpanner", "timespan", sizeLifeSpan)
 
 	return sls, nil
 }
@@ -54,13 +63,9 @@ func (sls *sizeLifeSpanner) SetCurrentFile(path string) {
 func (sls *sizeLifeSpanner) startTicker(ctx context.Context, path string, maxSize int64) {
 	for {
 		select {
-		case <-time.After(time.Minute):
-			fi, err := os.Stat(path)
-			if err != nil {
-				log.LogIfError(err)
-				continue
-			}
-			size := fi.Size()
+		case <-time.After(sls.refreshInterVal):
+			size, err := sls.fileSizeChecker.GetSize(path)
+			log.LogIfError(err)
 			if size > maxSize {
 				sls.lifeSpanChannel <- ""
 			}

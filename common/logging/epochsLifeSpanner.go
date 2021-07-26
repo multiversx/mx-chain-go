@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-logger/check"
 )
 
 const minEpochsLifeSpan = 1
@@ -17,27 +18,27 @@ type epochsLifeSpanner struct {
 
 func newEpochsLifeSpanner(es EpochStartNotifierWithConfirm, epochsLifeSpan uint32) (*epochsLifeSpanner, error) {
 	log.Info("newEpochsLifeSpanner entered", "timespan", epochsLifeSpan)
+	if check.IfNil(es) {
+		return nil, fmt.Errorf("%w, epoch start notifier is nil", core.ErrInvalidLogFileMinLifeSpan)
+	}
 	if epochsLifeSpan < minEpochsLifeSpan {
-		return nil, fmt.Errorf("NewEpochsLifeSpanner %w, provided %v", core.ErrInvalidLogFileMinLifeSpan, epochsLifeSpan)
+		return nil, fmt.Errorf("%w, min: %v, provided %v", core.ErrInvalidLogFileMinLifeSpan, minEpochsLifeSpan, epochsLifeSpan)
 	}
 
-	sls := &epochsLifeSpanner{
+	els := &epochsLifeSpanner{
 		spanInEpochs:    epochsLifeSpan,
 		baseLifeSpanner: newBaseLifeSpanner(),
 	}
 
-	log.Info("the epochsLifeSpanner", "timespan", epochsLifeSpan)
-
 	es.RegisterForEpochChangeConfirmed(
 		func(epoch uint32) {
-			if epoch%sls.spanInEpochs == 0 {
-				log.Info("Ticked once", "timespan", sls.spanInEpochs, "epoch", epoch)
-				sls.lifeSpanChannel <- fmt.Sprintf("%v", epoch)
+			if epoch%els.spanInEpochs == 0 {
+				els.lifeSpanChannel <- fmt.Sprintf("%v", epoch)
 			}
 		},
 	)
 
-	return sls, nil
+	return els, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -8,8 +8,9 @@ import (
 )
 
 func TestNewTypeLogLifeSpanFactory_CreateLogLifeSpannerShouldWork(t *testing.T) {
-	factory := &typeLogLifeSpanFactory{}
+	t.Parallel()
 
+	factory := &typeLogLifeSpanFactory{}
 	args := LogLifeSpanFactoryArgs{
 		EpochStartNotifierWithConfirm: &testscommon.EpochStartNotifierStub{},
 		RecreateEvery:                 10,
@@ -41,8 +42,9 @@ func TestNewTypeLogLifeSpanFactory_CreateLogLifeSpannerShouldWork(t *testing.T) 
 }
 
 func TestNewTypeLogLifeSpanFactory_CreateLogLifeSpannerInvalidShouldFail(t *testing.T) {
-	factory := &typeLogLifeSpanFactory{}
+	t.Parallel()
 
+	factory := &typeLogLifeSpanFactory{}
 	args := LogLifeSpanFactoryArgs{
 		EpochStartNotifierWithConfirm: &testscommon.EpochStartNotifierStub{},
 		LifeSpanType:                  "invalid",

@@ -32,6 +32,14 @@ type EpochStartNotifierWithConfirm interface {
 	EpochStartNotifier
 	RegisterForEpochChangeConfirmed(handler func(epoch uint32))
 }
+
+// LogLifeSpanFactory defines the methods for creating a log lifeSpanner
 type LogLifeSpanFactory interface {
 	CreateLogLifeSpanner(args LogLifeSpanFactoryArgs) (LogLifeSpanner, error)
+}
+
+// FileSizeCheckHandler defines the method needed for getting a file size
+type FileSizeCheckHandler interface {
+	GetSize(path string) (int64, error)
+	IsInterfaceNil() bool
 }

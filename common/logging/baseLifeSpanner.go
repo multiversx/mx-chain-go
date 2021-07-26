@@ -11,6 +11,11 @@ func newBaseLifeSpanner() *baseLifeSpanner {
 }
 
 // GetChannel gets the channel associated with a log recreate event
-func (sls *baseLifeSpanner) GetChannel() <-chan string {
-	return sls.lifeSpanChannel
+func (bls *baseLifeSpanner) GetChannel() <-chan string {
+	return bls.lifeSpanChannel
+}
+
+// Close closes the lifeSpanChannel
+func (bls *baseLifeSpanner) Close() {
+	close(bls.lifeSpanChannel)
 }

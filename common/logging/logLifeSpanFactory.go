@@ -21,6 +21,7 @@ type LogLifeSpanFactoryArgs struct {
 type typeLogLifeSpanFactory struct {
 }
 
+// NewTypeLogLifeSpanFactory creates a new factory for log life spans
 func NewTypeLogLifeSpanFactory() *typeLogLifeSpanFactory {
 	return &typeLogLifeSpanFactory{}
 }
@@ -46,7 +47,7 @@ func (llsf *typeLogLifeSpanFactory) CreateLogLifeSpanner(args LogLifeSpanFactory
 		}
 	case megabyteType:
 		{
-			sls, err := newSizeLifeSpanner(uint32(args.RecreateEvery))
+			sls, err := newSizeLifeSpanner(&fileSizeChecker{}, uint32(args.RecreateEvery), time.Minute)
 			if err != nil {
 				return nil, fmt.Errorf("%w, with error: %s", ErrCreateLogLifeSpanner, err.Error())
 			}

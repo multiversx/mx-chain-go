@@ -17,7 +17,7 @@ type secondsLifeSpanner struct {
 }
 
 func newSecondsLifeSpanner(timeSpanInSeconds time.Duration) (*secondsLifeSpanner, error) {
-	log.Info("NewSecondsLifeSpanner entered", "timespan", timeSpanInSeconds)
+	log.Debug("newSecondsLifeSpanner entered", "timespan", timeSpanInSeconds)
 	if timeSpanInSeconds < minFileLifeSpan {
 		return nil, fmt.Errorf("%w, provided %v", core.ErrInvalidLogFileMinLifeSpan, timeSpanInSeconds)
 	}
@@ -26,8 +26,6 @@ func newSecondsLifeSpanner(timeSpanInSeconds time.Duration) (*secondsLifeSpanner
 		timeSpanInSeconds: timeSpanInSeconds,
 		baseLifeSpanner:   newBaseLifeSpanner(),
 	}
-
-	log.Info("the secondsLifeSpanner", "timespan", timeSpanInSeconds)
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	sls.cancelFunc = cancelFunc
@@ -42,15 +40,22 @@ func (sls *secondsLifeSpanner) IsInterfaceNil() bool {
 	return sls == nil
 }
 
+// Close closes all internal components
+func (sls *secondsLifeSpanner) Close() error {
+	if sls.cancelFunc != nil {
+		sls.cancelFunc()
+	}
+	return nil
+}
+
 func (sls *secondsLifeSpanner) startTicker(ctx context.Context) {
-	ct := 0
 	for {
 		select {
 		case <-time.After(sls.timeSpanInSeconds):
-			log.Info("Ticked once", "timespan", sls.timeSpanInSeconds, "ct", ct)
 			sls.lifeSpanChannel <- ""
 		case <-ctx.Done():
 			log.Debug("closing secondsLifeSpanner go routine")
+			sls.baseLifeSpanner.Close()
 			return
 		}
 	}
