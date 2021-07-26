@@ -561,9 +561,7 @@ func (mp *metaProcessor) indexBlock(
 	}
 
 	log.Debug("preparing to index block", "hash", headerHash, "nonce", metaBlock.GetNonce(), "round", metaBlock.GetRound())
-
-	mp.outportHandler.UpdateTPS(mp.tpsBenchmark)
-
+	
 	pool := &indexer.Pool{
 		Txs:     mp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock),
 		Scrs:    mp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock),

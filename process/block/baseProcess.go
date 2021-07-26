@@ -80,7 +80,6 @@ type baseProcessor struct {
 
 	indexer            process.Indexer
 	outportHandler     outport.OutportHandler
-	tpsBenchmark       statistics.TPSBenchmark
 	historyRepo        dblookupext.HistoryRepository
 	epochNotifier      process.EpochNotifier
 	vmContainerFactory process.VirtualMachinesContainerFactory

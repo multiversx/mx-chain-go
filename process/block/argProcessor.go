@@ -40,9 +40,7 @@ type bootstrapComponentsHolder interface {
 }
 
 type statusComponentsHolder interface {
-	ElasticIndexer() process.Indexer
 	OutportHandler() outport.OutportHandler
-	TpsBenchmark() statistics.TPSBenchmark
 	IsInterfaceNil() bool
 }
 

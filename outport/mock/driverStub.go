@@ -1,10 +1,8 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/statistics"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/indexer"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 )
 
 // DriverStub -
@@ -12,10 +10,9 @@ type DriverStub struct {
 	SaveBlockCalled             func(args *indexer.ArgsSaveBlockData)
 	RevertBlockCalled           func(header data.HeaderHandler, body data.BodyHandler)
 	SaveRoundsInfoCalled        func(roundsInfos []*indexer.RoundInfo)
-	UpdateTPSCalled             func(tpsBenchmark statistics.TPSBenchmark)
 	SaveValidatorsPubKeysCalled func(validatorsPubKeys map[uint32][][]byte, epoch uint32)
 	SaveValidatorsRatingCalled  func(indexID string, infoRating []*indexer.ValidatorRatingInfo)
-	SaveAccountsCalled          func(timestamp uint64, acc []state.UserAccountHandler)
+	SaveAccountsCalled          func(timestamp uint64, acc []data.UserAccountHandler)
 	CloseCalled                 func() error
 }
 
@@ -40,13 +37,6 @@ func (d *DriverStub) SaveRoundsInfo(roundsInfos []*indexer.RoundInfo) {
 	}
 }
 
-// UpdateTPS -
-func (d *DriverStub) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
-	if d.UpdateTPSCalled != nil {
-		d.UpdateTPSCalled(tpsBenchmark)
-	}
-}
-
 // SaveValidatorsPubKeys -
 func (d *DriverStub) SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte, epoch uint32) {
 	if d.SaveValidatorsPubKeysCalled != nil {
@@ -62,7 +52,7 @@ func (d *DriverStub) SaveValidatorsRating(indexID string, infoRating []*indexer.
 }
 
 // SaveAccounts -
-func (d *DriverStub) SaveAccounts(timestamp uint64, acc []state.UserAccountHandler) {
+func (d *DriverStub) SaveAccounts(timestamp uint64, acc []data.UserAccountHandler) {
 	if d.SaveAccountsCalled != nil {
 		d.SaveAccountsCalled(timestamp, acc)
 	}

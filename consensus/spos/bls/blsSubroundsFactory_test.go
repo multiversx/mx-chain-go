@@ -2,6 +2,7 @@ package bls_test
 
 import (
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"testing"
 	"time"
 

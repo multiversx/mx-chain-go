@@ -272,7 +272,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		MiniblocksProvider:   tpn.MiniblocksProvider,
 		Uint64Converter:      TestUint64Converter,
 		AppStatusHandler:     TestAppStatusHandler,
-		OutportHandler:      mock.NewNilOutport(),
+		OutportHandler:       mock.NewNilOutport(),
 		AccountsDBSyncer:     &mock.AccountsDBSyncerStub{},
 		CurrentEpochProvider: &testscommon.CurrentEpochProviderStub{},
 		IsInImportMode:       false,

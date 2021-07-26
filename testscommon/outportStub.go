@@ -1,10 +1,8 @@
 package testscommon
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/statistics"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/indexer"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/outport"
 )
 
@@ -28,10 +26,6 @@ func (as *OutportStub) SaveValidatorsRating(index string, validatorsInfo []*inde
 	if as.SaveValidatorsRatingCalled != nil {
 		as.SaveValidatorsRatingCalled(index, validatorsInfo)
 	}
-}
-
-// UpdateTPS -
-func (as *OutportStub) UpdateTPS(_ statistics.TPSBenchmark) {
 }
 
 // SaveValidatorsPubKeys -
@@ -60,7 +54,7 @@ func (as *OutportStub) RevertIndexedBlock(_ data.HeaderHandler, _ data.BodyHandl
 }
 
 // SaveAccounts -
-func (as *OutportStub) SaveAccounts(_ uint64, _ []state.UserAccountHandler) {
+func (as *OutportStub) SaveAccounts(_ uint64, _ []data.UserAccountHandler) {
 
 }
 

@@ -6,13 +6,13 @@ import (
 	"sync"
 	"time"
 
-	elasticIndexer "github.com/ElrondNetwork/elastic-indexer-go"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go/outport"
 )
 
 // subroundStartRound defines the data needed by the subround StartRound

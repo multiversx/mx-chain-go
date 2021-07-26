@@ -7,7 +7,6 @@ import (
 // StatusComponentsMock -
 type StatusComponentsMock struct {
 	Outport      outport.OutportHandler
-	TPSBenchmark statistics.TPSBenchmark
 }
 
 // OutportHandler -

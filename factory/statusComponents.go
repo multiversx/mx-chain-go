@@ -28,7 +28,7 @@ import (
 type statusComponents struct {
 	nodesCoordinator sharding.NodesCoordinator
 	statusHandler    core.AppStatusHandler
-	outportHandler  outport.OutportHandler
+	outportHandler   outport.OutportHandler
 	softwareVersion  statistics.SoftwareVersionChecker
 	resourceMonitor  statistics.ResourceMonitorHandler
 	cancelFunc       func()
@@ -152,7 +152,7 @@ func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
 	statusComponentsInstance := &statusComponents{
 		nodesCoordinator: scf.nodesCoordinator,
 		softwareVersion:  softwareVersionChecker,
-		elasticIndexer:   elasticIndexer,
+		outportHandler:   outportHandler,
 		statusHandler:    scf.coreComponents.StatusHandler(),
 		resourceMonitor:  resMon,
 		cancelFunc:       cancelFunc,
@@ -175,7 +175,7 @@ func (pc *statusComponents) epochStartEventHandler() epochStart.ActionHandler {
 				"error", err.Error())
 		}
 
-		pc.elasticIndexer.SaveValidatorsPubKeys(validatorsPubKeys, currentEpoch)
+		pc.outportHandler.SaveValidatorsPubKeys(validatorsPubKeys, currentEpoch)
 
 	}, func(_ nodeData.HeaderHandler) {}, common.IndexerOrder)
 
