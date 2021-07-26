@@ -158,10 +158,12 @@ func (scf *stateComponentsFactory) createPeerAdapter() (state.AccountsAdapter, e
 }
 
 func (scf *stateComponentsFactory) newStoragePruningManager() (state.StoragePruningManager, error) {
-	trieEvictionWaitingList, err := evictionWaitingList.NewMemoryEvictionWaitingListV2(
-		scf.config.EvictionWaitingList.Size,
-		scf.core.InternalMarshalizer(),
-	)
+	args := evictionWaitingList.MemoryEvictionWaitingListArgs{
+		RootHashesSize: scf.config.EvictionWaitingList.RootHashesSize,
+		HashesSize:     scf.config.EvictionWaitingList.HashesSize,
+		Marshalizer:    scf.core.InternalMarshalizer(),
+	}
+	trieEvictionWaitingList, err := evictionWaitingList.NewMemoryEvictionWaitingList(args)
 	if err != nil {
 		return nil, err
 	}

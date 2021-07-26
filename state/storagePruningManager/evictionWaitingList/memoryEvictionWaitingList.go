@@ -2,6 +2,7 @@ package evictionWaitingList
 
 import (
 	"bytes"
+	"fmt"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -15,31 +16,42 @@ type hashInfo struct {
 	roothashes [][]byte
 }
 
+// MemoryEvictionWaitingListArgs is the DTO used in the NewMemoryEvictionWaitingList function
+type MemoryEvictionWaitingListArgs struct {
+	RootHashesSize uint
+	HashesSize     uint
+	Marshalizer    marshal.Marshalizer
+}
+
 // memoryEvictionWaitingList is a structure that caches keys that need to be removed from a certain database.
 // If the cache is full, the caches will be emptied automatically. Writing at the same key in
 // cacher and db will overwrite the previous values.
 type memoryEvictionWaitingList struct {
-	cache         map[string]temporary.ModifiedHashes
-	reversedCache map[string]*hashInfo
-	cacheSize     uint
-	marshalizer   marshal.Marshalizer
-	opMutex       sync.RWMutex
+	cache          map[string]temporary.ModifiedHashes
+	reversedCache  map[string]*hashInfo
+	rootHashesSize uint
+	hashesSize     uint
+	marshalizer    marshal.Marshalizer
+	opMutex        sync.RWMutex
 }
 
-// NewMemoryEvictionWaitingListV2 creates a new instance of memoryEvictionWaitingList
-func NewMemoryEvictionWaitingListV2(size uint, marshalizer marshal.Marshalizer) (*memoryEvictionWaitingList, error) {
-	if size < 1 {
-		return nil, data.ErrInvalidCacheSize
+// NewMemoryEvictionWaitingList creates a new instance of memoryEvictionWaitingList
+func NewMemoryEvictionWaitingList(args MemoryEvictionWaitingListArgs) (*memoryEvictionWaitingList, error) {
+	if args.RootHashesSize < 1 {
+		return nil, fmt.Errorf("%w for RootHashesSize in NewMemoryEvictionWaitingList", data.ErrInvalidCacheSize)
 	}
-	if check.IfNil(marshalizer) {
-		return nil, data.ErrNilMarshalizer
+	if args.HashesSize < 1 {
+		return nil, fmt.Errorf("%w for HashesSize in NewMemoryEvictionWaitingList", data.ErrInvalidCacheSize)
+	}
+	if check.IfNil(args.Marshalizer) {
+		return nil, fmt.Errorf("%w in NewMemoryEvictionWaitingList", data.ErrNilMarshalizer)
 	}
 
 	return &memoryEvictionWaitingList{
-		cache:         make(map[string]temporary.ModifiedHashes),
-		reversedCache: make(map[string]*hashInfo),
-		cacheSize:     size,
-		marshalizer:   marshalizer,
+		cache:          make(map[string]temporary.ModifiedHashes),
+		reversedCache:  make(map[string]*hashInfo),
+		rootHashesSize: args.RootHashesSize,
+		hashesSize:     args.HashesSize,
 	}, nil
 }
 
@@ -51,9 +63,9 @@ func (mewl *memoryEvictionWaitingList) Put(rootHash []byte, hashes temporary.Mod
 	log.Trace("trie eviction waiting list", "size", len(mewl.cache))
 
 	mewl.putInReversedCache(rootHash, hashes)
+	mewl.cache[string(rootHash)] = hashes
 
-	if uint(len(mewl.cache)) <= mewl.cacheSize {
-		mewl.cache[string(rootHash)] = hashes
+	if !mewl.cachesFull() {
 		return nil
 	}
 
@@ -62,6 +74,17 @@ func (mewl *memoryEvictionWaitingList) Put(rootHash []byte, hashes temporary.Mod
 	mewl.reversedCache = make(map[string]*hashInfo)
 
 	return nil
+}
+
+func (mewl *memoryEvictionWaitingList) cachesFull() bool {
+	if uint(len(mewl.cache)) > mewl.rootHashesSize {
+		return true
+	}
+	if uint(len(mewl.reversedCache)) > mewl.hashesSize {
+		return true
+	}
+
+	return false
 }
 
 func (mewl *memoryEvictionWaitingList) putInReversedCache(rootHash []byte, hashes temporary.ModifiedHashes) {
