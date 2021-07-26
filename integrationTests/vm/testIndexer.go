@@ -18,13 +18,14 @@ import (
 	"github.com/ElrondNetwork/elastic-indexer-go/process/statistics"
 	"github.com/ElrondNetwork/elastic-indexer-go/process/transactions"
 	"github.com/ElrondNetwork/elastic-indexer-go/process/validators"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/indexer"
-	"github.com/ElrondNetwork/elrond-go/data/receipt"
-	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	"github.com/ElrondNetwork/elrond-go-core/data/receipt"
+	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -68,12 +69,10 @@ func CreateTestIndexer(
 	ep := ti.createElasticProcessor(coordinator, txFeeCalculator, hasResults)
 
 	arguments := elasticIndexer.ArgDataIndexer{
-		Marshalizer:        testMarshalizer,
-		NodesCoordinator:   &mock.NodesCoordinatorMock{},
-		EpochStartNotifier: &mock.EpochStartNotifierStub{},
-		ShardCoordinator:   coordinator,
-		ElasticProcessor:   ep,
-		DataDispatcher:     dispatcher,
+		Marshalizer:      testMarshalizer,
+		ShardCoordinator: coordinator,
+		ElasticProcessor: ep,
+		DataDispatcher:   dispatcher,
 	}
 
 	te, err := elasticIndexer.NewDataIndexer(arguments)
