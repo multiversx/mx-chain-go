@@ -7,24 +7,24 @@ import (
 	syncGo "sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/partitioning"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	dataBlock "github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/core/partitioning"
-	"github.com/ElrondNetwork/elrond-go/data"
-	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/indexer"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/epochProviders"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
 	storageResolversContainers "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/storageResolversContainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
+	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
@@ -50,6 +50,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/redundancy"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -254,7 +255,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		resolversFinder,
 		pcf.requestedItemsHandler,
 		pcf.whiteListHandler,
-		core.MaxTxsToRequest,
+		common.MaxTxsToRequest,
 		pcf.bootstrapComponents.ShardCoordinator().SelfId(),
 		time.Second,
 	)
@@ -721,7 +722,7 @@ func (pcf *processComponentsFactory) indexGenesisAccounts() error {
 		return err
 	}
 
-	genesisAccounts := make([]state.UserAccountHandler, 0)
+	genesisAccounts := make([]data.UserAccountHandler, 0)
 	for leaf := range leavesChannel {
 		userAccount, errUnmarshal := pcf.unmarshalUserAccount(leaf.Key(), leaf.Value())
 		if errUnmarshal != nil {
@@ -1150,7 +1151,7 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 		Messenger:                 pcf.network.NetworkMessenger(),
 		Store:                     pcf.data.StorageService(),
 		DataPool:                  pcf.data.Datapool(),
-		MaxTxNonceDeltaAllowed:    core.MaxTxNonceDeltaAllowed,
+		MaxTxNonceDeltaAllowed:    common.MaxTxNonceDeltaAllowed,
 		TxFeeHandler:              pcf.coreData.EconomicsData(),
 		BlockBlackList:            headerBlackList,
 		HeaderSigVerifier:         headerSigVerifier,
@@ -1193,7 +1194,7 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 		Store:                     pcf.data.StorageService(),
 		DataPool:                  pcf.data.Datapool(),
 		Accounts:                  pcf.state.AccountsAdapter(),
-		MaxTxNonceDeltaAllowed:    core.MaxTxNonceDeltaAllowed,
+		MaxTxNonceDeltaAllowed:    common.MaxTxNonceDeltaAllowed,
 		TxFeeHandler:              pcf.coreData.EconomicsData(),
 		BlockBlackList:            headerBlackList,
 		HeaderSigVerifier:         headerSigVerifier,

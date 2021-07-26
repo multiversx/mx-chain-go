@@ -7,12 +7,14 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/atomic"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
@@ -299,7 +301,7 @@ func (ed *economicsData) GasPerDataByte() uint64 {
 }
 
 // ComputeMoveBalanceFee computes the provided transaction's fee
-func (ed *economicsData) ComputeMoveBalanceFee(tx process.TransactionWithFeeHandler) *big.Int {
+func (ed *economicsData) ComputeMoveBalanceFee(tx data.TransactionWithFeeHandler) *big.Int {
 	if isSmartContractResult(tx) {
 		return big.NewInt(0)
 	}
@@ -308,28 +310,28 @@ func (ed *economicsData) ComputeMoveBalanceFee(tx process.TransactionWithFeeHand
 }
 
 // ComputeFeeForProcessing will compute the fee using the gas price modifier, the gas to use and the actual gas price
-func (ed *economicsData) ComputeFeeForProcessing(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
+func (ed *economicsData) ComputeFeeForProcessing(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
 	gasPrice := ed.GasPriceForProcessing(tx)
 	return core.SafeMul(gasPrice, gasToUse)
 }
 
 // GasPriceForProcessing computes the price for the gas in addition to balance movement and data
-func (ed *economicsData) GasPriceForProcessing(tx process.TransactionWithFeeHandler) uint64 {
+func (ed *economicsData) GasPriceForProcessing(tx data.TransactionWithFeeHandler) uint64 {
 	return uint64(float64(tx.GetGasPrice()) * ed.GasPriceModifier())
 }
 
 // GasPriceForMove returns the gas price for transferring funds
-func (ed *economicsData) GasPriceForMove(tx process.TransactionWithFeeHandler) uint64 {
+func (ed *economicsData) GasPriceForMove(tx data.TransactionWithFeeHandler) uint64 {
 	return tx.GetGasPrice()
 }
 
-func isSmartContractResult(tx process.TransactionWithFeeHandler) bool {
+func isSmartContractResult(tx data.TransactionWithFeeHandler) bool {
 	_, isSCR := tx.(*smartContractResult.SmartContractResult)
 	return isSCR
 }
 
 // ComputeTxFee computes the provided transaction's fee using enable from epoch approach
-func (ed *economicsData) ComputeTxFee(tx process.TransactionWithFeeHandler) *big.Int {
+func (ed *economicsData) ComputeTxFee(tx data.TransactionWithFeeHandler) *big.Int {
 	if ed.flagGasPriceModifier.IsSet() {
 		if isSmartContractResult(tx) {
 			return ed.ComputeFeeForProcessing(tx, tx.GetGasLimit())
@@ -354,7 +356,7 @@ func (ed *economicsData) ComputeTxFee(tx process.TransactionWithFeeHandler) *big
 }
 
 // SplitTxGasInCategories returns the gas split per categories
-func (ed *economicsData) SplitTxGasInCategories(tx process.TransactionWithFeeHandler) (gasLimitMove, gasLimitProcess uint64) {
+func (ed *economicsData) SplitTxGasInCategories(tx data.TransactionWithFeeHandler) (gasLimitMove, gasLimitProcess uint64) {
 	var err error
 	gasLimitMove = ed.ComputeGasLimit(tx)
 	gasLimitProcess, err = core.SafeSubUint64(tx.GetGasLimit(), gasLimitMove)
@@ -370,7 +372,7 @@ func (ed *economicsData) SplitTxGasInCategories(tx process.TransactionWithFeeHan
 }
 
 // CheckValidityTxValues checks if the provided transaction is economically correct
-func (ed *economicsData) CheckValidityTxValues(tx process.TransactionWithFeeHandler) error {
+func (ed *economicsData) CheckValidityTxValues(tx data.TransactionWithFeeHandler) error {
 	if ed.minGasPrice > tx.GetGasPrice() {
 		return process.ErrInsufficientGasPriceInTx
 	}
@@ -450,7 +452,7 @@ func (ed *economicsData) RewardsTopUpFactor() float64 {
 }
 
 // ComputeGasLimit returns the gas limit need by the provided transaction in order to be executed
-func (ed *economicsData) ComputeGasLimit(tx process.TransactionWithFeeHandler) uint64 {
+func (ed *economicsData) ComputeGasLimit(tx data.TransactionWithFeeHandler) uint64 {
 	gasLimit := ed.minGasLimit
 
 	dataLen := uint64(len(tx.GetData()))
@@ -460,7 +462,7 @@ func (ed *economicsData) ComputeGasLimit(tx process.TransactionWithFeeHandler) u
 }
 
 // ComputeGasUsedAndFeeBasedOnRefundValue will compute gas used value and transaction fee using refund value from a SCR
-func (ed *economicsData) ComputeGasUsedAndFeeBasedOnRefundValue(tx process.TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int) {
+func (ed *economicsData) ComputeGasUsedAndFeeBasedOnRefundValue(tx data.TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int) {
 	if refundValue.Cmp(big.NewInt(0)) == 0 {
 		if ed.builtInFunctionsCostHandler.IsBuiltInFuncCall(tx) {
 			cost := ed.builtInFunctionsCostHandler.ComputeBuiltInCost(tx)
@@ -505,7 +507,7 @@ func isTooMuchGasProvided(gasProvided uint64, gasRemained uint64) bool {
 }
 
 // ComputeTxFeeBasedOnGasUsed will compute transaction fee
-func (ed *economicsData) ComputeTxFeeBasedOnGasUsed(tx process.TransactionWithFeeHandler, gasUsed uint64) *big.Int {
+func (ed *economicsData) ComputeTxFeeBasedOnGasUsed(tx data.TransactionWithFeeHandler, gasUsed uint64) *big.Int {
 	moveBalanceGasLimit := ed.ComputeGasLimit(tx)
 	moveBalanceFee := ed.ComputeMoveBalanceFee(tx)
 	if gasUsed <= moveBalanceGasLimit {
@@ -525,7 +527,7 @@ func (ed *economicsData) EpochConfirmed(epoch uint32, _ uint64) {
 
 	ed.flagGasPriceModifier.Toggle(epoch >= ed.gasPriceModifierEnableEpoch)
 	log.Debug("economics: gas price modifier", "enabled", ed.flagGasPriceModifier.IsSet())
-	ed.statusHandler.SetStringValue(core.MetricGasPriceModifier, fmt.Sprintf("%g", ed.GasPriceModifier()))
+	ed.statusHandler.SetStringValue(common.MetricGasPriceModifier, fmt.Sprintf("%g", ed.GasPriceModifier()))
 	ed.setRewardsEpochConfig(epoch)
 }
 
@@ -564,9 +566,9 @@ func (ed *economicsData) setRewardsEpochConfig(currentEpoch uint32) {
 	ed.topUpGradientPoint, _ = big.NewInt(0).SetString(rewardSetting.TopUpGradientPoint, 10)
 
 	// TODO: add all metrics
-	ed.statusHandler.SetStringValue(core.MetricLeaderPercentage, fmt.Sprintf("%f", rewardSetting.LeaderPercentage))
-	ed.statusHandler.SetStringValue(core.MetricRewardsTopUpGradientPoint, rewardSetting.TopUpGradientPoint)
-	ed.statusHandler.SetStringValue(core.MetricTopUpFactor, fmt.Sprintf("%f", rewardSetting.TopUpFactor))
+	ed.statusHandler.SetStringValue(common.MetricLeaderPercentage, fmt.Sprintf("%f", rewardSetting.LeaderPercentage))
+	ed.statusHandler.SetStringValue(common.MetricRewardsTopUpGradientPoint, rewardSetting.TopUpGradientPoint)
+	ed.statusHandler.SetStringValue(common.MetricTopUpFactor, fmt.Sprintf("%f", rewardSetting.TopUpFactor))
 
 	log.Debug("economics: RewardsConfig",
 		"epoch", ed.rewardsSettingEpoch,
@@ -580,7 +582,7 @@ func (ed *economicsData) setRewardsEpochConfig(currentEpoch uint32) {
 }
 
 // ComputeGasLimitBasedOnBalance will compute gas limit for the given transaction based on the balance
-func (ed *economicsData) ComputeGasLimitBasedOnBalance(tx process.TransactionWithFeeHandler, balance *big.Int) (uint64, error) {
+func (ed *economicsData) ComputeGasLimitBasedOnBalance(tx data.TransactionWithFeeHandler, balance *big.Int) (uint64, error) {
 	balanceWithoutTransferValue := big.NewInt(0).Sub(balance, tx.GetValue())
 	if balanceWithoutTransferValue.Cmp(big.NewInt(0)) < 1 {
 		return 0, process.ErrInsufficientFunds

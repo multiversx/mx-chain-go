@@ -14,30 +14,31 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	atomicCore "github.com/ElrondNetwork/elrond-go/core/atomic"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/keyValStorage"
-	"github.com/ElrondNetwork/elrond-go/core/versioning"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	atomicCore "github.com/ElrondNetwork/elrond-go-core/core/atomic"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/keyValStorage"
+	"github.com/ElrondNetwork/elrond-go-core/core/versioning"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/batch"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/batch"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm-common/data/esdt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -1367,7 +1368,7 @@ func TestCreateTransaction_SenderShardIdIsInDifferentShardShouldNotValidate(t *t
 		return version
 	}
 	coreComponents.EconomicsHandler = &economicsmocks.EconomicsHandlerMock{
-		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+		CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 			return nil
 		},
 	}
@@ -1959,7 +1960,7 @@ func TestCreateTransaction_TxSignedWithHashShouldErrVersionShoudBe2(t *testing.T
 	}
 
 	feeHandler := &mock.EconomicsHandlerStub{
-		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+		CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 			return nil
 		},
 	}
@@ -2052,7 +2053,7 @@ func TestCreateTransaction_TxSignedWithHashNoEnabledShouldErr(t *testing.T) {
 	}
 
 	feeHandler := &mock.EconomicsHandlerStub{
-		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+		CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 			return nil
 		},
 	}
@@ -2570,7 +2571,7 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 func TestNode_AppStatusHandlersShouldIncrement(t *testing.T) {
 	t.Parallel()
 
-	metricKey := core.MetricCurrentRound
+	metricKey := common.MetricCurrentRound
 	incrementCalled := make(chan bool, 1)
 
 	appStatusHandlerStub := mock.AppStatusHandlerStub{
@@ -2598,7 +2599,7 @@ func TestNode_AppStatusHandlersShouldIncrement(t *testing.T) {
 func TestNode_AppStatusHandlerShouldDecrement(t *testing.T) {
 	t.Parallel()
 
-	metricKey := core.MetricCurrentRound
+	metricKey := common.MetricCurrentRound
 	decrementCalled := make(chan bool, 1)
 
 	appStatusHandlerStub := mock.AppStatusHandlerStub{
@@ -2626,7 +2627,7 @@ func TestNode_AppStatusHandlerShouldDecrement(t *testing.T) {
 func TestNode_AppStatusHandlerShouldSetInt64Value(t *testing.T) {
 	t.Parallel()
 
-	metricKey := core.MetricCurrentRound
+	metricKey := common.MetricCurrentRound
 	setInt64ValueCalled := make(chan bool, 1)
 
 	appStatusHandlerStub := mock.AppStatusHandlerStub{
@@ -2654,7 +2655,7 @@ func TestNode_AppStatusHandlerShouldSetInt64Value(t *testing.T) {
 func TestNode_AppStatusHandlerShouldSetUInt64Value(t *testing.T) {
 	t.Parallel()
 
-	metricKey := core.MetricCurrentRound
+	metricKey := common.MetricCurrentRound
 	setUInt64ValueCalled := make(chan bool, 1)
 
 	appStatusHandlerStub := mock.AppStatusHandlerStub{
@@ -2832,13 +2833,13 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 		},
 	}
 	feeHandler := &mock.EconomicsHandlerStub{
-		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+		ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 			return 100
 		},
-		ComputeMoveBalanceFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+		ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return big.NewInt(100)
 		},
-		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+		CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 			return nil
 		},
 	}

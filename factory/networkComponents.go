@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/peersholder"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/peersholder"
 	"github.com/ElrondNetwork/elrond-go/debug/antiflood"
 	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -32,6 +32,7 @@ type NetworkComponentsFactoryArgs struct {
 	Syncer               p2p.SyncTimer
 	PreferredPublicKeys  [][]byte
 	BootstrapWaitSeconds uint32
+	NodeOperationMode    p2p.NodeOperation
 }
 
 type networkComponentsFactory struct {
@@ -44,6 +45,7 @@ type networkComponentsFactory struct {
 	syncer               p2p.SyncTimer
 	preferredPublicKeys  [][]byte
 	bootstrapWaitSeconds uint32
+	nodeOperationMode    p2p.NodeOperation
 }
 
 // networkComponents struct holds the network components
@@ -85,6 +87,7 @@ func NewNetworkComponentsFactory(
 		syncer:               args.Syncer,
 		bootstrapWaitSeconds: args.BootstrapWaitSeconds,
 		preferredPublicKeys:  args.PreferredPublicKeys,
+		nodeOperationMode:    args.NodeOperationMode,
 	}, nil
 }
 
@@ -97,6 +100,7 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		P2pConfig:            ncf.p2pConfig,
 		SyncTimer:            ncf.syncer,
 		PreferredPeersHolder: peersHolder,
+		NodeOperationMode:    ncf.nodeOperationMode,
 	}
 
 	netMessenger, err := libp2p.NewNetworkMessenger(arg)

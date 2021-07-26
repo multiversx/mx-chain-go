@@ -3,10 +3,11 @@ package factory
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
@@ -80,7 +81,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		Store:                     storer,
 		DataPool:                  args.DataPool,
 		Accounts:                  accountsAdapter,
-		MaxTxNonceDeltaAllowed:    core.MaxTxNonceDeltaAllowed,
+		MaxTxNonceDeltaAllowed:    common.MaxTxNonceDeltaAllowed,
 		TxFeeHandler:              feeHandler,
 		BlockBlackList:            blackListHandler,
 		HeaderSigVerifier:         headerSigVerifier,

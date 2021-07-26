@@ -4,7 +4,7 @@ import (
 	"math"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/common"
 )
 
 const metricNotAvailable = "N/A"
@@ -64,8 +64,8 @@ func areEqualWithZero(parameters ...uint64) bool {
 }
 
 func (psh *PresenterStatusHandler) computeChanceToBeInConsensus() float64 {
-	consensusGroupSize := psh.getFromCacheAsUint64(core.MetricConsensusGroupSize)
-	numValidators := psh.getFromCacheAsUint64(core.MetricNumValidators)
+	consensusGroupSize := psh.getFromCacheAsUint64(common.MetricConsensusGroupSize)
+	numValidators := psh.getFromCacheAsUint64(common.MetricNumValidators)
 	isChanceZero := areEqualWithZero(consensusGroupSize, numValidators)
 	if isChanceZero {
 		return 0
@@ -90,8 +90,8 @@ func (psh *PresenterStatusHandler) computeRoundsPerHourAccordingToHitRate() floa
 }
 
 func (psh *PresenterStatusHandler) computeRewardsInErd() *big.Float {
-	rewardsValue := psh.getBigIntFromStringMetric(core.MetricRewardsValue)
-	denomination := psh.getFromCacheAsUint64(core.MetricDenomination)
+	rewardsValue := psh.getBigIntFromStringMetric(common.MetricRewardsValue)
+	denomination := psh.getFromCacheAsUint64(common.MetricDenomination)
 	denominationCoefficientFloat := 1.0
 	if denomination > 0 {
 		denominationCoefficientFloat /= math.Pow10(int(denomination))

@@ -5,8 +5,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
@@ -60,7 +61,7 @@ func (sr *storageResolver) asyncCallGracefullyClose() {
 	crtEpoch := sr.manualEpochStartNotifier.CurrentEpoch()
 
 	argEndProcess := endProcess.ArgEndProcess{
-		Reason: core.ImportComplete,
+		Reason: common.ImportComplete,
 		Description: fmt.Sprintf("import ended because data from epochs %d or %d does not exist",
 			crtEpoch-1, crtEpoch),
 	}

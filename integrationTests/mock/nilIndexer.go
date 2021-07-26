@@ -1,11 +1,8 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/statistics"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/indexer"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 )
 
 // NilIndexer will be used when an Indexer is required, but another one isn't necessary or available
@@ -14,14 +11,6 @@ type NilIndexer struct {
 
 // SaveBlock will do nothing
 func (ni *NilIndexer) SaveBlock(_ *indexer.ArgsSaveBlockData) {
-}
-
-// SetTxLogsProcessor will do nothing
-func (ni *NilIndexer) SetTxLogsProcessor(_ process.TransactionLogProcessorDatabase) {
-}
-
-// UpdateTPS will do nothing
-func (ni *NilIndexer) UpdateTPS(_ statistics.TPSBenchmark) {
 }
 
 // SaveValidatorsRating does nothing
@@ -47,7 +36,7 @@ func (ni *NilIndexer) RevertIndexedBlock(_ data.HeaderHandler, _ data.BodyHandle
 }
 
 // SaveAccounts -
-func (ni *NilIndexer) SaveAccounts(_ uint64, _ []state.UserAccountHandler) {
+func (ni *NilIndexer) SaveAccounts(_ uint64, _ []data.UserAccountHandler) {
 }
 
 // Close -

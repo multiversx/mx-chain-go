@@ -26,7 +26,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -63,7 +62,7 @@ func CreateTestIndexer(
 
 	dispatcher.StartIndexData()
 
-	txFeeCalculator, ok := economicsDataHandler.(process.TransactionFeeCalculator)
+	txFeeCalculator, ok := economicsDataHandler.(elasticIndexer.FeesProcessorHandler)
 	require.True(t, ok)
 
 	ep := ti.createElasticProcessor(coordinator, txFeeCalculator, hasResults)
@@ -92,7 +91,7 @@ func CreateTestIndexer(
 
 func (ti *testIndexer) createElasticProcessor(
 	shardCoordinator sharding.Coordinator,
-	transactionFeeCalculator process.TransactionFeeCalculator,
+	transactionFeeCalculator elasticIndexer.FeesProcessorHandler,
 	hasResults bool,
 ) elasticIndexer.ElasticProcessor {
 	databaseClient := ti.createDatabaseClient(hasResults)

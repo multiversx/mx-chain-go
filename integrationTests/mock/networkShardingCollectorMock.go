@@ -3,7 +3,7 @@ package mock
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 )
 
 type networkShardingCollectorMock struct {

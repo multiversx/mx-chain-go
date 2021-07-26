@@ -6,13 +6,14 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/indexer"
-	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -36,11 +37,11 @@ func getMetricsFromMetaHeader(
 		headerSize = uint64(len(marshalizedHeader))
 	}
 
-	appStatusHandler.SetUInt64Value(core.MetricHeaderSize, headerSize)
-	appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, uint64(header.TxCount))
-	appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, numMiniBlocksMetaBlock)
-	appStatusHandler.SetUInt64Value(core.MetricNumShardHeadersProcessed, numShardHeadersProcessed)
-	appStatusHandler.SetUInt64Value(core.MetricNumShardHeadersFromPool, uint64(numShardHeadersFromPool))
+	appStatusHandler.SetUInt64Value(common.MetricHeaderSize, headerSize)
+	appStatusHandler.SetUInt64Value(common.MetricNumTxInBlock, uint64(header.TxCount))
+	appStatusHandler.SetUInt64Value(common.MetricNumMiniBlocks, numMiniBlocksMetaBlock)
+	appStatusHandler.SetUInt64Value(common.MetricNumShardHeadersProcessed, numShardHeadersProcessed)
+	appStatusHandler.SetUInt64Value(common.MetricNumShardHeadersFromPool, uint64(numShardHeadersFromPool))
 }
 
 func getMetricsFromBlockBody(
@@ -59,9 +60,9 @@ func getMetricsFromBlockBody(
 			miniblocksSize += uint64(len(marshalizedBlock))
 		}
 	}
-	appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, uint64(totalTxCount))
-	appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, uint64(mbLen))
-	appStatusHandler.SetUInt64Value(core.MetricMiniBlocksSize, miniblocksSize)
+	appStatusHandler.SetUInt64Value(common.MetricNumTxInBlock, uint64(totalTxCount))
+	appStatusHandler.SetUInt64Value(common.MetricNumMiniBlocks, uint64(mbLen))
+	appStatusHandler.SetUInt64Value(common.MetricMiniBlocksSize, miniblocksSize)
 }
 
 func getMetricsFromHeader(
@@ -76,8 +77,8 @@ func getMetricsFromHeader(
 		headerSize = uint64(len(marshalizedHeader))
 	}
 
-	appStatusHandler.SetUInt64Value(core.MetricHeaderSize, headerSize)
-	appStatusHandler.SetUInt64Value(core.MetricTxPoolLoad, numTxWithDst)
+	appStatusHandler.SetUInt64Value(common.MetricHeaderSize, headerSize)
+	appStatusHandler.SetUInt64Value(common.MetricTxPoolLoad, numTxWithDst)
 }
 
 func saveMetricsForCommittedShardBlock(
@@ -89,10 +90,10 @@ func saveMetricsForCommittedShardBlock(
 	shardHeader *block.Header,
 ) {
 	incrementCountAcceptedBlocks(nodesCoordinator, appStatusHandler, shardHeader)
-	appStatusHandler.SetUInt64Value(core.MetricEpochNumber, uint64(shardHeader.GetEpoch()))
-	appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, currentBlockHash)
-	appStatusHandler.SetUInt64Value(core.MetricHighestFinalBlock, highestFinalBlockNonce)
-	appStatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, fmt.Sprintf("meta %d", metaBlock.GetNonce()))
+	appStatusHandler.SetUInt64Value(common.MetricEpochNumber, uint64(shardHeader.GetEpoch()))
+	appStatusHandler.SetStringValue(common.MetricCurrentBlockHash, currentBlockHash)
+	appStatusHandler.SetUInt64Value(common.MetricHighestFinalBlock, highestFinalBlockNonce)
+	appStatusHandler.SetStringValue(common.MetricCrossCheckBlockHeight, fmt.Sprintf("meta %d", metaBlock.GetNonce()))
 }
 
 func incrementCountAcceptedBlocks(
@@ -137,7 +138,7 @@ func incrementCountAcceptedBlocks(
 
 	indexInBitmap := myIndex != 0 && bitMap[myIndex/8]&(1<<uint8(myIndex%8)) != 0
 	if indexInBitmap {
-		appStatusHandler.Increment(core.MetricCountConsensusAcceptedBlocks)
+		appStatusHandler.Increment(common.MetricCountConsensusAcceptedBlocks)
 	}
 }
 
@@ -148,9 +149,9 @@ func saveMetricsForCommitMetachainBlock(
 	nodesCoordinator sharding.NodesCoordinator,
 	highestFinalBlockNonce uint64,
 ) {
-	appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, logger.DisplayByteSlice(headerHash))
-	appStatusHandler.SetUInt64Value(core.MetricEpochNumber, uint64(header.Epoch))
-	appStatusHandler.SetUInt64Value(core.MetricHighestFinalBlock, highestFinalBlockNonce)
+	appStatusHandler.SetStringValue(common.MetricCurrentBlockHash, logger.DisplayByteSlice(headerHash))
+	appStatusHandler.SetUInt64Value(common.MetricEpochNumber, uint64(header.Epoch))
+	appStatusHandler.SetUInt64Value(common.MetricHighestFinalBlock, highestFinalBlockNonce)
 
 	// TODO: remove if epoch start block needs to be validated by the new epoch nodes
 	epoch := header.GetEpoch()
@@ -193,7 +194,7 @@ func countMetaAcceptedSignedBlocks(
 		return
 	}
 
-	appStatusHandler.Increment(core.MetricCountConsensusAcceptedBlocks)
+	appStatusHandler.Increment(common.MetricCountConsensusAcceptedBlocks)
 }
 
 func indexRoundInfo(
@@ -314,9 +315,9 @@ func calculateRoundDuration(
 func saveEpochStartEconomicsMetrics(statusHandler core.AppStatusHandler, epochStartMetaBlock *block.MetaBlock) {
 	economics := epochStartMetaBlock.EpochStart.Economics
 
-	statusHandler.SetStringValue(core.MetricTotalSupply, economics.TotalSupply.String())
-	statusHandler.SetStringValue(core.MetricInflation, economics.TotalNewlyMinted.String())
-	statusHandler.SetStringValue(core.MetricTotalFees, epochStartMetaBlock.AccumulatedFeesInEpoch.String())
-	statusHandler.SetStringValue(core.MetricDevRewardsInEpoch, epochStartMetaBlock.DevFeesInEpoch.String())
-	statusHandler.SetUInt64Value(core.MetricEpochForEconomicsData, uint64(epochStartMetaBlock.Epoch))
+	statusHandler.SetStringValue(common.MetricTotalSupply, economics.TotalSupply.String())
+	statusHandler.SetStringValue(common.MetricInflation, economics.TotalNewlyMinted.String())
+	statusHandler.SetStringValue(common.MetricTotalFees, epochStartMetaBlock.AccumulatedFeesInEpoch.String())
+	statusHandler.SetStringValue(common.MetricDevRewardsInEpoch, epochStartMetaBlock.DevFeesInEpoch.String())
+	statusHandler.SetUInt64Value(common.MetricEpochForEconomicsData, uint64(epochStartMetaBlock.Epoch))
 }

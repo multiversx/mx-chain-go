@@ -4,24 +4,23 @@ import (
 	"encoding/hex"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/statistics"
-	"github.com/ElrondNetwork/elrond-go/data/api"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/data/vm"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-vm-common/data/esdt"
+	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
+	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 // Facade is the mock implementation of a node router handler
 type Facade struct {
 	ShouldErrorStart           bool
 	ShouldErrorStop            bool
-	TpsBenchmarkHandler        func() statistics.TPSBenchmark
 	GetHeartbeatsHandler       func() ([]data.PubKeyHeartbeat, error)
 	BalanceHandler             func(string) (*big.Int, error)
 	GetAccountHandler          func(address string) (api.AccountResponse, error)
@@ -43,7 +42,7 @@ type Facade struct {
 	GetThrottlerForEndpointCalled           func(endpoint string) (core.Throttler, bool)
 	GetUsernameCalled                       func(address string) (string, error)
 	GetKeyValuePairsCalled                  func(address string) (map[string]string, error)
-	SimulateTransactionExecutionHandler     func(tx *transaction.Transaction) (*transaction.SimulationResults, error)
+	SimulateTransactionExecutionHandler     func(tx *transaction.Transaction) (*txSimData.SimulationResults, error)
 	GetNumCheckpointsFromAccountStateCalled func() uint32
 	GetNumCheckpointsFromPeerStateCalled    func() uint32
 	GetESDTDataCalled                       func(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error)
@@ -119,14 +118,6 @@ func (f *Facade) RestAPIServerDebugMode() bool {
 // PprofEnabled -
 func (f *Facade) PprofEnabled() bool {
 	return false
-}
-
-// TpsBenchmark is the mock implementation for retreiving the TpsBenchmark
-func (f *Facade) TpsBenchmark() statistics.TPSBenchmark {
-	if f.TpsBenchmarkHandler != nil {
-		return f.TpsBenchmarkHandler()
-	}
-	return nil
 }
 
 // GetHeartbeats returns the slice of heartbeat info
@@ -232,7 +223,7 @@ func (f *Facade) GetTransaction(hash string, withResults bool) (*transaction.Api
 }
 
 // SimulateTransactionExecution is the mock implementation of a handler's SimulateTransactionExecution method
-func (f *Facade) SimulateTransactionExecution(tx *transaction.Transaction) (*transaction.SimulationResults, error) {
+func (f *Facade) SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
 	return f.SimulateTransactionExecutionHandler(tx)
 }
 

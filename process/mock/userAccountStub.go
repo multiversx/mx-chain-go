@@ -3,8 +3,8 @@ package mock
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/state/temporary"
 )
 
 var _ state.UserAccountHandler = (*UserAccountStub)(nil)
@@ -127,12 +127,12 @@ func (u *UserAccountStub) GetRootHash() []byte {
 }
 
 // SetDataTrie -
-func (u *UserAccountStub) SetDataTrie(_ data.Trie) {
+func (u *UserAccountStub) SetDataTrie(_ temporary.Trie) {
 
 }
 
 // DataTrie -
-func (u *UserAccountStub) DataTrie() data.Trie {
+func (u *UserAccountStub) DataTrie() temporary.Trie {
 	return nil
 }
 
@@ -142,6 +142,11 @@ func (u *UserAccountStub) DataTrieTracker() state.DataTrieTracker {
 		return u.DataTrieTrackerCalled()
 	}
 	return nil
+}
+
+// RetrieveValueFromDataTrieTracker -
+func (u *UserAccountStub) RetrieveValueFromDataTrieTracker(_ []byte) ([]byte, error) {
+	return nil, nil
 }
 
 // IsInterfaceNil -

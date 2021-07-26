@@ -1,6 +1,6 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/data/block"
+import "github.com/ElrondNetwork/elrond-go-core/data/block"
 
 // SCToProtocolStub -
 type SCToProtocolStub struct {

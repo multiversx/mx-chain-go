@@ -1,6 +1,6 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/core"
+import "github.com/ElrondNetwork/elrond-go-core/core"
 
 // TopicAntiFloodStub -
 type TopicAntiFloodStub struct {

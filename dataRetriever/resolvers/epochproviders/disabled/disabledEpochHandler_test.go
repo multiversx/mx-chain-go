@@ -3,7 +3,7 @@ package disabled
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/stretchr/testify/require"
 )
 

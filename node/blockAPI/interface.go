@@ -1,7 +1,7 @@
 package blockAPI
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
 )
 
 // APIBlockHandler defines the behavior of a component able to return api blocks

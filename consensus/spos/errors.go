@@ -19,9 +19,6 @@ var ErrNilPrivateKey = errors.New("private key is nil")
 // ErrNilSignature is raised when a valid signature was expected but nil was used
 var ErrNilSignature = errors.New("signature is nil")
 
-// ErrNilSingleSigner is raised when a valid singleSigner is expected but nil used
-var ErrNilSingleSigner = errors.New("singleSigner is nil")
-
 // ErrNilMultiSigner is raised when a valid multiSigner is expected but nil used
 var ErrNilMultiSigner = errors.New("multiSigner is nil")
 

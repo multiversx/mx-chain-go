@@ -1,6 +1,6 @@
 package p2pQuota
 
-import "github.com/ElrondNetwork/elrond-go/core"
+import "github.com/ElrondNetwork/elrond-go-core/core"
 
 type Quota struct {
 	*quota

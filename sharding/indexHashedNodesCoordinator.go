@@ -7,16 +7,17 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	atomicFlags "github.com/ElrondNetwork/elrond-go-core/core/atomic"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core"
-	atomicFlags "github.com/ElrondNetwork/elrond-go/core/atomic"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -273,7 +274,7 @@ func (ihgs *indexHashedNodesCoordinator) setNodesPerShards(
 
 	if ihgs.isFullArchive && isValidator {
 		ihgs.chanStopNode <- endProcess.ArgEndProcess{
-			Reason:      core.WrongConfiguration,
+			Reason:      common.WrongConfiguration,
 			Description: ErrValidatorCannotBeFullArchive.Error(),
 		}
 
@@ -718,11 +719,11 @@ func (ihgs *indexHashedNodesCoordinator) computeNodesConfigFromList(
 		}
 
 		switch validatorInfo.List {
-		case string(core.WaitingList):
+		case string(common.WaitingList):
 			waitingMap[validatorInfo.ShardId] = append(waitingMap[validatorInfo.ShardId], currentValidator)
-		case string(core.EligibleList):
+		case string(common.EligibleList):
 			eligibleMap[validatorInfo.ShardId] = append(eligibleMap[validatorInfo.ShardId], currentValidator)
-		case string(core.LeavingList):
+		case string(common.LeavingList):
 			log.Debug("leaving node validatorInfo", "pk", validatorInfo.PublicKey)
 			leavingMap[validatorInfo.ShardId] = append(leavingMap[validatorInfo.ShardId], currentValidator)
 			ihgs.addValidatorToPreviousMap(
@@ -731,12 +732,12 @@ func (ihgs *indexHashedNodesCoordinator) computeNodesConfigFromList(
 				waitingMap,
 				currentValidator,
 				validatorInfo.ShardId)
-		case string(core.NewList):
+		case string(common.NewList):
 			log.Debug("new node registered", "pk", validatorInfo.PublicKey)
 			newNodesList = append(newNodesList, currentValidator)
-		case string(core.InactiveList):
+		case string(common.InactiveList):
 			log.Debug("inactive validator", "pk", validatorInfo.PublicKey)
-		case string(core.JailedList):
+		case string(common.JailedList):
 			log.Debug("jailed validator", "pk", validatorInfo.PublicKey)
 		}
 	}
@@ -822,7 +823,7 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartAction(hdr data.HeaderHandler
 
 // NotifyOrder returns the notification order for a start of epoch event
 func (ihgs *indexHashedNodesCoordinator) NotifyOrder() uint32 {
-	return core.NodesCoordinatorOrder
+	return common.NodesCoordinatorOrder
 }
 
 // GetSavedStateKey returns the key for the last nodes coordinator saved state
