@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/data/scheduled"
+	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"math"
 	"sort"
 
