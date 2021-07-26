@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	factoryMarshalizer "github.com/ElrondNetwork/elrond-go-core/marshal/factory"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go-logger/lifespan"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/seednode/api"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -156,7 +157,18 @@ func startNode(ctx *cli.Context) error {
 			return fmt.Errorf("%w creating a log file", err)
 		}
 
-		//err = fileLogging.ChangeFileLifeSpan(time.Second * time.Duration(generalConfig.Logs.LifeSpan.RecreateEvery))
+		args := logger.LogLifeSpanFactoryArgs{
+			LifeSpanType:  "second",
+			RecreateEvery: generalConfig.Logs.LifeSpan.RecreateEvery,
+		}
+
+		lifeSpanFactory := lifespan.NewTypeLogLifeSpanFactory()
+		lls, errLifeSpan := lifeSpanFactory.CreateLogLifeSpanner(args)
+		if errLifeSpan != nil {
+			return errLifeSpan
+		}
+
+		err = fileLogging.ChangeFileLifeSpan(lls)
 		if err != nil {
 			return err
 		}
