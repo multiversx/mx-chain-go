@@ -31,10 +31,7 @@ func (t *trigger) LoadState(key []byte) error {
 		return err
 	}
 
-	state := &TriggerRegistry{
-		EpochStartShardHeader: &block.Header{},
-	}
-	err = json.Unmarshal(triggerData, state)
+	state, err := t.UnmarshalTrigger(triggerData)
 	if err != nil {
 		return err
 	}
@@ -53,6 +50,26 @@ func (t *trigger) LoadState(key []byte) error {
 	t.mutTrigger.Unlock()
 
 	return nil
+}
+
+// UnmarshalTrigger unmarshalls the trigger
+func (t *trigger) UnmarshalTrigger(data []byte) (*TriggerRegistry, error) {
+	state := &TriggerRegistry{
+		EpochStartShardHeader: &block.Header{},
+	}
+	err := json.Unmarshal(data, state)
+	if err == nil {
+		return state, nil
+	}
+
+	// TODO: pass the factory to trigger and use the header factory instead
+	state.EpochStartShardHeader = &block.HeaderV2{}
+	err = json.Unmarshal(data, state)
+	if err != nil {
+		return nil, err
+	}
+
+	return state, nil
 }
 
 // saveState saves the trigger state. Needs to be called under mutex
