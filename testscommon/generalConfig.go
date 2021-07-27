@@ -110,9 +110,8 @@ func GetGeneralConfig() config.Config {
 			MaxPeerTrieLevelInMemory:    5,
 		},
 		TrieStorageManagerConfig: config.TrieStorageManagerConfig{
-			PruningBufferLen:   1000,
-			SnapshotsBufferLen: 10,
-			MaxSnapshots:       2,
+			PruningBufferLen: 1000,
+			MaxSnapshots:     2,
 		},
 		TxDataPool: config.CacheConfig{
 			Capacity:             10000,

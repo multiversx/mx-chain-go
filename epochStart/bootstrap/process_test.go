@@ -133,9 +133,8 @@ func createMockEpochStartBootstrapArgs(
 				},
 			},
 			TrieStorageManagerConfig: config.TrieStorageManagerConfig{
-				PruningBufferLen:   1000,
-				SnapshotsBufferLen: 10,
-				MaxSnapshots:       2,
+				PruningBufferLen: 1000,
+				MaxSnapshots:     2,
 			},
 			TrieSync: config.TrieSyncConfig{
 				NumConcurrentTrieSyncers:  50,

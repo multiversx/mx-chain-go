@@ -168,9 +168,8 @@ func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 		MaxOpenFiles:      10,
 	}
 	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:   1000,
-		SnapshotsBufferLen: 10,
-		MaxSnapshots:       2,
+		PruningBufferLen: 1000,
+		MaxSnapshots:     2,
 	}
 	args := trie.NewTrieStorageManagerArgs{
 		DB:                     store,
@@ -184,21 +183,24 @@ func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 
 	maxTrieLevelInMemory := uint(5)
 	tr, _ := trie.NewTrie(trieStorage, marsh, hasher, maxTrieLevelInMemory)
-	storagePruning, _ := storagePruningManager.NewStoragePruningManager(
-		ewl,
-		generalCfg.PruningBufferLen,
-	)
-	adb, _ := state.NewAccountsDB(
-		tr,
-		sha256.NewSha256(),
-		marshalizer,
-		&mock.AccountsFactoryStub{
+	pb := testscommon.NewAtomicBufferMock(generalCfg.PruningBufferLen)
+	storagePruning, _ := storagePruningManager.NewStoragePruningManager(ewl, pb)
+	accountDbArgs := state.AccountsDBArgs{
+		Trie:        tr,
+		Hasher:      sha256.NewSha256(),
+		Marshalizer: marshalizer,
+		AccountFactory: &mock.AccountsFactoryStub{
 			CreateAccountCalled: func(address []byte) (wrapper vmcommon.AccountHandler, e error) {
 				return state.NewUserAccount(address)
 			},
 		},
-		storagePruning,
-	)
+		StoragePruningManager: storagePruning,
+		PruningBuffer:         pb,
+		InSyncConfig: config.InSyncConfig{
+			Enabled: false,
+		},
+	}
+	adb, _ := state.NewAccountsDB(accountDbArgs)
 	return adb
 }
 

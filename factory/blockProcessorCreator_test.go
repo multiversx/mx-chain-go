@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
@@ -165,7 +166,18 @@ func createAccountAdapter(
 		return nil, err
 	}
 
-	adb, err := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory, disabled.NewDisabledStoragePruningManager())
+	args := state.AccountsDBArgs{
+		Trie:                  tr,
+		Hasher:                hasher,
+		Marshalizer:           marshalizer,
+		AccountFactory:        accountFactory,
+		StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
+		PruningBuffer:         disabled.NewDisabledPruningBuffer(),
+		InSyncConfig: config.InSyncConfig{
+			Enabled: false,
+		},
+	}
+	adb, err := state.NewAccountsDB(args)
 	if err != nil {
 		return nil, err
 	}

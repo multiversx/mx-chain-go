@@ -57,3 +57,13 @@ func (pb *pruningBuffer) Len() int {
 
 	return len(pb.buffer)
 }
+
+// MaximumSize returns the maximum, provided, number of element the pruning buffer can hold
+func (pb *pruningBuffer) MaximumSize() int {
+	return int(pb.size)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (pb *pruningBuffer) IsInterfaceNil() bool {
+	return pb == nil
+}

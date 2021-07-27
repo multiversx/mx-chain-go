@@ -333,8 +333,20 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 	maxTrieLevelInMemory := uint(5)
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, maxTrieLevelInMemory)
-	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
-	adb, _ = state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator(), spm)
+	pb := testscommon.NewAtomicBufferMock(10)
+	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, pb)
+	accountDbArgs := state.AccountsDBArgs{
+		Trie:                  tr,
+		Hasher:                integrationTests.TestHasher,
+		Marshalizer:           integrationTests.TestMarshalizer,
+		AccountFactory:        factory.NewAccountCreator(),
+		StoragePruningManager: spm,
+		PruningBuffer:         pb,
+		InSyncConfig: config.InSyncConfig{
+			Enabled: false,
+		},
+	}
+	adb, _ = state.NewAccountsDB(accountDbArgs)
 
 	//reloading a new trie to test if data is inside
 	err = adb.RecreateTrie(h)
@@ -1057,8 +1069,20 @@ func createAccounts(
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 	maxTrieLevelInMemory := uint(5)
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, maxTrieLevelInMemory)
-	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
-	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator(), spm)
+	pb := testscommon.NewAtomicBufferMock(10)
+	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, pb)
+	accountDbArgs := state.AccountsDBArgs{
+		Trie:                  tr,
+		Hasher:                integrationTests.TestHasher,
+		Marshalizer:           integrationTests.TestMarshalizer,
+		AccountFactory:        factory.NewAccountCreator(),
+		StoragePruningManager: spm,
+		PruningBuffer:         pb,
+		InSyncConfig: config.InSyncConfig{
+			Enabled: false,
+		},
+	}
+	adb, _ := state.NewAccountsDB(accountDbArgs)
 
 	addr := make([][]byte, nrOfAccounts)
 	for i := 0; i < nrOfAccounts; i++ {
@@ -1130,9 +1154,8 @@ func TestTrieDbPruning_GetAccountAfterPruning(t *testing.T) {
 	t.Parallel()
 
 	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:   1000,
-		SnapshotsBufferLen: 10,
-		MaxSnapshots:       2,
+		PruningBufferLen: 1000,
+		MaxSnapshots:     2,
 	}
 	evictionWaitListSize := uint(100)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
@@ -1141,8 +1164,20 @@ func TestTrieDbPruning_GetAccountAfterPruning(t *testing.T) {
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 	maxTrieLevelInMemory := uint(5)
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, maxTrieLevelInMemory)
-	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
-	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator(), spm)
+	pb := testscommon.NewAtomicBufferMock(10)
+	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, pb)
+	accountDbArgs := state.AccountsDBArgs{
+		Trie:                  tr,
+		Hasher:                integrationTests.TestHasher,
+		Marshalizer:           integrationTests.TestMarshalizer,
+		AccountFactory:        factory.NewAccountCreator(),
+		StoragePruningManager: spm,
+		PruningBuffer:         pb,
+		InSyncConfig: config.InSyncConfig{
+			Enabled: false,
+		},
+	}
+	adb, _ := state.NewAccountsDB(accountDbArgs)
 
 	hexPubkeyConverter, _ := pubkeyConverter.NewHexPubkeyConverter(32)
 	address1, _ := hexPubkeyConverter.Decode("0000000000000000000000000000000000000000000000000000000000000000")
@@ -1175,9 +1210,8 @@ func newDefaultAccount(adb *state.AccountsDB, address []byte) vmcommon.AccountHa
 
 func TestAccountsDB_RecreateTrieInvalidatesDataTriesCache(t *testing.T) {
 	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:   1000,
-		SnapshotsBufferLen: 10,
-		MaxSnapshots:       2,
+		PruningBufferLen: 1000,
+		MaxSnapshots:     2,
 	}
 	evictionWaitListSize := uint(100)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
@@ -1186,8 +1220,20 @@ func TestAccountsDB_RecreateTrieInvalidatesDataTriesCache(t *testing.T) {
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 	maxTrieLevelInMemory := uint(5)
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, maxTrieLevelInMemory)
-	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
-	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator(), spm)
+	pb := testscommon.NewAtomicBufferMock(10)
+	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, pb)
+	accountDbArgs := state.AccountsDBArgs{
+		Trie:                  tr,
+		Hasher:                integrationTests.TestHasher,
+		Marshalizer:           integrationTests.TestMarshalizer,
+		AccountFactory:        factory.NewAccountCreator(),
+		StoragePruningManager: spm,
+		PruningBuffer:         pb,
+		InSyncConfig: config.InSyncConfig{
+			Enabled: false,
+		},
+	}
+	adb, _ := state.NewAccountsDB(accountDbArgs)
 
 	hexAddressPubkeyConverter, _ := pubkeyConverter.NewHexPubkeyConverter(32)
 	address1, _ := hexAddressPubkeyConverter.Decode("0000000000000000000000000000000000000000000000000000000000000000")
@@ -1232,9 +1278,8 @@ func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 	t.Parallel()
 
 	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:   1000,
-		SnapshotsBufferLen: 10,
-		MaxSnapshots:       2,
+		PruningBufferLen: 1000,
+		MaxSnapshots:     2,
 	}
 	evictionWaitListSize := uint(100)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
@@ -1243,8 +1288,20 @@ func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 	maxTrieLevelInMemory := uint(5)
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, maxTrieLevelInMemory)
-	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
-	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator(), spm)
+	pb := testscommon.NewAtomicBufferMock(10)
+	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, pb)
+	accountDbArgs := state.AccountsDBArgs{
+		Trie:                  tr,
+		Hasher:                integrationTests.TestHasher,
+		Marshalizer:           integrationTests.TestMarshalizer,
+		AccountFactory:        factory.NewAccountCreator(),
+		StoragePruningManager: spm,
+		PruningBuffer:         pb,
+		InSyncConfig: config.InSyncConfig{
+			Enabled: false,
+		},
+	}
+	adb, _ := state.NewAccountsDB(accountDbArgs)
 
 	hexAddressPubkeyConverter, _ := pubkeyConverter.NewHexPubkeyConverter(32)
 	address1, _ := hexAddressPubkeyConverter.Decode("0000000000000000000000000000000000000000000000000000000000000000")

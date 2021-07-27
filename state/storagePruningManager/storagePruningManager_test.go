@@ -20,9 +20,8 @@ const trieDbOperationDelay = time.Second
 
 func getDefaultTrieAndAccountsDbAndStoragePruningManager() (temporary.Trie, *state.AccountsDB, *storagePruningManager) {
 	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:   1000,
-		SnapshotsBufferLen: 10,
-		MaxSnapshots:       2,
+		PruningBufferLen: 1000,
+		MaxSnapshots:     2,
 	}
 	marshalizer := &mock.MarshalizerMock{}
 	hsh := mock.HasherMock{}
@@ -39,8 +38,22 @@ func getDefaultTrieAndAccountsDbAndStoragePruningManager() (temporary.Trie, *sta
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 	tr, _ := trie.NewTrie(trieStorage, marshalizer, hsh, 5)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, mock.NewMemDbMock(), marshalizer)
-	spm, _ := NewStoragePruningManager(ewl, generalCfg.PruningBufferLen)
-	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, factory.NewAccountCreator(), spm)
+	atomicBuffer := testscommon.NewAtomicBufferMock(generalCfg.PruningBufferLen)
+	spm, _ := NewStoragePruningManager(ewl, atomicBuffer)
+	accountsDbArgs := state.AccountsDBArgs{
+		Trie:                  tr,
+		Hasher:                hsh,
+		Marshalizer:           marshalizer,
+		AccountFactory:        factory.NewAccountCreator(),
+		StoragePruningManager: spm,
+		PruningBuffer:         atomicBuffer,
+		InSyncConfig: config.InSyncConfig{
+			Enabled:                    false,
+			ThresholdPruningBufferSize: 0,
+		},
+	}
+
+	adb, _ := state.NewAccountsDB(accountsDbArgs)
 
 	return tr, adb, spm
 }

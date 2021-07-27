@@ -291,9 +291,8 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 	store := CreateMemUnit()
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), marsh)
 	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:   1000,
-		SnapshotsBufferLen: 10,
-		MaxSnapshots:       2,
+		PruningBufferLen: 1000,
+		MaxSnapshots:     2,
 	}
 	args := trie.NewTrieStorageManagerArgs{
 		DB:          store,
@@ -312,8 +311,21 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 
 	tr, _ := trie.NewTrie(trieStorage, marsh, testHasher, maxTrieLevelInMemory)
-	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
-	adb, _ := state.NewAccountsDB(tr, testHasher, marsh, &accountFactory{}, spm)
+	pb := testscommon.NewAtomicBufferMock(10)
+	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, pb)
+	accountsDbArgs := state.AccountsDBArgs{
+		Trie:                  tr,
+		Hasher:                testHasher,
+		Marshalizer:           marsh,
+		AccountFactory:        &accountFactory{},
+		StoragePruningManager: spm,
+		PruningBuffer:         pb,
+		InSyncConfig: config.InSyncConfig{
+			Enabled: false,
+		},
+	}
+
+	adb, _ := state.NewAccountsDB(accountsDbArgs)
 
 	return adb
 }

@@ -192,6 +192,8 @@ type AtomicBuffer interface {
 	Add(rootHash []byte)
 	RemoveAll() [][]byte
 	Len() int
+	MaximumSize() int
+	IsInterfaceNil() bool
 }
 
 // StoragePruningManager is used to manage all state pruning operations

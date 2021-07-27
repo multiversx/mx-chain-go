@@ -869,8 +869,20 @@ func createAccountsDB(
 ) *state.AccountsDB {
 	tr, _ := trie.NewTrie(trieStorageManager, marshalizer, hasher, 5)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(10, dataMock.NewMemDbMock(), marshalizer)
-	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
-	adb, _ := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory, spm)
+	pb := testscommon.NewAtomicBufferMock(10)
+	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, pb)
+	args := state.AccountsDBArgs{
+		Trie:                  tr,
+		Hasher:                hasher,
+		Marshalizer:           marshalizer,
+		AccountFactory:        accountFactory,
+		StoragePruningManager: spm,
+		PruningBuffer:         pb,
+		InSyncConfig: config.InSyncConfig{
+			Enabled: false,
+		},
+	}
+	adb, _ := state.NewAccountsDB(args)
 	return adb
 }
 

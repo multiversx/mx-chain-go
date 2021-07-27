@@ -64,9 +64,6 @@ var ErrNilTrackableDataTrie = errors.New("nil trackable data trie")
 // ErrAccNotFound signals that account was not found in state trie
 var ErrAccNotFound = errors.New("account was not found")
 
-//ErrBech32ConvertError signals that conversion the 5bit alphabet to 8bit failed
-var ErrBech32ConvertError = errors.New("can't convert bech32 string")
-
 // ErrNilBLSPublicKey signals that the provided BLS public key is nil
 var ErrNilBLSPublicKey = errors.New("bls public key is nil")
 
@@ -98,9 +95,6 @@ var ErrSnapshotValueOutOfBounds = errors.New("snapshot value out of bounds")
 // ErrWrongSize signals that a wrong size occurred
 var ErrWrongSize = errors.New("wrong size")
 
-// ErrInvalidErdAddress signals that the provided address is not an ERD address
-var ErrInvalidErdAddress = errors.New("invalid ERD address")
-
 // ErrInvalidPubkeyConverterType signals that the provided pubkey converter type is invalid
 var ErrInvalidPubkeyConverterType = errors.New("invalid pubkey converter type")
 
@@ -124,3 +118,6 @@ var ErrNilStoragePruningManager = errors.New("nil storagePruningManager")
 
 // ErrInvalidKey is raised when the given key is invalid
 var ErrInvalidKey = errors.New("invalid key")
+
+// ErrNilAtomicBuffer signals that a nil atomic buffer has been provided
+var ErrNilAtomicBuffer = errors.New("nil atomic buffer")

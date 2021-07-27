@@ -123,6 +123,16 @@ func TestTomlParser(t *testing.T) {
 				DoProfileOnShuffleOut:   true,
 			},
 		},
+		TrieStorageManagerConfig: TrieStorageManagerConfig{
+			PruningBufferLen:              1,
+			MaxSnapshots:                  10,
+			KeepSnapshots:                 true,
+			CheckpointHashesHolderMaxSize: 100,
+			InSyncConfig: InSyncConfig{
+				Enabled:                    true,
+				ThresholdPruningBufferSize: 0.3,
+			},
+		},
 	}
 	testString := `
 [MiniBlocksStorage]
@@ -198,6 +208,15 @@ func TestTomlParser(t *testing.T) {
         CallGCWhenShuffleOut = true
         ExtraPrintsOnShuffleOut = true
         DoProfileOnShuffleOut = true
+
+[TrieStorageManagerConfig]
+    PruningBufferLen = 1
+    MaxSnapshots = 10
+    KeepSnapshots = true
+    CheckpointHashesHolderMaxSize = 100
+    [TrieStorageManagerConfig.InSyncConfig]
+        Enabled = true
+        ThresholdPruningBufferSize = 0.3 #30% of the pruning buffer
 `
 	cfg := Config{}
 
