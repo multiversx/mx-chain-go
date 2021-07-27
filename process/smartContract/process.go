@@ -34,13 +34,15 @@ var _ process.SmartContractProcessor = (*scProcessor)(nil)
 
 var log = logger.GetOrCreate("process/smartcontract")
 
-const executeDurationAlarmThreshold = time.Duration(100) * time.Millisecond
+const (
+	// TooMuchGasProvidedMessage is the message for the too much gas provided error
+	TooMuchGasProvidedMessage = "too much gas provided"
 
-// TODO: Move to vm-common.
-const upgradeFunctionName = "upgradeContract"
+	executeDurationAlarmThreshold = time.Duration(100) * time.Millisecond
 
-// TooMuchGasProvidedMessage is the message for the too much gas provided error
-const TooMuchGasProvidedMessage = "too much gas provided"
+	// TODO: Move to vm-common.
+	upgradeFunctionName = "upgradeContract"
+)
 
 var zero = big.NewInt(0)
 
@@ -436,7 +438,7 @@ func (sc *scProcessor) finishSCExecution(
 
 	ignorableError := sc.txLogsProcessor.SaveLog(txHash, tx, vmOutput.Logs)
 	if ignorableError != nil {
-		log.Debug("scProcessor.ExecuteBuiltInFunction txLogsProcessor.SaveLog()", "error", ignorableError.Error())
+		log.Debug("scProcessor.finishSCExecution txLogsProcessor.SaveLog()", "error", ignorableError.Error())
 	}
 
 	totalConsumedFee, totalDevRwd := sc.computeTotalConsumedFeeAndDevRwd(tx, vmOutput, builtInFuncGasUsed)
@@ -1451,6 +1453,11 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 
 	sc.vmOutputCacher.Put(txHash, vmOutput, 0)
 
+	ignorableError := sc.txLogsProcessor.SaveLog(txHash, tx, vmOutput.Logs)
+	if ignorableError != nil {
+		log.Debug("scProcessor.DeploySmartContract() txLogsProcessor.SaveLog()", "error", ignorableError.Error())
+	}
+
 	return 0, nil
 }
 
@@ -2091,7 +2098,7 @@ func (sc *scProcessor) processSCOutputAccounts(
 			log.Trace("storeUpdate", "acc", outAcc.Address, "key", storeUpdate.Offset, "data", storeUpdate.Data)
 		}
 
-		sc.updateSmartContractCode(acc, outAcc)
+		sc.updateSmartContractCode(vmOutput, acc, outAcc)
 		// change nonce only if there is a change
 		if outAcc.Nonce != acc.GetNonce() && outAcc.Nonce != 0 {
 			if outAcc.Nonce < acc.GetNonce() {
@@ -2138,6 +2145,7 @@ func (sc *scProcessor) processSCOutputAccounts(
 //	(2) the account as returned in VM Output
 // 	(3) the transaction that, upon execution, produced the VM Output
 func (sc *scProcessor) updateSmartContractCode(
+	vmOutput *vmcommon.VMOutput,
 	stateAccount state.UserAccountHandler,
 	outputAccount *vmcommon.OutputAccount,
 ) {
@@ -2170,12 +2178,22 @@ func (sc *scProcessor) updateSmartContractCode(
 	isDeployment := noExistingCode && noExistingOwner
 	isUpgrade := !isDeployment && isCodeDeployerOwner && isUpgradeable
 
+	entry := &vmcommon.LogEntry{
+		Address: stateAccount.AddressBytes(),
+		Topics: [][]byte{
+			outputAccount.Address, outputAccount.CodeDeployerAddress,
+		},
+	}
+
 	if isDeployment {
 		// At this point, we are under the condition "noExistingOwner"
 		stateAccount.SetOwnerAddress(outputAccount.CodeDeployerAddress)
 		stateAccount.SetCodeMetadata(outputAccount.CodeMetadata)
 		stateAccount.SetCode(outputAccount.Code)
 		log.Debug("updateSmartContractCode(): created", "address", sc.pubkeyConv.Encode(outputAccount.Address), "upgradeable", newCodeMetadata.Upgradeable)
+
+		entry.Identifier = []byte(core.SCDeployIdentifier)
+		vmOutput.Logs = append(vmOutput.Logs, entry)
 		return
 	}
 
@@ -2183,6 +2201,9 @@ func (sc *scProcessor) updateSmartContractCode(
 		stateAccount.SetCodeMetadata(outputAccount.CodeMetadata)
 		stateAccount.SetCode(outputAccount.Code)
 		log.Debug("updateSmartContractCode(): upgraded", "address", sc.pubkeyConv.Encode(outputAccount.Address), "upgradeable", newCodeMetadata.Upgradeable)
+
+		entry.Identifier = []byte(core.SCUpgradeIdentifier)
+		vmOutput.Logs = append(vmOutput.Logs, entry)
 		return
 	}
 }
