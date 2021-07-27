@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/pruningBuffer"
 	"github.com/ElrondNetwork/elrond-go/state/temporary"
 )
 
@@ -29,15 +28,18 @@ type storagePruningManager struct {
 // NewStoragePruningManager creates a new instance of storagePruningManager
 func NewStoragePruningManager(
 	evictionWaitingList state.DBRemoveCacher,
-	pruningBufferLen uint32,
+	pruningBuffer state.AtomicBuffer,
 ) (*storagePruningManager, error) {
 	if check.IfNil(evictionWaitingList) {
 		return nil, state.ErrNilEvictionWaitingList
 	}
+	if check.IfNil(pruningBuffer) {
+		return nil, state.ErrNilAtomicBuffer
+	}
 
 	return &storagePruningManager{
 		dbEvictionWaitingList: evictionWaitingList,
-		pruningBuffer:         pruningBuffer.NewPruningBuffer(pruningBufferLen),
+		pruningBuffer:         pruningBuffer,
 	}, nil
 }
 

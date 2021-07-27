@@ -45,9 +45,8 @@ func createTrieStorageManager(store storage.Storer) (temporary.StorageManager, s
 		MaxOpenFiles:      10,
 	}
 	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:   1000,
-		SnapshotsBufferLen: 10,
-		MaxSnapshots:       2,
+		PruningBufferLen: 1000,
+		MaxSnapshots:     2,
 	}
 	args := NewTrieStorageManagerArgs{
 		DB:                     store,

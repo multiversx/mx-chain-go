@@ -33,18 +33,37 @@ import (
 
 const trieDbOperationDelay = time.Second
 
-func generateAccountDBFromTrie(trie temporary.Trie) *state.AccountsDB {
-	accnt, _ := state.NewAccountsDB(
-		trie,
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.AccountsFactoryStub{
+func getMockAccountsDBArgs() state.AccountsDBArgs {
+	return state.AccountsDBArgs{
+		Trie: &testscommon.TrieStub{
+			GetStorageManagerCalled: func() temporary.StorageManager {
+				return &testscommon.StorageManagerStub{
+					DatabaseCalled: func() temporary.DBWriteCacher {
+						return mock.NewMemDbMock()
+					},
+				}
+			},
+		},
+		Hasher:      &mock.HasherMock{},
+		Marshalizer: &mock.MarshalizerMock{},
+		AccountFactory: &mock.AccountsFactoryStub{
 			CreateAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 				return mock.NewAccountWrapMock(address), nil
 			},
 		},
-		disabled.NewDisabledStoragePruningManager(),
-	)
+		StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
+		PruningBuffer:         testscommon.NewAtomicBufferMock(100000),
+		InSyncConfig: config.InSyncConfig{
+			Enabled: false,
+		},
+	}
+}
+
+func generateAccountDBFromTrie(trie temporary.Trie) *state.AccountsDB {
+	args := getMockAccountsDBArgs()
+	args.Trie = trie
+
+	accnt, _ := state.NewAccountsDB(args)
 	return accnt
 }
 
@@ -71,9 +90,8 @@ func getDefaultStateComponents(
 	hashesHolder temporary.CheckpointHashesHolder,
 ) (*state.AccountsDB, temporary.Trie, temporary.StorageManager) {
 	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:   1000,
-		SnapshotsBufferLen: 10,
-		MaxSnapshots:       2,
+		PruningBufferLen: 1000,
+		MaxSnapshots:     2,
 	}
 	marshalizer := &mock.MarshalizerMock{}
 	hsh := mock.HasherMock{}
@@ -90,8 +108,21 @@ func getDefaultStateComponents(
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 	tr, _ := trie.NewTrie(trieStorage, marshalizer, hsh, 5)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, mock.NewMemDbMock(), marshalizer)
-	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, generalCfg.PruningBufferLen)
-	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, factory.NewAccountCreator(), spm)
+	pb := testscommon.NewAtomicBufferMock(generalCfg.PruningBufferLen)
+	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, pb)
+	accountsDbArgs := state.AccountsDBArgs{
+		Trie:                  tr,
+		Hasher:                hsh,
+		Marshalizer:           marshalizer,
+		AccountFactory:        factory.NewAccountCreator(),
+		StoragePruningManager: spm,
+		PruningBuffer:         pb,
+		InSyncConfig: config.InSyncConfig{
+			Enabled: false,
+		},
+	}
+
+	adb, _ := state.NewAccountsDB(accountsDbArgs)
 
 	return adb, tr, trieStorage
 }
@@ -101,13 +132,9 @@ func getDefaultStateComponents(
 func TestNewAccountsDB_WithNilTrieShouldErr(t *testing.T) {
 	t.Parallel()
 
-	adb, err := state.NewAccountsDB(
-		nil,
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.AccountsFactoryStub{},
-		disabled.NewDisabledStoragePruningManager(),
-	)
+	args := getMockAccountsDBArgs()
+	args.Trie = nil
+	adb, err := state.NewAccountsDB(args)
 
 	assert.True(t, check.IfNil(adb))
 	assert.Equal(t, state.ErrNilTrie, err)
@@ -116,13 +143,9 @@ func TestNewAccountsDB_WithNilTrieShouldErr(t *testing.T) {
 func TestNewAccountsDB_WithNilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	adb, err := state.NewAccountsDB(
-		&testscommon.TrieStub{},
-		nil,
-		&mock.MarshalizerMock{},
-		&mock.AccountsFactoryStub{},
-		disabled.NewDisabledStoragePruningManager(),
-	)
+	args := getMockAccountsDBArgs()
+	args.Hasher = nil
+	adb, err := state.NewAccountsDB(args)
 
 	assert.True(t, check.IfNil(adb))
 	assert.Equal(t, state.ErrNilHasher, err)
@@ -131,28 +154,20 @@ func TestNewAccountsDB_WithNilHasherShouldErr(t *testing.T) {
 func TestNewAccountsDB_WithNilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	adb, err := state.NewAccountsDB(
-		&testscommon.TrieStub{},
-		&mock.HasherMock{},
-		nil,
-		&mock.AccountsFactoryStub{},
-		disabled.NewDisabledStoragePruningManager(),
-	)
+	args := getMockAccountsDBArgs()
+	args.Marshalizer = nil
+	adb, err := state.NewAccountsDB(args)
 
 	assert.True(t, check.IfNil(adb))
 	assert.Equal(t, state.ErrNilMarshalizer, err)
 }
 
-func TestNewAccountsDB_WithNilAddressFactoryShouldErr(t *testing.T) {
+func TestNewAccountsDB_WithNilAccountFactoryShouldErr(t *testing.T) {
 	t.Parallel()
 
-	adb, err := state.NewAccountsDB(
-		&testscommon.TrieStub{},
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		nil,
-		disabled.NewDisabledStoragePruningManager(),
-	)
+	args := getMockAccountsDBArgs()
+	args.AccountFactory = nil
+	adb, err := state.NewAccountsDB(args)
 
 	assert.True(t, check.IfNil(adb))
 	assert.Equal(t, state.ErrNilAccountFactory, err)
@@ -161,13 +176,9 @@ func TestNewAccountsDB_WithNilAddressFactoryShouldErr(t *testing.T) {
 func TestNewAccountsDB_WithNilStoragePruningManagerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	adb, err := state.NewAccountsDB(
-		&testscommon.TrieStub{},
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.AccountsFactoryStub{},
-		nil,
-	)
+	args := getMockAccountsDBArgs()
+	args.StoragePruningManager = nil
+	adb, err := state.NewAccountsDB(args)
 
 	assert.True(t, check.IfNil(adb))
 	assert.Equal(t, state.ErrNilStoragePruningManager, err)
@@ -176,21 +187,8 @@ func TestNewAccountsDB_WithNilStoragePruningManagerShouldErr(t *testing.T) {
 func TestNewAccountsDB_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	adb, err := state.NewAccountsDB(
-		&testscommon.TrieStub{
-			GetStorageManagerCalled: func() temporary.StorageManager {
-				return &testscommon.StorageManagerStub{
-					DatabaseCalled: func() temporary.DBWriteCacher {
-						return mock.NewMemDbMock()
-					},
-				}
-			},
-		},
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.AccountsFactoryStub{},
-		disabled.NewDisabledStoragePruningManager(),
-	)
+	args := getMockAccountsDBArgs()
+	adb, err := state.NewAccountsDB(args)
 
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(adb))
@@ -207,21 +205,17 @@ func TestNewAccountsDB_SetsNumCheckpoints(t *testing.T) {
 	binary.BigEndian.PutUint32(numCheckpointsVal, numCheckpoints)
 	_ = db.Put(numCheckpointsKey, numCheckpointsVal)
 
-	adb, _ := state.NewAccountsDB(
-		&testscommon.TrieStub{
-			GetStorageManagerCalled: func() temporary.StorageManager {
-				return &testscommon.StorageManagerStub{
-					DatabaseCalled: func() temporary.DBWriteCacher {
-						return db
-					},
-				}
-			},
+	args := getMockAccountsDBArgs()
+	args.Trie = &testscommon.TrieStub{
+		GetStorageManagerCalled: func() temporary.StorageManager {
+			return &testscommon.StorageManagerStub{
+				DatabaseCalled: func() temporary.DBWriteCacher {
+					return db
+				},
+			}
 		},
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.AccountsFactoryStub{},
-		disabled.NewDisabledStoragePruningManager(),
-	)
+	}
+	adb, _ := state.NewAccountsDB(args)
 
 	assert.Equal(t, numCheckpoints, adb.GetNumCheckpoints())
 }
@@ -240,37 +234,34 @@ func TestAccountsDB_SetStateCheckpointSavesNumCheckpoints(t *testing.T) {
 
 		return nil
 	}
-	adb, _ := state.NewAccountsDB(
-		&testscommon.TrieStub{
-			GetStorageManagerCalled: func() temporary.StorageManager {
-				return &testscommon.StorageManagerStub{
-					DatabaseCalled: func() temporary.DBWriteCacher {
-						return db
-					},
-					SetCheckpointCalled: func(_ []byte, leavesChan chan core.KeyValueHolder) {
-						close(leavesChan)
-					},
-					ExitPruningBufferingModeCalled: func() {
-						atomic.AddUint32(&numExitPruningBufferingModeCalled, 1)
-					},
-				}
-			},
-			RecreateCalled: func(root []byte) (temporary.Trie, error) {
-				return &testscommon.TrieStub{
-					GetAllLeavesOnChannelCalled: func(_ []byte) (chan core.KeyValueHolder, error) {
-						ch := make(chan core.KeyValueHolder)
-						close(ch)
 
-						return ch, nil
-					},
-				}, nil
-			},
+	args := getMockAccountsDBArgs()
+	args.Trie = &testscommon.TrieStub{
+		GetStorageManagerCalled: func() temporary.StorageManager {
+			return &testscommon.StorageManagerStub{
+				DatabaseCalled: func() temporary.DBWriteCacher {
+					return db
+				},
+				SetCheckpointCalled: func(_ []byte, leavesChan chan core.KeyValueHolder) {
+					close(leavesChan)
+				},
+				ExitPruningBufferingModeCalled: func() {
+					atomic.AddUint32(&numExitPruningBufferingModeCalled, 1)
+				},
+			}
 		},
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.AccountsFactoryStub{},
-		disabled.NewDisabledStoragePruningManager(),
-	)
+		RecreateCalled: func(root []byte) (temporary.Trie, error) {
+			return &testscommon.TrieStub{
+				GetAllLeavesOnChannelCalled: func(_ []byte) (chan core.KeyValueHolder, error) {
+					ch := make(chan core.KeyValueHolder)
+					close(ch)
+
+					return ch, nil
+				},
+			}, nil
+		},
+	}
+	adb, _ := state.NewAccountsDB(args)
 
 	for i := 0; i < numCheckpoints; i++ {
 		adb.SetStateCheckpoint([]byte("rootHash"))
@@ -430,27 +421,9 @@ func TestAccountsDB_SaveAccountMalfunctionMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	account := generateAccount()
-	mockTrie := &testscommon.TrieStub{
-		GetStorageManagerCalled: func() temporary.StorageManager {
-			return &testscommon.StorageManagerStub{
-				DatabaseCalled: func() temporary.DBWriteCacher {
-					return mock.NewMemDbMock()
-				},
-			}
-		},
-	}
 	marshalizer := &mock.MarshalizerMock{}
-	adb, _ := state.NewAccountsDB(
-		mockTrie,
-		&mock.HasherMock{},
-		marshalizer,
-		&mock.AccountsFactoryStub{
-			CreateAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-				return mock.NewAccountWrapMock(address), nil
-			},
-		},
-		disabled.NewDisabledStoragePruningManager(),
-	)
+	args := getMockAccountsDBArgs()
+	adb, _ := state.NewAccountsDB(args)
 
 	marshalizer.Fail = true
 
@@ -727,17 +700,9 @@ func TestAccountsDB_GetAccountAccountNotFound(t *testing.T) {
 		return buff, nil
 	}
 
-	adb, _ := state.NewAccountsDB(
-		trieMock,
-		&mock.HasherMock{},
-		&marshalizer,
-		&mock.AccountsFactoryStub{
-			CreateAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-				return mock.NewAccountWrapMock(address), nil
-			},
-		},
-		disabled.NewDisabledStoragePruningManager(),
-	)
+	args := getMockAccountsDBArgs()
+	args.Trie = trieMock
+	adb, _ := state.NewAccountsDB(args)
 
 	//Step 3. call get, should return a copy of DbAccount, recover an Account object
 	recoveredAccount, err := adb.GetAccount(adr)
@@ -807,7 +772,7 @@ func TestAccountsDB_LoadCodeOkValsShouldWork(t *testing.T) {
 	adr, account, _ := generateAddressAccountAccountsDB(tr)
 	marshalizer := mock.MarshalizerMock{}
 
-	trieStub := testscommon.TrieStub{
+	trieStub := &testscommon.TrieStub{
 		GetCalled: func(key []byte) (bytes []byte, e error) {
 			//will return adr.Bytes() so its hash will correspond to adr.Hash()
 			return marshalizer.Marshal(&state.CodeEntry{Code: adr})
@@ -821,17 +786,9 @@ func TestAccountsDB_LoadCodeOkValsShouldWork(t *testing.T) {
 		},
 	}
 
-	adb, _ := state.NewAccountsDB(
-		&trieStub,
-		&mock.HasherMock{},
-		&marshalizer,
-		&mock.AccountsFactoryStub{
-			CreateAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-				return mock.NewAccountWrapMock(address), nil
-			},
-		},
-		disabled.NewDisabledStoragePruningManager(),
-	)
+	args := getMockAccountsDBArgs()
+	args.Trie = trieStub
+	adb, _ := state.NewAccountsDB(args)
 
 	//just search a hash. Any hash will do
 	account.SetCodeHash(adr)
@@ -1747,8 +1704,20 @@ func TestAccountsDB_MainTrieAutomaticallyMarksCodeUpdatesForEviction(t *testing.
 	storageManager, _ := trie.NewTrieStorageManager(args)
 	maxTrieLevelInMemory := uint(5)
 	tr, _ := trie.NewTrie(storageManager, marshalizer, hsh, maxTrieLevelInMemory)
-	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 5)
-	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, factory.NewAccountCreator(), spm)
+	pb := testscommon.NewAtomicBufferMock(5)
+	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, pb)
+	accountsDbArgs := state.AccountsDBArgs{
+		Trie:                  tr,
+		Hasher:                hsh,
+		Marshalizer:           marshalizer,
+		AccountFactory:        factory.NewAccountCreator(),
+		StoragePruningManager: spm,
+		PruningBuffer:         pb,
+		InSyncConfig: config.InSyncConfig{
+			Enabled: false,
+		},
+	}
+	adb, _ := state.NewAccountsDB(accountsDbArgs)
 
 	addr := make([]byte, 32)
 	acc, _ := adb.LoadAccount(addr)
@@ -1822,8 +1791,20 @@ func TestAccountsDB_RemoveAccountMarksObsoleteHashesForEviction(t *testing.T) {
 	}
 	storageManager, _ := trie.NewTrieStorageManager(args)
 	tr, _ := trie.NewTrie(storageManager, marshalizer, hsh, maxTrieLevelInMemory)
-	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 5)
-	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, factory.NewAccountCreator(), spm)
+	pb := testscommon.NewAtomicBufferMock(5)
+	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, pb)
+	accountsDbArgs := state.AccountsDBArgs{
+		Trie:                  tr,
+		Hasher:                hsh,
+		Marshalizer:           marshalizer,
+		AccountFactory:        factory.NewAccountCreator(),
+		StoragePruningManager: spm,
+		PruningBuffer:         pb,
+		InSyncConfig: config.InSyncConfig{
+			Enabled: false,
+		},
+	}
+	adb, _ := state.NewAccountsDB(accountsDbArgs)
 
 	addr := make([]byte, 32)
 	acc, _ := adb.LoadAccount(addr)
@@ -2244,7 +2225,18 @@ func TestAccountsDB_GetCode(t *testing.T) {
 	storageManager, _ := trie.NewTrieStorageManager(args)
 	tr, _ := trie.NewTrie(storageManager, marshalizer, hasher, maxTrieLevelInMemory)
 	spm := disabled.NewDisabledStoragePruningManager()
-	adb, _ := state.NewAccountsDB(tr, hasher, marshalizer, factory.NewAccountCreator(), spm)
+	accountsDbArgs := state.AccountsDBArgs{
+		Trie:                  tr,
+		Hasher:                hasher,
+		Marshalizer:           marshalizer,
+		AccountFactory:        factory.NewAccountCreator(),
+		StoragePruningManager: spm,
+		PruningBuffer:         testscommon.NewAtomicBufferMock(100000),
+		InSyncConfig: config.InSyncConfig{
+			Enabled: false,
+		},
+	}
+	adb, _ := state.NewAccountsDB(accountsDbArgs)
 
 	address := make([]byte, 32)
 	acc, err := adb.LoadAccount(address)
@@ -2355,8 +2347,20 @@ func TestAccountsDB_Close(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{}
 	hsh := &mock.HasherMock{}
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, mock.NewMemDbMock(), marshalizer)
-	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
-	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, factory.NewAccountCreator(), spm)
+	pb := testscommon.NewAtomicBufferMock(10)
+	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, pb)
+	accountsDbArgs := state.AccountsDBArgs{
+		Trie:                  tr,
+		Hasher:                hsh,
+		Marshalizer:           marshalizer,
+		AccountFactory:        factory.NewAccountCreator(),
+		StoragePruningManager: spm,
+		PruningBuffer:         pb,
+		InSyncConfig: config.InSyncConfig{
+			Enabled: false,
+		},
+	}
+	adb, _ := state.NewAccountsDB(accountsDbArgs)
 
 	err := adb.Close()
 	assert.Nil(t, err)
@@ -2379,7 +2383,18 @@ func BenchmarkAccountsDb_GetCodeEntry(b *testing.B) {
 	storageManager, _ := trie.NewTrieStorageManager(args)
 	tr, _ := trie.NewTrie(storageManager, marshalizer, hasher, maxTrieLevelInMemory)
 	spm := disabled.NewDisabledStoragePruningManager()
-	adb, _ := state.NewAccountsDB(tr, hasher, marshalizer, factory.NewAccountCreator(), spm)
+	accountsDbArgs := state.AccountsDBArgs{
+		Trie:                  tr,
+		Hasher:                hasher,
+		Marshalizer:           marshalizer,
+		AccountFactory:        factory.NewAccountCreator(),
+		StoragePruningManager: spm,
+		PruningBuffer:         testscommon.NewAtomicBufferMock(100000),
+		InSyncConfig: config.InSyncConfig{
+			Enabled: false,
+		},
+	}
+	adb, _ := state.NewAccountsDB(accountsDbArgs)
 
 	address := make([]byte, 32)
 	acc, err := adb.LoadAccount(address)

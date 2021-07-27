@@ -191,9 +191,8 @@ func getArgumentsShard() storageResolversContainers.FactoryArgs {
 				MaxOpenFiles:      10,
 			},
 			TrieStorageManagerConfig: config.TrieStorageManagerConfig{
-				PruningBufferLen:   255,
-				SnapshotsBufferLen: 255,
-				MaxSnapshots:       255,
+				PruningBufferLen: 255,
+				MaxSnapshots:     255,
 			},
 			StateTriesConfig: config.StateTriesConfig{
 				CheckpointRoundsModulus:     100,

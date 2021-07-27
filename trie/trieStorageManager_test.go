@@ -93,9 +93,8 @@ func TestNewTrieStorageManagerWithExistingSnapshot(t *testing.T) {
 		MaxOpenFiles:      10,
 	}
 	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:   1000,
-		SnapshotsBufferLen: 10,
-		MaxSnapshots:       2,
+		PruningBufferLen: 1000,
+		MaxSnapshots:     2,
 	}
 
 	msh, hsh := getTestMarshalizerAndHasher()
@@ -145,9 +144,8 @@ func TestNewTrieStorageManagerLoadsSnapshotsInOrder(t *testing.T) {
 		MaxOpenFiles:      10,
 	}
 	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:   1000,
-		SnapshotsBufferLen: 10,
-		MaxSnapshots:       2,
+		PruningBufferLen: 1000,
+		MaxSnapshots:     2,
 	}
 
 	msh, hsh := getTestMarshalizerAndHasher()
@@ -300,9 +298,8 @@ func TestTrieCheckpoint(t *testing.T) {
 	t.Parallel()
 
 	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:   1000,
-		SnapshotsBufferLen: 10,
-		MaxSnapshots:       2,
+		PruningBufferLen: 1000,
+		MaxSnapshots:     2,
 	}
 
 	tr, trieStorage := newEmptyTrie()

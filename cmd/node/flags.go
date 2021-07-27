@@ -489,6 +489,8 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 	generalConfigs.Health.IntervalDiagnoseComponentsInSeconds = defaultSecondsToCheckHealth
 	generalConfigs.Health.IntervalVerifyMemoryInSeconds = defaultSecondsToCheckHealth
 	generalConfigs.Health.MemoryUsageToCreateProfiles = defaultDiagnoseMemoryLimit
+	generalConfigs.TrieStorageManagerConfig.InSyncConfig.Enabled = true
+	generalConfigs.TrieStorageManagerConfig.InSyncConfig.ThresholdPruningBufferSize = 0
 
 	alterStorageConfigsForDBImport(generalConfigs)
 
@@ -507,6 +509,8 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 		"health interval diagnose components in seconds", generalConfigs.Health.IntervalDiagnoseComponentsInSeconds,
 		"health interval verify memory in seconds", generalConfigs.Health.IntervalVerifyMemoryInSeconds,
 		"health memory usage threshold", core.ConvertBytes(uint64(generalConfigs.Health.MemoryUsageToCreateProfiles)),
+		"in-sync trie config enabled", generalConfigs.TrieStorageManagerConfig.InSyncConfig.Enabled,
+		"in-sync trie config threshold", generalConfigs.TrieStorageManagerConfig.InSyncConfig.ThresholdPruningBufferSize,
 	)
 	return nil
 }
@@ -519,6 +523,7 @@ func processConfigFullArchiveMode(log logger.Logger, configs *config.Configs) er
 	configs.GeneralConfig.StoragePruning.ObserverCleanOldEpochsData = false
 	configs.GeneralConfig.StoragePruning.Enabled = true
 	configs.GeneralConfig.StoragePruning.NumEpochsToKeep = math.MaxUint64
+	generalConfigs.TrieStorageManagerConfig.InSyncConfig.Enabled = true
 
 	log.Warn("the node is in full archive mode! Will auto-set some config values",
 		"GeneralSettings.StartInEpochEnabled", generalConfigs.GeneralSettings.StartInEpochEnabled,
@@ -526,6 +531,8 @@ func processConfigFullArchiveMode(log logger.Logger, configs *config.Configs) er
 		"StoragePruning.ObserverCleanOldEpochsData", generalConfigs.StoragePruning.ObserverCleanOldEpochsData,
 		"StoragePruning.Enabled", generalConfigs.StoragePruning.Enabled,
 		"StoragePruning.NumEpochsToKeep", configs.GeneralConfig.StoragePruning.NumEpochsToKeep,
+		"in-sync trie config enabled", generalConfigs.TrieStorageManagerConfig.InSyncConfig.Enabled,
+		"in-sync trie config threshold", generalConfigs.TrieStorageManagerConfig.InSyncConfig.ThresholdPruningBufferSize,
 	)
 
 	return nil

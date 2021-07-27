@@ -286,10 +286,13 @@
 
 [TrieStorageManagerConfig]
     PruningBufferLen = 100000
-    SnapshotsBufferLen = 1000000
     MaxSnapshots = 3
     KeepSnapshots = false
     CheckpointHashesHolderMaxSize = 52428800 #50MB
+    [TrieStorageManagerConfig.InSyncConfig]
+        #config used for the in-sync or async snapshot/checpoint operations
+        Enabled = false
+        ThresholdPruningBufferSize = 0.3 #30% of the pruning buffer
 
 [PeerAccountsTrieStorage]
     [PeerAccountsTrieStorage.Cache]

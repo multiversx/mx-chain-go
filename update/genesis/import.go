@@ -393,13 +393,19 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32) (state.Accoun
 
 	if accType == ValidatorAccount {
 		if check.IfNil(si.validatorDB) {
-			accountsDB, errCreate := state.NewAccountsDB(
-				currentTrie,
-				si.hasher,
-				si.marshalizer,
-				accountFactory,
-				disabled.NewDisabledStoragePruningManager(),
-			)
+			args := state.AccountsDBArgs{
+				Trie:                  currentTrie,
+				Hasher:                si.hasher,
+				Marshalizer:           si.marshalizer,
+				AccountFactory:        accountFactory,
+				StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
+				PruningBuffer:         disabled.NewDisabledPruningBuffer(),
+				InSyncConfig: config.InSyncConfig{
+					Enabled: false,
+				},
+			}
+
+			accountsDB, errCreate := state.NewAccountsDB(args)
 			if errCreate != nil {
 				return nil, nil, errCreate
 			}
@@ -413,13 +419,18 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32) (state.Accoun
 		return accountsDB, currentTrie, nil
 	}
 
-	accountsDB, err = state.NewAccountsDB(
-		currentTrie,
-		si.hasher,
-		si.marshalizer,
-		accountFactory,
-		disabled.NewDisabledStoragePruningManager(),
-	)
+	args := state.AccountsDBArgs{
+		Trie:                  currentTrie,
+		Hasher:                si.hasher,
+		Marshalizer:           si.marshalizer,
+		AccountFactory:        accountFactory,
+		StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
+		PruningBuffer:         disabled.NewDisabledPruningBuffer(),
+		InSyncConfig: config.InSyncConfig{
+			Enabled: false,
+		},
+	}
+	accountsDB, err = state.NewAccountsDB(args)
 	si.accountDBsMap[shardID] = accountsDB
 	return accountsDB, currentTrie, err
 }

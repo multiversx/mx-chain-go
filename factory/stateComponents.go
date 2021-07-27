@@ -11,6 +11,7 @@ import (
 	factoryState "github.com/ElrondNetwork/elrond-go/state/factory"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
+	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/pruningBuffer"
 	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 )
@@ -105,29 +106,38 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 func (scf *stateComponentsFactory) createAccountsAdapters() (state.AccountsAdapter, state.AccountsAdapter, error) {
 	accountFactory := factoryState.NewAccountCreator()
 	merkleTrie := scf.triesContainer.Get([]byte(trieFactory.UserAccountTrie))
-	storagePruning, err := scf.newStoragePruningManager()
+	pb := pruningBuffer.NewPruningBuffer(scf.config.TrieStorageManagerConfig.PruningBufferLen)
+	storagePruning, err := scf.newStoragePruningManager(pb)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	accountsAdapter, err := state.NewAccountsDB(
-		merkleTrie,
-		scf.core.Hasher(),
-		scf.core.InternalMarshalizer(),
-		accountFactory,
-		storagePruning,
-	)
+	argsAccountsAdapter := state.AccountsDBArgs{
+		Trie:                  merkleTrie,
+		Hasher:                scf.core.Hasher(),
+		Marshalizer:           scf.core.InternalMarshalizer(),
+		AccountFactory:        accountFactory,
+		StoragePruningManager: storagePruning,
+		PruningBuffer:         pb,
+		InSyncConfig:          scf.config.TrieStorageManagerConfig.InSyncConfig,
+	}
+
+	accountsAdapter, err := state.NewAccountsDB(argsAccountsAdapter)
 	if err != nil {
 		return nil, nil, fmt.Errorf("%w: %s", errors.ErrAccountsAdapterCreation, err.Error())
 	}
 
-	accountsAdapterAPI, err := state.NewAccountsDB(
-		merkleTrie,
-		scf.core.Hasher(),
-		scf.core.InternalMarshalizer(),
-		accountFactory,
-		storagePruning,
-	)
+	argsAccountsAdapterAPI := state.AccountsDBArgs{
+		Trie:                  merkleTrie,
+		Hasher:                scf.core.Hasher(),
+		Marshalizer:           scf.core.InternalMarshalizer(),
+		AccountFactory:        accountFactory,
+		StoragePruningManager: storagePruning,
+		PruningBuffer:         pb,
+		InSyncConfig:          scf.config.TrieStorageManagerConfig.InSyncConfig,
+	}
+
+	accountsAdapterAPI, err := state.NewAccountsDB(argsAccountsAdapterAPI)
 	if err != nil {
 		return nil, nil, fmt.Errorf("accounts adapter API: %w: %s", errors.ErrAccountsAdapterCreation, err.Error())
 	}
@@ -138,7 +148,8 @@ func (scf *stateComponentsFactory) createAccountsAdapters() (state.AccountsAdapt
 func (scf *stateComponentsFactory) createPeerAdapter() (state.AccountsAdapter, error) {
 	accountFactory := factoryState.NewPeerAccountCreator()
 	merkleTrie := scf.triesContainer.Get([]byte(trieFactory.PeerAccountTrie))
-	storagePruning, err := scf.newStoragePruningManager()
+	pb := pruningBuffer.NewPruningBuffer(scf.config.TrieStorageManagerConfig.PruningBufferLen)
+	storagePruning, err := scf.newStoragePruningManager(pb)
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +168,7 @@ func (scf *stateComponentsFactory) createPeerAdapter() (state.AccountsAdapter, e
 	return peerAdapter, nil
 }
 
-func (scf *stateComponentsFactory) newStoragePruningManager() (state.StoragePruningManager, error) {
+func (scf *stateComponentsFactory) newStoragePruningManager(pb state.AtomicBuffer) (state.StoragePruningManager, error) {
 	args := evictionWaitingList.MemoryEvictionWaitingListArgs{
 		RootHashesSize: scf.config.EvictionWaitingList.RootHashesSize,
 		HashesSize:     scf.config.EvictionWaitingList.HashesSize,
@@ -169,7 +180,7 @@ func (scf *stateComponentsFactory) newStoragePruningManager() (state.StoragePrun
 
 	storagePruning, err := storagePruningManager.NewStoragePruningManager(
 		trieEvictionWaitingList,
-		scf.config.TrieStorageManagerConfig.PruningBufferLen,
+		pb,
 	)
 	if err != nil {
 		return nil, err

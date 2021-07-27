@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -68,6 +69,8 @@ type AccountsDB struct {
 	marshalizer            marshal.Marshalizer
 	accountFactory         AccountFactory
 	storagePruningManager  StoragePruningManager
+	pruningBuffer          AtomicBuffer
+	inSyncConfig           config.InSyncConfig
 	obsoleteDataTrieHashes map[string][][]byte
 
 	lastRootHash []byte
@@ -75,43 +78,54 @@ type AccountsDB struct {
 	entries      []JournalEntry
 	mutOp        sync.RWMutex
 
-	numCheckpoints       uint32
-	loadCodeMeasurements *loadingMeasurements
+	numCheckpoints          uint32
+	loadCodeMeasurements    *loadingMeasurements
+	thresholdInSyncSnapshot int
 }
 
 var log = logger.GetOrCreate("state")
 
+// AccountsDBArgs is the DTO used in the NewAccountsDB function
+type AccountsDBArgs struct {
+	Trie                  temporary.Trie
+	Hasher                hashing.Hasher
+	Marshalizer           marshal.Marshalizer
+	AccountFactory        AccountFactory
+	StoragePruningManager StoragePruningManager
+	PruningBuffer         AtomicBuffer
+	InSyncConfig          config.InSyncConfig
+}
+
 // NewAccountsDB creates a new account manager
-func NewAccountsDB(
-	trie temporary.Trie,
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-	accountFactory AccountFactory,
-	storagePruningManager StoragePruningManager,
-) (*AccountsDB, error) {
-	if check.IfNil(trie) {
+func NewAccountsDB(args AccountsDBArgs) (*AccountsDB, error) {
+	if check.IfNil(args.Trie) {
 		return nil, ErrNilTrie
 	}
-	if check.IfNil(hasher) {
+	if check.IfNil(args.Hasher) {
 		return nil, ErrNilHasher
 	}
-	if check.IfNil(marshalizer) {
+	if check.IfNil(args.Marshalizer) {
 		return nil, ErrNilMarshalizer
 	}
-	if check.IfNil(accountFactory) {
+	if check.IfNil(args.AccountFactory) {
 		return nil, ErrNilAccountFactory
 	}
-	if check.IfNil(storagePruningManager) {
+	if check.IfNil(args.StoragePruningManager) {
 		return nil, ErrNilStoragePruningManager
 	}
+	if check.IfNil(args.PruningBuffer) {
+		return nil, ErrNilAtomicBuffer
+	}
 
-	numCheckpoints := getNumCheckpoints(trie.GetStorageManager())
-	return &AccountsDB{
-		mainTrie:               trie,
-		hasher:                 hasher,
-		marshalizer:            marshalizer,
-		accountFactory:         accountFactory,
-		storagePruningManager:  storagePruningManager,
+	numCheckpoints := getNumCheckpoints(args.Trie.GetStorageManager())
+	adb := &AccountsDB{
+		mainTrie:               args.Trie,
+		hasher:                 args.Hasher,
+		marshalizer:            args.Marshalizer,
+		accountFactory:         args.AccountFactory,
+		storagePruningManager:  args.StoragePruningManager,
+		pruningBuffer:          args.PruningBuffer,
+		inSyncConfig:           args.InSyncConfig,
 		entries:                make([]JournalEntry, 0),
 		mutOp:                  sync.RWMutex{},
 		dataTries:              NewDataTriesHolder(),
@@ -120,7 +134,13 @@ func NewAccountsDB(
 		loadCodeMeasurements: &loadingMeasurements{
 			identifier: "load code",
 		},
-	}, nil
+	}
+	err := adb.processInSyncParams()
+	if err != nil {
+		return nil, err
+	}
+
+	return adb, nil
 }
 
 func getNumCheckpoints(trieStorageManager temporary.StorageManager) uint32 {
@@ -135,6 +155,25 @@ func getNumCheckpoints(trieStorageManager temporary.StorageManager) uint32 {
 	}
 
 	return binary.BigEndian.Uint32(val)
+}
+
+func (adb *AccountsDB) processInSyncParams() error {
+	pbMaxLen := adb.pruningBuffer.MaximumSize()
+	if pbMaxLen == 0 {
+		return fmt.Errorf("%w for processInSyncParams.MaximumSize, value 0 is not accepted", ErrWrongSize)
+	}
+	if !adb.inSyncConfig.Enabled {
+		log.Debug("AccountsDB in-sync snapshotting operation is disabled")
+		return nil
+	}
+
+	num := adb.inSyncConfig.ThresholdPruningBufferSize * float64(pbMaxLen) / 100
+	adb.thresholdInSyncSnapshot = int(num)
+	log.Warn("AccountsDB in-sync snapshotting operation is enabled",
+		"pruning buffer max len", pbMaxLen,
+		"threshold", adb.thresholdInSyncSnapshot)
+
+	return nil
 }
 
 //GetCode returns the code for the given account
@@ -958,22 +997,40 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 	defer adb.mutOp.Unlock()
 
 	trieStorageManager := adb.mainTrie.GetStorageManager()
-	log.Trace("accountsDB.SnapshotState", "root hash", rootHash)
 	trieStorageManager.EnterPruningBufferingMode()
 
-	go func() {
-		stopWatch := core.NewStopWatch()
-		stopWatch.Start("snapshotState")
-		leavesChannel := make(chan core.KeyValueHolder, leavesChannelSize)
-		trieStorageManager.TakeSnapshot(rootHash, createNewDb, leavesChannel)
-		adb.snapshotUserAccountDataTrie(true, leavesChannel)
-		stopWatch.Stop("snapshotState")
+	if adb.shouldSnapshotInSync() {
+		log.Warn("accountsDB.SnapshotState in-sync", "root hash", rootHash)
+		adb.doSnapshotState(rootHash)
+		return
+	}
 
-		log.Debug("snapshotState", stopWatch.GetMeasurements()...)
-		trieStorageManager.ExitPruningBufferingMode()
+	log.Debug("accountsDB.SnapshotState async", "root hash", rootHash)
+	go adb.doSnapshotState(rootHash)
+}
 
-		adb.increaseNumCheckpoints()
-	}()
+func (adb *AccountsDB) shouldSnapshotInSync() bool {
+	if !adb.inSyncConfig.Enabled {
+		return false
+	}
+
+	return adb.pruningBuffer.Len() >= adb.thresholdInSyncSnapshot
+}
+
+func (adb *AccountsDB) doSnapshotState(rootHash []byte) {
+	trieStorageManager := adb.mainTrie.GetStorageManager()
+
+	stopWatch := core.NewStopWatch()
+	stopWatch.Start("snapshotState")
+	leavesChannel := make(chan core.KeyValueHolder, leavesChannelSize)
+	trieStorageManager.TakeSnapshot(rootHash, createNewDb, leavesChannel)
+	adb.snapshotUserAccountDataTrie(true, leavesChannel)
+	stopWatch.Stop("snapshotState")
+
+	log.Debug("snapshotState", stopWatch.GetMeasurements()...)
+	trieStorageManager.ExitPruningBufferingMode()
+
+	adb.increaseNumCheckpoints()
 }
 
 func (adb *AccountsDB) snapshotUserAccountDataTrie(isSnapshot bool, leavesChannel chan core.KeyValueHolder) {
@@ -1011,19 +1068,30 @@ func (adb *AccountsDB) setStateCheckpoint(rootHash []byte) {
 	log.Trace("accountsDB.SetStateCheckpoint", "root hash", rootHash)
 	trieStorageManager.EnterPruningBufferingMode()
 
-	go func() {
-		stopWatch := core.NewStopWatch()
-		stopWatch.Start("setStateCheckpoint")
-		leavesChannel := make(chan core.KeyValueHolder, leavesChannelSize)
-		trieStorageManager.SetCheckpoint(rootHash, leavesChannel)
-		adb.snapshotUserAccountDataTrie(false, leavesChannel)
-		stopWatch.Stop("setStateCheckpoint")
+	if adb.shouldSnapshotInSync() {
+		log.Warn("accountsDB.SetStateCheckpoint in-sync", "root hash", rootHash)
+		adb.doSetStateCheckpoint(rootHash)
+		return
+	}
 
-		log.Debug("setStateCheckpoint", stopWatch.GetMeasurements()...)
-		trieStorageManager.ExitPruningBufferingMode()
+	log.Debug("accountsDB.SetStateCheckpoint async", "root hash", rootHash)
+	go adb.doSetStateCheckpoint(rootHash)
+}
 
-		adb.increaseNumCheckpoints()
-	}()
+func (adb *AccountsDB) doSetStateCheckpoint(rootHash []byte) {
+	trieStorageManager := adb.mainTrie.GetStorageManager()
+
+	stopWatch := core.NewStopWatch()
+	stopWatch.Start("setStateCheckpoint")
+	leavesChannel := make(chan core.KeyValueHolder, leavesChannelSize)
+	trieStorageManager.SetCheckpoint(rootHash, leavesChannel)
+	adb.snapshotUserAccountDataTrie(false, leavesChannel)
+	stopWatch.Stop("setStateCheckpoint")
+
+	log.Debug("setStateCheckpoint", stopWatch.GetMeasurements()...)
+	trieStorageManager.ExitPruningBufferingMode()
+
+	adb.increaseNumCheckpoints()
 }
 
 func (adb *AccountsDB) increaseNumCheckpoints() {

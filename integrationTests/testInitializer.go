@@ -363,9 +363,8 @@ func CreateTrieStorageManager(store storage.Storer) (temporary.StorageManager, s
 		MaxOpenFiles:      10,
 	}
 	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:   1000,
-		SnapshotsBufferLen: 10,
-		MaxSnapshots:       3,
+		PruningBufferLen: 1000,
+		MaxSnapshots:     3,
 	}
 	args := trie.NewTrieStorageManagerArgs{
 		DB:                     store,
@@ -389,8 +388,20 @@ func CreateAccountsDB(
 
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), TestMarshalizer)
 	accountFactory := getAccountFactory(accountType)
-	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
-	adb, _ := state.NewAccountsDB(tr, sha256.NewSha256(), TestMarshalizer, accountFactory, spm)
+	pb := testscommon.NewAtomicBufferMock(1000000)
+	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, pb)
+	accountDbArgs := state.AccountsDBArgs{
+		Trie:                  tr,
+		Hasher:                sha256.NewSha256(),
+		Marshalizer:           TestMarshalizer,
+		AccountFactory:        accountFactory,
+		StoragePruningManager: spm,
+		PruningBuffer:         pb,
+		InSyncConfig: config.InSyncConfig{
+			Enabled: false,
+		},
+	}
+	adb, _ := state.NewAccountsDB(accountDbArgs)
 
 	return adb, tr
 }
@@ -949,9 +960,8 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 // CreateNewDefaultTrie returns a new trie with test hasher and marsahalizer
 func CreateNewDefaultTrie() temporary.Trie {
 	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:   1000,
-		SnapshotsBufferLen: 10,
-		MaxSnapshots:       2,
+		PruningBufferLen: 1000,
+		MaxSnapshots:     2,
 	}
 	args := trie.NewTrieStorageManagerArgs{
 		DB:                     CreateMemUnit(),
