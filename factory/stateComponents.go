@@ -161,7 +161,6 @@ func (scf *stateComponentsFactory) newStoragePruningManager() (state.StoragePrun
 	args := evictionWaitingList.MemoryEvictionWaitingListArgs{
 		RootHashesSize: scf.config.EvictionWaitingList.RootHashesSize,
 		HashesSize:     scf.config.EvictionWaitingList.HashesSize,
-		Marshalizer:    scf.core.InternalMarshalizer(),
 	}
 	trieEvictionWaitingList, err := evictionWaitingList.NewMemoryEvictionWaitingList(args)
 	if err != nil {

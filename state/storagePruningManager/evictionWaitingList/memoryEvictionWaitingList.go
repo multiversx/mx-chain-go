@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/state/temporary"
 )
@@ -20,7 +18,6 @@ type hashInfo struct {
 type MemoryEvictionWaitingListArgs struct {
 	RootHashesSize uint
 	HashesSize     uint
-	Marshalizer    marshal.Marshalizer
 }
 
 // memoryEvictionWaitingList is a structure that caches keys that need to be removed from a certain database.
@@ -31,7 +28,6 @@ type memoryEvictionWaitingList struct {
 	reversedCache  map[string]*hashInfo
 	rootHashesSize uint
 	hashesSize     uint
-	marshalizer    marshal.Marshalizer
 	opMutex        sync.RWMutex
 }
 
@@ -42,9 +38,6 @@ func NewMemoryEvictionWaitingList(args MemoryEvictionWaitingListArgs) (*memoryEv
 	}
 	if args.HashesSize < 1 {
 		return nil, fmt.Errorf("%w for HashesSize in NewMemoryEvictionWaitingList", data.ErrInvalidCacheSize)
-	}
-	if check.IfNil(args.Marshalizer) {
-		return nil, fmt.Errorf("%w in NewMemoryEvictionWaitingList", data.ErrNilMarshalizer)
 	}
 
 	return &memoryEvictionWaitingList{

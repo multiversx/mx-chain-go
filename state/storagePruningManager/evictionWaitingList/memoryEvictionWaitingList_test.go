@@ -7,7 +7,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/stretchr/testify/assert"
@@ -17,7 +16,6 @@ func getDefaultArgsForMemoryEvictionWaitingList() MemoryEvictionWaitingListArgs 
 	return MemoryEvictionWaitingListArgs{
 		RootHashesSize: 10,
 		HashesSize:     10,
-		Marshalizer:    &mock.MarshalizerMock{},
 	}
 }
 
@@ -49,16 +47,6 @@ func TestNewMemoryEvictionWaitingList_RootHashesSize(t *testing.T) {
 	assert.True(t, check.IfNil(mewl))
 	assert.True(t, errors.Is(err, data.ErrInvalidCacheSize))
 	assert.True(t, strings.Contains(err.Error(), "RootHashesSize"))
-}
-
-func TestNewMemoryEvictionWaitingList_NilMarshalizer(t *testing.T) {
-	t.Parallel()
-
-	args := getDefaultArgsForMemoryEvictionWaitingList()
-	args.Marshalizer = nil
-	mewl, err := NewMemoryEvictionWaitingList(args)
-	assert.True(t, check.IfNil(mewl))
-	assert.True(t, errors.Is(err, data.ErrNilMarshalizer))
 }
 
 func TestMemoryEvictionWaitingList_Put(t *testing.T) {
