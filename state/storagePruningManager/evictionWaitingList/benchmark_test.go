@@ -35,7 +35,12 @@ func initEWL() *evictionWaitingList {
 
 func initMemoryEWL() *memoryEvictionWaitingList {
 	initTestHashes()
-	ewl, _ := NewMemoryEvictionWaitingListV2(100000, &marshal.GogoProtoMarshalizer{})
+	args := MemoryEvictionWaitingListArgs{
+		RootHashesSize: 10000000,
+		HashesSize:     10000000,
+		Marshalizer:    &marshal.GogoProtoMarshalizer{},
+	}
+	ewl, _ := NewMemoryEvictionWaitingList(args)
 
 	for _, roothash := range roothashes {
 		_ = ewl.Put([]byte(roothash), testHashes[roothash])
@@ -107,7 +112,12 @@ func BenchmarkEvictionWaitingList_Put(b *testing.B) {
 }
 
 func BenchmarkMemoryEvictionWaitingList_Put(b *testing.B) {
-	ewl, err := NewMemoryEvictionWaitingListV2(10000, &marshal.GogoProtoMarshalizer{})
+	args := MemoryEvictionWaitingListArgs{
+		RootHashesSize: 10000000,
+		HashesSize:     10000000,
+		Marshalizer:    &marshal.GogoProtoMarshalizer{},
+	}
+	ewl, err := NewMemoryEvictionWaitingList(args)
 	require.Nil(b, err)
 	initTestHashes()
 	b.ResetTimer()

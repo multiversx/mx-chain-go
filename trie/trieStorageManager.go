@@ -105,7 +105,7 @@ func (tsm *trieStorageManager) storageProcessLoop(ctx context.Context, msh marsh
 	for {
 		select {
 		case snapshotRequest := <-tsm.snapshotReq:
-			tsm.takeSnapshot(snapshotRequest, msh, hsh)
+			tsm.takeSnapshot(snapshotRequest, msh, hsh, ctx)
 		case <-ctx.Done():
 			return
 		}
@@ -280,7 +280,7 @@ func (tsm *trieStorageManager) writeOnChan(entry *snapshotsQueueEntry) {
 	tsm.snapshotReq <- entry
 }
 
-func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, msh marshal.Marshalizer, hsh hashing.Hasher) {
+func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, msh marshal.Marshalizer, hsh hashing.Hasher, ctx context.Context) {
 	defer func() {
 		tsm.ExitPruningBufferingMode()
 		log.Trace("trie snapshot finished", "rootHash", snapshotEntry.rootHash)
@@ -307,7 +307,11 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 	}
 
 	if snapshotEntry.entryType == snapshot {
-		err = newRoot.commitSnapshot(tsm.db, db, snapshotEntry.leavesChan)
+		err = newRoot.commitSnapshot(tsm.db, db, snapshotEntry.leavesChan, ctx)
+		if err == ErrContextClosing {
+			log.Debug("context closing while in commitSnapshot operation")
+			return
+		}
 		if err != nil {
 			log.Error("trie storage manager: commit", "error", err.Error())
 		}
@@ -315,7 +319,11 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 		return
 	}
 
-	err = newRoot.commitCheckpoint(tsm.db, db, tsm.checkpointHashesHolder, snapshotEntry.leavesChan)
+	err = newRoot.commitCheckpoint(tsm.db, db, tsm.checkpointHashesHolder, snapshotEntry.leavesChan, ctx)
+	if err == ErrContextClosing {
+		log.Debug("context closing while in commitCheckpoint operation")
+		return
+	}
 	if err != nil {
 		log.Error("trie storage manager: commit", "error", err.Error())
 	}

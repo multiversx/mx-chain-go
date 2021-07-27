@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
@@ -494,7 +495,7 @@ func TestSCCallingBuiltinAndFails(t *testing.T) {
 			GasLimit:  200000,
 			GasLocked: vmInput.GasLocked,
 			Data:      []byte("testfunc@01"),
-			CallType:  vmcommon.AsynchronousCall,
+			CallType:  vmData.AsynchronousCall,
 		}
 		vmOutput.OutputAccounts[string(vmInput.RecipientAddr)] = &vmcommon.OutputAccount{
 			Address:         vmInput.RecipientAddr,

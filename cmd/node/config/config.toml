@@ -267,7 +267,9 @@
         MaxOpenFiles = 10
 
 [EvictionWaitingList]
-    Size = 10000
+    #total max size ~ 2 * [(RoothashesSize * 32) + (HashesSize * 32)]
+    RootHashesSize = 10000
+    HashesSize = 100000
     [EvictionWaitingList.DB]
         FilePath = "EvictionWaitingList"
         Type = "LvlDBSerial"

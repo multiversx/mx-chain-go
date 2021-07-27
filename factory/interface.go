@@ -25,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
+	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/state/temporary"
@@ -216,7 +217,7 @@ type NetworkComponentsHandler interface {
 
 // TransactionSimulatorProcessor defines the actions which a transaction simulator processor has to implement
 type TransactionSimulatorProcessor interface {
-	ProcessTx(tx *transaction.Transaction) (*transaction.SimulationResults, error)
+	ProcessTx(tx *transaction.Transaction) (*txSimData.SimulationResults, error)
 	IsInterfaceNil() bool
 }
 
@@ -439,13 +440,13 @@ type EconomicsHandler interface {
 	DeveloperPercentage() float64
 	GenesisTotalSupply() *big.Int
 	MaxGasLimitPerBlock(shardID uint32) uint64
-	ComputeGasLimit(tx process.TransactionWithFeeHandler) uint64
-	ComputeMoveBalanceFee(tx process.TransactionWithFeeHandler) *big.Int
-	CheckValidityTxValues(tx process.TransactionWithFeeHandler) error
+	ComputeGasLimit(tx data.TransactionWithFeeHandler) uint64
+	ComputeMoveBalanceFee(tx data.TransactionWithFeeHandler) *big.Int
+	CheckValidityTxValues(tx data.TransactionWithFeeHandler) error
 	MinGasPrice() uint64
 	MinGasLimit() uint64
 	GasPerDataByte() uint64
 	GasPriceModifier() float64
-	ComputeFeeForProcessing(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int
+	ComputeFeeForProcessing(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int
 	IsInterfaceNil() bool
 }

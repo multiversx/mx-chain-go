@@ -1,51 +1,70 @@
 package evictionWaitingList
 
 import (
+	"errors"
+	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-logger/check"
 	"github.com/ElrondNetwork/elrond-go/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/stretchr/testify/assert"
 )
 
-func getDefaultParametersForMemoryEvictionWaitingList() (uint, marshal.Marshalizer) {
-	return 10, &mock.MarshalizerMock{}
+func getDefaultArgsForMemoryEvictionWaitingList() MemoryEvictionWaitingListArgs {
+	return MemoryEvictionWaitingListArgs{
+		RootHashesSize: 10,
+		HashesSize:     10,
+		Marshalizer:    &mock.MarshalizerMock{},
+	}
 }
 
-func TestNewEvictionWaitingListV2(t *testing.T) {
+func TestNewMemoryEvictionWaitingList(t *testing.T) {
 	t.Parallel()
 
-	mewl, err := NewMemoryEvictionWaitingListV2(getDefaultParametersForMemoryEvictionWaitingList())
+	mewl, err := NewMemoryEvictionWaitingList(getDefaultArgsForMemoryEvictionWaitingList())
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(mewl))
 }
 
-func TestNewEvictionWaitingListV2_InvalidCacheSize(t *testing.T) {
+func TestNewMemoryEvictionWaitingList_HashesSize(t *testing.T) {
 	t.Parallel()
 
-	_, marsh := getDefaultParametersForMemoryEvictionWaitingList()
-	mewl, err := NewMemoryEvictionWaitingListV2(0, marsh)
+	args := getDefaultArgsForMemoryEvictionWaitingList()
+	args.HashesSize = 0
+	mewl, err := NewMemoryEvictionWaitingList(args)
 	assert.True(t, check.IfNil(mewl))
-	assert.Equal(t, data.ErrInvalidCacheSize, err)
+	assert.True(t, errors.Is(err, data.ErrInvalidCacheSize))
+	assert.True(t, strings.Contains(err.Error(), "HashesSize"))
 }
 
-func TestNewEvictionWaitingListV2_NilDMarshalizer(t *testing.T) {
+func TestNewMemoryEvictionWaitingList_RootHashesSize(t *testing.T) {
 	t.Parallel()
 
-	size, _ := getDefaultParametersForMemoryEvictionWaitingList()
-	mewl, err := NewMemoryEvictionWaitingListV2(size, nil)
+	args := getDefaultArgsForMemoryEvictionWaitingList()
+	args.RootHashesSize = 0
+	mewl, err := NewMemoryEvictionWaitingList(args)
 	assert.True(t, check.IfNil(mewl))
-	assert.Equal(t, data.ErrNilMarshalizer, err)
+	assert.True(t, errors.Is(err, data.ErrInvalidCacheSize))
+	assert.True(t, strings.Contains(err.Error(), "RootHashesSize"))
 }
 
-func TestEvictionWaitingListV2_Put(t *testing.T) {
+func TestNewMemoryEvictionWaitingList_NilMarshalizer(t *testing.T) {
 	t.Parallel()
 
-	mewl, _ := NewMemoryEvictionWaitingListV2(getDefaultParametersForMemoryEvictionWaitingList())
+	args := getDefaultArgsForMemoryEvictionWaitingList()
+	args.Marshalizer = nil
+	mewl, err := NewMemoryEvictionWaitingList(args)
+	assert.True(t, check.IfNil(mewl))
+	assert.True(t, errors.Is(err, data.ErrNilMarshalizer))
+}
+
+func TestMemoryEvictionWaitingList_Put(t *testing.T) {
+	t.Parallel()
+
+	mewl, _ := NewMemoryEvictionWaitingList(getDefaultArgsForMemoryEvictionWaitingList())
 
 	hashesMap := temporary.ModifiedHashes{
 		"hash1": {},
@@ -60,16 +79,49 @@ func TestEvictionWaitingListV2_Put(t *testing.T) {
 	assert.Equal(t, hashesMap, mewl.cache[string(root)])
 }
 
-func TestEvictionWaitingListV2_PutMultiple(t *testing.T) {
+func TestMemoryEvictionWaitingList_PutMultiple(t *testing.T) {
 	t.Parallel()
 
-	cacheSize := uint(2)
-	_, marsh := getDefaultParametersForMemoryEvictionWaitingList()
-	mewl, _ := NewMemoryEvictionWaitingListV2(cacheSize, marsh)
+	args := getDefaultArgsForMemoryEvictionWaitingList()
+	args.RootHashesSize = 2
+	args.HashesSize = 10000
+	mewl, _ := NewMemoryEvictionWaitingList(args)
 
 	hashesMap := temporary.ModifiedHashes{
 		"hash0": {},
 		"hash1": {},
+	}
+	roots := [][]byte{
+		[]byte("root0"),
+		[]byte("root1"),
+		[]byte("root2"),
+		[]byte("root3"),
+		[]byte("root4"),
+		[]byte("root5"),
+	}
+
+	for i := range roots {
+		err := mewl.Put(roots[i], hashesMap)
+		assert.Nil(t, err)
+	}
+
+	assert.Equal(t, 0, len(mewl.cache)) // 2 resets
+	_ = mewl.Put(roots[0], hashesMap)
+	assert.Equal(t, hashesMap, mewl.cache[string(roots[0])])
+}
+
+func TestMemoryEvictionWaitingList_PutMultipleCleanDB(t *testing.T) {
+	t.Parallel()
+
+	args := getDefaultArgsForMemoryEvictionWaitingList()
+	args.RootHashesSize = 10000
+	args.HashesSize = 2
+	mewl, _ := NewMemoryEvictionWaitingList(args)
+
+	hashesMap := temporary.ModifiedHashes{
+		"hash0": {},
+		"hash1": {},
+		"hash2": {},
 	}
 	roots := [][]byte{
 		[]byte("root0"),
@@ -83,15 +135,13 @@ func TestEvictionWaitingListV2_PutMultiple(t *testing.T) {
 		assert.Nil(t, err)
 	}
 
-	assert.Equal(t, 0, len(mewl.cache)) // 2 resets
-	_ = mewl.Put(roots[0], hashesMap)
-	assert.Equal(t, hashesMap, mewl.cache[string(roots[0])])
+	assert.Equal(t, 0, len(mewl.cache)) // 4 reset
 }
 
-func TestEvictionWaitingListV2_Evict(t *testing.T) {
+func TestMemoryEvictionWaitingList_Evict(t *testing.T) {
 	t.Parallel()
 
-	mewl, _ := NewMemoryEvictionWaitingListV2(getDefaultParametersForMemoryEvictionWaitingList())
+	mewl, _ := NewMemoryEvictionWaitingList(getDefaultArgsForMemoryEvictionWaitingList())
 
 	expectedHashesMap := temporary.ModifiedHashes{
 		"hash1": {},
@@ -107,12 +157,12 @@ func TestEvictionWaitingListV2_Evict(t *testing.T) {
 	assert.Equal(t, expectedHashesMap, evicted)
 }
 
-func TestEvictionWaitingListV2_EvictFromDB(t *testing.T) {
+func TestMemoryEvictionWaitingList_EvictFromDB(t *testing.T) {
 	t.Parallel()
 
-	cacheSize := uint(4)
-	_, marsh := getDefaultParametersForMemoryEvictionWaitingList()
-	mewl, _ := NewMemoryEvictionWaitingListV2(cacheSize, marsh)
+	args := getDefaultArgsForMemoryEvictionWaitingList()
+	args.RootHashesSize = 4
+	mewl, _ := NewMemoryEvictionWaitingList(args)
 
 	hashesMap := temporary.ModifiedHashes{
 		"hash0": {},
@@ -133,10 +183,10 @@ func TestEvictionWaitingListV2_EvictFromDB(t *testing.T) {
 	assert.Equal(t, hashesMap, vals)
 }
 
-func TestEvictionWaitingListV2_ShouldKeepHash(t *testing.T) {
+func TestMemoryEvictionWaitingList_ShouldKeepHash(t *testing.T) {
 	t.Parallel()
 
-	mewl, _ := NewMemoryEvictionWaitingListV2(getDefaultParametersForMemoryEvictionWaitingList())
+	mewl, _ := NewMemoryEvictionWaitingList(getDefaultArgsForMemoryEvictionWaitingList())
 
 	hashesMap := temporary.ModifiedHashes{
 		"hash0": {},
@@ -157,10 +207,10 @@ func TestEvictionWaitingListV2_ShouldKeepHash(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestEvictionWaitingListV2_ShouldKeepHashShouldReturnFalse(t *testing.T) {
+func TestMemoryEvictionWaitingList_ShouldKeepHashShouldReturnFalse(t *testing.T) {
 	t.Parallel()
 
-	mewl, _ := NewMemoryEvictionWaitingListV2(getDefaultParametersForMemoryEvictionWaitingList())
+	mewl, _ := NewMemoryEvictionWaitingList(getDefaultArgsForMemoryEvictionWaitingList())
 
 	hashesMap := temporary.ModifiedHashes{
 		"hash0": {},
@@ -180,10 +230,10 @@ func TestEvictionWaitingListV2_ShouldKeepHashShouldReturnFalse(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestEvictionWaitingListV2_ShouldKeepHashShouldReturnTrueIfPresentInOldHashes(t *testing.T) {
+func TestMemoryEvictionWaitingList_ShouldKeepHashShouldReturnTrueIfPresentInOldHashes(t *testing.T) {
 	t.Parallel()
 
-	mewl, _ := NewMemoryEvictionWaitingListV2(getDefaultParametersForMemoryEvictionWaitingList())
+	mewl, _ := NewMemoryEvictionWaitingList(getDefaultArgsForMemoryEvictionWaitingList())
 
 	hashesMap := temporary.ModifiedHashes{
 		"hash0": {},
@@ -203,16 +253,18 @@ func TestEvictionWaitingListV2_ShouldKeepHashShouldReturnTrueIfPresentInOldHashe
 	assert.Nil(t, err)
 }
 
-func TestEvictionWaitingListV2_ShouldKeepHashSearchInDb(t *testing.T) {
+func TestMemoryEvictionWaitingList_ShouldKeepHashSearchInDb(t *testing.T) {
 	t.Parallel()
 
-	cacheSize := uint(2)
-	_, marsh := getDefaultParametersForMemoryEvictionWaitingList()
-	mewl, _ := NewMemoryEvictionWaitingListV2(cacheSize, marsh)
+	args := getDefaultArgsForMemoryEvictionWaitingList()
+	args.RootHashesSize = 2
+	args.HashesSize = 10000
+	mewl, _ := NewMemoryEvictionWaitingList(args)
 
 	root1 := []byte{1, 2, 3, 4, 5, 0}
 	root2 := []byte{6, 7, 8, 9, 10, 0}
 	root3 := []byte{1, 2, 3, 4, 5, 1}
+	root4 := []byte{1, 2, 3, 4, 5, 1}
 
 	hashesMapSlice := []temporary.ModifiedHashes{
 		{
@@ -227,26 +279,31 @@ func TestEvictionWaitingListV2_ShouldKeepHashSearchInDb(t *testing.T) {
 			"hash0": {},
 			"hash1": {},
 		},
+		{
+			"hash-1": {},
+			"hash-2": {},
+		},
 	}
 	roots := [][]byte{
 		root1,
 		root2,
 		root3,
+		root4,
 	}
 
 	for i := range roots {
 		_ = mewl.Put(roots[i], hashesMapSlice[i])
 	}
 
-	present, err := mewl.ShouldKeepHash("hash0", 1)
+	present, err := mewl.ShouldKeepHash("hash-1", 1)
 	assert.True(t, present)
 	assert.Nil(t, err)
 }
 
-func TestEvictionWaitingListV2_ShouldKeepHashInvalidKey(t *testing.T) {
+func TestMemoryEvictionWaitingList_ShouldKeepHashInvalidKey(t *testing.T) {
 	t.Parallel()
 
-	mewl, _ := NewMemoryEvictionWaitingListV2(getDefaultParametersForMemoryEvictionWaitingList())
+	mewl, _ := NewMemoryEvictionWaitingList(getDefaultArgsForMemoryEvictionWaitingList())
 
 	hashesMap := temporary.ModifiedHashes{
 		"hash0": {},
@@ -260,15 +317,15 @@ func TestEvictionWaitingListV2_ShouldKeepHashInvalidKey(t *testing.T) {
 	assert.Equal(t, state.ErrInvalidKey, err)
 }
 
-func TestNewEvictionWaitingListV2_Close(t *testing.T) {
+func TestMemoryEvictionWaitingList_Close(t *testing.T) {
 	t.Parallel()
 
-	mewl, _ := NewMemoryEvictionWaitingListV2(getDefaultParametersForMemoryEvictionWaitingList())
+	mewl, _ := NewMemoryEvictionWaitingList(getDefaultArgsForMemoryEvictionWaitingList())
 	err := mewl.Close()
 	assert.Nil(t, err)
 }
 
-func TestEvictionWaitingList_RemoveFromInversedCache(t *testing.T) {
+func TestMemoryEvictionWaitingList_RemoveFromInversedCache(t *testing.T) {
 	t.Parallel()
 
 	roothash1 := "roothash1"
@@ -279,7 +336,7 @@ func TestEvictionWaitingList_RemoveFromInversedCache(t *testing.T) {
 		hash: struct{}{},
 	}
 
-	mewl, _ := NewMemoryEvictionWaitingListV2(getDefaultParametersForMemoryEvictionWaitingList())
+	mewl, _ := NewMemoryEvictionWaitingList(getDefaultArgsForMemoryEvictionWaitingList())
 	mewl.reversedCache[hash] = &hashInfo{
 		roothashes: [][]byte{[]byte(roothash1), []byte(roothash2), []byte(roothash3)},
 	}
