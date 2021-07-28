@@ -543,7 +543,11 @@ func (tsm *trieStorageManager) Close() error {
 	err := tsm.db.Close()
 
 	for _, sdb := range tsm.snapshots {
-		log.LogIfError(sdb.Close())
+		errSnapshotClose := sdb.Close()
+		if errSnapshotClose != nil {
+			log.Error("trieStorageManager.Close", "error", errSnapshotClose)
+			err = errSnapshotClose
+		}
 	}
 
 	if err != nil {
