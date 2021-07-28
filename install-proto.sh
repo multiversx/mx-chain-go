@@ -23,7 +23,7 @@ fi
 git checkout casttypewith
 
 PROTO_COMPILER=protoc-3.17.3-linux-x86_64.zip
-TEMP_FOLDER_NAME=temp-001
+TEMP_FOLDER_NAME=temp-proto-001
 TEMP_LOCATION=~/temp/${TEMP_FOLDER_NAME}
 mkdir -p ${TEMP_LOCATION}
 cd "${TEMP_LOCATION}"
