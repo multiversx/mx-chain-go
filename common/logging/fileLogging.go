@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"sync"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -16,7 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 )
 
-const defaultFileLifeSpan = 86400
+const defaultFileLifeSpan = time.Hour * 24
 
 var log = logger.GetOrCreate("common/logging")
 
@@ -54,7 +55,7 @@ func NewFileLogging(workingDir string, defaultLogsPath string, logFilePrefix str
 
 	lifeSpanner, err := lifeSpanFactory.CreateLogLifeSpanner(logger.LogLifeSpanFactoryArgs{
 		LifeSpanType:  "second",
-		RecreateEvery: defaultFileLifeSpan,
+		RecreateEvery: int(defaultFileLifeSpan.Seconds()),
 	})
 
 	if err != nil {
