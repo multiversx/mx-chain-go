@@ -11,10 +11,11 @@ if [ ! -d "protobuf" ]
 then
   echo "Cloning gogo/protobuf..."
   git clone https://github.com/gogo/protobuf.git
+  cd protobuf
   git fetch origin pull/659/head:casttypewith
+else
+  cd protobuf
 fi
-
-cd protobuf
 
 git checkout casttypewith
 
