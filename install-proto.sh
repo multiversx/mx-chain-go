@@ -11,10 +11,13 @@ if [ ! -d "protobuf" ]
 then
   echo "Cloning gogo/protobuf..."
   git clone https://github.com/gogo/protobuf.git
-  cd protobuf
+fi
+
+cd protobuf
+DRY_RUN_RESULT=$(git fetch --dry-run origin pull/659/head:casttypewith 2>&1)
+if [[ "${DRY_RUN_RESULT}" != "fatal"* ]]
+then
   git fetch origin pull/659/head:casttypewith
-else
-  cd protobuf
 fi
 
 git checkout casttypewith
