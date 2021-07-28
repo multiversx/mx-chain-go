@@ -22,7 +22,7 @@ var log = logger.GetOrCreate("common/logging")
 
 // fileLogging is able to rotate the log files
 type fileLogging struct {
-	logLifeSpanner  logger.LogLifeSpanner
+	logLifeSpanner  lifeSpanWrapper
 	mutFile         sync.Mutex
 	currentFile     *os.File
 	workingDir      string
@@ -41,7 +41,8 @@ func NewFileLogging(workingDir string, defaultLogsPath string, logFilePrefix str
 		logFilePrefix:   logFilePrefix,
 		isClosed:        false,
 	}
-	fl.recreateLogFile("")
+	identifier := ""
+	fl.recreateLogFile(identifier)
 
 	//we need this function as to call file.Close() when the code panics and the defer func associated
 	//with the file pointer in the main func will never be reached
@@ -51,7 +52,7 @@ func NewFileLogging(workingDir string, defaultLogsPath string, logFilePrefix str
 
 	lifeSpanFactory := lifespan.NewTypeLogLifeSpanFactory()
 
-	secondsLifeSpanner, err := lifeSpanFactory.CreateLogLifeSpanner(logger.LogLifeSpanFactoryArgs{
+	lifeSpanner, err := lifeSpanFactory.CreateLogLifeSpanner(logger.LogLifeSpanFactoryArgs{
 		LifeSpanType:  "second",
 		RecreateEvery: defaultFileLifeSpan,
 	})
@@ -59,14 +60,24 @@ func NewFileLogging(workingDir string, defaultLogsPath string, logFilePrefix str
 	if err != nil {
 		log.Debug("autoRecreateFile NewSecondsLifeSpanner failed", "err", err)
 	}
-	log.Debug("setting secondsLifeSpanner")
-	fl.logLifeSpanner = secondsLifeSpanner
+
+	startRecreateFile(fl, lifeSpanner)
+
+	return fl, nil
+}
+
+func startRecreateFile(fl *fileLogging, lifeSpanner logger.LogLifeSpanner) {
+	if fl.cancelFunc != nil {
+		fl.cancelFunc()
+	}
+
+	fl.logLifeSpanner.SetLifeSpanner(lifeSpanner)
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	go fl.autoRecreateFile(ctx)
 	fl.cancelFunc = cancelFunc
 
-	return fl, nil
+	fl.logLifeSpanner.SetCurrentFile(fl.currentFile.Name())
 }
 
 func (fl *fileLogging) createFile(identifier string) (*os.File, error) {
@@ -118,20 +129,17 @@ func (fl *fileLogging) recreateLogFile(identifier string) {
 }
 
 func (fl *fileLogging) autoRecreateFile(ctx context.Context) {
+	lifeSpannerChannel := fl.logLifeSpanner.GetNotificationChannel()
 	for {
 		select {
 		case <-ctx.Done():
 			log.Info("closing fileLogging.autoRecreateFile go routine")
 			return
-		case identifier := <-fl.logLifeSpanner.GetChannel():
+		case identifier := <-lifeSpannerChannel:
 			log.Debug("autoRecreateFile - recreate log from lifeSpanner", "identifier", identifier)
 			fl.recreateLogFile(identifier)
-			sizeLogLifeSpanner, ok := fl.logLifeSpanner.(logger.SizeLogLifeSpanner)
-			if ok {
-				log.Debug("autoRecreateFile - found a sizeLogLifeSpanner", "new file", fl.currentFile.Name())
-				newFile := fl.currentFile.Name()
-				sizeLogLifeSpanner.SetCurrentFile(newFile)
-			}
+
+			fl.logLifeSpanner.SetCurrentFile(fl.currentFile.Name())
 		}
 	}
 }
@@ -149,19 +157,7 @@ func (fl *fileLogging) ChangeFileLifeSpan(lifeSpanner factory.LogLifeSpanner) er
 		return fmt.Errorf("%w, error: nil lifespan", core.ErrInvalidLogFileMinLifeSpan)
 	}
 
-	fl.cancelFunc()
-
-	fl.logLifeSpanner = lifeSpanner
-
-	ctx, cancelFunc := context.WithCancel(context.Background())
-	go fl.autoRecreateFile(ctx)
-	fl.cancelFunc = cancelFunc
-
-	sizeLogLifeSpanner, ok := lifeSpanner.(factory.SizeLogLifeSpanner)
-	if ok {
-		log.Info("Found a sizeLogLifeSpanner", "new file", fl.currentFile.Name())
-		sizeLogLifeSpanner.SetCurrentFile(fl.currentFile.Name())
-	}
+	startRecreateFile(fl, lifeSpanner)
 
 	return nil
 }

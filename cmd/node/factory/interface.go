@@ -61,12 +61,7 @@ type StatusHandlerUtilsFactory interface {
 
 // LogLifeSpanner defines a notification channel for the file logging lifespan
 type LogLifeSpanner interface {
-	GetChannel() <-chan string
-	IsInterfaceNil() bool
-}
-
-// SizeLogLifeSpanner defines a notification channel for the file logging lifespan
-type SizeLogLifeSpanner interface {
-	LogLifeSpanner
+	GetNotification() <-chan string
 	SetCurrentFile(string)
+	IsInterfaceNil() bool
 }

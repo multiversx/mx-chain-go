@@ -33,12 +33,10 @@ github.com/ElrondNetwork/elrond-go-core v1.0.1-0.20210723124835-0f85becd722a/go.
 github.com/ElrondNetwork/elrond-go-logger v1.0.4/go.mod h1:e5D+c97lKUfFdAzFX7rrI2Igl/z4Y0RkKYKWyzprTGk=
 github.com/ElrondNetwork/elrond-go-logger v1.0.5 h1:tB/HBvV9IVeCaSrGakX+GLGu7K5UPLv8gA0TNKPOTOU=
 github.com/ElrondNetwork/elrond-go-logger v1.0.5/go.mod h1:cBfgx0ST/CJx8jrxJSC5aiSrvkGzcnF7sK06RD8mFxQ=
-github.com/ElrondNetwork/elrond-go-logger v1.0.6-0.20210726134326-61199fd4c58d h1:y+/CIKruhmPu2d6ZFnSMIlhQMfGWxqgPJINoPir3OYw=
-github.com/ElrondNetwork/elrond-go-logger v1.0.6-0.20210726134326-61199fd4c58d/go.mod h1:cBfgx0ST/CJx8jrxJSC5aiSrvkGzcnF7sK06RD8mFxQ=
-github.com/ElrondNetwork/elrond-go-logger v1.0.6-0.20210726145217-9927306f2926 h1:Q+GuoIzsHBVIu1Wz7/LmZjWl+F/fVRPTAAIWokDCajs=
-github.com/ElrondNetwork/elrond-go-logger v1.0.6-0.20210726145217-9927306f2926/go.mod h1:cBfgx0ST/CJx8jrxJSC5aiSrvkGzcnF7sK06RD8mFxQ=
-github.com/ElrondNetwork/elrond-go-logger v1.0.6-0.20210726160804-de46c00785bb h1:XBUoR7SCH7864J9qVQIGoy47rEwTpCJgpcjCBUWpZCA=
-github.com/ElrondNetwork/elrond-go-logger v1.0.6-0.20210726160804-de46c00785bb/go.mod h1:zTOkKIkrKF9bOYg9WF+aNLTsKVpzpATSX9E8qrDgCbI=
+github.com/ElrondNetwork/elrond-go-logger v1.0.6-0.20210728073923-94c85c36e808 h1:DiKnCMN73piAZECQBn3RUz1Rc3HFo3I52GgM/Jh0luY=
+github.com/ElrondNetwork/elrond-go-logger v1.0.6-0.20210728073923-94c85c36e808/go.mod h1:zTOkKIkrKF9bOYg9WF+aNLTsKVpzpATSX9E8qrDgCbI=
+github.com/ElrondNetwork/elrond-go-logger v1.0.6-0.20210728093643-3e67f179c397 h1:S2oYFYjpQS/okz0RdxL5/ST5sopudM0cjfzKerNHuY4=
+github.com/ElrondNetwork/elrond-go-logger v1.0.6-0.20210728093643-3e67f179c397/go.mod h1:zTOkKIkrKF9bOYg9WF+aNLTsKVpzpATSX9E8qrDgCbI=
 github.com/ElrondNetwork/elrond-vm-common v1.1.0/go.mod h1:w3i6f8uiuRkE68Ie/gebRcLgTuHqvruJSYrFyZWuLrE=
 github.com/ElrondNetwork/elrond-vm-common v1.1.1-0.20210722060700-90d35cd5b077 h1:32j/UATsff8XYOIIfjQ5wB06ykO7L424Z5aZo7sLPQM=
 github.com/ElrondNetwork/elrond-vm-common v1.1.1-0.20210722060700-90d35cd5b077/go.mod h1:OrXHYASp1YBoXPrESy7rTKU+GdoN6+s46oh5LqZgaE4=
