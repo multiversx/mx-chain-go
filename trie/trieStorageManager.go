@@ -285,12 +285,12 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 	if tsm.isPresentInLastSnapshotDb(snapshotEntry.rootHash) {
 		db = tsm.GetSnapshotThatContainsHash(snapshotEntry.rootHash)
 		isDbNil := check.IfNil(db)
-		log.Debug("snapshot for rootHash already taken, using snapshot DB",
+		log.Trace("snapshot for rootHash already taken, using snapshot DB",
 			"rootHash", snapshotEntry.rootHash, "is DB nil", isDbNil)
 	}
 
 	if check.IfNil(db) {
-		log.Debug("source DB is nil, setting the source DB as tsm.db")
+		log.Trace("source DB is nil, setting the source DB as tsm.db")
 		db = tsm.db
 	}
 	log.Trace("trie checkpoint started", "rootHash", snapshotEntry.rootHash)
@@ -318,14 +318,14 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 func (tsm *trieStorageManager) takeCheckpoint(checkpointEntry *snapshotsQueueEntry, msh marshal.Marshalizer, hsh hashing.Hasher, ctx context.Context) {
 	defer func() {
 		tsm.ExitPruningBufferingMode()
-		log.Debug("trie checkpoint finished", "rootHash", checkpointEntry.rootHash)
+		log.Trace("trie checkpoint finished", "rootHash", checkpointEntry.rootHash)
 		if checkpointEntry.leavesChan != nil {
 			close(checkpointEntry.leavesChan)
 		}
 	}()
 
 	if tsm.isPresentInLastSnapshotDb(checkpointEntry.rootHash) {
-		log.Debug("checkpoint for rootHash already taken, skipping", "rootHash", checkpointEntry.rootHash)
+		log.Trace("checkpoint for rootHash already taken, skipping", "rootHash", checkpointEntry.rootHash)
 		return
 	}
 	log.Trace("trie checkpoint started", "rootHash", checkpointEntry.rootHash)
