@@ -1,41 +1,50 @@
-mkdir "${GOPATH}"/src/github.com/gogo
 
-cd "${GOPATH}"/src/github.com/gogo
+PATH_GITHUB_GOGO="${GOPATH}"/src/github.com/gogo
+if [ ! -d "${PATH_GITHUB_GOGO}" ]
+then
+  mkdir "${PATH_GITHUB_GOGO}}"
+fi
+cd "${PATH_GITHUB_GOGO}"
 
-git clone https://github.com/gogo/protobuf.git
+
+if [ ! -d "protobuf" ]
+then
+  echo "Cloning gogo/protobuf..."
+  git clone https://github.com/gogo/protobuf.git
+  git fetch origin pull/659/head:casttypewith
+fi
 
 cd protobuf
-
-git fetch origin pull/659/head:casttypewith
 
 git checkout casttypewith
 
 PROTO_COMPILER=protoc-3.17.3-linux-x86_64.zip
 TEMP_FOLDER_NAME=temp-001
-
-mkdir ~/${TEMP_FOLDER_NAME}
-
-cd ~/${TEMP_FOLDER_NAME}
-
-wget https://github.com/protocolbuffers/protobuf/releases/download/v3.17.3/${PROTO_COMPILER}
-unzip ${PROTO_COMPILER}
-
+TEMP_LOCATION=~/temp/${TEMP_FOLDER_NAME}
+mkdir ${TEMP_LOCATION}
+cd "${TEMP_LOCATION}"
+echo "Downloading protobuf compiler v3.17.3 ..."
+wget -q https://github.com/protocolbuffers/protobuf/releases/download/v3.17.3/${PROTO_COMPILER}
+unzip -q "${PROTO_COMPILER}" -d ./
 sudo cp -rf include/google /usr/include
-
 sudo cp -f bin/protoc /usr/bin
-
 sudo chmod +x /usr/bin/protoc
 
-rm -r ~/${TEMP_FOLDER_NAME}
+echo "Removing temporally files ..."
+rm -r ${TEMP_LOCATION}
 
 cd "${GOPATH}"/src/github.com/ElrondNetwork
 
-git clone https://github.com/ElrondNetwork/protobuf.git
+if [ ! -d "protobuf" ]
+then
+  echo "Cloning ElrondNetwork/protobuf..."
+  git clone https://github.com/ElrondNetwork/protobuf.git
+fi
 
+echo "Building protoc-gen-gogoslick binary..."
 cd protobuf/protoc-gen-gogoslick
-
 go build
+sudo cp -f protoc-gen-gogoslick /usr/bin/
 
-sudo cp protoc-gen-gogoslick /usr/bin/
-
+echo "Done."
 
