@@ -99,6 +99,8 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		args.BootstrapComponents.ShardCoordinator(),
 		args.CoreComponents.EpochNotifier(),
 		args.Configs.EpochConfig.EnableEpochs.ESDTMultiTransferEnableEpoch,
+		args.Configs.EpochConfig.EnableEpochs.GlobalMintBurnDisableEpoch,
+		args.Configs.EpochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
 	)
 	if err != nil {
 		return nil, err
@@ -230,6 +232,8 @@ func createScQueryElement(
 		args.processComponents.ShardCoordinator(),
 		args.coreComponents.EpochNotifier(),
 		args.epochConfig.EnableEpochs.ESDTMultiTransferEnableEpoch,
+		args.epochConfig.EnableEpochs.GlobalMintBurnDisableEpoch,
+		args.epochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
 	)
 	if err != nil {
 		return nil, err
@@ -337,6 +341,8 @@ func createBuiltinFuncs(
 	shardCoordinator sharding.Coordinator,
 	epochNotifier vmcommon.EpochNotifier,
 	esdtMultiTransferEnableEpoch uint32,
+	esdtGlobalMintBurnDisableEpoch uint32,
+	esdtTransferRoleEnableEpoch uint32,
 ) (vmcommon.BuiltInFunctionContainer, error) {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:                  gasScheduleNotifier,
@@ -346,6 +352,8 @@ func createBuiltinFuncs(
 		ShardCoordinator:             shardCoordinator,
 		EpochNotifier:                epochNotifier,
 		ESDTMultiTransferEnableEpoch: esdtMultiTransferEnableEpoch,
+		ESDTTransferRoleEnableEpoch:  esdtTransferRoleEnableEpoch,
+		GlobalBurnMintDisableEpoch:   esdtGlobalMintBurnDisableEpoch,
 	}
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	if err != nil {

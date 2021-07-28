@@ -11,7 +11,7 @@ import (
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 )
 
-// ArgsCreateBuiltInFunctionContainer -
+// ArgsCreateBuiltInFunctionContainer defines the argument structure to create new built in function container
 type ArgsCreateBuiltInFunctionContainer struct {
 	GasSchedule                  core.GasScheduleNotifier
 	MapDNSAddresses              map[string]struct{}
@@ -21,6 +21,8 @@ type ArgsCreateBuiltInFunctionContainer struct {
 	ShardCoordinator             sharding.Coordinator
 	EpochNotifier                vmcommon.EpochNotifier
 	ESDTMultiTransferEnableEpoch uint32
+	ESDTTransferRoleEnableEpoch  uint32
+	GlobalBurnMintDisableEpoch   uint32
 }
 
 // CreateBuiltInFunctionContainer creates a container that will hold all the available built in functions
