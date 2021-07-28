@@ -21,7 +21,7 @@ git checkout casttypewith
 PROTO_COMPILER=protoc-3.17.3-linux-x86_64.zip
 TEMP_FOLDER_NAME=temp-001
 TEMP_LOCATION=~/temp/${TEMP_FOLDER_NAME}
-mkdir ${TEMP_LOCATION}
+mkdir -p ${TEMP_LOCATION}
 cd "${TEMP_LOCATION}"
 echo "Downloading protobuf compiler v3.17.3 ..."
 wget -q https://github.com/protocolbuffers/protobuf/releases/download/v3.17.3/${PROTO_COMPILER}
