@@ -1045,11 +1045,9 @@ func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler, h
 		}
 	}
 
-	rootHash := header.GetRootHash()
 	scheduledRootHash := bp.scheduledTxsExecutionHandler.GetScheduledRootHash()
 	mapScheduledSCRs := bp.scheduledTxsExecutionHandler.GetScheduledSCRs()
-	shouldSaveScheduled := rootHash != nil && scheduledRootHash != nil && !bytes.Equal(rootHash, scheduledRootHash)
-	if shouldSaveScheduled {
+	if bp.scheduledTxsExecutionHandler.HaveScheduledTxs() {
 		marshalizedRootHashAndScheduledSCRs, errNotCritical := bp.getMarshalizedScheduledRootHashAndSCRs(scheduledRootHash, mapScheduledSCRs)
 		if errNotCritical != nil {
 			log.Warn("saveBody.getMarshalizedScheduledSCRs", "error", errNotCritical.Error())

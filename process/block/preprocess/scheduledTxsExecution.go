@@ -274,6 +274,16 @@ func (ste *scheduledTxsExecution) SetTransactionCoordinator(txCoordinator proces
 	ste.txCoordinator = txCoordinator
 }
 
+// HaveScheduledTxs method returns if there are scheduled transactions
+func (ste *scheduledTxsExecution) HaveScheduledTxs() bool {
+	ste.mutScheduledTxs.RLock()
+	log.Debug("scheduledTxsExecution.HaveScheduledTxs", "num of scheduled txs", len(ste.scheduledTxs))
+	haveScheduledTxs := len(ste.scheduledTxs) > 0
+	ste.mutScheduledTxs.RUnlock()
+
+	return haveScheduledTxs
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (ste *scheduledTxsExecution) IsInterfaceNil() bool {
 	return ste == nil
