@@ -2,7 +2,7 @@
 PATH_GITHUB_GOGO="${GOPATH}"/src/github.com/gogo
 if [ ! -d "${PATH_GITHUB_GOGO}" ]
 then
-  mkdir "${PATH_GITHUB_GOGO}}"
+  mkdir -p "${PATH_GITHUB_GOGO}"
 fi
 cd "${PATH_GITHUB_GOGO}"
 
