@@ -722,7 +722,7 @@ func (pcf *processComponentsFactory) indexGenesisAccounts() error {
 		return err
 	}
 
-	genesisAccounts := make([]state.UserAccountHandler, 0)
+	genesisAccounts := make([]data.UserAccountHandler, 0)
 	for leaf := range leavesChannel {
 		userAccount, errUnmarshal := pcf.unmarshalUserAccount(leaf.Key(), leaf.Value())
 		if errUnmarshal != nil {

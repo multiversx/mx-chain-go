@@ -34,6 +34,7 @@ import (
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
 	"github.com/ElrondNetwork/elrond-go/health"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -845,7 +846,7 @@ func (nr *nodeRunner) logSessionInformation(
 		})
 
 	statsFile := filepath.Join(statsFolder, "session.info")
-	err := ioutil.WriteFile(statsFile, []byte(sessionInfoFileOutput), os.ModePerm)
+	err := ioutil.WriteFile(statsFile, []byte(sessionInfoFileOutput), core.FileModeReadWrite)
 	log.LogIfError(err)
 
 	computedRatingsDataStr := createStringFromRatingsData(managedCoreComponents.RatingsData())
@@ -1107,9 +1108,13 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 		Syncer:               managedCoreComponents.SyncTimer(),
 		PreferredPublicKeys:  decodedPreferredPubKeys,
 		BootstrapWaitSeconds: common.SecondsToWaitForP2PBootstrap,
+		NodeOperationMode:    p2p.NormalOperation,
 	}
 	if nr.configs.ImportDbConfig.IsImportDBMode {
 		networkComponentsFactoryArgs.BootstrapWaitSeconds = 0
+	}
+	if nr.configs.PreferencesConfig.Preferences.FullArchive {
+		networkComponentsFactoryArgs.NodeOperationMode = p2p.FullArchiveMode
 	}
 
 	networkComponentsFactory, err := mainFactory.NewNetworkComponentsFactory(networkComponentsFactoryArgs)
