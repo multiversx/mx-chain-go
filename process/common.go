@@ -764,7 +764,8 @@ func SetScheduledRootHashAndSCRs(
 ) {
 	scheduledRootHash, mapScheduledSCRs, err := GetScheduledRootHashAndSCRsFromStorage(headerHash, storageService, marshalizer)
 	if err != nil {
-		log.Debug("SetScheduledRootHashAndSCRs: header hash not found in ScheduledSCRs storage",
+		//TODO: Change the log level to TRACE
+		log.Debug("SetScheduledRootHashAndSCRs: given header does not have scheduled txs",
 			"header hash", headerHash,
 		)
 
@@ -787,7 +788,8 @@ func GetScheduledRootHash(
 ) []byte {
 	scheduledRootHash, _, err := GetScheduledRootHashAndSCRsFromStorage(headerHash, storageService, marshalizer)
 	if err != nil {
-		log.Debug("GetScheduledRootHash: header hash not found in ScheduledSCRs storage",
+		//TODO: Change the log level to TRACE
+		log.Debug("GetScheduledRootHash: given header does not have scheduled txs",
 			"header hash", headerHash,
 		)
 

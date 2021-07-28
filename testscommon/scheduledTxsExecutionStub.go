@@ -74,7 +74,7 @@ func (stes *ScheduledTxsExecutionStub) GetScheduledRootHash() []byte {
 		return stes.GetScheduledRootHashCalled()
 	}
 
-	return make([]byte, 0)
+	return nil
 }
 
 // SetScheduledRootHash -

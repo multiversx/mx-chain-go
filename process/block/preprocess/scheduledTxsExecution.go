@@ -49,7 +49,7 @@ func NewScheduledTxsExecution(
 		mapScheduledTxs:   make(map[string]data.TransactionHandler),
 		mapScheduledSCRs:  make(map[block.Type][]data.TransactionHandler),
 		scheduledTxs:      make([]data.TransactionHandler, 0),
-		scheduledRootHash: make([]byte, 0),
+		scheduledRootHash: nil,
 	}
 
 	return ste, nil

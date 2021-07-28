@@ -1045,13 +1045,17 @@ func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler, h
 		}
 	}
 
+	rootHash := header.GetRootHash()
 	scheduledRootHash := bp.scheduledTxsExecutionHandler.GetScheduledRootHash()
 	mapScheduledSCRs := bp.scheduledTxsExecutionHandler.GetScheduledSCRs()
-	marshalizedRootHashAndScheduledSCRs, errNotCritical := bp.getMarshalizedScheduledRootHashAndSCRs(scheduledRootHash, mapScheduledSCRs)
-	if errNotCritical != nil {
-		log.Warn("saveBody.getMarshalizedScheduledSCRs", "error", errNotCritical.Error())
-	} else {
-		if len(marshalizedRootHashAndScheduledSCRs) > 0 {
+	shouldSaveScheduled := rootHash != nil && scheduledRootHash != nil && !bytes.Equal(rootHash, scheduledRootHash)
+	if shouldSaveScheduled {
+		marshalizedRootHashAndScheduledSCRs, errNotCritical := bp.getMarshalizedScheduledRootHashAndSCRs(scheduledRootHash, mapScheduledSCRs)
+		if errNotCritical != nil {
+			log.Warn("saveBody.getMarshalizedScheduledSCRs", "error", errNotCritical.Error())
+		} else {
+			//TODO: Change to log level TRACE
+			log.Debug("saveBody.Put(dataRetriever.ScheduledSCRsUnit)", "header hash", headerHash, "length of marshalized root hash and scheduled SCRs", len(marshalizedRootHashAndScheduledSCRs))
 			errNotCritical = bp.store.Put(dataRetriever.ScheduledSCRsUnit, headerHash, marshalizedRootHashAndScheduledSCRs)
 			if errNotCritical != nil {
 				log.Warn("saveBody.Put -> ScheduledSCRsUnit", "error", errNotCritical.Error())
@@ -1571,10 +1575,6 @@ func (bp *baseProcessor) getMarshalizedScheduledRootHashAndSCRs(
 		}
 
 		scrsBatch.Data = append(scrsBatch.Data, marshalizedScheduledSCRs)
-	}
-
-	if len(scrsBatch.Data) <= 1 {
-		return make([]byte, 0), nil
 	}
 
 	return bp.marshalizer.Marshal(scrsBatch)

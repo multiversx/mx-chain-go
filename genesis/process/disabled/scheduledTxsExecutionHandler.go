@@ -42,7 +42,7 @@ func (steh *ScheduledTxsExecutionHandler) SetScheduledSCRs(_ map[block.Type][]da
 
 // GetScheduledRootHash does nothing as it is a disabled component
 func (steh *ScheduledTxsExecutionHandler) GetScheduledRootHash() []byte {
-	return make([]byte, 0)
+	return nil
 }
 
 // SetScheduledRootHash does nothing as it is a disabled component
