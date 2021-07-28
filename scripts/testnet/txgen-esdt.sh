@@ -8,19 +8,16 @@ if [[ -n $1 ]]; then
   DESTINATION=$1
 fi
 
-NUM_TXS=100
-VALUE=1
+NUM_TXS=50
+VALUE=10
 GAS_PRICE=1000000000
-GAS_LIMIT=3000000
-SLEEP_DURATION=20
-DEPLOY_SLEEP_DURATION=25
-MINT_SLEEP_DURATION=25
+GAS_LIMIT=100000
+SLEEP_DURATION=40
+TOKEN_ISSUE_SLEEP_DURATION=90
+MINTING_TXS_SLEEP_DURATION=90
 
-echo 'Starting ERC20 scenario cURL script...'
-echo 'Will run a cURL with the following JSON payload each '$SLEEP_DURATION' seconds'
-echo '{"value": '$VALUE', "numOfTxs": '$NUM_TXS', "gasPrice": '$GAS_PRICE', "gasLimit": '$GAS_LIMIT', "destination": "'$DESTINATION'", "recallNonce": true, "scenario": "erc20", "scAddress": "'$DEPLOYED_SC_ADDRESS'", "data": "transfer"}'
-echo
-echo 'Starting...'
+echo 'Starting ESDT scenario cURL script...'
+echo 'Sending the token issue transaction and waiting '$TOKEN_ISSUE_SLEEP_DURATION' seconds..'
 
 for (( ; ; )); do
 response=$(curl -s -d '{
@@ -30,8 +27,8 @@ response=$(curl -s -d '{
      "gasLimit": '$GAS_LIMIT',
      "destination": "'$DESTINATION'",
      "recallNonce": true,
-     "data": "deploy",
-     "scenario": "erc20"
+     "data": "mint",
+     "scenario": "esdt"
    }' \
   -H "Content-Type: application/json" -X POST http://localhost:${PORT_TXGEN}/transaction/send-multiple)
 
@@ -44,7 +41,7 @@ fi
 
 if [[ $response =~ "not yet enabled" ]]
 then
-  echo 'sc deployment not enabled yet.'
+  echo 'esdt not enabled yet.'
   sleep 10
 else
   break
@@ -52,10 +49,9 @@ fi
 
 done
 
-let COUNT=0
+sleep $TOKEN_ISSUE_SLEEP_DURATION
 
-sleep $DEPLOY_SLEEP_DURATION
-
+echo 'Sending the minting transactions and waiting '$MINTING_TXS_SLEEP_DURATION' seconds..'
 curl -d '{
      "value": '$VALUE',
      "numOfTxs": '$NUM_TXS',
@@ -63,12 +59,17 @@ curl -d '{
      "gasLimit": '$GAS_LIMIT',
      "destination": "'$DESTINATION'",
      "recallNonce": true,
-     "scenario": "erc20",
-     "data": "mint"
+     "data": "mint",
+     "scenario": "esdt"
    }' \
-    -H "Content-Type: application/json" -X POST http://localhost:${PORT_TXGEN}/transaction/send-multiple
+  -H "Content-Type: application/json" -X POST http://localhost:${PORT_TXGEN}/transaction/send-multiple
+sleep $MINTING_TXS_SLEEP_DURATION
 
-  sleep $MINT_SLEEP_DURATION
+echo 'Now the script will start to send regular cURLs'
+echo 'Will run a cURL with the following JSON payload each '$SLEEP_DURATION' seconds'
+echo '{"value": '$VALUE', "numOfTxs": '$NUM_TXS', "gasPrice": '$GAS_PRICE', "gasLimit": '$GAS_LIMIT', "destination": "'$DESTINATION'", "recallNonce": true, "scenario": "esdt"}'
+echo
+echo 'Starting...'
 
 for (( ; ; )); do
   curl -d '{
@@ -78,26 +79,9 @@ for (( ; ; )); do
      "gasLimit": '$GAS_LIMIT',
      "destination": "'$DESTINATION'",
      "recallNonce": true,
-     "scenario": "erc20",
-     "data": "transfer"
+     "scenario": "esdt"
    }' \
     -H "Content-Type: application/json" -X POST http://localhost:${PORT_TXGEN}/transaction/send-multiple
 
   sleep $SLEEP_DURATION
-
-  let COUNT++
-  if (($COUNT % 5 == 0)); then
-    curl -d '{
-     "value": '$VALUE',
-     "numOfTxs": '$NUM_TXS',
-     "gasPrice": '$GAS_PRICE',
-     "gasLimit": '$GAS_LIMIT',
-     "destination": "'$DESTINATION'",
-     "recallNonce": true,
-     "scenario": "erc20",
-     "data": "transferToNewAccounts"
-   }' \
-    -H "Content-Type: application/json" -X POST http://localhost:${PORT_TXGEN}/transaction/send-multiple
-  fi
-
 done
