@@ -23,12 +23,21 @@ func NewPruningBuffer(pruningBufferLen uint32) *pruningBuffer {
 }
 
 // Add appends a new byteArray to the buffer if there is any space left
+// Otherwise, it will remove the oldest record
 func (pb *pruningBuffer) Add(rootHash []byte) {
 	pb.mutOp.Lock()
 	defer pb.mutOp.Unlock()
 
+	if pb.size == 0 {
+		return
+	}
+
 	if uint32(len(pb.buffer)) == pb.size {
-		log.Warn("pruning buffer is full", "rootHash", rootHash)
+		removedHash := pb.buffer[0]
+		pb.buffer = pb.buffer[1:]
+		pb.buffer = append(pb.buffer, rootHash)
+		log.Debug("pruning buffer is full, removing oldest", "added hash", rootHash, "removed hash", removedHash)
+
 		return
 	}
 
