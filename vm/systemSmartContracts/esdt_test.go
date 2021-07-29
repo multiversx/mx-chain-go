@@ -3272,10 +3272,16 @@ func TestEsdt_SetSpecialRoleTransferNotEnabledShouldErr(t *testing.T) {
 		TokenType:          []byte(core.NonFungibleESDT),
 		CanAddSpecialRoles: true,
 	}
+	esdtTransferData := core.BuiltInFunctionESDTSetLimitedTransfer + "@" + hex.EncodeToString([]byte("myToken"))
+	called := false
 	eei := &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
+		},
+		SendGlobalSettingToAllCalled: func(sender []byte, input []byte) {
+			assert.Equal(t, input, []byte(esdtTransferData))
+			called = true
 		},
 	}
 	args.Eei = eei
@@ -3301,17 +3307,43 @@ func TestEsdt_SetSpecialRoleTransferNotEnabledShouldErr(t *testing.T) {
 	require.Equal(t, vmcommon.UserError, retCode)
 
 	e.flagTransferRole.Set()
+	called = false
 	token.TokenType = []byte(core.NonFungibleESDT)
 	retCode = e.Execute(vmInput)
 	require.Equal(t, vmcommon.Ok, retCode)
+	require.True(t, called)
 
 	token.TokenType = []byte(core.FungibleESDT)
 	retCode = e.Execute(vmInput)
 	require.Equal(t, vmcommon.Ok, retCode)
 
+	called = false
+	newAddressRole := &ESDTRoles{
+		Address: []byte("address"),
+		Roles:   [][]byte{[]byte(core.ESDTRoleTransfer)},
+	}
+	token.SpecialRoles = append(token.SpecialRoles, newAddressRole)
 	token.TokenType = []byte(core.SemiFungibleESDT)
 	retCode = e.Execute(vmInput)
 	require.Equal(t, vmcommon.Ok, retCode)
+	require.False(t, called)
+
+	token.SpecialRoles[0].Roles = append(token.SpecialRoles[0].Roles, []byte(core.ESDTRoleTransfer))
+	token.TokenType = []byte(core.SemiFungibleESDT)
+	retCode = e.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.False(t, called)
+
+	vmInput.Function = "unSetSpecialRole"
+	retCode = e.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+	require.False(t, called)
+
+	esdtTransferData = core.BuiltInFunctionESDTUnSetLimitedTransfer + "@" + hex.EncodeToString([]byte("myToken"))
+	token.SpecialRoles = token.SpecialRoles[:1]
+	retCode = e.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+	require.True(t, called)
 }
 
 func TestEsdt_SetSpecialRoleSFTShouldErr(t *testing.T) {
