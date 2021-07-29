@@ -3,6 +3,7 @@ package bls
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/outport/disabled"
 	"sync"
 	"time"
 
@@ -46,7 +47,7 @@ func NewSubroundStartRound(
 		processingThresholdPercentage: processingThresholdPercentage,
 		executeStoredMessages:         executeStoredMessages,
 		resetConsensusMessages:        resetConsensusMessages,
-		outportHandler:                outport.NewDisabledOutport(),
+		outportHandler:                disabled.NewDisabledOutport(),
 		outportMutex:                  sync.RWMutex{},
 	}
 	srStartRound.Job = srStartRound.doStartRoundJob
@@ -72,11 +73,17 @@ func checkNewSubroundStartRoundParams(
 	return err
 }
 
-// SetOutportHandler method set outport handler
-func (sr *subroundStartRound) SetOutportHandler(outportHandler outport.OutportHandler) {
+// SetOutportHandler method sets outport handler
+func (sr *subroundStartRound) SetOutportHandler(outportHandler outport.OutportHandler) error {
+	if check.IfNil(outportHandler) {
+		return outport.ErrNilDriver
+	}
+
 	sr.outportMutex.Lock()
 	sr.outportHandler = outportHandler
 	sr.outportMutex.Unlock()
+
+	return nil
 }
 
 // doStartRoundJob method does the job of the subround StartRound
@@ -206,7 +213,7 @@ func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 	sr.outportMutex.RLock()
 	defer sr.outportMutex.RUnlock()
 
-	if check.IfNil(sr.outportHandler) || !sr.outportHandler.HasDrivers() {
+	if !sr.outportHandler.HasDrivers() {
 		return
 	}
 

@@ -150,7 +150,10 @@ func (fct *factory) generateStartRoundSubround() error {
 		return err
 	}
 
-	subroundStartRound.SetOutportHandler(fct.outportHandler)
+	err = subroundStartRound.SetOutportHandler(fct.outportHandler)
+	if err != nil {
+		return err
+	}
 
 	fct.consensusCore.Chronology().AddSubround(subroundStartRound)
 

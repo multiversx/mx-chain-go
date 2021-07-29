@@ -1,14 +1,15 @@
-package outport
+package disabled
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	"github.com/ElrondNetwork/elrond-go/outport"
 )
 
 type disabledOutport struct{}
 
 // NewDisabledOutport will create a new instance of disabledOutport
-func NewDisabledOutport() OutportHandler {
+func NewDisabledOutport() *disabledOutport {
 	return new(disabledOutport)
 }
 
@@ -47,7 +48,7 @@ func (n *disabledOutport) IsInterfaceNil() bool {
 }
 
 // SubscribeDriver does nothing
-func (n *disabledOutport) SubscribeDriver(_ Driver) error {
+func (n *disabledOutport) SubscribeDriver(_ outport.Driver) error {
 	return nil
 }
 

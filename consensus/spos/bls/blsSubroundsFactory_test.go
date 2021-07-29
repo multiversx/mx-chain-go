@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
+	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
@@ -535,10 +536,22 @@ func TestFactory_GenerateSubroundsShouldWork(t *testing.T) {
 	container := mock.InitConsensusCore()
 	container.SetChronology(chrm)
 	fct := *initFactoryWithContainer(container)
+	fct.SetOutportHandler(&testscommon.OutportStub{})
 
-	_ = fct.GenerateSubrounds()
+	err := fct.GenerateSubrounds()
+	assert.Nil(t, err)
 
 	assert.Equal(t, 4, subroundHandlers)
+}
+
+func TestFactory_GenerateSubroundsNilOutportShouldFail(t *testing.T) {
+	t.Parallel()
+
+	container := mock.InitConsensusCore()
+	fct := *initFactoryWithContainer(container)
+
+	err := fct.GenerateSubrounds()
+	assert.Equal(t, outport.ErrNilDriver, err)
 }
 
 func TestFactory_SetIndexerShouldWork(t *testing.T) {
