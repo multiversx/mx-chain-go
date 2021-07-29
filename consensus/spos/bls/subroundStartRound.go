@@ -3,7 +3,6 @@ package bls
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/outport/disabled"
 	"sync"
 	"time"
 
@@ -14,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/outport"
+	"github.com/ElrondNetwork/elrond-go/outport/disabled"
 )
 
 // subroundStartRound defines the data needed by the subround StartRound
