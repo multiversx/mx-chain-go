@@ -3,6 +3,7 @@ package vm
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/ElrondNetwork/elrond-go/outport"
 	"sync"
 	"testing"
 	"time"
@@ -23,7 +24,7 @@ import (
 )
 
 type testIndexer struct {
-	indexer          process.Indexer
+	outportDriver    outport.Driver
 	indexerData      map[string]*bytes.Buffer
 	marshalizer      marshal.Marshalizer
 	hasher           hashing.Hasher
@@ -66,7 +67,7 @@ func CreateTestIndexer(
 	testIndexer, err := elasticIndexer.NewDataIndexer(arguments)
 	require.Nil(t, err)
 
-	ti.indexer = testIndexer
+	ti.outportDriver = testIndexer
 	ti.shardCoordinator = coordinator
 	ti.marshalizer = testMarshalizer
 	ti.hasher = testHasher
@@ -172,13 +173,13 @@ func (ti *testIndexer) SaveTransaction(
 		Header:           header,
 		TransactionsPool: txsPool,
 	}
-	ti.indexer.SaveBlock(args)
+	ti.outportDriver.SaveBlock(args)
 
 	select {
 	case <-ti.saveDoneChan:
 		return
 	case <-time.After(timeoutSave):
-		require.Fail(ti.t, "save indexer item timeout")
+		require.Fail(ti.t, "save outportDriver item timeout")
 	}
 }
 
