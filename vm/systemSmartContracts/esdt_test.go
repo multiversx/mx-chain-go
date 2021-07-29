@@ -3255,6 +3255,65 @@ func TestEsdt_SetSpecialRoleNFTShouldErr(t *testing.T) {
 	require.Equal(t, vmcommon.Ok, retCode)
 }
 
+func TestEsdt_SetSpecialRoleTransferNotEnabledShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	args.EpochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch = 10
+
+	token := &ESDTData{
+		OwnerAddress: []byte("caller123"),
+		SpecialRoles: []*ESDTRoles{
+			{
+				Address: []byte("myAddress"),
+				Roles:   [][]byte{[]byte(core.ESDTRoleLocalMint)},
+			},
+		},
+		TokenType:          []byte(core.NonFungibleESDT),
+		CanAddSpecialRoles: true,
+	}
+	eei := &mock.SystemEIStub{
+		GetStorageCalled: func(key []byte) []byte {
+			tokenBytes, _ := args.Marshalizer.Marshal(token)
+			return tokenBytes
+		},
+	}
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := getDefaultVmInputForFunc("setSpecialRole", [][]byte{})
+	vmInput.Arguments = [][]byte{[]byte("myToken"), []byte("myAddress"), []byte(core.ESDTRoleTransfer)}
+	vmInput.CallerAddr = []byte("caller123")
+	vmInput.CallValue = big.NewInt(0)
+	vmInput.GasProvided = 50000000
+
+	token.TokenType = []byte(core.NonFungibleESDT)
+	retCode := e.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+
+	token.TokenType = []byte(core.FungibleESDT)
+	retCode = e.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+
+	token.TokenType = []byte(core.SemiFungibleESDT)
+	retCode = e.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+
+	e.flagTransferRole.Set()
+	token.TokenType = []byte(core.NonFungibleESDT)
+	retCode = e.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+
+	token.TokenType = []byte(core.FungibleESDT)
+	retCode = e.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+
+	token.TokenType = []byte(core.SemiFungibleESDT)
+	retCode = e.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+}
+
 func TestEsdt_SetSpecialRoleSFTShouldErr(t *testing.T) {
 	t.Parallel()
 
