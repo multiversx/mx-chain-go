@@ -2,6 +2,7 @@ package gin
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"sync"
 	"time"
@@ -280,6 +281,10 @@ func (ws *webServer) Close() error {
 	ws.Lock()
 	err := ws.httpServer.Close()
 	ws.Unlock()
+
+	if err != nil {
+		err = fmt.Errorf("%w while closing the http server in gin/webServer", err)
+	}
 
 	return err
 }
