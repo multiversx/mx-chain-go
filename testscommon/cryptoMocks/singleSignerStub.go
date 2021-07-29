@@ -1,6 +1,6 @@
-package mock
+package cryptoMocks
 
-import "github.com/ElrondNetwork/elrond-go/crypto"
+import "github.com/ElrondNetwork/elrond-go-crypto"
 
 // SingleSignerStub -
 type SingleSignerStub struct {
