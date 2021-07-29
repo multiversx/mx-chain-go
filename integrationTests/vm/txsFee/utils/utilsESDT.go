@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"math/big"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -100,6 +101,40 @@ func CreateESDTTransferTx(nonce uint64, sndAddr, rcvAddr []byte, tokenIdentifier
 		Nonce:    nonce,
 		SndAddr:  sndAddr,
 		RcvAddr:  rcvAddr,
+		GasLimit: gasLimit,
+		GasPrice: gasPrice,
+		Data:     txDataField,
+		Value:    big.NewInt(0),
+	}
+}
+
+type TransferESDTData struct {
+	Token []byte
+	Nonce uint64
+	Value *big.Int
+}
+
+func CreateMultiTransferTX(nonce uint64, sender, dest []byte, gasPrice, gasLimit uint64, tds ...*TransferESDTData) *transaction.Transaction {
+	numTransfers := len(tds)
+	encodedReceiver := hex.EncodeToString(dest)
+	hexEncodedNumTransfers := hex.EncodeToString(big.NewInt(int64(numTransfers)).Bytes())
+
+	txDataField := []byte(strings.Join([]string{core.BuiltInFunctionMultiESDTNFTTransfer, encodedReceiver, hexEncodedNumTransfers}, "@"))
+	for _, td := range tds {
+		hexEncodedToken := hex.EncodeToString(td.Token)
+		esdtValueEncoded := hex.EncodeToString(td.Value.Bytes())
+		hexEncodedNonce := "00"
+		if td.Nonce != 0 {
+			hexEncodedNonce = hex.EncodeToString(big.NewInt(int64(td.Nonce)).Bytes())
+		}
+
+		txDataField = []byte(strings.Join([]string{string(txDataField), hexEncodedToken, hexEncodedNonce, esdtValueEncoded}, "@"))
+	}
+
+	return &transaction.Transaction{
+		Nonce:    nonce,
+		SndAddr:  sender,
+		RcvAddr:  sender,
 		GasLimit: gasLimit,
 		GasPrice: gasPrice,
 		Data:     txDataField,
