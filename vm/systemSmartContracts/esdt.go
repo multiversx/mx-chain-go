@@ -258,7 +258,10 @@ func (e *esdt) issue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	}
 
 	initialSupply := big.NewInt(0).SetBytes(args.Arguments[2])
-	if initialSupply.Cmp(big.NewInt(0)) <= 0 {
+	if e.flagGlobalMintBurn.IsSet() && initialSupply.Cmp(zero) <= 0 {
+		e.eei.AddReturnMessage(vm.ErrNegativeOrZeroInitialSupply.Error())
+		return vmcommon.UserError
+	} else if initialSupply.Cmp(zero) < 0 {
 		e.eei.AddReturnMessage(vm.ErrNegativeOrZeroInitialSupply.Error())
 		return vmcommon.UserError
 	}
@@ -287,11 +290,15 @@ func (e *esdt) issue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return vmcommon.UserError
 	}
 
-	esdtTransferData := core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString(tokenIdentifier) + "@" + hex.EncodeToString(initialSupply.Bytes())
-	err = e.eei.Transfer(args.CallerAddr, e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
-	if err != nil {
-		e.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
+	if initialSupply.Cmp(zero) > 0 {
+		esdtTransferData := core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString(tokenIdentifier) + "@" + hex.EncodeToString(initialSupply.Bytes())
+		err = e.eei.Transfer(args.CallerAddr, e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
+		if err != nil {
+			e.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
+	} else {
+		e.eei.Finish(tokenIdentifier)
 	}
 
 	return vmcommon.Ok
@@ -1055,23 +1062,23 @@ func (e *esdt) checkArgumentsForSpecialRoleChanges(args *vmcommon.ContractCallIn
 	return vmcommon.Ok
 }
 
-func isCreateNFTRoleInArgs(args [][]byte) bool {
+func isDefinedRoleInArgs(args [][]byte, definedRole []byte) bool {
 	for _, arg := range args {
-		if bytes.Equal(arg, []byte(core.ESDTRoleNFTCreate)) {
+		if bytes.Equal(arg, definedRole) {
 			return true
 		}
 	}
 	return false
 }
 
-func checkIfCreateNFTRoleExistsInArgsAndToken(args [][]byte, token *ESDTData) bool {
-	if !isCreateNFTRoleInArgs(args) {
+func checkIfDefinedRoleExistsInArgsAndToken(args [][]byte, token *ESDTData, definedRole []byte) bool {
+	if !isDefinedRoleInArgs(args, definedRole) {
 		return false
 	}
 
 	for _, esdtRole := range token.SpecialRoles {
 		for _, role := range esdtRole.Roles {
-			if bytes.Equal(role, []byte(core.ESDTRoleNFTCreate)) {
+			if bytes.Equal(role, definedRole) {
 				return true
 			}
 		}
@@ -1086,6 +1093,11 @@ func (e *esdt) isSpecialRoleValidForFungible(argument string) error {
 		return nil
 	case core.ESDTRoleLocalBurn:
 		return nil
+	case core.ESDTRoleTransfer:
+		if e.flagTransferRole.IsSet() {
+			return nil
+		}
+		return vm.ErrInvalidArgument
 	default:
 		return vm.ErrInvalidArgument
 	}
@@ -1099,6 +1111,11 @@ func (e *esdt) isSpecialRoleValidForSemiFungible(argument string) error {
 		return nil
 	case core.ESDTRoleNFTCreate:
 		return nil
+	case core.ESDTRoleTransfer:
+		if e.flagTransferRole.IsSet() {
+			return nil
+		}
+		return vm.ErrInvalidArgument
 	default:
 		return vm.ErrInvalidArgument
 	}
@@ -1110,6 +1127,11 @@ func (e *esdt) isSpecialRoleValidForNonFungible(argument string) error {
 		return nil
 	case core.ESDTRoleNFTCreate:
 		return nil
+	case core.ESDTRoleTransfer:
+		if e.flagTransferRole.IsSet() {
+			return nil
+		}
+		return vm.ErrInvalidArgument
 	default:
 		return vm.ErrInvalidArgument
 	}
@@ -1143,7 +1165,7 @@ func (e *esdt) setSpecialRole(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
-	if checkIfCreateNFTRoleExistsInArgsAndToken(args.Arguments[2:], token) {
+	if checkIfDefinedRoleExistsInArgsAndToken(args.Arguments[2:], token, []byte(core.ESDTRoleNFTCreate)) {
 		e.eei.AddReturnMessage(vm.ErrNFTCreateRoleAlreadyExists.Error())
 		return vmcommon.UserError
 	}
@@ -1154,6 +1176,7 @@ func (e *esdt) setSpecialRole(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
+	transferRoleExists := checkIfDefinedRoleExistsInArgsAndToken(args.Arguments[2:], token, []byte(core.ESDTRoleTransfer))
 	address := args.Arguments[1]
 	esdtRole, isNew := getRolesForAddress(token, address)
 	if isNew {
@@ -1183,6 +1206,12 @@ func (e *esdt) setSpecialRole(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
+	firstTransferRoleSet := !transferRoleExists && isDefinedRoleInArgs(args.Arguments[2:], []byte(core.ESDTRoleTransfer))
+	if firstTransferRoleSet {
+		esdtTransferData := core.BuiltInFunctionESDTSetLimitedTransfer + "@" + hex.EncodeToString(args.Arguments[0])
+		e.eei.SendGlobalSettingToAll(e.eSDTSCAddress, []byte(esdtTransferData))
+	}
+
 	return vmcommon.Ok
 }
 
@@ -1197,7 +1226,7 @@ func (e *esdt) unSetSpecialRole(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return returnCode
 	}
 
-	if isCreateNFTRoleInArgs(args.Arguments[2:]) {
+	if isDefinedRoleInArgs(args.Arguments[2:], []byte(core.ESDTRoleNFTCreate)) {
 		e.eei.AddReturnMessage("cannot un set NFT create role")
 		return vmcommon.UserError
 	}
@@ -1237,6 +1266,13 @@ func (e *esdt) unSetSpecialRole(args *vmcommon.ContractCallInput) vmcommon.Retur
 				break
 			}
 		}
+	}
+
+	transferRoleExists := checkIfDefinedRoleExistsInArgsAndToken(args.Arguments[2:], token, []byte(core.ESDTRoleTransfer))
+	lastTransferRoleWasDeleted := isDefinedRoleInArgs(args.Arguments[2:], []byte(core.ESDTRoleTransfer)) && !transferRoleExists
+	if lastTransferRoleWasDeleted {
+		esdtTransferData := core.BuiltInFunctionESDTUnSetLimitedTransfer + "@" + hex.EncodeToString(args.Arguments[0])
+		e.eei.SendGlobalSettingToAll(e.eSDTSCAddress, []byte(esdtTransferData))
 	}
 
 	err = e.saveToken(args.Arguments[0], token)

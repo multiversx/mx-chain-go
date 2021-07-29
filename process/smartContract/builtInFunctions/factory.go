@@ -23,6 +23,7 @@ type ArgsCreateBuiltInFunctionContainer struct {
 	ESDTMultiTransferEnableEpoch uint32
 	ESDTTransferRoleEnableEpoch  uint32
 	GlobalBurnMintDisableEpoch   uint32
+	ESDTTransferMetaEnableEpoch  uint32
 }
 
 // CreateBuiltInFunctionContainer creates a container that will hold all the available built in functions
@@ -60,6 +61,9 @@ func CreateBuiltInFunctionContainer(args ArgsCreateBuiltInFunctionContainer) (vm
 		ShardCoordinator:                    args.ShardCoordinator,
 		EpochNotifier:                       args.EpochNotifier,
 		ESDTNFTImprovementV1ActivationEpoch: args.ESDTMultiTransferEnableEpoch,
+		ESDTTransferToMetaEnableEpoch:       args.ESDTTransferMetaEnableEpoch,
+		ESDTTransferRoleEnableEpoch:         args.ESDTTransferRoleEnableEpoch,
+		GlobalBurnMintDisableEpoch:          args.GlobalBurnMintDisableEpoch,
 	}
 
 	bContainerFactory, err := vmcommonBuiltInFunctions.NewBuiltInFunctionsFactory(modifiedArgs)

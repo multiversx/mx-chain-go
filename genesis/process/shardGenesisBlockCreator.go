@@ -279,6 +279,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		ESDTMultiTransferEnableEpoch: unreachableEpoch,
 		ESDTTransferRoleEnableEpoch:  unreachableEpoch,
 		GlobalBurnMintDisableEpoch:   unreachableEpoch,
+		ESDTTransferMetaEnableEpoch:  unreachableEpoch,
 	}
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	if err != nil {
