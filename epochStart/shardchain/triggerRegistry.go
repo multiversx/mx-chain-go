@@ -55,15 +55,16 @@ func (t *trigger) LoadState(key []byte) error {
 // UnmarshalTrigger unmarshalls the trigger
 func (t *trigger) UnmarshalTrigger(data []byte) (*TriggerRegistry, error) {
 	state := &TriggerRegistry{
-		EpochStartShardHeader: &block.Header{},
+		EpochStartShardHeader: &block.HeaderV2{},
 	}
+
 	err := json.Unmarshal(data, state)
 	if err == nil {
 		return state, nil
 	}
 
 	// TODO: pass the factory to trigger and use the header factory instead
-	state.EpochStartShardHeader = &block.HeaderV2{}
+	state.EpochStartShardHeader = &block.Header{}
 	err = json.Unmarshal(data, state)
 	if err != nil {
 		return nil, err
