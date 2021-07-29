@@ -51,7 +51,7 @@ func CreateTestIndexer(
 
 	dispatcher.StartIndexData()
 
-	txFeeCalculator, ok := economicsDataHandler.(process.TransactionFeeCalculator)
+	txFeeCalculator, ok := economicsDataHandler.(elasticIndexer.FeesProcessorHandler)
 	require.True(t, ok)
 
 	elasticProcessor := ti.createElasticProcessor(coordinator, txFeeCalculator)
@@ -78,7 +78,7 @@ func CreateTestIndexer(
 
 func (ti *testIndexer) createElasticProcessor(
 	shardCoordinator sharding.Coordinator,
-	transactionFeeCalculator process.TransactionFeeCalculator,
+	transactionFeeCalculator elasticIndexer.FeesProcessorHandler,
 ) elasticIndexer.ElasticProcessor {
 	databaseClient := ti.createDatabaseClient()
 
