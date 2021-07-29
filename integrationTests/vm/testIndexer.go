@@ -3,7 +3,6 @@ package vm
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/ElrondNetwork/elrond-go/outport"
 	"sync"
 	"testing"
 	"time"
@@ -17,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
