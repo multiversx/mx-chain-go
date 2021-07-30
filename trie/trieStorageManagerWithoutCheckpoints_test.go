@@ -3,6 +3,7 @@ package trie_test
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/mock"
 	"github.com/ElrondNetwork/elrond-go/state/temporary"
@@ -69,6 +70,16 @@ func TestTrieStorageManagerWithoutCheckpoints_SetCheckpoint(t *testing.T) {
 
 	ts.SetCheckpoint([]byte("rootHash"), nil)
 	assert.Equal(t, uint32(0), ts.PruningBlockingOperations())
+
+	chLeaves := make(chan core.KeyValueHolder)
+	ts.SetCheckpoint([]byte("rootHash"), chLeaves)
+	assert.Equal(t, uint32(0), ts.PruningBlockingOperations())
+
+	select {
+	case <-chLeaves:
+	default:
+		assert.Fail(t, "unclosed channel")
+	}
 }
 
 func TestTrieStorageManagerWithoutCheckpoints_AddDirtyCheckpointHashes(t *testing.T) {

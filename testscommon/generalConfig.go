@@ -65,7 +65,8 @@ func GetGeneralConfig() config.Config {
 			NumActivePersisters:         3,
 		},
 		EvictionWaitingList: config.EvictionWaitingListConfig{
-			Size: 100,
+			HashesSize:     100,
+			RootHashesSize: 100,
 			DB: config.DBConfig{
 				FilePath:          AddTimestampSuffix("EvictionWaitingList"),
 				Type:              string(storageUnit.MemoryDB),

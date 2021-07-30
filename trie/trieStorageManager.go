@@ -21,11 +21,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
-const (
-	snapshot   byte = 0
-	checkpoint byte = 1
-)
-
 // trieStorageManager manages all the storage operations of the trie (commit, snapshot, checkpoint, pruning)
 type trieStorageManager struct {
 	db temporary.DBWriteCacher
@@ -34,6 +29,7 @@ type trieStorageManager struct {
 	snapshotId             int
 	snapshotDbCfg          config.DBConfig
 	snapshotReq            chan *snapshotsQueueEntry
+	checkpointReq          chan *snapshotsQueueEntry
 	checkpointHashesHolder temporary.CheckpointHashesHolder
 
 	pruningBlockingOps uint32
@@ -47,7 +43,6 @@ type trieStorageManager struct {
 type snapshotsQueueEntry struct {
 	rootHash   []byte
 	newDb      bool
-	entryType  byte
 	leavesChan chan core.KeyValueHolder
 }
 
@@ -89,6 +84,7 @@ func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager,
 		snapshotId:             snapshotId,
 		snapshotDbCfg:          args.SnapshotDbConfig,
 		snapshotReq:            make(chan *snapshotsQueueEntry, args.GeneralConfig.SnapshotsBufferLen),
+		checkpointReq:          make(chan *snapshotsQueueEntry, args.GeneralConfig.SnapshotsBufferLen),
 		pruningBlockingOps:     0,
 		maxSnapshots:           args.GeneralConfig.MaxSnapshots,
 		keepSnapshots:          args.GeneralConfig.KeepSnapshots,
@@ -104,8 +100,10 @@ func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager,
 func (tsm *trieStorageManager) storageProcessLoop(ctx context.Context, msh marshal.Marshalizer, hsh hashing.Hasher) {
 	for {
 		select {
-		case snapshot := <-tsm.snapshotReq:
-			tsm.takeSnapshot(snapshot, msh, hsh)
+		case snapshotRequest := <-tsm.snapshotReq:
+			tsm.takeSnapshot(snapshotRequest, msh, hsh, ctx)
+		case snapshotRequest := <-tsm.checkpointReq:
+			tsm.takeCheckpoint(snapshotRequest, msh, hsh, ctx)
 		case <-ctx.Done():
 			return
 		}
@@ -170,12 +168,12 @@ func getSnapshotsAndSnapshotId(snapshotDbCfg config.DBConfig) ([]temporary.Snaps
 			snapshotId = snapshotName
 		}
 
-		snapshot := &snapshotDb{
+		newSnapshot := &snapshotDb{
 			DBWriteCacher: db,
 		}
 
 		log.Debug("restored snapshot", "snapshot ID", snapshotName)
-		snapshotsMap[snapshotName] = snapshot
+		snapshotsMap[snapshotName] = newSnapshot
 	}
 
 	if len(snapshotsMap) != 0 {
@@ -222,7 +220,7 @@ func (tsm *trieStorageManager) GetSnapshotThatContainsHash(rootHash []byte) temp
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
 
-	for i := range tsm.snapshots {
+	for i := len(tsm.snapshots) - 1; i >= 0; i-- {
 		_, err := tsm.snapshots[i].Get(rootHash)
 
 		hashPresent := err == nil
@@ -250,10 +248,9 @@ func (tsm *trieStorageManager) TakeSnapshot(rootHash []byte, newDb bool, leavesC
 	snapshotEntry := &snapshotsQueueEntry{
 		rootHash:   rootHash,
 		newDb:      newDb,
-		entryType:  snapshot,
 		leavesChan: leavesChan,
 	}
-	tsm.writeOnChan(snapshotEntry)
+	tsm.snapshotReq <- snapshotEntry
 }
 
 // SetCheckpoint creates a new checkpoint, or if there is another snapshot or checkpoint in progress,
@@ -270,17 +267,12 @@ func (tsm *trieStorageManager) SetCheckpoint(rootHash []byte, leavesChan chan co
 	checkpointEntry := &snapshotsQueueEntry{
 		rootHash:   rootHash,
 		newDb:      false,
-		entryType:  checkpoint,
 		leavesChan: leavesChan,
 	}
-	tsm.writeOnChan(checkpointEntry)
+	tsm.checkpointReq <- checkpointEntry
 }
 
-func (tsm *trieStorageManager) writeOnChan(entry *snapshotsQueueEntry) {
-	tsm.snapshotReq <- entry
-}
-
-func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, msh marshal.Marshalizer, hsh hashing.Hasher) {
+func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, msh marshal.Marshalizer, hsh hashing.Hasher, ctx context.Context) {
 	defer func() {
 		tsm.ExitPruningBufferingMode()
 		log.Trace("trie snapshot finished", "rootHash", snapshotEntry.rootHash)
@@ -289,33 +281,70 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 		}
 	}()
 
+	var db temporary.DBWriteCacher
 	if tsm.isPresentInLastSnapshotDb(snapshotEntry.rootHash) {
-		log.Trace("snapshot for rootHash already taken", "rootHash", snapshotEntry.rootHash)
-		return
+		db = tsm.GetSnapshotThatContainsHash(snapshotEntry.rootHash)
+		isDbNil := check.IfNil(db)
+		log.Trace("snapshot for rootHash already taken, using snapshot DB",
+			"rootHash", snapshotEntry.rootHash, "is DB nil", isDbNil)
 	}
 
-	log.Trace("trie snapshot started", "rootHash", snapshotEntry.rootHash, "newDB", snapshotEntry.newDb)
+	if check.IfNil(db) {
+		log.Trace("source DB is nil, setting the source DB as tsm.db")
+		db = tsm.db
+	}
+	log.Trace("trie checkpoint started", "rootHash", snapshotEntry.rootHash)
 
-	newRoot, err := newSnapshotNode(tsm.db, msh, hsh, snapshotEntry.rootHash)
+	newRoot, err := newSnapshotNode(db, msh, hsh, snapshotEntry.rootHash)
 	if err != nil {
 		log.Error("trie storage manager: newSnapshotTrie", "error", err.Error())
 		return
 	}
-	db := tsm.getSnapshotDb(snapshotEntry.newDb)
+	newDb := tsm.getSnapshotDb(snapshotEntry.newDb)
+	if check.IfNil(newDb) {
+		return
+	}
+
+	err = newRoot.commitSnapshot(db, newDb, snapshotEntry.leavesChan, ctx)
+	if err == ErrContextClosing {
+		log.Debug("context closing while in commitSnapshot operation")
+		return
+	}
+	if err != nil {
+		log.Error("trie storage manager: commit", "error", err.Error())
+	}
+}
+
+func (tsm *trieStorageManager) takeCheckpoint(checkpointEntry *snapshotsQueueEntry, msh marshal.Marshalizer, hsh hashing.Hasher, ctx context.Context) {
+	defer func() {
+		tsm.ExitPruningBufferingMode()
+		log.Trace("trie checkpoint finished", "rootHash", checkpointEntry.rootHash)
+		if checkpointEntry.leavesChan != nil {
+			close(checkpointEntry.leavesChan)
+		}
+	}()
+
+	if tsm.isPresentInLastSnapshotDb(checkpointEntry.rootHash) {
+		log.Trace("checkpoint for rootHash already taken, skipping", "rootHash", checkpointEntry.rootHash)
+		return
+	}
+	log.Trace("trie checkpoint started", "rootHash", checkpointEntry.rootHash)
+
+	newRoot, err := newSnapshotNode(tsm.db, msh, hsh, checkpointEntry.rootHash)
+	if err != nil {
+		log.Error("trie storage manager: newSnapshotTrie", "error", err.Error())
+		return
+	}
+	db := tsm.getSnapshotDb(checkpointEntry.newDb)
 	if check.IfNil(db) {
 		return
 	}
 
-	if snapshotEntry.entryType == snapshot {
-		err = newRoot.commitSnapshot(tsm.db, db, snapshotEntry.leavesChan)
-		if err != nil {
-			log.Error("trie storage manager: commit", "error", err.Error())
-		}
-
+	err = newRoot.commitCheckpoint(tsm.db, db, tsm.checkpointHashesHolder, checkpointEntry.leavesChan, ctx)
+	if err == ErrContextClosing {
+		log.Debug("context closing while in commitCheckpoint operation")
 		return
 	}
-
-	err = newRoot.commitCheckpoint(tsm.db, db, tsm.checkpointHashesHolder, snapshotEntry.leavesChan)
 	if err != nil {
 		log.Error("trie storage manager: commit", "error", err.Error())
 	}
@@ -368,15 +397,15 @@ func (tsm *trieStorageManager) disconnectSnapshot() {
 	if len(tsm.snapshots) <= 0 {
 		return
 	}
-	snapshot := tsm.snapshots[0]
+	firstSnapshot := tsm.snapshots[0]
 	tsm.snapshots = tsm.snapshots[1:]
 
-	if snapshot.IsInUse() {
-		snapshot.MarkForDisconnection()
+	if firstSnapshot.IsInUse() {
+		firstSnapshot.MarkForDisconnection()
 		log.Debug("can't disconnect, snapshot is still in use")
 		return
 	}
-	err := disconnectSnapshot(snapshot)
+	err := disconnectSnapshot(firstSnapshot)
 	if err != nil {
 		log.Error("trie storage manager: disconnectSnapshot", "error", err.Error())
 	}
@@ -389,19 +418,19 @@ func (tsm *trieStorageManager) removeSnapshot() {
 
 	dbUniqueId := strconv.Itoa(tsm.snapshotId - len(tsm.snapshots))
 
-	snapshot := tsm.snapshots[0]
+	firstSnapshot := tsm.snapshots[0]
 	tsm.snapshots = tsm.snapshots[1:]
 	removePath := path.Join(tsm.snapshotDbCfg.FilePath, dbUniqueId)
 
-	if snapshot.IsInUse() {
+	if firstSnapshot.IsInUse() {
 		log.Debug("snapshot is still in use", "path", removePath)
-		snapshot.MarkForRemoval()
-		snapshot.SetPath(removePath)
+		firstSnapshot.MarkForRemoval()
+		firstSnapshot.SetPath(removePath)
 
 		return
 	}
 
-	removeSnapshot(snapshot, removePath)
+	removeSnapshot(firstSnapshot, removePath)
 }
 
 func disconnectSnapshot(db temporary.DBWriteCacher) error {
@@ -462,10 +491,10 @@ func (tsm *trieStorageManager) newSnapshotDb() (storage.Persister, error) {
 
 	tsm.snapshotId++
 
-	snapshot := &snapshotDb{
+	newSnapshot := &snapshotDb{
 		DBWriteCacher: db,
 	}
-	tsm.snapshots = append(tsm.snapshots, snapshot)
+	tsm.snapshots = append(tsm.snapshots, newSnapshot)
 
 	return db, nil
 }
@@ -514,7 +543,11 @@ func (tsm *trieStorageManager) Close() error {
 	err := tsm.db.Close()
 
 	for _, sdb := range tsm.snapshots {
-		log.LogIfError(sdb.Close())
+		errSnapshotClose := sdb.Close()
+		if errSnapshotClose != nil {
+			log.Error("trieStorageManager.Close", "error", errSnapshotClose)
+			err = errSnapshotClose
+		}
 	}
 
 	if err != nil {
