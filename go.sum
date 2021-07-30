@@ -28,10 +28,8 @@ github.com/ElrondNetwork/elrond-go-core v1.0.1-0.20210721105824-f1bfb549cfce/go.
 github.com/ElrondNetwork/elrond-go-core v1.0.1-0.20210721121720-f02fb03b2e1a h1:c+l0Ra4zVT321NDpsA4Sve27EcyPkXVxI9gM1SvNcGY=
 github.com/ElrondNetwork/elrond-go-core v1.0.1-0.20210721121720-f02fb03b2e1a/go.mod h1:O9FkkTT2H9kxCzfn40TbhoCDXzGmUrRVusMomhK/Y3g=
 github.com/ElrondNetwork/elrond-go-core v1.0.1-0.20210721164025-65cf7f169349/go.mod h1:O9FkkTT2H9kxCzfn40TbhoCDXzGmUrRVusMomhK/Y3g=
-github.com/ElrondNetwork/elrond-go-core v1.0.1-0.20210723124835-0f85becd722a h1:3Uvj2uDIy4TX+teFfx51EPZTEcsZKxV18Vc63IR3bdY=
-github.com/ElrondNetwork/elrond-go-core v1.0.1-0.20210723124835-0f85becd722a/go.mod h1:O9FkkTT2H9kxCzfn40TbhoCDXzGmUrRVusMomhK/Y3g=
-github.com/ElrondNetwork/elrond-go-core v1.0.1-0.20210729155536-3468eb71f0a3 h1:D94zq3El547sEFpAQRW2X3z/YUQUstikyneEomcXYNs=
-github.com/ElrondNetwork/elrond-go-core v1.0.1-0.20210729155536-3468eb71f0a3/go.mod h1:O9FkkTT2H9kxCzfn40TbhoCDXzGmUrRVusMomhK/Y3g=
+github.com/ElrondNetwork/elrond-go-core v1.0.1-0.20210729155735-1b1ca818764e h1:uk1g0oE/lloSxhU2mi151UjDpmRXPhuoXTSVK6BqvG4=
+github.com/ElrondNetwork/elrond-go-core v1.0.1-0.20210729155735-1b1ca818764e/go.mod h1:O9FkkTT2H9kxCzfn40TbhoCDXzGmUrRVusMomhK/Y3g=
 github.com/ElrondNetwork/elrond-go-crypto v1.0.0 h1:ykJ6dNtF3brNs1CB/fUp+OBtwq33akMe8a242t686Ik=
 github.com/ElrondNetwork/elrond-go-crypto v1.0.0/go.mod h1:DGiR7/j1xv729Xg8SsjYaUzWXL5svMd44REXjWS/gAc=
 github.com/ElrondNetwork/elrond-go-logger v1.0.4/go.mod h1:e5D+c97lKUfFdAzFX7rrI2Igl/z4Y0RkKYKWyzprTGk=
@@ -40,6 +38,8 @@ github.com/ElrondNetwork/elrond-go-logger v1.0.5/go.mod h1:cBfgx0ST/CJx8jrxJSC5a
 github.com/ElrondNetwork/elrond-vm-common v1.1.0/go.mod h1:w3i6f8uiuRkE68Ie/gebRcLgTuHqvruJSYrFyZWuLrE=
 github.com/ElrondNetwork/elrond-vm-common v1.1.1-0.20210729134851-defc30fdb5ac h1:SDvy+DR1LqX5Sz7mjvIUHNVaO6CwR3WRPdNA9ZmUisw=
 github.com/ElrondNetwork/elrond-vm-common v1.1.1-0.20210729134851-defc30fdb5ac/go.mod h1:OrXHYASp1YBoXPrESy7rTKU+GdoN6+s46oh5LqZgaE4=
+github.com/ElrondNetwork/elrond-vm-common v1.1.1-0.20210730085053-5db73fd9e3d6 h1:IG6rmJApOzhy9LSBzwzq7hi4pMKCqgQNG7YQ4k/aikU=
+github.com/ElrondNetwork/elrond-vm-common v1.1.1-0.20210730085053-5db73fd9e3d6/go.mod h1:OrXHYASp1YBoXPrESy7rTKU+GdoN6+s46oh5LqZgaE4=
 github.com/ElrondNetwork/protobuf v1.3.2 h1:qoCSYiO+8GtXBEZWEjw0WPcZfM3g7QuuJrwpN+y6Mvg=
 github.com/ElrondNetwork/protobuf v1.3.2/go.mod h1:SlYgWuQ5SjCEi6WLHjHCa1yvBfUnHcTbrrZtXPKa29o=
 github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
