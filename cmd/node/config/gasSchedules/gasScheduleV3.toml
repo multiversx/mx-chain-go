@@ -124,6 +124,7 @@
     GetBlockTimeStamp   = 100000
 
 [BigIntAPICost]
+    EllipticCurveNew         = 10000
     BigIntNew                = 2000
     BigIntByteLength         = 2000
     BigIntUnsignedByteLength = 2000

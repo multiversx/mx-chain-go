@@ -9,6 +9,7 @@ require (
 	github.com/ElrondNetwork/concurrent-map v0.1.3
 	github.com/ElrondNetwork/elastic-indexer-go v1.0.8
 	github.com/ElrondNetwork/elrond-go-core v1.0.1-0.20210729155536-3468eb71f0a3
+	github.com/ElrondNetwork/elrond-go-crypto v1.0.0
 	github.com/ElrondNetwork/elrond-go-logger v1.0.5
 	github.com/ElrondNetwork/elrond-vm-common v1.1.1-0.20210729134851-defc30fdb5ac
 	github.com/beevik/ntp v0.3.0
@@ -23,7 +24,6 @@ require (
 	github.com/google/gops v0.3.18
 	github.com/gorilla/websocket v1.4.2
 	github.com/hashicorp/golang-lru v0.5.4
-	github.com/herumi/bls-go-binary v1.0.0
 	github.com/ipfs/go-log v1.0.5
 	github.com/jbenet/goprocess v0.1.4
 	github.com/libp2p/go-libp2p v0.14.3
