@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/closing"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -34,8 +33,8 @@ import (
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
 	"github.com/ElrondNetwork/elrond-go/health"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/outport"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -335,7 +334,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
-	log.Debug("starting node...")
+	log.Debug("starting node... executeOneComponentCreationCycle")
 
 	managedConsensusComponents, err := nr.CreateManagedConsensusComponents(
 		managedCoreComponents,
@@ -1345,7 +1344,7 @@ func indexValidatorsListIfNeeded(
 	coordinator sharding.NodesCoordinator,
 	epoch uint32,
 ) {
-	if check.IfNil(outportHandler) || !outportHandler.HasDrivers() {
+	if !outportHandler.HasDrivers() {
 		return
 	}
 

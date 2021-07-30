@@ -202,8 +202,8 @@ func (pc *statusComponents) Close() error {
 	return nil
 }
 
-// createElasticIndexer creates a new elasticIndexer where the server listens on the url,
-// authentication for the server is using the username and password
+// createOutportDriver creates a new outport.OutportHandler which is used to register outport drivers
+// once a driver is subscribed it will receive data through the implemented outport.Driver methods
 func (scf *statusComponentsFactory) createOutportDriver() (outport.OutportHandler, error) {
 	outportFactoryArgs := &outportDriverFactory.OutportFactoryArgs{
 		ElasticIndexerFactoryArgs: scf.makeElasticIndexerArgs(),

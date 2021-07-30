@@ -8,7 +8,7 @@ import (
 
 type nilOutport struct{}
 
-// NewNilOutport --
+// NewNilOutport -
 func NewNilOutport() *nilOutport {
 	return new(nilOutport)
 }

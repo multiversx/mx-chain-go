@@ -78,7 +78,6 @@ type baseProcessor struct {
 	blockProcessor         blockProcessor
 	txCounter              *transactionCounter
 
-	indexer            process.Indexer
 	outportHandler     outport.OutportHandler
 	historyRepo        dblookupext.HistoryRepository
 	epochNotifier      process.EpochNotifier

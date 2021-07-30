@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
@@ -1055,20 +1054,6 @@ type CryptoComponentsHolder interface {
 	PublicKey() crypto.PublicKey
 	Clone() interface{}
 	IsInterfaceNil() bool
-}
-
-// Indexer is an interface for saving node specific data to other storage.
-// This could be an elastic search index, a MySql database or any other external services.
-type Indexer interface {
-	SaveBlock(args *indexer.ArgsSaveBlockData)
-	RevertIndexedBlock(header data.HeaderHandler, body data.BodyHandler)
-	SaveRoundsInfo(roundsInfos []*indexer.RoundInfo)
-	SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte, epoch uint32)
-	SaveValidatorsRating(indexID string, infoRating []*indexer.ValidatorRatingInfo)
-	SaveAccounts(blockTimestamp uint64, acc []data.UserAccountHandler)
-	Close() error
-	IsInterfaceNil() bool
-	IsNilIndexer() bool
 }
 
 // NumConnectedPeersProvider defines the actions that a component that provides the number of connected peers should do
