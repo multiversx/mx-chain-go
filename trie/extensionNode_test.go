@@ -2,6 +2,7 @@ package trie
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"testing"
 
@@ -898,7 +899,7 @@ func TestExtensionNode_printShouldNotPanicEvenIfNodeIsCollapsed(t *testing.T) {
 	db := mock.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
 	_ = en.commitDirty(0, 5, db, db)
-	_ = collapsedEn.commitSnapshot(db, db, nil)
+	_ = collapsedEn.commitSnapshot(db, db, nil, context.Background())
 
 	en.print(enWriter, 0, db)
 	collapsedEn.print(collapsedEnWriter, 0, db)
@@ -911,7 +912,7 @@ func TestExtensionNode_getDirtyHashesFromCleanNode(t *testing.T) {
 
 	db := mock.NewMemDbMock()
 	en, _ := getEnAndCollapsedEn()
-	_ = en.commitSnapshot(db, db, nil)
+	_ = en.commitSnapshot(db, db, nil, context.Background())
 	dirtyHashes := make(temporary.ModifiedHashes)
 
 	err := en.getDirtyHashes(dirtyHashes)
@@ -936,7 +937,7 @@ func TestExtensionNode_getAllHashesResolvesCollapsed(t *testing.T) {
 	trieNodes := 5
 	db := mock.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
-	_ = en.commitSnapshot(db, db, nil)
+	_ = en.commitSnapshot(db, db, nil, context.Background())
 
 	hashes, err := collapsedEn.getAllHashes(db)
 	assert.Nil(t, err)
@@ -1008,4 +1009,19 @@ func TestExtensionNode_SizeInBytes(t *testing.T) {
 		},
 	}
 	assert.Equal(t, len(collapsed)+len(key)+len(hash)+1+3*pointerSizeInBytes, en.sizeInBytes())
+}
+
+func TestExtensionNode_commitContextDone(t *testing.T) {
+	t.Parallel()
+
+	db := mock.NewMemDbMock()
+	en, _ := getEnAndCollapsedEn()
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	err := en.commitCheckpoint(db, db, nil, nil, ctx)
+	assert.Equal(t, ErrContextClosing, err)
+
+	err = en.commitSnapshot(db, db, nil, ctx)
+	assert.Equal(t, ErrContextClosing, err)
 }
