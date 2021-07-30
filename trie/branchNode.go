@@ -1,6 +1,7 @@
 package trie
 
 import (
+	"context"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -290,7 +291,12 @@ func (bn *branchNode) commitCheckpoint(
 	targetDb temporary.DBWriteCacher,
 	checkpointHashes temporary.CheckpointHashesHolder,
 	leavesChan chan core.KeyValueHolder,
+	ctx context.Context,
 ) error {
+	if shouldStopIfContextDone(ctx) {
+		return ErrContextClosing
+	}
+
 	err := bn.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("commit checkpoint error %w", err)
@@ -316,7 +322,7 @@ func (bn *branchNode) commitCheckpoint(
 			continue
 		}
 
-		err = bn.children[i].commitCheckpoint(originDb, targetDb, checkpointHashes, leavesChan)
+		err = bn.children[i].commitCheckpoint(originDb, targetDb, checkpointHashes, leavesChan, ctx)
 		if err != nil {
 			return err
 		}
@@ -330,7 +336,12 @@ func (bn *branchNode) commitSnapshot(
 	originDb temporary.DBWriteCacher,
 	targetDb temporary.DBWriteCacher,
 	leavesChan chan core.KeyValueHolder,
+	ctx context.Context,
 ) error {
+	if shouldStopIfContextDone(ctx) {
+		return ErrContextClosing
+	}
+
 	err := bn.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("commit snapshot error %w", err)
@@ -346,7 +357,7 @@ func (bn *branchNode) commitSnapshot(
 			continue
 		}
 
-		err = bn.children[i].commitSnapshot(originDb, targetDb, leavesChan)
+		err = bn.children[i].commitSnapshot(originDb, targetDb, leavesChan, ctx)
 		if err != nil {
 			return err
 		}

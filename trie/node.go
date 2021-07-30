@@ -2,6 +2,7 @@
 package trie
 
 import (
+	"context"
 	"encoding/hex"
 	"fmt"
 
@@ -112,6 +113,8 @@ func computeAndSetNodeHash(n node) ([]byte, error) {
 func getNodeFromDBAndDecode(n []byte, db temporary.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
 	encChild, err := db.Get(n)
 	if err != nil {
+		// we need a clear print on the error as some processors can silently recover from this error
+		log.Trace(common.GetNodeFromDBErrorString, "error", err, "key", n)
 		return nil, fmt.Errorf(common.GetNodeFromDBErrorString+" %w for key %v", err, hex.EncodeToString(n))
 	}
 
@@ -255,4 +258,13 @@ func prefixLen(a, b []byte) int {
 	}
 
 	return i
+}
+
+func shouldStopIfContextDone(ctx context.Context) bool {
+	select {
+	case <-ctx.Done():
+		return true
+	default:
+		return false
+	}
 }
