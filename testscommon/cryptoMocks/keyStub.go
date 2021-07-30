@@ -1,7 +1,7 @@
-package mock
+package cryptoMocks
 
 import (
-	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go-crypto"
 )
 
 // PrivateKeyStub provides stubs for a PrivateKey implementation
@@ -19,33 +19,45 @@ type PublicKeyStub struct {
 	SuiteStub       func() crypto.Suite
 }
 
-// KeyGenMock mocks a key generation implementation
-type KeyGenMock struct {
-	GeneratePairMock            func() (crypto.PrivateKey, crypto.PublicKey)
-	PrivateKeyFromByteArrayMock func(b []byte) (crypto.PrivateKey, error)
-	PublicKeyFromByteArrayMock  func(b []byte) (crypto.PublicKey, error)
-	CheckPublicKeyValidMock     func(b []byte) error
-	SuiteMock                   func() crypto.Suite
+// KeyGenStub mocks a key generation implementation
+type KeyGenStub struct {
+	GeneratePairStub            func() (crypto.PrivateKey, crypto.PublicKey)
+	PrivateKeyFromByteArrayStub func(b []byte) (crypto.PrivateKey, error)
+	PublicKeyFromByteArrayStub  func(b []byte) (crypto.PublicKey, error)
+	CheckPublicKeyValidStub     func(b []byte) error
+	SuiteStub                   func() crypto.Suite
 }
 
 // ToByteArray returns the byte array representation of the private key
 func (privKey *PrivateKeyStub) ToByteArray() ([]byte, error) {
-	return privKey.ToByteArrayStub()
+	if privKey.ToByteArrayStub != nil {
+		return privKey.ToByteArrayStub()
+	}
+	return []byte("private key"), nil
 }
 
 // GeneratePublic builds a public key for the current private key
 func (privKey *PrivateKeyStub) GeneratePublic() crypto.PublicKey {
-	return privKey.GeneratePublicStub()
+	if privKey.GeneratePublicStub != nil {
+		return privKey.GeneratePublicStub()
+	}
+	return &PublicKeyStub{}
 }
 
 // Suite returns the Suite (curve data) used for this private key
 func (privKey *PrivateKeyStub) Suite() crypto.Suite {
-	return privKey.SuiteStub()
+	if privKey.SuiteStub != nil {
+		return privKey.SuiteStub()
+	}
+	return &SuiteMock{}
 }
 
 // Scalar returns the Scalar corresponding to this Private Key
 func (privKey *PrivateKeyStub) Scalar() crypto.Scalar {
-	return privKey.ScalarStub()
+	if privKey.ScalarStub != nil {
+		return privKey.ScalarStub()
+	}
+	return &ScalarMock{}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
@@ -55,17 +67,26 @@ func (privKey *PrivateKeyStub) IsInterfaceNil() bool {
 
 // ToByteArray returns the byte array representation of the public key
 func (pubKey *PublicKeyStub) ToByteArray() ([]byte, error) {
-	return pubKey.ToByteArrayStub()
+	if pubKey.ToByteArrayStub != nil {
+		return pubKey.ToByteArrayStub()
+	}
+	return []byte("public key"), nil
 }
 
 // Suite returns the Suite (curve data) used for this private key
 func (pubKey *PublicKeyStub) Suite() crypto.Suite {
-	return pubKey.SuiteStub()
+	if pubKey.SuiteStub != nil {
+		return pubKey.SuiteStub()
+	}
+	return &SuiteMock{}
 }
 
 // Point returns the Point corresponding to this Public Key
 func (pubKey *PublicKeyStub) Point() crypto.Point {
-	return pubKey.PointStub()
+	if pubKey.PointStub != nil {
+		return pubKey.PointStub()
+	}
+	return &PointMock{}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
@@ -74,31 +95,46 @@ func (pubKey *PublicKeyStub) IsInterfaceNil() bool {
 }
 
 // GeneratePair generates a pair of private and public keys
-func (keyGen *KeyGenMock) GeneratePair() (crypto.PrivateKey, crypto.PublicKey) {
-	return keyGen.GeneratePairMock()
+func (keyGen *KeyGenStub) GeneratePair() (crypto.PrivateKey, crypto.PublicKey) {
+	if keyGen.GeneratePairStub != nil {
+		return keyGen.GeneratePairStub()
+	}
+	return &PrivateKeyStub{}, &PublicKeyStub{}
 }
 
 // PrivateKeyFromByteArray generates the private key from it's byte array representation
-func (keyGen *KeyGenMock) PrivateKeyFromByteArray(b []byte) (crypto.PrivateKey, error) {
-	return keyGen.PrivateKeyFromByteArrayMock(b)
+func (keyGen *KeyGenStub) PrivateKeyFromByteArray(b []byte) (crypto.PrivateKey, error) {
+	if keyGen.PrivateKeyFromByteArrayStub != nil {
+		return keyGen.PrivateKeyFromByteArrayStub(b)
+	}
+	return &PrivateKeyStub{}, nil
 }
 
 // PublicKeyFromByteArray generates a public key from it's byte array representation
-func (keyGen *KeyGenMock) PublicKeyFromByteArray(b []byte) (crypto.PublicKey, error) {
-	return keyGen.PublicKeyFromByteArrayMock(b)
+func (keyGen *KeyGenStub) PublicKeyFromByteArray(b []byte) (crypto.PublicKey, error) {
+	if keyGen.PublicKeyFromByteArrayStub != nil {
+		return keyGen.PublicKeyFromByteArrayStub(b)
+	}
+	return &PublicKeyStub{}, nil
 }
 
 // CheckPublicKeyValid verifies the validity of the public key
-func (keyGen *KeyGenMock) CheckPublicKeyValid(b []byte) error {
-	return keyGen.CheckPublicKeyValidMock(b)
+func (keyGen *KeyGenStub) CheckPublicKeyValid(b []byte) error {
+	if keyGen.CheckPublicKeyValidStub != nil {
+		return keyGen.CheckPublicKeyValidStub(b)
+	}
+	return nil
 }
 
 // Suite -
-func (keyGen *KeyGenMock) Suite() crypto.Suite {
-	return keyGen.SuiteMock()
+func (keyGen *KeyGenStub) Suite() crypto.Suite {
+	if keyGen.SuiteStub != nil {
+		return keyGen.SuiteStub()
+	}
+	return &SuiteMock{}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (keyGen *KeyGenMock) IsInterfaceNil() bool {
+func (keyGen *KeyGenStub) IsInterfaceNil() bool {
 	return keyGen == nil
 }

@@ -3,12 +3,13 @@ module github.com/ElrondNetwork/elrond-go
 go 1.13
 
 require (
-	github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.28
-	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.27
-	github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.3
+	github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v0.0.0-20210729074338-530860a14ea8
+	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v0.0.0-20210729081242-76a2ad8addc3
+	github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v0.0.0-20210728145300-26a2a7e48775
 	github.com/ElrondNetwork/concurrent-map v0.1.3
 	github.com/ElrondNetwork/elastic-indexer-go v1.0.8
 	github.com/ElrondNetwork/elrond-go-core v1.0.1-0.20210723124835-0f85becd722a
+	github.com/ElrondNetwork/elrond-go-crypto v1.0.0
 	github.com/ElrondNetwork/elrond-go-logger v1.0.5
 	github.com/ElrondNetwork/elrond-vm-common v1.1.1-0.20210722121034-4894ec636075
 	github.com/beevik/ntp v0.3.0
@@ -23,7 +24,6 @@ require (
 	github.com/google/gops v0.3.18
 	github.com/gorilla/websocket v1.4.2
 	github.com/hashicorp/golang-lru v0.5.4
-	github.com/herumi/bls-go-binary v1.0.0
 	github.com/ipfs/go-log v1.0.5
 	github.com/jbenet/goprocess v0.1.4
 	github.com/libp2p/go-libp2p v0.14.3
@@ -49,8 +49,8 @@ require (
 
 replace github.com/gogo/protobuf => github.com/ElrondNetwork/protobuf v1.3.2
 
-replace github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.28 => github.com/ElrondNetwork/arwen-wasm-vm v1.2.28
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v0.0.0-20210729074338-530860a14ea8 => github.com/ElrondNetwork/arwen-wasm-vm v1.2.28
 
-replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.27 => github.com/ElrondNetwork/arwen-wasm-vm v1.3.27
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v0.0.0-20210729081242-76a2ad8addc3 => github.com/ElrondNetwork/arwen-wasm-vm v1.3.27
 
 replace github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.3 => github.com/ElrondNetwork/arwen-wasm-vm v1.4.4-0.20210722083016-0d28399c1b01
