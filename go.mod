@@ -27,12 +27,12 @@ require (
 	github.com/ipfs/go-log v1.0.5
 	github.com/jbenet/goprocess v0.1.4
 	github.com/libp2p/go-libp2p v0.14.3
-	github.com/libp2p/go-libp2p-core v0.8.5
+	github.com/libp2p/go-libp2p-core v0.8.6
 	github.com/libp2p/go-libp2p-kad-dht v0.12.2
 	github.com/libp2p/go-libp2p-kbucket v0.4.7
 	github.com/libp2p/go-libp2p-pubsub v0.4.1
-	github.com/libp2p/go-libp2p-transport-upgrader v0.4.2
-	github.com/libp2p/go-tcp-transport v0.2.3
+	github.com/libp2p/go-libp2p-transport-upgrader v0.4.6
+	github.com/libp2p/go-tcp-transport v0.2.7
 	github.com/mitchellh/mapstructure v1.4.1
 	github.com/multiformats/go-multiaddr v0.3.3
 	github.com/pelletier/go-toml v1.9.3
