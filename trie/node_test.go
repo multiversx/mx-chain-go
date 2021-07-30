@@ -1,6 +1,7 @@
 package trie
 
 import (
+	"context"
 	"testing"
 
 	dataMock "github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
@@ -620,4 +621,22 @@ func TestNode_NodeExtension(t *testing.T) {
 		},
 	}
 	assert.False(t, shouldTestNode(n, make([]byte, 0)))
+}
+
+func Test_ShouldStopIfContextDone(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	assert.False(t, shouldStopIfContextDone(ctx))
+	cancelFunc()
+	assert.True(t, shouldStopIfContextDone(ctx))
+}
+
+func Benchmark_ShouldStopIfContextDone(b *testing.B) {
+	ctx := context.Background()
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		_ = shouldStopIfContextDone(ctx)
+	}
 }

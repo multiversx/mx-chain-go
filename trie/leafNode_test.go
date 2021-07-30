@@ -1,6 +1,7 @@
 package trie
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -714,4 +715,19 @@ func TestLeafNode_writeNodeOnChannel(t *testing.T) {
 	retrievedLn := <-leavesChannel
 	assert.Equal(t, ln.getHash(), retrievedLn.Key())
 	assert.Equal(t, ln.Value, retrievedLn.Value())
+}
+
+func TestLeafNode_commitContextDone(t *testing.T) {
+	t.Parallel()
+
+	db := mock.NewMemDbMock()
+	ln := getLn(marshalizer, hasher)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	err := ln.commitCheckpoint(db, db, nil, nil, ctx)
+	assert.Equal(t, ErrContextClosing, err)
+
+	err = ln.commitSnapshot(db, db, nil, ctx)
+	assert.Equal(t, ErrContextClosing, err)
 }
