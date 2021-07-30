@@ -1,4 +1,4 @@
-package mock
+package cryptoMocks
 
 import (
 	"encoding/hex"

@@ -1,7 +1,7 @@
-package mock
+package cryptoMocks
 
 import (
-	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go-crypto"
 )
 
 // SignerStub -
