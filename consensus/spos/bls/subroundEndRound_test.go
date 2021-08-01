@@ -321,7 +321,7 @@ func TestSubroundEndRound_DoEndRoundJobErrAggregatingSigShouldFail(t *testing.T)
 	container := mock.InitConsensusCore()
 	sr := *initSubroundEndRoundWithContainer(container, &mock.AppStatusHandlerStub{})
 	multiSignerMock := mock.InitMultiSignerMock()
-	multiSignerMock.AggregateSigsMock = func(bitmap []byte) ([]byte, error) {
+	multiSignerMock.AggregateSigsCalled = func(bitmap []byte) ([]byte, error) {
 		return nil, crypto.ErrNilHasher
 	}
 
@@ -604,7 +604,7 @@ func TestSubroundEndRound_CheckSignaturesValidityShouldErrIndexOutOfBounds(t *te
 	_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
 
 	multiSignerMock := mock.InitMultiSignerMock()
-	multiSignerMock.SignatureShareMock = func(index uint16) ([]byte, error) {
+	multiSignerMock.SignatureShareCalled = func(index uint16) ([]byte, error) {
 		return nil, crypto.ErrIndexOutOfBounds
 	}
 	container.SetMultiSigner(multiSignerMock)
@@ -619,7 +619,7 @@ func TestSubroundEndRound_CheckSignaturesValidityShouldErrInvalidSignatureShare(
 	sr := *initSubroundEndRoundWithContainer(container, &mock.AppStatusHandlerStub{})
 	multiSignerMock := mock.InitMultiSignerMock()
 	err := errors.New("invalid signature share")
-	multiSignerMock.VerifySignatureShareMock = func(index uint16, sig []byte, msg []byte, bitmap []byte) error {
+	multiSignerMock.VerifySignatureShareCalled = func(index uint16, sig []byte, msg []byte, bitmap []byte) error {
 		return err
 	}
 	container.SetMultiSigner(multiSignerMock)
