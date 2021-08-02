@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
@@ -614,7 +615,7 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 	cryptoComponents := &mock.CryptoComponentsMock{
 		BlockSig: &mock.SignerMock{},
 		TxSig:    &mock.SignerMock{},
-		MultiSig: mock.NewMultiSigner(),
+		MultiSig: cryptoMocks.NewMultiSigner(21),
 		BlKeyGen: &mock.SingleSignKeyGenMock{},
 		TxKeyGen: &mock.SingleSignKeyGenMock{},
 	}
