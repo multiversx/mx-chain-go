@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -105,7 +106,7 @@ type baseBootstrap struct {
 	storageBootstrapper  process.BootstrapperFromStorage
 	currentEpochProvider process.CurrentNetworkEpochProviderHandler
 
-	indexer          process.Indexer
+	outportHandler   outport.OutportHandler
 	accountsDBSyncer process.AccountsDBSyncer
 
 	chRcvMiniBlocks    chan bool
@@ -449,8 +450,8 @@ func checkBootstrapNilParameters(arguments ArgBaseBootstrapper) error {
 	if check.IfNil(arguments.AppStatusHandler) {
 		return process.ErrNilAppStatusHandler
 	}
-	if check.IfNil(arguments.Indexer) {
-		return process.ErrNilIndexer
+	if check.IfNil(arguments.OutportHandler) {
+		return process.ErrNilOutportHandler
 	}
 	if check.IfNil(arguments.AccountsDBSyncer) {
 		return process.ErrNilAccountsDBSyncer
@@ -725,7 +726,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			)
 		}
 
-		boot.indexer.RevertIndexedBlock(currHeader, currBody)
+		boot.outportHandler.RevertIndexedBlock(currHeader, currBody)
 
 		shouldAddHeaderToBlackList := revertUsingForkNonce && boot.blockBootstrapper.isForkTriggeredByMeta()
 		if shouldAddHeaderToBlackList {

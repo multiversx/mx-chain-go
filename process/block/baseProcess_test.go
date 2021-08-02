@@ -310,7 +310,7 @@ func createComponentHolderMocks() (
 	}
 
 	statusComponents := &mock.StatusComponentsMock{
-		Indexer: &mock.IndexerMock{},
+		Outport:      &testscommon.OutportStub{},
 	}
 
 	return coreComponents, dataComponents, boostrapComponents, statusComponents
