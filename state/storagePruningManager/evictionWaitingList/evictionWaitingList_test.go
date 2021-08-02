@@ -129,10 +129,10 @@ func TestEvictionWaitingList_Evict(t *testing.T) {
 
 	_ = ec.Put(root1, expectedHashesMap)
 
-	hashes, err := ec.Evict([]byte("root1"))
+	evicted, err := ec.Evict([]byte("root1"))
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(ec.cache))
-	assert.Equal(t, expectedHashesMap, hashes)
+	assert.Equal(t, expectedHashesMap, evicted)
 }
 
 func TestEvictionWaitingList_EvictFromDB(t *testing.T) {
