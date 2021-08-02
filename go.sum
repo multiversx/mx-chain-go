@@ -21,13 +21,13 @@ github.com/ElrondNetwork/big-int-util v0.1.0 h1:vTMoJ5azhVmr7jhpSD3JUjQdkdyXoEPV
 github.com/ElrondNetwork/big-int-util v0.1.0/go.mod h1:96viBvoTXLjZOhEvE0D+QnAwg1IJLPAK6GVHMbC7Aw4=
 github.com/ElrondNetwork/concurrent-map v0.1.3 h1:j2LtPrNJuerannC1cQDE79STvi/P04gd61sNYo04Zf0=
 github.com/ElrondNetwork/concurrent-map v0.1.3/go.mod h1:3XwSwn4JHI0lrKxWLZvtp53Emr8BXYTmNQGwcukHJEE=
-github.com/ElrondNetwork/elastic-indexer-go v1.1.4-0.20210728091801-92ac8ff6463f h1:DCC2sqh+rFNnFL6R3nOyaeGjso8VncBnyP5U7QsdpEY=
-github.com/ElrondNetwork/elastic-indexer-go v1.1.4-0.20210728091801-92ac8ff6463f/go.mod h1:9zXMBp85TXcw2GzpY4PI1WRjV7lln3eVYsTPxgw//hM=
+github.com/ElrondNetwork/elastic-indexer-go v1.1.4 h1:Jk6ICcuqO/yCpq8MVRnj+OYpSg/svsgsU3qq0c1rQ3U=
+github.com/ElrondNetwork/elastic-indexer-go v1.1.4/go.mod h1:uHN6mFkz8rExU9PnXS9PbYwKToi9JDrsmyw8ur3NFpg=
 github.com/ElrondNetwork/elrond-go-core v1.0.0/go.mod h1:FQMem7fFF4+8pQ6lVsBZq6yO+smD0nV23P4bJpmPjTo=
 github.com/ElrondNetwork/elrond-go-core v1.0.1-0.20210721105824-f1bfb549cfce/go.mod h1:O9FkkTT2H9kxCzfn40TbhoCDXzGmUrRVusMomhK/Y3g=
 github.com/ElrondNetwork/elrond-go-core v1.0.1-0.20210721121720-f02fb03b2e1a h1:c+l0Ra4zVT321NDpsA4Sve27EcyPkXVxI9gM1SvNcGY=
 github.com/ElrondNetwork/elrond-go-core v1.0.1-0.20210721121720-f02fb03b2e1a/go.mod h1:O9FkkTT2H9kxCzfn40TbhoCDXzGmUrRVusMomhK/Y3g=
-github.com/ElrondNetwork/elrond-go-core v1.0.1-0.20210723110009-02d42745b2b8/go.mod h1:O9FkkTT2H9kxCzfn40TbhoCDXzGmUrRVusMomhK/Y3g=
+github.com/ElrondNetwork/elrond-go-core v1.0.1-0.20210729155536-3468eb71f0a3/go.mod h1:O9FkkTT2H9kxCzfn40TbhoCDXzGmUrRVusMomhK/Y3g=
 github.com/ElrondNetwork/elrond-go-core v1.0.1-0.20210729155735-1b1ca818764e h1:uk1g0oE/lloSxhU2mi151UjDpmRXPhuoXTSVK6BqvG4=
 github.com/ElrondNetwork/elrond-go-core v1.0.1-0.20210729155735-1b1ca818764e/go.mod h1:O9FkkTT2H9kxCzfn40TbhoCDXzGmUrRVusMomhK/Y3g=
 github.com/ElrondNetwork/elrond-go-crypto v1.0.0 h1:ykJ6dNtF3brNs1CB/fUp+OBtwq33akMe8a242t686Ik=
