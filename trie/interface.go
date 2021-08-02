@@ -1,6 +1,7 @@
 package trie
 
 import (
+	"context"
 	"io"
 	"sync"
 	"time"
@@ -43,8 +44,8 @@ type node interface {
 	getNumNodes() temporary.NumNodesDTO
 
 	commitDirty(level byte, maxTrieLevelInMemory uint, originDb temporary.DBWriteCacher, targetDb temporary.DBWriteCacher) error
-	commitCheckpoint(originDb temporary.DBWriteCacher, targetDb temporary.DBWriteCacher, checkpointHashes temporary.CheckpointHashesHolder, leavesChan chan core.KeyValueHolder) error
-	commitSnapshot(originDb temporary.DBWriteCacher, targetDb temporary.DBWriteCacher, leavesChan chan core.KeyValueHolder) error
+	commitCheckpoint(originDb temporary.DBWriteCacher, targetDb temporary.DBWriteCacher, checkpointHashes temporary.CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context) error
+	commitSnapshot(originDb temporary.DBWriteCacher, targetDb temporary.DBWriteCacher, leavesChan chan core.KeyValueHolder, ctx context.Context) error
 
 	getMarshalizer() marshal.Marshalizer
 	setMarshalizer(marshal.Marshalizer)
@@ -56,8 +57,8 @@ type node interface {
 }
 
 type snapshotNode interface {
-	commitCheckpoint(originDb temporary.DBWriteCacher, targetDb temporary.DBWriteCacher, checkpointHashes temporary.CheckpointHashesHolder, leavesChan chan core.KeyValueHolder) error
-	commitSnapshot(originDb temporary.DBWriteCacher, targetDb temporary.DBWriteCacher, leavesChan chan core.KeyValueHolder) error
+	commitCheckpoint(originDb temporary.DBWriteCacher, targetDb temporary.DBWriteCacher, checkpointHashes temporary.CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context) error
+	commitSnapshot(originDb temporary.DBWriteCacher, targetDb temporary.DBWriteCacher, leavesChan chan core.KeyValueHolder, ctx context.Context) error
 }
 
 // RequestHandler defines the methods through which request to data can be made

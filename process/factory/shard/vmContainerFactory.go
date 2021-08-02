@@ -183,7 +183,7 @@ func (vmf *vmContainerFactory) ensureCorrectArwenVersion(epoch uint32) {
 	newVersion := vmf.getMatchingVersion(epoch)
 	currentArwenVM, err := vmf.container.Get(factory.ArwenVirtualMachine)
 	if err != nil {
-		logVMContainerFactory.Error("cannot retrieve Arwen VM from container", "epoch", epoch)
+		logVMContainerFactory.Error("cannot retrieve Arwen VM from container", "epoch", epoch, "error", err)
 		return
 	}
 
@@ -197,13 +197,13 @@ func (vmf *vmContainerFactory) ensureCorrectArwenVersion(epoch uint32) {
 	vmf.closePreviousVM(currentArwenVM)
 	newArwenVM, err := vmf.createArwenVM(newVersion)
 	if err != nil {
-		logVMContainerFactory.Error("cannot replace Arwen VM", "epoch", epoch)
+		logVMContainerFactory.Error("cannot replace Arwen VM", "epoch", epoch, "error", err)
 		return
 	}
 
 	err = vmf.container.Replace(factory.ArwenVirtualMachine, newArwenVM)
 	if err != nil {
-		logVMContainerFactory.Error("cannot replace Arwen VM", "epoch", epoch)
+		logVMContainerFactory.Error("cannot replace Arwen VM", "epoch", epoch, "error", err)
 		return
 	}
 

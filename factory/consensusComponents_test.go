@@ -7,9 +7,9 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
-	"github.com/ElrondNetwork/elrond-go/crypto"
 	errorsErd "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/stretchr/testify/require"
@@ -475,7 +476,7 @@ func getDefaultCryptoComponents() *mock.CryptoComponentsMock {
 		PubKeyBytes:     []byte("pubKey"),
 		BlockSig:        &mock.SinglesignMock{},
 		TxSig:           &mock.SinglesignMock{},
-		MultiSig:        &mock.MultisignMock{},
+		MultiSig:        &cryptoMocks.MultisignerStub{},
 		PeerSignHandler: &mock.PeerSignatureHandler{},
 		BlKeyGen:        &mock.KeyGenMock{},
 		TxKeyGen:        &mock.KeyGenMock{},

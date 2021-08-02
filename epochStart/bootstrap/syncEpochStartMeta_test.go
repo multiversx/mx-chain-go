@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -140,11 +141,11 @@ func getEpochStartSyncerArgs() ArgsNewEpochStartMetaSyncer {
 			},
 		},
 		CryptoComponentsHolder: &mock.CryptoComponentsMock{
-			PubKey:   &mock.PublicKeyStub{},
-			BlockSig: &mock.SignerStub{},
-			TxSig:    &mock.SignerStub{},
-			BlKeyGen: &mock.KeyGenMock{},
-			TxKeyGen: &mock.KeyGenMock{},
+			PubKey:   &cryptoMocks.PublicKeyStub{},
+			BlockSig: &cryptoMocks.SignerStub{},
+			TxSig:    &cryptoMocks.SignerStub{},
+			BlKeyGen: &cryptoMocks.KeyGenStub{},
+			TxKeyGen: &cryptoMocks.KeyGenStub{},
 		},
 		RequestHandler:   &testscommon.RequestHandlerStub{},
 		Messenger:        &mock.MessengerStub{},

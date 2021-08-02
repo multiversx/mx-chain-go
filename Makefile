@@ -92,3 +92,6 @@ run-lint:
 	bin/golangci-lint run --max-issues-per-linter 0 --max-same-issues 0 --timeout=2m
 
 lint: lint-install run-lint
+
+install-proto:
+	bash ./install-proto.sh

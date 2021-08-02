@@ -9,11 +9,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/versioning"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -69,7 +70,7 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 	cryptoComponents := &mock.CryptoComponentsMock{
 		BlockSig: createMockSigner(),
 		TxSig:    createMockSigner(),
-		MultiSig: mock.NewMultiSigner(),
+		MultiSig: cryptoMocks.NewMultiSigner(21),
 		BlKeyGen: createMockKeyGen(),
 		TxKeyGen: createMockKeyGen(),
 	}
