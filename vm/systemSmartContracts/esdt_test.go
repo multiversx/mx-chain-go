@@ -486,12 +486,12 @@ func TestEsdt_ExecuteBurnAndMintDisabled(t *testing.T) {
 
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, "global burn is not more enabled, use local burn"))
+	assert.True(t, strings.Contains(eei.returnMessage, "global burn is no more enabled, use local burn"))
 
 	vmInput = getDefaultVmInputForFunc("mint", [][]byte{[]byte("esdtToken"), {100}})
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, "global mint is not more enabled, use local mint"))
+	assert.True(t, strings.Contains(eei.returnMessage, "global mint is no more enabled, use local mint"))
 }
 
 func TestEsdt_ExecuteBurnOnNonBurnableTokenShouldWorkAndReturnBurntTokens(t *testing.T) {

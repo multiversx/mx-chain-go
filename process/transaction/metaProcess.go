@@ -85,6 +85,7 @@ func NewMetaTxProcessor(args ArgsNewMetaTxProcessor) (*metaTxProcessor, error) {
 		builtInFunctionEnableEpoch: args.BuiltInFunctionOnMetachainEnableEpoch,
 	}
 	log.Debug("metaProcess: enable epoch for esdt", "epoch", txProc.esdtEnableEpoch)
+	log.Debug("metaProcess: enable epoch for built in function on metachain", "epoch", txProc.builtInFunctionEnableEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(txProc)
 

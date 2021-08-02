@@ -45,20 +45,20 @@ type deployedScMetrics struct {
 
 func createGenesisConfig() config.EnableEpochs {
 	return config.EnableEpochs{
-		BuiltInFunctionsEnableEpoch:            0,
-		SCDeployEnableEpoch:                    unreachableEpoch,
-		RelayedTransactionsEnableEpoch:         0,
-		PenalizedTooMuchGasEnableEpoch:         0,
-		AheadOfTimeGasUsageEnableEpoch:         unreachableEpoch,
-		BelowSignedThresholdEnableEpoch:        unreachableEpoch,
-		GasPriceModifierEnableEpoch:            unreachableEpoch,
-		MetaProtectionEnableEpoch:              unreachableEpoch,
-		TransactionSignedWithTxHashEnableEpoch: unreachableEpoch,
-		SwitchHysteresisForMinNodesEnableEpoch: unreachableEpoch,
-		SwitchJailWaitingEnableEpoch:           unreachableEpoch,
-		BlockGasAndFeesReCheckEnableEpoch:      unreachableEpoch,
-		RelayedTransactionsV2EnableEpoch:       unreachableEpoch,
-
+		BuiltInFunctionsEnableEpoch:                 0,
+		SCDeployEnableEpoch:                         unreachableEpoch,
+		RelayedTransactionsEnableEpoch:              0,
+		PenalizedTooMuchGasEnableEpoch:              0,
+		AheadOfTimeGasUsageEnableEpoch:              unreachableEpoch,
+		BelowSignedThresholdEnableEpoch:             unreachableEpoch,
+		GasPriceModifierEnableEpoch:                 unreachableEpoch,
+		MetaProtectionEnableEpoch:                   unreachableEpoch,
+		TransactionSignedWithTxHashEnableEpoch:      unreachableEpoch,
+		SwitchHysteresisForMinNodesEnableEpoch:      unreachableEpoch,
+		SwitchJailWaitingEnableEpoch:                unreachableEpoch,
+		BlockGasAndFeesReCheckEnableEpoch:           unreachableEpoch,
+		RelayedTransactionsV2EnableEpoch:            unreachableEpoch,
+		BuiltInFunctionOnMetaEnableEpoch:            unreachableEpoch,
 		IncrementSCRNonceInMultiTransferEnableEpoch: unreachableEpoch,
 	}
 }
@@ -278,7 +278,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		EpochNotifier:                epochNotifier,
 		ESDTMultiTransferEnableEpoch: unreachableEpoch,
 		ESDTTransferRoleEnableEpoch:  unreachableEpoch,
-		GlobalBurnMintDisableEpoch:   unreachableEpoch,
+		GlobalMintBurnDisableEpoch:   unreachableEpoch,
 		ESDTTransferMetaEnableEpoch:  unreachableEpoch,
 	}
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)

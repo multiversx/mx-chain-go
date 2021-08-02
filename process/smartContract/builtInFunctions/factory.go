@@ -22,7 +22,7 @@ type ArgsCreateBuiltInFunctionContainer struct {
 	EpochNotifier                vmcommon.EpochNotifier
 	ESDTMultiTransferEnableEpoch uint32
 	ESDTTransferRoleEnableEpoch  uint32
-	GlobalBurnMintDisableEpoch   uint32
+	GlobalMintBurnDisableEpoch   uint32
 	ESDTTransferMetaEnableEpoch  uint32
 }
 
@@ -63,7 +63,7 @@ func CreateBuiltInFunctionContainer(args ArgsCreateBuiltInFunctionContainer) (vm
 		ESDTNFTImprovementV1ActivationEpoch: args.ESDTMultiTransferEnableEpoch,
 		ESDTTransferToMetaEnableEpoch:       args.ESDTTransferMetaEnableEpoch,
 		ESDTTransferRoleEnableEpoch:         args.ESDTTransferRoleEnableEpoch,
-		GlobalBurnMintDisableEpoch:          args.GlobalBurnMintDisableEpoch,
+		GlobalMintBurnDisableEpoch:          args.GlobalMintBurnDisableEpoch,
 	}
 
 	bContainerFactory, err := vmcommonBuiltInFunctions.NewBuiltInFunctionsFactory(modifiedArgs)

@@ -58,7 +58,7 @@ type esdt struct {
 	flagEnabled                atomic.Flag
 	globalMintBurnDisableEpoch uint32
 	flagGlobalMintBurn         atomic.Flag
-	transferRoleEnabpeEpoch    uint32
+	transferRoleEnableEpoch    uint32
 	flagTransferRole           atomic.Flag
 }
 
@@ -114,11 +114,13 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 		marshalizer:                args.Marshalizer,
 		enabledEpoch:               args.EpochConfig.EnableEpochs.ESDTEnableEpoch,
 		globalMintBurnDisableEpoch: args.EpochConfig.EnableEpochs.GlobalMintBurnDisableEpoch,
-		transferRoleEnabpeEpoch:    args.EpochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
+		transferRoleEnableEpoch:    args.EpochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
 		endOfEpochSCAddress:        args.EndOfEpochSCAddress,
 		addressPubKeyConverter:     args.AddressPubKeyConverter,
 	}
 	log.Debug("esdt: enable epoch for esdt", "epoch", e.enabledEpoch)
+	log.Debug("esdt: enable epoch for contract global mint and burn", "epoch", e.globalMintBurnDisableEpoch)
+	log.Debug("esdt: enable epoch for contract transfer role", "epoch", e.transferRoleEnableEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(e)
 
@@ -258,10 +260,8 @@ func (e *esdt) issue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	}
 
 	initialSupply := big.NewInt(0).SetBytes(args.Arguments[2])
-	if e.flagGlobalMintBurn.IsSet() && initialSupply.Cmp(zero) <= 0 {
-		e.eei.AddReturnMessage(vm.ErrNegativeOrZeroInitialSupply.Error())
-		return vmcommon.UserError
-	} else if initialSupply.Cmp(zero) < 0 {
+	isInvalidSupply := initialSupply.Cmp(zero) < 0 || (e.flagGlobalMintBurn.IsSet() && initialSupply.Cmp(zero) == 0)
+	if isInvalidSupply {
 		e.eei.AddReturnMessage(vm.ErrNegativeOrZeroInitialSupply.Error())
 		return vmcommon.UserError
 	}
@@ -516,7 +516,7 @@ func getStringFromBool(val bool) string {
 
 func (e *esdt) burn(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !e.flagGlobalMintBurn.IsSet() {
-		e.eei.AddReturnMessage("global burn is not more enabled, use local burn")
+		e.eei.AddReturnMessage("global burn is no more enabled, use local burn")
 		return vmcommon.UserError
 	}
 
@@ -569,7 +569,7 @@ func (e *esdt) burn(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 
 func (e *esdt) mint(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !e.flagGlobalMintBurn.IsSet() {
-		e.eei.AddReturnMessage("global mint is not more enabled, use local mint")
+		e.eei.AddReturnMessage("global mint is no more enabled, use local mint")
 		return vmcommon.UserError
 	}
 
@@ -1553,7 +1553,7 @@ func (e *esdt) EpochConfirmed(epoch uint32, _ uint64) {
 	e.flagGlobalMintBurn.Toggle(epoch < e.globalMintBurnDisableEpoch)
 	log.Debug("ESDT contract global mint and burn", "enabled", e.flagGlobalMintBurn.IsSet())
 
-	e.flagTransferRole.Toggle(epoch >= e.transferRoleEnabpeEpoch)
+	e.flagTransferRole.Toggle(epoch >= e.transferRoleEnableEpoch)
 	log.Debug("ESDT contract transfer role", "enabled", e.flagTransferRole.IsSet())
 }
 

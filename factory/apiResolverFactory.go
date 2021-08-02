@@ -356,7 +356,7 @@ func createBuiltinFuncs(
 		EpochNotifier:                epochNotifier,
 		ESDTMultiTransferEnableEpoch: esdtMultiTransferEnableEpoch,
 		ESDTTransferRoleEnableEpoch:  esdtTransferRoleEnableEpoch,
-		GlobalBurnMintDisableEpoch:   esdtGlobalMintBurnDisableEpoch,
+		GlobalMintBurnDisableEpoch:   esdtGlobalMintBurnDisableEpoch,
 		ESDTTransferMetaEnableEpoch:  transferToMetaEnableEpoch,
 	}
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
