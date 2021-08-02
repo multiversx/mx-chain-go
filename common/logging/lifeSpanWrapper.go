@@ -1,6 +1,8 @@
 package logging
 
 import (
+	"fmt"
+	"path/filepath"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
@@ -14,7 +16,7 @@ type lifeSpanWrapper struct {
 // SetLifeSpanner sets the current lifeSpanner
 func (llsw *lifeSpanWrapper) SetLifeSpanner(spanner factory.LogLifeSpanner) {
 	llsw.mutLogLifeSpanner.Lock()
-	log.Debug("lifeSpanWrapper - set life spanner", "spanner", spanner)
+	log.Debug("lifeSpanWrapper - set life spanner", "spanner", fmt.Sprintf("%T", spanner))
 	llsw.lifeSpanner = spanner
 	llsw.mutLogLifeSpanner.Unlock()
 }
@@ -22,7 +24,7 @@ func (llsw *lifeSpanWrapper) SetLifeSpanner(spanner factory.LogLifeSpanner) {
 // SetCurrentFile sets the new logger file
 func (llsw *lifeSpanWrapper) SetCurrentFile(newFile string) {
 	llsw.mutLogLifeSpanner.Lock()
-	log.Debug("lifeSpanWrapper - set new file", "new file", newFile)
+	log.Debug("lifeSpanWrapper - set new file", "new file", filepath.Base(newFile))
 	llsw.lifeSpanner.SetCurrentFile(newFile)
 	llsw.mutLogLifeSpanner.Unlock()
 }

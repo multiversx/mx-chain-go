@@ -1176,7 +1176,6 @@ func (nr *nodeRunner) CreateManagedCoreComponents(
 }
 
 func (nr *nodeRunner) attachLogLifeSpanner(notifierWithConfirm mainFactory.EpochStartNotifierWithConfirm, spanConfig config.LifeSpanConfig) {
-	log.Debug("attachLogLifeSpanner entered")
 	if check.IfNil(nr.fileLoggingHandler) {
 		log.Debug("attachLogLifeSpanner nil fileLoggingHandler")
 		return
@@ -1196,8 +1195,6 @@ func (nr *nodeRunner) attachLogLifeSpanner(notifierWithConfirm mainFactory.Epoch
 
 	err = nr.fileLoggingHandler.ChangeFileLifeSpan(lifeSpanner)
 	log.LogIfError(err)
-
-	log.Debug("attachLogLifeSpanner exited")
 }
 
 // CreateManagedCryptoComponents is the managed crypto components factory
