@@ -82,8 +82,9 @@ type NTPConfig struct {
 
 // EvictionWaitingListConfig will hold the configuration for the EvictionWaitingList
 type EvictionWaitingListConfig struct {
-	Size uint
-	DB   DBConfig
+	RootHashesSize uint
+	HashesSize     uint
+	DB             DBConfig
 }
 
 // EpochStartConfig will hold the configuration of EpochStart settings

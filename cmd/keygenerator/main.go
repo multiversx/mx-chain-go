@@ -14,11 +14,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
+	"github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/ElrondNetwork/elrond-go-crypto/signing"
+	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
+	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
 	"github.com/urfave/cli"
 )
 
@@ -341,7 +341,7 @@ func generateFile(index int, numKeys int, noSplit bool, baseFilenameTemplate str
 		return nil, err
 	}
 
-	return os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, core.FileModeUserReadWrite)
+	return os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, core.FileModeReadWrite)
 }
 
 func generateFolder(index int, numKeys int, noSplit bool) (string, error) {

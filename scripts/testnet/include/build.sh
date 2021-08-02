@@ -21,6 +21,8 @@ prepareFolders_TxGen() {
   cd $TESTNETDIR
   [ -d txgen ] || mkdir -p txgen
   [ -d ./txgen/config ] || mkdir -p ./txgen/config
+  [ -d ./txgen/config/nodeConfig ] || mkdir -p ./txgen/config/nodeConfig
+  [ -d ./txgen/config/nodeConfig/config ] || mkdir -p ./txgen/config/nodeConfig/config
 }
 
 buildConfigGenerator() {

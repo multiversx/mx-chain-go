@@ -241,6 +241,7 @@ func indexRoundInfo(
 			SignersIndexes:   signersIndexes,
 			BlockWasProposed: false,
 			ShardId:          shardId,
+			Epoch:            header.GetEpoch(),
 			Timestamp:        time.Duration(header.GetTimeStamp() - ((currentBlockRound - i) * roundDuration)),
 		}
 

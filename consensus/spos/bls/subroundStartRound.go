@@ -253,6 +253,7 @@ func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 		SignersIndexes:   signersIndexes,
 		BlockWasProposed: false,
 		ShardId:          shardId,
+		Epoch:            epoch,
 		Timestamp:        time.Duration(sr.RoundTimeStamp.Unix()),
 	}
 
