@@ -2,6 +2,7 @@ package trie
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -1040,7 +1041,7 @@ func TestBranchNode_getChildrenCollapsedBn(t *testing.T) {
 
 	db := mock.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	_ = bn.commitSnapshot(db, db, nil)
+	_ = bn.commitSnapshot(db, db, nil, context.Background())
 
 	children, err := collapsedBn.getChildren(db)
 	assert.Nil(t, err)
@@ -1240,8 +1241,8 @@ func TestBranchNode_printShouldNotPanicEvenIfNodeIsCollapsed(t *testing.T) {
 
 	db := mock.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	_ = bn.commitSnapshot(db, db, nil)
-	_ = collapsedBn.commitSnapshot(db, db, nil)
+	_ = bn.commitSnapshot(db, db, nil, context.Background())
+	_ = collapsedBn.commitSnapshot(db, db, nil, context.Background())
 
 	bn.print(bnWriter, 0, db)
 	collapsedBn.print(collapsedBnWriter, 0, db)
@@ -1278,7 +1279,7 @@ func TestBranchNode_getAllHashesResolvesCollapsed(t *testing.T) {
 
 	db := mock.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	_ = bn.commitSnapshot(db, db, nil)
+	_ = bn.commitSnapshot(db, db, nil, context.Background())
 
 	hashes, err := collapsedBn.getAllHashes(db)
 	assert.Nil(t, err)
@@ -1349,4 +1350,19 @@ func TestBranchNode_SizeInBytes(t *testing.T) {
 		},
 	}
 	assert.Equal(t, len(collapsed1)+len(collapsed2)+len(hash)+1+19*pointerSizeInBytes, bn.sizeInBytes())
+}
+
+func TestBranchNode_commitContextDone(t *testing.T) {
+	t.Parallel()
+
+	db := mock.NewMemDbMock()
+	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	err := bn.commitCheckpoint(db, db, nil, nil, ctx)
+	assert.Equal(t, ErrContextClosing, err)
+
+	err = bn.commitSnapshot(db, db, nil, ctx)
+	assert.Equal(t, ErrContextClosing, err)
 }

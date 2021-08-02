@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/stretchr/testify/assert"
@@ -53,11 +54,11 @@ func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComp
 			TxVersionCheckField:   versioning.NewTxVersionChecker(1),
 			NodeTypeProviderField: &nodeTypeProviderMock.NodeTypeProviderStub{},
 		}, &mock.CryptoComponentsMock{
-			PubKey:   &mock.PublicKeyMock{},
-			BlockSig: &mock.SignerStub{},
-			TxSig:    &mock.SignerStub{},
-			BlKeyGen: &mock.KeyGenMock{},
-			TxKeyGen: &mock.KeyGenMock{},
+			PubKey:   &cryptoMocks.PublicKeyStub{},
+			BlockSig: &cryptoMocks.SignerStub{},
+			TxSig:    &cryptoMocks.SignerStub{},
+			BlKeyGen: &cryptoMocks.KeyGenStub{},
+			TxKeyGen: &cryptoMocks.KeyGenStub{},
 		}
 }
 
@@ -87,7 +88,8 @@ func createMockEpochStartBootstrapArgs(
 				MaxPeerTrieLevelInMemory:    5,
 			},
 			EvictionWaitingList: config.EvictionWaitingListConfig{
-				Size: 100,
+				HashesSize:     100,
+				RootHashesSize: 100,
 				DB: config.DBConfig{
 					FilePath:          "EvictionWaitingList",
 					Type:              "MemoryDB",
@@ -297,7 +299,7 @@ func TestPrepareForEpochZero_NodeInGenesisShouldNotAlterShardID(t *testing.T) {
 	shardIDAsValidator := uint32(1)
 
 	coreComp, cryptoComp := createComponentsForEpochStart()
-	cryptoComp.PubKey = &mock.PublicKeyStub{
+	cryptoComp.PubKey = &cryptoMocks.PublicKeyStub{
 		ToByteArrayStub: func() ([]byte, error) {
 			return []byte("pubKey11"), nil
 		},
@@ -330,7 +332,7 @@ func TestPrepareForEpochZero_NodeNotInGenesisShouldAlterShardID(t *testing.T) {
 	desiredShardAsObserver := uint32(7)
 
 	coreComp, cryptoComp := createComponentsForEpochStart()
-	cryptoComp.PubKey = &mock.PublicKeyStub{
+	cryptoComp.PubKey = &cryptoMocks.PublicKeyStub{
 		ToByteArrayStub: func() ([]byte, error) {
 			return []byte("pubKeyNotInGenesis"), nil
 		},
