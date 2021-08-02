@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/node/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -62,7 +62,7 @@ func TestManagedCryptoComponents_SetMultiSigner(t *testing.T) {
 
 	managedCryptoComponents := getManagedCryptoComponents(t)
 
-	ms := &mock.MultisignMock{}
+	ms := &cryptoMocks.MultisignerMock{}
 	err := managedCryptoComponents.SetMultiSigner(ms)
 	require.NoError(t, err)
 

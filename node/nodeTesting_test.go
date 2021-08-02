@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -392,7 +393,7 @@ func getDefaultCryptoComponents() *factoryMock.CryptoComponentsMock {
 		PubKeyBytes:     []byte("pubKey"),
 		BlockSig:        &mock.SingleSignerMock{},
 		TxSig:           &mock.SingleSignerMock{},
-		MultiSig:        &mock.MultisignMock{},
+		MultiSig:        cryptoMocks.NewMultiSigner(1),
 		PeerSignHandler: &mock.PeerSignatureHandler{},
 		BlKeyGen:        &mock.KeyGenMock{},
 		TxKeyGen:        &mock.KeyGenMock{},
