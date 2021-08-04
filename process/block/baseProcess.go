@@ -4,11 +4,8 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	receipt "github.com/ElrondNetwork/elrond-go-core/data/receipt"
-	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"math/big"
 	"sort"
 	"time"
@@ -1522,9 +1519,6 @@ func (bp *baseProcessor) getMarshalizedScheduledRootHashAndSCRs(
 	mapScheduledSCRs map[block.Type][]data.TransactionHandler,
 ) ([]byte, error) {
 
-	var ok bool
-	var scr *smartContractResult.SmartContractResult
-
 	scrsBatch := &batch.Batch{}
 	scrsBatch.Data = append(scrsBatch.Data, scheduledRootHash)
 
@@ -1539,32 +1533,17 @@ func (bp *baseProcessor) getMarshalizedScheduledRootHashAndSCRs(
 		}
 
 		for txIndex, tx := range txs {
-			_, ok = tx.(*receipt.Receipt)
-			if ok {
-				log.Debug("tx is a receipt", "sender", tx.GetSndAddr(), "receiver", tx.GetRcvAddr())
-				continue
-			}
-
-			_, ok = tx.(*rewardTx.RewardTx)
-			if ok {
-				log.Debug("tx is a reward tx", "sender", tx.GetSndAddr(), "receiver", tx.GetRcvAddr())
-				continue
-			}
-
-			_, ok = tx.(*transaction.Transaction)
-			if ok {
-				log.Debug("tx is a transaction", "sender", tx.GetSndAddr(), "receiver", tx.GetRcvAddr())
-				continue
-			}
-
-			scr, ok = tx.(*smartContractResult.SmartContractResult)
+			scr, ok := tx.(*smartContractResult.SmartContractResult)
 			if !ok {
 				return nil, process.ErrWrongTypeAssertion
 			}
 
-			log.Debug("tx is a smart contract result", "sender", tx.GetSndAddr(), "receiver", tx.GetRcvAddr())
-
 			scheduledSCRs.TxHandlers[txIndex] = *scr
+		}
+
+		//TODO: Remove this for
+		for _, tx := range scheduledSCRs.TxHandlers {
+			log.Debug("tx is a smart contract result", "sender", tx.GetSndAddr(), "receiver", tx.GetRcvAddr())
 		}
 
 		marshalizedScheduledSCRs, err := bp.marshalizer.Marshal(scheduledSCRs)
