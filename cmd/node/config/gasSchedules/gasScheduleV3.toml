@@ -184,7 +184,7 @@
     MarshalCompressedECC   = 15000
     UnmarshalECC           = 20000
     UnmarshalCompressedECC = 270000
-    GenerateKeyECC         = 700000
+    GenerateKeyECC         = 7000000
 
 [ManagedBufferAPICost]
     MBufferNew                   = 10000
