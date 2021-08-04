@@ -35,8 +35,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/dataretriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	testscommonState "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
@@ -47,8 +50,8 @@ func createMockPubkeyConverter() *mock.PubkeyConverterMock {
 	return mock.NewPubkeyConverterMock(32)
 }
 
-func getAccAdapter(balance *big.Int) *testscommon.AccountsStub {
-	accDB := &testscommon.AccountsStub{}
+func getAccAdapter(balance *big.Int) *testscommonState.AccountsStub {
+	accDB := &testscommonState.AccountsStub{}
 	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
 		acc, _ := state.NewUserAccount(address)
 		_ = acc.AddToBalance(balance)
@@ -140,7 +143,7 @@ func TestGetBalance_NoAccAdapterShouldError(t *testing.T) {
 func TestGetBalance_GetAccountFailsShouldError(t *testing.T) {
 	expectedErr := errors.New("error")
 
-	accAdapter := &testscommon.AccountsStub{
+	accAdapter := &testscommonState.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			return nil, expectedErr
 		},
@@ -174,7 +177,7 @@ func createDummyHexAddress(hexChars int) string {
 
 func TestGetBalance_GetAccountReturnsNil(t *testing.T) {
 
-	accAdapter := &testscommon.AccountsStub{
+	accAdapter := &testscommonState.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			return nil, nil
 		},
@@ -218,7 +221,7 @@ func TestGetBalance(t *testing.T) {
 func TestGetUsername(t *testing.T) {
 	expectedUsername := []byte("elrond")
 
-	accDB := &testscommon.AccountsStub{}
+	accDB := &testscommonState.AccountsStub{}
 	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
 		acc, _ := state.NewUserAccount(address)
 		acc.UserName = expectedUsername
@@ -250,9 +253,9 @@ func TestNode_GetKeyValuePairs(t *testing.T) {
 	k1, v1 := []byte("key1"), []byte("value1")
 	k2, v2 := []byte("key2"), []byte("value2")
 
-	accDB := &testscommon.AccountsStub{}
+	accDB := &testscommonState.AccountsStub{}
 	acc.DataTrieTracker().SetDataTrie(
-		&testscommon.TrieStub{
+		&trie.TrieStub{
 			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
 				ch := make(chan core.KeyValueHolder)
 
@@ -319,7 +322,7 @@ func TestNode_GetValueForKey(t *testing.T) {
 	k1, v1 := []byte("key1"), []byte("value1")
 	_ = acc.DataTrieTracker().SaveKeyValue(k1, v1)
 
-	accDB := &testscommon.AccountsStub{}
+	accDB := &testscommonState.AccountsStub{}
 
 	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
 		return acc, nil
@@ -352,7 +355,7 @@ func TestNode_GetESDTData(t *testing.T) {
 	marshalledData, _ := getMarshalizer().Marshal(esdtData)
 	_ = acc.DataTrieTracker().SaveKeyValue(esdtKey, marshalledData)
 
-	accDB := &testscommon.AccountsStub{}
+	accDB := &testscommonState.AccountsStub{}
 	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
 		return acc, nil
 	}
@@ -386,7 +389,7 @@ func TestNode_GetESDTDataForNFT(t *testing.T) {
 	marshalledData, _ := getMarshalizer().Marshal(esdtData)
 	_ = acc.DataTrieTracker().SaveKeyValue(esdtKey, marshalledData)
 
-	accDB := &testscommon.AccountsStub{}
+	accDB := &testscommonState.AccountsStub{}
 	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
 		return acc, nil
 	}
@@ -418,7 +421,7 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 	suffix := append(esdtKey, acc.AddressBytes()...)
 
 	acc.DataTrieTracker().SetDataTrie(
-		&testscommon.TrieStub{
+		&trie.TrieStub{
 			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
 				ch := make(chan core.KeyValueHolder)
 
@@ -435,7 +438,7 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 			},
 		})
 
-	accDB := &testscommon.AccountsStub{
+	accDB := &testscommonState.AccountsStub{
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
 		},
@@ -494,7 +497,7 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 	marshalledNftData, _ := getMarshalizer().Marshal(nftData)
 
 	acc.DataTrieTracker().SetDataTrie(
-		&testscommon.TrieStub{
+		&trie.TrieStub{
 			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
 				ch := make(chan core.KeyValueHolder, 2)
 
@@ -519,7 +522,7 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 			},
 		})
 
-	accDB := &testscommon.AccountsStub{
+	accDB := &testscommonState.AccountsStub{
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
 		},
@@ -579,7 +582,7 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 	sftSuffix := append(sftToken, acc.AddressBytes()...)
 
 	acc.DataTrieTracker().SetDataTrie(
-		&testscommon.TrieStub{
+		&trie.TrieStub{
 			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
 				ch := make(chan core.KeyValueHolder)
 
@@ -602,7 +605,7 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 			},
 		})
 
-	accDB := &testscommon.AccountsStub{
+	accDB := &testscommonState.AccountsStub{
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
 		},
@@ -671,7 +674,7 @@ func TestNode_GetESDTsWithRole(t *testing.T) {
 	esdtSuffix := append(esdtToken, acc.AddressBytes()...)
 
 	acc.DataTrieTracker().SetDataTrie(
-		&testscommon.TrieStub{
+		&trie.TrieStub{
 			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
 				ch := make(chan core.KeyValueHolder)
 
@@ -688,7 +691,7 @@ func TestNode_GetESDTsWithRole(t *testing.T) {
 			},
 		})
 
-	accDB := &testscommon.AccountsStub{
+	accDB := &testscommonState.AccountsStub{
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
 		},
@@ -744,7 +747,7 @@ func TestNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
 	esdtSuffix := append(esdtToken, acc.AddressBytes()...)
 
 	acc.DataTrieTracker().SetDataTrie(
-		&testscommon.TrieStub{
+		&trie.TrieStub{
 			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
 				ch := make(chan core.KeyValueHolder)
 
@@ -762,7 +765,7 @@ func TestNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
 		},
 	)
 
-	accDB := &testscommon.AccountsStub{
+	accDB := &testscommonState.AccountsStub{
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
 		},
@@ -807,7 +810,7 @@ func TestGenerateTransaction_NoAddrConverterShouldError(t *testing.T) {
 	coreComponents.VmMarsh = getMarshalizer()
 	coreComponents.Hash = getHasher()
 	stateComponents := getDefaultStateComponents()
-	stateComponents.Accounts = &testscommon.AccountsStub{}
+	stateComponents.Accounts = &testscommonState.AccountsStub{}
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
@@ -841,7 +844,7 @@ func TestGenerateTransaction_NoPrivateKeyShouldError(t *testing.T) {
 	coreComponents.Hash = getHasher()
 	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
 	stateComponents := getDefaultStateComponents()
-	stateComponents.Accounts = &testscommon.AccountsStub{}
+	stateComponents.Accounts = &testscommonState.AccountsStub{}
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
@@ -874,7 +877,7 @@ func TestGenerateTransaction_CreateAddressFailsShouldError(t *testing.T) {
 
 func TestGenerateTransaction_GetAccountFailsShouldError(t *testing.T) {
 
-	accAdapter := &testscommon.AccountsStub{
+	accAdapter := &testscommonState.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			return nil, nil
 		},
@@ -901,7 +904,7 @@ func TestGenerateTransaction_GetAccountFailsShouldError(t *testing.T) {
 
 func TestGenerateTransaction_GetAccountReturnsNilShouldWork(t *testing.T) {
 
-	accAdapter := &testscommon.AccountsStub{
+	accAdapter := &testscommonState.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			return state.NewUserAccount(address)
 		},
@@ -1043,7 +1046,7 @@ func TestGenerateTransaction_ShouldSetCorrectSignature(t *testing.T) {
 func TestGenerateTransaction_ShouldSetCorrectNonce(t *testing.T) {
 
 	nonce := uint64(7)
-	accAdapter := &testscommon.AccountsStub{
+	accAdapter := &testscommonState.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			acc, _ := state.NewUserAccount(address)
 			_ = acc.AddToBalance(big.NewInt(0))
@@ -1114,7 +1117,7 @@ func TestCreateTransaction_NilAddrConverterShouldErr(t *testing.T) {
 	coreComponents.TxMarsh = getMarshalizer()
 	coreComponents.Hash = getHasher()
 	stateComponents := getDefaultStateComponents()
-	stateComponents.Accounts = &testscommon.AccountsStub{}
+	stateComponents.Accounts = &testscommonState.AccountsStub{}
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
@@ -1207,7 +1210,7 @@ func TestCreateTransaction_InvalidSignatureShouldErr(t *testing.T) {
 		},
 	}
 	stateComponents := getDefaultStateComponents()
-	stateComponents.Accounts = &testscommon.AccountsStub{}
+	stateComponents.Accounts = &testscommonState.AccountsStub{}
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
@@ -1257,7 +1260,7 @@ func TestCreateTransaction_ChainIDFieldChecks(t *testing.T) {
 	}
 
 	stateComponents := getDefaultStateComponents()
-	stateComponents.Accounts = &testscommon.AccountsStub{}
+	stateComponents.Accounts = &testscommonState.AccountsStub{}
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
@@ -1314,7 +1317,7 @@ func TestCreateTransaction_InvalidTxVersionShouldErr(t *testing.T) {
 		},
 	}
 	stateComponents := getDefaultStateComponents()
-	stateComponents.Accounts = &testscommon.AccountsStub{}
+	stateComponents.Accounts = &testscommonState.AccountsStub{}
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
@@ -1454,7 +1457,7 @@ func TestCreateTransaction_SignatureLengthChecks(t *testing.T) {
 	}
 
 	stateComponents := getDefaultStateComponents()
-	stateComponents.Accounts = &testscommon.AccountsStub{}
+	stateComponents.Accounts = &testscommonState.AccountsStub{}
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
 		node.WithStateComponents(stateComponents),
@@ -1520,7 +1523,7 @@ func TestCreateTransaction_SenderLengthChecks(t *testing.T) {
 	}
 
 	stateComponents := getDefaultStateComponents()
-	stateComponents.Accounts = &testscommon.AccountsStub{}
+	stateComponents.Accounts = &testscommonState.AccountsStub{}
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
 		node.WithStateComponents(stateComponents),
@@ -1584,7 +1587,7 @@ func TestCreateTransaction_ReceiverLengthChecks(t *testing.T) {
 	}
 
 	stateComponents := getDefaultStateComponents()
-	stateComponents.Accounts = &testscommon.AccountsStub{}
+	stateComponents.Accounts = &testscommonState.AccountsStub{}
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
 		node.WithStateComponents(stateComponents),
@@ -1647,7 +1650,7 @@ func TestCreateTransaction_TooBigSenderUsernameShouldErr(t *testing.T) {
 	}
 
 	stateComponents := getDefaultStateComponents()
-	stateComponents.Accounts = &testscommon.AccountsStub{}
+	stateComponents.Accounts = &testscommonState.AccountsStub{}
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
 		node.WithStateComponents(stateComponents),
@@ -1706,7 +1709,7 @@ func TestCreateTransaction_TooBigReceiverUsernameShouldErr(t *testing.T) {
 	}
 
 	stateComponents := getDefaultStateComponents()
-	stateComponents.Accounts = &testscommon.AccountsStub{}
+	stateComponents.Accounts = &testscommonState.AccountsStub{}
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
 		node.WithStateComponents(stateComponents),
@@ -1765,7 +1768,7 @@ func TestCreateTransaction_DataFieldSizeExceedsMaxShouldErr(t *testing.T) {
 	}
 
 	stateComponents := getDefaultStateComponents()
-	stateComponents.Accounts = &testscommon.AccountsStub{}
+	stateComponents.Accounts = &testscommonState.AccountsStub{}
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
 		node.WithStateComponents(stateComponents),
@@ -1821,7 +1824,7 @@ func TestCreateTransaction_TooLargeValueFieldShouldErr(t *testing.T) {
 	}
 
 	stateComponents := getDefaultStateComponents()
-	stateComponents.Accounts = &testscommon.AccountsStub{}
+	stateComponents.Accounts = &testscommonState.AccountsStub{}
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
 		node.WithStateComponents(stateComponents),
@@ -1871,7 +1874,7 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 		},
 	}
 	stateComponents := getDefaultStateComponents()
-	stateComponents.Accounts = &testscommon.AccountsStub{
+	stateComponents.Accounts = &testscommonState.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 			return state.NewUserAccount([]byte("address"))
 		},
@@ -1968,7 +1971,7 @@ func TestCreateTransaction_TxSignedWithHashShouldErrVersionShoudBe2(t *testing.T
 	coreComponents.TxVersionCheckHandler = versioning.NewTxVersionChecker(version)
 
 	stateComponents := getDefaultStateComponents()
-	stateComponents.Accounts = &testscommon.AccountsStub{}
+	stateComponents.Accounts = &testscommonState.AccountsStub{}
 
 	bootstrapComponents := getDefaultBootstrapComponents()
 	bootstrapComponents.ShCoordinator = &mock.ShardCoordinatorMock{
@@ -2061,7 +2064,7 @@ func TestCreateTransaction_TxSignedWithHashNoEnabledShouldErr(t *testing.T) {
 	coreComponents.TxVersionCheckHandler = versioning.NewTxVersionChecker(version)
 
 	stateComponents := getDefaultStateComponents()
-	stateComponents.Accounts = &testscommon.AccountsStub{}
+	stateComponents.Accounts = &testscommonState.AccountsStub{}
 
 	bootstrapComponents := getDefaultBootstrapComponents()
 	bootstrapComponents.ShCoordinator = &mock.ShardCoordinatorMock{
@@ -2149,7 +2152,7 @@ func TestSendBulkTransactions_NoTxShouldErr(t *testing.T) {
 
 func TestCreateShardedStores_NilShardCoordinatorShouldError(t *testing.T) {
 	messenger := getMessenger()
-	dataPool := testscommon.NewPoolsHolderStub()
+	dataPool := dataretriever.NewPoolsHolderStub()
 	coreComponents := getDefaultCoreComponents()
 	coreComponents.IntMarsh = getMarshalizer()
 	coreComponents.VmMarsh = getMarshalizer()
@@ -2157,7 +2160,7 @@ func TestCreateShardedStores_NilShardCoordinatorShouldError(t *testing.T) {
 	coreComponents.Hash = getHasher()
 	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
 	stateComponents := getDefaultStateComponents()
-	stateComponents.Accounts = &testscommon.AccountsStub{}
+	stateComponents.Accounts = &testscommonState.AccountsStub{}
 	networkComponents := getDefaultNetworkComponents()
 	networkComponents.Messenger = messenger
 	dataComponents := getDefaultDataComponents()
@@ -2193,7 +2196,7 @@ func TestCreateShardedStores_NilDataPoolShouldError(t *testing.T) {
 	networkComponents := getDefaultNetworkComponents()
 	networkComponents.Messenger = messenger
 	stateComponents := getDefaultStateComponents()
-	stateComponents.Accounts = &testscommon.AccountsStub{}
+	stateComponents.Accounts = &testscommonState.AccountsStub{}
 	dataComponents := getDefaultDataComponents()
 
 	n, _ := node.NewNode(
@@ -2213,7 +2216,7 @@ func TestCreateShardedStores_NilDataPoolShouldError(t *testing.T) {
 func TestCreateShardedStores_NilTransactionDataPoolShouldError(t *testing.T) {
 	messenger := getMessenger()
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	dataPool := testscommon.NewPoolsHolderStub()
+	dataPool := dataretriever.NewPoolsHolderStub()
 	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return nil
 	}
@@ -2229,7 +2232,7 @@ func TestCreateShardedStores_NilTransactionDataPoolShouldError(t *testing.T) {
 	dataComponents := getDefaultDataComponents()
 	dataComponents.DataPool = dataPool
 	stateComponents := getDefaultStateComponents()
-	stateComponents.Accounts = &testscommon.AccountsStub{}
+	stateComponents.Accounts = &testscommonState.AccountsStub{}
 	processComponents := getDefaultProcessComponents()
 	processComponents.ShardCoord = shardCoordinator
 	networkComponents := getDefaultNetworkComponents()
@@ -2251,7 +2254,7 @@ func TestCreateShardedStores_NilTransactionDataPoolShouldError(t *testing.T) {
 func TestCreateShardedStores_NilHeaderDataPoolShouldError(t *testing.T) {
 	messenger := getMessenger()
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	dataPool := testscommon.NewPoolsHolderStub()
+	dataPool := dataretriever.NewPoolsHolderStub()
 	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return testscommon.NewShardedDataStub()
 	}
@@ -2268,7 +2271,7 @@ func TestCreateShardedStores_NilHeaderDataPoolShouldError(t *testing.T) {
 	dataComponents := getDefaultDataComponents()
 	dataComponents.DataPool = dataPool
 	stateComponents := getDefaultStateComponents()
-	stateComponents.Accounts = &testscommon.AccountsStub{}
+	stateComponents.Accounts = &testscommonState.AccountsStub{}
 	processComponents := getDefaultProcessComponents()
 	processComponents.ShardCoord = shardCoordinator
 	networkComponents := getDefaultNetworkComponents()
@@ -2293,7 +2296,7 @@ func TestCreateShardedStores_ReturnsSuccessfully(t *testing.T) {
 	nrOfShards := uint32(2)
 	shardCoordinator.SetNoShards(nrOfShards)
 
-	dataPool := testscommon.NewPoolsHolderStub()
+	dataPool := dataretriever.NewPoolsHolderStub()
 	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return testscommon.NewShardedDataStub()
 	}
@@ -2310,7 +2313,7 @@ func TestCreateShardedStores_ReturnsSuccessfully(t *testing.T) {
 	dataComponents := getDefaultDataComponents()
 	dataComponents.DataPool = dataPool
 	stateComponents := getDefaultStateComponents()
-	stateComponents.Accounts = &testscommon.AccountsStub{}
+	stateComponents.Accounts = &testscommonState.AccountsStub{}
 	processComponents := getDefaultProcessComponents()
 	processComponents.ShardCoord = shardCoordinator
 	networkComponents := getDefaultNetworkComponents()
@@ -2425,7 +2428,7 @@ func TestNode_GetAccountWithNilAccountsAdapterShouldErr(t *testing.T) {
 func TestNode_GetAccountWithNilPubkeyConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	accDB := &testscommon.AccountsStub{
+	accDB := &testscommonState.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 			return nil, state.ErrAccNotFound
 		},
@@ -2449,7 +2452,7 @@ func TestNode_GetAccountWithNilPubkeyConverterShouldErr(t *testing.T) {
 func TestNode_GetAccountPubkeyConverterFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	accDB := &testscommon.AccountsStub{
+	accDB := &testscommonState.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 			return nil, state.ErrAccNotFound
 		},
@@ -2479,7 +2482,7 @@ func TestNode_GetAccountPubkeyConverterFailsShouldErr(t *testing.T) {
 func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 	t.Parallel()
 
-	accDB := &testscommon.AccountsStub{
+	accDB := &testscommonState.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 			return nil, state.ErrAccNotFound
 		},
@@ -2508,7 +2511,7 @@ func TestNode_GetAccountAccountsAdapterFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	errExpected := errors.New("expected error")
-	accDB := &testscommon.AccountsStub{
+	accDB := &testscommonState.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 			return nil, errExpected
 		},
@@ -2542,7 +2545,7 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 	accnt.SetCodeMetadata([]byte("metadata"))
 	accnt.SetOwnerAddress([]byte("owner address"))
 
-	accDB := &testscommon.AccountsStub{
+	accDB := &testscommonState.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 			return accnt, nil
 		},
@@ -2817,7 +2820,7 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 		},
 	}
 
-	dataPool := &testscommon.PoolsHolderStub{
+	dataPool := &dataretriever.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataStub{
 				ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
@@ -3107,7 +3110,7 @@ func TestNode_ValidateTransactionForSimulation_CheckSignatureFalse(t *testing.T)
 	coreComponents.Hash = getHasher()
 	coreComponents.AddrPubKeyConv = mock.NewPubkeyConverterMock(3)
 	stateComponents := getDefaultStateComponents()
-	stateComponents.Accounts = &testscommon.AccountsStub{}
+	stateComponents.Accounts = &testscommonState.AccountsStub{}
 
 	bootstrapComponents := getDefaultBootstrapComponents()
 	bootstrapComponents.ShCoordinator = &mock.ShardCoordinatorMock{}
@@ -3218,7 +3221,7 @@ func TestGetKeyValuePairs_CannotRecreateTree(t *testing.T) {
 	}
 
 	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsAPI = &testscommon.AccountsStub{
+	stateComponents.AccountsAPI = &testscommonState.AccountsStub{
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return expectedErr
 		},

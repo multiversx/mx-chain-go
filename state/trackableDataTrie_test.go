@@ -8,7 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	testscommonTrie "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -17,7 +17,7 @@ func TestNewTrackableDataTrie(t *testing.T) {
 	t.Parallel()
 
 	identifier := []byte("identifier")
-	trie := &testscommon.TrieStub{}
+	trie := &testscommonTrie.TrieStub{}
 	tdaw := state.NewTrackableDataTrie(identifier, trie)
 
 	assert.False(t, check.IfNil(tdaw))
@@ -38,11 +38,11 @@ func TestTrackableDataTrie_RetrieveValueFoundInDirtyShouldWork(t *testing.T) {
 
 	stringKey := "ABC"
 	identifier := []byte("identifier")
-	trie := &testscommon.TrieStub{}
+	trie := &testscommonTrie.TrieStub{}
 	tdaw := state.NewTrackableDataTrie(identifier, trie)
 	assert.NotNil(t, tdaw)
 
-	tdaw.SetDataTrie(&testscommon.TrieStub{})
+	tdaw.SetDataTrie(&testscommonTrie.TrieStub{})
 	key := []byte(stringKey)
 	val := []byte("123")
 
@@ -66,7 +66,7 @@ func TestTrackableDataTrie_RetrieveValueFoundInTrieShouldWork(t *testing.T) {
 	value := append(expectedVal, expectedKey...)
 	value = append(value, identifier...)
 
-	trie := &testscommon.TrieStub{
+	trie := &testscommonTrie.TrieStub{
 		UpdateCalled: func(key, value []byte) error {
 			return nil
 		},
@@ -90,7 +90,7 @@ func TestTrackableDataTrie_RetrieveValueMalfunctionTrieShouldErr(t *testing.T) {
 
 	errExpected := errors.New("expected err")
 	keyExpected := []byte("key")
-	trie := &testscommon.TrieStub{
+	trie := &testscommonTrie.TrieStub{
 		UpdateCalled: func(key, value []byte) error {
 			return nil
 		},
@@ -116,7 +116,7 @@ func TestTrackableDataTrie_RetrieveValueShouldCheckDirtyDataFirst(t *testing.T) 
 	trieValue := append(retrievedTrieVal, tail...)
 	newTrieValue := []byte("new trie value")
 
-	trie := &testscommon.TrieStub{
+	trie := &testscommonTrie.TrieStub{
 		GetCalled: func(key []byte) (b []byte, e error) {
 			return trieValue, nil
 		},
@@ -144,7 +144,7 @@ func TestTrackableDataTrie_SaveKeyValueShouldSaveOnlyInDirty(t *testing.T) {
 	expectedVal := append(value, keyExpected...)
 	expectedVal = append(expectedVal, identifier...)
 
-	trie := &testscommon.TrieStub{
+	trie := &testscommonTrie.TrieStub{
 		UpdateCalled: func(key, value []byte) error {
 			return nil
 		},
@@ -165,11 +165,11 @@ func TestTrackableDataTrie_SaveKeyValueShouldSaveOnlyInDirty(t *testing.T) {
 func TestTrackableDataTrie_ClearDataCachesValidDataShouldWork(t *testing.T) {
 	t.Parallel()
 
-	trie := &testscommon.TrieStub{}
+	trie := &testscommonTrie.TrieStub{}
 	mdaw := state.NewTrackableDataTrie([]byte("identifier"), trie)
 	assert.NotNil(t, mdaw)
 
-	mdaw.SetDataTrie(&testscommon.TrieStub{})
+	mdaw.SetDataTrie(&testscommonTrie.TrieStub{})
 
 	assert.Equal(t, 0, len(mdaw.DirtyData()))
 
@@ -185,10 +185,10 @@ func TestTrackableDataTrie_ClearDataCachesValidDataShouldWork(t *testing.T) {
 func TestTrackableDataTrie_SetAndGetDataTrie(t *testing.T) {
 	t.Parallel()
 
-	trie := &testscommon.TrieStub{}
+	trie := &testscommonTrie.TrieStub{}
 	mdaw := state.NewTrackableDataTrie([]byte("identifier"), trie)
 
-	newTrie := &testscommon.TrieStub{}
+	newTrie := &testscommonTrie.TrieStub{}
 	mdaw.SetDataTrie(newTrie)
 	assert.Equal(t, newTrie, mdaw.DataTrie())
 }
@@ -197,7 +197,7 @@ func TestTrackableDataTrie_SaveKeyValueTooBig(t *testing.T) {
 	t.Parallel()
 
 	identifier := []byte("identifier")
-	trie := &testscommon.TrieStub{}
+	trie := &testscommonTrie.TrieStub{}
 	tdaw := state.NewTrackableDataTrie(identifier, trie)
 
 	err := tdaw.SaveKeyValue([]byte("key"), make([]byte, core.MaxLeafSize+1))

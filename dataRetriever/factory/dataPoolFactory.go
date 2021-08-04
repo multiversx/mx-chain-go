@@ -19,8 +19,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache/capacity"
 	"github.com/ElrondNetwork/elrond-go/storage/storageCacherAdapter"
-	trieNodeFactory "github.com/ElrondNetwork/elrond-go/storage/storageCacherAdapter/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	factory2 "github.com/ElrondNetwork/elrond-go/trie/factory"
 )
 
 var log = logger.GetOrCreate("dataRetriever/factory")
@@ -128,7 +128,7 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		return nil, err
 	}
 
-	tnf := trieNodeFactory.NewTrieNodeFactory()
+	tnf := factory2.NewTrieNodeFactory()
 	adaptedTrieNodesStorage, err := storageCacherAdapter.NewStorageCacherAdapter(cacher, db, tnf, args.Marshalizer)
 	if err != nil {
 		return nil, err

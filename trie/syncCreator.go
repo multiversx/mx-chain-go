@@ -1,17 +1,22 @@
 package trie
 
 import (
+	"context"
 	"fmt"
-
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 )
 
 const initialVersion = 1
 const secondVersion = 2
 
+// TrieSyncer synchronizes the trie, asking on the network for the missing nodes
+type TrieSyncer interface {
+	StartSyncing(rootHash []byte, ctx context.Context) error
+	IsInterfaceNil() bool
+}
+
 // CreateTrieSyncer is the method factory to create the correct trie syncer implementation
 // TODO try to split this package (syncers should go in sync package, this file in the factory package)
-func CreateTrieSyncer(arg ArgTrieSyncer, trieSyncerVersion int) (temporary.TrieSyncer, error) {
+func CreateTrieSyncer(arg ArgTrieSyncer, trieSyncerVersion int) (TrieSyncer, error) {
 	switch trieSyncerVersion {
 	case initialVersion:
 		return NewTrieSyncer(arg)

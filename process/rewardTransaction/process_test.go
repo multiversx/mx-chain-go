@@ -11,7 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	testscommonState "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
@@ -33,7 +33,7 @@ func TestNewRewardTxProcessor_NilPubkeyConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	rtp, err := rewardTransaction.NewRewardTxProcessor(
-		&testscommon.AccountsStub{},
+		&testscommonState.AccountsStub{},
 		nil,
 		mock.NewMultiShardsCoordinatorMock(3),
 	)
@@ -46,7 +46,7 @@ func TestNewRewardTxProcessor_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	rtp, err := rewardTransaction.NewRewardTxProcessor(
-		&testscommon.AccountsStub{},
+		&testscommonState.AccountsStub{},
 		createMockPubkeyConverter(),
 		nil,
 	)
@@ -59,7 +59,7 @@ func TestNewRewardTxProcessor_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	rtp, err := rewardTransaction.NewRewardTxProcessor(
-		&testscommon.AccountsStub{},
+		&testscommonState.AccountsStub{},
 		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3),
 	)
@@ -73,7 +73,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionNilTxShouldErr(t *testing.T) 
 	t.Parallel()
 
 	rtp, _ := rewardTransaction.NewRewardTxProcessor(
-		&testscommon.AccountsStub{},
+		&testscommonState.AccountsStub{},
 		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3),
 	)
@@ -86,7 +86,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionNilTxValueShouldErr(t *testin
 	t.Parallel()
 
 	rtp, _ := rewardTransaction.NewRewardTxProcessor(
-		&testscommon.AccountsStub{},
+		&testscommonState.AccountsStub{},
 		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3),
 	)
@@ -105,7 +105,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionAddressNotInNodesShardShouldN
 		return uint32(5)
 	}
 	rtp, _ := rewardTransaction.NewRewardTxProcessor(
-		&testscommon.AccountsStub{
+		&testscommonState.AccountsStub{
 			LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 				getAccountWithJournalWasCalled = true
 				return nil, nil
@@ -133,7 +133,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionCannotGetAccountShouldErr(t *
 
 	expectedErr := errors.New("cannot get account")
 	rtp, _ := rewardTransaction.NewRewardTxProcessor(
-		&testscommon.AccountsStub{
+		&testscommonState.AccountsStub{
 			LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 				return nil, expectedErr
 			},
@@ -156,7 +156,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionCannotGetAccountShouldErr(t *
 func TestRewardTxProcessor_ProcessRewardTransactionWrongTypeAssertionAccountHolderShouldErr(t *testing.T) {
 	t.Parallel()
 
-	accountsDb := &testscommon.AccountsStub{
+	accountsDb := &testscommonState.AccountsStub{
 		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			return &mock.PeerAccountHandlerMock{}, nil
 		},
@@ -184,7 +184,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionShouldWork(t *testing.T) {
 
 	saveAccountWasCalled := false
 
-	accountsDb := &testscommon.AccountsStub{
+	accountsDb := &testscommonState.AccountsStub{
 		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			return state.NewUserAccount(address)
 		},
@@ -219,7 +219,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionToASmartContractShouldWork(t 
 
 	address := []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6}
 	userAccount, _ := state.NewUserAccount(address)
-	accountsDb := &testscommon.AccountsStub{
+	accountsDb := &testscommonState.AccountsStub{
 		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			return userAccount, nil
 		},

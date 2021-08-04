@@ -26,7 +26,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
@@ -1108,8 +1107,8 @@ func (bp *baseProcessor) updateStateStorage(
 		return
 	}
 
-	accounts.CancelPrune(rootHashToBePruned, temporary.NewRoot)
-	accounts.PruneTrie(rootHashToBePruned, temporary.OldRoot)
+	accounts.CancelPrune(rootHashToBePruned, state.NewRoot)
+	accounts.PruneTrie(rootHashToBePruned, state.OldRoot)
 }
 
 // RevertAccountState reverts the account state for cleanup failed process
@@ -1146,8 +1145,8 @@ func (bp *baseProcessor) PruneStateOnRollback(currHeader data.HeaderHandler, pre
 			continue
 		}
 
-		bp.accountsDB[key].CancelPrune(prevRootHash, temporary.OldRoot)
-		bp.accountsDB[key].PruneTrie(rootHash, temporary.NewRoot)
+		bp.accountsDB[key].CancelPrune(prevRootHash, state.OldRoot)
+		bp.accountsDB[key].PruneTrie(rootHash, state.NewRoot)
 	}
 }
 

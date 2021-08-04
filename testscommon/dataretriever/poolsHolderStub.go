@@ -1,8 +1,9 @@
-package testscommon
+package dataretriever
 
 import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 )
 
 // PoolsHolderStub -
@@ -40,7 +41,7 @@ func (holder *PoolsHolderStub) Transactions() dataRetriever.ShardedDataCacherNot
 		return holder.TransactionsCalled()
 	}
 
-	return NewShardedDataStub()
+	return testscommon.NewShardedDataStub()
 }
 
 // UnsignedTransactions -
@@ -49,7 +50,7 @@ func (holder *PoolsHolderStub) UnsignedTransactions() dataRetriever.ShardedDataC
 		return holder.UnsignedTransactionsCalled()
 	}
 
-	return NewShardedDataStub()
+	return testscommon.NewShardedDataStub()
 }
 
 // RewardTransactions -
@@ -58,7 +59,7 @@ func (holder *PoolsHolderStub) RewardTransactions() dataRetriever.ShardedDataCac
 		return holder.RewardTransactionsCalled()
 	}
 
-	return NewShardedDataStub()
+	return testscommon.NewShardedDataStub()
 }
 
 // MiniBlocks -
@@ -67,7 +68,7 @@ func (holder *PoolsHolderStub) MiniBlocks() storage.Cacher {
 		return holder.MiniBlocksCalled()
 	}
 
-	return NewCacherStub()
+	return testscommon.NewCacherStub()
 }
 
 // MetaBlocks -
@@ -76,7 +77,7 @@ func (holder *PoolsHolderStub) MetaBlocks() storage.Cacher {
 		return holder.MetaBlocksCalled()
 	}
 
-	return NewCacherStub()
+	return testscommon.NewCacherStub()
 }
 
 // CurrentBlockTxs -
@@ -94,7 +95,7 @@ func (holder *PoolsHolderStub) TrieNodes() storage.Cacher {
 		return holder.TrieNodesCalled()
 	}
 
-	return NewCacherStub()
+	return testscommon.NewCacherStub()
 }
 
 // TrieNodesChunks -
@@ -103,7 +104,7 @@ func (holder *PoolsHolderStub) TrieNodesChunks() storage.Cacher {
 		return holder.TrieNodesChunksCalled()
 	}
 
-	return NewCacherStub()
+	return testscommon.NewCacherStub()
 }
 
 // PeerChangesBlocks -
@@ -112,7 +113,7 @@ func (holder *PoolsHolderStub) PeerChangesBlocks() storage.Cacher {
 		return holder.PeerChangesBlocksCalled()
 	}
 
-	return NewCacherStub()
+	return testscommon.NewCacherStub()
 }
 
 // SmartContracts -
@@ -121,7 +122,7 @@ func (holder *PoolsHolderStub) SmartContracts() storage.Cacher {
 		return holder.SmartContractsCalled()
 	}
 
-	return NewCacherStub()
+	return testscommon.NewCacherStub()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

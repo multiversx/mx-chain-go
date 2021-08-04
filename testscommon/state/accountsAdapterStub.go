@@ -1,11 +1,15 @@
-package testscommon
+package state
 
 import (
+	"errors"
+
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/mock"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
+	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
+
+var errNotImplemented = errors.New("not implemented")
 
 // AccountsStub -
 type AccountsStub struct {
@@ -18,20 +22,20 @@ type AccountsStub struct {
 	RevertToSnapshotCalled   func(snapshot int) error
 	RootHashCalled           func() ([]byte, error)
 	RecreateTrieCalled       func(rootHash []byte) error
-	PruneTrieCalled          func(rootHash []byte, identifier temporary.TriePruningIdentifier)
-	CancelPruneCalled        func(rootHash []byte, identifier temporary.TriePruningIdentifier)
+	PruneTrieCalled          func(rootHash []byte, identifier state.TriePruningIdentifier)
+	CancelPruneCalled        func(rootHash []byte, identifier state.TriePruningIdentifier)
 	SnapshotStateCalled      func(rootHash []byte)
 	SetStateCheckpointCalled func(rootHash []byte)
 	IsPruningEnabledCalled   func() bool
 	GetAllLeavesCalled       func(rootHash []byte) (chan core.KeyValueHolder, error)
-	RecreateAllTriesCalled   func(rootHash []byte) (map[string]temporary.Trie, error)
+	RecreateAllTriesCalled   func(rootHash []byte) (map[string]common.Trie, error)
 	GetNumCheckpointsCalled  func() uint32
 	GetCodeCalled            func([]byte) []byte
-	GetTrieCalled            func([]byte) (temporary.Trie, error)
+	GetTrieCalled            func([]byte) (common.Trie, error)
 }
 
 // GetTrie -
-func (as *AccountsStub) GetTrie(codeHash []byte) (temporary.Trie, error) {
+func (as *AccountsStub) GetTrie(codeHash []byte) (common.Trie, error) {
 	if as.GetTrieCalled != nil {
 		return as.GetTrieCalled(codeHash)
 	}
@@ -48,7 +52,7 @@ func (as *AccountsStub) GetCode(codeHash []byte) []byte {
 }
 
 // RecreateAllTries -
-func (as *AccountsStub) RecreateAllTries(rootHash []byte) (map[string]temporary.Trie, error) {
+func (as *AccountsStub) RecreateAllTries(rootHash []byte) (map[string]common.Trie, error) {
 	if as.RecreateAllTriesCalled != nil {
 		return as.RecreateAllTriesCalled(rootHash)
 	}
@@ -60,7 +64,7 @@ func (as *AccountsStub) LoadAccount(address []byte) (vmcommon.AccountHandler, er
 	if as.LoadAccountCalled != nil {
 		return as.LoadAccountCalled(address)
 	}
-	return mock.NewAccountWrapMock(address), nil
+	return NewAccountWrapMock(address), nil
 }
 
 // SaveAccount -
@@ -143,12 +147,12 @@ func (as *AccountsStub) RecreateTrie(rootHash []byte) error {
 }
 
 // PruneTrie -
-func (as *AccountsStub) PruneTrie(rootHash []byte, identifier temporary.TriePruningIdentifier) {
+func (as *AccountsStub) PruneTrie(rootHash []byte, identifier state.TriePruningIdentifier) {
 	as.PruneTrieCalled(rootHash, identifier)
 }
 
 // CancelPrune -
-func (as *AccountsStub) CancelPrune(rootHash []byte, identifier temporary.TriePruningIdentifier) {
+func (as *AccountsStub) CancelPrune(rootHash []byte, identifier state.TriePruningIdentifier) {
 	if as.CancelPruneCalled != nil {
 		as.CancelPruneCalled(rootHash, identifier)
 	}

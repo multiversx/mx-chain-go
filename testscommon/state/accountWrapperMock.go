@@ -1,11 +1,11 @@
 //go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. accountWrapperMock.proto
-package mock
+package state
 
 import (
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 )
 
 var _ state.UserAccountHandler = (*AccountWrapMock)(nil)
@@ -13,7 +13,7 @@ var _ state.UserAccountHandler = (*AccountWrapMock)(nil)
 // AccountWrapMock -
 type AccountWrapMock struct {
 	AccountWrapMockData
-	dataTrie          temporary.Trie
+	dataTrie          common.Trie
 	nonce             uint64
 	code              []byte
 	CodeHash          []byte
@@ -145,12 +145,12 @@ func (awm *AccountWrapMock) AddressBytes() []byte {
 }
 
 // DataTrie -
-func (awm *AccountWrapMock) DataTrie() temporary.Trie {
+func (awm *AccountWrapMock) DataTrie() common.Trie {
 	return awm.dataTrie
 }
 
 // SetDataTrie -
-func (awm *AccountWrapMock) SetDataTrie(trie temporary.Trie) {
+func (awm *AccountWrapMock) SetDataTrie(trie common.Trie) {
 	awm.dataTrie = trie
 	awm.trackableDataTrie.SetDataTrie(trie)
 }

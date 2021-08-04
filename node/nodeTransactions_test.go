@@ -23,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/dataretriever"
 	dblookupextMock "github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/stretchr/testify/assert"
@@ -254,7 +255,7 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 	coreComponents.IntMarsh = marshalizer
 	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterMock{}
 	dataComponents := getDefaultDataComponents()
-	dataComponents.DataPool = testscommon.NewPoolsHolderMock()
+	dataComponents.DataPool = dataretriever.NewPoolsHolderMock()
 	dataComponents.Store = chainStorer
 	processComponents := getDefaultProcessComponents()
 	processComponents.ShardCoord = &mock.ShardCoordinatorMock{}
@@ -463,9 +464,9 @@ func TestNode_PutHistoryFieldsInTransaction(t *testing.T) {
 	require.Equal(t, "0c", tx.NotarizedAtDestinationInMetaHash)
 }
 
-func createNode(t *testing.T, epoch uint32, withDbLookupExt bool) (*node.Node, *genericMocks.ChainStorerMock, *testscommon.PoolsHolderMock, *dblookupextMock.HistoryRepositoryStub) {
+func createNode(t *testing.T, epoch uint32, withDbLookupExt bool) (*node.Node, *genericMocks.ChainStorerMock, *dataretriever.PoolsHolderMock, *dblookupextMock.HistoryRepositoryStub) {
 	chainStorer := genericMocks.NewChainStorerMock(epoch)
-	dataPool := testscommon.NewPoolsHolderMock()
+	dataPool := dataretriever.NewPoolsHolderMock()
 	marshalizer := &mock.MarshalizerFake{}
 
 	historyRepo := &dblookupextMock.HistoryRepositoryStub{

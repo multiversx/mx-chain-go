@@ -1,4 +1,4 @@
-package mock
+package state
 
 import "github.com/ElrondNetwork/elrond-vm-common"
 

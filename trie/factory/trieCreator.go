@@ -8,14 +8,23 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
 )
+
+// TrieCreateArgs holds arguments for calling the Create method on the TrieFactory
+type TrieCreateArgs struct {
+	TrieStorageConfig  config.StorageConfig
+	ShardID            string
+	PruningEnabled     bool
+	CheckpointsEnabled bool
+	MaxTrieLevelInMem  uint
+}
 
 type trieCreator struct {
 	snapshotDbCfg            config.DBConfig
@@ -51,7 +60,7 @@ func NewTrieFactory(
 }
 
 // Create creates a new trie
-func (tc *trieCreator) Create(args temporary.TrieCreateArgs) (temporary.StorageManager, temporary.Trie, error) {
+func (tc *trieCreator) Create(args TrieCreateArgs) (common.StorageManager, common.Trie, error) {
 	trieStoragePath, mainDb := path.Split(tc.pathManager.PathForStatic(args.ShardID, args.TrieStorageConfig.DB.FilePath))
 
 	dbConfig := factory.GetDBFromConfig(args.TrieStorageConfig.DB)
@@ -102,7 +111,7 @@ func (tc *trieCreator) Create(args temporary.TrieCreateArgs) (temporary.StorageM
 func (tc *trieCreator) newTrieAndTrieStorage(
 	args trie.NewTrieStorageManagerArgs,
 	maxTrieLevelInMem uint,
-) (temporary.StorageManager, temporary.Trie, error) {
+) (common.StorageManager, common.Trie, error) {
 	trieStorage, err := trie.NewTrieStorageManager(args)
 	if err != nil {
 		return nil, nil, err
@@ -119,7 +128,7 @@ func (tc *trieCreator) newTrieAndTrieStorage(
 func (tc *trieCreator) newTrieAndTrieStorageWithoutCheckpoints(
 	args trie.NewTrieStorageManagerArgs,
 	maxTrieLevelInMem uint,
-) (temporary.StorageManager, temporary.Trie, error) {
+) (common.StorageManager, common.Trie, error) {
 	trieStorage, err := trie.NewTrieStorageManagerWithoutCheckpoints(args)
 	if err != nil {
 		return nil, nil, err
@@ -134,9 +143,9 @@ func (tc *trieCreator) newTrieAndTrieStorageWithoutCheckpoints(
 }
 
 func (tc *trieCreator) newTrieAndTrieStorageWithoutPruning(
-	accountsTrieStorage temporary.DBWriteCacher,
+	accountsTrieStorage common.DBWriteCacher,
 	maxTrieLevelInMem uint,
-) (temporary.StorageManager, temporary.Trie, error) {
+) (common.StorageManager, common.Trie, error) {
 	trieStorage, err := trie.NewTrieStorageManagerWithoutPruning(accountsTrieStorage)
 	if err != nil {
 		return nil, nil, err

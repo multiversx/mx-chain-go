@@ -9,12 +9,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/storageResolvers"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 )
@@ -190,7 +190,7 @@ func (brcf *baseResolversContainerFactory) createMiniBlocksResolver(responseTopi
 
 func (brcf *baseResolversContainerFactory) newImportDBTrieStorage(
 	trieStorageConfig config.StorageConfig,
-) (temporary.StorageManager, dataRetriever.TrieDataGetter, error) {
+) (common.StorageManager, dataRetriever.TrieDataGetter, error) {
 	pathManager, err := storageFactory.CreatePathManager(
 		storageFactory.ArgCreatePathManager{
 			WorkingDir: brcf.workingDir,
@@ -213,7 +213,7 @@ func (brcf *baseResolversContainerFactory) newImportDBTrieStorage(
 		return nil, nil, err
 	}
 
-	args := temporary.TrieCreateArgs{
+	args := trieFactory.TrieCreateArgs{
 		TrieStorageConfig:  trieStorageConfig,
 		ShardID:            core.GetShardIDString(brcf.shardIDForTries),
 		PruningEnabled:     brcf.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,

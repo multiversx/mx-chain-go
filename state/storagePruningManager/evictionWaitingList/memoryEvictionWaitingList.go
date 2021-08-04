@@ -6,8 +6,8 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 )
 
 type hashInfo struct {
@@ -24,7 +24,7 @@ type MemoryEvictionWaitingListArgs struct {
 // If the cache is full, the caches will be emptied automatically. Writing at the same key in
 // cacher and db will overwrite the previous values.
 type memoryEvictionWaitingList struct {
-	cache          map[string]temporary.ModifiedHashes
+	cache          map[string]common.ModifiedHashes
 	reversedCache  map[string]*hashInfo
 	rootHashesSize uint
 	hashesSize     uint
@@ -41,7 +41,7 @@ func NewMemoryEvictionWaitingList(args MemoryEvictionWaitingListArgs) (*memoryEv
 	}
 
 	return &memoryEvictionWaitingList{
-		cache:          make(map[string]temporary.ModifiedHashes),
+		cache:          make(map[string]common.ModifiedHashes),
 		reversedCache:  make(map[string]*hashInfo),
 		rootHashesSize: args.RootHashesSize,
 		hashesSize:     args.HashesSize,
@@ -49,7 +49,7 @@ func NewMemoryEvictionWaitingList(args MemoryEvictionWaitingListArgs) (*memoryEv
 }
 
 // Put stores the given hashes in the eviction waiting list, in the position given by the root hash
-func (mewl *memoryEvictionWaitingList) Put(rootHash []byte, hashes temporary.ModifiedHashes) error {
+func (mewl *memoryEvictionWaitingList) Put(rootHash []byte, hashes common.ModifiedHashes) error {
 	mewl.opMutex.Lock()
 	defer mewl.opMutex.Unlock()
 
@@ -63,7 +63,7 @@ func (mewl *memoryEvictionWaitingList) Put(rootHash []byte, hashes temporary.Mod
 	}
 
 	log.Warn("trie nodes eviction waiting list full, emptying...")
-	mewl.cache = make(map[string]temporary.ModifiedHashes)
+	mewl.cache = make(map[string]common.ModifiedHashes)
 	mewl.reversedCache = make(map[string]*hashInfo)
 
 	return nil
@@ -80,7 +80,7 @@ func (mewl *memoryEvictionWaitingList) cachesFull() bool {
 	return false
 }
 
-func (mewl *memoryEvictionWaitingList) putInReversedCache(rootHash []byte, hashes temporary.ModifiedHashes) {
+func (mewl *memoryEvictionWaitingList) putInReversedCache(rootHash []byte, hashes common.ModifiedHashes) {
 	for hash := range hashes {
 		info, existing := mewl.reversedCache[hash]
 		if !existing {
@@ -109,7 +109,7 @@ func (mewl *memoryEvictionWaitingList) index(info *hashInfo, roothash []byte) in
 	return -1
 }
 
-func (mewl *memoryEvictionWaitingList) removeFromReversedCache(rootHash []byte, hashes temporary.ModifiedHashes) {
+func (mewl *memoryEvictionWaitingList) removeFromReversedCache(rootHash []byte, hashes common.ModifiedHashes) {
 	for hash := range hashes {
 		info, ok := mewl.reversedCache[hash]
 		if !ok {
@@ -130,13 +130,13 @@ func (mewl *memoryEvictionWaitingList) removeFromReversedCache(rootHash []byte, 
 }
 
 // Evict returns and removes from the waiting list all the hashes from the position given by the root hash
-func (mewl *memoryEvictionWaitingList) Evict(rootHash []byte) (temporary.ModifiedHashes, error) {
+func (mewl *memoryEvictionWaitingList) Evict(rootHash []byte) (common.ModifiedHashes, error) {
 	mewl.opMutex.Lock()
 	defer mewl.opMutex.Unlock()
 
 	hashes, ok := mewl.cache[string(rootHash)]
 	if !ok {
-		return make(temporary.ModifiedHashes), nil
+		return make(common.ModifiedHashes), nil
 	}
 
 	delete(mewl.cache, string(rootHash))
@@ -152,7 +152,7 @@ func (mewl *memoryEvictionWaitingList) IsInterfaceNil() bool {
 
 // ShouldKeepHash searches for the given hash in all of the evictionWaitingList's newHashes.
 // If the identifier is equal to oldRoot, then we should also search in oldHashes.
-func (mewl *memoryEvictionWaitingList) ShouldKeepHash(hash string, identifier temporary.TriePruningIdentifier) (bool, error) {
+func (mewl *memoryEvictionWaitingList) ShouldKeepHash(hash string, identifier state.TriePruningIdentifier) (bool, error) {
 	mewl.opMutex.RLock()
 	defer mewl.opMutex.RUnlock()
 
@@ -167,7 +167,7 @@ func (mewl *memoryEvictionWaitingList) ShouldKeepHash(hash string, identifier te
 		}
 
 		lastByte := key[len(key)-1]
-		if temporary.TriePruningIdentifier(lastByte) == temporary.OldRoot && identifier == temporary.OldRoot {
+		if state.TriePruningIdentifier(lastByte) == state.OldRoot && identifier == state.OldRoot {
 			continue
 		}
 

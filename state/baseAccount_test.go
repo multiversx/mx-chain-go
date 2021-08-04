@@ -4,10 +4,9 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/mock"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,7 +22,7 @@ func TestBaseAccount_AddressContainer(t *testing.T) {
 func TestBaseAccount_DataTrieTracker(t *testing.T) {
 	t.Parallel()
 
-	tracker := &mock.DataTrieTrackerStub{}
+	tracker := &trie.DataTrieTrackerStub{}
 
 	ba := state.NewEmptyBaseAccount(nil, tracker)
 	assert.Equal(t, tracker, ba.DataTrieTracker())
@@ -32,15 +31,15 @@ func TestBaseAccount_DataTrieTracker(t *testing.T) {
 func TestBaseAccount_DataTrie(t *testing.T) {
 	t.Parallel()
 
-	tr := &testscommon.TrieStub{}
+	tr := &trie.TrieStub{}
 	setCalled := false
 	getCalled := false
 
-	tracker := &mock.DataTrieTrackerStub{
-		SetDataTrieCalled: func(tr temporary.Trie) {
+	tracker := &trie.DataTrieTrackerStub{
+		SetDataTrieCalled: func(tr common.Trie) {
 			setCalled = true
 		},
-		DataTrieCalled: func() temporary.Trie {
+		DataTrieCalled: func() common.Trie {
 			getCalled = true
 			return tr
 		},

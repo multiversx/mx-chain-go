@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	dataMock "github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
-	"github.com/ElrondNetwork/elrond-go/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -103,7 +103,7 @@ func TestNode_encodeNodeAndGetHashLeafNode(t *testing.T) {
 func TestNode_encodeNodeAndCommitToDBBranchNode(t *testing.T) {
 	t.Parallel()
 
-	db := mock.NewMemDbMock()
+	db := testscommon.NewMemDbMock()
 	_, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	encNode, _ := collapsedBn.marsh.Marshal(collapsedBn)
 	encNode = append(encNode, branch)
@@ -119,7 +119,7 @@ func TestNode_encodeNodeAndCommitToDBBranchNode(t *testing.T) {
 func TestNode_encodeNodeAndCommitToDBExtensionNode(t *testing.T) {
 	t.Parallel()
 
-	db := mock.NewMemDbMock()
+	db := testscommon.NewMemDbMock()
 	_, collapsedEn := getEnAndCollapsedEn()
 	encNode, _ := collapsedEn.marsh.Marshal(collapsedEn)
 	encNode = append(encNode, extension)
@@ -135,7 +135,7 @@ func TestNode_encodeNodeAndCommitToDBExtensionNode(t *testing.T) {
 func TestNode_encodeNodeAndCommitToDBLeafNode(t *testing.T) {
 	t.Parallel()
 
-	db := mock.NewMemDbMock()
+	db := testscommon.NewMemDbMock()
 	ln := getLn(getTestMarshalizerAndHasher())
 	encNode, _ := ln.marsh.Marshal(ln)
 	encNode = append(encNode, leaf)
@@ -151,7 +151,7 @@ func TestNode_encodeNodeAndCommitToDBLeafNode(t *testing.T) {
 func TestNode_getNodeFromDBAndDecodeBranchNode(t *testing.T) {
 	t.Parallel()
 
-	db := mock.NewMemDbMock()
+	db := testscommon.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	_ = bn.commitDirty(0, 5, db, db)
 
@@ -170,7 +170,7 @@ func TestNode_getNodeFromDBAndDecodeBranchNode(t *testing.T) {
 func TestNode_getNodeFromDBAndDecodeExtensionNode(t *testing.T) {
 	t.Parallel()
 
-	db := mock.NewMemDbMock()
+	db := testscommon.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
 	_ = en.commitDirty(0, 5, db, db)
 
@@ -189,7 +189,7 @@ func TestNode_getNodeFromDBAndDecodeExtensionNode(t *testing.T) {
 func TestNode_getNodeFromDBAndDecodeLeafNode(t *testing.T) {
 	t.Parallel()
 
-	db := mock.NewMemDbMock()
+	db := testscommon.NewMemDbMock()
 	ln := getLn(getTestMarshalizerAndHasher())
 	_ = ln.commitDirty(0, 5, db, db)
 
@@ -208,7 +208,7 @@ func TestNode_getNodeFromDBAndDecodeLeafNode(t *testing.T) {
 func TestNode_resolveIfCollapsedBranchNode(t *testing.T) {
 	t.Parallel()
 
-	db := mock.NewMemDbMock()
+	db := testscommon.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	childPos := byte(2)
 	_ = bn.commitDirty(0, 5, db, db)
@@ -221,7 +221,7 @@ func TestNode_resolveIfCollapsedBranchNode(t *testing.T) {
 func TestNode_resolveIfCollapsedExtensionNode(t *testing.T) {
 	t.Parallel()
 
-	db := mock.NewMemDbMock()
+	db := testscommon.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
 	_ = en.commitDirty(0, 5, db, db)
 
@@ -233,7 +233,7 @@ func TestNode_resolveIfCollapsedExtensionNode(t *testing.T) {
 func TestNode_resolveIfCollapsedLeafNode(t *testing.T) {
 	t.Parallel()
 
-	db := mock.NewMemDbMock()
+	db := testscommon.NewMemDbMock()
 	ln := getLn(getTestMarshalizerAndHasher())
 	_ = ln.commitDirty(0, 5, db, db)
 

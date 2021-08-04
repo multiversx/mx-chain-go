@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	errorsErd "github.com/ElrondNetwork/elrond-go/errors"
@@ -15,10 +16,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/dataretriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/state"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/stretchr/testify/require"
 )
@@ -409,10 +411,10 @@ func getDefaultNetworkComponents() *mock.NetworkComponentsMock {
 
 func getDefaultStateComponents() *testscommon.StateComponentsMock {
 	return &testscommon.StateComponentsMock{
-		PeersAcc: &testscommon.AccountsStub{},
-		Accounts: &testscommon.AccountsStub{},
+		PeersAcc: &state.AccountsStub{},
+		Accounts: &state.AccountsStub{},
 		Tries:    &mock.TriesHolderStub{},
-		StorageManagers: map[string]temporary.StorageManager{
+		StorageManagers: map[string]common.StorageManager{
 			"0":                         &testscommon.StorageManagerStub{},
 			trieFactory.UserAccountTrie: &testscommon.StorageManagerStub{},
 			trieFactory.PeerAccountTrie: &testscommon.StorageManagerStub{},
@@ -424,7 +426,7 @@ func getDefaultDataComponents() *mock.DataComponentsMock {
 	return &mock.DataComponentsMock{
 		Blkc:              &mock.ChainHandlerStub{},
 		Storage:           &mock.ChainStorerStub{},
-		DataPool:          &testscommon.PoolsHolderMock{},
+		DataPool:          &dataretriever.PoolsHolderMock{},
 		MiniBlockProvider: &mock.MiniBlocksProviderStub{},
 	}
 }

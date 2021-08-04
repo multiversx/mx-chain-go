@@ -1,19 +1,19 @@
-package testscommon
+package trie
 
 import (
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
+	"github.com/ElrondNetwork/elrond-go/common"
 )
 
 // CheckpointHashesHolderStub -
 type CheckpointHashesHolderStub struct {
-	PutCalled             func([]byte, temporary.ModifiedHashes) bool
+	PutCalled             func([]byte, common.ModifiedHashes) bool
 	RemoveCommittedCalled func([]byte)
 	RemoveCalled          func([]byte)
 	ShouldCommitCalled    func([]byte) bool
 }
 
 // Put -
-func (c *CheckpointHashesHolderStub) Put(rootHash []byte, hashes temporary.ModifiedHashes) bool {
+func (c *CheckpointHashesHolderStub) Put(rootHash []byte, hashes common.ModifiedHashes) bool {
 	if c.PutCalled != nil {
 		return c.PutCalled(rootHash, hashes)
 	}

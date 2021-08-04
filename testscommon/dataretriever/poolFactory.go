@@ -1,6 +1,7 @@
-package testscommon
+package dataretriever
 
 import (
+	"fmt"
 	"io/ioutil"
 
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
@@ -12,10 +13,16 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache/capacity"
 	"github.com/ElrondNetwork/elrond-go/storage/storageCacherAdapter"
-	trieNodeFactory "github.com/ElrondNetwork/elrond-go/storage/storageCacherAdapter/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txcachemocks"
+	"github.com/ElrondNetwork/elrond-go/trie/factory"
 )
+
+func panicIfError(message string, err error) {
+	if err != nil {
+		panic(fmt.Sprintf("%s: %s", message, err))
+	}
+}
 
 // CreateTxPool -
 func CreateTxPool(numShards uint32, selfShard uint32) (dataRetriever.ShardedDataCacherNotifier, error) {
@@ -88,7 +95,7 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 	}
 	persister, err := storageUnit.NewDB(cfg)
 	panicIfError("Create trieSync DB", err)
-	tnf := trieNodeFactory.NewTrieNodeFactory()
+	tnf := factory.NewTrieNodeFactory()
 
 	adaptedTrieNodesStorage, err := storageCacherAdapter.NewStorageCacherAdapter(
 		cacher,

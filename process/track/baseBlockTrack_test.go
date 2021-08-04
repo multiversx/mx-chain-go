@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/dataretriever"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -114,7 +115,7 @@ func CreateShardTrackerMockArguments() track.ArgShardTracker {
 			ShardCoordinator: shardCoordinatorMock,
 			Store:            initStore(),
 			StartHeaders:     genesisBlocks,
-			PoolsHolder:      testscommon.NewPoolsHolderMock(),
+			PoolsHolder:      dataretriever.NewPoolsHolderMock(),
 			WhitelistHandler: whitelistHandler,
 		},
 	}
@@ -143,7 +144,7 @@ func CreateMetaTrackerMockArguments() track.ArgMetaTracker {
 			ShardCoordinator: shardCoordinatorMock,
 			Store:            initStore(),
 			StartHeaders:     genesisBlocks,
-			PoolsHolder:      testscommon.NewPoolsHolderMock(),
+			PoolsHolder:      dataretriever.NewPoolsHolderMock(),
 			WhitelistHandler: whitelistHandler,
 		},
 	}
@@ -214,7 +215,7 @@ func TestNewBlockTrack_ShouldErrNilHeadersDataPool(t *testing.T) {
 	t.Parallel()
 
 	shardArguments := CreateShardTrackerMockArguments()
-	shardArguments.PoolsHolder = &testscommon.PoolsHolderStub{
+	shardArguments.PoolsHolder = &dataretriever.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return nil
 		},
@@ -225,7 +226,7 @@ func TestNewBlockTrack_ShouldErrNilHeadersDataPool(t *testing.T) {
 	assert.Nil(t, sbt)
 
 	metaArguments := CreateShardTrackerMockArguments()
-	metaArguments.PoolsHolder = &testscommon.PoolsHolderStub{
+	metaArguments.PoolsHolder = &dataretriever.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return nil
 		},
@@ -318,7 +319,7 @@ func TestShardGetSelfHeaders_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	shardArguments := CreateShardTrackerMockArguments()
-	shardArguments.PoolsHolder = &testscommon.PoolsHolderStub{
+	shardArguments.PoolsHolder = &dataretriever.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &mock.HeadersCacherStub{
 				GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
@@ -355,7 +356,7 @@ func TestMetaGetSelfHeaders_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	metaArguments := CreateMetaTrackerMockArguments()
-	metaArguments.PoolsHolder = &testscommon.PoolsHolderStub{
+	metaArguments.PoolsHolder = &dataretriever.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &mock.HeadersCacherStub{
 				GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
@@ -1594,7 +1595,7 @@ func TestAddHeaderFromPool_ShouldWork(t *testing.T) {
 	nonce := uint64(1)
 
 	shardArguments := CreateShardTrackerMockArguments()
-	shardArguments.PoolsHolder = &testscommon.PoolsHolderStub{
+	shardArguments.PoolsHolder = &dataretriever.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &mock.HeadersCacherStub{
 				GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {

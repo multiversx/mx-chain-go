@@ -17,7 +17,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	testscommonState "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -126,7 +127,7 @@ func TestDelegatedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 			return &block.MetaBlock{}
 		},
 	}
-	arg.Accounts.AccountsAdapter = &testscommon.AccountsStub{
+	arg.Accounts.AccountsAdapter = &testscommonState.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 			return createDelegationScAccount(addressContainer, delegators, addressContainer), nil
 		},
@@ -176,7 +177,7 @@ func TestDelegatedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 
 func createDelegationScAccount(address []byte, leaves [][]byte, rootHash []byte) state.UserAccountHandler {
 	acc, _ := state.NewUserAccount(address)
-	acc.SetDataTrie(&testscommon.TrieStub{
+	acc.SetDataTrie(&trie.TrieStub{
 		RootCalled: func() ([]byte, error) {
 			return rootHash, nil
 		},

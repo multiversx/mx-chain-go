@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/facade/mock"
@@ -24,8 +25,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	testscommonState "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -55,8 +56,8 @@ func createMockArguments() ArgNodeFacade {
 				},
 			},
 		}},
-		AccountsState: &testscommon.AccountsStub{},
-		PeerState:     &testscommon.AccountsStub{},
+		AccountsState: &testscommonState.AccountsStub{},
+		PeerState:     &testscommonState.AccountsStub{},
 		Blockchain:    &mock.ChainHandlerStub{},
 	}
 }
@@ -887,8 +888,8 @@ func TestNodeFacade_GetProofGetTrieErrShouldErr(t *testing.T) {
 
 	getTrieErr := fmt.Errorf("get trie err")
 	arg := createMockArguments()
-	arg.AccountsState = &testscommon.AccountsStub{
-		GetTrieCalled: func(bytes []byte) (temporary.Trie, error) {
+	arg.AccountsState = &testscommonState.AccountsStub{
+		GetTrieCalled: func(bytes []byte) (common.Trie, error) {
 			return nil, getTrieErr
 		},
 	}
@@ -914,9 +915,9 @@ func TestNodeFacade_GetProofShouldWork(t *testing.T) {
 
 	proof := [][]byte{[]byte("valid"), []byte("proof")}
 	arg := createMockArguments()
-	arg.AccountsState = &testscommon.AccountsStub{
-		GetTrieCalled: func(bytes []byte) (temporary.Trie, error) {
-			return &testscommon.TrieStub{
+	arg.AccountsState = &testscommonState.AccountsStub{
+		GetTrieCalled: func(bytes []byte) (common.Trie, error) {
+			return &trie.TrieStub{
 				GetProofCalled: func(key []byte) ([][]byte, error) {
 					return proof, nil
 				},
@@ -952,8 +953,8 @@ func TestNodeFacade_GetProofCurrentRootHashGetTrieErrShouldErr(t *testing.T) {
 
 	getTrieErr := fmt.Errorf("get trie err")
 	arg := createMockArguments()
-	arg.AccountsState = &testscommon.AccountsStub{
-		GetTrieCalled: func(bytes []byte) (temporary.Trie, error) {
+	arg.AccountsState = &testscommonState.AccountsStub{
+		GetTrieCalled: func(bytes []byte) (common.Trie, error) {
 			return nil, getTrieErr
 		},
 	}
@@ -982,9 +983,9 @@ func TestNodeFacade_GetProofCurrentRootHashShouldWork(t *testing.T) {
 	proof := [][]byte{[]byte("valid"), []byte("proof")}
 	rootHash := []byte("rootHash")
 	arg := createMockArguments()
-	arg.AccountsState = &testscommon.AccountsStub{
-		GetTrieCalled: func(bytes []byte) (temporary.Trie, error) {
-			return &testscommon.TrieStub{
+	arg.AccountsState = &testscommonState.AccountsStub{
+		GetTrieCalled: func(bytes []byte) (common.Trie, error) {
+			return &trie.TrieStub{
 				GetProofCalled: func(key []byte) ([][]byte, error) {
 					return proof, nil
 				},
@@ -1019,8 +1020,8 @@ func TestNodeFacade_VerifyProofGetTrieErrShouldErr(t *testing.T) {
 
 	getTrieErr := fmt.Errorf("get trie err")
 	arg := createMockArguments()
-	arg.AccountsState = &testscommon.AccountsStub{
-		GetTrieCalled: func(bytes []byte) (temporary.Trie, error) {
+	arg.AccountsState = &testscommonState.AccountsStub{
+		GetTrieCalled: func(bytes []byte) (common.Trie, error) {
 			return nil, getTrieErr
 		},
 	}
@@ -1045,9 +1046,9 @@ func TestNodeFacade_VerifyProofShouldWork(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArguments()
-	arg.AccountsState = &testscommon.AccountsStub{
-		GetTrieCalled: func(bytes []byte) (temporary.Trie, error) {
-			return &testscommon.TrieStub{
+	arg.AccountsState = &testscommonState.AccountsStub{
+		GetTrieCalled: func(bytes []byte) (common.Trie, error) {
+			return &trie.TrieStub{
 				VerifyProofCalled: func(_ []byte, _ [][]byte) (bool, error) {
 					return true, nil
 				},

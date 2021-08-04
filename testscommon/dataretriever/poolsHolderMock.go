@@ -1,4 +1,4 @@
-package testscommon
+package dataretriever
 
 import (
 	"github.com/ElrondNetwork/elrond-go/config"

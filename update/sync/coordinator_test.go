@@ -10,11 +10,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	dataTransaction "github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	testscommonState "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/require"
@@ -116,10 +118,10 @@ func createSyncTrieState(retErr bool) update.EpochStartTriesSyncHandler {
 		ActiveAccountsDBs: make(map[state.AccountsDbIdentifier]state.AccountsAdapter),
 	}
 
-	args.ActiveAccountsDBs[state.UserAccountsState] = &testscommon.AccountsStub{
-		RecreateAllTriesCalled: func(rootHash []byte) (map[string]temporary.Trie, error) {
-			tries := make(map[string]temporary.Trie)
-			tries[string(rootHash)] = &testscommon.TrieStub{
+	args.ActiveAccountsDBs[state.UserAccountsState] = &testscommonState.AccountsStub{
+		RecreateAllTriesCalled: func(rootHash []byte) (map[string]common.Trie, error) {
+			tries := make(map[string]common.Trie)
+			tries[string(rootHash)] = &trie.TrieStub{
 				CommitCalled: func() error {
 					if retErr {
 						return errors.New("err")
@@ -131,10 +133,10 @@ func createSyncTrieState(retErr bool) update.EpochStartTriesSyncHandler {
 		},
 	}
 
-	args.ActiveAccountsDBs[state.PeerAccountsState] = &testscommon.AccountsStub{
-		RecreateAllTriesCalled: func(rootHash []byte) (map[string]temporary.Trie, error) {
-			tries := make(map[string]temporary.Trie)
-			tries[string(rootHash)] = &testscommon.TrieStub{
+	args.ActiveAccountsDBs[state.PeerAccountsState] = &testscommonState.AccountsStub{
+		RecreateAllTriesCalled: func(rootHash []byte) (map[string]common.Trie, error) {
+			tries := make(map[string]common.Trie)
+			tries[string(rootHash)] = &trie.TrieStub{
 				CommitCalled: func() error {
 					if retErr {
 						return errors.New("err")
