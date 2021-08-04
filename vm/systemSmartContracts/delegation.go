@@ -640,7 +640,6 @@ func (d *delegation) deleteWhitelistForMerge(args *vmcommon.ContractCallInput) v
 	entry := &vmcommon.LogEntry{
 		Identifier: []byte(args.Function),
 		Address:    args.CallerAddr,
-		Topics:     [][]byte{args.Arguments[0]},
 	}
 	d.eei.AddLogEntry(entry)
 

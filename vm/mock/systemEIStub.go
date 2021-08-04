@@ -39,6 +39,9 @@ type SystemEIStub struct {
 	ReturnMessage                       string
 }
 
+func (s *SystemEIStub) AddLogEntry(_ *vmcommon.LogEntry) {
+}
+
 // GasLeft -
 func (s *SystemEIStub) GasLeft() uint64 {
 	if s.GasLeftCalled != nil {
