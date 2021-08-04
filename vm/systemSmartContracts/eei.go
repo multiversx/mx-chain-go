@@ -28,6 +28,8 @@ type vmContext struct {
 
 	returnMessage string
 	output        [][]byte
+
+	logs []*vmcommon.LogEntry
 }
 
 // NewVMContext creates a context where smart contracts can run and write
@@ -447,6 +449,11 @@ func (host *vmContext) AddReturnMessage(message string) {
 	host.returnMessage += "@" + message
 }
 
+// AddLogEntry will add a log entry
+func (host *vmContext) AddLogEntry(entry *vmcommon.LogEntry) {
+	host.logs = append(host.logs, entry)
+}
+
 // BlockChainHook returns the blockchain hook
 func (host *vmContext) BlockChainHook() vm.BlockchainHook {
 	return host.blockChainHook
@@ -464,6 +471,7 @@ func (host *vmContext) CleanCache() {
 	host.output = make([][]byte, 0)
 	host.returnMessage = ""
 	host.gasRemaining = 0
+	host.logs = make([]*vmcommon.LogEntry, 0)
 }
 
 // SetGasProvided sets the provided gas
@@ -552,6 +560,7 @@ func (host *vmContext) CreateVMOutput() *vmcommon.VMOutput {
 	vmOutput.GasRefund = big.NewInt(0)
 
 	vmOutput.ReturnMessage = host.returnMessage
+	vmOutput.Logs = host.logs
 
 	if len(host.output) > 0 {
 		vmOutput.ReturnData = append(vmOutput.ReturnData, host.output...)
