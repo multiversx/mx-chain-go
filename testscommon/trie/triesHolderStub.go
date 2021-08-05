@@ -1,8 +1,7 @@
-package mock
+package trie
 
 import (
 	"github.com/ElrondNetwork/elrond-go/common"
-	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 )
 
 // TriesHolderStub -
@@ -33,7 +32,7 @@ func (ths *TriesHolderStub) Get(key []byte) common.Trie {
 	if ths.GetCalled != nil {
 		return ths.GetCalled(key)
 	}
-	return &trieMock.TrieStub{}
+	return nil
 }
 
 // GetAll -

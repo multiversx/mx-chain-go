@@ -8,7 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
-	testscommonState "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
@@ -24,7 +24,7 @@ func TestNewReadOnlyAccountsDB_NilOriginalAccountsDBShouldErr(t *testing.T) {
 func TestNewReadOnlyAccountsDB(t *testing.T) {
 	t.Parallel()
 
-	roAccDb, err := NewReadOnlyAccountsDB(&testscommonState.AccountsStub{})
+	roAccDb, err := NewReadOnlyAccountsDB(&stateMock.AccountsStub{})
 	require.False(t, check.IfNil(roAccDb))
 	require.NoError(t, err)
 }
@@ -33,7 +33,7 @@ func TestReadOnlyAccountsDB_WriteOperationsShouldNotCalled(t *testing.T) {
 	t.Parallel()
 
 	failErrMsg := "this function should have not be called"
-	accDb := &testscommonState.AccountsStub{
+	accDb := &stateMock.AccountsStub{
 		SaveAccountCalled: func(account vmcommon.AccountHandler) error {
 			t.Errorf(failErrMsg)
 			return nil
@@ -111,7 +111,7 @@ func TestReadOnlyAccountsDB_ReadOperationsShouldWork(t *testing.T) {
 	expectedLeavesChannel := make(chan core.KeyValueHolder)
 	expectedNumCheckpoints := uint32(7)
 
-	accDb := &testscommonState.AccountsStub{
+	accDb := &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
 			return expectedAcc, nil
 		},

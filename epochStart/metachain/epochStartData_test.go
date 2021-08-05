@@ -17,7 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/dataretriever"
+	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -69,7 +69,7 @@ func createMockEpochStartCreatorArguments() ArgsNewEpochStartData {
 		Marshalizer:       &mock.MarshalizerMock{},
 		Hasher:            &mock.HasherStub{},
 		Store:             createMetaStore(),
-		DataPool:          dataretriever.NewPoolsHolderStub(),
+		DataPool:          dataRetrieverMock.NewPoolsHolderStub(),
 		BlockTracker:      mock.NewBlockTrackerMock(shardCoordinator, startHeaders),
 		ShardCoordinator:  shardCoordinator,
 		EpochStartTrigger: &mock.EpochStartTriggerStub{},
@@ -241,7 +241,7 @@ func TestEpochStartCreator_getLastFinalizedMetaHashForShardShouldWork(t *testing
 		},
 	}
 
-	dPool := dataretriever.NewPoolsHolderStub()
+	dPool := dataRetrieverMock.NewPoolsHolderStub()
 	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return testscommon.NewShardedDataStub()
 	}
@@ -321,7 +321,7 @@ func TestMetaProcessor_CreateEpochStartFromMetaBlockShouldWork(t *testing.T) {
 	hdr.Nonce = 1
 	startHeaders[0] = hdr
 
-	dPool := dataretriever.NewPoolsHolderStub()
+	dPool := dataRetrieverMock.NewPoolsHolderStub()
 	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return testscommon.NewShardedDataStub()
 	}
@@ -393,7 +393,7 @@ func TestMetaProcessor_CreateEpochStartFromMetaBlockEdgeCaseChecking(t *testing.
 	}
 	arguments.Hasher = &mock.HasherMock{}
 	arguments.ShardCoordinator, _ = sharding.NewMultiShardCoordinator(3, core.MetachainShardId)
-	arguments.DataPool = dataretriever.CreatePoolsHolder(1, core.MetachainShardId)
+	arguments.DataPool = dataRetrieverMock.CreatePoolsHolder(1, core.MetachainShardId)
 
 	startHeaders := createGenesisBlocks(arguments.ShardCoordinator)
 	blockTracker := mock.NewBlockTrackerMock(arguments.ShardCoordinator, startHeaders)

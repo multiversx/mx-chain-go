@@ -6,8 +6,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 )
 
-// SyncStateStub -
-type SyncStateStub struct {
+// StateSyncStub -
+type StateSyncStub struct {
 	GetEpochStartMetaBlockCalled  func() (*block.MetaBlock, error)
 	GetUnFinishedMetaBlocksCalled func() (map[string]*block.MetaBlock, error)
 	SyncAllStateCalled            func(epoch uint32) error
@@ -17,7 +17,7 @@ type SyncStateStub struct {
 }
 
 // GetEpochStartMetaBlock -
-func (sss *SyncStateStub) GetEpochStartMetaBlock() (*block.MetaBlock, error) {
+func (sss *StateSyncStub) GetEpochStartMetaBlock() (*block.MetaBlock, error) {
 	if sss.GetEpochStartMetaBlockCalled != nil {
 		return sss.GetEpochStartMetaBlockCalled()
 	}
@@ -25,7 +25,7 @@ func (sss *SyncStateStub) GetEpochStartMetaBlock() (*block.MetaBlock, error) {
 }
 
 // GetUnFinishedMetaBlocks -
-func (sss *SyncStateStub) GetUnFinishedMetaBlocks() (map[string]*block.MetaBlock, error) {
+func (sss *StateSyncStub) GetUnFinishedMetaBlocks() (map[string]*block.MetaBlock, error) {
 	if sss.GetUnFinishedMetaBlocksCalled != nil {
 		return sss.GetUnFinishedMetaBlocksCalled()
 	}
@@ -33,7 +33,7 @@ func (sss *SyncStateStub) GetUnFinishedMetaBlocks() (map[string]*block.MetaBlock
 }
 
 // SyncAllState -
-func (sss *SyncStateStub) SyncAllState(epoch uint32) error {
+func (sss *StateSyncStub) SyncAllState(epoch uint32) error {
 	if sss.SyncAllStateCalled != nil {
 		return sss.SyncAllStateCalled(epoch)
 	}
@@ -41,7 +41,7 @@ func (sss *SyncStateStub) SyncAllState(epoch uint32) error {
 }
 
 // GetAllTries -
-func (sss *SyncStateStub) GetAllTries() (map[string]common.Trie, error) {
+func (sss *StateSyncStub) GetAllTries() (map[string]common.Trie, error) {
 	if sss.GetAllTriesCalled != nil {
 		return sss.GetAllTriesCalled()
 	}
@@ -49,7 +49,7 @@ func (sss *SyncStateStub) GetAllTries() (map[string]common.Trie, error) {
 }
 
 // GetAllTransactions -
-func (sss *SyncStateStub) GetAllTransactions() (map[string]data.TransactionHandler, error) {
+func (sss *StateSyncStub) GetAllTransactions() (map[string]data.TransactionHandler, error) {
 	if sss.GetAllTransactionsCalled != nil {
 		return sss.GetAllTransactionsCalled()
 	}
@@ -57,7 +57,7 @@ func (sss *SyncStateStub) GetAllTransactions() (map[string]data.TransactionHandl
 }
 
 // GetAllMiniBlocks -
-func (sss *SyncStateStub) GetAllMiniBlocks() (map[string]*block.MiniBlock, error) {
+func (sss *StateSyncStub) GetAllMiniBlocks() (map[string]*block.MiniBlock, error) {
 	if sss.GetAllMiniBlocksCalled != nil {
 		return sss.GetAllMiniBlocksCalled()
 	}
@@ -65,6 +65,6 @@ func (sss *SyncStateStub) GetAllMiniBlocks() (map[string]*block.MiniBlock, error
 }
 
 // IsInterfaceNil -
-func (sss *SyncStateStub) IsInterfaceNil() bool {
+func (sss *StateSyncStub) IsInterfaceNil() bool {
 	return sss == nil
 }

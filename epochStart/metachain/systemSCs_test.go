@@ -44,7 +44,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/dataretriever"
+	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
@@ -886,7 +886,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 		Marshalizer:          marshalizer,
 		NodesCoordinator:     &mock.NodesCoordinatorStub{},
 		ShardCoordinator:     &mock.ShardCoordinatorStub{},
-		DataPool:             &dataretriever.PoolsHolderStub{},
+		DataPool:             &dataRetrieverMock.PoolsHolderStub{},
 		StorageService:       &mock.ChainStorerStub{},
 		PubkeyConv:           &mock.PubkeyConverterMock{},
 		PeerAdapter:          peerAccountsDB,
@@ -900,7 +900,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 	vCreator, _ := peer.NewValidatorStatisticsProcessor(argsValidatorsProcessor)
 
 	blockChain, _ := blockchain.NewMetaChain(&mock.AppStatusHandlerStub{})
-	testDataPool := dataretriever.NewPoolsHolderMock()
+	testDataPool := dataRetrieverMock.NewPoolsHolderMock()
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:           userAccountsDB,
 		PubkeyConv:         &mock.PubkeyConverterMock{},

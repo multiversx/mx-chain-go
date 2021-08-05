@@ -5,8 +5,10 @@ import (
 	"fmt"
 )
 
-const initialVersion = 1
-const secondVersion = 2
+const (
+	initialVersion = 1
+	secondVersion  = 2
+)
 
 // TrieSyncer synchronizes the trie, asking on the network for the missing nodes
 type TrieSyncer interface {

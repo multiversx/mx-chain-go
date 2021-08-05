@@ -9,8 +9,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/disabled"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	testscommonState "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon/trie"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,7 +21,7 @@ func TestNewPeerAccountsDB_WithNilTrieShouldErr(t *testing.T) {
 		nil,
 		&testscommon.HasherMock{},
 		&testscommon.MarshalizerMock{},
-		&testscommonState.AccountsFactoryStub{},
+		&stateMock.AccountsFactoryStub{},
 		disabled.NewDisabledStoragePruningManager(),
 	)
 
@@ -33,10 +33,10 @@ func TestNewPeerAccountsDB_WithNilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
 	adb, err := state.NewPeerAccountsDB(
-		&trie.TrieStub{},
+		&trieMock.TrieStub{},
 		nil,
 		&testscommon.MarshalizerMock{},
-		&testscommonState.AccountsFactoryStub{},
+		&stateMock.AccountsFactoryStub{},
 		disabled.NewDisabledStoragePruningManager(),
 	)
 
@@ -48,10 +48,10 @@ func TestNewPeerAccountsDB_WithNilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	adb, err := state.NewPeerAccountsDB(
-		&trie.TrieStub{},
+		&trieMock.TrieStub{},
 		&testscommon.HasherMock{},
 		nil,
-		&testscommonState.AccountsFactoryStub{},
+		&stateMock.AccountsFactoryStub{},
 		disabled.NewDisabledStoragePruningManager(),
 	)
 
@@ -63,7 +63,7 @@ func TestNewPeerAccountsDB_WithNilAddressFactoryShouldErr(t *testing.T) {
 	t.Parallel()
 
 	adb, err := state.NewPeerAccountsDB(
-		&trie.TrieStub{},
+		&trieMock.TrieStub{},
 		&testscommon.HasherMock{},
 		&testscommon.MarshalizerMock{},
 		nil,
@@ -78,10 +78,10 @@ func TestNewPeerAccountsDB_WithNilStoragePruningManagerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	adb, err := state.NewPeerAccountsDB(
-		&trie.TrieStub{},
+		&trieMock.TrieStub{},
 		&testscommon.HasherMock{},
 		&testscommon.MarshalizerMock{},
-		&testscommonState.AccountsFactoryStub{},
+		&stateMock.AccountsFactoryStub{},
 		nil,
 	)
 
@@ -93,7 +93,7 @@ func TestNewPeerAccountsDB_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	adb, err := state.NewPeerAccountsDB(
-		&trie.TrieStub{
+		&trieMock.TrieStub{
 			GetStorageManagerCalled: func() common.StorageManager {
 				return &testscommon.StorageManagerStub{
 					DatabaseCalled: func() common.DBWriteCacher {
@@ -104,7 +104,7 @@ func TestNewPeerAccountsDB_OkValsShouldWork(t *testing.T) {
 		},
 		&testscommon.HasherMock{},
 		&testscommon.MarshalizerMock{},
-		&testscommonState.AccountsFactoryStub{},
+		&stateMock.AccountsFactoryStub{},
 		disabled.NewDisabledStoragePruningManager(),
 	)
 
@@ -117,7 +117,7 @@ func TestNewPeerAccountsDB_SnapshotState(t *testing.T) {
 
 	snapshotCalled := false
 	adb, err := state.NewPeerAccountsDB(
-		&trie.TrieStub{
+		&trieMock.TrieStub{
 			GetStorageManagerCalled: func() common.StorageManager {
 				return &testscommon.StorageManagerStub{
 					TakeSnapshotCalled: func(_ []byte, _ bool, _ chan core.KeyValueHolder) {
@@ -131,7 +131,7 @@ func TestNewPeerAccountsDB_SnapshotState(t *testing.T) {
 		},
 		&testscommon.HasherMock{},
 		&testscommon.MarshalizerMock{},
-		&testscommonState.AccountsFactoryStub{},
+		&stateMock.AccountsFactoryStub{},
 		disabled.NewDisabledStoragePruningManager(),
 	)
 
@@ -147,7 +147,7 @@ func TestNewPeerAccountsDB_SetStateCheckpoint(t *testing.T) {
 
 	checkpointCalled := false
 	adb, err := state.NewPeerAccountsDB(
-		&trie.TrieStub{
+		&trieMock.TrieStub{
 			GetStorageManagerCalled: func() common.StorageManager {
 				return &testscommon.StorageManagerStub{
 					SetCheckpointCalled: func(_ []byte, _ chan core.KeyValueHolder) {
@@ -161,7 +161,7 @@ func TestNewPeerAccountsDB_SetStateCheckpoint(t *testing.T) {
 		},
 		&testscommon.HasherMock{},
 		&testscommon.MarshalizerMock{},
-		&testscommonState.AccountsFactoryStub{},
+		&stateMock.AccountsFactoryStub{},
 		disabled.NewDisabledStoragePruningManager(),
 	)
 
@@ -177,7 +177,7 @@ func TestNewPeerAccountsDB_RecreateAllTries(t *testing.T) {
 
 	recreateCalled := false
 	adb, err := state.NewPeerAccountsDB(
-		&trie.TrieStub{
+		&trieMock.TrieStub{
 			GetStorageManagerCalled: func() common.StorageManager {
 				return &testscommon.StorageManagerStub{
 					DatabaseCalled: func() common.DBWriteCacher {
@@ -192,7 +192,7 @@ func TestNewPeerAccountsDB_RecreateAllTries(t *testing.T) {
 		},
 		&testscommon.HasherMock{},
 		&testscommon.MarshalizerMock{},
-		&testscommonState.AccountsFactoryStub{},
+		&stateMock.AccountsFactoryStub{},
 		disabled.NewDisabledStoragePruningManager(),
 	)
 

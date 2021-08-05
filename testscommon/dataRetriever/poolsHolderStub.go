@@ -1,4 +1,4 @@
-package dataretriever
+package dataRetriever
 
 import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"

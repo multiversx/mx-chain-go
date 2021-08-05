@@ -20,9 +20,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/state/factory"
-	"github.com/ElrondNetwork/elrond-go/testscommon/dataretriever"
-	testscommonState "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	testscommonTrie "github.com/ElrondNetwork/elrond-go/testscommon/trie"
+	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
@@ -821,7 +821,7 @@ func TestBaseRewardsCreator_isSystemDelegationSC(t *testing.T) {
 	userAccount, err := state.NewUserAccount([]byte("userAddress"))
 	require.Nil(t, err)
 
-	userAccount.SetDataTrie(&testscommonTrie.TrieStub{
+	userAccount.SetDataTrie(&trieMock.TrieStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			if bytes.Equal(key, []byte(core.DelegationSystemSCKey)) {
 				return []byte("delegation"), nil
@@ -836,9 +836,9 @@ func TestBaseRewardsCreator_isSystemDelegationSCTrue(t *testing.T) {
 	t.Parallel()
 
 	args := getBaseRewardsArguments()
-	args.UserAccountsDB = &testscommonState.AccountsStub{
+	args.UserAccountsDB = &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-			return &mock.UserAccountStub{
+			return &stateMock.UserAccountStub{
 				DataTrieTrackerCalled: func() state.DataTrieTracker {
 					return &mock.DataTrieTrackerStub{
 						RetrieveValueCalled: func(key []byte) ([]byte, error) {
@@ -1137,7 +1137,7 @@ func getBaseRewardsArguments() BaseRewardsCreatorArgs {
 		MiniBlockStorage:              mock.NewStorerMock(),
 		Hasher:                        &mock.HasherMock{},
 		Marshalizer:                   &mock.MarshalizerMock{},
-		DataPool:                      dataretriever.NewPoolsHolderMock(),
+		DataPool:                      dataRetrieverMock.NewPoolsHolderMock(),
 		ProtocolSustainabilityAddress: "11", // string hex => 17 decimal
 		NodesConfigProvider: &mock.NodesCoordinatorStub{
 			ConsensusGroupSizeCalled: func(shardID uint32) int {

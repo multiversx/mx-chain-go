@@ -18,8 +18,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/dataretriever"
-	"github.com/ElrondNetwork/elrond-go/testscommon/state"
+	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
@@ -28,9 +28,9 @@ import (
 )
 
 func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
-	datapool := dataretriever.NewPoolsHolderMock()
+	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	arguments := hooks.ArgBlockChainHook{
-		Accounts: &state.AccountsStub{
+		Accounts: &stateMock.AccountsStub{
 			GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 				return &mock.AccountWrapMock{}, nil
 			},

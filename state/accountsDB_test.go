@@ -23,8 +23,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/disabled"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	testscommonState "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	testscommonTrie "github.com/ElrondNetwork/elrond-go/testscommon/trie"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -39,9 +39,9 @@ func generateAccountDBFromTrie(trie common.Trie) *state.AccountsDB {
 		trie,
 		&testscommon.HasherMock{},
 		&testscommon.MarshalizerMock{},
-		&testscommonState.AccountsFactoryStub{
+		&stateMock.AccountsFactoryStub{
 			CreateAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-				return testscommonState.NewAccountWrapMock(address), nil
+				return stateMock.NewAccountWrapMock(address), nil
 			},
 		},
 		disabled.NewDisabledStoragePruningManager(),
@@ -49,13 +49,13 @@ func generateAccountDBFromTrie(trie common.Trie) *state.AccountsDB {
 	return accnt
 }
 
-func generateAccount() *testscommonState.AccountWrapMock {
-	return testscommonState.NewAccountWrapMock(make([]byte, 32))
+func generateAccount() *stateMock.AccountWrapMock {
+	return stateMock.NewAccountWrapMock(make([]byte, 32))
 }
 
-func generateAddressAccountAccountsDB(trie common.Trie) ([]byte, *testscommonState.AccountWrapMock, *state.AccountsDB) {
+func generateAddressAccountAccountsDB(trie common.Trie) ([]byte, *stateMock.AccountWrapMock, *state.AccountsDB) {
 	adr := make([]byte, 32)
-	account := testscommonState.NewAccountWrapMock(adr)
+	account := stateMock.NewAccountWrapMock(adr)
 
 	adb := generateAccountDBFromTrie(trie)
 
@@ -106,7 +106,7 @@ func TestNewAccountsDB_WithNilTrieShouldErr(t *testing.T) {
 		nil,
 		&testscommon.HasherMock{},
 		&testscommon.MarshalizerMock{},
-		&testscommonState.AccountsFactoryStub{},
+		&stateMock.AccountsFactoryStub{},
 		disabled.NewDisabledStoragePruningManager(),
 	)
 
@@ -118,10 +118,10 @@ func TestNewAccountsDB_WithNilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
 	adb, err := state.NewAccountsDB(
-		&testscommonTrie.TrieStub{},
+		&trieMock.TrieStub{},
 		nil,
 		&testscommon.MarshalizerMock{},
-		&testscommonState.AccountsFactoryStub{},
+		&stateMock.AccountsFactoryStub{},
 		disabled.NewDisabledStoragePruningManager(),
 	)
 
@@ -133,10 +133,10 @@ func TestNewAccountsDB_WithNilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	adb, err := state.NewAccountsDB(
-		&testscommonTrie.TrieStub{},
+		&trieMock.TrieStub{},
 		&testscommon.HasherMock{},
 		nil,
-		&testscommonState.AccountsFactoryStub{},
+		&stateMock.AccountsFactoryStub{},
 		disabled.NewDisabledStoragePruningManager(),
 	)
 
@@ -148,7 +148,7 @@ func TestNewAccountsDB_WithNilAddressFactoryShouldErr(t *testing.T) {
 	t.Parallel()
 
 	adb, err := state.NewAccountsDB(
-		&testscommonTrie.TrieStub{},
+		&trieMock.TrieStub{},
 		&testscommon.HasherMock{},
 		&testscommon.MarshalizerMock{},
 		nil,
@@ -163,10 +163,10 @@ func TestNewAccountsDB_WithNilStoragePruningManagerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	adb, err := state.NewAccountsDB(
-		&testscommonTrie.TrieStub{},
+		&trieMock.TrieStub{},
 		&testscommon.HasherMock{},
 		&testscommon.MarshalizerMock{},
-		&testscommonState.AccountsFactoryStub{},
+		&stateMock.AccountsFactoryStub{},
 		nil,
 	)
 
@@ -178,7 +178,7 @@ func TestNewAccountsDB_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	adb, err := state.NewAccountsDB(
-		&testscommonTrie.TrieStub{
+		&trieMock.TrieStub{
 			GetStorageManagerCalled: func() common.StorageManager {
 				return &testscommon.StorageManagerStub{
 					DatabaseCalled: func() common.DBWriteCacher {
@@ -189,7 +189,7 @@ func TestNewAccountsDB_OkValsShouldWork(t *testing.T) {
 		},
 		&testscommon.HasherMock{},
 		&testscommon.MarshalizerMock{},
-		&testscommonState.AccountsFactoryStub{},
+		&stateMock.AccountsFactoryStub{},
 		disabled.NewDisabledStoragePruningManager(),
 	)
 
@@ -209,7 +209,7 @@ func TestNewAccountsDB_SetsNumCheckpoints(t *testing.T) {
 	_ = db.Put(numCheckpointsKey, numCheckpointsVal)
 
 	adb, _ := state.NewAccountsDB(
-		&testscommonTrie.TrieStub{
+		&trieMock.TrieStub{
 			GetStorageManagerCalled: func() common.StorageManager {
 				return &testscommon.StorageManagerStub{
 					DatabaseCalled: func() common.DBWriteCacher {
@@ -220,7 +220,7 @@ func TestNewAccountsDB_SetsNumCheckpoints(t *testing.T) {
 		},
 		&testscommon.HasherMock{},
 		&testscommon.MarshalizerMock{},
-		&testscommonState.AccountsFactoryStub{},
+		&stateMock.AccountsFactoryStub{},
 		disabled.NewDisabledStoragePruningManager(),
 	)
 
@@ -242,7 +242,7 @@ func TestAccountsDB_SetStateCheckpointSavesNumCheckpoints(t *testing.T) {
 		return nil
 	}
 	adb, _ := state.NewAccountsDB(
-		&testscommonTrie.TrieStub{
+		&trieMock.TrieStub{
 			GetStorageManagerCalled: func() common.StorageManager {
 				return &testscommon.StorageManagerStub{
 					DatabaseCalled: func() common.DBWriteCacher {
@@ -257,7 +257,7 @@ func TestAccountsDB_SetStateCheckpointSavesNumCheckpoints(t *testing.T) {
 				}
 			},
 			RecreateCalled: func(root []byte) (common.Trie, error) {
-				return &testscommonTrie.TrieStub{
+				return &trieMock.TrieStub{
 					GetAllLeavesOnChannelCalled: func(_ []byte) (chan core.KeyValueHolder, error) {
 						ch := make(chan core.KeyValueHolder)
 						close(ch)
@@ -269,7 +269,7 @@ func TestAccountsDB_SetStateCheckpointSavesNumCheckpoints(t *testing.T) {
 		},
 		&testscommon.HasherMock{},
 		&testscommon.MarshalizerMock{},
-		&testscommonState.AccountsFactoryStub{},
+		&stateMock.AccountsFactoryStub{},
 		disabled.NewDisabledStoragePruningManager(),
 	)
 
@@ -293,7 +293,7 @@ func TestAccountsDB_SetStateCheckpointSavesNumCheckpoints(t *testing.T) {
 func TestAccountsDB_SaveAccountNilAccountShouldErr(t *testing.T) {
 	t.Parallel()
 
-	adb := generateAccountDBFromTrie(&testscommonTrie.TrieStub{
+	adb := generateAccountDBFromTrie(&trieMock.TrieStub{
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &testscommon.StorageManagerStub{
 				DatabaseCalled: func() common.DBWriteCacher {
@@ -311,7 +311,7 @@ func TestAccountsDB_SaveAccountErrWhenGettingOldAccountShouldErr(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("trie get err")
-	adb := generateAccountDBFromTrie(&testscommonTrie.TrieStub{
+	adb := generateAccountDBFromTrie(&trieMock.TrieStub{
 		GetCalled: func(key []byte) (i []byte, err error) {
 			return nil, expectedErr
 		},
@@ -331,7 +331,7 @@ func TestAccountsDB_SaveAccountErrWhenGettingOldAccountShouldErr(t *testing.T) {
 func TestAccountsDB_SaveAccountNilOldAccount(t *testing.T) {
 	t.Parallel()
 
-	adb := generateAccountDBFromTrie(&testscommonTrie.TrieStub{
+	adb := generateAccountDBFromTrie(&trieMock.TrieStub{
 		GetCalled: func(key []byte) (i []byte, err error) {
 			return nil, nil
 		},
@@ -358,7 +358,7 @@ func TestAccountsDB_SaveAccountExistingOldAccount(t *testing.T) {
 
 	acc, _ := state.NewUserAccount([]byte("someAddress"))
 
-	adb := generateAccountDBFromTrie(&testscommonTrie.TrieStub{
+	adb := generateAccountDBFromTrie(&trieMock.TrieStub{
 		GetCalled: func(key []byte) (i []byte, err error) {
 			return (&testscommon.MarshalizerMock{}).Marshal(acc)
 		},
@@ -383,7 +383,7 @@ func TestAccountsDB_SaveAccountSavesCodeAndDataTrieForUserAccount(t *testing.T) 
 	t.Parallel()
 
 	updateCalled := 0
-	trieStub := &testscommonTrie.TrieStub{
+	trieStub := &trieMock.TrieStub{
 		GetCalled: func(key []byte) (i []byte, err error) {
 			return nil, nil
 		},
@@ -395,7 +395,7 @@ func TestAccountsDB_SaveAccountSavesCodeAndDataTrieForUserAccount(t *testing.T) 
 		},
 	}
 
-	adb := generateAccountDBFromTrie(&testscommonTrie.TrieStub{
+	adb := generateAccountDBFromTrie(&trieMock.TrieStub{
 		GetCalled: func(key []byte) (i []byte, err error) {
 			return nil, nil
 		},
@@ -431,7 +431,7 @@ func TestAccountsDB_SaveAccountMalfunctionMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	account := generateAccount()
-	mockTrie := &testscommonTrie.TrieStub{
+	mockTrie := &trieMock.TrieStub{
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &testscommon.StorageManagerStub{
 				DatabaseCalled: func() common.DBWriteCacher {
@@ -445,9 +445,9 @@ func TestAccountsDB_SaveAccountMalfunctionMarshalizerShouldErr(t *testing.T) {
 		mockTrie,
 		&testscommon.HasherMock{},
 		marshalizer,
-		&testscommonState.AccountsFactoryStub{
+		&stateMock.AccountsFactoryStub{
 			CreateAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-				return testscommonState.NewAccountWrapMock(address), nil
+				return stateMock.NewAccountWrapMock(address), nil
 			},
 		},
 		disabled.NewDisabledStoragePruningManager(),
@@ -464,7 +464,7 @@ func TestAccountsDB_SaveAccountMalfunctionMarshalizerShouldErr(t *testing.T) {
 func TestAccountsDB_SaveAccountWithSomeValuesShouldWork(t *testing.T) {
 	t.Parallel()
 
-	ts := &testscommonTrie.TrieStub{
+	ts := &trieMock.TrieStub{
 		GetCalled: func(key []byte) (i []byte, err error) {
 			return nil, nil
 		},
@@ -493,9 +493,9 @@ func TestAccountsDB_RemoveAccountShouldWork(t *testing.T) {
 
 	wasCalled := false
 	marshalizer := &testscommon.MarshalizerMock{}
-	trieStub := &testscommonTrie.TrieStub{
+	trieStub := &trieMock.TrieStub{
 		GetCalled: func(key []byte) (i []byte, err error) {
-			return marshalizer.Marshal(testscommonState.AccountWrapMock{})
+			return marshalizer.Marshal(stateMock.AccountWrapMock{})
 		},
 		UpdateCalled: func(key, value []byte) error {
 			wasCalled = true
@@ -524,7 +524,7 @@ func TestAccountsDB_RemoveAccountShouldWork(t *testing.T) {
 func TestAccountsDB_LoadAccountMalfunctionTrieShouldErr(t *testing.T) {
 	t.Parallel()
 
-	trieStub := &testscommonTrie.TrieStub{
+	trieStub := &trieMock.TrieStub{
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &testscommon.StorageManagerStub{
 				DatabaseCalled: func() common.DBWriteCacher {
@@ -543,7 +543,7 @@ func TestAccountsDB_LoadAccountMalfunctionTrieShouldErr(t *testing.T) {
 func TestAccountsDB_LoadAccountNotFoundShouldCreateEmpty(t *testing.T) {
 	t.Parallel()
 
-	trieStub := &testscommonTrie.TrieStub{
+	trieStub := &trieMock.TrieStub{
 		GetCalled: func(key []byte) (i []byte, e error) {
 			return nil, nil
 		},
@@ -562,7 +562,7 @@ func TestAccountsDB_LoadAccountNotFoundShouldCreateEmpty(t *testing.T) {
 	adr := make([]byte, 32)
 	adb := generateAccountDBFromTrie(trieStub)
 
-	accountExpected := testscommonState.NewAccountWrapMock(adr)
+	accountExpected := stateMock.NewAccountWrapMock(adr)
 	accountRecovered, err := adb.LoadAccount(adr)
 
 	assert.Equal(t, accountExpected, accountRecovered)
@@ -577,10 +577,10 @@ func TestAccountsDB_LoadAccountExistingShouldLoadDataTrie(t *testing.T) {
 	codeHash := []byte("code hash")
 	acc.SetCodeHash(codeHash)
 	code := []byte("code")
-	dataTrie := &testscommonTrie.TrieStub{}
+	dataTrie := &trieMock.TrieStub{}
 	marshalizer := &testscommon.MarshalizerMock{}
 
-	trieStub := &testscommonTrie.TrieStub{
+	trieStub := &trieMock.TrieStub{
 		GetCalled: func(key []byte) (i []byte, e error) {
 			if bytes.Equal(key, acc.AddressBytes()) {
 				return marshalizer.Marshal(acc)
@@ -615,7 +615,7 @@ func TestAccountsDB_LoadAccountExistingShouldLoadDataTrie(t *testing.T) {
 func TestAccountsDB_GetExistingAccountMalfunctionTrieShouldErr(t *testing.T) {
 	t.Parallel()
 
-	trieStub := &testscommonTrie.TrieStub{
+	trieStub := &trieMock.TrieStub{
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &testscommon.StorageManagerStub{
 				DatabaseCalled: func() common.DBWriteCacher {
@@ -634,7 +634,7 @@ func TestAccountsDB_GetExistingAccountMalfunctionTrieShouldErr(t *testing.T) {
 func TestAccountsDB_GetExistingAccountNotFoundShouldRetNil(t *testing.T) {
 	t.Parallel()
 
-	trieStub := &testscommonTrie.TrieStub{
+	trieStub := &trieMock.TrieStub{
 		GetCalled: func(key []byte) (i []byte, e error) {
 			return nil, nil
 		},
@@ -665,10 +665,10 @@ func TestAccountsDB_GetExistingAccountFoundShouldRetAccount(t *testing.T) {
 	codeHash := []byte("code hash")
 	acc.SetCodeHash(codeHash)
 	code := []byte("code")
-	dataTrie := &testscommonTrie.TrieStub{}
+	dataTrie := &trieMock.TrieStub{}
 	marshalizer := &testscommon.MarshalizerMock{}
 
-	trieStub := &testscommonTrie.TrieStub{
+	trieStub := &trieMock.TrieStub{
 		GetCalled: func(key []byte) (i []byte, e error) {
 			if bytes.Equal(key, acc.AddressBytes()) {
 				return marshalizer.Marshal(acc)
@@ -703,7 +703,7 @@ func TestAccountsDB_GetExistingAccountFoundShouldRetAccount(t *testing.T) {
 func TestAccountsDB_GetAccountAccountNotFound(t *testing.T) {
 	t.Parallel()
 
-	trieMock := &testscommonTrie.TrieStub{
+	tr := &trieMock.TrieStub{
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &testscommon.StorageManagerStub{
 				DatabaseCalled: func() common.DBWriteCacher {
@@ -712,10 +712,10 @@ func TestAccountsDB_GetAccountAccountNotFound(t *testing.T) {
 			}
 		},
 	}
-	adr, _, _ := generateAddressAccountAccountsDB(trieMock)
+	adr, _, _ := generateAddressAccountAccountsDB(tr)
 
 	//Step 1. Create an account + its DbAccount representation
-	testAccount := testscommonState.NewAccountWrapMock(adr)
+	testAccount := stateMock.NewAccountWrapMock(adr)
 	testAccount.MockValue = 45
 
 	//Step 2. marshalize the DbAccount
@@ -723,18 +723,18 @@ func TestAccountsDB_GetAccountAccountNotFound(t *testing.T) {
 	buff, err := marshalizer.Marshal(testAccount)
 	assert.Nil(t, err)
 
-	trieMock.GetCalled = func(key []byte) (bytes []byte, e error) {
+	tr.GetCalled = func(key []byte) (bytes []byte, e error) {
 		//whatever the key is, return the same marshalized DbAccount
 		return buff, nil
 	}
 
 	adb, _ := state.NewAccountsDB(
-		trieMock,
+		tr,
 		&testscommon.HasherMock{},
 		&marshalizer,
-		&testscommonState.AccountsFactoryStub{
+		&stateMock.AccountsFactoryStub{
 			CreateAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-				return testscommonState.NewAccountWrapMock(address), nil
+				return stateMock.NewAccountWrapMock(address), nil
 			},
 		},
 		disabled.NewDisabledStoragePruningManager(),
@@ -745,7 +745,7 @@ func TestAccountsDB_GetAccountAccountNotFound(t *testing.T) {
 	assert.Nil(t, err)
 
 	//Step 4. Let's test
-	assert.Equal(t, testAccount.MockValue, recoveredAccount.(*testscommonState.AccountWrapMock).MockValue)
+	assert.Equal(t, testAccount.MockValue, recoveredAccount.(*stateMock.AccountWrapMock).MockValue)
 }
 
 //------- loadCode
@@ -753,7 +753,7 @@ func TestAccountsDB_GetAccountAccountNotFound(t *testing.T) {
 func TestAccountsDB_LoadCodeWrongHashLengthShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tr := &testscommonTrie.TrieStub{
+	tr := &trieMock.TrieStub{
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &testscommon.StorageManagerStub{
 				DatabaseCalled: func() common.DBWriteCacher {
@@ -775,7 +775,7 @@ func TestAccountsDB_LoadCodeMalfunctionTrieShouldErr(t *testing.T) {
 
 	adr := make([]byte, 32)
 	account := generateAccount()
-	mockTrie := &testscommonTrie.TrieStub{
+	mockTrie := &trieMock.TrieStub{
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &testscommon.StorageManagerStub{
 				DatabaseCalled: func() common.DBWriteCacher {
@@ -796,7 +796,7 @@ func TestAccountsDB_LoadCodeMalfunctionTrieShouldErr(t *testing.T) {
 func TestAccountsDB_LoadCodeOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	tr := &testscommonTrie.TrieStub{
+	tr := &trieMock.TrieStub{
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &testscommon.StorageManagerStub{
 				DatabaseCalled: func() common.DBWriteCacher {
@@ -808,7 +808,7 @@ func TestAccountsDB_LoadCodeOkValsShouldWork(t *testing.T) {
 	adr, account, _ := generateAddressAccountAccountsDB(tr)
 	marshalizer := testscommon.MarshalizerMock{}
 
-	trieStub := testscommonTrie.TrieStub{
+	trieStub := trieMock.TrieStub{
 		GetCalled: func(key []byte) (bytes []byte, e error) {
 			//will return adr.Bytes() so its hash will correspond to adr.Hash()
 			return marshalizer.Marshal(&state.CodeEntry{Code: adr})
@@ -826,9 +826,9 @@ func TestAccountsDB_LoadCodeOkValsShouldWork(t *testing.T) {
 		&trieStub,
 		&testscommon.HasherMock{},
 		&marshalizer,
-		&testscommonState.AccountsFactoryStub{
+		&stateMock.AccountsFactoryStub{
 			CreateAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-				return testscommonState.NewAccountWrapMock(address), nil
+				return stateMock.NewAccountWrapMock(address), nil
 			},
 		},
 		disabled.NewDisabledStoragePruningManager(),
@@ -847,7 +847,7 @@ func TestAccountsDB_LoadCodeOkValsShouldWork(t *testing.T) {
 func TestAccountsDB_LoadDataNilRootShouldRetNil(t *testing.T) {
 	t.Parallel()
 
-	tr := &testscommonTrie.TrieStub{
+	tr := &trieMock.TrieStub{
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &testscommon.StorageManagerStub{
 				DatabaseCalled: func() common.DBWriteCacher {
@@ -867,7 +867,7 @@ func TestAccountsDB_LoadDataNilRootShouldRetNil(t *testing.T) {
 func TestAccountsDB_LoadDataBadLengthShouldErr(t *testing.T) {
 	t.Parallel()
 
-	_, account, adb := generateAddressAccountAccountsDB(&testscommonTrie.TrieStub{
+	_, account, adb := generateAddressAccountAccountsDB(&trieMock.TrieStub{
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &testscommon.StorageManagerStub{
 				DatabaseCalled: func() common.DBWriteCacher {
@@ -890,7 +890,7 @@ func TestAccountsDB_LoadDataMalfunctionTrieShouldErr(t *testing.T) {
 	account := generateAccount()
 	account.SetRootHash([]byte("12345"))
 
-	mockTrie := &testscommonTrie.TrieStub{
+	mockTrie := &trieMock.TrieStub{
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &testscommon.StorageManagerStub{
 				DatabaseCalled: func() common.DBWriteCacher {
@@ -909,7 +909,7 @@ func TestAccountsDB_LoadDataMalfunctionTrieShouldErr(t *testing.T) {
 func TestAccountsDB_LoadDataNotFoundRootShouldReturnErr(t *testing.T) {
 	t.Parallel()
 
-	_, account, adb := generateAddressAccountAccountsDB(&testscommonTrie.TrieStub{
+	_, account, adb := generateAddressAccountAccountsDB(&trieMock.TrieStub{
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &testscommon.StorageManagerStub{
 				DatabaseCalled: func() common.DBWriteCacher {
@@ -940,7 +940,7 @@ func TestAccountsDB_LoadDataWithSomeValuesShouldWork(t *testing.T) {
 	trieVal := append(val, keyRequired...)
 	trieVal = append(trieVal, []byte("identifier")...)
 
-	dataTrie := &testscommonTrie.TrieStub{
+	dataTrie := &trieMock.TrieStub{
 		GetCalled: func(key []byte) (i []byte, e error) {
 			if bytes.Equal(key, keyRequired) {
 				return trieVal, nil
@@ -951,7 +951,7 @@ func TestAccountsDB_LoadDataWithSomeValuesShouldWork(t *testing.T) {
 	}
 
 	account := generateAccount()
-	mockTrie := &testscommonTrie.TrieStub{
+	mockTrie := &trieMock.TrieStub{
 		RecreateCalled: func(root []byte) (trie common.Trie, e error) {
 			if !bytes.Equal(root, rootHash) {
 				return nil, errors.New("bad root hash")
@@ -988,8 +988,8 @@ func TestAccountsDB_CommitShouldCallCommitFromTrie(t *testing.T) {
 
 	commitCalled := 0
 	marshalizer := &testscommon.MarshalizerMock{}
-	serializedAccount, _ := marshalizer.Marshal(testscommonState.AccountWrapMock{})
-	trieStub := testscommonTrie.TrieStub{
+	serializedAccount, _ := marshalizer.Marshal(stateMock.AccountWrapMock{})
+	trieStub := trieMock.TrieStub{
 		CommitCalled: func() error {
 			commitCalled++
 
@@ -1002,7 +1002,7 @@ func TestAccountsDB_CommitShouldCallCommitFromTrie(t *testing.T) {
 			return serializedAccount, nil
 		},
 		RecreateCalled: func(root []byte) (trie common.Trie, err error) {
-			return &testscommonTrie.TrieStub{
+			return &trieMock.TrieStub{
 				GetCalled: func(key []byte) (i []byte, err error) {
 					return []byte("doge"), nil
 				},
@@ -1045,7 +1045,7 @@ func TestAccountsDB_RecreateTrieMalfunctionTrieShouldErr(t *testing.T) {
 	wasCalled := false
 
 	errExpected := errors.New("failure")
-	trieStub := &testscommonTrie.TrieStub{
+	trieStub := &trieMock.TrieStub{
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &testscommon.StorageManagerStub{
 				DatabaseCalled: func() common.DBWriteCacher {
@@ -1071,7 +1071,7 @@ func TestAccountsDB_RecreateTrieOutputsNilTrieShouldErr(t *testing.T) {
 
 	wasCalled := false
 
-	trieStub := testscommonTrie.TrieStub{
+	trieStub := trieMock.TrieStub{
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &testscommon.StorageManagerStub{
 				DatabaseCalled: func() common.DBWriteCacher {
@@ -1098,7 +1098,7 @@ func TestAccountsDB_RecreateTrieOkValsShouldWork(t *testing.T) {
 
 	wasCalled := false
 
-	trieStub := testscommonTrie.TrieStub{
+	trieStub := trieMock.TrieStub{
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &testscommon.StorageManagerStub{
 				DatabaseCalled: func() common.DBWriteCacher {
@@ -1108,7 +1108,7 @@ func TestAccountsDB_RecreateTrieOkValsShouldWork(t *testing.T) {
 		},
 		RecreateCalled: func(root []byte) (common.Trie, error) {
 			wasCalled = true
-			return &testscommonTrie.TrieStub{}, nil
+			return &trieMock.TrieStub{}, nil
 		},
 	}
 
@@ -1125,7 +1125,7 @@ func TestAccountsDB_SnapshotState(t *testing.T) {
 
 	takeSnapshotWasCalled := false
 	snapshotMut := sync.Mutex{}
-	trieStub := &testscommonTrie.TrieStub{
+	trieStub := &trieMock.TrieStub{
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &testscommon.StorageManagerStub{
 				TakeSnapshotCalled: func(rootHash []byte, _ bool, _ chan core.KeyValueHolder) {
@@ -1195,7 +1195,7 @@ func TestAccountsDB_SetStateCheckpoint(t *testing.T) {
 
 	setCheckPointWasCalled := false
 	snapshotMut := sync.Mutex{}
-	trieStub := &testscommonTrie.TrieStub{
+	trieStub := &trieMock.TrieStub{
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &testscommon.StorageManagerStub{
 				SetCheckpointCalled: func(rootHash []byte, _ chan core.KeyValueHolder) {
@@ -1263,7 +1263,7 @@ func TestAccountsDB_SetStateCheckpointWithDataTries(t *testing.T) {
 func TestAccountsDB_IsPruningEnabled(t *testing.T) {
 	t.Parallel()
 
-	trieStub := &testscommonTrie.TrieStub{
+	trieStub := &trieMock.TrieStub{
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &testscommon.StorageManagerStub{
 				IsPruningEnabledCalled: func() bool {
@@ -1284,7 +1284,7 @@ func TestAccountsDB_IsPruningEnabled(t *testing.T) {
 func TestAccountsDB_RevertToSnapshotOutOfBounds(t *testing.T) {
 	t.Parallel()
 
-	trieStub := &testscommonTrie.TrieStub{
+	trieStub := &trieMock.TrieStub{
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &testscommon.StorageManagerStub{
 				DatabaseCalled: func() common.DBWriteCacher {
@@ -1406,7 +1406,7 @@ func TestAccountsDB_RootHash(t *testing.T) {
 
 	rootHashCalled := false
 	rootHash := []byte("root hash")
-	trieStub := &testscommonTrie.TrieStub{
+	trieStub := &trieMock.TrieStub{
 		RootCalled: func() (i []byte, err error) {
 			rootHashCalled = true
 			return rootHash, nil
@@ -1430,7 +1430,7 @@ func TestAccountsDB_GetAllLeaves(t *testing.T) {
 	t.Parallel()
 
 	getAllLeavesCalled := false
-	trieStub := &testscommonTrie.TrieStub{
+	trieStub := &trieMock.TrieStub{
 		GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
 			getAllLeavesCalled = true
 
@@ -1736,14 +1736,14 @@ func TestAccountsDB_MainTrieAutomaticallyMarksCodeUpdatesForEviction(t *testing.
 
 	marshalizer := &testscommon.MarshalizerMock{}
 	hsh := testscommon.HasherMock{}
-	ewl := testscommonState.NewEvictionWaitingList(100, testscommon.NewMemDbMock(), marshalizer)
+	ewl := stateMock.NewEvictionWaitingList(100, testscommon.NewMemDbMock(), marshalizer)
 	args := trie.NewTrieStorageManagerArgs{
 		DB:                     testscommon.NewMemDbMock(),
 		Marshalizer:            marshalizer,
 		Hasher:                 hsh,
 		SnapshotDbConfig:       config.DBConfig{},
 		GeneralConfig:          config.TrieStorageManagerConfig{},
-		CheckpointHashesHolder: &testscommonTrie.CheckpointHashesHolderStub{},
+		CheckpointHashesHolder: &trieMock.CheckpointHashesHolderStub{},
 	}
 	storageManager, _ := trie.NewTrieStorageManager(args)
 	maxTrieLevelInMemory := uint(5)
@@ -1812,14 +1812,14 @@ func TestAccountsDB_RemoveAccountMarksObsoleteHashesForEviction(t *testing.T) {
 	marshalizer := &testscommon.MarshalizerMock{}
 	hsh := testscommon.HasherMock{}
 
-	ewl := testscommonState.NewEvictionWaitingList(100, testscommon.NewMemDbMock(), marshalizer)
+	ewl := stateMock.NewEvictionWaitingList(100, testscommon.NewMemDbMock(), marshalizer)
 	args := trie.NewTrieStorageManagerArgs{
 		DB:                     testscommon.NewMemDbMock(),
 		Marshalizer:            marshalizer,
 		Hasher:                 hsh,
 		SnapshotDbConfig:       config.DBConfig{},
 		GeneralConfig:          config.TrieStorageManagerConfig{},
-		CheckpointHashesHolder: &testscommonTrie.CheckpointHashesHolderStub{},
+		CheckpointHashesHolder: &trieMock.CheckpointHashesHolderStub{},
 	}
 	storageManager, _ := trie.NewTrieStorageManager(args)
 	tr, _ := trie.NewTrie(storageManager, marshalizer, hsh, maxTrieLevelInMemory)
@@ -1962,7 +1962,7 @@ func TestAccountsDB_CommitAddsDirtyHashesToCheckpointHashesHolder(t *testing.T) 
 
 	newHashes := make(common.ModifiedHashes)
 	var rootHash []byte
-	checkpointHashesHolder := &testscommonTrie.CheckpointHashesHolderStub{
+	checkpointHashesHolder := &trieMock.CheckpointHashesHolderStub{
 		PutCalled: func(rH []byte, hashes common.ModifiedHashes) bool {
 			assert.True(t, len(rH) != 0)
 			assert.True(t, len(hashes) != 0)
@@ -2007,7 +2007,7 @@ func TestAccountsDB_CommitSetsStateCheckpointIfCheckpointHashesHolderIsFull(t *t
 
 	newHashes := make(common.ModifiedHashes)
 	numRemoveCalls := 0
-	checkpointHashesHolder := &testscommonTrie.CheckpointHashesHolderStub{
+	checkpointHashesHolder := &trieMock.CheckpointHashesHolderStub{
 		PutCalled: func(_ []byte, _ common.ModifiedHashes) bool {
 			return true
 		},
@@ -2037,7 +2037,7 @@ func TestAccountsDB_SnapshotStateCommitsAllStateInOneDbAndCleansCheckpointHashes
 	t.Parallel()
 
 	removeCommitedCalled := false
-	checkpointHashesHolder := &testscommonTrie.CheckpointHashesHolderStub{
+	checkpointHashesHolder := &trieMock.CheckpointHashesHolderStub{
 		PutCalled: func(_ []byte, _ common.ModifiedHashes) bool {
 			return false
 		},
@@ -2137,7 +2137,7 @@ func TestAccountsDB_CheckpointHashesHolderReceivesOnly32BytesData(t *testing.T) 
 	t.Parallel()
 
 	putCalled := false
-	checkpointHashesHolder := &testscommonTrie.CheckpointHashesHolderStub{
+	checkpointHashesHolder := &trieMock.CheckpointHashesHolderStub{
 		PutCalled: func(rootHash []byte, hashes common.ModifiedHashes) bool {
 			putCalled = true
 			assert.Equal(t, 32, len(rootHash))
@@ -2161,7 +2161,7 @@ func TestAccountsDB_PruneRemovesDataFromCheckpointHashesHolder(t *testing.T) {
 
 	newHashes := make(common.ModifiedHashes)
 	removeCalled := 0
-	checkpointHashesHolder := &testscommonTrie.CheckpointHashesHolderStub{
+	checkpointHashesHolder := &trieMock.CheckpointHashesHolderStub{
 		RemoveCalled: func(hash []byte) {
 			_, ok := newHashes[string(hash)]
 			assert.True(t, ok)
@@ -2240,7 +2240,7 @@ func TestAccountsDB_GetCode(t *testing.T) {
 		Hasher:                 hasher,
 		SnapshotDbConfig:       config.DBConfig{},
 		GeneralConfig:          config.TrieStorageManagerConfig{},
-		CheckpointHashesHolder: &testscommonTrie.CheckpointHashesHolderStub{},
+		CheckpointHashesHolder: &trieMock.CheckpointHashesHolderStub{},
 	}
 	storageManager, _ := trie.NewTrieStorageManager(args)
 	tr, _ := trie.NewTrie(storageManager, marshalizer, hasher, maxTrieLevelInMemory)
@@ -2340,7 +2340,7 @@ func TestAccountsDB_Close(t *testing.T) {
 	t.Parallel()
 
 	closeCalled := false
-	tr := &testscommonTrie.TrieStub{
+	tr := &trieMock.TrieStub{
 		CloseCalled: func() error {
 			closeCalled = true
 			return nil
@@ -2375,7 +2375,7 @@ func BenchmarkAccountsDb_GetCodeEntry(b *testing.B) {
 		Hasher:                 hasher,
 		SnapshotDbConfig:       config.DBConfig{},
 		GeneralConfig:          config.TrieStorageManagerConfig{},
-		CheckpointHashesHolder: &testscommonTrie.CheckpointHashesHolderStub{},
+		CheckpointHashesHolder: &trieMock.CheckpointHashesHolderStub{},
 	}
 	storageManager, _ := trie.NewTrieStorageManager(args)
 	tr, _ := trie.NewTrie(storageManager, marshalizer, hasher, maxTrieLevelInMemory)

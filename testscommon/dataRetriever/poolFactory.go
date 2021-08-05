@@ -1,4 +1,4 @@
-package dataretriever
+package dataRetriever
 
 import (
 	"fmt"

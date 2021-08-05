@@ -21,7 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/dataretriever"
+	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/stretchr/testify/assert"
@@ -367,7 +367,7 @@ func TestCreateSyncers(t *testing.T) {
 
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
 	epochStartProvider.shardCoordinator = mock.NewMultipleShardsCoordinatorMock()
-	epochStartProvider.dataPool = &dataretriever.PoolsHolderStub{
+	epochStartProvider.dataPool = &dataRetrieverMock.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &mock.HeadersCacherStub{}
 		},
@@ -438,7 +438,7 @@ func TestSyncValidatorAccountsState_NilRequestHandlerErr(t *testing.T) {
 	coreComp, cryptoComp := createComponentsForEpochStart()
 	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
-	epochStartProvider.dataPool = &dataretriever.PoolsHolderStub{
+	epochStartProvider.dataPool = &dataRetrieverMock.PoolsHolderStub{
 		TrieNodesCalled: func() storage.Cacher {
 			return &testscommon.CacherStub{
 				GetCalled: func(key []byte) (value interface{}, ok bool) {
@@ -469,7 +469,7 @@ func TestSyncUserAccountsState(t *testing.T) {
 
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
 	epochStartProvider.shardCoordinator = mock.NewMultipleShardsCoordinatorMock()
-	epochStartProvider.dataPool = &dataretriever.PoolsHolderStub{
+	epochStartProvider.dataPool = &dataRetrieverMock.PoolsHolderStub{
 		TrieNodesCalled: func() storage.Cacher {
 			return &testscommon.CacherStub{
 				GetCalled: func(key []byte) (value interface{}, ok bool) {
@@ -512,7 +512,7 @@ func TestRequestAndProcessForShard(t *testing.T) {
 			}, nil
 		},
 	}
-	epochStartProvider.dataPool = &dataretriever.PoolsHolderStub{
+	epochStartProvider.dataPool = &dataRetrieverMock.PoolsHolderStub{
 		TrieNodesCalled: func() storage.Cacher {
 			return &testscommon.CacherStub{
 				GetCalled: func(key []byte) (value interface{}, ok bool) {
@@ -608,7 +608,7 @@ func TestRequestAndProcessing(t *testing.T) {
 			}, nil
 		},
 	}
-	epochStartProvider.dataPool = &dataretriever.PoolsHolderStub{
+	epochStartProvider.dataPool = &dataRetrieverMock.PoolsHolderStub{
 		MiniBlocksCalled: func() storage.Cacher {
 			return testscommon.NewCacherStub()
 		},
@@ -640,7 +640,7 @@ func TestEpochStartBootstrap_WithDisabledShardIDAsOBserver(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(epochStartProvider))
 
-	epochStartProvider.dataPool = &dataretriever.PoolsHolderStub{
+	epochStartProvider.dataPool = &dataRetrieverMock.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &mock.HeadersCacherStub{}
 		},

@@ -11,7 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/dataretriever"
+	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/stretchr/testify/require"
 )
@@ -96,7 +96,7 @@ func TestSyncValidatorStatus_NodesConfigFromMetaBlock(t *testing.T) {
 
 func getSyncValidatorStatusArgs() ArgsNewSyncValidatorStatus {
 	return ArgsNewSyncValidatorStatus{
-		DataPool: &dataretriever.PoolsHolderStub{
+		DataPool: &dataRetrieverMock.PoolsHolderStub{
 			MiniBlocksCalled: func() storage.Cacher {
 				return testscommon.NewCacherStub()
 			},

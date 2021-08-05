@@ -58,7 +58,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/dataretriever"
+	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
@@ -752,7 +752,7 @@ func CreateGenesisMetaBlock(
 			core.MetachainShardId,
 		)
 
-		newDataPool := dataretriever.CreatePoolsHolder(1, shardCoordinator.SelfId())
+		newDataPool := dataRetrieverMock.CreatePoolsHolder(1, shardCoordinator.SelfId())
 
 		newBlkc, _ := blockchain.NewMetaChain(&mock.AppStatusHandlerStub{})
 		trieStorage, _ := CreateTrieStorageManager(CreateMemUnit())
@@ -1901,7 +1901,7 @@ func requestMissingTransactions(n *TestProcessorNode, shardResolver uint32, need
 // CreateRequesterDataPool creates a datapool with a mock txPool
 func CreateRequesterDataPool(recvTxs map[int]map[string]struct{}, mutRecvTxs *sync.Mutex, nodeIndex int, _ uint32) dataRetriever.PoolsHolder {
 	//not allowed to request data from the same shard
-	return dataretriever.CreatePoolsHolderWithTxPool(&testscommon.ShardedDataStub{
+	return dataRetrieverMock.CreatePoolsHolderWithTxPool(&testscommon.ShardedDataStub{
 		SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
 			return nil, false
 		},
@@ -1934,7 +1934,7 @@ func CreateResolversDataPool(
 
 	txHashes := make([][]byte, maxTxs)
 	txsSndAddr := make([][]byte, 0)
-	poolsHolder := dataretriever.CreatePoolsHolder(1, shardCoordinator.SelfId())
+	poolsHolder := dataRetrieverMock.CreatePoolsHolder(1, shardCoordinator.SelfId())
 	txPool := poolsHolder.Transactions()
 
 	for i := 0; i < maxTxs; i++ {

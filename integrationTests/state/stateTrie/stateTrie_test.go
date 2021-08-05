@@ -33,7 +33,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	testscommonTrie "github.com/ElrondNetwork/elrond-go/testscommon/trie"
+	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -47,7 +47,7 @@ func getNewTrieStorageManagerArgs() trie.NewTrieStorageManagerArgs {
 		Hasher:                 integrationTests.TestHasher,
 		SnapshotDbConfig:       config.DBConfig{},
 		GeneralConfig:          config.TrieStorageManagerConfig{},
-		CheckpointHashesHolder: &testscommonTrie.CheckpointHashesHolderStub{},
+		CheckpointHashesHolder: &trieMock.CheckpointHashesHolderStub{},
 	}
 }
 
@@ -218,15 +218,15 @@ func TestAccountsDB_CommitTwoOkAccountsShouldWork(t *testing.T) {
 	acc, err := adb.LoadAccount(adr2)
 	require.Nil(t, err)
 
-	testscommonState := acc.(state.UserAccountHandler)
-	_ = testscommonState.AddToBalance(balance2)
+	stateMock := acc.(state.UserAccountHandler)
+	_ = stateMock.AddToBalance(balance2)
 
 	key := []byte("ABC")
 	val := []byte("123")
-	_ = testscommonState.DataTrieTracker().SaveKeyValue(key, val)
+	_ = stateMock.DataTrieTracker().SaveKeyValue(key, val)
 
 	_ = adb.SaveAccount(state1)
-	_ = adb.SaveAccount(testscommonState)
+	_ = adb.SaveAccount(stateMock)
 
 	//states are now prepared, committing
 
@@ -249,7 +249,7 @@ func TestAccountsDB_CommitTwoOkAccountsShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, balance1, newState1.(state.UserAccountHandler).GetBalance())
 
-	//checking testscommonState
+	//checking stateMock
 	newState2, err := adb.LoadAccount(adr2)
 	require.Nil(t, err)
 	require.Equal(t, balance2, newState2.(state.UserAccountHandler).GetBalance())
@@ -307,15 +307,15 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 	acc, err := adb.LoadAccount(adr2)
 	require.Nil(t, err)
 
-	testscommonState := acc.(state.UserAccountHandler)
-	_ = testscommonState.AddToBalance(balance2)
+	stateMock := acc.(state.UserAccountHandler)
+	_ = stateMock.AddToBalance(balance2)
 
 	key := []byte("ABC")
 	val := []byte("123")
-	_ = testscommonState.DataTrieTracker().SaveKeyValue(key, val)
+	_ = stateMock.DataTrieTracker().SaveKeyValue(key, val)
 
 	_ = adb.SaveAccount(state1)
-	_ = adb.SaveAccount(testscommonState)
+	_ = adb.SaveAccount(stateMock)
 
 	//states are now prepared, committing
 
@@ -345,7 +345,7 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 	require.Nil(t, err)
 	require.Equal(t, balance1, newState1.(state.UserAccountHandler).GetBalance())
 
-	//checking testscommonState
+	//checking stateMock
 	acc2, err := adb.LoadAccount(adr2)
 	require.Nil(t, err)
 	newState2 := acc2.(state.UserAccountHandler)
@@ -457,9 +457,9 @@ func TestAccountsDB_RevertNonceStepByStepAccountDataShouldWork(t *testing.T) {
 
 	fmt.Printf("State root - created 1-st account: %v\n", hrCreated1)
 
-	testscommonState, err := adb.LoadAccount(adr2)
+	stateMock, err := adb.LoadAccount(adr2)
 	require.Nil(t, err)
-	_ = adb.SaveAccount(testscommonState)
+	_ = adb.SaveAccount(stateMock)
 	snapshotCreated2 := adb.JournalLen()
 	rootHash, err = adb.RootHash()
 	require.Nil(t, err)
@@ -483,8 +483,8 @@ func TestAccountsDB_RevertNonceStepByStepAccountDataShouldWork(t *testing.T) {
 	hrWithNonce1 := base64.StdEncoding.EncodeToString(rootHash)
 	fmt.Printf("State root - account with nonce 40: %v\n", hrWithNonce1)
 
-	testscommonState.(state.UserAccountHandler).IncreaseNonce(50)
-	_ = adb.SaveAccount(testscommonState)
+	stateMock.(state.UserAccountHandler).IncreaseNonce(50)
+	_ = adb.SaveAccount(stateMock)
 
 	rootHash, err = adb.RootHash()
 	require.Nil(t, err)
@@ -534,9 +534,9 @@ func TestAccountsDB_RevertBalanceStepByStepAccountDataShouldWork(t *testing.T) {
 
 	fmt.Printf("State root - created 1-st account: %v\n", hrCreated1)
 
-	testscommonState, err := adb.LoadAccount(adr2)
+	stateMock, err := adb.LoadAccount(adr2)
 	require.Nil(t, err)
-	_ = adb.SaveAccount(testscommonState)
+	_ = adb.SaveAccount(stateMock)
 
 	snapshotCreated2 := adb.JournalLen()
 	rootHash, err = adb.RootHash()
@@ -561,8 +561,8 @@ func TestAccountsDB_RevertBalanceStepByStepAccountDataShouldWork(t *testing.T) {
 	hrWithBalance1 := base64.StdEncoding.EncodeToString(rootHash)
 	fmt.Printf("State root - account with balance 40: %v\n", hrWithBalance1)
 
-	_ = testscommonState.(state.UserAccountHandler).AddToBalance(big.NewInt(50))
-	_ = adb.SaveAccount(testscommonState)
+	_ = stateMock.(state.UserAccountHandler).AddToBalance(big.NewInt(50))
+	_ = adb.SaveAccount(stateMock)
 
 	rootHash, err = adb.RootHash()
 	require.Nil(t, err)
@@ -615,10 +615,10 @@ func TestAccountsDB_RevertCodeStepByStepAccountDataShouldWork(t *testing.T) {
 
 	fmt.Printf("State root - created 1-st account: %v\n", hrCreated1)
 
-	testscommonState, err := adb.LoadAccount(adr2)
+	stateMock, err := adb.LoadAccount(adr2)
 	require.Nil(t, err)
-	testscommonState.(state.UserAccountHandler).SetCode(code)
-	_ = adb.SaveAccount(testscommonState)
+	stateMock.(state.UserAccountHandler).SetCode(code)
+	_ = adb.SaveAccount(stateMock)
 
 	snapshotCreated2 := adb.JournalLen()
 	rootHash, err = adb.RootHash()
@@ -690,10 +690,10 @@ func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 	fmt.Printf("State root - created 1-st account: %v\n", hrCreated1)
 	fmt.Printf("data root - 1-st account: %v\n", hrRoot1)
 
-	testscommonState, err := adb.LoadAccount(adr2)
+	stateMock, err := adb.LoadAccount(adr2)
 	require.Nil(t, err)
-	_ = testscommonState.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(key, val)
-	err = adb.SaveAccount(testscommonState)
+	_ = stateMock.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(key, val)
+	err = adb.SaveAccount(stateMock)
 	require.Nil(t, err)
 	snapshotCreated2 := adb.JournalLen()
 	rootHash, err = adb.RootHash()
@@ -769,16 +769,16 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	fmt.Printf("State root - created 1-st account: %v\n", hrCreated1)
 	fmt.Printf("data root - 1-st account: %v\n", hrRoot1)
 
-	testscommonState, err := adb.LoadAccount(adr2)
+	stateMock, err := adb.LoadAccount(adr2)
 	require.Nil(t, err)
-	_ = testscommonState.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(key, val)
-	err = adb.SaveAccount(testscommonState)
+	_ = stateMock.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(key, val)
+	err = adb.SaveAccount(stateMock)
 	require.Nil(t, err)
 	snapshotCreated2 := adb.JournalLen()
 	rootHash, err = adb.RootHash()
 	require.Nil(t, err)
 	hrCreated2 := base64.StdEncoding.EncodeToString(rootHash)
-	rootHash, err = testscommonState.(state.UserAccountHandler).DataTrie().RootHash()
+	rootHash, err = stateMock.(state.UserAccountHandler).DataTrie().RootHash()
 	require.Nil(t, err)
 	hrRoot2 := base64.StdEncoding.EncodeToString(rootHash)
 
@@ -800,15 +800,15 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	//Step 4. 2-nd account changes its data
 	snapshotMod := adb.JournalLen()
 
-	testscommonState, err = adb.LoadAccount(adr2)
+	stateMock, err = adb.LoadAccount(adr2)
 	require.Nil(t, err)
-	_ = testscommonState.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(key, newVal)
-	err = adb.SaveAccount(testscommonState)
+	_ = stateMock.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(key, newVal)
+	err = adb.SaveAccount(stateMock)
 	require.Nil(t, err)
 	rootHash, err = adb.RootHash()
 	require.Nil(t, err)
 	hrCreated2p1 := base64.StdEncoding.EncodeToString(rootHash)
-	rootHash, err = testscommonState.(state.UserAccountHandler).DataTrie().RootHash()
+	rootHash, err = stateMock.(state.UserAccountHandler).DataTrie().RootHash()
 	require.Nil(t, err)
 	hrRoot2p1 := base64.StdEncoding.EncodeToString(rootHash)
 
@@ -828,9 +828,9 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	require.Nil(t, err)
 	hrCreated2Rev := base64.StdEncoding.EncodeToString(rootHash)
 
-	testscommonState, err = adb.LoadAccount(adr2)
+	stateMock, err = adb.LoadAccount(adr2)
 	require.Nil(t, err)
-	rootHash, err = testscommonState.(state.UserAccountHandler).DataTrie().RootHash()
+	rootHash, err = stateMock.(state.UserAccountHandler).DataTrie().RootHash()
 	require.Nil(t, err)
 	hrRoot2Rev := base64.StdEncoding.EncodeToString(rootHash)
 	fmt.Printf("State root - reverted 2-nd account: %v\n", hrCreated2Rev)
@@ -1262,17 +1262,17 @@ func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 	_ = adb.SaveAccount(state1)
 
 	acc2, _ := adb.LoadAccount(address2)
-	testscommonState := acc2.(state.UserAccountHandler)
-	_ = testscommonState.DataTrieTracker().SaveKeyValue(key1, value1)
-	_ = testscommonState.DataTrieTracker().SaveKeyValue(key2, value1)
-	_ = adb.SaveAccount(testscommonState)
+	stateMock := acc2.(state.UserAccountHandler)
+	_ = stateMock.DataTrieTracker().SaveKeyValue(key1, value1)
+	_ = stateMock.DataTrieTracker().SaveKeyValue(key2, value1)
+	_ = adb.SaveAccount(stateMock)
 
 	oldRootHash, _ := adb.Commit()
 
 	acc2, _ = adb.LoadAccount(address2)
-	testscommonState = acc2.(state.UserAccountHandler)
-	_ = testscommonState.DataTrieTracker().SaveKeyValue(key1, value2)
-	_ = adb.SaveAccount(testscommonState)
+	stateMock = acc2.(state.UserAccountHandler)
+	_ = stateMock.DataTrieTracker().SaveKeyValue(key1, value2)
+	_ = adb.SaveAccount(stateMock)
 
 	newRootHash, _ := adb.Commit()
 	adb.PruneTrie(oldRootHash, state.OldRoot)
@@ -1284,13 +1284,13 @@ func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 	require.Nil(t, err)
 
 	collapseTrie(state1, t)
-	collapseTrie(testscommonState, t)
+	collapseTrie(stateMock, t)
 
 	val, err := state1.DataTrieTracker().RetrieveValue(key1)
 	require.Nil(t, err)
 	require.Equal(t, value1, val)
 
-	val, err = testscommonState.DataTrieTracker().RetrieveValue(key2)
+	val, err = stateMock.DataTrieTracker().RetrieveValue(key2)
 	require.Nil(t, err)
 	require.Equal(t, value1, val)
 }

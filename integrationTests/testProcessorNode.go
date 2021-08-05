@@ -85,12 +85,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/bootstrapMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/dataretriever"
+	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	dblookupextMock "github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
-	testscommonState "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
@@ -947,7 +947,7 @@ func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]
 }
 
 func (tpn *TestProcessorNode) initDataPools() {
-	tpn.DataPool = dataretriever.CreatePoolsHolder(1, tpn.ShardCoordinator.SelfId())
+	tpn.DataPool = dataRetrieverMock.CreatePoolsHolder(1, tpn.ShardCoordinator.SelfId())
 	cacherCfg := storageUnit.CacheConfig{Capacity: 10000, Type: storageUnit.LRUCache, Shards: 1}
 	cache, _ := storageUnit.NewCache(cacherCfg)
 	tpn.WhiteListHandler, _ = interceptors.NewWhiteListDataVerifier(cache)
@@ -2827,7 +2827,7 @@ func GetDefaultDataComponents() *mock.DataComponentsStub {
 	return &mock.DataComponentsStub{
 		BlockChain: &mock.BlockChainMock{},
 		Store:      &mock.ChainStorerMock{},
-		DataPool:   &dataretriever.PoolsHolderMock{},
+		DataPool:   &dataRetrieverMock.PoolsHolderMock{},
 		MbProvider: &mock.MiniBlocksProviderStub{},
 	}
 }
@@ -2853,8 +2853,8 @@ func GetDefaultCryptoComponents() *mock.CryptoComponentsStub {
 // GetDefaultStateComponents -
 func GetDefaultStateComponents() *testscommon.StateComponentsMock {
 	return &testscommon.StateComponentsMock{
-		PeersAcc: &testscommonState.AccountsStub{},
-		Accounts: &testscommonState.AccountsStub{},
+		PeersAcc: &stateMock.AccountsStub{},
+		Accounts: &stateMock.AccountsStub{},
 		Tries:    &mock.TriesHolderStub{},
 		StorageManagers: map[string]common.StorageManager{
 			"0":                         &testscommon.StorageManagerStub{},

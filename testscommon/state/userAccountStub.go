@@ -1,4 +1,5 @@
-package mock
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. proto/accountWrapperMock.proto
+package state
 
 import (
 	"math/big"
@@ -83,7 +84,7 @@ func (u *UserAccountStub) AddressBytes() []byte {
 	return nil
 }
 
-// IncreaseNonce -
+//IncreaseNonce -
 func (u *UserAccountStub) IncreaseNonce(_ uint64) {
 }
 
@@ -136,6 +137,11 @@ func (u *UserAccountStub) DataTrie() common.Trie {
 	return nil
 }
 
+// RetrieveValueFromDataTrieTracker -
+func (u *UserAccountStub) RetrieveValueFromDataTrieTracker(_ []byte) ([]byte, error) {
+	return nil, nil
+}
+
 // DataTrieTracker -
 func (u *UserAccountStub) DataTrieTracker() state.DataTrieTracker {
 	if u.DataTrieTrackerCalled != nil {
@@ -144,12 +150,7 @@ func (u *UserAccountStub) DataTrieTracker() state.DataTrieTracker {
 	return nil
 }
 
-// RetrieveValueFromDataTrieTracker -
-func (u *UserAccountStub) RetrieveValueFromDataTrieTracker(_ []byte) ([]byte, error) {
-	return nil, nil
-}
-
 // IsInterfaceNil -
 func (u *UserAccountStub) IsInterfaceNil() bool {
-	return u == nil
+	return false
 }

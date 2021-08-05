@@ -8,7 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/state"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -17,7 +17,7 @@ import (
 
 func createMockArgsPendingTransactionProcessor() ArgsPendingTransactionProcessor {
 	return ArgsPendingTransactionProcessor{
-		Accounts:         &state.AccountsStub{},
+		Accounts:         &stateMock.AccountsStub{},
 		TxProcessor:      &testscommon.TxProcessorMock{},
 		RwdTxProcessor:   &testscommon.RewardTxProcessorMock{},
 		ScrTxProcessor:   &testscommon.SCProcessorMock{},
@@ -67,7 +67,7 @@ func TestPendingTransactionProcessor_ProcessTransactionsDstMe(t *testing.T) {
 	}
 
 	called := false
-	args.Accounts = &state.AccountsStub{
+	args.Accounts = &stateMock.AccountsStub{
 		CommitCalled: func() ([]byte, error) {
 			called = true
 			return nil, nil
@@ -110,7 +110,7 @@ func TestRootHash(t *testing.T) {
 
 	rootHash := []byte("rootHash")
 	args := createMockArgsPendingTransactionProcessor()
-	args.Accounts = &state.AccountsStub{
+	args.Accounts = &stateMock.AccountsStub{
 		RootHashCalled: func() ([]byte, error) {
 			return rootHash, nil
 		},

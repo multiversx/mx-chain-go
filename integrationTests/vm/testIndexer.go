@@ -19,7 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/testscommon/state"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/stretchr/testify/require"
 )
 
@@ -100,7 +100,7 @@ func (ti *testIndexer) createElasticProcessor(
 		ValidatorPubkeyConverter: pubkeyConv,
 		DBClient:                 databaseClient,
 		EnabledIndexes:           enabledIndexesMap,
-		AccountsDB:               &state.AccountsStub{},
+		AccountsDB:               &stateMock.AccountsStub{},
 		Denomination:             18,
 		TransactionFeeCalculator: transactionFeeCalculator,
 		IsInImportDBMode:         false,

@@ -7,8 +7,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	testscommonState "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon/trie"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,7 +23,7 @@ func TestNewJournalEntryCode_NilUpdaterShouldErr(t *testing.T) {
 func TestNewJournalEntryCode_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	entry, err := state.NewJournalEntryCode(&state.CodeEntry{}, []byte("code hash"), []byte("code hash"), &trie.TrieStub{}, nil)
+	entry, err := state.NewJournalEntryCode(&state.CodeEntry{}, []byte("code hash"), []byte("code hash"), &trieMock.TrieStub{}, nil)
 	assert.True(t, check.IfNil(entry))
 	assert.Equal(t, state.ErrNilMarshalizer, err)
 }
@@ -31,7 +31,7 @@ func TestNewJournalEntryCode_NilMarshalizerShouldErr(t *testing.T) {
 func TestNewJournalEntryCode_OkParams(t *testing.T) {
 	t.Parallel()
 
-	entry, err := state.NewJournalEntryCode(&state.CodeEntry{}, []byte("code hash"), []byte("code hash"), &trie.TrieStub{}, &testscommon.MarshalizerMock{})
+	entry, err := state.NewJournalEntryCode(&state.CodeEntry{}, []byte("code hash"), []byte("code hash"), &trieMock.TrieStub{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(entry))
 }
@@ -39,7 +39,7 @@ func TestNewJournalEntryCode_OkParams(t *testing.T) {
 func TestJournalEntryCode_OldHashAndNewHashAreNil(t *testing.T) {
 	t.Parallel()
 
-	trieStub := &trie.TrieStub{}
+	trieStub := &trieMock.TrieStub{}
 	entry, _ := state.NewJournalEntryCode(&state.CodeEntry{}, nil, nil, trieStub, &testscommon.MarshalizerMock{})
 
 	acc, err := entry.Revert()
@@ -57,7 +57,7 @@ func TestJournalEntryCode_OldHashIsNilAndNewHashIsNotNil(t *testing.T) {
 	marshalizer := &testscommon.MarshalizerMock{}
 
 	updateCalled := false
-	trieStub := &trie.TrieStub{
+	trieStub := &trieMock.TrieStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			return marshalizer.Marshal(codeEntry)
 		},
@@ -91,7 +91,7 @@ func TestNewJournalEntryAccount_NilAccountShouldErr(t *testing.T) {
 func TestNewJournalEntryAccount_OkParams(t *testing.T) {
 	t.Parallel()
 
-	entry, err := state.NewJournalEntryAccount(&testscommonState.AccountWrapMock{})
+	entry, err := state.NewJournalEntryAccount(&stateMock.AccountWrapMock{})
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(entry))
 }
@@ -99,7 +99,7 @@ func TestNewJournalEntryAccount_OkParams(t *testing.T) {
 func TestJournalEntryAccount_Revert(t *testing.T) {
 	t.Parallel()
 
-	expectedAcc := &testscommonState.AccountWrapMock{}
+	expectedAcc := &stateMock.AccountWrapMock{}
 	entry, _ := state.NewJournalEntryAccount(expectedAcc)
 
 	acc, err := entry.Revert()
@@ -110,7 +110,7 @@ func TestJournalEntryAccount_Revert(t *testing.T) {
 func TestNewJournalEntryAccountCreation_InvalidAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
-	entry, err := state.NewJournalEntryAccountCreation([]byte{}, &trie.TrieStub{})
+	entry, err := state.NewJournalEntryAccountCreation([]byte{}, &trieMock.TrieStub{})
 	assert.True(t, check.IfNil(entry))
 	assert.Equal(t, state.ErrInvalidAddressLength, err)
 }
@@ -126,7 +126,7 @@ func TestNewJournalEntryAccountCreation_NilUpdaterShouldErr(t *testing.T) {
 func TestNewJournalEntryAccountCreation_OkParams(t *testing.T) {
 	t.Parallel()
 
-	entry, err := state.NewJournalEntryAccountCreation([]byte("address"), &trie.TrieStub{})
+	entry, err := state.NewJournalEntryAccountCreation([]byte("address"), &trieMock.TrieStub{})
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(entry))
 }
@@ -136,7 +136,7 @@ func TestJournalEntryAccountCreation_RevertErr(t *testing.T) {
 
 	updateErr := errors.New("update error")
 	address := []byte("address")
-	ts := &trie.TrieStub{
+	ts := &trieMock.TrieStub{
 		UpdateCalled: func(key, value []byte) error {
 			return updateErr
 		},
@@ -153,7 +153,7 @@ func TestJournalEntryAccountCreation_RevertUpdatesTheTrie(t *testing.T) {
 
 	updateCalled := false
 	address := []byte("address")
-	ts := &trie.TrieStub{
+	ts := &trieMock.TrieStub{
 		UpdateCalled: func(key, value []byte) error {
 			assert.Equal(t, address, key)
 			assert.Nil(t, value)
@@ -210,9 +210,9 @@ func TestJournalEntryDataTrieUpdates_RevertFailsWhenUpdateFails(t *testing.T) {
 
 	trieUpdates := make(map[string][]byte)
 	trieUpdates["a"] = []byte("b")
-	accnt := testscommonState.NewAccountWrapMock(nil)
+	accnt := stateMock.NewAccountWrapMock(nil)
 
-	tr := &trie.TrieStub{
+	tr := &trieMock.TrieStub{
 		UpdateCalled: func(key, value []byte) error {
 			return expectedErr
 		},
@@ -234,9 +234,9 @@ func TestJournalEntryDataTrieUpdates_RevertFailsWhenAccountRootFails(t *testing.
 
 	trieUpdates := make(map[string][]byte)
 	trieUpdates["a"] = []byte("b")
-	accnt := testscommonState.NewAccountWrapMock(nil)
+	accnt := stateMock.NewAccountWrapMock(nil)
 
-	tr := &trie.TrieStub{
+	tr := &trieMock.TrieStub{
 		UpdateCalled: func(key, value []byte) error {
 			return nil
 		},
@@ -261,9 +261,9 @@ func TestJournalEntryDataTrieUpdates_RevertShouldWork(t *testing.T) {
 
 	trieUpdates := make(map[string][]byte)
 	trieUpdates["a"] = []byte("b")
-	accnt := testscommonState.NewAccountWrapMock(nil)
+	accnt := stateMock.NewAccountWrapMock(nil)
 
-	tr := &trie.TrieStub{
+	tr := &trieMock.TrieStub{
 		UpdateCalled: func(key, value []byte) error {
 			updateWasCalled = true
 			return nil

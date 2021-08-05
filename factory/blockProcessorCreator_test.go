@@ -16,7 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/disabled"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	testscommonState "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -94,7 +94,7 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 
 	stateComp := &mock.StateComponentsHolderStub{
 		PeerAccountsCalled: func() state.AccountsAdapter {
-			return &testscommonState.AccountsStub{
+			return &stateMock.AccountsStub{
 				RootHashCalled: func() ([]byte, error) {
 					return make([]byte, 0), nil
 				},

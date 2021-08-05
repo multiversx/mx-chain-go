@@ -10,7 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/dataretriever"
+	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,7 +26,7 @@ func TestNewMiniBlockTrack_NilDataPoolHolderErr(t *testing.T) {
 func TestNewMiniBlockTrack_NilTxsPoolErr(t *testing.T) {
 	t.Parallel()
 
-	dataPool := &dataretriever.PoolsHolderStub{
+	dataPool := &dataRetrieverMock.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return nil
 		},
@@ -40,7 +40,7 @@ func TestNewMiniBlockTrack_NilTxsPoolErr(t *testing.T) {
 func TestNewMiniBlockTrack_NilRewardTxsPoolErr(t *testing.T) {
 	t.Parallel()
 
-	dataPool := &dataretriever.PoolsHolderStub{
+	dataPool := &dataRetrieverMock.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return testscommon.NewShardedDataStub()
 		},
@@ -57,7 +57,7 @@ func TestNewMiniBlockTrack_NilRewardTxsPoolErr(t *testing.T) {
 func TestNewMiniBlockTrack_NilUnsignedTxsPoolErr(t *testing.T) {
 	t.Parallel()
 
-	dataPool := &dataretriever.PoolsHolderStub{
+	dataPool := &dataRetrieverMock.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return testscommon.NewShardedDataStub()
 		},
@@ -77,7 +77,7 @@ func TestNewMiniBlockTrack_NilUnsignedTxsPoolErr(t *testing.T) {
 func TestNewMiniBlockTrack_NilMiniBlockPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
-	dataPool := &dataretriever.PoolsHolderStub{
+	dataPool := &dataRetrieverMock.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return testscommon.NewShardedDataStub()
 		},
@@ -245,7 +245,7 @@ func TestGetTransactionPool_ShouldWork(t *testing.T) {
 			return &block.MiniBlock{Type: block.SmartContractResultBlock}, true
 		},
 	}
-	dataPool := &dataretriever.PoolsHolderStub{
+	dataPool := &dataRetrieverMock.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return blockTransactionsPool
 		},
@@ -275,7 +275,7 @@ func TestGetTransactionPool_ShouldWork(t *testing.T) {
 }
 
 func createDataPool() dataRetriever.PoolsHolder {
-	return &dataretriever.PoolsHolderStub{
+	return &dataRetrieverMock.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return testscommon.NewShardedDataStub()
 		},

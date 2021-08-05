@@ -20,9 +20,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/dataretriever"
+	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/state"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -151,7 +151,7 @@ func TestGenerateAndSendBulkTransactions_NilPubkeyConverterShouldErr(t *testing.
 func TestGenerateAndSendBulkTransactions_NilPrivateKeyShouldErr(t *testing.T) {
 	accAdapter := getAccAdapter(big.NewInt(0))
 	singleSigner := &mock.SinglesignMock{}
-	dataPool := &dataretriever.PoolsHolderStub{
+	dataPool := &dataRetrieverMock.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataStub{
 				ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
@@ -196,7 +196,7 @@ func TestGenerateAndSendBulkTransactions_InvalidReceiverAddressShouldErr(t *test
 		}
 	}}
 	singleSigner := &mock.SinglesignMock{}
-	dataPool := &dataretriever.PoolsHolderStub{
+	dataPool := &dataRetrieverMock.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataStub{
 				ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
@@ -250,7 +250,7 @@ func TestGenerateAndSendBulkTransactions_MarshalizerErrorsShouldErr(t *testing.T
 		}
 	}}
 	singleSigner := &mock.SinglesignMock{}
-	dataPool := &dataretriever.PoolsHolderStub{
+	dataPool := &dataRetrieverMock.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataStub{
 				ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
@@ -330,7 +330,7 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 		},
 	}
 
-	dataPool := &dataretriever.PoolsHolderStub{
+	dataPool := &dataRetrieverMock.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataStub{
 				ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
@@ -405,9 +405,9 @@ func getDefaultCryptoComponents() *factoryMock.CryptoComponentsMock {
 
 func getDefaultStateComponents() *testscommon.StateComponentsMock {
 	return &testscommon.StateComponentsMock{
-		PeersAcc:        &state.AccountsStub{},
-		Accounts:        &state.AccountsStub{},
-		AccountsAPI:     &state.AccountsStub{},
+		PeersAcc:        &stateMock.AccountsStub{},
+		Accounts:        &stateMock.AccountsStub{},
+		AccountsAPI:     &stateMock.AccountsStub{},
 		Tries:           &mock.TriesHolderStub{},
 		StorageManagers: map[string]common.StorageManager{"0": &testscommon.StorageManagerStub{}},
 	}

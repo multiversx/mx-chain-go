@@ -14,9 +14,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/dataretriever"
+	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/state"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -46,7 +46,7 @@ func createShardStubTopicHandler(matchStrToErrOnCreate string, matchStrToErrOnRe
 }
 
 func createShardDataPools() dataRetriever.PoolsHolder {
-	pools := dataretriever.NewPoolsHolderStub()
+	pools := dataRetrieverMock.NewPoolsHolderStub()
 	pools.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return testscommon.NewShardedDataStub()
 	}
@@ -632,7 +632,7 @@ func getArgumentsShard(
 	return interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
 		CoreComponents:          coreComp,
 		CryptoComponents:        cryptoComp,
-		Accounts:                &state.AccountsStub{},
+		Accounts:                &stateMock.AccountsStub{},
 		ShardCoordinator:        mock.NewOneShardCoordinatorMock(),
 		NodesCoordinator:        mock.NewNodesCoordinatorMock(),
 		Messenger:               &mock.TopicHandlerStub{},

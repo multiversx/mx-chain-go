@@ -47,7 +47,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/dataretriever"
+	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
@@ -437,7 +437,7 @@ func createConsensusOnlyNode(
 
 	dataComponents := integrationTests.GetDefaultDataComponents()
 	dataComponents.BlockChain = blockChain
-	dataComponents.DataPool = dataretriever.CreatePoolsHolder(1, 0)
+	dataComponents.DataPool = dataRetrieverMock.CreatePoolsHolder(1, 0)
 	dataComponents.Store = createTestStore()
 
 	stateComponents := integrationTests.GetDefaultStateComponents()

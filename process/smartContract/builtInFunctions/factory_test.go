@@ -6,7 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/testscommon/state"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/stretchr/testify/assert"
 )
@@ -21,7 +21,7 @@ func createMockArguments() ArgsCreateBuiltInFunctionContainer {
 		MapDNSAddresses:      make(map[string]struct{}),
 		EnableUserNameChange: false,
 		Marshalizer:          &mock.MarshalizerMock{},
-		Accounts:             &state.AccountsStub{},
+		Accounts:             &stateMock.AccountsStub{},
 		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(1),
 		EpochNotifier:        &mock.EpochNotifierStub{},
 	}

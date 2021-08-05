@@ -3,7 +3,7 @@ syntax = "proto3";
 
 package protoDataMock;
 
-option go_package = "mock";
+option go_package = "state";
 option (gogoproto.stable_marshaler_all) = true;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";

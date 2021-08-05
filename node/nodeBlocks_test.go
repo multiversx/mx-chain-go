@@ -21,7 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/bootstrapMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/dataretriever"
+	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
@@ -583,7 +583,7 @@ func getDefaultDataComponents() *factory.DataComponentsMock {
 	return &factory.DataComponentsMock{
 		BlockChain: &mock.ChainHandlerStub{},
 		Store:      &mock.ChainStorerStub{},
-		DataPool:   &dataretriever.PoolsHolderMock{},
+		DataPool:   &dataRetrieverMock.PoolsHolderMock{},
 		MbProvider: &mock.MiniBlocksProviderStub{},
 	}
 }

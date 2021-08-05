@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/state"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -28,7 +28,7 @@ func TestStakingWaitingSC_ExecuteStakeStakeWaitingUnStake(t *testing.T) {
 		blockChainHook,
 		hooks.NewVMCryptoHook(),
 		atArgParser,
-		&state.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	argsStaking := createMockStakingScArguments()
@@ -95,7 +95,7 @@ func TestStakingWaitingSC_ExecuteStakeStakeWaitingUnBondFromWaiting(t *testing.T
 		blockChainHook,
 		hooks.NewVMCryptoHook(),
 		atArgParser,
-		&state.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	argsStaking := createMockStakingScArguments()
@@ -178,7 +178,7 @@ func TestStakingWaitingSC_ExecuteStakeStakeUnStakeStakeUnstake(t *testing.T) {
 		blockChainHook,
 		hooks.NewVMCryptoHook(),
 		atArgParser,
-		&state.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	argsStaking := createMockStakingScArguments()

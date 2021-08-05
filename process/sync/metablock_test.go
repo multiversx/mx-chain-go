@@ -20,7 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/state"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -60,7 +60,7 @@ func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 		ForkDetector:         &mock.ForkDetectorMock{},
 		RequestHandler:       &testscommon.RequestHandlerStub{},
 		ShardCoordinator:     mock.NewOneShardCoordinatorMock(),
-		Accounts:             &state.AccountsStub{},
+		Accounts:             &stateMock.AccountsStub{},
 		BlackListHandler:     &mock.BlackListHandlerStub{},
 		NetworkWatcher:       initNetworkWatcher(),
 		BootStorer:           &mock.BoostrapStorerMock{},
@@ -77,7 +77,7 @@ func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{
 		ArgBaseBootstrapper:         argsBaseBootstrapper,
 		EpochBootstrapper:           &mock.EpochStartTriggerStub{},
-		ValidatorAccountsDB:         &state.AccountsStub{},
+		ValidatorAccountsDB:         &stateMock.AccountsStub{},
 		ValidatorStatisticsDBSyncer: &mock.AccountsDBSyncerStub{},
 	}
 
@@ -555,7 +555,7 @@ func TestMetaBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 	}
 	args.ForkDetector = forkDetector
 
-	account := &state.AccountsStub{}
+	account := &stateMock.AccountsStub{}
 	account.RootHashCalled = func() ([]byte, error) {
 		return nil, nil
 	}
@@ -1309,7 +1309,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 		},
 	}
 	args.ForkDetector = createForkDetector(currentHdrNonce, remFlags)
-	args.Accounts = &state.AccountsStub{
+	args.Accounts = &stateMock.AccountsStub{
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
 		},
@@ -1447,7 +1447,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 		},
 	}
 	args.ForkDetector = createForkDetector(currentHdrNonce, remFlags)
-	args.Accounts = &state.AccountsStub{
+	args.Accounts = &stateMock.AccountsStub{
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
 		},
@@ -1612,10 +1612,10 @@ func TestMetaBootstrap_SyncBlockErrGetNodeDBShouldSyncAccounts(t *testing.T) {
 			validatorSyncCalled = true
 			return nil
 		}}
-	args.Accounts = &state.AccountsStub{RootHashCalled: func() ([]byte, error) {
+	args.Accounts = &stateMock.AccountsStub{RootHashCalled: func() ([]byte, error) {
 		return []byte("roothash"), nil
 	}}
-	args.ValidatorAccountsDB = &state.AccountsStub{RootHashCalled: func() ([]byte, error) {
+	args.ValidatorAccountsDB = &stateMock.AccountsStub{RootHashCalled: func() ([]byte, error) {
 		return []byte("roothash"), nil
 	}}
 

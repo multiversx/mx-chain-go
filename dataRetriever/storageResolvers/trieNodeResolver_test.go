@@ -12,7 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/trie"
+	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,7 +21,7 @@ func createMockTrieResolverArguments() ArgTrieResolver {
 		Messenger:                &mock.MessengerStub{},
 		ResponseTopicName:        "",
 		Marshalizer:              &mock.MarshalizerStub{},
-		TrieDataGetter:           &trie.TrieStub{},
+		TrieDataGetter:           &trieMock.TrieStub{},
 		TrieStorageManager:       &testscommon.StorageManagerStub{},
 		ManualEpochStartNotifier: &mock.ManualEpochStartNotifierStub{},
 		ChanGracefullyClose:      make(chan endProcess.ArgEndProcess, 1),
@@ -83,7 +83,7 @@ func TestTrieNodeResolver_RequestDataFromHashGetSubtrieFailsShouldErr(t *testing
 
 	args := createMockTrieResolverArguments()
 	expectedErr := errors.New("expected error")
-	args.TrieDataGetter = &trie.TrieStub{
+	args.TrieDataGetter = &trieMock.TrieStub{
 		GetSerializedNodesCalled: func(bytes []byte, u uint64) ([][]byte, uint64, error) {
 			return nil, 0, expectedErr
 		},
@@ -105,7 +105,7 @@ func TestTrieNodeResolver_RequestDataFromHashShouldWork(t *testing.T) {
 
 	args := createMockTrieResolverArguments()
 	buff := []byte("data")
-	args.TrieDataGetter = &trie.TrieStub{
+	args.TrieDataGetter = &trieMock.TrieStub{
 		GetSerializedNodesCalled: func(bytes []byte, u uint64) ([][]byte, uint64, error) {
 			return [][]byte{buff}, 1, nil
 		},
@@ -132,7 +132,7 @@ func TestTrieNodeResolver_RequestDataFromHashArrayShouldWork(t *testing.T) {
 	args := createMockTrieResolverArguments()
 	buff := []byte("data")
 	numGetSerializedNodesCalled := uint32(0)
-	args.TrieDataGetter = &trie.TrieStub{
+	args.TrieDataGetter = &trieMock.TrieStub{
 		GetSerializedNodesCalled: func(bytes []byte, u uint64) ([][]byte, uint64, error) {
 			atomic.AddUint32(&numGetSerializedNodesCalled, 1)
 			return [][]byte{buff}, 1, nil

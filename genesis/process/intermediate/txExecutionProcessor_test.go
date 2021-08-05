@@ -14,7 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	testscommonState "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
@@ -22,7 +22,7 @@ import (
 func TestNewTxExecutionProcessor_NilTxProcessorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tep, err := intermediate.NewTxExecutionProcessor(nil, &testscommonState.AccountsStub{})
+	tep, err := intermediate.NewTxExecutionProcessor(nil, &stateMock.AccountsStub{})
 
 	assert.True(t, check.IfNil(tep))
 	assert.Equal(t, process.ErrNilTxProcessor, err)
@@ -40,7 +40,7 @@ func TestNewTxExecutionProcessor_NilAccountsAdapterShouldErr(t *testing.T) {
 func TestNewTxExecutionProcessor_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	tep, err := intermediate.NewTxExecutionProcessor(&testscommon.TxProcessorStub{}, &testscommonState.AccountsStub{})
+	tep, err := intermediate.NewTxExecutionProcessor(&testscommon.TxProcessorStub{}, &stateMock.AccountsStub{})
 
 	assert.False(t, check.IfNil(tep))
 	assert.Nil(t, err)
@@ -68,7 +68,7 @@ func TestTxExecutionProcessor_ExecuteTransaction(t *testing.T) {
 				return 0, errors.New("should not happened")
 			},
 		},
-		&testscommonState.AccountsStub{},
+		&stateMock.AccountsStub{},
 	)
 
 	err := tep.ExecuteTransaction(nonce, sndAddr, recvAddr, value, data)
@@ -84,7 +84,7 @@ func TestTxExecutionProcessor_GetNonceAccountsErrShouldErr(t *testing.T) {
 	expectedErr := errors.New("expected error")
 	tep, _ := intermediate.NewTxExecutionProcessor(
 		&testscommon.TxProcessorStub{},
-		&testscommonState.AccountsStub{
+		&stateMock.AccountsStub{
 			LoadAccountCalled: func(container []byte) (vmcommon.AccountHandler, error) {
 				return nil, expectedErr
 			},
@@ -103,7 +103,7 @@ func TestTxExecutionProcessor_GetNonceShouldWork(t *testing.T) {
 	nonce := uint64(224323)
 	tep, _ := intermediate.NewTxExecutionProcessor(
 		&testscommon.TxProcessorStub{},
-		&testscommonState.AccountsStub{
+		&stateMock.AccountsStub{
 			LoadAccountCalled: func(container []byte) (vmcommon.AccountHandler, error) {
 				return &mock.BaseAccountMock{
 					Nonce: nonce,
@@ -126,7 +126,7 @@ func TestTxExecutionProcessor_AddBalanceAccountsErrShouldErr(t *testing.T) {
 	expectedErr := errors.New("expected error")
 	tep, _ := intermediate.NewTxExecutionProcessor(
 		&testscommon.TxProcessorStub{},
-		&testscommonState.AccountsStub{
+		&stateMock.AccountsStub{
 			LoadAccountCalled: func(container []byte) (vmcommon.AccountHandler, error) {
 				return nil, expectedErr
 			},
@@ -144,7 +144,7 @@ func TestTxExecutionProcessor_AddBalanceWrongTypeShouldErr(t *testing.T) {
 	nonce := uint64(224323)
 	tep, _ := intermediate.NewTxExecutionProcessor(
 		&testscommon.TxProcessorStub{},
-		&testscommonState.AccountsStub{
+		&stateMock.AccountsStub{
 			LoadAccountCalled: func(container []byte) (vmcommon.AccountHandler, error) {
 				return &mock.BaseAccountMock{
 					Nonce: nonce,
@@ -163,7 +163,7 @@ func TestTxExecutionProcessor_AddBalanceNegativeValueShouldErr(t *testing.T) {
 
 	tep, _ := intermediate.NewTxExecutionProcessor(
 		&testscommon.TxProcessorStub{},
-		&testscommonState.AccountsStub{
+		&stateMock.AccountsStub{
 			LoadAccountCalled: func(container []byte) (vmcommon.AccountHandler, error) {
 				return &mock.UserAccountMock{
 					BalanceField: big.NewInt(0),
@@ -184,7 +184,7 @@ func TestTxExecutionProcessor_AddBalanceShouldWork(t *testing.T) {
 	added := big.NewInt(37843)
 	tep, _ := intermediate.NewTxExecutionProcessor(
 		&testscommon.TxProcessorStub{},
-		&testscommonState.AccountsStub{
+		&stateMock.AccountsStub{
 			LoadAccountCalled: func(container []byte) (vmcommon.AccountHandler, error) {
 				return &mock.UserAccountMock{
 					BalanceField: big.NewInt(0).Set(initialBalance),
@@ -216,7 +216,7 @@ func TestTxExecutionProcessor_AddNonceAccountsErrShouldErr(t *testing.T) {
 	expectedErr := errors.New("expected error")
 	tep, _ := intermediate.NewTxExecutionProcessor(
 		&testscommon.TxProcessorStub{},
-		&testscommonState.AccountsStub{
+		&stateMock.AccountsStub{
 			LoadAccountCalled: func(container []byte) (vmcommon.AccountHandler, error) {
 				return nil, expectedErr
 			},
@@ -235,7 +235,7 @@ func TestTxExecutionProcessor_AddNonceShouldWork(t *testing.T) {
 	addedNonce := uint64(27826)
 	tep, _ := intermediate.NewTxExecutionProcessor(
 		&testscommon.TxProcessorStub{},
-		&testscommonState.AccountsStub{
+		&stateMock.AccountsStub{
 			LoadAccountCalled: func(container []byte) (vmcommon.AccountHandler, error) {
 				return &mock.BaseAccountMock{
 					Nonce: initialNonce,

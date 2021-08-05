@@ -22,9 +22,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	factoryState "github.com/ElrondNetwork/elrond-go/state/factory"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon/dataretriever"
+	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
-	testscommonState "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -71,7 +71,7 @@ func createMockArgument(
 				},
 			},
 			Blkc:     &mock.BlockChainStub{},
-			DataPool: dataretriever.NewPoolsHolderMock(),
+			DataPool: dataRetrieverMock.NewPoolsHolderMock(),
 		},
 		InitialNodesSetup: &mock.InitialNodesSetupHandlerStub{},
 		TxLogsProcessor:   &mock.TxLogProcessorMock{},
@@ -146,7 +146,7 @@ func createMockArgument(
 	)
 	require.Nil(t, err)
 
-	arg.ValidatorAccounts = &testscommonState.AccountsStub{
+	arg.ValidatorAccounts = &stateMock.AccountsStub{
 		RootHashCalled: func() ([]byte, error) {
 			return make([]byte, 0), nil
 		},
@@ -474,7 +474,7 @@ func TestCreateHardForkBlockProcessors_ShouldWork(t *testing.T) {
 	)
 	arg.importHandler = &updateMock.ImportHandlerStub{
 		GetAccountsDBForShardCalled: func(shardID uint32) state.AccountsAdapter {
-			return &testscommonState.AccountsStub{}
+			return &stateMock.AccountsStub{}
 		},
 	}
 	gbc, err := NewGenesisBlockCreator(arg)

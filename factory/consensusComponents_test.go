@@ -18,9 +18,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/dataretriever"
+	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/state"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/stretchr/testify/require"
 )
@@ -411,8 +411,8 @@ func getDefaultNetworkComponents() *mock.NetworkComponentsMock {
 
 func getDefaultStateComponents() *testscommon.StateComponentsMock {
 	return &testscommon.StateComponentsMock{
-		PeersAcc: &state.AccountsStub{},
-		Accounts: &state.AccountsStub{},
+		PeersAcc: &stateMock.AccountsStub{},
+		Accounts: &stateMock.AccountsStub{},
 		Tries:    &mock.TriesHolderStub{},
 		StorageManagers: map[string]common.StorageManager{
 			"0":                         &testscommon.StorageManagerStub{},
@@ -426,7 +426,7 @@ func getDefaultDataComponents() *mock.DataComponentsMock {
 	return &mock.DataComponentsMock{
 		Blkc:              &mock.ChainHandlerStub{},
 		Storage:           &mock.ChainStorerStub{},
-		DataPool:          &dataretriever.PoolsHolderMock{},
+		DataPool:          &dataRetrieverMock.PoolsHolderMock{},
 		MiniBlockProvider: &mock.MiniBlocksProviderStub{},
 	}
 }
