@@ -1542,8 +1542,8 @@ func (bp *baseProcessor) getMarshalizedScheduledRootHashAndSCRs(
 		}
 
 		//TODO: Remove this for
-		for _, tx := range scheduledSCRs.TxHandlers {
-			log.Debug("tx is a smart contract result", "sender", tx.GetSndAddr(), "receiver", tx.GetRcvAddr())
+		for txIndex := range txs {
+			log.Debug("tx is a smart contract result", "sender", scheduledSCRs.TxHandlers[txIndex].GetSndAddr(), "receiver", scheduledSCRs.TxHandlers[txIndex].GetRcvAddr())
 		}
 
 		marshalizedScheduledSCRs, err := bp.marshalizer.Marshal(scheduledSCRs)

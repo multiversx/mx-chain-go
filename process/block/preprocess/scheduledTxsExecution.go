@@ -164,7 +164,11 @@ func (ste *scheduledTxsExecution) computeScheduledSCRs(
 		ste.mapScheduledSCRs[blockType] = make([]data.TransactionHandler, len(scrsInfo))
 		for scrIndex, scrInfo := range scrsInfo {
 			ste.mapScheduledSCRs[blockType][scrIndex] = scrInfo.txHandler
-			log.Debug("scheduledTxsExecution.computeScheduledSCRs", "blockType", blockType, "sender", scrInfo.txHandler.GetSndAddr(), "receiver", scrInfo.txHandler.GetRcvAddr())
+		}
+
+		//TODO: Remove this for
+		for scrIndex := range scrsInfo {
+			log.Debug("scheduledTxsExecution.computeScheduledSCRs", "blockType", blockType, "sender", ste.mapScheduledSCRs[blockType][scrIndex].GetSndAddr(), "receiver", ste.mapScheduledSCRs[blockType][scrIndex].GetRcvAddr())
 		}
 
 		numScheduledSCRs += len(scrsInfo)
@@ -212,7 +216,11 @@ func (ste *scheduledTxsExecution) GetScheduledSCRs() map[block.Type][]data.Trans
 		mapScheduledSCRs[blockType] = make([]data.TransactionHandler, len(scheduledSCRs))
 		for scrIndex, txHandler := range scheduledSCRs {
 			mapScheduledSCRs[blockType][scrIndex] = txHandler
-			log.Debug("scheduledTxsExecution.GetScheduledSCRs", "blockType", blockType, "sender", txHandler.GetSndAddr(), "receiver", txHandler.GetRcvAddr())
+		}
+
+		//TODO: Remove this for
+		for scrIndex := range scheduledSCRs {
+			log.Debug("scheduledTxsExecution.GetScheduledSCRs", "blockType", blockType, "sender", mapScheduledSCRs[blockType][scrIndex].GetSndAddr(), "receiver", mapScheduledSCRs[blockType][scrIndex].GetRcvAddr())
 		}
 
 		numScheduledSCRs += len(scheduledSCRs)
@@ -238,7 +246,11 @@ func (ste *scheduledTxsExecution) SetScheduledSCRs(mapSCRs map[block.Type][]data
 		ste.mapScheduledSCRs[blockType] = make([]data.TransactionHandler, len(scrs))
 		for scrIndex, txHandler := range scrs {
 			ste.mapScheduledSCRs[blockType][scrIndex] = txHandler
-			log.Debug("scheduledTxsExecution.SetScheduledSCRs", "blockType", blockType, "sender", txHandler.GetSndAddr(), "receiver", txHandler.GetRcvAddr())
+		}
+
+		//TODO: Remove this for
+		for scrIndex := range scrs {
+			log.Debug("scheduledTxsExecution.SetScheduledSCRs", "blockType", blockType, "sender", ste.mapScheduledSCRs[blockType][scrIndex].GetSndAddr(), "receiver", ste.mapScheduledSCRs[blockType][scrIndex].GetRcvAddr())
 		}
 
 		numScheduledSCRs += len(scrs)

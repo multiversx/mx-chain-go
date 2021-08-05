@@ -745,8 +745,13 @@ func GetScheduledRootHashAndSCRsFromStorage(
 		}
 
 		mapScheduledSCRs[block.Type(scheduledSCRs.BlockType)] = make([]data.TransactionHandler, len(scheduledSCRs.TxHandlers))
-		for txIndex, tx := range scheduledSCRs.TxHandlers {
-			mapScheduledSCRs[block.Type(scheduledSCRs.BlockType)][txIndex] = &tx
+		for txIndex := range scheduledSCRs.TxHandlers {
+			mapScheduledSCRs[block.Type(scheduledSCRs.BlockType)][txIndex] = &scheduledSCRs.TxHandlers[txIndex]
+		}
+
+		//TODO: Remove this for
+		for txIndex := range scheduledSCRs.TxHandlers {
+			log.Debug("GetScheduledRootHashAndSCRsFromStorage: tx", "sender", mapScheduledSCRs[block.Type(scheduledSCRs.BlockType)][txIndex].GetSndAddr(), "receiver", mapScheduledSCRs[block.Type(scheduledSCRs.BlockType)][txIndex].GetRcvAddr())
 		}
 	}
 
