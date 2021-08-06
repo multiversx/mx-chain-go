@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/forking"
-	"github.com/ElrondNetwork/elrond-go/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/factory"
@@ -27,6 +27,8 @@ func TestStatusComponents_Create_Close_ShouldWork(t *testing.T) {
 	factory.PrintStack()
 
 	configs := factory.CreateDefaultConfig()
+	configs.ExternalConfig.ElasticSearchConnector.Enabled = false
+
 	chanStopNodeProcess := make(chan endProcess.ArgEndProcess)
 	nr, err := node.NewNodeRunner(configs)
 	require.Nil(t, err)
@@ -71,7 +73,6 @@ func TestStatusComponents_Create_Close_ShouldWork(t *testing.T) {
 		managedDataComponents,
 		managedStateComponents,
 		nodesCoordinator,
-		"",
 		false,
 	)
 	require.Nil(t, err)

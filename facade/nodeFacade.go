@@ -7,6 +7,14 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
+	chainData "github.com/ElrondNetwork/elrond-go-core/data"
+	apiData "github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/data/vm"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/api/address"
 	"github.com/ElrondNetwork/elrond-go/api/hardfork"
@@ -15,22 +23,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/validator"
 	"github.com/ElrondNetwork/elrond-go/api/vmValues"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/statistics"
-	"github.com/ElrondNetwork/elrond-go/core/throttler"
-	chainData "github.com/ElrondNetwork/elrond-go/data"
-	apiData "github.com/ElrondNetwork/elrond-go/data/api"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/data/vm"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
+	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
+	"github.com/ElrondNetwork/elrond-go/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm-common/data/esdt"
 )
 
 // DefaultRestInterface is the default interface the rest API will start on if not specified
@@ -68,7 +68,6 @@ type nodeFacade struct {
 	node                   NodeHandler
 	apiResolver            ApiResolver
 	syncer                 ntp.SyncTimer
-	tpsBenchmark           statistics.TPSBenchmark
 	txSimulatorProc        TransactionSimulatorProcessor
 	config                 config.FacadeConfig
 	apiRoutesConfig        config.ApiRoutesConfig
@@ -156,16 +155,6 @@ func computeEndpointsNumGoRoutinesThrottlers(webServerAntiFloodConfig config.Web
 // SetSyncer sets the current syncer
 func (nf *nodeFacade) SetSyncer(syncer ntp.SyncTimer) {
 	nf.syncer = syncer
-}
-
-// SetTpsBenchmark sets the tps benchmark handler
-func (nf *nodeFacade) SetTpsBenchmark(tpsBenchmark statistics.TPSBenchmark) {
-	nf.tpsBenchmark = tpsBenchmark
-}
-
-// TpsBenchmark returns the tps benchmark handler
-func (nf *nodeFacade) TpsBenchmark() statistics.TPSBenchmark {
-	return nf.tpsBenchmark
 }
 
 // RestAPIServerDebugMode return true is debug mode for Rest API is enabled
@@ -270,7 +259,7 @@ func (nf *nodeFacade) SendBulkTransactions(txs []*transaction.Transaction) (uint
 }
 
 // SimulateTransactionExecution will simulate a transaction's execution and will return the results
-func (nf *nodeFacade) SimulateTransactionExecution(tx *transaction.Transaction) (*transaction.SimulationResults, error) {
+func (nf *nodeFacade) SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
 	return nf.txSimulatorProc.ProcessTx(tx)
 }
 

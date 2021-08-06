@@ -3,7 +3,7 @@ package mock
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 )
 
 // ShardCoordinatorMock -

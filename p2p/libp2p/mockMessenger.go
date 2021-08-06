@@ -24,10 +24,16 @@ func NewMockMessenger(
 	}
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
-	mes, err := createMessenger(args, h, ctx, cancelFunc, false)
+	p2pNode := &networkMessenger{
+		p2pHost:    NewConnectableHost(h),
+		ctx:        ctx,
+		cancelFunc: cancelFunc,
+	}
+
+	err = addComponentsToNode(args, p2pNode, withoutMessageSigning)
 	if err != nil {
 		return nil, err
 	}
 
-	return mes, err
+	return p2pNode, err
 }

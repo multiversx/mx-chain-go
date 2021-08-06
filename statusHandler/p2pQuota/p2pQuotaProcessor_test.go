@@ -3,8 +3,9 @@ package p2pQuota_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/mock"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/p2pQuota"
@@ -118,16 +119,16 @@ func checkPeerMetrics(
 	identifier string,
 ) {
 
-	value := status.GetUint64(core.MetricP2PPeerNumReceivedMessages + "_" + identifier)
+	value := status.GetUint64(common.MetricP2PPeerNumReceivedMessages + "_" + identifier)
 	assert.Equal(t, value, numReceived)
 
-	value = status.GetUint64(core.MetricP2PPeerSizeReceivedMessages + "_" + identifier)
+	value = status.GetUint64(common.MetricP2PPeerSizeReceivedMessages + "_" + identifier)
 	assert.Equal(t, value, sizeReceived)
 
-	value = status.GetUint64(core.MetricP2PPeerNumProcessedMessages + "_" + identifier)
+	value = status.GetUint64(common.MetricP2PPeerNumProcessedMessages + "_" + identifier)
 	assert.Equal(t, value, numProcessed)
 
-	value = status.GetUint64(core.MetricP2PPeerSizeProcessedMessages + "_" + identifier)
+	value = status.GetUint64(common.MetricP2PPeerSizeProcessedMessages + "_" + identifier)
 	assert.Equal(t, value, sizeProcessed)
 }
 
@@ -141,16 +142,16 @@ func checkPeakPeerMetrics(
 	identifier string,
 ) {
 
-	value := status.GetUint64(core.MetricP2PPeakPeerNumReceivedMessages + "_" + identifier)
+	value := status.GetUint64(common.MetricP2PPeakPeerNumReceivedMessages + "_" + identifier)
 	assert.Equal(t, value, numReceived)
 
-	value = status.GetUint64(core.MetricP2PPeakPeerSizeReceivedMessages + "_" + identifier)
+	value = status.GetUint64(common.MetricP2PPeakPeerSizeReceivedMessages + "_" + identifier)
 	assert.Equal(t, value, sizeReceived)
 
-	value = status.GetUint64(core.MetricP2PPeakPeerNumProcessedMessages + "_" + identifier)
+	value = status.GetUint64(common.MetricP2PPeakPeerNumProcessedMessages + "_" + identifier)
 	assert.Equal(t, value, numProcessed)
 
-	value = status.GetUint64(core.MetricP2PPeakPeerSizeProcessedMessages + "_" + identifier)
+	value = status.GetUint64(common.MetricP2PPeakPeerSizeProcessedMessages + "_" + identifier)
 	assert.Equal(t, value, sizeProcessed)
 }
 
@@ -161,9 +162,9 @@ func checkNumReceivers(
 	topNumReceiverPeers uint64,
 	identifier string,
 ) {
-	value := status.GetUint64(core.MetricP2PNumReceiverPeers + "_" + identifier)
+	value := status.GetUint64(common.MetricP2PNumReceiverPeers + "_" + identifier)
 	assert.Equal(t, value, numReceiverPeers)
 
-	value = status.GetUint64(core.MetricP2PPeakNumReceiverPeers + "_" + identifier)
+	value = status.GetUint64(common.MetricP2PPeakNumReceiverPeers + "_" + identifier)
 	assert.Equal(t, value, topNumReceiverPeers)
 }

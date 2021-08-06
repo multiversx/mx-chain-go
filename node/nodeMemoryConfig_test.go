@@ -4,8 +4,8 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/pelletier/go-toml"
 	"github.com/stretchr/testify/require"
 )
@@ -27,7 +27,7 @@ func TestMemoryConfig(t *testing.T) {
 	plannedMemory += nodeConfig.BlockHeaderStorage.Cache.SizeInBytes
 	plannedMemory += nodeConfig.MetaBlockStorage.Cache.SizeInBytes
 	plannedMemory += nodeConfig.TxStorage.Cache.SizeInBytes
-	plannedMemory += nodeConfig.TxLogsStorage.Cache.SizeInBytes
+	plannedMemory += nodeConfig.LogsAndEvents.TxLogsStorage.Cache.SizeInBytes
 	plannedMemory += nodeConfig.UnsignedTransactionStorage.Cache.SizeInBytes
 	plannedMemory += nodeConfig.RewardTxStorage.Cache.SizeInBytes
 	plannedMemory += nodeConfig.ShardHdrNonceHashStorage.Cache.SizeInBytes

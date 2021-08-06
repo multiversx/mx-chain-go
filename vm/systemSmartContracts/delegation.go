@@ -8,11 +8,11 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/atomic"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -1455,7 +1455,8 @@ func (d *delegation) checkActiveFund(delegator *DelegatorData) error {
 		return err
 	}
 
-	belowMinDelegationAmount := fund.Value.Cmp(delegationManagement.MinDelegationAmount) < 0
+	minDelegationAmount := delegationManagement.MinDelegationAmount
+	belowMinDelegationAmount := fund.Value.Cmp(minDelegationAmount) < 0
 	if belowMinDelegationAmount {
 		return vm.ErrRedelegateValueBelowMinimum
 	}
@@ -1471,7 +1472,6 @@ func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	}
 
 	minDelegationAmount := delegationManagement.MinDelegationAmount
-
 	if args.CallValue.Cmp(minDelegationAmount) < 0 {
 		d.eei.AddReturnMessage("delegate value must be higher than minDelegationAmount " + minDelegationAmount.String())
 		return vmcommon.UserError

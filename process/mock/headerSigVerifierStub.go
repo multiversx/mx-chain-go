@@ -1,6 +1,6 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/data"
+import "github.com/ElrondNetwork/elrond-go-core/data"
 
 // HeaderSigVerifierStub -
 type HeaderSigVerifierStub struct {
@@ -29,7 +29,7 @@ func (hsvm *HeaderSigVerifierStub) VerifyRandSeedAndLeaderSignature(header data.
 }
 
 // VerifyLeaderSignature -
-func(hsvm *HeaderSigVerifierStub) VerifyLeaderSignature(header data.HeaderHandler) error {
+func (hsvm *HeaderSigVerifierStub) VerifyLeaderSignature(header data.HeaderHandler) error {
 	if hsvm.VerifyLeaderSignatureCalled != nil {
 		return hsvm.VerifyLeaderSignatureCalled(header)
 	}

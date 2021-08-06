@@ -10,11 +10,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/cmd/assessment/benchmarks"
 	"github.com/ElrondNetwork/elrond-go/cmd/assessment/benchmarks/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/assessment/hostParameters"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/urfave/cli"
 )
 
@@ -142,5 +142,5 @@ func saveToFile(hi *hostParameters.HostInfo, results *benchmarks.TestResults, ou
 		return err
 	}
 
-	return ioutil.WriteFile(outputFileName, buff.Bytes(), os.ModePerm)
+	return ioutil.WriteFile(outputFileName, buff.Bytes(), core.FileModeReadWrite)
 }

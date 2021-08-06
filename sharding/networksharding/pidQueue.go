@@ -1,7 +1,7 @@
 package networksharding
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 )
 
 const indexNotFound = -1

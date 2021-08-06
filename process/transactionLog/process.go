@@ -4,14 +4,15 @@ import (
 	"encoding/hex"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -21,8 +22,9 @@ var log = logger.GetOrCreate("process/transactionLog")
 
 // ArgTxLogProcessor defines the arguments needed for transaction logs processor
 type ArgTxLogProcessor struct {
-	Storer      storage.Storer
-	Marshalizer marshal.Marshalizer
+	Storer               storage.Storer
+	Marshalizer          marshal.Marshalizer
+	SaveInStorageEnabled bool
 }
 
 type txLogProcessor struct {
@@ -35,15 +37,21 @@ type txLogProcessor struct {
 // NewTxLogProcessor creates a transaction log processor capable of parsing logs from the VM
 //  and saving them into the injected storage
 func NewTxLogProcessor(args ArgTxLogProcessor) (*txLogProcessor, error) {
-	if check.IfNil(args.Storer) {
+	storer := args.Storer
+	if check.IfNil(storer) && args.SaveInStorageEnabled {
 		return nil, process.ErrNilStore
 	}
+
+	if !args.SaveInStorageEnabled {
+		storer = storageUnit.NewNilStorer()
+	}
+
 	if check.IfNil(args.Marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
 
 	return &txLogProcessor{
-		storer:      args.Storer,
+		storer:      storer,
 		marshalizer: args.Marshalizer,
 		logs:        make(map[string]data.LogHandler),
 		mut:         sync.RWMutex{},

@@ -1,6 +1,6 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/data/state"
+import "github.com/ElrondNetwork/elrond-go/state"
 
 // ValidatorsProviderStub -
 type ValidatorsProviderStub struct {

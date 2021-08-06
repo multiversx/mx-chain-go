@@ -3,8 +3,8 @@ package sharding
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/stretchr/testify/require"
 )
 

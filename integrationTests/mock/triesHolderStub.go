@@ -1,32 +1,34 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/data"
+import (
+	"github.com/ElrondNetwork/elrond-go/common"
+)
 
 // TriesHolderStub -
 type TriesHolderStub struct {
-	PutCalled    func([]byte, data.Trie)
-	RemoveCalled func([]byte, data.Trie)
-	GetCalled    func([]byte) data.Trie
-	GetAllCalled func() []data.Trie
+	PutCalled    func([]byte, common.Trie)
+	RemoveCalled func([]byte, common.Trie)
+	GetCalled    func([]byte) common.Trie
+	GetAllCalled func() []common.Trie
 	ResetCalled  func()
 }
 
 // Put -
-func (ths *TriesHolderStub) Put(key []byte, trie data.Trie) {
+func (ths *TriesHolderStub) Put(key []byte, trie common.Trie) {
 	if ths.PutCalled != nil {
 		ths.PutCalled(key, trie)
 	}
 }
 
 // Replace -
-func (ths *TriesHolderStub) Replace(key []byte, trie data.Trie) {
+func (ths *TriesHolderStub) Replace(key []byte, trie common.Trie) {
 	if ths.RemoveCalled != nil {
 		ths.RemoveCalled(key, trie)
 	}
 }
 
 // Get -
-func (ths *TriesHolderStub) Get(key []byte) data.Trie {
+func (ths *TriesHolderStub) Get(key []byte) common.Trie {
 	if ths.GetCalled != nil {
 		return ths.GetCalled(key)
 	}
@@ -34,7 +36,7 @@ func (ths *TriesHolderStub) Get(key []byte) data.Trie {
 }
 
 // GetAll -
-func (ths *TriesHolderStub) GetAll() []data.Trie {
+func (ths *TriesHolderStub) GetAll() []common.Trie {
 	if ths.GetAllCalled != nil {
 		return ths.GetAllCalled()
 	}

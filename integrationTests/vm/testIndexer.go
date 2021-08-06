@@ -9,21 +9,22 @@ import (
 
 	elasticIndexer "github.com/ElrondNetwork/elastic-indexer-go"
 	indexerTypes "github.com/ElrondNetwork/elastic-indexer-go/data"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/indexer"
-	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/stretchr/testify/require"
 )
 
 type testIndexer struct {
-	indexer          process.Indexer
+	outportDriver    outport.Driver
 	indexerData      map[string]*bytes.Buffer
 	marshalizer      marshal.Marshalizer
 	hasher           hashing.Hasher
@@ -51,24 +52,22 @@ func CreateTestIndexer(
 
 	dispatcher.StartIndexData()
 
-	txFeeCalculator, ok := economicsDataHandler.(process.TransactionFeeCalculator)
+	txFeeCalculator, ok := economicsDataHandler.(elasticIndexer.FeesProcessorHandler)
 	require.True(t, ok)
 
 	elasticProcessor := ti.createElasticProcessor(coordinator, txFeeCalculator)
 
 	arguments := elasticIndexer.ArgDataIndexer{
-		Marshalizer:        testMarshalizer,
-		NodesCoordinator:   &mock.NodesCoordinatorMock{},
-		EpochStartNotifier: &mock.EpochStartNotifierStub{},
-		ShardCoordinator:   coordinator,
-		ElasticProcessor:   elasticProcessor,
-		DataDispatcher:     dispatcher,
+		Marshalizer:      testMarshalizer,
+		ShardCoordinator: coordinator,
+		ElasticProcessor: elasticProcessor,
+		DataDispatcher:   dispatcher,
 	}
 
 	testIndexer, err := elasticIndexer.NewDataIndexer(arguments)
 	require.Nil(t, err)
 
-	ti.indexer = testIndexer
+	ti.outportDriver = testIndexer
 	ti.shardCoordinator = coordinator
 	ti.marshalizer = testMarshalizer
 	ti.hasher = testHasher
@@ -80,7 +79,7 @@ func CreateTestIndexer(
 
 func (ti *testIndexer) createElasticProcessor(
 	shardCoordinator sharding.Coordinator,
-	transactionFeeCalculator process.TransactionFeeCalculator,
+	transactionFeeCalculator elasticIndexer.FeesProcessorHandler,
 ) elasticIndexer.ElasticProcessor {
 	databaseClient := ti.createDatabaseClient()
 
@@ -101,7 +100,7 @@ func (ti *testIndexer) createElasticProcessor(
 		ValidatorPubkeyConverter: pubkeyConv,
 		DBClient:                 databaseClient,
 		EnabledIndexes:           enabledIndexesMap,
-		AccountsDB:               &testscommon.AccountsStub{},
+		AccountsDB:               &stateMock.AccountsStub{},
 		Denomination:             18,
 		TransactionFeeCalculator: transactionFeeCalculator,
 		IsInImportDBMode:         false,
@@ -174,13 +173,13 @@ func (ti *testIndexer) SaveTransaction(
 		Header:           header,
 		TransactionsPool: txsPool,
 	}
-	ti.indexer.SaveBlock(args)
+	ti.outportDriver.SaveBlock(args)
 
 	select {
 	case <-ti.saveDoneChan:
 		return
 	case <-time.After(timeoutSave):
-		require.Fail(ti.t, "save indexer item timeout")
+		require.Fail(ti.t, "save outportDriver item timeout")
 	}
 }
 

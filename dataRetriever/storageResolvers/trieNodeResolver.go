@@ -3,12 +3,12 @@ package storageResolvers
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/batch"
-	"github.com/ElrondNetwork/elrond-go/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/batch"
+	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 )
 
 // maxBuffToSendTrieNodes represents max buffer size to send in bytes
@@ -20,7 +20,7 @@ type ArgTrieResolver struct {
 	ResponseTopicName        string
 	Marshalizer              marshal.Marshalizer
 	TrieDataGetter           dataRetriever.TrieDataGetter
-	TrieStorageManager       data.StorageManager
+	TrieStorageManager       common.StorageManager
 	ManualEpochStartNotifier dataRetriever.ManualEpochStartNotifier
 	ChanGracefullyClose      chan endProcess.ArgEndProcess
 	DelayBeforeGracefulClose time.Duration
@@ -29,7 +29,7 @@ type ArgTrieResolver struct {
 type trieNodeResolver struct {
 	*storageResolver
 	trieDataGetter     dataRetriever.TrieDataGetter
-	trieStorageManager data.StorageManager
+	trieStorageManager common.StorageManager
 	marshalizer        marshal.Marshalizer
 }
 

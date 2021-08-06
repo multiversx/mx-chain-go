@@ -6,10 +6,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
@@ -202,7 +203,7 @@ func (ss *syncState) GetUnFinishedMetaBlocks() (map[string]*block.MetaBlock, err
 }
 
 // GetAllTries returns the synced tries
-func (ss *syncState) GetAllTries() (map[string]data.Trie, error) {
+func (ss *syncState) GetAllTries() (map[string]common.Trie, error) {
 	return ss.tries.GetTries()
 }
 

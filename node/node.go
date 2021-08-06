@@ -13,16 +13,17 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/partitioning"
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	disabledSig "github.com/ElrondNetwork/elrond-go-crypto/signing/disabled/singlesig"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/partitioning"
-	disabledSig "github.com/ElrondNetwork/elrond-go/crypto/signing/disabled/singlesig"
-	"github.com/ElrondNetwork/elrond-go/data/api"
-	"github.com/ElrondNetwork/elrond-go/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/facade"
@@ -35,10 +36,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	procTx "github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm-common/data/esdt"
 )
 
 const (
@@ -767,7 +768,7 @@ func (n *Node) commonTransactionValidation(
 		n.processComponents.ShardCoordinator(),
 		whiteListRequest,
 		n.coreComponents.AddressPubKeyConverter(),
-		core.MaxTxNonceDeltaAllowed,
+		common.MaxTxNonceDeltaAllowed,
 	)
 	if err != nil {
 		log.Warn("node.ValidateTransaction: can not instantiate a TxValidator",
@@ -838,7 +839,7 @@ func (n *Node) sendBulkTransactionsFromShard(transactions [][]byte, senderShardI
 	//the topic identifier is made of the current shard id and sender's shard id
 	identifier := factory.TransactionTopic + n.processComponents.ShardCoordinator().CommunicationIdentifier(senderShardId)
 
-	packets, err := dataPacker.PackDataInChunks(transactions, core.MaxBulkTransactionSize)
+	packets, err := dataPacker.PackDataInChunks(transactions, common.MaxBulkTransactionSize)
 	if err != nil {
 		return err
 	}
