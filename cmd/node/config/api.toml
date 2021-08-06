@@ -54,6 +54,9 @@
     
         # /address/:address/esdt will return the list of esdt tokens for a given account
         { Name = "/:address/esdt", Open = true },
+
+        # /:address/esdts/roles will return the list of esdt tokens and roles for a given account
+        { Name = "/:address/esdts/roles", Open = true },
     
         # /address/:address/esdt/:tokenIdentifier will return the balance for a given account and esdt tokenID
         { Name = "/:address/esdt/:tokenIdentifier", Open = true },
