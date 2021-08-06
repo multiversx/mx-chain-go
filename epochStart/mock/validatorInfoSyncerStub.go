@@ -1,8 +1,8 @@
 package mock
 
 import (
-	data "github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	data "github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 )
 
 // ValidatorInfoSyncerStub -

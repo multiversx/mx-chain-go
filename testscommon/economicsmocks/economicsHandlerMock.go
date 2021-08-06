@@ -3,7 +3,7 @@ package economicsmocks
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 )
 
 // EconomicsHandlerMock -
@@ -17,25 +17,25 @@ type EconomicsHandlerMock struct {
 	SetMinGasPriceCalled                         func(minGasPrice uint64)
 	SetMinGasLimitCalled                         func(minGasLimit uint64)
 	MaxGasLimitPerBlockCalled                    func(shard uint32) uint64
-	ComputeGasLimitCalled                        func(tx process.TransactionWithFeeHandler) uint64
-	ComputeFeeCalled                             func(tx process.TransactionWithFeeHandler) *big.Int
-	CheckValidityTxValuesCalled                  func(tx process.TransactionWithFeeHandler) error
-	ComputeMoveBalanceFeeCalled                  func(tx process.TransactionWithFeeHandler) *big.Int
-	ComputeTxFeeCalled                           func(tx process.TransactionWithFeeHandler) *big.Int
+	ComputeGasLimitCalled                        func(tx data.TransactionWithFeeHandler) uint64
+	ComputeFeeCalled                             func(tx data.TransactionWithFeeHandler) *big.Int
+	CheckValidityTxValuesCalled                  func(tx data.TransactionWithFeeHandler) error
+	ComputeMoveBalanceFeeCalled                  func(tx data.TransactionWithFeeHandler) *big.Int
+	ComputeTxFeeCalled                           func(tx data.TransactionWithFeeHandler) *big.Int
 	DeveloperPercentageCalled                    func() float64
 	MinGasPriceCalled                            func() uint64
 	GasPerDataByteCalled                         func() uint64
 	RewardsTopUpGradientPointCalled              func() *big.Int
 	RewardsTopUpFactorCalled                     func() float64
-	ComputeFeeForProcessingCalled                func(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int
+	ComputeFeeForProcessingCalled                func(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int
 	GasPriceModifierCalled                       func() float64
-	SplitTxGasInCategoriesCalled                 func(tx process.TransactionWithFeeHandler) (uint64, uint64)
-	GasPriceForProcessingCalled                  func(tx process.TransactionWithFeeHandler) uint64
-	GasPriceForMoveCalled                        func(tx process.TransactionWithFeeHandler) uint64
+	SplitTxGasInCategoriesCalled                 func(tx data.TransactionWithFeeHandler) (uint64, uint64)
+	GasPriceForProcessingCalled                  func(tx data.TransactionWithFeeHandler) uint64
+	GasPriceForMoveCalled                        func(tx data.TransactionWithFeeHandler) uint64
 	MinGasPriceForProcessingCalled               func() uint64
-	ComputeGasUsedAndFeeBasedOnRefundValueCalled func(tx process.TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int)
-	ComputeTxFeeBasedOnGasUsedCalled             func(tx process.TransactionWithFeeHandler, gasUsed uint64) *big.Int
-	ComputeGasLimitBasedOnBalanceCalled          func(tx process.TransactionWithFeeHandler, balance *big.Int) (uint64, error)
+	ComputeGasUsedAndFeeBasedOnRefundValueCalled func(tx data.TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int)
+	ComputeTxFeeBasedOnGasUsedCalled             func(tx data.TransactionWithFeeHandler, gasUsed uint64) *big.Int
+	ComputeGasLimitBasedOnBalanceCalled          func(tx data.TransactionWithFeeHandler, balance *big.Int) (uint64, error)
 }
 
 // LeaderPercentage -
@@ -112,7 +112,7 @@ func (ehm *EconomicsHandlerMock) MaxGasLimitPerBlock(shard uint32) uint64 {
 }
 
 // ComputeGasLimit -
-func (ehm *EconomicsHandlerMock) ComputeGasLimit(tx process.TransactionWithFeeHandler) uint64 {
+func (ehm *EconomicsHandlerMock) ComputeGasLimit(tx data.TransactionWithFeeHandler) uint64 {
 	if ehm.ComputeGasLimitCalled != nil {
 		return ehm.ComputeGasLimitCalled(tx)
 	}
@@ -120,7 +120,7 @@ func (ehm *EconomicsHandlerMock) ComputeGasLimit(tx process.TransactionWithFeeHa
 }
 
 // ComputeFee -
-func (ehm *EconomicsHandlerMock) ComputeFee(tx process.TransactionWithFeeHandler) *big.Int {
+func (ehm *EconomicsHandlerMock) ComputeFee(tx data.TransactionWithFeeHandler) *big.Int {
 	if ehm.ComputeFeeCalled != nil {
 		return ehm.ComputeFeeCalled(tx)
 	}
@@ -128,7 +128,7 @@ func (ehm *EconomicsHandlerMock) ComputeFee(tx process.TransactionWithFeeHandler
 }
 
 // CheckValidityTxValues -
-func (ehm *EconomicsHandlerMock) CheckValidityTxValues(tx process.TransactionWithFeeHandler) error {
+func (ehm *EconomicsHandlerMock) CheckValidityTxValues(tx data.TransactionWithFeeHandler) error {
 	if ehm.CheckValidityTxValuesCalled != nil {
 		return ehm.CheckValidityTxValuesCalled(tx)
 	}
@@ -136,7 +136,7 @@ func (ehm *EconomicsHandlerMock) CheckValidityTxValues(tx process.TransactionWit
 }
 
 // ComputeMoveBalanceFee -
-func (ehm *EconomicsHandlerMock) ComputeMoveBalanceFee(tx process.TransactionWithFeeHandler) *big.Int {
+func (ehm *EconomicsHandlerMock) ComputeMoveBalanceFee(tx data.TransactionWithFeeHandler) *big.Int {
 	if ehm.ComputeMoveBalanceFeeCalled != nil {
 		return ehm.ComputeMoveBalanceFeeCalled(tx)
 	}
@@ -145,7 +145,7 @@ func (ehm *EconomicsHandlerMock) ComputeMoveBalanceFee(tx process.TransactionWit
 }
 
 // ComputeGasLimitBasedOnBalance -
-func (ehm *EconomicsHandlerMock) ComputeGasLimitBasedOnBalance(tx process.TransactionWithFeeHandler, balance *big.Int) (uint64, error) {
+func (ehm *EconomicsHandlerMock) ComputeGasLimitBasedOnBalance(tx data.TransactionWithFeeHandler, balance *big.Int) (uint64, error) {
 	if ehm.ComputeGasLimitBasedOnBalanceCalled != nil {
 		return ehm.ComputeGasLimitBasedOnBalanceCalled(tx, balance)
 	}
@@ -153,7 +153,7 @@ func (ehm *EconomicsHandlerMock) ComputeGasLimitBasedOnBalance(tx process.Transa
 }
 
 // ComputeTxFee -
-func (ehm *EconomicsHandlerMock) ComputeTxFee(tx process.TransactionWithFeeHandler) *big.Int {
+func (ehm *EconomicsHandlerMock) ComputeTxFee(tx data.TransactionWithFeeHandler) *big.Int {
 	if ehm.ComputeTxFeeCalled != nil {
 		return ehm.ComputeTxFeeCalled(tx)
 	}
@@ -177,7 +177,7 @@ func (ehm *EconomicsHandlerMock) RewardsTopUpFactor() float64 {
 }
 
 // ComputeFeeForProcessing -
-func (ehm *EconomicsHandlerMock) ComputeFeeForProcessing(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
+func (ehm *EconomicsHandlerMock) ComputeFeeForProcessing(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
 	if ehm.ComputeFeeForProcessingCalled != nil {
 		return ehm.ComputeFeeForProcessingCalled(tx, gasToUse)
 	}
@@ -193,7 +193,7 @@ func (ehm *EconomicsHandlerMock) GasPriceModifier() float64 {
 }
 
 // SplitTxGasInCategories -
-func (ehm *EconomicsHandlerMock) SplitTxGasInCategories(tx process.TransactionWithFeeHandler) (uint64, uint64) {
+func (ehm *EconomicsHandlerMock) SplitTxGasInCategories(tx data.TransactionWithFeeHandler) (uint64, uint64) {
 	if ehm.SplitTxGasInCategoriesCalled != nil {
 		return ehm.SplitTxGasInCategoriesCalled(tx)
 	}
@@ -201,7 +201,7 @@ func (ehm *EconomicsHandlerMock) SplitTxGasInCategories(tx process.TransactionWi
 }
 
 // GasPriceForProcessing -
-func (ehm *EconomicsHandlerMock) GasPriceForProcessing(tx process.TransactionWithFeeHandler) uint64 {
+func (ehm *EconomicsHandlerMock) GasPriceForProcessing(tx data.TransactionWithFeeHandler) uint64 {
 	if ehm.GasPriceForProcessingCalled != nil {
 		return ehm.GasPriceForProcessingCalled(tx)
 	}
@@ -209,7 +209,7 @@ func (ehm *EconomicsHandlerMock) GasPriceForProcessing(tx process.TransactionWit
 }
 
 // GasPriceForMove -
-func (ehm *EconomicsHandlerMock) GasPriceForMove(tx process.TransactionWithFeeHandler) uint64 {
+func (ehm *EconomicsHandlerMock) GasPriceForMove(tx data.TransactionWithFeeHandler) uint64 {
 	if ehm.GasPriceForMoveCalled != nil {
 		return ehm.GasPriceForMoveCalled(tx)
 	}
@@ -225,7 +225,7 @@ func (ehm *EconomicsHandlerMock) MinGasPriceForProcessing() uint64 {
 }
 
 // ComputeGasUsedAndFeeBasedOnRefundValue -
-func (ehm *EconomicsHandlerMock) ComputeGasUsedAndFeeBasedOnRefundValue(tx process.TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int) {
+func (ehm *EconomicsHandlerMock) ComputeGasUsedAndFeeBasedOnRefundValue(tx data.TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int) {
 	if ehm.ComputeGasUsedAndFeeBasedOnRefundValueCalled != nil {
 		return ehm.ComputeGasUsedAndFeeBasedOnRefundValueCalled(tx, refundValue)
 	}
@@ -233,7 +233,7 @@ func (ehm *EconomicsHandlerMock) ComputeGasUsedAndFeeBasedOnRefundValue(tx proce
 }
 
 // ComputeTxFeeBasedOnGasUsed -
-func (ehm *EconomicsHandlerMock) ComputeTxFeeBasedOnGasUsed(tx process.TransactionWithFeeHandler, gasUsed uint64) *big.Int {
+func (ehm *EconomicsHandlerMock) ComputeTxFeeBasedOnGasUsed(tx data.TransactionWithFeeHandler, gasUsed uint64) *big.Int {
 	if ehm.ComputeTxFeeBasedOnGasUsedCalled != nil {
 		return ehm.ComputeTxFeeBasedOnGasUsedCalled(tx, gasUsed)
 	}

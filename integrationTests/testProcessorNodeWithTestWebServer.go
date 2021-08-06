@@ -5,11 +5,11 @@ import (
 	"net/http/httptest"
 	"sync"
 
-	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
+	dataTransaction "github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/api"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/config"
-	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
 	nodeFacade "github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/node/external"
@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
+	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
@@ -134,16 +135,18 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		Marshalizer:      TestMarshalizer,
 		Accounts:         tpn.AccntState,
 		ShardCoordinator: tpn.ShardCoordinator,
+		EpochNotifier:    tpn.EpochNotifier,
 	}
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	log.LogIfError(err)
-
+	esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:  TestAddressPubkeyConverter,
-		ShardCoordinator: tpn.ShardCoordinator,
-		BuiltInFuncNames: builtInFuncs.Keys(),
-		ArgumentParser:   parsers.NewCallArgsParser(),
-		EpochNotifier:    tpn.EpochNotifier,
+		PubkeyConverter:    TestAddressPubkeyConverter,
+		ShardCoordinator:   tpn.ShardCoordinator,
+		BuiltInFunctions:   builtInFuncs,
+		ArgumentParser:     parsers.NewCallArgsParser(),
+		EpochNotifier:      tpn.EpochNotifier,
+		ESDTTransferParser: esdtTransferParser,
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	log.LogIfError(err)
@@ -152,8 +155,8 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		txTypeHandler,
 		tpn.EconomicsData,
 		&mock.TransactionSimulatorStub{
-			ProcessTxCalled: func(tx *dataTransaction.Transaction) (*dataTransaction.SimulationResults, error) {
-				return &dataTransaction.SimulationResults{}, nil
+			ProcessTxCalled: func(tx *dataTransaction.Transaction) (*txSimData.SimulationResults, error) {
+				return &txSimData.SimulationResults{}, nil
 			},
 		},
 		tpn.AccntState,

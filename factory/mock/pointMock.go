@@ -1,6 +1,6 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/crypto"
+import "github.com/ElrondNetwork/elrond-go-crypto"
 
 // PointMock represents a mock implementation for a Point
 type PointMock struct {

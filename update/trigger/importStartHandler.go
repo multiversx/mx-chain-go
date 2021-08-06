@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
@@ -95,7 +95,7 @@ func (ish *importStartHandler) SetStartImport() error {
 	file, err := os.OpenFile(
 		filepath.Join(ish.getFilename()),
 		os.O_CREATE|os.O_APPEND|os.O_WRONLY,
-		core.FileModeUserReadWrite,
+		core.FileModeReadWrite,
 	)
 	if err != nil {
 		return err

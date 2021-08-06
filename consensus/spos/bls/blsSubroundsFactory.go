@@ -3,9 +3,10 @@ package bls
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/outport"
 )
 
 // factory defines the data needed by this factory to create all the subrounds and give them their specific
@@ -16,7 +17,7 @@ type factory struct {
 	worker         spos.WorkerHandler
 
 	appStatusHandler core.AppStatusHandler
-	indexer          spos.ConsensusDataIndexer
+	outportHandler   outport.OutportHandler
 	chainID          []byte
 	currentPid       core.PeerID
 }
@@ -80,9 +81,9 @@ func checkNewFactoryParams(
 	return nil
 }
 
-// SetIndexer method will update the value of the factory's indexer
-func (fct *factory) SetIndexer(indexer spos.ConsensusDataIndexer) {
-	fct.indexer = indexer
+// SetOutportHandler method will update the value of the factory's outport
+func (fct *factory) SetOutportHandler(driver outport.OutportHandler) {
+	fct.outportHandler = driver
 }
 
 // GenerateSubrounds will generate the subrounds used in BLS Cns
@@ -149,7 +150,10 @@ func (fct *factory) generateStartRoundSubround() error {
 		return err
 	}
 
-	subroundStartRound.SetIndexer(fct.indexer)
+	err = subroundStartRound.SetOutportHandler(fct.outportHandler)
+	if err != nil {
+		return err
+	}
 
 	fct.consensusCore.Chronology().AddSubround(subroundStartRound)
 

@@ -5,10 +5,10 @@ import (
 	"crypto/rand"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -68,7 +69,7 @@ func createMockEpochStartCreatorArguments() ArgsNewEpochStartData {
 		Marshalizer:       &mock.MarshalizerMock{},
 		Hasher:            &mock.HasherStub{},
 		Store:             createMetaStore(),
-		DataPool:          testscommon.NewPoolsHolderStub(),
+		DataPool:          dataRetrieverMock.NewPoolsHolderStub(),
 		BlockTracker:      mock.NewBlockTrackerMock(shardCoordinator, startHeaders),
 		ShardCoordinator:  shardCoordinator,
 		EpochStartTrigger: &mock.EpochStartTriggerStub{},
@@ -240,7 +241,7 @@ func TestEpochStartCreator_getLastFinalizedMetaHashForShardShouldWork(t *testing
 		},
 	}
 
-	dPool := testscommon.NewPoolsHolderStub()
+	dPool := dataRetrieverMock.NewPoolsHolderStub()
 	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return testscommon.NewShardedDataStub()
 	}
@@ -320,7 +321,7 @@ func TestMetaProcessor_CreateEpochStartFromMetaBlockShouldWork(t *testing.T) {
 	hdr.Nonce = 1
 	startHeaders[0] = hdr
 
-	dPool := testscommon.NewPoolsHolderStub()
+	dPool := dataRetrieverMock.NewPoolsHolderStub()
 	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return testscommon.NewShardedDataStub()
 	}
@@ -392,7 +393,7 @@ func TestMetaProcessor_CreateEpochStartFromMetaBlockEdgeCaseChecking(t *testing.
 	}
 	arguments.Hasher = &mock.HasherMock{}
 	arguments.ShardCoordinator, _ = sharding.NewMultiShardCoordinator(3, core.MetachainShardId)
-	arguments.DataPool = testscommon.CreatePoolsHolder(1, core.MetachainShardId)
+	arguments.DataPool = dataRetrieverMock.CreatePoolsHolder(1, core.MetachainShardId)
 
 	startHeaders := createGenesisBlocks(arguments.ShardCoordinator)
 	blockTracker := mock.NewBlockTrackerMock(arguments.ShardCoordinator, startHeaders)

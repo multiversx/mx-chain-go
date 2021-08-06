@@ -3,15 +3,16 @@ package txsimulator
 import (
 	"encoding/hex"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/receipt"
-	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/receipt"
+	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -74,7 +75,7 @@ func NewTransactionSimulator(args ArgsTxSimulator) (*transactionSimulator, error
 }
 
 // ProcessTx will process the transaction in a special environment, where state-writing is not allowed
-func (ts *transactionSimulator) ProcessTx(tx *transaction.Transaction) (*transaction.SimulationResults, error) {
+func (ts *transactionSimulator) ProcessTx(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
 	txStatus := transaction.TxStatusPending
 	failReason := ""
 
@@ -88,7 +89,7 @@ func (ts *transactionSimulator) ProcessTx(tx *transaction.Transaction) (*transac
 		}
 	}
 
-	results := &transaction.SimulationResults{
+	results := &txSimData.SimulationResults{
 		Status:     txStatus,
 		FailReason: failReason,
 	}
@@ -127,7 +128,7 @@ func (ts *transactionSimulator) getVMOutputOfTx(tx *transaction.Transaction) (*v
 	return vmOutput, true
 }
 
-func (ts *transactionSimulator) addIntermediateTxsToResult(result *transaction.SimulationResults) error {
+func (ts *transactionSimulator) addIntermediateTxsToResult(result *txSimData.SimulationResults) error {
 	defer func() {
 		processorsKeys := ts.intermProcContainer.Keys()
 		for _, procKey := range processorsKeys {

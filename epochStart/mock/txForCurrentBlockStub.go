@@ -1,6 +1,6 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/data"
+import "github.com/ElrondNetwork/elrond-go-core/data"
 
 // TxForCurrentBlockStub -
 type TxForCurrentBlockStub struct {
@@ -35,4 +35,3 @@ func (t *TxForCurrentBlockStub) AddTx(txHash []byte, tx data.TransactionHandler)
 func (t *TxForCurrentBlockStub) IsInterfaceNil() bool {
 	return t == nil
 }
-

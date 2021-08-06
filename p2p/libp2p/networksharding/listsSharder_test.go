@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/peersholder"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/peersholder"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
@@ -84,6 +84,18 @@ func createMockListSharderArguments() ArgListsSharder {
 			},
 		},
 	}
+}
+
+func TestNewListsSharder_InvalidMinimumTargetPeerCountShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockListSharderArguments()
+	arg.P2pConfig.Sharding.TargetPeerCount = minAllowedConnectedPeersListSharder - 1
+	ls, err := NewListsSharder(arg)
+
+	assert.True(t, check.IfNil(ls))
+	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
+	assert.True(t, strings.Contains(err.Error(), "maxPeerCount should be at least"))
 }
 
 func TestNewListsSharder_NilPeerShardResolverShouldErr(t *testing.T) {
@@ -163,14 +175,55 @@ func TestNewListsSharder_NilPreferredPeersShouldErr(t *testing.T) {
 	assert.True(t, errors.Is(err, p2p.ErrNilPreferredPeersHolder))
 }
 
-func TestNewListsSharder_ShouldWork(t *testing.T) {
+func TestNewListsSharder_NormalShouldWork(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockListSharderArguments()
+	arg.P2pConfig.Sharding.TargetPeerCount = 25
+	arg.P2pConfig.Sharding.MaxIntraShardValidators = 6
+	arg.P2pConfig.Sharding.MaxCrossShardValidators = 5
+	arg.P2pConfig.Sharding.MaxIntraShardObservers = 4
+	arg.P2pConfig.Sharding.MaxCrossShardObservers = 3
+	arg.P2pConfig.Sharding.MaxSeeders = 2
+	arg.P2pConfig.Sharding.AdditionalConnections.MaxFullHistoryObservers = 1
 	ls, err := NewListsSharder(arg)
 
 	assert.False(t, check.IfNil(ls))
 	assert.Nil(t, err)
+	assert.Equal(t, 25, ls.maxPeerCount)
+	assert.Equal(t, 6, ls.maxIntraShardValidators)
+	assert.Equal(t, 5, ls.maxCrossShardValidators)
+	assert.Equal(t, 4, ls.maxIntraShardObservers)
+	assert.Equal(t, 3, ls.maxCrossShardObservers)
+	assert.Equal(t, 2, ls.maxSeeders)
+	assert.Equal(t, 0, ls.maxFullHistoryObservers)
+	assert.Equal(t, 5, ls.maxUnknown)
+}
+
+func TestNewListsSharder_FullArchiveShouldWork(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockListSharderArguments()
+	arg.NodeOperationMode = p2p.FullArchiveMode
+	arg.P2pConfig.Sharding.TargetPeerCount = 25
+	arg.P2pConfig.Sharding.MaxIntraShardValidators = 6
+	arg.P2pConfig.Sharding.MaxCrossShardValidators = 5
+	arg.P2pConfig.Sharding.MaxIntraShardObservers = 4
+	arg.P2pConfig.Sharding.MaxCrossShardObservers = 3
+	arg.P2pConfig.Sharding.MaxSeeders = 2
+	arg.P2pConfig.Sharding.AdditionalConnections.MaxFullHistoryObservers = 1
+	ls, err := NewListsSharder(arg)
+
+	assert.False(t, check.IfNil(ls))
+	assert.Nil(t, err)
+	assert.Equal(t, 26, ls.maxPeerCount)
+	assert.Equal(t, 6, ls.maxIntraShardValidators)
+	assert.Equal(t, 5, ls.maxCrossShardValidators)
+	assert.Equal(t, 4, ls.maxIntraShardObservers)
+	assert.Equal(t, 3, ls.maxCrossShardObservers)
+	assert.Equal(t, 2, ls.maxSeeders)
+	assert.Equal(t, 1, ls.maxFullHistoryObservers)
+	assert.Equal(t, 5, ls.maxUnknown)
 }
 
 //------- ComputeEvictionList

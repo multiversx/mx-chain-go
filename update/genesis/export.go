@@ -8,15 +8,16 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
@@ -254,7 +255,7 @@ func (se *stateExport) exportMetaBlock(metaBlock *block.MetaBlock, identifier st
 	return nil
 }
 
-func (se *stateExport) exportTrie(key string, trie data.Trie) error {
+func (se *stateExport) exportTrie(key string, trie common.Trie) error {
 	identifier := TrieIdentifier + atSep + key
 
 	accType, shId, err := GetTrieTypeAndShId(identifier)
@@ -279,7 +280,7 @@ func (se *stateExport) exportTrie(key string, trie data.Trie) error {
 			return err
 		}
 
-		nodesSetupFilePath := filepath.Join(se.exportFolder, core.NodesSetupJsonFileName)
+		nodesSetupFilePath := filepath.Join(se.exportFolder, common.NodesSetupJsonFileName)
 		err = se.exportNodesSetupJson(validatorData)
 		if err == nil {
 			log.Debug("hardfork nodesSetup.json exported successfully", "file path", nodesSetupFilePath)
@@ -390,7 +391,7 @@ func (se *stateExport) exportTx(key string, tx data.TransactionHandler) error {
 }
 
 func (se *stateExport) exportNodesSetupJson(validators map[uint32][]*state.ValidatorInfo) error {
-	acceptedListsForExport := []core.PeerType{core.EligibleList, core.WaitingList, core.JailedList}
+	acceptedListsForExport := []common.PeerType{common.EligibleList, common.WaitingList, common.JailedList}
 	initialNodes := make([]*sharding.InitialNode, 0)
 
 	for _, validatorsInShard := range validators {
@@ -427,7 +428,7 @@ func (se *stateExport) exportNodesSetupJson(validators map[uint32][]*state.Valid
 		return err
 	}
 
-	return ioutil.WriteFile(filepath.Join(se.exportFolder, core.NodesSetupJsonFileName), nodesSetupBytes, 0664)
+	return ioutil.WriteFile(filepath.Join(se.exportFolder, common.NodesSetupJsonFileName), nodesSetupBytes, 0664)
 }
 
 // IsInterfaceNil returns true if underlying object is nil

@@ -6,12 +6,13 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
+	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/logging"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/logging"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/urfave/cli"
 )
@@ -46,7 +47,7 @@ VERSION:
 // windows:
 //            for /f %i in ('git describe --tags --long --dirty') do set VERS=%i
 //            go build -i -v -ldflags="-X main.appVersion=%VERS%"
-var appVersion = core.UnVersionedAppString
+var appVersion = common.UnVersionedAppString
 
 func main() {
 	_ = logger.SetDisplayByteSlice(logger.ToHexShort)
@@ -128,63 +129,63 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*config.Configs, error) {
 	configurationPaths := &config.ConfigurationPathsHolder{}
 
 	configurationPaths.MainConfig = ctx.GlobalString(configurationFile.Name)
-	generalConfig, err := core.LoadMainConfig(configurationPaths.MainConfig)
+	generalConfig, err := common.LoadMainConfig(configurationPaths.MainConfig)
 	if err != nil {
 		return nil, err
 	}
 	log.Debug("config", "file", configurationPaths.MainConfig)
 
 	configurationPaths.ApiRoutes = ctx.GlobalString(configurationApiFile.Name)
-	apiRoutesConfig, err := core.LoadApiConfig(configurationPaths.ApiRoutes)
+	apiRoutesConfig, err := common.LoadApiConfig(configurationPaths.ApiRoutes)
 	if err != nil {
 		return nil, err
 	}
 	log.Debug("config", "file", configurationPaths.ApiRoutes)
 
 	configurationPaths.Economics = ctx.GlobalString(configurationEconomicsFile.Name)
-	economicsConfig, err := core.LoadEconomicsConfig(configurationPaths.Economics)
+	economicsConfig, err := common.LoadEconomicsConfig(configurationPaths.Economics)
 	if err != nil {
 		return nil, err
 	}
 	log.Debug("config", "file", configurationPaths.Economics)
 
 	configurationPaths.SystemSC = ctx.GlobalString(configurationSystemSCFile.Name)
-	systemSCConfig, err := core.LoadSystemSmartContractsConfig(configurationPaths.SystemSC)
+	systemSCConfig, err := common.LoadSystemSmartContractsConfig(configurationPaths.SystemSC)
 	if err != nil {
 		return nil, err
 	}
 	log.Debug("config", "file", configurationPaths.SystemSC)
 
 	configurationPaths.Ratings = ctx.GlobalString(configurationRatingsFile.Name)
-	ratingsConfig, err := core.LoadRatingsConfig(configurationPaths.Ratings)
+	ratingsConfig, err := common.LoadRatingsConfig(configurationPaths.Ratings)
 	if err != nil {
 		return nil, err
 	}
 	log.Debug("config", "file", configurationPaths.Ratings)
 
 	configurationPaths.Preferences = ctx.GlobalString(configurationPreferencesFile.Name)
-	preferencesConfig, err := core.LoadPreferencesConfig(configurationPaths.Preferences)
+	preferencesConfig, err := common.LoadPreferencesConfig(configurationPaths.Preferences)
 	if err != nil {
 		return nil, err
 	}
 	log.Debug("config", "file", configurationPaths.Preferences)
 
 	configurationPaths.External = ctx.GlobalString(externalConfigFile.Name)
-	externalConfig, err := core.LoadExternalConfig(configurationPaths.External)
+	externalConfig, err := common.LoadExternalConfig(configurationPaths.External)
 	if err != nil {
 		return nil, err
 	}
 	log.Debug("config", "file", configurationPaths.External)
 
 	configurationPaths.P2p = ctx.GlobalString(p2pConfigurationFile.Name)
-	p2pConfig, err := core.LoadP2PConfig(configurationPaths.P2p)
+	p2pConfig, err := common.LoadP2PConfig(configurationPaths.P2p)
 	if err != nil {
 		return nil, err
 	}
 	log.Debug("config", "file", configurationPaths.P2p)
 
 	configurationPaths.Epoch = ctx.GlobalString(epochConfigurationFile.Name)
-	epochConfig, err := core.LoadEpochConfig(configurationPaths.Epoch)
+	epochConfig, err := common.LoadEpochConfig(configurationPaths.Epoch)
 	if err != nil {
 		return nil, err
 	}

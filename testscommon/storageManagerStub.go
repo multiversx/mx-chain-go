@@ -1,28 +1,28 @@
 package testscommon
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go/common"
 )
 
 // StorageManagerStub -
 type StorageManagerStub struct {
-	DatabaseCalled                    func() data.DBWriteCacher
+	DatabaseCalled                    func() common.DBWriteCacher
 	TakeSnapshotCalled                func([]byte, bool, chan core.KeyValueHolder)
 	SetCheckpointCalled               func([]byte, chan core.KeyValueHolder)
-	GetDbThatContainsHashCalled       func([]byte) data.DBWriteCacher
-	GetSnapshotThatContainsHashCalled func(rootHash []byte) data.SnapshotDbHandler
+	GetDbThatContainsHashCalled       func([]byte) common.DBWriteCacher
+	GetSnapshotThatContainsHashCalled func(rootHash []byte) common.SnapshotDbHandler
 	IsPruningEnabledCalled            func() bool
 	IsPruningBlockedCalled            func() bool
 	EnterPruningBufferingModeCalled   func()
 	ExitPruningBufferingModeCalled    func()
-	AddDirtyCheckpointHashesCalled    func([]byte, data.ModifiedHashes) bool
+	AddDirtyCheckpointHashesCalled    func([]byte, common.ModifiedHashes) bool
 	RemoveCalled                      func([]byte) error
 	IsInterfaceNilCalled              func() bool
 }
 
 // Database -
-func (sms *StorageManagerStub) Database() data.DBWriteCacher {
+func (sms *StorageManagerStub) Database() common.DBWriteCacher {
 	if sms.DatabaseCalled != nil {
 		return sms.DatabaseCalled()
 	}
@@ -44,7 +44,7 @@ func (sms *StorageManagerStub) SetCheckpoint(rootHash []byte, leavesChan chan co
 }
 
 // GetSnapshotThatContainsHash -
-func (sms *StorageManagerStub) GetSnapshotThatContainsHash(d []byte) data.SnapshotDbHandler {
+func (sms *StorageManagerStub) GetSnapshotThatContainsHash(d []byte) common.SnapshotDbHandler {
 	if sms.GetSnapshotThatContainsHashCalled != nil {
 		return sms.GetSnapshotThatContainsHashCalled(d)
 	}
@@ -83,7 +83,7 @@ func (sms *StorageManagerStub) ExitPruningBufferingMode() {
 }
 
 // AddDirtyCheckpointHashes -
-func (sms *StorageManagerStub) AddDirtyCheckpointHashes(rootHash []byte, hashes data.ModifiedHashes) bool {
+func (sms *StorageManagerStub) AddDirtyCheckpointHashes(rootHash []byte, hashes common.ModifiedHashes) bool {
 	if sms.AddDirtyCheckpointHashesCalled != nil {
 		return sms.AddDirtyCheckpointHashesCalled(rootHash, hashes)
 	}

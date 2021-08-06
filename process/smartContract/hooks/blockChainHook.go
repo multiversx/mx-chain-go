@@ -9,24 +9,24 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
+	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go-core/hashing/keccak"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm-common/data/esdt"
 )
 
 var _ process.BlockChainHookHandler = (*BlockChainHookImpl)(nil)
@@ -146,13 +146,17 @@ func (bh *BlockChainHookImpl) GetCode(account vmcommon.UserAccountHandler) []byt
 	return bh.accounts.GetCode(account.GetCodeHash())
 }
 
+func (bh *BlockChainHookImpl) isNotSystemAccountAndCrossShard(address []byte) bool {
+	dstShardId := bh.shardCoordinator.ComputeId(address)
+	return !core.IsSystemAccountAddress(address) && dstShardId != bh.shardCoordinator.SelfId()
+}
+
 // GetUserAccount returns the balance of a shard account
 func (bh *BlockChainHookImpl) GetUserAccount(address []byte) (vmcommon.UserAccountHandler, error) {
 	defer stopMeasure(startMeasure("GetUserAccount"))
 
-	dstShardId := bh.shardCoordinator.ComputeId(address)
-	if !core.IsSystemAccountAddress(address) && dstShardId != bh.shardCoordinator.SelfId() {
-		return nil, nil
+	if bh.isNotSystemAccountAndCrossShard(address) {
+		return nil, state.ErrAccNotFound
 	}
 
 	acc, err := bh.accounts.GetExistingAccount(address)
@@ -397,15 +401,16 @@ func (bh *BlockChainHookImpl) IsPayable(address []byte) (bool, error) {
 		return true, nil
 	}
 
+	if bh.isNotSystemAccountAndCrossShard(address) {
+		return true, nil
+	}
+
 	userAcc, err := bh.GetUserAccount(address)
 	if err == state.ErrAccNotFound {
 		return false, nil
 	}
 	if err != nil {
 		return false, err
-	}
-	if check.IfNil(userAcc) {
-		return true, nil
 	}
 
 	metadata := vmcommon.CodeMetadataFromBytes(userAcc.GetCodeMetadata())
@@ -455,6 +460,11 @@ func (bh *BlockChainHookImpl) getUserAccounts(
 // GetBuiltinFunctionNames returns the built in function names
 func (bh *BlockChainHookImpl) GetBuiltinFunctionNames() vmcommon.FunctionNames {
 	return bh.builtInFunctions.Keys()
+}
+
+// GetBuiltinFunctionsContainer returns the built in functions container
+func (bh *BlockChainHookImpl) GetBuiltinFunctionsContainer() vmcommon.BuiltInFunctionContainer {
+	return bh.builtInFunctions
 }
 
 // GetAllState returns the underlying state of a given account

@@ -9,9 +9,10 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -196,7 +197,7 @@ func (ldp *latestDataProvider) loadEpochStartRound(
 	key []byte,
 	storer storage.Storer,
 ) (uint64, error) {
-	trigInternalKey := append([]byte(core.TriggerRegistryKeyPrefix), key...)
+	trigInternalKey := append([]byte(common.TriggerRegistryKeyPrefix), key...)
 	data, err := storer.Get(trigInternalKey)
 	if err != nil {
 		return 0, err

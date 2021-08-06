@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/batch"
-	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/batch"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -220,7 +221,7 @@ func (bdi *baseDataInterceptor) blackListPeers(cause string, err error, peers ..
 	}
 
 	for _, p := range peers {
-		bdi.antifloodHandler.BlacklistPeer(p, reason, core.InvalidMessageBlacklistDuration)
+		bdi.antifloodHandler.BlacklistPeer(p, reason, common.InvalidMessageBlacklistDuration)
 	}
 }
 

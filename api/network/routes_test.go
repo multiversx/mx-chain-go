@@ -12,15 +12,15 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
 	"github.com/ElrondNetwork/elrond-go/api/network"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/gin-contrib/cors"
@@ -70,7 +70,7 @@ func TestNetworkConfigMetrics_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	statusMetricsProvider := statusHandler.NewStatusMetrics()
-	key := core.MetricMinGasLimit
+	key := common.MetricMinGasLimit
 	value := uint64(37)
 	statusMetricsProvider.SetUInt64Value(key, value)
 
@@ -111,7 +111,7 @@ func TestNetworkStatusMetrics_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	statusMetricsProvider := statusHandler.NewStatusMetrics()
-	key := core.MetricEpochNumber
+	key := common.MetricEpochNumber
 	value := uint64(37)
 	statusMetricsProvider.SetUInt64Value(key, value)
 
@@ -164,7 +164,7 @@ func TestEconomicsMetrics_NilContextShouldErr(t *testing.T) {
 
 func TestEconomicsMetrics_ShouldWork(t *testing.T) {
 	statusMetricsProvider := statusHandler.NewStatusMetrics()
-	key := core.MetricTotalSupply
+	key := common.MetricTotalSupply
 	value := "12345"
 	statusMetricsProvider.SetStringValue(key, value)
 
@@ -195,7 +195,7 @@ func TestEconomicsMetrics_ShouldWork(t *testing.T) {
 
 func TestEconomicsMetrics_CannotGetStakeValues(t *testing.T) {
 	statusMetricsProvider := statusHandler.NewStatusMetrics()
-	key := core.MetricTotalSupply
+	key := common.MetricTotalSupply
 	value := "12345"
 	statusMetricsProvider.SetStringValue(key, value)
 
@@ -441,7 +441,7 @@ func TestGetEnableEpochs_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	statusMetrics := statusHandler.NewStatusMetrics()
-	key := core.MetricScDeployEnableEpoch
+	key := common.MetricScDeployEnableEpoch
 	value := uint64(4)
 	statusMetrics.SetUInt64Value(key, value)
 

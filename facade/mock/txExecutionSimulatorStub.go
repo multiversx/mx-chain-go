@@ -1,21 +1,22 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
 )
 
 // TxExecutionSimulatorStub -
 type TxExecutionSimulatorStub struct {
-	ProcessTxCalled func(tx *transaction.Transaction) (*transaction.SimulationResults, error)
+	ProcessTxCalled func(tx *transaction.Transaction) (*txSimData.SimulationResults, error)
 }
 
 // ProcessTx -
-func (t *TxExecutionSimulatorStub) ProcessTx(tx *transaction.Transaction) (*transaction.SimulationResults, error) {
+func (t *TxExecutionSimulatorStub) ProcessTx(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
 	if t.ProcessTxCalled != nil {
 		return t.ProcessTxCalled(tx)
 	}
 
-	return &transaction.SimulationResults{}, nil
+	return &txSimData.SimulationResults{}, nil
 }
 
 // IsInterfaceNil -
