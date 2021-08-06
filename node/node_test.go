@@ -802,7 +802,9 @@ func TestNode_GetESDTsRoles(t *testing.T) {
 
 	tokenResult, err := n.GetESDTsRoles(hex.EncodeToString(addrBytes))
 	require.NoError(t, err)
-	require.NotNil(t, tokenResult)
+	require.Equal(t, map[string][]string{
+		"TCK-RANDOM": {"ESDTRoleNFTAddQuantity", "ESDTRoleLocalMint"},
+	}, tokenResult)
 }
 
 func TestNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {

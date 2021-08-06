@@ -377,7 +377,9 @@ func (n *Node) GetESDTData(address, tokenID string, nonce uint64) (*esdt.ESDigit
 	return esdtToken, nil
 }
 
-func (n *Node) getTokensIDsWithFilter(filterFunc func(esdtData *systemSmartContracts.ESDTData) bool) ([]string, error) {
+func (n *Node) getTokensIDsWithFilter(
+	filterFunc func(tokenIdentifier string, esdtData *systemSmartContracts.ESDTData) bool,
+) ([]string, error) {
 	if n.processComponents.ShardCoordinator().SelfId() != core.MetachainShardId {
 		return nil, ErrMetachainOnlyEndpoint
 	}
@@ -408,8 +410,8 @@ func (n *Node) getTokensIDsWithFilter(filterFunc func(esdtData *systemSmartContr
 	}
 
 	for leaf := range chLeaves {
-		tokenName := string(leaf.Key())
-		if !strings.Contains(tokenName, "-") {
+		tokenIdentifier := string(leaf.Key())
+		if !strings.Contains(tokenIdentifier, "-") {
 			continue
 		}
 
@@ -418,8 +420,8 @@ func (n *Node) getTokensIDsWithFilter(filterFunc func(esdtData *systemSmartContr
 			continue
 		}
 
-		if filterFunc(esdtToken) {
-			tokens = append(tokens, tokenName)
+		if filterFunc(tokenIdentifier, esdtToken) {
+			tokens = append(tokens, tokenIdentifier)
 		}
 	}
 
@@ -432,7 +434,7 @@ func (n *Node) GetNFTTokenIDsRegisteredByAddress(address string) ([]string, erro
 	if err != nil {
 		return nil, err
 	}
-	filterFunc := func(esdtData *systemSmartContracts.ESDTData) bool {
+	filterFunc := func(_ string, esdtData *systemSmartContracts.ESDTData) bool {
 		return !bytes.Equal(esdtData.TokenType, []byte(core.FungibleESDT)) && bytes.Equal(esdtData.OwnerAddress, addressBytes)
 	}
 
@@ -450,7 +452,7 @@ func (n *Node) GetESDTsWithRole(address string, role string) ([]string, error) {
 		return nil, err
 	}
 
-	filterFunc := func(esdtData *systemSmartContracts.ESDTData) bool {
+	filterFunc := func(_ string, esdtData *systemSmartContracts.ESDTData) bool {
 		return isTokenWithRoleForAddress(addressBytes, role, esdtData)
 	}
 
@@ -465,7 +467,7 @@ func (n *Node) GetESDTsRoles(address string) (map[string][]string, error) {
 	}
 
 	tokensRoles := make(map[string][]string)
-	filterFunc := func(esdtData *systemSmartContracts.ESDTData) bool {
+	filterFunc := func(tokenIdentifier string, esdtData *systemSmartContracts.ESDTData) bool {
 		for _, esdtRoles := range esdtData.SpecialRoles {
 			if !bytes.Equal(esdtRoles.Address, addressBytes) {
 				continue
@@ -476,7 +478,7 @@ func (n *Node) GetESDTsRoles(address string) (map[string][]string, error) {
 				rolesStr = append(rolesStr, string(roleBytes))
 			}
 
-			tokensRoles[string(esdtData.TokenName)] = rolesStr
+			tokensRoles[tokenIdentifier] = rolesStr
 			return true
 		}
 		return false
@@ -869,7 +871,7 @@ func (n *Node) sendBulkTransactionsFromShard(transactions [][]byte, senderShardI
 		return err
 	}
 
-	//the topic identifier is made of the current shard id and sender's shard id
+	// the topic identifier is made of the current shard id and sender's shard id
 	identifier := factory.TransactionTopic + n.processComponents.ShardCoordinator().CommunicationIdentifier(senderShardId)
 
 	packets, err := dataPacker.PackDataInChunks(transactions, common.MaxBulkTransactionSize)
