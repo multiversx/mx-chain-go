@@ -14,8 +14,8 @@ github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/ElrondNetwork/arwen-wasm-vm v1.2.29-0.20210729145932-3dbaf2426369 h1:sr1GpTCaN9mlvQ+BIZWdjUjd4Ru8cllCvl3vtwcMLxg=
 github.com/ElrondNetwork/arwen-wasm-vm v1.2.29-0.20210729145932-3dbaf2426369/go.mod h1:PdAlKw0sZhB2TVs3JXCqbqFO3WO9LOWUjx7si07DiWw=
-github.com/ElrondNetwork/arwen-wasm-vm v1.3.28-0.20210729145926-e07a4651eb9d h1:CuwLZO2Nw1VnSKG3efeGBbhI2QiiwfiyYVJJjWqaKbo=
-github.com/ElrondNetwork/arwen-wasm-vm v1.3.28-0.20210729145926-e07a4651eb9d/go.mod h1:zy07O1l/kP+TiN9JZKd0jCA03jbgBe+8JUN26O7zt4k=
+github.com/ElrondNetwork/arwen-wasm-vm v1.3.28 h1:+WnghgkZXZL2WYlOLjd/99b0Nx6WnFlV781OPWZ8+n0=
+github.com/ElrondNetwork/arwen-wasm-vm v1.3.28/go.mod h1:zy07O1l/kP+TiN9JZKd0jCA03jbgBe+8JUN26O7zt4k=
 github.com/ElrondNetwork/arwen-wasm-vm v1.4.5-0.20210729145124-b382eecc8551 h1:wFPKf3mRxCc66ubwmILdmrSS/9sXGq5/8j/LrMAUx/U=
 github.com/ElrondNetwork/arwen-wasm-vm v1.4.5-0.20210729145124-b382eecc8551/go.mod h1:5ED+OH3rw68SjYh8FrZHcqkKuAQvLKblV2FkGr5ZjTw=
 github.com/ElrondNetwork/big-int-util v0.1.0 h1:vTMoJ5azhVmr7jhpSD3JUjQdkdyXoEPVkOvhdw1RjV4=
