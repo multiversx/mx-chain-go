@@ -15,7 +15,7 @@ import (
 	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -136,7 +136,7 @@ func TestEsdt_ExecuteIssueAlways6charactersForRandom(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
@@ -184,7 +184,7 @@ func TestEsdt_ExecuteIssue(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
@@ -226,7 +226,7 @@ func TestEsdt_ExecuteIssueTooMuchSupply(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
@@ -261,7 +261,7 @@ func TestEsdt_IssueInvalidNumberOfDecimals(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
@@ -358,7 +358,7 @@ func TestEsdt_ExecuteBurnWrongNumOfArgsShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
@@ -379,7 +379,7 @@ func TestEsdt_ExecuteBurnWrongCallValueShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
@@ -400,7 +400,7 @@ func TestEsdt_ExecuteBurnWrongValueToBurnShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -421,7 +421,7 @@ func TestEsdt_ExecuteBurnOnNonExistentTokenShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -442,7 +442,7 @@ func TestEsdt_ExecuteBurnOnNonBurnableTokenShouldWorkAndReturnBurntTokens(t *tes
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
@@ -475,7 +475,7 @@ func TestEsdt_ExecuteBurn(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
@@ -507,7 +507,7 @@ func TestEsdt_ExecuteMintTooFewArgumentsShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -527,7 +527,7 @@ func TestEsdt_ExecuteMintTooManyArgumentsShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -547,7 +547,7 @@ func TestEsdt_ExecuteMintWrongCallValueShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -568,7 +568,7 @@ func TestEsdt_ExecuteMintNotEnoughGasShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 	args.GasCost.MetaChainSystemSCsCost.ESDTOperations = 10
@@ -589,7 +589,7 @@ func TestEsdt_ExecuteMintOnNonExistentTokenShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -610,7 +610,7 @@ func TestEsdt_ExecuteMintNotByOwnerShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -639,7 +639,7 @@ func TestEsdt_ExecuteMintWrongMintValueShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -668,7 +668,7 @@ func TestEsdt_ExecuteMintNonMintableTokenShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -698,7 +698,7 @@ func TestEsdt_ExecuteMintSavesTokenWithMintedTokensAdded(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -736,7 +736,7 @@ func TestEsdt_ExecuteMintInvalidDestinationAddressShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -797,7 +797,7 @@ func TestEsdt_ExecuteMintWithTwoArgsShouldSetOwnerAsDestination(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
@@ -846,7 +846,7 @@ func TestEsdt_ExecuteMintWithThreeArgsShouldSetThirdArgAsDestination(t *testing.
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
@@ -917,7 +917,7 @@ func TestEsdt_ExecuteToggleFreezeTooFewArgumentsShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -942,7 +942,7 @@ func TestEsdt_ExecuteToggleFreezeWrongCallValueShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -969,7 +969,7 @@ func TestEsdt_ExecuteToggleFreezeNotEnoughGasShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 	args.GasCost.MetaChainSystemSCsCost.ESDTOperations = 10
@@ -996,7 +996,7 @@ func TestEsdt_ExecuteToggleFreezeOnNonExistentTokenShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -1023,7 +1023,7 @@ func TestEsdt_ExecuteToggleFreezeNotByOwnerShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
@@ -1058,7 +1058,7 @@ func TestEsdt_ExecuteToggleFreezeNonFreezableTokenShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
@@ -1147,7 +1147,7 @@ func TestEsdt_ExecuteToggleFreezeShouldWorkWithRealBech32Address(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	bech32C, _ := pubkeyConverter.NewBech32PubkeyConverter(32, &coreMock.LoggerMock{})
@@ -1200,7 +1200,7 @@ func TestEsdt_ExecuteToggleFreezeShouldFailWithBech32Converter(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	bech32C, _ := pubkeyConverter.NewBech32PubkeyConverter(32, &coreMock.LoggerMock{})
@@ -1242,7 +1242,7 @@ func TestEsdt_ExecuteToggleFreezeShouldWork(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
@@ -1290,7 +1290,7 @@ func TestEsdt_ExecuteToggleUnFreezeShouldWork(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
@@ -1338,7 +1338,7 @@ func TestEsdt_ExecuteToggleFreezeSingleNFTShouldWork(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
@@ -1387,7 +1387,7 @@ func TestEsdt_ExecuteToggleUnFreezeSingleNFTShouldWork(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
@@ -1434,7 +1434,7 @@ func TestEsdt_ExecuteWipeTooFewArgumentsShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -1459,7 +1459,7 @@ func TestEsdt_ExecuteWipeWrongCallValueShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -1486,7 +1486,7 @@ func TestEsdt_ExecuteWipeNotEnoughGasShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 	args.GasCost.MetaChainSystemSCsCost.ESDTOperations = 10
@@ -1513,7 +1513,7 @@ func TestEsdt_ExecuteWipeOnNonExistentTokenShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -1540,7 +1540,7 @@ func TestEsdt_ExecuteWipeNotByOwnerShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
@@ -1575,7 +1575,7 @@ func TestEsdt_ExecuteWipeNonWipeableTokenShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
@@ -1611,7 +1611,7 @@ func TestEsdt_ExecuteWipeInvalidDestShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
@@ -1702,7 +1702,7 @@ func TestEsdt_ExecuteWipeShouldWork(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
@@ -1750,7 +1750,7 @@ func TestEsdt_ExecuteWipeSingleNFTShouldWork(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
@@ -1795,7 +1795,7 @@ func TestEsdt_ExecutePauseTooFewArgumentsShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -1815,7 +1815,7 @@ func TestEsdt_ExecutePauseWrongCallValueShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -1836,7 +1836,7 @@ func TestEsdt_ExecutePauseNotEnoughGasShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 	args.GasCost.MetaChainSystemSCsCost.ESDTOperations = 10
@@ -1857,7 +1857,7 @@ func TestEsdt_ExecutePauseOnNonExistentTokenShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -1878,7 +1878,7 @@ func TestEsdt_ExecutePauseNotByOwnerShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
@@ -1907,7 +1907,7 @@ func TestEsdt_ExecutePauseNonPauseableTokenShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
@@ -1937,7 +1937,7 @@ func TestEsdt_ExecutePauseOnAPausedTokenShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
@@ -1967,7 +1967,7 @@ func TestEsdt_ExecuteTogglePauseSavesTokenWithPausedFlagSet(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -2002,7 +2002,7 @@ func TestEsdt_ExecuteTogglePauseShouldWork(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
@@ -2049,7 +2049,7 @@ func TestEsdt_ExecuteUnPauseOnAnUnPausedTokenShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
@@ -2079,7 +2079,7 @@ func TestEsdt_ExecuteUnPauseSavesTokenWithPausedFlagSetToFalse(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -2114,7 +2114,7 @@ func TestEsdt_ExecuteUnPauseShouldWork(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
@@ -2160,7 +2160,7 @@ func TestEsdt_ExecuteTransferOwnershipWrongNumOfArgumentsShouldFail(t *testing.T
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -2180,7 +2180,7 @@ func TestEsdt_ExecuteTransferOwnershipWrongCallValueShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -2201,7 +2201,7 @@ func TestEsdt_ExecuteTransferOwnershipNotEnoughGasShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 	args.GasCost.MetaChainSystemSCsCost.ESDTOperations = 10
@@ -2222,7 +2222,7 @@ func TestEsdt_ExecuteTransferOwnershipOnNonExistentTokenShouldFail(t *testing.T)
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -2243,7 +2243,7 @@ func TestEsdt_ExecuteTransferOwnershipNotByOwnerShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -2272,7 +2272,7 @@ func TestEsdt_ExecuteTransferOwnershipNonTransferableTokenShouldFail(t *testing.
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -2302,7 +2302,7 @@ func TestEsdt_ExecuteTransferOwnershipInvalidDestinationAddressShouldFail(t *tes
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -2334,7 +2334,7 @@ func TestEsdt_ExecuteTransferOwnershipSavesTokenWithNewOwnerAddressSet(t *testin
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -2367,7 +2367,7 @@ func TestEsdt_ExecuteEsdtControlChangesWrongNumOfArgumentsShouldFail(t *testing.
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -2387,7 +2387,7 @@ func TestEsdt_ExecuteEsdtControlChangesWrongCallValueShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -2408,7 +2408,7 @@ func TestEsdt_ExecuteEsdtControlChangesNotEnoughGasShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 	args.GasCost.MetaChainSystemSCsCost.ESDTOperations = 10
@@ -2429,7 +2429,7 @@ func TestEsdt_ExecuteEsdtControlChangesOnNonExistentTokenShouldFail(t *testing.T
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -2450,7 +2450,7 @@ func TestEsdt_ExecuteEsdtControlChangesNotByOwnerShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -2479,7 +2479,7 @@ func TestEsdt_ExecuteEsdtControlChangesNonUpgradableTokenShouldFail(t *testing.T
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -2509,7 +2509,7 @@ func TestEsdt_ExecuteEsdtControlChangesSavesTokenWithUpgradedProperties(t *testi
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -2592,7 +2592,7 @@ func TestEsdt_GetSpecialRolesValueNotZeroShouldErr(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -2615,7 +2615,7 @@ func TestEsdt_GetSpecialRolesInvalidNumOfArgsShouldErr(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -2637,7 +2637,7 @@ func TestEsdt_GetSpecialRolesNotEnoughGasShouldErr(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 	args.GasCost.MetaChainSystemSCsCost.ESDTOperations = 10
@@ -2660,7 +2660,7 @@ func TestEsdt_GetSpecialRolesInvalidTokenShouldErr(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -2683,7 +2683,7 @@ func TestEsdt_GetSpecialRolesNoSpecialRoles(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -2712,7 +2712,7 @@ func TestEsdt_GetSpecialRolesShouldWork(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -2772,7 +2772,7 @@ func TestEsdt_UnsetSpecialRoleWithRemoveEntryFromSpecialRoles(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -2865,7 +2865,7 @@ func TestEsdt_ExecuteConfigChangeGetContractConfig(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -2914,7 +2914,7 @@ func TestEsdt_ExecuteClaim(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -2953,7 +2953,7 @@ func TestEsdt_SetSpecialRoleCheckArgumentsErr(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -2973,7 +2973,7 @@ func TestEsdt_SetSpecialRoleCheckBasicOwnershipErr(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -3320,7 +3320,7 @@ func TestEsdt_UnsetSpecialRoleCheckArgumentsErr(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -3343,7 +3343,7 @@ func TestEsdt_UnsetSpecialRoleCheckArgumentsInvalidRoleErr(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -3366,7 +3366,7 @@ func TestEsdt_UnsetSpecialRoleCheckArgumentsDuplicatedRoleInArgsShouldErr(t *tes
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -3389,7 +3389,7 @@ func TestEsdt_UnsetSpecialRoleCheckBasicOwnershipErr(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -3591,7 +3591,7 @@ func TestEsdt_StopNFTCreateForeverCheckArgumentsErr(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -3700,7 +3700,7 @@ func TestEsdt_TransferNFTCreateCheckArgumentsErr(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 

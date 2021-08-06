@@ -6,7 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
+	"github.com/ElrondNetwork/elrond-go/common"
 )
 
 // PeerAccountsDB will save and synchronize data from peer processor, plus will synchronize with nodesCoordinator
@@ -16,7 +16,7 @@ type PeerAccountsDB struct {
 
 // NewPeerAccountsDB creates a new account manager
 func NewPeerAccountsDB(
-	trie temporary.Trie,
+	trie common.Trie,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	accountFactory AccountFactory,
@@ -82,13 +82,13 @@ func (adb *PeerAccountsDB) SetStateCheckpoint(rootHash []byte) {
 }
 
 // RecreateAllTries recreates all the tries from the accounts DB
-func (adb *PeerAccountsDB) RecreateAllTries(rootHash []byte) (map[string]temporary.Trie, error) {
+func (adb *PeerAccountsDB) RecreateAllTries(rootHash []byte) (map[string]common.Trie, error) {
 	recreatedTrie, err := adb.mainTrie.Recreate(rootHash)
 	if err != nil {
 		return nil, err
 	}
 
-	allTries := make(map[string]temporary.Trie)
+	allTries := make(map[string]common.Trie)
 	allTries[string(rootHash)] = recreatedTrie
 
 	return allTries, nil

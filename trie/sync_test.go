@@ -8,7 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -16,11 +16,11 @@ import (
 
 func createMockArgument() ArgTrieSyncer {
 	return ArgTrieSyncer{
-		RequestHandler:            &mock.RequestHandlerStub{},
-		InterceptedNodes:          mock.NewCacherMock(),
-		DB:                        mock.NewMemDbMock(),
-		Hasher:                    mock.HasherMock{},
-		Marshalizer:               &mock.MarshalizerMock{},
+		RequestHandler:            &testscommon.RequestHandlerStub{},
+		InterceptedNodes:          testscommon.NewCacherMock(),
+		DB:                        testscommon.NewMemDbMock(),
+		Hasher:                    testscommon.HasherMock{},
+		Marshalizer:               &testscommon.MarshalizerMock{},
 		ShardId:                   0,
 		Topic:                     "topic",
 		TrieSyncStatistics:        statistics.NewTrieSyncStatistics(),
@@ -195,13 +195,13 @@ func TestTrieSync_FoundInStorageShouldNotRequest(t *testing.T) {
 	err := bn.setHash()
 	require.Nil(t, err)
 	rootHash := bn.getHash()
-	db := mock.NewMemDbMock()
+	db := testscommon.NewMemDbMock()
 
 	err = bn.commitSnapshot(db, db, nil, context.Background())
 	require.Nil(t, err)
 
 	arg := createMockArgument()
-	arg.RequestHandler = &mock.RequestHandlerStub{
+	arg.RequestHandler = &testscommon.RequestHandlerStub{
 		RequestTrieNodesCalled: func(destShardID uint32, hashes [][]byte, topic string) {
 			assert.Fail(t, "should have not requested trie nodes")
 		},

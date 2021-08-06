@@ -53,6 +53,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
@@ -403,7 +404,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 ) (process.TransactionProcessor, error) {
 
 	builtInFuncs := vmcommonBuiltInFunctions.NewBuiltInFunctionContainer()
-	datapool := testscommon.NewPoolsHolderMock()
+	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
 		Accounts:           accnts,
 		PubkeyConv:         pubkeyConv,
@@ -500,7 +501,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 
 // CreateOneSCExecutorMockVM -
 func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutionHandler {
-	datapool := testscommon.NewPoolsHolderMock()
+	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
 		Accounts:           accnts,
 		PubkeyConv:         pubkeyConv,
@@ -547,7 +548,7 @@ func CreateVMAndBlockchainHookAndDataPool(
 	}
 	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 
-	datapool := testscommon.NewPoolsHolderMock()
+	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
 		Accounts:           accnts,
 		PubkeyConv:         pubkeyConv,
@@ -618,7 +619,7 @@ func CreateVMAndBlockchainHookMeta(
 	}
 	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 
-	datapool := testscommon.NewPoolsHolderMock()
+	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
 		Accounts:           accnts,
 		PubkeyConv:         pubkeyConv,
@@ -761,7 +762,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	poolsHolder dataRetriever.PoolsHolder,
 ) (*ResultsCreateTxProcessor, error) {
 	if check.IfNil(poolsHolder) {
-		poolsHolder = testscommon.NewPoolsHolderMock()
+		poolsHolder = dataRetrieverMock.NewPoolsHolderMock()
 	}
 
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(testMarshalizer)
