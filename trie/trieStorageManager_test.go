@@ -7,10 +7,10 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/mock"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
 	"github.com/stretchr/testify/assert"
 )
@@ -22,9 +22,9 @@ const (
 
 func getNewTrieStorageManagerArgs() NewTrieStorageManagerArgs {
 	return NewTrieStorageManagerArgs{
-		DB:                     mock.NewMemDbMock(),
-		Marshalizer:            &mock.MarshalizerMock{},
-		Hasher:                 &mock.HasherMock{},
+		DB:                     testscommon.NewMemDbMock(),
+		Marshalizer:            &testscommon.MarshalizerMock{},
+		Hasher:                 &testscommon.HasherMock{},
 		SnapshotDbConfig:       config.DBConfig{},
 		GeneralConfig:          config.TrieStorageManagerConfig{},
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, hashSize),
@@ -482,7 +482,7 @@ func TestTrieSnapshottingFromCheckpoint(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func doCheckpoint(tr temporary.Trie, trieStorage temporary.StorageManager, hash []byte) {
+func doCheckpoint(tr common.Trie, trieStorage common.StorageManager, hash []byte) {
 	_ = tr.Update(hash, hash)
 	newHashes, _ := tr.GetDirtyHashes()
 	_ = tr.Commit()
@@ -492,7 +492,7 @@ func doCheckpoint(tr temporary.Trie, trieStorage temporary.StorageManager, hash 
 	trieStorage.SetCheckpoint(rootHash, nil)
 }
 
-func doSnapshot(tr temporary.Trie, trieStorage temporary.StorageManager, hash []byte) {
+func doSnapshot(tr common.Trie, trieStorage common.StorageManager, hash []byte) {
 	_ = tr.Update(hash, hash)
 	_ = tr.Commit()
 	rootHash, _ := tr.RootHash()
@@ -754,7 +754,7 @@ func TestTrieStorageManager_Remove(t *testing.T) {
 	value := []byte("value")
 
 	_ = args.DB.Put(key, value)
-	hashes := make(temporary.ModifiedHashes)
+	hashes := make(common.ModifiedHashes)
 	hashes[string(value)] = struct{}{}
 	hashes[string(key)] = struct{}{}
 	_ = args.CheckpointHashesHolder.Put(key, hashes)

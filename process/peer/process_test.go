@@ -23,6 +23,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
@@ -89,7 +91,7 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		Marshalizer: &mock.MarshalizerMock{},
-		DataPool: &testscommon.PoolsHolderStub{
+		DataPool: &dataRetrieverMock.PoolsHolderStub{
 			HeadersCalled: func() dataRetriever.HeadersPool {
 				return nil
 			},
@@ -252,7 +254,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateErrOnGetAccountFail(t *tes
 	t.Parallel()
 
 	adapterError := errors.New("account error")
-	peerAdapters := &testscommon.AccountsStub{
+	peerAdapters := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 			return nil, adapterError
 		},
@@ -274,7 +276,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateErrOnGetAccountFail(t *tes
 func TestValidatorStatisticsProcessor_SaveInitialStateGetAccountReturnsInvalid(t *testing.T) {
 	t.Parallel()
 
-	peerAdapter := &testscommon.AccountsStub{
+	peerAdapter := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 			return &mock.AccountWrapMock{}, nil
 		},
@@ -297,7 +299,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateSetAddressErrors(t *testin
 
 	saveAccountError := errors.New("save account error")
 	peerAccount, _ := state.NewPeerAccount([]byte("1234"))
-	peerAdapter := &testscommon.AccountsStub{
+	peerAdapter := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 			return peerAccount, nil
 		},
@@ -323,7 +325,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateCommitErrors(t *testing.T)
 
 	commitError := errors.New("commit error")
 	peerAccount, _ := state.NewPeerAccount([]byte("1234"))
-	peerAdapter := &testscommon.AccountsStub{
+	peerAdapter := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 			return peerAccount, nil
 		},
@@ -346,7 +348,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateCommit(t *testing.T) {
 	t.Parallel()
 
 	peerAccount, _ := state.NewPeerAccount([]byte("1234"))
-	peerAdapter := &testscommon.AccountsStub{
+	peerAdapter := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 			return peerAccount, nil
 		},
@@ -493,7 +495,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderError(t *testing.T
 
 	arguments := createMockArguments()
 	arguments.Marshalizer = marshalizer
-	arguments.DataPool = &testscommon.PoolsHolderStub{
+	arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &mock.HeadersCacherStub{}
 		},
@@ -549,7 +551,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsIncrease(t *testing.T)
 
 	arguments := createMockArguments()
 	arguments.Marshalizer = marshalizer
-	arguments.DataPool = &testscommon.PoolsHolderStub{
+	arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &mock.HeadersCacherStub{}
 		},
@@ -1221,7 +1223,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCheckForMissedBlocksErr(t *
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
 
 	arguments := createMockArguments()
-	arguments.DataPool = &testscommon.PoolsHolderStub{
+	arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &mock.HeadersCacherStub{}
 		},
@@ -1300,7 +1302,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksNoMissedBlocks(t *test
 
 	arguments := createMockArguments()
 	arguments.Marshalizer = &mock.MarshalizerMock{}
-	arguments.DataPool = testscommon.NewPoolsHolderStub()
+	arguments.DataPool = dataRetrieverMock.NewPoolsHolderStub()
 	arguments.StorageService = &mock.ChainStorerMock{}
 	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []sharding.Validator, err error) {
@@ -1333,7 +1335,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksErrOnComputeValidatorL
 
 	arguments := createMockArguments()
 	arguments.Marshalizer = &mock.MarshalizerMock{}
-	arguments.DataPool = testscommon.NewPoolsHolderStub()
+	arguments.DataPool = dataRetrieverMock.NewPoolsHolderStub()
 	arguments.StorageService = &mock.ChainStorerMock{}
 	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []sharding.Validator, err error) {
@@ -1786,7 +1788,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsPubKeyForValidator(t *
 			}, &mock.ValidatorMock{}}, nil
 		},
 	}
-	arguments.DataPool = &testscommon.PoolsHolderStub{
+	arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &mock.HeadersCacherStub{
 				GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, e error) {
@@ -1828,8 +1830,8 @@ func getShardHeaderHandler(randSeed []byte) *block.Header {
 	}
 }
 
-func getAccountsMock() *testscommon.AccountsStub {
-	return &testscommon.AccountsStub{
+func getAccountsMock() *stateMock.AccountsStub {
+	return &stateMock.AccountsStub{
 		CommitCalled: func() (bytes []byte, e error) {
 			return make([]byte, 0), nil
 		},

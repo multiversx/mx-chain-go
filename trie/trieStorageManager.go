@@ -15,22 +15,22 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
 // trieStorageManager manages all the storage operations of the trie (commit, snapshot, checkpoint, pruning)
 type trieStorageManager struct {
-	db temporary.DBWriteCacher
+	db common.DBWriteCacher
 
-	snapshots              []temporary.SnapshotDbHandler
+	snapshots              []common.SnapshotDbHandler
 	snapshotId             int
 	snapshotDbCfg          config.DBConfig
 	snapshotReq            chan *snapshotsQueueEntry
 	checkpointReq          chan *snapshotsQueueEntry
-	checkpointHashesHolder temporary.CheckpointHashesHolder
+	checkpointHashesHolder CheckpointHashesHolder
 
 	pruningBlockingOps uint32
 	maxSnapshots       uint32
@@ -48,12 +48,12 @@ type snapshotsQueueEntry struct {
 
 // NewTrieStorageManagerArgs holds the arguments needed for creating a new trieStorageManager
 type NewTrieStorageManagerArgs struct {
-	DB                     temporary.DBWriteCacher
+	DB                     common.DBWriteCacher
 	Marshalizer            marshal.Marshalizer
 	Hasher                 hashing.Hasher
 	SnapshotDbConfig       config.DBConfig
 	GeneralConfig          config.TrieStorageManagerConfig
-	CheckpointHashesHolder temporary.CheckpointHashesHolder
+	CheckpointHashesHolder CheckpointHashesHolder
 }
 
 // NewTrieStorageManager creates a new instance of trieStorageManager
@@ -110,8 +110,8 @@ func (tsm *trieStorageManager) storageProcessLoop(ctx context.Context, msh marsh
 	}
 }
 
-func getOrderedSnapshots(snapshotsMap map[int]temporary.SnapshotDbHandler) []temporary.SnapshotDbHandler {
-	snapshots := make([]temporary.SnapshotDbHandler, 0)
+func getOrderedSnapshots(snapshotsMap map[int]common.SnapshotDbHandler) []common.SnapshotDbHandler {
+	snapshots := make([]common.SnapshotDbHandler, 0)
 	keys := make([]int, 0)
 
 	for key := range snapshotsMap {
@@ -126,8 +126,8 @@ func getOrderedSnapshots(snapshotsMap map[int]temporary.SnapshotDbHandler) []tem
 	return snapshots
 }
 
-func getSnapshotsAndSnapshotId(snapshotDbCfg config.DBConfig) ([]temporary.SnapshotDbHandler, int, error) {
-	snapshotsMap := make(map[int]temporary.SnapshotDbHandler)
+func getSnapshotsAndSnapshotId(snapshotDbCfg config.DBConfig) ([]common.SnapshotDbHandler, int, error) {
+	snapshotsMap := make(map[int]common.SnapshotDbHandler)
 	snapshotId := 0
 
 	if !directoryExists(snapshotDbCfg.FilePath) {
@@ -184,7 +184,7 @@ func getSnapshotsAndSnapshotId(snapshotDbCfg config.DBConfig) ([]temporary.Snaps
 }
 
 // Database returns the main database
-func (tsm *trieStorageManager) Database() temporary.DBWriteCacher {
+func (tsm *trieStorageManager) Database() common.DBWriteCacher {
 	return tsm.db
 }
 
@@ -216,7 +216,7 @@ func (tsm *trieStorageManager) ExitPruningBufferingMode() {
 }
 
 // GetSnapshotThatContainsHash returns the snapshot that contains the given hash
-func (tsm *trieStorageManager) GetSnapshotThatContainsHash(rootHash []byte) temporary.SnapshotDbHandler {
+func (tsm *trieStorageManager) GetSnapshotThatContainsHash(rootHash []byte) common.SnapshotDbHandler {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
 
@@ -281,7 +281,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 		}
 	}()
 
-	var db temporary.DBWriteCacher
+	var db common.DBWriteCacher
 	if tsm.isPresentInLastSnapshotDb(snapshotEntry.rootHash) {
 		db = tsm.GetSnapshotThatContainsHash(snapshotEntry.rootHash)
 		isDbNil := check.IfNil(db)
@@ -367,7 +367,7 @@ func (tsm *trieStorageManager) isPresentInLastSnapshotDb(rootHash []byte) bool {
 	return true
 }
 
-func (tsm *trieStorageManager) getSnapshotDb(newDb bool) temporary.DBWriteCacher {
+func (tsm *trieStorageManager) getSnapshotDb(newDb bool) common.DBWriteCacher {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
 
@@ -433,11 +433,11 @@ func (tsm *trieStorageManager) removeSnapshot() {
 	removeSnapshot(firstSnapshot, removePath)
 }
 
-func disconnectSnapshot(db temporary.DBWriteCacher) error {
+func disconnectSnapshot(db common.DBWriteCacher) error {
 	return db.Close()
 }
 
-func removeSnapshot(db temporary.DBWriteCacher, path string) {
+func removeSnapshot(db common.DBWriteCacher, path string) {
 	err := disconnectSnapshot(db)
 	if err != nil {
 		log.Error("trie storage manager: disconnectSnapshot", "error", err.Error())
@@ -456,7 +456,7 @@ func removeDirectory(path string) {
 }
 
 func newSnapshotNode(
-	db temporary.DBWriteCacher,
+	db common.DBWriteCacher,
 	msh marshal.Marshalizer,
 	hsh hashing.Hasher,
 	rootHash []byte,
@@ -523,7 +523,7 @@ func (tsm *trieStorageManager) GetSnapshotDbBatchDelay() int {
 }
 
 // AddDirtyCheckpointHashes adds the given hashes to the checkpoint hashes holder
-func (tsm *trieStorageManager) AddDirtyCheckpointHashes(rootHash []byte, hashes temporary.ModifiedHashes) bool {
+func (tsm *trieStorageManager) AddDirtyCheckpointHashes(rootHash []byte, hashes common.ModifiedHashes) bool {
 	return tsm.checkpointHashesHolder.Put(rootHash, hashes)
 }
 

@@ -6,11 +6,11 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
+	"github.com/ElrondNetwork/elrond-go/common"
 )
 
 type checkpointHashesHolder struct {
-	hashes      []temporary.ModifiedHashes
+	hashes      []common.ModifiedHashes
 	rootHashes  [][]byte
 	currentSize uint64
 	maxSize     uint64
@@ -28,7 +28,7 @@ func NewCheckpointHashesHolder(maxSize uint64, hashSize uint64) *checkpointHashe
 	)
 
 	return &checkpointHashesHolder{
-		hashes:      make([]temporary.ModifiedHashes, 0),
+		hashes:      make([]common.ModifiedHashes, 0),
 		rootHashes:  make([][]byte, 0),
 		currentSize: 0,
 		maxSize:     maxSize,
@@ -39,7 +39,7 @@ func NewCheckpointHashesHolder(maxSize uint64, hashSize uint64) *checkpointHashe
 
 // Put appends the given hashes to the underlying array of maps. Put returns true if the maxSize is reached,
 // meaning that a commit operation needs to be done in order to clear the array of maps.
-func (c *checkpointHashesHolder) Put(rootHash []byte, hashes temporary.ModifiedHashes) bool {
+func (c *checkpointHashesHolder) Put(rootHash []byte, hashes common.ModifiedHashes) bool {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
@@ -134,7 +134,7 @@ func (c *checkpointHashesHolder) Remove(hash []byte) {
 	}
 }
 
-func (c *checkpointHashesHolder) removeHashFromMap(hash []byte, hashesMap temporary.ModifiedHashes) {
+func (c *checkpointHashesHolder) removeHashFromMap(hash []byte, hashesMap common.ModifiedHashes) {
 	_, ok := hashesMap[string(hash)]
 	if !ok {
 		return
@@ -151,7 +151,7 @@ func (c *checkpointHashesHolder) removeHashFromMap(hash []byte, hashesMap tempor
 	c.currentSize -= c.hashSize
 }
 
-func getMapSize(hashesMap temporary.ModifiedHashes, hashSize uint64) uint64 {
+func getMapSize(hashesMap common.ModifiedHashes, hashSize uint64) uint64 {
 	return uint64(len(hashesMap)) * hashSize
 }
 
