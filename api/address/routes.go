@@ -23,6 +23,7 @@ const (
 	getESDTTokens         = "/:address/esdt"
 	getESDTBalance        = "/:address/esdt/:tokenIdentifier"
 	getESDTTokensWithRole = "/:address/esdts-with-role/:role"
+	getESDTsRoles         = "/:address/esdts/roles"
 	getRegisteredNFTs     = "/:address/registered-nfts"
 	getESDTNFTData        = "/:address/nft/:tokenIdentifier/nonce/:nonce"
 )
@@ -34,6 +35,7 @@ type FacadeHandler interface {
 	GetValueForKey(address string, key string) (string, error)
 	GetAccount(address string) (api.AccountResponse, error)
 	GetESDTData(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error)
+	GetESDTsRoles(address string) (map[string][]string, error)
 	GetNFTTokenIDsRegisteredByAddress(address string) ([]string, error)
 	GetESDTsWithRole(address string, role string) ([]string, error)
 	GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error)
@@ -72,6 +74,7 @@ func Routes(router *wrapper.RouterWrapper) {
 	router.RegisterHandler(http.MethodGet, getESDTTokens, GetAllESDTData)
 	router.RegisterHandler(http.MethodGet, getRegisteredNFTs, GetNFTTokenIDsRegisteredByAddress)
 	router.RegisterHandler(http.MethodGet, getESDTTokensWithRole, GetESDTTokensWithRole)
+	router.RegisterHandler(http.MethodGet, getESDTsRoles, GetESDTsRoles)
 }
 
 func getFacade(c *gin.Context) (FacadeHandler, bool) {
@@ -376,6 +379,49 @@ func GetESDTBalance(c *gin.Context) {
 		http.StatusOK,
 		shared.GenericAPIResponse{
 			Data:  gin.H{"tokenData": tokenData},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+// GetESDTsRoles returns the token identifiers and roles where a given address has the roles
+func GetESDTsRoles(c *gin.Context) {
+	facade, ok := getFacade(c)
+	if !ok {
+		return
+	}
+
+	addr := c.Param("address")
+	if addr == "" {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetESDTBalance.Error(), errors.ErrEmptyAddress.Error()),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
+	}
+
+	tokensRoles, err := facade.GetESDTsRoles(addr)
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetESDTBalance.Error(), err.Error()),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"tokens": tokensRoles},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},

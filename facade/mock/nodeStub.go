@@ -188,6 +188,10 @@ func (ns *NodeStub) GetESDTData(address, tokenID string, nonce uint64) (*esdt.ES
 	return &esdt.ESDigitalToken{Value: big.NewInt(0)}, nil
 }
 
+func (ns *NodeStub) GetESDTsRoles(_ string) (map[string][]string, error) {
+	return nil, nil
+}
+
 // GetESDTsWithRole -
 func (ns *NodeStub) GetESDTsWithRole(address string, role string) ([]string, error) {
 	if ns.GetESDTsWithRoleCalled != nil {

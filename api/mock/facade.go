@@ -157,6 +157,10 @@ func (f *Facade) GetESDTData(address string, key string, nonce uint64) (*esdt.ES
 	return &esdt.ESDigitalToken{Value: big.NewInt(0)}, nil
 }
 
+func (f *Facade) GetESDTsRoles(_ string) (map[string][]string, error) {
+	return nil, nil
+}
+
 // GetAllESDTTokens -
 func (f *Facade) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error) {
 	if f.GetAllESDTTokensCalled != nil {

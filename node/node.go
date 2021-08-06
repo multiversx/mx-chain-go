@@ -457,6 +457,39 @@ func (n *Node) GetESDTsWithRole(address string, role string) ([]string, error) {
 	return n.getTokensIDsWithFilter(filterFunc)
 }
 
+// GetESDTsRoles returns all the tokens identifiers and roles for the given address
+func (n *Node) GetESDTsRoles(address string) (map[string][]string, error) {
+	addressBytes, err := n.coreComponents.AddressPubKeyConverter().Decode(address)
+	if err != nil {
+		return nil, err
+	}
+
+	tokensRoles := make(map[string][]string)
+	filterFunc := func(esdtData *systemSmartContracts.ESDTData) bool {
+		for _, esdtRoles := range esdtData.SpecialRoles {
+			if !bytes.Equal(esdtRoles.Address, addressBytes) {
+				continue
+			}
+
+			rolesStr := make([]string, 0, len(esdtRoles.Roles))
+			for _, roleBytes := range esdtRoles.Roles {
+				rolesStr = append(rolesStr, string(roleBytes))
+			}
+
+			tokensRoles[string(esdtData.TokenName)] = rolesStr
+			return true
+		}
+		return false
+	}
+
+	_, err = n.getTokensIDsWithFilter(filterFunc)
+	if err != nil {
+		return nil, err
+	}
+
+	return tokensRoles, nil
+}
+
 func isTokenWithRoleForAddress(addressBytes []byte, role string, token *systemSmartContracts.ESDTData) bool {
 	for _, esdtRoles := range token.SpecialRoles {
 		if !bytes.Equal(esdtRoles.Address, addressBytes) {
