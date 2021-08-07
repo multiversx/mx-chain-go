@@ -3,7 +3,7 @@ package trie_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/stretchr/testify/assert"
 )
@@ -21,7 +21,7 @@ func TestNewIterator(t *testing.T) {
 func TestNewIteratorNilTrieShouldErr(t *testing.T) {
 	t.Parallel()
 
-	var tr temporary.Trie
+	var tr common.Trie
 
 	it, err := trie.NewIterator(tr)
 	assert.Nil(t, it)

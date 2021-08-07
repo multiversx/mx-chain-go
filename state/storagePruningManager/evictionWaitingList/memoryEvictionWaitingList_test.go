@@ -7,8 +7,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -54,7 +54,7 @@ func TestMemoryEvictionWaitingList_Put(t *testing.T) {
 
 	mewl, _ := NewMemoryEvictionWaitingList(getDefaultArgsForMemoryEvictionWaitingList())
 
-	hashesMap := temporary.ModifiedHashes{
+	hashesMap := common.ModifiedHashes{
 		"hash1": {},
 		"hash2": {},
 	}
@@ -75,7 +75,7 @@ func TestMemoryEvictionWaitingList_PutMultiple(t *testing.T) {
 	args.HashesSize = 10000
 	mewl, _ := NewMemoryEvictionWaitingList(args)
 
-	hashesMap := temporary.ModifiedHashes{
+	hashesMap := common.ModifiedHashes{
 		"hash0": {},
 		"hash1": {},
 	}
@@ -106,7 +106,7 @@ func TestMemoryEvictionWaitingList_PutMultipleCleanDB(t *testing.T) {
 	args.HashesSize = 2
 	mewl, _ := NewMemoryEvictionWaitingList(args)
 
-	hashesMap := temporary.ModifiedHashes{
+	hashesMap := common.ModifiedHashes{
 		"hash0": {},
 		"hash1": {},
 		"hash2": {},
@@ -131,7 +131,7 @@ func TestMemoryEvictionWaitingList_Evict(t *testing.T) {
 
 	mewl, _ := NewMemoryEvictionWaitingList(getDefaultArgsForMemoryEvictionWaitingList())
 
-	expectedHashesMap := temporary.ModifiedHashes{
+	expectedHashesMap := common.ModifiedHashes{
 		"hash1": {},
 		"hash2": {},
 	}
@@ -152,7 +152,7 @@ func TestMemoryEvictionWaitingList_EvictFromDB(t *testing.T) {
 	args.RootHashesSize = 4
 	mewl, _ := NewMemoryEvictionWaitingList(args)
 
-	hashesMap := temporary.ModifiedHashes{
+	hashesMap := common.ModifiedHashes{
 		"hash0": {},
 		"hash1": {},
 	}
@@ -176,7 +176,7 @@ func TestMemoryEvictionWaitingList_ShouldKeepHash(t *testing.T) {
 
 	mewl, _ := NewMemoryEvictionWaitingList(getDefaultArgsForMemoryEvictionWaitingList())
 
-	hashesMap := temporary.ModifiedHashes{
+	hashesMap := common.ModifiedHashes{
 		"hash0": {},
 		"hash1": {},
 	}
@@ -200,7 +200,7 @@ func TestMemoryEvictionWaitingList_ShouldKeepHashShouldReturnFalse(t *testing.T)
 
 	mewl, _ := NewMemoryEvictionWaitingList(getDefaultArgsForMemoryEvictionWaitingList())
 
-	hashesMap := temporary.ModifiedHashes{
+	hashesMap := common.ModifiedHashes{
 		"hash0": {},
 		"hash1": {},
 	}
@@ -223,7 +223,7 @@ func TestMemoryEvictionWaitingList_ShouldKeepHashShouldReturnTrueIfPresentInOldH
 
 	mewl, _ := NewMemoryEvictionWaitingList(getDefaultArgsForMemoryEvictionWaitingList())
 
-	hashesMap := temporary.ModifiedHashes{
+	hashesMap := common.ModifiedHashes{
 		"hash0": {},
 		"hash1": {},
 	}
@@ -254,7 +254,7 @@ func TestMemoryEvictionWaitingList_ShouldKeepHashSearchInDb(t *testing.T) {
 	root3 := []byte{1, 2, 3, 4, 5, 1}
 	root4 := []byte{1, 2, 3, 4, 5, 1}
 
-	hashesMapSlice := []temporary.ModifiedHashes{
+	hashesMapSlice := []common.ModifiedHashes{
 		{
 			"hash2": {},
 			"hash3": {},
@@ -293,7 +293,7 @@ func TestMemoryEvictionWaitingList_ShouldKeepHashInvalidKey(t *testing.T) {
 
 	mewl, _ := NewMemoryEvictionWaitingList(getDefaultArgsForMemoryEvictionWaitingList())
 
-	hashesMap := temporary.ModifiedHashes{
+	hashesMap := common.ModifiedHashes{
 		"hash0": {},
 		"hash1": {},
 	}
@@ -320,7 +320,7 @@ func TestMemoryEvictionWaitingList_RemoveFromInversedCache(t *testing.T) {
 	roothash2 := "roothash2"
 	roothash3 := "roothash3"
 	hash := "hash"
-	modified := temporary.ModifiedHashes{
+	modified := common.ModifiedHashes{
 		hash: struct{}{},
 	}
 

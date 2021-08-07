@@ -5,7 +5,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 )
 
 // PeerAccountHandlerMock -
@@ -266,12 +265,12 @@ func (p *PeerAccountHandlerMock) GetRootHash() []byte {
 }
 
 // SetDataTrie -
-func (p *PeerAccountHandlerMock) SetDataTrie(_ temporary.Trie) {
+func (p *PeerAccountHandlerMock) SetDataTrie(_ common.Trie) {
 
 }
 
 // DataTrie -
-func (p *PeerAccountHandlerMock) DataTrie() temporary.Trie {
+func (p *PeerAccountHandlerMock) DataTrie() common.Trie {
 	return nil
 }
 

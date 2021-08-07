@@ -14,7 +14,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	triesFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -53,7 +55,7 @@ func createStubTopicMessageHandlerForShard(matchStrToErrOnCreate string, matchSt
 }
 
 func createDataPoolsForShard() dataRetriever.PoolsHolder {
-	pools := testscommon.NewPoolsHolderStub()
+	pools := dataRetrieverMock.NewPoolsHolderStub()
 	pools.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return testscommon.NewShardedDataStub()
 	}
@@ -86,8 +88,8 @@ func createStoreForShard() dataRetriever.StorageService {
 
 func createTriesHolderForShard() state.TriesHolder {
 	triesHolder := state.NewDataTriesHolder()
-	triesHolder.Put([]byte(triesFactory.UserAccountTrie), &testscommon.TrieStub{})
-	triesHolder.Put([]byte(triesFactory.PeerAccountTrie), &testscommon.TrieStub{})
+	triesHolder.Put([]byte(triesFactory.UserAccountTrie), &trieMock.TrieStub{})
+	triesHolder.Put([]byte(triesFactory.PeerAccountTrie), &trieMock.TrieStub{})
 	return triesHolder
 }
 

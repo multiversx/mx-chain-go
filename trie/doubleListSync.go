@@ -10,11 +10,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
-
-var _ temporary.TrieSyncer = (*doubleListTrieSyncer)(nil)
 
 type doubleListTrieSyncer struct {
 	rootFound                 bool
@@ -24,7 +22,7 @@ type doubleListTrieSyncer struct {
 	waitTimeBetweenChecks     time.Duration
 	marshalizer               marshal.Marshalizer
 	hasher                    hashing.Hasher
-	db                        temporary.DBWriteCacher
+	db                        common.DBWriteCacher
 	requestHandler            RequestHandler
 	interceptedNodesCacher    storage.Cacher
 	mutOperation              sync.RWMutex

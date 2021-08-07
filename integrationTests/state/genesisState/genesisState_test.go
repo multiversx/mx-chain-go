@@ -10,12 +10,12 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -263,8 +263,8 @@ func printTestDebugLines(
 	totalPairsIdx []int,
 	referenceRemovablePairs []int,
 	removablePairs []int,
-	referenceTrie temporary.Trie,
-	tr temporary.Trie,
+	referenceTrie common.Trie,
+	tr common.Trie,
 ) {
 
 	fmt.Printf("expected after add root hash: %s\n", base64.StdEncoding.EncodeToString(referenceAfterAddRootHash))
@@ -338,7 +338,7 @@ func fisherYatesShuffle(indexes []int) ([]int, error) {
 }
 
 func execute(
-	tr temporary.Trie,
+	tr common.Trie,
 	totalPairs []*testPair,
 	totalPairsIdx []int,
 	removablePairsIdx []int,

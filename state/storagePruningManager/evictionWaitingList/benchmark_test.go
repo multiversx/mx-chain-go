@@ -6,13 +6,14 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/mock"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
+	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
 
 var testHasher = blake2b.NewBlake2b()
-var testHashes map[string]temporary.ModifiedHashes
+var testHashes map[string]common.ModifiedHashes
 var roothashes []string
 var hashes [][]byte
 
@@ -24,7 +25,7 @@ func initTestHashes() {
 
 func initEWL() *evictionWaitingList {
 	initTestHashes()
-	ewl, _ := NewEvictionWaitingList(100000, mock.NewMemDbMock(), &marshal.GogoProtoMarshalizer{})
+	ewl, _ := NewEvictionWaitingList(100000, testscommon.NewMemDbMock(), &marshal.GogoProtoMarshalizer{})
 
 	for _, roothash := range roothashes {
 		_ = ewl.Put([]byte(roothash), testHashes[roothash])
@@ -48,16 +49,16 @@ func initMemoryEWL() *memoryEvictionWaitingList {
 	return ewl
 }
 
-func generateTestHashes(numRoothashes int, numHashesOnRoothash int) (map[string]temporary.ModifiedHashes, []string, [][]byte) {
+func generateTestHashes(numRoothashes int, numHashesOnRoothash int) (map[string]common.ModifiedHashes, []string, [][]byte) {
 	counter := 0
-	results := make(map[string]temporary.ModifiedHashes, numRoothashes)
+	results := make(map[string]common.ModifiedHashes, numRoothashes)
 	resultsRoothashes := make([]string, 0, numRoothashes)
 	resultsHashes := make([][]byte, 0, numRoothashes*numHashesOnRoothash)
 	for i := 0; i < numRoothashes; i++ {
 		rootHash := string(intToHash(counter))
 		counter++
 
-		var newHashes temporary.ModifiedHashes
+		var newHashes common.ModifiedHashes
 		newHashes, counter = generateHashes(counter, numHashesOnRoothash)
 		for h := range newHashes {
 			resultsHashes = append(resultsHashes, []byte(h))
@@ -78,7 +79,7 @@ func intToHash(value int) []byte {
 	return testHasher.Compute(string(buff))
 }
 
-func generateHashes(counter int, numHashesOnRoothash int) (temporary.ModifiedHashes, int) {
+func generateHashes(counter int, numHashesOnRoothash int) (common.ModifiedHashes, int) {
 	result := make(map[string]struct{}, numHashesOnRoothash)
 
 	for i := 0; i < numHashesOnRoothash; i++ {
@@ -92,7 +93,7 @@ func generateHashes(counter int, numHashesOnRoothash int) (temporary.ModifiedHas
 }
 
 func BenchmarkEvictionWaitingList_Put(b *testing.B) {
-	localEwl, err := NewEvictionWaitingList(10000, mock.NewMemDbMock(), &marshal.GogoProtoMarshalizer{})
+	localEwl, err := NewEvictionWaitingList(10000, testscommon.NewMemDbMock(), &marshal.GogoProtoMarshalizer{})
 	require.Nil(b, err)
 	initTestHashes()
 	b.ResetTimer()
@@ -181,7 +182,7 @@ func BenchmarkEvictionWaitingList_ShouldKeep(b *testing.B) {
 		hash := hashes[idx]
 
 		b.StartTimer()
-		_, err := ewl.ShouldKeepHash(string(hash), temporary.TriePruningIdentifier(i%2))
+		_, err := ewl.ShouldKeepHash(string(hash), state.TriePruningIdentifier(i%2))
 		b.StopTimer()
 		require.Nil(b, err)
 	}
@@ -197,7 +198,7 @@ func BenchmarkMemoryEvictionWaitingList_ShouldKeep(b *testing.B) {
 		hash := hashes[idx]
 
 		b.StartTimer()
-		_, err := ewl.ShouldKeepHash(string(hash), temporary.TriePruningIdentifier(i%2))
+		_, err := ewl.ShouldKeepHash(string(hash), state.TriePruningIdentifier(i%2))
 		b.StopTimer()
 		require.Nil(b, err)
 	}

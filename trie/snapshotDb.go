@@ -3,11 +3,11 @@ package trie
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
+	"github.com/ElrondNetwork/elrond-go/common"
 )
 
 type snapshotDb struct {
-	temporary.DBWriteCacher
+	common.DBWriteCacher
 	numReferences        uint32
 	shouldBeRemoved      bool
 	shouldBeDisconnected bool

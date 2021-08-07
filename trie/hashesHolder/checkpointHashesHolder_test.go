@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
@@ -18,7 +18,7 @@ func TestNewCheckpointHashesHolder(t *testing.T) {
 
 type testValues struct {
 	rootHashes [][]byte
-	values     []temporary.ModifiedHashes
+	values     []common.ModifiedHashes
 }
 
 func getTestValues() *testValues {
@@ -43,7 +43,7 @@ func getTestValues() *testValues {
 
 	testData := &testValues{
 		rootHashes: [][]byte{rootHash1, rootHash2, rootHash3},
-		values:     []temporary.ModifiedHashes{hashes1, hashes2, hashes3},
+		values:     []common.ModifiedHashes{hashes1, hashes2, hashes3},
 	}
 
 	return testData

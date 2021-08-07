@@ -9,19 +9,19 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/mock"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-var marshalizer = &mock.MarshalizerMock{}
-var hasher = &mock.HasherMock{}
+var marshalizer = &testscommon.MarshalizerMock{}
+var hasher = &testscommon.HasherMock{}
 
 func createMemUnit() storage.Storer {
 	capacity := uint32(10)
@@ -35,7 +35,7 @@ func createMemUnit() storage.Storer {
 }
 
 // CreateTrieStorageManager creates the trie storage manager for the tests
-func createTrieStorageManager(store storage.Storer) (temporary.StorageManager, storage.Storer) {
+func createTrieStorageManager(store storage.Storer) (common.StorageManager, storage.Storer) {
 	tempDir, _ := ioutil.TempDir("", "trie")
 	cfg := config.DBConfig{
 		FilePath:          tempDir,
@@ -62,7 +62,7 @@ func createTrieStorageManager(store storage.Storer) (temporary.StorageManager, s
 	return tsm, store
 }
 
-func createInMemoryTrie() (temporary.Trie, storage.Storer) {
+func createInMemoryTrie() (common.Trie, storage.Storer) {
 	memUnit := createMemUnit()
 	tsm, _ := createTrieStorageManager(memUnit)
 	tr, _ := NewTrie(tsm, marshalizer, hasher, 6)
@@ -70,7 +70,7 @@ func createInMemoryTrie() (temporary.Trie, storage.Storer) {
 	return tr, memUnit
 }
 
-func createInMemoryTrieFromDB(db storage.Persister) (temporary.Trie, storage.Storer) {
+func createInMemoryTrieFromDB(db storage.Persister) (common.Trie, storage.Storer) {
 	capacity := uint32(10)
 	shards := uint32(1)
 	sizeInBytes := uint64(0)
@@ -83,7 +83,7 @@ func createInMemoryTrieFromDB(db storage.Persister) (temporary.Trie, storage.Sto
 	return tr, unit
 }
 
-func addDataToTrie(numKeysValues int, tr temporary.Trie) {
+func addDataToTrie(numKeysValues int, tr common.Trie) {
 	for i := 0; i < numKeysValues; i++ {
 		keyVal := hasher.Compute(fmt.Sprintf("%d", i))
 
@@ -91,8 +91,8 @@ func addDataToTrie(numKeysValues int, tr temporary.Trie) {
 	}
 }
 
-func createRequesterResolver(completeTrie temporary.Trie, interceptedNodes storage.Cacher, exceptionHashes [][]byte) RequestHandler {
-	return &mock.RequestHandlerStub{
+func createRequesterResolver(completeTrie common.Trie, interceptedNodes storage.Cacher, exceptionHashes [][]byte) RequestHandler {
+	return &testscommon.RequestHandlerStub{
 		RequestTrieNodesCalled: func(destShardID uint32, hashes [][]byte, topic string) {
 			for _, hash := range hashes {
 				if hashInList(hash, exceptionHashes) {
@@ -228,7 +228,7 @@ func TestDoubleListTrieSyncer_StartSyncingNewTrieShouldWork(t *testing.T) {
 	err := d.StartSyncing(roothash, ctx)
 	require.Nil(t, err)
 
-	trie, _ := createInMemoryTrieFromDB(arg.DB.(*mock.MemDbMock))
+	trie, _ := createInMemoryTrieFromDB(arg.DB.(*testscommon.MemDbMock))
 	trie, _ = trie.Recreate(roothash)
 	require.False(t, check.IfNil(trie))
 
@@ -275,7 +275,7 @@ func TestDoubleListTrieSyncer_StartSyncingPartiallyFilledTrieShouldWork(t *testi
 	err := d.StartSyncing(roothash, ctx)
 	require.Nil(t, err)
 
-	trie, _ := createInMemoryTrieFromDB(arg.DB.(*mock.MemDbMock))
+	trie, _ := createInMemoryTrieFromDB(arg.DB.(*testscommon.MemDbMock))
 	trie, _ = trie.Recreate(roothash)
 	require.False(t, check.IfNil(trie))
 
