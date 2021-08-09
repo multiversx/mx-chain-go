@@ -24,9 +24,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -263,7 +263,7 @@ func TestNewMetaProcessor_NilHeadersDataPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
-	dataComponents.DataPool = &testscommon.PoolsHolderStub{
+	dataComponents.DataPool = &dataRetrieverMock.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return nil
 		},
@@ -2980,7 +2980,7 @@ func TestMetaProcessor_CreateNewHeaderValsOK(t *testing.T) {
 	}
 
 	arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
-	arguments.AccountsDB[state.UserAccountsState] = &testscommon.AccountsStub{
+	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
 		RootHashCalled: func() ([]byte, error) {
 			return rootHash, nil
 		},

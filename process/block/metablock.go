@@ -116,7 +116,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		vmContainerFactory:            arguments.VMContainersFactory,
 		vmContainer:                   arguments.VmContainer,
 		processDataTriesOnCommitEpoch: arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
-		scheduledTxsExecutionHandler: arguments.ScheduledTxsExecutionHandler,
+		scheduledTxsExecutionHandler:  arguments.ScheduledTxsExecutionHandler,
 	}
 
 	mp := metaProcessor{
@@ -2367,4 +2367,20 @@ func (mp *metaProcessor) removeStartOfEpochBlockDataFromPools(
 // Close - closes all underlying components
 func (mp *metaProcessor) Close() error {
 	return mp.baseProcessor.Close()
+}
+
+// DecodeBlockHeader method decodes block header from a given byte array
+func (mp *metaProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
+	if dta == nil {
+		return nil
+	}
+
+	metaBlock := &block.MetaBlock{}
+	err := mp.marshalizer.Unmarshal(metaBlock, dta)
+	if err != nil {
+		log.Debug("DecodeBlockHeader.Unmarshal", "error", err.Error())
+		return nil
+	}
+
+	return metaBlock
 }

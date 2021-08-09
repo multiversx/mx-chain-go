@@ -2043,3 +2043,18 @@ func (sp *shardProcessor) removeStartOfEpochBlockDataFromPools(
 func (sp *shardProcessor) Close() error {
 	return sp.baseProcessor.Close()
 }
+
+// DecodeBlockHeader method decodes block header from a given byte array
+func (sp *shardProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
+	if dta == nil {
+		return nil
+	}
+
+	header, err := process.CreateShardHeader(sp.marshalizer, dta)
+	if err != nil {
+		log.Debug("DecodeBlockHeader.CreateShardHeader", "error", err.Error())
+		return nil
+	}
+
+	return header
+}

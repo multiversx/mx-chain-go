@@ -990,23 +990,6 @@ func (bp *baseProcessor) DecodeBlockBody(dta []byte) data.BodyHandler {
 	return body
 }
 
-// DecodeBlockHeader method decodes block header from a given byte array
-func (bp *baseProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
-	if dta == nil {
-		return nil
-	}
-
-	header := bp.blockChain.CreateNewHeader()
-
-	err := bp.marshalizer.Unmarshal(header, dta)
-	if err != nil {
-		log.Debug("DecodeBlockHeader.Unmarshal", "error", err.Error())
-		return nil
-	}
-
-	return header
-}
-
 func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler, headerHash []byte) {
 	startTime := time.Now()
 

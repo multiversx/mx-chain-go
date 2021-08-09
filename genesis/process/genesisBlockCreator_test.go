@@ -24,8 +24,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -169,7 +169,7 @@ func createMockArgument(
 		GenesisTotalSupplyCalled: func() *big.Int {
 			return entireSupply
 		},
-		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
+		MaxGasLimitPerBlockCalled: func() uint64 {
 			return math.MaxUint64
 		},
 	}

@@ -25,9 +25,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
@@ -619,7 +619,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilEpochNotifier(t *testing.T
 		&mock.MarshalizerMock{},
 		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		requestTransaction,
 		feeHandlerMock(),
 		&testscommon.GasHandlerStub{},
@@ -650,7 +650,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilTxTypeHandler(t *testing.T
 		&mock.MarshalizerMock{},
 		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		requestTransaction,
 		feeHandlerMock(),
 		&testscommon.GasHandlerStub{},
@@ -681,7 +681,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilScheduledTxsExecutionHandl
 		&mock.MarshalizerMock{},
 		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		requestTransaction,
 		feeHandlerMock(),
 		&testscommon.GasHandlerStub{},

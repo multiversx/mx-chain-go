@@ -8,9 +8,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -553,9 +553,9 @@ func TestNewPreProcessorsContainerFactory_NilEpochNotifier(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
-		testscommon.NewPoolsHolderMock(),
+		dataRetrieverMock.NewPoolsHolderMock(),
 		createMockPubkeyConverter(),
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&testscommon.RequestHandlerStub{},
 		&testscommon.TxProcessorMock{},
 		&testscommon.SCProcessorMock{},
@@ -584,9 +584,9 @@ func TestNewPreProcessorsContainerFactory_NilTxTypeHandler(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
-		testscommon.NewPoolsHolderMock(),
+		dataRetrieverMock.NewPoolsHolderMock(),
 		createMockPubkeyConverter(),
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&testscommon.RequestHandlerStub{},
 		&testscommon.TxProcessorMock{},
 		&testscommon.SCProcessorMock{},
@@ -615,9 +615,9 @@ func TestNewPreProcessorsContainerFactory_NilScheduledTxsExecutionHandler(t *tes
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
-		testscommon.NewPoolsHolderMock(),
+		dataRetrieverMock.NewPoolsHolderMock(),
 		createMockPubkeyConverter(),
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&testscommon.RequestHandlerStub{},
 		&testscommon.TxProcessorMock{},
 		&testscommon.SCProcessorMock{},
