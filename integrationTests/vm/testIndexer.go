@@ -3,16 +3,27 @@ package vm
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
 
 	elasticIndexer "github.com/ElrondNetwork/elastic-indexer-go"
 	indexerTypes "github.com/ElrondNetwork/elastic-indexer-go/data"
+	elasticProcessor "github.com/ElrondNetwork/elastic-indexer-go/process"
+	"github.com/ElrondNetwork/elastic-indexer-go/process/accounts"
+	blockProc "github.com/ElrondNetwork/elastic-indexer-go/process/block"
+	"github.com/ElrondNetwork/elastic-indexer-go/process/logsevents"
+	"github.com/ElrondNetwork/elastic-indexer-go/process/miniblocks"
+	"github.com/ElrondNetwork/elastic-indexer-go/process/statistics"
+	"github.com/ElrondNetwork/elastic-indexer-go/process/transactions"
+	"github.com/ElrondNetwork/elastic-indexer-go/process/validators"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	"github.com/ElrondNetwork/elrond-go-core/data/receipt"
+	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -34,13 +45,14 @@ type testIndexer struct {
 	t                testing.TB
 }
 
-const timeoutSave = 10 * time.Second
+const timeoutSave = 100 * time.Second
 
 // CreateTestIndexer -
 func CreateTestIndexer(
 	t testing.TB,
 	coordinator sharding.Coordinator,
 	economicsDataHandler process.EconomicsDataHandler,
+	hasResults bool,
 ) *testIndexer {
 	ti := &testIndexer{
 		indexerData: map[string]*bytes.Buffer{},
@@ -55,19 +67,19 @@ func CreateTestIndexer(
 	txFeeCalculator, ok := economicsDataHandler.(elasticIndexer.FeesProcessorHandler)
 	require.True(t, ok)
 
-	elasticProcessor := ti.createElasticProcessor(coordinator, txFeeCalculator)
+	ep := ti.createElasticProcessor(coordinator, txFeeCalculator, hasResults)
 
 	arguments := elasticIndexer.ArgDataIndexer{
 		Marshalizer:      testMarshalizer,
 		ShardCoordinator: coordinator,
-		ElasticProcessor: elasticProcessor,
+		ElasticProcessor: ep,
 		DataDispatcher:   dispatcher,
 	}
 
-	testIndexer, err := elasticIndexer.NewDataIndexer(arguments)
+	te, err := elasticIndexer.NewDataIndexer(arguments)
 	require.Nil(t, err)
 
-	ti.outportDriver = testIndexer
+	ti.outportDriver = te
 	ti.shardCoordinator = coordinator
 	ti.marshalizer = testMarshalizer
 	ti.hasher = testHasher
@@ -80,34 +92,48 @@ func CreateTestIndexer(
 func (ti *testIndexer) createElasticProcessor(
 	shardCoordinator sharding.Coordinator,
 	transactionFeeCalculator elasticIndexer.FeesProcessorHandler,
+	hasResults bool,
 ) elasticIndexer.ElasticProcessor {
-	databaseClient := ti.createDatabaseClient()
+	databaseClient := ti.createDatabaseClient(hasResults)
 
-	indexTemplates, indexPolicies, _ := elasticIndexer.GetElasticTemplatesAndPolicies(false)
-
-	enabledIndexes := []string{"transactions"}
+	enabledIndexes := []string{"transactions", "scresults", "receipts"}
 	enabledIndexesMap := make(map[string]struct{})
 	for _, index := range enabledIndexes {
 		enabledIndexesMap[index] = struct{}{}
 	}
 
-	esIndexerArgs := elasticIndexer.ArgElasticProcessor{
-		IndexTemplates:           indexTemplates,
-		IndexPolicies:            indexPolicies,
-		Marshalizer:              testMarshalizer,
-		Hasher:                   testHasher,
-		AddressPubkeyConverter:   pubkeyConv,
-		ValidatorPubkeyConverter: pubkeyConv,
-		DBClient:                 databaseClient,
-		EnabledIndexes:           enabledIndexesMap,
-		AccountsDB:               &stateMock.AccountsStub{},
-		Denomination:             18,
-		TransactionFeeCalculator: transactionFeeCalculator,
-		IsInImportDBMode:         false,
-		ShardCoordinator:         shardCoordinator,
+	transactionProc, _ := transactions.NewTransactionsProcessor(&transactions.ArgsTransactionProcessor{
+		AddressPubkeyConverter: pubkeyConv,
+		TxFeeCalculator:        transactionFeeCalculator,
+		ShardCoordinator:       shardCoordinator,
+		Hasher:                 testHasher,
+		Marshalizer:            testMarshalizer,
+		IsInImportMode:         false,
+	})
+	ap, _ := accounts.NewAccountsProcessor(18, testMarshalizer, pubkeyConv, &stateMock.AccountsStub{})
+	bp, _ := blockProc.NewBlockProcessor(testHasher, testMarshalizer)
+	mp, _ := miniblocks.NewMiniblocksProcessor(shardCoordinator.SelfId(), testHasher, testMarshalizer)
+	sp := statistics.NewStatisticsProcessor()
+	vp, _ := validators.NewValidatorsProcessor(pubkeyConv)
+	lp, _ := logsevents.NewLogsAndEventsProcessor(shardCoordinator, pubkeyConv, testMarshalizer)
+
+	esIndexerArgs := &elasticProcessor.ArgElasticProcessor{
+		UseKibana:         false,
+		SelfShardID:       shardCoordinator.SelfId(),
+		IndexTemplates:    nil,
+		IndexPolicies:     nil,
+		EnabledIndexes:    enabledIndexesMap,
+		TransactionsProc:  transactionProc,
+		AccountsProc:      ap,
+		BlockProc:         bp,
+		MiniblocksProc:    mp,
+		StatisticsProc:    sp,
+		ValidatorsProc:    vp,
+		LogsAndEventsProc: lp,
+		DBClient:          databaseClient,
 	}
 
-	esProcessor, _ := elasticIndexer.NewElasticProcessor(esIndexerArgs)
+	esProcessor, _ := elasticProcessor.NewElasticProcessor(esIndexerArgs)
 
 	return esProcessor
 }
@@ -140,11 +166,16 @@ func (ti *testIndexer) SaveTransaction(
 		Txs:      make(map[string]data.TransactionHandler),
 		Scrs:     make(map[string]data.TransactionHandler),
 		Rewards:  nil,
-		Invalid:  nil,
-		Receipts: nil,
+		Invalid:  make(map[string]data.TransactionHandler),
+		Receipts: make(map[string]data.TransactionHandler),
 	}
 
-	txsPool.Txs[string(txHash)] = tx
+	if mbType == block.InvalidBlock {
+		txsPool.Invalid[string(txHash)] = tx
+		bigTxMb.ReceiverShardID = sndShardID
+	} else {
+		txsPool.Txs[string(txHash)] = tx
+	}
 
 	for _, intTx := range intermediateTxs {
 		sndShardID = ti.shardCoordinator.ComputeId(intTx.GetSndAddr())
@@ -152,16 +183,25 @@ func (ti *testIndexer) SaveTransaction(
 
 		intTxHash, _ := core.CalculateHash(ti.marshalizer, ti.hasher, intTx)
 
-		mb := &block.MiniBlock{
-			Type:            block.SmartContractResultBlock,
-			TxHashes:        [][]byte{intTxHash},
-			SenderShardID:   sndShardID,
-			ReceiverShardID: rcvShardID,
+		var mb block.MiniBlock
+		mb.SenderShardID = sndShardID
+
+		switch intTx.(type) {
+		case *receipt.Receipt:
+			mb.Type = block.ReceiptBlock
+			mb.ReceiverShardID = sndShardID
+			txsPool.Receipts[string(intTxHash)] = intTx
+		case *smartContractResult.SmartContractResult:
+			mb.Type = block.SmartContractResultBlock
+			mb.ReceiverShardID = rcvShardID
+			txsPool.Scrs[string(intTxHash)] = intTx
+		default:
+			continue
 		}
 
-		blk.MiniBlocks = append(blk.MiniBlocks, mb)
+		mb.TxHashes = [][]byte{intTxHash}
+		blk.MiniBlocks = append(blk.MiniBlocks, &mb)
 
-		txsPool.Scrs[string(intTxHash)] = intTx
 	}
 
 	header := &block.Header{
@@ -183,12 +223,20 @@ func (ti *testIndexer) SaveTransaction(
 	}
 }
 
-func (ti *testIndexer) createDatabaseClient() elasticIndexer.DatabaseClientHandler {
+func (ti *testIndexer) createDatabaseClient(hasResults bool) elasticProcessor.DatabaseClientHandler {
+	done := true
+	if hasResults {
+		done = false
+	}
 	doBulkRequest := func(buff *bytes.Buffer, index string) error {
 		ti.mutex.Lock()
 		defer ti.mutex.Unlock()
 
 		ti.indexerData[index] = buff
+		if !done {
+			done = true
+			return nil
+		}
 		ti.saveDoneChan <- struct{}{}
 		return nil
 	}
@@ -216,6 +264,8 @@ func (ti *testIndexer) GetIndexerPreparedTransaction(t *testing.T) *indexerTypes
 	require.Nil(t, err)
 
 	if newTx.Receiver != "" {
+		ti.printReceipt()
+		ti.putSCRSInTx(newTx)
 		return newTx
 	}
 
@@ -227,4 +277,47 @@ func (ti *testIndexer) GetIndexerPreparedTransaction(t *testing.T) *indexerTypes
 	require.Nil(t, err)
 
 	return newTx
+}
+
+func (ti *testIndexer) printReceipt() {
+	ti.mutex.RLock()
+	receipts, ok := ti.indexerData["receipts"]
+	ti.mutex.RUnlock()
+
+	if !ok {
+		return
+	}
+
+	split := bytes.Split(receipts.Bytes(), []byte("\n"))
+	require.True(ti.t, len(split) > 2)
+
+	newSCR := &indexerTypes.Receipt{}
+	err := json.Unmarshal(split[1], newSCR)
+	require.Nil(ti.t, err)
+
+	fmt.Println(string(split[1]))
+}
+
+func (ti *testIndexer) putSCRSInTx(tx *indexerTypes.Transaction) {
+	ti.mutex.RLock()
+	scrData, ok := ti.indexerData["scresults"]
+	ti.mutex.RUnlock()
+
+	if !ok {
+		return
+	}
+
+	split := bytes.Split(scrData.Bytes(), []byte("\n"))
+	require.True(ti.t, len(split) > 2)
+
+	for idx := 1; idx < len(split); idx += 2 {
+		newSCR := &indexerTypes.ScResult{}
+		err := json.Unmarshal(split[1], newSCR)
+		require.Nil(ti.t, err)
+
+		if newSCR.Receiver != "" {
+			tx.SmartContractResults = append(tx.SmartContractResults, newSCR)
+		}
+	}
+
 }
