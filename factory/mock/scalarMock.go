@@ -1,7 +1,7 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go-crypto"
 )
 
 // ScalarMock represents a mock implementation of a Scalar

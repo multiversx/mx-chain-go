@@ -38,7 +38,8 @@ void      bigIntFinishSigned(bigInt reference);
 void      bigIntGetCallValue(bigInt destination);
 void      bigIntgetExternalBalance(byte *address, bigInt result);
 
-int       bigIntByteLength(bigInt reference);
+int       bigIntUnsignedByteLength(bigInt bigIntHandle);
+int       bigIntSignedByteLength(bigInt bigIntHandle);
 int       bigIntGetUnsignedBytes(bigInt reference, byte *byte);
 int       bigIntGetSignedBytes(bigInt reference, byte *byte);
 void      bigIntSetUnsignedBytes(bigInt destination, byte *byte, int byteLength);

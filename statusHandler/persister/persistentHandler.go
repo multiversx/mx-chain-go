@@ -67,13 +67,8 @@ func (psh *PersistentStatusHandler) initMap() {
 	psh.persistentMetrics.Store(common.MetricCountAcceptedBlocks, initUint)
 	psh.persistentMetrics.Store(common.MetricCountLeader, initUint)
 	psh.persistentMetrics.Store(common.MetricNumProcessedTxs, initUint)
-	psh.persistentMetrics.Store(common.MetricNumProcessedTxsTPSBenchmark, initUint)
 	psh.persistentMetrics.Store(common.MetricNumShardHeadersProcessed, initUint)
 	psh.persistentMetrics.Store(common.MetricNonce, initUint)
-	psh.persistentMetrics.Store(common.MetricNonceForTPS, initUint)
-	psh.persistentMetrics.Store(common.MetricPeakTPS, initUint)
-	psh.persistentMetrics.Store(common.MetricAverageBlockTxCount, zeroString)
-	psh.persistentMetrics.Store(common.MetricLastBlockTxCount, initUint)
 	psh.persistentMetrics.Store(common.MetricCurrentRound, initUint)
 	psh.persistentMetrics.Store(common.MetricNonceAtEpochStart, initUint)
 	psh.persistentMetrics.Store(common.MetricRoundAtEpochStart, initUint)
@@ -127,11 +122,6 @@ func (psh *PersistentStatusHandler) saveMetricsInDb(nonce uint64) {
 			"error", err)
 		return
 	}
-	log.Trace("saved tps benchmark",
-		"peak tps", metricsMap[common.MetricPeakTPS],
-		"total num processed txs", metricsMap[common.MetricNumProcessedTxsTPSBenchmark],
-		"round", metricsMap[common.MetricCurrentRound],
-		"nonce", metricsMap[common.MetricNonce])
 	log.Trace("saved last nonce metrics",
 		"key", []byte("lastNonce"),
 		"value", nonceBytes)

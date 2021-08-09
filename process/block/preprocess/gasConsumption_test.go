@@ -113,7 +113,7 @@ func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsNotASmartContra
 
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{
-			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 6
 			},
 		},
@@ -134,7 +134,7 @@ func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractI
 
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{
-			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 6
 			},
 		},
@@ -158,7 +158,7 @@ func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractC
 
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{
-			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 6
 			},
 		},
@@ -182,7 +182,7 @@ func TestComputeGasConsumedByTx_ShouldReturnZeroIf0GasLimit(t *testing.T) {
 
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{
-			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 6
 			},
 		},
@@ -206,7 +206,7 @@ func TestComputeGasConsumedByTx_ShouldReturnGasLimitIfLessThanMoveBalance(t *tes
 
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{
-			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 6
 			},
 		},
@@ -230,7 +230,7 @@ func TestComputeGasConsumedByTx_ShouldReturnGasLimitWhenRelayed(t *testing.T) {
 
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{
-			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 0
 			},
 		},
@@ -254,7 +254,7 @@ func TestComputeGasConsumedByTx_ShouldReturnGasLimitWhenRelayedV2(t *testing.T) 
 
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{
-			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 0
 			},
 		},
@@ -278,7 +278,7 @@ func TestComputeGasConsumedByMiniBlock_ShouldErrMissingTransaction(t *testing.T)
 
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{
-			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 6
 			},
 		},
@@ -308,7 +308,7 @@ func TestComputeGasConsumedByMiniBlock_ShouldReturnZeroWhenOneTxIsMissing(t *tes
 
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{
-			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 6
 			},
 		},
@@ -341,7 +341,7 @@ func TestComputeGasConsumedByMiniBlock_ShouldWork(t *testing.T) {
 
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{
-			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 6
 			},
 		},
@@ -382,7 +382,7 @@ func TestComputeGasConsumedByMiniBlock_ShouldWorkV1(t *testing.T) {
 
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{
-			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 6
 			},
 		},
@@ -423,7 +423,7 @@ func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsNotASmartContra
 
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{
-			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 6
 			},
 		},
@@ -444,7 +444,7 @@ func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractI
 
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{
-			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 6
 			},
 		},
@@ -468,7 +468,7 @@ func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractC
 
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{
-			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 6
 			},
 		},

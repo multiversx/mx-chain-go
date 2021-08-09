@@ -1,6 +1,8 @@
 package disabled
 
-import "github.com/ElrondNetwork/elrond-go/state/temporary"
+import (
+	"github.com/ElrondNetwork/elrond-go/common"
+)
 
 type disabledCheckpointHashesHolder struct {
 }
@@ -11,7 +13,7 @@ func NewDisabledCheckpointHashesHolder() *disabledCheckpointHashesHolder {
 }
 
 // Put returns false
-func (d *disabledCheckpointHashesHolder) Put(_ []byte, _ temporary.ModifiedHashes) bool {
+func (d *disabledCheckpointHashesHolder) Put(_ []byte, _ common.ModifiedHashes) bool {
 	return false
 }
 

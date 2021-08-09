@@ -3,8 +3,8 @@ package txsimulator
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -78,11 +78,11 @@ func (r *readOnlyAccountsDB) RecreateTrie(_ []byte) error {
 }
 
 // PruneTrie won't do anything as write operations are disabled on this component
-func (r *readOnlyAccountsDB) PruneTrie(_ []byte, _ temporary.TriePruningIdentifier) {
+func (r *readOnlyAccountsDB) PruneTrie(_ []byte, _ state.TriePruningIdentifier) {
 }
 
 // CancelPrune won't do anything as write operations are disabled on this component
-func (r *readOnlyAccountsDB) CancelPrune(_ []byte, _ temporary.TriePruningIdentifier) {
+func (r *readOnlyAccountsDB) CancelPrune(_ []byte, _ state.TriePruningIdentifier) {
 }
 
 // SnapshotState won't do anything as write operations are disabled on this component
@@ -104,12 +104,12 @@ func (r *readOnlyAccountsDB) GetAllLeaves(rootHash []byte) (chan core.KeyValueHo
 }
 
 // RecreateAllTries will return an error which indicates that this operation is not supported
-func (r *readOnlyAccountsDB) RecreateAllTries(_ []byte) (map[string]temporary.Trie, error) {
+func (r *readOnlyAccountsDB) RecreateAllTries(_ []byte) (map[string]common.Trie, error) {
 	return nil, nil
 }
 
 // GetTrie will return an error which indicates that this operation is not supported
-func (r *readOnlyAccountsDB) GetTrie(_ []byte) (temporary.Trie, error) {
+func (r *readOnlyAccountsDB) GetTrie(_ []byte) (common.Trie, error) {
 	return nil, nil
 }
 

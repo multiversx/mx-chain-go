@@ -3,6 +3,7 @@ package economics
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/mitchellh/mapstructure"
@@ -76,7 +77,7 @@ func (bc *builtInFunctionsCost) GasScheduleChange(gasSchedule map[string]map[str
 }
 
 // ComputeBuiltInCost will compute built in function cost
-func (bc *builtInFunctionsCost) ComputeBuiltInCost(tx process.TransactionWithFeeHandler) uint64 {
+func (bc *builtInFunctionsCost) ComputeBuiltInCost(tx data.TransactionWithFeeHandler) uint64 {
 	function, arguments, err := bc.argsParser.ParseCallData(string(tx.GetData()))
 	if err != nil {
 		return 0
@@ -121,7 +122,7 @@ func calculateLenOfArguments(arguments [][]byte) uint64 {
 }
 
 // IsBuiltInFuncCall will check is the provided transaction is a build in function call
-func (bc *builtInFunctionsCost) IsBuiltInFuncCall(tx process.TransactionWithFeeHandler) bool {
+func (bc *builtInFunctionsCost) IsBuiltInFuncCall(tx data.TransactionWithFeeHandler) bool {
 	function, arguments, err := bc.argsParser.ParseCallData(string(tx.GetData()))
 	if err != nil {
 		return false

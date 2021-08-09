@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 )
@@ -17,7 +18,7 @@ func initConsensusDataContainer() *ConsensusCore {
 	chronologyHandlerMock := mock.InitChronologyHandlerMock()
 	blsPrivateKeyMock := &mock.PrivateKeyMock{}
 	blsSingleSignerMock := &mock.SingleSignerMock{}
-	multiSignerMock := mock.NewMultiSigner()
+	multiSignerMock := cryptoMocks.NewMultiSigner(21)
 	hasherMock := &hashingMocks.HasherMock{}
 	marshalizerMock := mock.MarshalizerMock{}
 	roundHandlerMock := &mock.RoundHandlerMock{}

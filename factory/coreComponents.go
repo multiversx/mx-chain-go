@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	marshalizerFactory "github.com/ElrondNetwork/elrond-go-core/marshal/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
+	commonFactory "github.com/ElrondNetwork/elrond-go/common/factory"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -31,7 +32,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	stateFactory "github.com/ElrondNetwork/elrond-go/state/factory"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 )
@@ -141,12 +141,12 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 
 	uint64ByteSliceConverter := uint64ByteSlice.NewBigEndianConverter()
 
-	addressPubkeyConverter, err := stateFactory.NewPubkeyConverter(ccf.config.AddressPubkeyConverter)
+	addressPubkeyConverter, err := commonFactory.NewPubkeyConverter(ccf.config.AddressPubkeyConverter)
 	if err != nil {
 		return nil, fmt.Errorf("%w for AddressPubkeyConverter", err)
 	}
 
-	validatorPubkeyConverter, err := stateFactory.NewPubkeyConverter(ccf.config.ValidatorPubkeyConverter)
+	validatorPubkeyConverter, err := commonFactory.NewPubkeyConverter(ccf.config.ValidatorPubkeyConverter)
 	if err != nil {
 		return nil, fmt.Errorf("%w for AddressPubkeyConverter", err)
 	}

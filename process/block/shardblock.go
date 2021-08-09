@@ -77,8 +77,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		stateCheckpointModulus:        arguments.Config.StateTriesConfig.CheckpointRoundsModulus,
 		blockChain:                    arguments.DataComponents.Blockchain(),
 		feeHandler:                    arguments.FeeHandler,
-		indexer:                       arguments.StatusComponents.ElasticIndexer(),
-		tpsBenchmark:                  arguments.StatusComponents.TpsBenchmark(),
+		outportHandler:                arguments.StatusComponents.OutportHandler(),
 		genesisNonce:                  genesisHdr.GetNonce(),
 		versionedHeaderFactory:        arguments.BootstrapComponents.VersionedHeaderFactory(),
 		headerIntegrityVerifier:       arguments.BootstrapComponents.HeaderIntegrityVerifier(),
@@ -526,7 +525,7 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 	header data.HeaderHandler,
 	lastBlockHeader data.HeaderHandler,
 ) {
-	if sp.indexer.IsNilIndexer() {
+	if !sp.outportHandler.HasDrivers() {
 		return
 	}
 	if check.IfNil(header) {
@@ -606,10 +605,10 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		TransactionsPool:       pool,
 	}
 
-	sp.indexer.SaveBlock(args)
+	sp.outportHandler.SaveBlock(args)
 	log.Debug("indexed block", "hash", headerHash, "nonce", header.GetNonce(), "round", header.GetRound())
 
-	indexRoundInfo(sp.indexer, sp.nodesCoordinator, shardId, header, lastBlockHeader, signersIndexes)
+	indexRoundInfo(sp.outportHandler, sp.nodesCoordinator, shardId, header, lastBlockHeader, signersIndexes)
 }
 
 // RestoreBlockIntoPools restores the TxBlock and MetaBlock into associated pools
@@ -2043,4 +2042,19 @@ func (sp *shardProcessor) removeStartOfEpochBlockDataFromPools(
 // Close - closes all underlying components
 func (sp *shardProcessor) Close() error {
 	return sp.baseProcessor.Close()
+}
+
+// DecodeBlockHeader method decodes block header from a given byte array
+func (sp *shardProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
+	if dta == nil {
+		return nil
+	}
+
+	header, err := process.CreateShardHeader(sp.marshalizer, dta)
+	if err != nil {
+		log.Debug("DecodeBlockHeader.CreateShardHeader", "error", err.Error())
+		return nil
+	}
+
+	return header
 }

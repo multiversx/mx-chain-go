@@ -13,9 +13,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
+	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -45,7 +48,7 @@ func createShardStubTopicHandler(matchStrToErrOnCreate string, matchStrToErrOnRe
 }
 
 func createShardDataPools() dataRetriever.PoolsHolder {
-	pools := testscommon.NewPoolsHolderStub()
+	pools := dataRetrieverMock.NewPoolsHolderStub()
 	pools.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return testscommon.NewShardedDataStub()
 	}
@@ -616,7 +619,7 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 	cryptoComponents := &mock.CryptoComponentsMock{
 		BlockSig: &mock.SignerMock{},
 		TxSig:    &mock.SignerMock{},
-		MultiSig: mock.NewMultiSigner(),
+		MultiSig: cryptoMocks.NewMultiSigner(21),
 		BlKeyGen: &mock.SingleSignKeyGenMock{},
 		TxKeyGen: &mock.SingleSignKeyGenMock{},
 	}
@@ -631,7 +634,7 @@ func getArgumentsShard(
 	return interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
 		CoreComponents:          coreComp,
 		CryptoComponents:        cryptoComp,
-		Accounts:                &testscommon.AccountsStub{},
+		Accounts:                &stateMock.AccountsStub{},
 		ShardCoordinator:        mock.NewOneShardCoordinatorMock(),
 		NodesCoordinator:        mock.NewNodesCoordinatorMock(),
 		Messenger:               &mock.TopicHandlerStub{},

@@ -20,15 +20,14 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/statistics"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
@@ -83,8 +82,7 @@ type baseProcessor struct {
 	blockProcessor         blockProcessor
 	txCounter              *transactionCounter
 
-	indexer            process.Indexer
-	tpsBenchmark       statistics.TPSBenchmark
+	outportHandler     outport.OutportHandler
 	historyRepo        dblookupext.HistoryRepository
 	epochNotifier      process.EpochNotifier
 	vmContainerFactory process.VirtualMachinesContainerFactory
@@ -435,11 +433,8 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.BlockSizeThrottler) {
 		return process.ErrNilBlockSizeThrottler
 	}
-	if check.IfNil(arguments.StatusComponents.ElasticIndexer()) {
-		return process.ErrNilIndexer
-	}
-	if check.IfNil(arguments.StatusComponents.TpsBenchmark()) {
-		return process.ErrNilTpsBenchmark
+	if check.IfNil(arguments.StatusComponents.OutportHandler()) {
+		return process.ErrNilOutportHandler
 	}
 	if check.IfNil(arguments.HistoryRepository) {
 		return process.ErrNilHistoryRepository
@@ -995,23 +990,6 @@ func (bp *baseProcessor) DecodeBlockBody(dta []byte) data.BodyHandler {
 	return body
 }
 
-// DecodeBlockHeader method decodes block header from a given byte array
-func (bp *baseProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
-	if dta == nil {
-		return nil
-	}
-
-	header := bp.blockChain.CreateNewHeader()
-
-	err := bp.marshalizer.Unmarshal(header, dta)
-	if err != nil {
-		log.Debug("DecodeBlockHeader.Unmarshal", "error", err.Error())
-		return nil
-	}
-
-	return header
-}
-
 func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler, headerHash []byte) {
 	startTime := time.Now()
 
@@ -1152,8 +1130,8 @@ func (bp *baseProcessor) updateStateStorage(
 		return
 	}
 
-	accounts.CancelPrune(rootHashToBePruned, temporary.NewRoot)
-	accounts.PruneTrie(rootHashToBePruned, temporary.OldRoot)
+	accounts.CancelPrune(rootHashToBePruned, state.NewRoot)
+	accounts.PruneTrie(rootHashToBePruned, state.OldRoot)
 }
 
 // RevertAccountState reverts the account state for cleanup failed process
@@ -1210,8 +1188,8 @@ func (bp *baseProcessor) PruneStateOnRollback(currHeader data.HeaderHandler, pre
 			continue
 		}
 
-		bp.accountsDB[key].CancelPrune(prevRootHash, temporary.OldRoot)
-		bp.accountsDB[key].PruneTrie(rootHash, temporary.NewRoot)
+		bp.accountsDB[key].CancelPrune(prevRootHash, state.OldRoot)
+		bp.accountsDB[key].PruneTrie(rootHash, state.NewRoot)
 	}
 }
 

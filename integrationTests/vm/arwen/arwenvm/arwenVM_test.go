@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
@@ -26,7 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
@@ -508,7 +509,7 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	feeHandler := &mock.FeeHandlerStub{
-		ComputeMoveBalanceFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+		ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return big.NewInt(10)
 		},
 	}
@@ -715,14 +716,14 @@ func TestAndCatchTrieError(t *testing.T) {
 		require.Nil(t, err)
 		log.Info("finished a set - commit and recreate trie", "index", i)
 		if i%10 == 5 {
-			testContext.Accounts.PruneTrie(extraNewRootHash, temporary.NewRoot)
+			testContext.Accounts.PruneTrie(extraNewRootHash, state.NewRoot)
 			_ = testContext.Accounts.RecreateTrie(rootHash)
 			continue
 		}
 
 		ownerNonce++
 		transferNonce++
-		testContext.Accounts.PruneTrie(rootHash, temporary.OldRoot)
-		testContext.Accounts.PruneTrie(newRootHash, temporary.OldRoot)
+		testContext.Accounts.PruneTrie(rootHash, state.OldRoot)
+		testContext.Accounts.PruneTrie(newRootHash, state.OldRoot)
 	}
 }

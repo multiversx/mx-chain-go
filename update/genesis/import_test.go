@@ -8,8 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/trie/factory"
@@ -22,7 +22,7 @@ import (
 //TODO increase code coverage
 
 func TestNewStateImport(t *testing.T) {
-	trieStorageManagers := make(map[string]temporary.StorageManager)
+	trieStorageManagers := make(map[string]common.StorageManager)
 	trieStorageManagers[factory.UserAccountTrie] = &testscommon.StorageManagerStub{}
 	tests := []struct {
 		name    string
@@ -81,7 +81,7 @@ func TestNewStateImport(t *testing.T) {
 func TestImportAll(t *testing.T) {
 	t.Parallel()
 
-	trieStorageManagers := make(map[string]temporary.StorageManager)
+	trieStorageManagers := make(map[string]common.StorageManager)
 	trieStorageManagers[factory.UserAccountTrie] = &testscommon.StorageManagerStub{}
 	trieStorageManagers[factory.PeerAccountTrie] = &testscommon.StorageManagerStub{}
 
@@ -104,7 +104,7 @@ func TestImportAll(t *testing.T) {
 func TestStateImport_ImportUnFinishedMetaBlocksShouldWork(t *testing.T) {
 	t.Parallel()
 
-	trieStorageManagers := make(map[string]temporary.StorageManager)
+	trieStorageManagers := make(map[string]common.StorageManager)
 	trieStorageManagers[factory.UserAccountTrie] = &testscommon.StorageManagerStub{}
 
 	hasher := &hashingMocks.HasherMock{}
