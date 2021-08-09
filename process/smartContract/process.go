@@ -714,7 +714,10 @@ func (sc *scProcessor) deleteSCRsWithValueZeroGoingToMeta(scrs []data.Transactio
 	for _, scr := range scrs {
 		shardID := sc.shardCoordinator.ComputeId(scr.GetRcvAddr())
 		if shardID == core.MetachainShardId && scr.GetGasLimit() == 0 && scr.GetValue().Cmp(zero) == 0 {
-			continue
+			_, err := sc.getESDTParsedTransfers(scr.GetSndAddr(), scr.GetRcvAddr(), scr.GetData())
+			if err != nil {
+				continue
+			}
 		}
 		cleanSCRs = append(cleanSCRs, scr)
 	}
@@ -1936,7 +1939,7 @@ func (sc *scProcessor) useLastTransferAsAsyncCallBackWhenNeeded(
 		return false
 	}
 
-	if !sc.isTransferWithNoAdditionalData(outputTransfer.Data) {
+	if !sc.isTransferWithNoAdditionalData(outputTransfer.SenderAddress, outAcc.Address, outputTransfer.Data) {
 		return false
 	}
 
@@ -1947,23 +1950,32 @@ func (sc *scProcessor) useLastTransferAsAsyncCallBackWhenNeeded(
 	return true
 }
 
-func (sc *scProcessor) isTransferWithNoAdditionalData(data []byte) bool {
+func (sc *scProcessor) getESDTParsedTransfers(sndAddr []byte, dstAddr []byte, data []byte,
+) (*vmcommon.ParsedESDTTransfers, error) {
+	function, args, err := sc.argsParser.ParseCallData(string(data))
+	if err != nil {
+		return nil, err
+	}
+
+	parsedTransfer, err := sc.esdtTransferParser.ParseESDTTransfers(sndAddr, dstAddr, function, args)
+	if err != nil {
+		return nil, err
+	}
+
+	return parsedTransfer, nil
+}
+
+func (sc *scProcessor) isTransferWithNoAdditionalData(sndAddr []byte, dstAddr []byte, data []byte) bool {
 	if len(data) == 0 {
 		return true
 	}
-	function, args, err := sc.argsParser.ParseCallData(string(data))
+
+	parsedTransfer, err := sc.getESDTParsedTransfers(sndAddr, dstAddr, data)
 	if err != nil {
 		return false
 	}
 
-	if function == core.BuiltInFunctionESDTTransfer {
-		return len(args) == core.MinLenArgumentsESDTTransfer
-	}
-	if function == core.BuiltInFunctionESDTNFTTransfer {
-		return len(args) == core.MinLenArgumentsESDTNFTTransfer
-	}
-
-	return false
+	return len(parsedTransfer.CallFunction) == 0
 }
 
 // createSCRForSender(vmOutput, tx, txHash, acntSnd)
