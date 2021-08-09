@@ -227,7 +227,7 @@ func TestEsdt_ExecuteIssueWithZero(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
@@ -477,7 +477,7 @@ func TestEsdt_ExecuteBurnAndMintDisabled(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
