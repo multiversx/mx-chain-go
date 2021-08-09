@@ -14,7 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
+	"github.com/ElrondNetwork/elrond-go/common"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -63,7 +63,7 @@ func (lm *loadingMeasurements) resetAndPrint() {
 
 // AccountsDB is the struct used for accessing accounts. This struct is concurrent safe.
 type AccountsDB struct {
-	mainTrie               temporary.Trie
+	mainTrie               common.Trie
 	hasher                 hashing.Hasher
 	marshalizer            marshal.Marshalizer
 	accountFactory         AccountFactory
@@ -83,7 +83,7 @@ var log = logger.GetOrCreate("state")
 
 // NewAccountsDB creates a new account manager
 func NewAccountsDB(
-	trie temporary.Trie,
+	trie common.Trie,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	accountFactory AccountFactory,
@@ -123,7 +123,7 @@ func NewAccountsDB(
 	}, nil
 }
 
-func getNumCheckpoints(trieStorageManager temporary.StorageManager) uint32 {
+func getNumCheckpoints(trieStorageManager common.StorageManager) uint32 {
 	val, err := trieStorageManager.Database().Get(numCheckpointsKey)
 	if err != nil {
 		return 0
@@ -745,8 +745,8 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 	log.Trace("accountsDB.Commit started")
 	adb.entries = make([]JournalEntry, 0)
 
-	oldHashes := make(temporary.ModifiedHashes)
-	newHashes := make(temporary.ModifiedHashes)
+	oldHashes := make(common.ModifiedHashes)
+	newHashes := make(common.ModifiedHashes)
 	//Step 1. commit all data tries
 	dataTries := adb.dataTries.GetAll()
 	for i := 0; i < len(dataTries); i++ {
@@ -793,8 +793,8 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 func (adb *AccountsDB) markForEviction(
 	oldRoot []byte,
 	newRoot []byte,
-	oldHashes temporary.ModifiedHashes,
-	newHashes temporary.ModifiedHashes,
+	oldHashes common.ModifiedHashes,
+	newHashes common.ModifiedHashes,
 ) error {
 	if !adb.mainTrie.GetStorageManager().IsPruningEnabled() {
 		return nil
@@ -809,7 +809,7 @@ func (adb *AccountsDB) markForEviction(
 	return adb.storagePruningManager.MarkForEviction(oldRoot, newRoot, oldHashes, newHashes)
 }
 
-func (adb *AccountsDB) commitTrie(tr temporary.Trie, oldHashes temporary.ModifiedHashes, newHashes temporary.ModifiedHashes) error {
+func (adb *AccountsDB) commitTrie(tr common.Trie, oldHashes common.ModifiedHashes, newHashes common.ModifiedHashes) error {
 	if adb.mainTrie.GetStorageManager().IsPruningEnabled() {
 		oldTrieHashes := tr.GetObsoleteHashes()
 		newTrieHashes, err := tr.GetDirtyHashes()
@@ -879,7 +879,7 @@ func (adb *AccountsDB) recreateTrie(rootHash []byte) error {
 }
 
 // RecreateAllTries recreates all the tries from the accounts DB
-func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]temporary.Trie, error) {
+func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]common.Trie, error) {
 	leavesChannel, err := adb.mainTrie.GetAllLeavesOnChannel(rootHash)
 	if err != nil {
 		return nil, err
@@ -890,7 +890,7 @@ func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]temporary.T
 		return nil, err
 	}
 
-	allTries := make(map[string]temporary.Trie)
+	allTries := make(map[string]common.Trie)
 	allTries[string(rootHash)] = recreatedTrie
 
 	for leaf := range leavesChannel {
@@ -915,7 +915,7 @@ func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]temporary.T
 }
 
 // GetTrie returns the trie that has the given rootHash
-func (adb *AccountsDB) GetTrie(rootHash []byte) (temporary.Trie, error) {
+func (adb *AccountsDB) GetTrie(rootHash []byte) (common.Trie, error) {
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
@@ -933,7 +933,7 @@ func (adb *AccountsDB) journalize(entry JournalEntry) {
 }
 
 // PruneTrie removes old values from the trie database
-func (adb *AccountsDB) PruneTrie(rootHash []byte, identifier temporary.TriePruningIdentifier) {
+func (adb *AccountsDB) PruneTrie(rootHash []byte, identifier TriePruningIdentifier) {
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
@@ -943,7 +943,7 @@ func (adb *AccountsDB) PruneTrie(rootHash []byte, identifier temporary.TriePruni
 }
 
 // CancelPrune clears the trie's evictionWaitingList
-func (adb *AccountsDB) CancelPrune(rootHash []byte, identifier temporary.TriePruningIdentifier) {
+func (adb *AccountsDB) CancelPrune(rootHash []byte, identifier TriePruningIdentifier) {
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 

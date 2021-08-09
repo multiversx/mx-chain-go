@@ -7,10 +7,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 )
 
 // StateSyncer interface defines the methods needed to sync and get all states
@@ -18,7 +18,7 @@ type StateSyncer interface {
 	GetEpochStartMetaBlock() (data.MetaHeaderHandler, error)
 	GetUnFinishedMetaBlocks() (map[string]data.MetaHeaderHandler, error)
 	SyncAllState(epoch uint32) error
-	GetAllTries() (map[string]temporary.Trie, error)
+	GetAllTries() (map[string]common.Trie, error)
 	GetAllTransactions() (map[string]data.TransactionHandler, error)
 	GetAllMiniBlocks() (map[string]*block.MiniBlock, error)
 	IsInterfaceNil() bool
@@ -27,7 +27,7 @@ type StateSyncer interface {
 // TrieSyncer synchronizes the trie, asking on the network for the missing nodes
 type TrieSyncer interface {
 	StartSyncing(rootHash []byte, ctx context.Context) error
-	Trie() temporary.Trie
+	Trie() common.Trie
 	IsInterfaceNil() bool
 }
 
@@ -128,7 +128,7 @@ type HeaderSyncHandler interface {
 // EpochStartTriesSyncHandler defines the methods to sync all tries from a given epoch start metablock
 type EpochStartTriesSyncHandler interface {
 	SyncTriesFrom(meta data.MetaHeaderHandler) error
-	GetTries() (map[string]temporary.Trie, error)
+	GetTries() (map[string]common.Trie, error)
 	IsInterfaceNil() bool
 }
 
@@ -171,7 +171,7 @@ type WhiteListHandler interface {
 
 // AccountsDBSyncer defines the methods for the accounts db syncer
 type AccountsDBSyncer interface {
-	GetSyncedTries() map[string]temporary.Trie
+	GetSyncedTries() map[string]common.Trie
 	SyncAccounts(rootHash []byte) error
 	IsInterfaceNil() bool
 }

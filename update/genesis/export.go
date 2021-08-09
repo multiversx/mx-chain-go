@@ -18,7 +18,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
@@ -256,7 +255,7 @@ func (se *stateExport) exportMetaBlock(metaBlock data.HeaderHandler, identifier 
 	return nil
 }
 
-func (se *stateExport) exportTrie(key string, trie temporary.Trie) error {
+func (se *stateExport) exportTrie(key string, trie common.Trie) error {
 	identifier := TrieIdentifier + atSep + key
 
 	accType, shId, err := GetTrieTypeAndShId(identifier)

@@ -99,3 +99,6 @@ var ErrInvalidTrieSyncerVersion = errors.New("invalid trie syncer version")
 
 // ErrNilCheckpointHashesHolder signals that a nil checkpoint hashes holder was provided
 var ErrNilCheckpointHashesHolder = errors.New("nil checkpoint hashes holder")
+
+// ErrTrieSyncTimeout signals that a timeout occurred while syncing the trie
+var ErrTrieSyncTimeout = errors.New("trie sync timeout")

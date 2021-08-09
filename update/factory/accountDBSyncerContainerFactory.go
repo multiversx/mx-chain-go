@@ -8,9 +8,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state/syncer"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -25,7 +25,7 @@ type ArgsNewAccountsDBSyncersContainerFactory struct {
 	ShardCoordinator          sharding.Coordinator
 	Hasher                    hashing.Hasher
 	Marshalizer               marshal.Marshalizer
-	TrieStorageManager        temporary.StorageManager
+	TrieStorageManager        common.StorageManager
 	TimoutGettingTrieNode     time.Duration
 	MaxTrieLevelInMemory      uint
 	NumConcurrentTrieSyncers  int
@@ -41,7 +41,7 @@ type accountDBSyncersContainerFactory struct {
 	hasher                    hashing.Hasher
 	marshalizer               marshal.Marshalizer
 	timeoutGettingTrieNode    time.Duration
-	trieStorageManager        temporary.StorageManager
+	trieStorageManager        common.StorageManager
 	maxTrieLevelinMemory      uint
 	numConcurrentTrieSyncers  int
 	maxHardCapForMissingNodes int

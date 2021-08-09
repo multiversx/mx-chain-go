@@ -3,18 +3,18 @@ package state
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
+	"github.com/ElrondNetwork/elrond-go/common"
 )
 
 // TrackableDataTrie wraps a PatriciaMerkelTrie adding modifying data capabilities
 type TrackableDataTrie struct {
 	dirtyData  map[string][]byte
-	tr         temporary.Trie
+	tr         common.Trie
 	identifier []byte
 }
 
 // NewTrackableDataTrie returns an instance of DataTrieTracker
-func NewTrackableDataTrie(identifier []byte, tr temporary.Trie) *TrackableDataTrie {
+func NewTrackableDataTrie(identifier []byte, tr common.Trie) *TrackableDataTrie {
 	return &TrackableDataTrie{
 		tr:         tr,
 		dirtyData:  make(map[string][]byte),
@@ -85,12 +85,12 @@ func (tdaw *TrackableDataTrie) SaveKeyValue(key []byte, value []byte) error {
 }
 
 // SetDataTrie sets the internal data trie
-func (tdaw *TrackableDataTrie) SetDataTrie(tr temporary.Trie) {
+func (tdaw *TrackableDataTrie) SetDataTrie(tr common.Trie) {
 	tdaw.tr = tr
 }
 
 // DataTrie sets the internal data trie
-func (tdaw *TrackableDataTrie) DataTrie() temporary.Trie {
+func (tdaw *TrackableDataTrie) DataTrie() common.Trie {
 	return tdaw.tr
 }
 

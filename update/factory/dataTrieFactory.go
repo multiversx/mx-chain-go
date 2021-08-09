@@ -7,10 +7,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/trie"
@@ -30,7 +30,7 @@ type ArgsNewDataTrieFactory struct {
 
 type dataTrieFactory struct {
 	shardCoordinator     sharding.Coordinator
-	trieStorage          temporary.StorageManager
+	trieStorage          common.StorageManager
 	marshalizer          marshal.Marshalizer
 	hasher               hashing.Hasher
 	maxTrieLevelInMemory uint
@@ -79,7 +79,7 @@ func NewDataTrieFactory(args ArgsNewDataTrieFactory) (*dataTrieFactory, error) {
 }
 
 // TrieStorageManager returns trie storage manager
-func (d *dataTrieFactory) TrieStorageManager() temporary.StorageManager {
+func (d *dataTrieFactory) TrieStorageManager() common.StorageManager {
 	return d.trieStorage
 }
 

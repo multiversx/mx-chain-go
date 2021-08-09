@@ -7,11 +7,12 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/require"
 )
@@ -23,7 +24,7 @@ func createHeaderSigVerifierArgs() *ArgsHeaderSigVerifier {
 		Marshalizer:             &mock.MarshalizerMock{},
 		Hasher:                  &hashingMocks.HasherMock{},
 		NodesCoordinator:        &mock.NodesCoordinatorMock{},
-		MultiSigVerifier:        mock.NewMultiSigner(),
+		MultiSigVerifier:        cryptoMocks.NewMultiSigner(21),
 		SingleSigVerifier:       &mock.SignerMock{},
 		KeyGen:                  &mock.SingleSignKeyGenMock{},
 		FallbackHeaderValidator: &testscommon.FallBackHeaderValidatorStub{},
@@ -533,10 +534,10 @@ func TestHeaderSigVerifier_VerifySignatureOk(t *testing.T) {
 	}
 	args.NodesCoordinator = nodesCoordinator
 
-	args.MultiSigVerifier = &mock.BelNevMock{
-		CreateMock: func(pubKeys []string, index uint16) (signer crypto.MultiSigner, err error) {
-			return &mock.BelNevMock{
-				VerifyMock: func(msg []byte, bitmap []byte) error {
+	args.MultiSigVerifier = &cryptoMocks.MultisignerMock{
+		CreateCalled: func(pubKeys []string, index uint16) (signer crypto.MultiSigner, err error) {
+			return &cryptoMocks.MultisignerMock{
+				VerifyCalled: func(msg []byte, bitmap []byte) error {
 					wasCalled = true
 					return nil
 				}}, nil
@@ -570,10 +571,10 @@ func TestHeaderSigVerifier_VerifySignatureNotEnoughSigsShouldErrWhenFallbackThre
 			return false
 		},
 	}
-	multiSigVerifier := &mock.BelNevMock{
-		CreateMock: func(pubKeys []string, index uint16) (signer crypto.MultiSigner, err error) {
-			return &mock.BelNevMock{
-				VerifyMock: func(msg []byte, bitmap []byte) error {
+	multiSigVerifier := &cryptoMocks.MultisignerMock{
+		CreateCalled: func(pubKeys []string, index uint16) (signer crypto.MultiSigner, err error) {
+			return &cryptoMocks.MultisignerMock{
+				VerifyCalled: func(msg []byte, bitmap []byte) error {
 					wasCalled = true
 					return nil
 				}}, nil
@@ -611,10 +612,10 @@ func TestHeaderSigVerifier_VerifySignatureOkWhenFallbackThresholdCouldBeApplied(
 			return true
 		},
 	}
-	multiSigVerifier := &mock.BelNevMock{
-		CreateMock: func(pubKeys []string, index uint16) (signer crypto.MultiSigner, err error) {
-			return &mock.BelNevMock{
-				VerifyMock: func(msg []byte, bitmap []byte) error {
+	multiSigVerifier := &cryptoMocks.MultisignerMock{
+		CreateCalled: func(pubKeys []string, index uint16) (signer crypto.MultiSigner, err error) {
+			return &cryptoMocks.MultisignerMock{
+				VerifyCalled: func(msg []byte, bitmap []byte) error {
 					wasCalled = true
 					return nil
 				}}, nil

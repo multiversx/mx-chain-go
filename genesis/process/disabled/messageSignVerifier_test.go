@@ -3,8 +3,8 @@ package disabled
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
+	"github.com/ElrondNetwork/elrond-go-crypto/signing"
+	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
 	"github.com/stretchr/testify/assert"
 )
 

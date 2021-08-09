@@ -146,9 +146,6 @@ var ErrNilBlockProcessor = errors.New("nil block processor")
 // ErrNilMarshalizer signals that an operation has been attempted to or with a nil Marshalizer implementation
 var ErrNilMarshalizer = errors.New("nil Marshalizer")
 
-// ErrLogsNotSavedInStorage signals that logs are not save in storage
-var ErrLogsNotSavedInStorage = errors.New("logs are not saved in storage, check config")
-
 // ErrNilNodesConfigProvider signals that an operation has been attempted to or with a nil nodes config provider
 var ErrNilNodesConfigProvider = errors.New("nil nodes config provider")
 
@@ -863,11 +860,8 @@ var ErrInterceptedDataNotForCurrentShard = errors.New("intercepted data not for 
 // ErrAccountNotPayable will be sent when trying to send money to a non-payable account
 var ErrAccountNotPayable = errors.New("sending value to non payable contract")
 
-// ErrNilIndexer signals that indexer is nil
-var ErrNilIndexer = errors.New("indexer is nil")
-
-// ErrNilTpsBenchmark signals that tps benchmark object is nil
-var ErrNilTpsBenchmark = errors.New("tps benchmark object is nil")
+// ErrNilOutportHandler signals that outport is nil
+var ErrNilOutportHandler = errors.New("outport handler is nil")
 
 // ErrSmartContractDeploymentIsDisabled signals that smart contract deployment was disabled
 var ErrSmartContractDeploymentIsDisabled = errors.New("smart Contract deployment is disabled")
@@ -1006,4 +1000,3 @@ var ErrNilTxMaxTotalCostHandler = errors.New("nil transaction max total cost")
 
 // ErrNilAccountTxsPerShard signals a nil mapping for account transactions to shard
 var ErrNilAccountTxsPerShard = errors.New("nil account transactions per shard mapping")
-

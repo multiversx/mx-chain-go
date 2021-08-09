@@ -5,10 +5,11 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	consensusMocks "github.com/ElrondNetwork/elrond-go/testscommon/consensus"
+	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 )
 
@@ -94,24 +95,24 @@ func InitBlockProcessorHeaderV2Mock() *BlockProcessorMock {
 }
 
 // InitMultiSignerMock -
-func InitMultiSignerMock() *BelNevMock {
-	multiSigner := NewMultiSigner()
-	multiSigner.CreateCommitmentMock = func() ([]byte, []byte) {
+func InitMultiSignerMock() *cryptoMocks.MultisignerMock {
+	multiSigner := cryptoMocks.NewMultiSigner(21)
+	multiSigner.CreateCommitmentCalled = func() ([]byte, []byte) {
 		return []byte("commSecret"), []byte("commitment")
 	}
-	multiSigner.VerifySignatureShareMock = func(index uint16, sig []byte, msg []byte, bitmap []byte) error {
+	multiSigner.VerifySignatureShareCalled = func(index uint16, sig []byte, msg []byte, bitmap []byte) error {
 		return nil
 	}
-	multiSigner.VerifyMock = func(msg []byte, bitmap []byte) error {
+	multiSigner.VerifyCalled = func(msg []byte, bitmap []byte) error {
 		return nil
 	}
-	multiSigner.AggregateSigsMock = func(bitmap []byte) ([]byte, error) {
+	multiSigner.AggregateSigsCalled = func(bitmap []byte) ([]byte, error) {
 		return []byte("aggregatedSig"), nil
 	}
-	multiSigner.AggregateCommitmentsMock = func(bitmap []byte) error {
+	multiSigner.AggregateCommitmentsCalled = func(bitmap []byte) error {
 		return nil
 	}
-	multiSigner.CreateSignatureShareMock = func(msg []byte, bitmap []byte) ([]byte, error) {
+	multiSigner.CreateSignatureShareCalled = func(msg []byte, bitmap []byte) ([]byte, error) {
 		return []byte("partialSign"), nil
 	}
 	return multiSigner

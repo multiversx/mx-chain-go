@@ -12,11 +12,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
-
-var _ temporary.TrieSyncer = (*trieSyncer)(nil)
 
 type trieNodeInfo struct {
 	trieNode node
@@ -32,32 +30,32 @@ type trieSyncer struct {
 	waitTimeBetweenRequests   time.Duration
 	marshalizer               marshal.Marshalizer
 	hasher                    hashing.Hasher
-	db                        temporary.DBWriteCacher
+	db                        common.DBWriteCacher
 	requestHandler            RequestHandler
 	interceptedNodesCacher    storage.Cacher
 	mutOperation              sync.RWMutex
 	handlerID                 string
 	trieSyncStatistics        data.SyncStatisticsHandler
 	lastSyncedTrieNode        time.Time
-	timeoutBetweenCommits     time.Duration
+	receivedNodesTimeout      time.Duration
 	maxHardCapForMissingNodes int
 }
 
 const maxNewMissingAddedPerTurn = 10
-const minTimeoutBetweenNodesCommits = time.Second
+const minTimeoutNodesReceived = time.Second
 
 // ArgTrieSyncer is the argument for the trie syncer
 type ArgTrieSyncer struct {
-	Marshalizer                    marshal.Marshalizer
-	Hasher                         hashing.Hasher
-	DB                             temporary.DBWriteCacher
-	RequestHandler                 RequestHandler
-	InterceptedNodes               storage.Cacher
-	ShardId                        uint32
-	Topic                          string
-	TrieSyncStatistics             data.SyncStatisticsHandler
-	TimeoutBetweenTrieNodesCommits time.Duration
-	MaxHardCapForMissingNodes      int
+	Marshalizer               marshal.Marshalizer
+	Hasher                    hashing.Hasher
+	DB                        common.DBWriteCacher
+	RequestHandler            RequestHandler
+	InterceptedNodes          storage.Cacher
+	ShardId                   uint32
+	Topic                     string
+	TrieSyncStatistics        data.SyncStatisticsHandler
+	ReceivedNodesTimeout      time.Duration
+	MaxHardCapForMissingNodes int
 }
 
 // NewTrieSyncer creates a new instance of trieSyncer
@@ -79,7 +77,7 @@ func NewTrieSyncer(arg ArgTrieSyncer) (*trieSyncer, error) {
 		waitTimeBetweenRequests:   time.Second,
 		handlerID:                 core.UniqueIdentifier(),
 		trieSyncStatistics:        arg.TrieSyncStatistics,
-		timeoutBetweenCommits:     arg.TimeoutBetweenTrieNodesCommits,
+		receivedNodesTimeout:      arg.ReceivedNodesTimeout,
 		maxHardCapForMissingNodes: arg.MaxHardCapForMissingNodes,
 	}
 
@@ -108,9 +106,9 @@ func checkArguments(arg ArgTrieSyncer) error {
 	if check.IfNil(arg.TrieSyncStatistics) {
 		return ErrNilTrieSyncStatistics
 	}
-	if arg.TimeoutBetweenTrieNodesCommits < minTimeoutBetweenNodesCommits {
+	if arg.ReceivedNodesTimeout < minTimeoutNodesReceived {
 		return fmt.Errorf("%w provided: %v, minimum %v",
-			ErrInvalidTimeout, arg.TimeoutBetweenTrieNodesCommits, minTimeoutBetweenNodesCommits)
+			ErrInvalidTimeout, arg.ReceivedNodesTimeout, minTimeoutNodesReceived)
 	}
 	if arg.MaxHardCapForMissingNodes < 1 {
 		return fmt.Errorf("%w provided: %v", ErrInvalidMaxHardCapForMissingNodes, arg.MaxHardCapForMissingNodes)
@@ -261,7 +259,7 @@ func (ts *trieSyncer) resetWatchdog() {
 
 func (ts *trieSyncer) isTimeoutWhileSyncing() bool {
 	duration := time.Since(ts.lastSyncedTrieNode)
-	return duration > ts.timeoutBetweenCommits
+	return duration > ts.receivedNodesTimeout
 }
 
 // adds new elements to needed hash map, lock ts.nodeHashesMutex before calling
@@ -302,7 +300,7 @@ func (ts *trieSyncer) getNode(hash []byte) (node, error) {
 func getNodeFromStorage(
 	hash []byte,
 	interceptedNodesCacher storage.Cacher,
-	db temporary.DBWriteCacher,
+	db common.DBWriteCacher,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 ) (node, error) {

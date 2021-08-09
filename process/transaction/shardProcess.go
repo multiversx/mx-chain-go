@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/receipt"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go-logger"
@@ -866,7 +867,7 @@ func (txProc *txProcessor) makeSCRFromUserTx(
 		OriginalTxHash: txHash,
 		GasLimit:       tx.GasLimit,
 		GasPrice:       tx.GasPrice,
-		CallType:       vmcommon.DirectCall,
+		CallType:       vm.DirectCall,
 	}
 
 	var err error

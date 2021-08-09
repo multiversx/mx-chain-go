@@ -6,12 +6,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
-	"github.com/ElrondNetwork/elrond-go/common/statistics"
+	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -35,14 +35,13 @@ type dataComponentsHolder interface {
 
 type bootstrapComponentsHolder interface {
 	ShardCoordinator() sharding.Coordinator
-	VersionedHeaderFactory() nodeFactory.VersionedHeaderFactory
-	HeaderIntegrityVerifier() nodeFactory.HeaderIntegrityVerifierHandler
+	VersionedHeaderFactory() factory.VersionedHeaderFactory
+	HeaderIntegrityVerifier() factory.HeaderIntegrityVerifierHandler
 	IsInterfaceNil() bool
 }
 
 type statusComponentsHolder interface {
-	ElasticIndexer() process.Indexer
-	TpsBenchmark() statistics.TPSBenchmark
+	OutportHandler() outport.OutportHandler
 	IsInterfaceNil() bool
 }
 

@@ -6,7 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 )
@@ -24,7 +24,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilShardCoord(t *testing.T) {
 		&hashingMocks.HasherMock{},
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
-		testscommon.NewPoolsHolderMock(),
+		dataRetrieverMock.NewPoolsHolderMock(),
 		&mock.FeeHandlerStub{},
 	)
 
@@ -41,7 +41,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilMarshalizer(t *testing.T) 
 		&hashingMocks.HasherMock{},
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
-		testscommon.NewPoolsHolderMock(),
+		dataRetrieverMock.NewPoolsHolderMock(),
 		&mock.FeeHandlerStub{},
 	)
 
@@ -58,7 +58,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilHasher(t *testing.T) {
 		nil,
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
-		testscommon.NewPoolsHolderMock(),
+		dataRetrieverMock.NewPoolsHolderMock(),
 		&mock.FeeHandlerStub{},
 	)
 
@@ -75,7 +75,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilAdrConv(t *testing.T) {
 		&hashingMocks.HasherMock{},
 		nil,
 		&mock.ChainStorerMock{},
-		testscommon.NewPoolsHolderMock(),
+		dataRetrieverMock.NewPoolsHolderMock(),
 		&mock.FeeHandlerStub{},
 	)
 
@@ -92,7 +92,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilStorer(t *testing.T) {
 		&hashingMocks.HasherMock{},
 		createMockPubkeyConverter(),
 		nil,
-		testscommon.NewPoolsHolderMock(),
+		dataRetrieverMock.NewPoolsHolderMock(),
 		&mock.FeeHandlerStub{},
 	)
 
@@ -126,7 +126,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilEconomicsFeeHandler(t *tes
 		&hashingMocks.HasherMock{},
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
-		testscommon.NewPoolsHolderMock(),
+		dataRetrieverMock.NewPoolsHolderMock(),
 		nil,
 	)
 
@@ -143,7 +143,7 @@ func TestNewIntermediateProcessorsContainerFactory(t *testing.T) {
 		&hashingMocks.HasherMock{},
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
-		testscommon.NewPoolsHolderMock(),
+		dataRetrieverMock.NewPoolsHolderMock(),
 		&mock.FeeHandlerStub{},
 	)
 
@@ -161,7 +161,7 @@ func TestIntermediateProcessorsContainerFactory_Create(t *testing.T) {
 		&hashingMocks.HasherMock{},
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
-		testscommon.NewPoolsHolderMock(),
+		dataRetrieverMock.NewPoolsHolderMock(),
 		&mock.FeeHandlerStub{},
 	)
 

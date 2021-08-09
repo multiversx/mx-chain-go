@@ -23,7 +23,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -36,8 +38,8 @@ type removedFlags struct {
 	flagHdrRemovedFromForkDetector bool
 }
 
-func createMockPools() *testscommon.PoolsHolderStub {
-	pools := testscommon.NewPoolsHolderStub()
+func createMockPools() *dataRetrieverMock.PoolsHolderStub {
+	pools := dataRetrieverMock.NewPoolsHolderStub()
 	pools.HeadersCalled = func() dataRetriever.HeadersPool {
 		return &mock.HeadersCacherStub{}
 	}
@@ -182,7 +184,7 @@ func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 		ForkDetector:                 &mock.ForkDetectorMock{},
 		RequestHandler:               &testscommon.RequestHandlerStub{},
 		ShardCoordinator:             mock.NewOneShardCoordinatorMock(),
-		Accounts:                     &testscommon.AccountsStub{},
+		Accounts:                     &stateMock.AccountsStub{},
 		BlackListHandler:             &mock.BlackListHandlerStub{},
 		NetworkWatcher:               initNetworkWatcher(),
 		BootStorer:                   &mock.BoostrapStorerMock{},
@@ -191,7 +193,7 @@ func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 		MiniblocksProvider:           &mock.MiniBlocksProviderStub{},
 		Uint64Converter:              &mock.Uint64ByteSliceConverterMock{},
 		AppStatusHandler:             &mock.AppStatusHandlerStub{},
-		Indexer:                      &mock.IndexerMock{},
+		OutportHandler:               &testscommon.OutportStub{},
 		AccountsDBSyncer:             &mock.AccountsDBSyncerStub{},
 		CurrentEpochProvider:         &testscommon.CurrentEpochProviderStub{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
@@ -413,7 +415,7 @@ func TestNewShardBootstrap_OkValsShouldWork(t *testing.T) {
 
 	wasCalled := 0
 
-	pools := testscommon.NewPoolsHolderStub()
+	pools := dataRetrieverMock.NewPoolsHolderStub()
 	pools.HeadersCalled = func() dataRetriever.HeadersPool {
 		sds := &mock.HeadersCacherStub{}
 
@@ -653,7 +655,7 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 	mutDataAvailable := goSync.RWMutex{}
 	dataAvailable := false
 
-	pools := testscommon.NewPoolsHolderStub()
+	pools := dataRetrieverMock.NewPoolsHolderStub()
 	pools.HeadersCalled = func() dataRetriever.HeadersPool {
 		sds := &mock.HeadersCacherStub{}
 		sds.GetHeaderByHashCalled = func(key []byte) (handler data.HeaderHandler, e error) {
@@ -707,7 +709,7 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 	}
 	args.ForkDetector = forkDetector
 
-	account := &testscommon.AccountsStub{}
+	account := &stateMock.AccountsStub{}
 	account.RootHashCalled = func() ([]byte, error) {
 		return nil, nil
 	}
@@ -754,7 +756,7 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 		BlockBodyType: block.TxBlock,
 		RootHash:      []byte("bbb")}
 
-	pools := testscommon.NewPoolsHolderStub()
+	pools := dataRetrieverMock.NewPoolsHolderStub()
 	pools.HeadersCalled = func() dataRetriever.HeadersPool {
 		sds := &mock.HeadersCacherStub{}
 		sds.GetHeaderByNonceAndShardIdCalled = func(hdrNonce uint64, shardId uint32) (handlers []data.HeaderHandler, i [][]byte, e error) {
@@ -833,7 +835,7 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 		BlockBodyType: block.TxBlock,
 		RootHash:      []byte("bbb")}
 
-	pools := testscommon.NewPoolsHolderStub()
+	pools := dataRetrieverMock.NewPoolsHolderStub()
 	pools.HeadersCalled = func() dataRetriever.HeadersPool {
 		sds := &mock.HeadersCacherStub{}
 		sds.GetHeaderByNonceAndShardIdCalled = func(hdrNonce uint64, shardId uint32) (handlers []data.HeaderHandler, i [][]byte, e error) {
@@ -1461,7 +1463,7 @@ func TestBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *testin
 		},
 	}
 	args.ForkDetector = createForkDetector(currentHdrNonce, remFlags)
-	args.Accounts = &testscommon.AccountsStub{
+	args.Accounts = &stateMock.AccountsStub{
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
 		},
@@ -1601,7 +1603,7 @@ func TestBootstrap_RollbackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t *tes
 		},
 	}
 	args.ForkDetector = createForkDetector(currentHdrNonce, remFlags)
-	args.Accounts = &testscommon.AccountsStub{
+	args.Accounts = &stateMock.AccountsStub{
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
 		},
@@ -1788,7 +1790,7 @@ func TestShardBootstrap_RequestMiniBlocksFromHeaderWithNonceIfMissing(t *testing
 	requestDataWasCalled := false
 	hdrHash := []byte("hash")
 	hdr := &block.Header{Round: 5, Nonce: 1}
-	pools := testscommon.NewPoolsHolderStub()
+	pools := dataRetrieverMock.NewPoolsHolderStub()
 	pools.HeadersCalled = func() dataRetriever.HeadersPool {
 		sds := &mock.HeadersCacherStub{}
 		sds.RegisterHandlerCalled = func(func(header data.HeaderHandler, key []byte)) {
@@ -1996,7 +1998,7 @@ func TestShardBootstrap_SyncBlockGetNodeDBErrorShouldSync(t *testing.T) {
 		BlockBodyType: block.TxBlock,
 		RootHash:      []byte("bbb")}
 
-	pools := testscommon.NewPoolsHolderStub()
+	pools := dataRetrieverMock.NewPoolsHolderStub()
 	pools.HeadersCalled = func() dataRetriever.HeadersPool {
 		sds := &mock.HeadersCacherStub{}
 		sds.GetHeaderByNonceAndShardIdCalled = func(hdrNonce uint64, shardId uint32) (handlers []data.HeaderHandler, i [][]byte, e error) {
@@ -2053,7 +2055,7 @@ func TestShardBootstrap_SyncBlockGetNodeDBErrorShouldSync(t *testing.T) {
 			syncCalled = true
 			return nil
 		}}
-	args.Accounts = &testscommon.AccountsStub{RootHashCalled: func() ([]byte, error) {
+	args.Accounts = &stateMock.AccountsStub{RootHashCalled: func() ([]byte, error) {
 		return []byte("roothash"), nil
 	}}
 

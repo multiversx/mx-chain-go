@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common/statistics"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -65,7 +64,6 @@ type StatusHandlersUtils interface {
 	StatusHandler() core.AppStatusHandler
 	Metrics() external.StatusMetricsHandler
 	UpdateStorerAndMetricsForPersistentHandler(store storage.Storer) error
-	LoadTpsBenchmarkFromStorage(store storage.Storer, marshalizer marshal.Marshalizer) *statistics.TpsPersistentData
 	SignalStartViews()
 	SignalLogRewrite()
 	IsInterfaceNil() bool

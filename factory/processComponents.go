@@ -67,40 +67,40 @@ var timeSpanForBadHeaders = time.Minute * 2
 
 // processComponents struct holds the process components
 type processComponents struct {
-	nodesCoordinator            sharding.NodesCoordinator
-	shardCoordinator            sharding.Coordinator
-	interceptorsContainer       process.InterceptorsContainer
-	resolversFinder             dataRetriever.ResolversFinder
-	roundHandler                consensus.RoundHandler
-	epochStartTrigger           epochStart.TriggerHandler
-	epochStartNotifier          EpochStartNotifier
-	forkDetector                process.ForkDetector
-	blockProcessor              process.BlockProcessor
-	blackListHandler            process.TimeCacher
-	bootStorer                  process.BootStorer
-	headerSigVerifier           process.InterceptedHeaderSigVerifier
-	headerIntegrityVerifier     factory.HeaderIntegrityVerifierHandler
-	validatorsStatistics        process.ValidatorStatisticsProcessor
-	validatorsProvider          process.ValidatorsProvider
-	blockTracker                process.BlockTracker
-	pendingMiniBlocksHandler    process.PendingMiniBlocksHandler
-	requestHandler              process.RequestHandler
-	txLogsProcessor             process.TransactionLogProcessorDatabase
-	headerConstructionValidator process.HeaderConstructionValidator
-	peerShardMapper             process.NetworkShardingCollector
-	txSimulatorProcessor        TransactionSimulatorProcessor
-	miniBlocksPoolCleaner       process.PoolsCleaner
-	txsPoolCleaner              process.PoolsCleaner
-	fallbackHeaderValidator     process.FallbackHeaderValidator
-	whiteListHandler            process.WhiteListHandler
-	whiteListerVerifiedTxs      process.WhiteListHandler
-	historyRepository           dblookupext.HistoryRepository
-	importStartHandler          update.ImportStartHandler
-	requestedItemsHandler       dataRetriever.RequestedItemsHandler
-	importHandler               update.ImportHandler
-	nodeRedundancyHandler       consensus.NodeRedundancyHandler
-	currentEpochProvider        dataRetriever.CurrentNetworkEpochProviderHandler
-	arwenChangeLocker           process.Locker
+	nodesCoordinator             sharding.NodesCoordinator
+	shardCoordinator             sharding.Coordinator
+	interceptorsContainer        process.InterceptorsContainer
+	resolversFinder              dataRetriever.ResolversFinder
+	roundHandler                 consensus.RoundHandler
+	epochStartTrigger            epochStart.TriggerHandler
+	epochStartNotifier           EpochStartNotifier
+	forkDetector                 process.ForkDetector
+	blockProcessor               process.BlockProcessor
+	blackListHandler             process.TimeCacher
+	bootStorer                   process.BootStorer
+	headerSigVerifier            process.InterceptedHeaderSigVerifier
+	headerIntegrityVerifier      factory.HeaderIntegrityVerifierHandler
+	validatorsStatistics         process.ValidatorStatisticsProcessor
+	validatorsProvider           process.ValidatorsProvider
+	blockTracker                 process.BlockTracker
+	pendingMiniBlocksHandler     process.PendingMiniBlocksHandler
+	requestHandler               process.RequestHandler
+	txLogsProcessor              process.TransactionLogProcessorDatabase
+	headerConstructionValidator  process.HeaderConstructionValidator
+	peerShardMapper              process.NetworkShardingCollector
+	txSimulatorProcessor         TransactionSimulatorProcessor
+	miniBlocksPoolCleaner        process.PoolsCleaner
+	txsPoolCleaner               process.PoolsCleaner
+	fallbackHeaderValidator      process.FallbackHeaderValidator
+	whiteListHandler             process.WhiteListHandler
+	whiteListerVerifiedTxs       process.WhiteListHandler
+	historyRepository            dblookupext.HistoryRepository
+	importStartHandler           update.ImportStartHandler
+	requestedItemsHandler        dataRetriever.RequestedItemsHandler
+	importHandler                update.ImportHandler
+	nodeRedundancyHandler        consensus.NodeRedundancyHandler
+	currentEpochProvider         dataRetriever.CurrentNetworkEpochProviderHandler
+	arwenChangeLocker            process.Locker
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 }
 
@@ -535,40 +535,40 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	return &processComponents{
-		nodesCoordinator:            pcf.nodesCoordinator,
-		shardCoordinator:            pcf.bootstrapComponents.ShardCoordinator(),
-		interceptorsContainer:       interceptorsContainer,
-		resolversFinder:             resolversFinder,
-		roundHandler:                pcf.coreData.RoundHandler(),
-		forkDetector:                forkDetector,
-		blockProcessor:              blockProcessor,
-		epochStartTrigger:           epochStartTrigger,
-		epochStartNotifier:          pcf.coreData.EpochStartNotifierWithConfirm(),
-		blackListHandler:            blackListHandler,
-		bootStorer:                  bootStorer,
-		headerSigVerifier:           headerSigVerifier,
-		validatorsStatistics:        validatorStatisticsProcessor,
-		validatorsProvider:          validatorsProvider,
-		blockTracker:                blockTracker,
-		pendingMiniBlocksHandler:    pendingMiniBlocksHandler,
-		requestHandler:              requestHandler,
-		txLogsProcessor:             txLogsProcessor,
-		headerConstructionValidator: headerValidator,
-		headerIntegrityVerifier:     pcf.bootstrapComponents.HeaderIntegrityVerifier(),
-		peerShardMapper:             peerShardMapper,
-		txSimulatorProcessor:        txSimulator,
-		miniBlocksPoolCleaner:       mbsPoolsCleaner,
-		txsPoolCleaner:              txsPoolsCleaner,
-		fallbackHeaderValidator:     fallbackHeaderValidator,
-		whiteListHandler:            pcf.whiteListHandler,
-		whiteListerVerifiedTxs:      pcf.whiteListerVerifiedTxs,
-		historyRepository:           pcf.historyRepo,
-		importStartHandler:          pcf.importStartHandler,
-		requestedItemsHandler:       pcf.requestedItemsHandler,
-		importHandler:               pcf.importHandler,
-		nodeRedundancyHandler:       nodeRedundancyHandler,
-		currentEpochProvider:        currentEpochProvider,
-		arwenChangeLocker:           arwenChangeLocker,
+		nodesCoordinator:             pcf.nodesCoordinator,
+		shardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
+		interceptorsContainer:        interceptorsContainer,
+		resolversFinder:              resolversFinder,
+		roundHandler:                 pcf.coreData.RoundHandler(),
+		forkDetector:                 forkDetector,
+		blockProcessor:               blockProcessor,
+		epochStartTrigger:            epochStartTrigger,
+		epochStartNotifier:           pcf.coreData.EpochStartNotifierWithConfirm(),
+		blackListHandler:             blackListHandler,
+		bootStorer:                   bootStorer,
+		headerSigVerifier:            headerSigVerifier,
+		validatorsStatistics:         validatorStatisticsProcessor,
+		validatorsProvider:           validatorsProvider,
+		blockTracker:                 blockTracker,
+		pendingMiniBlocksHandler:     pendingMiniBlocksHandler,
+		requestHandler:               requestHandler,
+		txLogsProcessor:              txLogsProcessor,
+		headerConstructionValidator:  headerValidator,
+		headerIntegrityVerifier:      pcf.bootstrapComponents.HeaderIntegrityVerifier(),
+		peerShardMapper:              peerShardMapper,
+		txSimulatorProcessor:         txSimulator,
+		miniBlocksPoolCleaner:        mbsPoolsCleaner,
+		txsPoolCleaner:               txsPoolsCleaner,
+		fallbackHeaderValidator:      fallbackHeaderValidator,
+		whiteListHandler:             pcf.whiteListHandler,
+		whiteListerVerifiedTxs:       pcf.whiteListerVerifiedTxs,
+		historyRepository:            pcf.historyRepo,
+		importStartHandler:           pcf.importStartHandler,
+		requestedItemsHandler:        pcf.requestedItemsHandler,
+		importHandler:                pcf.importHandler,
+		nodeRedundancyHandler:        nodeRedundancyHandler,
+		currentEpochProvider:         currentEpochProvider,
+		arwenChangeLocker:            arwenChangeLocker,
 		scheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 	}, nil
 }
@@ -727,7 +727,7 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 }
 
 func (pcf *processComponentsFactory) indexGenesisAccounts() error {
-	if pcf.statusComponents.ElasticIndexer().IsNilIndexer() {
+	if !pcf.statusComponents.OutportHandler().HasDrivers() {
 		return nil
 	}
 
@@ -741,7 +741,7 @@ func (pcf *processComponentsFactory) indexGenesisAccounts() error {
 		return err
 	}
 
-	genesisAccounts := make([]state.UserAccountHandler, 0)
+	genesisAccounts := make([]data.UserAccountHandler, 0)
 	for leaf := range leavesChannel {
 		userAccount, errUnmarshal := pcf.unmarshalUserAccount(leaf.Key(), leaf.Value())
 		if errUnmarshal != nil {
@@ -752,7 +752,7 @@ func (pcf *processComponentsFactory) indexGenesisAccounts() error {
 		genesisAccounts = append(genesisAccounts, userAccount)
 	}
 
-	pcf.statusComponents.ElasticIndexer().SaveAccounts(uint64(pcf.coreData.GenesisNodesSetup().GetStartTime()), genesisAccounts)
+	pcf.statusComponents.OutportHandler().SaveAccounts(uint64(pcf.coreData.GenesisNodesSetup().GetStartTime()), genesisAccounts)
 	return nil
 }
 
@@ -839,7 +839,7 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32
 		return err
 	}
 
-	if !pcf.statusComponents.ElasticIndexer().IsNilIndexer() {
+	if pcf.statusComponents.OutportHandler().HasDrivers() {
 		log.Info("indexGenesisBlocks(): indexer.SaveBlock", "hash", genesisBlockHash)
 
 		arg := &indexer.ArgsSaveBlockData{
@@ -847,7 +847,7 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32
 			Body:       &dataBlock.Body{},
 			Header:     genesisBlockHeader,
 		}
-		pcf.statusComponents.ElasticIndexer().SaveBlock(arg)
+		pcf.statusComponents.OutportHandler().SaveBlock(arg)
 	}
 
 	// In "dblookupext" index, record both the metachain and the shardID blocks

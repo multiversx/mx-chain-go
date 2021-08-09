@@ -3,6 +3,7 @@ package preprocess
 import (
 	"encoding/hex"
 	"errors"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"math/big"
 	"sync"
 	"testing"
@@ -867,7 +868,7 @@ func createDefaultMiniBlockBuilderArgs() miniBlocksBuilderArgs {
 				},
 			},
 		},
-		accounts: &testscommon.AccountsStub{},
+		accounts: &stateMock.AccountsStub{},
 		accountTxsShards: &accountTxsShards{
 			accountsInfo: make(map[string]*txShardInfo),
 			RWMutex:      sync.RWMutex{},

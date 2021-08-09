@@ -10,7 +10,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
@@ -73,13 +73,13 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 func TestTrieStorageManager_Close(t *testing.T) {
 	closeCalled := false
 	args := trie.NewTrieStorageManagerArgs{
-		DB: &mock.StorerStub{
+		DB: &testscommon.StorerStub{
 			CloseCalled: func() error {
 				closeCalled = true
 				return nil
 			},
 		},
-		Marshalizer:            &mock.MarshalizerMock{},
+		Marshalizer:            &testscommon.MarshalizerMock{},
 		Hasher:                 &hashingMocks.HasherMock{},
 		SnapshotDbConfig:       config.DBConfig{},
 		GeneralConfig:          config.TrieStorageManagerConfig{},
@@ -103,13 +103,13 @@ func TestTrieStorageManager_CloseErr(t *testing.T) {
 	closeCalled := false
 	closeErr := errors.New("close error")
 	args := trie.NewTrieStorageManagerArgs{
-		DB: &mock.StorerStub{
+		DB: &testscommon.StorerStub{
 			CloseCalled: func() error {
 				closeCalled = true
 				return closeErr
 			},
 		},
-		Marshalizer:            &mock.MarshalizerMock{},
+		Marshalizer:            &testscommon.MarshalizerMock{},
 		Hasher:                 &hashingMocks.HasherMock{},
 		SnapshotDbConfig:       config.DBConfig{},
 		GeneralConfig:          config.TrieStorageManagerConfig{},
