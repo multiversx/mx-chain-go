@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 )
@@ -60,7 +61,7 @@ func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 		ForkDetector:         &mock.ForkDetectorMock{},
 		RequestHandler:       &testscommon.RequestHandlerStub{},
 		ShardCoordinator:     mock.NewOneShardCoordinatorMock(),
-		Accounts:             &testscommon.AccountsStub{},
+		Accounts:             &stateMock.AccountsStub{},
 		BlackListHandler:     &mock.BlackListHandlerStub{},
 		NetworkWatcher:       initNetworkWatcher(),
 		BootStorer:           &mock.BoostrapStorerMock{},
@@ -69,7 +70,7 @@ func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 		MiniblocksProvider:   &mock.MiniBlocksProviderStub{},
 		Uint64Converter:      &mock.Uint64ByteSliceConverterMock{},
 		AppStatusHandler:     &mock.AppStatusHandlerStub{},
-		Indexer:              &mock.IndexerMock{},
+		OutportHandler:       &testscommon.OutportStub{},
 		AccountsDBSyncer:     &mock.AccountsDBSyncerStub{},
 		CurrentEpochProvider: &testscommon.CurrentEpochProviderStub{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
@@ -78,7 +79,7 @@ func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{
 		ArgBaseBootstrapper:         argsBaseBootstrapper,
 		EpochBootstrapper:           &mock.EpochStartTriggerStub{},
-		ValidatorAccountsDB:         &testscommon.AccountsStub{},
+		ValidatorAccountsDB:         &stateMock.AccountsStub{},
 		ValidatorStatisticsDBSyncer: &mock.AccountsDBSyncerStub{},
 	}
 
@@ -331,16 +332,16 @@ func TestNewMetaBootstrap_NilMiniblocksProviderShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilMiniBlocksProvider, err)
 }
 
-func TestNewMetaBootstrap_NilIndexerProviderShouldErr(t *testing.T) {
+func TestNewMetaBootstrap_NilOutportProviderShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
-	args.Indexer = nil
+	args.OutportHandler = nil
 
 	bs, err := sync.NewMetaBootstrap(args)
 
 	assert.Nil(t, bs)
-	assert.Equal(t, process.ErrNilIndexer, err)
+	assert.Equal(t, process.ErrNilOutportHandler, err)
 }
 
 func TestNewMetaBootstrap_NilCurrentEpochProviderShouldErr(t *testing.T) {
@@ -556,7 +557,7 @@ func TestMetaBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 	}
 	args.ForkDetector = forkDetector
 
-	account := &testscommon.AccountsStub{}
+	account := &stateMock.AccountsStub{}
 	account.RootHashCalled = func() ([]byte, error) {
 		return nil, nil
 	}
@@ -1310,7 +1311,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 		},
 	}
 	args.ForkDetector = createForkDetector(currentHdrNonce, remFlags)
-	args.Accounts = &testscommon.AccountsStub{
+	args.Accounts = &stateMock.AccountsStub{
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
 		},
@@ -1448,7 +1449,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 		},
 	}
 	args.ForkDetector = createForkDetector(currentHdrNonce, remFlags)
-	args.Accounts = &testscommon.AccountsStub{
+	args.Accounts = &stateMock.AccountsStub{
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
 		},
@@ -1613,10 +1614,10 @@ func TestMetaBootstrap_SyncBlockErrGetNodeDBShouldSyncAccounts(t *testing.T) {
 			validatorSyncCalled = true
 			return nil
 		}}
-	args.Accounts = &testscommon.AccountsStub{RootHashCalled: func() ([]byte, error) {
+	args.Accounts = &stateMock.AccountsStub{RootHashCalled: func() ([]byte, error) {
 		return []byte("roothash"), nil
 	}}
-	args.ValidatorAccountsDB = &testscommon.AccountsStub{RootHashCalled: func() ([]byte, error) {
+	args.ValidatorAccountsDB = &stateMock.AccountsStub{RootHashCalled: func() ([]byte, error) {
 		return []byte("roothash"), nil
 	}}
 

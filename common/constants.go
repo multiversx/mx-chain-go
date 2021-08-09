@@ -476,7 +476,7 @@ const (
 	ConsensusOrder
 	// NetworkShardingOrder defines the order in which the network sharding subsystem is notified of a start of epoch event
 	NetworkShardingOrder
-	// IndexerOrder defines the order in which Indexer is notified of a start of epoch event
+	// IndexerOrder defines the order in which indexer is notified of a start of epoch event
 	IndexerOrder
 	// NetStatisticsOrder defines the order in which netStatistic component is notified of a start of epoch event
 	NetStatisticsOrder
@@ -607,16 +607,6 @@ const ESDTRoleNFTAddQuantity = "ESDTRoleNFTAddQuantity"
 // ESDTRoleNFTBurn is the constant string for the local role of burn for ESDT NFT tokens
 const ESDTRoleNFTBurn = "ESDTRoleNFTBurn"
 
-// ESDTType defines the possible types in case of ESDT tokens
-type ESDTType uint32
-
-const (
-	// Fungible defines the token type for ESDT fungible tokens
-	Fungible ESDTType = iota
-	// NonFungible defines the token type for ESDT non fungible tokens
-	NonFungible
-)
-
 // FungibleESDT defines the string for the token type of fungible ESDT
 const FungibleESDT = "FungibleESDT"
 
@@ -625,9 +615,6 @@ const NonFungibleESDT = "NonFungibleESDT"
 
 // SemiFungibleESDT defines the string for the token type of semi fungible ESDT
 const SemiFungibleESDT = "SemiFungibleESDT"
-
-// MaxRoyalty defines 100% as uint32
-const MaxRoyalty = uint32(10000)
 
 // RelayedTransaction is the key for the elrond meta/gassless/relayed transaction standard
 const RelayedTransaction = "relayedTx"
@@ -688,9 +675,6 @@ const ESDTKeyIdentifier = "esdt"
 
 // ESDTRoleIdentifier is the key prefix for esdt role identifier
 const ESDTRoleIdentifier = "role"
-
-// ESDTNFTLatestNonceIdentifier is the key prefix for esdt latest nonce identifier
-const ESDTNFTLatestNonceIdentifier = "nonce"
 
 // MaxSoftwareVersionLengthInBytes represents the maximum length for the software version to be saved in block header
 const MaxSoftwareVersionLengthInBytes = 10
@@ -793,6 +777,13 @@ const EpochStartInterceptorsIdentifier = "epoch start interceptor"
 
 // GetNodeFromDBErrorString represents the string which is returned when a getting node from DB returns an error
 const GetNodeFromDBErrorString = "getNodeFromDB error"
+
+// TimeoutGettingTrieNodes defines the timeout in trie sync operation if no node is received
+const TimeoutGettingTrieNodes = 2 * time.Minute //to consider syncing a very large trie node of 64MB at ~1MB/s
+
+// TimeoutGettingTrieNodesInHardfork represents the maximum time allowed between 2 nodes fetches (and commits)
+// during the hardfork process
+const TimeoutGettingTrieNodesInHardfork = time.Minute * 10
 
 // ScheduledBlock represents the name used to differentiate normal vs. scheduled transactions and mini blocks
 const ScheduledBlock = "ScheduledBlock"

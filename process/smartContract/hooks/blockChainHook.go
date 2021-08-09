@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
@@ -26,7 +27,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm-common/data/esdt"
 )
 
 var _ process.BlockChainHookHandler = (*BlockChainHookImpl)(nil)
@@ -146,13 +146,17 @@ func (bh *BlockChainHookImpl) GetCode(account vmcommon.UserAccountHandler) []byt
 	return bh.accounts.GetCode(account.GetCodeHash())
 }
 
+func (bh *BlockChainHookImpl) isNotSystemAccountAndCrossShard(address []byte) bool {
+	dstShardId := bh.shardCoordinator.ComputeId(address)
+	return !core.IsSystemAccountAddress(address) && dstShardId != bh.shardCoordinator.SelfId()
+}
+
 // GetUserAccount returns the balance of a shard account
 func (bh *BlockChainHookImpl) GetUserAccount(address []byte) (vmcommon.UserAccountHandler, error) {
 	defer stopMeasure(startMeasure("GetUserAccount"))
 
-	dstShardId := bh.shardCoordinator.ComputeId(address)
-	if !core.IsSystemAccountAddress(address) && dstShardId != bh.shardCoordinator.SelfId() {
-		return nil, nil
+	if bh.isNotSystemAccountAndCrossShard(address) {
+		return nil, state.ErrAccNotFound
 	}
 
 	acc, err := bh.accounts.GetExistingAccount(address)
@@ -397,15 +401,16 @@ func (bh *BlockChainHookImpl) IsPayable(address []byte) (bool, error) {
 		return true, nil
 	}
 
+	if bh.isNotSystemAccountAndCrossShard(address) {
+		return true, nil
+	}
+
 	userAcc, err := bh.GetUserAccount(address)
 	if err == state.ErrAccNotFound {
 		return false, nil
 	}
 	if err != nil {
 		return false, err
-	}
-	if check.IfNil(userAcc) {
-		return true, nil
 	}
 
 	metadata := vmcommon.CodeMetadataFromBytes(userAcc.GetCodeMetadata())

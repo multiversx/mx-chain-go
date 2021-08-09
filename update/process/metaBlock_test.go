@@ -10,7 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
@@ -26,7 +26,7 @@ func createMockBlockCreatorAfterHardFork() ArgsNewMetaBlockCreatorAfterHardFork 
 		ShardCoordinator:   mock.NewOneShardCoordinatorMock(),
 		Storage:            initStore(),
 		TxCoordinator:      &mock.TransactionCoordinatorMock{},
-		ValidatorAccounts: &testscommon.AccountsStub{
+		ValidatorAccounts: &stateMock.AccountsStub{
 			CommitCalled: func() ([]byte, error) {
 				return []byte("roothash"), nil
 			},
@@ -137,7 +137,7 @@ func TestMetaBlockCreator_CreateBlock(t *testing.T) {
 	}
 	args.ImportHandler = &mock.ImportHandlerStub{
 		GetAccountsDBForShardCalled: func(shardID uint32) state.AccountsAdapter {
-			return &testscommon.AccountsStub{
+			return &stateMock.AccountsStub{
 				CommitCalled: func() ([]byte, error) {
 					return rootHash, nil
 				},

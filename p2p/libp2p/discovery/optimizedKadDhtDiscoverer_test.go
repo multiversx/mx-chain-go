@@ -218,6 +218,6 @@ func TestOptimizedKadDhtDiscoverer_ReconnectToNetwork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(2), atomic.LoadUint32(&bootstrapCalled))
 	mutConnect.Lock()
-	assert.Equal(t, 2, connectCalled)
+	assert.True(t, connectCalled > 0)
 	mutConnect.Unlock()
 }

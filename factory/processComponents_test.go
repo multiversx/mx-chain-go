@@ -4,15 +4,15 @@ import (
 	"math/big"
 	"testing"
 
-	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_3/config"
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
 	"github.com/ElrondNetwork/elrond-go/common"
+	commonFactory "github.com/ElrondNetwork/elrond-go/common/factory"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	factory2 "github.com/ElrondNetwork/elrond-go/state/factory"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/stretchr/testify/require"
@@ -93,7 +93,7 @@ func getProcessArgs(
 		Config: testscommon.GetGeneralConfig(),
 		AccountsParser: &mock.AccountsParserStub{
 			InitialAccountsCalled: func() []genesis.InitialAccountHandler {
-				addrConverter, _ := factory2.NewPubkeyConverter(config.PubkeyConfig{
+				addrConverter, _ := commonFactory.NewPubkeyConverter(config.PubkeyConfig{
 					Length:          32,
 					Type:            "bech32",
 					SignatureLength: 0,

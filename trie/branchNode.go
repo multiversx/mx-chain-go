@@ -1,6 +1,7 @@
 package trie
 
 import (
+	"context"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -10,7 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
+	"github.com/ElrondNetwork/elrond-go/common"
 )
 
 var _ = node(&branchNode{})
@@ -245,7 +246,7 @@ func (bn *branchNode) hashNode() ([]byte, error) {
 	return encodeNodeAndGetHash(bn)
 }
 
-func (bn *branchNode) commitDirty(level byte, maxTrieLevelInMemory uint, originDb temporary.DBWriteCacher, targetDb temporary.DBWriteCacher) error {
+func (bn *branchNode) commitDirty(level byte, maxTrieLevelInMemory uint, originDb common.DBWriteCacher, targetDb common.DBWriteCacher) error {
 	level++
 	err := bn.isEmptyOrNil()
 	if err != nil {
@@ -286,11 +287,16 @@ func (bn *branchNode) commitDirty(level byte, maxTrieLevelInMemory uint, originD
 }
 
 func (bn *branchNode) commitCheckpoint(
-	originDb temporary.DBWriteCacher,
-	targetDb temporary.DBWriteCacher,
-	checkpointHashes temporary.CheckpointHashesHolder,
+	originDb common.DBWriteCacher,
+	targetDb common.DBWriteCacher,
+	checkpointHashes CheckpointHashesHolder,
 	leavesChan chan core.KeyValueHolder,
+	ctx context.Context,
 ) error {
+	if shouldStopIfContextDone(ctx) {
+		return ErrContextClosing
+	}
+
 	err := bn.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("commit checkpoint error %w", err)
@@ -316,7 +322,7 @@ func (bn *branchNode) commitCheckpoint(
 			continue
 		}
 
-		err = bn.children[i].commitCheckpoint(originDb, targetDb, checkpointHashes, leavesChan)
+		err = bn.children[i].commitCheckpoint(originDb, targetDb, checkpointHashes, leavesChan, ctx)
 		if err != nil {
 			return err
 		}
@@ -327,10 +333,15 @@ func (bn *branchNode) commitCheckpoint(
 }
 
 func (bn *branchNode) commitSnapshot(
-	originDb temporary.DBWriteCacher,
-	targetDb temporary.DBWriteCacher,
+	originDb common.DBWriteCacher,
+	targetDb common.DBWriteCacher,
 	leavesChan chan core.KeyValueHolder,
+	ctx context.Context,
 ) error {
+	if shouldStopIfContextDone(ctx) {
+		return ErrContextClosing
+	}
+
 	err := bn.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("commit snapshot error %w", err)
@@ -346,7 +357,7 @@ func (bn *branchNode) commitSnapshot(
 			continue
 		}
 
-		err = bn.children[i].commitSnapshot(originDb, targetDb, leavesChan)
+		err = bn.children[i].commitSnapshot(originDb, targetDb, leavesChan, ctx)
 		if err != nil {
 			return err
 		}
@@ -355,7 +366,7 @@ func (bn *branchNode) commitSnapshot(
 	return bn.saveToStorage(targetDb)
 }
 
-func (bn *branchNode) saveToStorage(targetDb temporary.DBWriteCacher) error {
+func (bn *branchNode) saveToStorage(targetDb common.DBWriteCacher) error {
 	_, err := encodeNodeAndCommitToDB(bn, targetDb)
 	if err != nil {
 		return err
@@ -384,7 +395,7 @@ func (bn *branchNode) getEncodedNode() ([]byte, error) {
 	return marshaledNode, nil
 }
 
-func (bn *branchNode) resolveCollapsed(pos byte, db temporary.DBWriteCacher) error {
+func (bn *branchNode) resolveCollapsed(pos byte, db common.DBWriteCacher) error {
 	err := bn.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("resolveCollapsed error %w", err)
@@ -417,7 +428,7 @@ func (bn *branchNode) isPosCollapsed(pos int) bool {
 	return bn.children[pos] == nil && len(bn.EncodedChildren[pos]) != 0
 }
 
-func (bn *branchNode) tryGet(key []byte, db temporary.DBWriteCacher) (value []byte, err error) {
+func (bn *branchNode) tryGet(key []byte, db common.DBWriteCacher) (value []byte, err error) {
 	err = bn.isEmptyOrNil()
 	if err != nil {
 		return nil, fmt.Errorf("tryGet error %w", err)
@@ -441,7 +452,7 @@ func (bn *branchNode) tryGet(key []byte, db temporary.DBWriteCacher) (value []by
 	return bn.children[childPos].tryGet(key, db)
 }
 
-func (bn *branchNode) getNext(key []byte, db temporary.DBWriteCacher) (node, []byte, error) {
+func (bn *branchNode) getNext(key []byte, db common.DBWriteCacher) (node, []byte, error) {
 	err := bn.isEmptyOrNil()
 	if err != nil {
 		return nil, nil, fmt.Errorf("getNext error %w", err)
@@ -465,7 +476,7 @@ func (bn *branchNode) getNext(key []byte, db temporary.DBWriteCacher) (node, []b
 	return bn.children[childPos], key, nil
 }
 
-func (bn *branchNode) insert(n *leafNode, db temporary.DBWriteCacher) (node, [][]byte, error) {
+func (bn *branchNode) insert(n *leafNode, db common.DBWriteCacher) (node, [][]byte, error) {
 	emptyHashes := make([][]byte, 0)
 	err := bn.isEmptyOrNil()
 	if err != nil {
@@ -506,7 +517,7 @@ func (bn *branchNode) insertOnNilChild(n *leafNode, childPos byte) (node, [][]by
 	return bn, modifiedHashes, nil
 }
 
-func (bn *branchNode) insertOnExistingChild(n *leafNode, childPos byte, db temporary.DBWriteCacher) (node, [][]byte, error) {
+func (bn *branchNode) insertOnExistingChild(n *leafNode, childPos byte, db common.DBWriteCacher) (node, [][]byte, error) {
 	newNode, modifiedHashes, err := bn.children[childPos].insert(n, db)
 	if check.IfNil(newNode) || err != nil {
 		return nil, [][]byte{}, err
@@ -529,7 +540,7 @@ func (bn *branchNode) modifyNodeAfterInsert(modifiedHashes [][]byte, childPos by
 	return modifiedHashes
 }
 
-func (bn *branchNode) delete(key []byte, db temporary.DBWriteCacher) (bool, node, [][]byte, error) {
+func (bn *branchNode) delete(key []byte, db common.DBWriteCacher) (bool, node, [][]byte, error) {
 	emptyHashes := make([][]byte, 0)
 	err := bn.isEmptyOrNil()
 	if err != nil {
@@ -634,7 +645,7 @@ func (bn *branchNode) isEmptyOrNil() error {
 	return ErrEmptyBranchNode
 }
 
-func (bn *branchNode) print(writer io.Writer, index int, db temporary.DBWriteCacher) {
+func (bn *branchNode) print(writer io.Writer, index int, db common.DBWriteCacher) {
 	if bn == nil {
 		return
 	}
@@ -662,7 +673,7 @@ func (bn *branchNode) print(writer io.Writer, index int, db temporary.DBWriteCac
 	}
 }
 
-func (bn *branchNode) getDirtyHashes(hashes temporary.ModifiedHashes) error {
+func (bn *branchNode) getDirtyHashes(hashes common.ModifiedHashes) error {
 	err := bn.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("getDirtyHashes error %w", err)
@@ -687,7 +698,7 @@ func (bn *branchNode) getDirtyHashes(hashes temporary.ModifiedHashes) error {
 	return nil
 }
 
-func (bn *branchNode) getChildren(db temporary.DBWriteCacher) ([]node, error) {
+func (bn *branchNode) getChildren(db common.DBWriteCacher) ([]node, error) {
 	err := bn.isEmptyOrNil()
 	if err != nil {
 		return nil, fmt.Errorf("getChildren error %w", err)
@@ -756,7 +767,7 @@ func (bn *branchNode) loadChildren(getNode func([]byte) (node, error)) ([][]byte
 
 func (bn *branchNode) getAllLeavesOnChannel(
 	leavesChannel chan core.KeyValueHolder,
-	key []byte, db temporary.DBWriteCacher,
+	key []byte, db common.DBWriteCacher,
 	marshalizer marshal.Marshalizer,
 	chanClose chan struct{},
 ) error {
@@ -793,7 +804,7 @@ func (bn *branchNode) getAllLeavesOnChannel(
 	return nil
 }
 
-func (bn *branchNode) getAllHashes(db temporary.DBWriteCacher) ([][]byte, error) {
+func (bn *branchNode) getAllHashes(db common.DBWriteCacher) ([][]byte, error) {
 	err := bn.isEmptyOrNil()
 	if err != nil {
 		return nil, fmt.Errorf("getAllHashes error: %w", err)
@@ -824,12 +835,12 @@ func (bn *branchNode) getAllHashes(db temporary.DBWriteCacher) ([][]byte, error)
 	return hashes, nil
 }
 
-func (bn *branchNode) getNumNodes() temporary.NumNodesDTO {
+func (bn *branchNode) getNumNodes() common.NumNodesDTO {
 	if check.IfNil(bn) {
-		return temporary.NumNodesDTO{}
+		return common.NumNodesDTO{}
 	}
 
-	currentNumNodes := temporary.NumNodesDTO{
+	currentNumNodes := common.NumNodesDTO{
 		Branches: 1,
 	}
 

@@ -31,12 +31,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
@@ -105,7 +106,7 @@ func createShardedDataChacherNotifier(
 	}
 }
 
-func initDataPool(testHash []byte) *testscommon.PoolsHolderStub {
+func initDataPool(testHash []byte) *dataRetrieverMock.PoolsHolderStub {
 	rwdTx := &rewardTx.RewardTx{
 		Round:   1,
 		Epoch:   0,
@@ -116,7 +117,7 @@ func initDataPool(testHash []byte) *testscommon.PoolsHolderStub {
 	unsignedTxCalled := createShardedDataChacherNotifier(&transaction.Transaction{Nonce: 10}, testHash)
 	rewardTransactionsCalled := createShardedDataChacherNotifier(rwdTx, testHash)
 
-	sdp := &testscommon.PoolsHolderStub{
+	sdp := &dataRetrieverMock.PoolsHolderStub{
 		TransactionsCalled:         txCalled,
 		UnsignedTransactionsCalled: unsignedTxCalled,
 		RewardTransactionsCalled:   rewardTransactionsCalled,
@@ -314,8 +315,7 @@ func createComponentHolderMocks() (
 	}
 
 	statusComponents := &mock.StatusComponentsMock{
-		Indexer:      &mock.IndexerMock{},
-		TPSBenchmark: &testscommon.TpsBenchmarkMock{},
+		Outport: &testscommon.OutportStub{},
 	}
 
 	return coreComponents, dataComponents, boostrapComponents, statusComponents
@@ -337,7 +337,7 @@ func CreateMockArguments(
 	startHeaders := createGenesisBlocks(mock.NewOneShardCoordinatorMock())
 
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
-	accountsDb[state.UserAccountsState] = &testscommon.AccountsStub{}
+	accountsDb[state.UserAccountsState] = &stateMock.AccountsStub{}
 
 	arguments := blproc.ArgShardProcessor{
 		ArgBaseProcessor: blproc.ArgBaseProcessor{
@@ -465,7 +465,7 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 func TestVerifyStateRoot_ShouldWork(t *testing.T) {
 	t.Parallel()
 	rootHash := []byte("root hash to be tested")
-	accounts := &testscommon.AccountsStub{
+	accounts := &stateMock.AccountsStub{
 		RootHashCalled: func() ([]byte, error) {
 			return rootHash, nil
 		},
@@ -484,7 +484,7 @@ func TestBaseProcessor_RevertStateRecreateTrieFailsShouldErr(t *testing.T) {
 
 	expectedErr := errors.New("err")
 	arguments := CreateMockArguments(createComponentHolderMocks())
-	arguments.AccountsDB[state.UserAccountsState] = &testscommon.AccountsStub{
+	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return expectedErr
 		},
@@ -1010,11 +1010,11 @@ func TestBlockProcessor_PruneStateOnRollbackPrunesPeerTrieIfAccPruneIsDisabled(t
 	t.Parallel()
 
 	pruningCalled := 0
-	peerAccDb := &testscommon.AccountsStub{
-		PruneTrieCalled: func(rootHash []byte, identifier temporary.TriePruningIdentifier) {
+	peerAccDb := &stateMock.AccountsStub{
+		PruneTrieCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
 			pruningCalled++
 		},
-		CancelPruneCalled: func(rootHash []byte, identifier temporary.TriePruningIdentifier) {
+		CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
 			pruningCalled++
 		},
 		IsPruningEnabledCalled: func() bool {
@@ -1043,11 +1043,11 @@ func TestBlockProcessor_PruneStateOnRollbackPrunesPeerTrieIfSameRootHashButDiffe
 	t.Parallel()
 
 	pruningCalled := 0
-	peerAccDb := &testscommon.AccountsStub{
-		PruneTrieCalled: func(rootHash []byte, identifier temporary.TriePruningIdentifier) {
+	peerAccDb := &stateMock.AccountsStub{
+		PruneTrieCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
 			pruningCalled++
 		},
-		CancelPruneCalled: func(rootHash []byte, identifier temporary.TriePruningIdentifier) {
+		CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
 			pruningCalled++
 		},
 		IsPruningEnabledCalled: func() bool {
@@ -1055,11 +1055,11 @@ func TestBlockProcessor_PruneStateOnRollbackPrunesPeerTrieIfSameRootHashButDiffe
 		},
 	}
 
-	accDb := &testscommon.AccountsStub{
-		PruneTrieCalled: func(rootHash []byte, identifier temporary.TriePruningIdentifier) {
+	accDb := &stateMock.AccountsStub{
+		PruneTrieCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
 			pruningCalled++
 		},
-		CancelPruneCalled: func(rootHash []byte, identifier temporary.TriePruningIdentifier) {
+		CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
 			pruningCalled++
 		},
 		IsPruningEnabledCalled: func() bool {
@@ -1367,7 +1367,7 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldWork(t *testing.T) {
 
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	arguments.AccountsDB = map[state.AccountsDbIdentifier]state.AccountsAdapter{
-		state.UserAccountsState: &testscommon.AccountsStub{
+		state.UserAccountsState: &stateMock.AccountsStub{
 			RootHashCalled: func() ([]byte, error) {
 				return rootHash, nil
 			},
@@ -1426,7 +1426,7 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldUseDataTrieIfNeededW
 		calledWithUserAccountRootHash := false
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.AccountsDB = map[state.AccountsDbIdentifier]state.AccountsAdapter{
-			state.UserAccountsState: &testscommon.AccountsStub{
+			state.UserAccountsState: &stateMock.AccountsStub{
 				GetAllLeavesCalled: func(rh []byte) (chan core.KeyValueHolder, error) {
 					channel := make(chan core.KeyValueHolder)
 					if bytes.Equal(rootHash, rh) {
@@ -1462,7 +1462,7 @@ func TestBaseProcessor_updateState(t *testing.T) {
 	var pruneRootHash []byte
 	var cancelPruneRootHash []byte
 
-	poolMock := testscommon.NewPoolsHolderMock()
+	poolMock := dataRetrieverMock.NewPoolsHolderMock()
 
 	numHeaders := 5
 	headers := make([]block.Header, numHeaders)
@@ -1498,14 +1498,14 @@ func TestBaseProcessor_updateState(t *testing.T) {
 
 	arguments.BlockTracker = &mock.BlockTrackerMock{}
 	arguments.Config.StateTriesConfig.CheckpointRoundsModulus = 2
-	arguments.AccountsDB[state.UserAccountsState] = &testscommon.AccountsStub{
+	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
 		IsPruningEnabledCalled: func() bool {
 			return true
 		},
-		PruneTrieCalled: func(rootHashParam []byte, identifier temporary.TriePruningIdentifier) {
+		PruneTrieCalled: func(rootHashParam []byte, identifier state.TriePruningIdentifier) {
 			pruneRootHash = rootHashParam
 		},
-		CancelPruneCalled: func(rootHash []byte, identifier temporary.TriePruningIdentifier) {
+		CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
 			cancelPruneRootHash = rootHash
 		},
 	}

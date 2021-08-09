@@ -48,20 +48,20 @@ func Routes(router *wrapper.RouterWrapper) {
 
 // getHex returns the data as bytes, hex-encoded
 func getHex(context *gin.Context) {
-	doGetVMValue(context, vmcommon.AsHex)
+	doGetVMValue(context, vm.AsHex)
 }
 
 // getString returns the data as string
 func getString(context *gin.Context) {
-	doGetVMValue(context, vmcommon.AsString)
+	doGetVMValue(context, vm.AsString)
 }
 
 // getInt returns the data as big int
 func getInt(context *gin.Context) {
-	doGetVMValue(context, vmcommon.AsBigIntString)
+	doGetVMValue(context, vm.AsBigIntString)
 }
 
-func doGetVMValue(context *gin.Context, asType vmcommon.ReturnDataKind) {
+func doGetVMValue(context *gin.Context, asType vm.ReturnDataKind) {
 	vmOutput, execErrMsg, err := doExecuteQuery(context)
 
 	if err != nil {

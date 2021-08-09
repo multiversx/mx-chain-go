@@ -5,8 +5,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/mock"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -19,14 +17,14 @@ import (
 
 func getArgs() factory.TrieFactoryArgs {
 	return factory.TrieFactoryArgs{
-		Marshalizer: &mock.MarshalizerMock{},
+		Marshalizer: &testscommon.MarshalizerMock{},
 		Hasher:      &hashingMocks.HasherMock{},
 		PathManager: &testscommon.PathManagerStub{},
 	}
 }
 
-func getCreateArgs() temporary.TrieCreateArgs {
-	return temporary.TrieCreateArgs{
+func getCreateArgs() factory.TrieCreateArgs {
+	return factory.TrieCreateArgs{
 		TrieStorageConfig:  createTrieStorageCfg(),
 		ShardID:            "0",
 		PruningEnabled:     false,

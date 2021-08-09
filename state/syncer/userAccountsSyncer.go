@@ -11,10 +11,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 )
@@ -167,16 +167,16 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ssh data.SyncStatisti
 	u.syncerMutex.Unlock()
 
 	arg := trie.ArgTrieSyncer{
-		RequestHandler:                 u.requestHandler,
-		InterceptedNodes:               u.cacher,
-		DB:                             u.trieStorageManager.Database(),
-		Marshalizer:                    u.marshalizer,
-		Hasher:                         u.hasher,
-		ShardId:                        u.shardId,
-		Topic:                          factory.AccountTrieNodesTopic,
-		TrieSyncStatistics:             ssh,
-		TimeoutBetweenTrieNodesCommits: u.timeout,
-		MaxHardCapForMissingNodes:      u.maxHardCapForMissingNodes,
+		RequestHandler:            u.requestHandler,
+		InterceptedNodes:          u.cacher,
+		DB:                        u.trieStorageManager.Database(),
+		Marshalizer:               u.marshalizer,
+		Hasher:                    u.hasher,
+		ShardId:                   u.shardId,
+		Topic:                     factory.AccountTrieNodesTopic,
+		TrieSyncStatistics:        ssh,
+		ReceivedNodesTimeout:      u.timeout,
+		MaxHardCapForMissingNodes: u.maxHardCapForMissingNodes,
 	}
 	trieSyncer, err := trie.CreateTrieSyncer(arg, u.trieSyncerVersion)
 	if err != nil {
@@ -192,7 +192,7 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ssh data.SyncStatisti
 	return nil
 }
 
-func (u *userAccountsSyncer) findAllAccountRootHashes(mainTrie temporary.Trie) ([][]byte, error) {
+func (u *userAccountsSyncer) findAllAccountRootHashes(mainTrie common.Trie) ([][]byte, error) {
 	mainRootHash, err := mainTrie.RootHash()
 	if err != nil {
 		return nil, err

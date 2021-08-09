@@ -9,16 +9,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/statistics"
-	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -591,42 +589,33 @@ type feeHandler interface {
 	DeveloperPercentage() float64
 	GasPerDataByte() uint64
 	MaxGasLimitPerBlock(shardID uint32) uint64
-	ComputeGasLimit(tx TransactionWithFeeHandler) uint64
-	ComputeMoveBalanceFee(tx TransactionWithFeeHandler) *big.Int
-	ComputeTxFee(tx TransactionWithFeeHandler) *big.Int
-	CheckValidityTxValues(tx TransactionWithFeeHandler) error
-	ComputeFeeForProcessing(tx TransactionWithFeeHandler, gasToUse uint64) *big.Int
+	ComputeGasLimit(tx data.TransactionWithFeeHandler) uint64
+	ComputeMoveBalanceFee(tx data.TransactionWithFeeHandler) *big.Int
+	ComputeTxFee(tx data.TransactionWithFeeHandler) *big.Int
+	CheckValidityTxValues(tx data.TransactionWithFeeHandler) error
+	ComputeFeeForProcessing(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int
 	MinGasPrice() uint64
 	GasPriceModifier() float64
 	MinGasLimit() uint64
-	SplitTxGasInCategories(tx TransactionWithFeeHandler) (uint64, uint64)
-	GasPriceForProcessing(tx TransactionWithFeeHandler) uint64
-	GasPriceForMove(tx TransactionWithFeeHandler) uint64
+	SplitTxGasInCategories(tx data.TransactionWithFeeHandler) (uint64, uint64)
+	GasPriceForProcessing(tx data.TransactionWithFeeHandler) uint64
+	GasPriceForMove(tx data.TransactionWithFeeHandler) uint64
 	MinGasPriceForProcessing() uint64
-	ComputeGasUsedAndFeeBasedOnRefundValue(tx TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int)
-	ComputeTxFeeBasedOnGasUsed(tx TransactionWithFeeHandler, gasUsed uint64) *big.Int
-	ComputeGasLimitBasedOnBalance(tx TransactionWithFeeHandler, balance *big.Int) (uint64, error)
+	ComputeGasUsedAndFeeBasedOnRefundValue(tx data.TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int)
+	ComputeTxFeeBasedOnGasUsed(tx data.TransactionWithFeeHandler, gasUsed uint64) *big.Int
+	ComputeGasLimitBasedOnBalance(tx data.TransactionWithFeeHandler, balance *big.Int) (uint64, error)
 }
 
 // TxGasHandler handles a transaction gas and gas cost
 type TxGasHandler interface {
-	SplitTxGasInCategories(tx TransactionWithFeeHandler) (uint64, uint64)
-	GasPriceForProcessing(tx TransactionWithFeeHandler) uint64
-	GasPriceForMove(tx TransactionWithFeeHandler) uint64
+	SplitTxGasInCategories(tx data.TransactionWithFeeHandler) (uint64, uint64)
+	GasPriceForProcessing(tx data.TransactionWithFeeHandler) uint64
+	GasPriceForMove(tx data.TransactionWithFeeHandler) uint64
 	MinGasPrice() uint64
-	ComputeFeeForProcessing(tx TransactionWithFeeHandler, gasToUse uint64) *big.Int
+	ComputeFeeForProcessing(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int
 	GasPriceModifier() float64
 	MinGasLimit() uint64
 	MinGasPriceForProcessing() uint64
-	IsInterfaceNil() bool
-}
-
-// TransactionFeeCalculator is able to calculated fee of a transaction
-type TransactionFeeCalculator interface {
-	ComputeGasUsedAndFeeBasedOnRefundValue(tx TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int)
-	ComputeTxFeeBasedOnGasUsed(tx TransactionWithFeeHandler, gasUsed uint64) *big.Int
-	ComputeGasLimit(tx TransactionWithFeeHandler) uint64
-	MinGasLimit() uint64
 	IsInterfaceNil() bool
 }
 
@@ -641,15 +630,6 @@ type EconomicsDataHandler interface {
 	rewardsHandler
 	feeHandler
 	IsInterfaceNil() bool
-}
-
-// TransactionWithFeeHandler represents a transaction structure that has economics variables defined
-type TransactionWithFeeHandler interface {
-	GetGasLimit() uint64
-	GetGasPrice() uint64
-	GetData() []byte
-	GetRcvAddr() []byte
-	GetValue() *big.Int
 }
 
 // SmartContractToProtocolHandler is able to translate data from smart contract state into protocol changes
@@ -1084,21 +1064,6 @@ type CryptoComponentsHolder interface {
 	PublicKey() crypto.PublicKey
 	Clone() interface{}
 	IsInterfaceNil() bool
-}
-
-// Indexer is an interface for saving node specific data to other storage.
-// This could be an elastic search index, a MySql database or any other external services.
-type Indexer interface {
-	SaveBlock(args *indexer.ArgsSaveBlockData)
-	RevertIndexedBlock(header data.HeaderHandler, body data.BodyHandler)
-	SaveRoundsInfo(roundsInfos []*indexer.RoundInfo)
-	UpdateTPS(tpsBenchmark statistics.TPSBenchmark)
-	SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte, epoch uint32)
-	SaveValidatorsRating(indexID string, infoRating []*indexer.ValidatorRatingInfo)
-	SaveAccounts(blockTimestamp uint64, acc []state.UserAccountHandler)
-	Close() error
-	IsInterfaceNil() bool
-	IsNilIndexer() bool
 }
 
 // NumConnectedPeersProvider defines the actions that a component that provides the number of connected peers should do

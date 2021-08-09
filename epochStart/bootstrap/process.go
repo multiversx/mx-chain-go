@@ -31,7 +31,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/state/syncer"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -45,7 +44,6 @@ var log = logger.GetOrCreate("epochStart/bootstrap")
 
 // DefaultTimeToWaitForRequestedData represents the default timespan until requested data needs to be received from the connected peers
 const DefaultTimeToWaitForRequestedData = time.Minute
-const timeoutGettingTrieNode = time.Minute
 const timeBetweenRequests = 100 * time.Millisecond
 const maxToRequest = 100
 const gracePeriodInPercentage = float64(0.25)
@@ -89,7 +87,7 @@ type epochStartBootstrap struct {
 	genesisShardCoordinator    sharding.Coordinator
 	rater                      sharding.ChanceComputer
 	trieContainer              state.TriesHolder
-	trieStorageManagers        map[string]temporary.StorageManager
+	trieStorageManagers        map[string]common.StorageManager
 	mutTrieStorageManagers     sync.RWMutex
 	nodeShuffler               sharding.NodesShuffler
 	roundHandler               epochStart.RoundHandler
@@ -212,7 +210,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 	}
 
 	epochStartProvider.trieContainer = state.NewDataTriesHolder()
-	epochStartProvider.trieStorageManagers = make(map[string]temporary.StorageManager)
+	epochStartProvider.trieStorageManagers = make(map[string]common.StorageManager)
 
 	if epochStartProvider.generalConfig.Hardfork.AfterHardFork {
 		epochStartProvider.startEpoch = epochStartProvider.generalConfig.Hardfork.StartEpoch
@@ -284,11 +282,11 @@ func (e *epochStartBootstrap) isNodeInGenesisNodesConfig() bool {
 }
 
 // GetTriesComponents returns the created tries components according to the shardID for the current epoch
-func (e *epochStartBootstrap) GetTriesComponents() (state.TriesHolder, map[string]temporary.StorageManager) {
+func (e *epochStartBootstrap) GetTriesComponents() (state.TriesHolder, map[string]common.StorageManager) {
 	e.mutTrieStorageManagers.RLock()
 	defer e.mutTrieStorageManagers.RUnlock()
 
-	storageManagers := make(map[string]temporary.StorageManager)
+	storageManagers := make(map[string]common.StorageManager)
 	for k, v := range e.trieStorageManagers {
 		storageManagers[k] = v
 	}
@@ -863,7 +861,7 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 			Marshalizer:               e.coreComponentsHolder.InternalMarshalizer(),
 			TrieStorageManager:        trieStorageManager,
 			RequestHandler:            e.requestHandler,
-			Timeout:                   timeoutGettingTrieNode,
+			Timeout:                   common.TimeoutGettingTrieNodes,
 			Cacher:                    e.dataPool.TrieNodes(),
 			MaxTrieLevelInMemory:      e.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
 			MaxHardCapForMissingNodes: e.maxHardCapForMissingNodes,
@@ -901,7 +899,7 @@ func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) er
 		return err
 	}
 
-	args := temporary.TrieCreateArgs{
+	args := factory.TrieCreateArgs{
 		TrieStorageConfig:  e.generalConfig.AccountsTrieStorage,
 		ShardID:            core.GetShardIDString(shardId),
 		PruningEnabled:     e.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
@@ -918,7 +916,7 @@ func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) er
 	e.trieStorageManagers[factory.UserAccountTrie] = userStorageManager
 	e.mutTrieStorageManagers.Unlock()
 
-	args = temporary.TrieCreateArgs{
+	args = factory.TrieCreateArgs{
 		TrieStorageConfig:  e.generalConfig.PeerAccountsTrieStorage,
 		ShardID:            core.GetShardIDString(shardId),
 		PruningEnabled:     e.generalConfig.StateTriesConfig.PeerStatePruningEnabled,
@@ -961,7 +959,7 @@ func (e *epochStartBootstrap) syncValidatorAccountsState(rootHash []byte) error 
 			Marshalizer:               e.coreComponentsHolder.InternalMarshalizer(),
 			TrieStorageManager:        peerTrieStorageManager,
 			RequestHandler:            e.requestHandler,
-			Timeout:                   timeoutGettingTrieNode,
+			Timeout:                   common.TimeoutGettingTrieNodes,
 			Cacher:                    e.dataPool.TrieNodes(),
 			MaxTrieLevelInMemory:      e.generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
 			MaxHardCapForMissingNodes: e.maxHardCapForMissingNodes,

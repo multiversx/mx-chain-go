@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/closing"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -35,6 +34,8 @@ import (
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
 	"github.com/ElrondNetwork/elrond-go/health"
+	"github.com/ElrondNetwork/elrond-go/outport"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -297,7 +298,6 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedDataComponents,
 		managedStateComponents,
 		nodesCoordinator,
-		configurationPaths.ElasticSearchTemplatesPath,
 		configs.ImportDbConfig.IsImportDBMode,
 	)
 	if err != nil {
@@ -335,8 +335,6 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	if err != nil {
 		return true, err
 	}
-
-	elasticIndexer := managedStatusComponents.ElasticIndexer()
 
 	log.Debug("starting node... executeOneComponentCreationCycle")
 
@@ -393,7 +391,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	if managedBootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
 		log.Trace("activating nodesCoordinator's validators indexing")
 		indexValidatorsListIfNeeded(
-			elasticIndexer,
+			managedStatusComponents.OutportHandler(),
 			nodesCoordinator,
 			managedProcessComponents.EpochStartTrigger().Epoch(),
 		)
@@ -432,7 +430,7 @@ func (nr *nodeRunner) createApiFacade(
 ) (closing.Closer, error) {
 	configs := nr.configs
 
-	log.Trace("creating api resolver structure")
+	log.Debug("creating api resolver structure")
 
 	apiResolverArgs := &mainFactory.ApiResolverArgs{
 		Configs:             configs,
@@ -450,7 +448,7 @@ func (nr *nodeRunner) createApiFacade(
 		return nil, err
 	}
 
-	log.Trace("creating elrond node facade")
+	log.Debug("creating elrond node facade")
 
 	flagsConfig := configs.FlagsConfig
 
@@ -476,7 +474,6 @@ func (nr *nodeRunner) createApiFacade(
 	}
 
 	ef.SetSyncer(currentNode.coreComponents.SyncTimer())
-	ef.SetTpsBenchmark(currentNode.statusComponents.TpsBenchmark())
 
 	err = upgradableHttpServer.GetHttpServer().Close()
 	if err != nil {
@@ -802,22 +799,20 @@ func (nr *nodeRunner) CreateManagedStatusComponents(
 	managedDataComponents mainFactory.DataComponentsHolder,
 	managedStateComponents mainFactory.StateComponentsHolder,
 	nodesCoordinator sharding.NodesCoordinator,
-	elasticTemplatePath string,
 	isInImportMode bool,
 ) (mainFactory.StatusComponentsHandler, error) {
 	statArgs := mainFactory.StatusComponentsFactoryArgs{
-		Config:               *nr.configs.GeneralConfig,
-		ExternalConfig:       *nr.configs.ExternalConfig,
-		EconomicsConfig:      *nr.configs.EconomicsConfig,
-		ShardCoordinator:     managedBootstrapComponents.ShardCoordinator(),
-		NodesCoordinator:     nodesCoordinator,
-		EpochStartNotifier:   managedCoreComponents.EpochStartNotifierWithConfirm(),
-		CoreComponents:       managedCoreComponents,
-		DataComponents:       managedDataComponents,
-		NetworkComponents:    managedNetworkComponents,
-		StateComponents:      managedStateComponents,
-		ElasticTemplatesPath: elasticTemplatePath,
-		IsInImportMode:       isInImportMode,
+		Config:             *nr.configs.GeneralConfig,
+		ExternalConfig:     *nr.configs.ExternalConfig,
+		EconomicsConfig:    *nr.configs.EconomicsConfig,
+		ShardCoordinator:   managedBootstrapComponents.ShardCoordinator(),
+		NodesCoordinator:   nodesCoordinator,
+		EpochStartNotifier: managedCoreComponents.EpochStartNotifierWithConfirm(),
+		CoreComponents:     managedCoreComponents,
+		DataComponents:     managedDataComponents,
+		NetworkComponents:  managedNetworkComponents,
+		StateComponents:    managedStateComponents,
+		IsInImportMode:     isInImportMode,
 	}
 
 	statusComponentsFactory, err := mainFactory.NewStatusComponentsFactory(statArgs)
@@ -860,7 +855,7 @@ func (nr *nodeRunner) logSessionInformation(
 		})
 
 	statsFile := filepath.Join(statsFolder, "session.info")
-	err := ioutil.WriteFile(statsFile, []byte(sessionInfoFileOutput), os.ModePerm)
+	err := ioutil.WriteFile(statsFile, []byte(sessionInfoFileOutput), core.FileModeReadWrite)
 	log.LogIfError(err)
 
 	computedRatingsDataStr := createStringFromRatingsData(coreComponents.RatingsData())
@@ -1122,9 +1117,13 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 		Syncer:               coreComponents.SyncTimer(),
 		PreferredPublicKeys:  decodedPreferredPubKeys,
 		BootstrapWaitSeconds: common.SecondsToWaitForP2PBootstrap,
+		NodeOperationMode:    p2p.NormalOperation,
 	}
 	if nr.configs.ImportDbConfig.IsImportDBMode {
 		networkComponentsFactoryArgs.BootstrapWaitSeconds = 0
+	}
+	if nr.configs.PreferencesConfig.Preferences.FullArchive {
+		networkComponentsFactoryArgs.NodeOperationMode = p2p.FullArchiveMode
 	}
 
 	networkComponentsFactory, err := mainFactory.NewNetworkComponentsFactory(networkComponentsFactoryArgs)
@@ -1355,11 +1354,11 @@ func copySingleFile(folder string, configFile string) {
 }
 
 func indexValidatorsListIfNeeded(
-	elasticIndexer process.Indexer,
+	outportHandler outport.OutportHandler,
 	coordinator sharding.NodesCoordinator,
 	epoch uint32,
 ) {
-	if check.IfNil(elasticIndexer) {
+	if !outportHandler.HasDrivers() {
 		return
 	}
 
@@ -1369,7 +1368,7 @@ func indexValidatorsListIfNeeded(
 	}
 
 	if len(validatorsPubKeys) > 0 {
-		elasticIndexer.SaveValidatorsPubKeys(validatorsPubKeys, epoch)
+		outportHandler.SaveValidatorsPubKeys(validatorsPubKeys, epoch)
 	}
 }
 
