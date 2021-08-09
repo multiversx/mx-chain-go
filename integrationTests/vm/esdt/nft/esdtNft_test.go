@@ -615,7 +615,7 @@ func TestESDTSemiFungibleTokenTransferToSystemScAddressShouldReceiveBack(t *test
 	)
 
 	time.Sleep(time.Second)
-	nrRoundsToPropagateMultiShard = 11
+	nrRoundsToPropagateMultiShard = 15
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
