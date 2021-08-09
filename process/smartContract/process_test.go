@@ -3119,6 +3119,7 @@ func TestScProcessor_ProcessSmartContractResultExecuteSCIfMetaAndBuiltIn(t *test
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
+	sc.flagBuiltInFunctionOnMetachain.Unset()
 	scr := smartContractResult.SmartContractResult{
 		SndAddr: []byte("snd addr"),
 		RcvAddr: scAddress,
@@ -3128,6 +3129,12 @@ func TestScProcessor_ProcessSmartContractResultExecuteSCIfMetaAndBuiltIn(t *test
 	_, err = sc.ProcessSmartContractResult(&scr)
 	require.Nil(t, err)
 	require.True(t, executeCalled)
+
+	executeCalled = false
+	sc.flagBuiltInFunctionOnMetachain.Set()
+	_, err = sc.ProcessSmartContractResult(&scr)
+	require.Nil(t, err)
+	require.False(t, executeCalled)
 }
 
 func TestScProcessor_ProcessRelayedSCRValueBackToRelayer(t *testing.T) {
