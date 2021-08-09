@@ -11,7 +11,7 @@ require (
 	github.com/ElrondNetwork/elrond-go-core v1.0.1-0.20210802100738-75f99b3e75a0
 	github.com/ElrondNetwork/elrond-go-crypto v1.0.1
 	github.com/ElrondNetwork/elrond-go-logger v1.0.5
-	github.com/ElrondNetwork/elrond-vm-common v1.1.2-0.20210807150024-875f8839b481
+	github.com/ElrondNetwork/elrond-vm-common v1.1.1-0.20210802135322-fcd06aba11ec
 	github.com/ElrondNetwork/notifier-go v0.0.0-20210726084028-a78b3bbabc41
 	github.com/beevik/ntp v0.3.0
 	github.com/btcsuite/btcd v0.22.0-beta
@@ -54,4 +54,4 @@ replace github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.28 => github.com/Elrond
 
 replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.28 => github.com/ElrondNetwork/arwen-wasm-vm v1.3.29-0.20210807154052-9aa5ecc0a359
 
-replace github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.3 => github.com/ElrondNetwork/arwen-wasm-vm v1.4.5-0.20210807153244-8f34ca3030b0
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.3 => github.com/ElrondNetwork/arwen-wasm-vm v1.4.5-0.20210804102956-c5b18fa19f2f

@@ -36,6 +36,7 @@ func createMockArgumentsForESDT() ArgsNewESDTSmartContract {
 		EpochNotifier:          &mock.EpochNotifierStub{},
 		AddressPubKeyConverter: mock.NewPubkeyConverterMock(32),
 		EndOfEpochSCAddress:    vm.EndOfEpochAddress,
+		EpochConfig:            config.EpochConfig{EnableEpochs: config.EnableEpochs{GlobalMintBurnDisableEpoch: 10}},
 	}
 }
 
@@ -216,6 +217,40 @@ func TestEsdt_ExecuteIssue(t *testing.T) {
 	vmInput.Arguments[0] = []byte("01234567891&*@")
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
+}
+
+func TestEsdt_ExecuteIssueWithZero(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&stateMock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr:  []byte("addr"),
+			CallValue:   big.NewInt(0),
+			GasProvided: 100000,
+		},
+		RecipientAddr: []byte("addr"),
+		Function:      "issue",
+	}
+	eei.gasRemaining = vmInput.GasProvided
+	vmInput.Arguments = [][]byte{[]byte("name"), []byte("TICKER")}
+	vmInput.Arguments = append(vmInput.Arguments, big.NewInt(0).Bytes())
+	vmInput.Arguments = append(vmInput.Arguments, big.NewInt(10).Bytes())
+	vmInput.CallValue, _ = big.NewInt(0).SetString(args.ESDTSCConfig.BaseIssuingCost, 10)
+	vmInput.GasProvided = args.GasCost.MetaChainSystemSCsCost.ESDTIssue
+
+	e.flagGlobalMintBurn.Unset()
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
 }
 
 func TestEsdt_ExecuteIssueTooMuchSupply(t *testing.T) {
@@ -431,6 +466,32 @@ func TestEsdt_ExecuteBurnOnNonExistentTokenShouldFail(t *testing.T) {
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNoTickerWithGivenName.Error()))
+}
+
+func TestEsdt_ExecuteBurnAndMintDisabled(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	args.EpochConfig.EnableEpochs.GlobalMintBurnDisableEpoch = 0
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&stateMock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+	vmInput := getDefaultVmInputForFunc(core.BuiltInFunctionESDTBurn, [][]byte{[]byte("esdtToken"), {100}})
+
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "global burn is no more enabled, use local burn"))
+
+	vmInput = getDefaultVmInputForFunc("mint", [][]byte{[]byte("esdtToken"), {100}})
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "global mint is no more enabled, use local mint"))
 }
 
 func TestEsdt_ExecuteBurnOnNonBurnableTokenShouldWorkAndReturnBurntTokens(t *testing.T) {
@@ -3192,6 +3253,97 @@ func TestEsdt_SetSpecialRoleNFTShouldErr(t *testing.T) {
 	vmInput.Arguments[2] = []byte(core.ESDTRoleNFTCreate)
 	retCode = e.Execute(vmInput)
 	require.Equal(t, vmcommon.Ok, retCode)
+}
+
+func TestEsdt_SetSpecialRoleTransferNotEnabledShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	args.EpochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch = 10
+
+	token := &ESDTData{
+		OwnerAddress: []byte("caller123"),
+		SpecialRoles: []*ESDTRoles{
+			{
+				Address: []byte("myAddress"),
+				Roles:   [][]byte{[]byte(core.ESDTRoleLocalMint)},
+			},
+		},
+		TokenType:          []byte(core.NonFungibleESDT),
+		CanAddSpecialRoles: true,
+	}
+	esdtTransferData := core.BuiltInFunctionESDTSetLimitedTransfer + "@" + hex.EncodeToString([]byte("myToken"))
+	called := false
+	eei := &mock.SystemEIStub{
+		GetStorageCalled: func(key []byte) []byte {
+			tokenBytes, _ := args.Marshalizer.Marshal(token)
+			return tokenBytes
+		},
+		SendGlobalSettingToAllCalled: func(sender []byte, input []byte) {
+			assert.Equal(t, input, []byte(esdtTransferData))
+			called = true
+		},
+	}
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := getDefaultVmInputForFunc("setSpecialRole", [][]byte{})
+	vmInput.Arguments = [][]byte{[]byte("myToken"), []byte("myAddress"), []byte(core.ESDTRoleTransfer)}
+	vmInput.CallerAddr = []byte("caller123")
+	vmInput.CallValue = big.NewInt(0)
+	vmInput.GasProvided = 50000000
+
+	token.TokenType = []byte(core.NonFungibleESDT)
+	retCode := e.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+
+	token.TokenType = []byte(core.FungibleESDT)
+	retCode = e.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+
+	token.TokenType = []byte(core.SemiFungibleESDT)
+	retCode = e.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+
+	e.flagTransferRole.Set()
+	called = false
+	token.TokenType = []byte(core.NonFungibleESDT)
+	retCode = e.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+	require.True(t, called)
+
+	token.TokenType = []byte(core.FungibleESDT)
+	retCode = e.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+
+	called = false
+	newAddressRole := &ESDTRoles{
+		Address: []byte("address"),
+		Roles:   [][]byte{[]byte(core.ESDTRoleTransfer)},
+	}
+	token.SpecialRoles = append(token.SpecialRoles, newAddressRole)
+	token.TokenType = []byte(core.SemiFungibleESDT)
+	retCode = e.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+	require.False(t, called)
+
+	token.SpecialRoles[0].Roles = append(token.SpecialRoles[0].Roles, []byte(core.ESDTRoleTransfer))
+	token.TokenType = []byte(core.SemiFungibleESDT)
+	retCode = e.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.False(t, called)
+
+	vmInput.Function = "unSetSpecialRole"
+	retCode = e.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+	require.False(t, called)
+
+	esdtTransferData = core.BuiltInFunctionESDTUnSetLimitedTransfer + "@" + hex.EncodeToString([]byte("myToken"))
+	token.SpecialRoles = token.SpecialRoles[:1]
+	retCode = e.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+	require.True(t, called)
 }
 
 func TestEsdt_SetSpecialRoleSFTShouldErr(t *testing.T) {
