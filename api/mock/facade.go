@@ -48,6 +48,7 @@ type Facade struct {
 	GetESDTDataCalled                       func(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error)
 	GetAllESDTTokensCalled                  func(address string) (map[string]*esdt.ESDigitalToken, error)
 	GetESDTsWithRoleCalled                  func(address string, role string) ([]string, error)
+	GetESDTsRolesCalled                     func(address string) (map[string][]string, error)
 	GetNFTTokenIDsRegisteredByAddressCalled func(address string) ([]string, error)
 	GetBlockByHashCalled                    func(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonceCalled                   func(nonce uint64, withTxs bool) (*api.Block, error)
@@ -157,8 +158,13 @@ func (f *Facade) GetESDTData(address string, key string, nonce uint64) (*esdt.ES
 	return &esdt.ESDigitalToken{Value: big.NewInt(0)}, nil
 }
 
-func (f *Facade) GetESDTsRoles(_ string) (map[string][]string, error) {
-	return nil, nil
+// GetESDTsRoles -
+func (f *Facade) GetESDTsRoles(address string) (map[string][]string, error) {
+	if f.GetESDTsRolesCalled != nil {
+		return f.GetESDTsRolesCalled(address)
+	}
+
+	return map[string][]string{}, nil
 }
 
 // GetAllESDTTokens -

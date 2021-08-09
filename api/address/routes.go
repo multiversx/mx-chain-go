@@ -385,7 +385,7 @@ func GetESDTBalance(c *gin.Context) {
 	)
 }
 
-// GetESDTsRoles returns the token identifiers and roles where a given address has the roles
+// GetESDTsRoles returns the token identifiers and roles for a given address
 func GetESDTsRoles(c *gin.Context) {
 	facade, ok := getFacade(c)
 	if !ok {
@@ -398,7 +398,7 @@ func GetESDTsRoles(c *gin.Context) {
 			http.StatusBadRequest,
 			shared.GenericAPIResponse{
 				Data:  nil,
-				Error: fmt.Sprintf("%s: %s", errors.ErrGetESDTBalance.Error(), errors.ErrEmptyAddress.Error()),
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetRolesForAccount.Error(), errors.ErrEmptyAddress.Error()),
 				Code:  shared.ReturnCodeRequestError,
 			},
 		)
@@ -411,7 +411,7 @@ func GetESDTsRoles(c *gin.Context) {
 			http.StatusInternalServerError,
 			shared.GenericAPIResponse{
 				Data:  nil,
-				Error: fmt.Sprintf("%s: %s", errors.ErrGetESDTBalance.Error(), err.Error()),
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetRolesForAccount.Error(), err.Error()),
 				Code:  shared.ReturnCodeInternalError,
 			},
 		)
@@ -421,7 +421,7 @@ func GetESDTsRoles(c *gin.Context) {
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
-			Data:  gin.H{"tokens": tokensRoles},
+			Data:  gin.H{"roles": tokensRoles},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},

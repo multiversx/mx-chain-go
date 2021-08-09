@@ -275,6 +275,7 @@ func (nf *disabledNodeFacade) GetESDTData(_ string, _ string, _ uint64) (*esdt.E
 	return nil, errNodeStarting
 }
 
+// GetESDTsRoles return nil and error
 func (nf *disabledNodeFacade) GetESDTsRoles(_ string) (map[string][]string, error) {
 	return nil, errNodeStarting
 }
