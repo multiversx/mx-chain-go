@@ -378,7 +378,7 @@ func (n *Node) GetESDTData(address, tokenID string, nonce uint64) (*esdt.ESDigit
 }
 
 func (n *Node) getTokensIDsWithFilter(
-	filterFunc func(tokenIdentifier string, esdtData *systemSmartContracts.ESDTData) bool,
+	filterFunc tokensFilterFunction,
 ) ([]string, error) {
 	if n.processComponents.ShardCoordinator().SelfId() != core.MetachainShardId {
 		return nil, ErrMetachainOnlyEndpoint
@@ -434,11 +434,8 @@ func (n *Node) GetNFTTokenIDsRegisteredByAddress(address string) ([]string, erro
 	if err != nil {
 		return nil, err
 	}
-	filterFunc := func(_ string, esdtData *systemSmartContracts.ESDTData) bool {
-		return !bytes.Equal(esdtData.TokenType, []byte(core.FungibleESDT)) && bytes.Equal(esdtData.OwnerAddress, addressBytes)
-	}
 
-	return n.getTokensIDsWithFilter(filterFunc)
+	return n.getTokensIDsWithFilter(getRegisteredNftsFilter(addressBytes))
 }
 
 // GetESDTsWithRole returns all the tokens with the given role for the given address
@@ -452,11 +449,7 @@ func (n *Node) GetESDTsWithRole(address string, role string) ([]string, error) {
 		return nil, err
 	}
 
-	filterFunc := func(_ string, esdtData *systemSmartContracts.ESDTData) bool {
-		return isTokenWithRoleForAddress(addressBytes, role, esdtData)
-	}
-
-	return n.getTokensIDsWithFilter(filterFunc)
+	return n.getTokensIDsWithFilter(getTokensWithRoleFilter(addressBytes, role))
 }
 
 // GetESDTsRoles returns all the tokens identifiers and roles for the given address
@@ -467,45 +460,13 @@ func (n *Node) GetESDTsRoles(address string) (map[string][]string, error) {
 	}
 
 	tokensRoles := make(map[string][]string)
-	filterFunc := func(tokenIdentifier string, esdtData *systemSmartContracts.ESDTData) bool {
-		for _, esdtRoles := range esdtData.SpecialRoles {
-			if !bytes.Equal(esdtRoles.Address, addressBytes) {
-				continue
-			}
 
-			rolesStr := make([]string, 0, len(esdtRoles.Roles))
-			for _, roleBytes := range esdtRoles.Roles {
-				rolesStr = append(rolesStr, string(roleBytes))
-			}
-
-			tokensRoles[tokenIdentifier] = rolesStr
-			return true
-		}
-		return false
-	}
-
-	_, err = n.getTokensIDsWithFilter(filterFunc)
+	_, err = n.getTokensIDsWithFilter(getAllTokensRolesFilter(addressBytes, tokensRoles))
 	if err != nil {
 		return nil, err
 	}
 
 	return tokensRoles, nil
-}
-
-func isTokenWithRoleForAddress(addressBytes []byte, role string, token *systemSmartContracts.ESDTData) bool {
-	for _, esdtRoles := range token.SpecialRoles {
-		if !bytes.Equal(esdtRoles.Address, addressBytes) {
-			continue
-		}
-
-		for _, specialRole := range esdtRoles.Roles {
-			if bytes.Equal(specialRole, []byte(role)) {
-				return true
-			}
-		}
-	}
-
-	return false
 }
 
 // GetAllESDTTokens returns all the ESDTs that the given address interacted with
