@@ -777,12 +777,13 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 	defaults.FillGasMapInternal(gasMap, 1)
 	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:      gasSchedule,
-		MapDNSAddresses:  make(map[string]struct{}),
-		Marshalizer:      TestMarshalizer,
-		Accounts:         tpn.AccntState,
-		ShardCoordinator: tpn.ShardCoordinator,
-		EpochNotifier:    tpn.EpochNotifier,
+		GasSchedule:                gasSchedule,
+		MapDNSAddresses:            make(map[string]struct{}),
+		Marshalizer:                TestMarshalizer,
+		Accounts:                   tpn.AccntState,
+		ShardCoordinator:           tpn.ShardCoordinator,
+		EpochNotifier:              tpn.EpochNotifier,
+		GlobalMintBurnDisableEpoch: tpn.EnableEpochs.GlobalMintBurnDisableEpoch,
 	}
 	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 
@@ -1348,12 +1349,13 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 
 	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:      gasSchedule,
-		MapDNSAddresses:  mapDNSAddresses,
-		Marshalizer:      TestMarshalizer,
-		Accounts:         tpn.AccntState,
-		ShardCoordinator: tpn.ShardCoordinator,
-		EpochNotifier:    tpn.EpochNotifier,
+		GasSchedule:                gasSchedule,
+		MapDNSAddresses:            mapDNSAddresses,
+		Marshalizer:                TestMarshalizer,
+		Accounts:                   tpn.AccntState,
+		ShardCoordinator:           tpn.ShardCoordinator,
+		EpochNotifier:              tpn.EpochNotifier,
+		GlobalMintBurnDisableEpoch: tpn.EnableEpochs.GlobalMintBurnDisableEpoch,
 	}
 	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 
@@ -1544,12 +1546,13 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	defaults.FillGasMapInternal(gasMap, 1)
 	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:      gasSchedule,
-		MapDNSAddresses:  make(map[string]struct{}),
-		Marshalizer:      TestMarshalizer,
-		Accounts:         tpn.AccntState,
-		ShardCoordinator: tpn.ShardCoordinator,
-		EpochNotifier:    tpn.EpochNotifier,
+		GasSchedule:                gasSchedule,
+		MapDNSAddresses:            make(map[string]struct{}),
+		Marshalizer:                TestMarshalizer,
+		Accounts:                   tpn.AccntState,
+		ShardCoordinator:           tpn.ShardCoordinator,
+		EpochNotifier:              tpn.EpochNotifier,
+		GlobalMintBurnDisableEpoch: tpn.EnableEpochs.GlobalMintBurnDisableEpoch,
 	}
 	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	argsHook := hooks.ArgBlockChainHook{
