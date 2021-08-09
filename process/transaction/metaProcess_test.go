@@ -13,6 +13,7 @@ import (
 	txproc "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
@@ -23,7 +24,7 @@ func createMockNewMetaTxArgs() txproc.ArgsNewMetaTxProcessor {
 	args := txproc.ArgsNewMetaTxProcessor{
 		Hasher:           &mock.HasherMock{},
 		Marshalizer:      &mock.MarshalizerMock{},
-		Accounts:         &testscommon.AccountsStub{},
+		Accounts:         &stateMock.AccountsStub{},
 		PubkeyConv:       createMockPubkeyConverter(),
 		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
 		ScProcessor:      &testscommon.SCProcessorMock{},

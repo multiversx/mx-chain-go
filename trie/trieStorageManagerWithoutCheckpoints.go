@@ -2,7 +2,7 @@ package trie
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder/disabled"
 )
 
@@ -32,7 +32,7 @@ func (tsm *trieStorageManagerWithoutCheckpoints) SetCheckpoint(_ []byte, chLeave
 }
 
 // AddDirtyCheckpointHashes returns false
-func (tsm *trieStorageManagerWithoutCheckpoints) AddDirtyCheckpointHashes(_ []byte, _ temporary.ModifiedHashes) bool {
+func (tsm *trieStorageManagerWithoutCheckpoints) AddDirtyCheckpointHashes(_ []byte, _ common.ModifiedHashes) bool {
 	return false
 }
 

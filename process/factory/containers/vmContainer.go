@@ -18,15 +18,6 @@ type closer interface {
 	Close() error
 }
 
-type cleaner interface {
-	Clean()
-}
-
-type closeResult struct {
-	errorFound bool
-	resolved   bool
-}
-
 // virtualMachinesContainer is an VM holder organized by type
 type virtualMachinesContainer struct {
 	objects *container.MutexMap
@@ -125,65 +116,33 @@ func (vmc *virtualMachinesContainer) Keys() [][]byte {
 
 // Close closes the items in the container (meaningful for Arwen out-of-process)
 func (vmc *virtualMachinesContainer) Close() error {
-	var withError bool
-
+	var err error
 	for _, item := range vmc.objects.Values() {
 		logVMContainer.Debug("closing vm container item", "item", fmt.Sprintf("%T", item))
 
-		result := vmc.tryClose(item)
-		withError = withError || result.errorFound
-		if result.resolved {
-			continue
+		closingErr := vmc.tryClose(item)
+		if closingErr != nil {
+			err = closingErr
 		}
-
-		result = vmc.tryClean(item)
-		withError = withError || result.errorFound
 	}
 
-	if withError {
-		return ErrCloseVMContainer
-	}
-
-	return nil
+	return err
 }
 
-func (vmc *virtualMachinesContainer) tryClose(item interface{}) closeResult {
+func (vmc *virtualMachinesContainer) tryClose(item interface{}) error {
 	asCloser, ok := item.(closer)
 	if !ok {
-		return closeResult{
-			resolved: false,
-		}
+		return nil
 	}
 
 	err := asCloser.Close()
 	if err != nil {
-		logVMContainer.Error("cannot close vm container item", "item", fmt.Sprintf("%T", item), "err", err)
+		logVMContainer.Warn("cannot close vm container item", "item", fmt.Sprintf("%T", item), "err", err)
 	} else {
 		logVMContainer.Debug("vm container item closed", "item", fmt.Sprintf("%T", item))
 	}
 
-	return closeResult{
-		resolved:   true,
-		errorFound: err != nil,
-	}
-}
-
-func (vmc *virtualMachinesContainer) tryClean(item interface{}) closeResult {
-	_, ok := item.(cleaner)
-	if !ok {
-		return closeResult{
-			resolved: false,
-		}
-	}
-
-	//TODO call clean here after the ARWEN concurrency problems will be solved
-	//asCleaner.Clean()
-	//logVMContainer.Debug("vm container item cleaned", "item", fmt.Sprintf("%T", item))
-
-	return closeResult{
-		resolved:   true,
-		errorFound: false,
-	}
+	return err
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

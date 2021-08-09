@@ -9,7 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
+	"github.com/ElrondNetwork/elrond-go/common"
 )
 
 type node interface {
@@ -23,29 +23,29 @@ type node interface {
 	isPosCollapsed(pos int) bool
 	isDirty() bool
 	getEncodedNode() ([]byte, error)
-	resolveCollapsed(pos byte, db temporary.DBWriteCacher) error
+	resolveCollapsed(pos byte, db common.DBWriteCacher) error
 	hashNode() ([]byte, error)
 	hashChildren() error
-	tryGet(key []byte, db temporary.DBWriteCacher) ([]byte, error)
-	getNext(key []byte, db temporary.DBWriteCacher) (node, []byte, error)
-	insert(n *leafNode, db temporary.DBWriteCacher) (node, [][]byte, error)
-	delete(key []byte, db temporary.DBWriteCacher) (bool, node, [][]byte, error)
+	tryGet(key []byte, db common.DBWriteCacher) ([]byte, error)
+	getNext(key []byte, db common.DBWriteCacher) (node, []byte, error)
+	insert(n *leafNode, db common.DBWriteCacher) (node, [][]byte, error)
+	delete(key []byte, db common.DBWriteCacher) (bool, node, [][]byte, error)
 	reduceNode(pos int) (node, bool, error)
 	isEmptyOrNil() error
-	print(writer io.Writer, index int, db temporary.DBWriteCacher)
-	getDirtyHashes(temporary.ModifiedHashes) error
-	getChildren(db temporary.DBWriteCacher) ([]node, error)
+	print(writer io.Writer, index int, db common.DBWriteCacher)
+	getDirtyHashes(common.ModifiedHashes) error
+	getChildren(db common.DBWriteCacher) ([]node, error)
 	isValid() bool
 	setDirty(bool)
 	loadChildren(func([]byte) (node, error)) ([][]byte, []node, error)
-	getAllLeavesOnChannel(chan core.KeyValueHolder, []byte, temporary.DBWriteCacher, marshal.Marshalizer, chan struct{}) error
-	getAllHashes(db temporary.DBWriteCacher) ([][]byte, error)
+	getAllLeavesOnChannel(chan core.KeyValueHolder, []byte, common.DBWriteCacher, marshal.Marshalizer, chan struct{}) error
+	getAllHashes(db common.DBWriteCacher) ([][]byte, error)
 	getNextHashAndKey([]byte) (bool, []byte, []byte)
-	getNumNodes() temporary.NumNodesDTO
+	getNumNodes() common.NumNodesDTO
 
-	commitDirty(level byte, maxTrieLevelInMemory uint, originDb temporary.DBWriteCacher, targetDb temporary.DBWriteCacher) error
-	commitCheckpoint(originDb temporary.DBWriteCacher, targetDb temporary.DBWriteCacher, checkpointHashes temporary.CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context) error
-	commitSnapshot(originDb temporary.DBWriteCacher, targetDb temporary.DBWriteCacher, leavesChan chan core.KeyValueHolder, ctx context.Context) error
+	commitDirty(level byte, maxTrieLevelInMemory uint, originDb common.DBWriteCacher, targetDb common.DBWriteCacher) error
+	commitCheckpoint(originDb common.DBWriteCacher, targetDb common.DBWriteCacher, checkpointHashes CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context) error
+	commitSnapshot(originDb common.DBWriteCacher, targetDb common.DBWriteCacher, leavesChan chan core.KeyValueHolder, ctx context.Context) error
 
 	getMarshalizer() marshal.Marshalizer
 	setMarshalizer(marshal.Marshalizer)
@@ -57,13 +57,22 @@ type node interface {
 }
 
 type snapshotNode interface {
-	commitCheckpoint(originDb temporary.DBWriteCacher, targetDb temporary.DBWriteCacher, checkpointHashes temporary.CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context) error
-	commitSnapshot(originDb temporary.DBWriteCacher, targetDb temporary.DBWriteCacher, leavesChan chan core.KeyValueHolder, ctx context.Context) error
+	commitCheckpoint(originDb common.DBWriteCacher, targetDb common.DBWriteCacher, checkpointHashes CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context) error
+	commitSnapshot(originDb common.DBWriteCacher, targetDb common.DBWriteCacher, leavesChan chan core.KeyValueHolder, ctx context.Context) error
 }
 
 // RequestHandler defines the methods through which request to data can be made
 type RequestHandler interface {
 	RequestTrieNodes(destShardID uint32, hashes [][]byte, topic string)
 	RequestInterval() time.Duration
+	IsInterfaceNil() bool
+}
+
+// CheckpointHashesHolder is used to hold the hashes that need to be committed in the future state checkpoint
+type CheckpointHashesHolder interface {
+	Put(rootHash []byte, hashes common.ModifiedHashes) bool
+	RemoveCommitted(lastCommittedRootHash []byte)
+	Remove(hash []byte)
+	ShouldCommit(hash []byte) bool
 	IsInterfaceNil() bool
 }

@@ -10,19 +10,19 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/mock"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
 	"github.com/stretchr/testify/assert"
 )
 
 func getTestMarshalizerAndHasher() (marshal.Marshalizer, hashing.Hasher) {
 	marsh := &marshal.GogoProtoMarshalizer{}
-	hash := &mock.KeccakMock{}
+	hash := &testscommon.KeccakMock{}
 	return marsh, hash
 }
 
@@ -96,7 +96,7 @@ func initTrie() *patriciaMerkleTrie {
 	return tr
 }
 
-func getEncodedTrieNodesAndHashes(tr temporary.Trie) ([][]byte, [][]byte) {
+func getEncodedTrieNodesAndHashes(tr common.Trie) ([][]byte, [][]byte) {
 	it, _ := NewIterator(tr)
 	encNode, _ := it.MarshalizedNode()
 
@@ -192,7 +192,7 @@ func TestBranchNode_setRootHash(t *testing.T) {
 	t.Parallel()
 
 	cfg := config.DBConfig{}
-	db := mock.NewMemDbMock()
+	db := testscommon.NewMemDbMock()
 	marsh, hsh := getTestMarshalizerAndHasher()
 	args := NewTrieStorageManagerArgs{
 		DB:                     db,
@@ -367,7 +367,7 @@ func TestBranchNode_hashNodeNilNode(t *testing.T) {
 func TestBranchNode_commit(t *testing.T) {
 	t.Parallel()
 
-	db := mock.NewMemDbMock()
+	db := testscommon.NewMemDbMock()
 	marsh, hasher := getTestMarshalizerAndHasher()
 	bn, collapsedBn := getBnAndCollapsedBn(marsh, hasher)
 
@@ -438,7 +438,7 @@ func TestBranchNode_getEncodedNodeNil(t *testing.T) {
 func TestBranchNode_resolveCollapsed(t *testing.T) {
 	t.Parallel()
 
-	db := mock.NewMemDbMock()
+	db := testscommon.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	childPos := byte(2)
 
@@ -540,7 +540,7 @@ func TestBranchNode_tryGetNilChild(t *testing.T) {
 func TestBranchNode_tryGetCollapsedNode(t *testing.T) {
 	t.Parallel()
 
-	db := mock.NewMemDbMock()
+	db := testscommon.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 
 	_ = bn.setHash()
@@ -661,7 +661,7 @@ func TestBranchNode_insertChildPosOutOfRange(t *testing.T) {
 func TestBranchNode_insertCollapsedNode(t *testing.T) {
 	t.Parallel()
 
-	db := mock.NewMemDbMock()
+	db := testscommon.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	childPos := byte(2)
 	key := append([]byte{childPos}, []byte("dog")...)
@@ -681,7 +681,7 @@ func TestBranchNode_insertCollapsedNode(t *testing.T) {
 func TestBranchNode_insertInStoredBnOnExistingPos(t *testing.T) {
 	t.Parallel()
 
-	db := mock.NewMemDbMock()
+	db := testscommon.NewMemDbMock()
 	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	childPos := byte(2)
 	key := append([]byte{childPos}, []byte("dog")...)
@@ -702,7 +702,7 @@ func TestBranchNode_insertInStoredBnOnExistingPos(t *testing.T) {
 func TestBranchNode_insertInStoredBnOnNilPos(t *testing.T) {
 	t.Parallel()
 
-	db := mock.NewMemDbMock()
+	db := testscommon.NewMemDbMock()
 	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	nilChildPos := byte(11)
 	key := append([]byte{nilChildPos}, []byte("dog")...)
@@ -781,7 +781,7 @@ func TestBranchNode_delete(t *testing.T) {
 func TestBranchNode_deleteFromStoredBn(t *testing.T) {
 	t.Parallel()
 
-	db := mock.NewMemDbMock()
+	db := testscommon.NewMemDbMock()
 	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	childPos := byte(2)
 	lnKey := append([]byte{childPos}, []byte("dog")...)
@@ -865,7 +865,7 @@ func TestBranchNode_deleteEmptykey(t *testing.T) {
 func TestBranchNode_deleteCollapsedNode(t *testing.T) {
 	t.Parallel()
 
-	db := mock.NewMemDbMock()
+	db := testscommon.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	_ = bn.setHash()
 	_ = bn.commitDirty(0, 5, db, db)
@@ -1039,7 +1039,7 @@ func TestBranchNode_getChildren(t *testing.T) {
 func TestBranchNode_getChildrenCollapsedBn(t *testing.T) {
 	t.Parallel()
 
-	db := mock.NewMemDbMock()
+	db := testscommon.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	_ = bn.commitSnapshot(db, db, nil, context.Background())
 
@@ -1140,7 +1140,7 @@ func BenchmarkMarshallNodeJson(b *testing.B) {
 func TestBranchNode_newBranchNodeNilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	bn, err := newBranchNode(nil, mock.HasherMock{})
+	bn, err := newBranchNode(nil, testscommon.HasherMock{})
 	assert.Nil(t, bn)
 	assert.Equal(t, ErrNilMarshalizer, err)
 }
@@ -1148,7 +1148,7 @@ func TestBranchNode_newBranchNodeNilMarshalizerShouldErr(t *testing.T) {
 func TestBranchNode_newBranchNodeNilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	bn, err := newBranchNode(&mock.MarshalizerMock{}, nil)
+	bn, err := newBranchNode(&testscommon.MarshalizerMock{}, nil)
 	assert.Nil(t, bn)
 	assert.Equal(t, ErrNilHasher, err)
 }
@@ -1171,7 +1171,7 @@ func TestBranchNode_newBranchNodeOkVals(t *testing.T) {
 func TestBranchNode_getMarshalizer(t *testing.T) {
 	t.Parallel()
 
-	expectedMarsh := &mock.MarshalizerMock{}
+	expectedMarsh := &testscommon.MarshalizerMock{}
 	bn := &branchNode{
 		baseNode: &baseNode{
 			marsh: expectedMarsh,
@@ -1211,7 +1211,7 @@ func TestBranchNode_commitCollapsesTrieIfMaxTrieLevelInMemoryIsReached(t *testin
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	_ = collapsedBn.setRootHash()
 
-	err := bn.commitDirty(0, 1, mock.NewMemDbMock(), mock.NewMemDbMock())
+	err := bn.commitDirty(0, 1, testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
 	assert.Nil(t, err)
 
 	assert.Equal(t, collapsedBn.EncodedChildren, bn.EncodedChildren)
@@ -1239,7 +1239,7 @@ func TestBranchNode_printShouldNotPanicEvenIfNodeIsCollapsed(t *testing.T) {
 	bnWriter := bytes.NewBuffer(make([]byte, 0))
 	collapsedBnWriter := bytes.NewBuffer(make([]byte, 0))
 
-	db := mock.NewMemDbMock()
+	db := testscommon.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	_ = bn.commitSnapshot(db, db, nil, context.Background())
 	_ = collapsedBn.commitSnapshot(db, db, nil, context.Background())
@@ -1253,10 +1253,10 @@ func TestBranchNode_printShouldNotPanicEvenIfNodeIsCollapsed(t *testing.T) {
 func TestBranchNode_getDirtyHashesFromCleanNode(t *testing.T) {
 	t.Parallel()
 
-	db := mock.NewMemDbMock()
+	db := testscommon.NewMemDbMock()
 	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	_ = bn.commitDirty(0, 5, db, db)
-	dirtyHashes := make(temporary.ModifiedHashes)
+	dirtyHashes := make(common.ModifiedHashes)
 
 	err := bn.getDirtyHashes(dirtyHashes)
 	assert.Nil(t, err)
@@ -1269,7 +1269,7 @@ func TestBranchNode_getAllHashes(t *testing.T) {
 	trieNodes := 4
 	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 
-	hashes, err := bn.getAllHashes(mock.NewMemDbMock())
+	hashes, err := bn.getAllHashes(testscommon.NewMemDbMock())
 	assert.Nil(t, err)
 	assert.Equal(t, trieNodes, len(hashes))
 }
@@ -1277,7 +1277,7 @@ func TestBranchNode_getAllHashes(t *testing.T) {
 func TestBranchNode_getAllHashesResolvesCollapsed(t *testing.T) {
 	t.Parallel()
 
-	db := mock.NewMemDbMock()
+	db := testscommon.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	_ = bn.commitSnapshot(db, db, nil, context.Background())
 
@@ -1325,7 +1325,7 @@ func TestBranchNode_GetNumNodesNilSelfShouldErr(t *testing.T) {
 	var bn *branchNode
 	numNodes := bn.getNumNodes()
 
-	assert.Equal(t, temporary.NumNodesDTO{}, numNodes)
+	assert.Equal(t, common.NumNodesDTO{}, numNodes)
 }
 
 func TestBranchNode_SizeInBytes(t *testing.T) {
@@ -1355,7 +1355,7 @@ func TestBranchNode_SizeInBytes(t *testing.T) {
 func TestBranchNode_commitContextDone(t *testing.T) {
 	t.Parallel()
 
-	db := mock.NewMemDbMock()
+	db := testscommon.NewMemDbMock()
 	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()

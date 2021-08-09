@@ -12,11 +12,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
-
-var _ temporary.TrieSyncer = (*trieSyncer)(nil)
 
 type trieNodeInfo struct {
 	trieNode node
@@ -32,7 +30,7 @@ type trieSyncer struct {
 	waitTimeBetweenRequests   time.Duration
 	marshalizer               marshal.Marshalizer
 	hasher                    hashing.Hasher
-	db                        temporary.DBWriteCacher
+	db                        common.DBWriteCacher
 	requestHandler            RequestHandler
 	interceptedNodesCacher    storage.Cacher
 	mutOperation              sync.RWMutex
@@ -50,7 +48,7 @@ const minTimeoutNodesReceived = time.Second
 type ArgTrieSyncer struct {
 	Marshalizer               marshal.Marshalizer
 	Hasher                    hashing.Hasher
-	DB                        temporary.DBWriteCacher
+	DB                        common.DBWriteCacher
 	RequestHandler            RequestHandler
 	InterceptedNodes          storage.Cacher
 	ShardId                   uint32
@@ -302,7 +300,7 @@ func (ts *trieSyncer) getNode(hash []byte) (node, error) {
 func getNodeFromStorage(
 	hash []byte,
 	interceptedNodesCacher storage.Cacher,
-	db temporary.DBWriteCacher,
+	db common.DBWriteCacher,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 ) (node, error) {

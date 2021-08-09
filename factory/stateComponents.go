@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -11,7 +12,6 @@ import (
 	factoryState "github.com/ElrondNetwork/elrond-go/state/factory"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 )
 
@@ -23,7 +23,7 @@ type StateComponentsFactoryArgs struct {
 	ShardCoordinator    sharding.Coordinator
 	Core                CoreComponentsHolder
 	TriesContainer      state.TriesHolder
-	TrieStorageManagers map[string]temporary.StorageManager
+	TrieStorageManagers map[string]common.StorageManager
 }
 
 type stateComponentsFactory struct {
@@ -31,7 +31,7 @@ type stateComponentsFactory struct {
 	shardCoordinator    sharding.Coordinator
 	core                CoreComponentsHolder
 	triesContainer      state.TriesHolder
-	trieStorageManagers map[string]temporary.StorageManager
+	trieStorageManagers map[string]common.StorageManager
 }
 
 // stateComponents struct holds the state components of the Elrond protocol
@@ -40,7 +40,7 @@ type stateComponents struct {
 	accountsAdapter     state.AccountsAdapter
 	accountsAdapterAPI  state.AccountsAdapter
 	triesContainer      state.TriesHolder
-	trieStorageManagers map[string]temporary.StorageManager
+	trieStorageManagers map[string]common.StorageManager
 }
 
 // NewStateComponentsFactory will return a new instance of stateComponentsFactory
