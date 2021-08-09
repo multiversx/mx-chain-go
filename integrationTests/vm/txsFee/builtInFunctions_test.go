@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
@@ -232,4 +233,36 @@ func TestBuildInFunctionChangeOwnerOutOfGasShouldConsumeGas(t *testing.T) {
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
 	require.Equal(t, tx.GasLimit, indexerTx.GasUsed)
 	require.Equal(t, "840", indexerTx.Fee)
+}
+
+func TestBuildInFunctionSaveKeyValue_WrongDestination(t *testing.T) {
+	shardCoord, _ := sharding.NewMultiShardCoordinator(2, 0)
+
+	testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinator(vm.ArgEnableEpoch{}, shardCoord)
+	require.Nil(t, err)
+	defer testContext.Close()
+
+	sndAddr := []byte("12345678901234567890123456789112")  //shard 0
+	destAddr := []byte("12345678901234567890123456789111") //shard 1
+	require.False(t, shardCoord.SameShard(sndAddr, destAddr))
+
+	senderBalance := big.NewInt(100000)
+	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
+
+	txData := []byte(core.BuiltInFunctionSaveKeyValue + "@01@02")
+	gasLimit := uint64(len(txData) + 1)
+	gasPrice := uint64(10)
+
+	tx := vm.CreateTransaction(0, big.NewInt(0), sndAddr, destAddr, gasPrice, gasLimit, txData)
+	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, process.ErrFailedTransaction, err)
+
+	intermediateTxs := testContext.GetIntermediateTransactions(t)
+	require.True(t, len(intermediateTxs) > 1)
+
+	//defined here for backwards compatibility reasons.
+	//Should not reference builtInFunctions.ErrNilSCDestAccount as that might change and this test will still pass.
+	requiredData := hex.EncodeToString([]byte("nil destination SC account"))
+	require.Equal(t, "@"+requiredData, string(intermediateTxs[0].GetData()))
 }

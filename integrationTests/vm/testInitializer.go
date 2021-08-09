@@ -1036,18 +1036,23 @@ func CreatePreparedTxProcessorAndAccountsWithVMs(
 
 // CreatePreparedTxProcessorWithVMs -
 func CreatePreparedTxProcessorWithVMs(argEnableEpoch ArgEnableEpoch) (*VMTestContext, error) {
+	return CreatePreparedTxProcessorWithVMsWithShardCoordinator(argEnableEpoch, oneShardCoordinator)
+}
+
+// CreatePreparedTxProcessorWithVMsWithShardCoordinator -
+func CreatePreparedTxProcessorWithVMsWithShardCoordinator(argEnableEpoch ArgEnableEpoch, shardCoordinator sharding.Coordinator) (*VMTestContext, error) {
 	feeAccumulator, _ := postprocess.NewFeeAccumulator()
 	accounts := CreateInMemoryShardAccountsDB()
 	vmConfig := createDefaultVMConfig()
 	arwenChangeLocker := &sync.RWMutex{}
 
-	vmContainer, blockchainHook, pool := CreateVMAndBlockchainHookAndDataPool(accounts, nil, vmConfig, oneShardCoordinator, arwenChangeLocker)
+	vmContainer, blockchainHook, pool := CreateVMAndBlockchainHookAndDataPool(accounts, nil, vmConfig, shardCoordinator, arwenChangeLocker)
 	res, err := CreateTxProcessorWithOneSCExecutorWithVMs(
 		accounts,
 		vmContainer,
 		blockchainHook,
 		feeAccumulator,
-		oneShardCoordinator,
+		shardCoordinator,
 		argEnableEpoch,
 		arwenChangeLocker,
 		pool,
@@ -1064,7 +1069,7 @@ func CreatePreparedTxProcessorWithVMs(argEnableEpoch ArgEnableEpoch) (*VMTestCon
 		VMContainer:      vmContainer,
 		TxFeeHandler:     feeAccumulator,
 		ScForwarder:      res.IntermediateTxProc,
-		ShardCoordinator: oneShardCoordinator,
+		ShardCoordinator: shardCoordinator,
 		EconomicsData:    res.EconomicsHandler,
 		TxCostHandler:    res.CostHandler,
 		TxsLogsProcessor: res.TxLogProc,
