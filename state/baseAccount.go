@@ -2,7 +2,7 @@ package state
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
+	"github.com/ElrondNetwork/elrond-go/common"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -25,12 +25,12 @@ func (ba *baseAccount) SetCode(code []byte) {
 }
 
 // DataTrie returns the trie that holds the current account's data
-func (ba *baseAccount) DataTrie() temporary.Trie {
+func (ba *baseAccount) DataTrie() common.Trie {
 	return ba.dataTrieTracker.DataTrie()
 }
 
 // SetDataTrie sets the trie that holds the current account's data
-func (ba *baseAccount) SetDataTrie(trie temporary.Trie) {
+func (ba *baseAccount) SetDataTrie(trie common.Trie) {
 	ba.dataTrieTracker.SetDataTrie(trie)
 }
 

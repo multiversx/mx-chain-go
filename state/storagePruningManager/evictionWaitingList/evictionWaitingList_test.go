@@ -6,16 +6,16 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/mock"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
 func getDefaultParameters() (uint, storage.Persister, marshal.Marshalizer) {
-	return 10, memorydb.New(), &mock.MarshalizerMock{}
+	return 10, memorydb.New(), &testscommon.MarshalizerMock{}
 }
 
 func TestNewEvictionWaitingList(t *testing.T) {
@@ -58,7 +58,7 @@ func TestEvictionWaitingList_Put(t *testing.T) {
 
 	ec, _ := NewEvictionWaitingList(getDefaultParameters())
 
-	hashesMap := temporary.ModifiedHashes{
+	hashesMap := common.ModifiedHashes{
 		"hash1": {},
 		"hash2": {},
 	}
@@ -78,7 +78,7 @@ func TestEvictionWaitingList_PutMultiple(t *testing.T) {
 	_, db, marsh := getDefaultParameters()
 	ec, _ := NewEvictionWaitingList(cacheSize, db, marsh)
 
-	hashesMap := temporary.ModifiedHashes{
+	hashesMap := common.ModifiedHashes{
 		"hash0": {},
 		"hash1": {},
 	}
@@ -106,7 +106,7 @@ func TestEvictionWaitingList_PutMultiple(t *testing.T) {
 		err = ec.marshalizer.Unmarshal(b, encVal)
 		assert.Nil(t, err)
 
-		val := make(temporary.ModifiedHashes, len(b.Data))
+		val := make(common.ModifiedHashes, len(b.Data))
 
 		for _, h := range b.Data {
 			val[string(h)] = struct{}{}
@@ -121,7 +121,7 @@ func TestEvictionWaitingList_Evict(t *testing.T) {
 
 	ec, _ := NewEvictionWaitingList(getDefaultParameters())
 
-	expectedHashesMap := temporary.ModifiedHashes{
+	expectedHashesMap := common.ModifiedHashes{
 		"hash1": {},
 		"hash2": {},
 	}
@@ -142,7 +142,7 @@ func TestEvictionWaitingList_EvictFromDB(t *testing.T) {
 	_, db, marsh := getDefaultParameters()
 	ec, _ := NewEvictionWaitingList(cacheSize, db, marsh)
 
-	hashesMap := temporary.ModifiedHashes{
+	hashesMap := common.ModifiedHashes{
 		"hash0": {},
 		"hash1": {},
 	}
@@ -172,7 +172,7 @@ func TestEvictionWaitingList_ShouldKeepHash(t *testing.T) {
 
 	ewl, _ := NewEvictionWaitingList(getDefaultParameters())
 
-	hashesMap := temporary.ModifiedHashes{
+	hashesMap := common.ModifiedHashes{
 		"hash0": {},
 		"hash1": {},
 	}
@@ -196,7 +196,7 @@ func TestEvictionWaitingList_ShouldKeepHashShouldReturnFalse(t *testing.T) {
 
 	ewl, _ := NewEvictionWaitingList(getDefaultParameters())
 
-	hashesMap := temporary.ModifiedHashes{
+	hashesMap := common.ModifiedHashes{
 		"hash0": {},
 		"hash1": {},
 	}
@@ -219,7 +219,7 @@ func TestEvictionWaitingList_ShouldKeepHashShouldReturnTrueIfPresentInOldHashes(
 
 	ewl, _ := NewEvictionWaitingList(getDefaultParameters())
 
-	hashesMap := temporary.ModifiedHashes{
+	hashesMap := common.ModifiedHashes{
 		"hash0": {},
 		"hash1": {},
 	}
@@ -248,7 +248,7 @@ func TestEvictionWaitingList_ShouldKeepHashSearchInDb(t *testing.T) {
 	root2 := []byte{6, 7, 8, 9, 10, 0}
 	root3 := []byte{1, 2, 3, 4, 5, 1}
 
-	hashesMapSlice := []temporary.ModifiedHashes{
+	hashesMapSlice := []common.ModifiedHashes{
 		{
 			"hash2": {},
 			"hash3": {},
@@ -282,7 +282,7 @@ func TestEvictionWaitingList_ShouldKeepHashInvalidKey(t *testing.T) {
 
 	ewl, _ := NewEvictionWaitingList(getDefaultParameters())
 
-	hashesMap := temporary.ModifiedHashes{
+	hashesMap := common.ModifiedHashes{
 		"hash0": {},
 		"hash1": {},
 	}
@@ -298,7 +298,7 @@ func TestNewEvictionWaitingList_Close(t *testing.T) {
 	t.Parallel()
 
 	db := memorydb.New()
-	ewl, err := NewEvictionWaitingList(10, db, &mock.MarshalizerMock{})
+	ewl, err := NewEvictionWaitingList(10, db, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 	assert.NotNil(t, ewl)
 

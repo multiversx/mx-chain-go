@@ -3,7 +3,7 @@ package mock
 import (
 	"context"
 
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
@@ -16,7 +16,7 @@ type TrieSyncersStub struct {
 	RemoveCalled       func(key string)
 	LenCalled          func() int
 	StartSyncingCalled func(rootHash []byte, ctx context.Context) error
-	TrieCalled         func() temporary.Trie
+	TrieCalled         func() common.Trie
 }
 
 // StartSyncing -
@@ -28,7 +28,7 @@ func (tss *TrieSyncersStub) StartSyncing(rootHash []byte, ctx context.Context) e
 }
 
 // Trie -
-func (tss *TrieSyncersStub) Trie() temporary.Trie {
+func (tss *TrieSyncersStub) Trie() common.Trie {
 	if tss.TrieCalled != nil {
 		return tss.TrieCalled()
 	}

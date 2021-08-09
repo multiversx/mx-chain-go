@@ -1460,7 +1460,8 @@ func (d *delegation) checkActiveFund(delegator *DelegatorData) error {
 		return err
 	}
 
-	belowMinDelegationAmount := fund.Value.Cmp(delegationManagement.MinDelegationAmount) < 0
+	minDelegationAmount := delegationManagement.MinDelegationAmount
+	belowMinDelegationAmount := fund.Value.Cmp(minDelegationAmount) < 0
 	if belowMinDelegationAmount {
 		return vm.ErrRedelegateValueBelowMinimum
 	}
@@ -1476,7 +1477,6 @@ func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	}
 
 	minDelegationAmount := delegationManagement.MinDelegationAmount
-
 	if args.CallValue.Cmp(minDelegationAmount) < 0 {
 		d.eei.AddReturnMessage("delegate value must be higher than minDelegationAmount " + minDelegationAmount.String())
 		return vmcommon.UserError

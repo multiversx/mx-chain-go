@@ -6,11 +6,11 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	dataMock "github.com/ElrondNetwork/elrond-go/mock"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageMock "github.com/ElrondNetwork/elrond-go/storage/mock"
-	"github.com/ElrondNetwork/elrond-go/storage/storageCacherAdapter/factory"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
+	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -20,7 +20,7 @@ func TestNewStorageCacherAdapter_NilCacher(t *testing.T) {
 	sca, err := NewStorageCacherAdapter(
 		nil,
 		&storageMock.PersisterStub{},
-		factory.NewTrieNodeFactory(),
+		trieFactory.NewTrieNodeFactory(),
 		&mock.MarshalizerMock{},
 	)
 	assert.Nil(t, sca)
@@ -33,7 +33,7 @@ func TestNewStorageCacherAdapter_NilDB(t *testing.T) {
 	sca, err := NewStorageCacherAdapter(
 		&storageMock.AdaptedSizedLruCacheStub{},
 		nil,
-		factory.NewTrieNodeFactory(),
+		trieFactory.NewTrieNodeFactory(),
 		&mock.MarshalizerMock{},
 	)
 	assert.True(t, check.IfNil(sca))
@@ -59,7 +59,7 @@ func TestNewStorageCacherAdapter_NilMarshalizer(t *testing.T) {
 	sca, err := NewStorageCacherAdapter(
 		&storageMock.AdaptedSizedLruCacheStub{},
 		&storageMock.PersisterStub{},
-		factory.NewTrieNodeFactory(),
+		trieFactory.NewTrieNodeFactory(),
 		nil,
 	)
 	assert.Nil(t, sca)
@@ -77,7 +77,7 @@ func TestStorageCacherAdapter_Clear(t *testing.T) {
 			},
 		},
 		&storageMock.PersisterStub{},
-		factory.NewTrieNodeFactory(),
+		trieFactory.NewTrieNodeFactory(),
 		&mock.MarshalizerMock{},
 	)
 	assert.Nil(t, err)
@@ -115,7 +115,7 @@ func TestStorageCacherAdapter_Put(t *testing.T) {
 				return nil
 			},
 		},
-		factory.NewTrieNodeFactory(),
+		trieFactory.NewTrieNodeFactory(),
 		&mock.MarshalizerMock{},
 	)
 	assert.Nil(t, err)
@@ -149,7 +149,7 @@ func TestStorageCacherAdapter_GetFoundInCacherShouldNotCallDbGet(t *testing.T) {
 				return nil, nil
 			},
 		},
-		factory.NewTrieNodeFactory(),
+		trieFactory.NewTrieNodeFactory(),
 		&mock.MarshalizerMock{},
 	)
 	assert.Nil(t, err)
@@ -238,7 +238,7 @@ func TestStorageCacherAdapter_HasReturnsIfFoundInCacher(t *testing.T) {
 				return nil
 			},
 		},
-		factory.NewTrieNodeFactory(),
+		trieFactory.NewTrieNodeFactory(),
 		&mock.MarshalizerMock{},
 	)
 	assert.Nil(t, err)
@@ -268,7 +268,7 @@ func TestStorageCacherAdapter_HasReturnsTrueIfFoundInDB(t *testing.T) {
 				return nil
 			},
 		},
-		factory.NewTrieNodeFactory(),
+		trieFactory.NewTrieNodeFactory(),
 		&mock.MarshalizerMock{},
 	)
 	assert.Nil(t, err)
@@ -298,7 +298,7 @@ func TestStorageCacherAdapter_HasReturnsFalseIfNotFound(t *testing.T) {
 				return fmt.Errorf("not found err")
 			},
 		},
-		factory.NewTrieNodeFactory(),
+		trieFactory.NewTrieNodeFactory(),
 		&mock.MarshalizerMock{},
 	)
 	assert.Nil(t, err)
@@ -325,7 +325,7 @@ func TestStorageCacherAdapter_Peek(t *testing.T) {
 			},
 		},
 		&storageMock.PersisterStub{},
-		factory.NewTrieNodeFactory(),
+		trieFactory.NewTrieNodeFactory(),
 		&mock.MarshalizerMock{},
 	)
 	assert.Nil(t, err)
@@ -358,7 +358,7 @@ func TestStorageCacherAdapter_RemoveFromCacherFirst(t *testing.T) {
 				return nil
 			},
 		},
-		factory.NewTrieNodeFactory(),
+		trieFactory.NewTrieNodeFactory(),
 		&mock.MarshalizerMock{},
 	)
 	assert.Nil(t, err)
@@ -387,7 +387,7 @@ func TestStorageCacherAdapter_RemoveFromDb(t *testing.T) {
 				return nil
 			},
 		},
-		factory.NewTrieNodeFactory(),
+		trieFactory.NewTrieNodeFactory(),
 		&mock.MarshalizerMock{},
 	)
 	assert.Nil(t, err)
@@ -401,7 +401,7 @@ func TestStorageCacherAdapter_RemoveFromDb(t *testing.T) {
 func TestStorageCacherAdapter_Keys(t *testing.T) {
 	t.Parallel()
 
-	db := dataMock.NewMemDbMock()
+	db := testscommon.NewMemDbMock()
 	_ = db.Put([]byte("key"), []byte("val"))
 	sca, err := NewStorageCacherAdapter(
 		&storageMock.AdaptedSizedLruCacheStub{
@@ -412,7 +412,7 @@ func TestStorageCacherAdapter_Keys(t *testing.T) {
 			},
 		},
 		db,
-		factory.NewTrieNodeFactory(),
+		trieFactory.NewTrieNodeFactory(),
 		&mock.MarshalizerMock{},
 	)
 	assert.Nil(t, err)
@@ -424,7 +424,7 @@ func TestStorageCacherAdapter_Keys(t *testing.T) {
 func TestStorageCacherAdapter_Len(t *testing.T) {
 	t.Parallel()
 
-	db := dataMock.NewMemDbMock()
+	db := testscommon.NewMemDbMock()
 	sca, err := NewStorageCacherAdapter(
 		&storageMock.AdaptedSizedLruCacheStub{
 			LenCalled: func() int {
@@ -437,7 +437,7 @@ func TestStorageCacherAdapter_Len(t *testing.T) {
 			},
 		},
 		db,
-		factory.NewTrieNodeFactory(),
+		trieFactory.NewTrieNodeFactory(),
 		&mock.MarshalizerMock{},
 	)
 	assert.Nil(t, err)
@@ -450,7 +450,7 @@ func TestStorageCacherAdapter_Len(t *testing.T) {
 func TestStorageCacherAdapter_SizeInBytesContained(t *testing.T) {
 	t.Parallel()
 
-	db := dataMock.NewMemDbMock()
+	db := testscommon.NewMemDbMock()
 	_ = db.Put([]byte("key"), []byte("val"))
 	sca, err := NewStorageCacherAdapter(
 		&storageMock.AdaptedSizedLruCacheStub{
@@ -459,7 +459,7 @@ func TestStorageCacherAdapter_SizeInBytesContained(t *testing.T) {
 			},
 		},
 		db,
-		factory.NewTrieNodeFactory(),
+		trieFactory.NewTrieNodeFactory(),
 		&mock.MarshalizerMock{},
 	)
 	assert.Nil(t, err)
@@ -474,7 +474,7 @@ func TestStorageCacherAdapter_MaxSize(t *testing.T) {
 	sca, err := NewStorageCacherAdapter(
 		&storageMock.AdaptedSizedLruCacheStub{},
 		&storageMock.PersisterStub{},
-		factory.NewTrieNodeFactory(),
+		trieFactory.NewTrieNodeFactory(),
 		&mock.MarshalizerMock{},
 	)
 	assert.Nil(t, err)
@@ -489,7 +489,7 @@ func TestStorageCacherAdapter_RegisterHandler(t *testing.T) {
 	sca, err := NewStorageCacherAdapter(
 		&storageMock.AdaptedSizedLruCacheStub{},
 		&storageMock.PersisterStub{},
-		factory.NewTrieNodeFactory(),
+		trieFactory.NewTrieNodeFactory(),
 		&mock.MarshalizerMock{},
 	)
 	assert.Nil(t, err)
@@ -502,7 +502,7 @@ func TestStorageCacherAdapter_UnRegisterHandler(t *testing.T) {
 	sca, err := NewStorageCacherAdapter(
 		&storageMock.AdaptedSizedLruCacheStub{},
 		&storageMock.PersisterStub{},
-		factory.NewTrieNodeFactory(),
+		trieFactory.NewTrieNodeFactory(),
 		&mock.MarshalizerMock{},
 	)
 	assert.Nil(t, err)
@@ -521,7 +521,7 @@ func TestStorageCacherAdapter_Close(t *testing.T) {
 				return nil
 			},
 		},
-		factory.NewTrieNodeFactory(),
+		trieFactory.NewTrieNodeFactory(),
 		&mock.MarshalizerMock{},
 	)
 	assert.Nil(t, err)

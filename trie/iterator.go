@@ -2,17 +2,17 @@ package trie
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
+	"github.com/ElrondNetwork/elrond-go/common"
 )
 
 type iterator struct {
 	currentNode node
 	nextNodes   []node
-	db          temporary.DBWriteCacher
+	db          common.DBWriteCacher
 }
 
 // NewIterator creates a new instance of trie iterator
-func NewIterator(trie temporary.Trie) (*iterator, error) {
+func NewIterator(trie common.Trie) (*iterator, error) {
 	if check.IfNil(trie) {
 		return nil, ErrNilTrie
 	}
