@@ -59,6 +59,10 @@ var _ facade.NodeHandler = (*Node)(nil)
 //  over the None struct.
 type Option func(*Node) error
 
+type filter interface {
+	filter(tokenIdentifier string, esdtData *systemSmartContracts.ESDTData) bool
+}
+
 // Node is a structure that holds all managed components
 type Node struct {
 	ctx                 context.Context
@@ -378,7 +382,7 @@ func (n *Node) GetESDTData(address, tokenID string, nonce uint64) (*esdt.ESDigit
 }
 
 func (n *Node) getTokensIDsWithFilter(
-	filterFunc tokensFilterFunction,
+	f filter,
 ) ([]string, error) {
 	if n.processComponents.ShardCoordinator().SelfId() != core.MetachainShardId {
 		return nil, ErrMetachainOnlyEndpoint
@@ -420,7 +424,7 @@ func (n *Node) getTokensIDsWithFilter(
 			continue
 		}
 
-		if filterFunc(tokenIdentifier, esdtToken) {
+		if f.filter(tokenIdentifier, esdtToken) {
 			tokens = append(tokens, tokenIdentifier)
 		}
 	}
@@ -435,7 +439,10 @@ func (n *Node) GetNFTTokenIDsRegisteredByAddress(address string) ([]string, erro
 		return nil, err
 	}
 
-	return n.getTokensIDsWithFilter(getRegisteredNftsFilter(addressBytes))
+	f := &getRegisteredNftsFilter{
+		addressBytes: addressBytes,
+	}
+	return n.getTokensIDsWithFilter(f)
 }
 
 // GetESDTsWithRole returns all the tokens with the given role for the given address
@@ -449,7 +456,11 @@ func (n *Node) GetESDTsWithRole(address string, role string) ([]string, error) {
 		return nil, err
 	}
 
-	return n.getTokensIDsWithFilter(getTokensWithRoleFilter(addressBytes, role))
+	f := &getTokensWithRoleFilter{
+		addressBytes: addressBytes,
+		role:         role,
+	}
+	return n.getTokensIDsWithFilter(f)
 }
 
 // GetESDTsRoles returns all the tokens identifiers and roles for the given address
@@ -461,7 +472,11 @@ func (n *Node) GetESDTsRoles(address string) (map[string][]string, error) {
 
 	tokensRoles := make(map[string][]string)
 
-	_, err = n.getTokensIDsWithFilter(getAllTokensRolesFilter(addressBytes, tokensRoles))
+	f := &getAllTokensRolesFilter{
+		addressBytes: addressBytes,
+		outputRoles:  tokensRoles,
+	}
+	_, err = n.getTokensIDsWithFilter(f)
 	if err != nil {
 		return nil, err
 	}

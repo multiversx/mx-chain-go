@@ -7,47 +7,53 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 )
 
-type tokensFilterFunction func(tokenIdentifier string, esdtData *systemSmartContracts.ESDTData) bool
-
-func getRegisteredNftsFilter(addressBytes []byte) tokensFilterFunction {
-	return func(_ string, esdtData *systemSmartContracts.ESDTData) bool {
-		return !bytes.Equal(esdtData.TokenType, []byte(core.FungibleESDT)) && bytes.Equal(esdtData.OwnerAddress, addressBytes)
-	}
+type getRegisteredNftsFilter struct {
+	addressBytes []byte
 }
 
-func getTokensWithRoleFilter(addressBytes []byte, role string) tokensFilterFunction {
-	return func(tokenIdentifier string, esdtData *systemSmartContracts.ESDTData) bool {
-		for _, esdtRoles := range esdtData.SpecialRoles {
-			if !bytes.Equal(esdtRoles.Address, addressBytes) {
-				continue
-			}
-
-			for _, specialRole := range esdtRoles.Roles {
-				if bytes.Equal(specialRole, []byte(role)) {
-					return true
-				}
-			}
-		}
-
-		return false
-	}
+func (f *getRegisteredNftsFilter) filter(_ string, esdtData *systemSmartContracts.ESDTData) bool {
+	return !bytes.Equal(esdtData.TokenType, []byte(core.FungibleESDT)) && bytes.Equal(esdtData.OwnerAddress, f.addressBytes)
 }
 
-func getAllTokensRolesFilter(addressBytes []byte, outputRoles map[string][]string) tokensFilterFunction {
-	return func(tokenIdentifier string, esdtData *systemSmartContracts.ESDTData) bool {
-		for _, esdtRoles := range esdtData.SpecialRoles {
-			if !bytes.Equal(esdtRoles.Address, addressBytes) {
-				continue
-			}
+type getTokensWithRoleFilter struct {
+	addressBytes []byte
+	role         string
+}
 
-			rolesStr := make([]string, 0, len(esdtRoles.Roles))
-			for _, roleBytes := range esdtRoles.Roles {
-				rolesStr = append(rolesStr, string(roleBytes))
-			}
-
-			outputRoles[tokenIdentifier] = rolesStr
-			return true
+func (f *getTokensWithRoleFilter) filter(_ string, esdtData *systemSmartContracts.ESDTData) bool {
+	for _, esdtRoles := range esdtData.SpecialRoles {
+		if !bytes.Equal(esdtRoles.Address, f.addressBytes) {
+			continue
 		}
-		return false
+
+		for _, specialRole := range esdtRoles.Roles {
+			if bytes.Equal(specialRole, []byte(f.role)) {
+				return true
+			}
+		}
 	}
+
+	return false
+}
+
+type getAllTokensRolesFilter struct {
+	addressBytes []byte
+	outputRoles  map[string][]string
+}
+
+func (f *getAllTokensRolesFilter) filter(tokenIdentifier string, esdtData *systemSmartContracts.ESDTData) bool {
+	for _, esdtRoles := range esdtData.SpecialRoles {
+		if !bytes.Equal(esdtRoles.Address, f.addressBytes) {
+			continue
+		}
+
+		rolesStr := make([]string, 0, len(esdtRoles.Roles))
+		for _, roleBytes := range esdtRoles.Roles {
+			rolesStr = append(rolesStr, string(roleBytes))
+		}
+
+		f.outputRoles[tokenIdentifier] = rolesStr
+		return true
+	}
+	return false
 }
