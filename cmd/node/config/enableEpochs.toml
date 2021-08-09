@@ -100,13 +100,13 @@
     ESDTMultiTransferEnableEpoch = 1000000
 
     # GlobalMintBurnDisableEpoch represents the epoch when the global mint and burn functions are disabled
-    GlobalMintBurnDisableEpoch = 5
+    GlobalMintBurnDisableEpoch = 1000000
 
     # ESDTTransferRoleEnableEpoch represents the epoch when esdt transfer role set is enabled
-    ESDTTransferRoleEnableEpoch = 5
+    ESDTTransferRoleEnableEpoch = 1000000
 
     # BuiltInFunctionOnMetaEnableEpoch represents the epoch when built in function processing on metachain is enabled
-    BuiltInFunctionOnMetaEnableEpoch = 5
+    BuiltInFunctionOnMetaEnableEpoch = 1000000
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
