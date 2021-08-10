@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
@@ -20,7 +21,7 @@ import (
 
 func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
 	return &ArgsShardEpochStartTrigger{
-		Marshalizer: &mock.MarshalizerMock{},
+		Marshalizer: &marshal.GogoProtoMarshalizer{},
 		Hasher:      &hashingMocks.HasherMock{},
 		HeaderValidator: &mock.HeaderValidatorStub{
 			IsHeaderConstructionValidCalled: func(currHdr, prevHdr data.HeaderHandler) error {

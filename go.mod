@@ -7,7 +7,7 @@ require (
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.25
 	github.com/ElrondNetwork/concurrent-map v0.1.3
 	github.com/ElrondNetwork/elastic-indexer-go v1.0.8-0.20210720114535-9cb237812a1b
-	github.com/ElrondNetwork/elrond-go-core v1.0.1-0.20210726140624-eaba7da05e19
+	github.com/ElrondNetwork/elrond-go-core v1.0.1-0.20210810114042-2634925963c4
 	github.com/ElrondNetwork/elrond-go-logger v1.0.4
 	github.com/ElrondNetwork/elrond-vm-common v1.1.0
 	github.com/beevik/ntp v0.3.0

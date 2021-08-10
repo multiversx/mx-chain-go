@@ -1,25 +1,15 @@
 package shardchain
 
 import (
-	"encoding/json"
+	"fmt"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
-
-// TriggerRegistry holds the data required to correctly initialize the trigger when booting from saved state
-type TriggerRegistry struct {
-	IsEpochStart                bool
-	NewEpochHeaderReceived      bool
-	Epoch                       uint32
-	MetaEpoch                   uint32
-	CurrentRoundIndex           int64
-	EpochStartRound             uint64
-	EpochFinalityAttestingRound uint64
-	EpochMetaBlockHash          []byte
-	EpochStartShardHeader       data.HeaderHandler
-}
 
 // LoadState loads into trigger the saved state
 func (t *trigger) LoadState(key []byte) error {
@@ -38,57 +28,93 @@ func (t *trigger) LoadState(key []byte) error {
 
 	t.mutTrigger.Lock()
 	t.triggerStateKey = key
-	t.epoch = state.Epoch
-	t.metaEpoch = state.MetaEpoch
-	t.currentRoundIndex = state.CurrentRoundIndex
-	t.epochStartRound = state.EpochStartRound
-	t.epochMetaBlockHash = state.EpochMetaBlockHash
-	t.isEpochStart = state.IsEpochStart
-	t.newEpochHdrReceived = state.NewEpochHeaderReceived
-	t.epochFinalityAttestingRound = state.EpochFinalityAttestingRound
-	t.epochStartShardHeader = state.EpochStartShardHeader
+	t.epoch = state.GetEpoch()
+	t.metaEpoch = state.GetMetaEpoch()
+	t.currentRoundIndex = state.GetCurrentRoundIndex()
+	t.epochStartRound = state.GetEpochStartRound()
+	t.epochMetaBlockHash = state.GetEpochMetaBlockHash()
+	t.isEpochStart = state.GetIsEpochStart()
+	t.newEpochHdrReceived = state.GetNewEpochHeaderReceived()
+	t.epochFinalityAttestingRound = state.GetEpochFinalityAttestingRound()
+	t.epochStartShardHeader = state.GetEpochStartHeaderHandler()
 	t.mutTrigger.Unlock()
 
 	return nil
 }
 
 // UnmarshalTrigger unmarshalls the trigger
-func (t *trigger) UnmarshalTrigger(data []byte) (*TriggerRegistry, error) {
-	state := &TriggerRegistry{
+func (t *trigger) UnmarshalTrigger(data []byte) (data.TriggerRegistryHandler, error) {
+	trig, err := UnmarshalTriggerV2(t.marshalizer, data)
+	if err == nil {
+		return trig, nil
+	}
+
+	return UnmarshalTriggerV1(t.marshalizer, data)
+}
+
+// UnmarshalTriggerV2 tries to unmarshal the data into a v2 trigger
+func UnmarshalTriggerV2(marshalizer marshal.Marshalizer, data []byte) (data.TriggerRegistryHandler, error) {
+	triggerV2 := &block.TriggerRegistryV2{
 		EpochStartShardHeader: &block.HeaderV2{},
 	}
 
-	err := json.Unmarshal(data, state)
-	if err == nil {
-		return state, nil
-	}
-
-	// TODO: pass the factory to trigger and use the header factory instead
-	state.EpochStartShardHeader = &block.Header{}
-	err = json.Unmarshal(data, state)
+	err := marshalizer.Unmarshal(triggerV2, data)
 	if err != nil {
 		return nil, err
 	}
 
-	return state, nil
+	if check.IfNil(triggerV2.EpochStartShardHeader) {
+		return nil, fmt.Errorf("%w while checking inner epoch start shard header", epochStart.ErrNilHeaderHandler)
+	}
+	return triggerV2, nil
+}
+
+// UnmarshalTriggerV1 tries to unmarshal the data into a v1 trigger
+func UnmarshalTriggerV1(marshalizer marshal.Marshalizer, data []byte) (data.TriggerRegistryHandler, error) {
+	triggerV1 := &block.TriggerRegistry{
+		EpochStartShardHeader: &block.Header{},
+	}
+
+	err := marshalizer.Unmarshal(triggerV1, data)
+	if err != nil {
+		return nil, err
+	}
+
+	if check.IfNil(triggerV1.EpochStartShardHeader) {
+		return nil, fmt.Errorf("%w while checking inner epoch start shard header", epochStart.ErrNilHeaderHandler)
+	}
+	return triggerV1, nil
 }
 
 // saveState saves the trigger state. Needs to be called under mutex
 func (t *trigger) saveState(key []byte) error {
-	registry := &TriggerRegistry{}
+	registryV2 := &block.TriggerRegistryV2{
+		EpochStartShardHeader: &block.HeaderV2{},
+	}
+	registryV1 := &block.TriggerRegistry{
+		EpochStartShardHeader: &block.Header{},
+	}
+	var registry data.TriggerRegistryHandler
 
-	registry.MetaEpoch = t.metaEpoch
-	registry.Epoch = t.epoch
-	registry.CurrentRoundIndex = t.currentRoundIndex
-	registry.EpochStartRound = t.epochStartRound
-	registry.EpochMetaBlockHash = t.epochMetaBlockHash
-	registry.IsEpochStart = t.isEpochStart
-	registry.NewEpochHeaderReceived = t.newEpochHdrReceived
-	registry.EpochFinalityAttestingRound = t.epochFinalityAttestingRound
-	registry.EpochStartShardHeader = t.epochStartShardHeader
+	_, ok := t.epochStartShardHeader.(*block.HeaderV2)
+	if ok {
+		registry = registryV2
+	} else {
+		registry = registryV1
+	}
+
+	_ = registry.SetMetaEpoch(t.metaEpoch)
+	_ = registry.SetEpoch(t.epoch)
+	_ = registry.SetCurrentRoundIndex(t.currentRoundIndex)
+	_ = registry.SetEpochStartRound(t.epochStartRound)
+	_ = registry.SetEpochMetaBlockHash(t.epochMetaBlockHash)
+	_ = registry.SetIsEpochStart(t.isEpochStart)
+	_ = registry.SetNewEpochHeaderReceived(t.newEpochHdrReceived)
+	_ = registry.SetEpochFinalityAttestingRound(t.epochFinalityAttestingRound)
+	_ = registry.SetEpochStartHeaderHandler(t.epochStartShardHeader)
 
 	//TODO: change to protoMarshalizer
-	marshalledRegistry, err := json.Marshal(registry)
+	marshalledRegistry, err := t.marshalizer.Marshal(registry)
 	if err != nil {
 		return err
 	}
