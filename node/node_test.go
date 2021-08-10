@@ -735,6 +735,78 @@ func TestNode_GetESDTsWithRole(t *testing.T) {
 	require.Len(t, tokenResult, 0)
 }
 
+func TestNode_GetESDTsRoles(t *testing.T) {
+	addrBytes := []byte("newaddress")
+	acc, _ := state.NewUserAccount(addrBytes)
+	esdtToken := []byte("TCK-RANDOM")
+
+	specialRoles := []*systemSmartContracts.ESDTRoles{
+		{
+			Address: addrBytes,
+			Roles:   [][]byte{[]byte(core.ESDTRoleNFTAddQuantity), []byte(core.ESDTRoleLocalMint)},
+		},
+	}
+
+	esdtData := &systemSmartContracts.ESDTData{TokenName: []byte("fungible"), TokenType: []byte(core.FungibleESDT), SpecialRoles: specialRoles}
+	marshalledData, _ := getMarshalizer().Marshal(esdtData)
+	_ = acc.DataTrieTracker().SaveKeyValue(esdtToken, marshalledData)
+
+	esdtSuffix := append(esdtToken, acc.AddressBytes()...)
+
+	acc.DataTrieTracker().SetDataTrie(
+		&trieMock.TrieStub{
+			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
+				ch := make(chan core.KeyValueHolder)
+
+				go func() {
+					trieLeaf := keyValStorage.NewKeyValStorage(esdtToken, append(marshalledData, esdtSuffix...))
+					ch <- trieLeaf
+					close(ch)
+				}()
+
+				return ch, nil
+			},
+			RootCalled: func() ([]byte, error) {
+				return nil, nil
+			},
+		})
+
+	accDB := &stateMock.AccountsStub{
+		RecreateTrieCalled: func(rootHash []byte) error {
+			return nil
+		},
+	}
+	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
+		return acc, nil
+	}
+	coreComponents := getDefaultCoreComponents()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.AccountsAPI = accDB
+	stateComponents.Accounts = accDB
+	dataComponents := getDefaultDataComponents()
+	dataComponents.BlockChain = &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
+	}
+	processComponents := getDefaultProcessComponents()
+	processComponents.ShardCoord = &mock.ShardCoordinatorMock{
+		SelfShardId: core.MetachainShardId,
+	}
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithProcessComponents(processComponents),
+	)
+
+	tokenResult, err := n.GetESDTsRoles(hex.EncodeToString(addrBytes))
+	require.NoError(t, err)
+	require.Equal(t, map[string][]string{
+		string(esdtToken): {core.ESDTRoleNFTAddQuantity, core.ESDTRoleLocalMint},
+	}, tokenResult)
+}
+
 func TestNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
 	addrBytes := []byte("newaddress")
 	acc, _ := state.NewUserAccount(addrBytes)

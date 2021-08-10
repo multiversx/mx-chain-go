@@ -95,7 +95,7 @@ func TestCreateBuiltInFunctionContainer_Errors(t *testing.T) {
 	args = createMockArguments()
 	container, err = CreateBuiltInFunctionContainer(args)
 	assert.Nil(t, err)
-	assert.Equal(t, len(container.Keys()), 23)
+	assert.Equal(t, len(container.Keys()), 25)
 
 	err = vmcommonBuiltInFunctions.SetPayableHandler(container, &mock.BlockChainHookHandlerMock{})
 	assert.Nil(t, err)

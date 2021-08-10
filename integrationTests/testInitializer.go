@@ -1232,6 +1232,38 @@ func CreateNodes(
 	return nodes
 }
 
+// CreateNodesWithEnableEpochs creates multiple nodes with custom epoch config
+func CreateNodesWithEnableEpochs(
+	numOfShards int,
+	nodesPerShard int,
+	numMetaChainNodes int,
+	epochConfig config.EnableEpochs,
+) []*TestProcessorNode {
+	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
+	connectableNodes := make([]Connectable, len(nodes))
+
+	idx := 0
+	for shardId := uint32(0); shardId < uint32(numOfShards); shardId++ {
+		for j := 0; j < nodesPerShard; j++ {
+			n := NewTestProcessorNodeWithEnableEpochs(uint32(numOfShards), shardId, shardId, epochConfig)
+			nodes[idx] = n
+			connectableNodes[idx] = n
+			idx++
+		}
+	}
+
+	for i := 0; i < numMetaChainNodes; i++ {
+		metaNode := NewTestProcessorNodeWithEnableEpochs(uint32(numOfShards), core.MetachainShardId, 0, epochConfig)
+		idx = i + numOfShards*nodesPerShard
+		nodes[idx] = metaNode
+		connectableNodes[idx] = metaNode
+	}
+
+	ConnectNodes(connectableNodes)
+
+	return nodes
+}
+
 // ConnectNodes will try to connect all provided connectable instances in a full mesh fashion
 func ConnectNodes(nodes []Connectable) {
 	encounteredErrors := make([]error, 0)
