@@ -349,11 +349,6 @@ func (hhs *HeaderHandlerStub) HasScheduledSupport() bool {
 	return false
 }
 
-// GetAdditionalData -
-func (hhs *HeaderHandlerStub) GetAdditionalData() headerVersionData.HeaderAdditionalData {
-	return nil
-}
-
 // MapMiniBlockHashesToShards -
 func (hhs *HeaderHandlerStub) MapMiniBlockHashesToShards() map[string]uint32 {
 	panic("implement me")
