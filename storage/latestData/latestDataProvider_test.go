@@ -9,9 +9,9 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
-	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/mock"
@@ -109,7 +109,7 @@ func TestLatestDataProvider_Get(t *testing.T) {
 	}
 
 	startRound, lastRound := uint64(5), int64(10)
-	state := &shardchain.TriggerRegistry{
+	state := &block.TriggerRegistry{
 		EpochStartRound: startRound,
 	}
 	storer := &testscommon.StorerStub{
@@ -160,7 +160,7 @@ func TestLoadEpochStartRoundShard(t *testing.T) {
 	key := []byte("123")
 	shardID := uint32(0)
 	startRound := uint64(100)
-	state := &shardchain.TriggerRegistry{
+	state := &block.TriggerRegistry{
 		EpochStartRound: startRound,
 	}
 	storer := &testscommon.StorerStub{

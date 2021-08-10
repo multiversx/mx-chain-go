@@ -49,6 +49,24 @@ func cloneTrigger(t *trigger) *trigger {
 	return rt
 }
 
+func createDummyEpochStartTriggers(arguments *ArgsShardEpochStartTrigger, key []byte) (*trigger, *trigger) {
+	epochStartTrigger1, _ := NewEpochStartTrigger(arguments)
+	// create a copy
+	epochStartTrigger2 := cloneTrigger(epochStartTrigger1)
+
+	epochStartTrigger1.triggerStateKey = key
+	epochStartTrigger1.epoch = 10
+	epochStartTrigger1.metaEpoch = 11
+	epochStartTrigger1.currentRoundIndex = 800
+	epochStartTrigger1.epochStartRound = 650
+	epochStartTrigger1.epochMetaBlockHash = []byte("meta block hash")
+	epochStartTrigger1.isEpochStart = false
+	epochStartTrigger1.epochFinalityAttestingRound = 680
+	epochStartTrigger1.cancelFunc = nil
+	epochStartTrigger1.epochStartShardHeader = &block.Header{}
+	return epochStartTrigger1, epochStartTrigger2
+}
+
 func TestTrigger_LoadHeaderV1StateAfterSave(t *testing.T) {
 	t.Parallel()
 
@@ -62,21 +80,8 @@ func TestTrigger_LoadHeaderV1StateAfterSave(t *testing.T) {
 			return bootStorer
 		},
 	}
-	epochStartTrigger1, _ := NewEpochStartTrigger(arguments)
-	// create a copy
-	epochStartTrigger2 := cloneTrigger(epochStartTrigger1)
-
 	key := []byte("key")
-	epochStartTrigger1.triggerStateKey = key
-	epochStartTrigger1.epoch = 10
-	epochStartTrigger1.metaEpoch = 11
-	epochStartTrigger1.currentRoundIndex = 800
-	epochStartTrigger1.epochStartRound = 650
-	epochStartTrigger1.epochMetaBlockHash = []byte("meta block hash")
-	epochStartTrigger1.isEpochStart = false
-	epochStartTrigger1.epochFinalityAttestingRound = 680
-	epochStartTrigger1.cancelFunc = nil
-	epochStartTrigger1.epochStartShardHeader = &block.Header{}
+	epochStartTrigger1, epochStartTrigger2 := createDummyEpochStartTriggers(arguments, key)
 	err := epochStartTrigger1.saveState(key)
 	assert.Nil(t, err)
 	assert.NotEqual(t, epochStartTrigger1, epochStartTrigger2)
@@ -99,21 +104,12 @@ func TestTrigger_LoadHeaderV2StateAfterSave(t *testing.T) {
 			return bootStorer
 		},
 	}
-	epochStartTrigger1, _ := NewEpochStartTrigger(arguments)
-	// create a copy
-	epochStartTrigger2 := cloneTrigger(epochStartTrigger1)
 
 	key := []byte("key")
-	epochStartTrigger1.triggerStateKey = key
-	epochStartTrigger1.epoch = 10
-	epochStartTrigger1.metaEpoch = 11
-	epochStartTrigger1.currentRoundIndex = 800
-	epochStartTrigger1.epochStartRound = 650
-	epochStartTrigger1.epochMetaBlockHash = []byte("meta block hash")
-	epochStartTrigger1.isEpochStart = false
-	epochStartTrigger1.epochFinalityAttestingRound = 680
-	epochStartTrigger1.cancelFunc = nil
-	epochStartTrigger1.epochStartShardHeader = &block.HeaderV2{Header: &block.Header{}}
+	epochStartTrigger1, epochStartTrigger2 := createDummyEpochStartTriggers(arguments, key)
+	epochStartTrigger1.epochStartShardHeader = &block.HeaderV2{
+		Header:            &block.Header{},
+		ScheduledRootHash: []byte("scheduled root hash")}
 	err := epochStartTrigger1.saveState(key)
 	assert.Nil(t, err)
 	assert.NotEqual(t, epochStartTrigger1, epochStartTrigger2)

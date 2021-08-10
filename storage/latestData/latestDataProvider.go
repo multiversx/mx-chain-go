@@ -10,6 +10,8 @@ import (
 	"strings"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -198,14 +200,14 @@ func (ldp *latestDataProvider) loadEpochStartRound(
 	storer storage.Storer,
 ) (uint64, error) {
 	trigInternalKey := append([]byte(common.TriggerRegistryKeyPrefix), key...)
-	data, err := storer.Get(trigInternalKey)
+	trigData, err := storer.Get(trigInternalKey)
 	if err != nil {
 		return 0, err
 	}
 
 	if shardID == core.MetachainShardId {
 		state := &metachain.TriggerRegistry{}
-		err = json.Unmarshal(data, state)
+		err = json.Unmarshal(trigData, state)
 		if err != nil {
 			return 0, err
 		}
@@ -213,13 +215,14 @@ func (ldp *latestDataProvider) loadEpochStartRound(
 		return state.CurrEpochStartRound, nil
 	}
 
-	state := &shardchain.TriggerRegistry{}
-	err = json.Unmarshal(data, state)
+	marshaller := &marshal.GogoProtoMarshalizer{}
+	var trigHandler data.TriggerRegistryHandler
+	trigHandler, err = shardchain.UnmarshalTrigger(marshaller, trigData)
 	if err != nil {
 		return 0, err
 	}
 
-	return state.EpochStartRound, nil
+	return trigHandler.GetEpochStartRound(), nil
 }
 
 // GetLastEpochFromDirNames returns the last epoch found in storage directory

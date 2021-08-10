@@ -21,7 +21,7 @@ func (t *trigger) LoadState(key []byte) error {
 		return err
 	}
 
-	state, err := t.UnmarshalTrigger(triggerData)
+	state, err := UnmarshalTrigger(t.marshalizer, triggerData)
 	if err != nil {
 		return err
 	}
@@ -43,13 +43,13 @@ func (t *trigger) LoadState(key []byte) error {
 }
 
 // UnmarshalTrigger unmarshalls the trigger
-func (t *trigger) UnmarshalTrigger(data []byte) (data.TriggerRegistryHandler, error) {
-	trig, err := UnmarshalTriggerV2(t.marshalizer, data)
+func UnmarshalTrigger(marshalizer marshal.Marshalizer, data []byte) (data.TriggerRegistryHandler, error) {
+	trig, err := UnmarshalTriggerV2(marshalizer, data)
 	if err == nil {
 		return trig, nil
 	}
 
-	return UnmarshalTriggerV1(t.marshalizer, data)
+	return UnmarshalTriggerV1(marshalizer, data)
 }
 
 // UnmarshalTriggerV2 tries to unmarshal the data into a v2 trigger
@@ -63,7 +63,7 @@ func UnmarshalTriggerV2(marshalizer marshal.Marshalizer, data []byte) (data.Trig
 		return nil, err
 	}
 
-	if check.IfNil(triggerV2.EpochStartShardHeader) {
+	if check.IfNil(triggerV2.EpochStartShardHeader) || check.IfNil(triggerV2.EpochStartShardHeader.Header) {
 		return nil, fmt.Errorf("%w while checking inner epoch start shard header", epochStart.ErrNilHeaderHandler)
 	}
 	return triggerV2, nil
@@ -113,7 +113,6 @@ func (t *trigger) saveState(key []byte) error {
 	_ = registry.SetEpochFinalityAttestingRound(t.epochFinalityAttestingRound)
 	_ = registry.SetEpochStartHeaderHandler(t.epochStartShardHeader)
 
-	//TODO: change to protoMarshalizer
 	marshalledRegistry, err := t.marshalizer.Marshal(registry)
 	if err != nil {
 		return err
