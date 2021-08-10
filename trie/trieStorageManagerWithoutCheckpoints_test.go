@@ -3,9 +3,9 @@ package trie_test
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/mock"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/trie"
@@ -15,7 +15,7 @@ import (
 
 func getNewTrieStorageManagerArgs() trie.NewTrieStorageManagerArgs {
 	return trie.NewTrieStorageManagerArgs{
-		DB:                     mock.NewMemDbMock(),
+		DB:                     testscommon.NewMemDbMock(),
 		Marshalizer:            &testscommon.MarshalizerMock{},
 		Hasher:                 &hashingMocks.HasherMock{},
 		SnapshotDbConfig:       config.DBConfig{},
@@ -71,6 +71,16 @@ func TestTrieStorageManagerWithoutCheckpoints_SetCheckpoint(t *testing.T) {
 
 	ts.SetCheckpoint([]byte("rootHash"), nil)
 	assert.Equal(t, uint32(0), ts.PruningBlockingOperations())
+
+	chLeaves := make(chan core.KeyValueHolder)
+	ts.SetCheckpoint([]byte("rootHash"), chLeaves)
+	assert.Equal(t, uint32(0), ts.PruningBlockingOperations())
+
+	select {
+	case <-chLeaves:
+	default:
+		assert.Fail(t, "unclosed channel")
+	}
 }
 
 func TestTrieStorageManagerWithoutCheckpoints_AddDirtyCheckpointHashes(t *testing.T) {
@@ -92,7 +102,7 @@ func TestTrieStorageManagerWithoutCheckpoints_Remove(t *testing.T) {
 	value := []byte("value")
 
 	_ = args.DB.Put(key, value)
-	hashes := make(temporary.ModifiedHashes)
+	hashes := make(common.ModifiedHashes)
 	hashes[string(value)] = struct{}{}
 	hashes[string(key)] = struct{}{}
 

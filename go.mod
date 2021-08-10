@@ -3,13 +3,16 @@ module github.com/ElrondNetwork/elrond-go
 go 1.13
 
 require (
-	github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.26
-	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.25
+	github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.29
+	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.29
+	github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.5
 	github.com/ElrondNetwork/concurrent-map v0.1.3
-	github.com/ElrondNetwork/elastic-indexer-go v1.0.8-0.20210720114535-9cb237812a1b
-	github.com/ElrondNetwork/elrond-go-core v1.0.1-0.20210726140624-eaba7da05e19
-	github.com/ElrondNetwork/elrond-go-logger v1.0.4
-	github.com/ElrondNetwork/elrond-vm-common v1.1.0
+	github.com/ElrondNetwork/elastic-indexer-go v1.0.8
+	github.com/ElrondNetwork/elrond-go-core v1.0.1-0.20210809072233-74e1e7098b02
+	github.com/ElrondNetwork/elrond-go-crypto v1.0.1
+	github.com/ElrondNetwork/elrond-go-logger v1.0.5
+	github.com/ElrondNetwork/elrond-vm-common v1.1.2
+	github.com/ElrondNetwork/notifier-go v0.0.0-20210726084028-a78b3bbabc41
 	github.com/beevik/ntp v0.3.0
 	github.com/btcsuite/btcd v0.22.0-beta
 	github.com/davecgh/go-spew v1.1.1
@@ -22,16 +25,15 @@ require (
 	github.com/google/gops v0.3.18
 	github.com/gorilla/websocket v1.4.2
 	github.com/hashicorp/golang-lru v0.5.4
-	github.com/herumi/bls-go-binary v1.0.0
 	github.com/ipfs/go-log v1.0.5
 	github.com/jbenet/goprocess v0.1.4
 	github.com/libp2p/go-libp2p v0.14.3
-	github.com/libp2p/go-libp2p-core v0.8.5
+	github.com/libp2p/go-libp2p-core v0.8.6
 	github.com/libp2p/go-libp2p-kad-dht v0.12.2
 	github.com/libp2p/go-libp2p-kbucket v0.4.7
 	github.com/libp2p/go-libp2p-pubsub v0.4.1
-	github.com/libp2p/go-libp2p-transport-upgrader v0.4.2
-	github.com/libp2p/go-tcp-transport v0.2.3
+	github.com/libp2p/go-libp2p-transport-upgrader v0.4.6
+	github.com/libp2p/go-tcp-transport v0.2.7
 	github.com/mitchellh/mapstructure v1.4.1
 	github.com/multiformats/go-multiaddr v0.3.3
 	github.com/pelletier/go-toml v1.9.3
@@ -48,6 +50,8 @@ require (
 
 replace github.com/gogo/protobuf => github.com/ElrondNetwork/protobuf v1.3.2
 
-replace github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.26 => github.com/ElrondNetwork/arwen-wasm-vm v1.2.26
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.29 => github.com/ElrondNetwork/arwen-wasm-vm v1.2.29
 
-replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.25 => github.com/ElrondNetwork/arwen-wasm-vm v1.3.25
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.29 => github.com/ElrondNetwork/arwen-wasm-vm v1.3.29
+
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.5 => github.com/ElrondNetwork/arwen-wasm-vm v1.4.5

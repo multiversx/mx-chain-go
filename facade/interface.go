@@ -5,14 +5,15 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
+	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
 	"github.com/ElrondNetwork/elrond-go/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm-common/data/esdt"
 )
 
 // NodeHandler contains all functions that a node should contain.
@@ -34,6 +35,9 @@ type NodeHandler interface {
 
 	// GetESDTData returns the esdt data from a given account, given key and given nonce
 	GetESDTData(address, tokenID string, nonce uint64) (*esdt.ESDigitalToken, error)
+
+	// GetESDTsRoles returns the the token identifiers and the roles for a given address
+	GetESDTsRoles(address string) (map[string][]string, error)
 
 	// GetNFTTokenIDsRegisteredByAddress returns all the token identifiers for semi or non fungible tokens registered by the address
 	GetNFTTokenIDsRegisteredByAddress(address string) ([]string, error)
@@ -88,7 +92,7 @@ type NodeHandler interface {
 
 // TransactionSimulatorProcessor defines the actions which a transaction simulator processor has to implement
 type TransactionSimulatorProcessor interface {
-	ProcessTx(tx *transaction.Transaction) (*transaction.SimulationResults, error)
+	ProcessTx(tx *transaction.Transaction) (*txSimData.SimulationResults, error)
 	IsInterfaceNil() bool
 }
 

@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
 	chainData "github.com/ElrondNetwork/elrond-go-core/data"
 	apiData "github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/vm"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -21,16 +22,15 @@ import (
 	transactionApi "github.com/ElrondNetwork/elrond-go/api/transaction"
 	"github.com/ElrondNetwork/elrond-go/api/validator"
 	"github.com/ElrondNetwork/elrond-go/api/vmValues"
-	"github.com/ElrondNetwork/elrond-go/common/statistics"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
+	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
 	"github.com/ElrondNetwork/elrond-go/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm-common/data/esdt"
 )
 
 // DefaultRestInterface is the default interface the rest API will start on if not specified
@@ -68,7 +68,6 @@ type nodeFacade struct {
 	node                   NodeHandler
 	apiResolver            ApiResolver
 	syncer                 ntp.SyncTimer
-	tpsBenchmark           statistics.TPSBenchmark
 	txSimulatorProc        TransactionSimulatorProcessor
 	config                 config.FacadeConfig
 	apiRoutesConfig        config.ApiRoutesConfig
@@ -158,16 +157,6 @@ func (nf *nodeFacade) SetSyncer(syncer ntp.SyncTimer) {
 	nf.syncer = syncer
 }
 
-// SetTpsBenchmark sets the tps benchmark handler
-func (nf *nodeFacade) SetTpsBenchmark(tpsBenchmark statistics.TPSBenchmark) {
-	nf.tpsBenchmark = tpsBenchmark
-}
-
-// TpsBenchmark returns the tps benchmark handler
-func (nf *nodeFacade) TpsBenchmark() statistics.TPSBenchmark {
-	return nf.tpsBenchmark
-}
-
 // RestAPIServerDebugMode return true is debug mode for Rest API is enabled
 func (nf *nodeFacade) RestAPIServerDebugMode() bool {
 	return nf.restAPIServerDebugMode
@@ -202,6 +191,11 @@ func (nf *nodeFacade) GetValueForKey(address string, key string) (string, error)
 // GetESDTData returns the ESDT data for the given address, tokenID and nonce
 func (nf *nodeFacade) GetESDTData(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error) {
 	return nf.node.GetESDTData(address, key, nonce)
+}
+
+// GetESDTsRoles returns all the tokens identifiers and roles for the given address
+func (nf *nodeFacade) GetESDTsRoles(address string) (map[string][]string, error) {
+	return nf.node.GetESDTsRoles(address)
 }
 
 // GetNFTTokenIDsRegisteredByAddress returns all the token identifiers for semi or non fungible tokens registered by the address
@@ -270,7 +264,7 @@ func (nf *nodeFacade) SendBulkTransactions(txs []*transaction.Transaction) (uint
 }
 
 // SimulateTransactionExecution will simulate a transaction's execution and will return the results
-func (nf *nodeFacade) SimulateTransactionExecution(tx *transaction.Transaction) (*transaction.SimulationResults, error) {
+func (nf *nodeFacade) SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
 	return nf.txSimulatorProc.ProcessTx(tx)
 }
 

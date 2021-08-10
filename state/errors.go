@@ -64,9 +64,6 @@ var ErrNilTrackableDataTrie = errors.New("nil trackable data trie")
 // ErrAccNotFound signals that account was not found in state trie
 var ErrAccNotFound = errors.New("account was not found")
 
-// ErrUnknownShardId signals that shard id is not valid
-var ErrUnknownShardId = errors.New("shard id is not valid")
-
 //ErrBech32ConvertError signals that conversion the 5bit alphabet to 8bit failed
 var ErrBech32ConvertError = errors.New("can't convert bech32 string")
 

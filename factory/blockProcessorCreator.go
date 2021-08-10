@@ -108,6 +108,9 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		ShardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
 		EpochNotifier:                pcf.epochNotifier,
 		ESDTMultiTransferEnableEpoch: pcf.epochConfig.EnableEpochs.ESDTMultiTransferEnableEpoch,
+		ESDTTransferRoleEnableEpoch:  pcf.epochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
+		GlobalMintBurnDisableEpoch:   pcf.epochConfig.EnableEpochs.GlobalMintBurnDisableEpoch,
+		ESDTTransferMetaEnableEpoch:  pcf.epochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 	}
 
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
@@ -131,6 +134,11 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		ConfigSCStorage:    pcf.config.SmartContractsStorage,
 	}
 
+	esdtTransferParser, err := parsers.NewESDTTransferParser(pcf.coreData.InternalMarshalizer())
+	if err != nil {
+		return nil, err
+	}
+
 	argsNewVMFactory := shard.ArgVMContainerFactory{
 		Config:                         pcf.config.VirtualMachine.Execution,
 		BlockGasLimit:                  pcf.coreData.EconomicsData().MaxGasLimitPerBlock(pcf.bootstrapComponents.ShardCoordinator().SelfId()),
@@ -141,6 +149,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		AheadOfTimeGasUsageEnableEpoch: pcf.epochConfig.EnableEpochs.AheadOfTimeGasUsageEnableEpoch,
 		ArwenV3EnableEpoch:             pcf.epochConfig.EnableEpochs.RepairCallbackEnableEpoch,
 		ArwenChangeLocker:              arwenChangeLocker,
+		ESDTTransferParser:             esdtTransferParser,
 	}
 	log.Debug("blockProcessorCreator: enable epoch for sc deploy", "epoch", argsNewVMFactory.DeployEnableEpoch)
 	log.Debug("blockProcessorCreator: enable epoch for ahead of time gas usage", "epoch", argsNewVMFactory.AheadOfTimeGasUsageEnableEpoch)
@@ -194,11 +203,6 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
-	esdtTransferParser, err := parsers.NewESDTTransferParser(pcf.coreData.InternalMarshalizer())
-	if err != nil {
-		return nil, err
-	}
-
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:        pcf.coreData.AddressPubKeyConverter(),
 		ShardCoordinator:       pcf.bootstrapComponents.ShardCoordinator(),
@@ -231,33 +235,34 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	enableEpochs := pcf.epochConfig.EnableEpochs
 
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
-		VmContainer:                         vmContainer,
-		ArgsParser:                          argsParser,
-		Hasher:                              pcf.coreData.Hasher(),
-		Marshalizer:                         pcf.coreData.InternalMarshalizer(),
-		AccountsDB:                          pcf.state.AccountsAdapter(),
-		BlockChainHook:                      vmFactory.BlockChainHookImpl(),
-		PubkeyConv:                          pcf.coreData.AddressPubKeyConverter(),
-		ShardCoordinator:                    pcf.bootstrapComponents.ShardCoordinator(),
-		ScrForwarder:                        scForwarder,
-		TxFeeHandler:                        txFeeHandler,
-		EconomicsFee:                        pcf.coreData.EconomicsData(),
-		GasHandler:                          gasHandler,
-		GasSchedule:                         pcf.gasSchedule,
-		TxLogsProcessor:                     pcf.txLogsProcessor,
-		TxTypeHandler:                       txTypeHandler,
-		DeployEnableEpoch:                   enableEpochs.SCDeployEnableEpoch,
-		BuiltinEnableEpoch:                  enableEpochs.BuiltInFunctionsEnableEpoch,
-		PenalizedTooMuchGasEnableEpoch:      enableEpochs.PenalizedTooMuchGasEnableEpoch,
-		RepairCallbackEnableEpoch:           pcf.epochConfig.EnableEpochs.RepairCallbackEnableEpoch,
-		IsGenesisProcessing:                 false,
-		ReturnDataToLastTransferEnableEpoch: pcf.epochConfig.EnableEpochs.ReturnDataToLastTransferEnableEpoch,
-		SenderInOutTransferEnableEpoch:      pcf.epochConfig.EnableEpochs.SenderInOutTransferEnableEpoch,
-		BadTxForwarder:                      badTxInterim,
-		EpochNotifier:                       pcf.epochNotifier,
-		StakingV2EnableEpoch:                pcf.epochConfig.EnableEpochs.StakingV2EnableEpoch,
-		VMOutputCacher:                      txcache.NewDisabledCache(),
-		ArwenChangeLocker:                   arwenChangeLocker,
+		VmContainer:                           vmContainer,
+		ArgsParser:                            argsParser,
+		Hasher:                                pcf.coreData.Hasher(),
+		Marshalizer:                           pcf.coreData.InternalMarshalizer(),
+		AccountsDB:                            pcf.state.AccountsAdapter(),
+		BlockChainHook:                        vmFactory.BlockChainHookImpl(),
+		PubkeyConv:                            pcf.coreData.AddressPubKeyConverter(),
+		ShardCoordinator:                      pcf.bootstrapComponents.ShardCoordinator(),
+		ScrForwarder:                          scForwarder,
+		TxFeeHandler:                          txFeeHandler,
+		EconomicsFee:                          pcf.coreData.EconomicsData(),
+		GasHandler:                            gasHandler,
+		GasSchedule:                           pcf.gasSchedule,
+		TxLogsProcessor:                       pcf.txLogsProcessor,
+		TxTypeHandler:                         txTypeHandler,
+		DeployEnableEpoch:                     enableEpochs.SCDeployEnableEpoch,
+		BuiltinEnableEpoch:                    enableEpochs.BuiltInFunctionsEnableEpoch,
+		PenalizedTooMuchGasEnableEpoch:        enableEpochs.PenalizedTooMuchGasEnableEpoch,
+		RepairCallbackEnableEpoch:             pcf.epochConfig.EnableEpochs.RepairCallbackEnableEpoch,
+		IsGenesisProcessing:                   false,
+		ReturnDataToLastTransferEnableEpoch:   pcf.epochConfig.EnableEpochs.ReturnDataToLastTransferEnableEpoch,
+		SenderInOutTransferEnableEpoch:        pcf.epochConfig.EnableEpochs.SenderInOutTransferEnableEpoch,
+		BadTxForwarder:                        badTxInterim,
+		EpochNotifier:                         pcf.epochNotifier,
+		StakingV2EnableEpoch:                  pcf.epochConfig.EnableEpochs.StakingV2EnableEpoch,
+		BuiltInFunctionOnMetachainEnableEpoch: pcf.epochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
+		VMOutputCacher:                        txcache.NewDisabledCache(),
+		ArwenChangeLocker:                     arwenChangeLocker,
 
 		IncrementSCRNonceInMultiTransferEnableEpoch: enableEpochs.IncrementSCRNonceInMultiTransferEnableEpoch,
 	}
@@ -449,6 +454,9 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		ShardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
 		EpochNotifier:                pcf.epochNotifier,
 		ESDTMultiTransferEnableEpoch: pcf.epochConfig.EnableEpochs.ESDTMultiTransferEnableEpoch,
+		ESDTTransferRoleEnableEpoch:  pcf.epochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
+		GlobalMintBurnDisableEpoch:   pcf.epochConfig.EnableEpochs.GlobalMintBurnDisableEpoch,
+		ESDTTransferMetaEnableEpoch:  pcf.epochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 	}
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	if err != nil {
@@ -562,33 +570,34 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 
 	enableEpochs := pcf.epochConfig.EnableEpochs
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
-		VmContainer:                         vmContainer,
-		ArgsParser:                          argsParser,
-		Hasher:                              pcf.coreData.Hasher(),
-		Marshalizer:                         pcf.coreData.InternalMarshalizer(),
-		AccountsDB:                          pcf.state.AccountsAdapter(),
-		BlockChainHook:                      vmFactory.BlockChainHookImpl(),
-		PubkeyConv:                          pcf.coreData.AddressPubKeyConverter(),
-		ShardCoordinator:                    pcf.bootstrapComponents.ShardCoordinator(),
-		ScrForwarder:                        scForwarder,
-		TxFeeHandler:                        txFeeHandler,
-		EconomicsFee:                        pcf.coreData.EconomicsData(),
-		TxTypeHandler:                       txTypeHandler,
-		GasHandler:                          gasHandler,
-		GasSchedule:                         pcf.gasSchedule,
-		TxLogsProcessor:                     pcf.txLogsProcessor,
-		DeployEnableEpoch:                   enableEpochs.SCDeployEnableEpoch,
-		BuiltinEnableEpoch:                  enableEpochs.BuiltInFunctionsEnableEpoch,
-		PenalizedTooMuchGasEnableEpoch:      enableEpochs.PenalizedTooMuchGasEnableEpoch,
-		RepairCallbackEnableEpoch:           enableEpochs.RepairCallbackEnableEpoch,
-		IsGenesisProcessing:                 false,
-		ReturnDataToLastTransferEnableEpoch: enableEpochs.ReturnDataToLastTransferEnableEpoch,
-		SenderInOutTransferEnableEpoch:      enableEpochs.SenderInOutTransferEnableEpoch,
-		BadTxForwarder:                      badTxForwarder,
-		EpochNotifier:                       pcf.epochNotifier,
-		StakingV2EnableEpoch:                pcf.epochConfig.EnableEpochs.StakingV2EnableEpoch,
-		VMOutputCacher:                      txcache.NewDisabledCache(),
-		ArwenChangeLocker:                   arwenChangeLocker,
+		VmContainer:                           vmContainer,
+		ArgsParser:                            argsParser,
+		Hasher:                                pcf.coreData.Hasher(),
+		Marshalizer:                           pcf.coreData.InternalMarshalizer(),
+		AccountsDB:                            pcf.state.AccountsAdapter(),
+		BlockChainHook:                        vmFactory.BlockChainHookImpl(),
+		PubkeyConv:                            pcf.coreData.AddressPubKeyConverter(),
+		ShardCoordinator:                      pcf.bootstrapComponents.ShardCoordinator(),
+		ScrForwarder:                          scForwarder,
+		TxFeeHandler:                          txFeeHandler,
+		EconomicsFee:                          pcf.coreData.EconomicsData(),
+		TxTypeHandler:                         txTypeHandler,
+		GasHandler:                            gasHandler,
+		GasSchedule:                           pcf.gasSchedule,
+		TxLogsProcessor:                       pcf.txLogsProcessor,
+		DeployEnableEpoch:                     enableEpochs.SCDeployEnableEpoch,
+		BuiltinEnableEpoch:                    enableEpochs.BuiltInFunctionsEnableEpoch,
+		PenalizedTooMuchGasEnableEpoch:        enableEpochs.PenalizedTooMuchGasEnableEpoch,
+		RepairCallbackEnableEpoch:             enableEpochs.RepairCallbackEnableEpoch,
+		IsGenesisProcessing:                   false,
+		ReturnDataToLastTransferEnableEpoch:   enableEpochs.ReturnDataToLastTransferEnableEpoch,
+		SenderInOutTransferEnableEpoch:        enableEpochs.SenderInOutTransferEnableEpoch,
+		BadTxForwarder:                        badTxForwarder,
+		EpochNotifier:                         pcf.epochNotifier,
+		StakingV2EnableEpoch:                  pcf.epochConfig.EnableEpochs.StakingV2EnableEpoch,
+		BuiltInFunctionOnMetachainEnableEpoch: pcf.epochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
+		VMOutputCacher:                        txcache.NewDisabledCache(),
+		ArwenChangeLocker:                     arwenChangeLocker,
 
 		IncrementSCRNonceInMultiTransferEnableEpoch: enableEpochs.IncrementSCRNonceInMultiTransferEnableEpoch,
 	}
@@ -598,16 +607,17 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 
 	argsNewMetaTxProcessor := transaction.ArgsNewMetaTxProcessor{
-		Hasher:           pcf.coreData.Hasher(),
-		Marshalizer:      pcf.coreData.InternalMarshalizer(),
-		Accounts:         pcf.state.AccountsAdapter(),
-		PubkeyConv:       pcf.coreData.AddressPubKeyConverter(),
-		ShardCoordinator: pcf.bootstrapComponents.ShardCoordinator(),
-		ScProcessor:      scProcessor,
-		TxTypeHandler:    txTypeHandler,
-		EconomicsFee:     pcf.coreData.EconomicsData(),
-		ESDTEnableEpoch:  pcf.epochConfig.EnableEpochs.ESDTEnableEpoch,
-		EpochNotifier:    pcf.epochNotifier,
+		Hasher:                                pcf.coreData.Hasher(),
+		Marshalizer:                           pcf.coreData.InternalMarshalizer(),
+		Accounts:                              pcf.state.AccountsAdapter(),
+		PubkeyConv:                            pcf.coreData.AddressPubKeyConverter(),
+		ShardCoordinator:                      pcf.bootstrapComponents.ShardCoordinator(),
+		ScProcessor:                           scProcessor,
+		TxTypeHandler:                         txTypeHandler,
+		EconomicsFee:                          pcf.coreData.EconomicsData(),
+		ESDTEnableEpoch:                       pcf.epochConfig.EnableEpochs.ESDTEnableEpoch,
+		BuiltInFunctionOnMetachainEnableEpoch: pcf.epochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
+		EpochNotifier:                         pcf.epochNotifier,
 	}
 
 	transactionProcessor, err := transaction.NewMetaTxProcessor(argsNewMetaTxProcessor)
@@ -1000,16 +1010,17 @@ func (pcf *processComponentsFactory) createMetaTxSimulatorProcessor(
 	}
 
 	argsNewMetaTx := transaction.ArgsNewMetaTxProcessor{
-		Hasher:           pcf.coreData.Hasher(),
-		Marshalizer:      pcf.coreData.InternalMarshalizer(),
-		Accounts:         accountsWrapper,
-		PubkeyConv:       pcf.coreData.AddressPubKeyConverter(),
-		ShardCoordinator: pcf.bootstrapComponents.ShardCoordinator(),
-		ScProcessor:      scProcessor,
-		TxTypeHandler:    txTypeHandler,
-		EconomicsFee:     &processDisabled.FeeHandler{},
-		ESDTEnableEpoch:  pcf.epochConfig.EnableEpochs.ESDTEnableEpoch,
-		EpochNotifier:    pcf.epochNotifier,
+		Hasher:                                pcf.coreData.Hasher(),
+		Marshalizer:                           pcf.coreData.InternalMarshalizer(),
+		Accounts:                              accountsWrapper,
+		PubkeyConv:                            pcf.coreData.AddressPubKeyConverter(),
+		ShardCoordinator:                      pcf.bootstrapComponents.ShardCoordinator(),
+		ScProcessor:                           scProcessor,
+		TxTypeHandler:                         txTypeHandler,
+		EconomicsFee:                          &processDisabled.FeeHandler{},
+		ESDTEnableEpoch:                       pcf.epochConfig.EnableEpochs.ESDTEnableEpoch,
+		BuiltInFunctionOnMetachainEnableEpoch: pcf.epochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
+		EpochNotifier:                         pcf.epochNotifier,
 	}
 
 	txSimulatorProcessorArgs.TransactionProcessor, err = transaction.NewMetaTxProcessor(argsNewMetaTx)

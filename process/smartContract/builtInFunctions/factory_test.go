@@ -6,7 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/stretchr/testify/assert"
@@ -22,7 +22,7 @@ func createMockArguments() ArgsCreateBuiltInFunctionContainer {
 		MapDNSAddresses:      make(map[string]struct{}),
 		EnableUserNameChange: false,
 		Marshalizer:          &mock.MarshalizerMock{},
-		Accounts:             &testscommon.AccountsStub{},
+		Accounts:             &stateMock.AccountsStub{},
 		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(1),
 		EpochNotifier:        &epochNotifier.EpochNotifierStub{},
 	}
@@ -95,7 +95,7 @@ func TestCreateBuiltInFunctionContainer_Errors(t *testing.T) {
 	args = createMockArguments()
 	container, err = CreateBuiltInFunctionContainer(args)
 	assert.Nil(t, err)
-	assert.Equal(t, len(container.Keys()), 23)
+	assert.Equal(t, len(container.Keys()), 25)
 
 	err = vmcommonBuiltInFunctions.SetPayableHandler(container, &mock.BlockChainHookHandlerMock{})
 	assert.Nil(t, err)

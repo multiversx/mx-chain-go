@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 )
@@ -86,7 +87,7 @@ func NewShardProcessorEmptyWith3shards(
 	hdrValidator, _ := NewHeaderValidator(argsHeaderValidator)
 
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
-	accountsDb[state.UserAccountsState] = &testscommon.AccountsStub{}
+	accountsDb[state.UserAccountsState] = &stateMock.AccountsStub{}
 
 	coreComponents := &mock.CoreComponentsMock{
 		IntMarsh:            &mock.MarshalizerMock{},
@@ -106,8 +107,7 @@ func NewShardProcessorEmptyWith3shards(
 		VersionedHdrFactory:  &testscommon.VersionedHeaderFactoryStub{},
 	}
 	statusComponents := &mock.StatusComponentsMock{
-		Indexer:      &mock.IndexerMock{},
-		TPSBenchmark: &testscommon.TpsBenchmarkMock{},
+		Outport: &testscommon.OutportStub{},
 	}
 
 	arguments := ArgShardProcessor{

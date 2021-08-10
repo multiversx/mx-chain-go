@@ -18,7 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -32,8 +32,8 @@ func createMockArgumentsNewStakingToPeer() ArgStakingToPeer {
 		PubkeyConv:    mock.NewPubkeyConverterMock(32),
 		Hasher:        &hashingMocks.HasherMock{},
 		Marshalizer:   &mock.MarshalizerStub{},
-		PeerState:     &testscommon.AccountsStub{},
-		BaseState:     &testscommon.AccountsStub{},
+		PeerState:     &stateMock.AccountsStub{},
+		BaseState:     &stateMock.AccountsStub{},
 		ArgParser:     &mock.ArgumentParserMock{},
 		CurrTxs:       &mock.TxForCurrentBlockStub{},
 		RatingsData:   &mock.RatingsInfoMock{},
@@ -224,7 +224,7 @@ func TestStakingToPeer_UpdateProtocolRemoveAccountShouldReturnNil(t *testing.T) 
 		}, nil
 	}
 
-	peerState := &testscommon.AccountsStub{}
+	peerState := &stateMock.AccountsStub{}
 	peerState.LoadAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
 		peerAcc, _ := state.NewPeerAccount(address)
 		_ = peerAcc.SetRewardAddress([]byte("addr"))
@@ -243,7 +243,7 @@ func TestStakingToPeer_UpdateProtocolRemoveAccountShouldReturnNil(t *testing.T) 
 
 	arguments := createMockArgumentsNewStakingToPeer()
 	userAcc, _ := state.NewUserAccount(vm.StakingSCAddress)
-	baseState := &testscommon.AccountsStub{}
+	baseState := &stateMock.AccountsStub{}
 	baseState.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		return userAcc, nil
 	}
@@ -283,7 +283,7 @@ func TestStakingToPeer_UpdateProtocolCannotSetRewardAddressShouldErr(t *testing.
 		}, nil
 	}
 
-	peerState := &testscommon.AccountsStub{}
+	peerState := &stateMock.AccountsStub{}
 	peerState.LoadAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
 		peerAcc, _ := state.NewPeerAccount(address)
 		_ = peerAcc.SetRewardAddress([]byte("key"))
@@ -297,7 +297,7 @@ func TestStakingToPeer_UpdateProtocolCannotSetRewardAddressShouldErr(t *testing.
 	marshalizer := &mock.MarshalizerMock{}
 
 	userAcc, _ := state.NewUserAccount(vm.StakingSCAddress)
-	baseState := &testscommon.AccountsStub{}
+	baseState := &stateMock.AccountsStub{}
 	baseState.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		return userAcc, nil
 	}
@@ -340,7 +340,7 @@ func TestStakingToPeer_UpdateProtocolEmptyDataShouldNotAddToTrie(t *testing.T) {
 		}, nil
 	}
 
-	peerState := &testscommon.AccountsStub{}
+	peerState := &stateMock.AccountsStub{}
 	peerState.LoadAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
 		peerAcc, _ := state.NewPeerAccount(address)
 		_ = peerAcc.SetRewardAddress(rwdAddress)
@@ -353,7 +353,7 @@ func TestStakingToPeer_UpdateProtocolEmptyDataShouldNotAddToTrie(t *testing.T) {
 	}
 
 	userAcc, _ := state.NewUserAccount(vm.StakingSCAddress)
-	baseState := &testscommon.AccountsStub{}
+	baseState := &stateMock.AccountsStub{}
 	baseState.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		return userAcc, nil
 	}
@@ -401,7 +401,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountShouldErr(t *testing.T) {
 		}, nil
 	}
 
-	peerState := &testscommon.AccountsStub{
+	peerState := &stateMock.AccountsStub{
 		SaveAccountCalled: func(accountHandler vmcommon.AccountHandler) error {
 			return testError
 		},
@@ -420,7 +420,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountShouldErr(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{}
 
 	userAcc, _ := state.NewUserAccount(vm.StakingSCAddress)
-	baseState := &testscommon.AccountsStub{}
+	baseState := &stateMock.AccountsStub{}
 	baseState.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		return userAcc, nil
 	}
@@ -464,7 +464,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountNonceShouldErr(t *testing.
 		}, nil
 	}
 
-	peerState := &testscommon.AccountsStub{
+	peerState := &stateMock.AccountsStub{
 		SaveAccountCalled: func(accountHandler vmcommon.AccountHandler) error {
 			return testError
 		},
@@ -483,7 +483,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountNonceShouldErr(t *testing.
 	marshalizer := &mock.MarshalizerMock{}
 
 	userAcc, _ := state.NewUserAccount(vm.StakingSCAddress)
-	baseState := &testscommon.AccountsStub{}
+	baseState := &stateMock.AccountsStub{}
 	baseState.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		return userAcc, nil
 	}
@@ -526,7 +526,7 @@ func TestStakingToPeer_UpdateProtocol(t *testing.T) {
 		}, nil
 	}
 
-	peerState := &testscommon.AccountsStub{
+	peerState := &stateMock.AccountsStub{
 		SaveAccountCalled: func(accountHandler vmcommon.AccountHandler) error {
 			return nil
 		},
@@ -549,7 +549,7 @@ func TestStakingToPeer_UpdateProtocol(t *testing.T) {
 	arguments.PeerState = peerState
 	arguments.Marshalizer = marshalizer
 	userAcc, _ := state.NewUserAccount(vm.StakingSCAddress)
-	baseState := &testscommon.AccountsStub{}
+	baseState := &stateMock.AccountsStub{}
 	baseState.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		return userAcc, nil
 	}
@@ -589,7 +589,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveUnStakedNonceShouldErr(t *testing
 		}, nil
 	}
 
-	peerState := &testscommon.AccountsStub{
+	peerState := &stateMock.AccountsStub{
 		SaveAccountCalled: func(accountHandler vmcommon.AccountHandler) error {
 			return testError
 		},
@@ -608,7 +608,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveUnStakedNonceShouldErr(t *testing
 	marshalizer := &mock.MarshalizerMock{}
 
 	userAcc, _ := state.NewUserAccount(vm.StakingSCAddress)
-	baseState := &testscommon.AccountsStub{}
+	baseState := &stateMock.AccountsStub{}
 	baseState.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		return userAcc, nil
 	}
@@ -631,7 +631,7 @@ func TestStakingToPeer_UpdatePeerState(t *testing.T) {
 	t.Parallel()
 
 	peerAccount := state.NewEmptyPeerAccount()
-	peerAccountsDB := &testscommon.AccountsStub{
+	peerAccountsDB := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			return peerAccount, nil
 		},
@@ -695,7 +695,7 @@ func TestStakingToPeer_UnJailFromInactive(t *testing.T) {
 	t.Parallel()
 
 	peerAccount := state.NewEmptyPeerAccount()
-	peerAccountsDB := &testscommon.AccountsStub{
+	peerAccountsDB := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			return peerAccount, nil
 		},

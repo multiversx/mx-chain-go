@@ -5,17 +5,17 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	dataApi "github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/vm"
-	"github.com/ElrondNetwork/elrond-go/common/statistics"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
+	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-vm-common/data/esdt"
 )
 
 // TestBootstrapper extends the Bootstrapper interface with some functions intended to be used only in tests
@@ -66,7 +66,6 @@ type Facade interface {
 	IsSelfTrigger() bool
 	GetTotalStakedValue() (*dataApi.StakeValues, error)
 	GetHeartbeats() ([]data.PubKeyHeartbeat, error)
-	TpsBenchmark() statistics.TPSBenchmark
 	StatusMetrics() external.StatusMetricsHandler
 	GetQueryHandler(name string) (debug.QueryHandler, error)
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
@@ -77,7 +76,7 @@ type Facade interface {
 	ValidateTransaction(tx *transaction.Transaction) error
 	ValidateTransactionForSimulation(tx *transaction.Transaction, bypassSignature bool) error
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
-	SimulateTransactionExecution(tx *transaction.Transaction) (*transaction.SimulationResults, error)
+	SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResults, error)
 	GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	EncodeAddressPubkey(pk []byte) (string, error)

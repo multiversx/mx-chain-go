@@ -4,22 +4,9 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
+	"github.com/ElrondNetwork/elrond-go/common"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
-
-// AccountsDbIdentifier is the type of accounts db
-type AccountsDbIdentifier byte
-
-const (
-	// UserAccountsState is the user accounts
-	UserAccountsState AccountsDbIdentifier = 0
-	// PeerAccountsState is the peer accounts
-	PeerAccountsState AccountsDbIdentifier = 1
-)
-
-// HashLength defines how many bytes are used in a hash
-const HashLength = 32
 
 // AccountFactory creates an account of different types
 type AccountFactory interface {
@@ -82,9 +69,10 @@ type UserAccountHandler interface {
 	GetCodeHash() []byte
 	SetRootHash([]byte)
 	GetRootHash() []byte
-	SetDataTrie(trie temporary.Trie)
-	DataTrie() temporary.Trie
+	SetDataTrie(trie common.Trie)
+	DataTrie() common.Trie
 	DataTrieTracker() DataTrieTracker
+	RetrieveValueFromDataTrieTracker(key []byte) ([]byte, error)
 	AddToBalance(value *big.Int) error
 	SubFromBalance(value *big.Int) error
 	GetBalance() *big.Int
@@ -105,8 +93,8 @@ type DataTrieTracker interface {
 	DirtyData() map[string][]byte
 	RetrieveValue(key []byte) ([]byte, error)
 	SaveKeyValue(key []byte, value []byte) error
-	SetDataTrie(tr temporary.Trie)
-	DataTrie() temporary.Trie
+	SetDataTrie(tr common.Trie)
+	DataTrie() common.Trie
 	IsInterfaceNil() bool
 }
 
@@ -124,14 +112,14 @@ type AccountsAdapter interface {
 	GetCode(codeHash []byte) []byte
 	RootHash() ([]byte, error)
 	RecreateTrie(rootHash []byte) error
-	PruneTrie(rootHash []byte, identifier temporary.TriePruningIdentifier)
-	CancelPrune(rootHash []byte, identifier temporary.TriePruningIdentifier)
+	PruneTrie(rootHash []byte, identifier TriePruningIdentifier)
+	CancelPrune(rootHash []byte, identifier TriePruningIdentifier)
 	SnapshotState(rootHash []byte)
 	SetStateCheckpoint(rootHash []byte)
 	IsPruningEnabled() bool
 	GetAllLeaves(rootHash []byte) (chan core.KeyValueHolder, error)
-	RecreateAllTries(rootHash []byte) (map[string]temporary.Trie, error)
-	GetTrie(rootHash []byte) (temporary.Trie, error)
+	RecreateAllTries(rootHash []byte) (map[string]common.Trie, error)
+	GetTrie(rootHash []byte) (common.Trie, error)
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -144,10 +132,10 @@ type JournalEntry interface {
 
 // TriesHolder is used to store multiple tries
 type TriesHolder interface {
-	Put([]byte, temporary.Trie)
-	Replace(key []byte, tr temporary.Trie)
-	Get([]byte) temporary.Trie
-	GetAll() []temporary.Trie
+	Put([]byte, common.Trie)
+	Replace(key []byte, tr common.Trie)
+	Get([]byte) common.Trie
+	GetAll() []common.Trie
 	Reset()
 	IsInterfaceNil() bool
 }
@@ -164,8 +152,8 @@ type baseAccountHandler interface {
 	GetCodeHash() []byte
 	SetRootHash([]byte)
 	GetRootHash() []byte
-	SetDataTrie(trie temporary.Trie)
-	DataTrie() temporary.Trie
+	SetDataTrie(trie common.Trie)
+	DataTrie() common.Trie
 	DataTrieTracker() DataTrieTracker
 	IsInterfaceNil() bool
 }
@@ -179,9 +167,9 @@ type AccountsDBImporter interface {
 
 // DBRemoveCacher is used to cache keys that will be deleted from the database
 type DBRemoveCacher interface {
-	Put([]byte, temporary.ModifiedHashes) error
-	Evict([]byte) (temporary.ModifiedHashes, error)
-	ShouldKeepHash(hash string, identifier temporary.TriePruningIdentifier) (bool, error)
+	Put([]byte, common.ModifiedHashes) error
+	Evict([]byte) (common.ModifiedHashes, error)
+	ShouldKeepHash(hash string, identifier TriePruningIdentifier) (bool, error)
 	IsInterfaceNil() bool
 	Close() error
 }
@@ -195,9 +183,9 @@ type AtomicBuffer interface {
 
 // StoragePruningManager is used to manage all state pruning operations
 type StoragePruningManager interface {
-	MarkForEviction([]byte, []byte, temporary.ModifiedHashes, temporary.ModifiedHashes) error
-	PruneTrie(rootHash []byte, identifier temporary.TriePruningIdentifier, tsm temporary.StorageManager)
-	CancelPrune(rootHash []byte, identifier temporary.TriePruningIdentifier, tsm temporary.StorageManager)
+	MarkForEviction([]byte, []byte, common.ModifiedHashes, common.ModifiedHashes) error
+	PruneTrie(rootHash []byte, identifier TriePruningIdentifier, tsm common.StorageManager)
+	CancelPrune(rootHash []byte, identifier TriePruningIdentifier, tsm common.StorageManager)
 	Close() error
 	IsInterfaceNil() bool
 }

@@ -5,13 +5,12 @@ import (
 	"os"
 	"path"
 	"strconv"
-	"sync"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/mock"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
 	"github.com/stretchr/testify/assert"
@@ -24,8 +23,8 @@ const (
 
 func getNewTrieStorageManagerArgs() NewTrieStorageManagerArgs {
 	return NewTrieStorageManagerArgs{
-		DB:                     mock.NewMemDbMock(),
-		Marshalizer:            &mock.MarshalizerMock{},
+		DB:                     testscommon.NewMemDbMock(),
+		Marshalizer:            &testscommon.MarshalizerMock{},
 		Hasher:                 &hashingMocks.HasherMock{},
 		SnapshotDbConfig:       config.DBConfig{},
 		GeneralConfig:          config.TrieStorageManagerConfig{},
@@ -129,8 +128,8 @@ func TestNewTrieStorageManagerWithExistingSnapshot(t *testing.T) {
 	args.GeneralConfig = generalCfg
 	args.CheckpointHashesHolder = hashesHolder.NewCheckpointHashesHolder(checkpointHashesHolderMaxSize, hashSize)
 	newTrieStorage, _ := NewTrieStorageManager(args)
-	snapshot := newTrieStorage.GetSnapshotThatContainsHash(rootHash)
-	assert.NotNil(t, snapshot)
+	foundSnapshot := newTrieStorage.GetSnapshotThatContainsHash(rootHash)
+	assert.NotNil(t, foundSnapshot)
 	assert.Equal(t, 1, newTrieStorage.snapshotId)
 }
 
@@ -297,6 +296,19 @@ func TestDeleteOldSnapshots(t *testing.T) {
 	assert.Equal(t, "3", snapshots[1].Name())
 }
 
+func createSmallTestTrieAndStorageManager() (*patriciaMerkleTrie, *trieStorageManager) {
+	tr, trieStorage := newEmptyTrie()
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+
+	_ = tr.Commit()
+	trieStorage.TakeSnapshot(tr.root.getHash(), true, nil)
+	WaitForOperationToComplete(trieStorage)
+
+	return tr, trieStorage
+}
+
 func TestTrieCheckpoint(t *testing.T) {
 	t.Parallel()
 
@@ -306,14 +318,7 @@ func TestTrieCheckpoint(t *testing.T) {
 		MaxSnapshots:       2,
 	}
 
-	tr, trieStorage := newEmptyTrie()
-	_ = tr.Update([]byte("doe"), []byte("reindeer"))
-	_ = tr.Update([]byte("dog"), []byte("puppy"))
-	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
-
-	_ = tr.Commit()
-	trieStorage.TakeSnapshot(tr.root.getHash(), true, nil)
-	WaitForOperationToComplete(trieStorage)
+	tr, trieStorage := createSmallTestTrieAndStorageManager()
 
 	_ = tr.Update([]byte("doge"), []byte("reindeer"))
 	newHashes, _ := tr.GetDirtyHashes()
@@ -350,6 +355,53 @@ func TestTrieCheckpoint(t *testing.T) {
 	assert.Equal(t, []byte("reindeer"), val)
 }
 
+func TestTrieCheckpoint_IsInLastSnapshot(t *testing.T) {
+	t.Parallel()
+
+	generalCfg := config.TrieStorageManagerConfig{
+		PruningBufferLen:   1000,
+		SnapshotsBufferLen: 10,
+		MaxSnapshots:       2,
+	}
+
+	tr, trieStorage := createSmallTestTrieAndStorageManager()
+
+	_ = tr.Update([]byte("doge"), []byte("reindeer"))
+	newHashes, _ := tr.GetDirtyHashes()
+	_ = tr.Commit()
+	rootHash, _ := tr.RootHash()
+
+	val, err := tr.Get([]byte("doge"))
+	assert.Nil(t, err)
+	assert.Equal(t, []byte("reindeer"), val)
+
+	args := getNewTrieStorageManagerArgs()
+	args.DB = trieStorage.snapshots[0]
+	_ = trieStorage.snapshots[0].Put(rootHash, rootHash)
+	args.GeneralConfig = generalCfg
+	args.CheckpointHashesHolder = hashesHolder.NewCheckpointHashesHolder(checkpointHashesHolderMaxSize, hashSize)
+	snapshotTrieStorage, _ := NewTrieStorageManager(args)
+	collapsedRoot, _ := tr.root.getCollapsed()
+	snapshotTrie := &patriciaMerkleTrie{
+		root:        collapsedRoot,
+		trieStorage: snapshotTrieStorage,
+		marshalizer: tr.marshalizer,
+		hasher:      tr.hasher,
+	}
+	trieStorage.AddDirtyCheckpointHashes(rootHash, newHashes)
+
+	val, err = snapshotTrie.Get([]byte("doge"))
+	assert.NotNil(t, err)
+	assert.Nil(t, val)
+
+	trieStorage.SetCheckpoint(tr.root.getHash(), nil)
+	WaitForOperationToComplete(trieStorage)
+
+	val, err = snapshotTrie.Get([]byte("doge"))
+	assert.NotNil(t, err)
+	assert.Nil(t, val)
+}
+
 func TestTrieCheckpointWithNoSnapshotCreatesSnapshot(t *testing.T) {
 	t.Parallel()
 
@@ -369,57 +421,22 @@ func TestTrieCheckpointWithNoSnapshotCreatesSnapshot(t *testing.T) {
 	trieStorage.storageOperationMutex.Unlock()
 }
 
-func TestTrieSnapshottingAndCheckpointConcurrently(t *testing.T) {
+func TestTrieSnapshottingCheckpointAndClose(t *testing.T) {
 	t.Parallel()
 
-	tr, trieStorage := newEmptyTrie()
-	_ = tr.Update([]byte("doe"), []byte("reindeer"))
-	_ = tr.Update([]byte("dog"), []byte("puppy"))
-	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
-	_ = tr.Commit()
+	tr, trieStorage := createSmallTestTrieAndStorageManager()
 
-	trieStorage.TakeSnapshot(tr.root.getHash(), true, nil)
-	WaitForOperationToComplete(trieStorage)
+	numSnapshotsAndCheckpoints := 5
+	totalNumSnapshot := numSnapshotsAndCheckpoints + 1
 
-	numSnapshots := 5
-	numCheckpoints := 5
-	totalNumSnapshot := numSnapshots + 1
+	for i := 0; i < numSnapshotsAndCheckpoints; i++ {
+		hash := []byte(strconv.Itoa(i + numSnapshotsAndCheckpoints))
+		doCheckpoint(tr, trieStorage, hash)
 
-	var snapshotWg sync.WaitGroup
-	var checkpointWg sync.WaitGroup
-	mut := sync.Mutex{}
-	snapshotWg.Add(numSnapshots)
-	checkpointWg.Add(numCheckpoints)
-
-	for i := 0; i < numSnapshots; i++ {
-		go func(j int) {
-			mut.Lock()
-			_ = tr.Update([]byte(strconv.Itoa(j)), []byte(strconv.Itoa(j)))
-			_ = tr.Commit()
-			rootHash, _ := tr.RootHash()
-			trieStorage.TakeSnapshot(rootHash, true, nil)
-			mut.Unlock()
-			snapshotWg.Done()
-		}(i)
+		hash = []byte(strconv.Itoa(i))
+		doSnapshot(tr, trieStorage, hash)
 	}
 
-	for i := 0; i < numCheckpoints; i++ {
-		go func(j int) {
-			mut.Lock()
-			_ = tr.Update([]byte(strconv.Itoa(j+numSnapshots)), []byte(strconv.Itoa(j+numSnapshots)))
-			newHashes, _ := tr.GetDirtyHashes()
-			_ = tr.Commit()
-			rootHash, _ := tr.RootHash()
-
-			trieStorage.AddDirtyCheckpointHashes(rootHash, newHashes)
-			trieStorage.SetCheckpoint(rootHash, nil)
-			mut.Unlock()
-			checkpointWg.Done()
-		}(i)
-	}
-
-	snapshotWg.Wait()
-	checkpointWg.Wait()
 	WaitForOperationToComplete(trieStorage)
 
 	trieStorage.storageOperationMutex.Lock()
@@ -430,6 +447,57 @@ func TestTrieSnapshottingAndCheckpointConcurrently(t *testing.T) {
 	trieStorage.storageOperationMutex.Unlock()
 	assert.NotNil(t, val)
 	assert.Nil(t, err)
+
+	err = trieStorage.Close()
+	assert.Nil(t, err)
+}
+
+func TestTrieSnapshottingFromCheckpoint(t *testing.T) {
+	t.Parallel()
+
+	tr, trieStorage := createSmallTestTrieAndStorageManager()
+
+	totalNumSnapshot := 2
+
+	roothash, _ := tr.RootHash()
+	trieStorage.TakeSnapshot(roothash, true, nil)
+
+	hash := []byte(strconv.Itoa(0))
+	doCheckpoint(tr, trieStorage, hash)
+
+	WaitForOperationToComplete(trieStorage)
+
+	trieStorage.TakeSnapshot(hash, true, nil)
+	WaitForOperationToComplete(trieStorage)
+
+	trieStorage.storageOperationMutex.Lock()
+	assert.Equal(t, totalNumSnapshot, trieStorage.snapshotId)
+
+	lastSnapshot := len(trieStorage.snapshots) - 1
+	val, err := trieStorage.snapshots[lastSnapshot].Get(tr.root.getHash())
+	trieStorage.storageOperationMutex.Unlock()
+	assert.NotNil(t, val)
+	assert.Nil(t, err)
+
+	err = trieStorage.Close()
+	assert.Nil(t, err)
+}
+
+func doCheckpoint(tr common.Trie, trieStorage common.StorageManager, hash []byte) {
+	_ = tr.Update(hash, hash)
+	newHashes, _ := tr.GetDirtyHashes()
+	_ = tr.Commit()
+	rootHash, _ := tr.RootHash()
+
+	trieStorage.AddDirtyCheckpointHashes(rootHash, newHashes)
+	trieStorage.SetCheckpoint(rootHash, nil)
+}
+
+func doSnapshot(tr common.Trie, trieStorage common.StorageManager, hash []byte) {
+	_ = tr.Update(hash, hash)
+	_ = tr.Commit()
+	rootHash, _ := tr.RootHash()
+	trieStorage.TakeSnapshot(rootHash, true, nil)
 }
 
 func TestIsPresentInLastSnapshotDbDoesNotPanicIfNoSnapshot(t *testing.T) {
@@ -687,7 +755,7 @@ func TestTrieStorageManager_Remove(t *testing.T) {
 	value := []byte("value")
 
 	_ = args.DB.Put(key, value)
-	hashes := make(temporary.ModifiedHashes)
+	hashes := make(common.ModifiedHashes)
 	hashes[string(value)] = struct{}{}
 	hashes[string(key)] = struct{}{}
 	_ = args.CheckpointHashesHolder.Put(key, hashes)

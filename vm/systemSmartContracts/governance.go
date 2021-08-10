@@ -136,6 +136,11 @@ func (g *governanceContract) Execute(args *vmcommon.ContractCallInput) vmcommon.
 		return vmcommon.UserError
 	}
 
+	if len(args.ESDTTransfers) > 0 {
+		g.eei.AddReturnMessage("cannot transfer ESDT to system SCs")
+		return vmcommon.UserError
+	}
+
 	switch args.Function {
 	case "initV2":
 		return g.initV2(args)

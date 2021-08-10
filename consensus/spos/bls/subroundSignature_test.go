@@ -275,7 +275,7 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 	multiSignerMock := mock.InitMultiSignerMock()
 
 	err := errors.New("create signature share error")
-	multiSignerMock.CreateSignatureShareMock = func(msg []byte, bitmap []byte) ([]byte, error) {
+	multiSignerMock.CreateSignatureShareCalled = func(msg []byte, bitmap []byte) ([]byte, error) {
 		return nil, err
 	}
 
@@ -286,7 +286,7 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 
 	multiSignerMock = mock.InitMultiSignerMock()
 
-	multiSignerMock.CreateSignatureShareMock = func(msg []byte, bitmap []byte) ([]byte, error) {
+	multiSignerMock.CreateSignatureShareCalled = func(msg []byte, bitmap []byte) ([]byte, error) {
 		return []byte("SIG"), nil
 	}
 	container.SetMultiSigner(multiSignerMock)

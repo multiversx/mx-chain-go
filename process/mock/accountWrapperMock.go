@@ -3,15 +3,15 @@ package mock
 import (
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // AccountWrapMock -
 type AccountWrapMock struct {
 	MockValue         int
-	dataTrie          temporary.Trie
+	dataTrie          common.Trie
 	nonce             uint64
 	code              []byte
 	codeMetadata      []byte
@@ -97,6 +97,11 @@ func (awm *AccountWrapMock) GetCodeHash() []byte {
 	return awm.codeHash
 }
 
+// RetrieveValueFromDataTrieTracker -
+func (awm *AccountWrapMock) RetrieveValueFromDataTrieTracker(key []byte) ([]byte, error) {
+	return awm.trackableDataTrie.RetrieveValue(key)
+}
+
 // SetCodeHash -
 func (awm *AccountWrapMock) SetCodeHash(codeHash []byte) {
 	awm.codeHash = codeHash
@@ -133,12 +138,12 @@ func (awm *AccountWrapMock) AddressBytes() []byte {
 }
 
 // DataTrie -
-func (awm *AccountWrapMock) DataTrie() temporary.Trie {
+func (awm *AccountWrapMock) DataTrie() common.Trie {
 	return awm.dataTrie
 }
 
 // SetDataTrie -
-func (awm *AccountWrapMock) SetDataTrie(trie temporary.Trie) {
+func (awm *AccountWrapMock) SetDataTrie(trie common.Trie) {
 	awm.dataTrie = trie
 	awm.trackableDataTrie.SetDataTrie(trie)
 }

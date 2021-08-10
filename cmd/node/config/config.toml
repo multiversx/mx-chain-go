@@ -282,7 +282,9 @@
         MaxOpenFiles = 10
 
 [EvictionWaitingList]
-    Size = 10000
+    #total max size ~ 2 * [(RoothashesSize * 32) + (HashesSize * 32)]
+    RootHashesSize = 10000
+    HashesSize = 100000
     [EvictionWaitingList.DB]
         FilePath = "EvictionWaitingList"
         Type = "LvlDBSerial"
@@ -627,6 +629,7 @@
         ArwenVersions = [
             { StartEpoch = 0, Version = "v1.2" },
             { StartEpoch = 1, Version = "v1.3" },
+            { StartEpoch = 5, Version = "v1.4" },
         ]
 
     [VirtualMachine.Querying]
@@ -634,6 +637,7 @@
         ArwenVersions = [
             { StartEpoch = 0, Version = "v1.2" },
             { StartEpoch = 1, Version = "v1.3" },
+            { StartEpoch = 5, Version = "v1.4" },
         ]
 
 [Hardfork]

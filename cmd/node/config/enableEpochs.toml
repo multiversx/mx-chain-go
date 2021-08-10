@@ -99,6 +99,15 @@
     # ESDTMultiTransferEnableEpoch represents the epoch when esdt multitransfer built in function is enabled
     ESDTMultiTransferEnableEpoch = 5
 
+    # GlobalMintBurnDisableEpoch represents the epoch when the global mint and burn functions are disabled
+    GlobalMintBurnDisableEpoch = 5
+
+    # ESDTTransferRoleEnableEpoch represents the epoch when esdt transfer role set is enabled
+    ESDTTransferRoleEnableEpoch = 5
+
+    # BuiltInFunctionOnMetaEnableEpoch represents the epoch when built in function processing on metachain is enabled
+    BuiltInFunctionOnMetaEnableEpoch = 5
+
     # ScheduledMiniBlocksEnableEpoch represents the epoch when scheduled mini blocks would be created if needed
     ScheduledMiniBlocksEnableEpoch = 2
 
