@@ -3,14 +3,14 @@ package mock
 import (
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 )
 
 // AccountWrapMock -
 type AccountWrapMock struct {
 	MockValue         int
-	dataTrie          temporary.Trie
+	dataTrie          common.Trie
 	nonce             uint64
 	code              []byte
 	codeMetadata      []byte
@@ -22,14 +22,6 @@ type AccountWrapMock struct {
 	SetNonceWithJournalCalled    func(nonce uint64) error    `json:"-"`
 	SetCodeHashWithJournalCalled func(codeHash []byte) error `json:"-"`
 	SetCodeWithJournalCalled     func(codeHash []byte) error `json:"-"`
-}
-
-// NewAccountWrapMock -
-func NewAccountWrapMock(adr []byte) *AccountWrapMock {
-	return &AccountWrapMock{
-		address:           adr,
-		trackableDataTrie: state.NewTrackableDataTrie([]byte("identifier"), nil),
-	}
 }
 
 // HasNewCode -
@@ -111,6 +103,11 @@ func (awm *AccountWrapMock) SetCodeMetadata(codeMetadata []byte) {
 	awm.codeMetadata = codeMetadata
 }
 
+// RetrieveValueFromDataTrieTracker -
+func (awm *AccountWrapMock) RetrieveValueFromDataTrieTracker(key []byte) ([]byte, error) {
+	return awm.trackableDataTrie.RetrieveValue(key)
+}
+
 // GetCodeMetadata -
 func (awm *AccountWrapMock) GetCodeMetadata() []byte {
 	return awm.codeMetadata
@@ -132,12 +129,12 @@ func (awm *AccountWrapMock) AddressBytes() []byte {
 }
 
 // DataTrie -
-func (awm *AccountWrapMock) DataTrie() temporary.Trie {
+func (awm *AccountWrapMock) DataTrie() common.Trie {
 	return awm.dataTrie
 }
 
 // SetDataTrie -
-func (awm *AccountWrapMock) SetDataTrie(trie temporary.Trie) {
+func (awm *AccountWrapMock) SetDataTrie(trie common.Trie) {
 	awm.dataTrie = trie
 	awm.trackableDataTrie.SetDataTrie(trie)
 }
@@ -147,7 +144,7 @@ func (awm *AccountWrapMock) DataTrieTracker() state.DataTrieTracker {
 	return awm.trackableDataTrie
 }
 
-//IncreaseNonce -
+// IncreaseNonce -
 func (awm *AccountWrapMock) IncreaseNonce(val uint64) {
 	awm.nonce = awm.nonce + val
 }

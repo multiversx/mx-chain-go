@@ -6,7 +6,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -66,12 +65,9 @@ func createDefaultGasTracker(
 	}
 	economicsFee := &economicsmocks.EconomicsHandlerStub{
 		MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
-			if shardID == core.MetachainShardId {
-				return 15000000000
-			}
 			return 1500000000
 		},
-		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+		ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 			return moveBalanceGas(tx.GetData())
 		},
 	}

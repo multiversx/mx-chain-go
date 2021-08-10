@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -38,7 +39,7 @@ type ArgBaseBootstrapper struct {
 	MiniblocksProvider           process.MiniBlockProvider
 	Uint64Converter              typeConverters.Uint64ByteSliceConverter
 	AppStatusHandler             core.AppStatusHandler
-	Indexer                      process.Indexer
+	OutportHandler               outport.OutportHandler
 	AccountsDBSyncer             process.AccountsDBSyncer
 	CurrentEpochProvider         process.CurrentNetworkEpochProviderHandler
 	IsInImportMode               bool

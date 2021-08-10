@@ -282,7 +282,9 @@
         MaxOpenFiles = 10
 
 [EvictionWaitingList]
-    Size = 10000
+    #total max size ~ 2 * [(RoothashesSize * 32) + (HashesSize * 32)]
+    RootHashesSize = 10000
+    HashesSize = 100000
     [EvictionWaitingList.DB]
         FilePath = "EvictionWaitingList"
         Type = "LvlDBSerial"
@@ -556,7 +558,7 @@
 
 [EpochStartConfig]
     MinRoundsBetweenEpochs = 20
-    RoundsPerEpoch         = 60
+    RoundsPerEpoch         = 200
     # Min and Max ShuffledOutRestartThreshold represents the minimum and maximum duration of an epoch (in percentage) after a node which
     # has been shuffled out has to restart its process in order to start in a new shard
     MinShuffledOutRestartThreshold = 0.05
@@ -627,6 +629,7 @@
         ArwenVersions = [
             { StartEpoch = 0, Version = "v1.2" },
             { StartEpoch = 1, Version = "v1.3" },
+            { StartEpoch = 5, Version = "v1.4" },
         ]
 
     [VirtualMachine.Querying]
@@ -634,6 +637,7 @@
         ArwenVersions = [
             { StartEpoch = 0, Version = "v1.2" },
             { StartEpoch = 1, Version = "v1.3" },
+            { StartEpoch = 5, Version = "v1.4" },
         ]
 
 [Hardfork]

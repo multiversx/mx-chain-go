@@ -143,6 +143,7 @@ copyTxGenConfig() {
 
   cp ./node/config/economics.toml ./txgen/config/
   cp ./node/config/walletKey.pem ./txgen/config
+  cp ./node/config/enableEpochs.toml ./txgen/config/nodeConfig/config
 
   echo "Copied configuration for the TxGen."
   popd
@@ -154,6 +155,7 @@ updateTxGenConfig() {
 
   updateTOMLValue config_edit.toml "ServerPort" $PORT_TXGEN
   updateTOMLValue config_edit.toml "ProxyServerURL" "\"http://127.0.0.1:$PORT_PROXY\""
+  sed -i "/Scenarios = \[/c ${TXGEN_SCENARIOS_LINE}" config_edit.toml
 
   cp config_edit.toml config.toml
   rm config_edit.toml

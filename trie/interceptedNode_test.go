@@ -7,8 +7,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/mock"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
+	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/stretchr/testify/assert"
 )
@@ -17,10 +17,10 @@ func getDefaultInterceptedTrieNodeParameters() ([]byte, marshal.Marshalizer, has
 	tr := initTrie()
 	nodes, _ := getEncodedTrieNodesAndHashes(tr)
 
-	return nodes[0], &mock.ProtobufMarshalizerMock{}, &mock.KeccakMock{}
+	return nodes[0], &testscommon.ProtobufMarshalizerMock{}, &testscommon.KeccakMock{}
 }
 
-func getEncodedTrieNodesAndHashes(tr temporary.Trie) ([][]byte, [][]byte) {
+func getEncodedTrieNodesAndHashes(tr common.Trie) ([][]byte, [][]byte) {
 	it, _ := trie.NewIterator(tr)
 	encNode, _ := it.MarshalizedNode()
 

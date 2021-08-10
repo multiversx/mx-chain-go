@@ -8,6 +8,7 @@ import (
 	"sync"
 	"testing"
 
+	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -30,7 +31,7 @@ func TestVmGetShouldReturnValue(t *testing.T) {
 	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
 		VmContainer: vmContainer,
 		EconomicsFee: &mock.FeeHandlerStub{
-			MaxGasLimitPerBlockCalled: func() uint64 {
+			MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
 				return uint64(math.MaxUint64)
 			},
 		},
@@ -50,7 +51,7 @@ func TestVmGetShouldReturnValue(t *testing.T) {
 	vmOutput, err := service.ExecuteQuery(&query)
 	assert.Nil(t, err)
 
-	returnData, _ := vmOutput.GetFirstReturnData(vmcommon.AsBigInt)
+	returnData, _ := vmOutput.GetFirstReturnData(vmData.AsBigInt)
 	assert.Equal(t, expectedValueForVar, returnData)
 }
 

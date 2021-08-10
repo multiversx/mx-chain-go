@@ -14,7 +14,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	triesFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/stretchr/testify/assert"
 )
@@ -48,7 +50,7 @@ func createStubTopicMessageHandlerForMeta(matchStrToErrOnCreate string, matchStr
 }
 
 func createDataPoolsForMeta() dataRetriever.PoolsHolder {
-	pools := &testscommon.PoolsHolderStub{
+	pools := &dataRetrieverMock.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &mock.HeadersCacherStub{}
 		},
@@ -79,8 +81,8 @@ func createStoreForMeta() dataRetriever.StorageService {
 
 func createTriesHolderForMeta() state.TriesHolder {
 	triesHolder := state.NewDataTriesHolder()
-	triesHolder.Put([]byte(triesFactory.UserAccountTrie), &testscommon.TrieStub{})
-	triesHolder.Put([]byte(triesFactory.PeerAccountTrie), &testscommon.TrieStub{})
+	triesHolder.Put([]byte(triesFactory.UserAccountTrie), &trieMock.TrieStub{})
+	triesHolder.Put([]byte(triesFactory.PeerAccountTrie), &trieMock.TrieStub{})
 	return triesHolder
 }
 

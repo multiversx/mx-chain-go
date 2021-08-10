@@ -339,14 +339,14 @@ func (hhs *HeaderHandlerStub) SetAdditionalData(_ headerVersionData.HeaderAdditi
 	return nil
 }
 
+// GetAdditionalData gets the additional version-related data
+func (hhs *HeaderHandlerStub) GetAdditionalData() headerVersionData.HeaderAdditionalData {
+	return nil
+}
+
 // HasScheduledSupport -
 func (hhs *HeaderHandlerStub) HasScheduledSupport() bool {
 	return false
-}
-
-// GetAdditionalData -
-func (hhs *HeaderHandlerStub) GetAdditionalData() headerVersionData.HeaderAdditionalData {
-	return nil
 }
 
 // MapMiniBlockHashesToShards -

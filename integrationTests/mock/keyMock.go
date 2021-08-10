@@ -4,7 +4,7 @@ import (
 	"crypto/rand"
 
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
-	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go-crypto"
 )
 
 // PublicKeyMock -

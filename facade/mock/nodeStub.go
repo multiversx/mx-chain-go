@@ -6,11 +6,11 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-vm-common/data/esdt"
 )
 
 // NodeStub -
@@ -44,6 +44,7 @@ type NodeStub struct {
 	GetAllESDTTokensCalled                         func(address string) (map[string]*esdt.ESDigitalToken, error)
 	GetNFTTokenIDsRegisteredByAddressCalled        func(address string) ([]string, error)
 	GetESDTsWithRoleCalled                         func(address string, role string) ([]string, error)
+	GetESDTsRolesCalled                            func(address string) (map[string][]string, error)
 	GetKeyValuePairsCalled                         func(address string) (map[string]string, error)
 	GetAllIssuedESDTsCalled                        func(tokenType string) ([]string, error)
 }
@@ -186,6 +187,15 @@ func (ns *NodeStub) GetESDTData(address, tokenID string, nonce uint64) (*esdt.ES
 	}
 
 	return &esdt.ESDigitalToken{Value: big.NewInt(0)}, nil
+}
+
+// GetESDTsRoles -
+func (ns *NodeStub) GetESDTsRoles(address string) (map[string][]string, error) {
+	if ns.GetESDTsRolesCalled != nil {
+		return ns.GetESDTsRolesCalled(address)
+	}
+
+	return map[string][]string{}, nil
 }
 
 // GetESDTsWithRole -

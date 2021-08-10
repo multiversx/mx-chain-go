@@ -4,11 +4,8 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	receipt "github.com/ElrondNetwork/elrond-go-core/data/receipt"
-	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"math/big"
 	"sort"
 	"time"
@@ -25,15 +22,14 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/statistics"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
@@ -88,8 +84,7 @@ type baseProcessor struct {
 	blockProcessor         blockProcessor
 	txCounter              *transactionCounter
 
-	indexer            process.Indexer
-	tpsBenchmark       statistics.TPSBenchmark
+	outportHandler     outport.OutportHandler
 	historyRepo        dblookupext.HistoryRepository
 	epochNotifier      process.EpochNotifier
 	vmContainerFactory process.VirtualMachinesContainerFactory
@@ -448,11 +443,8 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.BlockSizeThrottler) {
 		return process.ErrNilBlockSizeThrottler
 	}
-	if check.IfNil(arguments.StatusComponents.ElasticIndexer()) {
-		return process.ErrNilIndexer
-	}
-	if check.IfNil(arguments.StatusComponents.TpsBenchmark()) {
-		return process.ErrNilTpsBenchmark
+	if check.IfNil(arguments.StatusComponents.OutportHandler()) {
+		return process.ErrNilOutportHandler
 	}
 	if check.IfNil(arguments.HistoryRepository) {
 		return process.ErrNilHistoryRepository
@@ -1047,11 +1039,13 @@ func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler, h
 
 	scheduledRootHash := bp.scheduledTxsExecutionHandler.GetScheduledRootHash()
 	mapScheduledSCRs := bp.scheduledTxsExecutionHandler.GetScheduledSCRs()
-	marshalizedRootHashAndScheduledSCRs, errNotCritical := bp.getMarshalizedScheduledRootHashAndSCRs(scheduledRootHash, mapScheduledSCRs)
-	if errNotCritical != nil {
-		log.Warn("saveBody.getMarshalizedScheduledSCRs", "error", errNotCritical.Error())
-	} else {
-		if len(marshalizedRootHashAndScheduledSCRs) > 0 {
+	if bp.scheduledTxsExecutionHandler.HaveScheduledTxs() {
+		marshalizedRootHashAndScheduledSCRs, errNotCritical := bp.getMarshalizedScheduledRootHashAndSCRs(scheduledRootHash, mapScheduledSCRs)
+		if errNotCritical != nil {
+			log.Warn("saveBody.getMarshalizedScheduledSCRs", "error", errNotCritical.Error())
+		} else {
+			//TODO: Change to log level TRACE
+			log.Debug("saveBody.Put(dataRetriever.ScheduledSCRsUnit)", "header hash", headerHash, "length of marshalized root hash and scheduled SCRs", len(marshalizedRootHashAndScheduledSCRs))
 			errNotCritical = bp.store.Put(dataRetriever.ScheduledSCRsUnit, headerHash, marshalizedRootHashAndScheduledSCRs)
 			if errNotCritical != nil {
 				log.Warn("saveBody.Put -> ScheduledSCRsUnit", "error", errNotCritical.Error())
@@ -1149,8 +1143,8 @@ func (bp *baseProcessor) updateStateStorage(
 		return
 	}
 
-	accounts.CancelPrune(rootHashToBePruned, temporary.NewRoot)
-	accounts.PruneTrie(rootHashToBePruned, temporary.OldRoot)
+	accounts.CancelPrune(rootHashToBePruned, state.NewRoot)
+	accounts.PruneTrie(rootHashToBePruned, state.OldRoot)
 }
 
 // RevertAccountState reverts the account state for cleanup failed process
@@ -1236,8 +1230,8 @@ func (bp *baseProcessor) PruneStateOnRollback(currHeader data.HeaderHandler, cur
 			continue
 		}
 
-		bp.accountsDB[key].CancelPrune(prevRootHash, temporary.OldRoot)
-		bp.accountsDB[key].PruneTrie(rootHash, temporary.NewRoot)
+		bp.accountsDB[key].CancelPrune(prevRootHash, state.OldRoot)
+		bp.accountsDB[key].PruneTrie(rootHash, state.NewRoot)
 	}
 }
 
@@ -1520,9 +1514,6 @@ func (bp *baseProcessor) getMarshalizedScheduledRootHashAndSCRs(
 	mapScheduledSCRs map[block.Type][]data.TransactionHandler,
 ) ([]byte, error) {
 
-	var ok bool
-	var scr *smartContractResult.SmartContractResult
-
 	scrsBatch := &batch.Batch{}
 	scrsBatch.Data = append(scrsBatch.Data, scheduledRootHash)
 
@@ -1537,32 +1528,17 @@ func (bp *baseProcessor) getMarshalizedScheduledRootHashAndSCRs(
 		}
 
 		for txIndex, tx := range txs {
-			_, ok = tx.(*receipt.Receipt)
-			if ok {
-				log.Debug("tx is a receipt", "sender", tx.GetSndAddr(), "receiver", tx.GetRcvAddr())
-				continue
-			}
-
-			_, ok = tx.(*rewardTx.RewardTx)
-			if ok {
-				log.Debug("tx is a reward tx", "sender", tx.GetSndAddr(), "receiver", tx.GetRcvAddr())
-				continue
-			}
-
-			_, ok = tx.(*transaction.Transaction)
-			if ok {
-				log.Debug("tx is a transaction", "sender", tx.GetSndAddr(), "receiver", tx.GetRcvAddr())
-				continue
-			}
-
-			scr, ok = tx.(*smartContractResult.SmartContractResult)
+			scr, ok := tx.(*smartContractResult.SmartContractResult)
 			if !ok {
 				return nil, process.ErrWrongTypeAssertion
 			}
 
-			log.Debug("tx is a smart contract result", "sender", tx.GetSndAddr(), "receiver", tx.GetRcvAddr())
-
 			scheduledSCRs.TxHandlers[txIndex] = *scr
+		}
+
+		//TODO: Remove this for
+		for txIndex := range txs {
+			log.Debug("tx is a smart contract result", "sender", scheduledSCRs.TxHandlers[txIndex].GetSndAddr(), "receiver", scheduledSCRs.TxHandlers[txIndex].GetRcvAddr())
 		}
 
 		marshalizedScheduledSCRs, err := bp.marshalizer.Marshal(scheduledSCRs)
@@ -1571,10 +1547,6 @@ func (bp *baseProcessor) getMarshalizedScheduledRootHashAndSCRs(
 		}
 
 		scrsBatch.Data = append(scrsBatch.Data, marshalizedScheduledSCRs)
-	}
-
-	if len(scrsBatch.Data) <= 1 {
-		return make([]byte, 0), nil
 	}
 
 	return bp.marshalizer.Marshal(scrsBatch)

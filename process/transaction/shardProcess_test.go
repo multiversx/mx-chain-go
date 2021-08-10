@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -41,10 +42,10 @@ func generateRandomByteSlice(size int) []byte {
 
 func feeHandlerMock() *mock.FeeHandlerStub {
 	return &mock.FeeHandlerStub{
-		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+		CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 			return nil
 		},
-		ComputeMoveBalanceFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+		ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return big.NewInt(0)
 		},
 	}
@@ -52,8 +53,8 @@ func feeHandlerMock() *mock.FeeHandlerStub {
 
 func createAccountStub(sndAddr, rcvAddr []byte,
 	acntSrc, acntDst state.UserAccountHandler,
-) *testscommon.AccountsStub {
-	adb := testscommon.AccountsStub{}
+) *stateMock.AccountsStub {
+	adb := stateMock.AccountsStub{}
 
 	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, sndAddr) {
@@ -72,7 +73,7 @@ func createAccountStub(sndAddr, rcvAddr []byte,
 
 func createArgsForTxProcessor() txproc.ArgsNewTxProcessor {
 	args := txproc.ArgsNewTxProcessor{
-		Accounts:         &testscommon.AccountsStub{},
+		Accounts:         &stateMock.AccountsStub{},
 		Hasher:           &hashingMocks.HasherMock{},
 		PubkeyConv:       createMockPubkeyConverter(),
 		Marshalizer:      &mock.MarshalizerMock{},
@@ -312,7 +313,7 @@ func TestTxProcessor_GetAccountsMalfunctionAccountsShouldErr(t *testing.T) {
 func TestTxProcessor_GetAccountsOkValsSrcShouldWork(t *testing.T) {
 	t.Parallel()
 
-	adb := testscommon.AccountsStub{}
+	adb := stateMock.AccountsStub{}
 
 	adr1 := []byte{65}
 	adr2 := []byte{67}
@@ -357,7 +358,7 @@ func TestTxProcessor_GetAccountsOkValsSrcShouldWork(t *testing.T) {
 func TestTxProcessor_GetAccountsOkValsDsthouldWork(t *testing.T) {
 	t.Parallel()
 
-	adb := testscommon.AccountsStub{}
+	adb := stateMock.AccountsStub{}
 
 	adr1 := []byte{65}
 	adr2 := []byte{67}
@@ -678,7 +679,7 @@ func TestTxProcessor_ProcessWithTxFeeHandlerCheckErrorShouldErr(t *testing.T) {
 
 	expectedError := errors.New("validatity check failed")
 	args.EconomicsFee = &mock.FeeHandlerStub{
-		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+		CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 			return expectedError
 		}}
 	execTx, _ := txproc.NewTxProcessor(args)
@@ -697,7 +698,7 @@ func TestTxProcessor_ProcessWithWrongAssertionShouldErr(t *testing.T) {
 	tx.Value = big.NewInt(0)
 
 	args := createArgsForTxProcessor()
-	args.Accounts = &testscommon.AccountsStub{
+	args.Accounts = &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			return &mock.PeerAccountHandlerMock{}, nil
 		},
@@ -731,7 +732,7 @@ func TestTxProcessor_ProcessWithTxFeeHandlerInsufficientFeeShouldErr(t *testing.
 	args.Accounts = adb
 
 	args.EconomicsFee = &mock.FeeHandlerStub{
-		ComputeTxFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+		ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return big.NewInt(0).Add(acntSrc.Balance, big.NewInt(1))
 		}}
 
@@ -763,7 +764,7 @@ func TestTxProcessor_ProcessWithInsufficientFundsShouldCreateReceiptErr(t *testi
 	args.Accounts = adb
 
 	args.EconomicsFee = &mock.FeeHandlerStub{
-		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+		CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 			return process.ErrInsufficientFunds
 		}}
 
@@ -796,7 +797,7 @@ func TestTxProcessor_ProcessWithUsernameMismatchCreateReceiptErr(t *testing.T) {
 	args.Accounts = adb
 
 	args.EconomicsFee = &mock.FeeHandlerStub{
-		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+		CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 			return process.ErrUserNameDoesNotMatchInCrossShardTx
 		}}
 
@@ -827,7 +828,7 @@ func TestTxProcessor_ProcessWithUsernameMismatchAndSCProcessErrorShouldError(t *
 	args := createArgsForTxProcessor()
 	args.Accounts = adb
 	args.EconomicsFee = &mock.FeeHandlerStub{
-		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+		CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 			return process.ErrUserNameDoesNotMatchInCrossShardTx
 		}}
 
@@ -1021,10 +1022,10 @@ func TestTxProcessor_MoveBalanceWithFeesShouldWork(t *testing.T) {
 
 	txCost := big.NewInt(16)
 	feeHandler := &mock.FeeHandlerStub{
-		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+		CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 			return nil
 		},
-		ComputeMoveBalanceFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+		ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return txCost
 		},
 	}
@@ -1315,10 +1316,10 @@ func TestTxProcessor_ProcessTxFeeIntraShard(t *testing.T) {
 	totalGiven := big.NewInt(100)
 	args := createArgsForTxProcessor()
 	args.EconomicsFee = &mock.FeeHandlerStub{
-		ComputeMoveBalanceFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+		ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return moveBalanceFee
 		},
-		ComputeTxFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+		ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return totalGiven
 		},
 	}
@@ -1331,7 +1332,7 @@ func TestTxProcessor_ProcessTxFeeIntraShard(t *testing.T) {
 		GasLimit: moveBalanceFee.Uint64(),
 	}
 
-	acntSnd := &mock.UserAccountStub{AddToBalanceCalled: func(value *big.Int) error {
+	acntSnd := &stateMock.UserAccountStub{AddToBalanceCalled: func(value *big.Int) error {
 		assert.True(t, value.Cmp(negMoveBalanceFee) == 0)
 		return nil
 	}}
@@ -1350,10 +1351,10 @@ func TestTxProcessor_ProcessTxFeeCrossShardMoveBalance(t *testing.T) {
 	totalGiven := big.NewInt(100)
 	args := createArgsForTxProcessor()
 	args.EconomicsFee = &mock.FeeHandlerStub{
-		ComputeMoveBalanceFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+		ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return moveBalanceFee
 		},
-		ComputeTxFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+		ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return totalGiven
 		},
 	}
@@ -1366,7 +1367,7 @@ func TestTxProcessor_ProcessTxFeeCrossShardMoveBalance(t *testing.T) {
 		GasLimit: moveBalanceFee.Uint64(),
 	}
 
-	acntSnd := &mock.UserAccountStub{AddToBalanceCalled: func(value *big.Int) error {
+	acntSnd := &stateMock.UserAccountStub{AddToBalanceCalled: func(value *big.Int) error {
 		assert.True(t, value.Cmp(negMoveBalanceFee) == 0)
 		return nil
 	}}
@@ -1409,10 +1410,10 @@ func TestTxProcessor_ProcessTxFeeCrossShardSCCall(t *testing.T) {
 	moveBalanceFee := big.NewInt(50)
 	args := createArgsForTxProcessor()
 	args.EconomicsFee = &mock.FeeHandlerStub{
-		ComputeMoveBalanceFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+		ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return moveBalanceFee
 		},
-		ComputeTxFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+		ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return big.NewInt(0).Mul(moveBalanceFee, moveBalanceFee)
 		},
 	}
@@ -1429,7 +1430,7 @@ func TestTxProcessor_ProcessTxFeeCrossShardSCCall(t *testing.T) {
 
 	totalCost := big.NewInt(0).Mul(big.NewInt(0).SetUint64(tx.GetGasPrice()), big.NewInt(0).SetUint64(tx.GetGasLimit()))
 	negTotalCost := big.NewInt(0).Neg(totalCost)
-	acntSnd := &mock.UserAccountStub{AddToBalanceCalled: func(value *big.Int) error {
+	acntSnd := &stateMock.UserAccountStub{AddToBalanceCalled: func(value *big.Int) error {
 		assert.True(t, value.Cmp(negTotalCost) == 0)
 		return nil
 	}}
@@ -1448,10 +1449,10 @@ func TestTxProcessor_ProcessTxFeeMoveBalanceUserTx(t *testing.T) {
 	negMoveBalanceFee := big.NewInt(0).Neg(moveBalanceFee)
 	args := createArgsForTxProcessor()
 	args.EconomicsFee = &mock.FeeHandlerStub{
-		ComputeMoveBalanceFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+		ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return moveBalanceFee
 		},
-		ComputeFeeForProcessingCalled: func(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
+		ComputeFeeForProcessingCalled: func(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
 			return processingFee
 		},
 	}
@@ -1464,7 +1465,7 @@ func TestTxProcessor_ProcessTxFeeMoveBalanceUserTx(t *testing.T) {
 		GasLimit: moveBalanceFee.Uint64(),
 	}
 
-	acntSnd := &mock.UserAccountStub{AddToBalanceCalled: func(value *big.Int) error {
+	acntSnd := &stateMock.UserAccountStub{AddToBalanceCalled: func(value *big.Int) error {
 		assert.True(t, value.Cmp(negMoveBalanceFee) == 0)
 		return nil
 	}}
@@ -1484,14 +1485,14 @@ func TestTxProcessor_ProcessTxFeeSCInvokeUserTx(t *testing.T) {
 	gasPerByte := uint64(1)
 	args := createArgsForTxProcessor()
 	args.EconomicsFee = &mock.FeeHandlerStub{
-		ComputeMoveBalanceFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+		ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return moveBalanceFee
 		},
-		ComputeFeeForProcessingCalled: func(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
+		ComputeFeeForProcessingCalled: func(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
 			decreasedPrice := int64(gasToUse * 10 / 100)
 			return big.NewInt(decreasedPrice)
 		},
-		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+		ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 			gasLimit := moveBalanceFee.Uint64()
 
 			dataLen := uint64(len(tx.GetData()))
@@ -1510,7 +1511,7 @@ func TestTxProcessor_ProcessTxFeeSCInvokeUserTx(t *testing.T) {
 		Data:     []byte("aaa"),
 	}
 
-	acntSnd := &mock.UserAccountStub{AddToBalanceCalled: func(value *big.Int) error {
+	acntSnd := &stateMock.UserAccountStub{AddToBalanceCalled: func(value *big.Int) error {
 		assert.True(t, value.Cmp(negMoveBalanceFee) == 0)
 		return nil
 	}}
@@ -1548,7 +1549,7 @@ func TestTxProcessor_ProcessTransactionShouldReturnErrForInvalidMetaTx(t *testin
 	args.ScProcessor = scProcessorMock
 	args.ShardCoordinator = shardC
 	args.EconomicsFee = &mock.FeeHandlerStub{
-		ComputeMoveBalanceFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+		ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return big.NewInt(1)
 		},
 	}
@@ -1596,7 +1597,7 @@ func TestTxProcessor_ProcessTransactionShouldTreatAsInvalidTxIfTxTypeIsWrong(t *
 	args.Accounts = adb
 	args.ShardCoordinator = shardC
 	args.EconomicsFee = &mock.FeeHandlerStub{
-		ComputeTxFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+		ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return big.NewInt(1)
 		},
 	}
@@ -1651,7 +1652,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2NotActiveShouldErr(t *testing.T)
 	acntFinal, _ := state.NewUserAccount(userTxDest)
 	acntFinal.Balance = big.NewInt(10)
 
-	adb := &testscommon.AccountsStub{}
+	adb := &stateMock.AccountsStub{}
 	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
@@ -1732,7 +1733,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2WithValueShouldErr(t *testing.T)
 	acntFinal, _ := state.NewUserAccount(userTxDest)
 	acntFinal.Balance = big.NewInt(10)
 
-	adb := &testscommon.AccountsStub{}
+	adb := &stateMock.AccountsStub{}
 	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
@@ -1812,7 +1813,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2ArgsParserShouldErr(t *testing.T
 	acntFinal, _ := state.NewUserAccount(userTxDest)
 	acntFinal.Balance = big.NewInt(10)
 
-	adb := &testscommon.AccountsStub{}
+	adb := &stateMock.AccountsStub{}
 	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
@@ -1899,7 +1900,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2InvalidParamCountShouldErr(t *te
 	acntFinal, _ := state.NewUserAccount(userTxDest)
 	acntFinal.Balance = big.NewInt(10)
 
-	adb := &testscommon.AccountsStub{}
+	adb := &stateMock.AccountsStub{}
 	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
@@ -1979,7 +1980,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2(t *testing.T) {
 	acntFinal, _ := state.NewUserAccount(userTxDest)
 	acntFinal.Balance = big.NewInt(10)
 
-	adb := &testscommon.AccountsStub{}
+	adb := &stateMock.AccountsStub{}
 	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
@@ -2054,7 +2055,7 @@ func TestTxProcessor_ProcessRelayedTransaction(t *testing.T) {
 	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr)
 	acntFinal.Balance = big.NewInt(10)
 
-	adb := &testscommon.AccountsStub{}
+	adb := &stateMock.AccountsStub{}
 	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
@@ -2145,7 +2146,7 @@ func TestTxProcessor_ProcessRelayedTransactionArgsParserErrorShouldError(t *test
 	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr)
 	acntFinal.Balance = big.NewInt(10)
 
-	adb := &testscommon.AccountsStub{}
+	adb := &stateMock.AccountsStub{}
 	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
@@ -2208,7 +2209,7 @@ func TestTxProcessor_ProcessRelayedTransactionMultipleArgumentsShouldError(t *te
 	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr)
 	acntFinal.Balance = big.NewInt(10)
 
-	adb := &testscommon.AccountsStub{}
+	adb := &stateMock.AccountsStub{}
 	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
@@ -2271,7 +2272,7 @@ func TestTxProcessor_ProcessRelayedTransactionFailUnMarshalInnerShouldError(t *t
 	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr)
 	acntFinal.Balance = big.NewInt(10)
 
-	adb := &testscommon.AccountsStub{}
+	adb := &stateMock.AccountsStub{}
 	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
@@ -2334,7 +2335,7 @@ func TestTxProcessor_ProcessRelayedTransactionDifferentSenderInInnerTxThanReceiv
 	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr)
 	acntFinal.Balance = big.NewInt(10)
 
-	adb := &testscommon.AccountsStub{}
+	adb := &stateMock.AccountsStub{}
 	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
@@ -2397,7 +2398,7 @@ func TestTxProcessor_ProcessRelayedTransactionSmallerValueInnerTxShouldError(t *
 	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr)
 	acntFinal.Balance = big.NewInt(10)
 
-	adb := &testscommon.AccountsStub{}
+	adb := &stateMock.AccountsStub{}
 	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
@@ -2460,7 +2461,7 @@ func TestTxProcessor_ProcessRelayedTransactionGasPriceMismatchShouldError(t *tes
 	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr)
 	acntFinal.Balance = big.NewInt(10)
 
-	adb := &testscommon.AccountsStub{}
+	adb := &stateMock.AccountsStub{}
 	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
@@ -2523,7 +2524,7 @@ func TestTxProcessor_ProcessRelayedTransactionGasLimitMismatchShouldError(t *tes
 	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr)
 	acntFinal.Balance = big.NewInt(10)
 
-	adb := &testscommon.AccountsStub{}
+	adb := &stateMock.AccountsStub{}
 	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
@@ -2582,7 +2583,7 @@ func TestTxProcessor_ProcessRelayedTransactionDisabled(t *testing.T) {
 	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr)
 	acntFinal.Balance = big.NewInt(10)
 
-	adb := &testscommon.AccountsStub{}
+	adb := &stateMock.AccountsStub{}
 	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
@@ -2638,10 +2639,10 @@ func TestTxProcessor_ConsumeMoveBalanceWithUserTx(t *testing.T) {
 
 	args := createArgsForTxProcessor()
 	args.EconomicsFee = &mock.FeeHandlerStub{
-		ComputeFeeForProcessingCalled: func(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
+		ComputeFeeForProcessingCalled: func(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
 			return big.NewInt(1)
 		},
-		ComputeTxFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+		ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return big.NewInt(150)
 		},
 	}
@@ -2718,7 +2719,7 @@ func TestTxProcessor_ProcessUserTxOfTypeRelayedShouldError(t *testing.T) {
 	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr)
 	acntFinal.Balance = big.NewInt(100)
 
-	adb := &testscommon.AccountsStub{}
+	adb := &stateMock.AccountsStub{}
 	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
@@ -2782,7 +2783,7 @@ func TestTxProcessor_ProcessUserTxOfTypeMoveBalanceShouldWork(t *testing.T) {
 	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr)
 	acntFinal.Balance = big.NewInt(100)
 
-	adb := &testscommon.AccountsStub{}
+	adb := &stateMock.AccountsStub{}
 	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
@@ -2846,7 +2847,7 @@ func TestTxProcessor_ProcessUserTxOfTypeSCDeploymentShouldWork(t *testing.T) {
 	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr)
 	acntFinal.Balance = big.NewInt(100)
 
-	adb := &testscommon.AccountsStub{}
+	adb := &stateMock.AccountsStub{}
 	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
@@ -2910,7 +2911,7 @@ func TestTxProcessor_ProcessUserTxOfTypeSCInvokingShouldWork(t *testing.T) {
 	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr)
 	acntFinal.Balance = big.NewInt(100)
 
-	adb := &testscommon.AccountsStub{}
+	adb := &stateMock.AccountsStub{}
 	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
@@ -2974,7 +2975,7 @@ func TestTxProcessor_ProcessUserTxOfTypeBuiltInFunctionCallShouldWork(t *testing
 	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr)
 	acntFinal.Balance = big.NewInt(100)
 
-	adb := &testscommon.AccountsStub{}
+	adb := &stateMock.AccountsStub{}
 	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
@@ -3042,7 +3043,7 @@ func TestTxProcessor_ProcessUserTxErrNotPayableShouldFailRelayTx(t *testing.T) {
 	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr)
 	acntFinal.Balance = big.NewInt(100)
 
-	adb := &testscommon.AccountsStub{}
+	adb := &stateMock.AccountsStub{}
 	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
@@ -3112,7 +3113,7 @@ func TestTxProcessor_ProcessUserTxFailedBuiltInFunctionCall(t *testing.T) {
 	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr)
 	acntFinal.Balance = big.NewInt(100)
 
-	adb := &testscommon.AccountsStub{}
+	adb := &stateMock.AccountsStub{}
 	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
@@ -3172,7 +3173,7 @@ func TestTxProcessor_ExecuteFailingRelayedTxShouldNotHaveNegativeFee(t *testing.
 	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr)
 	acntFinal.Balance = big.NewInt(100)
 
-	adb := &testscommon.AccountsStub{}
+	adb := &stateMock.AccountsStub{}
 	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil

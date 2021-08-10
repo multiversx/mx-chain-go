@@ -20,6 +20,7 @@ type ScheduledTxsExecutionStub struct {
 	SetScheduledRootHashCalled      func([]byte)
 	SetTransactionProcessorCalled   func(process.TransactionProcessor)
 	SetTransactionCoordinatorCalled func(process.TransactionCoordinator)
+	HaveScheduledTxsCalled          func() bool
 }
 
 // Init -
@@ -74,7 +75,7 @@ func (stes *ScheduledTxsExecutionStub) GetScheduledRootHash() []byte {
 		return stes.GetScheduledRootHashCalled()
 	}
 
-	return make([]byte, 0)
+	return nil
 }
 
 // SetScheduledRootHash -
@@ -96,6 +97,15 @@ func (stes *ScheduledTxsExecutionStub) SetTransactionCoordinator(txCoordinator p
 	if stes.SetTransactionCoordinatorCalled != nil {
 		stes.SetTransactionCoordinatorCalled(txCoordinator)
 	}
+}
+
+// HaveScheduledTxs -
+func (stes *ScheduledTxsExecutionStub) HaveScheduledTxs() bool {
+	if stes.HaveScheduledTxsCalled != nil {
+		return stes.HaveScheduledTxsCalled()
+	}
+
+	return false
 }
 
 // IsInterfaceNil -

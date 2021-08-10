@@ -22,9 +22,6 @@ func TestDisabledNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	dnf := NewDisabledNodeFacade(apiInterface)
 
 	dnf.SetSyncer(nil)
-	dnf.SetTpsBenchmark(nil)
-	r := dnf.TpsBenchmark()
-	assert.Nil(t, r)
 	b := dnf.RestAPIServerDebugMode()
 	assert.Equal(t, false, b)
 	s1 := dnf.RestApiInterface()

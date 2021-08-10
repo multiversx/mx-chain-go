@@ -745,8 +745,13 @@ func GetScheduledRootHashAndSCRsFromStorage(
 		}
 
 		mapScheduledSCRs[block.Type(scheduledSCRs.BlockType)] = make([]data.TransactionHandler, len(scheduledSCRs.TxHandlers))
-		for txIndex, tx := range scheduledSCRs.TxHandlers {
-			mapScheduledSCRs[block.Type(scheduledSCRs.BlockType)][txIndex] = &tx
+		for txIndex := range scheduledSCRs.TxHandlers {
+			mapScheduledSCRs[block.Type(scheduledSCRs.BlockType)][txIndex] = &scheduledSCRs.TxHandlers[txIndex]
+		}
+
+		//TODO: Remove this for
+		for txIndex := range scheduledSCRs.TxHandlers {
+			log.Debug("GetScheduledRootHashAndSCRsFromStorage: tx", "sender", mapScheduledSCRs[block.Type(scheduledSCRs.BlockType)][txIndex].GetSndAddr(), "receiver", mapScheduledSCRs[block.Type(scheduledSCRs.BlockType)][txIndex].GetRcvAddr())
 		}
 	}
 
@@ -764,7 +769,8 @@ func SetScheduledRootHashAndSCRs(
 ) {
 	scheduledRootHash, mapScheduledSCRs, err := GetScheduledRootHashAndSCRsFromStorage(headerHash, storageService, marshalizer)
 	if err != nil {
-		log.Debug("SetScheduledRootHashAndSCRs: header hash not found in ScheduledSCRs storage",
+		//TODO: Change the log level to TRACE
+		log.Debug("SetScheduledRootHashAndSCRs: given header does not have scheduled txs",
 			"header hash", headerHash,
 		)
 
@@ -787,7 +793,8 @@ func GetScheduledRootHash(
 ) []byte {
 	scheduledRootHash, _, err := GetScheduledRootHashAndSCRsFromStorage(headerHash, storageService, marshalizer)
 	if err != nil {
-		log.Debug("GetScheduledRootHash: header hash not found in ScheduledSCRs storage",
+		//TODO: Change the log level to TRACE
+		log.Debug("GetScheduledRootHash: given header does not have scheduled txs",
 			"header hash", headerHash,
 		)
 

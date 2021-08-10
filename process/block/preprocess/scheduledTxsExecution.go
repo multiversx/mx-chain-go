@@ -49,7 +49,7 @@ func NewScheduledTxsExecution(
 		mapScheduledTxs:   make(map[string]data.TransactionHandler),
 		mapScheduledSCRs:  make(map[block.Type][]data.TransactionHandler),
 		scheduledTxs:      make([]data.TransactionHandler, 0),
-		scheduledRootHash: make([]byte, 0),
+		scheduledRootHash: nil,
 	}
 
 	return ste, nil
@@ -166,6 +166,11 @@ func (ste *scheduledTxsExecution) computeScheduledSCRs(
 			ste.mapScheduledSCRs[blockType][scrIndex] = scrInfo.txHandler
 		}
 
+		//TODO: Remove this for
+		for scrIndex := range scrsInfo {
+			log.Debug("scheduledTxsExecution.computeScheduledSCRs", "blockType", blockType, "sender", ste.mapScheduledSCRs[blockType][scrIndex].GetSndAddr(), "receiver", ste.mapScheduledSCRs[blockType][scrIndex].GetRcvAddr())
+		}
+
 		numScheduledSCRs += len(scrsInfo)
 	}
 
@@ -213,6 +218,11 @@ func (ste *scheduledTxsExecution) GetScheduledSCRs() map[block.Type][]data.Trans
 			mapScheduledSCRs[blockType][scrIndex] = txHandler
 		}
 
+		//TODO: Remove this for
+		for scrIndex := range scheduledSCRs {
+			log.Debug("scheduledTxsExecution.GetScheduledSCRs", "blockType", blockType, "sender", mapScheduledSCRs[blockType][scrIndex].GetSndAddr(), "receiver", mapScheduledSCRs[blockType][scrIndex].GetRcvAddr())
+		}
+
 		numScheduledSCRs += len(scheduledSCRs)
 	}
 
@@ -236,6 +246,11 @@ func (ste *scheduledTxsExecution) SetScheduledSCRs(mapSCRs map[block.Type][]data
 		ste.mapScheduledSCRs[blockType] = make([]data.TransactionHandler, len(scrs))
 		for scrIndex, txHandler := range scrs {
 			ste.mapScheduledSCRs[blockType][scrIndex] = txHandler
+		}
+
+		//TODO: Remove this for
+		for scrIndex := range scrs {
+			log.Debug("scheduledTxsExecution.SetScheduledSCRs", "blockType", blockType, "sender", ste.mapScheduledSCRs[blockType][scrIndex].GetSndAddr(), "receiver", ste.mapScheduledSCRs[blockType][scrIndex].GetRcvAddr())
 		}
 
 		numScheduledSCRs += len(scrs)
@@ -272,6 +287,16 @@ func (ste *scheduledTxsExecution) SetTransactionProcessor(txProcessor process.Tr
 // SetTransactionCoordinator sets the transaction coordinator needed by scheduled txs execution component
 func (ste *scheduledTxsExecution) SetTransactionCoordinator(txCoordinator process.TransactionCoordinator) {
 	ste.txCoordinator = txCoordinator
+}
+
+// HaveScheduledTxs method returns if there are scheduled transactions
+func (ste *scheduledTxsExecution) HaveScheduledTxs() bool {
+	ste.mutScheduledTxs.RLock()
+	log.Debug("scheduledTxsExecution.HaveScheduledTxs", "num of scheduled txs", len(ste.scheduledTxs))
+	haveScheduledTxs := len(ste.scheduledTxs) > 0
+	ste.mutScheduledTxs.RUnlock()
+
+	return haveScheduledTxs
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

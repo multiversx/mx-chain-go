@@ -9,6 +9,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/debug/factory"
@@ -357,7 +358,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		Hasher:                    e.CoreComponents.Hasher(),
 		Marshalizer:               e.CoreComponents.InternalMarshalizer(),
 		TrieStorageManager:        trieStorageManager,
-		TimoutGettingTrieNode:     update.TimeoutGettingTrieNodes,
+		TimoutGettingTrieNode:     common.TimeoutGettingTrieNodesInHardfork,
 		MaxTrieLevelInMemory:      e.maxTrieLevelInMemory,
 		MaxHardCapForMissingNodes: e.maxHardCapForMissingNodes,
 		NumConcurrentTrieSyncers:  e.numConcurrentTrieSyncers,
