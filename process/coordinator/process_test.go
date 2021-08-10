@@ -29,9 +29,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -46,7 +46,7 @@ func FeeHandlerMock() *mock.FeeHandlerStub {
 		ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 			return 0
 		},
-		MaxGasLimitPerBlockCalled: func() uint64 {
+		MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
 			return MaxGasLimitPerBlock
 		},
 	}
@@ -1227,7 +1227,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	argsTransactionCoordinator.PreProcessors = createPreProcessorContainerWithDataPool(
 		tdp,
 		&mock.FeeHandlerStub{
-			MaxGasLimitPerBlockCalled: func() uint64 {
+			MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
 				return MaxGasLimitPerBlock
 			},
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
@@ -1284,7 +1284,7 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 	argsTransactionCoordinator.PreProcessors = createPreProcessorContainerWithDataPool(
 		tdp,
 		&mock.FeeHandlerStub{
-			MaxGasLimitPerBlockCalled: func() uint64 {
+			MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
 				return MaxGasLimitPerBlock
 			},
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
@@ -2076,7 +2076,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 		&mock.ChainStorerMock{},
 		tdp,
 		&mock.FeeHandlerStub{
-			MaxGasLimitPerBlockCalled: func() uint64 {
+			MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
 				return MaxGasLimitPerBlock
 			},
 		},
@@ -2482,7 +2482,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxGasLimitPerMi
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return maxGasLimitPerBlock + 1
 			},
-			MaxGasLimitPerBlockCalled: func() uint64 {
+			MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
 				return maxGasLimitPerBlock
 			},
 		},
@@ -2539,7 +2539,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxAccumulatedFe
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return maxGasLimitPerBlock
 			},
-			MaxGasLimitPerBlockCalled: func() uint64 {
+			MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
 				return maxGasLimitPerBlock
 			},
 			DeveloperPercentageCalled: func() float64 {
@@ -2605,7 +2605,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxDeveloperFees
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return maxGasLimitPerBlock
 			},
-			MaxGasLimitPerBlockCalled: func() uint64 {
+			MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
 				return maxGasLimitPerBlock
 			},
 			DeveloperPercentageCalled: func() float64 {
@@ -2671,7 +2671,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldWork(t *testing.T) 
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return maxGasLimitPerBlock
 			},
-			MaxGasLimitPerBlockCalled: func() uint64 {
+			MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
 				return maxGasLimitPerBlock
 			},
 			DeveloperPercentageCalled: func() float64 {
@@ -2802,7 +2802,7 @@ func TestTransactionCoordinator_VerifyGasLimitShouldErrMaxGasLimitPerMiniBlockIn
 		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:   &testscommon.BalanceComputationStub{},
 		EconomicsFee: &mock.FeeHandlerStub{
-			MaxGasLimitPerBlockCalled: func() uint64 {
+			MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
 				return tx1GasLimit + tx2GasLimit + tx3GasLimit - 1
 			},
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
@@ -2888,7 +2888,7 @@ func TestTransactionCoordinator_VerifyGasLimitShouldWork(t *testing.T) {
 		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:   &testscommon.BalanceComputationStub{},
 		EconomicsFee: &mock.FeeHandlerStub{
-			MaxGasLimitPerBlockCalled: func() uint64 {
+			MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
 				return tx1GasLimit + tx2GasLimit + tx3GasLimit
 			},
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
@@ -3119,7 +3119,7 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:   &testscommon.BalanceComputationStub{},
 		EconomicsFee: &mock.FeeHandlerStub{
-			MaxGasLimitPerBlockCalled: func() uint64 {
+			MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
 				return tx1GasLimit + tx2GasLimit + tx3GasLimit - 1
 			},
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
@@ -3179,7 +3179,7 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:   &testscommon.BalanceComputationStub{},
 		EconomicsFee: &mock.FeeHandlerStub{
-			MaxGasLimitPerBlockCalled: func() uint64 {
+			MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
 				return tx1GasLimit + tx2GasLimit + tx3GasLimit
 			},
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {

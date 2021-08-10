@@ -169,7 +169,7 @@ func createMockArgument(
 		GenesisTotalSupplyCalled: func() *big.Int {
 			return entireSupply
 		},
-		MaxGasLimitPerBlockCalled: func() uint64 {
+		MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
 			return math.MaxUint64
 		},
 	}

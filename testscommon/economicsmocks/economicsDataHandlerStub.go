@@ -8,7 +8,7 @@ import (
 
 // EconomicsHandlerStub -
 type EconomicsHandlerStub struct {
-	MaxGasLimitPerBlockCalled                    func() uint64
+	MaxGasLimitPerBlockCalled                    func(shardID uint32) uint64
 	ComputeGasLimitCalled                        func(tx data.TransactionWithFeeHandler) uint64
 	ComputeMoveBalanceFeeCalled                  func(tx data.TransactionWithFeeHandler) *big.Int
 	ComputeTxFeeCalled                           func(tx data.TransactionWithFeeHandler) *big.Int
@@ -142,9 +142,9 @@ func (e *EconomicsHandlerStub) DeveloperPercentage() float64 {
 }
 
 // MaxGasLimitPerBlock -
-func (e *EconomicsHandlerStub) MaxGasLimitPerBlock(uint32) uint64 {
+func (e *EconomicsHandlerStub) MaxGasLimitPerBlock(shardID uint32) uint64 {
 	if e.MaxGasLimitPerBlockCalled != nil {
-		return e.MaxGasLimitPerBlockCalled()
+		return e.MaxGasLimitPerBlockCalled(shardID)
 	}
 	return 1000000
 }

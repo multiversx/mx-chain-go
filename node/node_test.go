@@ -2034,7 +2034,7 @@ func TestCreateTransaction_TxSignedWithHashShouldErrVersionShoudBe2(t *testing.T
 		return chainID
 	}
 
-	feeHandler := &economicsmocks.EconomicsHandlerMock{
+	feeHandler := &economicsmocks.EconomicsHandlerStub{
 		CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 			return nil
 		},
