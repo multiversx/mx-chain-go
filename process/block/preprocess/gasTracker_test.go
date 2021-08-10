@@ -64,7 +64,7 @@ func createDefaultGasTracker(
 		CurrentShard: selfShardID,
 	}
 	economicsFee := &economicsmocks.EconomicsHandlerStub{
-		MaxGasLimitPerBlockCalled: func() uint64 {
+		MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
 			return 1500000000
 		},
 		ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {

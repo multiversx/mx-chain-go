@@ -228,7 +228,7 @@ func (vmTestContext *VMTestContext) GetVMOutputWithTransientVM(funcName string, 
 	}()
 
 	feeHandler := &mock.FeeHandlerStub{
-		MaxGasLimitPerBlockCalled: func() uint64 {
+		MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
 			return uint64(math.MaxUint64)
 		},
 	}
@@ -1022,18 +1022,23 @@ func CreatePreparedTxProcessorAndAccountsWithVMs(
 
 // CreatePreparedTxProcessorWithVMs -
 func CreatePreparedTxProcessorWithVMs(argEnableEpoch ArgEnableEpoch) (*VMTestContext, error) {
+	return CreatePreparedTxProcessorWithVMsWithShardCoordinator(argEnableEpoch, oneShardCoordinator)
+}
+
+// CreatePreparedTxProcessorWithVMsWithShardCoordinator -
+func CreatePreparedTxProcessorWithVMsWithShardCoordinator(argEnableEpoch ArgEnableEpoch, shardCoordinator sharding.Coordinator) (*VMTestContext, error) {
 	feeAccumulator, _ := postprocess.NewFeeAccumulator()
 	accounts := CreateInMemoryShardAccountsDB()
 	vmConfig := createDefaultVMConfig()
 	arwenChangeLocker := &sync.RWMutex{}
 
-	vmContainer, blockchainHook, pool := CreateVMAndBlockchainHookAndDataPool(accounts, nil, vmConfig, oneShardCoordinator, arwenChangeLocker)
+	vmContainer, blockchainHook, pool := CreateVMAndBlockchainHookAndDataPool(accounts, nil, vmConfig, shardCoordinator, arwenChangeLocker)
 	txProcessor, scProcessor, scForwarder, economicsData, txCostHandler, err := CreateTxProcessorWithOneSCExecutorWithVMs(
 		accounts,
 		vmContainer,
 		blockchainHook,
 		feeAccumulator,
-		oneShardCoordinator,
+		shardCoordinator,
 		argEnableEpoch,
 		arwenChangeLocker,
 		pool,
@@ -1050,7 +1055,7 @@ func CreatePreparedTxProcessorWithVMs(argEnableEpoch ArgEnableEpoch) (*VMTestCon
 		VMContainer:      vmContainer,
 		TxFeeHandler:     feeAccumulator,
 		ScForwarder:      scForwarder,
-		ShardCoordinator: oneShardCoordinator,
+		ShardCoordinator: shardCoordinator,
 		EconomicsData:    economicsData,
 		TxCostHandler:    txCostHandler,
 	}, nil
@@ -1260,7 +1265,7 @@ func GetVmOutput(gasSchedule map[string]map[string]uint64, accnts state.Accounts
 	}()
 
 	feeHandler := &mock.FeeHandlerStub{
-		MaxGasLimitPerBlockCalled: func() uint64 {
+		MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
 			return uint64(math.MaxUint64)
 		},
 	}
