@@ -55,7 +55,8 @@ func TestFullHistoryGetParentDirAndLastEpoch_ShouldWork(t *testing.T) {
 	storerStub := &testscommon.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			return marshaller.Marshal(&block.TriggerRegistry{
-				EpochStartRound: 1,
+				EpochStartRound:       1,
+				EpochStartShardHeader: &block.Header{},
 			})
 		},
 	}
@@ -131,11 +132,16 @@ func TestFullHistoryLatestDataProvider_Get(t *testing.T) {
 
 	startRound, lastRound := uint64(5), int64(10)
 	state := &block.TriggerRegistry{
-		EpochStartRound: startRound,
+		EpochStartRound:       startRound,
+		EpochStartShardHeader: &block.Header{
+			Epoch: lastEpoch,
+		},
 	}
+
+	marshaller := &marshal.GogoProtoMarshalizer{}
 	storer := &testscommon.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
-			stateBytes, _ := json.Marshal(state)
+			stateBytes, _ := marshaller.Marshal(state)
 			return stateBytes, nil
 		},
 	}
@@ -171,11 +177,14 @@ func TestFullHistoryLoadEpochStartRoundShard(t *testing.T) {
 	shardID := uint32(0)
 	startRound := uint64(100)
 	state := &block.TriggerRegistry{
-		EpochStartRound: startRound,
+		EpochStartRound:       startRound,
+		EpochStartShardHeader: &block.Header{},
 	}
+
+	marshaller := &marshal.GogoProtoMarshalizer{}
 	storer := &testscommon.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
-			stateBytes, _ := json.Marshal(state)
+			stateBytes, _ := marshaller.Marshal(state)
 			return stateBytes, nil
 		},
 	}
@@ -197,6 +206,7 @@ func TestFullHistoryLoadEpochStartRoundMetachain(t *testing.T) {
 	state := &metachain.TriggerRegistry{
 		CurrEpochStartRound: startRound,
 	}
+
 	storer := &testscommon.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			stateBytes, _ := json.Marshal(state)
