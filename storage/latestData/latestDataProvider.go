@@ -1,7 +1,6 @@
 package latestData
 
 import (
-	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"regexp"
@@ -11,11 +10,11 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -205,9 +204,10 @@ func (ldp *latestDataProvider) loadEpochStartRound(
 		return 0, err
 	}
 
+	marshaller := &marshal.GogoProtoMarshalizer{}
 	if shardID == core.MetachainShardId {
-		state := &metachain.TriggerRegistry{}
-		err = json.Unmarshal(trigData, state)
+		state := &block.MetaTriggerRegistry{}
+		err = marshaller.Unmarshal(state, trigData)
 		if err != nil {
 			return 0, err
 		}
@@ -215,7 +215,6 @@ func (ldp *latestDataProvider) loadEpochStartRound(
 		return state.CurrEpochStartRound, nil
 	}
 
-	marshaller := &marshal.GogoProtoMarshalizer{}
 	var trigHandler data.TriggerRegistryHandler
 	trigHandler, err = shardchain.UnmarshalTrigger(marshaller, trigData)
 	if err != nil {

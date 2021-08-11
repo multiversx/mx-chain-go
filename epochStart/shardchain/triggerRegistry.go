@@ -54,7 +54,7 @@ func UnmarshalTrigger(marshalizer marshal.Marshalizer, data []byte) (data.Trigge
 
 // UnmarshalTriggerV2 tries to unmarshal the data into a v2 trigger
 func UnmarshalTriggerV2(marshalizer marshal.Marshalizer, data []byte) (data.TriggerRegistryHandler, error) {
-	triggerV2 := &block.TriggerRegistryV2{
+	triggerV2 := &block.ShardTriggerRegistryV2{
 		EpochStartShardHeader: &block.HeaderV2{},
 	}
 
@@ -71,7 +71,7 @@ func UnmarshalTriggerV2(marshalizer marshal.Marshalizer, data []byte) (data.Trig
 
 // UnmarshalTriggerV1 tries to unmarshal the data into a v1 trigger
 func UnmarshalTriggerV1(marshalizer marshal.Marshalizer, data []byte) (data.TriggerRegistryHandler, error) {
-	triggerV1 := &block.TriggerRegistry{
+	triggerV1 := &block.ShardTriggerRegistry{
 		EpochStartShardHeader: &block.Header{},
 	}
 
@@ -88,10 +88,10 @@ func UnmarshalTriggerV1(marshalizer marshal.Marshalizer, data []byte) (data.Trig
 
 // saveState saves the trigger state. Needs to be called under mutex
 func (t *trigger) saveState(key []byte) error {
-	registryV2 := &block.TriggerRegistryV2{
+	registryV2 := &block.ShardTriggerRegistryV2{
 		EpochStartShardHeader: &block.HeaderV2{},
 	}
-	registryV1 := &block.TriggerRegistry{
+	registryV1 := &block.ShardTriggerRegistry{
 		EpochStartShardHeader: &block.Header{},
 	}
 	var registry data.TriggerRegistryHandler
@@ -103,15 +103,15 @@ func (t *trigger) saveState(key []byte) error {
 		registry = registryV1
 	}
 
-	_ = registry.SetMetaEpoch(t.metaEpoch)
-	_ = registry.SetEpoch(t.epoch)
-	_ = registry.SetCurrentRoundIndex(t.currentRoundIndex)
-	_ = registry.SetEpochStartRound(t.epochStartRound)
-	_ = registry.SetEpochMetaBlockHash(t.epochMetaBlockHash)
-	_ = registry.SetIsEpochStart(t.isEpochStart)
-	_ = registry.SetNewEpochHeaderReceived(t.newEpochHdrReceived)
-	_ = registry.SetEpochFinalityAttestingRound(t.epochFinalityAttestingRound)
-	_ = registry.SetEpochStartHeaderHandler(t.epochStartShardHeader)
+	err := registry.SetMetaEpoch(t.metaEpoch)
+	err = registry.SetEpoch(t.epoch)
+	err = registry.SetCurrentRoundIndex(t.currentRoundIndex)
+	err = registry.SetEpochStartRound(t.epochStartRound)
+	err = registry.SetEpochMetaBlockHash(t.epochMetaBlockHash)
+	err = registry.SetIsEpochStart(t.isEpochStart)
+	err = registry.SetNewEpochHeaderReceived(t.newEpochHdrReceived)
+	err = registry.SetEpochFinalityAttestingRound(t.epochFinalityAttestingRound)
+	err = registry.SetEpochStartHeaderHandler(t.epochStartShardHeader)
 
 	marshalledRegistry, err := t.marshalizer.Marshal(registry)
 	if err != nil {

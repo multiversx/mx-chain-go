@@ -289,7 +289,7 @@ func (ssh *shardStorageHandler) saveTriggerRegistry(components *ComponentsNeeded
 		return nil, err
 	}
 
-	triggerReg := block.TriggerRegistry{
+	triggerReg := block.ShardTriggerRegistry{
 		Epoch:                       shardHeader.GetEpoch(),
 		MetaEpoch:                   metaBlock.GetEpoch(),
 		CurrentRoundIndex:           int64(shardHeader.GetRound()),
