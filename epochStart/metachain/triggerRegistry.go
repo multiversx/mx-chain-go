@@ -1,6 +1,8 @@
 package metachain
 
 import (
+	"encoding/json"
+
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -16,10 +18,7 @@ func (t *trigger) LoadState(key []byte) error {
 		return err
 	}
 
-	state := &block.MetaTriggerRegistry{
-		EpochStartMeta: &block.MetaBlock{},
-	}
-	err = t.marshalizer.Unmarshal(state, d)
+	state, err := t.UnmarshallTrigger(d)
 	if err != nil {
 		return err
 	}
@@ -36,6 +35,23 @@ func (t *trigger) LoadState(key []byte) error {
 	t.mutTrigger.Unlock()
 
 	return nil
+}
+
+func (t *trigger) UnmarshallTrigger(data []byte) (*block.MetaTriggerRegistry, error) {
+	state := &block.MetaTriggerRegistry{
+		EpochStartMeta: &block.MetaBlock{},
+	}
+	err := t.marshalizer.Unmarshal(state, data)
+	if err == nil {
+		return state, nil
+	}
+
+	// for backwards compatibility
+	err = json.Unmarshal(data, state)
+	if err != nil {
+		return nil, err
+	}
+	return state, nil
 }
 
 // saveState saves the trigger state. Needs to be called under mutex

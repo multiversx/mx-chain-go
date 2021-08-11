@@ -1,6 +1,7 @@
 package shardchain
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -49,7 +50,24 @@ func UnmarshalTrigger(marshalizer marshal.Marshalizer, data []byte) (data.Trigge
 		return trig, nil
 	}
 
-	return UnmarshalTriggerV1(marshalizer, data)
+	trig, err = UnmarshalTriggerV1(marshalizer, data)
+	if err == nil {
+		return trig, nil
+	}
+
+	// for backwards compatibility
+	return UnmarshalTriggerJson(data)
+}
+
+// UnmarshalTriggerJson unmarshalls the trigger with json, for backwards compatibility
+func UnmarshalTriggerJson(data []byte) (data.TriggerRegistryHandler, error) {
+	trig := &block.ShardTriggerRegistry{EpochStartShardHeader: &block.Header{}}
+	err := json.Unmarshal(data, trig)
+	if err != nil {
+		return nil, err
+	}
+
+	return trig, nil
 }
 
 // UnmarshalTriggerV2 tries to unmarshal the data into a v2 trigger
@@ -103,15 +121,15 @@ func (t *trigger) saveState(key []byte) error {
 		registry = registryV1
 	}
 
-	err := registry.SetMetaEpoch(t.metaEpoch)
-	err = registry.SetEpoch(t.epoch)
-	err = registry.SetCurrentRoundIndex(t.currentRoundIndex)
-	err = registry.SetEpochStartRound(t.epochStartRound)
-	err = registry.SetEpochMetaBlockHash(t.epochMetaBlockHash)
-	err = registry.SetIsEpochStart(t.isEpochStart)
-	err = registry.SetNewEpochHeaderReceived(t.newEpochHdrReceived)
-	err = registry.SetEpochFinalityAttestingRound(t.epochFinalityAttestingRound)
-	err = registry.SetEpochStartHeaderHandler(t.epochStartShardHeader)
+	_ = registry.SetMetaEpoch(t.metaEpoch)
+	_ = registry.SetEpoch(t.epoch)
+	_ = registry.SetCurrentRoundIndex(t.currentRoundIndex)
+	_ = registry.SetEpochStartRound(t.epochStartRound)
+	_ = registry.SetEpochMetaBlockHash(t.epochMetaBlockHash)
+	_ = registry.SetIsEpochStart(t.isEpochStart)
+	_ = registry.SetNewEpochHeaderReceived(t.newEpochHdrReceived)
+	_ = registry.SetEpochFinalityAttestingRound(t.epochFinalityAttestingRound)
+	_ = registry.SetEpochStartHeaderHandler(t.epochStartShardHeader)
 
 	marshalledRegistry, err := t.marshalizer.Marshal(registry)
 	if err != nil {
