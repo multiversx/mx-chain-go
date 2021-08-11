@@ -14,12 +14,13 @@ import (
 var _ process.GasHandler = (*gasComputation)(nil)
 
 type gasComputation struct {
-	economicsFee   process.FeeHandler
-	txTypeHandler  process.TxTypeHandler
-	gasConsumed    map[string]uint64
-	mutGasConsumed sync.RWMutex
-	gasRefunded    map[string]uint64
-	mutGasRefunded sync.RWMutex
+	economicsFee           process.FeeHandler
+	txTypeHandler          process.TxTypeHandler
+	gasConsumed            map[string]uint64
+	gasConsumedAsScheduled map[string]uint64
+	mutGasConsumed         sync.RWMutex
+	gasRefunded            map[string]uint64
+	mutGasRefunded         sync.RWMutex
 
 	flagGasComputeV2        atomic.Flag
 	gasComputeV2EnableEpoch uint32
@@ -46,6 +47,7 @@ func NewGasComputation(
 		txTypeHandler:           txTypeHandler,
 		economicsFee:            economicsFee,
 		gasConsumed:             make(map[string]uint64),
+		gasConsumedAsScheduled:  make(map[string]uint64),
 		gasRefunded:             make(map[string]uint64),
 		gasComputeV2EnableEpoch: gasComputeV2EnableEpoch,
 	}
@@ -60,6 +62,7 @@ func NewGasComputation(
 func (gc *gasComputation) Init() {
 	gc.mutGasConsumed.Lock()
 	gc.gasConsumed = make(map[string]uint64)
+	gc.gasConsumedAsScheduled = make(map[string]uint64)
 	gc.mutGasConsumed.Unlock()
 
 	gc.mutGasRefunded.Lock()
@@ -71,6 +74,13 @@ func (gc *gasComputation) Init() {
 func (gc *gasComputation) SetGasConsumed(gasConsumed uint64, hash []byte) {
 	gc.mutGasConsumed.Lock()
 	gc.gasConsumed[string(hash)] = gasConsumed
+	gc.mutGasConsumed.Unlock()
+}
+
+// SetGasConsumedAsScheduled sets gas consumed as scheduled for a given hash
+func (gc *gasComputation) SetGasConsumedAsScheduled(gasConsumed uint64, hash []byte) {
+	gc.mutGasConsumed.Lock()
+	gc.gasConsumedAsScheduled[string(hash)] = gasConsumed
 	gc.mutGasConsumed.Unlock()
 }
 
@@ -113,6 +123,19 @@ func (gc *gasComputation) TotalGasConsumed() uint64 {
 	return totalGasConsumed
 }
 
+// TotalGasConsumedAsScheduled gets the total gas consumed as scheduled
+func (gc *gasComputation) TotalGasConsumedAsScheduled() uint64 {
+	totalGasConsumed := uint64(0)
+
+	gc.mutGasConsumed.RLock()
+	for _, gasConsumed := range gc.gasConsumedAsScheduled {
+		totalGasConsumed += gasConsumed
+	}
+	gc.mutGasConsumed.RUnlock()
+
+	return totalGasConsumed
+}
+
 // TotalGasRefunded gets the total gas refunded
 func (gc *gasComputation) TotalGasRefunded() uint64 {
 	totalGasRefunded := uint64(0)
@@ -130,6 +153,15 @@ func (gc *gasComputation) RemoveGasConsumed(hashes [][]byte) {
 	gc.mutGasConsumed.Lock()
 	for _, hash := range hashes {
 		delete(gc.gasConsumed, string(hash))
+	}
+	gc.mutGasConsumed.Unlock()
+}
+
+// RemoveGasConsumedAsScheduled removes gas consumed as scheduled for the given hashes
+func (gc *gasComputation) RemoveGasConsumedAsScheduled(hashes [][]byte) {
+	gc.mutGasConsumed.Lock()
+	for _, hash := range hashes {
+		delete(gc.gasConsumedAsScheduled, string(hash))
 	}
 	gc.mutGasConsumed.Unlock()
 }

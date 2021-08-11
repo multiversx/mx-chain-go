@@ -135,7 +135,7 @@ func (txs *transactions) processTransaction(
 	oldTotalGasConsumedInSelfShard := mbInfo.gasInfo.totalGasConsumedInSelfShard
 
 	startTime := time.Now()
-	err := txs.computeGasConsumed(
+	gasConsumedByTxInSelfShard, err := txs.computeGasConsumed(
 		senderShardID,
 		receiverShardID,
 		tx,
@@ -148,6 +148,7 @@ func (txs *transactions) processTransaction(
 		return err
 	}
 
+	txs.gasHandler.SetGasConsumed(gasConsumedByTxInSelfShard, txHash)
 	mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType] = mbInfo.gasInfo.gasConsumedByMiniBlockInReceiverShard
 
 	// execute transaction to change the trie root hash
@@ -361,7 +362,7 @@ func (txs *transactions) verifyTransaction(
 	oldTotalGasConsumedInSelfShard := mbInfo.gasInfo.totalGasConsumedInSelfShard
 
 	startTime := time.Now()
-	err := txs.computeGasConsumed(
+	gasConsumedByTxInSelfShard, err := txs.computeGasConsumed(
 		senderShardID,
 		receiverShardID,
 		tx,
@@ -374,6 +375,8 @@ func (txs *transactions) verifyTransaction(
 		return err
 	}
 
+	//TODO: Should be analyzed if setting of the gas consumed, in the gasHandler, is necessary or not for the scheduled txs
+	txs.gasHandler.SetGasConsumed(gasConsumedByTxInSelfShard, txHash)
 	mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType] = mbInfo.gasInfo.gasConsumedByMiniBlockInReceiverShard
 
 	startTime = time.Now()

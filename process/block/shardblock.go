@@ -1655,11 +1655,14 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(
 		return nil, 0, 0, err
 	}
 
+	scheduledMode := false
+
 	// do processing in order
 	sp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	for i := 0; i < len(orderedMetaBlocks); i++ {
 		if !haveTime() {
 			log.Debug("time is up after putting cross txs with destination to current shard",
+				"scheduled mode", scheduledMode,
 				"num txs added", txsAdded,
 			)
 			break
@@ -1667,6 +1670,7 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(
 
 		if hdrsAdded >= process.MaxMetaHeadersAllowedInOneShardBlock {
 			log.Debug("maximum meta headers allowed to be included in one shard block has been reached",
+				"scheduled mode", scheduledMode,
 				"meta headers added", hdrsAdded,
 			)
 			break
@@ -1675,6 +1679,7 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(
 		currMetaHdr := orderedMetaBlocks[i]
 		if currMetaHdr.GetNonce() > lastMetaHdr.GetNonce()+1 {
 			log.Debug("skip searching",
+				"scheduled mode", scheduledMode,
 				"last meta hdr nonce", lastMetaHdr.GetNonce(),
 				"curr meta hdr nonce", currMetaHdr.GetNonce())
 			break
@@ -1691,7 +1696,8 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(
 		currMBProcessed, currTxsAdded, hdrProcessFinished, errCreated := sp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
 			currMetaHdr,
 			processedMiniBlocksHashes,
-			haveTime)
+			haveTime,
+			scheduledMode)
 
 		if errCreated != nil {
 			return nil, 0, 0, errCreated
@@ -1708,9 +1714,12 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(
 
 		if !hdrProcessFinished {
 			log.Debug("meta block cannot be fully processed",
+				"scheduled mode", scheduledMode,
 				"round", currMetaHdr.GetRound(),
 				"nonce", currMetaHdr.GetNonce(),
 				"hash", orderedMetaBlocksHashes[i])
+
+			//TODO: Here CreateMbsAndProcessCrossShardTransactionsDstMe should be call with scheduledMode = true
 
 			break
 		}

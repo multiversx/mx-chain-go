@@ -33,7 +33,7 @@ var _ process.PreProcessor = (*transactions)(nil)
 var log = logger.GetOrCreate("process/block/preprocess")
 
 type accountTxsShards struct {
-	accountsInfo    map[string]*txShardInfo
+	accountsInfo map[string]*txShardInfo
 	sync.RWMutex
 }
 
@@ -473,15 +473,17 @@ func (txs *transactions) processTxsToMe(
 			return err
 		}
 
-		err = txs.computeGasConsumed(
+		gasConsumedByTxInSelfShard, errComputeGas := txs.computeGasConsumed(
 			senderShardID,
 			receiverShardID,
 			tx,
 			txHash,
 			&gasInfo)
-		if err != nil {
-			return err
+		if errComputeGas != nil {
+			return errComputeGas
 		}
+
+		txs.gasHandler.SetGasConsumed(gasConsumedByTxInSelfShard, txHash)
 	}
 
 	return nil
@@ -976,7 +978,7 @@ func logCreatedMiniBlocksStats(
 	selfShardID uint32,
 	mbb *miniBlocksBuilder,
 	nbSortedTxs int,
-	) {
+) {
 	log.Debug("createAndProcessMiniBlocksFromMeV1",
 		"self shard", selfShardID,
 		"gas consumed in sender shard", mbb.gasInfo.gasConsumedByMiniBlocksInSenderShard,
@@ -1123,6 +1125,7 @@ func (txs *transactions) ProcessMiniBlock(
 	miniBlock *block.MiniBlock,
 	haveTime func() bool,
 	getNumOfCrossInterMbsAndTxs func() (int, int),
+	scheduledMode bool,
 ) ([][]byte, int, error) {
 
 	if miniBlock.Type != block.TxBlock {
@@ -1142,18 +1145,27 @@ func (txs *transactions) ProcessMiniBlock(
 
 	defer func() {
 		if err != nil {
-			txs.gasHandler.RemoveGasConsumed(processedTxHashes)
-			txs.gasHandler.RemoveGasRefunded(processedTxHashes)
+			if scheduledMode {
+				txs.gasHandler.RemoveGasConsumedAsScheduled(processedTxHashes)
+			} else {
+				txs.gasHandler.RemoveGasConsumed(processedTxHashes)
+				txs.gasHandler.RemoveGasRefunded(processedTxHashes)
+			}
 		}
 	}()
+
+	totalGasConsumed := txs.gasHandler.TotalGasConsumed()
+	if scheduledMode {
+		totalGasConsumed = txs.gasHandler.TotalGasConsumedAsScheduled()
+	}
 
 	gasInfo := gasConsumedInfo{
 		gasConsumedByMiniBlockInReceiverShard: uint64(0),
 		gasConsumedByMiniBlocksInSenderShard:  uint64(0),
-		totalGasConsumedInSelfShard:           txs.gasHandler.TotalGasConsumed(),
+		totalGasConsumedInSelfShard:           totalGasConsumed,
 	}
 
-	log.Trace("transactions.ProcessMiniBlock", "totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard)
+	log.Trace("transactions.ProcessMiniBlock", "scheduled mode", scheduledMode, "totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard)
 
 	for index := range miniBlockTxs {
 		if !haveTime() {
@@ -1161,14 +1173,20 @@ func (txs *transactions) ProcessMiniBlock(
 			return processedTxHashes, 0, err
 		}
 
-		err = txs.computeGasConsumed(
+		gasConsumedByTxInSelfShard, errComputeGas := txs.computeGasConsumed(
 			miniBlock.SenderShardID,
 			miniBlock.ReceiverShardID,
 			miniBlockTxs[index],
 			miniBlockTxHashes[index],
 			&gasInfo)
-		if err != nil {
-			return processedTxHashes, 0, err
+		if errComputeGas != nil {
+			return processedTxHashes, 0, errComputeGas
+		}
+
+		if scheduledMode {
+			txs.gasHandler.SetGasConsumedAsScheduled(gasConsumedByTxInSelfShard, miniBlockTxHashes[index])
+		} else {
+			txs.gasHandler.SetGasConsumed(gasConsumedByTxInSelfShard, miniBlockTxHashes[index])
 		}
 
 		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[index])
@@ -1194,6 +1212,10 @@ func (txs *transactions) ProcessMiniBlock(
 		//	continue
 		//}
 
+		if scheduledMode {
+			continue
+		}
+
 		_, err = txs.txProcessor.ProcessTransaction(miniBlockTxs[index])
 		if err != nil {
 			return processedTxHashes, index, err
@@ -1205,6 +1227,7 @@ func (txs *transactions) ProcessMiniBlock(
 	numOfNewCrossInterTxs := numOfCrtCrossInterTxs - numOfOldCrossInterTxs
 
 	log.Trace("transactions.ProcessMiniBlock",
+		"scheduled mode", scheduledMode,
 		"numOfOldCrossInterMbs", numOfOldCrossInterMbs, "numOfOldCrossInterTxs", numOfOldCrossInterTxs,
 		"numOfCrtCrossInterMbs", numOfCrtCrossInterMbs, "numOfCrtCrossInterTxs", numOfCrtCrossInterTxs,
 		"numOfNewCrossInterMbs", numOfNewCrossInterMbs, "numOfNewCrossInterTxs", numOfNewCrossInterTxs,
@@ -1226,6 +1249,12 @@ func (txs *transactions) ProcessMiniBlock(
 
 	txs.blockSizeComputation.AddNumMiniBlocks(numMiniBlocks)
 	txs.blockSizeComputation.AddNumTxs(numTxs)
+
+	if scheduledMode {
+		for index := range miniBlockTxs {
+			txs.scheduledTxsExecutionHandler.Add(miniBlockTxHashes[index], miniBlockTxs[index])
+		}
+	}
 
 	return nil, len(processedTxHashes), nil
 }

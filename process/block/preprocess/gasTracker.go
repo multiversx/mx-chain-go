@@ -8,9 +8,9 @@ import (
 )
 
 type gasTracker struct {
-	shardCoordinator           sharding.Coordinator
-	economicsFee               process.FeeHandler
-	gasHandler                 process.GasHandler
+	shardCoordinator sharding.Coordinator
+	economicsFee     process.FeeHandler
+	gasHandler       process.GasHandler
 }
 
 func (gt *gasTracker) computeGasConsumed(
@@ -19,14 +19,14 @@ func (gt *gasTracker) computeGasConsumed(
 	tx data.TransactionHandler,
 	txHash []byte,
 	gasInfo *gasConsumedInfo,
-) error {
+) (uint64, error) {
 	gasConsumedByTxInSenderShard, gasConsumedByTxInReceiverShard, err := gt.computeGasConsumedByTx(
 		senderShardId,
 		receiverShardId,
 		tx,
 		txHash)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	gasConsumedByTxInSelfShard := uint64(0)
@@ -34,26 +34,25 @@ func (gt *gasTracker) computeGasConsumed(
 		gasConsumedByTxInSelfShard = gasConsumedByTxInSenderShard
 
 		if gasInfo.gasConsumedByMiniBlockInReceiverShard+gasConsumedByTxInReceiverShard > gt.economicsFee.MaxGasLimitPerBlock(gt.shardCoordinator.SelfId()) {
-			return process.ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached
+			return 0, process.ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached
 		}
 	} else {
 		gasConsumedByTxInSelfShard = gasConsumedByTxInReceiverShard
 
 		if gasInfo.gasConsumedByMiniBlocksInSenderShard+gasConsumedByTxInSenderShard > gt.economicsFee.MaxGasLimitPerBlock(senderShardId) {
-			return process.ErrMaxGasLimitPerMiniBlockInSenderShardIsReached
+			return 0, process.ErrMaxGasLimitPerMiniBlockInSenderShardIsReached
 		}
 	}
 
 	if gasInfo.totalGasConsumedInSelfShard+gasConsumedByTxInSelfShard > gt.economicsFee.MaxGasLimitPerBlock(gt.shardCoordinator.SelfId()) {
-		return process.ErrMaxGasLimitPerBlockInSelfShardIsReached
+		return 0, process.ErrMaxGasLimitPerBlockInSelfShardIsReached
 	}
 
 	gasInfo.gasConsumedByMiniBlocksInSenderShard += gasConsumedByTxInSenderShard
 	gasInfo.gasConsumedByMiniBlockInReceiverShard += gasConsumedByTxInReceiverShard
 	gasInfo.totalGasConsumedInSelfShard += gasConsumedByTxInSelfShard
-	gt.gasHandler.SetGasConsumed(gasConsumedByTxInSelfShard, txHash)
 
-	return nil
+	return gasConsumedByTxInSelfShard, nil
 }
 
 func (gt *gasTracker) computeGasConsumedByTx(

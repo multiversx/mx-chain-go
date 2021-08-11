@@ -141,12 +141,7 @@ type TransactionCoordinator interface {
 	ProcessBlockTransaction(body *block.Body, haveTime func() time.Duration) error
 
 	CreateBlockStarted()
-	CreateMbsAndProcessCrossShardTransactionsDstMe(
-		header data.HeaderHandler,
-		processedMiniBlocksHashes map[string]struct{},
-
-		haveTime func() bool,
-	) (block.MiniBlockSlice, uint32, bool, error)
+	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, haveTime func() bool, scheduledMode bool) (block.MiniBlockSlice, uint32, bool, error)
 	CreateMbsAndProcessTransactionsFromMe(haveTime func() bool) block.MiniBlockSlice
 	CreatePostProcessMiniBlocks() block.MiniBlockSlice
 	CreateMarshalizedData(body *block.Body) map[string][][]byte
@@ -220,7 +215,7 @@ type PreProcessor interface {
 	RequestBlockTransactions(body *block.Body) int
 
 	RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int
-	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, getNumOfCrossInterMbsAndTxs func() (int, int)) ([][]byte, int, error)
+	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, getNumOfCrossInterMbsAndTxs func() (int, int), scheduledMode bool) ([][]byte, int, error)
 	CreateAndProcessMiniBlocks(haveTime func() bool) (block.MiniBlockSlice, error)
 
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
@@ -697,12 +692,15 @@ type SCQuery struct {
 type GasHandler interface {
 	Init()
 	SetGasConsumed(gasConsumed uint64, hash []byte)
+	SetGasConsumedAsScheduled(gasConsumed uint64, hash []byte)
 	SetGasRefunded(gasRefunded uint64, hash []byte)
 	GasConsumed(hash []byte) uint64
 	GasRefunded(hash []byte) uint64
 	TotalGasConsumed() uint64
+	TotalGasConsumedAsScheduled() uint64
 	TotalGasRefunded() uint64
 	RemoveGasConsumed(hashes [][]byte)
+	RemoveGasConsumedAsScheduled(hashes [][]byte)
 	RemoveGasRefunded(hashes [][]byte)
 	ComputeGasConsumedByMiniBlock(*block.MiniBlock, map[string]data.TransactionHandler) (uint64, uint64, error)
 	ComputeGasConsumedByTx(txSenderShardId uint32, txReceiverShardId uint32, txHandler data.TransactionHandler) (uint64, uint64, error)

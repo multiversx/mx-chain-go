@@ -1043,7 +1043,8 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 		currMBProcessed, currTxsAdded, hdrProcessFinished, createErr := mp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
 			currShardHdr,
 			nil,
-			haveTime)
+			haveTime,
+			false)
 
 		if createErr != nil {
 			return nil, 0, 0, createErr
