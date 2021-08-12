@@ -1719,7 +1719,40 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(
 				"nonce", currMetaHdr.GetNonce(),
 				"hash", orderedMetaBlocksHashes[i])
 
-			//TODO: Here CreateMbsAndProcessCrossShardTransactionsDstMe should be call with scheduledMode = true
+			//TODO: Refactor this if (extract in a separate method) and add also check for scheduled sc activation epoch to preserve backward compatibility
+			if !scheduledMode {
+				scheduledMode = true
+				lastTxsAdded := currTxsAdded
+				currMBProcessed, currTxsAdded, hdrProcessFinished, errCreated := sp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
+					currMetaHdr,
+					processedMiniBlocksHashes,
+					haveTime,
+					scheduledMode)
+
+				if errCreated != nil {
+					return nil, 0, 0, errCreated
+				}
+
+				// all txs processed, add to processed miniblocks
+				miniBlocks = append(miniBlocks, currMBProcessed...)
+				txsAdded += currTxsAdded
+
+				if lastTxsAdded == 0 && currTxsAdded > 0 {
+					sp.hdrsForCurrBlock.hdrHashAndInfo[string(orderedMetaBlocksHashes[i])] = &hdrInfo{hdr: currMetaHdr, usedInBlock: true}
+					hdrsAdded++
+				}
+
+				if !hdrProcessFinished {
+					log.Debug("meta block cannot be fully processed",
+						"scheduled mode", scheduledMode,
+						"round", currMetaHdr.GetRound(),
+						"nonce", currMetaHdr.GetNonce(),
+						"hash", orderedMetaBlocksHashes[i])
+					break
+				}
+
+				continue
+			}
 
 			break
 		}

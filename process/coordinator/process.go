@@ -608,17 +608,15 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			continue
 		}
 
-		if scheduledMode {
-			if !miniBlock.IsScheduledMiniBlock() {
-				shouldSkipShard[miniBlockInfo.SenderShardID] = true
-				log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: mini block type is not scheduled",
-					"scheduled mode", scheduledMode,
-					"sender shard", miniBlockInfo.SenderShardID,
-					"hash", miniBlockInfo.Hash,
-					"round", miniBlockInfo.Round,
-				)
-				continue
-			}
+		if scheduledMode && !miniBlock.IsScheduledMiniBlock() {
+			shouldSkipShard[miniBlockInfo.SenderShardID] = true
+			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: mini block type is not scheduled",
+				"scheduled mode", scheduledMode,
+				"sender shard", miniBlockInfo.SenderShardID,
+				"hash", miniBlockInfo.Hash,
+				"round", miniBlockInfo.Round,
+			)
+			continue
 		}
 
 		preproc := tc.getPreProcessor(miniBlock.Type)
