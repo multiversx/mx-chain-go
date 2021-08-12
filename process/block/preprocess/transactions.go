@@ -33,7 +33,7 @@ var _ process.PreProcessor = (*transactions)(nil)
 var log = logger.GetOrCreate("process/block/preprocess")
 
 type accountTxsShards struct {
-	accountsInfo    map[string]*txShardInfo
+	accountsInfo map[string]*txShardInfo
 	sync.RWMutex
 }
 
@@ -308,12 +308,6 @@ func (txs *transactions) computeTxsToMe(body *block.Body) ([]*txcache.WrappedTra
 				miniBlock.SenderShardID,
 				miniBlock.ReceiverShardID)
 		}
-
-		//TODO: Remove this if when processing of scheduled mini blocks will be done in the source shard
-		//if miniBlock.IsScheduledMiniBlock() {
-		//	log.Warn("computeTxsToMe: execution of scheduled mini blocks should be skipped for now")
-		//	continue
-		//}
 
 		txsFromMiniBlock, err := txs.computeTxsFromMiniBlock(miniBlock)
 		if err != nil {
@@ -976,7 +970,7 @@ func logCreatedMiniBlocksStats(
 	selfShardID uint32,
 	mbb *miniBlocksBuilder,
 	nbSortedTxs int,
-	) {
+) {
 	log.Debug("createAndProcessMiniBlocksFromMeV1",
 		"self shard", selfShardID,
 		"gas consumed in sender shard", mbb.gasInfo.gasConsumedByMiniBlocksInSenderShard,
@@ -1176,11 +1170,6 @@ func (txs *transactions) ProcessMiniBlock(
 
 	numOfOldCrossInterMbs, numOfOldCrossInterTxs := getNumOfCrossInterMbsAndTxs()
 
-	//TODO: Remove this if when processing of scheduled mini blocks will be done in the source shard
-	//if miniBlock.IsScheduledMiniBlock() {
-	//	log.Warn("ProcessMiniBlock: execution of scheduled mini blocks should be skipped for now")
-	//}
-
 	for index := range miniBlockTxs {
 		if !haveTime() {
 			err = process.ErrTimeIsOut
@@ -1188,11 +1177,6 @@ func (txs *transactions) ProcessMiniBlock(
 		}
 
 		txs.saveAccountBalanceForAddress(miniBlockTxs[index].GetRcvAddr())
-
-		//TODO: Remove this if when processing of scheduled mini blocks will be done in the source shard
-		//if miniBlock.IsScheduledMiniBlock() {
-		//	continue
-		//}
 
 		_, err = txs.txProcessor.ProcessTransaction(miniBlockTxs[index])
 		if err != nil {

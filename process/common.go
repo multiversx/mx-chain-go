@@ -748,11 +748,6 @@ func GetScheduledRootHashAndSCRsFromStorage(
 		for txIndex := range scheduledSCRs.TxHandlers {
 			mapScheduledSCRs[block.Type(scheduledSCRs.BlockType)][txIndex] = &scheduledSCRs.TxHandlers[txIndex]
 		}
-
-		//TODO: Remove this for
-		for txIndex := range scheduledSCRs.TxHandlers {
-			log.Debug("GetScheduledRootHashAndSCRsFromStorage: tx", "sender", mapScheduledSCRs[block.Type(scheduledSCRs.BlockType)][txIndex].GetSndAddr(), "receiver", mapScheduledSCRs[block.Type(scheduledSCRs.BlockType)][txIndex].GetRcvAddr())
-		}
 	}
 
 	return scheduledRootHash, mapScheduledSCRs, nil
@@ -769,8 +764,7 @@ func SetScheduledRootHashAndSCRs(
 ) {
 	scheduledRootHash, mapScheduledSCRs, err := GetScheduledRootHashAndSCRsFromStorage(headerHash, storageService, marshalizer)
 	if err != nil {
-		//TODO: Change the log level to TRACE
-		log.Debug("SetScheduledRootHashAndSCRs: given header does not have scheduled txs",
+		log.Trace("SetScheduledRootHashAndSCRs: given header does not have scheduled txs",
 			"header hash", headerHash,
 		)
 
@@ -793,8 +787,7 @@ func GetScheduledRootHash(
 ) []byte {
 	scheduledRootHash, _, err := GetScheduledRootHashAndSCRsFromStorage(headerHash, storageService, marshalizer)
 	if err != nil {
-		//TODO: Change the log level to TRACE
-		log.Debug("GetScheduledRootHash: given header does not have scheduled txs",
+		log.Trace("GetScheduledRootHash: given header does not have scheduled txs",
 			"header hash", headerHash,
 		)
 

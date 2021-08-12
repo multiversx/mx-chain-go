@@ -1044,8 +1044,7 @@ func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler, h
 		if errNotCritical != nil {
 			log.Warn("saveBody.getMarshalizedScheduledSCRs", "error", errNotCritical.Error())
 		} else {
-			//TODO: Change to log level TRACE
-			log.Debug("saveBody.Put(dataRetriever.ScheduledSCRsUnit)", "header hash", headerHash, "length of marshalized root hash and scheduled SCRs", len(marshalizedRootHashAndScheduledSCRs))
+			log.Trace("saveBody.Put(dataRetriever.ScheduledSCRsUnit)", "header hash", headerHash, "length of marshalized root hash and scheduled SCRs", len(marshalizedRootHashAndScheduledSCRs))
 			errNotCritical = bp.store.Put(dataRetriever.ScheduledSCRsUnit, headerHash, marshalizedRootHashAndScheduledSCRs)
 			if errNotCritical != nil {
 				log.Warn("saveBody.Put -> ScheduledSCRsUnit", "error", errNotCritical.Error())
@@ -1534,11 +1533,6 @@ func (bp *baseProcessor) getMarshalizedScheduledRootHashAndSCRs(
 			}
 
 			scheduledSCRs.TxHandlers[txIndex] = *scr
-		}
-
-		//TODO: Remove this for
-		for txIndex := range txs {
-			log.Debug("tx is a smart contract result", "sender", scheduledSCRs.TxHandlers[txIndex].GetSndAddr(), "receiver", scheduledSCRs.TxHandlers[txIndex].GetRcvAddr())
 		}
 
 		marshalizedScheduledSCRs, err := bp.marshalizer.Marshal(scheduledSCRs)
