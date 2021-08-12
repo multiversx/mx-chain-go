@@ -3,14 +3,14 @@ package process_test
 import (
 	"bytes"
 	"errors"
-	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
+	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -1913,4 +1913,4 @@ func TestSetScheduledSCRsShouldWork(t *testing.T) {
 	assert.Equal(t, uint64(3), mapScheduledSCRs[block.Type(scheduledSCRs.BlockType)][2].GetNonce())
 }
 
-//TODO: Add unit tests for SetScheduledSCRs method
+//TODO: Add unit tests for GetScheduledRootHashAndSCRsFromStorage, GetScheduledRootHashAndSCRs and GetScheduledRootHash methods

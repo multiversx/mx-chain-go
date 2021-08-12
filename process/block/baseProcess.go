@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"math/big"
 	"sort"
 	"time"
@@ -15,6 +13,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
+	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/display"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
@@ -1146,30 +1146,34 @@ func (bp *baseProcessor) updateStateStorage(
 	accounts.PruneTrie(rootHashToBePruned, state.OldRoot)
 }
 
-// RevertAccountState reverts the account state for cleanup failed process
-func (bp *baseProcessor) RevertAccountState() {
+// RevertCurrentBlock reverts the current block for cleanup failed process
+func (bp *baseProcessor) RevertCurrentBlock() {
+	bp.revertAccountState()
+	bp.revertScheduledRootHashAndSCRs()
+}
+
+func (bp *baseProcessor) revertAccountState() {
 	for key := range bp.accountsDB {
 		err := bp.accountsDB[key].RevertToSnapshot(0)
 		if err != nil {
 			log.Debug("RevertToSnapshot", "error", err.Error())
 		}
 	}
-
-	bp.revertScheduledRootHashAndSCRs()
 }
 
 func (bp *baseProcessor) revertScheduledRootHashAndSCRs() {
-	header, headerHash := bp.getCurrentHeaderAndHash()
-	process.SetScheduledRootHashAndSCRs(
-		headerHash,
-		header.GetRootHash(),
-		make(map[block.Type][]data.TransactionHandler),
-		bp.store,
-		bp.marshalizer,
-		bp.scheduledTxsExecutionHandler)
+	header, headerHash := bp.getLastCommittedHeaderAndHash()
+	scheduledRootHash, mapScheduledSCRs, err := process.GetScheduledRootHashAndSCRs(headerHash, bp.store, bp.marshalizer)
+	if err != nil {
+		bp.scheduledTxsExecutionHandler.SetScheduledRootHash(header.GetRootHash())
+		bp.scheduledTxsExecutionHandler.SetScheduledSCRs(make(map[block.Type][]data.TransactionHandler))
+	} else {
+		bp.scheduledTxsExecutionHandler.SetScheduledRootHash(scheduledRootHash)
+		bp.scheduledTxsExecutionHandler.SetScheduledSCRs(mapScheduledSCRs)
+	}
 }
 
-func (bp *baseProcessor) getCurrentHeaderAndHash() (data.HeaderHandler, []byte) {
+func (bp *baseProcessor) getLastCommittedHeaderAndHash() (data.HeaderHandler, []byte) {
 	headerHandler := bp.blockChain.GetCurrentBlockHeader()
 	headerHash := bp.blockChain.GetCurrentBlockHeaderHash()
 	if check.IfNil(headerHandler) {
@@ -1219,10 +1223,16 @@ func (bp *baseProcessor) PruneStateOnRollback(currHeader data.HeaderHandler, cur
 		}
 
 		rootHash, prevRootHash := bp.getRootHashes(currHeader, prevHeader, key)
-
 		if key == state.UserAccountsState {
-			rootHash = process.GetScheduledRootHash(currHeaderHash, rootHash, bp.store, bp.marshalizer)
-			prevRootHash = process.GetScheduledRootHash(prevHeaderHash, prevRootHash, bp.store, bp.marshalizer)
+			scheduledRootHash, err := process.GetScheduledRootHash(currHeaderHash, bp.store, bp.marshalizer)
+			if err == nil {
+				rootHash = scheduledRootHash
+			}
+
+			scheduledPrevRootHash, err := process.GetScheduledRootHash(prevHeaderHash, bp.store, bp.marshalizer)
+			if err == nil {
+				prevRootHash = scheduledPrevRootHash
+			}
 		}
 
 		if bytes.Equal(rootHash, prevRootHash) {
@@ -1483,8 +1493,7 @@ func (bp *baseProcessor) ProcessScheduledBlock(_ data.HeaderHandler, _ data.Body
 	var err error
 	defer func() {
 		if err != nil {
-			// TODO: check if possible to revert only the scheduled
-			bp.RevertAccountState()
+			bp.RevertCurrentBlock()
 		}
 	}()
 

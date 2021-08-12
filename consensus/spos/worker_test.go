@@ -45,7 +45,7 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 		DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
 			return nil
 		},
-		RevertAccountStateCalled: func() {
+		RevertCurrentBlockCalled: func() {
 		},
 		DecodeBlockBodyCalled: func(dta []byte) data.BodyHandler {
 			return nil
@@ -591,7 +591,7 @@ func TestWorker_ProcessReceivedMessageComputeReceivedProposedBlockMetric(t *test
 				SoftwareVersion: []byte("version"),
 			}
 		},
-		RevertAccountStateCalled: func() {
+		RevertCurrentBlockCalled: func() {
 		},
 		DecodeBlockBodyCalled: func(dta []byte) data.BodyHandler {
 			return nil
@@ -928,7 +928,7 @@ func TestWorker_ProcessReceivedMessageWrongChainIDInProposedBlockShouldError(t *
 					},
 				}
 			},
-			RevertAccountStateCalled: func() {
+			RevertCurrentBlockCalled: func() {
 			},
 		},
 	)
@@ -972,7 +972,7 @@ func TestWorker_ProcessReceivedMessageWithABadOriginatorShouldErr(t *testing.T) 
 					},
 				}
 			},
-			RevertAccountStateCalled: func() {
+			RevertCurrentBlockCalled: func() {
 			},
 			DecodeBlockBodyCalled: func(dta []byte) data.BodyHandler {
 				return nil
@@ -1025,7 +1025,7 @@ func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 					},
 				}
 			},
-			RevertAccountStateCalled: func() {
+			RevertCurrentBlockCalled: func() {
 			},
 			DecodeBlockBodyCalled: func(dta []byte) data.BodyHandler {
 				return nil
@@ -1445,7 +1445,7 @@ func TestWorker_ExtendShouldWorkAfterAWhile(t *testing.T) {
 	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	executed := int32(0)
 	blockProcessor := &mock.BlockProcessorMock{
-		RevertAccountStateCalled: func() {
+		RevertCurrentBlockCalled: func() {
 			atomic.AddInt32(&executed, 1)
 		},
 	}
@@ -1470,7 +1470,7 @@ func TestWorker_ExtendShouldWork(t *testing.T) {
 	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	executed := int32(0)
 	blockProcessor := &mock.BlockProcessorMock{
-		RevertAccountStateCalled: func() {
+		RevertCurrentBlockCalled: func() {
 			atomic.AddInt32(&executed, 1)
 		},
 	}

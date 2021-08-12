@@ -161,9 +161,6 @@ func (ste *scheduledTxsExecution) computeScheduledSCRs(
 		ste.mapScheduledSCRs[blockType] = make([]data.TransactionHandler, len(scrsInfo))
 		for scrIndex, scrInfo := range scrsInfo {
 			ste.mapScheduledSCRs[blockType][scrIndex] = scrInfo.txHandler
-		}
-
-		for scrIndex := range scrsInfo {
 			log.Trace("scheduledTxsExecution.computeScheduledSCRs", "blockType", blockType, "sender", ste.mapScheduledSCRs[blockType][scrIndex].GetSndAddr(), "receiver", ste.mapScheduledSCRs[blockType][scrIndex].GetRcvAddr())
 		}
 
@@ -212,9 +209,6 @@ func (ste *scheduledTxsExecution) GetScheduledSCRs() map[block.Type][]data.Trans
 		mapScheduledSCRs[blockType] = make([]data.TransactionHandler, len(scheduledSCRs))
 		for scrIndex, txHandler := range scheduledSCRs {
 			mapScheduledSCRs[blockType][scrIndex] = txHandler
-		}
-
-		for scrIndex := range scheduledSCRs {
 			log.Trace("scheduledTxsExecution.GetScheduledSCRs", "blockType", blockType, "sender", mapScheduledSCRs[blockType][scrIndex].GetSndAddr(), "receiver", mapScheduledSCRs[blockType][scrIndex].GetRcvAddr())
 		}
 
@@ -241,9 +235,6 @@ func (ste *scheduledTxsExecution) SetScheduledSCRs(mapSCRs map[block.Type][]data
 		ste.mapScheduledSCRs[blockType] = make([]data.TransactionHandler, len(scrs))
 		for scrIndex, txHandler := range scrs {
 			ste.mapScheduledSCRs[blockType][scrIndex] = txHandler
-		}
-
-		for scrIndex := range scrs {
 			log.Trace("scheduledTxsExecution.SetScheduledSCRs", "blockType", blockType, "sender", ste.mapScheduledSCRs[blockType][scrIndex].GetSndAddr(), "receiver", ste.mapScheduledSCRs[blockType][scrIndex].GetRcvAddr())
 		}
 
@@ -286,11 +277,12 @@ func (ste *scheduledTxsExecution) SetTransactionCoordinator(txCoordinator proces
 // HaveScheduledTxs method returns if there are scheduled transactions
 func (ste *scheduledTxsExecution) HaveScheduledTxs() bool {
 	ste.mutScheduledTxs.RLock()
-	log.Debug("scheduledTxsExecution.HaveScheduledTxs", "num of scheduled txs", len(ste.scheduledTxs))
-	haveScheduledTxs := len(ste.scheduledTxs) > 0
+	numScheduledTxs := len(ste.scheduledTxs)
 	ste.mutScheduledTxs.RUnlock()
 
-	return haveScheduledTxs
+	log.Debug("scheduledTxsExecution.HaveScheduledTxs", "num of scheduled txs", numScheduledTxs)
+
+	return numScheduledTxs > 0
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -2,13 +2,13 @@ package blockAPI
 
 import (
 	"encoding/hex"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node/filters"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 type shardAPIBlockProcessor struct {

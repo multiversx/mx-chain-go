@@ -8,8 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	consensusMocks "github.com/ElrondNetwork/elrond-go/testscommon/consensus"
+	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 )
 
@@ -30,7 +30,7 @@ func InitBlockProcessorMock() *BlockProcessorMock {
 	blockProcessorMock.CommitBlockCalled = func(header data.HeaderHandler, body data.BodyHandler) error {
 		return nil
 	}
-	blockProcessorMock.RevertAccountStateCalled = func() {}
+	blockProcessorMock.RevertCurrentBlockCalled = func() {}
 	blockProcessorMock.ProcessBlockCalled = func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 		return nil
 	}
@@ -64,7 +64,7 @@ func InitBlockProcessorHeaderV2Mock() *BlockProcessorMock {
 	blockProcessorMock.CommitBlockCalled = func(header data.HeaderHandler, body data.BodyHandler) error {
 		return nil
 	}
-	blockProcessorMock.RevertAccountStateCalled = func() {}
+	blockProcessorMock.RevertCurrentBlockCalled = func() {}
 	blockProcessorMock.ProcessBlockCalled = func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 		return nil
 	}

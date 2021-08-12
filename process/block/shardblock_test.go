@@ -2261,7 +2261,7 @@ func TestShardProcessor_ApplyBodyToHeaderReturnsOK(t *testing.T) {
 	assert.Equal(t, len(body.MiniBlocks), len(hdr.MiniBlockHeaders))
 }
 
-func TestShardProcessor_CommitBlockShouldRevertAccountStateWhenErr(t *testing.T) {
+func TestShardProcessor_CommitBlockShouldRevertCurrentBlockWhenErr(t *testing.T) {
 	t.Parallel()
 	// set accounts dirty
 	journalEntries := 3

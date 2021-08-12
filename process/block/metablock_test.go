@@ -1067,7 +1067,7 @@ func TestMetaProcessor_ApplyBodyToHeaderShouldSetEpochStart(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestMetaProcessor_CommitBlockShouldRevertAccountStateWhenErr(t *testing.T) {
+func TestMetaProcessor_CommitBlockShouldRevertCurrentBlockWhenErr(t *testing.T) {
 	t.Parallel()
 
 	// set accounts dirty
