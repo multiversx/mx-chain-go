@@ -3,11 +3,12 @@ package bls
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 // maxAllowedSizeInBytes defines how many bytes are allowed as payload in a message
@@ -78,7 +79,7 @@ func (sr *subroundBlock) doBlockJob() bool {
 	}
 
 	metricStatTime := time.Now()
-	defer sr.computeSubroundProcessingMetric(metricStatTime, core.MetricCreatedProposedBlock)
+	defer sr.computeSubroundProcessingMetric(metricStatTime, common.MetricCreatedProposedBlock)
 
 	header, err := sr.createHeader()
 	if err != nil {
@@ -488,7 +489,7 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *consensus.Message) bool {
 	}
 
 	metricStatTime := time.Now()
-	defer sr.computeSubroundProcessingMetric(metricStatTime, core.MetricProcessedProposedBlock)
+	defer sr.computeSubroundProcessingMetric(metricStatTime, common.MetricProcessedProposedBlock)
 
 	err := sr.BlockProcessor().ProcessBlock(
 		sr.Header,

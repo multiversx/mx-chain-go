@@ -6,7 +6,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 )
 
 const displayLastPidChars = 12
@@ -19,6 +19,15 @@ const (
 	// NilListSharder is the variant that will not do connection trimming
 	NilListSharder = "NilListSharder"
 )
+
+// NodeOperation defines the p2p node operation
+type NodeOperation string
+
+// NormalOperation defines the normal mode operation: either seeder, observer or validator
+const NormalOperation NodeOperation = "normal operation"
+
+// FullArchiveMode defines the node operation as a full archive mode
+const FullArchiveMode NodeOperation = "full archive mode"
 
 // MessageProcessor is the interface used to describe what a receive message processor should do
 // All implementations that will be called from Messenger implementation will need to satisfy this interface
@@ -143,6 +152,7 @@ type Messenger interface {
 	SetPeerDenialEvaluator(handler PeerDenialEvaluator) error
 	GetConnectedPeersInfo() *ConnectedPeersInfo
 	UnjoinAllTopics() error
+	Port() int
 
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool

@@ -11,6 +11,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/api/address"
 	apiErrors "github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
@@ -18,8 +20,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/data/api"
-	"github.com/ElrondNetwork/elrond-vm-common/data/esdt"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -117,6 +117,16 @@ type keyValuePairsResponseData struct {
 type keyValuePairsResponse struct {
 	Data  keyValuePairsResponseData `json:"data"`
 	Error string                    `json:"error"`
+	Code  string
+}
+
+type esdtRolesResponseData struct {
+	Roles map[string][]string `json:"roles"`
+}
+
+type esdtRolesResponse struct {
+	Data  esdtRolesResponseData `json:"data"`
+	Error string                `json:"error"`
 	Code  string
 }
 
@@ -943,6 +953,90 @@ func TestGetKeyValuePairs_ShouldWork(t *testing.T) {
 	assert.Equal(t, pairs, response.Data.Pairs)
 }
 
+func TestGetESDTsRoles_InvalidAppContextShouldError(t *testing.T) {
+	t.Parallel()
+
+	ws := startNodeServer(nil)
+
+	req, _ := http.NewRequest("GET", "/address/addr/esdts/roles", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
+}
+
+func TestGetESDTsRoles_WithEmptyAddressShoudReturnError(t *testing.T) {
+	t.Parallel()
+	facade := mock.Facade{}
+
+	emptyAddress := ""
+	ws := startNodeServer(&facade)
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdts/roles", emptyAddress), nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.NotEmpty(t, response)
+	assert.True(t, strings.Contains(response.Error,
+		fmt.Sprintf("%s: %s", apiErrors.ErrGetRolesForAccount.Error(), apiErrors.ErrEmptyAddress.Error()),
+	))
+}
+
+func TestGetESDTsRoles_NodeFailsShouldError(t *testing.T) {
+	t.Parallel()
+
+	testAddress := "address"
+	expectedErr := errors.New("expected error")
+	facade := mock.Facade{
+		GetESDTsRolesCalled: func(_ string) (map[string][]string, error) {
+			return nil, expectedErr
+		},
+	}
+
+	ws := startNodeServer(&facade)
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdts/roles", testAddress), nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := &shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
+}
+
+func TestGetESDTsRoles_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	roles := map[string][]string{
+		"token0": {"role0", "role1"},
+		"token1": {"role3", "role1"},
+	}
+	testAddress := "address"
+	facade := mock.Facade{
+		GetESDTsRolesCalled: func(_ string) (map[string][]string, error) {
+			return roles, nil
+		},
+	}
+
+	ws := startNodeServer(&facade)
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdts/roles", testAddress), nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := esdtRolesResponse{}
+	loadResponse(resp.Body, &response)
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, roles, response.Data.Roles)
+}
+
 func getRoutesConfig() config.ApiRoutesConfig {
 	return config.ApiRoutesConfig{
 		APIPackages: map[string]config.APIPackageConfig{
@@ -954,6 +1048,7 @@ func getRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/:address/keys", Open: true},
 					{Name: "/:address/key/:key", Open: true},
 					{Name: "/:address/esdt", Open: true},
+					{Name: "/:address/esdts/roles", Open: true},
 					{Name: "/:address/esdt/:tokenIdentifier", Open: true},
 					{Name: "/:address/nft/:tokenIdentifier/nonce/:nonce", Open: true},
 					{Name: "/:address/esdts-with-role/:role", Open: true},

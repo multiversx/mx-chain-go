@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/batch"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/data/batch"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
@@ -19,6 +19,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
+	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -147,7 +151,7 @@ func TestGenerateAndSendBulkTransactions_NilPubkeyConverterShouldErr(t *testing.
 func TestGenerateAndSendBulkTransactions_NilPrivateKeyShouldErr(t *testing.T) {
 	accAdapter := getAccAdapter(big.NewInt(0))
 	singleSigner := &mock.SinglesignMock{}
-	dataPool := &testscommon.PoolsHolderStub{
+	dataPool := &dataRetrieverMock.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataStub{
 				ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
@@ -192,7 +196,7 @@ func TestGenerateAndSendBulkTransactions_InvalidReceiverAddressShouldErr(t *test
 		}
 	}}
 	singleSigner := &mock.SinglesignMock{}
-	dataPool := &testscommon.PoolsHolderStub{
+	dataPool := &dataRetrieverMock.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataStub{
 				ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
@@ -246,7 +250,7 @@ func TestGenerateAndSendBulkTransactions_MarshalizerErrorsShouldErr(t *testing.T
 		}
 	}}
 	singleSigner := &mock.SinglesignMock{}
-	dataPool := &testscommon.PoolsHolderStub{
+	dataPool := &dataRetrieverMock.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataStub{
 				ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
@@ -299,7 +303,7 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 		chDone <- struct{}{}
 	}()
 
-	mes := &mock.MessengerStub{
+	mes := &p2pmocks.MessengerStub{
 		BroadcastOnChannelBlockingCalled: func(pipe string, topic string, buff []byte) error {
 			identifier := factory.TransactionTopic + shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId())
 
@@ -326,7 +330,7 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 		},
 	}
 
-	dataPool := &testscommon.PoolsHolderStub{
+	dataPool := &dataRetrieverMock.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataStub{
 				ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
@@ -391,7 +395,7 @@ func getDefaultCryptoComponents() *factoryMock.CryptoComponentsMock {
 		PubKeyBytes:     []byte("pubKey"),
 		BlockSig:        &mock.SingleSignerMock{},
 		TxSig:           &mock.SingleSignerMock{},
-		MultiSig:        &mock.MultisignMock{},
+		MultiSig:        cryptoMocks.NewMultiSigner(1),
 		PeerSignHandler: &mock.PeerSignatureHandler{},
 		BlKeyGen:        &mock.KeyGenMock{},
 		TxKeyGen:        &mock.KeyGenMock{},
@@ -401,17 +405,17 @@ func getDefaultCryptoComponents() *factoryMock.CryptoComponentsMock {
 
 func getDefaultStateComponents() *testscommon.StateComponentsMock {
 	return &testscommon.StateComponentsMock{
-		PeersAcc:        &testscommon.AccountsStub{},
-		Accounts:        &testscommon.AccountsStub{},
-		AccountsAPI:     &testscommon.AccountsStub{},
+		PeersAcc:        &stateMock.AccountsStub{},
+		Accounts:        &stateMock.AccountsStub{},
+		AccountsAPI:     &stateMock.AccountsStub{},
 		Tries:           &mock.TriesHolderStub{},
-		StorageManagers: map[string]data.StorageManager{"0": &testscommon.StorageManagerStub{}},
+		StorageManagers: map[string]common.StorageManager{"0": &testscommon.StorageManagerStub{}},
 	}
 }
 
 func getDefaultNetworkComponents() *factoryMock.NetworkComponentsMock {
 	return &factoryMock.NetworkComponentsMock{
-		Messenger:       &mock.MessengerStub{},
+		Messenger:       &p2pmocks.MessengerStub{},
 		InputAntiFlood:  &mock.P2PAntifloodHandlerStub{},
 		OutputAntiFlood: &mock.P2PAntifloodHandlerStub{},
 		PeerBlackList:   &mock.PeerBlackListHandlerStub{},

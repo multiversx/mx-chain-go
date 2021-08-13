@@ -4,12 +4,11 @@ import (
 	"fmt"
 	syncGo "sync"
 
-	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/forking"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/provider"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -19,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 )
@@ -272,7 +272,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		MiniblocksProvider:   tpn.MiniblocksProvider,
 		Uint64Converter:      TestUint64Converter,
 		AppStatusHandler:     TestAppStatusHandler,
-		Indexer:              &mock.NilIndexer{},
+		OutportHandler:       mock.NewNilOutport(),
 		AccountsDBSyncer:     &mock.AccountsDBSyncerStub{},
 		CurrentEpochProvider: &testscommon.CurrentEpochProviderStub{},
 		IsInImportMode:       false,
@@ -314,7 +314,7 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		MiniblocksProvider:   tpn.MiniblocksProvider,
 		Uint64Converter:      TestUint64Converter,
 		AppStatusHandler:     TestAppStatusHandler,
-		Indexer:              &mock.NilIndexer{},
+		OutportHandler:       mock.NewNilOutport(),
 		AccountsDBSyncer:     &mock.AccountsDBSyncerStub{},
 		CurrentEpochProvider: &testscommon.CurrentEpochProviderStub{},
 		IsInImportMode:       false,

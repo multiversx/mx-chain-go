@@ -1,30 +1,26 @@
 package factory
 
 import (
-	"time"
-
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
+	"github.com/ElrondNetwork/elrond-go-core/core/watchdog"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/throttler"
-	"github.com/ElrondNetwork/elrond-go/core/watchdog"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/syncer"
-	"github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/sync/storageBootstrap"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state/syncer"
+	"github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
-
-const timeoutGettingTrieNode = time.Minute
 
 // ConsensusComponentsFactoryArgs holds the arguments needed to create a consensus components factory
 type ConsensusComponentsFactoryArgs struct {
@@ -256,7 +252,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		cc.worker,
 		ccf.config.Consensus.Type,
 		ccf.coreComponents.StatusHandler(),
-		ccf.statusComponents.ElasticIndexer(),
+		ccf.statusComponents.OutportHandler(),
 		[]byte(ccf.coreComponents.ChainID()),
 		ccf.networkComponents.NetworkMessenger().ID(),
 	)
@@ -300,8 +296,8 @@ func (cc *consensusComponents) Close() error {
 
 func (ccf *consensusComponentsFactory) createChronology() (consensus.ChronologyHandler, error) {
 	wd := ccf.coreComponents.Watchdog()
-	if !ccf.statusComponents.ElasticIndexer().IsNilIndexer() {
-		log.Warn("node is running with a valid indexer. Chronology watchdog will be turned off as " +
+	if ccf.statusComponents.OutportHandler().HasDrivers() {
+		log.Warn("node is running with an outport with attached drivers. Chronology watchdog will be turned off as " +
 			"it is incompatible with the indexing process.")
 		wd = &watchdog.DisabledWatchdog{}
 	}
@@ -446,7 +442,7 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		MiniblocksProvider:   ccf.dataComponents.MiniBlocksProvider(),
 		Uint64Converter:      ccf.coreComponents.Uint64ByteSliceConverter(),
 		AppStatusHandler:     ccf.coreComponents.StatusHandler(),
-		Indexer:              ccf.statusComponents.ElasticIndexer(),
+		OutportHandler:       ccf.statusComponents.OutportHandler(),
 		AccountsDBSyncer:     accountsDBSyncer,
 		CurrentEpochProvider: ccf.processComponents.CurrentEpochProvider(),
 		IsInImportMode:       ccf.isInImportMode,
@@ -464,13 +460,13 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 	return bootstrap, nil
 }
 
-func (ccf *consensusComponentsFactory) createArgsBaseAccountsSyncer(trieStorageManager data.StorageManager) syncer.ArgsNewBaseAccountsSyncer {
+func (ccf *consensusComponentsFactory) createArgsBaseAccountsSyncer(trieStorageManager common.StorageManager) syncer.ArgsNewBaseAccountsSyncer {
 	return syncer.ArgsNewBaseAccountsSyncer{
 		Hasher:                    ccf.coreComponents.Hasher(),
 		Marshalizer:               ccf.coreComponents.InternalMarshalizer(),
 		TrieStorageManager:        trieStorageManager,
 		RequestHandler:            ccf.processComponents.RequestHandler(),
-		Timeout:                   timeoutGettingTrieNode,
+		Timeout:                   common.TimeoutGettingTrieNodes,
 		Cacher:                    ccf.dataComponents.Datapool().TrieNodes(),
 		MaxTrieLevelInMemory:      ccf.config.StateTriesConfig.MaxStateTrieLevelInMemory,
 		MaxHardCapForMissingNodes: ccf.config.TrieSync.MaxHardCapForMissingNodes,
@@ -567,7 +563,7 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		MiniblocksProvider:   ccf.dataComponents.MiniBlocksProvider(),
 		Uint64Converter:      ccf.coreComponents.Uint64ByteSliceConverter(),
 		AppStatusHandler:     ccf.coreComponents.StatusHandler(),
-		Indexer:              ccf.statusComponents.ElasticIndexer(),
+		OutportHandler:       ccf.statusComponents.OutportHandler(),
 		AccountsDBSyncer:     accountsDBSyncer,
 		CurrentEpochProvider: ccf.processComponents.CurrentEpochProvider(),
 		IsInImportMode:       ccf.isInImportMode,
@@ -599,7 +595,7 @@ func (ccf *consensusComponentsFactory) createConsensusTopic(cc *consensusCompone
 		return errors.ErrNilMessenger
 	}
 
-	cc.consensusTopic = core.ConsensusTopic + shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId())
+	cc.consensusTopic = common.ConsensusTopic + shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId())
 	if !ccf.networkComponents.NetworkMessenger().HasTopic(cc.consensusTopic) {
 		err := ccf.networkComponents.NetworkMessenger().CreateTopic(cc.consensusTopic, true)
 		if err != nil {
@@ -607,7 +603,7 @@ func (ccf *consensusComponentsFactory) createConsensusTopic(cc *consensusCompone
 		}
 	}
 
-	return ccf.networkComponents.NetworkMessenger().RegisterMessageProcessor(cc.consensusTopic, core.DefaultInterceptorsIdentifier, cc.worker)
+	return ccf.networkComponents.NetworkMessenger().RegisterMessageProcessor(cc.consensusTopic, common.DefaultInterceptorsIdentifier, cc.worker)
 }
 
 func (ccf *consensusComponentsFactory) addCloserInstances(closers ...update.Closer) error {

@@ -8,20 +8,23 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/keyValStorage"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/keyValStorage"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/peer"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
@@ -88,7 +91,7 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		Marshalizer: &mock.MarshalizerMock{},
-		DataPool: &testscommon.PoolsHolderStub{
+		DataPool: &dataRetrieverMock.PoolsHolderStub{
 			HeadersCalled: func() dataRetriever.HeadersPool {
 				return nil
 			},
@@ -251,7 +254,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateErrOnGetAccountFail(t *tes
 	t.Parallel()
 
 	adapterError := errors.New("account error")
-	peerAdapters := &testscommon.AccountsStub{
+	peerAdapters := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 			return nil, adapterError
 		},
@@ -273,7 +276,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateErrOnGetAccountFail(t *tes
 func TestValidatorStatisticsProcessor_SaveInitialStateGetAccountReturnsInvalid(t *testing.T) {
 	t.Parallel()
 
-	peerAdapter := &testscommon.AccountsStub{
+	peerAdapter := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 			return &mock.AccountWrapMock{}, nil
 		},
@@ -296,7 +299,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateSetAddressErrors(t *testin
 
 	saveAccountError := errors.New("save account error")
 	peerAccount, _ := state.NewPeerAccount([]byte("1234"))
-	peerAdapter := &testscommon.AccountsStub{
+	peerAdapter := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 			return peerAccount, nil
 		},
@@ -322,7 +325,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateCommitErrors(t *testing.T)
 
 	commitError := errors.New("commit error")
 	peerAccount, _ := state.NewPeerAccount([]byte("1234"))
-	peerAdapter := &testscommon.AccountsStub{
+	peerAdapter := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 			return peerAccount, nil
 		},
@@ -345,7 +348,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateCommit(t *testing.T) {
 	t.Parallel()
 
 	peerAccount, _ := state.NewPeerAccount([]byte("1234"))
-	peerAdapter := &testscommon.AccountsStub{
+	peerAdapter := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 			return peerAccount, nil
 		},
@@ -492,7 +495,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderError(t *testing.T
 
 	arguments := createMockArguments()
 	arguments.Marshalizer = marshalizer
-	arguments.DataPool = &testscommon.PoolsHolderStub{
+	arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &mock.HeadersCacherStub{}
 		},
@@ -548,7 +551,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsIncrease(t *testing.T)
 
 	arguments := createMockArguments()
 	arguments.Marshalizer = marshalizer
-	arguments.DataPool = &testscommon.PoolsHolderStub{
+	arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &mock.HeadersCacherStub{}
 		},
@@ -1220,7 +1223,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCheckForMissedBlocksErr(t *
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
 
 	arguments := createMockArguments()
-	arguments.DataPool = &testscommon.PoolsHolderStub{
+	arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &mock.HeadersCacherStub{}
 		},
@@ -1299,7 +1302,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksNoMissedBlocks(t *test
 
 	arguments := createMockArguments()
 	arguments.Marshalizer = &mock.MarshalizerMock{}
-	arguments.DataPool = testscommon.NewPoolsHolderStub()
+	arguments.DataPool = dataRetrieverMock.NewPoolsHolderStub()
 	arguments.StorageService = &mock.ChainStorerMock{}
 	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []sharding.Validator, err error) {
@@ -1332,7 +1335,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksErrOnComputeValidatorL
 
 	arguments := createMockArguments()
 	arguments.Marshalizer = &mock.MarshalizerMock{}
-	arguments.DataPool = testscommon.NewPoolsHolderStub()
+	arguments.DataPool = dataRetrieverMock.NewPoolsHolderStub()
 	arguments.StorageService = &mock.ChainStorerMock{}
 	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []sharding.Validator, err error) {
@@ -1785,7 +1788,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsPubKeyForValidator(t *
 			}, &mock.ValidatorMock{}}, nil
 		},
 	}
-	arguments.DataPool = &testscommon.PoolsHolderStub{
+	arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &mock.HeadersCacherStub{
 				GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, e error) {
@@ -1827,8 +1830,8 @@ func getShardHeaderHandler(randSeed []byte) *block.Header {
 	}
 }
 
-func getAccountsMock() *testscommon.AccountsStub {
-	return &testscommon.AccountsStub{
+func getAccountsMock() *stateMock.AccountsStub {
+	return &stateMock.AccountsStub{
 		CommitCalled: func() (bytes []byte, e error) {
 			return make([]byte, 0), nil
 		},
@@ -2141,7 +2144,7 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochComputesJustEligible
 
 	vi[0] = make([]*state.ValidatorInfo, 1)
 	vi[0][0] = createMockValidatorInfo(0, tempRating2, validatorSuccess2, validatorIgnored2, validatorFailure2)
-	vi[0][0].List = string(core.WaitingList)
+	vi[0][0].List = string(common.WaitingList)
 
 	err := validatorStatistics.ProcessRatingsEndOfEpoch(vi, 1)
 	assert.Nil(t, err)
@@ -2180,11 +2183,11 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochV2ComputesEligibleLe
 	vi := make(map[uint32][]*state.ValidatorInfo)
 	vi[core.MetachainShardId] = make([]*state.ValidatorInfo, 1)
 	vi[core.MetachainShardId][0] = createMockValidatorInfo(core.MetachainShardId, tempRating1, validatorSuccess1, validatorIgnored1, validatorFailure1)
-	vi[core.MetachainShardId][0].List = string(core.LeavingList)
+	vi[core.MetachainShardId][0].List = string(common.LeavingList)
 
 	vi[0] = make([]*state.ValidatorInfo, 1)
 	vi[0][0] = createMockValidatorInfo(0, tempRating2, validatorSuccess2, validatorIgnored2, validatorFailure2)
-	vi[0][0].List = string(core.WaitingList)
+	vi[0][0].List = string(common.WaitingList)
 
 	err := validatorStatistics.ProcessRatingsEndOfEpoch(vi, 1)
 	assert.Nil(t, err)
@@ -2277,7 +2280,7 @@ func TestValidatorsProvider_PeerAccoutToValidatorInfo(t *testing.T) {
 		},
 		NumSelectedInSuccessBlocks: 3,
 		AccumulatedFees:            big.NewInt(70),
-		UnStakedEpoch:              core.DefaultUnstakedEpoch,
+		UnStakedEpoch:              common.DefaultUnstakedEpoch,
 	}
 
 	peerAccount := state.NewEmptyPeerAccount()
@@ -2312,7 +2315,7 @@ func createMockValidatorInfo(shardId uint32, tempRating uint32, validatorSuccess
 	return &state.ValidatorInfo{
 		PublicKey:                  nil,
 		ShardId:                    shardId,
-		List:                       string(core.EligibleList),
+		List:                       string(common.EligibleList),
 		Index:                      0,
 		TempRating:                 tempRating,
 		Rating:                     0,
@@ -2378,7 +2381,7 @@ func createPeerAccounts(addrBytes0 []byte, addrBytesMeta []byte) (state.PeerAcco
 		Rating:                              51,
 		TempRating:                          61,
 		Nonce:                               7,
-		UnStakedEpoch:                       core.DefaultUnstakedEpoch,
+		UnStakedEpoch:                       common.DefaultUnstakedEpoch,
 	}
 
 	addr = addrBytesMeta
@@ -2400,7 +2403,7 @@ func createPeerAccounts(addrBytes0 []byte, addrBytesMeta []byte) (state.PeerAcco
 		TempRating:                 611,
 		Nonce:                      8,
 		ShardId:                    core.MetachainShardId,
-		UnStakedEpoch:              core.DefaultUnstakedEpoch,
+		UnStakedEpoch:              common.DefaultUnstakedEpoch,
 	}
 	return pa0, paMeta
 }
@@ -2472,7 +2475,7 @@ func TestValidatorStatisticsProcessor_SaveNodesCoordinatorUpdates(t *testing.T) 
 
 	peerAdapter.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		peerAcc := state.NewEmptyPeerAccount()
-		peerAcc.List = string(core.LeavingList)
+		peerAcc.List = string(common.LeavingList)
 		return peerAcc, nil
 	}
 
@@ -2498,7 +2501,7 @@ func TestValidatorStatisticsProcessor_SaveNodesCoordinatorUpdates(t *testing.T) 
 }
 
 func TestValidatorStatisticsProcessor_getActualList(t *testing.T) {
-	eligibleList := string(core.EligibleList)
+	eligibleList := string(common.EligibleList)
 	eligiblePeer := &mock.PeerAccountHandlerMock{
 		GetListCalled: func() string {
 			return eligibleList
@@ -2507,7 +2510,7 @@ func TestValidatorStatisticsProcessor_getActualList(t *testing.T) {
 	computedEligibleList := peer.GetActualList(eligiblePeer)
 	assert.Equal(t, eligibleList, computedEligibleList)
 
-	waitingList := string(core.WaitingList)
+	waitingList := string(common.WaitingList)
 	waitingPeer := &mock.PeerAccountHandlerMock{
 		GetListCalled: func() string {
 			return waitingList
@@ -2516,7 +2519,7 @@ func TestValidatorStatisticsProcessor_getActualList(t *testing.T) {
 	computedWaiting := peer.GetActualList(waitingPeer)
 	assert.Equal(t, waitingList, computedWaiting)
 
-	leavingList := string(core.LeavingList)
+	leavingList := string(common.LeavingList)
 	leavingPeer := &mock.PeerAccountHandlerMock{
 		GetListCalled: func() string {
 			return leavingList
@@ -2525,7 +2528,7 @@ func TestValidatorStatisticsProcessor_getActualList(t *testing.T) {
 	computedLeavingList := peer.GetActualList(leavingPeer)
 	assert.Equal(t, leavingList, computedLeavingList)
 
-	newList := string(core.NewList)
+	newList := string(common.NewList)
 	newPeer := &mock.PeerAccountHandlerMock{
 		GetListCalled: func() string {
 			return newList
@@ -2534,7 +2537,7 @@ func TestValidatorStatisticsProcessor_getActualList(t *testing.T) {
 	computedNewList := peer.GetActualList(newPeer)
 	assert.Equal(t, newList, computedNewList)
 
-	inactiveList := string(core.InactiveList)
+	inactiveList := string(common.InactiveList)
 	inactivePeer := &mock.PeerAccountHandlerMock{
 		GetListCalled: func() string {
 			return inactiveList
@@ -2557,13 +2560,13 @@ func TestValidatorStatisticsProcessor_getActualList(t *testing.T) {
 	computedInactiveList = peer.GetActualList(inactivePeer2)
 	assert.Equal(t, inactiveList, computedInactiveList)
 
-	jailedList := string(core.JailedList)
+	jailedList := string(common.JailedList)
 	jailedPeer := &mock.PeerAccountHandlerMock{
 		GetListCalled: func() string {
 			return inactiveList
 		},
 		GetUnStakedEpochCalled: func() uint32 {
-			return core.DefaultUnstakedEpoch
+			return common.DefaultUnstakedEpoch
 		},
 	}
 	computedJailedList := peer.GetActualList(jailedPeer)

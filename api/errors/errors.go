@@ -34,6 +34,9 @@ var ErrGetESDTTokens = errors.New("get esdt tokens for account error")
 // ErrGetESDTBalance signals an error in getting esdt balance for given address
 var ErrGetESDTBalance = errors.New("get esdt balance for account error")
 
+// ErrGetRolesForAccount signals an error in getting esdt tokens and roles for a given address
+var ErrGetRolesForAccount = errors.New("get roles for account error")
+
 // ErrGetESDTNFTData signals an error in getting esdt nft data for given address, tokenID and nonce
 var ErrGetESDTNFTData = errors.New("get esdt nft data for account error")
 

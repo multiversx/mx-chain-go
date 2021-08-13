@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	rewardTxData "github.com/ElrondNetwork/elrond-go/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	rewardTxData "github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
+	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/process/txstatus"
 )
 
 // GetTransaction gets the transaction based on the given hash. It will search in the cache and the storage and
@@ -94,7 +95,7 @@ func (n *Node) lookupHistoricalTransaction(hash []byte, withResults bool) (*tran
 
 	putMiniblockFieldsInTransaction(tx, miniblockMetadata)
 	tx.Timestamp = n.computeTimestampForRound(tx.Round)
-	statusComputer, err := transaction.NewStatusComputer(n.processComponents.ShardCoordinator().SelfId(), n.coreComponents.Uint64ByteSliceConverter(), n.dataComponents.StorageService())
+	statusComputer, err := txstatus.NewStatusComputer(n.processComponents.ShardCoordinator().SelfId(), n.coreComponents.Uint64ByteSliceConverter(), n.dataComponents.StorageService())
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", ErrNilStatusComputer.Error(), err)
 	}
@@ -148,7 +149,7 @@ func (n *Node) getTransactionFromStorage(hash []byte) (*transaction.ApiTransacti
 	}
 
 	// TODO: take care of this when integrating the adaptivity
-	statusComputer, err := transaction.NewStatusComputer(n.processComponents.ShardCoordinator().SelfId(), n.coreComponents.Uint64ByteSliceConverter(), n.dataComponents.StorageService())
+	statusComputer, err := txstatus.NewStatusComputer(n.processComponents.ShardCoordinator().SelfId(), n.coreComponents.Uint64ByteSliceConverter(), n.dataComponents.StorageService())
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", ErrNilStatusComputer.Error(), err)
 	}
@@ -350,7 +351,6 @@ func (n *Node) prepareUnsignedTx(tx *smartContractResult.SmartContractResult) (*
 		CodeMetadata:            tx.GetCodeMetadata(),
 		PreviousTransactionHash: hex.EncodeToString(tx.GetPrevTxHash()),
 		OriginalTransactionHash: hex.EncodeToString(tx.GetOriginalTxHash()),
-		OriginalSender:          n.coreComponents.AddressPubKeyConverter().Encode(tx.GetOriginalSender()),
 		ReturnMessage:           string(tx.GetReturnMessage()),
 	}
 	if len(tx.GetOriginalSender()) == n.coreComponents.AddressPubKeyConverter().Len() {

@@ -4,16 +4,17 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/partitioning"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go-crypto"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/partitioning"
-	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -110,7 +111,7 @@ func (cm *commonMessenger) BroadcastConsensusMessage(message *consensus.Message)
 		return err
 	}
 
-	consensusTopic := core.ConsensusTopic +
+	consensusTopic := common.ConsensusTopic +
 		cm.shardCoordinator.CommunicationIdentifier(cm.shardCoordinator.SelfId())
 
 	cm.messenger.Broadcast(consensusTopic, buff)
@@ -148,7 +149,7 @@ func (cm *commonMessenger) BroadcastTransactions(transactions map[string][][]byt
 	for topic, v := range transactions {
 		txs += len(v)
 		// forward txs to the destination shards in packets
-		packets, err = dataPacker.PackDataInChunks(v, core.MaxBulkTransactionSize)
+		packets, err = dataPacker.PackDataInChunks(v, common.MaxBulkTransactionSize)
 		if err != nil {
 			return err
 		}
@@ -182,7 +183,7 @@ func (cm *commonMessenger) BroadcastBlockData(
 		}
 	}
 
-	time.Sleep(core.ExtraDelayBetweenBroadcastMbsAndTxs)
+	time.Sleep(common.ExtraDelayBetweenBroadcastMbsAndTxs)
 
 	if len(transactions) > 0 {
 		err := cm.BroadcastTransactions(transactions)

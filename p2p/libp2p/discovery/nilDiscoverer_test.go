@@ -3,7 +3,7 @@ package discovery_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
 	"github.com/stretchr/testify/assert"
 )

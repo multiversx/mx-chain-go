@@ -3,7 +3,7 @@ package factory_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -91,7 +91,7 @@ func TestManagedStateComponents_Setters(t *testing.T) {
 	require.NoError(t, err)
 
 	triesContainer := &mock.TriesHolderStub{}
-	triesStorageManagers := map[string]data.StorageManager{"a": &testscommon.StorageManagerStub{}}
+	triesStorageManagers := map[string]common.StorageManager{"a": &testscommon.StorageManagerStub{}}
 
 	err = managedStateComponents.SetTriesContainer(triesContainer)
 	require.NoError(t, err)

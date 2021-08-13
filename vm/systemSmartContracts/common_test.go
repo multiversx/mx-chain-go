@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"testing"
 
+	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
@@ -27,9 +28,9 @@ func TestCheckIfNil_NilCallerAddr(t *testing.T) {
 			CallValue:   big.NewInt(0),
 			GasPrice:    0,
 			GasProvided: 0,
-			CallType:    vmcommon.DirectCall,
+			CallType:    vmData.DirectCall,
 		},
-		RecipientAddr: []byte("tralala"),
+		RecipientAddr: []byte("dummyAddress"),
 		Function:      "something",
 	})
 
@@ -41,14 +42,14 @@ func TestCheckIfNil_NilCallValue(t *testing.T) {
 
 	err := CheckIfNil(&vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
-			CallerAddr:  []byte("tralala"),
+			CallerAddr:  []byte("dummyAddress"),
 			Arguments:   nil,
 			CallValue:   nil,
 			GasPrice:    0,
 			GasProvided: 0,
-			CallType:    vmcommon.DirectCall,
+			CallType:    vmData.DirectCall,
 		},
-		RecipientAddr: []byte("tralala"),
+		RecipientAddr: []byte("dummyAddress"),
 		Function:      "something",
 	})
 
@@ -60,12 +61,12 @@ func TestCheckIfNil_NilRecipientAddr(t *testing.T) {
 
 	err := CheckIfNil(&vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
-			CallerAddr:  []byte("tralala"),
+			CallerAddr:  []byte("dummyAddress"),
 			Arguments:   nil,
 			CallValue:   big.NewInt(0),
 			GasPrice:    0,
 			GasProvided: 0,
-			CallType:    vmcommon.DirectCall,
+			CallType:    vmData.DirectCall,
 		},
 		RecipientAddr: nil,
 		Function:      "something",
@@ -79,14 +80,14 @@ func TestCheckIfNil_NilFunction(t *testing.T) {
 
 	err := CheckIfNil(&vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
-			CallerAddr:  []byte("tralala"),
+			CallerAddr:  []byte("dummyAddress"),
 			Arguments:   nil,
 			CallValue:   big.NewInt(0),
 			GasPrice:    0,
 			GasProvided: 0,
-			CallType:    vmcommon.DirectCall,
+			CallType:    vmData.DirectCall,
 		},
-		RecipientAddr: []byte("tralala"),
+		RecipientAddr: []byte("dummyAddress"),
 		Function:      "",
 	})
 
@@ -98,14 +99,14 @@ func TestCheckIfNil(t *testing.T) {
 
 	err := CheckIfNil(&vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
-			CallerAddr:  []byte("tralala"),
+			CallerAddr:  []byte("dummyAddress"),
 			Arguments:   nil,
 			CallValue:   big.NewInt(0),
 			GasPrice:    0,
 			GasProvided: 0,
-			CallType:    vmcommon.DirectCall,
+			CallType:    vmData.DirectCall,
 		},
-		RecipientAddr: []byte("tralala"),
+		RecipientAddr: []byte("dummyAddress"),
 		Function:      "something",
 	})
 

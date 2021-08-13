@@ -4,13 +4,14 @@ import (
 	"context"
 	"strings"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -70,7 +71,7 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 		uint64Converter:      arguments.Uint64Converter,
 		poolsHolder:          arguments.PoolsHolder,
 		statusHandler:        arguments.AppStatusHandler,
-		indexer:              arguments.Indexer,
+		outportHandler:       arguments.OutportHandler,
 		accountsDBSyncer:     arguments.AccountsDBSyncer,
 		currentEpochProvider: arguments.CurrentEpochProvider,
 		isInImportMode:       arguments.IsInImportMode,
@@ -172,7 +173,7 @@ func (boot *MetaBootstrap) setLastEpochStartRound() {
 // in the blockchain, and all this mechanism will be reiterated for the next block.
 func (boot *MetaBootstrap) SyncBlock() error {
 	err := boot.syncBlock()
-	isErrGetNodeFromDB := err != nil && strings.Contains(err.Error(), core.GetNodeFromDBErrorString)
+	isErrGetNodeFromDB := err != nil && strings.Contains(err.Error(), common.GetNodeFromDBErrorString)
 	if isErrGetNodeFromDB {
 		errSync := boot.syncAccountsDBs()
 		if errSync != nil {

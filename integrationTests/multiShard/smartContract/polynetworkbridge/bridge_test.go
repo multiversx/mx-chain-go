@@ -7,10 +7,11 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	"github.com/stretchr/testify/assert"
@@ -26,10 +27,15 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 	nodesPerShard := 1
 	numMetachainNodes := 1
 
-	nodes := integrationTests.CreateNodes(
+	enableEpochs := config.EnableEpochs{
+		GlobalMintBurnDisableEpoch:       10,
+		BuiltInFunctionOnMetaEnableEpoch: 10,
+	}
+	nodes := integrationTests.CreateNodesWithEnableEpochs(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
+		enableEpochs,
 	)
 
 	ownerNode := nodes[0]

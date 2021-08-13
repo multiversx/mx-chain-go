@@ -1,6 +1,8 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/data"
+import (
+	"github.com/ElrondNetwork/elrond-go/common"
+)
 
 // DataTrieTrackerStub -
 type DataTrieTrackerStub struct {
@@ -8,8 +10,8 @@ type DataTrieTrackerStub struct {
 	DirtyDataCalled       func() map[string][]byte
 	RetrieveValueCalled   func(key []byte) ([]byte, error)
 	SaveKeyValueCalled    func(key []byte, value []byte) error
-	SetDataTrieCalled     func(tr data.Trie)
-	DataTrieCalled        func() data.Trie
+	SetDataTrieCalled     func(tr common.Trie)
+	DataTrieCalled        func() common.Trie
 }
 
 // ClearDataCaches -
@@ -44,14 +46,14 @@ func (dtts *DataTrieTrackerStub) SaveKeyValue(key []byte, value []byte) error {
 }
 
 // SetDataTrie -
-func (dtts *DataTrieTrackerStub) SetDataTrie(tr data.Trie) {
+func (dtts *DataTrieTrackerStub) SetDataTrie(tr common.Trie) {
 	if dtts.SetDataTrieCalled != nil {
 		dtts.SetDataTrieCalled(tr)
 	}
 }
 
 // DataTrie -
-func (dtts *DataTrieTrackerStub) DataTrie() data.Trie {
+func (dtts *DataTrieTrackerStub) DataTrie() common.Trie {
 	if dtts.DataTrieCalled != nil {
 		return dtts.DataTrieCalled()
 	}

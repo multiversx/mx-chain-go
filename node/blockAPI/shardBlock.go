@@ -4,14 +4,14 @@ import (
 	"encoding/hex"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/data/api"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node/filters"
 )
 
 type shardAPIBlockProcessor struct {
-	*baseAPIBockProcessor
+	*baseAPIBlockProcessor
 }
 
 // NewShardApiBlockProcessor will create a new instance of shard api block processor
@@ -19,7 +19,7 @@ func NewShardApiBlockProcessor(arg *APIBlockProcessorArg) *shardAPIBlockProcesso
 	hasDbLookupExtensions := arg.HistoryRepo.IsEnabled()
 
 	return &shardAPIBlockProcessor{
-		baseAPIBockProcessor: &baseAPIBockProcessor{
+		baseAPIBlockProcessor: &baseAPIBlockProcessor{
 			hasDbLookupExtensions:    hasDbLookupExtensions,
 			selfShardID:              arg.SelfShardID,
 			store:                    arg.Store,

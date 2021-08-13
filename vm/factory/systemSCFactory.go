@@ -3,12 +3,13 @@ package factory
 import (
 	"fmt"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
@@ -109,7 +110,7 @@ func NewSystemSCFactory(args ArgsNewSystemSCFactory) (*systemSCFactory, error) {
 
 func (scf *systemSCFactory) createGasConfig(gasMap map[string]map[string]uint64) error {
 	baseOps := &vm.BaseOperationCost{}
-	err := mapstructure.Decode(gasMap[core.BaseOperationCost], baseOps)
+	err := mapstructure.Decode(gasMap[common.BaseOperationCost], baseOps)
 	if err != nil {
 		return err
 	}
@@ -120,7 +121,7 @@ func (scf *systemSCFactory) createGasConfig(gasMap map[string]map[string]uint64)
 	}
 
 	metaChainSCsOps := &vm.MetaChainSystemSCsCost{}
-	err = mapstructure.Decode(gasMap[core.MetaChainSystemSCsCost], metaChainSCsOps)
+	err = mapstructure.Decode(gasMap[common.MetaChainSystemSCsCost], metaChainSCsOps)
 	if err != nil {
 		return err
 	}
@@ -131,7 +132,7 @@ func (scf *systemSCFactory) createGasConfig(gasMap map[string]map[string]uint64)
 	}
 
 	builtInFunctionsCost := &vm.BuiltInCost{}
-	err = mapstructure.Decode(gasMap[core.BuiltInCost], builtInFunctionsCost)
+	err = mapstructure.Decode(gasMap[common.BuiltInCost], builtInFunctionsCost)
 	if err != nil {
 		return err
 	}

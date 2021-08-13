@@ -1,7 +1,7 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 

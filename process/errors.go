@@ -860,11 +860,8 @@ var ErrInterceptedDataNotForCurrentShard = errors.New("intercepted data not for 
 // ErrAccountNotPayable will be sent when trying to send money to a non-payable account
 var ErrAccountNotPayable = errors.New("sending value to non payable contract")
 
-// ErrNilIndexer signals that indexer is nil
-var ErrNilIndexer = errors.New("indexer is nil")
-
-// ErrNilTpsBenchmark signals that tps benchmark object is nil
-var ErrNilTpsBenchmark = errors.New("tps benchmark object is nil")
+// ErrNilOutportHandler signals that outport is nil
+var ErrNilOutportHandler = errors.New("outport handler is nil")
 
 // ErrSmartContractDeploymentIsDisabled signals that smart contract deployment was disabled
 var ErrSmartContractDeploymentIsDisabled = errors.New("smart Contract deployment is disabled")
@@ -973,3 +970,6 @@ var ErrNilAccountsDBSyncer = errors.New("nil accounts DB syncer")
 
 // ErrNilCurrentNetworkEpochProvider signals that a nil CurrentNetworkEpochProvider handler has been provided
 var ErrNilCurrentNetworkEpochProvider = errors.New("nil current network epoch provider")
+
+// ErrNilESDTTransferParser signals that a nil ESDT transfer parser has been provider
+var ErrNilESDTTransferParser = errors.New("nil esdt transfer parser")

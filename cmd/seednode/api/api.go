@@ -3,9 +3,9 @@ package api
 import (
 	"net/http"
 
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/api/logs"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"

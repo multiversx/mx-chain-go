@@ -3,7 +3,7 @@ package libp2p
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 

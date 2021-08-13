@@ -9,12 +9,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -242,7 +242,7 @@ func TestNewDelegationSystemSC_OkParamsShouldWork(t *testing.T) {
 	args := createMockArgumentsForDelegation()
 
 	epochNotifier := &mock.EpochNotifierStub{}
-	epochNotifier.RegisterNotifyHandlerCalled = func(handler core.EpochSubscriberHandler) {
+	epochNotifier.RegisterNotifyHandlerCalled = func(handler vmcommon.EpochSubscriberHandler) {
 		registerHandler = true
 	}
 	args.EpochNotifier = epochNotifier
@@ -261,7 +261,7 @@ func TestDelegationSystemSC_ExecuteNilArgsShouldErr(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 	d, _ := NewDelegationSystemSC(args)
@@ -279,7 +279,7 @@ func TestDelegationSystemSC_ExecuteDelegationDisabledShouldErr(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 	d, _ := NewDelegationSystemSC(args)
@@ -299,7 +299,7 @@ func TestDelegationSystemSC_ExecuteInitScAlreadyPresentShouldErr(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	delegationsMap := map[string][]byte{}
@@ -323,7 +323,7 @@ func TestDelegationSystemSC_ExecuteInitWrongNumOfArgs(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -343,7 +343,7 @@ func TestDelegationSystemSC_ExecuteInitCallValueHigherThanMaxDelegationCapShould
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -376,7 +376,7 @@ func TestDelegationSystemSC_ExecuteInitShouldWork(t *testing.T) {
 			}},
 		hooks.NewVMCryptoHook(),
 		parsers.NewCallArgsParser(),
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	createDelegationManagerConfig(eei, args.Marshalizer, callValue)
 	args.Eei = eei
@@ -446,7 +446,7 @@ func TestDelegationSystemSC_ExecuteAddNodesUserErrors(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	delegationsMap := map[string][]byte{}
@@ -515,7 +515,7 @@ func TestDelegationSystemSC_ExecuteAddNodesStakedKeyAlreadyExistsInStakedKeysSho
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	delegationsMap := map[string][]byte{}
@@ -548,7 +548,7 @@ func TestDelegationSystemSC_ExecuteAddNodesStakedKeyAlreadyExistsInUnStakedKeysS
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	delegationsMap := map[string][]byte{}
@@ -581,7 +581,7 @@ func TestDelegationSystemSC_ExecuteAddNodesStakedKeyAlreadyExistsInNotStakedKeys
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	delegationsMap := map[string][]byte{}
@@ -614,7 +614,7 @@ func TestDelegationSystemSC_ExecuteAddNodesShouldSaveAddedKeysAsNotStakedKeys(t 
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	delegationsMap := map[string][]byte{}
@@ -645,7 +645,7 @@ func TestDelegationSystemSC_ExecuteAddNodesWithNoArgsShouldErr(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	delegationsMap := map[string][]byte{}
@@ -671,7 +671,7 @@ func TestDelegationSystemSC_ExecuteRemoveNodesUserErrors(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	delegationsMap := map[string][]byte{}
@@ -727,7 +727,7 @@ func TestDelegationSystemSC_ExecuteRemoveNodesNotPresentInNotStakedShouldErr(t *
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	delegationsMap := map[string][]byte{}
@@ -754,7 +754,7 @@ func TestDelegationSystemSC_ExecuteRemoveNodesShouldRemoveKeyFromNotStakedKeys(t
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	delegationsMap := map[string][]byte{}
@@ -787,7 +787,7 @@ func TestDelegationSystemSC_ExecuteRemoveNodesWithNoArgsShouldErr(t *testing.T) 
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	delegationsMap := map[string][]byte{}
@@ -813,7 +813,7 @@ func TestDelegationSystemSC_ExecuteStakeNodesUserErrors(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	delegationsMap := map[string][]byte{}
@@ -868,7 +868,7 @@ func TestDelegationSystemSC_ExecuteStakeNodesNotPresentInNotStakedOrUnStakedShou
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	delegationsMap := map[string][]byte{}
@@ -895,7 +895,7 @@ func TestDelegationSystemSC_ExecuteStakeNodesVerifiesBothUnStakedAndNotStaked(t 
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	delegationsMap := map[string][]byte{}
@@ -954,7 +954,7 @@ func TestDelegationSystemSC_ExecuteDelegateStakeNodes(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 
@@ -1026,7 +1026,7 @@ func TestDelegationSystemSC_ExecuteUnStakeNodesUserErrors(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	delegationsMap := map[string][]byte{}
@@ -1081,7 +1081,7 @@ func TestDelegationSystemSC_ExecuteUnStakeNodesNotPresentInStakedShouldErr(t *te
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	delegationsMap := map[string][]byte{}
@@ -1108,7 +1108,7 @@ func TestDelegationSystemSC_ExecuteUnStakeNodes(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	delegationsMap := map[string][]byte{}
@@ -1166,7 +1166,7 @@ func TestDelegationSystemSC_ExecuteUnStakeNodesAtEndOfEpoch(t *testing.T) {
 		blockChainHook,
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	delegationsMap := map[string][]byte{}
@@ -1263,7 +1263,7 @@ func TestDelegationSystemSC_ExecuteUnBondNodesUserErrors(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	delegationsMap := map[string][]byte{}
@@ -1318,7 +1318,7 @@ func TestDelegationSystemSC_ExecuteUnBondNodesNotPresentInUnStakedShouldErr(t *t
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	delegationsMap := map[string][]byte{}
@@ -1345,7 +1345,7 @@ func TestDelegationSystemSC_ExecuteUnBondNodes(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	delegationsMap := map[string][]byte{}
@@ -1402,7 +1402,7 @@ func TestDelegationSystemSC_ExecuteUnJailNodesUserErrors(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	delegationsMap := map[string][]byte{}
@@ -1444,7 +1444,7 @@ func TestDelegationSystemSC_ExecuteUnJailNodesNotPresentInStakedOrUnStakedShould
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	delegationsMap := map[string][]byte{}
@@ -1471,7 +1471,7 @@ func TestDelegationSystemSC_ExecuteUnJailNodesNotDelegatorShouldErr(t *testing.T
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	delegationsMap := map[string][]byte{}
@@ -1503,7 +1503,7 @@ func TestDelegationSystemSC_ExecuteUnJailNodes(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	delegationsMap := map[string][]byte{}
@@ -1565,7 +1565,7 @@ func TestDelegationSystemSC_ExecuteDelegateUserErrors(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -1593,7 +1593,7 @@ func TestDelegationSystemSC_ExecuteDelegateWrongInit(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -1630,7 +1630,7 @@ func TestDelegationSystemSC_ExecuteDelegate(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -1687,7 +1687,7 @@ func TestDelegationSystemSC_ExecuteDelegateFailsWhenGettingDelegationManagement(
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -1711,7 +1711,7 @@ func TestDelegationSystemSC_ExecuteUnDelegateUserErrors(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -1739,7 +1739,7 @@ func TestDelegationSystemSC_ExecuteUnDelegateUserErrorsWhenAnInvalidValueToDeleg
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -1763,7 +1763,7 @@ func TestDelegationSystemSC_ExecuteUnDelegateUserErrorsWhenGettingMinimumDelegat
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -1800,7 +1800,7 @@ func TestDelegationSystemSC_ExecuteUnDelegateUserNotDelegatorOrNoActiveFundShoul
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -1848,7 +1848,7 @@ func TestDelegationSystemSC_ExecuteUnDelegatePartOfFunds(t *testing.T) {
 		blockChainHook,
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -1927,7 +1927,7 @@ func TestDelegationSystemSC_ExecuteUnDelegateFailsAsLockedForVoting(t *testing.T
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -1969,7 +1969,7 @@ func TestDelegationSystemSC_ExecuteUnDelegateAllFunds(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -2024,7 +2024,7 @@ func TestDelegationSystemSC_ExecuteUnDelegateAllFundsAsOwner(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -2113,7 +2113,7 @@ func TestDelegationSystemSC_ExecuteUnDelegateMultipleTimesSameAndDiffEpochAndWit
 		blockChainHook,
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -2215,7 +2215,7 @@ func TestDelegationSystemSC_ExecuteWithdrawUserErrors(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -2247,7 +2247,7 @@ func TestDelegationSystemSC_ExecuteWithdrawWrongInit(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -2286,7 +2286,7 @@ func TestDelegationSystemSC_ExecuteWithdraw(t *testing.T) {
 			}},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -2355,7 +2355,7 @@ func TestDelegationSystemSC_ExecuteChangeServiceFeeUserErrors(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 
@@ -2413,7 +2413,7 @@ func TestDelegationSystemSC_ExecuteChangeServiceFee(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 
@@ -2444,7 +2444,7 @@ func TestDelegationSystemSC_ExecuteModifyTotalDelegationCapUserErrors(t *testing
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 
@@ -2505,7 +2505,7 @@ func TestDelegationSystemSC_ExecuteModifyTotalDelegationCap(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 
@@ -2596,7 +2596,7 @@ func TestDelegation_ExecuteUpdateRewardsUserErrors(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -2638,7 +2638,7 @@ func TestDelegation_ExecuteUpdateRewards(t *testing.T) {
 		},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -2670,7 +2670,7 @@ func TestDelegation_ExecuteClaimRewardsUserErrors(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -2707,7 +2707,7 @@ func TestDelegation_ExecuteClaimRewards(t *testing.T) {
 		blockChainHook,
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -2849,7 +2849,7 @@ func prepareReDelegateRewardsComponents(
 		},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
@@ -2906,7 +2906,7 @@ func TestDelegation_ExecuteGetRewardDataUserErrors(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -2944,7 +2944,7 @@ func TestDelegation_ExecuteGetRewardData(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -2977,7 +2977,7 @@ func TestDelegation_ExecuteGetClaimableRewardsUserErrors(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -3019,7 +3019,7 @@ func TestDelegation_ExecuteGetClaimableRewards(t *testing.T) {
 		},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -3066,7 +3066,7 @@ func TestDelegation_ExecuteGetTotalCumulatedRewardsUserErrors(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -3109,7 +3109,7 @@ func TestDelegation_ExecuteGetTotalCumulatedRewards(t *testing.T) {
 		},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -3144,7 +3144,7 @@ func TestDelegation_ExecuteGetNumUsersUserErrors(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -3188,7 +3188,7 @@ func TestDelegation_ExecuteGetNumUsers(t *testing.T) {
 		},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -3215,7 +3215,7 @@ func TestDelegation_ExecuteGetTotalUnStakedUserErrors(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -3259,7 +3259,7 @@ func TestDelegation_ExecuteGetTotalUnStaked(t *testing.T) {
 		},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -3288,7 +3288,7 @@ func TestDelegation_ExecuteGetTotalActiveStakeUserErrors(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -3332,7 +3332,7 @@ func TestDelegation_ExecuteGetTotalActiveStake(t *testing.T) {
 		},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -3360,7 +3360,7 @@ func TestDelegation_ExecuteGetUserActiveStakeUserErrors(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -3398,7 +3398,7 @@ func TestDelegation_ExecuteGetUserActiveStakeNoActiveFund(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -3425,7 +3425,7 @@ func TestDelegation_ExecuteGetUserActiveStake(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -3458,7 +3458,7 @@ func TestDelegation_ExecuteGetUserUnStakedValueUserErrors(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -3496,7 +3496,7 @@ func TestDelegation_ExecuteGetUserUnStakedValueNoUnStakedFund(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -3523,7 +3523,7 @@ func TestDelegation_ExecuteGetUserUnStakedValue(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -3561,7 +3561,7 @@ func TestDelegation_ExecuteGetUserUnBondableUserErrors(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -3605,7 +3605,7 @@ func TestDelegation_ExecuteGetUserUnBondableNoUnStakedFund(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -3643,7 +3643,7 @@ func TestDelegation_ExecuteGetUserUnBondable(t *testing.T) {
 		},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -3687,7 +3687,7 @@ func TestDelegation_ExecuteGetNumNodesUserErrors(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -3727,7 +3727,7 @@ func TestDelegation_ExecuteGetNumNodes(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -3755,7 +3755,7 @@ func TestDelegation_ExecuteGetAllNodeStatesUserErrors(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -3795,7 +3795,7 @@ func TestDelegation_ExecuteGetAllNodeStates(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -3833,7 +3833,7 @@ func TestDelegation_ExecuteGetContractConfigUserErrors(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -3873,7 +3873,7 @@ func TestDelegation_ExecuteGetContractConfig(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -3922,7 +3922,7 @@ func TestDelegation_ExecuteUnknownFunc(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -3949,7 +3949,7 @@ func TestDelegation_computeAndUpdateRewardsWithTotalActiveZeroDoesNotPanic(t *te
 		},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -3989,7 +3989,7 @@ func TestDelegation_computeAndUpdateRewardsWithTotalActiveZeroSendsAllRewardsToO
 		},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -4023,7 +4023,7 @@ func TestDelegation_isDelegatorShouldErrBecauseAddressIsNotFound(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -4042,7 +4042,7 @@ func TestDelegation_isDelegatorShouldWork(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -4067,7 +4067,7 @@ func TestDelegation_getDelegatorFundsDataDelegatorNotFoundShouldErr(t *testing.T
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -4087,7 +4087,7 @@ func TestDelegation_getDelegatorFundsDataCannotLoadFundsShouldErr(t *testing.T) 
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -4119,7 +4119,7 @@ func TestDelegation_getDelegatorFundsDataCannotFindConfigShouldErr(t *testing.T)
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -4151,7 +4151,7 @@ func TestDelegation_getDelegatorFundsDataShouldWork(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -4189,7 +4189,7 @@ func TestDelegation_setAndGetDelegationMetadata(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -4220,7 +4220,7 @@ func TestDelegation_setAutomaticActivation(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -4349,7 +4349,7 @@ func TestDelegation_ExecuteInitFromValidatorData(t *testing.T) {
 		},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
@@ -4383,7 +4383,7 @@ func TestDelegation_checkArgumentsForValidatorToDelegation(t *testing.T) {
 		},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
@@ -4443,7 +4443,7 @@ func TestDelegation_getAndVerifyValidatorData(t *testing.T) {
 		},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
@@ -4529,7 +4529,7 @@ func TestDelegation_initFromValidatorData(t *testing.T) {
 		},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	systemSCContainerStub := &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
@@ -4662,7 +4662,7 @@ func TestDelegation_mergeValidatorDataToDelegation(t *testing.T) {
 		},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	systemSCContainerStub := &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
@@ -4800,7 +4800,7 @@ func TestDelegation_whitelistForMerge(t *testing.T) {
 		},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	systemSCContainerStub := &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
@@ -4883,7 +4883,7 @@ func TestDelegation_deleteWhitelistForMerge(t *testing.T) {
 		},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	systemSCContainerStub := &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
@@ -4945,7 +4945,7 @@ func TestDelegation_GetWhitelistForMerge(t *testing.T) {
 		},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&testscommon.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	systemSCContainerStub := &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {

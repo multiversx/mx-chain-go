@@ -1,24 +1,29 @@
 package builtInFunctions
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 )
 
-// ArgsCreateBuiltInFunctionContainer -
+// ArgsCreateBuiltInFunctionContainer defines the argument structure to create new built in function container
 type ArgsCreateBuiltInFunctionContainer struct {
-	GasSchedule          core.GasScheduleNotifier
-	MapDNSAddresses      map[string]struct{}
-	EnableUserNameChange bool
-	Marshalizer          marshal.Marshalizer
-	Accounts             state.AccountsAdapter
-	ShardCoordinator     sharding.Coordinator
+	GasSchedule                  core.GasScheduleNotifier
+	MapDNSAddresses              map[string]struct{}
+	EnableUserNameChange         bool
+	Marshalizer                  marshal.Marshalizer
+	Accounts                     state.AccountsAdapter
+	ShardCoordinator             sharding.Coordinator
+	EpochNotifier                vmcommon.EpochNotifier
+	ESDTMultiTransferEnableEpoch uint32
+	ESDTTransferRoleEnableEpoch  uint32
+	GlobalMintBurnDisableEpoch   uint32
+	ESDTTransferMetaEnableEpoch  uint32
 }
 
 // CreateBuiltInFunctionContainer creates a container that will hold all the available built in functions
@@ -38,6 +43,9 @@ func CreateBuiltInFunctionContainer(args ArgsCreateBuiltInFunctionContainer) (vm
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
+	if check.IfNil(args.EpochNotifier) {
+		return nil, process.ErrNilEpochNotifier
+	}
 
 	vmcommonAccounts, ok := args.Accounts.(vmcommon.AccountsAdapter)
 	if !ok {
@@ -45,12 +53,17 @@ func CreateBuiltInFunctionContainer(args ArgsCreateBuiltInFunctionContainer) (vm
 	}
 
 	modifiedArgs := vmcommonBuiltInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasMap:               args.GasSchedule.LatestGasSchedule(),
-		MapDNSAddresses:      args.MapDNSAddresses,
-		EnableUserNameChange: args.EnableUserNameChange,
-		Marshalizer:          args.Marshalizer,
-		Accounts:             vmcommonAccounts,
-		ShardCoordinator:     args.ShardCoordinator,
+		GasMap:                              args.GasSchedule.LatestGasSchedule(),
+		MapDNSAddresses:                     args.MapDNSAddresses,
+		EnableUserNameChange:                args.EnableUserNameChange,
+		Marshalizer:                         args.Marshalizer,
+		Accounts:                            vmcommonAccounts,
+		ShardCoordinator:                    args.ShardCoordinator,
+		EpochNotifier:                       args.EpochNotifier,
+		ESDTNFTImprovementV1ActivationEpoch: args.ESDTMultiTransferEnableEpoch,
+		ESDTTransferToMetaEnableEpoch:       args.ESDTTransferMetaEnableEpoch,
+		ESDTTransferRoleEnableEpoch:         args.ESDTTransferRoleEnableEpoch,
+		GlobalMintBurnDisableEpoch:          args.GlobalMintBurnDisableEpoch,
 	}
 
 	bContainerFactory, err := vmcommonBuiltInFunctions.NewBuiltInFunctionsFactory(modifiedArgs)

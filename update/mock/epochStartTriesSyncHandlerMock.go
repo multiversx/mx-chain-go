@@ -1,14 +1,14 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 )
 
 // EpochStartTriesSyncHandlerMock -
 type EpochStartTriesSyncHandlerMock struct {
 	SyncTriesFromCalled func(meta *block.MetaBlock) error
-	GetTriesCalled      func() (map[string]data.Trie, error)
+	GetTriesCalled      func() (map[string]common.Trie, error)
 }
 
 // SyncTriesFrom -
@@ -20,7 +20,7 @@ func (es *EpochStartTriesSyncHandlerMock) SyncTriesFrom(meta *block.MetaBlock) e
 }
 
 // GetTries -
-func (es *EpochStartTriesSyncHandlerMock) GetTries() (map[string]data.Trie, error) {
+func (es *EpochStartTriesSyncHandlerMock) GetTries() (map[string]common.Trie, error) {
 	if es.GetTriesCalled != nil {
 		return es.GetTriesCalled()
 	}

@@ -4,14 +4,14 @@ import (
 	"context"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
@@ -130,7 +130,7 @@ func (e *epochStartMetaSyncer) SyncEpochStartMeta(timeToWait time.Duration) (*bl
 }
 
 func (e *epochStartMetaSyncer) resetTopicsAndInterceptors() {
-	err := e.messenger.UnregisterMessageProcessor(factory.MetachainBlocksTopic, core.EpochStartInterceptorsIdentifier)
+	err := e.messenger.UnregisterMessageProcessor(factory.MetachainBlocksTopic, common.EpochStartInterceptorsIdentifier)
 	if err != nil {
 		log.Trace("error unregistering message processors", "error", err)
 	}
@@ -144,7 +144,7 @@ func (e *epochStartMetaSyncer) initTopicForEpochStartMetaBlockInterceptor() erro
 	}
 
 	e.resetTopicsAndInterceptors()
-	err = e.messenger.RegisterMessageProcessor(factory.MetachainBlocksTopic, core.EpochStartInterceptorsIdentifier, e.singleDataInterceptor)
+	err = e.messenger.RegisterMessageProcessor(factory.MetachainBlocksTopic, common.EpochStartInterceptorsIdentifier, e.singleDataInterceptor)
 	if err != nil {
 		return err
 	}

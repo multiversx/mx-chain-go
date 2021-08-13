@@ -96,6 +96,18 @@
     # is enabled. The fix is done by adding an extra increment.
     IncrementSCRNonceInMultiTransferEnableEpoch = 3
 
+    # ESDTMultiTransferEnableEpoch represents the epoch when esdt multitransfer built in function is enabled
+    ESDTMultiTransferEnableEpoch = 5
+
+    # GlobalMintBurnDisableEpoch represents the epoch when the global mint and burn functions are disabled
+    GlobalMintBurnDisableEpoch = 5
+
+    # ESDTTransferRoleEnableEpoch represents the epoch when esdt transfer role set is enabled
+    ESDTTransferRoleEnableEpoch = 5
+
+    # BuiltInFunctionOnMetaEnableEpoch represents the epoch when built in function processing on metachain is enabled
+    BuiltInFunctionOnMetaEnableEpoch = 5
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },

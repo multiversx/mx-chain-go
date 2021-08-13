@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/trie"
-	trieFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/trie"
+	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/stretchr/testify/require"
 )
 
@@ -89,7 +89,7 @@ func getStateArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator 
 	storageManagerUser, _ := trie.NewTrieStorageManagerWithoutPruning(memDBUsers)
 	storageManagerPeer, _ := trie.NewTrieStorageManagerWithoutPruning(memdbPeers)
 
-	trieStorageManagers := make(map[string]data.StorageManager)
+	trieStorageManagers := make(map[string]common.StorageManager)
 	trieStorageManagers[trieFactory.UserAccountTrie] = storageManagerUser
 	trieStorageManagers[trieFactory.PeerAccountTrie] = storageManagerPeer
 
@@ -119,7 +119,8 @@ func getStateArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator 
 				MaxPeerTrieLevelInMemory:    5,
 			},
 			EvictionWaitingList: config.EvictionWaitingListConfig{
-				Size: 100,
+				HashesSize:     100,
+				RootHashesSize: 100,
 				DB: config.DBConfig{
 					FilePath:          "EvictionWaitingList",
 					Type:              "MemoryDB",

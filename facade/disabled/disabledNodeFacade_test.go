@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,9 +22,6 @@ func TestDisabledNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	dnf := NewDisabledNodeFacade(apiInterface)
 
 	dnf.SetSyncer(nil)
-	dnf.SetTpsBenchmark(nil)
-	r := dnf.TpsBenchmark()
-	assert.Nil(t, r)
 	b := dnf.RestAPIServerDebugMode()
 	assert.Equal(t, false, b)
 	s1 := dnf.RestApiInterface()

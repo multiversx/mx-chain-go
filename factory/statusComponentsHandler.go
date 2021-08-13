@@ -8,15 +8,17 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/appStatusPolling"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/statistics"
-	"github.com/ElrondNetwork/elrond-go/core/statistics/machine"
-	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/appStatusPolling"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/statistics"
+	"github.com/ElrondNetwork/elrond-go/common/statistics/machine"
 	"github.com/ElrondNetwork/elrond-go/debug/goroutine"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -90,11 +92,8 @@ func (msc *managedStatusComponents) CheckSubcomponents() error {
 	if msc.statusComponents == nil {
 		return errors.ErrNilStatusComponents
 	}
-	if check.IfNil(msc.tpsBenchmark) {
-		return errors.ErrNilTpsBenchmark
-	}
-	if check.IfNil(msc.elasticIndexer) {
-		return errors.ErrNilElasticIndexer
+	if check.IfNil(msc.outportHandler) {
+		return errors.ErrNilOutportHandler
 	}
 	if check.IfNil(msc.softwareVersion) {
 		return errors.ErrNilSoftwareVersion
@@ -135,8 +134,8 @@ func (msc *managedStatusComponents) StartPolling() error {
 	return nil
 }
 
-// TpsBenchmark returns the tps benchmark handler
-func (msc *managedStatusComponents) TpsBenchmark() statistics.TPSBenchmark {
+// OutportHandler returns the outport handler
+func (msc *managedStatusComponents) OutportHandler() outport.OutportHandler {
 	msc.mutStatusComponents.RLock()
 	defer msc.mutStatusComponents.RUnlock()
 
@@ -144,19 +143,7 @@ func (msc *managedStatusComponents) TpsBenchmark() statistics.TPSBenchmark {
 		return nil
 	}
 
-	return msc.statusComponents.tpsBenchmark
-}
-
-// ElasticIndexer returns the elastic indexer handler
-func (msc *managedStatusComponents) ElasticIndexer() process.Indexer {
-	msc.mutStatusComponents.RLock()
-	defer msc.mutStatusComponents.RUnlock()
-
-	if msc.statusComponents == nil {
-		return nil
-	}
-
-	return msc.statusComponents.elasticIndexer
+	return msc.statusComponents.outportHandler
 }
 
 // SoftwareVersionChecker returns the software version checker handler
@@ -181,6 +168,7 @@ func (msc *managedStatusComponents) startStatusPolling(ctx context.Context) erro
 	appStatusPollingHandler, err := appStatusPolling.NewAppStatusPolling(
 		msc.statusComponentsFactory.coreComponents.StatusHandler(),
 		time.Duration(msc.statusComponentsFactory.config.GeneralSettings.StatusPollingIntervalSec)*time.Second,
+		log,
 	)
 	if err != nil {
 		return errors.ErrStatusPollingInit
@@ -233,8 +221,8 @@ func registerShardsInformation(
 		shardId := uint64(coordinator.SelfId())
 		numOfShards := uint64(coordinator.NumberOfShards())
 
-		appStatusHandler.SetUInt64Value(core.MetricShardId, shardId)
-		appStatusHandler.SetUInt64Value(core.MetricNumShardsWithoutMetachain, numOfShards)
+		appStatusHandler.SetUInt64Value(common.MetricShardId, shardId)
+		appStatusHandler.SetUInt64Value(common.MetricNumShardsWithoutMetachain, numOfShards)
 	}
 
 	err := appStatusPollingHandler.RegisterPollingFunc(computeShardsInfo)
@@ -250,7 +238,7 @@ func computeNumConnectedPeers(
 	networkComponents NetworkComponentsHolder,
 ) {
 	numOfConnectedPeers := uint64(len(networkComponents.NetworkMessenger().ConnectedAddresses()))
-	appStatusHandler.SetUInt64Value(core.MetricNumConnectedPeers, numOfConnectedPeers)
+	appStatusHandler.SetUInt64Value(common.MetricNumConnectedPeers, numOfConnectedPeers)
 }
 
 func computeConnectedPeers(
@@ -267,20 +255,20 @@ func computeConnectedPeers(
 		len(peersInfo.FullHistoryObservers),
 		len(peersInfo.UnknownPeers),
 	)
-	appStatusHandler.SetStringValue(core.MetricNumConnectedPeersClassification, peerClassification)
-	appStatusHandler.SetStringValue(core.MetricP2PNumConnectedPeersClassification, peerClassification)
+	appStatusHandler.SetStringValue(common.MetricNumConnectedPeersClassification, peerClassification)
+	appStatusHandler.SetStringValue(common.MetricP2PNumConnectedPeersClassification, peerClassification)
 
 	setP2pConnectedPeersMetrics(appStatusHandler, peersInfo)
 	setCurrentP2pNodeAddresses(appStatusHandler, networkComponents)
 }
 
 func setP2pConnectedPeersMetrics(appStatusHandler core.AppStatusHandler, info *p2p.ConnectedPeersInfo) {
-	appStatusHandler.SetStringValue(core.MetricP2PUnknownPeers, sliceToString(info.UnknownPeers))
-	appStatusHandler.SetStringValue(core.MetricP2PIntraShardValidators, mapToString(info.IntraShardValidators))
-	appStatusHandler.SetStringValue(core.MetricP2PIntraShardObservers, mapToString(info.IntraShardObservers))
-	appStatusHandler.SetStringValue(core.MetricP2PCrossShardValidators, mapToString(info.CrossShardValidators))
-	appStatusHandler.SetStringValue(core.MetricP2PCrossShardObservers, mapToString(info.CrossShardObservers))
-	appStatusHandler.SetStringValue(core.MetricP2PFullHistoryObservers, mapToString(info.FullHistoryObservers))
+	appStatusHandler.SetStringValue(common.MetricP2PUnknownPeers, sliceToString(info.UnknownPeers))
+	appStatusHandler.SetStringValue(common.MetricP2PIntraShardValidators, mapToString(info.IntraShardValidators))
+	appStatusHandler.SetStringValue(common.MetricP2PIntraShardObservers, mapToString(info.IntraShardObservers))
+	appStatusHandler.SetStringValue(common.MetricP2PCrossShardValidators, mapToString(info.CrossShardValidators))
+	appStatusHandler.SetStringValue(common.MetricP2PCrossShardObservers, mapToString(info.CrossShardObservers))
+	appStatusHandler.SetStringValue(common.MetricP2PFullHistoryObservers, mapToString(info.FullHistoryObservers))
 }
 
 func sliceToString(input []string) string {
@@ -309,7 +297,7 @@ func setCurrentP2pNodeAddresses(
 	appStatusHandler core.AppStatusHandler,
 	networkComponents NetworkComponentsHolder,
 ) {
-	appStatusHandler.SetStringValue(core.MetricP2PPeerInfo, sliceToString(networkComponents.NetworkMessenger().Addresses()))
+	appStatusHandler.SetStringValue(common.MetricP2PPeerInfo, sliceToString(networkComponents.NetworkMessenger().Addresses()))
 }
 
 func registerPollProbableHighestNonce(
@@ -319,7 +307,7 @@ func registerPollProbableHighestNonce(
 
 	probableHighestNonceHandlerFunc := func(appStatusHandler core.AppStatusHandler) {
 		probableHigherNonce := forkDetector.ProbableHighestNonce()
-		appStatusHandler.SetUInt64Value(core.MetricProbableHighestNonce, probableHigherNonce)
+		appStatusHandler.SetUInt64Value(common.MetricProbableHighestNonce, probableHigherNonce)
 	}
 
 	err := appStatusPollingHandler.RegisterPollingFunc(probableHighestNonceHandlerFunc)
@@ -331,7 +319,7 @@ func registerPollProbableHighestNonce(
 }
 
 func (msc *managedStatusComponents) startMachineStatisticsPolling(ctx context.Context) error {
-	appStatusPollingHandler, err := appStatusPolling.NewAppStatusPolling(msc.statusComponentsFactory.coreComponents.StatusHandler(), time.Second)
+	appStatusPollingHandler, err := appStatusPolling.NewAppStatusPolling(msc.statusComponentsFactory.coreComponents.StatusHandler(), time.Second, log)
 	if err != nil {
 		return fmt.Errorf("%w, cannot init AppStatusPolling", err)
 	}
@@ -360,12 +348,12 @@ func registerMemStatistics(_ context.Context, appStatusPollingHandler *appStatus
 	return appStatusPollingHandler.RegisterPollingFunc(func(appStatusHandler core.AppStatusHandler) {
 		mem := machine.AcquireMemStatistics()
 
-		appStatusHandler.SetUInt64Value(core.MetricMemLoadPercent, mem.PercentUsed)
-		appStatusHandler.SetUInt64Value(core.MetricMemTotal, mem.Total)
-		appStatusHandler.SetUInt64Value(core.MetricMemUsedGolang, mem.UsedByGolang)
-		appStatusHandler.SetUInt64Value(core.MetricMemUsedSystem, mem.UsedBySystem)
-		appStatusHandler.SetUInt64Value(core.MetricMemHeapInUse, mem.HeapInUse)
-		appStatusHandler.SetUInt64Value(core.MetricMemStackInUse, mem.StackInUse)
+		appStatusHandler.SetUInt64Value(common.MetricMemLoadPercent, mem.PercentUsed)
+		appStatusHandler.SetUInt64Value(common.MetricMemTotal, mem.Total)
+		appStatusHandler.SetUInt64Value(common.MetricMemUsedGolang, mem.UsedByGolang)
+		appStatusHandler.SetUInt64Value(common.MetricMemUsedSystem, mem.UsedBySystem)
+		appStatusHandler.SetUInt64Value(common.MetricMemHeapInUse, mem.HeapInUse)
+		appStatusHandler.SetUInt64Value(common.MetricMemStackInUse, mem.StackInUse)
 	})
 }
 
@@ -385,16 +373,16 @@ func registerNetStatistics(ctx context.Context, appStatusPollingHandler *appStat
 	}()
 
 	return appStatusPollingHandler.RegisterPollingFunc(func(appStatusHandler core.AppStatusHandler) {
-		appStatusHandler.SetUInt64Value(core.MetricNetworkRecvBps, netStats.BpsRecv())
-		appStatusHandler.SetUInt64Value(core.MetricNetworkRecvBpsPeak, netStats.BpsRecvPeak())
-		appStatusHandler.SetUInt64Value(core.MetricNetworkRecvPercent, netStats.PercentRecv())
+		appStatusHandler.SetUInt64Value(common.MetricNetworkRecvBps, netStats.BpsRecv())
+		appStatusHandler.SetUInt64Value(common.MetricNetworkRecvBpsPeak, netStats.BpsRecvPeak())
+		appStatusHandler.SetUInt64Value(common.MetricNetworkRecvPercent, netStats.PercentRecv())
 
-		appStatusHandler.SetUInt64Value(core.MetricNetworkSentBps, netStats.BpsSent())
-		appStatusHandler.SetUInt64Value(core.MetricNetworkSentBpsPeak, netStats.BpsSentPeak())
-		appStatusHandler.SetUInt64Value(core.MetricNetworkSentPercent, netStats.PercentSent())
+		appStatusHandler.SetUInt64Value(common.MetricNetworkSentBps, netStats.BpsSent())
+		appStatusHandler.SetUInt64Value(common.MetricNetworkSentBpsPeak, netStats.BpsSentPeak())
+		appStatusHandler.SetUInt64Value(common.MetricNetworkSentPercent, netStats.PercentSent())
 
-		appStatusHandler.SetUInt64Value(core.MetricNetworkRecvBytesInCurrentEpochPerHost, netStats.TotalBytesReceivedInCurrentEpoch())
-		appStatusHandler.SetUInt64Value(core.MetricNetworkSendBytesInCurrentEpochPerHost, netStats.TotalBytesSentInCurrentEpoch())
+		appStatusHandler.SetUInt64Value(common.MetricNetworkRecvBytesInCurrentEpochPerHost, netStats.TotalBytesReceivedInCurrentEpoch())
+		appStatusHandler.SetUInt64Value(common.MetricNetworkSendBytesInCurrentEpochPerHost, netStats.TotalBytesSentInCurrentEpoch())
 	})
 }
 
@@ -417,7 +405,7 @@ func registerCpuStatistics(ctx context.Context, appStatusPollingHandler *appStat
 	}()
 
 	return appStatusPollingHandler.RegisterPollingFunc(func(appStatusHandler core.AppStatusHandler) {
-		appStatusHandler.SetUInt64Value(core.MetricCpuLoadPercent, cpuStats.CpuPercentUsage())
+		appStatusHandler.SetUInt64Value(common.MetricCpuLoadPercent, cpuStats.CpuPercentUsage())
 	})
 }
 
@@ -440,7 +428,7 @@ func (msc *managedStatusComponents) attachEpochGoRoutineAnalyser() {
 
 		subscribeHandler := notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {
 			analyser.DumpGoRoutinesToLogWithTypes()
-		}, func(_ data.HeaderHandler) {}, core.NetStatisticsOrder)
+		}, func(_ data.HeaderHandler) {}, common.NetStatisticsOrder)
 
 		msc.statusComponentsFactory.epochStartNotifier.RegisterHandler(subscribeHandler)
 	}

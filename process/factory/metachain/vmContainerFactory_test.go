@@ -4,17 +4,19 @@ import (
 	"errors"
 	"testing"
 
-	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
@@ -23,9 +25,9 @@ import (
 )
 
 func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
-	datapool := testscommon.NewPoolsHolderMock()
+	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	arguments := hooks.ArgBlockChainHook{
-		Accounts: &testscommon.AccountsStub{
+		Accounts: &stateMock.AccountsStub{
 			GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 				return &mock.AccountWrapMock{}, nil
 			},
@@ -79,7 +81,7 @@ func createVmContainerMockArgument(gasSchedule core.GasScheduleNotifier) ArgsNew
 				ActivateBLSPubKeyMessageVerification: false,
 			},
 		},
-		ValidatorAccountsDB: &testscommon.AccountsStub{},
+		ValidatorAccountsDB: &stateMock.AccountsStub{},
 		ChanceComputer:      &mock.RaterMock{},
 		EpochNotifier:       &mock.EpochNotifierStub{},
 		EpochConfig: &config.EpochConfig{
@@ -334,7 +336,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 				MaxServiceFee: 100,
 			},
 		},
-		ValidatorAccountsDB: &testscommon.AccountsStub{},
+		ValidatorAccountsDB: &stateMock.AccountsStub{},
 		ChanceComputer:      &mock.RaterMock{},
 		EpochNotifier:       &mock.EpochNotifierStub{},
 		EpochConfig: &config.EpochConfig{
@@ -376,8 +378,8 @@ func makeGasSchedule() core.GasScheduleNotifier {
 }
 
 func FillGasMapInternal(gasMap map[string]map[string]uint64, value uint64) map[string]map[string]uint64 {
-	gasMap[core.BaseOperationCost] = FillGasMapBaseOperationCosts(value)
-	gasMap[core.MetaChainSystemSCsCost] = FillGasMapMetaChainSystemSCsCosts(value)
+	gasMap[common.BaseOperationCost] = FillGasMapBaseOperationCosts(value)
+	gasMap[common.MetaChainSystemSCsCost] = FillGasMapMetaChainSystemSCsCosts(value)
 
 	return gasMap
 }
