@@ -76,11 +76,6 @@ func (mc *metaChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
 	return nil
 }
 
-// CreateNewHeader creates a new meta block
-func (mc *metaChain) CreateNewHeader() data.HeaderHandler {
-	return &block.MetaBlock{}
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (mc *metaChain) IsInterfaceNil() bool {
 	return mc == nil || mc.baseBlockChain == nil

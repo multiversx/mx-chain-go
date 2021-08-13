@@ -992,6 +992,10 @@ func (tc *transactionCoordinator) VerifyCreatedBlockTransactions(hdr data.Header
 	}
 
 	if !bytes.Equal(createdReceiptHash, hdr.GetReceiptsHash()) {
+		log.Debug("VerifyCreatedBlockTransactions", "error", process.ErrReceiptsHashMissmatch,
+			"createdReceiptHash", createdReceiptHash,
+			"headerReceiptHash", hdr.GetReceiptsHash(),
+		)
 		return process.ErrReceiptsHashMissmatch
 	}
 

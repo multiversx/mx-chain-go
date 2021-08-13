@@ -24,8 +24,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -105,9 +105,12 @@ func createBlockProcessor(blk data.ChainHandler) *mock.BlockProcessorMock {
 			_ = blk.SetCurrentBlockHeader(hdr.(*block.Header))
 			return nil
 		},
-		RevertAccountStateCalled: func(header data.HeaderHandler) {
+		RevertCurrentBlockCalled: func() {
 		},
 		CommitBlockCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
+			return nil
+		},
+		ProcessScheduledBlockCalled: func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 			return nil
 		},
 	}

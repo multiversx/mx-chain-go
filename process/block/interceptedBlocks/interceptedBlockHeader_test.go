@@ -334,7 +334,7 @@ func Test_CreateHeaderV1FromHeaderV1(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, hdrBuff)
 
-	recreatedHdr, err := interceptedBlocks.CreateHeaderV1(marshalizer, hdrBuff)
+	recreatedHdr, err := process.CreateHeaderV1(marshalizer, hdrBuff)
 	require.Nil(t, err)
 	require.NotNil(t, recreatedHdr)
 	require.Equal(t, hdr, recreatedHdr)
@@ -355,7 +355,7 @@ func Test_CreateHeaderV1FromHeaderV2(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, hdrBuffV2)
 
-	recreatedHdr, err := interceptedBlocks.CreateHeaderV1(marshalizer, hdrBuffV2)
+	recreatedHdr, err := process.CreateHeaderV1(marshalizer, hdrBuffV2)
 	require.Nil(t, recreatedHdr)
 	require.NotNil(t, err)
 }
@@ -369,7 +369,7 @@ func Test_CreateHeaderV2FromHeaderV1(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, hdrBuff)
 
-	recreatedHdr, err := interceptedBlocks.CreateHeaderV2(marshalizer, hdrBuff)
+	recreatedHdr, err := process.CreateHeaderV2(marshalizer, hdrBuff)
 	require.NotNil(t, err)
 	require.Nil(t, recreatedHdr)
 }
@@ -389,7 +389,7 @@ func Test_CreateHeaderV2FromHeaderV2(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, hdrBuffV2)
 
-	recreatedHdrV2, err := interceptedBlocks.CreateHeaderV2(marshalizer, hdrBuffV2)
+	recreatedHdrV2, err := process.CreateHeaderV2(marshalizer, hdrBuffV2)
 	require.Nil(t, err)
 	require.NotNil(t, recreatedHdrV2)
 	require.Equal(t, hdrV2, recreatedHdrV2)
@@ -404,7 +404,7 @@ func Test_CreateHeaderV2FromHeaderV1WithJson(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, hdrBuff)
 
-	recreatedHdr, err := interceptedBlocks.CreateHeaderV2(marshalizer, hdrBuff)
+	recreatedHdr, err := process.CreateHeaderV2(marshalizer, hdrBuff)
 	require.NotNil(t, err)
 	require.Nil(t, recreatedHdr)
 }

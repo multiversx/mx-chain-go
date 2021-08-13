@@ -109,13 +109,13 @@ type baseBootstrap struct {
 	outportHandler   outport.OutportHandler
 	accountsDBSyncer process.AccountsDBSyncer
 
-	chRcvMiniBlocks    chan bool
-	mutRcvMiniBlocks   sync.Mutex
-	miniBlocksProvider process.MiniBlockProvider
-	poolsHolder        dataRetriever.PoolsHolder
-	mutRequestHeaders  sync.Mutex
-	cancelFunc         func()
-	isInImportMode     bool
+	chRcvMiniBlocks              chan bool
+	mutRcvMiniBlocks             sync.Mutex
+	miniBlocksProvider           process.MiniBlockProvider
+	poolsHolder                  dataRetriever.PoolsHolder
+	mutRequestHeaders            sync.Mutex
+	cancelFunc                   func()
+	isInImportMode               bool
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 }
 
@@ -625,6 +625,16 @@ func (boot *baseBootstrap) syncBlock() error {
 		return err
 	}
 
+	startProcessScheduledBlockTime := time.Now()
+	err = boot.blockProcessor.ProcessScheduledBlock(header, body, haveTime)
+	elapsedTime = time.Since(startProcessScheduledBlockTime)
+	log.Debug("elapsed time to process scheduled block",
+		"time [s]", elapsedTime,
+	)
+	if err != nil {
+		return err
+	}
+
 	startCommitBlockTime := time.Now()
 	err = boot.blockProcessor.CommitBlock(header, body)
 	elapsedTime = time.Since(startCommitBlockTime)
@@ -730,7 +740,14 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			)
 		}
 
-		boot.setScheduledSCRs(prevHeaderHash)
+		scheduledRootHash, mapScheduledSCRs, err := process.GetScheduledRootHashAndSCRs(prevHeaderHash, boot.store, boot.marshalizer)
+		if err != nil {
+			boot.scheduledTxsExecutionHandler.SetScheduledRootHash(prevHeader.GetRootHash())
+			boot.scheduledTxsExecutionHandler.SetScheduledSCRs(make(map[block.Type][]data.TransactionHandler))
+		} else {
+			boot.scheduledTxsExecutionHandler.SetScheduledRootHash(scheduledRootHash)
+			boot.scheduledTxsExecutionHandler.SetScheduledSCRs(mapScheduledSCRs)
+		}
 
 		boot.outportHandler.RevertIndexedBlock(currHeader, currBody)
 
@@ -749,20 +766,6 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 
 	log.Debug("ending roll back")
 	return nil
-}
-
-func (boot *baseBootstrap) setScheduledSCRs(headerHash []byte) {
-	mapScheduledSCRs, err := process.GetScheduledSCRsFromStorage(headerHash, boot.store, boot.marshalizer)
-	if err != nil {
-		log.Debug("get scheduled scrs from storage",
-			"error", err.Error(),
-			"header hash", headerHash,
-		)
-	}
-
-	if len(mapScheduledSCRs) > 0 {
-		boot.scheduledTxsExecutionHandler.SetScheduledSCRs(mapScheduledSCRs)
-	}
 }
 
 func (boot *baseBootstrap) rollBackOneBlock(
@@ -792,11 +795,18 @@ func (boot *baseBootstrap) rollBackOneBlock(
 		}
 	}
 
-	err = boot.blockProcessor.RevertStateToBlock(prevHeader)
+	prevHeaderRootHash := prevHeader.GetRootHash()
+	scheduledPrevHeaderRootHash, err := process.GetScheduledRootHash(prevHeaderHash, boot.store, boot.marshalizer)
+	if err == nil {
+		prevHeaderRootHash = scheduledPrevHeaderRootHash
+	}
+
+	err = boot.blockProcessor.RevertStateToBlock(prevHeader, prevHeaderRootHash)
 	if err != nil {
 		return nil, err
 	}
-	boot.blockProcessor.PruneStateOnRollback(currHeader, prevHeader)
+
+	boot.blockProcessor.PruneStateOnRollback(currHeader, currHeaderHash, prevHeader, prevHeaderHash)
 
 	currBlockBody, errNotCritical := boot.blockBootstrapper.getBlockBody(currHeader)
 	if errNotCritical != nil {
@@ -878,7 +888,16 @@ func (boot *baseBootstrap) restoreState(
 
 	boot.chainHandler.SetCurrentBlockHeaderHash(currHeaderHash)
 
-	err = boot.blockProcessor.RevertStateToBlock(currHeader)
+	scheduledRootHash, mapScheduledSCRs, err := process.GetScheduledRootHashAndSCRs(currHeaderHash, boot.store, boot.marshalizer)
+	if err != nil {
+		boot.scheduledTxsExecutionHandler.SetScheduledRootHash(currHeader.GetRootHash())
+		boot.scheduledTxsExecutionHandler.SetScheduledSCRs(make(map[block.Type][]data.TransactionHandler))
+	} else {
+		boot.scheduledTxsExecutionHandler.SetScheduledRootHash(scheduledRootHash)
+		boot.scheduledTxsExecutionHandler.SetScheduledSCRs(mapScheduledSCRs)
+	}
+
+	err = boot.blockProcessor.RevertStateToBlock(currHeader, boot.scheduledTxsExecutionHandler.GetScheduledRootHash())
 	if err != nil {
 		log.Debug("RevertState", "error", err.Error())
 	}

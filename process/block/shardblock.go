@@ -255,7 +255,7 @@ func (sp *shardProcessor) ProcessBlock(
 
 	defer func() {
 		if err != nil {
-			sp.RevertAccountState(header)
+			sp.RevertCurrentBlock()
 		}
 	}()
 
@@ -333,14 +333,15 @@ func (sp *shardProcessor) requestEpochStartInfo(header data.ShardHeaderHandler, 
 	return process.ErrTimeIsOut
 }
 
-// RevertStateToBlock recreates the state tries to the root hashes indicated by the provided header
-func (sp *shardProcessor) RevertStateToBlock(header data.HeaderHandler) error {
+// RevertStateToBlock recreates the state tries to the root hashes indicated by the provided root hash and header
+func (sp *shardProcessor) RevertStateToBlock(header data.HeaderHandler, rootHash []byte) error {
 
-	err := sp.accountsDB[state.UserAccountsState].RecreateTrie(header.GetRootHash())
+	err := sp.accountsDB[state.UserAccountsState].RecreateTrie(rootHash)
 	if err != nil {
 		log.Debug("recreate trie with error for header",
 			"nonce", header.GetNonce(),
-			"hash", header.GetRootHash(),
+			"header root hash", header.GetRootHash(),
+			"given root hash", rootHash,
 			"error", err,
 		)
 
@@ -767,7 +768,7 @@ func (sp *shardProcessor) CommitBlock(
 	var err error
 	defer func() {
 		if err != nil {
-			sp.RevertAccountState(headerHandler)
+			sp.RevertCurrentBlock()
 		}
 	}()
 
@@ -1002,13 +1003,14 @@ func (sp *shardProcessor) displayPoolsInfo() {
 func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeader data.ShardHeaderHandler) {
 	sp.snapShotEpochStartFromMeta(currentHeader)
 
-	for _, hdr := range headers {
-		if sp.forkDetector.GetHighestFinalBlockNonce() < hdr.GetNonce() {
+	for _, header := range headers {
+		if sp.forkDetector.GetHighestFinalBlockNonce() < header.GetNonce() {
 			break
 		}
 
+		prevHeaderHash := header.GetPrevHash()
 		prevHeader, errNotCritical := process.GetShardHeader(
-			hdr.GetPrevHash(),
+			prevHeaderHash,
 			sp.dataPool.Headers(),
 			sp.marshalizer,
 			sp.store,
@@ -1017,8 +1019,27 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 			log.Debug("could not get shard header from storage")
 			return
 		}
-		if hdr.IsStartOfEpochBlock() {
-			sp.nodesCoordinator.ShuffleOutForEpoch(hdr.GetEpoch())
+		if header.IsStartOfEpochBlock() {
+			sp.nodesCoordinator.ShuffleOutForEpoch(header.GetEpoch())
+		}
+
+		headerHash, err := core.CalculateHash(sp.marshalizer, sp.hasher, header)
+		if err != nil {
+			log.Debug("updateState.CalculateHash", "error", err.Error())
+			return
+		}
+
+		headerRootHash := header.GetRootHash()
+		prevHeaderRootHash := prevHeader.GetRootHash()
+
+		scheduledHeaderRootHash, err := process.GetScheduledRootHash(headerHash, sp.store, sp.marshalizer)
+		if err == nil {
+			headerRootHash = scheduledHeaderRootHash
+		}
+
+		scheduledPrevHeaderRootHash, err := process.GetScheduledRootHash(prevHeaderHash, sp.store, sp.marshalizer)
+		if err == nil {
+			prevHeaderRootHash = scheduledPrevHeaderRootHash
 		}
 
 		log.Trace("updateState: prevHeader",
@@ -1026,19 +1047,23 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 			"epoch", prevHeader.GetEpoch(),
 			"round", prevHeader.GetRound(),
 			"nonce", prevHeader.GetNonce(),
-			"root hash", prevHeader.GetRootHash())
+			"root hash", prevHeader.GetRootHash(),
+			"scheduled root hash", prevHeaderRootHash,
+		)
 
 		log.Trace("updateState: currHeader",
-			"shard", hdr.GetShardID(),
-			"epoch", hdr.GetEpoch(),
-			"round", hdr.GetRound(),
-			"nonce", hdr.GetNonce(),
-			"root hash", hdr.GetRootHash())
+			"shard", header.GetShardID(),
+			"epoch", header.GetEpoch(),
+			"round", header.GetRound(),
+			"nonce", header.GetNonce(),
+			"root hash", header.GetRootHash(),
+			"scheduled root hash", headerRootHash,
+		)
 
 		sp.updateStateStorage(
-			hdr,
-			hdr.GetRootHash(),
-			prevHeader.GetRootHash(),
+			header,
+			headerRootHash,
+			prevHeaderRootHash,
 			sp.accountsDB[state.UserAccountsState],
 			sp.userStatePruningQueue,
 		)

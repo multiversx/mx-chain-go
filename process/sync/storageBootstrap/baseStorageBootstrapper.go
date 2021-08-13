@@ -6,9 +6,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -176,12 +177,12 @@ func (st *storageBootstrapper) loadBlocks() error {
 		log.Debug("cannot save last round in storage ", "error", err.Error())
 	}
 
-	mapScheduledSCRs, err := process.GetScheduledSCRsFromStorage(headerInfo.LastHeader.Hash, st.store, st.marshalizer)
+	scheduledRootHash, mapScheduledSCRs, err := process.GetScheduledRootHashAndSCRs(headerInfo.LastHeader.Hash, st.store, st.marshalizer)
 	if err != nil {
-		log.Debug("cannot get scheduled scrs from storage", "error", err.Error())
-	}
-
-	if len(mapScheduledSCRs) > 0 {
+		st.scheduledTxsExecutionHandler.SetScheduledRootHash(st.bootstrapper.getRootHash(headerInfo.LastHeader.Hash))
+		st.scheduledTxsExecutionHandler.SetScheduledSCRs(make(map[block.Type][]data.TransactionHandler))
+	} else {
+		st.scheduledTxsExecutionHandler.SetScheduledRootHash(scheduledRootHash)
 		st.scheduledTxsExecutionHandler.SetScheduledSCRs(mapScheduledSCRs)
 	}
 
@@ -256,7 +257,13 @@ func (st *storageBootstrapper) applyHeaderInfo(hdrInfo bootstrapStorage.Bootstra
 		return process.ErrInvalidChainID
 	}
 
-	err = st.blkExecutor.RevertStateToBlock(headerFromStorage)
+	rootHash := headerFromStorage.GetRootHash()
+	scheduledRootHash, err := process.GetScheduledRootHash(headerHash, st.store, st.marshalizer)
+	if err == nil {
+		rootHash = scheduledRootHash
+	}
+
+	err = st.blkExecutor.RevertStateToBlock(headerFromStorage, rootHash)
 	if err != nil {
 		log.Debug("cannot recreate trie for header with nonce", "nonce", headerFromStorage.GetNonce())
 		return err
@@ -419,7 +426,7 @@ func (st *storageBootstrapper) applyBlock(header data.HeaderHandler, headerHash 
 
 func (st *storageBootstrapper) restoreBlockChainToGenesis() {
 	genesisHeader := st.blkc.GetGenesisHeader()
-	err := st.blkExecutor.RevertStateToBlock(genesisHeader)
+	err := st.blkExecutor.RevertStateToBlock(genesisHeader, genesisHeader.GetRootHash())
 	if err != nil {
 		log.Debug("cannot recreate trie for header with nonce", "nonce", genesisHeader.GetNonce())
 	}

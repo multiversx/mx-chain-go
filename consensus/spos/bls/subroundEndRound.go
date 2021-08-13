@@ -189,11 +189,6 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 		return false
 	}
 
-	ok := sr.ScheduledProcessor().IsProcessedOKWithTimeout()
-	if !ok {
-		return false
-	}
-
 	// Aggregate sig and add it to the block
 	sig, err := sr.MultiSigner().AggregateSigs(bitmap)
 	if err != nil {
@@ -223,6 +218,11 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	err = sr.Header.SetLeaderSignature(leaderSignature)
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.SetLeaderSignature", "error", err.Error())
+		return false
+	}
+
+	ok := sr.ScheduledProcessor().IsProcessedOKWithTimeout()
+	if !ok {
 		return false
 	}
 

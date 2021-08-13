@@ -1067,7 +1067,7 @@ func TestMetaProcessor_ApplyBodyToHeaderShouldSetEpochStart(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestMetaProcessor_CommitBlockShouldRevertAccountStateWhenErr(t *testing.T) {
+func TestMetaProcessor_CommitBlockShouldRevertCurrentBlockWhenErr(t *testing.T) {
 	t.Parallel()
 
 	// set accounts dirty
@@ -1113,7 +1113,7 @@ func TestMetaProcessor_RevertStateRevertPeerStateFailsShouldErr(t *testing.T) {
 	require.NotNil(t, mp)
 
 	hdr := block.MetaBlock{Nonce: 37}
-	err = mp.RevertStateToBlock(&hdr)
+	err = mp.RevertStateToBlock(&hdr, hdr.RootHash)
 	require.Equal(t, expectedErr, err)
 }
 
@@ -1141,7 +1141,7 @@ func TestMetaProcessor_RevertStateShouldWork(t *testing.T) {
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	hdr := block.MetaBlock{Nonce: 37}
-	err := mp.RevertStateToBlock(&hdr)
+	err := mp.RevertStateToBlock(&hdr, hdr.RootHash)
 	assert.Nil(t, err)
 	assert.True(t, revertePeerStateWasCalled)
 	assert.True(t, recreateTrieWasCalled)
@@ -2297,9 +2297,6 @@ func TestMetaProcessor_DecodeBlockHeader(t *testing.T) {
 	marshalizerMock := &mock.MarshalizerMock{}
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 	dataComponents.BlockChain = &mock.BlockChainMock{
-		CreateNewHeaderCalled: func() data.HeaderHandler {
-			return &block.MetaBlock{}
-		},
 		GetGenesisHeaderCalled: func() data.HeaderHandler {
 			return &block.MetaBlock{Nonce: 0}
 		},

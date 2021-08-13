@@ -228,7 +228,7 @@ func (mp *metaProcessor) ProcessBlock(
 
 	defer func() {
 		if err != nil {
-			mp.RevertAccountState(header)
+			mp.RevertCurrentBlock()
 		}
 	}()
 
@@ -1112,7 +1112,7 @@ func (mp *metaProcessor) CommitBlock(
 	var err error
 	defer func() {
 		if err != nil {
-			mp.RevertAccountState(headerHandler)
+			mp.RevertCurrentBlock()
 		}
 	}()
 
@@ -1211,7 +1211,8 @@ func (mp *metaProcessor) CommitBlock(
 	if !ok {
 		log.Warn("metaBlock.CommitBlock - nil current block header")
 	}
-	mp.updateState(lastMetaBlock)
+	lastMetaBlockHash := mp.blockChain.GetCurrentBlockHeaderHash()
+	mp.updateState(lastMetaBlock, lastMetaBlockHash)
 
 	err = mp.blockChain.SetCurrentBlockHeader(header)
 	if err != nil {
@@ -1344,7 +1345,7 @@ func (mp *metaProcessor) displayPoolsInfo() {
 	mp.displayMiniBlocksPool()
 }
 
-func (mp *metaProcessor) updateState(lastMetaBlock data.MetaHeaderHandler) {
+func (mp *metaProcessor) updateState(lastMetaBlock data.MetaHeaderHandler, lastMetaBlockHash []byte) {
 	if check.IfNil(lastMetaBlock) {
 		log.Debug("updateState nil header")
 		return
@@ -1352,8 +1353,9 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.MetaHeaderHandler) {
 
 	mp.validatorStatisticsProcessor.SetLastFinalizedRootHash(lastMetaBlock.GetValidatorStatsRootHash())
 
-	prevHeader, errNotCritical := process.GetMetaHeader(
-		lastMetaBlock.GetPrevHash(),
+	prevMetaBlockHash := lastMetaBlock.GetPrevHash()
+	prevMetaBlock, errNotCritical := process.GetMetaHeader(
+		prevMetaBlockHash,
 		mp.dataPool.Headers(),
 		mp.marshalizer,
 		mp.store,
@@ -1364,7 +1366,10 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.MetaHeaderHandler) {
 	}
 
 	if lastMetaBlock.IsStartOfEpochBlock() {
-		log.Debug("trie snapshot", "rootHash", lastMetaBlock.GetRootHash())
+		log.Debug("trie snapshot",
+			"rootHash", lastMetaBlock.GetRootHash(),
+			"prevRootHash", prevMetaBlock.GetRootHash(),
+			"validatorStatsRootHash", lastMetaBlock.GetValidatorStatsRootHash())
 		mp.accountsDB[state.UserAccountsState].SnapshotState(lastMetaBlock.GetRootHash())
 		mp.accountsDB[state.PeerAccountsState].SnapshotState(lastMetaBlock.GetValidatorStatsRootHash())
 		go func() {
@@ -1383,7 +1388,7 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.MetaHeaderHandler) {
 	mp.updateStateStorage(
 		lastMetaBlock,
 		lastMetaBlock.GetRootHash(),
-		prevHeader.GetRootHash(),
+		prevMetaBlock.GetRootHash(),
 		mp.accountsDB[state.UserAccountsState],
 		mp.userStatePruningQueue,
 	)
@@ -1391,7 +1396,7 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.MetaHeaderHandler) {
 	mp.updateStateStorage(
 		lastMetaBlock,
 		lastMetaBlock.GetValidatorStatsRootHash(),
-		prevHeader.GetValidatorStatsRootHash(),
+		prevMetaBlock.GetValidatorStatsRootHash(),
 		mp.accountsDB[state.PeerAccountsState],
 		mp.peerStatePruningQueue,
 	)
@@ -1498,13 +1503,14 @@ func (mp *metaProcessor) commitEpochStart(header *block.MetaBlock, body *block.B
 	}
 }
 
-// RevertStateToBlock recreates the state tries to the root hashes indicated by the provided header
-func (mp *metaProcessor) RevertStateToBlock(header data.HeaderHandler) error {
-	err := mp.accountsDB[state.UserAccountsState].RecreateTrie(header.GetRootHash())
+// RevertStateToBlock recreates the state tries to the root hashes indicated by the provided root hash and header
+func (mp *metaProcessor) RevertStateToBlock(header data.HeaderHandler, rootHash []byte) error {
+	err := mp.accountsDB[state.UserAccountsState].RecreateTrie(rootHash)
 	if err != nil {
 		log.Debug("recreate trie with error for header",
 			"nonce", header.GetNonce(),
-			"hash", header.GetRootHash(),
+			"header root hash", header.GetRootHash(),
+			"given root hash", rootHash,
 			"error", err.Error(),
 		)
 

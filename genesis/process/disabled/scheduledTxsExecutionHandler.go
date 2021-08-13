@@ -40,12 +40,26 @@ func (steh *ScheduledTxsExecutionHandler) GetScheduledSCRs() map[block.Type][]da
 func (steh *ScheduledTxsExecutionHandler) SetScheduledSCRs(_ map[block.Type][]data.TransactionHandler) {
 }
 
+// GetScheduledRootHash does nothing as it is a disabled component
+func (steh *ScheduledTxsExecutionHandler) GetScheduledRootHash() []byte {
+	return nil
+}
+
+// SetScheduledRootHash does nothing as it is a disabled component
+func (steh *ScheduledTxsExecutionHandler) SetScheduledRootHash(_ []byte) {
+}
+
 // SetTransactionProcessor does nothing as it is a disabled component
 func (steh *ScheduledTxsExecutionHandler) SetTransactionProcessor(_ process.TransactionProcessor) {
 }
 
 // SetTransactionCoordinator does nothing as it is a disabled component
 func (steh *ScheduledTxsExecutionHandler) SetTransactionCoordinator(_ process.TransactionCoordinator) {
+}
+
+// HaveScheduledTxs does nothing as it is a disabled component
+func (steh *ScheduledTxsExecutionHandler) HaveScheduledTxs() bool {
+	return false
 }
 
 // IsInterfaceNil returns true if underlying object is nil

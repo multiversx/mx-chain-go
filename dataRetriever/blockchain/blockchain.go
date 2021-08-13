@@ -4,7 +4,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/common"
 )
 
@@ -73,11 +72,6 @@ func (bc *blockChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
 	bc.mut.Unlock()
 
 	return nil
-}
-
-// CreateNewHeader creates a new header
-func (bc *blockChain) CreateNewHeader() data.HeaderHandler {
-	return &block.Header{}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

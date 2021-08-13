@@ -21,12 +21,13 @@ type scrInfo struct {
 }
 
 type scheduledTxsExecution struct {
-	txProcessor      process.TransactionProcessor
-	txCoordinator    process.TransactionCoordinator
-	mapScheduledTxs  map[string]data.TransactionHandler
-	mapScheduledSCRs map[block.Type][]data.TransactionHandler
-	scheduledTxs     []data.TransactionHandler
-	mutScheduledTxs  sync.RWMutex
+	txProcessor       process.TransactionProcessor
+	txCoordinator     process.TransactionCoordinator
+	mapScheduledTxs   map[string]data.TransactionHandler
+	mapScheduledSCRs  map[block.Type][]data.TransactionHandler
+	scheduledTxs      []data.TransactionHandler
+	scheduledRootHash []byte
+	mutScheduledTxs   sync.RWMutex
 }
 
 // NewScheduledTxsExecution creates a new object which handles the execution of scheduled transactions
@@ -43,11 +44,12 @@ func NewScheduledTxsExecution(
 	}
 
 	ste := &scheduledTxsExecution{
-		txProcessor:      txProcessor,
-		txCoordinator:    txCoordinator,
-		mapScheduledTxs:  make(map[string]data.TransactionHandler),
-		mapScheduledSCRs: make(map[block.Type][]data.TransactionHandler),
-		scheduledTxs:     make([]data.TransactionHandler, 0),
+		txProcessor:       txProcessor,
+		txCoordinator:     txCoordinator,
+		mapScheduledTxs:   make(map[string]data.TransactionHandler),
+		mapScheduledSCRs:  make(map[block.Type][]data.TransactionHandler),
+		scheduledTxs:      make([]data.TransactionHandler, 0),
+		scheduledRootHash: nil,
 	}
 
 	return ste, nil
@@ -159,6 +161,7 @@ func (ste *scheduledTxsExecution) computeScheduledSCRs(
 		ste.mapScheduledSCRs[blockType] = make([]data.TransactionHandler, len(scrsInfo))
 		for scrIndex, scrInfo := range scrsInfo {
 			ste.mapScheduledSCRs[blockType][scrIndex] = scrInfo.txHandler
+			log.Trace("scheduledTxsExecution.computeScheduledSCRs", "blockType", blockType, "sender", ste.mapScheduledSCRs[blockType][scrIndex].GetSndAddr(), "receiver", ste.mapScheduledSCRs[blockType][scrIndex].GetRcvAddr())
 		}
 
 		numScheduledSCRs += len(scrsInfo)
@@ -191,7 +194,7 @@ func getAllIntermediateTxsAfterScheduledExecution(
 	return scrsInfo
 }
 
-// GetScheduledSCRs gets all the scheduled SCRs
+// GetScheduledSCRs gets the resulted SCRs after the execution of scheduled transactions
 func (ste *scheduledTxsExecution) GetScheduledSCRs() map[block.Type][]data.TransactionHandler {
 	ste.mutScheduledTxs.RLock()
 	defer ste.mutScheduledTxs.RUnlock()
@@ -206,6 +209,7 @@ func (ste *scheduledTxsExecution) GetScheduledSCRs() map[block.Type][]data.Trans
 		mapScheduledSCRs[blockType] = make([]data.TransactionHandler, len(scheduledSCRs))
 		for scrIndex, txHandler := range scheduledSCRs {
 			mapScheduledSCRs[blockType][scrIndex] = txHandler
+			log.Trace("scheduledTxsExecution.GetScheduledSCRs", "blockType", blockType, "sender", mapScheduledSCRs[blockType][scrIndex].GetSndAddr(), "receiver", mapScheduledSCRs[blockType][scrIndex].GetRcvAddr())
 		}
 
 		numScheduledSCRs += len(scheduledSCRs)
@@ -216,27 +220,48 @@ func (ste *scheduledTxsExecution) GetScheduledSCRs() map[block.Type][]data.Trans
 	return mapScheduledSCRs
 }
 
-// SetScheduledSCRs sets the given scheduled SCRs
-func (ste *scheduledTxsExecution) SetScheduledSCRs(mapScheduledSCRs map[block.Type][]data.TransactionHandler) {
+// SetScheduledSCRs sets the resulted SCRs after the execution of scheduled transactions
+func (ste *scheduledTxsExecution) SetScheduledSCRs(mapSCRs map[block.Type][]data.TransactionHandler) {
 	ste.mutScheduledTxs.Lock()
 	defer ste.mutScheduledTxs.Unlock()
 
 	numScheduledSCRs := 0
 	ste.mapScheduledSCRs = make(map[block.Type][]data.TransactionHandler)
-	for blockType, scheduledSCRs := range mapScheduledSCRs {
-		if len(scheduledSCRs) == 0 {
+	for blockType, scrs := range mapSCRs {
+		if len(scrs) == 0 {
 			continue
 		}
 
-		ste.mapScheduledSCRs[blockType] = make([]data.TransactionHandler, len(scheduledSCRs))
-		for scrIndex, txHandler := range scheduledSCRs {
+		ste.mapScheduledSCRs[blockType] = make([]data.TransactionHandler, len(scrs))
+		for scrIndex, txHandler := range scrs {
 			ste.mapScheduledSCRs[blockType][scrIndex] = txHandler
+			log.Trace("scheduledTxsExecution.SetScheduledSCRs", "blockType", blockType, "sender", ste.mapScheduledSCRs[blockType][scrIndex].GetSndAddr(), "receiver", ste.mapScheduledSCRs[blockType][scrIndex].GetRcvAddr())
 		}
 
-		numScheduledSCRs += len(scheduledSCRs)
+		numScheduledSCRs += len(scrs)
 	}
 
 	log.Debug("scheduledTxsExecution.SetScheduledSCRs", "num of scheduled scrs", numScheduledSCRs)
+}
+
+// GetScheduledRootHash gets the resulted root hash after the execution of scheduled transactions
+func (ste *scheduledTxsExecution) GetScheduledRootHash() []byte {
+	ste.mutScheduledTxs.RLock()
+	rootHash := ste.scheduledRootHash
+	ste.mutScheduledTxs.RUnlock()
+
+	log.Debug("scheduledTxsExecution.GetScheduledRootHash", "scheduled root hash", rootHash)
+
+	return rootHash
+}
+
+// SetScheduledRootHash sets the resulted root hash after the execution of scheduled transactions
+func (ste *scheduledTxsExecution) SetScheduledRootHash(rootHash []byte) {
+	ste.mutScheduledTxs.Lock()
+	ste.scheduledRootHash = rootHash
+	ste.mutScheduledTxs.Unlock()
+
+	log.Debug("scheduledTxsExecution.SetScheduledRootHash", "scheduled root hash", rootHash)
 }
 
 // SetTransactionProcessor sets the transaction processor needed by scheduled txs execution component
@@ -247,6 +272,17 @@ func (ste *scheduledTxsExecution) SetTransactionProcessor(txProcessor process.Tr
 // SetTransactionCoordinator sets the transaction coordinator needed by scheduled txs execution component
 func (ste *scheduledTxsExecution) SetTransactionCoordinator(txCoordinator process.TransactionCoordinator) {
 	ste.txCoordinator = txCoordinator
+}
+
+// HaveScheduledTxs method returns if there are scheduled transactions
+func (ste *scheduledTxsExecution) HaveScheduledTxs() bool {
+	ste.mutScheduledTxs.RLock()
+	numScheduledTxs := len(ste.scheduledTxs)
+	ste.mutScheduledTxs.RUnlock()
+
+	log.Debug("scheduledTxsExecution.HaveScheduledTxs", "num of scheduled txs", numScheduledTxs)
+
+	return numScheduledTxs > 0
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
