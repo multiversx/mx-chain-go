@@ -255,7 +255,7 @@ func (sp *shardProcessor) ProcessBlock(
 
 	defer func() {
 		if err != nil {
-			sp.RevertAccountState()
+			sp.RevertCurrentBlock()
 		}
 	}()
 
@@ -768,7 +768,7 @@ func (sp *shardProcessor) CommitBlock(
 	var err error
 	defer func() {
 		if err != nil {
-			sp.RevertAccountState()
+			sp.RevertCurrentBlock()
 		}
 	}()
 
@@ -1029,8 +1029,18 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 			return
 		}
 
-		headerRootHash := process.GetScheduledRootHash(headerHash, header.GetRootHash(), sp.store, sp.marshalizer)
-		prevHeaderRootHash := process.GetScheduledRootHash(prevHeaderHash, prevHeader.GetRootHash(), sp.store, sp.marshalizer)
+		headerRootHash := header.GetRootHash()
+		prevHeaderRootHash := prevHeader.GetRootHash()
+
+		scheduledHeaderRootHash, err := process.GetScheduledRootHash(headerHash, sp.store, sp.marshalizer)
+		if err == nil {
+			headerRootHash = scheduledHeaderRootHash
+		}
+
+		scheduledPrevHeaderRootHash, err := process.GetScheduledRootHash(prevHeaderHash, sp.store, sp.marshalizer)
+		if err == nil {
+			prevHeaderRootHash = scheduledPrevHeaderRootHash
+		}
 
 		log.Trace("updateState: prevHeader",
 			"shard", prevHeader.GetShardID(),

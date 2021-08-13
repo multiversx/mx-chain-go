@@ -177,13 +177,14 @@ func (st *storageBootstrapper) loadBlocks() error {
 		log.Debug("cannot save last round in storage ", "error", err.Error())
 	}
 
-	process.SetScheduledRootHashAndSCRs(
-		headerInfo.LastHeader.Hash,
-		st.bootstrapper.getRootHash(headerInfo.LastHeader.Hash),
-		make(map[block.Type][]data.TransactionHandler),
-		st.store,
-		st.marshalizer,
-		st.scheduledTxsExecutionHandler)
+	scheduledRootHash, mapScheduledSCRs, err := process.GetScheduledRootHashAndSCRs(headerInfo.LastHeader.Hash, st.store, st.marshalizer)
+	if err != nil {
+		st.scheduledTxsExecutionHandler.SetScheduledRootHash(st.bootstrapper.getRootHash(headerInfo.LastHeader.Hash))
+		st.scheduledTxsExecutionHandler.SetScheduledSCRs(make(map[block.Type][]data.TransactionHandler))
+	} else {
+		st.scheduledTxsExecutionHandler.SetScheduledRootHash(scheduledRootHash)
+		st.scheduledTxsExecutionHandler.SetScheduledSCRs(mapScheduledSCRs)
+	}
 
 	st.highestNonce = headerInfo.LastHeader.Nonce
 
@@ -256,7 +257,11 @@ func (st *storageBootstrapper) applyHeaderInfo(hdrInfo bootstrapStorage.Bootstra
 		return process.ErrInvalidChainID
 	}
 
-	rootHash := process.GetScheduledRootHash(headerHash, headerFromStorage.GetRootHash(), st.store, st.marshalizer)
+	rootHash := headerFromStorage.GetRootHash()
+	scheduledRootHash, err := process.GetScheduledRootHash(headerHash, st.store, st.marshalizer)
+	if err == nil {
+		rootHash = scheduledRootHash
+	}
 
 	err = st.blkExecutor.RevertStateToBlock(headerFromStorage, rootHash)
 	if err != nil {

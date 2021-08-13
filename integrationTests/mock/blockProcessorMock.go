@@ -16,7 +16,7 @@ type BlockProcessorMock struct {
 	ProcessBlockCalled                      func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	ProcessScheduledBlockCalled             func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlockCalled                       func(header data.HeaderHandler, body data.BodyHandler) error
-	RevertAccountStateCalled                func()
+	RevertCurrentBlockCalled                func()
 	CreateBlockCalled                       func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
 	RestoreBlockIntoPoolsCalled             func(header data.HeaderHandler, body data.BodyHandler) error
 	MarshalizedDataToBroadcastCalled        func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
@@ -56,9 +56,9 @@ func (bpm *BlockProcessorMock) CommitBlock(header data.HeaderHandler, body data.
 	return bpm.CommitBlockCalled(header, body)
 }
 
-// RevertAccountState mocks revert of the accounts state
-func (bpm *BlockProcessorMock) RevertAccountState() {
-	bpm.RevertAccountStateCalled()
+// RevertCurrentBlock mocks revert of the current block
+func (bpm *BlockProcessorMock) RevertCurrentBlock() {
+	bpm.RevertCurrentBlockCalled()
 }
 
 // CreateNewHeader -
