@@ -5,11 +5,11 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/facade"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/trieIterators"
 	trieIteratorsFactory "github.com/ElrondNetwork/elrond-go/node/trieIterators/factory"
@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -72,7 +73,7 @@ type scQueryElementArgs struct {
 // CreateApiResolver is able to create an ApiResolver instance that will solve the REST API requests through the node facade
 // TODO: refactor to further decrease node's codebase
 func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
-	apiWorkingDir := filepath.Join(args.Configs.FlagsConfig.WorkingDir, core.TemporaryPath)
+	apiWorkingDir := filepath.Join(args.Configs.FlagsConfig.WorkingDir, common.TemporaryPath)
 	argsSCQuery := &scQueryServiceArgs{
 		generalConfig:       args.Configs.GeneralConfig,
 		epochConfig:         args.Configs.EpochConfig,
@@ -96,7 +97,17 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		args.CoreComponents.InternalMarshalizer(),
 		args.StateComponents.AccountsAdapter(),
 		args.BootstrapComponents.ShardCoordinator(),
+		args.CoreComponents.EpochNotifier(),
+		args.Configs.EpochConfig.EnableEpochs.ESDTMultiTransferEnableEpoch,
+		args.Configs.EpochConfig.EnableEpochs.GlobalMintBurnDisableEpoch,
+		args.Configs.EpochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
+		args.Configs.EpochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	esdtTransferParser, err := parsers.NewESDTTransferParser(args.CoreComponents.InternalMarshalizer())
 	if err != nil {
 		return nil, err
 	}
@@ -104,10 +115,11 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:        args.CoreComponents.AddressPubKeyConverter(),
 		ShardCoordinator:       args.ProcessComponents.ShardCoordinator(),
-		BuiltInFuncNames:       builtInFuncs.Keys(),
+		BuiltInFunctions:       builtInFuncs,
 		ArgumentParser:         parsers.NewCallArgsParser(),
 		EpochNotifier:          args.CoreComponents.EpochNotifier(),
 		RelayedTxV2EnableEpoch: args.Configs.EpochConfig.EnableEpochs.RelayedTransactionsV2EnableEpoch,
+		ESDTTransferParser:     esdtTransferParser,
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
@@ -219,6 +231,11 @@ func createScQueryElement(
 		args.coreComponents.InternalMarshalizer(),
 		args.stateComponents.AccountsAdapter(),
 		args.processComponents.ShardCoordinator(),
+		args.coreComponents.EpochNotifier(),
+		args.epochConfig.EnableEpochs.ESDTMultiTransferEnableEpoch,
+		args.epochConfig.EnableEpochs.GlobalMintBurnDisableEpoch,
+		args.epochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
+		args.epochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 	)
 	if err != nil {
 		return nil, err
@@ -270,6 +287,10 @@ func createScQueryElement(
 		}
 	} else {
 		queryVirtualMachineConfig := args.generalConfig.VirtualMachine.Querying.VirtualMachineConfig
+		esdtTransferParser, errParser := parsers.NewESDTTransferParser(args.coreComponents.InternalMarshalizer())
+		if errParser != nil {
+			return nil, err
+		}
 		argsNewVMFactory := shard.ArgVMContainerFactory{
 			Config:                         queryVirtualMachineConfig,
 			BlockGasLimit:                  args.coreComponents.EconomicsData().MaxGasLimitPerBlock(args.processComponents.ShardCoordinator().SelfId()),
@@ -280,6 +301,7 @@ func createScQueryElement(
 			AheadOfTimeGasUsageEnableEpoch: args.epochConfig.EnableEpochs.AheadOfTimeGasUsageEnableEpoch,
 			ArwenV3EnableEpoch:             args.epochConfig.EnableEpochs.RepairCallbackEnableEpoch,
 			ArwenChangeLocker:              args.processComponents.ArwenChangeLocker(),
+			ESDTTransferParser:             esdtTransferParser,
 		}
 
 		log.Debug("apiResolver: enable epoch for sc deploy", "epoch", args.epochConfig.EnableEpochs.SCDeployEnableEpoch)
@@ -319,13 +341,23 @@ func createBuiltinFuncs(
 	marshalizer marshal.Marshalizer,
 	accnts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
+	epochNotifier vmcommon.EpochNotifier,
+	esdtMultiTransferEnableEpoch uint32,
+	esdtGlobalMintBurnDisableEpoch uint32,
+	esdtTransferRoleEnableEpoch uint32,
+	transferToMetaEnableEpoch uint32,
 ) (vmcommon.BuiltInFunctionContainer, error) {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:      gasScheduleNotifier,
-		MapDNSAddresses:  make(map[string]struct{}),
-		Marshalizer:      marshalizer,
-		Accounts:         accnts,
-		ShardCoordinator: shardCoordinator,
+		GasSchedule:                  gasScheduleNotifier,
+		MapDNSAddresses:              make(map[string]struct{}),
+		Marshalizer:                  marshalizer,
+		Accounts:                     accnts,
+		ShardCoordinator:             shardCoordinator,
+		EpochNotifier:                epochNotifier,
+		ESDTMultiTransferEnableEpoch: esdtMultiTransferEnableEpoch,
+		ESDTTransferRoleEnableEpoch:  esdtTransferRoleEnableEpoch,
+		GlobalMintBurnDisableEpoch:   esdtGlobalMintBurnDisableEpoch,
+		ESDTTransferMetaEnableEpoch:  transferToMetaEnableEpoch,
 	}
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	if err != nil {

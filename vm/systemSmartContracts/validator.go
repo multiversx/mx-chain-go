@@ -9,11 +9,11 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/atomic"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -195,6 +195,11 @@ func (v *validatorSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	err := CheckIfNil(args)
 	if err != nil {
 		v.eei.AddReturnMessage("nil arguments: " + err.Error())
+		return vmcommon.UserError
+	}
+
+	if len(args.ESDTTransfers) > 0 {
+		v.eei.AddReturnMessage("cannot transfer ESDT to system SCs")
 		return vmcommon.UserError
 	}
 

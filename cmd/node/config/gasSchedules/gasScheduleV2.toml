@@ -12,6 +12,9 @@
     ESDTNFTBurn              = 500000
     ESDTNFTTransfer          = 500000
     ESDTNFTChangeCreateOwner = 1000000
+    ESDTNFTAddUri            = 500000
+    ESDTNFTUpdateAttributes  = 500000
+    ESDTNFTMultiTransfer     = 1000000
 
 [MetaChainSystemSCsCost]
     Stake                 = 5000000
@@ -119,6 +122,7 @@
     GetBlockTimeStamp   = 100000
 
 [BigIntAPICost]
+    EllipticCurveNew         = 10000
     BigIntNew                = 2000
     BigIntByteLength         = 2000
     BigIntUnsignedByteLength = 2000
@@ -135,6 +139,9 @@
     BigIntAdd                = 2000
     BigIntSub                = 2000
     BigIntMul                = 6000
+    BigIntSqrt               = 6000
+    BigIntPow                = 6000
+    BigIntLog                = 6000
     BigIntTDiv               = 6000
     BigIntTMod               = 6000
     BigIntEDiv               = 6000
@@ -166,6 +173,31 @@
     VerifyBLS       = 5000000
     VerifyEd25519   = 2000000
     VerifySecp256k1 = 2000000
+    EllipticCurveNew       = 10000
+    AddECC                 = 75000
+    DoubleECC              = 65000
+    IsOnCurveECC           = 10000
+    ScalarMultECC          = 400000
+    MarshalECC             = 13000
+    MarshalCompressedECC   = 15000
+    UnmarshalECC           = 20000
+    UnmarshalCompressedECC = 270000
+    GenerateKeyECC         = 7000000
+
+[ManagedBufferAPICost]
+    MBufferNew                   = 2000
+    MBufferNewFromBytes          = 4000
+    MBufferSetBytes              = 2000
+    MBufferGetLength             = 2000
+    MBufferGetBytes              = 2000
+    MBufferToBigIntUnsigned      = 4000
+    MBufferToBigIntSigned        = 10000
+    MBufferFromBigIntUnsigned    = 4000
+    MBufferFromBigIntSigned      = 10000
+    MBufferStorageStore          = 250000
+    MBufferStorageLoad           = 100000
+    MBufferGetArgument           = 1000
+    MBufferFinish                = 1000
 
 [WASMOpcodeCost]
     Unreachable = 1

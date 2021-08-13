@@ -1,15 +1,17 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/data"
+import (
+	"github.com/ElrondNetwork/elrond-go/common"
+)
 
 // AccountsDBSyncerStub -
 type AccountsDBSyncerStub struct {
-	GetSyncedTriesCalled func() map[string]data.Trie
+	GetSyncedTriesCalled func() map[string]common.Trie
 	SyncAccountsCalled   func(rootHash []byte) error
 }
 
 // GetSyncedTries -
-func (a *AccountsDBSyncerStub) GetSyncedTries() map[string]data.Trie {
+func (a *AccountsDBSyncerStub) GetSyncedTries() map[string]common.Trie {
 	if a.GetSyncedTriesCalled != nil {
 		return a.GetSyncedTriesCalled()
 	}

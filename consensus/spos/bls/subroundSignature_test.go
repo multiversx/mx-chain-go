@@ -3,11 +3,11 @@ package bls_test
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -275,7 +275,7 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 	multiSignerMock := mock.InitMultiSignerMock()
 
 	err := errors.New("create signature share error")
-	multiSignerMock.CreateSignatureShareMock = func(msg []byte, bitmap []byte) ([]byte, error) {
+	multiSignerMock.CreateSignatureShareCalled = func(msg []byte, bitmap []byte) ([]byte, error) {
 		return nil, err
 	}
 
@@ -286,7 +286,7 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 
 	multiSignerMock = mock.InitMultiSignerMock()
 
-	multiSignerMock.CreateSignatureShareMock = func(msg []byte, bitmap []byte) ([]byte, error) {
+	multiSignerMock.CreateSignatureShareCalled = func(msg []byte, bitmap []byte) ([]byte, error) {
 		return []byte("SIG"), nil
 	}
 	container.SetMultiSigner(multiSignerMock)

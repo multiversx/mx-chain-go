@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/random"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go-core/core/random"
+	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/stretchr/testify/require"
 )
 
@@ -33,7 +33,7 @@ func TestConcurrentTriesMap_ConcurrentAccesses(t *testing.T) {
 			case <-ctx.Done():
 			default:
 				randomID := rnd.Intn(100)
-				ctm.setTrie(fmt.Sprintf("%d", randomID), &testscommon.TrieStub{})
+				ctm.setTrie(fmt.Sprintf("%d", randomID), &trieMock.TrieStub{})
 			}
 		}
 	}(ctx)

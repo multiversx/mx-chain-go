@@ -7,24 +7,24 @@ import (
 	syncGo "sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/partitioning"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	dataBlock "github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/core/partitioning"
-	"github.com/ElrondNetwork/elrond-go/data"
-	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/indexer"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/epochProviders"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
 	storageResolversContainers "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/storageResolversContainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
+	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
@@ -50,6 +50,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/redundancy"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -254,7 +255,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		resolversFinder,
 		pcf.requestedItemsHandler,
 		pcf.whiteListHandler,
-		core.MaxTxsToRequest,
+		common.MaxTxsToRequest,
 		pcf.bootstrapComponents.ShardCoordinator().SelfId(),
 		time.Second,
 	)
@@ -263,9 +264,16 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	txLogsStorage := pcf.data.StorageService().GetStorer(dataRetriever.TxLogsUnit)
+
+	if !pcf.config.LogsAndEvents.SaveInStorageEnabled && pcf.config.DbLookupExtensions.Enabled {
+		log.Warn("processComponentsFactory.Create() node will save logs in storage because DbLookupExtensions is enabled")
+	}
+
+	saveLogsInStorage := pcf.config.LogsAndEvents.SaveInStorageEnabled || pcf.config.DbLookupExtensions.Enabled
 	txLogsProcessor, err := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
-		Storer:      txLogsStorage,
-		Marshalizer: pcf.coreData.InternalMarshalizer(),
+		Storer:               txLogsStorage,
+		Marshalizer:          pcf.coreData.InternalMarshalizer(),
+		SaveInStorageEnabled: saveLogsInStorage,
 	})
 	if err != nil {
 		return nil, err
@@ -700,7 +708,7 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 }
 
 func (pcf *processComponentsFactory) indexGenesisAccounts() error {
-	if pcf.statusComponents.ElasticIndexer().IsNilIndexer() {
+	if !pcf.statusComponents.OutportHandler().HasDrivers() {
 		return nil
 	}
 
@@ -714,7 +722,7 @@ func (pcf *processComponentsFactory) indexGenesisAccounts() error {
 		return err
 	}
 
-	genesisAccounts := make([]state.UserAccountHandler, 0)
+	genesisAccounts := make([]data.UserAccountHandler, 0)
 	for leaf := range leavesChannel {
 		userAccount, errUnmarshal := pcf.unmarshalUserAccount(leaf.Key(), leaf.Value())
 		if errUnmarshal != nil {
@@ -725,7 +733,7 @@ func (pcf *processComponentsFactory) indexGenesisAccounts() error {
 		genesisAccounts = append(genesisAccounts, userAccount)
 	}
 
-	pcf.statusComponents.ElasticIndexer().SaveAccounts(uint64(pcf.coreData.GenesisNodesSetup().GetStartTime()), genesisAccounts)
+	pcf.statusComponents.OutportHandler().SaveAccounts(uint64(pcf.coreData.GenesisNodesSetup().GetStartTime()), genesisAccounts)
 	return nil
 }
 
@@ -812,7 +820,7 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32
 		return err
 	}
 
-	if !pcf.statusComponents.ElasticIndexer().IsNilIndexer() {
+	if pcf.statusComponents.OutportHandler().HasDrivers() {
 		log.Info("indexGenesisBlocks(): indexer.SaveBlock", "hash", genesisBlockHash)
 
 		arg := &indexer.ArgsSaveBlockData{
@@ -820,7 +828,7 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32
 			Body:       &dataBlock.Body{},
 			Header:     genesisBlockHeader,
 		}
-		pcf.statusComponents.ElasticIndexer().SaveBlock(arg)
+		pcf.statusComponents.OutportHandler().SaveBlock(arg)
 	}
 
 	// In "dblookupext" index, record both the metachain and the shardID blocks
@@ -1143,7 +1151,7 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 		Messenger:                 pcf.network.NetworkMessenger(),
 		Store:                     pcf.data.StorageService(),
 		DataPool:                  pcf.data.Datapool(),
-		MaxTxNonceDeltaAllowed:    core.MaxTxNonceDeltaAllowed,
+		MaxTxNonceDeltaAllowed:    common.MaxTxNonceDeltaAllowed,
 		TxFeeHandler:              pcf.coreData.EconomicsData(),
 		BlockBlackList:            headerBlackList,
 		HeaderSigVerifier:         headerSigVerifier,
@@ -1186,7 +1194,7 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 		Store:                     pcf.data.StorageService(),
 		DataPool:                  pcf.data.Datapool(),
 		Accounts:                  pcf.state.AccountsAdapter(),
-		MaxTxNonceDeltaAllowed:    core.MaxTxNonceDeltaAllowed,
+		MaxTxNonceDeltaAllowed:    common.MaxTxNonceDeltaAllowed,
 		TxFeeHandler:              pcf.coreData.EconomicsData(),
 		BlockBlackList:            headerBlackList,
 		HeaderSigVerifier:         headerSigVerifier,

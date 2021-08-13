@@ -1,8 +1,9 @@
 package disabled
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -15,7 +16,7 @@ func NewAccountsAdapter() *accountsAdapter {
 }
 
 // GetTrie -
-func (a *accountsAdapter) GetTrie(_ []byte) (data.Trie, error) {
+func (a *accountsAdapter) GetTrie(_ []byte) (common.Trie, error) {
 	return nil, nil
 }
 
@@ -35,7 +36,7 @@ func (a *accountsAdapter) SaveAccount(_ vmcommon.AccountHandler) error {
 }
 
 // PruneTrie -
-func (a *accountsAdapter) PruneTrie(_ []byte, _ data.TriePruningIdentifier) {
+func (a *accountsAdapter) PruneTrie(_ []byte, _ state.TriePruningIdentifier) {
 }
 
 // GetExistingAccount -
@@ -74,7 +75,7 @@ func (a *accountsAdapter) RecreateTrie(_ []byte) error {
 }
 
 // CancelPrune -
-func (a *accountsAdapter) CancelPrune(_ []byte, _ data.TriePruningIdentifier) {
+func (a *accountsAdapter) CancelPrune(_ []byte, _ state.TriePruningIdentifier) {
 }
 
 // SnapshotState -
@@ -101,7 +102,7 @@ func (a *accountsAdapter) GetAllLeaves(_ []byte) (chan core.KeyValueHolder, erro
 }
 
 // RecreateAllTries -
-func (a *accountsAdapter) RecreateAllTries(_ []byte) (map[string]data.Trie, error) {
+func (a *accountsAdapter) RecreateAllTries(_ []byte) (map[string]common.Trie, error) {
 	return nil, nil
 }
 

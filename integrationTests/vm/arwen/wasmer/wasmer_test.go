@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"testing"
 
+	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -156,7 +157,7 @@ func defaultVMInput(arguments [][]byte) vmcommon.VMInput {
 		GasPrice:    uint64(0),
 		GasProvided: uint64(0xfffffffffffffff),
 		Arguments:   arguments,
-		CallType:    vmcommon.DirectCall,
+		CallType:    vmData.DirectCall,
 	}
 }
 

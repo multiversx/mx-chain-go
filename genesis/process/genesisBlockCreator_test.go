@@ -10,22 +10,23 @@ import (
 	"math/big"
 	"testing"
 
-	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	factoryState "github.com/ElrondNetwork/elrond-go/data/state/factory"
-	"github.com/ElrondNetwork/elrond-go/data/trie"
-	"github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/mock"
 	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state"
+	factoryState "github.com/ElrondNetwork/elrond-go/state/factory"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	"github.com/ElrondNetwork/elrond-go/trie"
+	"github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/update"
 	updateMock "github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
@@ -47,7 +48,7 @@ func createMockArgument(
 	memDBMock := mock.NewMemDbMock()
 	storageManager, _ := trie.NewTrieStorageManagerWithoutPruning(memDBMock)
 
-	trieStorageManagers := make(map[string]data.StorageManager)
+	trieStorageManagers := make(map[string]common.StorageManager)
 	trieStorageManagers[factory.UserAccountTrie] = storageManager
 	trieStorageManagers[factory.PeerAccountTrie] = storageManager
 
@@ -70,7 +71,7 @@ func createMockArgument(
 				},
 			},
 			Blkc:     &mock.BlockChainStub{},
-			DataPool: testscommon.NewPoolsHolderMock(),
+			DataPool: dataRetrieverMock.NewPoolsHolderMock(),
 		},
 		InitialNodesSetup: &mock.InitialNodesSetupHandlerStub{},
 		TxLogsProcessor:   &mock.TxLogProcessorMock{},
@@ -145,7 +146,7 @@ func createMockArgument(
 	)
 	require.Nil(t, err)
 
-	arg.ValidatorAccounts = &testscommon.AccountsStub{
+	arg.ValidatorAccounts = &stateMock.AccountsStub{
 		RootHashCalled: func() ([]byte, error) {
 			return make([]byte, 0), nil
 		},
@@ -389,7 +390,7 @@ func TestCreateArgsGenesisBlockCreator_ShouldErrWhenGetNewArgForShardFails(t *te
 	)
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{SelfShardId: 1}
-	arg.TrieStorageManagers = make(map[string]data.StorageManager)
+	arg.TrieStorageManagers = make(map[string]common.StorageManager)
 	gbc, err := NewGenesisBlockCreator(arg)
 	require.Nil(t, err)
 
@@ -473,7 +474,7 @@ func TestCreateHardForkBlockProcessors_ShouldWork(t *testing.T) {
 	)
 	arg.importHandler = &updateMock.ImportHandlerStub{
 		GetAccountsDBForShardCalled: func(shardID uint32) state.AccountsAdapter {
-			return &testscommon.AccountsStub{}
+			return &stateMock.AccountsStub{}
 		},
 	}
 	gbc, err := NewGenesisBlockCreator(arg)

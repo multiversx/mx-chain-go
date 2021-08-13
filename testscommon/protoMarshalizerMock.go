@@ -3,7 +3,7 @@ package testscommon
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 )
 
 var _ marshal.Marshalizer = (*ProtoMarshalizerMock)(nil)

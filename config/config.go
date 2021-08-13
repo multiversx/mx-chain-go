@@ -82,8 +82,9 @@ type NTPConfig struct {
 
 // EvictionWaitingListConfig will hold the configuration for the EvictionWaitingList
 type EvictionWaitingListConfig struct {
-	Size uint
-	DB   DBConfig
+	RootHashesSize uint
+	HashesSize     uint
+	DB             DBConfig
 }
 
 // EpochStartConfig will hold the configuration of EpochStart settings
@@ -168,7 +169,7 @@ type Config struct {
 	GeneralSettings     GeneralSettingsConfig
 	Consensus           ConsensusConfig
 	StoragePruning      StoragePruningConfig
-	TxLogsStorage       StorageConfig
+	LogsAndEvents       LogsAndEventsConfig
 
 	NTPConfig               NTPConfig
 	HeadersPoolConfig       HeadersPoolConfig
@@ -389,6 +390,12 @@ type HardforkConfig struct {
 	AfterHardFork                bool
 }
 
+// LogsAndEventsConfig hold the configuration for the logs and events
+type LogsAndEventsConfig struct {
+	SaveInStorageEnabled bool
+	TxLogsStorage        StorageConfig
+}
+
 // DbLookupExtensionsConfig holds the configuration for the db lookup extensions
 type DbLookupExtensionsConfig struct {
 	Enabled                            bool
@@ -501,21 +508,20 @@ type Configs struct {
 
 // ConfigurationPathsHolder holds all configuration filenames and configuration paths used to start the node
 type ConfigurationPathsHolder struct {
-	MainConfig                 string
-	ApiRoutes                  string
-	Economics                  string
-	SystemSC                   string
-	Ratings                    string
-	Preferences                string
-	External                   string
-	P2p                        string
-	GasScheduleDirectoryName   string
-	Nodes                      string
-	Genesis                    string
-	SmartContracts             string
-	ValidatorKey               string
-	ElasticSearchTemplatesPath string
-	Epoch                      string
+	MainConfig               string
+	ApiRoutes                string
+	Economics                string
+	SystemSC                 string
+	Ratings                  string
+	Preferences              string
+	External                 string
+	P2p                      string
+	GasScheduleDirectoryName string
+	Nodes                    string
+	Genesis                  string
+	SmartContracts           string
+	ValidatorKey             string
+	Epoch                    string
 }
 
 // TrieSyncConfig represents the trie synchronization configuration area

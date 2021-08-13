@@ -5,10 +5,10 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/node/trieIterators"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -32,7 +32,7 @@ func TestCreateTotalStakedValueHandler_TotalStakedValueProcessor(t *testing.T) {
 		ShardID: core.MetachainShardId,
 		Accounts: &trieIterators.AccountsWrapper{
 			Mutex:           &sync.Mutex{},
-			AccountsAdapter: &testscommon.AccountsStub{},
+			AccountsAdapter: &stateMock.AccountsStub{},
 		},
 		PublicKeyConverter: &mock.PubkeyConverterMock{},
 		BlockChain:         &mock.BlockChainMock{},

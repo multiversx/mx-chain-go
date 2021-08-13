@@ -5,9 +5,10 @@ import (
 	"math"
 	"os"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/urfave/cli"
 )
@@ -193,12 +194,7 @@ var (
 		Usage: "The `filepath` for the PEM file which contains the secret keys for the validator key.",
 		Value: "./config/validatorKey.pem",
 	}
-	// elasticSearchTemplates defines a flag for the path to the elasticsearch templates
-	elasticSearchTemplates = cli.StringFlag{
-		Name:  "elasticsearch-templates-path",
-		Usage: "The `path` to the elasticsearch templates directory containing the templates in .json format",
-		Value: "./config/elasticIndexTemplates",
-	}
+
 	// logLevel defines the logger level
 	logLevel = cli.StringFlag{
 		Name: "log-level",
@@ -332,7 +328,6 @@ func getFlags() []cli.Flag {
 		restApiInterface,
 		restApiDebug,
 		disableAnsiColor,
-		elasticSearchTemplates,
 		logLevel,
 		logSaveFile,
 		logWithCorrelation,
@@ -382,7 +377,6 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, flagsConfig *config.Cont
 	cfgs.ConfigurationPathsHolder.GasScheduleDirectoryName = ctx.GlobalString(gasScheduleConfigurationDirectory.Name)
 	cfgs.ConfigurationPathsHolder.SmartContracts = ctx.GlobalString(smartContractsFile.Name)
 	cfgs.ConfigurationPathsHolder.ValidatorKey = ctx.GlobalString(validatorKeyPemFile.Name)
-	cfgs.ConfigurationPathsHolder.ElasticSearchTemplatesPath = ctx.GlobalString(elasticSearchTemplates.Name)
 
 	if ctx.IsSet(startInEpoch.Name) {
 		log.Debug("start in epoch is enabled")
@@ -466,7 +460,7 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 
 	var err error
 
-	importDbFlags.ImportDBTargetShardID, err = core.ProcessDestinationShardAsObserver(prefsConfig.Preferences.DestinationShardAsObserver)
+	importDbFlags.ImportDBTargetShardID, err = common.ProcessDestinationShardAsObserver(prefsConfig.Preferences.DestinationShardAsObserver)
 	if err != nil {
 		return err
 	}

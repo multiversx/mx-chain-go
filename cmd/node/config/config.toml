@@ -150,19 +150,6 @@
         MaxBatchSize = 30000
         MaxOpenFiles = 10
 
-[TxLogsStorage]
-    [TxLogsStorage.Cache]
-        Name = "TxLogsStorage"
-        Capacity = 1000
-        Type = "SizeLRU"
-        SizeInBytes = 20971520 #20MB
-    [TxLogsStorage.DB]
-        FilePath = "Logs"
-        Type = "LvlDBSerial"
-        BatchDelaySeconds = 2
-        MaxBatchSize = 100
-        MaxOpenFiles = 10
-
 [UnsignedTransactionStorage]
     [UnsignedTransactionStorage.Cache]
         Name = "UnsignedTransactionStorage"
@@ -280,7 +267,9 @@
         MaxOpenFiles = 10
 
 [EvictionWaitingList]
-    Size = 10000
+    #total max size ~ 2 * [(RoothashesSize * 32) + (HashesSize * 32)]
+    RootHashesSize = 10000
+    HashesSize = 100000
     [EvictionWaitingList.DB]
         FilePath = "EvictionWaitingList"
         Type = "LvlDBSerial"
@@ -624,6 +613,7 @@
         ArwenVersions = [
             { StartEpoch = 0, Version = "v1.2" },
             { StartEpoch = 1, Version = "v1.3" },
+            { StartEpoch = 5, Version = "v1.4" },
         ]
 
     [VirtualMachine.Querying]
@@ -631,6 +621,7 @@
         ArwenVersions = [
             { StartEpoch = 0, Version = "v1.2" },
             { StartEpoch = 1, Version = "v1.3" },
+            { StartEpoch = 5, Version = "v1.4" },
         ]
 
 [Hardfork]
@@ -733,6 +724,20 @@
 [SoftwareVersionConfig]
     StableTagLocation = "https://api.github.com/repos/ElrondNetwork/elrond-go/releases/latest"
     PollingIntervalInMinutes = 65
+
+[LogsAndEvents]
+    SaveInStorageEnabled = false
+    [LogsAndEvents.TxLogsStorage.Cache]
+        Name = "TxLogsStorage"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 20971520 #20MB
+    [LogsAndEvents.TxLogsStorage.DB]
+        FilePath = "Logs"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
 
 [DbLookupExtensions]
     Enabled = false

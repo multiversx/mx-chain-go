@@ -9,17 +9,17 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/forking"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
@@ -319,13 +319,19 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		return nil, err
 	}
 
+	esdtTransferParser, err := parsers.NewESDTTransferParser(arg.Core.InternalMarshalizer())
+	if err != nil {
+		return nil, err
+	}
+
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:        arg.Core.AddressPubKeyConverter(),
 		ShardCoordinator:       arg.ShardCoordinator,
-		BuiltInFuncNames:       builtInFuncs.Keys(),
+		BuiltInFunctions:       builtInFuncs,
 		ArgumentParser:         parsers.NewCallArgsParser(),
 		EpochNotifier:          epochNotifier,
 		RelayedTxV2EnableEpoch: arg.EpochConfig.EnableEpochs.RelayedTransactionsV2EnableEpoch,
+		ESDTTransferParser:     esdtTransferParser,
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
@@ -339,33 +345,34 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 
 	argsParser := smartContract.NewArgumentParser()
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
-		VmContainer:                         vmContainer,
-		ArgsParser:                          argsParser,
-		Hasher:                              arg.Core.Hasher(),
-		Marshalizer:                         arg.Core.InternalMarshalizer(),
-		AccountsDB:                          arg.Accounts,
-		BlockChainHook:                      virtualMachineFactory.BlockChainHookImpl(),
-		PubkeyConv:                          arg.Core.AddressPubKeyConverter(),
-		ShardCoordinator:                    arg.ShardCoordinator,
-		ScrForwarder:                        scForwarder,
-		TxFeeHandler:                        genesisFeeHandler,
-		EconomicsFee:                        genesisFeeHandler,
-		TxTypeHandler:                       txTypeHandler,
-		GasHandler:                          gasHandler,
-		GasSchedule:                         arg.GasSchedule,
-		TxLogsProcessor:                     arg.TxLogsProcessor,
-		BadTxForwarder:                      badTxForwarder,
-		EpochNotifier:                       epochNotifier,
-		DeployEnableEpoch:                   enableEpochs.SCDeployEnableEpoch,
-		BuiltinEnableEpoch:                  enableEpochs.BuiltInFunctionsEnableEpoch,
-		PenalizedTooMuchGasEnableEpoch:      enableEpochs.PenalizedTooMuchGasEnableEpoch,
-		RepairCallbackEnableEpoch:           enableEpochs.RepairCallbackEnableEpoch,
-		ReturnDataToLastTransferEnableEpoch: enableEpochs.ReturnDataToLastTransferEnableEpoch,
-		SenderInOutTransferEnableEpoch:      enableEpochs.SenderInOutTransferEnableEpoch,
-		IsGenesisProcessing:                 true,
-		StakingV2EnableEpoch:                arg.EpochConfig.EnableEpochs.StakingV2EnableEpoch,
-		ArwenChangeLocker:                   &sync.RWMutex{}, // local Locker as to not interfere with the rest of the components
-		VMOutputCacher:                      txcache.NewDisabledCache(),
+		VmContainer:                           vmContainer,
+		ArgsParser:                            argsParser,
+		Hasher:                                arg.Core.Hasher(),
+		Marshalizer:                           arg.Core.InternalMarshalizer(),
+		AccountsDB:                            arg.Accounts,
+		BlockChainHook:                        virtualMachineFactory.BlockChainHookImpl(),
+		PubkeyConv:                            arg.Core.AddressPubKeyConverter(),
+		ShardCoordinator:                      arg.ShardCoordinator,
+		ScrForwarder:                          scForwarder,
+		TxFeeHandler:                          genesisFeeHandler,
+		EconomicsFee:                          genesisFeeHandler,
+		TxTypeHandler:                         txTypeHandler,
+		GasHandler:                            gasHandler,
+		GasSchedule:                           arg.GasSchedule,
+		TxLogsProcessor:                       arg.TxLogsProcessor,
+		BadTxForwarder:                        badTxForwarder,
+		EpochNotifier:                         epochNotifier,
+		DeployEnableEpoch:                     enableEpochs.SCDeployEnableEpoch,
+		BuiltinEnableEpoch:                    enableEpochs.BuiltInFunctionsEnableEpoch,
+		PenalizedTooMuchGasEnableEpoch:        enableEpochs.PenalizedTooMuchGasEnableEpoch,
+		RepairCallbackEnableEpoch:             enableEpochs.RepairCallbackEnableEpoch,
+		ReturnDataToLastTransferEnableEpoch:   enableEpochs.ReturnDataToLastTransferEnableEpoch,
+		SenderInOutTransferEnableEpoch:        enableEpochs.SenderInOutTransferEnableEpoch,
+		BuiltInFunctionOnMetachainEnableEpoch: enableEpochs.BuiltInFunctionOnMetaEnableEpoch,
+		IsGenesisProcessing:                   true,
+		StakingV2EnableEpoch:                  arg.EpochConfig.EnableEpochs.StakingV2EnableEpoch,
+		ArwenChangeLocker:                     &sync.RWMutex{}, // local Locker as to not interfere with the rest of the components
+		VMOutputCacher:                        txcache.NewDisabledCache(),
 
 		IncrementSCRNonceInMultiTransferEnableEpoch: enableEpochs.IncrementSCRNonceInMultiTransferEnableEpoch,
 	}
@@ -375,16 +382,17 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 	}
 
 	argsNewMetaTxProcessor := processTransaction.ArgsNewMetaTxProcessor{
-		Hasher:           arg.Core.Hasher(),
-		Marshalizer:      arg.Core.InternalMarshalizer(),
-		Accounts:         arg.Accounts,
-		PubkeyConv:       arg.Core.AddressPubKeyConverter(),
-		ShardCoordinator: arg.ShardCoordinator,
-		ScProcessor:      scProcessor,
-		TxTypeHandler:    txTypeHandler,
-		EconomicsFee:     genesisFeeHandler,
-		ESDTEnableEpoch:  arg.EpochConfig.EnableEpochs.ESDTEnableEpoch,
-		EpochNotifier:    epochNotifier,
+		Hasher:                                arg.Core.Hasher(),
+		Marshalizer:                           arg.Core.InternalMarshalizer(),
+		Accounts:                              arg.Accounts,
+		PubkeyConv:                            arg.Core.AddressPubKeyConverter(),
+		ShardCoordinator:                      arg.ShardCoordinator,
+		ScProcessor:                           scProcessor,
+		TxTypeHandler:                         txTypeHandler,
+		EconomicsFee:                          genesisFeeHandler,
+		ESDTEnableEpoch:                       arg.EpochConfig.EnableEpochs.ESDTEnableEpoch,
+		BuiltInFunctionOnMetachainEnableEpoch: arg.EpochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
+		EpochNotifier:                         epochNotifier,
 	}
 	txProcessor, err := processTransaction.NewMetaTxProcessor(argsNewMetaTxProcessor)
 	if err != nil {

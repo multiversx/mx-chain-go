@@ -4,10 +4,10 @@ import (
 	"math/big"
 	"testing"
 
-	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
+	"github.com/ElrondNetwork/elrond-go/common"
+	commonFactory "github.com/ElrondNetwork/elrond-go/common/factory"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	factory2 "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/genesis"
@@ -66,7 +66,7 @@ func getProcessArgs(
 	gasSchedule["BuiltInCost"]["SaveKeyValue"] = 1
 	gasSchedule["BuiltInCost"]["ESDTTransfer"] = 1
 	gasSchedule["BuiltInCost"]["ESDTBurn"] = 1
-	gasSchedule[core.MetaChainSystemSCsCost] = FillGasMapMetaChainSystemSCsCosts(1)
+	gasSchedule[common.MetaChainSystemSCsCost] = FillGasMapMetaChainSystemSCsCosts(1)
 
 	gasScheduleNotifier := &mock.GasScheduleNotifierMock{
 		GasSchedule: gasSchedule,
@@ -93,7 +93,7 @@ func getProcessArgs(
 		Config: testscommon.GetGeneralConfig(),
 		AccountsParser: &mock.AccountsParserStub{
 			InitialAccountsCalled: func() []genesis.InitialAccountHandler {
-				addrConverter, _ := factory2.NewPubkeyConverter(config.PubkeyConfig{
+				addrConverter, _ := commonFactory.NewPubkeyConverter(config.PubkeyConfig{
 					Length:          32,
 					Type:            "bech32",
 					SignatureLength: 0,

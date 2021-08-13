@@ -1,10 +1,10 @@
 package txsimulator
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -23,102 +23,102 @@ func NewReadOnlyAccountsDB(accountsDB state.AccountsAdapter) (*readOnlyAccountsD
 }
 
 // GetCode returns the code for the given account
-func (w *readOnlyAccountsDB) GetCode(codeHash []byte) []byte {
-	return w.originalAccounts.GetCode(codeHash)
+func (r *readOnlyAccountsDB) GetCode(codeHash []byte) []byte {
+	return r.originalAccounts.GetCode(codeHash)
 }
 
 // GetExistingAccount will call the original accounts' function with the same name
-func (w *readOnlyAccountsDB) GetExistingAccount(address []byte) (vmcommon.AccountHandler, error) {
-	return w.originalAccounts.GetExistingAccount(address)
+func (r *readOnlyAccountsDB) GetExistingAccount(address []byte) (vmcommon.AccountHandler, error) {
+	return r.originalAccounts.GetExistingAccount(address)
 }
 
 // LoadAccount will call the original accounts' function with the same name
-func (w *readOnlyAccountsDB) LoadAccount(address []byte) (vmcommon.AccountHandler, error) {
-	return w.originalAccounts.LoadAccount(address)
+func (r *readOnlyAccountsDB) LoadAccount(address []byte) (vmcommon.AccountHandler, error) {
+	return r.originalAccounts.LoadAccount(address)
 }
 
 // SaveAccount won't do anything as write operations are disabled on this component
-func (w *readOnlyAccountsDB) SaveAccount(_ vmcommon.AccountHandler) error {
+func (r *readOnlyAccountsDB) SaveAccount(_ vmcommon.AccountHandler) error {
 	return nil
 }
 
 // RemoveAccount won't do anything as write operations are disabled on this component
-func (w *readOnlyAccountsDB) RemoveAccount(_ []byte) error {
+func (r *readOnlyAccountsDB) RemoveAccount(_ []byte) error {
 	return nil
 }
 
 // Commit won't do anything as write operations are disabled on this component
-func (w *readOnlyAccountsDB) Commit() ([]byte, error) {
+func (r *readOnlyAccountsDB) Commit() ([]byte, error) {
 	return nil, nil
 }
 
 // JournalLen will call the original accounts' function with the same name
-func (w *readOnlyAccountsDB) JournalLen() int {
-	return w.originalAccounts.JournalLen()
+func (r *readOnlyAccountsDB) JournalLen() int {
+	return r.originalAccounts.JournalLen()
 }
 
 // RevertToSnapshot won't do anything as write operations are disabled on this component
-func (w *readOnlyAccountsDB) RevertToSnapshot(_ int) error {
+func (r *readOnlyAccountsDB) RevertToSnapshot(_ int) error {
 	return nil
 }
 
 // GetNumCheckpoints will call the original accounts' function with the same name
-func (w *readOnlyAccountsDB) GetNumCheckpoints() uint32 {
-	return w.originalAccounts.GetNumCheckpoints()
+func (r *readOnlyAccountsDB) GetNumCheckpoints() uint32 {
+	return r.originalAccounts.GetNumCheckpoints()
 }
 
 // RootHash will call the original accounts' function with the same name
-func (w *readOnlyAccountsDB) RootHash() ([]byte, error) {
-	return w.originalAccounts.RootHash()
+func (r *readOnlyAccountsDB) RootHash() ([]byte, error) {
+	return r.originalAccounts.RootHash()
 }
 
 // RecreateTrie won't do anything as write operations are disabled on this component
-func (w *readOnlyAccountsDB) RecreateTrie(_ []byte) error {
+func (r *readOnlyAccountsDB) RecreateTrie(_ []byte) error {
 	return nil
 }
 
 // PruneTrie won't do anything as write operations are disabled on this component
-func (w *readOnlyAccountsDB) PruneTrie(_ []byte, _ data.TriePruningIdentifier) {
+func (r *readOnlyAccountsDB) PruneTrie(_ []byte, _ state.TriePruningIdentifier) {
 }
 
 // CancelPrune won't do anything as write operations are disabled on this component
-func (w *readOnlyAccountsDB) CancelPrune(_ []byte, _ data.TriePruningIdentifier) {
+func (r *readOnlyAccountsDB) CancelPrune(_ []byte, _ state.TriePruningIdentifier) {
 }
 
 // SnapshotState won't do anything as write operations are disabled on this component
-func (w *readOnlyAccountsDB) SnapshotState(_ []byte) {
+func (r *readOnlyAccountsDB) SnapshotState(_ []byte) {
 }
 
 // SetStateCheckpoint won't do anything as write operations are disabled on this component
-func (w *readOnlyAccountsDB) SetStateCheckpoint(_ []byte) {
+func (r *readOnlyAccountsDB) SetStateCheckpoint(_ []byte) {
 }
 
 // IsPruningEnabled will call the original accounts' function with the same name
-func (w *readOnlyAccountsDB) IsPruningEnabled() bool {
-	return w.originalAccounts.IsPruningEnabled()
+func (r *readOnlyAccountsDB) IsPruningEnabled() bool {
+	return r.originalAccounts.IsPruningEnabled()
 }
 
 // GetAllLeaves will call the original accounts' function with the same name
-func (w *readOnlyAccountsDB) GetAllLeaves(rootHash []byte) (chan core.KeyValueHolder, error) {
-	return w.originalAccounts.GetAllLeaves(rootHash)
+func (r *readOnlyAccountsDB) GetAllLeaves(rootHash []byte) (chan core.KeyValueHolder, error) {
+	return r.originalAccounts.GetAllLeaves(rootHash)
 }
 
 // RecreateAllTries will return an error which indicates that this operation is not supported
-func (w *readOnlyAccountsDB) RecreateAllTries(_ []byte) (map[string]data.Trie, error) {
+func (r *readOnlyAccountsDB) RecreateAllTries(_ []byte) (map[string]common.Trie, error) {
 	return nil, nil
 }
 
 // GetTrie will return an error which indicates that this operation is not supported
-func (w *readOnlyAccountsDB) GetTrie(_ []byte) (data.Trie, error) {
+func (r *readOnlyAccountsDB) GetTrie(_ []byte) (common.Trie, error) {
 	return nil, nil
 }
 
 // Close will handle the closing of the underlying components
-func (w *readOnlyAccountsDB) Close() error {
-	return w.originalAccounts.Close()
+func (r *readOnlyAccountsDB) Close() error {
+	return r.originalAccounts.Close()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (w *readOnlyAccountsDB) IsInterfaceNil() bool {
-	return w == nil
+func (r *readOnlyAccountsDB) IsInterfaceNil() bool {
+	return r == nil
 }

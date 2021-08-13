@@ -3,7 +3,7 @@ package block
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 )
 
 type hdrForBlock struct {

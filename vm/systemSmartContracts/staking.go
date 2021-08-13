@@ -10,12 +10,13 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/atomic"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -153,6 +154,11 @@ func (s *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 	s.mutExecution.RLock()
 	defer s.mutExecution.RUnlock()
 	if CheckIfNil(args) != nil {
+		return vmcommon.UserError
+	}
+
+	if len(args.ESDTTransfers) > 0 {
+		s.eei.AddReturnMessage("cannot transfer ESDT to system SCs")
 		return vmcommon.UserError
 	}
 
@@ -533,7 +539,7 @@ func (s *stakingSC) activeStakingFor(stakingData *StakedDataV2_0) {
 	stakingData.RegisterNonce = s.eei.BlockChainHook().CurrentNonce()
 	stakingData.Staked = true
 	stakingData.StakedNonce = s.eei.BlockChainHook().CurrentNonce()
-	stakingData.UnStakedEpoch = core.DefaultUnstakedEpoch
+	stakingData.UnStakedEpoch = common.DefaultUnstakedEpoch
 	stakingData.UnStakedNonce = 0
 	stakingData.Waiting = false
 }
@@ -711,7 +717,7 @@ func (s *stakingSC) moveFirstFromWaitingToStaked() (bool, error) {
 	nodeData.RegisterNonce = s.eei.BlockChainHook().CurrentNonce()
 	nodeData.StakedNonce = s.eei.BlockChainHook().CurrentNonce()
 	nodeData.UnStakedNonce = 0
-	nodeData.UnStakedEpoch = core.DefaultUnstakedEpoch
+	nodeData.UnStakedEpoch = common.DefaultUnstakedEpoch
 
 	s.addToStakedNodes(1)
 	return true, s.saveStakingData(elementInList.BLSPublicKey, nodeData)

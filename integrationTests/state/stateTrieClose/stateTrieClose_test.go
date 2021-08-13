@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/data/mock"
-	"github.com/ElrondNetwork/elrond-go/data/trie"
-	"github.com/ElrondNetwork/elrond-go/data/trie/hashesHolder"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/trie"
+	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -72,14 +72,14 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 func TestTrieStorageManager_Close(t *testing.T) {
 	closeCalled := false
 	args := trie.NewTrieStorageManagerArgs{
-		DB: &mock.StorerStub{
+		DB: &testscommon.StorerStub{
 			CloseCalled: func() error {
 				closeCalled = true
 				return nil
 			},
 		},
-		Marshalizer:            &mock.MarshalizerMock{},
-		Hasher:                 &mock.HasherMock{},
+		Marshalizer:            &testscommon.MarshalizerMock{},
+		Hasher:                 &testscommon.HasherMock{},
 		SnapshotDbConfig:       config.DBConfig{},
 		GeneralConfig:          config.TrieStorageManagerConfig{},
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, 32),
@@ -102,14 +102,14 @@ func TestTrieStorageManager_CloseErr(t *testing.T) {
 	closeCalled := false
 	closeErr := errors.New("close error")
 	args := trie.NewTrieStorageManagerArgs{
-		DB: &mock.StorerStub{
+		DB: &testscommon.StorerStub{
 			CloseCalled: func() error {
 				closeCalled = true
 				return closeErr
 			},
 		},
-		Marshalizer:            &mock.MarshalizerMock{},
-		Hasher:                 &mock.HasherMock{},
+		Marshalizer:            &testscommon.MarshalizerMock{},
+		Hasher:                 &testscommon.HasherMock{},
 		SnapshotDbConfig:       config.DBConfig{},
 		GeneralConfig:          config.TrieStorageManagerConfig{},
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, 32),

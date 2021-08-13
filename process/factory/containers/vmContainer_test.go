@@ -230,7 +230,6 @@ func TestVirtualMachinesContainer_LenShouldWork(t *testing.T) {
 }
 
 func TestVirtualMachinesContainer_Close(t *testing.T) {
-	t.Skip("fix this test whe the TODO on vmContainer.go L179 will be solved")
 	t.Parallel()
 
 	c := containers.NewVirtualMachinesContainer()
@@ -264,29 +263,14 @@ func TestVirtualMachinesContainer_Close(t *testing.T) {
 		},
 	}
 
-	cleanCalledItem3 := false
 	item3 := struct {
-		*mock.CleanerStub
 		vmcommon.VMExecutionHandler
-	}{
-		CleanerStub: &mock.CleanerStub{
-			CleanCalled: func() {
-				cleanCalledItem3 = true
-			},
-		},
-	}
+	}{}
 	closeCalledItem4 := false
-	cleanCalledItem4 := false
 	item4 := struct {
 		*mock.CloserStub
-		*mock.CleanerStub
 		vmcommon.VMExecutionHandler
 	}{
-		CleanerStub: &mock.CleanerStub{
-			CleanCalled: func() {
-				cleanCalledItem4 = true
-			},
-		},
 		CloserStub: &mock.CloserStub{
 			CloseCalled: func() error {
 				closeCalledItem4 = true
@@ -302,10 +286,8 @@ func TestVirtualMachinesContainer_Close(t *testing.T) {
 	_ = c.Add([]byte("key4"), item4)
 
 	err := c.Close()
-	assert.Equal(t, containers.ErrCloseVMContainer, err)
+	assert.Equal(t, expectedErr, err)
 	assert.True(t, closeCalledItem1)
 	assert.True(t, closeCalledItem2)
-	assert.True(t, cleanCalledItem3)
 	assert.True(t, closeCalledItem4)
-	assert.False(t, cleanCalledItem4) //not calling Close and Clean on the same object
 }

@@ -4,6 +4,11 @@ import (
 	"errors"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go/api/address"
 	_ "github.com/ElrondNetwork/elrond-go/api/block"
 	"github.com/ElrondNetwork/elrond-go/api/hardfork"
@@ -12,18 +17,13 @@ import (
 	transactionApi "github.com/ElrondNetwork/elrond-go/api/transaction"
 	"github.com/ElrondNetwork/elrond-go/api/validator"
 	"github.com/ElrondNetwork/elrond-go/api/vmValues"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/statistics"
-	"github.com/ElrondNetwork/elrond-go/data/api"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/data/vm"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-vm-common/data/esdt"
+	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
+	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 var _ = address.FacadeHandler(&disabledNodeFacade{})
@@ -54,15 +54,6 @@ func NewDisabledNodeFacade(apiInterface string) *disabledNodeFacade {
 
 // SetSyncer does nothing
 func (nf *disabledNodeFacade) SetSyncer(_ ntp.SyncTimer) {
-}
-
-// SetTpsBenchmark does nothing
-func (nf *disabledNodeFacade) SetTpsBenchmark(_ statistics.TPSBenchmark) {
-}
-
-// TpsBenchmark returns nil
-func (nf *disabledNodeFacade) TpsBenchmark() statistics.TPSBenchmark {
-	return nil
 }
 
 // RestAPIServerDebugMode returns false
@@ -150,7 +141,7 @@ func (nf *disabledNodeFacade) SendBulkTransactions(_ []*transaction.Transaction)
 }
 
 // SimulateTransactionExecution returns nil and error
-func (nf *disabledNodeFacade) SimulateTransactionExecution(_ *transaction.Transaction) (*transaction.SimulationResults, error) {
+func (nf *disabledNodeFacade) SimulateTransactionExecution(_ *transaction.Transaction) (*txSimData.SimulationResults, error) {
 	return nil, errNodeStarting
 }
 
@@ -281,6 +272,11 @@ func (nf *disabledNodeFacade) GetDelegatorsList() ([]*api.Delegator, error) {
 
 // GetESDTData returns nil and error
 func (nf *disabledNodeFacade) GetESDTData(_ string, _ string, _ uint64) (*esdt.ESDigitalToken, error) {
+	return nil, errNodeStarting
+}
+
+// GetESDTsRoles return nil and error
+func (nf *disabledNodeFacade) GetESDTsRoles(_ string) (map[string][]string, error) {
 	return nil, errNodeStarting
 }
 

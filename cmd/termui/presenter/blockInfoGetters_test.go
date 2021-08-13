@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -13,7 +13,7 @@ func TestPresenterStatusHandler_GetNumTxInBlock(t *testing.T) {
 
 	numTxInBlock := uint64(1000)
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, numTxInBlock)
+	presenterStatusHandler.SetUInt64Value(common.MetricNumTxInBlock, numTxInBlock)
 	result := presenterStatusHandler.GetNumTxInBlock()
 
 	assert.Equal(t, numTxInBlock, result)
@@ -24,7 +24,7 @@ func TestPresenterStatusHandler_GetNumTxInBlockShouldBeZero(t *testing.T) {
 
 	numTxInBlock := "1000"
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetStringValue(core.MetricNumTxInBlock, numTxInBlock)
+	presenterStatusHandler.SetStringValue(common.MetricNumTxInBlock, numTxInBlock)
 	result := presenterStatusHandler.GetNumTxInBlock()
 
 	assert.Equal(t, uint64(0), result)
@@ -44,7 +44,7 @@ func TestPresenterStatusHandler_GetNumMiniBLocks(t *testing.T) {
 
 	numMiniBlocks := uint64(100)
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, numMiniBlocks)
+	presenterStatusHandler.SetUInt64Value(common.MetricNumMiniBlocks, numMiniBlocks)
 	result := presenterStatusHandler.GetNumMiniBlocks()
 
 	assert.Equal(t, numMiniBlocks, result)
@@ -55,7 +55,7 @@ func TestPresenterStatusHandler_GetCrossCheckBlockHeight(t *testing.T) {
 
 	crossCheckBlockHeight := "meta:1000"
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, crossCheckBlockHeight)
+	presenterStatusHandler.SetStringValue(common.MetricCrossCheckBlockHeight, crossCheckBlockHeight)
 	result := presenterStatusHandler.GetCrossCheckBlockHeight()
 
 	assert.Equal(t, crossCheckBlockHeight, result)
@@ -66,7 +66,7 @@ func TestPresenterStatusHandler_GetConsensusState(t *testing.T) {
 
 	consensusState := "not in consensus group"
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetStringValue(core.MetricConsensusState, consensusState)
+	presenterStatusHandler.SetStringValue(common.MetricConsensusState, consensusState)
 	result := presenterStatusHandler.GetConsensusState()
 
 	assert.Equal(t, consensusState, result)
@@ -77,7 +77,7 @@ func TestPresenterStatusHandler_GetConsensusStateShouldReturnErrorMessageInvalid
 
 	consensusState := uint64(1)
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(core.MetricConsensusState, consensusState)
+	presenterStatusHandler.SetUInt64Value(common.MetricConsensusState, consensusState)
 	result := presenterStatusHandler.GetConsensusState()
 
 	assert.Equal(t, metricNotAvailable, result)
@@ -97,7 +97,7 @@ func TestPresenterStatusHandler_GetConsensusRoundStateState(t *testing.T) {
 
 	consensusRoundState := "participant"
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetStringValue(core.MetricConsensusRoundState, consensusRoundState)
+	presenterStatusHandler.SetStringValue(common.MetricConsensusRoundState, consensusRoundState)
 	result := presenterStatusHandler.GetConsensusRoundState()
 
 	assert.Equal(t, consensusRoundState, result)
@@ -108,7 +108,7 @@ func TestPresenterStatusHandler_GetCurrentBlockHash(t *testing.T) {
 
 	currentBlockHash := "hash"
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetStringValue(core.MetricCurrentBlockHash, currentBlockHash)
+	presenterStatusHandler.SetStringValue(common.MetricCurrentBlockHash, currentBlockHash)
 	result := presenterStatusHandler.GetCurrentBlockHash()
 
 	assert.Equal(t, currentBlockHash, result)
@@ -119,7 +119,7 @@ func TestPresenterStatusHandler_GetCurrentRoundTimestamp(t *testing.T) {
 
 	currentRoundTimestamp := uint64(time.Now().Unix())
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(core.MetricCurrentRoundTimestamp, currentRoundTimestamp)
+	presenterStatusHandler.SetUInt64Value(common.MetricCurrentRoundTimestamp, currentRoundTimestamp)
 	result := presenterStatusHandler.GetCurrentRoundTimestamp()
 
 	assert.Equal(t, currentRoundTimestamp, result)
@@ -131,8 +131,8 @@ func TestPresenterStatusHandler_GetBlockSize(t *testing.T) {
 	miniBlocksSize := uint64(100)
 	headerSize := uint64(50)
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(core.MetricMiniBlocksSize, miniBlocksSize)
-	presenterStatusHandler.SetUInt64Value(core.MetricHeaderSize, headerSize)
+	presenterStatusHandler.SetUInt64Value(common.MetricMiniBlocksSize, miniBlocksSize)
+	presenterStatusHandler.SetUInt64Value(common.MetricHeaderSize, headerSize)
 	result := presenterStatusHandler.GetBlockSize()
 
 	blockExpectedSize := miniBlocksSize + headerSize
@@ -144,7 +144,7 @@ func TestPresenterStatusHandler_GetHighestFinalBlock(t *testing.T) {
 
 	highestFinalBlockNonce := uint64(100)
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(core.MetricHighestFinalBlock, highestFinalBlockNonce)
+	presenterStatusHandler.SetUInt64Value(common.MetricHighestFinalBlock, highestFinalBlockNonce)
 	result := presenterStatusHandler.GetHighestFinalBlock()
 
 	assert.Equal(t, highestFinalBlockNonce, result)
