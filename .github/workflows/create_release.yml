@@ -43,7 +43,7 @@ jobs:
           GOPATH=$(go env GOPATH)
           ARCHIVE="elrond_""$APP_VER_SHORT""_""$GOOS""_""$GOARCH"".tgz"
           BUILD_DIR=${GITHUB_WORKSPACE}/build
-          ARWEN_VERSION=$(cat go.mod | grep arwen | sed 's/^.*arwen-wasm-vm *//' | head -n 1)
+          ARWEN_VERSION=$(cat go.mod | grep arwen | sed 's/^.*arwen-wasm-vm *//' | tail -n 1)
           ARWEN_PATH=${GITHUB_WORKSPACE}/build/arwen
           WASMER_DIR=${GOPATH}/pkg/mod/github.com/\!elrond\!network/arwen-wasm-vm@${ARWEN_VERSION}/wasmer
 
@@ -62,7 +62,6 @@ jobs:
           cd ${GITHUB_WORKSPACE}/cmd/keygenerator && go build -o "${BUILD_DIR}/keygenerator" -a -i -ldflags="-X main.appVersion=${APP_VER}"
           cd ${GITHUB_WORKSPACE}/cmd/logviewer && go build -o "${BUILD_DIR}/logviewer" -a -i -ldflags="-X main.appVersion=${APP_VER}"
           cd ${GITHUB_WORKSPACE}/cmd/termui && go build -o "${BUILD_DIR}/termui" -a -i -ldflags="-X main.appVersion=${APP_VER}"
-          cd ${GITHUB_WORKSPACE} && make arwen
 
       - name: Package
         run: |
