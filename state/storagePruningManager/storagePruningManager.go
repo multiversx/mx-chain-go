@@ -7,9 +7,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/pruningBuffer"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 )
 
 type pruningOperation byte
@@ -45,8 +45,8 @@ func NewStoragePruningManager(
 func (spm *storagePruningManager) MarkForEviction(
 	oldRoot []byte,
 	newRoot []byte,
-	oldHashes temporary.ModifiedHashes,
-	newHashes temporary.ModifiedHashes,
+	oldHashes common.ModifiedHashes,
+	newHashes common.ModifiedHashes,
 ) error {
 	if bytes.Equal(newRoot, oldRoot) {
 		log.Trace("old root and new root are identical", "rootHash", newRoot)
@@ -57,7 +57,7 @@ func (spm *storagePruningManager) MarkForEviction(
 	removeDuplicatedKeys(oldHashes, newHashes)
 
 	if len(newHashes) > 0 && len(newRoot) > 0 {
-		newRoot = append(newRoot, byte(temporary.NewRoot))
+		newRoot = append(newRoot, byte(state.NewRoot))
 		err := spm.dbEvictionWaitingList.Put(newRoot, newHashes)
 		if err != nil {
 			return err
@@ -67,7 +67,7 @@ func (spm *storagePruningManager) MarkForEviction(
 	}
 
 	if len(oldHashes) > 0 && len(oldRoot) > 0 {
-		oldRoot = append(oldRoot, byte(temporary.OldRoot))
+		oldRoot = append(oldRoot, byte(state.OldRoot))
 		err := spm.dbEvictionWaitingList.Put(oldRoot, oldHashes)
 		if err != nil {
 			return err
@@ -89,7 +89,7 @@ func removeDuplicatedKeys(oldHashes map[string]struct{}, newHashes map[string]st
 	}
 }
 
-func logMapWithTrace(message string, paramName string, hashes temporary.ModifiedHashes) {
+func logMapWithTrace(message string, paramName string, hashes common.ModifiedHashes) {
 	if log.GetLevel() == logger.LogTrace {
 		for key := range hashes {
 			log.Trace(message, paramName, []byte(key))
@@ -100,13 +100,13 @@ func logMapWithTrace(message string, paramName string, hashes temporary.Modified
 // PruneTrie removes old values from the trie database
 func (spm *storagePruningManager) PruneTrie(
 	rootHash []byte,
-	identifier temporary.TriePruningIdentifier,
-	tsm temporary.StorageManager,
+	identifier state.TriePruningIdentifier,
+	tsm common.StorageManager,
 ) {
 	rootHash = append(rootHash, byte(identifier))
 
 	if tsm.IsPruningBlocked() {
-		if identifier == temporary.NewRoot {
+		if identifier == state.NewRoot {
 			spm.cancelPrune(rootHash)
 			return
 		}
@@ -123,7 +123,7 @@ func (spm *storagePruningManager) PruneTrie(
 }
 
 // CancelPrune clears the evictionWaitingList at the given hash
-func (spm *storagePruningManager) CancelPrune(rootHash []byte, identifier temporary.TriePruningIdentifier, tsm temporary.StorageManager) {
+func (spm *storagePruningManager) CancelPrune(rootHash []byte, identifier state.TriePruningIdentifier, tsm common.StorageManager) {
 	rootHash = append(rootHash, byte(identifier))
 
 	if tsm.IsPruningBlocked() || spm.pruningBuffer.Len() != 0 {
@@ -141,7 +141,7 @@ func (spm *storagePruningManager) cancelPrune(rootHash []byte) {
 	_, _ = spm.dbEvictionWaitingList.Evict(rootHash)
 }
 
-func (spm *storagePruningManager) resolveBufferedHashes(oldHashes [][]byte, tsm temporary.StorageManager) {
+func (spm *storagePruningManager) resolveBufferedHashes(oldHashes [][]byte, tsm common.StorageManager) {
 	for _, rootHash := range oldHashes {
 		lastBytePos := len(rootHash) - 1
 		if lastBytePos < 0 {
@@ -162,7 +162,7 @@ func (spm *storagePruningManager) resolveBufferedHashes(oldHashes [][]byte, tsm 
 	}
 }
 
-func (spm *storagePruningManager) prune(rootHash []byte, tsm temporary.StorageManager) {
+func (spm *storagePruningManager) prune(rootHash []byte, tsm common.StorageManager) {
 	log.Trace("trie storage manager prune", "root", rootHash)
 
 	err := spm.removeFromDb(rootHash, tsm)
@@ -173,7 +173,7 @@ func (spm *storagePruningManager) prune(rootHash []byte, tsm temporary.StorageMa
 
 func (spm *storagePruningManager) removeFromDb(
 	rootHash []byte,
-	tsm temporary.StorageManager,
+	tsm common.StorageManager,
 ) error {
 	hashes, err := spm.dbEvictionWaitingList.Evict(rootHash)
 	if err != nil {
@@ -186,7 +186,7 @@ func (spm *storagePruningManager) removeFromDb(
 	if lastBytePos < 0 {
 		return state.ErrInvalidIdentifier
 	}
-	identifier := temporary.TriePruningIdentifier(rootHash[lastBytePos])
+	identifier := state.TriePruningIdentifier(rootHash[lastBytePos])
 
 	sw := core.NewStopWatch()
 	sw.Start("removeFromDb")

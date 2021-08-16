@@ -157,6 +157,11 @@ func (s *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return vmcommon.UserError
 	}
 
+	if len(args.ESDTTransfers) > 0 {
+		s.eei.AddReturnMessage("cannot transfer ESDT to system SCs")
+		return vmcommon.UserError
+	}
+
 	switch args.Function {
 	case core.SCDeployInitFunctionName:
 		return s.init(args)

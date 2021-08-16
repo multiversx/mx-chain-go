@@ -3,7 +3,7 @@ package trie
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
+	"github.com/ElrondNetwork/elrond-go/common"
 )
 
 // trieStorageManagerWithoutPruning manages the storage operations of the trie, but does not prune old values
@@ -12,7 +12,7 @@ type trieStorageManagerWithoutPruning struct {
 }
 
 // NewTrieStorageManagerWithoutPruning creates a new instance of trieStorageManagerWithoutPruning
-func NewTrieStorageManagerWithoutPruning(db temporary.DBWriteCacher) (*trieStorageManagerWithoutPruning, error) {
+func NewTrieStorageManagerWithoutPruning(db common.DBWriteCacher) (*trieStorageManagerWithoutPruning, error) {
 	if check.IfNil(db) {
 		return nil, ErrNilDatabase
 	}
@@ -50,7 +50,7 @@ func (tsm *trieStorageManagerWithoutPruning) IsPruningEnabled() bool {
 }
 
 // AddDirtyCheckpointHashes does nothing for this implementation
-func (tsm *trieStorageManagerWithoutPruning) AddDirtyCheckpointHashes(_ []byte, _ temporary.ModifiedHashes) bool {
+func (tsm *trieStorageManagerWithoutPruning) AddDirtyCheckpointHashes(_ []byte, _ common.ModifiedHashes) bool {
 	return false
 }
 

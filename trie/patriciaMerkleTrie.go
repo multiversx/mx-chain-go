@@ -12,8 +12,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 )
 
 var log = logger.GetOrCreate("trie")
@@ -32,7 +32,7 @@ var EmptyTrieHash = make([]byte, 32)
 type patriciaMerkleTrie struct {
 	root node
 
-	trieStorage  temporary.StorageManager
+	trieStorage  common.StorageManager
 	marshalizer  marshal.Marshalizer
 	hasher       hashing.Hasher
 	mutOperation sync.RWMutex
@@ -45,7 +45,7 @@ type patriciaMerkleTrie struct {
 
 // NewTrie creates a new Patricia Merkle Trie
 func NewTrie(
-	trieStorage temporary.StorageManager,
+	trieStorage common.StorageManager,
 	msh marshal.Marshalizer,
 	hsh hashing.Hasher,
 	maxTrieLevelInMemory uint,
@@ -242,7 +242,7 @@ func (tr *patriciaMerkleTrie) Commit() error {
 }
 
 // Recreate returns a new trie that has the given root hash and database
-func (tr *patriciaMerkleTrie) Recreate(root []byte) (temporary.Trie, error) {
+func (tr *patriciaMerkleTrie) Recreate(root []byte) (common.Trie, error) {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
@@ -343,7 +343,7 @@ func (tr *patriciaMerkleTrie) GetObsoleteHashes() [][]byte {
 }
 
 // GetDirtyHashes returns all the dirty hashes from the trie
-func (tr *patriciaMerkleTrie) GetDirtyHashes() (temporary.ModifiedHashes, error) {
+func (tr *patriciaMerkleTrie) GetDirtyHashes() (common.ModifiedHashes, error) {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
@@ -356,7 +356,7 @@ func (tr *patriciaMerkleTrie) GetDirtyHashes() (temporary.ModifiedHashes, error)
 		return nil, err
 	}
 
-	dirtyHashes := make(temporary.ModifiedHashes)
+	dirtyHashes := make(common.ModifiedHashes)
 	err = tr.root.getDirtyHashes(dirtyHashes)
 	if err != nil {
 		return nil, err
@@ -367,7 +367,7 @@ func (tr *patriciaMerkleTrie) GetDirtyHashes() (temporary.ModifiedHashes, error)
 	return dirtyHashes, nil
 }
 
-func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, db temporary.DBWriteCacher, tsm temporary.StorageManager) (*patriciaMerkleTrie, snapshotNode, error) {
+func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, db common.DBWriteCacher, tsm common.StorageManager) (*patriciaMerkleTrie, snapshotNode, error) {
 	newTr, err := NewTrie(
 		tsm,
 		tr.marshalizer,
@@ -389,7 +389,7 @@ func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, db temporary.DBWri
 	return newTr, newRoot, nil
 }
 
-func getDbThatContainsHash(trieStorage temporary.StorageManager, rootHash []byte) temporary.SnapshotDbHandler {
+func getDbThatContainsHash(trieStorage common.StorageManager, rootHash []byte) common.SnapshotDbHandler {
 	db := trieStorage.GetSnapshotThatContainsHash(rootHash)
 	if db != nil {
 		return db
@@ -556,7 +556,7 @@ func logArrayWithTrace(message string, paramName string, hashes [][]byte) {
 	}
 }
 
-func logMapWithTrace(message string, paramName string, hashes temporary.ModifiedHashes) {
+func logMapWithTrace(message string, paramName string, hashes common.ModifiedHashes) {
 	if log.GetLevel() == logger.LogTrace {
 		for key := range hashes {
 			log.Trace(message, paramName, []byte(key))
@@ -637,20 +637,20 @@ func (tr *patriciaMerkleTrie) VerifyProof(key []byte, proof [][]byte) (bool, err
 }
 
 // GetNumNodes will return the trie nodes statistics DTO
-func (tr *patriciaMerkleTrie) GetNumNodes() temporary.NumNodesDTO {
+func (tr *patriciaMerkleTrie) GetNumNodes() common.NumNodesDTO {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
 	n := tr.root
 	if check.IfNil(n) {
-		return temporary.NumNodesDTO{}
+		return common.NumNodesDTO{}
 	}
 
 	return n.getNumNodes()
 }
 
 // GetStorageManager returns the storage manager for the trie
-func (tr *patriciaMerkleTrie) GetStorageManager() temporary.StorageManager {
+func (tr *patriciaMerkleTrie) GetStorageManager() common.StorageManager {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 

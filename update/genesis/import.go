@@ -13,11 +13,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/state/factory"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/disabled"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	triesFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -33,7 +33,7 @@ type ArgsNewStateImport struct {
 	Marshalizer         marshal.Marshalizer
 	ShardID             uint32
 	StorageConfig       config.StorageConfig
-	TrieStorageManagers map[string]temporary.StorageManager
+	TrieStorageManagers map[string]common.StorageManager
 	HardforkStorer      update.HardforkStorer
 }
 
@@ -43,7 +43,7 @@ type stateImport struct {
 	miniBlocks                   map[string]*block.MiniBlock
 	importedEpochStartMetaBlock  *block.MetaBlock
 	importedUnFinishedMetaBlocks map[string]*block.MetaBlock
-	tries                        map[string]temporary.Trie
+	tries                        map[string]common.Trie
 	accountDBsMap                map[uint32]state.AccountsDBImporter
 	validatorDB                  state.AccountsDBImporter
 	hardforkStorer               update.HardforkStorer
@@ -52,7 +52,7 @@ type stateImport struct {
 	marshalizer         marshal.Marshalizer
 	shardID             uint32
 	storageConfig       config.StorageConfig
-	trieStorageManagers map[string]temporary.StorageManager
+	trieStorageManagers map[string]common.StorageManager
 }
 
 // NewStateImport creates an importer which reads all the files for a new start
@@ -76,7 +76,7 @@ func NewStateImport(args ArgsNewStateImport) (*stateImport, error) {
 		miniBlocks:                   make(map[string]*block.MiniBlock),
 		importedEpochStartMetaBlock:  &block.MetaBlock{},
 		importedUnFinishedMetaBlocks: make(map[string]*block.MetaBlock),
-		tries:                        make(map[string]temporary.Trie),
+		tries:                        make(map[string]common.Trie),
 		hasher:                       args.Hasher,
 		marshalizer:                  args.Marshalizer,
 		accountDBsMap:                make(map[uint32]state.AccountsDBImporter),
@@ -274,7 +274,7 @@ func newAccountCreator(accType Type) (state.AccountFactory, error) {
 	return nil, update.ErrUnknownType
 }
 
-func (si *stateImport) getTrie(shardID uint32, accType Type) (temporary.Trie, error) {
+func (si *stateImport) getTrie(shardID uint32, accType Type) (common.Trie, error) {
 	trieString := core.ShardIdToString(shardID)
 	if accType == ValidatorAccount {
 		trieString = "validator"
@@ -380,7 +380,7 @@ func (si *stateImport) importDataTrie(identifier string, shID uint32, keys [][]b
 	return nil
 }
 
-func (si *stateImport) getAccountsDB(accType Type, shardID uint32) (state.AccountsDBImporter, temporary.Trie, error) {
+func (si *stateImport) getAccountsDB(accType Type, shardID uint32) (state.AccountsDBImporter, common.Trie, error) {
 	accountFactory, err := newAccountCreator(accType)
 	if err != nil {
 		return nil, nil, err
@@ -504,7 +504,7 @@ func (si *stateImport) unMarshalAndSaveAccount(
 	accType Type,
 	address, buffer []byte,
 	accountsDB state.AccountsDBImporter,
-	mainTrie temporary.Trie,
+	mainTrie common.Trie,
 ) error {
 	account, err := NewEmptyAccount(accType, address)
 	if err != nil {

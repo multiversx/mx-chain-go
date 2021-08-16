@@ -8,8 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/mock"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -147,7 +147,7 @@ func TestLeafNode_hashNodeNilNode(t *testing.T) {
 func TestLeafNode_commit(t *testing.T) {
 	t.Parallel()
 
-	db := mock.NewMemDbMock()
+	db := testscommon.NewMemDbMock()
 	ln := getLn(getTestMarshalizerAndHasher())
 	hash, _ := encodeNodeAndGetHash(ln)
 	_ = ln.setHash()
@@ -347,7 +347,7 @@ func TestLeafNode_insertAtDifferentKey(t *testing.T) {
 func TestLeafNode_insertInStoredLnAtSameKey(t *testing.T) {
 	t.Parallel()
 
-	db := mock.NewMemDbMock()
+	db := testscommon.NewMemDbMock()
 	ln := getLn(getTestMarshalizerAndHasher())
 	n, _ := newLeafNode([]byte("dog"), []byte("dogs"), ln.marsh, ln.hasher)
 	_ = ln.commitDirty(0, 5, db, db)
@@ -362,7 +362,7 @@ func TestLeafNode_insertInStoredLnAtSameKey(t *testing.T) {
 func TestLeafNode_insertInStoredLnAtDifferentKey(t *testing.T) {
 	t.Parallel()
 
-	db := mock.NewMemDbMock()
+	db := testscommon.NewMemDbMock()
 	marsh, hasher := getTestMarshalizerAndHasher()
 	ln, _ := newLeafNode([]byte{1, 2, 3}, []byte("dog"), marsh, hasher)
 	n, _ := newLeafNode([]byte{4, 5, 6}, []byte("dogs"), marsh, hasher)
@@ -425,7 +425,7 @@ func TestLeafNode_deletePresent(t *testing.T) {
 func TestLeafNode_deleteFromStoredLnAtSameKey(t *testing.T) {
 	t.Parallel()
 
-	db := mock.NewMemDbMock()
+	db := testscommon.NewMemDbMock()
 	ln := getLn(getTestMarshalizerAndHasher())
 	_ = ln.commitDirty(0, 5, db, db)
 	lnHash := ln.getHash()
@@ -439,7 +439,7 @@ func TestLeafNode_deleteFromStoredLnAtSameKey(t *testing.T) {
 func TestLeafNode_deleteFromLnAtDifferentKey(t *testing.T) {
 	t.Parallel()
 
-	db := mock.NewMemDbMock()
+	db := testscommon.NewMemDbMock()
 	ln := getLn(getTestMarshalizerAndHasher())
 	_ = ln.commitDirty(0, 5, db, db)
 	wrongKey := []byte{1, 2, 3}
@@ -604,7 +604,7 @@ func TestLeafNode_deleteDifferentKeyShouldNotModifyTrie(t *testing.T) {
 func TestLeafNode_newLeafNodeNilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ln, err := newLeafNode([]byte("key"), []byte("val"), nil, mock.HasherMock{})
+	ln, err := newLeafNode([]byte("key"), []byte("val"), nil, testscommon.HasherMock{})
 	assert.Nil(t, ln)
 	assert.Equal(t, ErrNilMarshalizer, err)
 }
@@ -612,7 +612,7 @@ func TestLeafNode_newLeafNodeNilMarshalizerShouldErr(t *testing.T) {
 func TestLeafNode_newLeafNodeNilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ln, err := newLeafNode([]byte("key"), []byte("val"), &mock.MarshalizerMock{}, nil)
+	ln, err := newLeafNode([]byte("key"), []byte("val"), &testscommon.MarshalizerMock{}, nil)
 	assert.Nil(t, ln)
 	assert.Equal(t, ErrNilHasher, err)
 }
@@ -650,7 +650,7 @@ func TestLeafNode_getAllHashes(t *testing.T) {
 	t.Parallel()
 
 	ln := getLn(getTestMarshalizerAndHasher())
-	hashes, err := ln.getAllHashes(mock.NewMemDbMock())
+	hashes, err := ln.getAllHashes(testscommon.NewMemDbMock())
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(hashes))
 	assert.Equal(t, ln.hash, hashes[0])
@@ -720,7 +720,7 @@ func TestLeafNode_writeNodeOnChannel(t *testing.T) {
 func TestLeafNode_commitContextDone(t *testing.T) {
 	t.Parallel()
 
-	db := mock.NewMemDbMock()
+	db := testscommon.NewMemDbMock()
 	ln := getLn(marshalizer, hasher)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()

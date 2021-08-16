@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/statistics"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -29,7 +30,6 @@ import (
 	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -276,7 +276,7 @@ type StateComponentsHolder interface {
 	AccountsAdapter() state.AccountsAdapter
 	AccountsAdapterAPI() state.AccountsAdapter
 	TriesContainer() state.TriesHolder
-	TrieStorageManagers() map[string]temporary.StorageManager
+	TrieStorageManagers() map[string]common.StorageManager
 	IsInterfaceNil() bool
 }
 
@@ -402,7 +402,7 @@ type BootstrapParamsHolder interface {
 
 // EpochStartBootstrapper defines the epoch start bootstrap functionality
 type EpochStartBootstrapper interface {
-	GetTriesComponents() (state.TriesHolder, map[string]temporary.StorageManager)
+	GetTriesComponents() (state.TriesHolder, map[string]common.StorageManager)
 	Bootstrap() (bootstrap.Parameters, error)
 	IsInterfaceNil() bool
 	Close() error

@@ -13,7 +13,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -51,7 +53,7 @@ func createMetaStubTopicHandler(matchStrToErrOnCreate string, matchStrToErrOnReg
 }
 
 func createMetaDataPools() dataRetriever.PoolsHolder {
-	pools := &testscommon.PoolsHolderStub{
+	pools := &dataRetrieverMock.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &mock.HeadersCacherStub{}
 		},
@@ -559,7 +561,7 @@ func getArgumentsMeta(
 		Messenger:               &mock.TopicHandlerStub{},
 		Store:                   createMetaStore(),
 		DataPool:                createMetaDataPools(),
-		Accounts:                &testscommon.AccountsStub{},
+		Accounts:                &stateMock.AccountsStub{},
 		MaxTxNonceDeltaAllowed:  maxTxNonceDeltaAllowed,
 		TxFeeHandler:            &mock.FeeHandlerStub{},
 		BlockBlackList:          &mock.BlackListHandlerStub{},

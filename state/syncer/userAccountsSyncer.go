@@ -11,10 +11,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 )
@@ -192,7 +192,7 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ssh data.SyncStatisti
 	return nil
 }
 
-func (u *userAccountsSyncer) findAllAccountRootHashes(mainTrie temporary.Trie) ([][]byte, error) {
+func (u *userAccountsSyncer) findAllAccountRootHashes(mainTrie common.Trie) ([][]byte, error) {
 	mainRootHash, err := mainTrie.RootHash()
 	if err != nil {
 		return nil, err

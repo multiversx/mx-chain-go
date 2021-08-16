@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 )
 
 const (
@@ -72,7 +71,7 @@ func encodeNodeAndGetHash(n node) ([]byte, error) {
 }
 
 // encodeNodeAndCommitToDB will encode and save provided node. It returns the node's value in bytes
-func encodeNodeAndCommitToDB(n node, db temporary.DBWriteCacher) (int, error) {
+func encodeNodeAndCommitToDB(n node, db common.DBWriteCacher) (int, error) {
 	key, err := computeAndSetNodeHash(n)
 	if err != nil {
 		return 0, err
@@ -110,7 +109,7 @@ func computeAndSetNodeHash(n node) ([]byte, error) {
 	return key, nil
 }
 
-func getNodeFromDBAndDecode(n []byte, db temporary.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
+func getNodeFromDBAndDecode(n []byte, db common.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
 	encChild, err := db.Get(n)
 	if err != nil {
 		// we need a clear print on the error as some processors can silently recover from this error
@@ -126,7 +125,7 @@ func getNodeFromDBAndDecode(n []byte, db temporary.DBWriteCacher, marshalizer ma
 	return decodedNode, nil
 }
 
-func resolveIfCollapsed(n node, pos byte, db temporary.DBWriteCacher) error {
+func resolveIfCollapsed(n node, pos byte, db common.DBWriteCacher) error {
 	err := n.isEmptyOrNil()
 	if err != nil {
 		return err

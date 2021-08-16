@@ -4,8 +4,8 @@ import (
 	"errors"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 )
 
 // ErrNegativeValue -
@@ -62,11 +62,11 @@ func (uam *UserAccountMock) GetRootHash() []byte {
 }
 
 // SetDataTrie -
-func (uam *UserAccountMock) SetDataTrie(_ temporary.Trie) {
+func (uam *UserAccountMock) SetDataTrie(_ common.Trie) {
 }
 
 // DataTrie -
-func (uam *UserAccountMock) DataTrie() temporary.Trie {
+func (uam *UserAccountMock) DataTrie() common.Trie {
 	return nil
 }
 

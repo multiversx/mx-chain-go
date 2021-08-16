@@ -18,7 +18,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/sync/storageBootstrap"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state/syncer"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
@@ -443,7 +442,7 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		MiniblocksProvider:   ccf.dataComponents.MiniBlocksProvider(),
 		Uint64Converter:      ccf.coreComponents.Uint64ByteSliceConverter(),
 		AppStatusHandler:     ccf.coreComponents.StatusHandler(),
-		OutportHandler:      ccf.statusComponents.OutportHandler(),
+		OutportHandler:       ccf.statusComponents.OutportHandler(),
 		AccountsDBSyncer:     accountsDBSyncer,
 		CurrentEpochProvider: ccf.processComponents.CurrentEpochProvider(),
 		IsInImportMode:       ccf.isInImportMode,
@@ -461,7 +460,7 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 	return bootstrap, nil
 }
 
-func (ccf *consensusComponentsFactory) createArgsBaseAccountsSyncer(trieStorageManager temporary.StorageManager) syncer.ArgsNewBaseAccountsSyncer {
+func (ccf *consensusComponentsFactory) createArgsBaseAccountsSyncer(trieStorageManager common.StorageManager) syncer.ArgsNewBaseAccountsSyncer {
 	return syncer.ArgsNewBaseAccountsSyncer{
 		Hasher:                    ccf.coreComponents.Hasher(),
 		Marshalizer:               ccf.coreComponents.InternalMarshalizer(),

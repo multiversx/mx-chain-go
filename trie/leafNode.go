@@ -13,7 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/keyValStorage"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
+	"github.com/ElrondNetwork/elrond-go/common"
 )
 
 var _ = node(&leafNode{})
@@ -111,7 +111,7 @@ func (ln *leafNode) hashNode() ([]byte, error) {
 	return encodeNodeAndGetHash(ln)
 }
 
-func (ln *leafNode) commitDirty(_ byte, _ uint, _ temporary.DBWriteCacher, targetDb temporary.DBWriteCacher) error {
+func (ln *leafNode) commitDirty(_ byte, _ uint, _ common.DBWriteCacher, targetDb common.DBWriteCacher) error {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("commit error %w", err)
@@ -127,9 +127,9 @@ func (ln *leafNode) commitDirty(_ byte, _ uint, _ temporary.DBWriteCacher, targe
 	return err
 }
 func (ln *leafNode) commitCheckpoint(
-	_ temporary.DBWriteCacher,
-	targetDb temporary.DBWriteCacher,
-	checkpointHashes temporary.CheckpointHashesHolder,
+	_ common.DBWriteCacher,
+	targetDb common.DBWriteCacher,
+	checkpointHashes CheckpointHashesHolder,
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
 ) error {
@@ -168,8 +168,8 @@ func (ln *leafNode) commitCheckpoint(
 }
 
 func (ln *leafNode) commitSnapshot(
-	_ temporary.DBWriteCacher,
-	targetDb temporary.DBWriteCacher,
+	_ common.DBWriteCacher,
+	targetDb common.DBWriteCacher,
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
 ) error {
@@ -224,7 +224,7 @@ func (ln *leafNode) getEncodedNode() ([]byte, error) {
 	return marshaledNode, nil
 }
 
-func (ln *leafNode) resolveCollapsed(_ byte, _ temporary.DBWriteCacher) error {
+func (ln *leafNode) resolveCollapsed(_ byte, _ common.DBWriteCacher) error {
 	return nil
 }
 
@@ -236,7 +236,7 @@ func (ln *leafNode) isPosCollapsed(_ int) bool {
 	return false
 }
 
-func (ln *leafNode) tryGet(key []byte, _ temporary.DBWriteCacher) (value []byte, err error) {
+func (ln *leafNode) tryGet(key []byte, _ common.DBWriteCacher) (value []byte, err error) {
 	err = ln.isEmptyOrNil()
 	if err != nil {
 		return nil, fmt.Errorf("tryGet error %w", err)
@@ -248,7 +248,7 @@ func (ln *leafNode) tryGet(key []byte, _ temporary.DBWriteCacher) (value []byte,
 	return nil, nil
 }
 
-func (ln *leafNode) getNext(key []byte, _ temporary.DBWriteCacher) (node, []byte, error) {
+func (ln *leafNode) getNext(key []byte, _ common.DBWriteCacher) (node, []byte, error) {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return nil, nil, fmt.Errorf("getNext error %w", err)
@@ -258,7 +258,7 @@ func (ln *leafNode) getNext(key []byte, _ temporary.DBWriteCacher) (node, []byte
 	}
 	return nil, nil, ErrNodeNotFound
 }
-func (ln *leafNode) insert(n *leafNode, _ temporary.DBWriteCacher) (node, [][]byte, error) {
+func (ln *leafNode) insert(n *leafNode, _ common.DBWriteCacher) (node, [][]byte, error) {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return nil, [][]byte{}, fmt.Errorf("insert error %w", err)
@@ -332,7 +332,7 @@ func (ln *leafNode) insertInNewBn(n *leafNode, keyMatchLen int) (node, error) {
 	return bn, nil
 }
 
-func (ln *leafNode) delete(key []byte, _ temporary.DBWriteCacher) (bool, node, [][]byte, error) {
+func (ln *leafNode) delete(key []byte, _ common.DBWriteCacher) (bool, node, [][]byte, error) {
 	if bytes.Equal(key, ln.Key) {
 		oldHash := make([][]byte, 0)
 		if !ln.dirty {
@@ -365,7 +365,7 @@ func (ln *leafNode) isEmptyOrNil() error {
 	return nil
 }
 
-func (ln *leafNode) print(writer io.Writer, _ int, _ temporary.DBWriteCacher) {
+func (ln *leafNode) print(writer io.Writer, _ int, _ common.DBWriteCacher) {
 	if ln == nil {
 		return
 	}
@@ -383,7 +383,7 @@ func (ln *leafNode) print(writer io.Writer, _ int, _ temporary.DBWriteCacher) {
 	_, _ = fmt.Fprintf(writer, "L: key= %v, (%v) - %v\n", ln.Key, hex.EncodeToString(ln.hash), ln.dirty)
 }
 
-func (ln *leafNode) getDirtyHashes(hashes temporary.ModifiedHashes) error {
+func (ln *leafNode) getDirtyHashes(hashes common.ModifiedHashes) error {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("getDirtyHashes error %w", err)
@@ -397,12 +397,12 @@ func (ln *leafNode) getDirtyHashes(hashes temporary.ModifiedHashes) error {
 	return nil
 }
 
-func (ln *leafNode) getChildren(_ temporary.DBWriteCacher) ([]node, error) {
+func (ln *leafNode) getChildren(_ common.DBWriteCacher) ([]node, error) {
 	return nil, nil
 }
 
-func (ln *leafNode) getNumNodes() temporary.NumNodesDTO {
-	return temporary.NumNodesDTO{
+func (ln *leafNode) getNumNodes() common.NumNodesDTO {
+	return common.NumNodesDTO{
 		Leaves:   1,
 		MaxLevel: 1,
 	}
@@ -423,7 +423,7 @@ func (ln *leafNode) loadChildren(_ func([]byte) (node, error)) ([][]byte, []node
 func (ln *leafNode) getAllLeavesOnChannel(
 	leavesChannel chan core.KeyValueHolder,
 	key []byte,
-	_ temporary.DBWriteCacher,
+	_ common.DBWriteCacher,
 	_ marshal.Marshalizer,
 	chanClose chan struct{},
 ) error {
@@ -450,7 +450,7 @@ func (ln *leafNode) getAllLeavesOnChannel(
 	}
 }
 
-func (ln *leafNode) getAllHashes(_ temporary.DBWriteCacher) ([][]byte, error) {
+func (ln *leafNode) getAllHashes(_ common.DBWriteCacher) ([][]byte, error) {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return nil, fmt.Errorf("getAllHashes error: %w", err)
