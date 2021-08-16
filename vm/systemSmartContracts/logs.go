@@ -6,7 +6,7 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
-func createLogEntryForDelegate(
+func (d *delegation) createLogEntryForDelegate(
 	funcIdentifier string,
 	callerAddr []byte,
 	delegationValue *big.Int,
@@ -20,9 +20,19 @@ func createLogEntryForDelegate(
 		numUsersWithCurrent++
 	}
 
+	activeFund := big.NewInt(0)
+	if len(delegator.ActiveFund) != 0 {
+		fund, err := d.getFund(delegator.ActiveFund)
+		if err != nil {
+			log.Warn("d.createLogEntryForDelegate cannot get fund", "error", err.Error())
+		} else {
+			activeFund = fund.Value
+		}
+	}
+
 	numUsers := big.NewInt(0).SetUint64(numUsersWithCurrent)
 	numActiveWithCurrentValue := big.NewInt(0).Add(globalFund.TotalActive, delegationValue)
-	delegatorActiveWithCurrent := big.NewInt(0).Add(big.NewInt(0).SetBytes(delegator.ActiveFund), delegationValue)
+	delegatorActiveWithCurrent := big.NewInt(0).Add(activeFund, delegationValue)
 	return &vmcommon.LogEntry{
 		Identifier: []byte(funcIdentifier),
 		Address:    callerAddr,

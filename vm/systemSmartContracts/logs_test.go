@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/vm/mock"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
@@ -11,8 +12,21 @@ import (
 func TestCreateLogEntryForDelegate(t *testing.T) {
 	t.Parallel()
 
+	marshalizer := &mock.MarshalizerMock{}
 	delegationValue := big.NewInt(1000)
-	res := createLogEntryForDelegate(
+	res := (&delegation{
+		eei: &mock.SystemEIStub{
+			GetStorageCalled: func(key []byte) []byte {
+				fund := &Fund{
+					Value: big.NewInt(5000),
+				}
+				fundBytes, _ := marshalizer.Marshal(fund)
+
+				return fundBytes
+			},
+		},
+		marshalizer: marshalizer,
+	}).createLogEntryForDelegate(
 		"identifier",
 		[]byte("caller"),
 		delegationValue,
@@ -20,7 +34,7 @@ func TestCreateLogEntryForDelegate(t *testing.T) {
 			TotalActive: big.NewInt(1000000),
 		},
 		&DelegatorData{
-			ActiveFund: big.NewInt(5000).Bytes(),
+			ActiveFund: []byte("active-fund-key"),
 		},
 		&DelegationContractStatus{},
 		true,

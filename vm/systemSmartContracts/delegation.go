@@ -710,7 +710,7 @@ func (d *delegation) delegateUser(
 		}
 	}
 
-	entry := createLogEntryForDelegate(function, callerAddr, callValue, globalFund, delegator, dStatus, isNew)
+	entry := d.createLogEntryForDelegate(function, callerAddr, callValue, globalFund, delegator, dStatus, isNew)
 	d.eei.AddLogEntry(entry)
 
 	return d.finishDelegateUser(globalFund, delegator, dConfig, dStatus,
@@ -1445,7 +1445,7 @@ func (d *delegation) reDelegateRewards(args *vmcommon.ContractCallInput) vmcommo
 		return vmcommon.UserError
 	}
 
-	entry := createLogEntryForDelegate(args.Function, args.CallerAddr, args.CallValue, globalFund, delegator, dStatus, isNew)
+	entry := d.createLogEntryForDelegate(args.Function, args.CallerAddr, args.CallValue, globalFund, delegator, dStatus, isNew)
 	d.eei.AddLogEntry(entry)
 
 	delegator.TotalCumulatedRewards.Add(delegator.TotalCumulatedRewards, delegator.UnClaimedRewards)
