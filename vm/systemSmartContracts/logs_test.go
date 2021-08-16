@@ -12,9 +12,10 @@ import (
 func TestCreateLogEntryForDelegate(t *testing.T) {
 	t.Parallel()
 
+	var res *vmcommon.LogEntry
 	marshalizer := &mock.MarshalizerMock{}
 	delegationValue := big.NewInt(1000)
-	res := (&delegation{
+	(&delegation{
 		eei: &mock.SystemEIStub{
 			GetStorageCalled: func(key []byte) []byte {
 				fund := &Fund{
@@ -24,9 +25,12 @@ func TestCreateLogEntryForDelegate(t *testing.T) {
 
 				return fundBytes
 			},
+			AddLogEntryCalled: func(entry *vmcommon.LogEntry) {
+				res = entry
+			},
 		},
 		marshalizer: marshalizer,
-	}).createLogEntryForDelegate(
+	}).createAndAddLogEntryForDelegate(
 		"identifier",
 		[]byte("caller"),
 		delegationValue,

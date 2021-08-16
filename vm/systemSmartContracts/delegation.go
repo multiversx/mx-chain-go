@@ -710,8 +710,7 @@ func (d *delegation) delegateUser(
 		}
 	}
 
-	entry := d.createLogEntryForDelegate(function, callerAddr, callValue, globalFund, delegator, dStatus, isNew)
-	d.eei.AddLogEntry(entry)
+	d.createAndAddLogEntryForDelegate(function, callerAddr, callValue, globalFund, delegator, dStatus, isNew)
 
 	return d.finishDelegateUser(globalFund, delegator, dConfig, dStatus,
 		callerAddr, recipientAddr, delegationValue, callValue, isNew, true)
@@ -994,12 +993,7 @@ func (d *delegation) addNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
-	entry := &vmcommon.LogEntry{
-		Identifier: []byte(args.Function),
-		Address:    args.CallerAddr,
-		Topics:     blsKeys,
-	}
-	d.eei.AddLogEntry(entry)
+	d.createAndAddLogEntry([]byte(args.Function), args.CallerAddr, args.Arguments[0])
 
 	return vmcommon.Ok
 }
@@ -1309,13 +1303,6 @@ func (d *delegation) unBondNodes(args *vmcommon.ContractCallInput) vmcommon.Retu
 		return vmcommon.UserError
 	}
 
-	entry := &vmcommon.LogEntry{
-		Identifier: []byte(args.Function),
-		Address:    args.CallerAddr,
-		Topics:     args.Arguments,
-	}
-	d.eei.AddLogEntry(entry)
-
 	return vmcommon.Ok
 }
 
@@ -1445,8 +1432,7 @@ func (d *delegation) reDelegateRewards(args *vmcommon.ContractCallInput) vmcommo
 		return vmcommon.UserError
 	}
 
-	entry := d.createLogEntryForDelegate(args.Function, args.CallerAddr, args.CallValue, globalFund, delegator, dStatus, isNew)
-	d.eei.AddLogEntry(entry)
+	d.createAndAddLogEntryForDelegate(args.Function, args.CallerAddr, args.CallValue, globalFund, delegator, dStatus, isNew)
 
 	delegator.TotalCumulatedRewards.Add(delegator.TotalCumulatedRewards, delegator.UnClaimedRewards)
 	delegateValue := big.NewInt(0).Set(delegator.UnClaimedRewards)
@@ -1780,7 +1766,7 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 		Identifier: []byte(args.Function),
 		Address:    args.CallerAddr,
 		Topics: [][]byte{
-			valueToUnDelegate.Bytes(), delegator.ActiveFund, globalFund.TotalActive.Bytes(),
+			valueToUnDelegate.Bytes(), remainedFund.Bytes(), globalFund.TotalActive.Bytes(),
 		},
 	}
 	d.eei.AddLogEntry(entry)
@@ -2170,15 +2156,7 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
-	numUsers := big.NewInt(0).SetUint64(dStatus.NumUsers)
-	entry := &vmcommon.LogEntry{
-		Identifier: []byte(args.Function),
-		Address:    args.CallerAddr,
-		Topics: [][]byte{
-			totalUnBondable.Bytes(), delegator.ActiveFund, numUsers.Bytes(), globalFund.TotalActive.Bytes(),
-		},
-	}
-	d.eei.AddLogEntry(entry)
+	d.createAndAddLogEntryForWithdraw(args.Function, args.CallerAddr, totalUnBondable, globalFund, delegator, dStatus)
 
 	return vmcommon.Ok
 }
