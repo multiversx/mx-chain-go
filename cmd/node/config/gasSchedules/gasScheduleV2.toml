@@ -122,7 +122,6 @@
     GetBlockTimeStamp   = 100000
 
 [BigIntAPICost]
-    EllipticCurveNew         = 10000
     BigIntNew                = 2000
     BigIntByteLength         = 2000
     BigIntUnsignedByteLength = 2000
@@ -187,7 +186,6 @@
 [ManagedBufferAPICost]
     MBufferNew                   = 2000
     MBufferNewFromBytes          = 4000
-    MBufferSetBytes              = 2000
     MBufferGetLength             = 2000
     MBufferGetBytes              = 2000
     MBufferGetByteSlice          = 2000
