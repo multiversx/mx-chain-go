@@ -309,7 +309,7 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	}
 
 	dStatus := createNewDelegationContractStatus()
-	return d.delegateUser(args.Function, initialOwnerFunds, initialOwnerFunds, ownerAddress, args.RecipientAddr, dStatus)
+	return d.delegateUser(args, initialOwnerFunds, initialOwnerFunds, ownerAddress, dStatus)
 }
 
 func createNewDelegationContractStatus() *DelegationContractStatus {
@@ -438,7 +438,7 @@ func (d *delegation) initFromValidatorData(args *vmcommon.ContractCallInput) vmc
 		return vmcommon.UserError
 	}
 
-	returnCode = d.delegateUser(args.Function, validatorData.TotalStakeValue, big.NewInt(0), ownerAddress, args.RecipientAddr, dStatus)
+	returnCode = d.delegateUser(args, validatorData.TotalStakeValue, big.NewInt(0), ownerAddress, dStatus)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
@@ -578,7 +578,7 @@ func (d *delegation) mergeValidatorDataToDelegation(args *vmcommon.ContractCallI
 	}
 	d.eei.AddLogEntry(entry)
 
-	return d.delegateUser(args.Function, validatorData.TotalStakeValue, big.NewInt(0), validatorAddress, args.RecipientAddr, dStatus)
+	return d.delegateUser(args, validatorData.TotalStakeValue, big.NewInt(0), validatorAddress, dStatus)
 }
 
 func (d *delegation) checkInputForWhitelisting(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -669,11 +669,10 @@ func (d *delegation) getWhitelistForMerge(args *vmcommon.ContractCallInput) vmco
 }
 
 func (d *delegation) delegateUser(
-	function string,
+	args *vmcommon.ContractCallInput,
 	delegationValue *big.Int,
 	callValue *big.Int,
 	callerAddr []byte,
-	recipientAddr []byte,
 	dStatus *DelegationContractStatus,
 ) vmcommon.ReturnCode {
 	dConfig, err := d.getDelegationContractConfig()
@@ -710,10 +709,10 @@ func (d *delegation) delegateUser(
 		}
 	}
 
-	d.createAndAddLogEntryForDelegate(function, callerAddr, callValue, globalFund, delegator, dStatus, isNew)
+	d.createAndAddLogEntryForDelegate(args, callValue, globalFund, delegator, dStatus, isNew)
 
 	return d.finishDelegateUser(globalFund, delegator, dConfig, dStatus,
-		callerAddr, recipientAddr, delegationValue, callValue, isNew, true)
+		callerAddr, args.RecipientAddr, delegationValue, callValue, isNew, true)
 }
 
 func (d *delegation) makeStakeArgsIfAutomaticActivation(
@@ -993,7 +992,7 @@ func (d *delegation) addNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
-	d.createAndAddLogEntry([]byte(args.Function), args.CallerAddr, args.Arguments[0])
+	d.createAndAddLogEntry(args, args.Arguments...)
 
 	return vmcommon.Ok
 }
@@ -1200,12 +1199,7 @@ func (d *delegation) unStakeNodes(args *vmcommon.ContractCallInput) vmcommon.Ret
 		return vmcommon.UserError
 	}
 
-	entry := &vmcommon.LogEntry{
-		Identifier: []byte(args.Function),
-		Address:    args.CallerAddr,
-		Topics:     args.Arguments,
-	}
-	d.eei.AddLogEntry(entry)
+	d.createAndAddLogEntry(args, successKeys...)
 
 	return vmcommon.Ok
 }
@@ -1432,7 +1426,7 @@ func (d *delegation) reDelegateRewards(args *vmcommon.ContractCallInput) vmcommo
 		return vmcommon.UserError
 	}
 
-	d.createAndAddLogEntryForDelegate(args.Function, args.CallerAddr, args.CallValue, globalFund, delegator, dStatus, isNew)
+	d.createAndAddLogEntryForDelegate(args, args.CallValue, globalFund, delegator, dStatus, isNew)
 
 	delegator.TotalCumulatedRewards.Add(delegator.TotalCumulatedRewards, delegator.UnClaimedRewards)
 	delegateValue := big.NewInt(0).Set(delegator.UnClaimedRewards)
@@ -1575,7 +1569,7 @@ func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
-	return d.delegateUser(args.Function, args.CallValue, args.CallValue, args.CallerAddr, args.RecipientAddr, dStatus)
+	return d.delegateUser(args, args.CallValue, args.CallValue, args.CallerAddr, dStatus)
 }
 
 func (d *delegation) addValueToFund(key []byte, value *big.Int) error {
@@ -2156,7 +2150,7 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
-	d.createAndAddLogEntryForWithdraw(args.Function, args.CallerAddr, totalUnBondable, globalFund, delegator, dStatus)
+	d.createAndAddLogEntryForWithdraw(args, totalUnBondable, globalFund, delegator, dStatus)
 
 	return vmcommon.Ok
 }

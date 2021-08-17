@@ -31,8 +31,12 @@ func TestCreateLogEntryForDelegate(t *testing.T) {
 		},
 		marshalizer: marshalizer,
 	}).createAndAddLogEntryForDelegate(
-		"identifier",
-		[]byte("caller"),
+		&vmcommon.ContractCallInput{
+			Function: "identifier",
+			VMInput: vmcommon.VMInput{
+				CallerAddr: []byte("caller"),
+			},
+		},
 		delegationValue,
 		&GlobalFundData{
 			TotalActive: big.NewInt(1000000),
