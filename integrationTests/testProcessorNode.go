@@ -45,8 +45,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/factory/peerSignatureHandler"
 	hdrFactory "github.com/ElrondNetwork/elrond-go/factory/block"
+	"github.com/ElrondNetwork/elrond-go/factory/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -199,6 +199,9 @@ const stateCheckpointModulus = 100
 // StakingV2Epoch defines the epoch for integration tests when stakingV2 is enabled
 const StakingV2Epoch = 1000
 
+// ScheduledMiniBlocksEnableEpoch defines the epoch for integration tests when scheduled nini blocks are enabled
+const ScheduledMiniBlocksEnableEpoch = 1000
+
 // TestKeyPair holds a pair of private/public Keys
 type TestKeyPair struct {
 	Sk crypto.PrivateKey
@@ -317,8 +320,8 @@ type TestProcessorNode struct {
 	EnableEpochs             config.EnableEpochs
 	UseValidVmBlsSigVerifier bool
 
-	TransactionLogProcessor process.TransactionLogProcessor
-	ScheduledMiniBlocksEnableEpoch    uint32
+	TransactionLogProcessor        process.TransactionLogProcessor
+	ScheduledMiniBlocksEnableEpoch uint32
 }
 
 // CreatePkBytes creates 'numShards' public key-like byte slices
@@ -1916,11 +1919,12 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 				return nil
 			},
 		},
-		BlockTracker:                 tpn.BlockTracker,
-		BlockSizeThrottler:           TestBlockSizeThrottler,
-		HistoryRepository:            tpn.HistoryRepository,
-		EpochNotifier:                tpn.EpochNotifier,
-		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		BlockTracker:                   tpn.BlockTracker,
+		BlockSizeThrottler:             TestBlockSizeThrottler,
+		HistoryRepository:              tpn.HistoryRepository,
+		EpochNotifier:                  tpn.EpochNotifier,
+		ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
+		ScheduledMiniBlocksEnableEpoch: ScheduledMiniBlocksEnableEpoch,
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {
@@ -2302,7 +2306,7 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 	}
 
 	blockHeader, err := tpn.BlockProcessor.CreateNewHeader(round, nonce)
-	if err!=nil{
+	if err != nil {
 		return nil, nil, nil
 	}
 

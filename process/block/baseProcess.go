@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
+	"github.com/ElrondNetwork/elrond-vm-common/atomic"
 	"math/big"
 	"sort"
 	"time"
@@ -90,7 +91,9 @@ type baseProcessor struct {
 	vmContainerFactory process.VirtualMachinesContainerFactory
 	vmContainer        process.VirtualMachinesContainer
 
-	processDataTriesOnCommitEpoch bool
+	processDataTriesOnCommitEpoch  bool
+	scheduledMiniBlocksEnableEpoch uint32
+	flagScheduledMiniBlocks        atomic.Flag
 }
 
 type bootStorerDataArgs struct {
@@ -1550,4 +1553,10 @@ func (bp *baseProcessor) getMarshalizedScheduledRootHashAndSCRs(
 	}
 
 	return bp.marshalizer.Marshal(scrsBatch)
+}
+
+// EpochConfirmed is called whenever a new epoch is confirmed
+func (bp *baseProcessor) EpochConfirmed(epoch uint32, _ uint64) {
+	bp.flagScheduledMiniBlocks.Toggle(epoch > bp.scheduledMiniBlocksEnableEpoch)
+	log.Debug("baseProcessor: scheduled mini blocks", "enabled", bp.flagScheduledMiniBlocks.IsSet())
 }

@@ -37,9 +37,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -360,12 +360,13 @@ func CreateMockArguments(
 					return nil
 				},
 			},
-			BlockTracker:                 mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders),
-			BlockSizeThrottler:           &mock.BlockSizeThrottlerStub{},
-			Version:                      "softwareVersion",
-			HistoryRepository:            &dblookupext.HistoryRepositoryStub{},
-			EpochNotifier:                &epochNotifier.EpochNotifierStub{},
-			ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+			BlockTracker:                   mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders),
+			BlockSizeThrottler:             &mock.BlockSizeThrottlerStub{},
+			Version:                        "softwareVersion",
+			HistoryRepository:              &dblookupext.HistoryRepositoryStub{},
+			EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
+			ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
+			ScheduledMiniBlocksEnableEpoch: 2,
 		},
 	}
 
