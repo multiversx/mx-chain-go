@@ -375,8 +375,7 @@ func (txs *transactions) verifyTransaction(
 		return err
 	}
 
-	//TODO: Should be analyzed if setting of the gas consumed, in the gasHandler, is necessary or not for the scheduled txs
-	txs.gasHandler.SetGasConsumed(gasConsumedByTxInSelfShard, txHash)
+	txs.gasHandler.SetGasConsumedAsScheduled(gasConsumedByTxInSelfShard, txHash)
 	mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType] = mbInfo.gasInfo.gasConsumedByMiniBlockInReceiverShard
 
 	startTime = time.Now()
@@ -398,7 +397,7 @@ func (txs *transactions) verifyTransaction(
 		mbInfo.schedulingInfo.numScheduledBadTxs++
 		log.Trace("bad tx", "error", err.Error(), "hash", txHash)
 
-		txs.gasHandler.RemoveGasConsumed([][]byte{txHash})
+		txs.gasHandler.RemoveGasConsumedAsScheduled([][]byte{txHash})
 
 		mbInfo.gasInfo.gasConsumedByMiniBlocksInSenderShard = oldGasConsumedByMiniBlocksInSenderShard
 		mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType] = oldGasConsumedByMiniBlockInReceiverShard
@@ -687,7 +686,7 @@ func (txs *transactions) initCreateScheduledMiniBlocks() *createScheduledMiniBlo
 		gasInfo: gasConsumedInfo{
 			gasConsumedByMiniBlockInReceiverShard: uint64(0),
 			gasConsumedByMiniBlocksInSenderShard:  uint64(0),
-			totalGasConsumedInSelfShard:           uint64(0),
+			totalGasConsumedInSelfShard:           txs.gasHandler.TotalGasConsumedAsScheduled(),
 		},
 	}
 }
