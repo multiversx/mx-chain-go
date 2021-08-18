@@ -118,6 +118,7 @@ func (vip *validatorInfoPreprocessor) RestoreBlockDataIntoPools(
 func (vip *validatorInfoPreprocessor) ProcessBlockTransactions(
 	_ *block.Body,
 	_ func() bool,
+	_ bool,
 ) error {
 	return nil
 }

@@ -18,7 +18,7 @@ type TransactionCoordinatorMock struct {
 	RestoreBlockDataFromStorageCalled                    func(body *block.Body) (int, error)
 	RemoveBlockDataFromPoolCalled                        func(body *block.Body) error
 	RemoveTxsFromPoolCalled                              func(body *block.Body) error
-	ProcessBlockTransactionCalled                        func(body *block.Body, haveTime func() time.Duration) error
+	ProcessBlockTransactionCalled                        func(body *block.Body, headerHandler data.HeaderHandler, haveTime func() time.Duration) error
 	CreateBlockStartedCalled                             func()
 	CreateMbsAndProcessCrossShardTransactionsDstMeCalled func(
 		header data.HeaderHandler,
@@ -128,12 +128,12 @@ func (tcm *TransactionCoordinatorMock) RemoveTxsFromPool(body *block.Body) error
 }
 
 // ProcessBlockTransaction -
-func (tcm *TransactionCoordinatorMock) ProcessBlockTransaction(body *block.Body, haveTime func() time.Duration) error {
+func (tcm *TransactionCoordinatorMock) ProcessBlockTransaction(body *block.Body, headerHandler data.HeaderHandler, haveTime func() time.Duration) error {
 	if tcm.ProcessBlockTransactionCalled == nil {
 		return nil
 	}
 
-	return tcm.ProcessBlockTransactionCalled(body, haveTime)
+	return tcm.ProcessBlockTransactionCalled(body, headerHandler, haveTime)
 }
 
 // CreateBlockStarted -

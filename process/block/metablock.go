@@ -330,7 +330,7 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	err = mp.txCoordinator.ProcessBlockTransaction(body, haveTime)
+	err = mp.txCoordinator.ProcessBlockTransaction(body, headerHandler, haveTime)
 	if err != nil {
 		return err
 	}

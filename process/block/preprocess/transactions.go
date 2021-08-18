@@ -277,10 +277,11 @@ func (txs *transactions) RestoreBlockDataIntoPools(
 func (txs *transactions) ProcessBlockTransactions(
 	body *block.Body,
 	haveTime func() bool,
+	scheduledMode bool,
 ) error {
 
 	if txs.isBodyToMe(body) {
-		return txs.processTxsToMe(body, haveTime)
+		return txs.processTxsToMe(body, haveTime, scheduledMode)
 	}
 
 	if txs.isBodyFromMe(body) {
@@ -430,6 +431,7 @@ func (txs *transactions) getShardFromAddress(address []byte) (uint32, error) {
 func (txs *transactions) processTxsToMe(
 	body *block.Body,
 	haveTime func() bool,
+	scheduledMode bool,
 ) error {
 	if check.IfNil(body) {
 		return process.ErrNilBlockBody
@@ -440,13 +442,18 @@ func (txs *transactions) processTxsToMe(
 		return err
 	}
 
+	totalGasConsumed := txs.gasHandler.TotalGasConsumed()
+	if scheduledMode {
+		totalGasConsumed = txs.gasHandler.TotalGasConsumedAsScheduled()
+	}
+
 	gasInfo := gasConsumedInfo{
 		gasConsumedByMiniBlockInReceiverShard: uint64(0),
 		gasConsumedByMiniBlocksInSenderShard:  uint64(0),
-		totalGasConsumedInSelfShard:           txs.gasHandler.TotalGasConsumed(),
+		totalGasConsumedInSelfShard:           totalGasConsumed,
 	}
 
-	log.Trace("processTxsToMe", "totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard)
+	log.Trace("processTxsToMe", "scheduled mode", scheduledMode, "totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard)
 
 	for index := range txsToMe {
 		if !haveTime() {
@@ -464,13 +471,15 @@ func (txs *transactions) processTxsToMe(
 
 		txs.saveAccountBalanceForAddress(tx.GetRcvAddr())
 
-		err = txs.processAndRemoveBadTransaction(
-			txHash,
-			tx,
-			senderShardID,
-			receiverShardID)
-		if err != nil {
-			return err
+		if !scheduledMode {
+			err = txs.processAndRemoveBadTransaction(
+				txHash,
+				tx,
+				senderShardID,
+				receiverShardID)
+			if err != nil {
+				return err
+			}
 		}
 
 		gasConsumedByTxInSelfShard, errComputeGas := txs.computeGasConsumed(
@@ -483,7 +492,12 @@ func (txs *transactions) processTxsToMe(
 			return errComputeGas
 		}
 
-		txs.gasHandler.SetGasConsumed(gasConsumedByTxInSelfShard, txHash)
+		if scheduledMode {
+			txs.gasHandler.SetGasConsumedAsScheduled(gasConsumedByTxInSelfShard, txHash)
+			txs.scheduledTxsExecutionHandler.Add(txHash, tx)
+		} else {
+			txs.gasHandler.SetGasConsumed(gasConsumedByTxInSelfShard, txHash)
+		}
 	}
 
 	return nil

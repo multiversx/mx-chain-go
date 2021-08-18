@@ -210,6 +210,7 @@ func (rtp *rewardTxPreprocessor) RestoreBlockDataIntoPools(
 func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 	body *block.Body,
 	haveTime func() bool,
+	_ bool,
 ) error {
 	if check.IfNil(body) {
 		return process.ErrNilBlockBody
