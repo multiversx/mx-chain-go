@@ -54,10 +54,6 @@ func (steh *ScheduledTxsExecutionHandler) RollBackToBlock(_ []byte) error {
 func (steh *ScheduledTxsExecutionHandler) SaveState(_ []byte) {
 }
 
-// LoadState does nothing as it is disabled
-func (steh *ScheduledTxsExecutionHandler) LoadState(_ []byte) {
-}
-
 // GetScheduledRootHash does nothing as it is a disabled component
 func (steh *ScheduledTxsExecutionHandler) GetScheduledRootHash() []byte {
 	return nil

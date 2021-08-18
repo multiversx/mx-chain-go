@@ -97,13 +97,6 @@ func (stes *ScheduledTxsExecutionStub) SaveState(headerHash []byte) {
 	}
 }
 
-// LoadState -
-func (stes *ScheduledTxsExecutionStub) LoadState(headerHash []byte) {
-	if stes.LoadStateCalled != nil {
-		stes.LoadStateCalled(headerHash)
-	}
-}
-
 // GetScheduledRootHash -
 func (stes *ScheduledTxsExecutionStub) GetScheduledRootHash() []byte {
 	if stes.GetScheduledRootHashCalled != nil {

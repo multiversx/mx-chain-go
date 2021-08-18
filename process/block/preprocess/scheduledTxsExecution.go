@@ -349,26 +349,6 @@ func (ste *scheduledTxsExecution) SaveState(headerHash []byte) {
 	}
 }
 
-func (ste *scheduledTxsExecution) LoadState(headerHash []byte) {
-	marshalledScheduledSCRs, err := ste.storer.Get(headerHash)
-	if err != nil {
-		log.Error("scheduledTxsExecution.LoadState", "error", err.Error())
-		return
-	}
-
-	scheduledSCRs := &scheduled.ScheduledSCRs{}
-	err = ste.marshaller.Unmarshal(scheduledSCRs, marshalledScheduledSCRs)
-	if err != nil {
-		log.Error("scheduledTxsExecution.LoadState", "error", err.Error())
-		return
-	}
-
-	ste.mutScheduledTxs.Lock()
-	ste.scheduledRootHash = scheduledSCRs.RootHash
-	ste.mapScheduledSCRs = scheduledSCRs.GetTransactionHandlersMap()
-	ste.mutScheduledTxs.Unlock()
-}
-
 // getScheduledRootHashAndSCRsForHeader gets scheduled root hash and SCRs of the given header from storage
 func (ste *scheduledTxsExecution) getScheduledRootHashAndSCRsForHeader(
 	headerHash []byte,
