@@ -37,29 +37,7 @@ $ cd elrond-go && git checkout master
 $ GO111MODULE=on go mod vendor
 $ cd cmd/node && go build
 ```
-The Node depends on the Arwen Virtual Machine, which is a separate binary. Depending on the preferred setup, there are two slightly different options to build Arwen.
-
-<b>Option A</b>: for development, which also implies running tests:
-
-First, create a persistent environment variable named `$ARWEN_PATH`. For example, place it in `~/.profile`, then restart the user session:
-```
-export ARWEN_PATH="$HOME/Arwen/arwen"
-``` 
-
-Note that the path includes the name of the binary, `arwen`.
-Secondly, run `make arwen`
-```
-$ cd $GOPATH/src/github.com/ElrondNetwork/elrond-go
-$ make arwen
-````
-The binary will be generated at `$ARWEN_PATH`. Whether you run the Node itself or the tests, this path wil be used to start Arwen.
-
-<b>Option B</b>: no development needed, just running the node
-```
-$ cd $GOPATH/src/github.com/ElrondNetwork/elrond-go
-$ ARWEN_PATH=./cmd/node make arwen
-```
-The Arwen binary will be built and placed near the node
+The node depends on the Arwen Virtual Machine, which is automatically managed by the node.
 
 ### Step 3: creating the node’s identity:
 In order to be registered in the Elrond Network, a node must possess 2 types of (secret key, public key) pairs. One is used to identify the node’s credential used to generate transactions (having the sender field its account address) and the other is used in the process of the block signing. Please note that this is a preliminary mechanism, in the next releases the first (private, public key) pair will be dropped when the staking mechanism will be fully implemented. To build and run the keygenerator, the following commands will need to be run:
