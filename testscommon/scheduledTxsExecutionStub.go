@@ -24,6 +24,8 @@ type ScheduledTxsExecutionStub struct {
 	SetTransactionProcessorCalled       func(process.TransactionProcessor)
 	SetTransactionCoordinatorCalled     func(process.TransactionCoordinator)
 	HaveScheduledTxsCalled              func() bool
+	SaveStateCalled                     func(headerHash []byte)
+	LoadStateCalled                     func(headerHash []byte)
 }
 
 // Init -
@@ -86,6 +88,20 @@ func (stes *ScheduledTxsExecutionStub) RollBackToBlock(headerHash []byte) error 
 		return stes.RollBackToBlockCalled(headerHash)
 	}
 	return nil
+}
+
+// SaveState -
+func (stes *ScheduledTxsExecutionStub) SaveState(headerHash []byte) {
+	if stes.SaveStateCalled != nil {
+		stes.SaveStateCalled(headerHash)
+	}
+}
+
+// LoadState -
+func (stes *ScheduledTxsExecutionStub) LoadState(headerHash []byte) {
+	if stes.LoadStateCalled != nil {
+		stes.LoadStateCalled(headerHash)
+	}
 }
 
 // GetScheduledRootHash -

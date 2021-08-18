@@ -1116,6 +1116,8 @@ type ScheduledTxsExecutionHandler interface {
 	SetScheduledRootHashAndSCRs(rootHash []byte, mapSCRs map[block.Type][]data.TransactionHandler)
 	GetScheduledRootHashForHeader(headerHash []byte) ([]byte, error)
 	RollBackToBlock(headerHash []byte) error
+	SaveState(headerHash []byte)
+	LoadState(headerHash []byte)
 	GetScheduledRootHash() []byte
 	SetScheduledRootHash(rootHash []byte)
 	SetTransactionProcessor(txProcessor TransactionProcessor)

@@ -11,10 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/display"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
@@ -1037,20 +1034,7 @@ func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler, h
 		}
 	}
 
-	scheduledRootHash := bp.scheduledTxsExecutionHandler.GetScheduledRootHash()
-	mapScheduledSCRs := bp.scheduledTxsExecutionHandler.GetScheduledSCRs()
-	if bp.scheduledTxsExecutionHandler.HaveScheduledTxs() {
-		marshalizedRootHashAndScheduledSCRs, errNotCritical := bp.getMarshalizedScheduledRootHashAndSCRs(scheduledRootHash, mapScheduledSCRs)
-		if errNotCritical != nil {
-			log.Warn("saveBody.getMarshalizedScheduledSCRs", "error", errNotCritical.Error())
-		} else {
-			log.Trace("saveBody.Put(dataRetriever.ScheduledSCRsUnit)", "header hash", headerHash, "length of marshalized root hash and scheduled SCRs", len(marshalizedRootHashAndScheduledSCRs))
-			errNotCritical = bp.store.Put(dataRetriever.ScheduledSCRsUnit, headerHash, marshalizedRootHashAndScheduledSCRs)
-			if errNotCritical != nil {
-				log.Warn("saveBody.Put -> ScheduledSCRsUnit", "error", errNotCritical.Error())
-			}
-		}
-	}
+	bp.scheduledTxsExecutionHandler.SaveState(headerHash)
 
 	elapsedTime := time.Since(startTime)
 	if elapsedTime >= common.PutInStorerMaxTime {
@@ -1508,42 +1492,4 @@ func (bp *baseProcessor) ProcessScheduledBlock(_ data.HeaderHandler, _ data.Body
 	bp.scheduledTxsExecutionHandler.SetScheduledRootHash(rootHash)
 
 	return nil
-}
-
-func (bp *baseProcessor) getMarshalizedScheduledRootHashAndSCRs(
-	scheduledRootHash []byte,
-	mapScheduledSCRs map[block.Type][]data.TransactionHandler,
-) ([]byte, error) {
-
-	scrsBatch := &batch.Batch{}
-	scrsBatch.Data = append(scrsBatch.Data, scheduledRootHash)
-
-	for blockType, txs := range mapScheduledSCRs {
-		if len(txs) == 0 {
-			continue
-		}
-
-		scheduledSCRs := &scheduled.ScheduledSCRs{
-			BlockType:  int32(blockType),
-			TxHandlers: make([]smartContractResult.SmartContractResult, len(txs)),
-		}
-
-		for txIndex, tx := range txs {
-			scr, ok := tx.(*smartContractResult.SmartContractResult)
-			if !ok {
-				return nil, process.ErrWrongTypeAssertion
-			}
-
-			scheduledSCRs.TxHandlers[txIndex] = *scr
-		}
-
-		marshalizedScheduledSCRs, err := bp.marshalizer.Marshal(scheduledSCRs)
-		if err != nil {
-			return nil, err
-		}
-
-		scrsBatch.Data = append(scrsBatch.Data, marshalizedScheduledSCRs)
-	}
-
-	return bp.marshalizer.Marshal(scrsBatch)
 }
