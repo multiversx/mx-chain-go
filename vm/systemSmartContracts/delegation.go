@@ -180,6 +180,11 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return vmcommon.UserError
 	}
 
+	if len(args.ESDTTransfers) > 0 {
+		d.eei.AddReturnMessage("cannot transfer ESDT to system SCs")
+		return vmcommon.UserError
+	}
+
 	switch args.Function {
 	case core.SCDeployInitFunctionName:
 		return d.init(args)

@@ -124,7 +124,6 @@
     GetBlockTimeStamp   = 1000
 
 [BigIntAPICost]
-    EllipticCurveNew         = 500
     BigIntNew                = 100
     BigIntByteLength         = 100
     BigIntUnsignedByteLength = 100
@@ -184,22 +183,27 @@
     MarshalCompressedECC   = 15000
     UnmarshalECC           = 20000
     UnmarshalCompressedECC = 270000
-    GenerateKeyECC         = 700000
+    GenerateKeyECC         = 7000000
 
 [ManagedBufferAPICost]
-    MBufferNew                   = 10000
-    MBufferNewFromBytes          = 10000
-    MBufferSetBytes              = 10000
-    MBufferGetLength             = 10000
-    MBufferGetBytes              = 10000
-    MBufferToBigIntUnsigned      = 10000
+    MBufferNew                   = 2000
+    MBufferNewFromBytes          = 4000
+    MBufferSetBytes              = 2000
+    MBufferGetLength             = 2000
+    MBufferGetBytes              = 2000
+    MBufferGetByteSlice          = 2000
+    MBufferCopyByteSlice         = 2000
+    MBufferAppend                = 2000
+    MBufferAppendBytes           = 2000
+    MBufferToBigIntUnsigned      = 4000
     MBufferToBigIntSigned        = 10000
-    MBufferFromBigIntUnsigned    = 10000
+    MBufferFromBigIntUnsigned    = 4000
     MBufferFromBigIntSigned      = 10000
-    MBufferStorageStore          = 10000
-    MBufferStorageLoad           = 10000
-    MBufferGetArgument           = 10000
-    MBufferFinish                = 10000
+    MBufferStorageStore          = 250000
+    MBufferStorageLoad           = 100000
+    MBufferGetArgument           = 1000
+    MBufferFinish                = 1000
+    MBufferSetRandom             = 6000
 
 [WASMOpcodeCost]
     Unreachable = 1
