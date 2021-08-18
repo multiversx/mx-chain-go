@@ -1,6 +1,7 @@
 package testscommon
 
 import (
+	"errors"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -66,22 +67,22 @@ func (stes *ScheduledTxsExecutionStub) GetScheduledSCRs() map[block.Type][]data.
 
 // SetScheduledRootHashAndSCRs -
 func (stes *ScheduledTxsExecutionStub) SetScheduledRootHashAndSCRs(rootHash []byte, mapSCRs map[block.Type][]data.TransactionHandler) {
-	if stes.SetScheduledRootHashAndSCRsCalled != nil{
+	if stes.SetScheduledRootHashAndSCRsCalled != nil {
 		stes.SetScheduledRootHashAndSCRsCalled(rootHash, mapSCRs)
 	}
 }
 
 // GetScheduledRootHashForHeader -
 func (stes *ScheduledTxsExecutionStub) GetScheduledRootHashForHeader(headerHash []byte) ([]byte, error) {
-	if stes.GetScheduledRootHashForHeaderCalled!=nil {
+	if stes.GetScheduledRootHashForHeaderCalled != nil {
 		return stes.GetScheduledRootHashForHeaderCalled(headerHash)
 	}
-	return make([]byte, 0), nil
+	return nil, errors.New("scheduled root hash for header not found")
 }
 
 // RollBackToBlock -
 func (stes *ScheduledTxsExecutionStub) RollBackToBlock(headerHash []byte) error {
-	if stes.RollBackToBlockCalled!= nil {
+	if stes.RollBackToBlockCalled != nil {
 		return stes.RollBackToBlockCalled(headerHash)
 	}
 	return nil
