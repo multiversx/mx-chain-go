@@ -33,6 +33,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -4199,10 +4200,11 @@ func TestShardProcessor_updateStateStorage(t *testing.T) {
 		},
 	}
 
+	scheduledSCRsUnit := &genericMocks.StorerMock{}
 	storer := &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			if unitType == dataRetriever.ScheduledSCRsUnit {
-				return nil
+				return scheduledSCRsUnit
 			}
 
 			return hdrStore

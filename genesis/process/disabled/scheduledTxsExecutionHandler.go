@@ -36,8 +36,18 @@ func (steh *ScheduledTxsExecutionHandler) GetScheduledSCRs() map[block.Type][]da
 	return make(map[block.Type][]data.TransactionHandler)
 }
 
-// SetScheduledSCRs does nothing as it is a disabled component
-func (steh *ScheduledTxsExecutionHandler) SetScheduledSCRs(_ map[block.Type][]data.TransactionHandler) {
+// SetScheduledRootHashAndSCRs does nothing as it is disabled
+func (steh *ScheduledTxsExecutionHandler) SetScheduledRootHashAndSCRs(_ []byte, _ map[block.Type][]data.TransactionHandler) {
+}
+
+// GetScheduledRootHashForHeader does nothing as it is disabled
+func (steh *ScheduledTxsExecutionHandler) GetScheduledRootHashForHeader(_ []byte) ([]byte, error) {
+	return make([]byte, 0), nil
+}
+
+// RollBackToBlock does nothing as it is disabled
+func (steh *ScheduledTxsExecutionHandler) RollBackToBlock(_ []byte) error {
+	return nil
 }
 
 // GetScheduledRootHash does nothing as it is a disabled component

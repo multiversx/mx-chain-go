@@ -1162,15 +1162,8 @@ func (bp *baseProcessor) revertAccountState() {
 }
 
 func (bp *baseProcessor) revertScheduledRootHashAndSCRs() {
-	header, headerHash := bp.getLastCommittedHeaderAndHash()
-	scheduledRootHash, mapScheduledSCRs, err := process.GetScheduledRootHashAndSCRs(headerHash, bp.store, bp.marshalizer)
-	if err != nil {
-		bp.scheduledTxsExecutionHandler.SetScheduledRootHash(header.GetRootHash())
-		bp.scheduledTxsExecutionHandler.SetScheduledSCRs(make(map[block.Type][]data.TransactionHandler))
-	} else {
-		bp.scheduledTxsExecutionHandler.SetScheduledRootHash(scheduledRootHash)
-		bp.scheduledTxsExecutionHandler.SetScheduledSCRs(mapScheduledSCRs)
-	}
+	_, headerHash := bp.getLastCommittedHeaderAndHash()
+	_ = bp.scheduledTxsExecutionHandler.RollBackToBlock(headerHash)
 }
 
 func (bp *baseProcessor) getLastCommittedHeaderAndHash() (data.HeaderHandler, []byte) {
@@ -1224,12 +1217,12 @@ func (bp *baseProcessor) PruneStateOnRollback(currHeader data.HeaderHandler, cur
 
 		rootHash, prevRootHash := bp.getRootHashes(currHeader, prevHeader, key)
 		if key == state.UserAccountsState {
-			scheduledRootHash, err := process.GetScheduledRootHash(currHeaderHash, bp.store, bp.marshalizer)
+			scheduledRootHash, err := bp.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(currHeaderHash)
 			if err == nil {
 				rootHash = scheduledRootHash
 			}
 
-			scheduledPrevRootHash, err := process.GetScheduledRootHash(prevHeaderHash, bp.store, bp.marshalizer)
+			scheduledPrevRootHash, err := bp.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(prevHeaderHash)
 			if err == nil {
 				prevRootHash = scheduledPrevRootHash
 			}

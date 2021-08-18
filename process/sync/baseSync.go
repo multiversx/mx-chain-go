@@ -740,13 +740,9 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			)
 		}
 
-		scheduledRootHash, mapScheduledSCRs, err := process.GetScheduledRootHashAndSCRs(prevHeaderHash, boot.store, boot.marshalizer)
+		err = boot.scheduledTxsExecutionHandler.RollBackToBlock(prevHeaderHash)
 		if err != nil {
-			boot.scheduledTxsExecutionHandler.SetScheduledRootHash(prevHeader.GetRootHash())
-			boot.scheduledTxsExecutionHandler.SetScheduledSCRs(make(map[block.Type][]data.TransactionHandler))
-		} else {
-			boot.scheduledTxsExecutionHandler.SetScheduledRootHash(scheduledRootHash)
-			boot.scheduledTxsExecutionHandler.SetScheduledSCRs(mapScheduledSCRs)
+			boot.scheduledTxsExecutionHandler.SetScheduledRootHashAndSCRs(prevHeader.GetRootHash(),make(map[block.Type][]data.TransactionHandler))
 		}
 
 		boot.outportHandler.RevertIndexedBlock(currHeader, currBody)
@@ -796,7 +792,7 @@ func (boot *baseBootstrap) rollBackOneBlock(
 	}
 
 	prevHeaderRootHash := prevHeader.GetRootHash()
-	scheduledPrevHeaderRootHash, err := process.GetScheduledRootHash(prevHeaderHash, boot.store, boot.marshalizer)
+	scheduledPrevHeaderRootHash, err := boot.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(prevHeaderHash)
 	if err == nil {
 		prevHeaderRootHash = scheduledPrevHeaderRootHash
 	}
@@ -888,13 +884,9 @@ func (boot *baseBootstrap) restoreState(
 
 	boot.chainHandler.SetCurrentBlockHeaderHash(currHeaderHash)
 
-	scheduledRootHash, mapScheduledSCRs, err := process.GetScheduledRootHashAndSCRs(currHeaderHash, boot.store, boot.marshalizer)
+	err = boot.scheduledTxsExecutionHandler.RollBackToBlock(currHeaderHash)
 	if err != nil {
-		boot.scheduledTxsExecutionHandler.SetScheduledRootHash(currHeader.GetRootHash())
-		boot.scheduledTxsExecutionHandler.SetScheduledSCRs(make(map[block.Type][]data.TransactionHandler))
-	} else {
-		boot.scheduledTxsExecutionHandler.SetScheduledRootHash(scheduledRootHash)
-		boot.scheduledTxsExecutionHandler.SetScheduledSCRs(mapScheduledSCRs)
+		boot.scheduledTxsExecutionHandler.SetScheduledRootHashAndSCRs(currHeader.GetRootHash(), make(map[block.Type][]data.TransactionHandler))
 	}
 
 	err = boot.blockProcessor.RevertStateToBlock(currHeader, boot.scheduledTxsExecutionHandler.GetScheduledRootHash())
