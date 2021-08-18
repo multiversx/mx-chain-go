@@ -290,8 +290,8 @@ var ErrNilRandSeed = errors.New("provided rand seed is nil")
 // ErrNilPrevRandSeed signals that a nil previous rand seed has been provided
 var ErrNilPrevRandSeed = errors.New("provided previous rand seed is nil")
 
-// ErrReservedFieldNotSupportedYet signals that reserved field is not empty
-var ErrReservedFieldNotSupportedYet = errors.New("reserved field not supported yet")
+// ErrReservedFieldInvalid signals that reserved field has an invalid content
+var ErrReservedFieldInvalid = errors.New("reserved field content is invalid")
 
 // ErrLowerRoundInBlock signals that a header round is too low for processing it
 var ErrLowerRoundInBlock = errors.New("header round is lower than last committed")
@@ -1000,4 +1000,3 @@ var ErrNilTxMaxTotalCostHandler = errors.New("nil transaction max total cost")
 
 // ErrNilAccountTxsPerShard signals a nil mapping for account transactions to shard
 var ErrNilAccountTxsPerShard = errors.New("nil account transactions per shard mapping")
-

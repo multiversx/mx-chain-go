@@ -260,7 +260,7 @@ func (sp *shardProcessor) ProcessBlock(
 	}()
 
 	startTime := time.Now()
-	err = sp.txCoordinator.ProcessBlockTransaction(body, haveTime)
+	err = sp.txCoordinator.ProcessBlockTransaction(header, body, haveTime)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to process block transaction",
 		"time [s]", elapsedTime,

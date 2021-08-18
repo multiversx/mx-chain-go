@@ -208,6 +208,7 @@ func (rtp *rewardTxPreprocessor) RestoreBlockDataIntoPools(
 
 // ProcessBlockTransactions processes all the reward transactions from the block.Body, updates the state
 func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
+	_ data.HeaderHandler,
 	body *block.Body,
 	haveTime func() bool,
 ) error {

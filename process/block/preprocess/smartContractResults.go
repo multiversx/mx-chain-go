@@ -216,6 +216,7 @@ func (scr *smartContractResults) RestoreBlockDataIntoPools(
 
 // ProcessBlockTransactions processes all the smartContractResult from the block.Body, updates the state
 func (scr *smartContractResults) ProcessBlockTransactions(
+	_ data.HeaderHandler,
 	body *block.Body,
 	haveTime func() bool,
 ) error {

@@ -275,6 +275,7 @@ func (txs *transactions) RestoreBlockDataIntoPools(
 
 // ProcessBlockTransactions processes all the transaction from the block.Body, updates the state
 func (txs *transactions) ProcessBlockTransactions(
+	header data.HeaderHandler,
 	body *block.Body,
 	haveTime func() bool,
 ) error {

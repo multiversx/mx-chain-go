@@ -1,6 +1,9 @@
 package factory_test
 
 import (
+	"encoding/hex"
+	"fmt"
+	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -22,6 +25,14 @@ func TestAccountCreator_CreateAccountNilAddress(t *testing.T) {
 
 	assert.Nil(t, acc)
 	assert.Equal(t, err, state.ErrNilAddress)
+}
+
+var decimalPlaces = "000000000000000000"
+func TestBigInt_test(t *testing.T){
+	sum, _ := big.NewInt(0).SetString("20000000" + decimalPlaces, 10)
+	fmt.Println("len", len(sum.Bytes()))
+	fmt.Printf("%s\n", hex.EncodeToString(sum.Bytes()))
+	fmt.Printf("%v\n", sum.Bytes())
 }
 
 func TestAccountCreator_CreateAccountOk(t *testing.T) {

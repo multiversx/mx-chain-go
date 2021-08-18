@@ -62,6 +62,11 @@ func (steh *ScheduledTxsExecutionHandler) HaveScheduledTxs() bool {
 	return false
 }
 
+// IsScheduledTx always returns false as it is a disabled component
+func (steh *ScheduledTxsExecutionHandler) IsScheduledTx(txHash []byte) bool {
+	return false
+}
+
 // IsInterfaceNil returns true if underlying object is nil
 func (steh *ScheduledTxsExecutionHandler) IsInterfaceNil() bool {
 	return steh == nil

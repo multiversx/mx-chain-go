@@ -59,7 +59,7 @@ func TestHeaderIntegrityVerifier_PopulatedReservedShouldErr(t *testing.T) {
 		hvh,
 	)
 	err := hdrIntVer.Verify(hdr)
-	require.Equal(t, process.ErrReservedFieldNotSupportedYet, err)
+	require.Equal(t, process.ErrReservedFieldInvalid, err)
 }
 
 func TestHeaderIntegrityVerifier_VerifyHdrChainIDAndReferenceChainIDMismatchShouldErr(t *testing.T) {

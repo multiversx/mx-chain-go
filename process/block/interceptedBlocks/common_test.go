@@ -389,7 +389,7 @@ func TestCheckMetaShardInfo_ReservedPopulatedShouldErr(t *testing.T) {
 		ReceiverShardID: shardCoordinator.SelfId(),
 		SenderShardID:   shardCoordinator.SelfId(),
 		TxCount:         0,
-		Reserved:        []byte("r"),
+		Reserved:        []byte("rr"),
 	}
 
 	sd := block.ShardData{
@@ -401,7 +401,7 @@ func TestCheckMetaShardInfo_ReservedPopulatedShouldErr(t *testing.T) {
 
 	err := checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator)
 
-	assert.Equal(t, process.ErrReservedFieldNotSupportedYet, err)
+	assert.Equal(t, process.ErrReservedFieldInvalid, err)
 }
 
 func TestCheckMetaShardInfo_OkValsShouldWork(t *testing.T) {
@@ -423,7 +423,11 @@ func TestCheckMetaShardInfo_OkValsShouldWork(t *testing.T) {
 	}
 
 	err := checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator)
+	assert.Nil(t, err)
 
+	miniBlock.Reserved = []byte("r")
+	sd.ShardMiniBlockHeaders = []block.MiniBlockHeader{miniBlock}
+	err = checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator)
 	assert.Nil(t, err)
 }
 
@@ -492,7 +496,7 @@ func TestCheckMiniblocks_ReservedPopulatedShouldErr(t *testing.T) {
 
 	err := checkMiniblocks([]data.MiniBlockHeaderHandler{&miniblockHeader}, shardCoordinator)
 
-	assert.Equal(t, process.ErrReservedFieldNotSupportedYet, err)
+	assert.Equal(t, process.ErrReservedFieldInvalid, err)
 }
 
 func TestCheckMiniblocks_OkValsShouldWork(t *testing.T) {
