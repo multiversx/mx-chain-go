@@ -563,7 +563,8 @@ func (bp *baseProcessor) createMiniBlockHeaderHandlers(body *block.Body) (int, [
 			return 0, nil, err
 		}
 		var reserved []byte = nil
-		if bp.scheduledTxsExecutionHandler.IsScheduledTx(body.MiniBlocks[i].TxHashes[0]) {
+		notEmpty := len(body.MiniBlocks[i].TxHashes) > 0
+		if notEmpty && bp.scheduledTxsExecutionHandler.IsScheduledTx(body.MiniBlocks[i].TxHashes[0]) {
 			reserved = []byte{byte(block.ScheduledBlock)}
 		}
 
