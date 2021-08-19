@@ -3,21 +3,10 @@ package metachain
 import (
 	"encoding/json"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
-
-// TriggerRegistry holds the data required to correctly initialize the trigger when booting from saved state
-type TriggerRegistry struct {
-	Epoch                       uint32
-	CurrentRound                uint64
-	EpochFinalityAttestingRound uint64
-	CurrEpochStartRound         uint64
-	PrevEpochStartRound         uint64
-	EpochStartMetaHash          []byte
-	EpochStartMeta              data.HeaderHandler
-}
 
 // LoadState loads into trigger the saved state
 func (t *trigger) LoadState(key []byte) error {
@@ -29,10 +18,7 @@ func (t *trigger) LoadState(key []byte) error {
 		return err
 	}
 
-	state := &TriggerRegistry{
-		EpochStartMeta: &block.MetaBlock{},
-	}
-	err = json.Unmarshal(d, state)
+	state, err := t.UnmarshallTrigger(d)
 	if err != nil {
 		return err
 	}
@@ -51,17 +37,38 @@ func (t *trigger) LoadState(key []byte) error {
 	return nil
 }
 
+func (t *trigger) UnmarshallTrigger(data []byte) (*block.MetaTriggerRegistry, error) {
+	state := &block.MetaTriggerRegistry{
+		EpochStartMeta: &block.MetaBlock{},
+	}
+	err := t.marshalizer.Unmarshal(state, data)
+	if err == nil {
+		return state, nil
+	}
+
+	// for backwards compatibility
+	err = json.Unmarshal(data, state)
+	if err != nil {
+		return nil, err
+	}
+	return state, nil
+}
+
 // saveState saves the trigger state. Needs to be called under mutex
 func (t *trigger) saveState(key []byte) error {
-	registry := &TriggerRegistry{}
+	metaHeader, ok := t.epochStartMeta.(*block.MetaBlock)
+	if !ok {
+		return epochStart.ErrWrongTypeAssertion
+	}
+	registry := &block.MetaTriggerRegistry{}
 	registry.CurrentRound = t.currentRound
 	registry.EpochFinalityAttestingRound = t.epochFinalityAttestingRound
 	registry.CurrEpochStartRound = t.currEpochStartRound
 	registry.PrevEpochStartRound = t.prevEpochStartRound
 	registry.Epoch = t.epoch
 	registry.EpochStartMetaHash = t.epochStartMetaHash
-	registry.EpochStartMeta = t.epochStartMeta
-	triggerData, err := json.Marshal(registry)
+	registry.EpochStartMeta = metaHeader
+	triggerData, err := t.marshalizer.Marshal(registry)
 	if err != nil {
 		return err
 	}
