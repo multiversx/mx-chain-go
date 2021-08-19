@@ -211,12 +211,6 @@ func getAllIntermediateTxsAfterScheduledExecution(
 
 // GetScheduledSCRs gets the resulted SCRs after the execution of scheduled transactions
 func (ste *scheduledTxsExecution) GetScheduledSCRs() map[block.Type][]data.TransactionHandler {
-	mapScheduledSCRs, _ := ste.createCopyScheduledSCRs()
-
-	return mapScheduledSCRs
-}
-
-func (ste *scheduledTxsExecution) createCopyScheduledSCRs() (map[block.Type][]data.TransactionHandler, int) {
 	ste.mutScheduledTxs.RLock()
 	defer ste.mutScheduledTxs.RUnlock()
 
@@ -230,11 +224,14 @@ func (ste *scheduledTxsExecution) createCopyScheduledSCRs() (map[block.Type][]da
 		mapScheduledSCRs[blockType] = make([]data.TransactionHandler, len(scheduledSCRs))
 		for scrIndex, txHandler := range scheduledSCRs {
 			mapScheduledSCRs[blockType][scrIndex] = txHandler
+			log.Trace("scheduledTxsExecution.GetScheduledSCRs", "blockType", blockType, "sender", mapScheduledSCRs[blockType][scrIndex].GetSndAddr(), "receiver", mapScheduledSCRs[blockType][scrIndex].GetRcvAddr())
 		}
 		numScheduledSCRs += len(scheduledSCRs)
 	}
 
-	return mapScheduledSCRs, numScheduledSCRs
+	log.Debug("scheduledTxsExecution.GetScheduledSCRs", "num of scheduled scrs", numScheduledSCRs)
+
+	return mapScheduledSCRs
 }
 
 // SetScheduledRootHashAndSCRs sets the resulted scheduled root hash and SCRs after the execution of scheduled transactions
@@ -294,17 +291,6 @@ func (ste *scheduledTxsExecution) SetTransactionCoordinator(txCoordinator proces
 	ste.txCoordinator = txCoordinator
 }
 
-// HaveScheduledTxs method returns if there are scheduled transactions
-func (ste *scheduledTxsExecution) HaveScheduledTxs() bool {
-	ste.mutScheduledTxs.RLock()
-	numScheduledTxs := len(ste.scheduledTxs)
-	ste.mutScheduledTxs.RUnlock()
-
-	log.Debug("scheduledTxsExecution.HaveScheduledTxs", "num of scheduled txs", numScheduledTxs)
-
-	return numScheduledTxs > 0
-}
-
 // GetScheduledRootHashForHeader gets scheduled root hash of the given header from storage
 func (ste *scheduledTxsExecution) GetScheduledRootHashForHeader(
 	headerHash []byte,
@@ -316,28 +302,27 @@ func (ste *scheduledTxsExecution) GetScheduledRootHashForHeader(
 // RollBackToBlock rolls back the scheduled txs execution handler to the given header
 func (ste *scheduledTxsExecution) RollBackToBlock(headerHash []byte) error {
 	scheduledRootHash, mapScheduledSCRs, err := ste.getScheduledRootHashAndSCRsForHeader(headerHash)
+	if err != nil {
+		return err
+	}
+
 	ste.SetScheduledRootHashAndSCRs(scheduledRootHash, mapScheduledSCRs)
 
-	return err
+	return nil
 }
 
 func (ste *scheduledTxsExecution) SaveState(headerHash []byte) {
 	scheduledRootHash := ste.GetScheduledRootHash()
 	mapScheduledSCRs := ste.GetScheduledSCRs()
-	if ste.HaveScheduledTxs() {
-		scheduledSCRs := &scheduled.ScheduledSCRs{
-			RootHash: scheduledRootHash,
-		}
+	ste.mutScheduledTxs.RLock()
+	numScheduledTxs := len(ste.scheduledTxs)
+	ste.mutScheduledTxs.RUnlock()
+	log.Debug("scheduledTxsExecution.SaveState", "num of scheduled txs", numScheduledTxs)
 
-		err := scheduledSCRs.SetTransactionHandlersMap(mapScheduledSCRs)
+	if numScheduledTxs > 0 {
+		marshalledScheduledSCRs, err := ste.getMarshalledScheduledRootHashAndSCRs(scheduledRootHash, mapScheduledSCRs)
 		if err != nil {
-			log.Warn("scheduledTxsExecution.SaveState SetTransactionHandlersMap", "error", err.Error())
-			return
-		}
-
-		marshalledScheduledSCRs, err := ste.marshaller.Marshal(scheduledSCRs)
-		if err != nil {
-			log.Warn("scheduledTxsExecution.SaveState Marshal", "error", err.Error())
+			log.Warn("scheduledTxsExecution.SaveState getMarshalledScheduledRootHashAndSCRs", "error", err.Error())
 			return
 		}
 
@@ -379,7 +364,7 @@ func (ste *scheduledTxsExecution) getScheduledRootHashAndSCRsForHeader(
 	return scheduledRootHash, txHandlersMap, nil
 }
 
-func (ste *scheduledTxsExecution) getMarshalizedScheduledRootHashAndSCRs(
+func (ste *scheduledTxsExecution) getMarshalledScheduledRootHashAndSCRs(
 	scheduledRootHash []byte,
 	mapScheduledSCRs map[block.Type][]data.TransactionHandler,
 ) ([]byte, error) {

@@ -1121,6 +1121,5 @@ type ScheduledTxsExecutionHandler interface {
 	SetScheduledRootHash(rootHash []byte)
 	SetTransactionProcessor(txProcessor TransactionProcessor)
 	SetTransactionCoordinator(txCoordinator TransactionCoordinator)
-	HaveScheduledTxs() bool
 	IsInterfaceNil() bool
 }

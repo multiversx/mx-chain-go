@@ -742,7 +742,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 
 		err = boot.scheduledTxsExecutionHandler.RollBackToBlock(prevHeaderHash)
 		if err != nil {
-			boot.scheduledTxsExecutionHandler.SetScheduledRootHashAndSCRs(prevHeader.GetRootHash(),make(map[block.Type][]data.TransactionHandler))
+			boot.scheduledTxsExecutionHandler.SetScheduledRootHashAndSCRs(prevHeader.GetRootHash(), make(map[block.Type][]data.TransactionHandler))
 		}
 
 		boot.outportHandler.RevertIndexedBlock(currHeader, currBody)

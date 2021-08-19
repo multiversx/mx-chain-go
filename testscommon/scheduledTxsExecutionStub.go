@@ -127,15 +127,6 @@ func (stes *ScheduledTxsExecutionStub) SetTransactionCoordinator(txCoordinator p
 	}
 }
 
-// HaveScheduledTxs -
-func (stes *ScheduledTxsExecutionStub) HaveScheduledTxs() bool {
-	if stes.HaveScheduledTxsCalled != nil {
-		return stes.HaveScheduledTxsCalled()
-	}
-
-	return false
-}
-
 // IsInterfaceNil -
 func (stes *ScheduledTxsExecutionStub) IsInterfaceNil() bool {
 	return stes == nil

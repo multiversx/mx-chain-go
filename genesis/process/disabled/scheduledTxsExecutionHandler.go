@@ -71,11 +71,6 @@ func (steh *ScheduledTxsExecutionHandler) SetTransactionProcessor(_ process.Tran
 func (steh *ScheduledTxsExecutionHandler) SetTransactionCoordinator(_ process.TransactionCoordinator) {
 }
 
-// HaveScheduledTxs does nothing as it is a disabled component
-func (steh *ScheduledTxsExecutionHandler) HaveScheduledTxs() bool {
-	return false
-}
-
 // IsInterfaceNil returns true if underlying object is nil
 func (steh *ScheduledTxsExecutionHandler) IsInterfaceNil() bool {
 	return steh == nil
