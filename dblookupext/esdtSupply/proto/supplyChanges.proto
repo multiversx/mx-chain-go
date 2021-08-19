@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "esdtSupply";
+option (gogoproto.stable_marshaler_all) = true;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+// EpochByHash is used to store information about a hash to know which epoch it belongs to
+message SupplyChange {
+  bytes  TokenID = 1;
+  bytes  Supply  = 2  [(gogoproto.jsontag) = "value", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go-core/data.BigIntCaster"];
+}
+
+// ResultsHashesByTxHash is used to store smart contract results hashes and receipt hash for a transaction hash
+message SupplyChanges {
+  repeated SupplyChange SupplyChange = 1;
+}
