@@ -283,10 +283,16 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 
 	var db common.DBWriteCacher
 	if tsm.isPresentInLastSnapshotDb(snapshotEntry.rootHash) {
-		db = tsm.GetSnapshotThatContainsHash(snapshotEntry.rootHash)
+		snapshotDB := tsm.GetSnapshotThatContainsHash(snapshotEntry.rootHash)
+		db = snapshotDB
 		isDbNil := check.IfNil(db)
 		log.Trace("snapshot for rootHash already taken, using snapshot DB",
 			"rootHash", snapshotEntry.rootHash, "is DB nil", isDbNil)
+
+		if !isDbNil {
+			//should decrease the num references as to allow for snapshot closing
+			defer snapshotDB.DecreaseNumReferences()
+		}
 	}
 
 	if check.IfNil(db) {

@@ -1224,7 +1224,7 @@ func (n *Node) Close() error {
 	log.Debug("closing all managed components")
 	for i := len(n.closableComponents) - 1; i >= 0; i-- {
 		managedComponent := n.closableComponents[i]
-		log.Debug("closing", fmt.Sprintf("managedComponent %s", managedComponent))
+		log.Debug("closing", "managedComponent", fmt.Sprintf("%s", managedComponent))
 		err := managedComponent.Close()
 		if err != nil {
 			if closeError == nil {
