@@ -240,7 +240,7 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	mp.blockChainHook.SetCurrentHeader(headerHandler)
+	mp.blockChainHook.SetCurrentHeader(header)
 	mp.epochStartTrigger.Update(header.GetRound(), header.GetNonce())
 
 	err = mp.checkEpochCorrectness(header)
@@ -330,7 +330,7 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	err = mp.txCoordinator.ProcessBlockTransaction(body, headerHandler, haveTime)
+	err = mp.txCoordinator.ProcessBlockTransaction(body, header, haveTime)
 	if err != nil {
 		return err
 	}

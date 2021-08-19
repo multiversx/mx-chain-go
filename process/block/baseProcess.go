@@ -191,6 +191,20 @@ func (bp *baseProcessor) checkBlockValidity(
 		return process.ErrEpochDoesNotMatch
 	}
 
+	// verification of scheduled root hash
+	if bp.flagScheduledMiniBlocks.IsSet() {
+		additionalData := headerHandler.GetAdditionalData()
+		if !check.IfNil(additionalData) {
+			if !bytes.Equal(additionalData.GetScheduledRootHash(), bp.getRootHash()) {
+				log.Debug("scheduled root hash does not match",
+					"local scheduled root hash", bp.getRootHash(),
+					"received scheduled root hash", additionalData.GetScheduledRootHash())
+
+				return process.ErrScheduledRootHashDoesNotMatch
+			}
+		}
+	}
+
 	return nil
 }
 

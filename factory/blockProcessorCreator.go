@@ -383,6 +383,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		EconomicsFee:                      pcf.coreData.EconomicsData(),
 		TxTypeHandler:                     txTypeHandler,
 		BlockGasAndFeesReCheckEnableEpoch: pcf.epochConfig.EnableEpochs.BlockGasAndFeesReCheckEnableEpoch,
+		ScheduledMiniBlocksEnableEpoch:    pcf.epochConfig.EnableEpochs.ScheduledMiniBlocksEnableEpoch,
 		TransactionsLogProcessor:          pcf.txLogsProcessor,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
@@ -698,6 +699,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		EconomicsFee:                      pcf.coreData.EconomicsData(),
 		TxTypeHandler:                     txTypeHandler,
 		BlockGasAndFeesReCheckEnableEpoch: enableEpochs.BlockGasAndFeesReCheckEnableEpoch,
+		ScheduledMiniBlocksEnableEpoch:    enableEpochs.ScheduledMiniBlocksEnableEpoch,
 		TransactionsLogProcessor:          pcf.txLogsProcessor,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)

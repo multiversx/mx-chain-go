@@ -48,6 +48,7 @@ type ArgTransactionCoordinator struct {
 	TxTypeHandler                     process.TxTypeHandler
 	TransactionsLogProcessor          process.TransactionLogProcessor
 	BlockGasAndFeesReCheckEnableEpoch uint32
+	ScheduledMiniBlocksEnableEpoch    uint32
 }
 
 type transactionCoordinator struct {
@@ -78,6 +79,7 @@ type transactionCoordinator struct {
 	txTypeHandler                     process.TxTypeHandler
 	transactionsLogProcessor          process.TransactionLogProcessor
 	blockGasAndFeesReCheckEnableEpoch uint32
+	scheduledMiniBlocksEnableEpoch    uint32
 }
 
 // NewTransactionCoordinator creates a transaction coordinator to run and coordinate preprocessors and processors
@@ -99,9 +101,11 @@ func NewTransactionCoordinator(arguments ArgTransactionCoordinator) (*transactio
 		economicsFee:                      arguments.EconomicsFee,
 		txTypeHandler:                     arguments.TxTypeHandler,
 		blockGasAndFeesReCheckEnableEpoch: arguments.BlockGasAndFeesReCheckEnableEpoch,
+		scheduledMiniBlocksEnableEpoch:    arguments.ScheduledMiniBlocksEnableEpoch,
 		transactionsLogProcessor:          arguments.TransactionsLogProcessor,
 	}
 	log.Debug("coordinator/process: enable epoch for block gas and fees re-check", "epoch", tc.blockGasAndFeesReCheckEnableEpoch)
+	log.Debug("coordinator/process: enable epoch for scheduled mini blocks", "epoch", tc.scheduledMiniBlocksEnableEpoch)
 
 	tc.miniBlockPool = arguments.MiniBlockPool
 	tc.onRequestMiniBlock = arguments.RequestHandler.RequestMiniBlock
@@ -418,7 +422,7 @@ func (tc *transactionCoordinator) RemoveTxsFromPool(body *block.Body) error {
 // ProcessBlockTransaction processes transactions and updates state tries
 func (tc *transactionCoordinator) ProcessBlockTransaction(
 	body *block.Body,
-	headerHandler data.HeaderHandler,
+	header data.HeaderHandler,
 	timeRemaining func() time.Duration,
 ) error {
 	if check.IfNil(body) {
@@ -442,7 +446,7 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 	}
 
 	startTime := time.Now()
-	mbIndex, err := tc.processMiniBlocksToMe(body, headerHandler, haveTime)
+	mbIndex, err := tc.processMiniBlocksToMe(body, header, haveTime)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to processMiniBlocksToMe",
 		"time [s]", elapsedTime,
@@ -502,7 +506,7 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 
 func (tc *transactionCoordinator) processMiniBlocksToMe(
 	body *block.Body,
-	headerHandler data.HeaderHandler,
+	header data.HeaderHandler,
 	haveTime func() bool,
 ) (int, error) {
 	// processing has to be done in order, as the order of different type of transactions over the same account is strict
@@ -519,7 +523,7 @@ func (tc *transactionCoordinator) processMiniBlocksToMe(
 			return mbIndex, process.ErrMissingPreProcessor
 		}
 
-		scheduledMode, err := tc.isScheduledMiniBlockDestMe(miniBlock, headerHandler)
+		scheduledMode, err := tc.isScheduledMiniBlockDestMe(miniBlock, header)
 		if err != nil {
 			return mbIndex, err
 		}
@@ -533,14 +537,17 @@ func (tc *transactionCoordinator) processMiniBlocksToMe(
 	return mbIndex, nil
 }
 
-func (tc *transactionCoordinator) isScheduledMiniBlockDestMe(miniBlock *block.MiniBlock, headerHandler data.HeaderHandler) (bool, error) {
-	//TODO: Add check if scheduled mini blocks epoch flag is activated or not, to return false, nil quicker
+func (tc *transactionCoordinator) isScheduledMiniBlockDestMe(miniBlock *block.MiniBlock, header data.HeaderHandler) (bool, error) {
+	if header.GetEpoch() < tc.scheduledMiniBlocksEnableEpoch {
+		return false, nil
+	}
+
 	miniBlockHash, err := core.CalculateHash(tc.marshalizer, tc.hasher, miniBlock)
 	if err != nil {
 		return false, err
 	}
 
-	for _, miniBlockHeader := range headerHandler.GetMiniBlockHeaderHandlers() {
+	for _, miniBlockHeader := range header.GetMiniBlockHeaderHandlers() {
 		if bytes.Equal(miniBlockHash, miniBlockHeader.GetHash()) {
 			reserved := miniBlockHeader.GetReserved()
 			return len(reserved) > 0 && reserved[0] == byte(block.ScheduledBlock), nil

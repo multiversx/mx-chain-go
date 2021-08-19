@@ -189,7 +189,7 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	sp.blockChainHook.SetCurrentHeader(headerHandler)
+	sp.blockChainHook.SetCurrentHeader(header)
 
 	sp.txCoordinator.RequestBlockTransactions(body)
 	requestedMetaHdrs, requestedFinalityAttestingMetaHdrs := sp.requestMetaHeaders(header)
@@ -275,7 +275,7 @@ func (sp *shardProcessor) ProcessBlock(
 	}()
 
 	startTime := time.Now()
-	err = sp.txCoordinator.ProcessBlockTransaction(body, headerHandler, haveTime)
+	err = sp.txCoordinator.ProcessBlockTransaction(body, header, haveTime)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to process block transaction",
 		"time [s]", elapsedTime,
