@@ -18,7 +18,7 @@ func (d *delegation) createAndAddLogEntry(contractCallInput *vmcommon.ContractCa
 
 func (d *delegation) createAndAddLogEntryForWithdraw(
 	contractCallInput *vmcommon.ContractCallInput,
-	delegationValue *big.Int,
+	actualUserUnBond *big.Int,
 	globalFund *GlobalFundData,
 	delegator *DelegatorData,
 	dStatus *DelegationContractStatus,
@@ -32,7 +32,7 @@ func (d *delegation) createAndAddLogEntryForWithdraw(
 	}
 
 	numUsers := big.NewInt(0).SetUint64(dStatus.NumUsers)
-	d.createAndAddLogEntry(contractCallInput, delegationValue.Bytes(), activeFund.Bytes(), numUsers.Bytes(), globalFund.TotalActive.Bytes())
+	d.createAndAddLogEntry(contractCallInput, actualUserUnBond.Bytes(), activeFund.Bytes(), numUsers.Bytes(), globalFund.TotalActive.Bytes())
 }
 
 func (d *delegation) createAndAddLogEntryForDelegate(

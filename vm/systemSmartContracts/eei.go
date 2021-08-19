@@ -28,8 +28,7 @@ type vmContext struct {
 
 	returnMessage string
 	output        [][]byte
-
-	logs []*vmcommon.LogEntry
+	logs          []*vmcommon.LogEntry
 }
 
 // NewVMContext creates a context where smart contracts can run and write
