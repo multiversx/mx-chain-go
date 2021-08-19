@@ -1,7 +1,6 @@
 package bootstrap
 
 import (
-	"encoding/json"
 	"fmt"
 	"strconv"
 
@@ -17,7 +16,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
-	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -291,7 +289,7 @@ func (ssh *shardStorageHandler) saveTriggerRegistry(components *ComponentsNeeded
 		return nil, err
 	}
 
-	triggerReg := shardchain.TriggerRegistry{
+	triggerReg := block.ShardTriggerRegistry{
 		Epoch:                       shardHeader.GetEpoch(),
 		MetaEpoch:                   metaBlock.GetEpoch(),
 		CurrentRoundIndex:           int64(shardHeader.GetRound()),
@@ -306,7 +304,7 @@ func (ssh *shardStorageHandler) saveTriggerRegistry(components *ComponentsNeeded
 	bootstrapKey := []byte(fmt.Sprint(shardHeader.GetRound()))
 	trigInternalKey := append([]byte(common.TriggerRegistryKeyPrefix), bootstrapKey...)
 
-	triggerRegBytes, err := json.Marshal(&triggerReg)
+	triggerRegBytes, err := ssh.marshalizer.Marshal(&triggerReg)
 	if err != nil {
 		return nil, err
 	}

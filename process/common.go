@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"math"
 	"sort"
 
@@ -13,10 +12,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -725,7 +725,7 @@ func GetScheduledRootHashAndSCRsFromStorage(
 
 	scheduledRootHash := make([]byte, 0)
 	if len(b.Data) > 0 {
-		scheduledRootHash = b.Data[0]
+		copy(scheduledRootHash, b.Data[0])
 	}
 
 	mapScheduledSCRs := make(map[block.Type][]data.TransactionHandler)
@@ -748,60 +748,45 @@ func GetScheduledRootHashAndSCRsFromStorage(
 		for txIndex := range scheduledSCRs.TxHandlers {
 			mapScheduledSCRs[block.Type(scheduledSCRs.BlockType)][txIndex] = &scheduledSCRs.TxHandlers[txIndex]
 		}
-
-		//TODO: Remove this for
-		for txIndex := range scheduledSCRs.TxHandlers {
-			log.Debug("GetScheduledRootHashAndSCRsFromStorage: tx", "sender", mapScheduledSCRs[block.Type(scheduledSCRs.BlockType)][txIndex].GetSndAddr(), "receiver", mapScheduledSCRs[block.Type(scheduledSCRs.BlockType)][txIndex].GetRcvAddr())
-		}
 	}
 
 	return scheduledRootHash, mapScheduledSCRs, nil
 }
 
-// SetScheduledRootHashAndSCRs sets scheduled root hash and SCRs of the given header hash
-func SetScheduledRootHashAndSCRs(
+// GetScheduledRootHashAndSCRs gets scheduled root hash and SCRs of the given header hash
+func GetScheduledRootHashAndSCRs(
 	headerHash []byte,
-	defaultScheduledRootHash []byte,
-	defaultMapScheduledSCRs map[block.Type][]data.TransactionHandler,
 	storageService dataRetriever.StorageService,
 	marshalizer marshal.Marshalizer,
-	scheduledTxsExecutionHandler ScheduledTxsExecutionHandler,
-) {
+) ([]byte, map[block.Type][]data.TransactionHandler, error) {
 	scheduledRootHash, mapScheduledSCRs, err := GetScheduledRootHashAndSCRsFromStorage(headerHash, storageService, marshalizer)
 	if err != nil {
-		//TODO: Change the log level to TRACE
-		log.Debug("SetScheduledRootHashAndSCRs: given header does not have scheduled txs",
+		log.Trace("GetScheduledRootHashAndSCRs: given header does not have scheduled txs",
 			"header hash", headerHash,
 		)
 
-		scheduledTxsExecutionHandler.SetScheduledRootHash(defaultScheduledRootHash)
-		scheduledTxsExecutionHandler.SetScheduledSCRs(defaultMapScheduledSCRs)
-
-		return
+		return nil, nil, err
 	}
 
-	scheduledTxsExecutionHandler.SetScheduledRootHash(scheduledRootHash)
-	scheduledTxsExecutionHandler.SetScheduledSCRs(mapScheduledSCRs)
+	return scheduledRootHash, mapScheduledSCRs, nil
 }
 
 // GetScheduledRootHash gets scheduled root hash of the given header hash
 func GetScheduledRootHash(
 	headerHash []byte,
-	defaultScheduledRootHash []byte,
 	storageService dataRetriever.StorageService,
 	marshalizer marshal.Marshalizer,
-) []byte {
+) ([]byte, error) {
 	scheduledRootHash, _, err := GetScheduledRootHashAndSCRsFromStorage(headerHash, storageService, marshalizer)
 	if err != nil {
-		//TODO: Change the log level to TRACE
-		log.Debug("GetScheduledRootHash: given header does not have scheduled txs",
+		log.Trace("GetScheduledRootHash: given header does not have scheduled txs",
 			"header hash", headerHash,
 		)
 
-		return defaultScheduledRootHash
+		return nil, err
 	}
 
-	return scheduledRootHash
+	return scheduledRootHash, nil
 }
 
 // CreateShardHeader creates a shard header from the given byte array

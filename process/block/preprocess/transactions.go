@@ -310,12 +310,6 @@ func (txs *transactions) computeTxsToMe(body *block.Body) ([]*txcache.WrappedTra
 				miniBlock.ReceiverShardID)
 		}
 
-		//TODO: Remove this if when processing of scheduled mini blocks will be done in the source shard
-		//if miniBlock.IsScheduledMiniBlock() {
-		//	log.Warn("computeTxsToMe: execution of scheduled mini blocks should be skipped for now")
-		//	continue
-		//}
-
 		txsFromMiniBlock, err := txs.computeTxsFromMiniBlock(miniBlock)
 		if err != nil {
 			return nil, err
@@ -1207,11 +1201,6 @@ func (txs *transactions) ProcessMiniBlock(
 	}
 
 	numOfOldCrossInterMbs, numOfOldCrossInterTxs := getNumOfCrossInterMbsAndTxs()
-
-	//TODO: Remove this if when processing of scheduled mini blocks will be done in the source shard
-	//if miniBlock.IsScheduledMiniBlock() {
-	//	log.Warn("ProcessMiniBlock: execution of scheduled mini blocks should be skipped for now")
-	//}
 
 	for index := range miniBlockTxs {
 		if !haveTime() {

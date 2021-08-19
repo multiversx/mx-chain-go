@@ -1,12 +1,12 @@
 package bootstrap
 
 import (
-	"encoding/json"
 	"fmt"
 	"strconv"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
@@ -15,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
-	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -201,13 +200,17 @@ func (msh *metaStorageHandler) saveLastHeader(metaBlock data.HeaderHandler) (boo
 }
 
 func (msh *metaStorageHandler) saveTriggerRegistry(components *ComponentsNeededForBootstrap) ([]byte, error) {
-	metaBlock := components.EpochStartMetaBlock
+	metaBlock, ok := components.EpochStartMetaBlock.(*block.MetaBlock)
+	if !ok {
+		return nil, epochStart.ErrWrongTypeAssertion
+	}
+
 	hash, err := core.CalculateHash(msh.marshalizer, msh.hasher, metaBlock)
 	if err != nil {
 		return nil, err
 	}
 
-	triggerReg := metachain.TriggerRegistry{
+	triggerReg := block.MetaTriggerRegistry{
 		Epoch:                       metaBlock.GetEpoch(),
 		CurrentRound:                metaBlock.GetRound(),
 		EpochFinalityAttestingRound: metaBlock.GetRound(),
@@ -220,7 +223,7 @@ func (msh *metaStorageHandler) saveTriggerRegistry(components *ComponentsNeededF
 	bootstrapKey := []byte(fmt.Sprint(metaBlock.GetRound()))
 	trigInternalKey := append([]byte(common.TriggerRegistryKeyPrefix), bootstrapKey...)
 
-	triggerRegBytes, err := json.Marshal(&triggerReg)
+	triggerRegBytes, err := msh.marshalizer.Marshal(&triggerReg)
 	if err != nil {
 		return nil, err
 	}

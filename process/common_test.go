@@ -3,14 +3,14 @@ package process_test
 import (
 	"bytes"
 	"errors"
-	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
+	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -1894,7 +1894,6 @@ func TestSortHeadersByNonceShouldWork(t *testing.T) {
 	assert.Equal(t, uint64(3), headers[2].GetNonce())
 }
 
-//TODO: Add unit tests for SetScheduledSCRs method
 func TestSetScheduledSCRsShouldWork(t *testing.T) {
 	mapScheduledSCRs := make(map[block.Type][]data.TransactionHandler)
 	scheduledSCRs := &scheduled.ScheduledSCRs{}
@@ -1913,3 +1912,5 @@ func TestSetScheduledSCRsShouldWork(t *testing.T) {
 	assert.Equal(t, uint64(2), mapScheduledSCRs[block.Type(scheduledSCRs.BlockType)][1].GetNonce())
 	assert.Equal(t, uint64(3), mapScheduledSCRs[block.Type(scheduledSCRs.BlockType)][2].GetNonce())
 }
+
+//TODO: Add unit tests for GetScheduledRootHashAndSCRsFromStorage, GetScheduledRootHashAndSCRs and GetScheduledRootHash methods

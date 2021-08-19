@@ -231,7 +231,7 @@ func (mp *metaProcessor) ProcessBlock(
 
 	defer func() {
 		if err != nil {
-			mp.RevertAccountState()
+			mp.RevertCurrentBlock()
 		}
 	}()
 
@@ -1116,7 +1116,7 @@ func (mp *metaProcessor) CommitBlock(
 	var err error
 	defer func() {
 		if err != nil {
-			mp.RevertAccountState()
+			mp.RevertCurrentBlock()
 		}
 	}()
 
@@ -1357,9 +1357,9 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.MetaHeaderHandler, lastM
 
 	mp.validatorStatisticsProcessor.SetLastFinalizedRootHash(lastMetaBlock.GetValidatorStatsRootHash())
 
-	prevHeaderHash := lastMetaBlock.GetPrevHash()
-	prevHeader, errNotCritical := process.GetMetaHeader(
-		prevHeaderHash,
+	prevMetaBlockHash := lastMetaBlock.GetPrevHash()
+	prevMetaBlock, errNotCritical := process.GetMetaHeader(
+		prevMetaBlockHash,
 		mp.dataPool.Headers(),
 		mp.marshalizer,
 		mp.store,
@@ -1369,12 +1369,12 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.MetaHeaderHandler, lastM
 		return
 	}
 
-	lastMetaBlockRootHash := process.GetScheduledRootHash(lastMetaBlockHash, lastMetaBlock.GetRootHash(), mp.store, mp.marshalizer)
-	prevHeaderRootHash := process.GetScheduledRootHash(prevHeaderHash, prevHeader.GetRootHash(), mp.store, mp.marshalizer)
-
 	if lastMetaBlock.IsStartOfEpochBlock() {
-		log.Debug("trie snapshot", "rootHash", lastMetaBlock.GetRootHash(), "scheduledRootHash", lastMetaBlockRootHash)
-		mp.accountsDB[state.UserAccountsState].SnapshotState(lastMetaBlockRootHash)
+		log.Debug("trie snapshot",
+			"rootHash", lastMetaBlock.GetRootHash(),
+			"prevRootHash", prevMetaBlock.GetRootHash(),
+			"validatorStatsRootHash", lastMetaBlock.GetValidatorStatsRootHash())
+		mp.accountsDB[state.UserAccountsState].SnapshotState(lastMetaBlock.GetRootHash())
 		mp.accountsDB[state.PeerAccountsState].SnapshotState(lastMetaBlock.GetValidatorStatsRootHash())
 		go func() {
 			metaBlock, ok := lastMetaBlock.(*block.MetaBlock)
@@ -1382,7 +1382,7 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.MetaHeaderHandler, lastM
 				log.Warn("cannot commit Trie Epoch Root Hash: lastMetaBlock is not *block.MetaBlock")
 				return
 			}
-			err := mp.commitTrieEpochRootHashIfNeeded(metaBlock, lastMetaBlockRootHash)
+			err := mp.commitTrieEpochRootHashIfNeeded(metaBlock, lastMetaBlock.GetRootHash())
 			if err != nil {
 				log.Warn("couldn't commit trie checkpoint", "epoch", metaBlock.Epoch, "error", err)
 			}
@@ -1391,8 +1391,8 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.MetaHeaderHandler, lastM
 
 	mp.updateStateStorage(
 		lastMetaBlock,
-		lastMetaBlockRootHash,
-		prevHeaderRootHash,
+		lastMetaBlock.GetRootHash(),
+		prevMetaBlock.GetRootHash(),
 		mp.accountsDB[state.UserAccountsState],
 		mp.userStatePruningQueue,
 	)
@@ -1400,7 +1400,7 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.MetaHeaderHandler, lastM
 	mp.updateStateStorage(
 		lastMetaBlock,
 		lastMetaBlock.GetValidatorStatsRootHash(),
-		prevHeader.GetValidatorStatsRootHash(),
+		prevMetaBlock.GetValidatorStatsRootHash(),
 		mp.accountsDB[state.PeerAccountsState],
 		mp.peerStatePruningQueue,
 	)
