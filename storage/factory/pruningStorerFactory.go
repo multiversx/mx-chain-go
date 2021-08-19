@@ -250,12 +250,14 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	store.AddStorer(dataRetriever.ReceiptsUnit, receiptsUnit)
 	store.AddStorer(dataRetriever.TrieEpochRootHashUnit, trieEpochRootHashStorageUnit)
 
-	err = psf.setupDbLookupExtensions(store, &successfullyCreatedStorers)
+	createdStorers, err := psf.setupDbLookupExtensions(store)
+	successfullyCreatedStorers = append(successfullyCreatedStorers, createdStorers...)
 	if err != nil {
 		return nil, err
 	}
 
-	err = psf.setupLogsAndEventsStorer(store, &successfullyCreatedStorers)
+	createdStorers, err = psf.setupLogsAndEventsStorer(store)
+	successfullyCreatedStorers = append(successfullyCreatedStorers, createdStorers...)
 	if err != nil {
 		return nil, err
 	}
@@ -429,12 +431,14 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	store.AddStorer(dataRetriever.ReceiptsUnit, receiptsUnit)
 	store.AddStorer(dataRetriever.TrieEpochRootHashUnit, trieEpochRootHashStorageUnit)
 
-	err = psf.setupDbLookupExtensions(store, &successfullyCreatedStorers)
+	createdStorers, err := psf.setupDbLookupExtensions(store)
+	successfullyCreatedStorers = append(successfullyCreatedStorers, createdStorers...)
 	if err != nil {
 		return nil, err
 	}
 
-	err = psf.setupLogsAndEventsStorer(store, &successfullyCreatedStorers)
+	createdStorers, err = psf.setupLogsAndEventsStorer(store)
+	successfullyCreatedStorers = append(successfullyCreatedStorers, createdStorers...)
 	if err != nil {
 		return nil, err
 	}
@@ -447,30 +451,34 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	return store, err
 }
 
-func (psf *StorageServiceFactory) setupLogsAndEventsStorer(chainStorer *dataRetriever.ChainStorer, createdStorers *[]storage.Storer) error {
+func (psf *StorageServiceFactory) setupLogsAndEventsStorer(chainStorer *dataRetriever.ChainStorer) ([]storage.Storer, error) {
+	createdStorers := make([]storage.Storer, 0)
+
 	// Should not create logs and events storer in the next case:
 	// - LogsAndEvents.Enabled = false and DbLookupExtensions.Enabled = false
 	// If we have DbLookupExtensions ACTIVE node by default should save logs no matter if is enabled or not
 	shouldCreateStorer := psf.generalConfig.LogsAndEvents.SaveInStorageEnabled || psf.generalConfig.DbLookupExtensions.Enabled
 	if !shouldCreateStorer {
-		return nil
+		return createdStorers, nil
 	}
 
 	txLogsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.LogsAndEvents.TxLogsStorage)
 	txLogsUnit, err := psf.createPruningPersister(txLogsUnitArgs)
 	if err != nil {
-		return err
+		return createdStorers, err
 	}
 
-	*createdStorers = append(*createdStorers, txLogsUnit)
+	createdStorers = append(createdStorers, txLogsUnit)
 	chainStorer.AddStorer(dataRetriever.TxLogsUnit, txLogsUnit)
 
-	return nil
+	return createdStorers, nil
 }
 
-func (psf *StorageServiceFactory) setupDbLookupExtensions(chainStorer *dataRetriever.ChainStorer, createdStorers *[]storage.Storer) error {
+func (psf *StorageServiceFactory) setupDbLookupExtensions(chainStorer *dataRetriever.ChainStorer) ([]storage.Storer, error) {
+	createdStorers := make([]storage.Storer, 0)
+
 	if !psf.generalConfig.DbLookupExtensions.Enabled {
-		return nil
+		return createdStorers, nil
 	}
 
 	shardID := core.GetShardIDString(psf.shardCoordinator.SelfId())
@@ -480,10 +488,10 @@ func (psf *StorageServiceFactory) setupDbLookupExtensions(chainStorer *dataRetri
 	eventsHashesByTxHashStorerArgs := psf.createPruningStorerArgs(eventsHashesByTxHashConfig)
 	eventsHashesByTxHashPruningStorer, err := psf.createPruningPersister(eventsHashesByTxHashStorerArgs)
 	if err != nil {
-		return err
+		return createdStorers, err
 	}
 
-	*createdStorers = append(*createdStorers, eventsHashesByTxHashPruningStorer)
+	createdStorers = append(createdStorers, eventsHashesByTxHashPruningStorer)
 	chainStorer.AddStorer(dataRetriever.ResultsHashesByTxHashUnit, eventsHashesByTxHashPruningStorer)
 
 	// Create the miniblocksMetadata (PRUNING) storer
@@ -491,10 +499,10 @@ func (psf *StorageServiceFactory) setupDbLookupExtensions(chainStorer *dataRetri
 	miniblocksMetadataPruningStorerArgs := psf.createPruningStorerArgs(miniblocksMetadataConfig)
 	miniblocksMetadataPruningStorer, err := psf.createPruningPersister(miniblocksMetadataPruningStorerArgs)
 	if err != nil {
-		return err
+		return createdStorers, err
 	}
 
-	*createdStorers = append(*createdStorers, miniblocksMetadataPruningStorer)
+	createdStorers = append(createdStorers, miniblocksMetadataPruningStorer)
 	chainStorer.AddStorer(dataRetriever.MiniblocksMetadataUnit, miniblocksMetadataPruningStorer)
 
 	// Create the miniblocksHashByTxHash (STATIC) storer
@@ -505,10 +513,10 @@ func (psf *StorageServiceFactory) setupDbLookupExtensions(chainStorer *dataRetri
 	miniblockHashByTxHashBloomFilter := GetBloomFromConfig(miniblockHashByTxHashConfig.Bloom)
 	miniblockHashByTxHashUnit, err := storageUnit.NewStorageUnitFromConf(miniblockHashByTxHashCacherConfig, miniblockHashByTxHashDbConfig, miniblockHashByTxHashBloomFilter)
 	if err != nil {
-		return err
+		return createdStorers, err
 	}
 
-	*createdStorers = append(*createdStorers, miniblockHashByTxHashUnit)
+	createdStorers = append(createdStorers, miniblockHashByTxHashUnit)
 	chainStorer.AddStorer(dataRetriever.MiniblockHashByTxHashUnit, miniblockHashByTxHashUnit)
 
 	// Create the epochByHash (STATIC) storer
@@ -519,13 +527,13 @@ func (psf *StorageServiceFactory) setupDbLookupExtensions(chainStorer *dataRetri
 	epochByHashBloomFilter := GetBloomFromConfig(epochByHashConfig.Bloom)
 	epochByHashUnit, err := storageUnit.NewStorageUnitFromConf(epochByHashCacherConfig, epochByHashDbConfig, epochByHashBloomFilter)
 	if err != nil {
-		return err
+		return createdStorers, err
 	}
 
-	*createdStorers = append(*createdStorers, epochByHashUnit)
+	createdStorers = append(createdStorers, epochByHashUnit)
 	chainStorer.AddStorer(dataRetriever.EpochByHashUnit, epochByHashUnit)
 
-	return nil
+	return createdStorers, nil
 }
 
 func (psf *StorageServiceFactory) createPruningStorerArgs(storageConfig config.StorageConfig) *pruning.StorerArgs {

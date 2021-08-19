@@ -606,9 +606,9 @@ func (wrk *Worker) Extend(subroundId int) {
 		time.Sleep(time.Millisecond)
 	}
 
-	log.Debug("account state is reverted to snapshot")
-
 	wrk.blockProcessor.RevertAccountState(wrk.consensusState.Header)
+
+	log.Debug("account state is reverted to snapshot")
 }
 
 // DisplayStatistics logs the consensus messages split on proposed headers
