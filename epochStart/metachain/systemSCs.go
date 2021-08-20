@@ -1120,14 +1120,14 @@ func (s *systemSCProcessor) initTokenOnMeta() error {
 			Arguments:  [][]byte{},
 		},
 		RecipientAddr: vm.ESDTSCAddress,
-		Function:      "initNFTOnMeta",
+		Function:      "initDelegationESDTOnMeta",
 	}
 	vmOutput, errRun := s.systemVM.RunSmartContractCall(vmInput)
 	if errRun != nil {
 		return fmt.Errorf("%w when setting up NFTs on metachain", errRun)
 	}
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		return fmt.Errorf("got return code %s when setting up NFTs on metachain", vmOutput.ReturnCode)
+		return fmt.Errorf("got return code %s, return message %s when setting up NFTs on metachain", vmOutput.ReturnCode, vmOutput.ReturnMessage)
 	}
 
 	err := s.processSCOutputAccounts(vmOutput)
