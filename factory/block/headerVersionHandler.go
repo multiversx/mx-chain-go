@@ -140,7 +140,7 @@ func (hvh *headerVersionHandler) setInCache(epoch uint32, version string) {
 // Verify will check the header's fields such as the chain ID or the software version
 func (hvh *headerVersionHandler) Verify(hdr data.HeaderHandler) error {
 	if len(hdr.GetReserved()) > 0 {
-		return process.ErrReservedFieldNotSupportedYet
+		return process.ErrReservedFieldInvalid
 	}
 
 	return hvh.checkSoftwareVersion(hdr)

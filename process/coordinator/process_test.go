@@ -220,7 +220,6 @@ func createMockTransactionCoordinatorArguments() ArgTransactionCoordinator {
 		EconomicsFee:                      &mock.FeeHandlerStub{},
 		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
-		ScheduledMiniBlocksEnableEpoch:    2,
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 
@@ -1600,7 +1599,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 	haveTime := func() time.Duration {
 		return time.Second
 	}
-	err = tc.ProcessBlockTransaction(&block.Body{}, &block.Header{}, haveTime)
+	err = tc.ProcessBlockTransaction(&block.Header{}, &block.Body{}, haveTime)
 	assert.Nil(t, err)
 
 	body := &block.Body{}
@@ -1608,19 +1607,19 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 
 	tc.RequestBlockTransactions(body)
-	err = tc.ProcessBlockTransaction(body, &block.Header{}, haveTime)
+	err = tc.ProcessBlockTransaction(&block.Header{}, body, haveTime)
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 
 	noTime := func() time.Duration {
 		return 0
 	}
-	err = tc.ProcessBlockTransaction(body, &block.Header{}, noTime)
+	err = tc.ProcessBlockTransaction(&block.Header{}, body, noTime)
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 
 	txHashToAsk := []byte("tx_hashnotinPool")
 	miniBlock = &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHashToAsk}}
 	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
-	err = tc.ProcessBlockTransaction(body, &block.Header{}, haveTime)
+	err = tc.ProcessBlockTransaction(&block.Header{}, body, haveTime)
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 }
 
@@ -1640,7 +1639,7 @@ func TestTransactionCoordinator_ProcessBlockTransaction(t *testing.T) {
 	haveTime := func() time.Duration {
 		return time.Second
 	}
-	err = tc.ProcessBlockTransaction(&block.Body{}, &block.Header{}, haveTime)
+	err = tc.ProcessBlockTransaction(&block.Header{}, &block.Body{}, haveTime)
 	assert.Nil(t, err)
 
 	body := &block.Body{}
@@ -1648,19 +1647,19 @@ func TestTransactionCoordinator_ProcessBlockTransaction(t *testing.T) {
 	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 
 	tc.RequestBlockTransactions(body)
-	err = tc.ProcessBlockTransaction(body, &block.Header{}, haveTime)
+	err = tc.ProcessBlockTransaction(&block.Header{}, body, haveTime)
 	assert.Nil(t, err)
 
 	noTime := func() time.Duration {
 		return -1
 	}
-	err = tc.ProcessBlockTransaction(body, &block.Header{}, noTime)
+	err = tc.ProcessBlockTransaction(&block.Header{}, body, noTime)
 	assert.Equal(t, process.ErrTimeIsOut, err)
 
 	txHashToAsk := []byte("tx_hashnotinPool")
 	miniBlock = &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHashToAsk}}
 	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
-	err = tc.ProcessBlockTransaction(body, &block.Header{}, haveTime)
+	err = tc.ProcessBlockTransaction(&block.Header{}, body, haveTime)
 	assert.Equal(t, process.ErrMissingTransaction, err)
 }
 
@@ -2448,7 +2447,6 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldReturnWhenEpochIsNo
 		EconomicsFee:                      &mock.FeeHandlerStub{},
 		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 1,
-		ScheduledMiniBlocksEnableEpoch:    2,
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -2490,7 +2488,6 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxGasLimitPerMi
 		},
 		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
-		ScheduledMiniBlocksEnableEpoch:    2,
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 
@@ -2551,7 +2548,6 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxAccumulatedFe
 		},
 		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
-		ScheduledMiniBlocksEnableEpoch:    2,
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 
@@ -2618,7 +2614,6 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxDeveloperFees
 		},
 		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
-		ScheduledMiniBlocksEnableEpoch:    2,
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 
@@ -2685,7 +2680,6 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldWork(t *testing.T) 
 		},
 		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
-		ScheduledMiniBlocksEnableEpoch:    2,
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 
@@ -2741,7 +2735,6 @@ func TestTransactionCoordinator_GetAllTransactionsShouldWork(t *testing.T) {
 		EconomicsFee:                      &mock.FeeHandlerStub{},
 		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
-		ScheduledMiniBlocksEnableEpoch:    2,
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -2818,7 +2811,6 @@ func TestTransactionCoordinator_VerifyGasLimitShouldErrMaxGasLimitPerMiniBlockIn
 		},
 		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
-		ScheduledMiniBlocksEnableEpoch:    2,
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -2905,7 +2897,6 @@ func TestTransactionCoordinator_VerifyGasLimitShouldWork(t *testing.T) {
 		},
 		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
-		ScheduledMiniBlocksEnableEpoch:    2,
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -2981,7 +2972,6 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 		EconomicsFee:                      &mock.FeeHandlerStub{},
 		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
-		ScheduledMiniBlocksEnableEpoch:    2,
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -3028,7 +3018,6 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 			},
 		},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
-		ScheduledMiniBlocksEnableEpoch:    2,
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -3082,7 +3071,6 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 			},
 		},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
-		ScheduledMiniBlocksEnableEpoch:    2,
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -3140,7 +3128,6 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 		},
 		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
-		ScheduledMiniBlocksEnableEpoch:    2,
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -3201,7 +3188,6 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 		},
 		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
-		ScheduledMiniBlocksEnableEpoch:    2,
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 
@@ -3252,7 +3238,6 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMissingTransaction(t *testing
 		EconomicsFee:                      &mock.FeeHandlerStub{},
 		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
-		ScheduledMiniBlocksEnableEpoch:    2,
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 
@@ -3307,7 +3292,6 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxAccumulatedFeesExceeded(t 
 		},
 		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
-		ScheduledMiniBlocksEnableEpoch:    2,
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 
@@ -3372,7 +3356,6 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxDeveloperFeesExceeded(t *t
 		},
 		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
-		ScheduledMiniBlocksEnableEpoch:    2,
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -3436,7 +3419,6 @@ func TestTransactionCoordinator_VerifyFeesShouldWork(t *testing.T) {
 		},
 		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
-		ScheduledMiniBlocksEnableEpoch:    2,
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -3494,7 +3476,6 @@ func TestTransactionCoordinator_GetMaxAccumulatedAndDeveloperFeesShouldErr(t *te
 		EconomicsFee:                      &mock.FeeHandlerStub{},
 		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
-		ScheduledMiniBlocksEnableEpoch:    2,
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -3543,7 +3524,6 @@ func TestTransactionCoordinator_GetMaxAccumulatedAndDeveloperFeesShouldWork(t *t
 		},
 		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
-		ScheduledMiniBlocksEnableEpoch:    2,
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)

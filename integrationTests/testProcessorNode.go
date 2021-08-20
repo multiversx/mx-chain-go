@@ -1525,7 +1525,6 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		EconomicsFee:                      tpn.EconomicsData,
 		TxTypeHandler:                     txTypeHandler,
 		BlockGasAndFeesReCheckEnableEpoch: tpn.EnableEpochs.BlockGasAndFeesReCheckEnableEpoch,
-		ScheduledMiniBlocksEnableEpoch:    tpn.EnableEpochs.ScheduledMiniBlocksEnableEpoch,
 		TransactionsLogProcessor:          tpn.TransactionLogProcessor,
 	}
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
@@ -1751,7 +1750,6 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		EconomicsFee:                      tpn.EconomicsData,
 		TxTypeHandler:                     txTypeHandler,
 		BlockGasAndFeesReCheckEnableEpoch: tpn.EnableEpochs.BlockGasAndFeesReCheckEnableEpoch,
-		ScheduledMiniBlocksEnableEpoch:    tpn.EnableEpochs.ScheduledMiniBlocksEnableEpoch,
 		TransactionsLogProcessor:          tpn.TransactionLogProcessor,
 	}
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(argsTransactionCoordinator)

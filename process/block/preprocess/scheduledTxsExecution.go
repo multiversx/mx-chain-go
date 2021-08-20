@@ -285,6 +285,15 @@ func (ste *scheduledTxsExecution) HaveScheduledTxs() bool {
 	return numScheduledTxs > 0
 }
 
+// IsScheduledTx returns true if the given txHash was scheduled for execution for the current block
+func (ste *scheduledTxsExecution) IsScheduledTx(txHash []byte) bool {
+	ste.mutScheduledTxs.RLock()
+	_, ok := ste.mapScheduledTxs[string(txHash)]
+	ste.mutScheduledTxs.RUnlock()
+
+	return ok
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (ste *scheduledTxsExecution) IsInterfaceNil() bool {
 	return ste == nil

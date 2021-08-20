@@ -45,7 +45,7 @@ func (hdrIntVer *headerIntegrityVerifier) GetVersion(epoch uint32) string {
 // Verify will check the header's fields such as the chain ID or the software version
 func (hdrIntVer *headerIntegrityVerifier) Verify(hdr data.HeaderHandler) error {
 	if len(hdr.GetReserved()) > 0 {
-		return process.ErrReservedFieldNotSupportedYet
+		return process.ErrReservedFieldInvalid
 	}
 
 	err := hdrIntVer.headerVersionHandler.Verify(hdr)

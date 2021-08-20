@@ -61,7 +61,7 @@ func (txCoordinator *TxCoordinator) RemoveTxsFromPool(_ *block.Body) error {
 }
 
 // ProcessBlockTransaction does nothing as it is disabled
-func (txCoordinator *TxCoordinator) ProcessBlockTransaction(_ *block.Body, _ data.HeaderHandler, _ func() time.Duration) error {
+func (txCoordinator *TxCoordinator) ProcessBlockTransaction(_ data.HeaderHandler, _ *block.Body, _ func() time.Duration) error {
 	return nil
 }
 

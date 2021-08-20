@@ -398,7 +398,6 @@ func createMockTransactionCoordinatorArguments(
 		EconomicsFee:                      &mock.FeeHandlerStub{},
 		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
-		ScheduledMiniBlocksEnableEpoch:    2,
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 

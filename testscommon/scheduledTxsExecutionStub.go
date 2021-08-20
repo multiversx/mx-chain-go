@@ -21,6 +21,7 @@ type ScheduledTxsExecutionStub struct {
 	SetTransactionProcessorCalled   func(process.TransactionProcessor)
 	SetTransactionCoordinatorCalled func(process.TransactionCoordinator)
 	HaveScheduledTxsCalled          func() bool
+	IsScheduledTxCalled             func([]byte) bool
 }
 
 // Init -
@@ -105,6 +106,14 @@ func (stes *ScheduledTxsExecutionStub) HaveScheduledTxs() bool {
 		return stes.HaveScheduledTxsCalled()
 	}
 
+	return false
+}
+
+// IsScheduledTx -
+func (stes *ScheduledTxsExecutionStub) IsScheduledTx(txHash []byte) bool {
+	if stes.IsScheduledTxCalled != nil {
+		return stes.IsScheduledTxCalled(txHash)
+	}
 	return false
 }
 

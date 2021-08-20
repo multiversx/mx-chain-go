@@ -138,7 +138,7 @@ type TransactionCoordinator interface {
 	RemoveBlockDataFromPool(body *block.Body) error
 	RemoveTxsFromPool(body *block.Body) error
 
-	ProcessBlockTransaction(body *block.Body, header data.HeaderHandler, haveTime func() time.Duration) error
+	ProcessBlockTransaction(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) error
 
 	CreateBlockStarted()
 	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, haveTime func() bool, scheduledMode bool) (block.MiniBlockSlice, uint32, bool, error)
@@ -211,7 +211,7 @@ type PreProcessor interface {
 	RestoreBlockDataIntoPools(body *block.Body, miniBlockPool storage.Cacher) (int, error)
 	SaveTxsToStorage(body *block.Body) error
 
-	ProcessBlockTransactions(body *block.Body, haveTime func() bool, scheduledMode bool) error
+	ProcessBlockTransactions(header data.HeaderHandler, body *block.Body, haveTime func() bool) error
 	RequestBlockTransactions(body *block.Body) int
 
 	RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int
@@ -1117,5 +1117,6 @@ type ScheduledTxsExecutionHandler interface {
 	SetTransactionProcessor(txProcessor TransactionProcessor)
 	SetTransactionCoordinator(txCoordinator TransactionCoordinator)
 	HaveScheduledTxs() bool
+	IsScheduledTx(txHash []byte) bool
 	IsInterfaceNil() bool
 }
