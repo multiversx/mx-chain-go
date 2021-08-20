@@ -18,7 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 )
 
-var log = logger.GetOrCreate("common/dblookupext")
+var log = logger.GetOrCreate("dblookupext")
 
 const sizeOfDeduplicationCache = 1000
 
