@@ -491,13 +491,32 @@ func TestCheckMiniblocks_ReservedPopulatedShouldErr(t *testing.T) {
 		ReceiverShardID: shardCoordinator.SelfId(),
 		TxCount:         0,
 		Type:            0,
-		Reserved:        []byte("r"),
+		Reserved:        []byte("rr"),
 	}
 
 	err := checkMiniblocks([]data.MiniBlockHeaderHandler{&miniblockHeader}, shardCoordinator)
 
 	assert.Equal(t, process.ErrReservedFieldInvalid, err)
 }
+
+func TestCheckMiniblocks_ReservedPopulatedCorrectly(t *testing.T) {
+	t.Parallel()
+
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	miniblockHeader := block.MiniBlockHeader{
+		Hash:            make([]byte, 0),
+		SenderShardID:   shardCoordinator.SelfId(),
+		ReceiverShardID: shardCoordinator.SelfId(),
+		TxCount:         0,
+		Type:            0,
+		Reserved:        []byte("r"),
+	}
+
+	err := checkMiniblocks([]data.MiniBlockHeaderHandler{&miniblockHeader}, shardCoordinator)
+
+	assert.Nil(t, err)
+}
+
 
 func TestCheckMiniblocks_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
