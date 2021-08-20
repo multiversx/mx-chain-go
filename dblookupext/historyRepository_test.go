@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/common/mock"
+	"github.com/ElrondNetwork/elrond-go/dblookupext/esdtSupply"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/stretchr/testify/assert"
@@ -16,6 +17,8 @@ import (
 )
 
 func createMockHistoryRepoArgs(epoch uint32) HistoryRepositoryArguments {
+	sp, _ := esdtSupply.NewSuppliesProcessor(&mock.MarshalizerMock{}, &testscommon.StorerStub{}, &testscommon.StorerStub{})
+
 	args := HistoryRepositoryArguments{
 		SelfShardID:                 0,
 		MiniblocksMetadataStorer:    genericMocks.NewStorerMock("MiniblocksMetadata", epoch),
@@ -24,6 +27,7 @@ func createMockHistoryRepoArgs(epoch uint32) HistoryRepositoryArguments {
 		EventsHashesByTxHashStorer:  genericMocks.NewStorerMock("EventsHashesByTxHash", epoch),
 		Marshalizer:                 &mock.MarshalizerMock{},
 		Hasher:                      &mock.HasherMock{},
+		ESDTSuppliesHandler:         sp,
 	}
 
 	return args
