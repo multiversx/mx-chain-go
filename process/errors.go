@@ -306,7 +306,7 @@ var ErrLowerNonceInBlock = errors.New("lower nonce in block")
 var ErrHigherNonceInBlock = errors.New("higher nonce in block")
 
 // ErrRandSeedDoesNotMatch signals that random seed does not match with the previous one
-var ErrRandSeedDoesNotMatch = errors.New("random seed do not match")
+var ErrRandSeedDoesNotMatch = errors.New("random seed does not match")
 
 // ErrHeaderNotFinal signals that header is not final and it should be
 var ErrHeaderNotFinal = errors.New("header in metablock is not final")
@@ -1000,3 +1000,6 @@ var ErrNilTxMaxTotalCostHandler = errors.New("nil transaction max total cost")
 
 // ErrNilAccountTxsPerShard signals a nil mapping for account transactions to shard
 var ErrNilAccountTxsPerShard = errors.New("nil account transactions per shard mapping")
+
+// ErrScheduledRootHashDoesNotMatch signals that scheduled root hash does not match
+var ErrScheduledRootHashDoesNotMatch = errors.New("scheduled root hash does not match")

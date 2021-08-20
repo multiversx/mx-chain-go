@@ -219,6 +219,7 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 	_ data.HeaderHandler,
 	body *block.Body,
 	haveTime func() bool,
+	_ bool,
 ) error {
 	if check.IfNil(body) {
 		return process.ErrNilBlockBody
@@ -438,7 +439,7 @@ func (scr *smartContractResults) CreateAndProcessMiniBlocks(_ func() bool) (bloc
 }
 
 // ProcessMiniBlock processes all the smartContractResults from a and saves the processed smartContractResults in local cache complete miniblock
-func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, _ func() (int, int)) ([][]byte, int, error) {
+func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, _ func() (int, int), _ bool) ([][]byte, int, error) {
 
 	if miniBlock.Type != block.SmartContractResultBlock {
 		return nil, 0, process.ErrWrongTypeInMiniBlock
@@ -476,16 +477,17 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 			return processedTxHashes, 0, err
 		}
 
-		err = scr.computeGasConsumed(
+		gasConsumedByTxInSelfShard, errComputeGas := scr.computeGasConsumed(
 			miniBlock.SenderShardID,
 			miniBlock.ReceiverShardID,
 			miniBlockScrs[index],
 			miniBlockTxHashes[index],
 			&gasInfo)
-		if err != nil {
-			return processedTxHashes, 0, err
+		if errComputeGas != nil {
+			return processedTxHashes, 0, errComputeGas
 		}
 
+		scr.gasHandler.SetGasConsumed(gasConsumedByTxInSelfShard, miniBlockTxHashes[index])
 		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[index])
 	}
 

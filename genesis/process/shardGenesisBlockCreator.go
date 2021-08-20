@@ -60,7 +60,7 @@ func createGenesisConfig() config.EnableEpochs {
 		RelayedTransactionsV2EnableEpoch:            unreachableEpoch,
 		BuiltInFunctionOnMetaEnableEpoch:            unreachableEpoch,
 		IncrementSCRNonceInMultiTransferEnableEpoch: unreachableEpoch,
-		ScheduledMiniBlocksEnableEpoch:         unreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:              unreachableEpoch,
 	}
 }
 
@@ -525,6 +525,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		EconomicsFee:                      genesisFeeHandler,
 		TxTypeHandler:                     txTypeHandler,
 		BlockGasAndFeesReCheckEnableEpoch: enableEpochs.BlockGasAndFeesReCheckEnableEpoch,
+		ScheduledMiniBlocksEnableEpoch:    enableEpochs.ScheduledMiniBlocksEnableEpoch,
 		TransactionsLogProcessor:          arg.TxLogsProcessor,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)

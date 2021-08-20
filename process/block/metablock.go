@@ -85,38 +85,39 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 
 	genesisHdr := arguments.DataComponents.Blockchain().GetGenesisHeader()
 	base := &baseProcessor{
-		accountsDB:                    arguments.AccountsDB,
-		blockSizeThrottler:            arguments.BlockSizeThrottler,
-		forkDetector:                  arguments.ForkDetector,
-		hasher:                        arguments.CoreComponents.Hasher(),
-		marshalizer:                   arguments.CoreComponents.InternalMarshalizer(),
-		store:                         arguments.DataComponents.StorageService(),
-		shardCoordinator:              arguments.BootstrapComponents.ShardCoordinator(),
-		feeHandler:                    arguments.FeeHandler,
-		nodesCoordinator:              arguments.NodesCoordinator,
-		uint64Converter:               arguments.CoreComponents.Uint64ByteSliceConverter(),
-		requestHandler:                arguments.RequestHandler,
-		appStatusHandler:              arguments.CoreComponents.StatusHandler(),
-		blockChainHook:                arguments.BlockChainHook,
-		txCoordinator:                 arguments.TxCoordinator,
-		epochStartTrigger:             arguments.EpochStartTrigger,
-		headerValidator:               arguments.HeaderValidator,
-		roundHandler:                  arguments.CoreComponents.RoundHandler(),
-		bootStorer:                    arguments.BootStorer,
-		blockTracker:                  arguments.BlockTracker,
-		dataPool:                      arguments.DataComponents.Datapool(),
-		blockChain:                    arguments.DataComponents.Blockchain(),
-		stateCheckpointModulus:        arguments.Config.StateTriesConfig.CheckpointRoundsModulus,
-		outportHandler:                arguments.StatusComponents.OutportHandler(),
-		genesisNonce:                  genesisHdr.GetNonce(),
-		versionedHeaderFactory:        arguments.BootstrapComponents.VersionedHeaderFactory(),
-		headerIntegrityVerifier:       arguments.BootstrapComponents.HeaderIntegrityVerifier(),
-		historyRepo:                   arguments.HistoryRepository,
-		epochNotifier:                 arguments.EpochNotifier,
-		vmContainerFactory:            arguments.VMContainersFactory,
-		vmContainer:                   arguments.VmContainer,
-		processDataTriesOnCommitEpoch: arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
-		scheduledTxsExecutionHandler:  arguments.ScheduledTxsExecutionHandler,
+		accountsDB:                     arguments.AccountsDB,
+		blockSizeThrottler:             arguments.BlockSizeThrottler,
+		forkDetector:                   arguments.ForkDetector,
+		hasher:                         arguments.CoreComponents.Hasher(),
+		marshalizer:                    arguments.CoreComponents.InternalMarshalizer(),
+		store:                          arguments.DataComponents.StorageService(),
+		shardCoordinator:               arguments.BootstrapComponents.ShardCoordinator(),
+		feeHandler:                     arguments.FeeHandler,
+		nodesCoordinator:               arguments.NodesCoordinator,
+		uint64Converter:                arguments.CoreComponents.Uint64ByteSliceConverter(),
+		requestHandler:                 arguments.RequestHandler,
+		appStatusHandler:               arguments.CoreComponents.StatusHandler(),
+		blockChainHook:                 arguments.BlockChainHook,
+		txCoordinator:                  arguments.TxCoordinator,
+		epochStartTrigger:              arguments.EpochStartTrigger,
+		headerValidator:                arguments.HeaderValidator,
+		roundHandler:                   arguments.CoreComponents.RoundHandler(),
+		bootStorer:                     arguments.BootStorer,
+		blockTracker:                   arguments.BlockTracker,
+		dataPool:                       arguments.DataComponents.Datapool(),
+		blockChain:                     arguments.DataComponents.Blockchain(),
+		stateCheckpointModulus:         arguments.Config.StateTriesConfig.CheckpointRoundsModulus,
+		outportHandler:                 arguments.StatusComponents.OutportHandler(),
+		genesisNonce:                   genesisHdr.GetNonce(),
+		versionedHeaderFactory:         arguments.BootstrapComponents.VersionedHeaderFactory(),
+		headerIntegrityVerifier:        arguments.BootstrapComponents.HeaderIntegrityVerifier(),
+		historyRepo:                    arguments.HistoryRepository,
+		epochNotifier:                  arguments.EpochNotifier,
+		vmContainerFactory:             arguments.VMContainersFactory,
+		vmContainer:                    arguments.VmContainer,
+		processDataTriesOnCommitEpoch:  arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
+		scheduledTxsExecutionHandler:   arguments.ScheduledTxsExecutionHandler,
+		scheduledMiniBlocksEnableEpoch: arguments.ScheduledMiniBlocksEnableEpoch,
 	}
 
 	mp := metaProcessor{
@@ -151,6 +152,8 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	mp.shardsHeadersNonce = &sync.Map{}
 	mp.userStatePruningQueue = queue.NewSliceQueue(arguments.Config.StateTriesConfig.UserStatePruningQueueSize)
 	mp.peerStatePruningQueue = queue.NewSliceQueue(arguments.Config.StateTriesConfig.PeerStatePruningQueueSize)
+
+	mp.epochNotifier.RegisterNotifyHandler(&mp)
 
 	return &mp, nil
 }
@@ -237,7 +240,7 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	mp.blockChainHook.SetCurrentHeader(headerHandler)
+	mp.blockChainHook.SetCurrentHeader(header)
 	mp.epochStartTrigger.Update(header.GetRound(), header.GetNonce())
 
 	err = mp.checkEpochCorrectness(header)
@@ -1043,7 +1046,8 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 		currMBProcessed, currTxsAdded, hdrProcessFinished, createErr := mp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
 			currShardHdr,
 			nil,
-			haveTime)
+			haveTime,
+			false)
 
 		if createErr != nil {
 			return nil, 0, 0, createErr

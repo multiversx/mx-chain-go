@@ -31,6 +31,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-vm-common/atomic"
 )
 
 var log = logger.GetOrCreate("process/block")
@@ -90,7 +91,9 @@ type baseProcessor struct {
 	vmContainerFactory process.VirtualMachinesContainerFactory
 	vmContainer        process.VirtualMachinesContainer
 
-	processDataTriesOnCommitEpoch bool
+	processDataTriesOnCommitEpoch  bool
+	scheduledMiniBlocksEnableEpoch uint32
+	flagScheduledMiniBlocks        atomic.Flag
 }
 
 type bootStorerDataArgs struct {
@@ -186,6 +189,20 @@ func (bp *baseProcessor) checkBlockValidity(
 	// verification of epoch
 	if headerHandler.GetEpoch() < currentBlockHeader.GetEpoch() {
 		return process.ErrEpochDoesNotMatch
+	}
+
+	// verification of scheduled root hash
+	if bp.flagScheduledMiniBlocks.IsSet() {
+		additionalData := headerHandler.GetAdditionalData()
+		if !check.IfNil(additionalData) {
+			if !bytes.Equal(additionalData.GetScheduledRootHash(), bp.getRootHash()) {
+				log.Debug("scheduled root hash does not match",
+					"local scheduled root hash", bp.getRootHash(),
+					"received scheduled root hash", additionalData.GetScheduledRootHash())
+
+				return process.ErrScheduledRootHashDoesNotMatch
+			}
+		}
 	}
 
 	return nil
@@ -1559,4 +1576,10 @@ func (bp *baseProcessor) getMarshalizedScheduledRootHashAndSCRs(
 	}
 
 	return bp.marshalizer.Marshal(scrsBatch)
+}
+
+// EpochConfirmed is called whenever a new epoch is confirmed
+func (bp *baseProcessor) EpochConfirmed(epoch uint32, _ uint64) {
+	bp.flagScheduledMiniBlocks.Toggle(epoch > bp.scheduledMiniBlocksEnableEpoch)
+	log.Debug("baseProcessor: scheduled mini blocks", "enabled", bp.flagScheduledMiniBlocks.IsSet())
 }

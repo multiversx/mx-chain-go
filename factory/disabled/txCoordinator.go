@@ -74,6 +74,7 @@ func (txCoordinator *TxCoordinator) CreateMbsAndProcessCrossShardTransactionsDst
 	_ data.HeaderHandler,
 	_ map[string]struct{},
 	_ func() bool,
+	_ bool,
 ) (block.MiniBlockSlice, uint32, bool, error) {
 	return make(block.MiniBlockSlice, 0), 0, false, nil
 }

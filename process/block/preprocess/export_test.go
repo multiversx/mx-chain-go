@@ -98,8 +98,9 @@ func (bsc *blockSizeComputation) NumTxs() uint32 {
 func (txs *transactions) ProcessTxsToMe(
 	body *block.Body,
 	haveTime func() bool,
+	scheduledMode bool,
 ) error {
-	return txs.processTxsToMe(body, haveTime)
+	return txs.processTxsToMe(body, haveTime, scheduledMode)
 }
 
 func (txs *transactions) AddTxForCurrentBlock(

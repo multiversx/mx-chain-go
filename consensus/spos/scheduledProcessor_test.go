@@ -351,7 +351,7 @@ func TestScheduledProcessorWrapper_StartScheduledProcessingHeaderV2ForceStopped(
 	status := spw.getStatus()
 	require.True(t, processScheduledCalled.IsSet())
 	require.Equal(t, stopped, status, status.String())
-	require.Less(t, 10 * time.Millisecond, endTime.Sub(startTime))
+	require.Less(t, 10*time.Millisecond, endTime.Sub(startTime))
 }
 
 func TestScheduledProcessorWrapper_StartScheduledProcessingHeaderV2ForceStopAfterProcessingEnded(t *testing.T) {
@@ -380,7 +380,7 @@ func TestScheduledProcessorWrapper_StartScheduledProcessingHeaderV2ForceStopAfte
 	hdr := &block.HeaderV2{}
 	blkBody := &block.Body{}
 	spw.StartScheduledProcessing(hdr, blkBody)
-	time.Sleep(2 * time.Millisecond)
+	time.Sleep(20 * time.Millisecond)
 	spw.ForceStopScheduledExecutionBlocking()
 	status := spw.getStatus()
 	require.True(t, processScheduledCalled.IsSet())

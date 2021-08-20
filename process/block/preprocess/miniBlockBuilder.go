@@ -265,7 +265,7 @@ func (mbb *miniBlocksBuilder) accountGasForTx(tx *transaction.Transaction, wtx *
 	mbb.prevGasInfo = mbb.gasInfo
 	mbb.gasInfo.gasConsumedByMiniBlockInReceiverShard = mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID]
 	startTime := time.Now()
-	err := mbb.computeGasConsumed(
+	gasConsumedByTxInSelfShard, err := mbb.computeGasConsumed(
 		wtx.SenderShardID,
 		wtx.ReceiverShardID,
 		tx,
@@ -278,6 +278,7 @@ func (mbb *miniBlocksBuilder) accountGasForTx(tx *transaction.Transaction, wtx *
 		return err
 	}
 
+	mbb.gasHandler.SetGasConsumed(gasConsumedByTxInSelfShard, wtx.TxHash)
 	mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID] = mbb.gasInfo.gasConsumedByMiniBlockInReceiverShard
 	return nil
 }

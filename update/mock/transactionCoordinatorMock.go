@@ -20,9 +20,11 @@ type TransactionCoordinatorMock struct {
 	RemoveTxsFromPoolCalled                              func(body *block.Body) error
 	ProcessBlockTransactionCalled                        func(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) error
 	CreateBlockStartedCalled                             func()
-	CreateMbsAndProcessCrossShardTransactionsDstMeCalled func(header data.HeaderHandler,
+	CreateMbsAndProcessCrossShardTransactionsDstMeCalled func(
+		header data.HeaderHandler,
 		processedMiniBlocksHashes map[string]struct{},
 		haveTime func() bool,
+		scheduledMode bool,
 	) (block.MiniBlockSlice, uint32, bool, error)
 	CreateMbsAndProcessTransactionsFromMeCalled func(haveTime func() bool) block.MiniBlockSlice
 	CreateMarshalizedDataCalled                 func(body *block.Body) map[string][][]byte
@@ -138,14 +140,14 @@ func (tcm *TransactionCoordinatorMock) CreateBlockStarted() {
 func (tcm *TransactionCoordinatorMock) CreateMbsAndProcessCrossShardTransactionsDstMe(
 	header data.HeaderHandler,
 	processedMiniBlocksHashes map[string]struct{},
-
 	haveTime func() bool,
+	scheduledMode bool,
 ) (block.MiniBlockSlice, uint32, bool, error) {
 	if tcm.CreateMbsAndProcessCrossShardTransactionsDstMeCalled == nil {
 		return nil, 0, false, nil
 	}
 
-	return tcm.CreateMbsAndProcessCrossShardTransactionsDstMeCalled(header, processedMiniBlocksHashes, haveTime)
+	return tcm.CreateMbsAndProcessCrossShardTransactionsDstMeCalled(header, processedMiniBlocksHashes, haveTime, scheduledMode)
 }
 
 // CreateMbsAndProcessTransactionsFromMe -
