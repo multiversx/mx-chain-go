@@ -63,9 +63,10 @@ func (txc *transactionCounter) displayLogInfo(
 	_ dataRetriever.PoolsHolder,
 	appStatusHandler core.AppStatusHandler,
 	blockTracker process.BlockTracker,
+	hasher hashing.Hasher,
+	marshalizer marshal.Marshalizer,
 ) {
-
-	dispHeader, dispLines := txc.createDisplayableShardHeaderAndBlockBody(header, body)
+	dispHeader, dispLines := txc.createDisplayableShardHeaderAndBlockBody(header, body, hasher, marshalizer)
 
 	txc.mutex.RLock()
 	appStatusHandler.SetUInt64Value(common.MetricNumProcessedTxs, txc.totalTxs)
@@ -94,6 +95,8 @@ func (txc *transactionCounter) displayLogInfo(
 func (txc *transactionCounter) createDisplayableShardHeaderAndBlockBody(
 	header data.HeaderHandler,
 	body *block.Body,
+	hasher hashing.Hasher,
+	marshalizer marshal.Marshalizer,
 ) ([]string, []*display.LineData) {
 
 	tableHeader := []string{"Part", "Parameter", "Value"}
@@ -117,13 +120,13 @@ func (txc *transactionCounter) createDisplayableShardHeaderAndBlockBody(
 
 	var varBlockBodyType int32 = math.MaxInt32
 	shardHeader, ok := header.(data.ShardHeaderHandler)
-	if ok{
+	if ok {
 		varBlockBodyType = shardHeader.GetBlockBodyTypeInt32()
 	}
 
 	if varBlockBodyType == int32(block.TxBlock) {
 		shardLines = txc.displayMetaHashesIncluded(shardLines, shardHeader)
-		shardLines = txc.displayTxBlockBody(shardLines, body)
+		shardLines = txc.displayTxBlockBody(shardLines, header, body, hasher, marshalizer)
 
 		return tableHeader, shardLines
 	}
@@ -168,19 +171,35 @@ func (txc *transactionCounter) displayMetaHashesIncluded(
 	return lines
 }
 
-func (txc *transactionCounter) displayTxBlockBody(lines []*display.LineData, body *block.Body) []*display.LineData {
+func (txc *transactionCounter) displayTxBlockBody(
+	lines []*display.LineData,
+	header data.HeaderHandler,
+	body *block.Body,
+	hasher hashing.Hasher,
+	marshalizer marshal.Marshalizer,
+) []*display.LineData {
 	currentBlockTxs := 0
 
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniBlock := body.MiniBlocks[i]
 
-		mbTypeStr := miniBlock.Type.String()
-		if miniBlock.IsScheduledMiniBlock() {
-			mbTypeStr = common.ScheduledBlock
+		scheduledModeInMiniBlockHeader, _ := process.IsScheduledMode(header, &block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}}, hasher, marshalizer)
+		scheduledModeInMiniBlock := miniBlock.IsScheduledMiniBlock()
+
+		executionTypeInMiniBlockHeaderStr := ""
+		if scheduledModeInMiniBlockHeader {
+			executionTypeInMiniBlockHeaderStr = common.ScheduledMode + "_"
 		}
 
-		part := fmt.Sprintf("%s_MiniBlock_%d->%d",
-			mbTypeStr,
+		executionTypeInMiniBlockStr := ""
+		if scheduledModeInMiniBlock {
+			executionTypeInMiniBlockStr = "S_"
+		}
+
+		part := fmt.Sprintf("%s%s_MiniBlock_%s%d->%d",
+			executionTypeInMiniBlockHeaderStr,
+			miniBlock.Type.String(),
+			executionTypeInMiniBlockStr,
 			miniBlock.SenderShardID,
 			miniBlock.ReceiverShardID)
 

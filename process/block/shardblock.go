@@ -953,6 +953,8 @@ func (sp *shardProcessor) CommitBlock(
 		sp.dataPool,
 		sp.appStatusHandler,
 		sp.blockTracker,
+		sp.hasher,
+		sp.marshalizer,
 	)
 
 	sp.blockSizeThrottler.Succeed(header.GetRound())

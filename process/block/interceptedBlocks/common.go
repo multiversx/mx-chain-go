@@ -1,8 +1,6 @@
 package interceptedBlocks
 
 import (
-	"fmt"
-
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -113,7 +111,6 @@ func checkShardData(sd data.ShardDataHandler, coordinator sharding.Coordinator) 
 			return process.ErrInvalidShardId
 		}
 
-		fmt.Println("len =", len(smbh.GetReserved()))
 		if len(smbh.GetReserved()) > 1 {
 			return process.ErrReservedFieldInvalid
 		}

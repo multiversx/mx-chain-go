@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"math"
 	"sort"
 
@@ -823,4 +824,30 @@ func CreateHeaderV1(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.Shard
 	}
 
 	return hdr, nil
+}
+
+// IsScheduledMode returns true if the first mini block from the given body is marked as a scheduled
+func IsScheduledMode(
+	header data.HeaderHandler,
+	body *block.Body,
+	hasher hashing.Hasher,
+	marshalizer marshal.Marshalizer,
+) (bool, error) {
+	if body == nil || len(body.MiniBlocks) == 0 {
+		return false, nil
+	}
+
+	miniBlockHash, err := core.CalculateHash(marshalizer, hasher, body.MiniBlocks[0])
+	if err != nil {
+		return false, err
+	}
+
+	for _, miniBlockHeader := range header.GetMiniBlockHeaderHandlers() {
+		if bytes.Equal(miniBlockHash, miniBlockHeader.GetHash()) {
+			reserved := miniBlockHeader.GetReserved()
+			return len(reserved) > 0 && reserved[0] == byte(block.ScheduledBlock), nil
+		}
+	}
+
+	return false, nil
 }

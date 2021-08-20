@@ -273,29 +273,6 @@ func (txs *transactions) RestoreBlockDataIntoPools(
 	return txsRestored, nil
 }
 
-func (txs *transactions) isScheduledMode(header data.HeaderHandler, body *block.Body) (bool, error) {
-	if header.GetEpoch() < txs.scheduledMiniBlocksEnableEpoch {
-		return false, nil
-	}
-	if body == nil || len(body.MiniBlocks) == 0 {
-		return false, nil
-	}
-
-	miniBlockHash, err := core.CalculateHash(txs.marshalizer, txs.hasher, body.MiniBlocks[0])
-	if err != nil {
-		return false, err
-	}
-
-	for _, miniBlockHeader := range header.GetMiniBlockHeaderHandlers() {
-		if bytes.Equal(miniBlockHash, miniBlockHeader.GetHash()) {
-			reserved := miniBlockHeader.GetReserved()
-			return len(reserved) > 0 && reserved[0] == byte(block.ScheduledBlock), nil
-		}
-	}
-
-	return false, nil
-}
-
 // ProcessBlockTransactions processes all the transaction from the block.Body, updates the state
 func (txs *transactions) ProcessBlockTransactions(
 	header data.HeaderHandler,
@@ -303,10 +280,15 @@ func (txs *transactions) ProcessBlockTransactions(
 	haveTime func() bool,
 ) error {
 	if txs.isBodyToMe(body) {
-		scheduledMode, err := txs.isScheduledMode(header, body)
-		if err != nil {
-			return err
+		scheduledMode := false
+		if txs.flagScheduledMiniBlocks.IsSet() {
+			var err error
+			scheduledMode, err = process.IsScheduledMode(header, body, txs.hasher, txs.marshalizer)
+			if err != nil {
+				return err
+			}
 		}
+
 		return txs.processTxsToMe(body, haveTime, scheduledMode)
 	}
 

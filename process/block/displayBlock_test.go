@@ -1,6 +1,7 @@
 package block
 
 import (
+	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
@@ -53,7 +54,10 @@ func TestDisplayBlock_DisplayTxBlockBody(t *testing.T) {
 	txCounter := NewTransactionCounter()
 	lines := txCounter.displayTxBlockBody(
 		shardLines,
+		&block.Header{},
 		body,
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
 	)
 
 	assert.NotNil(t, lines)
