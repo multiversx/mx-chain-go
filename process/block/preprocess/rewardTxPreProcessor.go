@@ -211,7 +211,6 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 	_ data.HeaderHandler,
 	body *block.Body,
 	haveTime func() bool,
-	_ bool,
 ) error {
 	if check.IfNil(body) {
 		return process.ErrNilBlockBody

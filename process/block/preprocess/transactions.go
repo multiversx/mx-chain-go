@@ -273,16 +273,25 @@ func (txs *transactions) RestoreBlockDataIntoPools(
 	return txsRestored, nil
 }
 
+func (txs *transactions) scheduledMode(header data.HeaderHandler, body *block.Body) bool {
+	if header.GetEpoch() < txs.scheduledMiniBlocksEnableEpoch {
+		return false
+	}
+	if body == nil || len(body.MiniBlocks) == 0 || len(body.MiniBlocks[0].TxHashes) == 0 {
+		return false
+	}
+	return txs.scheduledTxsExecutionHandler.IsScheduledTx(body.MiniBlocks[0].TxHashes[0])
+}
+
 // ProcessBlockTransactions processes all the transaction from the block.Body, updates the state
 func (txs *transactions) ProcessBlockTransactions(
 	header data.HeaderHandler,
 	body *block.Body,
 	haveTime func() bool,
-	scheduledMode bool,
 ) error {
 
 	if txs.isBodyToMe(body) {
-		return txs.processTxsToMe(body, haveTime, scheduledMode)
+		return txs.processTxsToMe(body, haveTime, txs.scheduledMode(header, body))
 	}
 
 	if txs.isBodyFromMe(body) {
