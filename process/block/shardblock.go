@@ -1032,12 +1032,12 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 		headerRootHash := header.GetRootHash()
 		prevHeaderRootHash := prevHeader.GetRootHash()
 
-		scheduledHeaderRootHash, err := process.GetScheduledRootHash(headerHash, sp.store, sp.marshalizer)
+		scheduledHeaderRootHash, err := sp.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(headerHash)
 		if err == nil {
 			headerRootHash = scheduledHeaderRootHash
 		}
 
-		scheduledPrevHeaderRootHash, err := process.GetScheduledRootHash(prevHeaderHash, sp.store, sp.marshalizer)
+		scheduledPrevHeaderRootHash, err := sp.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(prevHeaderHash)
 		if err == nil {
 			prevHeaderRootHash = scheduledPrevHeaderRootHash
 		}
