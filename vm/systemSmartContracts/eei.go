@@ -1,6 +1,7 @@
 package systemSmartContracts
 
 import (
+	"errors"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -445,6 +446,37 @@ func (host *vmContext) AddReturnMessage(message string) {
 	}
 
 	host.returnMessage += "@" + message
+}
+
+// ProcessBuiltInFunction will process the given built in function and will merge the generated output accounts and logs
+func (host *vmContext) ProcessBuiltInFunction(
+	sender, destination []byte,
+	function string,
+	arguments [][]byte,
+) error {
+	vmInput := createDirectCallInput(destination, sender, big.NewInt(0), function, arguments)
+	vmOutput, err := host.blockChainHook.ProcessBuiltInFunction(vmInput)
+	if err != nil {
+		return err
+	}
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return errors.New(vmOutput.ReturnMessage)
+	}
+
+	for address, outAcc := range vmOutput.OutputAccounts {
+		if len(outAcc.OutputTransfers) > 0 {
+			leftAccount, exist := host.outputAccounts[address]
+			if !exist {
+				leftAccount = &vmcommon.OutputAccount{}
+				host.outputAccounts[address] = leftAccount
+			}
+			leftAccount.OutputTransfers = append(leftAccount.OutputTransfers, outAcc.OutputTransfers...)
+		}
+	}
+
+	//TODO: add logs after merge with logs PR on meta
+
+	return nil
 }
 
 // BlockChainHook returns the blockchain hook

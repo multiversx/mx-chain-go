@@ -686,8 +686,9 @@ func createEpochConfig() *config.EpochConfig {
 func createSystemSCConfig() *config.SystemSmartContractsConfig {
 	return &config.SystemSmartContractsConfig{
 		ESDTSystemSCConfig: config.ESDTSystemSCConfig{
-			BaseIssuingCost: "5000000000000000000",
-			OwnerAddress:    "3132333435363738393031323334353637383930313233343536373839303233",
+			BaseIssuingCost:  "5000000000000000000",
+			OwnerAddress:     "3132333435363738393031323334353637383930313233343536373839303233",
+			DelegationTicker: "DEL",
 		},
 		GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
 			V1: config.GovernanceSystemSCConfigV1{

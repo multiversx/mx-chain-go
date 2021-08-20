@@ -53,6 +53,7 @@ type esdt struct {
 	hasher                 hashing.Hasher
 	mutExecution           sync.RWMutex
 	addressPubKeyConverter core.PubkeyConverter
+	delegationTicker       string
 
 	enabledEpoch               uint32
 	flagEnabled                atomic.Flag
@@ -60,6 +61,8 @@ type esdt struct {
 	flagGlobalMintBurn         atomic.Flag
 	transferRoleEnableEpoch    uint32
 	flagTransferRole           atomic.Flag
+	esdtOnMetachainEnableEpoch uint32
+	flagESDTOnMeta             atomic.Flag
 }
 
 // ArgsNewESDTSmartContract defines the arguments needed for the esdt contract
@@ -96,7 +99,9 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 	if len(args.EndOfEpochSCAddress) == 0 {
 		return nil, vm.ErrNilEndOfEpochSmartContractAddress
 	}
-
+	if !isTickerValid([]byte(args.ESDTSCConfig.DelegationTicker)) {
+		return nil, vm.ErrInvalidDelegationTicker
+	}
 	baseIssuingCost, okConvert := big.NewInt(0).SetString(args.ESDTSCConfig.BaseIssuingCost, conversionBase)
 	if !okConvert || baseIssuingCost.Cmp(big.NewInt(0)) < 0 {
 		return nil, vm.ErrInvalidBaseIssuingCost
@@ -115,12 +120,15 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 		enabledEpoch:               args.EpochConfig.EnableEpochs.ESDTEnableEpoch,
 		globalMintBurnDisableEpoch: args.EpochConfig.EnableEpochs.GlobalMintBurnDisableEpoch,
 		transferRoleEnableEpoch:    args.EpochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
+		esdtOnMetachainEnableEpoch: args.EpochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 		endOfEpochSCAddress:        args.EndOfEpochSCAddress,
 		addressPubKeyConverter:     args.AddressPubKeyConverter,
+		delegationTicker:           args.ESDTSCConfig.DelegationTicker,
 	}
 	log.Debug("esdt: enable epoch for esdt", "epoch", e.enabledEpoch)
 	log.Debug("esdt: enable epoch for contract global mint and burn", "epoch", e.globalMintBurnDisableEpoch)
 	log.Debug("esdt: enable epoch for contract transfer role", "epoch", e.transferRoleEnableEpoch)
+	log.Debug("esdt: enable epoch for esdt on metachain", "epoch", e.esdtOnMetachainEnableEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(e)
 
@@ -196,6 +204,8 @@ func (e *esdt) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return e.getAllAddressesAndRoles(args)
 	case "getContractConfig":
 		return e.getContractConfig(args)
+	case "initDelegationESDTOnMeta":
+		return e.initDelegationESDTOnMeta(args)
 	}
 
 	e.eei.AddReturnMessage("invalid method to call")
@@ -211,6 +221,65 @@ func (e *esdt) init(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	}
 	err := e.saveESDTConfig(scConfig)
 	if err != nil {
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
+}
+
+func (e *esdt) initDelegationESDTOnMeta(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !e.flagESDTOnMeta.IsSet() {
+		e.eei.AddReturnMessage("invalid method to call")
+		return vmcommon.FunctionNotFound
+	}
+	if !bytes.Equal(args.CallerAddr, e.eSDTSCAddress) {
+		e.eei.AddReturnMessage("only system address can call this")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) != 0 {
+		return vmcommon.UserError
+	}
+	if args.CallValue.Cmp(zero) != 0 {
+		return vmcommon.UserError
+	}
+
+	tokenIdentifier, err := e.createNewToken(
+		vm.DelegationTokenSCAddress,
+		[]byte(e.delegationTicker),
+		[]byte(e.delegationTicker),
+		big.NewInt(0),
+		0,
+		nil,
+		[]byte(core.SemiFungibleESDT))
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	token, err := e.getExistingToken(tokenIdentifier)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	esdtRole, _ := getRolesForAddress(token, vm.DelegationTokenSCAddress)
+	esdtRole.Roles = append(esdtRole.Roles, []byte(core.ESDTRoleNFTCreate), []byte(core.ESDTRoleNFTAddQuantity), []byte(core.ESDTRoleNFTBurn))
+	token.SpecialRoles = append(token.SpecialRoles, esdtRole)
+
+	err = e.saveToken(tokenIdentifier, token)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	err = e.eei.ProcessBuiltInFunction(
+		e.eSDTSCAddress,
+		vm.DelegationTokenSCAddress,
+		core.BuiltInFunctionSetESDTRole,
+		[][]byte{[]byte(core.ESDTRoleNFTCreate), []byte(core.ESDTRoleNFTAddQuantity), []byte(core.ESDTRoleNFTBurn)},
+	)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
@@ -1565,6 +1634,9 @@ func (e *esdt) EpochConfirmed(epoch uint32, _ uint64) {
 
 	e.flagTransferRole.Toggle(epoch >= e.transferRoleEnableEpoch)
 	log.Debug("ESDT contract transfer role", "enabled", e.flagTransferRole.IsSet())
+
+	e.flagESDTOnMeta.Toggle(epoch >= e.esdtOnMetachainEnableEpoch)
+	log.Debug("ESDT on metachain", "enabled", e.flagESDTOnMeta.IsSet())
 }
 
 // SetNewGasCost is called whenever a gas cost was changed
