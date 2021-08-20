@@ -100,7 +100,7 @@ func TestHistoryRepository_RecordBlock(t *testing.T) {
 		},
 	}
 
-	err = repo.RecordBlock(headerHash, blockHeader, blockBody, nil, nil)
+	err = repo.RecordBlock(headerHash, blockHeader, blockBody, nil, nil, nil)
 	require.Nil(t, err)
 	// Two miniblocks
 	require.Equal(t, 2, repo.miniblocksMetadataStorer.(*genericMocks.StorerMock).GetCurrentEpochData().Len())
@@ -134,7 +134,7 @@ func TestHistoryRepository_GetMiniblockMetadata(t *testing.T) {
 				miniblockB,
 			},
 		},
-		nil, nil,
+		nil, nil, nil,
 	)
 
 	metadata, err := repo.GetMiniblockMetadataByTxHash([]byte("txA"))
@@ -172,7 +172,7 @@ func TestHistoryRepository_GetEpochForHash(t *testing.T) {
 			miniblockA,
 			miniblockB,
 		},
-	}, nil, nil)
+	}, nil, nil, nil)
 
 	// Get epoch by block hash
 	epoch, err := repo.GetEpochByHash([]byte("fooblock"))
@@ -230,7 +230,7 @@ func TestHistoryRepository_OnNotarizedBlocks(t *testing.T) {
 				miniblockB,
 				miniblockC,
 			},
-		}, nil, nil,
+		}, nil, nil, nil,
 	)
 
 	// Check "notarization coordinates"
@@ -430,7 +430,7 @@ func TestHistoryRepository_OnNotarizedBlocksAtSourceBeforeCommittingAtDestinatio
 			MiniBlocks: []*block.MiniBlock{
 				miniblockA,
 			},
-		}, nil, nil,
+		}, nil, nil, nil,
 	)
 	_ = repo.RecordBlock([]byte("barBlock"),
 		&block.Header{Epoch: 42, Round: 4322},
@@ -438,7 +438,7 @@ func TestHistoryRepository_OnNotarizedBlocksAtSourceBeforeCommittingAtDestinatio
 			MiniBlocks: []*block.MiniBlock{
 				miniblockB,
 			},
-		}, nil, nil,
+		}, nil, nil, nil,
 	)
 
 	// Notifications have not been cleared after record block
@@ -485,7 +485,7 @@ func TestHistoryRepository_OnNotarizedBlocksCrossEpoch(t *testing.T) {
 			MiniBlocks: []*block.MiniBlock{
 				miniblockA,
 			},
-		}, nil, nil,
+		}, nil, nil, nil,
 	)
 
 	// Now let's receive a metablock and the "notarized" notification, in the next epoch
@@ -542,7 +542,7 @@ func TestHistoryRepository_CommitOnForkThenNewEpochThenCommit(t *testing.T) {
 			MiniBlocks: []*block.MiniBlock{
 				miniblock,
 			},
-		}, nil, nil,
+		}, nil, nil, nil,
 	)
 
 	// Let's go to next epoch
@@ -555,7 +555,7 @@ func TestHistoryRepository_CommitOnForkThenNewEpochThenCommit(t *testing.T) {
 			MiniBlocks: []*block.MiniBlock{
 				miniblock,
 			},
-		}, nil, nil,
+		}, nil, nil, nil,
 	)
 
 	// Now let's receive a metablock and the "notarized" notification
@@ -669,7 +669,7 @@ func TestHistoryRepository_ConcurrentlyRecordAndNotarizeSameBlockMultipleTimes(t
 					MiniBlocks: []*block.MiniBlock{
 						miniblock,
 					},
-				}, nil, nil,
+				}, nil, nil, nil,
 			)
 		}
 

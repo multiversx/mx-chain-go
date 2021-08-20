@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var log = logger.GetOrCreate("dblookupext/esdtSupply")
@@ -49,7 +48,7 @@ func NewSuppliesProcessor(
 }
 
 // ProcessLogs will process the provided logs
-func (sp *suppliesProcessor) ProcessLogs(logs map[string]*vmcommon.LogEntry) error {
+func (sp *suppliesProcessor) ProcessLogs(logs map[string]data.LogHandler) error {
 	sp.mutex.Lock()
 	defer sp.mutex.Unlock()
 
@@ -67,4 +66,9 @@ func (sp *suppliesProcessor) RevertChanges(_ data.HeaderHandler, body data.BodyH
 	}
 
 	return sp.logsProc.processLogs(logsFromDB, true)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (sp *suppliesProcessor) IsInterfaceNil() bool {
+	return sp == nil
 }

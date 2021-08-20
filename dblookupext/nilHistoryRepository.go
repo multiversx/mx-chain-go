@@ -13,7 +13,7 @@ func NewNilHistoryRepository() (*nilHistoryRepository, error) {
 }
 
 // RecordBlock returns a not implemented error
-func (nhr *nilHistoryRepository) RecordBlock(_ []byte, _ data.HeaderHandler, _ data.BodyHandler, _, _ map[string]data.TransactionHandler) error {
+func (nhr *nilHistoryRepository) RecordBlock(_ []byte, _ data.HeaderHandler, _ data.BodyHandler, _, _ map[string]data.TransactionHandler, _ map[string]data.LogHandler) error {
 	return nil
 }
 
@@ -34,6 +34,11 @@ func (nhr *nilHistoryRepository) GetEpochByHash(_ []byte) (uint32, error) {
 // IsEnabled returns false
 func (nhr *nilHistoryRepository) IsEnabled() bool {
 	return false
+}
+
+// RevertBlock -
+func (nhr *nilHistoryRepository) RevertBlock(_ data.HeaderHandler, _ data.BodyHandler) error {
+	return nil
 }
 
 // GetResultsHashesByTxHash -

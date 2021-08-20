@@ -17,12 +17,14 @@ type HistoryRepository interface {
 		blockBody data.BodyHandler,
 		scrResultsFromPool map[string]data.TransactionHandler,
 		receiptsFromPool map[string]data.TransactionHandler,
+		logs map[string]data.LogHandler,
 	) error
 
 	OnNotarizedBlocks(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)
 	GetMiniblockMetadataByTxHash(hash []byte) (*MiniblockMetadata, error)
 	GetEpochByHash(hash []byte) (uint32, error)
 	GetResultsHashesByTxHash(txHash []byte, epoch uint32) (*ResultsHashesByTxHash, error)
+	RevertBlock(blockHeader data.HeaderHandler, blockBody data.BodyHandler) error
 	IsEnabled() bool
 	IsInterfaceNil() bool
 }
@@ -33,5 +35,11 @@ type BlockTracker interface {
 	RegisterSelfNotarizedFromCrossHeadersHandler(func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RegisterSelfNotarizedHeadersHandler(func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RegisterFinalMetachainHeadersHandler(func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
+	IsInterfaceNil() bool
+}
+
+type SuppliesHandler interface {
+	ProcessLogs(logs map[string]data.LogHandler) error
+	RevertChanges(header data.HeaderHandler, body data.BodyHandler) error
 	IsInterfaceNil() bool
 }

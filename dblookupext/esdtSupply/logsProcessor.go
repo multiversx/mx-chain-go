@@ -5,9 +5,11 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 type logsProcessor struct {
@@ -33,26 +35,38 @@ func newLogsProcessor(
 	}
 }
 
-func (lp *logsProcessor) processLogs(logs map[string]*vmcommon.LogEntry, isRevert bool) error {
+func (lp *logsProcessor) processLogs(logs map[string]data.LogHandler, isRevert bool) error {
 	supplies := make(map[string]*SupplyESDT)
-	for _, txLog := range logs {
-		if lp.shouldIgnoreLog(txLog) {
+	for _, logHandler := range logs {
+		if check.IfNil(logHandler) {
 			continue
 		}
 
-		tokenSupply, tokenIdentifier, err := lp.processLog(txLog, isRevert)
-		if err != nil {
-			return err
+		for _, entryHandler := range logHandler.GetLogEvents() {
+			txLog, ok := entryHandler.(*transaction.Event)
+			if !ok {
+				continue
+			}
+
+			if lp.shouldIgnoreLog(txLog) {
+				continue
+			}
+
+			tokenSupply, tokenIdentifier, err := lp.processLog(txLog, isRevert)
+			if err != nil {
+				return err
+			}
+
+			tokenIDStr := string(tokenIdentifier)
+			_, found := supplies[tokenIDStr]
+			if !found {
+				supplies[tokenIDStr] = tokenSupply
+				continue
+			}
+
+			supplies[tokenIDStr].Supply.Add(supplies[tokenIDStr].Supply, tokenSupply.Supply)
 		}
 
-		tokenIDStr := string(tokenIdentifier)
-		_, found := supplies[tokenIDStr]
-		if !found {
-			supplies[tokenIDStr] = tokenSupply
-			continue
-		}
-
-		supplies[tokenIDStr].Supply.Add(supplies[tokenIDStr].Supply, tokenSupply.Supply)
 	}
 
 	return lp.saveSupplies(supplies)
@@ -74,7 +88,7 @@ func (lp *logsProcessor) saveSupplies(supplies map[string]*SupplyESDT) error {
 	return nil
 }
 
-func (lp *logsProcessor) processLog(txLog *vmcommon.LogEntry, isRevert bool) (*SupplyESDT, []byte, error) {
+func (lp *logsProcessor) processLog(txLog *transaction.Event, isRevert bool) (*SupplyESDT, []byte, error) {
 	tokenIdentifier := txLog.Topics[0]
 	if len(txLog.Topics[1]) != 0 {
 		tokenIdentifier = bytes.Join([][]byte{tokenIdentifier, txLog.Topics[1]}, []byte("-"))
@@ -107,7 +121,7 @@ func (lp *logsProcessor) processLog(txLog *vmcommon.LogEntry, isRevert bool) (*S
 	}, tokenIdentifier, nil
 }
 
-func (lp *logsProcessor) shouldIgnoreLog(txLogs *vmcommon.LogEntry) bool {
+func (lp *logsProcessor) shouldIgnoreLog(txLogs *transaction.Event) bool {
 	_, found := lp.fungibleOperations[string(txLogs.Identifier)]
 
 	return !found

@@ -5,9 +5,9 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 type logsGetter struct {
@@ -25,13 +25,13 @@ func newLogsGetter(
 	}
 }
 
-func (lg *logsGetter) getLogsBasedOnBody(blockBody data.BodyHandler) (map[string]*vmcommon.LogEntry, error) {
+func (lg *logsGetter) getLogsBasedOnBody(blockBody data.BodyHandler) (map[string]data.LogHandler, error) {
 	body, ok := blockBody.(*block.Body)
 	if !ok {
 		return nil, errCannotCastToBlockBody
 	}
 
-	logsDB := make(map[string]*vmcommon.LogEntry)
+	logsDB := make(map[string]data.LogHandler)
 	for _, mb := range body.MiniBlocks {
 		shouldIgnore := mb.Type != block.TxBlock && mb.Type != block.SmartContractResultBlock
 		if shouldIgnore {
@@ -46,8 +46,8 @@ func (lg *logsGetter) getLogsBasedOnBody(blockBody data.BodyHandler) (map[string
 	return logsDB, nil
 }
 
-func (lg *logsGetter) getLogsBasedOnMB(mb *block.MiniBlock) map[string]*vmcommon.LogEntry {
-	dbLogs := make(map[string]*vmcommon.LogEntry)
+func (lg *logsGetter) getLogsBasedOnMB(mb *block.MiniBlock) map[string]data.LogHandler {
+	dbLogs := make(map[string]data.LogHandler)
 	for _, txHash := range mb.TxHashes {
 		txLog, ok := lg.getTxLog(txHash)
 		if !ok {
@@ -60,13 +60,13 @@ func (lg *logsGetter) getLogsBasedOnMB(mb *block.MiniBlock) map[string]*vmcommon
 	return dbLogs
 }
 
-func (lg *logsGetter) getTxLog(txHash []byte) (*vmcommon.LogEntry, bool) {
+func (lg *logsGetter) getTxLog(txHash []byte) (data.LogHandler, bool) {
 	logBytes, err := lg.logsStorer.Get(txHash)
 	if err != nil {
 		return nil, false
 	}
 
-	logFromDB := &vmcommon.LogEntry{}
+	logFromDB := &transaction.Log{}
 	err = lg.marshalizer.Unmarshal(logFromDB, logBytes)
 	if err != nil {
 		log.Warn("logsGetter.getTxLog cannot unmarshal log",
@@ -80,8 +80,8 @@ func (lg *logsGetter) getTxLog(txHash []byte) (*vmcommon.LogEntry, bool) {
 	return logFromDB, true
 }
 
-func mergeLogsMap(m1, m2 map[string]*vmcommon.LogEntry) map[string]*vmcommon.LogEntry {
-	finalMap := make(map[string]*vmcommon.LogEntry, len(m1)+len(m2))
+func mergeLogsMap(m1, m2 map[string]data.LogHandler) map[string]data.LogHandler {
+	finalMap := make(map[string]data.LogHandler, len(m1)+len(m2))
 
 	for key, value := range m1 {
 		finalMap[key] = value

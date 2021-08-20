@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -48,7 +49,8 @@ type notarizedInfo struct {
 }
 
 type baseBootstrap struct {
-	headers dataRetriever.HeadersPool
+	historyRepo dblookupext.HistoryRepository
+	headers     dataRetriever.HeadersPool
 
 	chainHandler   data.ChainHandler
 	blockProcessor process.BlockProcessor
@@ -459,6 +461,9 @@ func checkBootstrapNilParameters(arguments ArgBaseBootstrapper) error {
 	if check.IfNil(arguments.CurrentEpochProvider) {
 		return process.ErrNilCurrentNetworkEpochProvider
 	}
+	if check.IfNil(arguments.HistoryRepo) {
+		return process.ErrNilHistoryRepository
+	}
 
 	return nil
 }
@@ -723,6 +728,13 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			log.Debug("save last round in storage",
 				"error", err.Error(),
 				"round", prevHeader.GetRound(),
+			)
+		}
+
+		err = boot.historyRepo.RevertBlock(currHeader, currBody)
+		if err != nil {
+			log.Debug("boot.historyRepo.RevertBlock",
+				"error", err.Error(),
 			)
 		}
 

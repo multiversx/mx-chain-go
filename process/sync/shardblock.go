@@ -63,6 +63,7 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 		accountsDBSyncer:     arguments.AccountsDBSyncer,
 		currentEpochProvider: arguments.CurrentEpochProvider,
 		isInImportMode:       arguments.IsInImportMode,
+		historyRepo:          arguments.HistoryRepo,
 	}
 
 	if base.isInImportMode {
@@ -78,7 +79,7 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 	base.getHeaderFromPool = boot.getShardHeaderFromPool
 	base.requestMiniBlocks = boot.requestMiniBlocksFromHeaderWithNonceIfMissing
 
-	//placed in struct fields for performance reasons
+	// placed in struct fields for performance reasons
 	base.headerStore = boot.store.GetStorer(dataRetriever.BlockHeaderUnit)
 	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(boot.shardCoordinator.SelfId())
 	base.headerNonceHashStore = boot.store.GetStorer(hdrNonceHashDataUnit)
