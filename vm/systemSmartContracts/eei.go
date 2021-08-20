@@ -455,6 +455,7 @@ func (host *vmContext) ProcessBuiltInFunction(
 	arguments [][]byte,
 ) error {
 	vmInput := createDirectCallInput(destination, sender, big.NewInt(0), function, arguments)
+	vmInput.GasProvided = host.GasLeft()
 	vmOutput, err := host.blockChainHook.ProcessBuiltInFunction(vmInput)
 	if err != nil {
 		return err
