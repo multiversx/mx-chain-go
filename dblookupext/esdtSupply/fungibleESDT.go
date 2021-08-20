@@ -39,7 +39,7 @@ func NewFungibleESDTSupplyProcessor(
 	}, nil
 }
 
-func (fsp *fungibleESDTSupplyProc) ProcessLogs(blockHeaderHash []byte, logs map[string]*vmcommon.LogEntry) {
+func (fsp *fungibleESDTSupplyProc) ProcessLogs(blockHeaderHash []byte, logs map[string]*vmcommon.LogEntry) error {
 	fsp.mutex.Lock()
 	defer fsp.mutex.Unlock()
 
@@ -51,7 +51,7 @@ func (fsp *fungibleESDTSupplyProc) ProcessLogs(blockHeaderHash []byte, logs map[
 
 		change, err := fsp.processLog(txLog)
 		if err != nil {
-			return
+			return err
 		}
 
 		tokenIDStr := string(change.TokenID)
@@ -64,7 +64,13 @@ func (fsp *fungibleESDTSupplyProc) ProcessLogs(blockHeaderHash []byte, logs map[
 		changes[tokenIDStr].Supply.Add(changes[tokenIDStr].Supply, change.Supply)
 	}
 
-	// calculate shard total supply
+	return fsp.saveChange(changes)
+}
+
+func (fsp *fungibleESDTSupplyProc) saveChange(changes map[string]*SupplyChange) error {
+	supplyChanges := SupplyChanges{
+		SupplyChange: make([]*SupplyChange, 0, len(changes)),
+	}
 }
 
 func (fsp *fungibleESDTSupplyProc) processLog(txLog *vmcommon.LogEntry) (*SupplyChange, error) {
