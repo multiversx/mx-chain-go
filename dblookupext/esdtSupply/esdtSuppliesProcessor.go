@@ -71,7 +71,7 @@ func (sp *suppliesProcessor) GetESDTSupply(token string) (string, error) {
 	sp.mutex.Lock()
 	defer sp.mutex.Unlock()
 
-	return "", nil
+	return sp.logsProc.getESDTSupply(token)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
