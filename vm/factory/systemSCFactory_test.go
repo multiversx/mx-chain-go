@@ -278,7 +278,7 @@ func TestSystemSCFactory_Create(t *testing.T) {
 	container, err := scFactory.Create()
 	assert.Nil(t, err)
 	require.NotNil(t, container)
-	assert.Equal(t, 6, container.Len())
+	assert.Equal(t, 7, container.Len())
 }
 
 func TestSystemSCFactory_CreateForGenesis(t *testing.T) {

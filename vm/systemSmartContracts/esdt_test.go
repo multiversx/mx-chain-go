@@ -821,7 +821,7 @@ func TestEsdt_ExecuteMintInvalidDestinationAddressShouldFail(t *testing.T) {
 	assert.True(t, strings.Contains(eei.returnMessage, "destination address of invalid length"))
 }
 
-func TestEsdt_ExecuteMintTransferFailsShouldErr(t *testing.T) {
+func TestEsdt_ExecuteMintTransferNoErr(t *testing.T) {
 	t.Parallel()
 
 	err := errors.New("transfer error")
@@ -842,7 +842,7 @@ func TestEsdt_ExecuteMintTransferFailsShouldErr(t *testing.T) {
 	vmInput := getDefaultVmInputForFunc("mint", [][]byte{[]byte("esdtToken"), {200}})
 
 	output := e.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
+	assert.Equal(t, vmcommon.Ok, output)
 }
 
 func TestEsdt_ExecuteMintWithTwoArgsShouldSetOwnerAsDestination(t *testing.T) {
@@ -1143,7 +1143,7 @@ func TestEsdt_ExecuteToggleFreezeNonFreezableTokenShouldFail(t *testing.T) {
 	assert.True(t, strings.Contains(eei.returnMessage, "cannot freeze"))
 }
 
-func TestEsdt_ExecuteToggleFreezeTransferFailsShouldErr(t *testing.T) {
+func TestEsdt_ExecuteToggleFreezeTransferNoErr(t *testing.T) {
 	t.Parallel()
 
 	err := errors.New("transfer error")
@@ -1163,10 +1163,10 @@ func TestEsdt_ExecuteToggleFreezeTransferFailsShouldErr(t *testing.T) {
 	vmInput := getDefaultVmInputForFunc("freeze", [][]byte{[]byte("esdtToken"), getAddress()})
 
 	output := e.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
+	assert.Equal(t, vmcommon.Ok, output)
 }
 
-func TestEsdt_ExecuteToggleFreezeSingleNFTTransferFailsShouldErr(t *testing.T) {
+func TestEsdt_ExecuteToggleFreezeSingleNFTTransferNoErr(t *testing.T) {
 	t.Parallel()
 
 	err := errors.New("transfer error")
@@ -1187,7 +1187,7 @@ func TestEsdt_ExecuteToggleFreezeSingleNFTTransferFailsShouldErr(t *testing.T) {
 	vmInput := getDefaultVmInputForFunc("freezeSingleNFT", [][]byte{[]byte("esdtToken"), big.NewInt(10).Bytes(), getAddress()})
 
 	output := e.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
+	assert.Equal(t, vmcommon.Ok, output)
 }
 
 func TestEsdt_ExecuteToggleFreezeShouldWorkWithRealBech32Address(t *testing.T) {
@@ -1690,7 +1690,7 @@ func TestEsdt_ExecuteWipeInvalidDestShouldFail(t *testing.T) {
 	assert.True(t, strings.Contains(eei.returnMessage, "invalid"))
 }
 
-func TestEsdt_ExecuteWipeTransferFailsShouldErr(t *testing.T) {
+func TestEsdt_ExecuteWipeTransferFailsNoErr(t *testing.T) {
 	t.Parallel()
 
 	err := errors.New("transfer error")
@@ -1711,10 +1711,10 @@ func TestEsdt_ExecuteWipeTransferFailsShouldErr(t *testing.T) {
 	vmInput := getDefaultVmInputForFunc("wipe", [][]byte{[]byte("esdtToken"), getAddress()})
 
 	output := e.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
+	assert.Equal(t, vmcommon.Ok, output)
 }
 
-func TestEsdt_ExecuteWipeSingleNFTTransferFailsShouldErr(t *testing.T) {
+func TestEsdt_ExecuteWipeSingleNFTTransferNoErr(t *testing.T) {
 	t.Parallel()
 
 	err := errors.New("transfer error")
@@ -1735,7 +1735,7 @@ func TestEsdt_ExecuteWipeSingleNFTTransferFailsShouldErr(t *testing.T) {
 	vmInput := getDefaultVmInputForFunc("wipeSingleNFT", [][]byte{[]byte("esdtToken"), big.NewInt(10).Bytes(), getAddress()})
 
 	output := e.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
+	assert.Equal(t, vmcommon.Ok, output)
 }
 
 func TestEsdt_ExecuteWipeShouldWork(t *testing.T) {
@@ -3595,7 +3595,7 @@ func TestEsdt_UnsetSpecialRoleCannotRemoveRoleNotExistsShouldErr(t *testing.T) {
 	require.Equal(t, vmcommon.UserError, retCode)
 }
 
-func TestEsdt_UnsetSpecialRoleRemoveRoleTransferErr(t *testing.T) {
+func TestEsdt_UnsetSpecialRoleRemoveRoleTransfer(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
@@ -3628,7 +3628,7 @@ func TestEsdt_UnsetSpecialRoleRemoveRoleTransferErr(t *testing.T) {
 	vmInput.GasProvided = 50000000
 
 	retCode := e.Execute(vmInput)
-	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, vmcommon.Ok, retCode)
 }
 
 func TestEsdt_UnsetSpecialRoleRemoveRoleSaveTokenErr(t *testing.T) {

@@ -295,6 +295,7 @@ func (scf *systemSCFactory) createLiquidStakingContract() (vm.SystemSmartContrac
 	argsLiquidStaking := systemSmartContracts.ArgsNewLiquidStaking{
 		Eei:                    scf.systemEI,
 		DelegationMgrSCAddress: vm.DelegationManagerSCAddress,
+		LiquidStakingSCAddress: vm.LiquidStakingSCAddress,
 		GasCost:                scf.gasCost,
 		Marshalizer:            scf.marshalizer,
 		Hasher:                 scf.hasher,
