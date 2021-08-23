@@ -48,6 +48,9 @@ type NodeHandler interface {
 	// GetAllESDTTokens returns the value of a key from a given account
 	GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error)
 
+	// GetTokenSupply return the provided token supply from current shard
+	GetTokenSupply(token string) (string, error)
+
 	// CreateTransaction will return a transaction from all needed fields
 	CreateTransaction(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
 		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*transaction.Transaction, []byte, error)

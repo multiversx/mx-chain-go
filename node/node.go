@@ -484,6 +484,11 @@ func (n *Node) GetESDTsRoles(address string) (map[string][]string, error) {
 	return tokensRoles, nil
 }
 
+// GetTokenSupply returns the provided token supply from current shard
+func (n *Node) GetTokenSupply(token string) (string, error) {
+	return "", nil
+}
+
 // GetAllESDTTokens returns all the ESDTs that the given address interacted with
 func (n *Node) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error) {
 	account, err := n.getAccountHandlerAPIAccounts(address)
