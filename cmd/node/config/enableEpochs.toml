@@ -109,7 +109,7 @@
     BuiltInFunctionOnMetaEnableEpoch = 5
 
     # ScheduledMiniBlocksEnableEpoch represents the epoch when scheduled mini blocks would be created if needed
-    ScheduledMiniBlocksEnableEpoch = 2
+    ScheduledMiniBlocksEnableEpoch = 3
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [

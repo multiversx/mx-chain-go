@@ -942,7 +942,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV1(
 	isMaxBlockSizeReached func(int, int) bool,
 	sortedTxs []*txcache.WrappedTransaction,
 ) (block.MiniBlockSlice, error) {
-	log.Debug("createAndProcessMiniBlocksFromMeXX has been started")
+	log.Debug("createAndProcessMiniBlocksFromMeV1 has been started")
 
 	args := miniBlocksBuilderArgs{
 		gasTracker:                txs.gasTracker,
