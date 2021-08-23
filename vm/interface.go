@@ -60,13 +60,6 @@ type SystemEI interface {
 	IsInterfaceNil() bool
 }
 
-// NFTManagement defines the interface to create/send/burn NFTs
-type NFTManagement interface {
-	CreateNFT() error
-	SendNFT() error
-	BurnNFT() error
-}
-
 // EconomicsHandler defines the methods to get data from the economics component
 type EconomicsHandler interface {
 	GenesisTotalSupply() *big.Int

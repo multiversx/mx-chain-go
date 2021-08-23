@@ -182,7 +182,6 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		d.eei.AddReturnMessage("first delegation sc address cannot be called")
 		return vmcommon.UserError
 	}
-
 	if len(args.ESDTTransfers) > 0 {
 		d.eei.AddReturnMessage("cannot transfer ESDT to system SCs")
 		return vmcommon.UserError
@@ -273,16 +272,6 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.setMetaData(args)
 	case "getMetaData":
 		return d.getMetaData(args)
-	case "claimDelegatedPosition":
-		return d.claimDelegatedPosition(args)
-	case "claimRewardsFromPosition":
-		return d.claimRewardsFromDelegatedPosition(args)
-	case "reDelegateRewardsFromPosition":
-		return d.reDelegateRewardsFromPosition(args)
-	case "unDelegateWithPosition":
-		return d.unDelegateWithPosition(args)
-	case "returnPosition":
-		return d.returnPosition(args)
 	}
 
 	d.eei.AddReturnMessage(args.Function + " is an unknown function")
@@ -601,10 +590,6 @@ func (d *delegation) checkInputForWhitelisting(args *vmcommon.ContractCallInput)
 		d.eei.AddReturnMessage("non-payable function")
 		return vmcommon.UserError
 	}
-	if len(args.ESDTTransfers) > 0 {
-		d.eei.AddReturnMessage("cannot transfer ESDT to system SCs")
-		return vmcommon.UserError
-	}
 	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -766,10 +751,6 @@ func (d *delegation) checkOwnerCallValueGasAndDuplicates(args *vmcommon.Contract
 	duplicates := checkForDuplicates(args.Arguments)
 	if duplicates {
 		d.eei.AddReturnMessage(vm.ErrDuplicatesFoundInArguments.Error())
-		return vmcommon.UserError
-	}
-	if len(args.ESDTTransfers) > 0 {
-		d.eei.AddReturnMessage("cannot transfer ESDT to system SCs")
 		return vmcommon.UserError
 	}
 
@@ -1263,10 +1244,6 @@ func (d *delegation) unJailNodes(args *vmcommon.ContractCallInput) vmcommon.Retu
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.OutOfGas
 	}
-	if len(args.ESDTTransfers) > 0 {
-		d.eei.AddReturnMessage("cannot transfer ESDT to system SCs")
-		return vmcommon.UserError
-	}
 	duplicates := checkForDuplicates(args.Arguments)
 	if duplicates {
 		d.eei.AddReturnMessage(vm.ErrDuplicatesFoundInArguments.Error())
@@ -1323,10 +1300,6 @@ func (d *delegation) reDelegateRewards(args *vmcommon.ContractCallInput) vmcommo
 	}
 	if len(args.Arguments) != 0 {
 		d.eei.AddReturnMessage("must be called without arguments")
-		return vmcommon.UserError
-	}
-	if len(args.ESDTTransfers) > 0 {
-		d.eei.AddReturnMessage("cannot transfer ESDT to system SCs")
 		return vmcommon.UserError
 	}
 
@@ -1504,10 +1477,6 @@ func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		d.eei.AddReturnMessage("error getting minimum delegation amount " + err.Error())
 		return vmcommon.UserError
 	}
-	if len(args.ESDTTransfers) > 0 {
-		d.eei.AddReturnMessage("cannot transfer ESDT to system SCs")
-		return vmcommon.UserError
-	}
 
 	minDelegationAmount := delegationManagement.MinDelegationAmount
 	if args.CallValue.Cmp(minDelegationAmount) < 0 {
@@ -1602,10 +1571,6 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 	}
 	if args.CallValue.Cmp(zero) != 0 {
 		d.eei.AddReturnMessage(vm.ErrCallValueMustBeZero.Error())
-		return vmcommon.UserError
-	}
-	if len(args.ESDTTransfers) > 0 {
-		d.eei.AddReturnMessage("cannot transfer ESDT to system SCs")
 		return vmcommon.UserError
 	}
 	valueToUnDelegate := big.NewInt(0).SetBytes(args.Arguments[0])
@@ -1787,10 +1752,6 @@ func (d *delegation) getRewardData(args *vmcommon.ContractCallInput) vmcommon.Re
 		d.eei.AddReturnMessage(vm.ErrCallValueMustBeZero.Error())
 		return vmcommon.UserError
 	}
-	if len(args.ESDTTransfers) > 0 {
-		d.eei.AddReturnMessage("cannot transfer ESDT to system SCs")
-		return vmcommon.UserError
-	}
 	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -1911,10 +1872,6 @@ func (d *delegation) claimRewards(args *vmcommon.ContractCallInput) vmcommon.Ret
 		d.eei.AddReturnMessage("wrong number of arguments")
 		return vmcommon.FunctionWrongSignature
 	}
-	if len(args.ESDTTransfers) > 0 {
-		d.eei.AddReturnMessage("cannot transfer ESDT to system SCs")
-		return vmcommon.UserError
-	}
 
 	isNew, delegator, err := d.getOrCreateDelegatorData(args.CallerAddr)
 	if err != nil {
@@ -1989,10 +1946,6 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	}
 	if args.CallValue.Cmp(zero) != 0 {
 		d.eei.AddReturnMessage(vm.ErrCallValueMustBeZero.Error())
-		return vmcommon.UserError
-	}
-	if len(args.ESDTTransfers) > 0 {
-		d.eei.AddReturnMessage("cannot transfer ESDT to system SCs")
 		return vmcommon.UserError
 	}
 
@@ -2178,10 +2131,6 @@ func (d *delegation) checkArgumentsForGeneralViewFunc(args *vmcommon.ContractCal
 	}
 	if len(args.Arguments) != 0 {
 		d.eei.AddReturnMessage(vm.ErrInvalidNumOfArguments.Error())
-		return vmcommon.UserError
-	}
-	if len(args.ESDTTransfers) > 0 {
-		d.eei.AddReturnMessage("cannot transfer ESDT to system SCs")
 		return vmcommon.UserError
 	}
 
@@ -2373,10 +2322,6 @@ func (d *delegation) getContractConfig(args *vmcommon.ContractCallInput) vmcommo
 func (d *delegation) checkArgumentsForUserViewFunc(args *vmcommon.ContractCallInput) (*DelegatorData, vmcommon.ReturnCode) {
 	if args.CallValue.Cmp(zero) != 0 {
 		d.eei.AddReturnMessage(vm.ErrCallValueMustBeZero.Error())
-		return nil, vmcommon.UserError
-	}
-	if len(args.ESDTTransfers) > 0 {
-		d.eei.AddReturnMessage("cannot transfer ESDT to system SCs")
 		return nil, vmcommon.UserError
 	}
 	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
@@ -2883,51 +2828,6 @@ func getDelegationManagement(
 	}
 
 	return managementData, nil
-}
-
-func (d *delegation) claimDelegatedPosition(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !d.flagLiquidStaking.IsSet() {
-		d.eei.AddReturnMessage(args.Function + " is an unknown function")
-		return vmcommon.UserError
-	}
-
-	return vmcommon.Ok
-}
-
-func (d *delegation) claimRewardsFromDelegatedPosition(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !d.flagLiquidStaking.IsSet() {
-		d.eei.AddReturnMessage(args.Function + " is an unknown function")
-		return vmcommon.UserError
-	}
-
-	return vmcommon.Ok
-}
-
-func (d *delegation) reDelegateRewardsFromPosition(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !d.flagLiquidStaking.IsSet() {
-		d.eei.AddReturnMessage(args.Function + " is an unknown function")
-		return vmcommon.UserError
-	}
-
-	return vmcommon.Ok
-}
-
-func (d *delegation) unDelegateWithPosition(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !d.flagLiquidStaking.IsSet() {
-		d.eei.AddReturnMessage(args.Function + " is an unknown function")
-		return vmcommon.UserError
-	}
-
-	return vmcommon.Ok
-}
-
-func (d *delegation) returnPosition(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !d.flagLiquidStaking.IsSet() {
-		d.eei.AddReturnMessage(args.Function + " is an unknown function")
-		return vmcommon.UserError
-	}
-
-	return vmcommon.Ok
 }
 
 // SetNewGasCost is called whenever a gas cost was changed

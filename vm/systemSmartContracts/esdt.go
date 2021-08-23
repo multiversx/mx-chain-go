@@ -244,7 +244,7 @@ func (e *esdt) initDelegationESDTOnMeta(args *vmcommon.ContractCallInput) vmcomm
 	}
 
 	tokenIdentifier, err := e.createNewToken(
-		vm.DelegationTokenSCAddress,
+		vm.LiquidStakingSCAddress,
 		[]byte(e.delegationTicker),
 		[]byte(e.delegationTicker),
 		big.NewInt(0),
@@ -262,7 +262,7 @@ func (e *esdt) initDelegationESDTOnMeta(args *vmcommon.ContractCallInput) vmcomm
 		return vmcommon.UserError
 	}
 
-	esdtRole, _ := getRolesForAddress(token, vm.DelegationTokenSCAddress)
+	esdtRole, _ := getRolesForAddress(token, vm.LiquidStakingSCAddress)
 	esdtRole.Roles = append(esdtRole.Roles, []byte(core.ESDTRoleNFTCreate), []byte(core.ESDTRoleNFTAddQuantity), []byte(core.ESDTRoleNFTBurn))
 	token.SpecialRoles = append(token.SpecialRoles, esdtRole)
 
@@ -274,7 +274,7 @@ func (e *esdt) initDelegationESDTOnMeta(args *vmcommon.ContractCallInput) vmcomm
 
 	err = e.eei.ProcessBuiltInFunction(
 		e.eSDTSCAddress,
-		vm.DelegationTokenSCAddress,
+		vm.LiquidStakingSCAddress,
 		core.BuiltInFunctionSetESDTRole,
 		[][]byte{[]byte(core.ESDTRoleNFTCreate), []byte(core.ESDTRoleNFTAddQuantity), []byte(core.ESDTRoleNFTBurn)},
 	)
