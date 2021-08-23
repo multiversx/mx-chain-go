@@ -191,18 +191,30 @@ func (bp *baseProcessor) checkBlockValidity(
 		return process.ErrEpochDoesNotMatch
 	}
 
-	// verification of scheduled root hash
-	if bp.flagScheduledMiniBlocks.IsSet() {
-		additionalData := headerHandler.GetAdditionalData()
-		if !check.IfNil(additionalData) {
-			if !bytes.Equal(additionalData.GetScheduledRootHash(), bp.getRootHash()) {
-				log.Debug("scheduled root hash does not match",
-					"local scheduled root hash", bp.getRootHash(),
-					"received scheduled root hash", additionalData.GetScheduledRootHash())
+	return nil
+}
 
-				return process.ErrScheduledRootHashDoesNotMatch
-			}
-		}
+// checkScheduledRootHash checks if the scheduled root hash from the given header is the same with the self user accounts state root hash
+func (bp *baseProcessor) checkScheduledRootHash(headerHandler data.HeaderHandler) error {
+	if !bp.flagScheduledMiniBlocks.IsSet() {
+		return nil
+	}
+
+	if check.IfNil(headerHandler) {
+		return process.ErrNilBlockHeader
+	}
+
+	additionalData := headerHandler.GetAdditionalData()
+	if check.IfNil(additionalData) {
+		return process.ErrNilAdditionalData
+	}
+
+	if !bytes.Equal(additionalData.GetScheduledRootHash(), bp.getRootHash()) {
+		log.Debug("scheduled root hash does not match",
+			"local scheduled root hash", bp.getRootHash(),
+			"received scheduled root hash", additionalData.GetScheduledRootHash())
+
+		return process.ErrScheduledRootHashDoesNotMatch
 	}
 
 	return nil

@@ -1003,3 +1003,6 @@ var ErrNilAccountTxsPerShard = errors.New("nil account transactions per shard ma
 
 // ErrScheduledRootHashDoesNotMatch signals that scheduled root hash does not match
 var ErrScheduledRootHashDoesNotMatch = errors.New("scheduled root hash does not match")
+
+// ErrNilAdditionalData signals that additional data is nil
+var ErrNilAdditionalData = errors.New("nil additional data")
