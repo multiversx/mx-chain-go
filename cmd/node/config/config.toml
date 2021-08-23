@@ -28,7 +28,7 @@
    VersionsByEpochs = [
        { StartEpoch = 0, Version = "*" },
        # The value of StartEpoch parameter for version 2 should be the same with the ScheduledMiniBlocksEnableEpoch flag from enableEpoch.toml file
-       { StartEpoch = 3, Version = "2" },
+       { StartEpoch = 2, Version = "2" },
    ]
    [Versions.Cache]
         Name = "VersionsCache"
