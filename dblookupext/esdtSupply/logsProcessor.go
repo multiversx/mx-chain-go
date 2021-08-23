@@ -130,3 +130,18 @@ func (lp *logsProcessor) shouldIgnoreLog(txLogs *transaction.Event) bool {
 
 	return !found
 }
+
+func (lp *logsProcessor) getESDTSupply(token string) (string, error) {
+	supplyBytes, err := lp.suppliesStorer.Get([]byte(token))
+	if err != nil {
+		return big.NewInt(0).String(), nil
+	}
+
+	supply := &SupplyESDT{}
+	err = lp.marshalizer.Unmarshal(supply, supplyBytes)
+	if err != nil {
+		return "", err
+	}
+
+	return supply.Supply.String(), nil
+}
