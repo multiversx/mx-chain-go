@@ -13,6 +13,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/closing"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -36,6 +37,8 @@ type trieStorageManager struct {
 	maxSnapshots       uint32
 	keepSnapshots      bool
 	cancelFunc         context.CancelFunc
+	closer             core.SafeCloser
+	closed             bool
 
 	storageOperationMutex sync.RWMutex
 }
@@ -90,6 +93,7 @@ func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager,
 		keepSnapshots:          args.GeneralConfig.KeepSnapshots,
 		cancelFunc:             cancelFunc,
 		checkpointHashesHolder: args.CheckpointHashesHolder,
+		closer:                 closing.NewSafeChanCloser(),
 	}
 
 	go tsm.storageProcessLoop(ctx, args.Marshalizer, args.Hasher)
@@ -105,6 +109,7 @@ func (tsm *trieStorageManager) storageProcessLoop(ctx context.Context, msh marsh
 		case snapshotRequest := <-tsm.checkpointReq:
 			tsm.takeCheckpoint(snapshotRequest, msh, hsh, ctx)
 		case <-ctx.Done():
+			log.Debug("trieStorageManager.storageProcessLoop go routine is closing...")
 			return
 		}
 	}
@@ -237,8 +242,14 @@ func (tsm *trieStorageManager) GetSnapshotThatContainsHash(rootHash []byte) comm
 // TakeSnapshot creates a new snapshot, or if there is another snapshot or checkpoint in progress,
 // it adds this snapshot in the queue.
 func (tsm *trieStorageManager) TakeSnapshot(rootHash []byte, newDb bool, leavesChan chan core.KeyValueHolder) {
+	if tsm.isClosed() {
+		tsm.safelyCloseChan(leavesChan)
+		return
+	}
+
 	if bytes.Equal(rootHash, EmptyTrieHash) {
 		log.Trace("should not snapshot an empty trie")
+		tsm.safelyCloseChan(leavesChan)
 		return
 	}
 
@@ -250,15 +261,25 @@ func (tsm *trieStorageManager) TakeSnapshot(rootHash []byte, newDb bool, leavesC
 		newDb:      newDb,
 		leavesChan: leavesChan,
 	}
-	tsm.snapshotReq <- snapshotEntry
+	select {
+	case tsm.snapshotReq <- snapshotEntry:
+	case <-tsm.closer.ChanClose():
+		tsm.safelyCloseChan(leavesChan)
+	}
 }
 
 // SetCheckpoint creates a new checkpoint, or if there is another snapshot or checkpoint in progress,
 // it adds this checkpoint in the queue. The checkpoint operation creates a new snapshot file
 // only if there was no snapshot done prior to this
 func (tsm *trieStorageManager) SetCheckpoint(rootHash []byte, leavesChan chan core.KeyValueHolder) {
+	if tsm.isClosed() {
+		tsm.safelyCloseChan(leavesChan)
+		return
+	}
+
 	if bytes.Equal(rootHash, EmptyTrieHash) {
 		log.Trace("should not set checkpoint for empty trie")
+		tsm.safelyCloseChan(leavesChan)
 		return
 	}
 
@@ -269,7 +290,17 @@ func (tsm *trieStorageManager) SetCheckpoint(rootHash []byte, leavesChan chan co
 		newDb:      false,
 		leavesChan: leavesChan,
 	}
-	tsm.checkpointReq <- checkpointEntry
+	select {
+	case tsm.checkpointReq <- checkpointEntry:
+	case <-tsm.closer.ChanClose():
+		tsm.safelyCloseChan(leavesChan)
+	}
+}
+
+func (tsm *trieStorageManager) safelyCloseChan(ch chan core.KeyValueHolder) {
+	if ch != nil {
+		close(ch)
+	}
 }
 
 func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, msh marshal.Marshalizer, hsh hashing.Hasher, ctx context.Context) {
@@ -539,12 +570,24 @@ func (tsm *trieStorageManager) Remove(hash []byte) error {
 	return tsm.db.Remove(hash)
 }
 
+func (tsm *trieStorageManager) isClosed() bool {
+	tsm.storageOperationMutex.Lock()
+	defer tsm.storageOperationMutex.Unlock()
+
+	return tsm.closed
+}
+
 // Close - closes all underlying components
 func (tsm *trieStorageManager) Close() error {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
 
 	tsm.cancelFunc()
+	tsm.closed = true
+
+	//calling close on the SafeCloser instance should be the last instruction called
+	//(just to close some go routines started as edge cases that would otherwise hang)
+	defer tsm.closer.Close()
 
 	err := tsm.db.Close()
 
