@@ -43,6 +43,10 @@ func (lp *logsProcessor) processLogs(logs map[string]data.LogHandler, isRevert b
 		}
 
 		for _, entryHandler := range logHandler.GetLogEvents() {
+			if check.IfNil(entryHandler) {
+				continue
+			}
+
 			txLog, ok := entryHandler.(*transaction.Event)
 			if !ok {
 				continue
