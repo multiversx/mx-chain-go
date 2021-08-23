@@ -10,7 +10,7 @@ import (
 
 // SystemEIStub -
 type SystemEIStub struct {
-	TransferCalled                      func(destination []byte, sender []byte, value *big.Int, input []byte) error
+	TransferCalled                      func(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64)
 	GetBalanceCalled                    func(addr []byte) *big.Int
 	SetStorageCalled                    func(key []byte, value []byte)
 	AddReturnMessageCalled              func(msg string)
@@ -184,11 +184,11 @@ func (s *SystemEIStub) SendGlobalSettingToAll(sender []byte, input []byte) {
 }
 
 // Transfer -
-func (s *SystemEIStub) Transfer(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) error {
+func (s *SystemEIStub) Transfer(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) {
 	if s.TransferCalled != nil {
-		return s.TransferCalled(destination, sender, value, input)
+		s.TransferCalled(destination, sender, value, input, gasLimit)
 	}
-	return nil
+	return
 }
 
 // GetBalance -

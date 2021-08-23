@@ -177,23 +177,46 @@ func (l *liquidStaking) claimDelegatedPosition(args *vmcommon.ContractCallInput)
 		l.eei.AddReturnMessage("not enough arguments")
 		return vmcommon.UserError
 	}
+	if len(args.ESDTTransfers) > 0 {
+		l.eei.AddReturnMessage("function is not payable in ESDT")
+		return vmcommon.UserError
+	}
 
 	return vmcommon.Ok
 }
 
 func (l *liquidStaking) claimRewardsFromDelegatedPosition(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := l.checkArgumentsWhenPositionIsInput(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
 	return vmcommon.Ok
 }
 
 func (l *liquidStaking) reDelegateRewardsFromPosition(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := l.checkArgumentsWhenPositionIsInput(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
 	return vmcommon.Ok
 }
 
 func (l *liquidStaking) unDelegateWithPosition(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := l.checkArgumentsWhenPositionIsInput(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
 	return vmcommon.Ok
 }
 
 func (l *liquidStaking) returnPosition(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := l.checkArgumentsWhenPositionIsInput(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
 	return vmcommon.Ok
 }
 

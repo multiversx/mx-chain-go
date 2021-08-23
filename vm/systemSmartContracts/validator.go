@@ -403,11 +403,7 @@ func (v *validatorSC) unJail(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 	}
 
 	if transferBack.Cmp(zero) > 0 {
-		err = v.eei.Transfer(args.CallerAddr, args.RecipientAddr, transferBack, nil, 0)
-		if err != nil {
-			v.eei.AddReturnMessage("transfer error on unJail function")
-			return vmcommon.UserError
-		}
+		v.eei.Transfer(args.CallerAddr, args.RecipientAddr, transferBack, nil, 0)
 	}
 
 	finalUnJailFunds := big.NewInt(0).Sub(args.CallValue, transferBack)
@@ -1410,11 +1406,7 @@ func (v *validatorSC) unBondV1(args *vmcommon.ContractCallInput) vmcommon.Return
 		}
 	}
 
-	err := v.eei.Transfer(args.CallerAddr, args.RecipientAddr, totalUnBond, nil, 0)
-	if err != nil {
-		v.eei.AddReturnMessage("transfer error on unBond function")
-		return vmcommon.UserError
-	}
+	v.eei.Transfer(args.CallerAddr, args.RecipientAddr, totalUnBond, nil, 0)
 
 	return vmcommon.Ok
 }
@@ -1449,11 +1441,7 @@ func (v *validatorSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return returnCode
 	}
 
-	err := v.eei.Transfer(args.CallerAddr, args.RecipientAddr, totalUnBond, nil, 0)
-	if err != nil {
-		v.eei.AddReturnMessage("transfer error on unBond function")
-		return vmcommon.UserError
-	}
+	v.eei.Transfer(args.CallerAddr, args.RecipientAddr, totalUnBond, nil, 0)
 
 	return vmcommon.Ok
 }
@@ -1540,11 +1528,7 @@ func (v *validatorSC) claim(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return vmcommon.UserError
 	}
 
-	err = v.eei.Transfer(args.CallerAddr, args.RecipientAddr, claimable, nil, 0)
-	if err != nil {
-		v.eei.AddReturnMessage("transfer error on finalizeUnStake function: error " + err.Error())
-		return vmcommon.UserError
-	}
+	v.eei.Transfer(args.CallerAddr, args.RecipientAddr, claimable, nil, 0)
 
 	return vmcommon.Ok
 }
@@ -1744,12 +1728,7 @@ func (v *validatorSC) unBondTokens(args *vmcommon.ContractCallInput) vmcommon.Re
 		return vmcommon.UserError
 	}
 
-	err = v.eei.Transfer(args.CallerAddr, args.RecipientAddr, totalUnBond, nil, 0)
-	if err != nil {
-		v.eei.AddReturnMessage("transfer error on unBond function")
-		return vmcommon.UserError
-	}
-
+	v.eei.Transfer(args.CallerAddr, args.RecipientAddr, totalUnBond, nil, 0)
 	err = v.saveRegistrationData(args.CallerAddr, registrationData)
 	if err != nil {
 		v.eei.AddReturnMessage("cannot save registration data: error " + err.Error())

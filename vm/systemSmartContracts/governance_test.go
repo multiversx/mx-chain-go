@@ -1355,12 +1355,10 @@ func TestGovernanceContract_ClaimFunds(t *testing.T) {
 				_ = args.Marshalizer.Unmarshal(finalVoteSet, value)
 			}
 		},
-		TransferCalled: func(destination []byte, sender []byte, value *big.Int, _ []byte) error {
+		TransferCalled: func(destination []byte, sender []byte, value *big.Int, _ []byte, _ uint64) {
 			transferTo = destination
 			transferFrom = sender
 			transferValue.Set(value)
-
-			return nil
 		},
 	}
 	claimArgs := [][]byte{

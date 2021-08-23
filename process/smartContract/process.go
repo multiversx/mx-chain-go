@@ -2358,7 +2358,8 @@ func (sc *scProcessor) processSimpleSCR(
 	if err != nil {
 		return err
 	}
-	if !isPayable && !bytes.Equal(scResult.RcvAddr, scResult.OriginalSender) {
+	isSenderMeta := sc.shardCoordinator.ComputeId(scResult.SndAddr) == core.MetachainShardId
+	if !isPayable && !bytes.Equal(scResult.RcvAddr, scResult.OriginalSender) && !isSenderMeta {
 		return process.ErrAccountNotPayable
 	}
 

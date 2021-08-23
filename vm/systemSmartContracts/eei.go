@@ -201,13 +201,7 @@ func (host *vmContext) SendGlobalSettingToAll(_ []byte, input []byte) {
 
 // Transfer handles any necessary value transfer required and takes
 // the necessary steps to create accounts
-func (host *vmContext) Transfer(
-	destination []byte,
-	sender []byte,
-	value *big.Int,
-	input []byte,
-	gasLimit uint64,
-) error {
+func (host *vmContext) Transfer(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) {
 
 	senderAcc, exists := host.outputAccounts[string(sender)]
 	if !exists {
@@ -240,7 +234,7 @@ func (host *vmContext) Transfer(
 	}
 	destAcc.OutputTransfers = append(destAcc.OutputTransfers, outputTransfer)
 
-	return nil
+	return
 }
 
 func (host *vmContext) copyToNewContext() *vmContext {
@@ -331,10 +325,7 @@ func (host *vmContext) DeploySystemSC(
 	}
 
 	callInput := createDirectCallInput(newAddress, ownerAddress, value, initFunction, input)
-	err := host.Transfer(callInput.RecipientAddr, host.scAddress, callInput.CallValue, nil, 0)
-	if err != nil {
-		return vmcommon.ExecutionFailed, err
-	}
+	host.Transfer(callInput.RecipientAddr, host.scAddress, callInput.CallValue, nil, 0)
 
 	contract, err := host.systemContracts.Get(baseContract)
 	if err != nil {
@@ -388,10 +379,7 @@ func (host *vmContext) ExecuteOnDestContext(destination []byte, sender []byte, v
 		return nil, err
 	}
 
-	err = host.Transfer(callInput.RecipientAddr, callInput.CallerAddr, callInput.CallValue, nil, 0)
-	if err != nil {
-		return nil, err
-	}
+	host.Transfer(callInput.RecipientAddr, callInput.CallerAddr, callInput.CallValue, nil, 0)
 
 	vmOutput := &vmcommon.VMOutput{}
 	currContext := host.copyToNewContext()
