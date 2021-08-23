@@ -486,7 +486,7 @@ func (n *Node) GetESDTsRoles(address string) (map[string][]string, error) {
 
 // GetTokenSupply returns the provided token supply from current shard
 func (n *Node) GetTokenSupply(token string) (string, error) {
-	return "", nil
+	return n.processComponents.HistoryRepository().GetESDTSupply(token)
 }
 
 // GetAllESDTTokens returns all the ESDTs that the given address interacted with

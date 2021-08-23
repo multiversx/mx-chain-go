@@ -41,6 +41,11 @@ func (nhr *nilHistoryRepository) RevertBlock(_ data.HeaderHandler, _ data.BodyHa
 	return nil
 }
 
+// GetESDTSupply -
+func (nhr *nilHistoryRepository) GetESDTSupply(_ string) (string, error) {
+	return "", nil
+}
+
 // GetResultsHashesByTxHash -
 func (nhr *nilHistoryRepository) GetResultsHashesByTxHash(_ []byte, _ uint32) (*ResultsHashesByTxHash, error) {
 	return nil, nil
