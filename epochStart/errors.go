@@ -316,3 +316,6 @@ var ErrEmptyESDTOwnerAddress = errors.New("empty ESDT owner address")
 
 // ErrNilCurrentNetworkEpochSetter signals that a nil current network epoch setter has been provided
 var ErrNilCurrentNetworkEpochSetter = errors.New("nil current network epoch setter")
+
+// ErrCouldNotInitLiquidStakingSystemSC signals that liquid staking system sc init failed
+var ErrCouldNotInitLiquidStakingSystemSC = errors.New("could not init liquid staking system sc")

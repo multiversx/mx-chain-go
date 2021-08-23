@@ -2,6 +2,7 @@
 package systemSmartContracts
 
 import (
+	"bytes"
 	"fmt"
 	"sync"
 
@@ -15,10 +16,14 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
+const tokenIDKey = "tokenID"
+const noncePrefix = "n"
+
 type liquidStaking struct {
 	eei                      vm.SystemEI
 	sigVerifier              vm.MessageSignVerifier
 	delegationMgrSCAddress   []byte
+	liquidStakingSCAddress   []byte
 	endOfEpochAddr           []byte
 	gasCost                  vm.GasCost
 	marshalizer              marshal.Marshalizer
@@ -33,6 +38,7 @@ type ArgsNewLiquidStaking struct {
 	EpochConfig            config.EpochConfig
 	Eei                    vm.SystemEI
 	DelegationMgrSCAddress []byte
+	LiquidStakingSCAddress []byte
 	EndOfEpochAddress      []byte
 	GasCost                vm.GasCost
 	Marshalizer            marshal.Marshalizer
@@ -51,6 +57,9 @@ func NewLiquidStakingSystemSC(args ArgsNewLiquidStaking) (*liquidStaking, error)
 	if len(args.EndOfEpochAddress) < 1 {
 		return nil, fmt.Errorf("%w for end of epoch address", vm.ErrInvalidAddress)
 	}
+	if len(args.LiquidStakingSCAddress) < 1 {
+		return nil, fmt.Errorf("%w for liquid staking sc address", vm.ErrInvalidAddress)
+	}
 	if check.IfNil(args.Marshalizer) {
 		return nil, vm.ErrNilMarshalizer
 	}
@@ -65,6 +74,7 @@ func NewLiquidStakingSystemSC(args ArgsNewLiquidStaking) (*liquidStaking, error)
 		eei:                      args.Eei,
 		delegationMgrSCAddress:   args.DelegationMgrSCAddress,
 		endOfEpochAddr:           args.EndOfEpochAddress,
+		liquidStakingSCAddress:   args.LiquidStakingSCAddress,
 		gasCost:                  args.GasCost,
 		marshalizer:              args.Marshalizer,
 		hasher:                   args.Hasher,
@@ -112,10 +122,62 @@ func (l *liquidStaking) Execute(args *vmcommon.ContractCallInput) vmcommon.Retur
 }
 
 func (l *liquidStaking) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if bytes.Equal(args.CallerAddr, l.endOfEpochAddr) {
+		l.eei.AddReturnMessage("invalid caller")
+		return vmcommon.UserError
+	}
+	if args.CallValue.Cmp(zero) != 0 {
+		l.eei.AddReturnMessage("not a payable function")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) != 1 {
+		l.eei.AddReturnMessage("invalid number of arguments")
+		return vmcommon.UserError
+	}
+	tokenID := args.Arguments[0]
+	l.eei.SetStorage([]byte(tokenIDKey), tokenID)
+
+	return vmcommon.Ok
+}
+
+func (l *liquidStaking) getTokenID() []byte {
+	return l.eei.GetStorage([]byte(tokenIDKey))
+}
+
+func (l *liquidStaking) checkArgumentsWhenPositionIsInput(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if len(args.ESDTTransfers) < 1 {
+		l.eei.AddReturnMessage("function requires liquid staking input")
+		return vmcommon.UserError
+	}
+	if args.CallValue.Cmp(zero) != 0 {
+		l.eei.AddReturnMessage("function is not payable in eGLD")
+		return vmcommon.UserError
+	}
+	for _, esdtTransfer := range args.ESDTTransfers {
+		if !bytes.Equal(esdtTransfer.ESDTTokenName, l.getTokenID()) {
+			l.eei.AddReturnMessage("wrong liquid staking position as input")
+			return vmcommon.UserError
+		}
+	}
+	err := l.eei.UseGas(uint64(len(args.ESDTTransfers)) * l.gasCost.MetaChainSystemSCsCost.LiquidStakingOps)
+	if err != nil {
+		l.eei.AddReturnMessage(err.Error())
+		return vmcommon.OutOfGas
+	}
+
 	return vmcommon.Ok
 }
 
 func (l *liquidStaking) claimDelegatedPosition(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if args.CallValue.Cmp(zero) != 0 {
+		l.eei.AddReturnMessage("function is not payable in eGLD")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) == 0 {
+		l.eei.AddReturnMessage("not enough arguments")
+		return vmcommon.UserError
+	}
+
 	return vmcommon.Ok
 }
 

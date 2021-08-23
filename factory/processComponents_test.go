@@ -230,6 +230,7 @@ func FillGasMapMetaChainSystemSCsCosts(value uint64) map[string]uint64 {
 	gasMap["DelegationMgrOps"] = value
 	gasMap["GetAllNodeStates"] = value
 	gasMap["ValidatorToDelegation"] = value
+	gasMap["LiquidStakingOps"] = value
 
 	return gasMap
 }
