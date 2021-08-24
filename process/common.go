@@ -11,9 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
@@ -693,101 +691,6 @@ func GetSortedStorageUpdates(account *vmcommon.OutputAccount) []*vmcommon.Storag
 	})
 
 	return storageUpdates
-}
-
-// GetScheduledRootHashAndSCRsFromStorage gets scheduled root hash and SCRs of the given header from storage
-func GetScheduledRootHashAndSCRsFromStorage(
-	headerHash []byte,
-	storageService dataRetriever.StorageService,
-	marshalizer marshal.Marshalizer,
-) ([]byte, map[block.Type][]data.TransactionHandler, error) {
-	if check.IfNil(storageService) {
-		return nil, nil, ErrNilStorage
-	}
-	if check.IfNil(marshalizer) {
-		return nil, nil, ErrNilMarshalizer
-	}
-
-	scheduledSCRsStorer := storageService.GetStorer(dataRetriever.ScheduledSCRsUnit)
-	if check.IfNil(scheduledSCRsStorer) {
-		return nil, nil, ErrNilStorage
-	}
-
-	marshalizedSCRsBatch, err := scheduledSCRsStorer.Get(headerHash)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	b := &batch.Batch{}
-	err = marshalizer.Unmarshal(b, marshalizedSCRsBatch)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	scheduledRootHash := make([]byte, 0)
-	if len(b.Data) > 0 {
-		copy(scheduledRootHash, b.Data[0])
-	}
-
-	mapScheduledSCRs := make(map[block.Type][]data.TransactionHandler)
-	for index, marshalizedScheduledSCRs := range b.Data {
-		if index == 0 {
-			continue
-		}
-
-		scheduledSCRs := &scheduled.ScheduledSCRs{}
-		err = marshalizer.Unmarshal(scheduledSCRs, marshalizedScheduledSCRs)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		if len(scheduledSCRs.TxHandlers) == 0 {
-			continue
-		}
-
-		mapScheduledSCRs[block.Type(scheduledSCRs.BlockType)] = make([]data.TransactionHandler, len(scheduledSCRs.TxHandlers))
-		for txIndex := range scheduledSCRs.TxHandlers {
-			mapScheduledSCRs[block.Type(scheduledSCRs.BlockType)][txIndex] = &scheduledSCRs.TxHandlers[txIndex]
-		}
-	}
-
-	return scheduledRootHash, mapScheduledSCRs, nil
-}
-
-// GetScheduledRootHashAndSCRs gets scheduled root hash and SCRs of the given header hash
-func GetScheduledRootHashAndSCRs(
-	headerHash []byte,
-	storageService dataRetriever.StorageService,
-	marshalizer marshal.Marshalizer,
-) ([]byte, map[block.Type][]data.TransactionHandler, error) {
-	scheduledRootHash, mapScheduledSCRs, err := GetScheduledRootHashAndSCRsFromStorage(headerHash, storageService, marshalizer)
-	if err != nil {
-		log.Trace("GetScheduledRootHashAndSCRs: given header does not have scheduled txs",
-			"header hash", headerHash,
-		)
-
-		return nil, nil, err
-	}
-
-	return scheduledRootHash, mapScheduledSCRs, nil
-}
-
-// GetScheduledRootHash gets scheduled root hash of the given header hash
-func GetScheduledRootHash(
-	headerHash []byte,
-	storageService dataRetriever.StorageService,
-	marshalizer marshal.Marshalizer,
-) ([]byte, error) {
-	scheduledRootHash, _, err := GetScheduledRootHashAndSCRsFromStorage(headerHash, storageService, marshalizer)
-	if err != nil {
-		log.Trace("GetScheduledRootHash: given header does not have scheduled txs",
-			"header hash", headerHash,
-		)
-
-		return nil, err
-	}
-
-	return scheduledRootHash, nil
 }
 
 // CreateShardHeader creates a shard header from the given byte array

@@ -1111,12 +1111,14 @@ type ScheduledTxsExecutionHandler interface {
 	Execute(txHash []byte) error
 	ExecuteAll(haveTime func() time.Duration) error
 	GetScheduledSCRs() map[block.Type][]data.TransactionHandler
-	SetScheduledSCRs(mapSCRs map[block.Type][]data.TransactionHandler)
+	SetScheduledRootHashAndSCRs(rootHash []byte, mapSCRs map[block.Type][]data.TransactionHandler)
+	GetScheduledRootHashForHeader(headerHash []byte) ([]byte, error)
+	RollBackToBlock(headerHash []byte) error
+	SaveState(headerHash []byte)
 	GetScheduledRootHash() []byte
 	SetScheduledRootHash(rootHash []byte)
 	SetTransactionProcessor(txProcessor TransactionProcessor)
 	SetTransactionCoordinator(txCoordinator TransactionCoordinator)
-	HaveScheduledTxs() bool
 	IsScheduledTx(txHash []byte) bool
 	IsInterfaceNil() bool
 }

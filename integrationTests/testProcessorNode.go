@@ -1482,7 +1482,11 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		PenalizedTooMuchGasEnableEpoch: tpn.EnableEpochs.PenalizedTooMuchGasEnableEpoch,
 	}
 	tpn.TxProcessor, _ = transaction.NewTxProcessor(argsNewTxProcessor)
-	scheduledTxsExecutionHandler, _ := preprocess.NewScheduledTxsExecution(tpn.TxProcessor, &mock.TransactionCoordinatorMock{})
+	scheduledTxsExecutionHandler, _ := preprocess.NewScheduledTxsExecution(
+		tpn.TxProcessor,
+		&mock.TransactionCoordinatorMock{},
+		tpn.Storage.GetStorer(dataRetriever.ScheduledSCRsUnit),
+		TestMarshalizer)
 
 	fact, _ := shard.NewPreProcessorsContainerFactory(
 		tpn.ShardCoordinator,
@@ -1709,7 +1713,11 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		BuiltInFunctionOnMetachainEnableEpoch: tpn.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 	}
 	tpn.TxProcessor, _ = transaction.NewMetaTxProcessor(argsNewMetaTxProc)
-	scheduledTxsExecutionHandler, _ := preprocess.NewScheduledTxsExecution(tpn.TxProcessor, &mock.TransactionCoordinatorMock{})
+	scheduledTxsExecutionHandler, _ := preprocess.NewScheduledTxsExecution(
+		tpn.TxProcessor,
+		&mock.TransactionCoordinatorMock{},
+		tpn.Storage.GetStorer(dataRetriever.ScheduledSCRsUnit),
+		TestMarshalizer)
 
 	fact, _ := metaProcess.NewPreProcessorsContainerFactory(
 		tpn.ShardCoordinator,

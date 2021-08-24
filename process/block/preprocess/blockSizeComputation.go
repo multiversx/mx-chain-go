@@ -13,7 +13,7 @@ import (
 )
 
 // blockSizeComputation is able to estimate the size in bytes of a block body given the number of contained
-// transactions hashes and the number of miniblocks. It uses the marshalizer to compute the size as precise as possible.
+// transactions hashes and the number of miniblocks. It uses the marshaller to compute the size as precise as possible.
 type blockSizeComputation struct {
 	miniblockSize uint32
 	txSize        uint32
