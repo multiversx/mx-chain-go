@@ -533,6 +533,7 @@ func (psf *StorageServiceFactory) setupDbLookupExtensions(chainStorer *dataRetri
 	createdStorers = append(createdStorers, epochByHashUnit)
 	chainStorer.AddStorer(dataRetriever.EpochByHashUnit, epochByHashUnit)
 
+	// Create the esdtSupplies (STATIC) storer
 	esdtSuppliesConfig := psf.generalConfig.DbLookupExtensions.ESDTSuppliesStorageConfig
 	esdtSuppliesDbConfig := GetDBFromConfig(esdtSuppliesConfig.DB)
 	esdtSuppliesDbConfig.FilePath = psf.pathManager.PathForStatic(shardID, esdtSuppliesConfig.DB.FilePath)
