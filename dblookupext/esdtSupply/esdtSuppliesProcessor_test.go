@@ -27,6 +27,7 @@ func TestNewSuppliesProcessor(t *testing.T) {
 	proc, err := NewSuppliesProcessor(&testscommon.MarshalizerMock{}, &testscommon.StorerStub{}, &testscommon.StorerStub{})
 	require.Nil(t, err)
 	require.NotNil(t, proc)
+	require.False(t, proc.IsInterfaceNil())
 }
 
 func TestProcessLogsSaveSupply(t *testing.T) {
