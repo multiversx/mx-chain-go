@@ -177,12 +177,8 @@ func (l *liquidStaking) claimDelegatedPosition(args *vmcommon.ContractCallInput)
 		l.eei.AddReturnMessage("function is not payable in eGLD")
 		return vmcommon.UserError
 	}
-	if len(args.Arguments) != 2 {
+	if len(args.Arguments) < 3 {
 		l.eei.AddReturnMessage("not enough arguments")
-		return vmcommon.UserError
-	}
-	if len(args.Arguments)%2 != 0 {
-		l.eei.AddReturnMessage("invalid number of arguments")
 		return vmcommon.UserError
 	}
 	if len(args.ESDTTransfers) > 0 {
@@ -190,11 +186,19 @@ func (l *liquidStaking) claimDelegatedPosition(args *vmcommon.ContractCallInput)
 		return vmcommon.UserError
 	}
 
+	numOfCalls := big.NewInt(0).SetBytes(args.Arguments[0]).Int64()
+	minNumArguments := numOfCalls*2 + 1
+	if int64(len(args.Arguments)) < minNumArguments {
+		l.eei.AddReturnMessage("invalid number of arguments")
+		return vmcommon.UserError
+	}
+
 	listNonces := make([]uint64, 0)
 	listValues := make([]*big.Int, 0)
-	for i := 0; i < len(args.Arguments); i += 2 {
-		scAddress := args.Arguments[i]
-		valueToClaim := big.NewInt(0).SetBytes(args.Arguments[i+1])
+	startIndex := int64(1)
+	for i := int64(0); i < numOfCalls; i++ {
+		scAddress := args.Arguments[startIndex+i*2]
+		valueToClaim := big.NewInt(0).SetBytes(args.Arguments[startIndex+i*2+1])
 
 		txData := "claimDelegatedPosition" + "@" + hex.EncodeToString(args.CallerAddr) + "@" + hex.EncodeToString(valueToClaim.Bytes())
 		vmOutput, err := l.eei.ExecuteOnDestContext(scAddress, args.RecipientAddr, big.NewInt(0), []byte(txData))
@@ -223,7 +227,11 @@ func (l *liquidStaking) claimDelegatedPosition(args *vmcommon.ContractCallInput)
 		listValues = append(listValues, valueToClaim)
 	}
 
-	err := l.sendNFTMultiTransfer(args.RecipientAddr, args.CallerAddr, listNonces, listValues)
+	var additionalArgs [][]byte
+	if int64(len(args.Arguments)) > minNumArguments {
+		additionalArgs = args.Arguments[minNumArguments:]
+	}
+	err := l.sendNFTMultiTransfer(args.CallerAddr, listNonces, listValues, additionalArgs)
 	if err != nil {
 		l.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -289,6 +297,12 @@ func (l *liquidStaking) createOrAddNFT(
 		return 0, nil
 	}
 
+	nonceBytes := big.NewInt(0).SetUint64(nonce).Bytes()
+	l.eei.SetStorage(attrNonceKey, nonceBytes)
+
+	nonceKey := append([]byte(nonceAttributesPrefix), nonceBytes...)
+	l.eei.SetStorage(nonceKey, marshalledData)
+
 	return nonce, nil
 }
 
@@ -325,15 +339,49 @@ func (l *liquidStaking) addQuantityToNFT(nonce uint64, value *big.Int) error {
 }
 
 func (l *liquidStaking) getAttributesForNonce(nonce uint64) (*LiquidStakingAttributes, error) {
-	return nil, nil
+	nonceKey := append([]byte(nonceAttributesPrefix), big.NewInt(0).SetUint64(nonce).Bytes()...)
+	marshalledData := l.eei.GetStorage(nonceKey)
+	if len(marshalledData) == 0 {
+		return nil, vm.ErrEmptyStorage
+	}
+
+	lAttr := &LiquidStakingAttributes{}
+	err := l.marshalizer.Unmarshal(lAttr, marshalledData)
+	if err != nil {
+		return nil, err
+	}
+
+	return lAttr, nil
 }
 
 func (l *liquidStaking) sendNFTMultiTransfer(
-	senderAddress []byte,
 	destinationAddress []byte,
 	listNonces []uint64,
 	listValue []*big.Int,
+	additionalArgs [][]byte,
 ) error {
+
+	numOfTransfer := int64(len(listNonces))
+	args := make([][]byte, 0)
+	args = append(args, destinationAddress)
+	args = append(args, big.NewInt(numOfTransfer).Bytes())
+
+	tokenID := l.getTokenID()
+	for i := 0; i < len(listNonces); i++ {
+		args = append(args, tokenID)
+		args = append(args, big.NewInt(0).SetUint64(listNonces[i]).Bytes())
+		args = append(args, listValue[i].Bytes())
+	}
+
+	if len(additionalArgs) > 0 {
+		args = append(args, additionalArgs...)
+	}
+
+	_, err := l.eei.ProcessBuiltInFunction(l.liquidStakingSCAddress, l.liquidStakingSCAddress, core.BuiltInFunctionMultiESDTNFTTransfer, args)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
