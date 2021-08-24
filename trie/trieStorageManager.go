@@ -559,8 +559,8 @@ func (tsm *trieStorageManager) Remove(hash []byte) error {
 }
 
 func (tsm *trieStorageManager) isClosed() bool {
-	tsm.storageOperationMutex.Lock()
-	defer tsm.storageOperationMutex.Unlock()
+	tsm.storageOperationMutex.RLock()
+	defer tsm.storageOperationMutex.RUnlock()
 
 	return tsm.closed
 }
