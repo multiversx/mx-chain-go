@@ -33,7 +33,6 @@ func NewSuppliesProcessor(
 	if check.IfNil(suppliesStorer) {
 		return nil, core.ErrNilStore
 	}
-
 	if check.IfNil(logsStorer) {
 		return nil, core.ErrNilStore
 	}
