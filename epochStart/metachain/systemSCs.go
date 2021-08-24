@@ -1156,7 +1156,7 @@ func (s *systemSCProcessor) initLiquidStakingSC(tokenID []byte) error {
 
 	vmInput := &vmcommon.ContractCreateInput{
 		VMInput: vmcommon.VMInput{
-			CallerAddr: vm.EndOfEpochAddress,
+			CallerAddr: vm.LiquidStakingSCAddress,
 			Arguments:  [][]byte{tokenID},
 			CallValue:  big.NewInt(0),
 		},

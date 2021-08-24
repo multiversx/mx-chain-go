@@ -2719,13 +2719,12 @@ func (d *delegation) claimRewardsViaLiquidStaking(args *vmcommon.ContractCallInp
 	}
 
 	d.eei.Transfer(args.CallerAddr, address, totalRewards, nil, 0)
-
 	return vmcommon.Ok
 }
 
 func (d *delegation) reDelegateRewardsViaLiquidStaking(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 
-	return vmcommon.Ok
+	return vmcommon.UserError
 }
 
 func (d *delegation) unDelegateViaLiquidStaking(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {

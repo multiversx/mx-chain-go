@@ -283,6 +283,8 @@ func (e *esdt) initDelegationESDTOnMeta(args *vmcommon.ContractCallInput) vmcomm
 		return vmcommon.UserError
 	}
 
+	e.eei.Finish(tokenIdentifier)
+
 	return vmcommon.Ok
 }
 

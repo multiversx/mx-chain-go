@@ -122,7 +122,7 @@ func (l *liquidStaking) Execute(args *vmcommon.ContractCallInput) vmcommon.Retur
 }
 
 func (l *liquidStaking) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if bytes.Equal(args.CallerAddr, l.endOfEpochAddr) {
+	if !bytes.Equal(args.CallerAddr, l.liquidStakingSCAddress) {
 		l.eei.AddReturnMessage("invalid caller")
 		return vmcommon.UserError
 	}
