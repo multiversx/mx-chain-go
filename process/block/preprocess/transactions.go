@@ -280,16 +280,7 @@ func (txs *transactions) ProcessBlockTransactions(
 	haveTime func() bool,
 ) error {
 	if txs.isBodyToMe(body) {
-		scheduledMode := false
-		if txs.flagScheduledMiniBlocks.IsSet() {
-			var err error
-			scheduledMode, err = process.IsScheduledMode(header, body, txs.hasher, txs.marshalizer)
-			if err != nil {
-				return err
-			}
-		}
-
-		return txs.processTxsToMe(body, haveTime, scheduledMode)
+		return txs.processTxsToMe(header, body, haveTime)
 	}
 
 	if txs.isBodyFromMe(body) {
@@ -431,12 +422,24 @@ func (txs *transactions) getShardFromAddress(address []byte) (uint32, error) {
 }
 
 func (txs *transactions) processTxsToMe(
+	header data.HeaderHandler,
 	body *block.Body,
 	haveTime func() bool,
-	scheduledMode bool,
 ) error {
 	if check.IfNil(body) {
 		return process.ErrNilBlockBody
+	}
+	if check.IfNil(header) {
+		return process.ErrNilHeaderHandler
+	}
+
+	var err error
+	scheduledMode := false
+	if txs.flagScheduledMiniBlocks.IsSet() {
+		scheduledMode, err = process.IsScheduledMode(header, body, txs.hasher, txs.marshalizer)
+		if err != nil {
+			return err
+		}
 	}
 
 	txsToMe, err := txs.computeTxsToMe(body)
