@@ -264,6 +264,7 @@ func (tsm *trieStorageManager) TakeSnapshot(rootHash []byte, newDb bool, leavesC
 	select {
 	case tsm.snapshotReq <- snapshotEntry:
 	case <-tsm.closer.ChanClose():
+		tsm.ExitPruningBufferingMode()
 		tsm.safelyCloseChan(leavesChan)
 	}
 }
@@ -293,6 +294,7 @@ func (tsm *trieStorageManager) SetCheckpoint(rootHash []byte, leavesChan chan co
 	select {
 	case tsm.checkpointReq <- checkpointEntry:
 	case <-tsm.closer.ChanClose():
+		tsm.ExitPruningBufferingMode()
 		tsm.safelyCloseChan(leavesChan)
 	}
 }
@@ -312,24 +314,10 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 		}
 	}()
 
-	var db common.DBWriteCacher
-	if tsm.isPresentInLastSnapshotDb(snapshotEntry.rootHash) {
-		snapshotDB := tsm.GetSnapshotThatContainsHash(snapshotEntry.rootHash)
-		db = snapshotDB
-		isDbNil := check.IfNil(db)
-		log.Trace("snapshot for rootHash already taken, using snapshot DB",
-			"rootHash", snapshotEntry.rootHash, "is DB nil", isDbNil)
-
-		if !isDbNil {
-			//should decrease the num references as to allow for snapshot closing
-			defer snapshotDB.DecreaseNumReferences()
-		}
-	}
-
-	if check.IfNil(db) {
-		log.Trace("source DB is nil, setting the source DB as tsm.db")
-		db = tsm.db
-	}
+	// use the main DB as that DB will certainly have all the trie nodes
+	// using a checkpoint DB is not safe because the process might contain an incomplete DB because the
+	// checkpointing/snapshotting operations can be stopped at shuffle out.
+	db := tsm.db
 	log.Trace("trie checkpoint started", "rootHash", snapshotEntry.rootHash)
 
 	newRoot, err := newSnapshotNode(db, msh, hsh, snapshotEntry.rootHash)
