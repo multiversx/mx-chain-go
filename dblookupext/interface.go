@@ -38,6 +38,7 @@ type BlockTracker interface {
 	IsInterfaceNil() bool
 }
 
+// SuppliesHandler defines the interface of a supplies processor
 type SuppliesHandler interface {
 	ProcessLogs(logs map[string]data.LogHandler) error
 	RevertChanges(header data.HeaderHandler, body data.BodyHandler) error

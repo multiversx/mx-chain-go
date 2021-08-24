@@ -439,11 +439,12 @@ func (hr *historyRepository) GetResultsHashesByTxHash(txHash []byte, epoch uint3
 	return hr.eventsHashesByTxHashIndex.getEventsHashesByTxHash(txHash, epoch)
 }
 
-// IsEnabled will always returns true
+// IsEnabled will always return true
 func (hr *historyRepository) IsEnabled() bool {
 	return true
 }
 
+// RevertBlock will return the modification for the current block header
 func (hr *historyRepository) RevertBlock(blockHeader data.HeaderHandler, blockBody data.BodyHandler) error {
 	return hr.esdtSuppliesHandler.RevertChanges(blockHeader, blockBody)
 }

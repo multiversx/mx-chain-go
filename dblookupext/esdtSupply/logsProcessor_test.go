@@ -82,6 +82,12 @@ func TestTestProcessLogsSaveSupplyExistsInStorage(t *testing.T) {
 						token, big.NewInt(0).Bytes(), big.NewInt(20).Bytes(),
 					},
 				},
+				{
+					Identifier: []byte(core.BuiltInFunctionESDTLocalMint),
+					Topics: [][]byte{
+						token, big.NewInt(0).Bytes(), big.NewInt(25).Bytes(),
+					},
+				},
 				nil,
 			},
 		},
@@ -101,7 +107,7 @@ func TestTestProcessLogsSaveSupplyExistsInStorage(t *testing.T) {
 
 			var supplyESDT SupplyESDT
 			_ = marshalizer.Unmarshal(&supplyESDT, data)
-			require.Equal(t, big.NewInt(980), supplyESDT.Supply)
+			require.Equal(t, big.NewInt(1005), supplyESDT.Supply)
 
 			return nil
 		},

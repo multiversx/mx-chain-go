@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/dblookupext/disabled"
 	"github.com/ElrondNetwork/elrond-go/dblookupext/esdtSupply"
 )
 
@@ -53,7 +54,7 @@ func NewHistoryRepositoryFactory(args *ArgsHistoryRepositoryFactory) (dblookupex
 // Create creates instances of HistoryRepository
 func (hpf *historyRepositoryFactory) Create() (dblookupext.HistoryRepository, error) {
 	if !hpf.dbLookupExtensionsConfig.Enabled {
-		return dblookupext.NewNilHistoryRepository()
+		return disabled.NewNilHistoryRepository()
 	}
 
 	esdtSuppliesHandler, err := esdtSupply.NewSuppliesProcessor(

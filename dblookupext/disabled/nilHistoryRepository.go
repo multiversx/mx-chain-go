@@ -1,7 +1,8 @@
-package dblookupext
+package disabled
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go/dblookupext"
 )
 
 type nilHistoryRepository struct {
@@ -22,7 +23,7 @@ func (nhr *nilHistoryRepository) OnNotarizedBlocks(_ uint32, _ []data.HeaderHand
 }
 
 // GetMiniblockMetadataByTxHash does nothing
-func (nhr *nilHistoryRepository) GetMiniblockMetadataByTxHash(_ []byte) (*MiniblockMetadata, error) {
+func (nhr *nilHistoryRepository) GetMiniblockMetadataByTxHash(_ []byte) (*dblookupext.MiniblockMetadata, error) {
 	return nil, nil
 }
 
@@ -42,7 +43,7 @@ func (nhr *nilHistoryRepository) RevertBlock(_ data.HeaderHandler, _ data.BodyHa
 }
 
 // GetResultsHashesByTxHash -
-func (nhr *nilHistoryRepository) GetResultsHashesByTxHash(_ []byte, _ uint32) (*ResultsHashesByTxHash, error) {
+func (nhr *nilHistoryRepository) GetResultsHashesByTxHash(_ []byte, _ uint32) (*dblookupext.ResultsHashesByTxHash, error) {
 	return nil, nil
 }
 

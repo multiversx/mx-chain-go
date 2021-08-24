@@ -42,38 +42,37 @@ func (lp *logsProcessor) processLogs(logs map[string]data.LogHandler, isRevert b
 			continue
 		}
 
-		for _, entryHandler := range logHandler.GetLogEvents() {
-			if check.IfNil(entryHandler) {
-				continue
-			}
-
-			txLog, ok := entryHandler.(*transaction.Event)
-			if !ok {
-				continue
-			}
-
-			if lp.shouldIgnoreLog(txLog) {
-				continue
-			}
-
-			tokenSupply, tokenIdentifier, err := lp.processLog(txLog, isRevert)
-			if err != nil {
-				return err
-			}
-
-			tokenIDStr := string(tokenIdentifier)
-			_, found := supplies[tokenIDStr]
-			if !found {
-				supplies[tokenIDStr] = tokenSupply
-				continue
-			}
-
-			supplies[tokenIDStr].Supply.Add(supplies[tokenIDStr].Supply, tokenSupply.Supply)
+		err := lp.processLog(logHandler, supplies, isRevert)
+		if err != nil {
+			return err
 		}
-
 	}
 
 	return lp.saveSupplies(supplies)
+}
+
+func (lp *logsProcessor) processLog(txLog data.LogHandler, supplies map[string]*SupplyESDT, isRevert bool) error {
+	for _, entryHandler := range txLog.GetLogEvents() {
+		if check.IfNil(entryHandler) {
+			continue
+		}
+
+		event, ok := entryHandler.(*transaction.Event)
+		if !ok {
+			continue
+		}
+
+		if lp.shouldIgnoreEvent(event) {
+			continue
+		}
+
+		err := lp.processEvent(event, supplies, isRevert)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (lp *logsProcessor) saveSupplies(supplies map[string]*SupplyESDT) error {
@@ -92,7 +91,7 @@ func (lp *logsProcessor) saveSupplies(supplies map[string]*SupplyESDT) error {
 	return nil
 }
 
-func (lp *logsProcessor) processLog(txLog *transaction.Event, isRevert bool) (*SupplyESDT, []byte, error) {
+func (lp *logsProcessor) processEvent(txLog *transaction.Event, supplies map[string]*SupplyESDT, isRevert bool) error {
 	tokenIdentifier := txLog.Topics[0]
 	if len(txLog.Topics[1]) != 0 {
 		tokenIdentifier = bytes.Join([][]byte{tokenIdentifier, txLog.Topics[1]}, []byte("-"))
@@ -106,27 +105,45 @@ func (lp *logsProcessor) processLog(txLog *transaction.Event, isRevert bool) (*S
 		bigValue = big.NewInt(0).Neg(bigValue)
 	}
 
+	tokenIDStr := string(tokenIdentifier)
+	_, found := supplies[tokenIDStr]
+	if found {
+		supplies[tokenIDStr].Supply.Add(supplies[tokenIDStr].Supply, bigValue)
+		return nil
+	}
+
+	supplyFromStorage, err := lp.getSupply(tokenIdentifier)
+	if err != nil {
+		return err
+	}
+
+	newSupply := big.NewInt(0).Add(supplyFromStorage.Supply, bigValue)
+	supplies[tokenIDStr] = &SupplyESDT{
+		Supply: newSupply,
+	}
+
+	return nil
+}
+
+func (lp *logsProcessor) getSupply(tokenIdentifier []byte) (*SupplyESDT, error) {
 	supplyFromStorageBytes, err := lp.suppliesStorer.Get(tokenIdentifier)
 	if err != nil {
 		return &SupplyESDT{
-			Supply: bigValue,
-		}, tokenIdentifier, nil
+			big.NewInt(0),
+		}, nil
 	}
 
 	supplyFromStorage := &SupplyESDT{}
 	err = lp.marshalizer.Unmarshal(supplyFromStorage, supplyFromStorageBytes)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	newSupply := big.NewInt(0).Add(supplyFromStorage.Supply, bigValue)
-	return &SupplyESDT{
-		Supply: newSupply,
-	}, tokenIdentifier, nil
+	return supplyFromStorage, nil
 }
 
-func (lp *logsProcessor) shouldIgnoreLog(txLogs *transaction.Event) bool {
-	_, found := lp.fungibleOperations[string(txLogs.Identifier)]
+func (lp *logsProcessor) shouldIgnoreEvent(event *transaction.Event) bool {
+	_, found := lp.fungibleOperations[string(event.Identifier)]
 
 	return !found
 }
