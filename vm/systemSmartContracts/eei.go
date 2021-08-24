@@ -233,8 +233,6 @@ func (host *vmContext) Transfer(destination []byte, sender []byte, value *big.In
 		CallType: vmData.DirectCall,
 	}
 	destAcc.OutputTransfers = append(destAcc.OutputTransfers, outputTransfer)
-
-	return
 }
 
 func (host *vmContext) copyToNewContext() *vmContext {

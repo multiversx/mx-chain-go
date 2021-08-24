@@ -70,6 +70,7 @@ func TestSystemSCsAddressesAndSpecialAddresses(t *testing.T) {
 	endOfEpochAddress := addressEncoder.Encode(vm.EndOfEpochAddress)
 	delegationManagerScAddress := addressEncoder.Encode(vm.DelegationManagerSCAddress)
 	firstDelegationScAddress := addressEncoder.Encode(vm.FirstDelegationSCAddress)
+	liquidStakingSCAddress := addressEncoder.Encode(vm.LiquidStakingSCAddress)
 
 	header := []string{"Smart contract/Special address", "Address"}
 	lines := []*display.LineData{
@@ -82,6 +83,7 @@ func TestSystemSCsAddressesAndSpecialAddresses(t *testing.T) {
 		display.NewLineData(false, []string{"End of epoch address", endOfEpochAddress}),
 		display.NewLineData(false, []string{"Delegation manager", delegationManagerScAddress}),
 		display.NewLineData(false, []string{"First delegation", firstDelegationScAddress}),
+		display.NewLineData(false, []string{"Liquid staking", liquidStakingSCAddress}),
 	}
 
 	table, _ := display.CreateTableString(header, lines)
@@ -96,4 +98,5 @@ func TestSystemSCsAddressesAndSpecialAddresses(t *testing.T) {
 	assert.Equal(t, "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqylllslmq6y6", delegationManagerScAddress)
 	assert.Equal(t, "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq0llllsqkarq6", firstDelegationScAddress)
 	assert.Equal(t, "erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq6gq4hu", contractDeployScAdress)
+	assert.Equal(t, "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq9lllsm6xupm", liquidStakingSCAddress)
 }
