@@ -441,15 +441,15 @@ func (host *vmContext) ProcessBuiltInFunction(
 	sender, destination []byte,
 	function string,
 	arguments [][]byte,
-) error {
+) (*vmcommon.VMOutput, error) {
 	vmInput := createDirectCallInput(destination, sender, big.NewInt(0), function, arguments)
 	vmInput.GasProvided = host.GasLeft()
 	vmOutput, err := host.blockChainHook.ProcessBuiltInFunction(vmInput)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		return errors.New(vmOutput.ReturnMessage)
+		return nil, errors.New(vmOutput.ReturnMessage)
 	}
 
 	for address, outAcc := range vmOutput.OutputAccounts {
@@ -465,7 +465,7 @@ func (host *vmContext) ProcessBuiltInFunction(
 
 	//TODO: add logs after merge with logs PR on meta
 
-	return nil
+	return vmOutput, nil
 }
 
 // BlockChainHook returns the blockchain hook

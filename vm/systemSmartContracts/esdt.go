@@ -272,7 +272,7 @@ func (e *esdt) initDelegationESDTOnMeta(args *vmcommon.ContractCallInput) vmcomm
 		return vmcommon.UserError
 	}
 
-	err = e.eei.ProcessBuiltInFunction(
+	err, _ = e.eei.ProcessBuiltInFunction(
 		e.eSDTSCAddress,
 		vm.LiquidStakingSCAddress,
 		core.BuiltInFunctionSetESDTRole,

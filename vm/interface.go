@@ -55,7 +55,7 @@ type SystemEI interface {
 	CanUnJail(blsKey []byte) bool
 	IsBadRating(blsKey []byte) bool
 	CleanStorageUpdates()
-	ProcessBuiltInFunction(sender, destination []byte, function string, arguments [][]byte) error
+	ProcessBuiltInFunction(sender, destination []byte, function string, arguments [][]byte) (*vmcommon.VMOutput, error)
 
 	IsInterfaceNil() bool
 }

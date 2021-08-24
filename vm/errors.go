@@ -250,3 +250,6 @@ var ErrInvalidNumOfInitialWhiteListedAddress = errors.New("0 initial whiteListed
 
 // ErrInvalidDelegationTicker signals that invalid delegation ticker name was provided
 var ErrInvalidDelegationTicker = errors.New("invalid delegation ticker name")
+
+// ErrNotEnoughReturnData signals that not enough return data was provided
+var ErrNotEnoughReturnData = errors.New("not enough return data")
