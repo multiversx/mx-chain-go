@@ -114,10 +114,10 @@ func (l *liquidStaking) Execute(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return l.claimRewardsFromDelegatedPosition(args)
 	case "reDelegateRewardsFromPosition":
 		return l.reDelegateRewardsFromPosition(args)
-	case "unDelegateWithPosition":
-		return l.unDelegateWithPosition(args)
+	case "unDelegatePosition":
+		return l.returnLiquidStaking(args, "unDelegateViaLiquidStaking")
 	case "returnPosition":
-		return l.returnPosition(args)
+		return l.returnLiquidStaking(args, "returnViaLiquidStaking")
 	}
 
 	l.eei.AddReturnMessage(args.Function + " is an unknown function")
@@ -192,35 +192,20 @@ func (l *liquidStaking) claimDelegatedPosition(args *vmcommon.ContractCallInput)
 		l.eei.AddReturnMessage("invalid number of arguments")
 		return vmcommon.UserError
 	}
+	err := l.eei.UseGas(uint64(numOfCalls) * l.gasCost.MetaChainSystemSCsCost.LiquidStakingOps)
+	if err != nil {
+		l.eei.AddReturnMessage(err.Error())
+		return vmcommon.OutOfGas
+	}
 
 	listNonces := make([]uint64, 0)
 	listValues := make([]*big.Int, 0)
 	startIndex := int64(1)
 	for i := int64(0); i < numOfCalls; i++ {
-		scAddress := args.Arguments[startIndex+i*2]
-		valueToClaim := big.NewInt(0).SetBytes(args.Arguments[startIndex+i*2+1])
-
-		txData := "claimDelegatedPosition" + "@" + hex.EncodeToString(args.CallerAddr) + "@" + hex.EncodeToString(valueToClaim.Bytes())
-		vmOutput, err := l.eei.ExecuteOnDestContext(scAddress, args.RecipientAddr, big.NewInt(0), []byte(txData))
-		if err != nil {
-			l.eei.AddReturnMessage(err.Error())
-			return vmcommon.UserError
-		}
-
-		if vmOutput.ReturnCode != vmcommon.Ok {
-			return vmOutput.ReturnCode
-		}
-
-		if len(vmOutput.ReturnData) != 1 {
-			l.eei.AddReturnMessage("invalid return data")
-			return vmcommon.UserError
-		}
-
-		rewardsCheckpoint := uint32(big.NewInt(0).SetBytes(vmOutput.ReturnData[0]).Uint64())
-		nonce, err := l.createOrAddNFT(scAddress, rewardsCheckpoint, valueToClaim)
-		if err != nil {
-			l.eei.AddReturnMessage(err.Error())
-			return vmcommon.UserError
+		callStartIndex := startIndex + i*2
+		nonce, valueToClaim, returnCode := l.claimOneDelegatedPosition(args.CallerAddr, args.Arguments[callStartIndex], args.Arguments[callStartIndex+1])
+		if returnCode != vmcommon.Ok {
+			return returnCode
 		}
 
 		listNonces = append(listNonces, nonce)
@@ -231,13 +216,187 @@ func (l *liquidStaking) claimDelegatedPosition(args *vmcommon.ContractCallInput)
 	if int64(len(args.Arguments)) > minNumArguments {
 		additionalArgs = args.Arguments[minNumArguments:]
 	}
-	err := l.sendNFTMultiTransfer(args.CallerAddr, listNonces, listValues, additionalArgs)
+	err = l.sendNFTMultiTransfer(args.CallerAddr, listNonces, listValues, additionalArgs)
 	if err != nil {
 		l.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
 	return vmcommon.Ok
+}
+
+func (l *liquidStaking) claimOneDelegatedPosition(
+	callerAddr []byte,
+	destSCAddress []byte,
+	valueAsBytes []byte,
+) (uint64, *big.Int, vmcommon.ReturnCode) {
+	if len(destSCAddress) != len(l.liquidStakingSCAddress) || bytes.Equal(destSCAddress, l.liquidStakingSCAddress) {
+		l.eei.AddReturnMessage("invalid destination SC address")
+		return 0, nil, vmcommon.UserError
+	}
+
+	valueToClaim := big.NewInt(0).SetBytes(valueAsBytes)
+	returnData, returnCode := l.executeOnDestinationSC(
+		destSCAddress,
+		"claimRewardsViaLiquidStaking",
+		callerAddr,
+		valueToClaim,
+		0,
+	)
+	if returnCode != vmcommon.Ok {
+		return 0, nil, returnCode
+	}
+
+	if len(returnData) != 1 {
+		l.eei.AddReturnMessage("invalid return data")
+		return 0, nil, vmcommon.UserError
+	}
+
+	rewardsCheckpoint := uint32(big.NewInt(0).SetBytes(returnData[0]).Uint64())
+	nonce, err := l.createOrAddNFT(destSCAddress, rewardsCheckpoint, valueToClaim)
+	if err != nil {
+		l.eei.AddReturnMessage(err.Error())
+		return 0, nil, vmcommon.UserError
+	}
+
+	return nonce, valueToClaim, vmcommon.Ok
+}
+
+func (l *liquidStaking) claimRewardsFromDelegatedPosition(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := l.checkArgumentsWhenPositionIsInput(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	listNonces := make([]uint64, 0)
+	listValues := make([]*big.Int, 0)
+	for _, esdtTransfer := range args.ESDTTransfers {
+		attributes, _, execCode := l.burnAndExecuteFromESDTTransfer(
+			args.CallerAddr,
+			esdtTransfer,
+			"claimRewardsViaLiquidStaking",
+		)
+		if execCode != vmcommon.Ok {
+			return execCode
+		}
+
+		newCheckpoint := l.eei.BlockChainHook().CurrentEpoch() + 1
+		nonce, err := l.createOrAddNFT(attributes.ContractAddress, newCheckpoint, esdtTransfer.ESDTValue)
+		if err != nil {
+			l.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
+
+		listNonces = append(listNonces, nonce)
+		listValues = append(listValues, esdtTransfer.ESDTValue)
+	}
+
+	err := l.sendNFTMultiTransfer(args.CallerAddr, listNonces, listValues, args.Arguments)
+	if err != nil {
+		l.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
+}
+
+func (l *liquidStaking) reDelegateRewardsFromPosition(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := l.checkArgumentsWhenPositionIsInput(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	listNonces := make([]uint64, 0)
+	listValues := make([]*big.Int, 0)
+	for _, esdtTransfer := range args.ESDTTransfers {
+		attributes, returnData, execCode := l.burnAndExecuteFromESDTTransfer(
+			args.CallerAddr,
+			esdtTransfer,
+			"reDelegateRewardsViaLiquidStaking",
+		)
+		if execCode != vmcommon.Ok {
+			return execCode
+		}
+		if len(returnData) != 1 {
+			l.eei.AddReturnMessage("invalid return data")
+			return vmcommon.UserError
+		}
+
+		earnedRewards := big.NewInt(0).SetBytes(returnData[0])
+		totalToCreate := big.NewInt(0).Add(esdtTransfer.ESDTValue, earnedRewards)
+		newCheckpoint := l.eei.BlockChainHook().CurrentEpoch() + 1
+
+		nonce, err := l.createOrAddNFT(attributes.ContractAddress, newCheckpoint, totalToCreate)
+		if err != nil {
+			l.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
+
+		listNonces = append(listNonces, nonce)
+		listValues = append(listValues, totalToCreate)
+	}
+
+	err := l.sendNFTMultiTransfer(args.CallerAddr, listNonces, listValues, args.Arguments)
+	if err != nil {
+		l.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
+}
+
+func (l *liquidStaking) returnLiquidStaking(
+	args *vmcommon.ContractCallInput,
+	functionToCall string,
+) vmcommon.ReturnCode {
+	returnCode := l.checkArgumentsWhenPositionIsInput(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	for _, esdtTransfer := range args.ESDTTransfers {
+		_, _, returnCode = l.burnAndExecuteFromESDTTransfer(
+			args.CallerAddr,
+			esdtTransfer,
+			functionToCall,
+		)
+		if returnCode != vmcommon.Ok {
+			return returnCode
+		}
+	}
+
+	return vmcommon.Ok
+}
+
+func (l *liquidStaking) burnAndExecuteFromESDTTransfer(
+	callerAddr []byte,
+	esdtTransfer *vmcommon.ESDTTransfer,
+	functionToCall string,
+) (*LiquidStakingAttributes, [][]byte, vmcommon.ReturnCode) {
+	attributes, err := l.getAttributesForNonce(esdtTransfer.ESDTTokenNonce)
+	if err != nil {
+		l.eei.AddReturnMessage(err.Error())
+		return nil, nil, vmcommon.UserError
+	}
+
+	err = l.burnNFT(esdtTransfer.ESDTTokenNonce, esdtTransfer.ESDTValue)
+	if err != nil {
+		l.eei.AddReturnMessage(err.Error())
+		return nil, nil, vmcommon.UserError
+	}
+
+	returnData, returnCode := l.executeOnDestinationSC(
+		attributes.ContractAddress,
+		functionToCall,
+		callerAddr,
+		esdtTransfer.ESDTValue,
+		attributes.RewardsCheckpoint,
+	)
+	if returnCode != vmcommon.Ok {
+		return nil, nil, returnCode
+	}
+
+	return attributes, returnData, vmcommon.Ok
 }
 
 func (l *liquidStaking) executeOnDestinationSC(
@@ -338,6 +497,20 @@ func (l *liquidStaking) addQuantityToNFT(nonce uint64, value *big.Int) error {
 	return nil
 }
 
+func (l *liquidStaking) burnNFT(nonce uint64, value *big.Int) error {
+	args := make([][]byte, 3)
+	args[0] = l.getTokenID()
+	args[1] = big.NewInt(0).SetUint64(nonce).Bytes()
+	args[2] = value.Bytes()
+
+	_, err := l.eei.ProcessBuiltInFunction(l.liquidStakingSCAddress, l.liquidStakingSCAddress, core.BuiltInFunctionESDTNFTBurn, args)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (l *liquidStaking) getAttributesForNonce(nonce uint64) (*LiquidStakingAttributes, error) {
 	nonceKey := append([]byte(nonceAttributesPrefix), big.NewInt(0).SetUint64(nonce).Bytes()...)
 	marshalledData := l.eei.GetStorage(nonceKey)
@@ -383,41 +556,6 @@ func (l *liquidStaking) sendNFTMultiTransfer(
 	}
 
 	return nil
-}
-
-func (l *liquidStaking) claimRewardsFromDelegatedPosition(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	returnCode := l.checkArgumentsWhenPositionIsInput(args)
-	if returnCode != vmcommon.Ok {
-		return returnCode
-	}
-	return vmcommon.Ok
-}
-
-func (l *liquidStaking) reDelegateRewardsFromPosition(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	returnCode := l.checkArgumentsWhenPositionIsInput(args)
-	if returnCode != vmcommon.Ok {
-		return returnCode
-	}
-
-	return vmcommon.Ok
-}
-
-func (l *liquidStaking) unDelegateWithPosition(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	returnCode := l.checkArgumentsWhenPositionIsInput(args)
-	if returnCode != vmcommon.Ok {
-		return returnCode
-	}
-
-	return vmcommon.Ok
-}
-
-func (l *liquidStaking) returnPosition(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	returnCode := l.checkArgumentsWhenPositionIsInput(args)
-	if returnCode != vmcommon.Ok {
-		return returnCode
-	}
-
-	return vmcommon.Ok
 }
 
 // SetNewGasCost is called whenever a gas cost was changed
