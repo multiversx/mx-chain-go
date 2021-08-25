@@ -1221,18 +1221,11 @@ func (txs *transactions) ProcessMiniBlock(
 
 		txs.saveAccountBalanceForAddress(miniBlockTxs[index].GetRcvAddr())
 
-		//TODO: Remove this if when processing of scheduled mini blocks will be done in the source shard
-		//if miniBlock.IsScheduledMiniBlock() {
-		//	continue
-		//}
-
-		if scheduledMode {
-			continue
-		}
-
-		_, err = txs.txProcessor.ProcessTransaction(miniBlockTxs[index])
-		if err != nil {
-			return processedTxHashes, index, err
+		if !scheduledMode {
+			_, err = txs.txProcessor.ProcessTransaction(miniBlockTxs[index])
+			if err != nil {
+				return processedTxHashes, index, err
+			}
 		}
 	}
 
@@ -1298,7 +1291,7 @@ func (txs *transactions) GetAllCurrentUsedTxs() map[string]data.TransactionHandl
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (txs *transactions) EpochConfirmed(epoch uint32, _ uint64) {
-	txs.flagScheduledMiniBlocks.Toggle(epoch > txs.scheduledMiniBlocksEnableEpoch)
+	txs.flagScheduledMiniBlocks.Toggle(epoch >= txs.scheduledMiniBlocksEnableEpoch)
 	log.Debug("transactions: scheduled mini blocks", "enabled", txs.flagScheduledMiniBlocks.IsSet())
 }
 

@@ -785,5 +785,5 @@ const TimeoutGettingTrieNodes = 2 * time.Minute //to consider syncing a very lar
 // during the hardfork process
 const TimeoutGettingTrieNodesInHardfork = time.Minute * 10
 
-// ScheduledMode represents the name used to differentiate normal vs. scheduled mini blocks
+// ScheduledMode represents the name used to differentiate normal vs. scheduled mini blocks / transactions execution mode
 const ScheduledMode = "Scheduled"

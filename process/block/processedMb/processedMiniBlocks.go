@@ -66,8 +66,8 @@ func (pmb *ProcessedMiniBlockTracker) RemoveMiniBlockHash(miniBlockHash string) 
 func (pmb *ProcessedMiniBlockTracker) GetProcessedMiniBlocksHashes(metaBlockHash string) map[string]struct{} {
 	pmb.mutProcessedMiniBlocks.RLock()
 	processedMiniBlocksHashes := make(map[string]struct{})
-	for hash := range pmb.processedMiniBlocks[metaBlockHash] {
-		processedMiniBlocksHashes[hash] = struct{}{}
+	for hash, value := range pmb.processedMiniBlocks[metaBlockHash] {
+		processedMiniBlocksHashes[hash] = value
 	}
 	pmb.mutProcessedMiniBlocks.RUnlock()
 

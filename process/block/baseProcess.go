@@ -191,7 +191,7 @@ func (bp *baseProcessor) checkBlockValidity(
 	return nil
 }
 
-// checkScheduledRootHash checks if the scheduled root hash from the given header is the same with the self user accounts state root hash
+// checkScheduledRootHash checks if the scheduled root hash from the given header is the same with the current user accounts state root hash
 func (bp *baseProcessor) checkScheduledRootHash(headerHandler data.HeaderHandler) error {
 	if !bp.flagScheduledMiniBlocks.IsSet() {
 		return nil
@@ -208,9 +208,8 @@ func (bp *baseProcessor) checkScheduledRootHash(headerHandler data.HeaderHandler
 
 	if !bytes.Equal(additionalData.GetScheduledRootHash(), bp.getRootHash()) {
 		log.Debug("scheduled root hash does not match",
-			"local scheduled root hash", bp.getRootHash(),
-			"received scheduled root hash", additionalData.GetScheduledRootHash())
-
+			"current root hash", bp.getRootHash(),
+			"header scheduled root hash", additionalData.GetScheduledRootHash())
 		return process.ErrScheduledRootHashDoesNotMatch
 	}
 
@@ -588,6 +587,7 @@ func (bp *baseProcessor) createMiniBlockHeaderHandlers(body *block.Body) (int, [
 		if err != nil {
 			return 0, nil, err
 		}
+
 		var reserved []byte = nil
 		notEmpty := len(body.MiniBlocks[i].TxHashes) > 0
 		if notEmpty && bp.scheduledTxsExecutionHandler.IsScheduledTx(body.MiniBlocks[i].TxHashes[0]) {
@@ -1531,6 +1531,6 @@ func (bp *baseProcessor) ProcessScheduledBlock(_ data.HeaderHandler, _ data.Body
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (bp *baseProcessor) EpochConfirmed(epoch uint32, _ uint64) {
-	bp.flagScheduledMiniBlocks.Toggle(epoch > bp.scheduledMiniBlocksEnableEpoch)
+	bp.flagScheduledMiniBlocks.Toggle(epoch >= bp.scheduledMiniBlocksEnableEpoch)
 	log.Debug("baseProcessor: scheduled mini blocks", "enabled", bp.flagScheduledMiniBlocks.IsSet())
 }

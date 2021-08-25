@@ -296,6 +296,9 @@ func (ste *scheduledTxsExecution) GetScheduledRootHashForHeader(
 	headerHash []byte,
 ) ([]byte, error) {
 	rootHash, _, err := ste.getScheduledRootHashAndSCRsForHeader(headerHash)
+
+	log.Trace("scheduledTxsExecution.GetScheduledRootHashForHeader", "header hash", headerHash, "scheduled root hash", rootHash)
+
 	return rootHash, err
 }
 
@@ -305,6 +308,8 @@ func (ste *scheduledTxsExecution) RollBackToBlock(headerHash []byte) error {
 	if err != nil {
 		return err
 	}
+
+	log.Debug("scheduledTxsExecution.RollBackToBlock", "header hash", headerHash, "scheduled root hash", scheduledRootHash, "num of scheduled scrs", len(mapScheduledSCRs))
 
 	ste.SetScheduledRootHashAndSCRs(scheduledRootHash, mapScheduledSCRs)
 

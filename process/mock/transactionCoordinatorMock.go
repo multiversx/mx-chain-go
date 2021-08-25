@@ -20,21 +20,16 @@ type TransactionCoordinatorMock struct {
 	RemoveTxsFromPoolCalled                              func(body *block.Body) error
 	ProcessBlockTransactionCalled                        func(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) error
 	CreateBlockStartedCalled                             func()
-	CreateMbsAndProcessCrossShardTransactionsDstMeCalled func(
-		header data.HeaderHandler,
-		processedMiniBlocksHashes map[string]struct{},
-		haveTime func() bool,
-		scheduledMode bool,
-	) (block.MiniBlockSlice, uint32, bool, error)
-	CreateMbsAndProcessTransactionsFromMeCalled func(haveTime func() bool) block.MiniBlockSlice
-	CreateMarshalizedDataCalled                 func(body *block.Body) map[string][][]byte
-	GetAllCurrentUsedTxsCalled                  func(blockType block.Type) map[string]data.TransactionHandler
-	VerifyCreatedBlockTransactionsCalled        func(hdr data.HeaderHandler, body *block.Body) error
-	CreatePostProcessMiniBlocksCalled           func() block.MiniBlockSlice
-	CreateMarshalizedReceiptsCalled             func() ([]byte, error)
-	VerifyCreatedMiniBlocksCalled               func(hdr data.HeaderHandler, body *block.Body) error
-	AddIntermediateTransactionsCalled           func(mapSCRs map[block.Type][]data.TransactionHandler) error
-	GetAllIntermediateTxsCalled                 func() map[block.Type]map[string]data.TransactionHandler
+	CreateMbsAndProcessCrossShardTransactionsDstMeCalled func(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, haveTime func() bool, scheduledMode bool) (block.MiniBlockSlice, uint32, bool, error)
+	CreateMbsAndProcessTransactionsFromMeCalled          func(haveTime func() bool) block.MiniBlockSlice
+	CreateMarshalizedDataCalled                          func(body *block.Body) map[string][][]byte
+	GetAllCurrentUsedTxsCalled                           func(blockType block.Type) map[string]data.TransactionHandler
+	VerifyCreatedBlockTransactionsCalled                 func(hdr data.HeaderHandler, body *block.Body) error
+	CreatePostProcessMiniBlocksCalled                    func() block.MiniBlockSlice
+	CreateMarshalizedReceiptsCalled                      func() ([]byte, error)
+	VerifyCreatedMiniBlocksCalled                        func(hdr data.HeaderHandler, body *block.Body) error
+	AddIntermediateTransactionsCalled                    func(mapSCRs map[block.Type][]data.TransactionHandler) error
+	GetAllIntermediateTxsCalled                          func() map[block.Type]map[string]data.TransactionHandler
 }
 
 // GetAllCurrentLogs -
