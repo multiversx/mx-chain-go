@@ -24,7 +24,7 @@ type baseAccountsSyncer struct {
 	mutex                     sync.Mutex
 	trieStorageManager        common.StorageManager
 	requestHandler            trie.RequestHandler
-	timeout                   time.Duration
+	timeoutHandler            trie.TimeoutHandler
 	shardId                   uint32
 	cacher                    storage.Cacher
 	rootHash                  []byte
@@ -98,7 +98,7 @@ func (b *baseAccountsSyncer) syncMainTrie(
 		ShardId:                   b.shardId,
 		Topic:                     trieTopic,
 		TrieSyncStatistics:        ssh,
-		ReceivedNodesTimeout:      b.timeout,
+		TimeoutHandler:            b.timeoutHandler,
 		MaxHardCapForMissingNodes: b.maxHardCapForMissingNodes,
 	}
 	trieSyncer, err := trie.CreateTrieSyncer(arg, b.trieSyncerVersion)

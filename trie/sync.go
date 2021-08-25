@@ -36,13 +36,11 @@ type trieSyncer struct {
 	mutOperation              sync.RWMutex
 	handlerID                 string
 	trieSyncStatistics        data.SyncStatisticsHandler
-	lastSyncedTrieNode        time.Time
-	receivedNodesTimeout      time.Duration
+	timeoutHandler            TimeoutHandler
 	maxHardCapForMissingNodes int
 }
 
 const maxNewMissingAddedPerTurn = 10
-const minTimeoutNodesReceived = time.Second
 
 // ArgTrieSyncer is the argument for the trie syncer
 type ArgTrieSyncer struct {
@@ -54,8 +52,8 @@ type ArgTrieSyncer struct {
 	ShardId                   uint32
 	Topic                     string
 	TrieSyncStatistics        data.SyncStatisticsHandler
-	ReceivedNodesTimeout      time.Duration
 	MaxHardCapForMissingNodes int
+	TimeoutHandler            TimeoutHandler
 }
 
 // NewTrieSyncer creates a new instance of trieSyncer
@@ -77,7 +75,7 @@ func NewTrieSyncer(arg ArgTrieSyncer) (*trieSyncer, error) {
 		waitTimeBetweenRequests:   time.Second,
 		handlerID:                 core.UniqueIdentifier(),
 		trieSyncStatistics:        arg.TrieSyncStatistics,
-		receivedNodesTimeout:      arg.ReceivedNodesTimeout,
+		timeoutHandler:            arg.TimeoutHandler,
 		maxHardCapForMissingNodes: arg.MaxHardCapForMissingNodes,
 	}
 
@@ -106,9 +104,8 @@ func checkArguments(arg ArgTrieSyncer) error {
 	if check.IfNil(arg.TrieSyncStatistics) {
 		return ErrNilTrieSyncStatistics
 	}
-	if arg.ReceivedNodesTimeout < minTimeoutNodesReceived {
-		return fmt.Errorf("%w provided: %v, minimum %v",
-			ErrInvalidTimeout, arg.ReceivedNodesTimeout, minTimeoutNodesReceived)
+	if check.IfNil(arg.TimeoutHandler) {
+		return ErrNilTimeoutHandler
 	}
 	if arg.MaxHardCapForMissingNodes < 1 {
 		return fmt.Errorf("%w provided: %v", ErrInvalidMaxHardCapForMissingNodes, arg.MaxHardCapForMissingNodes)
@@ -129,7 +126,6 @@ func (ts *trieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
 	ts.mutOperation.Lock()
 	ts.nodesForTrie = make(map[string]trieNodeInfo)
 	ts.nodesForTrie[string(rootHash)] = trieNodeInfo{received: false}
-	ts.lastSyncedTrieNode = time.Now()
 	ts.mutOperation.Unlock()
 
 	ts.rootFound = false
@@ -234,7 +230,7 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			ts.resetWatchdog()
+			ts.timeoutHandler.ResetWatchdog()
 
 			if !ts.rootFound && bytes.Equal([]byte(nodeHash), ts.rootHash) {
 				ts.rootFound = true
@@ -242,7 +238,7 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 		}
 	}
 
-	if ts.isTimeoutWhileSyncing() {
+	if ts.timeoutHandler.IsTimeout() {
 		return false, ErrTimeIsOut
 	}
 
@@ -251,15 +247,6 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 	}
 
 	return shouldRetryAfterRequest, nil
-}
-
-func (ts *trieSyncer) resetWatchdog() {
-	ts.lastSyncedTrieNode = time.Now()
-}
-
-func (ts *trieSyncer) isTimeoutWhileSyncing() bool {
-	duration := time.Since(ts.lastSyncedTrieNode)
-	return duration > ts.receivedNodesTimeout
 }
 
 // adds new elements to needed hash map, lock ts.nodeHashesMutex before calling
