@@ -1,7 +1,6 @@
 package network
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -23,7 +22,6 @@ const (
 	getFFTsPath          = "/esdt/fungible-tokens"
 	getSFTsPath          = "/esdt/semi-fungible-tokens"
 	getNFTsPath          = "/esdt/non-fungible-tokens"
-	getESDTSupply        = "/esdt/supply/:token"
 	directStakedInfoPath = "/direct-staked-info"
 	delegatedInfoPath    = "/delegated-info"
 )
@@ -35,7 +33,6 @@ type FacadeHandler interface {
 	GetDelegatorsList() ([]*api.Delegator, error)
 	StatusMetrics() external.StatusMetricsHandler
 	GetAllIssuedESDTs(tokenType string) ([]string, error)
-	GetTokenSupply(token string) (string, error)
 	IsInterfaceNil() bool
 }
 
@@ -51,7 +48,6 @@ func Routes(router *wrapper.RouterWrapper) {
 	router.RegisterHandler(http.MethodGet, getNFTsPath, getHandlerFuncForEsdt(core.NonFungibleESDT))
 	router.RegisterHandler(http.MethodGet, directStakedInfoPath, DirectStakedInfo)
 	router.RegisterHandler(http.MethodGet, delegatedInfoPath, DelegatedInfo)
-	router.RegisterHandler(http.MethodGet, getESDTSupply, getESDTTokenSupply)
 }
 
 func getFacade(c *gin.Context) (FacadeHandler, bool) {
@@ -257,43 +253,6 @@ func DelegatedInfo(c *gin.Context) {
 		http.StatusOK,
 		shared.GenericAPIResponse{
 			Data:  gin.H{"list": delegatedList},
-			Error: "",
-			Code:  shared.ReturnCodeSuccess,
-		},
-	)
-}
-
-func getESDTTokenSupply(c *gin.Context) {
-	facade, ok := getFacade(c)
-	if !ok {
-		return
-	}
-
-	token := c.Param("token")
-	if token == "" {
-		shared.RespondWithValidationError(
-			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrValidationEmptyToken.Error()),
-		)
-		return
-	}
-
-	supply, err := facade.GetTokenSupply(token)
-	if err != nil {
-		c.JSON(
-			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: err.Error(),
-				Code:  shared.ReturnCodeInternalError,
-			},
-		)
-		return
-	}
-
-	c.JSON(
-		http.StatusOK,
-		shared.GenericAPIResponse{
-			Data:  gin.H{"list": supply},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},
