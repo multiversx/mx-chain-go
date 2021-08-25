@@ -25,7 +25,6 @@ type HistoryRepository interface {
 	GetEpochByHash(hash []byte) (uint32, error)
 	GetResultsHashesByTxHash(txHash []byte, epoch uint32) (*ResultsHashesByTxHash, error)
 	RevertBlock(blockHeader data.HeaderHandler, blockBody data.BodyHandler) error
-	GetESDTSupply(token string) (string, error)
 	IsEnabled() bool
 	IsInterfaceNil() bool
 }
@@ -43,6 +42,5 @@ type BlockTracker interface {
 type SuppliesHandler interface {
 	ProcessLogs(logs map[string]data.LogHandler) error
 	RevertChanges(header data.HeaderHandler, body data.BodyHandler) error
-	GetESDTSupply(token string) (string, error)
 	IsInterfaceNil() bool
 }

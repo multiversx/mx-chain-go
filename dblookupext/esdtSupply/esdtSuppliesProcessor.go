@@ -67,13 +67,6 @@ func (sp *suppliesProcessor) RevertChanges(_ data.HeaderHandler, body data.BodyH
 	return sp.logsProc.processLogs(logsFromDB, true)
 }
 
-func (sp *suppliesProcessor) GetESDTSupply(token string) (string, error) {
-	sp.mutex.Lock()
-	defer sp.mutex.Unlock()
-
-	return sp.logsProc.getESDTSupply(token)
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (sp *suppliesProcessor) IsInterfaceNil() bool {
 	return sp == nil

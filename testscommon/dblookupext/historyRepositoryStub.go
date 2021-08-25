@@ -73,11 +73,6 @@ func (hp *HistoryRepositoryStub) RevertBlock(_ data.HeaderHandler, _ data.BodyHa
 	return nil
 }
 
-// GetESDTSupply -
-func (hp *HistoryRepositoryStub) GetESDTSupply(_ string) (string, error) {
-	return "", nil
-}
-
 // IsInterfaceNil -
 func (hp *HistoryRepositoryStub) IsInterfaceNil() bool {
 	return hp == nil
