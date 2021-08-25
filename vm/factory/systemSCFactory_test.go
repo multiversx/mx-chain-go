@@ -30,8 +30,9 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 		Hasher:              &mock.HasherMock{},
 		SystemSCConfig: &config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
-				BaseIssuingCost: "100000000",
-				OwnerAddress:    "aaaaaa",
+				BaseIssuingCost:  "100000000",
+				OwnerAddress:     "aaaaaa",
+				DelegationTicker: "DEL",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
 				Active: config.GovernanceSystemSCConfigActive{
@@ -277,7 +278,7 @@ func TestSystemSCFactory_Create(t *testing.T) {
 	container, err := scFactory.Create()
 	assert.Nil(t, err)
 	require.NotNil(t, container)
-	assert.Equal(t, 6, container.Len())
+	assert.Equal(t, 7, container.Len())
 }
 
 func TestSystemSCFactory_CreateForGenesis(t *testing.T) {

@@ -586,12 +586,7 @@ func (g *governanceContract) claimFunds(args *vmcommon.ContractCallInput) vmcomm
 	}
 
 	g.eei.SetStorage(voteKey, nil)
-
-	err = g.eei.Transfer(args.CallerAddr, g.governanceSCAddress, currentVoteSet.UsedBalance, nil, 0)
-	if err != nil {
-		g.eei.AddReturnMessage("transfer error on claimFunds function")
-		return vmcommon.ExecutionFailed
-	}
+	g.eei.Transfer(args.CallerAddr, g.governanceSCAddress, currentVoteSet.UsedBalance, nil, 0)
 
 	return vmcommon.Ok
 }

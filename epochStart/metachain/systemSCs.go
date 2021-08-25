@@ -71,6 +71,7 @@ type systemSCProcessor struct {
 	esdtEnableEpoch                uint32
 	saveJailedAlwaysEnableEpoch    uint32
 	governanceEnableEpoch          uint32
+	builtInOnMetaEnableEpoch       uint32
 	maxNodesEnableConfig           []config.MaxNodesChangeConfig
 	maxNodes                       uint32
 	flagSwitchJailedWaiting        atomic.Flag
@@ -84,6 +85,7 @@ type systemSCProcessor struct {
 	flagESDTEnabled                atomic.Flag
 	flagSaveJailedAlwaysEnabled    atomic.Flag
 	flagGovernanceEnabled          atomic.Flag
+	flagBuiltInOnMetaEnabled       atomic.Flag
 	esdtOwnerAddressBytes          []byte
 	mapNumSwitchedPerShard         map[uint32]uint32
 	mapNumSwitchablePerShard       map[uint32]uint32
@@ -179,6 +181,7 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 		esdtOwnerAddressBytes:       args.ESDTOwnerAddressBytes,
 		saveJailedAlwaysEnableEpoch: args.EpochConfig.EnableEpochs.SaveJailedAlwaysEnableEpoch,
 		governanceEnableEpoch:       args.EpochConfig.EnableEpochs.GovernanceEnableEpoch,
+		builtInOnMetaEnableEpoch:    args.EpochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 	}
 
 	log.Debug("systemSC: enable epoch for switch jail waiting", "epoch", s.switchEnableEpoch)
@@ -189,6 +192,7 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 	log.Debug("systemSC: enable epoch for correct last unjailed", "epoch", s.correctLastUnJailEpoch)
 	log.Debug("systemSC: enable epoch for save jailed always", "epoch", s.saveJailedAlwaysEnableEpoch)
 	log.Debug("systemSC: enable epoch for governanceV2 init", "epoch", s.governanceEnableEpoch)
+	log.Debug("systemSC: enable epoch for create NFT on meta", "epoch", s.builtInOnMetaEnableEpoch)
 
 	s.maxNodesEnableConfig = make([]config.MaxNodesChangeConfig, len(args.MaxNodesEnableConfig))
 	copy(s.maxNodesEnableConfig, args.MaxNodesEnableConfig)
@@ -292,6 +296,18 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 
 	if s.flagGovernanceEnabled.IsSet() {
 		err := s.updateToGovernanceV2()
+		if err != nil {
+			return err
+		}
+	}
+
+	if s.flagBuiltInOnMetaEnabled.IsSet() {
+		tokenID, err := s.initTokenOnMeta()
+		if err != nil {
+			return err
+		}
+
+		err = s.initLiquidStakingSC(tokenID)
 		if err != nil {
 			return err
 		}
@@ -1101,6 +1117,74 @@ func (s *systemSCProcessor) updateToGovernanceV2() error {
 	return nil
 }
 
+func (s *systemSCProcessor) initTokenOnMeta() ([]byte, error) {
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr:  vm.ESDTSCAddress,
+			CallValue:   big.NewInt(0),
+			Arguments:   [][]byte{},
+			GasProvided: math.MaxUint64,
+		},
+		RecipientAddr: vm.ESDTSCAddress,
+		Function:      "initDelegationESDTOnMeta",
+	}
+	vmOutput, errRun := s.systemVM.RunSmartContractCall(vmInput)
+	if errRun != nil {
+		return nil, fmt.Errorf("%w when setting up NFTs on metachain", errRun)
+	}
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return nil, fmt.Errorf("got return code %s, return message %s when setting up NFTs on metachain", vmOutput.ReturnCode, vmOutput.ReturnMessage)
+	}
+	if len(vmOutput.ReturnData) != 1 {
+		return nil, fmt.Errorf("invalid return data on initDelegationESDTOnMeta")
+	}
+
+	err := s.processSCOutputAccounts(vmOutput)
+	if err != nil {
+		return nil, err
+	}
+
+	return vmOutput.ReturnData[0], nil
+}
+
+func (s *systemSCProcessor) initLiquidStakingSC(tokenID []byte) error {
+	codeMetaData := &vmcommon.CodeMetadata{
+		Upgradeable: false,
+		Payable:     false,
+		Readable:    true,
+	}
+
+	vmInput := &vmcommon.ContractCreateInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr: vm.LiquidStakingSCAddress,
+			Arguments:  [][]byte{tokenID},
+			CallValue:  big.NewInt(0),
+		},
+		ContractCode:         vm.LiquidStakingSCAddress,
+		ContractCodeMetadata: codeMetaData.ToBytes(),
+	}
+
+	vmOutput, err := s.systemVM.RunSmartContractCreate(vmInput)
+	if err != nil {
+		return err
+	}
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return epochStart.ErrCouldNotInitLiquidStakingSystemSC
+	}
+
+	err = s.processSCOutputAccounts(vmOutput)
+	if err != nil {
+		return err
+	}
+
+	err = s.updateSystemSCContractsCode(vmInput.ContractCodeMetadata)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *systemSCProcessor) getValidatorSystemAccount() (state.UserAccountHandler, error) {
 	validatorAccount, err := s.userAccountsDB.LoadAccount(vm.ValidatorSCAddress)
 	if err != nil {
@@ -1494,4 +1578,7 @@ func (s *systemSCProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 
 	s.flagGovernanceEnabled.Toggle(epoch == s.governanceEnableEpoch)
 	log.Debug("systemProcessor: governanceV2", "enabled", s.flagGovernanceEnabled.IsSet())
+
+	s.flagBuiltInOnMetaEnabled.Toggle(epoch == s.builtInOnMetaEnableEpoch)
+	log.Debug("systemProcessor: create NFT on meta", "enabled", s.flagBuiltInOnMetaEnabled.IsSet())
 }

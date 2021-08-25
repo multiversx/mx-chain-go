@@ -28,7 +28,8 @@ func createMockArgumentsForESDT() ArgsNewESDTSmartContract {
 		Eei:     &mock.SystemEIStub{},
 		GasCost: vm.GasCost{MetaChainSystemSCsCost: vm.MetaChainSystemSCsCost{ESDTIssue: 10}},
 		ESDTSCConfig: config.ESDTSystemSCConfig{
-			BaseIssuingCost: "1000",
+			BaseIssuingCost:  "1000",
+			DelegationTicker: "DEL",
 		},
 		ESDTSCAddress:          []byte("address"),
 		Marshalizer:            &mock.MarshalizerMock{},
@@ -820,7 +821,7 @@ func TestEsdt_ExecuteMintInvalidDestinationAddressShouldFail(t *testing.T) {
 	assert.True(t, strings.Contains(eei.returnMessage, "destination address of invalid length"))
 }
 
-func TestEsdt_ExecuteMintTransferFailsShouldErr(t *testing.T) {
+func TestEsdt_ExecuteMintTransferNoErr(t *testing.T) {
 	t.Parallel()
 
 	err := errors.New("transfer error")
@@ -833,9 +834,6 @@ func TestEsdt_ExecuteMintTransferFailsShouldErr(t *testing.T) {
 		})
 		return marshalizedData
 	}
-	args.Eei.(*mock.SystemEIStub).TransferCalled = func(destination []byte, sender []byte, value *big.Int, input []byte) error {
-		return err
-	}
 	args.Eei.(*mock.SystemEIStub).AddReturnMessageCalled = func(msg string) {
 		assert.Equal(t, err.Error(), msg)
 	}
@@ -844,7 +842,7 @@ func TestEsdt_ExecuteMintTransferFailsShouldErr(t *testing.T) {
 	vmInput := getDefaultVmInputForFunc("mint", [][]byte{[]byte("esdtToken"), {200}})
 
 	output := e.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
+	assert.Equal(t, vmcommon.Ok, output)
 }
 
 func TestEsdt_ExecuteMintWithTwoArgsShouldSetOwnerAsDestination(t *testing.T) {
@@ -1145,7 +1143,7 @@ func TestEsdt_ExecuteToggleFreezeNonFreezableTokenShouldFail(t *testing.T) {
 	assert.True(t, strings.Contains(eei.returnMessage, "cannot freeze"))
 }
 
-func TestEsdt_ExecuteToggleFreezeTransferFailsShouldErr(t *testing.T) {
+func TestEsdt_ExecuteToggleFreezeTransferNoErr(t *testing.T) {
 	t.Parallel()
 
 	err := errors.New("transfer error")
@@ -1157,9 +1155,6 @@ func TestEsdt_ExecuteToggleFreezeTransferFailsShouldErr(t *testing.T) {
 		})
 		return marshalizedData
 	}
-	args.Eei.(*mock.SystemEIStub).TransferCalled = func(destination []byte, sender []byte, value *big.Int, input []byte) error {
-		return err
-	}
 	args.Eei.(*mock.SystemEIStub).AddReturnMessageCalled = func(msg string) {
 		assert.Equal(t, err.Error(), msg)
 	}
@@ -1168,10 +1163,10 @@ func TestEsdt_ExecuteToggleFreezeTransferFailsShouldErr(t *testing.T) {
 	vmInput := getDefaultVmInputForFunc("freeze", [][]byte{[]byte("esdtToken"), getAddress()})
 
 	output := e.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
+	assert.Equal(t, vmcommon.Ok, output)
 }
 
-func TestEsdt_ExecuteToggleFreezeSingleNFTTransferFailsShouldErr(t *testing.T) {
+func TestEsdt_ExecuteToggleFreezeSingleNFTTransferNoErr(t *testing.T) {
 	t.Parallel()
 
 	err := errors.New("transfer error")
@@ -1184,9 +1179,6 @@ func TestEsdt_ExecuteToggleFreezeSingleNFTTransferFailsShouldErr(t *testing.T) {
 		})
 		return marshalizedData
 	}
-	args.Eei.(*mock.SystemEIStub).TransferCalled = func(destination []byte, sender []byte, value *big.Int, input []byte) error {
-		return err
-	}
 	args.Eei.(*mock.SystemEIStub).AddReturnMessageCalled = func(msg string) {
 		assert.Equal(t, err.Error(), msg)
 	}
@@ -1195,7 +1187,7 @@ func TestEsdt_ExecuteToggleFreezeSingleNFTTransferFailsShouldErr(t *testing.T) {
 	vmInput := getDefaultVmInputForFunc("freezeSingleNFT", [][]byte{[]byte("esdtToken"), big.NewInt(10).Bytes(), getAddress()})
 
 	output := e.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
+	assert.Equal(t, vmcommon.Ok, output)
 }
 
 func TestEsdt_ExecuteToggleFreezeShouldWorkWithRealBech32Address(t *testing.T) {
@@ -1698,7 +1690,7 @@ func TestEsdt_ExecuteWipeInvalidDestShouldFail(t *testing.T) {
 	assert.True(t, strings.Contains(eei.returnMessage, "invalid"))
 }
 
-func TestEsdt_ExecuteWipeTransferFailsShouldErr(t *testing.T) {
+func TestEsdt_ExecuteWipeTransferFailsNoErr(t *testing.T) {
 	t.Parallel()
 
 	err := errors.New("transfer error")
@@ -1711,9 +1703,6 @@ func TestEsdt_ExecuteWipeTransferFailsShouldErr(t *testing.T) {
 		})
 		return marshalizedData
 	}
-	args.Eei.(*mock.SystemEIStub).TransferCalled = func(destination []byte, sender []byte, value *big.Int, input []byte) error {
-		return err
-	}
 	args.Eei.(*mock.SystemEIStub).AddReturnMessageCalled = func(msg string) {
 		assert.Equal(t, err.Error(), msg)
 	}
@@ -1722,10 +1711,10 @@ func TestEsdt_ExecuteWipeTransferFailsShouldErr(t *testing.T) {
 	vmInput := getDefaultVmInputForFunc("wipe", [][]byte{[]byte("esdtToken"), getAddress()})
 
 	output := e.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
+	assert.Equal(t, vmcommon.Ok, output)
 }
 
-func TestEsdt_ExecuteWipeSingleNFTTransferFailsShouldErr(t *testing.T) {
+func TestEsdt_ExecuteWipeSingleNFTTransferNoErr(t *testing.T) {
 	t.Parallel()
 
 	err := errors.New("transfer error")
@@ -1738,9 +1727,6 @@ func TestEsdt_ExecuteWipeSingleNFTTransferFailsShouldErr(t *testing.T) {
 		})
 		return marshalizedData
 	}
-	args.Eei.(*mock.SystemEIStub).TransferCalled = func(destination []byte, sender []byte, value *big.Int, input []byte) error {
-		return err
-	}
 	args.Eei.(*mock.SystemEIStub).AddReturnMessageCalled = func(msg string) {
 		assert.Equal(t, err.Error(), msg)
 	}
@@ -1749,7 +1735,7 @@ func TestEsdt_ExecuteWipeSingleNFTTransferFailsShouldErr(t *testing.T) {
 	vmInput := getDefaultVmInputForFunc("wipeSingleNFT", [][]byte{[]byte("esdtToken"), big.NewInt(10).Bytes(), getAddress()})
 
 	output := e.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
+	assert.Equal(t, vmcommon.Ok, output)
 }
 
 func TestEsdt_ExecuteWipeShouldWork(t *testing.T) {
@@ -3052,7 +3038,6 @@ func TestEsdt_SetSpecialRoleCheckBasicOwnershipErr(t *testing.T) {
 func TestEsdt_SetSpecialRoleNewSendRoleChangeDataErr(t *testing.T) {
 	t.Parallel()
 
-	localErr := errors.New("local err")
 	args := createMockArgumentsForESDT()
 	eei := &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
@@ -3062,9 +3047,8 @@ func TestEsdt_SetSpecialRoleNewSendRoleChangeDataErr(t *testing.T) {
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
 		},
-		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) {
 			require.Equal(t, []byte("ESDTSetRole@6d79546f6b656e@45534454526f6c654c6f63616c4275726e"), input)
-			return localErr
 		},
 	}
 	args.Eei = eei
@@ -3099,9 +3083,8 @@ func TestEsdt_SetSpecialRoleAlreadyExists(t *testing.T) {
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
 		},
-		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) {
 			require.Equal(t, []byte("ESDTSetRole@6d79546f6b656e@45534454526f6c654c6f63616c4275726e"), input)
-			return nil
 		},
 	}
 	args.Eei = eei
@@ -3138,11 +3121,10 @@ func TestEsdt_SetSpecialRoleCannotSaveToken(t *testing.T) {
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
 		},
-		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) {
 			require.Equal(t, []byte("ESDTSetRole@6d79546f6b656e@45534454526f6c654c6f63616c4275726e"), input)
 			castedMarshalizer := args.Marshalizer.(*mock.MarshalizerMock)
 			castedMarshalizer.Fail = true
-			return nil
 		},
 	}
 	args.Eei = eei
@@ -3179,9 +3161,8 @@ func TestEsdt_SetSpecialRoleShouldWork(t *testing.T) {
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
 		},
-		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) {
 			require.Equal(t, []byte("ESDTSetRole@6d79546f6b656e@45534454526f6c654c6f63616c4275726e"), input)
-			return nil
 		},
 		SetStorageCalled: func(key []byte, value []byte) {
 			token := &ESDTData{}
@@ -3223,9 +3204,8 @@ func TestEsdt_SetSpecialRoleNFTShouldErr(t *testing.T) {
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
 		},
-		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) {
 			require.Equal(t, []byte("ESDTSetRole@6d79546f6b656e@45534454526f6c654e4654437265617465"), input)
-			return nil
 		},
 		SetStorageCalled: func(key []byte, value []byte) {
 			token := &ESDTData{}
@@ -3366,9 +3346,8 @@ func TestEsdt_SetSpecialRoleSFTShouldErr(t *testing.T) {
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
 		},
-		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) {
 			require.Equal(t, []byte("ESDTSetRole@6d79546f6b656e@45534454526f6c654e46544164645175616e74697479"), input)
-			return nil
 		},
 		SetStorageCalled: func(key []byte, value []byte) {
 			token := &ESDTData{}
@@ -3616,10 +3595,9 @@ func TestEsdt_UnsetSpecialRoleCannotRemoveRoleNotExistsShouldErr(t *testing.T) {
 	require.Equal(t, vmcommon.UserError, retCode)
 }
 
-func TestEsdt_UnsetSpecialRoleRemoveRoleTransferErr(t *testing.T) {
+func TestEsdt_UnsetSpecialRoleRemoveRoleTransfer(t *testing.T) {
 	t.Parallel()
 
-	localErr := errors.New("local err")
 	args := createMockArgumentsForESDT()
 	eei := &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
@@ -3635,9 +3613,8 @@ func TestEsdt_UnsetSpecialRoleRemoveRoleTransferErr(t *testing.T) {
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
 		},
-		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) {
 			require.Equal(t, []byte("ESDTUnSetRole@6d79546f6b656e@45534454526f6c654c6f63616c4d696e74"), input)
-			return localErr
 		},
 	}
 	args.Eei = eei
@@ -3651,7 +3628,7 @@ func TestEsdt_UnsetSpecialRoleRemoveRoleTransferErr(t *testing.T) {
 	vmInput.GasProvided = 50000000
 
 	retCode := e.Execute(vmInput)
-	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, vmcommon.Ok, retCode)
 }
 
 func TestEsdt_UnsetSpecialRoleRemoveRoleSaveTokenErr(t *testing.T) {
@@ -3672,11 +3649,10 @@ func TestEsdt_UnsetSpecialRoleRemoveRoleSaveTokenErr(t *testing.T) {
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
 		},
-		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) {
 			require.Equal(t, []byte("ESDTUnSetRole@6d79546f6b656e@45534454526f6c654c6f63616c4d696e74"), input)
 			castedMarshalizer := args.Marshalizer.(*mock.MarshalizerMock)
 			castedMarshalizer.Fail = true
-			return nil
 		},
 	}
 	args.Eei = eei
@@ -3711,9 +3687,8 @@ func TestEsdt_UnsetSpecialRoleRemoveRoleShouldWork(t *testing.T) {
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
 		},
-		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) {
 			require.Equal(t, []byte("ESDTUnSetRole@6d79546f6b656e@45534454526f6c654c6f63616c4d696e74"), input)
-			return nil
 		},
 		SetStorageCalled: func(key []byte, value []byte) {
 			token := &ESDTData{}
@@ -3825,9 +3800,8 @@ func TestEsdt_StopNFTCreateForeverCallShouldWork(t *testing.T) {
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
 		},
-		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) {
 			require.Equal(t, []byte("ESDTUnSetRole@746f6b656e4944@45534454526f6c654e4654437265617465"), input)
-			return nil
 		},
 	}
 	args.Eei = eei
@@ -3942,10 +3916,9 @@ func TestEsdt_TransferNFTCreateCallShouldWork(t *testing.T) {
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
 		},
-		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) {
 			require.Equal(t, []byte("ESDTNFTCreateRoleTransfer@746f6b656e4944@63616c6c657232"), input)
 			require.Equal(t, destination, []byte("caller3"))
-			return nil
 		},
 	}
 	args.Eei = eei

@@ -37,7 +37,7 @@ type SystemSCContainer interface {
 type SystemEI interface {
 	ExecuteOnDestContext(destination []byte, sender []byte, value *big.Int, input []byte) (*vmcommon.VMOutput, error)
 	DeploySystemSC(baseContract []byte, newAddress []byte, ownerAddress []byte, initFunction string, value *big.Int, input [][]byte) (vmcommon.ReturnCode, error)
-	Transfer(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) error
+	Transfer(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64)
 	SendGlobalSettingToAll(sender []byte, input []byte)
 	GetBalance(addr []byte) *big.Int
 	SetStorage(key []byte, value []byte)
@@ -55,6 +55,7 @@ type SystemEI interface {
 	CanUnJail(blsKey []byte) bool
 	IsBadRating(blsKey []byte) bool
 	CleanStorageUpdates()
+	ProcessBuiltInFunction(sender, destination []byte, function string, arguments [][]byte) error
 
 	IsInterfaceNil() bool
 }
@@ -122,4 +123,5 @@ type BlockchainHook interface {
 	Close() error
 	GetSnapshot() int
 	RevertToSnapshot(snapshot int) error
+	ProcessBuiltInFunction(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
 }

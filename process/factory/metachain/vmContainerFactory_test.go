@@ -57,8 +57,9 @@ func createVmContainerMockArgument(gasSchedule core.GasScheduleNotifier) ArgsNew
 		Marshalizer:         &mock.MarshalizerMock{},
 		SystemSCConfig: &config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
-				BaseIssuingCost: "100000000",
-				OwnerAddress:    "aaaaaa",
+				BaseIssuingCost:  "100000000",
+				OwnerAddress:     "aaaaaa",
+				DelegationTicker: "DEL",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
 				Active: config.GovernanceSystemSCConfigActive{
@@ -301,8 +302,9 @@ func TestVmContainerFactory_Create(t *testing.T) {
 		Marshalizer:         &mock.MarshalizerMock{},
 		SystemSCConfig: &config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
-				BaseIssuingCost: "100000000",
-				OwnerAddress:    "aaaaaa",
+				BaseIssuingCost:  "100000000",
+				OwnerAddress:     "aaaaaa",
+				DelegationTicker: "DEL",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
 				Active: config.GovernanceSystemSCConfigActive{
@@ -419,6 +421,7 @@ func FillGasMapMetaChainSystemSCsCosts(value uint64) map[string]uint64 {
 	gasMap["DelegationMgrOps"] = value
 	gasMap["GetAllNodeStates"] = value
 	gasMap["ValidatorToDelegation"] = value
+	gasMap["LiquidStakingOps"] = value
 
 	return gasMap
 }

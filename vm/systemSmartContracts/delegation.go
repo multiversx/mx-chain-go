@@ -64,6 +64,8 @@ type delegation struct {
 	validatorToDelegationEnableEpoch   uint32
 	flagReDelegateBelowMinCheck        atomic.Flag
 	reDelegateBelowMinCheckEnableEpoch uint32
+	liquidStakingEnableEpoch           uint32
+	flagLiquidStaking                  atomic.Flag
 }
 
 // ArgsNewDelegation defines the arguments to create the delegation smart contract
@@ -135,12 +137,13 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 		stakingV2Enabled:                   atomic.Flag{},
 		validatorToDelegationEnableEpoch:   args.EpochConfig.EnableEpochs.ValidatorToDelegationEnableEpoch,
 		reDelegateBelowMinCheckEnableEpoch: args.EpochConfig.EnableEpochs.ReDelegateBelowMinCheckEnableEpoch,
+		liquidStakingEnableEpoch:           args.EpochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 	}
 	log.Debug("delegation: enable epoch for delegation smart contract", "epoch", d.enableDelegationEpoch)
 	log.Debug("delegation: enable epoch for staking v2", "epoch", d.stakingV2EnableEpoch)
 	log.Debug("delegation: enable epoch for validator to delegation", "epoch", d.validatorToDelegationEnableEpoch)
 	log.Debug("delegation: enable epoch for re-delegate below minimum check", "epoch", d.reDelegateBelowMinCheckEnableEpoch)
-
+	log.Debug("delegation: enable epoch for liquid staking", "epoch", d.liquidStakingEnableEpoch)
 	var okValue bool
 
 	d.unJailPrice, okValue = big.NewInt(0).SetString(args.StakingSCConfig.UnJailValue, conversionBase)
@@ -179,7 +182,6 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		d.eei.AddReturnMessage("first delegation sc address cannot be called")
 		return vmcommon.UserError
 	}
-
 	if len(args.ESDTTransfers) > 0 {
 		d.eei.AddReturnMessage("cannot transfer ESDT to system SCs")
 		return vmcommon.UserError
@@ -270,6 +272,16 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.setMetaData(args)
 	case "getMetaData":
 		return d.getMetaData(args)
+	case "claimDelegatedPosition":
+		return d.claimDelegatedPosition(args)
+	case "claimRewardsViaLiquidStaking":
+		return d.claimRewardsViaLiquidStaking(args)
+	case "reDelegateRewardsViaLiquidStaking":
+		return d.reDelegateRewardsViaLiquidStaking(args)
+	case "unDelegateViaLiquidStaking":
+		return d.unDelegateViaLiquidStaking(args)
+	case "returnViaLiquidStaking":
+		return d.returnViaLiquidStaking(args)
 	}
 
 	d.eei.AddReturnMessage(args.Function + " is an unknown function")
@@ -1281,11 +1293,7 @@ func (d *delegation) unJailNodes(args *vmcommon.ContractCallInput) vmcommon.Retu
 
 	sendBackValue := getTransferBackFromVMOutput(vmOutput)
 	if sendBackValue.Cmp(zero) > 0 {
-		err = d.eei.Transfer(args.CallerAddr, args.RecipientAddr, sendBackValue, nil, 0)
-		if err != nil {
-			d.eei.AddReturnMessage(err.Error())
-			return vmcommon.UserError
-		}
+		d.eei.Transfer(args.CallerAddr, args.RecipientAddr, sendBackValue, nil, 0)
 	}
 
 	return vmcommon.Ok
@@ -1816,12 +1824,32 @@ func (d *delegation) computeAndUpdateRewards(callerAddress []byte, delegator *De
 
 	isOwner := d.isOwner(callerAddress)
 
-	totalRewards := big.NewInt(0)
+	totalRewards, err := d.computeRewards(delegator.RewardsCheckpoint, isOwner, activeFund.Value)
+	if err != nil {
+		return err
+	}
+	delegator.UnClaimedRewards.Add(delegator.UnClaimedRewards, totalRewards)
 	currentEpoch := d.eei.BlockChainHook().CurrentEpoch()
-	for i := delegator.RewardsCheckpoint; i <= currentEpoch; i++ {
+	delegator.RewardsCheckpoint = currentEpoch + 1
+
+	return nil
+}
+
+func (d *delegation) computeRewards(
+	rewardsCheckpoint uint32,
+	isOwner bool,
+	activeValue *big.Int,
+) (*big.Int, error) {
+	totalRewards := big.NewInt(0)
+	if activeValue.Cmp(zero) <= 0 {
+		return totalRewards, nil
+	}
+
+	currentEpoch := d.eei.BlockChainHook().CurrentEpoch()
+	for i := rewardsCheckpoint; i <= currentEpoch; i++ {
 		found, rewardData, errGet := d.getRewardComputationData(i)
 		if errGet != nil {
-			return errGet
+			return nil, errGet
 		}
 		if !found {
 			continue
@@ -1845,7 +1873,7 @@ func (d *delegation) computeAndUpdateRewards(callerAddress []byte, delegator *De
 		rewardForDelegator := big.NewInt(0).Sub(rewardData.RewardsToDistribute, rewardsForOwner)
 
 		// delegator reward is: rewardForDelegator * user stake / total active
-		rewardForDelegator.Mul(rewardForDelegator, activeFund.Value)
+		rewardForDelegator.Mul(rewardForDelegator, activeValue)
 		rewardForDelegator.Div(rewardForDelegator, rewardData.TotalActive)
 
 		if isOwner {
@@ -1854,10 +1882,7 @@ func (d *delegation) computeAndUpdateRewards(callerAddress []byte, delegator *De
 		totalRewards.Add(totalRewards, rewardForDelegator)
 	}
 
-	delegator.UnClaimedRewards.Add(delegator.UnClaimedRewards, totalRewards)
-	delegator.RewardsCheckpoint = currentEpoch + 1
-
-	return nil
+	return totalRewards, nil
 }
 
 func (d *delegation) claimRewards(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -1887,11 +1912,7 @@ func (d *delegation) claimRewards(args *vmcommon.ContractCallInput) vmcommon.Ret
 		return vmcommon.UserError
 	}
 
-	err = d.eei.Transfer(args.CallerAddr, args.RecipientAddr, delegator.UnClaimedRewards, nil, 0)
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
+	d.eei.Transfer(args.CallerAddr, args.RecipientAddr, delegator.UnClaimedRewards, nil, 0)
 
 	delegator.TotalCumulatedRewards.Add(delegator.TotalCumulatedRewards, delegator.UnClaimedRewards)
 	delegator.UnClaimedRewards.SetUint64(0)
@@ -1946,6 +1967,7 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		d.eei.AddReturnMessage(vm.ErrCallValueMustBeZero.Error())
 		return vmcommon.UserError
 	}
+
 	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -2040,11 +2062,7 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
-	err = d.eei.Transfer(args.CallerAddr, args.RecipientAddr, actualUserUnBond, nil, 0)
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
+	d.eei.Transfer(args.CallerAddr, args.RecipientAddr, actualUserUnBond, nil, 0)
 
 	err = d.deleteDelegatorIfNeeded(args.CallerAddr, delegator)
 	if err != nil {
@@ -2599,6 +2617,128 @@ func (d *delegation) getMetaData(args *vmcommon.ContractCallInput) vmcommon.Retu
 	return vmcommon.Ok
 }
 
+func (d *delegation) basicCheckForLiquidStaking(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !d.flagLiquidStaking.IsSet() {
+		d.eei.AddReturnMessage(args.Function + " is an unknown function")
+		return vmcommon.UserError
+	}
+	if !bytes.Equal(args.CallerAddr, vm.LiquidStakingSCAddress) {
+		d.eei.AddReturnMessage("only liquid staking sc can call this function")
+		return vmcommon.UserError
+	}
+	if args.CallValue.Cmp(zero) != 0 {
+		d.eei.AddReturnMessage("call value must be 0")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) < 2 {
+		d.eei.AddReturnMessage("not enough arguments")
+		return vmcommon.UserError
+	}
+	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.OutOfGas
+	}
+	address := args.Arguments[0]
+	value := big.NewInt(0).SetBytes(args.Arguments[1])
+	if value.Cmp(zero) <= 0 {
+		d.eei.AddReturnMessage("invalid argument for value as bigInt")
+		return vmcommon.UserError
+	}
+	if len(address) != len(d.validatorSCAddr) {
+		d.eei.AddReturnMessage("invalid address as input")
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
+}
+
+func (d *delegation) claimDelegatedPosition(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := d.basicCheckForLiquidStaking(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	address := args.Arguments[0]
+	value := big.NewInt(0).SetBytes(args.Arguments[1])
+
+	isNew, delegator, err := d.getOrCreateDelegatorData(address)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	if isNew {
+		d.eei.AddReturnMessage("caller is not a delegator")
+		return vmcommon.UserError
+	}
+
+	activeFund, err := d.getFund(delegator.ActiveFund)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	if value.Cmp(activeFund.Value) > 0 {
+		d.eei.AddReturnMessage("not enough funds to claim position")
+		return vmcommon.UserError
+	}
+
+	activeFund.Value.Sub(activeFund.Value, value)
+	err = d.saveFund(delegator.ActiveFund, activeFund)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	err = d.deleteDelegatorIfNeeded(args.CallerAddr, delegator)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	d.eei.Finish(big.NewInt(int64(delegator.RewardsCheckpoint)).Bytes())
+	return vmcommon.Ok
+}
+
+func (d *delegation) claimRewardsViaLiquidStaking(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := d.basicCheckForLiquidStaking(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	if len(args.Arguments) != 3 {
+		d.eei.AddReturnMessage("invalid number of arguments")
+		return vmcommon.UserError
+	}
+
+	address := args.Arguments[0]
+	value := big.NewInt(0).SetBytes(args.Arguments[1])
+	checkPoint := uint32(big.NewInt(0).SetBytes(args.Arguments[2]).Uint64())
+
+	totalRewards, err := d.computeRewards(checkPoint, false, value)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	d.eei.Transfer(args.CallerAddr, address, totalRewards, nil, 0)
+	return vmcommon.Ok
+}
+
+func (d *delegation) reDelegateRewardsViaLiquidStaking(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+
+	return vmcommon.UserError
+}
+
+func (d *delegation) unDelegateViaLiquidStaking(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+
+	return vmcommon.Ok
+}
+
+func (d *delegation) returnViaLiquidStaking(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+
+	return vmcommon.Ok
+}
+
 func (d *delegation) executeOnValidatorSC(address []byte, function string, args [][]byte, value *big.Int) (*vmcommon.VMOutput, error) {
 	validatorCall := function
 	for _, key := range args {
@@ -2611,7 +2751,6 @@ func (d *delegation) executeOnValidatorSC(address []byte, function string, args 
 	}
 
 	return vmOutput, nil
-
 }
 
 func (d *delegation) getDelegationContractConfig() (*DelegationConfig, error) {
@@ -2847,6 +2986,9 @@ func (d *delegation) EpochConfirmed(epoch uint32, _ uint64) {
 
 	d.flagReDelegateBelowMinCheck.Toggle(epoch >= d.reDelegateBelowMinCheckEnableEpoch)
 	log.Debug("delegationSC: re-delegate below minimum check", "enabled", d.flagReDelegateBelowMinCheck.IsSet())
+
+	d.flagLiquidStaking.Toggle(epoch >= d.liquidStakingEnableEpoch)
+	log.Debug("delegationSC: liquid staking", "enabled", d.flagLiquidStaking.IsSet())
 }
 
 // CanUseContract returns true if contract can be used

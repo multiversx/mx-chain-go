@@ -34,6 +34,7 @@ import (
 	vmFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	metaProcess "github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/peer"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -50,7 +51,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -898,8 +898,21 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 		StakingV2EnableEpoch: stakingV2EnableEpoch,
 	}
 	vCreator, _ := peer.NewValidatorStatisticsProcessor(argsValidatorsProcessor)
-
+	gasSchedule := arwenConfig.MakeGasMapForTests()
+	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasSchedule)
 	blockChain, _ := blockchain.NewMetaChain(&mock.AppStatusHandlerStub{})
+	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
+		GasSchedule:     gasScheduleNotifier,
+		MapDNSAddresses: make(map[string]struct{}),
+		Marshalizer:     marshalizer,
+		Accounts:        userAccountsDB,
+		ShardCoordinator: &mock.ShardCoordinatorStub{SelfIdCalled: func() uint32 {
+			return core.MetachainShardId
+		}},
+		EpochNotifier: epochNotifier,
+	}
+	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+
 	testDataPool := dataRetrieverMock.NewPoolsHolderMock()
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:           userAccountsDB,
@@ -909,13 +922,12 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 		ShardCoordinator:   &mock.ShardCoordinatorStub{},
 		Marshalizer:        marshalizer,
 		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions:   vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
+		BuiltInFunctions:   builtInFuncs,
 		DataPool:           testDataPool,
 		CompiledSCPool:     testDataPool.SmartContracts(),
 		NilCompiledSCStore: true,
 	}
 
-	gasSchedule := arwenConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
 	signVerifer, _ := disabled.NewMessageSignVerifier(&cryptoMocks.KeyGenStub{})
 
@@ -924,14 +936,15 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 		ArgBlockChainHook:   argsHook,
 		Economics:           createEconomicsData(),
 		MessageSignVerifier: signVerifer,
-		GasSchedule:         mock.NewGasScheduleNotifierMock(gasSchedule),
+		GasSchedule:         gasScheduleNotifier,
 		NodesConfigProvider: nodesSetup,
 		Hasher:              hasher,
 		Marshalizer:         marshalizer,
 		SystemSCConfig: &config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
-				BaseIssuingCost: "1000",
-				OwnerAddress:    "aaaaaa",
+				BaseIssuingCost:  "1000",
+				OwnerAddress:     "aaaaaa",
+				DelegationTicker: "DEL",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
 				Active: config.GovernanceSystemSCConfigActive{

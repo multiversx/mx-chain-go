@@ -83,8 +83,9 @@ func createMockArgument(
 		HardForkConfig: config.HardforkConfig{},
 		SystemSCConfig: config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
-				BaseIssuingCost: "5000000000000000000000",
-				OwnerAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+				BaseIssuingCost:  "5000000000000000000000",
+				OwnerAddress:     "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+				DelegationTicker: "DEL",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
 				Active: config.GovernanceSystemSCConfigActive{

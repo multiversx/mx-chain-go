@@ -291,6 +291,22 @@ func (scf *systemSCFactory) createDelegationManagerContract() (vm.SystemSmartCon
 	return delegationManager, err
 }
 
+func (scf *systemSCFactory) createLiquidStakingContract() (vm.SystemSmartContract, error) {
+	argsLiquidStaking := systemSmartContracts.ArgsNewLiquidStaking{
+		Eei:                    scf.systemEI,
+		DelegationMgrSCAddress: vm.DelegationManagerSCAddress,
+		LiquidStakingSCAddress: vm.LiquidStakingSCAddress,
+		GasCost:                scf.gasCost,
+		Marshalizer:            scf.marshalizer,
+		Hasher:                 scf.hasher,
+		EpochNotifier:          scf.epochNotifier,
+		EndOfEpochAddress:      vm.EndOfEpochAddress,
+		EpochConfig:            *scf.epochConfig,
+	}
+	liquidStaking, err := systemSmartContracts.NewLiquidStakingSystemSC(argsLiquidStaking)
+	return liquidStaking, err
+}
+
 // CreateForGenesis instantiates all the system smart contracts and returns a container containing them to be used in the genesis process
 func (scf *systemSCFactory) CreateForGenesis() (vm.SystemSCContainer, error) {
 	staking, err := scf.createStakingContract()
@@ -364,6 +380,16 @@ func (scf *systemSCFactory) Create() (vm.SystemSCContainer, error) {
 	}
 
 	err = scf.systemSCsContainer.Add(vm.FirstDelegationSCAddress, delegation)
+	if err != nil {
+		return nil, err
+	}
+
+	liquidStaking, err := scf.createLiquidStakingContract()
+	if err != nil {
+		return nil, err
+	}
+
+	err = scf.systemSCsContainer.Add(vm.LiquidStakingSCAddress, liquidStaking)
 	if err != nil {
 		return nil, err
 	}

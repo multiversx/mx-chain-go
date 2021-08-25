@@ -1,6 +1,7 @@
 package systemSmartContracts
 
 import (
+	"errors"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -200,13 +201,7 @@ func (host *vmContext) SendGlobalSettingToAll(_ []byte, input []byte) {
 
 // Transfer handles any necessary value transfer required and takes
 // the necessary steps to create accounts
-func (host *vmContext) Transfer(
-	destination []byte,
-	sender []byte,
-	value *big.Int,
-	input []byte,
-	gasLimit uint64,
-) error {
+func (host *vmContext) Transfer(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) {
 
 	senderAcc, exists := host.outputAccounts[string(sender)]
 	if !exists {
@@ -238,8 +233,6 @@ func (host *vmContext) Transfer(
 		CallType: vmData.DirectCall,
 	}
 	destAcc.OutputTransfers = append(destAcc.OutputTransfers, outputTransfer)
-
-	return nil
 }
 
 func (host *vmContext) copyToNewContext() *vmContext {
@@ -330,10 +323,7 @@ func (host *vmContext) DeploySystemSC(
 	}
 
 	callInput := createDirectCallInput(newAddress, ownerAddress, value, initFunction, input)
-	err := host.Transfer(callInput.RecipientAddr, host.scAddress, callInput.CallValue, nil, 0)
-	if err != nil {
-		return vmcommon.ExecutionFailed, err
-	}
+	host.Transfer(callInput.RecipientAddr, host.scAddress, callInput.CallValue, nil, 0)
 
 	contract, err := host.systemContracts.Get(baseContract)
 	if err != nil {
@@ -387,10 +377,7 @@ func (host *vmContext) ExecuteOnDestContext(destination []byte, sender []byte, v
 		return nil, err
 	}
 
-	err = host.Transfer(callInput.RecipientAddr, callInput.CallerAddr, callInput.CallValue, nil, 0)
-	if err != nil {
-		return nil, err
-	}
+	host.Transfer(callInput.RecipientAddr, callInput.CallerAddr, callInput.CallValue, nil, 0)
 
 	vmOutput := &vmcommon.VMOutput{}
 	currContext := host.copyToNewContext()
@@ -445,6 +432,38 @@ func (host *vmContext) AddReturnMessage(message string) {
 	}
 
 	host.returnMessage += "@" + message
+}
+
+// ProcessBuiltInFunction will process the given built in function and will merge the generated output accounts and logs
+func (host *vmContext) ProcessBuiltInFunction(
+	sender, destination []byte,
+	function string,
+	arguments [][]byte,
+) error {
+	vmInput := createDirectCallInput(destination, sender, big.NewInt(0), function, arguments)
+	vmInput.GasProvided = host.GasLeft()
+	vmOutput, err := host.blockChainHook.ProcessBuiltInFunction(vmInput)
+	if err != nil {
+		return err
+	}
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return errors.New(vmOutput.ReturnMessage)
+	}
+
+	for address, outAcc := range vmOutput.OutputAccounts {
+		if len(outAcc.OutputTransfers) > 0 {
+			leftAccount, exist := host.outputAccounts[address]
+			if !exist {
+				leftAccount = &vmcommon.OutputAccount{}
+				host.outputAccounts[address] = leftAccount
+			}
+			leftAccount.OutputTransfers = append(leftAccount.OutputTransfers, outAcc.OutputTransfers...)
+		}
+	}
+
+	//TODO: add logs after merge with logs PR on meta
+
+	return nil
 }
 
 // BlockChainHook returns the blockchain hook

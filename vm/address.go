@@ -21,5 +21,8 @@ var EndOfEpochAddress = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 255,
 // DelegationManagerSCAddress is the hard-coded address for the delegation manager smart contract
 var DelegationManagerSCAddress = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 255, 255}
 
+// LiquidStakingSCAddress is the hard-coded address for the delegation token smart contract
+var LiquidStakingSCAddress = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 255, 255}
+
 // FirstDelegationSCAddress is the hard-coded address for the first delegation contract, the other will follow
 var FirstDelegationSCAddress = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 255, 255, 255}
