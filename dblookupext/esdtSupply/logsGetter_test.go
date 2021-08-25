@@ -17,7 +17,6 @@ func TestGetLogsBasedOnBody(t *testing.T) {
 	marshalizer := &testscommon.MarshalizerMock{}
 	txHash := []byte("txHash")
 	scrHash := []byte("scrHash")
-	dummyHash := []byte("dummy")
 
 	logTx := &transaction.Log{}
 	logSCR := &transaction.Log{}
@@ -30,10 +29,6 @@ func TestGetLogsBasedOnBody(t *testing.T) {
 
 			if bytes.Equal(key, scrHash) {
 				return marshalizer.Marshal(logSCR)
-			}
-
-			if bytes.Equal(key, dummyHash) {
-				return nil, nil
 			}
 
 			return nil, errors.New("not found")
@@ -49,7 +44,7 @@ func TestGetLogsBasedOnBody(t *testing.T) {
 			},
 			{
 				Type:     block.TxBlock,
-				TxHashes: [][]byte{txHash, []byte("tx"), dummyHash},
+				TxHashes: [][]byte{txHash, []byte("tx")},
 			},
 			{
 				Type:     block.SmartContractResultBlock,

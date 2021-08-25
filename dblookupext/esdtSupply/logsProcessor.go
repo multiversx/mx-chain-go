@@ -92,6 +92,10 @@ func (lp *logsProcessor) saveSupplies(supplies map[string]*SupplyESDT) error {
 }
 
 func (lp *logsProcessor) processEvent(txLog *transaction.Event, supplies map[string]*SupplyESDT, isRevert bool) error {
+	if len(txLog.Topics) < 3 {
+		return nil
+	}
+
 	tokenIdentifier := txLog.Topics[0]
 	if len(txLog.Topics[1]) != 0 {
 		tokenIdentifier = bytes.Join([][]byte{tokenIdentifier, txLog.Topics[1]}, []byte("-"))

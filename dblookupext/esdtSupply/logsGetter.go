@@ -38,7 +38,10 @@ func (lg *logsGetter) getLogsBasedOnBody(blockBody data.BodyHandler) (map[string
 			continue
 		}
 
-		dbLogsMb := lg.getLogsBasedOnMB(mb)
+		dbLogsMb, err := lg.getLogsBasedOnMB(mb)
+		if err != nil {
+			return nil, err
+		}
 
 		logsDB = mergeLogsMap(logsDB, dbLogsMb)
 	}
@@ -46,10 +49,14 @@ func (lg *logsGetter) getLogsBasedOnBody(blockBody data.BodyHandler) (map[string
 	return logsDB, nil
 }
 
-func (lg *logsGetter) getLogsBasedOnMB(mb *block.MiniBlock) map[string]data.LogHandler {
+func (lg *logsGetter) getLogsBasedOnMB(mb *block.MiniBlock) (map[string]data.LogHandler, error) {
 	dbLogs := make(map[string]data.LogHandler)
 	for _, txHash := range mb.TxHashes {
-		txLog, ok := lg.getTxLog(txHash)
+		txLog, ok, err := lg.getTxLog(txHash)
+		if err != nil {
+			return nil, err
+		}
+
 		if !ok {
 			continue
 		}
@@ -57,13 +64,13 @@ func (lg *logsGetter) getLogsBasedOnMB(mb *block.MiniBlock) map[string]data.LogH
 		dbLogs[string(txHash)] = txLog
 	}
 
-	return dbLogs
+	return dbLogs, nil
 }
 
-func (lg *logsGetter) getTxLog(txHash []byte) (data.LogHandler, bool) {
+func (lg *logsGetter) getTxLog(txHash []byte) (data.LogHandler, bool, error) {
 	logBytes, err := lg.logsStorer.Get(txHash)
 	if err != nil {
-		return nil, false
+		return nil, false, nil
 	}
 
 	logFromDB := &transaction.Log{}
@@ -74,10 +81,10 @@ func (lg *logsGetter) getTxLog(txHash []byte) (data.LogHandler, bool) {
 			"txHash", hex.EncodeToString(txHash),
 		)
 
-		return nil, false
+		return nil, false, err
 	}
 
-	return logFromDB, true
+	return logFromDB, true, nil
 }
 
 func mergeLogsMap(m1, m2 map[string]data.LogHandler) map[string]data.LogHandler {
