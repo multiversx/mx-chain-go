@@ -88,7 +88,7 @@ var ErrNilTrieSyncStatistics = errors.New("nil trie sync statistics handler")
 // ErrContextClosing signals that the parent context requested the closing of its children
 var ErrContextClosing = errors.New("context closing")
 
-// ErrNilTimeoutHandler signals that a nil timout handler has been provided
+// ErrNilTimeoutHandler signals that a nil timeout handler has been provided
 var ErrNilTimeoutHandler = errors.New("nil timeout handler")
 
 // ErrInvalidMaxHardCapForMissingNodes signals that the maximum hardcap value for missing nodes is invalid
