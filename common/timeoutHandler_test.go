@@ -19,9 +19,11 @@ func TestNewTimeoutHandler(t *testing.T) {
 	require.True(t, th.checkpoint.Unix() > 0)
 
 	th, err = NewTimeoutHandler(-time.Second)
+	require.True(t, check.IfNil(th))
 	require.True(t, errors.Is(err, ErrInvalidTimeout))
 
 	th, err = NewTimeoutHandler(time.Nanosecond * 999999999)
+	require.True(t, check.IfNil(th))
 	require.True(t, errors.Is(err, ErrInvalidTimeout))
 }
 
