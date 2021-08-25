@@ -1181,8 +1181,11 @@ func (bp *baseProcessor) revertAccountState() {
 }
 
 func (bp *baseProcessor) revertScheduledRootHashAndSCRs() {
-	_, headerHash := bp.getLastCommittedHeaderAndHash()
-	_ = bp.scheduledTxsExecutionHandler.RollBackToBlock(headerHash)
+	header, headerHash := bp.getLastCommittedHeaderAndHash()
+	err := bp.scheduledTxsExecutionHandler.RollBackToBlock(headerHash)
+	if err != nil {
+		bp.scheduledTxsExecutionHandler.SetScheduledRootHashAndSCRs(header.GetRootHash(), make(map[block.Type][]data.TransactionHandler))
+	}
 }
 
 func (bp *baseProcessor) getLastCommittedHeaderAndHash() (data.HeaderHandler, []byte) {
