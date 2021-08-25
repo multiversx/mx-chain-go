@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"math"
 	"sort"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -753,4 +754,14 @@ func IsScheduledMode(
 	}
 
 	return false, nil
+}
+
+const additionalTimeForCreatingScheduledMiniBlocks = 150 * time.Millisecond
+
+// HaveAdditionalTime returns if the additional time allocated for scheduled mini blocks is elapsed
+func HaveAdditionalTime() func() bool {
+	startTime := time.Now()
+	return func() bool {
+		return additionalTimeForCreatingScheduledMiniBlocks > time.Since(startTime)
+	}
 }

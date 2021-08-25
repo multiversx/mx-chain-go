@@ -485,13 +485,6 @@ func (txs *transactions) displayProcessingResultsOfScheduledMiniBlocks(
 	)
 }
 
-func getAdditionalTimeFunc() func() bool {
-	startTime := time.Now()
-	return func() bool {
-		return additionalTimeForCreatingScheduledMiniBlocks > time.Since(startTime)
-	}
-}
-
 func (txs *transactions) initCreateAndProcessMiniBlocks() *createAndProcessMiniBlocksInfo {
 	return &createAndProcessMiniBlocksInfo{
 		mapSCTxs:                                 make(map[string]struct{}),

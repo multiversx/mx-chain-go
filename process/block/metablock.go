@@ -1000,6 +1000,9 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 	)
 	maxShardHeadersAllowedInOneMetaBlock := maxShardHeadersFromSameShard * mp.shardCoordinator.NumberOfShards()
 	hdrsAddedForShard := make(map[uint32]uint32)
+	haveAdditionalTimeFalse := func() bool {
+		return false
+	}
 
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	for i := 0; i < len(orderedHdrs); i++ {
@@ -1047,6 +1050,7 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 			currShardHdr,
 			nil,
 			haveTime,
+			haveAdditionalTimeFalse,
 			false)
 
 		if createErr != nil {

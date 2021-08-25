@@ -702,7 +702,10 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsDstMeNi
 	haveTime := func() bool {
 		return true
 	}
-	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(nil, nil, haveTime, false)
+	haveAdditionalTime := func() bool {
+		return false
+	}
+	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(nil, nil, haveTime, haveAdditionalTime, false)
 
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(mbs))
@@ -744,7 +747,10 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsDstMeNo
 	haveTime := func() bool {
 		return false
 	}
-	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(createTestMetablock(), nil, haveTime, false)
+	haveAdditionalTime := func() bool {
+		return false
+	}
+	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(createTestMetablock(), nil, haveTime, haveAdditionalTime, false)
 
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(mbs))
@@ -764,7 +770,10 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNothing
 	haveTime := func() bool {
 		return true
 	}
-	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(createTestMetablock(), nil, haveTime, false)
+	haveAdditionalTime := func() bool {
+		return false
+	}
+	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(createTestMetablock(), nil, haveTime, haveAdditionalTime, false)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(mbs))
 	assert.Equal(t, uint32(0), txs)
@@ -840,6 +849,9 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 	haveTime := func() bool {
 		return true
 	}
+	haveAdditionalTime := func() bool {
+		return false
+	}
 	metaHdr := createTestMetablock()
 
 	for i := 0; i < len(metaHdr.ShardInfo); i++ {
@@ -850,7 +862,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		}
 	}
 
-	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(metaHdr, nil, haveTime, false)
+	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(metaHdr, nil, haveTime, haveAdditionalTime, false)
 
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(mbs))
@@ -874,6 +886,9 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsWithSki
 
 	haveTime := func() bool {
 		return true
+	}
+	haveAdditionalTime := func() bool {
+		return false
 	}
 
 	metaBlock := &block.MetaBlock{}
@@ -899,7 +914,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsWithSki
 		}
 	}
 
-	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(metaBlock, nil, haveTime, false)
+	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(metaBlock, nil, haveTime, haveAdditionalTime, false)
 	assert.Nil(t, err)
 	require.Equal(t, 1, len(mbs))
 	assert.Equal(t, uint32(1), txs)
@@ -973,6 +988,9 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 	haveTime := func() bool {
 		return true
 	}
+	haveAdditionalTime := func() bool {
+		return false
+	}
 	metaHdr := createTestMetablock()
 
 	unknownPreprocessorType := block.Type(254)
@@ -984,7 +1002,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 		}
 	}
 
-	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(metaHdr, nil, haveTime, false)
+	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(metaHdr, nil, haveTime, haveAdditionalTime, false)
 
 	assert.NotNil(t, err)
 	assert.True(t, errors.Is(err, process.ErrNilPreProcessor))
@@ -1865,8 +1883,11 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 	haveTime := func() bool {
 		return true
 	}
+	haveAdditionalTime := func() bool {
+		return false
+	}
 	preproc := tc.getPreProcessor(block.TxBlock)
-	err = tc.processCompleteMiniBlock(preproc, &miniBlock, []byte("hash"), haveTime, false)
+	err = tc.processCompleteMiniBlock(preproc, &miniBlock, []byte("hash"), haveTime, haveAdditionalTime, false)
 
 	assert.Nil(t, err)
 	assert.Equal(t, tx1Nonce, tx1ExecutionResult)
@@ -2002,8 +2023,11 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 	haveTime := func() bool {
 		return true
 	}
+	haveAdditionalTime := func() bool {
+		return false
+	}
 	preproc := tc.getPreProcessor(block.TxBlock)
-	err = tc.processCompleteMiniBlock(preproc, &miniBlock, []byte("hash"), haveTime, false)
+	err = tc.processCompleteMiniBlock(preproc, &miniBlock, []byte("hash"), haveTime, haveAdditionalTime, false)
 
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 	assert.True(t, revertAccntStateCalled)

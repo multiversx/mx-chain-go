@@ -149,7 +149,7 @@ func (vip *validatorInfoPreprocessor) CreateAndProcessMiniBlocks(_ func() bool) 
 }
 
 // ProcessMiniBlock does nothing
-func (vip *validatorInfoPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBlock, _ func() bool, _ func() (int, int), _ bool) ([][]byte, int, error) {
+func (vip *validatorInfoPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBlock, _ func() bool, _ func() bool, _ func() (int, int), _ bool) ([][]byte, int, error) {
 	if miniBlock.Type != block.PeerBlock {
 		return nil, 0, process.ErrWrongTypeInMiniBlock
 	}

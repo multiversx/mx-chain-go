@@ -529,6 +529,9 @@ func (txs *transactions) processTxsFromMe(
 	isMaxBlockSizeReachedFalse := func(int, int) bool {
 		return false
 	}
+	haveAdditionalTimeFalse := func() bool {
+		return false
+	}
 
 	calculatedMiniBlocks, mapSCTxs, err := txs.createAndProcessMiniBlocksFromMe(
 		haveTime,
@@ -547,6 +550,7 @@ func (txs *transactions) processTxsFromMe(
 	scheduledMiniBlocks, err := txs.createAndProcessScheduledMiniBlocksFromMeAsValidator(
 		body,
 		haveTime,
+		haveAdditionalTimeFalse,
 		isShardStuckFalse,
 		isMaxBlockSizeReachedFalse,
 		mapSCTxs,
@@ -597,6 +601,7 @@ func (txs *transactions) processTxsFromMe(
 func (txs *transactions) createAndProcessScheduledMiniBlocksFromMeAsValidator(
 	body *block.Body,
 	haveTime func() bool,
+	haveAdditionalTime func() bool,
 	isShardStuck func(uint32) bool,
 	isMaxBlockSizeReached func(int, int) bool,
 	mapSCTxs map[string]struct{},
@@ -613,7 +618,6 @@ func (txs *transactions) createAndProcessScheduledMiniBlocksFromMeAsValidator(
 
 	sortTransactionsBySenderAndNonce(scheduledTxsFromMe)
 
-	haveAdditionalTime := getAdditionalTimeFunc()
 	scheduledMiniBlocks := txs.createScheduledMiniBlocks(
 		haveTime,
 		haveAdditionalTime,
@@ -817,6 +821,7 @@ func (txs *transactions) computeMissingTxsForMiniBlock(miniBlock *block.MiniBloc
 func (txs *transactions) getAllTxsFromMiniBlock(
 	mb *block.MiniBlock,
 	haveTime func() bool,
+	haveAdditionalTime func() bool,
 ) ([]*transaction.Transaction, [][]byte, error) {
 
 	strCache := process.ShardCacherIdentifier(mb.SenderShardID, mb.ReceiverShardID)
@@ -829,7 +834,7 @@ func (txs *transactions) getAllTxsFromMiniBlock(
 	txsSlice := make([]*transaction.Transaction, 0, len(mb.TxHashes))
 	txHashes := make([][]byte, 0, len(mb.TxHashes))
 	for _, txHash := range mb.TxHashes {
-		if !haveTime() {
+		if !haveTime() && !haveAdditionalTime() {
 			return nil, nil, process.ErrTimeIsOut
 		}
 
@@ -897,8 +902,10 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool) (block
 		return make(block.MiniBlockSlice, 0), nil
 	}
 
+	haveAdditionalTime := process.HaveAdditionalTime()
 	scheduledMiniBlocks, err := txs.createAndProcessScheduledMiniBlocksFromMeAsProposer(
 		haveTime,
+		haveAdditionalTime,
 		sortedTxs,
 		mapSCTxs,
 	)
@@ -914,6 +921,7 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool) (block
 
 func (txs *transactions) createAndProcessScheduledMiniBlocksFromMeAsProposer(
 	haveTime func() bool,
+	haveAdditionalTime func() bool,
 	sortedTxs []*txcache.WrappedTransaction,
 	mapSCTxs map[string]struct{},
 ) (block.MiniBlockSlice, error) {
@@ -925,7 +933,7 @@ func (txs *transactions) createAndProcessScheduledMiniBlocksFromMeAsProposer(
 	startTime := time.Now()
 	scheduledMiniBlocks := txs.createScheduledMiniBlocks(
 		haveTime,
-		getAdditionalTimeFunc(),
+		haveAdditionalTime,
 		txs.blockTracker.IsShardStuck,
 		txs.blockSizeComputation.IsMaxBlockSizeReached,
 		sortedTxs,
@@ -1143,6 +1151,7 @@ func (txs *transactions) computeSortedTxs(
 func (txs *transactions) ProcessMiniBlock(
 	miniBlock *block.MiniBlock,
 	haveTime func() bool,
+	haveAdditionalTime func() bool,
 	getNumOfCrossInterMbsAndTxs func() (int, int),
 	scheduledMode bool,
 ) ([][]byte, int, error) {
@@ -1153,7 +1162,7 @@ func (txs *transactions) ProcessMiniBlock(
 
 	var err error
 	processedTxHashes := make([][]byte, 0)
-	miniBlockTxs, miniBlockTxHashes, err := txs.getAllTxsFromMiniBlock(miniBlock, haveTime)
+	miniBlockTxs, miniBlockTxHashes, err := txs.getAllTxsFromMiniBlock(miniBlock, haveTime, haveAdditionalTime)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -1187,7 +1196,7 @@ func (txs *transactions) ProcessMiniBlock(
 	log.Trace("transactions.ProcessMiniBlock", "scheduled mode", scheduledMode, "totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard)
 
 	for index := range miniBlockTxs {
-		if !haveTime() {
+		if !haveTime() && !haveAdditionalTime() {
 			err = process.ErrTimeIsOut
 			return processedTxHashes, 0, err
 		}
@@ -1214,7 +1223,7 @@ func (txs *transactions) ProcessMiniBlock(
 	numOfOldCrossInterMbs, numOfOldCrossInterTxs := getNumOfCrossInterMbsAndTxs()
 
 	for index := range miniBlockTxs {
-		if !haveTime() {
+		if !haveTime() && !haveAdditionalTime() {
 			err = process.ErrTimeIsOut
 			return processedTxHashes, index, err
 		}

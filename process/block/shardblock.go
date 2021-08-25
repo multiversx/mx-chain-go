@@ -31,6 +31,7 @@ type createMbsAndProcessTxsDestMeInfo struct {
 	currMetaHdrHash           []byte
 	processedMiniBlocksHashes map[string]struct{}
 	haveTime                  func() bool
+	haveAdditionalTime        func() bool
 	miniBlocks                block.MiniBlockSlice
 	hdrAdded                  bool
 	nbTxsAdded                uint32
@@ -1683,18 +1684,23 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(
 		return nil, 0, 0, err
 	}
 
+	haveAdditionalTimeFalse := func() bool {
+		return false
+	}
+
 	createAndProcessInfo := &createMbsAndProcessTxsDestMeInfo{
-		haveTime:      haveTime,
-		miniBlocks:    make(block.MiniBlockSlice, 0),
-		nbTxsAdded:    uint32(0),
-		nbHdrsAdded:   uint32(0),
-		scheduledMode: false,
+		haveTime:           haveTime,
+		haveAdditionalTime: haveAdditionalTimeFalse,
+		miniBlocks:         make(block.MiniBlockSlice, 0),
+		nbTxsAdded:         uint32(0),
+		nbHdrsAdded:        uint32(0),
+		scheduledMode:      false,
 	}
 
 	// do processing in order
 	sp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	for i := 0; i < len(orderedMetaBlocks); i++ {
-		if !createAndProcessInfo.haveTime() {
+		if !createAndProcessInfo.haveTime() && !createAndProcessInfo.haveAdditionalTime() {
 			log.Debug("time is up after putting cross txs with destination to current shard",
 				"scheduled mode", createAndProcessInfo.scheduledMode,
 				"num txs added", createAndProcessInfo.nbTxsAdded,
@@ -1764,6 +1770,7 @@ func (sp *shardProcessor) createMbsAndProcessCrossShardTransactionsDstMe(createA
 		createAndProcessInfo.currMetaHdr,
 		createAndProcessInfo.processedMiniBlocksHashes,
 		createAndProcessInfo.haveTime,
+		createAndProcessInfo.haveAdditionalTime,
 		createAndProcessInfo.scheduledMode)
 	if errCreated != nil {
 		return false, errCreated
@@ -1788,6 +1795,7 @@ func (sp *shardProcessor) createMbsAndProcessCrossShardTransactionsDstMe(createA
 
 		if sp.flagScheduledMiniBlocks.IsSet() && !createAndProcessInfo.scheduledMode {
 			createAndProcessInfo.scheduledMode = true
+			createAndProcessInfo.haveAdditionalTime = process.HaveAdditionalTime()
 			return sp.createMbsAndProcessCrossShardTransactionsDstMe(createAndProcessInfo)
 		}
 
