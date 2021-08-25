@@ -449,6 +449,10 @@ func (hr *historyRepository) RevertBlock(blockHeader data.HeaderHandler, blockBo
 	return hr.esdtSuppliesHandler.RevertChanges(blockHeader, blockBody)
 }
 
+func (hr *historyRepository) GetESDTSupply(token string) (string, error) {
+	return hr.esdtSuppliesHandler.GetESDTSupply(token)
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (hr *historyRepository) IsInterfaceNil() bool {
 	return hr == nil
