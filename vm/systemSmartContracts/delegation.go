@@ -1420,24 +1420,18 @@ func (d *delegation) addToActiveFund(
 	dStatus *DelegationContractStatus,
 	isNew bool,
 ) error {
-	if len(delegator.ActiveFund) == 0 {
-		var fundKey []byte
-		fundKey, err := d.createAndSaveNextKeyFund(callerAddr, delegateValue, active)
-		if err != nil {
-			return err
-		}
-
-		delegator.ActiveFund = fundKey
-		if isNew {
-			dStatus.NumUsers++
-		}
-
-		return nil
+	if len(delegator.ActiveFund) > 0 {
+		return d.addValueToFund(delegator.ActiveFund, delegateValue)
 	}
 
-	err := d.addValueToFund(delegator.ActiveFund, delegateValue)
+	fundKey, err := d.createAndSaveNextKeyFund(callerAddr, delegateValue, active)
 	if err != nil {
 		return err
+	}
+
+	delegator.ActiveFund = fundKey
+	if isNew {
+		dStatus.NumUsers++
 	}
 
 	return nil
