@@ -37,7 +37,7 @@ type SystemEIStub struct {
 	GasLeftCalled                       func() uint64
 	CleanStorageUpdatesCalled           func()
 	ReturnMessage                       string
-	ProcessBuiltInFunctionCalled        func(sender, destination []byte, function string, arguments [][]byte) error
+	ProcessBuiltInFunctionCalled        func(sender, destination []byte, function string, arguments [][]byte) (*vmcommon.VMOutput, error)
 }
 
 // GasLeft -
@@ -269,15 +269,11 @@ func (s *SystemEIStub) CleanStorageUpdates() {
 }
 
 // ProcessBuiltInFunction -
-func (s *SystemEIStub) ProcessBuiltInFunction(
-	sender, destination []byte,
-	function string,
-	arguments [][]byte,
-) error {
+func (s *SystemEIStub) ProcessBuiltInFunction(sender, destination []byte, function string, arguments [][]byte) (*vmcommon.VMOutput, error) {
 	if s.ProcessBuiltInFunctionCalled != nil {
 		return s.ProcessBuiltInFunctionCalled(sender, destination, function, arguments)
 	}
-	return nil
+	return &vmcommon.VMOutput{}, nil
 }
 
 // IsInterfaceNil -
