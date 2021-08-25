@@ -189,7 +189,7 @@ func (l *liquidStaking) claimDelegatedPosition(args *vmcommon.ContractCallInput)
 	numOfCalls := big.NewInt(0).SetBytes(args.Arguments[0]).Int64()
 	minNumArguments := numOfCalls*2 + 1
 	if int64(len(args.Arguments)) < minNumArguments {
-		l.eei.AddReturnMessage("invalid number of arguments")
+		l.eei.AddReturnMessage("not enough arguments")
 		return vmcommon.UserError
 	}
 	err := l.eei.UseGas(uint64(numOfCalls) * l.gasCost.MetaChainSystemSCsCost.LiquidStakingOps)
@@ -379,7 +379,7 @@ func (l *liquidStaking) burnAndExecuteFromESDTTransfer(
 		return nil, nil, vmcommon.UserError
 	}
 
-	err = l.burnNFT(esdtTransfer.ESDTTokenNonce, esdtTransfer.ESDTValue)
+	err = l.burnSFT(esdtTransfer.ESDTTokenNonce, esdtTransfer.ESDTValue)
 	if err != nil {
 		l.eei.AddReturnMessage(err.Error())
 		return nil, nil, vmcommon.UserError
@@ -433,17 +433,17 @@ func (l *liquidStaking) createOrAddNFT(
 		RewardsCheckpoint: rewardsCheckpoint,
 	}
 
-	marshalledData, err := l.marshalizer.Marshal(attributes)
+	marshaledData, err := l.marshalizer.Marshal(attributes)
 	if err != nil {
 		return 0, err
 	}
 
-	hash := l.hasher.Compute(string(marshalledData))
+	hash := l.hasher.Compute(string(marshaledData))
 	attrNonceKey := append([]byte(attributesNoncePrefix), hash...)
 	storageData := l.eei.GetStorage(attrNonceKey)
 	if len(storageData) > 0 {
 		nonce := big.NewInt(0).SetBytes(storageData).Uint64()
-		err = l.addQuantityToNFT(nonce, value)
+		err = l.addQuantityToSFT(nonce, value)
 		if err != nil {
 			return 0, err
 		}
@@ -451,7 +451,7 @@ func (l *liquidStaking) createOrAddNFT(
 		return nonce, nil
 	}
 
-	nonce, err := l.createNewNFT(value)
+	nonce, err := l.createNewSFT(value)
 	if err != nil {
 		return 0, nil
 	}
@@ -460,12 +460,12 @@ func (l *liquidStaking) createOrAddNFT(
 	l.eei.SetStorage(attrNonceKey, nonceBytes)
 
 	nonceKey := append([]byte(nonceAttributesPrefix), nonceBytes...)
-	l.eei.SetStorage(nonceKey, marshalledData)
+	l.eei.SetStorage(nonceKey, marshaledData)
 
 	return nonce, nil
 }
 
-func (l *liquidStaking) createNewNFT(value *big.Int) (uint64, error) {
+func (l *liquidStaking) createNewSFT(value *big.Int) (uint64, error) {
 	valuePlusOne := big.NewInt(0).Add(value, big.NewInt(1))
 
 	args := make([][]byte, 7)
@@ -477,13 +477,13 @@ func (l *liquidStaking) createNewNFT(value *big.Int) (uint64, error) {
 		return 0, err
 	}
 	if len(vmOutput.ReturnData) != 1 {
-		return 0, vm.ErrNotEnoughReturnData
+		return 0, vm.ErrInvalidReturnData
 	}
 
 	return big.NewInt(0).SetBytes(vmOutput.ReturnData[0]).Uint64(), nil
 }
 
-func (l *liquidStaking) addQuantityToNFT(nonce uint64, value *big.Int) error {
+func (l *liquidStaking) addQuantityToSFT(nonce uint64, value *big.Int) error {
 	args := make([][]byte, 3)
 	args[0] = l.getTokenID()
 	args[1] = big.NewInt(0).SetUint64(nonce).Bytes()
@@ -497,7 +497,7 @@ func (l *liquidStaking) addQuantityToNFT(nonce uint64, value *big.Int) error {
 	return nil
 }
 
-func (l *liquidStaking) burnNFT(nonce uint64, value *big.Int) error {
+func (l *liquidStaking) burnSFT(nonce uint64, value *big.Int) error {
 	args := make([][]byte, 3)
 	args[0] = l.getTokenID()
 	args[1] = big.NewInt(0).SetUint64(nonce).Bytes()
@@ -513,13 +513,13 @@ func (l *liquidStaking) burnNFT(nonce uint64, value *big.Int) error {
 
 func (l *liquidStaking) getAttributesForNonce(nonce uint64) (*LiquidStakingAttributes, error) {
 	nonceKey := append([]byte(nonceAttributesPrefix), big.NewInt(0).SetUint64(nonce).Bytes()...)
-	marshalledData := l.eei.GetStorage(nonceKey)
-	if len(marshalledData) == 0 {
+	marshaledData := l.eei.GetStorage(nonceKey)
+	if len(marshaledData) == 0 {
 		return nil, vm.ErrEmptyStorage
 	}
 
 	lAttr := &LiquidStakingAttributes{}
-	err := l.marshalizer.Unmarshal(lAttr, marshalledData)
+	err := l.marshalizer.Unmarshal(lAttr, marshaledData)
 	if err != nil {
 		return nil, err
 	}

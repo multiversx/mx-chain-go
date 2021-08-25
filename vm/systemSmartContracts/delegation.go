@@ -1433,11 +1433,11 @@ func (d *delegation) addToActiveFund(
 		}
 
 		return nil
-	} else {
-		err := d.addValueToFund(delegator.ActiveFund, delegateValue)
-		if err != nil {
-			return err
-		}
+	}
+
+	err := d.addValueToFund(delegator.ActiveFund, delegateValue)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -2740,7 +2740,7 @@ func (d *delegation) reDelegateRewardsViaLiquidStaking(args *vmcommon.ContractCa
 		return returnCode
 	}
 	if len(args.Arguments) != 3 {
-		d.eei.AddReturnMessage("not enough arguments")
+		d.eei.AddReturnMessage("invalid number of arguments")
 		return vmcommon.UserError
 	}
 
@@ -2775,7 +2775,7 @@ func (d *delegation) reDelegateRewardsViaLiquidStaking(args *vmcommon.ContractCa
 	}
 
 	d.eei.Finish(totalRewards.Bytes())
-	return vmcommon.UserError
+	return vmcommon.Ok
 }
 
 func (d *delegation) executeStakeAndUpdateStatus(
@@ -2835,7 +2835,7 @@ func (d *delegation) getConfigStatusAndGlobalFund() (*DelegationConfig, *Delegat
 
 func (d *delegation) unDelegateViaLiquidStaking(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	returnCode := d.returnViaLiquidStaking(args)
-	if returnCode != vmcommon.UserError {
+	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
 
@@ -2850,7 +2850,7 @@ func (d *delegation) returnViaLiquidStaking(args *vmcommon.ContractCallInput) vm
 		return returnCode
 	}
 	if len(args.Arguments) != 3 {
-		d.eei.AddReturnMessage("not enough arguments")
+		d.eei.AddReturnMessage("invalid number of arguments")
 		return vmcommon.UserError
 	}
 
