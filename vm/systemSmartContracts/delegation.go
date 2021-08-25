@@ -1823,7 +1823,9 @@ func (d *delegation) computeAndUpdateRewards(callerAddress []byte, delegator *De
 	isOwner := d.isOwner(callerAddress)
 
 	totalRewards, err := d.computeRewards(delegator.RewardsCheckpoint, isOwner, activeFund.Value)
-
+	if err != nil {
+		return err
+	}
 	delegator.UnClaimedRewards.Add(delegator.UnClaimedRewards, totalRewards)
 	currentEpoch := d.eei.BlockChainHook().CurrentEpoch()
 	delegator.RewardsCheckpoint = currentEpoch + 1
@@ -2633,7 +2635,7 @@ func (d *delegation) basicCheckForLiquidStaking(args *vmcommon.ContractCallInput
 	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
+		return vmcommon.OutOfGas
 	}
 	address := args.Arguments[0]
 	value := big.NewInt(0).SetBytes(args.Arguments[1])
@@ -2714,7 +2716,7 @@ func (d *delegation) claimRewardsViaLiquidStaking(args *vmcommon.ContractCallInp
 		return returnCode
 	}
 	if len(args.Arguments) != 3 {
-		d.eei.AddReturnMessage("not enough arguments")
+		d.eei.AddReturnMessage("invalid number of arguments")
 		return vmcommon.UserError
 	}
 

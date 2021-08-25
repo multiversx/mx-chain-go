@@ -47,7 +47,7 @@ type esdt struct {
 	gasCost                vm.GasCost
 	baseIssuingCost        *big.Int
 	ownerAddress           []byte // do not use this in functions. Should use e.getEsdtOwner()
-	eSDTSCAddress          []byte
+	esdtSCAddress          []byte
 	endOfEpochSCAddress    []byte
 	marshalizer            marshal.Marshalizer
 	hasher                 hashing.Hasher
@@ -114,7 +114,7 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 		//we should have called pubkeyConverter.Decode here instead of a byte slice cast. Since that change would break
 		//backwards compatibility, the fix was carried in the epochStart/metachain/systemSCs.go
 		ownerAddress:               []byte(args.ESDTSCConfig.OwnerAddress),
-		eSDTSCAddress:              args.ESDTSCAddress,
+		esdtSCAddress:              args.ESDTSCAddress,
 		hasher:                     args.Hasher,
 		marshalizer:                args.Marshalizer,
 		enabledEpoch:               args.EpochConfig.EnableEpochs.ESDTEnableEpoch,
@@ -232,7 +232,7 @@ func (e *esdt) initDelegationESDTOnMeta(args *vmcommon.ContractCallInput) vmcomm
 		e.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.FunctionNotFound
 	}
-	if !bytes.Equal(args.CallerAddr, e.eSDTSCAddress) {
+	if !bytes.Equal(args.CallerAddr, e.esdtSCAddress) {
 		e.eei.AddReturnMessage("only system address can call this")
 		return vmcommon.UserError
 	}
@@ -272,8 +272,8 @@ func (e *esdt) initDelegationESDTOnMeta(args *vmcommon.ContractCallInput) vmcomm
 		return vmcommon.UserError
 	}
 
-	err, _ = e.eei.ProcessBuiltInFunction(
-		e.eSDTSCAddress,
+	_, err = e.eei.ProcessBuiltInFunction(
+		e.esdtSCAddress,
 		vm.LiquidStakingSCAddress,
 		core.BuiltInFunctionSetESDTRole,
 		[][]byte{[]byte(core.ESDTRoleNFTCreate), []byte(core.ESDTRoleNFTAddQuantity), []byte(core.ESDTRoleNFTBurn)},
@@ -363,7 +363,7 @@ func (e *esdt) issue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 
 	if initialSupply.Cmp(zero) > 0 {
 		esdtTransferData := core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString(tokenIdentifier) + "@" + hex.EncodeToString(initialSupply.Bytes())
-		e.eei.Transfer(args.CallerAddr, e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
+		e.eei.Transfer(args.CallerAddr, e.esdtSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
 	} else {
 		e.eei.Finish(tokenIdentifier)
 	}
@@ -607,7 +607,7 @@ func (e *esdt) burn(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	}
 	if !token.Burnable {
 		esdtTransferData := core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString(args.Arguments[0]) + "@" + hex.EncodeToString(args.Arguments[1])
-		e.eei.Transfer(args.CallerAddr, e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
+		e.eei.Transfer(args.CallerAddr, e.esdtSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
 		e.eei.AddReturnMessage("token is not burnable")
 		return vmcommon.Ok
 	}
@@ -676,7 +676,7 @@ func (e *esdt) mint(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	}
 
 	esdtTransferData := core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString(args.Arguments[0]) + "@" + hex.EncodeToString(mintValue.Bytes())
-	e.eei.Transfer(destination, e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
+	e.eei.Transfer(destination, e.esdtSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
 
 	return vmcommon.Ok
 }
@@ -701,7 +701,7 @@ func (e *esdt) toggleFreeze(args *vmcommon.ContractCallInput, builtInFunc string
 	}
 
 	esdtTransferData := builtInFunc + "@" + hex.EncodeToString(args.Arguments[0])
-	e.eei.Transfer(args.Arguments[1], e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
+	e.eei.Transfer(args.Arguments[1], e.esdtSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
 
 	return vmcommon.Ok
 }
@@ -747,7 +747,7 @@ func (e *esdt) toggleFreezeSingleNFT(args *vmcommon.ContractCallInput, builtInFu
 
 	composedArg := append(args.Arguments[0], args.Arguments[1]...)
 	esdtTransferData := builtInFunc + "@" + hex.EncodeToString(composedArg)
-	e.eei.Transfer(args.Arguments[2], e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
+	e.eei.Transfer(args.Arguments[2], e.esdtSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
 
 	return vmcommon.Ok
 }
@@ -773,7 +773,7 @@ func (e *esdt) wipeTokenFromAddress(
 	}
 
 	esdtTransferData := core.BuiltInFunctionESDTWipe + "@" + hex.EncodeToString(wipeArgument)
-	e.eei.Transfer(address, e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
+	e.eei.Transfer(address, e.esdtSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
 
 	token.NumWiped++
 	err := e.saveToken(tokenID, token)
@@ -838,7 +838,7 @@ func (e *esdt) togglePause(args *vmcommon.ContractCallInput, builtInFunc string)
 	}
 
 	esdtTransferData := builtInFunc + "@" + hex.EncodeToString(args.Arguments[0])
-	e.eei.SendGlobalSettingToAll(e.eSDTSCAddress, []byte(esdtTransferData))
+	e.eei.SendGlobalSettingToAll(e.esdtSCAddress, []byte(esdtTransferData))
 
 	return vmcommon.Ok
 }
@@ -1256,7 +1256,7 @@ func (e *esdt) setSpecialRole(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	firstTransferRoleSet := !transferRoleExists && isDefinedRoleInArgs(args.Arguments[2:], []byte(core.ESDTRoleTransfer))
 	if firstTransferRoleSet {
 		esdtTransferData := core.BuiltInFunctionESDTSetLimitedTransfer + "@" + hex.EncodeToString(args.Arguments[0])
-		e.eei.SendGlobalSettingToAll(e.eSDTSCAddress, []byte(esdtTransferData))
+		e.eei.SendGlobalSettingToAll(e.esdtSCAddress, []byte(esdtTransferData))
 	}
 
 	return vmcommon.Ok
@@ -1314,7 +1314,7 @@ func (e *esdt) unSetSpecialRole(args *vmcommon.ContractCallInput) vmcommon.Retur
 	lastTransferRoleWasDeleted := isDefinedRoleInArgs(args.Arguments[2:], []byte(core.ESDTRoleTransfer)) && !transferRoleExists
 	if lastTransferRoleWasDeleted {
 		esdtTransferData := core.BuiltInFunctionESDTUnSetLimitedTransfer + "@" + hex.EncodeToString(args.Arguments[0])
-		e.eei.SendGlobalSettingToAll(e.eSDTSCAddress, []byte(esdtTransferData))
+		e.eei.SendGlobalSettingToAll(e.esdtSCAddress, []byte(esdtTransferData))
 	}
 
 	err := e.saveToken(args.Arguments[0], token)
@@ -1397,7 +1397,7 @@ func (e *esdt) transferNFTCreateRole(args *vmcommon.ContractCallInput) vmcommon.
 
 	esdtTransferNFTCreateData := core.BuiltInFunctionESDTNFTCreateRoleTransfer + "@" +
 		hex.EncodeToString(args.Arguments[0]) + "@" + hex.EncodeToString(args.Arguments[2])
-	e.eei.Transfer(args.Arguments[1], e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferNFTCreateData), 0)
+	e.eei.Transfer(args.Arguments[1], e.esdtSCAddress, big.NewInt(0), []byte(esdtTransferNFTCreateData), 0)
 
 	return vmcommon.Ok
 }
@@ -1444,7 +1444,7 @@ func (e *esdt) sendRoleChangeData(tokenID []byte, destination []byte, roles [][]
 		esdtSetRoleData += "@" + hex.EncodeToString(arg)
 	}
 
-	e.eei.Transfer(destination, e.eSDTSCAddress, big.NewInt(0), []byte(esdtSetRoleData), 0)
+	e.eei.Transfer(destination, e.esdtSCAddress, big.NewInt(0), []byte(esdtSetRoleData), 0)
 }
 
 func (e *esdt) getAllAddressesAndRoles(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {

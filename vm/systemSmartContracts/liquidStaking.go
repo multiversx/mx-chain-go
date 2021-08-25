@@ -130,7 +130,7 @@ func (l *liquidStaking) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return vmcommon.UserError
 	}
 	if args.CallValue.Cmp(zero) != 0 {
-		l.eei.AddReturnMessage("not a payable function")
+		l.eei.AddReturnMessage("function is not payable in eGLD")
 		return vmcommon.UserError
 	}
 	if len(args.Arguments) != 1 {
