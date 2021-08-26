@@ -107,7 +107,11 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		baseProcessor: base,
 	}
 
-	sp.txCounter = NewTransactionCounter()
+	sp.txCounter, err = NewTransactionCounter(sp.hasher, sp.marshalizer)
+	if err != nil {
+		return nil, err
+	}
+
 	sp.requestBlockBodyHandler = &sp
 	sp.blockProcessor = &sp
 
@@ -959,8 +963,6 @@ func (sp *shardProcessor) CommitBlock(
 		sp.dataPool,
 		sp.appStatusHandler,
 		sp.blockTracker,
-		sp.hasher,
-		sp.marshalizer,
 	)
 
 	sp.blockSizeThrottler.Succeed(header.GetRound())

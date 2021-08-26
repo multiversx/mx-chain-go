@@ -2,6 +2,7 @@ package block
 
 import (
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"math"
 	"sync"
 
@@ -22,16 +23,30 @@ type transactionCounter struct {
 	mutex           sync.RWMutex
 	currentBlockTxs uint64
 	totalTxs        uint64
+	hasher          hashing.Hasher
+	marshalizer     marshal.Marshalizer
 }
 
 // NewTransactionCounter returns a new object that keeps track of how many transactions
 // were executed in total, and in the current block
-func NewTransactionCounter() *transactionCounter {
+func NewTransactionCounter(
+	hasher hashing.Hasher,
+	marshalizer marshal.Marshalizer,
+) (*transactionCounter, error) {
+	if check.IfNil(hasher) {
+		return nil, process.ErrNilHasher
+	}
+	if check.IfNil(marshalizer) {
+		return nil, process.ErrNilMarshalizer
+	}
+
 	return &transactionCounter{
 		mutex:           sync.RWMutex{},
 		currentBlockTxs: 0,
 		totalTxs:        0,
-	}
+		hasher:          hasher,
+		marshalizer:     marshalizer,
+	}, nil
 }
 
 func (txc *transactionCounter) getPoolCounts(poolsHolder dataRetriever.PoolsHolder) (txCounts counting.Counts, rewardCounts counting.Counts, unsignedCounts counting.Counts) {
@@ -63,10 +78,8 @@ func (txc *transactionCounter) displayLogInfo(
 	_ dataRetriever.PoolsHolder,
 	appStatusHandler core.AppStatusHandler,
 	blockTracker process.BlockTracker,
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
 ) {
-	dispHeader, dispLines := txc.createDisplayableShardHeaderAndBlockBody(header, body, hasher, marshalizer)
+	dispHeader, dispLines := txc.createDisplayableShardHeaderAndBlockBody(header, body)
 
 	txc.mutex.RLock()
 	appStatusHandler.SetUInt64Value(common.MetricNumProcessedTxs, txc.totalTxs)
@@ -95,8 +108,6 @@ func (txc *transactionCounter) displayLogInfo(
 func (txc *transactionCounter) createDisplayableShardHeaderAndBlockBody(
 	header data.HeaderHandler,
 	body *block.Body,
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
 ) ([]string, []*display.LineData) {
 
 	tableHeader := []string{"Part", "Parameter", "Value"}
@@ -126,7 +137,7 @@ func (txc *transactionCounter) createDisplayableShardHeaderAndBlockBody(
 
 	if varBlockBodyType == int32(block.TxBlock) {
 		shardLines = txc.displayMetaHashesIncluded(shardLines, shardHeader)
-		shardLines = txc.displayTxBlockBody(shardLines, header, body, hasher, marshalizer)
+		shardLines = txc.displayTxBlockBody(shardLines, header, body)
 
 		return tableHeader, shardLines
 	}
@@ -175,15 +186,13 @@ func (txc *transactionCounter) displayTxBlockBody(
 	lines []*display.LineData,
 	header data.HeaderHandler,
 	body *block.Body,
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
 ) []*display.LineData {
 	currentBlockTxs := 0
 
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniBlock := body.MiniBlocks[i]
 
-		scheduledModeInMiniBlockHeader, _ := process.IsScheduledMode(header, &block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}}, hasher, marshalizer)
+		scheduledModeInMiniBlockHeader, _ := process.IsScheduledMode(header, &block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}}, txc.hasher, txc.marshalizer)
 		scheduledModeInMiniBlock := miniBlock.IsScheduledMiniBlock()
 
 		executionTypeInMiniBlockHeaderStr := ""

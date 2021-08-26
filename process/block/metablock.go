@@ -136,7 +136,11 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 
 	log.Debug("metablock: enable epoch for staking v2", "epoch", mp.rewardsV2EnableEpoch)
 
-	mp.txCounter = NewTransactionCounter()
+	mp.txCounter, err = NewTransactionCounter(mp.hasher, mp.marshalizer)
+	if err != nil {
+		return nil, err
+	}
+
 	mp.requestBlockBodyHandler = &mp
 	mp.blockProcessor = &mp
 
