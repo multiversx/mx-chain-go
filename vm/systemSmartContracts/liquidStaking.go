@@ -25,9 +25,7 @@ const attributesNoncePrefix = "a"
 type liquidStaking struct {
 	eei                      vm.SystemEI
 	sigVerifier              vm.MessageSignVerifier
-	delegationMgrSCAddress   []byte
 	liquidStakingSCAddress   []byte
-	endOfEpochAddr           []byte
 	gasCost                  vm.GasCost
 	marshalizer              marshal.Marshalizer
 	hasher                   hashing.Hasher
@@ -40,9 +38,7 @@ type liquidStaking struct {
 type ArgsNewLiquidStaking struct {
 	EpochConfig            config.EpochConfig
 	Eei                    vm.SystemEI
-	DelegationMgrSCAddress []byte
 	LiquidStakingSCAddress []byte
-	EndOfEpochAddress      []byte
 	GasCost                vm.GasCost
 	Marshalizer            marshal.Marshalizer
 	Hasher                 hashing.Hasher
@@ -53,12 +49,6 @@ type ArgsNewLiquidStaking struct {
 func NewLiquidStakingSystemSC(args ArgsNewLiquidStaking) (*liquidStaking, error) {
 	if check.IfNil(args.Eei) {
 		return nil, vm.ErrNilSystemEnvironmentInterface
-	}
-	if len(args.DelegationMgrSCAddress) < 1 {
-		return nil, fmt.Errorf("%w for delegation manager sc address", vm.ErrInvalidAddress)
-	}
-	if len(args.EndOfEpochAddress) < 1 {
-		return nil, fmt.Errorf("%w for end of epoch address", vm.ErrInvalidAddress)
 	}
 	if len(args.LiquidStakingSCAddress) < 1 {
 		return nil, fmt.Errorf("%w for liquid staking sc address", vm.ErrInvalidAddress)
@@ -75,8 +65,6 @@ func NewLiquidStakingSystemSC(args ArgsNewLiquidStaking) (*liquidStaking, error)
 
 	l := &liquidStaking{
 		eei:                      args.Eei,
-		delegationMgrSCAddress:   args.DelegationMgrSCAddress,
-		endOfEpochAddr:           args.EndOfEpochAddress,
 		liquidStakingSCAddress:   args.LiquidStakingSCAddress,
 		gasCost:                  args.GasCost,
 		marshalizer:              args.Marshalizer,
