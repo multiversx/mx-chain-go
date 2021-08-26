@@ -236,7 +236,7 @@ func (l *liquidStaking) claimOneDelegatedPosition(
 	}
 
 	valueToClaim := big.NewInt(0).SetBytes(valueAsBytes)
-	returnData, returnCode := l.executeOnDestinationSC(
+	_, returnCode := l.executeOnDestinationSC(
 		destSCAddress,
 		"claimRewardsViaLiquidStaking",
 		callerAddr,
@@ -247,13 +247,8 @@ func (l *liquidStaking) claimOneDelegatedPosition(
 		return 0, nil, returnCode
 	}
 
-	if len(returnData) != 1 {
-		l.eei.AddReturnMessage("invalid return data")
-		return 0, nil, vmcommon.UserError
-	}
-
-	rewardsCheckpoint := uint32(big.NewInt(0).SetBytes(returnData[0]).Uint64())
-	nonce, err := l.createOrAddNFT(destSCAddress, rewardsCheckpoint, valueToClaim)
+	newCheckpoint := l.eei.BlockChainHook().CurrentEpoch() + 1
+	nonce, err := l.createOrAddNFT(destSCAddress, newCheckpoint, valueToClaim)
 	if err != nil {
 		l.eei.AddReturnMessage(err.Error())
 		return 0, nil, vmcommon.UserError

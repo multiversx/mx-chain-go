@@ -1602,19 +1602,13 @@ func (d *delegation) unDelegateValueFromAddress(
 		return vmcommon.UserError
 	}
 
-	delegationManagement, err := getDelegationManagement(d.eei, d.marshalizer, d.delegationMgrSCAddress)
-	if err != nil {
-		d.eei.AddReturnMessage("error getting minimum delegation amount " + err.Error())
-		return vmcommon.UserError
-	}
-
-	minDelegationAmount := delegationManagement.MinDelegationAmount
-
 	remainedFund := big.NewInt(0).Sub(activeFund.Value, valueToUnDelegate)
-	if remainedFund.Cmp(zero) > 0 && remainedFund.Cmp(minDelegationAmount) < 0 {
+	err = d.checkRemainingFundValue(remainedFund)
+	if err != nil {
 		d.eei.AddReturnMessage("invalid value to undelegate - need to undelegate all - do not leave dust behind")
 		return vmcommon.UserError
 	}
+
 	err = d.checkOwnerCanUnDelegate(delegatorAddress, activeFund, valueToUnDelegate)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -1681,6 +1675,20 @@ func (d *delegation) unDelegateValueFromAddress(
 	}
 
 	return vmcommon.Ok
+}
+
+func (d *delegation) checkRemainingFundValue(remainedFund *big.Int) error {
+	delegationManagement, err := getDelegationManagement(d.eei, d.marshalizer, d.delegationMgrSCAddress)
+	if err != nil {
+		return err
+	}
+
+	minDelegationAmount := delegationManagement.MinDelegationAmount
+	if remainedFund.Cmp(zero) > 0 && remainedFund.Cmp(minDelegationAmount) < 0 {
+		return vm.ErrNotEnoughRemainingFunds
+	}
+
+	return nil
 }
 
 func (d *delegation) addNewUnStakedFund(
@@ -1804,8 +1812,12 @@ func (d *delegation) saveRewardData(epoch uint32, rewardsData *RewardComputation
 }
 
 func (d *delegation) computeAndUpdateRewards(callerAddress []byte, delegator *DelegatorData) error {
+	currentEpoch := d.eei.BlockChainHook().CurrentEpoch()
 	if len(delegator.ActiveFund) == 0 {
 		// nothing to calculate as no active funds - all were computed before
+		if d.flagLiquidStaking.IsSet() {
+			delegator.RewardsCheckpoint = currentEpoch + 1
+		}
 		return nil
 	}
 
@@ -1821,7 +1833,6 @@ func (d *delegation) computeAndUpdateRewards(callerAddress []byte, delegator *De
 		return err
 	}
 	delegator.UnClaimedRewards.Add(delegator.UnClaimedRewards, totalRewards)
-	currentEpoch := d.eei.BlockChainHook().CurrentEpoch()
 	delegator.RewardsCheckpoint = currentEpoch + 1
 
 	return nil
@@ -2691,23 +2702,41 @@ func (d *delegation) claimDelegatedPosition(args *vmcommon.ContractCallInput) vm
 		return vmcommon.UserError
 	}
 
+	err = d.computeAndUpdateRewards(address, delegator)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
 	activeFund.Value.Sub(activeFund.Value, value)
+	err = d.checkRemainingFundValue(activeFund.Value)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
 	err = d.saveFund(delegator.ActiveFund, activeFund)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
+
 	if activeFund.Value.Cmp(zero) == 0 {
 		delegator.ActiveFund = nil
 	}
 
-	err = d.deleteDelegatorIfNeeded(args.CallerAddr, delegator)
+	err = d.saveDelegatorData(address, delegator)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
-	d.eei.Finish(big.NewInt(int64(delegator.RewardsCheckpoint)).Bytes())
+	err = d.deleteDelegatorIfNeeded(address, delegator)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
 	return vmcommon.Ok
 }
 
@@ -2731,7 +2760,7 @@ func (d *delegation) claimRewardsViaLiquidStaking(args *vmcommon.ContractCallInp
 		return vmcommon.UserError
 	}
 
-	d.eei.Transfer(args.CallerAddr, address, totalRewards, nil, 0)
+	d.eei.Transfer(address, args.RecipientAddr, totalRewards, nil, 0)
 	return vmcommon.Ok
 }
 
@@ -2858,7 +2887,7 @@ func (d *delegation) returnViaLiquidStaking(args *vmcommon.ContractCallInput) vm
 	address := args.Arguments[0]
 	value := big.NewInt(0).SetBytes(args.Arguments[1])
 	checkPoint := uint32(big.NewInt(0).SetBytes(args.Arguments[2]).Uint64())
-	totalRewards, err := d.computeRewards(checkPoint, false, value)
+	rewardsFromPosition, err := d.computeRewards(checkPoint, false, value)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -2881,8 +2910,8 @@ func (d *delegation) returnViaLiquidStaking(args *vmcommon.ContractCallInput) vm
 		return vmcommon.UserError
 	}
 
-	totalValue := big.NewInt(0).Add(totalRewards, value)
-	err = d.addToActiveFund(address, delegator, totalValue, dStatus, isNew)
+	delegator.UnClaimedRewards.Add(delegator.UnClaimedRewards, rewardsFromPosition)
+	err = d.addToActiveFund(address, delegator, value, dStatus, isNew)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
