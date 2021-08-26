@@ -133,6 +133,11 @@ func (ccs *CryptoComponentsStub) Clone() interface{} {
 	}
 }
 
+// String -
+func (ccs *CryptoComponentsStub) String() string {
+	return "CryptoComponentsStub"
+}
+
 // IsInterfaceNil -
 func (ccs *CryptoComponentsStub) IsInterfaceNil() bool {
 	return ccs == nil
