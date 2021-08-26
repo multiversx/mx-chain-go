@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	covalentFactory "github.com/ElrondNetwork/covalent-indexer-go/factory"
 	indexerFactory "github.com/ElrondNetwork/elastic-indexer-go/factory"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -206,8 +207,9 @@ func (pc *statusComponents) Close() error {
 // once a driver is subscribed it will receive data through the implemented outport.Driver methods
 func (scf *statusComponentsFactory) createOutportDriver() (outport.OutportHandler, error) {
 	outportFactoryArgs := &outportDriverFactory.OutportFactoryArgs{
-		ElasticIndexerFactoryArgs: scf.makeElasticIndexerArgs(),
-		EventNotifierFactoryArgs:  scf.makeEventNotifierArgs(),
+		ElasticIndexerFactoryArgs:  scf.makeElasticIndexerArgs(),
+		EventNotifierFactoryArgs:   scf.makeEventNotifierArgs(),
+		CovalentIndexerFactoryArgs: scf.makeCovalentIndexerArgs(),
 	}
 
 	return outportDriverFactory.CreateOutport(outportFactoryArgs)
@@ -244,6 +246,18 @@ func (scf *statusComponentsFactory) makeEventNotifierArgs() *notifierFactory.Eve
 		Username:         eventNotifierConfig.Username,
 		Password:         eventNotifierConfig.Password,
 		Marshalizer:      scf.coreComponents.InternalMarshalizer(),
+	}
+}
+
+func (scf *statusComponentsFactory) makeCovalentIndexerArgs() *covalentFactory.ArgsCovalentIndexerFactory {
+	return &covalentFactory.ArgsCovalentIndexerFactory{
+		URL:              scf.externalConfig.CovalentConnector.URL,
+		Enabled:          scf.externalConfig.CovalentConnector.Enabled,
+		PubKeyConverter:  scf.coreComponents.AddressPubKeyConverter(),
+		Accounts:         scf.stateComponents.AccountsAdapter(),
+		Hasher:           scf.coreComponents.Hasher(),
+		Marshaller:       scf.coreComponents.InternalMarshalizer(),
+		ShardCoordinator: scf.shardCoordinator,
 	}
 }
 
