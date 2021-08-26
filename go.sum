@@ -37,8 +37,8 @@ github.com/ElrondNetwork/elrond-go-logger v1.0.5 h1:tB/HBvV9IVeCaSrGakX+GLGu7K5U
 github.com/ElrondNetwork/elrond-go-logger v1.0.5/go.mod h1:cBfgx0ST/CJx8jrxJSC5aiSrvkGzcnF7sK06RD8mFxQ=
 github.com/ElrondNetwork/elrond-vm-common v1.1.0/go.mod h1:w3i6f8uiuRkE68Ie/gebRcLgTuHqvruJSYrFyZWuLrE=
 github.com/ElrondNetwork/elrond-vm-common v1.1.3/go.mod h1:09cTlI5tYUzD1bb8GEt0FcCm/qfQlidu4tIF3Dy+cWs=
-github.com/ElrondNetwork/elrond-vm-common v1.1.4-0.20210825135200-17444f65a7da h1:SbYNjtaJqPHmS+0qu++zkOG42UeEsf0HaX87znhnszQ=
-github.com/ElrondNetwork/elrond-vm-common v1.1.4-0.20210825135200-17444f65a7da/go.mod h1:09cTlI5tYUzD1bb8GEt0FcCm/qfQlidu4tIF3Dy+cWs=
+github.com/ElrondNetwork/elrond-vm-common v1.1.4 h1:zPAxhRvyU4bhXoUejp3nT8QKKriT4gfZYwmDMdT7HVg=
+github.com/ElrondNetwork/elrond-vm-common v1.1.4/go.mod h1:09cTlI5tYUzD1bb8GEt0FcCm/qfQlidu4tIF3Dy+cWs=
 github.com/ElrondNetwork/notifier-go v0.0.0-20210726084028-a78b3bbabc41 h1:heGvUbSMCg+Ngir82E5dL9WYvzEK1UpmmDdthJBJzNI=
 github.com/ElrondNetwork/notifier-go v0.0.0-20210726084028-a78b3bbabc41/go.mod h1:VkblRkTnCWB2ITwSYsj2q6Kyzm4hRtUBH3Ezl9nxuds=
 github.com/ElrondNetwork/protobuf v1.3.2 h1:qoCSYiO+8GtXBEZWEjw0WPcZfM3g7QuuJrwpN+y6Mvg=
