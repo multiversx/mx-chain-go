@@ -1224,7 +1224,8 @@ func (n *Node) Close() error {
 	log.Debug("closing all managed components")
 	for i := len(n.closableComponents) - 1; i >= 0; i-- {
 		managedComponent := n.closableComponents[i]
-		log.Debug("closing", "managedComponent", fmt.Sprintf("%s", managedComponent))
+		componentName := n.getClosableComponentName(managedComponent, i)
+		log.Debug("closing", "managedComponent", componentName)
 		err := managedComponent.Close()
 		if err != nil {
 			if closeError == nil {
@@ -1237,6 +1238,15 @@ func (n *Node) Close() error {
 	time.Sleep(time.Second * 5)
 
 	return closeError
+}
+
+func (n *Node) getClosableComponentName(component mainFactory.Closer, index int) string {
+	componentStringer, ok := component.(fmt.Stringer)
+	if !ok {
+		return fmt.Sprintf("n.closableComponents[%d] - %v", index, component)
+	}
+
+	return componentStringer.String()
 }
 
 // IsInImportMode returns true if the node is in import mode

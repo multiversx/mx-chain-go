@@ -78,6 +78,11 @@ func (dcs *DataComponentsStub) Clone() interface{} {
 	}
 }
 
+// String -
+func (dcs *DataComponentsStub) String() string {
+	return "DataComponentsStub"
+}
+
 // IsInterfaceNil -
 func (dcs *DataComponentsStub) IsInterfaceNil() bool {
 	return dcs == nil
