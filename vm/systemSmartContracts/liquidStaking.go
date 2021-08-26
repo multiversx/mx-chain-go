@@ -436,7 +436,7 @@ func (l *liquidStaking) createOrAddNFT(
 
 	nonce, err := l.createNewSFT(value)
 	if err != nil {
-		return 0, nil
+		return 0, err
 	}
 
 	nonceBytes := big.NewInt(0).SetUint64(nonce).Bytes()

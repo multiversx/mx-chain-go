@@ -1,6 +1,7 @@
 package systemSmartContracts
 
 import (
+	"bytes"
 	"errors"
 	"math/big"
 	"testing"
@@ -50,7 +51,7 @@ func createLiquidStakingContractAndEEI() (*liquidStaking, *vmContext) {
 
 	args.Eei = eei
 	l, _ := NewLiquidStakingSystemSC(args)
-
+	l.eei.SetStorage([]byte(tokenIDKey), []byte("TKN"))
 	return l, eei
 }
 
@@ -187,4 +188,120 @@ func TestLiquidStaking_init(t *testing.T) {
 	returnCode = l.Execute(vmInput)
 	assert.Equal(t, returnCode, vmcommon.Ok)
 	assert.Equal(t, l.getTokenID(), []byte("tokenID"))
+}
+
+func TestLiquidStaking_checkArgumentsWhenPosition(t *testing.T) {
+	t.Parallel()
+
+	l, eei := createLiquidStakingContractAndEEI()
+	vmInput := getDefaultVmInputForFunc("claimRewardsFromPosition", make([][]byte, 0))
+
+	eei.returnMessage = ""
+	returnCode := l.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.returnMessage, "function requires liquid staking input")
+
+	eei.returnMessage = ""
+	vmInput.ESDTTransfers = []*vmcommon.ESDTTransfer{{ESDTValue: big.NewInt(10)}}
+	vmInput.CallValue = big.NewInt(10)
+	returnCode = l.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.returnMessage, "function is not payable in eGLD")
+
+	eei.returnMessage = ""
+	vmInput.CallValue = big.NewInt(0)
+	returnCode = l.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.returnMessage, "wrong tokenID input")
+
+	vmInput.ESDTTransfers = []*vmcommon.ESDTTransfer{{ESDTValue: big.NewInt(10), ESDTTokenName: l.getTokenID()}}
+	eei.returnMessage = ""
+	returnCode = l.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.OutOfGas)
+}
+
+func TestLiquidStaking_ClaimDelegatedPosition(t *testing.T) {
+	t.Parallel()
+
+	l, eei := createLiquidStakingContractAndEEI()
+	vmInput := getDefaultVmInputForFunc("claimDelegatedPosition", make([][]byte, 0))
+
+	eei.returnMessage = ""
+	vmInput.CallValue = big.NewInt(10)
+	returnCode := l.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.returnMessage, "function is not payable in eGLD")
+
+	eei.returnMessage = ""
+	vmInput.CallValue = big.NewInt(0)
+	returnCode = l.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.returnMessage, "not enough arguments")
+
+	eei.returnMessage = ""
+	vmInput.Arguments = [][]byte{{3}, {2}, {3}}
+	vmInput.ESDTTransfers = []*vmcommon.ESDTTransfer{{ESDTValue: big.NewInt(10), ESDTTokenName: l.getTokenID()}}
+	returnCode = l.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.returnMessage, "function is not payable in ESDT")
+
+	eei.returnMessage = ""
+	vmInput.ESDTTransfers = nil
+	returnCode = l.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.returnMessage, "not enough arguments")
+
+	vmInput.Arguments[0] = []byte{1}
+	returnCode = l.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.OutOfGas)
+
+	eei.returnMessage = ""
+	eei.gasRemaining = 1000
+	returnCode = l.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.returnMessage, "invalid destination SC address")
+
+	localErr := errors.New("local err")
+	eei.blockChainHook = &mock.BlockChainHookStub{ProcessBuiltInFunctionCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+		return nil, localErr
+	}}
+
+	vmInput.Arguments[1] = bytes.Repeat([]byte{1}, len(vm.LiquidStakingSCAddress))
+	eei.returnMessage = ""
+	returnCode = l.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.returnMessage, localErr.Error())
+
+	eei.blockChainHook = &mock.BlockChainHookStub{}
+	eei.systemContracts = &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
+		return nil, localErr
+	}}
+	eei.returnMessage = ""
+	returnCode = l.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.returnMessage, localErr.Error())
+
+	eei.systemContracts = &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
+		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+			return vmcommon.Ok
+		}}, nil
+	}}
+	eei.blockChainHook = &mock.BlockChainHookStub{ProcessBuiltInFunctionCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+		if input.Function == core.BuiltInFunctionMultiESDTNFTTransfer {
+			return nil, localErr
+		}
+		return &vmcommon.VMOutput{
+			ReturnData: [][]byte{{1}},
+		}, nil
+	}}
+	eei.returnMessage = ""
+	returnCode = l.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.returnMessage, localErr.Error())
+
+	eei.returnMessage = ""
+	vmInput.Arguments = append(vmInput.Arguments, [][]byte{{1}, {2}}...)
+	eei.blockChainHook = &mock.BlockChainHookStub{}
+	returnCode = l.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.Ok)
 }
