@@ -1,0 +1,153 @@
+package esdtSupply
+
+import (
+	"bytes"
+	"math/big"
+
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/storage"
+)
+
+type logsProcessor struct {
+	marshalizer        marshal.Marshalizer
+	suppliesStorer     storage.Storer
+	fungibleOperations map[string]struct{}
+}
+
+func newLogsProcessor(
+	marshalizer marshal.Marshalizer,
+	suppliesStorer storage.Storer,
+) *logsProcessor {
+	return &logsProcessor{
+		marshalizer:    marshalizer,
+		suppliesStorer: suppliesStorer,
+		fungibleOperations: map[string]struct{}{
+			core.BuiltInFunctionESDTLocalBurn:      {},
+			core.BuiltInFunctionESDTLocalMint:      {},
+			core.BuiltInFunctionESDTNFTCreate:      {},
+			core.BuiltInFunctionESDTNFTAddQuantity: {},
+			core.BuiltInFunctionESDTNFTBurn:        {},
+		},
+	}
+}
+
+func (lp *logsProcessor) processLogs(logs map[string]data.LogHandler, isRevert bool) error {
+	supplies := make(map[string]*SupplyESDT)
+	for _, logHandler := range logs {
+		if check.IfNil(logHandler) {
+			continue
+		}
+
+		err := lp.processLog(logHandler, supplies, isRevert)
+		if err != nil {
+			return err
+		}
+	}
+
+	return lp.saveSupplies(supplies)
+}
+
+func (lp *logsProcessor) processLog(txLog data.LogHandler, supplies map[string]*SupplyESDT, isRevert bool) error {
+	for _, entryHandler := range txLog.GetLogEvents() {
+		if check.IfNil(entryHandler) {
+			continue
+		}
+
+		event, ok := entryHandler.(*transaction.Event)
+		if !ok {
+			continue
+		}
+
+		if lp.shouldIgnoreEvent(event) {
+			continue
+		}
+
+		err := lp.processEvent(event, supplies, isRevert)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (lp *logsProcessor) saveSupplies(supplies map[string]*SupplyESDT) error {
+	for identifier, supplyESDT := range supplies {
+		supplyESDTBytes, err := lp.marshalizer.Marshal(supplyESDT)
+		if err != nil {
+			return err
+		}
+
+		err = lp.suppliesStorer.Put([]byte(identifier), supplyESDTBytes)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (lp *logsProcessor) processEvent(txLog *transaction.Event, supplies map[string]*SupplyESDT, isRevert bool) error {
+	if len(txLog.Topics) < 3 {
+		return nil
+	}
+
+	tokenIdentifier := txLog.Topics[0]
+	if len(txLog.Topics[1]) != 0 {
+		tokenIdentifier = bytes.Join([][]byte{tokenIdentifier, txLog.Topics[1]}, []byte("-"))
+	}
+
+	bigValue := big.NewInt(0).SetBytes(txLog.Topics[2])
+
+	negValue := string(txLog.Identifier) == core.BuiltInFunctionESDTLocalBurn || string(txLog.Identifier) == core.BuiltInFunctionESDTNFTBurn
+	shouldNegValue := negValue && !isRevert
+	if shouldNegValue {
+		bigValue = big.NewInt(0).Neg(bigValue)
+	}
+
+	tokenIDStr := string(tokenIdentifier)
+	_, found := supplies[tokenIDStr]
+	if found {
+		supplies[tokenIDStr].Supply.Add(supplies[tokenIDStr].Supply, bigValue)
+		return nil
+	}
+
+	supplyFromStorage, err := lp.getSupply(tokenIdentifier)
+	if err != nil {
+		return err
+	}
+
+	newSupply := big.NewInt(0).Add(supplyFromStorage.Supply, bigValue)
+	supplies[tokenIDStr] = &SupplyESDT{
+		Supply: newSupply,
+	}
+
+	return nil
+}
+
+func (lp *logsProcessor) getSupply(tokenIdentifier []byte) (*SupplyESDT, error) {
+	supplyFromStorageBytes, err := lp.suppliesStorer.Get(tokenIdentifier)
+	if err != nil {
+		return &SupplyESDT{
+			big.NewInt(0),
+		}, nil
+	}
+
+	supplyFromStorage := &SupplyESDT{}
+	err = lp.marshalizer.Unmarshal(supplyFromStorage, supplyFromStorageBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return supplyFromStorage, nil
+}
+
+func (lp *logsProcessor) shouldIgnoreEvent(event *transaction.Event) bool {
+	_, found := lp.fungibleOperations[string(event.Identifier)]
+
+	return !found
+}
