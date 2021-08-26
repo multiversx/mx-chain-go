@@ -2641,6 +2641,10 @@ func (d *delegation) basicCheckForLiquidStaking(args *vmcommon.ContractCallInput
 		d.eei.AddReturnMessage("invalid address as input")
 		return vmcommon.UserError
 	}
+	if d.isOwner(address) {
+		d.eei.AddReturnMessage("owner of delegation cannot call liquid staking operations")
+		return vmcommon.UserError
+	}
 
 	delegationManagement, err := getDelegationManagement(d.eei, d.marshalizer, d.delegationMgrSCAddress)
 	if err != nil {
@@ -2692,6 +2696,9 @@ func (d *delegation) claimDelegatedPosition(args *vmcommon.ContractCallInput) vm
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
+	}
+	if activeFund.Value.Cmp(zero) == 0 {
+		delegator.ActiveFund = nil
 	}
 
 	err = d.deleteDelegatorIfNeeded(args.CallerAddr, delegator)
