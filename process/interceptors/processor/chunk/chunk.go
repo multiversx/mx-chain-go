@@ -60,6 +60,8 @@ func (c *chunk) GetAllMissingChunkIndexes() []uint32 {
 		}
 	}
 
+	log.Trace("chunk.GetAllMissingChunkIndexes", "missing chunks", missing)
+
 	return missing
 }
 
