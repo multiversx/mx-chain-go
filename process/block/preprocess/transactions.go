@@ -447,9 +447,11 @@ func (txs *transactions) processTxsToMe(
 		return err
 	}
 
-	totalGasConsumed := txs.gasHandler.TotalGasConsumed()
+	var totalGasConsumed uint64
 	if scheduledMode {
 		totalGasConsumed = txs.gasHandler.TotalGasConsumedAsScheduled()
+	} else {
+		totalGasConsumed = txs.gasHandler.TotalGasConsumed()
 	}
 
 	gasInfo := gasConsumedInfo{
@@ -1182,9 +1184,11 @@ func (txs *transactions) ProcessMiniBlock(
 		}
 	}()
 
-	totalGasConsumed := txs.gasHandler.TotalGasConsumed()
+	var totalGasConsumed uint64
 	if scheduledMode {
 		totalGasConsumed = txs.gasHandler.TotalGasConsumedAsScheduled()
+	} else {
+		totalGasConsumed = txs.gasHandler.TotalGasConsumed()
 	}
 
 	gasInfo := gasConsumedInfo{
