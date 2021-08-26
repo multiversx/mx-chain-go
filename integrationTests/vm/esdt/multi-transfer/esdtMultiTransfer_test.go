@@ -11,7 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt"
 )
 
-type EsdtTransfer struct {
+type esdtTransfer struct {
 	tokenIdentifier string
 	nonce           uint64
 	amount          int64
@@ -54,7 +54,7 @@ func TestESDTMultiTransferToVault(t *testing.T) {
 	expectedIssuerBalance[fungibleTokenIdentifier2] = 1000
 
 	// send a single ESDT with multi-transfer
-	txData := buildEsdtMultiTransferTxData(vaultScAddress, []EsdtTransfer{
+	txData := buildEsdtMultiTransferTxData(vaultScAddress, []esdtTransfer{
 		{
 			tokenIdentifier: fungibleTokenIdentifier1,
 			nonce:           0,
@@ -70,6 +70,7 @@ func TestESDTMultiTransferToVault(t *testing.T) {
 		string(txData),
 		integrationTests.AdditionalGasLimit,
 	)
+	waitForOperationCompletion(t, nodes, idxProposers, &nonce, &round)
 
 	expectedIssuerBalance[fungibleTokenIdentifier1] -= 100
 	expectedVaultBalance[fungibleTokenIdentifier1] += 100
@@ -86,11 +87,7 @@ func issueFungibleToken(t *testing.T, nodes []*integrationTests.TestProcessorNod
 	tokenIssuer := nodes[0]
 
 	esdt.IssueTestToken(nodes, initialSupply, ticker)
-
-	time.Sleep(time.Second)
-	nrRoundsToPropagateMultiShard := 15
-	*nonce, *round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, *nonce, *round, idxProposers)
-	time.Sleep(time.Second)
+	waitForOperationCompletion(t, nodes, idxProposers, nonce, round)
 
 	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte(ticker)))
 
@@ -100,7 +97,7 @@ func issueFungibleToken(t *testing.T, nodes []*integrationTests.TestProcessorNod
 	return tokenIdentifier
 }
 
-func buildEsdtMultiTransferTxData(receiverAddress []byte, transfers []EsdtTransfer,
+func buildEsdtMultiTransferTxData(receiverAddress []byte, transfers []esdtTransfer,
 	endpointName string, arguments ...[]byte) []byte {
 
 	nrTransfers := len(transfers)
@@ -123,4 +120,13 @@ func buildEsdtMultiTransferTxData(receiverAddress []byte, transfers []EsdtTransf
 	}
 
 	return txData
+}
+
+func waitForOperationCompletion(t *testing.T, nodes []*integrationTests.TestProcessorNode, idxProposers []int,
+	nonce *uint64, round *uint64) {
+
+	time.Sleep(time.Second)
+	nrRoundsToPropagateMultiShard := 15
+	*nonce, *round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, *nonce, *round, idxProposers)
+	time.Sleep(time.Second)
 }
