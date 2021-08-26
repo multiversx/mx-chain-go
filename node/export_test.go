@@ -30,3 +30,8 @@ func (n *Node) AddClosableComponents(components ...factory.Closer) {
 func (n *Node) ComputeTimestampForRound(round uint64) int64 {
 	return n.computeTimestampForRound(round)
 }
+
+// GetClosableComponentName -
+func (n *Node) GetClosableComponentName(component factory.Closer, index int) string {
+	return n.getClosableComponentName(component, index)
+}

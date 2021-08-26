@@ -88,6 +88,7 @@ type ComponentHandler interface {
 	Create() error
 	Close() error
 	CheckSubcomponents() error
+	String() string
 }
 
 // CoreComponentsHolder holds the core components
