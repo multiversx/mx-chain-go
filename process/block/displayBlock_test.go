@@ -1,12 +1,12 @@
 package block
 
 import (
-	"github.com/ElrondNetwork/elrond-go/node/mock"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/display"
+	"github.com/ElrondNetwork/elrond-go/node/mock"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -2,11 +2,11 @@ package block
 
 import (
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"math"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/counting"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
