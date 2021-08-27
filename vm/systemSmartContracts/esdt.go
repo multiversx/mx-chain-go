@@ -1132,6 +1132,16 @@ func (e *esdt) isSpecialRoleValidForNonFungible(argument string) error {
 			return nil
 		}
 		return vm.ErrInvalidArgument
+	case core.ESDTRoleNFTUpdateAttributes:
+		if e.flagTransferRole.IsSet() {
+			return nil
+		}
+		return vm.ErrInvalidArgument
+	case core.ESDTRoleNFTAddURI:
+		if e.flagTransferRole.IsSet() {
+			return nil
+		}
+		return vm.ErrInvalidArgument
 	default:
 		return vm.ErrInvalidArgument
 	}

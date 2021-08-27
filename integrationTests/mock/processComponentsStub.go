@@ -216,6 +216,11 @@ func (pcs *ProcessComponentsStub) CurrentEpochProvider() process.CurrentNetworkE
 	return pcs.CurrentEpochProviderInternal
 }
 
+// String -
+func (pcs *ProcessComponentsStub) String() string {
+	return "ProcessComponentsStub"
+}
+
 // IsInterfaceNil -
 func (pcs *ProcessComponentsStub) IsInterfaceNil() bool {
 	return pcs == nil
