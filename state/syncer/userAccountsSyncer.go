@@ -148,6 +148,7 @@ func (u *userAccountsSyncer) syncAccountDataTries(rootHashes [][]byte, ssh data.
 				errMutex.Unlock()
 			}
 			atomic.AddInt32(&u.numTriesSynced, 1)
+			log.Trace("finished sync data trie", "roothash", trieRootHash)
 			wg.Done()
 		}(rootHash)
 	}

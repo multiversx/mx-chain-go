@@ -114,6 +114,8 @@ func (b *baseAccountsSyncer) syncMainTrie(
 
 	atomic.AddInt32(&b.numTriesSynced, 1)
 
+	log.Trace("finished syncing main trie", "roothash", rootHash)
+
 	return dataTrie.Recreate(rootHash)
 }
 
