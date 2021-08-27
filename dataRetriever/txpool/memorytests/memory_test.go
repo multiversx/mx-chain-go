@@ -21,7 +21,7 @@ import (
 
 // useMemPprof dictates whether to save heap profiles when running the test.
 // Enable this manually, locally.
-var useMemPprof = false
+const useMemPprof = false
 
 // We run all scenarios within a single test so that we minimize memory interferences (of tests running in parallel)
 func TestShardedTxPool_MemoryFootprint(t *testing.T) {
@@ -228,8 +228,8 @@ func pprofHeap(scenario *scenario, step string) {
 	}
 
 	defer func() {
-		err := file.Close()
-		panic(fmt.Sprintf("cannot close file: %s", err.Error()))
+		errClose := file.Close()
+		panic(fmt.Sprintf("cannot close file: %s", errClose.Error()))
 	}()
 
 	err = pprof.WriteHeapProfile(file)
@@ -281,20 +281,14 @@ func (journal *memoryFootprintJournal) structuralFootprintBetween(lower int, upp
 func (journal *memoryFootprintJournal) display() {
 	// See: https://golang.org/pkg/runtime/#MemStats
 
-	fmt.Printf("beforeGenerate:")
-	fmt.Printf("\tHeapAlloc = %v MiB", bToMb(journal.beforeGenerate.HeapAlloc))
-	fmt.Printf("\tHeapInUse = %v MiB", bToMb(journal.beforeGenerate.HeapInuse))
-	fmt.Println()
+	fmt.Printf("beforeGenerate:\tHeapAlloc = %v MiB\tHeapInUse = %v MiB\n",
+		bToMb(journal.beforeGenerate.HeapAlloc), bToMb(journal.beforeGenerate.HeapInuse))
 
-	fmt.Printf("afterGenerate:")
-	fmt.Printf("\tHeapAlloc = %v MiB", bToMb(journal.afterGenerate.HeapAlloc))
-	fmt.Printf("\tHeapInUse = %v MiB", bToMb(journal.afterGenerate.HeapInuse))
-	fmt.Println()
+	fmt.Printf("afterGenerate:\tHeapAlloc = %v MiB\tHeapInUse = %v MiB\n",
+		bToMb(journal.afterGenerate.HeapAlloc), bToMb(journal.afterGenerate.HeapInuse))
 
-	fmt.Printf("afterAddition:")
-	fmt.Printf("\tHeapAlloc = %v MiB", bToMb(journal.afterAddition.HeapAlloc))
-	fmt.Printf("\tHeapInUse = %v MiB", bToMb(journal.afterAddition.HeapInuse))
-	fmt.Println()
+	fmt.Printf("afterAddition:\tHeapAlloc = %v MiB\tHeapInUse = %v MiB\n",
+		bToMb(journal.afterAddition.HeapAlloc), bToMb(journal.afterAddition.HeapInuse))
 
 	fmt.Println("Txs footprint:", bToMb(journal.txsFootprint()))
 	fmt.Println("Pool structures footprint:", bToMb(journal.poolStructuresFootprint()))
