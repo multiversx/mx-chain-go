@@ -86,3 +86,22 @@ func TestProcessLogsSaveSupply(t *testing.T) {
 	err = suppliesProc.ProcessLogs(logs)
 	require.Nil(t, err)
 }
+
+func TestSupplyESDT_GetSupply(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &testscommon.MarshalizerMock{}
+	proc, _ := NewSuppliesProcessor(marshalizer, &testscommon.StorerStub{
+		GetCalled: func(key []byte) ([]byte, error) {
+			if string(key) == "my-token" {
+				supply := &SupplyESDT{Supply: big.NewInt(123456)}
+				return marshalizer.Marshal(supply)
+			}
+			return nil, errors.New("local err")
+		},
+	}, &testscommon.StorerStub{})
+
+	res, err := proc.GetESDTSupply("my-token")
+	require.Nil(t, err)
+	require.Equal(t, "123456", res)
+}
