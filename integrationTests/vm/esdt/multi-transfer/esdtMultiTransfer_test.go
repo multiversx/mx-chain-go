@@ -1,28 +1,34 @@
 package multitransfer
 
 import (
-	"encoding/hex"
 	"math/big"
 	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt"
+	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 )
 
 type esdtTransfer struct {
 	tokenIdentifier string
-	nonce           uint64
+	nonce           int64
 	amount          int64
 }
 
 func TestESDTMultiTransferToVault(t *testing.T) {
+	logger.ToggleLoggerName(true)
+	logger.SetLogLevel("*:INFO,integrationtests:NONE,p2p/libp2p:NONE,process/block:NONE,process/smartcontract:TRACE,process/smartcontract/blockchainhook:NONE")
+
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
+
 	nodes, idxProposers := esdt.CreateNodesAndPrepareBalances(1)
 	tokenIssuerAddress := nodes[0].OwnAccount.Address
+	intraShardOpWaitTimeInRounds := 1
 
 	expectedIssuerBalance := make(map[string]int64)
 	expectedVaultBalance := make(map[string]int64)
@@ -70,7 +76,7 @@ func TestESDTMultiTransferToVault(t *testing.T) {
 		string(txData),
 		integrationTests.AdditionalGasLimit,
 	)
-	waitForOperationCompletion(t, nodes, idxProposers, &nonce, &round)
+	waitForOperationCompletion(t, nodes, idxProposers, intraShardOpWaitTimeInRounds, &nonce, &round)
 
 	expectedIssuerBalance[fungibleTokenIdentifier1] -= 100
 	expectedVaultBalance[fungibleTokenIdentifier1] += 100
@@ -85,9 +91,10 @@ func issueFungibleToken(t *testing.T, nodes []*integrationTests.TestProcessorNod
 	nonce *uint64, round *uint64, initialSupply int64, ticker string) string {
 
 	tokenIssuer := nodes[0]
+	nrRoundsToPropagateMultiShard := 15
 
 	esdt.IssueTestToken(nodes, initialSupply, ticker)
-	waitForOperationCompletion(t, nodes, idxProposers, nonce, round)
+	waitForOperationCompletion(t, nodes, idxProposers, nrRoundsToPropagateMultiShard, nonce, round)
 
 	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte(ticker)))
 
@@ -101,32 +108,33 @@ func buildEsdtMultiTransferTxData(receiverAddress []byte, transfers []esdtTransf
 	endpointName string, arguments ...[]byte) []byte {
 
 	nrTransfers := len(transfers)
-	txData := []byte(core.BuiltInFunctionMultiESDTNFTTransfer +
-		"@" + hex.EncodeToString(receiverAddress) +
-		"@" + hex.EncodeToString(big.NewInt(int64(nrTransfers)).Bytes()))
+
+	txData := txDataBuilder.NewBuilder()
+	txData.Func(core.BuiltInFunctionMultiESDTNFTTransfer)
+	txData.Bytes(receiverAddress)
+	txData.Int(nrTransfers)
 
 	for _, transfer := range transfers {
-		txData = append(txData, []byte("@"+hex.EncodeToString([]byte(transfer.tokenIdentifier))+
-			"@"+hex.EncodeToString(big.NewInt(int64(transfer.nonce)).Bytes())+
-			"@"+hex.EncodeToString(big.NewInt(transfer.amount).Bytes()))...)
+		txData.Str(transfer.tokenIdentifier)
+		txData.Int64(transfer.nonce)
+		txData.Int64(transfer.amount)
 	}
 
 	if len(endpointName) > 0 {
-		txData = append(txData, []byte(endpointName)...)
+		txData.Str(endpointName)
 
 		for _, arg := range arguments {
-			txData = append(txData, arg...)
+			txData.Bytes(arg)
 		}
 	}
 
-	return txData
+	return txData.ToBytes()
 }
 
 func waitForOperationCompletion(t *testing.T, nodes []*integrationTests.TestProcessorNode, idxProposers []int,
-	nonce *uint64, round *uint64) {
+	roundsToWait int, nonce *uint64, round *uint64) {
 
 	time.Sleep(time.Second)
-	nrRoundsToPropagateMultiShard := 15
-	*nonce, *round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, *nonce, *round, idxProposers)
+	*nonce, *round = integrationTests.WaitOperationToBeDone(t, nodes, roundsToWait, *nonce, *round, idxProposers)
 	time.Sleep(time.Second)
 }
