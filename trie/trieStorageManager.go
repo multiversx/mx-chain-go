@@ -322,7 +322,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 
 	newRoot, err := newSnapshotNode(db, msh, hsh, snapshotEntry.rootHash)
 	if err != nil {
-		log.Error("trie storage manager: newSnapshotTrie", "error", err.Error())
+		log.Error("trie storage manager: newSnapshotTrie", "hash", hsh, "error", err.Error())
 		return
 	}
 	newDb := tsm.getSnapshotDb(snapshotEntry.newDb)

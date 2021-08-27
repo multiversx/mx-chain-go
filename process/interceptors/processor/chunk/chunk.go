@@ -7,6 +7,7 @@ import (
 var log = logger.GetOrCreate("process/interceptors/processor")
 
 type chunk struct {
+	reference []byte
 	maxChunks uint32
 	data      map[uint32][]byte
 	size      int
@@ -14,8 +15,9 @@ type chunk struct {
 
 // NewChunk creates a new chunk instance able to account for the existing and missing chunks of a larger buffer
 // Not a concurrent safe component
-func NewChunk(maxChunks uint32) *chunk {
+func NewChunk(maxChunks uint32, reference []byte) *chunk {
 	return &chunk{
+		reference: reference,
 		data:      make(map[uint32][]byte),
 		maxChunks: maxChunks,
 	}
@@ -37,7 +39,7 @@ func (c *chunk) Put(chunkIndex uint32, buff []byte) {
 func (c *chunk) TryAssembleAllChunks() []byte {
 	gotAllParts := c.maxChunks > 0 && len(c.data) == int(c.maxChunks)
 	if !gotAllParts {
-		log.Trace("not all parts received", "max chunks", c.maxChunks, "len chunk", len(c.data))
+		log.Trace("not all parts received", "reference", c.reference, "max chunks", c.maxChunks, "len chunk", len(c.data))
 		return nil
 	}
 
@@ -60,7 +62,7 @@ func (c *chunk) GetAllMissingChunkIndexes() []uint32 {
 		}
 	}
 
-	log.Trace("chunk.GetAllMissingChunkIndexes", "missing chunks", missing)
+	log.Trace("chunk.GetAllMissingChunkIndexes", "reference", c.reference, "missing chunks", missing)
 
 	return missing
 }
