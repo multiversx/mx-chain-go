@@ -17,7 +17,11 @@ import (
 )
 
 func createMockHistoryRepoArgs(epoch uint32) HistoryRepositoryArguments {
-	sp, _ := esdtSupply.NewSuppliesProcessor(&mock.MarshalizerMock{}, &testscommon.StorerStub{}, &testscommon.StorerStub{})
+	sp, _ := esdtSupply.NewSuppliesProcessor(&mock.MarshalizerMock{}, &testscommon.StorerStub{
+		GetCalled: func(key []byte) ([]byte, error) {
+			return nil, errors.New("cannot find")
+		},
+	}, &testscommon.StorerStub{})
 
 	args := HistoryRepositoryArguments{
 		SelfShardID:                 0,

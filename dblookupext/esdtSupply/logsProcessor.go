@@ -1,3 +1,5 @@
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. processedBlockNonce.proto
+
 package esdtSupply
 
 import (
@@ -15,6 +17,7 @@ import (
 type logsProcessor struct {
 	marshalizer        marshal.Marshalizer
 	suppliesStorer     storage.Storer
+	nonceProc          *nonceProcessor
 	fungibleOperations map[string]struct{}
 }
 
@@ -22,7 +25,10 @@ func newLogsProcessor(
 	marshalizer marshal.Marshalizer,
 	suppliesStorer storage.Storer,
 ) *logsProcessor {
+	nonceProc := newNonceProcessor(marshalizer, suppliesStorer)
+
 	return &logsProcessor{
+		nonceProc:      nonceProc,
 		marshalizer:    marshalizer,
 		suppliesStorer: suppliesStorer,
 		fungibleOperations: map[string]struct{}{
@@ -35,20 +41,33 @@ func newLogsProcessor(
 	}
 }
 
-func (lp *logsProcessor) processLogs(logs map[string]data.LogHandler, isRevert bool) error {
+func (lp *logsProcessor) processLogs(blockNonce uint64, logs map[string]data.LogHandler, isRevert bool) error {
+	shouldProcess, err := lp.nonceProc.shouldProcessLog(blockNonce, isRevert)
+	if err != nil {
+		return err
+	}
+	if !shouldProcess {
+		return nil
+	}
+
 	supplies := make(map[string]*SupplyESDT)
 	for _, logHandler := range logs {
 		if check.IfNil(logHandler) {
 			continue
 		}
 
-		err := lp.processLog(logHandler, supplies, isRevert)
-		if err != nil {
-			return err
+		errPro := lp.processLog(logHandler, supplies, isRevert)
+		if errPro != nil {
+			return errPro
 		}
 	}
 
-	return lp.saveSupplies(supplies)
+	err = lp.saveSupplies(supplies)
+	if err != nil {
+		return err
+	}
+
+	return lp.nonceProc.saveNonceInStorage(blockNonce)
 }
 
 func (lp *logsProcessor) processLog(txLog data.LogHandler, supplies map[string]*SupplyESDT, isRevert bool) error {

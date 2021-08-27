@@ -83,7 +83,7 @@ func TestProcessLogsSaveSupply(t *testing.T) {
 	suppliesProc, err := NewSuppliesProcessor(marshalizer, suppliesStorer, &testscommon.StorerStub{})
 	require.Nil(t, err)
 
-	err = suppliesProc.ProcessLogs(logs)
+	err = suppliesProc.ProcessLogs(0, logs)
 	require.Nil(t, err)
 }
 

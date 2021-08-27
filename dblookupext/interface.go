@@ -41,7 +41,7 @@ type BlockTracker interface {
 
 // SuppliesHandler defines the interface of a supplies processor
 type SuppliesHandler interface {
-	ProcessLogs(logs map[string]data.LogHandler) error
+	ProcessLogs(blockNonce uint64, logs map[string]data.LogHandler) error
 	RevertChanges(header data.HeaderHandler, body data.BodyHandler) error
 	GetESDTSupply(token string) (string, error)
 	IsInterfaceNil() bool

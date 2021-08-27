@@ -64,7 +64,7 @@ func TestProcessLogsSaveSupplyNothingInStorage(t *testing.T) {
 
 	logsProc := newLogsProcessor(marshalizer, storer)
 
-	err := logsProc.processLogs(logs, false)
+	err := logsProc.processLogs(0, logs, false)
 	require.Nil(t, err)
 }
 
@@ -115,6 +115,6 @@ func TestTestProcessLogsSaveSupplyExistsInStorage(t *testing.T) {
 
 	logsProc := newLogsProcessor(marshalizer, storer)
 
-	err := logsProc.processLogs(logs, false)
+	err := logsProc.processLogs(0, logs, false)
 	require.Nil(t, err)
 }

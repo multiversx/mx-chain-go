@@ -151,7 +151,7 @@ func (hr *historyRepository) RecordBlock(
 		return err
 	}
 
-	err = hr.esdtSuppliesHandler.ProcessLogs(logs)
+	err = hr.esdtSuppliesHandler.ProcessLogs(blockHeader.GetNonce(), logs)
 	if err != nil {
 		return err
 	}
