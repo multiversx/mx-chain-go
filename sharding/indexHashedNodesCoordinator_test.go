@@ -611,7 +611,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup63of400TestEqualSameP
 	list := make([][]Validator, repeatPerSampling)
 	for i := 0; i < nbDifferentSamplings; i++ {
 		randomness := arguments.Hasher.Compute(strconv.Itoa(i))
-		fmt.Printf("\nstarting selection with randomness: %s", hex.EncodeToString(randomness))
+		fmt.Printf("starting selection with randomness: %s\n", hex.EncodeToString(randomness))
 		for j := 0; j < repeatPerSampling; j++ {
 			list[j], err = ihgs.ComputeConsensusGroup(randomness, 0, 0, 0)
 			require.Nil(t, err)
