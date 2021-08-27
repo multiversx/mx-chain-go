@@ -59,6 +59,15 @@ type Facade struct {
 	GetProofCalled                          func(string, string) ([][]byte, error)
 	GetProofCurrentRootHashCalled           func(string) ([][]byte, []byte, error)
 	VerifyProofCalled                       func(string, string, [][]byte) (bool, error)
+	GetTokenSupplyCalled                    func(token string) (string, error)
+}
+
+func (f *Facade) GetTokenSupply(token string) (string, error) {
+	if f.GetTokenSupplyCalled != nil {
+		return f.GetTokenSupplyCalled(token)
+	}
+
+	return "", nil
 }
 
 // GetProof -
