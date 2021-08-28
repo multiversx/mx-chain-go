@@ -305,3 +305,214 @@ func TestLiquidStaking_ClaimDelegatedPosition(t *testing.T) {
 	returnCode = l.Execute(vmInput)
 	assert.Equal(t, returnCode, vmcommon.Ok)
 }
+
+func TestLiquidStaking_ClaimRewardsFromDelegatedPosition(t *testing.T) {
+	t.Parallel()
+
+	l, eei := createLiquidStakingContractAndEEI()
+	vmInput := getDefaultVmInputForFunc("claimRewardsFromPosition", make([][]byte, 0))
+	vmInput.Arguments = [][]byte{{3}, {2}, {3}}
+
+	eei.returnMessage = ""
+	returnCode := l.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.returnMessage, "function requires liquid staking input")
+
+	eei.gasRemaining = 1000
+	eei.returnMessage = ""
+	vmInput.ESDTTransfers = []*vmcommon.ESDTTransfer{{ESDTValue: big.NewInt(10), ESDTTokenName: l.getTokenID(), ESDTTokenNonce: 1}}
+	returnCode = l.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.returnMessage, vm.ErrEmptyStorage.Error())
+
+	eei.blockChainHook = &mock.BlockChainHookStub{ProcessBuiltInFunctionCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+		return &vmcommon.VMOutput{
+			ReturnData: [][]byte{{1}},
+		}, nil
+	}}
+	_, _ = l.createOrAddNFT(vm.FirstDelegationSCAddress, 10, big.NewInt(10))
+	localErr := errors.New("local err")
+	eei.blockChainHook = &mock.BlockChainHookStub{ProcessBuiltInFunctionCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+		return nil, localErr
+	}}
+
+	eei.returnMessage = ""
+	returnCode = l.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.returnMessage, localErr.Error())
+
+	eei.blockChainHook = &mock.BlockChainHookStub{}
+	eei.systemContracts = &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
+		return nil, localErr
+	}}
+	eei.returnMessage = ""
+	returnCode = l.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.returnMessage, localErr.Error())
+
+	eei.systemContracts = &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
+		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+			return vmcommon.Ok
+		}}, nil
+	}}
+	eei.blockChainHook = &mock.BlockChainHookStub{ProcessBuiltInFunctionCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+		if input.Function == core.BuiltInFunctionMultiESDTNFTTransfer {
+			return nil, localErr
+		}
+		return &vmcommon.VMOutput{
+			ReturnData: [][]byte{{1}},
+		}, nil
+	}}
+	eei.returnMessage = ""
+	returnCode = l.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.returnMessage, localErr.Error())
+
+	eei.returnMessage = ""
+	vmInput.Arguments = append(vmInput.Arguments, [][]byte{{1}, {2}}...)
+	eei.blockChainHook = &mock.BlockChainHookStub{}
+	returnCode = l.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.Ok)
+}
+
+func TestLiquidStaking_ReDelegateRewardsFromPosition(t *testing.T) {
+	t.Parallel()
+
+	l, eei := createLiquidStakingContractAndEEI()
+	vmInput := getDefaultVmInputForFunc("reDelegateRewardsFromPosition", make([][]byte, 0))
+	vmInput.Arguments = [][]byte{{3}, {2}, {3}}
+
+	eei.returnMessage = ""
+	returnCode := l.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.returnMessage, "function requires liquid staking input")
+
+	eei.gasRemaining = 1000
+	eei.returnMessage = ""
+	vmInput.ESDTTransfers = []*vmcommon.ESDTTransfer{{ESDTValue: big.NewInt(10), ESDTTokenName: l.getTokenID(), ESDTTokenNonce: 1}}
+	returnCode = l.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.returnMessage, vm.ErrEmptyStorage.Error())
+
+	eei.blockChainHook = &mock.BlockChainHookStub{ProcessBuiltInFunctionCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+		return &vmcommon.VMOutput{
+			ReturnData: [][]byte{{1}},
+		}, nil
+	}}
+	_, _ = l.createOrAddNFT(vm.FirstDelegationSCAddress, 10, big.NewInt(10))
+	localErr := errors.New("local err")
+	eei.blockChainHook = &mock.BlockChainHookStub{ProcessBuiltInFunctionCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+		return nil, localErr
+	}}
+
+	eei.returnMessage = ""
+	returnCode = l.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.returnMessage, localErr.Error())
+
+	eei.blockChainHook = &mock.BlockChainHookStub{}
+	eei.systemContracts = &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
+		return nil, localErr
+	}}
+	eei.returnMessage = ""
+	returnCode = l.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.returnMessage, localErr.Error())
+
+	eei.systemContracts = &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
+		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+			return vmcommon.Ok
+		}}, nil
+	}}
+	eei.blockChainHook = &mock.BlockChainHookStub{ProcessBuiltInFunctionCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+		if input.Function == core.BuiltInFunctionMultiESDTNFTTransfer {
+			return nil, localErr
+		}
+		return &vmcommon.VMOutput{
+			ReturnData: [][]byte{{1}},
+		}, nil
+	}}
+	eei.returnMessage = ""
+	returnCode = l.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.returnMessage, "invalid return data")
+
+	eei.systemContracts = &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
+		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+			eei.Finish(big.NewInt(10).Bytes())
+			return vmcommon.Ok
+		}}, nil
+	}}
+	eei.returnMessage = ""
+	returnCode = l.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.returnMessage, localErr.Error())
+
+	eei.returnMessage = ""
+	vmInput.Arguments = append(vmInput.Arguments, [][]byte{{1}, {2}}...)
+	eei.blockChainHook = &mock.BlockChainHookStub{}
+	returnCode = l.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.Ok)
+}
+
+func TestLiquidStaking_ReturnLiquidStaking(t *testing.T) {
+	t.Parallel()
+
+	l, eei := createLiquidStakingContractAndEEI()
+	vmInput := getDefaultVmInputForFunc("unDelegatePosition", make([][]byte, 0))
+	vmInput.Arguments = [][]byte{{3}, {2}, {3}}
+
+	eei.returnMessage = ""
+	returnCode := l.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.returnMessage, "function requires liquid staking input")
+
+	eei.gasRemaining = 1000
+	eei.returnMessage = ""
+	vmInput.ESDTTransfers = []*vmcommon.ESDTTransfer{{ESDTValue: big.NewInt(10), ESDTTokenName: l.getTokenID(), ESDTTokenNonce: 1}}
+	returnCode = l.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.returnMessage, vm.ErrEmptyStorage.Error())
+
+	eei.blockChainHook = &mock.BlockChainHookStub{ProcessBuiltInFunctionCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+		return &vmcommon.VMOutput{
+			ReturnData: [][]byte{{1}},
+		}, nil
+	}}
+	_, _ = l.createOrAddNFT(vm.FirstDelegationSCAddress, 10, big.NewInt(10))
+	localErr := errors.New("local err")
+	eei.blockChainHook = &mock.BlockChainHookStub{ProcessBuiltInFunctionCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+		return nil, localErr
+	}}
+
+	eei.returnMessage = ""
+	returnCode = l.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.returnMessage, localErr.Error())
+
+	eei.blockChainHook = &mock.BlockChainHookStub{}
+	eei.systemContracts = &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
+		return nil, localErr
+	}}
+	eei.returnMessage = ""
+	returnCode = l.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.returnMessage, localErr.Error())
+
+	eei.systemContracts = &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
+		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+			return vmcommon.Ok
+		}}, nil
+	}}
+	eei.returnMessage = ""
+	vmInput.Arguments = append(vmInput.Arguments, [][]byte{{1}, {2}}...)
+	eei.blockChainHook = &mock.BlockChainHookStub{}
+	returnCode = l.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.Ok)
+
+	vmInput.Function = "returnPosition"
+	eei.returnMessage = ""
+	vmInput.Arguments = append(vmInput.Arguments, [][]byte{{1}, {2}}...)
+	returnCode = l.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.Ok)
+}
