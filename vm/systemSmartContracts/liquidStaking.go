@@ -138,12 +138,8 @@ func (l *liquidStaking) getTokenID() []byte {
 }
 
 func (l *liquidStaking) readTokenID(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if len(args.ESDTTransfers) < 1 {
-		l.eei.AddReturnMessage("function requires liquid staking input")
-		return vmcommon.UserError
-	}
-	if args.CallValue.Cmp(zero) != 0 {
-		l.eei.AddReturnMessage("function is not payable in eGLD")
+	if len(args.ESDTTransfers) != 0 || args.CallValue.Cmp(zero) != 0 {
+		l.eei.AddReturnMessage("function is not payable")
 		return vmcommon.UserError
 	}
 	if len(args.Arguments) > 0 {

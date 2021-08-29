@@ -94,9 +94,9 @@ func TestDelegationSystemSCWithLiquidStaking(t *testing.T) {
 func setupNodesDelegationContractInitLiquidStaking(
 	t *testing.T,
 ) ([]*integrationTests.TestProcessorNode, []int, []byte, []byte, uint64, uint64) {
-	numOfShards := 2
-	nodesPerShard := 2
-	numMetachainNodes := 2
+	numOfShards := 1
+	nodesPerShard := 1
+	numMetachainNodes := 1
 
 	nodes := integrationTests.CreateNodes(
 		numOfShards,

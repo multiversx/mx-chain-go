@@ -516,3 +516,42 @@ func TestLiquidStaking_ReturnLiquidStaking(t *testing.T) {
 	returnCode = l.Execute(vmInput)
 	assert.Equal(t, returnCode, vmcommon.Ok)
 }
+
+func TestLiquidStaking_ReadTokenID(t *testing.T) {
+	t.Parallel()
+
+	l, eei := createLiquidStakingContractAndEEI()
+	vmInput := getDefaultVmInputForFunc("readTokenID", make([][]byte, 0))
+
+	eei.returnMessage = ""
+	vmInput.CallValue = big.NewInt(10)
+	returnCode := l.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.returnMessage, "function is not payable")
+
+	eei.returnMessage = ""
+	vmInput.CallValue = big.NewInt(0)
+	vmInput.ESDTTransfers = []*vmcommon.ESDTTransfer{{ESDTValue: big.NewInt(10), ESDTTokenName: l.getTokenID()}}
+	returnCode = l.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.returnMessage, "function is not payable")
+
+	eei.returnMessage = ""
+	vmInput.Arguments = [][]byte{{3}, {2}, {3}}
+	vmInput.ESDTTransfers = []*vmcommon.ESDTTransfer{}
+	returnCode = l.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.returnMessage, "function does not accept arguments")
+
+	eei.returnMessage = ""
+	vmInput.Arguments = [][]byte{}
+	returnCode = l.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.OutOfGas)
+
+	eei.gasRemaining = 100000
+	eei.returnMessage = ""
+	vmInput.Arguments = [][]byte{}
+	returnCode = l.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.Ok)
+	assert.Equal(t, eei.output[0], l.getTokenID())
+}
