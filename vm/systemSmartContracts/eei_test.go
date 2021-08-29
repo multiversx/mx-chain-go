@@ -292,3 +292,46 @@ func TestVmContext_CleanStorage(t *testing.T) {
 	vmCtx.CleanStorageUpdates()
 	assert.Equal(t, 0, len(vmCtx.storageUpdate))
 }
+
+func TestVmContext_ProcessBuiltInFunction(t *testing.T) {
+	t.Parallel()
+
+	balance := big.NewInt(10)
+	account, _ := state.NewUserAccount([]byte("123"))
+	_ = account.AddToBalance(balance)
+
+	blockChainHook := &mock.BlockChainHookStub{
+		ProcessBuiltInFunctionCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+			return &vmcommon.VMOutput{ReturnCode: vmcommon.OutOfGas}, nil
+		},
+	}
+
+	vmCtx, _ := NewVMContext(
+		blockChainHook,
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&stateMock.AccountsStub{},
+		&mock.RaterMock{})
+
+	vmOutput, err := vmCtx.ProcessBuiltInFunction(vm.LiquidStakingSCAddress, vm.LiquidStakingSCAddress, "function", [][]byte{})
+	assert.Nil(t, vmOutput)
+	assert.NotNil(t, err)
+
+	outTransfer := vmcommon.OutputTransfer{Value: big.NewInt(10)}
+	outAcc := &vmcommon.OutputAccount{OutputTransfers: []vmcommon.OutputTransfer{outTransfer}}
+	blockChainHook = &mock.BlockChainHookStub{
+		ProcessBuiltInFunctionCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+			output := &vmcommon.VMOutput{}
+			output.OutputAccounts = make(map[string]*vmcommon.OutputAccount)
+			output.OutputAccounts["address"] = outAcc
+			return output, nil
+		},
+	}
+	vmCtx.blockChainHook = blockChainHook
+
+	vmOutput, err = vmCtx.ProcessBuiltInFunction(vm.LiquidStakingSCAddress, vm.LiquidStakingSCAddress, "function", [][]byte{})
+	assert.Nil(t, err)
+	assert.Equal(t, len(vmCtx.outputAccounts), 1)
+	assert.Equal(t, len(vmOutput.OutputAccounts), 1)
+	assert.Equal(t, vmCtx.outputAccounts["address"].Address, []byte("address"))
+}

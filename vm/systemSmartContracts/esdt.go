@@ -276,7 +276,7 @@ func (e *esdt) initDelegationESDTOnMeta(args *vmcommon.ContractCallInput) vmcomm
 		e.esdtSCAddress,
 		vm.LiquidStakingSCAddress,
 		core.BuiltInFunctionSetESDTRole,
-		[][]byte{[]byte(core.ESDTRoleNFTCreate), []byte(core.ESDTRoleNFTAddQuantity), []byte(core.ESDTRoleNFTBurn)},
+		[][]byte{tokenIdentifier, []byte(core.ESDTRoleNFTCreate), []byte(core.ESDTRoleNFTAddQuantity), []byte(core.ESDTRoleNFTBurn)},
 	)
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())

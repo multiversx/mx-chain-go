@@ -1,6 +1,7 @@
 package systemSmartContracts
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
@@ -4018,4 +4019,79 @@ func TestEsdt_CanUseContract(t *testing.T) {
 
 	e, _ := NewESDTSmartContract(args)
 	require.True(t, e.CanUseContract())
+}
+
+func TestEsdt_ExecuteInitDelegationESDT(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	args.ESDTSCAddress = vm.ESDTSCAddress
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{
+			CurrentEpochCalled: func() uint32 {
+				return 2
+			},
+		},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&stateMock.AccountsStub{},
+		&mock.RaterMock{},
+	)
+	args.Eei = eei
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr: []byte("addr"),
+			CallValue:  big.NewInt(0),
+		},
+		RecipientAddr: []byte("addr"),
+		Function:      "initDelegationESDTOnMeta",
+	}
+
+	eei.returnMessage = ""
+	e.flagESDTOnMeta.Unset()
+	returnCode := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.FunctionNotFound, returnCode)
+	assert.Equal(t, eei.returnMessage, "invalid method to call")
+
+	eei.returnMessage = ""
+	e.flagESDTOnMeta.Set()
+	returnCode = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "only system address can call this")
+
+	vmInput.CallerAddr = vm.ESDTSCAddress
+	vmInput.RecipientAddr = vm.ESDTSCAddress
+	vmInput.Arguments = [][]byte{{1}}
+	eei.returnMessage = ""
+	returnCode = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+
+	vmInput.Arguments = [][]byte{}
+	vmInput.CallValue = big.NewInt(10)
+	eei.returnMessage = ""
+	returnCode = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+
+	localErr := errors.New("local err")
+	eei.blockChainHook = &mock.BlockChainHookStub{ProcessBuiltInFunctionCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+		return nil, localErr
+	}}
+
+	vmInput.CallValue = big.NewInt(0)
+	eei.returnMessage = ""
+	returnCode = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, localErr.Error())
+
+	eei.blockChainHook = &mock.BlockChainHookStub{ProcessBuiltInFunctionCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+		doesContainTicker := bytes.Contains(input.Arguments[0], []byte(e.delegationTicker))
+		assert.True(t, doesContainTicker)
+		return &vmcommon.VMOutput{}, nil
+	}}
+
+	eei.returnMessage = ""
+	returnCode = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, returnCode)
 }

@@ -247,7 +247,7 @@ func (l *liquidStaking) claimOneDelegatedPosition(
 	valueToClaim := big.NewInt(0).SetBytes(valueAsBytes)
 	_, returnCode := l.executeOnDestinationSC(
 		destSCAddress,
-		"claimRewardsViaLiquidStaking",
+		"claimDelegatedPosition",
 		callerAddr,
 		valueToClaim,
 		0,

@@ -24,7 +24,12 @@ func TestDelegationSystemSCWithLiquidStaking(t *testing.T) {
 	}
 
 	nodes, idxProposers, delegationAddress, tokenID, nonce, round := setupNodesDelegationContractInitLiquidStaking(t)
-	_ = logger.SetLogLevel("*:TRACE")
+	defer func() {
+		for _, n := range nodes {
+			_ = n.Messenger.Close()
+		}
+	}()
+
 	txData := txDataBuilder.NewBuilder().Clear().
 		Func("claimDelegatedPosition").
 		Bytes(big.NewInt(1).Bytes()).
@@ -68,19 +73,20 @@ func TestDelegationSystemSCWithLiquidStaking(t *testing.T) {
 		ESDTTokenNonce: 1,
 	}
 	esdtTransfers := []*vmcommon.ESDTTransfer{oneTransfer, oneTransfer, oneTransfer, oneTransfer, oneTransfer}
-	txBuilder := txDataBuilder.NewBuilder().MultiTransferESDTNFT(esdtTransfers)
+	txBuilder := txDataBuilder.NewBuilder().MultiTransferESDTNFT(vm.LiquidStakingSCAddress, esdtTransfers)
 	txBuilder.Bytes([]byte("unDelegatePosition"))
 	for _, node := range nodes {
-		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), vm.LiquidStakingSCAddress, txBuilder.ToString(), core.MinMetaTxExtraGasCost)
+		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), node.OwnAccount.Address, txBuilder.ToString(), core.MinMetaTxExtraGasCost)
 	}
 
-	txBuilder = txDataBuilder.NewBuilder().MultiTransferESDTNFT(esdtTransfers)
+	txBuilder = txDataBuilder.NewBuilder().MultiTransferESDTNFT(vm.LiquidStakingSCAddress, esdtTransfers)
 	txBuilder.Bytes([]byte("returnPosition"))
 	for _, node := range nodes {
-		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), vm.LiquidStakingSCAddress, txBuilder.ToString(), core.MinMetaTxExtraGasCost)
+		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), node.OwnAccount.Address, txBuilder.ToString(), core.MinMetaTxExtraGasCost)
 	}
 	time.Sleep(time.Second)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	finalWait := 20
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, finalWait, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
 	for _, node := range nodes {
@@ -94,21 +100,15 @@ func TestDelegationSystemSCWithLiquidStaking(t *testing.T) {
 func setupNodesDelegationContractInitLiquidStaking(
 	t *testing.T,
 ) ([]*integrationTests.TestProcessorNode, []int, []byte, []byte, uint64, uint64) {
-	numOfShards := 1
-	nodesPerShard := 1
-	numMetachainNodes := 1
+	numOfShards := 2
+	nodesPerShard := 2
+	numMetachainNodes := 2
 
 	nodes := integrationTests.CreateNodes(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
 	)
-
-	defer func() {
-		for _, n := range nodes {
-			_ = n.Messenger.Close()
-		}
-	}()
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
