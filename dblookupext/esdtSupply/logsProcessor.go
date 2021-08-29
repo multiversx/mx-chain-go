@@ -34,6 +34,7 @@ func newLogsProcessor(
 		fungibleOperations: map[string]struct{}{
 			core.BuiltInFunctionESDTLocalBurn:      {},
 			core.BuiltInFunctionESDTLocalMint:      {},
+			core.BuiltInFunctionESDTWipe:           {},
 			core.BuiltInFunctionESDTNFTCreate:      {},
 			core.BuiltInFunctionESDTNFTAddQuantity: {},
 			core.BuiltInFunctionESDTNFTBurn:        {},
@@ -122,7 +123,8 @@ func (lp *logsProcessor) processEvent(txLog *transaction.Event, supplies map[str
 
 	bigValue := big.NewInt(0).SetBytes(txLog.Topics[2])
 
-	negValue := string(txLog.Identifier) == core.BuiltInFunctionESDTLocalBurn || string(txLog.Identifier) == core.BuiltInFunctionESDTNFTBurn
+	negValue := string(txLog.Identifier) == core.BuiltInFunctionESDTLocalBurn || string(txLog.Identifier) == core.BuiltInFunctionESDTNFTBurn ||
+		string(txLog.Identifier) == core.BuiltInFunctionESDTWipe
 	shouldNegValue := negValue && !isRevert
 	if shouldNegValue {
 		bigValue = big.NewInt(0).Neg(bigValue)
