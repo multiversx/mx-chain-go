@@ -36,9 +36,12 @@ func (np *nonceProcessor) shouldProcessLog(blockNonce uint64, isRevert bool) (bo
 
 func (np *nonceProcessor) getLatestProcessedBlockNonceFromStorage() (uint64, error) {
 	processedBlockBytes, err := np.storer.Get([]byte(processedBlockKey))
-	if err != nil {
-		log.Warn("logsProcessor.getLatestProcessedBlockNonceFromStorage nothing in storage")
+	if err != nil && err == storage.ErrKeyNotFound {
+		log.Debug("logsProcessor.getLatestProcessedBlockNonceFromStorage nothing in storage")
 		return 0, nil
+	}
+	if err != nil {
+		return 0, err
 	}
 
 	processedBlock := &ProcessedBlockNonce{}

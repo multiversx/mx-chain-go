@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/common/mock"
 	"github.com/ElrondNetwork/elrond-go/dblookupext/esdtSupply"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/stretchr/testify/assert"
@@ -19,7 +20,7 @@ import (
 func createMockHistoryRepoArgs(epoch uint32) HistoryRepositoryArguments {
 	sp, _ := esdtSupply.NewSuppliesProcessor(&mock.MarshalizerMock{}, &testscommon.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
-			return nil, errors.New("cannot find")
+			return nil, storage.ErrKeyNotFound
 		},
 	}, &testscommon.StorerStub{})
 

@@ -62,6 +62,7 @@ type Facade struct {
 	GetTokenSupplyCalled                    func(token string) (string, error)
 }
 
+// GetTokenSupply -
 func (f *Facade) GetTokenSupply(token string) (string, error) {
 	if f.GetTokenSupplyCalled != nil {
 		return f.GetTokenSupplyCalled(token)

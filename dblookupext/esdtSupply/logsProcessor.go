@@ -56,9 +56,9 @@ func (lp *logsProcessor) processLogs(blockNonce uint64, logs map[string]data.Log
 			continue
 		}
 
-		errPro := lp.processLog(logHandler, supplies, isRevert)
-		if errPro != nil {
-			return errPro
+		errProc := lp.processLog(logHandler, supplies, isRevert)
+		if errProc != nil {
+			return errProc
 		}
 	}
 
@@ -173,8 +173,11 @@ func (lp *logsProcessor) shouldIgnoreEvent(event *transaction.Event) bool {
 
 func (lp *logsProcessor) getESDTSupply(token string) (string, error) {
 	supplyBytes, err := lp.suppliesStorer.Get([]byte(token))
-	if err != nil {
+	if err != nil && err == storage.ErrKeyNotFound {
 		return big.NewInt(0).String(), nil
+	}
+	if err != nil {
+		return "", err
 	}
 
 	supply := &SupplyESDT{}

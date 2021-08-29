@@ -293,7 +293,7 @@ func getESDTTokenSupply(c *gin.Context) {
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
-			Data:  gin.H{"list": supply},
+			Data:  gin.H{"supply": supply},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},

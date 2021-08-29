@@ -56,6 +56,10 @@ func (sp *suppliesProcessor) ProcessLogs(blockNonce uint64, logs map[string]data
 
 // RevertChanges will revert supplies changes based on the provided block body
 func (sp *suppliesProcessor) RevertChanges(header data.HeaderHandler, body data.BodyHandler) error {
+	if check.IfNil(header) || check.IfNil(body) {
+		return nil
+	}
+
 	sp.mutex.Lock()
 	defer sp.mutex.Unlock()
 
@@ -67,6 +71,7 @@ func (sp *suppliesProcessor) RevertChanges(header data.HeaderHandler, body data.
 	return sp.logsProc.processLogs(header.GetNonce(), logsFromDB, true)
 }
 
+// GetESDTSupply will return the supply from the storage for the given token
 func (sp *suppliesProcessor) GetESDTSupply(token string) (string, error) {
 	sp.mutex.Lock()
 	defer sp.mutex.Unlock()

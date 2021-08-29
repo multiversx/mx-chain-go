@@ -449,6 +449,7 @@ func (hr *historyRepository) RevertBlock(blockHeader data.HeaderHandler, blockBo
 	return hr.esdtSuppliesHandler.RevertChanges(blockHeader, blockBody)
 }
 
+// GetESDTSupply will return the supply from the storage for the given token
 func (hr *historyRepository) GetESDTSupply(token string) (string, error) {
 	return hr.esdtSuppliesHandler.GetESDTSupply(token)
 }

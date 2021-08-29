@@ -1,9 +1,9 @@
 package esdtSupply
 
 import (
-	"errors"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
@@ -50,7 +50,7 @@ func TestNonceProcessor_shouldProcessLogs_nothingInStorageShouldProcess(t *testi
 	marshalizer := &testscommon.MarshalizerMock{}
 	nonceProc := newNonceProcessor(marshalizer, &testscommon.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
-			return nil, errors.New("local err")
+			return nil, storage.ErrKeyNotFound
 		},
 	})
 
@@ -65,7 +65,7 @@ func TestNonceProcessor_shouldProcessLogs_revertNothingInStorage(t *testing.T) {
 	marshalizer := &testscommon.MarshalizerMock{}
 	nonceProc := newNonceProcessor(marshalizer, &testscommon.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
-			return nil, errors.New("local err")
+			return nil, storage.ErrKeyNotFound
 		},
 	})
 

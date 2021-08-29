@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
@@ -66,7 +67,7 @@ func TestProcessLogsSaveSupply(t *testing.T) {
 	marshalizer := testscommon.MarshalizerMock{}
 	suppliesStorer := &testscommon.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
-			return nil, errors.New("not found")
+			return nil, storage.ErrKeyNotFound
 		},
 		PutCalled: func(key, data []byte) error {
 			supplyKey := string(token) + "-" + string(big.NewInt(2).Bytes())
