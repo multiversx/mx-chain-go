@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"math"
 	"math/big"
 	"strconv"
 	"sync"
@@ -1777,6 +1778,73 @@ func (tpn *TestProcessorNode) InitDelegationManager() {
 
 	_, err = tpn.AccntState.Commit()
 	log.LogIfError(err)
+}
+
+// InitLiquidStaking will initialize the liquid staking contract whenever required
+func (tpn *TestProcessorNode) InitLiquidStaking() []byte {
+	if tpn.ShardCoordinator.SelfId() != core.MetachainShardId {
+		return nil
+	}
+
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr:  vm.ESDTSCAddress,
+			CallValue:   big.NewInt(0),
+			Arguments:   [][]byte{},
+			GasProvided: math.MaxUint64,
+		},
+		RecipientAddr: vm.ESDTSCAddress,
+		Function:      "initDelegationESDTOnMeta",
+	}
+
+	systemVM, err := tpn.VMContainer.Get(factory.SystemVirtualMachine)
+	log.LogIfError(err)
+
+	vmOutput, err := systemVM.RunSmartContractCall(vmInput)
+	log.LogIfError(err)
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		log.Error("error while initializing system SC", "return code", vmOutput.ReturnCode)
+	}
+
+	err = tpn.processSCOutputAccounts(vmOutput)
+	log.LogIfError(err)
+
+	_, err = tpn.AccntState.Commit()
+	log.LogIfError(err)
+
+	codeMetaData := &vmcommon.CodeMetadata{
+		Upgradeable: false,
+		Payable:     false,
+		Readable:    true,
+	}
+
+	tokenID := vmOutput.ReturnData[0]
+	vmInputCreate := &vmcommon.ContractCreateInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr: vm.LiquidStakingSCAddress,
+			Arguments:  [][]byte{tokenID},
+			CallValue:  zero,
+		},
+		ContractCode:         vm.DelegationManagerSCAddress,
+		ContractCodeMetadata: codeMetaData.ToBytes(),
+	}
+
+	vmOutput, err = systemVM.RunSmartContractCreate(vmInputCreate)
+	log.LogIfError(err)
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		log.Error("error while initializing system SC", "return code", vmOutput.ReturnCode)
+	}
+
+	err = tpn.processSCOutputAccounts(vmOutput)
+	log.LogIfError(err)
+
+	err = tpn.updateSystemSCContractsCode(vmInputCreate.ContractCodeMetadata, vm.LiquidStakingSCAddress)
+	log.LogIfError(err)
+
+	_, err = tpn.AccntState.Commit()
+	log.LogIfError(err)
+
+	return tokenID
 }
 
 func (tpn *TestProcessorNode) updateSystemSCContractsCode(contractMetadata []byte, scAddress []byte) error {
