@@ -728,7 +728,7 @@ func TestPatriciaMerkleTrie_GetAndVerifyProof(t *testing.T) {
 		proof, err := tr.GetProof(values[randNum])
 		if err != nil {
 			dumpTrieContents(tr, values)
-			fmt.Printf("error getting proof for %v, err = %s", values[randNum], err.Error())
+			fmt.Printf("error getting proof for %v, err = %s\n", values[randNum], err.Error())
 		}
 		require.Nil(t, err)
 		require.NotEqual(t, 0, len(proof))
@@ -736,7 +736,7 @@ func TestPatriciaMerkleTrie_GetAndVerifyProof(t *testing.T) {
 		ok, err := tr.VerifyProof(values[randNum], proof)
 		if err != nil {
 			dumpTrieContents(tr, values)
-			fmt.Printf("error verifying proof for %v, proof = %v, err = %s", values[randNum], proof, err.Error())
+			fmt.Printf("error verifying proof for %v, proof = %v, err = %s\n", values[randNum], proof, err.Error())
 		}
 		require.Nil(t, err)
 		require.True(t, ok)

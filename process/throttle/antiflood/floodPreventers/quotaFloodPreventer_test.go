@@ -483,9 +483,6 @@ func TestQuotaFloodPreventer_ApplyConsensusShouldWork(t *testing.T) {
 	for i := 0; i < int(relativeExpected); i++ {
 		err := qfp.IncreaseLoad(identifier, 0)
 		assert.Nil(t, err, fmt.Sprintf("on iteration %d", i))
-		if err != nil {
-			fmt.Printf("aaa")
-		}
 	}
 
 	err := qfp.IncreaseLoad(identifier, 0)
