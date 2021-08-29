@@ -24,7 +24,7 @@ func TestDelegationSystemSCWithLiquidStaking(t *testing.T) {
 	}
 
 	nodes, idxProposers, delegationAddress, tokenID, nonce, round := setupNodesDelegationContractInitLiquidStaking(t)
-
+	_ = logger.SetLogLevel("*:TRACE")
 	txData := txDataBuilder.NewBuilder().Clear().
 		Func("claimDelegatedPosition").
 		Bytes(big.NewInt(1).Bytes()).
@@ -134,6 +134,7 @@ func setupNodesDelegationContractInitLiquidStaking(
 	}
 
 	initialVal := big.NewInt(10000000000)
+	initialVal.Mul(initialVal, initialVal)
 	integrationTests.MintAllNodes(nodes, initialVal)
 
 	delegationAddress := createNewDelegationSystemSC(nodes[0], nodes)
