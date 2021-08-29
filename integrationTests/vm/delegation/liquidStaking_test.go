@@ -120,6 +120,7 @@ func setupNodesDelegationContractInitLiquidStaking(
 
 	var tokenID []byte
 	for _, node := range nodes {
+		node.InitDelegationManager()
 		tmpTokenID := node.InitLiquidStaking()
 		if len(tmpTokenID) != 0 {
 			if len(tokenID) == 0 {
