@@ -106,6 +106,8 @@ func (l *liquidStaking) Execute(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return l.returnLiquidStaking(args, "unDelegateViaLiquidStaking")
 	case "returnPosition":
 		return l.returnLiquidStaking(args, "returnViaLiquidStaking")
+	case "readTokenID":
+		return l.readTokenID(args)
 	}
 
 	l.eei.AddReturnMessage(args.Function + " is an unknown function")
@@ -133,6 +135,25 @@ func (l *liquidStaking) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 
 func (l *liquidStaking) getTokenID() []byte {
 	return l.eei.GetStorage([]byte(tokenIDKey))
+}
+
+func (l *liquidStaking) readTokenID(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if len(args.ESDTTransfers) != 0 || args.CallValue.Cmp(zero) != 0 {
+		l.eei.AddReturnMessage("function is not payable")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) > 0 {
+		l.eei.AddReturnMessage("function does not accept arguments")
+		return vmcommon.UserError
+	}
+	err := l.eei.UseGas(l.gasCost.MetaChainSystemSCsCost.LiquidStakingOps)
+	if err != nil {
+		l.eei.AddReturnMessage(err.Error())
+		return vmcommon.OutOfGas
+	}
+
+	l.eei.Finish(l.getTokenID())
+	return vmcommon.Ok
 }
 
 func (l *liquidStaking) checkArgumentsWhenPositionIsInput(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -226,7 +247,7 @@ func (l *liquidStaking) claimOneDelegatedPosition(
 	valueToClaim := big.NewInt(0).SetBytes(valueAsBytes)
 	_, returnCode := l.executeOnDestinationSC(
 		destSCAddress,
-		"claimRewardsViaLiquidStaking",
+		"claimDelegatedPosition",
 		callerAddr,
 		valueToClaim,
 		0,
