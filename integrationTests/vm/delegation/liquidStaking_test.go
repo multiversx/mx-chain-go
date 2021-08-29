@@ -54,6 +54,12 @@ func TestDelegationSystemSCWithLiquidStaking(t *testing.T) {
 	}
 	// owner is not allowed to get LP position
 	checkLPPosition(t, nodes[0].OwnAccount.Address, nodes, tokenID, uint64(1), big.NewInt(0))
+	metaNode := getNodeWithShardID(nodes, core.MetachainShardId)
+	allDelegatorAddresses := make([][]byte, 0)
+	for i := 1; i < len(nodes); i++ {
+		allDelegatorAddresses = append(allDelegatorAddresses, nodes[i].OwnAccount.Address)
+	}
+	verifyDelegatorIsDeleted(t, metaNode, allDelegatorAddresses, delegationAddress)
 
 	oneTransfer := &vmcommon.ESDTTransfer{
 		ESDTValue:      big.NewInt(1000),
@@ -81,6 +87,8 @@ func TestDelegationSystemSCWithLiquidStaking(t *testing.T) {
 		checkLPPosition(t, node.OwnAccount.Address, nodes, tokenID, uint64(1), big.NewInt(0))
 	}
 
+	verifyDelegatorsStake(t, metaNode, "getUserActiveStake", allDelegatorAddresses, delegationAddress, big.NewInt(5000))
+	verifyDelegatorsStake(t, metaNode, "getUserUnStakedValue", allDelegatorAddresses, delegationAddress, big.NewInt(5000))
 }
 
 func setupNodesDelegationContractInitLiquidStaking(
