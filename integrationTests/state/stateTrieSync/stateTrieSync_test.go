@@ -295,7 +295,10 @@ func TestMultipleDataTriesSyncLargeValues(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testMultipleDataTriesSync(t, 3, 3, 1<<21)
+	//TODO(this PR) revert this
+	logger.SetLogLevel("*:DEBUG,process/interceptors/processor:TRACE,syncer:TRACE,requesthandlers:TRACE,trienoderesolver:TRACE")
+
+	testMultipleDataTriesSync(t, 5, 1, 2100000)
 }
 
 func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves int, valSize int) {
