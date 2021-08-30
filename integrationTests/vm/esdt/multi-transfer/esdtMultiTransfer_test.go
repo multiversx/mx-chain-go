@@ -64,16 +64,40 @@ func TestESDTMultiTransferToVault(t *testing.T) {
 	expectedIssuerBalance[fungibleTokenIdentifier1][0] = 1000
 	expectedIssuerBalance[fungibleTokenIdentifier2][0] = 1000
 
-	// issue two one NFT, with multiple NFTCreate
+	// issue two NFT, with multiple NFTCreate
 	nonFungibleTokenIdentifier1 := issueNft(t, nodes, idxProposers, &nonce, &round, "NFT1", false)
+	nonFungibleTokenIdentifier2 := issueNft(t, nodes, idxProposers, &nonce, &round, "NFT2", false)
 
-	for i := int64(1); i <= 5; i++ {
+	for i := int64(1); i <= 10; i++ {
 		createNFT(t, nodes, idxProposers, nonFungibleTokenIdentifier1, i, &nonce, &round)
+		createNFT(t, nodes, idxProposers, nonFungibleTokenIdentifier2, i, &nonce, &round)
 
 		expectedIssuerBalance[nonFungibleTokenIdentifier1] = make(map[int64]int64)
 		expectedVaultBalance[nonFungibleTokenIdentifier1] = make(map[int64]int64)
 
+		expectedIssuerBalance[nonFungibleTokenIdentifier2] = make(map[int64]int64)
+		expectedVaultBalance[nonFungibleTokenIdentifier2] = make(map[int64]int64)
+
 		expectedIssuerBalance[fungibleTokenIdentifier1][i] = 1
+		expectedIssuerBalance[fungibleTokenIdentifier2][i] = 1
+	}
+
+	// issue two SFTs, with two NFTCreate for each
+	semiFungibleTokenIdentifier1 := issueNft(t, nodes, idxProposers, &nonce, &round, "SFT1", true)
+	semiFungibleTokenIdentifier2 := issueNft(t, nodes, idxProposers, &nonce, &round, "SFT2", true)
+
+	for i := int64(1); i <= 2; i++ {
+		createSFT(t, nodes, idxProposers, semiFungibleTokenIdentifier1, i, 1000, &nonce, &round)
+		createSFT(t, nodes, idxProposers, semiFungibleTokenIdentifier2, i, 1000, &nonce, &round)
+
+		expectedIssuerBalance[semiFungibleTokenIdentifier1] = make(map[int64]int64)
+		expectedVaultBalance[semiFungibleTokenIdentifier1] = make(map[int64]int64)
+
+		expectedIssuerBalance[semiFungibleTokenIdentifier2] = make(map[int64]int64)
+		expectedVaultBalance[semiFungibleTokenIdentifier2] = make(map[int64]int64)
+
+		expectedIssuerBalance[semiFungibleTokenIdentifier1][i] = 1000
+		expectedIssuerBalance[semiFungibleTokenIdentifier2][i] = 1000
 	}
 
 	// send a single ESDT with multi-transfer

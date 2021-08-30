@@ -131,7 +131,8 @@ func CheckAddressHasESDTTokens(
 	esdtData := GetESDTTokenData(t, address, nodes, tokenName)
 	bigValue := big.NewInt(value)
 	if esdtData.Value.Cmp(bigValue) != 0 {
-		require.Fail(t, fmt.Sprintf("esdt balance difference. expected %s, but got %s", bigValue.String(), esdtData.Value.String()))
+		require.Fail(t, fmt.Sprintf("esdt balance difference. Token %s, expected %s, but got %s",
+			tokenName, bigValue.String(), esdtData.Value.String()))
 	}
 }
 
@@ -157,10 +158,9 @@ func CheckAddressHasTokens(
 	esdtData := GetESDTTokenData(t, address, nodes, string(tokenIdentifierPlusNonce))
 
 	if valueAsBigInt.Cmp(esdtData.Value) != 0 {
-		require.Fail(t, fmt.Sprintf("esdt balance difference. Nonce %s, expected %s, but got %s", nonceAsBigInt.String(), valueAsBigInt.String(), esdtData.Value.String()))
+		require.Fail(t, fmt.Sprintf("esdt NFT balance difference. Token %s, nonce %s, expected %s, but got %s",
+			tokenName, nonceAsBigInt.String(), valueAsBigInt.String(), esdtData.Value.String()))
 	}
-
-	require.NotNil(t, esdtData.TokenMetaData)
 }
 
 // CreateNodesAndPrepareBalances -
