@@ -353,7 +353,7 @@ func Test_computeGasConsumedWithErrorForGasConsumedForTx(t *testing.T) {
 	txHash := hasher.Compute(string(txm))
 
 	gci := &gasConsumedInfo{}
-	err := gt.computeGasConsumed(
+	_, err := gt.computeGasConsumed(
 		senderShardID,
 		receiverShardID,
 		tx,
@@ -390,7 +390,7 @@ func Test_computeGasConsumedMaxGasLimitInSenderShardReached(t *testing.T) {
 	gci := &gasConsumedInfo{
 		gasConsumedByMiniBlockInReceiverShard: gt.economicsFee.MaxGasLimitPerBlock(receiverShardID) - gasConsumed.consumedReceiverShard/2,
 	}
-	err := gt.computeGasConsumed(
+	_, err := gt.computeGasConsumed(
 		senderShardID,
 		receiverShardID,
 		tx,
@@ -427,7 +427,7 @@ func Test_computeGasConsumedMaxGasLimitInReceiverShardReached(t *testing.T) {
 	gci := &gasConsumedInfo{
 		gasConsumedByMiniBlocksInSenderShard: gt.economicsFee.MaxGasLimitPerBlock(senderShardID) - gasConsumed.consumedSenderShard/2,
 	}
-	err := gt.computeGasConsumed(
+	_, err := gt.computeGasConsumed(
 		senderShardID,
 		receiverShardID,
 		tx,
@@ -464,7 +464,7 @@ func Test_computeGasConsumedMaxGasLimitPerBlockReached(t *testing.T) {
 	gci := &gasConsumedInfo{
 		totalGasConsumedInSelfShard: gt.economicsFee.MaxGasLimitPerBlock(senderShardID) - gasConsumed.consumedSenderShard/2,
 	}
-	err := gt.computeGasConsumed(
+	_, err := gt.computeGasConsumed(
 		senderShardID,
 		receiverShardID,
 		tx,
@@ -499,7 +499,7 @@ func Test_computeGasConsumedOK(t *testing.T) {
 	txHash := hasher.Compute(string(txm))
 
 	gci := &gasConsumedInfo{}
-	err := gt.computeGasConsumed(
+	_, err := gt.computeGasConsumed(
 		senderShardID,
 		receiverShardID,
 		tx,

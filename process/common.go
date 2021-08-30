@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -13,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -726,4 +728,40 @@ func CreateHeaderV1(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.Shard
 	}
 
 	return hdr, nil
+}
+
+// IsScheduledMode returns true if the first mini block from the given body is marked as a scheduled
+func IsScheduledMode(
+	header data.HeaderHandler,
+	body *block.Body,
+	hasher hashing.Hasher,
+	marshalizer marshal.Marshalizer,
+) (bool, error) {
+	if body == nil || len(body.MiniBlocks) == 0 {
+		return false, nil
+	}
+
+	miniBlockHash, err := core.CalculateHash(marshalizer, hasher, body.MiniBlocks[0])
+	if err != nil {
+		return false, err
+	}
+
+	for _, miniBlockHeader := range header.GetMiniBlockHeaderHandlers() {
+		if bytes.Equal(miniBlockHash, miniBlockHeader.GetHash()) {
+			reserved := miniBlockHeader.GetReserved()
+			return len(reserved) > 0 && reserved[0] == byte(block.ScheduledBlock), nil
+		}
+	}
+
+	return false, nil
+}
+
+const additionalTimeForCreatingScheduledMiniBlocks = 150 * time.Millisecond
+
+// HaveAdditionalTime returns if the additional time allocated for scheduled mini blocks is elapsed
+func HaveAdditionalTime() func() bool {
+	startTime := time.Now()
+	return func() bool {
+		return additionalTimeForCreatingScheduledMiniBlocks > time.Since(startTime)
+	}
 }

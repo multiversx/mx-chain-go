@@ -199,6 +199,9 @@ const stateCheckpointModulus = 100
 // StakingV2Epoch defines the epoch for integration tests when stakingV2 is enabled
 const StakingV2Epoch = 1000
 
+// ScheduledMiniBlocksEnableEpoch defines the epoch for integration tests when scheduled nini blocks are enabled
+const ScheduledMiniBlocksEnableEpoch = 1000
+
 // TestKeyPair holds a pair of private/public Keys
 type TestKeyPair struct {
 	Sk crypto.PrivateKey
@@ -1924,11 +1927,12 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 				return nil
 			},
 		},
-		BlockTracker:                 tpn.BlockTracker,
-		BlockSizeThrottler:           TestBlockSizeThrottler,
-		HistoryRepository:            tpn.HistoryRepository,
-		EpochNotifier:                tpn.EpochNotifier,
-		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		BlockTracker:                   tpn.BlockTracker,
+		BlockSizeThrottler:             TestBlockSizeThrottler,
+		HistoryRepository:              tpn.HistoryRepository,
+		EpochNotifier:                  tpn.EpochNotifier,
+		ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
+		ScheduledMiniBlocksEnableEpoch: ScheduledMiniBlocksEnableEpoch,
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {

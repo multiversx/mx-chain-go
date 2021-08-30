@@ -26,6 +26,7 @@ type ScheduledTxsExecutionStub struct {
 	HaveScheduledTxsCalled              func() bool
 	SaveStateCalled                     func(headerHash []byte)
 	LoadStateCalled                     func(headerHash []byte)
+	IsScheduledTxCalled                 func([]byte) bool
 }
 
 // Init -
@@ -125,6 +126,14 @@ func (stes *ScheduledTxsExecutionStub) SetTransactionCoordinator(txCoordinator p
 	if stes.SetTransactionCoordinatorCalled != nil {
 		stes.SetTransactionCoordinatorCalled(txCoordinator)
 	}
+}
+
+// IsScheduledTx -
+func (stes *ScheduledTxsExecutionStub) IsScheduledTx(txHash []byte) bool {
+	if stes.IsScheduledTxCalled != nil {
+		return stes.IsScheduledTxCalled(txHash)
+	}
+	return false
 }
 
 // IsInterfaceNil -

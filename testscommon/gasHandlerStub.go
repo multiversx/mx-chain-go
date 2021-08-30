@@ -9,12 +9,15 @@ import (
 type GasHandlerStub struct {
 	InitCalled                          func()
 	SetGasConsumedCalled                func(gasConsumed uint64, hash []byte)
+	SetGasConsumedAsScheduledCalled     func(gasConsumed uint64, hash []byte)
 	SetGasRefundedCalled                func(gasRefunded uint64, hash []byte)
 	GasConsumedCalled                   func(hash []byte) uint64
 	GasRefundedCalled                   func(hash []byte) uint64
 	TotalGasConsumedCalled              func() uint64
+	TotalGasConsumedAsScheduledCalled   func() uint64
 	TotalGasRefundedCalled              func() uint64
 	RemoveGasConsumedCalled             func(hashes [][]byte)
+	RemoveGasConsumedAsScheduledCalled  func(hashes [][]byte)
 	RemoveGasRefundedCalled             func(hashes [][]byte)
 	ComputeGasConsumedByMiniBlockCalled func(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error)
 	ComputeGasConsumedByTxCalled        func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error)
@@ -22,13 +25,22 @@ type GasHandlerStub struct {
 
 // Init -
 func (ghs *GasHandlerStub) Init() {
-	ghs.InitCalled()
+	if ghs.InitCalled != nil {
+		ghs.InitCalled()
+	}
 }
 
 // SetGasConsumed -
 func (ghs *GasHandlerStub) SetGasConsumed(gasConsumed uint64, hash []byte) {
 	if ghs.SetGasConsumedCalled != nil {
 		ghs.SetGasConsumedCalled(gasConsumed, hash)
+	}
+}
+
+// SetGasConsumedAsScheduled -
+func (ghs *GasHandlerStub) SetGasConsumedAsScheduled(gasConsumed uint64, hash []byte) {
+	if ghs.SetGasConsumedAsScheduledCalled != nil {
+		ghs.SetGasConsumedAsScheduledCalled(gasConsumed, hash)
 	}
 }
 
@@ -41,7 +53,10 @@ func (ghs *GasHandlerStub) SetGasRefunded(gasRefunded uint64, hash []byte) {
 
 // GasConsumed -
 func (ghs *GasHandlerStub) GasConsumed(hash []byte) uint64 {
-	return ghs.GasConsumedCalled(hash)
+	if ghs.GasConsumedCalled != nil {
+		return ghs.GasConsumedCalled(hash)
+	}
+	return 0
 }
 
 // GasRefunded -
@@ -60,24 +75,49 @@ func (ghs *GasHandlerStub) TotalGasConsumed() uint64 {
 	return 0
 }
 
+// TotalGasConsumedAsScheduled -
+func (ghs *GasHandlerStub) TotalGasConsumedAsScheduled() uint64 {
+	if ghs.TotalGasConsumedAsScheduledCalled != nil {
+		return ghs.TotalGasConsumedAsScheduledCalled()
+	}
+	return 0
+}
+
 // TotalGasRefunded -
 func (ghs *GasHandlerStub) TotalGasRefunded() uint64 {
-	return ghs.TotalGasRefundedCalled()
+	if ghs.TotalGasRefundedCalled != nil {
+		return ghs.TotalGasRefundedCalled()
+	}
+	return 0
 }
 
 // RemoveGasConsumed -
 func (ghs *GasHandlerStub) RemoveGasConsumed(hashes [][]byte) {
-	ghs.RemoveGasConsumedCalled(hashes)
+	if ghs.RemoveGasConsumedCalled != nil {
+		ghs.RemoveGasConsumedCalled(hashes)
+	}
+}
+
+// RemoveGasConsumedAsScheduled -
+func (ghs *GasHandlerStub) RemoveGasConsumedAsScheduled(hashes [][]byte) {
+	if ghs.RemoveGasConsumedAsScheduledCalled != nil {
+		ghs.RemoveGasConsumedAsScheduledCalled(hashes)
+	}
 }
 
 // RemoveGasRefunded -
 func (ghs *GasHandlerStub) RemoveGasRefunded(hashes [][]byte) {
-	ghs.RemoveGasRefundedCalled(hashes)
+	if ghs.RemoveGasRefundedCalled != nil {
+		ghs.RemoveGasRefundedCalled(hashes)
+	}
 }
 
 // ComputeGasConsumedByMiniBlock -
 func (ghs *GasHandlerStub) ComputeGasConsumedByMiniBlock(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error) {
-	return ghs.ComputeGasConsumedByMiniBlockCalled(miniBlock, mapHashTx)
+	if ghs.ComputeGasConsumedByMiniBlockCalled != nil {
+		return ghs.ComputeGasConsumedByMiniBlockCalled(miniBlock, mapHashTx)
+	}
+	return 0, 0, nil
 }
 
 // ComputeGasConsumedByTx -

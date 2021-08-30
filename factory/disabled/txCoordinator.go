@@ -61,7 +61,7 @@ func (txCoordinator *TxCoordinator) RemoveTxsFromPool(_ *block.Body) error {
 }
 
 // ProcessBlockTransaction does nothing as it is disabled
-func (txCoordinator *TxCoordinator) ProcessBlockTransaction(_ *block.Body, _ func() time.Duration) error {
+func (txCoordinator *TxCoordinator) ProcessBlockTransaction(_ data.HeaderHandler, _ *block.Body, _ func() time.Duration) error {
 	return nil
 }
 
@@ -74,6 +74,8 @@ func (txCoordinator *TxCoordinator) CreateMbsAndProcessCrossShardTransactionsDst
 	_ data.HeaderHandler,
 	_ map[string]struct{},
 	_ func() bool,
+	_ func() bool,
+	_ bool,
 ) (block.MiniBlockSlice, uint32, bool, error) {
 	return make(block.MiniBlockSlice, 0), 0, false, nil
 }

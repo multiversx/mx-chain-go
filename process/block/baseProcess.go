@@ -28,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-vm-common/atomic"
 )
 
 var log = logger.GetOrCreate("process/block")
@@ -87,7 +88,9 @@ type baseProcessor struct {
 	vmContainerFactory process.VirtualMachinesContainerFactory
 	vmContainer        process.VirtualMachinesContainer
 
-	processDataTriesOnCommitEpoch bool
+	processDataTriesOnCommitEpoch  bool
+	scheduledMiniBlocksEnableEpoch uint32
+	flagScheduledMiniBlocks        atomic.Flag
 }
 
 type bootStorerDataArgs struct {
@@ -183,6 +186,31 @@ func (bp *baseProcessor) checkBlockValidity(
 	// verification of epoch
 	if headerHandler.GetEpoch() < currentBlockHeader.GetEpoch() {
 		return process.ErrEpochDoesNotMatch
+	}
+
+	return nil
+}
+
+// checkScheduledRootHash checks if the scheduled root hash from the given header is the same with the current user accounts state root hash
+func (bp *baseProcessor) checkScheduledRootHash(headerHandler data.HeaderHandler) error {
+	if !bp.flagScheduledMiniBlocks.IsSet() {
+		return nil
+	}
+
+	if check.IfNil(headerHandler) {
+		return process.ErrNilBlockHeader
+	}
+
+	additionalData := headerHandler.GetAdditionalData()
+	if check.IfNil(additionalData) {
+		return process.ErrNilAdditionalData
+	}
+
+	if !bytes.Equal(additionalData.GetScheduledRootHash(), bp.getRootHash()) {
+		log.Debug("scheduled root hash does not match",
+			"current root hash", bp.getRootHash(),
+			"header scheduled root hash", additionalData.GetScheduledRootHash())
+		return process.ErrScheduledRootHashDoesNotMatch
 	}
 
 	return nil
@@ -560,12 +588,19 @@ func (bp *baseProcessor) createMiniBlockHeaderHandlers(body *block.Body) (int, [
 			return 0, nil, err
 		}
 
+		var reserved []byte
+		notEmpty := len(body.MiniBlocks[i].TxHashes) > 0
+		if notEmpty && bp.scheduledTxsExecutionHandler.IsScheduledTx(body.MiniBlocks[i].TxHashes[0]) {
+			reserved = []byte{byte(block.ScheduledBlock)}
+		}
+
 		miniBlockHeaderHandlers[i] = &block.MiniBlockHeader{
 			Hash:            miniBlockHash,
 			SenderShardID:   body.MiniBlocks[i].SenderShardID,
 			ReceiverShardID: body.MiniBlocks[i].ReceiverShardID,
 			TxCount:         uint32(txCount),
 			Type:            body.MiniBlocks[i].Type,
+			Reserved:        reserved,
 		}
 	}
 
@@ -1146,8 +1181,11 @@ func (bp *baseProcessor) revertAccountState() {
 }
 
 func (bp *baseProcessor) revertScheduledRootHashAndSCRs() {
-	_, headerHash := bp.getLastCommittedHeaderAndHash()
-	_ = bp.scheduledTxsExecutionHandler.RollBackToBlock(headerHash)
+	header, headerHash := bp.getLastCommittedHeaderAndHash()
+	err := bp.scheduledTxsExecutionHandler.RollBackToBlock(headerHash)
+	if err != nil {
+		bp.scheduledTxsExecutionHandler.SetScheduledRootHashAndSCRs(header.GetRootHash(), make(map[block.Type][]data.TransactionHandler))
+	}
 }
 
 func (bp *baseProcessor) getLastCommittedHeaderAndHash() (data.HeaderHandler, []byte) {
@@ -1492,4 +1530,10 @@ func (bp *baseProcessor) ProcessScheduledBlock(_ data.HeaderHandler, _ data.Body
 	bp.scheduledTxsExecutionHandler.SetScheduledRootHash(rootHash)
 
 	return nil
+}
+
+// EpochConfirmed is called whenever a new epoch is confirmed
+func (bp *baseProcessor) EpochConfirmed(epoch uint32, _ uint64) {
+	bp.flagScheduledMiniBlocks.Toggle(epoch >= bp.scheduledMiniBlocksEnableEpoch)
+	log.Debug("baseProcessor: scheduled mini blocks", "enabled", bp.flagScheduledMiniBlocks.IsSet())
 }

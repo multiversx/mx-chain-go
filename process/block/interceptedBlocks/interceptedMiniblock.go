@@ -112,6 +112,10 @@ func (inMb *InterceptedMiniblock) integrity() error {
 		}
 	}
 
+	if len(miniblock.GetReserved()) > 1 {
+		return process.ErrReservedFieldInvalid
+	}
+
 	return nil
 }
 

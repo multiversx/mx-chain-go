@@ -150,7 +150,7 @@ func TestHeaderIntegrityVerifier_PopulatedReservedShouldErr(t *testing.T) {
 		&testscommon.CacherStub{},
 	)
 	err := hdrIntVer.Verify(hdr)
-	require.Equal(t, process.ErrReservedFieldNotSupportedYet, err)
+	require.Equal(t, process.ErrReservedFieldInvalid, err)
 }
 
 func TestHeaderIntegrityVerifier_VerifySoftwareVersionEmptyVersionInHeaderShouldErr(t *testing.T) {

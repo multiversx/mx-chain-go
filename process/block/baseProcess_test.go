@@ -360,12 +360,13 @@ func CreateMockArguments(
 					return nil
 				},
 			},
-			BlockTracker:                 mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders),
-			BlockSizeThrottler:           &mock.BlockSizeThrottlerStub{},
-			Version:                      "softwareVersion",
-			HistoryRepository:            &dblookupext.HistoryRepositoryStub{},
-			EpochNotifier:                &epochNotifier.EpochNotifierStub{},
-			ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+			BlockTracker:                   mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders),
+			BlockSizeThrottler:             &mock.BlockSizeThrottlerStub{},
+			Version:                        "softwareVersion",
+			HistoryRepository:              &dblookupext.HistoryRepositoryStub{},
+			EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
+			ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
+			ScheduledMiniBlocksEnableEpoch: 2,
 		},
 	}
 

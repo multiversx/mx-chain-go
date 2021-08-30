@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/counting"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
@@ -22,16 +23,30 @@ type transactionCounter struct {
 	mutex           sync.RWMutex
 	currentBlockTxs uint64
 	totalTxs        uint64
+	hasher          hashing.Hasher
+	marshalizer     marshal.Marshalizer
 }
 
 // NewTransactionCounter returns a new object that keeps track of how many transactions
 // were executed in total, and in the current block
-func NewTransactionCounter() *transactionCounter {
+func NewTransactionCounter(
+	hasher hashing.Hasher,
+	marshalizer marshal.Marshalizer,
+) (*transactionCounter, error) {
+	if check.IfNil(hasher) {
+		return nil, process.ErrNilHasher
+	}
+	if check.IfNil(marshalizer) {
+		return nil, process.ErrNilMarshalizer
+	}
+
 	return &transactionCounter{
 		mutex:           sync.RWMutex{},
 		currentBlockTxs: 0,
 		totalTxs:        0,
-	}
+		hasher:          hasher,
+		marshalizer:     marshalizer,
+	}, nil
 }
 
 func (txc *transactionCounter) getPoolCounts(poolsHolder dataRetriever.PoolsHolder) (txCounts counting.Counts, rewardCounts counting.Counts, unsignedCounts counting.Counts) {
@@ -64,7 +79,6 @@ func (txc *transactionCounter) displayLogInfo(
 	appStatusHandler core.AppStatusHandler,
 	blockTracker process.BlockTracker,
 ) {
-
 	dispHeader, dispLines := txc.createDisplayableShardHeaderAndBlockBody(header, body)
 
 	txc.mutex.RLock()
@@ -117,13 +131,13 @@ func (txc *transactionCounter) createDisplayableShardHeaderAndBlockBody(
 
 	var varBlockBodyType int32 = math.MaxInt32
 	shardHeader, ok := header.(data.ShardHeaderHandler)
-	if ok{
+	if ok {
 		varBlockBodyType = shardHeader.GetBlockBodyTypeInt32()
 	}
 
 	if varBlockBodyType == int32(block.TxBlock) {
 		shardLines = txc.displayMetaHashesIncluded(shardLines, shardHeader)
-		shardLines = txc.displayTxBlockBody(shardLines, body)
+		shardLines = txc.displayTxBlockBody(shardLines, header, body)
 
 		return tableHeader, shardLines
 	}
@@ -168,19 +182,33 @@ func (txc *transactionCounter) displayMetaHashesIncluded(
 	return lines
 }
 
-func (txc *transactionCounter) displayTxBlockBody(lines []*display.LineData, body *block.Body) []*display.LineData {
+func (txc *transactionCounter) displayTxBlockBody(
+	lines []*display.LineData,
+	header data.HeaderHandler,
+	body *block.Body,
+) []*display.LineData {
 	currentBlockTxs := 0
 
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniBlock := body.MiniBlocks[i]
 
-		mbTypeStr := miniBlock.Type.String()
-		if miniBlock.IsScheduledMiniBlock() {
-			mbTypeStr = common.ScheduledBlock
+		scheduledModeInMiniBlockHeader, _ := process.IsScheduledMode(header, &block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}}, txc.hasher, txc.marshalizer)
+		scheduledModeInMiniBlock := miniBlock.IsScheduledMiniBlock()
+
+		executionTypeInMiniBlockHeaderStr := ""
+		if scheduledModeInMiniBlockHeader {
+			executionTypeInMiniBlockHeaderStr = common.ScheduledMode + "_"
 		}
 
-		part := fmt.Sprintf("%s_MiniBlock_%d->%d",
-			mbTypeStr,
+		executionTypeInMiniBlockStr := ""
+		if scheduledModeInMiniBlock {
+			executionTypeInMiniBlockStr = "S_"
+		}
+
+		part := fmt.Sprintf("%s%s_MiniBlock_%s%d->%d",
+			executionTypeInMiniBlockHeaderStr,
+			miniBlock.Type.String(),
+			executionTypeInMiniBlockStr,
 			miniBlock.SenderShardID,
 			miniBlock.ReceiverShardID)
 

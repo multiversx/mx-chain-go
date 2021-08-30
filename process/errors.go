@@ -290,8 +290,8 @@ var ErrNilRandSeed = errors.New("provided rand seed is nil")
 // ErrNilPrevRandSeed signals that a nil previous rand seed has been provided
 var ErrNilPrevRandSeed = errors.New("provided previous rand seed is nil")
 
-// ErrReservedFieldNotSupportedYet signals that reserved field is not empty
-var ErrReservedFieldNotSupportedYet = errors.New("reserved field not supported yet")
+// ErrReservedFieldInvalid signals that reserved field has an invalid content
+var ErrReservedFieldInvalid = errors.New("reserved field content is invalid")
 
 // ErrLowerRoundInBlock signals that a header round is too low for processing it
 var ErrLowerRoundInBlock = errors.New("header round is lower than last committed")
@@ -306,7 +306,7 @@ var ErrLowerNonceInBlock = errors.New("lower nonce in block")
 var ErrHigherNonceInBlock = errors.New("higher nonce in block")
 
 // ErrRandSeedDoesNotMatch signals that random seed does not match with the previous one
-var ErrRandSeedDoesNotMatch = errors.New("random seed do not match")
+var ErrRandSeedDoesNotMatch = errors.New("random seed does not match")
 
 // ErrHeaderNotFinal signals that header is not final and it should be
 var ErrHeaderNotFinal = errors.New("header in metablock is not final")
@@ -1001,3 +1001,8 @@ var ErrNilTxMaxTotalCostHandler = errors.New("nil transaction max total cost")
 // ErrNilAccountTxsPerShard signals a nil mapping for account transactions to shard
 var ErrNilAccountTxsPerShard = errors.New("nil account transactions per shard mapping")
 
+// ErrScheduledRootHashDoesNotMatch signals that scheduled root hash does not match
+var ErrScheduledRootHashDoesNotMatch = errors.New("scheduled root hash does not match")
+
+// ErrNilAdditionalData signals that additional data is nil
+var ErrNilAdditionalData = errors.New("nil additional data")

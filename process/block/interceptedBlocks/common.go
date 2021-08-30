@@ -111,8 +111,8 @@ func checkShardData(sd data.ShardDataHandler, coordinator sharding.Coordinator) 
 			return process.ErrInvalidShardId
 		}
 
-		if len(smbh.GetReserved()) > 0 {
-			return process.ErrReservedFieldNotSupportedYet
+		if len(smbh.GetReserved()) > 1 {
+			return process.ErrReservedFieldInvalid
 		}
 	}
 
@@ -132,8 +132,8 @@ func checkMiniblocks(miniblocks []data.MiniBlockHeaderHandler, coordinator shard
 			return process.ErrInvalidShardId
 		}
 
-		if len(miniblock.GetReserved()) > 0 {
-			return process.ErrReservedFieldNotSupportedYet
+		if len(miniblock.GetReserved()) > 1 {
+			return process.ErrReservedFieldInvalid
 		}
 	}
 

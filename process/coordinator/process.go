@@ -417,6 +417,7 @@ func (tc *transactionCoordinator) RemoveTxsFromPool(body *block.Body) error {
 
 // ProcessBlockTransaction processes transactions and updates state tries
 func (tc *transactionCoordinator) ProcessBlockTransaction(
+	header data.HeaderHandler,
 	body *block.Body,
 	timeRemaining func() time.Duration,
 ) error {
@@ -441,7 +442,7 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 	}
 
 	startTime := time.Now()
-	mbIndex, err := tc.processMiniBlocksToMe(body, haveTime)
+	mbIndex, err := tc.processMiniBlocksToMe(header, body, haveTime)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to processMiniBlocksToMe",
 		"time [s]", elapsedTime,
@@ -456,7 +457,7 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 
 	miniBlocksFromMe := body.MiniBlocks[mbIndex:]
 	startTime = time.Now()
-	err = tc.processMiniBlocksFromMe(&block.Body{MiniBlocks: miniBlocksFromMe}, haveTime)
+	err = tc.processMiniBlocksFromMe(header, &block.Body{MiniBlocks: miniBlocksFromMe}, haveTime)
 	elapsedTime = time.Since(startTime)
 	log.Debug("elapsed time to processMiniBlocksFromMe",
 		"time [s]", elapsedTime,
@@ -469,6 +470,7 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 }
 
 func (tc *transactionCoordinator) processMiniBlocksFromMe(
+	header data.HeaderHandler,
 	body *block.Body,
 	haveTime func() bool,
 ) error {
@@ -490,7 +492,7 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 			return process.ErrMissingPreProcessor
 		}
 
-		err := preProc.ProcessBlockTransactions(separatedBodies[blockType], haveTime)
+		err := preProc.ProcessBlockTransactions(header, separatedBodies[blockType], haveTime)
 		if err != nil {
 			return err
 		}
@@ -500,6 +502,7 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 }
 
 func (tc *transactionCoordinator) processMiniBlocksToMe(
+	header data.HeaderHandler,
 	body *block.Body,
 	haveTime func() bool,
 ) (int, error) {
@@ -517,7 +520,7 @@ func (tc *transactionCoordinator) processMiniBlocksToMe(
 			return mbIndex, process.ErrMissingPreProcessor
 		}
 
-		err := preProc.ProcessBlockTransactions(&block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}}, haveTime)
+		err := preProc.ProcessBlockTransactions(header, &block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}}, haveTime)
 		if err != nil {
 			return mbIndex, err
 		}
@@ -532,6 +535,8 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 	hdr data.HeaderHandler,
 	processedMiniBlocksHashes map[string]struct{},
 	haveTime func() bool,
+	haveAdditionalTime func() bool,
+	scheduledMode bool,
 ) (block.MiniBlockSlice, uint32, bool, error) {
 
 	miniBlocks := make(block.MiniBlockSlice, 0)
@@ -546,20 +551,23 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 
 	crossMiniBlockInfos := hdr.GetOrderedCrossMiniblocksWithDst(tc.shardCoordinator.SelfId())
 	for _, miniBlockInfo := range crossMiniBlockInfos {
-		if !haveTime() {
+		if !haveTime() && !haveAdditionalTime() {
 			log.Debug("CreateMbsAndProcessCrossShardTransactionsDstMe",
+				"scheduled mode", scheduledMode,
 				"stop creating", "time is out")
 			break
 		}
 
 		if tc.blockSizeComputation.IsMaxBlockSizeReached(0, 0) {
 			log.Debug("CreateMbsAndProcessCrossShardTransactionsDstMe",
+				"scheduled mode", scheduledMode,
 				"stop creating", "max block size has been reached")
 			break
 		}
 
 		if shouldSkipShard[miniBlockInfo.SenderShardID] {
 			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: should skip shard",
+				"scheduled mode", scheduledMode,
 				"sender shard", miniBlockInfo.SenderShardID,
 				"hash", miniBlockInfo.Hash,
 				"round", miniBlockInfo.Round,
@@ -571,6 +579,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		if ok {
 			nrMiniBlocksProcessed++
 			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: mini block already processed",
+				"scheduled mode", scheduledMode,
 				"sender shard", miniBlockInfo.SenderShardID,
 				"hash", miniBlockInfo.Hash,
 				"round", miniBlockInfo.Round,
@@ -583,6 +592,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			go tc.onRequestMiniBlock(miniBlockInfo.SenderShardID, miniBlockInfo.Hash)
 			shouldSkipShard[miniBlockInfo.SenderShardID] = true
 			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: mini block not found and was requested",
+				"scheduled mode", scheduledMode,
 				"sender shard", miniBlockInfo.SenderShardID,
 				"hash", miniBlockInfo.Hash,
 				"round", miniBlockInfo.Round,
@@ -594,6 +604,18 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		if !ok {
 			shouldSkipShard[miniBlockInfo.SenderShardID] = true
 			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: mini block assertion type failed",
+				"scheduled mode", scheduledMode,
+				"sender shard", miniBlockInfo.SenderShardID,
+				"hash", miniBlockInfo.Hash,
+				"round", miniBlockInfo.Round,
+			)
+			continue
+		}
+
+		if scheduledMode && !miniBlock.IsScheduledMiniBlock() {
+			shouldSkipShard[miniBlockInfo.SenderShardID] = true
+			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: mini block is not scheduled",
+				"scheduled mode", scheduledMode,
 				"sender shard", miniBlockInfo.SenderShardID,
 				"hash", miniBlockInfo.Hash,
 				"round", miniBlockInfo.Round,
@@ -610,6 +632,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		if requestedTxs > 0 {
 			shouldSkipShard[miniBlockInfo.SenderShardID] = true
 			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: transactions not found and were requested",
+				"scheduled mode", scheduledMode,
 				"sender shard", miniBlockInfo.SenderShardID,
 				"hash", miniBlockInfo.Hash,
 				"round", miniBlockInfo.Round,
@@ -618,10 +641,11 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			continue
 		}
 
-		err := tc.processCompleteMiniBlock(preproc, miniBlock, miniBlockInfo.Hash, haveTime)
+		err := tc.processCompleteMiniBlock(preproc, miniBlock, miniBlockInfo.Hash, haveTime, haveAdditionalTime, scheduledMode)
 		if err != nil {
 			shouldSkipShard[miniBlockInfo.SenderShardID] = true
 			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: processed complete mini block failed",
+				"scheduled mode", scheduledMode,
 				"sender shard", miniBlockInfo.SenderShardID,
 				"hash", miniBlockInfo.Hash,
 				"round", miniBlockInfo.Round,
@@ -633,6 +657,9 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		miniBlocks = append(miniBlocks, miniBlock)
 		nrTxAdded = nrTxAdded + uint32(len(miniBlock.TxHashes))
 		nrMiniBlocksProcessed++
+		if processedMiniBlocksHashes != nil {
+			processedMiniBlocksHashes[string(miniBlockInfo.Hash)] = struct{}{}
+		}
 	}
 
 	allMBsProcessed := nrMiniBlocksProcessed == len(crossMiniBlockInfos)
@@ -910,13 +937,16 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 	miniBlock *block.MiniBlock,
 	miniBlockHash []byte,
 	haveTime func() bool,
+	haveAdditionalTime func() bool,
+	scheduledMode bool,
 ) error {
 
 	snapshot := tc.accounts.JournalLen()
 
-	txsToBeReverted, numTxsProcessed, err := preproc.ProcessMiniBlock(miniBlock, haveTime, tc.getNumOfCrossInterMbsAndTxs)
+	txsToBeReverted, numTxsProcessed, err := preproc.ProcessMiniBlock(miniBlock, haveTime, haveAdditionalTime, tc.getNumOfCrossInterMbsAndTxs, scheduledMode)
 	if err != nil {
 		log.Debug("processCompleteMiniBlock.ProcessMiniBlock",
+			"scheduled mode", scheduledMode,
 			"hash", miniBlockHash,
 			"type", miniBlock.Type,
 			"snd shard", miniBlock.SenderShardID,

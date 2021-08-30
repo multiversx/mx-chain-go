@@ -17,8 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-const additionalTimeForCreatingScheduledMiniBlocks = 150 * time.Millisecond
-
 type txType int32
 
 const (
