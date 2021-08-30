@@ -68,15 +68,15 @@ func TestESDTMultiTransferToVault(t *testing.T) {
 	nonFungibleTokenIdentifier1 := issueNft(t, nodes, idxProposers, &nonce, &round, "NFT1", false)
 	nonFungibleTokenIdentifier2 := issueNft(t, nodes, idxProposers, &nonce, &round, "NFT2", false)
 
+	expectedIssuerBalance[nonFungibleTokenIdentifier1] = make(map[int64]int64)
+	expectedIssuerBalance[nonFungibleTokenIdentifier2] = make(map[int64]int64)
+
+	expectedVaultBalance[nonFungibleTokenIdentifier2] = make(map[int64]int64)
+	expectedVaultBalance[nonFungibleTokenIdentifier1] = make(map[int64]int64)
+
 	for i := int64(1); i <= 10; i++ {
 		createNFT(t, nodes, idxProposers, nonFungibleTokenIdentifier1, i, &nonce, &round)
 		createNFT(t, nodes, idxProposers, nonFungibleTokenIdentifier2, i, &nonce, &round)
-
-		expectedIssuerBalance[nonFungibleTokenIdentifier1] = make(map[int64]int64)
-		expectedVaultBalance[nonFungibleTokenIdentifier1] = make(map[int64]int64)
-
-		expectedIssuerBalance[nonFungibleTokenIdentifier2] = make(map[int64]int64)
-		expectedVaultBalance[nonFungibleTokenIdentifier2] = make(map[int64]int64)
 
 		expectedIssuerBalance[fungibleTokenIdentifier1][i] = 1
 		expectedIssuerBalance[fungibleTokenIdentifier2][i] = 1
@@ -86,15 +86,15 @@ func TestESDTMultiTransferToVault(t *testing.T) {
 	semiFungibleTokenIdentifier1 := issueNft(t, nodes, idxProposers, &nonce, &round, "SFT1", true)
 	semiFungibleTokenIdentifier2 := issueNft(t, nodes, idxProposers, &nonce, &round, "SFT2", true)
 
+	expectedIssuerBalance[semiFungibleTokenIdentifier1] = make(map[int64]int64)
+	expectedIssuerBalance[semiFungibleTokenIdentifier2] = make(map[int64]int64)
+
+	expectedVaultBalance[semiFungibleTokenIdentifier1] = make(map[int64]int64)
+	expectedVaultBalance[semiFungibleTokenIdentifier2] = make(map[int64]int64)
+
 	for i := int64(1); i <= 2; i++ {
 		createSFT(t, nodes, idxProposers, semiFungibleTokenIdentifier1, i, 1000, &nonce, &round)
 		createSFT(t, nodes, idxProposers, semiFungibleTokenIdentifier2, i, 1000, &nonce, &round)
-
-		expectedIssuerBalance[semiFungibleTokenIdentifier1] = make(map[int64]int64)
-		expectedVaultBalance[semiFungibleTokenIdentifier1] = make(map[int64]int64)
-
-		expectedIssuerBalance[semiFungibleTokenIdentifier2] = make(map[int64]int64)
-		expectedVaultBalance[semiFungibleTokenIdentifier2] = make(map[int64]int64)
 
 		expectedIssuerBalance[semiFungibleTokenIdentifier1][i] = 1000
 		expectedIssuerBalance[semiFungibleTokenIdentifier2][i] = 1000
@@ -187,12 +187,12 @@ func issueFungibleToken(t *testing.T, nodes []*integrationTests.TestProcessorNod
 func issueNft(t *testing.T, nodes []*integrationTests.TestProcessorNode, idxProposers []int,
 	nonce *uint64, round *uint64, ticker string, semiFungible bool) string {
 
-	issueFuncName := core.NonFungibleESDT
+	tokenType := core.NonFungibleESDT
 	if semiFungible {
-		issueFuncName = core.SemiFungibleESDT
+		tokenType = core.SemiFungibleESDT
 	}
 
-	esdt.IssueNFT(nodes, issueFuncName, ticker)
+	esdt.IssueNFT(nodes, tokenType, ticker)
 	waitForOperationCompletion(t, nodes, idxProposers, NR_ROUNDS_CROSS_SHARD, nonce, round)
 
 	issuerAddress := nodes[0].OwnAccount.Address
