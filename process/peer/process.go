@@ -756,7 +756,7 @@ func (vs *validatorStatistics) computeDecrease(
 		swInner := core.NewStopWatch()
 
 		swInner.Start("ComputeValidatorsGroup")
-		log.Trace("Decreasing", "round", i, "prevRandSeed", prevRandSeed, "shardId", shardID)
+		log.Trace("decreasing", "round", i, "prevRandSeed", prevRandSeed, "shardId", shardID)
 		consensusGroup, err := vs.nodesCoordinator.ComputeConsensusGroup(prevRandSeed, i, shardID, epoch)
 		swInner.Stop("ComputeValidatorsGroup")
 		if err != nil {
@@ -766,7 +766,7 @@ func (vs *validatorStatistics) computeDecrease(
 		swInner.Start("loadPeerAccount")
 		leaderPeerAcc, err := vs.loadPeerAccount(consensusGroup[0].PubKey())
 		leaderPK := core.GetTrimmedPk(vs.pubkeyConv.Encode(consensusGroup[0].PubKey()))
-		log.Debug("Decreasing for leader", "leader", leaderPK, "round", i)
+		log.Debug("decreasing for leader", "leader", leaderPK, "round", i)
 		swInner.Stop("loadPeerAccount")
 		if err != nil {
 			return err
