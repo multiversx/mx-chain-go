@@ -120,20 +120,7 @@ func setupNodesDelegationContractInitLiquidStaking(
 	}
 	idxProposers[numOfShards] = numOfShards * nodesPerShard
 
-	var tokenID []byte
-	for _, node := range nodes {
-		node.InitDelegationManager()
-		tmpTokenID := node.InitLiquidStaking()
-		if len(tmpTokenID) != 0 {
-			if len(tokenID) == 0 {
-				tokenID = tmpTokenID
-			}
-
-			if !bytes.Equal(tokenID, tmpTokenID) {
-				log.Error("tokenID missmatch", "current", tmpTokenID, "old", tokenID)
-			}
-		}
-	}
+	tokenID := initDelegationManagementAndLiquidStaking(nodes)
 
 	initialVal := big.NewInt(10000000000)
 	initialVal.Mul(initialVal, initialVal)
@@ -161,6 +148,24 @@ func setupNodesDelegationContractInitLiquidStaking(
 	time.Sleep(time.Second)
 
 	return nodes, idxProposers, delegationAddress, tokenID, nonce, round
+}
+
+func initDelegationManagementAndLiquidStaking(nodes []*integrationTests.TestProcessorNode) []byte {
+	var tokenID []byte
+	for _, node := range nodes {
+		node.InitDelegationManager()
+		tmpTokenID := node.InitLiquidStaking()
+		if len(tmpTokenID) != 0 {
+			if len(tokenID) == 0 {
+				tokenID = tmpTokenID
+			}
+
+			if !bytes.Equal(tokenID, tmpTokenID) {
+				log.Error("tokenID missmatch", "current", tmpTokenID, "old", tokenID)
+			}
+		}
+	}
+	return tokenID
 }
 
 func checkLPPosition(
