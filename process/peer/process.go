@@ -756,7 +756,7 @@ func (vs *validatorStatistics) computeDecrease(
 		swInner := core.NewStopWatch()
 
 		swInner.Start("ComputeValidatorsGroup")
-		log.Trace("decreasing", "round", i, "prevRandSeed", prevRandSeed, "shardId", shardID)
+		log.Debug("decreasing", "round", i, "prevRandSeed", prevRandSeed, "shardId", shardID)
 		consensusGroup, err := vs.nodesCoordinator.ComputeConsensusGroup(prevRandSeed, i, shardID, epoch)
 		swInner.Stop("ComputeValidatorsGroup")
 		if err != nil {
