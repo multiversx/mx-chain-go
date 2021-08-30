@@ -135,6 +135,35 @@ func CheckAddressHasESDTTokens(
 	}
 }
 
+// CheckAddressHasTokens - Works for both fungible and non-fungible, according to nonce
+func CheckAddressHasTokens(
+	t *testing.T,
+	address []byte,
+	nodes []*integrationTests.TestProcessorNode,
+	tokenName string,
+	nonce int64,
+	value int64,
+) {
+	if nonce == 0 {
+		CheckAddressHasESDTTokens(t, address, nodes, tokenName, value)
+		return
+	}
+
+	nonceAsBigInt := big.NewInt(nonce)
+	valueAsBigInt := big.NewInt(value)
+
+	tokenIdentifierPlusNonce := []byte(tokenName)
+	tokenIdentifierPlusNonce = append(tokenIdentifierPlusNonce, nonceAsBigInt.Bytes()...)
+	esdtData := GetESDTTokenData(t, address, nodes, string(tokenIdentifierPlusNonce))
+
+	if valueAsBigInt.Cmp(big.NewInt(0)) != 0 {
+		require.Fail(t, fmt.Sprintf("esdt balance difference. Nonce %s, expected %s, but got %s", nonceAsBigInt.String(), valueAsBigInt.String(), esdtData.Value.String()))
+	}
+
+	require.NotNil(t, esdtData.TokenMetaData)
+	require.Equal(t, valueAsBigInt.Bytes(), esdtData.Value.Bytes())
+}
+
 // CreateNodesAndPrepareBalances -
 func CreateNodesAndPrepareBalances(numOfShards int) ([]*integrationTests.TestProcessorNode, []int) {
 	nodesPerShard := 1

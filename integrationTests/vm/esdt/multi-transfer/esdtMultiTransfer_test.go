@@ -18,20 +18,18 @@ type esdtTransfer struct {
 	amount          int64
 }
 
-func TestESDTMultiTransferToVault(t *testing.T) {
+func TestFungibleESDTMultiTransferToVault(t *testing.T) {
 	logger.ToggleLoggerName(true)
-	logger.SetLogLevel("*:INFO,integrationtests:NONE,p2p/libp2p:NONE,process/block:NONE,process/smartcontract:TRACE,process/smartcontract/blockchainhook:NONE")
+	_ = logger.SetLogLevel("*:INFO,integrationtests:NONE,p2p/libp2p:NONE,process/block:NONE,process/smartcontract:TRACE,process/smartcontract/blockchainhook:NONE")
 
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
 	nodes, idxProposers := esdt.CreateNodesAndPrepareBalances(1)
-	tokenIssuerAddress := nodes[0].OwnAccount.Address
-	intraShardOpWaitTimeInRounds := 1
 
-	expectedIssuerBalance := make(map[string]int64)
-	expectedVaultBalance := make(map[string]int64)
+	expectedIssuerBalance := make(map[string]map[int64]int64)
+	expectedVaultBalance := make(map[string]map[int64]int64)
 
 	defer func() {
 		for _, n := range nodes {
@@ -50,74 +48,88 @@ func TestESDTMultiTransferToVault(t *testing.T) {
 	// deploy vault SC
 	vaultScAddress := esdt.DeployNonPayableSmartContract(t, nodes, idxProposers, &nonce, &round,
 		"../testdata/vault.wasm")
-	acceptMultiTransferEndpointName := "accept_funds_multi_transfer"
 
 	// issue two fungible tokens
 	fungibleTokenIdentifier1 := issueFungibleToken(t, nodes, idxProposers, &nonce, &round, 1000, "FUNG1")
 	fungibleTokenIdentifier2 := issueFungibleToken(t, nodes, idxProposers, &nonce, &round, 1000, "FUNG2")
 
-	expectedIssuerBalance[fungibleTokenIdentifier1] = 1000
-	expectedIssuerBalance[fungibleTokenIdentifier2] = 1000
+	expectedIssuerBalance[fungibleTokenIdentifier1] = make(map[int64]int64)
+	expectedIssuerBalance[fungibleTokenIdentifier2] = make(map[int64]int64)
+	expectedVaultBalance[fungibleTokenIdentifier1] = make(map[int64]int64)
+	expectedVaultBalance[fungibleTokenIdentifier2] = make(map[int64]int64)
+
+	expectedIssuerBalance[fungibleTokenIdentifier1][0] = 1000
+	expectedIssuerBalance[fungibleTokenIdentifier2][0] = 1000
 
 	// send a single ESDT with multi-transfer
-	txData := buildEsdtMultiTransferTxData(vaultScAddress, []esdtTransfer{
+	transfers := []esdtTransfer{
 		{
 			tokenIdentifier: fungibleTokenIdentifier1,
 			nonce:           0,
 			amount:          100,
-		}},
-		acceptMultiTransferEndpointName,
+		}}
+	multiTransferToVault(t, nodes, idxProposers,
+		vaultScAddress, transfers,
+		expectedIssuerBalance, expectedVaultBalance,
+		&nonce, &round,
 	)
-	integrationTests.CreateAndSendTransaction(
-		nodes[0],
-		nodes,
-		big.NewInt(0),
-		tokenIssuerAddress,
-		string(txData),
-		integrationTests.AdditionalGasLimit,
-	)
-	waitForOperationCompletion(t, nodes, idxProposers, intraShardOpWaitTimeInRounds, &nonce, &round)
-
-	expectedIssuerBalance[fungibleTokenIdentifier1] -= 100
-	expectedVaultBalance[fungibleTokenIdentifier1] += 100
-
-	esdt.CheckAddressHasESDTTokens(t, tokenIssuerAddress, nodes,
-		fungibleTokenIdentifier1, expectedIssuerBalance[fungibleTokenIdentifier1])
-	esdt.CheckAddressHasESDTTokens(t, vaultScAddress, nodes,
-		fungibleTokenIdentifier1, expectedVaultBalance[fungibleTokenIdentifier1])
 
 	// send two identical transfers with multi-transfer
 
-	txData = buildEsdtMultiTransferTxData(vaultScAddress, []esdtTransfer{
+	transfers = []esdtTransfer{
 		{
 			tokenIdentifier: fungibleTokenIdentifier1,
 			nonce:           0,
 			amount:          50,
-		}, /*
-			{
-				tokenIdentifier: fungibleTokenIdentifier1,
-				nonce:           0,
-				amount:          40,
-			}*/},
-		acceptMultiTransferEndpointName,
+		},
+		{
+			tokenIdentifier: fungibleTokenIdentifier1,
+			nonce:           0,
+			amount:          50,
+		}}
+	multiTransferToVault(t, nodes, idxProposers,
+		vaultScAddress, transfers,
+		expectedIssuerBalance, expectedVaultBalance,
+		&nonce, &round,
 	)
-	integrationTests.CreateAndSendTransaction(
-		nodes[0],
-		nodes,
-		big.NewInt(0),
-		tokenIssuerAddress,
-		string(txData),
-		integrationTests.AdditionalGasLimit,
+
+	// send two different transfers amounts, same token
+
+	transfers = []esdtTransfer{
+		{
+			tokenIdentifier: fungibleTokenIdentifier1,
+			nonce:           0,
+			amount:          50,
+		},
+		{
+			tokenIdentifier: fungibleTokenIdentifier1,
+			nonce:           0,
+			amount:          100,
+		}}
+	multiTransferToVault(t, nodes, idxProposers,
+		vaultScAddress, transfers,
+		expectedIssuerBalance, expectedVaultBalance,
+		&nonce, &round,
 	)
-	waitForOperationCompletion(t, nodes, idxProposers, intraShardOpWaitTimeInRounds, &nonce, &round)
 
-	expectedIssuerBalance[fungibleTokenIdentifier1] -= 50
-	expectedVaultBalance[fungibleTokenIdentifier1] += 50
+	// send two different tokens, same amount
 
-	esdt.CheckAddressHasESDTTokens(t, tokenIssuerAddress, nodes,
-		fungibleTokenIdentifier1, expectedIssuerBalance[fungibleTokenIdentifier1])
-	esdt.CheckAddressHasESDTTokens(t, vaultScAddress, nodes,
-		fungibleTokenIdentifier1, expectedVaultBalance[fungibleTokenIdentifier1])
+	transfers = []esdtTransfer{
+		{
+			tokenIdentifier: fungibleTokenIdentifier1,
+			nonce:           0,
+			amount:          100,
+		},
+		{
+			tokenIdentifier: fungibleTokenIdentifier2,
+			nonce:           0,
+			amount:          100,
+		}}
+	multiTransferToVault(t, nodes, idxProposers,
+		vaultScAddress, transfers,
+		expectedIssuerBalance, expectedVaultBalance,
+		&nonce, &round,
+	)
 }
 
 func issueFungibleToken(t *testing.T, nodes []*integrationTests.TestProcessorNode, idxProposers []int,
@@ -138,7 +150,7 @@ func issueFungibleToken(t *testing.T, nodes []*integrationTests.TestProcessorNod
 }
 
 func buildEsdtMultiTransferTxData(receiverAddress []byte, transfers []esdtTransfer,
-	endpointName string, arguments ...[]byte) []byte {
+	endpointName string, arguments ...[]byte) string {
 
 	nrTransfers := len(transfers)
 
@@ -161,7 +173,7 @@ func buildEsdtMultiTransferTxData(receiverAddress []byte, transfers []esdtTransf
 		}
 	}
 
-	return txData.ToBytes()
+	return txData.ToString()
 }
 
 func waitForOperationCompletion(t *testing.T, nodes []*integrationTests.TestProcessorNode, idxProposers []int,
@@ -170,4 +182,47 @@ func waitForOperationCompletion(t *testing.T, nodes []*integrationTests.TestProc
 	time.Sleep(time.Second)
 	*nonce, *round = integrationTests.WaitOperationToBeDone(t, nodes, roundsToWait, *nonce, *round, idxProposers)
 	time.Sleep(time.Second)
+}
+
+func multiTransferToVault(t *testing.T,
+	nodes []*integrationTests.TestProcessorNode, idxProposers []int,
+	vaultScAddress []byte, transfers []esdtTransfer,
+	userBalances map[string]map[int64]int64, scBalances map[string]map[int64]int64,
+	nonce *uint64, round *uint64) {
+
+	acceptMultiTransferEndpointName := "accept_funds_multi_transfer"
+	tokenIssuerAddress := nodes[0].OwnAccount.Address
+	intraShardOpWaitTimeInRounds := 1
+
+	txData := buildEsdtMultiTransferTxData(vaultScAddress,
+		transfers,
+		acceptMultiTransferEndpointName,
+	)
+
+	integrationTests.CreateAndSendTransaction(
+		nodes[0],
+		nodes,
+		big.NewInt(0),
+		tokenIssuerAddress,
+		txData,
+		integrationTests.AdditionalGasLimit,
+	)
+	waitForOperationCompletion(t, nodes, idxProposers, intraShardOpWaitTimeInRounds, nonce, round)
+
+	// update expected balances after transfers
+	for _, transfer := range transfers {
+		userBalances[transfer.tokenIdentifier][transfer.nonce] -= transfer.amount
+		scBalances[transfer.tokenIdentifier][transfer.nonce] += transfer.amount
+	}
+
+	// check expected vs actual values
+	for _, transfer := range transfers {
+		expectedUserBalance := userBalances[transfer.tokenIdentifier][transfer.nonce]
+		expectedScBalance := scBalances[transfer.tokenIdentifier][transfer.nonce]
+
+		esdt.CheckAddressHasTokens(t, tokenIssuerAddress, nodes,
+			transfer.tokenIdentifier, transfer.nonce, expectedUserBalance)
+		esdt.CheckAddressHasTokens(t, vaultScAddress, nodes,
+			transfer.tokenIdentifier, transfer.nonce, expectedScBalance)
+	}
 }
