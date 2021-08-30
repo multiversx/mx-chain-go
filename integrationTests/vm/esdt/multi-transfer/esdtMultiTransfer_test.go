@@ -71,15 +71,15 @@ func TestESDTMultiTransferToVault(t *testing.T) {
 	expectedIssuerBalance[nonFungibleTokenIdentifier1] = make(map[int64]int64)
 	expectedIssuerBalance[nonFungibleTokenIdentifier2] = make(map[int64]int64)
 
-	expectedVaultBalance[nonFungibleTokenIdentifier2] = make(map[int64]int64)
 	expectedVaultBalance[nonFungibleTokenIdentifier1] = make(map[int64]int64)
+	expectedVaultBalance[nonFungibleTokenIdentifier2] = make(map[int64]int64)
 
 	for i := int64(1); i <= 10; i++ {
 		createNFT(t, nodes, idxProposers, nonFungibleTokenIdentifier1, i, &nonce, &round)
 		createNFT(t, nodes, idxProposers, nonFungibleTokenIdentifier2, i, &nonce, &round)
 
-		expectedIssuerBalance[fungibleTokenIdentifier1][i] = 1
-		expectedIssuerBalance[fungibleTokenIdentifier2][i] = 1
+		expectedIssuerBalance[nonFungibleTokenIdentifier1][i] = 1
+		expectedIssuerBalance[nonFungibleTokenIdentifier2][i] = 1
 	}
 
 	/*
@@ -171,20 +171,19 @@ func TestESDTMultiTransferToVault(t *testing.T) {
 		&nonce, &round,
 	)
 
-	/*
-		// send single NFT
-		transfers = []esdtTransfer{
-			{
-				tokenIdentifier: nonFungibleTokenIdentifier1,
-				nonce:           1,
-				amount:          1,
-			}}
-		multiTransferToVault(t, nodes, idxProposers,
-			vaultScAddress, transfers,
-			expectedIssuerBalance, expectedVaultBalance,
-			&nonce, &round,
-		)
-	*/
+	// send single NFT
+	transfers = []esdtTransfer{
+		{
+			tokenIdentifier: nonFungibleTokenIdentifier1,
+			nonce:           1,
+			amount:          1,
+		}}
+	multiTransferToVault(t, nodes, idxProposers,
+		vaultScAddress, transfers,
+		expectedIssuerBalance, expectedVaultBalance,
+		&nonce, &round,
+	)
+
 	/*
 
 		// send two NFTs, same token ID

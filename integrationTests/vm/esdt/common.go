@@ -157,6 +157,15 @@ func CheckAddressHasTokens(
 	tokenIdentifierPlusNonce = append(tokenIdentifierPlusNonce, nonceAsBigInt.Bytes()...)
 	esdtData := GetESDTTokenData(t, address, nodes, string(tokenIdentifierPlusNonce))
 
+	if esdtData == nil {
+		esdtData = &esdt.ESDigitalToken{
+			Value: big.NewInt(0),
+		}
+	}
+	if esdtData.Value == nil {
+		esdtData.Value = big.NewInt(0)
+	}
+
 	if valueAsBigInt.Cmp(esdtData.Value) != 0 {
 		require.Fail(t, fmt.Sprintf("esdt NFT balance difference. Token %s, nonce %s, expected %s, but got %s",
 			tokenName, nonceAsBigInt.String(), valueAsBigInt.String(), esdtData.Value.String()))
