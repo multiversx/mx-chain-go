@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
 
@@ -186,16 +187,32 @@ func (net *TestNetwork) SendTxFromNode(tx *transaction.Transaction, node *TestPr
 	return hash
 }
 
-// DeploySC -
-func (net *TestNetwork) DeploySC(owner *TestWalletAccount, fileName string) []byte {
+// DeploySC deploys a payable contract with the bytecode specified by fileName.
+func (net *TestNetwork) DeployPayableSC(owner *TestWalletAccount, fileName string) []byte {
+	return net.DeploySC(owner, fileName, true)
+}
+
+// DeploySC deploys a non-payable contract with the bytecode specified by fileName.
+func (net *TestNetwork) DeployNonpayableSC(owner *TestWalletAccount, fileName string) []byte {
+	return net.DeploySC(owner, fileName, false)
+}
+
+// DeploySC deploys a contract with the bytecode specified by fileName.
+func (net *TestNetwork) DeploySC(owner *TestWalletAccount, fileName string, payable bool) []byte {
 	scAddress := net.NewAddress(owner)
 	code, err := ioutil.ReadFile(filepath.Clean(fileName))
 	require.Nil(net.T, err)
 
-	deploymentData := txDataBuilder.NewBuilder().
-		Bytes(code).
-		Bytes(net.DefaultVM).
-		Bytes([]byte{0, 0})
+	codeMetadata := &vmcommon.CodeMetadata{
+		Payable:     payable,
+		Upgradeable: false,
+		Readable:    false,
+	}
+
+	deploymentData := txDataBuilder.NewBuilder()
+	deploymentData.Bytes(code)
+	deploymentData.Bytes(net.DefaultVM)
+	deploymentData.Bytes(codeMetadata.ToBytes())
 
 	tx := net.CreateTxUint64(
 		owner,
