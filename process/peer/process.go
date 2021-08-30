@@ -766,7 +766,7 @@ func (vs *validatorStatistics) computeDecrease(
 		swInner.Start("loadPeerAccount")
 		leaderPeerAcc, err := vs.loadPeerAccount(consensusGroup[0].PubKey())
 		leaderPK := core.GetTrimmedPk(vs.pubkeyConv.Encode(consensusGroup[0].PubKey()))
-		log.Trace("Decreasing for leader", "leader", leaderPK, "round", i)
+		log.Debug("Decreasing for leader", "leader", leaderPK, "round", i)
 		swInner.Stop("loadPeerAccount")
 		if err != nil {
 			return err
