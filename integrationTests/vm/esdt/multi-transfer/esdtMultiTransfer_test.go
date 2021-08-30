@@ -82,23 +82,27 @@ func TestESDTMultiTransferToVault(t *testing.T) {
 		expectedIssuerBalance[fungibleTokenIdentifier2][i] = 1
 	}
 
-	// issue two SFTs, with two NFTCreate for each
-	semiFungibleTokenIdentifier1 := issueNft(t, nodes, idxProposers, &nonce, &round, "SFT1", true)
-	semiFungibleTokenIdentifier2 := issueNft(t, nodes, idxProposers, &nonce, &round, "SFT2", true)
+	/*
 
-	expectedIssuerBalance[semiFungibleTokenIdentifier1] = make(map[int64]int64)
-	expectedIssuerBalance[semiFungibleTokenIdentifier2] = make(map[int64]int64)
+		// issue two SFTs, with two NFTCreate for each
+		semiFungibleTokenIdentifier1 := issueNft(t, nodes, idxProposers, &nonce, &round, "SFT1", true)
+		semiFungibleTokenIdentifier2 := issueNft(t, nodes, idxProposers, &nonce, &round, "SFT2", true)
 
-	expectedVaultBalance[semiFungibleTokenIdentifier1] = make(map[int64]int64)
-	expectedVaultBalance[semiFungibleTokenIdentifier2] = make(map[int64]int64)
+		expectedIssuerBalance[semiFungibleTokenIdentifier1] = make(map[int64]int64)
+		expectedIssuerBalance[semiFungibleTokenIdentifier2] = make(map[int64]int64)
 
-	for i := int64(1); i <= 2; i++ {
-		createSFT(t, nodes, idxProposers, semiFungibleTokenIdentifier1, i, 1000, &nonce, &round)
-		createSFT(t, nodes, idxProposers, semiFungibleTokenIdentifier2, i, 1000, &nonce, &round)
+		expectedVaultBalance[semiFungibleTokenIdentifier1] = make(map[int64]int64)
+		expectedVaultBalance[semiFungibleTokenIdentifier2] = make(map[int64]int64)
 
-		expectedIssuerBalance[semiFungibleTokenIdentifier1][i] = 1000
-		expectedIssuerBalance[semiFungibleTokenIdentifier2][i] = 1000
-	}
+		for i := int64(1); i <= 2; i++ {
+			createSFT(t, nodes, idxProposers, semiFungibleTokenIdentifier1, i, 1000, &nonce, &round)
+			createSFT(t, nodes, idxProposers, semiFungibleTokenIdentifier2, i, 1000, &nonce, &round)
+
+			expectedIssuerBalance[semiFungibleTokenIdentifier1][i] = 1000
+			expectedIssuerBalance[semiFungibleTokenIdentifier2][i] = 1000
+		}
+
+	*/
 
 	// send a single ESDT with multi-transfer
 	transfers := []esdtTransfer{
@@ -166,6 +170,88 @@ func TestESDTMultiTransferToVault(t *testing.T) {
 		expectedIssuerBalance, expectedVaultBalance,
 		&nonce, &round,
 	)
+
+	/*
+		// send single NFT
+		transfers = []esdtTransfer{
+			{
+				tokenIdentifier: nonFungibleTokenIdentifier1,
+				nonce:           1,
+				amount:          1,
+			}}
+		multiTransferToVault(t, nodes, idxProposers,
+			vaultScAddress, transfers,
+			expectedIssuerBalance, expectedVaultBalance,
+			&nonce, &round,
+		)
+	*/
+	/*
+
+		// send two NFTs, same token ID
+		transfers = []esdtTransfer{
+			{
+				tokenIdentifier: nonFungibleTokenIdentifier1,
+				nonce:           2,
+				amount:          1,
+			},
+			{
+				tokenIdentifier: nonFungibleTokenIdentifier1,
+				nonce:           3,
+				amount:          1,
+			}}
+		multiTransferToVault(t, nodes, idxProposers,
+			vaultScAddress, transfers,
+			expectedIssuerBalance, expectedVaultBalance,
+			&nonce, &round,
+		)
+
+		// send two NFTs, different token ID
+		transfers = []esdtTransfer{
+			{
+				tokenIdentifier: nonFungibleTokenIdentifier1,
+				nonce:           4,
+				amount:          1,
+			},
+			{
+				tokenIdentifier: nonFungibleTokenIdentifier2,
+				nonce:           1,
+				amount:          1,
+			}}
+		multiTransferToVault(t, nodes, idxProposers,
+			vaultScAddress, transfers,
+			expectedIssuerBalance, expectedVaultBalance,
+			&nonce, &round,
+		)
+
+		// send fours NFTs, two of each different token ID
+		transfers = []esdtTransfer{
+			{
+				tokenIdentifier: nonFungibleTokenIdentifier1,
+				nonce:           5,
+				amount:          1,
+			},
+			{
+				tokenIdentifier: nonFungibleTokenIdentifier2,
+				nonce:           2,
+				amount:          1,
+			},
+			{
+				tokenIdentifier: nonFungibleTokenIdentifier1,
+				nonce:           6,
+				amount:          1,
+			},
+			{
+				tokenIdentifier: nonFungibleTokenIdentifier2,
+				nonce:           3,
+				amount:          1,
+			}}
+		multiTransferToVault(t, nodes, idxProposers,
+			vaultScAddress, transfers,
+			expectedIssuerBalance, expectedVaultBalance,
+			&nonce, &round,
+		)
+
+	*/
 }
 
 func issueFungibleToken(t *testing.T, nodes []*integrationTests.TestProcessorNode, idxProposers []int,
