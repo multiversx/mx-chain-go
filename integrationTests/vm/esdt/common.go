@@ -156,12 +156,11 @@ func CheckAddressHasTokens(
 	tokenIdentifierPlusNonce = append(tokenIdentifierPlusNonce, nonceAsBigInt.Bytes()...)
 	esdtData := GetESDTTokenData(t, address, nodes, string(tokenIdentifierPlusNonce))
 
-	if valueAsBigInt.Cmp(big.NewInt(0)) != 0 {
+	if valueAsBigInt.Cmp(esdtData.Value) != 0 {
 		require.Fail(t, fmt.Sprintf("esdt balance difference. Nonce %s, expected %s, but got %s", nonceAsBigInt.String(), valueAsBigInt.String(), esdtData.Value.String()))
 	}
 
 	require.NotNil(t, esdtData.TokenMetaData)
-	require.Equal(t, valueAsBigInt.Bytes(), esdtData.Value.Bytes())
 }
 
 // CreateNodesAndPrepareBalances -

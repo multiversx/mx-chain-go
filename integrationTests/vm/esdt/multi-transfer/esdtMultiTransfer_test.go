@@ -12,13 +12,16 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 )
 
+const NR_ROUNDS_CROSS_SHARD = 15
+const NR_ROUNDS_SAME_SHARD = 1
+
 type esdtTransfer struct {
 	tokenIdentifier string
 	nonce           int64
 	amount          int64
 }
 
-func TestFungibleESDTMultiTransferToVault(t *testing.T) {
+func TestESDTMultiTransferToVault(t *testing.T) {
 	logger.ToggleLoggerName(true)
 	_ = logger.SetLogLevel("*:INFO,integrationtests:NONE,p2p/libp2p:NONE,process/block:NONE,process/smartcontract:TRACE,process/smartcontract/blockchainhook:NONE")
 
@@ -61,6 +64,18 @@ func TestFungibleESDTMultiTransferToVault(t *testing.T) {
 	expectedIssuerBalance[fungibleTokenIdentifier1][0] = 1000
 	expectedIssuerBalance[fungibleTokenIdentifier2][0] = 1000
 
+	// issue two one NFT, with multiple NFTCreate
+	nonFungibleTokenIdentifier1 := issueNft(t, nodes, idxProposers, &nonce, &round, "NFT1", false)
+
+	for i := int64(1); i <= 5; i++ {
+		createNFT(t, nodes, idxProposers, nonFungibleTokenIdentifier1, i, &nonce, &round)
+
+		expectedIssuerBalance[nonFungibleTokenIdentifier1] = make(map[int64]int64)
+		expectedVaultBalance[nonFungibleTokenIdentifier1] = make(map[int64]int64)
+
+		expectedIssuerBalance[fungibleTokenIdentifier1][i] = 1
+	}
+
 	// send a single ESDT with multi-transfer
 	transfers := []esdtTransfer{
 		{
@@ -75,7 +90,6 @@ func TestFungibleESDTMultiTransferToVault(t *testing.T) {
 	)
 
 	// send two identical transfers with multi-transfer
-
 	transfers = []esdtTransfer{
 		{
 			tokenIdentifier: fungibleTokenIdentifier1,
@@ -94,7 +108,6 @@ func TestFungibleESDTMultiTransferToVault(t *testing.T) {
 	)
 
 	// send two different transfers amounts, same token
-
 	transfers = []esdtTransfer{
 		{
 			tokenIdentifier: fungibleTokenIdentifier1,
@@ -113,7 +126,6 @@ func TestFungibleESDTMultiTransferToVault(t *testing.T) {
 	)
 
 	// send two different tokens, same amount
-
 	transfers = []esdtTransfer{
 		{
 			tokenIdentifier: fungibleTokenIdentifier1,
@@ -136,17 +148,79 @@ func issueFungibleToken(t *testing.T, nodes []*integrationTests.TestProcessorNod
 	nonce *uint64, round *uint64, initialSupply int64, ticker string) string {
 
 	tokenIssuer := nodes[0]
-	nrRoundsToPropagateMultiShard := 15
 
 	esdt.IssueTestToken(nodes, initialSupply, ticker)
-	waitForOperationCompletion(t, nodes, idxProposers, nrRoundsToPropagateMultiShard, nonce, round)
+	waitForOperationCompletion(t, nodes, idxProposers, NR_ROUNDS_CROSS_SHARD, nonce, round)
 
 	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte(ticker)))
 
-	esdt.CheckAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes,
-		tokenIdentifier, initialSupply)
+	esdt.CheckAddressHasTokens(t, tokenIssuer.OwnAccount.Address, nodes,
+		tokenIdentifier, 0, initialSupply)
 
 	return tokenIdentifier
+}
+
+func issueNft(t *testing.T, nodes []*integrationTests.TestProcessorNode, idxProposers []int,
+	nonce *uint64, round *uint64, ticker string, semiFungible bool) string {
+
+	issueFuncName := core.NonFungibleESDT
+	if semiFungible {
+		issueFuncName = core.SemiFungibleESDT
+	}
+
+	esdt.IssueNFT(nodes, issueFuncName, ticker)
+	waitForOperationCompletion(t, nodes, idxProposers, NR_ROUNDS_CROSS_SHARD, nonce, round)
+
+	issuerAddress := nodes[0].OwnAccount.Address
+	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte(ticker)))
+
+	esdt.SetRoles(nodes, issuerAddress, []byte(tokenIdentifier), [][]byte{
+		[]byte("ESDTRoleNFTCreate"),
+	})
+	waitForOperationCompletion(t, nodes, idxProposers, NR_ROUNDS_CROSS_SHARD, nonce, round)
+
+	return tokenIdentifier
+}
+
+func createSFT(t *testing.T, nodes []*integrationTests.TestProcessorNode, idxProposers []int,
+	tokenIdentifier string, createdTokenNonce int64, initialSupply int64,
+	nonce *uint64, round *uint64) {
+
+	issuerAddress := nodes[0].OwnAccount.Address
+
+	tokenName := "token"
+	royalties := big.NewInt(0)
+	hash := "someHash"
+	attributes := "cool nft"
+	uri := "www.my-cool-nfts.com"
+
+	txData := txDataBuilder.NewBuilder()
+	txData.Func(core.BuiltInFunctionESDTNFTCreate)
+	txData.Str(tokenIdentifier)
+	txData.Int64(initialSupply)
+	txData.Str(tokenName)
+	txData.BigInt(royalties)
+	txData.Str(hash)
+	txData.Str(attributes)
+	txData.Str(uri)
+
+	integrationTests.CreateAndSendTransaction(nodes[0],
+		nodes,
+		big.NewInt(0),
+		issuerAddress,
+		txData.ToString(),
+		integrationTests.AdditionalGasLimit)
+	waitForOperationCompletion(t, nodes, idxProposers, NR_ROUNDS_SAME_SHARD, nonce, round)
+
+	esdt.CheckAddressHasTokens(t, issuerAddress, nodes,
+		tokenIdentifier, createdTokenNonce, initialSupply)
+}
+
+func createNFT(t *testing.T, nodes []*integrationTests.TestProcessorNode, idxProposers []int,
+	tokenIdentifier string, createdTokenNonce int64,
+	nonce *uint64, round *uint64) {
+
+	createSFT(t, nodes, idxProposers, tokenIdentifier, createdTokenNonce, 1, nonce, round)
 }
 
 func buildEsdtMultiTransferTxData(receiverAddress []byte, transfers []esdtTransfer,
@@ -192,7 +266,6 @@ func multiTransferToVault(t *testing.T,
 
 	acceptMultiTransferEndpointName := "accept_funds_multi_transfer"
 	tokenIssuerAddress := nodes[0].OwnAccount.Address
-	intraShardOpWaitTimeInRounds := 1
 
 	txData := buildEsdtMultiTransferTxData(vaultScAddress,
 		transfers,
@@ -207,7 +280,7 @@ func multiTransferToVault(t *testing.T,
 		txData,
 		integrationTests.AdditionalGasLimit,
 	)
-	waitForOperationCompletion(t, nodes, idxProposers, intraShardOpWaitTimeInRounds, nonce, round)
+	waitForOperationCompletion(t, nodes, idxProposers, NR_ROUNDS_SAME_SHARD, nonce, round)
 
 	// update expected balances after transfers
 	for _, transfer := range transfers {
