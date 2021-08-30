@@ -2,12 +2,15 @@ package integrationTests
 
 import (
 	"fmt"
+	"io/ioutil"
 	"math/big"
+	"path/filepath"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 	"github.com/stretchr/testify/require"
 )
 
@@ -160,7 +163,7 @@ func (net *TestNetwork) MintWalletsUint64(value uint64) {
 }
 
 // SendTx submits the provided transaction to the test network; transaction
-// must be already signed.
+// must be already signed. Returns the transaction hash.
 func (net *TestNetwork) SendTx(tx *transaction.Transaction) string {
 	node := net.firstNodeInShardOfAddress(tx.SndAddr)
 	return net.SendTxFromNode(tx, node)
@@ -168,19 +171,46 @@ func (net *TestNetwork) SendTx(tx *transaction.Transaction) string {
 
 // SignAndSendTx signs then submits the provided transaction to the test
 // network, using the provided signer account; use it to send transactions that
-// have been modified after being created.
+// have been modified after being created. Returns the transaction hash.
 func (net *TestNetwork) SignAndSendTx(signer *TestWalletAccount, tx *transaction.Transaction) string {
 	net.SignTx(signer, tx)
 	return net.SendTx(tx)
 }
 
 // SendTxFromNode submits the provided transaction via the specified node;
-// transaction must be already signed.
+// transaction must be already signed. Returns the transaction hash.
 func (net *TestNetwork) SendTxFromNode(tx *transaction.Transaction, node *TestProcessorNode) string {
 	hash, err := node.SendTransaction(tx)
 	net.handleOrBypassError(err)
 
 	return hash
+}
+
+// DeploySC -
+func (net *TestNetwork) DeploySC(owner *TestWalletAccount, fileName string) []byte {
+	scAddress := net.NewAddress(owner)
+	code, err := ioutil.ReadFile(filepath.Clean(fileName))
+	require.Nil(net.T, err)
+
+	deploymentData := txDataBuilder.NewBuilder().
+		Bytes(code).
+		Bytes(net.DefaultVM).
+		Bytes([]byte{0, 0})
+
+	tx := net.CreateTxUint64(
+		owner,
+		net.DeploymentAddress,
+		0,
+		deploymentData.ToBytes(),
+	)
+	tx.GasLimit = net.MaxGasLimit
+	_ = net.SignAndSendTx(owner, tx)
+
+	net.Steps(4)
+
+	_ = net.GetAccountHandler(scAddress)
+
+	return scAddress
 }
 
 // CreateSignedTx creates a new transaction from provided information and signs

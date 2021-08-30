@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
@@ -22,9 +21,6 @@ type esdtTransfer struct {
 }
 
 func TestESDTMultiTransferToVault(t *testing.T) {
-	logger.ToggleLoggerName(true)
-	_ = logger.SetLogLevel("*:INFO,integrationtests:NONE,p2p/libp2p:NONE,process/block:NONE,process/smartcontract:TRACE,process/smartcontract/blockchainhook:NONE")
-
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -253,6 +249,53 @@ func TestESDTMultiTransferToVault(t *testing.T) {
 	*/
 }
 
+func TestESDTMultiTransferAsync(t *testing.T) {
+	net := integrationTests.NewTestNetworkSized(t, 2, 1, 1)
+	net.Start()
+	initialVal := uint64(1000000000)
+	net.MintNodeAccountsUint64(initialVal)
+	net.Step()
+
+	owner := net.NodesSharded[0][0].OwnAccount
+	forwarder := net.DeploySC(owner, "../testdata/forwarder.wasm")
+
+	// Create the fungible token
+	supply := int64(1000)
+	fungibleTokenIdentifier := issueFungibleToken(
+		t,
+		net.Nodes,
+		net.Proposers,
+		&net.Nonce,
+		&net.Round,
+		supply,
+		"FUNG1")
+
+	// Send half of the tokens to the forwarder SC
+	acceptMultiTransferEndpointName := "accept_funds_multi_transfer"
+	txData := buildEsdtMultiTransferTxData(forwarder,
+		[]esdtTransfer{
+			{
+				tokenIdentifier: fungibleTokenIdentifier,
+				nonce:           0,
+				amount:          supply / 2,
+			},
+		},
+		acceptMultiTransferEndpointName,
+	)
+	tx := net.CreateTxUint64(
+		owner,
+		owner.Address,
+		0,
+		[]byte(txData))
+	tx.GasLimit = net.MaxGasLimit
+	_ = net.SignAndSendTx(owner, tx)
+	net.Steps(NR_ROUNDS_CROSS_SHARD)
+	esdt.CheckAddressHasESDTTokens(t, owner.Address, net.Nodes, fungibleTokenIdentifier, supply/2)
+	esdt.CheckAddressHasESDTTokens(t, forwarder, net.Nodes, fungibleTokenIdentifier, supply/2)
+
+	defer net.Close()
+}
+
 func issueFungibleToken(t *testing.T, nodes []*integrationTests.TestProcessorNode, idxProposers []int,
 	nonce *uint64, round *uint64, initialSupply int64, ticker string) string {
 
@@ -367,12 +410,17 @@ func waitForOperationCompletion(t *testing.T, nodes []*integrationTests.TestProc
 	time.Sleep(time.Second)
 }
 
-func multiTransferToVault(t *testing.T,
-	nodes []*integrationTests.TestProcessorNode, idxProposers []int,
-	vaultScAddress []byte, transfers []esdtTransfer,
-	userBalances map[string]map[int64]int64, scBalances map[string]map[int64]int64,
-	nonce *uint64, round *uint64) {
-
+func multiTransferToVault(
+	t *testing.T,
+	nodes []*integrationTests.TestProcessorNode,
+	idxProposers []int,
+	vaultScAddress []byte,
+	transfers []esdtTransfer,
+	userBalances map[string]map[int64]int64,
+	scBalances map[string]map[int64]int64,
+	nonce *uint64,
+	round *uint64,
+) {
 	acceptMultiTransferEndpointName := "accept_funds_multi_transfer"
 	tokenIssuerAddress := nodes[0].OwnAccount.Address
 

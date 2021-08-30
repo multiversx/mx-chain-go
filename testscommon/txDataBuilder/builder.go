@@ -32,14 +32,18 @@ func (builder *txDataBuilder) Clear() *txDataBuilder {
 	return builder
 }
 
+// Elements -
+func (builder *txDataBuilder) Elements() []string {
+	return builder.elements
+}
+
 // ToString returns the data as a string.
 func (builder *txDataBuilder) ToString() string {
-	data := builder.function
-	for _, element := range builder.elements {
-		data = data + builder.separator + element
+	if len(builder.function) > 0 {
+		return builder.toStringWithFunction()
 	}
 
-	return data
+	return builder.toStringWithoutFunction()
 }
 
 // ToBytes returns the data as a slice of bytes.
@@ -195,4 +199,26 @@ func (builder *txDataBuilder) CanAddSpecialRoles(prop bool) *txDataBuilder {
 // IsInterfaceNil returns true if there is no value under the interface
 func (builder *txDataBuilder) IsInterfaceNil() bool {
 	return builder == nil
+}
+
+func (builder *txDataBuilder) toStringWithFunction() string {
+	data := builder.function
+	for _, element := range builder.elements {
+		data = data + builder.separator + element
+	}
+
+	return data
+}
+
+func (builder *txDataBuilder) toStringWithoutFunction() string {
+	data := ""
+	for i, element := range builder.elements {
+		if i == 0 {
+			data = element
+			continue
+		}
+		data = data + builder.separator + element
+	}
+
+	return data
 }
