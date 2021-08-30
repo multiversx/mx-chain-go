@@ -32,7 +32,7 @@ func (builder *txDataBuilder) Clear() *txDataBuilder {
 	return builder
 }
 
-// Elements -
+// Elements returns the individual elements added to the builder
 func (builder *txDataBuilder) Elements() []string {
 	return builder.elements
 }
