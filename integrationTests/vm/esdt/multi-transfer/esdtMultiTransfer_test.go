@@ -10,8 +10,10 @@ import (
 )
 
 func TestESDTMultiTransferToVault(t *testing.T) {
+	//_ = logger.SetLogLevel("*:INFO,integrationtests:NONE,p2p/libp2p:NONE,process/block:NONE,process/smartcontract:TRACE,process/smartcontract/blockchainhook:NONE")
+
 	logger.ToggleLoggerName(true)
-	_ = logger.SetLogLevel("*:INFO,integrationtests:NONE,p2p/libp2p:NONE,process/block:NONE,process/smartcontract:TRACE,process/smartcontract/blockchainhook:NONE")
+	_ = logger.SetLogLevel("smartcontract:TRACE,builtInFunctions:TRACE")
 
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -281,7 +283,7 @@ func TestESDTMultiTransferToVault(t *testing.T) {
 		&nonce, &round,
 	)
 
-	// send fours NFTs, two of each different token ID
+	// send fours SFTs, two of each different token ID
 	transfers = []esdtTransfer{
 		{
 			tokenIdentifier: semiFungibleTokenIdentifier1,
@@ -299,7 +301,7 @@ func TestESDTMultiTransferToVault(t *testing.T) {
 			amount:          50,
 		},
 		{
-			tokenIdentifier: nonFungibleTokenIdentifier2,
+			tokenIdentifier: semiFungibleTokenIdentifier2,
 			nonce:           1,
 			amount:          200,
 		}}
