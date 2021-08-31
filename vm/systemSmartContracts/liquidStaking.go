@@ -25,9 +25,7 @@ const attributesNoncePrefix = "a"
 type liquidStaking struct {
 	eei                      vm.SystemEI
 	sigVerifier              vm.MessageSignVerifier
-	delegationMgrSCAddress   []byte
 	liquidStakingSCAddress   []byte
-	endOfEpochAddr           []byte
 	gasCost                  vm.GasCost
 	marshalizer              marshal.Marshalizer
 	hasher                   hashing.Hasher
@@ -40,9 +38,7 @@ type liquidStaking struct {
 type ArgsNewLiquidStaking struct {
 	EpochConfig            config.EpochConfig
 	Eei                    vm.SystemEI
-	DelegationMgrSCAddress []byte
 	LiquidStakingSCAddress []byte
-	EndOfEpochAddress      []byte
 	GasCost                vm.GasCost
 	Marshalizer            marshal.Marshalizer
 	Hasher                 hashing.Hasher
@@ -53,12 +49,6 @@ type ArgsNewLiquidStaking struct {
 func NewLiquidStakingSystemSC(args ArgsNewLiquidStaking) (*liquidStaking, error) {
 	if check.IfNil(args.Eei) {
 		return nil, vm.ErrNilSystemEnvironmentInterface
-	}
-	if len(args.DelegationMgrSCAddress) < 1 {
-		return nil, fmt.Errorf("%w for delegation manager sc address", vm.ErrInvalidAddress)
-	}
-	if len(args.EndOfEpochAddress) < 1 {
-		return nil, fmt.Errorf("%w for end of epoch address", vm.ErrInvalidAddress)
 	}
 	if len(args.LiquidStakingSCAddress) < 1 {
 		return nil, fmt.Errorf("%w for liquid staking sc address", vm.ErrInvalidAddress)
@@ -75,8 +65,6 @@ func NewLiquidStakingSystemSC(args ArgsNewLiquidStaking) (*liquidStaking, error)
 
 	l := &liquidStaking{
 		eei:                      args.Eei,
-		delegationMgrSCAddress:   args.DelegationMgrSCAddress,
-		endOfEpochAddr:           args.EndOfEpochAddress,
 		liquidStakingSCAddress:   args.LiquidStakingSCAddress,
 		gasCost:                  args.GasCost,
 		marshalizer:              args.Marshalizer,
@@ -118,6 +106,8 @@ func (l *liquidStaking) Execute(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return l.returnLiquidStaking(args, "unDelegateViaLiquidStaking")
 	case "returnPosition":
 		return l.returnLiquidStaking(args, "returnViaLiquidStaking")
+	case "readTokenID":
+		return l.readTokenID(args)
 	}
 
 	l.eei.AddReturnMessage(args.Function + " is an unknown function")
@@ -145,6 +135,25 @@ func (l *liquidStaking) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 
 func (l *liquidStaking) getTokenID() []byte {
 	return l.eei.GetStorage([]byte(tokenIDKey))
+}
+
+func (l *liquidStaking) readTokenID(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if len(args.ESDTTransfers) != 0 || args.CallValue.Cmp(zero) != 0 {
+		l.eei.AddReturnMessage("function is not payable")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) > 0 {
+		l.eei.AddReturnMessage("function does not accept arguments")
+		return vmcommon.UserError
+	}
+	err := l.eei.UseGas(l.gasCost.MetaChainSystemSCsCost.LiquidStakingOps)
+	if err != nil {
+		l.eei.AddReturnMessage(err.Error())
+		return vmcommon.OutOfGas
+	}
+
+	l.eei.Finish(l.getTokenID())
+	return vmcommon.Ok
 }
 
 func (l *liquidStaking) checkArgumentsWhenPositionIsInput(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -236,9 +245,9 @@ func (l *liquidStaking) claimOneDelegatedPosition(
 	}
 
 	valueToClaim := big.NewInt(0).SetBytes(valueAsBytes)
-	returnData, returnCode := l.executeOnDestinationSC(
+	_, returnCode := l.executeOnDestinationSC(
 		destSCAddress,
-		"claimRewardsViaLiquidStaking",
+		"claimDelegatedPosition",
 		callerAddr,
 		valueToClaim,
 		0,
@@ -247,13 +256,8 @@ func (l *liquidStaking) claimOneDelegatedPosition(
 		return 0, nil, returnCode
 	}
 
-	if len(returnData) != 1 {
-		l.eei.AddReturnMessage("invalid return data")
-		return 0, nil, vmcommon.UserError
-	}
-
-	rewardsCheckpoint := uint32(big.NewInt(0).SetBytes(returnData[0]).Uint64())
-	nonce, err := l.createOrAddNFT(destSCAddress, rewardsCheckpoint, valueToClaim)
+	newCheckpoint := l.eei.BlockChainHook().CurrentEpoch() + 1
+	nonce, err := l.createOrAddNFT(destSCAddress, newCheckpoint, valueToClaim)
 	if err != nil {
 		l.eei.AddReturnMessage(err.Error())
 		return 0, nil, vmcommon.UserError
@@ -453,7 +457,7 @@ func (l *liquidStaking) createOrAddNFT(
 
 	nonce, err := l.createNewSFT(value)
 	if err != nil {
-		return 0, nil
+		return 0, err
 	}
 
 	nonceBytes := big.NewInt(0).SetUint64(nonce).Bytes()

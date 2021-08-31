@@ -294,13 +294,11 @@ func (scf *systemSCFactory) createDelegationManagerContract() (vm.SystemSmartCon
 func (scf *systemSCFactory) createLiquidStakingContract() (vm.SystemSmartContract, error) {
 	argsLiquidStaking := systemSmartContracts.ArgsNewLiquidStaking{
 		Eei:                    scf.systemEI,
-		DelegationMgrSCAddress: vm.DelegationManagerSCAddress,
 		LiquidStakingSCAddress: vm.LiquidStakingSCAddress,
 		GasCost:                scf.gasCost,
 		Marshalizer:            scf.marshalizer,
 		Hasher:                 scf.hasher,
 		EpochNotifier:          scf.epochNotifier,
-		EndOfEpochAddress:      vm.EndOfEpochAddress,
 		EpochConfig:            *scf.epochConfig,
 	}
 	liquidStaking, err := systemSmartContracts.NewLiquidStakingSystemSC(argsLiquidStaking)

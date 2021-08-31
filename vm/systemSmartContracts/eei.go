@@ -454,7 +454,9 @@ func (host *vmContext) ProcessBuiltInFunction(
 		if len(outAcc.OutputTransfers) > 0 {
 			leftAccount, exist := host.outputAccounts[address]
 			if !exist {
-				leftAccount = &vmcommon.OutputAccount{}
+				leftAccount = &vmcommon.OutputAccount{
+					Address: []byte(address),
+				}
 				host.outputAccounts[address] = leftAccount
 			}
 			leftAccount.OutputTransfers = append(leftAccount.OutputTransfers, outAcc.OutputTransfers...)

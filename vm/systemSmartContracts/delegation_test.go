@@ -1786,9 +1786,16 @@ func TestDelegationSystemSC_ExecuteUnDelegateUserErrorsWhenGettingMinimumDelegat
 	})
 	d.eei.SetStorage([]byte(lastFundKey), fundKey)
 
+	managementData := &DelegationManagement{
+		MinDeposit:          big.NewInt(50),
+		MinDelegationAmount: big.NewInt(50),
+	}
+	marshaledData, _ := d.marshalizer.Marshal(managementData)
+	eei.SetStorageForAddress(d.delegationMgrSCAddress, []byte(delegationManagementKey), marshaledData)
+
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, "error getting minimum delegation amount"))
+	assert.True(t, strings.Contains(eei.returnMessage, "invalid value to undelegate - need to undelegate all - do not leave dust behind"))
 }
 
 func TestDelegationSystemSC_ExecuteUnDelegateUserNotDelegatorOrNoActiveFundShouldErr(t *testing.T) {
@@ -4984,4 +4991,422 @@ func TestDelegation_GetWhitelistForMerge(t *testing.T) {
 	assert.Equal(t, vmcommon.Ok, returnCode)
 	require.Equal(t, 1, len(eei.output))
 	assert.Equal(t, addr, eei.output[0])
+}
+
+func createDelegationContractAndEEI() (*delegation, *vmContext) {
+	args := createMockArgumentsForDelegation()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{
+			CurrentEpochCalled: func() uint32 {
+				return 2
+			},
+		},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&stateMock.AccountsStub{},
+		&mock.RaterMock{},
+	)
+	systemSCContainerStub := &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
+		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+			return vmcommon.Ok
+		}}, nil
+	}}
+
+	_ = eei.SetSystemSCContainer(systemSCContainerStub)
+
+	args.Eei = eei
+	args.DelegationSCConfig.MaxServiceFee = 10000
+	args.DelegationSCConfig.MinServiceFee = 0
+	d, _ := NewDelegationSystemSC(args)
+
+	managementData := &DelegationManagement{
+		MinDeposit:          big.NewInt(10),
+		MinDelegationAmount: big.NewInt(10),
+	}
+	marshaledData, _ := d.marshalizer.Marshal(managementData)
+	eei.SetStorageForAddress(d.delegationMgrSCAddress, []byte(delegationManagementKey), marshaledData)
+
+	return d, eei
+}
+
+func TestDelegation_FailsIfESDTTransfers(t *testing.T) {
+	d, eei := createDelegationContractAndEEI()
+
+	vmInput := getDefaultVmInputForFunc("claimDelegatedPosition", make([][]byte, 0))
+	vmInput.ESDTTransfers = []*vmcommon.ESDTTransfer{{ESDTValue: big.NewInt(10)}}
+
+	returnCode := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "cannot transfer ESDT to system SCs")
+}
+
+func TestDelegation_BasicCheckForLiquidStaking(t *testing.T) {
+	d, eei := createDelegationContractAndEEI()
+
+	vmInput := getDefaultVmInputForFunc("claimDelegatedPosition", make([][]byte, 0))
+
+	d.flagLiquidStaking.Unset()
+	returnCode := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, vmInput.Function+" is an unknown function")
+
+	eei.returnMessage = ""
+	d.flagLiquidStaking.Set()
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "only liquid staking sc can call this function")
+
+	eei.returnMessage = ""
+	vmInput.CallerAddr = vm.LiquidStakingSCAddress
+	vmInput.CallValue = big.NewInt(10)
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "call value must be 0")
+
+	eei.returnMessage = ""
+	vmInput.CallValue = big.NewInt(0)
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "not enough arguments")
+
+	eei.returnMessage = ""
+	vmInput.Arguments = [][]byte{{1}, {2}}
+	eei.gasRemaining = 0
+	d.gasCost.MetaChainSystemSCsCost.DelegationOps = 1
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.OutOfGas, returnCode)
+
+	eei.returnMessage = ""
+	vmInput.Arguments = [][]byte{{1}, {0}}
+	eei.gasRemaining = 10000
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "invalid argument for value as bigInt")
+
+	eei.returnMessage = ""
+	vmInput.Arguments = [][]byte{{1}, {1}}
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "invalid address as input")
+
+	eei.returnMessage = ""
+	vmInput.Arguments = [][]byte{vm.LiquidStakingSCAddress, {1}}
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "call value below minimum to operate")
+
+	eei.SetStorageForAddress(d.delegationMgrSCAddress, []byte(delegationManagementKey), nil)
+	eei.returnMessage = ""
+	vmInput.Arguments = [][]byte{vm.LiquidStakingSCAddress, {1}}
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "data was not found under requested key getDelegationManagementData")
+
+	eei.returnMessage = ""
+	d.eei.SetStorage([]byte(ownerKey), vm.LiquidStakingSCAddress)
+	vmInput.Arguments = [][]byte{vm.LiquidStakingSCAddress, {1}}
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "owner of delegation cannot call liquid staking operations")
+}
+
+func TestDelegation_ClaimDelegatedPosition(t *testing.T) {
+	d, eei := createDelegationContractAndEEI()
+
+	userAddress := bytes.Repeat([]byte{1}, len(vm.LiquidStakingSCAddress))
+	vmInput := getDefaultVmInputForFunc("claimDelegatedPosition", make([][]byte, 0))
+
+	returnCode := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "only liquid staking sc can call this function")
+
+	vmInput.CallerAddr = vm.LiquidStakingSCAddress
+	vmInput.Arguments = [][]byte{userAddress, big.NewInt(10).Bytes()}
+
+	eei.returnMessage = ""
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "caller is not a delegator")
+
+	delegator := &DelegatorData{
+		RewardsCheckpoint: 10,
+		UnClaimedRewards:  big.NewInt(0),
+	}
+	_ = d.saveDelegatorData(userAddress, delegator)
+
+	eei.returnMessage = ""
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "data was not found under requested key getFund ")
+
+	_ = d.addToActiveFund(userAddress, delegator, big.NewInt(5), &DelegationContractStatus{}, true)
+	_ = d.saveDelegatorData(userAddress, delegator)
+
+	eei.returnMessage = ""
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "not enough funds to claim position")
+
+	_ = d.addToActiveFund(userAddress, delegator, big.NewInt(5), &DelegationContractStatus{}, true)
+	_ = d.saveDelegatorData(userAddress, delegator)
+
+	eei.returnMessage = ""
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "data was not found under requested key delegation status")
+
+	_ = d.saveDelegationStatus(&DelegationContractStatus{NumUsers: 10})
+	delegator.ActiveFund = nil
+	_ = d.addToActiveFund(userAddress, delegator, big.NewInt(11), &DelegationContractStatus{}, true)
+	_ = d.saveDelegatorData(userAddress, delegator)
+
+	eei.returnMessage = ""
+	vmInput.Arguments[1] = big.NewInt(10).Bytes()
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, vm.ErrNotEnoughRemainingFunds.Error())
+
+	eei.returnMessage = ""
+	vmInput.Arguments[1] = big.NewInt(11).Bytes()
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, returnCode)
+
+	isNew, _, _ := d.getOrCreateDelegatorData(userAddress)
+	assert.True(t, isNew)
+}
+
+func TestDelegation_ClaimDelegatedPositionUserRemainsRewardsComputed(t *testing.T) {
+	d, eei := createDelegationContractAndEEI()
+
+	userAddress := bytes.Repeat([]byte{1}, len(vm.LiquidStakingSCAddress))
+	vmInput := getDefaultVmInputForFunc("claimDelegatedPosition", make([][]byte, 0))
+	vmInput.Arguments = [][]byte{userAddress, big.NewInt(10).Bytes()}
+	vmInput.CallerAddr = vm.LiquidStakingSCAddress
+
+	delegator := &DelegatorData{
+		RewardsCheckpoint: 0,
+		UnClaimedRewards:  big.NewInt(0),
+	}
+
+	_ = d.addToActiveFund(userAddress, delegator, big.NewInt(25), &DelegationContractStatus{}, true)
+	_ = d.saveDelegatorData(userAddress, delegator)
+	_ = d.saveDelegationStatus(&DelegationContractStatus{NumUsers: 10})
+
+	_ = d.saveRewardData(1, &RewardComputationData{RewardsToDistribute: big.NewInt(10), TotalActive: big.NewInt(25)})
+	_ = d.saveRewardData(2, &RewardComputationData{RewardsToDistribute: big.NewInt(10), TotalActive: big.NewInt(25)})
+
+	eei.returnMessage = ""
+	returnCode := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, returnCode)
+	assert.Equal(t, eei.returnMessage, "")
+
+	isNew, delegator, _ := d.getOrCreateDelegatorData(userAddress)
+	assert.False(t, isNew)
+	fund, _ := d.getFund(delegator.ActiveFund)
+	assert.Equal(t, fund.Value, big.NewInt(15))
+	assert.Equal(t, delegator.RewardsCheckpoint, uint32(3))
+	assert.Equal(t, delegator.UnClaimedRewards, big.NewInt(20))
+
+	vmInput.Arguments[1] = fund.Value.Bytes()
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, returnCode)
+	assert.Equal(t, eei.returnMessage, "")
+
+	_, delegator, _ = d.getOrCreateDelegatorData(userAddress)
+	assert.Equal(t, len(delegator.ActiveFund), 0)
+	assert.Equal(t, delegator.RewardsCheckpoint, uint32(3))
+	assert.Equal(t, delegator.UnClaimedRewards, big.NewInt(20))
+}
+
+func TestDelegation_ClaimRewardsViaLiquidStaking(t *testing.T) {
+	d, eei := createDelegationContractAndEEI()
+
+	userAddress := bytes.Repeat([]byte{1}, len(vm.LiquidStakingSCAddress))
+	vmInput := getDefaultVmInputForFunc("claimRewardsViaLiquidStaking", make([][]byte, 0))
+
+	returnCode := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "only liquid staking sc can call this function")
+
+	vmInput.CallerAddr = vm.LiquidStakingSCAddress
+	vmInput.Arguments = [][]byte{userAddress, big.NewInt(10).Bytes()}
+
+	eei.returnMessage = ""
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "invalid number of arguments")
+
+	vmInput.Arguments = append(vmInput.Arguments, big.NewInt(1).Bytes())
+
+	_ = d.saveRewardData(1, &RewardComputationData{RewardsToDistribute: big.NewInt(10), TotalActive: big.NewInt(10)})
+	_ = d.saveRewardData(2, &RewardComputationData{RewardsToDistribute: big.NewInt(10), TotalActive: big.NewInt(10)})
+
+	eei.returnMessage = ""
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, returnCode)
+	outAcc := eei.outputAccounts[string(userAddress)]
+	assert.Equal(t, big.NewInt(20), outAcc.OutputTransfers[0].Value)
+}
+
+func TestDelegation_ReDelegateRewardsViaLiquidStaking(t *testing.T) {
+	d, eei := createDelegationContractAndEEI()
+
+	userAddress := bytes.Repeat([]byte{1}, len(vm.LiquidStakingSCAddress))
+	vmInput := getDefaultVmInputForFunc("reDelegateRewardsViaLiquidStaking", make([][]byte, 0))
+
+	returnCode := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "only liquid staking sc can call this function")
+
+	vmInput.CallerAddr = vm.LiquidStakingSCAddress
+	vmInput.Arguments = [][]byte{userAddress, big.NewInt(10).Bytes()}
+
+	eei.returnMessage = ""
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "invalid number of arguments")
+
+	vmInput.Arguments = append(vmInput.Arguments, big.NewInt(1).Bytes())
+
+	eei.returnMessage = ""
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "no rewards to redelegate via liquid staking")
+
+	_ = d.saveRewardData(1, &RewardComputationData{RewardsToDistribute: big.NewInt(10), TotalActive: big.NewInt(10)})
+	_ = d.saveRewardData(2, &RewardComputationData{RewardsToDistribute: big.NewInt(10), TotalActive: big.NewInt(10)})
+
+	eei.returnMessage = ""
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "data was not found under requested key delegation contract config")
+
+	_ = d.saveDelegationContractConfig(&DelegationConfig{MaxDelegationCap: big.NewInt(20), CheckCapOnReDelegateRewards: true})
+
+	eei.returnMessage = ""
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "data was not found under requested key getGlobalFundData")
+
+	_ = d.saveGlobalFundData(&GlobalFundData{TotalActive: big.NewInt(10), TotalUnStaked: big.NewInt(0)})
+
+	eei.returnMessage = ""
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "data was not found under requested key delegation status")
+
+	_ = d.saveDelegationStatus(&DelegationContractStatus{NumUsers: 10})
+
+	eei.returnMessage = ""
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "total delegation cap reached")
+
+	_ = d.saveDelegationContractConfig(&DelegationConfig{MaxDelegationCap: big.NewInt(20)})
+
+	eei.returnMessage = ""
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, returnCode)
+	assert.Equal(t, eei.output[0], big.NewInt(20).Bytes())
+
+	systemSCContainerStub := &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
+		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+			eei.AddReturnMessage("bad call")
+			return vmcommon.UserError
+		}}, nil
+	}}
+
+	_ = eei.SetSystemSCContainer(systemSCContainerStub)
+	eei.returnMessage = ""
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "bad call")
+}
+
+func TestDelegation_UnDelegateViaLiquidStaking(t *testing.T) {
+	d, eei := createDelegationContractAndEEI()
+
+	userAddress := bytes.Repeat([]byte{1}, len(vm.LiquidStakingSCAddress))
+	vmInput := getDefaultVmInputForFunc("unDelegateViaLiquidStaking", make([][]byte, 0))
+
+	returnCode := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "only liquid staking sc can call this function")
+
+	vmInput.CallerAddr = vm.LiquidStakingSCAddress
+	vmInput.Arguments = [][]byte{userAddress, big.NewInt(10).Bytes()}
+
+	eei.returnMessage = ""
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "invalid number of arguments")
+
+	eei.returnMessage = ""
+	vmInput.Arguments = append(vmInput.Arguments, []byte{1})
+	_ = d.saveDelegationStatus(&DelegationContractStatus{NumUsers: 10})
+	_ = d.saveRewardData(1, &RewardComputationData{RewardsToDistribute: big.NewInt(10), TotalActive: big.NewInt(20)})
+	_ = d.saveRewardData(2, &RewardComputationData{RewardsToDistribute: big.NewInt(10), TotalActive: big.NewInt(20)})
+
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "data was not found under requested key getGlobalFundData")
+
+	d.eei.SetStorage(userAddress, nil)
+	eei.returnMessage = ""
+	_ = d.saveGlobalFundData(&GlobalFundData{TotalActive: big.NewInt(10), TotalUnStaked: big.NewInt(100)})
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, returnCode)
+
+	_, delegator, _ := d.getOrCreateDelegatorData(userAddress)
+	assert.Equal(t, len(delegator.ActiveFund), 0)
+	assert.Equal(t, delegator.UnClaimedRewards, big.NewInt(10))
+	assert.Equal(t, len(delegator.UnStakedFunds), 1)
+	unStakedFund, _ := d.getFund(delegator.UnStakedFunds[0])
+	assert.Equal(t, unStakedFund.Value, big.NewInt(10))
+
+	globalFund, _ := d.getGlobalFundData()
+	assert.Equal(t, globalFund.TotalUnStaked, big.NewInt(110))
+	assert.Equal(t, globalFund.TotalActive, big.NewInt(0))
+}
+
+func TestDelegation_ReturnViaLiquidStaking(t *testing.T) {
+	d, eei := createDelegationContractAndEEI()
+
+	userAddress := bytes.Repeat([]byte{1}, len(vm.LiquidStakingSCAddress))
+	vmInput := getDefaultVmInputForFunc("returnViaLiquidStaking", make([][]byte, 0))
+
+	returnCode := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "only liquid staking sc can call this function")
+
+	vmInput.CallerAddr = vm.LiquidStakingSCAddress
+	vmInput.Arguments = [][]byte{userAddress, big.NewInt(10).Bytes()}
+
+	eei.returnMessage = ""
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "invalid number of arguments")
+
+	_ = d.saveRewardData(1, &RewardComputationData{RewardsToDistribute: big.NewInt(10), TotalActive: big.NewInt(20)})
+	_ = d.saveRewardData(2, &RewardComputationData{RewardsToDistribute: big.NewInt(10), TotalActive: big.NewInt(20)})
+
+	delegator := &DelegatorData{RewardsCheckpoint: 0, TotalCumulatedRewards: big.NewInt(0), UnClaimedRewards: big.NewInt(0)}
+	_ = d.addToActiveFund(userAddress, delegator, big.NewInt(10), &DelegationContractStatus{}, true)
+	_ = d.saveDelegatorData(userAddress, delegator)
+
+	eei.returnMessage = ""
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "invalid number of arguments")
+
+	vmInput.Arguments = append(vmInput.Arguments, []byte{1})
+	_ = d.saveDelegationStatus(&DelegationContractStatus{NumUsers: 10})
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, returnCode)
+
+	_, delegator, _ = d.getOrCreateDelegatorData(userAddress)
+	assert.Equal(t, delegator.UnClaimedRewards, big.NewInt(20))
+	assert.Equal(t, delegator.TotalCumulatedRewards, big.NewInt(0))
+	fund, _ := d.getFund(delegator.ActiveFund)
+	assert.Equal(t, fund.Value, big.NewInt(20))
 }

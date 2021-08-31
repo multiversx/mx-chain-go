@@ -253,3 +253,6 @@ var ErrInvalidDelegationTicker = errors.New("invalid delegation ticker name")
 
 // ErrInvalidReturnData signals that invalid return data was provided
 var ErrInvalidReturnData = errors.New("invalid return data")
+
+// ErrNotEnoughRemainingFunds signals that operation is invalid as remaining funds are below minimum
+var ErrNotEnoughRemainingFunds = errors.New("not enough remaining funds - do not leave dust behind")
