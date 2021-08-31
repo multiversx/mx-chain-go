@@ -265,7 +265,7 @@ func TestESDTMultiTransferToVault(t *testing.T) {
 		&nonce, &round,
 	)
 
-	// send two NFTs, different token ID
+	// send two SFTs, different token ID
 	transfers = []esdtTransfer{
 		{
 			tokenIdentifier: semiFungibleTokenIdentifier1,
@@ -304,6 +304,29 @@ func TestESDTMultiTransferToVault(t *testing.T) {
 			tokenIdentifier: semiFungibleTokenIdentifier2,
 			nonce:           1,
 			amount:          200,
+		}}
+	multiTransferToVault(t, nodes, idxProposers,
+		vaultScAddress, transfers,
+		expectedIssuerBalance, expectedVaultBalance,
+		&nonce, &round,
+	)
+
+	// transfer all 3 types
+	transfers = []esdtTransfer{
+		{
+			tokenIdentifier: fungibleTokenIdentifier1,
+			nonce:           0,
+			amount:          100,
+		},
+		{
+			tokenIdentifier: semiFungibleTokenIdentifier2,
+			nonce:           2,
+			amount:          100,
+		},
+		{
+			tokenIdentifier: nonFungibleTokenIdentifier1,
+			nonce:           7,
+			amount:          1,
 		}}
 	multiTransferToVault(t, nodes, idxProposers,
 		vaultScAddress, transfers,
