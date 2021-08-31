@@ -1,6 +1,7 @@
 package multitransfer
 
 import (
+	"encoding/hex"
 	"math/big"
 	"testing"
 	"time"
@@ -12,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt"
 	vmFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
+	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/stretchr/testify/require"
 )
 
@@ -24,35 +26,66 @@ type esdtTransfer struct {
 	amount          int64
 }
 
-func issueFungibleToken(t *testing.T, nodes []*integrationTests.TestProcessorNode, idxProposers []int,
-	nonce *uint64, round *uint64, initialSupply int64, ticker string) string {
+func issueFungibleToken(t *testing.T,
+	net *integrationTests.TestNetwork,
+	issuerNode *integrationTests.TestProcessorNode,
+	ticker string,
+	initialSupply int64) string {
 
-	tokenIssuer := nodes[0]
+	issuerAddress := issuerNode.OwnAccount.Address
 
-	esdt.IssueTestToken(nodes, initialSupply, ticker)
-	waitForOperationCompletion(t, nodes, idxProposers, NR_ROUNDS_CROSS_SHARD, nonce, round)
+	tokenName := "token"
+	issuePrice := big.NewInt(1000)
+	txData := txDataBuilder.NewBuilder()
+	txData.IssueESDT(tokenName, ticker, initialSupply, 6)
+	txData.CanFreeze(true).CanWipe(true).CanPause(true).CanMint(true).CanBurn(true)
 
-	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte(ticker)))
+	integrationTests.CreateAndSendTransaction(
+		issuerNode,
+		net.Nodes,
+		issuePrice,
+		vm.ESDTSCAddress,
+		txData.ToString(), core.MinMetaTxExtraGasCost)
+	waitForOperationCompletion(net, NR_ROUNDS_CROSS_SHARD)
 
-	esdt.CheckAddressHasTokens(t, tokenIssuer.OwnAccount.Address, nodes,
+	tokenIdentifier := string(integrationTests.GetTokenIdentifier(net.Nodes, []byte(ticker)))
+
+	esdt.CheckAddressHasTokens(t, issuerAddress, net.Nodes,
 		tokenIdentifier, 0, initialSupply)
 
 	return tokenIdentifier
 }
 
-func issueNft(t *testing.T, nodes []*integrationTests.TestProcessorNode, idxProposers []int,
-	nonce *uint64, round *uint64, ticker string, semiFungible bool) string {
+func issueNft(
+	net *integrationTests.TestNetwork,
+	issuerNode *integrationTests.TestProcessorNode,
+	ticker string,
+	semiFungible bool) string {
 
-	tokenType := core.NonFungibleESDT
+	tokenName := "token"
+	issuePrice := big.NewInt(1000)
+
+	txData := txDataBuilder.NewBuilder()
+
+	issueFunc := "issueNonFungible"
 	if semiFungible {
-		tokenType = core.SemiFungibleESDT
+		issueFunc = "issueSemiFungible"
 	}
 
-	esdt.IssueNFT(nodes, tokenType, ticker)
-	waitForOperationCompletion(t, nodes, idxProposers, NR_ROUNDS_CROSS_SHARD, nonce, round)
+	txData.Func(issueFunc).Str(tokenName).Str(ticker)
+	txData.CanFreeze(false).CanWipe(false).CanPause(false).CanTransferNFTCreateRole(true)
 
-	issuerAddress := nodes[0].OwnAccount.Address
-	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte(ticker)))
+	integrationTests.CreateAndSendTransaction(
+		issuerNode,
+		net.Nodes,
+		issuePrice,
+		vm.ESDTSCAddress,
+		txData.ToString(),
+		core.MinMetaTxExtraGasCost)
+	waitForOperationCompletion(net, NR_ROUNDS_CROSS_SHARD)
+
+	issuerAddress := issuerNode.OwnAccount.Address
+	tokenIdentifier := string(integrationTests.GetTokenIdentifier(net.Nodes, []byte(ticker)))
 
 	roles := [][]byte{
 		[]byte(core.ESDTRoleNFTCreate),
@@ -61,17 +94,45 @@ func issueNft(t *testing.T, nodes []*integrationTests.TestProcessorNode, idxProp
 		roles = append(roles, []byte(core.ESDTRoleNFTAddQuantity))
 	}
 
-	esdt.SetRoles(nodes, issuerAddress, []byte(tokenIdentifier), roles)
-	waitForOperationCompletion(t, nodes, idxProposers, NR_ROUNDS_CROSS_SHARD, nonce, round)
+	setLocalRoles(net, issuerNode, issuerAddress, tokenIdentifier, roles)
 
 	return tokenIdentifier
 }
 
-func createSFT(t *testing.T, nodes []*integrationTests.TestProcessorNode, idxProposers []int,
-	tokenIdentifier string, createdTokenNonce int64, initialSupply int64,
-	nonce *uint64, round *uint64) {
+func setLocalRoles(
+	net *integrationTests.TestNetwork,
+	issuerNode *integrationTests.TestProcessorNode,
+	addrForRole []byte,
+	tokenIdentifier string,
+	roles [][]byte,
+) {
+	txData := "setSpecialRole" +
+		"@" + hex.EncodeToString([]byte(tokenIdentifier)) +
+		"@" + hex.EncodeToString(addrForRole)
 
-	issuerAddress := nodes[0].OwnAccount.Address
+	for _, role := range roles {
+		txData += "@" + hex.EncodeToString(role)
+	}
+
+	integrationTests.CreateAndSendTransaction(
+		issuerNode,
+		net.Nodes,
+		big.NewInt(0),
+		vm.ESDTSCAddress,
+		txData,
+		core.MinMetaTxExtraGasCost)
+	waitForOperationCompletion(net, NR_ROUNDS_CROSS_SHARD)
+}
+
+func createSFT(
+	t *testing.T,
+	net *integrationTests.TestNetwork,
+	issuerNode *integrationTests.TestProcessorNode,
+	tokenIdentifier string,
+	createdTokenNonce int64,
+	initialSupply int64) {
+
+	issuerAddress := issuerNode.OwnAccount.Address
 
 	tokenName := "token"
 	royalties := big.NewInt(0)
@@ -89,27 +150,34 @@ func createSFT(t *testing.T, nodes []*integrationTests.TestProcessorNode, idxPro
 	txData.Str(attributes)
 	txData.Str(uri)
 
-	integrationTests.CreateAndSendTransaction(nodes[0],
-		nodes,
+	integrationTests.CreateAndSendTransaction(
+		issuerNode,
+		net.Nodes,
 		big.NewInt(0),
 		issuerAddress,
 		txData.ToString(),
 		integrationTests.AdditionalGasLimit)
-	waitForOperationCompletion(t, nodes, idxProposers, NR_ROUNDS_SAME_SHARD, nonce, round)
+	waitForOperationCompletion(net, NR_ROUNDS_SAME_SHARD)
 
-	esdt.CheckAddressHasTokens(t, issuerAddress, nodes,
+	esdt.CheckAddressHasTokens(t, issuerAddress, net.Nodes,
 		tokenIdentifier, createdTokenNonce, initialSupply)
 }
 
-func createNFT(t *testing.T, nodes []*integrationTests.TestProcessorNode, idxProposers []int,
-	tokenIdentifier string, createdTokenNonce int64,
-	nonce *uint64, round *uint64) {
+func createNFT(
+	t *testing.T,
+	net *integrationTests.TestNetwork,
+	issuerNode *integrationTests.TestProcessorNode,
+	tokenIdentifier string,
+	createdTokenNonce int64) {
 
-	createSFT(t, nodes, idxProposers, tokenIdentifier, createdTokenNonce, 1, nonce, round)
+	createSFT(t, net, issuerNode, tokenIdentifier, createdTokenNonce, 1)
 }
 
-func buildEsdtMultiTransferTxData(receiverAddress []byte, transfers []esdtTransfer,
-	endpointName string, arguments ...[]byte) string {
+func buildEsdtMultiTransferTxData(
+	receiverAddress []byte,
+	transfers []*esdtTransfer,
+	endpointName string,
+	arguments ...[]byte) string {
 
 	nrTransfers := len(transfers)
 
@@ -135,22 +203,23 @@ func buildEsdtMultiTransferTxData(receiverAddress []byte, transfers []esdtTransf
 	return txData.ToString()
 }
 
-func waitForOperationCompletion(t *testing.T, nodes []*integrationTests.TestProcessorNode, idxProposers []int,
-	roundsToWait int, nonce *uint64, round *uint64) {
-
+func waitForOperationCompletion(net *integrationTests.TestNetwork, roundsToWait int) {
 	time.Sleep(time.Second)
-	*nonce, *round = integrationTests.WaitOperationToBeDone(t, nodes, roundsToWait, *nonce, *round, idxProposers)
-	time.Sleep(time.Second)
+	net.Steps(roundsToWait)
 }
 
-func multiTransferToVault(t *testing.T,
-	nodes []*integrationTests.TestProcessorNode, idxProposers []int,
-	vaultScAddress []byte, transfers []esdtTransfer, nrRoundsToWait int,
-	userBalances map[string]map[int64]int64, scBalances map[string]map[int64]int64,
-	nonce *uint64, round *uint64) {
+func multiTransferToVault(
+	t *testing.T,
+	net *integrationTests.TestNetwork,
+	senderNode *integrationTests.TestProcessorNode,
+	vaultScAddress []byte,
+	transfers []*esdtTransfer,
+	nrRoundsToWait int,
+	userBalances map[string]map[int64]int64,
+	scBalances map[string]map[int64]int64) {
 
 	acceptMultiTransferEndpointName := "accept_funds_multi_transfer"
-	tokenIssuerAddress := nodes[0].OwnAccount.Address
+	senderAddress := senderNode.OwnAccount.Address
 
 	txData := buildEsdtMultiTransferTxData(vaultScAddress,
 		transfers,
@@ -158,14 +227,14 @@ func multiTransferToVault(t *testing.T,
 	)
 
 	integrationTests.CreateAndSendTransaction(
-		nodes[0],
-		nodes,
+		senderNode,
+		net.Nodes,
 		big.NewInt(0),
-		tokenIssuerAddress,
+		senderAddress,
 		txData,
 		integrationTests.AdditionalGasLimit,
 	)
-	waitForOperationCompletion(t, nodes, idxProposers, nrRoundsToWait, nonce, round)
+	waitForOperationCompletion(net, nrRoundsToWait)
 
 	// update expected balances after transfers
 	for _, transfer := range transfers {
@@ -178,40 +247,37 @@ func multiTransferToVault(t *testing.T,
 		expectedUserBalance := userBalances[transfer.tokenIdentifier][transfer.nonce]
 		expectedScBalance := scBalances[transfer.tokenIdentifier][transfer.nonce]
 
-		esdt.CheckAddressHasTokens(t, tokenIssuerAddress, nodes,
+		esdt.CheckAddressHasTokens(t, senderAddress, net.Nodes,
 			transfer.tokenIdentifier, transfer.nonce, expectedUserBalance)
-		esdt.CheckAddressHasTokens(t, vaultScAddress, nodes,
+		esdt.CheckAddressHasTokens(t, vaultScAddress, net.Nodes,
 			transfer.tokenIdentifier, transfer.nonce, expectedScBalance)
 	}
 }
 
 func deployNonPayableSmartContract(
 	t *testing.T,
-	nodes []*integrationTests.TestProcessorNode,
-	idxProposers []int,
-	deployerNodeIndex int,
-	nonce *uint64,
-	round *uint64,
+	net *integrationTests.TestNetwork,
 	fileName string,
 ) []byte {
-	// deploy Smart Contract which can do local mint and local burn
 	scCode := arwen.GetSCCode(fileName)
-	scAddress, _ := nodes[deployerNodeIndex].BlockchainHook.NewAddress(
-		nodes[deployerNodeIndex].OwnAccount.Address,
-		nodes[deployerNodeIndex].OwnAccount.Nonce,
+
+	deployerNode := net.NodesSharded[0][0]
+	scAddress, _ := deployerNode.BlockchainHook.NewAddress(
+		deployerNode.OwnAccount.Address,
+		deployerNode.OwnAccount.Nonce,
 		vmFactory.ArwenVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
-		nodes[deployerNodeIndex],
-		nodes,
+		deployerNode,
+		net.Nodes,
 		big.NewInt(0),
 		testVm.CreateEmptyAddress(),
 		arwen.CreateDeployTxDataNonPayable(scCode),
 		integrationTests.AdditionalGasLimit,
 	)
+	waitForOperationCompletion(net, 4)
 
-	*nonce, *round = integrationTests.WaitOperationToBeDone(t, nodes, 4, *nonce, *round, idxProposers)
-	_, err := nodes[deployerNodeIndex].AccntState.GetExistingAccount(scAddress)
+	_, err := deployerNode.AccntState.GetExistingAccount(scAddress)
 	require.Nil(t, err)
 
 	return scAddress
