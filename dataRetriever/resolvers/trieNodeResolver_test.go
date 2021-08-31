@@ -515,15 +515,10 @@ func testTrieNodeResolverProcessReceivedMessageLargeTrieNode(
 	}
 	tnRes, _ := resolvers.NewTrieNodeResolver(arg)
 
-	b := &batch.Batch{
-		Data: [][]byte{[]byte("hash1"), []byte("hash2")},
-	}
-	buffBatch, _ := arg.Marshalizer.Marshal(b)
-
 	data, _ := arg.Marshalizer.Marshal(
 		&dataRetriever.RequestData{
-			Type:       dataRetriever.HashArrayType,
-			Value:      buffBatch,
+			Type:       dataRetriever.HashType,
+			Value:      []byte("hash1"),
 			ChunkIndex: chunkIndex,
 		},
 	)
