@@ -50,9 +50,14 @@ func issueNft(t *testing.T, nodes []*integrationTests.TestProcessorNode, idxProp
 	issuerAddress := nodes[0].OwnAccount.Address
 	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte(ticker)))
 
-	esdt.SetRoles(nodes, issuerAddress, []byte(tokenIdentifier), [][]byte{
-		[]byte("ESDTRoleNFTCreate"),
-	})
+	roles := [][]byte{
+		[]byte(core.ESDTRoleNFTCreate),
+	}
+	if semiFungible {
+		roles = append(roles, []byte(core.ESDTRoleNFTAddQuantity))
+	}
+
+	esdt.SetRoles(nodes, issuerAddress, []byte(tokenIdentifier), roles)
 	waitForOperationCompletion(t, nodes, idxProposers, NR_ROUNDS_CROSS_SHARD, nonce, round)
 
 	return tokenIdentifier
