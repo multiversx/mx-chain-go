@@ -96,12 +96,11 @@ func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager,
 		closer:                 closing.NewSafeChanCloser(),
 	}
 
-	go tsm.doCheckpintsAndSnapshots(ctx, args.Marshalizer, args.Hasher)
+	go tsm.doCheckpointsAndSnapshots(ctx, args.Marshalizer, args.Hasher)
 	return tsm, nil
 }
 
-//nolint
-func (tsm *trieStorageManager) doCheckpintsAndSnapshots(ctx context.Context, msh marshal.Marshalizer, hsh hashing.Hasher) {
+func (tsm *trieStorageManager) doCheckpointsAndSnapshots(ctx context.Context, msh marshal.Marshalizer, hsh hashing.Hasher) {
 	tsm.doProcessLoop(ctx, msh, hsh)
 	tsm.cleanupChans()
 }
@@ -130,6 +129,7 @@ func (tsm *trieStorageManager) cleanupChans() {
 		case entry := <-tsm.checkpointReq:
 			tsm.finishOperation(entry, "trie checkpoint finished on cleanup")
 		default:
+			log.Debug("finished trieStorageManager.cleanupChans")
 			return
 		}
 	}
