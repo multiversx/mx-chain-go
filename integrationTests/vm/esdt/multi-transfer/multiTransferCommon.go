@@ -7,8 +7,12 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	testVm "github.com/ElrondNetwork/elrond-go/integrationTests/vm"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt"
+	vmFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
+	"github.com/stretchr/testify/require"
 )
 
 const NR_ROUNDS_CROSS_SHARD = 15
@@ -141,7 +145,7 @@ func waitForOperationCompletion(t *testing.T, nodes []*integrationTests.TestProc
 
 func multiTransferToVault(t *testing.T,
 	nodes []*integrationTests.TestProcessorNode, idxProposers []int,
-	vaultScAddress []byte, transfers []esdtTransfer,
+	vaultScAddress []byte, transfers []esdtTransfer, nrRoundsToWait int,
 	userBalances map[string]map[int64]int64, scBalances map[string]map[int64]int64,
 	nonce *uint64, round *uint64) {
 
@@ -161,7 +165,7 @@ func multiTransferToVault(t *testing.T,
 		txData,
 		integrationTests.AdditionalGasLimit,
 	)
-	waitForOperationCompletion(t, nodes, idxProposers, NR_ROUNDS_SAME_SHARD, nonce, round)
+	waitForOperationCompletion(t, nodes, idxProposers, nrRoundsToWait, nonce, round)
 
 	// update expected balances after transfers
 	for _, transfer := range transfers {
@@ -179,4 +183,36 @@ func multiTransferToVault(t *testing.T,
 		esdt.CheckAddressHasTokens(t, vaultScAddress, nodes,
 			transfer.tokenIdentifier, transfer.nonce, expectedScBalance)
 	}
+}
+
+func deployNonPayableSmartContract(
+	t *testing.T,
+	nodes []*integrationTests.TestProcessorNode,
+	idxProposers []int,
+	deployerNodeIndex int,
+	nonce *uint64,
+	round *uint64,
+	fileName string,
+) []byte {
+	// deploy Smart Contract which can do local mint and local burn
+	scCode := arwen.GetSCCode(fileName)
+	scAddress, _ := nodes[deployerNodeIndex].BlockchainHook.NewAddress(
+		nodes[deployerNodeIndex].OwnAccount.Address,
+		nodes[deployerNodeIndex].OwnAccount.Nonce,
+		vmFactory.ArwenVirtualMachine)
+
+	integrationTests.CreateAndSendTransaction(
+		nodes[deployerNodeIndex],
+		nodes,
+		big.NewInt(0),
+		testVm.CreateEmptyAddress(),
+		arwen.CreateDeployTxDataNonPayable(scCode),
+		integrationTests.AdditionalGasLimit,
+	)
+
+	*nonce, *round = integrationTests.WaitOperationToBeDone(t, nodes, 4, *nonce, *round, idxProposers)
+	_, err := nodes[deployerNodeIndex].AccntState.GetExistingAccount(scAddress)
+	require.Nil(t, err)
+
+	return scAddress
 }

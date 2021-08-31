@@ -9,17 +9,41 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt"
 )
 
-func TestESDTMultiTransferToVault(t *testing.T) {
+func TestESDTMultiTransferToVaultSameShard(t *testing.T) {
+	esdtMultiTransferToVault(t, false)
+}
+
+func TestESDTMultiTransferToVaultCrossShard(t *testing.T) {
+	esdtMultiTransferToVault(t, true)
+}
+
+func esdtMultiTransferToVault(t *testing.T, crossShard bool) {
 	//_ = logger.SetLogLevel("*:INFO,integrationtests:NONE,p2p/libp2p:NONE,process/block:NONE,process/smartcontract:TRACE,process/smartcontract/blockchainhook:NONE")
 
 	logger.ToggleLoggerName(true)
-	_ = logger.SetLogLevel("smartcontract:TRACE,builtInFunctions:TRACE")
+	_ = logger.SetLogLevel("process/smartcontract:TRACE,builtInFunctions:TRACE,integrationtests:NONE,p2p/libp2p:NONE,process/block:NONE,process/smartcontract/blockchainhook:NONE")
 
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
-	nodes, idxProposers := esdt.CreateNodesAndPrepareBalances(1)
+	// For cross shard, we use 2 nodes, with node[1] being the SC deployer, and node[0] being the caller
+	nrNodes := 1
+	if crossShard {
+		nrNodes = 2
+	}
+
+	deployerNodeIndex := 0
+	if crossShard {
+		deployerNodeIndex = 1
+	}
+
+	nrRoundsToWait := NR_ROUNDS_SAME_SHARD
+	if crossShard {
+		nrRoundsToWait = NR_ROUNDS_CROSS_SHARD
+	}
+
+	nodes, idxProposers := esdt.CreateNodesAndPrepareBalances(nrNodes)
 
 	expectedIssuerBalance := make(map[string]map[int64]int64)
 	expectedVaultBalance := make(map[string]map[int64]int64)
@@ -39,8 +63,8 @@ func TestESDTMultiTransferToVault(t *testing.T) {
 	nonce++
 
 	// deploy vault SC
-	vaultScAddress := esdt.DeployNonPayableSmartContract(t, nodes, idxProposers, &nonce, &round,
-		"../testdata/vault.wasm")
+	vaultScAddress := deployNonPayableSmartContract(t, nodes, idxProposers, deployerNodeIndex,
+		&nonce, &round, "../testdata/vault.wasm")
 
 	// issue two fungible tokens
 	fungibleTokenIdentifier1 := issueFungibleToken(t, nodes, idxProposers, &nonce, &round, 1000, "FUNG1")
@@ -98,7 +122,7 @@ func TestESDTMultiTransferToVault(t *testing.T) {
 			amount:          100,
 		}}
 	multiTransferToVault(t, nodes, idxProposers,
-		vaultScAddress, transfers,
+		vaultScAddress, transfers, nrRoundsToWait,
 		expectedIssuerBalance, expectedVaultBalance,
 		&nonce, &round,
 	)
@@ -116,7 +140,7 @@ func TestESDTMultiTransferToVault(t *testing.T) {
 			amount:          50,
 		}}
 	multiTransferToVault(t, nodes, idxProposers,
-		vaultScAddress, transfers,
+		vaultScAddress, transfers, nrRoundsToWait,
 		expectedIssuerBalance, expectedVaultBalance,
 		&nonce, &round,
 	)
@@ -134,7 +158,7 @@ func TestESDTMultiTransferToVault(t *testing.T) {
 			amount:          100,
 		}}
 	multiTransferToVault(t, nodes, idxProposers,
-		vaultScAddress, transfers,
+		vaultScAddress, transfers, nrRoundsToWait,
 		expectedIssuerBalance, expectedVaultBalance,
 		&nonce, &round,
 	)
@@ -152,7 +176,7 @@ func TestESDTMultiTransferToVault(t *testing.T) {
 			amount:          100,
 		}}
 	multiTransferToVault(t, nodes, idxProposers,
-		vaultScAddress, transfers,
+		vaultScAddress, transfers, nrRoundsToWait,
 		expectedIssuerBalance, expectedVaultBalance,
 		&nonce, &round,
 	)
@@ -165,7 +189,7 @@ func TestESDTMultiTransferToVault(t *testing.T) {
 			amount:          1,
 		}}
 	multiTransferToVault(t, nodes, idxProposers,
-		vaultScAddress, transfers,
+		vaultScAddress, transfers, nrRoundsToWait,
 		expectedIssuerBalance, expectedVaultBalance,
 		&nonce, &round,
 	)
@@ -183,7 +207,7 @@ func TestESDTMultiTransferToVault(t *testing.T) {
 			amount:          1,
 		}}
 	multiTransferToVault(t, nodes, idxProposers,
-		vaultScAddress, transfers,
+		vaultScAddress, transfers, nrRoundsToWait,
 		expectedIssuerBalance, expectedVaultBalance,
 		&nonce, &round,
 	)
@@ -201,7 +225,7 @@ func TestESDTMultiTransferToVault(t *testing.T) {
 			amount:          1,
 		}}
 	multiTransferToVault(t, nodes, idxProposers,
-		vaultScAddress, transfers,
+		vaultScAddress, transfers, nrRoundsToWait,
 		expectedIssuerBalance, expectedVaultBalance,
 		&nonce, &round,
 	)
@@ -229,7 +253,7 @@ func TestESDTMultiTransferToVault(t *testing.T) {
 			amount:          1,
 		}}
 	multiTransferToVault(t, nodes, idxProposers,
-		vaultScAddress, transfers,
+		vaultScAddress, transfers, nrRoundsToWait,
 		expectedIssuerBalance, expectedVaultBalance,
 		&nonce, &round,
 	)
@@ -242,7 +266,7 @@ func TestESDTMultiTransferToVault(t *testing.T) {
 			amount:          100,
 		}}
 	multiTransferToVault(t, nodes, idxProposers,
-		vaultScAddress, transfers,
+		vaultScAddress, transfers, nrRoundsToWait,
 		expectedIssuerBalance, expectedVaultBalance,
 		&nonce, &round,
 	)
@@ -260,7 +284,7 @@ func TestESDTMultiTransferToVault(t *testing.T) {
 			amount:          100,
 		}}
 	multiTransferToVault(t, nodes, idxProposers,
-		vaultScAddress, transfers,
+		vaultScAddress, transfers, nrRoundsToWait,
 		expectedIssuerBalance, expectedVaultBalance,
 		&nonce, &round,
 	)
@@ -278,7 +302,7 @@ func TestESDTMultiTransferToVault(t *testing.T) {
 			amount:          100,
 		}}
 	multiTransferToVault(t, nodes, idxProposers,
-		vaultScAddress, transfers,
+		vaultScAddress, transfers, nrRoundsToWait,
 		expectedIssuerBalance, expectedVaultBalance,
 		&nonce, &round,
 	)
@@ -306,7 +330,7 @@ func TestESDTMultiTransferToVault(t *testing.T) {
 			amount:          200,
 		}}
 	multiTransferToVault(t, nodes, idxProposers,
-		vaultScAddress, transfers,
+		vaultScAddress, transfers, nrRoundsToWait,
 		expectedIssuerBalance, expectedVaultBalance,
 		&nonce, &round,
 	)
@@ -329,7 +353,7 @@ func TestESDTMultiTransferToVault(t *testing.T) {
 			amount:          1,
 		}}
 	multiTransferToVault(t, nodes, idxProposers,
-		vaultScAddress, transfers,
+		vaultScAddress, transfers, nrRoundsToWait,
 		expectedIssuerBalance, expectedVaultBalance,
 		&nonce, &round,
 	)
