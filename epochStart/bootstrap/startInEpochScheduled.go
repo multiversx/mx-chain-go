@@ -14,19 +14,19 @@ import (
 	updateSync "github.com/ElrondNetwork/elrond-go/update/sync"
 )
 
-type startInEpochWithScheduled struct {
-	headersSyncer        epochStart.HeadersByHashSyncer
-	miniBlocksSyncer     epochStart.PendingMiniBlocksSyncHandler
-	scheduledEnableEpoch uint32
+type startInEpochWithScheduledDataSyncer struct {
+	scheduledHeadersSyncer    epochStart.HeadersByHashSyncer
+	scheduledMiniBlocksSyncer epochStart.PendingMiniBlocksSyncHandler
+	scheduledEnableEpoch      uint32
 }
 
-func NewStartInEpochWithScheduledSyncer(
+func NewStartInEpochShardHeaderDataSyncerWithScheduled(
 	miniBlocksPool storage.Cacher,
 	headersPool dataRetriever.HeadersPool,
 	marshaller marshal.Marshalizer,
 	requestHandler process.RequestHandler,
 	scheduledEnableEpoch uint32,
-) (*startInEpochWithScheduled, error) {
+) (*startInEpochWithScheduledDataSyncer, error) {
 	syncMiniBlocksArgs := updateSync.ArgsNewPendingMiniBlocksSyncer{
 		Storage:        disabled.CreateMemUnit(),
 		Cache:          miniBlocksPool,
@@ -50,14 +50,14 @@ func NewStartInEpochWithScheduledSyncer(
 		return nil, err
 	}
 
-	return &startInEpochWithScheduled{
-		miniBlocksSyncer:     miniBlocksSyncer,
-		headersSyncer:        headersSyncer,
-		scheduledEnableEpoch: scheduledEnableEpoch,
+	return &startInEpochWithScheduledDataSyncer{
+		scheduledMiniBlocksSyncer: miniBlocksSyncer,
+		scheduledHeadersSyncer:    headersSyncer,
+		scheduledEnableEpoch:      scheduledEnableEpoch,
 	}, nil
 }
 
-func (ses *startInEpochWithScheduled) getShardHeaderAndPendingMiniBlocksToBeProcessed(
+func (ses *startInEpochWithScheduledDataSyncer) updateSyncDataIfNeeded(
 	notarizedShardHeader data.ShardHeaderHandler,
 	pendingMiniBlocks map[string]*block.MiniBlock,
 ) (data.ShardHeaderHandler, map[string]*block.MiniBlock, error) {
@@ -81,7 +81,7 @@ func (ses *startInEpochWithScheduled) getShardHeaderAndPendingMiniBlocksToBeProc
 	return headerToBeProcessed, updatedPendingMiniBlocks, nil
 }
 
-func (ses *startInEpochWithScheduled) getRequiredHeaderByHash(notarizedShardHeader data.ShardHeaderHandler, ) (data.ShardHeaderHandler, error) {
+func (ses *startInEpochWithScheduledDataSyncer) getRequiredHeaderByHash(notarizedShardHeader data.ShardHeaderHandler, ) (data.ShardHeaderHandler, error) {
 	shardIDs := []uint32{
 		notarizedShardHeader.GetShardID(),
 	}
@@ -89,15 +89,15 @@ func (ses *startInEpochWithScheduled) getRequiredHeaderByHash(notarizedShardHead
 		notarizedShardHeader.GetPrevHash(),
 	}
 
-	ses.headersSyncer.ClearFields()
+	ses.scheduledHeadersSyncer.ClearFields()
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeToWaitForRequestedData)
-	err := ses.headersSyncer.SyncMissingHeadersByHash(shardIDs, hashesToRequest, ctx)
+	err := ses.scheduledHeadersSyncer.SyncMissingHeadersByHash(shardIDs, hashesToRequest, ctx)
 	cancel()
 	if err != nil {
 		return nil, err
 	}
 
-	headers, err := ses.headersSyncer.GetHeaders()
+	headers, err := ses.scheduledHeadersSyncer.GetHeaders()
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +118,7 @@ func copyPendingMiniBlocksMap(pendingMiniBlocks map[string]*block.MiniBlock) map
 	return result
 }
 
-func (ses *startInEpochWithScheduled) getPendingMiniBlocks(
+func (ses *startInEpochWithScheduledDataSyncer) getPendingMiniBlocks(
 	notarizedShardHeader data.ShardHeaderHandler,
 	pendingMiniBlocks map[string]*block.MiniBlock,
 ) (map[string]*block.MiniBlock, error) {
@@ -149,21 +149,21 @@ func (ses *startInEpochWithScheduled) getPendingMiniBlocks(
 	return previousPendingMiniBlocks, nil
 }
 
-func (ses *startInEpochWithScheduled) getRequiredMiniBlocksByMbHeader(
+func (ses *startInEpochWithScheduledDataSyncer) getRequiredMiniBlocksByMbHeader(
 	mbHeaders []data.MiniBlockHeaderHandler,
 ) (map[string]*block.MiniBlock, error) {
-	ses.miniBlocksSyncer.ClearFields()
+	ses.scheduledMiniBlocksSyncer.ClearFields()
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeToWaitForRequestedData)
-	err := ses.miniBlocksSyncer.SyncPendingMiniBlocks(mbHeaders, ctx)
+	err := ses.scheduledMiniBlocksSyncer.SyncPendingMiniBlocks(mbHeaders, ctx)
 	cancel()
 	if err != nil {
 		return nil, err
 	}
 
-	return ses.miniBlocksSyncer.GetMiniBlocks()
+	return ses.scheduledMiniBlocksSyncer.GetMiniBlocks()
 }
 
-func (ses *startInEpochWithScheduled) getRootHashToSync(notarizedShardHeader data.ShardHeaderHandler) []byte {
+func (ses *startInEpochWithScheduledDataSyncer) getRootHashToSync(notarizedShardHeader data.ShardHeaderHandler) []byte {
 	if ses.scheduledEnableEpoch > notarizedShardHeader.GetEpoch() {
 		return notarizedShardHeader.GetRootHash()
 	}

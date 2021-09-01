@@ -93,7 +93,6 @@ type epochStartBootstrap struct {
 	roundHandler               epochStart.RoundHandler
 	statusHandler              core.AppStatusHandler
 	headerIntegrityVerifier    process.HeaderIntegrityVerifier
-	enableSignTxWithHashEpoch  uint32
 	epochNotifier              process.EpochNotifier
 	numConcurrentTrieSyncers   int
 	maxHardCapForMissingNodes  int
@@ -112,7 +111,7 @@ type epochStartBootstrap struct {
 	storageOpenerHandler      storage.UnitOpenerHandler
 	latestStorageDataProvider storage.LatestStorageDataProviderHandler
 	argumentsParser           process.ArgumentsParser
-	waitingListFixEnableEpoch uint32
+	enableEpochs              config.EnableEpochs
 
 	// gathered data
 	epochStartMeta     data.MetaHeaderHandler
@@ -143,7 +142,7 @@ type ArgsEpochStartBootstrap struct {
 	Messenger                  Messenger
 	GeneralConfig              config.Config
 	PrefsConfig                config.PreferencesConfig
-	EpochConfig                config.EpochConfig
+	EnableEpochs               config.EnableEpochs
 	EconomicsData              process.EconomicsDataHandler
 	GenesisNodesConfig         sharding.GenesisNodesSetupHandler
 	GenesisShardCoordinator    sharding.Coordinator
@@ -184,15 +183,14 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		nodeType:                   core.NodeTypeObserver,
 		argumentsParser:            args.ArgumentsParser,
 		headerIntegrityVerifier:    args.HeaderIntegrityVerifier,
-		enableSignTxWithHashEpoch:  args.EpochConfig.EnableEpochs.TransactionSignedWithTxHashEnableEpoch,
 		epochNotifier:              args.CoreComponentsHolder.EpochNotifier(),
 		numConcurrentTrieSyncers:   args.GeneralConfig.TrieSync.NumConcurrentTrieSyncers,
 		maxHardCapForMissingNodes:  args.GeneralConfig.TrieSync.MaxHardCapForMissingNodes,
 		trieSyncerVersion:          args.GeneralConfig.TrieSync.TrieSyncerVersion,
-		waitingListFixEnableEpoch:  args.EpochConfig.EnableEpochs.WaitingListFixEnableEpoch,
+		enableEpochs:               args.EnableEpochs,
 	}
 
-	log.Debug("process: enable epoch for transaction signed with tx hash", "epoch", epochStartProvider.enableSignTxWithHashEpoch)
+	log.Debug("process: enable epoch for transaction signed with tx hash", "epoch", epochStartProvider.enableEpochs.TransactionSignedWithTxHashEnableEpoch)
 
 	whiteListCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(epochStartProvider.generalConfig.WhiteListPool))
 	if err != nil {
@@ -511,7 +509,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 		WhiteListerVerifiedTxs:    e.whiteListerVerifiedTxs,
 		ArgumentsParser:           e.argumentsParser,
 		HeaderIntegrityVerifier:   e.headerIntegrityVerifier,
-		EnableSignTxWithHashEpoch: e.enableSignTxWithHashEpoch,
+		EnableSignTxWithHashEpoch: e.enableEpochs.TransactionSignedWithTxHashEnableEpoch,
 		EpochNotifier:             e.epochNotifier,
 		RequestHandler:            e.requestHandler,
 	}
@@ -680,7 +678,7 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
 		Hasher:                    e.coreComponentsHolder.Hasher(),
 		PubKey:                    pubKey,
 		ShardIdAsObserver:         shardId,
-		WaitingListFixEnableEpoch: e.waitingListFixEnableEpoch,
+		WaitingListFixEnableEpoch: e.enableEpochs.WaitingListFixEnableEpoch,
 		ChanNodeStop:              e.coreComponentsHolder.ChanStopNodeProcess(),
 		NodeTypeProvider:          e.coreComponentsHolder.NodeTypeProvider(),
 		IsFullArchive:             e.prefsConfig.FullArchive,
@@ -800,13 +798,31 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 		e.syncedHeaders[hash] = hdr
 	}
 
-	ownShardHdr, ok := e.syncedHeaders[string(epochStartData.GetHeaderHash())].(data.ShardHeaderHandler)
+	shardNotarizedHeader, ok := e.syncedHeaders[string(epochStartData.GetHeaderHash())].(data.ShardHeaderHandler)
 	if !ok {
 		return epochStart.ErrWrongTypeAssertion
 	}
 
+	dataSyncerWithScheduled, err := NewStartInEpochShardHeaderDataSyncerWithScheduled(
+		e.dataPool.MiniBlocks(),
+		e.dataPool.Headers(),
+		e.coreComponentsHolder.InternalMarshalizer(),
+		e.requestHandler,
+		e.enableEpochs.ScheduledMiniBlocksEnableEpoch,
+	)
+	if err != nil {
+		return err
+	}
+
+	ownShardHdr, pendingMiniBlocks, err := dataSyncerWithScheduled.updateSyncDataIfNeeded(shardNotarizedHeader, pendingMiniBlocks)
+	if err!= nil {
+		return err
+	}
+
+	rootHashToSync := dataSyncerWithScheduled.getRootHashToSync(shardNotarizedHeader)
+
 	log.Debug("start in epoch bootstrap: started syncUserAccountsState")
-	err = e.syncUserAccountsState(ownShardHdr.GetRootHash())
+	err = e.syncUserAccountsState(rootHashToSync)
 	if err != nil {
 		return err
 	}
