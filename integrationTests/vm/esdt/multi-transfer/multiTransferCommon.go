@@ -257,11 +257,10 @@ func multiTransferToVault(
 func deployNonPayableSmartContract(
 	t *testing.T,
 	net *integrationTests.TestNetwork,
+	deployerNode *integrationTests.TestProcessorNode,
 	fileName string,
 ) []byte {
 	scCode := arwen.GetSCCode(fileName)
-
-	deployerNode := net.NodesSharded[0][0]
 	scAddress, _ := deployerNode.BlockchainHook.NewAddress(
 		deployerNode.OwnAccount.Address,
 		deployerNode.OwnAccount.Nonce,
