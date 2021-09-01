@@ -140,6 +140,34 @@ func TestESDTMultiTransferThroughForwarder(t *testing.T) {
 
 	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, sftID, 1, 800)
 	esdt.CheckAddressHasTokens(t, vaultOtherShard, net.Nodes, sftID, 1, 100)
+
+	// transfer to vault, cross shard, via async call
+	transfers = []*esdtTransfer{
+		{
+			tokenIdentifier: tokenID,
+			nonce:           0,
+			amount:          100,
+		},
+		{
+			tokenIdentifier: sftID,
+			nonce:           1,
+			amount:          100,
+		},
+	}
+	multiTransferThroughForwarder(
+		t,
+		net,
+		senderNode.OwnAccount,
+		forwarder,
+		"multi_transfer_via_async",
+		transfers,
+		vaultOtherShard)
+
+	esdt.CheckAddressHasESDTTokens(t, forwarder, net.Nodes, tokenID, 500)
+	esdt.CheckAddressHasESDTTokens(t, vaultOtherShard, net.Nodes, tokenID, 200)
+
+	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, sftID, 1, 700)
+	esdt.CheckAddressHasTokens(t, vaultOtherShard, net.Nodes, sftID, 1, 200)
 }
 
 func multiTransferThroughForwarder(
