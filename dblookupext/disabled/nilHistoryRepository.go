@@ -1,9 +1,13 @@
 package disabled
 
 import (
+	"errors"
+
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 )
+
+var errorDisabledHistoryRepository = errors.New("history repository is disabled")
 
 type nilHistoryRepository struct {
 }
@@ -40,6 +44,11 @@ func (nhr *nilHistoryRepository) IsEnabled() bool {
 // RevertBlock -
 func (nhr *nilHistoryRepository) RevertBlock(_ data.HeaderHandler, _ data.BodyHandler) error {
 	return nil
+}
+
+// GetESDTSupply -
+func (nhr *nilHistoryRepository) GetESDTSupply(_ string) (string, error) {
+	return "", errorDisabledHistoryRepository
 }
 
 // GetResultsHashesByTxHash -

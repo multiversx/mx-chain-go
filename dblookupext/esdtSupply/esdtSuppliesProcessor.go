@@ -47,15 +47,19 @@ func NewSuppliesProcessor(
 }
 
 // ProcessLogs will process the provided logs
-func (sp *suppliesProcessor) ProcessLogs(logs map[string]data.LogHandler) error {
+func (sp *suppliesProcessor) ProcessLogs(blockNonce uint64, logs map[string]data.LogHandler) error {
 	sp.mutex.Lock()
 	defer sp.mutex.Unlock()
 
-	return sp.logsProc.processLogs(logs, false)
+	return sp.logsProc.processLogs(blockNonce, logs, false)
 }
 
 // RevertChanges will revert supplies changes based on the provided block body
-func (sp *suppliesProcessor) RevertChanges(_ data.HeaderHandler, body data.BodyHandler) error {
+func (sp *suppliesProcessor) RevertChanges(header data.HeaderHandler, body data.BodyHandler) error {
+	if check.IfNil(header) || check.IfNil(body) {
+		return nil
+	}
+
 	sp.mutex.Lock()
 	defer sp.mutex.Unlock()
 
@@ -64,7 +68,12 @@ func (sp *suppliesProcessor) RevertChanges(_ data.HeaderHandler, body data.BodyH
 		return err
 	}
 
-	return sp.logsProc.processLogs(logsFromDB, true)
+	return sp.logsProc.processLogs(header.GetNonce(), logsFromDB, true)
+}
+
+// GetESDTSupply will return the supply from the storage for the given token
+func (sp *suppliesProcessor) GetESDTSupply(token string) (string, error) {
+	return sp.logsProc.getESDTSupply(token)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -151,7 +151,7 @@ func (hr *historyRepository) RecordBlock(
 		return err
 	}
 
-	err = hr.esdtSuppliesHandler.ProcessLogs(logs)
+	err = hr.esdtSuppliesHandler.ProcessLogs(blockHeader.GetNonce(), logs)
 	if err != nil {
 		return err
 	}
@@ -447,6 +447,11 @@ func (hr *historyRepository) IsEnabled() bool {
 // RevertBlock will return the modification for the current block header
 func (hr *historyRepository) RevertBlock(blockHeader data.HeaderHandler, blockBody data.BodyHandler) error {
 	return hr.esdtSuppliesHandler.RevertChanges(blockHeader, blockBody)
+}
+
+// GetESDTSupply will return the supply from the storage for the given token
+func (hr *historyRepository) GetESDTSupply(token string) (string, error) {
+	return hr.esdtSuppliesHandler.GetESDTSupply(token)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

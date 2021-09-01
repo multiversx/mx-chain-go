@@ -1,3 +1,5 @@
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. processedBlockNonce.proto
+
 package esdtSupply
 
 import (
@@ -15,6 +17,7 @@ import (
 type logsProcessor struct {
 	marshalizer        marshal.Marshalizer
 	suppliesStorer     storage.Storer
+	nonceProc          *nonceProcessor
 	fungibleOperations map[string]struct{}
 }
 
@@ -22,12 +25,16 @@ func newLogsProcessor(
 	marshalizer marshal.Marshalizer,
 	suppliesStorer storage.Storer,
 ) *logsProcessor {
+	nonceProc := newNonceProcessor(marshalizer, suppliesStorer)
+
 	return &logsProcessor{
+		nonceProc:      nonceProc,
 		marshalizer:    marshalizer,
 		suppliesStorer: suppliesStorer,
 		fungibleOperations: map[string]struct{}{
 			core.BuiltInFunctionESDTLocalBurn:      {},
 			core.BuiltInFunctionESDTLocalMint:      {},
+			core.BuiltInFunctionESDTWipe:           {},
 			core.BuiltInFunctionESDTNFTCreate:      {},
 			core.BuiltInFunctionESDTNFTAddQuantity: {},
 			core.BuiltInFunctionESDTNFTBurn:        {},
@@ -35,20 +42,33 @@ func newLogsProcessor(
 	}
 }
 
-func (lp *logsProcessor) processLogs(logs map[string]data.LogHandler, isRevert bool) error {
+func (lp *logsProcessor) processLogs(blockNonce uint64, logs map[string]data.LogHandler, isRevert bool) error {
+	shouldProcess, err := lp.nonceProc.shouldProcessLog(blockNonce, isRevert)
+	if err != nil {
+		return err
+	}
+	if !shouldProcess {
+		return nil
+	}
+
 	supplies := make(map[string]*SupplyESDT)
 	for _, logHandler := range logs {
 		if check.IfNil(logHandler) {
 			continue
 		}
 
-		err := lp.processLog(logHandler, supplies, isRevert)
-		if err != nil {
-			return err
+		errProc := lp.processLog(logHandler, supplies, isRevert)
+		if errProc != nil {
+			return errProc
 		}
 	}
 
-	return lp.saveSupplies(supplies)
+	err = lp.saveSupplies(supplies)
+	if err != nil {
+		return err
+	}
+
+	return lp.nonceProc.saveNonceInStorage(blockNonce)
 }
 
 func (lp *logsProcessor) processLog(txLog data.LogHandler, supplies map[string]*SupplyESDT, isRevert bool) error {
@@ -103,7 +123,8 @@ func (lp *logsProcessor) processEvent(txLog *transaction.Event, supplies map[str
 
 	bigValue := big.NewInt(0).SetBytes(txLog.Topics[2])
 
-	negValue := string(txLog.Identifier) == core.BuiltInFunctionESDTLocalBurn || string(txLog.Identifier) == core.BuiltInFunctionESDTNFTBurn
+	negValue := string(txLog.Identifier) == core.BuiltInFunctionESDTLocalBurn || string(txLog.Identifier) == core.BuiltInFunctionESDTNFTBurn ||
+		string(txLog.Identifier) == core.BuiltInFunctionESDTWipe
 	shouldNegValue := negValue && !isRevert
 	if shouldNegValue {
 		bigValue = big.NewInt(0).Neg(bigValue)
@@ -150,4 +171,22 @@ func (lp *logsProcessor) shouldIgnoreEvent(event *transaction.Event) bool {
 	_, found := lp.fungibleOperations[string(event.Identifier)]
 
 	return !found
+}
+
+func (lp *logsProcessor) getESDTSupply(token string) (string, error) {
+	supplyBytes, err := lp.suppliesStorer.Get([]byte(token))
+	if err != nil && err == storage.ErrKeyNotFound {
+		return big.NewInt(0).String(), nil
+	}
+	if err != nil {
+		return "", err
+	}
+
+	supply := &SupplyESDT{}
+	err = lp.marshalizer.Unmarshal(supply, supplyBytes)
+	if err != nil {
+		return "", err
+	}
+
+	return supply.Supply.String(), nil
 }
