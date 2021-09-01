@@ -56,6 +56,11 @@ func (bcs *BootstrapComponentsStub) HeaderIntegrityVerifier() nodeFactory.Header
 	return bcs.HdrIntegrityVerifier
 }
 
+// String -
+func (bcs *BootstrapComponentsStub) String() string {
+	return "BootstrapComponentsStub"
+}
+
 // IsInterfaceNil -
 func (bcs *BootstrapComponentsStub) IsInterfaceNil() bool {
 	return bcs == nil

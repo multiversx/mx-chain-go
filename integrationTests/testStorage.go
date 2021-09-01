@@ -143,7 +143,7 @@ func (ts *TestStorage) WriteMultipleWithNotif(
 		key, val := ts.CreateStoredData(uint64(counter))
 		errPut := store.Put(key, val)
 		if errPut != nil {
-			fmt.Print(errPut.Error())
+			fmt.Println(errPut.Error())
 			atomic.AddInt32(errors, 1)
 			return
 		}
