@@ -327,7 +327,7 @@ func (tsm *trieStorageManager) safelyCloseChan(ch chan core.KeyValueHolder) {
 
 func (tsm *trieStorageManager) finishOperation(snapshotEntry *snapshotsQueueEntry, message string) {
 	tsm.ExitPruningBufferingMode()
-	log.Debug(message, "rootHash", snapshotEntry.rootHash)
+	log.Trace(message, "rootHash", snapshotEntry.rootHash)
 	tsm.safelyCloseChan(snapshotEntry.leavesChan)
 }
 
