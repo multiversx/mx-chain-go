@@ -977,6 +977,9 @@ var ErrNilESDTTransferParser = errors.New("nil esdt transfer parser")
 // ErrNilScheduledTxsExecutionHandler signals that scheduled txs execution handler is nil
 var ErrNilScheduledTxsExecutionHandler = errors.New("nil scheduled txs execution handler")
 
+// ErrNilPostProcessorTxsHandler signals that post processor txs handler is nil
+var ErrNilPostProcessorTxsHandler = errors.New("nil post processor txs handler")
+
 // ErrNilVersionedHeaderFactory signals that the versioned header factory is nil
 var ErrNilVersionedHeaderFactory = errors.New("nil versioned header factory")
 

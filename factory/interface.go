@@ -256,6 +256,7 @@ type ProcessComponentsHolder interface {
 	ArwenChangeLocker() process.Locker
 	CurrentEpochProvider() process.CurrentNetworkEpochProviderHandler
 	ScheduledTxsExecutionHandler() process.ScheduledTxsExecutionHandler
+	PostProcessorTxsHandler() process.PostProcessorTxsHandler
 	IsInterfaceNil() bool
 }
 

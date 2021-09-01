@@ -40,6 +40,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/pendingMb"
 	"github.com/ElrondNetwork/elrond-go/process/block/poolsCleaner"
+	"github.com/ElrondNetwork/elrond-go/process/block/postprocess"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/factory/interceptorscontainer"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
@@ -102,6 +103,7 @@ type processComponents struct {
 	currentEpochProvider         dataRetriever.CurrentNetworkEpochProviderHandler
 	arwenChangeLocker            process.Locker
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
+	postProcessorTxsHandler      process.PostProcessorTxsHandler
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -480,6 +482,11 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
+	postProcessorTxsHandler, err := postprocess.NewPostProcessorTxs()
+	if err != nil {
+		return nil, err
+	}
+
 	blockProcessor, err := pcf.newBlockProcessor(
 		requestHandler,
 		forkDetector,
@@ -492,6 +499,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		txSimulatorProcessorArgs,
 		arwenChangeLocker,
 		scheduledTxsExecutionHandler,
+		postProcessorTxsHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -575,6 +583,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		currentEpochProvider:         currentEpochProvider,
 		arwenChangeLocker:            arwenChangeLocker,
 		scheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
+		postProcessorTxsHandler:      postProcessorTxsHandler,
 	}, nil
 }
 

@@ -16,8 +16,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/disabled"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -48,6 +48,7 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 		},
 		&sync.RWMutex{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	require.NoError(t, err)
@@ -152,6 +153,7 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 		},
 		&sync.RWMutex{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	require.NoError(t, err)

@@ -148,6 +148,7 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("contract transfer role"), "epoch", enableEpochs.ESDTTransferRoleEnableEpoch)
 	log.Debug(readEpochFor("built in function on metachain"), "epoch", enableEpochs.BuiltInFunctionOnMetaEnableEpoch)
 	log.Debug(readEpochFor("scheduled mini blocks"), "epoch", enableEpochs.ScheduledMiniBlocksEnableEpoch)
+	log.Debug(readEpochFor("mixed txs in mini blocks"), "epoch", enableEpochs.MixedTxsInMiniBlocksEnableEpoch)
 
 	gasSchedule := configs.EpochConfig.GasSchedule
 

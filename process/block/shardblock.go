@@ -68,39 +68,41 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 
 	genesisHdr := arguments.DataComponents.Blockchain().GetGenesisHeader()
 	base := &baseProcessor{
-		accountsDB:                     arguments.AccountsDB,
-		blockSizeThrottler:             arguments.BlockSizeThrottler,
-		forkDetector:                   arguments.ForkDetector,
-		hasher:                         arguments.CoreComponents.Hasher(),
-		marshalizer:                    arguments.CoreComponents.InternalMarshalizer(),
-		store:                          arguments.DataComponents.StorageService(),
-		shardCoordinator:               arguments.BootstrapComponents.ShardCoordinator(),
-		nodesCoordinator:               arguments.NodesCoordinator,
-		uint64Converter:                arguments.CoreComponents.Uint64ByteSliceConverter(),
-		requestHandler:                 arguments.RequestHandler,
-		appStatusHandler:               arguments.CoreComponents.StatusHandler(),
-		blockChainHook:                 arguments.BlockChainHook,
-		txCoordinator:                  arguments.TxCoordinator,
-		roundHandler:                   arguments.CoreComponents.RoundHandler(),
-		epochStartTrigger:              arguments.EpochStartTrigger,
-		headerValidator:                arguments.HeaderValidator,
-		bootStorer:                     arguments.BootStorer,
-		blockTracker:                   arguments.BlockTracker,
-		dataPool:                       arguments.DataComponents.Datapool(),
-		stateCheckpointModulus:         arguments.Config.StateTriesConfig.CheckpointRoundsModulus,
-		blockChain:                     arguments.DataComponents.Blockchain(),
-		feeHandler:                     arguments.FeeHandler,
-		outportHandler:                 arguments.StatusComponents.OutportHandler(),
-		genesisNonce:                   genesisHdr.GetNonce(),
-		versionedHeaderFactory:         arguments.BootstrapComponents.VersionedHeaderFactory(),
-		headerIntegrityVerifier:        arguments.BootstrapComponents.HeaderIntegrityVerifier(),
-		historyRepo:                    arguments.HistoryRepository,
-		epochNotifier:                  arguments.EpochNotifier,
-		vmContainerFactory:             arguments.VMContainersFactory,
-		vmContainer:                    arguments.VmContainer,
-		processDataTriesOnCommitEpoch:  arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
-		scheduledTxsExecutionHandler:   arguments.ScheduledTxsExecutionHandler,
-		scheduledMiniBlocksEnableEpoch: arguments.ScheduledMiniBlocksEnableEpoch,
+		accountsDB:                      arguments.AccountsDB,
+		blockSizeThrottler:              arguments.BlockSizeThrottler,
+		forkDetector:                    arguments.ForkDetector,
+		hasher:                          arguments.CoreComponents.Hasher(),
+		marshalizer:                     arguments.CoreComponents.InternalMarshalizer(),
+		store:                           arguments.DataComponents.StorageService(),
+		shardCoordinator:                arguments.BootstrapComponents.ShardCoordinator(),
+		nodesCoordinator:                arguments.NodesCoordinator,
+		uint64Converter:                 arguments.CoreComponents.Uint64ByteSliceConverter(),
+		requestHandler:                  arguments.RequestHandler,
+		appStatusHandler:                arguments.CoreComponents.StatusHandler(),
+		blockChainHook:                  arguments.BlockChainHook,
+		txCoordinator:                   arguments.TxCoordinator,
+		roundHandler:                    arguments.CoreComponents.RoundHandler(),
+		epochStartTrigger:               arguments.EpochStartTrigger,
+		headerValidator:                 arguments.HeaderValidator,
+		bootStorer:                      arguments.BootStorer,
+		blockTracker:                    arguments.BlockTracker,
+		dataPool:                        arguments.DataComponents.Datapool(),
+		stateCheckpointModulus:          arguments.Config.StateTriesConfig.CheckpointRoundsModulus,
+		blockChain:                      arguments.DataComponents.Blockchain(),
+		feeHandler:                      arguments.FeeHandler,
+		outportHandler:                  arguments.StatusComponents.OutportHandler(),
+		genesisNonce:                    genesisHdr.GetNonce(),
+		versionedHeaderFactory:          arguments.BootstrapComponents.VersionedHeaderFactory(),
+		headerIntegrityVerifier:         arguments.BootstrapComponents.HeaderIntegrityVerifier(),
+		historyRepo:                     arguments.HistoryRepository,
+		epochNotifier:                   arguments.EpochNotifier,
+		vmContainerFactory:              arguments.VMContainersFactory,
+		vmContainer:                     arguments.VmContainer,
+		processDataTriesOnCommitEpoch:   arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
+		scheduledTxsExecutionHandler:    arguments.ScheduledTxsExecutionHandler,
+		scheduledMiniBlocksEnableEpoch:  arguments.ScheduledMiniBlocksEnableEpoch,
+		postProcessorTxsHandler:         arguments.PostProcessorTxsHandler,
+		mixedTxsInMiniBlocksEnableEpoch: arguments.MixedTxsInMiniBlocksEnableEpoch,
 	}
 
 	sp := shardProcessor{
@@ -1869,6 +1871,13 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool) (*block.Body, e
 		return &block.Body{MiniBlocks: miniBlocks}, nil
 	}
 
+	if sp.flagMixedTxsInMiniBlocks.IsSet() {
+		interMBs := sp.createPostProcessMiniBlocks()
+		if len(interMBs) > 0 {
+			miniBlocks = append(miniBlocks, interMBs...)
+		}
+	}
+
 	startTime = time.Now()
 	mbsFromMe := sp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(haveTime)
 	elapsedTime = time.Since(startTime)
@@ -1894,6 +1903,18 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool) (*block.Body, e
 		"num miniblocks", len(miniBlocks),
 	)
 	return &block.Body{MiniBlocks: miniBlocks}, nil
+}
+
+func (sp *shardProcessor) createPostProcessMiniBlocks() block.MiniBlockSlice {
+	miniBlocks := sp.txCoordinator.CreatePostProcessMiniBlocks()
+
+	for _, miniBlock := range miniBlocks {
+		for _, txHash := range miniBlock.TxHashes {
+			sp.postProcessorTxsHandler.AddPostProcessorTx(txHash)
+		}
+	}
+
+	return miniBlocks
 }
 
 // applyBodyToHeader creates a miniblock header list given a block body
@@ -1980,7 +2001,7 @@ func (sp *shardProcessor) applyBodyToHeader(shardHeader data.ShardHeaderHandler,
 	}
 
 	sp.appStatusHandler.SetUInt64Value(common.MetricNumTxInBlock, uint64(totalTxCount))
-	sp.appStatusHandler.SetUInt64Value(common.MetricNumMiniBlocks, uint64(len(body.MiniBlocks)))
+	sp.appStatusHandler.SetUInt64Value(common.MetricNumMiniBlocks, uint64(len(newBody.MiniBlocks)))
 
 	marshalizedBody, err := sp.marshalizer.Marshal(newBody)
 	if err != nil {

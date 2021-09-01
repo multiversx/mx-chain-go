@@ -461,5 +461,8 @@ var ErrNilCurrentEpochProvider = errors.New("nil current epoch provider")
 // ErrNilScheduledTxsExecutionHandler signals that a nil scheduled transactions execution handler was provided
 var ErrNilScheduledTxsExecutionHandler = errors.New("nil scheduled transactions execution handler")
 
+// ErrNilPostProcessorTxsHandler signals that a nil post processor txs handler was provided
+var ErrNilPostProcessorTxsHandler = errors.New("nil post processor txs handler")
+
 // ErrNilScheduledProcessor signals that a nil scheduled processor was provided
 var ErrNilScheduledProcessor = errors.New("nil scheduled processor")

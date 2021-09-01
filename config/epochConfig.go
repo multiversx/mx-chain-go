@@ -46,6 +46,7 @@ type EnableEpochs struct {
 	WaitingListFixEnableEpoch                   uint32
 	IncrementSCRNonceInMultiTransferEnableEpoch uint32
 	ScheduledMiniBlocksEnableEpoch              uint32
+	MixedTxsInMiniBlocksEnableEpoch             uint32
 	ESDTMultiTransferEnableEpoch                uint32
 	GlobalMintBurnDisableEpoch                  uint32
 	ESDTTransferRoleEnableEpoch                 uint32

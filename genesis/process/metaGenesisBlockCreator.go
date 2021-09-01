@@ -412,6 +412,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 	disabledBlockSizeComputationHandler := &disabled.BlockSizeComputationHandler{}
 	disabledBalanceComputationHandler := &disabled.BalanceComputationHandler{}
 	disabledScheduledTxsExecutionHandler := &disabled.ScheduledTxsExecutionHandler{}
+	disabledPostProcessorTxsHandler := &disabled.PostProcessorTxsHandler{}
 
 	preProcFactory, err := metachain.NewPreProcessorsContainerFactory(
 		arg.ShardCoordinator,
@@ -460,6 +461,9 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		TxTypeHandler:                     txTypeHandler,
 		BlockGasAndFeesReCheckEnableEpoch: enableEpochs.BlockGasAndFeesReCheckEnableEpoch,
 		TransactionsLogProcessor:          arg.TxLogsProcessor,
+		EpochNotifier:                     epochNotifier,
+		PostProcessorTxsHandler:           disabledPostProcessorTxsHandler,
+		MixedTxsInMiniBlocksEnableEpoch:   enableEpochs.MixedTxsInMiniBlocksEnableEpoch,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {

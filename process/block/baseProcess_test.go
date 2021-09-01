@@ -360,13 +360,15 @@ func CreateMockArguments(
 					return nil
 				},
 			},
-			BlockTracker:                   mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders),
-			BlockSizeThrottler:             &mock.BlockSizeThrottlerStub{},
-			Version:                        "softwareVersion",
-			HistoryRepository:              &dblookupext.HistoryRepositoryStub{},
-			EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
-			ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
-			ScheduledMiniBlocksEnableEpoch: 2,
+			BlockTracker:                    mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders),
+			BlockSizeThrottler:              &mock.BlockSizeThrottlerStub{},
+			Version:                         "softwareVersion",
+			HistoryRepository:               &dblookupext.HistoryRepositoryStub{},
+			EpochNotifier:                   &epochNotifier.EpochNotifierStub{},
+			ScheduledTxsExecutionHandler:    &testscommon.ScheduledTxsExecutionStub{},
+			ScheduledMiniBlocksEnableEpoch:  2,
+			PostProcessorTxsHandler:         &testscommon.PostProcessorTxsStub{},
+			MixedTxsInMiniBlocksEnableEpoch: 2,
 		},
 	}
 
@@ -399,6 +401,9 @@ func createMockTransactionCoordinatorArguments(
 		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
+		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
+		PostProcessorTxsHandler:           &testscommon.PostProcessorTxsStub{},
+		MixedTxsInMiniBlocksEnableEpoch:   2,
 	}
 
 	return argsTransactionCoordinator

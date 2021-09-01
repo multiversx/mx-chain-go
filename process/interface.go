@@ -1122,3 +1122,11 @@ type ScheduledTxsExecutionHandler interface {
 	IsScheduledTx(txHash []byte) bool
 	IsInterfaceNil() bool
 }
+
+// PostProcessorTxsHandler defines the functionality to handle post processor txs
+type PostProcessorTxsHandler interface {
+	Init()
+	AddPostProcessorTx(txHash []byte) bool
+	IsPostProcessorTxAdded(txHash []byte) bool
+	IsInterfaceNil() bool
+}

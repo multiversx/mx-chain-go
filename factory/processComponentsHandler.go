@@ -154,6 +154,9 @@ func (m *managedProcessComponents) CheckSubcomponents() error {
 	if check.IfNil(m.processComponents.scheduledTxsExecutionHandler) {
 		return errors.ErrNilScheduledTxsExecutionHandler
 	}
+	if check.IfNil(m.processComponents.postProcessorTxsHandler) {
+		return errors.ErrNilPostProcessorTxsHandler
+	}
 
 	return nil
 }
@@ -540,6 +543,18 @@ func (m *managedProcessComponents) ScheduledTxsExecutionHandler() process.Schedu
 	}
 
 	return m.processComponents.scheduledTxsExecutionHandler
+}
+
+// PostProcessorTxsHandler returns the post processor txs handler
+func (m *managedProcessComponents) PostProcessorTxsHandler() process.PostProcessorTxsHandler {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.postProcessorTxsHandler
 }
 
 // IsInterfaceNil returns true if the interface is nil

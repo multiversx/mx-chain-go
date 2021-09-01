@@ -76,6 +76,7 @@ type baseProcessor struct {
 	versionedHeaderFactory       nodeFactory.VersionedHeaderFactory
 	headerIntegrityVerifier      process.HeaderIntegrityVerifier
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
+	postProcessorTxsHandler      process.PostProcessorTxsHandler
 
 	appStatusHandler       core.AppStatusHandler
 	stateCheckpointModulus uint
@@ -88,9 +89,11 @@ type baseProcessor struct {
 	vmContainerFactory process.VirtualMachinesContainerFactory
 	vmContainer        process.VirtualMachinesContainer
 
-	processDataTriesOnCommitEpoch  bool
-	scheduledMiniBlocksEnableEpoch uint32
-	flagScheduledMiniBlocks        atomic.Flag
+	processDataTriesOnCommitEpoch   bool
+	scheduledMiniBlocksEnableEpoch  uint32
+	flagScheduledMiniBlocks         atomic.Flag
+	mixedTxsInMiniBlocksEnableEpoch uint32
+	flagMixedTxsInMiniBlocks        atomic.Flag
 }
 
 type bootStorerDataArgs struct {
@@ -396,7 +399,6 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 
 // checkProcessorNilParameters will check the input parameters for nil values
 func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
-
 	for key := range arguments.AccountsDB {
 		if check.IfNil(arguments.AccountsDB[key]) {
 			return process.ErrNilAccountsAdapter
@@ -486,6 +488,9 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.ScheduledTxsExecutionHandler) {
 		return process.ErrNilScheduledTxsExecutionHandler
 	}
+	if check.IfNil(arguments.PostProcessorTxsHandler) {
+		return process.ErrNilPostProcessorTxsHandler
+	}
 	if check.IfNil(arguments.BootstrapComponents.VersionedHeaderFactory()) {
 		return process.ErrNilVersionedHeaderFactory
 	}
@@ -502,6 +507,8 @@ func (bp *baseProcessor) createBlockStarted() error {
 	if err != nil {
 		return err
 	}
+
+	bp.postProcessorTxsHandler.Init()
 
 	return nil
 }
@@ -1536,4 +1543,6 @@ func (bp *baseProcessor) ProcessScheduledBlock(_ data.HeaderHandler, _ data.Body
 func (bp *baseProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 	bp.flagScheduledMiniBlocks.Toggle(epoch >= bp.scheduledMiniBlocksEnableEpoch)
 	log.Debug("baseProcessor: scheduled mini blocks", "enabled", bp.flagScheduledMiniBlocks.IsSet())
+	bp.flagMixedTxsInMiniBlocks.Toggle(epoch >= bp.mixedTxsInMiniBlocksEnableEpoch)
+	log.Debug("baseProcessor: mixed txs in mini blocks", "enabled", bp.flagMixedTxsInMiniBlocks.IsSet())
 }

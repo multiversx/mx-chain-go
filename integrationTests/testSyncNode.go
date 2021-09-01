@@ -210,12 +210,14 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 				return nil
 			},
 		},
-		BlockTracker:                   tpn.BlockTracker,
-		BlockSizeThrottler:             TestBlockSizeThrottler,
-		HistoryRepository:              tpn.HistoryRepository,
-		EpochNotifier:                  tpn.EpochNotifier,
-		ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
-		ScheduledMiniBlocksEnableEpoch: ScheduledMiniBlocksEnableEpoch,
+		BlockTracker:                    tpn.BlockTracker,
+		BlockSizeThrottler:              TestBlockSizeThrottler,
+		HistoryRepository:               tpn.HistoryRepository,
+		EpochNotifier:                   tpn.EpochNotifier,
+		ScheduledTxsExecutionHandler:    &testscommon.ScheduledTxsExecutionStub{},
+		ScheduledMiniBlocksEnableEpoch:  ScheduledMiniBlocksEnableEpoch,
+		PostProcessorTxsHandler:         &testscommon.PostProcessorTxsStub{},
+		MixedTxsInMiniBlocksEnableEpoch: MixedTxsInMiniBlocksEnableEpoch,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
@@ -241,6 +243,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		argumentsBase.BlockChainHook = tpn.BlockchainHook
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 		argumentsBase.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{}
+		argumentsBase.PostProcessorTxsHandler = &testscommon.PostProcessorTxsStub{}
 		arguments := block.ArgShardProcessor{
 			ArgBaseProcessor: argumentsBase,
 		}

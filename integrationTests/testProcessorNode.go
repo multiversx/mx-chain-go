@@ -202,6 +202,9 @@ const StakingV2Epoch = 1000
 // ScheduledMiniBlocksEnableEpoch defines the epoch for integration tests when scheduled nini blocks are enabled
 const ScheduledMiniBlocksEnableEpoch = 1000
 
+// MixedTxsInMiniBlocksEnableEpoch defines the epoch for integration tests when mixed txs in nini blocks are enabled
+const MixedTxsInMiniBlocksEnableEpoch = 1000
+
 // TestKeyPair holds a pair of private/public Keys
 type TestKeyPair struct {
 	Sk crypto.PrivateKey
@@ -320,8 +323,9 @@ type TestProcessorNode struct {
 	EnableEpochs             config.EnableEpochs
 	UseValidVmBlsSigVerifier bool
 
-	TransactionLogProcessor        process.TransactionLogProcessor
-	ScheduledMiniBlocksEnableEpoch uint32
+	TransactionLogProcessor         process.TransactionLogProcessor
+	ScheduledMiniBlocksEnableEpoch  uint32
+	MixedTxsInMiniBlocksEnableEpoch uint32
 }
 
 // CreatePkBytes creates 'numShards' public key-like byte slices
@@ -414,6 +418,7 @@ func newBaseTestProcessorNode(
 	}
 
 	tpn.ScheduledMiniBlocksEnableEpoch = uint32(1000000)
+	tpn.MixedTxsInMiniBlocksEnableEpoch = uint32(1000000)
 	tpn.NodeKeys = &TestKeyPair{
 		Sk: sk,
 		Pk: pk,
@@ -1513,6 +1518,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
+	postProcessorTxsHandler, _ := postprocess.NewPostProcessorTxs()
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
 		Hasher:                            TestHasher,
 		Marshalizer:                       TestMarshalizer,
@@ -1530,6 +1536,9 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		TxTypeHandler:                     txTypeHandler,
 		BlockGasAndFeesReCheckEnableEpoch: tpn.EnableEpochs.BlockGasAndFeesReCheckEnableEpoch,
 		TransactionsLogProcessor:          tpn.TransactionLogProcessor,
+		EpochNotifier:                     tpn.EpochNotifier,
+		PostProcessorTxsHandler:           postProcessorTxsHandler,
+		MixedTxsInMiniBlocksEnableEpoch:   tpn.EnableEpochs.MixedTxsInMiniBlocksEnableEpoch,
 	}
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	scheduledTxsExecutionHandler.SetTransactionCoordinator(tpn.TxCoordinator)
@@ -1742,6 +1751,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
+	postProcessorTxsHandler, _ := postprocess.NewPostProcessorTxs()
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
 		Hasher:                            TestHasher,
 		Marshalizer:                       TestMarshalizer,
@@ -1759,6 +1769,9 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		TxTypeHandler:                     txTypeHandler,
 		BlockGasAndFeesReCheckEnableEpoch: tpn.EnableEpochs.BlockGasAndFeesReCheckEnableEpoch,
 		TransactionsLogProcessor:          tpn.TransactionLogProcessor,
+		EpochNotifier:                     tpn.EpochNotifier,
+		PostProcessorTxsHandler:           postProcessorTxsHandler,
+		MixedTxsInMiniBlocksEnableEpoch:   tpn.EnableEpochs.MixedTxsInMiniBlocksEnableEpoch,
 	}
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	scheduledTxsExecutionHandler.SetTransactionCoordinator(tpn.TxCoordinator)
@@ -1927,12 +1940,14 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 				return nil
 			},
 		},
-		BlockTracker:                   tpn.BlockTracker,
-		BlockSizeThrottler:             TestBlockSizeThrottler,
-		HistoryRepository:              tpn.HistoryRepository,
-		EpochNotifier:                  tpn.EpochNotifier,
-		ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
-		ScheduledMiniBlocksEnableEpoch: ScheduledMiniBlocksEnableEpoch,
+		BlockTracker:                    tpn.BlockTracker,
+		BlockSizeThrottler:              TestBlockSizeThrottler,
+		HistoryRepository:               tpn.HistoryRepository,
+		EpochNotifier:                   tpn.EpochNotifier,
+		ScheduledTxsExecutionHandler:    &testscommon.ScheduledTxsExecutionStub{},
+		ScheduledMiniBlocksEnableEpoch:  ScheduledMiniBlocksEnableEpoch,
+		PostProcessorTxsHandler:         &testscommon.PostProcessorTxsStub{},
+		MixedTxsInMiniBlocksEnableEpoch: MixedTxsInMiniBlocksEnableEpoch,
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {
@@ -2109,6 +2124,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		argumentsBase.BlockChainHook = tpn.BlockchainHook
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 		argumentsBase.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{}
+		argumentsBase.PostProcessorTxsHandler = &testscommon.PostProcessorTxsStub{}
 
 		arguments := block.ArgShardProcessor{
 			ArgBaseProcessor: argumentsBase,

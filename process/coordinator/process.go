@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
@@ -48,6 +49,9 @@ type ArgTransactionCoordinator struct {
 	TxTypeHandler                     process.TxTypeHandler
 	TransactionsLogProcessor          process.TransactionLogProcessor
 	BlockGasAndFeesReCheckEnableEpoch uint32
+	EpochNotifier                     process.EpochNotifier
+	PostProcessorTxsHandler           process.PostProcessorTxsHandler
+	MixedTxsInMiniBlocksEnableEpoch   uint32
 }
 
 type transactionCoordinator struct {
@@ -78,6 +82,10 @@ type transactionCoordinator struct {
 	txTypeHandler                     process.TxTypeHandler
 	transactionsLogProcessor          process.TransactionLogProcessor
 	blockGasAndFeesReCheckEnableEpoch uint32
+	mixedTxsInMiniBlocksEnableEpoch   uint32
+	epochNotifier                     process.EpochNotifier
+	postProcessorTxsHandler           process.PostProcessorTxsHandler
+	flagMixedTxsInMiniBlocks          atomic.Flag
 }
 
 // NewTransactionCoordinator creates a transaction coordinator to run and coordinate preprocessors and processors
@@ -100,8 +108,12 @@ func NewTransactionCoordinator(arguments ArgTransactionCoordinator) (*transactio
 		txTypeHandler:                     arguments.TxTypeHandler,
 		blockGasAndFeesReCheckEnableEpoch: arguments.BlockGasAndFeesReCheckEnableEpoch,
 		transactionsLogProcessor:          arguments.TransactionsLogProcessor,
+		epochNotifier:                     arguments.EpochNotifier,
+		postProcessorTxsHandler:           arguments.PostProcessorTxsHandler,
+		mixedTxsInMiniBlocksEnableEpoch:   arguments.MixedTxsInMiniBlocksEnableEpoch,
 	}
 	log.Debug("coordinator/process: enable epoch for block gas and fees re-check", "epoch", tc.blockGasAndFeesReCheckEnableEpoch)
+	log.Debug("coordinator/process: enable epoch for mixed txs in mini blocks", "epoch", tc.mixedTxsInMiniBlocksEnableEpoch)
 
 	tc.miniBlockPool = arguments.MiniBlockPool
 	tc.onRequestMiniBlock = arguments.RequestHandler.RequestMiniBlock
@@ -135,6 +147,8 @@ func NewTransactionCoordinator(arguments ArgTransactionCoordinator) (*transactio
 
 	tc.requestedItemsHandler = timecache.NewTimeCache(common.MaxWaitingTimeToReceiveRequestedItem)
 	tc.miniBlockPool.RegisterHandler(tc.receivedMiniBlock, core.UniqueIdentifier())
+
+	tc.epochNotifier.RegisterNotifyHandler(tc)
 
 	return tc, nil
 }
@@ -689,12 +703,39 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 		}
 	}
 
-	interMBs := tc.CreatePostProcessMiniBlocks()
+	interMBs := tc.createPostProcessMiniBlocks()
 	if len(interMBs) > 0 {
 		miniBlocks = append(miniBlocks, interMBs...)
 	}
 
 	return miniBlocks
+}
+
+func (tc *transactionCoordinator) createPostProcessMiniBlocks() block.MiniBlockSlice {
+	miniBlocks := tc.CreatePostProcessMiniBlocks()
+	if !tc.flagMixedTxsInMiniBlocks.IsSet() {
+		return miniBlocks
+	}
+
+	finalMiniBlocks := make(block.MiniBlockSlice, 0)
+	for i := 0; i < len(miniBlocks); i++ {
+		txHashes := make([][]byte, 0)
+		for _, txHash := range miniBlocks[i].TxHashes {
+			if tc.postProcessorTxsHandler.IsPostProcessorTxAdded(txHash) {
+				continue
+			}
+			txHashes = append(txHashes, txHash)
+		}
+
+		if len(txHashes) == 0 {
+			continue
+		}
+
+		miniBlocks[i].TxHashes = txHashes
+		finalMiniBlocks = append(finalMiniBlocks, miniBlocks[i])
+	}
+
+	return finalMiniBlocks
 }
 
 // CreatePostProcessMiniBlocks returns all the post processed miniblocks
@@ -1380,7 +1421,6 @@ func checkTransactionCoordinatorNilParameters(arguments ArgTransactionCoordinato
 	if check.IfNil(arguments.BalanceComputation) {
 		return process.ErrNilBalanceComputationHandler
 	}
-
 	if check.IfNil(arguments.EconomicsFee) {
 		return process.ErrNilEconomicsFeeHandler
 	}
@@ -1389,6 +1429,12 @@ func checkTransactionCoordinatorNilParameters(arguments ArgTransactionCoordinato
 	}
 	if check.IfNil(arguments.TransactionsLogProcessor) {
 		return process.ErrNilTxLogsProcessor
+	}
+	if check.IfNil(arguments.EpochNotifier) {
+		return process.ErrNilEpochNotifier
+	}
+	if check.IfNil(arguments.PostProcessorTxsHandler) {
+		return process.ErrNilPostProcessorTxsHandler
 	}
 
 	return nil
@@ -1424,6 +1470,12 @@ func (tc *transactionCoordinator) GetAllIntermediateTxs() map[block.Type]map[str
 	}
 
 	return mapIntermediateTxs
+}
+
+// EpochConfirmed is called whenever a new epoch is confirmed
+func (tc *transactionCoordinator) EpochConfirmed(epoch uint32, _ uint64) {
+	tc.flagMixedTxsInMiniBlocks.Toggle(epoch >= tc.mixedTxsInMiniBlocksEnableEpoch)
+	log.Debug("transactionCoordinator: mixed txs in mini blocks", "enabled", tc.flagMixedTxsInMiniBlocks.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -45,6 +45,7 @@ type ProcessComponentsStub struct {
 	ArwenChangeLockerInternal            process.Locker
 	CurrentEpochProviderInternal         process.CurrentNetworkEpochProviderHandler
 	ScheduledTxsExecutionHandlerInternal process.ScheduledTxsExecutionHandler
+	PostProcessorTxsHandlerInternal      process.PostProcessorTxsHandler
 }
 
 // Create -
@@ -220,6 +221,11 @@ func (pcs *ProcessComponentsStub) CurrentEpochProvider() process.CurrentNetworkE
 // ScheduledTxsExecutionHandler -
 func (pcs *ProcessComponentsStub) ScheduledTxsExecutionHandler() process.ScheduledTxsExecutionHandler {
 	return pcs.ScheduledTxsExecutionHandlerInternal
+}
+
+// PostProcessorTxsHandler -
+func (pcs *ProcessComponentsStub) PostProcessorTxsHandler() process.PostProcessorTxsHandler {
+	return pcs.PostProcessorTxsHandlerInternal
 }
 
 // IsInterfaceNil -
