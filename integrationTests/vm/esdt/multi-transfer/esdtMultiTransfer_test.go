@@ -3,8 +3,11 @@ package multitransfer
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt"
+	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 )
 
 func TestESDTMultiTransferToVaultSameShard(t *testing.T) {
@@ -330,4 +333,53 @@ func esdtMultiTransferToVault(t *testing.T, crossShard bool) {
 		vaultScAddress, transfers, nrRoundsToWait,
 		expectedIssuerBalance, expectedVaultBalance,
 	)
+}
+
+func TestESDTMultiTransferAsync(t *testing.T) {
+	logger.ToggleLoggerName(true)
+	logger.SetLogLevel("*:NONE")
+	net := integrationTests.NewTestNetworkSized(t, 2, 1, 1)
+	net.Start()
+	defer net.Close()
+
+	initialVal := uint64(1000000000)
+	net.MintNodeAccountsUint64(initialVal)
+	net.Step()
+
+	senderNode := net.NodesSharded[0][0]
+	owner := senderNode.OwnAccount
+	forwarder := net.DeployPayableSC(owner, "../testdata/forwarder.wasm")
+
+	// Create the fungible token
+	supply := int64(1000)
+	tokenID := issueFungibleToken(t, net, senderNode, "FUNG1", supply)
+
+	// Send half of the tokens to the forwarder SC
+	txData := txDataBuilder.NewBuilder()
+	txData.Func(core.BuiltInFunctionMultiESDTNFTTransfer)
+	txData.Bytes(forwarder).Int(1).Str(tokenID).Int(0).Int64(supply / 2)
+
+	tx := net.CreateTxUint64(owner, owner.Address, 0, txData.ToBytes())
+	tx.GasLimit = net.MaxGasLimit / 2
+	_ = net.SignAndSendTx(owner, tx)
+	net.Steps(4)
+
+	esdt.CheckAddressHasESDTTokens(t, owner.Address, net.Nodes, tokenID, supply/2)
+	esdt.CheckAddressHasESDTTokens(t, forwarder, net.Nodes, tokenID, supply/2)
+
+	// Tell the forwarder to send 100 tokens to an address from another shard
+	transferredTokens := int64(100)
+	destination := net.NodesSharded[1][0].OwnAccount
+	txData.Clear()
+	txData.Func("multi_transfer_via_async").Bytes(destination.Address).Str(tokenID).Int(0).Int64(transferredTokens)
+
+	logger.SetLogLevel("*:NONE,process/smartcontract:DEBUG,arwen:TRACE")
+	tx = net.CreateTxUint64(owner, forwarder, 0, txData.ToBytes())
+	tx.GasLimit = net.MaxGasLimit / 2
+	_ = net.SignAndSendTx(owner, tx)
+	net.Steps(10)
+
+	esdt.CheckAddressHasESDTTokens(t, owner.Address, net.Nodes, tokenID, supply/2)
+	esdt.CheckAddressHasESDTTokens(t, forwarder, net.Nodes, tokenID, supply/2-transferredTokens)
+	esdt.CheckAddressHasESDTTokens(t, destination.Address, net.Nodes, tokenID, transferredTokens)
 }
