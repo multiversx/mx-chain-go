@@ -37,7 +37,6 @@ type ArgsStorageEpochStartBootstrap struct {
 type storageEpochStartBootstrap struct {
 	*epochStartBootstrap
 	resolvers                  dataRetriever.ResolversContainer
-	store                      dataRetriever.StorageService
 	importDbConfig             config.ImportDbConfig
 	chanGracefullyClose        chan endProcess.ArgEndProcess
 	chainID                    string
@@ -78,12 +77,16 @@ func (sesb *storageEpochStartBootstrap) Bootstrap() (Parameters, error) {
 
 		if !check.IfNil(sesb.resolvers) {
 			err := sesb.resolvers.Close()
-			log.Debug("non critical error closing resolvers", "error", err)
+			if err != nil {
+				log.Debug("non critical error closing resolvers", "error", err)
+			}
 		}
 
-		if !check.IfNil(sesb.store) {
-			err := sesb.store.CloseAll()
-			log.Debug("non critical error closing resolvers", "error", err)
+		if !check.IfNil(sesb.storageService) {
+			err := sesb.storageService.CloseAll()
+			if err != nil {
+				log.Debug("non critical error closing storage service", "error", err)
+			}
 		}
 	}()
 
@@ -214,10 +217,6 @@ func (sesb *storageEpochStartBootstrap) createStorageResolvers() error {
 
 	mesn := notifier.NewManualEpochStartNotifier()
 	mesn.NewEpoch(sesb.importDbConfig.ImportDBStartInEpoch + 1)
-	sesb.store, err = sesb.createStoreForStorageResolvers(shardCoordinator, mesn)
-	if err != nil {
-		return err
-	}
 
 	resolversContainerFactoryArgs := storageResolversContainers.FactoryArgs{
 		GeneralConfig:            sesb.generalConfig,
@@ -227,7 +226,7 @@ func (sesb *storageEpochStartBootstrap) createStorageResolvers() error {
 		Hasher:                   sesb.coreComponentsHolder.Hasher(),
 		ShardCoordinator:         shardCoordinator,
 		Messenger:                sesb.messenger,
-		Store:                    sesb.store,
+		Store:                    sesb.storageService,
 		Marshalizer:              sesb.coreComponentsHolder.InternalMarshalizer(),
 		Uint64ByteSliceConverter: sesb.coreComponentsHolder.Uint64ByteSliceConverter(),
 		DataPacker:               dataPacker,

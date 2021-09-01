@@ -161,7 +161,11 @@ func (srcf *shardResolversContainerFactory) generateTrieNodesResolvers() error {
 	resolversSlice := make([]dataRetriever.Resolver, 0)
 
 	identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
-	storageManager, userAccountsDataTrie, err := srcf.newImportDBTrieStorage(srcf.generalConfig.AccountsTrieStorage)
+	storageManager, userAccountsDataTrie, err := srcf.newImportDBTrieStorage(
+		srcf.generalConfig.AccountsTrieStorageOld,
+		srcf.store.GetStorer(dataRetriever.UserAccountsUnit),
+		srcf.store.GetStorer(dataRetriever.UserAccountsCheckpointsUnit),
+	)
 	if err != nil {
 		return fmt.Errorf("%w while creating user accounts data trie storage getter", err)
 	}

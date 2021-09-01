@@ -113,7 +113,7 @@ func createMockEpochStartBootstrapArgs(
 					Shards:   1,
 				},
 				DB: config.DBConfig{
-					FilePath:          "AccountsTrie/MainDB",
+					FilePath:          "AccountsTrie",
 					Type:              "MemoryDB",
 					BatchDelaySeconds: 30,
 					MaxBatchSize:      6,
@@ -121,6 +121,34 @@ func createMockEpochStartBootstrapArgs(
 				},
 			},
 			PeerAccountsTrieStorage: config.StorageConfig{
+				Cache: config.CacheConfig{
+					Capacity: 10000,
+					Type:     "LRU",
+					Shards:   1,
+				},
+				DB: config.DBConfig{
+					FilePath:          "PeerAccountsTrie",
+					Type:              "MemoryDB",
+					BatchDelaySeconds: 30,
+					MaxBatchSize:      6,
+					MaxOpenFiles:      10,
+				},
+			},
+			AccountsTrieStorageOld: config.StorageConfig{
+				Cache: config.CacheConfig{
+					Capacity: 10000,
+					Type:     "LRU",
+					Shards:   1,
+				},
+				DB: config.DBConfig{
+					FilePath:          "AccountsTrie/MainDB",
+					Type:              "MemoryDB",
+					BatchDelaySeconds: 30,
+					MaxBatchSize:      6,
+					MaxOpenFiles:      10,
+				},
+			},
+			PeerAccountsTrieStorageOld: config.StorageConfig{
 				Cache: config.CacheConfig{
 					Capacity: 10000,
 					Type:     "LRU",
@@ -157,6 +185,7 @@ func createMockEpochStartBootstrapArgs(
 		ArgumentsParser:            &mock.ArgumentParserMock{},
 		StatusHandler:              &mock.AppStatusHandlerStub{},
 		HeaderIntegrityVerifier:    &mock.HeaderIntegrityVerifierStub{},
+		StorageService:             &mock.ChainStorerStub{},
 	}
 }
 

@@ -169,7 +169,7 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ssh data.SyncStatisti
 	arg := trie.ArgTrieSyncer{
 		RequestHandler:            u.requestHandler,
 		InterceptedNodes:          u.cacher,
-		DB:                        u.trieStorageManager.Database(),
+		DB:                        u.trieStorageManager,
 		Marshalizer:               u.marshalizer,
 		Hasher:                    u.hasher,
 		ShardId:                   u.shardId,

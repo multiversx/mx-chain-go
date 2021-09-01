@@ -239,8 +239,7 @@ func (en *extensionNode) commitCheckpoint(
 }
 
 func (en *extensionNode) commitSnapshot(
-	originDb common.DBWriteCacher,
-	targetDb common.DBWriteCacher,
+	db common.DBWriteCacher,
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
 ) error {
@@ -253,17 +252,17 @@ func (en *extensionNode) commitSnapshot(
 		return fmt.Errorf("commit snapshot error %w", err)
 	}
 
-	err = resolveIfCollapsed(en, 0, originDb)
+	err = resolveIfCollapsed(en, 0, db)
 	if err != nil {
 		return err
 	}
 
-	err = en.child.commitSnapshot(originDb, targetDb, leavesChan, ctx)
+	err = en.child.commitSnapshot(db, leavesChan, ctx)
 	if err != nil {
 		return err
 	}
 
-	return en.saveToStorage(targetDb)
+	return en.saveToStorage(db)
 }
 
 func (en *extensionNode) saveToStorage(targetDb common.DBWriteCacher) error {

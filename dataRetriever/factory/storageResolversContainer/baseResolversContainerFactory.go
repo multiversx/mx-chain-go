@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/storageResolvers"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 )
@@ -190,6 +191,8 @@ func (brcf *baseResolversContainerFactory) createMiniBlocksResolver(responseTopi
 
 func (brcf *baseResolversContainerFactory) newImportDBTrieStorage(
 	trieStorageConfig config.StorageConfig,
+	mainStorer storage.Storer,
+	checkpointsStorer storage.Storer,
 ) (common.StorageManager, dataRetriever.TrieDataGetter, error) {
 	pathManager, err := storageFactory.CreatePathManager(
 		storageFactory.ArgCreatePathManager{
@@ -215,6 +218,8 @@ func (brcf *baseResolversContainerFactory) newImportDBTrieStorage(
 
 	args := trieFactory.TrieCreateArgs{
 		TrieStorageConfig:  trieStorageConfig,
+		MainStorer:         mainStorer,
+		CheckpointsStorer:  checkpointsStorer,
 		ShardID:            core.GetShardIDString(brcf.shardIDForTries),
 		PruningEnabled:     brcf.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
 		CheckpointsEnabled: brcf.generalConfig.StateTriesConfig.CheckpointsEnabled,

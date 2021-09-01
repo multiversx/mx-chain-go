@@ -20,7 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	dataTx "github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -43,6 +43,8 @@ import (
 func getNewTrieStorageManagerArgs() trie.NewTrieStorageManagerArgs {
 	return trie.NewTrieStorageManagerArgs{
 		DB:                     memorydb.New(),
+		MainStorer:             integrationTests.CreateMemUnit(),
+		CheckpointsStorer:      integrationTests.CreateMemUnit(),
 		Marshalizer:            integrationTests.TestMarshalizer,
 		Hasher:                 integrationTests.TestHasher,
 		SnapshotDbConfig:       config.DBConfig{},
@@ -291,7 +293,7 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 	//verifies that commit saves the new tries and that can be loaded back
 	t.Parallel()
 
-	trieStore, mu := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
+	trieStore, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
 	adb, _ := integrationTests.CreateAccountsDB(0, trieStore)
 	adr1 := integrationTests.CreateRandomAddress()
 	adr2 := integrationTests.CreateRandomAddress()
@@ -326,15 +328,6 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 	rootHash, err := adb.RootHash()
 	require.Nil(t, err)
 	fmt.Printf("data committed! Root: %v\n", base64.StdEncoding.EncodeToString(rootHash))
-
-	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), integrationTests.TestMarshalizer)
-	args := getNewTrieStorageManagerArgs()
-	args.DB = mu
-	trieStorage, _ := trie.NewTrieStorageManager(args)
-	maxTrieLevelInMemory := uint(5)
-	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, maxTrieLevelInMemory)
-	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
-	adb, _ = state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator(), spm)
 
 	//reloading a new trie to test if data is inside
 	err = adb.RecreateTrie(h)
@@ -1387,7 +1380,7 @@ func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T)
 	if !bytes.Equal(rootHash, rootHashOfRollbackedBlock) {
 		time.Sleep(time.Second * 3)
 		err = shardNode.AccntState.RecreateTrie(rootHashOfRollbackedBlock)
-		require.True(t, errors.Is(err, trie.ErrHashNotFound))
+		require.True(t, errors.Is(err, trie.ErrKeyNotFound))
 	}
 
 	nonces := []*uint64{new(uint64), new(uint64)}
@@ -1543,7 +1536,7 @@ func TestTriePruningWhenBlockIsFinal(t *testing.T) {
 	require.Equal(t, uint64(7), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
 
 	err := shardNode.AccntState.RecreateTrie(rootHashOfFirstBlock)
-	require.True(t, errors.Is(err, trie.ErrHashNotFound))
+	require.True(t, errors.Is(err, trie.ErrKeyNotFound))
 }
 
 func TestStatePruningIsBuffered(t *testing.T) {

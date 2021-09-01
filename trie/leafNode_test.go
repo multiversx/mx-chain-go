@@ -728,6 +728,6 @@ func TestLeafNode_commitContextDone(t *testing.T) {
 	err := ln.commitCheckpoint(db, db, nil, nil, ctx)
 	assert.Equal(t, ErrContextClosing, err)
 
-	err = ln.commitSnapshot(db, db, nil, ctx)
+	err = ln.commitSnapshot(db, nil, ctx)
 	assert.Equal(t, ErrContextClosing, err)
 }

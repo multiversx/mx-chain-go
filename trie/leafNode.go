@@ -168,8 +168,7 @@ func (ln *leafNode) commitCheckpoint(
 }
 
 func (ln *leafNode) commitSnapshot(
-	_ common.DBWriteCacher,
-	targetDb common.DBWriteCacher,
+	db common.DBWriteCacher,
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
 ) error {
@@ -187,7 +186,7 @@ func (ln *leafNode) commitSnapshot(
 		return err
 	}
 
-	_, err = encodeNodeAndCommitToDB(ln, targetDb)
+	_, err = encodeNodeAndCommitToDB(ln, db)
 	if err != nil {
 		return err
 	}

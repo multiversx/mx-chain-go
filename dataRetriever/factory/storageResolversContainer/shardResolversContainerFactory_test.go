@@ -181,8 +181,10 @@ func TestShardResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 func getArgumentsShard() storageResolversContainers.FactoryArgs {
 	return storageResolversContainers.FactoryArgs{
 		GeneralConfig: config.Config{
-			AccountsTrieStorage:     getMockStorageConfig(),
-			PeerAccountsTrieStorage: getMockStorageConfig(),
+			AccountsTrieStorageOld:     getMockStorageConfig(),
+			AccountsTrieStorage:        getMockStorageConfig(),
+			PeerAccountsTrieStorage:    getMockStorageConfig(),
+			PeerAccountsTrieStorageOld: getMockStorageConfig(),
 			TrieSnapshotDB: config.DBConfig{
 				FilePath:          "",
 				Type:              "MemoryDB",

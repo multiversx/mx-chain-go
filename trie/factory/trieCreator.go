@@ -20,6 +20,8 @@ import (
 // TrieCreateArgs holds arguments for calling the Create method on the TrieFactory
 type TrieCreateArgs struct {
 	TrieStorageConfig  config.StorageConfig
+	MainStorer         storage.Storer
+	CheckpointsStorer  storage.Storer
 	ShardID            string
 	PruningEnabled     bool
 	CheckpointsEnabled bool
@@ -93,6 +95,8 @@ func (tc *trieCreator) Create(args TrieCreateArgs) (common.StorageManager, commo
 	)
 	storageManagerArgs := trie.NewTrieStorageManagerArgs{
 		DB:                     accountsTrieStorage,
+		MainStorer:             args.MainStorer,
+		CheckpointsStorer:      args.CheckpointsStorer,
 		Marshalizer:            tc.marshalizer,
 		Hasher:                 tc.hasher,
 		SnapshotDbConfig:       snapshotDbCfg,

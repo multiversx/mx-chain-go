@@ -78,6 +78,8 @@ func TestTrieStorageManager_Close(t *testing.T) {
 				return nil
 			},
 		},
+		MainStorer:             testscommon.CreateMemUnit(),
+		CheckpointsStorer:      testscommon.CreateMemUnit(),
 		Marshalizer:            &testscommon.MarshalizerMock{},
 		Hasher:                 &testscommon.HasherMock{},
 		SnapshotDbConfig:       config.DBConfig{},
@@ -108,6 +110,8 @@ func TestTrieStorageManager_CloseErr(t *testing.T) {
 				return closeErr
 			},
 		},
+		MainStorer:             testscommon.CreateMemUnit(),
+		CheckpointsStorer:      testscommon.CreateMemUnit(),
 		Marshalizer:            &testscommon.MarshalizerMock{},
 		Hasher:                 &testscommon.HasherMock{},
 		SnapshotDbConfig:       config.DBConfig{},

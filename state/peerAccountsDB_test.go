@@ -95,11 +95,7 @@ func TestNewPeerAccountsDB_OkValsShouldWork(t *testing.T) {
 	adb, err := state.NewPeerAccountsDB(
 		&trieMock.TrieStub{
 			GetStorageManagerCalled: func() common.StorageManager {
-				return &testscommon.StorageManagerStub{
-					DatabaseCalled: func() common.DBWriteCacher {
-						return testscommon.NewMemDbMock()
-					},
-				}
+				return &testscommon.StorageManagerStub{}
 			},
 		},
 		&testscommon.HasherMock{},
@@ -122,9 +118,6 @@ func TestNewPeerAccountsDB_SnapshotState(t *testing.T) {
 				return &testscommon.StorageManagerStub{
 					TakeSnapshotCalled: func(_ []byte, _ bool, _ chan core.KeyValueHolder) {
 						snapshotCalled = true
-					},
-					DatabaseCalled: func() common.DBWriteCacher {
-						return testscommon.NewMemDbMock()
 					},
 				}
 			},
@@ -153,9 +146,6 @@ func TestNewPeerAccountsDB_SetStateCheckpoint(t *testing.T) {
 					SetCheckpointCalled: func(_ []byte, _ chan core.KeyValueHolder) {
 						checkpointCalled = true
 					},
-					DatabaseCalled: func() common.DBWriteCacher {
-						return testscommon.NewMemDbMock()
-					},
 				}
 			},
 		},
@@ -179,11 +169,7 @@ func TestNewPeerAccountsDB_RecreateAllTries(t *testing.T) {
 	adb, err := state.NewPeerAccountsDB(
 		&trieMock.TrieStub{
 			GetStorageManagerCalled: func() common.StorageManager {
-				return &testscommon.StorageManagerStub{
-					DatabaseCalled: func() common.DBWriteCacher {
-						return testscommon.NewMemDbMock()
-					},
-				}
+				return &testscommon.StorageManagerStub{}
 			},
 			RecreateCalled: func(_ []byte) (common.Trie, error) {
 				recreateCalled = true

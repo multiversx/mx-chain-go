@@ -37,10 +37,10 @@ type Trie interface {
 
 // StorageManager manages all trie storage operations
 type StorageManager interface {
-	Database() DBWriteCacher
+	Get(key []byte) ([]byte, error)
+	Put(key []byte, val []byte) error
 	TakeSnapshot([]byte, bool, chan core.KeyValueHolder)
 	SetCheckpoint([]byte, chan core.KeyValueHolder)
-	GetSnapshotThatContainsHash(rootHash []byte) SnapshotDbHandler
 	IsPruningEnabled() bool
 	IsPruningBlocked() bool
 	EnterPruningBufferingMode()
@@ -48,6 +48,7 @@ type StorageManager interface {
 	GetSnapshotDbBatchDelay() int
 	AddDirtyCheckpointHashes([]byte, ModifiedHashes) bool
 	Remove(hash []byte) error
+	ReloadStorers(DBWriteCacher, DBWriteCacher)
 	Close() error
 	IsInterfaceNil() bool
 }

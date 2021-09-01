@@ -51,6 +51,8 @@ func createTrieStorageManager(store storage.Storer) (common.StorageManager, stor
 	}
 	args := NewTrieStorageManagerArgs{
 		DB:                     store,
+		MainStorer:             store,
+		CheckpointsStorer:      store,
 		Marshalizer:            marshalizer,
 		Hasher:                 hasher,
 		SnapshotDbConfig:       cfg,

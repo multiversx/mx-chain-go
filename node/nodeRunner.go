@@ -13,6 +13,8 @@ import (
 	"syscall"
 	"time"
 
+	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
+
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/closing"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
@@ -1016,6 +1018,25 @@ func (nr *nodeRunner) CreateManagedDataComponents(
 
 	if err != nil {
 		return nil, err
+	}
+
+	_, trieStorageManagers := managedBootstrapComponents.EpochStartBootstrapper().GetTriesComponents()
+	storers := managedDataComponents.StorageService()
+
+	for key, tsm := range trieStorageManagers {
+		if key == trieFactory.UserAccountTrie {
+			userAccountStorer := storers.GetStorer(dataRetriever.UserAccountsUnit)
+			userAccountCheckpointsStorer := storers.GetStorer(dataRetriever.UserAccountsCheckpointsUnit)
+
+			tsm.ReloadStorers(userAccountStorer, userAccountCheckpointsStorer)
+		}
+
+		if key == trieFactory.PeerAccountTrie {
+			peerAccountStorer := storers.GetStorer(dataRetriever.PeerAccountsUnit)
+			peerAccountCheckpointsStorer := storers.GetStorer(dataRetriever.PeerAccountsCheckpointsUnit)
+
+			tsm.ReloadStorers(peerAccountStorer, peerAccountCheckpointsStorer)
+		}
 	}
 
 	return managedDataComponents, nil

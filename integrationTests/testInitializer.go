@@ -26,7 +26,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
 	ed25519SingleSig "github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519/singlesig"
@@ -369,6 +369,8 @@ func CreateTrieStorageManager(store storage.Storer) (common.StorageManager, stor
 	}
 	args := trie.NewTrieStorageManagerArgs{
 		DB:                     store,
+		MainStorer:             CreateMemUnit(),
+		CheckpointsStorer:      CreateMemUnit(),
 		Marshalizer:            TestMarshalizer,
 		Hasher:                 TestHasher,
 		SnapshotDbConfig:       cfg,
@@ -955,6 +957,8 @@ func CreateNewDefaultTrie() common.Trie {
 	}
 	args := trie.NewTrieStorageManagerArgs{
 		DB:                     CreateMemUnit(),
+		MainStorer:             CreateMemUnit(),
+		CheckpointsStorer:      CreateMemUnit(),
 		Marshalizer:            TestMarshalizer,
 		Hasher:                 TestHasher,
 		SnapshotDbConfig:       config.DBConfig{},

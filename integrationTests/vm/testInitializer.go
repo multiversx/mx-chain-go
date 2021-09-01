@@ -297,9 +297,11 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 		MaxSnapshots:       2,
 	}
 	args := trie.NewTrieStorageManagerArgs{
-		DB:          store,
-		Marshalizer: marsh,
-		Hasher:      testHasher,
+		DB:                store,
+		MainStorer:        CreateMemUnit(),
+		CheckpointsStorer: CreateMemUnit(),
+		Marshalizer:       marsh,
+		Hasher:            testHasher,
 		SnapshotDbConfig: config.DBConfig{
 			FilePath:          "TrieStorage",
 			Type:              "MemoryDB",

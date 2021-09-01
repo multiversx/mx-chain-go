@@ -92,7 +92,7 @@ func (b *baseAccountsSyncer) syncMainTrie(
 	arg := trie.ArgTrieSyncer{
 		RequestHandler:            b.requestHandler,
 		InterceptedNodes:          b.cacher,
-		DB:                        b.trieStorageManager.Database(),
+		DB:                        b.trieStorageManager,
 		Marshalizer:               b.marshalizer,
 		Hasher:                    b.hasher,
 		ShardId:                   b.shardId,

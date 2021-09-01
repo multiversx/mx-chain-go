@@ -7,26 +7,37 @@ import (
 
 // StorageManagerStub -
 type StorageManagerStub struct {
-	DatabaseCalled                    func() common.DBWriteCacher
-	TakeSnapshotCalled                func([]byte, bool, chan core.KeyValueHolder)
-	SetCheckpointCalled               func([]byte, chan core.KeyValueHolder)
-	GetDbThatContainsHashCalled       func([]byte) common.DBWriteCacher
-	GetSnapshotThatContainsHashCalled func(rootHash []byte) common.SnapshotDbHandler
-	IsPruningEnabledCalled            func() bool
-	IsPruningBlockedCalled            func() bool
-	EnterPruningBufferingModeCalled   func()
-	ExitPruningBufferingModeCalled    func()
-	AddDirtyCheckpointHashesCalled    func([]byte, common.ModifiedHashes) bool
-	RemoveCalled                      func([]byte) error
-	IsInterfaceNilCalled              func() bool
+	PutCalled                       func([]byte, []byte) error
+	GetCalled                       func([]byte) ([]byte, error)
+	TakeSnapshotCalled              func([]byte, bool, chan core.KeyValueHolder)
+	SetCheckpointCalled             func([]byte, chan core.KeyValueHolder)
+	GetDbThatContainsHashCalled     func([]byte) common.DBWriteCacher
+	IsPruningEnabledCalled          func() bool
+	IsPruningBlockedCalled          func() bool
+	EnterPruningBufferingModeCalled func()
+	ExitPruningBufferingModeCalled  func()
+	AddDirtyCheckpointHashesCalled  func([]byte, common.ModifiedHashes) bool
+	RemoveCalled                    func([]byte) error
+	ReloadStorersCalled             func(common.DBWriteCacher, common.DBWriteCacher)
+	IsInterfaceNilCalled            func() bool
 }
 
-// Database -
-func (sms *StorageManagerStub) Database() common.DBWriteCacher {
-	if sms.DatabaseCalled != nil {
-		return sms.DatabaseCalled()
+// Put -
+func (sms *StorageManagerStub) Put(key []byte, val []byte) error {
+	if sms.PutCalled != nil {
+		return sms.PutCalled(key, val)
 	}
+
 	return nil
+}
+
+// Get -
+func (sms *StorageManagerStub) Get(key []byte) ([]byte, error) {
+	if sms.GetCalled != nil {
+		return sms.GetCalled(key)
+	}
+
+	return nil, nil
 }
 
 // TakeSnapshot -
@@ -41,15 +52,6 @@ func (sms *StorageManagerStub) SetCheckpoint(rootHash []byte, leavesChan chan co
 	if sms.SetCheckpointCalled != nil {
 		sms.SetCheckpointCalled(rootHash, leavesChan)
 	}
-}
-
-// GetSnapshotThatContainsHash -
-func (sms *StorageManagerStub) GetSnapshotThatContainsHash(d []byte) common.SnapshotDbHandler {
-	if sms.GetSnapshotThatContainsHashCalled != nil {
-		return sms.GetSnapshotThatContainsHashCalled(d)
-	}
-
-	return nil
 }
 
 // IsPruningEnabled -
@@ -103,6 +105,13 @@ func (sms *StorageManagerStub) Remove(hash []byte) error {
 // GetSnapshotDbBatchDelay -
 func (sms *StorageManagerStub) GetSnapshotDbBatchDelay() int {
 	return 0
+}
+
+// ReloadStorers -
+func (sms *StorageManagerStub) ReloadStorers(mainStorer common.DBWriteCacher, checkpointsStorer common.DBWriteCacher) {
+	if sms.ReloadStorersCalled != nil {
+		sms.ReloadStorersCalled(mainStorer, checkpointsStorer)
+	}
 }
 
 // Close -

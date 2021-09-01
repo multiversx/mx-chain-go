@@ -186,7 +186,11 @@ func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
 	resolversSlice := make([]dataRetriever.Resolver, 0)
 
 	identifierTrieNodes := factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
-	storageManager, userAccountsDataTrie, err := mrcf.newImportDBTrieStorage(mrcf.generalConfig.AccountsTrieStorage)
+	storageManager, userAccountsDataTrie, err := mrcf.newImportDBTrieStorage(
+		mrcf.generalConfig.AccountsTrieStorageOld,
+		mrcf.store.GetStorer(dataRetriever.PeerAccountsUnit),
+		mrcf.store.GetStorer(dataRetriever.PeerAccountsCheckpointsUnit),
+	)
 	if err != nil {
 		return fmt.Errorf("%w while creating user accounts data trie storage getter", err)
 	}
@@ -209,7 +213,11 @@ func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
 	keys = append(keys, identifierTrieNodes)
 
 	identifierTrieNodes = factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
-	storageManager, peerAccountsDataTrie, err := mrcf.newImportDBTrieStorage(mrcf.generalConfig.PeerAccountsTrieStorage)
+	storageManager, peerAccountsDataTrie, err := mrcf.newImportDBTrieStorage(
+		mrcf.generalConfig.PeerAccountsTrieStorageOld,
+		mrcf.store.GetStorer(dataRetriever.PeerAccountsUnit),
+		mrcf.store.GetStorer(dataRetriever.PeerAccountsCheckpointsUnit),
+	)
 	if err != nil {
 		return fmt.Errorf("%w while creating peer accounts data trie storage getter", err)
 	}

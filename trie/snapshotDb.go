@@ -1,6 +1,7 @@
 package trie
 
 import (
+	"os"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -34,6 +35,28 @@ func (s *snapshotDb) DecreaseNumReferences() {
 			log.Error("snapshotDb: disconnectSnapshot", "error", err.Error())
 		}
 		return
+	}
+}
+
+func disconnectSnapshot(db common.DBWriteCacher) error {
+	return db.Close()
+}
+
+func removeSnapshot(db common.DBWriteCacher, path string) {
+	err := disconnectSnapshot(db)
+	if err != nil {
+		log.Error("trie storage manager: disconnectSnapshot", "error", err.Error())
+		return
+	}
+
+	log.Debug("remove trie snapshot db", "snapshot path", path)
+	go removeDirectory(path)
+}
+
+func removeDirectory(path string) {
+	err := os.RemoveAll(path)
+	if err != nil {
+		log.Error(err.Error())
 	}
 }
 

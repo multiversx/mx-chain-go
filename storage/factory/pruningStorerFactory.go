@@ -98,6 +98,10 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	var rewardTxUnit storage.Storer
 	var bootstrapUnit storage.Storer
 	var receiptsUnit storage.Storer
+	var userAccountsUnit storage.Storer
+	var peerAccountsUnit storage.Storer
+	var userAccountsCheckpointsUnit storage.Storer
+	var peerAccountsCheckpointsUnit storage.Storer
 	var err error
 
 	successfullyCreatedStorers := make([]storage.Storer, 0)
@@ -158,6 +162,34 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 		return nil, err
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, metachainHeaderUnit)
+
+	userAccountsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.AccountsTrieStorage)
+	userAccountsUnit, err = psf.createPruningPersister(userAccountsUnitArgs)
+	if err != nil {
+		return nil, err
+	}
+	successfullyCreatedStorers = append(successfullyCreatedStorers, userAccountsUnit)
+
+	peerAccountsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.PeerAccountsTrieStorage)
+	peerAccountsUnit, err = psf.createPruningPersister(peerAccountsUnitArgs)
+	if err != nil {
+		return nil, err
+	}
+	successfullyCreatedStorers = append(successfullyCreatedStorers, peerAccountsUnit)
+
+	userAccountsCheckpointsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.AccountsTrieCheckpointsStorage)
+	userAccountsCheckpointsUnit, err = psf.createPruningPersister(userAccountsCheckpointsUnitArgs)
+	if err != nil {
+		return nil, err
+	}
+	successfullyCreatedStorers = append(successfullyCreatedStorers, userAccountsCheckpointsUnit)
+
+	peerAccountsCheckpointsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.PeerAccountsTrieCheckpointsStorage)
+	peerAccountsCheckpointsUnit, err = psf.createPruningPersister(peerAccountsCheckpointsUnitArgs)
+	if err != nil {
+		return nil, err
+	}
+	successfullyCreatedStorers = append(successfullyCreatedStorers, peerAccountsCheckpointsUnit)
 
 	// metaHdrHashNonce is static
 	metaHdrHashNonceUnitConfig := GetDBFromConfig(psf.generalConfig.MetaHdrNonceHashStorage.DB)
@@ -249,6 +281,10 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	store.AddStorer(dataRetriever.StatusMetricsUnit, statusMetricsStorageUnit)
 	store.AddStorer(dataRetriever.ReceiptsUnit, receiptsUnit)
 	store.AddStorer(dataRetriever.TrieEpochRootHashUnit, trieEpochRootHashStorageUnit)
+	store.AddStorer(dataRetriever.UserAccountsUnit, userAccountsUnit)
+	store.AddStorer(dataRetriever.PeerAccountsUnit, peerAccountsUnit)
+	store.AddStorer(dataRetriever.UserAccountsCheckpointsUnit, userAccountsCheckpointsUnit)
+	store.AddStorer(dataRetriever.PeerAccountsCheckpointsUnit, peerAccountsCheckpointsUnit)
 
 	createdStorers, err := psf.setupDbLookupExtensions(store)
 	successfullyCreatedStorers = append(successfullyCreatedStorers, createdStorers...)
@@ -280,6 +316,10 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	var rewardTxUnit storage.Storer
 	var bootstrapUnit storage.Storer
 	var receiptsUnit storage.Storer
+	var userAccountsUnit storage.Storer
+	var peerAccountsUnit storage.Storer
+	var userAccountsCheckpointsUnit storage.Storer
+	var peerAccountsCheckpointsUnit storage.Storer
 	var err error
 
 	successfullyCreatedStorers := make([]storage.Storer, 0)
@@ -307,6 +347,34 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 		return nil, err
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, headerUnit)
+
+	userAccountsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.AccountsTrieStorage)
+	userAccountsUnit, err = psf.createPruningPersister(userAccountsUnitArgs)
+	if err != nil {
+		return nil, err
+	}
+	successfullyCreatedStorers = append(successfullyCreatedStorers, userAccountsUnit)
+
+	peerAccountsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.PeerAccountsTrieStorage)
+	peerAccountsUnit, err = psf.createPruningPersister(peerAccountsUnitArgs)
+	if err != nil {
+		return nil, err
+	}
+	successfullyCreatedStorers = append(successfullyCreatedStorers, peerAccountsUnit)
+
+	userAccountsCheckpointsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.AccountsTrieCheckpointsStorage)
+	userAccountsCheckpointsUnit, err = psf.createPruningPersister(userAccountsCheckpointsUnitArgs)
+	if err != nil {
+		return nil, err
+	}
+	successfullyCreatedStorers = append(successfullyCreatedStorers, userAccountsCheckpointsUnit)
+
+	peerAccountsCheckpointsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.PeerAccountsTrieCheckpointsStorage)
+	peerAccountsCheckpointsUnit, err = psf.createPruningPersister(peerAccountsCheckpointsUnitArgs)
+	if err != nil {
+		return nil, err
+	}
+	successfullyCreatedStorers = append(successfullyCreatedStorers, peerAccountsCheckpointsUnit)
 
 	// metaHdrHashNonce is static
 	metaHdrHashNonceUnitConfig := GetDBFromConfig(psf.generalConfig.MetaHdrNonceHashStorage.DB)
@@ -430,6 +498,10 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	store.AddStorer(dataRetriever.StatusMetricsUnit, statusMetricsStorageUnit)
 	store.AddStorer(dataRetriever.ReceiptsUnit, receiptsUnit)
 	store.AddStorer(dataRetriever.TrieEpochRootHashUnit, trieEpochRootHashStorageUnit)
+	store.AddStorer(dataRetriever.UserAccountsUnit, userAccountsUnit)
+	store.AddStorer(dataRetriever.PeerAccountsUnit, peerAccountsUnit)
+	store.AddStorer(dataRetriever.UserAccountsCheckpointsUnit, userAccountsCheckpointsUnit)
+	store.AddStorer(dataRetriever.PeerAccountsCheckpointsUnit, peerAccountsCheckpointsUnit)
 
 	createdStorers, err := psf.setupDbLookupExtensions(store)
 	successfullyCreatedStorers = append(successfullyCreatedStorers, createdStorers...)

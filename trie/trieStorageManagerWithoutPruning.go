@@ -20,6 +20,16 @@ func NewTrieStorageManagerWithoutPruning(db common.DBWriteCacher) (*trieStorageM
 	return &trieStorageManagerWithoutPruning{&trieStorageManager{db: db}}, nil
 }
 
+// Put adds only to the db
+func (tsm *trieStorageManagerWithoutPruning) Put(key []byte, val []byte) error {
+	return tsm.db.Put(key, val)
+}
+
+// Get checks only the db
+func (tsm *trieStorageManagerWithoutPruning) Get(key []byte) ([]byte, error) {
+	return tsm.db.Get(key)
+}
+
 // TakeSnapshot does nothing if pruning is disabled
 func (tsm *trieStorageManagerWithoutPruning) TakeSnapshot(_ []byte, _ bool, chLeaves chan core.KeyValueHolder) {
 	if chLeaves != nil {

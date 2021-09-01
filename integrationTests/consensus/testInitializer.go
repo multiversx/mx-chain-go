@@ -16,7 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	ed25519SingleSig "github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519/singlesig"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
@@ -176,6 +176,8 @@ func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 	}
 	args := trie.NewTrieStorageManagerArgs{
 		DB:                     store,
+		MainStorer:             createMemUnit(),
+		CheckpointsStorer:      createMemUnit(),
 		Marshalizer:            marshalizer,
 		Hasher:                 hasher,
 		SnapshotDbConfig:       cfg,

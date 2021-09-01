@@ -124,7 +124,7 @@ func NewAccountsDB(
 }
 
 func getNumCheckpoints(trieStorageManager common.StorageManager) uint32 {
-	val, err := trieStorageManager.Database().Get(numCheckpointsKey)
+	val, err := trieStorageManager.Get(numCheckpointsKey)
 	if err != nil {
 		return 0
 	}
@@ -1035,7 +1035,7 @@ func (adb *AccountsDB) increaseNumCheckpoints() {
 	numCheckpointsVal := make([]byte, 4)
 	binary.BigEndian.PutUint32(numCheckpointsVal, numCheckpoints)
 
-	err := trieStorageManager.Database().Put(numCheckpointsKey, numCheckpointsVal)
+	err := trieStorageManager.Put(numCheckpointsKey, numCheckpointsVal)
 	if err != nil {
 		log.Warn("could not add num checkpoints to database", "error", err)
 	}

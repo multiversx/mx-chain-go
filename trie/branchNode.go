@@ -333,8 +333,7 @@ func (bn *branchNode) commitCheckpoint(
 }
 
 func (bn *branchNode) commitSnapshot(
-	originDb common.DBWriteCacher,
-	targetDb common.DBWriteCacher,
+	db common.DBWriteCacher,
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
 ) error {
@@ -348,7 +347,7 @@ func (bn *branchNode) commitSnapshot(
 	}
 
 	for i := range bn.children {
-		err = resolveIfCollapsed(bn, byte(i), originDb)
+		err = resolveIfCollapsed(bn, byte(i), db)
 		if err != nil {
 			return err
 		}
@@ -357,13 +356,13 @@ func (bn *branchNode) commitSnapshot(
 			continue
 		}
 
-		err = bn.children[i].commitSnapshot(originDb, targetDb, leavesChan, ctx)
+		err = bn.children[i].commitSnapshot(db, leavesChan, ctx)
 		if err != nil {
 			return err
 		}
 	}
 
-	return bn.saveToStorage(targetDb)
+	return bn.saveToStorage(db)
 }
 
 func (bn *branchNode) saveToStorage(targetDb common.DBWriteCacher) error {

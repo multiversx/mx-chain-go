@@ -82,7 +82,7 @@ func GetGeneralConfig() config.Config {
 			MaxBatchSize:      6,
 			MaxOpenFiles:      10,
 		},
-		AccountsTrieStorage: config.StorageConfig{
+		AccountsTrieStorageOld: config.StorageConfig{
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
 				FilePath:          AddTimestampSuffix("AccountsTrie/MainDB"),
@@ -92,10 +92,50 @@ func GetGeneralConfig() config.Config {
 				MaxOpenFiles:      10,
 			},
 		},
-		PeerAccountsTrieStorage: config.StorageConfig{
+		AccountsTrieStorage: config.StorageConfig{
+			Cache: getLRUCacheConfig(),
+			DB: config.DBConfig{
+				FilePath:          AddTimestampSuffix("AccountsTrie"),
+				Type:              string(storageUnit.MemoryDB),
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
+		AccountsTrieCheckpointsStorage: config.StorageConfig{
+			Cache: getLRUCacheConfig(),
+			DB: config.DBConfig{
+				FilePath:          AddTimestampSuffix("AccountsTrieCheckpoints"),
+				Type:              string(storageUnit.MemoryDB),
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
+		PeerAccountsTrieStorageOld: config.StorageConfig{
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
 				FilePath:          AddTimestampSuffix("PeerAccountsTrie/MainDB"),
+				Type:              string(storageUnit.MemoryDB),
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
+		PeerAccountsTrieStorage: config.StorageConfig{
+			Cache: getLRUCacheConfig(),
+			DB: config.DBConfig{
+				FilePath:          AddTimestampSuffix("PeerAccountsTrie"),
+				Type:              string(storageUnit.MemoryDB),
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
+		PeerAccountsTrieCheckpointsStorage: config.StorageConfig{
+			Cache: getLRUCacheConfig(),
+			DB: config.DBConfig{
+				FilePath:          AddTimestampSuffix("PeerAccountsTrieCheckpoints"),
 				Type:              string(storageUnit.MemoryDB),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,

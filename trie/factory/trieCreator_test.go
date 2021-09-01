@@ -1,6 +1,7 @@
 package factory_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -25,6 +26,8 @@ func getArgs() factory.TrieFactoryArgs {
 func getCreateArgs() factory.TrieCreateArgs {
 	return factory.TrieCreateArgs{
 		TrieStorageConfig:  createTrieStorageCfg(),
+		MainStorer:         testscommon.CreateMemUnit(),
+		CheckpointsStorer:  testscommon.CreateMemUnit(),
 		ShardID:            "0",
 		PruningEnabled:     false,
 		CheckpointsEnabled: false,
@@ -132,4 +135,32 @@ func TestTrieCreator_CreateWithoutCheckpointShouldWork(t *testing.T) {
 	_, tr, err := tf.Create(createArgs)
 	require.NotNil(t, tr)
 	require.Nil(t, err)
+}
+
+func TestTrieCreator_CreateWithNilMainStorerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgs()
+	tf, _ := factory.NewTrieFactory(args)
+
+	createArgs := getCreateArgs()
+	createArgs.PruningEnabled = true
+	createArgs.MainStorer = nil
+	_, tr, err := tf.Create(createArgs)
+	require.Nil(t, tr)
+	require.True(t, strings.Contains(err.Error(), trie.ErrNilStorer.Error()))
+}
+
+func TestTrieCreator_CreateWithNilCheckpointsStorerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgs()
+	tf, _ := factory.NewTrieFactory(args)
+
+	createArgs := getCreateArgs()
+	createArgs.PruningEnabled = true
+	createArgs.CheckpointsStorer = nil
+	_, tr, err := tf.Create(createArgs)
+	require.Nil(t, tr)
+	require.True(t, strings.Contains(err.Error(), trie.ErrNilStorer.Error()))
 }

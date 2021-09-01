@@ -16,6 +16,9 @@ var ErrNilMarshalizer = errors.New("no marshalizer provided")
 // ErrNilDatabase is raised when a database operation is called, but no database is provided
 var ErrNilDatabase = errors.New("no database provided")
 
+// ErrNilStorer is raised when a nil storer has been provided
+var ErrNilStorer = errors.New("nil storer")
+
 // ErrInvalidEncoding is raised when the encoded information cannot be decoded
 var ErrInvalidEncoding = errors.New("cannot decode this invalid encoding")
 
@@ -64,9 +67,6 @@ var ErrNilRequestHandler = errors.New("the request handler is nil")
 // ErrTimeIsOut signals that time is out
 var ErrTimeIsOut = errors.New("time is out")
 
-// ErrHashNotFound signals that the given hash was not found in db or snapshots
-var ErrHashNotFound = errors.New("hash not found")
-
 // ErrNilTrieStorage is raised when a nil trie storage is provided
 var ErrNilTrieStorage = errors.New("nil trie storage provided")
 
@@ -102,3 +102,6 @@ var ErrNilCheckpointHashesHolder = errors.New("nil checkpoint hashes holder")
 
 // ErrTrieSyncTimeout signals that a timeout occurred while syncing the trie
 var ErrTrieSyncTimeout = errors.New("trie sync timeout")
+
+// ErrKeyNotFound is raised when a key is not found
+var ErrKeyNotFound = errors.New("key not found")

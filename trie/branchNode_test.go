@@ -67,6 +67,8 @@ func newEmptyTrie() (*patriciaMerkleTrie, *trieStorageManager) {
 
 	args := NewTrieStorageManagerArgs{
 		DB:                     db,
+		MainStorer:             createMemUnit(),
+		CheckpointsStorer:      createMemUnit(),
 		Marshalizer:            marsh,
 		Hasher:                 hsh,
 		SnapshotDbConfig:       cfg,
@@ -196,6 +198,8 @@ func TestBranchNode_setRootHash(t *testing.T) {
 	marsh, hsh := getTestMarshalizerAndHasher()
 	args := NewTrieStorageManagerArgs{
 		DB:                     db,
+		MainStorer:             createMemUnit(),
+		CheckpointsStorer:      createMemUnit(),
 		Marshalizer:            marsh,
 		Hasher:                 hsh,
 		SnapshotDbConfig:       cfg,
@@ -205,6 +209,8 @@ func TestBranchNode_setRootHash(t *testing.T) {
 	trieStorage1, _ := NewTrieStorageManager(args)
 	args = NewTrieStorageManagerArgs{
 		DB:                     db,
+		MainStorer:             createMemUnit(),
+		CheckpointsStorer:      createMemUnit(),
 		Marshalizer:            marsh,
 		Hasher:                 hsh,
 		SnapshotDbConfig:       cfg,
@@ -1041,7 +1047,7 @@ func TestBranchNode_getChildrenCollapsedBn(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	_ = bn.commitSnapshot(db, db, nil, context.Background())
+	_ = bn.commitSnapshot(db, nil, context.Background())
 
 	children, err := collapsedBn.getChildren(db)
 	assert.Nil(t, err)
@@ -1241,8 +1247,8 @@ func TestBranchNode_printShouldNotPanicEvenIfNodeIsCollapsed(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	_ = bn.commitSnapshot(db, db, nil, context.Background())
-	_ = collapsedBn.commitSnapshot(db, db, nil, context.Background())
+	_ = bn.commitSnapshot(db, nil, context.Background())
+	_ = collapsedBn.commitSnapshot(db, nil, context.Background())
 
 	bn.print(bnWriter, 0, db)
 	collapsedBn.print(collapsedBnWriter, 0, db)
@@ -1279,7 +1285,7 @@ func TestBranchNode_getAllHashesResolvesCollapsed(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	_ = bn.commitSnapshot(db, db, nil, context.Background())
+	_ = bn.commitSnapshot(db, nil, context.Background())
 
 	hashes, err := collapsedBn.getAllHashes(db)
 	assert.Nil(t, err)
@@ -1363,6 +1369,6 @@ func TestBranchNode_commitContextDone(t *testing.T) {
 	err := bn.commitCheckpoint(db, db, nil, nil, ctx)
 	assert.Equal(t, ErrContextClosing, err)
 
-	err = bn.commitSnapshot(db, db, nil, ctx)
+	err = bn.commitSnapshot(db, nil, ctx)
 	assert.Equal(t, ErrContextClosing, err)
 }
