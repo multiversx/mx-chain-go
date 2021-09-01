@@ -24,8 +24,8 @@ func TestESDTMultiTransferThroughForwarder(t *testing.T) {
 	senderNode := net.NodesSharded[0][0]
 	owner := senderNode.OwnAccount
 	forwarder := net.DeployPayableSC(owner, "../testdata/forwarder.wasm")
-	vault := net.DeployNonpayableSC(owner, "../testdata/vault.wasm")
-	vaultOtherShard := net.DeployNonpayableSC(net.NodesSharded[1][0].OwnAccount, "../testdata/vault.wasm")
+	vault := net.DeployNonpayableSC(owner, "../testdata/vaultV2.wasm")
+	vaultOtherShard := net.DeployNonpayableSC(net.NodesSharded[1][0].OwnAccount, "../testdata/vaultV2.wasm")
 
 	// Create the fungible token
 	supply := int64(1000)

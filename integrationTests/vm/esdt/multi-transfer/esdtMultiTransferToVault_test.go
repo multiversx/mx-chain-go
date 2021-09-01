@@ -50,7 +50,7 @@ func esdtMultiTransferToVault(t *testing.T, crossShard bool) {
 	expectedVaultBalance := make(map[string]map[int64]int64)
 
 	// deploy vault SC
-	vaultScAddress := deployNonPayableSmartContract(t, net, net.NodesSharded[0][0], "../testdata/vault.wasm")
+	vaultScAddress := deployNonPayableSmartContract(t, net, net.NodesSharded[0][0], "../testdata/vaultV2.wasm")
 
 	// issue two fungible tokens
 	fungibleTokenIdentifier1 := issueFungibleToken(t, net, senderNode, "FUNG1", 1000)
