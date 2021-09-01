@@ -768,6 +768,32 @@ func TestEconomicsData_ComputeGasUsedAndFeeBasedOnRefundValueSpecialBuiltIn_ToMu
 	require.Equal(t, expectedFee, fee)
 }
 
+func TestEconomicsData_ComputeGasUsedAndFeeBasedOnRefundValueStakeTx(t *testing.T) {
+	builtInCostHandler, _ := economics.NewBuiltInFunctionsCost(&economics.ArgsBuiltInFunctionCost{
+		GasSchedule: mock.NewGasScheduleNotifierMock(defaults.FillGasMapInternal(map[string]map[string]uint64{}, 1)),
+		ArgsParser:  smartContract.NewArgumentParser(),
+	})
+
+	txStake := &transaction.Transaction{
+		GasPrice: 1000000000,
+		GasLimit: 250000000,
+		Data:     []byte("stake"),
+	}
+
+	expectedGasUsed := uint64(39378847)
+	expectedFee, _ := big.NewInt(0).SetString("39378847000000000", 10)
+
+	args := createArgsForEconomicsDataRealFees(builtInCostHandler)
+	args.PenalizedTooMuchGasEnableEpoch = 1000
+	args.GasPriceModifierEnableEpoch = 1000
+	economicData, _ := economics.NewEconomicsData(args)
+
+	refundValueStake, _ := big.NewInt(0).SetString("210621153000000000", 10)
+	gasUsedStake, feeStake := economicData.ComputeGasUsedAndFeeBasedOnRefundValue(txStake, refundValueStake)
+	require.Equal(t, expectedGasUsed, gasUsedStake)
+	require.Equal(t, expectedFee, feeStake)
+}
+
 func TestEconomicsData_ComputeGasUsedAndFeeBasedOnRefundValueSpecialBuiltIn(t *testing.T) {
 	t.Parallel()
 
