@@ -6,6 +6,20 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// AdditionalMiddleware holds the data needed for adding a middleware to an API endpoint
+type AdditionalMiddleware struct {
+	Middleware gin.HandlerFunc
+	Before bool
+}
+
+// EndpointHandlerData holds the items needed for creating a new gin HTTP endpoint
+type EndpointHandlerData struct {
+	Path    string
+	Method  string
+	Handler gin.HandlerFunc
+	AdditionalMiddlewares []AdditionalMiddleware
+}
+
 // GenericAPIResponse defines the structure of all responses on API endpoints
 type GenericAPIResponse struct {
 	Data  interface{} `json:"data"`
