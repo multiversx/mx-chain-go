@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/trie/statistics"
@@ -139,7 +140,7 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 		ShardId:                   shardID,
 		Topic:                     factory.AccountTrieNodesTopic,
 		TrieSyncStatistics:        tss,
-		ReceivedNodesTimeout:      timeout,
+		TimeoutHandler:            testscommon.NewTimeoutHandlerMock(timeout),
 		MaxHardCapForMissingNodes: 10000,
 	}
 	trieSyncer, _ := trie.NewDoubleListTrieSyncer(arg)
@@ -244,7 +245,7 @@ func TestNode_RequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t *testi
 		ShardId:                   shardID,
 		Topic:                     factory.AccountTrieNodesTopic,
 		TrieSyncStatistics:        tss,
-		ReceivedNodesTimeout:      timeout,
+		TimeoutHandler:            testscommon.NewTimeoutHandlerMock(timeout),
 		MaxHardCapForMissingNodes: 10000,
 	}
 	trieSyncer, _ := trie.NewDoubleListTrieSyncer(arg)

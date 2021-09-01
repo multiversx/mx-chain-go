@@ -49,13 +49,18 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 		return nil, data.ErrNilThrottler
 	}
 
+	timeoutHandler, err := common.NewTimeoutHandler(args.Timeout)
+	if err != nil {
+		return nil, err
+	}
+
 	b := &baseAccountsSyncer{
 		hasher:                    args.Hasher,
 		marshalizer:               args.Marshalizer,
 		dataTries:                 make(map[string]struct{}),
 		trieStorageManager:        args.TrieStorageManager,
 		requestHandler:            args.RequestHandler,
-		timeout:                   args.Timeout,
+		timeoutHandler:            timeoutHandler,
 		shardId:                   args.ShardId,
 		cacher:                    args.Cacher,
 		rootHash:                  nil,
@@ -77,6 +82,8 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 	u.mutex.Lock()
 	defer u.mutex.Unlock()
+
+	u.timeoutHandler.ResetWatchdog()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer func() {
@@ -133,6 +140,7 @@ func (u *userAccountsSyncer) syncAccountDataTries(rootHashes [][]byte, ssh data.
 		}
 
 		go func(trieRootHash []byte) {
+			log.Trace("sync data trie", "roothash", trieRootHash)
 			newErr := u.syncDataTrie(trieRootHash, ssh, ctx)
 			if newErr != nil {
 				errMutex.Lock()
@@ -140,6 +148,7 @@ func (u *userAccountsSyncer) syncAccountDataTries(rootHashes [][]byte, ssh data.
 				errMutex.Unlock()
 			}
 			atomic.AddInt32(&u.numTriesSynced, 1)
+			log.Trace("finished sync data trie", "roothash", trieRootHash)
 			wg.Done()
 		}(rootHash)
 	}
@@ -175,7 +184,7 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ssh data.SyncStatisti
 		ShardId:                   u.shardId,
 		Topic:                     factory.AccountTrieNodesTopic,
 		TrieSyncStatistics:        ssh,
-		ReceivedNodesTimeout:      u.timeout,
+		TimeoutHandler:            u.timeoutHandler,
 		MaxHardCapForMissingNodes: u.maxHardCapForMissingNodes,
 	}
 	trieSyncer, err := trie.CreateTrieSyncer(arg, u.trieSyncerVersion)

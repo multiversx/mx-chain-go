@@ -343,7 +343,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 
 	newRoot, err := newSnapshotNode(tsm, msh, hsh, snapshotEntry.rootHash)
 	if err != nil {
-		log.Error("trie storage manager: newSnapshotTrie", "error", err.Error())
+		log.Error("takeSnapshot: trie storage manager: newSnapshotTrie", "hash", snapshotEntry.rootHash, "error", err.Error())
 		return
 	}
 
@@ -370,7 +370,7 @@ func (tsm *trieStorageManager) takeCheckpoint(checkpointEntry *snapshotsQueueEnt
 
 	newRoot, err := newSnapshotNode(tsm, msh, hsh, checkpointEntry.rootHash)
 	if err != nil {
-		log.Error("trie storage manager: newSnapshotTrie", "error", err.Error())
+		log.Error("takeCheckpoint: trie storage manager: newSnapshotTrie", "hash", checkpointEntry.rootHash, "error", err.Error())
 		return
 	}
 
