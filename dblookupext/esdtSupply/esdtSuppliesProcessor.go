@@ -73,9 +73,6 @@ func (sp *suppliesProcessor) RevertChanges(header data.HeaderHandler, body data.
 
 // GetESDTSupply will return the supply from the storage for the given token
 func (sp *suppliesProcessor) GetESDTSupply(token string) (string, error) {
-	sp.mutex.Lock()
-	defer sp.mutex.Unlock()
-
 	return sp.logsProc.getESDTSupply(token)
 }
 

@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNonceProcessor_shouldProcessLogs_currentNonceLowerThatProcessed(t *testing.T) {
+func TestNonceProcessor_shouldProcessLogs_currentNonceLowerThanProcessed(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &testscommon.MarshalizerMock{}
@@ -26,7 +26,7 @@ func TestNonceProcessor_shouldProcessLogs_currentNonceLowerThatProcessed(t *test
 	require.False(t, shouldProcess)
 }
 
-func TestNonceProcessor_shouldProcessLogs_currentNonceGreater(t *testing.T) {
+func TestNonceProcessor_shouldProcessLogs_currentNonceHigherThanProcessed(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &testscommon.MarshalizerMock{}
