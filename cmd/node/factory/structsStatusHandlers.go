@@ -115,20 +115,3 @@ func (shi *statusHandlersInfo) SignalLogRewrite() {
 func (shi *statusHandlersInfo) IsInterfaceNil() bool {
 	return shi == nil
 }
-
-func (shi *statusHandlersInfo) updateTpsMetrics(metricsMap map[string]interface{}) {
-	for key, value := range metricsMap {
-		stringValue, isString := value.(string)
-		if isString {
-			log.Trace("setting metric value", "key", key, "value string", stringValue)
-			shi.AppStatusHandler.SetStringValue(key, stringValue)
-			continue
-		}
-
-		uint64Value, isUint64 := value.(uint64)
-		if isUint64 {
-			log.Trace("setting metric value", "key", key, "value uint64", uint64Value)
-			shi.AppStatusHandler.SetUInt64Value(key, uint64Value)
-		}
-	}
-}
