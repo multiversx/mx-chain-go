@@ -1,6 +1,7 @@
 package esdtSupply
 
 import (
+	"encoding/hex"
 	"math/big"
 	"testing"
 
@@ -51,7 +52,11 @@ func TestProcessLogsSaveSupplyNothingInStorage(t *testing.T) {
 			return nil, storage.ErrKeyNotFound
 		},
 		PutCalled: func(key, data []byte) error {
-			supplyKey := string(token) + "-" + string(big.NewInt(2).Bytes())
+			if string(key) == processedBlockKey {
+				return nil
+			}
+
+			supplyKey := string(token) + "-" + hex.EncodeToString(big.NewInt(2).Bytes())
 			require.Equal(t, supplyKey, string(key))
 
 			var supplyESDT SupplyESDT
@@ -64,7 +69,7 @@ func TestProcessLogsSaveSupplyNothingInStorage(t *testing.T) {
 
 	logsProc := newLogsProcessor(marshalizer, storer)
 
-	err := logsProc.processLogs(0, logs, false)
+	err := logsProc.processLogs(1, logs, false)
 	require.Nil(t, err)
 }
 

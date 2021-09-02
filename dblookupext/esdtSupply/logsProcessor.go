@@ -4,6 +4,7 @@ package esdtSupply
 
 import (
 	"bytes"
+	"encoding/hex"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -118,7 +119,10 @@ func (lp *logsProcessor) processEvent(txLog *transaction.Event, supplies map[str
 
 	tokenIdentifier := txLog.Topics[0]
 	if len(txLog.Topics[1]) != 0 {
-		tokenIdentifier = bytes.Join([][]byte{tokenIdentifier, txLog.Topics[1]}, []byte("-"))
+		nonceBytes := txLog.Topics[1]
+		nonceHexStr := hex.EncodeToString(nonceBytes)
+
+		tokenIdentifier = bytes.Join([][]byte{tokenIdentifier, []byte(nonceHexStr)}, []byte("-"))
 	}
 
 	bigValue := big.NewInt(0).SetBytes(txLog.Topics[2])
