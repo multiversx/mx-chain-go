@@ -187,12 +187,12 @@ func (net *TestNetwork) SendTxFromNode(tx *transaction.Transaction, node *TestPr
 	return hash
 }
 
-// DeploySC deploys a payable contract with the bytecode specified by fileName.
+// DeployPayableSC deploys a payable contract with the bytecode specified by fileName.
 func (net *TestNetwork) DeployPayableSC(owner *TestWalletAccount, fileName string) []byte {
 	return net.DeploySC(owner, fileName, true)
 }
 
-// DeploySC deploys a non-payable contract with the bytecode specified by fileName.
+// DeployNonpayableSC deploys a non-payable contract with the bytecode specified by fileName.
 func (net *TestNetwork) DeployNonpayableSC(owner *TestWalletAccount, fileName string) []byte {
 	return net.DeploySC(owner, fileName, false)
 }

@@ -10,6 +10,10 @@ import (
 )
 
 func TestESDTMultiTransferThroughForwarder(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	net := integrationTests.NewTestNetworkSized(t, 2, 1, 1)
 	net.Start()
 	defer net.Close()
@@ -28,7 +32,7 @@ func TestESDTMultiTransferThroughForwarder(t *testing.T) {
 	supply := int64(1000)
 	tokenID := issueFungibleToken(t, net, senderNode, "FUNG1", supply)
 
-	// Issuer and create an SFT
+	// Issue and create an SFT
 	sftID := issueNft(net, senderNode, "SFT1", true)
 	createSFT(t, net, senderNode, sftID, 1, supply)
 
