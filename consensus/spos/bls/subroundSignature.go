@@ -160,12 +160,17 @@ func (sr *subroundSignature) receivedSignature(cnsDta *consensus.Message) bool {
 	currentMultiSigner := sr.MultiSigner()
 	err = currentMultiSigner.VerifySignatureShare(uint16(index), cnsDta.SignatureShare, sr.GetData(), nil)
 	if err != nil {
+		log.Debug("receivedSignature.VerifySignatureShare",
+			"node", []byte(node),
+			"index", index,
+			"error", err.Error())
 		return false
 	}
 
 	err = currentMultiSigner.StoreSignatureShare(uint16(index), cnsDta.SignatureShare)
 	if err != nil {
 		log.Debug("receivedSignature.StoreSignatureShare",
+			"node", []byte(node),
 			"index", index,
 			"error", err.Error())
 		return false
@@ -174,7 +179,7 @@ func (sr *subroundSignature) receivedSignature(cnsDta *consensus.Message) bool {
 	err = sr.SetJobDone(node, sr.Current(), true)
 	if err != nil {
 		log.Debug("receivedSignature.SetJobDone",
-			"node", node,
+			"node", []byte(node),
 			"subround", sr.Name(),
 			"error", err.Error())
 		return false
