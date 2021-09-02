@@ -139,7 +139,16 @@ func (u *userAccountsSyncer) syncAccountDataTries(rootHashes [][]byte, ssh data.
 			}
 		}
 
+		//throttler.StartProcessing is required to be here as it prevent the following edge-case:
+		//loop does 100k iterations because throttler.CanProcess allows it and starts 100k go routines that can
+		//not execute their first instructions that could tell the throttler they have started.
+		//Telling the throttler the processing has started here will prevent OOM exception because of too many go
+		//routines started.
+		u.throttler.StartProcessing()
+
 		go func(trieRootHash []byte) {
+			defer u.throttler.EndProcessing()
+
 			log.Trace("sync data trie", "roothash", trieRootHash)
 			newErr := u.syncDataTrie(trieRootHash, ssh, ctx)
 			if newErr != nil {
@@ -162,9 +171,6 @@ func (u *userAccountsSyncer) syncAccountDataTries(rootHashes [][]byte, ssh data.
 }
 
 func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ssh data.SyncStatisticsHandler, ctx context.Context) error {
-	u.throttler.StartProcessing()
-	defer u.throttler.EndProcessing()
-
 	u.syncerMutex.Lock()
 	_, ok := u.dataTries[string(rootHash)]
 	if ok {
