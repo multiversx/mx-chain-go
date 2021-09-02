@@ -21,11 +21,11 @@ func esdtMultiTransferToVault(t *testing.T, crossShard bool) {
 
 	// For cross shard, we use 2 nodes, with node[1] being the SC deployer, and node[0] being the caller
 	numShards := 1
-	nrRoundsToWait := NR_ROUNDS_SAME_SHARD
+	nrRoundsToWait := numRoundsSameShard
 
 	if crossShard {
 		numShards = 2
-		nrRoundsToWait = NR_ROUNDS_CROSS_SHARD
+		nrRoundsToWait = numRoundsCrossShard
 	}
 
 	net := integrationTests.NewTestNetworkSized(t, numShards, 1, 1)
