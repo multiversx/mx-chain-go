@@ -216,6 +216,11 @@ func (pcm *ProcessComponentsMock) CurrentEpochProvider() process.CurrentNetworkE
 	return pcm.CurrentEpochProviderInternal
 }
 
+// String -
+func (pcm *ProcessComponentsMock) String() string {
+	return "ProcessComponentsMock"
+}
+
 // IsInterfaceNil -
 func (pcm *ProcessComponentsMock) IsInterfaceNil() bool {
 	return pcm == nil

@@ -483,7 +483,13 @@ func (ed *economicsData) ComputeGasUsedAndFeeBasedOnRefundValue(tx data.Transact
 		return tx.GetGasLimit(), txFee
 	}
 
-	txFee := big.NewInt(0).Sub(ed.ComputeTxFee(tx), refundValue)
+	txFee := ed.ComputeTxFee(tx)
+	flagCorrectTxFee := !ed.flagPenalizedTooMuchGas.IsSet() && !ed.flagGasPriceModifier.IsSet()
+	if flagCorrectTxFee {
+		txFee = core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
+	}
+
+	txFee = big.NewInt(0).Sub(txFee, refundValue)
 
 	moveBalanceGasUnits := ed.ComputeGasLimit(tx)
 	moveBalanceFee := ed.ComputeMoveBalanceFee(tx)
