@@ -158,6 +158,11 @@ func (sr *subroundSignature) receivedSignature(cnsDta *consensus.Message) bool {
 	}
 
 	currentMultiSigner := sr.MultiSigner()
+	err = currentMultiSigner.VerifySignatureShare(uint16(index), cnsDta.SignatureShare, sr.GetData(), nil)
+	if err != nil {
+		return false
+	}
+
 	err = currentMultiSigner.StoreSignatureShare(uint16(index), cnsDta.SignatureShare)
 	if err != nil {
 		log.Debug("receivedSignature.StoreSignatureShare",
