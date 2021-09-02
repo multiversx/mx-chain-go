@@ -32,8 +32,8 @@ const (
 	queryParamCheckSignature = "checkSignature"
 )
 
-// transactionFacadeHandler interface defines methods that can be used by the gin webserver
-type transactionFacadeHandler interface {
+// TransactionFacadeHandler defines the methods to be implemented by a facade for transaction requests
+type TransactionFacadeHandler interface {
 	CreateTransaction(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
 		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*transaction.Transaction, []byte, error)
 	ValidateTransaction(tx *transaction.Transaction) error
@@ -48,7 +48,7 @@ type transactionFacadeHandler interface {
 }
 
 type transactionGroup struct {
-	facade    transactionFacadeHandler
+	facade    TransactionFacadeHandler
 	mutFacade sync.RWMutex
 	*baseGroup
 }
@@ -59,7 +59,7 @@ func NewTransactionGroup(facadeHandler interface{}) (*transactionGroup, error) {
 		return nil, errors.ErrNilFacadeHandler
 	}
 
-	facade, ok := facadeHandler.(transactionFacadeHandler)
+	facade, ok := facadeHandler.(TransactionFacadeHandler)
 	if !ok {
 		return nil, fmt.Errorf("%w for transaction group", errors.ErrFacadeWrongTypeAssertion)
 	}
@@ -553,7 +553,7 @@ func getQueryParameterCheckSignature(c *gin.Context) (bool, error) {
 	return strconv.ParseBool(bypassSignatureStr)
 }
 
-func (tg *transactionGroup) getFacade() transactionFacadeHandler {
+func (tg *transactionGroup) getFacade() TransactionFacadeHandler {
 	tg.mutFacade.RLock()
 	defer tg.mutFacade.RUnlock()
 
@@ -565,7 +565,7 @@ func (tg *transactionGroup) UpdateFacade(newFacade interface{}) error {
 	if newFacade == nil {
 		return errors.ErrNilFacadeHandler
 	}
-	castedFacade, ok := newFacade.(transactionFacadeHandler)
+	castedFacade, ok := newFacade.(TransactionFacadeHandler)
 	if !ok {
 		return errors.ErrFacadeWrongTypeAssertion
 	}

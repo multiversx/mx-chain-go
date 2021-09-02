@@ -30,7 +30,8 @@ const (
 	PeerStateCheckpointsKey = "erd_num_peer_state_checkpoints"
 )
 
-type nodeFacadeHandler interface {
+// NodeFacadeHandler defines the methods to be implemented by a facade for node requests
+type NodeFacadeHandler interface {
 	GetHeartbeats() ([]data.PubKeyHeartbeat, error)
 	StatusMetrics() external.StatusMetricsHandler
 	GetQueryHandler(name string) (debug.QueryHandler, error)
@@ -47,7 +48,7 @@ type QueryDebugRequest struct {
 }
 
 type nodeGroup struct {
-	facade    nodeFacadeHandler
+	facade    NodeFacadeHandler
 	mutFacade sync.RWMutex
 	*baseGroup
 }
@@ -58,7 +59,7 @@ func NewNodeGroup(facadeHandler interface{}) (*nodeGroup, error) {
 		return nil, errors.ErrNilFacadeHandler
 	}
 
-	facade, ok := facadeHandler.(nodeFacadeHandler)
+	facade, ok := facadeHandler.(NodeFacadeHandler)
 	if !ok {
 		return nil, fmt.Errorf("%w for node group", errors.ErrFacadeWrongTypeAssertion)
 	}
@@ -241,7 +242,7 @@ func (ng *nodeGroup) prometheusMetrics(c *gin.Context) {
 }
 
 
-func (ng *nodeGroup) getFacade() nodeFacadeHandler {
+func (ng *nodeGroup) getFacade() NodeFacadeHandler {
 	ng.mutFacade.RLock()
 	defer ng.mutFacade.RUnlock()
 
@@ -253,7 +254,7 @@ func (ng *nodeGroup) UpdateFacade(newFacade interface{}) error {
 	if newFacade == nil {
 		return errors.ErrNilFacadeHandler
 	}
-	castedFacade, ok := newFacade.(nodeFacadeHandler)
+	castedFacade, ok := newFacade.(NodeFacadeHandler)
 	if !ok {
 		return errors.ErrFacadeWrongTypeAssertion
 	}

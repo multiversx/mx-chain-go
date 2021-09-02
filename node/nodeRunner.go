@@ -225,7 +225,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	}
 
 	log.Debug("creating disabled API services")
-	httpServerWrapper, err := nr.createInitialHttpServer()
+	httpServerWrapper, err := nr.createHttpServer()
 	if err != nil {
 		return true, err
 	}
@@ -476,26 +476,19 @@ func (nr *nodeRunner) createApiFacade(
 
 	ef.SetSyncer(currentNode.coreComponents.SyncTimer())
 
-	err = upgradableHttpServer.GetHttpServer().Close()
-	if err != nil {
-		return nil, err
-	}
-
 	err = upgradableHttpServer.UpdateFacade(ef)
 	if err != nil {
 		return nil, err
 	}
 
-	go upgradableHttpServer.GetHttpServer().Start()
-
-	log.Debug("updated node facade and restarted the API services")
+	log.Debug("updated node facade")
 
 	log.Trace("starting background services")
 
 	return ef, nil
 }
 
-func (nr *nodeRunner) createInitialHttpServer() (shared.UpgradeableHttpServerHandler, error) {
+func (nr *nodeRunner) createHttpServer() (shared.UpgradeableHttpServerHandler, error) {
 	httpServerArgs := gin.ArgsNewWebServer{
 		Facade:          disabled.NewDisabledNodeFacade(nr.configs.FlagsConfig.RestApiInterface),
 		ApiConfig:       *nr.configs.ApiRoutesConfig,

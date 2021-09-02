@@ -13,13 +13,14 @@ import (
 
 const statisticsPath = "/statistics"
 
-type validatorFacadeHandler interface {
+// ValidatorFacadeHandler defines the methods to be implemented by a facade for validator requests
+type ValidatorFacadeHandler interface {
 	ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error)
 	IsInterfaceNil() bool
 }
 
 type validatorGroup struct {
-	facade    validatorFacadeHandler
+	facade    ValidatorFacadeHandler
 	mutFacade sync.RWMutex
 	*baseGroup
 }
@@ -30,7 +31,7 @@ func NewValidatorGroup(facadeHandler interface{}) (*validatorGroup, error) {
 		return nil, errors.ErrNilFacadeHandler
 	}
 
-	facade, ok := facadeHandler.(validatorFacadeHandler)
+	facade, ok := facadeHandler.(ValidatorFacadeHandler)
 	if !ok {
 		return nil, fmt.Errorf("%w for validator group", errors.ErrFacadeWrongTypeAssertion)
 	}
@@ -77,7 +78,7 @@ func (vg *validatorGroup) statistics(c *gin.Context) {
 	)
 }
 
-func (vg *validatorGroup) getFacade() validatorFacadeHandler {
+func (vg *validatorGroup) getFacade() ValidatorFacadeHandler {
 	vg.mutFacade.RLock()
 	defer vg.mutFacade.RUnlock()
 
@@ -89,7 +90,7 @@ func (vg *validatorGroup) UpdateFacade(newFacade interface{}) error {
 	if newFacade == nil {
 		return errors.ErrNilFacadeHandler
 	}
-	castedFacade, ok := newFacade.(validatorFacadeHandler)
+	castedFacade, ok := newFacade.(ValidatorFacadeHandler)
 	if !ok {
 		return errors.ErrFacadeWrongTypeAssertion
 	}

@@ -8,26 +8,15 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/api/address"
-	"github.com/ElrondNetwork/elrond-go/api/block"
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/gin/disabled"
-	"github.com/ElrondNetwork/elrond-go/api/hardfork"
+	"github.com/ElrondNetwork/elrond-go/api/groups"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
-	"github.com/ElrondNetwork/elrond-go/api/network"
-	"github.com/ElrondNetwork/elrond-go/api/node"
-	"github.com/ElrondNetwork/elrond-go/api/proof"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
-	"github.com/ElrondNetwork/elrond-go/api/transaction"
-	valStats "github.com/ElrondNetwork/elrond-go/api/validator"
-	"github.com/ElrondNetwork/elrond-go/api/vmValues"
-	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/gin-contrib/cors"
-	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
 )
 
@@ -46,6 +35,7 @@ type webServer struct {
 	apiConfig       config.ApiRoutesConfig
 	antiFloodConfig config.WebServerAntifloodConfig
 	httpServer      shared.HttpServerCloser
+	groups          map[string]shared.GroupHandler
 	cancelFunc      func()
 }
 
@@ -69,19 +59,19 @@ func NewGinWebServerHandler(args ArgsNewWebServer) (*webServer, error) {
 // new web server
 func (ws *webServer) UpdateFacade(facade shared.ApiFacadeHandler) error {
 	ws.Lock()
+	defer ws.Unlock()
+
 	ws.facade = facade
-	ws.Unlock()
 
-	if ws.cancelFunc != nil {
-		ws.cancelFunc() // make sure all goroutines are closed before starting a new http server
+	for groupName, groupHandler := range ws.groups {
+		log.Debug("upgrading facade for gin API group", "group name", groupName)
+		err := groupHandler.UpdateFacade(facade)
+		if err != nil {
+			log.Error("cannot update facade for gin API group", "group name", groupName, "error", err)
+		}
 	}
 
-	closableWebServer, err := ws.CreateHttpServer()
-	if err != nil {
-		return err
-	}
-
-	return ws.SetHttpServer(closableWebServer)
+	return nil
 }
 
 // CreateHttpServer will create a new instance of http.Server and populate it with all the routes
@@ -102,7 +92,6 @@ func (ws *webServer) CreateHttpServer() (shared.HttpServerCloser, error) {
 	}
 	engine = gin.Default()
 	engine.Use(cors.Default())
-	engine.Use(middleware.WithFacade(ws.facade))
 
 	processors, err := ws.createMiddlewareLimiters()
 	if err != nil {
@@ -118,6 +107,11 @@ func (ws *webServer) CreateHttpServer() (shared.HttpServerCloser, error) {
 	}
 
 	err = registerValidators()
+	if err != nil {
+		return nil, err
+	}
+
+	err = ws.createGroups()
 	if err != nil {
 		return nil, err
 	}
@@ -138,6 +132,75 @@ func (ws *webServer) CreateHttpServer() (shared.HttpServerCloser, error) {
 	)
 
 	return wrappedServer, nil
+}
+
+func (ws *webServer) createGroups() error {
+	groupsMap := make(map[string]shared.GroupHandler)
+	addressGroup, err := groups.NewAddressGroup(ws.facade)
+	if err != nil {
+		return err
+	}
+	groupsMap["address"] = addressGroup
+
+	blockGroup, err := groups.NewBlockGroup(ws.facade)
+	if err != nil {
+		return err
+	}
+	groupsMap["block"] = blockGroup
+
+	hardforkGroup, err := groups.NewHardforkGroup(ws.facade)
+	if err != nil {
+		return err
+	}
+	groupsMap["hardfork"] = hardforkGroup
+
+	networkGroup, err := groups.NewNetworkGroup(ws.facade)
+	if err != nil {
+		return err
+	}
+	groupsMap["network"] = networkGroup
+
+	nodeGroup, err := groups.NewNodeGroup(ws.facade)
+	if err != nil {
+		return err
+	}
+	groupsMap["node"] = nodeGroup
+
+	proofGroup, err := groups.NewProofGroup(ws.facade)
+	if err != nil {
+		return err
+	}
+	groupsMap["proof"] = proofGroup
+
+	transactionGroup, err := groups.NewTransactionGroup(ws.facade)
+	if err != nil {
+		return err
+	}
+	groupsMap["transaction"] = transactionGroup
+
+	validatorGroup, err := groups.NewValidatorGroup(ws.facade)
+	if err != nil {
+		return err
+	}
+	groupsMap["validator"] = validatorGroup
+
+	vmValuesGroup, err := groups.NewVmValuesGroup(ws.facade)
+	if err != nil {
+		return err
+	}
+	groupsMap["vm-values"] = vmValuesGroup
+
+	ws.groups = groupsMap
+
+	return nil
+}
+
+func (ws *webServer) registerRoutes(ginRouter *gin.Engine) {
+	for groupName, groupHandler := range ws.groups {
+		log.Debug("registering gin API group", "group name", groupName)
+		ginGroup := ginRouter.Group(fmt.Sprintf("/%s", groupName))
+		groupHandler.RegisterRoutes(ginGroup, ws.apiConfig, nil)
+	}
 }
 
 // SetHttpServer will set the inner http server to the provided one
@@ -202,73 +265,6 @@ func (ws *webServer) sourceLimiterReset(ctx context.Context, reset resetHandler)
 			log.Debug("closing nodeFacade.sourceLimiterReset go routine")
 			return
 		}
-	}
-}
-
-// registerRoutes has to be called under mutex protection
-func (ws *webServer) registerRoutes(gws *gin.Engine) {
-	routesConfig := ws.apiConfig
-	nodeRoutes := gws.Group("/node")
-	wrappedNodeRouter, err := wrapper.NewRouterWrapper("node", nodeRoutes, routesConfig)
-	if err == nil {
-		node.Routes(wrappedNodeRouter)
-	}
-
-	addressRoutes := gws.Group("/address")
-	wrappedAddressRouter, err := wrapper.NewRouterWrapper("address", addressRoutes, routesConfig)
-	if err == nil {
-		address.Routes(wrappedAddressRouter)
-	}
-
-	networkRoutes := gws.Group("/network")
-	wrappedNetworkRoutes, err := wrapper.NewRouterWrapper("network", networkRoutes, routesConfig)
-	if err == nil {
-		network.Routes(wrappedNetworkRoutes)
-	}
-
-	txRoutes := gws.Group("/transaction")
-	wrappedTransactionRouter, err := wrapper.NewRouterWrapper("transaction", txRoutes, routesConfig)
-	if err == nil {
-		transaction.Routes(wrappedTransactionRouter)
-	}
-
-	vmValuesRoutes := gws.Group("/vm-values")
-	wrappedVmValuesRouter, err := wrapper.NewRouterWrapper("vm-values", vmValuesRoutes, routesConfig)
-	if err == nil {
-		vmValues.Routes(wrappedVmValuesRouter)
-	}
-
-	validatorRoutes := gws.Group("/validator")
-	wrappedValidatorsRouter, err := wrapper.NewRouterWrapper("validator", validatorRoutes, routesConfig)
-	if err == nil {
-		valStats.Routes(wrappedValidatorsRouter)
-	}
-
-	hardforkRoutes := gws.Group("/hardfork")
-	wrappedHardforkRouter, err := wrapper.NewRouterWrapper("hardfork", hardforkRoutes, routesConfig)
-	if err == nil {
-		hardfork.Routes(wrappedHardforkRouter)
-	}
-
-	blockRoutes := gws.Group("/block")
-	wrappedBlockRouter, err := wrapper.NewRouterWrapper("block", blockRoutes, routesConfig)
-	if err == nil {
-		block.Routes(wrappedBlockRouter)
-	}
-
-	proofRoutes := gws.Group("/proof")
-	wrappedProofRouter, err := wrapper.NewRouterWrapper("proof", proofRoutes, routesConfig)
-	if err == nil {
-		proof.Routes(wrappedProofRouter)
-	}
-
-	if ws.facade.PprofEnabled() {
-		pprof.Register(gws)
-	}
-
-	if isLogRouteEnabled(routesConfig) {
-		marshalizerForLogs := &marshal.GogoProtoMarshalizer{}
-		registerLoggerWsRoute(gws, marshalizerForLogs)
 	}
 }
 

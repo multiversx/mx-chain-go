@@ -16,25 +16,26 @@ const (
 	triggerPath          = "/trigger"
 )
 
-type hardforkFacadeHandler interface {
+// HardforkFacadeHandler defines the methods to be implemented by a facade for handling hardfork requests
+type HardforkFacadeHandler interface {
 	Trigger(epoch uint32, withEarlyEndOfEpoch bool) error
 	IsSelfTrigger() bool
 	IsInterfaceNil() bool
 }
 
 type hardforkGroup struct {
-	facade hardforkFacadeHandler
+	facade    HardforkFacadeHandler
 	mutFacade sync.RWMutex
 	*baseGroup
 }
 
-// NewHardforkGroup returns a new instance of hardforkFacadeHandler
+// NewHardforkGroup returns a new instance of hardforkGroup
 func NewHardforkGroup(facadeHandler interface{}) (*hardforkGroup, error) {
 	if facadeHandler == nil {
 		return nil, errors.ErrNilFacadeHandler
 	}
 
-	facade, ok := facadeHandler.(hardforkFacadeHandler)
+	facade, ok := facadeHandler.(HardforkFacadeHandler)
 	if !ok {
 		return nil, fmt.Errorf("%w for hardfork group", errors.ErrFacadeWrongTypeAssertion)
 	}
@@ -106,7 +107,7 @@ func (hg *hardforkGroup) triggerHandler(c *gin.Context) {
 	)
 }
 
-func (hg *hardforkGroup) getFacade() hardforkFacadeHandler {
+func (hg *hardforkGroup) getFacade() HardforkFacadeHandler {
 	hg.mutFacade.RLock()
 	defer hg.mutFacade.RUnlock()
 
@@ -118,7 +119,7 @@ func (hg *hardforkGroup) UpdateFacade(newFacade interface{}) error {
 	if newFacade == nil {
 		return errors.ErrNilFacadeHandler
 	}
-	castedFacade, ok := newFacade.(hardforkFacadeHandler)
+	castedFacade, ok := newFacade.(HardforkFacadeHandler)
 	if !ok {
 		return errors.ErrFacadeWrongTypeAssertion
 	}

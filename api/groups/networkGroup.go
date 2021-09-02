@@ -27,7 +27,8 @@ const (
 	delegatedInfoPath    = "/delegated-info"
 )
 
-type networkFacadeHandler interface {
+// NetworkFacadeHandler defines the methods to be implemented by a facade for handling network requests
+type NetworkFacadeHandler interface {
 	GetTotalStakedValue() (*api.StakeValues, error)
 	GetDirectStakedList() ([]*api.DirectStakedValue, error)
 	GetDelegatorsList() ([]*api.Delegator, error)
@@ -37,7 +38,7 @@ type networkFacadeHandler interface {
 }
 
 type networkGroup struct {
-	facade    networkFacadeHandler
+	facade    NetworkFacadeHandler
 	mutFacade sync.RWMutex
 	*baseGroup
 }
@@ -48,7 +49,7 @@ func NewNetworkGroup(facadeHandler interface{}) (*networkGroup, error) {
 		return nil, errors.ErrNilFacadeHandler
 	}
 
-	facade, ok := facadeHandler.(networkFacadeHandler)
+	facade, ok := facadeHandler.(NetworkFacadeHandler)
 	if !ok {
 		return nil, fmt.Errorf("%w for network group", errors.ErrFacadeWrongTypeAssertion)
 	}
@@ -259,7 +260,7 @@ func (ng *networkGroup) delegatedInfo(c *gin.Context) {
 	)
 }
 
-func (ng *networkGroup) getFacade() networkFacadeHandler {
+func (ng *networkGroup) getFacade() NetworkFacadeHandler {
 	ng.mutFacade.RLock()
 	defer ng.mutFacade.RUnlock()
 
@@ -271,9 +272,9 @@ func (ng *networkGroup) UpdateFacade(newFacade interface{}) error {
 	if newFacade == nil {
 		return errors.ErrNilFacadeHandler
 	}
-	castedFacade, ok := newFacade.(networkFacadeHandler)
+	castedFacade, ok := newFacade.(NetworkFacadeHandler)
 	if !ok {
-		return errors.ErrFacadeWrongTypeAssertion
+		return fmt.Errorf("%w for network group", errors.ErrFacadeWrongTypeAssertion)
 	}
 
 	ng.mutFacade.Lock()
