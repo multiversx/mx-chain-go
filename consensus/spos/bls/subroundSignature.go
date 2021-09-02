@@ -1,6 +1,7 @@
 package bls
 
 import (
+	"encoding/hex"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -122,6 +123,7 @@ func (sr *subroundSignature) doSignatureJob() bool {
 // is set on true for the subround Signature
 func (sr *subroundSignature) receivedSignature(cnsDta *consensus.Message) bool {
 	node := string(cnsDta.PubKey)
+	pkForLogs := core.GetTrimmedPk(hex.EncodeToString(cnsDta.PubKey))
 
 	if !sr.IsConsensusDataSet() {
 		return false
@@ -152,7 +154,7 @@ func (sr *subroundSignature) receivedSignature(cnsDta *consensus.Message) bool {
 	index, err := sr.ConsensusGroupIndex(node)
 	if err != nil {
 		log.Debug("receivedSignature.ConsensusGroupIndex",
-			"node", node,
+			"node", pkForLogs,
 			"error", err.Error())
 		return false
 	}
@@ -161,7 +163,7 @@ func (sr *subroundSignature) receivedSignature(cnsDta *consensus.Message) bool {
 	err = currentMultiSigner.VerifySignatureShare(uint16(index), cnsDta.SignatureShare, sr.GetData(), nil)
 	if err != nil {
 		log.Debug("receivedSignature.VerifySignatureShare",
-			"node", []byte(node),
+			"node", pkForLogs,
 			"index", index,
 			"error", err.Error())
 		return false
@@ -170,7 +172,7 @@ func (sr *subroundSignature) receivedSignature(cnsDta *consensus.Message) bool {
 	err = currentMultiSigner.StoreSignatureShare(uint16(index), cnsDta.SignatureShare)
 	if err != nil {
 		log.Debug("receivedSignature.StoreSignatureShare",
-			"node", []byte(node),
+			"node", pkForLogs,
 			"index", index,
 			"error", err.Error())
 		return false
@@ -179,7 +181,7 @@ func (sr *subroundSignature) receivedSignature(cnsDta *consensus.Message) bool {
 	err = sr.SetJobDone(node, sr.Current(), true)
 	if err != nil {
 		log.Debug("receivedSignature.SetJobDone",
-			"node", []byte(node),
+			"node", pkForLogs,
 			"subround", sr.Name(),
 			"error", err.Error())
 		return false
