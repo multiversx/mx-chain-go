@@ -17,8 +17,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const NR_ROUNDS_CROSS_SHARD = 15
-const NR_ROUNDS_SAME_SHARD = 1
+const numRoundsCrossShard = 15
+const numRoundsSameShard = 1
 
 type esdtTransfer struct {
 	tokenIdentifier string
@@ -46,7 +46,7 @@ func issueFungibleToken(t *testing.T,
 		issuePrice,
 		vm.ESDTSCAddress,
 		txData.ToString(), core.MinMetaTxExtraGasCost)
-	waitForOperationCompletion(net, NR_ROUNDS_CROSS_SHARD)
+	waitForOperationCompletion(net, numRoundsCrossShard)
 
 	tokenIdentifier := string(integrationTests.GetTokenIdentifier(net.Nodes, []byte(ticker)))
 
@@ -82,7 +82,7 @@ func issueNft(
 		vm.ESDTSCAddress,
 		txData.ToString(),
 		core.MinMetaTxExtraGasCost)
-	waitForOperationCompletion(net, NR_ROUNDS_CROSS_SHARD)
+	waitForOperationCompletion(net, numRoundsCrossShard)
 
 	issuerAddress := issuerNode.OwnAccount.Address
 	tokenIdentifier := string(integrationTests.GetTokenIdentifier(net.Nodes, []byte(ticker)))
@@ -121,7 +121,7 @@ func setLocalRoles(
 		vm.ESDTSCAddress,
 		txData,
 		core.MinMetaTxExtraGasCost)
-	waitForOperationCompletion(net, NR_ROUNDS_CROSS_SHARD)
+	waitForOperationCompletion(net, numRoundsCrossShard)
 }
 
 func createSFT(
@@ -157,7 +157,7 @@ func createSFT(
 		issuerAddress,
 		txData.ToString(),
 		integrationTests.AdditionalGasLimit)
-	waitForOperationCompletion(net, NR_ROUNDS_SAME_SHARD)
+	waitForOperationCompletion(net, numRoundsSameShard)
 
 	esdt.CheckAddressHasTokens(t, issuerAddress, net.Nodes,
 		tokenIdentifier, createdTokenNonce, initialSupply)

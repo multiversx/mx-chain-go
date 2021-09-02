@@ -4,15 +4,12 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 )
 
 func TestESDTMultiTransferThroughForwarder(t *testing.T) {
-	logger.ToggleLoggerName(true)
-	logger.SetLogLevel("*:NONE")
 	net := integrationTests.NewTestNetworkSized(t, 2, 1, 1)
 	net.Start()
 	defer net.Close()
@@ -59,7 +56,6 @@ func TestESDTMultiTransferThroughForwarder(t *testing.T) {
 		}}
 	destAddress := net.NodesSharded[1][0].OwnAccount.Address
 	multiTransferThroughForwarder(
-		t,
 		net,
 		senderNode.OwnAccount,
 		forwarder,
@@ -72,7 +68,6 @@ func TestESDTMultiTransferThroughForwarder(t *testing.T) {
 
 	// transfer to vault, same shard
 	multiTransferThroughForwarder(
-		t,
 		net,
 		senderNode.OwnAccount,
 		forwarder,
@@ -98,7 +93,6 @@ func TestESDTMultiTransferThroughForwarder(t *testing.T) {
 		},
 	}
 	multiTransferThroughForwarder(
-		t,
 		net,
 		senderNode.OwnAccount,
 		forwarder,
@@ -127,7 +121,6 @@ func TestESDTMultiTransferThroughForwarder(t *testing.T) {
 		},
 	}
 	multiTransferThroughForwarder(
-		t,
 		net,
 		senderNode.OwnAccount,
 		forwarder,
@@ -155,7 +148,6 @@ func TestESDTMultiTransferThroughForwarder(t *testing.T) {
 		},
 	}
 	multiTransferThroughForwarder(
-		t,
 		net,
 		senderNode.OwnAccount,
 		forwarder,
@@ -171,7 +163,6 @@ func TestESDTMultiTransferThroughForwarder(t *testing.T) {
 }
 
 func multiTransferThroughForwarder(
-	t *testing.T,
 	net *integrationTests.TestNetwork,
 	ownerWallet *integrationTests.TestWalletAccount,
 	forwarderAddress []byte,
@@ -186,7 +177,6 @@ func multiTransferThroughForwarder(
 		txData.Str(transfer.tokenIdentifier).Int64(transfer.nonce).Int64(transfer.amount)
 	}
 
-	logger.SetLogLevel("*:NONE,process/smartcontract:DEBUG,arwen:TRACE")
 	tx := net.CreateTxUint64(ownerWallet, forwarderAddress, 0, txData.ToBytes())
 	tx.GasLimit = net.MaxGasLimit / 2
 	_ = net.SignAndSendTx(ownerWallet, tx)

@@ -3,7 +3,6 @@ package multitransfer
 import (
 	"testing"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 )
 
@@ -16,11 +15,6 @@ func TestESDTMultiTransferToVaultCrossShard(t *testing.T) {
 }
 
 func esdtMultiTransferToVault(t *testing.T, crossShard bool) {
-	//_ = logger.SetLogLevel("*:INFO,integrationtests:NONE,p2p/libp2p:NONE,process/block:NONE,process/smartcontract:TRACE,process/smartcontract/blockchainhook:NONE")
-
-	logger.ToggleLoggerName(true)
-	_ = logger.SetLogLevel("process/smartcontract:TRACE,builtInFunctions:TRACE,integrationtests:NONE,p2p/libp2p:NONE,process/block:NONE,process/smartcontract/blockchainhook:NONE")
-
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
