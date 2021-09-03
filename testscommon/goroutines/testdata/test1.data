@@ -1,8 +1,8 @@
 goroutine 52 [running]:
 github.com/ElrondNetwork/elrond-go/integrationTests/state/stateTrieClose.goRoutineDumper({0x1335708, 0xc0002a4000})
-	/home/user/Dev3/go/src/github.com/ElrondNetwork/elrond-go/integrationTests/state/stateTrieClose/stateTrieClose_test.go:97 +0x4d
+	/home/user/go/src/github.com/ElrondNetwork/elrond-go/integrationTests/state/stateTrieClose/stateTrieClose_test.go:97 +0x4d
 github.com/ElrondNetwork/elrond-go/integrationTests/state/stateTrieClose.TestPatriciaMerkleTrie_Close(0x436319)
-	/home/user/Dev3/go/src/github.com/ElrondNetwork/elrond-go/integrationTests/state/stateTrieClose/stateTrieClose_test.go:33 +0x205
+	/home/user/go/src/github.com/ElrondNetwork/elrond-go/integrationTests/state/stateTrieClose/stateTrieClose_test.go:33 +0x205
 testing.tRunner(0xc000103040, 0x12171b0)
 	/usr/local/go/src/testing/testing.go:1259 +0x102
 created by testing.(*T).Run
@@ -24,68 +24,68 @@ main.main()
 
 goroutine 7 [select]:
 github.com/ipfs/go-log/writer.(*MirrorWriter).logRoutine(0xc0004a01b0)
-	/home/user/Dev3/go/pkg/mod/github.com/ipfs/go-log@v1.0.5/writer/writer.go:71 +0x110
+	/home/user/go/pkg/mod/github.com/ipfs/go-log@v1.0.5/writer/writer.go:71 +0x110
 created by github.com/ipfs/go-log/writer.NewMirrorWriter
-	/home/user/Dev3/go/pkg/mod/github.com/ipfs/go-log@v1.0.5/writer/writer.go:36 +0xcf
+	/home/user/go/pkg/mod/github.com/ipfs/go-log@v1.0.5/writer/writer.go:36 +0xcf
 
 goroutine 14 [runnable]:
 runtime.Gosched(...)
 	/usr/local/go/src/runtime/proc.go:322
 github.com/libp2p/go-cidranger/net.NetworkNumberMask.Mask(0xc0004d41f0, {0xc000b817f0, 0x4, 0xc0004d41e0})
-	/home/user/Dev3/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/net/ip.go:279 +0x4b
+	/home/user/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/net/ip.go:279 +0x4b
 github.com/libp2p/go-cidranger/net.Network.Masked(...)
-	/home/user/Dev3/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/net/ip.go:190
+	/home/user/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/net/ip.go:190
 github.com/libp2p/go-cidranger.newPathprefixTrie({{0xc000b817f0, 0xc000b81770, 0x0}, 0x4}, 0x1a)
-	/home/user/Dev3/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:82 +0x17c
+	/home/user/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:82 +0x17c
 github.com/libp2p/go-cidranger.(*prefixTrie).insert(0xc000a0ef60, {{0xc000b817f0, 0x0, 0x4}, 0xc000a0b240}, {0x130a8a0, 0xc0002a6640})
-	/home/user/Dev3/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:256 +0x205
+	/home/user/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:256 +0x205
 github.com/libp2p/go-cidranger.(*prefixTrie).insert(0xc0007e0900, {{0xc000b817f0, 0x0, 0x4}, 0xc0007df9b0}, {0x130a8a0, 0xc0002a6640})
-	/home/user/Dev3/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:264 +0x25b
+	/home/user/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:264 +0x25b
 github.com/libp2p/go-cidranger.(*prefixTrie).insert(0xc00079b680, {{0xc000b817f0, 0x0, 0x4}, 0xc00032ac30}, {0x130a8a0, 0xc0002a6640})
-	/home/user/Dev3/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:264 +0x25b
+	/home/user/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:264 +0x25b
 github.com/libp2p/go-cidranger.(*prefixTrie).insert(0xc0007e0300, {{0xc000b817f0, 0x0, 0x4}, 0xc0007df5b0}, {0x130a8a0, 0xc0002a6640})
-	/home/user/Dev3/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:264 +0x25b
+	/home/user/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:264 +0x25b
 github.com/libp2p/go-cidranger.(*prefixTrie).insert(0xc00079a180, {{0xc000b817f0, 0x0, 0x4}, 0xc0002c5df0}, {0x130a8a0, 0xc0002a6640})
-	/home/user/Dev3/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:264 +0x25b
+	/home/user/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:264 +0x25b
 github.com/libp2p/go-cidranger.(*prefixTrie).insert(0xc000a1ef00, {{0xc000b817f0, 0x0, 0x4}, 0xc000a17950}, {0x130a8a0, 0xc0002a6640})
-	/home/user/Dev3/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:264 +0x25b
+	/home/user/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:264 +0x25b
 github.com/libp2p/go-cidranger.(*prefixTrie).insert(0xc0003872c0, {{0xc000b817f0, 0x47ced2, 0x10}, 0xc000382090}, {0x130a8a0, 0xc0002a6640})
-	/home/user/Dev3/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:264 +0x25b
+	/home/user/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:264 +0x25b
 github.com/libp2p/go-cidranger.(*prefixTrie).insert(0xc000407260, {{0xc000b817f0, 0x0, 0x4}, 0xc00040eb80}, {0x130a8a0, 0xc0002a6640})
-	/home/user/Dev3/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:264 +0x25b
+	/home/user/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:264 +0x25b
 github.com/libp2p/go-cidranger.(*prefixTrie).insert(0xc000406de0, {{0xc000b817f0, 0x0, 0x4}, 0xc00040e880}, {0x130a8a0, 0xc0002a6640})
-	/home/user/Dev3/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:264 +0x25b
+	/home/user/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:264 +0x25b
 github.com/libp2p/go-cidranger.(*prefixTrie).insert(0xc0004074a0, {{0xc000b817f0, 0x7f8b54309000, 0x7f8b54305700}, 0xc00040ed00}, {0x130a8a0, 0xc0002a6640})
-	/home/user/Dev3/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:264 +0x25b
+	/home/user/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:264 +0x25b
 github.com/libp2p/go-cidranger.(*prefixTrie).insert(0xc000406a20, {{0xc000b817f0, 0x4440a5, 0xc000793ba8}, 0xc00040e600}, {0x130a8a0, 0xc0002a6640})
-	/home/user/Dev3/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:264 +0x25b
+	/home/user/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:264 +0x25b
 github.com/libp2p/go-cidranger.(*prefixTrie).insert(0xc0007b8180, {{0xc000b817f0, 0x4474c6, 0x2000}, 0xc0007b7410}, {0x130a8a0, 0xc0002a6640})
-	/home/user/Dev3/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:264 +0x25b
+	/home/user/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:264 +0x25b
 github.com/libp2p/go-cidranger.(*prefixTrie).insert(0xc000406420, {{0xc000b817f0, 0xc000b86660, 0x4474c6}, 0xc00040e200}, {0x130a8a0, 0xc0002a6640})
-	/home/user/Dev3/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:264 +0x25b
+	/home/user/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:264 +0x25b
 github.com/libp2p/go-cidranger.(*prefixTrie).insert(0xc0004061e0, {{0xc000b817f0, 0x10, 0xc000b817d0}, 0x10}, {0x130a8a0, 0xc0002a6640})
-	/home/user/Dev3/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:264 +0x25b
+	/home/user/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:264 +0x25b
 github.com/libp2p/go-cidranger.(*prefixTrie).Insert(0xc0004061e0, {0x130a8a0, 0xc0002a6640})
-	/home/user/Dev3/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:95 +0xdb
+	/home/user/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/trie.go:95 +0xdb
 github.com/libp2p/go-cidranger.(*versionedRanger).Insert(0x1005e0d, {0x130a8a0, 0xc0002a6640})
-	/home/user/Dev3/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/version.go:29 +0xd4
+	/home/user/go/pkg/mod/github.com/libp2p/go-cidranger@v1.1.0/version.go:29 +0xd4
 github.com/libp2p/go-libp2p-asn-util.newAsnStore()
-	/home/user/Dev3/go/pkg/mod/github.com/libp2p/go-libp2p-asn-util@v0.0.0-20200825225859-85005c6cf052/asn.go:61 +0x186
+	/home/user/go/pkg/mod/github.com/libp2p/go-libp2p-asn-util@v0.0.0-20200825225859-85005c6cf052/asn.go:61 +0x186
 github.com/libp2p/go-libp2p-asn-util.newIndirectAsnStore.func1()
-	/home/user/Dev3/go/pkg/mod/github.com/libp2p/go-libp2p-asn-util@v0.0.0-20200825225859-85005c6cf052/asn.go:89 +0x65
+	/home/user/go/pkg/mod/github.com/libp2p/go-libp2p-asn-util@v0.0.0-20200825225859-85005c6cf052/asn.go:89 +0x65
 created by github.com/libp2p/go-libp2p-asn-util.newIndirectAsnStore
-	/home/user/Dev3/go/pkg/mod/github.com/libp2p/go-libp2p-asn-util@v0.0.0-20200825225859-85005c6cf052/asn.go:87 +0xa5
+	/home/user/go/pkg/mod/github.com/libp2p/go-libp2p-asn-util@v0.0.0-20200825225859-85005c6cf052/asn.go:87 +0xa5
 
 goroutine 15 [select]:
 go.opencensus.io/stats/view.(*worker).start(0xc000046080)
-	/home/user/Dev3/go/pkg/mod/go.opencensus.io@v0.23.0/stats/view/worker.go:276 +0xb9
+	/home/user/go/pkg/mod/go.opencensus.io@v0.23.0/stats/view/worker.go:276 +0xb9
 created by go.opencensus.io/stats/view.init.0
-	/home/user/Dev3/go/pkg/mod/go.opencensus.io@v0.23.0/stats/view/worker.go:34 +0x92
+	/home/user/go/pkg/mod/go.opencensus.io@v0.23.0/stats/view/worker.go:34 +0x92
 
 goroutine 53 [select]:
 github.com/ElrondNetwork/elrond-go/trie.(*trieStorageManager).doProcessLoop(0xc0000f0000, {0x13248d8, 0xc000753100}, {0x1315fc8, 0x1ca7ca0}, {0x1315f98, 0xc0003993f8})
-	/home/user/Dev3/go/src/github.com/ElrondNetwork/elrond-go/trie/trieStorageManager.go:110 +0x11f
+	/home/user/go/src/github.com/ElrondNetwork/elrond-go/trie/trieStorageManager.go:110 +0x11f
 github.com/ElrondNetwork/elrond-go/trie.(*trieStorageManager).doCheckpointsAndSnapshots(0xc000103040, {0x13248d8, 0xc000753100}, {0x1315fc8, 0x1ca7ca0}, {0x1315f98, 0xc0003993f8})
-	/home/user/Dev3/go/src/github.com/ElrondNetwork/elrond-go/trie/trieStorageManager.go:104 +0x3f
+	/home/user/go/src/github.com/ElrondNetwork/elrond-go/trie/trieStorageManager.go:104 +0x3f
 created by github.com/ElrondNetwork/elrond-go/trie.NewTrieStorageManager
-	/home/user/Dev3/go/src/github.com/ElrondNetwork/elrond-go/trie/trieStorageManager.go:99 +0x5f7
+	/home/user/go/src/github.com/ElrondNetwork/elrond-go/trie/trieStorageManager.go:99 +0x5f7
