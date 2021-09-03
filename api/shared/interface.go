@@ -1,6 +1,9 @@
 package shared
 
-import "github.com/gin-gonic/gin"
+import (
+	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/gin-gonic/gin"
+)
 
 // HttpServerCloser defines the basic actions of starting and closing that a web server should be able to do
 type HttpServerCloser interface {
@@ -30,5 +33,15 @@ type UpgradeableHttpServerHandler interface {
 	GetHttpServer() HttpServerCloser
 	SetHttpServer(httpServer HttpServerCloser) error
 	Close() error
+	IsInterfaceNil() bool
+}
+
+// GroupHandler defines the actions needed to be performed by an gin API group
+type GroupHandler interface {
+	UpdateFacade(newFacade interface{}) error
+	RegisterRoutes(
+		ws *gin.RouterGroup,
+		apiConfig config.ApiRoutesConfig,
+	)
 	IsInterfaceNil() bool
 }
