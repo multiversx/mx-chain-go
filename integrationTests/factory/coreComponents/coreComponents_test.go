@@ -1,13 +1,14 @@
 package coreComponents
 
 import (
-	"runtime"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/factory"
 	"github.com/ElrondNetwork/elrond-go/node"
+	"github.com/ElrondNetwork/elrond-go/testscommon/goroutines"
 	"github.com/stretchr/testify/require"
 )
 
@@ -20,7 +21,8 @@ func TestCoreComponents_Create_Close_ShouldWork(t *testing.T) {
 	defer factory.CleanupWorkingDir()
 	time.Sleep(time.Second * 4)
 
-	nrBefore := runtime.NumGoroutine()
+	gc := goroutines.NewGoCounter(goroutines.TestsRelevantGoRoutines)
+	idxInitial, _ := gc.Snapshot()
 	factory.PrintStack()
 
 	configs := factory.CreateDefaultConfig()
@@ -38,10 +40,7 @@ func TestCoreComponents_Create_Close_ShouldWork(t *testing.T) {
 
 	time.Sleep(2 * time.Second)
 
-	nrAfter := runtime.NumGoroutine()
-	if nrBefore != nrAfter {
-		factory.PrintStack()
-	}
-
-	require.Equal(t, nrBefore, nrAfter)
+	idx, _ := gc.Snapshot()
+	diff := gc.DiffGoRoutines(idxInitial, idx)
+	require.Equal(t, 0, len(diff), fmt.Sprintf("%v", diff))
 }
