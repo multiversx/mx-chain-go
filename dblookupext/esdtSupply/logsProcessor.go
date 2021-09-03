@@ -129,8 +129,14 @@ func (lp *logsProcessor) processEvent(txLog *transaction.Event, supplies map[str
 
 	negValue := string(txLog.Identifier) == core.BuiltInFunctionESDTLocalBurn || string(txLog.Identifier) == core.BuiltInFunctionESDTNFTBurn ||
 		string(txLog.Identifier) == core.BuiltInFunctionESDTWipe
-	shouldNegValue := negValue && !isRevert
-	if shouldNegValue {
+	xorBooleanVariable := negValue != isRevert
+	// need this because
+	//  negValue | isRevert  => res
+	//   false   |   false   => false
+	//   false   |   true    => true
+	//   true    |   true    => false
+	//   true    |   false   => true
+	if xorBooleanVariable {
 		bigValue = big.NewInt(0).Neg(bigValue)
 	}
 
