@@ -442,15 +442,15 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddAndRevert(t 
 
 	err = irp.AddIntermediateTransactions(txs)
 	assert.Nil(t, err)
-	irp.mutInterResultsForBlock.Lock()
+	irp.mutInterResultsForBlock.RLock()
 	assert.Equal(t, len(irp.mapTxToResult[string(txHash)]), len(txs))
-	irp.mutInterResultsForBlock.Unlock()
+	irp.mutInterResultsForBlock.RUnlock()
 
 	irp.RemoveProcessedResultsFor([][]byte{txHash})
-	irp.mutInterResultsForBlock.Lock()
+	irp.mutInterResultsForBlock.RLock()
 	assert.Equal(t, len(irp.mapTxToResult[string(txHash)]), 0)
 	assert.Equal(t, len(irp.interResultsForBlock), 0)
-	irp.mutInterResultsForBlock.Unlock()
+	irp.mutInterResultsForBlock.RUnlock()
 }
 
 func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksNothingInCache(t *testing.T) {

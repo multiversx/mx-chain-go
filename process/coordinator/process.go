@@ -1472,6 +1472,21 @@ func (tc *transactionCoordinator) GetAllIntermediateTxs() map[block.Type]map[str
 	return mapIntermediateTxs
 }
 
+// GetAllIntermediateTxsHashesForTxHash gets all the intermediate transaction hashes, for a given transaction hash, separated by block type
+func (tc *transactionCoordinator) GetAllIntermediateTxsHashesForTxHash(txHash []byte) map[block.Type]map[uint32][]string {
+	mapIntermediateTxsHashes := make(map[block.Type]map[uint32][]string)
+	for _, blockType := range tc.keysInterimProcs {
+		interimProc := tc.getInterimProcessor(blockType)
+		if check.IfNil(interimProc) {
+			continue
+		}
+
+		mapIntermediateTxsHashes[blockType] = interimProc.GetAllIntermediateTxsHashesForTxHash(txHash)
+	}
+
+	return mapIntermediateTxsHashes
+}
+
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (tc *transactionCoordinator) EpochConfirmed(epoch uint32, _ uint64) {
 	tc.flagMixedTxsInMiniBlocks.Toggle(epoch >= tc.mixedTxsInMiniBlocksEnableEpoch)

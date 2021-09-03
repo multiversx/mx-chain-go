@@ -3,19 +3,29 @@ package postprocess
 import (
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 var _ process.PostProcessorTxsHandler = (*postProcessorTxs)(nil)
 
 type postProcessorTxs struct {
+	txCoordinator          process.TransactionCoordinator
 	mutMapPostProcessorTxs sync.RWMutex
 	mapPostProcessorTxs    map[string]struct{}
 }
 
 // NewPostProcessorTxs creates a new postProcessorTxs object
-func NewPostProcessorTxs() (*postProcessorTxs, error) {
+func NewPostProcessorTxs(
+	txCoordinator process.TransactionCoordinator,
+) (*postProcessorTxs, error) {
+	if check.IfNil(txCoordinator) {
+		return nil, process.ErrNilTransactionCoordinator
+	}
+
 	postProcessorTxs := &postProcessorTxs{
+		txCoordinator:       txCoordinator,
 		mapPostProcessorTxs: make(map[string]struct{}),
 	}
 
@@ -54,6 +64,16 @@ func (ppt *postProcessorTxs) IsPostProcessorTxAdded(txHash []byte) bool {
 func (ppt *postProcessorTxs) isPostProcessorTxAdded(txHash []byte) bool {
 	_, ok := ppt.mapPostProcessorTxs[string(txHash)]
 	return ok
+}
+
+// SetTransactionCoordinator sets the transaction coordinator needed by scheduled txs execution component
+func (ppt *postProcessorTxs) SetTransactionCoordinator(txCoordinator process.TransactionCoordinator) {
+	ppt.txCoordinator = txCoordinator
+}
+
+// GetAllIntermediateTxsHashesForTxHash gets all the intermediate transaction hashes, for a given transaction hash, separated by block type
+func (ppt *postProcessorTxs) GetAllIntermediateTxsHashesForTxHash(txHash []byte) map[block.Type]map[uint32][]string {
+	return ppt.txCoordinator.GetAllIntermediateTxsHashesForTxHash(txHash)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

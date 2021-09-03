@@ -1492,7 +1492,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		&mock.TransactionCoordinatorMock{},
 		tpn.Storage.GetStorer(dataRetriever.ScheduledSCRsUnit),
 		TestMarshalizer)
-	postProcessorTxsHandler, _ := postprocess.NewPostProcessorTxs()
+	postProcessorTxsHandler, _ := postprocess.NewPostProcessorTxs(&mock.TransactionCoordinatorMock{})
 
 	fact, _ := shard.NewPreProcessorsContainerFactory(
 		tpn.ShardCoordinator,
@@ -1544,6 +1544,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	}
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	scheduledTxsExecutionHandler.SetTransactionCoordinator(tpn.TxCoordinator)
+	postProcessorTxsHandler.SetTransactionCoordinator(tpn.TxCoordinator)
 }
 
 func (tpn *TestProcessorNode) initMetaInnerProcessors() {
@@ -1729,7 +1730,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		&mock.TransactionCoordinatorMock{},
 		tpn.Storage.GetStorer(dataRetriever.ScheduledSCRsUnit),
 		TestMarshalizer)
-	postProcessorTxsHandler, _ := postprocess.NewPostProcessorTxs()
+	postProcessorTxsHandler, _ := postprocess.NewPostProcessorTxs(&mock.TransactionCoordinatorMock{})
 
 	fact, _ := metaProcess.NewPreProcessorsContainerFactory(
 		tpn.ShardCoordinator,
@@ -1779,6 +1780,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	}
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	scheduledTxsExecutionHandler.SetTransactionCoordinator(tpn.TxCoordinator)
+	postProcessorTxsHandler.SetTransactionCoordinator(tpn.TxCoordinator)
 }
 
 // InitDelegationManager will initialize the delegation manager whenever required

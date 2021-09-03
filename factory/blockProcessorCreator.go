@@ -400,6 +400,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 
 	scheduledTxsExecutionHandler.SetTransactionCoordinator(txCoordinator)
+	postProcessorTxsHandler.SetTransactionCoordinator(txCoordinator)
 
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
 	accountsDb[state.UserAccountsState] = pcf.state.AccountsAdapter()
@@ -723,6 +724,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 
 	scheduledTxsExecutionHandler.SetTransactionCoordinator(txCoordinator)
+	postProcessorTxsHandler.SetTransactionCoordinator(txCoordinator)
 
 	argsStaking := scToProtocol.ArgStakingToPeer{
 		PubkeyConv:       pcf.coreData.ValidatorPubKeyConverter(),

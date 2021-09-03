@@ -88,14 +88,14 @@ func NewIntermediateResultsProcessor(
 func (irp *intermediateResultsProcessor) GetNumOfCrossInterMbsAndTxs() (int, int) {
 	miniBlocks := make(map[uint32]int)
 
-	irp.mutInterResultsForBlock.Lock()
+	irp.mutInterResultsForBlock.RLock()
 	for _, tx := range irp.interResultsForBlock {
 		if tx.receiverShardID == irp.shardCoordinator.SelfId() {
 			continue
 		}
 		miniBlocks[tx.receiverShardID]++
 	}
-	irp.mutInterResultsForBlock.Unlock()
+	irp.mutInterResultsForBlock.RUnlock()
 
 	numMbs := len(miniBlocks)
 	numTxs := 0

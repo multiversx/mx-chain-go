@@ -1,10 +1,17 @@
 package testscommon
 
+import (
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/process"
+)
+
 // PostProcessorTxsStub -
 type PostProcessorTxsStub struct {
-	InitCalled                   func()
-	AddPostProcessorTxCalled     func([]byte) bool
-	IsPostProcessorTxAddedCalled func([]byte) bool
+	InitCalled                                 func()
+	AddPostProcessorTxCalled                   func([]byte) bool
+	IsPostProcessorTxAddedCalled               func([]byte) bool
+	SetTransactionCoordinatorCalled            func(process.TransactionCoordinator)
+	GetAllIntermediateTxsHashesForTxHashCalled func([]byte) map[block.Type]map[uint32][]string
 }
 
 // Init -
@@ -20,6 +27,21 @@ func (ppts *PostProcessorTxsStub) AddPostProcessorTx(txHash []byte) bool {
 		return ppts.AddPostProcessorTxCalled(txHash)
 	}
 	return true
+}
+
+// SetTransactionCoordinator -
+func (ppts *PostProcessorTxsStub) SetTransactionCoordinator(txCoordinator process.TransactionCoordinator) {
+	if ppts.SetTransactionCoordinatorCalled != nil {
+		ppts.SetTransactionCoordinatorCalled(txCoordinator)
+	}
+}
+
+// GetAllIntermediateTxsHashesForTxHash -
+func (ppts *PostProcessorTxsStub) GetAllIntermediateTxsHashesForTxHash(txHash []byte) map[block.Type]map[uint32][]string {
+	if ppts.GetAllIntermediateTxsHashesForTxHashCalled != nil {
+		return ppts.GetAllIntermediateTxsHashesForTxHashCalled(txHash)
+	}
+	return nil
 }
 
 // IsPostProcessorTxAdded -

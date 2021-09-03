@@ -7,16 +7,17 @@ import (
 
 // IntermediateTransactionHandlerStub -
 type IntermediateTransactionHandlerStub struct {
-	AddIntermediateTransactionsCalled        func(txs []data.TransactionHandler) error
-	GetNumOfCrossInterMbsAndTxsCalled        func() (int, int)
-	CreateAllInterMiniBlocksCalled           func() []*block.MiniBlock
-	VerifyInterMiniBlocksCalled              func(body *block.Body) error
-	SaveCurrentIntermediateTxToStorageCalled func() error
-	CreateBlockStartedCalled                 func()
-	CreateMarshalizedDataCalled              func(txHashes [][]byte) ([][]byte, error)
-	GetAllCurrentFinishedTxsCalled           func() map[string]data.TransactionHandler
-	RemoveProcessedResultsForCalled          func(txHashes [][]byte)
-	intermediateTransactions                 []data.TransactionHandler
+	AddIntermediateTransactionsCalled          func(txs []data.TransactionHandler) error
+	GetAllIntermediateTxsHashesForTxHashCalled func(txHash []byte) map[uint32][]string
+	GetNumOfCrossInterMbsAndTxsCalled          func() (int, int)
+	CreateAllInterMiniBlocksCalled             func() []*block.MiniBlock
+	VerifyInterMiniBlocksCalled                func(body *block.Body) error
+	SaveCurrentIntermediateTxToStorageCalled   func() error
+	CreateBlockStartedCalled                   func()
+	CreateMarshalizedDataCalled                func(txHashes [][]byte) ([][]byte, error)
+	GetAllCurrentFinishedTxsCalled             func() map[string]data.TransactionHandler
+	RemoveProcessedResultsForCalled            func(txHashes [][]byte)
+	intermediateTransactions                   []data.TransactionHandler
 }
 
 // RemoveProcessedResultsFor -
@@ -41,6 +42,14 @@ func (ith *IntermediateTransactionHandlerStub) AddIntermediateTransactions(txs [
 		return nil
 	}
 	return ith.AddIntermediateTransactionsCalled(txs)
+}
+
+// GetAllIntermediateTxsHashesForTxHash -
+func (ith *IntermediateTransactionHandlerStub) GetAllIntermediateTxsHashesForTxHash(txHash []byte) map[uint32][]string {
+	if ith.GetAllIntermediateTxsHashesForTxHashCalled != nil {
+		return ith.GetAllIntermediateTxsHashesForTxHashCalled(txHash)
+	}
+	return nil
 }
 
 // GetIntermediateTransactions -

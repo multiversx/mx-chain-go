@@ -35,8 +35,8 @@ func NewTestIntermediateResultsProcessor(
 
 // GetIntermediateTransactions returns all the intermediate transactions from the underlying map
 func (tirp *TestIntermediateResProc) GetIntermediateTransactions() []data.TransactionHandler {
-	tirp.mutInterResultsForBlock.Lock()
-	defer tirp.mutInterResultsForBlock.Unlock()
+	tirp.mutInterResultsForBlock.RLock()
+	defer tirp.mutInterResultsForBlock.RUnlock()
 
 	intermediateTxs := make([]data.TransactionHandler, 0)
 	for _, val := range tirp.interResultsForBlock {

@@ -482,7 +482,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	postProcessorTxsHandler, err := postprocess.NewPostProcessorTxs()
+	postProcessorTxsHandler, err := postprocess.NewPostProcessorTxs(&disabled.TxCoordinator{})
 	if err != nil {
 		return nil, err
 	}

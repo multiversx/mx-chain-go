@@ -221,6 +221,9 @@ var ErrInvalidTxInPool = errors.New("invalid transaction in the transactions poo
 // ErrTxNotFound signals that a transaction has not found
 var ErrTxNotFound = errors.New("transaction not found")
 
+// ErrSmartContractResultNotFound signals that a smart contract result has not found
+var ErrSmartContractResultNotFound = errors.New("smart contract result not found")
+
 // ErrNilHeadersStorage signals that a nil header storage has been provided
 var ErrNilHeadersStorage = errors.New("nil headers storage")
 
