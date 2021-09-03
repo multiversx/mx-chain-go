@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
@@ -55,7 +56,7 @@ type transactionGroup struct {
 
 // NewTransactionGroup returns a new instance of transactionGroup
 func NewTransactionGroup(facade transactionFacadeHandler) (*transactionGroup, error) {
-	if facade == nil {
+	if check.IfNil(facade) {
 		return nil, fmt.Errorf("%w for transaction group", errors.ErrNilFacadeHandler)
 	}
 

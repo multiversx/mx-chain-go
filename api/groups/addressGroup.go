@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/api/errors"
@@ -69,7 +70,7 @@ type esdtNFTTokenData struct {
 
 // NewAddressGroup returns a new instance of addressGroup
 func NewAddressGroup(facade addressFacadeHandler) (*addressGroup, error) {
-	if facade == nil {
+	if check.IfNil(facade) {
 		return nil, fmt.Errorf("%w for address group", errors.ErrNilFacadeHandler)
 	}
 

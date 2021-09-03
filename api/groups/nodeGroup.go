@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/debug"
@@ -54,7 +55,7 @@ type nodeGroup struct {
 
 // NewNodeGroup returns a new instance of nodeGroup
 func NewNodeGroup(facade nodeFacadeHandler) (*nodeGroup, error) {
-	if facade == nil {
+	if check.IfNil(facade) {
 		return nil, fmt.Errorf("%w for node group", errors.ErrNilFacadeHandler)
 	}
 

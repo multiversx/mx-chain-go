@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
@@ -21,6 +22,7 @@ const (
 type blockFacadeHandler interface {
 	GetBlockByHash(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error)
+	IsInterfaceNil() bool
 }
 
 type blockGroup struct {
@@ -31,7 +33,7 @@ type blockGroup struct {
 
 // NewBlockGroup returns a new instance of blockGroup
 func NewBlockGroup(facade blockFacadeHandler) (*blockGroup, error) {
-	if facade == nil {
+	if check.IfNil(facade) {
 		return nil, fmt.Errorf("%w for block group", errors.ErrNilFacadeHandler)
 	}
 

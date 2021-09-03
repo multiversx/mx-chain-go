@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/gin-gonic/gin"
@@ -30,7 +31,7 @@ type hardforkGroup struct {
 
 // NewHardforkGroup returns a new instance of hardforkFacadeHandler
 func NewHardforkGroup(facade hardforkFacadeHandler) (*hardforkGroup, error) {
-	if facade == nil {
+	if check.IfNil(facade) {
 		return nil, fmt.Errorf("%w for hardfork group", errors.ErrNilFacadeHandler)
 	}
 

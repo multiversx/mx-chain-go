@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
@@ -27,6 +28,7 @@ type proofFacadeHandler interface {
 	GetProofCurrentRootHash(address string) ([][]byte, []byte, error)
 	VerifyProof(rootHash string, address string, proof [][]byte) (bool, error)
 	GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool)
+	IsInterfaceNil() bool
 }
 
 type proofGroup struct {
@@ -37,7 +39,7 @@ type proofGroup struct {
 
 // NewProofGroup returns a new instance of proofGroup
 func NewProofGroup(facade proofFacadeHandler) (*proofGroup, error) {
-	if facade == nil {
+	if check.IfNil(facade) {
 		return nil, fmt.Errorf("%w for proof group", errors.ErrNilFacadeHandler)
 	}
 

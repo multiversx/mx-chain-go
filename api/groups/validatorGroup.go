@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -26,7 +27,7 @@ type validatorGroup struct {
 
 // NewValidatorGroup returns a new instance of validatorGroup
 func NewValidatorGroup(facade validatorFacadeHandler) (*validatorGroup, error) {
-	if facade == nil {
+	if check.IfNil(facade) {
 		return nil, fmt.Errorf("%w for validator group", errors.ErrNilFacadeHandler)
 	}
 

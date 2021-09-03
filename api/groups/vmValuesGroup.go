@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
@@ -36,7 +37,7 @@ type vmValuesGroup struct {
 
 // NewVmValuesGroup returns a new instance of vmValuesGroup
 func NewVmValuesGroup(facade vmValuesFacadeHandler) (*vmValuesGroup, error) {
-	if facade == nil {
+	if check.IfNil(facade) {
 		return nil, fmt.Errorf("%w for vm values group", errors.ErrNilFacadeHandler)
 	}
 
