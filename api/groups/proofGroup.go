@@ -17,10 +17,9 @@ const (
 	getProofCurrentRootHashEndpoint = "/proof/address/:address"
 	getProofEndpoint                = "/proof/root-hash/:roothash/address/:address"
 	verifyProofEndpoint             = "/proof/verify"
-
-	getProofCurrentRootHashPath = "/address/:address"
-	getProofPath                = "/root-hash/:roothash/address/:address"
-	verifyProofPath             = "/verify"
+	getProofCurrentRootHashPath     = "/address/:address"
+	getProofPath                    = "/root-hash/:roothash/address/:address"
+	verifyProofPath                 = "/verify"
 )
 
 type proofFacadeHandler interface {
@@ -31,20 +30,15 @@ type proofFacadeHandler interface {
 }
 
 type proofGroup struct {
+	*baseGroup
 	facade    proofFacadeHandler
 	mutFacade sync.RWMutex
-	*baseGroup
 }
 
 // NewProofGroup returns a new instance of proofGroup
-func NewProofGroup(facadeHandler interface{}) (*proofGroup, error) {
-	if facadeHandler == nil {
-		return nil, errors.ErrNilFacadeHandler
-	}
-
-	facade, ok := facadeHandler.(proofFacadeHandler)
-	if !ok {
-		return nil, fmt.Errorf("%w for proof group", errors.ErrFacadeWrongTypeAssertion)
+func NewProofGroup(facade proofFacadeHandler) (*proofGroup, error) {
+	if facade == nil {
+		return nil, fmt.Errorf("%w for proof group", errors.ErrNilFacadeHandler)
 	}
 
 	pg := &proofGroup{
@@ -60,7 +54,7 @@ func NewProofGroup(facadeHandler interface{}) (*proofGroup, error) {
 			AdditionalMiddlewares: []shared.AdditionalMiddleware{
 				{
 					Middleware: middleware.CreateEndpointThrottlerFromFacade(getProofEndpoint, facade),
-					Before:     true,
+					Position:   shared.Before,
 				},
 			},
 		},
@@ -71,7 +65,7 @@ func NewProofGroup(facadeHandler interface{}) (*proofGroup, error) {
 			AdditionalMiddlewares: []shared.AdditionalMiddleware{
 				{
 					Middleware: middleware.CreateEndpointThrottlerFromFacade(getProofCurrentRootHashEndpoint, facade),
-					Before:     true,
+					Position:   shared.Before,
 				},
 			},
 		},
@@ -82,7 +76,7 @@ func NewProofGroup(facadeHandler interface{}) (*proofGroup, error) {
 			AdditionalMiddlewares: []shared.AdditionalMiddleware{
 				{
 					Middleware: middleware.CreateEndpointThrottlerFromFacade(verifyProofEndpoint, facade),
-					Before:     true,
+					Position:   shared.Before,
 				},
 			},
 		},
@@ -273,14 +267,19 @@ func (pg *proofGroup) UpdateFacade(newFacade interface{}) error {
 	if newFacade == nil {
 		return errors.ErrNilFacadeHandler
 	}
-	castedFacade, ok := newFacade.(proofFacadeHandler)
+	castFacade, ok := newFacade.(proofFacadeHandler)
 	if !ok {
 		return errors.ErrFacadeWrongTypeAssertion
 	}
 
 	pg.mutFacade.Lock()
-	pg.facade = castedFacade
+	pg.facade = castFacade
 	pg.mutFacade.Unlock()
 
 	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (pg *proofGroup) IsInterfaceNil() bool {
+	return pg == nil
 }

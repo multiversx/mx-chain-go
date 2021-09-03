@@ -25,13 +25,6 @@ func TestNewBlockGroup(t *testing.T) {
 		require.Nil(t, hg)
 	})
 
-	t.Run("wrong type assertion facade", func(t *testing.T) {
-		dummyStruct := struct {}{}
-		hg, err := groups.NewBlockGroup(dummyStruct)
-		require.True(t, errors.Is(err, apiErrors.ErrFacadeWrongTypeAssertion))
-		require.Nil(t, hg)
-	})
-
 	t.Run("should work", func(t *testing.T) {
 		hg, err := groups.NewBlockGroup(&mock.Facade{})
 		require.NoError(t, err)

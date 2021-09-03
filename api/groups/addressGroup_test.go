@@ -21,7 +21,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type AccountResponse struct {
+type accountResponse struct {
 	Account struct {
 		Address         string `json:"address"`
 		Nonce           uint64 `json:"nonce"`
@@ -138,13 +138,6 @@ func TestNewAddressGroup(t *testing.T) {
 	t.Run("nil facade", func(t *testing.T) {
 		hg, err := groups.NewAddressGroup(nil)
 		require.True(t, errors.Is(err, apiErrors.ErrNilFacadeHandler))
-		require.Nil(t, hg)
-	})
-
-	t.Run("wrong type assertion facade", func(t *testing.T) {
-		dummyStruct := struct{}{}
-		hg, err := groups.NewAddressGroup(dummyStruct)
-		require.True(t, errors.Is(err, apiErrors.ErrFacadeWrongTypeAssertion))
 		require.Nil(t, hg)
 	})
 
@@ -449,7 +442,7 @@ func TestGetAccount_ReturnsSuccessfully(t *testing.T) {
 	response := shared.GenericAPIResponse{}
 	loadResponse(resp.Body, &response)
 	mapResponse := response.Data.(map[string]interface{})
-	accountResponse := AccountResponse{}
+	accountResponse := accountResponse{}
 
 	mapResponseBytes, _ := json.Marshal(&mapResponse)
 	_ = json.Unmarshal(mapResponseBytes, &accountResponse)

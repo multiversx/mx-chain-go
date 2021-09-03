@@ -24,20 +24,15 @@ type blockFacadeHandler interface {
 }
 
 type blockGroup struct {
+	*baseGroup
 	facade blockFacadeHandler
 	mutFacade sync.RWMutex
-	*baseGroup
 }
 
 // NewBlockGroup returns a new instance of blockGroup
-func NewBlockGroup(facadeHandler interface{}) (*blockGroup, error) {
-	if facadeHandler == nil {
-		return nil, errors.ErrNilFacadeHandler
-	}
-
-	facade, ok := facadeHandler.(blockFacadeHandler)
-	if !ok {
-		return nil, fmt.Errorf("%w for block group", errors.ErrFacadeWrongTypeAssertion)
+func NewBlockGroup(facade blockFacadeHandler) (*blockGroup, error) {
+	if facade == nil {
+		return nil, fmt.Errorf("%w for block group", errors.ErrNilFacadeHandler)
 	}
 
 	bg := &blockGroup{
@@ -161,14 +156,19 @@ func (bg *blockGroup) UpdateFacade(newFacade interface{}) error {
 	if newFacade == nil {
 		return errors.ErrNilFacadeHandler
 	}
-	castedFacade, ok := newFacade.(blockFacadeHandler)
+	castFacade, ok := newFacade.(blockFacadeHandler)
 	if !ok {
 		return errors.ErrFacadeWrongTypeAssertion
 	}
 
 	bg.mutFacade.Lock()
-	bg.facade = castedFacade
+	bg.facade = castFacade
 	bg.mutFacade.Unlock()
 
 	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (bg *blockGroup) IsInterfaceNil() bool {
+	return bg == nil
 }

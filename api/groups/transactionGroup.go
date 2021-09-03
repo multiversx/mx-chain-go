@@ -48,20 +48,15 @@ type transactionFacadeHandler interface {
 }
 
 type transactionGroup struct {
+	*baseGroup
 	facade    transactionFacadeHandler
 	mutFacade sync.RWMutex
-	*baseGroup
 }
 
 // NewTransactionGroup returns a new instance of transactionGroup
-func NewTransactionGroup(facadeHandler interface{}) (*transactionGroup, error) {
-	if facadeHandler == nil {
-		return nil, errors.ErrNilFacadeHandler
-	}
-
-	facade, ok := facadeHandler.(transactionFacadeHandler)
-	if !ok {
-		return nil, fmt.Errorf("%w for transaction group", errors.ErrFacadeWrongTypeAssertion)
+func NewTransactionGroup(facade transactionFacadeHandler) (*transactionGroup, error) {
+	if facade == nil {
+		return nil, fmt.Errorf("%w for transaction group", errors.ErrNilFacadeHandler)
 	}
 
 	tg := &transactionGroup{
@@ -77,7 +72,7 @@ func NewTransactionGroup(facadeHandler interface{}) (*transactionGroup, error) {
 			AdditionalMiddlewares: []shared.AdditionalMiddleware{
 				{
 					Middleware: middleware.CreateEndpointThrottlerFromFacade(sendTransactionEndpoint, facade),
-					Before:     true,
+					Position:   shared.Before,
 				},
 			},
 		},
@@ -88,7 +83,7 @@ func NewTransactionGroup(facadeHandler interface{}) (*transactionGroup, error) {
 			AdditionalMiddlewares: []shared.AdditionalMiddleware{
 				{
 					Middleware: middleware.CreateEndpointThrottlerFromFacade(simulateTransactionEndpoint, facade),
-					Before:     true,
+					Position:   shared.Before,
 				},
 			},
 		},
@@ -104,7 +99,7 @@ func NewTransactionGroup(facadeHandler interface{}) (*transactionGroup, error) {
 			AdditionalMiddlewares: []shared.AdditionalMiddleware{
 				{
 					Middleware: middleware.CreateEndpointThrottlerFromFacade(sendMultipleTransactionsEndpoint, facade),
-					Before:     true,
+					Position:   shared.Before,
 				},
 			},
 		},
@@ -115,7 +110,7 @@ func NewTransactionGroup(facadeHandler interface{}) (*transactionGroup, error) {
 			AdditionalMiddlewares: []shared.AdditionalMiddleware{
 				{
 					Middleware: middleware.CreateEndpointThrottlerFromFacade(getTransactionEndpoint, facade),
-					Before:     true,
+					Position:   shared.Before,
 				},
 			},
 		},
@@ -565,14 +560,19 @@ func (tg *transactionGroup) UpdateFacade(newFacade interface{}) error {
 	if newFacade == nil {
 		return errors.ErrNilFacadeHandler
 	}
-	castedFacade, ok := newFacade.(transactionFacadeHandler)
+	castFacade, ok := newFacade.(transactionFacadeHandler)
 	if !ok {
 		return errors.ErrFacadeWrongTypeAssertion
 	}
 
 	tg.mutFacade.Lock()
-	tg.facade = castedFacade
+	tg.facade = castFacade
 	tg.mutFacade.Unlock()
 
 	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (tg *transactionGroup) IsInterfaceNil() bool {
+	return tg == nil
 }

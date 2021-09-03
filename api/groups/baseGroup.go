@@ -28,7 +28,6 @@ func (bg *baseGroup) GetEndpoints() []*shared.EndpointHandlerData {
 func (bg *baseGroup) RegisterRoutes(
 	ws *gin.RouterGroup,
 	apiConfig config.ApiRoutesConfig,
-	additionalMiddlewares []shared.MiddlewareProcessor,
 ) {
 	for _, handlerData := range bg.endpoints {
 		properties := getEndpointProperties(ws, handlerData.Path, apiConfig)
@@ -39,23 +38,11 @@ func (bg *baseGroup) RegisterRoutes(
 		}
 
 		middlewares := make([]gin.HandlerFunc, 0)
-		for _, middleware := range additionalMiddlewares {
-			if middleware == nil ||
-				middleware.MiddlewareHandlerFunc() == nil ||
-				middleware.IsInterfaceNil() {
-				continue
-			}
-			middlewares = append(middlewares, middleware.MiddlewareHandlerFunc())
-		}
-
 		beforeSpecifiesMiddlewares, afterSpecificMiddlewares := extractSpecificMiddlewares(handlerData.AdditionalMiddlewares)
-		for _, specificMiddleware := range beforeSpecifiesMiddlewares {
-			middlewares = append(middlewares, specificMiddleware)
-		}
+
+		middlewares = append(middlewares, beforeSpecifiesMiddlewares...)
 		middlewares = append(middlewares, handlerData.Handler)
-		for _, specificMiddleware := range afterSpecificMiddlewares {
-			middlewares = append(middlewares, specificMiddleware)
-		}
+		middlewares = append(middlewares, afterSpecificMiddlewares...)
 
 		ws.Handle(handlerData.Method, handlerData.Path, middlewares...)
 	}
@@ -69,10 +56,10 @@ func extractSpecificMiddlewares(middlewares []shared.AdditionalMiddleware) ([]gi
 	beforeMiddlewares := make([]gin.HandlerFunc, 0)
 	afterMiddlewares := make([]gin.HandlerFunc, 0)
 	for _, middleware := range middlewares {
-		if middleware.Before {
-			beforeMiddlewares = append(beforeMiddlewares, middleware.Middleware)
-		} else {
+		if middleware.Position == shared.After {
 			afterMiddlewares = append(afterMiddlewares, middleware.Middleware)
+		} else {
+			beforeMiddlewares = append(beforeMiddlewares, middleware.Middleware)
 		}
 	}
 
@@ -104,9 +91,4 @@ func getEndpointProperties(ws *gin.RouterGroup, path string, apiConfig config.Ap
 	return endpointProperties{
 		isOpen: false,
 	}
-}
-
-// IsInterfaceNil returns true if there is no value under the interface
-func (bg *baseGroup) IsInterfaceNil() bool {
-	return bg == nil
 }

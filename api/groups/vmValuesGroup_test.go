@@ -31,13 +31,6 @@ func TestNewVmValuesGroup(t *testing.T) {
 		require.Nil(t, hg)
 	})
 
-	t.Run("wrong type assertion facade", func(t *testing.T) {
-		dummyStruct := struct{}{}
-		hg, err := groups.NewVmValuesGroup(dummyStruct)
-		require.True(t, errors.Is(err, apiErrors.ErrFacadeWrongTypeAssertion))
-		require.Nil(t, hg)
-	})
-
 	t.Run("should work", func(t *testing.T) {
 		hg, err := groups.NewVmValuesGroup(&mock.Facade{})
 		require.NoError(t, err)
@@ -59,7 +52,7 @@ func init() {
 	gin.SetMode(gin.TestMode)
 }
 
-const DummyScAddress = "00000000000000000500fabd9501b7e5353de57a4e319857c2fb99089770720a"
+const dummyScAddress = "00000000000000000500fabd9501b7e5353de57a4e319857c2fb99089770720a"
 
 func TestGetHex_ShouldWork(t *testing.T) {
 	t.Parallel()
@@ -75,7 +68,7 @@ func TestGetHex_ShouldWork(t *testing.T) {
 	}
 
 	request := groups.VMValueRequest{
-		ScAddress: DummyScAddress,
+		ScAddress: dummyScAddress,
 		FuncName:  "function",
 		Args:      []string{},
 	}
@@ -102,7 +95,7 @@ func TestGetString_ShouldWork(t *testing.T) {
 	}
 
 	request := groups.VMValueRequest{
-		ScAddress: DummyScAddress,
+		ScAddress: dummyScAddress,
 		FuncName:  "function",
 		Args:      []string{},
 	}
@@ -131,7 +124,7 @@ func TestGetInt_ShouldWork(t *testing.T) {
 	}
 
 	request := groups.VMValueRequest{
-		ScAddress: DummyScAddress,
+		ScAddress: dummyScAddress,
 		FuncName:  "function",
 		Args:      []string{},
 	}
@@ -157,7 +150,7 @@ func TestQuery_ShouldWork(t *testing.T) {
 	}
 
 	request := groups.VMValueRequest{
-		ScAddress: DummyScAddress,
+		ScAddress: dummyScAddress,
 		FuncName:  "function",
 		Args:      []string{},
 	}
@@ -172,7 +165,7 @@ func TestQuery_ShouldWork(t *testing.T) {
 
 func TestCreateSCQuery_ArgumentIsNotHexShouldErr(t *testing.T) {
 	request := groups.VMValueRequest{
-		ScAddress: DummyScAddress,
+		ScAddress: dummyScAddress,
 		FuncName:  "function",
 		Args:      []string{"bad arg"},
 	}
@@ -194,7 +187,7 @@ func TestAllRoutes_FacadeErrorsShouldErr(t *testing.T) {
 	}
 
 	request := groups.VMValueRequest{
-		ScAddress: DummyScAddress,
+		ScAddress: dummyScAddress,
 		FuncName:  "function",
 		Args:      []string{},
 	}
@@ -232,7 +225,7 @@ func TestAllRoutes_WhenBadArgumentsShouldErr(t *testing.T) {
 	}
 
 	request := groups.VMValueRequest{
-		ScAddress: DummyScAddress,
+		ScAddress: dummyScAddress,
 		FuncName:  "function",
 		Args:      []string{"AA", "ZZ"},
 	}
@@ -251,7 +244,7 @@ func TestAllRoutes_WhenNoVMReturnDataShouldErr(t *testing.T) {
 	}
 
 	request := groups.VMValueRequest{
-		ScAddress: DummyScAddress,
+		ScAddress: dummyScAddress,
 		FuncName:  "function",
 		Args:      []string{},
 	}
@@ -290,7 +283,10 @@ func doPost(t *testing.T, facade interface{}, url string, request interface{}, r
 		requestAsBytes, _ = json.Marshal(request)
 	}
 
-	group, err := groups.NewVmValuesGroup(facade)
+	vmValuesFacade, ok := facade.(groups.VmValuesFacadeHandler)
+	require.True(t, ok)
+
+	group, err := groups.NewVmValuesGroup(vmValuesFacade)
 	require.NoError(t, err)
 
 	server := startWebServer(group, "vm-values", getVmValuesRoutesConfig())

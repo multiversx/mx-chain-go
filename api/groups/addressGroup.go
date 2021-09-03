@@ -43,9 +43,9 @@ type addressFacadeHandler interface {
 }
 
 type addressGroup struct {
+	*baseGroup
 	facade    addressFacadeHandler
 	mutFacade sync.RWMutex
-	*baseGroup
 }
 
 type esdtTokenData struct {
@@ -68,14 +68,9 @@ type esdtNFTTokenData struct {
 }
 
 // NewAddressGroup returns a new instance of addressGroup
-func NewAddressGroup(facadeHandler interface{}) (*addressGroup, error) {
-	if facadeHandler == nil {
-		return nil, errors.ErrNilFacadeHandler
-	}
-
-	facade, ok := facadeHandler.(addressFacadeHandler)
-	if !ok {
-		return nil, fmt.Errorf("%w for address group", errors.ErrFacadeWrongTypeAssertion)
+func NewAddressGroup(facade addressFacadeHandler) (*addressGroup, error) {
+	if facade == nil {
+		return nil, fmt.Errorf("%w for address group", errors.ErrNilFacadeHandler)
 	}
 
 	ag := &addressGroup{
@@ -599,20 +594,7 @@ func (ag *addressGroup) getESDTNFTData(c *gin.Context) {
 		return
 	}
 
-	tokenData := esdtNFTTokenData{
-		TokenIdentifier: tokenIdentifier,
-		Balance:         esdtData.Value.String(),
-		Properties:      string(esdtData.Properties),
-	}
-	if esdtData.TokenMetaData != nil {
-		tokenData.Name = string(esdtData.TokenMetaData.Name)
-		tokenData.Nonce = esdtData.TokenMetaData.Nonce
-		tokenData.Creator = string(esdtData.TokenMetaData.Creator)
-		tokenData.Royalties = big.NewInt(int64(esdtData.TokenMetaData.Royalties)).String()
-		tokenData.Hash = esdtData.TokenMetaData.Hash
-		tokenData.URIs = esdtData.TokenMetaData.URIs
-		tokenData.Attributes = esdtData.TokenMetaData.Attributes
-	}
+	tokenData := buildTokenDataApiResponse(tokenIdentifier, esdtData)
 
 	c.JSON(
 		http.StatusOK,
@@ -654,20 +636,7 @@ func (ag *addressGroup) getAllESDTData(c *gin.Context) {
 
 	formattedTokens := make(map[string]*esdtNFTTokenData)
 	for tokenID, esdtData := range tokens {
-		tokenData := &esdtNFTTokenData{
-			TokenIdentifier: tokenID,
-			Balance:         esdtData.Value.String(),
-			Properties:      string(esdtData.Properties),
-		}
-		if esdtData.TokenMetaData != nil {
-			tokenData.Name = string(esdtData.TokenMetaData.Name)
-			tokenData.Nonce = esdtData.TokenMetaData.Nonce
-			tokenData.Creator = string(esdtData.TokenMetaData.Creator)
-			tokenData.Royalties = big.NewInt(int64(esdtData.TokenMetaData.Royalties)).String()
-			tokenData.Hash = esdtData.TokenMetaData.Hash
-			tokenData.URIs = esdtData.TokenMetaData.URIs
-			tokenData.Attributes = esdtData.TokenMetaData.Attributes
-		}
+		tokenData := buildTokenDataApiResponse(tokenID, esdtData)
 
 		formattedTokens[tokenID] = tokenData
 	}
@@ -682,6 +651,25 @@ func (ag *addressGroup) getAllESDTData(c *gin.Context) {
 	)
 }
 
+func buildTokenDataApiResponse(tokenIdentifier string, esdtData *esdt.ESDigitalToken) *esdtNFTTokenData {
+	tokenData := &esdtNFTTokenData{
+		TokenIdentifier: tokenIdentifier,
+		Balance:         esdtData.Value.String(),
+		Properties:      string(esdtData.Properties),
+	}
+	if esdtData.TokenMetaData != nil {
+		tokenData.Name = string(esdtData.TokenMetaData.Name)
+		tokenData.Nonce = esdtData.TokenMetaData.Nonce
+		tokenData.Creator = string(esdtData.TokenMetaData.Creator)
+		tokenData.Royalties = big.NewInt(int64(esdtData.TokenMetaData.Royalties)).String()
+		tokenData.Hash = esdtData.TokenMetaData.Hash
+		tokenData.URIs = esdtData.TokenMetaData.URIs
+		tokenData.Attributes = esdtData.TokenMetaData.Attributes
+	}
+
+	return tokenData
+}
+
 func (ag *addressGroup) getFacade() addressFacadeHandler {
 	ag.mutFacade.RLock()
 	defer ag.mutFacade.RUnlock()
@@ -694,14 +682,19 @@ func (ag *addressGroup) UpdateFacade(newFacade interface{}) error {
 	if newFacade == nil {
 		return errors.ErrNilFacadeHandler
 	}
-	castedFacade, ok := newFacade.(addressFacadeHandler)
+	castFacade, ok := newFacade.(addressFacadeHandler)
 	if !ok {
 		return fmt.Errorf("%w for address group", errors.ErrFacadeWrongTypeAssertion)
 	}
 
 	ag.mutFacade.Lock()
-	ag.facade = castedFacade
+	ag.facade = castFacade
 	ag.mutFacade.Unlock()
 
 	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ag *addressGroup) IsInterfaceNil() bool {
+	return ag == nil
 }

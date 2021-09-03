@@ -19,20 +19,15 @@ type validatorFacadeHandler interface {
 }
 
 type validatorGroup struct {
+	*baseGroup
 	facade    validatorFacadeHandler
 	mutFacade sync.RWMutex
-	*baseGroup
 }
 
 // NewValidatorGroup returns a new instance of validatorGroup
-func NewValidatorGroup(facadeHandler interface{}) (*validatorGroup, error) {
-	if facadeHandler == nil {
-		return nil, errors.ErrNilFacadeHandler
-	}
-
-	facade, ok := facadeHandler.(validatorFacadeHandler)
-	if !ok {
-		return nil, fmt.Errorf("%w for validator group", errors.ErrFacadeWrongTypeAssertion)
+func NewValidatorGroup(facade validatorFacadeHandler) (*validatorGroup, error) {
+	if facade == nil {
+		return nil, fmt.Errorf("%w for validator group", errors.ErrNilFacadeHandler)
 	}
 
 	ng := &validatorGroup{
@@ -89,14 +84,19 @@ func (vg *validatorGroup) UpdateFacade(newFacade interface{}) error {
 	if newFacade == nil {
 		return errors.ErrNilFacadeHandler
 	}
-	castedFacade, ok := newFacade.(validatorFacadeHandler)
+	castFacade, ok := newFacade.(validatorFacadeHandler)
 	if !ok {
 		return errors.ErrFacadeWrongTypeAssertion
 	}
 
 	vg.mutFacade.Lock()
-	vg.facade = castedFacade
+	vg.facade = castFacade
 	vg.mutFacade.Unlock()
 
 	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (vg *validatorGroup) IsInterfaceNil() bool {
+	return vg == nil
 }

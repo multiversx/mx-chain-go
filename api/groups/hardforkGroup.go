@@ -23,20 +23,15 @@ type hardforkFacadeHandler interface {
 }
 
 type hardforkGroup struct {
+	*baseGroup
 	facade hardforkFacadeHandler
 	mutFacade sync.RWMutex
-	*baseGroup
 }
 
 // NewHardforkGroup returns a new instance of hardforkFacadeHandler
-func NewHardforkGroup(facadeHandler interface{}) (*hardforkGroup, error) {
-	if facadeHandler == nil {
-		return nil, errors.ErrNilFacadeHandler
-	}
-
-	facade, ok := facadeHandler.(hardforkFacadeHandler)
-	if !ok {
-		return nil, fmt.Errorf("%w for hardfork group", errors.ErrFacadeWrongTypeAssertion)
+func NewHardforkGroup(facade hardforkFacadeHandler) (*hardforkGroup, error) {
+	if facade == nil {
+		return nil, fmt.Errorf("%w for hardfork group", errors.ErrNilFacadeHandler)
 	}
 
 	hg := &hardforkGroup{
@@ -118,14 +113,19 @@ func (hg *hardforkGroup) UpdateFacade(newFacade interface{}) error {
 	if newFacade == nil {
 		return errors.ErrNilFacadeHandler
 	}
-	castedFacade, ok := newFacade.(hardforkFacadeHandler)
+	castFacade, ok := newFacade.(hardforkFacadeHandler)
 	if !ok {
 		return errors.ErrFacadeWrongTypeAssertion
 	}
 
 	hg.mutFacade.Lock()
-	hg.facade = castedFacade
+	hg.facade = castFacade
 	hg.mutFacade.Unlock()
 
 	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (hg *hardforkGroup) IsInterfaceNil() bool {
+	return hg == nil
 }

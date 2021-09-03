@@ -47,20 +47,15 @@ type QueryDebugRequest struct {
 }
 
 type nodeGroup struct {
+	*baseGroup
 	facade    nodeFacadeHandler
 	mutFacade sync.RWMutex
-	*baseGroup
 }
 
 // NewNodeGroup returns a new instance of nodeGroup
-func NewNodeGroup(facadeHandler interface{}) (*nodeGroup, error) {
-	if facadeHandler == nil {
-		return nil, errors.ErrNilFacadeHandler
-	}
-
-	facade, ok := facadeHandler.(nodeFacadeHandler)
-	if !ok {
-		return nil, fmt.Errorf("%w for node group", errors.ErrFacadeWrongTypeAssertion)
+func NewNodeGroup(facade nodeFacadeHandler) (*nodeGroup, error) {
+	if facade == nil {
+		return nil, fmt.Errorf("%w for node group", errors.ErrNilFacadeHandler)
 	}
 
 	ng := &nodeGroup{
@@ -253,14 +248,19 @@ func (ng *nodeGroup) UpdateFacade(newFacade interface{}) error {
 	if newFacade == nil {
 		return errors.ErrNilFacadeHandler
 	}
-	castedFacade, ok := newFacade.(nodeFacadeHandler)
+	castFacade, ok := newFacade.(nodeFacadeHandler)
 	if !ok {
 		return errors.ErrFacadeWrongTypeAssertion
 	}
 
 	ng.mutFacade.Lock()
-	ng.facade = castedFacade
+	ng.facade = castFacade
 	ng.mutFacade.Unlock()
 
 	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ng *nodeGroup) IsInterfaceNil() bool {
+	return ng == nil
 }

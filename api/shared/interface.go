@@ -42,7 +42,6 @@ type GroupHandler interface {
 	RegisterRoutes(
 		ws *gin.RouterGroup,
 		apiConfig config.ApiRoutesConfig,
-		additionalMiddlewares []MiddlewareProcessor,
 	)
 	IsInterfaceNil() bool
 }
