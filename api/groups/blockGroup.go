@@ -18,14 +18,14 @@ const (
 	getBlockByHashPath  = "/by-hash/:hash"
 )
 
-// BlockFacadeHandler defines the methods to be implemented by a facade for handling block requests
-type BlockFacadeHandler interface {
+// blockFacadeHandler defines the methods to be implemented by a facade for handling block requests
+type blockFacadeHandler interface {
 	GetBlockByHash(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error)
 }
 
 type blockGroup struct {
-	facade    BlockFacadeHandler
+	facade    blockFacadeHandler
 	mutFacade sync.RWMutex
 	*baseGroup
 }
@@ -36,7 +36,7 @@ func NewBlockGroup(facadeHandler interface{}) (*blockGroup, error) {
 		return nil, errors.ErrNilFacadeHandler
 	}
 
-	facade, ok := facadeHandler.(BlockFacadeHandler)
+	facade, ok := facadeHandler.(blockFacadeHandler)
 	if !ok {
 		return nil, fmt.Errorf("%w for block group", errors.ErrFacadeWrongTypeAssertion)
 	}
@@ -150,7 +150,7 @@ func getQueryParamNonce(c *gin.Context) (uint64, error) {
 	return strconv.ParseUint(nonceStr, 10, 64)
 }
 
-func (bg *blockGroup) getFacade() BlockFacadeHandler {
+func (bg *blockGroup) getFacade() blockFacadeHandler {
 	bg.mutFacade.RLock()
 	defer bg.mutFacade.RUnlock()
 
@@ -162,7 +162,7 @@ func (bg *blockGroup) UpdateFacade(newFacade interface{}) error {
 	if newFacade == nil {
 		return errors.ErrNilFacadeHandler
 	}
-	castedFacade, ok := newFacade.(BlockFacadeHandler)
+	castedFacade, ok := newFacade.(blockFacadeHandler)
 	if !ok {
 		return errors.ErrFacadeWrongTypeAssertion
 	}

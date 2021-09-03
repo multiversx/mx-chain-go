@@ -22,8 +22,8 @@ const (
 	queryPath  = "/query"
 )
 
-// VmValuesFacadeHandler defines the methods to be implemented by a facade for vm values requests
-type VmValuesFacadeHandler interface {
+// vmValuesFacadeHandler defines the methods to be implemented by a facade for vm values requests
+type vmValuesFacadeHandler interface {
 	ExecuteSCQuery(*process.SCQuery) (*vm.VMOutputApi, error)
 	DecodeAddressPubkey(pk string) ([]byte, error)
 	IsInterfaceNil() bool
@@ -35,7 +35,7 @@ func NewVmValuesGroup(facadeHandler interface{}) (*vmValuesGroup, error) {
 		return nil, errors.ErrNilFacadeHandler
 	}
 
-	facade, ok := facadeHandler.(VmValuesFacadeHandler)
+	facade, ok := facadeHandler.(vmValuesFacadeHandler)
 	if !ok {
 		return nil, fmt.Errorf("%w for vmValues group", errors.ErrFacadeWrongTypeAssertion)
 	}
@@ -73,7 +73,7 @@ func NewVmValuesGroup(facadeHandler interface{}) (*vmValuesGroup, error) {
 }
 
 type vmValuesGroup struct {
-	facade    VmValuesFacadeHandler
+	facade    vmValuesFacadeHandler
 	mutFacade sync.RWMutex
 	*baseGroup
 }
@@ -220,7 +220,7 @@ func (vvg *vmValuesGroup) returnOkResponse(context *gin.Context, data interface{
 	)
 }
 
-func (vvg *vmValuesGroup) getFacade() VmValuesFacadeHandler {
+func (vvg *vmValuesGroup) getFacade() vmValuesFacadeHandler {
 	vvg.mutFacade.RLock()
 	defer vvg.mutFacade.RUnlock()
 
@@ -232,7 +232,7 @@ func (vvg *vmValuesGroup) UpdateFacade(newFacade interface{}) error {
 	if newFacade == nil {
 		return errors.ErrNilFacadeHandler
 	}
-	castedFacade, ok := newFacade.(VmValuesFacadeHandler)
+	castedFacade, ok := newFacade.(vmValuesFacadeHandler)
 	if !ok {
 		return errors.ErrFacadeWrongTypeAssertion
 	}

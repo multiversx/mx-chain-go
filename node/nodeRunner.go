@@ -225,7 +225,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	}
 
 	log.Debug("creating disabled API services")
-	httpServerWrapper, err := nr.createHttpServer()
+	webServerHandler, err := nr.createHttpServer()
 	if err != nil {
 		return true, err
 	}
@@ -399,7 +399,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	}
 
 	log.Debug("updating the API service after creating the node facade")
-	ef, err := nr.createApiFacade(currentNode, httpServerWrapper, gasScheduleNotifier)
+	ef, err := nr.createApiFacade(currentNode, webServerHandler, gasScheduleNotifier)
 	if err != nil {
 		return true, err
 	}
@@ -413,7 +413,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedCoreComponents.ChanStopNodeProcess(),
 		healthService,
 		ef,
-		httpServerWrapper,
+		webServerHandler,
 		currentNode,
 		goRoutinesNumberStart,
 	)
@@ -500,17 +500,10 @@ func (nr *nodeRunner) createHttpServer() (shared.UpgradeableHttpServerHandler, e
 		return nil, err
 	}
 
-	httpSever, err := httpServerWrapper.CreateHttpServer()
+	err = httpServerWrapper.StartHttpServer()
 	if err != nil {
 		return nil, err
 	}
-
-	err = httpServerWrapper.SetHttpServer(httpSever)
-	if err != nil {
-		return nil, err
-	}
-
-	go httpSever.Start()
 
 	return httpServerWrapper, nil
 }

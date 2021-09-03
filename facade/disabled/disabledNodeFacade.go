@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/vm"
 	_ "github.com/ElrondNetwork/elrond-go/api/block"
-	"github.com/ElrondNetwork/elrond-go/api/groups"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
@@ -19,17 +18,6 @@ import (
 	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
-
-var _ = groups.AddressFacadeHandler(&disabledNodeFacade{})
-var _ = groups.BlockFacadeHandler(&disabledNodeFacade{})
-var _ = groups.HardforkFacadeHandler(&disabledNodeFacade{})
-var _ = groups.NetworkFacadeHandler(&disabledNodeFacade{})
-var _ = groups.NodeFacadeHandler(&disabledNodeFacade{})
-var _ = groups.ProofFacadeHandler(&disabledNodeFacade{})
-var _ = groups.TransactionFacadeHandler(&disabledNodeFacade{})
-var _ = groups.ValidatorFacadeHandler(&disabledNodeFacade{})
-var _ = groups.VmValuesFacadeHandler(&disabledNodeFacade{})
-
 
 var errNodeStarting = errors.New("node is starting")
 var emptyString = ""

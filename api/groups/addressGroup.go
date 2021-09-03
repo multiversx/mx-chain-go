@@ -28,8 +28,8 @@ const (
 	getESDTNFTDataPath        = "/:address/nft/:tokenIdentifier/nonce/:nonce"
 )
 
-// AddressFacadeHandler defines the methods to be implemented by a facade for handling address requests
-type AddressFacadeHandler interface {
+// addressFacadeHandler defines the methods to be implemented by a facade for handling address requests
+type addressFacadeHandler interface {
 	GetBalance(address string) (*big.Int, error)
 	GetUsername(address string) (string, error)
 	GetValueForKey(address string, key string) (string, error)
@@ -44,7 +44,7 @@ type AddressFacadeHandler interface {
 }
 
 type addressGroup struct {
-	facade    AddressFacadeHandler
+	facade    addressFacadeHandler
 	mutFacade sync.RWMutex
 	*baseGroup
 }
@@ -74,7 +74,7 @@ func NewAddressGroup(facadeHandler interface{}) (*addressGroup, error) {
 		return nil, errors.ErrNilFacadeHandler
 	}
 
-	facade, ok := facadeHandler.(AddressFacadeHandler)
+	facade, ok := facadeHandler.(addressFacadeHandler)
 	if !ok {
 		return nil, fmt.Errorf("%w for address group", errors.ErrFacadeWrongTypeAssertion)
 	}
@@ -683,7 +683,7 @@ func (ag *addressGroup) getAllESDTData(c *gin.Context) {
 	)
 }
 
-func (ag *addressGroup) getFacade() AddressFacadeHandler {
+func (ag *addressGroup) getFacade() addressFacadeHandler {
 	ag.mutFacade.RLock()
 	defer ag.mutFacade.RUnlock()
 
@@ -695,7 +695,7 @@ func (ag *addressGroup) UpdateFacade(newFacade interface{}) error {
 	if newFacade == nil {
 		return errors.ErrNilFacadeHandler
 	}
-	castedFacade, ok := newFacade.(AddressFacadeHandler)
+	castedFacade, ok := newFacade.(addressFacadeHandler)
 	if !ok {
 		return fmt.Errorf("%w for address group", errors.ErrFacadeWrongTypeAssertion)
 	}

@@ -23,8 +23,8 @@ const (
 	verifyProofPath             = "/verify"
 )
 
-// ProofFacadeHandler defines the methods to be implemented by a facade for proof requests
-type ProofFacadeHandler interface {
+// proofFacadeHandler defines the methods to be implemented by a facade for proof requests
+type proofFacadeHandler interface {
 	GetProof(rootHash string, address string) ([][]byte, error)
 	GetProofCurrentRootHash(address string) ([][]byte, []byte, error)
 	VerifyProof(rootHash string, address string, proof [][]byte) (bool, error)
@@ -32,7 +32,7 @@ type ProofFacadeHandler interface {
 }
 
 type proofGroup struct {
-	facade    ProofFacadeHandler
+	facade    proofFacadeHandler
 	mutFacade sync.RWMutex
 	*baseGroup
 }
@@ -43,7 +43,7 @@ func NewProofGroup(facadeHandler interface{}) (*proofGroup, error) {
 		return nil, errors.ErrNilFacadeHandler
 	}
 
-	facade, ok := facadeHandler.(ProofFacadeHandler)
+	facade, ok := facadeHandler.(proofFacadeHandler)
 	if !ok {
 		return nil, fmt.Errorf("%w for proof group", errors.ErrFacadeWrongTypeAssertion)
 	}
@@ -262,7 +262,7 @@ func (pg *proofGroup) verifyProof(c *gin.Context) {
 	)
 }
 
-func (pg *proofGroup) getFacade() ProofFacadeHandler {
+func (pg *proofGroup) getFacade() proofFacadeHandler {
 	pg.mutFacade.RLock()
 	defer pg.mutFacade.RUnlock()
 
@@ -274,7 +274,7 @@ func (pg *proofGroup) UpdateFacade(newFacade interface{}) error {
 	if newFacade == nil {
 		return errors.ErrNilFacadeHandler
 	}
-	castedFacade, ok := newFacade.(ProofFacadeHandler)
+	castedFacade, ok := newFacade.(proofFacadeHandler)
 	if !ok {
 		return errors.ErrFacadeWrongTypeAssertion
 	}

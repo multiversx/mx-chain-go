@@ -28,10 +28,8 @@ type ApiFacadeHandler interface {
 
 // UpgradeableHttpServerHandler defines the actions that an upgradeable http server need to do
 type UpgradeableHttpServerHandler interface {
-	CreateHttpServer() (HttpServerCloser, error)
+	StartHttpServer() error
 	UpdateFacade(facade ApiFacadeHandler) error
-	GetHttpServer() HttpServerCloser
-	SetHttpServer(httpServer HttpServerCloser) error
 	Close() error
 	IsInterfaceNil() bool
 }

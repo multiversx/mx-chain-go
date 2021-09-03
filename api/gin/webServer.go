@@ -9,8 +9,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/api/errors"
-	"github.com/ElrondNetwork/elrond-go/api/gin/disabled"
 	"github.com/ElrondNetwork/elrond-go/api/groups"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
@@ -75,12 +73,12 @@ func (ws *webServer) UpdateFacade(facade shared.ApiFacadeHandler) error {
 }
 
 // CreateHttpServer will create a new instance of http.Server and populate it with all the routes
-func (ws *webServer) CreateHttpServer() (shared.HttpServerCloser, error) {
+func (ws *webServer) StartHttpServer() error {
 	ws.Lock()
 	defer ws.Unlock()
 
 	if ws.facade.RestApiInterface() == facade.DefaultRestPortOff {
-		return disabled.NewDisabledServerClosing(), nil
+		return nil
 	}
 
 	var engine *gin.Engine
@@ -95,7 +93,7 @@ func (ws *webServer) CreateHttpServer() (shared.HttpServerCloser, error) {
 
 	processors, err := ws.createMiddlewareLimiters()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	for _, proc := range processors {
@@ -108,12 +106,12 @@ func (ws *webServer) CreateHttpServer() (shared.HttpServerCloser, error) {
 
 	err = registerValidators()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	err = ws.createGroups()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	ws.registerRoutes(engine)
@@ -122,7 +120,7 @@ func (ws *webServer) CreateHttpServer() (shared.HttpServerCloser, error) {
 	log.Debug("creating gin web sever", "interface", ws.facade.RestApiInterface())
 	wrappedServer, err := NewHttpServer(server)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	log.Debug("starting web server",
@@ -131,7 +129,9 @@ func (ws *webServer) CreateHttpServer() (shared.HttpServerCloser, error) {
 		"SameSourceResetIntervalInSec", ws.antiFloodConfig.SameSourceResetIntervalInSec,
 	)
 
-	return wrappedServer, nil
+	go wrappedServer.Start()
+
+	return nil
 }
 
 func (ws *webServer) createGroups() error {
@@ -201,27 +201,6 @@ func (ws *webServer) registerRoutes(ginRouter *gin.Engine) {
 		ginGroup := ginRouter.Group(fmt.Sprintf("/%s", groupName))
 		groupHandler.RegisterRoutes(ginGroup, ws.apiConfig, nil)
 	}
-}
-
-// SetHttpServer will set the inner http server to the provided one
-func (ws *webServer) SetHttpServer(httpServer shared.HttpServerCloser) error {
-	if check.IfNil(httpServer) {
-		return errors.ErrNilHttpServer
-	}
-
-	ws.Lock()
-	ws.httpServer = httpServer
-	ws.Unlock()
-
-	return nil
-}
-
-// GetHttpServer returns the closable http server
-func (ws *webServer) GetHttpServer() shared.HttpServerCloser {
-	ws.RLock()
-	defer ws.RUnlock()
-
-	return ws.httpServer
 }
 
 func (ws *webServer) createMiddlewareLimiters() ([]shared.MiddlewareProcessor, error) {
