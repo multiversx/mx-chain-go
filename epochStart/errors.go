@@ -146,6 +146,9 @@ var ErrEpochStartDataForShardNotFound = errors.New("epoch start data for current
 // ErrMissingHeader signals that searched header is missing
 var ErrMissingHeader = errors.New("missing header")
 
+// ErrMissingMiniBlock signals that the searched miniBlock is missing
+var ErrMissingMiniBlock = errors.New("missing miniBlock")
+
 // ErrNilPathManager signals that a nil path manager has been provided
 var ErrNilPathManager = errors.New("nil path manager")
 

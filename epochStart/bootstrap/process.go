@@ -804,8 +804,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 	}
 
 	dataSyncerWithScheduled, err := NewStartInEpochShardHeaderDataSyncerWithScheduled(
-		e.dataPool.MiniBlocks(),
-		e.dataPool.Headers(),
+		e.dataPool,
 		e.coreComponentsHolder.InternalMarshalizer(),
 		e.requestHandler,
 		e.enableEpochs.ScheduledMiniBlocksEnableEpoch,
@@ -815,7 +814,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 	}
 
 	ownShardHdr, pendingMiniBlocks, err := dataSyncerWithScheduled.updateSyncDataIfNeeded(shardNotarizedHeader, pendingMiniBlocks)
-	if err!= nil {
+	if err != nil {
 		return err
 	}
 

@@ -13,7 +13,7 @@ type PendingTransactionsSyncHandlerMock struct {
 }
 
 // SyncPendingTransactionsFor -
-func (et *PendingTransactionsSyncHandlerMock) SyncPendingTransactionsFor(miniBlocks map[string]*block.MiniBlock, epoch uint32, ctx context.Context) error {
+func (et *PendingTransactionsSyncHandlerMock) SyncTransactionsFor(miniBlocks map[string]*block.MiniBlock, epoch uint32, ctx context.Context) error {
 	if et.SyncPendingTransactionsForCalled != nil {
 		return et.SyncPendingTransactionsForCalled(miniBlocks, epoch, ctx)
 	}

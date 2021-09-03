@@ -83,7 +83,7 @@ func createPendingMiniBlocksSyncHandler() update.EpochStartPendingMiniBlocksSync
 	return pendingMiniBlocksSyncer
 }
 
-func createPendingTxSyncHandler() update.PendingTransactionsSyncHandler {
+func createPendingTxSyncHandler() update.TransactionsSyncHandler {
 	args := createMockArgs()
 	args.Storages = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
@@ -98,7 +98,7 @@ func createPendingTxSyncHandler() update.PendingTransactionsSyncHandler {
 		},
 	}
 
-	pendingTxsSyncer, _ := NewPendingTransactionsSyncer(args)
+	pendingTxsSyncer, _ := NewTransactionsSyncer(args)
 	return pendingTxsSyncer
 }
 

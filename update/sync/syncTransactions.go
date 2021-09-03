@@ -18,9 +18,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
-var _ update.PendingTransactionsSyncHandler = (*pendingTransactions)(nil)
+var _ update.TransactionsSyncHandler = (*transactionsSync)(nil)
 
-type pendingTransactions struct {
+type transactionsSync struct {
 	mutPendingTx            sync.Mutex
 	mapTransactions         map[string]data.TransactionHandler
 	mapHashes               map[string]*block.MiniBlock
@@ -35,16 +35,16 @@ type pendingTransactions struct {
 	waitTimeBetweenRequests time.Duration
 }
 
-// ArgsNewPendingTransactionsSyncer defines the arguments needed for a new transactions syncer
-type ArgsNewPendingTransactionsSyncer struct {
+// ArgsNewTransactionsSyncer defines the arguments needed for a new transactions syncer
+type ArgsNewTransactionsSyncer struct {
 	DataPools      dataRetriever.PoolsHolder
 	Storages       dataRetriever.StorageService
 	Marshalizer    marshal.Marshalizer
 	RequestHandler process.RequestHandler
 }
 
-// NewPendingTransactionsSyncer creates a new transactions syncer
-func NewPendingTransactionsSyncer(args ArgsNewPendingTransactionsSyncer) (*pendingTransactions, error) {
+// NewTransactionsSyncer creates a new transactions syncer
+func NewTransactionsSyncer(args ArgsNewTransactionsSyncer) (*transactionsSync, error) {
 	if check.IfNil(args.Storages) {
 		return nil, dataRetriever.ErrNilHeadersStorage
 	}
@@ -58,7 +58,7 @@ func NewPendingTransactionsSyncer(args ArgsNewPendingTransactionsSyncer) (*pendi
 		return nil, process.ErrNilRequestHandler
 	}
 
-	p := &pendingTransactions{
+	p := &transactionsSync{
 		mutPendingTx:            sync.Mutex{},
 		mapTransactions:         make(map[string]data.TransactionHandler),
 		mapHashes:               make(map[string]*block.MiniBlock),
@@ -87,8 +87,8 @@ func NewPendingTransactionsSyncer(args ArgsNewPendingTransactionsSyncer) (*pendi
 	return p, nil
 }
 
-// SyncPendingTransactionsFor syncs pending transactions for a list of miniblocks
-func (p *pendingTransactions) SyncPendingTransactionsFor(miniBlocks map[string]*block.MiniBlock, epoch uint32, ctx context.Context) error {
+// SyncTransactionsFor syncs transactions for a list of miniblocks
+func (p *transactionsSync) SyncTransactionsFor(miniBlocks map[string]*block.MiniBlock, epoch uint32, ctx context.Context) error {
 	_ = core.EmptyChannel(p.chReceivedAll)
 
 	for {
@@ -132,7 +132,7 @@ func (p *pendingTransactions) SyncPendingTransactionsFor(miniBlocks map[string]*
 	}
 }
 
-func (p *pendingTransactions) requestTransactionsFor(miniBlock *block.MiniBlock) int {
+func (p *transactionsSync) requestTransactionsFor(miniBlock *block.MiniBlock) int {
 	missingTxs := make([][]byte, 0)
 	for _, txHash := range miniBlock.TxHashes {
 		if _, ok := p.mapTransactions[string(txHash)]; ok {
@@ -165,7 +165,7 @@ func (p *pendingTransactions) requestTransactionsFor(miniBlock *block.MiniBlock)
 }
 
 // receivedMiniBlock is a callback function when a new transactions was received
-func (p *pendingTransactions) receivedTransaction(txHash []byte, val interface{}) {
+func (p *transactionsSync) receivedTransaction(txHash []byte, val interface{}) {
 	p.mutPendingTx.Lock()
 	if p.stopSync {
 		p.mutPendingTx.Unlock()
@@ -196,7 +196,7 @@ func (p *pendingTransactions) receivedTransaction(txHash []byte, val interface{}
 	}
 }
 
-func (p *pendingTransactions) getTransactionFromPool(txHash []byte) (data.TransactionHandler, bool) {
+func (p *transactionsSync) getTransactionFromPool(txHash []byte) (data.TransactionHandler, bool) {
 	mb := p.mapHashes[string(txHash)]
 	storeId := process.ShardCacherIdentifier(mb.SenderShardID, mb.ReceiverShardID)
 	shardTxStore := p.txPools[mb.Type].ShardDataStore(storeId)
@@ -217,7 +217,7 @@ func (p *pendingTransactions) getTransactionFromPool(txHash []byte) (data.Transa
 	return tx, true
 }
 
-func (p *pendingTransactions) getTransactionFromPoolOrStorage(hash []byte) (data.TransactionHandler, bool) {
+func (p *transactionsSync) getTransactionFromPoolOrStorage(hash []byte) (data.TransactionHandler, bool) {
 	txFromPool, ok := p.getTransactionFromPool(hash)
 	if ok {
 		return txFromPool, true
@@ -252,7 +252,7 @@ func (p *pendingTransactions) getTransactionFromPoolOrStorage(hash []byte) (data
 }
 
 // GetTransactions returns the synced transactions
-func (p *pendingTransactions) GetTransactions() (map[string]data.TransactionHandler, error) {
+func (p *transactionsSync) GetTransactions() (map[string]data.TransactionHandler, error) {
 	p.mutPendingTx.Lock()
 	defer p.mutPendingTx.Unlock()
 	if !p.syncedAll {
@@ -263,6 +263,6 @@ func (p *pendingTransactions) GetTransactions() (map[string]data.TransactionHand
 }
 
 // IsInterfaceNil returns true if underlying object is nil
-func (p *pendingTransactions) IsInterfaceNil() bool {
+func (p *transactionsSync) IsInterfaceNil() bool {
 	return p == nil
 }
