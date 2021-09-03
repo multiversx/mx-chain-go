@@ -501,6 +501,8 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		enableEpochs.ScheduledMiniBlocksEnableEpoch,
 		txTypeHandler,
 		disabledScheduledTxsExecutionHandler,
+		enableEpochs.MixedTxsInMiniBlocksEnableEpoch,
+		disabledPostProcessorTxsHandler,
 	)
 	if err != nil {
 		return nil, err

@@ -40,9 +40,11 @@ func TestNewPreProcessorsContainerFactory_NilShardCoordinator(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		2,
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
@@ -71,9 +73,11 @@ func TestNewPreProcessorsContainerFactory_NilStore(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		2,
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Equal(t, process.ErrNilStore, err)
@@ -102,9 +106,11 @@ func TestNewPreProcessorsContainerFactory_NilMarshalizer(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		2,
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Equal(t, process.ErrNilMarshalizer, err)
@@ -133,9 +139,11 @@ func TestNewPreProcessorsContainerFactory_NilHasher(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		2,
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Equal(t, process.ErrNilHasher, err)
@@ -164,9 +172,11 @@ func TestNewPreProcessorsContainerFactory_NilDataPool(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		2,
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Equal(t, process.ErrNilDataPoolHolder, err)
@@ -195,9 +205,11 @@ func TestNewPreProcessorsContainerFactory_NilAddrConv(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		2,
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Equal(t, process.ErrNilPubkeyConverter, err)
@@ -226,9 +238,11 @@ func TestNewPreProcessorsContainerFactory_NilAccounts(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		2,
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
@@ -257,9 +271,11 @@ func TestNewPreProcessorsContainerFactory_NilTxProcessor(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		2,
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Equal(t, process.ErrNilTxProcessor, err)
@@ -288,9 +304,11 @@ func TestNewPreProcessorsContainerFactory_NilSCProcessor(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		2,
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Equal(t, process.ErrNilSmartContractProcessor, err)
@@ -319,9 +337,11 @@ func TestNewPreProcessorsContainerFactory_NilSCR(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		2,
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Equal(t, process.ErrNilSmartContractResultProcessor, err)
@@ -350,9 +370,11 @@ func TestNewPreProcessorsContainerFactory_NilRewardTxProcessor(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		2,
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Equal(t, process.ErrNilRewardsTxProcessor, err)
@@ -381,9 +403,11 @@ func TestNewPreProcessorsContainerFactory_NilRequestHandler(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		2,
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Equal(t, process.ErrNilRequestHandler, err)
@@ -412,9 +436,11 @@ func TestNewPreProcessorsContainerFactory_NilFeeHandler(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		2,
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
@@ -443,9 +469,11 @@ func TestNewPreProcessorsContainerFactory_NilGasHandler(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		2,
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Equal(t, process.ErrNilGasHandler, err)
@@ -474,9 +502,11 @@ func TestNewPreProcessorsContainerFactory_NilBlockTracker(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		2,
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Equal(t, process.ErrNilBlockTracker, err)
@@ -505,9 +535,11 @@ func TestNewPreProcessorsContainerFactory_NilBlockSizeComputationHandler(t *test
 		nil,
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		2,
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Equal(t, process.ErrNilBlockSizeComputationHandler, err)
@@ -536,9 +568,11 @@ func TestNewPreProcessorsContainerFactory_NilBalanceComputationHandler(t *testin
 		&testscommon.BlockSizeComputationStub{},
 		nil,
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		2,
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Equal(t, process.ErrNilBalanceComputationHandler, err)
@@ -567,9 +601,11 @@ func TestNewPreProcessorsContainerFactory_NilEpochNotifier(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		nil,
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		2,
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Equal(t, process.ErrNilEpochNotifier, err)
@@ -598,9 +634,11 @@ func TestNewPreProcessorsContainerFactory_NilTxTypeHandler(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		nil,
 		&testscommon.ScheduledTxsExecutionStub{},
+		2,
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Equal(t, process.ErrNilTxTypeHandler, err)
@@ -629,12 +667,47 @@ func TestNewPreProcessorsContainerFactory_NilScheduledTxsExecutionHandler(t *tes
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		nil,
+		2,
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Equal(t, process.ErrNilScheduledTxsExecutionHandler, err)
+	assert.Nil(t, ppcm)
+}
+
+func TestNewPreProcessorsContainerFactory_NilPostProcessorTxsHandler(t *testing.T) {
+	t.Parallel()
+
+	ppcm, err := NewPreProcessorsContainerFactory(
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.ChainStorerMock{},
+		&mock.MarshalizerMock{},
+		&hashingMocks.HasherMock{},
+		dataRetrieverMock.NewPoolsHolderMock(),
+		createMockPubkeyConverter(),
+		&stateMock.AccountsStub{},
+		&testscommon.RequestHandlerStub{},
+		&testscommon.TxProcessorMock{},
+		&testscommon.SCProcessorMock{},
+		&testscommon.SmartContractResultsProcessorMock{},
+		&testscommon.RewardTxProcessorMock{},
+		&mock.FeeHandlerStub{},
+		&testscommon.GasHandlerStub{},
+		&mock.BlockTrackerMock{},
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
+		&epochNotifier.EpochNotifierStub{},
+		2,
+		&testscommon.TxTypeHandlerMock{},
+		&testscommon.ScheduledTxsExecutionStub{},
+		2,
+		nil,
+	)
+
+	assert.Equal(t, process.ErrNilPostProcessorTxsHandler, err)
 	assert.Nil(t, ppcm)
 }
 
@@ -660,9 +733,11 @@ func TestNewPreProcessorsContainerFactory(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		2,
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Nil(t, err)
@@ -696,9 +771,11 @@ func TestPreProcessorsContainerFactory_CreateErrTxPreproc(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		2,
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Nil(t, err)
@@ -738,9 +815,11 @@ func TestPreProcessorsContainerFactory_CreateErrScrPreproc(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		2,
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Nil(t, err)
@@ -783,9 +862,11 @@ func TestPreProcessorsContainerFactory_Create(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		2,
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Nil(t, err)

@@ -361,6 +361,8 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		enableEpochs.ScheduledMiniBlocksEnableEpoch,
 		txTypeHandler,
 		scheduledTxsExecutionHandler,
+		enableEpochs.MixedTxsInMiniBlocksEnableEpoch,
+		postProcessorTxsHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -682,6 +684,8 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		enableEpochs.ScheduledMiniBlocksEnableEpoch,
 		txTypeHandler,
 		scheduledTxsExecutionHandler,
+		enableEpochs.MixedTxsInMiniBlocksEnableEpoch,
+		postProcessorTxsHandler,
 	)
 	if err != nil {
 		return nil, err

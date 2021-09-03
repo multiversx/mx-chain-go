@@ -17,25 +17,27 @@ import (
 var _ process.PreProcessorsContainerFactory = (*preProcessorsContainerFactory)(nil)
 
 type preProcessorsContainerFactory struct {
-	shardCoordinator               sharding.Coordinator
-	store                          dataRetriever.StorageService
-	marshalizer                    marshal.Marshalizer
-	hasher                         hashing.Hasher
-	dataPool                       dataRetriever.PoolsHolder
-	txProcessor                    process.TransactionProcessor
-	scResultProcessor              process.SmartContractResultProcessor
-	accounts                       state.AccountsAdapter
-	requestHandler                 process.RequestHandler
-	economicsFee                   process.FeeHandler
-	gasHandler                     process.GasHandler
-	blockTracker                   preprocess.BlockTracker
-	pubkeyConverter                core.PubkeyConverter
-	blockSizeComputation           preprocess.BlockSizeComputationHandler
-	balanceComputation             preprocess.BalanceComputationHandler
-	epochNotifier                  process.EpochNotifier
-	scheduledMiniBlocksEnableEpoch uint32
-	txTypeHandler                  process.TxTypeHandler
-	scheduledTxsExecutionHandler   process.ScheduledTxsExecutionHandler
+	shardCoordinator                sharding.Coordinator
+	store                           dataRetriever.StorageService
+	marshalizer                     marshal.Marshalizer
+	hasher                          hashing.Hasher
+	dataPool                        dataRetriever.PoolsHolder
+	txProcessor                     process.TransactionProcessor
+	scResultProcessor               process.SmartContractResultProcessor
+	accounts                        state.AccountsAdapter
+	requestHandler                  process.RequestHandler
+	economicsFee                    process.FeeHandler
+	gasHandler                      process.GasHandler
+	blockTracker                    preprocess.BlockTracker
+	pubkeyConverter                 core.PubkeyConverter
+	blockSizeComputation            preprocess.BlockSizeComputationHandler
+	balanceComputation              preprocess.BalanceComputationHandler
+	epochNotifier                   process.EpochNotifier
+	scheduledMiniBlocksEnableEpoch  uint32
+	txTypeHandler                   process.TxTypeHandler
+	scheduledTxsExecutionHandler    process.ScheduledTxsExecutionHandler
+	mixedTxsInMiniBlocksEnableEpoch uint32
+	postProcessorTxsHandler         process.PostProcessorTxsHandler
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -59,6 +61,8 @@ func NewPreProcessorsContainerFactory(
 	scheduledMiniBlocksEnableEpoch uint32,
 	txTypeHandler process.TxTypeHandler,
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
+	mixedTxsInMiniBlocksEnableEpoch uint32,
+	postProcessorTxsHandler process.PostProcessorTxsHandler,
 ) (*preProcessorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -115,27 +119,32 @@ func NewPreProcessorsContainerFactory(
 	if check.IfNil(scheduledTxsExecutionHandler) {
 		return nil, process.ErrNilScheduledTxsExecutionHandler
 	}
+	if check.IfNil(postProcessorTxsHandler) {
+		return nil, process.ErrNilPostProcessorTxsHandler
+	}
 
 	return &preProcessorsContainerFactory{
-		shardCoordinator:               shardCoordinator,
-		store:                          store,
-		marshalizer:                    marshalizer,
-		hasher:                         hasher,
-		dataPool:                       dataPool,
-		txProcessor:                    txProcessor,
-		accounts:                       accounts,
-		requestHandler:                 requestHandler,
-		economicsFee:                   economicsFee,
-		scResultProcessor:              scResultProcessor,
-		gasHandler:                     gasHandler,
-		blockTracker:                   blockTracker,
-		pubkeyConverter:                pubkeyConverter,
-		blockSizeComputation:           blockSizeComputation,
-		balanceComputation:             balanceComputation,
-		epochNotifier:                  epochNotifier,
-		scheduledMiniBlocksEnableEpoch: scheduledMiniBlocksEnableEpoch,
-		txTypeHandler:                  txTypeHandler,
-		scheduledTxsExecutionHandler:   scheduledTxsExecutionHandler,
+		shardCoordinator:                shardCoordinator,
+		store:                           store,
+		marshalizer:                     marshalizer,
+		hasher:                          hasher,
+		dataPool:                        dataPool,
+		txProcessor:                     txProcessor,
+		accounts:                        accounts,
+		requestHandler:                  requestHandler,
+		economicsFee:                    economicsFee,
+		scResultProcessor:               scResultProcessor,
+		gasHandler:                      gasHandler,
+		blockTracker:                    blockTracker,
+		pubkeyConverter:                 pubkeyConverter,
+		blockSizeComputation:            blockSizeComputation,
+		balanceComputation:              balanceComputation,
+		epochNotifier:                   epochNotifier,
+		scheduledMiniBlocksEnableEpoch:  scheduledMiniBlocksEnableEpoch,
+		txTypeHandler:                   txTypeHandler,
+		scheduledTxsExecutionHandler:    scheduledTxsExecutionHandler,
+		mixedTxsInMiniBlocksEnableEpoch: mixedTxsInMiniBlocksEnableEpoch,
+		postProcessorTxsHandler:         postProcessorTxsHandler,
 	}, nil
 }
 
@@ -187,6 +196,8 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		ppcm.scheduledMiniBlocksEnableEpoch,
 		ppcm.txTypeHandler,
 		ppcm.scheduledTxsExecutionHandler,
+		ppcm.mixedTxsInMiniBlocksEnableEpoch,
+		ppcm.postProcessorTxsHandler,
 	)
 
 	return txPreprocessor, err
