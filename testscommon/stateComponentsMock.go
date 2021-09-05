@@ -54,6 +54,11 @@ func (scm *StateComponentsMock) TrieStorageManagers() map[string]common.StorageM
 	return scm.StorageManagers
 }
 
+// String -
+func (scm *StateComponentsMock) String() string {
+	return "StateComponentsMock"
+}
+
 // IsInterfaceNil -
 func (scm *StateComponentsMock) IsInterfaceNil() bool {
 	return scm == nil
