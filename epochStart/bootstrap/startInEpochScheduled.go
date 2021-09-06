@@ -3,18 +3,24 @@ package bootstrap
 import (
 	"context"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
+	factoryDisabled "github.com/ElrondNetwork/elrond-go/factory/disabled"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/update"
 	updateSync "github.com/ElrondNetwork/elrond-go/update/sync"
 )
 
 type startInEpochWithScheduledDataSyncer struct {
+	scheduledTxsHandler       process.ScheduledTxsExecutionHandler
 	scheduledHeadersSyncer    epochStart.HeadersByHashSyncer
 	scheduledMiniBlocksSyncer epochStart.PendingMiniBlocksSyncHandler
 	txSyncer                  update.TransactionsSyncHandler
@@ -22,11 +28,36 @@ type startInEpochWithScheduledDataSyncer struct {
 }
 
 func NewStartInEpochShardHeaderDataSyncerWithScheduled(
+	scheduledSCRsStorer storage.Storer,
 	dataPool dataRetriever.PoolsHolder,
 	marshaller marshal.Marshalizer,
 	requestHandler process.RequestHandler,
 	scheduledEnableEpoch uint32,
 ) (*startInEpochWithScheduledDataSyncer, error) {
+
+	if check.IfNil(scheduledSCRsStorer) {
+		return nil, epochStart.ErrNilStorage
+	}
+	if check.IfNil(dataPool) {
+		return nil, epochStart.ErrNilDataPoolsHolder
+	}
+	if check.IfNil(marshaller) {
+		return nil, epochStart.ErrNilMarshalizer
+	}
+	if check.IfNil(requestHandler) {
+		return nil, epochStart.ErrNilRequestHandler
+	}
+
+	scheduledTxsHandler, err := preprocess.NewScheduledTxsExecution(
+		&factoryDisabled.TxProcessor{},
+		&factoryDisabled.TxCoordinator{},
+		scheduledSCRsStorer,
+		marshaller,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	syncMiniBlocksArgs := updateSync.ArgsNewPendingMiniBlocksSyncer{
 		Storage:        disabled.CreateMemUnit(),
 		Cache:          dataPool.MiniBlocks(),
@@ -63,6 +94,7 @@ func NewStartInEpochShardHeaderDataSyncerWithScheduled(
 	}
 
 	return &startInEpochWithScheduledDataSyncer{
+		scheduledTxsHandler:       scheduledTxsHandler,
 		scheduledMiniBlocksSyncer: miniBlocksSyncer,
 		scheduledHeadersSyncer:    headersSyncer,
 		txSyncer:                  txSyncer,
@@ -214,31 +246,27 @@ func (ses *startInEpochWithScheduledDataSyncer) prepareScheduledSCRs(
 	header data.HeaderHandler,
 	miniBlocks map[string]*block.MiniBlock,
 ) error {
-	// 1. get from the previous block all scheduled transactions hashes
-	// 2. sync all transactions from notarized block
-	// 3. for each synced transaction that is a smart contract result, check if prev transaction is in the set from 1.
-	//     if found in the set, then it is a scheduled SCR, so it needs to be saved with the notarized header sch root hash
-
-	// 1.
 	scheduledTxHashes, err := ses.getScheduledTransactionHashes(prevHeader)
 	if err != nil {
 		return err
 	}
 
-	// 2.
 	allTxs, err := ses.getAllTransactionsForMiniBlocks(miniBlocks, header.GetEpoch())
 	if err != nil {
 		return err
 	}
 
-	// 3.1
 	scheduledSCRs, err := ses.filterScheduledSCRs(scheduledTxHashes, allTxs)
 	if err != nil {
 		return err
 	}
 
-	// 3.2
-	return ses.saveScheduledSCRs(scheduledSCRs, header.GetAdditionalData().GetScheduledRootHash(), header.GetPrevHash())
+	additionalData := header.GetAdditionalData()
+	if additionalData != nil {
+		ses.saveScheduledSCRs(scheduledSCRs, header.GetAdditionalData().GetScheduledRootHash(), header.GetPrevHash())
+	}
+
+	return nil
 }
 
 func (ses *startInEpochWithScheduledDataSyncer) filterScheduledSCRs(
@@ -246,17 +274,42 @@ func (ses *startInEpochWithScheduledDataSyncer) filterScheduledSCRs(
 	allTxs map[string]data.TransactionHandler,
 ) (map[string]data.TransactionHandler, error) {
 
-	return nil, nil
+	scheduledSCRs := make(map[string]data.TransactionHandler)
+	for txHash := range allTxs {
+		scr, ok := allTxs[txHash].(*smartContractResult.SmartContractResult)
+		if !ok {
+			continue
+		}
+
+		_, isScheduledSCR := scheduledTxHashes[string(scr.PrevTxHash)]
+		if isScheduledSCR {
+			scheduledSCRs[txHash] = allTxs[txHash]
+		}
+	}
+
+	return scheduledSCRs, nil
 }
 
 func (ses *startInEpochWithScheduledDataSyncer) saveScheduledSCRs(
 	scheduledSCRs map[string]data.TransactionHandler,
 	scheduledRootHash []byte,
 	headerHash []byte,
-) error {
-	//// mapScheduledSCRs  map[block.Type][]data.TransactionHandler
+) {
+	if scheduledRootHash == nil {
+		return
+	}
 
-	return nil
+	// prepare the scheduledSCRs in the form of map[block.Type][]data.TransactionHandler
+	// the order should not matter, as the processing is done after sorting by scr hash
+	mapScheduledSCRs := make(map[block.Type][]data.TransactionHandler)
+	scheduledSCRsList := make([]data.TransactionHandler, 0, len(scheduledSCRs))
+	for scrHash := range scheduledSCRs {
+		scheduledSCRsList = append(scheduledSCRsList, scheduledSCRs[scrHash])
+	}
+	mapScheduledSCRs[block.TxBlock] = scheduledSCRsList
+
+	ses.scheduledTxsHandler.SetScheduledRootHashAndSCRs(scheduledRootHash, mapScheduledSCRs)
+	ses.scheduledTxsHandler.SaveState(headerHash)
 }
 
 func (ses *startInEpochWithScheduledDataSyncer) getAllTransactionsForMiniBlocks(miniBlocks map[string]*block.MiniBlock, epoch uint32) (map[string]data.TransactionHandler, error) {

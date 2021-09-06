@@ -146,6 +146,14 @@ func createMockEpochStartBootstrapArgs(
 				MaxHardCapForMissingNodes: 500,
 				TrieSyncerVersion:         2,
 			},
+			BootstrapStorage: config.StorageConfig{
+				Cache: config.CacheConfig{},
+				DB:    config.DBConfig{},
+			},
+			ScheduledSCRsStorage: config.StorageConfig{
+				Cache: config.CacheConfig{},
+				DB:    config.DBConfig{},
+			},
 		},
 		EconomicsData:              &economicsmocks.EconomicsHandlerStub{},
 		GenesisNodesConfig:         &mock.NodesSetupStub{},
@@ -620,6 +628,9 @@ func TestRequestAndProcessing(t *testing.T) {
 					return nil, true
 				},
 			}
+		},
+		HeadersCalled: func() dataRetriever.HeadersPool {
+			return &mock.HeadersCacherStub{}
 		},
 	}
 	epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}

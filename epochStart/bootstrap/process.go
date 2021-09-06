@@ -803,22 +803,19 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 		return epochStart.ErrWrongTypeAssertion
 	}
 
-	dataSyncerWithScheduled, err := NewStartInEpochShardHeaderDataSyncerWithScheduled(
-		e.dataPool,
-		e.coreComponentsHolder.InternalMarshalizer(),
-		e.requestHandler,
-		e.enableEpochs.ScheduledMiniBlocksEnableEpoch,
+	storerScheduledSCRs, err := e.storageOpenerHandler.OpenDB(
+		e.generalConfig.ScheduledSCRsStorage.DB,
+		epochStartData.GetShardID(),
+		epochStartData.GetEpoch(),
 	)
 	if err != nil {
 		return err
 	}
 
-	ownShardHdr, pendingMiniBlocks, err := dataSyncerWithScheduled.updateSyncDataIfNeeded(shardNotarizedHeader, pendingMiniBlocks)
+	ownShardHdr, rootHashToSync, err := e.updateDataForScheduled(err, storerScheduledSCRs, pendingMiniBlocks, shardNotarizedHeader)
 	if err != nil {
 		return err
 	}
-
-	rootHashToSync := dataSyncerWithScheduled.getRootHashToSync(shardNotarizedHeader)
 
 	log.Debug("start in epoch bootstrap: started syncUserAccountsState")
 	err = e.syncUserAccountsState(rootHashToSync)
@@ -858,6 +855,27 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 	}
 
 	return nil
+}
+
+func (e *epochStartBootstrap) updateDataForScheduled(err error, storerScheduledSCRs storage.Storer, pendingMiniBlocks map[string]*block.MiniBlock, shardNotarizedHeader data.ShardHeaderHandler) (data.ShardHeaderHandler, []byte, error) {
+	dataSyncerWithScheduled, err := NewStartInEpochShardHeaderDataSyncerWithScheduled(
+		storerScheduledSCRs,
+		e.dataPool,
+		e.coreComponentsHolder.InternalMarshalizer(),
+		e.requestHandler,
+		e.enableEpochs.ScheduledMiniBlocksEnableEpoch,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	ownShardHdr, pendingMiniBlocks, err := dataSyncerWithScheduled.updateSyncDataIfNeeded(shardNotarizedHeader, pendingMiniBlocks)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	rootHashToSync := dataSyncerWithScheduled.getRootHashToSync(shardNotarizedHeader)
+	return ownShardHdr, rootHashToSync, nil
 }
 
 func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {

@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -15,7 +16,6 @@ import (
 
 // ArgsNewOpenStorageUnits defines the arguments in order to open a set of storage units from disk
 type ArgsNewOpenStorageUnits struct {
-	GeneralConfig             config.Config
 	BootstrapDataProvider     BootstrapDataProviderHandler
 	LatestStorageDataProvider storage.LatestStorageDataProviderHandler
 	DefaultEpochString        string
@@ -23,7 +23,6 @@ type ArgsNewOpenStorageUnits struct {
 }
 
 type openStorageUnits struct {
-	generalConfig             config.Config
 	bootstrapDataProvider     BootstrapDataProviderHandler
 	latestStorageDataProvider storage.LatestStorageDataProviderHandler
 	defaultEpochString        string
@@ -33,7 +32,6 @@ type openStorageUnits struct {
 // NewStorageUnitOpenHandler creates an openStorageUnits component
 func NewStorageUnitOpenHandler(args ArgsNewOpenStorageUnits) (*openStorageUnits, error) {
 	o := &openStorageUnits{
-		generalConfig:             args.GeneralConfig,
 		defaultEpochString:        args.DefaultEpochString,
 		defaultShardString:        args.DefaultShardString,
 		bootstrapDataProvider:     args.BootstrapDataProvider,
@@ -43,34 +41,26 @@ func NewStorageUnitOpenHandler(args ArgsNewOpenStorageUnits) (*openStorageUnits,
 	return o, nil
 }
 
-// GetMostRecentBootstrapStorageUnit will open bootstrap storage unit
-func (o *openStorageUnits) GetMostRecentBootstrapStorageUnit() (storage.Storer, error) {
+// GetMostRecentStorageUnit will open bootstrap storage unit
+func (o *openStorageUnits) GetMostRecentStorageUnit(dbConfig config.DBConfig) (storage.Storer, error) {
 	parentDir, lastEpoch, err := o.latestStorageDataProvider.GetParentDirAndLastEpoch()
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: refactor this - as it works with bootstrap storage unit only
-	persisterFactory := NewPersisterFactory(o.generalConfig.BootstrapStorage.DB)
-	pathWithoutShard := filepath.Join(
-		parentDir,
-		fmt.Sprintf("%s_%d", o.defaultEpochString, lastEpoch),
-	)
+	persisterFactory := NewPersisterFactory(dbConfig)
+	pathWithoutShard := o.getPathWithoutShard(parentDir, lastEpoch)
 	shardIdsStr, err := o.latestStorageDataProvider.GetShardsFromDirectory(pathWithoutShard)
 	if err != nil {
 		return nil, err
 	}
 
-	mostRecentShard, err := o.getMostUpToDateDirectory(pathWithoutShard, shardIdsStr, persisterFactory)
+	mostRecentShard, err := o.getMostUpToDateDirectory(dbConfig, pathWithoutShard, shardIdsStr, persisterFactory)
 	if err != nil {
 		return nil, err
 	}
 
-	persisterPath := filepath.Join(
-		pathWithoutShard,
-		fmt.Sprintf("%s_%s", o.defaultShardString, mostRecentShard),
-		o.generalConfig.BootstrapStorage.DB.FilePath,
-	)
+	persisterPath := o.getPersisterPath(pathWithoutShard, mostRecentShard, dbConfig)
 
 	persister, err := createDB(persisterFactory, persisterPath)
 	if err != nil {
@@ -90,6 +80,41 @@ func (o *openStorageUnits) GetMostRecentBootstrapStorageUnit() (storage.Storer, 
 	return storer, nil
 }
 
+func (o *openStorageUnits) getPathWithoutShard(parentDir string, epoch uint32) string {
+	return filepath.Join(
+		parentDir,
+		fmt.Sprintf("%s_%d", o.defaultEpochString, epoch),
+	)
+}
+
+func (o *openStorageUnits) getPersisterPath(pathWithoutShard string, shardID string, dbConfig config.DBConfig) string {
+	return filepath.Join(
+		pathWithoutShard,
+		fmt.Sprintf("%s_%s", o.defaultShardString, shardID),
+		dbConfig.FilePath,
+	)
+}
+
+// OpenDB opens or creates a given DB
+func (o *openStorageUnits) OpenDB(dbConfig config.DBConfig, shardID uint32, epoch uint32) (storage.Storer, error) {
+	parentDir := o.latestStorageDataProvider.GetParentDirectory()
+	pathWithoutShard := o.getPathWithoutShard(parentDir, epoch)
+	persisterPath := o.getPersisterPath(pathWithoutShard, core.ShardIdToString(shardID), dbConfig)
+	persisterFactory := NewPersisterFactory(dbConfig)
+
+	persister, err := createDB(persisterFactory, persisterPath)
+	if err != nil {
+		return nil, err
+	}
+
+	cache, err := lrucache.NewCache(10)
+	if err != nil {
+		return nil, err
+	}
+
+	return storageUnit.NewStorageUnit(cache, persister)
+}
+
 func createDB(persisterFactory *PersisterFactory, persisterPath string) (storage.Persister, error) {
 	var persister storage.Persister
 	var err error
@@ -106,6 +131,7 @@ func createDB(persisterFactory *PersisterFactory, persisterPath string) (storage
 }
 
 func (o *openStorageUnits) getMostUpToDateDirectory(
+	dbConfig config.DBConfig,
 	pathWithoutShard string,
 	shardIdsStr []string,
 	persisterFactory storage.PersisterFactory,
@@ -117,10 +143,10 @@ func (o *openStorageUnits) getMostUpToDateDirectory(
 		persisterPath := filepath.Join(
 			pathWithoutShard,
 			fmt.Sprintf("%s_%s", o.defaultShardString, shardIdStr),
-			o.generalConfig.BootstrapStorage.DB.FilePath,
+			dbConfig.FilePath,
 		)
 
-		bootstrapData, errGet := o.loadDataForShard(persisterFactory, persisterPath)
+		bootstrapData, errGet := o.loadBootstrapDataForShard(persisterFactory, persisterPath)
 		if errGet != nil {
 			continue
 		}
@@ -138,7 +164,7 @@ func (o *openStorageUnits) getMostUpToDateDirectory(
 	return mostRecentShard, nil
 }
 
-func (o *openStorageUnits) loadDataForShard(
+func (o *openStorageUnits) loadBootstrapDataForShard(
 	persisterFactory storage.PersisterFactory,
 	persisterPath string,
 ) (*bootstrapStorage.BootstrapData, error) {
