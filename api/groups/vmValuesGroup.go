@@ -23,6 +23,7 @@ const (
 	queryPath  = "/query"
 )
 
+// vmValuesFacadeHandler defines the methods to be implemented by a facade for vm-values requests
 type vmValuesFacadeHandler interface {
 	ExecuteSCQuery(*process.SCQuery) (*vm.VMOutputApi, error)
 	DecodeAddressPubkey(pk string) ([]byte, error)
