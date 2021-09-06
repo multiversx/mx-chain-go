@@ -11,10 +11,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 )
@@ -49,13 +49,18 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 		return nil, data.ErrNilThrottler
 	}
 
+	timeoutHandler, err := common.NewTimeoutHandler(args.Timeout)
+	if err != nil {
+		return nil, err
+	}
+
 	b := &baseAccountsSyncer{
 		hasher:                    args.Hasher,
 		marshalizer:               args.Marshalizer,
 		dataTries:                 make(map[string]struct{}),
 		trieStorageManager:        args.TrieStorageManager,
 		requestHandler:            args.RequestHandler,
-		timeout:                   args.Timeout,
+		timeoutHandler:            timeoutHandler,
 		shardId:                   args.ShardId,
 		cacher:                    args.Cacher,
 		rootHash:                  nil,
@@ -77,6 +82,8 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 	u.mutex.Lock()
 	defer u.mutex.Unlock()
+
+	u.timeoutHandler.ResetWatchdog()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer func() {
@@ -132,7 +139,17 @@ func (u *userAccountsSyncer) syncAccountDataTries(rootHashes [][]byte, ssh data.
 			}
 		}
 
+		//throttler.StartProcessing is required to be here as it prevent the following edge-case:
+		//loop does 100k iterations because throttler.CanProcess allows it and starts 100k go routines that can
+		//not execute their first instructions that could tell the throttler they have started.
+		//Telling the throttler the processing has started here will prevent OOM exception because of too many go
+		//routines started.
+		u.throttler.StartProcessing()
+
 		go func(trieRootHash []byte) {
+			defer u.throttler.EndProcessing()
+
+			log.Trace("sync data trie", "roothash", trieRootHash)
 			newErr := u.syncDataTrie(trieRootHash, ssh, ctx)
 			if newErr != nil {
 				errMutex.Lock()
@@ -140,6 +157,7 @@ func (u *userAccountsSyncer) syncAccountDataTries(rootHashes [][]byte, ssh data.
 				errMutex.Unlock()
 			}
 			atomic.AddInt32(&u.numTriesSynced, 1)
+			log.Trace("finished sync data trie", "roothash", trieRootHash)
 			wg.Done()
 		}(rootHash)
 	}
@@ -153,9 +171,6 @@ func (u *userAccountsSyncer) syncAccountDataTries(rootHashes [][]byte, ssh data.
 }
 
 func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ssh data.SyncStatisticsHandler, ctx context.Context) error {
-	u.throttler.StartProcessing()
-	defer u.throttler.EndProcessing()
-
 	u.syncerMutex.Lock()
 	_, ok := u.dataTries[string(rootHash)]
 	if ok {
@@ -175,7 +190,7 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ssh data.SyncStatisti
 		ShardId:                   u.shardId,
 		Topic:                     factory.AccountTrieNodesTopic,
 		TrieSyncStatistics:        ssh,
-		ReceivedNodesTimeout:      u.timeout,
+		TimeoutHandler:            u.timeoutHandler,
 		MaxHardCapForMissingNodes: u.maxHardCapForMissingNodes,
 	}
 	trieSyncer, err := trie.CreateTrieSyncer(arg, u.trieSyncerVersion)
@@ -192,7 +207,7 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ssh data.SyncStatisti
 	return nil
 }
 
-func (u *userAccountsSyncer) findAllAccountRootHashes(mainTrie temporary.Trie) ([][]byte, error) {
+func (u *userAccountsSyncer) findAllAccountRootHashes(mainTrie common.Trie) ([][]byte, error) {
 	mainRootHash, err := mainTrie.RootHash()
 	if err != nil {
 		return nil, err

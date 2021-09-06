@@ -2,6 +2,7 @@ package trie
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -11,7 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
+	"github.com/ElrondNetwork/elrond-go/common"
 )
 
 var _ = node(&extensionNode{})
@@ -160,7 +161,7 @@ func (en *extensionNode) hashNode() ([]byte, error) {
 	return encodeNodeAndGetHash(en)
 }
 
-func (en *extensionNode) commitDirty(level byte, maxTrieLevelInMemory uint, originDb temporary.DBWriteCacher, targetDb temporary.DBWriteCacher) error {
+func (en *extensionNode) commitDirty(level byte, maxTrieLevelInMemory uint, originDb common.DBWriteCacher, targetDb common.DBWriteCacher) error {
 	level++
 	err := en.isEmptyOrNil()
 	if err != nil {
@@ -198,11 +199,16 @@ func (en *extensionNode) commitDirty(level byte, maxTrieLevelInMemory uint, orig
 }
 
 func (en *extensionNode) commitCheckpoint(
-	originDb temporary.DBWriteCacher,
-	targetDb temporary.DBWriteCacher,
-	checkpointHashes temporary.CheckpointHashesHolder,
+	originDb common.DBWriteCacher,
+	targetDb common.DBWriteCacher,
+	checkpointHashes CheckpointHashesHolder,
 	leavesChan chan core.KeyValueHolder,
+	ctx context.Context,
 ) error {
+	if shouldStopIfContextDone(ctx) {
+		return ErrContextClosing
+	}
+
 	err := en.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("commit checkpoint error %w", err)
@@ -223,7 +229,7 @@ func (en *extensionNode) commitCheckpoint(
 		return nil
 	}
 
-	err = en.child.commitCheckpoint(originDb, targetDb, checkpointHashes, leavesChan)
+	err = en.child.commitCheckpoint(originDb, targetDb, checkpointHashes, leavesChan, ctx)
 	if err != nil {
 		return err
 	}
@@ -233,10 +239,15 @@ func (en *extensionNode) commitCheckpoint(
 }
 
 func (en *extensionNode) commitSnapshot(
-	originDb temporary.DBWriteCacher,
-	targetDb temporary.DBWriteCacher,
+	originDb common.DBWriteCacher,
+	targetDb common.DBWriteCacher,
 	leavesChan chan core.KeyValueHolder,
+	ctx context.Context,
 ) error {
+	if shouldStopIfContextDone(ctx) {
+		return ErrContextClosing
+	}
+
 	err := en.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("commit snapshot error %w", err)
@@ -247,7 +258,7 @@ func (en *extensionNode) commitSnapshot(
 		return err
 	}
 
-	err = en.child.commitSnapshot(originDb, targetDb, leavesChan)
+	err = en.child.commitSnapshot(originDb, targetDb, leavesChan, ctx)
 	if err != nil {
 		return err
 	}
@@ -255,7 +266,7 @@ func (en *extensionNode) commitSnapshot(
 	return en.saveToStorage(targetDb)
 }
 
-func (en *extensionNode) saveToStorage(targetDb temporary.DBWriteCacher) error {
+func (en *extensionNode) saveToStorage(targetDb common.DBWriteCacher) error {
 	_, err := encodeNodeAndCommitToDB(en, targetDb)
 	if err != nil {
 		return err
@@ -278,7 +289,7 @@ func (en *extensionNode) getEncodedNode() ([]byte, error) {
 	return marshaledNode, nil
 }
 
-func (en *extensionNode) resolveCollapsed(_ byte, db temporary.DBWriteCacher) error {
+func (en *extensionNode) resolveCollapsed(_ byte, db common.DBWriteCacher) error {
 	err := en.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("resolveCollapsed error %w", err)
@@ -300,7 +311,7 @@ func (en *extensionNode) isPosCollapsed(_ int) bool {
 	return en.isCollapsed()
 }
 
-func (en *extensionNode) tryGet(key []byte, db temporary.DBWriteCacher) (value []byte, err error) {
+func (en *extensionNode) tryGet(key []byte, db common.DBWriteCacher) (value []byte, err error) {
 	err = en.isEmptyOrNil()
 	if err != nil {
 		return nil, fmt.Errorf("tryGet error %w", err)
@@ -322,7 +333,7 @@ func (en *extensionNode) tryGet(key []byte, db temporary.DBWriteCacher) (value [
 	return en.child.tryGet(key, db)
 }
 
-func (en *extensionNode) getNext(key []byte, db temporary.DBWriteCacher) (node, []byte, error) {
+func (en *extensionNode) getNext(key []byte, db common.DBWriteCacher) (node, []byte, error) {
 	err := en.isEmptyOrNil()
 	if err != nil {
 		return nil, nil, fmt.Errorf("getNext error %w", err)
@@ -344,7 +355,7 @@ func (en *extensionNode) getNext(key []byte, db temporary.DBWriteCacher) (node, 
 	return en.child, key, nil
 }
 
-func (en *extensionNode) insert(n *leafNode, db temporary.DBWriteCacher) (node, [][]byte, error) {
+func (en *extensionNode) insert(n *leafNode, db common.DBWriteCacher) (node, [][]byte, error) {
 	emptyHashes := make([][]byte, 0)
 	err := en.isEmptyOrNil()
 	if err != nil {
@@ -367,7 +378,7 @@ func (en *extensionNode) insert(n *leafNode, db temporary.DBWriteCacher) (node, 
 	return en.insertInNewBn(n, keyMatchLen)
 }
 
-func (en *extensionNode) insertInSameEn(n *leafNode, keyMatchLen int, db temporary.DBWriteCacher) (node, [][]byte, error) {
+func (en *extensionNode) insertInSameEn(n *leafNode, keyMatchLen int, db common.DBWriteCacher) (node, [][]byte, error) {
 	n.Key = n.Key[keyMatchLen:]
 	newNode, oldHashes, err := en.child.insert(n, db)
 	if check.IfNil(newNode) || err != nil {
@@ -428,7 +439,7 @@ func (en *extensionNode) insertInNewBn(n *leafNode, keyMatchLen int) (node, [][]
 	return newEn, oldHash, nil
 }
 
-func (en *extensionNode) delete(key []byte, db temporary.DBWriteCacher) (bool, node, [][]byte, error) {
+func (en *extensionNode) delete(key []byte, db common.DBWriteCacher) (bool, node, [][]byte, error) {
 	emptyHashes := make([][]byte, 0)
 	err := en.isEmptyOrNil()
 	if err != nil {
@@ -507,7 +518,7 @@ func (en *extensionNode) isEmptyOrNil() error {
 	return nil
 }
 
-func (en *extensionNode) print(writer io.Writer, index int, db temporary.DBWriteCacher) {
+func (en *extensionNode) print(writer io.Writer, index int, db common.DBWriteCacher) {
 	if en == nil {
 		return
 	}
@@ -531,7 +542,7 @@ func (en *extensionNode) print(writer io.Writer, index int, db temporary.DBWrite
 	en.child.print(writer, index+len(str), db)
 }
 
-func (en *extensionNode) getDirtyHashes(hashes temporary.ModifiedHashes) error {
+func (en *extensionNode) getDirtyHashes(hashes common.ModifiedHashes) error {
 	err := en.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("getDirtyHashes error %w", err)
@@ -554,7 +565,7 @@ func (en *extensionNode) getDirtyHashes(hashes temporary.ModifiedHashes) error {
 	return nil
 }
 
-func (en *extensionNode) getChildren(db temporary.DBWriteCacher) ([]node, error) {
+func (en *extensionNode) getChildren(db common.DBWriteCacher) ([]node, error) {
 	err := en.isEmptyOrNil()
 	if err != nil {
 		return nil, fmt.Errorf("getChildren error %w", err)
@@ -572,9 +583,9 @@ func (en *extensionNode) getChildren(db temporary.DBWriteCacher) ([]node, error)
 	return nextNodes, nil
 }
 
-func (en *extensionNode) getNumNodes() temporary.NumNodesDTO {
+func (en *extensionNode) getNumNodes() common.NumNodesDTO {
 	if check.IfNil(en) {
-		return temporary.NumNodesDTO{}
+		return common.NumNodesDTO{}
 	}
 
 	childNumNodes := en.child.getNumNodes()
@@ -622,7 +633,7 @@ func (en *extensionNode) loadChildren(getNode func([]byte) (node, error)) ([][]b
 
 func (en *extensionNode) getAllLeavesOnChannel(
 	leavesChannel chan core.KeyValueHolder,
-	key []byte, db temporary.DBWriteCacher,
+	key []byte, db common.DBWriteCacher,
 	marshalizer marshal.Marshalizer,
 	chanClose chan struct{},
 ) error {
@@ -653,7 +664,7 @@ func (en *extensionNode) getAllLeavesOnChannel(
 	return nil
 }
 
-func (en *extensionNode) getAllHashes(db temporary.DBWriteCacher) ([][]byte, error) {
+func (en *extensionNode) getAllHashes(db common.DBWriteCacher) ([][]byte, error) {
 	err := en.isEmptyOrNil()
 	if err != nil {
 		return nil, fmt.Errorf("getAllHashes error: %w", err)

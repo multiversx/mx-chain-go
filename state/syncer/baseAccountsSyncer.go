@@ -11,8 +11,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/trie"
 )
@@ -22,9 +22,9 @@ type baseAccountsSyncer struct {
 	marshalizer               marshal.Marshalizer
 	dataTries                 map[string]struct{}
 	mutex                     sync.Mutex
-	trieStorageManager        temporary.StorageManager
+	trieStorageManager        common.StorageManager
 	requestHandler            trie.RequestHandler
-	timeout                   time.Duration
+	timeoutHandler            trie.TimeoutHandler
 	shardId                   uint32
 	cacher                    storage.Cacher
 	rootHash                  []byte
@@ -42,7 +42,7 @@ const timeBetweenStatisticsPrints = time.Second * 2
 type ArgsNewBaseAccountsSyncer struct {
 	Hasher                    hashing.Hasher
 	Marshalizer               marshal.Marshalizer
-	TrieStorageManager        temporary.StorageManager
+	TrieStorageManager        common.StorageManager
 	RequestHandler            trie.RequestHandler
 	Timeout                   time.Duration
 	Cacher                    storage.Cacher
@@ -77,12 +77,13 @@ func checkArgs(args ArgsNewBaseAccountsSyncer) error {
 func (b *baseAccountsSyncer) syncMainTrie(
 	rootHash []byte,
 	trieTopic string,
-	ssh temporary.SyncStatisticsHandler,
+	ssh SyncStatisticsHandler,
 	ctx context.Context,
-) (temporary.Trie, error) {
+) (common.Trie, error) {
 	b.rootHash = rootHash
 	atomic.AddInt32(&b.numMaxTries, 1)
 
+	log.Trace("syncing main trie", "roothash", rootHash)
 	dataTrie, err := trie.NewTrie(b.trieStorageManager, b.marshalizer, b.hasher, b.maxTrieLevelInMemory)
 	if err != nil {
 		return nil, err
@@ -98,7 +99,7 @@ func (b *baseAccountsSyncer) syncMainTrie(
 		ShardId:                   b.shardId,
 		Topic:                     trieTopic,
 		TrieSyncStatistics:        ssh,
-		ReceivedNodesTimeout:      b.timeout,
+		TimeoutHandler:            b.timeoutHandler,
 		MaxHardCapForMissingNodes: b.maxHardCapForMissingNodes,
 	}
 	trieSyncer, err := trie.CreateTrieSyncer(arg, b.trieSyncerVersion)
@@ -113,10 +114,12 @@ func (b *baseAccountsSyncer) syncMainTrie(
 
 	atomic.AddInt32(&b.numTriesSynced, 1)
 
+	log.Trace("finished syncing main trie", "roothash", rootHash)
+
 	return dataTrie.Recreate(rootHash)
 }
 
-func (b *baseAccountsSyncer) printStatistics(ssh temporary.SyncStatisticsHandler, ctx context.Context) {
+func (b *baseAccountsSyncer) printStatistics(ssh SyncStatisticsHandler, ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -141,18 +144,18 @@ func (b *baseAccountsSyncer) printStatistics(ssh temporary.SyncStatisticsHandler
 
 // Deprecated: GetSyncedTries returns the synced map of data trie. This is likely to case OOM exceptions
 //TODO remove this function after fixing the hardfork sync state mechanism
-func (b *baseAccountsSyncer) GetSyncedTries() map[string]temporary.Trie {
+func (b *baseAccountsSyncer) GetSyncedTries() map[string]common.Trie {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
 
 	dataTrie, err := trie.NewTrie(b.trieStorageManager, b.marshalizer, b.hasher, b.maxTrieLevelInMemory)
 	if err != nil {
 		log.Warn("error creating a new trie in baseAccountsSyncer.GetSyncedTries", "error", err)
-		return make(map[string]temporary.Trie)
+		return make(map[string]common.Trie)
 	}
 
-	var recreatedTrie temporary.Trie
-	clonedMap := make(map[string]temporary.Trie, len(b.dataTries))
+	var recreatedTrie common.Trie
+	clonedMap := make(map[string]common.Trie, len(b.dataTries))
 	for key := range b.dataTries {
 		recreatedTrie, err = dataTrie.Recreate([]byte(key))
 		if err != nil {

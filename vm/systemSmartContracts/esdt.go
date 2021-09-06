@@ -51,10 +51,15 @@ type esdt struct {
 	endOfEpochSCAddress    []byte
 	marshalizer            marshal.Marshalizer
 	hasher                 hashing.Hasher
-	enabledEpoch           uint32
-	flagEnabled            atomic.Flag
 	mutExecution           sync.RWMutex
 	addressPubKeyConverter core.PubkeyConverter
+
+	enabledEpoch               uint32
+	flagEnabled                atomic.Flag
+	globalMintBurnDisableEpoch uint32
+	flagGlobalMintBurn         atomic.Flag
+	transferRoleEnableEpoch    uint32
+	flagTransferRole           atomic.Flag
 }
 
 // ArgsNewESDTSmartContract defines the arguments needed for the esdt contract
@@ -103,15 +108,19 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 		baseIssuingCost: baseIssuingCost,
 		//we should have called pubkeyConverter.Decode here instead of a byte slice cast. Since that change would break
 		//backwards compatibility, the fix was carried in the epochStart/metachain/systemSCs.go
-		ownerAddress:           []byte(args.ESDTSCConfig.OwnerAddress),
-		eSDTSCAddress:          args.ESDTSCAddress,
-		hasher:                 args.Hasher,
-		marshalizer:            args.Marshalizer,
-		enabledEpoch:           args.EpochConfig.EnableEpochs.ESDTEnableEpoch,
-		endOfEpochSCAddress:    args.EndOfEpochSCAddress,
-		addressPubKeyConverter: args.AddressPubKeyConverter,
+		ownerAddress:               []byte(args.ESDTSCConfig.OwnerAddress),
+		eSDTSCAddress:              args.ESDTSCAddress,
+		hasher:                     args.Hasher,
+		marshalizer:                args.Marshalizer,
+		enabledEpoch:               args.EpochConfig.EnableEpochs.ESDTEnableEpoch,
+		globalMintBurnDisableEpoch: args.EpochConfig.EnableEpochs.GlobalMintBurnDisableEpoch,
+		transferRoleEnableEpoch:    args.EpochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
+		endOfEpochSCAddress:        args.EndOfEpochSCAddress,
+		addressPubKeyConverter:     args.AddressPubKeyConverter,
 	}
 	log.Debug("esdt: enable epoch for esdt", "epoch", e.enabledEpoch)
+	log.Debug("esdt: enable epoch for contract global mint and burn", "epoch", e.globalMintBurnDisableEpoch)
+	log.Debug("esdt: enable epoch for contract transfer role", "epoch", e.transferRoleEnableEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(e)
 
@@ -251,7 +260,8 @@ func (e *esdt) issue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	}
 
 	initialSupply := big.NewInt(0).SetBytes(args.Arguments[2])
-	if initialSupply.Cmp(big.NewInt(0)) <= 0 {
+	isInvalidSupply := initialSupply.Cmp(zero) < 0 || (e.flagGlobalMintBurn.IsSet() && initialSupply.Cmp(zero) == 0)
+	if isInvalidSupply {
 		e.eei.AddReturnMessage(vm.ErrNegativeOrZeroInitialSupply.Error())
 		return vmcommon.UserError
 	}
@@ -280,11 +290,15 @@ func (e *esdt) issue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return vmcommon.UserError
 	}
 
-	esdtTransferData := core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString(tokenIdentifier) + "@" + hex.EncodeToString(initialSupply.Bytes())
-	err = e.eei.Transfer(args.CallerAddr, e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
-	if err != nil {
-		e.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
+	if initialSupply.Cmp(zero) > 0 {
+		esdtTransferData := core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString(tokenIdentifier) + "@" + hex.EncodeToString(initialSupply.Bytes())
+		err = e.eei.Transfer(args.CallerAddr, e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
+		if err != nil {
+			e.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
+	} else {
+		e.eei.Finish(tokenIdentifier)
 	}
 
 	return vmcommon.Ok
@@ -501,6 +515,11 @@ func getStringFromBool(val bool) string {
 }
 
 func (e *esdt) burn(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !e.flagGlobalMintBurn.IsSet() {
+		e.eei.AddReturnMessage("global burn is no more enabled, use local burn")
+		return vmcommon.UserError
+	}
+
 	if len(args.Arguments) != 2 {
 		e.eei.AddReturnMessage("number of arguments must be equal with 2")
 		return vmcommon.FunctionWrongSignature
@@ -549,6 +568,11 @@ func (e *esdt) burn(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 }
 
 func (e *esdt) mint(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !e.flagGlobalMintBurn.IsSet() {
+		e.eei.AddReturnMessage("global mint is no more enabled, use local mint")
+		return vmcommon.UserError
+	}
+
 	if len(args.Arguments) < 2 || len(args.Arguments) > 3 {
 		e.eei.AddReturnMessage("accepted arguments number 2/3")
 		return vmcommon.FunctionWrongSignature
@@ -1038,23 +1062,23 @@ func (e *esdt) checkArgumentsForSpecialRoleChanges(args *vmcommon.ContractCallIn
 	return vmcommon.Ok
 }
 
-func isCreateNFTRoleInArgs(args [][]byte) bool {
+func isDefinedRoleInArgs(args [][]byte, definedRole []byte) bool {
 	for _, arg := range args {
-		if bytes.Equal(arg, []byte(core.ESDTRoleNFTCreate)) {
+		if bytes.Equal(arg, definedRole) {
 			return true
 		}
 	}
 	return false
 }
 
-func checkIfCreateNFTRoleExistsInArgsAndToken(args [][]byte, token *ESDTData) bool {
-	if !isCreateNFTRoleInArgs(args) {
+func checkIfDefinedRoleExistsInArgsAndToken(args [][]byte, token *ESDTData, definedRole []byte) bool {
+	if !isDefinedRoleInArgs(args, definedRole) {
 		return false
 	}
 
 	for _, esdtRole := range token.SpecialRoles {
 		for _, role := range esdtRole.Roles {
-			if bytes.Equal(role, []byte(core.ESDTRoleNFTCreate)) {
+			if bytes.Equal(role, definedRole) {
 				return true
 			}
 		}
@@ -1063,18 +1087,23 @@ func checkIfCreateNFTRoleExistsInArgsAndToken(args [][]byte, token *ESDTData) bo
 	return false
 }
 
-func isSpecialRoleValidForFungible(argument string) error {
+func (e *esdt) isSpecialRoleValidForFungible(argument string) error {
 	switch argument {
 	case core.ESDTRoleLocalMint:
 		return nil
 	case core.ESDTRoleLocalBurn:
 		return nil
+	case core.ESDTRoleTransfer:
+		if e.flagTransferRole.IsSet() {
+			return nil
+		}
+		return vm.ErrInvalidArgument
 	default:
 		return vm.ErrInvalidArgument
 	}
 }
 
-func isSpecialRoleValidForSemiFungible(argument string) error {
+func (e *esdt) isSpecialRoleValidForSemiFungible(argument string) error {
 	switch argument {
 	case core.ESDTRoleNFTBurn:
 		return nil
@@ -1082,30 +1111,50 @@ func isSpecialRoleValidForSemiFungible(argument string) error {
 		return nil
 	case core.ESDTRoleNFTCreate:
 		return nil
+	case core.ESDTRoleTransfer:
+		if e.flagTransferRole.IsSet() {
+			return nil
+		}
+		return vm.ErrInvalidArgument
 	default:
 		return vm.ErrInvalidArgument
 	}
 }
 
-func isSpecialRoleValidForNonFungible(argument string) error {
+func (e *esdt) isSpecialRoleValidForNonFungible(argument string) error {
 	switch argument {
 	case core.ESDTRoleNFTBurn:
 		return nil
 	case core.ESDTRoleNFTCreate:
 		return nil
+	case core.ESDTRoleTransfer:
+		if e.flagTransferRole.IsSet() {
+			return nil
+		}
+		return vm.ErrInvalidArgument
+	case core.ESDTRoleNFTUpdateAttributes:
+		if e.flagTransferRole.IsSet() {
+			return nil
+		}
+		return vm.ErrInvalidArgument
+	case core.ESDTRoleNFTAddURI:
+		if e.flagTransferRole.IsSet() {
+			return nil
+		}
+		return vm.ErrInvalidArgument
 	default:
 		return vm.ErrInvalidArgument
 	}
 }
 
-func checkSpecialRolesAccordingToTokenType(args [][]byte, token *ESDTData) error {
+func (e *esdt) checkSpecialRolesAccordingToTokenType(args [][]byte, token *ESDTData) error {
 	switch string(token.TokenType) {
 	case core.FungibleESDT:
-		return validateRoles(args, isSpecialRoleValidForFungible)
+		return validateRoles(args, e.isSpecialRoleValidForFungible)
 	case core.NonFungibleESDT:
-		return validateRoles(args, isSpecialRoleValidForNonFungible)
+		return validateRoles(args, e.isSpecialRoleValidForNonFungible)
 	case core.SemiFungibleESDT:
-		return validateRoles(args, isSpecialRoleValidForSemiFungible)
+		return validateRoles(args, e.isSpecialRoleValidForSemiFungible)
 	}
 	return nil
 }
@@ -1126,17 +1175,18 @@ func (e *esdt) setSpecialRole(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
-	if checkIfCreateNFTRoleExistsInArgsAndToken(args.Arguments[2:], token) {
+	if checkIfDefinedRoleExistsInArgsAndToken(args.Arguments[2:], token, []byte(core.ESDTRoleNFTCreate)) {
 		e.eei.AddReturnMessage(vm.ErrNFTCreateRoleAlreadyExists.Error())
 		return vmcommon.UserError
 	}
 
-	err := checkSpecialRolesAccordingToTokenType(args.Arguments[2:], token)
+	err := e.checkSpecialRolesAccordingToTokenType(args.Arguments[2:], token)
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
+	transferRoleExists := checkIfDefinedRoleExistsInArgsAndToken(args.Arguments[2:], token, []byte(core.ESDTRoleTransfer))
 	address := args.Arguments[1]
 	esdtRole, isNew := getRolesForAddress(token, address)
 	if isNew {
@@ -1166,6 +1216,12 @@ func (e *esdt) setSpecialRole(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
+	firstTransferRoleSet := !transferRoleExists && isDefinedRoleInArgs(args.Arguments[2:], []byte(core.ESDTRoleTransfer))
+	if firstTransferRoleSet {
+		esdtTransferData := core.BuiltInFunctionESDTSetLimitedTransfer + "@" + hex.EncodeToString(args.Arguments[0])
+		e.eei.SendGlobalSettingToAll(e.eSDTSCAddress, []byte(esdtTransferData))
+	}
+
 	return vmcommon.Ok
 }
 
@@ -1180,7 +1236,7 @@ func (e *esdt) unSetSpecialRole(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return returnCode
 	}
 
-	if isCreateNFTRoleInArgs(args.Arguments[2:]) {
+	if isDefinedRoleInArgs(args.Arguments[2:], []byte(core.ESDTRoleNFTCreate)) {
 		e.eei.AddReturnMessage("cannot un set NFT create role")
 		return vmcommon.UserError
 	}
@@ -1220,6 +1276,13 @@ func (e *esdt) unSetSpecialRole(args *vmcommon.ContractCallInput) vmcommon.Retur
 				break
 			}
 		}
+	}
+
+	transferRoleExists := checkIfDefinedRoleExistsInArgsAndToken(args.Arguments[2:], token, []byte(core.ESDTRoleTransfer))
+	lastTransferRoleWasDeleted := isDefinedRoleInArgs(args.Arguments[2:], []byte(core.ESDTRoleTransfer)) && !transferRoleExists
+	if lastTransferRoleWasDeleted {
+		esdtTransferData := core.BuiltInFunctionESDTUnSetLimitedTransfer + "@" + hex.EncodeToString(args.Arguments[0])
+		e.eei.SendGlobalSettingToAll(e.eSDTSCAddress, []byte(esdtTransferData))
 	}
 
 	err = e.saveToken(args.Arguments[0], token)
@@ -1496,6 +1559,12 @@ func (e *esdt) saveESDTConfig(esdtConfig *ESDTConfig) error {
 func (e *esdt) EpochConfirmed(epoch uint32, _ uint64) {
 	e.flagEnabled.Toggle(epoch >= e.enabledEpoch)
 	log.Debug("ESDT contract", "enabled", e.flagEnabled.IsSet())
+
+	e.flagGlobalMintBurn.Toggle(epoch < e.globalMintBurnDisableEpoch)
+	log.Debug("ESDT contract global mint and burn", "enabled", e.flagGlobalMintBurn.IsSet())
+
+	e.flagTransferRole.Toggle(epoch >= e.transferRoleEnableEpoch)
+	log.Debug("ESDT contract transfer role", "enabled", e.flagTransferRole.IsSet())
 }
 
 // SetNewGasCost is called whenever a gas cost was changed

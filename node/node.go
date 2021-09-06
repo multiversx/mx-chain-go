@@ -20,10 +20,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	disabledSig "github.com/ElrondNetwork/elrond-go-crypto/signing/disabled/singlesig"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	disabledSig "github.com/ElrondNetwork/elrond-go/crypto/signing/disabled/singlesig"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/facade"
@@ -58,6 +58,10 @@ var _ facade.NodeHandler = (*Node)(nil)
 // Option represents a functional configuration parameter that can operate
 //  over the None struct.
 type Option func(*Node) error
+
+type filter interface {
+	filter(tokenIdentifier string, esdtData *systemSmartContracts.ESDTData) bool
+}
 
 // Node is a structure that holds all managed components
 type Node struct {
@@ -377,7 +381,9 @@ func (n *Node) GetESDTData(address, tokenID string, nonce uint64) (*esdt.ESDigit
 	return esdtToken, nil
 }
 
-func (n *Node) getTokensIDsWithFilter(filterFunc func(esdtData *systemSmartContracts.ESDTData) bool) ([]string, error) {
+func (n *Node) getTokensIDsWithFilter(
+	f filter,
+) ([]string, error) {
 	if n.processComponents.ShardCoordinator().SelfId() != core.MetachainShardId {
 		return nil, ErrMetachainOnlyEndpoint
 	}
@@ -408,8 +414,8 @@ func (n *Node) getTokensIDsWithFilter(filterFunc func(esdtData *systemSmartContr
 	}
 
 	for leaf := range chLeaves {
-		tokenName := string(leaf.Key())
-		if !strings.Contains(tokenName, "-") {
+		tokenIdentifier := string(leaf.Key())
+		if !strings.Contains(tokenIdentifier, "-") {
 			continue
 		}
 
@@ -418,8 +424,8 @@ func (n *Node) getTokensIDsWithFilter(filterFunc func(esdtData *systemSmartContr
 			continue
 		}
 
-		if filterFunc(esdtToken) {
-			tokens = append(tokens, tokenName)
+		if f.filter(tokenIdentifier, esdtToken) {
+			tokens = append(tokens, tokenIdentifier)
 		}
 	}
 
@@ -432,11 +438,11 @@ func (n *Node) GetNFTTokenIDsRegisteredByAddress(address string) ([]string, erro
 	if err != nil {
 		return nil, err
 	}
-	filterFunc := func(esdtData *systemSmartContracts.ESDTData) bool {
-		return !bytes.Equal(esdtData.TokenType, []byte(core.FungibleESDT)) && bytes.Equal(esdtData.OwnerAddress, addressBytes)
-	}
 
-	return n.getTokensIDsWithFilter(filterFunc)
+	f := &getRegisteredNftsFilter{
+		addressBytes: addressBytes,
+	}
+	return n.getTokensIDsWithFilter(f)
 }
 
 // GetESDTsWithRole returns all the tokens with the given role for the given address
@@ -450,27 +456,32 @@ func (n *Node) GetESDTsWithRole(address string, role string) ([]string, error) {
 		return nil, err
 	}
 
-	filterFunc := func(esdtData *systemSmartContracts.ESDTData) bool {
-		return isTokenWithRoleForAddress(addressBytes, role, esdtData)
+	f := &getTokensWithRoleFilter{
+		addressBytes: addressBytes,
+		role:         role,
 	}
-
-	return n.getTokensIDsWithFilter(filterFunc)
+	return n.getTokensIDsWithFilter(f)
 }
 
-func isTokenWithRoleForAddress(addressBytes []byte, role string, token *systemSmartContracts.ESDTData) bool {
-	for _, esdtRoles := range token.SpecialRoles {
-		if !bytes.Equal(esdtRoles.Address, addressBytes) {
-			continue
-		}
-
-		for _, specialRole := range esdtRoles.Roles {
-			if bytes.Equal(specialRole, []byte(role)) {
-				return true
-			}
-		}
+// GetESDTsRoles returns all the tokens identifiers and roles for the given address
+func (n *Node) GetESDTsRoles(address string) (map[string][]string, error) {
+	addressBytes, err := n.coreComponents.AddressPubKeyConverter().Decode(address)
+	if err != nil {
+		return nil, err
 	}
 
-	return false
+	tokensRoles := make(map[string][]string)
+
+	f := &getAllTokensRolesFilter{
+		addressBytes: addressBytes,
+		outputRoles:  tokensRoles,
+	}
+	_, err = n.getTokensIDsWithFilter(f)
+	if err != nil {
+		return nil, err
+	}
+
+	return tokensRoles, nil
 }
 
 // GetAllESDTTokens returns all the ESDTs that the given address interacted with
@@ -836,7 +847,7 @@ func (n *Node) sendBulkTransactionsFromShard(transactions [][]byte, senderShardI
 		return err
 	}
 
-	//the topic identifier is made of the current shard id and sender's shard id
+	// the topic identifier is made of the current shard id and sender's shard id
 	identifier := factory.TransactionTopic + n.processComponents.ShardCoordinator().CommunicationIdentifier(senderShardId)
 
 	packets, err := dataPacker.PackDataInChunks(transactions, common.MaxBulkTransactionSize)
@@ -1213,7 +1224,8 @@ func (n *Node) Close() error {
 	log.Debug("closing all managed components")
 	for i := len(n.closableComponents) - 1; i >= 0; i-- {
 		managedComponent := n.closableComponents[i]
-		log.Debug("closing", fmt.Sprintf("managedComponent %s", managedComponent))
+		componentName := n.getClosableComponentName(managedComponent, i)
+		log.Debug("closing", "managedComponent", componentName)
 		err := managedComponent.Close()
 		if err != nil {
 			if closeError == nil {
@@ -1226,6 +1238,15 @@ func (n *Node) Close() error {
 	time.Sleep(time.Second * 5)
 
 	return closeError
+}
+
+func (n *Node) getClosableComponentName(component mainFactory.Closer, index int) string {
+	componentStringer, ok := component.(fmt.Stringer)
+	if !ok {
+		return fmt.Sprintf("n.closableComponents[%d] - %v", index, component)
+	}
+
+	return componentStringer.String()
 }
 
 // IsInImportMode returns true if the node is in import mode

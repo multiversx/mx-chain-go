@@ -18,7 +18,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/sync/storageBootstrap"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state/syncer"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
@@ -253,7 +252,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		cc.worker,
 		ccf.config.Consensus.Type,
 		ccf.coreComponents.StatusHandler(),
-		ccf.statusComponents.ElasticIndexer(),
+		ccf.statusComponents.OutportHandler(),
 		[]byte(ccf.coreComponents.ChainID()),
 		ccf.networkComponents.NetworkMessenger().ID(),
 	)
@@ -297,8 +296,8 @@ func (cc *consensusComponents) Close() error {
 
 func (ccf *consensusComponentsFactory) createChronology() (consensus.ChronologyHandler, error) {
 	wd := ccf.coreComponents.Watchdog()
-	if !ccf.statusComponents.ElasticIndexer().IsNilIndexer() {
-		log.Warn("node is running with a valid indexer. Chronology watchdog will be turned off as " +
+	if ccf.statusComponents.OutportHandler().HasDrivers() {
+		log.Warn("node is running with an outport with attached drivers. Chronology watchdog will be turned off as " +
 			"it is incompatible with the indexing process.")
 		wd = &watchdog.DisabledWatchdog{}
 	}
@@ -443,7 +442,7 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		MiniblocksProvider:   ccf.dataComponents.MiniBlocksProvider(),
 		Uint64Converter:      ccf.coreComponents.Uint64ByteSliceConverter(),
 		AppStatusHandler:     ccf.coreComponents.StatusHandler(),
-		Indexer:              ccf.statusComponents.ElasticIndexer(),
+		OutportHandler:       ccf.statusComponents.OutportHandler(),
 		AccountsDBSyncer:     accountsDBSyncer,
 		CurrentEpochProvider: ccf.processComponents.CurrentEpochProvider(),
 		IsInImportMode:       ccf.isInImportMode,
@@ -461,7 +460,7 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 	return bootstrap, nil
 }
 
-func (ccf *consensusComponentsFactory) createArgsBaseAccountsSyncer(trieStorageManager temporary.StorageManager) syncer.ArgsNewBaseAccountsSyncer {
+func (ccf *consensusComponentsFactory) createArgsBaseAccountsSyncer(trieStorageManager common.StorageManager) syncer.ArgsNewBaseAccountsSyncer {
 	return syncer.ArgsNewBaseAccountsSyncer{
 		Hasher:                    ccf.coreComponents.Hasher(),
 		Marshalizer:               ccf.coreComponents.InternalMarshalizer(),
@@ -564,7 +563,7 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		MiniblocksProvider:   ccf.dataComponents.MiniBlocksProvider(),
 		Uint64Converter:      ccf.coreComponents.Uint64ByteSliceConverter(),
 		AppStatusHandler:     ccf.coreComponents.StatusHandler(),
-		Indexer:              ccf.statusComponents.ElasticIndexer(),
+		OutportHandler:       ccf.statusComponents.OutportHandler(),
 		AccountsDBSyncer:     accountsDBSyncer,
 		CurrentEpochProvider: ccf.processComponents.CurrentEpochProvider(),
 		IsInImportMode:       ccf.isInImportMode,

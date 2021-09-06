@@ -16,14 +16,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/stretchr/testify/require"
 )
 
 type testIndexer struct {
-	indexer          process.Indexer
+	outportDriver    outport.Driver
 	indexerData      map[string]*bytes.Buffer
 	marshalizer      marshal.Marshalizer
 	hasher           hashing.Hasher
@@ -66,7 +67,7 @@ func CreateTestIndexer(
 	testIndexer, err := elasticIndexer.NewDataIndexer(arguments)
 	require.Nil(t, err)
 
-	ti.indexer = testIndexer
+	ti.outportDriver = testIndexer
 	ti.shardCoordinator = coordinator
 	ti.marshalizer = testMarshalizer
 	ti.hasher = testHasher
@@ -99,7 +100,7 @@ func (ti *testIndexer) createElasticProcessor(
 		ValidatorPubkeyConverter: pubkeyConv,
 		DBClient:                 databaseClient,
 		EnabledIndexes:           enabledIndexesMap,
-		AccountsDB:               &testscommon.AccountsStub{},
+		AccountsDB:               &stateMock.AccountsStub{},
 		Denomination:             18,
 		TransactionFeeCalculator: transactionFeeCalculator,
 		IsInImportDBMode:         false,
@@ -172,13 +173,13 @@ func (ti *testIndexer) SaveTransaction(
 		Header:           header,
 		TransactionsPool: txsPool,
 	}
-	ti.indexer.SaveBlock(args)
+	ti.outportDriver.SaveBlock(args)
 
 	select {
 	case <-ti.saveDoneChan:
 		return
 	case <-time.After(timeoutSave):
-		require.Fail(ti.t, "save indexer item timeout")
+		require.Fail(ti.t, "save outportDriver item timeout")
 	}
 }
 

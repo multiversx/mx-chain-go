@@ -3,35 +3,35 @@ package state
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
+	"github.com/ElrondNetwork/elrond-go/common"
 )
 
 type dataTriesHolder struct {
-	tries map[string]temporary.Trie
+	tries map[string]common.Trie
 	mutex sync.RWMutex
 }
 
 // NewDataTriesHolder creates a new instance of dataTriesHolder
 func NewDataTriesHolder() *dataTriesHolder {
 	return &dataTriesHolder{
-		tries: make(map[string]temporary.Trie),
+		tries: make(map[string]common.Trie),
 	}
 }
 
 // Put adds a trie pointer to the tries map
-func (dth *dataTriesHolder) Put(key []byte, tr temporary.Trie) {
+func (dth *dataTriesHolder) Put(key []byte, tr common.Trie) {
 	dth.mutex.Lock()
 	dth.tries[string(key)] = tr
 	dth.mutex.Unlock()
 }
 
 // Replace changes a trie pointer to the tries map
-func (dth *dataTriesHolder) Replace(key []byte, tr temporary.Trie) {
+func (dth *dataTriesHolder) Replace(key []byte, tr common.Trie) {
 	dth.Put(key, tr)
 }
 
 // Get returns the trie pointer that is stored in the map at the given key
-func (dth *dataTriesHolder) Get(key []byte) temporary.Trie {
+func (dth *dataTriesHolder) Get(key []byte) common.Trie {
 	dth.mutex.Lock()
 	defer dth.mutex.Unlock()
 
@@ -39,11 +39,11 @@ func (dth *dataTriesHolder) Get(key []byte) temporary.Trie {
 }
 
 // GetAll returns all trie pointers from the map
-func (dth *dataTriesHolder) GetAll() []temporary.Trie {
+func (dth *dataTriesHolder) GetAll() []common.Trie {
 	dth.mutex.Lock()
 	defer dth.mutex.Unlock()
 
-	tries := make([]temporary.Trie, 0)
+	tries := make([]common.Trie, 0)
 	for _, trie := range dth.tries {
 		tries = append(tries, trie)
 	}
@@ -52,11 +52,11 @@ func (dth *dataTriesHolder) GetAll() []temporary.Trie {
 }
 
 // GetAllTries returns the tries with key value map
-func (dth *dataTriesHolder) GetAllTries() map[string]temporary.Trie {
+func (dth *dataTriesHolder) GetAllTries() map[string]common.Trie {
 	dth.mutex.Lock()
 	defer dth.mutex.Unlock()
 
-	copyTries := make(map[string]temporary.Trie, len(dth.tries))
+	copyTries := make(map[string]common.Trie, len(dth.tries))
 	for key, trie := range dth.tries {
 		copyTries[key] = trie
 	}
@@ -67,7 +67,7 @@ func (dth *dataTriesHolder) GetAllTries() map[string]temporary.Trie {
 // Reset clears the tries map
 func (dth *dataTriesHolder) Reset() {
 	dth.mutex.Lock()
-	dth.tries = make(map[string]temporary.Trie)
+	dth.tries = make(map[string]common.Trie)
 	dth.mutex.Unlock()
 }
 

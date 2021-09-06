@@ -1,7 +1,7 @@
 package consensusComponents
 
 import (
-	"runtime"
+	"fmt"
 	"testing"
 	"time"
 
@@ -11,6 +11,7 @@ import (
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/factory"
 	"github.com/ElrondNetwork/elrond-go/node"
+	"github.com/ElrondNetwork/elrond-go/testscommon/goroutines"
 	"github.com/stretchr/testify/require"
 )
 
@@ -23,10 +24,13 @@ func TestConsensusComponents_Close_ShouldWork(t *testing.T) {
 	defer factory.CleanupWorkingDir()
 	time.Sleep(time.Second * 4)
 
-	nrBefore := runtime.NumGoroutine()
+	gc := goroutines.NewGoCounter(goroutines.TestsRelevantGoRoutines)
+	idxInitial, _ := gc.Snapshot()
 	factory.PrintStack()
 
 	configs := factory.CreateDefaultConfig()
+	configs.ExternalConfig.ElasticSearchConnector.Enabled = false
+
 	chanStopNodeProcess := make(chan endProcess.ArgEndProcess)
 	nr, err := node.NewNodeRunner(configs)
 	require.Nil(t, err)
@@ -70,7 +74,6 @@ func TestConsensusComponents_Close_ShouldWork(t *testing.T) {
 		managedDataComponents,
 		managedStateComponents,
 		nodesCoordinator,
-		"",
 		false,
 	)
 	require.Nil(t, err)
@@ -139,13 +142,7 @@ func TestConsensusComponents_Close_ShouldWork(t *testing.T) {
 
 	time.Sleep(5 * time.Second)
 
-	nrAfter := runtime.NumGoroutine()
-	// TODO: find a clean solution
-	// On the tests using managed network components, depending on the NAT config, there
-	// might be one go routine hanging for up to 3 minutes
-	if !(nrBefore == nrAfter || nrBefore == nrAfter-1) {
-		factory.PrintStack()
-	}
-
-	require.True(t, nrBefore == nrAfter || nrBefore == nrAfter-1)
+	idx, _ := gc.Snapshot()
+	diff := gc.DiffGoRoutines(idxInitial, idx)
+	require.Equal(t, 0, len(diff), fmt.Sprintf("%v", diff))
 }

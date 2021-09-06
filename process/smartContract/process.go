@@ -34,13 +34,15 @@ var _ process.SmartContractProcessor = (*scProcessor)(nil)
 
 var log = logger.GetOrCreate("process/smartcontract")
 
-const executeDurationAlarmThreshold = time.Duration(100) * time.Millisecond
+const (
+	// TooMuchGasProvidedMessage is the message for the too much gas provided error
+	TooMuchGasProvidedMessage = "too much gas provided"
 
-// TODO: Move to vm-common.
-const upgradeFunctionName = "upgradeContract"
+	executeDurationAlarmThreshold = time.Duration(100) * time.Millisecond
 
-// TooMuchGasProvidedMessage is the message for the too much gas provided error
-const TooMuchGasProvidedMessage = "too much gas provided"
+	// TODO: Move to vm-common.
+	upgradeFunctionName = "upgradeContract"
+)
 
 var zero = big.NewInt(0)
 
@@ -62,6 +64,7 @@ type scProcessor struct {
 	returnDataToLastTransferEnableEpoch         uint32
 	senderInOutTransferEnableEpoch              uint32
 	incrementSCRNonceInMultiTransferEnableEpoch uint32
+	builtInFunctionOnMetachainEnableEpoch       uint32
 	flagStakingV2                               atomic.Flag
 	flagDeploy                                  atomic.Flag
 	flagBuiltin                                 atomic.Flag
@@ -70,6 +73,7 @@ type scProcessor struct {
 	flagReturnDataToLastTransfer                atomic.Flag
 	flagSenderInOutTransfer                     atomic.Flag
 	flagIncrementSCRNonceInMultiTransfer        atomic.Flag
+	flagBuiltInFunctionOnMetachain              atomic.Flag
 	arwenChangeLocker                           process.Locker
 
 	badTxForwarder process.IntermediateTransactionHandler
@@ -112,6 +116,7 @@ type ArgsNewSmartContractProcessor struct {
 	ReturnDataToLastTransferEnableEpoch         uint32
 	SenderInOutTransferEnableEpoch              uint32
 	IncrementSCRNonceInMultiTransferEnableEpoch uint32
+	BuiltInFunctionOnMetachainEnableEpoch       uint32
 	EpochNotifier                               process.EpochNotifier
 	VMOutputCacher                              storage.Cacher
 	ArwenChangeLocker                           process.Locker
@@ -180,32 +185,33 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 
 	builtInFuncCost := args.GasSchedule.LatestGasSchedule()[common.BuiltInCost]
 	sc := &scProcessor{
-		vmContainer:                         args.VmContainer,
-		argsParser:                          args.ArgsParser,
-		hasher:                              args.Hasher,
-		marshalizer:                         args.Marshalizer,
-		accounts:                            args.AccountsDB,
-		blockChainHook:                      args.BlockChainHook,
-		pubkeyConv:                          args.PubkeyConv,
-		shardCoordinator:                    args.ShardCoordinator,
-		scrForwarder:                        args.ScrForwarder,
-		txFeeHandler:                        args.TxFeeHandler,
-		economicsFee:                        args.EconomicsFee,
-		txTypeHandler:                       args.TxTypeHandler,
-		gasHandler:                          args.GasHandler,
-		builtInGasCosts:                     builtInFuncCost,
-		txLogsProcessor:                     args.TxLogsProcessor,
-		badTxForwarder:                      args.BadTxForwarder,
-		deployEnableEpoch:                   args.DeployEnableEpoch,
-		builtinEnableEpoch:                  args.BuiltinEnableEpoch,
-		repairCallBackEnableEpoch:           args.RepairCallbackEnableEpoch,
-		penalizedTooMuchGasEnableEpoch:      args.PenalizedTooMuchGasEnableEpoch,
-		isGenesisProcessing:                 args.IsGenesisProcessing,
-		stakingV2EnableEpoch:                args.StakingV2EnableEpoch,
-		returnDataToLastTransferEnableEpoch: args.ReturnDataToLastTransferEnableEpoch,
-		senderInOutTransferEnableEpoch:      args.SenderInOutTransferEnableEpoch,
-		arwenChangeLocker:                   args.ArwenChangeLocker,
-		vmOutputCacher:                      args.VMOutputCacher,
+		vmContainer:                           args.VmContainer,
+		argsParser:                            args.ArgsParser,
+		hasher:                                args.Hasher,
+		marshalizer:                           args.Marshalizer,
+		accounts:                              args.AccountsDB,
+		blockChainHook:                        args.BlockChainHook,
+		pubkeyConv:                            args.PubkeyConv,
+		shardCoordinator:                      args.ShardCoordinator,
+		scrForwarder:                          args.ScrForwarder,
+		txFeeHandler:                          args.TxFeeHandler,
+		economicsFee:                          args.EconomicsFee,
+		txTypeHandler:                         args.TxTypeHandler,
+		gasHandler:                            args.GasHandler,
+		builtInGasCosts:                       builtInFuncCost,
+		txLogsProcessor:                       args.TxLogsProcessor,
+		badTxForwarder:                        args.BadTxForwarder,
+		deployEnableEpoch:                     args.DeployEnableEpoch,
+		builtinEnableEpoch:                    args.BuiltinEnableEpoch,
+		repairCallBackEnableEpoch:             args.RepairCallbackEnableEpoch,
+		penalizedTooMuchGasEnableEpoch:        args.PenalizedTooMuchGasEnableEpoch,
+		isGenesisProcessing:                   args.IsGenesisProcessing,
+		stakingV2EnableEpoch:                  args.StakingV2EnableEpoch,
+		returnDataToLastTransferEnableEpoch:   args.ReturnDataToLastTransferEnableEpoch,
+		senderInOutTransferEnableEpoch:        args.SenderInOutTransferEnableEpoch,
+		builtInFunctionOnMetachainEnableEpoch: args.BuiltInFunctionOnMetachainEnableEpoch,
+		arwenChangeLocker:                     args.ArwenChangeLocker,
+		vmOutputCacher:                        args.VMOutputCacher,
 
 		incrementSCRNonceInMultiTransferEnableEpoch: args.IncrementSCRNonceInMultiTransferEnableEpoch,
 	}
@@ -223,6 +229,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	log.Debug("smartContract/process: enable epoch for staking v2", "epoch", sc.stakingV2EnableEpoch)
 	log.Debug("smartContract/process: enable epoch for increment SCR nonce in multi transfer",
 		"epoch", sc.incrementSCRNonceInMultiTransferEnableEpoch)
+	log.Debug("smartContract/process: enable epoch for built in functions on metachain", "epoch", sc.builtInFunctionOnMetachainEnableEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(sc)
 	args.GasSchedule.RegisterNotifyHandler(sc)
@@ -436,7 +443,7 @@ func (sc *scProcessor) finishSCExecution(
 
 	ignorableError := sc.txLogsProcessor.SaveLog(txHash, tx, vmOutput.Logs)
 	if ignorableError != nil {
-		log.Debug("scProcessor.ExecuteBuiltInFunction txLogsProcessor.SaveLog()", "error", ignorableError.Error())
+		log.Debug("scProcessor.finishSCExecution txLogsProcessor.SaveLog()", "error", ignorableError.Error())
 	}
 
 	totalConsumedFee, totalDevRwd := sc.computeTotalConsumedFeeAndDevRwd(tx, vmOutput, builtInFuncGasUsed)
@@ -707,7 +714,10 @@ func (sc *scProcessor) deleteSCRsWithValueZeroGoingToMeta(scrs []data.Transactio
 	for _, scr := range scrs {
 		shardID := sc.shardCoordinator.ComputeId(scr.GetRcvAddr())
 		if shardID == core.MetachainShardId && scr.GetGasLimit() == 0 && scr.GetValue().Cmp(zero) == 0 {
-			continue
+			_, err := sc.getESDTParsedTransfers(scr.GetSndAddr(), scr.GetRcvAddr(), scr.GetData())
+			if err != nil {
+				continue
+			}
 		}
 		cleanSCRs = append(cleanSCRs, scr)
 	}
@@ -1451,6 +1461,11 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 
 	sc.vmOutputCacher.Put(txHash, vmOutput, 0)
 
+	ignorableError := sc.txLogsProcessor.SaveLog(txHash, tx, vmOutput.Logs)
+	if ignorableError != nil {
+		log.Debug("scProcessor.DeploySmartContract() txLogsProcessor.SaveLog()", "error", ignorableError.Error())
+	}
+
 	return 0, nil
 }
 
@@ -1924,7 +1939,7 @@ func (sc *scProcessor) useLastTransferAsAsyncCallBackWhenNeeded(
 		return false
 	}
 
-	if !sc.isTransferWithNoAdditionalData(outputTransfer.Data) {
+	if !sc.isTransferWithNoAdditionalData(outputTransfer.SenderAddress, outAcc.Address, outputTransfer.Data) {
 		return false
 	}
 
@@ -1935,23 +1950,32 @@ func (sc *scProcessor) useLastTransferAsAsyncCallBackWhenNeeded(
 	return true
 }
 
-func (sc *scProcessor) isTransferWithNoAdditionalData(data []byte) bool {
+func (sc *scProcessor) getESDTParsedTransfers(sndAddr []byte, dstAddr []byte, data []byte,
+) (*vmcommon.ParsedESDTTransfers, error) {
+	function, args, err := sc.argsParser.ParseCallData(string(data))
+	if err != nil {
+		return nil, err
+	}
+
+	parsedTransfer, err := sc.esdtTransferParser.ParseESDTTransfers(sndAddr, dstAddr, function, args)
+	if err != nil {
+		return nil, err
+	}
+
+	return parsedTransfer, nil
+}
+
+func (sc *scProcessor) isTransferWithNoAdditionalData(sndAddr []byte, dstAddr []byte, data []byte) bool {
 	if len(data) == 0 {
 		return true
 	}
-	function, args, err := sc.argsParser.ParseCallData(string(data))
+
+	parsedTransfer, err := sc.getESDTParsedTransfers(sndAddr, dstAddr, data)
 	if err != nil {
 		return false
 	}
 
-	if function == core.BuiltInFunctionESDTTransfer {
-		return len(args) == core.MinLenArgumentsESDTTransfer
-	}
-	if function == core.BuiltInFunctionESDTNFTTransfer {
-		return len(args) == core.MinLenArgumentsESDTNFTTransfer
-	}
-
-	return false
+	return len(parsedTransfer.CallFunction) == 0
 }
 
 // createSCRForSender(vmOutput, tx, txHash, acntSnd)
@@ -2091,7 +2115,7 @@ func (sc *scProcessor) processSCOutputAccounts(
 			log.Trace("storeUpdate", "acc", outAcc.Address, "key", storeUpdate.Offset, "data", storeUpdate.Data)
 		}
 
-		sc.updateSmartContractCode(acc, outAcc)
+		sc.updateSmartContractCode(vmOutput, acc, outAcc)
 		// change nonce only if there is a change
 		if outAcc.Nonce != acc.GetNonce() && outAcc.Nonce != 0 {
 			if outAcc.Nonce < acc.GetNonce() {
@@ -2138,6 +2162,7 @@ func (sc *scProcessor) processSCOutputAccounts(
 //	(2) the account as returned in VM Output
 // 	(3) the transaction that, upon execution, produced the VM Output
 func (sc *scProcessor) updateSmartContractCode(
+	vmOutput *vmcommon.VMOutput,
 	stateAccount state.UserAccountHandler,
 	outputAccount *vmcommon.OutputAccount,
 ) {
@@ -2170,12 +2195,22 @@ func (sc *scProcessor) updateSmartContractCode(
 	isDeployment := noExistingCode && noExistingOwner
 	isUpgrade := !isDeployment && isCodeDeployerOwner && isUpgradeable
 
+	entry := &vmcommon.LogEntry{
+		Address: stateAccount.AddressBytes(),
+		Topics: [][]byte{
+			outputAccount.Address, outputAccount.CodeDeployerAddress,
+		},
+	}
+
 	if isDeployment {
 		// At this point, we are under the condition "noExistingOwner"
 		stateAccount.SetOwnerAddress(outputAccount.CodeDeployerAddress)
 		stateAccount.SetCodeMetadata(outputAccount.CodeMetadata)
 		stateAccount.SetCode(outputAccount.Code)
 		log.Debug("updateSmartContractCode(): created", "address", sc.pubkeyConv.Encode(outputAccount.Address), "upgradeable", newCodeMetadata.Upgradeable)
+
+		entry.Identifier = []byte(core.SCDeployIdentifier)
+		vmOutput.Logs = append(vmOutput.Logs, entry)
 		return
 	}
 
@@ -2183,6 +2218,9 @@ func (sc *scProcessor) updateSmartContractCode(
 		stateAccount.SetCodeMetadata(outputAccount.CodeMetadata)
 		stateAccount.SetCode(outputAccount.Code)
 		log.Debug("updateSmartContractCode(): upgraded", "address", sc.pubkeyConv.Encode(outputAccount.Address), "upgradeable", newCodeMetadata.Upgradeable)
+
+		entry.Identifier = []byte(core.SCUpgradeIdentifier)
+		vmOutput.Logs = append(vmOutput.Logs, entry)
 		return
 	}
 }
@@ -2283,7 +2321,7 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 		returnCode, err = sc.ExecuteSmartContractTransaction(scr, sndAcc, dstAcc)
 		return returnCode, err
 	case process.BuiltInFunctionCall:
-		if sc.shardCoordinator.SelfId() == core.MetachainShardId {
+		if sc.shardCoordinator.SelfId() == core.MetachainShardId && !sc.flagBuiltInFunctionOnMetachain.IsSet() {
 			returnCode, err = sc.ExecuteSmartContractTransaction(scr, sndAcc, dstAcc)
 			return returnCode, err
 		}
@@ -2384,6 +2422,9 @@ func (sc *scProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 
 	sc.flagIncrementSCRNonceInMultiTransfer.Toggle(epoch >= sc.incrementSCRNonceInMultiTransferEnableEpoch)
 	log.Debug("scProcessor: increment SCR nonce in multi transfer", "enabled", sc.flagIncrementSCRNonceInMultiTransfer.IsSet())
+
+	sc.flagBuiltInFunctionOnMetachain.Toggle(epoch >= sc.builtInFunctionOnMetachainEnableEpoch)
+	log.Debug("scProcessor: built in functions on metachain", "enabled", sc.flagBuiltInFunctionOnMetachain.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

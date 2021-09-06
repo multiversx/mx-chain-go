@@ -1,3 +1,4 @@
+//go:build !race
 // +build !race
 
 package process
@@ -16,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	testVm "github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
@@ -39,10 +41,15 @@ func TestESDTIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 	nodesPerShard := 2
 	numMetachainNodes := 2
 
-	nodes := integrationTests.CreateNodes(
+	enableEpochs := config.EnableEpochs{
+		GlobalMintBurnDisableEpoch:       10,
+		BuiltInFunctionOnMetaEnableEpoch: 10,
+	}
+	nodes := integrationTests.CreateNodesWithEnableEpochs(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
+		enableEpochs,
 	)
 
 	idxProposers := make([]int, numOfShards+1)
@@ -408,7 +415,7 @@ func TestScSendsEsdtToUserWithMessage(t *testing.T) {
 
 	// deploy the smart contract
 
-	vaultScCode := arwen.GetSCCode("../testdata/vault.wasm")
+	vaultScCode := arwen.GetSCCode("../testdata/vaultV1.wasm")
 	vaultScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
@@ -623,7 +630,7 @@ func TestScCallsScWithEsdtIntraShard(t *testing.T) {
 
 	// deploy the smart contracts
 
-	vaultCode := arwen.GetSCCode("../testdata/vault.wasm")
+	vaultCode := arwen.GetSCCode("../testdata/vaultV1.wasm")
 	vault, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
@@ -776,7 +783,7 @@ func TestCallbackPaymentEgld(t *testing.T) {
 
 	// deploy the smart contracts
 
-	vaultCode := arwen.GetSCCode("../testdata/vault.wasm")
+	vaultCode := arwen.GetSCCode("../testdata/vaultV1.wasm")
 	secondScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
@@ -886,7 +893,7 @@ func TestScCallsScWithEsdtCrossShard(t *testing.T) {
 
 	// deploy the smart contracts
 
-	vaultCode := arwen.GetSCCode("../testdata/vault.wasm")
+	vaultCode := arwen.GetSCCode("../testdata/vaultV1.wasm")
 	secondScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
@@ -2041,10 +2048,15 @@ func TestIssueAndBurnESDT_MaxGasPerBlockExceeded(t *testing.T) {
 	nodesPerShard := 1
 	numMetachainNodes := 1
 
-	nodes := integrationTests.CreateNodes(
+	enableEpochs := config.EnableEpochs{
+		GlobalMintBurnDisableEpoch:       10,
+		BuiltInFunctionOnMetaEnableEpoch: 10,
+	}
+	nodes := integrationTests.CreateNodesWithEnableEpochs(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
+		enableEpochs,
 	)
 
 	idxProposers := make([]int, numOfShards+1)

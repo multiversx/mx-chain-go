@@ -1,8 +1,8 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 )
 
 // StateComponentsHolderStub -
@@ -11,7 +11,7 @@ type StateComponentsHolderStub struct {
 	AccountsAdapterCalled     func() state.AccountsAdapter
 	AccountsAdapterAPICalled  func() state.AccountsAdapter
 	TriesContainerCalled      func() state.TriesHolder
-	TrieStorageManagersCalled func() map[string]temporary.StorageManager
+	TrieStorageManagersCalled func() map[string]common.StorageManager
 }
 
 // PeerAccounts -
@@ -51,7 +51,7 @@ func (s *StateComponentsHolderStub) TriesContainer() state.TriesHolder {
 }
 
 // TrieStorageManagers -
-func (s *StateComponentsHolderStub) TrieStorageManagers() map[string]temporary.StorageManager {
+func (s *StateComponentsHolderStub) TrieStorageManagers() map[string]common.StorageManager {
 	if s.TrieStorageManagersCalled != nil {
 		return s.TrieStorageManagersCalled()
 	}

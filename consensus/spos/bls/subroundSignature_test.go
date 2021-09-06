@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -275,7 +276,7 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 	multiSignerMock := mock.InitMultiSignerMock()
 
 	err := errors.New("create signature share error")
-	multiSignerMock.CreateSignatureShareMock = func(msg []byte, bitmap []byte) ([]byte, error) {
+	multiSignerMock.CreateSignatureShareCalled = func(msg []byte, bitmap []byte) ([]byte, error) {
 		return nil, err
 	}
 
@@ -286,7 +287,7 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 
 	multiSignerMock = mock.InitMultiSignerMock()
 
-	multiSignerMock.CreateSignatureShareMock = func(msg []byte, bitmap []byte) ([]byte, error) {
+	multiSignerMock.CreateSignatureShareCalled = func(msg []byte, bitmap []byte) ([]byte, error) {
 		return []byte("SIG"), nil
 	}
 	container.SetMultiSigner(multiSignerMock)
@@ -355,6 +356,147 @@ func TestSubroundSignature_ReceivedSignature(t *testing.T) {
 	}
 	r = sr.ReceivedSignature(cnsMsg)
 	assert.True(t, r)
+}
+
+func TestSubroundSignature_ReceivedSignatureVerifyShareFailed(t *testing.T) {
+	t.Parallel()
+
+	errVerify := errors.New("signature share verification failed")
+	multiSigner := cryptoMocks.NewMultiSigner(21)
+	multiSigner.VerifySignatureShareCalled = func(index uint16, sig []byte, msg []byte, bitmap []byte) error {
+		return errVerify
+	}
+	storeSigShareCalled := false
+	multiSigner.StoreSignatureShareCalled = func(index uint16, sig []byte) error {
+		storeSigShareCalled = true
+		return nil
+	}
+
+	container := mock.InitConsensusCoreWithMultiSigner(multiSigner)
+	sr := *initSubroundSignatureWithContainer(container)
+
+	signature := []byte("signature")
+	cnsMsg := consensus.NewConsensusMessage(
+		sr.Data,
+		signature,
+		nil,
+		nil,
+		[]byte(sr.ConsensusGroup()[1]),
+		[]byte("sig"),
+		int(bls.MtSignature),
+		0,
+		chainID,
+		nil,
+		nil,
+		nil,
+		currentPid,
+	)
+
+	sr.Data = nil
+	r := sr.ReceivedSignature(cnsMsg)
+	assert.False(t, r)
+
+	sr.Data = []byte("Y")
+	r = sr.ReceivedSignature(cnsMsg)
+	assert.False(t, r)
+
+	sr.Data = []byte("X")
+	r = sr.ReceivedSignature(cnsMsg)
+	assert.False(t, r)
+
+	sr.SetSelfPubKey(sr.ConsensusGroup()[0])
+
+	cnsMsg.PubKey = []byte("X")
+	r = sr.ReceivedSignature(cnsMsg)
+	assert.False(t, r)
+
+	cnsMsg.PubKey = []byte(sr.ConsensusGroup()[1])
+	maxCount := len(sr.ConsensusGroup()) * 2 / 3
+	count := 0
+	for i := 0; i < len(sr.ConsensusGroup()); i++ {
+		if sr.ConsensusGroup()[i] != string(cnsMsg.PubKey) {
+			_ = sr.SetJobDone(sr.ConsensusGroup()[i], bls.SrSignature, true)
+			count++
+			if count == maxCount {
+				break
+			}
+		}
+	}
+	r = sr.ReceivedSignature(cnsMsg)
+	assert.False(t, r)
+	assert.False(t, storeSigShareCalled)
+}
+
+func TestSubroundSignature_ReceivedSignatureStoreShareFailed(t *testing.T) {
+	t.Parallel()
+
+	errStore := errors.New("signature share store failed")
+	multiSigner := cryptoMocks.NewMultiSigner(21)
+	verifySigShareCalled := false
+	multiSigner.VerifySignatureShareCalled = func(index uint16, sig []byte, msg []byte, bitmap []byte) error {
+		verifySigShareCalled = true
+		return nil
+	}
+	storeSigShareCalled := false
+	multiSigner.StoreSignatureShareCalled = func(index uint16, sig []byte) error {
+		storeSigShareCalled = true
+		return errStore
+	}
+
+	container := mock.InitConsensusCoreWithMultiSigner(multiSigner)
+	sr := *initSubroundSignatureWithContainer(container)
+
+	signature := []byte("signature")
+	cnsMsg := consensus.NewConsensusMessage(
+		sr.Data,
+		signature,
+		nil,
+		nil,
+		[]byte(sr.ConsensusGroup()[1]),
+		[]byte("sig"),
+		int(bls.MtSignature),
+		0,
+		chainID,
+		nil,
+		nil,
+		nil,
+		currentPid,
+	)
+
+	sr.Data = nil
+	r := sr.ReceivedSignature(cnsMsg)
+	assert.False(t, r)
+
+	sr.Data = []byte("Y")
+	r = sr.ReceivedSignature(cnsMsg)
+	assert.False(t, r)
+
+	sr.Data = []byte("X")
+	r = sr.ReceivedSignature(cnsMsg)
+	assert.False(t, r)
+
+	sr.SetSelfPubKey(sr.ConsensusGroup()[0])
+
+	cnsMsg.PubKey = []byte("X")
+	r = sr.ReceivedSignature(cnsMsg)
+	assert.False(t, r)
+
+	cnsMsg.PubKey = []byte(sr.ConsensusGroup()[1])
+	maxCount := len(sr.ConsensusGroup()) * 2 / 3
+	count := 0
+	for i := 0; i < len(sr.ConsensusGroup()); i++ {
+		if sr.ConsensusGroup()[i] != string(cnsMsg.PubKey) {
+			_ = sr.SetJobDone(sr.ConsensusGroup()[i], bls.SrSignature, true)
+			count++
+			if count == maxCount {
+				break
+			}
+		}
+	}
+	r = sr.ReceivedSignature(cnsMsg)
+	assert.False(t, r)
+	assert.True(t, storeSigShareCalled)
+	assert.True(t, verifySigShareCalled)
 }
 
 func TestSubroundSignature_SignaturesCollected(t *testing.T) {

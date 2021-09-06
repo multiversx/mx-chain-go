@@ -3,12 +3,12 @@ package mock
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/common/statistics"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/outport"
 )
 
 // StatusComponentsStub -
 type StatusComponentsStub struct {
-	Indexer              process.Indexer
+	Outport              outport.OutportHandler
 	SoftwareVersionCheck statistics.SoftwareVersionChecker
 	AppStatusHandler     core.AppStatusHandler
 }
@@ -28,9 +28,9 @@ func (scs *StatusComponentsStub) CheckSubcomponents() error {
 	return nil
 }
 
-// ElasticIndexer -
-func (scs *StatusComponentsStub) ElasticIndexer() process.Indexer {
-	return scs.Indexer
+// OutportHandler -
+func (scs *StatusComponentsStub) OutportHandler() outport.OutportHandler {
+	return scs.Outport
 }
 
 // SoftwareVersionChecker -

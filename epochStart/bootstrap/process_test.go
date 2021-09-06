@@ -20,6 +20,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
+	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/stretchr/testify/assert"
@@ -53,11 +55,11 @@ func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComp
 			TxVersionCheckField:   versioning.NewTxVersionChecker(1),
 			NodeTypeProviderField: &nodeTypeProviderMock.NodeTypeProviderStub{},
 		}, &mock.CryptoComponentsMock{
-			PubKey:   &mock.PublicKeyMock{},
-			BlockSig: &mock.SignerStub{},
-			TxSig:    &mock.SignerStub{},
-			BlKeyGen: &mock.KeyGenMock{},
-			TxKeyGen: &mock.KeyGenMock{},
+			PubKey:   &cryptoMocks.PublicKeyStub{},
+			BlockSig: &cryptoMocks.SignerStub{},
+			TxSig:    &cryptoMocks.SignerStub{},
+			BlKeyGen: &cryptoMocks.KeyGenStub{},
+			TxKeyGen: &cryptoMocks.KeyGenStub{},
 		}
 }
 
@@ -87,7 +89,8 @@ func createMockEpochStartBootstrapArgs(
 				MaxPeerTrieLevelInMemory:    5,
 			},
 			EvictionWaitingList: config.EvictionWaitingListConfig{
-				Size: 100,
+				HashesSize:     100,
+				RootHashesSize: 100,
 				DB: config.DBConfig{
 					FilePath:          "EvictionWaitingList",
 					Type:              "MemoryDB",
@@ -297,7 +300,7 @@ func TestPrepareForEpochZero_NodeInGenesisShouldNotAlterShardID(t *testing.T) {
 	shardIDAsValidator := uint32(1)
 
 	coreComp, cryptoComp := createComponentsForEpochStart()
-	cryptoComp.PubKey = &mock.PublicKeyStub{
+	cryptoComp.PubKey = &cryptoMocks.PublicKeyStub{
 		ToByteArrayStub: func() ([]byte, error) {
 			return []byte("pubKey11"), nil
 		},
@@ -330,7 +333,7 @@ func TestPrepareForEpochZero_NodeNotInGenesisShouldAlterShardID(t *testing.T) {
 	desiredShardAsObserver := uint32(7)
 
 	coreComp, cryptoComp := createComponentsForEpochStart()
-	cryptoComp.PubKey = &mock.PublicKeyStub{
+	cryptoComp.PubKey = &cryptoMocks.PublicKeyStub{
 		ToByteArrayStub: func() ([]byte, error) {
 			return []byte("pubKeyNotInGenesis"), nil
 		},
@@ -364,7 +367,7 @@ func TestCreateSyncers(t *testing.T) {
 
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
 	epochStartProvider.shardCoordinator = mock.NewMultipleShardsCoordinatorMock()
-	epochStartProvider.dataPool = &testscommon.PoolsHolderStub{
+	epochStartProvider.dataPool = &dataRetrieverMock.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &mock.HeadersCacherStub{}
 		},
@@ -435,7 +438,7 @@ func TestSyncValidatorAccountsState_NilRequestHandlerErr(t *testing.T) {
 	coreComp, cryptoComp := createComponentsForEpochStart()
 	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
-	epochStartProvider.dataPool = &testscommon.PoolsHolderStub{
+	epochStartProvider.dataPool = &dataRetrieverMock.PoolsHolderStub{
 		TrieNodesCalled: func() storage.Cacher {
 			return &testscommon.CacherStub{
 				GetCalled: func(key []byte) (value interface{}, ok bool) {
@@ -466,7 +469,7 @@ func TestSyncUserAccountsState(t *testing.T) {
 
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
 	epochStartProvider.shardCoordinator = mock.NewMultipleShardsCoordinatorMock()
-	epochStartProvider.dataPool = &testscommon.PoolsHolderStub{
+	epochStartProvider.dataPool = &dataRetrieverMock.PoolsHolderStub{
 		TrieNodesCalled: func() storage.Cacher {
 			return &testscommon.CacherStub{
 				GetCalled: func(key []byte) (value interface{}, ok bool) {
@@ -509,7 +512,7 @@ func TestRequestAndProcessForShard(t *testing.T) {
 			}, nil
 		},
 	}
-	epochStartProvider.dataPool = &testscommon.PoolsHolderStub{
+	epochStartProvider.dataPool = &dataRetrieverMock.PoolsHolderStub{
 		TrieNodesCalled: func() storage.Cacher {
 			return &testscommon.CacherStub{
 				GetCalled: func(key []byte) (value interface{}, ok bool) {
@@ -605,7 +608,7 @@ func TestRequestAndProcessing(t *testing.T) {
 			}, nil
 		},
 	}
-	epochStartProvider.dataPool = &testscommon.PoolsHolderStub{
+	epochStartProvider.dataPool = &dataRetrieverMock.PoolsHolderStub{
 		MiniBlocksCalled: func() storage.Cacher {
 			return testscommon.NewCacherStub()
 		},
@@ -637,7 +640,7 @@ func TestEpochStartBootstrap_WithDisabledShardIDAsOBserver(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(epochStartProvider))
 
-	epochStartProvider.dataPool = &testscommon.PoolsHolderStub{
+	epochStartProvider.dataPool = &dataRetrieverMock.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &mock.HeadersCacherStub{}
 		},
