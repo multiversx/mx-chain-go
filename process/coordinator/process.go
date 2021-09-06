@@ -626,44 +626,18 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			continue
 		}
 
-		if scheduledMode && !miniBlock.IsScheduledMiniBlock() {
-			shouldSkipShard[miniBlockInfo.SenderShardID] = true
-			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: mini block is not scheduled",
-				"scheduled mode", scheduledMode,
-				"sender shard", miniBlockInfo.SenderShardID,
-				"hash", miniBlockInfo.Hash,
-				"round", miniBlockInfo.Round,
-			)
-			continue
-		}
-
-		preproc := tc.getPreProcessor(miniBlock.Type)
-		if check.IfNil(preproc) {
-			return nil, 0, false, fmt.Errorf("%w unknown block type %d", process.ErrNilPreProcessor, miniBlock.Type)
-		}
-
-		requestedTxs := preproc.RequestTransactionsForMiniBlock(miniBlock)
-		if requestedTxs > 0 {
-			shouldSkipShard[miniBlockInfo.SenderShardID] = true
-			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: transactions not found and were requested",
-				"scheduled mode", scheduledMode,
-				"sender shard", miniBlockInfo.SenderShardID,
-				"hash", miniBlockInfo.Hash,
-				"round", miniBlockInfo.Round,
-				"requested txs", requestedTxs,
-			)
-			continue
-		}
-
-		err := tc.processCompleteMiniBlock(preproc, miniBlock, miniBlockInfo.Hash, haveTime, haveAdditionalTime, scheduledMode)
+		shouldSkip, err := tc.requestMissingTxsAndProcessMiniBlock(
+			miniBlock,
+			miniBlockInfo,
+			haveTime,
+			haveAdditionalTime,
+			scheduledMode,
+			shouldSkipShard,
+		)
 		if err != nil {
-			shouldSkipShard[miniBlockInfo.SenderShardID] = true
-			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: processed complete mini block failed",
-				"scheduled mode", scheduledMode,
-				"sender shard", miniBlockInfo.SenderShardID,
-				"hash", miniBlockInfo.Hash,
-				"round", miniBlockInfo.Round,
-			)
+			return nil, 0, false, err
+		}
+		if shouldSkip {
 			continue
 		}
 
@@ -679,6 +653,65 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 	allMBsProcessed := nrMiniBlocksProcessed == len(crossMiniBlockInfos)
 
 	return miniBlocks, nrTxAdded, allMBsProcessed, nil
+}
+
+func (tc *transactionCoordinator) requestMissingTxsAndProcessMiniBlock(
+	originalMiniBlock *block.MiniBlock,
+	miniBlockInfo *data.MiniBlockInfo,
+	haveTime func() bool,
+	haveAdditionalTime func() bool,
+	scheduledMode bool,
+	shouldSkipShard map[uint32]bool,
+) (bool, error) {
+
+	miniBlocks, err := tc.extractMiniBlocksBasedOnTxType(originalMiniBlock)
+	if err != nil {
+		return true, err
+	}
+
+	for _, miniBlock := range miniBlocks {
+		preproc := tc.getPreProcessor(miniBlock.Type)
+		if check.IfNil(preproc) {
+			return true, fmt.Errorf("%w unknown block type %d", process.ErrNilPreProcessor, miniBlock.Type)
+		}
+
+		requestedTxs := preproc.RequestTransactionsForMiniBlock(miniBlock)
+		if requestedTxs > 0 {
+			shouldSkipShard[miniBlockInfo.SenderShardID] = true
+			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: transactions not found and were requested",
+				"scheduled mode", scheduledMode,
+				"sender shard", miniBlockInfo.SenderShardID,
+				"hash", miniBlockInfo.Hash,
+				"round", miniBlockInfo.Round,
+				"requested txs", requestedTxs,
+			)
+			return true, nil
+		}
+
+		//TODO: We need to send more info forward, as now the original mini block could be here already split in more small mini blocks
+		err = tc.processCompleteMiniBlock(preproc, miniBlock, miniBlockInfo.Hash, haveTime, haveAdditionalTime, scheduledMode)
+		if err != nil {
+			shouldSkipShard[miniBlockInfo.SenderShardID] = true
+			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: processed complete mini block failed",
+				"scheduled mode", scheduledMode,
+				"sender shard", miniBlockInfo.SenderShardID,
+				"hash", miniBlockInfo.Hash,
+				"round", miniBlockInfo.Round,
+			)
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+//extractMiniBlocksBasedOnTxType extracts the given mini block in different small mini blocks based on tx type,
+//preserving the transactions order in the original mini block
+func (tc *transactionCoordinator) extractMiniBlocksBasedOnTxType(miniBlock *block.MiniBlock) (block.MiniBlockSlice, error) {
+	miniBlocks := make(block.MiniBlockSlice, 0)
+	//TODO: Beside the transactions hashes from mini blocks, we also need the real transactions so we can determine each transaction type
+	miniBlocks = append(miniBlocks, miniBlock)
+	return miniBlocks, nil
 }
 
 // CreateMbsAndProcessTransactionsFromMe creates miniblocks and processes transactions from pool
@@ -1473,8 +1506,8 @@ func (tc *transactionCoordinator) GetAllIntermediateTxs() map[block.Type]map[str
 }
 
 // GetAllIntermediateTxsHashesForTxHash gets all the intermediate transaction hashes, for a given transaction hash, separated by block type
-func (tc *transactionCoordinator) GetAllIntermediateTxsHashesForTxHash(txHash []byte) map[block.Type]map[uint32][]string {
-	mapIntermediateTxsHashes := make(map[block.Type]map[uint32][]string)
+func (tc *transactionCoordinator) GetAllIntermediateTxsHashesForTxHash(txHash []byte) map[block.Type]map[uint32][][]byte {
+	mapIntermediateTxsHashes := make(map[block.Type]map[uint32][][]byte)
 	for _, blockType := range tc.keysInterimProcs {
 		interimProc := tc.getInterimProcessor(blockType)
 		if check.IfNil(interimProc) {

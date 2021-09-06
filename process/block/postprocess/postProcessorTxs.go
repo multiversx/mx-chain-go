@@ -72,7 +72,7 @@ func (ppt *postProcessorTxs) SetTransactionCoordinator(txCoordinator process.Tra
 }
 
 // GetAllIntermediateTxsHashesForTxHash gets all the intermediate transaction hashes, for a given transaction hash, separated by block type
-func (ppt *postProcessorTxs) GetAllIntermediateTxsHashesForTxHash(txHash []byte) map[block.Type]map[uint32][]string {
+func (ppt *postProcessorTxs) GetAllIntermediateTxsHashesForTxHash(txHash []byte) map[block.Type]map[uint32][][]byte {
 	return ppt.txCoordinator.GetAllIntermediateTxsHashesForTxHash(txHash)
 }
 

@@ -69,6 +69,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 			receiverShardID,
 			mbInfo)
 		if err != nil {
+			txs.applyGeneratedSCRs(txHash, mbInfo)
 			continue
 		}
 
@@ -76,17 +77,52 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 			tx,
 			txHash,
 			miniBlock,
-			receiverShardID,
 			txMbInfo,
 			mbInfo)
+
+		txs.applyGeneratedSCRs(txHash, mbInfo)
 	}
 
-	miniBlocks := txs.getMiniBlockSliceFromMapV2(mbInfo.mapMiniBlocks, mbInfo.mapSCTxs)
+	miniBlocks := txs.getMiniBlockSliceFromMapV2(mbInfo.mapMiniBlocks)
 	txs.displayProcessingResults(miniBlocks, len(sortedTxs), mbInfo)
 
 	log.Debug("createAndProcessMiniBlocksFromMeV2 has been finished")
 
 	return miniBlocks, mbInfo.mapSCTxs, nil
+}
+
+func (txs *transactions) applyGeneratedSCRs(
+	txHash []byte,
+	mbInfo *createAndProcessMiniBlocksInfo,
+) {
+	if !txs.flagMixedTxsInMiniBlocks.IsSet() {
+		return
+	}
+
+	mapAllIntermediateTxsHashes := txs.postProcessorTxsHandler.GetAllIntermediateTxsHashesForTxHash(txHash)
+	for blockType, mapIntermediateTxsHashesPerBlockType := range mapAllIntermediateTxsHashes {
+		if blockType != block.SmartContractResultBlock {
+			continue
+		}
+
+		for receiverShardID, intermediateTxsHashesPerShard := range mapIntermediateTxsHashesPerBlockType {
+			if receiverShardID == txs.shardCoordinator.SelfId() {
+				continue
+			}
+
+			miniBlock, ok := mbInfo.mapMiniBlocks[receiverShardID]
+			if !ok {
+				log.Debug("mini block is not created", "shard", receiverShardID)
+				continue
+			}
+
+			miniBlock.TxHashes = append(miniBlock.TxHashes, intermediateTxsHashesPerShard...)
+
+			for _, txHash := range intermediateTxsHashesPerShard {
+				txs.postProcessorTxsHandler.AddPostProcessorTx(txHash)
+			}
+		}
+	}
 }
 
 func (txs *transactions) initGasConsumed() map[uint32]map[txType]uint64 {
@@ -209,69 +245,24 @@ func (txs *transactions) processTransaction(
 	return err
 }
 
-func (txs *transactions) getMiniBlockSliceFromMapV2(
-	mapMiniBlocks map[uint32]*block.MiniBlock,
-	mapSCTxs map[string]struct{},
-) block.MiniBlockSlice {
+func (txs *transactions) getMiniBlockSliceFromMapV2(mapMiniBlocks map[uint32]*block.MiniBlock) block.MiniBlockSlice {
 	miniBlocks := make(block.MiniBlockSlice, 0)
 
 	for shardID := uint32(0); shardID < txs.shardCoordinator.NumberOfShards(); shardID++ {
 		if miniBlock, ok := mapMiniBlocks[shardID]; ok {
 			if len(miniBlock.TxHashes) > 0 {
-				miniBlocks = append(miniBlocks, splitMiniBlockIfNeeded(miniBlock, mapSCTxs)...)
+				miniBlocks = append(miniBlocks, miniBlock)
 			}
 		}
 	}
 
 	if miniBlock, ok := mapMiniBlocks[core.MetachainShardId]; ok {
 		if len(miniBlock.TxHashes) > 0 {
-			miniBlocks = append(miniBlocks, splitMiniBlockIfNeeded(miniBlock, mapSCTxs)...)
+			miniBlocks = append(miniBlocks, miniBlock)
 		}
 	}
 
 	return miniBlocks
-}
-
-func splitMiniBlockIfNeeded(miniBlock *block.MiniBlock, mapSCTxs map[string]struct{}) block.MiniBlockSlice {
-	splitMiniBlocks := make(block.MiniBlockSlice, 0)
-	nonScTxHashes := make([][]byte, 0)
-	scTxHashes := make([][]byte, 0)
-
-	for _, txHash := range miniBlock.TxHashes {
-		_, isSCTx := mapSCTxs[string(txHash)]
-		if !isSCTx {
-			nonScTxHashes = append(nonScTxHashes, txHash)
-			continue
-		}
-
-		scTxHashes = append(scTxHashes, txHash)
-	}
-
-	if len(nonScTxHashes) > 0 {
-		nonScMiniBlock := &block.MiniBlock{
-			TxHashes:        nonScTxHashes,
-			SenderShardID:   miniBlock.SenderShardID,
-			ReceiverShardID: miniBlock.ReceiverShardID,
-			Type:            miniBlock.Type,
-			Reserved:        miniBlock.Reserved,
-		}
-
-		splitMiniBlocks = append(splitMiniBlocks, nonScMiniBlock)
-	}
-
-	if len(scTxHashes) > 0 {
-		scMiniBlock := &block.MiniBlock{
-			TxHashes:        scTxHashes,
-			SenderShardID:   miniBlock.SenderShardID,
-			ReceiverShardID: miniBlock.ReceiverShardID,
-			Type:            miniBlock.Type,
-			Reserved:        miniBlock.Reserved,
-		}
-
-		splitMiniBlocks = append(splitMiniBlocks, scMiniBlock)
-	}
-
-	return splitMiniBlocks
 }
 
 func (txs *transactions) createScheduledMiniBlocks(
@@ -339,7 +330,7 @@ func (txs *transactions) createScheduledMiniBlocks(
 			mbInfo)
 	}
 
-	miniBlocks := txs.getMiniBlockSliceFromMapV2(mbInfo.mapMiniBlocks, mapSCTxs)
+	miniBlocks := txs.getMiniBlockSliceFromMapV2(mbInfo.mapMiniBlocks)
 
 	txs.displayProcessingResultsOfScheduledMiniBlocks(miniBlocks, len(sortedTxs), mbInfo)
 
@@ -595,7 +586,6 @@ func (txs *transactions) applyExecutedTransaction(
 	tx *transaction.Transaction,
 	txHash []byte,
 	miniBlock *block.MiniBlock,
-	receiverShardID uint32,
 	txMbInfo *txAndMbInfo,
 	mbInfo *createAndProcessMiniBlocksInfo,
 ) {
@@ -613,8 +603,7 @@ func (txs *transactions) applyExecutedTransaction(
 	}
 
 	isMiniBlockEmpty := len(miniBlock.TxHashes) == 0
-	isFirstSplitFound := txs.isFirstMiniBlockSplitForReceiverShardFound(receiverShardID, txMbInfo, mbInfo)
-	if isMiniBlockEmpty || isFirstSplitFound {
+	if isMiniBlockEmpty {
 		txs.blockSizeComputation.AddNumMiniBlocks(1)
 	}
 
@@ -625,8 +614,8 @@ func (txs *transactions) applyExecutedTransaction(
 			mbInfo.firstCrossShardScCallOrSpecialTxFound = true
 			txs.blockSizeComputation.AddNumMiniBlocks(1)
 		}
-		mbInfo.mapCrossShardScCallsOrSpecialTxs[receiverShardID]++
-		crossShardScCallsOrSpecialTxs := mbInfo.mapCrossShardScCallsOrSpecialTxs[receiverShardID]
+		mbInfo.mapCrossShardScCallsOrSpecialTxs[miniBlock.ReceiverShardID]++
+		crossShardScCallsOrSpecialTxs := mbInfo.mapCrossShardScCallsOrSpecialTxs[miniBlock.ReceiverShardID]
 		if crossShardScCallsOrSpecialTxs > mbInfo.maxCrossShardScCallsOrSpecialTxsPerShard {
 			mbInfo.maxCrossShardScCallsOrSpecialTxsPerShard = crossShardScCallsOrSpecialTxs
 			//we need to increment this as to account for the corresponding SCR hash
@@ -637,34 +626,12 @@ func (txs *transactions) applyExecutedTransaction(
 
 	if txMbInfo.isReceiverSmartContractAddress {
 		mbInfo.mapSCTxs[string(txHash)] = struct{}{}
-		mbInfo.mapScsForShard[receiverShardID]++
+		mbInfo.mapScsForShard[miniBlock.ReceiverShardID]++
 	} else {
-		mbInfo.mapTxsForShard[receiverShardID]++
+		mbInfo.mapTxsForShard[miniBlock.ReceiverShardID]++
 	}
 
 	mbInfo.processingInfo.numTxsAdded++
-}
-
-func (txs *transactions) isFirstMiniBlockSplitForReceiverShardFound(
-	receiverShardID uint32,
-	txMbInfo *txAndMbInfo,
-	mbInfo *createAndProcessMiniBlocksInfo,
-) bool {
-	numTxsForShard := mbInfo.mapTxsForShard[receiverShardID]
-	numScsForShard := mbInfo.mapScsForShard[receiverShardID]
-
-	if numTxsForShard == 0 && numScsForShard == 0 {
-		return false
-	}
-	if numTxsForShard > 0 && numScsForShard > 0 {
-		return false
-	}
-
-	if txMbInfo.isReceiverSmartContractAddress {
-		return numScsForShard == 0
-	}
-
-	return numTxsForShard == 0
 }
 
 func (txs *transactions) initCreateScheduledMiniBlocks() *createScheduledMiniBlocksInfo {

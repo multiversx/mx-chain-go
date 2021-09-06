@@ -121,8 +121,8 @@ func (txCoordinator *TxCoordinator) GetAllIntermediateTxs() map[block.Type]map[s
 }
 
 // GetAllIntermediateTxsHashesForTxHash does nothing as it is disabled
-func (txCoordinator *TxCoordinator) GetAllIntermediateTxsHashesForTxHash(_ []byte) map[block.Type]map[uint32][]string {
-	return make(map[block.Type]map[uint32][]string)
+func (txCoordinator *TxCoordinator) GetAllIntermediateTxsHashesForTxHash(_ []byte) map[block.Type]map[uint32][][]byte {
+	return make(map[block.Type]map[uint32][][]byte)
 }
 
 // GetAllCurrentLogs returns empty logs map

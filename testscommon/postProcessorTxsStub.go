@@ -11,7 +11,7 @@ type PostProcessorTxsStub struct {
 	AddPostProcessorTxCalled                   func([]byte) bool
 	IsPostProcessorTxAddedCalled               func([]byte) bool
 	SetTransactionCoordinatorCalled            func(process.TransactionCoordinator)
-	GetAllIntermediateTxsHashesForTxHashCalled func([]byte) map[block.Type]map[uint32][]string
+	GetAllIntermediateTxsHashesForTxHashCalled func([]byte) map[block.Type]map[uint32][][]byte
 }
 
 // Init -
@@ -37,7 +37,7 @@ func (ppts *PostProcessorTxsStub) SetTransactionCoordinator(txCoordinator proces
 }
 
 // GetAllIntermediateTxsHashesForTxHash -
-func (ppts *PostProcessorTxsStub) GetAllIntermediateTxsHashesForTxHash(txHash []byte) map[block.Type]map[uint32][]string {
+func (ppts *PostProcessorTxsStub) GetAllIntermediateTxsHashesForTxHash(txHash []byte) map[block.Type]map[uint32][][]byte {
 	if ppts.GetAllIntermediateTxsHashesForTxHashCalled != nil {
 		return ppts.GetAllIntermediateTxsHashesForTxHashCalled(txHash)
 	}

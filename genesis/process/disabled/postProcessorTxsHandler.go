@@ -28,7 +28,7 @@ func (ppth *PostProcessorTxsHandler) SetTransactionCoordinator(_ process.Transac
 }
 
 // GetAllIntermediateTxsHashesForTxHash does nothing as it is a disabled component
-func (ppth *PostProcessorTxsHandler) GetAllIntermediateTxsHashesForTxHash(_ []byte) map[block.Type]map[uint32][]string {
+func (ppth *PostProcessorTxsHandler) GetAllIntermediateTxsHashesForTxHash(_ []byte) map[block.Type]map[uint32][][]byte {
 	return nil
 }
 

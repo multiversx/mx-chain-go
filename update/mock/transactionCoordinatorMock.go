@@ -30,7 +30,7 @@ type TransactionCoordinatorMock struct {
 	VerifyCreatedMiniBlocksCalled                        func(hdr data.HeaderHandler, body *block.Body) error
 	AddIntermediateTransactionsCalled                    func(mapSCRs map[block.Type][]data.TransactionHandler) error
 	GetAllIntermediateTxsCalled                          func() map[block.Type]map[string]data.TransactionHandler
-	GetAllIntermediateTxsHashesForTxHashCalled           func(txHash []byte) map[block.Type]map[uint32][]string
+	GetAllIntermediateTxsHashesForTxHashCalled           func(txHash []byte) map[block.Type]map[uint32][][]byte
 }
 
 // GetAllCurrentLogs -
@@ -220,7 +220,7 @@ func (tcm *TransactionCoordinatorMock) GetAllIntermediateTxs() map[block.Type]ma
 }
 
 // GetAllIntermediateTxsHashesForTxHash -
-func (tcm *TransactionCoordinatorMock) GetAllIntermediateTxsHashesForTxHash(txHash []byte) map[block.Type]map[uint32][]string {
+func (tcm *TransactionCoordinatorMock) GetAllIntermediateTxsHashesForTxHash(txHash []byte) map[block.Type]map[uint32][][]byte {
 	if tcm.GetAllIntermediateTxsHashesForTxHashCalled == nil {
 		return nil
 	}
