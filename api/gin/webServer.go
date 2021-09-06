@@ -22,14 +22,14 @@ var log = logger.GetOrCreate("api/gin")
 
 // ArgsNewWebServer holds the arguments needed to create a new instance of webServer
 type ArgsNewWebServer struct {
-	Facade          shared.ApiFacadeHandler
+	Facade          shared.FacadeHandler
 	ApiConfig       config.ApiRoutesConfig
 	AntiFloodConfig config.WebServerAntifloodConfig
 }
 
 type webServer struct {
 	sync.RWMutex
-	facade          shared.ApiFacadeHandler
+	facade          shared.FacadeHandler
 	apiConfig       config.ApiRoutesConfig
 	antiFloodConfig config.WebServerAntifloodConfig
 	httpServer      shared.HttpServerCloser
@@ -55,7 +55,7 @@ func NewGinWebServerHandler(args ArgsNewWebServer) (*webServer, error) {
 
 // UpdateFacade updates the main api handler by closing the old server and starting it with the new facade. Returns the
 // new web server
-func (ws *webServer) UpdateFacade(facade shared.ApiFacadeHandler) error {
+func (ws *webServer) UpdateFacade(facade shared.FacadeHandler) error {
 	ws.Lock()
 	defer ws.Unlock()
 
@@ -199,7 +199,7 @@ func (ws *webServer) registerRoutes(ginRouter *gin.Engine) {
 	for groupName, groupHandler := range ws.groups {
 		log.Debug("registering gin API group", "group name", groupName)
 		ginGroup := ginRouter.Group(fmt.Sprintf("/%s", groupName))
-		groupHandler.RegisterRoutes(ginGroup, ws.apiConfig, nil)
+		groupHandler.RegisterRoutes(ginGroup, ws.apiConfig)
 	}
 }
 
