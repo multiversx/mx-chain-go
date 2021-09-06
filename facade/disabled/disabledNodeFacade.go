@@ -9,14 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/vm"
-	"github.com/ElrondNetwork/elrond-go/api/address"
 	_ "github.com/ElrondNetwork/elrond-go/api/block"
-	"github.com/ElrondNetwork/elrond-go/api/hardfork"
-	"github.com/ElrondNetwork/elrond-go/api/network"
-	"github.com/ElrondNetwork/elrond-go/api/node"
-	transactionApi "github.com/ElrondNetwork/elrond-go/api/transaction"
-	"github.com/ElrondNetwork/elrond-go/api/validator"
-	"github.com/ElrondNetwork/elrond-go/api/vmValues"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
@@ -25,15 +18,6 @@ import (
 	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
-
-var _ = address.FacadeHandler(&disabledNodeFacade{})
-var _ = hardfork.FacadeHandler(&disabledNodeFacade{})
-var _ = hardfork.FacadeHandler(&disabledNodeFacade{})
-var _ = node.FacadeHandler(&disabledNodeFacade{})
-var _ = network.FacadeHandler(&disabledNodeFacade{})
-var _ = transactionApi.FacadeHandler(&disabledNodeFacade{})
-var _ = validator.FacadeHandler(&disabledNodeFacade{})
-var _ = vmValues.FacadeHandler(&disabledNodeFacade{})
 
 var errNodeStarting = errors.New("node is starting")
 var emptyString = ""
@@ -50,6 +34,21 @@ func NewDisabledNodeFacade(apiInterface string) *disabledNodeFacade {
 		apiInterface:         apiInterface,
 		statusMetricsHandler: NewDisabledStatusMetricsHandler(),
 	}
+}
+
+// GetProof -
+func (nf *disabledNodeFacade) GetProof(_ string, _ string) ([][]byte, error) {
+	return nil, errNodeStarting
+}
+
+// GetProofCurrentRootHash -
+func (nf *disabledNodeFacade) GetProofCurrentRootHash(_ string) ([][]byte, []byte, error) {
+	return nil, nil, errNodeStarting
+}
+
+// VerifyProof -
+func (nf *disabledNodeFacade) VerifyProof(_ string, _ string, _ [][]byte) (bool, error) {
+	return false, errNodeStarting
 }
 
 // SetSyncer does nothing

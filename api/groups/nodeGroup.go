@@ -31,6 +31,7 @@ const (
 	PeerStateCheckpointsKey = "erd_num_peer_state_checkpoints"
 )
 
+// nodeFacadeHandler defines the methods to be implemented by a facade for node requests
 type nodeFacadeHandler interface {
 	GetHeartbeats() ([]data.PubKeyHeartbeat, error)
 	StatusMetrics() external.StatusMetricsHandler

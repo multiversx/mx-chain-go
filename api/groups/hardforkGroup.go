@@ -17,6 +17,7 @@ const (
 	triggerPath          = "/trigger"
 )
 
+// hardforkFacadeHandler defines the methods to be implemented by a facade for handling hardfork requests
 type hardforkFacadeHandler interface {
 	Trigger(epoch uint32, withEarlyEndOfEpoch bool) error
 	IsSelfTrigger() bool
@@ -29,7 +30,7 @@ type hardforkGroup struct {
 	mutFacade sync.RWMutex
 }
 
-// NewHardforkGroup returns a new instance of hardforkFacadeHandler
+// NewHardforkGroup returns a new instance of hardforkGroup
 func NewHardforkGroup(facade hardforkFacadeHandler) (*hardforkGroup, error) {
 	if check.IfNil(facade) {
 		return nil, fmt.Errorf("%w for hardfork group", errors.ErrNilFacadeHandler)

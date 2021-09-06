@@ -23,6 +23,7 @@ const (
 	verifyProofPath                 = "/verify"
 )
 
+// proofFacadeHandler defines the methods to be implemented by a facade for proof requests
 type proofFacadeHandler interface {
 	GetProof(rootHash string, address string) ([][]byte, error)
 	GetProofCurrentRootHash(address string) ([][]byte, []byte, error)

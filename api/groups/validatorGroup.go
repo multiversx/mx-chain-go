@@ -14,6 +14,7 @@ import (
 
 const statisticsPath = "/statistics"
 
+// validatorFacadeHandler defines the methods to be implemented by a facade for validator requests
 type validatorFacadeHandler interface {
 	ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error)
 	IsInterfaceNil() bool

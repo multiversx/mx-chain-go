@@ -19,6 +19,7 @@ const (
 	getBlockByHashPath  = "/by-hash/:hash"
 )
 
+// blockFacadeHandler defines the methods to be implemented by a facade for handling block requests
 type blockFacadeHandler interface {
 	GetBlockByHash(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error)
@@ -27,7 +28,7 @@ type blockFacadeHandler interface {
 
 type blockGroup struct {
 	*baseGroup
-	facade blockFacadeHandler
+	facade    blockFacadeHandler
 	mutFacade sync.RWMutex
 }
 

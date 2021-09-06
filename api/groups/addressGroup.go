@@ -29,6 +29,7 @@ const (
 	getESDTNFTDataPath        = "/:address/nft/:tokenIdentifier/nonce/:nonce"
 )
 
+// addressFacadeHandler defines the methods to be implemented by a facade for handling address requests
 type addressFacadeHandler interface {
 	GetBalance(address string) (*big.Int, error)
 	GetUsername(address string) (string, error)

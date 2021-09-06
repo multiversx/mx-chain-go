@@ -33,7 +33,7 @@ const (
 	queryParamCheckSignature = "checkSignature"
 )
 
-// transactionFacadeHandler interface defines methods that can be used by the gin webserver
+// transactionFacadeHandler defines the methods to be implemented by a facade for transaction requests
 type transactionFacadeHandler interface {
 	CreateTransaction(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
 		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*transaction.Transaction, []byte, error)

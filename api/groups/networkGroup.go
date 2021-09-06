@@ -28,6 +28,7 @@ const (
 	delegatedInfoPath    = "/delegated-info"
 )
 
+// networkFacadeHandler defines the methods to be implemented by a facade for handling network requests
 type networkFacadeHandler interface {
 	GetTotalStakedValue() (*api.StakeValues, error)
 	GetDirectStakedList() ([]*api.DirectStakedValue, error)
@@ -269,7 +270,7 @@ func (ng *networkGroup) UpdateFacade(newFacade interface{}) error {
 	}
 	castFacade, ok := newFacade.(networkFacadeHandler)
 	if !ok {
-		return errors.ErrFacadeWrongTypeAssertion
+		return fmt.Errorf("%w for network group", errors.ErrFacadeWrongTypeAssertion)
 	}
 
 	ng.mutFacade.Lock()
