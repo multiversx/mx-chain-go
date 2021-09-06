@@ -331,6 +331,20 @@ func TestMultipleTimesERC20RustBigIntInBatches(t *testing.T) {
 	displayBenchmarksResults(durations)
 }
 
+func TestMultipleTimesERC20RustBigIntManagedInBatches(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
+	durations, err := DeployAndExecuteERC20WithBigInt(3, 1000, gasSchedule, "../testdata/erc20-c-03/erc20_managed.wasm", "transfer")
+	require.Nil(t, err)
+	displayBenchmarksResults(durations)
+
+	durations, err = DeployAndExecuteERC20WithBigInt(3, 1000, nil, "../testdata/erc20-c-03/erc20_managed.wasm", "transfer")
+	require.Nil(t, err)
+	displayBenchmarksResults(durations)
+}
+
 func displayBenchmarksResults(durations []time.Duration) {
 	if len(durations) == 0 {
 		return
