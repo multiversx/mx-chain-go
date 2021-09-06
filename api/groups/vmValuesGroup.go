@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
@@ -22,22 +23,22 @@ const (
 	queryPath  = "/query"
 )
 
-// vmValuesFacadeHandler defines the methods to be implemented by a facade for vm values requests
 type vmValuesFacadeHandler interface {
 	ExecuteSCQuery(*process.SCQuery) (*vm.VMOutputApi, error)
 	DecodeAddressPubkey(pk string) ([]byte, error)
 	IsInterfaceNil() bool
 }
 
-// NewVmValuesGroup returns a new instance of vmValuesGroup
-func NewVmValuesGroup(facadeHandler interface{}) (*vmValuesGroup, error) {
-	if facadeHandler == nil {
-		return nil, errors.ErrNilFacadeHandler
-	}
+type vmValuesGroup struct {
+	*baseGroup
+	facade    vmValuesFacadeHandler
+	mutFacade sync.RWMutex
+}
 
-	facade, ok := facadeHandler.(vmValuesFacadeHandler)
-	if !ok {
-		return nil, fmt.Errorf("%w for vmValues group", errors.ErrFacadeWrongTypeAssertion)
+// NewVmValuesGroup returns a new instance of vmValuesGroup
+func NewVmValuesGroup(facade vmValuesFacadeHandler) (*vmValuesGroup, error) {
+	if check.IfNil(facade) {
+		return nil, fmt.Errorf("%w for vm values group", errors.ErrNilFacadeHandler)
 	}
 
 	vvg := &vmValuesGroup{
@@ -70,12 +71,6 @@ func NewVmValuesGroup(facadeHandler interface{}) (*vmValuesGroup, error) {
 	vvg.endpoints = endpoints
 
 	return vvg, nil
-}
-
-type vmValuesGroup struct {
-	facade    vmValuesFacadeHandler
-	mutFacade sync.RWMutex
-	*baseGroup
 }
 
 // VMValueRequest represents the structure on which user input for generating a new transaction will validate against
@@ -232,14 +227,19 @@ func (vvg *vmValuesGroup) UpdateFacade(newFacade interface{}) error {
 	if newFacade == nil {
 		return errors.ErrNilFacadeHandler
 	}
-	castedFacade, ok := newFacade.(vmValuesFacadeHandler)
+	castFacade, ok := newFacade.(vmValuesFacadeHandler)
 	if !ok {
 		return errors.ErrFacadeWrongTypeAssertion
 	}
 
 	vvg.mutFacade.Lock()
-	vvg.facade = castedFacade
+	vvg.facade = castFacade
 	vvg.mutFacade.Unlock()
 
 	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (vvg *vmValuesGroup) IsInterfaceNil() bool {
+	return vvg == nil
 }

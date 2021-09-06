@@ -76,3 +76,10 @@ type CheckpointHashesHolder interface {
 	ShouldCommit(hash []byte) bool
 	IsInterfaceNil() bool
 }
+
+// TimeoutHandler is able to tell if a timeout has occurred
+type TimeoutHandler interface {
+	ResetWatchdog()
+	IsTimeout() bool
+	IsInterfaceNil() bool
+}

@@ -69,7 +69,7 @@ func CreateEndpointThrottler(throttlerName string) gin.HandlerFunc {
 	}
 }
 
-// CreateEndpointThrottler will create a middleware-type of handler to be used in conjunction with special
+// CreateEndpointThrottlerFromFacade will create a middleware-type of handler to be used in conjunction with special
 // REST API end points that need to be better protected
 func CreateEndpointThrottlerFromFacade(throttlerName string, facade interface{}) gin.HandlerFunc {
 	return func(c *gin.Context) {

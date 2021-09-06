@@ -39,13 +39,6 @@ func TestNewNodeGroup(t *testing.T) {
 		require.Nil(t, hg)
 	})
 
-	t.Run("wrong type assertion facade", func(t *testing.T) {
-		dummyStruct := struct {}{}
-		hg, err := groups.NewNodeGroup(dummyStruct)
-		require.True(t, errors.Is(err, apiErrors.ErrFacadeWrongTypeAssertion))
-		require.Nil(t, hg)
-	})
-
 	t.Run("should work", func(t *testing.T) {
 		hg, err := groups.NewNodeGroup(&mock.Facade{})
 		require.NoError(t, err)
@@ -53,18 +46,18 @@ func TestNewNodeGroup(t *testing.T) {
 	})
 }
 
-type GeneralResponse struct {
+type generalResponse struct {
 	Message string `json:"message"`
 	Error   string `json:"error"`
 }
 
-type StatusResponse struct {
-	GeneralResponse
+type statusResponse struct {
+	generalResponse
 	Running bool `json:"running"`
 }
 
-type QueryResponse struct {
-	GeneralResponse
+type queryResponse struct {
+	generalResponse
 	Result []string `json:"result"`
 }
 
@@ -93,7 +86,7 @@ func TestHeartbeatstatus_FromFacadeErrors(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	statusRsp := StatusResponse{}
+	statusRsp := statusResponse{}
 	loadResponse(resp.Body, &statusRsp)
 
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
@@ -127,7 +120,7 @@ func TestHeartbeatstatus(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	statusRsp := StatusResponse{}
+	statusRsp := statusResponse{}
 	loadResponseAsString(resp.Body, &statusRsp)
 
 	assert.Equal(t, resp.Code, http.StatusOK)
@@ -235,7 +228,7 @@ func TestQueryDebug_GetQueryErrorsShouldErr(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	queryResponse := &GeneralResponse{}
+	queryResponse := &generalResponse{}
 	loadResponse(resp.Body, queryResponse)
 
 	assert.Equal(t, http.StatusBadRequest, resp.Code)
@@ -273,7 +266,7 @@ func TestQueryDebug_GetQueryShouldWork(t *testing.T) {
 	response := shared.GenericAPIResponse{}
 	loadResponse(resp.Body, &response)
 
-	queryResponse := QueryResponse{}
+	queryResponse := queryResponse{}
 	mapResponseData := response.Data.(map[string]interface{})
 	mapResponseDataBytes, _ := json.Marshal(mapResponseData)
 	_ = json.Unmarshal(mapResponseDataBytes, &queryResponse)
@@ -377,7 +370,7 @@ func TestPrometheusMetrics_ShouldWork(t *testing.T) {
 	assert.True(t, keyAndValueFoundInResponse)
 }
 
-func loadResponseAsString(rsp io.Reader, response *StatusResponse) {
+func loadResponseAsString(rsp io.Reader, response *statusResponse) {
 	buff, err := ioutil.ReadAll(rsp)
 	if err != nil {
 		logError(err)

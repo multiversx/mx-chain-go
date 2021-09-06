@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
@@ -22,23 +23,19 @@ const (
 type blockFacadeHandler interface {
 	GetBlockByHash(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error)
+	IsInterfaceNil() bool
 }
 
 type blockGroup struct {
+	*baseGroup
 	facade    blockFacadeHandler
 	mutFacade sync.RWMutex
-	*baseGroup
 }
 
 // NewBlockGroup returns a new instance of blockGroup
-func NewBlockGroup(facadeHandler interface{}) (*blockGroup, error) {
-	if facadeHandler == nil {
-		return nil, errors.ErrNilFacadeHandler
-	}
-
-	facade, ok := facadeHandler.(blockFacadeHandler)
-	if !ok {
-		return nil, fmt.Errorf("%w for block group", errors.ErrFacadeWrongTypeAssertion)
+func NewBlockGroup(facade blockFacadeHandler) (*blockGroup, error) {
+	if check.IfNil(facade) {
+		return nil, fmt.Errorf("%w for block group", errors.ErrNilFacadeHandler)
 	}
 
 	bg := &blockGroup{
@@ -162,14 +159,19 @@ func (bg *blockGroup) UpdateFacade(newFacade interface{}) error {
 	if newFacade == nil {
 		return errors.ErrNilFacadeHandler
 	}
-	castedFacade, ok := newFacade.(blockFacadeHandler)
+	castFacade, ok := newFacade.(blockFacadeHandler)
 	if !ok {
 		return errors.ErrFacadeWrongTypeAssertion
 	}
 
 	bg.mutFacade.Lock()
-	bg.facade = castedFacade
+	bg.facade = castFacade
 	bg.mutFacade.Unlock()
 
 	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (bg *blockGroup) IsInterfaceNil() bool {
+	return bg == nil
 }

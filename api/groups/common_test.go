@@ -19,7 +19,7 @@ func startWebServer(group shared.GroupHandler, path string, apiConfig config.Api
 	ws := gin.New()
 	ws.Use(cors.Default())
 	routes := ws.Group(path)
-	group.RegisterRoutes(routes, apiConfig, nil)
+	group.RegisterRoutes(routes, apiConfig)
 	return ws
 }
 

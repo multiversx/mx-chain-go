@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
@@ -38,20 +39,15 @@ type networkFacadeHandler interface {
 }
 
 type networkGroup struct {
+	*baseGroup
 	facade    networkFacadeHandler
 	mutFacade sync.RWMutex
-	*baseGroup
 }
 
 // NewNetworkGroup returns a new instance of networkGroup
-func NewNetworkGroup(facadeHandler interface{}) (*networkGroup, error) {
-	if facadeHandler == nil {
-		return nil, errors.ErrNilFacadeHandler
-	}
-
-	facade, ok := facadeHandler.(networkFacadeHandler)
-	if !ok {
-		return nil, fmt.Errorf("%w for network group", errors.ErrFacadeWrongTypeAssertion)
+func NewNetworkGroup(facade networkFacadeHandler) (*networkGroup, error) {
+	if check.IfNil(facade) {
+		return nil, fmt.Errorf("%w for network group", errors.ErrNilFacadeHandler)
 	}
 
 	ng := &networkGroup{
@@ -272,14 +268,19 @@ func (ng *networkGroup) UpdateFacade(newFacade interface{}) error {
 	if newFacade == nil {
 		return errors.ErrNilFacadeHandler
 	}
-	castedFacade, ok := newFacade.(networkFacadeHandler)
+	castFacade, ok := newFacade.(networkFacadeHandler)
 	if !ok {
 		return fmt.Errorf("%w for network group", errors.ErrFacadeWrongTypeAssertion)
 	}
 
 	ng.mutFacade.Lock()
-	ng.facade = castedFacade
+	ng.facade = castFacade
 	ng.mutFacade.Unlock()
 
 	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ng *networkGroup) IsInterfaceNil() bool {
+	return ng == nil
 }
