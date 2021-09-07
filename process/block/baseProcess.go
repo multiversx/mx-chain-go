@@ -591,7 +591,7 @@ func (bp *baseProcessor) createMiniBlockHeaderHandlers(body *block.Body) (int, [
 		var reserved []byte
 		notEmpty := len(body.MiniBlocks[i].TxHashes) > 0
 		if notEmpty && bp.scheduledTxsExecutionHandler.IsScheduledTx(body.MiniBlocks[i].TxHashes[0]) {
-			reserved = []byte{byte(block.ScheduledBlock)}
+			reserved = []byte{byte(block.Scheduled)}
 		}
 
 		miniBlockHeaderHandlers[i] = &block.MiniBlockHeader{

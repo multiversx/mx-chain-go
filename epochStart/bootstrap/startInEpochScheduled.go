@@ -328,7 +328,7 @@ func (ses *startInEpochWithScheduledDataSyncer) getScheduledMiniBlockHeaders(hea
 
 	for i, mbh := range miniBlockHeaders {
 		reserved := mbh.GetReserved()
-		if len(reserved) > 0 && reserved[0] == byte(block.ScheduledBlock) {
+		if len(reserved) > 0 && reserved[0] == byte(block.Scheduled) {
 			schMiniBlockHashes = append(schMiniBlockHashes, miniBlockHeaders[i])
 		}
 	}
