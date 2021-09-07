@@ -119,7 +119,7 @@ func (ws *webServer) StartHttpServer() error {
 
 	server := &http.Server{Addr: ws.facade.RestApiInterface(), Handler: engine}
 	log.Debug("creating gin web sever", "interface", ws.facade.RestApiInterface())
-	wrappedServer, err := NewHttpServer(server)
+	ws.httpServer, err = NewHttpServer(server)
 	if err != nil {
 		return err
 	}
@@ -130,7 +130,7 @@ func (ws *webServer) StartHttpServer() error {
 		"SameSourceResetIntervalInSec", ws.antiFloodConfig.SameSourceResetIntervalInSec,
 	)
 
-	go wrappedServer.Start()
+	go ws.httpServer.Start()
 
 	return nil
 }
