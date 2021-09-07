@@ -284,6 +284,11 @@ func (nf *disabledNodeFacade) GetAllIssuedESDTs(_ string) ([]string, error) {
 	return nil, errNodeStarting
 }
 
+// GetTokenSupply returns nil and error
+func (nf *disabledNodeFacade) GetTokenSupply(_ string) (string, error) {
+	return "", errNodeStarting
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (nf *disabledNodeFacade) IsInterfaceNil() bool {
 	return nf == nil
