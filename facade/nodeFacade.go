@@ -205,6 +205,11 @@ func (nf *nodeFacade) GetAllESDTTokens(address string) (map[string]*esdt.ESDigit
 	return nf.node.GetAllESDTTokens(address)
 }
 
+// GetTokenSupply returns the provided token supply
+func (nf *nodeFacade) GetTokenSupply(token string) (string, error) {
+	return nf.node.GetTokenSupply(token)
+}
+
 // GetAllIssuedESDTs returns all the issued esdts from the esdt system smart contract
 func (nf *nodeFacade) GetAllIssuedESDTs(tokenType string) ([]string, error) {
 	return nf.node.GetAllIssuedESDTs(tokenType)
