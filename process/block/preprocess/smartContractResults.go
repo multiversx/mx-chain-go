@@ -438,7 +438,7 @@ func (scr *smartContractResults) CreateAndProcessMiniBlocks(_ func() bool) (bloc
 }
 
 // ProcessMiniBlock processes all the smartContractResults from a and saves the processed smartContractResults in local cache complete miniblock
-func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, _ func() bool, _ func() (int, int), _ bool) ([][]byte, int, error) {
+func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, _ func() bool, _ func() (int, int), _ bool, _ bool) ([][]byte, int, error) {
 
 	if miniBlock.Type != block.SmartContractResultBlock {
 		return nil, 0, process.ErrWrongTypeInMiniBlock

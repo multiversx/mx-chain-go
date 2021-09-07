@@ -1186,10 +1186,16 @@ func (txs *transactions) ProcessMiniBlock(
 	haveAdditionalTime func() bool,
 	getNumOfCrossInterMbsAndTxs func() (int, int),
 	scheduledMode bool,
+	isNewMiniBlock bool,
 ) ([][]byte, int, error) {
 
 	if miniBlock.Type != block.TxBlock {
 		return nil, 0, process.ErrWrongTypeInMiniBlock
+	}
+
+	numOfNewMiniBlocks := 0
+	if isNewMiniBlock {
+		numOfNewMiniBlocks = 1
 	}
 
 	var err error
@@ -1199,7 +1205,7 @@ func (txs *transactions) ProcessMiniBlock(
 		return nil, 0, err
 	}
 
-	if txs.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(1, len(miniBlockTxs)) {
+	if txs.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(numOfNewMiniBlocks, len(miniBlockTxs)) {
 		return nil, 0, process.ErrMaxBlockSizeReached
 	}
 
@@ -1264,11 +1270,13 @@ func (txs *transactions) ProcessMiniBlock(
 
 		txs.saveAccountBalanceForAddress(miniBlockTxs[index].GetRcvAddr())
 
-		if !scheduledMode {
-			_, err = txs.txProcessor.ProcessTransaction(miniBlockTxs[index])
-			if err != nil {
-				return processedTxHashes, index, err
-			}
+		if scheduledMode {
+			continue
+		}
+
+		_, err = txs.txProcessor.ProcessTransaction(miniBlockTxs[index])
+		if err != nil {
+			return processedTxHashes, index, err
 		}
 	}
 
@@ -1283,7 +1291,7 @@ func (txs *transactions) ProcessMiniBlock(
 		"numOfNewCrossInterMbs", numOfNewCrossInterMbs, "numOfNewCrossInterTxs", numOfNewCrossInterTxs,
 	)
 
-	numMiniBlocks := 1 + numOfNewCrossInterMbs
+	numMiniBlocks := numOfNewMiniBlocks + numOfNewCrossInterMbs
 	numTxs := len(miniBlockTxs) + numOfNewCrossInterTxs
 	if txs.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(numMiniBlocks, numTxs) {
 		return processedTxHashes, len(processedTxHashes), process.ErrMaxBlockSizeReached

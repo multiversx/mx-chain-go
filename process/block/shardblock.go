@@ -1907,7 +1907,6 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool) (*block.Body, e
 
 func (sp *shardProcessor) createPostProcessMiniBlocks() block.MiniBlockSlice {
 	miniBlocks := sp.txCoordinator.CreatePostProcessMiniBlocks()
-
 	for _, miniBlock := range miniBlocks {
 		for _, txHash := range miniBlock.TxHashes {
 			sp.postProcessorTxsHandler.AddPostProcessorTx(txHash)

@@ -17,13 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-type txType int32
-
-const (
-	nonScTx txType = 0
-	scTx    txType = 1
-)
-
 type gasConsumedInfo struct {
 	gasConsumedByMiniBlocksInSenderShard  uint64
 	gasConsumedByMiniBlockInReceiverShard uint64
@@ -35,7 +28,6 @@ type txAndMbInfo struct {
 	numNewMiniBlocks               int
 	isReceiverSmartContractAddress bool
 	isCrossShardScCallOrSpecialTx  bool
-	txType                         txType
 }
 
 type scheduledTxAndMbInfo struct {
@@ -58,9 +50,8 @@ type processedTxsInfo struct {
 type createAndProcessMiniBlocksInfo struct {
 	mapSCTxs                                 map[string]struct{}
 	mapTxsForShard                           map[uint32]int
-	mapScsForShard                           map[uint32]int
 	mapCrossShardScCallsOrSpecialTxs         map[uint32]int
-	mapGasConsumedByMiniBlockInReceiverShard map[uint32]map[txType]uint64
+	mapGasConsumedByMiniBlockInReceiverShard map[uint32]uint64
 	mapMiniBlocks                            map[uint32]*block.MiniBlock
 	senderAddressToSkip                      []byte
 	maxCrossShardScCallsOrSpecialTxsPerShard int
@@ -86,7 +77,7 @@ type createScheduledMiniBlocksInfo struct {
 	maxCrossShardScCallTxsPerShard           int
 	schedulingInfo                           scheduledTxsInfo
 	firstCrossShardScCallTxFound             bool
-	mapGasConsumedByMiniBlockInReceiverShard map[uint32]map[txType]uint64
+	mapGasConsumedByMiniBlockInReceiverShard map[uint32]uint64
 	gasInfo                                  gasConsumedInfo
 	senderAddressToSkip                      []byte
 }

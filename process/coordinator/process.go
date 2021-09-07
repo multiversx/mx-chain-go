@@ -529,18 +529,39 @@ func (tc *transactionCoordinator) processMiniBlocksToMe(
 			return mbIndex, nil
 		}
 
-		preProc := tc.getPreProcessor(miniBlock.Type)
-		if check.IfNil(preProc) {
-			return mbIndex, process.ErrMissingPreProcessor
-		}
-
-		err := preProc.ProcessBlockTransactions(header, &block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}}, haveTime)
+		err := tc.processMiniBlock(header, haveTime, miniBlock)
 		if err != nil {
 			return mbIndex, err
 		}
 	}
 
 	return mbIndex, nil
+}
+
+func (tc *transactionCoordinator) processMiniBlock(
+	header data.HeaderHandler,
+	haveTime func() bool,
+	originalMiniBlock *block.MiniBlock,
+) error {
+
+	miniBlocks, err := tc.extractMiniBlocksBasedOnTxsType(originalMiniBlock)
+	if err != nil {
+		return err
+	}
+
+	for _, miniBlock := range miniBlocks {
+		preProc := tc.getPreProcessor(miniBlock.Type)
+		if check.IfNil(preProc) {
+			return process.ErrMissingPreProcessor
+		}
+
+		err := preProc.ProcessBlockTransactions(header, &block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}}, haveTime)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // CreateMbsAndProcessCrossShardTransactionsDstMe creates miniblocks and processes cross shard transaction
@@ -664,12 +685,12 @@ func (tc *transactionCoordinator) requestMissingTxsAndProcessMiniBlock(
 	shouldSkipShard map[uint32]bool,
 ) (bool, error) {
 
-	miniBlocks, err := tc.extractMiniBlocksBasedOnTxType(originalMiniBlock)
+	miniBlocks, err := tc.extractMiniBlocksBasedOnTxsType(originalMiniBlock)
 	if err != nil {
 		return true, err
 	}
 
-	for _, miniBlock := range miniBlocks {
+	for index, miniBlock := range miniBlocks {
 		preproc := tc.getPreProcessor(miniBlock.Type)
 		if check.IfNil(preproc) {
 			return true, fmt.Errorf("%w unknown block type %d", process.ErrNilPreProcessor, miniBlock.Type)
@@ -689,7 +710,7 @@ func (tc *transactionCoordinator) requestMissingTxsAndProcessMiniBlock(
 		}
 
 		//TODO: We need to send more info forward, as now the original mini block could be here already split in more small mini blocks
-		err = tc.processCompleteMiniBlock(preproc, miniBlock, miniBlockInfo.Hash, haveTime, haveAdditionalTime, scheduledMode)
+		err = tc.processCompleteMiniBlock(preproc, miniBlock, miniBlockInfo.Hash, haveTime, haveAdditionalTime, scheduledMode, index == 0)
 		if err != nil {
 			shouldSkipShard[miniBlockInfo.SenderShardID] = true
 			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: processed complete mini block failed",
@@ -705,12 +726,19 @@ func (tc *transactionCoordinator) requestMissingTxsAndProcessMiniBlock(
 	return false, nil
 }
 
-//extractMiniBlocksBasedOnTxType extracts the given mini block in different small mini blocks based on tx type,
+//extractMiniBlocksBasedOnTxsType extracts the given mini block in different small mini blocks based on tx type,
 //preserving the transactions order in the original mini block
-func (tc *transactionCoordinator) extractMiniBlocksBasedOnTxType(miniBlock *block.MiniBlock) (block.MiniBlockSlice, error) {
+func (tc *transactionCoordinator) extractMiniBlocksBasedOnTxsType(miniBlock *block.MiniBlock) (block.MiniBlockSlice, error) {
 	miniBlocks := make(block.MiniBlockSlice, 0)
-	//TODO: Beside the transactions hashes from mini blocks, we also need the real transactions so we can determine each transaction type
+
+	if !tc.flagMixedTxsInMiniBlocks.IsSet() {
+		miniBlocks = append(miniBlocks, miniBlock)
+		return miniBlocks, nil
+	}
+
+	//TODO: Remove this line and implement the extraction
 	miniBlocks = append(miniBlocks, miniBlock)
+
 	return miniBlocks, nil
 }
 
@@ -1013,11 +1041,12 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 	haveTime func() bool,
 	haveAdditionalTime func() bool,
 	scheduledMode bool,
+	isNewMiniBlock bool,
 ) error {
 
 	snapshot := tc.accounts.JournalLen()
 
-	txsToBeReverted, numTxsProcessed, err := preproc.ProcessMiniBlock(miniBlock, haveTime, haveAdditionalTime, tc.getNumOfCrossInterMbsAndTxs, scheduledMode)
+	txsToBeReverted, numTxsProcessed, err := preproc.ProcessMiniBlock(miniBlock, haveTime, haveAdditionalTime, tc.getNumOfCrossInterMbsAndTxs, scheduledMode, isNewMiniBlock)
 	if err != nil {
 		log.Debug("processCompleteMiniBlock.ProcessMiniBlock",
 			"scheduled mode", scheduledMode,
