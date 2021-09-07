@@ -1049,6 +1049,13 @@ func (sc *scProcessor) isSCExecutionAfterBuiltInFunc(
 	}
 
 	scExecuteOutTransfer := outAcc.OutputTransfers[0]
+	if !sc.flagIncrementSCRNonceInMultiTransfer.IsSet() {
+		_, _, err = sc.argsParser.ParseCallData(string(scExecuteOutTransfer.Data))
+		if err != nil {
+			return true, nil, err
+		}
+	}
+
 	newVMInput := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
 			CallerAddr:           vmInput.CallerAddr,
