@@ -8,6 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/dblookupext/disabled"
+	"github.com/ElrondNetwork/elrond-go/dblookupext/esdtSupply"
 )
 
 // ArgsHistoryRepositoryFactory holds all dependencies required by the history processor factory in order to create
@@ -52,7 +54,16 @@ func NewHistoryRepositoryFactory(args *ArgsHistoryRepositoryFactory) (dblookupex
 // Create creates instances of HistoryRepository
 func (hpf *historyRepositoryFactory) Create() (dblookupext.HistoryRepository, error) {
 	if !hpf.dbLookupExtensionsConfig.Enabled {
-		return dblookupext.NewNilHistoryRepository()
+		return disabled.NewNilHistoryRepository()
+	}
+
+	esdtSuppliesHandler, err := esdtSupply.NewSuppliesProcessor(
+		hpf.marshalizer,
+		hpf.store.GetStorer(dataRetriever.ESDTSuppliesUnit),
+		hpf.store.GetStorer(dataRetriever.TxLogsUnit),
+	)
+	if err != nil {
+		return nil, err
 	}
 
 	historyRepArgs := dblookupext.HistoryRepositoryArguments{
@@ -63,6 +74,7 @@ func (hpf *historyRepositoryFactory) Create() (dblookupext.HistoryRepository, er
 		EpochByHashStorer:           hpf.store.GetStorer(dataRetriever.EpochByHashUnit),
 		MiniblockHashByTxHashStorer: hpf.store.GetStorer(dataRetriever.MiniblockHashByTxHashUnit),
 		EventsHashesByTxHashStorer:  hpf.store.GetStorer(dataRetriever.ResultsHashesByTxHashUnit),
+		ESDTSuppliesHandler:         esdtSuppliesHandler,
 	}
 	return dblookupext.NewHistoryRepository(historyRepArgs)
 }

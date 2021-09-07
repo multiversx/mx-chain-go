@@ -54,9 +54,6 @@ func InitBlockProcessorMock() *BlockProcessorMock {
 // InitMultiSignerMock -
 func InitMultiSignerMock() *cryptoMocks.MultisignerMock {
 	multiSigner := cryptoMocks.NewMultiSigner(21)
-	multiSigner.CreateCommitmentCalled = func() ([]byte, []byte) {
-		return []byte("commSecret"), []byte("commitment")
-	}
 	multiSigner.VerifySignatureShareCalled = func(index uint16, sig []byte, msg []byte, bitmap []byte) error {
 		return nil
 	}
@@ -65,9 +62,6 @@ func InitMultiSignerMock() *cryptoMocks.MultisignerMock {
 	}
 	multiSigner.AggregateSigsCalled = func(bitmap []byte) ([]byte, error) {
 		return []byte("aggregatedSig"), nil
-	}
-	multiSigner.AggregateCommitmentsCalled = func(bitmap []byte) error {
-		return nil
 	}
 	multiSigner.CreateSignatureShareCalled = func(msg []byte, bitmap []byte) ([]byte, error) {
 		return []byte("partialSign"), nil
@@ -101,6 +95,13 @@ func InitKeys() (*KeyGenMock, *PrivateKeyMock, *PublicKeyMock) {
 
 // InitConsensusCore -
 func InitConsensusCore() *ConsensusCoreMock {
+	multiSignerMock := InitMultiSignerMock()
+
+	return InitConsensusCoreWithMultiSigner(multiSignerMock)
+}
+
+// InitConsensusCoreWithMultiSigner -
+func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *ConsensusCoreMock {
 
 	blockChain := &BlockChainMock{
 		GetGenesisHeaderCalled: func() data.HeaderHandler {
@@ -124,7 +125,6 @@ func InitConsensusCore() *ConsensusCoreMock {
 			return make([]byte, 0), nil
 		},
 	}
-	multiSignerMock := InitMultiSignerMock()
 	roundHandlerMock := &RoundHandlerMock{}
 	shardCoordinatorMock := ShardCoordinatorMock{}
 	syncTimerMock := &SyncTimerMock{}
@@ -148,7 +148,7 @@ func InitConsensusCore() *ConsensusCoreMock {
 		marshalizer:             marshalizerMock,
 		blsPrivateKey:           blsPrivateKeyMock,
 		blsSingleSigner:         blsSingleSignerMock,
-		multiSigner:             multiSignerMock,
+		multiSigner:             multiSigner,
 		roundHandler:            roundHandlerMock,
 		shardCoordinator:        shardCoordinatorMock,
 		syncTimer:               syncTimerMock,

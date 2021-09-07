@@ -131,7 +131,44 @@ func CheckAddressHasESDTTokens(
 	esdtData := GetESDTTokenData(t, address, nodes, tokenName)
 	bigValue := big.NewInt(value)
 	if esdtData.Value.Cmp(bigValue) != 0 {
-		require.Fail(t, fmt.Sprintf("esdt balance difference. expected %s, but got %s", bigValue.String(), esdtData.Value.String()))
+		require.Fail(t, fmt.Sprintf("esdt balance difference. Token %s, expected %s, but got %s",
+			tokenName, bigValue.String(), esdtData.Value.String()))
+	}
+}
+
+// CheckAddressHasTokens - Works for both fungible and non-fungible, according to nonce
+func CheckAddressHasTokens(
+	t *testing.T,
+	address []byte,
+	nodes []*integrationTests.TestProcessorNode,
+	tokenName string,
+	nonce int64,
+	value int64,
+) {
+	if nonce == 0 {
+		CheckAddressHasESDTTokens(t, address, nodes, tokenName, value)
+		return
+	}
+
+	nonceAsBigInt := big.NewInt(nonce)
+	valueAsBigInt := big.NewInt(value)
+
+	tokenIdentifierPlusNonce := []byte(tokenName)
+	tokenIdentifierPlusNonce = append(tokenIdentifierPlusNonce, nonceAsBigInt.Bytes()...)
+	esdtData := GetESDTTokenData(t, address, nodes, string(tokenIdentifierPlusNonce))
+
+	if esdtData == nil {
+		esdtData = &esdt.ESDigitalToken{
+			Value: big.NewInt(0),
+		}
+	}
+	if esdtData.Value == nil {
+		esdtData.Value = big.NewInt(0)
+	}
+
+	if valueAsBigInt.Cmp(esdtData.Value) != 0 {
+		require.Fail(t, fmt.Sprintf("esdt NFT balance difference. Token %s, nonce %s, expected %s, but got %s",
+			tokenName, nonceAsBigInt.String(), valueAsBigInt.String(), esdtData.Value.String()))
 	}
 }
 
