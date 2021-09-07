@@ -18,7 +18,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/groups"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
-	"github.com/ElrondNetwork/elrond-go/api/transaction"
 	"github.com/ElrondNetwork/elrond-go/config"
 	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
 	"github.com/stretchr/testify/assert"
@@ -42,7 +41,7 @@ func TestNewTransactionGroup(t *testing.T) {
 }
 
 type transactionResponseData struct {
-	TxResp *transaction.TxResponse `json:"transaction,omitempty"`
+	TxResp *groups.TxResponse `json:"transaction,omitempty"`
 }
 
 type transactionResponse struct {
@@ -207,7 +206,7 @@ func TestSendTransaction_ErrorWithExceededNumGoRoutines(t *testing.T) {
 
 	ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
 
-	tx := transaction.SendTxRequest{}
+	tx := groups.SendTxRequest{}
 
 	jsonBytes, _ := json.Marshal(tx)
 	req, _ := http.NewRequest("POST", "/transaction/send", bytes.NewBuffer(jsonBytes))
@@ -372,8 +371,8 @@ func TestSendMultipleTransactions_ErrorWithExceededNumGoRoutines(t *testing.T) {
 
 	ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
 
-	tx0 := transaction.SendTxRequest{}
-	txs := []*transaction.SendTxRequest{&tx0}
+	tx0 := groups.SendTxRequest{}
+	txs := []*groups.SendTxRequest{&tx0}
 
 	jsonBytes, _ := json.Marshal(txs)
 	req, _ := http.NewRequest("POST", "/transaction/send-multiple", bytes.NewBuffer(jsonBytes))
@@ -440,7 +439,7 @@ func TestSendMultipleTransactions_OkPayloadShouldWork(t *testing.T) {
 
 	ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
 
-	tx0 := transaction.SendTxRequest{
+	tx0 := groups.SendTxRequest{
 		Sender:    "sender1",
 		Receiver:  "receiver1",
 		Value:     "100",
@@ -452,7 +451,7 @@ func TestSendMultipleTransactions_OkPayloadShouldWork(t *testing.T) {
 	}
 	tx1 := tx0
 	tx1.Sender = "sender2"
-	txs := []*transaction.SendTxRequest{&tx0, &tx1}
+	txs := []*groups.SendTxRequest{&tx0, &tx1}
 
 	jsonBytes, _ := json.Marshal(txs)
 
@@ -491,7 +490,7 @@ func TestComputeTransactionGasLimit(t *testing.T) {
 
 	ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
 
-	tx0 := transaction.SendTxRequest{
+	tx0 := groups.SendTxRequest{
 		Sender:    "sender1",
 		Receiver:  "receiver1",
 		Value:     "100",
@@ -567,7 +566,7 @@ func TestSimulateTransaction_CreateErrorsShouldErr(t *testing.T) {
 
 	ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
 
-	tx := transaction.SendTxRequest{
+	tx := groups.SendTxRequest{
 		Sender:    "sender1",
 		Receiver:  "receiver1",
 		Value:     "100",
@@ -622,7 +621,7 @@ func TestSimulateTransaction_ValidateErrorsShouldErr(t *testing.T) {
 
 	ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
 
-	tx := transaction.SendTxRequest{
+	tx := groups.SendTxRequest{
 		Sender:    "sender1",
 		Receiver:  "receiver1",
 		Value:     "100",
@@ -657,7 +656,7 @@ func TestSimulateTransaction_CannotParseParameterShouldErr(t *testing.T) {
 
 	ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
 
-	tx := transaction.SendTxRequest{
+	tx := groups.SendTxRequest{
 		Sender:    "sender1",
 		Receiver:  "receiver1",
 		Value:     "100",
@@ -702,7 +701,7 @@ func TestSimulateTransaction_UseQueryParameterShouldWork(t *testing.T) {
 
 	ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
 
-	tx := transaction.SendTxRequest{
+	tx := groups.SendTxRequest{
 		Sender:    "sender1",
 		Receiver:  "receiver1",
 		Value:     "100",
@@ -746,7 +745,7 @@ func TestSimulateTransaction_ProcessErrorsShouldErr(t *testing.T) {
 
 	ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
 
-	tx := transaction.SendTxRequest{
+	tx := groups.SendTxRequest{
 		Sender:    "sender1",
 		Receiver:  "receiver1",
 		Value:     "100",
@@ -799,7 +798,7 @@ func TestSimulateTransaction(t *testing.T) {
 
 	ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
 
-	tx := transaction.SendTxRequest{
+	tx := groups.SendTxRequest{
 		Sender:    "sender1",
 		Receiver:  "receiver1",
 		Value:     "100",

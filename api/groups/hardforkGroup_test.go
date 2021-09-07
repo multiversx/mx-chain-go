@@ -11,7 +11,6 @@ import (
 
 	apiErrors "github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/groups"
-	"github.com/ElrondNetwork/elrond-go/api/hardfork"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -55,7 +54,7 @@ func TestTrigger_TriggerCanNotExecuteShouldErr(t *testing.T) {
 
 	ws := startWebServer(hardforkGroup, "hardfork", getHardforkRoutesConfig())
 
-	hr := &hardfork.HarforkRequest{
+	hr := &groups.HardforkRequest{
 		Epoch: 4,
 	}
 
@@ -93,7 +92,7 @@ func TestTrigger_ManualShouldWork(t *testing.T) {
 	t.Parallel()
 
 	recoveredEpoch := uint32(0)
-	hr := &hardfork.HarforkRequest{
+	hr := &groups.HardforkRequest{
 		Epoch: 4,
 	}
 	buffHr, _ := json.Marshal(hr)
@@ -147,7 +146,7 @@ func TestTrigger_BroadcastShouldWork(t *testing.T) {
 
 	ws := startWebServer(hardforkGroup, "hardfork", getHardforkRoutesConfig())
 
-	hr := &hardfork.HarforkRequest{
+	hr := &groups.HardforkRequest{
 		Epoch: 4,
 	}
 	buffHr, _ := json.Marshal(hr)

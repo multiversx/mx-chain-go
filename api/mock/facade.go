@@ -340,6 +340,16 @@ func (f *Facade) GetBlockByHash(hash string, withTxs bool) (*api.Block, error) {
 	return f.GetBlockByHashCalled(hash, withTxs)
 }
 
+// Trigger -
+func (f *Facade) Trigger(_ uint32, _ bool) error {
+	return nil
+}
+
+// IsSelfTrigger -
+func (f *Facade) IsSelfTrigger() bool {
+	return false
+}
+
 // Close -
 func (f *Facade) Close() error {
 	return nil

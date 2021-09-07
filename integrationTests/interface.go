@@ -60,11 +60,16 @@ type Facade interface {
 	GetNFTTokenIDsRegisteredByAddress(address string) ([]string, error)
 	GetESDTsWithRole(address string, role string) ([]string, error)
 	GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error)
+	GetESDTsRoles(address string) (map[string][]string, error)
+	GetKeyValuePairs(address string) (map[string]string, error)
 	GetBlockByHash(hash string, withTxs bool) (*dataApi.Block, error)
 	GetBlockByNonce(nonce uint64, withTxs bool) (*dataApi.Block, error)
 	Trigger(epoch uint32, withEarlyEndOfEpoch bool) error
 	IsSelfTrigger() bool
 	GetTotalStakedValue() (*dataApi.StakeValues, error)
+	GetDirectStakedList() ([]*dataApi.DirectStakedValue, error)
+	GetDelegatorsList() ([]*dataApi.Delegator, error)
+	GetAllIssuedESDTs(tokenType string) ([]string, error)
 	GetHeartbeats() ([]data.PubKeyHeartbeat, error)
 	StatusMetrics() external.StatusMetricsHandler
 	GetQueryHandler(name string) (debug.QueryHandler, error)
@@ -84,5 +89,8 @@ type Facade interface {
 	ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error)
 	ExecuteSCQuery(*process.SCQuery) (*vm.VMOutputApi, error)
 	DecodeAddressPubkey(pk string) ([]byte, error)
+	GetProof(rootHash string, address string) ([][]byte, error)
+	GetProofCurrentRootHash(address string) ([][]byte, []byte, error)
+	VerifyProof(rootHash string, address string, proof [][]byte) (bool, error)
 	IsInterfaceNil() bool
 }

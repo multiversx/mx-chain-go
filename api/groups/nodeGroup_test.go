@@ -18,7 +18,6 @@ import (
 	apiErrors "github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/groups"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
-	"github.com/ElrondNetwork/elrond-go/api/node"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/debug"
@@ -165,10 +164,10 @@ func TestStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {
 	assert.True(t, keyAndValueFoundInResponse)
 	assert.False(t, strings.Contains(respStr, p2pKey))
 
-	keyAndValueFoundInResponse = strings.Contains(respStr, node.AccStateCheckpointsKey) && strings.Contains(respStr, strconv.Itoa(numCheckpoints))
+	keyAndValueFoundInResponse = strings.Contains(respStr, groups.AccStateCheckpointsKey) && strings.Contains(respStr, strconv.Itoa(numCheckpoints))
 	assert.True(t, keyAndValueFoundInResponse)
 
-	keyAndValueFoundInResponse = strings.Contains(respStr, node.PeerStateCheckpointsKey) && strings.Contains(respStr, strconv.Itoa(numCheckpoints))
+	keyAndValueFoundInResponse = strings.Contains(respStr, groups.PeerStateCheckpointsKey) && strings.Contains(respStr, strconv.Itoa(numCheckpoints))
 	assert.True(t, keyAndValueFoundInResponse)
 }
 
@@ -216,7 +215,7 @@ func TestQueryDebug_GetQueryErrorsShouldErr(t *testing.T) {
 		},
 	}
 
-	qdr := &node.QueryDebugRequest{}
+	qdr := &groups.QueryDebugRequest{}
 	jsonStr, _ := json.Marshal(qdr)
 
 	nodeGroup, err := groups.NewNodeGroup(&facade)
@@ -251,7 +250,7 @@ func TestQueryDebug_GetQueryShouldWork(t *testing.T) {
 		},
 	}
 
-	qdr := &node.QueryDebugRequest{}
+	qdr := &groups.QueryDebugRequest{}
 	jsonStr, _ := json.Marshal(qdr)
 
 	nodeGroup, err := groups.NewNodeGroup(&facade)
