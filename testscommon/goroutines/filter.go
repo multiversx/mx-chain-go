@@ -7,6 +7,7 @@ var ignorable = []string{
 	"go.opencensus.io",
 	"github.com/libp2p/go-nat",
 	"github.com/beevik/ntp.getTime",
+	"/usr/local/go/src/net/dnsclient_unix.go",
 }
 
 // AllPassFilter returns true for all provided strings
