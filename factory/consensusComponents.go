@@ -446,6 +446,7 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		AccountsDBSyncer:     accountsDBSyncer,
 		CurrentEpochProvider: ccf.processComponents.CurrentEpochProvider(),
 		IsInImportMode:       ccf.isInImportMode,
+		HistoryRepo:          ccf.processComponents.HistoryRepository(),
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -567,6 +568,7 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		AccountsDBSyncer:     accountsDBSyncer,
 		CurrentEpochProvider: ccf.processComponents.CurrentEpochProvider(),
 		IsInImportMode:       ccf.isInImportMode,
+		HistoryRepo:          ccf.processComponents.HistoryRepository(),
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{

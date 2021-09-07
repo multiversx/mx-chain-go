@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "esdtSupply";
+option (gogoproto.stable_marshaler_all) = true;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+// SupplyESDT is used to store information a shard esdt token supply
+message SupplyESDT {
+  bytes  Supply = 1  [(gogoproto.jsontag) = "value", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go-core/data.BigIntCaster"];
+}
