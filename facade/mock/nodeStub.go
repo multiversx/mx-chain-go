@@ -216,6 +216,11 @@ func (ns *NodeStub) GetAllESDTTokens(address string) (map[string]*esdt.ESDigital
 	return make(map[string]*esdt.ESDigitalToken), nil
 }
 
+// GetTokenSupply -
+func (ns *NodeStub) GetTokenSupply(_ string) (string, error) {
+	return "", nil
+}
+
 // GetAllIssuedESDTs -
 func (ns *NodeStub) GetAllIssuedESDTs(tokenType string) ([]string, error) {
 	if ns.GetAllIssuedESDTsCalled != nil {

@@ -18,7 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 )
 
-var log = logger.GetOrCreate("common/dblookupext")
+var log = logger.GetOrCreate("dblookupext")
 
 const sizeOfDeduplicationCache = 1000
 
@@ -31,6 +31,7 @@ type HistoryRepositoryArguments struct {
 	EventsHashesByTxHashStorer  storage.Storer
 	Marshalizer                 marshal.Marshalizer
 	Hasher                      hashing.Hasher
+	ESDTSuppliesHandler         SuppliesHandler
 }
 
 type historyRepository struct {
@@ -41,6 +42,7 @@ type historyRepository struct {
 	eventsHashesByTxHashIndex  *eventsHashesByTxHash
 	marshalizer                marshal.Marshalizer
 	hasher                     hashing.Hasher
+	esdtSuppliesHandler        SuppliesHandler
 
 	// These maps temporarily hold notifications of "notarized at source or destination", to deal with unwanted concurrency effects
 	// The unwanted concurrency effects could be accentuated by the fast db-replay-validate mechanism.
@@ -81,6 +83,9 @@ func NewHistoryRepository(arguments HistoryRepositoryArguments) (*historyReposit
 	if check.IfNil(arguments.EventsHashesByTxHashStorer) {
 		return nil, core.ErrNilStore
 	}
+	if check.IfNil(arguments.ESDTSuppliesHandler) {
+		return nil, errNilESDTSuppliesHandler
+	}
 
 	hashToEpochIndex := newHashToEpochIndex(arguments.EpochByHashStorer, arguments.Marshalizer)
 	deduplicationCacheForInsertMiniblockMetadata, _ := lrucache.NewCache(sizeOfDeduplicationCache)
@@ -99,6 +104,7 @@ func NewHistoryRepository(arguments HistoryRepositoryArguments) (*historyReposit
 		pendingNotarizedAtBothNotifications:          container.NewMutexMap(),
 		deduplicationCacheForInsertMiniblockMetadata: deduplicationCacheForInsertMiniblockMetadata,
 		eventsHashesByTxHashIndex:                    eventsHashesToTxHashIndex,
+		esdtSuppliesHandler:                          arguments.ESDTSuppliesHandler,
 	}, nil
 }
 
@@ -110,6 +116,7 @@ func (hr *historyRepository) RecordBlock(
 	blockBody data.BodyHandler,
 	scrResultsFromPool map[string]data.TransactionHandler,
 	receiptsFromPool map[string]data.TransactionHandler,
+	logs map[string]data.LogHandler,
 ) error {
 	hr.recordBlockMutex.Lock()
 	defer hr.recordBlockMutex.Unlock()
@@ -140,6 +147,11 @@ func (hr *historyRepository) RecordBlock(
 	}
 
 	err = hr.eventsHashesByTxHashIndex.saveResultsHashes(epoch, scrResultsFromPool, receiptsFromPool)
+	if err != nil {
+		return err
+	}
+
+	err = hr.esdtSuppliesHandler.ProcessLogs(blockHeader.GetNonce(), logs)
 	if err != nil {
 		return err
 	}
@@ -427,9 +439,19 @@ func (hr *historyRepository) GetResultsHashesByTxHash(txHash []byte, epoch uint3
 	return hr.eventsHashesByTxHashIndex.getEventsHashesByTxHash(txHash, epoch)
 }
 
-// IsEnabled will always returns true
+// IsEnabled will always return true
 func (hr *historyRepository) IsEnabled() bool {
 	return true
+}
+
+// RevertBlock will return the modification for the current block header
+func (hr *historyRepository) RevertBlock(blockHeader data.HeaderHandler, blockBody data.BodyHandler) error {
+	return hr.esdtSuppliesHandler.RevertChanges(blockHeader, blockBody)
+}
+
+// GetESDTSupply will return the supply from the storage for the given token
+func (hr *historyRepository) GetESDTSupply(token string) (string, error) {
+	return hr.esdtSuppliesHandler.GetESDTSupply(token)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
