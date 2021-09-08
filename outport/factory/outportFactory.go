@@ -41,7 +41,7 @@ func createAndSubscribeDrivers(outport outport.OutportHandler, args *OutportFact
 		return err
 	}
 
-	err = createAndSubscribeCovalentDriverIfNeed(outport, args.CovalentIndexerFactoryArgs)
+	err = createAndSubscribeCovalentDriverIfNeeded(outport, args.CovalentIndexerFactoryArgs)
 	if err != nil {
 		return err
 	}
@@ -49,7 +49,7 @@ func createAndSubscribeDrivers(outport outport.OutportHandler, args *OutportFact
 	return nil
 }
 
-func createAndSubscribeCovalentDriverIfNeed(
+func createAndSubscribeCovalentDriverIfNeeded(
 	outport outport.OutportHandler,
 	args *covalentFactory.ArgsCovalentIndexerFactory,
 ) error {

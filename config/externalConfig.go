@@ -27,6 +27,7 @@ type EventNotifierConfig struct {
 	Password         string
 }
 
+// CovalentConfig will hold the configurations for covalent indexer
 type CovalentConfig struct {
 	Enabled              bool
 	URL                  string
