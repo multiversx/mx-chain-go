@@ -8,7 +8,7 @@ export ELRONDDIR=$(dirname $(dirname $ELRONDTESTNETSCRIPTSDIR))
 
 # Enable the Elrond Proxy. Note that this is a private repository
 # (elrond-proxy-go).
-export USE_PROXY=1
+export USE_PROXY=0
 
 # Enable the Elrond Transaction Generator. Note that this is a private
 # repository (elrond-txgen-go).
@@ -52,13 +52,13 @@ export GENESIS_STAKE_TYPE="direct" #'delegated' or 'direct' as in direct stake
 export OBSERVERS_ANTIFLOOD_DISABLE=0
 
 # Shard structure
-export SHARDCOUNT=2
-export SHARD_VALIDATORCOUNT=3
+export SHARDCOUNT=3
+export SHARD_VALIDATORCOUNT=2
 export SHARD_OBSERVERCOUNT=1
-export SHARD_CONSENSUS_SIZE=3
+export SHARD_CONSENSUS_SIZE=2
 
 # Metashard structure
-export META_VALIDATORCOUNT=3
+export META_VALIDATORCOUNT=2
 export META_OBSERVERCOUNT=1
 export META_CONSENSUS_SIZE=$META_VALIDATORCOUNT
 

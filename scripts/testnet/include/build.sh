@@ -1,6 +1,8 @@
 prepareFolders() {
   [ -d $TESTNETDIR ] || mkdir -p $TESTNETDIR
   cd $TESTNETDIR
+  echo "testnet dir contents"
+  ls -all
   [ -d filegen ] || mkdir -p filegen
   [ -d node ] || mkdir -p node
   [ -d node/config ] || mkdir -p node/config

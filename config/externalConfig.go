@@ -28,6 +28,8 @@ type EventNotifierConfig struct {
 }
 
 type CovalentConfig struct {
-	Enabled bool
-	URL     string
+	Enabled              bool
+	URL                  string
+	RouteSendData        string
+	RouteAcknowledgeData string
 }

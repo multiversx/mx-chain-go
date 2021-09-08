@@ -48,6 +48,7 @@ type StatusComponentsFactoryArgs struct {
 	NetworkComponents  NetworkComponentsHolder
 	StateComponents    StateComponentsHolder
 	IsInImportMode     bool
+	CovPort            string
 }
 
 type statusComponentsFactory struct {
@@ -63,6 +64,7 @@ type statusComponentsFactory struct {
 	networkComponents  NetworkComponentsHolder
 	stateComponents    StateComponentsHolder
 	isInImportMode     bool
+	covPort            string
 }
 
 // NewStatusComponentsFactory will return a status components factory
@@ -104,6 +106,7 @@ func NewStatusComponentsFactory(args StatusComponentsFactoryArgs) (*statusCompon
 		networkComponents:  args.NetworkComponents,
 		stateComponents:    args.StateComponents,
 		isInImportMode:     args.IsInImportMode,
+		covPort:            args.CovPort,
 	}, nil
 }
 
@@ -206,10 +209,14 @@ func (pc *statusComponents) Close() error {
 // createOutportDriver creates a new outport.OutportHandler which is used to register outport drivers
 // once a driver is subscribed it will receive data through the implemented outport.Driver methods
 func (scf *statusComponentsFactory) createOutportDriver() (outport.OutportHandler, error) {
+	nodeType := scf.coreComponents.NodeTypeProvider().GetType()
+
 	outportFactoryArgs := &outportDriverFactory.OutportFactoryArgs{
+		Port:                       scf.covPort,
+		NodeType:                   nodeType,
 		ElasticIndexerFactoryArgs:  scf.makeElasticIndexerArgs(),
 		EventNotifierFactoryArgs:   scf.makeEventNotifierArgs(),
-		CovalentIndexerFactoryArgs: scf.makeCovalentIndexerArgs(),
+		CovalentIndexerFactoryArgs: scf.makeCovalentIndexerArgs(scf.covPort),
 	}
 
 	return outportDriverFactory.CreateOutport(outportFactoryArgs)
@@ -249,15 +256,17 @@ func (scf *statusComponentsFactory) makeEventNotifierArgs() *notifierFactory.Eve
 	}
 }
 
-func (scf *statusComponentsFactory) makeCovalentIndexerArgs() *covalentFactory.ArgsCovalentIndexerFactory {
+func (scf *statusComponentsFactory) makeCovalentIndexerArgs(port string) *covalentFactory.ArgsCovalentIndexerFactory {
 	return &covalentFactory.ArgsCovalentIndexerFactory{
-		URL:              scf.externalConfig.CovalentConnector.URL,
-		Enabled:          scf.externalConfig.CovalentConnector.Enabled,
-		PubKeyConverter:  scf.coreComponents.AddressPubKeyConverter(),
-		Accounts:         scf.stateComponents.AccountsAdapter(),
-		Hasher:           scf.coreComponents.Hasher(),
-		Marshaller:       scf.coreComponents.InternalMarshalizer(),
-		ShardCoordinator: scf.shardCoordinator,
+		Enabled:              scf.externalConfig.CovalentConnector.Enabled,
+		URL:                  "localhost:" + port,
+		RouteSendData:        scf.externalConfig.CovalentConnector.RouteSendData,
+		RouteAcknowledgeData: scf.externalConfig.CovalentConnector.RouteAcknowledgeData,
+		PubKeyConverter:      scf.coreComponents.AddressPubKeyConverter(),
+		Accounts:             scf.stateComponents.AccountsAdapter(),
+		Hasher:               scf.coreComponents.Hasher(),
+		Marshaller:           scf.coreComponents.InternalMarshalizer(),
+		ShardCoordinator:     scf.shardCoordinator,
 	}
 }
 
