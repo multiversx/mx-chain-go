@@ -159,11 +159,6 @@ var (
 		Value: facade.DefaultRestInterface,
 	}
 
-	covalentPort = cli.StringFlag{
-		Name:  "cov-interface",
-		Value: "0",
-	}
-
 	// restApiDebug defines a flag for starting the rest API engine in debug mode
 	restApiDebug = cli.BoolFlag{
 		Name:  "rest-api-debug",
@@ -350,7 +345,6 @@ func getFlags() []cli.Flag {
 		importDbStartInEpoch,
 		redundancyLevel,
 		fullArchive,
-		covalentPort,
 	}
 }
 
@@ -373,7 +367,6 @@ func getFlagsConfig(ctx *cli.Context, log logger.Logger) *config.ContextFlagsCon
 	flagsConfig.EnablePprof = ctx.GlobalBool(profileMode.Name)
 	flagsConfig.UseLogView = ctx.GlobalBool(useLogView.Name)
 	flagsConfig.ValidatorKeyIndex = ctx.GlobalInt(validatorKeyIndex.Name)
-	flagsConfig.CovPort = ctx.GlobalString(covalentPort.Name)
 	return flagsConfig
 }
 

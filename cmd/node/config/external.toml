@@ -35,6 +35,6 @@
 
 [CovalentConnector]
     Enabled = true
-    URL = "http://localhost:1234" #TODO CHANGE THIS
+    URL = "http://localhost:21111"
     RouteSendData = "/block"
     RouteAcknowledgeData = "/acknowledge"
