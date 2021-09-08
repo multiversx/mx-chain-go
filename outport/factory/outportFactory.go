@@ -3,15 +3,12 @@ package factory
 import (
 	covalentFactory "github.com/ElrondNetwork/covalent-indexer-go/factory"
 	indexerFactory "github.com/ElrondNetwork/elastic-indexer-go/factory"
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/outport"
 	notifierFactory "github.com/ElrondNetwork/notifier-go/factory"
 )
 
 // OutportFactoryArgs holds the factory arguments of different outport drivers
 type OutportFactoryArgs struct {
-	Port                       string
-	NodeType                   core.NodeType
 	ElasticIndexerFactoryArgs  *indexerFactory.ArgsIndexerFactory
 	EventNotifierFactoryArgs   *notifierFactory.EventNotifierFactoryArgs
 	CovalentIndexerFactoryArgs *covalentFactory.ArgsCovalentIndexerFactory
@@ -44,7 +41,7 @@ func createAndSubscribeDrivers(outport outport.OutportHandler, args *OutportFact
 		return err
 	}
 
-	err = createAndSubscribeCovalentDriverIfNeed(outport, args.CovalentIndexerFactoryArgs, args.NodeType)
+	err = createAndSubscribeCovalentDriverIfNeed(outport, args.CovalentIndexerFactoryArgs)
 	if err != nil {
 		return err
 	}
@@ -55,9 +52,8 @@ func createAndSubscribeDrivers(outport outport.OutportHandler, args *OutportFact
 func createAndSubscribeCovalentDriverIfNeed(
 	outport outport.OutportHandler,
 	args *covalentFactory.ArgsCovalentIndexerFactory,
-	nodeType core.NodeType,
 ) error {
-	if !args.Enabled || nodeType != core.NodeTypeObserver {
+	if !args.Enabled {
 		return nil
 	}
 

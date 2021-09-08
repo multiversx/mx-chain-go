@@ -300,7 +300,6 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedStateComponents,
 		nodesCoordinator,
 		configs.ImportDbConfig.IsImportDBMode,
-		flagsConfig.CovPort,
 	)
 	if err != nil {
 		return true, err
@@ -790,7 +789,6 @@ func (nr *nodeRunner) CreateManagedStatusComponents(
 	managedStateComponents mainFactory.StateComponentsHandler,
 	nodesCoordinator sharding.NodesCoordinator,
 	isInImportMode bool,
-	covPort string,
 ) (mainFactory.StatusComponentsHandler, error) {
 	statArgs := mainFactory.StatusComponentsFactoryArgs{
 		Config:             *nr.configs.GeneralConfig,
@@ -804,7 +802,6 @@ func (nr *nodeRunner) CreateManagedStatusComponents(
 		NetworkComponents:  managedNetworkComponents,
 		StateComponents:    managedStateComponents,
 		IsInImportMode:     isInImportMode,
-		CovPort:            covPort,
 	}
 
 	statusComponentsFactory, err := mainFactory.NewStatusComponentsFactory(statArgs)

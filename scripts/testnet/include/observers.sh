@@ -82,10 +82,8 @@ assembleCommand_startObserverNode() {
   let "KEY_INDEX=$TOTAL_NODECOUNT - $OBSERVER_INDEX - 1"
   WORKING_DIR=$TESTNETDIR/node_working_dirs/observer$OBSERVER_INDEX
 
-  let "COVPORT=$PORT+10"
-  echo $COVPORT
   local nodeCommand="./node \
-        -port $PORT -cov-interface $COVPORT --profile-mode -log-save -log-level $LOGLEVEL --log-logger-name --log-correlation --use-health-service -rest-api-interface localhost:$RESTAPIPORT \
+        -port $PORT --profile-mode -log-save -log-level $LOGLEVEL --log-logger-name --log-correlation --use-health-service -rest-api-interface localhost:$RESTAPIPORT \
         -destination-shard-as-observer $SHARD \
         -sk-index $KEY_INDEX \
         -working-directory $WORKING_DIR -config ./config/config_observer.toml $EXTRA_OBSERVERS_FLAGS"

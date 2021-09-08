@@ -73,7 +73,6 @@ func TestConsensusComponents_Close_ShouldWork(t *testing.T) {
 		managedStateComponents,
 		nodesCoordinator,
 		false,
-		"",
 	)
 	require.Nil(t, err)
 
