@@ -765,6 +765,36 @@ func CreatePreparedTxProcessorWithVMs(argEnableEpoch ArgEnableEpoch) (*VMTestCon
 	}, nil
 }
 
+// CreatePreparedTxProcessorWithVMsWithShardCoordinator -
+func CreatePreparedTxProcessorWithVMsWithShardCoordinator(argEnableEpoch ArgEnableEpoch, shardC sharding.Coordinator) (*VMTestContext, error) {
+	feeAccumulator, _ := postprocess.NewFeeAccumulator()
+	accounts := CreateInMemoryShardAccountsDB()
+	vmContainer, blockchainHook := CreateVMAndBlockchainHook(accounts, nil, shardC)
+	txProcessor, scProcessor, scForwarder, economicsData, err := CreateTxProcessorWithOneSCExecutorWithVMs(
+		accounts,
+		vmContainer,
+		blockchainHook,
+		feeAccumulator,
+		shardC,
+		argEnableEpoch,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &VMTestContext{
+		TxProcessor:      txProcessor,
+		ScProcessor:      scProcessor,
+		Accounts:         accounts,
+		BlockchainHook:   blockchainHook,
+		VMContainer:      vmContainer,
+		TxFeeHandler:     feeAccumulator,
+		ScForwarder:      scForwarder,
+		ShardCoordinator: shardC,
+		EconomicsData:    economicsData,
+	}, nil
+}
+
 // CreateTxProcessorArwenVMWithGasSchedule -
 func CreateTxProcessorArwenVMWithGasSchedule(
 	senderNonce uint64,
