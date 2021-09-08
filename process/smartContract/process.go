@@ -765,6 +765,11 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 		log.Debug("processed built in functions error", "error", err.Error())
 		return 0, err
 	}
+
+	if vmInput.ReturnCallAfterError && vmInput.CallType != vmcommon.AsynchronousCallBack {
+		return sc.finishSCExecution(make([]data.TransactionHandler, 0), txHash, tx, vmOutput, 0)
+	}
+
 	_, txTypeOnDst := sc.txTypeHandler.ComputeTransactionType(tx)
 	builtInFuncGasUsed, err := sc.computeBuiltInFuncGasUsed(txTypeOnDst, vmInput.Function, vmInput.GasProvided, vmOutput.GasRemaining)
 	log.LogIfError(err, "function", "ExecuteBultInFunction.computeBuiltInFuncGasUsed")
