@@ -1248,12 +1248,20 @@ func (bp *baseProcessor) PruneStateOnRollback(currHeader data.HeaderHandler, cur
 			if err == nil {
 				prevRootHash = scheduledPrevRootHash
 			}
+
+			var prevStartScheduledRootHash []byte
+			if prevHeader.GetAdditionalData() != nil && prevHeader.GetAdditionalData().GetScheduledRootHash() != nil {
+				prevStartScheduledRootHash = prevHeader.GetAdditionalData().GetScheduledRootHash()
+				if bytes.Equal(prevStartScheduledRootHash, prevRootHash) {
+					bp.accountsDB[key].CancelPrune(prevStartScheduledRootHash, state.OldRoot)
+				}
+			}
 		}
 
 		if bytes.Equal(rootHash, prevRootHash) {
 			continue
 		}
-
+		///   K-1:{SCRH_Start, RH} K: {SCRH_START, RH}  SCRH_END
 		bp.accountsDB[key].CancelPrune(prevRootHash, state.OldRoot)
 		bp.accountsDB[key].PruneTrie(rootHash, state.NewRoot)
 	}

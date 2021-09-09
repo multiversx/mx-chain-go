@@ -1057,9 +1057,10 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 		headerRootHashForPruning := header.GetRootHash()
 		prevHeaderRootHashForPruning := prevHeader.GetRootHash()
 
-		scheduledHeaderRootHash, err := sp.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(headerHash)
-		if err == nil {
-			headerRootHashForPruning = scheduledHeaderRootHash
+		scheduledHeaderRootHash, _ := sp.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(headerHash)
+		headerAdditionalData :=  header.GetAdditionalData()
+		if headerAdditionalData != nil && headerAdditionalData.GetScheduledRootHash() != nil {
+			headerRootHashForPruning = headerAdditionalData.GetScheduledRootHash()
 		}
 
 		prevHeaderAdditionalData := prevHeader.GetAdditionalData()
@@ -1085,7 +1086,7 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 			"nonce", header.GetNonce(),
 			"root hash", header.GetRootHash(),
 			"scheduled root hash for pruning", headerRootHashForPruning,
-			"scheduled root hash after block", scheduledHeaderRootHash,
+			"scheduled root hash after processing", scheduledHeaderRootHash,
 		)
 
 		sp.updateStateStorage(
