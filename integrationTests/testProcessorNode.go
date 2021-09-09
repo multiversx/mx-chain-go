@@ -25,7 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
@@ -492,7 +492,8 @@ func NewTestProcessorNodeWithFullGenesis(
 	tpn.initRoundHandler()
 	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
 	tpn.initStorage()
-	tpn.initAccountDBs(CreateMemUnit())
+	tpn.EpochStartNotifier = notifier.NewEpochStartSubscriptionHandler()
+	tpn.initAccountDBsWithPruningStorer(CreateMemUnit())
 	economicsConfig := tpn.createDefaultEconomicsConfig()
 	economicsConfig.GlobalSettings.YearSettings = append(
 		economicsConfig.GlobalSettings.YearSettings,
@@ -615,6 +616,24 @@ func (tpn *TestProcessorNode) GetConnectableAddress() string {
 	}
 
 	return GetConnectableAddress(tpn.Messenger)
+}
+
+func (tpn *TestProcessorNode) initAccountDBsWithPruningStorer(
+	store storage.Storer,
+) {
+	trieStorageManager := CreateTrieStorageManagerWithPruningStorer(store, tpn.ShardCoordinator, tpn.EpochStartNotifier)
+	tpn.TrieContainer = state.NewDataTriesHolder()
+	var stateTrie common.Trie
+	tpn.AccntState, stateTrie = CreateAccountsDB(UserAccount, trieStorageManager)
+	tpn.TrieContainer.Put([]byte(trieFactory.UserAccountTrie), stateTrie)
+
+	var peerTrie common.Trie
+	tpn.PeerState, peerTrie = CreateAccountsDB(ValidatorAccount, trieStorageManager)
+	tpn.TrieContainer.Put([]byte(trieFactory.PeerAccountTrie), peerTrie)
+
+	tpn.TrieStorageManagers = make(map[string]common.StorageManager)
+	tpn.TrieStorageManagers[trieFactory.UserAccountTrie] = trieStorageManager
+	tpn.TrieStorageManagers[trieFactory.PeerAccountTrie] = trieStorageManager
 }
 
 func (tpn *TestProcessorNode) initAccountDBs(store storage.Storer) {

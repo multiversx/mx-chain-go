@@ -734,6 +734,20 @@ func (adb *AccountsDB) JournalLen() int {
 	return length
 }
 
+// CommitInEpoch will commit the current trie state in the given epoch
+func (adb *AccountsDB) CommitInEpoch(currentEpoch uint32, epochToCommit uint32) ([]byte, error) {
+	adb.mutOp.Lock()
+	defer func() {
+		adb.mainTrie.GetStorageManager().SetEpochForPutOperation(currentEpoch)
+		adb.mutOp.Unlock()
+		adb.loadCodeMeasurements.resetAndPrint()
+	}()
+
+	adb.mainTrie.GetStorageManager().SetEpochForPutOperation(epochToCommit)
+
+	return adb.commit()
+}
+
 // Commit will persist all data inside the trie
 func (adb *AccountsDB) Commit() ([]byte, error) {
 	adb.mutOp.Lock()
@@ -742,6 +756,10 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 		adb.loadCodeMeasurements.resetAndPrint()
 	}()
 
+	return adb.commit()
+}
+
+func (adb *AccountsDB) commit() ([]byte, error) {
 	log.Trace("accountsDB.Commit started")
 	adb.entries = make([]JournalEntry, 0)
 
@@ -956,6 +974,10 @@ func (adb *AccountsDB) CancelPrune(rootHash []byte, identifier TriePruningIdenti
 func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
+
+	if hex.EncodeToString(rootHash) == "47cac53a2d9b86f8341a441f67d7d7fea961af50aa55bef0a7ee73777f3f6f2d" {
+		fmt.Println()
+	}
 
 	trieStorageManager := adb.mainTrie.GetStorageManager()
 	log.Trace("accountsDB.SnapshotState", "root hash", rootHash)

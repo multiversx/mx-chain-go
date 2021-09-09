@@ -561,7 +561,7 @@ func (mp *metaProcessor) indexBlock(
 	}
 
 	log.Debug("preparing to index block", "hash", headerHash, "nonce", metaBlock.GetNonce(), "round", metaBlock.GetRound())
-	
+
 	pool := &indexer.Pool{
 		Txs:     mp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock),
 		Scrs:    mp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock),
@@ -1147,7 +1147,7 @@ func (mp *metaProcessor) CommitBlock(
 	mp.saveMetaHeader(header, headerHash, marshalizedHeader)
 	mp.saveBody(body, header)
 
-	err = mp.commitAll()
+	err = mp.commitAll(headerHandler)
 	if err != nil {
 		return err
 	}

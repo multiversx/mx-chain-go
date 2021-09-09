@@ -20,6 +20,7 @@ type StorageManagerStub struct {
 	RemoveCalled                    func([]byte) error
 	ReloadStorersCalled             func(common.DBWriteCacher, common.DBWriteCacher)
 	IsInterfaceNilCalled            func() bool
+	SetEpochForPutOperationCalled   func(uint32)
 }
 
 // Put -
@@ -111,6 +112,13 @@ func (sms *StorageManagerStub) GetSnapshotDbBatchDelay() int {
 func (sms *StorageManagerStub) ReloadStorers(mainStorer common.DBWriteCacher, checkpointsStorer common.DBWriteCacher) {
 	if sms.ReloadStorersCalled != nil {
 		sms.ReloadStorersCalled(mainStorer, checkpointsStorer)
+	}
+}
+
+// SetEpochForPutOperation -
+func (sms *StorageManagerStub) SetEpochForPutOperation(epoch uint32) {
+	if sms.SetEpochForPutOperationCalled != nil {
+		sms.SetEpochForPutOperationCalled(epoch)
 	}
 }
 

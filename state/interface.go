@@ -105,6 +105,7 @@ type AccountsAdapter interface {
 	LoadAccount(address []byte) (vmcommon.AccountHandler, error)
 	SaveAccount(account vmcommon.AccountHandler) error
 	RemoveAccount(address []byte) error
+	CommitInEpoch(currentEpoch uint32, epochToCommit uint32) ([]byte, error)
 	Commit() ([]byte, error)
 	JournalLen() int
 	RevertToSnapshot(snapshot int) error

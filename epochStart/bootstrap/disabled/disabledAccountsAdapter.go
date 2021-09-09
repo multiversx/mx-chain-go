@@ -4,7 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 type accountsAdapter struct {
@@ -109,6 +109,11 @@ func (a *accountsAdapter) RecreateAllTries(_ []byte) (map[string]common.Trie, er
 // GetNumCheckpoints -
 func (a *accountsAdapter) GetNumCheckpoints() uint32 {
 	return 0
+}
+
+// CommitInEpoch -
+func (a *accountsAdapter) CommitInEpoch(_ uint32, _ uint32) ([]byte, error) {
+	return nil, nil
 }
 
 // Close -

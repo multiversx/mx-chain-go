@@ -113,6 +113,11 @@ func (r *readOnlyAccountsDB) GetTrie(_ []byte) (common.Trie, error) {
 	return nil, nil
 }
 
+// CommitInEpoch will do nothing for this implementation
+func (r *readOnlyAccountsDB) CommitInEpoch(_ uint32, _ uint32) ([]byte, error) {
+	return nil, nil
+}
+
 // Close will handle the closing of the underlying components
 func (r *readOnlyAccountsDB) Close() error {
 	return r.originalAccounts.Close()

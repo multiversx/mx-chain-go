@@ -18,6 +18,7 @@ type AccountsStub struct {
 	SaveAccountCalled        func(account vmcommon.AccountHandler) error
 	RemoveAccountCalled      func(addressContainer []byte) error
 	CommitCalled             func() ([]byte, error)
+	CommitInEpochCalled      func(uint32, uint32) ([]byte, error)
 	JournalLenCalled         func() int
 	RevertToSnapshotCalled   func(snapshot int) error
 	RootHashCalled           func() ([]byte, error)
@@ -188,6 +189,15 @@ func (as *AccountsStub) GetNumCheckpoints() uint32 {
 	}
 
 	return 0
+}
+
+// CommitInEpoch -
+func (as *AccountsStub) CommitInEpoch(currentEpoch uint32, epochToCommit uint32) ([]byte, error) {
+	if as.CommitInEpochCalled != nil {
+		return as.CommitInEpochCalled(currentEpoch, epochToCommit)
+	}
+
+	return nil, nil
 }
 
 // Close -

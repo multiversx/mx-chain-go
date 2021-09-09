@@ -830,7 +830,7 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	err = sp.commitAll()
+	err = sp.commitAll(headerHandler)
 	if err != nil {
 		return err
 	}

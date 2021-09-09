@@ -49,6 +49,7 @@ type StorageManager interface {
 	AddDirtyCheckpointHashes([]byte, ModifiedHashes) bool
 	Remove(hash []byte) error
 	ReloadStorers(DBWriteCacher, DBWriteCacher)
+	SetEpochForPutOperation(uint32)
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -60,6 +61,11 @@ type DBWriteCacher interface {
 	Remove(key []byte) error
 	Close() error
 	IsInterfaceNil() bool
+}
+
+// EpochStorer is used for storers that have information stored by epochs
+type EpochStorer interface {
+	SetEpochForPutOperation(epoch uint32)
 }
 
 // SnapshotDbHandler is used to keep track of how many references a snapshot db has
