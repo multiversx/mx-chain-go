@@ -3,6 +3,7 @@ package factory
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -15,11 +16,12 @@ import (
 // ArgsHistoryRepositoryFactory holds all dependencies required by the history processor factory in order to create
 // new instances
 type ArgsHistoryRepositoryFactory struct {
-	SelfShardID uint32
-	Config      config.DbLookupExtensionsConfig
-	Store       dataRetriever.StorageService
-	Marshalizer marshal.Marshalizer
-	Hasher      hashing.Hasher
+	SelfShardID              uint32
+	Config                   config.DbLookupExtensionsConfig
+	Store                    dataRetriever.StorageService
+	Marshalizer              marshal.Marshalizer
+	Hasher                   hashing.Hasher
+	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 }
 
 type historyRepositoryFactory struct {
@@ -28,6 +30,7 @@ type historyRepositoryFactory struct {
 	store                    dataRetriever.StorageService
 	marshalizer              marshal.Marshalizer
 	hasher                   hashing.Hasher
+	uInt64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 }
 
 // NewHistoryRepositoryFactory creates an instance of historyRepositoryFactory
@@ -48,6 +51,7 @@ func NewHistoryRepositoryFactory(args *ArgsHistoryRepositoryFactory) (dblookupex
 		store:                    args.Store,
 		marshalizer:              args.Marshalizer,
 		hasher:                   args.Hasher,
+		uInt64ByteSliceConverter: args.Uint64ByteSliceConverter,
 	}, nil
 }
 
@@ -70,6 +74,8 @@ func (hpf *historyRepositoryFactory) Create() (dblookupext.HistoryRepository, er
 		SelfShardID:                 hpf.selfShardID,
 		Hasher:                      hpf.hasher,
 		Marshalizer:                 hpf.marshalizer,
+		BlockRoundByNonce:           hpf.store.GetStorer(dataRetriever.RoundNonceUnit),
+		Uint64ByteSliceConverter:    hpf.uInt64ByteSliceConverter,
 		MiniblocksMetadataStorer:    hpf.store.GetStorer(dataRetriever.MiniblocksMetadataUnit),
 		EpochByHashStorer:           hpf.store.GetStorer(dataRetriever.EpochByHashUnit),
 		MiniblockHashByTxHashStorer: hpf.store.GetStorer(dataRetriever.MiniblockHashByTxHashUnit),

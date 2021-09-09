@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/container"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -27,6 +28,8 @@ type HistoryRepositoryArguments struct {
 	SelfShardID                 uint32
 	MiniblocksMetadataStorer    storage.Storer
 	MiniblockHashByTxHashStorer storage.Storer
+	BlockRoundByNonce           storage.Storer
+	Uint64ByteSliceConverter    typeConverters.Uint64ByteSliceConverter
 	EpochByHashStorer           storage.Storer
 	EventsHashesByTxHashStorer  storage.Storer
 	Marshalizer                 marshal.Marshalizer
@@ -38,6 +41,8 @@ type historyRepository struct {
 	selfShardID                uint32
 	miniblocksMetadataStorer   storage.Storer
 	miniblockHashByTxHashIndex storage.Storer
+	blockRoundByNonce          storage.Storer
+	uint64ByteSliceConverter   typeConverters.Uint64ByteSliceConverter
 	epochByHashIndex           *epochByHashIndex
 	eventsHashesByTxHashIndex  *eventsHashesByTxHash
 	marshalizer                marshal.Marshalizer
@@ -95,6 +100,7 @@ func NewHistoryRepository(arguments HistoryRepositoryArguments) (*historyReposit
 	return &historyRepository{
 		selfShardID:                           arguments.SelfShardID,
 		miniblocksMetadataStorer:              arguments.MiniblocksMetadataStorer,
+		blockRoundByNonce:                     arguments.BlockRoundByNonce,
 		marshalizer:                           arguments.Marshalizer,
 		hasher:                                arguments.Hasher,
 		epochByHashIndex:                      hashToEpochIndex,
@@ -156,7 +162,19 @@ func (hr *historyRepository) RecordBlock(
 		return err
 	}
 
+	err = hr.putRoundByNonce(blockHeader)
+	if err != nil {
+		return err
+	}
+
 	return nil
+}
+
+func (hr *historyRepository) putRoundByNonce(header data.HeaderHandler) error {
+	roundToByteSlice := hr.uint64ByteSliceConverter.ToByteSlice(header.GetRound())
+	nonceToByteSlice := hr.uint64ByteSliceConverter.ToByteSlice(header.GetNonce())
+
+	return hr.blockRoundByNonce.Put(roundToByteSlice, nonceToByteSlice)
 }
 
 func (hr *historyRepository) recordMiniblock(blockHeaderHash []byte, blockHeader data.HeaderHandler, miniblock *block.MiniBlock, epoch uint32) error {

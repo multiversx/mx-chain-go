@@ -519,6 +519,20 @@ func (psf *StorageServiceFactory) setupDbLookupExtensions(chainStorer *dataRetri
 	createdStorers = append(createdStorers, miniblockHashByTxHashUnit)
 	chainStorer.AddStorer(dataRetriever.MiniblockHashByTxHashUnit, miniblockHashByTxHashUnit)
 
+	// Create the blockRoundByNonce (STATIC) storer
+	blockRoundByNonceConfig := psf.generalConfig.DbLookupExtensions.RoundNonceStorageConfig
+	blockRoundByNonceDBConfig := GetDBFromConfig(blockRoundByNonceConfig.DB)
+	blockRoundByNonceDBConfig.FilePath = psf.pathManager.PathForStatic(shardID, blockRoundByNonceConfig.DB.FilePath)
+	blockRoundByNonceCacherConfig := GetCacherFromConfig(blockRoundByNonceConfig.Cache)
+	blockRoundByNonceBloomFilter := GetBloomFromConfig(blockRoundByNonceConfig.Bloom)
+	blockRoundByNonceUnit, err := storageUnit.NewStorageUnitFromConf(blockRoundByNonceCacherConfig, blockRoundByNonceDBConfig, blockRoundByNonceBloomFilter)
+	if err != nil {
+		return createdStorers, err
+	}
+
+	createdStorers = append(createdStorers, blockRoundByNonceUnit)
+	chainStorer.AddStorer(dataRetriever.RoundNonceUnit, miniblockHashByTxHashUnit)
+
 	// Create the epochByHash (STATIC) storer
 	epochByHashConfig := psf.generalConfig.DbLookupExtensions.EpochByHashStorageConfig
 	epochByHashDbConfig := GetDBFromConfig(epochByHashConfig.DB)

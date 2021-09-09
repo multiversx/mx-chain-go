@@ -896,11 +896,12 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	}
 
 	historyRepoFactoryArgs := &dbLookupFactory.ArgsHistoryRepositoryFactory{
-		SelfShardID: managedBootstrapComponents.ShardCoordinator().SelfId(),
-		Config:      configs.GeneralConfig.DbLookupExtensions,
-		Hasher:      managedCoreComponents.Hasher(),
-		Marshalizer: managedCoreComponents.InternalMarshalizer(),
-		Store:       managedDataComponents.StorageService(),
+		SelfShardID:              managedBootstrapComponents.ShardCoordinator().SelfId(),
+		Config:                   configs.GeneralConfig.DbLookupExtensions,
+		Hasher:                   managedCoreComponents.Hasher(),
+		Marshalizer:              managedCoreComponents.InternalMarshalizer(),
+		Store:                    managedDataComponents.StorageService(),
+		Uint64ByteSliceConverter: managedCoreComponents.Uint64ByteSliceConverter(),
 	}
 	historyRepositoryFactory, err := dbLookupFactory.NewHistoryRepositoryFactory(historyRepoFactoryArgs)
 	if err != nil {

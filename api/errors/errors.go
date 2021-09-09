@@ -67,6 +67,9 @@ var ErrValidationEmptyTxHash = errors.New("TxHash is empty")
 // ErrInvalidBlockNonce signals that an invalid block nonce was provided
 var ErrInvalidBlockNonce = errors.New("invalid block nonce")
 
+// ErrInvalidBlockRound signals that an invalid block round was provided
+var ErrInvalidBlockRound = errors.New("invalid block round")
+
 // ErrInvalidQueryParameter signals and invalid query parameter was provided
 var ErrInvalidQueryParameter = errors.New("invalid query parameter")
 
