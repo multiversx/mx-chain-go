@@ -2829,6 +2829,7 @@ func GetDefaultProcessComponents() *mock.ProcessComponentsStub {
 			},
 		},
 		CurrentEpochProviderInternal: &testscommon.CurrentEpochProviderStub{},
+		HistoryRepositoryInternal:    &dblookupextMock.HistoryRepositoryStub{},
 	}
 }
 

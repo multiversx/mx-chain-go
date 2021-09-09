@@ -220,6 +220,8 @@ func (u *userAccountsSyncer) findAllAccountRootHashes(mainTrie common.Trie) ([][
 
 	rootHashes := make([][]byte, 0)
 	for leaf := range leavesChannel {
+		u.resetTimeoutHandlerWatchdog()
+
 		account := state.NewEmptyUserAccount()
 		err = u.marshalizer.Unmarshal(account, leaf.Value())
 		if err != nil {
@@ -234,4 +236,10 @@ func (u *userAccountsSyncer) findAllAccountRootHashes(mainTrie common.Trie) ([][
 	}
 
 	return rootHashes, nil
+}
+
+// resetTimeoutHandlerWatchdog this method should be called whenever the syncer is doing something other than
+// requesting trie nodes as to prevent the sync process being terminated prematurely.
+func (u *userAccountsSyncer) resetTimeoutHandlerWatchdog() {
+	u.timeoutHandler.ResetWatchdog()
 }

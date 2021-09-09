@@ -89,14 +89,16 @@ const (
 	ResultsHashesByTxHashUnit UnitType = 16
 	// TrieEpochRootHashUnit is the trie epoch <-> root hash storage unit identifier
 	TrieEpochRootHashUnit UnitType = 17
+	// ESDTSuppliesUnit is the ESDT supplies storage unit identifier
+	ESDTSuppliesUnit UnitType = 18
 	// UserAccountsUnit is the user accounts storage unit identifier
-	UserAccountsUnit UnitType = 18
+	UserAccountsUnit UnitType = 19
 	// UserAccountsCheckpointsUnit is the user accounts checkpoints storage unit identifier
-	UserAccountsCheckpointsUnit UnitType = 19
+	UserAccountsCheckpointsUnit UnitType = 20
 	// PeerAccountsUnit is the peer accounts storage unit identifier
-	PeerAccountsUnit UnitType = 20
+	PeerAccountsUnit UnitType = 21
 	// PeerAccountsCheckpointsUnit is the peer accounts checkpoints storage unit identifier
-	PeerAccountsCheckpointsUnit UnitType = 21
+	PeerAccountsCheckpointsUnit UnitType = 22
 
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
 	//TODO: Add only unit types lower than 100
