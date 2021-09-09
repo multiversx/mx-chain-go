@@ -108,12 +108,16 @@ func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager,
 		closer:                 closing.NewSafeChanCloser(),
 	}
 
-	go tsm.storageProcessLoop(ctx, args.Marshalizer, args.Hasher)
+	go tsm.doCheckpointsAndSnapshots(ctx, args.Marshalizer, args.Hasher)
 	return tsm, nil
 }
 
-//nolint
-func (tsm *trieStorageManager) storageProcessLoop(ctx context.Context, msh marshal.Marshalizer, hsh hashing.Hasher) {
+func (tsm *trieStorageManager) doCheckpointsAndSnapshots(ctx context.Context, msh marshal.Marshalizer, hsh hashing.Hasher) {
+	tsm.doProcessLoop(ctx, msh, hsh)
+	tsm.cleanupChans()
+}
+
+func (tsm *trieStorageManager) doProcessLoop(ctx context.Context, msh marshal.Marshalizer, hsh hashing.Hasher) {
 	for {
 		select {
 		case snapshotRequest := <-tsm.snapshotReq:
@@ -122,6 +126,22 @@ func (tsm *trieStorageManager) storageProcessLoop(ctx context.Context, msh marsh
 			tsm.takeCheckpoint(snapshotRequest, msh, hsh, ctx)
 		case <-ctx.Done():
 			log.Debug("trieStorageManager.storageProcessLoop go routine is closing...")
+			return
+		}
+	}
+}
+
+func (tsm *trieStorageManager) cleanupChans() {
+	<-tsm.closer.ChanClose()
+	//at this point we can not add new entries in the snapshot/checkpoint chans
+	for {
+		select {
+		case entry := <-tsm.snapshotReq:
+			tsm.finishOperation(entry, "trie snapshot finished on cleanup")
+		case entry := <-tsm.checkpointReq:
+			tsm.finishOperation(entry, "trie checkpoint finished on cleanup")
+		default:
+			log.Debug("finished trieStorageManager.cleanupChans")
 			return
 		}
 	}
@@ -331,14 +351,14 @@ func (tsm *trieStorageManager) safelyCloseChan(ch chan core.KeyValueHolder) {
 	}
 }
 
+func (tsm *trieStorageManager) finishOperation(snapshotEntry *snapshotsQueueEntry, message string) {
+	tsm.ExitPruningBufferingMode()
+	log.Trace(message, "rootHash", snapshotEntry.rootHash)
+	tsm.safelyCloseChan(snapshotEntry.leavesChan)
+}
+
 func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, msh marshal.Marshalizer, hsh hashing.Hasher, ctx context.Context) {
-	defer func() {
-		tsm.ExitPruningBufferingMode()
-		log.Debug("trie snapshot finished", "rootHash", snapshotEntry.rootHash)
-		if snapshotEntry.leavesChan != nil {
-			close(snapshotEntry.leavesChan)
-		}
-	}()
+	defer tsm.finishOperation(snapshotEntry, "trie snapshot finished")
 
 	log.Debug("trie snapshot started", "rootHash", snapshotEntry.rootHash)
 	if hex.EncodeToString(snapshotEntry.rootHash) == "47cac53a2d9b86f8341a441f67d7d7fea961af50aa55bef0a7ee73777f3f6f2d" {
@@ -362,13 +382,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 }
 
 func (tsm *trieStorageManager) takeCheckpoint(checkpointEntry *snapshotsQueueEntry, msh marshal.Marshalizer, hsh hashing.Hasher, ctx context.Context) {
-	defer func() {
-		tsm.ExitPruningBufferingMode()
-		log.Debug("trie checkpoint finished", "rootHash", checkpointEntry.rootHash)
-		if checkpointEntry.leavesChan != nil {
-			close(checkpointEntry.leavesChan)
-		}
-	}()
+	defer tsm.finishOperation(checkpointEntry, "trie checkpoint finished")
 
 	log.Debug("trie checkpoint started", "rootHash", checkpointEntry.rootHash)
 
