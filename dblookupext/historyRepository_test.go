@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	mock3 "github.com/ElrondNetwork/elrond-go-core/data/mock"
 	"github.com/ElrondNetwork/elrond-go/common/mock"
 	"github.com/ElrondNetwork/elrond-go/dblookupext/esdtSupply"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -91,6 +92,24 @@ func TestNewHistoryRepository(t *testing.T) {
 	repo, err = NewHistoryRepository(args)
 	require.Nil(t, err)
 	require.NotNil(t, repo)
+}
+
+func TestHistoryRepository_RecordBlock_InvalidBlockRoundByNonceStorer_ExpectError(t *testing.T) {
+	t.Parallel()
+
+	errPut := errors.New("error put")
+	args := createMockHistoryRepoArgs(0)
+	args.BlockRoundByNonce = &mock3.StorerStub{
+		PutCalled: func(key, data []byte) error {
+			return errPut
+		},
+	}
+
+	repo, err := NewHistoryRepository(args)
+	require.Nil(t, err)
+
+	err = repo.RecordBlock([]byte("headerHash"), &block.Header{}, &block.Body{}, nil, nil, nil)
+	require.Equal(t, err, errPut)
 }
 
 func TestHistoryRepository_RecordBlock(t *testing.T) {
