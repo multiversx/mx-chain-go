@@ -121,7 +121,7 @@ func getBlockByRound(c *gin.Context) {
 		return
 	}
 
-	round, err := getQueryParamBlock(c)
+	round, err := getQueryParamRound(c)
 	if err != nil {
 		shared.RespondWithValidationError(
 			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidBlockRound.Error()),
@@ -172,13 +172,13 @@ func getQueryParamNonce(c *gin.Context) (uint64, error) {
 	return strconv.ParseUint(nonceStr, 10, 64)
 }
 
-func getQueryParamBlock(c *gin.Context) (uint64, error) {
-	blockStr := c.Param("block")
-	if blockStr == "" {
+func getQueryParamRound(c *gin.Context) (uint64, error) {
+	roundStr := c.Param("round")
+	if roundStr == "" {
 		return 0, errors.ErrInvalidBlockRound
 	}
 
-	return strconv.ParseUint(blockStr, 10, 64)
+	return strconv.ParseUint(roundStr, 10, 64)
 }
 
 func getFacade(c *gin.Context) (BlockService, bool) {

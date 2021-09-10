@@ -353,7 +353,10 @@ func (f *Facade) GetBlockByHash(hash string, withTxs bool) (*api.Block, error) {
 
 // GetBlockByRound -
 func (f *Facade) GetBlockByRound(round uint64, withTxs bool) (*api.Block, error) {
-	return f.GetBlockByRoundCalled(round, withTxs)
+	if f.GetBlockByRoundCalled != nil {
+		return f.GetBlockByRoundCalled(round, withTxs)
+	}
+	return nil, nil
 }
 
 // Close -
