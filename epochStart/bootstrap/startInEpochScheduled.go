@@ -299,6 +299,9 @@ func (ses *startInEpochWithScheduledDataSyncer) saveScheduledSCRs(
 		return
 	}
 
+	log.Debug("startInEpochWithScheduledDataSyncer.saveScheduledSCRs",
+		"headerHash", headerHash,
+		"scheduledRootHash", scheduledRootHash)
 	// prepare the scheduledSCRs in the form of map[block.Type][]data.TransactionHandler
 	// the order should not matter, as the processing is done after sorting by scr hash
 	mapScheduledSCRs := make(map[block.Type][]data.TransactionHandler)
@@ -307,9 +310,7 @@ func (ses *startInEpochWithScheduledDataSyncer) saveScheduledSCRs(
 		scheduledSCRsList = append(scheduledSCRsList, scheduledSCRs[scrHash])
 	}
 	mapScheduledSCRs[block.TxBlock] = scheduledSCRsList
-
-	ses.scheduledTxsHandler.SetScheduledRootHashAndSCRs(scheduledRootHash, mapScheduledSCRs)
-	ses.scheduledTxsHandler.SaveState(headerHash)
+	ses.scheduledTxsHandler.SaveState(headerHash, scheduledRootHash, mapScheduledSCRs)
 }
 
 func (ses *startInEpochWithScheduledDataSyncer) getAllTransactionsForMiniBlocks(miniBlocks map[string]*block.MiniBlock, epoch uint32) (map[string]data.TransactionHandler, error) {

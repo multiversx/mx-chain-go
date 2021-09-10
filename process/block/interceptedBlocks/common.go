@@ -132,7 +132,7 @@ func checkMiniblocks(miniblocks []data.MiniBlockHeaderHandler, coordinator shard
 			return process.ErrInvalidShardId
 		}
 
-		if len(miniblock.GetReserved()) > 1 {
+		if len(miniblock.GetReserved()) > 10 {
 			return process.ErrReservedFieldInvalid
 		}
 	}

@@ -1069,7 +1069,7 @@ func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler, h
 		}
 	}
 
-	bp.scheduledTxsExecutionHandler.SaveState(headerHash)
+	bp.scheduledTxsExecutionHandler.SaveStateIfNeeded(headerHash)
 
 	elapsedTime := time.Since(startTime)
 	if elapsedTime >= common.PutInStorerMaxTime {
