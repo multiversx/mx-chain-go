@@ -406,6 +406,55 @@ func TestGetEnableEpochs_ShouldWork(t *testing.T) {
 	assert.True(t, keyAndValueFoundInResponse)
 }
 
+func TestGetESDTTotalSupply_InternalError(t *testing.T) {
+	expectedErr := errors.New("expected error")
+	facade := mock.Facade{
+		GetTokenSupplyCalled: func(token string) (string, error) {
+			return "", expectedErr
+		},
+	}
+
+	networkGroup, err := groups.NewNetworkGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/network/esdt/supply/token", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	respBytes, _ := ioutil.ReadAll(resp.Body)
+	respStr := string(respBytes)
+	assert.Equal(t, resp.Code, http.StatusInternalServerError)
+
+	keyAndValueInResponse := strings.Contains(respStr, expectedErr.Error())
+	require.True(t, keyAndValueInResponse)
+}
+
+func TestGetESDTTotalSupply(t *testing.T) {
+	facade := mock.Facade{
+		GetTokenSupplyCalled: func(token string) (string, error) {
+			return "1000", nil
+		},
+	}
+
+	networkGroup, err := groups.NewNetworkGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/network/esdt/supply/mytoken-aabb", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	respBytes, _ := ioutil.ReadAll(resp.Body)
+	respStr := string(respBytes)
+	assert.Equal(t, resp.Code, http.StatusOK)
+
+	keyAndValueInResponse := strings.Contains(respStr, "supply") && strings.Contains(respStr, "1000")
+	require.True(t, keyAndValueInResponse)
+}
+
 func getNetworkRoutesConfig() config.ApiRoutesConfig {
 	return config.ApiRoutesConfig{
 		APIPackages: map[string]config.APIPackageConfig{
@@ -419,9 +468,9 @@ func getNetworkRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/enable-epochs", Open: true},
 					{Name: "/direct-staked-info", Open: true},
 					{Name: "/delegated-info", Open: true},
+					{Name: "/esdt/supply/:token", Open: true},
 				},
 			},
 		},
 	}
 }
-

@@ -24,6 +24,7 @@ const (
 	getFFTsPath          = "/esdt/fungible-tokens"
 	getSFTsPath          = "/esdt/semi-fungible-tokens"
 	getNFTsPath          = "/esdt/non-fungible-tokens"
+	getESDTSupplyPath    = "/esdt/supply/:token"
 	directStakedInfoPath = "/direct-staked-info"
 	delegatedInfoPath    = "/delegated-info"
 )
@@ -35,6 +36,7 @@ type networkFacadeHandler interface {
 	GetDelegatorsList() ([]*api.Delegator, error)
 	StatusMetrics() external.StatusMetricsHandler
 	GetAllIssuedESDTs(tokenType string) ([]string, error)
+	GetTokenSupply(token string) (string, error)
 	IsInterfaceNil() bool
 }
 
@@ -67,44 +69,49 @@ func NewNetworkGroup(facade networkFacadeHandler) (*networkGroup, error) {
 			Handler: ng.getNetworkStatus,
 		},
 		{
-			Path: economicsPath,
-			Method: http.MethodGet,
+			Path:    economicsPath,
+			Method:  http.MethodGet,
 			Handler: ng.economicsMetrics,
 		},
 		{
-			Path: enableEpochsPath,
-			Method: http.MethodGet,
+			Path:    enableEpochsPath,
+			Method:  http.MethodGet,
 			Handler: ng.getEnableEpochs,
 		},
 		{
-			Path: getESDTsPath,
-			Method: http.MethodGet,
+			Path:    getESDTsPath,
+			Method:  http.MethodGet,
 			Handler: ng.getHandlerFuncForEsdt(""),
 		},
 		{
-			Path: getFFTsPath,
-			Method: http.MethodGet,
+			Path:    getFFTsPath,
+			Method:  http.MethodGet,
 			Handler: ng.getHandlerFuncForEsdt(core.FungibleESDT),
 		},
 		{
-			Path: getSFTsPath,
-			Method: http.MethodGet,
+			Path:    getSFTsPath,
+			Method:  http.MethodGet,
 			Handler: ng.getHandlerFuncForEsdt(core.SemiFungibleESDT),
 		},
 		{
-			Path: getNFTsPath,
-			Method: http.MethodGet,
+			Path:    getNFTsPath,
+			Method:  http.MethodGet,
 			Handler: ng.getHandlerFuncForEsdt(core.NonFungibleESDT),
 		},
 		{
-			Path: directStakedInfoPath,
-			Method: http.MethodGet,
+			Path:    directStakedInfoPath,
+			Method:  http.MethodGet,
 			Handler: ng.directStakedInfo,
 		},
 		{
-			Path: delegatedInfoPath,
-			Method: http.MethodGet,
+			Path:    delegatedInfoPath,
+			Method:  http.MethodGet,
 			Handler: ng.delegatedInfo,
+		},
+		{
+			Path:    getESDTSupplyPath,
+			Method:  http.MethodGet,
+			Handler: ng.getESDTTokenSupply,
 		},
 	}
 	ng.endpoints = endpoints
@@ -250,6 +257,38 @@ func (ng *networkGroup) delegatedInfo(c *gin.Context) {
 		http.StatusOK,
 		shared.GenericAPIResponse{
 			Data:  gin.H{"list": delegatedList},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+func (ng *networkGroup) getESDTTokenSupply(c *gin.Context) {
+	token := c.Param("token")
+	if token == "" {
+		shared.RespondWithValidationError(
+			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrValidationEmptyToken.Error()),
+		)
+		return
+	}
+
+	supply, err := ng.getFacade().GetTokenSupply(token)
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"supply": supply},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},
