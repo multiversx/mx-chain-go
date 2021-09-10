@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 )
@@ -91,6 +92,9 @@ func NewHistoryRepository(arguments HistoryRepositoryArguments) (*historyReposit
 	if check.IfNil(arguments.ESDTSuppliesHandler) {
 		return nil, errNilESDTSuppliesHandler
 	}
+	if check.IfNil(arguments.Uint64ByteSliceConverter) {
+		return nil, process.ErrNilUint64Converter
+	}
 
 	hashToEpochIndex := newHashToEpochIndex(arguments.EpochByHashStorer, arguments.Marshalizer)
 	deduplicationCacheForInsertMiniblockMetadata, _ := lrucache.NewCache(sizeOfDeduplicationCache)
@@ -111,6 +115,7 @@ func NewHistoryRepository(arguments HistoryRepositoryArguments) (*historyReposit
 		deduplicationCacheForInsertMiniblockMetadata: deduplicationCacheForInsertMiniblockMetadata,
 		eventsHashesByTxHashIndex:                    eventsHashesToTxHashIndex,
 		esdtSuppliesHandler:                          arguments.ESDTSuppliesHandler,
+		uint64ByteSliceConverter:                     arguments.Uint64ByteSliceConverter,
 	}, nil
 }
 
