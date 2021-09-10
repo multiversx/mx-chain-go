@@ -253,17 +253,6 @@ func WithRequestedItemsHandler(requestedItemsHandler dataRetriever.RequestedItem
 	}
 }
 
-// WithNetworkShardingCollector sets up a network sharding updater for the Node
-func WithNetworkShardingCollector(networkShardingCollector NetworkShardingCollector) Option {
-	return func(n *Node) error {
-		if check.IfNil(networkShardingCollector) {
-			return ErrNilNetworkShardingCollector
-		}
-		n.networkShardingCollector = networkShardingCollector
-		return nil
-	}
-}
-
 // WithTxAccumulator sets up a transaction accumulator handler for the Node
 func WithTxAccumulator(accumulator core.Accumulator) Option {
 	return func(n *Node) error {

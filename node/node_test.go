@@ -3114,6 +3114,18 @@ func TestNode_ShouldWork(t *testing.T) {
 
 	pid1 := "pid1"
 	pid2 := "pid2"
+
+	processComponents := getDefaultProcessComponents()
+	processComponents.PeerMapper = &p2pmocks.NetworkShardingCollectorStub{
+		GetPeerInfoCalled: func(pid core.PeerID) core.P2PPeerInfo {
+			return core.P2PPeerInfo{
+				PeerType: 0,
+				ShardID:  0,
+				PkBytes:  pid.Bytes(),
+			}
+		},
+	}
+
 	networkComponents := getDefaultNetworkComponents()
 	networkComponents.Messenger = &p2pmocks.MessengerStub{
 		PeersCalled: func() []core.PeerID {
@@ -3130,15 +3142,7 @@ func TestNode_ShouldWork(t *testing.T) {
 
 	n, _ := node.NewNode(
 		node.WithNetworkComponents(networkComponents),
-		node.WithNetworkShardingCollector(&p2pmocks.NetworkShardingCollectorStub{
-			GetPeerInfoCalled: func(pid core.PeerID) core.P2PPeerInfo {
-				return core.P2PPeerInfo{
-					PeerType: 0,
-					ShardID:  0,
-					PkBytes:  pid.Bytes(),
-				}
-			},
-		}),
+		node.WithProcessComponents(processComponents),
 		node.WithCoreComponents(coreComponents),
 		node.WithPeerDenialEvaluator(&mock.PeerDenialEvaluatorStub{
 			IsDeniedCalled: func(pid core.PeerID) bool {

@@ -2171,7 +2171,6 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithNetworkComponents(networkComponents),
 		node.WithStateComponents(stateComponents),
 		node.WithPeerDenialEvaluator(&mock.PeerDenialEvaluatorStub{}),
-		node.WithNetworkShardingCollector(tpn.NetworkShardingCollector),
 		node.WithTxAccumulator(txAccumulator),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 		node.WithNodeRedundancyHandler(&mock.RedundancyHandlerStub{}),
