@@ -817,7 +817,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 		return err
 	}
 
-	log.Debug("start in epoch bootstrap: started syncUserAccountsState")
+	log.Debug("start in epoch bootstrap: started syncUserAccountsState", "rootHash", rootHashToSync)
 	err = e.syncUserAccountsState(rootHashToSync)
 	if err != nil {
 		return err
