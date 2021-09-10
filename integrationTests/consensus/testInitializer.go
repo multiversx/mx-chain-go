@@ -461,7 +461,6 @@ func createConsensusOnlyNode(
 		node.WithConsensusType(consensusType),
 		node.WithGenesisTime(time.Unix(startTime, 0)),
 		node.WithPeerDenialEvaluator(&mock.PeerDenialEvaluatorStub{}),
-		node.WithNetworkShardingCollector(networkShardingCollector),
 		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
 		node.WithValidatorSignatureSize(signatureSize),
 		node.WithPublicKeySize(publicKeySize),

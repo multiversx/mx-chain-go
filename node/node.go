@@ -74,8 +74,6 @@ type Node struct {
 	peerDenialEvaluator p2p.PeerDenialEvaluator
 	hardforkTrigger     HardforkTrigger
 
-	networkShardingCollector NetworkShardingCollector
-
 	consensusType string
 
 	currentSendingGoRoutines int32
@@ -1205,7 +1203,7 @@ func (n *Node) createPidInfo(p core.PeerID) core.QueryP2PPeerInfo {
 		IsBlacklisted: n.peerDenialEvaluator.IsDenied(p),
 	}
 
-	peerInfo := n.networkShardingCollector.GetPeerInfo(p)
+	peerInfo := n.processComponents.PeerShardMapper().GetPeerInfo(p)
 	result.PeerType = peerInfo.PeerType.String()
 	result.PeerSubType = peerInfo.PeerSubType.String()
 	if len(peerInfo.PkBytes) == 0 {

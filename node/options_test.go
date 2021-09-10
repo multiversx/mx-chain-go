@@ -9,7 +9,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
-	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -179,30 +178,6 @@ func TestWithPeerDenialEvaluator_OkHandlerShouldWork(t *testing.T) {
 	err := opt(node)
 
 	assert.True(t, node.peerDenialEvaluator == blackListHandler)
-	assert.Nil(t, err)
-}
-
-func TestWithNetworkShardingCollector_NilNetworkShardingCollectorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	opt := WithNetworkShardingCollector(nil)
-	err := opt(node)
-
-	assert.Equal(t, ErrNilNetworkShardingCollector, err)
-}
-
-func TestWithNetworkShardingCollector_OkHandlerShouldWork(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	networkShardingCollector := &p2pmocks.NetworkShardingCollectorStub{}
-	opt := WithNetworkShardingCollector(networkShardingCollector)
-	err := opt(node)
-
-	assert.True(t, node.networkShardingCollector == networkShardingCollector)
 	assert.Nil(t, err)
 }
 

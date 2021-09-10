@@ -196,7 +196,6 @@ func (tP2pNode *TestP2PNode) initNode() {
 		node.WithProcessComponents(processComponents),
 		node.WithNetworkComponents(networkComponents),
 		node.WithDataComponents(dataComponents),
-		node.WithNetworkShardingCollector(tP2pNode.NetworkShardingUpdater),
 		node.WithInitialNodesPubKeys(pubkeys),
 		node.WithHardforkTrigger(hardforkTrigger),
 		node.WithPeerDenialEvaluator(&mock.PeerDenialEvaluatorStub{}),
