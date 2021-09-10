@@ -229,7 +229,7 @@ func TestShardAPIBlockProcessor_GetBlockByNonceFromHistoryNode(t *testing.T) {
 	assert.Equal(t, expectedBlock, blk)
 }
 
-func TestShardAPIBlockProcessor_GetBlockByRoundFromHistoryNode(t *testing.T) {
+func TestShardAPIBlockProcessor_GetBlockByRoundFromStorer(t *testing.T) {
 	t.Parallel()
 
 	nonce := uint64(1)
