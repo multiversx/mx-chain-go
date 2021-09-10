@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/dblookupext/disabled"
 	"github.com/ElrondNetwork/elrond-go/dblookupext/esdtSupply"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // ArgsHistoryRepositoryFactory holds all dependencies required by the history processor factory in order to create
@@ -43,6 +44,9 @@ func NewHistoryRepositoryFactory(args *ArgsHistoryRepositoryFactory) (dblookupex
 	}
 	if check.IfNil(args.Store) {
 		return nil, core.ErrNilStore
+	}
+	if check.IfNil(args.Uint64ByteSliceConverter) {
+		return nil, process.ErrNilUint64Converter
 	}
 
 	return &historyRepositoryFactory{
