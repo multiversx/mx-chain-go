@@ -199,7 +199,6 @@ func (tP2pNode *TestP2PNode) initNode() {
 		node.WithInitialNodesPubKeys(pubkeys),
 		node.WithHardforkTrigger(hardforkTrigger),
 		node.WithPeerDenialEvaluator(&mock.PeerDenialEvaluatorStub{}),
-		node.WithNodeRedundancyHandler(redundancyHandler),
 	)
 	log.LogIfError(err)
 
