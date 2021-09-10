@@ -86,6 +86,7 @@ type epochStartBootstrap struct {
 	genesisNodesConfig         sharding.GenesisNodesSetupHandler
 	genesisShardCoordinator    sharding.Coordinator
 	rater                      sharding.ChanceComputer
+	storerScheduledSCRs        storage.Storer
 	trieContainer              state.TriesHolder
 	trieStorageManagers        map[string]common.StorageManager
 	mutTrieStorageManagers     sync.RWMutex
@@ -803,7 +804,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 		return epochStart.ErrWrongTypeAssertion
 	}
 
-	storerScheduledSCRs, err := e.storageOpenerHandler.OpenDB(
+	e.storerScheduledSCRs, err = e.storageOpenerHandler.OpenDB(
 		e.generalConfig.ScheduledSCRsStorage.DB,
 		epochStartData.GetShardID(),
 		epochStartData.GetEpoch(),
@@ -812,7 +813,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 		return err
 	}
 
-	ownShardHdr, rootHashToSync, err := e.updateDataForScheduled(err, storerScheduledSCRs, pendingMiniBlocks, shardNotarizedHeader)
+	ownShardHdr, rootHashToSync, err := e.updateDataForScheduled(err, pendingMiniBlocks, shardNotarizedHeader)
 	if err != nil {
 		return err
 	}
@@ -857,9 +858,9 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 	return nil
 }
 
-func (e *epochStartBootstrap) updateDataForScheduled(err error, storerScheduledSCRs storage.Storer, pendingMiniBlocks map[string]*block.MiniBlock, shardNotarizedHeader data.ShardHeaderHandler) (data.ShardHeaderHandler, []byte, error) {
+func (e *epochStartBootstrap) updateDataForScheduled(err error, pendingMiniBlocks map[string]*block.MiniBlock, shardNotarizedHeader data.ShardHeaderHandler) (data.ShardHeaderHandler, []byte, error) {
 	dataSyncerWithScheduled, err := NewStartInEpochShardHeaderDataSyncerWithScheduled(
-		storerScheduledSCRs,
+		e.storerScheduledSCRs,
 		e.dataPool,
 		e.coreComponentsHolder.InternalMarshalizer(),
 		e.requestHandler,
@@ -1103,6 +1104,11 @@ func (e *epochStartBootstrap) Close() error {
 	if !check.IfNil(e.dataPool) && !check.IfNil(e.dataPool.TrieNodes()) {
 		log.Debug("closing trie nodes data pool....")
 		err := e.dataPool.TrieNodes().Close()
+		log.LogIfError(err)
+	}
+
+	if !check.IfNil(e.storerScheduledSCRs) {
+		err := e.storerScheduledSCRs.Close()
 		log.LogIfError(err)
 	}
 

@@ -242,6 +242,7 @@ func (st *storageBootstrapper) GetHighestBlockNonce() uint64 {
 
 func (st *storageBootstrapper) applyHeaderInfo(hdrInfo bootstrapStorage.BootstrapData) error {
 	headerHash := hdrInfo.LastHeader.Hash
+	log.Debug("storageBootstrapper.applyHeaderInfo", "headerHash", headerHash)
 	headerFromStorage, err := st.bootstrapper.getHeader(headerHash)
 	if err != nil {
 		log.Debug("cannot get header ", "nonce", hdrInfo.LastHeader.Nonce, "error", err.Error())
@@ -258,7 +259,10 @@ func (st *storageBootstrapper) applyHeaderInfo(hdrInfo bootstrapStorage.Bootstra
 	rootHash := headerFromStorage.GetRootHash()
 	scheduledRootHash, err := st.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(headerHash)
 	if err == nil {
+		log.Debug("storageBootstrapper.applyHeaderInfo scheduledTxsExecutionHandler.GetScheduledRootHashForHeader", "scheduledRootHash", scheduledRootHash)
 		rootHash = scheduledRootHash
+	} else {
+		log.Debug("storageBootstrapper.applyHeaderInfo scheduledTxsExecutionHandler.GetScheduledRootHashForHeader", "error", err)
 	}
 
 	err = st.blkExecutor.RevertStateToBlock(headerFromStorage, rootHash)

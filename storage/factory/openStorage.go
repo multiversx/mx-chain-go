@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -99,7 +98,7 @@ func (o *openStorageUnits) getPersisterPath(pathWithoutShard string, shardID str
 func (o *openStorageUnits) OpenDB(dbConfig config.DBConfig, shardID uint32, epoch uint32) (storage.Storer, error) {
 	parentDir := o.latestStorageDataProvider.GetParentDirectory()
 	pathWithoutShard := o.getPathWithoutShard(parentDir, epoch)
-	persisterPath := o.getPersisterPath(pathWithoutShard, core.ShardIdToString(shardID), dbConfig)
+	persisterPath := o.getPersisterPath(pathWithoutShard, fmt.Sprintf("%d", shardID), dbConfig)
 	persisterFactory := NewPersisterFactory(dbConfig)
 
 	persister, err := createDB(persisterFactory, persisterPath)
