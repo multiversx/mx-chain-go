@@ -9,7 +9,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
-	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -182,30 +181,6 @@ func TestWithPeerDenialEvaluator_OkHandlerShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestWithNetworkShardingCollector_NilNetworkShardingCollectorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	opt := WithNetworkShardingCollector(nil)
-	err := opt(node)
-
-	assert.Equal(t, ErrNilNetworkShardingCollector, err)
-}
-
-func TestWithNetworkShardingCollector_OkHandlerShouldWork(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	networkShardingCollector := &p2pmocks.NetworkShardingCollectorStub{}
-	opt := WithNetworkShardingCollector(networkShardingCollector)
-	err := opt(node)
-
-	assert.True(t, node.networkShardingCollector == networkShardingCollector)
-	assert.Nil(t, err)
-}
-
 func TestWithTxAccumulator_NilAccumulatorShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -314,29 +289,5 @@ func TestWithSignTxWithHashEpoch_EnableSignTxWithHashEpochShouldWork(t *testing.
 	err := opt(node)
 
 	assert.Equal(t, epochEnable, node.enableSignTxWithHashEpoch)
-	assert.Nil(t, err)
-}
-
-func TestWithNodeRedundancyHandler_NilNodeRedundancyHandlerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	opt := WithNodeRedundancyHandler(nil)
-	err := opt(node)
-
-	assert.Equal(t, ErrNilNodeRedundancyHandler, err)
-}
-
-func TestWithNodeRedundancyHandler_OkNodeRedundancyHandlerShouldWork(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	nodeRedundancyHandler := &mock.NodeRedundancyHandlerStub{}
-	opt := WithNodeRedundancyHandler(nodeRedundancyHandler)
-	err := opt(node)
-
-	assert.Equal(t, nodeRedundancyHandler, node.nodeRedundancyHandler)
 	assert.Nil(t, err)
 }

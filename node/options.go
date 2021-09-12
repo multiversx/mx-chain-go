@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -253,17 +252,6 @@ func WithRequestedItemsHandler(requestedItemsHandler dataRetriever.RequestedItem
 	}
 }
 
-// WithNetworkShardingCollector sets up a network sharding updater for the Node
-func WithNetworkShardingCollector(networkShardingCollector NetworkShardingCollector) Option {
-	return func(n *Node) error {
-		if check.IfNil(networkShardingCollector) {
-			return ErrNilNetworkShardingCollector
-		}
-		n.networkShardingCollector = networkShardingCollector
-		return nil
-	}
-}
-
 // WithTxAccumulator sets up a transaction accumulator handler for the Node
 func WithTxAccumulator(accumulator core.Accumulator) Option {
 	return func(n *Node) error {
@@ -349,17 +337,6 @@ func WithEnableSignTxWithHashEpoch(enableSignTxWithHashEpoch uint32) Option {
 func WithImportMode(importMode bool) Option {
 	return func(n *Node) error {
 		n.isInImportMode = importMode
-		return nil
-	}
-}
-
-// WithNodeRedundancyHandler sets up a node redundancy handler for the node
-func WithNodeRedundancyHandler(nodeRedundancyHandler consensus.NodeRedundancyHandler) Option {
-	return func(n *Node) error {
-		if check.IfNil(nodeRedundancyHandler) {
-			return ErrNilNodeRedundancyHandler
-		}
-		n.nodeRedundancyHandler = nodeRedundancyHandler
 		return nil
 	}
 }
