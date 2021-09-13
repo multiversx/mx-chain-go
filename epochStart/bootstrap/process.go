@@ -804,16 +804,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 		return epochStart.ErrWrongTypeAssertion
 	}
 
-	e.storerScheduledSCRs, err = e.storageOpenerHandler.OpenDB(
-		e.generalConfig.ScheduledSCRsStorage.DB,
-		epochStartData.GetShardID(),
-		epochStartData.GetEpoch(),
-	)
-	if err != nil {
-		return err
-	}
-
-	ownShardHdr, rootHashToSync, err := e.updateDataForScheduled(err, pendingMiniBlocks, shardNotarizedHeader)
+	ownShardHdr, rootHashToSync, updatedPendingMbs, err := e.getDataToSync(epochStartData, pendingMiniBlocks, shardNotarizedHeader)
 	if err != nil {
 		return err
 	}
@@ -832,7 +823,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 		NodesConfig:         e.nodesConfig,
 		Headers:             e.syncedHeaders,
 		ShardCoordinator:    e.shardCoordinator,
-		PendingMiniBlocks:   pendingMiniBlocks,
+		PendingMiniBlocks:   updatedPendingMbs,
 	}
 
 	storageHandlerComponent, err := NewShardStorageHandler(
@@ -858,7 +849,36 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 	return nil
 }
 
-func (e *epochStartBootstrap) updateDataForScheduled(err error, pendingMiniBlocks map[string]*block.MiniBlock, shardNotarizedHeader data.ShardHeaderHandler) (data.ShardHeaderHandler, []byte, error) {
+func (e *epochStartBootstrap) getDataToSync(
+	epochStartData data.EpochStartShardDataHandler,
+	pendingMiniBlocks map[string]*block.MiniBlock,
+	shardNotarizedHeader data.ShardHeaderHandler,
+) (data.ShardHeaderHandler, []byte, map[string]*block.MiniBlock, error) {
+	var err error
+	e.storerScheduledSCRs, err = e.storageOpenerHandler.OpenDB(
+		e.generalConfig.ScheduledSCRsStorage.DB,
+		epochStartData.GetShardID(),
+		epochStartData.GetEpoch(),
+	)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	ownShardHdr, rootHashToSync, updatedPendingMbs, err := e.updateDataForScheduled(pendingMiniBlocks, shardNotarizedHeader)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	errClose := e.storerScheduledSCRs.Close()
+	log.LogIfError(errClose)
+
+	return ownShardHdr, rootHashToSync, updatedPendingMbs, nil
+}
+
+func (e *epochStartBootstrap) updateDataForScheduled(
+	pendingMiniBlocks map[string]*block.MiniBlock,
+	shardNotarizedHeader data.ShardHeaderHandler,
+) (data.ShardHeaderHandler, []byte, map[string]*block.MiniBlock, error) {
 	dataSyncerWithScheduled, err := NewStartInEpochShardHeaderDataSyncerWithScheduled(
 		e.storerScheduledSCRs,
 		e.dataPool,
@@ -867,16 +887,16 @@ func (e *epochStartBootstrap) updateDataForScheduled(err error, pendingMiniBlock
 		e.enableEpochs.ScheduledMiniBlocksEnableEpoch,
 	)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	ownShardHdr, pendingMiniBlocks, err := dataSyncerWithScheduled.updateSyncDataIfNeeded(shardNotarizedHeader, pendingMiniBlocks)
+	ownShardHdr, updatedPendingMbs, err := dataSyncerWithScheduled.updateSyncDataIfNeeded(shardNotarizedHeader, pendingMiniBlocks)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	rootHashToSync := dataSyncerWithScheduled.getRootHashToSync(shardNotarizedHeader)
-	return ownShardHdr, rootHashToSync, nil
+	return ownShardHdr, rootHashToSync, updatedPendingMbs, nil
 }
 
 func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
@@ -1104,11 +1124,6 @@ func (e *epochStartBootstrap) Close() error {
 	if !check.IfNil(e.dataPool) && !check.IfNil(e.dataPool.TrieNodes()) {
 		log.Debug("closing trie nodes data pool....")
 		err := e.dataPool.TrieNodes().Close()
-		log.LogIfError(err)
-	}
-
-	if !check.IfNil(e.storerScheduledSCRs) {
-		err := e.storerScheduledSCRs.Close()
 		log.LogIfError(err)
 	}
 
