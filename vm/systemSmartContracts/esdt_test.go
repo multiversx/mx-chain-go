@@ -507,7 +507,7 @@ func TestEsdt_ExecuteBurnOnNonBurnableTokenShouldWorkAndReturnBurntTokens(t *tes
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		Burnable: false,
 	})
 	tokensMap[string(tokenName)] = marshalizedData
@@ -540,7 +540,7 @@ func TestEsdt_ExecuteBurn(t *testing.T) {
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		TokenName:  tokenName,
 		Burnable:   true,
 		BurntValue: big.NewInt(100),
@@ -555,7 +555,7 @@ func TestEsdt_ExecuteBurn(t *testing.T) {
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
 
-	esdtData := &ESDTData{}
+	esdtData := &ESDTDataV2{}
 	_ = args.Marshalizer.Unmarshal(esdtData, eei.GetStorage(tokenName))
 	assert.Equal(t, big.NewInt(200), esdtData.BurntValue)
 }
@@ -676,7 +676,7 @@ func TestEsdt_ExecuteMintNotByOwnerShouldFail(t *testing.T) {
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		OwnerAddress: []byte("random address"),
 	})
 	tokensMap[string(tokenName)] = marshalizedData
@@ -705,7 +705,7 @@ func TestEsdt_ExecuteMintWrongMintValueShouldFail(t *testing.T) {
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		OwnerAddress: []byte("owner"),
 	})
 	tokensMap[string(tokenName)] = marshalizedData
@@ -734,7 +734,7 @@ func TestEsdt_ExecuteMintNonMintableTokenShouldFail(t *testing.T) {
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		OwnerAddress: []byte("owner"),
 		Mintable:     false,
 	})
@@ -764,7 +764,7 @@ func TestEsdt_ExecuteMintSavesTokenWithMintedTokensAdded(t *testing.T) {
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		TokenName:    []byte("esdtToken"),
 		OwnerAddress: []byte("owner"),
 		Mintable:     true,
@@ -779,7 +779,7 @@ func TestEsdt_ExecuteMintSavesTokenWithMintedTokensAdded(t *testing.T) {
 
 	_ = e.Execute(vmInput)
 
-	esdtData := &ESDTData{}
+	esdtData := &ESDTDataV2{}
 	_ = args.Marshalizer.Unmarshal(esdtData, eei.GetStorage(tokenName))
 	assert.Equal(t, big.NewInt(300), esdtData.MintedValue)
 
@@ -802,7 +802,7 @@ func TestEsdt_ExecuteMintInvalidDestinationAddressShouldFail(t *testing.T) {
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		TokenName:    tokenName,
 		OwnerAddress: []byte("owner"),
 		Mintable:     true,
@@ -826,7 +826,7 @@ func TestEsdt_ExecuteMintTransferFailsShouldErr(t *testing.T) {
 	err := errors.New("transfer error")
 	args := createMockArgumentsForESDT()
 	args.Eei.(*mock.SystemEIStub).GetStorageCalled = func(key []byte) []byte {
-		marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+		marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 			OwnerAddress: []byte("owner"),
 			Mintable:     true,
 			MintedValue:  big.NewInt(100),
@@ -862,7 +862,7 @@ func TestEsdt_ExecuteMintWithTwoArgsShouldSetOwnerAsDestination(t *testing.T) {
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		TokenName:    tokenName,
 		OwnerAddress: owner,
 		Mintable:     true,
@@ -911,7 +911,7 @@ func TestEsdt_ExecuteMintWithThreeArgsShouldSetThirdArgAsDestination(t *testing.
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		TokenName:    tokenName,
 		OwnerAddress: owner,
 		Mintable:     true,
@@ -1088,7 +1088,7 @@ func TestEsdt_ExecuteToggleFreezeNotByOwnerShouldFail(t *testing.T) {
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		OwnerAddress: []byte("random address"),
 	})
 	tokensMap[tokenName] = marshalizedData
@@ -1123,7 +1123,7 @@ func TestEsdt_ExecuteToggleFreezeNonFreezableTokenShouldFail(t *testing.T) {
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		OwnerAddress: owner,
 		CanFreeze:    false,
 	})
@@ -1151,7 +1151,7 @@ func TestEsdt_ExecuteToggleFreezeTransferFailsShouldErr(t *testing.T) {
 	err := errors.New("transfer error")
 	args := createMockArgumentsForESDT()
 	args.Eei.(*mock.SystemEIStub).GetStorageCalled = func(key []byte) []byte {
-		marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+		marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 			OwnerAddress: []byte("owner"),
 			CanFreeze:    true,
 		})
@@ -1177,7 +1177,7 @@ func TestEsdt_ExecuteToggleFreezeSingleNFTTransferFailsShouldErr(t *testing.T) {
 	err := errors.New("transfer error")
 	args := createMockArgumentsForESDT()
 	args.Eei.(*mock.SystemEIStub).GetStorageCalled = func(key []byte) []byte {
-		marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+		marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 			OwnerAddress: []byte("owner"),
 			CanFreeze:    true,
 			TokenType:    []byte(core.NonFungibleESDT),
@@ -1215,7 +1215,7 @@ func TestEsdt_ExecuteToggleFreezeShouldWorkWithRealBech32Address(t *testing.T) {
 	args.AddressPubKeyConverter = bech32C
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		TokenName:    tokenName,
 		OwnerAddress: owner,
 		CanFreeze:    true,
@@ -1268,7 +1268,7 @@ func TestEsdt_ExecuteToggleFreezeShouldFailWithBech32Converter(t *testing.T) {
 	args.AddressPubKeyConverter = bech32C
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		TokenName:    tokenName,
 		OwnerAddress: owner,
 		CanFreeze:    true,
@@ -1307,7 +1307,7 @@ func TestEsdt_ExecuteToggleFreezeShouldWork(t *testing.T) {
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		TokenName:    tokenName,
 		OwnerAddress: owner,
 		CanFreeze:    true,
@@ -1355,7 +1355,7 @@ func TestEsdt_ExecuteToggleUnFreezeShouldWork(t *testing.T) {
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		TokenName:    tokenName,
 		OwnerAddress: owner,
 		CanFreeze:    true,
@@ -1403,7 +1403,7 @@ func TestEsdt_ExecuteToggleFreezeSingleNFTShouldWork(t *testing.T) {
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		TokenName:    tokenName,
 		OwnerAddress: owner,
 		CanFreeze:    true,
@@ -1452,7 +1452,7 @@ func TestEsdt_ExecuteToggleUnFreezeSingleNFTShouldWork(t *testing.T) {
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		TokenName:    tokenName,
 		OwnerAddress: owner,
 		CanFreeze:    true,
@@ -1605,7 +1605,7 @@ func TestEsdt_ExecuteWipeNotByOwnerShouldFail(t *testing.T) {
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		OwnerAddress: []byte("random address"),
 	})
 	tokensMap[tokenName] = marshalizedData
@@ -1640,7 +1640,7 @@ func TestEsdt_ExecuteWipeNonWipeableTokenShouldFail(t *testing.T) {
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		OwnerAddress: owner,
 		CanWipe:      false,
 	})
@@ -1676,7 +1676,7 @@ func TestEsdt_ExecuteWipeInvalidDestShouldFail(t *testing.T) {
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		OwnerAddress: owner,
 		CanWipe:      true,
 	})
@@ -1704,7 +1704,7 @@ func TestEsdt_ExecuteWipeTransferFailsShouldErr(t *testing.T) {
 	err := errors.New("transfer error")
 	args := createMockArgumentsForESDT()
 	args.Eei.(*mock.SystemEIStub).GetStorageCalled = func(key []byte) []byte {
-		marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+		marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 			OwnerAddress: []byte("owner"),
 			CanWipe:      true,
 			TokenType:    []byte(core.FungibleESDT),
@@ -1731,7 +1731,7 @@ func TestEsdt_ExecuteWipeSingleNFTTransferFailsShouldErr(t *testing.T) {
 	err := errors.New("transfer error")
 	args := createMockArgumentsForESDT()
 	args.Eei.(*mock.SystemEIStub).GetStorageCalled = func(key []byte) []byte {
-		marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+		marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 			OwnerAddress: []byte("owner"),
 			CanWipe:      true,
 			TokenType:    []byte(core.NonFungibleESDT),
@@ -1767,7 +1767,7 @@ func TestEsdt_ExecuteWipeShouldWork(t *testing.T) {
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		TokenName:    tokenName,
 		TokenType:    []byte(core.FungibleESDT),
 		OwnerAddress: owner,
@@ -1815,7 +1815,7 @@ func TestEsdt_ExecuteWipeSingleNFTShouldWork(t *testing.T) {
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		TokenName:    tokenName,
 		TokenType:    []byte(core.NonFungibleESDT),
 		OwnerAddress: owner,
@@ -1943,7 +1943,7 @@ func TestEsdt_ExecutePauseNotByOwnerShouldFail(t *testing.T) {
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		OwnerAddress: []byte("random address"),
 	})
 	tokensMap[tokenName] = marshalizedData
@@ -1972,7 +1972,7 @@ func TestEsdt_ExecutePauseNonPauseableTokenShouldFail(t *testing.T) {
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		OwnerAddress: owner,
 		CanPause:     false,
 	})
@@ -2002,7 +2002,7 @@ func TestEsdt_ExecutePauseOnAPausedTokenShouldFail(t *testing.T) {
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		OwnerAddress: owner,
 		CanPause:     true,
 		IsPaused:     true,
@@ -2033,7 +2033,7 @@ func TestEsdt_ExecuteTogglePauseSavesTokenWithPausedFlagSet(t *testing.T) {
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		TokenName:    tokenName,
 		OwnerAddress: []byte("owner"),
 		CanPause:     true,
@@ -2048,7 +2048,7 @@ func TestEsdt_ExecuteTogglePauseSavesTokenWithPausedFlagSet(t *testing.T) {
 
 	_ = e.Execute(vmInput)
 
-	esdtData := &ESDTData{}
+	esdtData := &ESDTDataV2{}
 	_ = args.Marshalizer.Unmarshal(esdtData, eei.GetStorage(tokenName))
 	assert.Equal(t, true, esdtData.IsPaused)
 }
@@ -2067,7 +2067,7 @@ func TestEsdt_ExecuteTogglePauseShouldWork(t *testing.T) {
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		TokenName:    tokenName,
 		OwnerAddress: owner,
 		CanPause:     true,
@@ -2114,7 +2114,7 @@ func TestEsdt_ExecuteUnPauseOnAnUnPausedTokenShouldFail(t *testing.T) {
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		OwnerAddress: owner,
 		CanPause:     true,
 		IsPaused:     false,
@@ -2145,7 +2145,7 @@ func TestEsdt_ExecuteUnPauseSavesTokenWithPausedFlagSetToFalse(t *testing.T) {
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		TokenName:    tokenName,
 		OwnerAddress: []byte("owner"),
 		CanPause:     true,
@@ -2160,7 +2160,7 @@ func TestEsdt_ExecuteUnPauseSavesTokenWithPausedFlagSetToFalse(t *testing.T) {
 
 	_ = e.Execute(vmInput)
 
-	esdtData := &ESDTData{}
+	esdtData := &ESDTDataV2{}
 	_ = args.Marshalizer.Unmarshal(esdtData, eei.GetStorage(tokenName))
 	assert.Equal(t, false, esdtData.IsPaused)
 }
@@ -2179,7 +2179,7 @@ func TestEsdt_ExecuteUnPauseShouldWork(t *testing.T) {
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		TokenName:    tokenName,
 		OwnerAddress: owner,
 		CanPause:     true,
@@ -2309,7 +2309,7 @@ func TestEsdt_ExecuteTransferOwnershipNotByOwnerShouldFail(t *testing.T) {
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		OwnerAddress: []byte("random address"),
 	})
 	tokensMap[string(tokenName)] = marshalizedData
@@ -2338,7 +2338,7 @@ func TestEsdt_ExecuteTransferOwnershipNonTransferableTokenShouldFail(t *testing.
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		OwnerAddress:   []byte("owner"),
 		CanChangeOwner: false,
 	})
@@ -2368,7 +2368,7 @@ func TestEsdt_ExecuteTransferOwnershipInvalidDestinationAddressShouldFail(t *tes
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		TokenName:      tokenName,
 		OwnerAddress:   []byte("owner"),
 		CanChangeOwner: true,
@@ -2400,7 +2400,7 @@ func TestEsdt_ExecuteTransferOwnershipSavesTokenWithNewOwnerAddressSet(t *testin
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		TokenName:      []byte("esdtToken"),
 		OwnerAddress:   []byte("owner"),
 		CanChangeOwner: true,
@@ -2415,7 +2415,7 @@ func TestEsdt_ExecuteTransferOwnershipSavesTokenWithNewOwnerAddressSet(t *testin
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
 
-	esdtData := &ESDTData{}
+	esdtData := &ESDTDataV2{}
 	_ = args.Marshalizer.Unmarshal(esdtData, eei.GetStorage(tokenName))
 	assert.Equal(t, newOwner, esdtData.OwnerAddress)
 }
@@ -2516,7 +2516,7 @@ func TestEsdt_ExecuteEsdtControlChangesNotByOwnerShouldFail(t *testing.T) {
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		OwnerAddress: []byte("random address"),
 	})
 	tokensMap[string(tokenName)] = marshalizedData
@@ -2545,7 +2545,7 @@ func TestEsdt_ExecuteEsdtControlChangesNonUpgradableTokenShouldFail(t *testing.T
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		OwnerAddress: []byte("owner"),
 		Upgradable:   false,
 	})
@@ -2575,7 +2575,7 @@ func TestEsdt_ExecuteEsdtControlChangesSavesTokenWithUpgradedProperties(t *testi
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		TokenName:        []byte("esdtToken"),
 		TokenType:        []byte(core.FungibleESDT),
 		OwnerAddress:     []byte("owner"),
@@ -2609,7 +2609,7 @@ func TestEsdt_ExecuteEsdtControlChangesSavesTokenWithUpgradedProperties(t *testi
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
 
-	esdtData := &ESDTData{}
+	esdtData := &ESDTDataV2{}
 	_ = args.Marshalizer.Unmarshal(esdtData, eei.GetStorage(tokenName))
 	assert.True(t, esdtData.Burnable)
 	assert.True(t, esdtData.Mintable)
@@ -2749,7 +2749,7 @@ func TestEsdt_GetSpecialRolesNoSpecialRoles(t *testing.T) {
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{})
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{})
 	tokensMap[string(tokenName)] = marshalizedData
 	eei.storageUpdate[string(eei.scAddress)] = tokensMap
 	args.Eei = eei
@@ -2803,7 +2803,7 @@ func TestEsdt_GetSpecialRolesShouldWork(t *testing.T) {
 		},
 	}
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		SpecialRoles: specialRoles,
 	})
 	tokensMap[string(tokenName)] = marshalizedData
@@ -2865,7 +2865,7 @@ func TestEsdt_UnsetSpecialRoleWithRemoveEntryFromSpecialRoles(t *testing.T) {
 		},
 	}
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		OwnerAddress:       ownerBytes,
 		SpecialRoles:       specialRoles,
 		CanAddSpecialRoles: true,
@@ -3056,7 +3056,7 @@ func TestEsdt_SetSpecialRoleNewSendRoleChangeDataErr(t *testing.T) {
 	args := createMockArgumentsForESDT()
 	eei := &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
-			token := &ESDTData{
+			token := &ESDTDataV2{
 				OwnerAddress: []byte("caller"),
 			}
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
@@ -3087,7 +3087,7 @@ func TestEsdt_SetSpecialRoleAlreadyExists(t *testing.T) {
 	args := createMockArgumentsForESDT()
 	eei := &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
-			token := &ESDTData{
+			token := &ESDTDataV2{
 				OwnerAddress: []byte("caller123"),
 				SpecialRoles: []*ESDTRoles{
 					{
@@ -3124,7 +3124,7 @@ func TestEsdt_SetSpecialRoleCannotSaveToken(t *testing.T) {
 	args := createMockArgumentsForESDT()
 	eei := &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
-			token := &ESDTData{
+			token := &ESDTDataV2{
 				OwnerAddress: []byte("caller123"),
 				SpecialRoles: []*ESDTRoles{
 					{
@@ -3165,7 +3165,7 @@ func TestEsdt_SetSpecialRoleShouldWork(t *testing.T) {
 	args := createMockArgumentsForESDT()
 	eei := &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
-			token := &ESDTData{
+			token := &ESDTDataV2{
 				OwnerAddress: []byte("caller123"),
 				SpecialRoles: []*ESDTRoles{
 					{
@@ -3184,7 +3184,7 @@ func TestEsdt_SetSpecialRoleShouldWork(t *testing.T) {
 			return nil
 		},
 		SetStorageCalled: func(key []byte, value []byte) {
-			token := &ESDTData{}
+			token := &ESDTDataV2{}
 			_ = args.Marshalizer.Unmarshal(token, value)
 			require.Equal(t, [][]byte{[]byte(core.ESDTRoleLocalMint), []byte(core.ESDTRoleLocalBurn)}, token.SpecialRoles[0].Roles)
 		},
@@ -3209,7 +3209,7 @@ func TestEsdt_SetSpecialRoleNFTShouldErr(t *testing.T) {
 	args := createMockArgumentsForESDT()
 	eei := &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
-			token := &ESDTData{
+			token := &ESDTDataV2{
 				OwnerAddress: []byte("caller123"),
 				SpecialRoles: []*ESDTRoles{
 					{
@@ -3228,7 +3228,7 @@ func TestEsdt_SetSpecialRoleNFTShouldErr(t *testing.T) {
 			return nil
 		},
 		SetStorageCalled: func(key []byte, value []byte) {
-			token := &ESDTData{}
+			token := &ESDTDataV2{}
 			_ = args.Marshalizer.Unmarshal(token, value)
 			require.Equal(t, [][]byte{[]byte(core.ESDTRoleLocalMint), []byte(core.ESDTRoleNFTCreate)}, token.SpecialRoles[0].Roles)
 		},
@@ -3261,7 +3261,7 @@ func TestEsdt_SetSpecialRoleTransferNotEnabledShouldErr(t *testing.T) {
 	args := createMockArgumentsForESDT()
 	args.EpochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch = 10
 
-	token := &ESDTData{
+	token := &ESDTDataV2{
 		OwnerAddress: []byte("caller123"),
 		SpecialRoles: []*ESDTRoles{
 			{
@@ -3352,7 +3352,7 @@ func TestEsdt_SetSpecialRoleSFTShouldErr(t *testing.T) {
 	args := createMockArgumentsForESDT()
 	eei := &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
-			token := &ESDTData{
+			token := &ESDTDataV2{
 				OwnerAddress: []byte("caller123"),
 				SpecialRoles: []*ESDTRoles{
 					{
@@ -3371,7 +3371,7 @@ func TestEsdt_SetSpecialRoleSFTShouldErr(t *testing.T) {
 			return nil
 		},
 		SetStorageCalled: func(key []byte, value []byte) {
-			token := &ESDTData{}
+			token := &ESDTDataV2{}
 			_ = args.Marshalizer.Unmarshal(token, value)
 			require.Equal(t, [][]byte{[]byte(core.ESDTRoleLocalMint), []byte(core.ESDTRoleNFTAddQuantity)}, token.SpecialRoles[0].Roles)
 		},
@@ -3400,7 +3400,7 @@ func TestEsdt_SetSpecialRoleCreateNFTTwoTimesShouldError(t *testing.T) {
 	args := createMockArgumentsForESDT()
 	eei := &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
-			token := &ESDTData{
+			token := &ESDTDataV2{
 				OwnerAddress: []byte("caller123"),
 				SpecialRoles: []*ESDTRoles{
 					{
@@ -3435,7 +3435,7 @@ func TestEsdt_UnSetSpecialRoleCreateNFTShouldError(t *testing.T) {
 	args := createMockArgumentsForESDT()
 	eei := &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
-			token := &ESDTData{
+			token := &ESDTDataV2{
 				OwnerAddress: []byte("caller123"),
 				SpecialRoles: []*ESDTRoles{
 					{
@@ -3562,7 +3562,7 @@ func TestEsdt_UnsetSpecialRoleNewShouldErr(t *testing.T) {
 	args := createMockArgumentsForESDT()
 	eei := &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
-			token := &ESDTData{
+			token := &ESDTDataV2{
 				OwnerAddress: []byte("caller"),
 			}
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
@@ -3589,7 +3589,7 @@ func TestEsdt_UnsetSpecialRoleCannotRemoveRoleNotExistsShouldErr(t *testing.T) {
 	args := createMockArgumentsForESDT()
 	eei := &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
-			token := &ESDTData{
+			token := &ESDTDataV2{
 				OwnerAddress: []byte("caller123"),
 				SpecialRoles: []*ESDTRoles{
 					{
@@ -3623,7 +3623,7 @@ func TestEsdt_UnsetSpecialRoleRemoveRoleTransferErr(t *testing.T) {
 	args := createMockArgumentsForESDT()
 	eei := &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
-			token := &ESDTData{
+			token := &ESDTDataV2{
 				OwnerAddress: []byte("caller123"),
 				SpecialRoles: []*ESDTRoles{
 					{
@@ -3660,7 +3660,7 @@ func TestEsdt_UnsetSpecialRoleRemoveRoleSaveTokenErr(t *testing.T) {
 	args := createMockArgumentsForESDT()
 	eei := &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
-			token := &ESDTData{
+			token := &ESDTDataV2{
 				OwnerAddress: []byte("caller123"),
 				SpecialRoles: []*ESDTRoles{
 					{
@@ -3699,7 +3699,7 @@ func TestEsdt_UnsetSpecialRoleRemoveRoleShouldWork(t *testing.T) {
 	args := createMockArgumentsForESDT()
 	eei := &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
-			token := &ESDTData{
+			token := &ESDTDataV2{
 				OwnerAddress: []byte("caller123"),
 				SpecialRoles: []*ESDTRoles{
 					{
@@ -3716,7 +3716,7 @@ func TestEsdt_UnsetSpecialRoleRemoveRoleShouldWork(t *testing.T) {
 			return nil
 		},
 		SetStorageCalled: func(key []byte, value []byte) {
-			token := &ESDTData{}
+			token := &ESDTDataV2{}
 			_ = args.Marshalizer.Unmarshal(token, value)
 			require.Len(t, token.SpecialRoles, 0)
 		},
@@ -3767,7 +3767,7 @@ func TestEsdt_StopNFTCreateForeverCallErrors(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	token := &ESDTData{
+	token := &ESDTDataV2{
 		OwnerAddress: []byte("caller1"),
 		SpecialRoles: []*ESDTRoles{
 			{
@@ -3811,7 +3811,7 @@ func TestEsdt_StopNFTCreateForeverCallShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	token := &ESDTData{
+	token := &ESDTDataV2{
 		OwnerAddress: []byte("caller1"),
 		SpecialRoles: []*ESDTRoles{
 			{
@@ -3876,7 +3876,7 @@ func TestEsdt_TransferNFTCreateCallErrors(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	token := &ESDTData{
+	token := &ESDTDataV2{
 		OwnerAddress: []byte("caller1"),
 		SpecialRoles: []*ESDTRoles{
 			{
@@ -3928,7 +3928,7 @@ func TestEsdt_TransferNFTCreateCallShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	token := &ESDTData{
+	token := &ESDTDataV2{
 		OwnerAddress: []byte("caller1"),
 		SpecialRoles: []*ESDTRoles{
 			{
@@ -4014,7 +4014,7 @@ func TestEsdt_GetAllAddressesAndRolesCallGetExistingTokenErr(t *testing.T) {
 	args := createMockArgumentsForESDT()
 	eei := &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
-			token := &ESDTData{
+			token := &ESDTDataV2{
 				OwnerAddress: []byte("caller123"),
 				SpecialRoles: []*ESDTRoles{
 					{

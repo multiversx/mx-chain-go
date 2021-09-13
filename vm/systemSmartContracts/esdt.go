@@ -39,6 +39,7 @@ const canChangeOwner = "canChangeOwner"
 const canAddSpecialRoles = "canAddSpecialRoles"
 const canTransferNFTCreateRole = "canTransferNFTCreateRole"
 const upgradable = "canUpgrade"
+const canCreateMultiShard = "canCreateMultiShard"
 
 const conversionBase = 10
 
@@ -374,7 +375,7 @@ func (e *esdt) createNewToken(
 		return nil, err
 	}
 
-	newESDTToken := &ESDTData{
+	newESDTToken := &ESDTDataV2{
 		OwnerAddress:       owner,
 		TokenName:          tokenName,
 		TickerName:         tickerName,
@@ -385,7 +386,7 @@ func (e *esdt) createNewToken(
 		Upgradable:         true,
 		CanAddSpecialRoles: true,
 	}
-	err = upgradeProperties(newESDTToken, properties, string(tokenType))
+	err = e.upgradeProperties(newESDTToken, properties, true)
 	if err != nil {
 		return nil, err
 	}
@@ -449,9 +450,9 @@ func (e *esdt) createNewTokenIdentifier(caller []byte, ticker []byte) ([]byte, e
 	return nil, vm.ErrCouldNotCreateNewTokenIdentifier
 }
 
-func upgradeProperties(token *ESDTData, args [][]byte, tokenType string) error {
+func (e *esdt) upgradeProperties(token *ESDTDataV2, args [][]byte, isCreate bool) error {
 	mintBurnable := true
-	if tokenType != core.FungibleESDT {
+	if string(token.TokenType) != core.FungibleESDT {
 		mintBurnable = false
 	}
 
@@ -493,6 +494,17 @@ func upgradeProperties(token *ESDTData, args [][]byte, tokenType string) error {
 			token.CanAddSpecialRoles = val
 		case canTransferNFTCreateRole:
 			token.CanTransferNFTCreateRole = val
+		case canCreateMultiShard:
+			if !e.flagNFTCreateONMultiShard.IsSet() {
+				return vm.ErrInvalidArgument
+			}
+			if mintBurnable {
+				return vm.ErrInvalidArgument
+			}
+			if !isCreate {
+				return vm.ErrInvalidArgument
+			}
+			token.CanCreateMultiShard = val
 		default:
 			return vm.ErrInvalidArgument
 		}
@@ -713,7 +725,7 @@ func isArgumentsUint64(arg []byte) bool {
 
 func (e *esdt) wipeTokenFromAddress(
 	address []byte,
-	token *ESDTData,
+	token *ESDTDataV2,
 	tokenID []byte,
 	wipeArgument []byte,
 ) vmcommon.ReturnCode {
@@ -969,7 +981,7 @@ func (e *esdt) getSpecialRoles(args *vmcommon.ContractCallInput) vmcommon.Return
 	return vmcommon.Ok
 }
 
-func (e *esdt) basicOwnershipChecks(args *vmcommon.ContractCallInput) (*ESDTData, vmcommon.ReturnCode) {
+func (e *esdt) basicOwnershipChecks(args *vmcommon.ContractCallInput) (*ESDTDataV2, vmcommon.ReturnCode) {
 	if args.CallValue.Cmp(zero) != 0 {
 		e.eei.AddReturnMessage("callValue must be 0")
 		return nil, vmcommon.OutOfFunds
@@ -1034,7 +1046,7 @@ func (e *esdt) controlChanges(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
-	err := upgradeProperties(token, args.Arguments[1:], string(token.TokenType))
+	err := e.upgradeProperties(token, args.Arguments[1:], false)
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -1075,7 +1087,7 @@ func isDefinedRoleInArgs(args [][]byte, definedRole []byte) bool {
 	return false
 }
 
-func checkIfDefinedRoleExistsInArgsAndToken(args [][]byte, token *ESDTData, definedRole []byte) bool {
+func checkIfDefinedRoleExistsInArgsAndToken(args [][]byte, token *ESDTDataV2, definedRole []byte) bool {
 	if !isDefinedRoleInArgs(args, definedRole) {
 		return false
 	}
@@ -1151,7 +1163,7 @@ func (e *esdt) isSpecialRoleValidForNonFungible(argument string) error {
 	}
 }
 
-func (e *esdt) checkSpecialRolesAccordingToTokenType(args [][]byte, token *ESDTData) error {
+func (e *esdt) checkSpecialRolesAccordingToTokenType(args [][]byte, token *ESDTDataV2) error {
 	switch string(token.TokenType) {
 	case core.FungibleESDT:
 		return validateRoles(args, e.isSpecialRoleValidForFungible)
@@ -1298,7 +1310,7 @@ func (e *esdt) unSetSpecialRole(args *vmcommon.ContractCallInput) vmcommon.Retur
 	return vmcommon.Ok
 }
 
-func (e *esdt) deleteNFTCreateRole(token *ESDTData, currentNFTCreateOwner []byte) ([]byte, vmcommon.ReturnCode) {
+func (e *esdt) deleteNFTCreateRole(token *ESDTDataV2, currentNFTCreateOwner []byte) ([]byte, vmcommon.ReturnCode) {
 	for _, esdtRole := range token.SpecialRoles {
 		index := getRoleIndex(esdtRole, []byte(core.ESDTRoleNFTCreate))
 		if index < 0 {
@@ -1490,7 +1502,7 @@ func getRoleIndex(esdtRoles *ESDTRoles, role []byte) int {
 	return -1
 }
 
-func getRolesForAddress(token *ESDTData, address []byte) (*ESDTRoles, bool) {
+func getRolesForAddress(token *ESDTDataV2, address []byte) (*ESDTRoles, bool) {
 	for _, esdtRole := range token.SpecialRoles {
 		if bytes.Equal(address, esdtRole.Address) {
 			return esdtRole, false
@@ -1503,7 +1515,43 @@ func getRolesForAddress(token *ESDTData, address []byte) (*ESDTRoles, bool) {
 	return esdtRole, true
 }
 
-func (e *esdt) saveToken(identifier []byte, token *ESDTData) error {
+func (e *esdt) saveTokenV1(identifier []byte, token *ESDTDataV2) error {
+	tokenV1 := &ESDTDataV1{
+		OwnerAddress:             token.OwnerAddress,
+		TokenName:                token.TokenName,
+		TickerName:               token.TickerName,
+		TokenType:                token.TokenType,
+		Mintable:                 token.Mintable,
+		Burnable:                 token.Burnable,
+		CanPause:                 token.CanPause,
+		CanFreeze:                token.CanFreeze,
+		CanWipe:                  token.CanWipe,
+		Upgradable:               token.Upgradable,
+		CanChangeOwner:           token.CanChangeOwner,
+		IsPaused:                 token.IsPaused,
+		MintedValue:              token.MintedValue,
+		BurntValue:               token.BurntValue,
+		NumDecimals:              token.NumDecimals,
+		CanAddSpecialRoles:       token.CanAddSpecialRoles,
+		NFTCreateStopped:         token.NFTCreateStopped,
+		CanTransferNFTCreateRole: token.CanTransferNFTCreateRole,
+		SpecialRoles:             token.SpecialRoles,
+		NumWiped:                 token.NumWiped,
+	}
+	marshaledData, err := e.marshalizer.Marshal(tokenV1)
+	if err != nil {
+		return err
+	}
+
+	e.eei.SetStorage(identifier, marshaledData)
+	return nil
+}
+
+func (e *esdt) saveToken(identifier []byte, token *ESDTDataV2) error {
+	if !e.flagNFTCreateONMultiShard.IsSet() {
+		return e.saveTokenV1(identifier, token)
+	}
+
 	marshaledData, err := e.marshalizer.Marshal(token)
 	if err != nil {
 		return err
@@ -1513,13 +1561,13 @@ func (e *esdt) saveToken(identifier []byte, token *ESDTData) error {
 	return nil
 }
 
-func (e *esdt) getExistingToken(tokenIdentifier []byte) (*ESDTData, error) {
+func (e *esdt) getExistingToken(tokenIdentifier []byte) (*ESDTDataV2, error) {
 	marshaledData := e.eei.GetStorage(tokenIdentifier)
 	if len(marshaledData) == 0 {
 		return nil, vm.ErrNoTickerWithGivenName
 	}
 
-	token := &ESDTData{}
+	token := &ESDTDataV2{}
 	err := e.marshalizer.Unmarshal(token, marshaledData)
 	return token, err
 }
