@@ -58,6 +58,8 @@ func (d *delegation) getFundForLogEntry(activeFund []byte) *big.Int {
 	fund, err := d.getFund(activeFund)
 	if err != nil {
 		log.Warn("d.getFundForLogEntry cannot get fund", "error", err.Error())
+
+		return big.NewInt(0)
 	}
 
 	return fund.Value
