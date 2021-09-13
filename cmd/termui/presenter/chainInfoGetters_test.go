@@ -240,7 +240,7 @@ func TestPresenterStatusHandler_GetEpochInfoEndOfEpoch(t *testing.T) {
 	presenterStatusHandler.SetUInt64Value(common.MetricRoundAtEpochStart, roundAtEpochStart)
 	presenterStatusHandler.SetUInt64Value(common.MetricCurrentRound, currentRound)
 
-	expectedRemainingTime := metricNotAvailable
+	expectedRemainingTime := ""
 	currentEpochRound, currentEpochFinishRound, epochLoadPercent, remainingTime := presenterStatusHandler.GetEpochInfo()
 	assert.Equal(t, currentRound, currentEpochRound)
 	assert.Equal(t, numRoundsPerEpoch+roundAtEpochStart, currentEpochFinishRound)
@@ -262,7 +262,7 @@ func TestPresenterStatusHandler_GetEpochInfoExtraRound(t *testing.T) {
 	presenterStatusHandler.SetUInt64Value(common.MetricRoundAtEpochStart, roundAtEpochStart)
 	presenterStatusHandler.SetUInt64Value(common.MetricCurrentRound, currentRound)
 
-	expectedRemainingTime := metricNotAvailable
+	expectedRemainingTime := ""
 	currentEpochRound, currentEpochFinishRound, epochLoadPercent, remainingTime := presenterStatusHandler.GetEpochInfo()
 	assert.Equal(t, currentRound, currentEpochRound)
 	assert.Equal(t, numRoundsPerEpoch+roundAtEpochStart, currentEpochFinishRound)
