@@ -94,7 +94,10 @@ func (ns *NodeStub) GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, err
 
 // GetBlockByRound -
 func (ns *NodeStub) GetBlockByRound(round uint64, withTxs bool) (*api.Block, error) {
-	return ns.GetBlockByRoundCalled(round, withTxs)
+	if ns.GetBlockByRoundCalled != nil {
+		return ns.GetBlockByRoundCalled(round, withTxs)
+	}
+	return nil, nil
 }
 
 // DecodeAddressPubkey -

@@ -132,6 +132,10 @@ func TestDisabledNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	assert.Nil(t, ab)
 	assert.Equal(t, errNodeStarting, err)
 
+	blk, err := dnf.GetBlockByRound(0, false)
+	assert.Nil(t, blk)
+	assert.Equal(t, errNodeStarting, err)
+
 	err = dnf.Close()
 	assert.Equal(t, errNodeStarting, err)
 

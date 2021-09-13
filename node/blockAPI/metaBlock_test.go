@@ -88,7 +88,7 @@ func TestMetaAPIBlockProcessor_GetBlockByNonceInvalidNonceShouldErr(t *testing.T
 	assert.Error(t, err)
 }
 
-func TestMetaAPIBlockProcessor_GetBlockByRoundInvalidNonceShouldErr(t *testing.T) {
+func TestMetaAPIBlockProcessor_GetBlockByRoundInvalidRoundShouldErr(t *testing.T) {
 	t.Parallel()
 
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
