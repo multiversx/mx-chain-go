@@ -225,3 +225,47 @@ func TestPresenterStatusHandler_GetEpochInfo(t *testing.T) {
 	assert.Equal(t, expectedRemainingTime, remainingTime)
 	assert.Equal(t, 50, epochLoadPercent)
 }
+
+func TestPresenterStatusHandler_GetEpochInfoEndOfEpoch(t *testing.T) {
+	t.Parallel()
+
+	numRoundsPerEpoch := uint64(20)
+	roundDuration := uint64(5000)
+	roundAtEpochStart := uint64(60)
+	currentRound := uint64(80)
+
+	presenterStatusHandler := NewPresenterStatusHandler()
+	presenterStatusHandler.SetUInt64Value(common.MetricRoundDuration, roundDuration)
+	presenterStatusHandler.SetUInt64Value(common.MetricRoundsPerEpoch, numRoundsPerEpoch)
+	presenterStatusHandler.SetUInt64Value(common.MetricRoundAtEpochStart, roundAtEpochStart)
+	presenterStatusHandler.SetUInt64Value(common.MetricCurrentRound, currentRound)
+
+	expectedRemainingTime := metricNotAvailable
+	currentEpochRound, currentEpochFinishRound, epochLoadPercent, remainingTime := presenterStatusHandler.GetEpochInfo()
+	assert.Equal(t, currentRound, currentEpochRound)
+	assert.Equal(t, numRoundsPerEpoch+roundAtEpochStart, currentEpochFinishRound)
+	assert.Equal(t, expectedRemainingTime, remainingTime)
+	assert.Equal(t, 100, epochLoadPercent)
+}
+
+func TestPresenterStatusHandler_GetEpochInfoExtraRound(t *testing.T) {
+	t.Parallel()
+
+	numRoundsPerEpoch := uint64(20)
+	roundDuration := uint64(5000)
+	roundAtEpochStart := uint64(60)
+	currentRound := uint64(81)
+
+	presenterStatusHandler := NewPresenterStatusHandler()
+	presenterStatusHandler.SetUInt64Value(common.MetricRoundDuration, roundDuration)
+	presenterStatusHandler.SetUInt64Value(common.MetricRoundsPerEpoch, numRoundsPerEpoch)
+	presenterStatusHandler.SetUInt64Value(common.MetricRoundAtEpochStart, roundAtEpochStart)
+	presenterStatusHandler.SetUInt64Value(common.MetricCurrentRound, currentRound)
+
+	expectedRemainingTime := metricNotAvailable
+	currentEpochRound, currentEpochFinishRound, epochLoadPercent, remainingTime := presenterStatusHandler.GetEpochInfo()
+	assert.Equal(t, currentRound, currentEpochRound)
+	assert.Equal(t, numRoundsPerEpoch+roundAtEpochStart, currentEpochFinishRound)
+	assert.Equal(t, expectedRemainingTime, remainingTime)
+	assert.Equal(t, 100, epochLoadPercent)
+}
