@@ -256,7 +256,7 @@ func TestGetBalance_NodeGetBalanceReturnsError(t *testing.T) {
 	assert.Equal(t, fmt.Sprintf("%s: %s", apiErrors.ErrGetBalance.Error(), balanceError.Error()), response.Error)
 }
 
-func TestGetBalance_WithEmptyAddressShoudReturnError(t *testing.T) {
+func TestGetBalance_WithEmptyAddressShouldReturnError(t *testing.T) {
 	t.Parallel()
 	facade := mock.Facade{
 		BalanceHandler: func(s string) (i *big.Int, e error) {
@@ -755,7 +755,7 @@ func TestGetFullESDTTokens_ShouldWork(t *testing.T) {
 	assert.Equal(t, 2, len(esdtTokenResponseObj.Data.Tokens))
 }
 
-func TestGetKeyValuePairs_WithEmptyAddressShoudReturnError(t *testing.T) {
+func TestGetKeyValuePairs_WithEmptyAddressShouldReturnError(t *testing.T) {
 	t.Parallel()
 	facade := mock.Facade{}
 
@@ -834,7 +834,7 @@ func TestGetKeyValuePairs_ShouldWork(t *testing.T) {
 	assert.Equal(t, pairs, response.Data.Pairs)
 }
 
-func TestGetESDTsRoles_WithEmptyAddressShoudReturnError(t *testing.T) {
+func TestGetESDTsRoles_WithEmptyAddressShouldReturnError(t *testing.T) {
 	t.Parallel()
 	facade := mock.Facade{}
 

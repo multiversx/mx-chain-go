@@ -96,7 +96,6 @@ func NewNodeGroup(facade nodeFacadeHandler) (*nodeGroup, error) {
 			Method:  http.MethodGet,
 			Handler: ng.peerInfo,
 		},
-
 	}
 	ng.endpoints = endpoints
 
@@ -236,7 +235,6 @@ func (ng *nodeGroup) prometheusMetrics(c *gin.Context) {
 		metrics,
 	)
 }
-
 
 func (ng *nodeGroup) getFacade() nodeFacadeHandler {
 	ng.mutFacade.RLock()

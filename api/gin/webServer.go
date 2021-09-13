@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/api/groups"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
@@ -118,7 +119,7 @@ func (ws *webServer) StartHttpServer() error {
 
 	server := &http.Server{Addr: ws.facade.RestApiInterface(), Handler: engine}
 	log.Debug("creating gin web sever", "interface", ws.facade.RestApiInterface())
-	wrappedServer, err := NewHttpServer(server)
+	ws.httpServer, err = NewHttpServer(server)
 	if err != nil {
 		return err
 	}
@@ -129,7 +130,7 @@ func (ws *webServer) StartHttpServer() error {
 		"SameSourceResetIntervalInSec", ws.antiFloodConfig.SameSourceResetIntervalInSec,
 	)
 
-	go wrappedServer.Start()
+	go ws.httpServer.Start()
 
 	return nil
 }
@@ -200,6 +201,11 @@ func (ws *webServer) registerRoutes(ginRouter *gin.Engine) {
 		log.Debug("registering gin API group", "group name", groupName)
 		ginGroup := ginRouter.Group(fmt.Sprintf("/%s", groupName))
 		groupHandler.RegisterRoutes(ginGroup, ws.apiConfig)
+	}
+
+	if isLogRouteEnabled(ws.apiConfig) {
+		marshalizerForLogs := &marshal.GogoProtoMarshalizer{}
+		registerLoggerWsRoute(ginRouter, marshalizerForLogs)
 	}
 }
 

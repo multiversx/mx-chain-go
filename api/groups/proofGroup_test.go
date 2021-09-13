@@ -14,7 +14,6 @@ import (
 	apiErrors "github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/groups"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
-	"github.com/ElrondNetwork/elrond-go/api/proof"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/stretchr/testify/assert"
@@ -197,12 +196,12 @@ func TestVerifyProof_VerifyProofErr(t *testing.T) {
 		},
 	}
 
-	varifyProofParams := proof.VerifyProofRequest{
+	verifyProofParams := groups.VerifyProofRequest{
 		RootHash: "rootHash",
 		Address:  "address",
 		Proof:    []string{hex.EncodeToString([]byte("valid")), hex.EncodeToString([]byte("proof"))},
 	}
-	verifyProofBytes, _ := json.Marshal(varifyProofParams)
+	verifyProofBytes, _ := json.Marshal(verifyProofParams)
 
 	proofGroup, err := groups.NewProofGroup(facade)
 	require.NoError(t, err)
@@ -226,12 +225,12 @@ func TestVerifyProof_VerifyProofCanNotDecodeProof(t *testing.T) {
 
 	facade := &mock.Facade{}
 
-	varifyProofParams := proof.VerifyProofRequest{
+	verifyProofParams := groups.VerifyProofRequest{
 		RootHash: "rootHash",
 		Address:  "address",
 		Proof:    []string{"invalid", "hex"},
 	}
-	verifyProofBytes, _ := json.Marshal(varifyProofParams)
+	verifyProofBytes, _ := json.Marshal(verifyProofParams)
 
 	proofGroup, err := groups.NewProofGroup(facade)
 	require.NoError(t, err)
@@ -256,12 +255,12 @@ func TestVerifyProof(t *testing.T) {
 	rootHash := "rootHash"
 	address := "address"
 	validProof := []string{hex.EncodeToString([]byte("valid")), hex.EncodeToString([]byte("proof"))}
-	varifyProofParams := proof.VerifyProofRequest{
+	verifyProofParams := groups.VerifyProofRequest{
 		RootHash: rootHash,
 		Address:  address,
 		Proof:    validProof,
 	}
-	verifyProofBytes, _ := json.Marshal(varifyProofParams)
+	verifyProofBytes, _ := json.Marshal(verifyProofParams)
 
 	facade := &mock.Facade{
 		VerifyProofCalled: func(rH string, addr string, proof [][]byte) (bool, error) {

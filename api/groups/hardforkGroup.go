@@ -53,15 +53,15 @@ func NewHardforkGroup(facade hardforkFacadeHandler) (*hardforkGroup, error) {
 	return hg, nil
 }
 
-// HarforkRequest represents the structure on which user input for triggering a hardfork will validate against
-type HarforkRequest struct {
+// HardforkRequest represents the structure on which user input for triggering a hardfork will validate against
+type HardforkRequest struct {
 	Epoch               uint32 `form:"epoch" json:"epoch"`
 	WithEarlyEndOfEpoch bool   `form:"withEarlyEndOfEpoch" json:"withEarlyEndOfEpoch"`
 }
 
 // triggerHandler will receive a trigger request from the client and propagate it for processing
 func (hg *hardforkGroup) triggerHandler(c *gin.Context) {
-	var hr = HarforkRequest{}
+	var hr = HardforkRequest{}
 	err := c.ShouldBindJSON(&hr)
 	if err != nil {
 		c.JSON(
