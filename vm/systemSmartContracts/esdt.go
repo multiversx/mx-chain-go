@@ -1191,7 +1191,7 @@ func (e *esdt) setSpecialRole(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
-	if checkIfDefinedRoleExistsInArgsAndToken(args.Arguments[2:], token, []byte(core.ESDTRoleNFTCreate)) {
+	if !token.CanCreateMultiShard && checkIfDefinedRoleExistsInArgsAndToken(args.Arguments[2:], token, []byte(core.ESDTRoleNFTCreate)) {
 		e.eei.AddReturnMessage(vm.ErrNFTCreateRoleAlreadyExists.Error())
 		return vmcommon.UserError
 	}
@@ -1220,6 +1220,14 @@ func (e *esdt) setSpecialRole(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		}
 	}
 
+	if token.CanCreateMultiShard && isDefinedRoleInArgs(args.Arguments[2:], []byte(core.ESDTRoleNFTCreate)) {
+		err = checkCorrectAddressForNFTCreateMultiShard(token)
+		if err != nil {
+			e.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
+	}
+
 	err = e.sendRoleChangeData(args.Arguments[0], args.Arguments[1], args.Arguments[2:], core.BuiltInFunctionSetESDTRole)
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
@@ -1239,6 +1247,31 @@ func (e *esdt) setSpecialRole(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	}
 
 	return vmcommon.Ok
+}
+
+func checkCorrectAddressForNFTCreateMultiShard(token *ESDTDataV2) error {
+	nftCreateRole := []byte(core.ESDTRoleNFTCreate)
+	mapLastBytes := make(map[uint8]struct{})
+	for _, esdtRole := range token.SpecialRoles {
+		hasCreateRole := false
+		for _, role := range esdtRole.Roles {
+			if bytes.Equal(nftCreateRole, role) {
+				hasCreateRole = true
+				break
+			}
+		}
+
+		if hasCreateRole {
+			lastBytesOfAddress := esdtRole.Address[len(esdtRole.Address)-1]
+			if _, exist := mapLastBytes[lastBytesOfAddress]; exist {
+				return vm.ErrInvalidAddress
+			}
+
+			mapLastBytes[lastBytesOfAddress] = struct{}{}
+		}
+	}
+
+	return nil
 }
 
 func (e *esdt) unSetSpecialRole(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -1310,7 +1343,8 @@ func (e *esdt) unSetSpecialRole(args *vmcommon.ContractCallInput) vmcommon.Retur
 	return vmcommon.Ok
 }
 
-func (e *esdt) deleteNFTCreateRole(token *ESDTDataV2, currentNFTCreateOwner []byte) ([]byte, vmcommon.ReturnCode) {
+func (e *esdt) deleteNFTCreateRole(token *ESDTDataV2, currentNFTCreateOwner []byte) ([][]byte, vmcommon.ReturnCode) {
+	creatorAddresses := make([][]byte, 0)
 	for _, esdtRole := range token.SpecialRoles {
 		index := getRoleIndex(esdtRole, []byte(core.ESDTRoleNFTCreate))
 		if index < 0 {
@@ -1325,9 +1359,13 @@ func (e *esdt) deleteNFTCreateRole(token *ESDTDataV2, currentNFTCreateOwner []by
 		copy(esdtRole.Roles[index:], esdtRole.Roles[index+1:])
 		esdtRole.Roles[len(esdtRole.Roles)-1] = nil
 		esdtRole.Roles = esdtRole.Roles[:len(esdtRole.Roles)-1]
-		return esdtRole.Address, vmcommon.Ok
+
+		creatorAddresses = append(creatorAddresses, esdtRole.Address)
 	}
 
+	if len(creatorAddresses) > 0 {
+		return creatorAddresses, vmcommon.Ok
+	}
 	e.eei.AddReturnMessage("no address is holding the NFT create role")
 	return nil, vmcommon.UserError
 }
@@ -1359,6 +1397,15 @@ func (e *esdt) transferNFTCreateRole(args *vmcommon.ContractCallInput) vmcommon.
 	if bytes.Equal(args.Arguments[1], args.Arguments[2]) {
 		e.eei.AddReturnMessage("second and third arguments must not be equal")
 		return vmcommon.FunctionWrongSignature
+	}
+
+	if token.CanCreateMultiShard {
+		lastIndex := len(args.CallerAddr) - 1
+		isLastByteTheSame := args.Arguments[1][lastIndex] == args.Arguments[2][lastIndex]
+		if !isLastByteTheSame {
+			e.eei.AddReturnMessage("transfer NFT create can happen for addresses which end in the same byte")
+			return vmcommon.UserError
+		}
 	}
 
 	_, returnCode = e.deleteNFTCreateRole(token, args.Arguments[1])
@@ -1410,7 +1457,7 @@ func (e *esdt) stopNFTCreateForever(args *vmcommon.ContractCallInput) vmcommon.R
 		return vmcommon.UserError
 	}
 
-	currentOwner, returnCode := e.deleteNFTCreateRole(token, nil)
+	currentOwners, returnCode := e.deleteNFTCreateRole(token, nil)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
@@ -1422,10 +1469,12 @@ func (e *esdt) stopNFTCreateForever(args *vmcommon.ContractCallInput) vmcommon.R
 		return vmcommon.UserError
 	}
 
-	err = e.sendRoleChangeData(args.Arguments[0], currentOwner, [][]byte{[]byte(core.ESDTRoleNFTCreate)}, core.BuiltInFunctionUnSetESDTRole)
-	if err != nil {
-		e.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
+	for _, currentOwner := range currentOwners {
+		err = e.sendRoleChangeData(args.Arguments[0], currentOwner, [][]byte{[]byte(core.ESDTRoleNFTCreate)}, core.BuiltInFunctionUnSetESDTRole)
+		if err != nil {
+			e.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
 	}
 
 	return vmcommon.Ok
