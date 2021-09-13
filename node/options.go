@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -338,17 +337,6 @@ func WithEnableSignTxWithHashEpoch(enableSignTxWithHashEpoch uint32) Option {
 func WithImportMode(importMode bool) Option {
 	return func(n *Node) error {
 		n.isInImportMode = importMode
-		return nil
-	}
-}
-
-// WithNodeRedundancyHandler sets up a node redundancy handler for the node
-func WithNodeRedundancyHandler(nodeRedundancyHandler consensus.NodeRedundancyHandler) Option {
-	return func(n *Node) error {
-		if check.IfNil(nodeRedundancyHandler) {
-			return ErrNilNodeRedundancyHandler
-		}
-		n.nodeRedundancyHandler = nodeRedundancyHandler
 		return nil
 	}
 }
