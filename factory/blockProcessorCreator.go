@@ -107,6 +107,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		ESDTTransferRoleEnableEpoch:  pcf.epochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
 		GlobalMintBurnDisableEpoch:   pcf.epochConfig.EnableEpochs.GlobalMintBurnDisableEpoch,
 		ESDTTransferMetaEnableEpoch:  pcf.epochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
+		ESDTNFTCreateOnMultiShard:    pcf.epochConfig.EnableEpochs.ESDTNFTCreateOnMultiShard,
 	}
 
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
@@ -443,6 +444,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		ESDTTransferRoleEnableEpoch:  pcf.epochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
 		GlobalMintBurnDisableEpoch:   pcf.epochConfig.EnableEpochs.GlobalMintBurnDisableEpoch,
 		ESDTTransferMetaEnableEpoch:  pcf.epochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
+		ESDTNFTCreateOnMultiShard:    pcf.epochConfig.EnableEpochs.ESDTNFTCreateOnMultiShard,
 	}
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	if err != nil {

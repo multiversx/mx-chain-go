@@ -24,6 +24,7 @@ type ArgsCreateBuiltInFunctionContainer struct {
 	ESDTTransferRoleEnableEpoch  uint32
 	GlobalMintBurnDisableEpoch   uint32
 	ESDTTransferMetaEnableEpoch  uint32
+	ESDTNFTCreateOnMultiShard    uint32
 }
 
 // CreateBuiltInFunctionContainer creates a container that will hold all the available built in functions
