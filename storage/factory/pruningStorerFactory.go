@@ -531,7 +531,7 @@ func (psf *StorageServiceFactory) setupDbLookupExtensions(chainStorer *dataRetri
 	}
 
 	createdStorers = append(createdStorers, blockRoundByNonceUnit)
-	chainStorer.AddStorer(dataRetriever.RoundNonceUnit, miniblockHashByTxHashUnit)
+	chainStorer.AddStorer(dataRetriever.RoundNonceUnit, blockRoundByNonceUnit)
 
 	// Create the epochByHash (STATIC) storer
 	epochByHashConfig := psf.generalConfig.DbLookupExtensions.EpochByHashStorageConfig
