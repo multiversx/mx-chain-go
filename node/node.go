@@ -23,7 +23,6 @@ import (
 	disabledSig "github.com/ElrondNetwork/elrond-go-crypto/signing/disabled/singlesig"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/facade"
@@ -74,8 +73,6 @@ type Node struct {
 	peerDenialEvaluator p2p.PeerDenialEvaluator
 	hardforkTrigger     HardforkTrigger
 
-	networkShardingCollector NetworkShardingCollector
-
 	consensusType string
 
 	currentSendingGoRoutines int32
@@ -109,7 +106,6 @@ type Node struct {
 	closableComponents        []mainFactory.Closer
 	enableSignTxWithHashEpoch uint32
 	isInImportMode            bool
-	nodeRedundancyHandler     consensus.NodeRedundancyHandler
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -1205,7 +1201,7 @@ func (n *Node) createPidInfo(p core.PeerID) core.QueryP2PPeerInfo {
 		IsBlacklisted: n.peerDenialEvaluator.IsDenied(p),
 	}
 
-	peerInfo := n.networkShardingCollector.GetPeerInfo(p)
+	peerInfo := n.processComponents.PeerShardMapper().GetPeerInfo(p)
 	result.PeerType = peerInfo.PeerType.String()
 	result.PeerSubType = peerInfo.PeerSubType.String()
 	if len(peerInfo.PkBytes) == 0 {
