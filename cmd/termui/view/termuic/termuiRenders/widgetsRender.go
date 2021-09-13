@@ -388,7 +388,11 @@ func (wr *WidgetsRender) prepareLoads() {
 	currentEpochRound, currentEpochFinishRound, epochLoadPercent, remainingTime := wr.presenter.GetEpochInfo()
 	wr.epochLoad.Title = "Epoch - info:"
 	wr.epochLoad.Percent = epochLoadPercent
-	str = fmt.Sprintf("%d / %d rounds (~%sremaining)", currentEpochRound, currentEpochFinishRound, remainingTime)
+	if len(remainingTime) > 0 {
+		remainingTime = fmt.Sprintf(" (~%sremaining)", remainingTime)
+	}
+
+	str = fmt.Sprintf("%d / %d rounds%s", currentEpochRound, currentEpochFinishRound, remainingTime)
 	wr.epochLoad.Label = fitStringToWidth(str, wr.epochLoad.Size().X)
 
 	totalBytesSentInEpoch := wr.presenter.GetNetworkSentBytesInEpoch()
