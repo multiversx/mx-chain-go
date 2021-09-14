@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "esdtSupply";
+option (gogoproto.stable_marshaler_all) = true;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+// ProcessedBlock is used to store nonce of the latest processed block
+message ProcessedBlockNonce {
+  uint64 Nonce = 1;
+}

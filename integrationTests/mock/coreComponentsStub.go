@@ -222,6 +222,11 @@ func (ccs *CoreComponentsStub) NodeTypeProvider() core.NodeTypeProviderHandler {
 	return ccs.NodeTypeProviderField
 }
 
+// String -
+func (ccs *CoreComponentsStub) String() string {
+	return "CoreComponentsStub"
+}
+
 // IsInterfaceNil -
 func (ccs *CoreComponentsStub) IsInterfaceNil() bool {
 	return ccs == nil

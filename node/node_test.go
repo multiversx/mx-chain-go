@@ -29,6 +29,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -3113,6 +3114,18 @@ func TestNode_ShouldWork(t *testing.T) {
 
 	pid1 := "pid1"
 	pid2 := "pid2"
+
+	processComponents := getDefaultProcessComponents()
+	processComponents.PeerMapper = &p2pmocks.NetworkShardingCollectorStub{
+		GetPeerInfoCalled: func(pid core.PeerID) core.P2PPeerInfo {
+			return core.P2PPeerInfo{
+				PeerType: 0,
+				ShardID:  0,
+				PkBytes:  pid.Bytes(),
+			}
+		},
+	}
+
 	networkComponents := getDefaultNetworkComponents()
 	networkComponents.Messenger = &p2pmocks.MessengerStub{
 		PeersCalled: func() []core.PeerID {
@@ -3129,15 +3142,7 @@ func TestNode_ShouldWork(t *testing.T) {
 
 	n, _ := node.NewNode(
 		node.WithNetworkComponents(networkComponents),
-		node.WithNetworkShardingCollector(&p2pmocks.NetworkShardingCollectorStub{
-			GetPeerInfoCalled: func(pid core.PeerID) core.P2PPeerInfo {
-				return core.P2PPeerInfo{
-					PeerType: 0,
-					ShardID:  0,
-					PkBytes:  pid.Bytes(),
-				}
-			},
-		}),
+		node.WithProcessComponents(processComponents),
 		node.WithCoreComponents(coreComponents),
 		node.WithPeerDenialEvaluator(&mock.PeerDenialEvaluatorStub{
 			IsDeniedCalled: func(pid core.PeerID) bool {
@@ -3368,4 +3373,20 @@ func TestNode_Close(t *testing.T) {
 	require.Equal(t, 2, len(queryCalled))
 	require.True(t, queryCalled["q1"] == q1) //pointer testing
 	require.True(t, queryCalled["q2"] == q2) //pointer testing
+}
+
+func TestNode_getClosableComponentName(t *testing.T) {
+	t.Parallel()
+
+	coreComponents := getDefaultCoreComponents()
+	n := &node.Node{}
+	assert.Equal(t, coreComponents.String(), n.GetClosableComponentName(coreComponents, 0))
+
+	component := &struct {
+		factory.Closer
+	}{}
+
+	index := 45
+	componentName := n.GetClosableComponentName(component, index)
+	assert.True(t, strings.Contains(componentName, fmt.Sprintf("n.closableComponents[%d] - ", index)))
 }

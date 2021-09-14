@@ -2327,6 +2327,10 @@ func TestDelegationSystemSC_ExecuteWithdraw(t *testing.T) {
 		TotalActive:   big.NewInt(0),
 	})
 
+	_ = d.saveDelegationStatus(&DelegationContractStatus{
+		NumUsers: 10,
+	})
+
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
 

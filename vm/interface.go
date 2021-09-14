@@ -43,6 +43,7 @@ type SystemEI interface {
 	SetStorage(key []byte, value []byte)
 	SetStorageForAddress(address []byte, key []byte, value []byte)
 	AddReturnMessage(msg string)
+	AddLogEntry(entry *vmcommon.LogEntry)
 	GetStorage(key []byte) []byte
 	GetStorageFromAddress(address []byte, key []byte) []byte
 	Finish(value []byte)

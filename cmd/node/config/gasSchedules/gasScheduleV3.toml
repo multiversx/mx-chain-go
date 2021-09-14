@@ -88,6 +88,7 @@
     GetReturnData        = 100
     GetNumReturnData     = 100
     GetReturnDataSize    = 100
+    GetOriginalTxHash    = 10000
 
 [EthAPICost]
     UseGas              = 100
@@ -185,6 +186,7 @@
     UnmarshalECC           = 20000
     UnmarshalCompressedECC = 270000
     GenerateKeyECC         = 7000000
+    EncodeDERSig           = 10000000
 
 [ManagedBufferAPICost]
     MBufferNew                   = 2000

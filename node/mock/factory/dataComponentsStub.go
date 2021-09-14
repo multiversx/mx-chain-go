@@ -78,6 +78,11 @@ func (dcm *DataComponentsMock) Clone() interface{} {
 	}
 }
 
+// String -
+func (dcm *DataComponentsMock) String() string {
+	return "DataComponentsMock"
+}
+
 // IsInterfaceNil -
 func (dcm *DataComponentsMock) IsInterfaceNil() bool {
 	return dcm == nil

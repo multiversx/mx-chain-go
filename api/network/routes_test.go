@@ -26,6 +26,7 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type esdtTokensResponseData struct {
@@ -391,7 +392,7 @@ func TestDelegatedInfo_ShouldWork(t *testing.T) {
 
 func delegatorFoundInResponse(response string, delegator api.Delegator) bool {
 	if strings.Contains(response, delegator.TotalAsBigInt.String()) {
-		//we should have not encoded the total as big int
+		// we should have not encoded the total as big int
 		return false
 	}
 
@@ -401,6 +402,26 @@ func delegatorFoundInResponse(response string, delegator api.Delegator) bool {
 	}
 
 	return found
+}
+
+func TestGetESDTTotalSupply(t *testing.T) {
+	facade := mock.Facade{
+		GetTokenSupplyCalled: func(token string) (string, error) {
+			return "1000", nil
+		},
+	}
+
+	ws := startNodeServer(&facade)
+	req, _ := http.NewRequest("GET", "/network/esdt/supply/mytoken-aabb", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	respBytes, _ := ioutil.ReadAll(resp.Body)
+	respStr := string(respBytes)
+	assert.Equal(t, resp.Code, http.StatusOK)
+
+	keyAndValueInResponse := strings.Contains(respStr, "supply") && strings.Contains(respStr, "1000")
+	require.True(t, keyAndValueInResponse)
 }
 
 func TestDelegatedInfo_CannotGetDelegatedList(t *testing.T) {
@@ -532,6 +553,7 @@ func getRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/enable-epochs", Open: true},
 					{Name: "/direct-staked-info", Open: true},
 					{Name: "/delegated-info", Open: true},
+					{Name: "/esdt/supply/:token", Open: true},
 				},
 			},
 		},
