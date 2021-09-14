@@ -118,7 +118,7 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 		enabledEpoch:                     args.EpochConfig.EnableEpochs.ESDTEnableEpoch,
 		globalMintBurnDisableEpoch:       args.EpochConfig.EnableEpochs.GlobalMintBurnDisableEpoch,
 		transferRoleEnableEpoch:          args.EpochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
-		nftCreateONMultiShardEnableEpoch: args.EpochConfig.EnableEpochs.ESDTNFTCreateOnMultiShard,
+		nftCreateONMultiShardEnableEpoch: args.EpochConfig.EnableEpochs.ESDTNFTCreateOnMultiShardEnableEpoch,
 		endOfEpochSCAddress:              args.EndOfEpochSCAddress,
 		addressPubKeyConverter:           args.AddressPubKeyConverter,
 	}

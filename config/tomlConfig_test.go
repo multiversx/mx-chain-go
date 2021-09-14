@@ -581,8 +581,8 @@ func TestEnableEpochConfig(t *testing.T) {
     # BuiltInFunctionOnMetaEnableEpoch represents the epoch when built in function processing on metachain is enabled
     BuiltInFunctionOnMetaEnableEpoch = 35
 
-    # ESDTNFTCreateOnMultiShard represents the epoch when esdt nft creation on multiple shards is enabled
-    ESDTNFTCreateOnMultiShard = 32
+    # ESDTNFTCreateOnMultiShardEnableEpoch represents the epoch when esdt nft creation on multiple shards is enabled
+    ESDTNFTCreateOnMultiShardEnableEpoch = 36
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
@@ -646,7 +646,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			GlobalMintBurnDisableEpoch:                  33,
 			ESDTTransferRoleEnableEpoch:                 34,
 			BuiltInFunctionOnMetaEnableEpoch:            35,
-			ESDTNFTCreateOnMultiShard:                   36,
+			ESDTNFTCreateOnMultiShardEnableEpoch:        36,
 		},
 		GasSchedule: GasScheduleConfig{
 			GasScheduleByEpochs: []GasScheduleByEpochs{
