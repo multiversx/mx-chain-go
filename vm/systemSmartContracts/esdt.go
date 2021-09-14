@@ -1266,14 +1266,16 @@ func checkCorrectAddressForNFTCreateMultiShard(token *ESDTDataV2) error {
 			}
 		}
 
-		if hasCreateRole {
-			lastBytesOfAddress := esdtRole.Address[len(esdtRole.Address)-1]
-			if _, exist := mapLastBytes[lastBytesOfAddress]; exist {
-				return vm.ErrInvalidAddress
-			}
-
-			mapLastBytes[lastBytesOfAddress] = struct{}{}
+		if !hasCreateRole {
+			continue
 		}
+
+		lastBytesOfAddress := esdtRole.Address[len(esdtRole.Address)-1]
+		if _, exist := mapLastBytes[lastBytesOfAddress]; exist {
+			return vm.ErrInvalidAddress
+		}
+
+		mapLastBytes[lastBytesOfAddress] = struct{}{}
 	}
 
 	return nil
@@ -1408,7 +1410,7 @@ func (e *esdt) transferNFTCreateRole(args *vmcommon.ContractCallInput) vmcommon.
 		lastIndex := len(args.CallerAddr) - 1
 		isLastByteTheSame := args.Arguments[1][lastIndex] == args.Arguments[2][lastIndex]
 		if !isLastByteTheSame {
-			e.eei.AddReturnMessage("transfer NFT create can happen for addresses which end in the same byte")
+			e.eei.AddReturnMessage("transfer NFT create cannot happen for addresses that don't end in the same byte")
 			return vmcommon.UserError
 		}
 	}
