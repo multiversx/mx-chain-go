@@ -469,7 +469,9 @@ func (host *vmContext) ProcessBuiltInFunction(
 		}
 	}
 
-	//TODO: add logs after merge with logs PR on meta
+	for _, logEntry := range vmOutput.Logs {
+		host.AddLogEntry(logEntry)
+	}
 
 	return vmOutput, nil
 }

@@ -158,7 +158,7 @@ func (builder *TxDataBuilder) TransferESDTNFT(token string, nonce int, value int
 }
 
 // MultiTransferESDTNFT appends to the data string all the elements required to request an Multi ESDT NFT transfer.
-func (builder *txDataBuilder) MultiTransferESDTNFT(destinationAddress []byte, transfers []*vmcommon.ESDTTransfer) *txDataBuilder {
+func (builder *TxDataBuilder) MultiTransferESDTNFT(destinationAddress []byte, transfers []*vmcommon.ESDTTransfer) *TxDataBuilder {
 	txBuilder := builder.Func(core.BuiltInFunctionMultiESDTNFTTransfer).Bytes(destinationAddress).Int(len(transfers))
 	for _, transfer := range transfers {
 		txBuilder.Bytes(transfer.ESDTTokenName).Int(int(transfer.ESDTTokenNonce)).BigInt(transfer.ESDTValue)

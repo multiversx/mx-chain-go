@@ -1597,10 +1597,11 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return vmcommon.UserError
 	}
 
-	return d.unDelegateValueFromAddress(valueToUnDelegate, args.CallerAddr, args.RecipientAddr)
+	return d.unDelegateValueFromAddress(args, valueToUnDelegate, args.CallerAddr, args.RecipientAddr)
 }
 
 func (d *delegation) unDelegateValueFromAddress(
+	args *vmcommon.ContractCallInput,
 	valueToUnDelegate *big.Int,
 	delegatorAddress []byte,
 	contractAddress []byte,
@@ -2911,7 +2912,7 @@ func (d *delegation) unDelegateViaLiquidStaking(args *vmcommon.ContractCallInput
 
 	address := args.Arguments[0]
 	valueToUnDelegate := big.NewInt(0).SetBytes(args.Arguments[1])
-	return d.unDelegateValueFromAddress(valueToUnDelegate, address, args.RecipientAddr)
+	return d.unDelegateValueFromAddress(args, valueToUnDelegate, address, args.RecipientAddr)
 }
 
 func (d *delegation) returnViaLiquidStaking(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
