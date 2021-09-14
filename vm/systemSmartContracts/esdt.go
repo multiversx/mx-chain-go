@@ -1220,7 +1220,8 @@ func (e *esdt) setSpecialRole(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		}
 	}
 
-	if token.CanCreateMultiShard && isDefinedRoleInArgs(args.Arguments[2:], []byte(core.ESDTRoleNFTCreate)) {
+	isMultiShardNFTCreateSet := token.CanCreateMultiShard && isDefinedRoleInArgs(args.Arguments[2:], []byte(core.ESDTRoleNFTCreate))
+	if isMultiShardNFTCreateSet {
 		err = checkCorrectAddressForNFTCreateMultiShard(token)
 		if err != nil {
 			e.eei.AddReturnMessage(err.Error())
@@ -1228,7 +1229,11 @@ func (e *esdt) setSpecialRole(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		}
 	}
 
-	err = e.sendRoleChangeData(args.Arguments[0], args.Arguments[1], args.Arguments[2:], core.BuiltInFunctionSetESDTRole)
+	allRoles := args.Arguments[2:]
+	if isMultiShardNFTCreateSet {
+		allRoles = append(allRoles, []byte(core.ESDTRoleNFTCreateMultiShard))
+	}
+	err = e.sendRoleChangeData(args.Arguments[0], args.Arguments[1], allRoles, core.BuiltInFunctionSetESDTRole)
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
