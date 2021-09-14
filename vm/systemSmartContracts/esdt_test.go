@@ -177,6 +177,51 @@ func TestEsdt_ExecuteIssueAlways6charactersForRandom(t *testing.T) {
 	assert.Equal(t, len(lastOutput), len(ticker)+1+6)
 }
 
+func TestEsdt_ExecuteIssueWithMultiNFTCreate(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&stateMock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr:  []byte("addr"),
+			CallValue:   big.NewInt(0),
+			GasProvided: 100000,
+		},
+		RecipientAddr: []byte("addr"),
+		Function:      "issue",
+	}
+	eei.gasRemaining = vmInput.GasProvided
+	vmInput.CallValue, _ = big.NewInt(0).SetString(args.ESDTSCConfig.BaseIssuingCost, 10)
+	vmInput.GasProvided = args.GasCost.MetaChainSystemSCsCost.ESDTIssue
+	ticker := []byte("TICKER")
+	vmInput.Arguments = [][]byte{[]byte("name"), ticker, []byte(canCreateMultiShard), []byte("true")}
+
+	e.flagNFTCreateONMultiShard.Unset()
+	returnCode := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+
+	e.flagNFTCreateONMultiShard.Set()
+	returnCode = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+
+	vmInput.Function = "issueSemiFungible"
+	returnCode = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, returnCode)
+
+	lastOutput := eei.output[len(eei.output)-1]
+	token, _ := e.getExistingToken(lastOutput)
+	assert.True(t, token.CanCreateMultiShard)
+}
+
 func TestEsdt_ExecuteIssue(t *testing.T) {
 	t.Parallel()
 
@@ -249,6 +294,7 @@ func TestEsdt_ExecuteIssueWithZero(t *testing.T) {
 	vmInput.GasProvided = args.GasCost.MetaChainSystemSCsCost.ESDTIssue
 
 	e.flagGlobalMintBurn.Unset()
+	e.flagNFTCreateONMultiShard.Unset()
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
 }
@@ -2645,6 +2691,43 @@ func TestEsdt_ExecuteEsdtControlChangesSavesTokenWithUpgradedProperties(t *testi
 	assert.Equal(t, []byte("NumWiped-37"), eei.output[17])
 }
 
+func TestEsdt_ExecuteEsdtControlChangesForMultiNFTTransferShouldFaild(t *testing.T) {
+	t.Parallel()
+
+	tokenName := []byte("esdtToken")
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&stateMock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+
+	tokensMap := map[string][]byte{}
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
+		TokenName:        []byte("esdtToken"),
+		TokenType:        []byte(core.NonFungibleESDT),
+		OwnerAddress:     []byte("owner"),
+		Upgradable:       true,
+		BurntValue:       big.NewInt(0),
+		MintedValue:      big.NewInt(0),
+		NumWiped:         37,
+		NFTCreateStopped: true,
+	})
+	tokensMap[string(tokenName)] = marshalizedData
+	eei.storageUpdate[string(eei.scAddress)] = tokensMap
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := getDefaultVmInputForFunc("controlChanges", [][]byte{[]byte("esdtToken"),
+		[]byte(canCreateMultiShard), []byte("true"),
+	})
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+}
+
 func TestEsdt_GetSpecialRolesValueNotZeroShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -3429,6 +3512,47 @@ func TestEsdt_SetSpecialRoleCreateNFTTwoTimesShouldError(t *testing.T) {
 	require.Equal(t, vmcommon.UserError, retCode)
 }
 
+func TestEsdt_SetSpecialRoleCreateNFTTwoTimesMultiShardShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei := &mock.SystemEIStub{
+		GetStorageCalled: func(key []byte) []byte {
+			token := &ESDTDataV2{
+				OwnerAddress: []byte("caller123"),
+				SpecialRoles: []*ESDTRoles{
+					{
+						Address: []byte("myAddres4"),
+						Roles:   [][]byte{[]byte(core.ESDTRoleNFTCreate)},
+					},
+				},
+				TokenType:           []byte(core.NonFungibleESDT),
+				CanAddSpecialRoles:  true,
+				CanCreateMultiShard: true,
+			}
+			tokenBytes, _ := args.Marshalizer.Marshal(token)
+			return tokenBytes
+		},
+	}
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := getDefaultVmInputForFunc("setSpecialRole", [][]byte{})
+	vmInput.Arguments = [][]byte{[]byte("myToken"), []byte("caller234"), []byte(core.ESDTRoleNFTCreate)}
+	vmInput.CallerAddr = []byte("caller123")
+	vmInput.CallValue = big.NewInt(0)
+	vmInput.GasProvided = 50000000
+
+	retCode := e.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, eei.ReturnMessage, vm.ErrInvalidAddress.Error())
+
+	vmInput.Arguments[1] = []byte("caller23X")
+	retCode = e.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+}
+
 func TestEsdt_UnSetSpecialRoleCreateNFTShouldError(t *testing.T) {
 	t.Parallel()
 
@@ -3959,6 +4083,49 @@ func TestEsdt_TransferNFTCreateCallShouldWork(t *testing.T) {
 	token.TokenType = []byte(core.NonFungibleESDT)
 	token.CanTransferNFTCreateRole = true
 	retCode := e.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+}
+
+func TestEsdt_TransferNFTCreateCallMultiShardShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	token := &ESDTDataV2{
+		OwnerAddress: []byte("caller1"),
+		SpecialRoles: []*ESDTRoles{
+			{
+				Address: []byte("3caller"),
+				Roles:   [][]byte{[]byte(core.ESDTRoleNFTCreate)},
+			},
+		},
+	}
+	eei := &mock.SystemEIStub{
+		GetStorageCalled: func(key []byte) []byte {
+			tokenBytes, _ := args.Marshalizer.Marshal(token)
+			return tokenBytes
+		},
+		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+			require.Equal(t, []byte("ESDTNFTCreateRoleTransfer@746f6b656e4944@3263616c6c6572"), input)
+			require.Equal(t, destination, []byte("3caller"))
+			return nil
+		},
+	}
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := getDefaultVmInputForFunc("transferNFTCreateRole", [][]byte{[]byte("tokenID"), []byte("3caller"), []byte("caller2")})
+	vmInput.CallerAddr = token.OwnerAddress
+	vmInput.CallValue = big.NewInt(0)
+
+	token.TokenType = []byte(core.NonFungibleESDT)
+	token.CanTransferNFTCreateRole = true
+	token.CanCreateMultiShard = true
+	retCode := e.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+
+	vmInput.Arguments = [][]byte{[]byte("tokenID"), []byte("3caller"), []byte("2caller")}
+	retCode = e.Execute(vmInput)
 	require.Equal(t, vmcommon.Ok, retCode)
 }
 
