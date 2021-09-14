@@ -125,7 +125,7 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 	log.Debug("esdt: enable epoch for esdt", "epoch", e.enabledEpoch)
 	log.Debug("esdt: enable epoch for contract global mint and burn", "epoch", e.globalMintBurnDisableEpoch)
 	log.Debug("esdt: enable epoch for contract transfer role", "epoch", e.transferRoleEnableEpoch)
-	log.Debug("esdt: enable epoch for nft create on multi shard", "epoch", e.nftCreateONMultiShardEnableEpoch)
+	log.Debug("esdt: enable epoch for esdt NFT create on multiple shards", "epoch", e.nftCreateONMultiShardEnableEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(e)
 
@@ -1271,7 +1271,8 @@ func checkCorrectAddressForNFTCreateMultiShard(token *ESDTDataV2) error {
 		}
 
 		lastBytesOfAddress := esdtRole.Address[len(esdtRole.Address)-1]
-		if _, exist := mapLastBytes[lastBytesOfAddress]; exist {
+		_, exists := mapLastBytes[lastBytesOfAddress]
+		if exists {
 			return vm.ErrInvalidAddress
 		}
 
@@ -1675,7 +1676,7 @@ func (e *esdt) EpochConfirmed(epoch uint32, _ uint64) {
 	log.Debug("ESDT contract transfer role", "enabled", e.flagTransferRole.IsSet())
 
 	e.flagNFTCreateONMultiShard.Toggle(epoch >= e.nftCreateONMultiShardEnableEpoch)
-	log.Debug("ESDT contract nft create on multi shard", "enabled", e.flagNFTCreateONMultiShard.IsSet())
+	log.Debug("ESDT contract NFT create on multiple shards", "enabled", e.flagNFTCreateONMultiShard.IsSet())
 }
 
 // SetNewGasCost is called whenever a gas cost was changed
