@@ -222,6 +222,11 @@ func (ccm *CoreComponentsMock) NodeTypeProvider() core.NodeTypeProviderHandler {
 	return ccm.NodeTypeProviderField
 }
 
+// String -
+func (ccm *CoreComponentsMock) String() string {
+	return "CoreComponentsMock"
+}
+
 // IsInterfaceNil -
 func (ccm *CoreComponentsMock) IsInterfaceNil() bool {
 	return ccm == nil

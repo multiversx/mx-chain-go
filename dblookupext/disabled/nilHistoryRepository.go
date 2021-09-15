@@ -1,8 +1,13 @@
-package dblookupext
+package disabled
 
 import (
+	"errors"
+
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go/dblookupext"
 )
+
+var errorDisabledHistoryRepository = errors.New("history repository is disabled")
 
 type nilHistoryRepository struct {
 }
@@ -13,7 +18,7 @@ func NewNilHistoryRepository() (*nilHistoryRepository, error) {
 }
 
 // RecordBlock returns a not implemented error
-func (nhr *nilHistoryRepository) RecordBlock(_ []byte, _ data.HeaderHandler, _ data.BodyHandler, _, _ map[string]data.TransactionHandler) error {
+func (nhr *nilHistoryRepository) RecordBlock(_ []byte, _ data.HeaderHandler, _ data.BodyHandler, _, _ map[string]data.TransactionHandler, _ map[string]data.LogHandler) error {
 	return nil
 }
 
@@ -22,7 +27,7 @@ func (nhr *nilHistoryRepository) OnNotarizedBlocks(_ uint32, _ []data.HeaderHand
 }
 
 // GetMiniblockMetadataByTxHash does nothing
-func (nhr *nilHistoryRepository) GetMiniblockMetadataByTxHash(_ []byte) (*MiniblockMetadata, error) {
+func (nhr *nilHistoryRepository) GetMiniblockMetadataByTxHash(_ []byte) (*dblookupext.MiniblockMetadata, error) {
 	return nil, nil
 }
 
@@ -36,8 +41,18 @@ func (nhr *nilHistoryRepository) IsEnabled() bool {
 	return false
 }
 
+// RevertBlock -
+func (nhr *nilHistoryRepository) RevertBlock(_ data.HeaderHandler, _ data.BodyHandler) error {
+	return nil
+}
+
+// GetESDTSupply -
+func (nhr *nilHistoryRepository) GetESDTSupply(_ string) (string, error) {
+	return "", errorDisabledHistoryRepository
+}
+
 // GetResultsHashesByTxHash -
-func (nhr *nilHistoryRepository) GetResultsHashesByTxHash(_ []byte, _ uint32) (*ResultsHashesByTxHash, error) {
+func (nhr *nilHistoryRepository) GetResultsHashesByTxHash(_ []byte, _ uint32) (*dblookupext.ResultsHashesByTxHash, error) {
 	return nil, nil
 }
 

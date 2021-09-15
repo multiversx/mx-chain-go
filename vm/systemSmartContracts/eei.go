@@ -29,6 +29,7 @@ type vmContext struct {
 
 	returnMessage string
 	output        [][]byte
+	logs          []*vmcommon.LogEntry
 }
 
 // NewVMContext creates a context where smart contracts can run and write
@@ -434,6 +435,11 @@ func (host *vmContext) AddReturnMessage(message string) {
 	host.returnMessage += "@" + message
 }
 
+// AddLogEntry will add a log entry
+func (host *vmContext) AddLogEntry(entry *vmcommon.LogEntry) {
+	host.logs = append(host.logs, entry)
+}
+
 // ProcessBuiltInFunction will process the given built in function and will merge the generated output accounts and logs
 func (host *vmContext) ProcessBuiltInFunction(
 	sender, destination []byte,
@@ -463,7 +469,9 @@ func (host *vmContext) ProcessBuiltInFunction(
 		}
 	}
 
-	//TODO: add logs after merge with logs PR on meta
+	for _, logEntry := range vmOutput.Logs {
+		host.AddLogEntry(logEntry)
+	}
 
 	return vmOutput, nil
 }
@@ -485,6 +493,7 @@ func (host *vmContext) CleanCache() {
 	host.output = make([][]byte, 0)
 	host.returnMessage = ""
 	host.gasRemaining = 0
+	host.logs = make([]*vmcommon.LogEntry, 0)
 }
 
 // SetGasProvided sets the provided gas
@@ -573,6 +582,7 @@ func (host *vmContext) CreateVMOutput() *vmcommon.VMOutput {
 	vmOutput.GasRefund = big.NewInt(0)
 
 	vmOutput.ReturnMessage = host.returnMessage
+	vmOutput.Logs = host.logs
 
 	if len(host.output) > 0 {
 		vmOutput.ReturnData = append(vmOutput.ReturnData, host.output...)

@@ -65,6 +65,11 @@ func (ncm *NetworkComponentsMock) PreferredPeersHolderHandler() factory.Preferre
 	return ncm.PreferredPeersHolder
 }
 
+// String -
+func (ncm *NetworkComponentsMock) String() string {
+	return "NetworkComponentsMock"
+}
+
 // IsInterfaceNil -
 func (ncm *NetworkComponentsMock) IsInterfaceNil() bool {
 	return ncm == nil
