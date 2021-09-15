@@ -365,16 +365,16 @@ const AsyncCallStepField = "AsyncCallStep"
 const AsyncCallbackGasLockField = "AsyncCallbackGasLock"
 
 const (
-	// MetricScDeployEnableEpoch represents the epoch when the deployment of smart contracts will be enabled
+	// MetricScDeployEnableEpoch represents the epoch when the deployment of smart contracts is enabled
 	MetricScDeployEnableEpoch = "erd_smart_contract_deploy_enable_epoch"
 
-	//MetricBuiltInFunctionsEnableEpoch represents the epoch when the built in functions will be enabled
+	//MetricBuiltInFunctionsEnableEpoch represents the epoch when the built in functions is enabled
 	MetricBuiltInFunctionsEnableEpoch = "erd_built_in_functions_enable_epoch"
 
-	//MetricRelayedTransactionsEnableEpoch represents the epoch when the relayed transactions will be enabled
+	//MetricRelayedTransactionsEnableEpoch represents the epoch when the relayed transactions is enabled
 	MetricRelayedTransactionsEnableEpoch = "erd_relayed_transactions_enable_epoch"
 
-	//MetricPenalizedTooMuchGasEnableEpoch represents the epoch when the penalization for using too much gas will be enabled
+	//MetricPenalizedTooMuchGasEnableEpoch represents the epoch when the penalization for using too much gas is enabled
 	MetricPenalizedTooMuchGasEnableEpoch = "erd_penalized_too_much_gas_enable_epoch"
 
 	//MetricSwitchJailWaitingEnableEpoch represents the epoch when the system smart contract processing at end of epoch is enabled
@@ -394,13 +394,14 @@ const (
 	//MetricMetaProtectionEnableEpoch represents the epoch when the transactions to the metachain are checked to have enough gas
 	MetricMetaProtectionEnableEpoch = "erd_meta_protection_enable_epoch"
 
-	//MetricAheadOfTimeGasUsageEnableEpoch represents the epoch when the cost of smart contract prepare changes from compiler per byte to ahead of time prepare per byte
+	//MetricAheadOfTimeGasUsageEnableEpoch represents the epoch when the cost of smart contract prepare changes from compiler
+	//per byte to ahead of time prepare per byte
 	MetricAheadOfTimeGasUsageEnableEpoch = "erd_ahead_of_time_gas_usage_enable_epoch"
 
 	//MetricGasPriceModifierEnableEpoch represents the epoch when the gas price modifier in fee computation is enabled
 	MetricGasPriceModifierEnableEpoch = "erd_gas_price_modifier_enable_epoch"
 
-	//MetricRepairCallbackEnableEpoch represents the epoch when the callback repair is activated for scrs
+	//MetricRepairCallbackEnableEpoch represents the epoch when the callback repair is activated for smart contract results
 	MetricRepairCallbackEnableEpoch = "erd_repair_callback_enable_epoch"
 
 	//MetricBlockGasAndFreeRecheckEnableEpoch represents the epoch when gas and fees used in each created or processed block are re-checked
@@ -421,52 +422,52 @@ const (
 	//MetricGovernanceEnableEpoch  represents the epoch when governance is enabled
 	MetricGovernanceEnableEpoch = "erd_governance_enable_epoch"
 
-	//MetricDelegationManagerEnableEpoch represents the epoch when the delegation manager is enabled epoch should not be 0
+	//MetricDelegationManagerEnableEpoch represents the epoch when the delegation manager is enabled
 	MetricDelegationManagerEnableEpoch = "erd_delegation_manager_enable_epoch"
 
-	//MetricDelegationSmartContractEnableEpoch represents the epoch when delegation smart contract is enabled epoch should not be 0
+	//MetricDelegationSmartContractEnableEpoch represents the epoch when delegation smart contract is enabled
 	MetricDelegationSmartContractEnableEpoch = "erd_delegation_smart_contract_enable_epoch"
 
-	// MetricCorrectLastUnjailedEnableEpoch represents the epoch when the correction applied on the last unjailed node has been applied
+	// MetricCorrectLastUnjailedEnableEpoch represents the epoch when the correction on the last unjailed node is applied
 	MetricCorrectLastUnjailedEnableEpoch = "erd_correct_last_unjailed_enable_epoch"
 
-	// MetricBalanceWaitingListsEnableEpoch represents the epoch when the balance waiting lists on shards has been applied
+	// MetricBalanceWaitingListsEnableEpoch represents the epoch when the balance waiting lists on shards fix is applied
 	MetricBalanceWaitingListsEnableEpoch = "erd_balance_waiting_lists_enable_epoch"
 
-	// MetricReturnDataToLastTransferEnableEpoch represents the epoch when the return data to last transfer has been applied
+	// MetricReturnDataToLastTransferEnableEpoch represents the epoch when the return data to last transfer is applied
 	MetricReturnDataToLastTransferEnableEpoch = "erd_return_data_to_last_transfer_enable_epoch"
 
-	// MetricSenderInOutTransferEnableEpoch represents the epoch when the sender in out transfer has been applied
+	// MetricSenderInOutTransferEnableEpoch represents the epoch when the sender in out transfer is applied
 	MetricSenderInOutTransferEnableEpoch = "erd_sender_in_out_transfer_enable_epoch"
 
-	// MetricRelayedTransactionsV2EnableEpoch represents the epoch when the relayed transactions v2 has been enabled
+	// MetricRelayedTransactionsV2EnableEpoch represents the epoch when the relayed transactions v2 is enabled
 	MetricRelayedTransactionsV2EnableEpoch = "erd_relayed_transactions_v2_enable_epoch"
 
-	// MetricUnbondTokensV2EnableEpoch represents the epoch when the unbond tokens v2 has been applied
+	// MetricUnbondTokensV2EnableEpoch represents the epoch when the unbond tokens v2 is applied
 	MetricUnbondTokensV2EnableEpoch = "erd_unbond_tokens_v2_enable_epoch"
 
-	// MetricSaveJailedAlwaysEnableEpoch represents the epoch the save jailed fix has been applied
+	// MetricSaveJailedAlwaysEnableEpoch represents the epoch the save jailed fix is applied
 	MetricSaveJailedAlwaysEnableEpoch = "erd_save_jailed_always_enable_epoch"
 
-	// MetricValidatorToDelegationEnableEpoch represents the epoch when the validator to delegation feature (staking v3.5) has been enabled
+	// MetricValidatorToDelegationEnableEpoch represents the epoch when the validator to delegation feature (staking v3.5) is enabled
 	MetricValidatorToDelegationEnableEpoch = "erd_validator_to_delegation_enable_epoch"
 
-	// MetricReDelegateBelowMinCheckEnableEpoch represents the epoch when the re-delegation below minimum value fix has been applied
+	// MetricReDelegateBelowMinCheckEnableEpoch represents the epoch when the re-delegation below minimum value fix is applied
 	MetricReDelegateBelowMinCheckEnableEpoch = "erd_redelegate_below_min_check_enable_epoch"
 
 	// MetricIncrementSCRNonceInMultiTransferEnableEpoch represents the epoch when the fix for multi transfer SCR is enabled
 	MetricIncrementSCRNonceInMultiTransferEnableEpoch = "erd_increment_scr_nonce_in_multi_transfer_enable_epoch"
 
-	// MetricESDTMultiTransferEnableEpoch represents the epoch when the ESDT multi transfer feature has been enabled
+	// MetricESDTMultiTransferEnableEpoch represents the epoch when the ESDT multi transfer feature is enabled
 	MetricESDTMultiTransferEnableEpoch = "erd_esdt_multi_transfer_enable_epoch"
 
-	// MetricGlobalMintBurnDisableEpoch represents the epoch when the global mint and burn feature has been disabled
+	// MetricGlobalMintBurnDisableEpoch represents the epoch when the global mint and burn feature is disabled
 	MetricGlobalMintBurnDisableEpoch = "erd_global_mint_burn_disable_epoch"
 
-	// MetricESDTTransferRoleEnableEpoch represents the epoch when the ESDT transfer role feature has been enabled
+	// MetricESDTTransferRoleEnableEpoch represents the epoch when the ESDT transfer role feature is enabled
 	MetricESDTTransferRoleEnableEpoch = "erd_esdt_transfer_role_enable_epoch"
 
-	// MetricBuiltInFunctionOnMetaEnableEpoch represents the epoch when the builtin functions on metachain have been enabled
+	// MetricBuiltInFunctionOnMetaEnableEpoch represents the epoch when the builtin functions on metachain are enabled
 	MetricBuiltInFunctionOnMetaEnableEpoch = "erd_builtin_function_on_meta_enable_epoch"
 )
 
