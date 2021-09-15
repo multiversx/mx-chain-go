@@ -996,6 +996,8 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 
 	miniBlocks := txs.getMiniBlockSliceFromMap(mapMiniBlocks)
 
+	txs.gasHandler.SetTotalGasConsumedInSelfShard(totalGasConsumedInSelfShard)
+
 	log.Debug("createAndProcessMiniBlocksFromMe",
 		"self shard", txs.shardCoordinator.SelfId(),
 		"gas consumed in sender shard", gasConsumedByMiniBlocksInSenderShard,

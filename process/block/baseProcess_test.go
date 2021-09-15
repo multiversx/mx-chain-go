@@ -361,6 +361,7 @@ func CreateMockArguments(
 			Version:            "softwareVersion",
 			HistoryRepository:  &dblookupext.HistoryRepositoryStub{},
 			EpochNotifier:      &mock.EpochNotifierStub{},
+			GasHandler:         &mock.GasHandlerMock{},
 		},
 	}
 

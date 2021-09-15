@@ -84,6 +84,8 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		vmContainerFactory:            arguments.VMContainersFactory,
 		vmContainer:                   arguments.VmContainer,
 		processDataTriesOnCommitEpoch: arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
+		gasConsumedProvider:           arguments.GasHandler,
+		economicsData:                 arguments.CoreComponents.EconomicsData(),
 	}
 
 	sp := shardProcessor{
@@ -589,11 +591,17 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		return
 	}
 
+	log.Info("wwwwwwwwwwwwwwwwwwww shardblock.indexBlock")
+	gasConsumedInHeader := sp.baseProcessor.gasConsumedProvider.GetTotalGasConsumedInSelfShard()
 	args := &indexer.ArgsSaveBlockData{
-		HeaderHash:             headerHash,
-		Body:                   body,
-		Header:                 header,
-		SignersIndexes:         signersIndexes,
+		HeaderHash:     headerHash,
+		Body:           body,
+		Header:         header,
+		SignersIndexes: signersIndexes,
+		HeaderGasConsumption: indexer.HeaderGasConsumption{
+			GasConsumed:    gasConsumedInHeader,
+			MaxGasPerBlock: sp.baseProcessor.economicsData.MaxGasLimitPerBlock(sp.shardCoordinator.SelfId()),
+		},
 		NotarizedHeadersHashes: nil,
 		TransactionsPool:       pool,
 	}

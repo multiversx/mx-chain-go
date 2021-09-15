@@ -14,12 +14,15 @@ import (
 var _ process.GasHandler = (*gasComputation)(nil)
 
 type gasComputation struct {
-	economicsFee   process.FeeHandler
-	txTypeHandler  process.TxTypeHandler
-	gasConsumed    map[string]uint64
-	mutGasConsumed sync.RWMutex
-	gasRefunded    map[string]uint64
-	mutGasRefunded sync.RWMutex
+	economicsFee                   process.FeeHandler
+	txTypeHandler                  process.TxTypeHandler
+	gasConsumed                    map[string]uint64
+	mutGasConsumed                 sync.RWMutex
+	gasRefunded                    map[string]uint64
+	mutGasRefunded                 sync.RWMutex
+	totalGasConsumedInSelfShard    uint64
+	maxGasLimitForHeader           uint64
+	mutTotalGasConsumedInSelfShard sync.RWMutex
 
 	flagGasComputeV2        atomic.Flag
 	gasComputeV2EnableEpoch uint32
@@ -111,6 +114,21 @@ func (gc *gasComputation) TotalGasConsumed() uint64 {
 	gc.mutGasConsumed.RUnlock()
 
 	return totalGasConsumed
+}
+
+// SetTotalGasConsumedInSelfShard will set the total gas consumed in self shard
+func (gc *gasComputation) SetTotalGasConsumedInSelfShard(gasConsumed uint64) {
+	gc.mutTotalGasConsumedInSelfShard.Lock()
+	gc.totalGasConsumedInSelfShard = gasConsumed
+	gc.mutTotalGasConsumedInSelfShard.Unlock()
+}
+
+// GetTotalGasConsumedInSelfShard will return the total gas consumed in self shard
+func (gc *gasComputation) GetTotalGasConsumedInSelfShard() uint64 {
+	gc.mutTotalGasConsumedInSelfShard.RLock()
+	defer gc.mutTotalGasConsumedInSelfShard.RUnlock()
+
+	return gc.totalGasConsumedInSelfShard
 }
 
 // TotalGasRefunded gets the total gas refunded

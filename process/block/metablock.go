@@ -114,6 +114,8 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		vmContainerFactory:            arguments.VMContainersFactory,
 		vmContainer:                   arguments.VmContainer,
 		processDataTriesOnCommitEpoch: arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
+		gasConsumedProvider:           arguments.GasHandler,
+		economicsData:                 arguments.CoreComponents.EconomicsData(),
 	}
 
 	mp := metaProcessor{
@@ -561,7 +563,7 @@ func (mp *metaProcessor) indexBlock(
 	}
 
 	log.Debug("preparing to index block", "hash", headerHash, "nonce", metaBlock.GetNonce(), "round", metaBlock.GetRound())
-	
+
 	pool := &indexer.Pool{
 		Txs:     mp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock),
 		Scrs:    mp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock),
@@ -607,11 +609,17 @@ func (mp *metaProcessor) indexBlock(
 		return
 	}
 
+	log.Info("wwwwwwwwwwwwwwwwwwww metablock.indexBlock")
+	gasConsumedInHeader := mp.baseProcessor.gasConsumedProvider.GetTotalGasConsumedInSelfShard()
 	args := &indexer.ArgsSaveBlockData{
-		HeaderHash:             headerHash,
-		Body:                   body,
-		Header:                 metaBlock,
-		SignersIndexes:         signersIndexes,
+		HeaderHash:     headerHash,
+		Body:           body,
+		Header:         metaBlock,
+		SignersIndexes: signersIndexes,
+		HeaderGasConsumption: indexer.HeaderGasConsumption{
+			GasConsumed:    gasConsumedInHeader,
+			MaxGasPerBlock: mp.baseProcessor.economicsData.MaxGasLimitPerBlock(mp.shardCoordinator.SelfId()),
+		},
 		NotarizedHeadersHashes: notarizedHeadersHashes,
 		TransactionsPool:       pool,
 	}

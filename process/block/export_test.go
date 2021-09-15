@@ -128,6 +128,7 @@ func NewShardProcessorEmptyWith3shards(
 			Version:            "softwareVersion",
 			HistoryRepository:  &dblookupext.HistoryRepositoryStub{},
 			EpochNotifier:      &mock.EpochNotifierStub{},
+			GasHandler:         &mock.GasHandlerMock{},
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)
