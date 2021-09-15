@@ -75,7 +75,7 @@ func InitBaseMetrics(statusHandlerUtils StatusHandlersUtils) error {
 	return nil
 }
 
-// InitConfigMetrics will init the configs from epoch config
+// InitConfigMetrics will init the "enable epochs" configuration metrics from epoch config
 func InitConfigMetrics(statusHandlerUtils StatusHandlersUtils, epochConfig config.EpochConfig) error {
 	if check.IfNil(statusHandlerUtils) {
 		return ErrNilStatusHandlerUtils
