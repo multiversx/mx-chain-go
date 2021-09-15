@@ -26,6 +26,7 @@ type NodesCoordinatorMock struct {
 	GetAllWaitingValidatorsPublicKeysCalled  func() (map[uint32][][]byte, error)
 	GetAllLeavingValidatorsPublicKeysCalled  func() (map[uint32][][]byte, error)
 	ConsensusGroupSizeCalled                 func(uint32) int
+	GetNumTotalEligibleCalled                func() uint64
 }
 
 // NewNodesCoordinatorMock -
@@ -73,6 +74,9 @@ func (ncm *NodesCoordinatorMock) GetChance(uint32) uint32 {
 
 // GetNumTotalEligible -
 func (ncm *NodesCoordinatorMock) GetNumTotalEligible() uint64 {
+	if ncm.GetNumTotalEligibleCalled != nil {
+		return ncm.GetNumTotalEligibleCalled()
+	}
 	return 1
 }
 

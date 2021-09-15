@@ -55,6 +55,8 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 				MaxNumberOfNodesForStake:             100,
 				ActivateBLSPubKeyMessageVerification: false,
 				MinUnstakeTokensValue:                "1",
+				StakeLimitPercentage:                 100.0,
+				NodeLimitPercentage:                  100.0,
 			},
 			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
 				MinServiceFee: 0,
@@ -77,6 +79,7 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 			},
 		},
 		ShardCoordinator: &mock.ShardCoordinatorStub{},
+		NodesCoordinator: &mock.NodesCoordinatorStub{},
 	}
 }
 

@@ -13,6 +13,7 @@ type NodesCoordinatorStub struct {
 	GetValidatorWithPublicKeyCalled     func(publicKey []byte) (validator sharding.Validator, shardId uint32, err error)
 	GetAllValidatorsPublicKeysCalled    func() (map[uint32][][]byte, error)
 	ConsensusGroupSizeCalled            func(shardID uint32) int
+	GetNumTotalEligibleCalled           func() uint64
 }
 
 // GetChance -
@@ -52,6 +53,9 @@ func (ncm *NodesCoordinatorStub) GetAllWaitingValidatorsPublicKeys(_ uint32) (ma
 
 // GetNumTotalEligible -
 func (ncm *NodesCoordinatorStub) GetNumTotalEligible() uint64 {
+	if ncm.GetNumTotalEligibleCalled != nil {
+		return ncm.GetNumTotalEligibleCalled()
+	}
 	return 1
 }
 

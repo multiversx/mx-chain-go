@@ -80,6 +80,8 @@ func createVmContainerMockArgument(gasSchedule core.GasScheduleNotifier) ArgsNew
 				BleedPercentagePerRound:              1,
 				MaxNumberOfNodesForStake:             1,
 				ActivateBLSPubKeyMessageVerification: false,
+				StakeLimitPercentage:                 100.0,
+				NodeLimitPercentage:                  100.0,
 			},
 		},
 		ValidatorAccountsDB: &stateMock.AccountsStub{},
@@ -92,6 +94,9 @@ func createVmContainerMockArgument(gasSchedule core.GasScheduleNotifier) ArgsNew
 			},
 		},
 		ShardCoordinator: &mock.ShardCoordinatorStub{},
+		NodesCoordinator: &mock.NodesCoordinatorMock{GetNumTotalEligibleCalled: func() uint64 {
+			return 1000
+		}},
 	}
 }
 
@@ -327,6 +332,8 @@ func TestVmContainerFactory_Create(t *testing.T) {
 				MaxNumberOfNodesForStake:             100,
 				ActivateBLSPubKeyMessageVerification: false,
 				MinUnstakeTokensValue:                "1",
+				StakeLimitPercentage:                 100.0,
+				NodeLimitPercentage:                  100.0,
 			},
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 				MinCreationDeposit:  "100",
@@ -350,6 +357,9 @@ func TestVmContainerFactory_Create(t *testing.T) {
 			},
 		},
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(1),
+		NodesCoordinator: &mock.NodesCoordinatorMock{GetNumTotalEligibleCalled: func() uint64 {
+			return 1000
+		}},
 	}
 	vmf, err := NewVMContainerFactory(argsNewVMContainerFactory)
 	assert.NotNil(t, vmf)

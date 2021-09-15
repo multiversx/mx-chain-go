@@ -849,6 +849,8 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 					MaxNumberOfNodesForStake:             100,
 					ActivateBLSPubKeyMessageVerification: false,
 					MinUnstakeTokensValue:                "1",
+					StakeLimitPercentage:                 100.0,
+					NodeLimitPercentage:                  100.0,
 				},
 				DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 					MinCreationDeposit:  "100",
@@ -872,6 +874,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 				},
 			},
 			ShardCoordinator: tpn.ShardCoordinator,
+			NodesCoordinator: tpn.NodesCoordinator,
 		}
 		vmFactory, _ = metaProcess.NewVMContainerFactory(argsNewVmFactory)
 	} else {
@@ -1617,6 +1620,8 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 				MaxNumberOfNodesForStake:             100,
 				ActivateBLSPubKeyMessageVerification: false,
 				MinUnstakeTokensValue:                "1",
+				StakeLimitPercentage:                 100.0,
+				NodeLimitPercentage:                  100.0,
 			},
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 				MinCreationDeposit:  "100",
@@ -1635,6 +1640,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 			EnableEpochs: tpn.EnableEpochs,
 		},
 		ShardCoordinator: tpn.ShardCoordinator,
+		NodesCoordinator: tpn.NodesCoordinator,
 	}
 	vmFactory, _ := metaProcess.NewVMContainerFactory(argsVMContainerFactory)
 

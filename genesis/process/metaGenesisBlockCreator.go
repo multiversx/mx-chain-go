@@ -279,6 +279,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		EpochNotifier:       epochNotifier,
 		EpochConfig:         arg.EpochConfig,
 		ShardCoordinator:    arg.ShardCoordinator,
+		NodesCoordinator:    &disabled.NodesCoordinator{},
 	}
 	virtualMachineFactory, err := metachain.NewVMContainerFactory(argsNewVMContainerFactory)
 	if err != nil {

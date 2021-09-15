@@ -52,6 +52,8 @@ func createMockArgumentsForValidatorSCWithSystemScAddresses(
 			MaxNumberOfNodesForStake:             10,
 			ActivateBLSPubKeyMessageVerification: false,
 			MinUnstakeTokensValue:                "1",
+			StakeLimitPercentage:                 100.0,
+			NodeLimitPercentage:                  100.0,
 		},
 		Marshalizer:              &mock.MarshalizerMock{},
 		GenesisTotalSupply:       big.NewInt(100000000),

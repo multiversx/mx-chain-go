@@ -108,6 +108,8 @@ func createMockArgument(
 				MaxNumberOfNodesForStake:             10,
 				ActivateBLSPubKeyMessageVerification: false,
 				MinUnstakeTokensValue:                "1",
+				StakeLimitPercentage:                 100.0,
+				NodeLimitPercentage:                  100.0,
 			},
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 				MinCreationDeposit:  "100",
@@ -129,6 +131,7 @@ func createMockArgument(
 				SCDeployEnableEpoch:            0,
 				RelayedTransactionsEnableEpoch: 0,
 				PenalizedTooMuchGasEnableEpoch: 0,
+				StakeLimitsEnableEpoch:         10,
 			},
 		},
 	}

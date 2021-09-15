@@ -651,6 +651,7 @@ func CreateVMAndBlockchainHookMeta(
 		EpochNotifier:       &mock.EpochNotifierStub{},
 		EpochConfig:         createEpochConfig(),
 		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(1),
+		NodesCoordinator:    &mock.NodesCoordinatorMock{},
 	}
 	argVMContainer.EpochConfig.EnableEpochs.UnbondTokensV2EnableEpoch = arg.UnbondTokensV2EnableEpoch
 	vmFactory, err := metachain.NewVMContainerFactory(argVMContainer)
@@ -719,6 +720,8 @@ func createSystemSCConfig() *config.SystemSmartContractsConfig {
 			BleedPercentagePerRound:              0.00001,
 			MaxNumberOfNodesForStake:             36,
 			ActivateBLSPubKeyMessageVerification: false,
+			StakeLimitPercentage:                 100.0,
+			NodeLimitPercentage:                  100.0,
 		},
 		DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 			MinCreationDeposit:  "1250000000000000000000",

@@ -67,6 +67,12 @@ type EconomicsHandler interface {
 	IsInterfaceNil() bool
 }
 
+// NodesCoordinator defines the methods needed about nodes in system SCs from nodes coordinator
+type NodesCoordinator interface {
+	GetNumTotalEligible() uint64
+	IsInterfaceNil() bool
+}
+
 // ContextHandler defines the methods needed to execute system smart contracts
 type ContextHandler interface {
 	SystemEI
