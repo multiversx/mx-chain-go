@@ -193,6 +193,7 @@ func NewValidatorSmartContract(
 		shardCoordinator:                 args.ShardCoordinator,
 		stakeLimitsEnableEpoch:           args.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch,
 		nodeLimitPercentage:              args.StakingSCConfig.NodeLimitPercentage,
+		nodesCoordinator:                 args.NodesCoordinator,
 	}
 
 	reg.totalStakeLimit = core.GetIntTrimmedPercentageOfValue(args.GenesisTotalSupply, args.StakingSCConfig.StakeLimitPercentage)

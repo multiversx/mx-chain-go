@@ -6,7 +6,7 @@ type NodesCoordinator struct {
 
 // GetNumTotalEligible -
 func (n *NodesCoordinator) GetNumTotalEligible() uint64 {
-	return 0
+	return 1600
 }
 
 // IsInterfaceNil -

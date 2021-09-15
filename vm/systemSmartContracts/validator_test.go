@@ -69,6 +69,7 @@ func createMockArgumentsForValidatorSCWithSystemScAddresses(
 			},
 		},
 		ShardCoordinator: &mock.ShardCoordinatorStub{},
+		NodesCoordinator: &mock.NodesCoordinatorStub{},
 	}
 
 	return args
