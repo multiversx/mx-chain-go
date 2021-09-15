@@ -427,8 +427,47 @@ const (
 	//MetricDelegationSmartContractEnableEpoch represents the epoch when delegation smart contract is enabled epoch should not be 0
 	MetricDelegationSmartContractEnableEpoch = "erd_delegation_smart_contract_enable_epoch"
 
+	// MetricCorrectLastUnjailedEnableEpoch represents the epoch when the correction applied on the last unjailed node has been applied
+	MetricCorrectLastUnjailedEnableEpoch = "erd_correct_last_unjailed_enable_epoch"
+
+	// MetricBalanceWaitingListsEnableEpoch represents the epoch when the balance waiting lists on shards has been applied
+	MetricBalanceWaitingListsEnableEpoch = "erd_balance_waiting_lists_enable_epoch"
+
+	// MetricReturnDataToLastTransferEnableEpoch represents the epoch when the return data to last transfer has been applied
+	MetricReturnDataToLastTransferEnableEpoch = "erd_return_data_to_last_transfer_enable_epoch"
+
+	// MetricSenderInOutTransferEnableEpoch represents the epoch when the sender in out transfer has been applied
+	MetricSenderInOutTransferEnableEpoch = "erd_sender_in_out_transfer_enable_epoch"
+
+	// MetricRelayedTransactionsV2EnableEpoch represents the epoch when the relayed transactions v2 has been enabled
+	MetricRelayedTransactionsV2EnableEpoch = "erd_relayed_transactions_v2_enable_epoch"
+
+	// MetricUnbondTokensV2EnableEpoch represents the epoch when the unbond tokens v2 has been applied
+	MetricUnbondTokensV2EnableEpoch = "erd_unbond_tokens_v2_enable_epoch"
+
+	// MetricSaveJailedAlwaysEnableEpoch represents the epoch the save jailed fix has been applied
+	MetricSaveJailedAlwaysEnableEpoch = "erd_save_jailed_always_enable_epoch"
+
+	// MetricValidatorToDelegationEnableEpoch represents the epoch when the validator to delegation feature (staking v3.5) has been enabled
+	MetricValidatorToDelegationEnableEpoch = "erd_validator_to_delegation_enable_epoch"
+
+	// MetricReDelegateBelowMinCheckEnableEpoch represents the epoch when the re-delegation below minimum value fix has been applied
+	MetricReDelegateBelowMinCheckEnableEpoch = "erd_redelegate_below_min_check_enable_epoch"
+
 	// MetricIncrementSCRNonceInMultiTransferEnableEpoch represents the epoch when the fix for multi transfer SCR is enabled
 	MetricIncrementSCRNonceInMultiTransferEnableEpoch = "erd_increment_scr_nonce_in_multi_transfer_enable_epoch"
+
+	// MetricESDTMultiTransferEnableEpoch represents the epoch when the ESDT multi transfer feature has been enabled
+	MetricESDTMultiTransferEnableEpoch = "erd_esdt_multi_transfer_enable_epoch"
+
+	// MetricGlobalMintBurnDisableEpoch represents the epoch when the global mint and burn feature has been disabled
+	MetricGlobalMintBurnDisableEpoch = "erd_global_mint_burn_disable_epoch"
+
+	// MetricESDTTransferRoleEnableEpoch represents the epoch when the ESDT transfer role feature has been enabled
+	MetricESDTTransferRoleEnableEpoch = "erd_esdt_transfer_role_enable_epoch"
+
+	// MetricBuiltInFunctionOnMetaEnableEpoch represents the epoch when the builtin functions on metachain have been enabled
+	MetricBuiltInFunctionOnMetaEnableEpoch = "erd_builtin_function_on_meta_enable_epoch"
 )
 
 const (
