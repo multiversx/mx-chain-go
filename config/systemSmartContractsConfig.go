@@ -23,6 +23,7 @@ type StakingSystemSCConfig struct {
 	BleedPercentagePerRound              float64
 	MaxNumberOfNodesForStake             uint64
 	ActivateBLSPubKeyMessageVerification bool
+	LimitPercentage                      float64
 }
 
 // ESDTSystemSCConfig defines a set of constant to initialize the esdt system smart contract
