@@ -1,4 +1,4 @@
-package mock
+package statusHandler
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
