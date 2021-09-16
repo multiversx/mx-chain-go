@@ -7,13 +7,14 @@ require (
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.30
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.8
 	github.com/ElrondNetwork/concurrent-map v0.1.3
-	github.com/ElrondNetwork/covalent-indexer-go v0.0.0-20210901072744-62e2a3969b07
+	github.com/ElrondNetwork/covalent-indexer-go v1.0.1
 	github.com/ElrondNetwork/elastic-indexer-go v1.0.8
-	github.com/ElrondNetwork/elrond-go-core v1.0.1-0.20210802100738-75f99b3e75a0
+	github.com/ElrondNetwork/elrond-go-core v1.1.0
 	github.com/ElrondNetwork/elrond-go-crypto v1.0.1
 	github.com/ElrondNetwork/elrond-go-logger v1.0.5
-	github.com/ElrondNetwork/elrond-vm-common v1.1.4
+	github.com/ElrondNetwork/elrond-vm-common v1.2.1
 	github.com/ElrondNetwork/notifier-go v0.0.0-20210726084028-a78b3bbabc41
+	github.com/StackExchange/wmi v1.2.1 // indirect
 	github.com/beevik/ntp v0.3.0
 	github.com/btcsuite/btcd v0.22.0-beta
 	github.com/davecgh/go-spew v1.1.1
@@ -40,7 +41,6 @@ require (
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil v3.21.6+incompatible
-	github.com/shirou/gopsutil/v3 v3.21.7 // indirect
 	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/goleveldb v1.0.1-0.20190318030020-c3a204f8e965
 	github.com/tklauser/go-sysconf v0.3.8 // indirect
@@ -60,5 +60,3 @@ replace github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.30 => github.com/Elrond
 replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.30 => github.com/ElrondNetwork/arwen-wasm-vm v1.3.30
 
 replace github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.8 => github.com/ElrondNetwork/arwen-wasm-vm v1.4.8
-
-replace github.com/ElrondNetwork/covalent-indexer-go => /home/elrond/go/src/github.com/ElrondNetwork/covalent-indexer-go

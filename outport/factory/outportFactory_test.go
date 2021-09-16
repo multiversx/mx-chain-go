@@ -62,7 +62,7 @@ func TestNewIndexerFactory(t *testing.T) {
 	}
 }
 
-func TestCreateOutport_EnabledDrivers_NilMockArgs_ExpectErrorSubscribingDrivers(t *testing.T) {
+func TestCreateOutport_EnabledDriversNilMockArgsExpectErrorSubscribingDrivers(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		argsFunc func() *factory.OutportFactoryArgs
