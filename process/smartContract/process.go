@@ -810,6 +810,10 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 		return 0, err
 	}
 
+	if vmInput.ReturnCallAfterError && vmInput.CallType != vmData.AsynchronousCallBack {
+		return sc.finishSCExecution(make([]data.TransactionHandler, 0), txHash, tx, vmOutput, 0)
+	}
+
 	_, txTypeOnDst := sc.txTypeHandler.ComputeTransactionType(tx)
 	builtInFuncGasUsed, err := sc.computeBuiltInFuncGasUsed(txTypeOnDst, vmInput.Function, vmInput.GasProvided, vmOutput.GasRemaining)
 	log.LogIfError(err, "function", "ExecuteBuiltInFunction.computeBuiltInFuncGasUsed")
@@ -1049,6 +1053,13 @@ func (sc *scProcessor) isSCExecutionAfterBuiltInFunc(
 	}
 
 	scExecuteOutTransfer := outAcc.OutputTransfers[0]
+	if !sc.flagIncrementSCRNonceInMultiTransfer.IsSet() {
+		_, _, err = sc.argsParser.ParseCallData(string(scExecuteOutTransfer.Data))
+		if err != nil {
+			return true, nil, err
+		}
+	}
+
 	newVMInput := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
 			CallerAddr:           vmInput.CallerAddr,
