@@ -60,6 +60,7 @@ func createGenesisConfig() config.EnableEpochs {
 		RelayedTransactionsV2EnableEpoch:            unreachableEpoch,
 		BuiltInFunctionOnMetaEnableEpoch:            unreachableEpoch,
 		IncrementSCRNonceInMultiTransferEnableEpoch: unreachableEpoch,
+		StakeLimitsEnableEpoch:                      unreachableEpoch,
 	}
 }
 

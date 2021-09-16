@@ -45,6 +45,9 @@ type ArgsNewLiquidStaking struct {
 	EpochNotifier          vm.EpochNotifier
 }
 
+// TODO: resolve errors if multi transfer from metachain fails. should it return - restore position or should remain at destination
+// better to remain at destination
+
 // NewLiquidStakingSystemSC creates a new liquid staking system SC
 func NewLiquidStakingSystemSC(args ArgsNewLiquidStaking) (*liquidStaking, error) {
 	if check.IfNil(args.Eei) {

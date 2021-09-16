@@ -94,6 +94,17 @@ func TestNewSystemSCFactory_NilSystemEI(t *testing.T) {
 	assert.True(t, errors.Is(err, vm.ErrNilSystemEnvironmentInterface))
 }
 
+func TestNewSystemSCFactory_NilNodesCoordinator(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockNewSystemScFactoryArgs()
+	arguments.NodesCoordinator = nil
+	scFactory, err := NewSystemSCFactory(arguments)
+
+	assert.Nil(t, scFactory)
+	assert.True(t, errors.Is(err, vm.ErrNilNodesCoordinator))
+}
+
 func TestNewSystemSCFactory_NilSigVerifier(t *testing.T) {
 	t.Parallel()
 

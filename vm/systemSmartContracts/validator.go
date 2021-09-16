@@ -192,7 +192,7 @@ func NewValidatorSmartContract(
 		validatorToDelegationEnableEpoch: args.EpochConfig.EnableEpochs.ValidatorToDelegationEnableEpoch,
 		shardCoordinator:                 args.ShardCoordinator,
 		stakeLimitsEnableEpoch:           args.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch,
-		nodeLimitPercentage:              args.StakingSCConfig.NodeLimitPercentage,
+		nodeLimitPercentage:              args.StakingSCConfig.NodeLimitPercentage / 100.0,
 		nodesCoordinator:                 args.NodesCoordinator,
 	}
 
