@@ -154,7 +154,7 @@ func TestESDTIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 
 	esdtSCAcc := esdtCommon.GetUserAccountWithAddress(t, vm.ESDTSCAddress, nodes)
 	retrievedData, _ = esdtSCAcc.DataTrieTracker().RetrieveValue([]byte(tokenIdentifier))
-	tokenInSystemSC := &systemSmartContracts.ESDTData{}
+	tokenInSystemSC := &systemSmartContracts.ESDTDataV2{}
 	_ = integrationTests.TestMarshalizer.Unmarshal(tokenInSystemSC, retrievedData)
 	require.Zero(t, tokenInSystemSC.MintedValue.Cmp(big.NewInt(initialSupply+mintValue)))
 	require.Zero(t, tokenInSystemSC.BurntValue.Cmp(big.NewInt(mintValue)))
@@ -247,7 +247,7 @@ func TestESDTCallBurnOnANonBurnableToken(t *testing.T) {
 
 	esdtSCAcc := esdtCommon.GetUserAccountWithAddress(t, vm.ESDTSCAddress, nodes)
 	retrievedData, _ := esdtSCAcc.DataTrieTracker().RetrieveValue([]byte(tokenIdentifier))
-	tokenInSystemSC := &systemSmartContracts.ESDTData{}
+	tokenInSystemSC := &systemSmartContracts.ESDTDataV2{}
 	_ = integrationTests.TestMarshalizer.Unmarshal(tokenInSystemSC, retrievedData)
 	require.Equal(t, initialSupply, tokenInSystemSC.MintedValue.Int64())
 	require.Zero(t, tokenInSystemSC.BurntValue.Int64())

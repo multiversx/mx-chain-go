@@ -59,7 +59,7 @@ var _ facade.NodeHandler = (*Node)(nil)
 type Option func(*Node) error
 
 type filter interface {
-	filter(tokenIdentifier string, esdtData *systemSmartContracts.ESDTData) bool
+	filter(tokenIdentifier string, esdtData *systemSmartContracts.ESDTDataV2) bool
 }
 
 // Node is a structure that holds all managed components
@@ -258,8 +258,8 @@ func (n *Node) GetAllIssuedESDTs(tokenType string) ([]string, error) {
 	return tokens, nil
 }
 
-func (n *Node) getEsdtDataFromLeaf(leaf core.KeyValueHolder, userAccount state.UserAccountHandler) (*systemSmartContracts.ESDTData, bool) {
-	esdtToken := &systemSmartContracts.ESDTData{}
+func (n *Node) getEsdtDataFromLeaf(leaf core.KeyValueHolder, userAccount state.UserAccountHandler) (*systemSmartContracts.ESDTDataV2, bool) {
+	esdtToken := &systemSmartContracts.ESDTDataV2{}
 	suffix := append(leaf.Key(), userAccount.AddressBytes()...)
 	value, errVal := leaf.ValueWithoutSuffix(suffix)
 	if errVal != nil {
