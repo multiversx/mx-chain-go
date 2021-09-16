@@ -23,7 +23,6 @@ import (
 	disabledSig "github.com/ElrondNetwork/elrond-go-crypto/signing/disabled/singlesig"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/facade"
@@ -60,7 +59,7 @@ var _ facade.NodeHandler = (*Node)(nil)
 type Option func(*Node) error
 
 type filter interface {
-	filter(tokenIdentifier string, esdtData *systemSmartContracts.ESDTData) bool
+	filter(tokenIdentifier string, esdtData *systemSmartContracts.ESDTDataV2) bool
 }
 
 // Node is a structure that holds all managed components
@@ -73,8 +72,6 @@ type Node struct {
 	genesisTime         time.Time
 	peerDenialEvaluator p2p.PeerDenialEvaluator
 	hardforkTrigger     HardforkTrigger
-
-	networkShardingCollector NetworkShardingCollector
 
 	consensusType string
 
@@ -109,7 +106,6 @@ type Node struct {
 	closableComponents        []mainFactory.Closer
 	enableSignTxWithHashEpoch uint32
 	isInImportMode            bool
-	nodeRedundancyHandler     consensus.NodeRedundancyHandler
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -262,8 +258,8 @@ func (n *Node) GetAllIssuedESDTs(tokenType string) ([]string, error) {
 	return tokens, nil
 }
 
-func (n *Node) getEsdtDataFromLeaf(leaf core.KeyValueHolder, userAccount state.UserAccountHandler) (*systemSmartContracts.ESDTData, bool) {
-	esdtToken := &systemSmartContracts.ESDTData{}
+func (n *Node) getEsdtDataFromLeaf(leaf core.KeyValueHolder, userAccount state.UserAccountHandler) (*systemSmartContracts.ESDTDataV2, bool) {
+	esdtToken := &systemSmartContracts.ESDTDataV2{}
 	suffix := append(leaf.Key(), userAccount.AddressBytes()...)
 	value, errVal := leaf.ValueWithoutSuffix(suffix)
 	if errVal != nil {
@@ -1205,7 +1201,7 @@ func (n *Node) createPidInfo(p core.PeerID) core.QueryP2PPeerInfo {
 		IsBlacklisted: n.peerDenialEvaluator.IsDenied(p),
 	}
 
-	peerInfo := n.networkShardingCollector.GetPeerInfo(p)
+	peerInfo := n.processComponents.PeerShardMapper().GetPeerInfo(p)
 	result.PeerType = peerInfo.PeerType.String()
 	result.PeerSubType = peerInfo.PeerSubType.String()
 	if len(peerInfo.PkBytes) == 0 {
