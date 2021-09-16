@@ -1903,6 +1903,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		BlockSizeThrottler: TestBlockSizeThrottler,
 		HistoryRepository:  tpn.HistoryRepository,
 		EpochNotifier:      tpn.EpochNotifier,
+		GasHandler:         tpn.GasHandler,
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {

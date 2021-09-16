@@ -24,6 +24,8 @@ github.com/ElrondNetwork/concurrent-map v0.1.3 h1:j2LtPrNJuerannC1cQDE79STvi/P04
 github.com/ElrondNetwork/concurrent-map v0.1.3/go.mod h1:3XwSwn4JHI0lrKxWLZvtp53Emr8BXYTmNQGwcukHJEE=
 github.com/ElrondNetwork/elastic-indexer-go v1.0.8 h1:uWoYHlvkNEU7exOOpiX3Ed2IzS5lBDyxvXk1OJ3Q2H0=
 github.com/ElrondNetwork/elastic-indexer-go v1.0.8/go.mod h1:AUBtHo9tk/cTx0YBftb5FaWWuDRkZOGRseZbBcqIdtc=
+github.com/ElrondNetwork/elastic-indexer-go v1.1.16-0.20210915125814-f5bc3c71b7de h1:/jOyq+F5DGSB9ZuChjivsYfoxUMBmtqy3a7IegJNydI=
+github.com/ElrondNetwork/elastic-indexer-go v1.1.16-0.20210915125814-f5bc3c71b7de/go.mod h1:owuU+jgMg2IrEt89KFC4n9EofibhIy8a/T4DHlY3iT8=
 github.com/ElrondNetwork/elrond-go-core v1.0.0/go.mod h1:FQMem7fFF4+8pQ6lVsBZq6yO+smD0nV23P4bJpmPjTo=
 github.com/ElrondNetwork/elrond-go-core v1.0.1-0.20210721105824-f1bfb549cfce/go.mod h1:O9FkkTT2H9kxCzfn40TbhoCDXzGmUrRVusMomhK/Y3g=
 github.com/ElrondNetwork/elrond-go-core v1.0.1-0.20210721164025-65cf7f169349/go.mod h1:O9FkkTT2H9kxCzfn40TbhoCDXzGmUrRVusMomhK/Y3g=
