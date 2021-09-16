@@ -11,7 +11,7 @@ type getRegisteredNftsFilter struct {
 	addressBytes []byte
 }
 
-func (f *getRegisteredNftsFilter) filter(_ string, esdtData *systemSmartContracts.ESDTData) bool {
+func (f *getRegisteredNftsFilter) filter(_ string, esdtData *systemSmartContracts.ESDTDataV2) bool {
 	return !bytes.Equal(esdtData.TokenType, []byte(core.FungibleESDT)) && bytes.Equal(esdtData.OwnerAddress, f.addressBytes)
 }
 
@@ -20,7 +20,7 @@ type getTokensWithRoleFilter struct {
 	role         string
 }
 
-func (f *getTokensWithRoleFilter) filter(_ string, esdtData *systemSmartContracts.ESDTData) bool {
+func (f *getTokensWithRoleFilter) filter(_ string, esdtData *systemSmartContracts.ESDTDataV2) bool {
 	for _, esdtRoles := range esdtData.SpecialRoles {
 		if !bytes.Equal(esdtRoles.Address, f.addressBytes) {
 			continue
@@ -41,7 +41,7 @@ type getAllTokensRolesFilter struct {
 	outputRoles  map[string][]string
 }
 
-func (f *getAllTokensRolesFilter) filter(tokenIdentifier string, esdtData *systemSmartContracts.ESDTData) bool {
+func (f *getAllTokensRolesFilter) filter(tokenIdentifier string, esdtData *systemSmartContracts.ESDTDataV2) bool {
 	for _, esdtRoles := range esdtData.SpecialRoles {
 		if !bytes.Equal(esdtRoles.Address, f.addressBytes) {
 			continue
