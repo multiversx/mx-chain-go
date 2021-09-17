@@ -37,7 +37,6 @@ type webServer struct {
 	httpServer      shared.HttpServerCloser
 	groups          map[string]shared.GroupHandler
 	ginEngine       *gin.Engine
-	pprofEnabled    bool
 	cancelFunc      func()
 }
 
@@ -52,7 +51,6 @@ func NewGinWebServerHandler(args ArgsNewWebServer) (*webServer, error) {
 		facade:          args.Facade,
 		antiFloodConfig: args.AntiFloodConfig,
 		apiConfig:       args.ApiConfig,
-		pprofEnabled:    false,
 	}
 
 	return gws, nil
@@ -72,15 +70,6 @@ func (ws *webServer) UpdateFacade(facade shared.FacadeHandler) error {
 		if err != nil {
 			log.Error("cannot update facade for gin API group", "group name", groupName, "error", err)
 		}
-	}
-
-	shouldEnablePprofAfterUpdate := !ws.pprofEnabled &&
-		facade.PprofEnabled() &&
-		ws.ginEngine != nil
-
-	if shouldEnablePprofAfterUpdate {
-		log.Debug("registering pprof")
-		pprof.Register(ws.ginEngine)
 	}
 
 	return nil
@@ -223,7 +212,6 @@ func (ws *webServer) registerRoutes(ginRouter *gin.Engine) {
 	}
 
 	if ws.facade.PprofEnabled() {
-		ws.pprofEnabled = true
 		pprof.Register(ginRouter)
 	}
 }

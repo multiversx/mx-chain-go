@@ -1,4 +1,4 @@
-package disabled
+package initial
 
 import (
 	"fmt"
@@ -19,7 +19,7 @@ func TestDisabledNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	}()
 
 	apiInterface := "127.0.0.1:7799"
-	dnf := NewDisabledNodeFacade(apiInterface)
+	dnf := NewInitialNodeFacade(apiInterface, true)
 
 	dnf.SetSyncer(nil)
 	b := dnf.RestAPIServerDebugMode()
