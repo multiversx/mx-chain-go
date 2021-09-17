@@ -550,19 +550,95 @@ func CreateVMAndBlockchainHookAndDataPool(
 
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
-		Accounts:           accnts,
-		PubkeyConv:         pubkeyConv,
-		StorageService:     &mock.ChainStorerMock{},
-		BlockChain:         &mock.BlockChainMock{},
-		ShardCoordinator:   shardCoordinator,
-		Marshalizer:        testMarshalizer,
-		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions:   builtInFuncs,
-		DataPool:           datapool,
-		CompiledSCPool:     datapool.SmartContracts(),
-		NilCompiledSCStore: true,
-		ConfigSCStorage:    *defaultStorageConfig(),
-		EpochNotifier:      globalEpochNotifier,
+		Accounts:                        accnts,
+		PubkeyConv:                      pubkeyConv,
+		StorageService:                  &mock.ChainStorerMock{},
+		BlockChain:                      &mock.BlockChainMock{},
+		ShardCoordinator:                shardCoordinator,
+		Marshalizer:                     testMarshalizer,
+		Uint64Converter:                 &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions:                builtInFuncs,
+		DataPool:                        datapool,
+		CompiledSCPool:                  datapool.SmartContracts(),
+		NilCompiledSCStore:              true,
+		ConfigSCStorage:                 *defaultStorageConfig(),
+		EpochNotifier:                   globalEpochNotifier,
+		SaveAccountsIfErrorDisableEpoch: 5,
+	}
+
+	esdtTransferParser, _ := parsers.NewESDTTransferParser(testMarshalizer)
+	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
+	argsNewVMFactory := shard.ArgVMContainerFactory{
+		Config:                         *vmConfig,
+		BlockGasLimit:                  maxGasLimitPerBlock,
+		GasSchedule:                    mock.NewGasScheduleNotifierMock(actualGasSchedule),
+		ArgBlockChainHook:              args,
+		EpochNotifier:                  globalEpochNotifier,
+		DeployEnableEpoch:              0,
+		AheadOfTimeGasUsageEnableEpoch: 0,
+		ArwenV3EnableEpoch:             0,
+		ArwenChangeLocker:              arwenChangeLocker,
+		ESDTTransferParser:             esdtTransferParser,
+	}
+	vmFactory, err := shard.NewVMContainerFactory(argsNewVMFactory)
+	if err != nil {
+		log.LogIfError(err)
+	}
+
+	vmContainer, err := vmFactory.Create()
+	if err != nil {
+		panic(err)
+	}
+
+	blockChainHook, _ := vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
+	_ = vmcommonBuiltInFunctions.SetPayableHandler(builtInFuncs, blockChainHook)
+
+	return vmContainer, blockChainHook, datapool
+}
+
+// CreateVMBlockchainHookBuiltInFuncsWithEpochConfig -
+func CreateVMBlockchainHookBuiltInFuncsWithEpochConfig(
+	accnts state.AccountsAdapter,
+	gasSchedule map[string]map[string]uint64,
+	vmConfig *config.VirtualMachineConfig,
+	shardCoordinator sharding.Coordinator,
+	arwenChangeLocker process.Locker,
+	epochConfig config.EnableEpochs,
+) (process.VirtualMachinesContainer, *hooks.BlockChainHookImpl, dataRetriever.PoolsHolder) {
+	actualGasSchedule := gasSchedule
+	if gasSchedule == nil {
+		actualGasSchedule = arwenConfig.MakeGasMapForTests()
+		defaults.FillGasMapInternal(actualGasSchedule, 1)
+	}
+
+	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
+		GasSchedule: mock.NewGasScheduleNotifierMock(actualGasSchedule),
+		MapDNSAddresses: map[string]struct{}{
+			string(dnsAddr): {},
+		},
+		Marshalizer:      testMarshalizer,
+		Accounts:         accnts,
+		ShardCoordinator: shardCoordinator,
+		EpochNotifier:    globalEpochNotifier,
+	}
+	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+
+	datapool := dataRetrieverMock.NewPoolsHolderMock()
+	args := hooks.ArgBlockChainHook{
+		Accounts:                        accnts,
+		PubkeyConv:                      pubkeyConv,
+		StorageService:                  &mock.ChainStorerMock{},
+		BlockChain:                      &mock.BlockChainMock{},
+		ShardCoordinator:                shardCoordinator,
+		Marshalizer:                     testMarshalizer,
+		Uint64Converter:                 &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions:                builtInFuncs,
+		DataPool:                        datapool,
+		CompiledSCPool:                  datapool.SmartContracts(),
+		NilCompiledSCStore:              true,
+		ConfigSCStorage:                 *defaultStorageConfig(),
+		EpochNotifier:                   globalEpochNotifier,
+		SaveAccountsIfErrorDisableEpoch: epochConfig.SaveAccountsIfErrorDisableEpoch,
 	}
 
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(testMarshalizer)
@@ -1030,12 +1106,21 @@ func CreatePreparedTxProcessorWithVMs(argEnableEpoch ArgEnableEpoch) (*VMTestCon
 
 // CreatePreparedTxProcessorWithVMsWithShardCoordinator -
 func CreatePreparedTxProcessorWithVMsWithShardCoordinator(argEnableEpoch ArgEnableEpoch, shardCoordinator sharding.Coordinator) (*VMTestContext, error) {
+	return CreatePreparedTxProcessorWithVMsShardCoordinatorAndEpochConfig(argEnableEpoch, shardCoordinator, config.EnableEpochs{})
+}
+
+// CreatePreparedTxProcessorWithVMsShardCoordinatorAndEpochConfig -
+func CreatePreparedTxProcessorWithVMsShardCoordinatorAndEpochConfig(
+	argEnableEpoch ArgEnableEpoch,
+	shardCoordinator sharding.Coordinator,
+	epochConfig config.EnableEpochs,
+) (*VMTestContext, error) {
 	feeAccumulator, _ := postprocess.NewFeeAccumulator()
 	accounts := CreateInMemoryShardAccountsDB()
 	vmConfig := createDefaultVMConfig()
 	arwenChangeLocker := &sync.RWMutex{}
 
-	vmContainer, blockchainHook, pool := CreateVMAndBlockchainHookAndDataPool(accounts, nil, vmConfig, shardCoordinator, arwenChangeLocker)
+	vmContainer, blockchainHook, pool := CreateVMBlockchainHookBuiltInFuncsWithEpochConfig(accounts, nil, vmConfig, shardCoordinator, arwenChangeLocker, epochConfig)
 	txProcessor, scProcessor, scForwarder, economicsData, txCostHandler, err := CreateTxProcessorWithOneSCExecutorWithVMs(
 		accounts,
 		vmContainer,

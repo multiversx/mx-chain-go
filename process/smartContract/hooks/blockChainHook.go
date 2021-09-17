@@ -374,9 +374,9 @@ func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCal
 	vmOutput, err := function.ProcessBuiltinFunction(sndAccount, dstAccount, input)
 	if err != nil {
 		if bh.flagSaveAccountsIfError.IsSet() {
-			err = bh.saveAccounts(input, sndAccount, dstAccount)
-			if err != nil {
-				return nil, err
+			errSave := bh.saveAccounts(input, sndAccount, dstAccount)
+			if errSave != nil {
+				return nil, errSave
 			}
 		}
 
