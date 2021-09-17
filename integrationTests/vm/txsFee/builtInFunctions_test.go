@@ -11,6 +11,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
@@ -271,7 +272,7 @@ func TestBuildInFunctionSaveKeyValue_WrongDestination(t *testing.T) {
 func TestBuildInFunctionSaveKeyValue_NotEnoughGasFor3rdSave(t *testing.T) {
 	shardCoord, _ := sharding.NewMultiShardCoordinator(2, 0)
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMsShardCoordinatorAndEpochConfig(vm.ArgEnableEpoch{}, shardCoord, config.EnableEpochs{SaveAccountsIfErrorDisableEpoch: 5})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMsShardCoordinatorAndEpochConfig(vm.ArgEnableEpoch{SaveAccountAlwaysEnableEpoch: 5}, shardCoord, config.EnableEpochs{SaveAccountsIfErrorDisableEpoch: 5})
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -284,6 +285,7 @@ func TestBuildInFunctionSaveKeyValue_NotEnoughGasFor3rdSave(t *testing.T) {
 	gasLimit := uint64(len(txData) + 20)
 	gasPrice := uint64(10)
 
+	_ = logger.SetLogLevel("*:TRACE")
 	tx := vm.CreateTransaction(0, big.NewInt(0), sndAddr, sndAddr, gasPrice, gasLimit, txData)
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.UserError, retCode)

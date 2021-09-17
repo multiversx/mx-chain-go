@@ -809,11 +809,6 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 		return 0, err
 	}
 
-	acntSnd, err = sc.reloadLocalAccount(acntSnd)
-	if err != nil {
-		return 0, err
-	}
-
 	if vmInput.ReturnCallAfterError && vmInput.CallType != vmData.AsynchronousCallBack {
 		return sc.finishSCExecution(make([]data.TransactionHandler, 0), txHash, tx, vmOutput, 0)
 	}
@@ -831,6 +826,11 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 			return vmcommon.UserError, sc.resolveFailedTransaction(acntSnd, tx, txHash, vmOutput.ReturnMessage, snapshot)
 		}
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, vmOutput.ReturnCode.String(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
+	}
+
+	acntSnd, err = sc.reloadLocalAccount(acntSnd)
+	if err != nil {
+		return 0, err
 	}
 
 	if vmInput.CallType == vmData.AsynchronousCallBack {
