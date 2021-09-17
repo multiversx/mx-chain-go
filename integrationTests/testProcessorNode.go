@@ -801,6 +801,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 		DataPool:           tpn.DataPool,
 		CompiledSCPool:     smartContractsCache,
 		NilCompiledSCStore: true,
+		EpochNotifier:      tpn.EpochNotifier,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
@@ -1376,6 +1377,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		DataPool:           tpn.DataPool,
 		CompiledSCPool:     tpn.DataPool.SmartContracts(),
 		NilCompiledSCStore: true,
+		EpochNotifier:      tpn.EpochNotifier,
 	}
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
@@ -1568,6 +1570,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		DataPool:           tpn.DataPool,
 		CompiledSCPool:     tpn.DataPool.SmartContracts(),
 		NilCompiledSCStore: true,
+		EpochNotifier:      tpn.EpochNotifier,
 	}
 
 	var signVerifier vm.MessageSignVerifier

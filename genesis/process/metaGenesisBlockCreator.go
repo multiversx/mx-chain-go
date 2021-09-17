@@ -240,6 +240,13 @@ func saveGenesisMetaToStorage(
 
 func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpochs config.EnableEpochs) (*genesisProcessors, error) {
 	builtInFuncs := vmcommonBuiltInFunctions.NewBuiltInFunctionContainer()
+	epochNotifier := forking.NewGenericEpochNotifier()
+	temporaryMetaHeader := &block.MetaBlock{
+		Epoch:     arg.StartEpochNum,
+		TimeStamp: arg.GenesisTime,
+	}
+	epochNotifier.CheckEpoch(temporaryMetaHeader)
+
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:           arg.Accounts,
 		PubkeyConv:         arg.Core.AddressPubKeyConverter(),
@@ -252,14 +259,8 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		DataPool:           arg.Data.Datapool(),
 		CompiledSCPool:     arg.Data.Datapool().SmartContracts(),
 		NilCompiledSCStore: true,
+		EpochNotifier:      epochNotifier,
 	}
-
-	epochNotifier := forking.NewGenericEpochNotifier()
-	temporaryMetaHeader := &block.MetaBlock{
-		Epoch:     arg.StartEpochNum,
-		TimeStamp: arg.GenesisTime,
-	}
-	epochNotifier.CheckEpoch(temporaryMetaHeader)
 
 	pubKeyVerifier, err := disabled.NewMessageSignVerifier(arg.BlockSignKeyGen)
 	if err != nil {

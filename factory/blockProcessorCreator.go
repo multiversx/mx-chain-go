@@ -115,19 +115,21 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:           pcf.state.AccountsAdapter(),
-		PubkeyConv:         pcf.coreData.AddressPubKeyConverter(),
-		StorageService:     pcf.data.StorageService(),
-		BlockChain:         pcf.data.Blockchain(),
-		ShardCoordinator:   pcf.bootstrapComponents.ShardCoordinator(),
-		Marshalizer:        pcf.coreData.InternalMarshalizer(),
-		Uint64Converter:    pcf.coreData.Uint64ByteSliceConverter(),
-		BuiltInFunctions:   builtInFuncs,
-		DataPool:           pcf.data.Datapool(),
-		CompiledSCPool:     pcf.data.Datapool().SmartContracts(),
-		WorkingDir:         pcf.workingDir,
-		NilCompiledSCStore: false,
-		ConfigSCStorage:    pcf.config.SmartContractsStorage,
+		Accounts:                        pcf.state.AccountsAdapter(),
+		PubkeyConv:                      pcf.coreData.AddressPubKeyConverter(),
+		StorageService:                  pcf.data.StorageService(),
+		BlockChain:                      pcf.data.Blockchain(),
+		ShardCoordinator:                pcf.bootstrapComponents.ShardCoordinator(),
+		Marshalizer:                     pcf.coreData.InternalMarshalizer(),
+		Uint64Converter:                 pcf.coreData.Uint64ByteSliceConverter(),
+		BuiltInFunctions:                builtInFuncs,
+		DataPool:                        pcf.data.Datapool(),
+		CompiledSCPool:                  pcf.data.Datapool().SmartContracts(),
+		WorkingDir:                      pcf.workingDir,
+		NilCompiledSCStore:              false,
+		ConfigSCStorage:                 pcf.config.SmartContractsStorage,
+		EpochNotifier:                   pcf.epochNotifier,
+		SaveAccountsIfErrorDisableEpoch: pcf.epochConfig.EnableEpochs.SaveAccountsIfErrorDisableEpoch,
 	}
 
 	esdtTransferParser, err := parsers.NewESDTTransferParser(pcf.coreData.InternalMarshalizer())
@@ -450,19 +452,21 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:           pcf.state.AccountsAdapter(),
-		PubkeyConv:         pcf.coreData.AddressPubKeyConverter(),
-		StorageService:     pcf.data.StorageService(),
-		BlockChain:         pcf.data.Blockchain(),
-		ShardCoordinator:   pcf.bootstrapComponents.ShardCoordinator(),
-		Marshalizer:        pcf.coreData.InternalMarshalizer(),
-		Uint64Converter:    pcf.coreData.Uint64ByteSliceConverter(),
-		BuiltInFunctions:   builtInFuncs,
-		DataPool:           pcf.data.Datapool(),
-		CompiledSCPool:     pcf.data.Datapool().SmartContracts(),
-		ConfigSCStorage:    pcf.config.SmartContractsStorage,
-		WorkingDir:         pcf.workingDir,
-		NilCompiledSCStore: false,
+		Accounts:                        pcf.state.AccountsAdapter(),
+		PubkeyConv:                      pcf.coreData.AddressPubKeyConverter(),
+		StorageService:                  pcf.data.StorageService(),
+		BlockChain:                      pcf.data.Blockchain(),
+		ShardCoordinator:                pcf.bootstrapComponents.ShardCoordinator(),
+		Marshalizer:                     pcf.coreData.InternalMarshalizer(),
+		Uint64Converter:                 pcf.coreData.Uint64ByteSliceConverter(),
+		BuiltInFunctions:                builtInFuncs,
+		DataPool:                        pcf.data.Datapool(),
+		CompiledSCPool:                  pcf.data.Datapool().SmartContracts(),
+		ConfigSCStorage:                 pcf.config.SmartContractsStorage,
+		WorkingDir:                      pcf.workingDir,
+		NilCompiledSCStore:              false,
+		EpochNotifier:                   pcf.epochNotifier,
+		SaveAccountsIfErrorDisableEpoch: pcf.epochConfig.EnableEpochs.SaveAccountsIfErrorDisableEpoch,
 	}
 
 	argsNewVMContainer := metachain.ArgsNewVMContainerFactory{

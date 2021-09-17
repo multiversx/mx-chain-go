@@ -108,6 +108,9 @@
     # BuiltInFunctionOnMetaEnableEpoch represents the epoch when built in function processing on metachain is enabled
     BuiltInFunctionOnMetaEnableEpoch = 5
 
+    # SaveAccountsIfErrorDisableEpoch represents the epoch when save accounts if error is disabled
+    SaveAccountsIfErrorDisableEpoch = 5
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },

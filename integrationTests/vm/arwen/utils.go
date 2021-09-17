@@ -252,6 +252,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 				MaxBatchSize:      100,
 			},
 		},
+		EpochNotifier: context.EpochNotifier,
 	}
 
 	vmFactoryConfig := config.VirtualMachineConfig{

@@ -250,19 +250,21 @@ func createScQueryElement(
 	scStorage := args.generalConfig.SmartContractsStorageForSCQuery
 	scStorage.DB.FilePath += fmt.Sprintf("%d", args.index)
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:           args.stateComponents.AccountsAdapter(),
-		PubkeyConv:         args.coreComponents.AddressPubKeyConverter(),
-		StorageService:     args.dataComponents.StorageService(),
-		BlockChain:         args.dataComponents.Blockchain(),
-		ShardCoordinator:   args.processComponents.ShardCoordinator(),
-		Marshalizer:        args.coreComponents.InternalMarshalizer(),
-		Uint64Converter:    args.coreComponents.Uint64ByteSliceConverter(),
-		BuiltInFunctions:   builtInFuncs,
-		DataPool:           args.dataComponents.Datapool(),
-		ConfigSCStorage:    scStorage,
-		CompiledSCPool:     smartContractsCache,
-		WorkingDir:         args.workingDir,
-		NilCompiledSCStore: true,
+		Accounts:                        args.stateComponents.AccountsAdapter(),
+		PubkeyConv:                      args.coreComponents.AddressPubKeyConverter(),
+		StorageService:                  args.dataComponents.StorageService(),
+		BlockChain:                      args.dataComponents.Blockchain(),
+		ShardCoordinator:                args.processComponents.ShardCoordinator(),
+		Marshalizer:                     args.coreComponents.InternalMarshalizer(),
+		Uint64Converter:                 args.coreComponents.Uint64ByteSliceConverter(),
+		BuiltInFunctions:                builtInFuncs,
+		DataPool:                        args.dataComponents.Datapool(),
+		ConfigSCStorage:                 scStorage,
+		CompiledSCPool:                  smartContractsCache,
+		WorkingDir:                      args.workingDir,
+		NilCompiledSCStore:              true,
+		EpochNotifier:                   args.coreComponents.EpochNotifier(),
+		SaveAccountsIfErrorDisableEpoch: args.epochConfig.EnableEpochs.SaveAccountsIfErrorDisableEpoch,
 	}
 
 	if args.processComponents.ShardCoordinator().SelfId() == core.MetachainShardId {

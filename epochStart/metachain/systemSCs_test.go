@@ -913,6 +913,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 		DataPool:           testDataPool,
 		CompiledSCPool:     testDataPool.SmartContracts(),
 		NilCompiledSCStore: true,
+		EpochNotifier:      epochNotifier,
 	}
 
 	gasSchedule := arwenConfig.MakeGasMapForTests()

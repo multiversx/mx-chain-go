@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
@@ -417,6 +418,7 @@ func (gbc *genesisBlockCreator) computeDNSAddresses() error {
 		DataPool:           gbc.arg.Data.Datapool(),
 		CompiledSCPool:     gbc.arg.Data.Datapool().SmartContracts(),
 		NilCompiledSCStore: true,
+		EpochNotifier:      forking.NewGenericEpochNotifier(),
 	}
 	blockChainHook, err := hooks.NewBlockChainHookImpl(argsHook)
 	if err != nil {

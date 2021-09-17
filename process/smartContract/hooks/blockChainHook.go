@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
@@ -38,19 +39,21 @@ const executeDurationAlarmThreshold = time.Duration(50) * time.Millisecond
 
 // ArgBlockChainHook represents the arguments structure for the blockchain hook
 type ArgBlockChainHook struct {
-	Accounts           state.AccountsAdapter
-	PubkeyConv         core.PubkeyConverter
-	StorageService     dataRetriever.StorageService
-	DataPool           dataRetriever.PoolsHolder
-	BlockChain         data.ChainHandler
-	ShardCoordinator   sharding.Coordinator
-	Marshalizer        marshal.Marshalizer
-	Uint64Converter    typeConverters.Uint64ByteSliceConverter
-	BuiltInFunctions   vmcommon.BuiltInFunctionContainer
-	CompiledSCPool     storage.Cacher
-	ConfigSCStorage    config.StorageConfig
-	WorkingDir         string
-	NilCompiledSCStore bool
+	Accounts                        state.AccountsAdapter
+	PubkeyConv                      core.PubkeyConverter
+	StorageService                  dataRetriever.StorageService
+	DataPool                        dataRetriever.PoolsHolder
+	BlockChain                      data.ChainHandler
+	ShardCoordinator                sharding.Coordinator
+	Marshalizer                     marshal.Marshalizer
+	Uint64Converter                 typeConverters.Uint64ByteSliceConverter
+	BuiltInFunctions                vmcommon.BuiltInFunctionContainer
+	CompiledSCPool                  storage.Cacher
+	ConfigSCStorage                 config.StorageConfig
+	WorkingDir                      string
+	NilCompiledSCStore              bool
+	EpochNotifier                   vmcommon.EpochNotifier
+	SaveAccountsIfErrorDisableEpoch uint32
 }
 
 // BlockChainHookImpl is a wrapper over AccountsAdapter that satisfy vmcommon.BlockchainHook interface
@@ -72,6 +75,9 @@ type BlockChainHookImpl struct {
 	configSCStorage    config.StorageConfig
 	workingDir         string
 	nilCompiledSCStore bool
+
+	saveAccountsIfErrorDisableEpoch uint32
+	flagSaveAccountsIfError         atomic.Flag
 }
 
 // NewBlockChainHookImpl creates a new BlockChainHookImpl instance
@@ -84,18 +90,19 @@ func NewBlockChainHookImpl(
 	}
 
 	blockChainHookImpl := &BlockChainHookImpl{
-		accounts:           args.Accounts,
-		pubkeyConv:         args.PubkeyConv,
-		storageService:     args.StorageService,
-		blockChain:         args.BlockChain,
-		shardCoordinator:   args.ShardCoordinator,
-		marshalizer:        args.Marshalizer,
-		uint64Converter:    args.Uint64Converter,
-		builtInFunctions:   args.BuiltInFunctions,
-		compiledScPool:     args.CompiledSCPool,
-		configSCStorage:    args.ConfigSCStorage,
-		workingDir:         args.WorkingDir,
-		nilCompiledSCStore: args.NilCompiledSCStore,
+		accounts:                        args.Accounts,
+		pubkeyConv:                      args.PubkeyConv,
+		storageService:                  args.StorageService,
+		blockChain:                      args.BlockChain,
+		shardCoordinator:                args.ShardCoordinator,
+		marshalizer:                     args.Marshalizer,
+		uint64Converter:                 args.Uint64Converter,
+		builtInFunctions:                args.BuiltInFunctions,
+		compiledScPool:                  args.CompiledSCPool,
+		configSCStorage:                 args.ConfigSCStorage,
+		workingDir:                      args.WorkingDir,
+		nilCompiledSCStore:              args.NilCompiledSCStore,
+		saveAccountsIfErrorDisableEpoch: args.SaveAccountsIfErrorDisableEpoch,
 	}
 
 	err = blockChainHookImpl.makeCompiledSCStorage()
@@ -105,6 +112,8 @@ func NewBlockChainHookImpl(
 
 	blockChainHookImpl.ClearCompiledCodes()
 	blockChainHookImpl.currentHdr = &block.Header{}
+
+	args.EpochNotifier.RegisterNotifyHandler(blockChainHookImpl)
 
 	return blockChainHookImpl, nil
 }
@@ -136,6 +145,9 @@ func checkForNil(args ArgBlockChainHook) error {
 	}
 	if check.IfNil(args.CompiledSCPool) {
 		return process.ErrNilCacher
+	}
+	if check.IfNil(args.EpochNotifier) {
+		return process.ErrNilEpochNotifier
 	}
 
 	return nil
@@ -361,24 +373,40 @@ func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCal
 
 	vmOutput, err := function.ProcessBuiltinFunction(sndAccount, dstAccount, input)
 	if err != nil {
+		if bh.flagSaveAccountsIfError.IsSet() {
+			err = bh.saveAccounts(input, sndAccount, dstAccount)
+			if err != nil {
+				return nil, err
+			}
+		}
+
 		return nil, err
 	}
 
+	err = bh.saveAccounts(input, sndAccount, dstAccount)
+	if err != nil {
+		return nil, err
+	}
+
+	return vmOutput, nil
+}
+
+func (bh *BlockChainHookImpl) saveAccounts(input *vmcommon.ContractCallInput, sndAccount, dstAccount vmcommon.UserAccountHandler) error {
 	if !check.IfNil(sndAccount) {
-		err = bh.accounts.SaveAccount(sndAccount)
+		err := bh.accounts.SaveAccount(sndAccount)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 
 	if !check.IfNil(dstAccount) && !bytes.Equal(input.CallerAddr, input.RecipientAddr) {
-		err = bh.accounts.SaveAccount(dstAccount)
+		err := bh.accounts.SaveAccount(dstAccount)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 
-	return vmOutput, nil
+	return nil
 }
 
 // GetShardOfAddress is the hook that returns the shard of a given address
@@ -628,6 +656,12 @@ func (bh *BlockChainHookImpl) GetSnapshot() int {
 // RevertToSnapshot reverts snapshots up to the specified one
 func (bh *BlockChainHookImpl) RevertToSnapshot(snapshot int) error {
 	return bh.accounts.RevertToSnapshot(snapshot)
+}
+
+// EpochConfirmed is called whenever a new epoch is confirmed
+func (bh *BlockChainHookImpl) EpochConfirmed(epoch uint32, _ uint64) {
+	bh.flagSaveAccountsIfError.Toggle(epoch < bh.saveAccountsIfErrorDisableEpoch)
+	log.Debug("blockchain hook: save accounts if error", "enabled", bh.flagSaveAccountsIfError.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
