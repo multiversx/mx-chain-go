@@ -36,7 +36,6 @@ type webServer struct {
 	antiFloodConfig config.WebServerAntifloodConfig
 	httpServer      shared.HttpServerCloser
 	groups          map[string]shared.GroupHandler
-	ginEngine       *gin.Engine
 	cancelFunc      func()
 }
 
@@ -118,7 +117,6 @@ func (ws *webServer) StartHttpServer() error {
 	}
 
 	ws.registerRoutes(engine)
-	ws.ginEngine = engine
 
 	server := &http.Server{Addr: ws.facade.RestApiInterface(), Handler: engine}
 	log.Debug("creating gin web sever", "interface", ws.facade.RestApiInterface())
