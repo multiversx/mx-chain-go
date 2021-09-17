@@ -60,6 +60,7 @@ func createGenesisConfig() config.EnableEpochs {
 		RelayedTransactionsV2EnableEpoch:            unreachableEpoch,
 		BuiltInFunctionOnMetaEnableEpoch:            unreachableEpoch,
 		IncrementSCRNonceInMultiTransferEnableEpoch: unreachableEpoch,
+		SaveAccountsIfErrorDisableEpoch:             unreachableEpoch,
 	}
 }
 
@@ -287,18 +288,19 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	}
 
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:           arg.Accounts,
-		PubkeyConv:         arg.Core.AddressPubKeyConverter(),
-		StorageService:     arg.Data.StorageService(),
-		BlockChain:         arg.Data.Blockchain(),
-		ShardCoordinator:   arg.ShardCoordinator,
-		Marshalizer:        arg.Core.InternalMarshalizer(),
-		Uint64Converter:    arg.Core.Uint64ByteSliceConverter(),
-		BuiltInFunctions:   builtInFuncs,
-		DataPool:           arg.Data.Datapool(),
-		CompiledSCPool:     arg.Data.Datapool().SmartContracts(),
-		NilCompiledSCStore: true,
-		EpochNotifier:      epochNotifier,
+		Accounts:                        arg.Accounts,
+		PubkeyConv:                      arg.Core.AddressPubKeyConverter(),
+		StorageService:                  arg.Data.StorageService(),
+		BlockChain:                      arg.Data.Blockchain(),
+		ShardCoordinator:                arg.ShardCoordinator,
+		Marshalizer:                     arg.Core.InternalMarshalizer(),
+		Uint64Converter:                 arg.Core.Uint64ByteSliceConverter(),
+		BuiltInFunctions:                builtInFuncs,
+		DataPool:                        arg.Data.Datapool(),
+		CompiledSCPool:                  arg.Data.Datapool().SmartContracts(),
+		NilCompiledSCStore:              true,
+		EpochNotifier:                   epochNotifier,
+		SaveAccountsIfErrorDisableEpoch: unreachableEpoch,
 	}
 	esdtTransferParser, err := parsers.NewESDTTransferParser(arg.Core.InternalMarshalizer())
 	if err != nil {
