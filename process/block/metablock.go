@@ -610,6 +610,9 @@ func (mp *metaProcessor) indexBlock(
 	}
 
 	gasConsumedInHeader := mp.baseProcessor.gasConsumedProvider.GetTotalGasConsumedInSelfShard()
+	gasRefundedInHeader := mp.baseProcessor.gasConsumedProvider.TotalGasRefunded()
+	maxGasInHeader := mp.baseProcessor.economicsData.MaxGasLimitPerBlock(mp.shardCoordinator.SelfId())
+
 	args := &indexer.ArgsSaveBlockData{
 		HeaderHash:     headerHash,
 		Body:           body,
@@ -617,7 +620,8 @@ func (mp *metaProcessor) indexBlock(
 		SignersIndexes: signersIndexes,
 		HeaderGasConsumption: indexer.HeaderGasConsumption{
 			GasConsumed:    gasConsumedInHeader,
-			MaxGasPerBlock: mp.baseProcessor.economicsData.MaxGasLimitPerBlock(mp.shardCoordinator.SelfId()),
+			GasRefunded:    gasRefundedInHeader,
+			MaxGasPerBlock: maxGasInHeader,
 		},
 		NotarizedHeadersHashes: notarizedHeadersHashes,
 		TransactionsPool:       pool,

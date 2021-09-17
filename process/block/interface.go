@@ -10,5 +10,6 @@ type blockProcessor interface {
 
 type gasConsumedProvider interface {
 	GetTotalGasConsumedInSelfShard() uint64
+	TotalGasRefunded() uint64
 	IsInterfaceNil() bool
 }
