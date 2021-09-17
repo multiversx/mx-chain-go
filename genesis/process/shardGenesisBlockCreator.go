@@ -422,6 +422,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		ReturnDataToLastTransferEnableEpoch:   enableEpochs.ReturnDataToLastTransferEnableEpoch,
 		SenderInOutTransferEnableEpoch:        enableEpochs.SenderInOutTransferEnableEpoch,
 		BuiltInFunctionOnMetachainEnableEpoch: enableEpochs.BuiltInFunctionOnMetaEnableEpoch,
+		ReloadAccountAfterSnapshotEnableEpoch: enableEpochs.SaveAccountsIfErrorDisableEpoch,
 		IsGenesisProcessing:                   true,
 		StakingV2EnableEpoch:                  arg.EpochConfig.EnableEpochs.StakingV2EnableEpoch,
 		VMOutputCacher:                        txcache.NewDisabledCache(),

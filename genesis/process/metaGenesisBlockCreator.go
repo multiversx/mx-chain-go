@@ -371,6 +371,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		ReturnDataToLastTransferEnableEpoch:   enableEpochs.ReturnDataToLastTransferEnableEpoch,
 		SenderInOutTransferEnableEpoch:        enableEpochs.SenderInOutTransferEnableEpoch,
 		BuiltInFunctionOnMetachainEnableEpoch: enableEpochs.BuiltInFunctionOnMetaEnableEpoch,
+		ReloadAccountAfterSnapshotEnableEpoch: enableEpochs.SaveAccountsIfErrorDisableEpoch,
 		IsGenesisProcessing:                   true,
 		StakingV2EnableEpoch:                  arg.EpochConfig.EnableEpochs.StakingV2EnableEpoch,
 		ArwenChangeLocker:                     &sync.RWMutex{}, // local Locker as to not interfere with the rest of the components

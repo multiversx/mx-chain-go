@@ -65,6 +65,7 @@ type scProcessor struct {
 	senderInOutTransferEnableEpoch              uint32
 	incrementSCRNonceInMultiTransferEnableEpoch uint32
 	builtInFunctionOnMetachainEnableEpoch       uint32
+	reloadAccountAfterSnapshot                  uint32
 	flagStakingV2                               atomic.Flag
 	flagDeploy                                  atomic.Flag
 	flagBuiltin                                 atomic.Flag
@@ -74,6 +75,7 @@ type scProcessor struct {
 	flagSenderInOutTransfer                     atomic.Flag
 	flagIncrementSCRNonceInMultiTransfer        atomic.Flag
 	flagBuiltInFunctionOnMetachain              atomic.Flag
+	flagReloadAccountAfterSnapshot              atomic.Flag
 	arwenChangeLocker                           process.Locker
 
 	badTxForwarder process.IntermediateTransactionHandler
@@ -117,6 +119,7 @@ type ArgsNewSmartContractProcessor struct {
 	SenderInOutTransferEnableEpoch              uint32
 	IncrementSCRNonceInMultiTransferEnableEpoch uint32
 	BuiltInFunctionOnMetachainEnableEpoch       uint32
+	ReloadAccountAfterSnapshotEnableEpoch       uint32
 	EpochNotifier                               process.EpochNotifier
 	VMOutputCacher                              storage.Cacher
 	ArwenChangeLocker                           process.Locker
@@ -212,7 +215,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		builtInFunctionOnMetachainEnableEpoch: args.BuiltInFunctionOnMetachainEnableEpoch,
 		arwenChangeLocker:                     args.ArwenChangeLocker,
 		vmOutputCacher:                        args.VMOutputCacher,
-
+		reloadAccountAfterSnapshot:            args.ReloadAccountAfterSnapshotEnableEpoch,
 		incrementSCRNonceInMultiTransferEnableEpoch: args.IncrementSCRNonceInMultiTransferEnableEpoch,
 	}
 
@@ -230,6 +233,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	log.Debug("smartContract/process: enable epoch for increment SCR nonce in multi transfer",
 		"epoch", sc.incrementSCRNonceInMultiTransferEnableEpoch)
 	log.Debug("smartContract/process: enable epoch for built in functions on metachain", "epoch", sc.builtInFunctionOnMetachainEnableEpoch)
+	log.Debug("smartContract/process: reload account after snapshot", "epoch", sc.reloadAccountAfterSnapshot)
 
 	args.EpochNotifier.RegisterNotifyHandler(sc)
 	args.GasSchedule.RegisterNotifyHandler(sc)
@@ -1219,9 +1223,11 @@ func (sc *scProcessor) ProcessIfError(
 		returnMessage = []byte(returnCode)
 	}
 
-	acntSnd, err = sc.reloadLocalAccount(acntSnd)
-	if err != nil {
-		return err
+	if sc.flagReloadAccountAfterSnapshot.IsSet() {
+		acntSnd, err = sc.reloadLocalAccount(acntSnd)
+		if err != nil {
+			return err
+		}
 	}
 
 	scrIfError, consumedFee := sc.createSCRsWhenError(acntSnd, txHash, tx, returnCode, returnMessage, gasLocked)
@@ -2436,6 +2442,9 @@ func (sc *scProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 
 	sc.flagBuiltInFunctionOnMetachain.Toggle(epoch >= sc.builtInFunctionOnMetachainEnableEpoch)
 	log.Debug("scProcessor: built in functions on metachain", "enabled", sc.flagBuiltInFunctionOnMetachain.IsSet())
+
+	sc.flagReloadAccountAfterSnapshot.Toggle(epoch >= sc.reloadAccountAfterSnapshot)
+	log.Debug("scProcessor: reload account after snapshot", "enabled", sc.flagReloadAccountAfterSnapshot.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
