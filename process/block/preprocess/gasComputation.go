@@ -21,7 +21,6 @@ type gasComputation struct {
 	gasRefunded                    map[string]uint64
 	mutGasRefunded                 sync.RWMutex
 	totalGasConsumedInSelfShard    uint64
-	maxGasLimitForHeader           uint64
 	mutTotalGasConsumedInSelfShard sync.RWMutex
 
 	flagGasComputeV2        atomic.Flag
