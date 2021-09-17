@@ -257,17 +257,17 @@ func (inf *initialNodeFacade) GetNumCheckpointsFromPeerState() uint32 {
 
 // GetKeyValuePairs nil map
 func (inf *initialNodeFacade) GetKeyValuePairs(_ string) (map[string]string, error) {
-	return nil, nil
+	return nil, errNodeStarting
 }
 
 // GetDirectStakedList returns empty slice
 func (inf *initialNodeFacade) GetDirectStakedList() ([]*api.DirectStakedValue, error) {
-	return make([]*api.DirectStakedValue, 0), nil
+	return nil, errNodeStarting
 }
 
 // GetDelegatorsList returns empty slice
 func (inf *initialNodeFacade) GetDelegatorsList() ([]*api.Delegator, error) {
-	return make([]*api.Delegator, 0), nil
+	return nil, errNodeStarting
 }
 
 // GetESDTData returns nil and error
