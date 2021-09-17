@@ -1,12 +1,10 @@
-package vmValues
+package groups_test
 
 import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
-	"io"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
@@ -14,16 +12,31 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data/vm"
 	apiErrors "github.com/ElrondNetwork/elrond-go/api/errors"
+	"github.com/ElrondNetwork/elrond-go/api/groups"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
-	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )
+
+func TestNewVmValuesGroup(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil facade", func(t *testing.T) {
+		hg, err := groups.NewVmValuesGroup(nil)
+		require.True(t, errors.Is(err, apiErrors.ErrNilFacadeHandler))
+		require.Nil(t, hg)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		hg, err := groups.NewVmValuesGroup(&mock.Facade{})
+		require.NoError(t, err)
+		require.NotNil(t, hg)
+	})
+}
 
 type simpleResponse struct {
 	Data  string `json:"data"`
@@ -39,7 +52,7 @@ func init() {
 	gin.SetMode(gin.TestMode)
 }
 
-const DummyScAddress = "00000000000000000500fabd9501b7e5353de57a4e319857c2fb99089770720a"
+const dummyScAddress = "00000000000000000500fabd9501b7e5353de57a4e319857c2fb99089770720a"
 
 func TestGetHex_ShouldWork(t *testing.T) {
 	t.Parallel()
@@ -54,14 +67,14 @@ func TestGetHex_ShouldWork(t *testing.T) {
 		},
 	}
 
-	request := VMValueRequest{
-		ScAddress: DummyScAddress,
+	request := groups.VMValueRequest{
+		ScAddress: dummyScAddress,
 		FuncName:  "function",
 		Args:      []string{},
 	}
 
 	response := simpleResponse{}
-	statusCode := doPost(&facade, "/vm-values/hex", request, &response)
+	statusCode := doPost(t, &facade, "/vm-values/hex", request, &response)
 
 	require.Equal(t, http.StatusOK, statusCode)
 	require.Equal(t, "", response.Error)
@@ -81,14 +94,14 @@ func TestGetString_ShouldWork(t *testing.T) {
 		},
 	}
 
-	request := VMValueRequest{
-		ScAddress: DummyScAddress,
+	request := groups.VMValueRequest{
+		ScAddress: dummyScAddress,
 		FuncName:  "function",
 		Args:      []string{},
 	}
 
 	response := simpleResponse{}
-	statusCode := doPost(&facade, "/vm-values/string", request, &response)
+	statusCode := doPost(t, &facade, "/vm-values/string", request, &response)
 
 	require.Equal(t, http.StatusOK, statusCode)
 	require.Equal(t, "", response.Error)
@@ -110,14 +123,14 @@ func TestGetInt_ShouldWork(t *testing.T) {
 		},
 	}
 
-	request := VMValueRequest{
-		ScAddress: DummyScAddress,
+	request := groups.VMValueRequest{
+		ScAddress: dummyScAddress,
 		FuncName:  "function",
 		Args:      []string{},
 	}
 
 	response := simpleResponse{}
-	statusCode := doPost(&facade, "/vm-values/int", request, &response)
+	statusCode := doPost(t, &facade, "/vm-values/int", request, &response)
 
 	require.Equal(t, http.StatusOK, statusCode)
 	require.Equal(t, "", response.Error)
@@ -136,14 +149,14 @@ func TestQuery_ShouldWork(t *testing.T) {
 		},
 	}
 
-	request := VMValueRequest{
-		ScAddress: DummyScAddress,
+	request := groups.VMValueRequest{
+		ScAddress: dummyScAddress,
 		FuncName:  "function",
 		Args:      []string{},
 	}
 
 	response := vmOutputResponse{}
-	statusCode := doPost(&facade, "/vm-values/query", request, &response)
+	statusCode := doPost(t, &facade, "/vm-values/query", request, &response)
 
 	require.Equal(t, http.StatusOK, statusCode)
 	require.Equal(t, "", response.Error)
@@ -151,13 +164,14 @@ func TestQuery_ShouldWork(t *testing.T) {
 }
 
 func TestCreateSCQuery_ArgumentIsNotHexShouldErr(t *testing.T) {
-	request := VMValueRequest{
-		ScAddress: DummyScAddress,
+	request := groups.VMValueRequest{
+		ScAddress: dummyScAddress,
 		FuncName:  "function",
 		Args:      []string{"bad arg"},
 	}
 
-	_, err := createSCQuery(&mock.Facade{}, &request)
+	group, _ := groups.NewVmValuesGroup(&mock.Facade{})
+	_, err := group.CreateSCQuery(&request)
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), "'bad arg' is not a valid hex string")
 }
@@ -172,8 +186,8 @@ func TestAllRoutes_FacadeErrorsShouldErr(t *testing.T) {
 		},
 	}
 
-	request := VMValueRequest{
-		ScAddress: DummyScAddress,
+	request := groups.VMValueRequest{
+		ScAddress: dummyScAddress,
 		FuncName:  "function",
 		Args:      []string{},
 	}
@@ -191,7 +205,7 @@ func TestAllRoutes_WhenBadAddressShouldErr(t *testing.T) {
 		},
 	}
 
-	request := VMValueRequest{
+	request := groups.VMValueRequest{
 		ScAddress: "DUMMY",
 		FuncName:  "function",
 		Args:      []string{},
@@ -210,8 +224,8 @@ func TestAllRoutes_WhenBadArgumentsShouldErr(t *testing.T) {
 		},
 	}
 
-	request := VMValueRequest{
-		ScAddress: DummyScAddress,
+	request := groups.VMValueRequest{
+		ScAddress: dummyScAddress,
 		FuncName:  "function",
 		Args:      []string{"AA", "ZZ"},
 	}
@@ -229,23 +243,23 @@ func TestAllRoutes_WhenNoVMReturnDataShouldErr(t *testing.T) {
 		},
 	}
 
-	request := VMValueRequest{
-		ScAddress: DummyScAddress,
+	request := groups.VMValueRequest{
+		ScAddress: dummyScAddress,
 		FuncName:  "function",
 		Args:      []string{},
 	}
 
 	response := simpleResponse{}
 
-	statusCode := doPost(facade, "/vm-values/hex", request, &response)
+	statusCode := doPost(t, facade, "/vm-values/hex", request, &response)
 	require.Equal(t, http.StatusOK, statusCode)
 	require.Contains(t, response.Error, errExpected.Error())
 
-	statusCode = doPost(facade, "/vm-values/string", request, &response)
+	statusCode = doPost(t, facade, "/vm-values/string", request, &response)
 	require.Equal(t, http.StatusOK, statusCode)
 	require.Contains(t, response.Error, errExpected.Error())
 
-	statusCode = doPost(facade, "/vm-values/int", request, &response)
+	statusCode = doPost(t, facade, "/vm-values/int", request, &response)
 	require.Equal(t, http.StatusOK, statusCode)
 	require.Contains(t, response.Error, errExpected.Error())
 }
@@ -262,47 +276,28 @@ func TestAllRoutes_WhenBadJsonShouldErr(t *testing.T) {
 	requireErrorOnGetSingleValueRoutes(t, &facade, []byte("dummy"), apiErrors.ErrInvalidJSONRequest)
 }
 
-func TestAllRoutes_WhenNilFacadeShouldErr(t *testing.T) {
-	t.Parallel()
-
-	request := VMValueRequest{
-		ScAddress: DummyScAddress,
-		FuncName:  "function",
-		Args:      []string{},
-	}
-
-	requireErrorOnAllRoutes(t, nil, request, apiErrors.ErrNilAppContext)
-}
-
-func TestAllRoutes_WhenBadFacadeShouldErr(t *testing.T) {
-	t.Parallel()
-
-	var facade interface{}
-
-	request := VMValueRequest{
-		ScAddress: DummyScAddress,
-		FuncName:  "function",
-		Args:      []string{},
-	}
-
-	requireErrorOnAllRoutes(t, &facade, request, apiErrors.ErrInvalidAppContext)
-}
-
-func doPost(facade interface{}, url string, request interface{}, response interface{}) int {
+func doPost(t *testing.T, facade interface{}, url string, request interface{}, response interface{}) int {
 	// Serialize if not already
 	requestAsBytes, ok := request.([]byte)
 	if !ok {
 		requestAsBytes, _ = json.Marshal(request)
 	}
 
-	server := startNodeServer(facade)
+	vmValuesFacade, ok := facade.(groups.VmValuesFacadeHandler)
+	require.True(t, ok)
+
+	group, err := groups.NewVmValuesGroup(vmValuesFacade)
+	require.NoError(t, err)
+
+	server := startWebServer(group, "vm-values", getVmValuesRoutesConfig())
+
 	httpRequest, _ := http.NewRequest("POST", url, bytes.NewBuffer(requestAsBytes))
 
 	responseRecorder := httptest.NewRecorder()
 	server.ServeHTTP(responseRecorder, httpRequest)
 
 	responseI := shared.GenericAPIResponse{}
-	parseResponse(responseRecorder.Body, &responseI)
+	loadResponse(responseRecorder.Body, &responseI)
 	if responseI.Error == "" {
 		responseDataMap := responseI.Data.(map[string]interface{})
 		responseDataMapBytes, _ := json.Marshal(responseDataMap)
@@ -315,36 +310,11 @@ func doPost(facade interface{}, url string, request interface{}, response interf
 	return responseRecorder.Code
 }
 
-func startNodeServer(handler interface{}) *gin.Engine {
-	ws := gin.New()
-	ws.Use(cors.Default())
-	getValuesRoute := ws.Group("/vm-values")
-	if handler != nil {
-		getValuesRoute.Use(func(c *gin.Context) {
-			c.Set("facade", handler)
-			c.Next()
-		})
-	}
-	vmValuesRoute, _ := wrapper.NewRouterWrapper("vm-values", getValuesRoute, getRoutesConfig())
-	Routes(vmValuesRoute)
-
-	return ws
-}
-
-func parseResponse(responseBody io.Reader, destination interface{}) {
-	jsonParser := json.NewDecoder(responseBody)
-
-	err := jsonParser.Decode(destination)
-	if err != nil {
-		fmt.Println(err)
-	}
-}
-
 func requireErrorOnAllRoutes(t *testing.T, facade interface{}, request interface{}, errExpected error) {
 	requireErrorOnGetSingleValueRoutes(t, facade, request, errExpected)
 
 	response := simpleResponse{}
-	statusCode := doPost(facade, "/vm-values/query", request, &response)
+	statusCode := doPost(t, facade, "/vm-values/query", request, &response)
 	require.Equal(t, http.StatusBadRequest, statusCode)
 	require.Contains(t, response.Error, errExpected.Error())
 }
@@ -352,20 +322,20 @@ func requireErrorOnAllRoutes(t *testing.T, facade interface{}, request interface
 func requireErrorOnGetSingleValueRoutes(t *testing.T, facade interface{}, request interface{}, errExpected error) {
 	response := simpleResponse{}
 
-	statusCode := doPost(facade, "/vm-values/hex", request, &response)
+	statusCode := doPost(t, facade, "/vm-values/hex", request, &response)
 	require.Equal(t, http.StatusBadRequest, statusCode)
 	require.Contains(t, response.Error, errExpected.Error())
 
-	statusCode = doPost(facade, "/vm-values/string", request, &response)
+	statusCode = doPost(t, facade, "/vm-values/string", request, &response)
 	require.Equal(t, http.StatusBadRequest, statusCode)
 	require.Contains(t, response.Error, errExpected.Error())
 
-	statusCode = doPost(facade, "/vm-values/int", request, &response)
+	statusCode = doPost(t, facade, "/vm-values/int", request, &response)
 	require.Equal(t, http.StatusBadRequest, statusCode)
 	require.Contains(t, response.Error, errExpected.Error())
 }
 
-func getRoutesConfig() config.ApiRoutesConfig {
+func getVmValuesRoutesConfig() config.ApiRoutesConfig {
 	return config.ApiRoutesConfig{
 		APIPackages: map[string]config.APIPackageConfig{
 			"vm-values": {
