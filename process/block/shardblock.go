@@ -591,7 +591,6 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		return
 	}
 
-	log.Info("wwwwwwwwwwwwwwwwwwww shardblock.indexBlock")
 	gasConsumedInHeader := sp.baseProcessor.gasConsumedProvider.GetTotalGasConsumedInSelfShard()
 	args := &indexer.ArgsSaveBlockData{
 		HeaderHash:     headerHash,

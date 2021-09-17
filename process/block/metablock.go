@@ -609,7 +609,6 @@ func (mp *metaProcessor) indexBlock(
 		return
 	}
 
-	log.Info("wwwwwwwwwwwwwwwwwwww metablock.indexBlock")
 	gasConsumedInHeader := mp.baseProcessor.gasConsumedProvider.GetTotalGasConsumedInSelfShard()
 	args := &indexer.ArgsSaveBlockData{
 		HeaderHash:     headerHash,

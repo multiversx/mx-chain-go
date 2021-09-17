@@ -438,6 +438,9 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.GasHandler) {
 		return process.ErrNilGasHandler
 	}
+	if check.IfNil(arguments.CoreComponents.EconomicsData()) {
+		return process.ErrNilEconomicsData
+	}
 
 	return nil
 }
