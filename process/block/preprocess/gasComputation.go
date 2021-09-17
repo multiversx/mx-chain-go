@@ -67,6 +67,10 @@ func (gc *gasComputation) Init() {
 	gc.mutGasRefunded.Lock()
 	gc.gasRefunded = make(map[string]uint64)
 	gc.mutGasRefunded.Unlock()
+
+	gc.mutTotalGasConsumedInSelfShard.Lock()
+	gc.totalGasConsumedInSelfShard = 0
+	gc.mutTotalGasConsumedInSelfShard.Unlock()
 }
 
 // SetGasConsumed sets gas consumed for a given hash
