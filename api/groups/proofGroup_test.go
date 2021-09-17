@@ -1,55 +1,56 @@
-package proof_test
+package groups_test
 
 import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	apiErrors "github.com/ElrondNetwork/elrond-go/api/errors"
-	"github.com/ElrondNetwork/elrond-go/api/middleware"
+	"github.com/ElrondNetwork/elrond-go/api/groups"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
-	"github.com/ElrondNetwork/elrond-go/api/proof"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
-	"github.com/ElrondNetwork/elrond-go/api/transaction"
-	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestGetProof_NilContextShouldErr(t *testing.T) {
+func TestNewProofGroup(t *testing.T) {
 	t.Parallel()
 
-	ws := startNodeServer(nil)
+	t.Run("nil facade", func(t *testing.T) {
+		hg, err := groups.NewProofGroup(nil)
+		require.True(t, errors.Is(err, apiErrors.ErrNilFacadeHandler))
+		require.Nil(t, hg)
+	})
 
-	req, _ := http.NewRequest("GET", "/proof/root-hash/roothash/address/addr", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-	response := shared.GenericAPIResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
-	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
+	t.Run("should work", func(t *testing.T) {
+		hg, err := groups.NewProofGroup(&mock.Facade{})
+		require.NoError(t, err)
+		require.NotNil(t, hg)
+	})
 }
 
 func TestGetProof_GetProofError(t *testing.T) {
 	t.Parallel()
 
-	err := fmt.Errorf("GetProof error")
+	getProofErr := fmt.Errorf("GetProof error")
 	facade := &mock.Facade{
 		GetProofCalled: func(rootHash string, address string) ([][]byte, error) {
-			return nil, err
+			return nil, getProofErr
 		},
 	}
 
-	ws := startNodeServer(facade)
+	proofGroup, err := groups.NewProofGroup(facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(proofGroup, "proof", getProofRoutesConfig())
+
 	req, _ := http.NewRequest("GET", "/proof/root-hash/roothash/address/addr", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
@@ -72,7 +73,11 @@ func TestGetProof(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(facade)
+	proofGroup, err := groups.NewProofGroup(facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(proofGroup, "proof", getProofRoutesConfig())
+
 	req, _ := http.NewRequest("GET", "/proof/root-hash/roothash/address/addr", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
@@ -94,32 +99,21 @@ func TestGetProof(t *testing.T) {
 	assert.Equal(t, hex.EncodeToString([]byte("proof")), proof2)
 }
 
-func TestGetProofCurrentRootHash_NilContextShouldErr(t *testing.T) {
-	t.Parallel()
-
-	ws := startNodeServer(nil)
-
-	req, _ := http.NewRequest("GET", "/proof/address/addr", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-	response := shared.GenericAPIResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
-	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
-}
-
 func TestGetProofCurrentRootHash_GetProofError(t *testing.T) {
 	t.Parallel()
 
-	err := fmt.Errorf("GetProof error")
+	getProofErr := fmt.Errorf("GetProof error")
 	facade := &mock.Facade{
 		GetProofCurrentRootHashCalled: func(address string) ([][]byte, []byte, error) {
-			return nil, nil, err
+			return nil, nil, getProofErr
 		},
 	}
 
-	ws := startNodeServer(facade)
+	proofGroup, err := groups.NewProofGroup(facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(proofGroup, "proof", getProofRoutesConfig())
+
 	req, _ := http.NewRequest("GET", "/proof/address/addr", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
@@ -142,7 +136,11 @@ func TestGetProofCurrentRootHash(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(facade)
+	proofGroup, err := groups.NewProofGroup(facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(proofGroup, "proof", getProofRoutesConfig())
+
 	req, _ := http.NewRequest("GET", "/proof/address/addr", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
@@ -168,25 +166,13 @@ func TestGetProofCurrentRootHash(t *testing.T) {
 	assert.Equal(t, hex.EncodeToString(rootHash), rh)
 }
 
-func TestVerifyProof_NilContextShouldErr(t *testing.T) {
-	t.Parallel()
-
-	ws := startNodeServer(nil)
-
-	req, _ := http.NewRequest("POST", "/proof/verify", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-	response := shared.GenericAPIResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
-	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
-}
-
 func TestVerifyProof_BadRequestShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ws := startNodeServer(&mock.Facade{})
+	proofGroup, err := groups.NewProofGroup(&mock.Facade{})
+	require.NoError(t, err)
+
+	ws := startWebServer(proofGroup, "proof", getProofRoutesConfig())
 
 	req, _ := http.NewRequest("POST", "/proof/verify", bytes.NewBuffer([]byte("invalid bytes")))
 
@@ -203,21 +189,25 @@ func TestVerifyProof_BadRequestShouldErr(t *testing.T) {
 func TestVerifyProof_VerifyProofErr(t *testing.T) {
 	t.Parallel()
 
-	err := fmt.Errorf("VerifyProof err")
+	verifyProfErr := fmt.Errorf("VerifyProof err")
 	facade := &mock.Facade{
 		VerifyProofCalled: func(rootHash string, address string, proof [][]byte) (bool, error) {
-			return false, err
+			return false, verifyProfErr
 		},
 	}
 
-	varifyProofParams := proof.VerifyProofRequest{
+	verifyProofParams := groups.VerifyProofRequest{
 		RootHash: "rootHash",
 		Address:  "address",
 		Proof:    []string{hex.EncodeToString([]byte("valid")), hex.EncodeToString([]byte("proof"))},
 	}
-	verifyProofBytes, _ := json.Marshal(varifyProofParams)
+	verifyProofBytes, _ := json.Marshal(verifyProofParams)
 
-	ws := startNodeServer(facade)
+	proofGroup, err := groups.NewProofGroup(facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(proofGroup, "proof", getProofRoutesConfig())
+
 	req, _ := http.NewRequest("POST", "/proof/verify", bytes.NewBuffer(verifyProofBytes))
 
 	resp := httptest.NewRecorder()
@@ -235,14 +225,18 @@ func TestVerifyProof_VerifyProofCanNotDecodeProof(t *testing.T) {
 
 	facade := &mock.Facade{}
 
-	varifyProofParams := proof.VerifyProofRequest{
+	verifyProofParams := groups.VerifyProofRequest{
 		RootHash: "rootHash",
 		Address:  "address",
 		Proof:    []string{"invalid", "hex"},
 	}
-	verifyProofBytes, _ := json.Marshal(varifyProofParams)
+	verifyProofBytes, _ := json.Marshal(verifyProofParams)
 
-	ws := startNodeServer(facade)
+	proofGroup, err := groups.NewProofGroup(facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(proofGroup, "proof", getProofRoutesConfig())
+
 	req, _ := http.NewRequest("POST", "/proof/verify", bytes.NewBuffer(verifyProofBytes))
 
 	resp := httptest.NewRecorder()
@@ -261,12 +255,12 @@ func TestVerifyProof(t *testing.T) {
 	rootHash := "rootHash"
 	address := "address"
 	validProof := []string{hex.EncodeToString([]byte("valid")), hex.EncodeToString([]byte("proof"))}
-	varifyProofParams := proof.VerifyProofRequest{
+	verifyProofParams := groups.VerifyProofRequest{
 		RootHash: rootHash,
 		Address:  address,
 		Proof:    validProof,
 	}
-	verifyProofBytes, _ := json.Marshal(varifyProofParams)
+	verifyProofBytes, _ := json.Marshal(verifyProofParams)
 
 	facade := &mock.Facade{
 		VerifyProofCalled: func(rH string, addr string, proof [][]byte) (bool, error) {
@@ -280,7 +274,11 @@ func TestVerifyProof(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(facade)
+	proofGroup, err := groups.NewProofGroup(facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(proofGroup, "proof", getProofRoutesConfig())
+
 	req, _ := http.NewRequest("POST", "/proof/verify", bytes.NewBuffer(verifyProofBytes))
 
 	resp := httptest.NewRecorder()
@@ -299,27 +297,8 @@ func TestVerifyProof(t *testing.T) {
 	assert.True(t, isValid)
 }
 
-func loadResponse(rsp io.Reader, destination interface{}) {
-	jsonParser := json.NewDecoder(rsp)
-	err := jsonParser.Decode(destination)
-	if err != nil {
-		fmt.Println(err)
-	}
-}
 
-func startNodeServer(handler transaction.FacadeHandler) *gin.Engine {
-	ws := gin.New()
-	ws.Use(cors.Default())
-	ginProofRoute := ws.Group("/proof")
-	if handler != nil {
-		ginProofRoute.Use(middleware.WithFacade(handler))
-	}
-	proofRoute, _ := wrapper.NewRouterWrapper("proof", ginProofRoute, getRoutesConfig())
-	proof.Routes(proofRoute)
-	return ws
-}
-
-func getRoutesConfig() config.ApiRoutesConfig {
+func getProofRoutesConfig() config.ApiRoutesConfig {
 	return config.ApiRoutesConfig{
 		APIPackages: map[string]config.APIPackageConfig{
 			"proof": {
@@ -332,3 +311,4 @@ func getRoutesConfig() config.ApiRoutesConfig {
 		},
 	}
 }
+
