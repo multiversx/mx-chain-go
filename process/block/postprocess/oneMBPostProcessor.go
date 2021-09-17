@@ -63,7 +63,7 @@ func NewOneMiniBlockPostProcessor(
 		blockType:         blockType,
 	}
 
-	opp.interResultsForBlock = make(map[string]*txInfo)
+	opp.interResultsForBlock = make(map[string]*process.TxInfo)
 
 	return opp, nil
 }
@@ -155,8 +155,8 @@ func (opp *oneMBPostProcessor) AddIntermediateTransactions(txs []data.Transactio
 			return err
 		}
 
-		addReceiptShardInfo := &txShardInfo{receiverShardID: selfId, senderShardID: selfId}
-		scrInfo := &txInfo{tx: txs[i], txShardInfo: addReceiptShardInfo}
+		addReceiptShardInfo := &process.TxShardInfo{ReceiverShardID: selfId, SenderShardID: selfId}
+		scrInfo := &process.TxInfo{Tx: txs[i], TxShardInfo: addReceiptShardInfo}
 		opp.interResultsForBlock[string(txHash)] = scrInfo
 		opp.mapTxToResult[string(txHash)] = append(opp.mapTxToResult[string(txHash)], string(txHash))
 	}

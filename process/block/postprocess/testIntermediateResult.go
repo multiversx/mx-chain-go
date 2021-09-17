@@ -40,7 +40,7 @@ func (tirp *TestIntermediateResProc) GetIntermediateTransactions() []data.Transa
 
 	intermediateTxs := make([]data.TransactionHandler, 0)
 	for _, val := range tirp.interResultsForBlock {
-		intermediateTxs = append(intermediateTxs, val.tx)
+		intermediateTxs = append(intermediateTxs, val.Tx)
 	}
 
 	return intermediateTxs
@@ -51,5 +51,5 @@ func (tirp *TestIntermediateResProc) CleanIntermediateTransactions() {
 	tirp.mutInterResultsForBlock.Lock()
 	defer tirp.mutInterResultsForBlock.Unlock()
 
-	tirp.interResultsForBlock = map[string]*txInfo{}
+	tirp.interResultsForBlock = map[string]*process.TxInfo{}
 }

@@ -67,6 +67,10 @@ func (steh *ScheduledTxsExecutionHandler) SetScheduledRootHash(_ []byte) {
 func (steh *ScheduledTxsExecutionHandler) SetTransactionProcessor(_ process.TransactionProcessor) {
 }
 
+// SetSmartContractResultProcessor does nothing as it is a disabled component
+func (steh *ScheduledTxsExecutionHandler) SetSmartContractResultProcessor(_ process.SmartContractResultProcessor) {
+}
+
 // SetTransactionCoordinator does nothing as it is a disabled component
 func (steh *ScheduledTxsExecutionHandler) SetTransactionCoordinator(_ process.TransactionCoordinator) {
 }

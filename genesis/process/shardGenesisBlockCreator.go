@@ -533,6 +533,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		EpochNotifier:                     epochNotifier,
 		PostProcessorTxsHandler:           disabledPostProcessorTxsHandler,
 		MixedTxsInMiniBlocksEnableEpoch:   enableEpochs.MixedTxsInMiniBlocksEnableEpoch,
+		ScheduledMiniBlocksEnableEpoch:    enableEpochs.ScheduledMiniBlocksEnableEpoch,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {

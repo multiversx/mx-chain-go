@@ -227,12 +227,8 @@ func (b *baseProcessor) saveAllBlockDataToStorageForSelfShard(
 
 func (b *baseProcessor) saveMiniBlocks(headerHandler data.HeaderHandler, body *block.Body) {
 	miniBlockHeadersHashes := headerHandler.GetMiniBlockHeadersHashes()
-	mapBlockTypesTxs := make(map[block.Type]map[string]data.TransactionHandler)
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniBlock := body.MiniBlocks[i]
-		if _, ok := mapBlockTypesTxs[miniBlock.Type]; !ok {
-			mapBlockTypesTxs[miniBlock.Type] = b.txCoordinator.GetAllCurrentUsedTxs(miniBlock.Type)
-		}
 
 		marshalizedMiniBlock, errNotCritical := b.marshalizer.Marshal(miniBlock)
 		if errNotCritical != nil {

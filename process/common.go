@@ -749,7 +749,7 @@ func IsScheduledMode(
 	for _, miniBlockHeader := range header.GetMiniBlockHeaderHandlers() {
 		if bytes.Equal(miniBlockHash, miniBlockHeader.GetHash()) {
 			reserved := miniBlockHeader.GetReserved()
-			return len(reserved) > 0 && reserved[0] == byte(block.ScheduledBlock), nil
+			return len(reserved) > 0 && reserved[0] == byte(block.Scheduled), nil
 		}
 	}
 
@@ -764,4 +764,24 @@ func HaveAdditionalTime() func() bool {
 	return func() bool {
 		return additionalTimeForCreatingScheduledMiniBlocks > time.Since(startTime)
 	}
+}
+
+// TxShardInfo hold info about the transaction's receiver and sender shards
+type TxShardInfo struct {
+	SenderShardID   uint32
+	ReceiverShardID uint32
+}
+
+// TxInfo hold info about the transaction
+type TxInfo struct {
+	Tx     data.TransactionHandler
+	TxHash []byte
+	*TxShardInfo
+}
+
+// GasConsumedInfo holds info about the gas consumption
+type GasConsumedInfo struct {
+	GasConsumedByMiniBlocksInSenderShard  uint64
+	GasConsumedByMiniBlockInReceiverShard uint64
+	TotalGasConsumedInSelfShard           uint64
 }

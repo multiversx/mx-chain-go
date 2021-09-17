@@ -11,22 +11,23 @@ import (
 
 // ScheduledTxsExecutionStub -
 type ScheduledTxsExecutionStub struct {
-	InitCalled                          func()
-	AddCalled                           func([]byte, data.TransactionHandler) bool
-	ExecuteCalled                       func([]byte) error
-	ExecuteAllCalled                    func(func() time.Duration) error
-	GetScheduledSCRsCalled              func() map[block.Type][]data.TransactionHandler
-	SetScheduledRootHashAndSCRsCalled   func(rootHash []byte, mapSCRs map[block.Type][]data.TransactionHandler)
-	GetScheduledRootHashForHeaderCalled func(headerHash []byte) ([]byte, error)
-	RollBackToBlockCalled               func(headerHash []byte) error
-	GetScheduledRootHashCalled          func() []byte
-	SetScheduledRootHashCalled          func([]byte)
-	SetTransactionProcessorCalled       func(process.TransactionProcessor)
-	SetTransactionCoordinatorCalled     func(process.TransactionCoordinator)
-	HaveScheduledTxsCalled              func() bool
-	SaveStateCalled                     func(headerHash []byte)
-	LoadStateCalled                     func(headerHash []byte)
-	IsScheduledTxCalled                 func([]byte) bool
+	InitCalled                            func()
+	AddCalled                             func([]byte, data.TransactionHandler) bool
+	ExecuteCalled                         func([]byte) error
+	ExecuteAllCalled                      func(func() time.Duration) error
+	GetScheduledSCRsCalled                func() map[block.Type][]data.TransactionHandler
+	SetScheduledRootHashAndSCRsCalled     func(rootHash []byte, mapSCRs map[block.Type][]data.TransactionHandler)
+	GetScheduledRootHashForHeaderCalled   func(headerHash []byte) ([]byte, error)
+	RollBackToBlockCalled                 func(headerHash []byte) error
+	GetScheduledRootHashCalled            func() []byte
+	SetScheduledRootHashCalled            func([]byte)
+	SetTransactionProcessorCalled         func(process.TransactionProcessor)
+	SetSmartContractResultProcessorCalled func(process.SmartContractResultProcessor)
+	SetTransactionCoordinatorCalled       func(process.TransactionCoordinator)
+	HaveScheduledTxsCalled                func() bool
+	SaveStateCalled                       func(headerHash []byte)
+	LoadStateCalled                       func(headerHash []byte)
+	IsScheduledTxCalled                   func([]byte) bool
 }
 
 // Init -
@@ -118,6 +119,13 @@ func (stes *ScheduledTxsExecutionStub) SetScheduledRootHash(rootHash []byte) {
 func (stes *ScheduledTxsExecutionStub) SetTransactionProcessor(txProcessor process.TransactionProcessor) {
 	if stes.SetTransactionProcessorCalled != nil {
 		stes.SetTransactionProcessorCalled(txProcessor)
+	}
+}
+
+// SetSmartContractResultProcessor -
+func (stes *ScheduledTxsExecutionStub) SetSmartContractResultProcessor(scrProcessor process.SmartContractResultProcessor) {
+	if stes.SetSmartContractResultProcessorCalled != nil {
+		stes.SetSmartContractResultProcessorCalled(scrProcessor)
 	}
 }
 

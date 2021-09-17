@@ -1286,7 +1286,7 @@ func (mp *metaProcessor) CommitBlock(
 
 	mp.displayPoolsInfo()
 
-	errNotCritical = mp.removeTxsFromPools(bodyHandler)
+	errNotCritical = mp.removeTxsFromPools(body)
 	if errNotCritical != nil {
 		log.Debug("removeTxsFromPools", "error", errNotCritical.Error())
 	}

@@ -1025,11 +1025,11 @@ func TestIntermediateResultsProcessor_SplitMiniBlocksIfNeededShouldWork(t *testi
 	tx3 := transaction.Transaction{Nonce: 2, GasLimit: 100}
 	tx4 := transaction.Transaction{Nonce: 3, GasLimit: 100}
 	tx5 := transaction.Transaction{Nonce: 4, GasLimit: 100}
-	irp.interResultsForBlock["hash1"] = &txInfo{tx: &tx1}
-	irp.interResultsForBlock["hash2"] = &txInfo{tx: &tx2}
-	irp.interResultsForBlock["hash3"] = &txInfo{tx: &tx3}
-	irp.interResultsForBlock["hash4"] = &txInfo{tx: &tx4}
-	irp.interResultsForBlock["hash5"] = &txInfo{tx: &tx5}
+	irp.interResultsForBlock["hash1"] = &process.TxInfo{Tx: &tx1}
+	irp.interResultsForBlock["hash2"] = &process.TxInfo{Tx: &tx2}
+	irp.interResultsForBlock["hash3"] = &process.TxInfo{Tx: &tx3}
+	irp.interResultsForBlock["hash4"] = &process.TxInfo{Tx: &tx4}
+	irp.interResultsForBlock["hash5"] = &process.TxInfo{Tx: &tx5}
 
 	miniBlocks := make([]*block.MiniBlock, 0)
 

@@ -17,16 +17,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-type gasConsumedInfo struct {
-	gasConsumedByMiniBlocksInSenderShard  uint64
-	gasConsumedByMiniBlockInReceiverShard uint64
-	totalGasConsumedInSelfShard           uint64
-}
-
 type txAndMbInfo struct {
 	numNewTxs                      int
 	numNewMiniBlocks               int
 	isReceiverSmartContractAddress bool
+	isScCallOrSpecialTx            bool
 	isCrossShardScCallOrSpecialTx  bool
 }
 
@@ -53,12 +48,13 @@ type createAndProcessMiniBlocksInfo struct {
 	mapCrossShardScCallsOrSpecialTxs         map[uint32]int
 	mapGasConsumedByMiniBlockInReceiverShard map[uint32]uint64
 	mapMiniBlocks                            map[uint32]*block.MiniBlock
+	mapTxHashTxType                          map[string]block.Type
 	senderAddressToSkip                      []byte
 	maxCrossShardScCallsOrSpecialTxsPerShard int
 	firstInvalidTxFound                      bool
 	firstCrossShardScCallOrSpecialTxFound    bool
-	processingInfo                           processedTxsInfo
-	gasInfo                                  gasConsumedInfo
+	processingInfo                           *processedTxsInfo
+	gasInfo                                  *process.GasConsumedInfo
 }
 
 type scheduledTxsInfo struct {
@@ -74,11 +70,12 @@ type scheduledTxsInfo struct {
 type createScheduledMiniBlocksInfo struct {
 	mapMiniBlocks                            map[uint32]*block.MiniBlock
 	mapCrossShardScCallTxs                   map[uint32]int
+	mapTxHashTxType                          map[string]block.Type
 	maxCrossShardScCallTxsPerShard           int
-	schedulingInfo                           scheduledTxsInfo
+	schedulingInfo                           *scheduledTxsInfo
 	firstCrossShardScCallTxFound             bool
 	mapGasConsumedByMiniBlockInReceiverShard map[uint32]uint64
-	gasInfo                                  gasConsumedInfo
+	gasInfo                                  *process.GasConsumedInfo
 	senderAddressToSkip                      []byte
 }
 
@@ -106,25 +103,6 @@ type basePreProcess struct {
 	balanceComputation   BalanceComputationHandler
 	accounts             state.AccountsAdapter
 	pubkeyConverter      core.PubkeyConverter
-}
-
-func (bpp *basePreProcess) removeBlockDataFromPools(
-	body *block.Body,
-	miniBlockPool storage.Cacher,
-	txPool dataRetriever.ShardedDataCacherNotifier,
-	isMiniBlockCorrect func(block.Type) bool,
-) error {
-	err := bpp.removeTxsFromPools(body, txPool, isMiniBlockCorrect)
-	if err != nil {
-		return err
-	}
-
-	err = bpp.removeMiniBlocksFromPools(body, miniBlockPool, isMiniBlockCorrect)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (bpp *basePreProcess) removeTxsFromPools(

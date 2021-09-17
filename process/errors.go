@@ -1012,3 +1012,6 @@ var ErrScheduledRootHashDoesNotMatch = errors.New("scheduled root hash does not 
 
 // ErrNilAdditionalData signals that additional data is nil
 var ErrNilAdditionalData = errors.New("nil additional data")
+
+// ErrWrongTransactionsTypeSize signals that size of transactions type buffer from mini block reserved field is wrong
+var ErrWrongTransactionsTypeSize = errors.New("wrong transactions type size")

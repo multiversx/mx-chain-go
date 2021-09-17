@@ -142,9 +142,9 @@ func (rtp *rewardTxPreprocessor) IsDataPrepared(requestedRewardTxs int, haveTime
 	return nil
 }
 
-// RemoveBlockDataFromPools removes reward transactions and miniblocks from associated pools
-func (rtp *rewardTxPreprocessor) RemoveBlockDataFromPools(body *block.Body, miniBlockPool storage.Cacher) error {
-	return rtp.removeBlockDataFromPools(body, miniBlockPool, rtp.rewardTxPool, rtp.isMiniBlockCorrect)
+// RemoveMiniBlocksFromPools removes reward mini blocks from associated pools
+func (rtp *rewardTxPreprocessor) RemoveMiniBlocksFromPools(body *block.Body, miniBlockPool storage.Cacher) error {
+	return rtp.removeMiniBlocksFromPools(body, miniBlockPool, rtp.isMiniBlockCorrect)
 }
 
 // RemoveTxsFromPools removes reward transactions from associated pools
@@ -211,6 +211,8 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 	_ data.HeaderHandler,
 	body *block.Body,
 	haveTime func() bool,
+	_ bool,
+	_ *process.GasConsumedInfo,
 ) error {
 	if check.IfNil(body) {
 		return process.ErrNilBlockBody
@@ -426,7 +428,7 @@ func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlocks(
 
 // ProcessMiniBlock processes all the reward transactions from a miniblock and saves the processed reward transactions
 // in local cache
-func (rtp *rewardTxPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, _ func() bool, _ func() (int, int), _ bool, _ bool) ([][]byte, int, error) {
+func (rtp *rewardTxPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, _ func() bool, _ func() (int, int), _ bool, _ bool, _ *process.GasConsumedInfo) ([][]byte, int, error) {
 
 	if miniBlock.Type != block.RewardsBlock {
 		return nil, 0, process.ErrWrongTypeInMiniBlock

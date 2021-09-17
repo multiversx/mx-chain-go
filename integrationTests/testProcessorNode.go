@@ -1489,6 +1489,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	tpn.TxProcessor, _ = transaction.NewTxProcessor(argsNewTxProcessor)
 	scheduledTxsExecutionHandler, _ := preprocess.NewScheduledTxsExecution(
 		tpn.TxProcessor,
+		tpn.ScProcessor,
 		&mock.TransactionCoordinatorMock{},
 		tpn.Storage.GetStorer(dataRetriever.ScheduledSCRsUnit),
 		TestMarshalizer)
@@ -1541,6 +1542,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		EpochNotifier:                     tpn.EpochNotifier,
 		PostProcessorTxsHandler:           postProcessorTxsHandler,
 		MixedTxsInMiniBlocksEnableEpoch:   tpn.EnableEpochs.MixedTxsInMiniBlocksEnableEpoch,
+		ScheduledMiniBlocksEnableEpoch:    tpn.EnableEpochs.ScheduledMiniBlocksEnableEpoch,
 	}
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	scheduledTxsExecutionHandler.SetTransactionCoordinator(tpn.TxCoordinator)
@@ -1727,6 +1729,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	tpn.TxProcessor, _ = transaction.NewMetaTxProcessor(argsNewMetaTxProc)
 	scheduledTxsExecutionHandler, _ := preprocess.NewScheduledTxsExecution(
 		tpn.TxProcessor,
+		tpn.ScProcessor,
 		&mock.TransactionCoordinatorMock{},
 		tpn.Storage.GetStorer(dataRetriever.ScheduledSCRsUnit),
 		TestMarshalizer)
@@ -1777,6 +1780,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		EpochNotifier:                     tpn.EpochNotifier,
 		PostProcessorTxsHandler:           postProcessorTxsHandler,
 		MixedTxsInMiniBlocksEnableEpoch:   tpn.EnableEpochs.MixedTxsInMiniBlocksEnableEpoch,
+		ScheduledMiniBlocksEnableEpoch:    tpn.EnableEpochs.ScheduledMiniBlocksEnableEpoch,
 	}
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	scheduledTxsExecutionHandler.SetTransactionCoordinator(tpn.TxCoordinator)

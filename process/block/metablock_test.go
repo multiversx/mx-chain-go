@@ -122,7 +122,7 @@ func createMockMetaArguments(
 			ScheduledTxsExecutionHandler:    &testscommon.ScheduledTxsExecutionStub{},
 			ScheduledMiniBlocksEnableEpoch:  2,
 			PostProcessorTxsHandler:         &testscommon.PostProcessorTxsStub{},
-			MixedTxsInMiniBlocksEnableEpoch: 2,
+			MixedTxsInMiniBlocksEnableEpoch: 3,
 		},
 		SCToProtocol:                 &mock.SCToProtocolStub{},
 		PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},

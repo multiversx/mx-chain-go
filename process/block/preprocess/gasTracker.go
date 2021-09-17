@@ -18,7 +18,7 @@ func (gt *gasTracker) computeGasConsumed(
 	receiverShardId uint32,
 	tx data.TransactionHandler,
 	txHash []byte,
-	gasInfo *gasConsumedInfo,
+	gasInfo *process.GasConsumedInfo,
 ) (uint64, error) {
 	gasConsumedByTxInSenderShard, gasConsumedByTxInReceiverShard, err := gt.computeGasConsumedByTx(
 		senderShardId,
@@ -33,24 +33,25 @@ func (gt *gasTracker) computeGasConsumed(
 	if gt.shardCoordinator.SelfId() == senderShardId {
 		gasConsumedByTxInSelfShard = gasConsumedByTxInSenderShard
 
-		if gasInfo.gasConsumedByMiniBlockInReceiverShard+gasConsumedByTxInReceiverShard > gt.economicsFee.MaxGasLimitPerBlock(gt.shardCoordinator.SelfId()) {
+		//TODO: If here is used selfId() instead receiverShardId the maximum gas used in mini blocks to metachain will be 1.5 bil. instead 15 bil.
+		if gasInfo.GasConsumedByMiniBlockInReceiverShard+gasConsumedByTxInReceiverShard > gt.economicsFee.MaxGasLimitPerBlock(gt.shardCoordinator.SelfId()) {
 			return 0, process.ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached
 		}
 	} else {
 		gasConsumedByTxInSelfShard = gasConsumedByTxInReceiverShard
 
-		if gasInfo.gasConsumedByMiniBlocksInSenderShard+gasConsumedByTxInSenderShard > gt.economicsFee.MaxGasLimitPerBlock(senderShardId) {
+		if gasInfo.GasConsumedByMiniBlocksInSenderShard+gasConsumedByTxInSenderShard > gt.economicsFee.MaxGasLimitPerBlock(senderShardId) {
 			return 0, process.ErrMaxGasLimitPerMiniBlockInSenderShardIsReached
 		}
 	}
 
-	if gasInfo.totalGasConsumedInSelfShard+gasConsumedByTxInSelfShard > gt.economicsFee.MaxGasLimitPerBlock(gt.shardCoordinator.SelfId()) {
+	if gasInfo.TotalGasConsumedInSelfShard+gasConsumedByTxInSelfShard > gt.economicsFee.MaxGasLimitPerBlock(gt.shardCoordinator.SelfId()) {
 		return 0, process.ErrMaxGasLimitPerBlockInSelfShardIsReached
 	}
 
-	gasInfo.gasConsumedByMiniBlocksInSenderShard += gasConsumedByTxInSenderShard
-	gasInfo.gasConsumedByMiniBlockInReceiverShard += gasConsumedByTxInReceiverShard
-	gasInfo.totalGasConsumedInSelfShard += gasConsumedByTxInSelfShard
+	gasInfo.GasConsumedByMiniBlocksInSenderShard += gasConsumedByTxInSenderShard
+	gasInfo.GasConsumedByMiniBlockInReceiverShard += gasConsumedByTxInReceiverShard
+	gasInfo.TotalGasConsumedInSelfShard += gasConsumedByTxInSelfShard
 
 	return gasConsumedByTxInSelfShard, nil
 }
@@ -84,4 +85,15 @@ func (gt *gasTracker) computeGasConsumedByTx(
 	}
 
 	return txGasLimitInSenderShard, txGasLimitInReceiverShard, nil
+}
+
+func (gt *gasTracker) computeGasConsumedByCrossScrInReceiverShard(gasInfo *process.GasConsumedInfo, tx data.TransactionHandler) error {
+	gasConsumedByTxInReceiverShard := tx.GetGasLimit()
+	//TODO: If here is used selfId() instead receiverShardId the maximum gas used in mini blocks to metachain will be 1.5 bil. instead 15 bil.
+	if gasInfo.GasConsumedByMiniBlockInReceiverShard+gasConsumedByTxInReceiverShard > gt.economicsFee.MaxGasLimitPerBlock(gt.shardCoordinator.SelfId()) {
+		return process.ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached
+	}
+
+	gasInfo.GasConsumedByMiniBlockInReceiverShard += gasConsumedByTxInReceiverShard
+	return nil
 }

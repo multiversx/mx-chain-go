@@ -311,6 +311,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 
 	scheduledTxsExecutionHandler.SetTransactionProcessor(transactionProcessor)
+	scheduledTxsExecutionHandler.SetSmartContractResultProcessor(scProcessor)
 
 	err = pcf.createShardTxSimulatorProcessor(txSimulatorProcessorArgs, argsNewScProcessor, argsNewTxProcessor)
 	if err != nil {
@@ -393,6 +394,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		EpochNotifier:                     pcf.epochNotifier,
 		PostProcessorTxsHandler:           postProcessorTxsHandler,
 		MixedTxsInMiniBlocksEnableEpoch:   pcf.epochConfig.EnableEpochs.MixedTxsInMiniBlocksEnableEpoch,
+		ScheduledMiniBlocksEnableEpoch:    pcf.epochConfig.EnableEpochs.ScheduledMiniBlocksEnableEpoch,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
@@ -640,6 +642,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 
 	scheduledTxsExecutionHandler.SetTransactionProcessor(transactionProcessor)
+	scheduledTxsExecutionHandler.SetSmartContractResultProcessor(scProcessor)
 
 	err = pcf.createMetaTxSimulatorProcessor(txSimulatorProcessorArgs, argsNewScProcessor, txTypeHandler)
 	if err != nil {
@@ -717,6 +720,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		EpochNotifier:                     pcf.epochNotifier,
 		PostProcessorTxsHandler:           postProcessorTxsHandler,
 		MixedTxsInMiniBlocksEnableEpoch:   enableEpochs.MixedTxsInMiniBlocksEnableEpoch,
+		ScheduledMiniBlocksEnableEpoch:    enableEpochs.ScheduledMiniBlocksEnableEpoch,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {

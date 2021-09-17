@@ -78,7 +78,7 @@ func NewIntermediateResultsProcessor(
 		currTxs:           currTxs,
 	}
 
-	irp.interResultsForBlock = make(map[string]*txInfo)
+	irp.interResultsForBlock = make(map[string]*process.TxInfo)
 
 	return irp, nil
 }
@@ -90,10 +90,10 @@ func (irp *intermediateResultsProcessor) GetNumOfCrossInterMbsAndTxs() (int, int
 
 	irp.mutInterResultsForBlock.RLock()
 	for _, tx := range irp.interResultsForBlock {
-		if tx.receiverShardID == irp.shardCoordinator.SelfId() {
+		if tx.ReceiverShardID == irp.shardCoordinator.SelfId() {
 			continue
 		}
-		miniBlocks[tx.receiverShardID]++
+		miniBlocks[tx.ReceiverShardID]++
 	}
 	irp.mutInterResultsForBlock.RUnlock()
 
@@ -118,9 +118,9 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() []*block.Min
 	irp.mutInterResultsForBlock.Lock()
 
 	for key, value := range irp.interResultsForBlock {
-		recvShId := value.receiverShardID
+		recvShId := value.ReceiverShardID
 		miniBlocks[recvShId].TxHashes = append(miniBlocks[recvShId].TxHashes, []byte(key))
-		irp.currTxs.AddTx([]byte(key), value.tx)
+		irp.currTxs.AddTx([]byte(key), value.Tx)
 	}
 
 	finalMBs := make([]*block.MiniBlock, 0)
@@ -233,8 +233,8 @@ func (irp *intermediateResultsProcessor) AddIntermediateTransactions(txs []data.
 
 		sndShId, dstShId := irp.getShardIdsFromAddresses(addScr.SndAddr, addScr.RcvAddr)
 
-		addScrShardInfo := &txShardInfo{receiverShardID: dstShId, senderShardID: sndShId}
-		scrInfo := &txInfo{tx: addScr, txShardInfo: addScrShardInfo}
+		addScrShardInfo := &process.TxShardInfo{ReceiverShardID: dstShId, SenderShardID: sndShId}
+		scrInfo := &process.TxInfo{Tx: addScr, TxShardInfo: addScrShardInfo}
 		irp.interResultsForBlock[string(scrHash)] = scrInfo
 		irp.mapTxToResult[string(addScr.PrevTxHash)] = append(irp.mapTxToResult[string(addScr.PrevTxHash)], string(scrHash))
 	}

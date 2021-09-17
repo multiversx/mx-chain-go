@@ -95,7 +95,7 @@ func TestNewValidatorInfoPreprocessor_ProcessMiniBlockInvalidMiniBlockTypeShould
 		Type:            0,
 	}
 
-	_, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, haveAdditionalTimeFalse, getNumOfCrossInterMbsAndTxsZero, false, true)
+	_, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, haveAdditionalTimeFalse, getNumOfCrossInterMbsAndTxsZero, false, true, &process.GasConsumedInfo{})
 	assert.Equal(t, process.ErrWrongTypeInMiniBlock, err)
 }
 
@@ -116,7 +116,7 @@ func TestNewValidatorInfoPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 		Type:            block.PeerBlock,
 	}
 
-	_, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, haveAdditionalTimeFalse, getNumOfCrossInterMbsAndTxsZero, false, true)
+	_, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, haveAdditionalTimeFalse, getNumOfCrossInterMbsAndTxsZero, false, true, &process.GasConsumedInfo{})
 	assert.Nil(t, err)
 }
 
@@ -137,7 +137,7 @@ func TestNewValidatorInfoPreprocessor_ProcessMiniBlockNotFromMeta(t *testing.T) 
 		Type:            block.PeerBlock,
 	}
 
-	_, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, haveAdditionalTimeFalse, getNumOfCrossInterMbsAndTxsZero, false, true)
+	_, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, haveAdditionalTimeFalse, getNumOfCrossInterMbsAndTxsZero, false, true, &process.GasConsumedInfo{})
 	assert.Equal(t, process.ErrValidatorInfoMiniBlockNotFromMeta, err)
 }
 
@@ -256,7 +256,7 @@ func TestNewValidatorInfoPreprocessor_RemovePeerBlockFromPool(t *testing.T) {
 	assert.NotNil(t, foundMb)
 	assert.True(t, ok)
 
-	err := rtp.RemoveBlockDataFromPools(blockBody, miniBlockPool)
+	err := rtp.RemoveMiniBlocksFromPools(blockBody, miniBlockPool)
 	assert.Nil(t, err)
 
 	foundMb, ok = miniBlockPool.Get(mbHash)
@@ -297,7 +297,7 @@ func TestNewValidatorInfoPreprocessor_RemoveOtherBlockTypeFromPoolShouldNotRemov
 	assert.NotNil(t, foundMb)
 	assert.True(t, ok)
 
-	err := rtp.RemoveBlockDataFromPools(blockBody, miniBlockPool)
+	err := rtp.RemoveMiniBlocksFromPools(blockBody, miniBlockPool)
 	assert.Nil(t, err)
 
 	foundMb, ok = miniBlockPool.Get(mbHash)

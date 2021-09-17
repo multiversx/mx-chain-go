@@ -13,6 +13,8 @@ import (
 
 var _ process.InterceptedData = (*InterceptedMiniblock)(nil)
 
+const maxLenOfMiniBlockReservedField = 256
+
 // InterceptedMiniblock is a wrapper over a miniblock
 type InterceptedMiniblock struct {
 	miniblock         *block.MiniBlock
@@ -112,7 +114,7 @@ func (inMb *InterceptedMiniblock) integrity() error {
 		}
 	}
 
-	if len(miniblock.GetReserved()) > 1 {
+	if len(miniblock.GetReserved()) > maxLenOfMiniBlockReservedField {
 		return process.ErrReservedFieldInvalid
 	}
 

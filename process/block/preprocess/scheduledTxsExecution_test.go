@@ -20,6 +20,7 @@ func TestScheduledTxsExecution_NewScheduledTxsExecutionNilTxProcessor(t *testing
 
 	scheduledTxsExec, err := NewScheduledTxsExecution(
 		nil,
+		&testscommon.SCProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
 		&genericMocks.StorerMock{},
 		&marshal.GogoProtoMarshalizer{},
@@ -29,11 +30,27 @@ func TestScheduledTxsExecution_NewScheduledTxsExecutionNilTxProcessor(t *testing
 	assert.Equal(t, process.ErrNilTxProcessor, err)
 }
 
+func TestScheduledTxsExecution_NewScheduledTxsExecutionNilSmartContractResultProcessor(t *testing.T) {
+	t.Parallel()
+
+	scheduledTxsExec, err := NewScheduledTxsExecution(
+		&testscommon.TxProcessorMock{},
+		nil,
+		&mock.TransactionCoordinatorMock{},
+		&genericMocks.StorerMock{},
+		&marshal.GogoProtoMarshalizer{},
+	)
+
+	assert.Nil(t, scheduledTxsExec)
+	assert.Equal(t, process.ErrNilSmartContractResultProcessor, err)
+}
+
 func TestScheduledTxsExecution_NewScheduledTxsExecutionNilTxCoordinator(t *testing.T) {
 	t.Parallel()
 
 	scheduledTxsExec, err := NewScheduledTxsExecution(
 		&testscommon.TxProcessorMock{},
+		&testscommon.SCProcessorMock{},
 		nil,
 		&genericMocks.StorerMock{},
 		&marshal.GogoProtoMarshalizer{},
@@ -48,6 +65,7 @@ func TestScheduledTxsExecution_NewScheduledTxsExecutionNilStorer(t *testing.T) {
 
 	scheduledTxsExec, err := NewScheduledTxsExecution(
 		&testscommon.TxProcessorMock{},
+		&testscommon.SCProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
 		nil,
 		&marshal.GogoProtoMarshalizer{},
@@ -62,6 +80,7 @@ func TestScheduledTxsExecution_NewScheduledTxsExecutionNilMarshaller(t *testing.
 
 	scheduledTxsExec, err := NewScheduledTxsExecution(
 		&testscommon.TxProcessorMock{},
+		&testscommon.SCProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
 		&genericMocks.StorerMock{},
 		nil,
@@ -76,6 +95,7 @@ func TestScheduledTxsExecution_NewScheduledTxsExecutionOk(t *testing.T) {
 
 	scheduledTxsExec, err := NewScheduledTxsExecution(
 		&testscommon.TxProcessorMock{},
+		&testscommon.SCProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
 		&genericMocks.StorerMock{},
 		&marshal.GogoProtoMarshalizer{},
@@ -90,6 +110,7 @@ func TestScheduledTxsExecution_InitShouldWork(t *testing.T) {
 
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
 		&testscommon.TxProcessorMock{},
+		&testscommon.SCProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
 		&genericMocks.StorerMock{},
 		&marshal.GogoProtoMarshalizer{},
@@ -113,6 +134,7 @@ func TestScheduledTxsExecution_AddShouldWork(t *testing.T) {
 
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
 		&testscommon.TxProcessorMock{},
+		&testscommon.SCProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
 		&genericMocks.StorerMock{},
 		&marshal.GogoProtoMarshalizer{},
@@ -149,6 +171,7 @@ func TestScheduledTxsExecution_ExecuteShouldErrMissingTransaction(t *testing.T) 
 
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
 		&testscommon.TxProcessorMock{},
+		&testscommon.SCProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
 		&genericMocks.StorerMock{},
 		&marshal.GogoProtoMarshalizer{},
@@ -168,6 +191,7 @@ func TestScheduledTxsExecution_ExecuteShouldErr(t *testing.T) {
 				return vmcommon.Ok, localError
 			},
 		},
+		&testscommon.SCProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
 		&genericMocks.StorerMock{},
 		&marshal.GogoProtoMarshalizer{},
@@ -187,6 +211,7 @@ func TestScheduledTxsExecution_ExecuteShouldWorkOnErrFailedTransaction(t *testin
 				return vmcommon.Ok, process.ErrFailedTransaction
 			},
 		},
+		&testscommon.SCProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
 		&genericMocks.StorerMock{},
 		&marshal.GogoProtoMarshalizer{},
@@ -206,6 +231,7 @@ func TestScheduledTxsExecution_ExecuteShouldWork(t *testing.T) {
 				return vmcommon.Ok, nil
 			},
 		},
+		&testscommon.SCProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
 		&genericMocks.StorerMock{},
 		&marshal.GogoProtoMarshalizer{},
@@ -221,6 +247,7 @@ func TestScheduledTxsExecution_ExecuteAllShouldErrNilHaveTimeHandler(t *testing.
 
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
 		&testscommon.TxProcessorMock{},
+		&testscommon.SCProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
 		&genericMocks.StorerMock{},
 		&marshal.GogoProtoMarshalizer{},
@@ -235,6 +262,7 @@ func TestScheduledTxsExecution_ExecuteAllShouldErrTimeIsOut(t *testing.T) {
 
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
 		&testscommon.TxProcessorMock{},
+		&testscommon.SCProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
 		&genericMocks.StorerMock{},
 		&marshal.GogoProtoMarshalizer{},
@@ -257,6 +285,7 @@ func TestScheduledTxsExecution_ExecuteAllShouldErrFailedTransaction(t *testing.T
 				return vmcommon.Ok, localError
 			},
 		},
+		&testscommon.SCProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
 		&genericMocks.StorerMock{},
 		&marshal.GogoProtoMarshalizer{},
@@ -278,6 +307,7 @@ func TestScheduledTxsExecution_ExecuteAllShouldWorkOnErrFailedTransaction(t *tes
 				return vmcommon.Ok, process.ErrFailedTransaction
 			},
 		},
+		&testscommon.SCProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
 		&genericMocks.StorerMock{},
 		&marshal.GogoProtoMarshalizer{},
@@ -301,6 +331,7 @@ func TestScheduledTxsExecution_ExecuteAllShouldWork(t *testing.T) {
 				return vmcommon.Ok, nil
 			},
 		},
+		&testscommon.SCProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
 		&genericMocks.StorerMock{},
 		&marshal.GogoProtoMarshalizer{},
@@ -321,6 +352,7 @@ func TestScheduledTxsExecution_executeShouldErr(t *testing.T) {
 
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
 		&testscommon.TxProcessorMock{},
+		&testscommon.SCProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
 		&genericMocks.StorerMock{},
 		&marshal.GogoProtoMarshalizer{},
@@ -340,6 +372,7 @@ func TestScheduledTxsExecution_executeShouldWork(t *testing.T) {
 				return vmcommon.Ok, response
 			},
 		},
+		&testscommon.SCProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
 		&genericMocks.StorerMock{},
 		&marshal.GogoProtoMarshalizer{},

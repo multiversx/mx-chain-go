@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
+	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -25,6 +26,7 @@ type scrInfo struct {
 
 type scheduledTxsExecution struct {
 	txProcessor       process.TransactionProcessor
+	scrProcessor      process.SmartContractResultProcessor
 	txCoordinator     process.TransactionCoordinator
 	mapScheduledTxs   map[string]data.TransactionHandler
 	mapScheduledSCRs  map[block.Type][]data.TransactionHandler
@@ -38,6 +40,7 @@ type scheduledTxsExecution struct {
 // NewScheduledTxsExecution creates a new object which handles the execution of scheduled transactions
 func NewScheduledTxsExecution(
 	txProcessor process.TransactionProcessor,
+	scrProcessor process.SmartContractResultProcessor,
 	txCoordinator process.TransactionCoordinator,
 	storer storage.Storer,
 	marshaller marshal.Marshalizer,
@@ -45,6 +48,9 @@ func NewScheduledTxsExecution(
 
 	if check.IfNil(txProcessor) {
 		return nil, process.ErrNilTxProcessor
+	}
+	if check.IfNil(scrProcessor) {
+		return nil, process.ErrNilSmartContractResultProcessor
 	}
 	if check.IfNil(txCoordinator) {
 		return nil, process.ErrNilTransactionCoordinator
@@ -58,6 +64,7 @@ func NewScheduledTxsExecution(
 
 	ste := &scheduledTxsExecution{
 		txProcessor:       txProcessor,
+		scrProcessor:      scrProcessor,
 		txCoordinator:     txCoordinator,
 		mapScheduledTxs:   make(map[string]data.TransactionHandler),
 		mapScheduledSCRs:  make(map[block.Type][]data.TransactionHandler),
@@ -145,12 +152,18 @@ func (ste *scheduledTxsExecution) ExecuteAll(haveTime func() time.Duration) erro
 
 func (ste *scheduledTxsExecution) execute(txHandler data.TransactionHandler) error {
 	tx, ok := txHandler.(*transaction.Transaction)
-	if !ok {
-		return fmt.Errorf("%w: in scheduledTxsExecution.execute", process.ErrWrongTypeAssertion)
+	if ok {
+		_, err := ste.txProcessor.ProcessTransaction(tx)
+		return err
 	}
 
-	_, err := ste.txProcessor.ProcessTransaction(tx)
-	return err
+	scr, ok := txHandler.(*smartContractResult.SmartContractResult)
+	if ok {
+		_, err := ste.scrProcessor.ProcessSmartContractResult(scr)
+		return err
+	}
+
+	return fmt.Errorf("%w: in scheduledTxsExecution.execute", process.ErrWrongTypeAssertion)
 }
 
 func (ste *scheduledTxsExecution) computeScheduledSCRs(
@@ -286,15 +299,18 @@ func (ste *scheduledTxsExecution) SetTransactionProcessor(txProcessor process.Tr
 	ste.txProcessor = txProcessor
 }
 
+// SetSmartContractResultProcessor sets the smart contract result processor needed by scheduled txs execution component
+func (ste *scheduledTxsExecution) SetSmartContractResultProcessor(scrProcessor process.SmartContractResultProcessor) {
+	ste.scrProcessor = scrProcessor
+}
+
 // SetTransactionCoordinator sets the transaction coordinator needed by scheduled txs execution component
 func (ste *scheduledTxsExecution) SetTransactionCoordinator(txCoordinator process.TransactionCoordinator) {
 	ste.txCoordinator = txCoordinator
 }
 
 // GetScheduledRootHashForHeader gets scheduled root hash of the given header from storage
-func (ste *scheduledTxsExecution) GetScheduledRootHashForHeader(
-	headerHash []byte,
-) ([]byte, error) {
+func (ste *scheduledTxsExecution) GetScheduledRootHashForHeader(headerHash []byte) ([]byte, error) {
 	rootHash, _, err := ste.getScheduledRootHashAndSCRsForHeader(headerHash)
 
 	log.Trace("scheduledTxsExecution.GetScheduledRootHashForHeader", "header hash", headerHash, "scheduled root hash", rootHash)
@@ -340,9 +356,7 @@ func (ste *scheduledTxsExecution) SaveState(headerHash []byte) {
 }
 
 // getScheduledRootHashAndSCRsForHeader gets scheduled root hash and SCRs of the given header from storage
-func (ste *scheduledTxsExecution) getScheduledRootHashAndSCRsForHeader(
-	headerHash []byte,
-) ([]byte, map[block.Type][]data.TransactionHandler, error) {
+func (ste *scheduledTxsExecution) getScheduledRootHashAndSCRsForHeader(headerHash []byte) ([]byte, map[block.Type][]data.TransactionHandler, error) {
 	var err error
 	defer func() {
 		if err != nil {

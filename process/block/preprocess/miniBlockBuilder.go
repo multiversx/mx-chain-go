@@ -50,8 +50,8 @@ type miniBlocksBuilder struct {
 	balanceComputationHandler  BalanceComputationHandler
 	blockSizeComputation       BlockSizeComputationHandler
 	gasConsumedInReceiverShard map[uint32]uint64
-	gasInfo                    gasConsumedInfo
-	prevGasInfo                gasConsumedInfo
+	gasInfo                    process.GasConsumedInfo
+	prevGasInfo                process.GasConsumedInfo
 	senderToSkip               []byte
 	miniBlocks                 map[uint32]*block.MiniBlock
 	haveTime                   func() bool
@@ -79,10 +79,10 @@ func newMiniBlockBuilder(args miniBlocksBuilderArgs) (*miniBlocksBuilder, error)
 		isShardStuck:               args.isShardStuck,
 		isMaxBlockSizeReached:      args.isMaxBlockSizeReached,
 		getTxMaxTotalCost:          args.getTxMaxTotalCost,
-		gasInfo: gasConsumedInfo{
-			gasConsumedByMiniBlocksInSenderShard:  0,
-			gasConsumedByMiniBlockInReceiverShard: 0,
-			totalGasConsumedInSelfShard:           args.gasTracker.gasHandler.TotalGasConsumed(),
+		gasInfo: process.GasConsumedInfo{
+			GasConsumedByMiniBlocksInSenderShard:  0,
+			GasConsumedByMiniBlockInReceiverShard: 0,
+			TotalGasConsumedInSelfShard:           args.gasTracker.gasHandler.TotalGasConsumed(),
 		},
 		stats:        miniBlockBuilderStats{},
 		senderToSkip: []byte(""),
@@ -263,7 +263,7 @@ func (mbb *miniBlocksBuilder) accountHasEnoughBalance(tx *transaction.Transactio
 
 func (mbb *miniBlocksBuilder) accountGasForTx(tx *transaction.Transaction, wtx *txcache.WrappedTransaction) error {
 	mbb.prevGasInfo = mbb.gasInfo
-	mbb.gasInfo.gasConsumedByMiniBlockInReceiverShard = mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID]
+	mbb.gasInfo.GasConsumedByMiniBlockInReceiverShard = mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID]
 	startTime := time.Now()
 	gasConsumedByTxInSelfShard, err := mbb.computeGasConsumed(
 		wtx.SenderShardID,
@@ -279,7 +279,7 @@ func (mbb *miniBlocksBuilder) accountGasForTx(tx *transaction.Transaction, wtx *
 	}
 
 	mbb.gasHandler.SetGasConsumed(gasConsumedByTxInSelfShard, wtx.TxHash)
-	mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID] = mbb.gasInfo.gasConsumedByMiniBlockInReceiverShard
+	mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID] = mbb.gasInfo.GasConsumedByMiniBlockInReceiverShard
 	return nil
 }
 
@@ -292,14 +292,14 @@ func (mbb *miniBlocksBuilder) handleBadTransaction(err error, wtx *txcache.Wrapp
 	mbb.gasHandler.RemoveGasRefunded([][]byte{wtx.TxHash})
 
 	mbb.gasInfo = mbb.prevGasInfo
-	mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID] = mbb.prevGasInfo.gasConsumedByMiniBlockInReceiverShard
+	mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID] = mbb.prevGasInfo.GasConsumedByMiniBlockInReceiverShard
 	mbb.stats.numTxsBad++
 }
 
 func (mbb *miniBlocksBuilder) handleGasRefund(wtx *txcache.WrappedTransaction, gasRefunded uint64) {
 	if wtx.SenderShardID == wtx.ReceiverShardID {
-		mbb.gasInfo.gasConsumedByMiniBlocksInSenderShard -= gasRefunded
-		mbb.gasInfo.totalGasConsumedInSelfShard -= gasRefunded
+		mbb.gasInfo.GasConsumedByMiniBlocksInSenderShard -= gasRefunded
+		mbb.gasInfo.TotalGasConsumedInSelfShard -= gasRefunded
 		mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID] -= gasRefunded
 	}
 }

@@ -138,7 +138,7 @@ func NewShardProcessorEmptyWith3shards(
 			ScheduledTxsExecutionHandler:    &testscommon.ScheduledTxsExecutionStub{},
 			ScheduledMiniBlocksEnableEpoch:  2,
 			PostProcessorTxsHandler:         &testscommon.PostProcessorTxsStub{},
-			MixedTxsInMiniBlocksEnableEpoch: 2,
+			MixedTxsInMiniBlocksEnableEpoch: 3,
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)

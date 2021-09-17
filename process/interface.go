@@ -154,7 +154,7 @@ type TransactionCoordinator interface {
 	VerifyCreatedMiniBlocks(hdr data.HeaderHandler, body *block.Body) error
 	AddIntermediateTransactions(mapSCRs map[block.Type][]data.TransactionHandler) error
 	GetAllIntermediateTxs() map[block.Type]map[string]data.TransactionHandler
-	GetAllIntermediateTxsHashesForTxHash(txHash []byte) map[block.Type]map[uint32][][]byte
+	GetAllIntermediateTxsForTxHash(txHash []byte) map[block.Type]map[uint32][]*TxInfo
 	IsInterfaceNil() bool
 }
 
@@ -179,7 +179,7 @@ type IntermediateTransactionHandler interface {
 	CreateBlockStarted()
 	GetCreatedInShardMiniBlock() *block.MiniBlock
 	RemoveProcessedResultsFor(txHashes [][]byte)
-	GetAllIntermediateTxsHashesForTxHash(txHash []byte) map[uint32][][]byte
+	GetAllIntermediateTxsForTxHash(txHash []byte) map[uint32][]*TxInfo
 	IsInterfaceNil() bool
 }
 
@@ -208,16 +208,16 @@ type PreProcessor interface {
 	CreateBlockStarted()
 	IsDataPrepared(requestedTxs int, haveTime func() time.Duration) error
 
-	RemoveBlockDataFromPools(body *block.Body, miniBlockPool storage.Cacher) error
+	RemoveMiniBlocksFromPools(body *block.Body, miniBlockPool storage.Cacher) error
 	RemoveTxsFromPools(body *block.Body) error
 	RestoreBlockDataIntoPools(body *block.Body, miniBlockPool storage.Cacher) (int, error)
 	SaveTxsToStorage(body *block.Body) error
 
-	ProcessBlockTransactions(header data.HeaderHandler, body *block.Body, haveTime func() bool) error
+	ProcessBlockTransactions(header data.HeaderHandler, body *block.Body, haveTime func() bool, scheduledMode bool, gasConsumedInfo *GasConsumedInfo) error
 	RequestBlockTransactions(body *block.Body) int
 
 	RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int
-	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, haveAdditionalTime func() bool, getNumOfCrossInterMbsAndTxs func() (int, int), scheduledMode bool, isNewMiniBlock bool) ([][]byte, int, error)
+	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, haveAdditionalTime func() bool, getNumOfCrossInterMbsAndTxs func() (int, int), scheduledMode bool, isNewMiniBlock bool, gasConsumedInfo *GasConsumedInfo) ([][]byte, int, error)
 	CreateAndProcessMiniBlocks(haveTime func() bool) (block.MiniBlockSlice, error)
 
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
@@ -1120,6 +1120,7 @@ type ScheduledTxsExecutionHandler interface {
 	GetScheduledRootHash() []byte
 	SetScheduledRootHash(rootHash []byte)
 	SetTransactionProcessor(txProcessor TransactionProcessor)
+	SetSmartContractResultProcessor(scrProcessor SmartContractResultProcessor)
 	SetTransactionCoordinator(txCoordinator TransactionCoordinator)
 	IsScheduledTx(txHash []byte) bool
 	IsInterfaceNil() bool
@@ -1131,6 +1132,6 @@ type PostProcessorTxsHandler interface {
 	AddPostProcessorTx(txHash []byte) bool
 	IsPostProcessorTxAdded(txHash []byte) bool
 	SetTransactionCoordinator(txCoordinator TransactionCoordinator)
-	GetAllIntermediateTxsHashesForTxHash(txHash []byte) map[block.Type]map[uint32][][]byte
+	GetAllIntermediateTxsForTxHash(txHash []byte) map[block.Type]map[uint32][]*TxInfo
 	IsInterfaceNil() bool
 }

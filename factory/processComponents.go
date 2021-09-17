@@ -474,6 +474,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 
 	scheduledTxsExecutionHandler, err := preprocess.NewScheduledTxsExecution(
 		&disabled.TxProcessor{},
+		&disabled.ScrProcessor{},
 		&disabled.TxCoordinator{},
 		pcf.data.StorageService().GetStorer(dataRetriever.ScheduledSCRsUnit),
 		pcf.coreData.InternalMarshalizer(),

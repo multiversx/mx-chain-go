@@ -352,7 +352,7 @@ func Test_computeGasConsumedWithErrorForGasConsumedForTx(t *testing.T) {
 	txm, _ := marshaller.Marshal(tx)
 	txHash := hasher.Compute(string(txm))
 
-	gci := &gasConsumedInfo{}
+	gci := &process.GasConsumedInfo{}
 	_, err := gt.computeGasConsumed(
 		senderShardID,
 		receiverShardID,
@@ -387,8 +387,8 @@ func Test_computeGasConsumedMaxGasLimitInSenderShardReached(t *testing.T) {
 	txm, _ := marshaller.Marshal(tx)
 	txHash := hasher.Compute(string(txm))
 
-	gci := &gasConsumedInfo{
-		gasConsumedByMiniBlockInReceiverShard: gt.economicsFee.MaxGasLimitPerBlock(receiverShardID) - gasConsumed.consumedReceiverShard/2,
+	gci := &process.GasConsumedInfo{
+		GasConsumedByMiniBlockInReceiverShard: gt.economicsFee.MaxGasLimitPerBlock(receiverShardID) - gasConsumed.consumedReceiverShard/2,
 	}
 	_, err := gt.computeGasConsumed(
 		senderShardID,
@@ -424,8 +424,8 @@ func Test_computeGasConsumedMaxGasLimitInReceiverShardReached(t *testing.T) {
 	txm, _ := marshaller.Marshal(tx)
 	txHash := hasher.Compute(string(txm))
 
-	gci := &gasConsumedInfo{
-		gasConsumedByMiniBlocksInSenderShard: gt.economicsFee.MaxGasLimitPerBlock(senderShardID) - gasConsumed.consumedSenderShard/2,
+	gci := &process.GasConsumedInfo{
+		GasConsumedByMiniBlocksInSenderShard: gt.economicsFee.MaxGasLimitPerBlock(senderShardID) - gasConsumed.consumedSenderShard/2,
 	}
 	_, err := gt.computeGasConsumed(
 		senderShardID,
@@ -461,8 +461,8 @@ func Test_computeGasConsumedMaxGasLimitPerBlockReached(t *testing.T) {
 	txm, _ := marshaller.Marshal(tx)
 	txHash := hasher.Compute(string(txm))
 
-	gci := &gasConsumedInfo{
-		totalGasConsumedInSelfShard: gt.economicsFee.MaxGasLimitPerBlock(senderShardID) - gasConsumed.consumedSenderShard/2,
+	gci := &process.GasConsumedInfo{
+		TotalGasConsumedInSelfShard: gt.economicsFee.MaxGasLimitPerBlock(senderShardID) - gasConsumed.consumedSenderShard/2,
 	}
 	_, err := gt.computeGasConsumed(
 		senderShardID,
@@ -498,7 +498,7 @@ func Test_computeGasConsumedOK(t *testing.T) {
 	txm, _ := marshaller.Marshal(tx)
 	txHash := hasher.Compute(string(txm))
 
-	gci := &gasConsumedInfo{}
+	gci := &process.GasConsumedInfo{}
 	_, err := gt.computeGasConsumed(
 		senderShardID,
 		receiverShardID,
@@ -507,7 +507,7 @@ func Test_computeGasConsumedOK(t *testing.T) {
 		gci,
 	)
 	require.Nil(t, err)
-	require.Equal(t, gasConsumed.consumedSenderShard, gci.gasConsumedByMiniBlocksInSenderShard)
-	require.Equal(t, gasConsumed.consumedReceiverShard, gci.gasConsumedByMiniBlockInReceiverShard)
-	require.Equal(t, gasConsumed.consumedSenderShard, gci.totalGasConsumedInSelfShard)
+	require.Equal(t, gasConsumed.consumedSenderShard, gci.GasConsumedByMiniBlocksInSenderShard)
+	require.Equal(t, gasConsumed.consumedReceiverShard, gci.GasConsumedByMiniBlockInReceiverShard)
+	require.Equal(t, gasConsumed.consumedSenderShard, gci.TotalGasConsumedInSelfShard)
 }

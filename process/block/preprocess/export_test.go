@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 func (txs *transactions) ReceivedTransaction(txHash []byte, value interface{}) {
@@ -99,8 +100,10 @@ func (txs *transactions) ProcessTxsToMe(
 	header data.HeaderHandler,
 	body *block.Body,
 	haveTime func() bool,
+	scheduledMode bool,
+	gasConsumedInfo *process.GasConsumedInfo,
 ) error {
-	return txs.processTxsToMe(header, body, haveTime)
+	return txs.processTxsToMe(header, body, haveTime, scheduledMode, gasConsumedInfo)
 }
 
 func (txs *transactions) AddTxForCurrentBlock(

@@ -375,7 +375,7 @@ func TestRewardTxPreprocessor_ProcessMiniBlockInvalidMiniBlockTypeShouldErr(t *t
 		Type:            0,
 	}
 
-	_, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, haveAdditionalTimeFalse, getNumOfCrossInterMbsAndTxsZero, false, true)
+	_, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, haveAdditionalTimeFalse, getNumOfCrossInterMbsAndTxsZero, false, true, &process.GasConsumedInfo{})
 	assert.Equal(t, process.ErrWrongTypeInMiniBlock, err)
 }
 
@@ -410,7 +410,7 @@ func TestRewardTxPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 	txs := []data.TransactionHandler{&rewardTx.RewardTx{}}
 	rtp.AddTxs(txHashes, txs)
 
-	_, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, haveAdditionalTimeFalse, getNumOfCrossInterMbsAndTxsZero, false, true)
+	_, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, haveAdditionalTimeFalse, getNumOfCrossInterMbsAndTxsZero, false, true, &process.GasConsumedInfo{})
 	assert.Nil(t, err)
 
 	txsMap := rtp.GetAllCurrentUsedTxs()
@@ -450,7 +450,7 @@ func TestRewardTxPreprocessor_ProcessMiniBlockNotFromMeta(t *testing.T) {
 	txs := []data.TransactionHandler{&rewardTx.RewardTx{}}
 	rtp.AddTxs(txHashes, txs)
 
-	_, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, haveAdditionalTimeFalse, getNumOfCrossInterMbsAndTxsZero, false, true)
+	_, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, haveAdditionalTimeFalse, getNumOfCrossInterMbsAndTxsZero, false, true, &process.GasConsumedInfo{})
 	assert.Equal(t, process.ErrRewardMiniBlockNotFromMeta, err)
 }
 
@@ -613,7 +613,7 @@ func TestRewardTxPreprocessor_ProcessBlockTransactions(t *testing.T) {
 	var blockBody block.Body
 	blockBody.MiniBlocks = append(blockBody.MiniBlocks, &mb1, &mb2)
 
-	err := rtp.ProcessBlockTransactions(&block.Header{}, &blockBody, haveTimeTrue)
+	err := rtp.ProcessBlockTransactions(&block.Header{}, &blockBody, haveTimeTrue, false, &process.GasConsumedInfo{})
 	assert.Nil(t, err)
 }
 

@@ -146,9 +146,9 @@ func (scr *smartContractResults) IsDataPrepared(requestedScrs int, haveTime func
 	return nil
 }
 
-// RemoveBlockDataFromPools removes smart contract results and miniblocks from associated pools
-func (scr *smartContractResults) RemoveBlockDataFromPools(body *block.Body, miniBlockPool storage.Cacher) error {
-	return scr.removeBlockDataFromPools(body, miniBlockPool, scr.scrPool, scr.isMiniBlockCorrect)
+// RemoveMiniBlocksFromPools removes smart contract mini blocks from associated pools
+func (scr *smartContractResults) RemoveMiniBlocksFromPools(body *block.Body, miniBlockPool storage.Cacher) error {
+	return scr.removeMiniBlocksFromPools(body, miniBlockPool, scr.isMiniBlockCorrect)
 }
 
 // RemoveTxsFromPools removes smart contract results from associated pools
@@ -219,6 +219,8 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 	_ data.HeaderHandler,
 	body *block.Body,
 	haveTime func() bool,
+	_ bool,
+	_ *process.GasConsumedInfo,
 ) error {
 	if check.IfNil(body) {
 		return process.ErrNilBlockBody
@@ -438,7 +440,7 @@ func (scr *smartContractResults) CreateAndProcessMiniBlocks(_ func() bool) (bloc
 }
 
 // ProcessMiniBlock processes all the smartContractResults from a and saves the processed smartContractResults in local cache complete miniblock
-func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, _ func() bool, _ func() (int, int), _ bool, _ bool) ([][]byte, int, error) {
+func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, _ func() bool, _ func() (int, int), _ bool, _ bool, _ *process.GasConsumedInfo) ([][]byte, int, error) {
 
 	if miniBlock.Type != block.SmartContractResultBlock {
 		return nil, 0, process.ErrWrongTypeInMiniBlock
@@ -462,13 +464,13 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 		}
 	}()
 
-	gasInfo := gasConsumedInfo{
-		gasConsumedByMiniBlockInReceiverShard: uint64(0),
-		gasConsumedByMiniBlocksInSenderShard:  uint64(0),
-		totalGasConsumedInSelfShard:           scr.gasHandler.TotalGasConsumed(),
+	gasInfo := process.GasConsumedInfo{
+		GasConsumedByMiniBlockInReceiverShard: uint64(0),
+		GasConsumedByMiniBlocksInSenderShard:  uint64(0),
+		TotalGasConsumedInSelfShard:           scr.gasHandler.TotalGasConsumed(),
 	}
 
-	log.Trace("smartContractResults.ProcessMiniBlock", "totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard)
+	log.Trace("smartContractResults.ProcessMiniBlock", "totalGasConsumedInSelfShard", gasInfo.TotalGasConsumedInSelfShard)
 
 	for index := range miniBlockScrs {
 		if !haveTime() {

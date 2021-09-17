@@ -368,7 +368,7 @@ func CreateMockArguments(
 			ScheduledTxsExecutionHandler:    &testscommon.ScheduledTxsExecutionStub{},
 			ScheduledMiniBlocksEnableEpoch:  2,
 			PostProcessorTxsHandler:         &testscommon.PostProcessorTxsStub{},
-			MixedTxsInMiniBlocksEnableEpoch: 2,
+			MixedTxsInMiniBlocksEnableEpoch: 3,
 		},
 	}
 
@@ -403,7 +403,8 @@ func createMockTransactionCoordinatorArguments(
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		PostProcessorTxsHandler:           &testscommon.PostProcessorTxsStub{},
-		MixedTxsInMiniBlocksEnableEpoch:   2,
+		MixedTxsInMiniBlocksEnableEpoch:   3,
+		ScheduledMiniBlocksEnableEpoch:    2,
 	}
 
 	return argsTransactionCoordinator

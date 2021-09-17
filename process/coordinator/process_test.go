@@ -223,7 +223,8 @@ func createMockTransactionCoordinatorArguments() ArgTransactionCoordinator {
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		PostProcessorTxsHandler:           &testscommon.PostProcessorTxsStub{},
-		MixedTxsInMiniBlocksEnableEpoch:   2,
+		MixedTxsInMiniBlocksEnableEpoch:   3,
+		ScheduledMiniBlocksEnableEpoch:    2,
 	}
 
 	return argsTransactionCoordinator
@@ -438,7 +439,7 @@ func TestTransactionCoordinator_SeparateBody(t *testing.T) {
 	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{Type: block.SmartContractResultBlock})
 	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{Type: block.SmartContractResultBlock})
 
-	separated := tc.separateBodyByType(body)
+	separated, _ := tc.separateBodyByType(body, true)
 	assert.Equal(t, 2, len(separated))
 	assert.Equal(t, 3, len(separated[block.TxBlock].MiniBlocks))
 	assert.Equal(t, 4, len(separated[block.SmartContractResultBlock].MiniBlocks))
@@ -1905,8 +1906,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 	haveAdditionalTime := func() bool {
 		return false
 	}
-	preproc := tc.getPreProcessor(block.TxBlock)
-	err = tc.processCompleteMiniBlock(preproc, &miniBlock, []byte("hash"), haveTime, haveAdditionalTime, false, true)
+	err = tc.processCompleteMiniBlock(&miniBlock, []byte("hash"), haveTime, haveAdditionalTime, false)
 
 	assert.Nil(t, err)
 	assert.Equal(t, tx1Nonce, tx1ExecutionResult)
@@ -2047,8 +2047,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 	haveAdditionalTime := func() bool {
 		return false
 	}
-	preproc := tc.getPreProcessor(block.TxBlock)
-	err = tc.processCompleteMiniBlock(preproc, &miniBlock, []byte("hash"), haveTime, haveAdditionalTime, false, true)
+	err = tc.processCompleteMiniBlock(&miniBlock, []byte("hash"), haveTime, haveAdditionalTime, false)
 
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 	assert.True(t, revertAccntStateCalled)
@@ -2495,7 +2494,8 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldReturnWhenEpochIsNo
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		PostProcessorTxsHandler:           &testscommon.PostProcessorTxsStub{},
-		MixedTxsInMiniBlocksEnableEpoch:   2,
+		MixedTxsInMiniBlocksEnableEpoch:   3,
+		ScheduledMiniBlocksEnableEpoch:    2,
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -2539,7 +2539,8 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxGasLimitPerMi
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		PostProcessorTxsHandler:           &testscommon.PostProcessorTxsStub{},
-		MixedTxsInMiniBlocksEnableEpoch:   2,
+		MixedTxsInMiniBlocksEnableEpoch:   3,
+		ScheduledMiniBlocksEnableEpoch:    2,
 	}
 
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -2602,7 +2603,8 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxAccumulatedFe
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		PostProcessorTxsHandler:           &testscommon.PostProcessorTxsStub{},
-		MixedTxsInMiniBlocksEnableEpoch:   2,
+		MixedTxsInMiniBlocksEnableEpoch:   3,
+		ScheduledMiniBlocksEnableEpoch:    2,
 	}
 
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -2671,7 +2673,8 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxDeveloperFees
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		PostProcessorTxsHandler:           &testscommon.PostProcessorTxsStub{},
-		MixedTxsInMiniBlocksEnableEpoch:   2,
+		MixedTxsInMiniBlocksEnableEpoch:   3,
+		ScheduledMiniBlocksEnableEpoch:    2,
 	}
 
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -2740,7 +2743,8 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldWork(t *testing.T) 
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		PostProcessorTxsHandler:           &testscommon.PostProcessorTxsStub{},
-		MixedTxsInMiniBlocksEnableEpoch:   2,
+		MixedTxsInMiniBlocksEnableEpoch:   3,
+		ScheduledMiniBlocksEnableEpoch:    2,
 	}
 
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -2798,7 +2802,8 @@ func TestTransactionCoordinator_GetAllTransactionsShouldWork(t *testing.T) {
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		PostProcessorTxsHandler:           &testscommon.PostProcessorTxsStub{},
-		MixedTxsInMiniBlocksEnableEpoch:   2,
+		MixedTxsInMiniBlocksEnableEpoch:   3,
+		ScheduledMiniBlocksEnableEpoch:    2,
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -2822,16 +2827,17 @@ func TestTransactionCoordinator_GetAllTransactionsShouldWork(t *testing.T) {
 		},
 	}
 
-	body := &block.Body{
-		MiniBlocks: []*block.MiniBlock{
-			{},
-		},
+	mapMiniBlockTypeAllTxs := tc.getAllTransactions()
+
+	numMapMiniBlockTypeAllTxs := 0
+	for _, mapAllTxs := range mapMiniBlockTypeAllTxs {
+		if len(mapAllTxs) > 0 {
+			numMapMiniBlockTypeAllTxs++
+		}
 	}
 
-	mapMiniBlockTypeAllTxs := tc.getAllTransactions(body)
-
 	require.NotNil(t, mapMiniBlockTypeAllTxs)
-	require.Equal(t, 1, len(mapMiniBlockTypeAllTxs))
+	require.Equal(t, 1, numMapMiniBlockTypeAllTxs)
 
 	mapAllTxs := mapMiniBlockTypeAllTxs[block.TxBlock]
 
@@ -2877,7 +2883,8 @@ func TestTransactionCoordinator_VerifyGasLimitShouldErrMaxGasLimitPerMiniBlockIn
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		PostProcessorTxsHandler:           &testscommon.PostProcessorTxsStub{},
-		MixedTxsInMiniBlocksEnableEpoch:   2,
+		MixedTxsInMiniBlocksEnableEpoch:   3,
+		ScheduledMiniBlocksEnableEpoch:    2,
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -2966,7 +2973,8 @@ func TestTransactionCoordinator_VerifyGasLimitShouldWork(t *testing.T) {
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		PostProcessorTxsHandler:           &testscommon.PostProcessorTxsStub{},
-		MixedTxsInMiniBlocksEnableEpoch:   2,
+		MixedTxsInMiniBlocksEnableEpoch:   3,
+		ScheduledMiniBlocksEnableEpoch:    2,
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3044,7 +3052,8 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		PostProcessorTxsHandler:           &testscommon.PostProcessorTxsStub{},
-		MixedTxsInMiniBlocksEnableEpoch:   2,
+		MixedTxsInMiniBlocksEnableEpoch:   3,
+		ScheduledMiniBlocksEnableEpoch:    2,
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3093,7 +3102,8 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		PostProcessorTxsHandler:           &testscommon.PostProcessorTxsStub{},
-		MixedTxsInMiniBlocksEnableEpoch:   2,
+		MixedTxsInMiniBlocksEnableEpoch:   3,
+		ScheduledMiniBlocksEnableEpoch:    2,
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3102,8 +3112,9 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 	tx1 := &transaction.Transaction{Nonce: 1, GasLimit: tx1GasLimit}
 	txHash1 := "hash1"
 
-	mapAllTxs := make(map[string]data.TransactionHandler)
-	mapAllTxs[txHash1] = tx1
+	mapAllTxs := make(map[block.Type]map[string]data.TransactionHandler)
+	mapAllTxs[block.TxBlock] = make(map[string]data.TransactionHandler)
+	mapAllTxs[block.TxBlock][txHash1] = tx1
 
 	mb := &block.MiniBlock{
 		Type:            block.TxBlock,
@@ -3149,7 +3160,8 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		PostProcessorTxsHandler:           &testscommon.PostProcessorTxsStub{},
-		MixedTxsInMiniBlocksEnableEpoch:   2,
+		MixedTxsInMiniBlocksEnableEpoch:   3,
+		ScheduledMiniBlocksEnableEpoch:    2,
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3161,9 +3173,10 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 	txHash1 := "hash1"
 	txHash2 := "hash2"
 
-	mapAllTxs := make(map[string]data.TransactionHandler)
-	mapAllTxs[txHash1] = tx1
-	mapAllTxs[txHash2] = tx2
+	mapAllTxs := make(map[block.Type]map[string]data.TransactionHandler)
+	mapAllTxs[block.TxBlock] = make(map[string]data.TransactionHandler)
+	mapAllTxs[block.TxBlock][txHash1] = tx1
+	mapAllTxs[block.TxBlock][txHash2] = tx2
 
 	mb := &block.MiniBlock{
 		Type:            block.TxBlock,
@@ -3209,7 +3222,8 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		PostProcessorTxsHandler:           &testscommon.PostProcessorTxsStub{},
-		MixedTxsInMiniBlocksEnableEpoch:   2,
+		MixedTxsInMiniBlocksEnableEpoch:   3,
+		ScheduledMiniBlocksEnableEpoch:    2,
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3223,10 +3237,11 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 	txHash2 := "hash2"
 	txHash3 := "hash3"
 
-	mapAllTxs := make(map[string]data.TransactionHandler)
-	mapAllTxs[txHash1] = tx1
-	mapAllTxs[txHash2] = tx2
-	mapAllTxs[txHash3] = tx3
+	mapAllTxs := make(map[block.Type]map[string]data.TransactionHandler)
+	mapAllTxs[block.TxBlock] = make(map[string]data.TransactionHandler)
+	mapAllTxs[block.TxBlock][txHash1] = tx1
+	mapAllTxs[block.TxBlock][txHash2] = tx2
+	mapAllTxs[block.TxBlock][txHash3] = tx3
 
 	mb := &block.MiniBlock{
 		Type:            block.TxBlock,
@@ -3272,7 +3287,8 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		PostProcessorTxsHandler:           &testscommon.PostProcessorTxsStub{},
-		MixedTxsInMiniBlocksEnableEpoch:   2,
+		MixedTxsInMiniBlocksEnableEpoch:   3,
+		ScheduledMiniBlocksEnableEpoch:    2,
 	}
 
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -3287,10 +3303,11 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 	txHash2 := "hash2"
 	txHash3 := "hash3"
 
-	mapAllTxs := make(map[string]data.TransactionHandler)
-	mapAllTxs[txHash1] = tx1
-	mapAllTxs[txHash2] = tx2
-	mapAllTxs[txHash3] = tx3
+	mapAllTxs := make(map[block.Type]map[string]data.TransactionHandler)
+	mapAllTxs[block.TxBlock] = make(map[string]data.TransactionHandler)
+	mapAllTxs[block.TxBlock][txHash1] = tx1
+	mapAllTxs[block.TxBlock][txHash2] = tx2
+	mapAllTxs[block.TxBlock][txHash3] = tx3
 
 	mb := &block.MiniBlock{
 		Type:            block.TxBlock,
@@ -3325,7 +3342,8 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMissingTransaction(t *testing
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		PostProcessorTxsHandler:           &testscommon.PostProcessorTxsStub{},
-		MixedTxsInMiniBlocksEnableEpoch:   2,
+		MixedTxsInMiniBlocksEnableEpoch:   3,
+		ScheduledMiniBlocksEnableEpoch:    2,
 	}
 
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -3382,7 +3400,8 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxAccumulatedFeesExceeded(t 
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		PostProcessorTxsHandler:           &testscommon.PostProcessorTxsStub{},
-		MixedTxsInMiniBlocksEnableEpoch:   2,
+		MixedTxsInMiniBlocksEnableEpoch:   3,
+		ScheduledMiniBlocksEnableEpoch:    2,
 	}
 
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -3449,7 +3468,8 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxDeveloperFeesExceeded(t *t
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		PostProcessorTxsHandler:           &testscommon.PostProcessorTxsStub{},
-		MixedTxsInMiniBlocksEnableEpoch:   2,
+		MixedTxsInMiniBlocksEnableEpoch:   3,
+		ScheduledMiniBlocksEnableEpoch:    2,
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3515,7 +3535,8 @@ func TestTransactionCoordinator_VerifyFeesShouldWork(t *testing.T) {
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		PostProcessorTxsHandler:           &testscommon.PostProcessorTxsStub{},
-		MixedTxsInMiniBlocksEnableEpoch:   2,
+		MixedTxsInMiniBlocksEnableEpoch:   3,
+		ScheduledMiniBlocksEnableEpoch:    2,
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3575,7 +3596,8 @@ func TestTransactionCoordinator_GetMaxAccumulatedAndDeveloperFeesShouldErr(t *te
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		PostProcessorTxsHandler:           &testscommon.PostProcessorTxsStub{},
-		MixedTxsInMiniBlocksEnableEpoch:   2,
+		MixedTxsInMiniBlocksEnableEpoch:   3,
+		ScheduledMiniBlocksEnableEpoch:    2,
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3626,7 +3648,8 @@ func TestTransactionCoordinator_GetMaxAccumulatedAndDeveloperFeesShouldWork(t *t
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		PostProcessorTxsHandler:           &testscommon.PostProcessorTxsStub{},
-		MixedTxsInMiniBlocksEnableEpoch:   2,
+		MixedTxsInMiniBlocksEnableEpoch:   3,
+		ScheduledMiniBlocksEnableEpoch:    2,
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3640,10 +3663,11 @@ func TestTransactionCoordinator_GetMaxAccumulatedAndDeveloperFeesShouldWork(t *t
 	txHash2 := "hash2"
 	txHash3 := "hash3"
 
-	mapAllTxs := make(map[string]data.TransactionHandler)
-	mapAllTxs[txHash1] = tx1
-	mapAllTxs[txHash2] = tx2
-	mapAllTxs[txHash3] = tx3
+	mapAllTxs := make(map[block.Type]map[string]data.TransactionHandler)
+	mapAllTxs[block.TxBlock] = make(map[string]data.TransactionHandler)
+	mapAllTxs[block.TxBlock][txHash1] = tx1
+	mapAllTxs[block.TxBlock][txHash2] = tx2
+	mapAllTxs[block.TxBlock][txHash3] = tx3
 
 	mb := &block.MiniBlock{
 		Type:            block.TxBlock,

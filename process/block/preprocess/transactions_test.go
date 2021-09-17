@@ -952,7 +952,7 @@ func TestTransactionPreprocessor_RemoveBlockDataFromPoolsNilBlockShouldErr(t *te
 	t.Parallel()
 	dataPool := initDataPool()
 	txs := createGoodPreprocessor(dataPool)
-	err := txs.RemoveBlockDataFromPools(nil, dataPool.MiniBlocks())
+	err := txs.RemoveMiniBlocksFromPools(nil, dataPool.MiniBlocks())
 	assert.NotNil(t, err)
 	assert.Equal(t, err, process.ErrNilTxBlockBody)
 }
@@ -971,7 +971,7 @@ func TestTransactionPreprocessor_RemoveBlockDataFromPoolsOK(t *testing.T) {
 		TxHashes:        txHashes,
 	}
 	body.MiniBlocks = append(body.MiniBlocks, &miniblock)
-	err := txs.RemoveBlockDataFromPools(body, dataPool.MiniBlocks())
+	err := txs.RemoveMiniBlocksFromPools(body, dataPool.MiniBlocks())
 	assert.Nil(t, err)
 }
 
@@ -1395,7 +1395,7 @@ func TestTransactionPreprocessor_ProcessTxsToMeShouldUseCorrectSenderAndReceiver
 	assert.Equal(t, uint32(1), senderShardID)
 	assert.Equal(t, uint32(0), receiverShardID)
 
-	_ = preprocessor.ProcessTxsToMe(&block.Header{}, &body, haveTimeTrue)
+	_ = preprocessor.ProcessTxsToMe(&block.Header{}, &body, haveTimeTrue, false, &process.GasConsumedInfo{})
 
 	_, senderShardID, receiverShardID = preprocessor.GetTxInfoForCurrentBlock(txHash)
 	assert.Equal(t, uint32(2), senderShardID)
@@ -1482,7 +1482,7 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 		}
 		return nbTxsProcessed + 1, nbTxsProcessed * common.AdditionalScrForEachScCallOrSpecialTx
 	}
-	txsToBeReverted, numTxsProcessed, err := txs.ProcessMiniBlock(miniBlock, haveTimeTrue, haveAdditionalTimeFalse, f, false, true)
+	txsToBeReverted, numTxsProcessed, err := txs.ProcessMiniBlock(miniBlock, haveTimeTrue, haveAdditionalTimeFalse, f, false, true, &process.GasConsumedInfo{})
 
 	assert.Equal(t, process.ErrMaxBlockSizeReached, err)
 	assert.Equal(t, 3, len(txsToBeReverted))
@@ -1494,7 +1494,7 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 		}
 		return nbTxsProcessed, nbTxsProcessed * common.AdditionalScrForEachScCallOrSpecialTx
 	}
-	txsToBeReverted, numTxsProcessed, err = txs.ProcessMiniBlock(miniBlock, haveTimeTrue, haveAdditionalTimeFalse, f, false, true)
+	txsToBeReverted, numTxsProcessed, err = txs.ProcessMiniBlock(miniBlock, haveTimeTrue, haveAdditionalTimeFalse, f, false, true, &process.GasConsumedInfo{})
 
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(txsToBeReverted))

@@ -71,9 +71,9 @@ func (ppt *postProcessorTxs) SetTransactionCoordinator(txCoordinator process.Tra
 	ppt.txCoordinator = txCoordinator
 }
 
-// GetAllIntermediateTxsHashesForTxHash gets all the intermediate transaction hashes, for a given transaction hash, separated by block type
-func (ppt *postProcessorTxs) GetAllIntermediateTxsHashesForTxHash(txHash []byte) map[block.Type]map[uint32][][]byte {
-	return ppt.txCoordinator.GetAllIntermediateTxsHashesForTxHash(txHash)
+// GetAllIntermediateTxsForTxHash gets all the intermediate transactions, for a given transaction hash, separated by block type
+func (ppt *postProcessorTxs) GetAllIntermediateTxsForTxHash(txHash []byte) map[block.Type]map[uint32][]*process.TxInfo {
+	return ppt.txCoordinator.GetAllIntermediateTxsForTxHash(txHash)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

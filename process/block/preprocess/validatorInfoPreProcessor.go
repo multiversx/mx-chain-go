@@ -51,8 +51,8 @@ func (vip *validatorInfoPreprocessor) IsDataPrepared(_ int, _ func() time.Durati
 	return nil
 }
 
-// RemoveBlockDataFromPools removes the peer miniblocks from pool
-func (vip *validatorInfoPreprocessor) RemoveBlockDataFromPools(body *block.Body, miniBlockPool storage.Cacher) error {
+// RemoveMiniBlocksFromPools removes peer mini blocks from pool
+func (vip *validatorInfoPreprocessor) RemoveMiniBlocksFromPools(body *block.Body, miniBlockPool storage.Cacher) error {
 	if check.IfNil(body) {
 		return process.ErrNilBlockBody
 	}
@@ -119,6 +119,8 @@ func (vip *validatorInfoPreprocessor) ProcessBlockTransactions(
 	_ data.HeaderHandler,
 	_ *block.Body,
 	_ func() bool,
+	_ bool,
+	_ *process.GasConsumedInfo,
 ) error {
 	return nil
 }
@@ -149,7 +151,7 @@ func (vip *validatorInfoPreprocessor) CreateAndProcessMiniBlocks(_ func() bool) 
 }
 
 // ProcessMiniBlock does nothing
-func (vip *validatorInfoPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBlock, _ func() bool, _ func() bool, _ func() (int, int), _ bool, _ bool) ([][]byte, int, error) {
+func (vip *validatorInfoPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBlock, _ func() bool, _ func() bool, _ func() (int, int), _ bool, _ bool, _ *process.GasConsumedInfo) ([][]byte, int, error) {
 	if miniBlock.Type != block.PeerBlock {
 		return nil, 0, process.ErrWrongTypeInMiniBlock
 	}

@@ -652,7 +652,7 @@ func TestScrsPreprocessor_RemoveBlockDataFromPoolsNilBlockShouldErr(t *testing.T
 		&testscommon.BalanceComputationStub{},
 	)
 
-	err := txs.RemoveBlockDataFromPools(nil, tdp.MiniBlocks())
+	err := txs.RemoveMiniBlocksFromPools(nil, tdp.MiniBlocks())
 
 	assert.NotNil(t, err)
 	assert.Equal(t, err, process.ErrNilTxBlockBody)
@@ -691,7 +691,7 @@ func TestScrsPreprocessor_RemoveBlockDataFromPoolsOK(t *testing.T) {
 
 	body.MiniBlocks = append(body.MiniBlocks, &miniblock)
 
-	err := txs.RemoveBlockDataFromPools(body, tdp.MiniBlocks())
+	err := txs.RemoveMiniBlocksFromPools(body, tdp.MiniBlocks())
 
 	assert.Nil(t, err)
 
@@ -886,7 +886,7 @@ func TestScrsPreprocessor_ProcessBlockTransactions(t *testing.T) {
 
 	scr.scrForBlock.txHashAndInfo["txHash"] = &txInfo{&smartcr, &txshardInfo}
 
-	err := scr.ProcessBlockTransactions(&block.Header{}, body, haveTimeTrue)
+	err := scr.ProcessBlockTransactions(&block.Header{}, body, haveTimeTrue, false, &process.GasConsumedInfo{})
 
 	assert.Nil(t, err)
 }
@@ -944,7 +944,7 @@ func TestScrsPreprocessor_ProcessMiniBlock(t *testing.T) {
 		Type:            block.SmartContractResultBlock,
 	}
 
-	_, _, err := scr.ProcessMiniBlock(&miniblock, haveTimeTrue, haveAdditionalTimeFalse, getNumOfCrossInterMbsAndTxsZero, false, true)
+	_, _, err := scr.ProcessMiniBlock(&miniblock, haveTimeTrue, haveAdditionalTimeFalse, getNumOfCrossInterMbsAndTxsZero, false, true, &process.GasConsumedInfo{})
 
 	assert.Nil(t, err)
 }
@@ -976,7 +976,7 @@ func TestScrsPreprocessor_ProcessMiniBlockWrongTypeMiniblockShouldErr(t *testing
 		SenderShardID:   0,
 	}
 
-	_, _, err := scr.ProcessMiniBlock(&miniblock, haveTimeTrue, haveAdditionalTimeFalse, getNumOfCrossInterMbsAndTxsZero, false, true)
+	_, _, err := scr.ProcessMiniBlock(&miniblock, haveTimeTrue, haveAdditionalTimeFalse, getNumOfCrossInterMbsAndTxsZero, false, true, &process.GasConsumedInfo{})
 
 	assert.NotNil(t, err)
 	assert.Equal(t, err, process.ErrWrongTypeInMiniBlock)

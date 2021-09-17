@@ -598,7 +598,7 @@ func (bp *baseProcessor) createMiniBlockHeaderHandlers(body *block.Body) (int, [
 		var reserved []byte
 		notEmpty := len(body.MiniBlocks[i].TxHashes) > 0
 		if notEmpty && bp.scheduledTxsExecutionHandler.IsScheduledTx(body.MiniBlocks[i].TxHashes[0]) {
-			reserved = []byte{byte(block.ScheduledBlock)}
+			reserved = []byte{byte(block.Scheduled)}
 		}
 
 		miniBlockHeaderHandlers[i] = &block.MiniBlockHeader{
@@ -815,12 +815,7 @@ func (bp *baseProcessor) removeBlockDataFromPools(headerHandler data.HeaderHandl
 	return nil
 }
 
-func (bp *baseProcessor) removeTxsFromPools(bodyHandler data.BodyHandler) error {
-	body, ok := bodyHandler.(*block.Body)
-	if !ok {
-		return process.ErrWrongTypeAssertion
-	}
-
+func (bp *baseProcessor) removeTxsFromPools(body *block.Body) error {
 	return bp.txCoordinator.RemoveTxsFromPool(body)
 }
 

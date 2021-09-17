@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -12,15 +13,15 @@ import (
 type PreProcessorMock struct {
 	CreateBlockStartedCalled              func()
 	IsDataPreparedCalled                  func(requestedTxs int, haveTime func() time.Duration) error
-	RemoveBlockDataFromPoolsCalled        func(body *block.Body, miniBlockPool storage.Cacher) error
+	RemoveMiniBlocksFromPoolsCalled       func(body *block.Body, miniBlockPool storage.Cacher) error
 	RemoveTxsFromPoolsCalled              func(body *block.Body) error
 	RestoreBlockDataIntoPoolsCalled       func(body *block.Body, miniBlockPool storage.Cacher) (int, error)
 	SaveTxsToStorageCalled                func(body *block.Body) error
-	ProcessBlockTransactionsCalled        func(header data.HeaderHandler, body *block.Body, haveTime func() bool) error
+	ProcessBlockTransactionsCalled        func(header data.HeaderHandler, body *block.Body, haveTime func() bool, scheduledMode bool, gasConsumedInfo *process.GasConsumedInfo) error
 	RequestBlockTransactionsCalled        func(body *block.Body) int
 	CreateMarshalizedDataCalled           func(txHashes [][]byte) ([][]byte, error)
 	RequestTransactionsForMiniBlockCalled func(miniBlock *block.MiniBlock) int
-	ProcessMiniBlockCalled                func(miniBlock *block.MiniBlock, haveTime func() bool, haveAdditionalTime func() bool, getNumOfCrossInterMbsAndTxs func() (int, int), scheduledMode bool, isNewMiniBlock bool) ([][]byte, int, error)
+	ProcessMiniBlockCalled                func(miniBlock *block.MiniBlock, haveTime func() bool, haveAdditionalTime func() bool, getNumOfCrossInterMbsAndTxs func() (int, int), scheduledMode bool, isNewMiniBlock bool, gasConsumedInfo *process.GasConsumedInfo) ([][]byte, int, error)
 	CreateAndProcessMiniBlocksCalled      func(haveTime func() bool) (block.MiniBlockSlice, error)
 	GetAllCurrentUsedTxsCalled            func() map[string]data.TransactionHandler
 }
@@ -41,12 +42,12 @@ func (ppm *PreProcessorMock) IsDataPrepared(requestedTxs int, haveTime func() ti
 	return ppm.IsDataPreparedCalled(requestedTxs, haveTime)
 }
 
-// RemoveBlockDataFromPools -
-func (ppm *PreProcessorMock) RemoveBlockDataFromPools(body *block.Body, miniBlockPool storage.Cacher) error {
-	if ppm.RemoveBlockDataFromPoolsCalled == nil {
+// RemoveMiniBlocksFromPools -
+func (ppm *PreProcessorMock) RemoveMiniBlocksFromPools(body *block.Body, miniBlockPool storage.Cacher) error {
+	if ppm.RemoveMiniBlocksFromPoolsCalled == nil {
 		return nil
 	}
-	return ppm.RemoveBlockDataFromPoolsCalled(body, miniBlockPool)
+	return ppm.RemoveMiniBlocksFromPoolsCalled(body, miniBlockPool)
 }
 
 // RemoveTxsFromPools -
@@ -74,11 +75,11 @@ func (ppm *PreProcessorMock) SaveTxsToStorage(body *block.Body) error {
 }
 
 // ProcessBlockTransactions -
-func (ppm *PreProcessorMock) ProcessBlockTransactions(header data.HeaderHandler, body *block.Body, haveTime func() bool) error {
+func (ppm *PreProcessorMock) ProcessBlockTransactions(header data.HeaderHandler, body *block.Body, haveTime func() bool, scheduledMode bool, gasConsumedInfo *process.GasConsumedInfo) error {
 	if ppm.ProcessBlockTransactionsCalled == nil {
 		return nil
 	}
-	return ppm.ProcessBlockTransactionsCalled(header, body, haveTime)
+	return ppm.ProcessBlockTransactionsCalled(header, body, haveTime, scheduledMode, gasConsumedInfo)
 }
 
 // RequestBlockTransactions -
@@ -106,11 +107,11 @@ func (ppm *PreProcessorMock) RequestTransactionsForMiniBlock(miniBlock *block.Mi
 }
 
 // ProcessMiniBlock -
-func (ppm *PreProcessorMock) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, haveAdditionalTime func() bool, getNumOfCrossInterMbsAndTxs func() (int, int), scheduledMode bool, isNewMiniBlock bool) ([][]byte, int, error) {
+func (ppm *PreProcessorMock) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, haveAdditionalTime func() bool, getNumOfCrossInterMbsAndTxs func() (int, int), scheduledMode bool, isNewMiniBlock bool, gasConsumedInfo *process.GasConsumedInfo) ([][]byte, int, error) {
 	if ppm.ProcessMiniBlockCalled == nil {
 		return nil, 0, nil
 	}
-	return ppm.ProcessMiniBlockCalled(miniBlock, haveTime, haveAdditionalTime, getNumOfCrossInterMbsAndTxs, scheduledMode, isNewMiniBlock)
+	return ppm.ProcessMiniBlockCalled(miniBlock, haveTime, haveAdditionalTime, getNumOfCrossInterMbsAndTxs, scheduledMode, isNewMiniBlock, gasConsumedInfo)
 }
 
 // CreateAndProcessMiniBlocks creates miniblocks from storage and processes the reward transactions added into the miniblocks
