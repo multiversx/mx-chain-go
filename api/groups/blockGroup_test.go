@@ -1,27 +1,36 @@
-package block_test
+package groups_test
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go/api/block"
 	apiErrors "github.com/ElrondNetwork/elrond-go/api/errors"
-	"github.com/ElrondNetwork/elrond-go/api/middleware"
+	"github.com/ElrondNetwork/elrond-go/api/groups"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
-	"github.com/ElrondNetwork/elrond-go/api/shared"
-	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func TestNewBlockGroup(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil facade", func(t *testing.T) {
+		hg, err := groups.NewBlockGroup(nil)
+		require.True(t, errors.Is(err, apiErrors.ErrNilFacadeHandler))
+		require.Nil(t, hg)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		hg, err := groups.NewBlockGroup(&mock.Facade{})
+		require.NoError(t, err)
+		require.NotNil(t, hg)
+	})
+}
 
 type blockResponseData struct {
 	Block api.Block `json:"block"`
@@ -33,35 +42,6 @@ type blockResponse struct {
 	Code  string            `json:"code"`
 }
 
-func TestGetBlockByNonce_NilContextShouldError(t *testing.T) {
-	t.Parallel()
-	ws := startNodeServer(nil)
-
-	req, _ := http.NewRequest("GET", "/block/by-nonce/5", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-	response := shared.GenericAPIResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
-	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
-}
-
-func TestGetBlockByNonce_WrongFacadeShouldErr(t *testing.T) {
-	t.Parallel()
-
-	ws := startNodeServerWrongFacade()
-
-	req, _ := http.NewRequest("GET", "/block/by-nonce/2", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := blockResponse{}
-	loadResponse(resp.Body, &response)
-	assert.Equal(t, http.StatusInternalServerError, resp.Code)
-	assert.True(t, strings.Contains(response.Error, apiErrors.ErrInvalidAppContext.Error()))
-}
-
 func TestGetBlockByNonce_EmptyNonceUrlParameterShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -71,7 +51,10 @@ func TestGetBlockByNonce_EmptyNonceUrlParameterShouldErr(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
+	blockGroup, err := groups.NewBlockGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(blockGroup, "block", getBlockRoutesConfig())
 
 	req, _ := http.NewRequest("GET", "/block/by-nonce", nil)
 	resp := httptest.NewRecorder()
@@ -91,7 +74,10 @@ func TestGetBlockByNonce_InvalidNonceShouldErr(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
+	blockGroup, err := groups.NewBlockGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(blockGroup, "block", getBlockRoutesConfig())
 
 	req, _ := http.NewRequest("GET", "/block/by-nonce/invalid", nil)
 	resp := httptest.NewRecorder()
@@ -114,7 +100,10 @@ func TestGetBlockByNonce_FacadeErrorShouldErr(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
+	blockGroup, err := groups.NewBlockGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(blockGroup, "block", getBlockRoutesConfig())
 
 	req, _ := http.NewRequest("GET", "/block/by-nonce/37", nil)
 	resp := httptest.NewRecorder()
@@ -140,7 +129,10 @@ func TestGetBlockByNonce_ShouldWork(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
+	blockGroup, err := groups.NewBlockGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(blockGroup, "block", getBlockRoutesConfig())
 
 	req, _ := http.NewRequest("GET", "/block/by-nonce/37", nil)
 	resp := httptest.NewRecorder()
@@ -155,35 +147,6 @@ func TestGetBlockByNonce_ShouldWork(t *testing.T) {
 
 // ---- by hash
 
-func TestGetBlockByHash_NilContextShouldError(t *testing.T) {
-	t.Parallel()
-	ws := startNodeServer(nil)
-
-	req, _ := http.NewRequest("GET", "/block/by-hash/5", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-	response := shared.GenericAPIResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
-	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
-}
-
-func TestGetBlockByHash_WrongFacadeShouldErr(t *testing.T) {
-	t.Parallel()
-
-	ws := startNodeServerWrongFacade()
-
-	req, _ := http.NewRequest("GET", "/block/by-hash/2", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := blockResponse{}
-	loadResponse(resp.Body, &response)
-	assert.Equal(t, http.StatusInternalServerError, resp.Code)
-	assert.True(t, strings.Contains(response.Error, apiErrors.ErrInvalidAppContext.Error()))
-}
-
 func TestGetBlockByHash_NoHashUrlParameterShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -193,7 +156,10 @@ func TestGetBlockByHash_NoHashUrlParameterShouldErr(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
+	blockGroup, err := groups.NewBlockGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(blockGroup, "block", getBlockRoutesConfig())
 
 	req, _ := http.NewRequest("GET", "/block/by-hash", nil)
 	resp := httptest.NewRecorder()
@@ -214,7 +180,10 @@ func TestGetBlockByHash_FacadeErrorShouldErr(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
+	blockGroup, err := groups.NewBlockGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(blockGroup, "block", getBlockRoutesConfig())
 
 	req, _ := http.NewRequest("GET", "/block/by-hash/hash", nil)
 	resp := httptest.NewRecorder()
@@ -240,7 +209,10 @@ func TestGetBlockByHash_ShouldWork(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
+	blockGroup, err := groups.NewBlockGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(blockGroup, "block", getBlockRoutesConfig())
 
 	req, _ := http.NewRequest("GET", "/block/by-hash/hash", nil)
 	resp := httptest.NewRecorder()
@@ -253,19 +225,7 @@ func TestGetBlockByHash_ShouldWork(t *testing.T) {
 	assert.Equal(t, expectedBlock, response.Data.Block)
 }
 
-func startNodeServer(handler block.BlockService) *gin.Engine {
-	ws := gin.New()
-	ws.Use(cors.Default())
-	blockRoutes := ws.Group("/block")
-	if handler != nil {
-		blockRoutes.Use(middleware.WithFacade(handler))
-	}
-	blockRoute, _ := wrapper.NewRouterWrapper("block", blockRoutes, getRoutesConfig())
-	block.Routes(blockRoute)
-	return ws
-}
-
-func getRoutesConfig() config.ApiRoutesConfig {
+func getBlockRoutesConfig() config.ApiRoutesConfig {
 	return config.ApiRoutesConfig{
 		APIPackages: map[string]config.APIPackageConfig{
 			"block": {
@@ -276,28 +236,4 @@ func getRoutesConfig() config.ApiRoutesConfig {
 			},
 		},
 	}
-}
-
-func loadResponse(rsp io.Reader, destination interface{}) {
-	jsonParser := json.NewDecoder(rsp)
-	err := jsonParser.Decode(destination)
-	logError(err)
-}
-
-func logError(err error) {
-	if err != nil {
-		fmt.Println(err)
-	}
-}
-
-func startNodeServerWrongFacade() *gin.Engine {
-	ws := gin.New()
-	ws.Use(cors.Default())
-	ws.Use(func(c *gin.Context) {
-		c.Set("facade", mock.WrongFacade{})
-	})
-	ginBlockRoute := ws.Group("/block")
-	blockRoute, _ := wrapper.NewRouterWrapper("block", ginBlockRoute, getRoutesConfig())
-	block.Routes(blockRoute)
-	return ws
 }

@@ -1,10 +1,9 @@
-package address_test
+package groups_test
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
@@ -13,23 +12,16 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
-	"github.com/ElrondNetwork/elrond-go/api/address"
 	apiErrors "github.com/ElrondNetwork/elrond-go/api/errors"
-	"github.com/ElrondNetwork/elrond-go/api/middleware"
+	"github.com/ElrondNetwork/elrond-go/api/groups"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
-	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func init() {
-	gin.SetMode(gin.TestMode)
-}
-
-type AccountResponse struct {
+type accountResponse struct {
 	Account struct {
 		Address         string `json:"address"`
 		Nonce           uint64 `json:"nonce"`
@@ -140,10 +132,30 @@ type usernameResponse struct {
 	Code  string               `json:"code"`
 }
 
+func TestNewAddressGroup(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil facade", func(t *testing.T) {
+		hg, err := groups.NewAddressGroup(nil)
+		require.True(t, errors.Is(err, apiErrors.ErrNilFacadeHandler))
+		require.Nil(t, hg)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		hg, err := groups.NewAddressGroup(&mock.Facade{})
+		require.NoError(t, err)
+		require.NotNil(t, hg)
+	})
+}
+
 func TestAddressRoute_EmptyTrailReturns404(t *testing.T) {
 	t.Parallel()
 	facade := mock.Facade{}
-	ws := startNodeServer(&facade)
+
+	addrGroup, err := groups.NewAddressGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
 
 	req, _ := http.NewRequest("GET", "/address", nil)
 	resp := httptest.NewRecorder()
@@ -164,22 +176,9 @@ func getValueForKey(dataFromResponse interface{}, key string) string {
 	return ""
 }
 
-func TestGetBalance_NilContextShouldError(t *testing.T) {
-	t.Parallel()
-	ws := startNodeServer(nil)
-
-	req, _ := http.NewRequest("GET", "/address/testAddress/balance", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-	response := shared.GenericAPIResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
-	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
-}
-
 func TestGetBalance_WithCorrectAddressShouldNotReturnError(t *testing.T) {
 	t.Parallel()
+
 	amount := big.NewInt(10)
 	addr := "testAddress"
 	facade := mock.Facade{
@@ -188,7 +187,10 @@ func TestGetBalance_WithCorrectAddressShouldNotReturnError(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
+	addrGroup, err := groups.NewAddressGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/balance", addr), nil)
 	resp := httptest.NewRecorder()
@@ -214,7 +216,10 @@ func TestGetBalance_WithWrongAddressShouldError(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
+	addrGroup, err := groups.NewAddressGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/balance", otherAddress), nil)
 	resp := httptest.NewRecorder()
@@ -236,7 +241,10 @@ func TestGetBalance_NodeGetBalanceReturnsError(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
+	addrGroup, err := groups.NewAddressGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/balance", addr), nil)
 	resp := httptest.NewRecorder()
@@ -248,7 +256,7 @@ func TestGetBalance_NodeGetBalanceReturnsError(t *testing.T) {
 	assert.Equal(t, fmt.Sprintf("%s: %s", apiErrors.ErrGetBalance.Error(), balanceError.Error()), response.Error)
 }
 
-func TestGetBalance_WithEmptyAddressShoudReturnError(t *testing.T) {
+func TestGetBalance_WithEmptyAddressShouldReturnError(t *testing.T) {
 	t.Parallel()
 	facade := mock.Facade{
 		BalanceHandler: func(s string) (i *big.Int, e error) {
@@ -257,7 +265,11 @@ func TestGetBalance_WithEmptyAddressShoudReturnError(t *testing.T) {
 	}
 
 	emptyAddress := ""
-	ws := startNodeServer(&facade)
+
+	addrGroup, err := groups.NewAddressGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/balance", emptyAddress), nil)
 	resp := httptest.NewRecorder()
@@ -272,34 +284,6 @@ func TestGetBalance_WithEmptyAddressShoudReturnError(t *testing.T) {
 	))
 }
 
-func TestGetBalance_FailsWithWrongFacadeTypeConversion(t *testing.T) {
-	t.Parallel()
-
-	ws := startNodeServerWrongFacade()
-	req, _ := http.NewRequest("GET", "/address/empty/balance", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := shared.GenericAPIResponse{}
-	loadResponse(resp.Body, &response)
-	assert.Equal(t, resp.Code, http.StatusInternalServerError)
-	assert.Equal(t, response.Error, apiErrors.ErrInvalidAppContext.Error())
-}
-
-func TestGetValueForKey_NilContextShouldError(t *testing.T) {
-	t.Parallel()
-	ws := startNodeServer(nil)
-
-	req, _ := http.NewRequest("GET", "/address/testAddress/key/test", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-	response := shared.GenericAPIResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
-	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
-}
-
 func TestGetValueForKey_NodeFailsShouldError(t *testing.T) {
 	t.Parallel()
 
@@ -311,7 +295,10 @@ func TestGetValueForKey_NodeFailsShouldError(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
+	addrGroup, err := groups.NewAddressGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/key/test", testAddress), nil)
 	resp := httptest.NewRecorder()
@@ -334,7 +321,10 @@ func TestGetValueForKey_ShouldWork(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
+	addrGroup, err := groups.NewAddressGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/key/test", testAddress), nil)
 	resp := httptest.NewRecorder()
@@ -344,20 +334,6 @@ func TestGetValueForKey_ShouldWork(t *testing.T) {
 	loadResponse(resp.Body, &valueForKeyResponseObj)
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.Equal(t, testValue, valueForKeyResponseObj.Data.Value)
-}
-
-func TestGetUsername_NilContextShouldError(t *testing.T) {
-	t.Parallel()
-	ws := startNodeServer(nil)
-
-	req, _ := http.NewRequest("GET", "/address/testAddress/username", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-	response := shared.GenericAPIResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
-	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
 }
 
 func TestGetUsername_NodeFailsShouldError(t *testing.T) {
@@ -371,7 +347,10 @@ func TestGetUsername_NodeFailsShouldError(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
+	addrGroup, err := groups.NewAddressGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/username", testAddress), nil)
 	resp := httptest.NewRecorder()
@@ -394,7 +373,10 @@ func TestGetUsername_ShouldWork(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
+	addrGroup, err := groups.NewAddressGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/username", testAddress), nil)
 	resp := httptest.NewRecorder()
@@ -406,43 +388,20 @@ func TestGetUsername_ShouldWork(t *testing.T) {
 	assert.Equal(t, testUsername, usernameResponseObj.Data.Username)
 }
 
-func TestGetAccount_NilContextShouldError(t *testing.T) {
-	t.Parallel()
-	ws := startNodeServer(nil)
-
-	req, _ := http.NewRequest("GET", "/address/empty", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-	response := shared.GenericAPIResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
-	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
-}
-
-func TestGetAccount_FailsWithWrongFacadeTypeConversion(t *testing.T) {
-	t.Parallel()
-
-	ws := startNodeServerWrongFacade()
-	req, _ := http.NewRequest("GET", "/address/empty", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := shared.GenericAPIResponse{}
-	loadResponse(resp.Body, &response)
-	assert.Equal(t, resp.Code, http.StatusInternalServerError)
-	assert.Equal(t, response.Error, apiErrors.ErrInvalidAppContext.Error())
-}
-
 func TestGetAccount_FailWhenFacadeGetAccountFails(t *testing.T) {
 	t.Parallel()
+
 	returnedError := "i am an error"
 	facade := mock.Facade{
 		GetAccountHandler: func(address string) (api.AccountResponse, error) {
 			return api.AccountResponse{}, errors.New(returnedError)
 		},
 	}
-	ws := startNodeServer(&facade)
+
+	addrGroup, err := groups.NewAddressGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
 
 	req, _ := http.NewRequest("GET", "/address/test", nil)
 	resp := httptest.NewRecorder()
@@ -458,6 +417,7 @@ func TestGetAccount_FailWhenFacadeGetAccountFails(t *testing.T) {
 
 func TestGetAccount_ReturnsSuccessfully(t *testing.T) {
 	t.Parallel()
+
 	facade := mock.Facade{
 		GetAccountHandler: func(address string) (api.AccountResponse, error) {
 			return api.AccountResponse{
@@ -468,7 +428,11 @@ func TestGetAccount_ReturnsSuccessfully(t *testing.T) {
 			}, nil
 		},
 	}
-	ws := startNodeServer(&facade)
+
+	addrGroup, err := groups.NewAddressGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
 
 	reqAddress := "test"
 	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s", reqAddress), nil)
@@ -478,7 +442,7 @@ func TestGetAccount_ReturnsSuccessfully(t *testing.T) {
 	response := shared.GenericAPIResponse{}
 	loadResponse(resp.Body, &response)
 	mapResponse := response.Data.(map[string]interface{})
-	accountResponse := AccountResponse{}
+	accountResponse := accountResponse{}
 
 	mapResponseBytes, _ := json.Marshal(&mapResponse)
 	_ = json.Unmarshal(mapResponseBytes, &accountResponse)
@@ -489,57 +453,6 @@ func TestGetAccount_ReturnsSuccessfully(t *testing.T) {
 	assert.Equal(t, "100", accountResponse.Account.Balance)
 	assert.Equal(t, "120", accountResponse.Account.DeveloperReward)
 	assert.Empty(t, response.Error)
-}
-
-func loadResponse(rsp io.Reader, destination interface{}) {
-	jsonParser := json.NewDecoder(rsp)
-	err := jsonParser.Decode(destination)
-	logError(err)
-}
-
-func logError(err error) {
-	if err != nil {
-		fmt.Println(err)
-	}
-}
-
-func startNodeServer(handler address.FacadeHandler) *gin.Engine {
-	ws := gin.New()
-	ws.Use(cors.Default())
-	addressRoutes := ws.Group("/address")
-	if handler != nil {
-		addressRoutes.Use(middleware.WithFacade(handler))
-	}
-	addressRoute, _ := wrapper.NewRouterWrapper("address", addressRoutes, getRoutesConfig())
-	address.Routes(addressRoute)
-	return ws
-}
-
-func startNodeServerWrongFacade() *gin.Engine {
-	ws := gin.New()
-	ws.Use(cors.Default())
-	ws.Use(func(c *gin.Context) {
-		c.Set("facade", mock.WrongFacade{})
-	})
-	ginAddressRoute := ws.Group("/address")
-	addressRoute, _ := wrapper.NewRouterWrapper("address", ginAddressRoute, getRoutesConfig())
-	address.Routes(addressRoute)
-	return ws
-}
-
-func TestGetESDTBalance_NilContextShouldError(t *testing.T) {
-	t.Parallel()
-
-	ws := startNodeServer(nil)
-
-	req, _ := http.NewRequest("GET", "/address/myAddress/esdt/newToken", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-	response := shared.GenericAPIResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
-	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
 }
 
 func TestGetESDTBalance_NodeFailsShouldError(t *testing.T) {
@@ -553,7 +466,10 @@ func TestGetESDTBalance_NodeFailsShouldError(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
+	addrGroup, err := groups.NewAddressGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdt/newToken", testAddress), nil)
 	resp := httptest.NewRecorder()
@@ -577,7 +493,10 @@ func TestGetESDTBalance_ShouldWork(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
+	addrGroup, err := groups.NewAddressGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdt/newToken", testAddress), nil)
 	resp := httptest.NewRecorder()
@@ -588,21 +507,6 @@ func TestGetESDTBalance_ShouldWork(t *testing.T) {
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.Equal(t, testValue, esdtBalanceResponseObj.Data.Balance)
 	assert.Equal(t, testProperties, esdtBalanceResponseObj.Data.Properties)
-}
-
-func TestGetESDTNFTData_NilContextShouldError(t *testing.T) {
-	t.Parallel()
-
-	ws := startNodeServer(nil)
-
-	req, _ := http.NewRequest("GET", "/address/myAddress/nft/newToken/nonce/10", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-	response := shared.GenericAPIResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
-	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
 }
 
 func TestGetESDTNFTData_NodeFailsShouldError(t *testing.T) {
@@ -616,7 +520,10 @@ func TestGetESDTNFTData_NodeFailsShouldError(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
+	addrGroup, err := groups.NewAddressGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/nft/newToken/nonce/10", testAddress), nil)
 	resp := httptest.NewRecorder()
@@ -644,7 +551,10 @@ func TestGetESDTNFTData_ShouldWork(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
+	addrGroup, err := groups.NewAddressGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/nft/newToken/nonce/10", testAddress), nil)
 	resp := httptest.NewRecorder()
@@ -659,21 +569,6 @@ func TestGetESDTNFTData_ShouldWork(t *testing.T) {
 	assert.Equal(t, testNonce, esdtResponseObj.Data.Nonce)
 }
 
-func TestGetESDTTokensWithRole_NilContextShouldError(t *testing.T) {
-	t.Parallel()
-
-	ws := startNodeServer(nil)
-
-	req, _ := http.NewRequest("GET", "/address/myAddress/esdts-with-role/ESDTRoleNFTCreate", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-	response := shared.GenericAPIResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
-	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
-}
-
 func TestGetESDTTokensWithRole_InvalidRoleShouldError(t *testing.T) {
 	t.Parallel()
 
@@ -685,7 +580,10 @@ func TestGetESDTTokensWithRole_InvalidRoleShouldError(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
+	addrGroup, err := groups.NewAddressGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdts-with-role/invalid", testAddress), nil)
 	resp := httptest.NewRecorder()
@@ -708,7 +606,10 @@ func TestGetESDTTokensWithRole_NodeFailsShouldError(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
+	addrGroup, err := groups.NewAddressGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdts-with-role/ESDTRoleNFTCreate", testAddress), nil)
 	resp := httptest.NewRecorder()
@@ -731,7 +632,10 @@ func TestGetESDTTokensWithRole_ShouldWork(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
+	addrGroup, err := groups.NewAddressGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdts-with-role/ESDTRoleNFTCreate", testAddress), nil)
 	resp := httptest.NewRecorder()
@@ -741,21 +645,6 @@ func TestGetESDTTokensWithRole_ShouldWork(t *testing.T) {
 	loadResponse(resp.Body, &esdtResponseObj)
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.Equal(t, expectedTokens, esdtResponseObj.Data.Tokens)
-}
-
-func TestGetNFTTokenIDsRegisteredByAddress_NilContextShouldError(t *testing.T) {
-	t.Parallel()
-
-	ws := startNodeServer(nil)
-
-	req, _ := http.NewRequest("GET", "/address/myAddress/registered-nfts", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-	response := shared.GenericAPIResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
-	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
 }
 
 func TestGetNFTTokenIDsRegisteredByAddress_NodeFailsShouldError(t *testing.T) {
@@ -769,7 +658,10 @@ func TestGetNFTTokenIDsRegisteredByAddress_NodeFailsShouldError(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
+	addrGroup, err := groups.NewAddressGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/registered-nfts", testAddress), nil)
 	resp := httptest.NewRecorder()
@@ -792,7 +684,10 @@ func TestGetNFTTokenIDsRegisteredByAddress_ShouldWork(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
+	addrGroup, err := groups.NewAddressGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/registered-nfts", testAddress), nil)
 	resp := httptest.NewRecorder()
@@ -802,21 +697,6 @@ func TestGetNFTTokenIDsRegisteredByAddress_ShouldWork(t *testing.T) {
 	loadResponse(resp.Body, &esdtResponseObj)
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.Equal(t, expectedTokens, esdtResponseObj.Data.Tokens)
-}
-
-func TestGetESDTTokens_NilContextShouldError(t *testing.T) {
-	t.Parallel()
-
-	ws := startNodeServer(nil)
-
-	req, _ := http.NewRequest("GET", "/address/some/esdt", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-	response := shared.GenericAPIResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
-	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
 }
 
 func TestGetFullESDTTokens_NodeFailsShouldError(t *testing.T) {
@@ -830,7 +710,10 @@ func TestGetFullESDTTokens_NodeFailsShouldError(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
+	addrGroup, err := groups.NewAddressGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdt", testAddress), nil)
 	resp := httptest.NewRecorder()
@@ -857,7 +740,10 @@ func TestGetFullESDTTokens_ShouldWork(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
+	addrGroup, err := groups.NewAddressGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdt", testAddress), nil)
 	resp := httptest.NewRecorder()
@@ -869,27 +755,16 @@ func TestGetFullESDTTokens_ShouldWork(t *testing.T) {
 	assert.Equal(t, 2, len(esdtTokenResponseObj.Data.Tokens))
 }
 
-func TestGetKeyValuePairs_InvalidAppContextShouldError(t *testing.T) {
-	t.Parallel()
-
-	ws := startNodeServer(nil)
-
-	req, _ := http.NewRequest("GET", "/address/keys", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-	response := shared.GenericAPIResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
-	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
-}
-
-func TestGetKeyValuePairs_WithEmptyAddressShoudReturnError(t *testing.T) {
+func TestGetKeyValuePairs_WithEmptyAddressShouldReturnError(t *testing.T) {
 	t.Parallel()
 	facade := mock.Facade{}
 
 	emptyAddress := ""
-	ws := startNodeServer(&facade)
+
+	addrGroup, err := groups.NewAddressGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/keys", emptyAddress), nil)
 	resp := httptest.NewRecorder()
@@ -915,7 +790,10 @@ func TestGetKeyValuePairs_NodeFailsShouldError(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
+	addrGroup, err := groups.NewAddressGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/keys", testAddress), nil)
 	resp := httptest.NewRecorder()
@@ -941,7 +819,10 @@ func TestGetKeyValuePairs_ShouldWork(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
+	addrGroup, err := groups.NewAddressGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/keys", testAddress), nil)
 	resp := httptest.NewRecorder()
@@ -953,27 +834,16 @@ func TestGetKeyValuePairs_ShouldWork(t *testing.T) {
 	assert.Equal(t, pairs, response.Data.Pairs)
 }
 
-func TestGetESDTsRoles_InvalidAppContextShouldError(t *testing.T) {
-	t.Parallel()
-
-	ws := startNodeServer(nil)
-
-	req, _ := http.NewRequest("GET", "/address/addr/esdts/roles", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-	response := shared.GenericAPIResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
-	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
-}
-
-func TestGetESDTsRoles_WithEmptyAddressShoudReturnError(t *testing.T) {
+func TestGetESDTsRoles_WithEmptyAddressShouldReturnError(t *testing.T) {
 	t.Parallel()
 	facade := mock.Facade{}
 
 	emptyAddress := ""
-	ws := startNodeServer(&facade)
+
+	addrGroup, err := groups.NewAddressGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdts/roles", emptyAddress), nil)
 	resp := httptest.NewRecorder()
@@ -999,7 +869,10 @@ func TestGetESDTsRoles_NodeFailsShouldError(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
+	addrGroup, err := groups.NewAddressGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdts/roles", testAddress), nil)
 	resp := httptest.NewRecorder()
@@ -1025,7 +898,10 @@ func TestGetESDTsRoles_ShouldWork(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
+	addrGroup, err := groups.NewAddressGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdts/roles", testAddress), nil)
 	resp := httptest.NewRecorder()
@@ -1037,7 +913,54 @@ func TestGetESDTsRoles_ShouldWork(t *testing.T) {
 	assert.Equal(t, roles, response.Data.Roles)
 }
 
-func getRoutesConfig() config.ApiRoutesConfig {
+func TestAddressGroup_UpdateFacade(t *testing.T) {
+	t.Parallel()
+
+	roles := map[string][]string{
+		"token0": {"role0", "role1"},
+		"token1": {"role3", "role1"},
+	}
+	testAddress := "address"
+	facade := mock.Facade{
+		GetESDTsRolesCalled: func(_ string) (map[string][]string, error) {
+			return roles, nil
+		},
+	}
+
+	addrGroup, err := groups.NewAddressGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdts/roles", testAddress), nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := esdtRolesResponse{}
+	loadResponse(resp.Body, &response)
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, roles, response.Data.Roles)
+
+	newErr := errors.New("new error")
+	newFacade := mock.Facade{
+		GetESDTsRolesCalled: func(_ string) (map[string][]string, error) {
+			return nil, newErr
+		},
+	}
+	err = addrGroup.UpdateFacade(&newFacade)
+	require.NoError(t, err)
+
+	req, _ = http.NewRequest("GET", fmt.Sprintf("/address/%s/esdts/roles", testAddress), nil)
+	resp = httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response = esdtRolesResponse{}
+	loadResponse(resp.Body, &response)
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.True(t, strings.Contains(response.Error, newErr.Error()))
+}
+
+func getAddressRoutesConfig() config.ApiRoutesConfig {
 	return config.ApiRoutesConfig{
 		APIPackages: map[string]config.APIPackageConfig{
 			"address": {
