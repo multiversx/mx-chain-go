@@ -661,7 +661,7 @@ func (bh *BlockChainHookImpl) RevertToSnapshot(snapshot int) error {
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (bh *BlockChainHookImpl) EpochConfirmed(epoch uint32, _ uint64) {
 	bh.flagSaveAccountsIfError.Toggle(epoch < bh.saveAccountsIfErrorDisableEpoch)
-	log.Debug("blockchain hook: built in functions save accounts if error", "enabled", bh.flagSaveAccountsIfError.IsSet())
+	log.Debug("blockchain hook: built in functions save accounts always", "enabled", bh.flagSaveAccountsIfError.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
