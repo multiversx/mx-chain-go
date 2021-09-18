@@ -1834,7 +1834,12 @@ func (d *delegation) saveRewardData(epoch uint32, rewardsData *RewardComputation
 }
 
 func (d *delegation) computeAndUpdateRewards(callerAddress []byte, delegator *DelegatorData) error {
+	currentEpoch := d.eei.BlockChainHook().CurrentEpoch()
 	if len(delegator.ActiveFund) == 0 {
+
+		//TODO flag
+		//delegator.RewardsCheckpoint = currentEpoch + 1
+
 		// nothing to calculate as no active funds - all were computed before
 		return nil
 	}
@@ -1847,7 +1852,6 @@ func (d *delegation) computeAndUpdateRewards(callerAddress []byte, delegator *De
 	isOwner := d.isOwner(callerAddress)
 
 	totalRewards := big.NewInt(0)
-	currentEpoch := d.eei.BlockChainHook().CurrentEpoch()
 	for i := delegator.RewardsCheckpoint; i <= currentEpoch; i++ {
 		found, rewardData, errGet := d.getRewardComputationData(i)
 		if errGet != nil {

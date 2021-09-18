@@ -4989,3 +4989,87 @@ func TestDelegation_GetWhitelistForMerge(t *testing.T) {
 	require.Equal(t, 1, len(eei.output))
 	assert.Equal(t, addr, eei.output[0])
 }
+
+func TestDelegation_OptimizeRewardsComputation(t *testing.T) {
+	args := createMockArgumentsForDelegation()
+	currentEpoch := uint32(2)
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{
+			CurrentEpochCalled: func() uint32 {
+				return currentEpoch
+			},
+		},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&stateMock.AccountsStub{},
+		&mock.RaterMock{},
+	)
+	systemSCContainerStub := &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
+		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+			return vmcommon.Ok
+		}}, nil
+	}}
+
+	_ = eei.SetSystemSCContainer(systemSCContainerStub)
+	createDelegationManagerConfig(eei, args.Marshalizer, big.NewInt(10))
+
+	args.Eei = eei
+	//eei.SetSCAddress(vm.de)
+	args.DelegationSCConfig.MaxServiceFee = 10000
+	args.DelegationSCConfig.MinServiceFee = 0
+	d, _ := NewDelegationSystemSC(args)
+	_ = d.saveDelegationStatus(&DelegationContractStatus{})
+	_ = d.saveDelegationContractConfig(&DelegationConfig{
+		MaxDelegationCap:  big.NewInt(10000),
+		InitialOwnerFunds: big.NewInt(1000),
+	})
+	_ = d.saveGlobalFundData(&GlobalFundData{
+		TotalActive: big.NewInt(1000),
+	})
+
+	d.eei.SetStorage([]byte(ownerKey), []byte("address0"))
+
+	delegator := []byte("delegator")
+	_ = d.saveDelegatorData(delegator, &DelegatorData{
+		ActiveFund:            nil,
+		UnStakedFunds:         [][]byte{},
+		UnClaimedRewards:      big.NewInt(1000),
+		TotalCumulatedRewards: big.NewInt(0),
+	})
+
+	vmInput := getDefaultVmInputForFunc("delegate", [][]byte{})
+	vmInput.CallValue = big.NewInt(1000)
+	vmInput.CallerAddr = delegator
+
+	output := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	currentEpoch++
+
+	vmInput = getDefaultVmInputForFunc("updateRewards", [][]byte{})
+	vmInput.CallValue = big.NewInt(20)
+	vmInput.CallerAddr = vm.EndOfEpochAddress
+
+	output = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	vmInput = getDefaultVmInputForFunc("claimRewards", [][]byte{})
+	vmInput.CallerAddr = delegator
+
+	output = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	destAcc, exists := eei.outputAccounts[string(vmInput.CallerAddr)]
+	assert.True(t, exists)
+	_, exists = eei.outputAccounts[string(vmInput.RecipientAddr)]
+	assert.True(t, exists)
+
+	assert.Equal(t, 1, len(destAcc.OutputTransfers))
+	outputTransfer := destAcc.OutputTransfers[0]
+	assert.Equal(t, big.NewInt(1010), outputTransfer.Value)
+
+	_, delegatorData, _ := d.getOrCreateDelegatorData(vmInput.CallerAddr)
+	assert.Equal(t, uint32(4), delegatorData.RewardsCheckpoint)
+	assert.Equal(t, uint64(0), delegatorData.UnClaimedRewards.Uint64())
+	assert.Equal(t, 1010, int(delegatorData.TotalCumulatedRewards.Uint64()))
+}
