@@ -64,6 +64,8 @@ type delegation struct {
 	validatorToDelegationEnableEpoch   uint32
 	flagReDelegateBelowMinCheck        atomic.Flag
 	reDelegateBelowMinCheckEnableEpoch uint32
+	flagComputeRewardCheckpoint        atomic.Flag
+	computeRewardCheckpointEnableEpoch uint32
 }
 
 // ArgsNewDelegation defines the arguments to create the delegation smart contract
@@ -135,11 +137,13 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 		stakingV2Enabled:                   atomic.Flag{},
 		validatorToDelegationEnableEpoch:   args.EpochConfig.EnableEpochs.ValidatorToDelegationEnableEpoch,
 		reDelegateBelowMinCheckEnableEpoch: args.EpochConfig.EnableEpochs.ReDelegateBelowMinCheckEnableEpoch,
+		computeRewardCheckpointEnableEpoch: args.EpochConfig.EnableEpochs.ComputeRewardCheckpointEnableEpoch,
 	}
 	log.Debug("delegation: enable epoch for delegation smart contract", "epoch", d.enableDelegationEpoch)
 	log.Debug("delegation: enable epoch for staking v2", "epoch", d.stakingV2EnableEpoch)
 	log.Debug("delegation: enable epoch for validator to delegation", "epoch", d.validatorToDelegationEnableEpoch)
 	log.Debug("delegation: enable epoch for re-delegate below minimum check", "epoch", d.reDelegateBelowMinCheckEnableEpoch)
+	log.Debug("delegation: enable epoch for compute rewards checkpoint", "epoch", d.computeRewardCheckpointEnableEpoch)
 
 	var okValue bool
 
@@ -1836,11 +1840,9 @@ func (d *delegation) saveRewardData(epoch uint32, rewardsData *RewardComputation
 func (d *delegation) computeAndUpdateRewards(callerAddress []byte, delegator *DelegatorData) error {
 	currentEpoch := d.eei.BlockChainHook().CurrentEpoch()
 	if len(delegator.ActiveFund) == 0 {
-
-		//TODO flag
-		//delegator.RewardsCheckpoint = currentEpoch + 1
-
-		// nothing to calculate as no active funds - all were computed before
+		if d.flagComputeRewardCheckpoint.IsSet() {
+			delegator.RewardsCheckpoint = currentEpoch + 1
+		}
 		return nil
 	}
 
@@ -2891,6 +2893,9 @@ func (d *delegation) EpochConfirmed(epoch uint32, _ uint64) {
 
 	d.flagReDelegateBelowMinCheck.Toggle(epoch >= d.reDelegateBelowMinCheckEnableEpoch)
 	log.Debug("delegationSC: re-delegate below minimum check", "enabled", d.flagReDelegateBelowMinCheck.IsSet())
+
+	d.flagComputeRewardCheckpoint.Toggle(epoch >= d.computeRewardCheckpointEnableEpoch)
+	log.Debug("delegationSC: compute rewards checkpoint", "enabled", d.flagComputeRewardCheckpoint.IsSet())
 }
 
 // CanUseContract returns true if contract can be used

@@ -5035,9 +5035,20 @@ func TestDelegation_OptimizeRewardsComputation(t *testing.T) {
 		UnStakedFunds:         [][]byte{},
 		UnClaimedRewards:      big.NewInt(1000),
 		TotalCumulatedRewards: big.NewInt(0),
+		RewardsCheckpoint:     0,
 	})
 
-	vmInput := getDefaultVmInputForFunc("delegate", [][]byte{})
+	vmInput := getDefaultVmInputForFunc("updateRewards", [][]byte{})
+	vmInput.CallValue = big.NewInt(20)
+	vmInput.CallerAddr = vm.EndOfEpochAddress
+
+	for i := 0; i < 10; i++ {
+		currentEpoch++
+		output := d.Execute(vmInput)
+		assert.Equal(t, vmcommon.Ok, output)
+	}
+
+	vmInput = getDefaultVmInputForFunc("delegate", [][]byte{})
 	vmInput.CallValue = big.NewInt(1000)
 	vmInput.CallerAddr = delegator
 
@@ -5045,11 +5056,9 @@ func TestDelegation_OptimizeRewardsComputation(t *testing.T) {
 	assert.Equal(t, vmcommon.Ok, output)
 
 	currentEpoch++
-
 	vmInput = getDefaultVmInputForFunc("updateRewards", [][]byte{})
 	vmInput.CallValue = big.NewInt(20)
 	vmInput.CallerAddr = vm.EndOfEpochAddress
-
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
 
@@ -5069,7 +5078,7 @@ func TestDelegation_OptimizeRewardsComputation(t *testing.T) {
 	assert.Equal(t, big.NewInt(1010), outputTransfer.Value)
 
 	_, delegatorData, _ := d.getOrCreateDelegatorData(vmInput.CallerAddr)
-	assert.Equal(t, uint32(4), delegatorData.RewardsCheckpoint)
+	assert.Equal(t, uint32(14), delegatorData.RewardsCheckpoint)
 	assert.Equal(t, uint64(0), delegatorData.UnClaimedRewards.Uint64())
 	assert.Equal(t, 1010, int(delegatorData.TotalCumulatedRewards.Uint64()))
 }
