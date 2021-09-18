@@ -582,7 +582,7 @@ func TestEnableEpochConfig(t *testing.T) {
     BuiltInFunctionOnMetaEnableEpoch = 35
 
     # ComputeRewardCheckpointEnableEpoch represents the epoch when compute rewards checkpoint epoch is enabled
-    ComputeRewardCheckpointEnableEpoch = 37
+    ComputeRewardCheckpointEnableEpoch = 36
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [

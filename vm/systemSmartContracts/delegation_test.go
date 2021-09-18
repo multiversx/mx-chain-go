@@ -5014,7 +5014,6 @@ func TestDelegation_OptimizeRewardsComputation(t *testing.T) {
 	createDelegationManagerConfig(eei, args.Marshalizer, big.NewInt(10))
 
 	args.Eei = eei
-	//eei.SetSCAddress(vm.de)
 	args.DelegationSCConfig.MaxServiceFee = 10000
 	args.DelegationSCConfig.MinServiceFee = 0
 	d, _ := NewDelegationSystemSC(args)
