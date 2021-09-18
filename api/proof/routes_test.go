@@ -44,7 +44,7 @@ func TestGetProof_GetProofError(t *testing.T) {
 
 	err := fmt.Errorf("GetProof error")
 	facade := &mock.Facade{
-		GetProofCalled: func(rootHash string, address string) ([][]byte, error) {
+		GetProofCalled: func(rootHash string, address string) (*shared.GetProofResponse, error) {
 			return nil, err
 		},
 	}
@@ -65,10 +65,12 @@ func TestGetProof(t *testing.T) {
 
 	validProof := [][]byte{[]byte("valid"), []byte("proof")}
 	facade := &mock.Facade{
-		GetProofCalled: func(rootHash string, address string) ([][]byte, error) {
+		GetProofCalled: func(rootHash string, address string) (*shared.GetProofResponse, error) {
 			assert.Equal(t, "roothash", rootHash)
 			assert.Equal(t, "addr", address)
-			return validProof, nil
+			return &shared.GetProofResponse{
+				Proof: validProof,
+			}, nil
 		},
 	}
 
@@ -94,6 +96,88 @@ func TestGetProof(t *testing.T) {
 	assert.Equal(t, hex.EncodeToString([]byte("proof")), proof2)
 }
 
+func TestGetProofDataTrie_NilContextShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ws := startNodeServer(nil)
+
+	req, _ := http.NewRequest("GET", "/proof/root-hash/roothash/address/addr/key/key", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
+}
+
+func TestGetProofDataTrie_GetProofError(t *testing.T) {
+	t.Parallel()
+
+	err := fmt.Errorf("GetProof error")
+	facade := &mock.Facade{
+		GetProofDataTrieCalled: func(rootHash string, address string, key string) (*shared.GetProofResponse, *shared.GetProofResponse, error) {
+			return nil, nil, err
+		},
+	}
+
+	ws := startNodeServer(facade)
+	req, _ := http.NewRequest("GET", "/proof/root-hash/roothash/address/addr/key/key", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, apiErrors.ErrGetProof.Error()))
+}
+
+func TestGetProofDataTrie(t *testing.T) {
+	t.Parallel()
+
+	mainTrieProof := [][]byte{[]byte("main"), []byte("proof")}
+	dataTrieProof := [][]byte{[]byte("data"), []byte("proof")}
+	facade := &mock.Facade{
+		GetProofDataTrieCalled: func(rootHash string, address string, key string) (*shared.GetProofResponse, *shared.GetProofResponse, error) {
+			assert.Equal(t, "roothash", rootHash)
+			assert.Equal(t, "addr", address)
+			return &shared.GetProofResponse{Proof: mainTrieProof},
+				&shared.GetProofResponse{Proof: dataTrieProof},
+				nil
+		},
+	}
+
+	ws := startNodeServer(facade)
+	req, _ := http.NewRequest("GET", "/proof/root-hash/roothash/address/addr/key/key", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeSuccess, response.Code)
+
+	responseMap, ok := response.Data.(map[string]interface{})
+	assert.True(t, ok)
+
+	proofs, ok := responseMap["mainProof"].([]interface{})
+	assert.True(t, ok)
+
+	proof1 := proofs[0].(string)
+	proof2 := proofs[1].(string)
+
+	assert.Equal(t, hex.EncodeToString([]byte("main")), proof1)
+	assert.Equal(t, hex.EncodeToString([]byte("proof")), proof2)
+
+	proofs, ok = responseMap["dataTrieProof"].([]interface{})
+	assert.True(t, ok)
+
+	proof1 = proofs[0].(string)
+	proof2 = proofs[1].(string)
+
+	assert.Equal(t, hex.EncodeToString([]byte("data")), proof1)
+	assert.Equal(t, hex.EncodeToString([]byte("proof")), proof2)
+}
+
 func TestGetProofCurrentRootHash_NilContextShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -114,8 +198,8 @@ func TestGetProofCurrentRootHash_GetProofError(t *testing.T) {
 
 	err := fmt.Errorf("GetProof error")
 	facade := &mock.Facade{
-		GetProofCurrentRootHashCalled: func(address string) ([][]byte, []byte, error) {
-			return nil, nil, err
+		GetProofCurrentRootHashCalled: func(address string) (*shared.GetProofResponse, error) {
+			return nil, err
 		},
 	}
 
@@ -134,11 +218,14 @@ func TestGetProofCurrentRootHash(t *testing.T) {
 	t.Parallel()
 
 	validProof := [][]byte{[]byte("valid"), []byte("proof")}
-	rootHash := []byte("rootHash")
+	rootHash := "rootHash"
 	facade := &mock.Facade{
-		GetProofCurrentRootHashCalled: func(address string) ([][]byte, []byte, error) {
+		GetProofCurrentRootHashCalled: func(address string) (*shared.GetProofResponse, error) {
 			assert.Equal(t, "addr", address)
-			return validProof, rootHash, nil
+			return &shared.GetProofResponse{
+				Proof:    validProof,
+				RootHash: rootHash,
+			}, nil
 		},
 	}
 
@@ -165,7 +252,7 @@ func TestGetProofCurrentRootHash(t *testing.T) {
 
 	rh, ok := responseMap["rootHash"].(string)
 	assert.True(t, ok)
-	assert.Equal(t, hex.EncodeToString(rootHash), rh)
+	assert.Equal(t, rootHash, rh)
 }
 
 func TestVerifyProof_NilContextShouldErr(t *testing.T) {
@@ -325,6 +412,7 @@ func getRoutesConfig() config.ApiRoutesConfig {
 			"proof": {
 				Routes: []config.RouteConfig{
 					{Name: "/root-hash/:roothash/address/:address", Open: true},
+					{Name: "/root-hash/:roothash/address/:address/key/:key", Open: true},
 					{Name: "/address/:address", Open: true},
 					{Name: "/verify", Open: true},
 				},

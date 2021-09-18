@@ -15,17 +15,20 @@ import (
 const (
 	getProofCurrentRootHashEndpoint = "/proof/address/:address"
 	getProofEndpoint                = "/proof/root-hash/:roothash/address/:address"
+	getProofDataTrieEndpoint        = "/proof/root-hash/:roothash/address/:address/key/:key"
 	verifyProofEndpoint             = "/proof/verify"
 
 	getProofCurrentRootHashPath = "/address/:address"
 	getProofPath                = "/root-hash/:roothash/address/:address"
+	getProofDataTriePath        = "/root-hash/:roothash/address/:address/key/:key"
 	verifyProofPath             = "/verify"
 )
 
 // FacadeHandler interface defines methods that can be used by the gin webserver
 type FacadeHandler interface {
-	GetProof(rootHash string, address string) ([][]byte, error)
-	GetProofCurrentRootHash(address string) ([][]byte, []byte, error)
+	GetProof(rootHash string, address string) (*shared.GetProofResponse, error)
+	GetProofDataTrie(rootHash string, address string, key string) (*shared.GetProofResponse, *shared.GetProofResponse, error)
+	GetProofCurrentRootHash(address string) (*shared.GetProofResponse, error)
 	VerifyProof(rootHash string, address string, proof [][]byte) (bool, error)
 }
 
@@ -36,6 +39,12 @@ func Routes(router *wrapper.RouterWrapper) {
 		getProofPath,
 		middleware.CreateEndpointThrottler(getProofEndpoint),
 		GetProof,
+	)
+	router.RegisterHandler(
+		http.MethodGet,
+		getProofDataTriePath,
+		middleware.CreateEndpointThrottler(getProofDataTrieEndpoint),
+		GetProofDataTrie,
 	)
 	router.RegisterHandler(
 		http.MethodGet,
@@ -91,7 +100,7 @@ func GetProof(c *gin.Context) {
 		return
 	}
 
-	proof, err := facade.GetProof(rootHash, address)
+	response, err := facade.GetProof(rootHash, address)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -104,19 +113,114 @@ func GetProof(c *gin.Context) {
 		return
 	}
 
-	hexProof := make([]string, 0)
-	for _, byteProof := range proof {
-		hexProof = append(hexProof, hex.EncodeToString(byteProof))
+	hexProof := bytesToHex(response.Proof)
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data: gin.H{
+				"proof": hexProof,
+				"value": hex.EncodeToString(response.Value),
+			},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+// GetProofDataTrie will receive a rootHash, a key and an address from the client, and it will return the Merkle proofs
+// for the address and key
+func GetProofDataTrie(c *gin.Context) {
+	facade, ok := getFacade(c)
+	if !ok {
+		return
+	}
+
+	rootHash := c.Param("roothash")
+	if rootHash == "" {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrValidationEmptyRootHash.Error()),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
+	}
+
+	address := c.Param("address")
+	if address == "" {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrValidationEmptyAddress.Error()),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
+	}
+
+	key := c.Param("key")
+	if key == "" {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrValidationEmptyKey.Error()),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
+	}
+
+	mainTrieResponse, dataTrieResponse, err := facade.GetProofDataTrie(rootHash, address, key)
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetProof.Error(), err.Error()),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	var mainProofHex, dataTrieProofHex []string
+	var dataTrieRootHash, dataTrieValue string
+	if mainTrieResponse != nil {
+		mainProofHex = bytesToHex(mainTrieResponse.Proof)
+	}
+	if dataTrieResponse != nil {
+		dataTrieProofHex = bytesToHex(dataTrieResponse.Proof)
+		dataTrieRootHash = dataTrieResponse.RootHash
+		dataTrieValue = hex.EncodeToString(dataTrieResponse.Value)
 	}
 
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
-			Data:  gin.H{"proof": hexProof},
+			Data: gin.H{
+				"mainProof":        mainProofHex,
+				"dataTrieProof":    dataTrieProofHex,
+				"value":            dataTrieValue,
+				"dataTrieRootHash": dataTrieRootHash,
+			},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},
 	)
+}
+
+func bytesToHex(bytesValue [][]byte) []string {
+	hexValue := make([]string, 0)
+	for _, byteValue := range bytesValue {
+		hexValue = append(hexValue, hex.EncodeToString(byteValue))
+	}
+
+	return hexValue
 }
 
 // GetProofCurrentRootHash will receive an address from the client, and it will return the
@@ -140,7 +244,7 @@ func GetProofCurrentRootHash(c *gin.Context) {
 		return
 	}
 
-	proof, rootHash, err := facade.GetProofCurrentRootHash(address)
+	response, err := facade.GetProofCurrentRootHash(address)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -153,17 +257,15 @@ func GetProofCurrentRootHash(c *gin.Context) {
 		return
 	}
 
-	hexProof := make([]string, 0)
-	for _, byteProof := range proof {
-		hexProof = append(hexProof, hex.EncodeToString(byteProof))
-	}
+	hexProof := bytesToHex(response.Proof)
 
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
 			Data: gin.H{
 				"proof":    hexProof,
-				"rootHash": hex.EncodeToString(rootHash),
+				"value":    hex.EncodeToString(response.Value),
+				"rootHash": response.RootHash,
 			},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,

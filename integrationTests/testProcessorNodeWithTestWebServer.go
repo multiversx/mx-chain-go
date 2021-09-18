@@ -89,6 +89,7 @@ func createFacadeArg(tpn *TestProcessorNode) nodeFacade.ArgNodeFacade {
 		AccountsState:   tpn.AccntState,
 		PeerState:       tpn.PeerState,
 		Blockchain:      tpn.BlockChain,
+		Marshalizer:     TestMarshalizer,
 	}
 }
 

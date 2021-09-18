@@ -467,6 +467,7 @@ func (nr *nodeRunner) createApiFacade(
 		AccountsState:   currentNode.stateComponents.AccountsAdapter(),
 		PeerState:       currentNode.stateComponents.PeerAccounts(),
 		Blockchain:      currentNode.dataComponents.Blockchain(),
+		Marshalizer:     currentNode.coreComponents.InternalMarshalizer(),
 	}
 
 	ef, err := facade.NewNodeFacade(argNodeFacade)

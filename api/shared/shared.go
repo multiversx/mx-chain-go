@@ -28,6 +28,13 @@ const ReturnCodeRequestError ReturnCode = "bad_request"
 // ReturnCodeSystemBusy defines a request which hasn't been executed successfully due to too many requests
 const ReturnCodeSystemBusy ReturnCode = "system_busy"
 
+// GetProofResponse is a struct that stores the response of a GetProof request
+type GetProofResponse struct {
+	Proof    [][]byte
+	Value    []byte
+	RootHash string
+}
+
 // RespondWith will respond with the generic API response
 func RespondWith(c *gin.Context, status int, dataField interface{}, err string, code ReturnCode) {
 	c.JSON(

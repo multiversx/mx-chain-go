@@ -97,6 +97,9 @@ var ErrValidationEmptyRootHash = errors.New("rootHash is empty")
 // ErrValidationEmptyAddress signals that an empty address was provided
 var ErrValidationEmptyAddress = errors.New("address is empty")
 
+// ErrValidationEmptyKey signals that an empty key was provided
+var ErrValidationEmptyKey = errors.New("key is empty")
+
 // ErrGetProof signals an error happening when trying to compute a Merkle proof
 var ErrGetProof = errors.New("getting proof failed")
 

@@ -25,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -59,6 +60,7 @@ func createMockArguments() ArgNodeFacade {
 		AccountsState: &stateMock.AccountsStub{},
 		PeerState:     &stateMock.AccountsStub{},
 		Blockchain:    &mock.ChainHandlerStub{},
+		Marshalizer:   &testscommon.MarshalizerMock{},
 	}
 }
 
@@ -128,6 +130,17 @@ func TestNewNodeFacade_WithInvalidApiRoutesConfigShouldErr(t *testing.T) {
 
 	assert.True(t, check.IfNil(nf))
 	assert.True(t, errors.Is(err, ErrNoApiRoutesConfig))
+}
+
+func TestNewNodeFacade_WithNilMarshalizerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArguments()
+	arg.Marshalizer = nil
+	nf, err := NewNodeFacade(arg)
+
+	assert.True(t, check.IfNil(nf))
+	assert.Equal(t, ErrNilMarshalizer, err)
 }
 
 func TestNewNodeFacade_WithValidNodeShouldReturnNotNil(t *testing.T) {
@@ -878,9 +891,9 @@ func TestNodeFacade_GetProofInvalidRootHashShouldErr(t *testing.T) {
 
 	nf, _ := NewNodeFacade(createMockArguments())
 
-	proof, err := nf.GetProof("invalid rootHash", "addr")
+	response, err := nf.GetProof("invalid rootHash", "addr")
 	assert.NotNil(t, err)
-	assert.Nil(t, proof)
+	assert.Nil(t, response)
 }
 
 func TestNodeFacade_GetProofGetTrieErrShouldErr(t *testing.T) {
@@ -895,8 +908,8 @@ func TestNodeFacade_GetProofGetTrieErrShouldErr(t *testing.T) {
 	}
 	nf, _ := NewNodeFacade(arg)
 
-	proof, err := nf.GetProof("deadbeef", "addr")
-	assert.Nil(t, proof)
+	response, err := nf.GetProof("deadbeef", "addr")
+	assert.Nil(t, response)
 	assert.Equal(t, getTrieErr, err)
 }
 
@@ -905,8 +918,8 @@ func TestNodeFacade_GetProofInvalidAddrShouldErr(t *testing.T) {
 
 	nf, _ := NewNodeFacade(createMockArguments())
 
-	proof, err := nf.GetProof("deadbeef", "addr")
-	assert.Nil(t, proof)
+	response, err := nf.GetProof("deadbeef", "addr")
+	assert.Nil(t, response)
 	assert.NotNil(t, err)
 }
 
@@ -921,14 +934,91 @@ func TestNodeFacade_GetProofShouldWork(t *testing.T) {
 				GetProofCalled: func(key []byte) ([][]byte, error) {
 					return proof, nil
 				},
+				GetCalled: func(key []byte) ([]byte, error) {
+					return []byte("val"), nil
+				},
 			}, nil
 		},
 	}
 	nf, _ := NewNodeFacade(arg)
 
-	returnedProof, err := nf.GetProof("deadbeef", "abcdef")
+	response, err := nf.GetProof("deadbeef", "abcdef")
 	assert.Nil(t, err)
-	assert.Equal(t, proof, returnedProof)
+	assert.Equal(t, proof, response.Proof)
+}
+
+func TestNodeFacade_GetProofDataTrieInvalidRootHashShouldErr(t *testing.T) {
+	t.Parallel()
+
+	nf, _ := NewNodeFacade(createMockArguments())
+
+	mainResponse, dataTrieResponse, err := nf.GetProofDataTrie("invalid rootHash", "addr", "key")
+	assert.NotNil(t, err)
+	assert.Nil(t, mainResponse)
+	assert.Nil(t, dataTrieResponse)
+}
+
+func TestNodeFacade_GetProofDataTrieGetTrieErrShouldErr(t *testing.T) {
+	t.Parallel()
+
+	getTrieErr := fmt.Errorf("get trie err")
+	arg := createMockArguments()
+	arg.AccountsState = &stateMock.AccountsStub{
+		GetTrieCalled: func(bytes []byte) (common.Trie, error) {
+			return nil, getTrieErr
+		},
+	}
+	nf, _ := NewNodeFacade(arg)
+
+	mainResponse, dataTrieResponse, err := nf.GetProofDataTrie("deadbeef", "addr", "key")
+	assert.Nil(t, mainResponse)
+	assert.Nil(t, dataTrieResponse)
+	assert.Equal(t, getTrieErr, err)
+}
+
+func TestNodeFacade_GetProofDataTrieInvalidAddrShouldErr(t *testing.T) {
+	t.Parallel()
+
+	nf, _ := NewNodeFacade(createMockArguments())
+
+	mainResponse, dataTrieResponse, err := nf.GetProofDataTrie("deadbeef", "addr", "key")
+	assert.Nil(t, mainResponse)
+	assert.Nil(t, dataTrieResponse)
+	assert.NotNil(t, err)
+}
+
+func TestNodeFacade_GetProofDataTrieShouldWork(t *testing.T) {
+	t.Parallel()
+
+	rootHash := []byte("dataTrieRootHash")
+	proof := [][]byte{[]byte("valid"), []byte("proof")}
+	mockTrie := &trieMock.TrieStub{
+		GetProofCalled: func(key []byte) ([][]byte, error) {
+			return proof, nil
+		},
+		GetCalled: func(key []byte) ([]byte, error) {
+			return []byte("val"), nil
+		},
+	}
+
+	arg := createMockArguments()
+	arg.AccountsState = &stateMock.AccountsStub{
+		GetTrieCalled: func(bytes []byte) (common.Trie, error) {
+			return mockTrie, nil
+		},
+		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
+			acc := stateMock.NewAccountWrapMock(address)
+			acc.RootHash = rootHash
+			acc.DataTrieTracker().SetDataTrie(mockTrie)
+			return acc, nil
+		},
+	}
+	nf, _ := NewNodeFacade(arg)
+
+	mainResponse, dataTrieResponse, err := nf.GetProofDataTrie("deadbeef", "abcdef", "61abcd")
+	assert.Nil(t, err)
+	assert.Equal(t, proof, mainResponse.Proof)
+	assert.Equal(t, proof, dataTrieResponse.Proof)
 }
 
 func TestNodeFacade_GetProofCurrentRootHashNilHeaderShouldErr(t *testing.T) {
@@ -942,9 +1032,8 @@ func TestNodeFacade_GetProofCurrentRootHashNilHeaderShouldErr(t *testing.T) {
 	}
 	nf, _ := NewNodeFacade(arg)
 
-	proof, rh, err := nf.GetProofCurrentRootHash("addr")
-	assert.Nil(t, proof)
-	assert.Nil(t, rh)
+	response, err := nf.GetProofCurrentRootHash("addr")
+	assert.Nil(t, response)
 	assert.Equal(t, ErrNilBlockHeader, err)
 }
 
@@ -960,9 +1049,8 @@ func TestNodeFacade_GetProofCurrentRootHashGetTrieErrShouldErr(t *testing.T) {
 	}
 	nf, _ := NewNodeFacade(arg)
 
-	proof, rh, err := nf.GetProofCurrentRootHash("addr")
-	assert.Nil(t, proof)
-	assert.Nil(t, rh)
+	response, err := nf.GetProofCurrentRootHash("addr")
+	assert.Nil(t, response)
 	assert.Equal(t, getTrieErr, err)
 }
 
@@ -971,9 +1059,8 @@ func TestNodeFacade_GetProofCurrentRootHashInvalidAddrShouldErr(t *testing.T) {
 
 	nf, _ := NewNodeFacade(createMockArguments())
 
-	proof, rh, err := nf.GetProofCurrentRootHash("addr")
-	assert.Nil(t, proof)
-	assert.Nil(t, rh)
+	response, err := nf.GetProofCurrentRootHash("addr")
+	assert.Nil(t, response)
 	assert.NotNil(t, err)
 }
 
@@ -989,6 +1076,9 @@ func TestNodeFacade_GetProofCurrentRootHashShouldWork(t *testing.T) {
 				GetProofCalled: func(key []byte) ([][]byte, error) {
 					return proof, nil
 				},
+				GetCalled: func(key []byte) ([]byte, error) {
+					return []byte("val"), nil
+				},
 			}, nil
 		},
 	}
@@ -999,10 +1089,10 @@ func TestNodeFacade_GetProofCurrentRootHashShouldWork(t *testing.T) {
 	}
 	nf, _ := NewNodeFacade(arg)
 
-	returnedProof, rh, err := nf.GetProofCurrentRootHash("abcdef")
+	response, err := nf.GetProofCurrentRootHash("abcdef")
 	assert.Nil(t, err)
-	assert.Equal(t, rootHash, rh)
-	assert.Equal(t, proof, returnedProof)
+	assert.Equal(t, hex.EncodeToString(rootHash), response.RootHash)
+	assert.Equal(t, proof, response.Proof)
 }
 
 func TestNodeFacade_VerifyProofInvalidRootHashShouldErr(t *testing.T) {
