@@ -382,7 +382,11 @@ func (txs *transactions) processTxsToMe(
 
 	gasConsumedByMiniBlockInSenderShard := uint64(0)
 	gasConsumedByMiniBlockInReceiverShard := uint64(0)
-	totalGasConsumedInSelfShard := txs.gasHandler.TotalGasConsumed()
+	totalGasConsumed := uint64(0)
+	if txs.gasHandler.TotalGasConsumed() > txs.gasHandler.TotalGasRefunded() {
+		totalGasConsumed = txs.gasHandler.TotalGasConsumed() - txs.gasHandler.TotalGasRefunded()
+	}
+	totalGasConsumedInSelfShard := totalGasConsumed
 
 	log.Trace("processTxsToMe", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
 
@@ -400,17 +404,6 @@ func (txs *transactions) processTxsToMe(
 		senderShardID := txsToMe[index].SenderShardID
 		receiverShardID := txsToMe[index].ReceiverShardID
 
-		txs.saveAccountBalanceForAddress(tx.GetRcvAddr())
-
-		err = txs.processAndRemoveBadTransaction(
-			txHash,
-			tx,
-			senderShardID,
-			receiverShardID)
-		if err != nil {
-			return err
-		}
-
 		err = txs.computeGasConsumed(
 			senderShardID,
 			receiverShardID,
@@ -422,6 +415,21 @@ func (txs *transactions) processTxsToMe(
 		if err != nil {
 			return err
 		}
+
+		txs.saveAccountBalanceForAddress(tx.GetRcvAddr())
+
+		err = txs.processAndRemoveBadTransaction(
+			txHash,
+			tx,
+			senderShardID,
+			receiverShardID)
+		if err != nil {
+			return err
+		}
+
+		gasRefunded := txs.gasHandler.GasRefunded(txHash)
+		gasConsumedByMiniBlockInReceiverShard -= gasRefunded
+		totalGasConsumedInSelfShard -= gasRefunded
 	}
 
 	return nil
@@ -793,7 +801,12 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 
 	gasConsumedByMiniBlocksInSenderShard := uint64(0)
 	mapGasConsumedByMiniBlockInReceiverShard := make(map[uint32]uint64)
-	totalGasConsumedInSelfShard := txs.gasHandler.TotalGasConsumed()
+	totalGasConsumed := uint64(0)
+	if txs.gasHandler.TotalGasConsumed() > txs.gasHandler.TotalGasRefunded() {
+		totalGasConsumed = txs.gasHandler.TotalGasConsumed() - txs.gasHandler.TotalGasRefunded()
+	}
+
+	totalGasConsumedInSelfShard := totalGasConsumed
 
 	log.Debug("createAndProcessMiniBlocksFromMe", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
 
@@ -1110,14 +1123,20 @@ func (txs *transactions) ProcessMiniBlock(
 
 	gasConsumedByMiniBlockInSenderShard := uint64(0)
 	gasConsumedByMiniBlockInReceiverShard := uint64(0)
-	totalGasConsumedInSelfShard := txs.gasHandler.TotalGasConsumed()
+	totalGasConsumed := uint64(0)
+	if txs.gasHandler.TotalGasConsumed() > txs.gasHandler.TotalGasRefunded() {
+		totalGasConsumed = txs.gasHandler.TotalGasConsumed() - txs.gasHandler.TotalGasRefunded()
+	}
+	totalGasConsumedInSelfShard := totalGasConsumed
 
 	log.Trace("transactions.ProcessMiniBlock", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
+
+	numOfOldCrossInterMbs, numOfOldCrossInterTxs := getNumOfCrossInterMbsAndTxs()
 
 	for index := range miniBlockTxs {
 		if !haveTime() {
 			err = process.ErrTimeIsOut
-			return processedTxHashes, 0, err
+			return processedTxHashes, index, err
 		}
 
 		err = txs.computeGasConsumed(
@@ -1133,15 +1152,6 @@ func (txs *transactions) ProcessMiniBlock(
 		}
 
 		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[index])
-	}
-
-	numOfOldCrossInterMbs, numOfOldCrossInterTxs := getNumOfCrossInterMbsAndTxs()
-
-	for index := range miniBlockTxs {
-		if !haveTime() {
-			err = process.ErrTimeIsOut
-			return processedTxHashes, index, err
-		}
 
 		txs.saveAccountBalanceForAddress(miniBlockTxs[index].GetRcvAddr())
 
@@ -1149,6 +1159,10 @@ func (txs *transactions) ProcessMiniBlock(
 		if err != nil {
 			return processedTxHashes, index, err
 		}
+
+		gasRefunded := txs.gasHandler.GasRefunded(miniBlockTxHashes[index])
+		gasConsumedByMiniBlockInReceiverShard -= gasRefunded
+		totalGasConsumedInSelfShard -= gasRefunded
 	}
 
 	numOfCrtCrossInterMbs, numOfCrtCrossInterTxs := getNumOfCrossInterMbsAndTxs()

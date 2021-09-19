@@ -62,7 +62,10 @@ func (ghm *GasHandlerMock) TotalGasConsumed() uint64 {
 
 // TotalGasRefunded -
 func (ghm *GasHandlerMock) TotalGasRefunded() uint64 {
-	return ghm.TotalGasRefundedCalled()
+	if ghm.TotalGasRefundedCalled != nil {
+		return ghm.TotalGasRefundedCalled()
+	}
+	return 0
 }
 
 // RemoveGasConsumed -
