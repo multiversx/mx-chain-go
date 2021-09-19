@@ -415,3 +415,21 @@ func (bpp *basePreProcess) getTxMaxTotalCost(txHandler data.TransactionHandler) 
 
 	return cost
 }
+
+func (bpp *basePreProcess) getTotalGasConsumed() uint64 {
+	totalGasConsumed := uint64(0)
+	if bpp.gasHandler.TotalGasConsumed() > bpp.gasHandler.TotalGasRefunded() {
+		totalGasConsumed = bpp.gasHandler.TotalGasConsumed() - bpp.gasHandler.TotalGasRefunded()
+	}
+
+	return totalGasConsumed
+}
+
+func (bpp *basePreProcess) updateTotalGasConsumed(
+	txHash []byte,
+	gasConsumedByMiniBlockInReceiverShard *uint64,
+	totalGasConsumedInSelfShard *uint64) {
+	gasRefunded := bpp.gasHandler.GasRefunded(txHash)
+	*gasConsumedByMiniBlockInReceiverShard -= gasRefunded
+	*totalGasConsumedInSelfShard -= gasRefunded
+}

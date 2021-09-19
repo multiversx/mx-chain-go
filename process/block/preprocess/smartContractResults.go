@@ -461,12 +461,7 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 
 	gasConsumedByMiniBlockInSenderShard := uint64(0)
 	gasConsumedByMiniBlockInReceiverShard := uint64(0)
-	totalGasConsumed := uint64(0)
-	if scr.gasHandler.TotalGasConsumed() > scr.gasHandler.TotalGasRefunded() {
-		totalGasConsumed = scr.gasHandler.TotalGasConsumed() - scr.gasHandler.TotalGasRefunded()
-	}
-
-	totalGasConsumedInSelfShard := totalGasConsumed
+	totalGasConsumedInSelfShard := scr.getTotalGasConsumed()
 
 	log.Trace("smartContractResults.ProcessMiniBlock", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
 
@@ -498,9 +493,7 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 			return processedTxHashes, index, err
 		}
 
-		gasRefunded := scr.gasHandler.GasRefunded(miniBlockTxHashes[index])
-		gasConsumedByMiniBlockInReceiverShard -= gasRefunded
-		totalGasConsumedInSelfShard -= gasRefunded
+		scr.updateTotalGasConsumed(miniBlockTxHashes[index], &gasConsumedByMiniBlockInReceiverShard, &totalGasConsumedInSelfShard)
 	}
 
 	txShardInfoToSet := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}

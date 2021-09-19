@@ -382,11 +382,7 @@ func (txs *transactions) processTxsToMe(
 
 	gasConsumedByMiniBlockInSenderShard := uint64(0)
 	gasConsumedByMiniBlockInReceiverShard := uint64(0)
-	totalGasConsumed := uint64(0)
-	if txs.gasHandler.TotalGasConsumed() > txs.gasHandler.TotalGasRefunded() {
-		totalGasConsumed = txs.gasHandler.TotalGasConsumed() - txs.gasHandler.TotalGasRefunded()
-	}
-	totalGasConsumedInSelfShard := totalGasConsumed
+	totalGasConsumedInSelfShard := txs.getTotalGasConsumed()
 
 	log.Trace("processTxsToMe", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
 
@@ -427,9 +423,7 @@ func (txs *transactions) processTxsToMe(
 			return err
 		}
 
-		gasRefunded := txs.gasHandler.GasRefunded(txHash)
-		gasConsumedByMiniBlockInReceiverShard -= gasRefunded
-		totalGasConsumedInSelfShard -= gasRefunded
+		txs.updateTotalGasConsumed(txHash, &gasConsumedByMiniBlockInReceiverShard, &totalGasConsumedInSelfShard)
 	}
 
 	return nil
@@ -801,12 +795,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 
 	gasConsumedByMiniBlocksInSenderShard := uint64(0)
 	mapGasConsumedByMiniBlockInReceiverShard := make(map[uint32]uint64)
-	totalGasConsumed := uint64(0)
-	if txs.gasHandler.TotalGasConsumed() > txs.gasHandler.TotalGasRefunded() {
-		totalGasConsumed = txs.gasHandler.TotalGasConsumed() - txs.gasHandler.TotalGasRefunded()
-	}
-
-	totalGasConsumedInSelfShard := totalGasConsumed
+	totalGasConsumedInSelfShard := txs.getTotalGasConsumed()
 
 	log.Debug("createAndProcessMiniBlocksFromMe", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
 
@@ -1123,11 +1112,7 @@ func (txs *transactions) ProcessMiniBlock(
 
 	gasConsumedByMiniBlockInSenderShard := uint64(0)
 	gasConsumedByMiniBlockInReceiverShard := uint64(0)
-	totalGasConsumed := uint64(0)
-	if txs.gasHandler.TotalGasConsumed() > txs.gasHandler.TotalGasRefunded() {
-		totalGasConsumed = txs.gasHandler.TotalGasConsumed() - txs.gasHandler.TotalGasRefunded()
-	}
-	totalGasConsumedInSelfShard := totalGasConsumed
+	totalGasConsumedInSelfShard := txs.getTotalGasConsumed()
 
 	log.Trace("transactions.ProcessMiniBlock", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
 
@@ -1160,9 +1145,7 @@ func (txs *transactions) ProcessMiniBlock(
 			return processedTxHashes, index, err
 		}
 
-		gasRefunded := txs.gasHandler.GasRefunded(miniBlockTxHashes[index])
-		gasConsumedByMiniBlockInReceiverShard -= gasRefunded
-		totalGasConsumedInSelfShard -= gasRefunded
+		txs.updateTotalGasConsumed(miniBlockTxHashes[index], &gasConsumedByMiniBlockInReceiverShard, &totalGasConsumedInSelfShard)
 	}
 
 	numOfCrtCrossInterMbs, numOfCrtCrossInterTxs := getNumOfCrossInterMbsAndTxs()
