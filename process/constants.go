@@ -115,7 +115,7 @@ const MaxNumOfTxsToSelect = 30000
 const MaxRoundsToKeepUnprocessedMiniBlocks = 100
 
 // MaxRoundsToKeepUnprocessedTransactions defines the maximum number of rounds for which unprocessed transactions are kept in pool
-const MaxRoundsToKeepUnprocessedTransactions = 600
+const MaxRoundsToKeepUnprocessedTransactions = 100
 
 // MaxHeadersToWhitelistInAdvance defines the maximum number of headers whose miniblocks will be whitelisted in advance
 const MaxHeadersToWhitelistInAdvance = 300
