@@ -425,7 +425,7 @@ func (bpp *basePreProcess) getTotalGasConsumed() uint64 {
 	return totalGasConsumed
 }
 
-func (bpp *basePreProcess) updateTotalGasConsumed(
+func (bpp *basePreProcess) updateGasConsumedWithGasRefunded(
 	txHash []byte,
 	gasConsumedByMiniBlockInReceiverShard *uint64,
 	totalGasConsumedInSelfShard *uint64) {

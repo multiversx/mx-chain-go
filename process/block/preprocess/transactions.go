@@ -423,7 +423,7 @@ func (txs *transactions) processTxsToMe(
 			return err
 		}
 
-		txs.updateTotalGasConsumed(txHash, &gasConsumedByMiniBlockInReceiverShard, &totalGasConsumedInSelfShard)
+		txs.updateGasConsumedWithGasRefunded(txHash, &gasConsumedByMiniBlockInReceiverShard, &totalGasConsumedInSelfShard)
 	}
 
 	return nil
@@ -1145,7 +1145,7 @@ func (txs *transactions) ProcessMiniBlock(
 			return processedTxHashes, index, err
 		}
 
-		txs.updateTotalGasConsumed(miniBlockTxHashes[index], &gasConsumedByMiniBlockInReceiverShard, &totalGasConsumedInSelfShard)
+		txs.updateGasConsumedWithGasRefunded(miniBlockTxHashes[index], &gasConsumedByMiniBlockInReceiverShard, &totalGasConsumedInSelfShard)
 	}
 
 	numOfCrtCrossInterMbs, numOfCrtCrossInterTxs := getNumOfCrossInterMbsAndTxs()
