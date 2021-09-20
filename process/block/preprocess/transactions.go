@@ -386,6 +386,7 @@ func (txs *transactions) processTxsToMe(
 
 	log.Debug("processTxsToMe - before processing txs", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
 
+	gasConsumedInHeaderMetric := uint64(0)
 	for index := range txsToMe {
 		if !haveTime() {
 			return process.ErrTimeIsOut
@@ -422,10 +423,13 @@ func (txs *transactions) processTxsToMe(
 		if err != nil {
 			return err
 		}
+
+		gasConsumedInHeaderMetric += txs.gasHandler.GasConsumed(txHash) - txs.economicsFee.ComputeGasLimit(tx)
 	}
 
-	log.Debug("processTxsToMe - after processing txs", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
-	txs.gasHandler.AddTotalGasConsumedInSelfShard(totalGasConsumedInSelfShard)
+	gasConsumedInHeaderMetric -= txs.gasHandler.TotalGasRefunded()
+	log.Debug("processTxsToMe - after processing txs", "gasConsumedInHeaderMetric", gasConsumedInHeaderMetric)
+	txs.gasHandler.AddTotalGasConsumedInSelfShard(gasConsumedInHeaderMetric)
 
 	return nil
 }
