@@ -1,16 +1,16 @@
-package block
+package groups
 
 import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
-	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/gin-gonic/gin"
 )
 
@@ -19,26 +19,48 @@ const (
 	getBlockByHashPath  = "/by-hash/:hash"
 )
 
-var log = logger.GetOrCreate("api/block")
-
-// BlockService interface defines methods that can be used from `elrondFacade` context variable
-type BlockService interface {
+// blockFacadeHandler defines the methods to be implemented by a facade for handling block requests
+type blockFacadeHandler interface {
 	GetBlockByHash(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error)
+	IsInterfaceNil() bool
 }
 
-// Routes defines block related routes
-func Routes(routes *wrapper.RouterWrapper) {
-	routes.RegisterHandler(http.MethodGet, getBlockByNoncePath, getBlockByNonce)
-	routes.RegisterHandler(http.MethodGet, getBlockByHashPath, getBlockByHash)
+type blockGroup struct {
+	*baseGroup
+	facade    blockFacadeHandler
+	mutFacade sync.RWMutex
 }
 
-func getBlockByNonce(c *gin.Context) {
-	ef, ok := getFacade(c)
-	if !ok {
-		return
+// NewBlockGroup returns a new instance of blockGroup
+func NewBlockGroup(facade blockFacadeHandler) (*blockGroup, error) {
+	if check.IfNil(facade) {
+		return nil, fmt.Errorf("%w for block group", errors.ErrNilFacadeHandler)
 	}
 
+	bg := &blockGroup{
+		facade:    facade,
+		baseGroup: &baseGroup{},
+	}
+
+	endpoints := []*shared.EndpointHandlerData{
+		{
+			Path:    getBlockByNoncePath,
+			Method:  http.MethodGet,
+			Handler: bg.getBlockByNonce,
+		},
+		{
+			Path:    getBlockByHashPath,
+			Method:  http.MethodGet,
+			Handler: bg.getBlockByHash,
+		},
+	}
+	bg.endpoints = endpoints
+
+	return bg, nil
+}
+
+func (bg *blockGroup) getBlockByNonce(c *gin.Context) {
 	nonce, err := getQueryParamNonce(c)
 	if err != nil {
 		shared.RespondWithValidationError(
@@ -56,7 +78,7 @@ func getBlockByNonce(c *gin.Context) {
 	}
 
 	start := time.Now()
-	block, err := ef.GetBlockByNonce(nonce, withTxs)
+	block, err := bg.getFacade().GetBlockByNonce(nonce, withTxs)
 	log.Debug(fmt.Sprintf("GetBlockByNonce took %s", time.Since(start)))
 	if err != nil {
 		shared.RespondWith(
@@ -73,12 +95,7 @@ func getBlockByNonce(c *gin.Context) {
 
 }
 
-func getBlockByHash(c *gin.Context) {
-	ef, ok := getFacade(c)
-	if !ok {
-		return
-	}
-
+func (bg *blockGroup) getBlockByHash(c *gin.Context) {
 	hash := c.Param("hash")
 	if hash == "" {
 		shared.RespondWithValidationError(
@@ -96,7 +113,7 @@ func getBlockByHash(c *gin.Context) {
 	}
 
 	start := time.Now()
-	block, err := ef.GetBlockByHash(hash, withTxs)
+	block, err := bg.getFacade().GetBlockByHash(hash, withTxs)
 	log.Debug(fmt.Sprintf("GetBlockByHash took %s", time.Since(start)))
 	if err != nil {
 		shared.RespondWith(
@@ -130,32 +147,31 @@ func getQueryParamNonce(c *gin.Context) (uint64, error) {
 	return strconv.ParseUint(nonceStr, 10, 64)
 }
 
-func getFacade(c *gin.Context) (BlockService, bool) {
-	facadeObj, ok := c.Get("facade")
+func (bg *blockGroup) getFacade() blockFacadeHandler {
+	bg.mutFacade.RLock()
+	defer bg.mutFacade.RUnlock()
+
+	return bg.facade
+}
+
+// UpdateFacade will update the facade
+func (bg *blockGroup) UpdateFacade(newFacade interface{}) error {
+	if newFacade == nil {
+		return errors.ErrNilFacadeHandler
+	}
+	castFacade, ok := newFacade.(blockFacadeHandler)
 	if !ok {
-		c.JSON(
-			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: errors.ErrNilAppContext.Error(),
-				Code:  shared.ReturnCodeInternalError,
-			},
-		)
-		return nil, false
+		return errors.ErrFacadeWrongTypeAssertion
 	}
 
-	facade, ok := facadeObj.(BlockService)
-	if !ok {
-		c.JSON(
-			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: errors.ErrInvalidAppContext.Error(),
-				Code:  shared.ReturnCodeInternalError,
-			},
-		)
-		return nil, false
-	}
+	bg.mutFacade.Lock()
+	bg.facade = castFacade
+	bg.mutFacade.Unlock()
 
-	return facade, true
+	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (bg *blockGroup) IsInterfaceNil() bool {
+	return bg == nil
 }

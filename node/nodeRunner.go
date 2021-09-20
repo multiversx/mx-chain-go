@@ -146,6 +146,7 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("contract global mint and burn"), "epoch", enableEpochs.GlobalMintBurnDisableEpoch)
 	log.Debug(readEpochFor("contract transfer role"), "epoch", enableEpochs.ESDTTransferRoleEnableEpoch)
 	log.Debug(readEpochFor("built in functions on metachain"), "epoch", enableEpochs.BuiltInFunctionOnMetaEnableEpoch)
+	log.Debug(readEpochFor("esdt NFT create on multiple shards"), "epoch", enableEpochs.ESDTNFTCreateOnMultiShardEnableEpoch)
 
 	gasSchedule := configs.EpochConfig.GasSchedule
 
@@ -225,7 +226,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	}
 
 	log.Debug("creating disabled API services")
-	httpServerWrapper, err := nr.createInitialHttpServer()
+	webServerHandler, err := nr.createHttpServer()
 	if err != nil {
 		return true, err
 	}
@@ -399,7 +400,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	}
 
 	log.Debug("updating the API service after creating the node facade")
-	ef, err := nr.createApiFacade(currentNode, httpServerWrapper, gasScheduleNotifier)
+	ef, err := nr.createApiFacade(currentNode, webServerHandler, gasScheduleNotifier)
 	if err != nil {
 		return true, err
 	}
@@ -413,7 +414,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedCoreComponents.ChanStopNodeProcess(),
 		healthService,
 		ef,
-		httpServerWrapper,
+		webServerHandler,
 		currentNode,
 		goRoutinesNumberStart,
 	)
@@ -477,26 +478,19 @@ func (nr *nodeRunner) createApiFacade(
 
 	ef.SetSyncer(currentNode.coreComponents.SyncTimer())
 
-	err = upgradableHttpServer.GetHttpServer().Close()
-	if err != nil {
-		return nil, err
-	}
-
 	err = upgradableHttpServer.UpdateFacade(ef)
 	if err != nil {
 		return nil, err
 	}
 
-	go upgradableHttpServer.GetHttpServer().Start()
-
-	log.Debug("updated node facade and restarted the API services")
+	log.Debug("updated node facade")
 
 	log.Trace("starting background services")
 
 	return ef, nil
 }
 
-func (nr *nodeRunner) createInitialHttpServer() (shared.UpgradeableHttpServerHandler, error) {
+func (nr *nodeRunner) createHttpServer() (shared.UpgradeableHttpServerHandler, error) {
 	httpServerArgs := gin.ArgsNewWebServer{
 		Facade:          disabled.NewDisabledNodeFacade(nr.configs.FlagsConfig.RestApiInterface),
 		ApiConfig:       *nr.configs.ApiRoutesConfig,
@@ -508,17 +502,10 @@ func (nr *nodeRunner) createInitialHttpServer() (shared.UpgradeableHttpServerHan
 		return nil, err
 	}
 
-	httpSever, err := httpServerWrapper.CreateHttpServer()
+	err = httpServerWrapper.StartHttpServer()
 	if err != nil {
 		return nil, err
 	}
-
-	err = httpServerWrapper.SetHttpServer(httpSever)
-	if err != nil {
-		return nil, err
-	}
-
-	go httpSever.Start()
 
 	return httpServerWrapper, nil
 }

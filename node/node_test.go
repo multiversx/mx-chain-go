@@ -566,15 +566,15 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 	sftToken := []byte("SFT-RANDOM")
 	nftToken := []byte("NFT-RANDOM")
 
-	esdtData := &systemSmartContracts.ESDTData{TokenName: []byte("fungible"), TokenType: []byte(core.FungibleESDT)}
+	esdtData := &systemSmartContracts.ESDTDataV2{TokenName: []byte("fungible"), TokenType: []byte(core.FungibleESDT)}
 	marshalledData, _ := getMarshalizer().Marshal(esdtData)
 	_ = acc.DataTrieTracker().SaveKeyValue(esdtToken, marshalledData)
 
-	sftData := &systemSmartContracts.ESDTData{TokenName: []byte("semi fungible"), TokenType: []byte(core.SemiFungibleESDT)}
+	sftData := &systemSmartContracts.ESDTDataV2{TokenName: []byte("semi fungible"), TokenType: []byte(core.SemiFungibleESDT)}
 	sftMarshalledData, _ := getMarshalizer().Marshal(sftData)
 	_ = acc.DataTrieTracker().SaveKeyValue(sftToken, sftMarshalledData)
 
-	nftData := &systemSmartContracts.ESDTData{TokenName: []byte("non fungible"), TokenType: []byte(core.NonFungibleESDT)}
+	nftData := &systemSmartContracts.ESDTDataV2{TokenName: []byte("non fungible"), TokenType: []byte(core.NonFungibleESDT)}
 	nftMarshalledData, _ := getMarshalizer().Marshal(nftData)
 	_ = acc.DataTrieTracker().SaveKeyValue(nftToken, nftMarshalledData)
 
@@ -668,7 +668,7 @@ func TestNode_GetESDTsWithRole(t *testing.T) {
 		},
 	}
 
-	esdtData := &systemSmartContracts.ESDTData{TokenName: []byte("fungible"), TokenType: []byte(core.FungibleESDT), SpecialRoles: specialRoles}
+	esdtData := &systemSmartContracts.ESDTDataV2{TokenName: []byte("fungible"), TokenType: []byte(core.FungibleESDT), SpecialRoles: specialRoles}
 	marshalledData, _ := getMarshalizer().Marshal(esdtData)
 	_ = acc.DataTrieTracker().SaveKeyValue(esdtToken, marshalledData)
 
@@ -748,7 +748,7 @@ func TestNode_GetESDTsRoles(t *testing.T) {
 		},
 	}
 
-	esdtData := &systemSmartContracts.ESDTData{TokenName: []byte("fungible"), TokenType: []byte(core.FungibleESDT), SpecialRoles: specialRoles}
+	esdtData := &systemSmartContracts.ESDTDataV2{TokenName: []byte("fungible"), TokenType: []byte(core.FungibleESDT), SpecialRoles: specialRoles}
 	marshalledData, _ := getMarshalizer().Marshal(esdtData)
 	_ = acc.DataTrieTracker().SaveKeyValue(esdtToken, marshalledData)
 
@@ -813,7 +813,7 @@ func TestNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
 	acc, _ := state.NewUserAccount(addrBytes)
 	esdtToken := []byte("TCK-RANDOM")
 
-	esdtData := &systemSmartContracts.ESDTData{TokenName: []byte("fungible"), TokenType: []byte(core.SemiFungibleESDT), OwnerAddress: addrBytes}
+	esdtData := &systemSmartContracts.ESDTDataV2{TokenName: []byte("fungible"), TokenType: []byte(core.SemiFungibleESDT), OwnerAddress: addrBytes}
 	marshalledData, _ := getMarshalizer().Marshal(esdtData)
 	_ = acc.DataTrieTracker().SaveKeyValue(esdtToken, marshalledData)
 

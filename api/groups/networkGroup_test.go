@@ -1,9 +1,8 @@
-package network_test
+package groups_test
 
 import (
-	"encoding/json"
+	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"math/big"
 	"net/http"
@@ -13,21 +12,32 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go/api/errors"
-	"github.com/ElrondNetwork/elrond-go/api/middleware"
+	apiErrors "github.com/ElrondNetwork/elrond-go/api/errors"
+	"github.com/ElrondNetwork/elrond-go/api/groups"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
-	"github.com/ElrondNetwork/elrond-go/api/network"
-	"github.com/ElrondNetwork/elrond-go/api/shared"
-	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestNewNetworkGroup(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil facade", func(t *testing.T) {
+		hg, err := groups.NewNetworkGroup(nil)
+		require.True(t, errors.Is(err, apiErrors.ErrNilFacadeHandler))
+		require.Nil(t, hg)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		hg, err := groups.NewNetworkGroup(&mock.Facade{})
+		require.NoError(t, err)
+		require.NotNil(t, hg)
+	})
+}
 
 type esdtTokensResponseData struct {
 	Tokens []string `json:"tokens"`
@@ -37,34 +47,6 @@ type esdtTokensResponse struct {
 	Data  esdtTokensResponseData `json:"data"`
 	Error string                 `json:"error"`
 	Code  string
-}
-
-func TestNetworkConfigMetrics_NilContextShouldError(t *testing.T) {
-	t.Parallel()
-	ws := startNodeServer(nil)
-
-	req, _ := http.NewRequest("GET", "/network/config", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-	response := shared.GenericAPIResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
-	assert.True(t, strings.Contains(response.Error, errors.ErrNilAppContext.Error()))
-}
-
-func TestNetworkStatusMetrics_NilContextShouldError(t *testing.T) {
-	t.Parallel()
-	ws := startNodeServer(nil)
-
-	req, _ := http.NewRequest("GET", "/network/status", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-	response := shared.GenericAPIResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
-	assert.True(t, strings.Contains(response.Error, errors.ErrNilAppContext.Error()))
 }
 
 func TestNetworkConfigMetrics_ShouldWork(t *testing.T) {
@@ -80,7 +62,11 @@ func TestNetworkConfigMetrics_ShouldWork(t *testing.T) {
 		return statusMetricsProvider
 	}
 
-	ws := startNodeServer(&facade)
+	networkGroup, err := groups.NewNetworkGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
+
 	req, _ := http.NewRequest("GET", "/network/config", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
@@ -91,21 +77,6 @@ func TestNetworkConfigMetrics_ShouldWork(t *testing.T) {
 
 	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, fmt.Sprintf("%d", value))
 	assert.True(t, keyAndValueFoundInResponse)
-}
-
-func TestNetwork_FailsWithWrongFacadeTypeConversion(t *testing.T) {
-	t.Parallel()
-
-	ws := startNodeServerWrongFacade()
-	req, _ := http.NewRequest("GET", "/network/config", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	statusRsp := GeneralResponse{}
-	loadResponse(resp.Body, &statusRsp)
-
-	assert.Equal(t, http.StatusInternalServerError, resp.Code)
-	assert.Equal(t, statusRsp.Error, errors.ErrInvalidAppContext.Error())
 }
 
 func TestNetworkStatusMetrics_ShouldWork(t *testing.T) {
@@ -121,7 +92,11 @@ func TestNetworkStatusMetrics_ShouldWork(t *testing.T) {
 		return statusMetricsProvider
 	}
 
-	ws := startNodeServer(&facade)
+	networkGroup, err := groups.NewNetworkGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
+
 	req, _ := http.NewRequest("GET", "/network/status", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
@@ -132,35 +107,6 @@ func TestNetworkStatusMetrics_ShouldWork(t *testing.T) {
 
 	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, fmt.Sprintf("%d", value))
 	assert.True(t, keyAndValueFoundInResponse)
-}
-
-func TestNetworkStatus_FailsWithWrongFacadeTypeConversion(t *testing.T) {
-	t.Parallel()
-
-	ws := startNodeServerWrongFacade()
-	req, _ := http.NewRequest("GET", "/network/status", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	statusRsp := GeneralResponse{}
-	loadResponse(resp.Body, &statusRsp)
-
-	assert.Equal(t, http.StatusInternalServerError, resp.Code)
-	assert.Equal(t, statusRsp.Error, errors.ErrInvalidAppContext.Error())
-}
-
-func TestEconomicsMetrics_NilContextShouldErr(t *testing.T) {
-	ws := startNodeServer(nil)
-	req, _ := http.NewRequest("GET", "/network/economics", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := shared.GenericAPIResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
-	assert.True(t, strings.Contains(response.Error, errors.ErrNilAppContext.Error()))
-
 }
 
 func TestEconomicsMetrics_ShouldWork(t *testing.T) {
@@ -181,7 +127,11 @@ func TestEconomicsMetrics_ShouldWork(t *testing.T) {
 		return statusMetricsProvider
 	}
 
-	ws := startNodeServer(&facade)
+	networkGroup, err := groups.NewNetworkGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
+
 	req, _ := http.NewRequest("GET", "/network/economics", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
@@ -210,7 +160,11 @@ func TestEconomicsMetrics_CannotGetStakeValues(t *testing.T) {
 		return statusMetricsProvider
 	}
 
-	ws := startNodeServer(&facade)
+	networkGroup, err := groups.NewNetworkGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
+
 	req, _ := http.NewRequest("GET", "/network/economics", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
@@ -226,7 +180,11 @@ func TestGetAllIssuedESDTs_ShouldWork(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
+	networkGroup, err := groups.NewNetworkGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
+
 	req, _ := http.NewRequest("GET", "/network/esdts", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
@@ -246,25 +204,16 @@ func TestGetAllIssuedESDTs_Error(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
+	networkGroup, err := groups.NewNetworkGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
+
 	req, _ := http.NewRequest("GET", "/network/esdts", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
-}
-
-func TestDirectStakedInfo_NilContextShouldErr(t *testing.T) {
-	ws := startNodeServer(nil)
-	req, _ := http.NewRequest("GET", "/network/direct-staked-info", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := shared.GenericAPIResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
-	assert.True(t, strings.Contains(response.Error, errors.ErrNilAppContext.Error()))
 }
 
 func TestDirectStakedInfo_ShouldWork(t *testing.T) {
@@ -287,7 +236,11 @@ func TestDirectStakedInfo_ShouldWork(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
+	networkGroup, err := groups.NewNetworkGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
+
 	req, _ := http.NewRequest("GET", "/network/direct-staked-info", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
@@ -313,7 +266,11 @@ func TestDirectStakedInfo_CannotGetDirectStakedList(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
+	networkGroup, err := groups.NewNetworkGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
+
 	req, _ := http.NewRequest("GET", "/network/direct-staked-info", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
@@ -323,19 +280,6 @@ func TestDirectStakedInfo_CannotGetDirectStakedList(t *testing.T) {
 
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
 	assert.True(t, strings.Contains(respStr, expectedError.Error()))
-}
-
-func TestDelegatedInfo_NilContextShouldErr(t *testing.T) {
-	ws := startNodeServer(nil)
-	req, _ := http.NewRequest("GET", "/network/delegated-info", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := shared.GenericAPIResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
-	assert.True(t, strings.Contains(response.Error, errors.ErrNilAppContext.Error()))
 }
 
 func TestDelegatedInfo_ShouldWork(t *testing.T) {
@@ -377,7 +321,11 @@ func TestDelegatedInfo_ShouldWork(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
+	networkGroup, err := groups.NewNetworkGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
+
 	req, _ := http.NewRequest("GET", "/network/delegated-info", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
@@ -392,7 +340,7 @@ func TestDelegatedInfo_ShouldWork(t *testing.T) {
 
 func delegatorFoundInResponse(response string, delegator api.Delegator) bool {
 	if strings.Contains(response, delegator.TotalAsBigInt.String()) {
-		// we should have not encoded the total as big int
+		//we should have not encoded the total as big int
 		return false
 	}
 
@@ -404,26 +352,6 @@ func delegatorFoundInResponse(response string, delegator api.Delegator) bool {
 	return found
 }
 
-func TestGetESDTTotalSupply(t *testing.T) {
-	facade := mock.Facade{
-		GetTokenSupplyCalled: func(token string) (string, error) {
-			return "1000", nil
-		},
-	}
-
-	ws := startNodeServer(&facade)
-	req, _ := http.NewRequest("GET", "/network/esdt/supply/mytoken-aabb", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	respBytes, _ := ioutil.ReadAll(resp.Body)
-	respStr := string(respBytes)
-	assert.Equal(t, resp.Code, http.StatusOK)
-
-	keyAndValueInResponse := strings.Contains(respStr, "supply") && strings.Contains(respStr, "1000")
-	require.True(t, keyAndValueInResponse)
-}
-
 func TestDelegatedInfo_CannotGetDelegatedList(t *testing.T) {
 	expectedError := fmt.Errorf("%s", "expected error")
 	facade := mock.Facade{
@@ -432,7 +360,11 @@ func TestDelegatedInfo_CannotGetDelegatedList(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
+	networkGroup, err := groups.NewNetworkGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
+
 	req, _ := http.NewRequest("GET", "/network/delegated-info", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
@@ -442,20 +374,6 @@ func TestDelegatedInfo_CannotGetDelegatedList(t *testing.T) {
 
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
 	assert.True(t, strings.Contains(respStr, expectedError.Error()))
-}
-
-func TestGetEnableEpochs_NilContextShouldErr(t *testing.T) {
-	t.Parallel()
-	ws := startNodeServer(nil)
-
-	req, _ := http.NewRequest("GET", "/network/enable-epochs", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-	response := shared.GenericAPIResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
-	assert.True(t, strings.Contains(response.Error, errors.ErrNilAppContext.Error()))
 }
 
 func TestGetEnableEpochs_ShouldWork(t *testing.T) {
@@ -471,7 +389,11 @@ func TestGetEnableEpochs_ShouldWork(t *testing.T) {
 		return statusMetrics
 	}
 
-	ws := startNodeServer(&facade)
+	networkGroup, err := groups.NewNetworkGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
+
 	req, _ := http.NewRequest("GET", "/network/enable-epochs", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
@@ -484,63 +406,56 @@ func TestGetEnableEpochs_ShouldWork(t *testing.T) {
 	assert.True(t, keyAndValueFoundInResponse)
 }
 
-func TestGetEnableEpochs_FailsWithWrongFacadeTypeConversion(t *testing.T) {
-	t.Parallel()
+func TestGetESDTTotalSupply_InternalError(t *testing.T) {
+	expectedErr := errors.New("expected error")
+	facade := mock.Facade{
+		GetTokenSupplyCalled: func(token string) (string, error) {
+			return "", expectedErr
+		},
+	}
 
-	ws := startNodeServerWrongFacade()
-	req, _ := http.NewRequest("GET", "/network/enable-epochs", nil)
+	networkGroup, err := groups.NewNetworkGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/network/esdt/supply/token", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	statusRsp := GeneralResponse{}
-	loadResponse(resp.Body, &statusRsp)
+	respBytes, _ := ioutil.ReadAll(resp.Body)
+	respStr := string(respBytes)
+	assert.Equal(t, resp.Code, http.StatusInternalServerError)
 
-	assert.Equal(t, http.StatusInternalServerError, resp.Code)
-	assert.Equal(t, statusRsp.Error, errors.ErrInvalidAppContext.Error())
+	keyAndValueInResponse := strings.Contains(respStr, expectedErr.Error())
+	require.True(t, keyAndValueInResponse)
 }
 
-func loadResponse(rsp io.Reader, destination interface{}) {
-	jsonParser := json.NewDecoder(rsp)
-	err := jsonParser.Decode(destination)
-	logError(err)
-}
-
-func logError(err error) {
-	if err != nil {
-		fmt.Println(err)
+func TestGetESDTTotalSupply(t *testing.T) {
+	facade := mock.Facade{
+		GetTokenSupplyCalled: func(token string) (string, error) {
+			return "1000", nil
+		},
 	}
+
+	networkGroup, err := groups.NewNetworkGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/network/esdt/supply/mytoken-aabb", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	respBytes, _ := ioutil.ReadAll(resp.Body)
+	respStr := string(respBytes)
+	assert.Equal(t, resp.Code, http.StatusOK)
+
+	keyAndValueInResponse := strings.Contains(respStr, "supply") && strings.Contains(respStr, "1000")
+	require.True(t, keyAndValueInResponse)
 }
 
-func startNodeServer(handler network.FacadeHandler) *gin.Engine {
-	ws := gin.New()
-	ws.Use(cors.Default())
-	networkRoutes := ws.Group("/network")
-	if handler != nil {
-		networkRoutes.Use(middleware.WithFacade(handler))
-	}
-	networkRouteWrapper, _ := wrapper.NewRouterWrapper("network", networkRoutes, getRoutesConfig())
-	network.Routes(networkRouteWrapper)
-	return ws
-}
-
-func startNodeServerWrongFacade() *gin.Engine {
-	ws := gin.New()
-	ws.Use(cors.Default())
-	ws.Use(func(c *gin.Context) {
-		c.Set("facade", mock.WrongFacade{})
-	})
-	networkRoute := ws.Group("/network")
-	networkRouteWrapper, _ := wrapper.NewRouterWrapper("network", networkRoute, getRoutesConfig())
-	network.Routes(networkRouteWrapper)
-	return ws
-}
-
-type GeneralResponse struct {
-	Message string `json:"message"`
-	Error   string `json:"error"`
-}
-
-func getRoutesConfig() config.ApiRoutesConfig {
+func getNetworkRoutesConfig() config.ApiRoutesConfig {
 	return config.ApiRoutesConfig{
 		APIPackages: map[string]config.APIPackageConfig{
 			"network": {

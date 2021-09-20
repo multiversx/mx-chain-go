@@ -1,14 +1,16 @@
-package proof
+package groups
 
 import (
 	"encoding/hex"
 	"fmt"
 	"net/http"
+	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
-	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/gin-gonic/gin"
 )
 
@@ -17,47 +19,88 @@ const (
 	getProofEndpoint                = "/proof/root-hash/:roothash/address/:address"
 	getProofDataTrieEndpoint        = "/proof/root-hash/:roothash/address/:address/key/:key"
 	verifyProofEndpoint             = "/proof/verify"
-
 	getProofCurrentRootHashPath = "/address/:address"
 	getProofPath                = "/root-hash/:roothash/address/:address"
 	getProofDataTriePath        = "/root-hash/:roothash/address/:address/key/:key"
 	verifyProofPath             = "/verify"
 )
 
-// FacadeHandler interface defines methods that can be used by the gin webserver
-type FacadeHandler interface {
+// proofFacadeHandler defines the methods to be implemented by a facade for proof requests
+type proofFacadeHandler interface {
 	GetProof(rootHash string, address string) (*shared.GetProofResponse, error)
 	GetProofDataTrie(rootHash string, address string, key string) (*shared.GetProofResponse, *shared.GetProofResponse, error)
 	GetProofCurrentRootHash(address string) (*shared.GetProofResponse, error)
 	VerifyProof(rootHash string, address string, proof [][]byte) (bool, error)
+	GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool)
+	IsInterfaceNil() bool
 }
 
-// Routes defines Merkle proof related routes
-func Routes(router *wrapper.RouterWrapper) {
-	router.RegisterHandler(
-		http.MethodGet,
-		getProofPath,
-		middleware.CreateEndpointThrottler(getProofEndpoint),
-		GetProof,
-	)
-	router.RegisterHandler(
-		http.MethodGet,
-		getProofDataTriePath,
-		middleware.CreateEndpointThrottler(getProofDataTrieEndpoint),
-		GetProofDataTrie,
-	)
-	router.RegisterHandler(
-		http.MethodGet,
-		getProofCurrentRootHashPath,
-		middleware.CreateEndpointThrottler(getProofCurrentRootHashEndpoint),
-		GetProofCurrentRootHash,
-	)
-	router.RegisterHandler(
-		http.MethodPost,
-		verifyProofPath,
-		middleware.CreateEndpointThrottler(verifyProofEndpoint),
-		VerifyProof,
-	)
+type proofGroup struct {
+	*baseGroup
+	facade    proofFacadeHandler
+	mutFacade sync.RWMutex
+}
+
+// NewProofGroup returns a new instance of proofGroup
+func NewProofGroup(facade proofFacadeHandler) (*proofGroup, error) {
+	if check.IfNil(facade) {
+		return nil, fmt.Errorf("%w for proof group", errors.ErrNilFacadeHandler)
+	}
+
+	pg := &proofGroup{
+		facade:    facade,
+		baseGroup: &baseGroup{},
+	}
+
+	endpoints := []*shared.EndpointHandlerData{
+		{
+			Path:    getProofPath,
+			Method:  http.MethodGet,
+			Handler: pg.getProof,
+			AdditionalMiddlewares: []shared.AdditionalMiddleware{
+				{
+					Middleware: middleware.CreateEndpointThrottlerFromFacade(getProofEndpoint, facade),
+					Position:   shared.Before,
+				},
+			},
+		},
+		{
+			Path:    getProofDataTriePath,
+			Method:  http.MethodGet,
+			Handler: pg.getProofDataTrie,
+			AdditionalMiddlewares: []shared.AdditionalMiddleware{
+				{
+					Middleware: middleware.CreateEndpointThrottlerFromFacade(getProofDataTrieEndpoint, facade),
+					Position:   shared.Before,
+				},
+			},
+		},
+		{
+			Path:    getProofCurrentRootHashPath,
+			Method:  http.MethodGet,
+			Handler: pg.getProofCurrentRootHash,
+			AdditionalMiddlewares: []shared.AdditionalMiddleware{
+				{
+					Middleware: middleware.CreateEndpointThrottlerFromFacade(getProofCurrentRootHashEndpoint, facade),
+					Position:   shared.Before,
+				},
+			},
+		},
+		{
+			Path:    verifyProofPath,
+			Method:  http.MethodPost,
+			Handler: pg.verifyProof,
+			AdditionalMiddlewares: []shared.AdditionalMiddleware{
+				{
+					Middleware: middleware.CreateEndpointThrottlerFromFacade(verifyProofEndpoint, facade),
+					Position:   shared.Before,
+				},
+			},
+		},
+	}
+	pg.endpoints = endpoints
+
+	return pg, nil
 }
 
 // VerifyProofRequest represents the parameters needed to verify a Merkle proof
@@ -67,13 +110,8 @@ type VerifyProofRequest struct {
 	Proof    []string `json:"proof"`
 }
 
-// GetProof will receive a rootHash and an address from the client, and it will return the Merkle proof
-func GetProof(c *gin.Context) {
-	facade, ok := getFacade(c)
-	if !ok {
-		return
-	}
-
+// getProof will receive a rootHash and an address from the client, and it will return the Merkle proof
+func (pg *proofGroup) getProof(c *gin.Context) {
 	rootHash := c.Param("roothash")
 	if rootHash == "" {
 		c.JSON(
@@ -100,7 +138,7 @@ func GetProof(c *gin.Context) {
 		return
 	}
 
-	response, err := facade.GetProof(rootHash, address)
+	response, err := pg.getFacade().GetProof(rootHash, address)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -128,14 +166,9 @@ func GetProof(c *gin.Context) {
 	)
 }
 
-// GetProofDataTrie will receive a rootHash, a key and an address from the client, and it will return the Merkle proofs
+// getProofDataTrie will receive a rootHash, a key and an address from the client, and it will return the Merkle proofs
 // for the address and key
-func GetProofDataTrie(c *gin.Context) {
-	facade, ok := getFacade(c)
-	if !ok {
-		return
-	}
-
+func getProofDataTrie(c *gin.Context) {
 	rootHash := c.Param("roothash")
 	if rootHash == "" {
 		c.JSON(
@@ -175,7 +208,7 @@ func GetProofDataTrie(c *gin.Context) {
 		return
 	}
 
-	mainTrieResponse, dataTrieResponse, err := facade.GetProofDataTrie(rootHash, address, key)
+	mainTrieResponse, dataTrieResponse, err := pg.getFacade().GetProofDataTrie(rootHash, address, key)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -223,14 +256,9 @@ func bytesToHex(bytesValue [][]byte) []string {
 	return hexValue
 }
 
-// GetProofCurrentRootHash will receive an address from the client, and it will return the
+// getProofCurrentRootHash will receive an address from the client, and it will return the
 // Merkle proof for the current root hash
-func GetProofCurrentRootHash(c *gin.Context) {
-	facade, ok := getFacade(c)
-	if !ok {
-		return
-	}
-
+func (pg *proofGroup) getProofCurrentRootHash(c *gin.Context) {
 	address := c.Param("address")
 	if address == "" {
 		c.JSON(
@@ -244,7 +272,7 @@ func GetProofCurrentRootHash(c *gin.Context) {
 		return
 	}
 
-	response, err := facade.GetProofCurrentRootHash(address)
+	response, rootHash, err := pg.getFacade().GetProofCurrentRootHash(address)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -273,14 +301,9 @@ func GetProofCurrentRootHash(c *gin.Context) {
 	)
 }
 
-// VerifyProof will receive a rootHash, an address and a Merkle proof from the client,
+// verifyProof will receive a rootHash, an address and a Merkle proof from the client,
 // and it will verify the proof
-func VerifyProof(c *gin.Context) {
-	facade, ok := getFacade(c)
-	if !ok {
-		return
-	}
-
+func (pg *proofGroup) verifyProof(c *gin.Context) {
 	var verifyProofParams = &VerifyProofRequest{}
 	err := c.ShouldBindJSON(&verifyProofParams)
 	if err != nil {
@@ -313,7 +336,8 @@ func VerifyProof(c *gin.Context) {
 		proof = append(proof, bytesProof)
 	}
 
-	ok, err = facade.VerifyProof(verifyProofParams.RootHash, verifyProofParams.Address, proof)
+	var proofOk bool
+	proofOk, err = pg.getFacade().VerifyProof(verifyProofParams.RootHash, verifyProofParams.Address, proof)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -329,39 +353,38 @@ func VerifyProof(c *gin.Context) {
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
-			Data:  gin.H{"ok": ok},
+			Data:  gin.H{"ok": proofOk},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},
 	)
 }
 
-func getFacade(c *gin.Context) (FacadeHandler, bool) {
-	facadeObj, ok := c.Get("facade")
+func (pg *proofGroup) getFacade() proofFacadeHandler {
+	pg.mutFacade.RLock()
+	defer pg.mutFacade.RUnlock()
+
+	return pg.facade
+}
+
+// UpdateFacade will update the facade
+func (pg *proofGroup) UpdateFacade(newFacade interface{}) error {
+	if newFacade == nil {
+		return errors.ErrNilFacadeHandler
+	}
+	castFacade, ok := newFacade.(proofFacadeHandler)
 	if !ok {
-		c.JSON(
-			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: errors.ErrNilAppContext.Error(),
-				Code:  shared.ReturnCodeInternalError,
-			},
-		)
-		return nil, false
+		return errors.ErrFacadeWrongTypeAssertion
 	}
 
-	facade, ok := facadeObj.(FacadeHandler)
-	if !ok {
-		c.JSON(
-			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: errors.ErrInvalidAppContext.Error(),
-				Code:  shared.ReturnCodeInternalError,
-			},
-		)
-		return nil, false
-	}
+	pg.mutFacade.Lock()
+	pg.facade = castFacade
+	pg.mutFacade.Unlock()
 
-	return facade, true
+	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (pg *proofGroup) IsInterfaceNil() bool {
+	return pg == nil
 }

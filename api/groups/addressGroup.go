@@ -1,35 +1,36 @@
-package address
+package groups
 
 import (
 	"fmt"
 	"math/big"
 	"net/http"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
-	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/gin-gonic/gin"
 )
 
 const (
-	getAccountPath        = "/:address"
-	getBalancePath        = "/:address/balance"
-	getUsernamePath       = "/:address/username"
-	getKeysPath           = "/:address/keys"
-	getKeyPath            = "/:address/key/:key"
-	getESDTTokens         = "/:address/esdt"
-	getESDTBalance        = "/:address/esdt/:tokenIdentifier"
-	getESDTTokensWithRole = "/:address/esdts-with-role/:role"
-	getESDTsRoles         = "/:address/esdts/roles"
-	getRegisteredNFTs     = "/:address/registered-nfts"
-	getESDTNFTData        = "/:address/nft/:tokenIdentifier/nonce/:nonce"
+	getAccountPath            = "/:address"
+	getBalancePath            = "/:address/balance"
+	getUsernamePath           = "/:address/username"
+	getKeysPath               = "/:address/keys"
+	getKeyPath                = "/:address/key/:key"
+	getESDTTokensPath         = "/:address/esdt"
+	getESDTBalancePath        = "/:address/esdt/:tokenIdentifier"
+	getESDTTokensWithRolePath = "/:address/esdts-with-role/:role"
+	getESDTsRolesPath         = "/:address/esdts/roles"
+	getRegisteredNFTsPath     = "/:address/registered-nfts"
+	getESDTNFTDataPath        = "/:address/nft/:tokenIdentifier/nonce/:nonce"
 )
 
-// FacadeHandler interface defines methods that can be used by the gin webserver
-type FacadeHandler interface {
+// addressFacadeHandler defines the methods to be implemented by a facade for handling address requests
+type addressFacadeHandler interface {
 	GetBalance(address string) (*big.Int, error)
 	GetUsername(address string) (string, error)
 	GetValueForKey(address string, key string) (string, error)
@@ -41,6 +42,12 @@ type FacadeHandler interface {
 	GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error)
 	GetKeyValuePairs(address string) (map[string]string, error)
 	IsInterfaceNil() bool
+}
+
+type addressGroup struct {
+	*baseGroup
+	facade    addressFacadeHandler
+	mutFacade sync.RWMutex
 }
 
 type esdtTokenData struct {
@@ -62,60 +69,83 @@ type esdtNFTTokenData struct {
 	Attributes      []byte   `json:"attributes,omitempty"`
 }
 
-// Routes defines address related routes
-func Routes(router *wrapper.RouterWrapper) {
-	router.RegisterHandler(http.MethodGet, getAccountPath, GetAccount)
-	router.RegisterHandler(http.MethodGet, getBalancePath, GetBalance)
-	router.RegisterHandler(http.MethodGet, getUsernamePath, GetUsername)
-	router.RegisterHandler(http.MethodGet, getKeyPath, GetValueForKey)
-	router.RegisterHandler(http.MethodGet, getKeysPath, GetKeyValuePairs)
-	router.RegisterHandler(http.MethodGet, getESDTBalance, GetESDTBalance)
-	router.RegisterHandler(http.MethodGet, getESDTNFTData, GetESDTNFTData)
-	router.RegisterHandler(http.MethodGet, getESDTTokens, GetAllESDTData)
-	router.RegisterHandler(http.MethodGet, getRegisteredNFTs, GetNFTTokenIDsRegisteredByAddress)
-	router.RegisterHandler(http.MethodGet, getESDTTokensWithRole, GetESDTTokensWithRole)
-	router.RegisterHandler(http.MethodGet, getESDTsRoles, GetESDTsRoles)
+// NewAddressGroup returns a new instance of addressGroup
+func NewAddressGroup(facade addressFacadeHandler) (*addressGroup, error) {
+	if check.IfNil(facade) {
+		return nil, fmt.Errorf("%w for address group", errors.ErrNilFacadeHandler)
+	}
+
+	ag := &addressGroup{
+		facade:    facade,
+		baseGroup: &baseGroup{},
+	}
+
+	endpoints := []*shared.EndpointHandlerData{
+		{
+			Path:    getAccountPath,
+			Method:  http.MethodGet,
+			Handler: ag.getAccount,
+		},
+		{
+			Path:    getBalancePath,
+			Method:  http.MethodGet,
+			Handler: ag.getBalance,
+		},
+		{
+			Path:    getUsernamePath,
+			Method:  http.MethodGet,
+			Handler: ag.getUsername,
+		},
+		{
+			Path:    getKeyPath,
+			Method:  http.MethodGet,
+			Handler: ag.getValueForKey,
+		},
+		{
+			Path:    getKeysPath,
+			Method:  http.MethodGet,
+			Handler: ag.getKeyValuePairs,
+		},
+		{
+			Path:    getESDTBalancePath,
+			Method:  http.MethodGet,
+			Handler: ag.getESDTBalance,
+		},
+		{
+			Path:    getESDTNFTDataPath,
+			Method:  http.MethodGet,
+			Handler: ag.getESDTNFTData,
+		},
+		{
+			Path:    getESDTTokensPath,
+			Method:  http.MethodGet,
+			Handler: ag.getAllESDTData,
+		},
+		{
+			Path:    getRegisteredNFTsPath,
+			Method:  http.MethodGet,
+			Handler: ag.getNFTTokenIDsRegisteredByAddress,
+		},
+		{
+			Path:    getESDTTokensWithRolePath,
+			Method:  http.MethodGet,
+			Handler: ag.getESDTTokensWithRole,
+		},
+		{
+			Path:    getESDTsRolesPath,
+			Method:  http.MethodGet,
+			Handler: ag.getESDTsRoles,
+		},
+	}
+	ag.endpoints = endpoints
+
+	return ag, nil
 }
 
-func getFacade(c *gin.Context) (FacadeHandler, bool) {
-	facadeObj, ok := c.Get("facade")
-	if !ok {
-		c.JSON(
-			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: errors.ErrNilAppContext.Error(),
-				Code:  shared.ReturnCodeInternalError,
-			},
-		)
-		return nil, false
-	}
-
-	facade, ok := facadeObj.(FacadeHandler)
-	if !ok {
-		c.JSON(
-			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: errors.ErrInvalidAppContext.Error(),
-				Code:  shared.ReturnCodeInternalError,
-			},
-		)
-		return nil, false
-	}
-
-	return facade, true
-}
-
-// GetAccount returns a response containing information about the account correlated with provided address
-func GetAccount(c *gin.Context) {
-	facade, ok := getFacade(c)
-	if !ok {
-		return
-	}
-
+// addressGroup returns a response containing information about the account correlated with provided address
+func (ag *addressGroup) getAccount(c *gin.Context) {
 	addr := c.Param("address")
-	accountResponse, err := facade.GetAccount(addr)
+	accountResponse, err := ag.getFacade().GetAccount(addr)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -140,13 +170,8 @@ func GetAccount(c *gin.Context) {
 	)
 }
 
-// GetBalance returns the balance for the address parameter
-func GetBalance(c *gin.Context) {
-	facade, ok := getFacade(c)
-	if !ok {
-		return
-	}
-
+// getBalance returns the balance for the address parameter
+func (ag *addressGroup) getBalance(c *gin.Context) {
 	addr := c.Param("address")
 	if addr == "" {
 		c.JSON(
@@ -160,7 +185,7 @@ func GetBalance(c *gin.Context) {
 		return
 	}
 
-	balance, err := facade.GetBalance(addr)
+	balance, err := ag.getFacade().GetBalance(addr)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -182,13 +207,8 @@ func GetBalance(c *gin.Context) {
 	)
 }
 
-// GetUsername returns the username for the address parameter
-func GetUsername(c *gin.Context) {
-	facade, ok := getFacade(c)
-	if !ok {
-		return
-	}
-
+// getUsername returns the username for the address parameter
+func (ag *addressGroup) getUsername(c *gin.Context) {
 	addr := c.Param("address")
 	if addr == "" {
 		c.JSON(
@@ -202,7 +222,7 @@ func GetUsername(c *gin.Context) {
 		return
 	}
 
-	userName, err := facade.GetUsername(addr)
+	userName, err := ag.getFacade().GetUsername(addr)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -224,13 +244,8 @@ func GetUsername(c *gin.Context) {
 	)
 }
 
-// GetValueForKey returns the value for the given address and key
-func GetValueForKey(c *gin.Context) {
-	facade, ok := getFacade(c)
-	if !ok {
-		return
-	}
-
+// getValueForKey returns the value for the given address and key
+func (ag *addressGroup) getValueForKey(c *gin.Context) {
 	addr := c.Param("address")
 	if addr == "" {
 		c.JSON(
@@ -257,7 +272,7 @@ func GetValueForKey(c *gin.Context) {
 		return
 	}
 
-	value, err := facade.GetValueForKey(addr, key)
+	value, err := ag.getFacade().GetValueForKey(addr, key)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -280,13 +295,8 @@ func GetValueForKey(c *gin.Context) {
 	)
 }
 
-// GetKeyValuePairs returns all the key-value pairs for the given address
-func GetKeyValuePairs(c *gin.Context) {
-	facade, ok := getFacade(c)
-	if !ok {
-		return
-	}
-
+// addressGroup returns all the key-value pairs for the given address
+func (ag *addressGroup) getKeyValuePairs(c *gin.Context) {
 	addr := c.Param("address")
 	if addr == "" {
 		c.JSON(
@@ -300,7 +310,7 @@ func GetKeyValuePairs(c *gin.Context) {
 		return
 	}
 
-	value, err := facade.GetKeyValuePairs(addr)
+	value, err := ag.getFacade().GetKeyValuePairs(addr)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -323,13 +333,8 @@ func GetKeyValuePairs(c *gin.Context) {
 	)
 }
 
-// GetESDTBalance returns the balance for the given address and esdt token
-func GetESDTBalance(c *gin.Context) {
-	facade, ok := getFacade(c)
-	if !ok {
-		return
-	}
-
+// getESDTBalance returns the balance for the given address and esdt token
+func (ag *addressGroup) getESDTBalance(c *gin.Context) {
 	addr := c.Param("address")
 	if addr == "" {
 		c.JSON(
@@ -356,7 +361,7 @@ func GetESDTBalance(c *gin.Context) {
 		return
 	}
 
-	esdtData, err := facade.GetESDTData(addr, tokenIdentifier, 0)
+	esdtData, err := ag.getFacade().GetESDTData(addr, tokenIdentifier, 0)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -385,13 +390,8 @@ func GetESDTBalance(c *gin.Context) {
 	)
 }
 
-// GetESDTsRoles returns the token identifiers and roles for a given address
-func GetESDTsRoles(c *gin.Context) {
-	facade, ok := getFacade(c)
-	if !ok {
-		return
-	}
-
+// getESDTsRoles returns the token identifiers and roles for a given address
+func (ag *addressGroup) getESDTsRoles(c *gin.Context) {
 	addr := c.Param("address")
 	if addr == "" {
 		c.JSON(
@@ -405,7 +405,7 @@ func GetESDTsRoles(c *gin.Context) {
 		return
 	}
 
-	tokensRoles, err := facade.GetESDTsRoles(addr)
+	tokensRoles, err := ag.getFacade().GetESDTsRoles(addr)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -428,13 +428,8 @@ func GetESDTsRoles(c *gin.Context) {
 	)
 }
 
-// GetESDTTokensWithRole returns the token identifiers where a given address has the given role
-func GetESDTTokensWithRole(c *gin.Context) {
-	facade, ok := getFacade(c)
-	if !ok {
-		return
-	}
-
+// getESDTTokensWithRole returns the token identifiers where a given address has the given role
+func (ag *addressGroup) getESDTTokensWithRole(c *gin.Context) {
 	addr := c.Param("address")
 	if addr == "" {
 		c.JSON(
@@ -473,7 +468,7 @@ func GetESDTTokensWithRole(c *gin.Context) {
 		return
 	}
 
-	tokens, err := facade.GetESDTsWithRole(addr, role)
+	tokens, err := ag.getFacade().GetESDTsWithRole(addr, role)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -496,13 +491,8 @@ func GetESDTTokensWithRole(c *gin.Context) {
 	)
 }
 
-// GetNFTTokenIDsRegisteredByAddress returns the token identifiers of the tokens where a given address is the owner
-func GetNFTTokenIDsRegisteredByAddress(c *gin.Context) {
-	facade, ok := getFacade(c)
-	if !ok {
-		return
-	}
-
+// getNFTTokenIDsRegisteredByAddress returns the token identifiers of the tokens where a given address is the owner
+func (ag *addressGroup) getNFTTokenIDsRegisteredByAddress(c *gin.Context) {
 	addr := c.Param("address")
 	if addr == "" {
 		c.JSON(
@@ -516,7 +506,7 @@ func GetNFTTokenIDsRegisteredByAddress(c *gin.Context) {
 		return
 	}
 
-	tokens, err := facade.GetNFTTokenIDsRegisteredByAddress(addr)
+	tokens, err := ag.getFacade().GetNFTTokenIDsRegisteredByAddress(addr)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -539,13 +529,8 @@ func GetNFTTokenIDsRegisteredByAddress(c *gin.Context) {
 	)
 }
 
-// GetESDTNFTData returns the nft data for the given token
-func GetESDTNFTData(c *gin.Context) {
-	facade, ok := getFacade(c)
-	if !ok {
-		return
-	}
-
+// getESDTNFTData returns the nft data for the given token
+func (ag *addressGroup) getESDTNFTData(c *gin.Context) {
 	addr := c.Param("address")
 	if addr == "" {
 		c.JSON(
@@ -598,7 +583,7 @@ func GetESDTNFTData(c *gin.Context) {
 		return
 	}
 
-	esdtData, err := facade.GetESDTData(addr, tokenIdentifier, nonceAsBigInt.Uint64())
+	esdtData, err := ag.getFacade().GetESDTData(addr, tokenIdentifier, nonceAsBigInt.Uint64())
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -611,20 +596,7 @@ func GetESDTNFTData(c *gin.Context) {
 		return
 	}
 
-	tokenData := esdtNFTTokenData{
-		TokenIdentifier: tokenIdentifier,
-		Balance:         esdtData.Value.String(),
-		Properties:      string(esdtData.Properties),
-	}
-	if esdtData.TokenMetaData != nil {
-		tokenData.Name = string(esdtData.TokenMetaData.Name)
-		tokenData.Nonce = esdtData.TokenMetaData.Nonce
-		tokenData.Creator = string(esdtData.TokenMetaData.Creator)
-		tokenData.Royalties = big.NewInt(int64(esdtData.TokenMetaData.Royalties)).String()
-		tokenData.Hash = esdtData.TokenMetaData.Hash
-		tokenData.URIs = esdtData.TokenMetaData.URIs
-		tokenData.Attributes = esdtData.TokenMetaData.Attributes
-	}
+	tokenData := buildTokenDataApiResponse(tokenIdentifier, esdtData)
 
 	c.JSON(
 		http.StatusOK,
@@ -636,13 +608,8 @@ func GetESDTNFTData(c *gin.Context) {
 	)
 }
 
-// GetAllESDTData returns the tokens list from this account
-func GetAllESDTData(c *gin.Context) {
-	facade, ok := getFacade(c)
-	if !ok {
-		return
-	}
-
+// getAllESDTData returns the tokens list from this account
+func (ag *addressGroup) getAllESDTData(c *gin.Context) {
 	addr := c.Param("address")
 	if addr == "" {
 		c.JSON(
@@ -656,7 +623,7 @@ func GetAllESDTData(c *gin.Context) {
 		return
 	}
 
-	tokens, err := facade.GetAllESDTTokens(addr)
+	tokens, err := ag.getFacade().GetAllESDTTokens(addr)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -671,20 +638,7 @@ func GetAllESDTData(c *gin.Context) {
 
 	formattedTokens := make(map[string]*esdtNFTTokenData)
 	for tokenID, esdtData := range tokens {
-		tokenData := &esdtNFTTokenData{
-			TokenIdentifier: tokenID,
-			Balance:         esdtData.Value.String(),
-			Properties:      string(esdtData.Properties),
-		}
-		if esdtData.TokenMetaData != nil {
-			tokenData.Name = string(esdtData.TokenMetaData.Name)
-			tokenData.Nonce = esdtData.TokenMetaData.Nonce
-			tokenData.Creator = string(esdtData.TokenMetaData.Creator)
-			tokenData.Royalties = big.NewInt(int64(esdtData.TokenMetaData.Royalties)).String()
-			tokenData.Hash = esdtData.TokenMetaData.Hash
-			tokenData.URIs = esdtData.TokenMetaData.URIs
-			tokenData.Attributes = esdtData.TokenMetaData.Attributes
-		}
+		tokenData := buildTokenDataApiResponse(tokenID, esdtData)
 
 		formattedTokens[tokenID] = tokenData
 	}
@@ -697,4 +651,52 @@ func GetAllESDTData(c *gin.Context) {
 			Code:  shared.ReturnCodeSuccess,
 		},
 	)
+}
+
+func buildTokenDataApiResponse(tokenIdentifier string, esdtData *esdt.ESDigitalToken) *esdtNFTTokenData {
+	tokenData := &esdtNFTTokenData{
+		TokenIdentifier: tokenIdentifier,
+		Balance:         esdtData.Value.String(),
+		Properties:      string(esdtData.Properties),
+	}
+	if esdtData.TokenMetaData != nil {
+		tokenData.Name = string(esdtData.TokenMetaData.Name)
+		tokenData.Nonce = esdtData.TokenMetaData.Nonce
+		tokenData.Creator = string(esdtData.TokenMetaData.Creator)
+		tokenData.Royalties = big.NewInt(int64(esdtData.TokenMetaData.Royalties)).String()
+		tokenData.Hash = esdtData.TokenMetaData.Hash
+		tokenData.URIs = esdtData.TokenMetaData.URIs
+		tokenData.Attributes = esdtData.TokenMetaData.Attributes
+	}
+
+	return tokenData
+}
+
+func (ag *addressGroup) getFacade() addressFacadeHandler {
+	ag.mutFacade.RLock()
+	defer ag.mutFacade.RUnlock()
+
+	return ag.facade
+}
+
+// UpdateFacade will update the facade
+func (ag *addressGroup) UpdateFacade(newFacade interface{}) error {
+	if newFacade == nil {
+		return errors.ErrNilFacadeHandler
+	}
+	castFacade, ok := newFacade.(addressFacadeHandler)
+	if !ok {
+		return fmt.Errorf("%w for address group", errors.ErrFacadeWrongTypeAssertion)
+	}
+
+	ag.mutFacade.Lock()
+	ag.facade = castFacade
+	ag.mutFacade.Unlock()
+
+	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ag *addressGroup) IsInterfaceNil() bool {
+	return ag == nil
 }

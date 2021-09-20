@@ -17,12 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/vm"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/api/address"
-	"github.com/ElrondNetwork/elrond-go/api/hardfork"
-	"github.com/ElrondNetwork/elrond-go/api/node"
-	"github.com/ElrondNetwork/elrond-go/api/shared"
-	transactionApi "github.com/ElrondNetwork/elrond-go/api/transaction"
-	"github.com/ElrondNetwork/elrond-go/api/validator"
-	"github.com/ElrondNetwork/elrond-go/api/vmValues"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
@@ -40,13 +34,6 @@ const DefaultRestInterface = "localhost:8080"
 // DefaultRestPortOff is the default value that should be passed if it is desired
 //  to start the node without a REST endpoint available
 const DefaultRestPortOff = "off"
-
-var _ = address.FacadeHandler(&nodeFacade{})
-var _ = hardfork.FacadeHandler(&nodeFacade{})
-var _ = node.FacadeHandler(&nodeFacade{})
-var _ = transactionApi.FacadeHandler(&nodeFacade{})
-var _ = validator.FacadeHandler(&nodeFacade{})
-var _ = vmValues.FacadeHandler(&nodeFacade{})
 
 var log = logger.GetOrCreate("facade")
 
