@@ -688,7 +688,7 @@ type GasHandler interface {
 	Init()
 	SetGasConsumed(gasConsumed uint64, hash []byte)
 	SetGasRefunded(gasRefunded uint64, hash []byte)
-	SetTotalGasConsumedInSelfShard(gasConsumed uint64)
+	AddTotalGasConsumedInSelfShard(gasConsumed uint64)
 	GetTotalGasConsumedInSelfShard() uint64
 	GasConsumed(hash []byte) uint64
 	GasRefunded(hash []byte) uint64

@@ -384,7 +384,7 @@ func (txs *transactions) processTxsToMe(
 	gasConsumedByMiniBlockInReceiverShard := uint64(0)
 	totalGasConsumedInSelfShard := txs.gasHandler.TotalGasConsumed()
 
-	log.Trace("processTxsToMe", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
+	log.Debug("processTxsToMe - before processing txs", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
 
 	for index := range txsToMe {
 		if !haveTime() {
@@ -423,6 +423,9 @@ func (txs *transactions) processTxsToMe(
 			return err
 		}
 	}
+
+	log.Debug("processTxsToMe - after processing txs", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
+	txs.gasHandler.AddTotalGasConsumedInSelfShard(totalGasConsumedInSelfShard)
 
 	return nil
 }
@@ -996,7 +999,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 
 	miniBlocks := txs.getMiniBlockSliceFromMap(mapMiniBlocks)
 
-	txs.gasHandler.SetTotalGasConsumedInSelfShard(totalGasConsumedInSelfShard)
+	txs.gasHandler.AddTotalGasConsumedInSelfShard(totalGasConsumedInSelfShard)
 
 	log.Debug("createAndProcessMiniBlocksFromMe",
 		"self shard", txs.shardCoordinator.SelfId(),

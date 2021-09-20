@@ -119,10 +119,10 @@ func (gc *gasComputation) TotalGasConsumed() uint64 {
 	return totalGasConsumed
 }
 
-// SetTotalGasConsumedInSelfShard will set the total gas consumed in self shard
-func (gc *gasComputation) SetTotalGasConsumedInSelfShard(gasConsumed uint64) {
+// AddTotalGasConsumedInSelfShard will set the total gas consumed in self shard
+func (gc *gasComputation) AddTotalGasConsumedInSelfShard(gasConsumed uint64) {
 	gc.mutTotalGasConsumedInSelfShard.Lock()
-	gc.totalGasConsumedInSelfShard = gasConsumed
+	gc.totalGasConsumedInSelfShard += gasConsumed
 	gc.mutTotalGasConsumedInSelfShard.Unlock()
 }
 
