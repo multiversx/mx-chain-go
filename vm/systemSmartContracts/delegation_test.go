@@ -3976,7 +3976,7 @@ func TestDelegation_computeAndUpdateRewardsWithTotalActiveZeroDoesNotPanic(t *te
 	ownerAddr := []byte("ownerAddress")
 	eei.SetStorage([]byte(ownerKey), ownerAddr)
 
-	err := d.computeAndUpdateRewards([]byte("other address"), dData)
+	err := d.computeAndUpdateRewards([]byte("other address"), dData, big.NewInt(0))
 	assert.Nil(t, err)
 	assert.Equal(t, big.NewInt(0), dData.UnClaimedRewards)
 }
@@ -4016,7 +4016,7 @@ func TestDelegation_computeAndUpdateRewardsWithTotalActiveZeroSendsAllRewardsToO
 	ownerAddr := []byte("ownerAddress")
 	eei.SetStorage([]byte(ownerKey), ownerAddr)
 
-	err := d.computeAndUpdateRewards(ownerAddr, dData)
+	err := d.computeAndUpdateRewards(ownerAddr, dData, big.NewInt(0))
 	assert.Nil(t, err)
 	assert.Equal(t, rewards, dData.UnClaimedRewards)
 }
