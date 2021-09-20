@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/vm"
+	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
@@ -36,13 +37,18 @@ func NewDisabledNodeFacade(apiInterface string) *disabledNodeFacade {
 }
 
 // GetProof -
-func (nf *disabledNodeFacade) GetProof(_ string, _ string) ([][]byte, error) {
+func (nf *disabledNodeFacade) GetProof(_ string, _ string) (*shared.GetProofResponse, error) {
 	return nil, errNodeStarting
 }
 
-// GetProofCurrentRootHash -
-func (nf *disabledNodeFacade) GetProofCurrentRootHash(_ string) ([][]byte, []byte, error) {
+// GetProofDataTrie -
+func (nf *disabledNodeFacade) GetProofDataTrie(_ string, _ string, _ string) (*shared.GetProofResponse, *shared.GetProofResponse, error) {
 	return nil, nil, errNodeStarting
+}
+
+// GetProofCurrentRootHash -
+func (nf *disabledNodeFacade) GetProofCurrentRootHash(_ string) (*shared.GetProofResponse, error) {
+	return nil, errNodeStarting
 }
 
 // VerifyProof -

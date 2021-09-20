@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/vm"
+	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
@@ -90,8 +91,9 @@ type Facade interface {
 	ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error)
 	ExecuteSCQuery(*process.SCQuery) (*vm.VMOutputApi, error)
 	DecodeAddressPubkey(pk string) ([]byte, error)
-	GetProof(rootHash string, address string) ([][]byte, error)
-	GetProofCurrentRootHash(address string) ([][]byte, []byte, error)
+	GetProof(rootHash string, address string) (*shared.GetProofResponse, error)
+	GetProofDataTrie(rootHash string, address string, key string) (*shared.GetProofResponse, *shared.GetProofResponse, error)
+	GetProofCurrentRootHash(address string) (*shared.GetProofResponse, error)
 	VerifyProof(rootHash string, address string, proof [][]byte) (bool, error)
 	IsInterfaceNil() bool
 }

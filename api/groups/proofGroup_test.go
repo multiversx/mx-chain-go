@@ -101,18 +101,20 @@ func TestGetProof(t *testing.T) {
 	assert.Equal(t, hex.EncodeToString([]byte("proof")), proof2)
 }
 
-
 func TestGetProofDataTrie_GetProofError(t *testing.T) {
 	t.Parallel()
 
-	err := fmt.Errorf("GetProof error")
+	getProofDataTrieErr := fmt.Errorf("GetProofDataTrie error")
 	facade := &mock.Facade{
 		GetProofDataTrieCalled: func(rootHash string, address string, key string) (*shared.GetProofResponse, *shared.GetProofResponse, error) {
-			return nil, nil, err
+			return nil, nil, getProofDataTrieErr
 		},
 	}
 
-	ws := startNodeServer(facade)
+	proofGroup, err := groups.NewProofGroup(facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(proofGroup, "proof", getProofRoutesConfig())
 	req, _ := http.NewRequest("GET", "/proof/root-hash/roothash/address/addr/key/key", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
@@ -138,7 +140,10 @@ func TestGetProofDataTrie(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(facade)
+	proofGroup, err := groups.NewProofGroup(facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(proofGroup, "proof", getProofRoutesConfig())
 	req, _ := http.NewRequest("GET", "/proof/root-hash/roothash/address/addr/key/key", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
@@ -169,28 +174,13 @@ func TestGetProofDataTrie(t *testing.T) {
 	assert.Equal(t, hex.EncodeToString([]byte("proof")), proof2)
 }
 
-func TestGetProofCurrentRootHash_NilContextShouldErr(t *testing.T) {
-	t.Parallel()
-
-	ws := startNodeServer(nil)
-
-	req, _ := http.NewRequest("GET", "/proof/address/addr", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-	response := shared.GenericAPIResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
-	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
-}
-
 func TestGetProofCurrentRootHash_GetProofError(t *testing.T) {
 	t.Parallel()
 
 	getProofErr := fmt.Errorf("GetProof error")
 	facade := &mock.Facade{
 		GetProofCurrentRootHashCalled: func(address string) (*shared.GetProofResponse, error) {
-			return nil, nil, getProofErr
+			return nil, getProofErr
 		},
 	}
 
@@ -385,7 +375,6 @@ func TestVerifyProof(t *testing.T) {
 	assert.True(t, isValid)
 }
 
-
 func getProofRoutesConfig() config.ApiRoutesConfig {
 	return config.ApiRoutesConfig{
 		APIPackages: map[string]config.APIPackageConfig{
@@ -400,4 +389,3 @@ func getProofRoutesConfig() config.ApiRoutesConfig {
 		},
 	}
 }
-

@@ -19,10 +19,10 @@ const (
 	getProofEndpoint                = "/proof/root-hash/:roothash/address/:address"
 	getProofDataTrieEndpoint        = "/proof/root-hash/:roothash/address/:address/key/:key"
 	verifyProofEndpoint             = "/proof/verify"
-	getProofCurrentRootHashPath = "/address/:address"
-	getProofPath                = "/root-hash/:roothash/address/:address"
-	getProofDataTriePath        = "/root-hash/:roothash/address/:address/key/:key"
-	verifyProofPath             = "/verify"
+	getProofCurrentRootHashPath     = "/address/:address"
+	getProofPath                    = "/root-hash/:roothash/address/:address"
+	getProofDataTriePath            = "/root-hash/:roothash/address/:address/key/:key"
+	verifyProofPath                 = "/verify"
 )
 
 // proofFacadeHandler defines the methods to be implemented by a facade for proof requests
@@ -168,7 +168,7 @@ func (pg *proofGroup) getProof(c *gin.Context) {
 
 // getProofDataTrie will receive a rootHash, a key and an address from the client, and it will return the Merkle proofs
 // for the address and key
-func getProofDataTrie(c *gin.Context) {
+func (pg *proofGroup) getProofDataTrie(c *gin.Context) {
 	rootHash := c.Param("roothash")
 	if rootHash == "" {
 		c.JSON(
@@ -272,7 +272,7 @@ func (pg *proofGroup) getProofCurrentRootHash(c *gin.Context) {
 		return
 	}
 
-	response, rootHash, err := pg.getFacade().GetProofCurrentRootHash(address)
+	response, err := pg.getFacade().GetProofCurrentRootHash(address)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,

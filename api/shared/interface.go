@@ -84,8 +84,9 @@ type FacadeHandler interface {
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
 	GetNumCheckpointsFromAccountState() uint32
 	GetNumCheckpointsFromPeerState() uint32
-	GetProof(rootHash string, address string) ([][]byte, error)
-	GetProofCurrentRootHash(address string) ([][]byte, []byte, error)
+	GetProof(rootHash string, address string) (*GetProofResponse, error)
+	GetProofDataTrie(rootHash string, address string, key string) (*GetProofResponse, *GetProofResponse, error)
+	GetProofCurrentRootHash(address string) (*GetProofResponse, error)
 	VerifyProof(rootHash string, address string, proof [][]byte) (bool, error)
 	GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool)
 	CreateTransaction(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
