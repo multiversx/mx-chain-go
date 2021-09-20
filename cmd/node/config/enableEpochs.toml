@@ -108,6 +108,9 @@
     # BuiltInFunctionOnMetaEnableEpoch represents the epoch when built in function processing on metachain is enabled
     BuiltInFunctionOnMetaEnableEpoch = 5
 
+    # ComputeRewardCheckpointEnableEpoch represents the epoch when compute rewards checkpoint epoch is enabled
+    ComputeRewardCheckpointEnableEpoch = 5
+
     # ESDTNFTCreateOnMultiShard represents the epoch when esdt nft creation is enabled on multiple shards
     ESDTNFTCreateOnMultiShard = 6
 
