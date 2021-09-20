@@ -990,6 +990,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 				DelegationManagerEnableEpoch:       0,
 				DelegationSmartContractEnableEpoch: 0,
 				StakeLimitsEnableEpoch:             10,
+				SoftAuctionEnableEpoch:             10,
 			},
 		},
 		ShardCoordinator: &mock.ShardCoordinatorStub{},

@@ -277,7 +277,7 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 	stillRemainingInLeaving := append(stillRemainingUnstakeLeaving, stillRemainingAdditionalLeaving...)
 
 	shuffledOutMap, newEligible := shuffleOutNodes(newEligible, numToRemove, arg.randomness)
-
+	// TODO: add here the selection between shuffled out map - rest of the waiting list nodes - outside of the 400 extra on top of eligible
 	err = moveMaxNumNodesToMap(newEligible, newWaiting, arg.nodesMeta, arg.nodesPerShard)
 	if err != nil {
 		log.Warn("moveNodesToMap failed", "error", err)

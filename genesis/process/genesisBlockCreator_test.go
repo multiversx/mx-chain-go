@@ -132,6 +132,7 @@ func createMockArgument(
 				RelayedTransactionsEnableEpoch: 0,
 				PenalizedTooMuchGasEnableEpoch: 0,
 				StakeLimitsEnableEpoch:         10,
+				SoftAuctionEnableEpoch:         10,
 			},
 		},
 	}

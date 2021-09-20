@@ -61,6 +61,7 @@ func createGenesisConfig() config.EnableEpochs {
 		BuiltInFunctionOnMetaEnableEpoch:            unreachableEpoch,
 		IncrementSCRNonceInMultiTransferEnableEpoch: unreachableEpoch,
 		StakeLimitsEnableEpoch:                      unreachableEpoch,
+		SoftAuctionEnableEpoch:                      unreachableEpoch,
 	}
 }
 

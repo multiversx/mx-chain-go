@@ -50,6 +50,7 @@ type EnableEpochs struct {
 	ESDTTransferRoleEnableEpoch                 uint32
 	BuiltInFunctionOnMetaEnableEpoch            uint32
 	StakeLimitsEnableEpoch                      uint32
+	SoftAuctionEnableEpoch                      uint32
 }
 
 // GasScheduleByEpochs represents a gas schedule toml entry that will be applied from the provided epoch

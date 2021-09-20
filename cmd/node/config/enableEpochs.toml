@@ -111,10 +111,14 @@
     # StakeLimitsEnableEpoch represents the epoch when stake limits on validators are enabled
     StakeLimitsEnableEpoch = 5
 
+    # SoftAuctionEnableEpoch represents the epoch when soft auction is enabled
+    SoftAuctionEnableEpoch = 6
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },
-        { EpochEnable = 1, MaxNumNodes = 56, NodesToShufflePerShard = 2 }
+        { EpochEnable = 1, MaxNumNodes = 56, NodesToShufflePerShard = 2 },
+        { EpochEnable = 6, MaxNumNodes = 99999, NodesToShufflePerShard = 2},
     ]
 
 [GasSchedule]

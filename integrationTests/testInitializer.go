@@ -637,6 +637,7 @@ func CreateFullGenesisBlocks(
 				DelegationSmartContractEnableEpoch: 0,
 				DelegationManagerEnableEpoch:       0,
 				StakeLimitsEnableEpoch:             10,
+				SoftAuctionEnableEpoch:             10,
 			},
 		},
 	}
@@ -749,6 +750,7 @@ func CreateGenesisMetaBlock(
 				DelegationManagerEnableEpoch:       0,
 				DelegationSmartContractEnableEpoch: 0,
 				StakeLimitsEnableEpoch:             10,
+				SoftAuctionEnableEpoch:             10,
 			},
 		},
 	}

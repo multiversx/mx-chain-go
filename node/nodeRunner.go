@@ -147,6 +147,7 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("contract transfer role"), "epoch", enableEpochs.ESDTTransferRoleEnableEpoch)
 	log.Debug(readEpochFor("built in functions on metachain"), "epoch", enableEpochs.BuiltInFunctionOnMetaEnableEpoch)
 	log.Debug(readEpochFor("limit validators"), "epoch", enableEpochs.StakeLimitsEnableEpoch)
+	log.Debug(readEpochFor("soft auction"), "epoch", enableEpochs.SoftAuctionEnableEpoch)
 
 	gasSchedule := configs.EpochConfig.GasSchedule
 
