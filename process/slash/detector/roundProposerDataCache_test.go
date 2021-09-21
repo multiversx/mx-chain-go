@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRoundProposerDataCache_Add_OneRound_TwoProposers(t *testing.T) {
-	dataCache := newRoundProposerDataCache(2)
+func TestRoundProposerDataCache_Add_OneRound_TwoProposers_ThreeInterceptedData(t *testing.T) {
+	dataCache := newRoundProposerDataCache(1)
 
 	dataCache.add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
 		HashCalled: func() []byte {
@@ -21,12 +21,25 @@ func TestRoundProposerDataCache_Add_OneRound_TwoProposers(t *testing.T) {
 			return []byte("hash2")
 		},
 	})
+	dataCache.add(1, []byte("proposer2"), &testscommon.InterceptedDataStub{
+		HashCalled: func() []byte {
+			return []byte("hash3")
+		},
+	})
 
+	// One round
 	require.Len(t, dataCache.cache, 1)
-	require.Len(t, dataCache.cache[1], 1)
+	// Two proposers in same round
+	require.Len(t, dataCache.cache[1], 2)
+
+	// First proposer: proposed two headers
 	require.Len(t, dataCache.cache[1]["proposer1"], 2)
 	require.Equal(t, dataCache.cache[1]["proposer1"][0].Hash(), []byte("hash1"))
 	require.Equal(t, dataCache.cache[1]["proposer1"][1].Hash(), []byte("hash2"))
+
+	// Second proposer: proposed one header
+	require.Len(t, dataCache.cache[1]["proposer2"], 1)
+	require.Equal(t, dataCache.cache[1]["proposer2"][0].Hash(), []byte("hash3"))
 }
 
 func TestRoundProposerDataCache_Add(t *testing.T) {

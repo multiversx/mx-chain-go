@@ -22,7 +22,7 @@ func newRoundProposerDataCache(maxRounds uint64) *roundProposerDataCache {
 func (rpd *roundProposerDataCache) add(round uint64, pubKey []byte, data process.InterceptedData) {
 	pubKeyStr := string(pubKey)
 
-	if rpd.isCacheFull() {
+	if rpd.isCacheFull(round) {
 		rpd.removeFirstKey()
 	}
 
@@ -67,6 +67,7 @@ func (rpd *roundProposerDataCache) removeFirstKey() {
 	delete(rpd.cache, min)
 }
 
-func (rpd *roundProposerDataCache) isCacheFull() bool {
-	return len(rpd.cache) >= int(rpd.cacheSize)
+func (rpd *roundProposerDataCache) isCacheFull(currRound uint64) bool {
+	_, currRoundInCache := rpd.cache[currRound]
+	return len(rpd.cache) >= int(rpd.cacheSize) && !currRoundInCache
 }
