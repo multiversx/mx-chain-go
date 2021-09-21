@@ -1,4 +1,4 @@
-package transaction
+package groups
 
 import (
 	"encoding/hex"
@@ -6,13 +6,14 @@ import (
 	"math/big"
 	"net/http"
 	"strconv"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
-	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
 	"github.com/gin-gonic/gin"
 )
@@ -32,8 +33,8 @@ const (
 	queryParamCheckSignature = "checkSignature"
 )
 
-// FacadeHandler interface defines methods that can be used by the gin webserver
-type FacadeHandler interface {
+// transactionFacadeHandler defines the methods to be implemented by a facade for transaction requests
+type transactionFacadeHandler interface {
 	CreateTransaction(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
 		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*transaction.Transaction, []byte, error)
 	ValidateTransaction(tx *transaction.Transaction) error
@@ -45,6 +46,79 @@ type FacadeHandler interface {
 	EncodeAddressPubkey(pk []byte) (string, error)
 	GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool)
 	IsInterfaceNil() bool
+}
+
+type transactionGroup struct {
+	*baseGroup
+	facade    transactionFacadeHandler
+	mutFacade sync.RWMutex
+}
+
+// NewTransactionGroup returns a new instance of transactionGroup
+func NewTransactionGroup(facade transactionFacadeHandler) (*transactionGroup, error) {
+	if check.IfNil(facade) {
+		return nil, fmt.Errorf("%w for transaction group", errors.ErrNilFacadeHandler)
+	}
+
+	tg := &transactionGroup{
+		facade:    facade,
+		baseGroup: &baseGroup{},
+	}
+
+	endpoints := []*shared.EndpointHandlerData{
+		{
+			Path:    sendTransactionPath,
+			Method:  http.MethodPost,
+			Handler: tg.sendTransaction,
+			AdditionalMiddlewares: []shared.AdditionalMiddleware{
+				{
+					Middleware: middleware.CreateEndpointThrottlerFromFacade(sendTransactionEndpoint, facade),
+					Position:   shared.Before,
+				},
+			},
+		},
+		{
+			Path:    simulateTransactionPath,
+			Method:  http.MethodPost,
+			Handler: tg.simulateTransaction,
+			AdditionalMiddlewares: []shared.AdditionalMiddleware{
+				{
+					Middleware: middleware.CreateEndpointThrottlerFromFacade(simulateTransactionEndpoint, facade),
+					Position:   shared.Before,
+				},
+			},
+		},
+		{
+			Path:    costPath,
+			Method:  http.MethodPost,
+			Handler: tg.computeTransactionGasLimit,
+		},
+		{
+			Path:    sendMultiplePath,
+			Method:  http.MethodPost,
+			Handler: tg.sendMultipleTransactions,
+			AdditionalMiddlewares: []shared.AdditionalMiddleware{
+				{
+					Middleware: middleware.CreateEndpointThrottlerFromFacade(sendMultipleTransactionsEndpoint, facade),
+					Position:   shared.Before,
+				},
+			},
+		},
+		{
+			Path:    getTransactionPath,
+			Method:  http.MethodGet,
+			Handler: tg.getTransaction,
+			AdditionalMiddlewares: []shared.AdditionalMiddleware{
+				{
+					Middleware: middleware.CreateEndpointThrottlerFromFacade(getTransactionEndpoint, facade),
+					Position:   shared.Before,
+				},
+			},
+		},
+	}
+	tg.endpoints = endpoints
+
+	return tg, nil
 }
 
 // TxRequest represents the structure on which user input for generating a new transaction will validate against
@@ -89,72 +163,8 @@ type TxResponse struct {
 	Timestamp   uint64 `json:"timestamp"`
 }
 
-// Routes defines transaction related routes
-func Routes(router *wrapper.RouterWrapper) {
-	router.RegisterHandler(
-		http.MethodPost,
-		sendTransactionPath,
-		middleware.CreateEndpointThrottler(sendTransactionEndpoint),
-		SendTransaction,
-	)
-	router.RegisterHandler(
-		http.MethodPost,
-		simulateTransactionPath,
-		middleware.CreateEndpointThrottler(simulateTransactionEndpoint),
-		SimulateTransaction,
-	)
-	router.RegisterHandler(http.MethodPost, costPath, ComputeTransactionGasLimit)
-	router.RegisterHandler(
-		http.MethodPost,
-		sendMultiplePath,
-		middleware.CreateEndpointThrottler(sendMultipleTransactionsEndpoint),
-		SendMultipleTransactions,
-	)
-	router.RegisterHandler(
-		http.MethodGet,
-		getTransactionPath,
-		middleware.CreateEndpointThrottler(getTransactionEndpoint),
-		GetTransaction,
-	)
-}
-
-func getFacade(c *gin.Context) (FacadeHandler, bool) {
-	facadeObj, ok := c.Get("facade")
-	if !ok {
-		c.JSON(
-			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: errors.ErrNilAppContext.Error(),
-				Code:  shared.ReturnCodeInternalError,
-			},
-		)
-		return nil, false
-	}
-
-	facade, ok := facadeObj.(FacadeHandler)
-	if !ok {
-		c.JSON(
-			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: errors.ErrInvalidAppContext.Error(),
-				Code:  shared.ReturnCodeInternalError,
-			},
-		)
-		return nil, false
-	}
-
-	return facade, true
-}
-
-// SimulateTransaction will receive a transaction from the client and will simulate it's execution and return the results
-func SimulateTransaction(c *gin.Context) {
-	facade, ok := getFacade(c)
-	if !ok {
-		return
-	}
-
+// simulateTransaction will receive a transaction from the client and will simulate it's execution and return the results
+func (tg *transactionGroup) simulateTransaction(c *gin.Context) {
 	var gtx = SendTxRequest{}
 	err := c.ShouldBindJSON(&gtx)
 	if err != nil {
@@ -182,7 +192,7 @@ func SimulateTransaction(c *gin.Context) {
 		return
 	}
 
-	tx, txHash, err := facade.CreateTransaction(
+	tx, txHash, err := tg.getFacade().CreateTransaction(
 		gtx.Nonce,
 		gtx.Value,
 		gtx.Receiver,
@@ -209,7 +219,7 @@ func SimulateTransaction(c *gin.Context) {
 		return
 	}
 
-	err = facade.ValidateTransactionForSimulation(tx, checkSignature)
+	err = tg.getFacade().ValidateTransactionForSimulation(tx, checkSignature)
 	if err != nil {
 		c.JSON(
 			http.StatusBadRequest,
@@ -222,7 +232,7 @@ func SimulateTransaction(c *gin.Context) {
 		return
 	}
 
-	executionResults, err := facade.SimulateTransactionExecution(tx)
+	executionResults, err := tg.getFacade().SimulateTransactionExecution(tx)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -246,13 +256,8 @@ func SimulateTransaction(c *gin.Context) {
 	)
 }
 
-// SendTransaction will receive a transaction from the client and propagate it for processing
-func SendTransaction(c *gin.Context) {
-	facade, ok := getFacade(c)
-	if !ok {
-		return
-	}
-
+// sendTransaction will receive a transaction from the client and propagate it for processing
+func (tg *transactionGroup) sendTransaction(c *gin.Context) {
 	var gtx = SendTxRequest{}
 	err := c.ShouldBindJSON(&gtx)
 	if err != nil {
@@ -267,7 +272,7 @@ func SendTransaction(c *gin.Context) {
 		return
 	}
 
-	tx, txHash, err := facade.CreateTransaction(
+	tx, txHash, err := tg.getFacade().CreateTransaction(
 		gtx.Nonce,
 		gtx.Value,
 		gtx.Receiver,
@@ -294,7 +299,7 @@ func SendTransaction(c *gin.Context) {
 		return
 	}
 
-	err = facade.ValidateTransaction(tx)
+	err = tg.getFacade().ValidateTransaction(tx)
 	if err != nil {
 		c.JSON(
 			http.StatusBadRequest,
@@ -307,7 +312,7 @@ func SendTransaction(c *gin.Context) {
 		return
 	}
 
-	_, err = facade.SendBulkTransactions([]*transaction.Transaction{tx})
+	_, err = tg.getFacade().SendBulkTransactions([]*transaction.Transaction{tx})
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -331,13 +336,8 @@ func SendTransaction(c *gin.Context) {
 	)
 }
 
-// SendMultipleTransactions will receive a number of transactions and will propagate them for processing
-func SendMultipleTransactions(c *gin.Context) {
-	facade, ok := getFacade(c)
-	if !ok {
-		return
-	}
-
+// sendMultipleTransactions will receive a number of transactions and will propagate them for processing
+func (tg *transactionGroup) sendMultipleTransactions(c *gin.Context) {
 	var gtx []SendTxRequest
 	err := c.ShouldBindJSON(&gtx)
 	if err != nil {
@@ -360,7 +360,7 @@ func SendMultipleTransactions(c *gin.Context) {
 
 	txsHashes := make(map[int]string)
 	for idx, receivedTx := range gtx {
-		tx, txHash, err = facade.CreateTransaction(
+		tx, txHash, err = tg.getFacade().CreateTransaction(
 			receivedTx.Nonce,
 			receivedTx.Value,
 			receivedTx.Receiver,
@@ -379,7 +379,7 @@ func SendMultipleTransactions(c *gin.Context) {
 			continue
 		}
 
-		err = facade.ValidateTransaction(tx)
+		err = tg.getFacade().ValidateTransaction(tx)
 		if err != nil {
 			continue
 		}
@@ -388,7 +388,7 @@ func SendMultipleTransactions(c *gin.Context) {
 		txsHashes[idx] = hex.EncodeToString(txHash)
 	}
 
-	numOfSentTxs, err := facade.SendBulkTransactions(txs)
+	numOfSentTxs, err := tg.getFacade().SendBulkTransactions(txs)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -414,13 +414,8 @@ func SendMultipleTransactions(c *gin.Context) {
 	)
 }
 
-// GetTransaction returns transaction details for a given txhash
-func GetTransaction(c *gin.Context) {
-	facade, ok := getFacade(c)
-	if !ok {
-		return
-	}
-
+// getTransaction returns transaction details for a given txhash
+func (tg *transactionGroup) getTransaction(c *gin.Context) {
 	txhash := c.Param("txhash")
 	if txhash == "" {
 		c.JSON(
@@ -447,7 +442,7 @@ func GetTransaction(c *gin.Context) {
 		return
 	}
 
-	tx, err := facade.GetTransaction(txhash, withResults)
+	tx, err := tg.getFacade().GetTransaction(txhash, withResults)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -470,13 +465,8 @@ func GetTransaction(c *gin.Context) {
 	)
 }
 
-// ComputeTransactionGasLimit returns how many gas units a transaction wil consume
-func ComputeTransactionGasLimit(c *gin.Context) {
-	facade, ok := getFacade(c)
-	if !ok {
-		return
-	}
-
+// computeTransactionGasLimit returns how many gas units a transaction wil consume
+func (tg *transactionGroup) computeTransactionGasLimit(c *gin.Context) {
 	var gtx SendTxRequest
 	err := c.ShouldBindJSON(&gtx)
 	if err != nil {
@@ -491,7 +481,7 @@ func ComputeTransactionGasLimit(c *gin.Context) {
 		return
 	}
 
-	tx, _, err := facade.CreateTransaction(
+	tx, _, err := tg.getFacade().CreateTransaction(
 		gtx.Nonce,
 		gtx.Value,
 		gtx.Receiver,
@@ -518,7 +508,7 @@ func ComputeTransactionGasLimit(c *gin.Context) {
 		return
 	}
 
-	cost, err := facade.ComputeTransactionGasLimit(tx)
+	cost, err := tg.getFacade().ComputeTransactionGasLimit(tx)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -557,4 +547,33 @@ func getQueryParameterCheckSignature(c *gin.Context) (bool, error) {
 	}
 
 	return strconv.ParseBool(bypassSignatureStr)
+}
+
+func (tg *transactionGroup) getFacade() transactionFacadeHandler {
+	tg.mutFacade.RLock()
+	defer tg.mutFacade.RUnlock()
+
+	return tg.facade
+}
+
+// UpdateFacade will update the facade
+func (tg *transactionGroup) UpdateFacade(newFacade interface{}) error {
+	if newFacade == nil {
+		return errors.ErrNilFacadeHandler
+	}
+	castFacade, ok := newFacade.(transactionFacadeHandler)
+	if !ok {
+		return errors.ErrFacadeWrongTypeAssertion
+	}
+
+	tg.mutFacade.Lock()
+	tg.facade = castFacade
+	tg.mutFacade.Unlock()
+
+	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (tg *transactionGroup) IsInterfaceNil() bool {
+	return tg == nil
 }
