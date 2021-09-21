@@ -2,17 +2,19 @@ package integrationTests
 
 import (
 	"fmt"
+	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
-	ed25519SingleSig "github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519/singlesig"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
-	multisig2 "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/multisig"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/multisig"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
+	"github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/ElrondNetwork/elrond-go-crypto/signing"
+	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
+	ed25519SingleSig "github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519/singlesig"
+	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
+	multisig2 "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/multisig"
+	"github.com/ElrondNetwork/elrond-go-crypto/signing/multisig"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
@@ -87,6 +89,8 @@ func CreateProcessorNodesWithNodesCoordinator(
 				ConsensusGroupCache:        cache,
 				ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
 				WaitingListFixEnabledEpoch: 0,
+				ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
+				IsFullArchive:              false,
 			}
 
 			nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
@@ -205,6 +209,7 @@ func newTestProcessorNodeWithCustomNodesCoordinator(
 		HeaderIntegrityVerifier: CreateHeaderIntegrityVerifier(),
 		ChainID:                 ChainID,
 		NodesSetup:              nodesSetup,
+		ArwenChangeLocker:       &sync.RWMutex{},
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -212,7 +217,7 @@ func newTestProcessorNodeWithCustomNodesCoordinator(
 		Sk: ncp[nodeShardId][keyIndex].BlockSignSk,
 	}
 
-	blsHasher := &blake2b.Blake2b{HashSize: hashing.BlsHashSize}
+	blsHasher, _ := blake2b.NewBlake2bWithSize(hashing.BlsHashSize)
 	llsig := &multisig2.BlsMultiSigner{Hasher: blsHasher}
 
 	pubKeysMap := pubKeysMapFromKeysMap(ncp)

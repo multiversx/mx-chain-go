@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/batch"
+	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/batch"
-	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -75,7 +75,6 @@ func (sliceRes *sliceResolver) RequestDataFromHash(hash []byte, _ uint32) error 
 	mb, err := sliceRes.storage.Get(hash)
 	if err != nil {
 		sliceRes.signalGracefullyClose()
-
 		return err
 	}
 
@@ -123,11 +122,15 @@ func (sliceRes *sliceResolver) RequestDataFromHashArray(hashes [][]byte, _ uint3
 
 	if errFetch != nil {
 		errFetch = fmt.Errorf("resolveMbRequestByHashArray last error %w from %d encountered errors", errFetch, errorsFound)
-
 		sliceRes.signalGracefullyClose()
 	}
 
 	return errFetch
+}
+
+// Close will try to close the associated opened storers
+func (sliceRes *sliceResolver) Close() error {
+	return sliceRes.storage.Close()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

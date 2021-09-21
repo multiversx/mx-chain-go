@@ -3,16 +3,20 @@ package containers
 import (
 	"fmt"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/container"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/container"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/process"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var _ process.VirtualMachinesContainer = (*virtualMachinesContainer)(nil)
 
 var logVMContainer = logger.GetOrCreate("factory/containers/vmContainer")
+
+type closer interface {
+	Close() error
+}
 
 // virtualMachinesContainer is an VM holder organized by type
 type virtualMachinesContainer struct {
@@ -112,25 +116,33 @@ func (vmc *virtualMachinesContainer) Keys() [][]byte {
 
 // Close closes the items in the container (meaningful for Arwen out-of-process)
 func (vmc *virtualMachinesContainer) Close() error {
-	var withError bool
-
+	var err error
 	for _, item := range vmc.objects.Values() {
-		asCloser, ok := item.(interface{ Close() error })
-		if !ok {
-			continue
-		}
+		logVMContainer.Debug("closing vm container item", "item", fmt.Sprintf("%T", item))
 
-		err := asCloser.Close()
-		if err != nil {
-			logVMContainer.Error("Cannot close item in container", "err", err)
-			withError = true
+		closingErr := vmc.tryClose(item)
+		if closingErr != nil {
+			err = closingErr
 		}
 	}
 
-	if withError {
-		return ErrCloseVMContainer
+	return err
+}
+
+func (vmc *virtualMachinesContainer) tryClose(item interface{}) error {
+	asCloser, ok := item.(closer)
+	if !ok {
+		return nil
 	}
-	return nil
+
+	err := asCloser.Close()
+	if err != nil {
+		logVMContainer.Warn("cannot close vm container item", "item", fmt.Sprintf("%T", item), "err", err)
+	} else {
+		logVMContainer.Debug("vm container item closed", "item", fmt.Sprintf("%T", item))
+	}
+
+	return err
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

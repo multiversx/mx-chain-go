@@ -2,7 +2,6 @@ package middleware_test
 
 import (
 	"fmt"
-	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -10,12 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/api/address"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
-	"github.com/ElrondNetwork/elrond-go/api/mock"
-	"github.com/ElrondNetwork/elrond-go/api/wrapper"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -25,17 +20,16 @@ func init() {
 	gin.SetMode(gin.TestMode)
 }
 
-func startNodeServerGlobalThrottler(handler address.FacadeHandler, maxConnections uint32) *gin.Engine {
+func startNodeServerGlobalThrottler(handler func(c *gin.Context), maxConnections uint32) *gin.Engine {
 	ws := gin.New()
 	ws.Use(cors.Default())
 	globalThrottler, _ := middleware.NewGlobalThrottler(maxConnections)
 	ws.Use(globalThrottler.MiddlewareHandlerFunc())
+
 	ginAddressRoutes := ws.Group("/address")
-	if handler != nil {
-		ginAddressRoutes.Use(middleware.WithFacade(handler))
-	}
-	addressRoutes, _ := wrapper.NewRouterWrapper("address", ginAddressRoutes, getRoutesConfig())
-	address.Routes(addressRoutes)
+
+	ginAddressRoutes.Handle(http.MethodGet, "/:address/balance", handler)
+
 	return ws
 }
 
@@ -61,14 +55,9 @@ func TestGlobalThrottler_LimitUnderShouldProcessRequest(t *testing.T) {
 	t.Parallel()
 
 	addr := "testAddress"
-	facade := mock.Facade{
-		BalanceHandler: func(s string) (i *big.Int, e error) {
-			return big.NewInt(10), nil
-		},
-	}
 
 	maxConnections := uint32(1000)
-	ws := startNodeServerGlobalThrottler(&facade, maxConnections)
+	ws := startNodeServerGlobalThrottler(func(c *gin.Context) {}, maxConnections)
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/balance", addr), nil)
 	resp := httptest.NewRecorder()
@@ -82,17 +71,14 @@ func TestGlobalThrottler_LimitOverShouldError(t *testing.T) {
 
 	numCalls := uint32(0)
 	responseDelay := time.Second
-	facade := mock.Facade{
-		BalanceHandler: func(s string) (i *big.Int, e error) {
-			time.Sleep(responseDelay)
-			atomic.AddUint32(&numCalls, 1)
 
-			return big.NewInt(10), nil
-		},
+	handlerFunc := func(c *gin.Context) {
+		time.Sleep(responseDelay)
+		atomic.AddUint32(&numCalls, 1)
 	}
 
 	maxConnections := uint32(1)
-	ws := startNodeServerGlobalThrottler(&facade, maxConnections)
+	ws := startNodeServerGlobalThrottler(handlerFunc, maxConnections)
 
 	mutResponses := sync.Mutex{}
 	responses := make(map[int]int)
@@ -125,17 +111,4 @@ func makeRequestGlobalThrottler(ws *gin.Engine, mutResponses *sync.Mutex, respon
 	mutResponses.Lock()
 	responses[resp.Code]++
 	mutResponses.Unlock()
-}
-
-func getRoutesConfig() config.ApiRoutesConfig {
-	return config.ApiRoutesConfig{
-		APIPackages: map[string]config.APIPackageConfig{
-			"address": {
-				Routes: []config.RouteConfig{
-					{Name: "/:address", Open: true},
-					{Name: "/:address/balance", Open: true},
-				},
-			},
-		},
-	}
 }

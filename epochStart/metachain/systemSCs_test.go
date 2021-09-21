@@ -12,41 +12,45 @@ import (
 	"strconv"
 	"testing"
 
-	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/forking"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/blockchain"
-	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/state/factory"
-	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	economicsHandler "github.com/ElrondNetwork/elrond-go/process/economics"
 	vmFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	metaProcess "github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/peer"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/state/factory"
+	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager"
+	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
+	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -172,7 +176,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContract(t *testing.T) {
 	vInfo := &state.ValidatorInfo{
 		PublicKey:       []byte("jailedPubKey0"),
 		ShardId:         0,
-		List:            string(core.JailedList),
+		List:            string(common.JailedList),
 		TempRating:      1,
 		RewardAddress:   []byte("address"),
 		AccumulatedFees: big.NewInt(0),
@@ -183,7 +187,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContract(t *testing.T) {
 
 	assert.Equal(t, len(validatorInfos[0]), 1)
 	newValidatorInfo := validatorInfos[0][0]
-	assert.Equal(t, newValidatorInfo.List, string(core.NewList))
+	assert.Equal(t, newValidatorInfo.List, string(common.NewList))
 }
 
 func TestSystemSCProcessor_JailedNodesShouldNotBeSwappedAllAtOnce(t *testing.T) {
@@ -195,7 +199,7 @@ func TestSystemSCProcessor_JailedNodesShouldNotBeSwappedAllAtOnce(t *testing.T) 
 
 func testSystemSCProcessorJailedNodesShouldNotBeSwappedAllAtOnce(t *testing.T, saveJailedAlwaysEnableEpoch uint32) {
 	args, _ := createFullArgumentsForSystemSCProcessing(10000, createMemUnit())
-	args.SaveJailedAlwaysEnableEpoch = saveJailedAlwaysEnableEpoch
+	args.EpochConfig.EnableEpochs.SaveJailedAlwaysEnableEpoch = saveJailedAlwaysEnableEpoch
 
 	args.ChanceComputer = &mock.ChanceComputerStub{
 		GetChanceCalled: func(rating uint32) uint32 {
@@ -227,10 +231,10 @@ func testSystemSCProcessorJailedNodesShouldNotBeSwappedAllAtOnce(t *testing.T, s
 	err := s.ProcessSystemSmartContract(validatorsInfo, 0, 0)
 	assert.Nil(t, err)
 	for i := 0; i < numWaiting; i++ {
-		assert.Equal(t, string(core.NewList), validatorsInfo[0][i].List)
+		assert.Equal(t, string(common.NewList), validatorsInfo[0][i].List)
 	}
 	for i := numWaiting; i < numJailed; i++ {
-		assert.Equal(t, string(core.JailedList), validatorsInfo[0][i].List)
+		assert.Equal(t, string(common.JailedList), validatorsInfo[0][i].List)
 	}
 
 	newJailedNodes := jailed[numWaiting:numJailed]
@@ -269,7 +273,7 @@ func TestSystemSCProcessor_NobodyToSwapWithStakingV2(t *testing.T) {
 			return rating
 		},
 	}
-	args.StakingV2EnableEpoch = 0
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
 	s, _ := NewSystemSCProcessor(args)
 	require.NotNil(t, s)
 
@@ -288,7 +292,7 @@ func TestSystemSCProcessor_NobodyToSwapWithStakingV2(t *testing.T) {
 	jailed := &state.ValidatorInfo{
 		PublicKey:       blsKeys[0],
 		ShardId:         0,
-		List:            string(core.JailedList),
+		List:            string(common.JailedList),
 		TempRating:      1,
 		RewardAddress:   []byte("owner1"),
 		AccumulatedFees: big.NewInt(0),
@@ -299,7 +303,7 @@ func TestSystemSCProcessor_NobodyToSwapWithStakingV2(t *testing.T) {
 	assert.Nil(t, err)
 
 	for _, vInfo := range validatorsInfo[0] {
-		assert.Equal(t, string(core.JailedList), vInfo.List)
+		assert.Equal(t, string(common.JailedList), vInfo.List)
 	}
 
 	nodesToUnStake, mapOwnersKeys, err := s.stakingDataProvider.ComputeUnQualifiedNodes(validatorsInfo)
@@ -312,7 +316,7 @@ func TestSystemSCProcessor_UpdateStakingV2ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args, _ := createFullArgumentsForSystemSCProcessing(1000, createMemUnit())
-	args.StakingV2EnableEpoch = 1
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 1
 	args.ChanceComputer = &mock.ChanceComputerStub{
 		GetChanceCalled: func(rating uint32) uint32 {
 			if rating == 0 {
@@ -337,7 +341,9 @@ func TestSystemSCProcessor_UpdateStakingV2ShouldWork(t *testing.T) {
 	doStake(t, s.systemVM, s.userAccountsDB, owner1, big.NewInt(1000), blsKeys[0], blsKeys[1])
 	doStake(t, s.systemVM, s.userAccountsDB, owner2, big.NewInt(1000), blsKeys[2], blsKeys[3])
 
-	args.EpochNotifier.CheckEpoch(1000000)
+	args.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
+		EpochField: 1000000,
+	})
 
 	for _, blsKey := range blsKeys {
 		checkOwnerOfBlsKey(t, s.systemVM, blsKey, []byte(""))
@@ -370,7 +376,7 @@ func TestSystemSCProcessor_UpdateStakingV2MoreKeysShouldWork(t *testing.T) {
 	}()
 
 	args, _ := createFullArgumentsForSystemSCProcessing(1000, db)
-	args.StakingV2EnableEpoch = 1
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 1
 	args.ChanceComputer = &mock.ChanceComputerStub{
 		GetChanceCalled: func(rating uint32) uint32 {
 			if rating == 0 {
@@ -400,7 +406,9 @@ func TestSystemSCProcessor_UpdateStakingV2MoreKeysShouldWork(t *testing.T) {
 	}
 	sw.Stop("do stake")
 
-	args.EpochNotifier.CheckEpoch(1000000)
+	args.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
+		EpochField: 1000000,
+	})
 
 	sw.Start("initial check")
 	for _, tkp := range keys {
@@ -547,7 +555,7 @@ func createJailedNodes(numNodes int, stakingSCAcc state.UserAccountHandler, user
 		vInfo := &state.ValidatorInfo{
 			PublicKey:       []byte(fmt.Sprintf("jailed__%d", i)),
 			ShardId:         0,
-			List:            string(core.JailedList),
+			List:            string(common.JailedList),
 			TempRating:      1,
 			RewardAddress:   []byte("address"),
 			AccumulatedFees: big.NewInt(0),
@@ -654,7 +662,7 @@ func createWaitingNodes(numNodes int, stakingSCAcc state.UserAccountHandler, use
 		vInfo := &state.ValidatorInfo{
 			PublicKey:       []byte(fmt.Sprintf("waiting_%d", i)),
 			ShardId:         0,
-			List:            string(core.WaitingList),
+			List:            string(common.WaitingList),
 			TempRating:      1,
 			RewardAddress:   []byte("address"),
 			AccumulatedFees: big.NewInt(0),
@@ -857,15 +865,17 @@ func createAccountsDB(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	accountFactory state.AccountFactory,
-	trieStorageManager data.StorageManager,
+	trieStorageManager common.StorageManager,
 ) *state.AccountsDB {
 	tr, _ := trie.NewTrie(trieStorageManager, marshalizer, hasher, 5)
-	adb, _ := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory)
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(10, testscommon.NewMemDbMock(), marshalizer)
+	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
+	adb, _ := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory, spm)
 	return adb
 }
 
 func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieStorer storage.Storer) (ArgsNewEpochStartSystemSCProcessing, vm.SystemSCContainer) {
-	hasher := sha256.Sha256{}
+	hasher := sha256.NewSha256()
 	marshalizer := &marshal.GogoProtoMarshalizer{}
 	trieFactoryManager, _ := trie.NewTrieStorageManagerWithoutPruning(trieStorer)
 	userAccountsDB := createAccountsDB(hasher, marshalizer, factory.NewAccountCreator(), trieFactoryManager)
@@ -876,7 +886,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 		Marshalizer:          marshalizer,
 		NodesCoordinator:     &mock.NodesCoordinatorStub{},
 		ShardCoordinator:     &mock.ShardCoordinatorStub{},
-		DataPool:             &testscommon.PoolsHolderStub{},
+		DataPool:             &dataRetrieverMock.PoolsHolderStub{},
 		StorageService:       &mock.ChainStorerStub{},
 		PubkeyConv:           &mock.PubkeyConverterMock{},
 		PeerAdapter:          peerAccountsDB,
@@ -889,8 +899,8 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 	}
 	vCreator, _ := peer.NewValidatorStatisticsProcessor(argsValidatorsProcessor)
 
-	blockChain := blockchain.NewMetaChain()
-	testDataPool := testscommon.NewPoolsHolderMock()
+	blockChain, _ := blockchain.NewMetaChain(&mock.AppStatusHandlerStub{})
+	testDataPool := dataRetrieverMock.NewPoolsHolderMock()
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:           userAccountsDB,
 		PubkeyConv:         &mock.PubkeyConverterMock{},
@@ -899,7 +909,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 		ShardCoordinator:   &mock.ShardCoordinatorStub{},
 		Marshalizer:        marshalizer,
 		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
+		BuiltInFunctions:   vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
 		DataPool:           testDataPool,
 		CompiledSCPool:     testDataPool.SmartContracts(),
 		NilCompiledSCStore: true,
@@ -907,7 +917,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 
 	gasSchedule := arwenConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
-	signVerifer, _ := disabled.NewMessageSignVerifier(&mock.KeyGenMock{})
+	signVerifer, _ := disabled.NewMessageSignVerifier(&cryptoMocks.KeyGenStub{})
 
 	nodesSetup := &mock.NodesSetupStub{}
 	argsNewVMContainerFactory := metaProcess.ArgsNewVMContainerFactory{
@@ -924,11 +934,13 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 				OwnerAddress:    "aaaaaa",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
-				ProposalCost:     "500",
-				NumNodes:         100,
-				MinQuorum:        50,
-				MinPassThreshold: 50,
-				MinVetoThreshold: 50,
+				Active: config.GovernanceSystemSCConfigActive{
+					ProposalCost:     "500",
+					MinQuorum:        "50",
+					MinPassThreshold: "50",
+					MinVetoThreshold: "50",
+				},
+				FirstWhitelistedAddress: "3132333435363738393031323334353637383930313233343536373839303234",
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     "1000",
@@ -936,8 +948,6 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 				MinStepValue:                         "10",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
-				StakingV2Epoch:                       stakingV2EnableEpoch,
-				StakeEnableEpoch:                     0,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
@@ -947,12 +957,10 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 			},
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 				MinCreationDeposit:  "100",
-				EnabledEpoch:        0,
 				MinStakeAmount:      "100",
-				ConfigChangeAddress: "aabb00",
+				ConfigChangeAddress: "3132333435363738393031323334353637383930313233343536373839303234",
 			},
 			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
-				EnabledEpoch:  0,
 				MinServiceFee: 0,
 				MaxServiceFee: 100,
 			},
@@ -960,7 +968,15 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 		ValidatorAccountsDB: peerAccountsDB,
 		ChanceComputer:      &mock.ChanceComputerStub{},
 		EpochNotifier:       epochNotifier,
-		ShardCoordinator:    &mock.ShardCoordinatorStub{},
+		EpochConfig: &config.EpochConfig{
+			EnableEpochs: config.EnableEpochs{
+				StakingV2EnableEpoch:               stakingV2EnableEpoch,
+				StakeEnableEpoch:                   0,
+				DelegationManagerEnableEpoch:       0,
+				DelegationSmartContractEnableEpoch: 0,
+			},
+		},
+		ShardCoordinator: &mock.ShardCoordinatorStub{},
 	}
 	metaVmFactory, _ := metaProcess.NewVMContainerFactory(argsNewVMContainerFactory)
 
@@ -982,7 +998,6 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 		ChanceComputer:          &mock.ChanceComputerStub{},
 		EpochNotifier:           epochNotifier,
 		GenesisNodesConfig:      nodesSetup,
-		StakingV2EnableEpoch:    1000000,
 		StakingDataProvider:     stakingSCprovider,
 		NodesConfigProvider: &mock.NodesCoordinatorStub{
 			ConsensusGroupSizeCalled: func(shardID uint32) int {
@@ -994,7 +1009,12 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 		},
 		ShardCoordinator:      shardCoordinator,
 		ESDTOwnerAddressBytes: bytes.Repeat([]byte{1}, 32),
-		ESDTEnableEpoch:       1000000,
+		EpochConfig: config.EpochConfig{
+			EnableEpochs: config.EnableEpochs{
+				StakingV2EnableEpoch: 1000000,
+				ESDTEnableEpoch:      1000000,
+			},
+		},
 	}
 	return args, metaVmFactory.SystemSmartContractContainer()
 }
@@ -1202,7 +1222,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractMaxNodesStakedFromQueue(t *
 	peerAcc, err := s.getPeerAccount([]byte("waitingPubKey"))
 	assert.Nil(t, err)
 	assert.True(t, bytes.Equal(peerAcc.GetBLSPublicKey(), []byte("waitingPubKey")))
-	assert.Equal(t, peerAcc.GetList(), string(core.NewList))
+	assert.Equal(t, peerAcc.GetList(), string(common.NewList))
 	numRegistered := getTotalNumberOfRegisteredNodes(t, s)
 	assert.Equal(t, 1, numRegistered)
 }
@@ -1232,7 +1252,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractMaxNodesStakedFromQueueOwne
 
 	args, _ := createFullArgumentsForSystemSCProcessing(10, createMemUnit())
 	args.MaxNodesEnableConfig = []config.MaxNodesChangeConfig{{EpochEnable: 10, MaxNumNodes: 10}}
-	args.StakingV2EnableEpoch = 10
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 10
 	s, _ := NewSystemSCProcessor(args)
 
 	prepareStakingContractWithData(
@@ -1244,7 +1264,9 @@ func TestSystemSCProcessor_ProcessSystemSmartContractMaxNodesStakedFromQueueOwne
 		make([]byte, 0),
 	)
 
-	args.EpochNotifier.CheckEpoch(10)
+	args.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
+		EpochField: 10,
+	})
 	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
 	err := s.ProcessSystemSmartContract(validatorInfos, 0, 10)
 	assert.Nil(t, err)
@@ -1252,16 +1274,19 @@ func TestSystemSCProcessor_ProcessSystemSmartContractMaxNodesStakedFromQueueOwne
 	peerAcc, err := s.getPeerAccount([]byte("waitingPubKey"))
 	assert.Nil(t, err)
 	assert.True(t, bytes.Equal(peerAcc.GetBLSPublicKey(), []byte("waitingPubKey")))
-	assert.Equal(t, peerAcc.GetList(), string(core.NewList))
+	assert.Equal(t, peerAcc.GetList(), string(common.NewList))
 }
 
 func TestSystemSCProcessor_ESDTInitShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
-	args.ESDTEnableEpoch = 1
-	args.SwitchJailWaitingEnableEpoch = 1000000
-	args.EpochNotifier.CheckEpoch(1)
+	args.EpochConfig.EnableEpochs.ESDTEnableEpoch = 1
+	args.EpochConfig.EnableEpochs.SwitchJailWaitingEnableEpoch = 1000000
+	hdr := &block.MetaBlock{
+		Epoch: 1,
+	}
+	args.EpochNotifier.CheckEpoch(hdr)
 	s, _ := NewSystemSCProcessor(args)
 
 	initialContractConfig, err := s.extractConfigFromESDTContract()
@@ -1287,7 +1312,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeOneNodeStakeOthers(t
 	t.Parallel()
 
 	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
-	args.StakingV2EnableEpoch = 0
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
 	s, _ := NewSystemSCProcessor(args)
 
 	prepareStakingContractWithData(
@@ -1308,25 +1333,25 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeOneNodeStakeOthers(t
 	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey0"),
-		List:            string(core.EligibleList),
+		List:            string(common.EligibleList),
 		RewardAddress:   []byte("rewardAddress"),
 		AccumulatedFees: big.NewInt(0),
 	})
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey1"),
-		List:            string(core.EligibleList),
+		List:            string(common.EligibleList),
 		RewardAddress:   []byte("rewardAddress"),
 		AccumulatedFees: big.NewInt(0),
 	})
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey2"),
-		List:            string(core.EligibleList),
+		List:            string(common.EligibleList),
 		RewardAddress:   []byte("rewardAddress"),
 		AccumulatedFees: big.NewInt(0),
 	})
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey3"),
-		List:            string(core.EligibleList),
+		List:            string(common.EligibleList),
 		RewardAddress:   []byte("rewardAddress"),
 		AccumulatedFees: big.NewInt(0),
 	})
@@ -1342,22 +1367,22 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeOneNodeStakeOthers(t
 	peerAcc, err := s.getPeerAccount([]byte("waitingPubKey"))
 	assert.Nil(t, err)
 	assert.True(t, bytes.Equal(peerAcc.GetBLSPublicKey(), []byte("waitingPubKey")))
-	assert.Equal(t, peerAcc.GetList(), string(core.NewList))
+	assert.Equal(t, peerAcc.GetList(), string(common.NewList))
 
 	peerAcc, _ = s.getPeerAccount([]byte("stakedPubKey1"))
-	assert.Equal(t, peerAcc.GetList(), string(core.LeavingList))
+	assert.Equal(t, peerAcc.GetList(), string(common.LeavingList))
 
-	assert.Equal(t, string(core.LeavingList), validatorInfos[0][1].List)
+	assert.Equal(t, string(common.LeavingList), validatorInfos[0][1].List)
 
 	assert.Equal(t, 5, len(validatorInfos[0]))
-	assert.Equal(t, string(core.NewList), validatorInfos[0][4].List)
+	assert.Equal(t, string(common.NewList), validatorInfos[0][4].List)
 }
 
 func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeTheOnlyNodeShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
-	args.StakingV2EnableEpoch = 0
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
 	s, _ := NewSystemSCProcessor(args)
 
 	prepareStakingContractWithData(
@@ -1376,13 +1401,13 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeTheOnlyNodeShouldWor
 	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey0"),
-		List:            string(core.EligibleList),
+		List:            string(common.EligibleList),
 		RewardAddress:   []byte("rewardAddress"),
 		AccumulatedFees: big.NewInt(0),
 	})
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey1"),
-		List:            string(core.EligibleList),
+		List:            string(common.EligibleList),
 		RewardAddress:   []byte("rewardAddress"),
 		AccumulatedFees: big.NewInt(0),
 	})
@@ -1420,7 +1445,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeFromDelegationContra
 	t.Parallel()
 
 	args, scContainer := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
-	args.StakingV2EnableEpoch = 0
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
 	s, _ := NewSystemSCProcessor(args)
 
 	delegationAddr := make([]byte, len(vm.FirstDelegationSCAddress))
@@ -1450,25 +1475,25 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeFromDelegationContra
 	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey0"),
-		List:            string(core.EligibleList),
+		List:            string(common.EligibleList),
 		RewardAddress:   delegationAddr,
 		AccumulatedFees: big.NewInt(0),
 	})
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey1"),
-		List:            string(core.EligibleList),
+		List:            string(common.EligibleList),
 		RewardAddress:   delegationAddr,
 		AccumulatedFees: big.NewInt(0),
 	})
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey2"),
-		List:            string(core.WaitingList),
+		List:            string(common.WaitingList),
 		RewardAddress:   delegationAddr,
 		AccumulatedFees: big.NewInt(0),
 	})
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey3"),
-		List:            string(core.WaitingList),
+		List:            string(common.WaitingList),
 		RewardAddress:   delegationAddr,
 		AccumulatedFees: big.NewInt(0),
 	})
@@ -1482,11 +1507,11 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeFromDelegationContra
 	assert.Nil(t, err)
 
 	for _, vInfo := range validatorInfos[0] {
-		assert.NotEqual(t, string(core.NewList), vInfo.List)
+		assert.NotEqual(t, string(common.NewList), vInfo.List)
 	}
 
 	peerAcc, _ := s.getPeerAccount([]byte("stakedPubKey2"))
-	assert.Equal(t, peerAcc.GetList(), string(core.LeavingList))
+	assert.Equal(t, peerAcc.GetList(), string(common.LeavingList))
 	assert.Equal(t, 4, len(validatorInfos[0]))
 
 	delegationSC := loadSCAccount(args.UserAccountsDB, delegationAddr)
@@ -1509,7 +1534,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractShouldUnStakeFromAdditional
 	t.Parallel()
 
 	args, scContainer := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
-	args.StakingV2EnableEpoch = 0
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
 	s, _ := NewSystemSCProcessor(args)
 
 	delegationAddr := make([]byte, len(vm.FirstDelegationSCAddress))
@@ -1542,25 +1567,25 @@ func TestSystemSCProcessor_ProcessSystemSmartContractShouldUnStakeFromAdditional
 	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey0"),
-		List:            string(core.EligibleList),
+		List:            string(common.EligibleList),
 		RewardAddress:   delegationAddr,
 		AccumulatedFees: big.NewInt(0),
 	})
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey1"),
-		List:            string(core.EligibleList),
+		List:            string(common.EligibleList),
 		RewardAddress:   delegationAddr,
 		AccumulatedFees: big.NewInt(0),
 	})
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey2"),
-		List:            string(core.EligibleList),
+		List:            string(common.EligibleList),
 		RewardAddress:   delegationAddr,
 		AccumulatedFees: big.NewInt(0),
 	})
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey3"),
-		List:            string(core.EligibleList),
+		List:            string(common.EligibleList),
 		RewardAddress:   delegationAddr,
 		AccumulatedFees: big.NewInt(0),
 	})
@@ -1574,7 +1599,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractShouldUnStakeFromAdditional
 	assert.Nil(t, err)
 
 	for _, vInfo := range validatorInfos[0] {
-		assert.Equal(t, string(core.EligibleList), vInfo.List)
+		assert.Equal(t, string(common.EligibleList), vInfo.List)
 	}
 
 	delegationSC := loadSCAccount(args.UserAccountsDB, delegationAddr)
@@ -1596,7 +1621,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeFromAdditionalQueue(
 	t.Parallel()
 
 	args, scContainer := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
-	args.StakingV2EnableEpoch = 0
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
 	s, _ := NewSystemSCProcessor(args)
 
 	delegationAddr := make([]byte, len(vm.FirstDelegationSCAddress))
@@ -1636,25 +1661,25 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeFromAdditionalQueue(
 	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey0"),
-		List:            string(core.EligibleList),
+		List:            string(common.EligibleList),
 		RewardAddress:   delegationAddr,
 		AccumulatedFees: big.NewInt(0),
 	})
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey1"),
-		List:            string(core.EligibleList),
+		List:            string(common.EligibleList),
 		RewardAddress:   delegationAddr,
 		AccumulatedFees: big.NewInt(0),
 	})
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey2"),
-		List:            string(core.EligibleList),
+		List:            string(common.EligibleList),
 		RewardAddress:   delegationAddr,
 		AccumulatedFees: big.NewInt(0),
 	})
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey3"),
-		List:            string(core.EligibleList),
+		List:            string(common.EligibleList),
 		RewardAddress:   delegationAddr,
 		AccumulatedFees: big.NewInt(0),
 	})
@@ -1693,7 +1718,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractWrongValidatorInfoShouldBeC
 	t.Parallel()
 
 	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
-	args.StakingV2EnableEpoch = 0
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
 	s, _ := NewSystemSCProcessor(args)
 
 	prepareStakingContractWithData(
@@ -1732,7 +1757,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractWrongValidatorInfoShouldBeC
 	})
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("oneAddress1"),
-		List:            string(core.EligibleList),
+		List:            string(common.EligibleList),
 		RewardAddress:   []byte("oneAddress1"),
 		AccumulatedFees: big.NewInt(0),
 	})
@@ -1747,7 +1772,7 @@ func TestSystemSCProcessor_TogglePauseUnPause(t *testing.T) {
 	t.Parallel()
 
 	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
-	args.StakingV2EnableEpoch = 0
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
 	s, _ := NewSystemSCProcessor(args)
 
 	err := s.ToggleUnStakeUnBond(true)
@@ -1790,7 +1815,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractJailAndUnStake(t *testing.T
 	t.Parallel()
 
 	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
-	args.StakingV2EnableEpoch = 0
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
 	s, _ := NewSystemSCProcessor(args)
 
 	addStakedData(args.UserAccountsDB, []byte("stakedPubKey0"), []byte("ownerKey"), args.Marshalizer)
@@ -1804,25 +1829,25 @@ func TestSystemSCProcessor_ProcessSystemSmartContractJailAndUnStake(t *testing.T
 	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey0"),
-		List:            string(core.EligibleList),
+		List:            string(common.EligibleList),
 		RewardAddress:   []byte("ownerKey"),
 		AccumulatedFees: big.NewInt(0),
 	})
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey1"),
-		List:            string(core.EligibleList),
+		List:            string(common.EligibleList),
 		RewardAddress:   []byte("ownerKey"),
 		AccumulatedFees: big.NewInt(0),
 	})
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey2"),
-		List:            string(core.EligibleList),
+		List:            string(common.EligibleList),
 		RewardAddress:   []byte("ownerKey"),
 		AccumulatedFees: big.NewInt(0),
 	})
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey3"),
-		List:            string(core.EligibleList),
+		List:            string(common.EligibleList),
 		RewardAddress:   []byte("ownerKey"),
 		AccumulatedFees: big.NewInt(0),
 	})
@@ -1841,8 +1866,8 @@ func TestSystemSCProcessor_ProcessSystemSmartContractJailAndUnStake(t *testing.T
 
 	assert.Equal(t, 4, len(validatorInfos[0]))
 	for _, vInfo := range validatorInfos[0] {
-		assert.Equal(t, vInfo.List, string(core.LeavingList))
+		assert.Equal(t, vInfo.List, string(common.LeavingList))
 		peerAcc, _ := s.getPeerAccount(vInfo.PublicKey)
-		assert.Equal(t, peerAcc.GetList(), string(core.LeavingList))
+		assert.Equal(t, peerAcc.GetList(), string(common.LeavingList))
 	}
 }

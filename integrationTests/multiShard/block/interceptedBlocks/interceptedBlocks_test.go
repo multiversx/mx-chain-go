@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	testBlock "github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/block"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -110,10 +110,6 @@ func TestMetaHeadersAreRequsted(t *testing.T) {
 		}
 	}()
 
-	for _, n := range nodes {
-		_ = n.Messenger.Bootstrap()
-	}
-
 	fmt.Println("Delaying for nodes p2p bootstrap...")
 	time.Sleep(integrationTests.P2pBootstrapDelay)
 
@@ -199,10 +195,6 @@ func TestMetaHeadersAreRequestedByAMetachainNode(t *testing.T) {
 			_ = n.Messenger.Close()
 		}
 	}()
-
-	for _, n := range nodes {
-		_ = n.Messenger.Bootstrap()
-	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
 	time.Sleep(integrationTests.P2pBootstrapDelay)

@@ -6,13 +6,14 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/state"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,7 +24,7 @@ func TestNewVMContext_NilBlockChainHook(t *testing.T) {
 		nil,
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	assert.Nil(t, vmCtx)
@@ -37,7 +38,7 @@ func TestNewVMContext_NilCryptoHook(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		nil,
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	assert.Nil(t, vmCtx)
@@ -51,7 +52,7 @@ func TestNewVMContext(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	assert.NotNil(t, vmCtx)
 	assert.Nil(t, err)
@@ -64,7 +65,7 @@ func TestVmContext_IsInterfaceNil(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	assert.False(t, check.IfNil(vmCtx))
 
@@ -79,7 +80,7 @@ func TestVmContext_CleanCache(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	vmCtx.CleanCache()
@@ -108,7 +109,7 @@ func TestVmContext_GetBalance(t *testing.T) {
 		blockChainHook,
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	res := vmCtx.GetBalance(addr)
@@ -122,7 +123,7 @@ func TestVmContext_CreateVMOutput_Empty(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	vmOutput := vmCtx.CreateVMOutput()
@@ -143,7 +144,7 @@ func TestVmContext_SetStorage(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	addr := "smartcontract"
@@ -169,7 +170,7 @@ func TestVmContext_Transfer(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	destination := []byte("dest")
@@ -197,8 +198,8 @@ func TestVmContext_IsValidatorNonexistentAccountShouldRetFalse(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{
-			GetExistingAccountCalled: func(address []byte) (state.AccountHandler, error) {
+		&stateMock.AccountsStub{
+			GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 				return nil, errors.New("not found")
 			},
 		},
@@ -214,8 +215,8 @@ func TestVmContext_IsValidatorInvalidAccountTypeShouldRetFalse(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{
-			GetExistingAccountCalled: func(address []byte) (state.AccountHandler, error) {
+		&stateMock.AccountsStub{
+			GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 				return state.NewEmptyUserAccount(), nil
 			},
 		},
@@ -228,29 +229,29 @@ func TestVmContext_IsValidator(t *testing.T) {
 	t.Parallel()
 
 	type testIO struct {
-		peerType       core.PeerType
+		peerType       common.PeerType
 		expectedResult bool
 	}
 
 	testData := []testIO{
 		{
-			peerType:       core.LeavingList,
+			peerType:       common.LeavingList,
 			expectedResult: true,
 		},
 		{
-			peerType:       core.EligibleList,
+			peerType:       common.EligibleList,
 			expectedResult: true,
 		},
 		{
-			peerType:       core.WaitingList,
+			peerType:       common.WaitingList,
 			expectedResult: true,
 		},
 		{
-			peerType:       core.NewList,
+			peerType:       common.NewList,
 			expectedResult: false,
 		},
 		{
-			peerType:       core.JailedList,
+			peerType:       common.JailedList,
 			expectedResult: false,
 		},
 	}
@@ -261,8 +262,8 @@ func TestVmContext_IsValidator(t *testing.T) {
 			&mock.BlockChainHookStub{},
 			hooks.NewVMCryptoHook(),
 			&mock.ArgumentParserMock{},
-			&mock.AccountsStub{
-				GetExistingAccountCalled: func(address []byte) (state.AccountHandler, error) {
+			&stateMock.AccountsStub{
+				GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 					assert.Equal(t, blsKey, address)
 
 					acnt := state.NewEmptyPeerAccount()
@@ -275,4 +276,21 @@ func TestVmContext_IsValidator(t *testing.T) {
 
 		assert.Equal(t, tio.expectedResult, vmCtx.IsValidator(blsKey))
 	}
+}
+
+func TestVmContext_CleanStorage(t *testing.T) {
+	t.Parallel()
+
+	vmCtx, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&stateMock.AccountsStub{},
+		&mock.RaterMock{})
+
+	vmCtx.CleanCache()
+	vmCtx.storageUpdate["address"] = make(map[string][]byte)
+	vmCtx.storageUpdate["address"]["key"] = []byte("someData")
+	vmCtx.CleanStorageUpdates()
+	assert.Equal(t, 0, len(vmCtx.storageUpdate))
 }

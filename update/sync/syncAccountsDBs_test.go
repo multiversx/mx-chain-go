@@ -3,9 +3,11 @@ package sync
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/state"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/assert"
@@ -37,18 +39,18 @@ func TestNewSyncState(t *testing.T) {
 		ActiveAccountsDBs: make(map[state.AccountsDbIdentifier]state.AccountsAdapter),
 	}
 
-	args.ActiveAccountsDBs[state.UserAccountsState] = &mock.AccountsStub{
-		RecreateAllTriesCalled: func(rootHash []byte) (map[string]data.Trie, error) {
-			tries := make(map[string]data.Trie)
-			tries[string(rootHash)] = &mock.TrieStub{}
+	args.ActiveAccountsDBs[state.UserAccountsState] = &stateMock.AccountsStub{
+		RecreateAllTriesCalled: func(rootHash []byte) (map[string]common.Trie, error) {
+			tries := make(map[string]common.Trie)
+			tries[string(rootHash)] = &trieMock.TrieStub{}
 			return tries, nil
 		},
 	}
 
-	args.ActiveAccountsDBs[state.PeerAccountsState] = &mock.AccountsStub{
-		RecreateAllTriesCalled: func(rootHash []byte) (map[string]data.Trie, error) {
-			tries := make(map[string]data.Trie)
-			tries[string(rootHash)] = &mock.TrieStub{}
+	args.ActiveAccountsDBs[state.PeerAccountsState] = &stateMock.AccountsStub{
+		RecreateAllTriesCalled: func(rootHash []byte) (map[string]common.Trie, error) {
+			tries := make(map[string]common.Trie)
+			tries[string(rootHash)] = &trieMock.TrieStub{}
 			return tries, nil
 		},
 	}

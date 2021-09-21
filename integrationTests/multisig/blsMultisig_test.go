@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
-	llsig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/multisig"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/multisig"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
+	"github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/ElrondNetwork/elrond-go-crypto/signing"
+	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
+	llsig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/multisig"
+	"github.com/ElrondNetwork/elrond-go-crypto/signing/multisig"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -93,12 +93,7 @@ func verifySigAllSignersBls(
 			return err
 		}
 
-		muSigBls, ok := muSig.(crypto.MultiSigner)
-		if !ok {
-			return crypto.ErrInvalidSigner
-		}
-
-		multiSigners[i] = muSigBls
+		multiSigners[i] = muSig
 		err = multiSigners[i].SetAggregatedSig(signature)
 		if err != nil {
 			return err
@@ -158,7 +153,7 @@ func TestMultiSig_Bls(t *testing.T) {
 	}
 
 	hashSize := 16
-	hasher := &blake2b.Blake2b{HashSize: hashSize}
+	hasher, _ := blake2b.NewBlake2bWithSize(hashSize)
 	suite := mcl.NewSuiteBLS12()
 
 	pubKeysStr, multiSigners := createMultiSignersBls(numOfSigners, consensusGroupSize, hasher, suite)

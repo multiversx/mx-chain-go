@@ -5,11 +5,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus/broadcast"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -24,6 +24,7 @@ func createDefaultMetaChainArgs() broadcast.MetaChainMessengerArgs {
 	headersSubscriber := &mock.HeadersCacherStub{}
 	interceptorsContainer := createInterceptorContainer()
 	peerSigHandler := &mock.PeerSignatureHandler{Signer: singleSignerMock}
+	alarmScheduler := &mock.AlarmSchedulerStub{}
 
 	return broadcast.MetaChainMessengerArgs{
 		CommonMessengerArgs: broadcast.CommonMessengerArgs{
@@ -37,6 +38,7 @@ func createDefaultMetaChainArgs() broadcast.MetaChainMessengerArgs {
 			InterceptorsContainer:      interceptorsContainer,
 			MaxValidatorDelayCacheSize: 2,
 			MaxDelayCacheSize:          2,
+			AlarmScheduler:             alarmScheduler,
 		},
 	}
 }
@@ -153,7 +155,7 @@ func TestMetaChainMessenger_BroadcastHeaderNilHeaderShouldErr(t *testing.T) {
 }
 
 func TestMetaChainMessenger_BroadcastHeaderOkHeaderShouldWork(t *testing.T) {
-	channelCalled := make(chan bool)
+	channelCalled := make(chan bool, 1)
 
 	messenger := &mock.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
@@ -203,8 +205,8 @@ func TestMetaChainMessenger_BroadcastBlockDataLeader(t *testing.T) {
 
 	err := mcm.BroadcastBlockDataLeader(nil, miniBlocks, transactions)
 	require.Nil(t, err)
-	sleepTime := core.ExtraDelayBetweenBroadcastMbsAndTxs +
-		core.ExtraDelayForBroadcastBlockInfo +
+	sleepTime := common.ExtraDelayBetweenBroadcastMbsAndTxs +
+		common.ExtraDelayForBroadcastBlockInfo +
 		time.Millisecond*100
 	time.Sleep(sleepTime)
 

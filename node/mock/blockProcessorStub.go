@@ -4,7 +4,7 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 )
 
@@ -99,6 +99,11 @@ func (bps *BlockProcessorStub) CreateNewHeader(round uint64, nonce uint64) data.
 
 // ApplyProcessedMiniBlocks -
 func (bps *BlockProcessorStub) ApplyProcessedMiniBlocks(_ *processedMb.ProcessedMiniBlockTracker) {
+}
+
+// Close -
+func (bps *BlockProcessorStub) Close() error {
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

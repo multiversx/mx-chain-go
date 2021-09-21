@@ -3,9 +3,9 @@ package mock
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/vm"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // SystemEIStub -
@@ -35,7 +35,16 @@ type SystemEIStub struct {
 	SendGlobalSettingToAllCalled        func(sender []byte, input []byte)
 	GetContractCalled                   func(address []byte) (vm.SystemSmartContract, error)
 	GasLeftCalled                       func() uint64
+	CleanStorageUpdatesCalled           func()
 	ReturnMessage                       string
+	AddLogEntryCalled                   func(entry *vmcommon.LogEntry)
+}
+
+// AddLogEntry -
+func (s *SystemEIStub) AddLogEntry(entry *vmcommon.LogEntry) {
+	if s.AddLogEntryCalled != nil {
+		s.AddLogEntryCalled(entry)
+	}
 }
 
 // GasLeft -
@@ -256,6 +265,13 @@ func (s *SystemEIStub) CreateVMOutput() *vmcommon.VMOutput {
 func (s *SystemEIStub) CleanCache() {
 	if s.CleanCacheCalled != nil {
 		s.CleanCacheCalled()
+	}
+}
+
+// CleanStorageUpdates -
+func (s *SystemEIStub) CleanStorageUpdates() {
+	if s.CleanStorageUpdatesCalled != nil {
+		s.CleanStorageUpdatesCalled()
 	}
 }
 

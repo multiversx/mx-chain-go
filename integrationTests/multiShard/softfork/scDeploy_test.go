@@ -7,13 +7,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-crypto"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -31,25 +32,26 @@ func TestScDeploy(t *testing.T) {
 	penalizedTooMuchGasEnableEpoch := uint32(0)
 	roundsPerEpoch := uint64(10)
 
-	shardNode := integrationTests.NewTestProcessorNodeSoftFork(
+	enableEpochs := config.EnableEpochs{
+		BuiltInFunctionsEnableEpoch:    builtinEnableEpoch,
+		SCDeployEnableEpoch:            deployEnableEpoch,
+		RelayedTransactionsEnableEpoch: relayedTxEnableEpoch,
+		PenalizedTooMuchGasEnableEpoch: penalizedTooMuchGasEnableEpoch,
+	}
+
+	shardNode := integrationTests.NewTestProcessorNodeWithEnableEpochs(
 		1,
 		0,
 		0,
-		builtinEnableEpoch,
-		deployEnableEpoch,
-		relayedTxEnableEpoch,
-		penalizedTooMuchGasEnableEpoch,
+		enableEpochs,
 	)
 	shardNode.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
 
-	metaNode := integrationTests.NewTestProcessorNodeSoftFork(
+	metaNode := integrationTests.NewTestProcessorNodeWithEnableEpochs(
 		1,
 		core.MetachainShardId,
 		0,
-		builtinEnableEpoch,
-		deployEnableEpoch,
-		relayedTxEnableEpoch,
-		penalizedTooMuchGasEnableEpoch,
+		enableEpochs,
 	)
 	metaNode.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
 
@@ -70,10 +72,6 @@ func TestScDeploy(t *testing.T) {
 			_ = n.Messenger.Close()
 		}
 	}()
-
-	for _, n := range nodes {
-		_ = n.Messenger.Bootstrap()
-	}
 
 	log.Info("delaying for nodes p2p bootstrap...")
 	time.Sleep(integrationTests.P2pBootstrapDelay)

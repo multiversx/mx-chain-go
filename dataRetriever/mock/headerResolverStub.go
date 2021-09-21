@@ -1,7 +1,7 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/pkg/errors"
@@ -19,6 +19,7 @@ type HeaderResolverStub struct {
 	SetNumPeersToQueryCalled      func(intra int, cross int)
 	NumPeersToQueryCalled         func() (int, int)
 	SetResolverDebugHandlerCalled func(handler dataRetriever.ResolverDebugHandler) error
+	CloseCalled                   func() error
 }
 
 // SetNumPeersToQuery -
@@ -84,6 +85,14 @@ func (hrs *HeaderResolverStub) RequestDataFromNonce(nonce uint64, epoch uint32) 
 func (hrs *HeaderResolverStub) SetResolverDebugHandler(handler dataRetriever.ResolverDebugHandler) error {
 	if hrs.SetResolverDebugHandlerCalled != nil {
 		return hrs.SetResolverDebugHandlerCalled(handler)
+	}
+
+	return nil
+}
+
+func (hrs *HeaderResolverStub) Close() error {
+	if hrs.CloseCalled != nil {
+		return hrs.CloseCalled()
 	}
 
 	return nil

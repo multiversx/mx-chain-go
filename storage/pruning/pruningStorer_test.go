@@ -9,20 +9,21 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/leveldb"
-	"github.com/stretchr/testify/require"
-
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/factory/directoryhandler"
+	"github.com/ElrondNetwork/elrond-go/storage/leveldb"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/mock"
 	"github.com/ElrondNetwork/elrond-go/storage/pruning"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func getDummyConfig() (storageUnit.CacheConfig, storageUnit.DBConfig, storageUnit.BloomConfig) {
@@ -44,25 +45,37 @@ func getDummyConfig() (storageUnit.CacheConfig, storageUnit.DBConfig, storageUni
 
 func getDefaultArgs() *pruning.StorerArgs {
 	cacheConf, dbConf, blConf := getDummyConfig()
+
+	lockPersisterMap := sync.Mutex{}
+	persistersMap := make(map[string]storage.Persister)
 	persisterFactory := &mock.PersisterFactoryStub{
 		CreateCalled: func(path string) (storage.Persister, error) {
-			return memorydb.New(), nil
+			lockPersisterMap.Lock()
+			defer lockPersisterMap.Unlock()
+
+			persister, exists := persistersMap[path]
+			if !exists {
+				persister = memorydb.New()
+				persistersMap[path] = persister
+			}
+
+			return persister, nil
 		},
 	}
 	return &pruning.StorerArgs{
-		PruningEnabled:        true,
-		Identifier:            "id",
-		CleanOldEpochsData:    false,
-		ShardCoordinator:      mock.NewShardCoordinatorMock(0, 2),
-		PathManager:           &mock.PathManagerStub{},
-		CacheConf:             cacheConf,
-		DbPath:                dbConf.FilePath,
-		PersisterFactory:      persisterFactory,
-		BloomFilterConf:       blConf,
-		NumOfEpochsToKeep:     2,
-		NumOfActivePersisters: 2,
-		Notifier:              &mock.EpochStartNotifierStub{},
-		MaxBatchSize:          10,
+		PruningEnabled:         true,
+		Identifier:             "id",
+		ShardCoordinator:       mock.NewShardCoordinatorMock(0, 2),
+		PathManager:            &testscommon.PathManagerStub{},
+		CacheConf:              cacheConf,
+		DbPath:                 dbConf.FilePath,
+		PersisterFactory:       persisterFactory,
+		BloomFilterConf:        blConf,
+		NumOfEpochsToKeep:      2,
+		NumOfActivePersisters:  2,
+		Notifier:               &mock.EpochStartNotifierStub{},
+		OldDataCleanerProvider: &testscommon.OldDataCleanerProviderStub{},
+		MaxBatchSize:           10,
 	}
 }
 
@@ -74,23 +87,23 @@ func getDefaultArgsSerialDB() *pruning.StorerArgs {
 			return leveldb.NewSerialDB(path, 1, 20, 10)
 		},
 	}
-	pathManager := &mock.PathManagerStub{PathForEpochCalled: func(shardId string, epoch uint32, identifier string) string {
+	pathManager := &testscommon.PathManagerStub{PathForEpochCalled: func(shardId string, epoch uint32, identifier string) string {
 		return fmt.Sprintf("TestOnly-Epoch_%d/Shard_%s/%s", epoch, shardId, identifier)
 	}}
 	return &pruning.StorerArgs{
-		PruningEnabled:        true,
-		Identifier:            "id",
-		CleanOldEpochsData:    false,
-		ShardCoordinator:      mock.NewShardCoordinatorMock(0, 2),
-		PathManager:           pathManager,
-		CacheConf:             cacheConf,
-		DbPath:                dbConf.FilePath,
-		PersisterFactory:      persisterFactory,
-		BloomFilterConf:       blConf,
-		NumOfEpochsToKeep:     3,
-		NumOfActivePersisters: 2,
-		Notifier:              &mock.EpochStartNotifierStub{},
-		MaxBatchSize:          20,
+		PruningEnabled:         true,
+		Identifier:             "id",
+		ShardCoordinator:       mock.NewShardCoordinatorMock(0, 2),
+		PathManager:            pathManager,
+		CacheConf:              cacheConf,
+		DbPath:                 dbConf.FilePath,
+		PersisterFactory:       persisterFactory,
+		BloomFilterConf:        blConf,
+		NumOfEpochsToKeep:      3,
+		NumOfActivePersisters:  2,
+		Notifier:               &mock.EpochStartNotifierStub{},
+		OldDataCleanerProvider: &testscommon.OldDataCleanerProviderStub{},
+		MaxBatchSize:           20,
 	}
 }
 
@@ -166,28 +179,6 @@ func TestNewPruningStorer_OkValsShouldWork(t *testing.T) {
 
 	args := getDefaultArgs()
 	ps, err := pruning.NewPruningStorer(args)
-
-	assert.NotNil(t, ps)
-	assert.Nil(t, err)
-	assert.False(t, ps.IsInterfaceNil())
-}
-
-func TestNewShardedPruningStorer_OkValsShouldWork(t *testing.T) {
-	t.Parallel()
-
-	shardId := uint32(7)
-	shardIdStr := fmt.Sprintf("%d", shardId)
-	args := getDefaultArgs()
-	args.PersisterFactory = &mock.PersisterFactoryStub{
-		CreateCalled: func(path string) (storage.Persister, error) {
-			if !strings.Contains(path, shardIdStr) {
-				assert.Fail(t, "path not set correctly")
-			}
-
-			return memorydb.New(), nil
-		},
-	}
-	ps, err := pruning.NewShardedPruningStorer(args, shardId)
 
 	assert.NotNil(t, ps)
 	assert.Nil(t, err)
@@ -337,57 +328,6 @@ func TestNewPruningStorer_Has_OnePersisterShouldWork(t *testing.T) {
 
 	wrongKey := []byte("wrong_key")
 	err = ps.Has(wrongKey)
-	assert.NotNil(t, err)
-}
-
-func TestNewPruningStorer_Has_MultiplePersistersShouldWork(t *testing.T) {
-	t.Parallel()
-
-	persistersByPath := make(map[string]storage.Persister)
-	persistersByPath["Epoch_0"] = memorydb.New()
-	args := getDefaultArgs()
-	args.DbPath = "Epoch_0"
-	args.PersisterFactory = &mock.PersisterFactoryStub{
-		// simulate an opening of an existing database from the file path by saving activePersisters in a map based on their path
-		CreateCalled: func(path string) (storage.Persister, error) {
-			if _, ok := persistersByPath[path]; ok {
-				return persistersByPath[path], nil
-			}
-			newPers := memorydb.New()
-			persistersByPath[path] = newPers
-
-			return newPers, nil
-		},
-	}
-	args.NumOfActivePersisters = 1
-	args.CleanOldEpochsData = true
-	args.NumOfEpochsToKeep = 2
-	ps, _ := pruning.NewPruningStorer(args)
-
-	testKey, testVal := []byte("key"), []byte("value")
-	err := ps.Put(testKey, testVal)
-	assert.Nil(t, err)
-
-	ps.ClearCache()
-	err = ps.Has(testKey)
-	assert.Nil(t, err)
-
-	_ = ps.ChangeEpochSimple(1)
-	ps.ClearCache()
-
-	// data should still be available in the closed persister
-	err = ps.HasInEpoch(testKey, 0)
-	assert.Nil(t, err)
-
-	// data should not be available when calling in another epoch
-	err = ps.HasInEpoch(testKey, 1)
-	assert.NotNil(t, err)
-
-	// after one more epoch change, the persister which holds the data should be removed and the key should not be available
-	_ = ps.ChangeEpochSimple(2)
-	ps.ClearCache()
-
-	err = ps.HasInEpoch(testKey, 0)
 	assert.NotNil(t, err)
 }
 
@@ -568,13 +508,13 @@ func TestNewPruningStorer_ChangeEpochConcurrentPut(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	defer func() {
-		dr := factory.NewDirectoryReader()
-		directories, err := dr.ListDirectoriesAsString(".")
-		assert.NoError(t, err)
+		dr := directoryhandler.NewDirectoryReader()
+		directories, errList := dr.ListDirectoriesAsString(".")
+		assert.NoError(t, errList)
 		for _, dir := range directories {
 			if strings.HasPrefix(dir, "TestOnly-") {
-				err = os.RemoveAll(dir)
-				assert.NoError(t, err)
+				errList = os.RemoveAll(dir)
+				assert.NoError(t, errList)
 			}
 		}
 	}()
@@ -599,7 +539,6 @@ func TestNewPruningStorer_ChangeEpochConcurrentPut(t *testing.T) {
 		for {
 			select {
 			case <-ctx.Done():
-				fmt.Println("destroy called")
 				_ = ps.DestroyUnit()
 				return
 			default:
@@ -869,21 +808,4 @@ func TestRegex(t *testing.T) {
 	for _, path := range testPaths {
 		assert.Equal(t, expectedRes, rg.ReplaceAllString(path, replacementEpoch))
 	}
-}
-
-func TestDirectories(t *testing.T) {
-	pathToCreate := "user-directory/go/src/workspace/db/Epoch_2/Shard_27"
-	pathParameter := pathToCreate + "/MiniBlock"
-	// should become user-directory/go/src/workspace/db
-
-	err := os.MkdirAll(pathToCreate, os.ModePerm)
-	assert.Nil(t, err)
-
-	pruning.RemoveDirectoryIfEmpty(pathParameter)
-
-	if _, err = os.Stat(pathParameter); !os.IsNotExist(err) {
-		assert.Fail(t, "directory should have been removed")
-	}
-
-	_ = os.RemoveAll("user-directory")
 }

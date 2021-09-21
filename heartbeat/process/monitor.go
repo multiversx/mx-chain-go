@@ -2,21 +2,22 @@ package process
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"sort"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 )
 
@@ -37,6 +38,7 @@ type ArgHeartbeatMonitor struct {
 	ValidatorPubkeyConverter           core.PubkeyConverter
 	HeartbeatRefreshIntervalInSec      uint32
 	HideInactiveValidatorIntervalInSec uint32
+	AppStatusHandler                   core.AppStatusHandler
 }
 
 // Monitor represents the heartbeat component that processes received heartbeat messages
@@ -45,7 +47,6 @@ type Monitor struct {
 	marshalizer                        marshal.Marshalizer
 	peerTypeProvider                   heartbeat.PeerTypeProviderHandler
 	mutHeartbeatMessages               sync.RWMutex
-	mutAppStatusHandler                sync.Mutex
 	heartbeatMessages                  map[string]*heartbeatMessageInfo
 	doubleSignerPeers                  map[string]process.TimeCacher
 	pubKeysMap                         map[uint32][]string
@@ -61,6 +62,7 @@ type Monitor struct {
 	validatorPubkeyConverter           core.PubkeyConverter
 	heartbeatRefreshIntervalInSec      uint32
 	hideInactiveValidatorIntervalInSec uint32
+	cancelFunc                         context.CancelFunc
 }
 
 // NewMonitor returns a new monitor instance
@@ -92,6 +94,9 @@ func NewMonitor(arg ArgHeartbeatMonitor) (*Monitor, error) {
 	if check.IfNil(arg.ValidatorPubkeyConverter) {
 		return nil, heartbeat.ErrNilPubkeyConverter
 	}
+	if check.IfNil(arg.AppStatusHandler) {
+		return nil, heartbeat.ErrNilAppStatusHandler
+	}
 	if arg.HeartbeatRefreshIntervalInSec == 0 {
 		return nil, heartbeat.ErrZeroHeartbeatRefreshIntervalInSec
 	}
@@ -99,12 +104,14 @@ func NewMonitor(arg ArgHeartbeatMonitor) (*Monitor, error) {
 		return nil, heartbeat.ErrZeroHideInactiveValidatorIntervalInSec
 	}
 
+	ctx, cancelFunc := context.WithCancel(context.Background())
+
 	mon := &Monitor{
 		marshalizer:                        arg.Marshalizer,
 		heartbeatMessages:                  make(map[string]*heartbeatMessageInfo),
 		peerTypeProvider:                   arg.PeerTypeProvider,
 		maxDurationPeerUnresponsive:        arg.MaxDurationPeerUnresponsive,
-		appStatusHandler:                   &statusHandler.NilStatusHandler{},
+		appStatusHandler:                   arg.AppStatusHandler,
 		genesisTime:                        arg.GenesisTime,
 		messageHandler:                     arg.MessageHandler,
 		storer:                             arg.Storer,
@@ -115,6 +122,7 @@ func NewMonitor(arg ArgHeartbeatMonitor) (*Monitor, error) {
 		heartbeatRefreshIntervalInSec:      arg.HeartbeatRefreshIntervalInSec,
 		hideInactiveValidatorIntervalInSec: arg.HideInactiveValidatorIntervalInSec,
 		doubleSignerPeers:                  make(map[string]process.TimeCacher),
+		cancelFunc:                         cancelFunc,
 	}
 
 	err := mon.storer.UpdateGenesisTime(arg.GenesisTime)
@@ -132,7 +140,7 @@ func NewMonitor(arg ArgHeartbeatMonitor) (*Monitor, error) {
 		log.Debug("heartbeat can't load public keys from storage", "error", err.Error())
 	}
 
-	mon.startValidatorProcessing()
+	mon.startValidatorProcessing(ctx)
 
 	return mon, nil
 }
@@ -236,18 +244,6 @@ func (m *Monitor) loadHeartbeatsFromStorer(pubKey string) (*heartbeatMessageInfo
 	return receivedHbmi, nil
 }
 
-// SetAppStatusHandler will set the AppStatusHandler which will be used for monitoring
-func (m *Monitor) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if check.IfNil(ash) {
-		return heartbeat.ErrNilAppStatusHandler
-	}
-
-	m.mutAppStatusHandler.Lock()
-	m.appStatusHandler = ash
-	m.mutAppStatusHandler.Unlock()
-	return nil
-}
-
 // ProcessReceivedMessage satisfies the p2p.MessageProcessor interface so it can be called
 // by the p2p subsystem each time a new heartbeat message arrives
 func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
@@ -262,7 +258,7 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPe
 	if err != nil {
 		return err
 	}
-	err = m.antifloodHandler.CanProcessMessagesOnTopic(fromConnectedPeer, core.HeartbeatTopic, 1, uint64(len(message.Data())), message.SeqNo())
+	err = m.antifloodHandler.CanProcessMessagesOnTopic(fromConnectedPeer, common.HeartbeatTopic, 1, uint64(len(message.Data())), message.SeqNo())
 	if err != nil {
 		return err
 	}
@@ -271,10 +267,9 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPe
 	if err != nil {
 		//this situation is so severe that we have to black list both the message originator and the connected peer
 		//that disseminated this message.
-
 		reason := "blacklisted due to invalid heartbeat message"
-		m.antifloodHandler.BlacklistPeer(message.Peer(), reason, core.InvalidMessageBlacklistDuration)
-		m.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, core.InvalidMessageBlacklistDuration)
+		m.antifloodHandler.BlacklistPeer(message.Peer(), reason, common.InvalidMessageBlacklistDuration)
+		m.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, common.InvalidMessageBlacklistDuration)
 
 		return err
 	}
@@ -288,8 +283,8 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPe
 		//this situation is so severe that we have to black list both the message originator and the connected peer
 		//that disseminated this message.
 		reason := "blacklisted due to inconsistent heartbeat message"
-		m.antifloodHandler.BlacklistPeer(message.Peer(), reason, core.InvalidMessageBlacklistDuration)
-		m.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, core.InvalidMessageBlacklistDuration)
+		m.antifloodHandler.BlacklistPeer(message.Peer(), reason, common.InvalidMessageBlacklistDuration)
+		m.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, common.InvalidMessageBlacklistDuration)
 
 		return fmt.Errorf("%w heartbeat pid %s, message pid %s",
 			heartbeat.ErrHeartbeatPidMismatch,
@@ -336,6 +331,8 @@ func (m *Monitor) addHeartbeatMessageToMap(hb *data.Heartbeat) {
 		peerType,
 		hb.Nonce,
 		numInstances,
+		hb.PeerSubType,
+		core.PeerID(hb.Pid).Pretty(),
 	)
 	hbDTO := m.convertToExportedStruct(hbmi)
 
@@ -372,7 +369,7 @@ func (m *Monitor) computePeerTypeAndShardID(pubkey []byte) (string, uint32) {
 	peerType, shardID, err := m.peerTypeProvider.ComputeForPubKey(pubkey)
 	if err != nil {
 		log.Warn("monitor: compute peer type and shard", "error", err)
-		return string(core.ObserverList), 0
+		return string(common.ObserverList), 0
 	}
 
 	return string(peerType), shardID
@@ -404,10 +401,8 @@ func (m *Monitor) computeAllHeartbeatMessages() {
 	m.mutHeartbeatMessages.Unlock()
 	go m.SaveMultipleHeartbeatMessageInfos(hbChangedStateToInactiveMap)
 
-	m.mutAppStatusHandler.Lock()
-	m.appStatusHandler.SetUInt64Value(core.MetricLiveValidatorNodes, uint64(counterActiveValidators))
-	m.appStatusHandler.SetUInt64Value(core.MetricConnectedNodes, uint64(counterConnectedNodes))
-	m.mutAppStatusHandler.Unlock()
+	m.appStatusHandler.SetUInt64Value(common.MetricLiveValidatorNodes, uint64(counterActiveValidators))
+	m.appStatusHandler.SetUInt64Value(common.MetricConnectedNodes, uint64(counterConnectedNodes))
 }
 
 func (m *Monitor) getValsForUpdate(hbmiKey string, hbmi *heartbeatMessageInfo) (bool, uint32, string) {
@@ -479,6 +474,8 @@ func (m *Monitor) GetHeartbeats() []data.PubKeyHeartbeat {
 			PeerType:        v.peerType,
 			Nonce:           v.nonce,
 			NumInstances:    v.numInstances,
+			PeerSubType:     v.peerSubType,
+			PidString:       v.pidString,
 		}
 		v.updateMutex.RUnlock()
 		status = append(status, tmp)
@@ -494,8 +491,8 @@ func (m *Monitor) GetHeartbeats() []data.PubKeyHeartbeat {
 
 func (m *Monitor) shouldSkipValidator(v *heartbeatMessageInfo) bool {
 	isInactiveObserver := !v.GetIsActive() &&
-		(v.peerType != string(core.EligibleList) &&
-			v.peerType != string(core.WaitingList))
+		(v.peerType != string(common.EligibleList) &&
+			v.peerType != string(common.WaitingList))
 	if isInactiveObserver {
 		lastInactiveInterval := m.timer.Now().Sub(v.timeStamp)
 		if lastInactiveInterval.Seconds() > float64(m.hideInactiveValidatorIntervalInSec) {
@@ -504,6 +501,13 @@ func (m *Monitor) shouldSkipValidator(v *heartbeatMessageInfo) bool {
 	}
 
 	return false
+}
+
+// Close closes all underlying components
+func (m *Monitor) Close() error {
+	m.cancelFunc()
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
@@ -524,6 +528,8 @@ func (m *Monitor) convertToExportedStruct(v *heartbeatMessageInfo) data.Heartbea
 		PeerType:        v.peerType,
 		Nonce:           v.nonce,
 		NumInstances:    v.numInstances,
+		PeerSubType:     v.peerSubType,
+		PidString:       v.pidString,
 	}
 
 	ret.TimeStamp = v.timeStamp.UnixNano()
@@ -548,6 +554,8 @@ func (m *Monitor) convertFromExportedStruct(hbDTO data.HeartbeatDTO, maxDuration
 		peerType:                    hbDTO.PeerType,
 		nonce:                       hbDTO.Nonce,
 		numInstances:                hbDTO.NumInstances,
+		peerSubType:                 hbDTO.PeerSubType,
+		pidString:                   hbDTO.PidString,
 	}
 
 	hbmi.maxInactiveTime = time.Duration(hbDTO.MaxInactiveTime)
@@ -561,13 +569,18 @@ func (m *Monitor) convertFromExportedStruct(hbDTO data.HeartbeatDTO, maxDuration
 }
 
 // startValidatorProcessing will start the updating of the information about the nodes
-func (m *Monitor) startValidatorProcessing() {
+func (m *Monitor) startValidatorProcessing(ctx context.Context) {
 	go func() {
 		refreshInterval := time.Duration(m.heartbeatRefreshIntervalInSec) * time.Second
 
 		for {
-			m.refreshHeartbeatMessageInfo()
-			time.Sleep(refreshInterval)
+			select {
+			case <-ctx.Done():
+				log.Debug("Monitor.startValidatorProcessing go routine is stopping...")
+				return
+			case <-time.After(refreshInterval):
+				m.refreshHeartbeatMessageInfo()
+			}
 		}
 	}()
 }

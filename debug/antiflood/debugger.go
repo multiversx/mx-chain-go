@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
@@ -150,10 +150,11 @@ func (d *debugger) printContinuously(ctx context.Context) {
 		select {
 		case <-time.After(d.intervalAutoPrint):
 		case <-ctx.Done():
+			log.Debug("antiflood debugger printContinuously go routine is stopping...")
 			return
 		}
 
-		events := []string{"Antiflood events:"}
+		events := []string{"antiflood events:"}
 
 		d.mut.Lock()
 		events = append(events, d.getStringEvents()...)

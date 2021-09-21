@@ -6,13 +6,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-crypto"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/block"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -43,7 +43,7 @@ func TestExecutingTransactionsFromRewardsFundsCrossShard(t *testing.T) {
 		closeNodes(nodesMap)
 	}()
 
-	p2pBootstrapNodes(nodesMap)
+	integrationTests.BootstrapDelay()
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
 	time.Sleep(integrationTests.P2pBootstrapDelay)
@@ -159,15 +159,6 @@ func closeNodes(nodesMap map[uint32][]*integrationTests.TestProcessorNode) {
 	for _, shards := range nodesMap {
 		for _, n := range shards {
 			_ = n.Messenger.Close()
-		}
-	}
-}
-
-//nolint
-func p2pBootstrapNodes(nodesMap map[uint32][]*integrationTests.TestProcessorNode) {
-	for _, shards := range nodesMap {
-		for _, n := range shards {
-			_ = n.Messenger.Bootstrap()
 		}
 	}
 }

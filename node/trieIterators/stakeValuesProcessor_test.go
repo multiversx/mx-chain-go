@@ -6,24 +6,26 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/keyValStorage"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/api"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/keyValStorage"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/state"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
 
 func createAccountsWrapper() *AccountsWrapper {
 	return &AccountsWrapper{
 		Mutex:           &sync.Mutex{},
-		AccountsAdapter: &mock.AccountsStub{},
+		AccountsAdapter: &stateMock.AccountsStub{},
 	}
 }
 
@@ -116,11 +118,11 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetAccount(t *testi
 
 	expectedErr := errors.New("expected error")
 	arg := createMockArgs()
-	arg.Accounts.AccountsAdapter = &mock.AccountsStub{
+	arg.Accounts.AccountsAdapter = &stateMock.AccountsStub{
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
 		},
-		GetExistingAccountCalled: func(addressContainer []byte) (state.AccountHandler, error) {
+		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 			return nil, expectedErr
 		},
 	}
@@ -157,7 +159,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotRecreateTree(t *tes
 
 	expectedErr := errors.New("expected error")
 	arg := createMockArgs()
-	arg.Accounts.AccountsAdapter = &mock.AccountsStub{
+	arg.Accounts.AccountsAdapter = &stateMock.AccountsStub{
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return expectedErr
 		},
@@ -180,8 +182,8 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotCastAccount(t *test
 	t.Parallel()
 
 	arg := createMockArgs()
-	arg.Accounts.AccountsAdapter = &mock.AccountsStub{
-		GetExistingAccountCalled: func(addressContainer []byte) (state.AccountHandler, error) {
+	arg.Accounts.AccountsAdapter = &stateMock.AccountsStub{
+		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 			return nil, nil
 		},
 		RecreateTrieCalled: func(rootHash []byte) error {
@@ -205,15 +207,15 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetRootHash(t *test
 
 	expectedErr := errors.New("expected error")
 	acc, _ := state.NewUserAccount([]byte("newaddress"))
-	acc.SetDataTrie(&mock.TrieStub{
+	acc.SetDataTrie(&trieMock.TrieStub{
 		RootCalled: func() ([]byte, error) {
 			return nil, expectedErr
 		},
 	})
 
 	arg := createMockArgs()
-	arg.Accounts.AccountsAdapter = &mock.AccountsStub{
-		GetExistingAccountCalled: func(addressContainer []byte) (state.AccountHandler, error) {
+	arg.Accounts.AccountsAdapter = &stateMock.AccountsStub{
+		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 			return acc, nil
 		},
 		RecreateTrieCalled: func(rootHash []byte) error {
@@ -237,15 +239,18 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetAllLeaves(t *tes
 
 	expectedErr := errors.New("expected error")
 	acc, _ := state.NewUserAccount([]byte("newaddress"))
-	acc.SetDataTrie(&mock.TrieStub{
+	acc.SetDataTrie(&trieMock.TrieStub{
 		GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
 			return nil, expectedErr
+		},
+		RootCalled: func() ([]byte, error) {
+			return nil, nil
 		},
 	})
 
 	arg := createMockArgs()
-	arg.Accounts.AccountsAdapter = &mock.AccountsStub{
-		GetExistingAccountCalled: func(addressContainer []byte) (state.AccountHandler, error) {
+	arg.Accounts.AccountsAdapter = &stateMock.AccountsStub{
+		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 			return acc, nil
 		},
 		RecreateTrieCalled: func(rootHash []byte) error {
@@ -284,7 +289,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue(t *testing.T) {
 	leafKey5 := "0123456780"
 	leafKey6 := "0123456788"
 	acc, _ := state.NewUserAccount([]byte("newaddress"))
-	acc.SetDataTrie(&mock.TrieStub{
+	acc.SetDataTrie(&trieMock.TrieStub{
 		RootCalled: func() ([]byte, error) {
 			return rootHash, nil
 		},
@@ -319,8 +324,8 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue(t *testing.T) {
 
 	expectedErr := errors.New("expected error")
 	arg := createMockArgs()
-	arg.Accounts.AccountsAdapter = &mock.AccountsStub{
-		GetExistingAccountCalled: func(addressContainer []byte) (state.AccountHandler, error) {
+	arg.Accounts.AccountsAdapter = &stateMock.AccountsStub{
+		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 			return acc, nil
 		},
 		RecreateTrieCalled: func(rootHash []byte) error {

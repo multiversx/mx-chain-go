@@ -1,8 +1,8 @@
 package containers
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -18,11 +18,11 @@ type resolversFinder struct {
 
 // NewResolversFinder creates a new resolversFinder object
 func NewResolversFinder(container dataRetriever.ResolversContainer, coordinator sharding.Coordinator) (*resolversFinder, error) {
-	if container == nil || container.IsInterfaceNil() {
+	if check.IfNil(container) {
 		return nil, dataRetriever.ErrNilResolverContainer
 	}
 
-	if coordinator == nil || coordinator.IsInterfaceNil() {
+	if check.IfNil(coordinator) {
 		return nil, dataRetriever.ErrNilShardCoordinator
 	}
 

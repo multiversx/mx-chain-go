@@ -3,8 +3,8 @@ package mock
 import (
 	"crypto/rand"
 
-	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go-crypto"
 )
 
 // PublicKeyMock -
@@ -49,7 +49,7 @@ func (sk *PrivateKeyMock) ToByteArray() ([]byte, error) {
 // GeneratePublic -
 func (sk *PrivateKeyMock) GeneratePublic() crypto.PublicKey {
 	return &PublicKeyMock{
-		pubKey: sha256.Sha256{}.Compute(string(sk.privKey)),
+		pubKey: sha256.NewSha256().Compute(string(sk.privKey)),
 	}
 }
 

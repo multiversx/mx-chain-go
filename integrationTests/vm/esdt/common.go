@@ -7,18 +7,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
-	"github.com/ElrondNetwork/elrond-go/data/esdt"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	testVm "github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmFactory "github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 	"github.com/ElrondNetwork/elrond-go/vm"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
 
@@ -131,7 +131,44 @@ func CheckAddressHasESDTTokens(
 	esdtData := GetESDTTokenData(t, address, nodes, tokenName)
 	bigValue := big.NewInt(value)
 	if esdtData.Value.Cmp(bigValue) != 0 {
-		require.Fail(t, fmt.Sprintf("esdt balance difference. expected %s, but got %s", bigValue.String(), esdtData.Value.String()))
+		require.Fail(t, fmt.Sprintf("esdt balance difference. Token %s, expected %s, but got %s",
+			tokenName, bigValue.String(), esdtData.Value.String()))
+	}
+}
+
+// CheckAddressHasTokens - Works for both fungible and non-fungible, according to nonce
+func CheckAddressHasTokens(
+	t *testing.T,
+	address []byte,
+	nodes []*integrationTests.TestProcessorNode,
+	tokenName string,
+	nonce int64,
+	value int64,
+) {
+	if nonce == 0 {
+		CheckAddressHasESDTTokens(t, address, nodes, tokenName, value)
+		return
+	}
+
+	nonceAsBigInt := big.NewInt(nonce)
+	valueAsBigInt := big.NewInt(value)
+
+	tokenIdentifierPlusNonce := []byte(tokenName)
+	tokenIdentifierPlusNonce = append(tokenIdentifierPlusNonce, nonceAsBigInt.Bytes()...)
+	esdtData := GetESDTTokenData(t, address, nodes, string(tokenIdentifierPlusNonce))
+
+	if esdtData == nil {
+		esdtData = &esdt.ESDigitalToken{
+			Value: big.NewInt(0),
+		}
+	}
+	if esdtData.Value == nil {
+		esdtData.Value = big.NewInt(0)
+	}
+
+	if valueAsBigInt.Cmp(esdtData.Value) != 0 {
+		require.Fail(t, fmt.Sprintf("esdt NFT balance difference. Token %s, nonce %s, expected %s, but got %s",
+			tokenName, nonceAsBigInt.String(), valueAsBigInt.String(), esdtData.Value.String()))
 	}
 }
 
@@ -185,6 +222,11 @@ func IssueTestTokenWithCustomGas(nodes []*integrationTests.TestProcessorNode, in
 	issueTestToken(nodes, initialSupply, ticker, gas)
 }
 
+// IssueTestTokenWithSpecialRoles -
+func IssueTestTokenWithSpecialRoles(nodes []*integrationTests.TestProcessorNode, initialSupply int64, ticker string) {
+	issueTestTokenWithSpecialRoles(nodes, initialSupply, ticker, core.MinMetaTxExtraGasCost)
+}
+
 func issueTestToken(nodes []*integrationTests.TestProcessorNode, initialSupply int64, ticker string, gas uint64) {
 	tokenName := "token"
 	issuePrice := big.NewInt(1000)
@@ -193,6 +235,18 @@ func issueTestToken(nodes []*integrationTests.TestProcessorNode, initialSupply i
 	txData := txDataBuilder.NewBuilder()
 	txData.Clear().IssueESDT(tokenName, ticker, initialSupply, 6)
 	txData.CanFreeze(true).CanWipe(true).CanPause(true).CanMint(true).CanBurn(true)
+
+	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, issuePrice, vm.ESDTSCAddress, txData.ToString(), gas)
+}
+
+func issueTestTokenWithSpecialRoles(nodes []*integrationTests.TestProcessorNode, initialSupply int64, ticker string, gas uint64) {
+	tokenName := "token"
+	issuePrice := big.NewInt(1000)
+
+	tokenIssuer := nodes[0]
+	txData := txDataBuilder.NewBuilder()
+	txData.Clear().IssueESDT(tokenName, ticker, initialSupply, 6)
+	txData.CanFreeze(true).CanWipe(true).CanPause(true).CanMint(true).CanBurn(true).CanAddSpecialRoles(true)
 
 	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, issuePrice, vm.ESDTSCAddress, txData.ToString(), gas)
 }

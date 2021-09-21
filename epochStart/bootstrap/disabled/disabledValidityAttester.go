@@ -1,7 +1,7 @@
 package disabled
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -20,8 +20,8 @@ func (v *validityAttester) CheckBlockAgainstFinal(_ data.HeaderHandler) error {
 	return nil
 }
 
-// CheckBlockAgainstRounder -
-func (v *validityAttester) CheckBlockAgainstRounder(_ data.HeaderHandler) error {
+// CheckBlockAgainstRoundHandler -
+func (v *validityAttester) CheckBlockAgainstRoundHandler(_ data.HeaderHandler) error {
 	return nil
 }
 

@@ -5,11 +5,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -107,10 +108,10 @@ func TestHdrInterceptorProcessor_ValidateHeaderIsBlackListedShouldErr(t *testing
 	hip, _ := processor.NewHdrInterceptorProcessor(arg)
 
 	hdrInterceptedData := &struct {
-		mock.InterceptedDataStub
+		testscommon.InterceptedDataStub
 		mock.GetHdrHandlerStub
 	}{
-		InterceptedDataStub: mock.InterceptedDataStub{
+		InterceptedDataStub: testscommon.InterceptedDataStub{
 			HashCalled: func() []byte {
 				return make([]byte, 0)
 			},
@@ -135,10 +136,10 @@ func TestHdrInterceptorProcessor_ValidateReturnsErrFromIsValid(t *testing.T) {
 	hip, _ := processor.NewHdrInterceptorProcessor(arg)
 
 	hdrInterceptedData := &struct {
-		mock.InterceptedDataStub
+		testscommon.InterceptedDataStub
 		mock.GetHdrHandlerStub
 	}{
-		InterceptedDataStub: mock.InterceptedDataStub{
+		InterceptedDataStub: testscommon.InterceptedDataStub{
 			HashCalled: func() []byte {
 				return make([]byte, 0)
 			},
@@ -165,17 +166,17 @@ func TestHdrInterceptorProcessor_SaveShouldWork(t *testing.T) {
 	t.Parallel()
 
 	hdrInterceptedData := &struct {
-		mock.InterceptedDataStub
+		testscommon.InterceptedDataStub
 		mock.GetHdrHandlerStub
 	}{
-		InterceptedDataStub: mock.InterceptedDataStub{
+		InterceptedDataStub: testscommon.InterceptedDataStub{
 			HashCalled: func() []byte {
 				return []byte("hash")
 			},
 		},
 		GetHdrHandlerStub: mock.GetHdrHandlerStub{
 			HeaderHandlerCalled: func() data.HeaderHandler {
-				return &mock.HeaderHandlerStub{}
+				return &testscommon.HeaderHandlerStub{}
 			},
 		},
 	}

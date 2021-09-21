@@ -8,18 +8,18 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/hashing/keccak"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/state"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -62,12 +62,37 @@ func DoDeploy(t *testing.T, testContext *vm.VMTestContext, pathToContract string
 	return scAddr, owner
 }
 
+func DoDeployNoChecks(t *testing.T, testContext *vm.VMTestContext, pathToContract string) (scAddr []byte, owner []byte) {
+	owner = []byte("12345678901234567890123456789011")
+	senderNonce := uint64(0)
+	senderBalance := big.NewInt(100000)
+	gasPrice := uint64(10)
+	gasLimit := uint64(2000)
+
+	_, _ = vm.CreateAccount(testContext.Accounts, owner, 0, senderBalance)
+
+	scCode := arwen.GetSCCode(pathToContract)
+	tx := vm.CreateTransaction(senderNonce, big.NewInt(0), owner, vm.CreateEmptyAddress(), gasPrice, gasLimit, []byte(arwen.CreateDeployTxData(scCode)))
+
+	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
+	require.Equal(t, vmcommon.Ok, retCode)
+	require.Nil(t, err)
+	require.Nil(t, testContext.GetLatestError())
+
+	_, err = testContext.Accounts.Commit()
+	require.Nil(t, err)
+
+	scAddr, _ = testContext.BlockchainHook.NewAddress(owner, 0, factory.ArwenVirtualMachine)
+
+	return scAddr, owner
+}
+
 // DoDeploySecond -
 func DoDeploySecond(
 	t *testing.T,
 	testContext *vm.VMTestContext,
 	pathToContract string,
-	senderAccount state.AccountHandler,
+	senderAccount vmcommon.AccountHandler,
 	gasPrice uint64,
 	gasLimit uint64,
 	args [][]byte,
@@ -211,7 +236,7 @@ func randStringBytes(n int) string {
 
 // GenerateUserNameForMyDNSContract -
 func GenerateUserNameForMyDNSContract() []byte {
-	testHasher := keccak.Keccak{}
+	testHasher := keccak.NewKeccak()
 	contractLastByte := byte(49)
 
 	for {

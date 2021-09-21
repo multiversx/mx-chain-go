@@ -9,13 +9,16 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	coreMock "github.com/ElrondNetwork/elrond-go-core/core/mock"
+	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
+	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -33,6 +36,7 @@ func createMockArgumentsForESDT() ArgsNewESDTSmartContract {
 		EpochNotifier:          &mock.EpochNotifierStub{},
 		AddressPubKeyConverter: mock.NewPubkeyConverterMock(32),
 		EndOfEpochSCAddress:    vm.EndOfEpochAddress,
+		EpochConfig:            config.EpochConfig{EnableEpochs: config.EnableEpochs{GlobalMintBurnDisableEpoch: 10}},
 	}
 }
 
@@ -133,7 +137,7 @@ func TestEsdt_ExecuteIssueAlways6charactersForRandom(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
@@ -173,6 +177,51 @@ func TestEsdt_ExecuteIssueAlways6charactersForRandom(t *testing.T) {
 	assert.Equal(t, len(lastOutput), len(ticker)+1+6)
 }
 
+func TestEsdt_ExecuteIssueWithMultiNFTCreate(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&stateMock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr:  []byte("addr"),
+			CallValue:   big.NewInt(0),
+			GasProvided: 100000,
+		},
+		RecipientAddr: []byte("addr"),
+		Function:      "issue",
+	}
+	eei.gasRemaining = vmInput.GasProvided
+	vmInput.CallValue, _ = big.NewInt(0).SetString(args.ESDTSCConfig.BaseIssuingCost, 10)
+	vmInput.GasProvided = args.GasCost.MetaChainSystemSCsCost.ESDTIssue
+	ticker := []byte("TICKER")
+	vmInput.Arguments = [][]byte{[]byte("name"), ticker, []byte(canCreateMultiShard), []byte("true")}
+
+	e.flagNFTCreateONMultiShard.Unset()
+	returnCode := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+
+	e.flagNFTCreateONMultiShard.Set()
+	returnCode = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+
+	vmInput.Function = "issueSemiFungible"
+	returnCode = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, returnCode)
+
+	lastOutput := eei.output[len(eei.output)-1]
+	token, _ := e.getExistingToken(lastOutput)
+	assert.True(t, token.CanCreateMultiShard)
+}
+
 func TestEsdt_ExecuteIssue(t *testing.T) {
 	t.Parallel()
 
@@ -181,7 +230,7 @@ func TestEsdt_ExecuteIssue(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
@@ -215,6 +264,41 @@ func TestEsdt_ExecuteIssue(t *testing.T) {
 	assert.Equal(t, vmcommon.UserError, output)
 }
 
+func TestEsdt_ExecuteIssueWithZero(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&stateMock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr:  []byte("addr"),
+			CallValue:   big.NewInt(0),
+			GasProvided: 100000,
+		},
+		RecipientAddr: []byte("addr"),
+		Function:      "issue",
+	}
+	eei.gasRemaining = vmInput.GasProvided
+	vmInput.Arguments = [][]byte{[]byte("name"), []byte("TICKER")}
+	vmInput.Arguments = append(vmInput.Arguments, big.NewInt(0).Bytes())
+	vmInput.Arguments = append(vmInput.Arguments, big.NewInt(10).Bytes())
+	vmInput.CallValue, _ = big.NewInt(0).SetString(args.ESDTSCConfig.BaseIssuingCost, 10)
+	vmInput.GasProvided = args.GasCost.MetaChainSystemSCsCost.ESDTIssue
+
+	e.flagGlobalMintBurn.Unset()
+	e.flagNFTCreateONMultiShard.Unset()
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+}
+
 func TestEsdt_ExecuteIssueTooMuchSupply(t *testing.T) {
 	t.Parallel()
 
@@ -223,7 +307,7 @@ func TestEsdt_ExecuteIssueTooMuchSupply(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
@@ -258,7 +342,7 @@ func TestEsdt_IssueInvalidNumberOfDecimals(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
@@ -355,7 +439,7 @@ func TestEsdt_ExecuteBurnWrongNumOfArgsShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
@@ -376,7 +460,7 @@ func TestEsdt_ExecuteBurnWrongCallValueShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
@@ -397,7 +481,7 @@ func TestEsdt_ExecuteBurnWrongValueToBurnShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -418,7 +502,7 @@ func TestEsdt_ExecuteBurnOnNonExistentTokenShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -430,6 +514,32 @@ func TestEsdt_ExecuteBurnOnNonExistentTokenShouldFail(t *testing.T) {
 	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNoTickerWithGivenName.Error()))
 }
 
+func TestEsdt_ExecuteBurnAndMintDisabled(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	args.EpochConfig.EnableEpochs.GlobalMintBurnDisableEpoch = 0
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&stateMock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+	vmInput := getDefaultVmInputForFunc(core.BuiltInFunctionESDTBurn, [][]byte{[]byte("esdtToken"), {100}})
+
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "global burn is no more enabled, use local burn"))
+
+	vmInput = getDefaultVmInputForFunc("mint", [][]byte{[]byte("esdtToken"), {100}})
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "global mint is no more enabled, use local mint"))
+}
+
 func TestEsdt_ExecuteBurnOnNonBurnableTokenShouldWorkAndReturnBurntTokens(t *testing.T) {
 	t.Parallel()
 
@@ -439,11 +549,11 @@ func TestEsdt_ExecuteBurnOnNonBurnableTokenShouldWorkAndReturnBurntTokens(t *tes
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		Burnable: false,
 	})
 	tokensMap[string(tokenName)] = marshalizedData
@@ -472,11 +582,11 @@ func TestEsdt_ExecuteBurn(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		TokenName:  tokenName,
 		Burnable:   true,
 		BurntValue: big.NewInt(100),
@@ -491,7 +601,7 @@ func TestEsdt_ExecuteBurn(t *testing.T) {
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
 
-	esdtData := &ESDTData{}
+	esdtData := &ESDTDataV2{}
 	_ = args.Marshalizer.Unmarshal(esdtData, eei.GetStorage(tokenName))
 	assert.Equal(t, big.NewInt(200), esdtData.BurntValue)
 }
@@ -504,7 +614,7 @@ func TestEsdt_ExecuteMintTooFewArgumentsShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -524,7 +634,7 @@ func TestEsdt_ExecuteMintTooManyArgumentsShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -544,7 +654,7 @@ func TestEsdt_ExecuteMintWrongCallValueShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -565,7 +675,7 @@ func TestEsdt_ExecuteMintNotEnoughGasShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 	args.GasCost.MetaChainSystemSCsCost.ESDTOperations = 10
@@ -586,7 +696,7 @@ func TestEsdt_ExecuteMintOnNonExistentTokenShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -607,12 +717,12 @@ func TestEsdt_ExecuteMintNotByOwnerShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		OwnerAddress: []byte("random address"),
 	})
 	tokensMap[string(tokenName)] = marshalizedData
@@ -636,12 +746,12 @@ func TestEsdt_ExecuteMintWrongMintValueShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		OwnerAddress: []byte("owner"),
 	})
 	tokensMap[string(tokenName)] = marshalizedData
@@ -665,12 +775,12 @@ func TestEsdt_ExecuteMintNonMintableTokenShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		OwnerAddress: []byte("owner"),
 		Mintable:     false,
 	})
@@ -695,12 +805,12 @@ func TestEsdt_ExecuteMintSavesTokenWithMintedTokensAdded(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		TokenName:    []byte("esdtToken"),
 		OwnerAddress: []byte("owner"),
 		Mintable:     true,
@@ -715,7 +825,7 @@ func TestEsdt_ExecuteMintSavesTokenWithMintedTokensAdded(t *testing.T) {
 
 	_ = e.Execute(vmInput)
 
-	esdtData := &ESDTData{}
+	esdtData := &ESDTDataV2{}
 	_ = args.Marshalizer.Unmarshal(esdtData, eei.GetStorage(tokenName))
 	assert.Equal(t, big.NewInt(300), esdtData.MintedValue)
 
@@ -733,12 +843,12 @@ func TestEsdt_ExecuteMintInvalidDestinationAddressShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		TokenName:    tokenName,
 		OwnerAddress: []byte("owner"),
 		Mintable:     true,
@@ -762,7 +872,7 @@ func TestEsdt_ExecuteMintTransferFailsShouldErr(t *testing.T) {
 	err := errors.New("transfer error")
 	args := createMockArgumentsForESDT()
 	args.Eei.(*mock.SystemEIStub).GetStorageCalled = func(key []byte) []byte {
-		marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+		marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 			OwnerAddress: []byte("owner"),
 			Mintable:     true,
 			MintedValue:  big.NewInt(100),
@@ -794,11 +904,11 @@ func TestEsdt_ExecuteMintWithTwoArgsShouldSetOwnerAsDestination(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		TokenName:    tokenName,
 		OwnerAddress: owner,
 		Mintable:     true,
@@ -828,7 +938,7 @@ func TestEsdt_ExecuteMintWithTwoArgsShouldSetOwnerAsDestination(t *testing.T) {
 	assert.Equal(t, uint64(0), outputTransfer.GasLimit)
 	expectedInput := core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString(tokenName) + "@" + hex.EncodeToString(mintValue)
 	assert.Equal(t, []byte(expectedInput), outputTransfer.Data)
-	assert.Equal(t, vmcommon.DirectCall, outputTransfer.CallType)
+	assert.Equal(t, vmData.DirectCall, outputTransfer.CallType)
 }
 
 func TestEsdt_ExecuteMintWithThreeArgsShouldSetThirdArgAsDestination(t *testing.T) {
@@ -843,11 +953,11 @@ func TestEsdt_ExecuteMintWithThreeArgsShouldSetThirdArgAsDestination(t *testing.
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		TokenName:    tokenName,
 		OwnerAddress: owner,
 		Mintable:     true,
@@ -877,14 +987,14 @@ func TestEsdt_ExecuteMintWithThreeArgsShouldSetThirdArgAsDestination(t *testing.
 	assert.Equal(t, uint64(0), outputTransfer.GasLimit)
 	expectedInput := core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString(tokenName) + "@" + hex.EncodeToString(mintValue)
 	assert.Equal(t, []byte(expectedInput), outputTransfer.Data)
-	assert.Equal(t, vmcommon.DirectCall, outputTransfer.CallType)
+	assert.Equal(t, vmData.DirectCall, outputTransfer.CallType)
 }
 
 func TestEsdt_ExecuteIssueDisabled(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	args.ESDTSCConfig.EnabledEpoch = 1
+	args.EpochConfig.EnableEpochs.ESDTEnableEpoch = 1
 	e, _ := NewESDTSmartContract(args)
 
 	callValue, _ := big.NewInt(0).SetString(args.ESDTSCConfig.BaseIssuingCost, 10)
@@ -914,7 +1024,7 @@ func TestEsdt_ExecuteToggleFreezeTooFewArgumentsShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -939,7 +1049,7 @@ func TestEsdt_ExecuteToggleFreezeWrongCallValueShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -966,7 +1076,7 @@ func TestEsdt_ExecuteToggleFreezeNotEnoughGasShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 	args.GasCost.MetaChainSystemSCsCost.ESDTOperations = 10
@@ -993,7 +1103,7 @@ func TestEsdt_ExecuteToggleFreezeOnNonExistentTokenShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -1020,11 +1130,11 @@ func TestEsdt_ExecuteToggleFreezeNotByOwnerShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		OwnerAddress: []byte("random address"),
 	})
 	tokensMap[tokenName] = marshalizedData
@@ -1055,11 +1165,11 @@ func TestEsdt_ExecuteToggleFreezeNonFreezableTokenShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		OwnerAddress: owner,
 		CanFreeze:    false,
 	})
@@ -1087,7 +1197,7 @@ func TestEsdt_ExecuteToggleFreezeTransferFailsShouldErr(t *testing.T) {
 	err := errors.New("transfer error")
 	args := createMockArgumentsForESDT()
 	args.Eei.(*mock.SystemEIStub).GetStorageCalled = func(key []byte) []byte {
-		marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+		marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 			OwnerAddress: []byte("owner"),
 			CanFreeze:    true,
 		})
@@ -1113,7 +1223,7 @@ func TestEsdt_ExecuteToggleFreezeSingleNFTTransferFailsShouldErr(t *testing.T) {
 	err := errors.New("transfer error")
 	args := createMockArgumentsForESDT()
 	args.Eei.(*mock.SystemEIStub).GetStorageCalled = func(key []byte) []byte {
-		marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+		marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 			OwnerAddress: []byte("owner"),
 			CanFreeze:    true,
 			TokenType:    []byte(core.NonFungibleESDT),
@@ -1144,14 +1254,14 @@ func TestEsdt_ExecuteToggleFreezeShouldWorkWithRealBech32Address(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
-	bech32C, _ := pubkeyConverter.NewBech32PubkeyConverter(32)
+	bech32C, _ := pubkeyConverter.NewBech32PubkeyConverter(32, &coreMock.LoggerMock{})
 	args.AddressPubKeyConverter = bech32C
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		TokenName:    tokenName,
 		OwnerAddress: owner,
 		CanFreeze:    true,
@@ -1184,7 +1294,7 @@ func TestEsdt_ExecuteToggleFreezeShouldWorkWithRealBech32Address(t *testing.T) {
 	assert.Equal(t, uint64(0), outputTransfer.GasLimit)
 	expectedInput := core.BuiltInFunctionESDTFreeze + "@" + hex.EncodeToString(tokenName)
 	assert.Equal(t, []byte(expectedInput), outputTransfer.Data)
-	assert.Equal(t, vmcommon.DirectCall, outputTransfer.CallType)
+	assert.Equal(t, vmData.DirectCall, outputTransfer.CallType)
 }
 
 func TestEsdt_ExecuteToggleFreezeShouldFailWithBech32Converter(t *testing.T) {
@@ -1197,14 +1307,14 @@ func TestEsdt_ExecuteToggleFreezeShouldFailWithBech32Converter(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
-	bech32C, _ := pubkeyConverter.NewBech32PubkeyConverter(32)
+	bech32C, _ := pubkeyConverter.NewBech32PubkeyConverter(32, &coreMock.LoggerMock{})
 	args.AddressPubKeyConverter = bech32C
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		TokenName:    tokenName,
 		OwnerAddress: owner,
 		CanFreeze:    true,
@@ -1239,11 +1349,11 @@ func TestEsdt_ExecuteToggleFreezeShouldWork(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		TokenName:    tokenName,
 		OwnerAddress: owner,
 		CanFreeze:    true,
@@ -1274,7 +1384,7 @@ func TestEsdt_ExecuteToggleFreezeShouldWork(t *testing.T) {
 	assert.Equal(t, uint64(0), outputTransfer.GasLimit)
 	expectedInput := core.BuiltInFunctionESDTFreeze + "@" + hex.EncodeToString(tokenName)
 	assert.Equal(t, []byte(expectedInput), outputTransfer.Data)
-	assert.Equal(t, vmcommon.DirectCall, outputTransfer.CallType)
+	assert.Equal(t, vmData.DirectCall, outputTransfer.CallType)
 }
 
 func TestEsdt_ExecuteToggleUnFreezeShouldWork(t *testing.T) {
@@ -1287,11 +1397,11 @@ func TestEsdt_ExecuteToggleUnFreezeShouldWork(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		TokenName:    tokenName,
 		OwnerAddress: owner,
 		CanFreeze:    true,
@@ -1322,7 +1432,7 @@ func TestEsdt_ExecuteToggleUnFreezeShouldWork(t *testing.T) {
 	assert.Equal(t, uint64(0), outputTransfer.GasLimit)
 	expectedInput := core.BuiltInFunctionESDTUnFreeze + "@" + hex.EncodeToString(tokenName)
 	assert.Equal(t, []byte(expectedInput), outputTransfer.Data)
-	assert.Equal(t, vmcommon.DirectCall, outputTransfer.CallType)
+	assert.Equal(t, vmData.DirectCall, outputTransfer.CallType)
 }
 
 func TestEsdt_ExecuteToggleFreezeSingleNFTShouldWork(t *testing.T) {
@@ -1335,11 +1445,11 @@ func TestEsdt_ExecuteToggleFreezeSingleNFTShouldWork(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		TokenName:    tokenName,
 		OwnerAddress: owner,
 		CanFreeze:    true,
@@ -1371,7 +1481,7 @@ func TestEsdt_ExecuteToggleFreezeSingleNFTShouldWork(t *testing.T) {
 	assert.Equal(t, uint64(0), outputTransfer.GasLimit)
 	expectedInput := core.BuiltInFunctionESDTFreeze + "@" + hex.EncodeToString(append(tokenName, big.NewInt(10).Bytes()...))
 	assert.Equal(t, []byte(expectedInput), outputTransfer.Data)
-	assert.Equal(t, vmcommon.DirectCall, outputTransfer.CallType)
+	assert.Equal(t, vmData.DirectCall, outputTransfer.CallType)
 }
 
 func TestEsdt_ExecuteToggleUnFreezeSingleNFTShouldWork(t *testing.T) {
@@ -1384,11 +1494,11 @@ func TestEsdt_ExecuteToggleUnFreezeSingleNFTShouldWork(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		TokenName:    tokenName,
 		OwnerAddress: owner,
 		CanFreeze:    true,
@@ -1420,7 +1530,7 @@ func TestEsdt_ExecuteToggleUnFreezeSingleNFTShouldWork(t *testing.T) {
 	assert.Equal(t, uint64(0), outputTransfer.GasLimit)
 	expectedInput := core.BuiltInFunctionESDTUnFreeze + "@" + hex.EncodeToString(append(tokenName, big.NewInt(10).Bytes()...))
 	assert.Equal(t, []byte(expectedInput), outputTransfer.Data)
-	assert.Equal(t, vmcommon.DirectCall, outputTransfer.CallType)
+	assert.Equal(t, vmData.DirectCall, outputTransfer.CallType)
 }
 
 func TestEsdt_ExecuteWipeTooFewArgumentsShouldFail(t *testing.T) {
@@ -1431,7 +1541,7 @@ func TestEsdt_ExecuteWipeTooFewArgumentsShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -1456,7 +1566,7 @@ func TestEsdt_ExecuteWipeWrongCallValueShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -1483,7 +1593,7 @@ func TestEsdt_ExecuteWipeNotEnoughGasShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 	args.GasCost.MetaChainSystemSCsCost.ESDTOperations = 10
@@ -1510,7 +1620,7 @@ func TestEsdt_ExecuteWipeOnNonExistentTokenShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -1537,11 +1647,11 @@ func TestEsdt_ExecuteWipeNotByOwnerShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		OwnerAddress: []byte("random address"),
 	})
 	tokensMap[tokenName] = marshalizedData
@@ -1572,11 +1682,11 @@ func TestEsdt_ExecuteWipeNonWipeableTokenShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		OwnerAddress: owner,
 		CanWipe:      false,
 	})
@@ -1608,11 +1718,11 @@ func TestEsdt_ExecuteWipeInvalidDestShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		OwnerAddress: owner,
 		CanWipe:      true,
 	})
@@ -1640,7 +1750,7 @@ func TestEsdt_ExecuteWipeTransferFailsShouldErr(t *testing.T) {
 	err := errors.New("transfer error")
 	args := createMockArgumentsForESDT()
 	args.Eei.(*mock.SystemEIStub).GetStorageCalled = func(key []byte) []byte {
-		marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+		marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 			OwnerAddress: []byte("owner"),
 			CanWipe:      true,
 			TokenType:    []byte(core.FungibleESDT),
@@ -1667,7 +1777,7 @@ func TestEsdt_ExecuteWipeSingleNFTTransferFailsShouldErr(t *testing.T) {
 	err := errors.New("transfer error")
 	args := createMockArgumentsForESDT()
 	args.Eei.(*mock.SystemEIStub).GetStorageCalled = func(key []byte) []byte {
-		marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+		marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 			OwnerAddress: []byte("owner"),
 			CanWipe:      true,
 			TokenType:    []byte(core.NonFungibleESDT),
@@ -1699,11 +1809,11 @@ func TestEsdt_ExecuteWipeShouldWork(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		TokenName:    tokenName,
 		TokenType:    []byte(core.FungibleESDT),
 		OwnerAddress: owner,
@@ -1733,7 +1843,7 @@ func TestEsdt_ExecuteWipeShouldWork(t *testing.T) {
 	assert.Equal(t, uint64(0), outputTransfer.GasLimit)
 	expectedInput := core.BuiltInFunctionESDTWipe + "@" + hex.EncodeToString(tokenName)
 	assert.Equal(t, []byte(expectedInput), outputTransfer.Data)
-	assert.Equal(t, vmcommon.DirectCall, outputTransfer.CallType)
+	assert.Equal(t, vmData.DirectCall, outputTransfer.CallType)
 }
 
 func TestEsdt_ExecuteWipeSingleNFTShouldWork(t *testing.T) {
@@ -1747,11 +1857,11 @@ func TestEsdt_ExecuteWipeSingleNFTShouldWork(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		TokenName:    tokenName,
 		TokenType:    []byte(core.NonFungibleESDT),
 		OwnerAddress: owner,
@@ -1781,7 +1891,7 @@ func TestEsdt_ExecuteWipeSingleNFTShouldWork(t *testing.T) {
 	assert.Equal(t, uint64(0), outputTransfer.GasLimit)
 	expectedInput := core.BuiltInFunctionESDTWipe + "@" + hex.EncodeToString(append(tokenName, big.NewInt(10).Bytes()...))
 	assert.Equal(t, []byte(expectedInput), outputTransfer.Data)
-	assert.Equal(t, vmcommon.DirectCall, outputTransfer.CallType)
+	assert.Equal(t, vmData.DirectCall, outputTransfer.CallType)
 }
 
 func TestEsdt_ExecutePauseTooFewArgumentsShouldFail(t *testing.T) {
@@ -1792,7 +1902,7 @@ func TestEsdt_ExecutePauseTooFewArgumentsShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -1812,7 +1922,7 @@ func TestEsdt_ExecutePauseWrongCallValueShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -1833,7 +1943,7 @@ func TestEsdt_ExecutePauseNotEnoughGasShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 	args.GasCost.MetaChainSystemSCsCost.ESDTOperations = 10
@@ -1854,7 +1964,7 @@ func TestEsdt_ExecutePauseOnNonExistentTokenShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -1875,11 +1985,11 @@ func TestEsdt_ExecutePauseNotByOwnerShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		OwnerAddress: []byte("random address"),
 	})
 	tokensMap[tokenName] = marshalizedData
@@ -1904,11 +2014,11 @@ func TestEsdt_ExecutePauseNonPauseableTokenShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		OwnerAddress: owner,
 		CanPause:     false,
 	})
@@ -1934,11 +2044,11 @@ func TestEsdt_ExecutePauseOnAPausedTokenShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		OwnerAddress: owner,
 		CanPause:     true,
 		IsPaused:     true,
@@ -1964,12 +2074,12 @@ func TestEsdt_ExecuteTogglePauseSavesTokenWithPausedFlagSet(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		TokenName:    tokenName,
 		OwnerAddress: []byte("owner"),
 		CanPause:     true,
@@ -1984,7 +2094,7 @@ func TestEsdt_ExecuteTogglePauseSavesTokenWithPausedFlagSet(t *testing.T) {
 
 	_ = e.Execute(vmInput)
 
-	esdtData := &ESDTData{}
+	esdtData := &ESDTDataV2{}
 	_ = args.Marshalizer.Unmarshal(esdtData, eei.GetStorage(tokenName))
 	assert.Equal(t, true, esdtData.IsPaused)
 }
@@ -1999,11 +2109,11 @@ func TestEsdt_ExecuteTogglePauseShouldWork(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		TokenName:    tokenName,
 		OwnerAddress: owner,
 		CanPause:     true,
@@ -2033,7 +2143,7 @@ func TestEsdt_ExecuteTogglePauseShouldWork(t *testing.T) {
 	assert.Equal(t, big.NewInt(0), outputTransfer.Value)
 	expectedInput := core.BuiltInFunctionESDTPause + "@" + hex.EncodeToString(tokenName)
 	assert.Equal(t, []byte(expectedInput), outputTransfer.Data)
-	assert.Equal(t, vmcommon.DirectCall, outputTransfer.CallType)
+	assert.Equal(t, vmData.DirectCall, outputTransfer.CallType)
 }
 
 func TestEsdt_ExecuteUnPauseOnAnUnPausedTokenShouldFail(t *testing.T) {
@@ -2046,11 +2156,11 @@ func TestEsdt_ExecuteUnPauseOnAnUnPausedTokenShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		OwnerAddress: owner,
 		CanPause:     true,
 		IsPaused:     false,
@@ -2076,12 +2186,12 @@ func TestEsdt_ExecuteUnPauseSavesTokenWithPausedFlagSetToFalse(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		TokenName:    tokenName,
 		OwnerAddress: []byte("owner"),
 		CanPause:     true,
@@ -2096,7 +2206,7 @@ func TestEsdt_ExecuteUnPauseSavesTokenWithPausedFlagSetToFalse(t *testing.T) {
 
 	_ = e.Execute(vmInput)
 
-	esdtData := &ESDTData{}
+	esdtData := &ESDTDataV2{}
 	_ = args.Marshalizer.Unmarshal(esdtData, eei.GetStorage(tokenName))
 	assert.Equal(t, false, esdtData.IsPaused)
 }
@@ -2111,11 +2221,11 @@ func TestEsdt_ExecuteUnPauseShouldWork(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		TokenName:    tokenName,
 		OwnerAddress: owner,
 		CanPause:     true,
@@ -2146,7 +2256,7 @@ func TestEsdt_ExecuteUnPauseShouldWork(t *testing.T) {
 	assert.Equal(t, big.NewInt(0), outputTransfer.Value)
 	expectedInput := core.BuiltInFunctionESDTUnPause + "@" + hex.EncodeToString(tokenName)
 	assert.Equal(t, []byte(expectedInput), outputTransfer.Data)
-	assert.Equal(t, vmcommon.DirectCall, outputTransfer.CallType)
+	assert.Equal(t, vmData.DirectCall, outputTransfer.CallType)
 }
 
 func TestEsdt_ExecuteTransferOwnershipWrongNumOfArgumentsShouldFail(t *testing.T) {
@@ -2157,7 +2267,7 @@ func TestEsdt_ExecuteTransferOwnershipWrongNumOfArgumentsShouldFail(t *testing.T
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -2177,7 +2287,7 @@ func TestEsdt_ExecuteTransferOwnershipWrongCallValueShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -2198,7 +2308,7 @@ func TestEsdt_ExecuteTransferOwnershipNotEnoughGasShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 	args.GasCost.MetaChainSystemSCsCost.ESDTOperations = 10
@@ -2219,7 +2329,7 @@ func TestEsdt_ExecuteTransferOwnershipOnNonExistentTokenShouldFail(t *testing.T)
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -2240,12 +2350,12 @@ func TestEsdt_ExecuteTransferOwnershipNotByOwnerShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		OwnerAddress: []byte("random address"),
 	})
 	tokensMap[string(tokenName)] = marshalizedData
@@ -2269,12 +2379,12 @@ func TestEsdt_ExecuteTransferOwnershipNonTransferableTokenShouldFail(t *testing.
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		OwnerAddress:   []byte("owner"),
 		CanChangeOwner: false,
 	})
@@ -2299,12 +2409,12 @@ func TestEsdt_ExecuteTransferOwnershipInvalidDestinationAddressShouldFail(t *tes
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		TokenName:      tokenName,
 		OwnerAddress:   []byte("owner"),
 		CanChangeOwner: true,
@@ -2331,12 +2441,12 @@ func TestEsdt_ExecuteTransferOwnershipSavesTokenWithNewOwnerAddressSet(t *testin
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		TokenName:      []byte("esdtToken"),
 		OwnerAddress:   []byte("owner"),
 		CanChangeOwner: true,
@@ -2351,7 +2461,7 @@ func TestEsdt_ExecuteTransferOwnershipSavesTokenWithNewOwnerAddressSet(t *testin
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
 
-	esdtData := &ESDTData{}
+	esdtData := &ESDTDataV2{}
 	_ = args.Marshalizer.Unmarshal(esdtData, eei.GetStorage(tokenName))
 	assert.Equal(t, newOwner, esdtData.OwnerAddress)
 }
@@ -2364,7 +2474,7 @@ func TestEsdt_ExecuteEsdtControlChangesWrongNumOfArgumentsShouldFail(t *testing.
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -2384,7 +2494,7 @@ func TestEsdt_ExecuteEsdtControlChangesWrongCallValueShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -2405,7 +2515,7 @@ func TestEsdt_ExecuteEsdtControlChangesNotEnoughGasShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 	args.GasCost.MetaChainSystemSCsCost.ESDTOperations = 10
@@ -2426,7 +2536,7 @@ func TestEsdt_ExecuteEsdtControlChangesOnNonExistentTokenShouldFail(t *testing.T
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -2447,12 +2557,12 @@ func TestEsdt_ExecuteEsdtControlChangesNotByOwnerShouldFail(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		OwnerAddress: []byte("random address"),
 	})
 	tokensMap[string(tokenName)] = marshalizedData
@@ -2476,12 +2586,12 @@ func TestEsdt_ExecuteEsdtControlChangesNonUpgradableTokenShouldFail(t *testing.T
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		OwnerAddress: []byte("owner"),
 		Upgradable:   false,
 	})
@@ -2506,12 +2616,12 @@ func TestEsdt_ExecuteEsdtControlChangesSavesTokenWithUpgradedProperties(t *testi
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		TokenName:        []byte("esdtToken"),
 		TokenType:        []byte(core.FungibleESDT),
 		OwnerAddress:     []byte("owner"),
@@ -2545,7 +2655,7 @@ func TestEsdt_ExecuteEsdtControlChangesSavesTokenWithUpgradedProperties(t *testi
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
 
-	esdtData := &ESDTData{}
+	esdtData := &ESDTDataV2{}
 	_ = args.Marshalizer.Unmarshal(esdtData, eei.GetStorage(tokenName))
 	assert.True(t, esdtData.Burnable)
 	assert.True(t, esdtData.Mintable)
@@ -2581,6 +2691,43 @@ func TestEsdt_ExecuteEsdtControlChangesSavesTokenWithUpgradedProperties(t *testi
 	assert.Equal(t, []byte("NumWiped-37"), eei.output[17])
 }
 
+func TestEsdt_ExecuteEsdtControlChangesForMultiNFTTransferShouldFaild(t *testing.T) {
+	t.Parallel()
+
+	tokenName := []byte("esdtToken")
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&stateMock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+
+	tokensMap := map[string][]byte{}
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
+		TokenName:        []byte("esdtToken"),
+		TokenType:        []byte(core.NonFungibleESDT),
+		OwnerAddress:     []byte("owner"),
+		Upgradable:       true,
+		BurntValue:       big.NewInt(0),
+		MintedValue:      big.NewInt(0),
+		NumWiped:         37,
+		NFTCreateStopped: true,
+	})
+	tokensMap[string(tokenName)] = marshalizedData
+	eei.storageUpdate[string(eei.scAddress)] = tokensMap
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := getDefaultVmInputForFunc("controlChanges", [][]byte{[]byte("esdtToken"),
+		[]byte(canCreateMultiShard), []byte("true"),
+	})
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+}
+
 func TestEsdt_GetSpecialRolesValueNotZeroShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -2589,7 +2736,7 @@ func TestEsdt_GetSpecialRolesValueNotZeroShouldErr(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -2612,7 +2759,7 @@ func TestEsdt_GetSpecialRolesInvalidNumOfArgsShouldErr(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -2634,7 +2781,7 @@ func TestEsdt_GetSpecialRolesNotEnoughGasShouldErr(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 	args.GasCost.MetaChainSystemSCsCost.ESDTOperations = 10
@@ -2657,7 +2804,7 @@ func TestEsdt_GetSpecialRolesInvalidTokenShouldErr(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -2680,12 +2827,12 @@ func TestEsdt_GetSpecialRolesNoSpecialRoles(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{})
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{})
 	tokensMap[string(tokenName)] = marshalizedData
 	eei.storageUpdate[string(eei.scAddress)] = tokensMap
 	args.Eei = eei
@@ -2709,11 +2856,11 @@ func TestEsdt_GetSpecialRolesShouldWork(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
-	bech32C, _ := pubkeyConverter.NewBech32PubkeyConverter(32)
+	bech32C, _ := pubkeyConverter.NewBech32PubkeyConverter(32, &coreMock.LoggerMock{})
 
 	addr1 := "erd1kzzv2uw97q5k9mt458qk3q9u3cwhwqykvyk598q2f6wwx7gvrd9s8kszxk"
 	addr1Bytes, _ := bech32C.Decode(addr1)
@@ -2739,7 +2886,7 @@ func TestEsdt_GetSpecialRolesShouldWork(t *testing.T) {
 		},
 	}
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		SpecialRoles: specialRoles,
 	})
 	tokensMap[string(tokenName)] = marshalizedData
@@ -2769,11 +2916,11 @@ func TestEsdt_UnsetSpecialRoleWithRemoveEntryFromSpecialRoles(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
-	bech32C, _ := pubkeyConverter.NewBech32PubkeyConverter(32)
+	bech32C, _ := pubkeyConverter.NewBech32PubkeyConverter(32, &coreMock.LoggerMock{})
 
 	owner := "erd1e7n8rzxdtl2n2fl6mrsg4l7stp2elxhfy6l9p7eeafspjhhrjq7qk05usw"
 	ownerBytes, _ := bech32C.Decode(owner)
@@ -2801,7 +2948,7 @@ func TestEsdt_UnsetSpecialRoleWithRemoveEntryFromSpecialRoles(t *testing.T) {
 		},
 	}
 	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
 		OwnerAddress:       ownerBytes,
 		SpecialRoles:       specialRoles,
 		CanAddSpecialRoles: true,
@@ -2862,7 +3009,7 @@ func TestEsdt_ExecuteConfigChangeGetContractConfig(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -2911,7 +3058,7 @@ func TestEsdt_ExecuteClaim(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -2950,7 +3097,7 @@ func TestEsdt_SetSpecialRoleCheckArgumentsErr(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -2970,7 +3117,7 @@ func TestEsdt_SetSpecialRoleCheckBasicOwnershipErr(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -2992,7 +3139,7 @@ func TestEsdt_SetSpecialRoleNewSendRoleChangeDataErr(t *testing.T) {
 	args := createMockArgumentsForESDT()
 	eei := &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
-			token := &ESDTData{
+			token := &ESDTDataV2{
 				OwnerAddress: []byte("caller"),
 			}
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
@@ -3023,7 +3170,7 @@ func TestEsdt_SetSpecialRoleAlreadyExists(t *testing.T) {
 	args := createMockArgumentsForESDT()
 	eei := &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
-			token := &ESDTData{
+			token := &ESDTDataV2{
 				OwnerAddress: []byte("caller123"),
 				SpecialRoles: []*ESDTRoles{
 					{
@@ -3060,7 +3207,7 @@ func TestEsdt_SetSpecialRoleCannotSaveToken(t *testing.T) {
 	args := createMockArgumentsForESDT()
 	eei := &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
-			token := &ESDTData{
+			token := &ESDTDataV2{
 				OwnerAddress: []byte("caller123"),
 				SpecialRoles: []*ESDTRoles{
 					{
@@ -3101,7 +3248,7 @@ func TestEsdt_SetSpecialRoleShouldWork(t *testing.T) {
 	args := createMockArgumentsForESDT()
 	eei := &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
-			token := &ESDTData{
+			token := &ESDTDataV2{
 				OwnerAddress: []byte("caller123"),
 				SpecialRoles: []*ESDTRoles{
 					{
@@ -3120,7 +3267,7 @@ func TestEsdt_SetSpecialRoleShouldWork(t *testing.T) {
 			return nil
 		},
 		SetStorageCalled: func(key []byte, value []byte) {
-			token := &ESDTData{}
+			token := &ESDTDataV2{}
 			_ = args.Marshalizer.Unmarshal(token, value)
 			require.Equal(t, [][]byte{[]byte(core.ESDTRoleLocalMint), []byte(core.ESDTRoleLocalBurn)}, token.SpecialRoles[0].Roles)
 		},
@@ -3145,7 +3292,7 @@ func TestEsdt_SetSpecialRoleNFTShouldErr(t *testing.T) {
 	args := createMockArgumentsForESDT()
 	eei := &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
-			token := &ESDTData{
+			token := &ESDTDataV2{
 				OwnerAddress: []byte("caller123"),
 				SpecialRoles: []*ESDTRoles{
 					{
@@ -3164,7 +3311,7 @@ func TestEsdt_SetSpecialRoleNFTShouldErr(t *testing.T) {
 			return nil
 		},
 		SetStorageCalled: func(key []byte, value []byte) {
-			token := &ESDTData{}
+			token := &ESDTDataV2{}
 			_ = args.Marshalizer.Unmarshal(token, value)
 			require.Equal(t, [][]byte{[]byte(core.ESDTRoleLocalMint), []byte(core.ESDTRoleNFTCreate)}, token.SpecialRoles[0].Roles)
 		},
@@ -3191,13 +3338,104 @@ func TestEsdt_SetSpecialRoleNFTShouldErr(t *testing.T) {
 	require.Equal(t, vmcommon.Ok, retCode)
 }
 
+func TestEsdt_SetSpecialRoleTransferNotEnabledShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	args.EpochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch = 10
+
+	token := &ESDTDataV2{
+		OwnerAddress: []byte("caller123"),
+		SpecialRoles: []*ESDTRoles{
+			{
+				Address: []byte("myAddress"),
+				Roles:   [][]byte{[]byte(core.ESDTRoleLocalMint)},
+			},
+		},
+		TokenType:          []byte(core.NonFungibleESDT),
+		CanAddSpecialRoles: true,
+	}
+	esdtTransferData := core.BuiltInFunctionESDTSetLimitedTransfer + "@" + hex.EncodeToString([]byte("myToken"))
+	called := false
+	eei := &mock.SystemEIStub{
+		GetStorageCalled: func(key []byte) []byte {
+			tokenBytes, _ := args.Marshalizer.Marshal(token)
+			return tokenBytes
+		},
+		SendGlobalSettingToAllCalled: func(sender []byte, input []byte) {
+			assert.Equal(t, input, []byte(esdtTransferData))
+			called = true
+		},
+	}
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := getDefaultVmInputForFunc("setSpecialRole", [][]byte{})
+	vmInput.Arguments = [][]byte{[]byte("myToken"), []byte("myAddress"), []byte(core.ESDTRoleTransfer)}
+	vmInput.CallerAddr = []byte("caller123")
+	vmInput.CallValue = big.NewInt(0)
+	vmInput.GasProvided = 50000000
+
+	token.TokenType = []byte(core.NonFungibleESDT)
+	retCode := e.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+
+	token.TokenType = []byte(core.FungibleESDT)
+	retCode = e.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+
+	token.TokenType = []byte(core.SemiFungibleESDT)
+	retCode = e.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+
+	e.flagTransferRole.Set()
+	called = false
+	token.TokenType = []byte(core.NonFungibleESDT)
+	retCode = e.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+	require.True(t, called)
+
+	token.TokenType = []byte(core.FungibleESDT)
+	retCode = e.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+
+	called = false
+	newAddressRole := &ESDTRoles{
+		Address: []byte("address"),
+		Roles:   [][]byte{[]byte(core.ESDTRoleTransfer)},
+	}
+	token.SpecialRoles = append(token.SpecialRoles, newAddressRole)
+	token.TokenType = []byte(core.SemiFungibleESDT)
+	retCode = e.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+	require.False(t, called)
+
+	token.SpecialRoles[0].Roles = append(token.SpecialRoles[0].Roles, []byte(core.ESDTRoleTransfer))
+	token.TokenType = []byte(core.SemiFungibleESDT)
+	retCode = e.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.False(t, called)
+
+	vmInput.Function = "unSetSpecialRole"
+	retCode = e.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+	require.False(t, called)
+
+	esdtTransferData = core.BuiltInFunctionESDTUnSetLimitedTransfer + "@" + hex.EncodeToString([]byte("myToken"))
+	token.SpecialRoles = token.SpecialRoles[:1]
+	retCode = e.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+	require.True(t, called)
+}
+
 func TestEsdt_SetSpecialRoleSFTShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
 	eei := &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
-			token := &ESDTData{
+			token := &ESDTDataV2{
 				OwnerAddress: []byte("caller123"),
 				SpecialRoles: []*ESDTRoles{
 					{
@@ -3216,7 +3454,7 @@ func TestEsdt_SetSpecialRoleSFTShouldErr(t *testing.T) {
 			return nil
 		},
 		SetStorageCalled: func(key []byte, value []byte) {
-			token := &ESDTData{}
+			token := &ESDTDataV2{}
 			_ = args.Marshalizer.Unmarshal(token, value)
 			require.Equal(t, [][]byte{[]byte(core.ESDTRoleLocalMint), []byte(core.ESDTRoleNFTAddQuantity)}, token.SpecialRoles[0].Roles)
 		},
@@ -3245,7 +3483,7 @@ func TestEsdt_SetSpecialRoleCreateNFTTwoTimesShouldError(t *testing.T) {
 	args := createMockArgumentsForESDT()
 	eei := &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
-			token := &ESDTData{
+			token := &ESDTDataV2{
 				OwnerAddress: []byte("caller123"),
 				SpecialRoles: []*ESDTRoles{
 					{
@@ -3274,13 +3512,54 @@ func TestEsdt_SetSpecialRoleCreateNFTTwoTimesShouldError(t *testing.T) {
 	require.Equal(t, vmcommon.UserError, retCode)
 }
 
+func TestEsdt_SetSpecialRoleCreateNFTTwoTimesMultiShardShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei := &mock.SystemEIStub{
+		GetStorageCalled: func(key []byte) []byte {
+			token := &ESDTDataV2{
+				OwnerAddress: []byte("caller123"),
+				SpecialRoles: []*ESDTRoles{
+					{
+						Address: []byte("myAddres4"),
+						Roles:   [][]byte{[]byte(core.ESDTRoleNFTCreate)},
+					},
+				},
+				TokenType:           []byte(core.NonFungibleESDT),
+				CanAddSpecialRoles:  true,
+				CanCreateMultiShard: true,
+			}
+			tokenBytes, _ := args.Marshalizer.Marshal(token)
+			return tokenBytes
+		},
+	}
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := getDefaultVmInputForFunc("setSpecialRole", [][]byte{})
+	vmInput.Arguments = [][]byte{[]byte("myToken"), []byte("caller234"), []byte(core.ESDTRoleNFTCreate)}
+	vmInput.CallerAddr = []byte("caller123")
+	vmInput.CallValue = big.NewInt(0)
+	vmInput.GasProvided = 50000000
+
+	retCode := e.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, eei.ReturnMessage, vm.ErrInvalidAddress.Error())
+
+	vmInput.Arguments[1] = []byte("caller23X")
+	retCode = e.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+}
+
 func TestEsdt_UnSetSpecialRoleCreateNFTShouldError(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
 	eei := &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
-			token := &ESDTData{
+			token := &ESDTDataV2{
 				OwnerAddress: []byte("caller123"),
 				SpecialRoles: []*ESDTRoles{
 					{
@@ -3317,7 +3596,7 @@ func TestEsdt_UnsetSpecialRoleCheckArgumentsErr(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -3340,7 +3619,7 @@ func TestEsdt_UnsetSpecialRoleCheckArgumentsInvalidRoleErr(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -3363,7 +3642,7 @@ func TestEsdt_UnsetSpecialRoleCheckArgumentsDuplicatedRoleInArgsShouldErr(t *tes
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -3386,7 +3665,7 @@ func TestEsdt_UnsetSpecialRoleCheckBasicOwnershipErr(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -3407,7 +3686,7 @@ func TestEsdt_UnsetSpecialRoleNewShouldErr(t *testing.T) {
 	args := createMockArgumentsForESDT()
 	eei := &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
-			token := &ESDTData{
+			token := &ESDTDataV2{
 				OwnerAddress: []byte("caller"),
 			}
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
@@ -3434,7 +3713,7 @@ func TestEsdt_UnsetSpecialRoleCannotRemoveRoleNotExistsShouldErr(t *testing.T) {
 	args := createMockArgumentsForESDT()
 	eei := &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
-			token := &ESDTData{
+			token := &ESDTDataV2{
 				OwnerAddress: []byte("caller123"),
 				SpecialRoles: []*ESDTRoles{
 					{
@@ -3468,7 +3747,7 @@ func TestEsdt_UnsetSpecialRoleRemoveRoleTransferErr(t *testing.T) {
 	args := createMockArgumentsForESDT()
 	eei := &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
-			token := &ESDTData{
+			token := &ESDTDataV2{
 				OwnerAddress: []byte("caller123"),
 				SpecialRoles: []*ESDTRoles{
 					{
@@ -3505,7 +3784,7 @@ func TestEsdt_UnsetSpecialRoleRemoveRoleSaveTokenErr(t *testing.T) {
 	args := createMockArgumentsForESDT()
 	eei := &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
-			token := &ESDTData{
+			token := &ESDTDataV2{
 				OwnerAddress: []byte("caller123"),
 				SpecialRoles: []*ESDTRoles{
 					{
@@ -3544,7 +3823,7 @@ func TestEsdt_UnsetSpecialRoleRemoveRoleShouldWork(t *testing.T) {
 	args := createMockArgumentsForESDT()
 	eei := &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
-			token := &ESDTData{
+			token := &ESDTDataV2{
 				OwnerAddress: []byte("caller123"),
 				SpecialRoles: []*ESDTRoles{
 					{
@@ -3561,7 +3840,7 @@ func TestEsdt_UnsetSpecialRoleRemoveRoleShouldWork(t *testing.T) {
 			return nil
 		},
 		SetStorageCalled: func(key []byte, value []byte) {
-			token := &ESDTData{}
+			token := &ESDTDataV2{}
 			_ = args.Marshalizer.Unmarshal(token, value)
 			require.Len(t, token.SpecialRoles, 0)
 		},
@@ -3588,7 +3867,7 @@ func TestEsdt_StopNFTCreateForeverCheckArgumentsErr(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -3612,7 +3891,7 @@ func TestEsdt_StopNFTCreateForeverCallErrors(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	token := &ESDTData{
+	token := &ESDTDataV2{
 		OwnerAddress: []byte("caller1"),
 		SpecialRoles: []*ESDTRoles{
 			{
@@ -3656,7 +3935,7 @@ func TestEsdt_StopNFTCreateForeverCallShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	token := &ESDTData{
+	token := &ESDTDataV2{
 		OwnerAddress: []byte("caller1"),
 		SpecialRoles: []*ESDTRoles{
 			{
@@ -3697,7 +3976,7 @@ func TestEsdt_TransferNFTCreateCheckArgumentsErr(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 
@@ -3721,7 +4000,7 @@ func TestEsdt_TransferNFTCreateCallErrors(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	token := &ESDTData{
+	token := &ESDTDataV2{
 		OwnerAddress: []byte("caller1"),
 		SpecialRoles: []*ESDTRoles{
 			{
@@ -3773,7 +4052,7 @@ func TestEsdt_TransferNFTCreateCallShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	token := &ESDTData{
+	token := &ESDTDataV2{
 		OwnerAddress: []byte("caller1"),
 		SpecialRoles: []*ESDTRoles{
 			{
@@ -3804,6 +4083,49 @@ func TestEsdt_TransferNFTCreateCallShouldWork(t *testing.T) {
 	token.TokenType = []byte(core.NonFungibleESDT)
 	token.CanTransferNFTCreateRole = true
 	retCode := e.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+}
+
+func TestEsdt_TransferNFTCreateCallMultiShardShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	token := &ESDTDataV2{
+		OwnerAddress: []byte("caller1"),
+		SpecialRoles: []*ESDTRoles{
+			{
+				Address: []byte("3caller"),
+				Roles:   [][]byte{[]byte(core.ESDTRoleNFTCreate)},
+			},
+		},
+	}
+	eei := &mock.SystemEIStub{
+		GetStorageCalled: func(key []byte) []byte {
+			tokenBytes, _ := args.Marshalizer.Marshal(token)
+			return tokenBytes
+		},
+		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+			require.Equal(t, []byte("ESDTNFTCreateRoleTransfer@746f6b656e4944@3263616c6c6572"), input)
+			require.Equal(t, destination, []byte("3caller"))
+			return nil
+		},
+	}
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := getDefaultVmInputForFunc("transferNFTCreateRole", [][]byte{[]byte("tokenID"), []byte("3caller"), []byte("caller2")})
+	vmInput.CallerAddr = token.OwnerAddress
+	vmInput.CallValue = big.NewInt(0)
+
+	token.TokenType = []byte(core.NonFungibleESDT)
+	token.CanTransferNFTCreateRole = true
+	token.CanCreateMultiShard = true
+	retCode := e.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+
+	vmInput.Arguments = [][]byte{[]byte("tokenID"), []byte("3caller"), []byte("2caller")}
+	retCode = e.Execute(vmInput)
 	require.Equal(t, vmcommon.Ok, retCode)
 }
 
@@ -3859,7 +4181,7 @@ func TestEsdt_GetAllAddressesAndRolesCallGetExistingTokenErr(t *testing.T) {
 	args := createMockArgumentsForESDT()
 	eei := &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
-			token := &ESDTData{
+			token := &ESDTDataV2{
 				OwnerAddress: []byte("caller123"),
 				SpecialRoles: []*ESDTRoles{
 					{

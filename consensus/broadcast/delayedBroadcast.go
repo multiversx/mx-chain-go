@@ -7,13 +7,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/alarm"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -32,6 +32,7 @@ type ArgsDelayedBlockBroadcaster struct {
 	ShardCoordinator      sharding.Coordinator
 	LeaderCacheSize       uint32
 	ValidatorCacheSize    uint32
+	AlarmScheduler        timersScheduler
 }
 
 type validatorHeaderBroadcastData struct {
@@ -93,6 +94,9 @@ func NewDelayedBlockBroadcaster(args *ArgsDelayedBlockBroadcaster) (*delayedBloc
 	if check.IfNil(args.HeadersSubscriber) {
 		return nil, spos.ErrNilHeadersSubscriber
 	}
+	if check.IfNil(args.AlarmScheduler) {
+		return nil, spos.ErrNilAlarmScheduler
+	}
 
 	cacheHeaders, err := lrucache.NewCache(sizeHeadersCache)
 	if err != nil {
@@ -100,7 +104,7 @@ func NewDelayedBlockBroadcaster(args *ArgsDelayedBlockBroadcaster) (*delayedBloc
 	}
 
 	dbb := &delayedBlockBroadcaster{
-		alarm:                      alarm.NewAlarmScheduler(),
+		alarm:                      args.AlarmScheduler,
 		shardCoordinator:           args.ShardCoordinator,
 		interceptorsContainer:      args.InterceptorsContainer,
 		headersSubscriber:          args.HeadersSubscriber,
@@ -310,7 +314,7 @@ func (dbb *delayedBlockBroadcaster) broadcastDataForHeaders(headerHashes [][]byt
 	}
 	dbb.mutDataForBroadcast.RUnlock()
 
-	time.Sleep(core.ExtraDelayForBroadcastBlockInfo)
+	time.Sleep(common.ExtraDelayForBroadcastBlockInfo)
 
 	dbb.mutDataForBroadcast.Lock()
 	dataToBroadcast := make([]*delayedBroadcastData, 0)
@@ -370,7 +374,7 @@ func (dbb *delayedBlockBroadcaster) scheduleValidatorBroadcast(dataForValidators
 			sameRound := headerData.round == broadcastData.header.GetRound()
 			samePrevRandomness := bytes.Equal(headerData.prevRandSeed, broadcastData.header.GetPrevRandSeed())
 			if sameRound && samePrevRandomness {
-				duration := validatorDelayPerOrder*time.Duration(broadcastData.order) + core.ExtraDelayForBroadcastBlockInfo
+				duration := validatorDelayPerOrder*time.Duration(broadcastData.order) + common.ExtraDelayForBroadcastBlockInfo
 				alarmID := prefixDelayDataAlarm + hex.EncodeToString(broadcastData.headerHash)
 
 				alarmsToAdd = append(alarmsToAdd, alarmParams{
@@ -471,7 +475,7 @@ func (dbb *delayedBlockBroadcaster) headerAlarmExpired(alarmID string) {
 			"headerHash", headerHash,
 			"alarmID", alarmID,
 		)
-		go dbb.broadcastBlockData(vHeader.metaMiniBlocksData, vHeader.metaTransactionsData, core.ExtraDelayForBroadcastBlockInfo)
+		go dbb.broadcastBlockData(vHeader.metaMiniBlocksData, vHeader.metaTransactionsData, common.ExtraDelayForBroadcastBlockInfo)
 	}
 }
 
@@ -495,7 +499,7 @@ func (dbb *delayedBlockBroadcaster) broadcastBlockData(
 		log.Error("broadcastBlockData.broadcastMiniblocksData", "error", err.Error())
 	}
 
-	time.Sleep(core.ExtraDelayBetweenBroadcastMbsAndTxs)
+	time.Sleep(common.ExtraDelayBetweenBroadcastMbsAndTxs)
 
 	err = dbb.broadcastTxsData(transactions)
 	if err != nil {

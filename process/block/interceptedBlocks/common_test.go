@@ -3,9 +3,10 @@ package interceptedBlocks
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -35,8 +36,8 @@ func createDefaultMiniblockArgument() *ArgInterceptedMiniblock {
 	return arg
 }
 
-func createDefaultHeaderHandler() *mock.HeaderHandlerStub {
-	return &mock.HeaderHandlerStub{
+func createDefaultHeaderHandler() *testscommon.HeaderHandlerStub {
+	return &testscommon.HeaderHandlerStub{
 		GetPubKeysBitmapCalled: func() []byte {
 			return []byte("pub keys bitmap")
 		},

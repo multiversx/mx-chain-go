@@ -3,12 +3,13 @@ package sposFactory_test
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -39,7 +40,7 @@ func TestGetSubroundsFactory_BlsNilConsensusCoreShouldErr(t *testing.T) {
 	consensusType := consensus.BlsConsensusType
 	statusHandler := &mock.AppStatusHandlerMock{}
 	chainID := []byte("chain-id")
-	indexer := &mock.IndexerMock{}
+	indexer := &testscommon.OutportStub{}
 	sf, err := sposFactory.GetSubroundsFactory(
 		nil,
 		&spos.ConsensusState{},
@@ -62,7 +63,7 @@ func TestGetSubroundsFactory_BlsNilStatusHandlerShouldErr(t *testing.T) {
 	worker := &mock.SposWorkerMock{}
 	consensusType := consensus.BlsConsensusType
 	chainID := []byte("chain-id")
-	indexer := &mock.IndexerMock{}
+	indexer := &testscommon.OutportStub{}
 	sf, err := sposFactory.GetSubroundsFactory(
 		consensusCore,
 		&spos.ConsensusState{},
@@ -86,7 +87,7 @@ func TestGetSubroundsFactory_BlsShouldWork(t *testing.T) {
 	consensusType := consensus.BlsConsensusType
 	statusHandler := &mock.AppStatusHandlerMock{}
 	chainID := []byte("chain-id")
-	indexer := &mock.IndexerMock{}
+	indexer := &testscommon.OutportStub{}
 	sf, err := sposFactory.GetSubroundsFactory(
 		consensusCore,
 		&spos.ConsensusState{},
@@ -133,7 +134,9 @@ func TestGetBroadcastMessenger_ShardShouldWork(t *testing.T) {
 	privateKey := &mock.PrivateKeyMock{}
 	peerSigHandler := &mock.PeerSignatureHandler{}
 	headersSubscriber := &mock.HeadersCacherStub{}
-	interceptosContainer := &mock.InterceptorsContainerStub{}
+	interceptosContainer := &testscommon.InterceptorsContainerStub{}
+	alarmSchedulerStub := &mock.AlarmSchedulerStub{}
+
 	bm, err := sposFactory.GetBroadcastMessenger(
 		marshalizer,
 		hasher,
@@ -143,6 +146,7 @@ func TestGetBroadcastMessenger_ShardShouldWork(t *testing.T) {
 		peerSigHandler,
 		headersSubscriber,
 		interceptosContainer,
+		alarmSchedulerStub,
 	)
 
 	assert.Nil(t, err)
@@ -162,7 +166,9 @@ func TestGetBroadcastMessenger_MetachainShouldWork(t *testing.T) {
 	privateKey := &mock.PrivateKeyMock{}
 	peerSigHandler := &mock.PeerSignatureHandler{}
 	headersSubscriber := &mock.HeadersCacherStub{}
-	interceptosContainer := &mock.InterceptorsContainerStub{}
+	interceptosContainer := &testscommon.InterceptorsContainerStub{}
+	alarmSchedulerStub := &mock.AlarmSchedulerStub{}
+
 	bm, err := sposFactory.GetBroadcastMessenger(
 		marshalizer,
 		hasher,
@@ -172,10 +178,34 @@ func TestGetBroadcastMessenger_MetachainShouldWork(t *testing.T) {
 		peerSigHandler,
 		headersSubscriber,
 		interceptosContainer,
+		alarmSchedulerStub,
 	)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, bm)
+}
+
+func TestGetBroadcastMessenger_NilShardCoordinatorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	headersSubscriber := &mock.HeadersCacherStub{}
+	interceptosContainer := &testscommon.InterceptorsContainerStub{}
+	alarmSchedulerStub := &mock.AlarmSchedulerStub{}
+
+	bm, err := sposFactory.GetBroadcastMessenger(
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		headersSubscriber,
+		interceptosContainer,
+		alarmSchedulerStub,
+	)
+
+	assert.Nil(t, bm)
+	assert.Equal(t, spos.ErrNilShardCoordinator, err)
 }
 
 func TestGetBroadcastMessenger_InvalidShardIdShouldErr(t *testing.T) {
@@ -186,7 +216,8 @@ func TestGetBroadcastMessenger_InvalidShardIdShouldErr(t *testing.T) {
 		return 37
 	}
 	headersSubscriber := &mock.HeadersCacherStub{}
-	interceptosContainer := &mock.InterceptorsContainerStub{}
+	interceptosContainer := &testscommon.InterceptorsContainerStub{}
+	alarmSchedulerStub := &mock.AlarmSchedulerStub{}
 
 	bm, err := sposFactory.GetBroadcastMessenger(
 		nil,
@@ -197,6 +228,7 @@ func TestGetBroadcastMessenger_InvalidShardIdShouldErr(t *testing.T) {
 		nil,
 		headersSubscriber,
 		interceptosContainer,
+		alarmSchedulerStub,
 	)
 
 	assert.Nil(t, bm)

@@ -10,14 +10,15 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/atomic"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/vm"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var log = logger.GetOrCreate("vm/systemsmartcontracts")
@@ -56,16 +57,16 @@ type stakingSC struct {
 
 // ArgsNewStakingSmartContract holds the arguments needed to create a StakingSmartContract
 type ArgsNewStakingSmartContract struct {
-	StakingSCConfig                  config.StakingSystemSCConfig
-	MinNumNodes                      uint64
-	Eei                              vm.SystemEI
-	StakingAccessAddr                []byte
-	JailAccessAddr                   []byte
-	EndOfEpochAccessAddr             []byte
-	GasCost                          vm.GasCost
-	Marshalizer                      marshal.Marshalizer
-	EpochNotifier                    vm.EpochNotifier
-	ValidatorToDelegationEnableEpoch uint32
+	StakingSCConfig      config.StakingSystemSCConfig
+	MinNumNodes          uint64
+	Eei                  vm.SystemEI
+	StakingAccessAddr    []byte
+	JailAccessAddr       []byte
+	EndOfEpochAccessAddr []byte
+	GasCost              vm.GasCost
+	Marshalizer          marshal.Marshalizer
+	EpochNotifier        vm.EpochNotifier
+	EpochConfig          config.EpochConfig
 }
 
 type waitingListReturnData struct {
@@ -125,13 +126,17 @@ func NewStakingSmartContract(
 		maxNumNodes:                      args.StakingSCConfig.MaxNumberOfNodesForStake,
 		marshalizer:                      args.Marshalizer,
 		endOfEpochAccessAddr:             args.EndOfEpochAccessAddr,
-		enableStakingEpoch:               args.StakingSCConfig.StakeEnableEpoch,
-		stakingV2Epoch:                   args.StakingSCConfig.StakingV2Epoch,
+		enableStakingEpoch:               args.EpochConfig.EnableEpochs.StakeEnableEpoch,
+		stakingV2Epoch:                   args.EpochConfig.EnableEpochs.StakingV2EnableEpoch,
 		walletAddressLen:                 len(args.StakingAccessAddr),
 		minNodePrice:                     minStakeValue,
-		correctLastUnjailedEpoch:         args.StakingSCConfig.CorrectLastUnjailedEpoch,
-		validatorToDelegationEnableEpoch: args.ValidatorToDelegationEnableEpoch,
+		correctLastUnjailedEpoch:         args.EpochConfig.EnableEpochs.CorrectLastUnjailedEnableEpoch,
+		validatorToDelegationEnableEpoch: args.EpochConfig.EnableEpochs.ValidatorToDelegationEnableEpoch,
 	}
+	log.Debug("staking: enable epoch for stake", "epoch", reg.enableStakingEpoch)
+	log.Debug("staking: enable epoch for staking v2", "epoch", reg.stakingV2Epoch)
+	log.Debug("staking: enable epoch for correct last unjailed", "epoch", reg.correctLastUnjailedEpoch)
+	log.Debug("staking: enable epoch for validator to delegation", "epoch", reg.validatorToDelegationEnableEpoch)
 
 	var conversionOk bool
 	reg.stakeValue, conversionOk = big.NewInt(0).SetString(args.StakingSCConfig.GenesisNodePrice, conversionBase)
@@ -149,6 +154,11 @@ func (s *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 	s.mutExecution.RLock()
 	defer s.mutExecution.RUnlock()
 	if CheckIfNil(args) != nil {
+		return vmcommon.UserError
+	}
+
+	if len(args.ESDTTransfers) > 0 {
+		s.eei.AddReturnMessage("cannot transfer ESDT to system SCs")
 		return vmcommon.UserError
 	}
 
@@ -529,7 +539,7 @@ func (s *stakingSC) activeStakingFor(stakingData *StakedDataV2_0) {
 	stakingData.RegisterNonce = s.eei.BlockChainHook().CurrentNonce()
 	stakingData.Staked = true
 	stakingData.StakedNonce = s.eei.BlockChainHook().CurrentNonce()
-	stakingData.UnStakedEpoch = core.DefaultUnstakedEpoch
+	stakingData.UnStakedEpoch = common.DefaultUnstakedEpoch
 	stakingData.UnStakedNonce = 0
 	stakingData.Waiting = false
 }
@@ -707,7 +717,7 @@ func (s *stakingSC) moveFirstFromWaitingToStaked() (bool, error) {
 	nodeData.RegisterNonce = s.eei.BlockChainHook().CurrentNonce()
 	nodeData.StakedNonce = s.eei.BlockChainHook().CurrentNonce()
 	nodeData.UnStakedNonce = 0
-	nodeData.UnStakedEpoch = core.DefaultUnstakedEpoch
+	nodeData.UnStakedEpoch = common.DefaultUnstakedEpoch
 
 	s.addToStakedNodes(1)
 	return true, s.saveStakingData(elementInList.BLSPublicKey, nodeData)
@@ -1846,7 +1856,7 @@ func (s *stakingSC) getFirstElementsFromWaitingList(numNodes uint32) (*waitingLi
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
-func (s *stakingSC) EpochConfirmed(epoch uint32) {
+func (s *stakingSC) EpochConfirmed(epoch uint32, _ uint64) {
 	s.flagEnableStaking.Toggle(epoch >= s.enableStakingEpoch)
 	log.Debug("stakingSC: stake/unstake/unbond", "enabled", s.flagEnableStaking.IsSet())
 

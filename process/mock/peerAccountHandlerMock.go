@@ -3,9 +3,8 @@ package mock
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 // PeerAccountHandlerMock -
@@ -37,7 +36,7 @@ func (p *PeerAccountHandlerMock) GetUnStakedEpoch() uint32 {
 	if p.GetUnStakedEpochCalled != nil {
 		return p.GetUnStakedEpochCalled()
 	}
-	return core.DefaultUnstakedEpoch
+	return common.DefaultUnstakedEpoch
 }
 
 // SetUnStakedEpoch -
@@ -266,12 +265,12 @@ func (p *PeerAccountHandlerMock) GetRootHash() []byte {
 }
 
 // SetDataTrie -
-func (p *PeerAccountHandlerMock) SetDataTrie(_ data.Trie) {
+func (p *PeerAccountHandlerMock) SetDataTrie(_ common.Trie) {
 
 }
 
 // DataTrie -
-func (p *PeerAccountHandlerMock) DataTrie() data.Trie {
+func (p *PeerAccountHandlerMock) DataTrie() common.Trie {
 	return nil
 }
 

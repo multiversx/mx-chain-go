@@ -1,7 +1,7 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
@@ -115,6 +115,21 @@ func (ms *MessengerStub) SendToConnectedPeer(topic string, buff []byte, peerID c
 // Bootstrap -
 func (ms *MessengerStub) Bootstrap() error {
 	return ms.BootstrapCalled()
+}
+
+// ConnectedPeersOnTopic -
+func (ms *MessengerStub) ConnectedPeersOnTopic(_ string) []core.PeerID {
+	panic("implement me")
+}
+
+// UnregisterAllMessageProcessors -
+func (ms *MessengerStub) UnregisterAllMessageProcessors() error {
+	panic("implement me")
+}
+
+// UnjoinAllTopics -
+func (ms *MessengerStub) UnjoinAllTopics() error {
+	panic("implement me")
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

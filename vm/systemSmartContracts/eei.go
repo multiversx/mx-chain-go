@@ -3,12 +3,14 @@ package systemSmartContracts
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 type vmContext struct {
@@ -26,6 +28,7 @@ type vmContext struct {
 
 	returnMessage string
 	output        [][]byte
+	logs          []*vmcommon.LogEntry
 }
 
 // NewVMContext creates a context where smart contracts can run and write
@@ -175,7 +178,7 @@ func (host *vmContext) SendGlobalSettingToAll(_ []byte, input []byte) {
 	outputTransfer := vmcommon.OutputTransfer{
 		Value:    big.NewInt(0),
 		Data:     input,
-		CallType: vmcommon.DirectCall,
+		CallType: vmData.DirectCall,
 	}
 
 	for i := uint8(0); i < uint8(host.blockChainHook.NumberOfShards()); i++ {
@@ -233,7 +236,7 @@ func (host *vmContext) Transfer(
 		Value:    big.NewInt(0).Set(value),
 		GasLimit: gasLimit,
 		Data:     input,
-		CallType: vmcommon.DirectCall,
+		CallType: vmData.DirectCall,
 	}
 	destAcc.OutputTransfers = append(destAcc.OutputTransfers, outputTransfer)
 
@@ -445,6 +448,11 @@ func (host *vmContext) AddReturnMessage(message string) {
 	host.returnMessage += "@" + message
 }
 
+// AddLogEntry will add a log entry
+func (host *vmContext) AddLogEntry(entry *vmcommon.LogEntry) {
+	host.logs = append(host.logs, entry)
+}
+
 // BlockChainHook returns the blockchain hook
 func (host *vmContext) BlockChainHook() vm.BlockchainHook {
 	return host.blockChainHook
@@ -462,6 +470,7 @@ func (host *vmContext) CleanCache() {
 	host.output = make([][]byte, 0)
 	host.returnMessage = ""
 	host.gasRemaining = 0
+	host.logs = make([]*vmcommon.LogEntry, 0)
 }
 
 // SetGasProvided sets the provided gas
@@ -550,6 +559,7 @@ func (host *vmContext) CreateVMOutput() *vmcommon.VMOutput {
 	vmOutput.GasRefund = big.NewInt(0)
 
 	vmOutput.ReturnMessage = host.returnMessage
+	vmOutput.Logs = host.logs
 
 	if len(host.output) > 0 {
 		vmOutput.ReturnData = append(vmOutput.ReturnData, host.output...)
@@ -606,8 +616,8 @@ func (host *vmContext) IsValidator(blsKey []byte) bool {
 	}
 
 	// TODO: rename GetList from validator account
-	isValidator := validatorAccount.GetList() == string(core.EligibleList) ||
-		validatorAccount.GetList() == string(core.WaitingList) || validatorAccount.GetList() == string(core.LeavingList)
+	isValidator := validatorAccount.GetList() == string(common.EligibleList) ||
+		validatorAccount.GetList() == string(common.WaitingList) || validatorAccount.GetList() == string(common.LeavingList)
 	return isValidator
 }
 
@@ -615,12 +625,12 @@ func (host *vmContext) IsValidator(blsKey []byte) bool {
 func (host *vmContext) StatusFromValidatorStatistics(blsKey []byte) string {
 	acc, err := host.validatorAccountsDB.GetExistingAccount(blsKey)
 	if err != nil {
-		return string(core.InactiveList)
+		return string(common.InactiveList)
 	}
 
 	validatorAccount, castOk := acc.(state.PeerAccountHandler)
 	if !castOk {
-		return string(core.InactiveList)
+		return string(common.InactiveList)
 	}
 
 	return validatorAccount.GetList()
@@ -638,7 +648,7 @@ func (host *vmContext) CanUnJail(blsKey []byte) bool {
 		return false
 	}
 
-	return validatorAccount.GetList() == string(core.JailedList)
+	return validatorAccount.GetList() == string(common.JailedList)
 }
 
 // IsBadRating returns true if the validators temp rating is under jailed limit
@@ -655,6 +665,11 @@ func (host *vmContext) IsBadRating(blsKey []byte) bool {
 
 	minChance := host.chanceComputer.GetChance(0)
 	return host.chanceComputer.GetChance(validatorAccount.GetTempRating()) < minChance
+}
+
+// CleanStorageUpdates deletes all the storage updates, used especially to delete data which was only read not modified
+func (host *vmContext) CleanStorageUpdates() {
+	host.storageUpdate = make(map[string]map[string][]byte)
 }
 
 // IsInterfaceNil returns if the underlying implementation is nil

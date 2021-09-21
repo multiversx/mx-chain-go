@@ -3,8 +3,8 @@ package disabled
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -58,6 +58,11 @@ func (af *AntiFlood) SetDebugger(_ process.AntifloodDebugger) error {
 
 // BlacklistPeer does nothing
 func (af *AntiFlood) BlacklistPeer(_ core.PeerID, _ string, _ time.Duration) {
+}
+
+// Close does nothing
+func (af *AntiFlood) Close() error {
+	return nil
 }
 
 // IsInterfaceNil return true if there is no value under the interface

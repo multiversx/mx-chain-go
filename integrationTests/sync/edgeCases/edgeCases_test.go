@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -83,7 +83,7 @@ func TestSyncMetaNodeIsSyncingReceivedHigherRoundBlockFromShard(t *testing.T) {
 		shardId,
 	)
 	nodes = append(nodes, syncMetaNode)
-	syncMetaNode.Rounder.IndexField = int64(round)
+	syncMetaNode.RoundHandler.IndexField = int64(round)
 
 	syncNodesSlice := []*integrationTests.TestProcessorNode{syncMetaNode}
 	for _, n := range nodes {

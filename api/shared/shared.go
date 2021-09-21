@@ -3,9 +3,33 @@ package shared
 import (
 	"net/http"
 
-	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/gin-gonic/gin"
 )
+
+// MiddlewarePosition is the type that specifies the position of a middleware relative to the base endpoint handler
+type MiddlewarePosition bool
+
+const (
+	// Before indicates that the middleware should be used before the base endpoint handler
+	Before MiddlewarePosition = true
+
+	// After indicates that the middleware should be used after the base endpoint handler
+	After MiddlewarePosition = false
+)
+
+// AdditionalMiddleware holds the data needed for adding a middleware to an API endpoint
+type AdditionalMiddleware struct {
+	Middleware gin.HandlerFunc
+	Position   MiddlewarePosition
+}
+
+// EndpointHandlerData holds the items needed for creating a new gin HTTP endpoint
+type EndpointHandlerData struct {
+	Path                  string
+	Method                string
+	Handler               gin.HandlerFunc
+	AdditionalMiddlewares []AdditionalMiddleware
+}
 
 // GenericAPIResponse defines the structure of all responses on API endpoints
 type GenericAPIResponse struct {
@@ -30,35 +54,24 @@ const ReturnCodeRequestError ReturnCode = "bad_request"
 const ReturnCodeSystemBusy ReturnCode = "system_busy"
 
 // RespondWith will respond with the generic API response
-func RespondWith(c *gin.Context, status int, dataField interface{}, error string, code ReturnCode) {
+func RespondWith(c *gin.Context, status int, dataField interface{}, err string, code ReturnCode) {
 	c.JSON(
 		status,
 		GenericAPIResponse{
 			Data:  dataField,
-			Error: error,
+			Error: err,
 			Code:  code,
 		},
 	)
 }
 
-// RespondWithInvalidAppContext will be called when the application's context is invalid
-func RespondWithInvalidAppContext(c *gin.Context) {
-	RespondWith(
-		c,
-		http.StatusInternalServerError,
-		nil,
-		errors.ErrInvalidAppContext.Error(),
-		ReturnCodeInternalError,
-	)
-}
-
 // RespondWithValidationError will be called when the application's context is invalid
-func RespondWithValidationError(c *gin.Context, error string) {
+func RespondWithValidationError(c *gin.Context, err string) {
 	RespondWith(
 		c,
 		http.StatusBadRequest,
 		nil,
-		error,
+		err,
 		ReturnCodeRequestError,
 	)
 }

@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/closing"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
@@ -29,6 +31,7 @@ type SerialDB struct {
 	cancel            context.CancelFunc
 	mutClosed         sync.Mutex
 	closed            bool
+	closer            core.SafeCloser
 }
 
 // NewSerialDB is a constructor for the leveldb persister
@@ -68,6 +71,7 @@ func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFi
 		dbAccess:          make(chan serialQueryer),
 		cancel:            cancel,
 		closed:            false,
+		closer:            closing.NewSafeChanCloser(),
 	}
 
 	dbStore.batch = NewBatch()
@@ -78,6 +82,8 @@ func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFi
 	runtime.SetFinalizer(dbStore, func(db *SerialDB) {
 		_ = db.Close()
 	})
+
+	log.Debug("opened serial level db persister", "path", path)
 
 	return dbStore, nil
 }
@@ -92,7 +98,7 @@ func (s *SerialDB) batchTimeoutHandle(ctx context.Context) {
 				continue
 			}
 		case <-ctx.Done():
-			log.Debug("closing the timed batch handler", "path", s.path)
+			log.Debug("batchTimeoutHandle - closing", "path", s.path)
 			return
 		}
 	}
@@ -151,7 +157,10 @@ func (s *SerialDB) Get(key []byte) ([]byte, error) {
 		resChan: ch,
 	}
 
-	s.dbAccess <- req
+	err := s.tryWriteInDbAccessChan(req)
+	if err != nil {
+		return nil, err
+	}
 	result := <-ch
 	close(ch)
 
@@ -188,11 +197,23 @@ func (s *SerialDB) Has(key []byte) error {
 		resChan: ch,
 	}
 
-	s.dbAccess <- req
+	err := s.tryWriteInDbAccessChan(req)
+	if err != nil {
+		return err
+	}
 	result := <-ch
 	close(ch)
 
 	return result
+}
+
+func (s *SerialDB) tryWriteInDbAccessChan(req serialQueryer) error {
+	select {
+	case s.dbAccess <- req:
+		return nil
+	case <-s.closer.ChanClose():
+		return storage.ErrSerialDBIsClosed
+	}
 }
 
 // Init initializes the storage medium and prepares it for usage
@@ -219,7 +240,10 @@ func (s *SerialDB) putBatch() error {
 		resChan: ch,
 	}
 
-	s.dbAccess <- req
+	err := s.tryWriteInDbAccessChan(req)
+	if err != nil {
+		return err
+	}
 	result := <-ch
 	close(ch)
 
@@ -242,6 +266,10 @@ func (s *SerialDB) Close() error {
 	if s.closed {
 		return nil
 	}
+
+	//calling close on the SafeCloser instance should be the last instruction called
+	//(just to close some go routines started as edge cases that would otherwise hang)
+	defer s.closer.Close()
 
 	s.closed = true
 	_ = s.putBatch()
@@ -266,15 +294,22 @@ func (s *SerialDB) Remove(key []byte) error {
 
 // Destroy removes the storage medium stored data
 func (s *SerialDB) Destroy() error {
+	log.Debug("serialDB.Destroy", "path", s.path)
+
+	//calling close on the SafeCloser instance should be the last instruction called
+	//(just to close some go routines started as edge cases that would otherwise hang)
+	defer s.closer.Close()
+
 	s.mutBatch.Lock()
 	s.batch.Reset()
 	s.sizeBatch = 0
 	s.mutBatch.Unlock()
 
-	s.cancel()
-
 	s.mutClosed.Lock()
 	s.closed = true
+
+	s.cancel()
+
 	err := s.db.Close()
 	s.mutClosed.Unlock()
 
@@ -302,7 +337,7 @@ func (s *SerialDB) processLoop(ctx context.Context) {
 		case queryer := <-s.dbAccess:
 			queryer.request(s)
 		case <-ctx.Done():
-			log.Debug("closing the leveldb process loop")
+			log.Debug("processLoop - closing the leveldb process loop", "path", s.path)
 			return
 		}
 	}

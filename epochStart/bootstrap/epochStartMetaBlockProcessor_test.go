@@ -6,11 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,7 +20,7 @@ func TestNewEpochStartMetaBlockProcessor_NilMessengerShouldErr(t *testing.T) {
 
 	esmbp, err := NewEpochStartMetaBlockProcessor(
 		nil,
-		&mock.RequestHandlerStub{},
+		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		50,
@@ -53,7 +54,7 @@ func TestNewEpochStartMetaBlockProcessor_NilMarshalizerShouldErr(t *testing.T) {
 
 	esmbp, err := NewEpochStartMetaBlockProcessor(
 		&mock.MessengerStub{},
-		&mock.RequestHandlerStub{},
+		&testscommon.RequestHandlerStub{},
 		nil,
 		&mock.HasherMock{},
 		50,
@@ -70,7 +71,7 @@ func TestNewEpochStartMetaBlockProcessor_NilHasherShouldErr(t *testing.T) {
 
 	esmbp, err := NewEpochStartMetaBlockProcessor(
 		&mock.MessengerStub{},
-		&mock.RequestHandlerStub{},
+		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		nil,
 		50,
@@ -87,7 +88,7 @@ func TestNewEpochStartMetaBlockProcessor_InvalidConsensusPercentageShouldErr(t *
 
 	esmbp, err := NewEpochStartMetaBlockProcessor(
 		&mock.MessengerStub{},
-		&mock.RequestHandlerStub{},
+		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		101,
@@ -104,7 +105,7 @@ func TestNewEpochStartMetaBlockProcessorOkValsShouldWork(t *testing.T) {
 
 	esmbp, err := NewEpochStartMetaBlockProcessor(
 		&mock.MessengerStub{},
-		&mock.RequestHandlerStub{},
+		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		50,
@@ -140,7 +141,7 @@ func TestNewEpochStartMetaBlockProcessorOkValsShouldWorkAfterMoreTriesWaitingFor
 				return peers
 			},
 		},
-		&mock.RequestHandlerStub{},
+		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		50,
@@ -157,7 +158,7 @@ func TestEpochStartMetaBlockProcessor_Validate(t *testing.T) {
 
 	esmbp, _ := NewEpochStartMetaBlockProcessor(
 		&mock.MessengerStub{},
-		&mock.RequestHandlerStub{},
+		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		50,
@@ -173,7 +174,7 @@ func TestEpochStartMetaBlockProcessor_SaveNilInterceptedDataShouldNotReturnError
 
 	esmbp, _ := NewEpochStartMetaBlockProcessor(
 		&mock.MessengerStub{},
-		&mock.RequestHandlerStub{},
+		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		50,
@@ -190,7 +191,7 @@ func TestEpochStartMetaBlockProcessor_SaveOkInterceptedDataShouldWork(t *testing
 
 	esmbp, _ := NewEpochStartMetaBlockProcessor(
 		&mock.MessengerStub{},
-		&mock.RequestHandlerStub{},
+		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		50,
@@ -219,7 +220,7 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldTimeOut(t *tes
 				return []core.PeerID{"peer_0", "peer_1", "peer_2", "peer_3", "peer_4", "peer_5"}
 			},
 		},
-		&mock.RequestHandlerStub{},
+		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		50,
@@ -243,7 +244,7 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldReturnMostRece
 				return []core.PeerID{"peer_0", "peer_1", "peer_2", "peer_3", "peer_4", "peer_5"}
 			},
 		},
-		&mock.RequestHandlerStub{},
+		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		99,
@@ -279,7 +280,7 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldWorkFromFirstT
 				return []core.PeerID{"peer_0", "peer_1", "peer_2", "peer_3", "peer_4", "peer_5"}
 			},
 		},
-		&mock.RequestHandlerStub{},
+		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		50,
@@ -323,7 +324,7 @@ func testEpochStartMbIsReceivedWithSleepBetweenReceivedMessages(t *testing.T, tt
 				return []core.PeerID{"peer_0", "peer_1", "peer_2", "peer_3", "peer_4", "peer_5"}
 			},
 		},
-		&mock.RequestHandlerStub{},
+		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		64,

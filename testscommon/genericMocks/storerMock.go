@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/core/atomic"
-	"github.com/ElrondNetwork/elrond-go/core/container"
-	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
+	"github.com/ElrondNetwork/elrond-go-core/core/container"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 )
 
 // StorerMock -
@@ -82,8 +82,8 @@ func (sm *StorerMock) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[string]
 	return result, nil
 }
 
-// HasInEpoch -
-func (sm *StorerMock) HasInEpoch(key []byte, epoch uint32) error {
+// hasInEpoch -
+func (sm *StorerMock) hasInEpoch(key []byte, epoch uint32) error {
 	data := sm.GetEpochData(epoch)
 
 	_, ok := data.Get(string(key))
@@ -156,7 +156,7 @@ func (sm *StorerMock) Close() error {
 
 // Has -
 func (sm *StorerMock) Has(key []byte) error {
-	return sm.HasInEpoch(key, sm.currentEpoch.Get())
+	return sm.hasInEpoch(key, sm.currentEpoch.Get())
 }
 
 // Remove -
@@ -192,6 +192,11 @@ func (sm *StorerMock) RangeKeys(handler func(key []byte, value []byte) bool) {
 			return
 		}
 	}
+}
+
+// GetOldestEpoch -
+func (sm *StorerMock) GetOldestEpoch() (uint32, error) {
+	return 0, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

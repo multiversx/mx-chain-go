@@ -4,8 +4,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/topicResolverSender"
@@ -75,8 +75,6 @@ func TestNewDiffPeerListCreator_ShouldWork(t *testing.T) {
 	assert.Equal(t, excludedTopic, dplc.ExcludedPeersOnTopic())
 }
 
-// ------- MakeDiffList
-
 func TestMakeDiffList_EmptyExcludedShoudRetAllPeersList(t *testing.T) {
 	t.Parallel()
 
@@ -122,9 +120,7 @@ func TestMakeDiffList_NoneFoundInExcludedShouldRetAllPeers(t *testing.T) {
 	assert.Equal(t, allPeers, diff)
 }
 
-//------- PeersList
-
-func TestDiffPeerListCreator_PeersListEmptyMainListShouldRetEmpty(t *testing.T) {
+func TestDiffPeerListCreator_CrossShardPeersListEmptyMainListShouldRetEmpty(t *testing.T) {
 	t.Parallel()
 
 	dplc, _ := topicResolverSender.NewDiffPeerListCreator(
@@ -138,10 +134,10 @@ func TestDiffPeerListCreator_PeersListEmptyMainListShouldRetEmpty(t *testing.T) 
 		excludedTopic,
 	)
 
-	assert.Empty(t, dplc.PeerList())
+	assert.Empty(t, dplc.CrossShardPeerList())
 }
 
-func TestDiffPeerListCreator_PeersListNoExcludedTopicSetShouldRetPeersOnMain(t *testing.T) {
+func TestDiffPeerListCreator_CrossShardPeersListNoExcludedTopicSetShouldRetPeersOnMain(t *testing.T) {
 	t.Parallel()
 
 	pID1 := core.PeerID("peer1")
@@ -158,10 +154,10 @@ func TestDiffPeerListCreator_PeersListNoExcludedTopicSetShouldRetPeersOnMain(t *
 		emptyTopic,
 	)
 
-	assert.Equal(t, peersOnMain, dplc.PeerList())
+	assert.Equal(t, peersOnMain, dplc.CrossShardPeerList())
 }
 
-func TestDiffPeerListCreator_PeersListDiffShouldWork(t *testing.T) {
+func TestDiffPeerListCreator_CrossShardPeersListDiffShouldWork(t *testing.T) {
 	t.Parallel()
 
 	pID1 := core.PeerID("peer1")
@@ -187,13 +183,13 @@ func TestDiffPeerListCreator_PeersListDiffShouldWork(t *testing.T) {
 		excludedTopic,
 	)
 
-	resultingList := dplc.PeerList()
+	resultingList := dplc.CrossShardPeerList()
 
 	assert.Equal(t, 1, len(resultingList))
 	assert.Equal(t, pID1, resultingList[0])
 }
 
-func TestDiffPeerListCreator_PeersListNoDifferenceShouldReturnMain(t *testing.T) {
+func TestDiffPeerListCreator_CrossShardPeersListNoDifferenceShouldReturnMain(t *testing.T) {
 	t.Parallel()
 
 	pID1 := core.PeerID("peer1")
@@ -218,7 +214,7 @@ func TestDiffPeerListCreator_PeersListNoDifferenceShouldReturnMain(t *testing.T)
 		excludedTopic,
 	)
 
-	resultingList := dplc.PeerList()
+	resultingList := dplc.CrossShardPeerList()
 
 	assert.Equal(t, peersOnMain, resultingList)
 }

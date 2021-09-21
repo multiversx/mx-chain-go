@@ -4,28 +4,26 @@ import (
 	"encoding/hex"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/statistics"
-	"github.com/ElrondNetwork/elrond-go/data/api"
-	"github.com/ElrondNetwork/elrond-go/data/esdt"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/data/vm"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
+	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
+	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 // Facade is the mock implementation of a node router handler
 type Facade struct {
 	ShouldErrorStart           bool
 	ShouldErrorStop            bool
-	TpsBenchmarkHandler        func() *statistics.TpsBenchmark
 	GetHeartbeatsHandler       func() ([]data.PubKeyHeartbeat, error)
 	BalanceHandler             func(string) (*big.Int, error)
-	GetAccountHandler          func(address string) (state.UserAccountHandler, error)
-	GetCodeCalled              func(state.AccountHandler) []byte
+	GetAccountHandler          func(address string) (api.AccountResponse, error)
 	GenerateTransactionHandler func(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
 	GetTransactionHandler      func(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
 	CreateTransactionHandler   func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
@@ -44,12 +42,13 @@ type Facade struct {
 	GetThrottlerForEndpointCalled           func(endpoint string) (core.Throttler, bool)
 	GetUsernameCalled                       func(address string) (string, error)
 	GetKeyValuePairsCalled                  func(address string) (map[string]string, error)
-	SimulateTransactionExecutionHandler     func(tx *transaction.Transaction) (*transaction.SimulationResults, error)
+	SimulateTransactionExecutionHandler     func(tx *transaction.Transaction) (*txSimData.SimulationResults, error)
 	GetNumCheckpointsFromAccountStateCalled func() uint32
 	GetNumCheckpointsFromPeerStateCalled    func() uint32
 	GetESDTDataCalled                       func(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error)
 	GetAllESDTTokensCalled                  func(address string) (map[string]*esdt.ESDigitalToken, error)
 	GetESDTsWithRoleCalled                  func(address string, role string) ([]string, error)
+	GetESDTsRolesCalled                     func(address string) (map[string][]string, error)
 	GetNFTTokenIDsRegisteredByAddressCalled func(address string) ([]string, error)
 	GetBlockByHashCalled                    func(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonceCalled                   func(nonce uint64, withTxs bool) (*api.Block, error)
@@ -57,6 +56,46 @@ type Facade struct {
 	GetAllIssuedESDTsCalled                 func(tokenType string) ([]string, error)
 	GetDirectStakedListHandler              func() ([]*api.DirectStakedValue, error)
 	GetDelegatorsListHandler                func() ([]*api.Delegator, error)
+	GetProofCalled                          func(string, string) ([][]byte, error)
+	GetProofCurrentRootHashCalled           func(string) ([][]byte, []byte, error)
+	VerifyProofCalled                       func(string, string, [][]byte) (bool, error)
+	GetTokenSupplyCalled                    func(token string) (string, error)
+}
+
+// GetTokenSupply -
+func (f *Facade) GetTokenSupply(token string) (string, error) {
+	if f.GetTokenSupplyCalled != nil {
+		return f.GetTokenSupplyCalled(token)
+	}
+
+	return "", nil
+}
+
+// GetProof -
+func (f *Facade) GetProof(rootHash string, address string) ([][]byte, error) {
+	if f.GetProofCalled != nil {
+		return f.GetProofCalled(rootHash, address)
+	}
+
+	return nil, nil
+}
+
+// GetProofCurrentRootHash -
+func (f *Facade) GetProofCurrentRootHash(address string) ([][]byte, []byte, error) {
+	if f.GetProofCurrentRootHashCalled != nil {
+		return f.GetProofCurrentRootHashCalled(address)
+	}
+
+	return nil, nil, nil
+}
+
+// VerifyProof -
+func (f *Facade) VerifyProof(rootHash string, address string, proof [][]byte) (bool, error) {
+	if f.VerifyProofCalled != nil {
+		return f.VerifyProofCalled(rootHash, address, proof)
+	}
+
+	return false, nil
 }
 
 // GetUsername -
@@ -90,14 +129,6 @@ func (f *Facade) RestAPIServerDebugMode() bool {
 // PprofEnabled -
 func (f *Facade) PprofEnabled() bool {
 	return false
-}
-
-// TpsBenchmark is the mock implementation for retreiving the TpsBenchmark
-func (f *Facade) TpsBenchmark() *statistics.TpsBenchmark {
-	if f.TpsBenchmarkHandler != nil {
-		return f.TpsBenchmarkHandler()
-	}
-	return nil
 }
 
 // GetHeartbeats returns the slice of heartbeat info
@@ -137,6 +168,15 @@ func (f *Facade) GetESDTData(address string, key string, nonce uint64) (*esdt.ES
 	return &esdt.ESDigitalToken{Value: big.NewInt(0)}, nil
 }
 
+// GetESDTsRoles -
+func (f *Facade) GetESDTsRoles(address string) (map[string][]string, error) {
+	if f.GetESDTsRolesCalled != nil {
+		return f.GetESDTsRolesCalled(address)
+	}
+
+	return map[string][]string{}, nil
+}
+
 // GetAllESDTTokens -
 func (f *Facade) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error) {
 	if f.GetAllESDTTokensCalled != nil {
@@ -173,18 +213,9 @@ func (f *Facade) GetAllIssuedESDTs(tokenType string) ([]string, error) {
 	return make([]string, 0), nil
 }
 
-// GetAccount is the mock implementation of a handler's GetAccount method
-func (f *Facade) GetAccount(address string) (state.UserAccountHandler, error) {
+// GetAccount -
+func (f *Facade) GetAccount(address string) (api.AccountResponse, error) {
 	return f.GetAccountHandler(address)
-}
-
-// GetCode -
-func (f *Facade) GetCode(account state.UserAccountHandler) []byte {
-	if f.GetCodeCalled != nil {
-		f.GetCodeCalled(account)
-	}
-
-	return nil
 }
 
 // CreateTransaction is  mock implementation of a handler's CreateTransaction method
@@ -212,7 +243,7 @@ func (f *Facade) GetTransaction(hash string, withResults bool) (*transaction.Api
 }
 
 // SimulateTransactionExecution is the mock implementation of a handler's SimulateTransactionExecution method
-func (f *Facade) SimulateTransactionExecution(tx *transaction.Transaction) (*transaction.SimulationResults, error) {
+func (f *Facade) SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
 	return f.SimulateTransactionExecutionHandler(tx)
 }
 
@@ -317,6 +348,21 @@ func (f *Facade) GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error)
 // GetBlockByHash -
 func (f *Facade) GetBlockByHash(hash string, withTxs bool) (*api.Block, error) {
 	return f.GetBlockByHashCalled(hash, withTxs)
+}
+
+// Trigger -
+func (f *Facade) Trigger(_ uint32, _ bool) error {
+	return nil
+}
+
+// IsSelfTrigger -
+func (f *Facade) IsSelfTrigger() bool {
+	return false
+}
+
+// Close -
+func (f *Facade) Close() error {
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

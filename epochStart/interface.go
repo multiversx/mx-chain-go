@@ -5,10 +5,10 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/state"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // TriggerHandler defines the functionalities for an start of epoch trigger
@@ -29,12 +29,11 @@ type TriggerHandler interface {
 	RevertStateToBlock(header data.HeaderHandler) error
 	SetCurrentEpochStartRound(round uint64)
 	RequestEpochStartIfNeeded(interceptedHeader data.HeaderHandler)
-	SetAppStatusHandler(handler core.AppStatusHandler) error
 	IsInterfaceNil() bool
 }
 
-// Rounder defines the actions which should be handled by a round implementation
-type Rounder interface {
+// RoundHandler defines the actions which should be handled by a round implementation
+type RoundHandler interface {
 	// Index returns the current round
 	Index() int64
 	// TimeStamp returns the time stamp of the round
@@ -139,6 +138,15 @@ type ImportStartHandler interface {
 	IsInterfaceNil() bool
 }
 
+// ManualEpochStartNotifier represents a notifier that can be triggered manually for an epoch change event.
+// Useful in storage resolvers (import-db process)
+type ManualEpochStartNotifier interface {
+	RegisterHandler(handler ActionHandler)
+	NewEpoch(epoch uint32)
+	CurrentEpoch() uint32
+	IsInterfaceNil() bool
+}
+
 // TransactionCacher defines the methods for the local cacher, info for current round
 type TransactionCacher interface {
 	GetTx(txHash []byte) (data.TransactionHandler, error)
@@ -192,7 +200,7 @@ type RewardsCreator interface {
 
 // EpochNotifier can notify upon an epoch change and provide the current epoch
 type EpochNotifier interface {
-	RegisterNotifyHandler(handler core.EpochSubscriberHandler)
+	RegisterNotifyHandler(handler vmcommon.EpochSubscriberHandler)
 	CurrentEpoch() uint32
 	CheckEpoch(epoch uint32)
 	IsInterfaceNil() bool

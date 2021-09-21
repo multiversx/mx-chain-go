@@ -1,7 +1,7 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
@@ -14,7 +14,7 @@ type AccountsDBSyncersStub struct {
 	RemoveCalled       func(key string)
 	LenCalled          func() int
 	StartSyncingCalled func(rootHash []byte) error
-	TrieCalled         func() data.Trie
+	TrieCalled         func() common.Trie
 }
 
 // Get -

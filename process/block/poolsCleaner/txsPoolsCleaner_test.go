@@ -3,13 +3,14 @@ package poolsCleaner
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,7 +18,7 @@ func TestNewTxsPoolsCleaner_NilAddrConverterErr(t *testing.T) {
 	t.Parallel()
 
 	txsPoolsCleaner, err := NewTxsPoolsCleaner(
-		nil, testscommon.NewPoolsHolderMock(), &mock.RounderMock{}, mock.NewMultipleShardsCoordinatorMock(),
+		nil, dataRetrieverMock.NewPoolsHolderMock(), &mock.RoundHandlerMock{}, mock.NewMultipleShardsCoordinatorMock(),
 	)
 	assert.Nil(t, txsPoolsCleaner)
 	assert.Equal(t, process.ErrNilPubkeyConverter, err)
@@ -27,7 +28,7 @@ func TestNewTxsPoolsCleaner_NilDataPoolHolderErr(t *testing.T) {
 	t.Parallel()
 
 	txsPoolsCleaner, err := NewTxsPoolsCleaner(
-		&mock.PubkeyConverterStub{}, nil, &mock.RounderMock{}, mock.NewMultipleShardsCoordinatorMock(),
+		&mock.PubkeyConverterStub{}, nil, &mock.RoundHandlerMock{}, mock.NewMultipleShardsCoordinatorMock(),
 	)
 	assert.Nil(t, txsPoolsCleaner)
 	assert.Equal(t, process.ErrNilPoolsHolder, err)
@@ -36,13 +37,13 @@ func TestNewTxsPoolsCleaner_NilDataPoolHolderErr(t *testing.T) {
 func TestNewTxsPoolsCleaner_NilTxsPoolErr(t *testing.T) {
 	t.Parallel()
 
-	dataPool := &testscommon.PoolsHolderStub{
+	dataPool := &dataRetrieverMock.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return nil
 		},
 	}
 	txsPoolsCleaner, err := NewTxsPoolsCleaner(
-		&mock.PubkeyConverterStub{}, dataPool, &mock.RounderMock{}, mock.NewMultipleShardsCoordinatorMock(),
+		&mock.PubkeyConverterStub{}, dataPool, &mock.RoundHandlerMock{}, mock.NewMultipleShardsCoordinatorMock(),
 	)
 	assert.Nil(t, txsPoolsCleaner)
 	assert.Equal(t, process.ErrNilTransactionPool, err)
@@ -51,7 +52,7 @@ func TestNewTxsPoolsCleaner_NilTxsPoolErr(t *testing.T) {
 func TestNewTxsPoolsCleaner_NilRewardTxsPoolErr(t *testing.T) {
 	t.Parallel()
 
-	dataPool := &testscommon.PoolsHolderStub{
+	dataPool := &dataRetrieverMock.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return testscommon.NewShardedDataStub()
 		},
@@ -60,7 +61,7 @@ func TestNewTxsPoolsCleaner_NilRewardTxsPoolErr(t *testing.T) {
 		},
 	}
 	txsPoolsCleaner, err := NewTxsPoolsCleaner(
-		&mock.PubkeyConverterStub{}, dataPool, &mock.RounderMock{}, mock.NewMultipleShardsCoordinatorMock(),
+		&mock.PubkeyConverterStub{}, dataPool, &mock.RoundHandlerMock{}, mock.NewMultipleShardsCoordinatorMock(),
 	)
 	assert.Nil(t, txsPoolsCleaner)
 	assert.Equal(t, process.ErrNilRewardTxDataPool, err)
@@ -69,7 +70,7 @@ func TestNewTxsPoolsCleaner_NilRewardTxsPoolErr(t *testing.T) {
 func TestNewTxsPoolsCleaner_NilUnsignedTxsPoolErr(t *testing.T) {
 	t.Parallel()
 
-	dataPool := &testscommon.PoolsHolderStub{
+	dataPool := &dataRetrieverMock.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return testscommon.NewShardedDataStub()
 		},
@@ -81,16 +82,16 @@ func TestNewTxsPoolsCleaner_NilUnsignedTxsPoolErr(t *testing.T) {
 		},
 	}
 	txsPoolsCleaner, err := NewTxsPoolsCleaner(
-		&mock.PubkeyConverterStub{}, dataPool, &mock.RounderMock{}, mock.NewMultipleShardsCoordinatorMock(),
+		&mock.PubkeyConverterStub{}, dataPool, &mock.RoundHandlerMock{}, mock.NewMultipleShardsCoordinatorMock(),
 	)
 	assert.Nil(t, txsPoolsCleaner)
 	assert.Equal(t, process.ErrNilUnsignedTxDataPool, err)
 }
 
-func TestNewTxsPoolsCleaner_NilRounderErr(t *testing.T) {
+func TestNewTxsPoolsCleaner_NilRoundHandlerErr(t *testing.T) {
 	t.Parallel()
 
-	dataPool := &testscommon.PoolsHolderStub{
+	dataPool := &dataRetrieverMock.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return testscommon.NewShardedDataStub()
 		},
@@ -105,13 +106,13 @@ func TestNewTxsPoolsCleaner_NilRounderErr(t *testing.T) {
 		&mock.PubkeyConverterStub{}, dataPool, nil, mock.NewMultipleShardsCoordinatorMock(),
 	)
 	assert.Nil(t, txsPoolsCleaner)
-	assert.Equal(t, process.ErrNilRounder, err)
+	assert.Equal(t, process.ErrNilRoundHandler, err)
 }
 
 func TestNewTxsPoolsCleaner_NilShardCoordinatorErr(t *testing.T) {
 	t.Parallel()
 
-	dataPool := &testscommon.PoolsHolderStub{
+	dataPool := &dataRetrieverMock.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return testscommon.NewShardedDataStub()
 		},
@@ -123,7 +124,7 @@ func TestNewTxsPoolsCleaner_NilShardCoordinatorErr(t *testing.T) {
 		},
 	}
 	txsPoolsCleaner, err := NewTxsPoolsCleaner(
-		&mock.PubkeyConverterStub{}, dataPool, &mock.RounderMock{}, nil,
+		&mock.PubkeyConverterStub{}, dataPool, &mock.RoundHandlerMock{}, nil,
 	)
 	assert.Nil(t, txsPoolsCleaner)
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
@@ -132,7 +133,7 @@ func TestNewTxsPoolsCleaner_NilShardCoordinatorErr(t *testing.T) {
 func TestNewTxsPoolsCleaner_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	dataPool := &testscommon.PoolsHolderStub{
+	dataPool := &dataRetrieverMock.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return testscommon.NewShardedDataStub()
 		},
@@ -145,7 +146,7 @@ func TestNewTxsPoolsCleaner_ShouldWork(t *testing.T) {
 	}
 
 	txsPoolsCleaner, err := NewTxsPoolsCleaner(
-		&mock.PubkeyConverterStub{}, dataPool, &mock.RounderMock{}, mock.NewMultipleShardsCoordinatorMock(),
+		&mock.PubkeyConverterStub{}, dataPool, &mock.RoundHandlerMock{}, mock.NewMultipleShardsCoordinatorMock(),
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, txsPoolsCleaner)
@@ -163,8 +164,8 @@ func TestGetShardFromAddress(t *testing.T) {
 	expectedShard := uint32(2)
 	txsPoolsCleaner, _ := NewTxsPoolsCleaner(
 		addrConverter,
-		testscommon.NewPoolsHolderStub(),
-		&mock.RounderMock{},
+		dataRetrieverMock.NewPoolsHolderStub(),
+		&mock.RoundHandlerMock{},
 		&mock.CoordinatorStub{
 			ComputeIdCalled: func(address []byte) uint32 {
 				return expectedShard
@@ -187,7 +188,7 @@ func TestReceivedBlockTx_ShouldBeAddedInMapTxsRounds(t *testing.T) {
 
 	txsPoolsCleaner, _ := NewTxsPoolsCleaner(
 		&mock.PubkeyConverterStub{},
-		&testscommon.PoolsHolderStub{
+		&dataRetrieverMock.PoolsHolderStub{
 			TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 				return &testscommon.ShardedDataStub{
 					ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
@@ -196,7 +197,7 @@ func TestReceivedBlockTx_ShouldBeAddedInMapTxsRounds(t *testing.T) {
 				}
 			},
 		},
-		&mock.RounderMock{},
+		&mock.RoundHandlerMock{},
 		&mock.CoordinatorStub{},
 	)
 
@@ -215,7 +216,7 @@ func TestReceivedRewardTx_ShouldBeAddedInMapTxsRounds(t *testing.T) {
 	sndAddr := []byte("sndAddr")
 	txsPoolsCleaner, _ := NewTxsPoolsCleaner(
 		&mock.PubkeyConverterStub{},
-		&testscommon.PoolsHolderStub{
+		&dataRetrieverMock.PoolsHolderStub{
 			RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 				return &testscommon.ShardedDataStub{
 					ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
@@ -224,7 +225,7 @@ func TestReceivedRewardTx_ShouldBeAddedInMapTxsRounds(t *testing.T) {
 				}
 			},
 		},
-		&mock.RounderMock{},
+		&mock.RoundHandlerMock{},
 		&mock.CoordinatorStub{},
 	)
 
@@ -242,7 +243,7 @@ func TestReceivedUnsignedTx_ShouldBeAddedInMapTxsRounds(t *testing.T) {
 	sndAddr := []byte("sndAddr")
 	txsPoolsCleaner, _ := NewTxsPoolsCleaner(
 		&mock.PubkeyConverterStub{},
-		&testscommon.PoolsHolderStub{
+		&dataRetrieverMock.PoolsHolderStub{
 			UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 				return &testscommon.ShardedDataStub{
 					ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
@@ -251,7 +252,7 @@ func TestReceivedUnsignedTx_ShouldBeAddedInMapTxsRounds(t *testing.T) {
 				}
 			},
 		},
-		&mock.RounderMock{},
+		&mock.RoundHandlerMock{},
 		&mock.CoordinatorStub{
 			ComputeIdCalled: func(address []byte) uint32 {
 				return 2
@@ -273,7 +274,7 @@ func TestCleanTxsPoolsIfNeeded_CannotFindTxInPoolShouldBeRemovedFromMap(t *testi
 	sndAddr := []byte("sndAddr")
 	txsPoolsCleaner, _ := NewTxsPoolsCleaner(
 		&mock.PubkeyConverterStub{},
-		&testscommon.PoolsHolderStub{
+		&dataRetrieverMock.PoolsHolderStub{
 			UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 				return &testscommon.ShardedDataStub{
 					ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
@@ -282,7 +283,7 @@ func TestCleanTxsPoolsIfNeeded_CannotFindTxInPoolShouldBeRemovedFromMap(t *testi
 				}
 			},
 		},
-		&mock.RounderMock{},
+		&mock.RoundHandlerMock{},
 		&mock.CoordinatorStub{
 			ComputeIdCalled: func(address []byte) uint32 {
 				return 2
@@ -306,7 +307,7 @@ func TestCleanTxsPoolsIfNeeded_RoundDiffTooSmallShouldNotBeRemoved(t *testing.T)
 	sndAddr := []byte("sndAddr")
 	txsPoolsCleaner, _ := NewTxsPoolsCleaner(
 		&mock.PubkeyConverterStub{},
-		&testscommon.PoolsHolderStub{
+		&dataRetrieverMock.PoolsHolderStub{
 			UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 				return &testscommon.ShardedDataStub{
 					ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
@@ -319,7 +320,7 @@ func TestCleanTxsPoolsIfNeeded_RoundDiffTooSmallShouldNotBeRemoved(t *testing.T)
 				}
 			},
 		},
-		&mock.RounderMock{},
+		&mock.RoundHandlerMock{},
 		&mock.CoordinatorStub{
 			ComputeIdCalled: func(address []byte) uint32 {
 				return 2
@@ -340,14 +341,14 @@ func TestCleanTxsPoolsIfNeeded_RoundDiffTooSmallShouldNotBeRemoved(t *testing.T)
 func TestCleanTxsPoolsIfNeeded_RoundDiffTooBigShouldBeRemoved(t *testing.T) {
 	t.Parallel()
 
-	rounder := &mock.RoundStub{IndexCalled: func() int64 {
+	roundHandler := &mock.RoundStub{IndexCalled: func() int64 {
 		return 0
 	}}
 	called := false
 	sndAddr := []byte("sndAddr")
 	txsPoolsCleaner, _ := NewTxsPoolsCleaner(
 		&mock.PubkeyConverterStub{},
-		&testscommon.PoolsHolderStub{
+		&dataRetrieverMock.PoolsHolderStub{
 			UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 				return &testscommon.ShardedDataStub{
 					ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
@@ -363,7 +364,7 @@ func TestCleanTxsPoolsIfNeeded_RoundDiffTooBigShouldBeRemoved(t *testing.T) {
 				}
 			},
 		},
-		rounder,
+		roundHandler,
 		&mock.CoordinatorStub{
 			ComputeIdCalled: func(address []byte) uint32 {
 				return 2
@@ -377,7 +378,7 @@ func TestCleanTxsPoolsIfNeeded_RoundDiffTooBigShouldBeRemoved(t *testing.T) {
 	}
 	txsPoolsCleaner.receivedUnsignedTx(txKey, tx)
 
-	rounder.IndexCalled = func() int64 {
+	roundHandler.IndexCalled = func() int64 {
 		return process.MaxRoundsToKeepUnprocessedTransactions + 1
 	}
 	numTxsInMap := txsPoolsCleaner.cleanTxsPoolsIfNeeded()

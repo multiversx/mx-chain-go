@@ -1,10 +1,16 @@
 package resolvers
 
-import "github.com/ElrondNetwork/elrond-go/dataRetriever"
+import (
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/p2p"
+)
 
-// MaxBuffToSendTrieNodes -
-var MaxBuffToSendTrieNodes = maxBuffToSendTrieNodes
-
+// EpochHandler -
 func (hdrRes *HeaderResolver) EpochHandler() dataRetriever.EpochHandler {
 	return hdrRes.epochHandler
+}
+
+// ResolveMultipleHashes -
+func (tnRes *TrieNodeResolver) ResolveMultipleHashes(hashesBuff []byte, message p2p.MessageP2P) error {
+	return tnRes.resolveMultipleHashes(hashesBuff, message)
 }

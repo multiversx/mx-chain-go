@@ -1,12 +1,12 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -25,7 +25,7 @@ type ConsensusCoreMock struct {
 	blsPrivateKey           crypto.PrivateKey
 	blsSingleSigner         crypto.SingleSigner
 	multiSigner             crypto.MultiSigner
-	rounder                 consensus.Rounder
+	roundHandler            consensus.RoundHandler
 	shardCoordinator        sharding.Coordinator
 	syncTimer               ntp.SyncTimer
 	validatorGroupSelector  sharding.NodesCoordinator
@@ -87,9 +87,9 @@ func (ccm *ConsensusCoreMock) MultiSigner() crypto.MultiSigner {
 	return ccm.multiSigner
 }
 
-// Rounder -
-func (ccm *ConsensusCoreMock) Rounder() consensus.Rounder {
-	return ccm.rounder
+// RoundHandler -
+func (ccm *ConsensusCoreMock) RoundHandler() consensus.RoundHandler {
+	return ccm.roundHandler
 }
 
 // ShardCoordinator -
@@ -157,9 +157,9 @@ func (ccm *ConsensusCoreMock) SetMultiSigner(multiSigner crypto.MultiSigner) {
 	ccm.multiSigner = multiSigner
 }
 
-// SetRounder -
-func (ccm *ConsensusCoreMock) SetRounder(rounder consensus.Rounder) {
-	ccm.rounder = rounder
+// SetRoundHandler -
+func (ccm *ConsensusCoreMock) SetRoundHandler(roundHandler consensus.RoundHandler) {
+	ccm.roundHandler = roundHandler
 }
 
 // SetShardCoordinator -

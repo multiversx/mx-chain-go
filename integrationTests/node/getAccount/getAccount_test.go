@@ -1,7 +1,6 @@
 package getAccount
 
 import (
-	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -15,19 +14,27 @@ func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 	trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
 	accDB, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 
+	coreComponents := integrationTests.GetDefaultCoreComponents()
+	coreComponents.AddressPubKeyConverterField = integrationTests.TestAddressPubkeyConverter
+
+	stateComponents := integrationTests.GetDefaultStateComponents()
+	stateComponents.Accounts = accDB
+
 	n, _ := node.NewNode(
-		node.WithAccountsAdapter(accDB),
-		node.WithAddressPubkeyConverter(integrationTests.TestAddressPubkeyConverter),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 	)
 
 	encodedAddress := integrationTests.TestAddressPubkeyConverter.Encode(integrationTests.CreateRandomBytes(32))
 	recovAccnt, err := n.GetAccount(encodedAddress)
 
 	assert.Nil(t, err)
-	assert.Equal(t, uint64(0), recovAccnt.GetNonce())
-	assert.Equal(t, big.NewInt(0), recovAccnt.GetBalance())
-	assert.Nil(t, recovAccnt.GetCodeHash())
-	assert.Nil(t, recovAccnt.GetRootHash())
+	assert.Equal(t, uint64(0), recovAccnt.Nonce)
+	assert.Equal(t, "0", recovAccnt.Balance)
+	assert.Equal(t, "0", recovAccnt.DeveloperReward)
+	assert.Empty(t, recovAccnt.OwnerAddress)
+	assert.Nil(t, recovAccnt.CodeHash)
+	assert.Nil(t, recovAccnt.RootHash)
 }
 
 func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
@@ -43,14 +50,19 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 	_ = accDB.SaveAccount(account)
 	_, _ = accDB.Commit()
 
-	n, _ := node.NewNode(
-		node.WithAccountsAdapter(accDB),
-		node.WithAddressPubkeyConverter(integrationTests.TestAddressPubkeyConverter),
-	)
+	coreComponents := integrationTests.GetDefaultCoreComponents()
+	coreComponents.AddressPubKeyConverterField = integrationTests.TestAddressPubkeyConverter
 
+	stateComponents := integrationTests.GetDefaultStateComponents()
+	stateComponents.Accounts = accDB
+
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
+	)
 	encodedAddress := integrationTests.TestAddressPubkeyConverter.Encode(addressBytes)
 	recovAccnt, err := n.GetAccount(encodedAddress)
 
 	assert.Nil(t, err)
-	assert.Equal(t, nonce, recovAccnt.GetNonce())
+	assert.Equal(t, nonce, recovAccnt.Nonce)
 }

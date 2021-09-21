@@ -3,11 +3,12 @@ package mock
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 )
 
 // InitChronologyHandlerMock -
@@ -51,24 +52,18 @@ func InitBlockProcessorMock() *BlockProcessorMock {
 }
 
 // InitMultiSignerMock -
-func InitMultiSignerMock() *BelNevMock {
-	multiSigner := NewMultiSigner()
-	multiSigner.CreateCommitmentMock = func() ([]byte, []byte) {
-		return []byte("commSecret"), []byte("commitment")
-	}
-	multiSigner.VerifySignatureShareMock = func(index uint16, sig []byte, msg []byte, bitmap []byte) error {
+func InitMultiSignerMock() *cryptoMocks.MultisignerMock {
+	multiSigner := cryptoMocks.NewMultiSigner(21)
+	multiSigner.VerifySignatureShareCalled = func(index uint16, sig []byte, msg []byte, bitmap []byte) error {
 		return nil
 	}
-	multiSigner.VerifyMock = func(msg []byte, bitmap []byte) error {
+	multiSigner.VerifyCalled = func(msg []byte, bitmap []byte) error {
 		return nil
 	}
-	multiSigner.AggregateSigsMock = func(bitmap []byte) ([]byte, error) {
+	multiSigner.AggregateSigsCalled = func(bitmap []byte) ([]byte, error) {
 		return []byte("aggregatedSig"), nil
 	}
-	multiSigner.AggregateCommitmentsMock = func(bitmap []byte) error {
-		return nil
-	}
-	multiSigner.CreateSignatureShareMock = func(msg []byte, bitmap []byte) ([]byte, error) {
+	multiSigner.CreateSignatureShareCalled = func(msg []byte, bitmap []byte) ([]byte, error) {
 		return []byte("partialSign"), nil
 	}
 	return multiSigner
@@ -100,6 +95,13 @@ func InitKeys() (*KeyGenMock, *PrivateKeyMock, *PublicKeyMock) {
 
 // InitConsensusCore -
 func InitConsensusCore() *ConsensusCoreMock {
+	multiSignerMock := InitMultiSignerMock()
+
+	return InitConsensusCoreWithMultiSigner(multiSignerMock)
+}
+
+// InitConsensusCoreWithMultiSigner -
+func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *ConsensusCoreMock {
 
 	blockChain := &BlockChainMock{
 		GetGenesisHeaderCalled: func() data.HeaderHandler {
@@ -123,8 +125,7 @@ func InitConsensusCore() *ConsensusCoreMock {
 			return make([]byte, 0), nil
 		},
 	}
-	multiSignerMock := InitMultiSignerMock()
-	rounderMock := &RounderMock{}
+	roundHandlerMock := &RoundHandlerMock{}
 	shardCoordinatorMock := ShardCoordinatorMock{}
 	syncTimerMock := &SyncTimerMock{}
 	validatorGroupSelector := &NodesCoordinatorMock{}
@@ -147,8 +148,8 @@ func InitConsensusCore() *ConsensusCoreMock {
 		marshalizer:             marshalizerMock,
 		blsPrivateKey:           blsPrivateKeyMock,
 		blsSingleSigner:         blsSingleSignerMock,
-		multiSigner:             multiSignerMock,
-		rounder:                 rounderMock,
+		multiSigner:             multiSigner,
+		roundHandler:            roundHandlerMock,
 		shardCoordinator:        shardCoordinatorMock,
 		syncTimer:               syncTimerMock,
 		validatorGroupSelector:  validatorGroupSelector,

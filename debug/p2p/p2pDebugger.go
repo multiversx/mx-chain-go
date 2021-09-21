@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/display"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/display"
 )
 
 var log = logger.GetOrCreate("debug/p2p")
@@ -139,6 +139,7 @@ func (pd *p2pDebugger) continuouslyPrintStatistics(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
+			log.Debug("p2p debugger continuouslyPrintStatistics go routine is stopping...")
 			return
 		case <-time.After(printInterval):
 		}

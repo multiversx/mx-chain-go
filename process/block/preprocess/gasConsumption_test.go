@@ -3,14 +3,15 @@ package preprocess_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,7 +20,7 @@ func TestNewGasConsumption_NilEconomicsFeeHandlerShouldErr(t *testing.T) {
 
 	gc, err := preprocess.NewGasComputation(
 		nil,
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&mock.EpochNotifierStub{},
 		0,
 	)
@@ -33,7 +34,7 @@ func TestNewGasConsumption_ShouldWork(t *testing.T) {
 
 	gc, err := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{},
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&mock.EpochNotifierStub{},
 		0,
 	)
@@ -47,7 +48,7 @@ func TestGasConsumed_ShouldWork(t *testing.T) {
 
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{},
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&mock.EpochNotifierStub{},
 		0,
 	)
@@ -72,7 +73,7 @@ func TestGasRefunded_ShouldWork(t *testing.T) {
 
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{},
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&mock.EpochNotifierStub{},
 		0,
 	)
@@ -97,7 +98,7 @@ func TestComputeGasConsumedByTx_ShouldErrWrongTypeAssertion(t *testing.T) {
 
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{},
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&mock.EpochNotifierStub{},
 		0,
 	)
@@ -111,11 +112,11 @@ func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsNotASmartContra
 
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{
-			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 6
 			},
 		},
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&mock.EpochNotifierStub{},
 		0,
 	)
@@ -132,13 +133,14 @@ func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractI
 
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{
-			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 6
 			},
 		},
-		&mock.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-			return process.SCInvoking, process.SCInvoking
-		}},
+		&testscommon.TxTypeHandlerMock{
+			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+				return process.SCInvoking, process.SCInvoking
+			}},
 		&mock.EpochNotifierStub{},
 		0,
 	)
@@ -155,13 +157,14 @@ func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractC
 
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{
-			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 6
 			},
 		},
-		&mock.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-			return process.MoveBalance, process.SCInvoking
-		}},
+		&testscommon.TxTypeHandlerMock{
+			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+				return process.MoveBalance, process.SCInvoking
+			}},
 		&mock.EpochNotifierStub{},
 		0,
 	)
@@ -178,13 +181,14 @@ func TestComputeGasConsumedByTx_ShouldReturnZeroIf0GasLimit(t *testing.T) {
 
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{
-			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 6
 			},
 		},
-		&mock.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-			return process.MoveBalance, process.SCInvoking
-		}},
+		&testscommon.TxTypeHandlerMock{
+			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+				return process.MoveBalance, process.SCInvoking
+			}},
 		&mock.EpochNotifierStub{},
 		0,
 	)
@@ -201,13 +205,14 @@ func TestComputeGasConsumedByTx_ShouldReturnGasLimitIfLessThanMoveBalance(t *tes
 
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{
-			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 6
 			},
 		},
-		&mock.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-			return process.MoveBalance, process.SCInvoking
-		}},
+		&testscommon.TxTypeHandlerMock{
+			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+				return process.MoveBalance, process.SCInvoking
+			}},
 		&mock.EpochNotifierStub{},
 		0,
 	)
@@ -224,13 +229,38 @@ func TestComputeGasConsumedByTx_ShouldReturnGasLimitWhenRelayed(t *testing.T) {
 
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{
-			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 0
 			},
 		},
-		&mock.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-			return process.RelayedTx, process.RelayedTx
-		}},
+		&testscommon.TxTypeHandlerMock{
+			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+				return process.RelayedTx, process.RelayedTx
+			}},
+		&mock.EpochNotifierStub{},
+		0,
+	)
+
+	scr := smartContractResult.SmartContractResult{GasLimit: 3, RcvAddr: make([]byte, core.NumInitCharactersForScAddress+1)}
+
+	gasInSnd, gasInRcv, _ := gc.ComputeGasConsumedByTx(0, 1, &scr)
+	assert.Equal(t, uint64(3), gasInSnd)
+	assert.Equal(t, uint64(3), gasInRcv)
+}
+
+func TestComputeGasConsumedByTx_ShouldReturnGasLimitWhenRelayedV2(t *testing.T) {
+	t.Parallel()
+
+	gc, _ := preprocess.NewGasComputation(
+		&mock.FeeHandlerStub{
+			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
+				return 0
+			},
+		},
+		&testscommon.TxTypeHandlerMock{
+			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+				return process.RelayedTxV2, process.RelayedTxV2
+			}},
 		&mock.EpochNotifierStub{},
 		0,
 	)
@@ -247,11 +277,11 @@ func TestComputeGasConsumedByMiniBlock_ShouldErrMissingTransaction(t *testing.T)
 
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{
-			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 6
 			},
 		},
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&mock.EpochNotifierStub{},
 		0,
 	)
@@ -277,11 +307,11 @@ func TestComputeGasConsumedByMiniBlock_ShouldReturnZeroWhenOneTxIsMissing(t *tes
 
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{
-			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 6
 			},
 		},
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&mock.EpochNotifierStub{},
 		0,
 	)
@@ -310,16 +340,17 @@ func TestComputeGasConsumedByMiniBlock_ShouldWork(t *testing.T) {
 
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{
-			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 6
 			},
 		},
-		&mock.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-			if core.IsSmartContractAddress(tx.GetRcvAddr()) {
-				return process.MoveBalance, process.SCInvoking
-			}
-			return process.MoveBalance, process.MoveBalance
-		}},
+		&testscommon.TxTypeHandlerMock{
+			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+				if core.IsSmartContractAddress(tx.GetRcvAddr()) {
+					return process.MoveBalance, process.SCInvoking
+				}
+				return process.MoveBalance, process.MoveBalance
+			}},
 		&mock.EpochNotifierStub{},
 		0,
 	)
@@ -350,16 +381,17 @@ func TestComputeGasConsumedByMiniBlock_ShouldWorkV1(t *testing.T) {
 
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{
-			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 6
 			},
 		},
-		&mock.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-			if core.IsSmartContractAddress(tx.GetRcvAddr()) {
-				return process.SCInvoking, process.SCInvoking
-			}
-			return process.MoveBalance, process.MoveBalance
-		}},
+		&testscommon.TxTypeHandlerMock{
+			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+				if core.IsSmartContractAddress(tx.GetRcvAddr()) {
+					return process.SCInvoking, process.SCInvoking
+				}
+				return process.MoveBalance, process.MoveBalance
+			}},
 		&mock.EpochNotifierStub{},
 		10,
 	)
@@ -390,11 +422,11 @@ func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsNotASmartContra
 
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{
-			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 6
 			},
 		},
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&mock.EpochNotifierStub{},
 		10,
 	)
@@ -411,13 +443,14 @@ func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractI
 
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{
-			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 6
 			},
 		},
-		&mock.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-			return process.SCInvoking, process.SCInvoking
-		}},
+		&testscommon.TxTypeHandlerMock{
+			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+				return process.SCInvoking, process.SCInvoking
+			}},
 		&mock.EpochNotifierStub{},
 		10,
 	)
@@ -434,13 +467,14 @@ func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractC
 
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{
-			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 6
 			},
 		},
-		&mock.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-			return process.SCInvoking, process.SCInvoking
-		}},
+		&testscommon.TxTypeHandlerMock{
+			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+				return process.SCInvoking, process.SCInvoking
+			}},
 		&mock.EpochNotifierStub{},
 		10,
 	)

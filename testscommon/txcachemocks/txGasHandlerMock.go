@@ -1,12 +1,14 @@
 package txcachemocks
 
-import "github.com/ElrondNetwork/elrond-go/process"
+import (
+	"github.com/ElrondNetwork/elrond-go-core/data"
+)
 
 // TxGasHandler -
 type TxGasHandler interface {
-	SplitTxGasInCategories(tx process.TransactionWithFeeHandler) (uint64, uint64)
-	GasPriceForProcessing(tx process.TransactionWithFeeHandler) uint64
-	GasPriceForMove(tx process.TransactionWithFeeHandler) uint64
+	SplitTxGasInCategories(tx data.TransactionWithFeeHandler) (uint64, uint64)
+	GasPriceForProcessing(tx data.TransactionWithFeeHandler) uint64
+	GasPriceForMove(tx data.TransactionWithFeeHandler) uint64
 	MinGasPrice() uint64
 	MinGasLimit() uint64
 	MinGasPriceForProcessing() uint64
@@ -21,18 +23,18 @@ type TxGasHandlerMock struct {
 }
 
 // SplitTxGasInCategories -
-func (ghm *TxGasHandlerMock) SplitTxGasInCategories(tx process.TransactionWithFeeHandler) (uint64, uint64) {
+func (ghm *TxGasHandlerMock) SplitTxGasInCategories(tx data.TransactionWithFeeHandler) (uint64, uint64) {
 	moveGas := ghm.MinimumGasMove
 	return moveGas, tx.GetGasLimit() - moveGas
 }
 
 // GasPriceForProcessing -
-func (ghm *TxGasHandlerMock) GasPriceForProcessing(tx process.TransactionWithFeeHandler) uint64 {
+func (ghm *TxGasHandlerMock) GasPriceForProcessing(tx data.TransactionWithFeeHandler) uint64 {
 	return tx.GetGasPrice() / ghm.GasProcessingDivisor
 }
 
 // GasPriceForMove -
-func (ghm *TxGasHandlerMock) GasPriceForMove(tx process.TransactionWithFeeHandler) uint64 {
+func (ghm *TxGasHandlerMock) GasPriceForMove(tx data.TransactionWithFeeHandler) uint64 {
 	return tx.GetGasPrice()
 }
 

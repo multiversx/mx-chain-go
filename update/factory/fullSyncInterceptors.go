@@ -1,15 +1,12 @@
 package factory
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/throttler"
-	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -19,7 +16,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/update"
+	"github.com/ElrondNetwork/elrond-go/update/disabled"
 )
 
 var _ process.InterceptorsContainerFactory = (*fullSyncInterceptorsContainerFactory)(nil)
@@ -31,42 +30,31 @@ type fullSyncInterceptorsContainerFactory struct {
 	container              process.InterceptorsContainer
 	shardCoordinator       sharding.Coordinator
 	accounts               state.AccountsAdapter
-	marshalizer            marshal.Marshalizer
-	hasher                 hashing.Hasher
 	store                  dataRetriever.StorageService
 	dataPool               dataRetriever.PoolsHolder
 	messenger              process.TopicHandler
-	multiSigner            crypto.MultiSigner
 	nodesCoordinator       sharding.NodesCoordinator
 	blockBlackList         process.TimeCacher
 	argInterceptorFactory  *interceptorFactory.ArgInterceptedDataFactory
 	globalThrottler        process.InterceptorThrottler
 	maxTxNonceDeltaAllowed int
-	keyGen                 crypto.KeyGenerator
-	singleSigner           crypto.SingleSigner
 	addressPubkeyConv      core.PubkeyConverter
 	whiteListHandler       update.WhiteListHandler
 	whiteListerVerifiedTxs update.WhiteListHandler
 	antifloodHandler       process.P2PAntifloodHandler
+	preferredPeersHolder   update.PreferredPeersHolderHandler
 }
 
 // ArgsNewFullSyncInterceptorsContainerFactory holds the arguments needed for fullSyncInterceptorsContainerFactory
 type ArgsNewFullSyncInterceptorsContainerFactory struct {
+	CoreComponents            process.CoreComponentsHolder
+	CryptoComponents          process.CryptoComponentsHolder
 	Accounts                  state.AccountsAdapter
 	ShardCoordinator          sharding.Coordinator
 	NodesCoordinator          sharding.NodesCoordinator
 	Messenger                 process.TopicHandler
 	Store                     dataRetriever.StorageService
-	Marshalizer               marshal.Marshalizer
-	TxSignMarshalizer         marshal.Marshalizer
-	Hasher                    hashing.Hasher
-	KeyGen                    crypto.KeyGenerator
-	BlockSignKeyGen           crypto.KeyGenerator
-	SingleSigner              crypto.SingleSigner
-	BlockSingleSigner         crypto.SingleSigner
-	MultiSigner               crypto.MultiSigner
 	DataPool                  dataRetriever.PoolsHolder
-	AddressPubkeyConverter    core.PubkeyConverter
 	MaxTxNonceDeltaAllowed    int
 	TxFeeHandler              process.FeeHandler
 	BlockBlackList            process.TimeCacher
@@ -79,56 +67,38 @@ type ArgsNewFullSyncInterceptorsContainerFactory struct {
 	WhiteListerVerifiedTxs    update.WhiteListHandler
 	InterceptorsContainer     process.InterceptorsContainer
 	AntifloodHandler          process.P2PAntifloodHandler
-	NonceConverter            typeConverters.Uint64ByteSliceConverter
-	ChainID                   []byte
-	MinTxVersion              uint32
 	EnableSignTxWithHashEpoch uint32
-	TxSignHasher              hashing.Hasher
-	EpochNotifier             process.EpochNotifier
 }
 
 // NewFullSyncInterceptorsContainerFactory is responsible for creating a new interceptors factory object
 func NewFullSyncInterceptorsContainerFactory(
 	args ArgsNewFullSyncInterceptorsContainerFactory,
 ) (*fullSyncInterceptorsContainerFactory, error) {
-	if args.SizeCheckDelta > 0 {
-		args.Marshalizer = marshal.NewSizeCheckUnmarshalizer(args.Marshalizer, args.SizeCheckDelta)
-	}
 	err := checkBaseParams(
+		args.CoreComponents,
+		args.CryptoComponents,
 		args.ShardCoordinator,
 		args.Accounts,
-		args.Marshalizer,
-		args.Hasher,
 		args.Store,
 		args.DataPool,
 		args.Messenger,
-		args.MultiSigner,
 		args.NodesCoordinator,
 		args.BlockBlackList,
-		args.NonceConverter,
 		args.WhiteListerVerifiedTxs,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	if check.IfNil(args.KeyGen) {
-		return nil, process.ErrNilKeyGen
-	}
-	if check.IfNil(args.SingleSigner) {
-		return nil, process.ErrNilSingleSigner
-	}
-	if check.IfNil(args.AddressPubkeyConverter) {
-		return nil, process.ErrNilPubkeyConverter
+	if args.SizeCheckDelta > 0 {
+		m := marshal.NewSizeCheckUnmarshalizer(args.CoreComponents.InternalMarshalizer(), args.SizeCheckDelta)
+		err = args.CoreComponents.SetInternalMarshalizer(m)
+		if err != nil {
+			return nil, err
+		}
 	}
 	if check.IfNil(args.TxFeeHandler) {
 		return nil, process.ErrNilEconomicsFeeHandler
-	}
-	if check.IfNil(args.BlockSignKeyGen) {
-		return nil, process.ErrNilKeyGen
-	}
-	if check.IfNil(args.BlockSingleSigner) {
-		return nil, process.ErrNilSingleSigner
 	}
 	if check.IfNil(args.HeaderSigVerifier) {
 		return nil, process.ErrNilHeaderSigVerifier
@@ -151,25 +121,12 @@ func NewFullSyncInterceptorsContainerFactory(
 	if check.IfNil(args.AntifloodHandler) {
 		return nil, process.ErrNilAntifloodHandler
 	}
-	if check.IfNil(args.TxSignHasher) {
-		return nil, process.ErrNilHasher
-	}
-	if check.IfNil(args.EpochNotifier) {
-		return nil, process.ErrNilEpochNotifier
-	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
-		Hasher:                    args.Hasher,
-		ProtoMarshalizer:          args.Marshalizer,
-		TxSignMarshalizer:         args.TxSignMarshalizer,
+		CoreComponents:            args.CoreComponents,
+		CryptoComponents:          args.CryptoComponents,
 		ShardCoordinator:          args.ShardCoordinator,
-		MultiSigVerifier:          args.MultiSigner,
 		NodesCoordinator:          args.NodesCoordinator,
-		KeyGen:                    args.KeyGen,
-		BlockKeyGen:               args.BlockSignKeyGen,
-		Signer:                    args.SingleSigner,
-		BlockSigner:               args.BlockSingleSigner,
-		AddressPubkeyConv:         args.AddressPubkeyConverter,
 		FeeHandler:                args.TxFeeHandler,
 		HeaderSigVerifier:         args.HeaderSigVerifier,
 		HeaderIntegrityVerifier:   args.HeaderIntegrityVerifier,
@@ -177,11 +134,7 @@ func NewFullSyncInterceptorsContainerFactory(
 		EpochStartTrigger:         args.EpochStartTrigger,
 		WhiteListerVerifiedTxs:    args.WhiteListerVerifiedTxs,
 		ArgsParser:                smartContract.NewArgumentParser(),
-		ChainID:                   args.ChainID,
-		MinTransactionVersion:     args.MinTxVersion,
 		EnableSignTxWithHashEpoch: args.EnableSignTxWithHashEpoch,
-		TxSignHasher:              args.TxSignHasher,
-		EpochNotifier:             args.EpochNotifier,
 	}
 
 	icf := &fullSyncInterceptorsContainerFactory{
@@ -190,20 +143,16 @@ func NewFullSyncInterceptorsContainerFactory(
 		shardCoordinator:       args.ShardCoordinator,
 		messenger:              args.Messenger,
 		store:                  args.Store,
-		marshalizer:            args.Marshalizer,
-		hasher:                 args.Hasher,
-		multiSigner:            args.MultiSigner,
 		dataPool:               args.DataPool,
 		nodesCoordinator:       args.NodesCoordinator,
 		argInterceptorFactory:  argInterceptorFactory,
 		blockBlackList:         args.BlockBlackList,
 		maxTxNonceDeltaAllowed: args.MaxTxNonceDeltaAllowed,
-		keyGen:                 args.KeyGen,
-		singleSigner:           args.SingleSigner,
-		addressPubkeyConv:      args.AddressPubkeyConverter,
 		whiteListHandler:       args.WhiteListHandler,
 		whiteListerVerifiedTxs: args.WhiteListerVerifiedTxs,
 		antifloodHandler:       args.AntifloodHandler,
+		//TODO: inject the real peers holder once we have the peers mapping before epoch bootstrap finishes
+		preferredPeersHolder: disabled.NewPreferredPeersHolder(),
 	}
 
 	icf.globalThrottler, err = throttler.NewNumGoRoutinesThrottler(numGoRoutines)
@@ -255,19 +204,53 @@ func (ficf *fullSyncInterceptorsContainerFactory) Create() (process.Interceptors
 }
 
 func checkBaseParams(
+	coreComponents process.CoreComponentsHolder,
+	cryptoComponents process.CryptoComponentsHolder,
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
-	marshalizer marshal.Marshalizer,
-	hasher hashing.Hasher,
 	store dataRetriever.StorageService,
 	dataPool dataRetriever.PoolsHolder,
 	messenger process.TopicHandler,
-	multiSigner crypto.MultiSigner,
 	nodesCoordinator sharding.NodesCoordinator,
 	blockBlackList process.TimeCacher,
-	nonceConverter typeConverters.Uint64ByteSliceConverter,
 	whiteListerVerifiedTxs update.WhiteListHandler,
 ) error {
+	if check.IfNil(coreComponents) {
+		return process.ErrNilCoreComponentsHolder
+	}
+	if check.IfNil(cryptoComponents) {
+		return process.ErrNilCryptoComponentsHolder
+	}
+	if check.IfNil(coreComponents.AddressPubKeyConverter()) {
+		return process.ErrNilPubkeyConverter
+	}
+	if check.IfNil(coreComponents.InternalMarshalizer()) {
+		return process.ErrNilMarshalizer
+	}
+	if check.IfNil(coreComponents.Hasher()) {
+		return process.ErrNilHasher
+	}
+	if check.IfNil(coreComponents.Uint64ByteSliceConverter()) {
+		return process.ErrNilUint64Converter
+	}
+	if len(coreComponents.ChainID()) == 0 {
+		return process.ErrInvalidChainID
+	}
+	if check.IfNil(cryptoComponents.TxSignKeyGen()) {
+		return process.ErrNilKeyGen
+	}
+	if check.IfNil(cryptoComponents.TxSingleSigner()) {
+		return process.ErrNilSingleSigner
+	}
+	if check.IfNil(cryptoComponents.BlockSignKeyGen()) {
+		return process.ErrNilKeyGen
+	}
+	if check.IfNil(cryptoComponents.BlockSigner()) {
+		return process.ErrNilSingleSigner
+	}
+	if check.IfNil(cryptoComponents.MultiSigner()) {
+		return process.ErrNilMultiSigVerifier
+	}
 	if check.IfNil(shardCoordinator) {
 		return process.ErrNilShardCoordinator
 	}
@@ -276,15 +259,6 @@ func checkBaseParams(
 	}
 	if check.IfNil(store) {
 		return process.ErrNilStore
-	}
-	if check.IfNil(marshalizer) {
-		return process.ErrNilMarshalizer
-	}
-	if check.IfNil(hasher) {
-		return process.ErrNilHasher
-	}
-	if check.IfNil(multiSigner) {
-		return process.ErrNilMultiSigVerifier
 	}
 	if check.IfNil(dataPool) {
 		return process.ErrNilDataPoolHolder
@@ -297,9 +271,6 @@ func checkBaseParams(
 	}
 	if check.IfNil(blockBlackList) {
 		return update.ErrNilTimeCache
-	}
-	if check.IfNil(nonceConverter) {
-		return process.ErrNilUint64Converter
 	}
 	if check.IfNil(whiteListerVerifiedTxs) {
 		return process.ErrNilWhiteListHandler
@@ -475,7 +446,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createTopicAndAssignHandler(
 		return nil, err
 	}
 
-	return interceptor, ficf.messenger.RegisterMessageProcessor(topic, interceptor)
+	return interceptor, ficf.messenger.RegisterMessageProcessor(topic, common.HardforkInterceptorsIdentifier, interceptor)
 }
 
 func (ficf *fullSyncInterceptorsContainerFactory) generateTxInterceptors() error {
@@ -544,14 +515,15 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneTxInterceptor(topic s
 
 	interceptor, err := interceptors.NewMultiDataInterceptor(
 		interceptors.ArgMultiDataInterceptor{
-			Topic:            topic,
-			Marshalizer:      ficf.marshalizer,
-			DataFactory:      txFactory,
-			Processor:        txProcessor,
-			Throttler:        ficf.globalThrottler,
-			AntifloodHandler: ficf.antifloodHandler,
-			WhiteListRequest: ficf.whiteListHandler,
-			CurrentPeerId:    ficf.messenger.ID(),
+			Topic:                topic,
+			Marshalizer:          ficf.argInterceptorFactory.CoreComponents.InternalMarshalizer(),
+			DataFactory:          txFactory,
+			Processor:            txProcessor,
+			Throttler:            ficf.globalThrottler,
+			AntifloodHandler:     ficf.antifloodHandler,
+			WhiteListRequest:     ficf.whiteListHandler,
+			CurrentPeerId:        ficf.messenger.ID(),
+			PreferredPeersHolder: ficf.preferredPeersHolder,
 		},
 	)
 	if err != nil {
@@ -583,14 +555,15 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneUnsignedTxInterceptor
 
 	interceptor, err := interceptors.NewMultiDataInterceptor(
 		interceptors.ArgMultiDataInterceptor{
-			Topic:            topic,
-			Marshalizer:      ficf.marshalizer,
-			DataFactory:      txFactory,
-			Processor:        txProcessor,
-			Throttler:        ficf.globalThrottler,
-			AntifloodHandler: ficf.antifloodHandler,
-			WhiteListRequest: ficf.whiteListHandler,
-			CurrentPeerId:    ficf.messenger.ID(),
+			Topic:                topic,
+			Marshalizer:          ficf.argInterceptorFactory.CoreComponents.InternalMarshalizer(),
+			DataFactory:          txFactory,
+			Processor:            txProcessor,
+			Throttler:            ficf.globalThrottler,
+			AntifloodHandler:     ficf.antifloodHandler,
+			WhiteListRequest:     ficf.whiteListHandler,
+			CurrentPeerId:        ficf.messenger.ID(),
+			PreferredPeersHolder: ficf.preferredPeersHolder,
 		},
 	)
 	if err != nil {
@@ -622,14 +595,15 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneRewardTxInterceptor(t
 
 	interceptor, err := interceptors.NewMultiDataInterceptor(
 		interceptors.ArgMultiDataInterceptor{
-			Topic:            topic,
-			Marshalizer:      ficf.marshalizer,
-			DataFactory:      txFactory,
-			Processor:        txProcessor,
-			Throttler:        ficf.globalThrottler,
-			AntifloodHandler: ficf.antifloodHandler,
-			WhiteListRequest: ficf.whiteListHandler,
-			CurrentPeerId:    ficf.messenger.ID(),
+			Topic:                topic,
+			Marshalizer:          ficf.argInterceptorFactory.CoreComponents.InternalMarshalizer(),
+			DataFactory:          txFactory,
+			Processor:            txProcessor,
+			Throttler:            ficf.globalThrottler,
+			AntifloodHandler:     ficf.antifloodHandler,
+			WhiteListRequest:     ficf.whiteListHandler,
+			CurrentPeerId:        ficf.messenger.ID(),
+			PreferredPeersHolder: ficf.preferredPeersHolder,
 		},
 	)
 	if err != nil {
@@ -677,8 +651,8 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateMiniBlocksInterceptors
 func (ficf *fullSyncInterceptorsContainerFactory) createOneMiniBlocksInterceptor(topic string) (process.Interceptor, error) {
 	argProcessor := &processor.ArgMiniblockInterceptorProcessor{
 		MiniblockCache:   ficf.dataPool.MiniBlocks(),
-		Marshalizer:      ficf.marshalizer,
-		Hasher:           ficf.hasher,
+		Marshalizer:      ficf.argInterceptorFactory.CoreComponents.InternalMarshalizer(),
+		Hasher:           ficf.argInterceptorFactory.CoreComponents.Hasher(),
 		ShardCoordinator: ficf.shardCoordinator,
 		WhiteListHandler: ficf.whiteListHandler,
 	}
@@ -694,13 +668,14 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneMiniBlocksInterceptor
 
 	interceptor, err := interceptors.NewSingleDataInterceptor(
 		interceptors.ArgSingleDataInterceptor{
-			Topic:            topic,
-			DataFactory:      txFactory,
-			Processor:        txBlockBodyProcessor,
-			Throttler:        ficf.globalThrottler,
-			AntifloodHandler: ficf.antifloodHandler,
-			WhiteListRequest: ficf.whiteListHandler,
-			CurrentPeerId:    ficf.messenger.ID(),
+			Topic:                topic,
+			DataFactory:          txFactory,
+			Processor:            txBlockBodyProcessor,
+			Throttler:            ficf.globalThrottler,
+			AntifloodHandler:     ficf.antifloodHandler,
+			WhiteListRequest:     ficf.whiteListHandler,
+			CurrentPeerId:        ficf.messenger.ID(),
+			PreferredPeersHolder: ficf.preferredPeersHolder,
 		},
 	)
 	if err != nil {
@@ -739,13 +714,14 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateMetachainHeaderInterce
 	//only one metachain header topic
 	interceptor, err := interceptors.NewSingleDataInterceptor(
 		interceptors.ArgSingleDataInterceptor{
-			Topic:            identifierHdr,
-			DataFactory:      hdrFactory,
-			Processor:        hdrProcessor,
-			Throttler:        ficf.globalThrottler,
-			AntifloodHandler: ficf.antifloodHandler,
-			WhiteListRequest: ficf.whiteListHandler,
-			CurrentPeerId:    ficf.messenger.ID(),
+			Topic:                identifierHdr,
+			DataFactory:          hdrFactory,
+			Processor:            hdrProcessor,
+			Throttler:            ficf.globalThrottler,
+			AntifloodHandler:     ficf.antifloodHandler,
+			WhiteListRequest:     ficf.whiteListHandler,
+			CurrentPeerId:        ficf.messenger.ID(),
+			PreferredPeersHolder: ficf.preferredPeersHolder,
 		},
 	)
 	if err != nil {
@@ -773,14 +749,15 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneTrieNodesInterceptor(
 
 	interceptor, err := interceptors.NewMultiDataInterceptor(
 		interceptors.ArgMultiDataInterceptor{
-			Topic:            topic,
-			Marshalizer:      ficf.marshalizer,
-			DataFactory:      trieNodesFactory,
-			Processor:        trieNodesProcessor,
-			Throttler:        ficf.globalThrottler,
-			AntifloodHandler: ficf.antifloodHandler,
-			WhiteListRequest: ficf.whiteListHandler,
-			CurrentPeerId:    ficf.messenger.ID(),
+			Topic:                topic,
+			Marshalizer:          ficf.argInterceptorFactory.CoreComponents.InternalMarshalizer(),
+			DataFactory:          trieNodesFactory,
+			Processor:            trieNodesProcessor,
+			Throttler:            ficf.globalThrottler,
+			AntifloodHandler:     ficf.antifloodHandler,
+			WhiteListRequest:     ficf.whiteListHandler,
+			CurrentPeerId:        ficf.messenger.ID(),
+			PreferredPeersHolder: ficf.preferredPeersHolder,
 		},
 	)
 	if err != nil {

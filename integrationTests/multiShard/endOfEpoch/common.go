@@ -4,9 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/stretchr/testify/assert"
@@ -70,13 +69,8 @@ func VerifyIfAddedShardHeadersAreWithNewEpoch(
 
 		shardHDrStorage := node.Storage.GetStorer(dataRetriever.BlockHeaderUnit)
 		for _, shardInfo := range currentMetaHdr.ShardInfo {
-			value, err := node.DataPool.Headers().GetHeaderByHash(shardInfo.HeaderHash)
+			header, err := node.DataPool.Headers().GetHeaderByHash(shardInfo.HeaderHash)
 			if err == nil {
-				header, isHeaderHandler := value.(data.HeaderHandler)
-				if !isHeaderHandler {
-					assert.Fail(t, "wrong type in shard header pool")
-				}
-
 				assert.Equal(t, header.GetEpoch(), currentMetaHdr.GetEpoch())
 				continue
 			}

@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/cmd/assessment/mock"
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -95,4 +95,5 @@ func TestCoordinator_RunAllShouldWork(t *testing.T) {
 	require.Equal(t, 2, len(result.Results))
 	assert.Equal(t, time.Duration(2), result.Results[0].Duration)
 	assert.Equal(t, time.Duration(3), result.Results[1].Duration)
+	assert.True(t, result.EnoughComputingPower)
 }

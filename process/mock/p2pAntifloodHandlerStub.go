@@ -3,7 +3,7 @@ package mock
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -63,6 +63,11 @@ func (p2pahs *P2PAntifloodHandlerStub) BlacklistPeer(peer core.PeerID, reason st
 	if p2pahs.BlacklistPeerCalled != nil {
 		p2pahs.BlacklistPeerCalled(peer, reason, duration)
 	}
+}
+
+// Close -
+func (af *P2PAntifloodHandlerStub) Close() error {
+	return nil
 }
 
 // IsInterfaceNil -

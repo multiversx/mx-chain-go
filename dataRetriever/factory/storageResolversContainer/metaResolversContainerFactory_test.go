@@ -4,14 +4,17 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/storageResolversContainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createStubTopicMessageHandlerForMeta(matchStrToErrOnCreate string, matchStrToErrOnRegister string) dataRetriever.TopicMessageHandler {
@@ -28,7 +31,7 @@ func createStubTopicMessageHandlerForMeta(matchStrToErrOnCreate string, matchStr
 		return nil
 	}
 
-	tmhs.RegisterMessageProcessorCalled = func(topic string, handler p2p.MessageProcessor) error {
+	tmhs.RegisterMessageProcessorCalled = func(topic string, identifier string, handler p2p.MessageProcessor) error {
 		if matchStrToErrOnRegister == "" {
 			return nil
 		}
@@ -45,7 +48,7 @@ func createStubTopicMessageHandlerForMeta(matchStrToErrOnCreate string, matchStr
 func createStoreForMeta() dataRetriever.StorageService {
 	return &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &mock.StorerStub{}
+			return &testscommon.StorerStub{}
 		},
 	}
 }
@@ -152,9 +155,12 @@ func TestMetaResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 
 	args := getArgumentsMeta()
 	args.ShardCoordinator = shardCoordinator
-	rcf, _ := storageResolversContainers.NewMetaResolversContainerFactory(args)
+	rcf, err := storageResolversContainers.NewMetaResolversContainerFactory(args)
+	require.Nil(t, err)
 
-	container, _ := rcf.Create()
+	container, err := rcf.Create()
+	require.Nil(t, err)
+
 	numResolversShardHeadersForMetachain := noOfShards
 	numResolverMetablocks := 1
 	numResolversMiniBlocks := noOfShards + 2
@@ -166,14 +172,56 @@ func TestMetaResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		numResolversUnsigned + numResolversTxs + numResolversTrieNodes + numResolversRewards
 
 	assert.Equal(t, totalResolvers, container.Len())
+	assert.Equal(t, totalResolvers, container.Len())
+}
 
-	err := rcf.AddShardTrieNodeResolvers(container)
-	assert.Nil(t, err)
-	assert.Equal(t, totalResolvers+noOfShards, container.Len())
+func getMockStorageConfig() config.StorageConfig {
+	return config.StorageConfig{
+		Cache: config.CacheConfig{
+			Name:     "mock",
+			Type:     "LRU",
+			Capacity: 1000,
+			Shards:   1,
+		},
+		DB: config.DBConfig{
+			FilePath:          "",
+			Type:              "MemoryDB",
+			BatchDelaySeconds: 1,
+			MaxBatchSize:      1,
+			MaxOpenFiles:      10,
+		},
+	}
 }
 
 func getArgumentsMeta() storageResolversContainers.FactoryArgs {
 	return storageResolversContainers.FactoryArgs{
+		GeneralConfig: config.Config{
+			AccountsTrieStorage:     getMockStorageConfig(),
+			PeerAccountsTrieStorage: getMockStorageConfig(),
+			TrieSnapshotDB: config.DBConfig{
+				FilePath:          "",
+				Type:              "MemoryDB",
+				BatchDelaySeconds: 1,
+				MaxBatchSize:      1,
+				MaxOpenFiles:      10,
+			},
+			TrieStorageManagerConfig: config.TrieStorageManagerConfig{
+				PruningBufferLen:   255,
+				SnapshotsBufferLen: 255,
+				MaxSnapshots:       255,
+			},
+			StateTriesConfig: config.StateTriesConfig{
+				CheckpointRoundsModulus:     100,
+				AccountsStatePruningEnabled: false,
+				PeerStatePruningEnabled:     false,
+				MaxStateTrieLevelInMemory:   5,
+				MaxPeerTrieLevelInMemory:    5,
+			},
+		},
+		ShardIDForTries:          0,
+		ChainID:                  "T",
+		WorkingDirectory:         "",
+		Hasher:                   mock.HasherMock{},
 		ShardCoordinator:         mock.NewOneShardCoordinatorMock(),
 		Messenger:                createStubTopicMessageHandlerForMeta("", ""),
 		Store:                    createStoreForMeta(),

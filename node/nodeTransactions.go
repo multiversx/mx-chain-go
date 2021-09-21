@@ -3,14 +3,16 @@ package node
 import (
 	"encoding/hex"
 	"fmt"
+	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	rewardTxData "github.com/ElrondNetwork/elrond-go/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	rewardTxData "github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
+	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/process/txstatus"
 )
 
 // GetTransaction gets the transaction based on the given hash. It will search in the cache and the storage and
@@ -29,7 +31,7 @@ func (n *Node) GetTransaction(txHash string, withResults bool) (*transaction.Api
 		return tx, nil
 	}
 
-	if n.historyRepository.IsEnabled() {
+	if n.processComponents.HistoryRepository().IsEnabled() {
 		return n.lookupHistoricalTransaction(hash, withResults)
 	}
 
@@ -47,15 +49,27 @@ func (n *Node) optionallyGetTransactionFromPool(hash []byte) (*transaction.ApiTr
 		return nil, err
 	}
 
-	tx.SourceShard = n.shardCoordinator.ComputeId(tx.Tx.GetSndAddr())
-	tx.DestinationShard = n.shardCoordinator.ComputeId(tx.Tx.GetRcvAddr())
+	tx.SourceShard = n.processComponents.ShardCoordinator().ComputeId(tx.Tx.GetSndAddr())
+	tx.DestinationShard = n.processComponents.ShardCoordinator().ComputeId(tx.Tx.GetRcvAddr())
 	tx.Status = transaction.TxStatusPending
 
 	return tx, nil
 }
 
+// computeTimestampForRound will return the timestamp for the given round
+func (n *Node) computeTimestampForRound(round uint64) int64 {
+	if round == 0 {
+		return 0
+	}
+
+	secondsSinceGenesis := round * n.roundDuration
+	timestamp := n.genesisTime.Add(time.Duration(secondsSinceGenesis) * time.Millisecond)
+
+	return timestamp.Unix()
+}
+
 func (n *Node) lookupHistoricalTransaction(hash []byte, withResults bool) (*transaction.ApiTransactionResult, error) {
-	miniblockMetadata, err := n.historyRepository.GetMiniblockMetadataByTxHash(hash)
+	miniblockMetadata, err := n.processComponents.HistoryRepository().GetMiniblockMetadataByTxHash(hash)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", ErrTransactionNotFound.Error(), err)
 	}
@@ -80,26 +94,22 @@ func (n *Node) lookupHistoricalTransaction(hash []byte, withResults bool) (*tran
 	}
 
 	putMiniblockFieldsInTransaction(tx, miniblockMetadata)
+	tx.Timestamp = n.computeTimestampForRound(tx.Round)
+	statusComputer, err := txstatus.NewStatusComputer(n.processComponents.ShardCoordinator().SelfId(), n.coreComponents.Uint64ByteSliceConverter(), n.dataComponents.StorageService())
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", ErrNilStatusComputer.Error(), err)
+	}
 
-	if ok := (&transaction.StatusComputer{
-		SelfShard:                n.shardCoordinator.SelfId(),
-		Store:                    n.store,
-		Uint64ByteSliceConverter: n.uint64ByteSliceConverter,
-		MiniblockType:            block.Type(miniblockMetadata.Type),
-		HeaderHash:               miniblockMetadata.HeaderHash,
-		HeaderNonce:              miniblockMetadata.HeaderNonce,
-	}).SetStatusIfIsRewardReverted(tx); ok {
+	if ok, _ := statusComputer.SetStatusIfIsRewardReverted(
+		tx,
+		block.Type(miniblockMetadata.Type),
+		miniblockMetadata.HeaderNonce,
+		miniblockMetadata.HeaderHash); ok {
 		return tx, nil
 	}
 
-	tx.Status = (&transaction.StatusComputer{
-		MiniblockType:        block.Type(miniblockMetadata.Type),
-		IsMiniblockFinalized: tx.NotarizedAtDestinationInMetaNonce > 0,
-		DestinationShard:     tx.DestinationShard,
-		Receiver:             tx.Tx.GetRcvAddr(),
-		TransactionData:      tx.Data,
-		SelfShard:            n.shardCoordinator.SelfId(),
-	}).ComputeStatusWhenInStorageKnowingMiniblock()
+	tx.Status, _ = statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(
+		block.Type(miniblockMetadata.Type), tx)
 
 	if withResults {
 		n.putResultsInTransaction(hash, tx, miniblockMetadata.Epoch)
@@ -138,32 +148,32 @@ func (n *Node) getTransactionFromStorage(hash []byte) (*transaction.ApiTransacti
 		return nil, err
 	}
 
-	tx.Status = (&transaction.StatusComputer{
-		// TODO: take care of this when integrating the adaptivity
-		SourceShard:      n.shardCoordinator.ComputeId(tx.Tx.GetSndAddr()),
-		DestinationShard: n.shardCoordinator.ComputeId(tx.Tx.GetRcvAddr()),
-		Receiver:         tx.Tx.GetRcvAddr(),
-		TransactionData:  tx.Data,
-		SelfShard:        n.shardCoordinator.SelfId(),
-	}).ComputeStatusWhenInStorageNotKnowingMiniblock()
+	// TODO: take care of this when integrating the adaptivity
+	statusComputer, err := txstatus.NewStatusComputer(n.processComponents.ShardCoordinator().SelfId(), n.coreComponents.Uint64ByteSliceConverter(), n.dataComponents.StorageService())
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", ErrNilStatusComputer.Error(), err)
+	}
+	tx.Status, _ = statusComputer.ComputeStatusWhenInStorageNotKnowingMiniblock(
+		n.processComponents.ShardCoordinator().ComputeId(tx.Tx.GetRcvAddr()), tx)
 
 	return tx, nil
 }
 
 func (n *Node) getTxObjFromDataPool(hash []byte) (interface{}, transaction.TxType, bool) {
-	txsPool := n.dataPool.Transactions()
+	datapool := n.dataComponents.Datapool()
+	txsPool := datapool.Transactions()
 	txObj, found := txsPool.SearchFirstData(hash)
 	if found && txObj != nil {
 		return txObj, transaction.TxTypeNormal, true
 	}
 
-	rewardTxsPool := n.dataPool.RewardTransactions()
+	rewardTxsPool := datapool.RewardTransactions()
 	txObj, found = rewardTxsPool.SearchFirstData(hash)
 	if found && txObj != nil {
 		return txObj, transaction.TxTypeReward, true
 	}
 
-	unsignedTxsPool := n.dataPool.UnsignedTransactions()
+	unsignedTxsPool := datapool.UnsignedTransactions()
 	txObj, found = unsignedTxsPool.SearchFirstData(hash)
 	if found && txObj != nil {
 		return txObj, transaction.TxTypeUnsigned, true
@@ -173,19 +183,20 @@ func (n *Node) getTxObjFromDataPool(hash []byte) (interface{}, transaction.TxTyp
 }
 
 func (n *Node) getTxBytesFromStorage(hash []byte) ([]byte, transaction.TxType, bool) {
-	txsStorer := n.store.GetStorer(dataRetriever.TransactionUnit)
+	store := n.dataComponents.StorageService()
+	txsStorer := store.GetStorer(dataRetriever.TransactionUnit)
 	txBytes, err := txsStorer.SearchFirst(hash)
 	if err == nil {
 		return txBytes, transaction.TxTypeNormal, true
 	}
 
-	rewardTxsStorer := n.store.GetStorer(dataRetriever.RewardTransactionUnit)
+	rewardTxsStorer := store.GetStorer(dataRetriever.RewardTransactionUnit)
 	txBytes, err = rewardTxsStorer.SearchFirst(hash)
 	if err == nil {
 		return txBytes, transaction.TxTypeReward, true
 	}
 
-	unsignedTxsStorer := n.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
+	unsignedTxsStorer := store.GetStorer(dataRetriever.UnsignedTransactionUnit)
 	txBytes, err = unsignedTxsStorer.SearchFirst(hash)
 	if err == nil {
 		return txBytes, transaction.TxTypeUnsigned, true
@@ -195,19 +206,20 @@ func (n *Node) getTxBytesFromStorage(hash []byte) ([]byte, transaction.TxType, b
 }
 
 func (n *Node) getTxBytesFromStorageByEpoch(hash []byte, epoch uint32) ([]byte, transaction.TxType, bool) {
-	txsStorer := n.store.GetStorer(dataRetriever.TransactionUnit)
+	store := n.dataComponents.StorageService()
+	txsStorer := store.GetStorer(dataRetriever.TransactionUnit)
 	txBytes, err := txsStorer.GetFromEpoch(hash, epoch)
 	if err == nil {
 		return txBytes, transaction.TxTypeNormal, true
 	}
 
-	rewardTxsStorer := n.store.GetStorer(dataRetriever.RewardTransactionUnit)
+	rewardTxsStorer := store.GetStorer(dataRetriever.RewardTransactionUnit)
 	txBytes, err = rewardTxsStorer.GetFromEpoch(hash, epoch)
 	if err == nil {
 		return txBytes, transaction.TxTypeReward, true
 	}
 
-	unsignedTxsStorer := n.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
+	unsignedTxsStorer := store.GetStorer(dataRetriever.UnsignedTransactionUnit)
 	txBytes, err = unsignedTxsStorer.GetFromEpoch(hash, epoch)
 	if err == nil {
 		return txBytes, transaction.TxTypeUnsigned, true
@@ -244,21 +256,21 @@ func (n *Node) unmarshalTransaction(txBytes []byte, txType transaction.TxType) (
 	switch txType {
 	case transaction.TxTypeNormal:
 		var tx transaction.Transaction
-		err := n.internalMarshalizer.Unmarshal(&tx, txBytes)
+		err := n.coreComponents.InternalMarshalizer().Unmarshal(&tx, txBytes)
 		if err != nil {
 			return nil, err
 		}
 		return n.prepareNormalTx(&tx)
 	case transaction.TxTypeInvalid:
 		var tx transaction.Transaction
-		err := n.internalMarshalizer.Unmarshal(&tx, txBytes)
+		err := n.coreComponents.InternalMarshalizer().Unmarshal(&tx, txBytes)
 		if err != nil {
 			return nil, err
 		}
 		return n.prepareInvalidTx(&tx)
 	case transaction.TxTypeReward:
 		var tx rewardTxData.RewardTx
-		err := n.internalMarshalizer.Unmarshal(&tx, txBytes)
+		err := n.coreComponents.InternalMarshalizer().Unmarshal(&tx, txBytes)
 		if err != nil {
 			return nil, err
 		}
@@ -266,7 +278,7 @@ func (n *Node) unmarshalTransaction(txBytes []byte, txType transaction.TxType) (
 
 	case transaction.TxTypeUnsigned:
 		var tx smartContractResult.SmartContractResult
-		err := n.internalMarshalizer.Unmarshal(&tx, txBytes)
+		err := n.coreComponents.InternalMarshalizer().Unmarshal(&tx, txBytes)
 		if err != nil {
 			return nil, err
 		}
@@ -282,9 +294,9 @@ func (n *Node) prepareNormalTx(tx *transaction.Transaction) (*transaction.ApiTra
 		Type:             string(transaction.TxTypeNormal),
 		Nonce:            tx.Nonce,
 		Value:            tx.Value.String(),
-		Receiver:         n.addressPubkeyConverter.Encode(tx.RcvAddr),
+		Receiver:         n.coreComponents.AddressPubKeyConverter().Encode(tx.RcvAddr),
 		ReceiverUsername: tx.RcvUserName,
-		Sender:           n.addressPubkeyConverter.Encode(tx.SndAddr),
+		Sender:           n.coreComponents.AddressPubKeyConverter().Encode(tx.SndAddr),
 		SenderUsername:   tx.SndUserName,
 		GasPrice:         tx.GasPrice,
 		GasLimit:         tx.GasLimit,
@@ -299,9 +311,9 @@ func (n *Node) prepareInvalidTx(tx *transaction.Transaction) (*transaction.ApiTr
 		Type:             string(transaction.TxTypeInvalid),
 		Nonce:            tx.Nonce,
 		Value:            tx.Value.String(),
-		Receiver:         n.addressPubkeyConverter.Encode(tx.RcvAddr),
+		Receiver:         n.coreComponents.AddressPubKeyConverter().Encode(tx.RcvAddr),
 		ReceiverUsername: tx.RcvUserName,
-		Sender:           n.addressPubkeyConverter.Encode(tx.SndAddr),
+		Sender:           n.coreComponents.AddressPubKeyConverter().Encode(tx.SndAddr),
 		SenderUsername:   tx.SndUserName,
 		GasPrice:         tx.GasPrice,
 		GasLimit:         tx.GasLimit,
@@ -318,8 +330,9 @@ func (n *Node) prepareRewardTx(tx *rewardTxData.RewardTx) (*transaction.ApiTrans
 		Epoch:       tx.GetEpoch(),
 		Value:       tx.GetValue().String(),
 		Sender:      "metachain",
-		Receiver:    n.addressPubkeyConverter.Encode(tx.GetRcvAddr()),
+		Receiver:    n.coreComponents.AddressPubKeyConverter().Encode(tx.GetRcvAddr()),
 		SourceShard: core.MetachainShardId,
+		Timestamp:   n.computeTimestampForRound(tx.GetRound()),
 	}, nil
 }
 
@@ -329,8 +342,8 @@ func (n *Node) prepareUnsignedTx(tx *smartContractResult.SmartContractResult) (*
 		Type:                    string(transaction.TxTypeUnsigned),
 		Nonce:                   tx.GetNonce(),
 		Value:                   tx.GetValue().String(),
-		Receiver:                n.addressPubkeyConverter.Encode(tx.GetRcvAddr()),
-		Sender:                  n.addressPubkeyConverter.Encode(tx.GetSndAddr()),
+		Receiver:                n.coreComponents.AddressPubKeyConverter().Encode(tx.GetRcvAddr()),
+		Sender:                  n.coreComponents.AddressPubKeyConverter().Encode(tx.GetSndAddr()),
 		GasPrice:                tx.GetGasPrice(),
 		GasLimit:                tx.GetGasLimit(),
 		Data:                    tx.GetData(),
@@ -340,8 +353,8 @@ func (n *Node) prepareUnsignedTx(tx *smartContractResult.SmartContractResult) (*
 		OriginalTransactionHash: hex.EncodeToString(tx.GetOriginalTxHash()),
 		ReturnMessage:           string(tx.GetReturnMessage()),
 	}
-	if len(tx.GetOriginalSender()) == n.addressPubkeyConverter.Len() {
-		txResult.OriginalSender = n.addressPubkeyConverter.Encode(tx.GetOriginalSender())
+	if len(tx.GetOriginalSender()) == n.coreComponents.AddressPubKeyConverter().Len() {
+		txResult.OriginalSender = n.coreComponents.AddressPubKeyConverter().Encode(tx.GetOriginalSender())
 	}
 
 	return txResult, nil

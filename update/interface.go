@@ -4,11 +4,13 @@ import (
 	"context"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 // StateSyncer interface defines the methods needed to sync and get all states
@@ -16,7 +18,7 @@ type StateSyncer interface {
 	GetEpochStartMetaBlock() (*block.MetaBlock, error)
 	GetUnFinishedMetaBlocks() (map[string]*block.MetaBlock, error)
 	SyncAllState(epoch uint32) error
-	GetAllTries() (map[string]data.Trie, error)
+	GetAllTries() (map[string]common.Trie, error)
 	GetAllTransactions() (map[string]data.TransactionHandler, error)
 	GetAllMiniBlocks() (map[string]*block.MiniBlock, error)
 	IsInterfaceNil() bool
@@ -25,7 +27,7 @@ type StateSyncer interface {
 // TrieSyncer synchronizes the trie, asking on the network for the missing nodes
 type TrieSyncer interface {
 	StartSyncing(rootHash []byte, ctx context.Context) error
-	Trie() data.Trie
+	Trie() common.Trie
 	IsInterfaceNil() bool
 }
 
@@ -58,7 +60,6 @@ type HistoryStorer interface {
 	ClearCache()
 	DestroyUnit() error
 	GetFromEpoch(key []byte, epoch uint32) ([]byte, error)
-	HasInEpoch(key []byte, epoch uint32) error
 
 	IsInterfaceNil() bool
 }
@@ -96,6 +97,7 @@ type ImportHandler interface {
 	GetUnFinishedMetaBlocks() map[string]*block.MetaBlock
 	GetTransactions() map[string]data.TransactionHandler
 	GetAccountsDBForShard(shardID uint32) state.AccountsAdapter
+	Close() error
 	IsInterfaceNil() bool
 }
 
@@ -126,7 +128,7 @@ type HeaderSyncHandler interface {
 // EpochStartTriesSyncHandler defines the methods to sync all tries from a given epoch start metablock
 type EpochStartTriesSyncHandler interface {
 	SyncTriesFrom(meta *block.MetaBlock) error
-	GetTries() (map[string]data.Trie, error)
+	GetTries() (map[string]common.Trie, error)
 	IsInterfaceNil() bool
 }
 
@@ -163,12 +165,13 @@ type WhiteListHandler interface {
 	Remove(keys [][]byte)
 	Add(keys [][]byte)
 	IsWhiteListed(interceptedData process.InterceptedData) bool
+	IsWhiteListedAtLeastOne(identifiers [][]byte) bool
 	IsInterfaceNil() bool
 }
 
 // AccountsDBSyncer defines the methods for the accounts db syncer
 type AccountsDBSyncer interface {
-	GetSyncedTries() map[string]data.Trie
+	GetSyncedTries() map[string]common.Trie
 	SyncAccounts(rootHash []byte) error
 	IsInterfaceNil() bool
 }
@@ -240,8 +243,6 @@ type GenesisNodesSetupHandler interface {
 	InitialNodesInfo() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler)
 	GetStartTime() int64
 	GetRoundDuration() uint64
-	GetChainId() string
-	GetMinTransactionVersion() uint32
 	GetShardConsensusGroupSize() uint32
 	GetMetaConsensusGroupSize() uint32
 	MinNumberOfShardNodes() uint32
@@ -257,5 +258,15 @@ type GenesisNodesSetupHandler interface {
 type RoundHandler interface {
 	Index() int64
 	TimeStamp() time.Time
+	IsInterfaceNil() bool
+}
+
+// PreferredPeersHolderHandler defines the behavior of a component able to handle preferred peers operations
+type PreferredPeersHolderHandler interface {
+	Put(publicKey []byte, peerID core.PeerID, shardID uint32)
+	Get() map[uint32][]core.PeerID
+	Contains(peerID core.PeerID) bool
+	Remove(peerID core.PeerID)
+	Clear()
 	IsInterfaceNil() bool
 }

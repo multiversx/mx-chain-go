@@ -6,53 +6,65 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/parsers"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go/process"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 )
 
 var _ process.SCQueryService = (*SCQueryService)(nil)
 
 // SCQueryService can execute Get functions over SC to fetch stored values
 type SCQueryService struct {
-	vmContainer    process.VirtualMachinesContainer
-	economicsFee   process.FeeHandler
-	mutRunSc       sync.Mutex
-	blockChainHook process.BlockChainHookHandler
-	blockChain     data.ChainHandler
-	numQueries     int
-	gasForQuery    uint64
+	vmContainer       process.VirtualMachinesContainer
+	economicsFee      process.FeeHandler
+	mutRunSc          sync.Mutex
+	blockChainHook    process.BlockChainHookHandler
+	blockChain        data.ChainHandler
+	numQueries        int
+	gasForQuery       uint64
+	arwenChangeLocker process.Locker
+}
+
+// ArgsNewSCQueryService defines the arguments needed for the sc query service
+type ArgsNewSCQueryService struct {
+	VmContainer       process.VirtualMachinesContainer
+	EconomicsFee      process.FeeHandler
+	BlockChainHook    process.BlockChainHookHandler
+	BlockChain        data.ChainHandler
+	ArwenChangeLocker process.Locker
 }
 
 // NewSCQueryService returns a new instance of SCQueryService
 func NewSCQueryService(
-	vmContainer process.VirtualMachinesContainer,
-	economicsFee process.FeeHandler,
-	blockChainHook process.BlockChainHookHandler,
-	blockChain data.ChainHandler,
+	args ArgsNewSCQueryService,
 ) (*SCQueryService, error) {
-	if check.IfNil(vmContainer) {
+	if check.IfNil(args.VmContainer) {
 		return nil, process.ErrNoVM
 	}
-	if check.IfNil(economicsFee) {
+	if check.IfNil(args.EconomicsFee) {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
-	if check.IfNil(blockChainHook) {
+	if check.IfNil(args.BlockChainHook) {
 		return nil, process.ErrNilBlockChainHook
 	}
-	if check.IfNil(blockChain) {
+	if check.IfNil(args.BlockChain) {
 		return nil, process.ErrNilBlockChain
+	}
+	if check.IfNilReflect(args.ArwenChangeLocker) {
+		return nil, process.ErrNilLocker
 	}
 
 	return &SCQueryService{
-		vmContainer:    vmContainer,
-		economicsFee:   economicsFee,
-		blockChain:     blockChain,
-		blockChainHook: blockChainHook,
-		gasForQuery:    math.MaxUint64,
+		vmContainer:       args.VmContainer,
+		economicsFee:      args.EconomicsFee,
+		blockChain:        args.BlockChain,
+		blockChainHook:    args.BlockChainHook,
+		arwenChangeLocker: args.ArwenChangeLocker,
+		gasForQuery:       math.MaxUint64,
 	}, nil
 }
 
@@ -72,19 +84,22 @@ func (service *SCQueryService) ExecuteQuery(query *process.SCQuery) (*vmcommon.V
 }
 
 func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice uint64) (*vmcommon.VMOutput, error) {
-	log.Debug("executeScCall", "function", query.FuncName, "numQueries", service.numQueries)
+	log.Trace("executeScCall", "function", query.FuncName, "numQueries", service.numQueries)
 	service.numQueries++
 
 	service.blockChainHook.SetCurrentHeader(service.blockChain.GetCurrentBlockHeader())
 
+	service.arwenChangeLocker.RLock()
 	vm, err := findVMByScAddress(service.vmContainer, query.ScAddress)
 	if err != nil {
+		service.arwenChangeLocker.RUnlock()
 		return nil, err
 	}
 
 	query = prepareScQuery(query)
 	vmInput := service.createVMCallInput(query, gasPrice)
 	vmOutput, err := vm.RunSmartContractCall(vmInput)
+	service.arwenChangeLocker.RUnlock()
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +134,7 @@ func (service *SCQueryService) createVMCallInput(query *process.SCQuery, gasPric
 		GasPrice:    gasPrice,
 		GasProvided: service.gasForQuery,
 		Arguments:   query.Arguments,
-		CallType:    vmcommon.DirectCall,
+		CallType:    vmData.DirectCall,
 	}
 
 	vmContractCallInput := &vmcommon.ContractCallInput{
@@ -170,6 +185,11 @@ func (service *SCQueryService) ComputeScCallGasLimit(tx *transaction.Transaction
 	gasLimit := moveBalanceGasLimit + gasConsumedExecution
 
 	return gasLimit, nil
+}
+
+// Close closes all underlying components
+func (service *SCQueryService) Close() error {
+	return service.vmContainer.Close()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

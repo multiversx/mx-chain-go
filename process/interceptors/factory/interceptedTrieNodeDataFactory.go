@@ -1,11 +1,11 @@
 package factory
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/trie"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/trie"
 )
 
 var _ process.InterceptedDataFactory = (*interceptedTrieNodeDataFactory)(nil)
@@ -23,16 +23,19 @@ func NewInterceptedTrieNodeDataFactory(
 	if argument == nil {
 		return nil, process.ErrNilArgumentStruct
 	}
-	if check.IfNil(argument.ProtoMarshalizer) {
+	if check.IfNil(argument.CoreComponents) {
+		return nil, process.ErrNilCoreComponentsHolder
+	}
+	if check.IfNil(argument.CoreComponents.InternalMarshalizer()) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if check.IfNil(argument.Hasher) {
+	if check.IfNil(argument.CoreComponents.Hasher()) {
 		return nil, process.ErrNilHasher
 	}
 
 	return &interceptedTrieNodeDataFactory{
-		marshalizer: argument.ProtoMarshalizer,
-		hasher:      argument.Hasher,
+		marshalizer: argument.CoreComponents.InternalMarshalizer(),
+		hasher:      argument.CoreComponents.Hasher(),
 	}, nil
 }
 

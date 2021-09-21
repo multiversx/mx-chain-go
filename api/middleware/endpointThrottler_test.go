@@ -1,78 +1,42 @@
 package middleware_test
 
 import (
-	"math/big"
 	"net/http"
 	"sync"
 	"sync/atomic"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/api/address"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
-	"github.com/ElrondNetwork/elrond-go/api/wrapper"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
 
-func startNodeServerEndpointThrottler(handler interface{}, throttlerName string) *gin.Engine {
+func startNodeServerEndpointThrottler(handler func(c *gin.Context), facade interface{}, throttlerName string) *gin.Engine {
 	ws := gin.New()
 	ws.Use(cors.Default())
-	if handler == nil {
-		ws.Use(middleware.CreateEndpointThrottler(throttlerName))
-	} else {
-		ws.Use(middleware.WithFacade(handler), middleware.CreateEndpointThrottler(throttlerName))
-	}
+
+	ws.Use(middleware.CreateEndpointThrottlerFromFacade(throttlerName, facade))
+
 	ginAddressRoutes := ws.Group("/address")
-	addressRoutes, _ := wrapper.NewRouterWrapper("address", ginAddressRoutes, getRoutesConfig())
-	address.Routes(addressRoutes)
+
+	ginAddressRoutes.Handle(http.MethodGet, "/:address/balance", handler)
+
 	return ws
-}
-
-func TestCreateEndpointThrottler_NilContextShouldError(t *testing.T) {
-	t.Parallel()
-
-	ws := startNodeServerEndpointThrottler(nil, "test")
-	mutResponses := sync.Mutex{}
-	responses := make(map[int]int)
-
-	makeRequestGlobalThrottler(ws, &mutResponses, responses)
-
-	mutResponses.Lock()
-	defer mutResponses.Unlock()
-
-	assert.Equal(t, 1, responses[http.StatusInternalServerError])
-}
-
-func TestCreateEndpointThrottler_WrongFacadeShouldErr(t *testing.T) {
-	t.Parallel()
-
-	ws := startNodeServerEndpointThrottler(&struct{}{}, "test")
-	mutResponses := sync.Mutex{}
-	responses := make(map[int]int)
-
-	makeRequestGlobalThrottler(ws, &mutResponses, responses)
-
-	mutResponses.Lock()
-	defer mutResponses.Unlock()
-
-	assert.Equal(t, 1, responses[http.StatusInternalServerError])
 }
 
 func TestCreateEndpointThrottler_NoThrottlerShouldExecute(t *testing.T) {
 	t.Parallel()
 
 	numCalls := uint32(0)
-	facade := mock.Facade{
-		BalanceHandler: func(s string) (i *big.Int, e error) {
-			atomic.AddUint32(&numCalls, 1)
-
-			return big.NewInt(10), nil
-		},
+	handlerFunc := func(c *gin.Context) {
+		atomic.AddUint32(&numCalls, 1)
+		c.JSON(200, "ok")
 	}
-	ws := startNodeServerEndpointThrottler(&facade, "test")
+
+	ws := startNodeServerEndpointThrottler(handlerFunc, &mock.Facade{}, "test")
 	mutResponses := sync.Mutex{}
 	responses := make(map[int]int)
 
@@ -90,11 +54,6 @@ func TestCreateEndpointThrottler_ThrottlerCanNotProcessShouldNotExecute(t *testi
 
 	numCalls := uint32(0)
 	facade := mock.Facade{
-		BalanceHandler: func(s string) (i *big.Int, e error) {
-			atomic.AddUint32(&numCalls, 1)
-
-			return big.NewInt(10), nil
-		},
 		GetThrottlerForEndpointCalled: func(endpoint string) (core.Throttler, bool) {
 			return &mock.ThrottlerStub{
 				CanProcessCalled: func() bool {
@@ -103,7 +62,11 @@ func TestCreateEndpointThrottler_ThrottlerCanNotProcessShouldNotExecute(t *testi
 			}, true
 		},
 	}
-	ws := startNodeServerEndpointThrottler(&facade, "test")
+
+	handlerFunc := func(c *gin.Context) {
+		atomic.AddUint32(&numCalls, 1)
+	}
+	ws := startNodeServerEndpointThrottler(handlerFunc, &facade, "test")
 	mutResponses := sync.Mutex{}
 	responses := make(map[int]int)
 
@@ -123,11 +86,6 @@ func TestCreateEndpointThrottler_ThrottlerStartShouldExecute(t *testing.T) {
 	numStart := uint32(0)
 	numEnd := uint32(0)
 	facade := mock.Facade{
-		BalanceHandler: func(s string) (i *big.Int, e error) {
-			atomic.AddUint32(&numCalls, 1)
-
-			return big.NewInt(10), nil
-		},
 		GetThrottlerForEndpointCalled: func(endpoint string) (core.Throttler, bool) {
 			return &mock.ThrottlerStub{
 				CanProcessCalled: func() bool {
@@ -142,7 +100,10 @@ func TestCreateEndpointThrottler_ThrottlerStartShouldExecute(t *testing.T) {
 			}, true
 		},
 	}
-	ws := startNodeServerEndpointThrottler(&facade, "test")
+	handlerFunc := func(c *gin.Context) {
+		atomic.AddUint32(&numCalls, 1)
+	}
+	ws := startNodeServerEndpointThrottler(handlerFunc, &facade, "test")
 	mutResponses := sync.Mutex{}
 	responses := make(map[int]int)
 

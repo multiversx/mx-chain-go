@@ -2,29 +2,31 @@ package block
 
 import (
 	"bytes"
-	"context"
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"sort"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go-core/display"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/core/statistics"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/display"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
 var log = logger.GetOrCreate("process/block")
@@ -58,7 +60,7 @@ type baseProcessor struct {
 	headerValidator         process.HeaderConstructionValidator
 	blockChainHook          process.BlockChainHookHandler
 	txCoordinator           process.TransactionCoordinator
-	rounder                 consensus.Rounder
+	roundHandler            consensus.RoundHandler
 	bootStorer              process.BootStorer
 	requestBlockBodyHandler process.RequestBlockBodyHandler
 	requestHandler          process.RequestHandler
@@ -75,10 +77,13 @@ type baseProcessor struct {
 	blockProcessor         blockProcessor
 	txCounter              *transactionCounter
 
-	indexer       process.Indexer
-	tpsBenchmark  statistics.TPSBenchmark
-	historyRepo   dblookupext.HistoryRepository
-	epochNotifier process.EpochNotifier
+	outportHandler     outport.OutportHandler
+	historyRepo        dblookupext.HistoryRepository
+	epochNotifier      process.EpochNotifier
+	vmContainerFactory process.VirtualMachinesContainerFactory
+	vmContainer        process.VirtualMachinesContainer
+
+	processDataTriesOnCommitEpoch bool
 }
 
 type bootStorerDataArgs struct {
@@ -102,16 +107,6 @@ func checkForNils(
 	if check.IfNil(bodyHandler) {
 		return process.ErrNilBlockBody
 	}
-	return nil
-}
-
-// SetAppStatusHandler method is used to set appStatusHandler
-func (bp *baseProcessor) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if check.IfNil(ash) {
-		return process.ErrNilAppStatusHandler
-	}
-
-	bp.appStatusHandler = ash
 	return nil
 }
 
@@ -249,7 +244,7 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 
 	maxNumNoncesToAdd := process.MaxHeaderRequestsAllowed - int(int64(prevHdr.GetNonce())-int64(lastNotarizedHdrNonce))
 	if maxNumNoncesToAdd > 0 {
-		lastRound := bp.rounder.Index() - 1
+		lastRound := bp.roundHandler.Index() - 1
 		roundsDiff := lastRound - int64(prevHdr.GetRound())
 		nonces := addMissingNonces(roundsDiff, prevHdr.GetNonce(), maxNumNoncesToAdd)
 		missingNonces = append(missingNonces, nonces...)
@@ -357,25 +352,37 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 			return process.ErrNilAccountsAdapter
 		}
 	}
+	if check.IfNil(arguments.DataComponents) {
+		return process.ErrNilDataComponentsHolder
+	}
+	if check.IfNil(arguments.CoreComponents) {
+		return process.ErrNilCoreComponentsHolder
+	}
+	if check.IfNil(arguments.BootstrapComponents) {
+		return process.ErrNilBootstrapComponentsHolder
+	}
+	if check.IfNil(arguments.StatusComponents) {
+		return process.ErrNilStatusComponentsHolder
+	}
 	if check.IfNil(arguments.ForkDetector) {
 		return process.ErrNilForkDetector
 	}
-	if check.IfNil(arguments.Hasher) {
+	if check.IfNil(arguments.CoreComponents.Hasher()) {
 		return process.ErrNilHasher
 	}
-	if check.IfNil(arguments.Marshalizer) {
+	if check.IfNil(arguments.CoreComponents.InternalMarshalizer()) {
 		return process.ErrNilMarshalizer
 	}
-	if check.IfNil(arguments.Store) {
+	if check.IfNil(arguments.DataComponents.StorageService()) {
 		return process.ErrNilStorage
 	}
-	if check.IfNil(arguments.ShardCoordinator) {
+	if check.IfNil(arguments.BootstrapComponents.ShardCoordinator()) {
 		return process.ErrNilShardCoordinator
 	}
 	if check.IfNil(arguments.NodesCoordinator) {
 		return process.ErrNilNodesCoordinator
 	}
-	if check.IfNil(arguments.Uint64Converter) {
+	if check.IfNil(arguments.CoreComponents.Uint64ByteSliceConverter()) {
 		return process.ErrNilUint64Converter
 	}
 	if check.IfNil(arguments.RequestHandler) {
@@ -384,8 +391,8 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.EpochStartTrigger) {
 		return process.ErrNilEpochStartTrigger
 	}
-	if check.IfNil(arguments.Rounder) {
-		return process.ErrNilRounder
+	if check.IfNil(arguments.CoreComponents.RoundHandler()) {
+		return process.ErrNilRoundHandler
 	}
 	if check.IfNil(arguments.BootStorer) {
 		return process.ErrNilStorage
@@ -405,26 +412,26 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.FeeHandler) {
 		return process.ErrNilEconomicsFeeHandler
 	}
-	if check.IfNil(arguments.BlockChain) {
+	if check.IfNil(arguments.DataComponents.Blockchain()) {
 		return process.ErrNilBlockChain
 	}
 	if check.IfNil(arguments.BlockSizeThrottler) {
 		return process.ErrNilBlockSizeThrottler
 	}
-	if check.IfNil(arguments.Indexer) {
-		return process.ErrNilIndexer
-	}
-	if check.IfNil(arguments.TpsBenchmark) {
-		return process.ErrNilTpsBenchmark
+	if check.IfNil(arguments.StatusComponents.OutportHandler()) {
+		return process.ErrNilOutportHandler
 	}
 	if check.IfNil(arguments.HistoryRepository) {
 		return process.ErrNilHistoryRepository
 	}
-	if check.IfNil(arguments.HeaderIntegrityVerifier) {
+	if check.IfNil(arguments.BootstrapComponents.HeaderIntegrityVerifier()) {
 		return process.ErrNilHeaderIntegrityVerifier
 	}
 	if check.IfNil(arguments.EpochNotifier) {
 		return process.ErrNilEpochNotifier
+	}
+	if check.IfNil(arguments.CoreComponents.StatusHandler()) {
+		return process.ErrNilAppStatusHandler
 	}
 
 	return nil
@@ -817,7 +824,7 @@ func (bp *baseProcessor) prepareDataForBootStorer(args bootStorerDataArgs) {
 	}
 
 	elapsedTime := time.Since(startTime)
-	if elapsedTime >= core.PutInStorerMaxTime {
+	if elapsedTime >= common.PutInStorerMaxTime {
 		log.Warn("saveDataForBootStorer", "elapsed time", elapsedTime)
 	}
 }
@@ -1011,7 +1018,7 @@ func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler) {
 	}
 
 	elapsedTime := time.Since(startTime)
-	if elapsedTime >= core.PutInStorerMaxTime {
+	if elapsedTime >= common.PutInStorerMaxTime {
 		log.Warn("saveBody", "elapsed time", elapsedTime)
 	}
 }
@@ -1035,7 +1042,7 @@ func (bp *baseProcessor) saveShardHeader(header data.HeaderHandler, headerHash [
 	}
 
 	elapsedTime := time.Since(startTime)
-	if elapsedTime >= core.PutInStorerMaxTime {
+	if elapsedTime >= common.PutInStorerMaxTime {
 		log.Warn("saveShardHeader", "elapsed time", elapsedTime)
 	}
 }
@@ -1056,7 +1063,7 @@ func (bp *baseProcessor) saveMetaHeader(header data.HeaderHandler, headerHash []
 	}
 
 	elapsedTime := time.Since(startTime)
-	if elapsedTime >= core.PutInStorerMaxTime {
+	if elapsedTime >= common.PutInStorerMaxTime {
 		log.Warn("saveMetaHeader", "elapsed time", elapsedTime)
 	}
 }
@@ -1077,6 +1084,7 @@ func (bp *baseProcessor) updateStateStorage(
 	rootHash []byte,
 	prevRootHash []byte,
 	accounts state.AccountsAdapter,
+	statePruningQueue core.Queue,
 ) {
 	if !accounts.IsPruningEnabled() {
 		return
@@ -1086,8 +1094,7 @@ func (bp *baseProcessor) updateStateStorage(
 	if bp.stateCheckpointModulus != 0 {
 		if finalHeader.GetNonce()%uint64(bp.stateCheckpointModulus) == 0 {
 			log.Debug("trie checkpoint", "rootHash", rootHash)
-			ctx := context.Background()
-			accounts.SetStateCheckpoint(rootHash, ctx)
+			accounts.SetStateCheckpoint(rootHash)
 		}
 	}
 
@@ -1095,8 +1102,13 @@ func (bp *baseProcessor) updateStateStorage(
 		return
 	}
 
-	accounts.CancelPrune(prevRootHash, data.NewRoot)
-	accounts.PruneTrie(prevRootHash, data.OldRoot)
+	rootHashToBePruned := statePruningQueue.Add(prevRootHash)
+	if len(rootHashToBePruned) == 0 {
+		return
+	}
+
+	accounts.CancelPrune(rootHashToBePruned, state.NewRoot)
+	accounts.PruneTrie(rootHashToBePruned, state.OldRoot)
 }
 
 // RevertAccountState reverts the account state for cleanup failed process
@@ -1133,8 +1145,8 @@ func (bp *baseProcessor) PruneStateOnRollback(currHeader data.HeaderHandler, pre
 			continue
 		}
 
-		bp.accountsDB[key].CancelPrune(prevRootHash, data.OldRoot)
-		bp.accountsDB[key].PruneTrie(rootHash, data.NewRoot)
+		bp.accountsDB[key].CancelPrune(prevRootHash, state.OldRoot)
+		bp.accountsDB[key].PruneTrie(rootHash, state.NewRoot)
 	}
 }
 
@@ -1218,8 +1230,8 @@ func (bp *baseProcessor) requestMiniBlocksIfNeeded(headerHandler data.HeaderHand
 		return
 	}
 
-	waitTime := core.ExtraDelayForRequestBlockInfo
-	roundDifferences := bp.rounder.Index() - int64(headerHandler.GetRound())
+	waitTime := common.ExtraDelayForRequestBlockInfo
+	roundDifferences := bp.roundHandler.Index() - int64(headerHandler.GetRound())
 	if roundDifferences > 1 {
 		waitTime = 0
 	}
@@ -1233,8 +1245,9 @@ func (bp *baseProcessor) requestMiniBlocksIfNeeded(headerHandler data.HeaderHand
 func (bp *baseProcessor) recordBlockInHistory(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler) {
 	scrResultsFromPool := bp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
 	receiptsFromPool := bp.txCoordinator.GetAllCurrentUsedTxs(block.ReceiptBlock)
+	logs := bp.txCoordinator.GetAllCurrentLogs()
 
-	err := bp.historyRepo.RecordBlock(blockHeaderHash, blockHeader, blockBody, scrResultsFromPool, receiptsFromPool)
+	err := bp.historyRepo.RecordBlock(blockHeaderHash, blockHeader, blockBody, scrResultsFromPool, receiptsFromPool, logs)
 	if err != nil {
 		log.Error("historyRepo.RecordBlock()", "blockHeaderHash", blockHeaderHash, "error", err.Error())
 	}
@@ -1251,4 +1264,125 @@ func (bp *baseProcessor) addHeaderIntoTrackerPool(nonce uint64, shardID uint32) 
 	for i := 0; i < len(headers); i++ {
 		bp.blockTracker.AddTrackedHeader(headers[i], hashes[i])
 	}
+}
+
+func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBlock, rootHash []byte) error {
+	trieEpochRootHashStorageUnit := bp.store.GetStorer(dataRetriever.TrieEpochRootHashUnit)
+	if check.IfNil(trieEpochRootHashStorageUnit) {
+		return nil
+	}
+	_, isStorerDisabled := trieEpochRootHashStorageUnit.(*storageUnit.NilStorer)
+	if isStorerDisabled {
+		return nil
+	}
+
+	userAccountsDb := bp.accountsDB[state.UserAccountsState]
+	if userAccountsDb == nil {
+		return fmt.Errorf("%w for user accounts state", process.ErrNilAccountsAdapter)
+	}
+
+	epochBytes := bp.uint64Converter.ToByteSlice(uint64(metaBlock.Epoch))
+
+	err := trieEpochRootHashStorageUnit.Put(epochBytes, rootHash)
+	if err != nil {
+		return err
+	}
+
+	allLeavesChan, err := userAccountsDb.GetAllLeaves(rootHash)
+	if err != nil {
+		return err
+	}
+
+	processDataTries := bp.processDataTriesOnCommitEpoch
+	balanceSum := big.NewInt(0)
+	numAccountLeaves := 0
+	numAccountsWithDataTrie := 0
+	numCodeLeaves := 0
+	totalSizeAccounts := 0
+	totalSizeAccountsDataTries := 0
+	totalSizeCodeLeaves := 0
+	for leaf := range allLeavesChan {
+		userAccount, errUnmarshal := unmarshalUserAccount(leaf.Key(), leaf.Value(), bp.marshalizer)
+		if errUnmarshal != nil {
+			numCodeLeaves++
+			totalSizeCodeLeaves += len(leaf.Value())
+			log.Trace("cannot unmarshal user account. it may be a code leaf", "error", errUnmarshal)
+			continue
+		}
+
+		if processDataTries {
+			rh := userAccount.GetRootHash()
+			if len(rh) != 0 {
+				dataTrie, errDataTrieGet := userAccountsDb.GetAllLeaves(rh)
+				if errDataTrieGet != nil {
+					continue
+				}
+
+				currentSize := 0
+				for lf := range dataTrie {
+					currentSize += len(lf.Value())
+				}
+
+				totalSizeAccountsDataTries += currentSize
+				numAccountsWithDataTrie++
+			}
+		}
+
+		numAccountLeaves++
+		totalSizeAccounts += len(leaf.Value())
+
+		balanceSum.Add(balanceSum, userAccount.GetBalance())
+	}
+
+	totalSizeAccounts += totalSizeAccountsDataTries
+
+	stats := []interface{}{
+		"shard", bp.shardCoordinator.SelfId(),
+		"epoch", metaBlock.Epoch,
+		"sum", balanceSum.String(),
+		"processDataTries", processDataTries,
+		"numCodeLeaves", numCodeLeaves,
+		"totalSizeCodeLeaves", totalSizeCodeLeaves,
+		"numAccountLeaves", numAccountLeaves,
+		"totalSizeAccountsLeaves", totalSizeAccounts,
+	}
+
+	if processDataTries {
+		stats = append(stats, []interface{}{
+			"from which numAccountsWithDataTrie", numAccountsWithDataTrie,
+			"from which totalSizeAccountsDataTries", totalSizeAccountsDataTries}...)
+	}
+
+	log.Debug("sum of addresses in shard at epoch start", stats...)
+
+	return nil
+}
+
+func unmarshalUserAccount(address []byte, userAccountsBytes []byte, marshalizer marshal.Marshalizer) (state.UserAccountHandler, error) {
+	userAccount, err := state.NewUserAccount(address)
+	if err != nil {
+		return nil, err
+	}
+	err = marshalizer.Unmarshal(userAccount, userAccountsBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return userAccount, nil
+}
+
+// Close - closes all underlying components
+func (bp *baseProcessor) Close() error {
+	var err1, err2 error
+	if !check.IfNil(bp.vmContainer) {
+		err1 = bp.vmContainer.Close()
+	}
+	if !check.IfNil(bp.vmContainerFactory) {
+		err2 = bp.vmContainerFactory.Close()
+	}
+	if err1 != nil || err2 != nil {
+		return fmt.Errorf("vmContainer close error: %v, vmContainerFactory close error: %v", err1, err2)
+	}
+
+	return nil
 }

@@ -7,12 +7,12 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 type ownerStats struct {
@@ -331,7 +331,7 @@ func createMapBLSKeyStatus(validatorInfos map[uint32][]*state.ValidatorInfo) map
 
 func selectKeysToUnStake(sortedKeys map[string][][]byte, numToSelect int64) [][]byte {
 	selectedKeys := make([][]byte, 0)
-	newKeys := sortedKeys[string(core.NewList)]
+	newKeys := sortedKeys[string(common.NewList)]
 	if len(newKeys) > 0 {
 		selectedKeys = append(selectedKeys, newKeys...)
 	}
@@ -340,7 +340,7 @@ func selectKeysToUnStake(sortedKeys map[string][][]byte, numToSelect int64) [][]
 		return selectedKeys[:numToSelect]
 	}
 
-	waitingKeys := sortedKeys[string(core.WaitingList)]
+	waitingKeys := sortedKeys[string(common.WaitingList)]
 	if len(waitingKeys) > 0 {
 		selectedKeys = append(selectedKeys, waitingKeys...)
 	}
@@ -349,7 +349,7 @@ func selectKeysToUnStake(sortedKeys map[string][][]byte, numToSelect int64) [][]
 		return selectedKeys[:numToSelect]
 	}
 
-	eligibleKeys := sortedKeys[string(core.EligibleList)]
+	eligibleKeys := sortedKeys[string(common.EligibleList)]
 	if len(eligibleKeys) > 0 {
 		selectedKeys = append(selectedKeys, eligibleKeys...)
 	}
@@ -366,7 +366,7 @@ func arrangeBlsKeysByStatus(mapBlsKeyStatus map[string]string, blsKeys [][]byte)
 	for _, blsKey := range blsKeys {
 		blsKeyStatus, ok := mapBlsKeyStatus[string(blsKey)]
 		if !ok {
-			sortedKeys[string(core.NewList)] = append(sortedKeys[string(core.NewList)], blsKey)
+			sortedKeys[string(common.NewList)] = append(sortedKeys[string(common.NewList)], blsKey)
 			continue
 		}
 

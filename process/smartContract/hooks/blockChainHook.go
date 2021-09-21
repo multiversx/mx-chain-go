@@ -9,24 +9,24 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
+	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go-core/hashing/keccak"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/esdt"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var _ process.BlockChainHookHandler = (*BlockChainHookImpl)(nil)
@@ -46,7 +46,7 @@ type ArgBlockChainHook struct {
 	ShardCoordinator   sharding.Coordinator
 	Marshalizer        marshal.Marshalizer
 	Uint64Converter    typeConverters.Uint64ByteSliceConverter
-	BuiltInFunctions   process.BuiltInFunctionContainer
+	BuiltInFunctions   vmcommon.BuiltInFunctionContainer
 	CompiledSCPool     storage.Cacher
 	ConfigSCStorage    config.StorageConfig
 	WorkingDir         string
@@ -62,7 +62,7 @@ type BlockChainHookImpl struct {
 	shardCoordinator sharding.Coordinator
 	marshalizer      marshal.Marshalizer
 	uint64Converter  typeConverters.Uint64ByteSliceConverter
-	builtInFunctions process.BuiltInFunctionContainer
+	builtInFunctions vmcommon.BuiltInFunctionContainer
 
 	mutCurrentHdr sync.RWMutex
 	currentHdr    data.HeaderHandler
@@ -146,13 +146,17 @@ func (bh *BlockChainHookImpl) GetCode(account vmcommon.UserAccountHandler) []byt
 	return bh.accounts.GetCode(account.GetCodeHash())
 }
 
+func (bh *BlockChainHookImpl) isNotSystemAccountAndCrossShard(address []byte) bool {
+	dstShardId := bh.shardCoordinator.ComputeId(address)
+	return !core.IsSystemAccountAddress(address) && dstShardId != bh.shardCoordinator.SelfId()
+}
+
 // GetUserAccount returns the balance of a shard account
 func (bh *BlockChainHookImpl) GetUserAccount(address []byte) (vmcommon.UserAccountHandler, error) {
 	defer stopMeasure(startMeasure("GetUserAccount"))
 
-	dstShardId := bh.shardCoordinator.ComputeId(address)
-	if !core.IsSystemAccountAddress(address) && dstShardId != bh.shardCoordinator.SelfId() {
-		return nil, nil
+	if bh.isNotSystemAccountAndCrossShard(address) {
+		return nil, state.ErrAccNotFound
 	}
 
 	acc, err := bh.accounts.GetExistingAccount(address)
@@ -160,7 +164,7 @@ func (bh *BlockChainHookImpl) GetUserAccount(address []byte) (vmcommon.UserAccou
 		return nil, err
 	}
 
-	dstAccount, ok := acc.(state.UserAccountHandler)
+	dstAccount, ok := acc.(vmcommon.UserAccountHandler)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}
@@ -172,7 +176,7 @@ func (bh *BlockChainHookImpl) GetUserAccount(address []byte) (vmcommon.UserAccou
 func (bh *BlockChainHookImpl) GetStorageData(accountAddress []byte, index []byte) ([]byte, error) {
 	defer stopMeasure(startMeasure("GetStorageData"))
 
-	account, err := bh.GetUserAccount(accountAddress)
+	userAcc, err := bh.GetUserAccount(accountAddress)
 	if err == state.ErrAccNotFound {
 		return make([]byte, 0), nil
 	}
@@ -180,12 +184,7 @@ func (bh *BlockChainHookImpl) GetStorageData(accountAddress []byte, index []byte
 		return nil, err
 	}
 
-	userAcc, ok := account.(state.UserAccountHandler)
-	if !ok {
-		return nil, process.ErrWrongTypeAssertion
-	}
-
-	value, err := userAcc.DataTrieTracker().RetrieveValue(index)
+	value, err := userAcc.AccountDataHandler().RetrieveValue(index)
 	messages := []interface{}{
 		"address", accountAddress,
 		"rootHash", userAcc.GetRootHash(),
@@ -402,15 +401,16 @@ func (bh *BlockChainHookImpl) IsPayable(address []byte) (bool, error) {
 		return true, nil
 	}
 
+	if bh.isNotSystemAccountAndCrossShard(address) {
+		return true, nil
+	}
+
 	userAcc, err := bh.GetUserAccount(address)
 	if err == state.ErrAccNotFound {
 		return false, nil
 	}
 	if err != nil {
 		return false, err
-	}
-	if check.IfNil(userAcc) {
-		return true, nil
 	}
 
 	metadata := vmcommon.CodeMetadataFromBytes(userAcc.GetCodeMetadata())
@@ -419,8 +419,8 @@ func (bh *BlockChainHookImpl) IsPayable(address []byte) (bool, error) {
 
 func (bh *BlockChainHookImpl) getUserAccounts(
 	input *vmcommon.ContractCallInput,
-) (state.UserAccountHandler, state.UserAccountHandler, error) {
-	var sndAccount state.UserAccountHandler
+) (vmcommon.UserAccountHandler, vmcommon.UserAccountHandler, error) {
+	var sndAccount vmcommon.UserAccountHandler
 	sndShardId := bh.shardCoordinator.ComputeId(input.CallerAddr)
 	if sndShardId == bh.shardCoordinator.SelfId() {
 		acc, err := bh.accounts.GetExistingAccount(input.CallerAddr)
@@ -429,13 +429,17 @@ func (bh *BlockChainHookImpl) getUserAccounts(
 		}
 
 		var ok bool
-		sndAccount, ok = acc.(state.UserAccountHandler)
+		sndAccount, ok = acc.(vmcommon.UserAccountHandler)
 		if !ok {
 			return nil, nil, process.ErrWrongTypeAssertion
 		}
+
+		if bytes.Equal(input.CallerAddr, input.RecipientAddr) {
+			return sndAccount, sndAccount, nil
+		}
 	}
 
-	var dstAccount state.UserAccountHandler
+	var dstAccount vmcommon.UserAccountHandler
 	dstShardId := bh.shardCoordinator.ComputeId(input.RecipientAddr)
 	if dstShardId == bh.shardCoordinator.SelfId() {
 		acc, err := bh.accounts.LoadAccount(input.RecipientAddr)
@@ -444,7 +448,7 @@ func (bh *BlockChainHookImpl) getUserAccounts(
 		}
 
 		var ok bool
-		dstAccount, ok = acc.(state.UserAccountHandler)
+		dstAccount, ok = acc.(vmcommon.UserAccountHandler)
 		if !ok {
 			return nil, nil, process.ErrWrongTypeAssertion
 		}
@@ -453,14 +457,14 @@ func (bh *BlockChainHookImpl) getUserAccounts(
 	return sndAccount, dstAccount, nil
 }
 
-// GetBuiltInFunctions returns the built in functions container
-func (bh *BlockChainHookImpl) GetBuiltInFunctions() process.BuiltInFunctionContainer {
-	return bh.builtInFunctions
-}
-
 // GetBuiltinFunctionNames returns the built in function names
 func (bh *BlockChainHookImpl) GetBuiltinFunctionNames() vmcommon.FunctionNames {
 	return bh.builtInFunctions.Keys()
+}
+
+// GetBuiltinFunctionsContainer returns the built in functions container
+func (bh *BlockChainHookImpl) GetBuiltinFunctionsContainer() vmcommon.BuiltInFunctionContainer {
+	return bh.builtInFunctions
 }
 
 // GetAllState returns the underlying state of a given account
@@ -471,7 +475,7 @@ func (bh *BlockChainHookImpl) GetAllState(_ []byte) (map[string][]byte, error) {
 
 // GetESDTToken returns the unmarshalled esdt data for the given key
 func (bh *BlockChainHookImpl) GetESDTToken(address []byte, tokenID []byte, nonce uint64) (*esdt.ESDigitalToken, error) {
-	account, err := bh.GetUserAccount(address)
+	userAcc, err := bh.GetUserAccount(address)
 	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(0)}
 	if err == state.ErrAccNotFound {
 		return esdtData, nil
@@ -480,17 +484,12 @@ func (bh *BlockChainHookImpl) GetESDTToken(address []byte, tokenID []byte, nonce
 		return nil, err
 	}
 
-	userAcc, ok := account.(state.UserAccountHandler)
-	if !ok {
-		return nil, process.ErrWrongTypeAssertion
-	}
-
 	esdtTokenKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + string(tokenID))
 	if nonce > 0 {
 		esdtTokenKey = append(esdtTokenKey, big.NewInt(0).SetUint64(nonce).Bytes()...)
 	}
 
-	value, err := userAcc.DataTrieTracker().RetrieveValue(esdtTokenKey)
+	value, err := userAcc.AccountDataHandler().RetrieveValue(esdtTokenKey)
 	if err != nil {
 		return nil, err
 	}
@@ -515,7 +514,7 @@ func hashFromAddressAndNonce(creatorAddress []byte, creatorNonce uint64) []byte 
 	buffNonce := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buffNonce, creatorNonce)
 	adrAndNonce := append(creatorAddress, buffNonce...)
-	scAddress := keccak.Keccak{}.Compute(string(adrAndNonce))
+	scAddress := keccak.NewKeccak().Compute(string(adrAndNonce))
 
 	return scAddress
 }
@@ -580,17 +579,18 @@ func (bh *BlockChainHookImpl) DeleteCompiledCode(codeHash []byte) {
 	}
 }
 
+// Close closes/cleans up the blockchain hook
+func (bh *BlockChainHookImpl) Close() error {
+	bh.compiledScPool.Clear()
+	return bh.compiledScStorage.DestroyUnit()
+}
+
 // ClearCompiledCodes deletes the compiled codes from storage and cache
 func (bh *BlockChainHookImpl) ClearCompiledCodes() {
 	bh.compiledScPool.Clear()
 	err := bh.compiledScStorage.DestroyUnit()
 	if err != nil {
 		log.Error("blockchainHook ClearCompiledCodes DestroyUnit", "error", err)
-	}
-
-	err = bh.compiledScStorage.Close()
-	if err != nil {
-		log.Error("blockchainHook ClearCompiledCodes Close", "error", err)
 	}
 
 	err = bh.makeCompiledSCStorage()

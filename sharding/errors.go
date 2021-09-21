@@ -135,3 +135,12 @@ var ErrNilOrEmptyDestinationForDistribute = errors.New("nil or empty destination
 
 // ErrNilNodeShufflerArguments signals that a nil argument pointer was provided for creating the nodes shuffler instance
 var ErrNilNodeShufflerArguments = errors.New("nil arguments for the creation of a node shuffler")
+
+// ErrNilNodeStopChannel signals that a nil node stop channel has been provided
+var ErrNilNodeStopChannel = errors.New("nil node stop channel")
+
+// ErrValidatorCannotBeFullArchive signals a configuration issue because a validator cannot be a full archive node
+var ErrValidatorCannotBeFullArchive = errors.New("validator cannot be a full archive node")
+
+// ErrNilNodeTypeProvider signals that a nil node type provider has been given
+var ErrNilNodeTypeProvider = errors.New("nil node type provider")

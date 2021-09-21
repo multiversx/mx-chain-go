@@ -5,12 +5,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	storageResolversContainers "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/storageResolversContainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -32,7 +34,7 @@ func createStubTopicMessageHandlerForShard(matchStrToErrOnCreate string, matchSt
 		return nil
 	}
 
-	tmhs.RegisterMessageProcessorCalled = func(topic string, handler p2p.MessageProcessor) error {
+	tmhs.RegisterMessageProcessorCalled = func(topic string, identifier string, handler p2p.MessageProcessor) error {
 		if matchStrToErrOnRegister == "" {
 			return nil
 		}
@@ -50,7 +52,7 @@ func createStubTopicMessageHandlerForShard(matchStrToErrOnCreate string, matchSt
 func createStoreForShard() dataRetriever.StorageService {
 	return &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &mock.StorerStub{}
+			return &testscommon.StorerStub{}
 		},
 	}
 }
@@ -178,6 +180,33 @@ func TestShardResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 
 func getArgumentsShard() storageResolversContainers.FactoryArgs {
 	return storageResolversContainers.FactoryArgs{
+		GeneralConfig: config.Config{
+			AccountsTrieStorage:     getMockStorageConfig(),
+			PeerAccountsTrieStorage: getMockStorageConfig(),
+			TrieSnapshotDB: config.DBConfig{
+				FilePath:          "",
+				Type:              "MemoryDB",
+				BatchDelaySeconds: 1,
+				MaxBatchSize:      1,
+				MaxOpenFiles:      10,
+			},
+			TrieStorageManagerConfig: config.TrieStorageManagerConfig{
+				PruningBufferLen:   255,
+				SnapshotsBufferLen: 255,
+				MaxSnapshots:       255,
+			},
+			StateTriesConfig: config.StateTriesConfig{
+				CheckpointRoundsModulus:     100,
+				AccountsStatePruningEnabled: false,
+				PeerStatePruningEnabled:     false,
+				MaxStateTrieLevelInMemory:   5,
+				MaxPeerTrieLevelInMemory:    5,
+			},
+		},
+		ShardIDForTries:          0,
+		ChainID:                  "T",
+		WorkingDirectory:         "",
+		Hasher:                   mock.HasherMock{},
 		ShardCoordinator:         mock.NewOneShardCoordinatorMock(),
 		Messenger:                createStubTopicMessageHandlerForShard("", ""),
 		Store:                    createStoreForShard(),

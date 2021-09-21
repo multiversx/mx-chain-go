@@ -3,14 +3,15 @@ package mock
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/state"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // AccountWrapMock -
 type AccountWrapMock struct {
 	MockValue         int
-	dataTrie          data.Trie
+	dataTrie          common.Trie
 	nonce             uint64
 	code              []byte
 	codeMetadata      []byte
@@ -96,6 +97,11 @@ func (awm *AccountWrapMock) GetCodeHash() []byte {
 	return awm.codeHash
 }
 
+// RetrieveValueFromDataTrieTracker -
+func (awm *AccountWrapMock) RetrieveValueFromDataTrieTracker(key []byte) ([]byte, error) {
+	return awm.trackableDataTrie.RetrieveValue(key)
+}
+
 // SetCodeHash -
 func (awm *AccountWrapMock) SetCodeHash(codeHash []byte) {
 	awm.codeHash = codeHash
@@ -132,18 +138,23 @@ func (awm *AccountWrapMock) AddressBytes() []byte {
 }
 
 // DataTrie -
-func (awm *AccountWrapMock) DataTrie() data.Trie {
+func (awm *AccountWrapMock) DataTrie() common.Trie {
 	return awm.dataTrie
 }
 
 // SetDataTrie -
-func (awm *AccountWrapMock) SetDataTrie(trie data.Trie) {
+func (awm *AccountWrapMock) SetDataTrie(trie common.Trie) {
 	awm.dataTrie = trie
 	awm.trackableDataTrie.SetDataTrie(trie)
 }
 
 // DataTrieTracker -
 func (awm *AccountWrapMock) DataTrieTracker() state.DataTrieTracker {
+	return awm.trackableDataTrie
+}
+
+// AccountDataHandler -
+func (awm *AccountWrapMock) AccountDataHandler() vmcommon.AccountDataHandler {
 	return awm.trackableDataTrie
 }
 

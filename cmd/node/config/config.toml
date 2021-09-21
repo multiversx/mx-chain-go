@@ -11,68 +11,11 @@
    # available in local disk
    StartInEpochEnabled = true
 
-   # SCDeployEnableEpoch represents the epoch when the deployment of smart contracts will be enabled
-   SCDeployEnableEpoch = 1
+   # ChainID identifies the blockChain
+   ChainID = "undefined"
 
-   # BuiltInFunctionsEnableEpoch represents the epoch when the built in functions will be enabled
-   BuiltInFunctionsEnableEpoch = 1
-
-   # RelayedTransactionsEnableEpoch represents the epoch when the relayed transactions will be enabled
-   RelayedTransactionsEnableEpoch = 1
-
-   # PenalizedTooMuchGasEnableEpoch represents the epoch when the penalization for using too much gas will be enabled
-   PenalizedTooMuchGasEnableEpoch = 0
-
-   # SwitchJailWaitingEnableEpoch represents the epoch when the system smart contract processing at end of epoch is enabled
-   SwitchJailWaitingEnableEpoch = 0
-
-   # BelowSignedThresholdEnableEpoch represents the epoch when the change for computing rating for validators below signed rating is enabled
-   BelowSignedThresholdEnableEpoch = 0
-
-   # SwitchHysteresisForMinNodesEnableEpoch represents the epoch when the system smart contract changes its config to consider
-   # also (minimum) hysteresis nodes for the minimum number of nodes
-   SwitchHysteresisForMinNodesEnableEpoch = 1
-
-   # TransactionSignedWithTxHashEnableEpoch represents the epoch when the node will also accept transactions that are
-   # signed with the hash of transaction
-   TransactionSignedWithTxHashEnableEpoch = 1
-
-   # MetaProtectionEnableEpoch represents the epoch when the transactions to the metachain are checked to have enough gas
-   MetaProtectionEnableEpoch = 1
-
-   # AheadOfTimeGasUsageEnableEpoch represents the epoch when the cost of smart contract prepare changes from compiler per byte to ahead of time prepare per byte
-   AheadOfTimeGasUsageEnableEpoch = 1
-
-   # GasPriceModifierEnableEpoch represents the epoch when the gas price modifier in fee computation is enabled
-   GasPriceModifierEnableEpoch = 1
-
-   # RepairCallbackEnableEpoch represents the epoch when the callback repair is activated for scrs
-   RepairCallbackEnableEpoch = 1
-
-   # BlockGasAndFeesReCheckEnableEpoch represents the epoch when gas and fees used in each created or processed block are re-checked
-   BlockGasAndFeesReCheckEnableEpoch = 1
-
-   # ReturnDataToLastTransferEnableEpoch represents the epoch when returned data is added to last output transfer for callbacks
-   ReturnDataToLastTransferEnableEpoch = 2
-
-   # SenderInOutTransferEnableEpoch represents the epoch when the feature of having different senders in output transfer is enabled
-   SenderInOutTransferEnableEpoch = 2
-
-   # BalanceWaitingListsEnableEpoch represents the epoch when the shard waiting lists are balanced at the start of an epoch
-   BalanceWaitingListsEnableEpoch = 2
-
-   # SaveJailedAlwaysEnableEpoch represents the epoch when saving jailed status at end of epoch will happen in all cases
-   SaveJailedAlwaysEnableEpoch = 3
-
-   # WaitingListFixEnableEpoch represents the epoch when the 6 epoch waiting list fix is enabled
-   WaitingListFixEnableEpoch = 3
-
-   # TO BE CHANGED IN MAINNET AND PUBLIC TESTNET CONFIGS
-   # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
-   MaxNodesChangeEnableEpoch = [
-        { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },
-        { EpochEnable = 1, MaxNumNodes = 56, NodesToShufflePerShard = 2 }
-   ]
+   # MinTransactionVersion represents the minimum transaction version accepted
+   MinTransactionVersion = 1
 
    # GenesisString represents the encoded string for the genesis block
    GenesisString = "67656E65736973"
@@ -90,18 +33,17 @@
         Capacity = 100
         Type = "LRU"
 
-[GasSchedule]
-    GasScheduleByEpochs = [
-        { StartEpoch = 0, FileName = "gasScheduleV1.toml" },
-        { StartEpoch = 1, FileName = "gasScheduleV3.toml" },
-    ]
-
 [StoragePruning]
    # If the Enabled flag is set to false, then the storers won't divide epochs into separate dbs
    Enabled = true
 
    # If this flag is set to false, the node won't delete any database between epochs
-   CleanOldEpochsData = false
+   # Applicable only for validators
+   ValidatorCleanOldEpochsData = true
+
+   # If this flag is set to false, the node won't delete any database between epochs
+   # Applicable only for observers
+   ObserverCleanOldEpochsData = false
 
    # NumEpochsToKeep - if the flag above is set to true, this will set the number of epochs to keep in the storage.
    # Epochs older that (current epoch - NumOfEpochsToKeep) will be removed
@@ -111,6 +53,11 @@
    # the node removes old epochs data or not. In case of a node which removes old epochs data, this value has to be
    # smaller or equal to the NumOfEpochsToKeep flag
    NumActivePersisters = 3
+
+   # FullArchiveNumActivePersisters represents the number of persisters to be kept in cache as to allow better response
+   # to inquiring peers. This value will get multiplied by the number of persisters required by the node to function so
+   # it is a good idea to increase the maximum number of opened files allowed by the operating system
+   FullArchiveNumActivePersisters = 10
 
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]
@@ -203,19 +150,6 @@
         MaxBatchSize = 30000
         MaxOpenFiles = 10
 
-[TxLogsStorage]
-    [TxLogsStorage.Cache]
-        Name = "TxLogsStorage"
-        Capacity = 1000
-        Type = "SizeLRU"
-        SizeInBytes = 20971520 #20MB
-    [TxLogsStorage.DB]
-        FilePath = "Logs"
-        Type = "LvlDBSerial"
-        BatchDelaySeconds = 2
-        MaxBatchSize = 100
-        MaxOpenFiles = 10
-
 [UnsignedTransactionStorage]
     [UnsignedTransactionStorage.Cache]
         Name = "UnsignedTransactionStorage"
@@ -280,6 +214,19 @@
         MaxBatchSize = 100
         MaxOpenFiles = 10
 
+[TrieEpochRootHashStorage]
+    [TrieEpochRootHashStorage.Cache]
+        Name = "TrieEpochRootHashCache"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 314572800 #300MB
+    [TrieEpochRootHashStorage.DB]
+        FilePath = "TrieEpochRootHashStorageDB"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 500
+        MaxOpenFiles = 10
+
 [ShardHdrNonceHashStorage]
     [ShardHdrNonceHashStorage.Cache]
         Name = "ShardHdrNonceHashStorage"
@@ -320,7 +267,9 @@
         MaxOpenFiles = 10
 
 [EvictionWaitingList]
-    Size = 10000
+    #total max size ~ 2 * [(RoothashesSize * 32) + (HashesSize * 32)]
+    RootHashesSize = 10000
+    HashesSize = 100000
     [EvictionWaitingList.DB]
         FilePath = "EvictionWaitingList"
         Type = "LvlDBSerial"
@@ -339,6 +288,8 @@
     PruningBufferLen = 100000
     SnapshotsBufferLen = 1000000
     MaxSnapshots = 3
+    KeepSnapshots = false
+    CheckpointHashesHolderMaxSize = 52428800 #50MB
 
 [PeerAccountsTrieStorage]
     [PeerAccountsTrieStorage.Cache]
@@ -384,9 +335,9 @@
     Type = "TxCache"
     Shards = 16
 
-[TrieNodesDataPool]
+[TrieNodesChunksDataPool]
     Name = "TrieNodesDataPool"
-    Capacity = 300000
+    Capacity = 400
     Type = "SizeLRU"
     SizeInBytes = 104857600 #100MB
 
@@ -394,7 +345,7 @@
     Name = "SmartContractDataPool"
     Capacity = 900000
     Type = "SizeLRU"
-    SizeInBytes = 419430400 #400MB
+    SizeInBytes = 209715200 #200MB
 
 [WhiteListPool]
     Name = "WhiteListPool"
@@ -449,6 +400,22 @@
     Name = "PeerHonesty"
     Capacity = 5000
     Type = "LRU"
+
+[VMOutputCacher]
+    Name = "VMOutputCacher"
+    Capacity = 10000
+    Type = "LRU"
+
+[TrieSyncStorage]
+    Capacity = 300000
+    SizeInBytes = 104857600 #100MB
+    [TrieSyncStorage.DB]
+        FilePath = "TrieSyncStorageDB"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 45000
+        MaxOpenFiles = 10
+        UseTmpAsFilePath = true
 
 [Antiflood]
     Enabled = true
@@ -629,10 +596,13 @@
 
 [StateTriesConfig]
     CheckpointRoundsModulus = 100
+    CheckpointsEnabled = true
     AccountsStatePruningEnabled = true
     PeerStatePruningEnabled = true
     MaxStateTrieLevelInMemory = 5
     MaxPeerTrieLevelInMemory = 5
+    UserStatePruningQueueSize = 0 # setting 0 means no buffering, so pruning is done for the block before final
+    PeerStatePruningQueueSize = 0 # setting 0 means no buffering, so pruning is done for the block before final
 
 [BlockSizeThrottleConfig]
     MinSizeInBytes = 104857 # 104857 is 10% from 1MB
@@ -642,42 +612,32 @@
     [VirtualMachine.Execution]
         ArwenVersions = [
             { StartEpoch = 0, Version = "v1.2" },
-            { StartEpoch = 3, Version = "v1.3" },
-            { StartEpoch = 4, Version = "v1.2" },
-            { StartEpoch = 5, Version = "v1.3" },
-            { StartEpoch = 6, Version = "v1.2" },
-            { StartEpoch = 7, Version = "v1.3" },
-            { StartEpoch = 8, Version = "v1.2" },
-            { StartEpoch = 9, Version = "v1.3" },
+            { StartEpoch = 1, Version = "v1.3" },
+            { StartEpoch = 5, Version = "v1.4" },
         ]
 
     [VirtualMachine.Querying]
         NumConcurrentVMs = 1
         ArwenVersions = [
             { StartEpoch = 0, Version = "v1.2" },
-            { StartEpoch = 3, Version = "v1.3" },
-            { StartEpoch = 4, Version = "v1.2" },
-            { StartEpoch = 5, Version = "v1.3" },
-            { StartEpoch = 6, Version = "v1.2" },
-            { StartEpoch = 7, Version = "v1.3" },
-            { StartEpoch = 8, Version = "v1.2" },
-            { StartEpoch = 9, Version = "v1.3" },
+            { StartEpoch = 1, Version = "v1.3" },
+            { StartEpoch = 5, Version = "v1.4" },
         ]
 
 [Hardfork]
     EnableTrigger = true
     EnableTriggerFromP2P = true
     PublicKeyToListenFrom = "153dae6cb3963260f309959bf285537b77ae16d82e9933147be7827f7394de8dc97d9d9af41e970bc72aecb44b77e819621081658c37f7000d21e2d0e8963df83233407bde9f46369ba4fcd03b57f40b80b06c191a428cfb5c447ec510e79307"
-	CloseAfterExportInMinutes = 10000
-	AfterHardFork = false
-	ImportFolder = "export"
-	StartRound = 10000
-	StartNonce = 10000
-	StartEpoch = 100
-	GenesisTime = 0
-	ValidatorGracePeriodInEpochs = 1 #defines how long is the rating computation disabled after hardfork
-	[Hardfork.ExportStateStorageConfig]
-	    [Hardfork.ExportStateStorageConfig.Cache]
+    CloseAfterExportInMinutes = 10000
+    AfterHardFork = false
+    ImportFolder = "export"
+    StartRound = 10000
+    StartNonce = 10000
+    StartEpoch = 100
+    GenesisTime = 0
+    ValidatorGracePeriodInEpochs = 1 #defines how long is the rating computation disabled after hardfork
+    [Hardfork.ExportStateStorageConfig]
+        [Hardfork.ExportStateStorageConfig.Cache]
             Name = "HardFork.ExportStateStorageConfig"
             Capacity = 5000
             Type = "LRU"
@@ -709,8 +669,8 @@
             BatchDelaySeconds = 2
             MaxBatchSize = 1000
             MaxOpenFiles = 10
-	[Hardfork.ImportStateStorageConfig]
-	    [Hardfork.ImportStateStorageConfig.Cache]
+    [Hardfork.ImportStateStorageConfig]
+        [Hardfork.ImportStateStorageConfig.Cache]
             Name = "HardFork.ImportStateStorageConfig"
             Capacity = 5000
             Type = "LRU"
@@ -720,8 +680,8 @@
             BatchDelaySeconds = 2
             MaxBatchSize = 1000
             MaxOpenFiles = 10
-	[Hardfork.ImportKeysStorageConfig]
-	    [Hardfork.ImportKeysStorageConfig.Cache]
+    [Hardfork.ImportKeysStorageConfig]
+        [Hardfork.ImportKeysStorageConfig.Cache]
             Name = "HardFork.ImportKeysStorageConfig"
             Capacity = 5000
             Type = "LRU"
@@ -736,7 +696,7 @@
     [Debug.InterceptorResolver]
         Enabled = true
         CacheSize = 10000
-        EnablePrint	= true
+        EnablePrint = true
         IntervalAutoPrintInSeconds = 20
         NumRequestsThreshold = 9
         NumResolveFailureThreshold = 3
@@ -745,6 +705,13 @@
         Enabled = true
         CacheSize = 10000
         IntervalAutoPrintInSeconds = 20
+    [Debug.ShuffleOut]
+        CallGCWhenShuffleOut = true
+        ExtraPrintsOnShuffleOut = true
+        DoProfileOnShuffleOut = true
+    [Debug.EpochStart]
+        GoRoutineAnalyserEnabled = true
+        ProcessDataTrieOnCommitEpoch = true
 
 [Health]
     IntervalVerifyMemoryInSeconds = 5
@@ -757,6 +724,20 @@
 [SoftwareVersionConfig]
     StableTagLocation = "https://api.github.com/repos/ElrondNetwork/elrond-go/releases/latest"
     PollingIntervalInMinutes = 65
+
+[LogsAndEvents]
+    SaveInStorageEnabled = false
+    [LogsAndEvents.TxLogsStorage.Cache]
+        Name = "TxLogsStorage"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 20971520 #20MB
+    [LogsAndEvents.TxLogsStorage.DB]
+        FilePath = "Logs"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
 
 [DbLookupExtensions]
     Enabled = false
@@ -800,6 +781,16 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 20000
         MaxOpenFiles = 10
+    [DbLookupExtensions.ESDTSuppliesStorageConfig.Cache]
+        Name = "DbLookupExtensions.ESDTSuppliesStorage"
+        Capacity = 20000
+        Type = "LRU"
+    [DbLookupExtensions.ESDTSuppliesStorageConfig.DB]
+        FilePath = "DbLookupExtensions_ESDTSupplies"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 20000
+        MaxOpenFiles = 10
 
 [Logs]
     LogFileLifeSpanInSec = 86400
@@ -809,3 +800,8 @@
     MaxHardCapForMissingNodes = 5000
     #available versions: 1 and 2. 1 is the initial version, 2 is updated, more efficient version
     TrieSyncerVersion         = 2
+
+[Resolvers]
+    NumCrossShardPeers  = 2
+    NumIntraShardPeers  = 1
+    NumFullHistoryPeers = 3

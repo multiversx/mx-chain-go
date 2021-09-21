@@ -1,12 +1,12 @@
 package process
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
@@ -67,9 +67,8 @@ func (mp *MessageProcessor) CreateHeartbeatFromP2PMessage(message p2p.MessageP2P
 		return nil, err
 	}
 
-	mp.networkShardingCollector.UpdatePeerIdPublicKey(message.Peer(), hbRecv.Pubkey)
-	//add into the last failsafe map. Useful for observers.
-	mp.networkShardingCollector.UpdatePeerIdShardId(message.Peer(), hbRecv.ShardID)
+	mp.networkShardingCollector.UpdatePeerIDInfo(message.Peer(), hbRecv.Pubkey, hbRecv.ShardID)
+	mp.networkShardingCollector.UpdatePeerIdSubType(message.Peer(), core.P2PPeerSubType(hbRecv.PeerSubType))
 
 	return hbRecv, nil
 }

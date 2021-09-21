@@ -10,16 +10,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/cmd/assessment/benchmarks"
 	"github.com/ElrondNetwork/elrond-go/cmd/assessment/benchmarks/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/assessment/hostParameters"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/denisbrodbeck/machineid"
 	"github.com/urfave/cli"
 )
 
-const maxMachineIDLen = 10
 const hostPlaceholder = "%host"
 const timestampPlaceholder = "%time"
 
@@ -56,14 +54,7 @@ func main() {
 	app := cli.NewApp()
 	cli.AppHelpTemplate = nodeHelpTemplate
 	app.Name = "Elrond Node Assessment Tool"
-	machineID, err := machineid.ProtectedID(app.Name)
-	if err != nil {
-		log.Warn("error fetching machine id", "error", err)
-		machineID = "unknown"
-	}
-	if len(machineID) > maxMachineIDLen {
-		machineID = machineID[:maxMachineIDLen]
-	}
+	machineID := core.GetAnonymizedMachineID(app.Name)
 
 	app.Version = fmt.Sprintf("assessment-%s/%s-%s/%s", runtime.Version(), runtime.GOOS, runtime.GOARCH, machineID)
 	app.Usage = "This tool is used to measure the host's performance on some certain tasks used by an elrond node. It " +
@@ -82,7 +73,7 @@ func main() {
 		return startAssessment(c, app.Version, machineID)
 	}
 
-	err = app.Run(os.Args)
+	err := app.Run(os.Args)
 	if err != nil {
 		log.Error(err.Error())
 		os.Exit(1)
@@ -116,9 +107,27 @@ func startAssessment(c *cli.Context, version string, machineID string) error {
 	log.Info("Host's anonymized info:\n" + hostInfo.ToDisplayTable())
 	log.Info("Host's performance info:\n" + benchmarkResult.ToDisplayTable())
 
+	printFinalResult(benchmarkResult)
+
 	err = saveToFile(hostInfo, benchmarkResult, outputFileName)
 
 	return err
+}
+
+func printFinalResult(results *benchmarks.TestResults) {
+	if results.Error != nil {
+		log.Error("The Node Under Test (NUT) performance can not be determined due to encountered errors")
+		return
+	}
+
+	if results.EnoughComputingPower {
+		log.Info("The Node Under Test (NUT) has enough computing power")
+		return
+	}
+
+	log.Error("The Node Under Test (NUT) does not have enough computing power",
+		"maximum accepted", benchmarks.ThresholdEnoughComputingPower,
+		"obtained", results.TotalDuration)
 }
 
 func saveToFile(hi *hostParameters.HostInfo, results *benchmarks.TestResults, outputFileName string) error {
@@ -133,5 +142,5 @@ func saveToFile(hi *hostParameters.HostInfo, results *benchmarks.TestResults, ou
 		return err
 	}
 
-	return ioutil.WriteFile(outputFileName, buff.Bytes(), os.ModePerm)
+	return ioutil.WriteFile(outputFileName, buff.Bytes(), core.FileModeReadWrite)
 }

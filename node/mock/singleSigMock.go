@@ -1,7 +1,7 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go-crypto"
 )
 
 // SingleSignerMock -
@@ -17,7 +17,11 @@ func (s *SingleSignerMock) Sign(private crypto.PrivateKey, msg []byte) ([]byte, 
 
 // Verify -
 func (s *SingleSignerMock) Verify(public crypto.PublicKey, msg []byte, sig []byte) error {
-	return s.VerifyStub(public, msg, sig)
+	if s.VerifyStub != nil {
+		return s.VerifyStub(public, msg, sig)
+	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

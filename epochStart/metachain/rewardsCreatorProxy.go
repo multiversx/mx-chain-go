@@ -4,11 +4,11 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 type configuredRewardsCreator string
@@ -25,8 +25,7 @@ type RewardsCreatorProxyArgs struct {
 	BaseRewardsCreatorArgs
 	StakingDataProvider   epochStart.StakingDataProvider
 	EconomicsDataProvider epochStart.EpochEconomicsDataProvider
-	TopUpRewardFactor     float64
-	TopUpGradientPoint    *big.Int
+	RewardsHandler        process.RewardsHandler
 	EpochEnableV2         uint32
 }
 
@@ -47,6 +46,8 @@ func NewRewardsCreatorProxy(args RewardsCreatorProxyArgs) (*rewardsCreatorProxy,
 		configuredRC:  rCreatorV1,
 		args:          &args,
 	}
+	log.Debug("rewardsProxy: enable epoch for switch jail waiting", "epoch", args.BaseRewardsCreatorArgs.RewardsFix1EpochEnable)
+	log.Debug("rewardsProxy: enable epoch for staking v2", "epoch", args.EpochEnableV2)
 
 	rcProxy.rc, err = rcProxy.createRewardsCreatorV1()
 	if err != nil {
@@ -184,8 +185,7 @@ func (rcp *rewardsCreatorProxy) createRewardsCreatorV2() (*rewardsCreatorV2, err
 		BaseRewardsCreatorArgs: rcp.args.BaseRewardsCreatorArgs,
 		StakingDataProvider:    rcp.args.StakingDataProvider,
 		EconomicsDataProvider:  rcp.args.EconomicsDataProvider,
-		TopUpRewardFactor:      rcp.args.TopUpRewardFactor,
-		TopUpGradientPoint:     rcp.args.TopUpGradientPoint,
+		RewardsHandler:         rcp.args.RewardsHandler,
 	}
 
 	return NewRewardsCreatorV2(argsV2)

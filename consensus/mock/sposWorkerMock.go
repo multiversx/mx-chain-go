@@ -1,9 +1,9 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
@@ -88,15 +88,6 @@ func (sposWorkerMock *SposWorkerMock) ReceivedHeader(headerHandler data.HeaderHa
 	if sposWorkerMock.ReceivedHeaderCalled != nil {
 		sposWorkerMock.ReceivedHeaderCalled(headerHandler, headerHash)
 	}
-}
-
-// SetAppStatusHandler -
-func (sposWorkerMock *SposWorkerMock) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if sposWorkerMock.SetAppStatusHandlerCalled != nil {
-		return sposWorkerMock.SetAppStatusHandlerCalled(ash)
-	}
-
-	return nil
 }
 
 // Close -

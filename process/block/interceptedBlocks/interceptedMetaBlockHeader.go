@@ -3,11 +3,11 @@ package interceptedBlocks
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -93,7 +93,7 @@ func (imh *InterceptedMetaHeader) CheckValidity() error {
 		}
 	}
 
-	err = imh.validityAttester.CheckBlockAgainstRounder(imh.HeaderHandler())
+	err = imh.validityAttester.CheckBlockAgainstRoundHandler(imh.HeaderHandler())
 	if err != nil {
 		return err
 	}

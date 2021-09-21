@@ -6,7 +6,7 @@ package systemSmartContracts
 import (
 	bytes "bytes"
 	fmt "fmt"
-	github_com_ElrondNetwork_elrond_go_data "github.com/ElrondNetwork/elrond-go/data"
+	github_com_ElrondNetwork_elrond_go_core_data "github.com/ElrondNetwork/elrond-go-core/data"
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
 	io "io"
@@ -28,7 +28,7 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
-type ESDTData struct {
+type ESDTDataV1 struct {
 	OwnerAddress             []byte        `protobuf:"bytes,1,opt,name=OwnerAddress,proto3" json:"OwnerAddress"`
 	TokenName                []byte        `protobuf:"bytes,2,opt,name=TokenName,proto3" json:"TokenName"`
 	TickerName               []byte        `protobuf:"bytes,3,opt,name=TickerName,proto3" json:"TickerName"`
@@ -41,8 +41,8 @@ type ESDTData struct {
 	Upgradable               bool          `protobuf:"varint,10,opt,name=Upgradable,proto3" json:"CanUpgrade"`
 	CanChangeOwner           bool          `protobuf:"varint,11,opt,name=CanChangeOwner,proto3" json:"CanChangeOwner"`
 	IsPaused                 bool          `protobuf:"varint,12,opt,name=IsPaused,proto3" json:"IsPaused"`
-	MintedValue              *math_big.Int `protobuf:"bytes,13,opt,name=MintedValue,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"MintedValue"`
-	BurntValue               *math_big.Int `protobuf:"bytes,14,opt,name=BurntValue,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"BurntValue"`
+	MintedValue              *math_big.Int `protobuf:"bytes,13,opt,name=MintedValue,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go-core/data.BigIntCaster" json:"MintedValue"`
+	BurntValue               *math_big.Int `protobuf:"bytes,14,opt,name=BurntValue,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go-core/data.BigIntCaster" json:"BurntValue"`
 	NumDecimals              uint32        `protobuf:"varint,15,opt,name=NumDecimals,proto3" json:"NumDecimals"`
 	CanAddSpecialRoles       bool          `protobuf:"varint,16,opt,name=CanAddSpecialRoles,proto3" json:"CanAddSpecialRoles"`
 	NFTCreateStopped         bool          `protobuf:"varint,17,opt,name=NFTCreateStopped,proto3" json:"NFTCreateStopped"`
@@ -51,15 +51,15 @@ type ESDTData struct {
 	NumWiped                 uint32        `protobuf:"varint,20,opt,name=NumWiped,proto3" json:"NumWiped"`
 }
 
-func (m *ESDTData) Reset()      { *m = ESDTData{} }
-func (*ESDTData) ProtoMessage() {}
-func (*ESDTData) Descriptor() ([]byte, []int) {
+func (m *ESDTDataV1) Reset()      { *m = ESDTDataV1{} }
+func (*ESDTDataV1) ProtoMessage() {}
+func (*ESDTDataV1) Descriptor() ([]byte, []int) {
 	return fileDescriptor_e413e402abc6a34c, []int{0}
 }
-func (m *ESDTData) XXX_Unmarshal(b []byte) error {
+func (m *ESDTDataV1) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *ESDTData) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *ESDTDataV1) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	b = b[:cap(b)]
 	n, err := m.MarshalToSizedBuffer(b)
 	if err != nil {
@@ -67,156 +67,355 @@ func (m *ESDTData) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	}
 	return b[:n], nil
 }
-func (m *ESDTData) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ESDTData.Merge(m, src)
+func (m *ESDTDataV1) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ESDTDataV1.Merge(m, src)
 }
-func (m *ESDTData) XXX_Size() int {
+func (m *ESDTDataV1) XXX_Size() int {
 	return m.Size()
 }
-func (m *ESDTData) XXX_DiscardUnknown() {
-	xxx_messageInfo_ESDTData.DiscardUnknown(m)
+func (m *ESDTDataV1) XXX_DiscardUnknown() {
+	xxx_messageInfo_ESDTDataV1.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_ESDTData proto.InternalMessageInfo
+var xxx_messageInfo_ESDTDataV1 proto.InternalMessageInfo
 
-func (m *ESDTData) GetOwnerAddress() []byte {
+func (m *ESDTDataV1) GetOwnerAddress() []byte {
 	if m != nil {
 		return m.OwnerAddress
 	}
 	return nil
 }
 
-func (m *ESDTData) GetTokenName() []byte {
+func (m *ESDTDataV1) GetTokenName() []byte {
 	if m != nil {
 		return m.TokenName
 	}
 	return nil
 }
 
-func (m *ESDTData) GetTickerName() []byte {
+func (m *ESDTDataV1) GetTickerName() []byte {
 	if m != nil {
 		return m.TickerName
 	}
 	return nil
 }
 
-func (m *ESDTData) GetTokenType() []byte {
+func (m *ESDTDataV1) GetTokenType() []byte {
 	if m != nil {
 		return m.TokenType
 	}
 	return nil
 }
 
-func (m *ESDTData) GetMintable() bool {
+func (m *ESDTDataV1) GetMintable() bool {
 	if m != nil {
 		return m.Mintable
 	}
 	return false
 }
 
-func (m *ESDTData) GetBurnable() bool {
+func (m *ESDTDataV1) GetBurnable() bool {
 	if m != nil {
 		return m.Burnable
 	}
 	return false
 }
 
-func (m *ESDTData) GetCanPause() bool {
+func (m *ESDTDataV1) GetCanPause() bool {
 	if m != nil {
 		return m.CanPause
 	}
 	return false
 }
 
-func (m *ESDTData) GetCanFreeze() bool {
+func (m *ESDTDataV1) GetCanFreeze() bool {
 	if m != nil {
 		return m.CanFreeze
 	}
 	return false
 }
 
-func (m *ESDTData) GetCanWipe() bool {
+func (m *ESDTDataV1) GetCanWipe() bool {
 	if m != nil {
 		return m.CanWipe
 	}
 	return false
 }
 
-func (m *ESDTData) GetUpgradable() bool {
+func (m *ESDTDataV1) GetUpgradable() bool {
 	if m != nil {
 		return m.Upgradable
 	}
 	return false
 }
 
-func (m *ESDTData) GetCanChangeOwner() bool {
+func (m *ESDTDataV1) GetCanChangeOwner() bool {
 	if m != nil {
 		return m.CanChangeOwner
 	}
 	return false
 }
 
-func (m *ESDTData) GetIsPaused() bool {
+func (m *ESDTDataV1) GetIsPaused() bool {
 	if m != nil {
 		return m.IsPaused
 	}
 	return false
 }
 
-func (m *ESDTData) GetMintedValue() *math_big.Int {
+func (m *ESDTDataV1) GetMintedValue() *math_big.Int {
 	if m != nil {
 		return m.MintedValue
 	}
 	return nil
 }
 
-func (m *ESDTData) GetBurntValue() *math_big.Int {
+func (m *ESDTDataV1) GetBurntValue() *math_big.Int {
 	if m != nil {
 		return m.BurntValue
 	}
 	return nil
 }
 
-func (m *ESDTData) GetNumDecimals() uint32 {
+func (m *ESDTDataV1) GetNumDecimals() uint32 {
 	if m != nil {
 		return m.NumDecimals
 	}
 	return 0
 }
 
-func (m *ESDTData) GetCanAddSpecialRoles() bool {
+func (m *ESDTDataV1) GetCanAddSpecialRoles() bool {
 	if m != nil {
 		return m.CanAddSpecialRoles
 	}
 	return false
 }
 
-func (m *ESDTData) GetNFTCreateStopped() bool {
+func (m *ESDTDataV1) GetNFTCreateStopped() bool {
 	if m != nil {
 		return m.NFTCreateStopped
 	}
 	return false
 }
 
-func (m *ESDTData) GetCanTransferNFTCreateRole() bool {
+func (m *ESDTDataV1) GetCanTransferNFTCreateRole() bool {
 	if m != nil {
 		return m.CanTransferNFTCreateRole
 	}
 	return false
 }
 
-func (m *ESDTData) GetSpecialRoles() []*ESDTRoles {
+func (m *ESDTDataV1) GetSpecialRoles() []*ESDTRoles {
 	if m != nil {
 		return m.SpecialRoles
 	}
 	return nil
 }
 
-func (m *ESDTData) GetNumWiped() uint32 {
+func (m *ESDTDataV1) GetNumWiped() uint32 {
 	if m != nil {
 		return m.NumWiped
 	}
 	return 0
+}
+
+type ESDTDataV2 struct {
+	OwnerAddress             []byte        `protobuf:"bytes,1,opt,name=OwnerAddress,proto3" json:"OwnerAddress"`
+	TokenName                []byte        `protobuf:"bytes,2,opt,name=TokenName,proto3" json:"TokenName"`
+	TickerName               []byte        `protobuf:"bytes,3,opt,name=TickerName,proto3" json:"TickerName"`
+	TokenType                []byte        `protobuf:"bytes,4,opt,name=TokenType,proto3" json:"TokenType"`
+	Mintable                 bool          `protobuf:"varint,5,opt,name=Mintable,proto3" json:"Mintable"`
+	Burnable                 bool          `protobuf:"varint,6,opt,name=Burnable,proto3" json:"Burnable"`
+	CanPause                 bool          `protobuf:"varint,7,opt,name=CanPause,proto3" json:"CanPause"`
+	CanFreeze                bool          `protobuf:"varint,8,opt,name=CanFreeze,proto3" json:"CanFreeze"`
+	CanWipe                  bool          `protobuf:"varint,9,opt,name=CanWipe,proto3" json:"CanWipe"`
+	Upgradable               bool          `protobuf:"varint,10,opt,name=Upgradable,proto3" json:"CanUpgrade"`
+	CanChangeOwner           bool          `protobuf:"varint,11,opt,name=CanChangeOwner,proto3" json:"CanChangeOwner"`
+	IsPaused                 bool          `protobuf:"varint,12,opt,name=IsPaused,proto3" json:"IsPaused"`
+	MintedValue              *math_big.Int `protobuf:"bytes,13,opt,name=MintedValue,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go-core/data.BigIntCaster" json:"MintedValue"`
+	BurntValue               *math_big.Int `protobuf:"bytes,14,opt,name=BurntValue,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go-core/data.BigIntCaster" json:"BurntValue"`
+	NumDecimals              uint32        `protobuf:"varint,15,opt,name=NumDecimals,proto3" json:"NumDecimals"`
+	CanAddSpecialRoles       bool          `protobuf:"varint,16,opt,name=CanAddSpecialRoles,proto3" json:"CanAddSpecialRoles"`
+	NFTCreateStopped         bool          `protobuf:"varint,17,opt,name=NFTCreateStopped,proto3" json:"NFTCreateStopped"`
+	CanTransferNFTCreateRole bool          `protobuf:"varint,18,opt,name=CanTransferNFTCreateRole,proto3" json:"CanTransferNFTCreateRole"`
+	SpecialRoles             []*ESDTRoles  `protobuf:"bytes,19,rep,name=SpecialRoles,proto3" json:"SpecialRoles"`
+	NumWiped                 uint32        `protobuf:"varint,20,opt,name=NumWiped,proto3" json:"NumWiped"`
+	CanCreateMultiShard      bool          `protobuf:"varint,21,opt,name=CanCreateMultiShard,proto3" json:"CanCreateMultiShard"`
+}
+
+func (m *ESDTDataV2) Reset()      { *m = ESDTDataV2{} }
+func (*ESDTDataV2) ProtoMessage() {}
+func (*ESDTDataV2) Descriptor() ([]byte, []int) {
+	return fileDescriptor_e413e402abc6a34c, []int{1}
+}
+func (m *ESDTDataV2) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *ESDTDataV2) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *ESDTDataV2) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ESDTDataV2.Merge(m, src)
+}
+func (m *ESDTDataV2) XXX_Size() int {
+	return m.Size()
+}
+func (m *ESDTDataV2) XXX_DiscardUnknown() {
+	xxx_messageInfo_ESDTDataV2.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ESDTDataV2 proto.InternalMessageInfo
+
+func (m *ESDTDataV2) GetOwnerAddress() []byte {
+	if m != nil {
+		return m.OwnerAddress
+	}
+	return nil
+}
+
+func (m *ESDTDataV2) GetTokenName() []byte {
+	if m != nil {
+		return m.TokenName
+	}
+	return nil
+}
+
+func (m *ESDTDataV2) GetTickerName() []byte {
+	if m != nil {
+		return m.TickerName
+	}
+	return nil
+}
+
+func (m *ESDTDataV2) GetTokenType() []byte {
+	if m != nil {
+		return m.TokenType
+	}
+	return nil
+}
+
+func (m *ESDTDataV2) GetMintable() bool {
+	if m != nil {
+		return m.Mintable
+	}
+	return false
+}
+
+func (m *ESDTDataV2) GetBurnable() bool {
+	if m != nil {
+		return m.Burnable
+	}
+	return false
+}
+
+func (m *ESDTDataV2) GetCanPause() bool {
+	if m != nil {
+		return m.CanPause
+	}
+	return false
+}
+
+func (m *ESDTDataV2) GetCanFreeze() bool {
+	if m != nil {
+		return m.CanFreeze
+	}
+	return false
+}
+
+func (m *ESDTDataV2) GetCanWipe() bool {
+	if m != nil {
+		return m.CanWipe
+	}
+	return false
+}
+
+func (m *ESDTDataV2) GetUpgradable() bool {
+	if m != nil {
+		return m.Upgradable
+	}
+	return false
+}
+
+func (m *ESDTDataV2) GetCanChangeOwner() bool {
+	if m != nil {
+		return m.CanChangeOwner
+	}
+	return false
+}
+
+func (m *ESDTDataV2) GetIsPaused() bool {
+	if m != nil {
+		return m.IsPaused
+	}
+	return false
+}
+
+func (m *ESDTDataV2) GetMintedValue() *math_big.Int {
+	if m != nil {
+		return m.MintedValue
+	}
+	return nil
+}
+
+func (m *ESDTDataV2) GetBurntValue() *math_big.Int {
+	if m != nil {
+		return m.BurntValue
+	}
+	return nil
+}
+
+func (m *ESDTDataV2) GetNumDecimals() uint32 {
+	if m != nil {
+		return m.NumDecimals
+	}
+	return 0
+}
+
+func (m *ESDTDataV2) GetCanAddSpecialRoles() bool {
+	if m != nil {
+		return m.CanAddSpecialRoles
+	}
+	return false
+}
+
+func (m *ESDTDataV2) GetNFTCreateStopped() bool {
+	if m != nil {
+		return m.NFTCreateStopped
+	}
+	return false
+}
+
+func (m *ESDTDataV2) GetCanTransferNFTCreateRole() bool {
+	if m != nil {
+		return m.CanTransferNFTCreateRole
+	}
+	return false
+}
+
+func (m *ESDTDataV2) GetSpecialRoles() []*ESDTRoles {
+	if m != nil {
+		return m.SpecialRoles
+	}
+	return nil
+}
+
+func (m *ESDTDataV2) GetNumWiped() uint32 {
+	if m != nil {
+		return m.NumWiped
+	}
+	return 0
+}
+
+func (m *ESDTDataV2) GetCanCreateMultiShard() bool {
+	if m != nil {
+		return m.CanCreateMultiShard
+	}
+	return false
 }
 
 type ESDTRoles struct {
@@ -227,7 +426,7 @@ type ESDTRoles struct {
 func (m *ESDTRoles) Reset()      { *m = ESDTRoles{} }
 func (*ESDTRoles) ProtoMessage() {}
 func (*ESDTRoles) Descriptor() ([]byte, []int) {
-	return fileDescriptor_e413e402abc6a34c, []int{1}
+	return fileDescriptor_e413e402abc6a34c, []int{2}
 }
 func (m *ESDTRoles) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -268,7 +467,7 @@ func (m *ESDTRoles) GetRoles() [][]byte {
 
 type ESDTConfig struct {
 	OwnerAddress       []byte        `protobuf:"bytes,1,opt,name=OwnerAddress,proto3" json:"OwnerAddress"`
-	BaseIssuingCost    *math_big.Int `protobuf:"bytes,2,opt,name=BaseIssuingCost,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"BaseIssuingCost"`
+	BaseIssuingCost    *math_big.Int `protobuf:"bytes,2,opt,name=BaseIssuingCost,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go-core/data.BigIntCaster" json:"BaseIssuingCost"`
 	MinTokenNameLength uint32        `protobuf:"varint,3,opt,name=MinTokenNameLength,proto3" json:"MinTokenNameLength"`
 	MaxTokenNameLength uint32        `protobuf:"varint,4,opt,name=MaxTokenNameLength,proto3" json:"MaxTokenNameLength"`
 }
@@ -276,7 +475,7 @@ type ESDTConfig struct {
 func (m *ESDTConfig) Reset()      { *m = ESDTConfig{} }
 func (*ESDTConfig) ProtoMessage() {}
 func (*ESDTConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_e413e402abc6a34c, []int{2}
+	return fileDescriptor_e413e402abc6a34c, []int{3}
 }
 func (m *ESDTConfig) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -330,7 +529,8 @@ func (m *ESDTConfig) GetMaxTokenNameLength() uint32 {
 }
 
 func init() {
-	proto.RegisterType((*ESDTData)(nil), "proto.ESDTData")
+	proto.RegisterType((*ESDTDataV1)(nil), "proto.ESDTDataV1")
+	proto.RegisterType((*ESDTDataV2)(nil), "proto.ESDTDataV2")
 	proto.RegisterType((*ESDTRoles)(nil), "proto.ESDTRoles")
 	proto.RegisterType((*ESDTConfig)(nil), "proto.ESDTConfig")
 }
@@ -338,67 +538,70 @@ func init() {
 func init() { proto.RegisterFile("esdt.proto", fileDescriptor_e413e402abc6a34c) }
 
 var fileDescriptor_e413e402abc6a34c = []byte{
-	// 785 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x54, 0xcb, 0x6e, 0xf3, 0x44,
-	0x14, 0x8e, 0x7b, 0x4d, 0x26, 0x49, 0x1b, 0x86, 0x0a, 0x8d, 0x10, 0xb2, 0xa3, 0x4a, 0x48, 0x91,
-	0x50, 0x13, 0x71, 0x59, 0xc1, 0x86, 0xda, 0x6d, 0xa4, 0x48, 0x34, 0xa0, 0x49, 0x80, 0x8a, 0xdd,
-	0x24, 0x9e, 0x3a, 0x56, 0xe3, 0x71, 0xe4, 0x19, 0x53, 0xca, 0x0a, 0xf1, 0x04, 0x3c, 0x46, 0xc5,
-	0x93, 0xb0, 0xec, 0x8e, 0xae, 0x0c, 0x75, 0x37, 0xbf, 0xbc, 0xea, 0x23, 0xfc, 0x9a, 0xf1, 0xef,
-	0x4b, 0x2e, 0xdd, 0xfc, 0xea, 0xca, 0xdf, 0xf9, 0xce, 0xe7, 0xcf, 0x73, 0xce, 0x1c, 0x1f, 0x00,
-	0x28, 0xb7, 0x45, 0x77, 0x11, 0xf8, 0xc2, 0x87, 0xbb, 0xea, 0xf1, 0xf1, 0x89, 0xe3, 0x8a, 0x59,
-	0x38, 0xe9, 0x4e, 0x7d, 0xaf, 0xe7, 0xf8, 0x8e, 0xdf, 0x53, 0xf4, 0x24, 0xbc, 0x52, 0x91, 0x0a,
-	0x14, 0x4a, 0xdf, 0x3a, 0xbe, 0xab, 0x81, 0xea, 0xf9, 0xe8, 0x6c, 0x7c, 0x46, 0x04, 0x81, 0x5f,
-	0x81, 0xc6, 0xf7, 0x37, 0x8c, 0x06, 0xa7, 0xb6, 0x1d, 0x50, 0xce, 0x91, 0xd6, 0xd6, 0x3a, 0x0d,
-	0xb3, 0x95, 0x44, 0xc6, 0x12, 0x8f, 0x97, 0x22, 0xf8, 0x19, 0xa8, 0x8d, 0xfd, 0x6b, 0xca, 0x86,
-	0xc4, 0xa3, 0x68, 0x4b, 0xbd, 0xd2, 0x4c, 0x22, 0xa3, 0x20, 0x71, 0x01, 0x61, 0x17, 0x80, 0xb1,
-	0x3b, 0xbd, 0xa6, 0x81, 0x52, 0x6f, 0x2b, 0xf5, 0x41, 0x12, 0x19, 0x25, 0x16, 0x97, 0x70, 0x6e,
-	0x3e, 0xbe, 0x5d, 0x50, 0xb4, 0xb3, 0x62, 0x2e, 0x49, 0x5c, 0x40, 0xd8, 0x01, 0xd5, 0x0b, 0x97,
-	0x09, 0x32, 0x99, 0x53, 0xb4, 0xdb, 0xd6, 0x3a, 0x55, 0xb3, 0x91, 0x44, 0x46, 0xce, 0xe1, 0x1c,
-	0x49, 0xa5, 0x19, 0x06, 0x4c, 0x29, 0xf7, 0x0a, 0x65, 0xc6, 0xe1, 0x1c, 0x49, 0xa5, 0x45, 0xd8,
-	0x0f, 0x24, 0xe4, 0x14, 0xed, 0x17, 0xca, 0x8c, 0xc3, 0x39, 0x92, 0x47, 0xb5, 0x08, 0xeb, 0x07,
-	0x94, 0xfe, 0x4e, 0x51, 0x55, 0x49, 0xd5, 0x51, 0x73, 0x12, 0x17, 0x10, 0x7e, 0x0a, 0xf6, 0x2d,
-	0xc2, 0x7e, 0x76, 0x17, 0x14, 0xd5, 0x94, 0xb4, 0x9e, 0x44, 0x46, 0x46, 0xe1, 0x0c, 0xc8, 0x76,
-	0xfd, 0xb8, 0x70, 0x02, 0x62, 0xab, 0x93, 0x02, 0xa5, 0x54, 0xed, 0xb2, 0x08, 0x4b, 0x13, 0x14,
-	0x97, 0x14, 0xf0, 0x6b, 0x70, 0x60, 0x11, 0x66, 0xcd, 0x08, 0x73, 0xa8, 0xba, 0x24, 0x54, 0x57,
-	0xef, 0xc0, 0x24, 0x32, 0x56, 0x32, 0x78, 0x25, 0x96, 0x95, 0x0e, 0xb8, 0x2a, 0xc5, 0x46, 0x8d,
-	0xa2, 0xd2, 0x8c, 0xc3, 0x39, 0x82, 0xbf, 0x82, 0xba, 0xec, 0x24, 0xb5, 0x7f, 0x22, 0xf3, 0x90,
-	0xa2, 0xa6, 0xba, 0x96, 0x71, 0x12, 0x19, 0x65, 0xfa, 0xef, 0xff, 0x8c, 0x53, 0x8f, 0x88, 0x59,
-	0x6f, 0xe2, 0x3a, 0xdd, 0x01, 0x13, 0xdf, 0x94, 0x06, 0xf3, 0x7c, 0x1e, 0xf8, 0xcc, 0x1e, 0x52,
-	0x71, 0xe3, 0x07, 0xd7, 0x3d, 0xaa, 0xa2, 0x13, 0xc7, 0xef, 0xd9, 0x44, 0x90, 0xae, 0xe9, 0x3a,
-	0x03, 0x26, 0x2c, 0xc2, 0x05, 0x0d, 0x70, 0xd9, 0x11, 0x72, 0x00, 0xe4, 0xbd, 0x88, 0xf4, 0xb3,
-	0x07, 0xea, 0xb3, 0x23, 0xd9, 0x8d, 0x82, 0x7d, 0x9d, 0xaf, 0x96, 0x0c, 0xe1, 0xe7, 0xa0, 0x3e,
-	0x0c, 0xbd, 0x33, 0x3a, 0x75, 0x3d, 0x32, 0xe7, 0xe8, 0xb0, 0xad, 0x75, 0x9a, 0xe6, 0xa1, 0x2c,
-	0xb6, 0x44, 0xe3, 0x72, 0x00, 0xfb, 0x00, 0x5a, 0x84, 0x9d, 0xda, 0xf6, 0x68, 0x41, 0xa7, 0x2e,
-	0x99, 0x63, 0x7f, 0x4e, 0x39, 0x6a, 0xa9, 0x9e, 0x7e, 0x94, 0x44, 0xc6, 0x86, 0x2c, 0xde, 0xc0,
-	0xc1, 0x6f, 0x41, 0x6b, 0xd8, 0x1f, 0x5b, 0x01, 0x25, 0x82, 0x8e, 0x84, 0xbf, 0x58, 0x50, 0x1b,
-	0x7d, 0xa0, 0x5c, 0x8e, 0x92, 0xc8, 0x58, 0xcb, 0xe1, 0x35, 0x06, 0x5e, 0x02, 0x64, 0x11, 0x36,
-	0x0e, 0x08, 0xe3, 0x57, 0x34, 0xc8, 0xd3, 0xd2, 0x1e, 0x41, 0xe5, 0xf4, 0x49, 0x12, 0x19, 0x2f,
-	0x6a, 0xf0, 0x8b, 0x19, 0xd8, 0x07, 0x8d, 0xa5, 0xea, 0x3e, 0x6c, 0x6f, 0x77, 0xea, 0x5f, 0xb4,
-	0xd2, 0xb5, 0xd2, 0x95, 0x2b, 0x45, 0xf1, 0xe9, 0xf6, 0x58, 0xaa, 0x74, 0x29, 0x92, 0x53, 0x37,
-	0x0c, 0x3d, 0x39, 0xec, 0x36, 0x3a, 0x52, 0xbd, 0x55, 0x53, 0x97, 0x71, 0x38, 0x47, 0xc7, 0x23,
-	0x50, 0xcb, 0x6d, 0xe5, 0xff, 0xb3, 0xbc, 0xa5, 0xd4, 0xff, 0x93, 0x2d, 0xa8, 0x0c, 0x40, 0x03,
-	0xec, 0xa6, 0xc7, 0xdb, 0x6a, 0x6f, 0x77, 0x1a, 0x66, 0x2d, 0x89, 0x8c, 0x94, 0xc0, 0xe9, 0xe3,
-	0xf8, 0xdf, 0x2d, 0x00, 0xa4, 0xab, 0xe5, 0xb3, 0x2b, 0xd7, 0x79, 0xcf, 0x0d, 0xf8, 0xa7, 0x06,
-	0x0e, 0x4d, 0xc2, 0xe9, 0x80, 0xf3, 0xd0, 0x65, 0x8e, 0xe5, 0x73, 0xf1, 0x6e, 0x11, 0x5e, 0x26,
-	0x91, 0xb1, 0x9a, 0x7a, 0x9d, 0x11, 0x5d, 0x75, 0x95, 0x43, 0x77, 0xe1, 0xb2, 0x7c, 0xd3, 0x7e,
-	0x47, 0x99, 0x23, 0x66, 0x6a, 0xc3, 0x36, 0xd3, 0xa1, 0x5b, 0xcf, 0xe2, 0x0d, 0x9c, 0xf2, 0x21,
-	0xbf, 0xad, 0xfa, 0xec, 0x94, 0x7c, 0xd6, 0xb2, 0x78, 0x03, 0x67, 0x0e, 0xef, 0x1f, 0xf5, 0xca,
-	0xc3, 0xa3, 0x5e, 0x79, 0x7e, 0xd4, 0xb5, 0x3f, 0x62, 0x5d, 0xbb, 0x8b, 0x75, 0xed, 0x9f, 0x58,
-	0xd7, 0xee, 0x63, 0x5d, 0x7b, 0x88, 0x75, 0xed, 0xff, 0x58, 0xd7, 0xde, 0xc4, 0x7a, 0xe5, 0x39,
-	0xd6, 0xb5, 0xbf, 0x9e, 0xf4, 0xca, 0xfd, 0x93, 0x5e, 0x79, 0x78, 0xd2, 0x2b, 0xbf, 0x1c, 0xf1,
-	0x5b, 0x2e, 0xa8, 0x37, 0xf2, 0x48, 0x20, 0x2c, 0x9f, 0x89, 0x80, 0x4c, 0x05, 0x9f, 0xec, 0xa9,
-	0xc9, 0xfa, 0xf2, 0x6d, 0x00, 0x00, 0x00, 0xff, 0xff, 0xe1, 0xbf, 0xbc, 0xec, 0xf4, 0x06, 0x00,
-	0x00,
+	// 847 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xec, 0x54, 0xcf, 0x6f, 0x1b, 0x45,
+	0x14, 0xf6, 0x26, 0x4d, 0x1b, 0x8f, 0x9d, 0x1f, 0x4c, 0x03, 0x8c, 0x10, 0xda, 0xb5, 0x22, 0x21,
+	0x59, 0x42, 0xb1, 0xd5, 0xc2, 0x09, 0x2e, 0xd4, 0x9b, 0x5a, 0xb2, 0x44, 0x0c, 0x1a, 0x9b, 0x52,
+	0x90, 0x38, 0x8c, 0xbd, 0x93, 0xf5, 0x2a, 0xf6, 0xac, 0x35, 0x33, 0xab, 0xb6, 0x70, 0xe1, 0xc6,
+	0x95, 0x3f, 0x03, 0x71, 0xe6, 0x8f, 0xe0, 0x98, 0x63, 0x0e, 0x68, 0x21, 0xce, 0x05, 0xed, 0xa9,
+	0xff, 0x01, 0x68, 0xde, 0xb2, 0x3f, 0xec, 0xb8, 0x17, 0xd4, 0x43, 0x0f, 0x3e, 0xed, 0xf7, 0xbe,
+	0xf7, 0xed, 0xdb, 0x79, 0x6f, 0xde, 0x7e, 0x08, 0x71, 0xe5, 0xe9, 0xd6, 0x5c, 0x86, 0x3a, 0xc4,
+	0x3b, 0xf0, 0x78, 0xef, 0xc4, 0x0f, 0xf4, 0x24, 0x1a, 0xb5, 0xc6, 0xe1, 0xac, 0xed, 0x87, 0x7e,
+	0xd8, 0x06, 0x7a, 0x14, 0x9d, 0x43, 0x04, 0x01, 0xa0, 0xf4, 0xad, 0xe3, 0xdf, 0xaa, 0x08, 0x3d,
+	0x1e, 0x9c, 0x0e, 0x4f, 0x99, 0x66, 0x4f, 0x1e, 0xe0, 0x8f, 0x51, 0xfd, 0x8b, 0x67, 0x82, 0xcb,
+	0x47, 0x9e, 0x27, 0xb9, 0x52, 0xc4, 0x6a, 0x58, 0xcd, 0x7a, 0xe7, 0x30, 0x89, 0x9d, 0x25, 0x9e,
+	0x2e, 0x45, 0xf8, 0x43, 0x54, 0x1d, 0x86, 0x17, 0x5c, 0xf4, 0xd9, 0x8c, 0x93, 0x2d, 0x78, 0x65,
+	0x2f, 0x89, 0x9d, 0x82, 0xa4, 0x05, 0xc4, 0x2d, 0x84, 0x86, 0xc1, 0xf8, 0x82, 0x4b, 0x50, 0x6f,
+	0x83, 0x7a, 0x3f, 0x89, 0x9d, 0x12, 0x4b, 0x4b, 0x38, 0x2f, 0x3e, 0x7c, 0x31, 0xe7, 0xe4, 0xce,
+	0x4a, 0x71, 0x43, 0xd2, 0x02, 0xe2, 0x26, 0xda, 0x3d, 0x0b, 0x84, 0x66, 0xa3, 0x29, 0x27, 0x3b,
+	0x0d, 0xab, 0xb9, 0xdb, 0xa9, 0x27, 0xb1, 0x93, 0x73, 0x34, 0x47, 0x46, 0xd9, 0x89, 0xa4, 0x00,
+	0xe5, 0xdd, 0x42, 0x99, 0x71, 0x34, 0x47, 0x46, 0xe9, 0x32, 0xf1, 0x25, 0x8b, 0x14, 0x27, 0xf7,
+	0x0a, 0x65, 0xc6, 0xd1, 0x1c, 0x99, 0xa3, 0xba, 0x4c, 0x74, 0x25, 0xe7, 0xdf, 0x73, 0xb2, 0x0b,
+	0x52, 0x38, 0x6a, 0x4e, 0xd2, 0x02, 0xe2, 0x0f, 0xd0, 0x3d, 0x97, 0x89, 0xaf, 0x83, 0x39, 0x27,
+	0x55, 0x90, 0xd6, 0x92, 0xd8, 0xc9, 0x28, 0x9a, 0x01, 0x33, 0xae, 0xaf, 0xe6, 0xbe, 0x64, 0x1e,
+	0x9c, 0x14, 0x81, 0x12, 0xc6, 0xe5, 0x32, 0x91, 0x26, 0x38, 0x2d, 0x29, 0xf0, 0x27, 0x68, 0xdf,
+	0x65, 0xc2, 0x9d, 0x30, 0xe1, 0x73, 0xb8, 0x24, 0x52, 0x83, 0x77, 0x70, 0x12, 0x3b, 0x2b, 0x19,
+	0xba, 0x12, 0x9b, 0x4e, 0x7b, 0x0a, 0x5a, 0xf1, 0x48, 0xbd, 0xe8, 0x34, 0xe3, 0x68, 0x8e, 0xf0,
+	0x0f, 0xa8, 0x66, 0x26, 0xc9, 0xbd, 0x27, 0x6c, 0x1a, 0x71, 0xb2, 0x07, 0xd7, 0xf2, 0x4d, 0x12,
+	0x3b, 0x65, 0xfa, 0xd7, 0x3f, 0x9d, 0xee, 0x8c, 0xe9, 0x49, 0x7b, 0x14, 0xf8, 0xad, 0x9e, 0xd0,
+	0x9f, 0x96, 0x56, 0xf3, 0xf1, 0x54, 0x86, 0xc2, 0xeb, 0x73, 0xfd, 0x2c, 0x94, 0x17, 0x6d, 0x0e,
+	0xd1, 0x89, 0x1f, 0x9e, 0x8c, 0x43, 0xc9, 0xdb, 0x1e, 0xd3, 0xac, 0xd5, 0x09, 0xfc, 0x9e, 0xd0,
+	0x2e, 0x53, 0x9a, 0x4b, 0x5a, 0x2e, 0x8b, 0x9f, 0x23, 0x64, 0x2e, 0x47, 0xa7, 0xdf, 0xde, 0x87,
+	0x6f, 0x3f, 0x35, 0x23, 0x29, 0xd8, 0xd7, 0xf8, 0xe9, 0x52, 0x55, 0xfc, 0x00, 0xd5, 0xfa, 0xd1,
+	0xec, 0x94, 0x8f, 0x83, 0x19, 0x9b, 0x2a, 0x72, 0xd0, 0xb0, 0x9a, 0x7b, 0x9d, 0x03, 0xd3, 0x76,
+	0x89, 0xa6, 0xe5, 0x00, 0x77, 0x11, 0x76, 0x99, 0x78, 0xe4, 0x79, 0x83, 0x39, 0x1f, 0x07, 0x6c,
+	0x4a, 0xc3, 0x29, 0x57, 0xe4, 0x10, 0xa6, 0xfb, 0x4e, 0x12, 0x3b, 0x6b, 0xb2, 0x74, 0x0d, 0x87,
+	0x3f, 0x43, 0x87, 0xfd, 0xee, 0xd0, 0x95, 0x9c, 0x69, 0x3e, 0xd0, 0xe1, 0x7c, 0xce, 0x3d, 0xf2,
+	0x16, 0x54, 0x39, 0x4a, 0x62, 0xe7, 0x56, 0x8e, 0xde, 0x62, 0xf0, 0x53, 0x44, 0x5c, 0x26, 0x86,
+	0x92, 0x09, 0x75, 0xce, 0x65, 0x9e, 0x36, 0xe5, 0x09, 0x86, 0x4a, 0xef, 0x27, 0xb1, 0xf3, 0x4a,
+	0x0d, 0x7d, 0x65, 0x06, 0x77, 0x51, 0x7d, 0xa9, 0xbb, 0xfb, 0x8d, 0xed, 0x66, 0xed, 0xe1, 0x61,
+	0x6a, 0x31, 0x2d, 0x63, 0x2f, 0xc0, 0xa7, 0x3e, 0xb2, 0xd4, 0xe9, 0x52, 0x64, 0xf6, 0xaf, 0x1f,
+	0xcd, 0xcc, 0xda, 0x7b, 0xe4, 0x08, 0x66, 0x0b, 0xfb, 0x97, 0x71, 0x34, 0x47, 0xc7, 0xff, 0x94,
+	0x6d, 0xeb, 0xe1, 0xc6, 0xb6, 0x36, 0xb6, 0xb5, 0xb1, 0xad, 0x8d, 0x6d, 0xbd, 0xe9, 0xb6, 0x85,
+	0x7b, 0xe8, 0xbe, 0xd9, 0x5d, 0x38, 0xc2, 0x59, 0x34, 0xd5, 0xc1, 0x60, 0xc2, 0xa4, 0x47, 0xde,
+	0x86, 0x36, 0xde, 0x4d, 0x62, 0x67, 0x5d, 0x9a, 0xae, 0x23, 0x8f, 0x07, 0xa8, 0x9a, 0x9f, 0xd0,
+	0xfc, 0x94, 0xcb, 0xd6, 0x07, 0x3f, 0x65, 0xe6, 0x7a, 0x19, 0xc0, 0x0e, 0xda, 0x49, 0x3b, 0xdd,
+	0x6a, 0x6c, 0x37, 0xeb, 0x9d, 0x6a, 0x12, 0x3b, 0x29, 0x41, 0xd3, 0xc7, 0xf1, 0x1f, 0x5b, 0xa9,
+	0xad, 0xba, 0xa1, 0x38, 0x0f, 0xfc, 0xff, 0x69, 0xab, 0x3f, 0x59, 0xe8, 0xa0, 0xc3, 0x14, 0xef,
+	0x29, 0x15, 0x05, 0xc2, 0x77, 0x43, 0xa5, 0xff, 0x73, 0xd7, 0xef, 0x92, 0xd8, 0x59, 0x4d, 0xbd,
+	0xc6, 0x95, 0x5f, 0x2d, 0x6d, 0x96, 0xf8, 0x2c, 0x10, 0xb9, 0x87, 0x7f, 0xce, 0x85, 0xaf, 0x27,
+	0xe0, 0xdd, 0x7b, 0xe9, 0x12, 0xdf, 0xce, 0xd2, 0x35, 0x1c, 0xd4, 0x61, 0xcf, 0x57, 0xeb, 0xdc,
+	0x29, 0xd5, 0xb9, 0x95, 0xa5, 0x6b, 0xb8, 0x4e, 0xff, 0xf2, 0xda, 0xae, 0x5c, 0x5d, 0xdb, 0x95,
+	0x97, 0xd7, 0xb6, 0xf5, 0xe3, 0xc2, 0xb6, 0x7e, 0x59, 0xd8, 0xd6, 0xef, 0x0b, 0xdb, 0xba, 0x5c,
+	0xd8, 0xd6, 0xd5, 0xc2, 0xb6, 0xfe, 0x5a, 0xd8, 0xd6, 0xdf, 0x0b, 0xbb, 0xf2, 0x72, 0x61, 0x5b,
+	0x3f, 0xdf, 0xd8, 0x95, 0xcb, 0x1b, 0xbb, 0x72, 0x75, 0x63, 0x57, 0xbe, 0x3d, 0x52, 0x2f, 0x94,
+	0xe6, 0xb3, 0xc1, 0x8c, 0x49, 0xed, 0x86, 0x42, 0x4b, 0x36, 0xd6, 0x6a, 0x74, 0x17, 0x36, 0xf5,
+	0xa3, 0x7f, 0x03, 0x00, 0x00, 0xff, 0xff, 0x01, 0xc4, 0x3b, 0x6a, 0x07, 0x0c, 0x00, 0x00,
 }
 
-func (this *ESDTData) Equal(that interface{}) bool {
+func (this *ESDTDataV1) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*ESDTData)
+	that1, ok := that.(*ESDTDataV1)
 	if !ok {
-		that2, ok := that.(ESDTData)
+		that2, ok := that.(ESDTDataV1)
 		if ok {
 			that1 = &that2
 		} else {
@@ -447,13 +650,13 @@ func (this *ESDTData) Equal(that interface{}) bool {
 		return false
 	}
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
 		if !__caster.Equal(this.MintedValue, that1.MintedValue) {
 			return false
 		}
 	}
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
 		if !__caster.Equal(this.BurntValue, that1.BurntValue) {
 			return false
 		}
@@ -479,6 +682,101 @@ func (this *ESDTData) Equal(that interface{}) bool {
 		}
 	}
 	if this.NumWiped != that1.NumWiped {
+		return false
+	}
+	return true
+}
+func (this *ESDTDataV2) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*ESDTDataV2)
+	if !ok {
+		that2, ok := that.(ESDTDataV2)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !bytes.Equal(this.OwnerAddress, that1.OwnerAddress) {
+		return false
+	}
+	if !bytes.Equal(this.TokenName, that1.TokenName) {
+		return false
+	}
+	if !bytes.Equal(this.TickerName, that1.TickerName) {
+		return false
+	}
+	if !bytes.Equal(this.TokenType, that1.TokenType) {
+		return false
+	}
+	if this.Mintable != that1.Mintable {
+		return false
+	}
+	if this.Burnable != that1.Burnable {
+		return false
+	}
+	if this.CanPause != that1.CanPause {
+		return false
+	}
+	if this.CanFreeze != that1.CanFreeze {
+		return false
+	}
+	if this.CanWipe != that1.CanWipe {
+		return false
+	}
+	if this.Upgradable != that1.Upgradable {
+		return false
+	}
+	if this.CanChangeOwner != that1.CanChangeOwner {
+		return false
+	}
+	if this.IsPaused != that1.IsPaused {
+		return false
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		if !__caster.Equal(this.MintedValue, that1.MintedValue) {
+			return false
+		}
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		if !__caster.Equal(this.BurntValue, that1.BurntValue) {
+			return false
+		}
+	}
+	if this.NumDecimals != that1.NumDecimals {
+		return false
+	}
+	if this.CanAddSpecialRoles != that1.CanAddSpecialRoles {
+		return false
+	}
+	if this.NFTCreateStopped != that1.NFTCreateStopped {
+		return false
+	}
+	if this.CanTransferNFTCreateRole != that1.CanTransferNFTCreateRole {
+		return false
+	}
+	if len(this.SpecialRoles) != len(that1.SpecialRoles) {
+		return false
+	}
+	for i := range this.SpecialRoles {
+		if !this.SpecialRoles[i].Equal(that1.SpecialRoles[i]) {
+			return false
+		}
+	}
+	if this.NumWiped != that1.NumWiped {
+		return false
+	}
+	if this.CanCreateMultiShard != that1.CanCreateMultiShard {
 		return false
 	}
 	return true
@@ -538,7 +836,7 @@ func (this *ESDTConfig) Equal(that interface{}) bool {
 		return false
 	}
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
 		if !__caster.Equal(this.BaseIssuingCost, that1.BaseIssuingCost) {
 			return false
 		}
@@ -551,12 +849,12 @@ func (this *ESDTConfig) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (this *ESDTData) GoString() string {
+func (this *ESDTDataV1) GoString() string {
 	if this == nil {
 		return "nil"
 	}
 	s := make([]string, 0, 24)
-	s = append(s, "&systemSmartContracts.ESDTData{")
+	s = append(s, "&systemSmartContracts.ESDTDataV1{")
 	s = append(s, "OwnerAddress: "+fmt.Sprintf("%#v", this.OwnerAddress)+",\n")
 	s = append(s, "TokenName: "+fmt.Sprintf("%#v", this.TokenName)+",\n")
 	s = append(s, "TickerName: "+fmt.Sprintf("%#v", this.TickerName)+",\n")
@@ -579,6 +877,38 @@ func (this *ESDTData) GoString() string {
 		s = append(s, "SpecialRoles: "+fmt.Sprintf("%#v", this.SpecialRoles)+",\n")
 	}
 	s = append(s, "NumWiped: "+fmt.Sprintf("%#v", this.NumWiped)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *ESDTDataV2) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 25)
+	s = append(s, "&systemSmartContracts.ESDTDataV2{")
+	s = append(s, "OwnerAddress: "+fmt.Sprintf("%#v", this.OwnerAddress)+",\n")
+	s = append(s, "TokenName: "+fmt.Sprintf("%#v", this.TokenName)+",\n")
+	s = append(s, "TickerName: "+fmt.Sprintf("%#v", this.TickerName)+",\n")
+	s = append(s, "TokenType: "+fmt.Sprintf("%#v", this.TokenType)+",\n")
+	s = append(s, "Mintable: "+fmt.Sprintf("%#v", this.Mintable)+",\n")
+	s = append(s, "Burnable: "+fmt.Sprintf("%#v", this.Burnable)+",\n")
+	s = append(s, "CanPause: "+fmt.Sprintf("%#v", this.CanPause)+",\n")
+	s = append(s, "CanFreeze: "+fmt.Sprintf("%#v", this.CanFreeze)+",\n")
+	s = append(s, "CanWipe: "+fmt.Sprintf("%#v", this.CanWipe)+",\n")
+	s = append(s, "Upgradable: "+fmt.Sprintf("%#v", this.Upgradable)+",\n")
+	s = append(s, "CanChangeOwner: "+fmt.Sprintf("%#v", this.CanChangeOwner)+",\n")
+	s = append(s, "IsPaused: "+fmt.Sprintf("%#v", this.IsPaused)+",\n")
+	s = append(s, "MintedValue: "+fmt.Sprintf("%#v", this.MintedValue)+",\n")
+	s = append(s, "BurntValue: "+fmt.Sprintf("%#v", this.BurntValue)+",\n")
+	s = append(s, "NumDecimals: "+fmt.Sprintf("%#v", this.NumDecimals)+",\n")
+	s = append(s, "CanAddSpecialRoles: "+fmt.Sprintf("%#v", this.CanAddSpecialRoles)+",\n")
+	s = append(s, "NFTCreateStopped: "+fmt.Sprintf("%#v", this.NFTCreateStopped)+",\n")
+	s = append(s, "CanTransferNFTCreateRole: "+fmt.Sprintf("%#v", this.CanTransferNFTCreateRole)+",\n")
+	if this.SpecialRoles != nil {
+		s = append(s, "SpecialRoles: "+fmt.Sprintf("%#v", this.SpecialRoles)+",\n")
+	}
+	s = append(s, "NumWiped: "+fmt.Sprintf("%#v", this.NumWiped)+",\n")
+	s = append(s, "CanCreateMultiShard: "+fmt.Sprintf("%#v", this.CanCreateMultiShard)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -614,7 +944,7 @@ func valueToGoStringEsdt(v interface{}, typ string) string {
 	pv := reflect.Indirect(rv).Interface()
 	return fmt.Sprintf("func(v %v) *%v { return &v } ( %#v )", typ, typ, pv)
 }
-func (m *ESDTData) Marshal() (dAtA []byte, err error) {
+func (m *ESDTDataV1) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
@@ -624,12 +954,12 @@ func (m *ESDTData) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *ESDTData) MarshalTo(dAtA []byte) (int, error) {
+func (m *ESDTDataV1) MarshalTo(dAtA []byte) (int, error) {
 	size := m.Size()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *ESDTData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *ESDTDataV1) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
 	var l int
@@ -699,7 +1029,7 @@ func (m *ESDTData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		dAtA[i] = 0x78
 	}
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
 		size := __caster.Size(m.BurntValue)
 		i -= size
 		if _, err := __caster.MarshalTo(m.BurntValue, dAtA[i:]); err != nil {
@@ -710,7 +1040,236 @@ func (m *ESDTData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i--
 	dAtA[i] = 0x72
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		size := __caster.Size(m.MintedValue)
+		i -= size
+		if _, err := __caster.MarshalTo(m.MintedValue, dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintEsdt(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x6a
+	if m.IsPaused {
+		i--
+		if m.IsPaused {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x60
+	}
+	if m.CanChangeOwner {
+		i--
+		if m.CanChangeOwner {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x58
+	}
+	if m.Upgradable {
+		i--
+		if m.Upgradable {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x50
+	}
+	if m.CanWipe {
+		i--
+		if m.CanWipe {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x48
+	}
+	if m.CanFreeze {
+		i--
+		if m.CanFreeze {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x40
+	}
+	if m.CanPause {
+		i--
+		if m.CanPause {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x38
+	}
+	if m.Burnable {
+		i--
+		if m.Burnable {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x30
+	}
+	if m.Mintable {
+		i--
+		if m.Mintable {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x28
+	}
+	if len(m.TokenType) > 0 {
+		i -= len(m.TokenType)
+		copy(dAtA[i:], m.TokenType)
+		i = encodeVarintEsdt(dAtA, i, uint64(len(m.TokenType)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.TickerName) > 0 {
+		i -= len(m.TickerName)
+		copy(dAtA[i:], m.TickerName)
+		i = encodeVarintEsdt(dAtA, i, uint64(len(m.TickerName)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.TokenName) > 0 {
+		i -= len(m.TokenName)
+		copy(dAtA[i:], m.TokenName)
+		i = encodeVarintEsdt(dAtA, i, uint64(len(m.TokenName)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.OwnerAddress) > 0 {
+		i -= len(m.OwnerAddress)
+		copy(dAtA[i:], m.OwnerAddress)
+		i = encodeVarintEsdt(dAtA, i, uint64(len(m.OwnerAddress)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ESDTDataV2) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ESDTDataV2) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *ESDTDataV2) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.CanCreateMultiShard {
+		i--
+		if m.CanCreateMultiShard {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa8
+	}
+	if m.NumWiped != 0 {
+		i = encodeVarintEsdt(dAtA, i, uint64(m.NumWiped))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa0
+	}
+	if len(m.SpecialRoles) > 0 {
+		for iNdEx := len(m.SpecialRoles) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.SpecialRoles[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintEsdt(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0x9a
+		}
+	}
+	if m.CanTransferNFTCreateRole {
+		i--
+		if m.CanTransferNFTCreateRole {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x90
+	}
+	if m.NFTCreateStopped {
+		i--
+		if m.NFTCreateStopped {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x88
+	}
+	if m.CanAddSpecialRoles {
+		i--
+		if m.CanAddSpecialRoles {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	if m.NumDecimals != 0 {
+		i = encodeVarintEsdt(dAtA, i, uint64(m.NumDecimals))
+		i--
+		dAtA[i] = 0x78
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		size := __caster.Size(m.BurntValue)
+		i -= size
+		if _, err := __caster.MarshalTo(m.BurntValue, dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintEsdt(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x72
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
 		size := __caster.Size(m.MintedValue)
 		i -= size
 		if _, err := __caster.MarshalTo(m.MintedValue, dAtA[i:]); err != nil {
@@ -901,7 +1460,7 @@ func (m *ESDTConfig) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		dAtA[i] = 0x18
 	}
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
 		size := __caster.Size(m.BaseIssuingCost)
 		i -= size
 		if _, err := __caster.MarshalTo(m.BaseIssuingCost, dAtA[i:]); err != nil {
@@ -932,7 +1491,7 @@ func encodeVarintEsdt(dAtA []byte, offset int, v uint64) int {
 	dAtA[offset] = uint8(v)
 	return base
 }
-func (m *ESDTData) Size() (n int) {
+func (m *ESDTDataV1) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -979,12 +1538,12 @@ func (m *ESDTData) Size() (n int) {
 		n += 2
 	}
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
 		l = __caster.Size(m.MintedValue)
 		n += 1 + l + sovEsdt(uint64(l))
 	}
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
 		l = __caster.Size(m.BurntValue)
 		n += 1 + l + sovEsdt(uint64(l))
 	}
@@ -1008,6 +1567,89 @@ func (m *ESDTData) Size() (n int) {
 	}
 	if m.NumWiped != 0 {
 		n += 2 + sovEsdt(uint64(m.NumWiped))
+	}
+	return n
+}
+
+func (m *ESDTDataV2) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.OwnerAddress)
+	if l > 0 {
+		n += 1 + l + sovEsdt(uint64(l))
+	}
+	l = len(m.TokenName)
+	if l > 0 {
+		n += 1 + l + sovEsdt(uint64(l))
+	}
+	l = len(m.TickerName)
+	if l > 0 {
+		n += 1 + l + sovEsdt(uint64(l))
+	}
+	l = len(m.TokenType)
+	if l > 0 {
+		n += 1 + l + sovEsdt(uint64(l))
+	}
+	if m.Mintable {
+		n += 2
+	}
+	if m.Burnable {
+		n += 2
+	}
+	if m.CanPause {
+		n += 2
+	}
+	if m.CanFreeze {
+		n += 2
+	}
+	if m.CanWipe {
+		n += 2
+	}
+	if m.Upgradable {
+		n += 2
+	}
+	if m.CanChangeOwner {
+		n += 2
+	}
+	if m.IsPaused {
+		n += 2
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		l = __caster.Size(m.MintedValue)
+		n += 1 + l + sovEsdt(uint64(l))
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		l = __caster.Size(m.BurntValue)
+		n += 1 + l + sovEsdt(uint64(l))
+	}
+	if m.NumDecimals != 0 {
+		n += 1 + sovEsdt(uint64(m.NumDecimals))
+	}
+	if m.CanAddSpecialRoles {
+		n += 3
+	}
+	if m.NFTCreateStopped {
+		n += 3
+	}
+	if m.CanTransferNFTCreateRole {
+		n += 3
+	}
+	if len(m.SpecialRoles) > 0 {
+		for _, e := range m.SpecialRoles {
+			l = e.Size()
+			n += 2 + l + sovEsdt(uint64(l))
+		}
+	}
+	if m.NumWiped != 0 {
+		n += 2 + sovEsdt(uint64(m.NumWiped))
+	}
+	if m.CanCreateMultiShard {
+		n += 3
 	}
 	return n
 }
@@ -1042,7 +1684,7 @@ func (m *ESDTConfig) Size() (n int) {
 		n += 1 + l + sovEsdt(uint64(l))
 	}
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
 		l = __caster.Size(m.BaseIssuingCost)
 		n += 1 + l + sovEsdt(uint64(l))
 	}
@@ -1061,7 +1703,7 @@ func sovEsdt(x uint64) (n int) {
 func sozEsdt(x uint64) (n int) {
 	return sovEsdt(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 }
-func (this *ESDTData) String() string {
+func (this *ESDTDataV1) String() string {
 	if this == nil {
 		return "nil"
 	}
@@ -1070,7 +1712,7 @@ func (this *ESDTData) String() string {
 		repeatedStringForSpecialRoles += strings.Replace(f.String(), "ESDTRoles", "ESDTRoles", 1) + ","
 	}
 	repeatedStringForSpecialRoles += "}"
-	s := strings.Join([]string{`&ESDTData{`,
+	s := strings.Join([]string{`&ESDTDataV1{`,
 		`OwnerAddress:` + fmt.Sprintf("%v", this.OwnerAddress) + `,`,
 		`TokenName:` + fmt.Sprintf("%v", this.TokenName) + `,`,
 		`TickerName:` + fmt.Sprintf("%v", this.TickerName) + `,`,
@@ -1091,6 +1733,41 @@ func (this *ESDTData) String() string {
 		`CanTransferNFTCreateRole:` + fmt.Sprintf("%v", this.CanTransferNFTCreateRole) + `,`,
 		`SpecialRoles:` + repeatedStringForSpecialRoles + `,`,
 		`NumWiped:` + fmt.Sprintf("%v", this.NumWiped) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *ESDTDataV2) String() string {
+	if this == nil {
+		return "nil"
+	}
+	repeatedStringForSpecialRoles := "[]*ESDTRoles{"
+	for _, f := range this.SpecialRoles {
+		repeatedStringForSpecialRoles += strings.Replace(f.String(), "ESDTRoles", "ESDTRoles", 1) + ","
+	}
+	repeatedStringForSpecialRoles += "}"
+	s := strings.Join([]string{`&ESDTDataV2{`,
+		`OwnerAddress:` + fmt.Sprintf("%v", this.OwnerAddress) + `,`,
+		`TokenName:` + fmt.Sprintf("%v", this.TokenName) + `,`,
+		`TickerName:` + fmt.Sprintf("%v", this.TickerName) + `,`,
+		`TokenType:` + fmt.Sprintf("%v", this.TokenType) + `,`,
+		`Mintable:` + fmt.Sprintf("%v", this.Mintable) + `,`,
+		`Burnable:` + fmt.Sprintf("%v", this.Burnable) + `,`,
+		`CanPause:` + fmt.Sprintf("%v", this.CanPause) + `,`,
+		`CanFreeze:` + fmt.Sprintf("%v", this.CanFreeze) + `,`,
+		`CanWipe:` + fmt.Sprintf("%v", this.CanWipe) + `,`,
+		`Upgradable:` + fmt.Sprintf("%v", this.Upgradable) + `,`,
+		`CanChangeOwner:` + fmt.Sprintf("%v", this.CanChangeOwner) + `,`,
+		`IsPaused:` + fmt.Sprintf("%v", this.IsPaused) + `,`,
+		`MintedValue:` + fmt.Sprintf("%v", this.MintedValue) + `,`,
+		`BurntValue:` + fmt.Sprintf("%v", this.BurntValue) + `,`,
+		`NumDecimals:` + fmt.Sprintf("%v", this.NumDecimals) + `,`,
+		`CanAddSpecialRoles:` + fmt.Sprintf("%v", this.CanAddSpecialRoles) + `,`,
+		`NFTCreateStopped:` + fmt.Sprintf("%v", this.NFTCreateStopped) + `,`,
+		`CanTransferNFTCreateRole:` + fmt.Sprintf("%v", this.CanTransferNFTCreateRole) + `,`,
+		`SpecialRoles:` + repeatedStringForSpecialRoles + `,`,
+		`NumWiped:` + fmt.Sprintf("%v", this.NumWiped) + `,`,
+		`CanCreateMultiShard:` + fmt.Sprintf("%v", this.CanCreateMultiShard) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -1127,7 +1804,7 @@ func valueToStringEsdt(v interface{}) string {
 	pv := reflect.Indirect(rv).Interface()
 	return fmt.Sprintf("*%v", pv)
 }
-func (m *ESDTData) Unmarshal(dAtA []byte) error {
+func (m *ESDTDataV1) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -1150,10 +1827,10 @@ func (m *ESDTData) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: ESDTData: wiretype end group for non-group")
+			return fmt.Errorf("proto: ESDTDataV1: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ESDTData: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: ESDTDataV1: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -1482,7 +2159,7 @@ func (m *ESDTData) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			{
-				__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+				__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
 				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				} else {
@@ -1520,7 +2197,7 @@ func (m *ESDTData) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			{
-				__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+				__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
 				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				} else {
@@ -1660,6 +2337,583 @@ func (m *ESDTData) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipEsdt(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthEsdt
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthEsdt
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ESDTDataV2) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowEsdt
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ESDTDataV2: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ESDTDataV2: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OwnerAddress", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEsdt
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthEsdt
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthEsdt
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.OwnerAddress = append(m.OwnerAddress[:0], dAtA[iNdEx:postIndex]...)
+			if m.OwnerAddress == nil {
+				m.OwnerAddress = []byte{}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TokenName", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEsdt
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthEsdt
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthEsdt
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.TokenName = append(m.TokenName[:0], dAtA[iNdEx:postIndex]...)
+			if m.TokenName == nil {
+				m.TokenName = []byte{}
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TickerName", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEsdt
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthEsdt
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthEsdt
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.TickerName = append(m.TickerName[:0], dAtA[iNdEx:postIndex]...)
+			if m.TickerName == nil {
+				m.TickerName = []byte{}
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TokenType", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEsdt
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthEsdt
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthEsdt
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.TokenType = append(m.TokenType[:0], dAtA[iNdEx:postIndex]...)
+			if m.TokenType == nil {
+				m.TokenType = []byte{}
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Mintable", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEsdt
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Mintable = bool(v != 0)
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Burnable", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEsdt
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Burnable = bool(v != 0)
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CanPause", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEsdt
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.CanPause = bool(v != 0)
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CanFreeze", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEsdt
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.CanFreeze = bool(v != 0)
+		case 9:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CanWipe", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEsdt
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.CanWipe = bool(v != 0)
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Upgradable", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEsdt
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Upgradable = bool(v != 0)
+		case 11:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CanChangeOwner", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEsdt
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.CanChangeOwner = bool(v != 0)
+		case 12:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsPaused", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEsdt
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.IsPaused = bool(v != 0)
+		case 13:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MintedValue", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEsdt
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthEsdt
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthEsdt
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			{
+				__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				} else {
+					m.MintedValue = tmp
+				}
+			}
+			iNdEx = postIndex
+		case 14:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BurntValue", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEsdt
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthEsdt
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthEsdt
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			{
+				__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				} else {
+					m.BurntValue = tmp
+				}
+			}
+			iNdEx = postIndex
+		case 15:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NumDecimals", wireType)
+			}
+			m.NumDecimals = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEsdt
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.NumDecimals |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 16:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CanAddSpecialRoles", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEsdt
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.CanAddSpecialRoles = bool(v != 0)
+		case 17:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NFTCreateStopped", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEsdt
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.NFTCreateStopped = bool(v != 0)
+		case 18:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CanTransferNFTCreateRole", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEsdt
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.CanTransferNFTCreateRole = bool(v != 0)
+		case 19:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SpecialRoles", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEsdt
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthEsdt
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthEsdt
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SpecialRoles = append(m.SpecialRoles, &ESDTRoles{})
+			if err := m.SpecialRoles[len(m.SpecialRoles)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 20:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NumWiped", wireType)
+			}
+			m.NumWiped = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEsdt
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.NumWiped |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 21:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CanCreateMultiShard", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEsdt
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.CanCreateMultiShard = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := skipEsdt(dAtA[iNdEx:])
@@ -1896,7 +3150,7 @@ func (m *ESDTConfig) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			{
-				__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+				__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
 				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				} else {

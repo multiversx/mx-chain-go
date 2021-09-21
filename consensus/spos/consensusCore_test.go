@@ -22,7 +22,7 @@ func createDefaultConsensusCoreArgs() *spos.ConsensusCoreArgs {
 		BlsPrivateKey:                 consensusCoreMock.PrivateKey(),
 		BlsSingleSigner:               consensusCoreMock.SingleSigner(),
 		MultiSigner:                   consensusCoreMock.MultiSigner(),
-		Rounder:                       consensusCoreMock.Rounder(),
+		RoundHandler:                  consensusCoreMock.RoundHandler(),
 		ShardCoordinator:              consensusCoreMock.ShardCoordinator(),
 		NodesCoordinator:              consensusCoreMock.NodesCoordinator(),
 		SyncTimer:                     consensusCoreMock.SyncTimer(),
@@ -174,18 +174,18 @@ func TestConsensusCore_WithNilMultiSignerShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilMultiSigner, err)
 }
 
-func TestConsensusCore_WithNilRounderShouldFail(t *testing.T) {
+func TestConsensusCore_WithNilRoundHandlerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	args := createDefaultConsensusCoreArgs()
-	args.Rounder = nil
+	args.RoundHandler = nil
 
 	consensusCore, err := spos.NewConsensusCore(
 		args,
 	)
 
 	assert.Nil(t, consensusCore)
-	assert.Equal(t, spos.ErrNilRounder, err)
+	assert.Equal(t, spos.ErrNilRoundHandler, err)
 }
 
 func TestConsensusCore_WithNilShardCoordinatorShouldFail(t *testing.T) {

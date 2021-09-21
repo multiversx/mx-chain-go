@@ -1,15 +1,16 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // QueryServiceStub -
 type QueryServiceStub struct {
 	ComputeScCallGasLimitCalled func(tx *transaction.Transaction) (uint64, error)
 	ExecuteQueryCalled          func(query *process.SCQuery) (*vmcommon.VMOutput, error)
+	CloseCalled                 func() error
 }
 
 // ComputeScCallGasLimit -
@@ -28,6 +29,15 @@ func (qss *QueryServiceStub) ExecuteQuery(query *process.SCQuery) (*vmcommon.VMO
 	}
 
 	return &vmcommon.VMOutput{}, nil
+}
+
+// Close -
+func (qss *QueryServiceStub) Close() error {
+	if qss.CloseCalled != nil {
+		return qss.CloseCalled()
+	}
+
+	return nil
 }
 
 // IsInterfaceNil -

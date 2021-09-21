@@ -1,14 +1,19 @@
 package txsFee
 
 import (
+	"bytes"
+	"encoding/hex"
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
 
@@ -147,4 +152,52 @@ func TestESDTTransferInvalidESDTValueShouldConsumeGas(t *testing.T) {
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
 	require.Equal(t, tx.GasLimit, indexerTx.GasUsed)
 	require.Equal(t, "10000", indexerTx.Fee)
+}
+
+func TestESDTTransferCallBackOnErrorShouldNotGenerateSCRsFurther(t *testing.T) {
+	shardC, _ := sharding.NewMultiShardCoordinator(2, 0)
+	testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinator(vm.ArgEnableEpoch{}, shardC)
+	require.Nil(t, err)
+	defer testContext.Close()
+
+	sndAddr := bytes.Repeat([]byte{0}, 32)
+	sndAddr[12] = 1
+	sndAddr[31] = 1
+	rcvAddr := bytes.Repeat([]byte{0}, 32)
+	rcvAddr[12] = 1
+
+	egldBalance := big.NewInt(100000000)
+	esdtBalance := big.NewInt(100000000)
+	token := []byte("miiutoken")
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, egldBalance, token, esdtBalance)
+
+	hexEncodedToken := hex.EncodeToString(token)
+	esdtValueEncoded := hex.EncodeToString(big.NewInt(100).Bytes())
+	txDataField := bytes.Join([][]byte{[]byte(core.BuiltInFunctionESDTTransfer), []byte(hexEncodedToken), []byte(esdtValueEncoded), []byte(hex.EncodeToString([]byte("something")))}, []byte("@"))
+	scr := &smartContractResult.SmartContractResult{
+		Nonce:         0,
+		Value:         big.NewInt(0),
+		RcvAddr:       rcvAddr,
+		SndAddr:       sndAddr,
+		Data:          txDataField,
+		CallType:      0,
+		ReturnMessage: []byte("something"),
+	}
+	retCode, err := testContext.ScProcessor.ProcessSmartContractResult(scr)
+	require.Equal(t, vmcommon.Ok, retCode)
+	require.Nil(t, err)
+	require.Nil(t, testContext.GetLatestError())
+
+	_, err = testContext.Accounts.Commit()
+	require.Nil(t, err)
+
+	expectedReceiverBalance := big.NewInt(100)
+	utils.CheckESDTBalance(t, testContext, rcvAddr, token, expectedReceiverBalance)
+
+	// check accumulated fees
+	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
+	require.Equal(t, big.NewInt(0), accumulatedFees)
+
+	intermediateTxs := testContext.GetIntermediateTransactions(t)
+	require.Equal(t, 0, len(intermediateTxs))
 }

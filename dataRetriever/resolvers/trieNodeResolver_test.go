@@ -2,17 +2,19 @@ package resolvers_test
 
 import (
 	"bytes"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/batch"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -22,7 +24,7 @@ var fromConnectedPeer = core.PeerID("from connected peer")
 func createMockArgTrieNodeResolver() resolvers.ArgTrieNodeResolver {
 	return resolvers.ArgTrieNodeResolver{
 		SenderResolver:   &mock.TopicResolverSenderStub{},
-		TrieDataGetter:   &mock.TrieStub{},
+		TrieDataGetter:   &trieMock.TrieStub{},
 		Marshalizer:      &mock.MarshalizerMock{},
 		AntifloodHandler: &mock.P2PAntifloodHandlerStub{},
 		Throttler:        &mock.ThrottlerStub{},
@@ -172,7 +174,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageShouldGetFromTrieAndSend(t *test
 	getSerializedNodesWasCalled := false
 	sendWasCalled := false
 
-	tr := &mock.TrieStub{
+	tr := &trieMock.TrieStub{
 		GetSerializedNodeCalled: func(hash []byte) ([]byte, error) {
 			if bytes.Equal([]byte("node1"), hash) {
 				getSerializedNodesWasCalled = true
@@ -237,7 +239,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageTrieErrorsShouldErr(t *testing.T
 
 	expectedErr := errors.New("expected err")
 	arg := createMockArgTrieNodeResolver()
-	arg.TrieDataGetter = &mock.TrieStub{
+	arg.TrieDataGetter = &trieMock.TrieStub{
 		GetSerializedNodeCalled: func(_ []byte) ([]byte, error) {
 			return nil, expectedErr
 		},
@@ -264,7 +266,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesGetSerializedNodeE
 			return nil
 		},
 	}
-	arg.TrieDataGetter = &mock.TrieStub{
+	arg.TrieDataGetter = &trieMock.TrieStub{
 		GetSerializedNodeCalled: func(_ []byte) ([]byte, error) {
 			return nil, expectedErr
 		},
@@ -309,7 +311,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesGetSerializedNodes
 			return nil
 		},
 	}
-	arg.TrieDataGetter = &mock.TrieStub{
+	arg.TrieDataGetter = &trieMock.TrieStub{
 		GetSerializedNodeCalled: func(hash []byte) ([]byte, error) {
 			for i := 0; i < len(hashes); i++ {
 				if bytes.Equal(hash, hashes[i]) {
@@ -349,7 +351,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesGetSerializedNodes
 func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesNotEnoughSpaceShouldNotReadSubtries(t *testing.T) {
 	t.Parallel()
 
-	nodes := [][]byte{bytes.Repeat([]byte{1}, resolvers.MaxBuffToSendTrieNodes)}
+	nodes := [][]byte{bytes.Repeat([]byte{1}, core.MaxBufferSizeToSendTrieNodes)}
 	hashes := [][]byte{[]byte("hash1")}
 
 	var receivedNodes [][]byte
@@ -365,7 +367,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesNotEnoughSpaceShou
 			return nil
 		},
 	}
-	arg.TrieDataGetter = &mock.TrieStub{
+	arg.TrieDataGetter = &trieMock.TrieStub{
 		GetSerializedNodeCalled: func(hash []byte) ([]byte, error) {
 			for i := 0; i < len(hashes); i++ {
 				if bytes.Equal(hash, hashes[i]) {
@@ -422,7 +424,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesShouldWorkWithSubt
 			return nil
 		},
 	}
-	arg.TrieDataGetter = &mock.TrieStub{
+	arg.TrieDataGetter = &trieMock.TrieStub{
 		GetSerializedNodeCalled: func(hash []byte) ([]byte, error) {
 			for i := 0; i < len(hashes); i++ {
 				if bytes.Equal(hash, hashes[i]) {
@@ -467,6 +469,111 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesShouldWorkWithSubt
 	for _, n := range subtriesNodes {
 		assert.True(t, buffInSlice(n, receivedNodes))
 	}
+}
+
+func testTrieNodeResolverProcessReceivedMessageLargeTrieNode(
+	t *testing.T,
+	largeBuffer []byte,
+	chunkIndex uint32,
+	maxComputedChunks uint32,
+	startIndexBuff int,
+	endIndexBuff int,
+) {
+	nodes := [][]byte{largeBuffer, []byte("node2")}
+	hashes := [][]byte{[]byte("hash1"), []byte("hash2")}
+
+	sendWasCalled := false
+	arg := createMockArgTrieNodeResolver()
+	arg.SenderResolver = &mock.TopicResolverSenderStub{
+		SendCalled: func(buff []byte, peer core.PeerID) error {
+			b := &batch.Batch{}
+			err := arg.Marshalizer.Unmarshal(b, buff)
+			require.Nil(t, err)
+			sendWasCalled = true
+			assert.Equal(t, maxComputedChunks, b.MaxChunks)
+			assert.Equal(t, chunkIndex, b.ChunkIndex)
+			require.Equal(t, 1, len(b.Data))
+			chunk := b.Data[0]
+			assert.Equal(t, largeBuffer[startIndexBuff:endIndexBuff], chunk)
+
+			return nil
+		},
+	}
+	arg.TrieDataGetter = &trieMock.TrieStub{
+		GetSerializedNodeCalled: func(hash []byte) ([]byte, error) {
+			for i := 0; i < len(hashes); i++ {
+				if bytes.Equal(hash, hashes[i]) {
+					return nodes[i], nil
+				}
+			}
+
+			return nil, fmt.Errorf("not found")
+		},
+		GetSerializedNodesCalled: func(i []byte, u uint64) ([][]byte, uint64, error) {
+			return make([][]byte, 0), 0, nil
+		},
+	}
+	tnRes, _ := resolvers.NewTrieNodeResolver(arg)
+
+	data, _ := arg.Marshalizer.Marshal(
+		&dataRetriever.RequestData{
+			Type:       dataRetriever.HashType,
+			Value:      []byte("hash1"),
+			ChunkIndex: chunkIndex,
+		},
+	)
+	msg := &mock.P2PMessageMock{DataField: data}
+
+	err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer)
+	assert.Nil(t, err)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+	require.True(t, sendWasCalled)
+}
+
+func TestTrieNodeResolver_ProcessReceivedMessageLargeTrieNodeShouldSendFirstChunk(t *testing.T) {
+	t.Parallel()
+
+	randBuff := make([]byte, 1<<20) //1MB
+	_, _ = rand.Read(randBuff)
+	testTrieNodeResolverProcessReceivedMessageLargeTrieNode(t, randBuff, 0, 4, 0, core.MaxBufferSizeToSendTrieNodes)
+}
+
+func TestTrieNodeResolver_ProcessReceivedMessageLargeTrieNodeShouldSendRequiredChunk(t *testing.T) {
+	t.Parallel()
+
+	randBuff := make([]byte, 1<<20) //1MB
+	_, _ = rand.Read(randBuff)
+	testTrieNodeResolverProcessReceivedMessageLargeTrieNode(
+		t,
+		randBuff,
+		1,
+		4,
+		core.MaxBufferSizeToSendTrieNodes,
+		2*core.MaxBufferSizeToSendTrieNodes,
+	)
+	testTrieNodeResolverProcessReceivedMessageLargeTrieNode(
+		t,
+		randBuff,
+		2,
+		4,
+		2*core.MaxBufferSizeToSendTrieNodes,
+		3*core.MaxBufferSizeToSendTrieNodes,
+	)
+	testTrieNodeResolverProcessReceivedMessageLargeTrieNode(
+		t,
+		randBuff,
+		3,
+		4,
+		3*core.MaxBufferSizeToSendTrieNodes,
+		4*core.MaxBufferSizeToSendTrieNodes,
+	)
+
+	randBuff = make([]byte, 1<<20+1) //1MB + 1 byte
+	_, _ = rand.Read(randBuff)
+	startIndex := len(randBuff) - 1
+	endIndex := len(randBuff)
+	testTrieNodeResolverProcessReceivedMessageLargeTrieNode(t, randBuff, 4, 5, startIndex, endIndex)
 }
 
 func buffInSlice(buff []byte, slice [][]byte) bool {
@@ -525,4 +632,63 @@ func TestTrieNodeResolver_SetAndGetNumPeersToQuery(t *testing.T) {
 	actualIntra, actualCross := tnRes.NumPeersToQuery()
 	assert.Equal(t, expectedIntra, actualIntra)
 	assert.Equal(t, expectedCross, actualCross)
+}
+
+func TestTrieNodeResolver_Close(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgTrieNodeResolver()
+	tnRes, _ := resolvers.NewTrieNodeResolver(arg)
+
+	assert.Nil(t, tnRes.Close())
+}
+
+func TestTrieNodeResolver_RequestDataFromHashArray(t *testing.T) {
+	t.Parallel()
+
+	hash1 := []byte("hash1")
+	hash2 := []byte("hash2")
+	sendRequestCalled := false
+	arg := createMockArgTrieNodeResolver()
+	arg.SenderResolver = &mock.TopicResolverSenderStub{
+		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, originalHashes [][]byte) error {
+			sendRequestCalled = true
+			assert.Equal(t, dataRetriever.HashArrayType, rd.Type)
+
+			b := &batch.Batch{}
+			err := arg.Marshalizer.Unmarshal(b, rd.Value)
+			require.Nil(t, err)
+			assert.Equal(t, [][]byte{hash1, hash2}, b.Data)
+			assert.Equal(t, uint32(0), b.ChunkIndex) //mandatory to be 0
+
+			return nil
+		},
+	}
+	tnRes, _ := resolvers.NewTrieNodeResolver(arg)
+	err := tnRes.RequestDataFromHashArray([][]byte{hash1, hash2}, 0)
+	require.Nil(t, err)
+	assert.True(t, sendRequestCalled)
+}
+
+func TestTrieNodeResolver_RequestDataFromReferenceAndChunk(t *testing.T) {
+	t.Parallel()
+
+	hash := []byte("hash")
+	chunkIndex := uint32(343)
+	sendRequestCalled := false
+	arg := createMockArgTrieNodeResolver()
+	arg.SenderResolver = &mock.TopicResolverSenderStub{
+		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, originalHashes [][]byte) error {
+			sendRequestCalled = true
+			assert.Equal(t, dataRetriever.HashType, rd.Type)
+			assert.Equal(t, hash, rd.Value)
+			assert.Equal(t, chunkIndex, rd.ChunkIndex)
+
+			return nil
+		},
+	}
+	tnRes, _ := resolvers.NewTrieNodeResolver(arg)
+	err := tnRes.RequestDataFromReferenceAndChunk(hash, chunkIndex)
+	require.Nil(t, err)
+	assert.True(t, sendRequestCalled)
 }

@@ -6,10 +6,10 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -286,13 +286,13 @@ func TestEconomicsData_ComputeTxFeeShouldWork(t *testing.T) {
 	expectedCost := core.SafeMul(minGasLimit, gasPrice)
 	assert.Equal(t, expectedCost, cost)
 
-	economicsData.EpochConfirmed(1)
+	economicsData.EpochConfirmed(1, 0)
 
 	cost = economicsData.ComputeTxFee(tx)
 	expectedCost = core.SafeMul(gasLimit, gasPrice)
 	assert.Equal(t, expectedCost, cost)
 
-	economicsData.EpochConfirmed(2)
+	economicsData.EpochConfirmed(2, 0)
 	cost = economicsData.ComputeTxFee(tx)
 	assert.Equal(t, big.NewInt(5050), cost)
 }
@@ -325,17 +325,17 @@ func TestEconomicsData_ConfirmedEpochRewardsSettingsChangeOrderedConfigs(t *test
 	args.Economics.RewardsSettings = config.RewardsSettings{RewardsConfigByEpoch: rs}
 	economicsData, _ := economics.NewEconomicsData(args)
 
-	economicsData.EpochConfirmed(1)
+	economicsData.EpochConfirmed(1, 0)
 	rewardsActiveConfig := economicsData.GetRewardsActiveConfig()
 	require.NotNil(t, rewardsActiveConfig)
 	require.Equal(t, rs[0], *rewardsActiveConfig)
 
-	economicsData.EpochConfirmed(2)
+	economicsData.EpochConfirmed(2, 0)
 	rewardsActiveConfig = economicsData.GetRewardsActiveConfig()
 	require.NotNil(t, rewardsActiveConfig)
 	require.Equal(t, rs[0], *rewardsActiveConfig)
 
-	economicsData.EpochConfirmed(3)
+	economicsData.EpochConfirmed(3, 0)
 	rewardsActiveConfig = economicsData.GetRewardsActiveConfig()
 	require.NotNil(t, rewardsActiveConfig)
 	require.Equal(t, rs[1], *rewardsActiveConfig)
@@ -369,17 +369,17 @@ func TestEconomicsData_ConfirmedEpochRewardsSettingsChangeUnOrderedConfigs(t *te
 	args.Economics.RewardsSettings = config.RewardsSettings{RewardsConfigByEpoch: rs}
 	economicsData, _ := economics.NewEconomicsData(args)
 
-	economicsData.EpochConfirmed(1)
+	economicsData.EpochConfirmed(1, 0)
 	rewardsActiveConfig := economicsData.GetRewardsActiveConfig()
 	require.NotNil(t, rewardsActiveConfig)
 	require.Equal(t, rs[1], *rewardsActiveConfig)
 
-	economicsData.EpochConfirmed(2)
+	economicsData.EpochConfirmed(2, 0)
 	rewardsActiveConfig = economicsData.GetRewardsActiveConfig()
 	require.NotNil(t, rewardsActiveConfig)
 	require.Equal(t, rs[1], *rewardsActiveConfig)
 
-	economicsData.EpochConfirmed(3)
+	economicsData.EpochConfirmed(3, 0)
 	rewardsActiveConfig = economicsData.GetRewardsActiveConfig()
 	require.NotNil(t, rewardsActiveConfig)
 	require.Equal(t, rs[0], *rewardsActiveConfig)
@@ -768,6 +768,32 @@ func TestEconomicsData_ComputeGasUsedAndFeeBasedOnRefundValueSpecialBuiltIn_ToMu
 	require.Equal(t, expectedFee, fee)
 }
 
+func TestEconomicsData_ComputeGasUsedAndFeeBasedOnRefundValueStakeTx(t *testing.T) {
+	builtInCostHandler, _ := economics.NewBuiltInFunctionsCost(&economics.ArgsBuiltInFunctionCost{
+		GasSchedule: mock.NewGasScheduleNotifierMock(defaults.FillGasMapInternal(map[string]map[string]uint64{}, 1)),
+		ArgsParser:  smartContract.NewArgumentParser(),
+	})
+
+	txStake := &transaction.Transaction{
+		GasPrice: 1000000000,
+		GasLimit: 250000000,
+		Data:     []byte("stake"),
+	}
+
+	expectedGasUsed := uint64(39378847)
+	expectedFee, _ := big.NewInt(0).SetString("39378847000000000", 10)
+
+	args := createArgsForEconomicsDataRealFees(builtInCostHandler)
+	args.PenalizedTooMuchGasEnableEpoch = 1000
+	args.GasPriceModifierEnableEpoch = 1000
+	economicData, _ := economics.NewEconomicsData(args)
+
+	refundValueStake, _ := big.NewInt(0).SetString("210621153000000000", 10)
+	gasUsedStake, feeStake := economicData.ComputeGasUsedAndFeeBasedOnRefundValue(txStake, refundValueStake)
+	require.Equal(t, expectedGasUsed, gasUsedStake)
+	require.Equal(t, expectedFee, feeStake)
+}
+
 func TestEconomicsData_ComputeGasUsedAndFeeBasedOnRefundValueSpecialBuiltIn(t *testing.T) {
 	t.Parallel()
 
@@ -790,4 +816,38 @@ func TestEconomicsData_ComputeGasUsedAndFeeBasedOnRefundValueSpecialBuiltIn(t *t
 	gasUsed, fee := economicData.ComputeGasUsedAndFeeBasedOnRefundValue(tx, refundValue)
 	require.Equal(t, expectedGasUsed, gasUsed)
 	require.Equal(t, expectedFee, fee)
+}
+
+func TestEconomicsData_ComputeGasLimitBasedOnBalance(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForEconomicsDataRealFees(&mock.BuiltInCostHandlerStub{})
+	args.GasPriceModifierEnableEpoch = 1
+	economicData, _ := economics.NewEconomicsData(args)
+	txData := []byte("0061736d0100000001150460037f7f7e017f60027f7f017e60017e0060000002420303656e7611696e74363473746f7261676553746f7265000003656e7610696e74363473746f726167654c6f6164000103656e760b696e74363466696e6973680002030504030303030405017001010105030100020608017f01419088040b072f05066d656d6f7279020004696e6974000309696e6372656d656e7400040964656372656d656e7400050367657400060a8a01041300418088808000410742011080808080001a0b2e01017e4180888080004107418088808000410710818080800042017c22001080808080001a20001082808080000b2e01017e41808880800041074180888080004107108180808000427f7c22001080808080001a20001082808080000b160041808880800041071081808080001082808080000b0b0f01004180080b08434f554e54455200@0500@0100")
+	tx := &transaction.Transaction{
+		GasPrice: 1000000000,
+		GasLimit: 1200000,
+		Data:     txData,
+		Value:    big.NewInt(10),
+	}
+
+	senderBalance, _ := big.NewInt(0).SetString("1", 10)
+	_, err := economicData.ComputeGasLimitBasedOnBalance(tx, senderBalance)
+	require.Equal(t, process.ErrInsufficientFunds, err)
+
+	senderBalance, _ = big.NewInt(0).SetString("1000", 10)
+	_, err = economicData.ComputeGasLimitBasedOnBalance(tx, senderBalance)
+	require.Equal(t, process.ErrInsufficientFunds, err)
+
+	senderBalance, _ = big.NewInt(0).SetString("120000000000000010", 10)
+	gasLimit, err := economicData.ComputeGasLimitBasedOnBalance(tx, senderBalance)
+	require.Nil(t, err)
+	require.Equal(t, uint64(120000000), gasLimit)
+
+	senderBalance, _ = big.NewInt(0).SetString("120000000000000010", 10)
+	economicData.EpochConfirmed(10, 10)
+	gasLimit, err = economicData.ComputeGasLimitBasedOnBalance(tx, senderBalance)
+	require.Nil(t, err)
+	require.Equal(t, uint64(11894070000), gasLimit)
 }

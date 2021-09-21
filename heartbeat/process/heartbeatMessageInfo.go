@@ -4,8 +4,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 )
 
@@ -29,6 +29,8 @@ type heartbeatMessageInfo struct {
 	isActive                    bool
 	nonce                       uint64
 	numInstances                uint64
+	peerSubType                 uint32
+	pidString                   string
 }
 
 // newHeartbeatMessageInfo returns a new instance of a heartbeatMessageInfo
@@ -63,6 +65,8 @@ func newHeartbeatMessageInfo(
 		getTimeHandler:              timer.Now,
 		nonce:                       0,
 		numInstances:                0,
+		peerSubType:                 0,
+		pidString:                   "",
 	}
 
 	return hbmi, nil
@@ -156,6 +160,8 @@ func (hbmi *heartbeatMessageInfo) HeartbeatReceived(
 	peerType string,
 	nonce uint64,
 	numInstances uint64,
+	peerSubType uint32,
+	pidString string,
 ) {
 	hbmi.updateMutex.Lock()
 	defer hbmi.updateMutex.Unlock()
@@ -173,6 +179,8 @@ func (hbmi *heartbeatMessageInfo) HeartbeatReceived(
 	hbmi.isActive = true
 	hbmi.nonce = nonce
 	hbmi.numInstances = numInstances
+	hbmi.peerSubType = peerSubType
+	hbmi.pidString = pidString
 }
 
 // UpdateShardAndPeerType - updates the shard and peerType only for a heartbeat message info
@@ -219,5 +227,5 @@ func (hbmi *heartbeatMessageInfo) GetIsActive() bool {
 func (hbmi *heartbeatMessageInfo) GetIsValidator() bool {
 	hbmi.updateMutex.Lock()
 	defer hbmi.updateMutex.Unlock()
-	return hbmi.peerType == string(core.EligibleList) || hbmi.peerType == string(core.WaitingList)
+	return hbmi.peerType == string(common.EligibleList) || hbmi.peerType == string(common.WaitingList)
 }

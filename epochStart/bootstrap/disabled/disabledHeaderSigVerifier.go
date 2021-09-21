@@ -1,7 +1,7 @@
 package disabled
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -13,6 +13,16 @@ type headerSigVerifier struct {
 // NewHeaderSigVerifier returns a new instance of headerSigVerifier
 func NewHeaderSigVerifier() *headerSigVerifier {
 	return &headerSigVerifier{}
+}
+
+// VerifyRandSeed -
+func (h *headerSigVerifier) VerifyRandSeed(_ data.HeaderHandler) error {
+	return nil
+}
+
+// VerifyRandSeedAndLeaderSignature -
+func (h *headerSigVerifier) VerifyLeaderSignature(_ data.HeaderHandler) error {
+	return nil
 }
 
 // VerifyRandSeedAndLeaderSignature -
