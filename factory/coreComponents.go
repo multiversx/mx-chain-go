@@ -280,7 +280,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
-	err = metrics.InitConfigMetrics(statusHandlersInfo, ccf.epochConfig)
+	err = metrics.InitConfigMetrics(statusHandlersInfo, ccf.epochConfig, ccf.economicsConfig)
 	if err != nil {
 		return nil, err
 	}

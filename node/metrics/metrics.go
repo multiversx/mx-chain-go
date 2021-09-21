@@ -74,7 +74,7 @@ func InitBaseMetrics(statusHandlerUtils StatusHandlersUtils) error {
 }
 
 // InitConfigMetrics will init the "enable epochs" configuration metrics from epoch config
-func InitConfigMetrics(statusHandlerUtils StatusHandlersUtils, epochConfig config.EpochConfig) error {
+func InitConfigMetrics(statusHandlerUtils StatusHandlersUtils, epochConfig config.EpochConfig, economicsConfig config.EconomicsConfig) error {
 	if check.IfNil(statusHandlerUtils) {
 		return ErrNilStatusHandlerUtils
 	}
@@ -116,6 +116,7 @@ func InitConfigMetrics(statusHandlerUtils StatusHandlersUtils, epochConfig confi
 	appStatusHandler.SetUInt64Value(common.MetricGlobalMintBurnDisableEpoch, uint64(enableEpochs.GlobalMintBurnDisableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricESDTTransferRoleEnableEpoch, uint64(enableEpochs.ESDTTransferRoleEnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricBuiltInFunctionOnMetaEnableEpoch, uint64(enableEpochs.BuiltInFunctionOnMetaEnableEpoch))
+	appStatusHandler.SetStringValue(common.MetricTotalSupply, economicsConfig.GlobalSettings.GenesisTotalSupply)
 
 	return nil
 }
@@ -184,7 +185,6 @@ func InitMetrics(
 	appStatusHandler.SetUInt64Value(common.MetricStartTime, uint64(nodesConfig.GetStartTime()))
 	appStatusHandler.SetUInt64Value(common.MetricRoundDuration, nodesConfig.GetRoundDuration())
 	appStatusHandler.SetUInt64Value(common.MetricMinTransactionVersion, uint64(minTransactionVersion))
-	appStatusHandler.SetStringValue(common.MetricTotalSupply, economicsConfig.GlobalSettings.GenesisTotalSupply)
 
 	var consensusGroupSize uint32
 	switch {
