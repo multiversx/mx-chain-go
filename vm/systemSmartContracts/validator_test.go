@@ -52,6 +52,8 @@ func createMockArgumentsForValidatorSCWithSystemScAddresses(
 			MaxNumberOfNodesForStake:             10,
 			ActivateBLSPubKeyMessageVerification: false,
 			MinUnstakeTokensValue:                "1",
+			StakeLimitPercentage:                 100.0,
+			NodeLimitPercentage:                  100.0,
 		},
 		Marshalizer:              &mock.MarshalizerMock{},
 		GenesisTotalSupply:       big.NewInt(100000000),
@@ -67,6 +69,7 @@ func createMockArgumentsForValidatorSCWithSystemScAddresses(
 			},
 		},
 		ShardCoordinator: &mock.ShardCoordinatorStub{},
+		NodesCoordinator: &mock.NodesCoordinatorStub{},
 	}
 
 	return args
@@ -226,6 +229,39 @@ func TestNewStakingValidatorSmartContract_NilValidatorSmartContractAddress(t *te
 	assert.True(t, errors.Is(err, vm.ErrNilValidatorSmartContractAddress))
 }
 
+func TestNewStakingValidatorSmartContract_NilNodesCoordinator(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockArgumentsForValidatorSC()
+	arguments.NodesCoordinator = nil
+
+	asc, err := NewValidatorSmartContract(arguments)
+	require.Nil(t, asc)
+	assert.True(t, errors.Is(err, vm.ErrNilNodesCoordinator))
+}
+
+func TestNewStakingValidatorSmartContract_ZeroStakeLimit(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockArgumentsForValidatorSC()
+	arguments.StakingSCConfig.StakeLimitPercentage = 0.0
+
+	asc, err := NewValidatorSmartContract(arguments)
+	require.Nil(t, asc)
+	assert.True(t, errors.Is(err, vm.ErrInvalidStakeLimitPercentage))
+}
+
+func TestNewStakingValidatorSmartContract_ZeroNodeLimit(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockArgumentsForValidatorSC()
+	arguments.StakingSCConfig.NodeLimitPercentage = 0.0
+
+	asc, err := NewValidatorSmartContract(arguments)
+	require.Nil(t, asc)
+	assert.True(t, errors.Is(err, vm.ErrInvalidNodeLimitPercentage))
+}
+
 func TestNewStakingValidatorSmartContract_NilSigVerifier(t *testing.T) {
 	t.Parallel()
 
@@ -357,6 +393,76 @@ func TestStakingValidatorSC_ExecuteStakeWithoutArgumentsShouldWork(t *testing.T)
 
 	errCode := stakingValidatorSc.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, errCode)
+}
+
+func TestStakingValidatorSC_ExecuteStakeTooMuchStake(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateVmContractCallInput()
+	validatorData := createAValidatorData(25000000, 2, 12500000)
+	validatorDataBytes, _ := json.Marshal(&validatorData)
+
+	eei := &mock.SystemEIStub{}
+	eei.GetStorageCalled = func(key []byte) []byte {
+		if bytes.Equal(key, arguments.CallerAddr) {
+			return validatorDataBytes
+		}
+		return nil
+	}
+	eei.AddReturnMessageCalled = func(msg string) {
+		assert.Equal(t, msg, "total stake limit reached")
+	}
+
+	args := createMockArgumentsForValidatorSC()
+	args.Eei = eei
+
+	stakingValidatorSc, _ := NewValidatorSmartContract(args)
+
+	arguments.Function = "stake"
+	arguments.CallValue = big.NewInt(0).Set(stakingValidatorSc.totalStakeLimit)
+
+	errCode := stakingValidatorSc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, errCode)
+}
+
+func TestStakingValidatorSC_ExecuteStakeTooManyNodes(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateVmContractCallInput()
+
+	eei := &mock.SystemEIStub{}
+
+	args := createMockArgumentsForValidatorSC()
+	args.Eei = eei
+
+	args.NodesCoordinator = &mock.NodesCoordinatorStub{GetNumTotalEligibleCalled: func() uint64 {
+		return 1000
+	}}
+	args.StakingSCConfig.NodeLimitPercentage = 0.005
+	stakingValidatorSc, _ := NewValidatorSmartContract(args)
+
+	validatorData := createAValidatorData(25000000, 3, 12500000)
+	validatorDataBytes, _ := json.Marshal(&validatorData)
+
+	eei.GetStorageCalled = func(key []byte) []byte {
+		if bytes.Equal(key, arguments.CallerAddr) {
+			return validatorDataBytes
+		}
+		return nil
+	}
+	eei.AddReturnMessageCalled = func(msg string) {
+		assert.Equal(t, msg, "number of nodes is too high")
+	}
+
+	key1 := []byte("Key1")
+	key2 := []byte("Key2")
+	key3 := []byte("Key3")
+	arguments.Function = "stake"
+	arguments.CallValue = big.NewInt(0).Mul(big.NewInt(3), big.NewInt(10000000))
+	arguments.Arguments = [][]byte{big.NewInt(3).Bytes(), key1, []byte("msg1"), key2, []byte("msg2"), key3, []byte("msg3")}
+
+	errCode := stakingValidatorSc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, errCode)
 }
 
 func TestStakingValidatorSC_ExecuteStakeAddedNewPubKeysShouldWork(t *testing.T) {
@@ -1209,6 +1315,8 @@ func TestStakingValidatorSC_StakeUnStake3XRestake2(t *testing.T) {
 		return stakingSc, nil
 	}})
 
+	nodesCoordinator := &mock.NodesCoordinatorStub{}
+	args.NodesCoordinator = nodesCoordinator
 	args.StakingSCConfig = argsStaking.StakingSCConfig
 	args.Eei = eei
 
@@ -1252,9 +1360,21 @@ func TestStakingValidatorSC_StakeUnStake3XRestake2(t *testing.T) {
 	retCode = sc.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
 
+	nodesCoordinator.GetNumTotalEligibleCalled = func() uint64 {
+		return 1
+	}
+
 	arguments.Function = "reStakeUnStakedNodes"
 	arguments.Arguments = [][]byte{stakerPubKey1, stakerPubKey2}
 	arguments.CallValue = big.NewInt(0)
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, retCode)
+	assert.Equal(t, eei.returnMessage, "number of nodes is too high")
+
+	nodesCoordinator.GetNumTotalEligibleCalled = func() uint64 {
+		return 10
+	}
+
 	retCode = sc.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
 }
@@ -5060,6 +5180,105 @@ func TestStakingValidatorSC_MergeValidatorData(t *testing.T) {
 	stakedData, _ := sc.getStakedData([]byte("secondKey"))
 	assert.Equal(t, stakedData.OwnerAddress, vm.FirstDelegationSCAddress)
 	assert.Equal(t, stakedData.RewardAddress, vm.FirstDelegationSCAddress)
+}
+
+func TestStakingValidatorSC_MergeValidatorDataTooMuchStake(t *testing.T) {
+	t.Parallel()
+
+	blockChainHook := &mock.BlockChainHookStub{
+		CurrentNonceCalled: func() uint64 {
+			return 100000
+		},
+	}
+	atArgParser := parsers.NewCallArgsParser()
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &stateMock.AccountsStub{}, &mock.RaterMock{})
+
+	argsStaking := createMockStakingScArguments()
+	argsStaking.Eei = eei
+	argsStaking.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
+	stakingSc, _ := NewStakingSmartContract(argsStaking)
+	eei.SetSCAddress([]byte("addr"))
+	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (contract vm.SystemSmartContract, err error) {
+		return stakingSc, nil
+	}})
+
+	args := createMockArgumentsForValidatorSC()
+	args.StakingSCConfig = argsStaking.StakingSCConfig
+	args.Eei = eei
+
+	sc, _ := NewValidatorSmartContract(args)
+	arguments := CreateVmContractCallInput()
+	arguments.CallerAddr = vm.ESDTSCAddress
+	arguments.Function = "mergeValidatorData"
+	arguments.Arguments = [][]byte{}
+	arguments.CallValue = big.NewInt(0)
+	arguments.CallerAddr = sc.delegationMgrSCAddress
+	randomAddress := bytes.Repeat([]byte{1}, len(arguments.CallerAddr))
+	arguments.Arguments = [][]byte{randomAddress, vm.FirstDelegationSCAddress}
+
+	limitPer4 := big.NewInt(0).Div(sc.totalStakeLimit, big.NewInt(4))
+
+	stake(t, sc, limitPer4, randomAddress, randomAddress, []byte("firsstKey"), big.NewInt(1).Bytes())
+	stake(t, sc, limitPer4, randomAddress, randomAddress, []byte("secondKey"), big.NewInt(1).Bytes())
+	stake(t, sc, limitPer4, randomAddress, randomAddress, []byte("thirddKey"), big.NewInt(1).Bytes())
+
+	stake(t, sc, limitPer4, vm.FirstDelegationSCAddress, vm.FirstDelegationSCAddress, []byte("fourthKey"), big.NewInt(1).Bytes())
+	stake(t, sc, limitPer4, vm.FirstDelegationSCAddress, vm.FirstDelegationSCAddress, []byte("fifthhKey"), big.NewInt(1).Bytes())
+	stake(t, sc, limitPer4, vm.FirstDelegationSCAddress, vm.FirstDelegationSCAddress, []byte("sixthhKey"), big.NewInt(1).Bytes())
+
+	retCode := sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, retCode)
+	assert.Equal(t, eei.returnMessage, "total stake limit reached")
+}
+
+func TestStakingValidatorSC_MergeValidatorDataTooMuchNodes(t *testing.T) {
+	t.Parallel()
+
+	blockChainHook := &mock.BlockChainHookStub{
+		CurrentNonceCalled: func() uint64 {
+			return 100000
+		},
+	}
+	atArgParser := parsers.NewCallArgsParser()
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &stateMock.AccountsStub{}, &mock.RaterMock{})
+
+	argsStaking := createMockStakingScArguments()
+	argsStaking.Eei = eei
+	argsStaking.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
+	stakingSc, _ := NewStakingSmartContract(argsStaking)
+	eei.SetSCAddress([]byte("addr"))
+	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (contract vm.SystemSmartContract, err error) {
+		return stakingSc, nil
+	}})
+
+	args := createMockArgumentsForValidatorSC()
+	args.NodesCoordinator = &mock.NodesCoordinatorStub{GetNumTotalEligibleCalled: func() uint64 {
+		return 5
+	}}
+	args.StakingSCConfig = argsStaking.StakingSCConfig
+	args.Eei = eei
+
+	sc, _ := NewValidatorSmartContract(args)
+	arguments := CreateVmContractCallInput()
+	arguments.CallerAddr = vm.ESDTSCAddress
+	arguments.Function = "mergeValidatorData"
+	arguments.Arguments = [][]byte{}
+	arguments.CallValue = big.NewInt(0)
+	arguments.CallerAddr = sc.delegationMgrSCAddress
+	randomAddress := bytes.Repeat([]byte{1}, len(arguments.CallerAddr))
+	arguments.Arguments = [][]byte{randomAddress, vm.FirstDelegationSCAddress}
+
+	stake(t, sc, stakingSc.stakeValue, randomAddress, randomAddress, []byte("firsstKey"), big.NewInt(1).Bytes())
+	stake(t, sc, stakingSc.stakeValue, randomAddress, randomAddress, []byte("secondKey"), big.NewInt(1).Bytes())
+	stake(t, sc, stakingSc.stakeValue, randomAddress, randomAddress, []byte("thirddKey"), big.NewInt(1).Bytes())
+
+	stake(t, sc, stakingSc.stakeValue, vm.FirstDelegationSCAddress, vm.FirstDelegationSCAddress, []byte("fourthKey"), big.NewInt(1).Bytes())
+	stake(t, sc, stakingSc.stakeValue, vm.FirstDelegationSCAddress, vm.FirstDelegationSCAddress, []byte("fifthhKey"), big.NewInt(1).Bytes())
+	stake(t, sc, stakingSc.stakeValue, vm.FirstDelegationSCAddress, vm.FirstDelegationSCAddress, []byte("sixthhKey"), big.NewInt(1).Bytes())
+
+	retCode := sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, retCode)
+	assert.Equal(t, eei.returnMessage, "number of nodes is too high")
 }
 
 func TestValidatorSC_getMinUnStakeTokensValueFromDelegationManagerMarshalizerFail(t *testing.T) {

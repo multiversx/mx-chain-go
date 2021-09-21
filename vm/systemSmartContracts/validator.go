@@ -21,6 +21,7 @@ import (
 
 const unJailedFunds = "unJailFunds"
 const unStakeUnBondPauseKey = "unStakeUnBondPause"
+const minPercentage = 0.0001
 
 var zero = big.NewInt(0)
 
@@ -61,7 +62,12 @@ type validatorSC struct {
 	flagValidatorToDelegation        atomic.Flag
 	enableUnbondTokensV2Epoch        uint32
 	flagUnbondTokensV2               atomic.Flag
+	stakeLimitsEnableEpoch           uint32
+	flagStakeLimits                  atomic.Flag
 	shardCoordinator                 sharding.Coordinator
+	nodesCoordinator                 vm.NodesCoordinator
+	totalStakeLimit                  *big.Int
+	nodeLimitPercentage              float64
 }
 
 // ArgsValidatorSmartContract is the arguments structure to create a new ValidatorSmartContract
@@ -82,6 +88,7 @@ type ArgsValidatorSmartContract struct {
 	DelegationMgrEnableEpoch uint32
 	EpochConfig              config.EpochConfig
 	ShardCoordinator         sharding.Coordinator
+	NodesCoordinator         vm.NodesCoordinator
 }
 
 // NewValidatorSmartContract creates an validator smart contract
@@ -120,6 +127,15 @@ func NewValidatorSmartContract(
 	}
 	if len(args.GovernanceSCAddress) < 1 {
 		return nil, fmt.Errorf("%w for governance sc address", vm.ErrInvalidAddress)
+	}
+	if check.IfNil(args.NodesCoordinator) {
+		return nil, fmt.Errorf("%w in validatorSC", vm.ErrNilNodesCoordinator)
+	}
+	if args.StakingSCConfig.NodeLimitPercentage < minPercentage {
+		return nil, fmt.Errorf("%w in validatorSC", vm.ErrInvalidNodeLimitPercentage)
+	}
+	if args.StakingSCConfig.StakeLimitPercentage < minPercentage {
+		return nil, fmt.Errorf("%w in validatorSC", vm.ErrInvalidStakeLimitPercentage)
 	}
 
 	baseConfig := ValidatorConfig{
@@ -175,12 +191,22 @@ func NewValidatorSmartContract(
 		enableUnbondTokensV2Epoch:        args.EpochConfig.EnableEpochs.UnbondTokensV2EnableEpoch,
 		validatorToDelegationEnableEpoch: args.EpochConfig.EnableEpochs.ValidatorToDelegationEnableEpoch,
 		shardCoordinator:                 args.ShardCoordinator,
+		stakeLimitsEnableEpoch:           args.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch,
+		nodeLimitPercentage:              args.StakingSCConfig.NodeLimitPercentage,
+		nodesCoordinator:                 args.NodesCoordinator,
 	}
+
+	reg.totalStakeLimit = core.GetIntTrimmedPercentageOfValue(args.GenesisTotalSupply, args.StakingSCConfig.StakeLimitPercentage)
+	if reg.totalStakeLimit.Cmp(baseConfig.NodePrice) < 0 {
+		return nil, fmt.Errorf("%w, value is %f", vm.ErrInvalidStakeLimitPercentage, args.StakingSCConfig.StakeLimitPercentage)
+	}
+
 	log.Debug("validator: enable epoch for staking v2", "epoch", reg.stakingV2Epoch)
 	log.Debug("validator: enable epoch for stake", "epoch", reg.enableStakingEpoch)
 	log.Debug("validator: enable epoch for double key protection", "epoch", reg.enableDoubleKeyEpoch)
 	log.Debug("validator: enable epoch for unbond tokens v2", "epoch", reg.enableUnbondTokensV2Epoch)
 	log.Debug("validator: enable epoch for validator to delegation", "epoch", reg.validatorToDelegationEnableEpoch)
+	log.Debug("validator: enable epoch for stake limits", "epoch", reg.stakeLimitsEnableEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(reg)
 
@@ -807,6 +833,11 @@ func (v *validatorSC) reStakeUnStakedNodes(args *vmcommon.ContractCallInput) vmc
 		return vmcommon.UserError
 	}
 
+	if v.isNumberOfNodesTooHigh(registrationData) {
+		v.eei.AddReturnMessage("number of nodes is too high")
+		return vmcommon.UserError
+	}
+
 	numQualified := big.NewInt(0).Div(registrationData.TotalStakeValue, validatorConfig.NodePrice)
 	if uint64(len(args.Arguments)) > numQualified.Uint64() {
 		v.eei.AddReturnMessage("insufficient funds")
@@ -909,6 +940,23 @@ func (v *validatorSC) checkAllGivenKeysAreUnStaked(registrationData *ValidatorDa
 	return mapBlsKeys, nil
 }
 
+func (v *validatorSC) isStakeTooHigh(registrationData *ValidatorDataV2) bool {
+	if !v.flagStakeLimits.IsSet() {
+		return false
+	}
+
+	return registrationData.TotalStakeValue.Cmp(v.totalStakeLimit) > 0
+}
+
+func (v *validatorSC) isNumberOfNodesTooHigh(registrationData *ValidatorDataV2) bool {
+	if !v.flagStakeLimits.IsSet() {
+		return false
+	}
+
+	nodeLimit := float64(v.nodesCoordinator.GetNumTotalEligible()) * v.nodeLimitPercentage
+	return len(registrationData.BlsPubKeys) > int(nodeLimit)
+}
+
 func (v *validatorSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	err := v.eei.UseGas(v.gasCost.MetaChainSystemSCsCost.Stake)
 	if err != nil {
@@ -939,6 +987,11 @@ func (v *validatorSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 				registrationData.TotalStakeValue.String(),
 			),
 		)
+		return vmcommon.UserError
+	}
+
+	if v.isStakeTooHigh(registrationData) {
+		v.eei.AddReturnMessage("total stake limit reached")
 		return vmcommon.UserError
 	}
 
@@ -1036,6 +1089,11 @@ func (v *validatorSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		registrationData.RewardAddress,
 		args.CallerAddr,
 	)
+
+	if v.isNumberOfNodesTooHigh(registrationData) {
+		v.eei.AddReturnMessage("number of nodes is too high")
+		return vmcommon.UserError
+	}
 
 	err = v.saveRegistrationData(args.CallerAddr, registrationData)
 	if err != nil {
@@ -2047,6 +2105,16 @@ func (v *validatorSC) mergeValidatorData(args *vmcommon.ContractCallInput) vmcom
 	validatorConfig := v.getConfig(v.eei.BlockChainHook().CurrentEpoch())
 	finalValidatorData.LockedStake.Mul(validatorConfig.NodePrice, big.NewInt(int64(finalValidatorData.NumRegistered)))
 
+	if v.isNumberOfNodesTooHigh(finalValidatorData) {
+		v.eei.AddReturnMessage("number of nodes is too high")
+		return vmcommon.UserError
+	}
+
+	if v.isStakeTooHigh(finalValidatorData) {
+		v.eei.AddReturnMessage("total stake limit reached")
+		return vmcommon.UserError
+	}
+
 	v.eei.SetStorage(oldAddress, nil)
 	err = v.saveRegistrationData(delegationAddr, finalValidatorData)
 	if err != nil {
@@ -2136,6 +2204,9 @@ func (v *validatorSC) EpochConfirmed(epoch uint32, _ uint64) {
 
 	v.flagUnbondTokensV2.Toggle(epoch >= v.enableUnbondTokensV2Epoch)
 	log.Debug("validatorSC: unbond tokens v2", "enabled", v.flagUnbondTokensV2.IsSet())
+
+	v.flagStakeLimits.Toggle(epoch >= v.stakeLimitsEnableEpoch)
+	log.Debug("validatorSC: stake limits", "enabled", v.flagStakeLimits.IsSet())
 }
 
 // CanUseContract returns true if contract can be used

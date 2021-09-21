@@ -42,6 +42,7 @@ type vmContainerFactory struct {
 	scFactory              vm.SystemSCContainerFactory
 	epochConfig            *config.EpochConfig
 	shardCoordinator       sharding.Coordinator
+	nodesCoordinator       vm.NodesCoordinator
 }
 
 // ArgsNewVMContainerFactory defines the arguments needed to create a new VM container factory
@@ -59,6 +60,7 @@ type ArgsNewVMContainerFactory struct {
 	EpochNotifier       process.EpochNotifier
 	EpochConfig         *config.EpochConfig
 	ShardCoordinator    sharding.Coordinator
+	NodesCoordinator    vm.NodesCoordinator
 }
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
@@ -96,6 +98,9 @@ func NewVMContainerFactory(args ArgsNewVMContainerFactory) (*vmContainerFactory,
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, fmt.Errorf("%w in NewVMContainerFactory", vm.ErrNilShardCoordinator)
 	}
+	if check.IfNil(args.NodesCoordinator) {
+		return nil, fmt.Errorf("%w in NewVMContainerFactory", process.ErrNilNodesCoordinator)
+	}
 
 	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(args.ArgBlockChainHook)
 	if err != nil {
@@ -119,6 +124,7 @@ func NewVMContainerFactory(args ArgsNewVMContainerFactory) (*vmContainerFactory,
 		addressPubKeyConverter: args.ArgBlockChainHook.PubkeyConv,
 		epochConfig:            args.EpochConfig,
 		shardCoordinator:       args.ShardCoordinator,
+		nodesCoordinator:       args.NodesCoordinator,
 	}, nil
 }
 
@@ -190,6 +196,7 @@ func (vmf *vmContainerFactory) createSystemVMFactoryAndEEI() (vm.SystemSCContain
 		AddressPubKeyConverter: vmf.addressPubKeyConverter,
 		EpochConfig:            vmf.epochConfig,
 		ShardCoordinator:       vmf.shardCoordinator,
+		NodesCoordinator:       vmf.nodesCoordinator,
 	}
 	scFactory, err := systemVMFactory.NewSystemSCFactory(argsNewSystemScFactory)
 	if err != nil {

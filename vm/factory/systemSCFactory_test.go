@@ -55,6 +55,8 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 				MaxNumberOfNodesForStake:             100,
 				ActivateBLSPubKeyMessageVerification: false,
 				MinUnstakeTokensValue:                "1",
+				StakeLimitPercentage:                 100.0,
+				NodeLimitPercentage:                  100.0,
 			},
 			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
 				MinServiceFee: 0,
@@ -77,6 +79,7 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 			},
 		},
 		ShardCoordinator: &mock.ShardCoordinatorStub{},
+		NodesCoordinator: &mock.NodesCoordinatorStub{},
 	}
 }
 
@@ -89,6 +92,17 @@ func TestNewSystemSCFactory_NilSystemEI(t *testing.T) {
 
 	assert.Nil(t, scFactory)
 	assert.True(t, errors.Is(err, vm.ErrNilSystemEnvironmentInterface))
+}
+
+func TestNewSystemSCFactory_NilNodesCoordinator(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockNewSystemScFactoryArgs()
+	arguments.NodesCoordinator = nil
+	scFactory, err := NewSystemSCFactory(arguments)
+
+	assert.Nil(t, scFactory)
+	assert.True(t, errors.Is(err, vm.ErrNilNodesCoordinator))
 }
 
 func TestNewSystemSCFactory_NilSigVerifier(t *testing.T) {
