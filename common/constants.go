@@ -339,9 +339,6 @@ const MetricTotalFees = "erd_total_fees"
 // MetricEpochForEconomicsData holds the epoch for which economics data are computed
 const MetricEpochForEconomicsData = "erd_epoch_for_economics_data"
 
-// LastNonceKeyMetricsStorage holds the key used for storing the last nonce for stored metrics
-const LastNonceKeyMetricsStorage = "lastNonce"
-
 // MetachainShardId will be used to identify a shard ID as metachain
 const MetachainShardId = uint32(0xFFFFFFFF)
 

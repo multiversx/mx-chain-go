@@ -245,6 +245,13 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
+	log.Trace("creating metrics")
+	//this should be called before setting the storer (done in the managedDataComponents creation)
+	err = nr.createMetrics(managedCoreComponents, managedCryptoComponents, managedBootstrapComponents)
+	if err != nil {
+		return true, err
+	}
+
 	log.Debug("creating data components")
 	managedDataComponents, err := nr.CreateManagedDataComponents(managedCoreComponents, managedBootstrapComponents)
 	if err != nil {
@@ -253,12 +260,6 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 
 	log.Debug("creating healthService")
 	healthService := nr.createHealthService(flagsConfig, managedDataComponents)
-
-	log.Trace("creating metrics")
-	err = nr.createMetrics(managedCoreComponents, managedCryptoComponents, managedBootstrapComponents)
-	if err != nil {
-		return true, err
-	}
 
 	nodesShufflerOut, err := mainFactory.CreateNodesShuffleOut(
 		managedCoreComponents.GenesisNodesSetup(),

@@ -26,16 +26,6 @@ func (shum *StatusHandlersUtilsMock) Metrics() external.StatusMetricsHandler {
 	return nil
 }
 
-// SignalStartViews -
-func (shum *StatusHandlersUtilsMock) SignalStartViews() {
-
-}
-
-// SignalLogRewrite -
-func (shum *StatusHandlersUtilsMock) SignalLogRewrite() {
-
-}
-
 // IsInterfaceNil -
 func (shum *StatusHandlersUtilsMock) IsInterfaceNil() bool {
 	return shum == nil

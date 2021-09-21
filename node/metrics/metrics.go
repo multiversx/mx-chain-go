@@ -19,8 +19,6 @@ const initZeroString = "0"
 // StatusHandlersUtils provides some functionality for statusHandlers
 type StatusHandlersUtils interface {
 	StatusHandler() core.AppStatusHandler
-	SignalStartViews()
-	SignalLogRewrite()
 	IsInterfaceNil() bool
 }
 
@@ -203,9 +201,6 @@ func InitMetrics(
 
 	appStatusHandler.SetUInt64Value(common.MetricNumValidators, uint64(numValidators))
 	appStatusHandler.SetUInt64Value(common.MetricConsensusGroupSize, uint64(consensusGroupSize))
-
-	statusHandlerUtils.SignalLogRewrite()
-	statusHandlerUtils.SignalStartViews()
 
 	return nil
 }
