@@ -3,8 +3,8 @@ package detector
 import (
 	"bytes"
 
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/process/slash"
@@ -56,7 +56,7 @@ func (hsd *HeaderSlashingDetector) VerifyData(data process.InterceptedData) slas
 	currRound := currentHeader.HeaderHandler().GetRound()
 	message, data2 := hsd.getSlashingResult(currentHeader, currRound, proposer)
 
-	hsd.cache.addProposerData(currRound, proposer, currentHeader)
+	hsd.cache.add(currRound, proposer, currentHeader)
 
 	// check another header with the same round and proposer exists, but a different hash
 	// if yes a slashingDetectorResult is returned with a message and the two headers

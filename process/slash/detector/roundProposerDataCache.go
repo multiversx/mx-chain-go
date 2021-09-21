@@ -1,12 +1,10 @@
 package detector
 
 import (
-	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
-type headerList []*interceptedBlocks.InterceptedHeader
-
-// proposer - header data map
+type headerList []process.InterceptedData
 type proposerHeadersMap map[string]headerList
 
 type roundProposerDataCache struct {
@@ -21,7 +19,7 @@ func newRoundProposerDataCache(maxRounds uint64) *roundProposerDataCache {
 	}
 }
 
-func (rpd *roundProposerDataCache) addProposerData(round uint64, pubKey []byte, data *interceptedBlocks.InterceptedHeader) {
+func (rpd *roundProposerDataCache) add(round uint64, pubKey []byte, data process.InterceptedData) {
 	pubKeyStr := string(pubKey)
 
 	if rpd.isCacheFull() {
@@ -46,7 +44,7 @@ func (rpd *roundProposerDataCache) getProposedHeaders(round uint64, pubKey []byt
 	pubKeyStr := string(pubKey)
 
 	if _, exists := rpd.cache[round]; exists {
-		if _, exists := rpd.cache[round][pubKeyStr]; exists {
+		if _, exists = rpd.cache[round][pubKeyStr]; exists {
 			return rpd.cache[round][pubKeyStr]
 		}
 	}
