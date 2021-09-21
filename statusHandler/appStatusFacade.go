@@ -2,6 +2,7 @@ package statusHandler
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 )
 
 // AppStatusFacade will be used for handling multiple monitoring tools at once
@@ -15,7 +16,7 @@ func NewAppStatusFacadeWithHandlers(aphs ...core.AppStatusHandler) (*AppStatusFa
 		return nil, ErrHandlersSliceIsNil
 	}
 	for _, aph := range aphs {
-		if aph == nil || aph.IsInterfaceNil() {
+		if check.IfNil(aph) {
 			return nil, ErrNilHandlerInSlice
 		}
 	}
