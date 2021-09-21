@@ -438,7 +438,7 @@ func TestStakingValidatorSC_ExecuteStakeTooManyNodes(t *testing.T) {
 	args.NodesCoordinator = &mock.NodesCoordinatorStub{GetNumTotalEligibleCalled: func() uint64 {
 		return 1000
 	}}
-	args.StakingSCConfig.NodeLimitPercentage = 0.5
+	args.StakingSCConfig.NodeLimitPercentage = 0.005
 	stakingValidatorSc, _ := NewValidatorSmartContract(args)
 
 	validatorData := createAValidatorData(25000000, 3, 12500000)

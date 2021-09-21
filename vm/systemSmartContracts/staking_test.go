@@ -49,8 +49,8 @@ func createMockStakingScArgumentsWithSystemScAddresses(
 			MaxNumberOfNodesForStake:             10,
 			ActivateBLSPubKeyMessageVerification: false,
 			MinUnstakeTokensValue:                "1",
-			StakeLimitPercentage:                 100.0,
-			NodeLimitPercentage:                  100.0,
+			StakeLimitPercentage:                 1.0,
+			NodeLimitPercentage:                  1.0,
 		},
 		EpochNotifier: &mock.EpochNotifierStub{},
 		EpochConfig: config.EpochConfig{

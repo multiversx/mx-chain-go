@@ -11,8 +11,8 @@
     MaxNumberOfNodesForStake = 36
     UnJailValue = "2500000000000000000" #0.1% of genesis node price
     ActivateBLSPubKeyMessageVerification = false
-    StakeLimitPercentage = 1.0
-    NodeLimitPercentage = 0.5
+    StakeLimitPercentage = 0.01 #fraction of value 0.01 - 1%
+    NodeLimitPercentage = 0.005 #fraction of value 0.005 - 0.5%
 
 [ESDTSystemSCConfig]
     BaseIssuingCost = "5000000000000000000" #5 eGLD
