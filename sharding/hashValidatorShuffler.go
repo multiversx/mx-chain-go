@@ -18,6 +18,7 @@ var _ NodesShuffler = (*randHashShuffler)(nil)
 type NodesShufflerArgs struct {
 	NodesShard                     uint32
 	NodesMeta                      uint32
+	WaitingPerShard                uint32
 	Hysteresis                     float32
 	Adaptivity                     bool
 	ShuffleBetweenShards           bool
@@ -277,7 +278,7 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 	stillRemainingInLeaving := append(stillRemainingUnstakeLeaving, stillRemainingAdditionalLeaving...)
 
 	shuffledOutMap, newEligible := shuffleOutNodes(newEligible, numToRemove, arg.randomness)
-	// TODO: add here the selection between shuffled out map - rest of the waiting list nodes - outside of the 400 extra on top of eligible
+	// TODO: shuffle out map should not be moved to waiting lists in current epoch, only if there is still some place left
 	err = moveMaxNumNodesToMap(newEligible, newWaiting, arg.nodesMeta, arg.nodesPerShard)
 	if err != nil {
 		log.Warn("moveNodesToMap failed", "error", err)

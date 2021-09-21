@@ -230,6 +230,7 @@ type MaxNodesChangeConfig struct {
 	EpochEnable            uint32
 	MaxNumNodes            uint32
 	NodesToShufflePerShard uint32
+	MaxWaitingPerShard     uint32
 }
 
 // GeneralSettingsConfig will hold the general settings for a node

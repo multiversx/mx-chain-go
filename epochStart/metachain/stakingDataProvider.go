@@ -318,11 +318,11 @@ func (sdp *stakingDataProvider) ComputeUnQualifiedNodes(validatorInfos map[uint3
 	return keysToUnStake, mapOwnersKeys, nil
 }
 
-func createMapBLSKeyStatus(validatorInfos map[uint32][]*state.ValidatorInfo) map[string]string {
-	mapBLSKeyStatus := make(map[string]string)
+func createMapBLSKeyStatus(validatorInfos map[uint32][]*state.ValidatorInfo) map[string]*state.ValidatorInfo {
+	mapBLSKeyStatus := make(map[string]*state.ValidatorInfo)
 	for _, validatorsInfoSlice := range validatorInfos {
 		for _, validatorInfo := range validatorsInfoSlice {
-			mapBLSKeyStatus[string(validatorInfo.PublicKey)] = validatorInfo.List
+			mapBLSKeyStatus[string(validatorInfo.PublicKey)] = validatorInfo
 		}
 	}
 
@@ -361,19 +361,81 @@ func selectKeysToUnStake(sortedKeys map[string][][]byte, numToSelect int64) [][]
 	return selectedKeys
 }
 
-func arrangeBlsKeysByStatus(mapBlsKeyStatus map[string]string, blsKeys [][]byte) map[string][][]byte {
+func arrangeBlsKeysByStatus(mapBlsKeyStatus map[string]*state.ValidatorInfo, blsKeys [][]byte) map[string][][]byte {
 	sortedKeys := make(map[string][][]byte)
 	for _, blsKey := range blsKeys {
-		blsKeyStatus, ok := mapBlsKeyStatus[string(blsKey)]
+		validatorInfo, ok := mapBlsKeyStatus[string(blsKey)]
 		if !ok {
 			sortedKeys[string(common.NewList)] = append(sortedKeys[string(common.NewList)], blsKey)
 			continue
 		}
 
-		sortedKeys[blsKeyStatus] = append(sortedKeys[blsKeyStatus], blsKey)
+		sortedKeys[validatorInfo.List] = append(sortedKeys[validatorInfo.List], blsKey)
 	}
 
 	return sortedKeys
+}
+
+// SelectNextNodesForWaiting will iterate over all the provider and select nodes with infinite index which are to be selected in waiting
+func (sdp *stakingDataProvider) SelectNextNodesForWaiting(validatorInfos map[uint32][]*state.ValidatorInfo) error {
+
+	for _, vInfoList := range validatorInfos {
+		for _, validator := range vInfoList {
+
+		}
+	}
+
+	return nil
+}
+
+func (sdp *stakingDataProvider) createMapOwnersTopUpWaitingNodes(validatorInfos map[uint32][]*state.ValidatorInfo) map[string]*ownerStats {
+
+	mapBLSKeyStatus := createMapBLSKeyStatus(validatorInfos)
+	for owner, stats := range sdp.cache {
+		if areNodesJailed(mapBLSKeyStatus, stats.blsKeys) {
+			continue
+		}
+
+		numWaiting := stats.numStakedNodes - int64(stats.numEligible)
+		if numWaiting <= 0 {
+			continue
+		}
+
+		numNodesWithMaxIndex :=
+
+		topUpPerNode := big.NewInt(0).Div(stats.topUpValue, big.NewInt(stats.numStakedNodes))
+		maxToDistribute := big.NewInt(0).Mul(topUpPerNode, big.NewInt(numWaiting))
+	}
+
+	return nil
+}
+
+func areNodesJailed(mapBLSKeyStatus map[string]*state.ValidatorInfo, blsKeys [][]byte) bool {
+	for _, blsKey := range blsKeys {
+		validatorInfo, ok := mapBLSKeyStatus[string(blsKey)]
+		if !ok {
+			continue
+		}
+		if validatorInfo.List == string(common.JailedList) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func nodesInNewList(mapBLSKeyStatus map[string]*state.ValidatorInfo, blsKeys [][]byte) [][]byte {
+	newBLSKeys := make([][]byte, 0)
+	for _, blsKey := range blsKeys {
+		validatorInfo, ok := mapBLSKeyStatus[string(blsKey)]
+		if !ok {
+			continue
+		}
+		if validatorInfo.List == string(common.NewList) {
+			newBLSKeys = append(newBLSKeys, blsKey)
+		}
+	}
+	return newBLSKeys
 }
 
 // IsInterfaceNil return true if underlying object is nil
