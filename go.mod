@@ -7,7 +7,7 @@ require (
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.30
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.12
 	github.com/ElrondNetwork/concurrent-map v0.1.3
-	github.com/ElrondNetwork/covalent-indexer-go v1.0.1
+	github.com/ElrondNetwork/covalent-indexer-go v1.0.2
 	github.com/ElrondNetwork/elastic-indexer-go v1.0.8
 	github.com/ElrondNetwork/elrond-go-core v1.1.0
 	github.com/ElrondNetwork/elrond-go-crypto v1.0.1
@@ -19,7 +19,6 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/elastic/go-elasticsearch/v7 v7.12.0
 	github.com/gin-contrib/cors v0.0.0-20190301062745-f9e10995c85a
-	github.com/gin-contrib/pprof v1.3.0
 	github.com/gin-gonic/gin v1.7.4
 	github.com/gizak/termui/v3 v3.1.0
 	github.com/gogo/protobuf v1.3.2
