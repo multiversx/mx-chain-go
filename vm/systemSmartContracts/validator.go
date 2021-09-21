@@ -21,7 +21,7 @@ import (
 
 const unJailedFunds = "unJailFunds"
 const unStakeUnBondPauseKey = "unStakeUnBondPause"
-const minPercentage = 0.01
+const minPercentage = 0.0001
 
 var zero = big.NewInt(0)
 
@@ -192,7 +192,7 @@ func NewValidatorSmartContract(
 		validatorToDelegationEnableEpoch: args.EpochConfig.EnableEpochs.ValidatorToDelegationEnableEpoch,
 		shardCoordinator:                 args.ShardCoordinator,
 		stakeLimitsEnableEpoch:           args.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch,
-		nodeLimitPercentage:              args.StakingSCConfig.NodeLimitPercentage / 100.0,
+		nodeLimitPercentage:              args.StakingSCConfig.NodeLimitPercentage,
 		nodesCoordinator:                 args.NodesCoordinator,
 	}
 
