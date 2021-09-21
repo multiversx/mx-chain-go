@@ -26,6 +26,12 @@ type ownerStats struct {
 	blsKeys            [][]byte
 }
 
+// StatsForNodeSelection -
+type StatsForNodeSelection struct {
+	MaxToDistribute *big.Int
+	BlsKeys         [][]byte
+}
+
 type stakingDataProvider struct {
 	mutStakingData          sync.RWMutex
 	cache                   map[string]*ownerStats
@@ -376,6 +382,10 @@ func arrangeBlsKeysByStatus(mapBlsKeyStatus map[string]*state.ValidatorInfo, bls
 	return sortedKeys
 }
 
+// TODO: preexecute nodescoordinator selection for shuffled out nodes - in order to correctly select those nodes which
+// will enter from NEW to WAITING on the next epoch - and do the ordering and peer miniblocks creation here
+// The actual creation will be done in NewValidatorInfoCreator - which will receive this computed result from the staking data provider
+
 // SelectNextNodesForWaiting will iterate over all the provider and select nodes with infinite index which are to be selected in waiting
 func (sdp *stakingDataProvider) SelectNextNodesForWaiting(validatorInfos map[uint32][]*state.ValidatorInfo) error {
 
@@ -389,7 +399,7 @@ func (sdp *stakingDataProvider) SelectNextNodesForWaiting(validatorInfos map[uin
 }
 
 func (sdp *stakingDataProvider) createMapOwnersTopUpWaitingNodes(validatorInfos map[uint32][]*state.ValidatorInfo) map[string]*ownerStats {
-
+	newQualifyingNodesStats := make(map[string])
 	mapBLSKeyStatus := createMapBLSKeyStatus(validatorInfos)
 	for owner, stats := range sdp.cache {
 		if areNodesJailed(mapBLSKeyStatus, stats.blsKeys) {
@@ -401,10 +411,13 @@ func (sdp *stakingDataProvider) createMapOwnersTopUpWaitingNodes(validatorInfos 
 			continue
 		}
 
-		numNodesWithMaxIndex :=
+		newNodes := nodesInNewList(mapBLSKeyStatus, stats.blsKeys)
+		if len(newNodes) == 0 {
+			continue
+		}
 
 		topUpPerNode := big.NewInt(0).Div(stats.topUpValue, big.NewInt(stats.numStakedNodes))
-		maxToDistribute := big.NewInt(0).Mul(topUpPerNode, big.NewInt(numWaiting))
+		maxToDistribute := big.NewInt(0).Mul(topUpPerNode, big.NewInt(int64(len(newNodes))))
 	}
 
 	return nil
