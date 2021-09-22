@@ -68,6 +68,7 @@ type scProcessor struct {
 	incrementSCRNonceInMultiTransferEnableEpoch uint32
 	builtInFunctionOnMetachainEnableEpoch       uint32
 	scrSizeInvariantCheckEnableEpoch            uint32
+	backwardCompSaveKeyValueEnableEpoch         uint32
 	flagStakingV2                               atomic.Flag
 	flagDeploy                                  atomic.Flag
 	flagBuiltin                                 atomic.Flag
@@ -78,6 +79,7 @@ type scProcessor struct {
 	flagIncrementSCRNonceInMultiTransfer        atomic.Flag
 	flagBuiltInFunctionOnMetachain              atomic.Flag
 	flagSCRSizeInvariantCheck                   atomic.Flag
+	flagBackwardCompOnSaveKeyValue              atomic.Flag
 	arwenChangeLocker                           process.Locker
 
 	badTxForwarder process.IntermediateTransactionHandler
@@ -122,6 +124,7 @@ type ArgsNewSmartContractProcessor struct {
 	IncrementSCRNonceInMultiTransferEnableEpoch uint32
 	BuiltInFunctionOnMetachainEnableEpoch       uint32
 	SCRSizeInvariantCheckEnableEpoch            uint32
+	BackwardCompSaveKeyValueEnableEpoch         uint32
 	EpochNotifier                               process.EpochNotifier
 	VMOutputCacher                              storage.Cacher
 	ArwenChangeLocker                           process.Locker
@@ -2471,6 +2474,9 @@ func (sc *scProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 
 	sc.flagSCRSizeInvariantCheck.Toggle(epoch >= sc.scrSizeInvariantCheckEnableEpoch)
 	log.Debug("scProcessor: scr size invariant check", "enabled", sc.flagSCRSizeInvariantCheck.IsSet())
+
+	sc.flagBackwardCompOnSaveKeyValue.Toggle(epoch < sc.backwardCompSaveKeyValueEnableEpoch)
+	log.Debug("scProcessor: backward compatibility on save key value", "enabled", sc.flagBackwardCompOnSaveKeyValue.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

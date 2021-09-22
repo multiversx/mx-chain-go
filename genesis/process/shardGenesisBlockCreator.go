@@ -62,6 +62,7 @@ func createGenesisConfig() config.EnableEpochs {
 		ComputeRewardCheckpointEnableEpoch:          unreachableEpoch,
 		IncrementSCRNonceInMultiTransferEnableEpoch: unreachableEpoch,
 		SCRSizeInvariantCheckEnableEpoch:            unreachableEpoch,
+		BackwardCompSaveKeyValueEnableEpoch:         unreachableEpoch,
 	}
 }
 
@@ -422,6 +423,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		SenderInOutTransferEnableEpoch:        enableEpochs.SenderInOutTransferEnableEpoch,
 		BuiltInFunctionOnMetachainEnableEpoch: enableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 		SCRSizeInvariantCheckEnableEpoch:      enableEpochs.SCRSizeInvariantCheckEnableEpoch,
+		BackwardCompSaveKeyValueEnableEpoch:   enableEpochs.BackwardCompSaveKeyValueEnableEpoch,
 		IsGenesisProcessing:                   true,
 		StakingV2EnableEpoch:                  arg.EpochConfig.EnableEpochs.StakingV2EnableEpoch,
 		VMOutputCacher:                        txcache.NewDisabledCache(),
