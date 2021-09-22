@@ -4,13 +4,13 @@ import "github.com/ElrondNetwork/elrond-go/process"
 
 type slashingProof struct {
 	level        string
-	slashingType string
+	slashingType SlashingType
 	data1        process.InterceptedData
 	data2        process.InterceptedData
 }
 
 // NewSlashingProof - creates a new slashing proof with a level, type and data
-func NewSlashingProof(level string, sType string, data1 process.InterceptedData, data2 process.InterceptedData) SlashingProofHandler {
+func NewSlashingProof(level string, sType SlashingType, data1 process.InterceptedData, data2 process.InterceptedData) SlashingProofHandler {
 	return &slashingProof{
 		level:        level,
 		slashingType: sType,
@@ -25,7 +25,7 @@ func (sp *slashingProof) GetLevel() string {
 }
 
 // GetType - gets the slashing proofs type
-func (sp *slashingProof) GetType() string {
+func (sp *slashingProof) GetType() SlashingType {
 	return sp.slashingType
 }
 

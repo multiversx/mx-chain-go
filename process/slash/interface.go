@@ -8,7 +8,7 @@ import (
 // SlashingDetectorResultHandler - contains the result of a slashing detection
 type SlashingDetectorResultHandler interface {
 	//GetType - contains the type of slashing detection
-	GetType() string
+	GetType() SlashingType
 	//GetData1 - contains the first data of slashing detection
 	GetData1() process.InterceptedData
 	//GetData2 - contains the second data of slashing detection
@@ -21,7 +21,7 @@ type SlashingProofHandler interface {
 	// multiple colluding parties should have a higher leve
 	GetLevel() string
 	//GetType - contains the type of slashing detection
-	GetType() string
+	GetType() SlashingType
 	//GetData1 - contains the first data of slashing detection
 	GetData1() process.InterceptedData
 	//GetData2 - contains the second data of slashing detection
@@ -31,7 +31,7 @@ type SlashingProofHandler interface {
 // SlashingDetector - checks for slashable events and generates proofs to be used for slash
 type SlashingDetector interface {
 	// VerifyData - checks if an intercepted data represents a slashable event
-	VerifyData(data process.InterceptedData) SlashingDetectorResultHandler
+	VerifyData(data process.InterceptedData) (SlashingDetectorResultHandler, error)
 	// GenerateProof - creates the SlashingProofHandler for the DetectorResult to be added to the Tx Data Field
 	GenerateProof(result SlashingDetectorResultHandler) SlashingProofHandler
 }

@@ -5,14 +5,14 @@ import "github.com/ElrondNetwork/elrond-go/process"
 // slashingDetectorResult - represents the result of a slash detection and contains the duplicate data
 // that can be double proposals or double signatures
 type slashingDetectorResult struct {
-	message string
+	message SlashingType
 	data1   process.InterceptedData
 	data2   process.InterceptedData
 }
 
 // NewSlashingDetectorResult - creates a new slashingDetectorResult containing data required to generate a slashing proof
 func NewSlashingDetectorResult(
-	message string,
+	message SlashingType,
 	data1 process.InterceptedData,
 	data2 process.InterceptedData,
 ) SlashingDetectorResultHandler {
@@ -24,7 +24,7 @@ func NewSlashingDetectorResult(
 }
 
 // GetType - gets the result type of the current slash detection
-func (sdr *slashingDetectorResult) GetType() string {
+func (sdr *slashingDetectorResult) GetType() SlashingType {
 	return sdr.message
 }
 

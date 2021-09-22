@@ -11,14 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-type HeaderSlashingResult string
-
-const (
-	None             HeaderSlashingResult = "none"
-	DoubleProposal   HeaderSlashingResult = "header double proposal"
-	MultipleProposal HeaderSlashingResult = "header multiple proposal"
-)
-
 // HeaderSlashingDetector - checks for slashable events for headers
 type HeaderSlashingDetector struct {
 	cache            *roundProposerDataCache
@@ -26,9 +18,9 @@ type HeaderSlashingDetector struct {
 }
 
 // NewHeaderSlashingDetector - creates a new header slashing detector for multiple propose
-func NewHeaderSlashingDetector(nodesCoordinator sharding.NodesCoordinator) slash.SlashingDetector {
+func NewHeaderSlashingDetector(nodesCoordinator sharding.NodesCoordinator) (slash.SlashingDetector, error) {
 	if check.IfNil(nodesCoordinator) {
-		return nil // TODO: ,process.ErrNilShardCoordinator
+		return nil, process.ErrNilNodesCoordinator
 	}
 
 	//TODO: Use a number from config file
@@ -36,21 +28,19 @@ func NewHeaderSlashingDetector(nodesCoordinator sharding.NodesCoordinator) slash
 	return &HeaderSlashingDetector{
 		cache:            cache,
 		nodesCoordinator: nodesCoordinator,
-	}
+	}, nil
 }
 
-//TODO: Return error
-
 // VerifyData - checks if an intercepted data represents a slashable event
-func (hsd *HeaderSlashingDetector) VerifyData(data process.InterceptedData) slash.SlashingDetectorResultHandler {
+func (hsd *HeaderSlashingDetector) VerifyData(data process.InterceptedData) (slash.SlashingDetectorResultHandler, error) {
 	currentHeader, ok := data.(*interceptedBlocks.InterceptedHeader)
 	if !ok {
-		return nil
+		return nil, process.ErrCannotCastInterceptedDataToHeader
 	}
 
 	proposer, err := hsd.getProposer(currentHeader.HeaderHandler())
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	currRound := currentHeader.HeaderHandler().GetRound()
@@ -60,7 +50,7 @@ func (hsd *HeaderSlashingDetector) VerifyData(data process.InterceptedData) slas
 
 	// check another header with the same round and proposer exists, but a different hash
 	// if yes a slashingDetectorResult is returned with a message and the two headers
-	return slash.NewSlashingDetectorResult(string(message), currentHeader, data2)
+	return slash.NewSlashingDetectorResult(message, currentHeader, data2), nil
 }
 
 // GenerateProof - creates the SlashingProofHandler for the DetectorResult to be added to the Tx Data Field
@@ -81,25 +71,29 @@ func (hsd *HeaderSlashingDetector) getProposer(header data.HeaderHandler) ([]byt
 	return validators[0].PubKey(), nil
 }
 
-func (hsd *HeaderSlashingDetector) getSlashingResult(currHeader process.InterceptedData, currRound uint64, proposerPubKey []byte) (HeaderSlashingResult, process.InterceptedData) {
+func (hsd *HeaderSlashingDetector) getSlashingResult(
+	currHeader process.InterceptedData,
+	currRound uint64,
+	proposerPubKey []byte,
+) (slash.SlashingType, process.InterceptedData) {
 	data2 := process.InterceptedData(nil)
-	message := None
-	proposedHeaders := hsd.cache.getProposedHeaders(currRound, proposerPubKey)
+	message := slash.None
+	proposedHeaders := hsd.cache.proposedData(currRound, proposerPubKey)
 
 	if len(proposedHeaders) == 1 && bytes.Equal(currHeader.Hash(), proposedHeaders[0].Hash()) {
 		data2 = proposedHeaders[0]
-		message = DoubleProposal
+		message = slash.DoubleProposal
 	} else if len(proposedHeaders) >= 2 {
 		data2 = hsd.getFirstProposedHeaderWithDifferentHash(currHeader.Hash(), proposedHeaders)
 		if data2 != nil {
-			message = MultipleProposal
+			message = slash.MultipleProposal
 		}
 	}
 
 	return message, data2
 }
 
-func (hsd *HeaderSlashingDetector) getFirstProposedHeaderWithDifferentHash(currHash []byte, otherHeaders headerList) process.InterceptedData {
+func (hsd *HeaderSlashingDetector) getFirstProposedHeaderWithDifferentHash(currHash []byte, otherHeaders dataList) process.InterceptedData {
 	for _, currHeader := range otherHeaders {
 		if bytes.Equal(currHash, currHeader.Hash()) {
 			return currHeader

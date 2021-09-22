@@ -857,6 +857,9 @@ var ErrTrieNodeIsNotWhitelisted = errors.New("trie node is not whitelisted")
 // ErrInterceptedDataNotForCurrentShard signals that intercepted data is not for current shard
 var ErrInterceptedDataNotForCurrentShard = errors.New("intercepted data not for current shard")
 
+// ErrCannotCastInterceptedDataToHeader signals that intercepted data cannot be converted to header data
+var ErrCannotCastInterceptedDataToHeader = errors.New("cannot cast intercepted data to header data")
+
 // ErrAccountNotPayable will be sent when trying to send money to a non-payable account
 var ErrAccountNotPayable = errors.New("sending value to non payable contract")
 
