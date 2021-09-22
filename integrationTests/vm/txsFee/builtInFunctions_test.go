@@ -5,17 +5,18 @@
 package txsFee
 
 import (
+	"bytes"
 	"encoding/hex"
 	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
@@ -284,7 +285,6 @@ func TestBuildInFunctionSaveKeyValue_NotEnoughGasFor3rdSave(t *testing.T) {
 	gasLimit := uint64(len(txData) + 20)
 	gasPrice := uint64(10)
 
-	_ = logger.SetLogLevel("*:TRACE")
 	tx := vm.CreateTransaction(0, big.NewInt(0), sndAddr, sndAddr, gasPrice, gasLimit, txData)
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.UserError, retCode)
@@ -292,4 +292,8 @@ func TestBuildInFunctionSaveKeyValue_NotEnoughGasFor3rdSave(t *testing.T) {
 
 	intermediateTxs := testContext.GetIntermediateTransactions(t)
 	require.True(t, len(intermediateTxs) > 1)
+
+	account, _ := testContext.Accounts.LoadAccount(sndAddr)
+	userAcc, _ := account.(state.UserAccountHandler)
+	require.True(t, bytes.Equal(make([]byte, 32), userAcc.GetRootHash()))
 }
