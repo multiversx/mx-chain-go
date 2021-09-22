@@ -8,16 +8,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
-	factoryDisabled "github.com/ElrondNetwork/elrond-go/factory/disabled"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
-	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/update"
-	updateSync "github.com/ElrondNetwork/elrond-go/update/sync"
 )
 
 type startInEpochWithScheduledDataSyncer struct {
@@ -29,69 +22,21 @@ type startInEpochWithScheduledDataSyncer struct {
 }
 
 func NewStartInEpochShardHeaderDataSyncerWithScheduled(
-	scheduledSCRsStorer storage.Storer,
-	dataPool dataRetriever.PoolsHolder,
-	marshaller marshal.Marshalizer,
-	requestHandler process.RequestHandler,
+	scheduledTxsHandler process.ScheduledTxsExecutionHandler,
+	headersSyncer epochStart.HeadersByHashSyncer,
+	miniBlocksSyncer epochStart.PendingMiniBlocksSyncHandler,
+	txSyncer update.TransactionsSyncHandler,
 	scheduledEnableEpoch uint32,
 ) (*startInEpochWithScheduledDataSyncer, error) {
 
-	if check.IfNil(scheduledSCRsStorer) {
-		return nil, epochStart.ErrNilStorage
+	if check.IfNil(headersSyncer) {
+		return nil, epochStart.ErrNilHeadersSyncer
 	}
-	if check.IfNil(dataPool) {
-		return nil, epochStart.ErrNilDataPoolsHolder
+	if check.IfNil(miniBlocksSyncer) {
+		return nil, epochStart.ErrNilMiniBlocksSyncer
 	}
-	if check.IfNil(marshaller) {
-		return nil, epochStart.ErrNilMarshalizer
-	}
-	if check.IfNil(requestHandler) {
-		return nil, epochStart.ErrNilRequestHandler
-	}
-
-	scheduledTxsHandler, err := preprocess.NewScheduledTxsExecution(
-		&factoryDisabled.TxProcessor{},
-		&factoryDisabled.TxCoordinator{},
-		scheduledSCRsStorer,
-		marshaller,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	syncMiniBlocksArgs := updateSync.ArgsNewPendingMiniBlocksSyncer{
-		Storage:        disabled.CreateMemUnit(),
-		Cache:          dataPool.MiniBlocks(),
-		Marshalizer:    marshaller,
-		RequestHandler: requestHandler,
-	}
-	miniBlocksSyncer, err := updateSync.NewPendingMiniBlocksSyncer(syncMiniBlocksArgs)
-	if err != nil {
-		return nil, err
-	}
-
-	syncMissingHeadersArgs := updateSync.ArgsNewMissingHeadersByHashSyncer{
-		Storage:        disabled.CreateMemUnit(),
-		Cache:          dataPool.Headers(),
-		Marshalizer:    marshaller,
-		RequestHandler: requestHandler,
-	}
-
-	headersSyncer, err := updateSync.NewMissingheadersByHashSyncer(syncMissingHeadersArgs)
-	if err != nil {
-		return nil, err
-	}
-
-	syncTxsArgs := updateSync.ArgsNewTransactionsSyncer{
-		DataPools:      dataPool,
-		Storages:       dataRetriever.NewChainStorer(),
-		Marshalizer:    marshaller,
-		RequestHandler: requestHandler,
-	}
-
-	txSyncer, err := updateSync.NewTransactionsSyncer(syncTxsArgs)
-	if err != nil {
-		return nil, err
+	if check.IfNil(txSyncer) {
+		return nil, epochStart.ErrNilTransactionsSyncer
 	}
 
 	return &startInEpochWithScheduledDataSyncer{
@@ -160,10 +105,15 @@ func (ses *startInEpochWithScheduledDataSyncer) getRequiredHeaderByHash(
 	}
 
 	// get also the previous meta block to the first used meta block, which should should be completed
-	if len(prevHeaders) > 0 {
+	if len(hashesToRequest) > 0 {
 		var prevPrevHeaders map[string]data.HeaderHandler
 		shardIDs = []uint32{core.MetachainShardId}
-		hashesToRequest = [][]byte{prevHeaders[string(hashesToRequest[0])].GetPrevHash()}
+		header := prevHeaders[string(hashesToRequest[0])]
+		if header == nil {
+			return nil, nil, epochStart.ErrMissingHeader
+		}
+
+		hashesToRequest = [][]byte{header.GetPrevHash()}
 		prevPrevHeaders, err = ses.syncHeaders(shardIDs, hashesToRequest)
 		if err != nil {
 			return nil, nil, err

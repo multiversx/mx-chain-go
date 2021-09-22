@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/syncer"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
@@ -224,7 +225,7 @@ func TestSyncState_SyncAllStatePendingMiniBlocksErr(t *testing.T) {
 				return localErr
 			},
 		},
-		Transactions: &mock.PendingTransactionsSyncHandlerMock{},
+		Transactions: &syncer.TransactionsSyncHandlerMock{},
 	}
 
 	ss, err := NewSyncState(args)
@@ -253,7 +254,7 @@ func TestSyncState_SyncAllStateGetMiniBlocksErr(t *testing.T) {
 				return nil, localErr
 			},
 		},
-		Transactions: &mock.PendingTransactionsSyncHandlerMock{},
+		Transactions: &syncer.TransactionsSyncHandlerMock{},
 	}
 
 	ss, err := NewSyncState(args)
@@ -278,8 +279,8 @@ func TestSyncState_SyncAllStateSyncTxsErr(t *testing.T) {
 		},
 		Tries:      &mock.EpochStartTriesSyncHandlerMock{},
 		MiniBlocks: &mock.EpochStartPendingMiniBlocksSyncHandlerMock{},
-		Transactions: &mock.PendingTransactionsSyncHandlerMock{
-			SyncPendingTransactionsForCalled: func(miniBlocks map[string]*block.MiniBlock, epoch uint32, ctx context.Context) error {
+		Transactions: &syncer.TransactionsSyncHandlerMock{
+			SyncTransactionsForCalled: func(miniBlocks map[string]*block.MiniBlock, epoch uint32, ctx context.Context) error {
 				return localErr
 			},
 		},

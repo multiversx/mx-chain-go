@@ -58,7 +58,7 @@ func TestShardStorageHandler_SaveDataToStorageShardDataNotFound(t *testing.T) {
 		ShardHeader:         &block.Header{Nonce: 1},
 	}
 
-	err := shardStrHandler.SaveDataToStorage(components)
+	err := shardStrHandler.SaveDataToStorage(components, false)
 	assert.Equal(t, epochStart.ErrEpochStartDataForShardNotFound, err)
 }
 
@@ -91,7 +91,7 @@ func TestShardStorageHandler_SaveDataToStorageMissingHeader(t *testing.T) {
 		ShardHeader:        &block.Header{Nonce: 1},
 	}
 
-	err := shardStrHandler.SaveDataToStorage(components)
+	err := shardStrHandler.SaveDataToStorage(components, false)
 	assert.Equal(t, epochStart.ErrMissingHeader, err)
 }
 
@@ -134,7 +134,7 @@ func TestShardStorageHandler_SaveDataToStorage(t *testing.T) {
 		NodesConfig:        &sharding.NodesCoordinatorRegistry{},
 	}
 
-	err := shardStrHandler.SaveDataToStorage(components)
+	err := shardStrHandler.SaveDataToStorage(components, false)
 	assert.Nil(t, err)
 }
 

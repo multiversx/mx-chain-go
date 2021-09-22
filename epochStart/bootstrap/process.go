@@ -25,7 +25,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	factoryInterceptors "github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/factory"
+	factoryDisabled "github.com/ElrondNetwork/elrond-go/factory/disabled"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	disabledInterceptors "github.com/ElrondNetwork/elrond-go/process/interceptors/disabled"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -105,6 +107,8 @@ type epochStartBootstrap struct {
 	dataPool                  dataRetriever.PoolsHolder
 	miniBlocksSyncer          epochStart.PendingMiniBlocksSyncHandler
 	headersSyncer             epochStart.HeadersByHashSyncer
+	txSyncerForScheduled      update.TransactionsSyncHandler
+	transactionsSyncer        update.TransactionsSyncHandler
 	epochStartMetaBlockSyncer epochStart.StartOfEpochMetaSyncer
 	nodesConfigHandler        StartOfEpochNodesConfigHandler
 	whiteListHandler          update.WhiteListHandler
@@ -113,6 +117,8 @@ type epochStartBootstrap struct {
 	latestStorageDataProvider storage.LatestStorageDataProviderHandler
 	argumentsParser           process.ArgumentsParser
 	enableEpochs              config.EnableEpochs
+
+	dataSyncerWithScheduled *startInEpochWithScheduledDataSyncer
 
 	// gathered data
 	epochStartMeta     data.MetaHeaderHandler
@@ -542,6 +548,18 @@ func (e *epochStartBootstrap) createSyncers() error {
 		return err
 	}
 
+	syncTxsArgs := updateSync.ArgsNewTransactionsSyncer{
+		DataPools:      e.dataPool,
+		Storages:       dataRetriever.NewChainStorer(),
+		Marshalizer:    e.coreComponentsHolder.InternalMarshalizer(),
+		RequestHandler: e.requestHandler,
+	}
+
+	e.txSyncerForScheduled, err = updateSync.NewTransactionsSyncer(syncTxsArgs)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -887,25 +905,36 @@ func (e *epochStartBootstrap) getDataToSync(
 func (e *epochStartBootstrap) updateDataForScheduled(
 	shardNotarizedHeader data.ShardHeaderHandler,
 ) (data.ShardHeaderHandler, []byte, map[string]data.HeaderHandler, error) {
-	dataSyncerWithScheduled, err := NewStartInEpochShardHeaderDataSyncerWithScheduled(
+
+	scheduledTxsHandler, err := preprocess.NewScheduledTxsExecution(
+		&factoryDisabled.TxProcessor{},
+		&factoryDisabled.TxCoordinator{},
 		e.storerScheduledSCRs,
-		e.dataPool,
 		e.coreComponentsHolder.InternalMarshalizer(),
-		e.requestHandler,
+	)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	e.dataSyncerWithScheduled, err = NewStartInEpochShardHeaderDataSyncerWithScheduled(
+		scheduledTxsHandler,
+		e.headersSyncer,
+		e.miniBlocksSyncer,
+		e.txSyncerForScheduled,
 		e.enableEpochs.ScheduledMiniBlocksEnableEpoch,
 	)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	ownShardHdr, headers, err := dataSyncerWithScheduled.updateSyncDataIfNeeded(
+	ownShardHdr, headers, err := e.dataSyncerWithScheduled.updateSyncDataIfNeeded(
 		shardNotarizedHeader,
 	)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	rootHashToSync := dataSyncerWithScheduled.getRootHashToSync(shardNotarizedHeader)
+	rootHashToSync := e.dataSyncerWithScheduled.getRootHashToSync(shardNotarizedHeader)
 	return ownShardHdr, rootHashToSync, headers, nil
 }
 
