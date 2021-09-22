@@ -3809,6 +3809,27 @@ func TestProcessIfErrorCheckBackwardsCompatibilityProcessTransactionFeeCalledSho
 	require.False(t, called)
 }
 
+func TestProcessSCRSizeTooBig(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	sc.flagSCRSizeInvariantCheck.Unset()
+
+	scrTooBig := &smartContractResult.SmartContractResult{Data: bytes.Repeat([]byte{1}, core.MegabyteSize)}
+	scrs := make([]data.TransactionHandler, 0)
+	scrs = append(scrs, scrTooBig)
+
+	err := sc.checkSCRSizeInvariant(scrs)
+	assert.Nil(t, err)
+
+	sc.flagSCRSizeInvariantCheck.Toggle(true)
+
+	err = sc.checkSCRSizeInvariant(scrs)
+	assert.Equal(t, err, process.ErrResultingSCRIsTooBig)
+}
+
 func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
 	return &economics.ArgsNewEconomicsData{
 		Economics: &config.EconomicsConfig{

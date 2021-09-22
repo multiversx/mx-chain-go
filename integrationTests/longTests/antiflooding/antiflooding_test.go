@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/blackList"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/factory"
+	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -122,12 +123,12 @@ func createProcessors(peers []p2p.Messenger, topic string, idxBadPeers []int, id
 		var err error
 
 		if intInSlice(i, idxBadPeers) {
-			antifloodComponents, err = factory.NewP2PAntiFloodComponents(ctx, createDisabledConfig(), &mock.AppStatusHandlerStub{}, peers[i].ID())
+			antifloodComponents, err = factory.NewP2PAntiFloodComponents(ctx, createDisabledConfig(), &statusHandlerMock.AppStatusHandlerStub{}, peers[i].ID())
 			log.LogIfError(err)
 		}
 
 		if intInSlice(i, idxGoodPeers) {
-			statusHandler := &mock.AppStatusHandlerStub{}
+			statusHandler := &statusHandlerMock.AppStatusHandlerStub{}
 			antifloodComponents, err = factory.NewP2PAntiFloodComponents(ctx, createWorkableConfig(), statusHandler, peers[i].ID())
 			log.LogIfError(err)
 		}
