@@ -92,7 +92,6 @@ type scProcessor struct {
 	builtInGasCosts     map[string]uint64
 	persistPerByte      uint64
 	storePerByte        uint64
-	gasConfig           vmcommon.BaseOperationCost
 	mutGasLock          sync.RWMutex
 	txLogsProcessor     process.TransactionLogProcessor
 	vmOutputCacher      storage.Cacher
