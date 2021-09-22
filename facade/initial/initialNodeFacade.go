@@ -50,7 +50,7 @@ func (inf *initialNodeFacade) GetProofDataTrie(_ string, _ string, _ string) (*s
 
 // GetProofCurrentRootHash -
 func (inf *initialNodeFacade) GetProofCurrentRootHash(_ string) (*shared.GetProofResponse, error) {
-	return nil, nil, errNodeStarting
+	return nil, errNodeStarting
 }
 
 // VerifyProof -
