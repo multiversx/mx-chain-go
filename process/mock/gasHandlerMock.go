@@ -40,7 +40,9 @@ func (ghm *GasHandlerMock) GetTotalGasConsumedInSelfShard() uint64 {
 
 // Init -
 func (ghm *GasHandlerMock) Init() {
-	ghm.InitCalled()
+	if ghm.InitCalled != nil {
+		ghm.InitCalled()
+	}
 }
 
 // SetGasConsumed -
@@ -59,7 +61,10 @@ func (ghm *GasHandlerMock) SetGasRefunded(gasRefunded uint64, hash []byte) {
 
 // GasConsumed -
 func (ghm *GasHandlerMock) GasConsumed(hash []byte) uint64 {
-	return ghm.GasConsumedCalled(hash)
+	if ghm.GasConsumedCalled != nil {
+		return ghm.GasConsumedCalled(hash)
+	}
+	return 0
 }
 
 // GasRefunded -
@@ -80,22 +85,32 @@ func (ghm *GasHandlerMock) TotalGasConsumed() uint64 {
 
 // TotalGasRefunded -
 func (ghm *GasHandlerMock) TotalGasRefunded() uint64 {
-	return ghm.TotalGasRefundedCalled()
+	if ghm.TotalGasRefundedCalled != nil {
+		return ghm.TotalGasRefundedCalled()
+	}
+	return 0
 }
 
 // RemoveGasConsumed -
 func (ghm *GasHandlerMock) RemoveGasConsumed(hashes [][]byte) {
-	ghm.RemoveGasConsumedCalled(hashes)
+	if ghm.RemoveGasConsumedCalled != nil {
+		ghm.RemoveGasConsumedCalled(hashes)
+	}
 }
 
 // RemoveGasRefunded -
 func (ghm *GasHandlerMock) RemoveGasRefunded(hashes [][]byte) {
-	ghm.RemoveGasRefundedCalled(hashes)
+	if ghm.RemoveGasRefundedCalled != nil {
+		ghm.RemoveGasRefundedCalled(hashes)
+	}
 }
 
 // ComputeGasConsumedByMiniBlock -
 func (ghm *GasHandlerMock) ComputeGasConsumedByMiniBlock(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error) {
-	return ghm.ComputeGasConsumedByMiniBlockCalled(miniBlock, mapHashTx)
+	if ghm.ComputeGasConsumedByMiniBlockCalled != nil {
+		return ghm.ComputeGasConsumedByMiniBlockCalled(miniBlock, mapHashTx)
+	}
+	return 0, 0, nil
 }
 
 // ComputeGasConsumedByTx -
