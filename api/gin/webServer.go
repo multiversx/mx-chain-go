@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/gin-contrib/cors"
+	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
 )
 
@@ -206,6 +207,10 @@ func (ws *webServer) registerRoutes(ginRouter *gin.Engine) {
 	if isLogRouteEnabled(ws.apiConfig) {
 		marshalizerForLogs := &marshal.GogoProtoMarshalizer{}
 		registerLoggerWsRoute(ginRouter, marshalizerForLogs)
+	}
+
+	if ws.facade.PprofEnabled() {
+		pprof.Register(ginRouter)
 	}
 }
 
