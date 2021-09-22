@@ -42,6 +42,37 @@ func TestRoundProposerDataCache_Add_OneRound_TwoProposers_ThreeInterceptedData(t
 	require.Equal(t, dataCache.cache[1]["proposer2"][0].Hash(), []byte("hash3"))
 }
 
+func TestRoundProposerDataCache_Add_CacheSizeTwo_ThreeRounds_ExpectOldestEntryInCacheRemoved(t *testing.T) {
+	dataCache := newRoundProposerDataCache(2)
+
+	dataCache.add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
+		HashCalled: func() []byte {
+			return []byte("hash1")
+		},
+	})
+	dataCache.add(2, []byte("proposer2"), &testscommon.InterceptedDataStub{
+		HashCalled: func() []byte {
+			return []byte("hash2")
+		},
+	})
+
+	require.Len(t, dataCache.cache, 2)
+	require.Len(t, dataCache.cache[1], 1)
+	require.Len(t, dataCache.cache[2], 1)
+	require.Len(t, dataCache.cache[1]["proposer1"], 1)
+	require.Len(t, dataCache.cache[2]["proposer2"], 1)
+
+	require.Equal(t, dataCache.cache[1]["proposer1"][0].Hash(), []byte("hash1"))
+	require.Equal(t, dataCache.cache[2]["proposer2"][0].Hash(), []byte("hash2"))
+
+	dataCache.add(1, []byte("proposer2"), &testscommon.InterceptedDataStub{
+		HashCalled: func() []byte {
+			return []byte("hash3")
+		},
+	})
+
+}
+
 func TestRoundProposerDataCache_Add(t *testing.T) {
 	dataCache := newRoundProposerDataCache(3)
 
