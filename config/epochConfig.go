@@ -49,6 +49,7 @@ type EnableEpochs struct {
 	GlobalMintBurnDisableEpoch                  uint32
 	ESDTTransferRoleEnableEpoch                 uint32
 	BuiltInFunctionOnMetaEnableEpoch            uint32
+	ComputeRewardCheckpointEnableEpoch          uint32
 	ESDTNFTCreateOnMultiShardEnableEpoch        uint32
 }
 

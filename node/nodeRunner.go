@@ -29,7 +29,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	dbLookupFactory "github.com/ElrondNetwork/elrond-go/dblookupext/factory"
 	"github.com/ElrondNetwork/elrond-go/facade"
-	"github.com/ElrondNetwork/elrond-go/facade/disabled"
+	"github.com/ElrondNetwork/elrond-go/facade/initial"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
 	"github.com/ElrondNetwork/elrond-go/health"
@@ -146,6 +146,7 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("contract global mint and burn"), "epoch", enableEpochs.GlobalMintBurnDisableEpoch)
 	log.Debug(readEpochFor("contract transfer role"), "epoch", enableEpochs.ESDTTransferRoleEnableEpoch)
 	log.Debug(readEpochFor("built in functions on metachain"), "epoch", enableEpochs.BuiltInFunctionOnMetaEnableEpoch)
+	log.Debug(readEpochFor("compute rewards checkpoint on delegation"), "epoch", enableEpochs.ComputeRewardCheckpointEnableEpoch)
 	log.Debug(readEpochFor("esdt NFT create on multiple shards"), "epoch", enableEpochs.ESDTNFTCreateOnMultiShardEnableEpoch)
 
 	gasSchedule := configs.EpochConfig.GasSchedule
@@ -492,7 +493,7 @@ func (nr *nodeRunner) createApiFacade(
 
 func (nr *nodeRunner) createHttpServer() (shared.UpgradeableHttpServerHandler, error) {
 	httpServerArgs := gin.ArgsNewWebServer{
-		Facade:          disabled.NewDisabledNodeFacade(nr.configs.FlagsConfig.RestApiInterface),
+		Facade:          initial.NewInitialNodeFacade(nr.configs.FlagsConfig.RestApiInterface, nr.configs.FlagsConfig.EnablePprof),
 		ApiConfig:       *nr.configs.ApiRoutesConfig,
 		AntiFloodConfig: nr.configs.GeneralConfig.Antiflood.WebServer,
 	}
