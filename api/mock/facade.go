@@ -9,7 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/vm"
-	"github.com/ElrondNetwork/elrond-go/api/shared"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
@@ -57,9 +57,9 @@ type Facade struct {
 	GetAllIssuedESDTsCalled                 func(tokenType string) ([]string, error)
 	GetDirectStakedListHandler              func() ([]*api.DirectStakedValue, error)
 	GetDelegatorsListHandler                func() ([]*api.Delegator, error)
-	GetProofCalled                          func(string, string) (*shared.GetProofResponse, error)
-	GetProofCurrentRootHashCalled           func(string) (*shared.GetProofResponse, error)
-	GetProofDataTrieCalled                  func(string, string, string) (*shared.GetProofResponse, *shared.GetProofResponse, error)
+	GetProofCalled                          func(string, string) (*common.GetProofResponse, error)
+	GetProofCurrentRootHashCalled           func(string) (*common.GetProofResponse, error)
+	GetProofDataTrieCalled                  func(string, string, string) (*common.GetProofResponse, *common.GetProofResponse, error)
 	VerifyProofCalled                       func(string, string, [][]byte) (bool, error)
 	GetTokenSupplyCalled                    func(token string) (string, error)
 }
@@ -74,7 +74,7 @@ func (f *Facade) GetTokenSupply(token string) (string, error) {
 }
 
 // GetProof -
-func (f *Facade) GetProof(rootHash string, address string) (*shared.GetProofResponse, error) {
+func (f *Facade) GetProof(rootHash string, address string) (*common.GetProofResponse, error) {
 	if f.GetProofCalled != nil {
 		return f.GetProofCalled(rootHash, address)
 	}
@@ -83,7 +83,7 @@ func (f *Facade) GetProof(rootHash string, address string) (*shared.GetProofResp
 }
 
 // GetProofCurrentRootHash -
-func (f *Facade) GetProofCurrentRootHash(address string) (*shared.GetProofResponse, error) {
+func (f *Facade) GetProofCurrentRootHash(address string) (*common.GetProofResponse, error) {
 	if f.GetProofCurrentRootHashCalled != nil {
 		return f.GetProofCurrentRootHashCalled(address)
 	}
@@ -92,7 +92,7 @@ func (f *Facade) GetProofCurrentRootHash(address string) (*shared.GetProofRespon
 }
 
 // GetProofDataTrie -
-func (f *Facade) GetProofDataTrie(rootHash string, address string, key string) (*shared.GetProofResponse, *shared.GetProofResponse, error) {
+func (f *Facade) GetProofDataTrie(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error) {
 	if f.GetProofDataTrieCalled != nil {
 		return f.GetProofDataTrieCalled(rootHash, address, key)
 	}

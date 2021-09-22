@@ -16,7 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/vm"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/api/shared"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
@@ -49,7 +49,6 @@ type ArgNodeFacade struct {
 	AccountsState          state.AccountsAdapter
 	PeerState              state.AccountsAdapter
 	Blockchain             chainData.ChainHandler
-	Marshalizer            vmcommon.Marshalizer
 }
 
 // nodeFacade represents a facade for grouping the functionality for the node
@@ -67,7 +66,6 @@ type nodeFacade struct {
 	peerState              state.AccountsAdapter
 	blockchain             chainData.ChainHandler
 	ctx                    context.Context
-	marshalizer            vmcommon.Marshalizer
 	cancelFunc             func()
 }
 
@@ -103,9 +101,6 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 	if check.IfNil(arg.Blockchain) {
 		return nil, ErrNilBlockchain
 	}
-	if check.IfNil(arg.Marshalizer) {
-		return nil, ErrNilMarshalizer
-	}
 
 	throttlersMap := computeEndpointsNumGoRoutinesThrottlers(arg.WsAntifloodConfig)
 
@@ -121,7 +116,6 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 		accountsState:          arg.AccountsState,
 		peerState:              arg.PeerState,
 		blockchain:             arg.Blockchain,
-		marshalizer:            arg.Marshalizer,
 	}
 	nf.ctx, nf.cancelFunc = context.WithCancel(context.Background())
 
@@ -398,127 +392,18 @@ func (nf *nodeFacade) GetNumCheckpointsFromAccountState() uint32 {
 }
 
 // GetProof returns the Merkle proof for the given address and root hash
-func (nf *nodeFacade) GetProof(rootHash string, address string) (*shared.GetProofResponse, error) {
-	proof, value, err := nf.getProof(rootHash, address)
-	if err != nil {
-		return nil, err
-	}
-
-	return &shared.GetProofResponse{
-		Proof:    proof,
-		Value:    value,
-		RootHash: rootHash,
-	}, nil
-}
-
-func (nf *nodeFacade) getProof(rootHash string, key string) ([][]byte, []byte, error) {
-	rootHashBytes, err := hex.DecodeString(rootHash)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	trie, err := nf.accountsState.GetTrie(rootHashBytes)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	keyBytes, err := nf.getKeyBytes(key)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	computedProof, err := trie.GetProof(keyBytes)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	value, err := trie.Get(keyBytes)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return computedProof, value, nil
-}
-
-func (nf *nodeFacade) getKeyBytes(key string) ([]byte, error) {
-	addressBytes, err := nf.DecodeAddressPubkey(key)
-	if err == nil {
-		return addressBytes, nil
-	}
-
-	return hex.DecodeString(key)
-}
-
-func (nf *nodeFacade) getDataTrieRootHash(accountBytes []byte) []byte {
-	account := &state.UserAccountData{}
-	err := nf.marshalizer.Unmarshal(account, accountBytes)
-	if err != nil {
-		return nil
-	}
-
-	return account.RootHash
+func (nf *nodeFacade) GetProof(rootHash string, address string) (*common.GetProofResponse, error) {
+	return nf.node.GetProof(rootHash, address)
 }
 
 // GetProofDataTrie returns the Merkle Proof for the given address, and another Merkle Proof
-// for the given key, if it is present in the dataTrie
-func (nf *nodeFacade) GetProofDataTrie(rootHash string, address string, key string) (*shared.GetProofResponse, *shared.GetProofResponse, error) {
-	proof, value, err := nf.getProof(rootHash, address)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	mainTrieResponse := &shared.GetProofResponse{
-		Proof:    proof,
-		Value:    value,
-		RootHash: rootHash,
-	}
-
-	addressBytes, err := nf.DecodeAddressPubkey(address)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	account, err := nf.accountsState.LoadAccount(addressBytes)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	userAccount, ok := account.(state.UserAccountHandler)
-	if !ok {
-		return nil, nil, fmt.Errorf("the address does not belong to a user account")
-	}
-	dataTrieRootHash := userAccount.GetRootHash()
-
-	if len(dataTrieRootHash) == 0 {
-		return mainTrieResponse, nil, nil
-	}
-	dataTrieRootHashHex := hex.EncodeToString(dataTrieRootHash)
-
-	proof, _, err = nf.getProof(dataTrieRootHashHex, key)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	keyBytes, err := hex.DecodeString(key)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	retrievedVal, err := userAccount.DataTrieTracker().RetrieveValue(keyBytes)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	dataTrieResponse := &shared.GetProofResponse{
-		Proof:    proof,
-		Value:    retrievedVal,
-		RootHash: dataTrieRootHashHex,
-	}
-	return mainTrieResponse, dataTrieResponse, nil
+// for the given key, if it exists in the dataTrie
+func (nf *nodeFacade) GetProofDataTrie(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error) {
+	return nf.node.GetProofDataTrie(rootHash, address, key)
 }
 
 // GetProofCurrentRootHash returns the Merkle proof for the given address and current root hash
-func (nf *nodeFacade) GetProofCurrentRootHash(address string) (*shared.GetProofResponse, error) {
+func (nf *nodeFacade) GetProofCurrentRootHash(address string) (*common.GetProofResponse, error) {
 	currentBlockHeader := nf.blockchain.GetCurrentBlockHeader()
 	if check.IfNil(currentBlockHeader) {
 		return nil, ErrNilBlockHeader
@@ -526,36 +411,13 @@ func (nf *nodeFacade) GetProofCurrentRootHash(address string) (*shared.GetProofR
 
 	rootHash := currentBlockHeader.GetRootHash()
 	hexRootHash := hex.EncodeToString(rootHash)
-	proof, value, err := nf.getProof(hexRootHash, address)
-	if err != nil {
-		return nil, err
-	}
 
-	return &shared.GetProofResponse{
-		Proof:    proof,
-		Value:    value,
-		RootHash: hexRootHash,
-	}, nil
+	return nf.node.GetProof(hexRootHash, address)
 }
 
 // VerifyProof verifies the given Merkle proof
 func (nf *nodeFacade) VerifyProof(rootHash string, address string, proof [][]byte) (bool, error) {
-	rootHashBytes, err := hex.DecodeString(rootHash)
-	if err != nil {
-		return false, err
-	}
-
-	trie, err := nf.accountsState.GetTrie(rootHashBytes)
-	if err != nil {
-		return false, err
-	}
-
-	key, err := nf.getKeyBytes(address)
-	if err != nil {
-		return false, err
-	}
-
-	return trie.VerifyProof(key, proof)
+	return nf.node.VerifyProof(rootHash, address, proof)
 }
 
 // GetNumCheckpointsFromPeerState returns the number of checkpoints of the peer state

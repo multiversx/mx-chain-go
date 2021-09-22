@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/groups"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -41,7 +42,7 @@ func TestGetProof_GetProofError(t *testing.T) {
 
 	getProofErr := fmt.Errorf("GetProof error")
 	facade := &mock.Facade{
-		GetProofCalled: func(rootHash string, address string) (*shared.GetProofResponse, error) {
+		GetProofCalled: func(rootHash string, address string) (*common.GetProofResponse, error) {
 			return nil, getProofErr
 		},
 	}
@@ -66,10 +67,10 @@ func TestGetProof(t *testing.T) {
 
 	validProof := [][]byte{[]byte("valid"), []byte("proof")}
 	facade := &mock.Facade{
-		GetProofCalled: func(rootHash string, address string) (*shared.GetProofResponse, error) {
+		GetProofCalled: func(rootHash string, address string) (*common.GetProofResponse, error) {
 			assert.Equal(t, "roothash", rootHash)
 			assert.Equal(t, "addr", address)
-			return &shared.GetProofResponse{
+			return &common.GetProofResponse{
 				Proof: validProof,
 			}, nil
 		},
@@ -106,7 +107,7 @@ func TestGetProofDataTrie_GetProofError(t *testing.T) {
 
 	getProofDataTrieErr := fmt.Errorf("GetProofDataTrie error")
 	facade := &mock.Facade{
-		GetProofDataTrieCalled: func(rootHash string, address string, key string) (*shared.GetProofResponse, *shared.GetProofResponse, error) {
+		GetProofDataTrieCalled: func(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error) {
 			return nil, nil, getProofDataTrieErr
 		},
 	}
@@ -131,11 +132,11 @@ func TestGetProofDataTrie(t *testing.T) {
 	mainTrieProof := [][]byte{[]byte("main"), []byte("proof")}
 	dataTrieProof := [][]byte{[]byte("data"), []byte("proof")}
 	facade := &mock.Facade{
-		GetProofDataTrieCalled: func(rootHash string, address string, key string) (*shared.GetProofResponse, *shared.GetProofResponse, error) {
+		GetProofDataTrieCalled: func(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error) {
 			assert.Equal(t, "roothash", rootHash)
 			assert.Equal(t, "addr", address)
-			return &shared.GetProofResponse{Proof: mainTrieProof},
-				&shared.GetProofResponse{Proof: dataTrieProof},
+			return &common.GetProofResponse{Proof: mainTrieProof},
+				&common.GetProofResponse{Proof: dataTrieProof},
 				nil
 		},
 	}
@@ -155,7 +156,10 @@ func TestGetProofDataTrie(t *testing.T) {
 	responseMap, ok := response.Data.(map[string]interface{})
 	assert.True(t, ok)
 
-	proofs, ok := responseMap["mainProof"].([]interface{})
+	proofsResponseMap, ok := responseMap["proofs"].(map[string]interface{})
+	assert.True(t, ok)
+
+	proofs, ok := proofsResponseMap["mainProof"].([]interface{})
 	assert.True(t, ok)
 
 	proof1 := proofs[0].(string)
@@ -164,7 +168,7 @@ func TestGetProofDataTrie(t *testing.T) {
 	assert.Equal(t, hex.EncodeToString([]byte("main")), proof1)
 	assert.Equal(t, hex.EncodeToString([]byte("proof")), proof2)
 
-	proofs, ok = responseMap["dataTrieProof"].([]interface{})
+	proofs, ok = proofsResponseMap["dataTrieProof"].([]interface{})
 	assert.True(t, ok)
 
 	proof1 = proofs[0].(string)
@@ -179,7 +183,7 @@ func TestGetProofCurrentRootHash_GetProofError(t *testing.T) {
 
 	getProofErr := fmt.Errorf("GetProof error")
 	facade := &mock.Facade{
-		GetProofCurrentRootHashCalled: func(address string) (*shared.GetProofResponse, error) {
+		GetProofCurrentRootHashCalled: func(address string) (*common.GetProofResponse, error) {
 			return nil, getProofErr
 		},
 	}
@@ -205,9 +209,9 @@ func TestGetProofCurrentRootHash(t *testing.T) {
 	validProof := [][]byte{[]byte("valid"), []byte("proof")}
 	rootHash := "rootHash"
 	facade := &mock.Facade{
-		GetProofCurrentRootHashCalled: func(address string) (*shared.GetProofResponse, error) {
+		GetProofCurrentRootHashCalled: func(address string) (*common.GetProofResponse, error) {
 			assert.Equal(t, "addr", address)
-			return &shared.GetProofResponse{
+			return &common.GetProofResponse{
 				Proof:    validProof,
 				RootHash: rootHash,
 			}, nil

@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/gin-gonic/gin"
 )
 
@@ -27,9 +28,9 @@ const (
 
 // proofFacadeHandler defines the methods to be implemented by a facade for proof requests
 type proofFacadeHandler interface {
-	GetProof(rootHash string, address string) (*shared.GetProofResponse, error)
-	GetProofDataTrie(rootHash string, address string, key string) (*shared.GetProofResponse, *shared.GetProofResponse, error)
-	GetProofCurrentRootHash(address string) (*shared.GetProofResponse, error)
+	GetProof(rootHash string, address string) (*common.GetProofResponse, error)
+	GetProofDataTrie(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error)
+	GetProofCurrentRootHash(address string) (*common.GetProofResponse, error)
 	VerifyProof(rootHash string, address string, proof [][]byte) (bool, error)
 	GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool)
 	IsInterfaceNil() bool
@@ -221,25 +222,17 @@ func (pg *proofGroup) getProofDataTrie(c *gin.Context) {
 		return
 	}
 
-	var mainProofHex, dataTrieProofHex []string
-	var dataTrieRootHash, dataTrieValue string
-	if mainTrieResponse != nil {
-		mainProofHex = bytesToHex(mainTrieResponse.Proof)
-	}
-	if dataTrieResponse != nil {
-		dataTrieProofHex = bytesToHex(dataTrieResponse.Proof)
-		dataTrieRootHash = dataTrieResponse.RootHash
-		dataTrieValue = hex.EncodeToString(dataTrieResponse.Value)
-	}
+	proofs := make(map[string]interface{})
+	proofs["mainProof"] = bytesToHex(mainTrieResponse.Proof)
+	proofs["dataTrieProof"] = bytesToHex(dataTrieResponse.Proof)
 
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
 			Data: gin.H{
-				"mainProof":        mainProofHex,
-				"dataTrieProof":    dataTrieProofHex,
-				"value":            dataTrieValue,
-				"dataTrieRootHash": dataTrieRootHash,
+				"proofs":           proofs,
+				"value":            hex.EncodeToString(dataTrieResponse.Value),
+				"dataTrieRootHash": dataTrieResponse.RootHash,
 			},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,

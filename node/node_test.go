@@ -3390,3 +3390,315 @@ func TestNode_getClosableComponentName(t *testing.T) {
 	componentName := n.GetClosableComponentName(component, index)
 	assert.True(t, strings.Contains(componentName, fmt.Sprintf("n.closableComponents[%d] - ", index)))
 }
+
+func TestNode_GetProofInvalidRootHash(t *testing.T) {
+	t.Parallel()
+
+	stateComponents := getDefaultStateComponents()
+	n, _ := node.NewNode(node.WithStateComponents(stateComponents))
+
+	response, err := n.GetProof("invalidRootHash", "0123")
+	assert.Nil(t, response)
+	assert.NotNil(t, err)
+}
+
+func TestNode_GetProofInvalidKey(t *testing.T) {
+	t.Parallel()
+
+	stateComponents := getDefaultStateComponents()
+	n, _ := node.NewNode(
+		node.WithStateComponents(stateComponents),
+		node.WithCoreComponents(getDefaultCoreComponents()),
+	)
+
+	response, err := n.GetProof("deadbeef", "key")
+	assert.Nil(t, response)
+	assert.NotNil(t, err)
+}
+
+func TestNode_GetProofShouldWork(t *testing.T) {
+	t.Parallel()
+
+	trieKey := "0123"
+	value := []byte("value")
+	proof := [][]byte{[]byte("valid"), []byte("proof")}
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &stateMock.AccountsStub{
+		GetTrieCalled: func(_ []byte) (common.Trie, error) {
+			return &trieMock.TrieStub{
+				GetCalled: func(key []byte) ([]byte, error) {
+					assert.Equal(t, trieKey, hex.EncodeToString(key))
+					return value, nil
+				},
+				GetProofCalled: func(key []byte) ([][]byte, error) {
+					assert.Equal(t, trieKey, hex.EncodeToString(key))
+					return proof, nil
+				},
+			}, nil
+		},
+	}
+	n, _ := node.NewNode(
+		node.WithStateComponents(stateComponents),
+		node.WithCoreComponents(getDefaultCoreComponents()),
+	)
+
+	rootHash := "deadbeef"
+	response, err := n.GetProof(rootHash, trieKey)
+	assert.Nil(t, err)
+	assert.Equal(t, proof, response.Proof)
+	assert.Equal(t, value, response.Value)
+	assert.Equal(t, rootHash, response.RootHash)
+}
+
+func TestNode_getProofTrieNotPresent(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := fmt.Errorf("expected err")
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &stateMock.AccountsStub{
+		GetTrieCalled: func(_ []byte) (common.Trie, error) {
+			return nil, expectedErr
+		},
+	}
+	n, _ := node.NewNode(
+		node.WithStateComponents(stateComponents),
+		node.WithCoreComponents(getDefaultCoreComponents()),
+	)
+
+	response, err := n.ComputeProof([]byte("deadbeef"), []byte("0123"))
+	assert.Nil(t, response)
+	assert.Equal(t, expectedErr, err)
+}
+
+func TestNode_getProofErrWhenComputingProof(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := fmt.Errorf("expected err")
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &stateMock.AccountsStub{
+		GetTrieCalled: func(_ []byte) (common.Trie, error) {
+			return &trieMock.TrieStub{
+				GetProofCalled: func(_ []byte) ([][]byte, error) {
+					return nil, expectedErr
+				},
+			}, nil
+		},
+	}
+	n, _ := node.NewNode(
+		node.WithStateComponents(stateComponents),
+		node.WithCoreComponents(getDefaultCoreComponents()),
+	)
+
+	response, err := n.ComputeProof([]byte("deadbeef"), []byte("0123"))
+	assert.Nil(t, response)
+	assert.Equal(t, expectedErr, err)
+}
+
+func TestNode_getProofErrGettingValue(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := fmt.Errorf("expected err")
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &stateMock.AccountsStub{
+		GetTrieCalled: func(_ []byte) (common.Trie, error) {
+			return &trieMock.TrieStub{
+				GetProofCalled: func(_ []byte) ([][]byte, error) {
+					return nil, nil
+				},
+				GetCalled: func(_ []byte) ([]byte, error) {
+					return nil, expectedErr
+				},
+			}, nil
+		},
+	}
+	n, _ := node.NewNode(
+		node.WithStateComponents(stateComponents),
+		node.WithCoreComponents(getDefaultCoreComponents()),
+	)
+
+	response, err := n.ComputeProof([]byte("deadbeef"), []byte("0123"))
+	assert.Nil(t, response)
+	assert.Equal(t, expectedErr, err)
+}
+
+func TestNode_GetProofDataTrieInvalidRootHash(t *testing.T) {
+	t.Parallel()
+
+	stateComponents := getDefaultStateComponents()
+	n, _ := node.NewNode(node.WithStateComponents(stateComponents))
+
+	responseMainTrie, responseDataTrie, err := n.GetProofDataTrie("invalidRootHash", "0123", "4567")
+	assert.Nil(t, responseMainTrie)
+	assert.Nil(t, responseDataTrie)
+	assert.NotNil(t, err)
+}
+
+func TestNode_GetProofDataTrieInvalidAddress(t *testing.T) {
+	t.Parallel()
+
+	stateComponents := getDefaultStateComponents()
+	n, _ := node.NewNode(
+		node.WithStateComponents(stateComponents),
+		node.WithCoreComponents(getDefaultCoreComponents()),
+	)
+
+	responseMainTrie, responseDataTrie, err := n.GetProofDataTrie("deadbeef", "address", "4567")
+	assert.Nil(t, responseMainTrie)
+	assert.Nil(t, responseDataTrie)
+	assert.NotNil(t, err)
+}
+
+func TestNode_GetProofDataTrieInvalidKey(t *testing.T) {
+	t.Parallel()
+
+	stateComponents := getDefaultStateComponents()
+	n, _ := node.NewNode(
+		node.WithStateComponents(stateComponents),
+		node.WithCoreComponents(getDefaultCoreComponents()),
+	)
+
+	responseMainTrie, responseDataTrie, err := n.GetProofDataTrie("deadbeef", "0123", "key")
+	assert.Nil(t, responseMainTrie)
+	assert.Nil(t, responseDataTrie)
+	assert.NotNil(t, err)
+}
+
+func TestNode_GetProofDataTrieShouldWork(t *testing.T) {
+	t.Parallel()
+
+	mainTrieKey := "0123"
+	dataTrieKey := "4567"
+	mainTrieValue := []byte("mainValue")
+	dataTrieValue := []byte("dataTrieValue")
+	mainTrieProof := [][]byte{[]byte("valid"), []byte("proof"), []byte("mainTrie")}
+	dataTrieProof := [][]byte{[]byte("valid"), []byte("proof"), []byte("dataTrie")}
+	dataTrieRootHash := []byte("dataTrieRoot")
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &stateMock.AccountsStub{
+		GetTrieCalled: func(_ []byte) (common.Trie, error) {
+			return &trieMock.TrieStub{
+				GetCalled: func(key []byte) ([]byte, error) {
+					if hex.EncodeToString(key) == mainTrieKey {
+						return mainTrieValue, nil
+					}
+					if hex.EncodeToString(key) == dataTrieKey {
+						return dataTrieValue, nil
+					}
+
+					return nil, nil
+				},
+				GetProofCalled: func(key []byte) ([][]byte, error) {
+					if hex.EncodeToString(key) == mainTrieKey {
+						return mainTrieProof, nil
+					}
+					if hex.EncodeToString(key) == dataTrieKey {
+						return dataTrieProof, nil
+					}
+
+					return nil, nil
+				},
+			}, nil
+		},
+		GetAccountFromBytesCalled: func(address []byte, accountBytes []byte) (vmcommon.AccountHandler, error) {
+			acc := &mock.AccountWrapMock{}
+			acc.SetTrackableDataTrie(&trieMock.DataTrieTrackerStub{
+				RetrieveValueCalled: func(key []byte) ([]byte, error) {
+					assert.Equal(t, dataTrieKey, hex.EncodeToString(key))
+					return dataTrieValue, nil
+				},
+			})
+			acc.SetRootHash(dataTrieRootHash)
+			return acc, nil
+		},
+	}
+	n, _ := node.NewNode(
+		node.WithStateComponents(stateComponents),
+		node.WithCoreComponents(getDefaultCoreComponents()),
+	)
+
+	rootHash := "deadbeef"
+	mainTrieResponse, dataTrieResponse, err := n.GetProofDataTrie(rootHash, mainTrieKey, dataTrieKey)
+	assert.Nil(t, err)
+	assert.Equal(t, mainTrieProof, mainTrieResponse.Proof)
+	assert.Equal(t, mainTrieValue, mainTrieResponse.Value)
+	assert.Equal(t, rootHash, mainTrieResponse.RootHash)
+
+	assert.Equal(t, dataTrieProof, dataTrieResponse.Proof)
+	assert.Equal(t, dataTrieValue, dataTrieResponse.Value)
+	assert.Equal(t, hex.EncodeToString(dataTrieRootHash), dataTrieResponse.RootHash)
+}
+
+func TestNode_VerifyProofInvalidRootHash(t *testing.T) {
+	t.Parallel()
+
+	stateComponents := getDefaultStateComponents()
+	n, _ := node.NewNode(node.WithStateComponents(stateComponents))
+
+	response, err := n.VerifyProof("invalidRootHash", "0123", [][]byte{})
+	assert.False(t, response)
+	assert.NotNil(t, err)
+}
+
+func TestNode_VerifyProofGetTriErr(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := fmt.Errorf("expected err")
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &stateMock.AccountsStub{
+		GetTrieCalled: func(_ []byte) (common.Trie, error) {
+			return nil, expectedErr
+		},
+	}
+	n, _ := node.NewNode(
+		node.WithStateComponents(stateComponents),
+		node.WithCoreComponents(getDefaultCoreComponents()),
+	)
+
+	response, err := n.VerifyProof("deadbeef", "0123", [][]byte{})
+	assert.False(t, response)
+	assert.Equal(t, expectedErr, err)
+}
+
+func TestNode_VerifyProofInvalidAddress(t *testing.T) {
+	t.Parallel()
+
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &stateMock.AccountsStub{
+		GetTrieCalled: func(_ []byte) (common.Trie, error) {
+			return &trieMock.TrieStub{}, nil
+		},
+	}
+	n, _ := node.NewNode(
+		node.WithStateComponents(stateComponents),
+		node.WithCoreComponents(getDefaultCoreComponents()),
+	)
+
+	response, err := n.VerifyProof("deadbeef", "address", [][]byte{})
+	assert.False(t, response)
+	assert.NotNil(t, err)
+}
+
+func TestNode_VerifyProof(t *testing.T) {
+	t.Parallel()
+
+	address := "0123"
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &stateMock.AccountsStub{
+		GetTrieCalled: func(_ []byte) (common.Trie, error) {
+			return &trieMock.TrieStub{
+				VerifyProofCalled: func(key []byte, _ [][]byte) (bool, error) {
+					assert.Equal(t, address, hex.EncodeToString(key))
+					return true, nil
+				},
+			}, nil
+		},
+	}
+	n, _ := node.NewNode(
+		node.WithStateComponents(stateComponents),
+		node.WithCoreComponents(getDefaultCoreComponents()),
+	)
+
+	response, err := n.VerifyProof("deadbeef", address, [][]byte{})
+	assert.True(t, response)
+	assert.Nil(t, err)
+}

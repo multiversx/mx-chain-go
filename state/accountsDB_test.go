@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -2362,6 +2363,30 @@ func TestAccountsDB_Close(t *testing.T) {
 	err := adb.Close()
 	assert.Nil(t, err)
 	assert.True(t, closeCalled)
+}
+
+func TestAccountsDB_GetAccountFromBytesInvalidAddress(t *testing.T) {
+	t.Parallel()
+
+	_, adb := getDefaultTrieAndAccountsDb()
+
+	acc, err := adb.GetAccountFromBytes([]byte{}, []byte{})
+	assert.Nil(t, acc)
+	assert.True(t, strings.Contains(err.Error(), state.ErrNilAddress.Error()))
+}
+
+func TestAccountsDB_GetAccountFromBytes(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &testscommon.MarshalizerMock{}
+	adr := make([]byte, 32)
+	accountExpected, _ := state.NewUserAccount(adr)
+	accountBytes, _ := marshalizer.Marshal(accountExpected)
+	_, adb := getDefaultTrieAndAccountsDb()
+
+	acc, err := adb.GetAccountFromBytes(adr, accountBytes)
+	assert.Nil(t, err)
+	assert.Equal(t, accountExpected, acc)
 }
 
 func BenchmarkAccountsDb_GetCodeEntry(b *testing.B) {

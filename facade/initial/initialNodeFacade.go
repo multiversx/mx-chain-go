@@ -9,7 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/vm"
-	"github.com/ElrondNetwork/elrond-go/api/shared"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
@@ -39,17 +39,17 @@ func NewInitialNodeFacade(apiInterface string, pprofEnabled bool) *initialNodeFa
 }
 
 // GetProof -
-func (inf *initialNodeFacade) GetProof(_ string, _ string) (*shared.GetProofResponse, error) {
+func (inf *initialNodeFacade) GetProof(_ string, _ string) (*common.GetProofResponse, error) {
 	return nil, errNodeStarting
 }
 
 // GetProofDataTrie -
-func (inf *initialNodeFacade) GetProofDataTrie(_ string, _ string, _ string) (*shared.GetProofResponse, *shared.GetProofResponse, error) {
+func (inf *initialNodeFacade) GetProofDataTrie(_ string, _ string, _ string) (*common.GetProofResponse, *common.GetProofResponse, error) {
 	return nil, nil, errNodeStarting
 }
 
 // GetProofCurrentRootHash -
-func (inf *initialNodeFacade) GetProofCurrentRootHash(_ string) (*shared.GetProofResponse, error) {
+func (inf *initialNodeFacade) GetProofCurrentRootHash(_ string) (*common.GetProofResponse, error) {
 	return nil, errNodeStarting
 }
 

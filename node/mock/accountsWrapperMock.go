@@ -24,6 +24,11 @@ type AccountWrapMock struct {
 	SetCodeWithJournalCalled     func(codeHash []byte) error `json:"-"`
 }
 
+// SetTrackableDataTrie -
+func (awm *AccountWrapMock) SetTrackableDataTrie(tdt state.DataTrieTracker) {
+	awm.trackableDataTrie = tdt
+}
+
 // HasNewCode -
 func (awm *AccountWrapMock) HasNewCode() bool {
 	return false
