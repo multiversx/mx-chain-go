@@ -34,6 +34,8 @@ var _ process.SmartContractProcessor = (*scProcessor)(nil)
 
 var log = logger.GetOrCreate("process/smartcontract")
 
+const maxTotalSCRsSize = 3 * (1 << 18) //768KB
+
 const (
 	// TooMuchGasProvidedMessage is the message for the too much gas provided error
 	TooMuchGasProvidedMessage = "too much gas provided"
@@ -65,6 +67,7 @@ type scProcessor struct {
 	senderInOutTransferEnableEpoch              uint32
 	incrementSCRNonceInMultiTransferEnableEpoch uint32
 	builtInFunctionOnMetachainEnableEpoch       uint32
+	scrSizeInvariantCheckEnableEpoch            uint32
 	flagStakingV2                               atomic.Flag
 	flagDeploy                                  atomic.Flag
 	flagBuiltin                                 atomic.Flag
@@ -74,6 +77,7 @@ type scProcessor struct {
 	flagSenderInOutTransfer                     atomic.Flag
 	flagIncrementSCRNonceInMultiTransfer        atomic.Flag
 	flagBuiltInFunctionOnMetachain              atomic.Flag
+	flagSCRSizeInvariantCheck                   atomic.Flag
 	arwenChangeLocker                           process.Locker
 
 	badTxForwarder process.IntermediateTransactionHandler
@@ -117,6 +121,7 @@ type ArgsNewSmartContractProcessor struct {
 	SenderInOutTransferEnableEpoch              uint32
 	IncrementSCRNonceInMultiTransferEnableEpoch uint32
 	BuiltInFunctionOnMetachainEnableEpoch       uint32
+	SCRSizeInvariantCheckEnableEpoch            uint32
 	EpochNotifier                               process.EpochNotifier
 	VMOutputCacher                              storage.Cacher
 	ArwenChangeLocker                           process.Locker
@@ -210,6 +215,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		returnDataToLastTransferEnableEpoch:   args.ReturnDataToLastTransferEnableEpoch,
 		senderInOutTransferEnableEpoch:        args.SenderInOutTransferEnableEpoch,
 		builtInFunctionOnMetachainEnableEpoch: args.BuiltInFunctionOnMetachainEnableEpoch,
+		scrSizeInvariantCheckEnableEpoch:      args.SCRSizeInvariantCheckEnableEpoch,
 		arwenChangeLocker:                     args.ArwenChangeLocker,
 		vmOutputCacher:                        args.VMOutputCacher,
 
@@ -230,6 +236,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	log.Debug("smartContract/process: enable epoch for increment SCR nonce in multi transfer",
 		"epoch", sc.incrementSCRNonceInMultiTransferEnableEpoch)
 	log.Debug("smartContract/process: enable epoch for built in functions on metachain", "epoch", sc.builtInFunctionOnMetachainEnableEpoch)
+	log.Debug("smartContract/process: enable epoch for scr size invariant check", "epoch", sc.scrSizeInvariantCheckEnableEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(sc)
 	args.GasSchedule.RegisterNotifyHandler(sc)
@@ -1592,7 +1599,32 @@ func (sc *scProcessor) processVMOutput(
 		return nil, err
 	}
 
+	err = sc.checkSCRSizeInvariant(scrTxs)
+	if err != nil {
+		return nil, err
+	}
+
 	return scrTxs, nil
+}
+
+func (sc *scProcessor) checkSCRSizeInvariant(scrTxs []data.TransactionHandler) error {
+	if !sc.flagSCRSizeInvariantCheck.IsSet() {
+		return nil
+	}
+
+	for _, scrHandler := range scrTxs {
+		scr, ok := scrHandler.(*smartContractResult.SmartContractResult)
+		if !ok {
+			return process.ErrWrongTypeAssertion
+		}
+
+		lenTotalData := len(scr.Data) + len(scr.ReturnMessage) + len(scr.Code)
+		if lenTotalData > maxTotalSCRsSize {
+			return process.ErrResultingSCRIsTooBig
+		}
+	}
+
+	return nil
 }
 
 func (sc *scProcessor) addGasRefundIfInShard(address []byte, value *big.Int) error {
@@ -2436,6 +2468,9 @@ func (sc *scProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 
 	sc.flagBuiltInFunctionOnMetachain.Toggle(epoch >= sc.builtInFunctionOnMetachainEnableEpoch)
 	log.Debug("scProcessor: built in functions on metachain", "enabled", sc.flagBuiltInFunctionOnMetachain.IsSet())
+
+	sc.flagSCRSizeInvariantCheck.Toggle(epoch >= sc.scrSizeInvariantCheckEnableEpoch)
+	log.Debug("scProcessor: scr size invariant check", "enabled", sc.flagSCRSizeInvariantCheck.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
