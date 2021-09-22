@@ -37,7 +37,7 @@
 [CovalentConnector]
     # This flag shall only be used for observer nodes
     Enabled = false
-    URL = "http://localhost:21111"
+    URL = "localhost:21111"
     # Route used to send blocks which are encoded as binary data
     # defined by a specific avro schema
     RouteSendData = "/block"
