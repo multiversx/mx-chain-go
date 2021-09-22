@@ -34,6 +34,8 @@ var _ process.SmartContractProcessor = (*scProcessor)(nil)
 
 var log = logger.GetOrCreate("process/smartcontract")
 
+const maxTotalSCRsSize = 3 * (1 << 18) //768KB
+
 const (
 	// TooMuchGasProvidedMessage is the message for the too much gas provided error
 	TooMuchGasProvidedMessage = "too much gas provided"
@@ -234,7 +236,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	log.Debug("smartContract/process: enable epoch for increment SCR nonce in multi transfer",
 		"epoch", sc.incrementSCRNonceInMultiTransferEnableEpoch)
 	log.Debug("smartContract/process: enable epoch for built in functions on metachain", "epoch", sc.builtInFunctionOnMetachainEnableEpoch)
-	log.Debug("smartContract/process: enable epoch for scr size invariant", "epoch", sc.scrSizeInvariantCheckEnableEpoch)
+	log.Debug("smartContract/process: enable epoch for scr size invariant check", "epoch", sc.scrSizeInvariantCheckEnableEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(sc)
 	args.GasSchedule.RegisterNotifyHandler(sc)
@@ -1617,7 +1619,7 @@ func (sc *scProcessor) checkSCRSizeInvariant(scrTxs []data.TransactionHandler) e
 		}
 
 		lenTotalData := len(scr.Data) + len(scr.ReturnMessage) + len(scr.Code)
-		if lenTotalData > core.MegabyteSize {
+		if lenTotalData > maxTotalSCRsSize {
 			return process.ErrResultingSCRIsTooBig
 		}
 	}
@@ -2468,7 +2470,7 @@ func (sc *scProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 	log.Debug("scProcessor: built in functions on metachain", "enabled", sc.flagBuiltInFunctionOnMetachain.IsSet())
 
 	sc.flagSCRSizeInvariantCheck.Toggle(epoch >= sc.scrSizeInvariantCheckEnableEpoch)
-	log.Debug("scProcessor: scr size invariant", "enabled", sc.flagSCRSizeInvariantCheck.IsSet())
+	log.Debug("scProcessor: scr size invariant check", "enabled", sc.flagSCRSizeInvariantCheck.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
