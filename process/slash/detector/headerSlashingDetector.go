@@ -20,7 +20,7 @@ type HeaderSlashingDetector struct {
 // NewHeaderSlashingDetector - creates a new header slashing detector for multiple propose
 func NewHeaderSlashingDetector(nodesCoordinator sharding.NodesCoordinator) (slash.SlashingDetector, error) {
 	if check.IfNil(nodesCoordinator) {
-		return nil, process.ErrNilNodesCoordinator
+		return nil, process.ErrNilShardCoordinator
 	}
 
 	//TODO: Use a number from config file
@@ -80,7 +80,7 @@ func (hsd *HeaderSlashingDetector) getSlashingResult(
 	message := slash.None
 	proposedHeaders := hsd.cache.proposedData(currRound, proposerPubKey)
 
-	if len(proposedHeaders) == 1 && bytes.Equal(currHeader.Hash(), proposedHeaders[0].Hash()) {
+	if len(proposedHeaders) == 1 && !bytes.Equal(currHeader.Hash(), proposedHeaders[0].Hash()) {
 		data2 = proposedHeaders[0]
 		message = slash.DoubleProposal
 	} else if len(proposedHeaders) >= 2 {
@@ -95,7 +95,7 @@ func (hsd *HeaderSlashingDetector) getSlashingResult(
 
 func (hsd *HeaderSlashingDetector) getFirstProposedHeaderWithDifferentHash(currHash []byte, otherHeaders dataList) process.InterceptedData {
 	for _, currHeader := range otherHeaders {
-		if bytes.Equal(currHash, currHeader.Hash()) {
+		if !bytes.Equal(currHash, currHeader.Hash()) {
 			return currHeader
 		}
 	}
