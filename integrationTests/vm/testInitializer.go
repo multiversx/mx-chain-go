@@ -80,12 +80,13 @@ const maxTrieLevelInMemory = uint(5)
 
 // ArgEnableEpoch will specify the enable epoch values for certain flags
 type ArgEnableEpoch struct {
-	PenalizedTooMuchGasEnableEpoch uint32
-	BuiltinEnableEpoch             uint32
-	DeployEnableEpoch              uint32
-	MetaProtectionEnableEpoch      uint32
-	RelayedTxEnableEpoch           uint32
-	UnbondTokensV2EnableEpoch      uint32
+	PenalizedTooMuchGasEnableEpoch      uint32
+	BuiltinEnableEpoch                  uint32
+	DeployEnableEpoch                   uint32
+	MetaProtectionEnableEpoch           uint32
+	RelayedTxEnableEpoch                uint32
+	UnbondTokensV2EnableEpoch           uint32
+	BackwardCompSaveKeyValueEnableEpoch uint32
 }
 
 // VMTestAccount -
@@ -786,28 +787,29 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 
 	intermediateTxHandler := &mock.IntermediateTransactionHandlerMock{}
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
-		VmContainer:                    vmContainer,
-		ArgsParser:                     smartContract.NewArgumentParser(),
-		Hasher:                         testHasher,
-		Marshalizer:                    testMarshalizer,
-		AccountsDB:                     accnts,
-		BlockChainHook:                 blockChainHook,
-		PubkeyConv:                     pubkeyConv,
-		ShardCoordinator:               shardCoordinator,
-		ScrForwarder:                   intermediateTxHandler,
-		BadTxForwarder:                 intermediateTxHandler,
-		TxFeeHandler:                   feeAccumulator,
-		EconomicsFee:                   economicsData,
-		TxTypeHandler:                  txTypeHandler,
-		GasHandler:                     gasComp,
-		GasSchedule:                    mock.NewGasScheduleNotifierMock(gasSchedule),
-		TxLogsProcessor:                &mock.TxLogsProcessorStub{},
-		EpochNotifier:                  forking.NewGenericEpochNotifier(),
-		PenalizedTooMuchGasEnableEpoch: argEnableEpoch.PenalizedTooMuchGasEnableEpoch,
-		DeployEnableEpoch:              argEnableEpoch.DeployEnableEpoch,
-		BuiltinEnableEpoch:             argEnableEpoch.BuiltinEnableEpoch,
-		ArwenChangeLocker:              arwenChangeLocker,
-		VMOutputCacher:                 txcache.NewDisabledCache(),
+		VmContainer:                         vmContainer,
+		ArgsParser:                          smartContract.NewArgumentParser(),
+		Hasher:                              testHasher,
+		Marshalizer:                         testMarshalizer,
+		AccountsDB:                          accnts,
+		BlockChainHook:                      blockChainHook,
+		PubkeyConv:                          pubkeyConv,
+		ShardCoordinator:                    shardCoordinator,
+		ScrForwarder:                        intermediateTxHandler,
+		BadTxForwarder:                      intermediateTxHandler,
+		TxFeeHandler:                        feeAccumulator,
+		EconomicsFee:                        economicsData,
+		TxTypeHandler:                       txTypeHandler,
+		GasHandler:                          gasComp,
+		GasSchedule:                         mock.NewGasScheduleNotifierMock(gasSchedule),
+		TxLogsProcessor:                     &mock.TxLogsProcessorStub{},
+		EpochNotifier:                       forking.NewGenericEpochNotifier(),
+		PenalizedTooMuchGasEnableEpoch:      argEnableEpoch.PenalizedTooMuchGasEnableEpoch,
+		DeployEnableEpoch:                   argEnableEpoch.DeployEnableEpoch,
+		BuiltinEnableEpoch:                  argEnableEpoch.BuiltinEnableEpoch,
+		ArwenChangeLocker:                   arwenChangeLocker,
+		VMOutputCacher:                      txcache.NewDisabledCache(),
+		BackwardCompSaveKeyValueEnableEpoch: argEnableEpoch.BackwardCompSaveKeyValueEnableEpoch,
 	}
 
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
