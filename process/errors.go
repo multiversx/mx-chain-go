@@ -973,3 +973,6 @@ var ErrNilCurrentNetworkEpochProvider = errors.New("nil current network epoch pr
 
 // ErrNilESDTTransferParser signals that a nil ESDT transfer parser has been provider
 var ErrNilESDTTransferParser = errors.New("nil esdt transfer parser")
+
+// ErrResultingSCRIsTooBig signals that resulting smart contract result is too big
+var ErrResultingSCRIsTooBig = errors.New("resulting SCR is too big")
