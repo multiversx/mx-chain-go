@@ -112,7 +112,7 @@
     ComputeRewardCheckpointEnableEpoch = 1000000
 
     # SCRSizeInvariantCheckEnableEpoch represents the epoch when the scr size invariant check is enabled
-    SCRSizeInvariantCheckEnableEpoch = 5
+    SCRSizeInvariantCheckEnableEpoch = 1000000
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
