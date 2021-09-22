@@ -1,4 +1,4 @@
-package disabled
+package initial
 
 const responseKey = "error"
 const responseValue = "node is starting"
