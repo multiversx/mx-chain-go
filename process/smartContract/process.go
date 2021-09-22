@@ -90,6 +90,9 @@ type scProcessor struct {
 	gasHandler     process.GasHandler
 
 	builtInGasCosts     map[string]uint64
+	persistPerByte      uint64
+	storePerByte        uint64
+	gasConfig           vmcommon.BaseOperationCost
 	mutGasLock          sync.RWMutex
 	txLogsProcessor     process.TransactionLogProcessor
 	vmOutputCacher      storage.Cacher
@@ -192,6 +195,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	}
 
 	builtInFuncCost := args.GasSchedule.LatestGasSchedule()[common.BuiltInCost]
+	baseOperationCost := args.GasSchedule.LatestGasSchedule()[common.BaseOperationCost]
 	sc := &scProcessor{
 		vmContainer:                           args.VmContainer,
 		argsParser:                            args.ArgsParser,
@@ -221,7 +225,8 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		scrSizeInvariantCheckEnableEpoch:      args.SCRSizeInvariantCheckEnableEpoch,
 		arwenChangeLocker:                     args.ArwenChangeLocker,
 		vmOutputCacher:                        args.VMOutputCacher,
-
+		storePerByte:                          baseOperationCost["StorePerByte"],
+		persistPerByte:                        baseOperationCost["PersistPerByte"],
 		incrementSCRNonceInMultiTransferEnableEpoch: args.IncrementSCRNonceInMultiTransferEnableEpoch,
 	}
 
@@ -258,6 +263,8 @@ func (sc *scProcessor) GasScheduleChange(gasSchedule map[string]map[string]uint6
 	}
 
 	sc.builtInGasCosts = builtInFuncCost
+	sc.storePerByte = gasSchedule[common.BaseOperationCost]["StorePerByte"]
+	sc.persistPerByte = gasSchedule[common.BaseOperationCost]["PersistPerByte"]
 }
 
 func (sc *scProcessor) checkTxValidity(tx data.TransactionHandler) error {
@@ -1234,6 +1241,8 @@ func (sc *scProcessor) ProcessIfError(
 		return err
 	}
 
+	sc.setEmptyRoothashOnErrorIfSaveKeyValue(tx, acntSnd)
+
 	scrIfError, consumedFee := sc.createSCRsWhenError(acntSnd, txHash, tx, returnCode, returnMessage, gasLocked)
 	err = sc.addBackTxValues(acntSnd, scrIfError, tx)
 	if err != nil {
@@ -1260,6 +1269,39 @@ func (sc *scProcessor) ProcessIfError(
 	sc.txFeeHandler.ProcessTransactionFee(consumedFee, big.NewInt(0), txHash)
 
 	return nil
+}
+
+func (sc *scProcessor) setEmptyRoothashOnErrorIfSaveKeyValue(tx data.TransactionHandler, account state.UserAccountHandler) {
+	if !sc.flagBackwardCompOnSaveKeyValue.IsSet() {
+		return
+	}
+
+	if account.GetRootHash() != nil {
+		return
+	}
+	function, args, err := sc.argsParser.ParseCallData(string(tx.GetData()))
+	if err != nil {
+		return
+	}
+	if function != core.BuiltInFunctionSaveKeyValue {
+		return
+	}
+	if len(args) < 3 {
+		return
+	}
+
+	txGasProvided, err := sc.prepareGasProvided(tx)
+	if err != nil {
+		return
+	}
+
+	lenKeyVal := len(args[0]) + len(args[1])
+	gasToUseForOneSave := (sc.persistPerByte + sc.storePerByte) * uint64(lenKeyVal)
+	if txGasProvided < gasToUseForOneSave {
+		return
+	}
+
+	account.SetRootHash(make([]byte, 32))
 }
 
 func (sc *scProcessor) processForRelayerWhenError(
