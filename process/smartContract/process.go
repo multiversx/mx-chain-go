@@ -1298,7 +1298,7 @@ func (sc *scProcessor) setEmptyRoothashOnErrorIfSaveKeyValue(tx data.Transaction
 
 	lenVal := len(args[1])
 	lenKeyVal := len(args[0]) + len(args[1])
-	gasToUseForOneSave := sc.persistPerByte*uint64(lenKeyVal) + sc.storePerByte*uint64(lenVal)
+	gasToUseForOneSave := sc.builtInGasCosts[function] + sc.persistPerByte*uint64(lenKeyVal) + sc.storePerByte*uint64(lenVal)
 	if txGasProvided < gasToUseForOneSave {
 		return
 	}
