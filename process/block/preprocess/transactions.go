@@ -424,10 +424,20 @@ func (txs *transactions) processTxsToMe(
 			return err
 		}
 
-		gasConsumedInHeaderMetric += txs.gasHandler.GasConsumed(txHash) - txs.economicsFee.ComputeGasLimit(tx)
+		gasConsumedByTx, moveBalanceGas := txs.gasHandler.GasConsumed(txHash), txs.economicsFee.ComputeGasLimit(tx)
+		gasConsumedInHeaderMetric += gasConsumedByTx
+
+		shouldDecreaseMoveBalanceCost := (senderShardID != receiverShardID) && (moveBalanceGas < gasConsumedByTx)
+		if shouldDecreaseMoveBalanceCost {
+			gasConsumedInHeaderMetric += gasConsumedByTx - moveBalanceGas
+		}
 	}
 
-	gasConsumedInHeaderMetric -= txs.gasHandler.TotalGasRefunded()
+	totalGasRefunded := txs.gasHandler.TotalGasRefunded()
+	if totalGasRefunded < gasConsumedInHeaderMetric { // avoid a result smaller than 0
+		gasConsumedInHeaderMetric -= totalGasRefunded
+	}
+
 	log.Debug("processTxsToMe - after processing txs", "gasConsumedInHeaderMetric", gasConsumedInHeaderMetric)
 	txs.gasHandler.AddTotalGasConsumedInSelfShard(gasConsumedInHeaderMetric)
 
