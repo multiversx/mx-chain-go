@@ -51,6 +51,7 @@ type EnableEpochs struct {
 	BuiltInFunctionOnMetaEnableEpoch            uint32
 	ComputeRewardCheckpointEnableEpoch          uint32
 	SCRSizeInvariantCheckEnableEpoch            uint32
+	BackwardCompSaveKeyValueEnableEpoch         uint32
 }
 
 // GasScheduleByEpochs represents a gas schedule toml entry that will be applied from the provided epoch

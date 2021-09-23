@@ -68,6 +68,7 @@ type scProcessor struct {
 	incrementSCRNonceInMultiTransferEnableEpoch uint32
 	builtInFunctionOnMetachainEnableEpoch       uint32
 	scrSizeInvariantCheckEnableEpoch            uint32
+	backwardCompSaveKeyValueEnableEpoch         uint32
 	flagStakingV2                               atomic.Flag
 	flagDeploy                                  atomic.Flag
 	flagBuiltin                                 atomic.Flag
@@ -78,6 +79,7 @@ type scProcessor struct {
 	flagIncrementSCRNonceInMultiTransfer        atomic.Flag
 	flagBuiltInFunctionOnMetachain              atomic.Flag
 	flagSCRSizeInvariantCheck                   atomic.Flag
+	flagBackwardCompOnSaveKeyValue              atomic.Flag
 	arwenChangeLocker                           process.Locker
 
 	badTxForwarder process.IntermediateTransactionHandler
@@ -88,6 +90,8 @@ type scProcessor struct {
 	gasHandler     process.GasHandler
 
 	builtInGasCosts     map[string]uint64
+	persistPerByte      uint64
+	storePerByte        uint64
 	mutGasLock          sync.RWMutex
 	txLogsProcessor     process.TransactionLogProcessor
 	vmOutputCacher      storage.Cacher
@@ -122,6 +126,7 @@ type ArgsNewSmartContractProcessor struct {
 	IncrementSCRNonceInMultiTransferEnableEpoch uint32
 	BuiltInFunctionOnMetachainEnableEpoch       uint32
 	SCRSizeInvariantCheckEnableEpoch            uint32
+	BackwardCompSaveKeyValueEnableEpoch         uint32
 	EpochNotifier                               process.EpochNotifier
 	VMOutputCacher                              storage.Cacher
 	ArwenChangeLocker                           process.Locker
@@ -189,6 +194,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	}
 
 	builtInFuncCost := args.GasSchedule.LatestGasSchedule()[common.BuiltInCost]
+	baseOperationCost := args.GasSchedule.LatestGasSchedule()[common.BaseOperationCost]
 	sc := &scProcessor{
 		vmContainer:                           args.VmContainer,
 		argsParser:                            args.ArgsParser,
@@ -216,9 +222,11 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		senderInOutTransferEnableEpoch:        args.SenderInOutTransferEnableEpoch,
 		builtInFunctionOnMetachainEnableEpoch: args.BuiltInFunctionOnMetachainEnableEpoch,
 		scrSizeInvariantCheckEnableEpoch:      args.SCRSizeInvariantCheckEnableEpoch,
+		backwardCompSaveKeyValueEnableEpoch:   args.BackwardCompSaveKeyValueEnableEpoch,
 		arwenChangeLocker:                     args.ArwenChangeLocker,
 		vmOutputCacher:                        args.VMOutputCacher,
-
+		storePerByte:                          baseOperationCost["StorePerByte"],
+		persistPerByte:                        baseOperationCost["PersistPerByte"],
 		incrementSCRNonceInMultiTransferEnableEpoch: args.IncrementSCRNonceInMultiTransferEnableEpoch,
 	}
 
@@ -237,6 +245,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		"epoch", sc.incrementSCRNonceInMultiTransferEnableEpoch)
 	log.Debug("smartContract/process: enable epoch for built in functions on metachain", "epoch", sc.builtInFunctionOnMetachainEnableEpoch)
 	log.Debug("smartContract/process: enable epoch for scr size invariant check", "epoch", sc.scrSizeInvariantCheckEnableEpoch)
+	log.Debug("smartContract/process: disable epoch for backward compatibility check on save key value error", "epoch", sc.scrSizeInvariantCheckEnableEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(sc)
 	args.GasSchedule.RegisterNotifyHandler(sc)
@@ -255,6 +264,8 @@ func (sc *scProcessor) GasScheduleChange(gasSchedule map[string]map[string]uint6
 	}
 
 	sc.builtInGasCosts = builtInFuncCost
+	sc.storePerByte = gasSchedule[common.BaseOperationCost]["StorePerByte"]
+	sc.persistPerByte = gasSchedule[common.BaseOperationCost]["PersistPerByte"]
 }
 
 func (sc *scProcessor) checkTxValidity(tx data.TransactionHandler) error {
@@ -1231,6 +1242,8 @@ func (sc *scProcessor) ProcessIfError(
 		return err
 	}
 
+	sc.setEmptyRoothashOnErrorIfSaveKeyValue(tx, acntSnd)
+
 	scrIfError, consumedFee := sc.createSCRsWhenError(acntSnd, txHash, tx, returnCode, returnMessage, gasLocked)
 	err = sc.addBackTxValues(acntSnd, scrIfError, tx)
 	if err != nil {
@@ -1257,6 +1270,49 @@ func (sc *scProcessor) ProcessIfError(
 	sc.txFeeHandler.ProcessTransactionFee(consumedFee, big.NewInt(0), txHash)
 
 	return nil
+}
+
+func (sc *scProcessor) setEmptyRoothashOnErrorIfSaveKeyValue(tx data.TransactionHandler, account state.UserAccountHandler) {
+	if !sc.flagBackwardCompOnSaveKeyValue.IsSet() {
+		return
+	}
+	if sc.shardCoordinator.SelfId() == core.MetachainShardId {
+		return
+	}
+	if check.IfNil(account) {
+		return
+	}
+	if !bytes.Equal(tx.GetSndAddr(), tx.GetRcvAddr()) {
+		return
+	}
+	if account.GetRootHash() != nil {
+		return
+	}
+
+	function, args, err := sc.argsParser.ParseCallData(string(tx.GetData()))
+	if err != nil {
+		return
+	}
+	if function != core.BuiltInFunctionSaveKeyValue {
+		return
+	}
+	if len(args) < 3 {
+		return
+	}
+
+	txGasProvided, err := sc.prepareGasProvided(tx)
+	if err != nil {
+		return
+	}
+
+	lenVal := len(args[1])
+	lenKeyVal := len(args[0]) + len(args[1])
+	gasToUseForOneSave := sc.builtInGasCosts[function] + sc.persistPerByte*uint64(lenKeyVal) + sc.storePerByte*uint64(lenVal)
+	if txGasProvided < gasToUseForOneSave {
+		return
+	}
+
+	account.SetRootHash(make([]byte, 32))
 }
 
 func (sc *scProcessor) processForRelayerWhenError(
@@ -2471,6 +2527,9 @@ func (sc *scProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 
 	sc.flagSCRSizeInvariantCheck.Toggle(epoch >= sc.scrSizeInvariantCheckEnableEpoch)
 	log.Debug("scProcessor: scr size invariant check", "enabled", sc.flagSCRSizeInvariantCheck.IsSet())
+
+	sc.flagBackwardCompOnSaveKeyValue.Toggle(epoch < sc.backwardCompSaveKeyValueEnableEpoch)
+	log.Debug("scProcessor: backward compatibility on save key value", "enabled", sc.flagBackwardCompOnSaveKeyValue.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -258,6 +258,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		StakingV2EnableEpoch:                  pcf.epochConfig.EnableEpochs.StakingV2EnableEpoch,
 		BuiltInFunctionOnMetachainEnableEpoch: pcf.epochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 		SCRSizeInvariantCheckEnableEpoch:      pcf.epochConfig.EnableEpochs.SCRSizeInvariantCheckEnableEpoch,
+		BackwardCompSaveKeyValueEnableEpoch:   pcf.epochConfig.EnableEpochs.BackwardCompSaveKeyValueEnableEpoch,
 		VMOutputCacher:                        txcache.NewDisabledCache(),
 		ArwenChangeLocker:                     arwenChangeLocker,
 
@@ -584,6 +585,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		StakingV2EnableEpoch:                  pcf.epochConfig.EnableEpochs.StakingV2EnableEpoch,
 		BuiltInFunctionOnMetachainEnableEpoch: pcf.epochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 		SCRSizeInvariantCheckEnableEpoch:      pcf.epochConfig.EnableEpochs.SCRSizeInvariantCheckEnableEpoch,
+		BackwardCompSaveKeyValueEnableEpoch:   pcf.epochConfig.EnableEpochs.BackwardCompSaveKeyValueEnableEpoch,
 		VMOutputCacher:                        txcache.NewDisabledCache(),
 		ArwenChangeLocker:                     arwenChangeLocker,
 
