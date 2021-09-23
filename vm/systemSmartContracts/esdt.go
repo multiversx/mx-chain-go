@@ -216,6 +216,10 @@ func (e *esdt) checkBasicCreateArguments(args *vmcommon.ContractCallInput) vmcom
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
+	if len(args.Arguments) < 2 {
+		e.eei.AddReturnMessage("not enough arguments")
+		return vmcommon.UserError
+	}
 	if len(args.Arguments[0]) < minLengthForTokenName ||
 		len(args.Arguments[0]) > int(esdtConfig.MaxTokenNameLength) {
 		e.eei.AddReturnMessage("token name length not in parameters")
