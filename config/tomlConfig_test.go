@@ -584,6 +584,12 @@ func TestEnableEpochConfig(t *testing.T) {
     # ComputeRewardCheckpointEnableEpoch represents the epoch when compute rewards checkpoint epoch is enabled
     ComputeRewardCheckpointEnableEpoch = 36
 
+    # SCRSizeInvariantCheckEnableEpoch represents the epoch when the scr size invariant check is enabled
+    SCRSizeInvariantCheckEnableEpoch = 37
+
+    # BackwardCompSaveKeyValueEnableEpoch represents the epoch when backward compatibility save key value is enabled
+    BackwardCompSaveKeyValueEnableEpoch = 38
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 36, MaxNumNodes = 37, NodesToShufflePerShard = 38 },
@@ -647,6 +653,8 @@ func TestEnableEpochConfig(t *testing.T) {
 			ESDTTransferRoleEnableEpoch:                 34,
 			BuiltInFunctionOnMetaEnableEpoch:            35,
 			ComputeRewardCheckpointEnableEpoch:          36,
+			SCRSizeInvariantCheckEnableEpoch:            37,
+			BackwardCompSaveKeyValueEnableEpoch:         38,
 		},
 		GasSchedule: GasScheduleConfig{
 			GasScheduleByEpochs: []GasScheduleByEpochs{
