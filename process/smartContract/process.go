@@ -1276,10 +1276,19 @@ func (sc *scProcessor) setEmptyRoothashOnErrorIfSaveKeyValue(tx data.Transaction
 	if !sc.flagBackwardCompOnSaveKeyValue.IsSet() {
 		return
 	}
-
+	if sc.shardCoordinator.SelfId() == core.MetachainShardId {
+		return
+	}
+	if check.IfNil(account) {
+		return
+	}
+	if !bytes.Equal(tx.GetSndAddr(), tx.GetRcvAddr()) {
+		return
+	}
 	if account.GetRootHash() != nil {
 		return
 	}
+
 	function, args, err := sc.argsParser.ParseCallData(string(tx.GetData()))
 	if err != nil {
 		return
