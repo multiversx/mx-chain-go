@@ -2,7 +2,6 @@ package detector
 
 import (
 	"bytes"
-	"errors"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -58,22 +57,6 @@ func (hsd *HeaderSlashingDetector) VerifyData(data process.InterceptedData) (sla
 	return slash.NewSlashingProof(slash.Level0, slash.None), nil
 }
 
-// ValidateProof - validates the given proof
-func (hsd *HeaderSlashingDetector) ValidateProof(proof slash.SlashingProofHandler) error {
-	switch proof.GetType() {
-	case slash.None:
-		if proof.GetLevel() == slash.Level0 {
-			return nil
-		}
-	case slash.MultipleProposal:
-		return hsd.validateMultipleProposedHeaders(proof)
-	default:
-		return errors.New("not handled")
-	}
-
-	return nil
-}
-
 func (hsd *HeaderSlashingDetector) getProposer(header data.HeaderHandler) ([]byte, error) {
 	validators, err := hsd.nodesCoordinator.ComputeConsensusGroup(
 		header.GetRandSeed(),
@@ -125,41 +108,61 @@ func (hsd *HeaderSlashingDetector) getProposedHeadersWithDifferentHash(currHash 
 	return ret
 }
 
+// ValidateProof - validates the given proof
+func (hsd *HeaderSlashingDetector) ValidateProof(proof slash.SlashingProofHandler) error {
+	switch proof.GetType() {
+	case slash.None:
+		return validateNoSlash(proof)
+	case slash.MultipleProposal:
+		return hsd.validateMultipleProposedHeaders(proof)
+	default:
+		return process.ErrInvalidSlashType
+	}
+}
+
+func validateNoSlash(proof slash.SlashingProofHandler) error {
+	if proof.GetLevel() != slash.Level0 {
+		return process.ErrInvalidSlashLevel
+	}
+	return nil
+}
+
 func (hsd *HeaderSlashingDetector) validateMultipleProposedHeaders(proof slash.SlashingProofHandler) error {
 	p, castOk := proof.(slash.MultipleProposalProofHandler)
 	if !castOk {
 		return process.ErrCannotCastProofToMultipleProposedHeaders
 	}
 
-	if p.GetType() != slash.MultipleProposal {
-		return process.ErrInvalidSlashType
-	}
-
-	if checkSlashLevel(p) != true {
-		return process.ErrSlashLevelDoesNotMatchSlashType
+	err := checkSlashTypeAndLevel(p)
+	if err != nil {
+		return err
 	}
 
 	return hsd.checkProposedHeaders(p.GetHeaders())
 }
 
-func checkSlashLevel(proof slash.MultipleProposalProofHandler) bool {
+func checkSlashTypeAndLevel(proof slash.MultipleProposalProofHandler) error {
 	headers := proof.GetHeaders()
+	level := proof.GetLevel()
 
+	if level < slash.Level1 || level > slash.Level2 {
+		return process.ErrInvalidSlashLevel
+	}
 	if len(headers) < 2 {
-		return false
+		return process.ErrNotEnoughHeadersProvided
 	}
-	if len(headers) == 2 && proof.GetLevel() != slash.Level1 {
-		return false
+	if len(headers) == 2 && level != slash.Level1 {
+		return process.ErrSlashLevelDoesNotMatchSlashType
 	}
-	if len(headers) > 2 && proof.GetLevel() != slash.Level2 {
-		return false
+	if len(headers) > 2 && level != slash.Level2 {
+		return process.ErrSlashLevelDoesNotMatchSlashType
 	}
 
-	return true
+	return nil
 }
 
-// Warning! This function should only be called after calling checkSlashLevel
-// Reason is that this function assumes that len(input headers) >= 1
+// Warning! This function should only be called after calling checkSlashTypeAndLevel
+// Reason is that this function assumes that len(input headers) >= 2
 func (hsd *HeaderSlashingDetector) checkProposedHeaders(headers []*interceptedBlocks.InterceptedHeader) error {
 	hashes := make(map[string]struct{})
 	round := headers[0].HeaderHandler().GetRound()
@@ -190,15 +193,16 @@ func (hsd *HeaderSlashingDetector) checkHeaderHasSameProposerAndRound(
 	round uint64,
 	proposer []byte,
 ) error {
-	if header.HeaderHandler().GetRound() == round {
-		currProposer, err := hsd.getProposer(header.HeaderHandler())
-		if err != nil {
-			return err
-		}
+	if header.HeaderHandler().GetRound() != round {
+		return process.ErrHeadersDoNotHaveSameRound
+	}
+	currProposer, err := hsd.getProposer(header.HeaderHandler())
+	if err != nil {
+		return err
+	}
 
-		if !bytes.Equal(proposer, currProposer) {
-			return process.ErrHeadersDoNotHaveSameProposer
-		}
+	if !bytes.Equal(proposer, currProposer) {
+		return process.ErrHeadersDoNotHaveSameProposer
 	}
 
 	return nil

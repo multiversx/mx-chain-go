@@ -872,8 +872,17 @@ var ErrProposedHeadersDoNotHaveDifferentHashes = errors.New("multiple header pro
 // ErrInvalidSlashType signals that an invalid slash type has been provided for the given proof
 var ErrInvalidSlashType = errors.New("invalid slash type has been provided for the given proof")
 
+// ErrInvalidSlashLevel signals that an invalid slash level has been provided for the given proof
+var ErrInvalidSlashLevel = errors.New("invalid slash level has been provided for the given proof")
+
+// ErrNotEnoughHeadersProvided signals that not enough headers have been provided for a multiple header proposal proof
+var ErrNotEnoughHeadersProvided = errors.New("not enough headers have been provided for a multiple header proposal proof")
+
 // ErrHeadersDoNotHaveSameProposer signals that the headers from a multiple header proposal proof are not proposed by the same validator
 var ErrHeadersDoNotHaveSameProposer = errors.New("the headers from a multiple header proposal proof are not proposed by the same validator")
+
+// ErrHeadersDoNotHaveSameRound signals that the headers from a multiple header proposal proof have different rounds
+var ErrHeadersDoNotHaveSameRound = errors.New("the headers from a multiple header proposal proof have different rounds")
 
 // ErrAccountNotPayable will be sent when trying to send money to a non-payable account
 var ErrAccountNotPayable = errors.New("sending value to non payable contract")
