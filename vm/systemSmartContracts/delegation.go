@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -692,7 +693,7 @@ func (d *delegation) delegateUser(
 		delegator.RewardsCheckpoint = d.eei.BlockChainHook().CurrentEpoch() + 1
 		delegator.UnClaimedRewards = big.NewInt(0)
 	} else {
-		err = d.computeAndUpdateRewards(callerAddr, delegator, callValue)
+		err = d.computeAndUpdateRewards(callerAddr, delegator, callValue, args.RecipientAddr)
 		if err != nil {
 			d.eei.AddReturnMessage(err.Error())
 			return vmcommon.UserError
@@ -1347,7 +1348,7 @@ func (d *delegation) reDelegateRewards(args *vmcommon.ContractCallInput) vmcommo
 		return vmcommon.UserError
 	}
 
-	err = d.computeAndUpdateRewards(args.CallerAddr, delegator, big.NewInt(0))
+	err = d.computeAndUpdateRewards(args.CallerAddr, delegator, big.NewInt(0), args.RecipientAddr)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -1652,7 +1653,7 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
-	err = d.computeAndUpdateRewards(args.CallerAddr, delegator, big.NewInt(0))
+	err = d.computeAndUpdateRewards(args.CallerAddr, delegator, big.NewInt(0), args.RecipientAddr)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -1837,7 +1838,7 @@ func (d *delegation) saveRewardData(epoch uint32, rewardsData *RewardComputation
 	return nil
 }
 
-func (d *delegation) computeAndUpdateRewards(callerAddress []byte, delegator *DelegatorData, addedValue *big.Int) error {
+func (d *delegation) computeAndUpdateRewards(callerAddress []byte, delegator *DelegatorData, addedValue *big.Int, delegationAddress []byte) error {
 	currentEpoch := d.eei.BlockChainHook().CurrentEpoch()
 	if len(delegator.ActiveFund) == 0 {
 		if d.flagComputeRewardCheckpoint.IsSet() {
@@ -1853,8 +1854,16 @@ func (d *delegation) computeAndUpdateRewards(callerAddress []byte, delegator *De
 				return nil
 			}
 
-			log.Error("compute rewards difference ", "callerAddress", callerAddress, "totalDifference", totalRewards,
-				"rewardsCheckpoint", delegator.RewardsCheckpoint, "currentEpoch", currentEpoch)
+			pkConv, _ := pubkeyConverter.NewBech32PubkeyConverter(32, log)
+			delegationScAddressBech32 := pkConv.Encode(delegationAddress)
+			callerAddressBech32 := pkConv.Encode(callerAddress)
+
+			log.Error("compute rewards difference ",
+				"callerAddress", callerAddressBech32,
+				"totalDifference", totalRewards,
+				"rewardsCheckpoint", delegator.RewardsCheckpoint,
+				"currentEpoch", currentEpoch,
+				"delegation SC address", delegationScAddressBech32)
 		}
 
 		return nil
@@ -1944,7 +1953,7 @@ func (d *delegation) claimRewards(args *vmcommon.ContractCallInput) vmcommon.Ret
 		return vmcommon.UserError
 	}
 
-	err = d.computeAndUpdateRewards(args.CallerAddr, delegator, big.NewInt(0))
+	err = d.computeAndUpdateRewards(args.CallerAddr, delegator, big.NewInt(0), args.RecipientAddr)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -2111,7 +2120,7 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
-	err = d.deleteDelegatorIfNeeded(args.CallerAddr, delegator)
+	err = d.deleteDelegatorIfNeeded(args.CallerAddr, delegator, args.RecipientAddr)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -2128,7 +2137,7 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	return vmcommon.Ok
 }
 
-func (d *delegation) deleteDelegatorIfNeeded(address []byte, delegator *DelegatorData) error {
+func (d *delegation) deleteDelegatorIfNeeded(address []byte, delegator *DelegatorData, delegationAddress []byte) error {
 	if d.isOwner(address) {
 		return nil
 	}
@@ -2138,7 +2147,7 @@ func (d *delegation) deleteDelegatorIfNeeded(address []byte, delegator *Delegato
 		return nil
 	}
 
-	err := d.computeAndUpdateRewards(address, delegator, big.NewInt(0))
+	err := d.computeAndUpdateRewards(address, delegator, big.NewInt(0), delegationAddress)
 	if err != nil {
 		return err
 	}
@@ -2531,7 +2540,7 @@ func (d *delegation) getClaimableRewards(args *vmcommon.ContractCallInput) vmcom
 		return returnCode
 	}
 
-	err := d.computeAndUpdateRewards(args.Arguments[0], delegator, big.NewInt(0))
+	err := d.computeAndUpdateRewards(args.Arguments[0], delegator, big.NewInt(0), args.RecipientAddr)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -2568,7 +2577,7 @@ func (d *delegation) getDelegatorFundsData(args *vmcommon.ContractCallInput) vmc
 		d.eei.Finish(zero.Bytes())
 	}
 
-	err := d.computeAndUpdateRewards(args.Arguments[0], delegator, big.NewInt(0))
+	err := d.computeAndUpdateRewards(args.Arguments[0], delegator, big.NewInt(0), args.RecipientAddr)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -2607,7 +2616,7 @@ func (d *delegation) getTotalCumulatedRewardsForUser(args *vmcommon.ContractCall
 		return returnCode
 	}
 
-	err := d.computeAndUpdateRewards(args.Arguments[0], delegator, big.NewInt(0))
+	err := d.computeAndUpdateRewards(args.Arguments[0], delegator, big.NewInt(0), args.RecipientAddr)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError

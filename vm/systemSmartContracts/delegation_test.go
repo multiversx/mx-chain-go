@@ -3976,7 +3976,7 @@ func TestDelegation_computeAndUpdateRewardsWithTotalActiveZeroDoesNotPanic(t *te
 	ownerAddr := []byte("ownerAddress")
 	eei.SetStorage([]byte(ownerKey), ownerAddr)
 
-	err := d.computeAndUpdateRewards([]byte("other address"), dData, big.NewInt(0))
+	err := d.computeAndUpdateRewards([]byte("other address"), dData, big.NewInt(0), []byte("delegation SC address"))
 	assert.Nil(t, err)
 	assert.Equal(t, big.NewInt(0), dData.UnClaimedRewards)
 }
@@ -4016,7 +4016,7 @@ func TestDelegation_computeAndUpdateRewardsWithTotalActiveZeroSendsAllRewardsToO
 	ownerAddr := []byte("ownerAddress")
 	eei.SetStorage([]byte(ownerKey), ownerAddr)
 
-	err := d.computeAndUpdateRewards(ownerAddr, dData, big.NewInt(0))
+	err := d.computeAndUpdateRewards(ownerAddr, dData, big.NewInt(0), []byte("delegation SC address"))
 	assert.Nil(t, err)
 	assert.Equal(t, rewards, dData.UnClaimedRewards)
 }
@@ -5016,6 +5016,7 @@ func TestDelegation_OptimizeRewardsComputation(t *testing.T) {
 	args.Eei = eei
 	args.DelegationSCConfig.MaxServiceFee = 10000
 	args.DelegationSCConfig.MinServiceFee = 0
+	args.EpochConfig.EnableEpochs.ComputeRewardCheckpointEnableEpoch = 1000000
 	d, _ := NewDelegationSystemSC(args)
 	_ = d.saveDelegationStatus(&DelegationContractStatus{})
 	_ = d.saveDelegationContractConfig(&DelegationConfig{
