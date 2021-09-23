@@ -48,7 +48,7 @@ func (hsd *HeaderSlashingDetector) VerifyData(data process.InterceptedData) (sla
 
 	hsd.cache.add(currRound, proposer, currentHeader)
 
-	if message == slash.DoubleProposal || message == slash.MultipleProposal {
+	if message == slash.MultipleProposal {
 		return slash.NewMultipleProposalProof("0", message, data2)
 	}
 	// check another header with the same round and proposer exists, but a different hash
@@ -61,7 +61,7 @@ func (hsd *HeaderSlashingDetector) VerifyData(data process.InterceptedData) (sla
 func (hsd *HeaderSlashingDetector) ValidateProof(proof slash.SlashingProofHandler) error {
 	switch proof.GetType() {
 	case slash.None:
-	case slash.DoubleProposal:
+	case slash.MultipleProposal:
 	default:
 
 	}
@@ -91,19 +91,12 @@ func (hsd *HeaderSlashingDetector) getSlashingResult(
 	message := slash.None
 	proposedHeaders := hsd.cache.proposedData(currRound, proposerPubKey)
 
-	if len(proposedHeaders) == 1 && !bytes.Equal(currHeader.Hash(), proposedHeaders[0].Hash()) {
-		headers = append(headers, proposedHeaders[0])
-		message = slash.DoubleProposal
-	} else if len(proposedHeaders) >= 2 {
+	if len(proposedHeaders) >= 1 {
 		headers = hsd.getProposedHeadersWithDifferentHash(currHeader.Hash(), proposedHeaders)
-		if len(headers) == 1 {
-			message = slash.DoubleProposal
-		} else if len(headers) > 1 {
+		if len(headers) >= 1 {
 			message = slash.MultipleProposal
+			headers = append(headers, currHeader)
 		}
-	}
-	if message != slash.None {
-		headers = append(headers, currHeader)
 	}
 
 	return message, headers

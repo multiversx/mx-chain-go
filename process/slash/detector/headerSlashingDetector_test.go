@@ -100,7 +100,7 @@ func TestHeaderSlashingDetector_VerifyData_DoubleProposal_MultipleProposal(t *te
 	tmp, _ = sd.VerifyData(hData2)
 	res := tmp.(slash.MultipleProposalProofHandler)
 
-	require.Equal(t, res.GetType(), slash.DoubleProposal)
+	require.Equal(t, res.GetType(), slash.MultipleProposal)
 	require.Len(t, res.GetHeaders(), 2)
 	require.Equal(t, res.GetHeaders()[0], hData1)
 	require.Equal(t, res.GetHeaders()[1], hData2)
