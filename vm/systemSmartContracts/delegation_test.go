@@ -44,6 +44,7 @@ func createMockArgumentsForDelegation() ArgsNewDelegation {
 		EpochNotifier:          &mock.EpochNotifierStub{},
 		EndOfEpochAddress:      vm.EndOfEpochAddress,
 		GovernanceSCAddress:    vm.GovernanceSCAddress,
+		AddTokensAddress:       bytes.Repeat([]byte{1}, 32),
 	}
 }
 
@@ -5080,4 +5081,36 @@ func TestDelegation_OptimizeRewardsComputation(t *testing.T) {
 	assert.Equal(t, uint32(14), delegatorData.RewardsCheckpoint)
 	assert.Equal(t, uint64(0), delegatorData.UnClaimedRewards.Uint64())
 	assert.Equal(t, 1010, int(delegatorData.TotalCumulatedRewards.Uint64()))
+}
+
+func TestDelegation_AddTokens(t *testing.T) {
+	args := createMockArgumentsForDelegation()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&stateMock.AccountsStub{},
+		&mock.RaterMock{},
+	)
+	args.Eei = eei
+	d, _ := NewDelegationSystemSC(args)
+
+	vmInput := getDefaultVmInputForFunc("addTokens", [][]byte{})
+	vmInput.CallValue = big.NewInt(20)
+	vmInput.CallerAddr = vm.EndOfEpochAddress
+
+	d.flagAddTokens.Unset()
+	returnCode := d.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.returnMessage, vmInput.Function+" is an unknown function")
+
+	eei.returnMessage = ""
+	d.flagAddTokens.Set()
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.returnMessage, vmInput.Function+" can be called by whitelisted address only")
+
+	vmInput.CallerAddr = args.AddTokensAddress
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.Ok)
 }
