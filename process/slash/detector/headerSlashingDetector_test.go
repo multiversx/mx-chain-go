@@ -44,6 +44,8 @@ func TestNewHeaderSlashingDetector(t *testing.T) {
 }
 
 func TestHeaderSlashingDetector_VerifyData_CannotCastData_ExpectError(t *testing.T) {
+	t.Parallel()
+
 	sd, _ := detector.NewHeaderSlashingDetector(&mock.NodesCoordinatorMock{})
 
 	res, err := sd.VerifyData(&testscommon.InterceptedDataStub{})
@@ -53,6 +55,8 @@ func TestHeaderSlashingDetector_VerifyData_CannotCastData_ExpectError(t *testing
 }
 
 func TestHeaderSlashingDetector_VerifyData_CannotGetProposer_ExpectError(t *testing.T) {
+	t.Parallel()
+
 	expectedErr := errors.New("cannot get proposer")
 	sd, _ := detector.NewHeaderSlashingDetector(&mock2.NodesCoordinatorStub{
 		ComputeConsensusGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
@@ -67,6 +71,8 @@ func TestHeaderSlashingDetector_VerifyData_CannotGetProposer_ExpectError(t *test
 }
 
 func TestHeaderSlashingDetector_VerifyData_NoSlashing(t *testing.T) {
+	t.Parallel()
+
 	sd, _ := detector.NewHeaderSlashingDetector(&mock2.NodesCoordinatorStub{
 		ComputeConsensusGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
 			return []sharding.Validator{mock.NewValidatorMock([]byte("proposer1"))}, nil
@@ -76,15 +82,20 @@ func TestHeaderSlashingDetector_VerifyData_NoSlashing(t *testing.T) {
 	hData := createInterceptedHeaderData([]byte("seed"))
 	res, _ := sd.VerifyData(hData)
 	require.Equal(t, res.GetType(), slash.None)
+	require.Equal(t, res.GetLevel(), slash.Level0)
 
 	res, _ = sd.VerifyData(hData)
 	require.Equal(t, res.GetType(), slash.None)
+	require.Equal(t, res.GetLevel(), slash.Level0)
 
 	res, _ = sd.VerifyData(hData)
 	require.Equal(t, res.GetType(), slash.None)
+	require.Equal(t, res.GetLevel(), slash.Level0)
 }
 
-func TestHeaderSlashingDetector_VerifyData_DoubleProposal_MultipleProposal(t *testing.T) {
+func TestHeaderSlashingDetector_VerifyData_MultipleProposal(t *testing.T) {
+	t.Parallel()
+
 	sd, _ := detector.NewHeaderSlashingDetector(&mock2.NodesCoordinatorStub{
 		ComputeConsensusGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
 			return []sharding.Validator{mock.NewValidatorMock([]byte("proposer1"))}, nil
@@ -95,12 +106,14 @@ func TestHeaderSlashingDetector_VerifyData_DoubleProposal_MultipleProposal(t *te
 	tmp, _ := sd.VerifyData(hData1)
 
 	require.Equal(t, tmp.GetType(), slash.None)
+	require.Equal(t, tmp.GetLevel(), slash.Level0)
 
 	hData2 := createInterceptedHeaderData([]byte("seed2"))
 	tmp, _ = sd.VerifyData(hData2)
 	res := tmp.(slash.MultipleProposalProofHandler)
 
 	require.Equal(t, res.GetType(), slash.MultipleProposal)
+	require.Equal(t, res.GetLevel(), slash.Level1)
 	require.Len(t, res.GetHeaders(), 2)
 	require.Equal(t, res.GetHeaders()[0], hData1)
 	require.Equal(t, res.GetHeaders()[1], hData2)
@@ -110,41 +123,17 @@ func TestHeaderSlashingDetector_VerifyData_DoubleProposal_MultipleProposal(t *te
 	res = tmp.(slash.MultipleProposalProofHandler)
 
 	require.Equal(t, res.GetType(), slash.MultipleProposal)
+	require.Equal(t, res.GetLevel(), slash.Level2)
 	require.Len(t, res.GetHeaders(), 3)
 	require.Equal(t, res.GetHeaders()[0], hData1)
 	require.Equal(t, res.GetHeaders()[1], hData2)
 	require.Equal(t, res.GetHeaders()[2], hData3)
 }
 
-func TestHeaderSlashingDetector_VerifyData_MultipleProposal(t *testing.T) {
-	sd, _ := detector.NewHeaderSlashingDetector(&mock2.NodesCoordinatorStub{
-		ComputeConsensusGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
-			return []sharding.Validator{mock.NewValidatorMock([]byte("proposer1"))}, nil
-		},
-	})
-
-	hData1 := createInterceptedHeaderData([]byte("seed1"))
-	res, _ := sd.VerifyData(hData1)
-	_ = res
-	/*
-		require.Equal(t, res.GetType(), slash.None)
-		require.Equal(t, res.GetData1(), hData1)
-		require.Nil(t, res.GetData2())
-
-		hData2 := createInterceptedHeaderData([]byte("seed2"))
-		res, _ = sd.VerifyData(hData2)
-
-		require.Equal(t, res.GetType(), slash.DoubleProposal)
-		require.Equal(t, res.GetData1(), hData2)
-		require.Equal(t, res.GetData2(), hData1)
-	*/
-
-}
-
 func createInterceptedHeaderArg(randSeed []byte) *interceptedBlocks.ArgInterceptedBlockHeader {
 	args := &interceptedBlocks.ArgInterceptedBlockHeader{
 		ShardCoordinator:        &mock.ShardCoordinatorStub{},
-		Hasher:                  mock.HasherMock{},
+		Hasher:                  &mock.HasherMock{},
 		Marshalizer:             &mock.MarshalizerMock{},
 		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
 		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},

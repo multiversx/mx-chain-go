@@ -6,13 +6,13 @@ import (
 )
 
 type multipleProposalProof struct {
-	level        string
+	level        SlashingLevel
 	slashingType SlashingType
 	headers      []*interceptedBlocks.InterceptedHeader
 }
 
 // NewMultipleProposalProof - creates a new double block proposal slashing proof with a level, type and data
-func NewMultipleProposalProof(level string, sType SlashingType, data []process.InterceptedData) (MultipleProposalProofHandler, error) {
+func NewMultipleProposalProof(level SlashingLevel, sType SlashingType, data []process.InterceptedData) (MultipleProposalProofHandler, error) {
 	headers, err := convertInterceptedDataToHeader(data)
 	if err != nil {
 		return nil, err
@@ -26,7 +26,7 @@ func NewMultipleProposalProof(level string, sType SlashingType, data []process.I
 }
 
 // GetLevel - gets the slashing proofs level
-func (mpp *multipleProposalProof) GetLevel() string {
+func (mpp *multipleProposalProof) GetLevel() SlashingLevel {
 	return mpp.level
 }
 

@@ -10,7 +10,7 @@ import (
 type SlashingProofHandler interface {
 	// GetLevel - contains the slashing level for the current slashing type
 	// multiple colluding parties should have a higher leve
-	GetLevel() string // pana acum ramane toate la nivel 0/1
+	GetLevel() SlashingLevel
 	//GetType - contains the type of slashing detection
 	GetType() SlashingType
 }

@@ -1,12 +1,12 @@
 package slash
 
 type slashingProof struct {
-	level        string
+	level        SlashingLevel
 	slashingType SlashingType
 }
 
 // NewSlashingProof - creates a new double block proposal slashing proof with a level, type and data
-func NewSlashingProof(level string, sType SlashingType) SlashingProofHandler {
+func NewSlashingProof(level SlashingLevel, sType SlashingType) SlashingProofHandler {
 	return &slashingProof{
 		level:        level,
 		slashingType: sType,
@@ -14,11 +14,11 @@ func NewSlashingProof(level string, sType SlashingType) SlashingProofHandler {
 }
 
 // GetLevel - gets the slashing proofs level
-func (mpp *slashingProof) GetLevel() string {
-	return mpp.level
+func (sp *slashingProof) GetLevel() SlashingLevel {
+	return sp.level
 }
 
 // GetType - gets the slashing proofs type
-func (mpp *slashingProof) GetType() SlashingType {
-	return mpp.slashingType
+func (sp *slashingProof) GetType() SlashingType {
+	return sp.slashingType
 }

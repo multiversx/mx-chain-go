@@ -860,6 +860,21 @@ var ErrInterceptedDataNotForCurrentShard = errors.New("intercepted data not for 
 // ErrCannotCastInterceptedDataToHeader signals that intercepted data cannot be converted to header data
 var ErrCannotCastInterceptedDataToHeader = errors.New("cannot cast intercepted data to header data")
 
+// ErrCannotCastProofToMultipleProposedHeaders signals that a given proof cannot be cast to a multiple header proposal proof
+var ErrCannotCastProofToMultipleProposedHeaders = errors.New("cannot cast proof to multiple proposal header proof")
+
+// ErrSlashLevelDoesNotMatchSlashType signals the slash type is not consistent with the slash severity level
+var ErrSlashLevelDoesNotMatchSlashType = errors.New("proof slash type is not consistent with proof severity level")
+
+// ErrProposedHeadersDoNotHaveDifferentHashes signals that multiple header proposal proof does not contain different header hashes
+var ErrProposedHeadersDoNotHaveDifferentHashes = errors.New("multiple header proposal proof does not contain different header hashes")
+
+// ErrInvalidSlashType signals that an invalid slash type has been provided for the given proof
+var ErrInvalidSlashType = errors.New("invalid slash type has been provided for the given proof")
+
+// ErrHeadersDoNotHaveSameProposer signals that the headers from a multiple header proposal proof are not proposed by the same validator
+var ErrHeadersDoNotHaveSameProposer = errors.New("the headers from a multiple header proposal proof are not proposed by the same validator")
+
 // ErrAccountNotPayable will be sent when trying to send money to a non-payable account
 var ErrAccountNotPayable = errors.New("sending value to non payable contract")
 

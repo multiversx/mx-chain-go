@@ -8,6 +8,7 @@ import (
 )
 
 func TestRoundProposerDataCache_Add_OneRound_TwoProposers_FourInterceptedData(t *testing.T) {
+	t.Parallel()
 	dataCache := newRoundProposerDataCache(1)
 
 	dataCache.add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
@@ -48,6 +49,7 @@ func TestRoundProposerDataCache_Add_OneRound_TwoProposers_FourInterceptedData(t 
 }
 
 func TestRoundProposerDataCache_Add_CacheSizeTwo_FourEntriesInCache_ExpectOldestEntriesInCacheRemoved(t *testing.T) {
+	t.Parallel()
 	dataCache := newRoundProposerDataCache(2)
 
 	dataCache.add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
@@ -102,6 +104,7 @@ func TestRoundProposerDataCache_Add_CacheSizeTwo_FourEntriesInCache_ExpectOldest
 }
 
 func TestRoundProposerDataCache_ProposedData(t *testing.T) {
+	t.Parallel()
 	dataCache := newRoundProposerDataCache(3)
 
 	dataCache.add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
