@@ -237,7 +237,7 @@ func (e *esdt) checkBasicCreateArguments(args *vmcommon.ContractCallInput) vmcom
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
-	if len(args.Arguments) < 2 {
+	if len(args.Arguments) < 1 {
 		e.eei.AddReturnMessage("not enough arguments")
 		return vmcommon.UserError
 	}
@@ -322,6 +322,11 @@ func (e *esdt) registerNonFungible(args *vmcommon.ContractCallInput) vmcommon.Re
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
+	if len(args.Arguments) < 2 {
+		e.eei.AddReturnMessage("not enough arguments")
+		return vmcommon.UserError
+	}
+
 	tokenIdentifier, err := e.createNewToken(
 		args.CallerAddr,
 		args.Arguments[0],
@@ -344,6 +349,11 @@ func (e *esdt) registerSemiFungible(args *vmcommon.ContractCallInput) vmcommon.R
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
+	if len(args.Arguments) < 2 {
+		e.eei.AddReturnMessage("not enough arguments")
+		return vmcommon.UserError
+	}
+
 	tokenIdentifier, err := e.createNewToken(
 		args.CallerAddr,
 		args.Arguments[0],
@@ -366,6 +376,10 @@ func (e *esdt) registerMetaESDT(args *vmcommon.ContractCallInput) vmcommon.Retur
 	returnCode := e.checkBasicCreateArguments(args)
 	if returnCode != vmcommon.Ok {
 		return returnCode
+	}
+	if len(args.Arguments) < 3 {
+		e.eei.AddReturnMessage("not enough arguments")
+		return vmcommon.UserError
 	}
 	numOfDecimals := uint32(big.NewInt(0).SetBytes(args.Arguments[2]).Uint64())
 	if numOfDecimals < minNumberOfDecimals || numOfDecimals > maxNumberOfDecimals {
@@ -397,6 +411,37 @@ func (e *esdt) registerMetaESDT(args *vmcommon.ContractCallInput) vmcommon.Retur
 }
 
 func (e *esdt) changeSFTToMetaESDT(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if len(args.Arguments) < 2 {
+		e.eei.AddReturnMessage("not enough arguments")
+		return vmcommon.FunctionWrongSignature
+	}
+	numOfDecimals := uint32(big.NewInt(0).SetBytes(args.Arguments[1]).Uint64())
+	if numOfDecimals < minNumberOfDecimals || numOfDecimals > maxNumberOfDecimals {
+		e.eei.AddReturnMessage(fmt.Errorf("%w, minimum: %d, maximum: %d, provided: %d",
+			vm.ErrInvalidNumberOfDecimals,
+			minNumberOfDecimals,
+			maxNumberOfDecimals,
+			numOfDecimals,
+		).Error())
+		return vmcommon.UserError
+	}
+	token, returnCode := e.basicOwnershipChecks(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	if bytes.Equal(token.TokenType, []byte(core.SemiFungibleESDT)) {
+		e.eei.AddReturnMessage("change can happen to semi fungible tokens only")
+		return vmcommon.UserError
+	}
+
+	token.NumDecimals = numOfDecimals
+	err := e.saveToken(args.Arguments[0], token)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
 	return vmcommon.Ok
 }
 
@@ -1025,6 +1070,10 @@ func (e *esdt) basicOwnershipChecks(args *vmcommon.ContractCallInput) (*ESDTData
 	if err != nil {
 		e.eei.AddReturnMessage("not enough gas")
 		return nil, vmcommon.OutOfGas
+	}
+	if len(args.Arguments) < 1 {
+		e.eei.AddReturnMessage("not enough arguments")
+		return nil, vmcommon.UserError
 	}
 	token, err := e.getExistingToken(args.Arguments[0])
 	if err != nil {
