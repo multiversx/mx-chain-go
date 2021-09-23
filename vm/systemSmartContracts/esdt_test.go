@@ -4050,3 +4050,109 @@ func TestEsdt_CanUseContract(t *testing.T) {
 	e, _ := NewESDTSmartContract(args)
 	require.True(t, e.CanUseContract())
 }
+
+func TestEsdt_ExecuteIssueMetaESDT(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&stateMock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+	e, _ := NewESDTSmartContract(args)
+
+	e.flagMetaESDT.Unset()
+	vmInput := getDefaultVmInputForFunc("registerMetaESDT", nil)
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.Equal(t, eei.returnMessage, "invalid method to call")
+
+	eei.returnMessage = ""
+	eei.gasRemaining = 9999
+	e.flagMetaESDT.Set()
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.Equal(t, eei.returnMessage, "not enough arguments")
+
+	vmInput.CallValue = big.NewInt(0).Set(e.baseIssuingCost)
+	vmInput.Arguments = [][]byte{[]byte("tokenName")}
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.Equal(t, eei.returnMessage, "not enough arguments")
+
+	vmInput.Arguments = [][]byte{[]byte("tokenName"), []byte("ticker"), big.NewInt(20).Bytes()}
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "invalid number of decimals"))
+
+	vmInput.Arguments = [][]byte{[]byte("tokenName"), []byte("ticker"), big.NewInt(10).Bytes()}
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "ticker name is not valid"))
+
+	vmInput.Arguments = [][]byte{[]byte("tokenName"), []byte("TICKER"), big.NewInt(10).Bytes()}
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+	assert.Equal(t, len(eei.output), 1)
+	assert.True(t, strings.Contains(string(eei.output[0]), "TICKER-"))
+}
+
+func TestEsdt_ExecuteChangeSFTToMetaESDT(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&stateMock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+	e, _ := NewESDTSmartContract(args)
+
+	e.flagMetaESDT.Unset()
+	vmInput := getDefaultVmInputForFunc("changeSFTToMetaESDT", nil)
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.Equal(t, eei.returnMessage, "invalid method to call")
+
+	eei.returnMessage = ""
+	eei.gasRemaining = 9999
+	e.flagMetaESDT.Set()
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.Equal(t, eei.returnMessage, "not enough arguments")
+
+	vmInput.Arguments = [][]byte{[]byte("tokenName"), big.NewInt(20).Bytes()}
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "invalid number of decimals"))
+
+	vmInput.Arguments = [][]byte{[]byte("tokenName"), big.NewInt(10).Bytes()}
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "no ticker with given name"))
+
+	_ = e.saveToken(vmInput.Arguments[0], &ESDTData{TokenType: []byte(core.NonFungibleESDT), OwnerAddress: vmInput.CallerAddr})
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "change can happen to semi fungible tokens only"))
+
+	_ = e.saveToken(vmInput.Arguments[0], &ESDTData{TokenType: []byte(core.SemiFungibleESDT), OwnerAddress: vmInput.CallerAddr})
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	token, _ := e.getExistingToken(vmInput.Arguments[0])
+	assert.Equal(t, token.NumDecimals, uint32(10))
+	assert.Equal(t, token.TokenType, []byte(metaESDT))
+}

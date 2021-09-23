@@ -373,6 +373,10 @@ func (e *esdt) registerSemiFungible(args *vmcommon.ContractCallInput) vmcommon.R
 }
 
 func (e *esdt) registerMetaESDT(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !e.flagMetaESDT.IsSet() {
+		e.eei.AddReturnMessage("invalid method to call")
+		return vmcommon.UserError
+	}
 	returnCode := e.checkBasicCreateArguments(args)
 	if returnCode != vmcommon.Ok {
 		return returnCode
@@ -411,9 +415,13 @@ func (e *esdt) registerMetaESDT(args *vmcommon.ContractCallInput) vmcommon.Retur
 }
 
 func (e *esdt) changeSFTToMetaESDT(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !e.flagMetaESDT.IsSet() {
+		e.eei.AddReturnMessage("invalid method to call")
+		return vmcommon.UserError
+	}
 	if len(args.Arguments) < 2 {
 		e.eei.AddReturnMessage("not enough arguments")
-		return vmcommon.FunctionWrongSignature
+		return vmcommon.UserError
 	}
 	numOfDecimals := uint32(big.NewInt(0).SetBytes(args.Arguments[1]).Uint64())
 	if numOfDecimals < minNumberOfDecimals || numOfDecimals > maxNumberOfDecimals {
@@ -430,11 +438,12 @@ func (e *esdt) changeSFTToMetaESDT(args *vmcommon.ContractCallInput) vmcommon.Re
 		return returnCode
 	}
 
-	if bytes.Equal(token.TokenType, []byte(core.SemiFungibleESDT)) {
+	if !bytes.Equal(token.TokenType, []byte(core.SemiFungibleESDT)) {
 		e.eei.AddReturnMessage("change can happen to semi fungible tokens only")
 		return vmcommon.UserError
 	}
 
+	token.TokenType = []byte(metaESDT)
 	token.NumDecimals = numOfDecimals
 	err := e.saveToken(args.Arguments[0], token)
 	if err != nil {
