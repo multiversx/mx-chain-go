@@ -63,6 +63,8 @@ func createGenesisConfig() config.EnableEpochs {
 		IncrementSCRNonceInMultiTransferEnableEpoch: unreachableEpoch,
 		SCRSizeInvariantCheckEnableEpoch:            unreachableEpoch,
 		BackwardCompSaveKeyValueEnableEpoch:         unreachableEpoch,
+		MetaESDTSetEnableEpoch:                      unreachableEpoch,
+		AddTokensToDelegationEnableEpoch:            unreachableEpoch,
 	}
 }
 

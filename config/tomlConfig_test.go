@@ -590,6 +590,12 @@ func TestEnableEpochConfig(t *testing.T) {
     # BackwardCompSaveKeyValueEnableEpoch represents the epoch when backward compatibility save key value is enabled
     BackwardCompSaveKeyValueEnableEpoch = 38
 
+    # MetaESDTSetEnableEpoch represents the epoch when the backward compatibility for save key value error is enabled
+    MetaESDTSetEnableEpoch = 39
+
+    # AddTokensToDelegationEnableEpoch represents the epoch when adding tokens to delegation is enabled for whitelisted address
+    AddTokensToDelegationEnableEpoch = 40
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 36, MaxNumNodes = 37, NodesToShufflePerShard = 38 },
@@ -655,6 +661,8 @@ func TestEnableEpochConfig(t *testing.T) {
 			ComputeRewardCheckpointEnableEpoch:          36,
 			SCRSizeInvariantCheckEnableEpoch:            37,
 			BackwardCompSaveKeyValueEnableEpoch:         38,
+			MetaESDTSetEnableEpoch:                      39,
+			AddTokensToDelegationEnableEpoch:            40,
 		},
 		GasSchedule: GasScheduleConfig{
 			GasScheduleByEpochs: []GasScheduleByEpochs{

@@ -66,6 +66,8 @@ type delegation struct {
 	reDelegateBelowMinCheckEnableEpoch uint32
 	flagComputeRewardCheckpoint        atomic.Flag
 	computeRewardCheckpointEnableEpoch uint32
+	flagAddTokens                      atomic.Flag
+	addTokensEnableEpoch               uint32
 }
 
 // ArgsNewDelegation defines the arguments to create the delegation smart contract
@@ -138,12 +140,14 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 		validatorToDelegationEnableEpoch:   args.EpochConfig.EnableEpochs.ValidatorToDelegationEnableEpoch,
 		reDelegateBelowMinCheckEnableEpoch: args.EpochConfig.EnableEpochs.ReDelegateBelowMinCheckEnableEpoch,
 		computeRewardCheckpointEnableEpoch: args.EpochConfig.EnableEpochs.ComputeRewardCheckpointEnableEpoch,
+		addTokensEnableEpoch:               args.EpochConfig.EnableEpochs.AddTokensToDelegationEnableEpoch,
 	}
 	log.Debug("delegation: enable epoch for delegation smart contract", "epoch", d.enableDelegationEpoch)
 	log.Debug("delegation: enable epoch for staking v2", "epoch", d.stakingV2EnableEpoch)
 	log.Debug("delegation: enable epoch for validator to delegation", "epoch", d.validatorToDelegationEnableEpoch)
 	log.Debug("delegation: enable epoch for re-delegate below minimum check", "epoch", d.reDelegateBelowMinCheckEnableEpoch)
 	log.Debug("delegation: enable epoch for compute rewards checkpoint", "epoch", d.computeRewardCheckpointEnableEpoch)
+	log.Debug("delegation: enable epoch for adding tokens", "epoch", d.addTokensEnableEpoch)
 
 	var okValue bool
 
@@ -2896,6 +2900,9 @@ func (d *delegation) EpochConfirmed(epoch uint32, _ uint64) {
 
 	d.flagComputeRewardCheckpoint.Toggle(epoch >= d.computeRewardCheckpointEnableEpoch)
 	log.Debug("delegationSC: compute rewards checkpoint", "enabled", d.flagComputeRewardCheckpoint.IsSet())
+
+	d.flagAddTokens.Toggle(epoch >= d.addTokensEnableEpoch)
+	log.Debug("delegationSC: add tokens", "enabled", d.flagAddTokens.IsSet())
 }
 
 // CanUseContract returns true if contract can be used

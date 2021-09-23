@@ -60,6 +60,8 @@ type esdt struct {
 	flagGlobalMintBurn         atomic.Flag
 	transferRoleEnableEpoch    uint32
 	flagTransferRole           atomic.Flag
+	metaESDTEnableEpoch        uint32
+	flagMetaESDT               atomic.Flag
 }
 
 // ArgsNewESDTSmartContract defines the arguments needed for the esdt contract
@@ -115,12 +117,14 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 		enabledEpoch:               args.EpochConfig.EnableEpochs.ESDTEnableEpoch,
 		globalMintBurnDisableEpoch: args.EpochConfig.EnableEpochs.GlobalMintBurnDisableEpoch,
 		transferRoleEnableEpoch:    args.EpochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
+		metaESDTEnableEpoch:        args.EpochConfig.EnableEpochs.MetaESDTSetEnableEpoch,
 		endOfEpochSCAddress:        args.EndOfEpochSCAddress,
 		addressPubKeyConverter:     args.AddressPubKeyConverter,
 	}
 	log.Debug("esdt: enable epoch for esdt", "epoch", e.enabledEpoch)
 	log.Debug("esdt: enable epoch for contract global mint and burn", "epoch", e.globalMintBurnDisableEpoch)
 	log.Debug("esdt: enable epoch for contract transfer role", "epoch", e.transferRoleEnableEpoch)
+	log.Debug("esdt: enable epoch for meta tokens, financial SFTs", "epoch", e.metaESDTEnableEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(e)
 
@@ -1565,6 +1569,9 @@ func (e *esdt) EpochConfirmed(epoch uint32, _ uint64) {
 
 	e.flagTransferRole.Toggle(epoch >= e.transferRoleEnableEpoch)
 	log.Debug("ESDT contract transfer role", "enabled", e.flagTransferRole.IsSet())
+
+	e.flagMetaESDT.Toggle(epoch >= e.metaESDTEnableEpoch)
+	log.Debug("ESDT contract financial SFTs", "enabled", e.flagMetaESDT.IsSet())
 }
 
 // SetNewGasCost is called whenever a gas cost was changed
