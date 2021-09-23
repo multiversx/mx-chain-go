@@ -3,37 +3,30 @@ package slash
 import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 )
-
-// SlashingDetectorResultHandler - contains the result of a slashing detection
-type SlashingDetectorResultHandler interface {
-	//GetType - contains the type of slashing detection
-	GetType() SlashingType
-	//GetData1 - contains the first data of slashing detection
-	GetData1() process.InterceptedData
-	//GetData2 - contains the second data of slashing detection
-	GetData2() process.InterceptedData
-}
 
 // SlashingProofHandler - contains a proof for a slashing event and can be wrapped in a transaction
 type SlashingProofHandler interface {
 	// GetLevel - contains the slashing level for the current slashing type
 	// multiple colluding parties should have a higher leve
-	GetLevel() string
+	GetLevel() string // pana acum ramane toate la nivel 0/1
 	//GetType - contains the type of slashing detection
 	GetType() SlashingType
-	//GetData1 - contains the first data of slashing detection
-	GetData1() process.InterceptedData
-	//GetData2 - contains the second data of slashing detection
-	GetData2() process.InterceptedData
+}
+
+type MultipleProposalProofHandler interface {
+	SlashingProofHandler
+	//GetHeaders - contains the first data of slashing detection
+	GetHeaders() []*interceptedBlocks.InterceptedHeader
 }
 
 // SlashingDetector - checks for slashable events and generates proofs to be used for slash
 type SlashingDetector interface {
 	// VerifyData - checks if an intercepted data represents a slashable event
-	VerifyData(data process.InterceptedData) (SlashingDetectorResultHandler, error)
-	// GenerateProof - creates the SlashingProofHandler for the DetectorResult to be added to the Tx Data Field
-	GenerateProof(result SlashingDetectorResultHandler) SlashingProofHandler
+	VerifyData(data process.InterceptedData) (SlashingProofHandler, error)
+
+	ValidateProof(proof SlashingProofHandler) error
 }
 
 // SlashingNotifier - creates a transaction from the generated proof of the slash detector and sends it to the network

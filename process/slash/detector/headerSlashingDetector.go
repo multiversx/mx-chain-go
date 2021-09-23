@@ -32,7 +32,7 @@ func NewHeaderSlashingDetector(nodesCoordinator sharding.NodesCoordinator) (slas
 }
 
 // VerifyData - checks if an intercepted data represents a slashable event
-func (hsd *HeaderSlashingDetector) VerifyData(data process.InterceptedData) (slash.SlashingDetectorResultHandler, error) {
+func (hsd *HeaderSlashingDetector) VerifyData(data process.InterceptedData) (slash.SlashingProofHandler, error) {
 	currentHeader, ok := data.(*interceptedBlocks.InterceptedHeader)
 	if !ok {
 		return nil, process.ErrCannotCastInterceptedDataToHeader
@@ -48,14 +48,25 @@ func (hsd *HeaderSlashingDetector) VerifyData(data process.InterceptedData) (sla
 
 	hsd.cache.add(currRound, proposer, currentHeader)
 
+	if message == slash.DoubleProposal || message == slash.MultipleProposal {
+		return slash.NewMultipleProposalProof("0", message, data2)
+	}
 	// check another header with the same round and proposer exists, but a different hash
 	// if yes a slashingDetectorResult is returned with a message and the two headers
-	return slash.NewSlashingDetectorResult(message, currentHeader, data2), nil
+
+	return slash.NewSlashingProof("0", slash.None), nil
 }
 
-// GenerateProof - creates the SlashingProofHandler for the DetectorResult to be added to the Tx Data Field
-func (hsd *HeaderSlashingDetector) GenerateProof(result slash.SlashingDetectorResultHandler) slash.SlashingProofHandler {
-	return slash.NewSlashingProof("level", result.GetType(), result.GetData1(), result.GetData2())
+// ValidateProof - validates the given proof
+func (hsd *HeaderSlashingDetector) ValidateProof(proof slash.SlashingProofHandler) error {
+	switch proof.GetType() {
+	case slash.None:
+	case slash.DoubleProposal:
+	default:
+
+	}
+
+	return nil
 }
 
 func (hsd *HeaderSlashingDetector) getProposer(header data.HeaderHandler) ([]byte, error) {
@@ -75,30 +86,37 @@ func (hsd *HeaderSlashingDetector) getSlashingResult(
 	currHeader process.InterceptedData,
 	currRound uint64,
 	proposerPubKey []byte,
-) (slash.SlashingType, process.InterceptedData) {
-	data2 := process.InterceptedData(nil)
+) (slash.SlashingType, []process.InterceptedData) {
+	headers := make([]process.InterceptedData, 0)
 	message := slash.None
 	proposedHeaders := hsd.cache.proposedData(currRound, proposerPubKey)
 
 	if len(proposedHeaders) == 1 && !bytes.Equal(currHeader.Hash(), proposedHeaders[0].Hash()) {
-		data2 = proposedHeaders[0]
+		headers = append(headers, proposedHeaders[0])
 		message = slash.DoubleProposal
 	} else if len(proposedHeaders) >= 2 {
-		data2 = hsd.getFirstProposedHeaderWithDifferentHash(currHeader.Hash(), proposedHeaders)
-		if data2 != nil {
+		headers = hsd.getProposedHeadersWithDifferentHash(currHeader.Hash(), proposedHeaders)
+		if len(headers) == 1 {
+			message = slash.DoubleProposal
+		} else if len(headers) > 1 {
 			message = slash.MultipleProposal
 		}
 	}
+	if message != slash.None {
+		headers = append(headers, currHeader)
+	}
 
-	return message, data2
+	return message, headers
 }
 
-func (hsd *HeaderSlashingDetector) getFirstProposedHeaderWithDifferentHash(currHash []byte, otherHeaders dataList) process.InterceptedData {
+func (hsd *HeaderSlashingDetector) getProposedHeadersWithDifferentHash(currHash []byte, otherHeaders dataList) []process.InterceptedData {
+	ret := make([]process.InterceptedData, 0)
+
 	for _, currHeader := range otherHeaders {
 		if !bytes.Equal(currHash, currHeader.Hash()) {
-			return currHeader
+			ret = append(ret, currHeader)
 		}
 	}
 
-	return nil
+	return ret
 }
