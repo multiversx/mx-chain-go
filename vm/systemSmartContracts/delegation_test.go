@@ -5016,7 +5016,7 @@ func TestDelegation_OptimizeRewardsComputation(t *testing.T) {
 	args.Eei = eei
 	args.DelegationSCConfig.MaxServiceFee = 10000
 	args.DelegationSCConfig.MinServiceFee = 0
-	args.EpochConfig.EnableEpochs.ComputeRewardCheckpointEnableEpoch = 1000000
+	//args.EpochConfig.EnableEpochs.ComputeRewardCheckpointEnableEpoch = 1000000
 	d, _ := NewDelegationSystemSC(args)
 	_ = d.saveDelegationStatus(&DelegationContractStatus{})
 	_ = d.saveDelegationContractConfig(&DelegationConfig{
