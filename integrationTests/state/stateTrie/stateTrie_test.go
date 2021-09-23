@@ -2140,7 +2140,7 @@ func TestProofAndVerifyProofDataTrie(t *testing.T) {
 	assert.Nil(t, err)
 
 	_, _ = shardNode.AccntState.Commit()
-	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+	_, _ = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 
 	rootHash, _ := shardNode.AccntState.RootHash()
 	rootHashHex := hex.EncodeToString(rootHash)
