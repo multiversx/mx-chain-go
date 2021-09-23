@@ -2389,6 +2389,42 @@ func TestAccountsDB_GetAccountFromBytes(t *testing.T) {
 	assert.Equal(t, accountExpected, acc)
 }
 
+func TestAccountsDB_GetAccountFromBytesShouldLoadDataTrie(t *testing.T) {
+	t.Parallel()
+
+	acc := generateAccount()
+	acc.SetRootHash([]byte("root hash"))
+	dataTrie := &trieMock.TrieStub{}
+	marshalizer := &testscommon.MarshalizerMock{}
+	serializerAcc, _ := marshalizer.Marshal(acc)
+
+	trieStub := &trieMock.TrieStub{
+		GetCalled: func(key []byte) (i []byte, e error) {
+			if bytes.Equal(key, acc.AddressBytes()) {
+				return serializerAcc, nil
+			}
+			return nil, nil
+		},
+		RecreateCalled: func(root []byte) (d common.Trie, err error) {
+			return dataTrie, nil
+		},
+		GetStorageManagerCalled: func() common.StorageManager {
+			return &testscommon.StorageManagerStub{
+				DatabaseCalled: func() common.DBWriteCacher {
+					return testscommon.NewMemDbMock()
+				},
+			}
+		},
+	}
+
+	adb := generateAccountDBFromTrie(trieStub)
+	retrievedAccount, err := adb.GetAccountFromBytes(acc.AddressBytes(), serializerAcc)
+	assert.Nil(t, err)
+
+	account, _ := retrievedAccount.(state.UserAccountHandler)
+	assert.Equal(t, dataTrie, account.DataTrie())
+}
+
 func BenchmarkAccountsDb_GetCodeEntry(b *testing.B) {
 	maxTrieLevelInMemory := uint(5)
 	marshalizer := &testscommon.MarshalizerMock{}

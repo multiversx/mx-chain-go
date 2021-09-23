@@ -22,7 +22,7 @@ type TrieStub struct {
 	GetSerializedNodesCalled    func([]byte, uint64) ([][]byte, uint64, error)
 	GetAllHashesCalled          func() ([][]byte, error)
 	GetAllLeavesOnChannelCalled func(rootHash []byte) (chan core.KeyValueHolder, error)
-	GetProofCalled              func(key []byte) ([][]byte, error)
+	GetProofCalled              func(key []byte) ([][]byte, []byte, error)
 	VerifyProofCalled           func(key []byte, proof [][]byte) (bool, error)
 	GetStorageManagerCalled     func() common.StorageManager
 	GetSerializedNodeCalled     func(bytes []byte) ([]byte, error)
@@ -41,12 +41,12 @@ func (ts *TrieStub) GetStorageManager() common.StorageManager {
 }
 
 // GetProof -
-func (ts *TrieStub) GetProof(key []byte) ([][]byte, error) {
+func (ts *TrieStub) GetProof(key []byte) ([][]byte, []byte, error) {
 	if ts.GetProofCalled != nil {
 		return ts.GetProofCalled(key)
 	}
 
-	return nil, nil
+	return nil, nil, nil
 }
 
 // VerifyProof -

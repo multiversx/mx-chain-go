@@ -593,8 +593,9 @@ func TestPatriciaMerkleTree_Prove(t *testing.T) {
 
 	tr := initTrie()
 
-	proof, err := tr.GetProof([]byte("dog"))
+	proof, value, err := tr.GetProof([]byte("dog"))
 	assert.Nil(t, err)
+	assert.Equal(t, []byte("puppy"), value)
 	ok, _ := tr.VerifyProof([]byte("dog"), proof)
 	assert.True(t, ok)
 }
@@ -605,7 +606,7 @@ func TestPatriciaMerkleTree_ProveCollapsedTrie(t *testing.T) {
 	tr := initTrie()
 	_ = tr.Commit()
 
-	proof, err := tr.GetProof([]byte("dog"))
+	proof, _, err := tr.GetProof([]byte("dog"))
 	assert.Nil(t, err)
 	ok, _ := tr.VerifyProof([]byte("dog"), proof)
 	assert.True(t, ok)
@@ -616,7 +617,7 @@ func TestPatriciaMerkleTree_ProveOnEmptyTrie(t *testing.T) {
 
 	tr := emptyTrie()
 
-	proof, err := tr.GetProof([]byte("dog"))
+	proof, _, err := tr.GetProof([]byte("dog"))
 	assert.Nil(t, proof)
 	assert.Equal(t, trie.ErrNilNode, err)
 }
@@ -627,7 +628,7 @@ func TestPatriciaMerkleTree_VerifyProof(t *testing.T) {
 	tr, val := initTrieMultipleValues(50)
 
 	for i := range val {
-		proof, _ := tr.GetProof(val[i])
+		proof, _, _ := tr.GetProof(val[i])
 
 		ok, err := tr.VerifyProof(val[i], proof)
 		assert.Nil(t, err)
@@ -647,7 +648,7 @@ func TestPatriciaMerkleTrie_VerifyProofBranchNodeWantHashShouldWork(t *testing.T
 	_ = tr.Update([]byte("dog"), []byte("cat"))
 	_ = tr.Update([]byte("zebra"), []byte("horse"))
 
-	proof, _ := tr.GetProof([]byte("dog"))
+	proof, _, _ := tr.GetProof([]byte("dog"))
 	ok, err := tr.VerifyProof([]byte("dog"), proof)
 	assert.True(t, ok)
 	assert.Nil(t, err)
@@ -661,7 +662,7 @@ func TestPatriciaMerkleTrie_VerifyProofExtensionNodeWantHashShouldWork(t *testin
 	_ = tr.Update([]byte("dog"), []byte("cat"))
 	_ = tr.Update([]byte("doe"), []byte("reindeer"))
 
-	proof, _ := tr.GetProof([]byte("dog"))
+	proof, _, _ := tr.GetProof([]byte("dog"))
 	ok, err := tr.VerifyProof([]byte("dog"), proof)
 	assert.True(t, ok)
 	assert.Nil(t, err)
@@ -701,7 +702,7 @@ func TestPatriciaMerkleTrie_VerifyProofFromDifferentTrieShouldNotWork(t *testing
 	_ = tr2.Update([]byte("dog"), []byte("puppy"))
 	_ = tr2.Update([]byte("dogglesworth"), []byte("caterpillar"))
 
-	proof, _ := tr2.GetProof([]byte("dogglesworth"))
+	proof, _, _ := tr2.GetProof([]byte("dogglesworth"))
 	ok, _ := tr1.VerifyProof([]byte("dogglesworth"), proof)
 	assert.False(t, ok)
 }
@@ -725,7 +726,7 @@ func TestPatriciaMerkleTrie_GetAndVerifyProof(t *testing.T) {
 
 	for i := 0; i < numRuns; i++ {
 		randNum := rand.Intn(nrLeaves)
-		proof, err := tr.GetProof(values[randNum])
+		proof, _, err := tr.GetProof(values[randNum])
 		if err != nil {
 			dumpTrieContents(tr, values)
 			fmt.Printf("error getting proof for %v, err = %s\n", values[randNum], err.Error())

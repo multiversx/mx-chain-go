@@ -1284,6 +1284,10 @@ func (n *Node) GetProofDataTrie(rootHash string, address string, key string) (*c
 	}
 
 	dataTrieRootHash, value, err := n.getAccountRootHashAndVal(addressBytes, mainProofResponse.Value, keyBytes)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	dataTrieProofResponse, err := n.getProof(dataTrieRootHash, keyBytes)
 	if err != nil {
 		return nil, nil, err
@@ -1358,12 +1362,7 @@ func (n *Node) getProof(rootHash []byte, key []byte) (*common.GetProofResponse, 
 		return nil, err
 	}
 
-	computedProof, err := trie.GetProof(key)
-	if err != nil {
-		return nil, err
-	}
-
-	value, err := trie.Get(key)
+	computedProof, value, err := trie.GetProof(key)
 	if err != nil {
 		return nil, err
 	}

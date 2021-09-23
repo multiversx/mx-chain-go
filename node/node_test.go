@@ -3426,13 +3426,9 @@ func TestNode_GetProofShouldWork(t *testing.T) {
 	stateComponents.Accounts = &stateMock.AccountsStub{
 		GetTrieCalled: func(_ []byte) (common.Trie, error) {
 			return &trieMock.TrieStub{
-				GetCalled: func(key []byte) ([]byte, error) {
+				GetProofCalled: func(key []byte) ([][]byte, []byte, error) {
 					assert.Equal(t, trieKey, hex.EncodeToString(key))
-					return value, nil
-				},
-				GetProofCalled: func(key []byte) ([][]byte, error) {
-					assert.Equal(t, trieKey, hex.EncodeToString(key))
-					return proof, nil
+					return proof, value, nil
 				},
 			}, nil
 		},
@@ -3478,35 +3474,8 @@ func TestNode_getProofErrWhenComputingProof(t *testing.T) {
 	stateComponents.Accounts = &stateMock.AccountsStub{
 		GetTrieCalled: func(_ []byte) (common.Trie, error) {
 			return &trieMock.TrieStub{
-				GetProofCalled: func(_ []byte) ([][]byte, error) {
-					return nil, expectedErr
-				},
-			}, nil
-		},
-	}
-	n, _ := node.NewNode(
-		node.WithStateComponents(stateComponents),
-		node.WithCoreComponents(getDefaultCoreComponents()),
-	)
-
-	response, err := n.ComputeProof([]byte("deadbeef"), []byte("0123"))
-	assert.Nil(t, response)
-	assert.Equal(t, expectedErr, err)
-}
-
-func TestNode_getProofErrGettingValue(t *testing.T) {
-	t.Parallel()
-
-	expectedErr := fmt.Errorf("expected err")
-	stateComponents := getDefaultStateComponents()
-	stateComponents.Accounts = &stateMock.AccountsStub{
-		GetTrieCalled: func(_ []byte) (common.Trie, error) {
-			return &trieMock.TrieStub{
-				GetProofCalled: func(_ []byte) ([][]byte, error) {
-					return nil, nil
-				},
-				GetCalled: func(_ []byte) ([]byte, error) {
-					return nil, expectedErr
+				GetProofCalled: func(_ []byte) ([][]byte, []byte, error) {
+					return nil, nil, expectedErr
 				},
 			}, nil
 		},
@@ -3577,25 +3546,15 @@ func TestNode_GetProofDataTrieShouldWork(t *testing.T) {
 	stateComponents.Accounts = &stateMock.AccountsStub{
 		GetTrieCalled: func(_ []byte) (common.Trie, error) {
 			return &trieMock.TrieStub{
-				GetCalled: func(key []byte) ([]byte, error) {
+				GetProofCalled: func(key []byte) ([][]byte, []byte, error) {
 					if hex.EncodeToString(key) == mainTrieKey {
-						return mainTrieValue, nil
+						return mainTrieProof, mainTrieValue, nil
 					}
 					if hex.EncodeToString(key) == dataTrieKey {
-						return dataTrieValue, nil
+						return dataTrieProof, dataTrieValue, nil
 					}
 
-					return nil, nil
-				},
-				GetProofCalled: func(key []byte) ([][]byte, error) {
-					if hex.EncodeToString(key) == mainTrieKey {
-						return mainTrieProof, nil
-					}
-					if hex.EncodeToString(key) == dataTrieKey {
-						return dataTrieProof, nil
-					}
-
-					return nil, nil
+					return nil, nil, nil
 				},
 			}, nil
 		},

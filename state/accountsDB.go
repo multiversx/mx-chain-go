@@ -677,6 +677,14 @@ func (adb *AccountsDB) GetAccountFromBytes(address []byte, accountBytes []byte) 
 		return nil, err
 	}
 
+	baseAcc, ok := acnt.(baseAccountHandler)
+	if ok {
+		err = adb.loadDataTrie(baseAcc)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return acnt, nil
 }
 
