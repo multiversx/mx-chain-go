@@ -41,6 +41,7 @@ const canTransferNFTCreateRole = "canTransferNFTCreateRole"
 const upgradable = "canUpgrade"
 
 const conversionBase = 10
+const metaESDT = "MetaESDT"
 
 type esdt struct {
 	eei                    vm.SystemEI
@@ -156,6 +157,10 @@ func (e *esdt) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return e.registerSemiFungible(args)
 	case "issueNonFungible":
 		return e.registerNonFungible(args)
+	case "registerMetaESDT":
+		return e.registerMetaESDT(args)
+	case "changeSFTToMetaESDT":
+		return e.changeSFTToMetaESDT(args)
 	case core.BuiltInFunctionESDTBurn:
 		return e.burn(args)
 	case "mint":
@@ -350,6 +355,44 @@ func (e *esdt) registerSemiFungible(args *vmcommon.ContractCallInput) vmcommon.R
 
 	e.eei.Finish(tokenIdentifier)
 
+	return vmcommon.Ok
+}
+
+func (e *esdt) registerMetaESDT(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := e.checkBasicCreateArguments(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+	numOfDecimals := uint32(big.NewInt(0).SetBytes(args.Arguments[2]).Uint64())
+	if numOfDecimals < minNumberOfDecimals || numOfDecimals > maxNumberOfDecimals {
+		e.eei.AddReturnMessage(fmt.Errorf("%w, minimum: %d, maximum: %d, provided: %d",
+			vm.ErrInvalidNumberOfDecimals,
+			minNumberOfDecimals,
+			maxNumberOfDecimals,
+			numOfDecimals,
+		).Error())
+		return vmcommon.UserError
+	}
+
+	tokenIdentifier, err := e.createNewToken(
+		args.CallerAddr,
+		args.Arguments[0],
+		args.Arguments[1],
+		big.NewInt(0),
+		numOfDecimals,
+		args.Arguments[3:],
+		[]byte(metaESDT))
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	e.eei.Finish(tokenIdentifier)
+
+	return vmcommon.Ok
+}
+
+func (e *esdt) changeSFTToMetaESDT(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	return vmcommon.Ok
 }
 
