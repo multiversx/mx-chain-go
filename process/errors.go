@@ -860,6 +860,12 @@ var ErrInterceptedDataNotForCurrentShard = errors.New("intercepted data not for 
 // ErrCannotCastInterceptedDataToHeader signals that intercepted data cannot be converted to header data
 var ErrCannotCastInterceptedDataToHeader = errors.New("cannot cast intercepted data to header data")
 
+// ErrHeaderRoundNotRelevant signals that the current header that is checked by a slashing detector is not relevant because the round is obsolete
+var ErrHeaderRoundNotRelevant = errors.New("current header that is checked by a slashing detector is not relevant because the round is obsolete")
+
+// ErrNoSlashingEventDetected signals that no slashing event has been detected given the current data
+var ErrNoSlashingEventDetected = errors.New("no slashing event has been detected given the current data")
+
 // ErrCannotCastProofToMultipleProposedHeaders signals that a given proof cannot be cast to a multiple header proposal proof
 var ErrCannotCastProofToMultipleProposedHeaders = errors.New("cannot cast proof to multiple proposal header proof")
 
