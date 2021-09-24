@@ -596,6 +596,9 @@ func TestEnableEpochConfig(t *testing.T) {
     # AddTokensToDelegationEnableEpoch represents the epoch when adding tokens to delegation is enabled for whitelisted address
     AddTokensToDelegationEnableEpoch = 40
 
+    # MultiESDTTransferFixOnCallBackOnEnableEpoch represents the epoch when multi esdt transfer on callback fix is enabled
+    MultiESDTTransferFixOnCallBackOnEnableEpoch = 41
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 36, MaxNumNodes = 37, NodesToShufflePerShard = 38 },
@@ -663,6 +666,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			BackwardCompSaveKeyValueEnableEpoch:         38,
 			MetaESDTSetEnableEpoch:                      39,
 			AddTokensToDelegationEnableEpoch:            40,
+			MultiESDTTransferFixOnCallBackOnEnableEpoch: 41,
 		},
 		GasSchedule: GasScheduleConfig{
 			GasScheduleByEpochs: []GasScheduleByEpochs{

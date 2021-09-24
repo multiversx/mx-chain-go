@@ -65,6 +65,7 @@ func createGenesisConfig() config.EnableEpochs {
 		BackwardCompSaveKeyValueEnableEpoch:         unreachableEpoch,
 		MetaESDTSetEnableEpoch:                      unreachableEpoch,
 		AddTokensToDelegationEnableEpoch:            unreachableEpoch,
+		MultiESDTTransferFixOnCallBackOnEnableEpoch: unreachableEpoch,
 	}
 }
 
@@ -310,21 +311,15 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	}
 
 	argsNewVMFactory := shard.ArgVMContainerFactory{
-		Config:                         arg.VirtualMachineConfig,
-		BlockGasLimit:                  math.MaxUint64,
-		GasSchedule:                    arg.GasSchedule,
-		ArgBlockChainHook:              argsHook,
-		EpochNotifier:                  epochNotifier,
-		DeployEnableEpoch:              arg.EpochConfig.EnableEpochs.SCDeployEnableEpoch,
-		AheadOfTimeGasUsageEnableEpoch: arg.EpochConfig.EnableEpochs.AheadOfTimeGasUsageEnableEpoch,
-		ArwenV3EnableEpoch:             arg.EpochConfig.EnableEpochs.RepairCallbackEnableEpoch,
-		ArwenChangeLocker:              genesisArwenLocker,
-		ESDTTransferParser:             esdtTransferParser,
+		Config:             arg.VirtualMachineConfig,
+		BlockGasLimit:      math.MaxUint64,
+		GasSchedule:        arg.GasSchedule,
+		ArgBlockChainHook:  argsHook,
+		EpochNotifier:      epochNotifier,
+		EpochConfig:        arg.EpochConfig.EnableEpochs,
+		ArwenChangeLocker:  genesisArwenLocker,
+		ESDTTransferParser: esdtTransferParser,
 	}
-	log.Debug("shardGenesisCreator: enable epoch for sc deploy", "epoch", argsNewVMFactory.DeployEnableEpoch)
-	log.Debug("shardGenesisCreator: enable epoch for ahead of time gas usage", "epoch", argsNewVMFactory.AheadOfTimeGasUsageEnableEpoch)
-	log.Debug("shardGenesisCreator: enable epoch for repair callback", "epoch", argsNewVMFactory.ArwenV3EnableEpoch)
-
 	vmFactoryImpl, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	if err != nil {
 		return nil, err
