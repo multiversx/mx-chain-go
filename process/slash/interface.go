@@ -9,7 +9,7 @@ import (
 // SlashingProofHandler - contains a proof for a slashing event and can be wrapped in a transaction
 type SlashingProofHandler interface {
 	// GetLevel - contains the slashing level for the current slashing type
-	// multiple colluding parties should have a higher leve
+	// multiple colluding parties should have a higher level
 	GetLevel() SlashingLevel
 	//GetType - contains the type of slashing detection
 	GetType() SlashingType
@@ -25,7 +25,7 @@ type MultipleProposalProofHandler interface {
 type SlashingDetector interface {
 	// VerifyData - checks if an intercepted data represents a slashable event
 	VerifyData(data process.InterceptedData) (SlashingProofHandler, error)
-
+	// ValidateProof - checks if a given proof is valid
 	ValidateProof(proof SlashingProofHandler) error
 }
 

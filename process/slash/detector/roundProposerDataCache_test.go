@@ -48,7 +48,7 @@ func TestRoundProposerDataCache_Add_OneRound_TwoProposers_FourInterceptedData(t 
 	require.Equal(t, dataCache.cache[1]["proposer2"][0].Hash(), []byte("hash3"))
 }
 
-func TestRoundProposerDataCache_Add_CacheSizeTwo_FourEntriesInCache_ExpectOldestEntriesInCacheRemoved(t *testing.T) {
+func TestRoundProposerDataCache_Add_CacheSizeTwo_FourEntriesInCache_ExpectOldestRoundInCacheRemoved(t *testing.T) {
 	t.Parallel()
 	dataCache := newRoundProposerDataCache(2)
 
@@ -79,28 +79,28 @@ func TestRoundProposerDataCache_Add_CacheSizeTwo_FourEntriesInCache_ExpectOldest
 	})
 
 	require.Len(t, dataCache.cache, 2)
+	require.Len(t, dataCache.cache[1], 1)
 	require.Len(t, dataCache.cache[2], 1)
-	require.Len(t, dataCache.cache[0], 1)
+	require.Len(t, dataCache.cache[1]["proposer1"], 1)
 	require.Len(t, dataCache.cache[2]["proposer2"], 1)
-	require.Len(t, dataCache.cache[0]["proposer3"], 1)
 
+	require.Equal(t, dataCache.cache[1]["proposer1"][0].Hash(), []byte("hash1"))
 	require.Equal(t, dataCache.cache[2]["proposer2"][0].Hash(), []byte("hash2"))
-	require.Equal(t, dataCache.cache[0]["proposer3"][0].Hash(), []byte("hash3"))
 
-	dataCache.add(3, []byte("proposer1"), &testscommon.InterceptedDataStub{
+	dataCache.add(3, []byte("proposer3"), &testscommon.InterceptedDataStub{
 		HashCalled: func() []byte {
-			return []byte("hash4")
+			return []byte("hash3")
 		},
 	})
 
 	require.Len(t, dataCache.cache, 2)
+	require.Len(t, dataCache.cache[2], 1)
 	require.Len(t, dataCache.cache[3], 1)
-	require.Len(t, dataCache.cache[0], 1)
-	require.Len(t, dataCache.cache[3]["proposer1"], 1)
-	require.Len(t, dataCache.cache[0]["proposer3"], 1)
+	require.Len(t, dataCache.cache[2]["proposer2"], 1)
+	require.Len(t, dataCache.cache[3]["proposer3"], 1)
 
-	require.Equal(t, dataCache.cache[3]["proposer1"][0].Hash(), []byte("hash4"))
-	require.Equal(t, dataCache.cache[0]["proposer3"][0].Hash(), []byte("hash3"))
+	require.Equal(t, dataCache.cache[2]["proposer2"][0].Hash(), []byte("hash2"))
+	require.Equal(t, dataCache.cache[3]["proposer3"][0].Hash(), []byte("hash3"))
 }
 
 func TestRoundProposerDataCache_ProposedData(t *testing.T) {
