@@ -130,6 +130,7 @@ func TestManagedProcessComponents_Create_ShouldWork(t *testing.T) {
 	nodeSkBytes, err := cryptoComponents.PrivateKey().ToByteArray()
 	require.Nil(t, err)
 	observerSkBytes, err := managedProcessComponents.NodeRedundancyHandler().ObserverPrivateKey().ToByteArray()
+	require.Nil(t, err)
 	require.NotEqual(t, nodeSkBytes, observerSkBytes)
 }
 
