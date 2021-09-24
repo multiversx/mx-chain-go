@@ -4156,3 +4156,47 @@ func TestEsdt_ExecuteChangeSFTToMetaESDT(t *testing.T) {
 	assert.Equal(t, token.NumDecimals, uint32(10))
 	assert.Equal(t, token.TokenType, []byte(metaESDT))
 }
+
+func TestEsdt_ExecuteIssueSFTAndChangeSFTToMetaESDT(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&stateMock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+	e, _ := NewESDTSmartContract(args)
+
+	eei.returnMessage = ""
+	eei.gasRemaining = 9999
+	e.flagMetaESDT.Set()
+
+	vmInput := getDefaultVmInputForFunc("issueSemiFungible", nil)
+	vmInput.CallValue = e.baseIssuingCost
+	vmInput.Arguments = [][]byte{[]byte("name"), []byte("TOKEN")}
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+	fullTicker := eei.output[0]
+
+	token, _ := e.getExistingToken(fullTicker)
+	assert.Equal(t, token.NumDecimals, uint32(0))
+	assert.Equal(t, token.TokenType, []byte(core.SemiFungibleESDT))
+
+	vmInput.CallValue = big.NewInt(0)
+	vmInput.Function = "changeSFTToMetaESDT"
+	vmInput.Arguments = [][]byte{fullTicker, big.NewInt(10).Bytes()}
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	token, _ = e.getExistingToken(fullTicker)
+	assert.Equal(t, token.NumDecimals, uint32(10))
+	assert.Equal(t, token.TokenType, []byte(metaESDT))
+
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "change can happen to semi fungible tokens only"))
+}
