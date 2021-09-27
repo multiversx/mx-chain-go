@@ -115,7 +115,7 @@
     ESDTNFTCreateOnMultiShard = 6
 
     # OptimizeGasUsedInCrossMiniBlocksEnableEpoch represents the epoch when gas used in cross shard mini blocks will be optimized
-    OptimizeGasUsedInCrossMiniBlocksEnableEpoch = 7
+    OptimizeGasUsedInCrossMiniBlocksEnableEpoch = 2
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
