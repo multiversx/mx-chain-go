@@ -478,6 +478,7 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 		}
 	}
 
+	numMiniBlocksProcessed := 0
 	separatedBodies := tc.separateBodyByType(body)
 	// processing has to be done in order, as the order of different type of transactions over the same account is strict
 	for _, blockType := range tc.keysTxPreProcs {
@@ -494,7 +495,14 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 		if err != nil {
 			return err
 		}
+
+		numMiniBlocksProcessed += len(separatedBodies[blockType].MiniBlocks)
 	}
+
+	log.Debug("transactionCoordinator.processMiniBlocksFromMe",
+		"num mini blocks processed", numMiniBlocksProcessed,
+		"total gas consumed", tc.gasHandler.TotalGasConsumed(),
+		"total gas refunded", tc.gasHandler.TotalGasRefunded())
 
 	return nil
 }
@@ -522,6 +530,11 @@ func (tc *transactionCoordinator) processMiniBlocksToMe(
 			return mbIndex, err
 		}
 	}
+
+	log.Debug("transactionCoordinator.processMiniBlocksToMe",
+		"num mini blocks processed", len(body.MiniBlocks),
+		"total gas consumed", tc.gasHandler.TotalGasConsumed(),
+		"total gas refunded", tc.gasHandler.TotalGasRefunded())
 
 	return mbIndex, nil
 }
@@ -637,6 +650,14 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 
 	allMBsProcessed := nrMiniBlocksProcessed == len(crossMiniBlockInfos)
 
+	log.Debug("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe",
+		"header round", hdr.GetRound(),
+		"header nonce", hdr.GetNonce(),
+		"num mini blocks to be processed", len(crossMiniBlockInfos),
+		"num mini blocks processed", nrMiniBlocksProcessed,
+		"total gas consumed", tc.gasHandler.TotalGasConsumed(),
+		"total gas refunded", tc.gasHandler.TotalGasRefunded())
+
 	return miniBlocks, nrTxAdded, allMBsProcessed, nil
 }
 
@@ -645,6 +666,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 	haveTime func() bool,
 ) block.MiniBlockSlice {
 
+	numMiniBlocksProcessed := 0
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	for _, blockType := range tc.keysTxPreProcs {
 		txPreProc := tc.getPreProcessor(blockType)
@@ -660,12 +682,19 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 		if len(mbs) > 0 {
 			miniBlocks = append(miniBlocks, mbs...)
 		}
+
+		numMiniBlocksProcessed += len(mbs)
 	}
 
 	interMBs := tc.CreatePostProcessMiniBlocks()
 	if len(interMBs) > 0 {
 		miniBlocks = append(miniBlocks, interMBs...)
 	}
+
+	log.Debug("transactionCoordinator.CreateMbsAndProcessTransactionsFromMe",
+		"num mini blocks processed", numMiniBlocksProcessed,
+		"total gas consumed", tc.gasHandler.TotalGasConsumed(),
+		"total gas refunded", tc.gasHandler.TotalGasRefunded())
 
 	return miniBlocks
 }
