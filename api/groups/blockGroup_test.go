@@ -232,6 +232,7 @@ func getBlockRoutesConfig() config.ApiRoutesConfig {
 				Routes: []config.RouteConfig{
 					{Name: "/by-nonce/:nonce", Open: true},
 					{Name: "/by-hash/:hash", Open: true},
+					{Name: "/by-round/:round", Open: true},
 				},
 			},
 		},
@@ -240,24 +241,20 @@ func getBlockRoutesConfig() config.ApiRoutesConfig {
 
 // ---- by round
 
-func TestGetBlockByRound_NilContextShouldError(t *testing.T) {
-	t.Parallel()
-	ws := startNodeServer(nil)
-
-	req, _ := http.NewRequest("GET", "/block/by-round/5", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-	response := shared.GenericAPIResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
-	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
-}
-
 func TestGetBlockByRound_WrongFacadeShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ws := startNodeServerWrongFacade()
+	expectedErr := errors.New("local err")
+	facade := mock.Facade{
+		GetBlockByRoundCalled: func(_ uint64, _ bool) (*api.Block, error) {
+			return nil, expectedErr
+		},
+	}
+
+	blockGroup, err := groups.NewBlockGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(blockGroup, "block", getBlockRoutesConfig())
 
 	req, _ := http.NewRequest("GET", "/block/by-round/2", nil)
 	resp := httptest.NewRecorder()
@@ -267,7 +264,7 @@ func TestGetBlockByRound_WrongFacadeShouldErr(t *testing.T) {
 	loadResponse(resp.Body, &response)
 
 	assert.Equal(t, http.StatusInternalServerError, resp.Code)
-	assert.True(t, strings.Contains(response.Error, apiErrors.ErrInvalidAppContext.Error()))
+	assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
 }
 
 func TestGetBlockByRound_EmptyRoundUrlParameterShouldErr(t *testing.T) {
@@ -279,7 +276,10 @@ func TestGetBlockByRound_EmptyRoundUrlParameterShouldErr(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
+	blockGroup, err := groups.NewBlockGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(blockGroup, "block", getBlockRoutesConfig())
 
 	req, _ := http.NewRequest("GET", "/block/by-round", nil)
 	resp := httptest.NewRecorder()
@@ -299,7 +299,10 @@ func TestGetBlockByRound_InvalidRoundShouldErr(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
+	blockGroup, err := groups.NewBlockGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(blockGroup, "block", getBlockRoutesConfig())
 
 	req, _ := http.NewRequest("GET", "/block/by-round/invalid", nil)
 	resp := httptest.NewRecorder()
@@ -322,7 +325,10 @@ func TestGetBlockByRound_FacadeErrorShouldErr(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
+	blockGroup, err := groups.NewBlockGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(blockGroup, "block", getBlockRoutesConfig())
 
 	req, _ := http.NewRequest("GET", "/block/by-round/37", nil)
 	resp := httptest.NewRecorder()
@@ -348,7 +354,10 @@ func TestGetBlockByRound_ShouldWork(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
+	blockGroup, err := groups.NewBlockGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(blockGroup, "block", getBlockRoutesConfig())
 
 	req, _ := http.NewRequest("GET", "/block/by-round/37", nil)
 	resp := httptest.NewRecorder()
@@ -370,7 +379,10 @@ func TestGetBlockByRound_WithInvalidTxs_ShouldErr(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
+	blockGroup, err := groups.NewBlockGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(blockGroup, "block", getBlockRoutesConfig())
 
 	req, _ := http.NewRequest("GET", "/block/by-round/37?withTxs=invalid", nil)
 	resp := httptest.NewRecorder()
@@ -396,7 +408,10 @@ func TestGetBlockByRound_WithTxs_ShouldWork(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
+	blockGroup, err := groups.NewBlockGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(blockGroup, "block", getBlockRoutesConfig())
 
 	req, _ := http.NewRequest("GET", "/block/by-round/37?withTxs=true", nil)
 	resp := httptest.NewRecorder()

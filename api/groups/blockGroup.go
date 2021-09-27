@@ -1,4 +1,4 @@
-package block
+package groups
 
 import (
 	"fmt"
@@ -9,10 +9,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
-	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/gin-gonic/gin"
 )
 
@@ -138,12 +136,7 @@ func (bg *blockGroup) getBlockByHash(c *gin.Context) {
 	shared.RespondWith(c, http.StatusOK, gin.H{"block": block}, "", shared.ReturnCodeSuccess)
 }
 
-func getBlockByRound(c *gin.Context) {
-	ef, ok := getFacade(c)
-	if !ok {
-		return
-	}
-
+func (bg *blockGroup) getBlockByRound(c *gin.Context) {
 	round, err := getQueryParamRound(c)
 	if err != nil {
 		shared.RespondWithValidationError(
@@ -161,7 +154,7 @@ func getBlockByRound(c *gin.Context) {
 	}
 
 	start := time.Now()
-	block, err := ef.GetBlockByRound(round, withTxs)
+	block, err := bg.getFacade().GetBlockByRound(round, withTxs)
 	log.Debug(fmt.Sprintf("GetBlockByRound took %s", time.Since(start)))
 	if err != nil {
 		shared.RespondWith(
