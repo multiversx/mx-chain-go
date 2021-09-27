@@ -70,7 +70,7 @@ import (
 )
 
 // StepDelay is used so that transactions can disseminate properly
-var StepDelay = time.Millisecond * 150
+var StepDelay = time.Millisecond * 180
 
 // SyncDelay is used so that nodes have enough time to sync
 var SyncDelay = time.Second / 5
