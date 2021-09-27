@@ -46,6 +46,8 @@ func NewSmartContractResultPreprocessor(
 	pubkeyConverter core.PubkeyConverter,
 	blockSizeComputation BlockSizeComputationHandler,
 	balanceComputation BalanceComputationHandler,
+	epochNotifier process.EpochNotifier,
+	optimizeGasUsedInCrossMiniBlocksEnableEpoch uint32,
 ) (*smartContractResults, error) {
 
 	if check.IfNil(hasher) {
@@ -87,6 +89,9 @@ func NewSmartContractResultPreprocessor(
 	if check.IfNil(balanceComputation) {
 		return nil, process.ErrNilBalanceComputationHandler
 	}
+	if check.IfNil(epochNotifier) {
+		return nil, process.ErrNilEpochNotifier
+	}
 
 	bpp := &basePreProcess{
 		hasher:               hasher,
@@ -98,6 +103,7 @@ func NewSmartContractResultPreprocessor(
 		balanceComputation:   balanceComputation,
 		accounts:             accounts,
 		pubkeyConverter:      pubkeyConverter,
+		optimizeGasUsedInCrossMiniBlocksEnableEpoch: optimizeGasUsedInCrossMiniBlocksEnableEpoch,
 	}
 
 	scr := &smartContractResults{
@@ -111,6 +117,9 @@ func NewSmartContractResultPreprocessor(
 	scr.chRcvAllScrs = make(chan bool)
 	scr.scrPool.RegisterOnAdded(scr.receivedSmartContractResult)
 	scr.scrForBlock.txHashAndInfo = make(map[string]*txInfo)
+
+	log.Debug("smartContractResult: enable epoch for optimize gas used in cross shard mini blocks", "epoch", scr.optimizeGasUsedInCrossMiniBlocksEnableEpoch)
+	epochNotifier.RegisterNotifyHandler(scr)
 
 	return scr, nil
 }

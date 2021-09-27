@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-vm-common/atomic"
 )
 
 type txShardInfo struct {
@@ -34,15 +35,17 @@ type txsForBlock struct {
 }
 
 type basePreProcess struct {
-	hasher               hashing.Hasher
-	marshalizer          marshal.Marshalizer
-	shardCoordinator     sharding.Coordinator
-	gasHandler           process.GasHandler
-	economicsFee         process.FeeHandler
-	blockSizeComputation BlockSizeComputationHandler
-	balanceComputation   BalanceComputationHandler
-	accounts             state.AccountsAdapter
-	pubkeyConverter      core.PubkeyConverter
+	hasher                                      hashing.Hasher
+	marshalizer                                 marshal.Marshalizer
+	shardCoordinator                            sharding.Coordinator
+	gasHandler                                  process.GasHandler
+	economicsFee                                process.FeeHandler
+	blockSizeComputation                        BlockSizeComputationHandler
+	balanceComputation                          BalanceComputationHandler
+	accounts                                    state.AccountsAdapter
+	pubkeyConverter                             core.PubkeyConverter
+	optimizeGasUsedInCrossMiniBlocksEnableEpoch uint32
+	flagOptimizeGasUsedInCrossMiniBlocks        atomic.Flag
 }
 
 func (bpp *basePreProcess) removeBlockDataFromPools(
@@ -417,6 +420,10 @@ func (bpp *basePreProcess) getTxMaxTotalCost(txHandler data.TransactionHandler) 
 }
 
 func (bpp *basePreProcess) getTotalGasConsumed() uint64 {
+	if !bpp.flagOptimizeGasUsedInCrossMiniBlocks.IsSet() {
+		return bpp.gasHandler.TotalGasConsumed()
+	}
+
 	totalGasConsumed := uint64(0)
 	if bpp.gasHandler.TotalGasConsumed() > bpp.gasHandler.TotalGasRefunded() {
 		totalGasConsumed = bpp.gasHandler.TotalGasConsumed() - bpp.gasHandler.TotalGasRefunded()
@@ -428,8 +435,28 @@ func (bpp *basePreProcess) getTotalGasConsumed() uint64 {
 func (bpp *basePreProcess) updateGasConsumedWithGasRefunded(
 	txHash []byte,
 	gasConsumedByMiniBlockInReceiverShard *uint64,
-	totalGasConsumedInSelfShard *uint64) {
+	totalGasConsumedInSelfShard *uint64,
+) {
+	if !bpp.flagOptimizeGasUsedInCrossMiniBlocks.IsSet() {
+		return
+	}
+
 	gasRefunded := bpp.gasHandler.GasRefunded(txHash)
+	if *gasConsumedByMiniBlockInReceiverShard <= gasRefunded || *totalGasConsumedInSelfShard <= gasRefunded {
+		log.Warn("basePreProcess.updateGasConsumedWithGasRefunded: too much gas refunded",
+			"gasRefunded", gasRefunded,
+			"gasConsumedByMiniBlockInReceiverShard", *gasConsumedByMiniBlockInReceiverShard,
+			"totalGasConsumedInSelfShard", *totalGasConsumedInSelfShard,
+		)
+		return
+	}
+
 	*gasConsumedByMiniBlockInReceiverShard -= gasRefunded
 	*totalGasConsumedInSelfShard -= gasRefunded
+}
+
+// EpochConfirmed is called whenever a new epoch is confirmed
+func (bpp *basePreProcess) EpochConfirmed(epoch uint32, _ uint64) {
+	bpp.flagOptimizeGasUsedInCrossMiniBlocks.Toggle(epoch >= bpp.optimizeGasUsedInCrossMiniBlocksEnableEpoch)
+	log.Debug("basePreProcess: optimize gas used in cross mini blocks", "enabled", bpp.flagOptimizeGasUsedInCrossMiniBlocks.IsSet())
 }

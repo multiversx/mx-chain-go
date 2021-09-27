@@ -70,6 +70,8 @@ func NewTransactionPreprocessor(
 	pubkeyConverter core.PubkeyConverter,
 	blockSizeComputation BlockSizeComputationHandler,
 	balanceComputation BalanceComputationHandler,
+	epochNotifier process.EpochNotifier,
+	optimizeGasUsedInCrossMiniBlocksEnableEpoch uint32,
 ) (*transactions, error) {
 
 	if check.IfNil(hasher) {
@@ -114,6 +116,9 @@ func NewTransactionPreprocessor(
 	if check.IfNil(balanceComputation) {
 		return nil, process.ErrNilBalanceComputationHandler
 	}
+	if check.IfNil(epochNotifier) {
+		return nil, process.ErrNilEpochNotifier
+	}
 
 	bpp := basePreProcess{
 		hasher:               hasher,
@@ -125,9 +130,10 @@ func NewTransactionPreprocessor(
 		balanceComputation:   balanceComputation,
 		accounts:             accounts,
 		pubkeyConverter:      pubkeyConverter,
+		optimizeGasUsedInCrossMiniBlocksEnableEpoch: optimizeGasUsedInCrossMiniBlocksEnableEpoch,
 	}
 
-	txs := transactions{
+	txs := &transactions{
 		basePreProcess:       &bpp,
 		storage:              store,
 		txPool:               txDataPool,
@@ -147,7 +153,10 @@ func NewTransactionPreprocessor(
 
 	txs.emptyAddress = make([]byte, txs.pubkeyConverter.Len())
 
-	return &txs, nil
+	log.Debug("transactions: enable epoch for optimize gas used in cross shard mini blocks", "epoch", txs.optimizeGasUsedInCrossMiniBlocksEnableEpoch)
+	epochNotifier.RegisterNotifyHandler(txs)
+
+	return txs, nil
 }
 
 // waitForTxHashes waits for a call whether all the requested transactions appeared
