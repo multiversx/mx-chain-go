@@ -117,16 +117,27 @@ func TestRoundProposerDataCache_ProposedData(t *testing.T) {
 			return []byte("hash2")
 		},
 	})
+	dataCache.add(2, []byte("proposer1"), &testscommon.InterceptedDataStub{
+		HashCalled: func() []byte {
+			return []byte("hash2")
+		},
+	})
 	dataCache.add(2, []byte("proposer2"), &testscommon.InterceptedDataStub{
 		HashCalled: func() []byte {
 			return []byte("hash3")
 		},
 	})
 
+	require.Len(t, dataCache.cache, 2)
+
 	data1 := dataCache.proposedData(1, []byte("proposer1"))
 	require.Len(t, data1, 2)
 	require.Equal(t, data1[0].Hash(), []byte("hash1"))
 	require.Equal(t, data1[1].Hash(), []byte("hash2"))
+
+	data1 = dataCache.proposedData(2, []byte("proposer1"))
+	require.Len(t, data1, 1)
+	require.Equal(t, data1[0].Hash(), []byte("hash2"))
 
 	data2 := dataCache.proposedData(2, []byte("proposer2"))
 	require.Len(t, data2, 1)

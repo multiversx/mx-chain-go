@@ -76,7 +76,7 @@ func TestMultipleHeaderProposalsDetector_VerifyData_CannotGetProposer_ExpectErro
 	require.Equal(t, expectedErr, err)
 }
 
-func TestMultipleHeaderProposalsDetector_VerifyData_IrrelevantRound_ExpectError(t *testing.T) {
+func TestMultipleHeaderProposalsDetector_VerifyData_DifferentRelevantAndIrrelevantRounds(t *testing.T) {
 	t.Parallel()
 
 	round := uint64(100)
@@ -91,30 +91,71 @@ func TestMultipleHeaderProposalsDetector_VerifyData_IrrelevantRound_ExpectError(
 		},
 		detector.CacheSize)
 
-	hData := createInterceptedHeaderData(round, []byte("seed"))
-	res, err := sd.VerifyData(hData)
-	require.Nil(t, res)
-	require.Equal(t, process.ErrNoSlashingEventDetected, err)
+	tests := []struct {
+		round       func() uint64
+		expectedErr error
+	}{
+		{
+			round: func() uint64 {
+				return round
+			},
+			expectedErr: process.ErrNoSlashingEventDetected,
+		},
+		{
+			round: func() uint64 {
+				return round - detector.MaxDeltaToCurrentRound + 1
+			},
+			expectedErr: process.ErrNoSlashingEventDetected,
+		},
+		{
+			round: func() uint64 {
+				return round + detector.MaxDeltaToCurrentRound - 1
+			},
+			expectedErr: process.ErrNoSlashingEventDetected,
+		},
+		{
+			round: func() uint64 {
+				return round - detector.MaxDeltaToCurrentRound
+			},
+			expectedErr: process.ErrHeaderRoundNotRelevant,
+		},
+		{
+			round: func() uint64 {
+				return round + detector.MaxDeltaToCurrentRound
+			},
+			expectedErr: process.ErrHeaderRoundNotRelevant,
+		},
+		{
+			round: func() uint64 {
+				return round - detector.MaxDeltaToCurrentRound - 1
+			},
+			expectedErr: process.ErrHeaderRoundNotRelevant,
+		},
+		{
+			round: func() uint64 {
+				return round + detector.MaxDeltaToCurrentRound + 1
+			},
+			expectedErr: process.ErrHeaderRoundNotRelevant,
+		},
+	}
 
-	hData = createInterceptedHeaderData(round-detector.MaxDeltaToCurrentRound-1, []byte("seed"))
-	res, err = sd.VerifyData(hData)
-	require.Nil(t, res)
-	require.Equal(t, process.ErrHeaderRoundNotRelevant, err)
-
-	hData = createInterceptedHeaderData(round+detector.MaxDeltaToCurrentRound+1, []byte("seed"))
-	res, err = sd.VerifyData(hData)
-	require.Nil(t, res)
-	require.Equal(t, process.ErrHeaderRoundNotRelevant, err)
+	for _, currTest := range tests {
+		hData := createInterceptedHeaderData(currTest.round(), []byte("seed"))
+		res, err := sd.VerifyData(hData)
+		require.Nil(t, res)
+		require.Equal(t, currTest.expectedErr, err)
+	}
 }
 
 func TestMultipleHeaderProposalsDetector_VerifyData_EmptyProposerList_ExpectError(t *testing.T) {
 	t.Parallel()
 
-	sd, _ := detector.NewMultipleHeaderProposalsDetector(&mockEpochStart.NodesCoordinatorStub{
-		ComputeConsensusGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
-			return []sharding.Validator{}, nil
-		},
-	}, &mock.RoundHandlerMock{}, detector.CacheSize)
+	sd, _ := detector.NewMultipleHeaderProposalsDetector(
+		&mockEpochStart.NodesCoordinatorStub{
+			ComputeConsensusGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
+				return []sharding.Validator{}, nil
+			},
+		}, &mock.RoundHandlerMock{}, detector.CacheSize)
 
 	res, err := sd.VerifyData(&interceptedBlocks.InterceptedHeader{})
 
@@ -263,6 +304,21 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 	t.Parallel()
 
 	errGetProposer := errors.New("cannot get proposer")
+	nodesCoordinatorMock := &mockEpochStart.NodesCoordinatorStub{
+		ComputeConsensusGroupCalled: func(randomness []byte, round uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
+			if round == 0 && bytes.Equal(randomness, []byte("h1")) {
+				return nil, errGetProposer
+			}
+			if round == 1 && bytes.Equal(randomness, []byte("h1")) {
+				return []sharding.Validator{mock.NewValidatorMock([]byte("proposer1"))}, nil
+			}
+			if round == 1 && bytes.Equal(randomness, []byte("h2")) {
+				return []sharding.Validator{mock.NewValidatorMock([]byte("proposer2"))}, nil
+			}
+
+			return []sharding.Validator{mock.NewValidatorMock([]byte("proposer"))}, nil
+		},
+	}
 	tests := []struct {
 		args        func() (slash.SlashingType, slash.SlashingLevel, []process.InterceptedData)
 		expectedErr error
@@ -308,7 +364,7 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 		{
 			args: func() (slash.SlashingType, slash.SlashingLevel, []process.InterceptedData) {
 				return slash.MultipleProposal, slash.Level1, []process.InterceptedData{
-					createInterceptedHeaderData(0, []byte("h1")),
+					createInterceptedHeaderData(0, []byte("h1")), // round ==0 && rndSeed == h1 => mock returns err
 					createInterceptedHeaderData(0, []byte("h2")),
 				}
 			},
@@ -326,8 +382,8 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 		{
 			args: func() (slash.SlashingType, slash.SlashingLevel, []process.InterceptedData) {
 				return slash.MultipleProposal, slash.Level1, []process.InterceptedData{
-					createInterceptedHeaderData(1, []byte("h1")),
-					createInterceptedHeaderData(1, []byte("h2")),
+					createInterceptedHeaderData(1, []byte("h1")), // round == 1 && rndSeed == h1 => mock returns proposer1
+					createInterceptedHeaderData(1, []byte("h2")), // round == 1 && rndSeed == h2 => mock returns proposer2
 				}
 			},
 			expectedErr: process.ErrHeadersDoNotHaveSameProposer,
@@ -353,22 +409,7 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 		},
 	}
 
-	sd, _ := detector.NewMultipleHeaderProposalsDetector(
-		&mockEpochStart.NodesCoordinatorStub{
-			ComputeConsensusGroupCalled: func(randomness []byte, round uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
-				if round == 0 && bytes.Equal(randomness, []byte("h1")) {
-					return nil, errGetProposer
-				}
-				if round == 1 && bytes.Equal(randomness, []byte("h1")) {
-					return []sharding.Validator{mock.NewValidatorMock([]byte("proposer1"))}, nil
-				}
-				if round == 1 && bytes.Equal(randomness, []byte("h2")) {
-					return []sharding.Validator{mock.NewValidatorMock([]byte("proposer2"))}, nil
-				}
-
-				return []sharding.Validator{mock.NewValidatorMock([]byte("proposer"))}, nil
-			},
-		}, &mock.RoundHandlerMock{}, detector.CacheSize)
+	sd, _ := detector.NewMultipleHeaderProposalsDetector(nodesCoordinatorMock, &mock.RoundHandlerMock{}, detector.CacheSize)
 
 	for _, currTest := range tests {
 		proof, _ := slash.NewMultipleProposalProof(currTest.args())

@@ -17,13 +17,14 @@ type SlashingProofHandler interface {
 
 type MultipleProposalProofHandler interface {
 	SlashingProofHandler
-	//GetHeaders - contains the first data of slashing detection
+	//GetHeaders - returns the slashable proposed headers
 	GetHeaders() []*interceptedBlocks.InterceptedHeader
 }
 
 // SlashingDetector - checks for slashable events and generates proofs to be used for slash
 type SlashingDetector interface {
-	// VerifyData - checks if an intercepted data represents a slashable event
+	// VerifyData - checks if an intercepted data represents a slashable event and returns a proof if so,
+	// otherwise returns nil and error
 	VerifyData(data process.InterceptedData) (SlashingProofHandler, error)
 	// ValidateProof - checks if a given proof is valid
 	ValidateProof(proof SlashingProofHandler) error

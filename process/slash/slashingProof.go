@@ -5,7 +5,7 @@ type slashingProof struct {
 	slashingType SlashingType
 }
 
-// NewSlashingProof - creates a new double block proposal slashing proof with a level, type and data
+// NewSlashingProof - creates a new slashing proof with a level and type
 func NewSlashingProof(sType SlashingType, level SlashingLevel) SlashingProofHandler {
 	return &slashingProof{
 		level:        level,

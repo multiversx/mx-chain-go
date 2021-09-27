@@ -18,7 +18,7 @@ type detectorCache interface {
 
 const CacheSize = 10
 const MaxDeltaToCurrentRound = 3
-const MinSlashNoOfHeaders = 2
+const MinSlashableNoOfHeaders = 2
 
 // multipleHeaderProposalsDetector - checks slashable events in case a validator proposes multiple(possibly) malicious headers.
 type multipleHeaderProposalsDetector struct {
@@ -27,7 +27,8 @@ type multipleHeaderProposalsDetector struct {
 	roundHandler     process.RoundHandler
 }
 
-// NewMultipleHeaderProposalsDetector - creates a new multipleHeaderProposalsDetector for multiple headers propose
+// NewMultipleHeaderProposalsDetector - creates a new multipleHeaderProposalsDetector for multiple headers
+// proposal detection or multiple headers proposal proof verification
 func NewMultipleHeaderProposalsDetector(
 	nodesCoordinator sharding.NodesCoordinator,
 	roundHandler process.RoundHandler,
@@ -40,7 +41,7 @@ func NewMultipleHeaderProposalsDetector(
 		return nil, process.ErrNilRoundHandler
 	}
 
-	//TODO: Maybe use a number from config file
+	//TODO: Here, instead of CacheSize, use maxRoundCacheSize = from config file
 	cache := newRoundProposerDataCache(CacheSize)
 	return &multipleHeaderProposalsDetector{
 		cache:            cache,
@@ -50,8 +51,9 @@ func NewMultipleHeaderProposalsDetector(
 }
 
 // VerifyData - checks if an intercepted data(which should be a header) represents a slashable event.
-// If another header with the same round and proposer exists, but a different hash, then a proof of type slash.MultipleProposal
-// is provided, otherwise a proof of type slash.None is provided indicating that no slashing event has been detected.
+// If another header with the same round and proposer exists, but a different hash, then a proof of type
+// slash.MultipleProposal is provided, otherwise a nil proof, along with an error is provided indicating that
+// no slashing event has been detected or an error occurred verifying the data.
 func (mhp *multipleHeaderProposalsDetector) VerifyData(data process.InterceptedData) (slash.SlashingProofHandler, error) {
 	header, castOk := data.(*interceptedBlocks.InterceptedHeader)
 	if !castOk {
@@ -173,13 +175,13 @@ func checkSlashTypeAndLevel(proof slash.MultipleProposalProofHandler) error {
 	if level < slash.Level1 || level > slash.Level2 {
 		return process.ErrInvalidSlashLevel
 	}
-	if len(headers) < MinSlashNoOfHeaders {
+	if len(headers) < MinSlashableNoOfHeaders {
 		return process.ErrNotEnoughHeadersProvided
 	}
-	if len(headers) == MinSlashNoOfHeaders && level != slash.Level1 {
+	if len(headers) == MinSlashableNoOfHeaders && level != slash.Level1 {
 		return process.ErrSlashLevelDoesNotMatchSlashType
 	}
-	if len(headers) > MinSlashNoOfHeaders && level != slash.Level2 {
+	if len(headers) > MinSlashableNoOfHeaders && level != slash.Level2 {
 		return process.ErrSlashLevelDoesNotMatchSlashType
 	}
 
@@ -187,7 +189,7 @@ func checkSlashTypeAndLevel(proof slash.MultipleProposalProofHandler) error {
 }
 
 func (mhp *multipleHeaderProposalsDetector) checkProposedHeaders(headers []*interceptedBlocks.InterceptedHeader) error {
-	if len(headers) < MinSlashNoOfHeaders {
+	if len(headers) < MinSlashableNoOfHeaders {
 		return process.ErrNotEnoughHeadersProvided
 	}
 
