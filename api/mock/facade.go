@@ -359,6 +359,16 @@ func (f *Facade) GetBlockByRound(round uint64, withTxs bool) (*api.Block, error)
 	return nil, nil
 }
 
+// Trigger -
+func (f *Facade) Trigger(_ uint32, _ bool) error {
+	return nil
+}
+
+// IsSelfTrigger -
+func (f *Facade) IsSelfTrigger() bool {
+	return false
+}
+
 // Close -
 func (f *Facade) Close() error {
 	return nil
