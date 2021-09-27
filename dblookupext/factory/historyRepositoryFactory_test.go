@@ -10,7 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
-	mock2 "github.com/ElrondNetwork/elrond-go/process/mock"
+	processMock "github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
@@ -81,6 +81,6 @@ func getArgs() *factory.ArgsHistoryRepositoryFactory {
 		Store:                    &mock.ChainStorerMock{},
 		Marshalizer:              &mock.MarshalizerMock{},
 		Hasher:                   &mock.HasherMock{},
-		Uint64ByteSliceConverter: &mock2.Uint64ByteSliceConverterMock{},
+		Uint64ByteSliceConverter: &processMock.Uint64ByteSliceConverterMock{},
 	}
 }

@@ -181,19 +181,11 @@ func getQueryParamWithTxs(c *gin.Context) (bool, error) {
 
 func getQueryParamNonce(c *gin.Context) (uint64, error) {
 	nonceStr := c.Param("nonce")
-	if nonceStr == "" {
-		return 0, errors.ErrInvalidBlockNonce
-	}
-
 	return strconv.ParseUint(nonceStr, 10, 64)
 }
 
 func getQueryParamRound(c *gin.Context) (uint64, error) {
 	roundStr := c.Param("round")
-	if roundStr == "" {
-		return 0, errors.ErrInvalidBlockRound
-	}
-
 	return strconv.ParseUint(roundStr, 10, 64)
 }
 

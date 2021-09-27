@@ -8,11 +8,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	mock3 "github.com/ElrondNetwork/elrond-go-core/data/mock"
+	dataMock "github.com/ElrondNetwork/elrond-go-core/data/mock"
 	"github.com/ElrondNetwork/elrond-go/common/mock"
 	"github.com/ElrondNetwork/elrond-go/dblookupext/esdtSupply"
 	"github.com/ElrondNetwork/elrond-go/process"
-	mock2 "github.com/ElrondNetwork/elrond-go/process/mock"
+	processMock "github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
@@ -37,7 +37,7 @@ func createMockHistoryRepoArgs(epoch uint32) HistoryRepositoryArguments {
 		Marshalizer:                 &mock.MarshalizerMock{},
 		Hasher:                      &mock.HasherMock{},
 		ESDTSuppliesHandler:         sp,
-		Uint64ByteSliceConverter:    &mock2.Uint64ByteSliceConverterMock{},
+		Uint64ByteSliceConverter:    &processMock.Uint64ByteSliceConverterMock{},
 	}
 
 	return args
@@ -99,7 +99,7 @@ func TestHistoryRepository_RecordBlock_InvalidBlockRoundByNonceStorer_ExpectErro
 
 	errPut := errors.New("error put")
 	args := createMockHistoryRepoArgs(0)
-	args.BlockRoundByNonce = &mock3.StorerStub{
+	args.BlockRoundByNonce = &dataMock.StorerStub{
 		PutCalled: func(key, data []byte) error {
 			return errPut
 		},
