@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -19,6 +20,7 @@ import (
 // ArgBaseBootstrapper holds all dependencies required by the bootstrap data factory in order to create
 // new instances
 type ArgBaseBootstrapper struct {
+	HistoryRepo                  dblookupext.HistoryRepository
 	PoolsHolder                  dataRetriever.PoolsHolder
 	Store                        dataRetriever.StorageService
 	ChainHandler                 data.ChainHandler

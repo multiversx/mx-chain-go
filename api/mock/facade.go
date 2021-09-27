@@ -59,6 +59,16 @@ type Facade struct {
 	GetProofCalled                          func(string, string) ([][]byte, error)
 	GetProofCurrentRootHashCalled           func(string) ([][]byte, []byte, error)
 	VerifyProofCalled                       func(string, string, [][]byte) (bool, error)
+	GetTokenSupplyCalled                    func(token string) (string, error)
+}
+
+// GetTokenSupply -
+func (f *Facade) GetTokenSupply(token string) (string, error) {
+	if f.GetTokenSupplyCalled != nil {
+		return f.GetTokenSupplyCalled(token)
+	}
+
+	return "", nil
 }
 
 // GetProof -
@@ -338,6 +348,16 @@ func (f *Facade) GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error)
 // GetBlockByHash -
 func (f *Facade) GetBlockByHash(hash string, withTxs bool) (*api.Block, error) {
 	return f.GetBlockByHashCalled(hash, withTxs)
+}
+
+// Trigger -
+func (f *Facade) Trigger(_ uint32, _ bool) error {
+	return nil
+}
+
+// IsSelfTrigger -
+func (f *Facade) IsSelfTrigger() bool {
+	return false
 }
 
 // Close -

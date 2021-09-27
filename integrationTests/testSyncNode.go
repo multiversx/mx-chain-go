@@ -279,6 +279,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		AccountsDBSyncer:             &mock.AccountsDBSyncerStub{},
 		CurrentEpochProvider:         &testscommon.CurrentEpochProviderStub{},
 		IsInImportMode:               false,
+		HistoryRepo:                  &dblookupext.HistoryRepositoryStub{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 	}
 
@@ -322,6 +323,7 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		AccountsDBSyncer:             &mock.AccountsDBSyncerStub{},
 		CurrentEpochProvider:         &testscommon.CurrentEpochProviderStub{},
 		IsInImportMode:               false,
+		HistoryRepo:                  &dblookupext.HistoryRepositoryStub{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 	}
 

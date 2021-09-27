@@ -2203,10 +2203,8 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithNetworkComponents(networkComponents),
 		node.WithStateComponents(stateComponents),
 		node.WithPeerDenialEvaluator(&mock.PeerDenialEvaluatorStub{}),
-		node.WithNetworkShardingCollector(tpn.NetworkShardingCollector),
 		node.WithTxAccumulator(txAccumulator),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
-		node.WithNodeRedundancyHandler(&mock.RedundancyHandlerStub{}),
 	)
 	log.LogIfError(err)
 
@@ -2777,7 +2775,6 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger(heartbeatPk str
 		node.WithCryptoComponents(cryptoComponents),
 		node.WithNetworkComponents(networkComponents),
 		node.WithProcessComponents(processComponents),
-		node.WithNodeRedundancyHandler(redundancyHandler),
 	)
 	log.LogIfError(err)
 
@@ -2892,6 +2889,7 @@ func GetDefaultProcessComponents() *mock.ProcessComponentsStub {
 			},
 		},
 		CurrentEpochProviderInternal: &testscommon.CurrentEpochProviderStub{},
+		HistoryRepositoryInternal:    &dblookupextMock.HistoryRepositoryStub{},
 	}
 }
 

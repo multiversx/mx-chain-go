@@ -17,6 +17,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const consensusTimeBetweenRounds = time.Second
+
 func encodeAddress(address []byte) string {
 	return hex.EncodeToString(address)
 }
@@ -181,7 +183,7 @@ func checkBlockProposedEveryRound(numCommBlock uint64, nonceForRoundMap map[uint
 
 		mutex.Unlock()
 
-		time.Sleep(integrationTests.StepDelay)
+		time.Sleep(consensusTimeBetweenRounds)
 	}
 }
 

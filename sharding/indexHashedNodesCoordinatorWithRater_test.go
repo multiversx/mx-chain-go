@@ -221,9 +221,9 @@ func Test_ComputeValidatorsGroup63of400(t *testing.T) {
 
 	consensusAppearances := make(map[string]uint64)
 	leaderAppearances := make(map[string]uint64)
-	for _, validator := range list {
-		consensusAppearances[string(validator.PubKey())] = 0
-		leaderAppearances[string(validator.PubKey())] = 0
+	for _, v := range list {
+		consensusAppearances[string(v.PubKey())] = 0
+		leaderAppearances[string(v.PubKey())] = 0
 	}
 
 	eligibleMap := make(map[uint32][]Validator)
@@ -766,7 +766,6 @@ func BenchmarkIndexHashedGroupSelectorWithRater_TestExpandList(b *testing.B) {
 
 	fmt.Println(m2.HeapAlloc)
 	fmt.Printf("Used %d MB\n", (m2.HeapAlloc-m.HeapAlloc)/1024/1024)
-	//fmt.Print(array[0:100])
 }
 
 func BenchmarkIndexHashedGroupSelectorWithRater_TestHashes(b *testing.B) {
@@ -780,15 +779,13 @@ func BenchmarkIndexHashedGroupSelectorWithRater_TestHashes(b *testing.B) {
 	for i := 0; i < nrHashes; i++ {
 		randomBits = fmt.Sprintf("%s%d", randomBits, rand.Intn(2))
 	}
-	//computedListIndex := int64(0)
+
 	for i := 0; i < nrHashes; i++ {
 		computedHash := hasher.Compute(randomBits + fmt.Sprintf("%d", i))
 		computedLargeIndex := big.NewInt(0)
 		computedLargeIndex.SetBytes(computedHash)
 		fmt.Println(big.NewInt(0).Mod(computedLargeIndex, big.NewInt(nrElementsInList)).Int64())
 	}
-
-	//fmt.Print(array[0:100])
 }
 
 func BenchmarkIndexHashedWithRaterGroupSelector_ComputeValidatorsGroup21of400(b *testing.B) {
