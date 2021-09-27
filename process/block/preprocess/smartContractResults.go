@@ -156,16 +156,40 @@ func (scr *smartContractResults) RemoveTxsFromPools(body *block.Body) error {
 	return scr.removeTxsFromPools(body, scr.scrPool, scr.isMiniBlockCorrect)
 }
 
-// RestoreBlockDataIntoPools restores the smart contract results and miniblocks to associated pools
-func (scr *smartContractResults) RestoreBlockDataIntoPools(
-	body *block.Body,
-	miniBlockPool storage.Cacher,
-) (int, error) {
+// RestoreMiniBlocksIntoPools restores the smart contract miniblocks to associated pool
+func (scr *smartContractResults) RestoreMiniBlocksIntoPools(body *block.Body, miniBlockPool storage.Cacher) error {
 	if check.IfNil(body) {
-		return 0, process.ErrNilBlockBody
+		return process.ErrNilBlockBody
 	}
 	if check.IfNil(miniBlockPool) {
-		return 0, process.ErrNilMiniBlockPool
+		return process.ErrNilMiniBlockPool
+	}
+
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		miniBlock := body.MiniBlocks[i]
+		if miniBlock.Type != block.SmartContractResultBlock {
+			continue
+		}
+
+		//TODO: Should be analyzed if restoring into pool only cross-shard miniblocks with destination in self shard,
+		//would create problems or not
+		if miniBlock.SenderShardID != scr.shardCoordinator.SelfId() {
+			miniBlockHash, errHash := core.CalculateHash(scr.marshalizer, scr.hasher, miniBlock)
+			if errHash != nil {
+				return errHash
+			}
+
+			miniBlockPool.Put(miniBlockHash, miniBlock, miniBlock.Size())
+		}
+	}
+
+	return nil
+}
+
+// RestoreTxsIntoPools restores the smart contract results to associated pool
+func (scr *smartContractResults) RestoreTxsIntoPools(body *block.Body) (int, error) {
+	if check.IfNil(body) {
+		return 0, process.ErrNilBlockBody
 	}
 
 	scrRestored := 0
@@ -195,17 +219,6 @@ func (scr *smartContractResults) RestoreBlockDataIntoPools(
 			}
 
 			scr.scrPool.AddData([]byte(txHash), &tx, tx.Size(), strCache)
-		}
-
-		//TODO: Should be analyzed if restoring into pool only cross-shard miniblocks with destination in self shard,
-		//would create problems or not
-		if miniBlock.SenderShardID != scr.shardCoordinator.SelfId() {
-			miniBlockHash, errHash := core.CalculateHash(scr.marshalizer, scr.hasher, miniBlock)
-			if errHash != nil {
-				return scrRestored, errHash
-			}
-
-			miniBlockPool.Put(miniBlockHash, miniBlock, miniBlock.Size())
 		}
 
 		scrRestored += len(miniBlock.TxHashes)

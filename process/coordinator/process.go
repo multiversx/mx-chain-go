@@ -341,14 +341,18 @@ func (tc *transactionCoordinator) RestoreBlockDataFromStorage(body *block.Body) 
 		return 0, nil
 	}
 
-	separatedBodies, err := tc.separateBodyByType(body, true)
+	totalRestoredTxs, err := tc.restoreTxsIntoPool(body)
 	if err != nil {
-		return 0, err
+		return totalRestoredTxs, err
+	}
+
+	separatedBodies, err := tc.separateBodyByType(body, false)
+	if err != nil {
+		return totalRestoredTxs, err
 	}
 
 	var errFound error
 	localMutex := sync.Mutex{}
-	totalRestoredTx := 0
 
 	wg := sync.WaitGroup{}
 	wg.Add(len(separatedBodies))
@@ -361,18 +365,60 @@ func (tc *transactionCoordinator) RestoreBlockDataFromStorage(body *block.Body) 
 				return
 			}
 
-			restoredTxs, err := preproc.RestoreBlockDataIntoPools(blockBody, tc.miniBlockPool)
-			if err != nil {
-				log.Trace("RestoreBlockDataIntoPools", "error", err.Error())
+			errRestore := preproc.RestoreMiniBlocksIntoPools(blockBody, tc.miniBlockPool)
+			if errRestore != nil {
+				log.Trace("RestoreMiniBlocksIntoPools", "error", errRestore.Error())
 
 				localMutex.Lock()
-				errFound = err
+				errFound = errRestore
+				localMutex.Unlock()
+			}
+
+			wg.Done()
+		}(key, value)
+	}
+
+	wg.Wait()
+
+	return totalRestoredTxs, errFound
+}
+
+func (tc *transactionCoordinator) restoreTxsIntoPool(body *block.Body) (int, error) {
+	if check.IfNil(body) {
+		return 0, nil
+	}
+
+	separatedBodies, err := tc.separateBodyByType(body, true)
+	if err != nil {
+		return 0, err
+	}
+
+	var errFound error
+	localMutex := sync.Mutex{}
+	totalRestoredTxs := 0
+
+	wg := sync.WaitGroup{}
+	wg.Add(len(separatedBodies))
+
+	for key, value := range separatedBodies {
+		go func(blockType block.Type, blockBody *block.Body) {
+			preproc := tc.getPreProcessor(blockType)
+			if check.IfNil(preproc) {
+				wg.Done()
+				return
+			}
+
+			restoredTxs, errRestore := preproc.RestoreTxsIntoPools(blockBody)
+			if errRestore != nil {
+				log.Trace("RestoreTxsIntoPools", "error", errRestore.Error())
+
+				localMutex.Lock()
+				errFound = errRestore
 				localMutex.Unlock()
 			}
 
 			localMutex.Lock()
-			totalRestoredTx += restoredTxs
-
+			totalRestoredTxs += restoredTxs
 			localMutex.Unlock()
 
 			wg.Done()
@@ -381,7 +427,7 @@ func (tc *transactionCoordinator) RestoreBlockDataFromStorage(body *block.Body) 
 
 	wg.Wait()
 
-	return totalRestoredTx, errFound
+	return totalRestoredTxs, errFound
 }
 
 // RemoveBlockDataFromPool deletes block data from pools

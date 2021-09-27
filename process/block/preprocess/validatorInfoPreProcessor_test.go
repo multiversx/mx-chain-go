@@ -173,8 +173,11 @@ func TestNewValidatorInfoPreprocessor_RestorePeerBlockIntoPools(t *testing.T) {
 	assert.Nil(t, foundMb)
 	assert.False(t, ok)
 
-	numRestoredTxs, err := rtp.RestoreBlockDataIntoPools(blockBody, miniBlockPool)
+	numRestoredTxs, err := rtp.RestoreTxsIntoPools(blockBody)
 	assert.Equal(t, 1, numRestoredTxs)
+	assert.Nil(t, err)
+
+	err = rtp.RestoreMiniBlocksIntoPools(blockBody, miniBlockPool)
 	assert.Nil(t, err)
 
 	foundMb, ok = miniBlockPool.Get(mbHash)
@@ -214,8 +217,11 @@ func TestNewValidatorInfoPreprocessor_RestoreOtherBlockTypeIntoPoolsShouldNotRes
 	assert.Nil(t, foundMb)
 	assert.False(t, ok)
 
-	numRestoredTxs, err := rtp.RestoreBlockDataIntoPools(blockBody, miniBlockPool)
+	numRestoredTxs, err := rtp.RestoreTxsIntoPools(blockBody)
 	assert.Equal(t, 0, numRestoredTxs)
+	assert.Nil(t, err)
+
+	err = rtp.RestoreMiniBlocksIntoPools(blockBody, miniBlockPool)
 	assert.Nil(t, err)
 
 	foundMb, ok = miniBlockPool.Get(mbHash)

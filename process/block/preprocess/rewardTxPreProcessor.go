@@ -152,16 +152,36 @@ func (rtp *rewardTxPreprocessor) RemoveTxsFromPools(body *block.Body) error {
 	return rtp.removeTxsFromPools(body, rtp.rewardTxPool, rtp.isMiniBlockCorrect)
 }
 
-// RestoreBlockDataIntoPools restores the reward transactions and miniblocks to associated pools
-func (rtp *rewardTxPreprocessor) RestoreBlockDataIntoPools(
-	body *block.Body,
-	miniBlockPool storage.Cacher,
-) (int, error) {
+// RestoreMiniBlocksIntoPools restores the reward miniblocks to associated pool
+func (rtp *rewardTxPreprocessor) RestoreMiniBlocksIntoPools(body *block.Body, miniBlockPool storage.Cacher) error {
 	if check.IfNil(body) {
-		return 0, process.ErrNilBlockBody
+		return process.ErrNilBlockBody
 	}
 	if check.IfNil(miniBlockPool) {
-		return 0, process.ErrNilMiniBlockPool
+		return process.ErrNilMiniBlockPool
+	}
+
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		miniBlock := body.MiniBlocks[i]
+		if miniBlock.Type != block.RewardsBlock {
+			continue
+		}
+
+		miniBlockHash, err := core.CalculateHash(rtp.marshalizer, rtp.hasher, miniBlock)
+		if err != nil {
+			return err
+		}
+
+		miniBlockPool.Put(miniBlockHash, miniBlock, miniBlock.Size())
+	}
+
+	return nil
+}
+
+// RestoreTxsIntoPools restores the reward transactions to associated pool
+func (rtp *rewardTxPreprocessor) RestoreTxsIntoPools(body *block.Body) (int, error) {
+	if check.IfNil(body) {
+		return 0, process.ErrNilBlockBody
 	}
 
 	rewardTxsRestored := 0
@@ -192,13 +212,6 @@ func (rtp *rewardTxPreprocessor) RestoreBlockDataIntoPools(
 
 			rtp.rewardTxPool.AddData([]byte(txHash), &tx, tx.Size(), strCache)
 		}
-
-		miniBlockHash, err := core.CalculateHash(rtp.marshalizer, rtp.hasher, miniBlock)
-		if err != nil {
-			return rewardTxsRestored, err
-		}
-
-		miniBlockPool.Put(miniBlockHash, miniBlock, miniBlock.Size())
 
 		rewardTxsRestored += len(miniBlock.TxHashes)
 	}

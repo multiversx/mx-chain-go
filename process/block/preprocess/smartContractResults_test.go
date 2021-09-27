@@ -1042,9 +1042,12 @@ func TestScrsPreprocessor_RestoreBlockDataIntoPools(t *testing.T) {
 
 	body.MiniBlocks = append(body.MiniBlocks, &miniblock)
 	miniblockPool := testscommon.NewCacherMock()
-	scrRestored, err := scr.RestoreBlockDataIntoPools(body, miniblockPool)
 
+	scrRestored, err := scr.RestoreTxsIntoPools(body)
 	assert.Equal(t, scrRestored, 1)
+	assert.Nil(t, err)
+
+	err = scr.RestoreMiniBlocksIntoPools(body, miniblockPool)
 	assert.Nil(t, err)
 }
 
@@ -1071,11 +1074,9 @@ func TestScrsPreprocessor_RestoreBlockDataIntoPoolsNilMiniblockPoolShouldErr(t *
 	)
 
 	body := &block.Body{}
-
 	miniblockPool := storage.Cacher(nil)
 
-	_, err := scr.RestoreBlockDataIntoPools(body, miniblockPool)
-
+	err := scr.RestoreMiniBlocksIntoPools(body, miniblockPool)
 	assert.NotNil(t, err)
 	assert.Equal(t, err, process.ErrNilMiniBlockPool)
 }

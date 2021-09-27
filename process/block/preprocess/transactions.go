@@ -225,16 +225,40 @@ func (txs *transactions) RemoveTxsFromPools(body *block.Body) error {
 	return txs.removeTxsFromPools(body, txs.txPool, txs.isMiniBlockCorrect)
 }
 
-// RestoreBlockDataIntoPools restores the transactions and miniblocks to associated pools
-func (txs *transactions) RestoreBlockDataIntoPools(
-	body *block.Body,
-	miniBlockPool storage.Cacher,
-) (int, error) {
+// RestoreMiniBlocksIntoPools restores the miniblocks to associated pool
+func (txs *transactions) RestoreMiniBlocksIntoPools(body *block.Body, miniBlockPool storage.Cacher) error {
 	if check.IfNil(body) {
-		return 0, process.ErrNilBlockBody
+		return process.ErrNilBlockBody
 	}
 	if check.IfNil(miniBlockPool) {
-		return 0, process.ErrNilMiniBlockPool
+		return process.ErrNilMiniBlockPool
+	}
+
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		miniBlock := body.MiniBlocks[i]
+		if !txs.isMiniBlockCorrect(miniBlock.Type) {
+			continue
+		}
+
+		//TODO: Should be analyzed if restoring into pool only cross-shard miniblocks with destination in self shard,
+		//would create problems or not
+		if miniBlock.SenderShardID != txs.shardCoordinator.SelfId() {
+			miniBlockHash, errHash := core.CalculateHash(txs.marshalizer, txs.hasher, miniBlock)
+			if errHash != nil {
+				return errHash
+			}
+
+			miniBlockPool.Put(miniBlockHash, miniBlock, miniBlock.Size())
+		}
+	}
+
+	return nil
+}
+
+// RestoreTxsIntoPools restores the transactions to associated pool
+func (txs *transactions) RestoreTxsIntoPools(body *block.Body) (int, error) {
+	if check.IfNil(body) {
+		return 0, process.ErrNilBlockBody
 	}
 
 	txsRestored := 0
@@ -264,17 +288,6 @@ func (txs *transactions) RestoreBlockDataIntoPools(
 			}
 
 			txs.txPool.AddData([]byte(txHash), &tx, tx.Size(), strCache)
-		}
-
-		//TODO: Should be analyzed if restoring into pool only cross-shard miniblocks with destination in self shard,
-		//would create problems or not
-		if miniBlock.SenderShardID != txs.shardCoordinator.SelfId() {
-			miniBlockHash, errHash := core.CalculateHash(txs.marshalizer, txs.hasher, miniBlock)
-			if errHash != nil {
-				return txsRestored, errHash
-			}
-
-			miniBlockPool.Put(miniBlockHash, miniBlock, miniBlock.Size())
 		}
 
 		txsRestored += len(miniBlock.TxHashes)

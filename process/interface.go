@@ -210,7 +210,8 @@ type PreProcessor interface {
 
 	RemoveMiniBlocksFromPools(body *block.Body, miniBlockPool storage.Cacher) error
 	RemoveTxsFromPools(body *block.Body) error
-	RestoreBlockDataIntoPools(body *block.Body, miniBlockPool storage.Cacher) (int, error)
+	RestoreMiniBlocksIntoPools(body *block.Body, miniBlockPool storage.Cacher) error
+	RestoreTxsIntoPools(body *block.Body) (int, error)
 	SaveTxsToStorage(body *block.Body) error
 
 	ProcessBlockTransactions(header data.HeaderHandler, body *block.Body, haveTime func() bool, scheduledMode bool, gasConsumedInfo *GasConsumedInfo) error

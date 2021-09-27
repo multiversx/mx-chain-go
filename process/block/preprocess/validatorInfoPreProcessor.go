@@ -82,19 +82,15 @@ func (vip *validatorInfoPreprocessor) RemoveTxsFromPools(_ *block.Body) error {
 	return nil
 }
 
-// RestoreBlockDataIntoPools restores the peer miniblocks to the pool
-func (vip *validatorInfoPreprocessor) RestoreBlockDataIntoPools(
-	body *block.Body,
-	miniBlockPool storage.Cacher,
-) (int, error) {
+// RestoreMiniBlocksIntoPools restores the peer miniblocks to associated pool
+func (vip *validatorInfoPreprocessor) RestoreMiniBlocksIntoPools(body *block.Body, miniBlockPool storage.Cacher) error {
 	if check.IfNil(body) {
-		return 0, process.ErrNilBlockBody
+		return process.ErrNilBlockBody
 	}
 	if check.IfNil(miniBlockPool) {
-		return 0, process.ErrNilMiniBlockPool
+		return process.ErrNilMiniBlockPool
 	}
 
-	validatorsInfoRestored := 0
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniBlock := body.MiniBlocks[i]
 		if miniBlock.Type != block.PeerBlock {
@@ -103,10 +99,27 @@ func (vip *validatorInfoPreprocessor) RestoreBlockDataIntoPools(
 
 		miniBlockHash, err := core.CalculateHash(vip.marshalizer, vip.hasher, miniBlock)
 		if err != nil {
-			return validatorsInfoRestored, err
+			return err
 		}
 
 		miniBlockPool.Put(miniBlockHash, miniBlock, miniBlock.Size())
+	}
+
+	return nil
+}
+
+// RestoreTxsIntoPools restores the peer transactions to associated pool
+func (vip *validatorInfoPreprocessor) RestoreTxsIntoPools(body *block.Body) (int, error) {
+	if check.IfNil(body) {
+		return 0, process.ErrNilBlockBody
+	}
+
+	validatorsInfoRestored := 0
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		miniBlock := body.MiniBlocks[i]
+		if miniBlock.Type != block.PeerBlock {
+			continue
+		}
 
 		validatorsInfoRestored += len(miniBlock.TxHashes)
 	}
