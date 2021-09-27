@@ -571,16 +571,6 @@ func (sr *subroundEndRound) checkSignaturesValidity(bitmap []byte) error {
 		if !isSigJobDone {
 			return spos.ErrNilSignature
 		}
-
-		signature, err := sr.MultiSigner().SignatureShare(uint16(i))
-		if err != nil {
-			return err
-		}
-
-		err = sr.MultiSigner().VerifySignatureShare(uint16(i), signature, sr.GetData(), bitmap)
-		if err != nil {
-			return err
-		}
 	}
 
 	return nil

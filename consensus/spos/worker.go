@@ -619,9 +619,8 @@ func (wrk *Worker) Extend(subroundId int) {
 	}
 
 	wrk.scheduledProcessor.ForceStopScheduledExecutionBlocking()
-
-	log.Debug("current block is reverted")
 	wrk.blockProcessor.RevertCurrentBlock()
+	log.Debug("current block is reverted")
 }
 
 // DisplayStatistics logs the consensus messages split on proposed headers

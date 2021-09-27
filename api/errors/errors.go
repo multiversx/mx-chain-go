@@ -4,9 +4,6 @@ import (
 	"errors"
 )
 
-// ErrNilAppContext signals that no context was passed to the routing system
-var ErrNilAppContext = errors.New("nil app context")
-
 // ErrInvalidAppContext signals an invalid context passed to the routing system
 var ErrInvalidAppContext = errors.New("invalid app context")
 
@@ -73,6 +70,9 @@ var ErrInvalidQueryParameter = errors.New("invalid query parameter")
 // ErrValidationEmptyBlockHash signals an empty block hash was provided
 var ErrValidationEmptyBlockHash = errors.New("block hash is empty")
 
+// ErrValidationEmptyToken signals that an empty token was provided
+var ErrValidationEmptyToken = errors.New("token is empty")
+
 // ErrGetTransaction signals an error happening when trying to fetch a transaction
 var ErrGetTransaction = errors.New("getting transaction failed")
 
@@ -105,3 +105,9 @@ var ErrNilHttpServer = errors.New("nil http server")
 
 // ErrCannotCreateGinWebServer signals that the gin web server cannot be created
 var ErrCannotCreateGinWebServer = errors.New("cannot create gin web server")
+
+// ErrNilFacadeHandler signals that a nil facade handler has been provided
+var ErrNilFacadeHandler = errors.New("nil facade handler")
+
+// ErrFacadeWrongTypeAssertion signals that a type conversion to a facade type failed
+var ErrFacadeWrongTypeAssertion = errors.New("facade - wrong type assertion")

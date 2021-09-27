@@ -2,7 +2,7 @@ package stateTrieClose
 
 import (
 	"errors"
-	"runtime"
+	"fmt"
 	"strconv"
 	"strings"
 	"testing"
@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/goroutines"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
@@ -27,47 +28,57 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	}
 	_ = tr.Commit()
 
-	numBefore := runtime.NumGoroutine()
+	gc := goroutines.NewGoCounter(goroutines.TestsRelevantGoRoutines)
+	idxInitial, _ := gc.Snapshot()
 	rootHash, _ := tr.RootHash()
 	leavesChannel1, _ := tr.GetAllLeavesOnChannel(rootHash)
-	numGoRoutines := runtime.NumGoroutine()
-	assert.Equal(t, 1, numGoRoutines-numBefore)
+	idx, _ := gc.Snapshot()
+	diff := gc.DiffGoRoutines(idxInitial, idx)
+	assert.Equal(t, 1, len(diff), fmt.Sprintf("%v", diff))
 
 	_, _ = tr.GetAllLeavesOnChannel(rootHash)
-	numGoRoutines = runtime.NumGoroutine()
-	assert.Equal(t, 2, numGoRoutines-numBefore)
+	idx, _ = gc.Snapshot()
+	diff = gc.DiffGoRoutines(idxInitial, idx)
+	assert.Equal(t, 2, len(diff), fmt.Sprintf("%v", diff))
 
 	_ = tr.Update([]byte("god"), []byte("puppy"))
 	_ = tr.Commit()
 
 	rootHash, _ = tr.RootHash()
 	_, _ = tr.GetAllLeavesOnChannel(rootHash)
-	numGoRoutines = runtime.NumGoroutine()
-	assert.Equal(t, 3, numGoRoutines-numBefore)
+	idx, _ = gc.Snapshot()
+	diff = gc.DiffGoRoutines(idxInitial, idx)
+	assert.Equal(t, 3, len(diff), fmt.Sprintf("%v", diff))
 
 	_ = tr.Update([]byte("eggod"), []byte("cat"))
 	_ = tr.Commit()
 
 	rootHash, _ = tr.RootHash()
 	leavesChannel2, _ := tr.GetAllLeavesOnChannel(rootHash)
-	numGoRoutines = runtime.NumGoroutine()
-	assert.Equal(t, 4, numGoRoutines-numBefore)
+	idx, _ = gc.Snapshot()
+	diff = gc.DiffGoRoutines(idxInitial, idx)
+	assert.Equal(t, 4, len(diff), fmt.Sprintf("%v", diff))
 
 	for range leavesChannel1 {
 	}
-	numGoRoutines = runtime.NumGoroutine()
-	assert.Equal(t, 3, numGoRoutines-numBefore)
+	time.Sleep(time.Second) //wait for go routine to finish
+	idx, _ = gc.Snapshot()
+	diff = gc.DiffGoRoutines(idxInitial, idx)
+	assert.Equal(t, 3, len(diff), fmt.Sprintf("%v", diff))
 
 	for range leavesChannel2 {
 	}
-	numGoRoutines = runtime.NumGoroutine()
-	assert.Equal(t, 2, numGoRoutines-numBefore)
+	time.Sleep(time.Second) //wait for go routine to finish
+	idx, _ = gc.Snapshot()
+	diff = gc.DiffGoRoutines(idxInitial, idx)
+	assert.Equal(t, 2, len(diff), fmt.Sprintf("%v", diff))
 
 	err := tr.Close()
 	assert.Nil(t, err)
 	time.Sleep(time.Second)
-	numGoRoutines = runtime.NumGoroutine()
-	assert.True(t, numGoRoutines-numBefore <= 1)
+	idx, _ = gc.Snapshot()
+	diff = gc.DiffGoRoutines(idxInitial, idx)
+	assert.Equal(t, 0, len(diff), fmt.Sprintf("%v", diff))
 }
 
 func TestTrieStorageManager_Close(t *testing.T) {
@@ -86,16 +97,19 @@ func TestTrieStorageManager_Close(t *testing.T) {
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, 32),
 	}
 
-	numBefore := runtime.NumGoroutine()
+	gc := goroutines.NewGoCounter(goroutines.TestsRelevantGoRoutines)
+	idxInitial, _ := gc.Snapshot()
 	ts, _ := trie.NewTrieStorageManager(args)
-	numGoRoutines := runtime.NumGoroutine()
-	assert.Equal(t, 1, numGoRoutines-numBefore)
+	idx, _ := gc.Snapshot()
+	diff := gc.DiffGoRoutines(idxInitial, idx)
+	assert.Equal(t, 1, len(diff), fmt.Sprintf("%v", diff))
 
 	err := ts.Close()
 	assert.Nil(t, err)
 	time.Sleep(time.Second)
-	numAfterClose := runtime.NumGoroutine()
-	assert.True(t, numAfterClose-numBefore <= 1)
+	idx, _ = gc.Snapshot()
+	diff = gc.DiffGoRoutines(idxInitial, idx)
+	assert.Equal(t, 0, len(diff), fmt.Sprintf("%v", diff))
 	assert.True(t, closeCalled)
 }
 
@@ -115,16 +129,19 @@ func TestTrieStorageManager_CloseErr(t *testing.T) {
 		GeneralConfig:          config.TrieStorageManagerConfig{},
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, 32),
 	}
-	numBefore := runtime.NumGoroutine()
+	gc := goroutines.NewGoCounter(goroutines.TestsRelevantGoRoutines)
+	idxInitial, _ := gc.Snapshot()
 	ts, _ := trie.NewTrieStorageManager(args)
-	numGoRoutines := runtime.NumGoroutine()
-	assert.Equal(t, 1, numGoRoutines-numBefore)
+	idx, _ := gc.Snapshot()
+	diff := gc.DiffGoRoutines(idxInitial, idx)
+	assert.Equal(t, 1, len(diff), fmt.Sprintf("%v", diff))
 
 	err := ts.Close()
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), closeErr.Error()))
 	time.Sleep(time.Second)
-	numAfterClose := runtime.NumGoroutine()
-	assert.True(t, numAfterClose-numBefore <= 1)
+	idx, _ = gc.Snapshot()
+	diff = gc.DiffGoRoutines(idxInitial, idx)
+	assert.Equal(t, 0, len(diff), fmt.Sprintf("%v", diff))
 	assert.True(t, closeCalled)
 }

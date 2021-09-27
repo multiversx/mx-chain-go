@@ -130,7 +130,7 @@ func hashInList(hash []byte, list [][]byte) bool {
 func TestNewDoubleListTrieSyncer_InvalidParametersShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgument()
+	arg := createMockArgument(time.Minute)
 	arg.RequestHandler = nil
 	d, err := NewDoubleListTrieSyncer(arg)
 	assert.True(t, check.IfNil(d))
@@ -140,7 +140,7 @@ func TestNewDoubleListTrieSyncer_InvalidParametersShouldErr(t *testing.T) {
 func TestNewDoubleListTrieSyncer(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgument()
+	arg := createMockArgument(time.Minute)
 	d, err := NewDoubleListTrieSyncer(arg)
 	assert.False(t, check.IfNil(d))
 	assert.Nil(t, err)
@@ -149,7 +149,7 @@ func TestNewDoubleListTrieSyncer(t *testing.T) {
 func TestDoubleListTrieSyncer_StartSyncingNilRootHashShouldReturnNil(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgument()
+	arg := createMockArgument(time.Minute)
 	d, _ := NewDoubleListTrieSyncer(arg)
 	err := d.StartSyncing(nil, context.Background())
 
@@ -159,7 +159,7 @@ func TestDoubleListTrieSyncer_StartSyncingNilRootHashShouldReturnNil(t *testing.
 func TestDoubleListTrieSyncer_StartSyncingEmptyRootHashShouldReturnNil(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgument()
+	arg := createMockArgument(time.Minute)
 	d, _ := NewDoubleListTrieSyncer(arg)
 	err := d.StartSyncing(EmptyTrieHash, context.Background())
 
@@ -169,7 +169,7 @@ func TestDoubleListTrieSyncer_StartSyncingEmptyRootHashShouldReturnNil(t *testin
 func TestDoubleListTrieSyncer_StartSyncingNilContextShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgument()
+	arg := createMockArgument(time.Minute)
 	d, _ := NewDoubleListTrieSyncer(arg)
 	err := d.StartSyncing(bytes.Repeat([]byte{1}, len(EmptyTrieHash)), nil)
 
@@ -184,7 +184,7 @@ func TestDoubleListTrieSyncer_StartSyncingCanTimeout(t *testing.T) {
 	roothash, _ := trSource.RootHash()
 	log.Info("source trie", "root hash", roothash)
 
-	arg := createMockArgument()
+	arg := createMockArgument(time.Minute)
 
 	d, _ := NewDoubleListTrieSyncer(arg)
 	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*10)
@@ -202,8 +202,7 @@ func TestDoubleListTrieSyncer_StartSyncingTimeoutNoNodesReceived(t *testing.T) {
 	roothash, _ := trSource.RootHash()
 	log.Info("source trie", "root hash", roothash)
 
-	arg := createMockArgument()
-	arg.ReceivedNodesTimeout = time.Second
+	arg := createMockArgument(time.Second)
 
 	d, _ := NewDoubleListTrieSyncer(arg)
 
@@ -219,7 +218,7 @@ func TestDoubleListTrieSyncer_StartSyncingNewTrieShouldWork(t *testing.T) {
 	roothash, _ := trSource.RootHash()
 	log.Info("source trie", "root hash", roothash)
 
-	arg := createMockArgument()
+	arg := createMockArgument(time.Minute)
 	arg.RequestHandler = createRequesterResolver(trSource, arg.InterceptedNodes, nil)
 
 	d, _ := NewDoubleListTrieSyncer(arg)
@@ -250,7 +249,7 @@ func TestDoubleListTrieSyncer_StartSyncingPartiallyFilledTrieShouldWork(t *testi
 	roothash, _ := trSource.RootHash()
 	log.Info("source trie", "root hash", roothash)
 
-	arg := createMockArgument()
+	arg := createMockArgument(time.Minute)
 
 	exceptionHashes := make([][]byte, 0)
 	//copy half of the nodes from source to destination, add them also to exception list and than try to sync the trie
