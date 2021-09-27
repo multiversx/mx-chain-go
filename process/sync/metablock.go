@@ -50,31 +50,32 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 	}
 
 	base := &baseBootstrap{
-		chainHandler:         arguments.ChainHandler,
-		blockProcessor:       arguments.BlockProcessor,
-		store:                arguments.Store,
-		headers:              arguments.PoolsHolder.Headers(),
-		roundHandler:         arguments.RoundHandler,
-		waitTime:             arguments.WaitTime,
-		hasher:               arguments.Hasher,
-		marshalizer:          arguments.Marshalizer,
-		forkDetector:         arguments.ForkDetector,
-		requestHandler:       arguments.RequestHandler,
-		shardCoordinator:     arguments.ShardCoordinator,
-		accounts:             arguments.Accounts,
-		blackListHandler:     arguments.BlackListHandler,
-		networkWatcher:       arguments.NetworkWatcher,
-		bootStorer:           arguments.BootStorer,
-		storageBootstrapper:  arguments.StorageBootstrapper,
-		epochHandler:         arguments.EpochHandler,
-		miniBlocksProvider:   arguments.MiniblocksProvider,
-		uint64Converter:      arguments.Uint64Converter,
-		poolsHolder:          arguments.PoolsHolder,
-		statusHandler:        arguments.AppStatusHandler,
-		outportHandler:       arguments.OutportHandler,
-		accountsDBSyncer:     arguments.AccountsDBSyncer,
-		currentEpochProvider: arguments.CurrentEpochProvider,
-		isInImportMode:       arguments.IsInImportMode,
+		chainHandler:                 arguments.ChainHandler,
+		blockProcessor:               arguments.BlockProcessor,
+		store:                        arguments.Store,
+		headers:                      arguments.PoolsHolder.Headers(),
+		roundHandler:                 arguments.RoundHandler,
+		waitTime:                     arguments.WaitTime,
+		hasher:                       arguments.Hasher,
+		marshalizer:                  arguments.Marshalizer,
+		forkDetector:                 arguments.ForkDetector,
+		requestHandler:               arguments.RequestHandler,
+		shardCoordinator:             arguments.ShardCoordinator,
+		accounts:                     arguments.Accounts,
+		blackListHandler:             arguments.BlackListHandler,
+		networkWatcher:               arguments.NetworkWatcher,
+		bootStorer:                   arguments.BootStorer,
+		storageBootstrapper:          arguments.StorageBootstrapper,
+		epochHandler:                 arguments.EpochHandler,
+		miniBlocksProvider:           arguments.MiniblocksProvider,
+		uint64Converter:              arguments.Uint64Converter,
+		poolsHolder:                  arguments.PoolsHolder,
+		statusHandler:                arguments.AppStatusHandler,
+		outportHandler:               arguments.OutportHandler,
+		accountsDBSyncer:             arguments.AccountsDBSyncer,
+		currentEpochProvider:         arguments.CurrentEpochProvider,
+		isInImportMode:               arguments.IsInImportMode,
+		historyRepo:                  arguments.HistoryRepo,
 		scheduledTxsExecutionHandler: arguments.ScheduledTxsExecutionHandler,
 	}
 
@@ -94,7 +95,7 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 	base.getHeaderFromPool = boot.getMetaHeaderFromPool
 	base.requestMiniBlocks = boot.requestMiniBlocksFromHeaderWithNonceIfMissing
 
-	//placed in struct fields for performance reasons
+	// placed in struct fields for performance reasons
 	base.headerStore = boot.store.GetStorer(dataRetriever.MetaBlockUnit)
 	base.headerNonceHashStore = boot.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
 

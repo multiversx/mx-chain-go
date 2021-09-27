@@ -15,7 +15,7 @@ import (
 	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	hdrFactory "github.com/ElrondNetwork/elrond-go/factory/block"
-	mock2 "github.com/ElrondNetwork/elrond-go/factory/mock"
+	factoryMock "github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/blockAPI"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
@@ -551,8 +551,8 @@ func getDefaultCoreComponents() *factory.CoreComponentsMock {
 	}
 }
 
-func getDefaultProcessComponents() *mock2.ProcessComponentsMock {
-	return &mock2.ProcessComponentsMock{
+func getDefaultProcessComponents() *factoryMock.ProcessComponentsMock {
+	return &factoryMock.ProcessComponentsMock{
 		NodesCoord: &mock.NodesCoordinatorMock{},
 		ShardCoord: &testscommon.ShardsCoordinatorMock{
 			NoShards:     1,

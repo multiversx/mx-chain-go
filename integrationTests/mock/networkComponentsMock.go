@@ -66,6 +66,11 @@ func (ncs *NetworkComponentsStub) PreferredPeersHolderHandler() factory.Preferre
 	return ncs.PreferredPeersHolder
 }
 
+// String -
+func (ncs *NetworkComponentsStub) String() string {
+	return "NetworkComponentsStub"
+}
+
 // IsInterfaceNil -
 func (ncs *NetworkComponentsStub) IsInterfaceNil() bool {
 	return ncs == nil

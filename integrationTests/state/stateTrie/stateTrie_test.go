@@ -1018,7 +1018,7 @@ func BenchmarkCreateOneMillionAccounts(b *testing.B) {
 	runtime.ReadMemStats(&rtm)
 	goMemCollapsedTrie := rtm.Alloc
 
-	fmt.Printf("Partially collapsed trie - ")
+	fmt.Println("Partially collapsed trie")
 	createAndExecTxs(b, addr, nrTxs, nrOfAccounts, txVal, adb)
 
 	runtime.ReadMemStats(&rtm)
@@ -1038,7 +1038,7 @@ func BenchmarkCreateOneMillionAccounts(b *testing.B) {
 	require.Nil(b, err)
 
 	_ = adb.RecreateTrie(rootHash)
-	fmt.Printf("Completely collapsed trie - ")
+	fmt.Println("Completely collapsed trie")
 	createAndExecTxs(b, addr, nrTxs, nrOfAccounts, txVal, adb)
 }
 

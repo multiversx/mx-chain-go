@@ -3,6 +3,7 @@ package trie
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/stretchr/testify/assert"
@@ -12,7 +13,7 @@ import (
 func TestNewTrieSync_InvalidVersionShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgument()
+	arg := createMockArgument(time.Minute)
 	syncer, err := CreateTrieSyncer(arg, 0)
 
 	assert.True(t, check.IfNil(syncer))
@@ -22,7 +23,7 @@ func TestNewTrieSync_InvalidVersionShouldErr(t *testing.T) {
 func TestNewTrieSync_FirstVariantImplementation(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgument()
+	arg := createMockArgument(time.Minute)
 	syncer, err := CreateTrieSyncer(arg, 1)
 
 	require.False(t, check.IfNil(syncer))
@@ -34,7 +35,7 @@ func TestNewTrieSync_FirstVariantImplementation(t *testing.T) {
 func TestNewTrieSync_SecondVariantImplementation(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgument()
+	arg := createMockArgument(time.Minute)
 	syncer, err := CreateTrieSyncer(arg, 2)
 
 	require.False(t, check.IfNil(syncer))

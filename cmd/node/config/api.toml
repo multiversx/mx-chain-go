@@ -22,9 +22,6 @@
         # /node/heartbeatstatus will return all heartbeats messages from the nodes in the network
         { Name = "/heartbeatstatus", Open = true },
     
-        # /node/statistics will return statistics about the chain, such as the peak TPS
-        { Name = "/statistics", Open = true },
-    
         # /node/p2pstatus will return the metrics related to p2p
         { Name = "/p2pstatus", Open = true },
     
@@ -103,6 +100,9 @@
 
         # /network/non-fungible-tokens will return all the issued non fungible tokens on the protocol
         { Name = "/esdt/non-fungible-tokens", Open = true },
+
+        # /network/esdt/supply/:token will return the supply for a given token
+        { Name = "/esdt/supply/:token", Open = true },
 
         # /network/direct-staked-info will return a list containing direct staked list of addresses
         # and their staked values
