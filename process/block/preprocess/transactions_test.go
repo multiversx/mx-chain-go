@@ -1164,12 +1164,12 @@ func TestTransactions_UpdateGasConsumedWithGasRefundedShouldWork(t *testing.T) {
 
 	preprocessor.EpochConfirmed(2, 0)
 
-	gasRefunded = 10
+	gasRefunded = 11
 	preprocessor.updateGasConsumedWithGasRefunded([]byte("txHash"), &gasConsumedByMiniBlockInReceiverShard, &totalGasConsumedInSelfShard)
 	assert.Equal(t, uint64(5), gasConsumedByMiniBlockInReceiverShard)
 	assert.Equal(t, uint64(10), totalGasConsumedInSelfShard)
 
-	gasRefunded = 5
+	gasRefunded = 6
 	preprocessor.updateGasConsumedWithGasRefunded([]byte("txHash"), &gasConsumedByMiniBlockInReceiverShard, &totalGasConsumedInSelfShard)
 	assert.Equal(t, uint64(5), gasConsumedByMiniBlockInReceiverShard)
 	assert.Equal(t, uint64(10), totalGasConsumedInSelfShard)

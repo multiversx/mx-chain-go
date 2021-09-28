@@ -442,7 +442,7 @@ func (bpp *basePreProcess) updateGasConsumedWithGasRefunded(
 	}
 
 	gasRefunded := bpp.gasHandler.GasRefunded(txHash)
-	if *gasConsumedByMiniBlockInReceiverShard <= gasRefunded || *totalGasConsumedInSelfShard <= gasRefunded {
+	if gasRefunded > *gasConsumedByMiniBlockInReceiverShard || gasRefunded > *totalGasConsumedInSelfShard {
 		log.Warn("basePreProcess.updateGasConsumedWithGasRefunded: too much gas refunded",
 			"gasRefunded", gasRefunded,
 			"gasConsumedByMiniBlockInReceiverShard", *gasConsumedByMiniBlockInReceiverShard,
