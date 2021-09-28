@@ -2,6 +2,7 @@ package discovery
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -231,10 +232,7 @@ func (ckdd *ContinuousKadDhtDiscoverer) tryConnectToSeeder(
 		initialPeer := initialPeersList[startIndex]
 		err := ckdd.host.ConnectToPeer(ckdd.context, initialPeer)
 		if err != nil {
-			log.Debug("error connecting to seeder",
-				"seeder", initialPeer,
-				"error", err.Error(),
-			)
+			printConnectionErrorToSeeder(initialPeer, err)
 			startIndex++
 			startIndex = startIndex % len(initialPeersList)
 			select {
@@ -251,6 +249,22 @@ func (ckdd *ContinuousKadDhtDiscoverer) tryConnectToSeeder(
 		break
 	}
 	chanDone <- struct{}{}
+}
+
+func printConnectionErrorToSeeder(peer string, err error) {
+	if errors.Is(err, p2p.ErrUnwantedPeer) {
+		log.Trace("error connecting to seeder",
+			"seeder", peer,
+			"error", err.Error(),
+		)
+
+		return
+	}
+
+	log.Debug("error connecting to seeder",
+		"seeder", peer,
+		"error", err.Error(),
+	)
 }
 
 // Name returns the name of the kad dht peer discovery implementation
