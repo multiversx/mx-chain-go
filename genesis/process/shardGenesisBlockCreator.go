@@ -59,6 +59,7 @@ func createGenesisConfig() config.EnableEpochs {
 		BlockGasAndFeesReCheckEnableEpoch:           unreachableEpoch,
 		RelayedTransactionsV2EnableEpoch:            unreachableEpoch,
 		BuiltInFunctionOnMetaEnableEpoch:            unreachableEpoch,
+		ComputeRewardCheckpointEnableEpoch:          unreachableEpoch,
 		IncrementSCRNonceInMultiTransferEnableEpoch: unreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:              unreachableEpoch,
 		MixedTxsInMiniBlocksEnableEpoch:             unreachableEpoch,

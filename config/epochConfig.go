@@ -51,6 +51,8 @@ type EnableEpochs struct {
 	GlobalMintBurnDisableEpoch                  uint32
 	ESDTTransferRoleEnableEpoch                 uint32
 	BuiltInFunctionOnMetaEnableEpoch            uint32
+	ComputeRewardCheckpointEnableEpoch          uint32
+	ESDTNFTCreateOnMultiShardEnableEpoch        uint32
 }
 
 // GasScheduleByEpochs represents a gas schedule toml entry that will be applied from the provided epoch

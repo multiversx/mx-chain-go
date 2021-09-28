@@ -218,6 +218,11 @@ func (pcm *ProcessComponentsMock) CurrentEpochProvider() process.CurrentNetworkE
 	return pcm.CurrentEpochProviderInternal
 }
 
+// String -
+func (pcm *ProcessComponentsMock) String() string {
+	return "ProcessComponentsMock"
+}
+
 // ScheduledTxsExecutionHandler -
 func (pcm *ProcessComponentsMock) ScheduledTxsExecutionHandler() process.ScheduledTxsExecutionHandler {
 	return pcm.ScheduledTxsExecutionHandlerInternal

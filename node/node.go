@@ -23,7 +23,6 @@ import (
 	disabledSig "github.com/ElrondNetwork/elrond-go-crypto/signing/disabled/singlesig"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/facade"
@@ -60,7 +59,7 @@ var _ facade.NodeHandler = (*Node)(nil)
 type Option func(*Node) error
 
 type filter interface {
-	filter(tokenIdentifier string, esdtData *systemSmartContracts.ESDTData) bool
+	filter(tokenIdentifier string, esdtData *systemSmartContracts.ESDTDataV2) bool
 }
 
 // Node is a structure that holds all managed components
@@ -73,8 +72,6 @@ type Node struct {
 	genesisTime         time.Time
 	peerDenialEvaluator p2p.PeerDenialEvaluator
 	hardforkTrigger     HardforkTrigger
-
-	networkShardingCollector NetworkShardingCollector
 
 	consensusType string
 
@@ -109,7 +106,6 @@ type Node struct {
 	closableComponents        []mainFactory.Closer
 	enableSignTxWithHashEpoch uint32
 	isInImportMode            bool
-	nodeRedundancyHandler     consensus.NodeRedundancyHandler
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -262,8 +258,8 @@ func (n *Node) GetAllIssuedESDTs(tokenType string) ([]string, error) {
 	return tokens, nil
 }
 
-func (n *Node) getEsdtDataFromLeaf(leaf core.KeyValueHolder, userAccount state.UserAccountHandler) (*systemSmartContracts.ESDTData, bool) {
-	esdtToken := &systemSmartContracts.ESDTData{}
+func (n *Node) getEsdtDataFromLeaf(leaf core.KeyValueHolder, userAccount state.UserAccountHandler) (*systemSmartContracts.ESDTDataV2, bool) {
+	esdtToken := &systemSmartContracts.ESDTDataV2{}
 	suffix := append(leaf.Key(), userAccount.AddressBytes()...)
 	value, errVal := leaf.ValueWithoutSuffix(suffix)
 	if errVal != nil {
@@ -482,6 +478,11 @@ func (n *Node) GetESDTsRoles(address string) (map[string][]string, error) {
 	}
 
 	return tokensRoles, nil
+}
+
+// GetTokenSupply returns the provided token supply from current shard
+func (n *Node) GetTokenSupply(token string) (string, error) {
+	return n.processComponents.HistoryRepository().GetESDTSupply(token)
 }
 
 // GetAllESDTTokens returns all the ESDTs that the given address interacted with
@@ -1200,7 +1201,7 @@ func (n *Node) createPidInfo(p core.PeerID) core.QueryP2PPeerInfo {
 		IsBlacklisted: n.peerDenialEvaluator.IsDenied(p),
 	}
 
-	peerInfo := n.networkShardingCollector.GetPeerInfo(p)
+	peerInfo := n.processComponents.PeerShardMapper().GetPeerInfo(p)
 	result.PeerType = peerInfo.PeerType.String()
 	result.PeerSubType = peerInfo.PeerSubType.String()
 	if len(peerInfo.PkBytes) == 0 {
@@ -1224,7 +1225,8 @@ func (n *Node) Close() error {
 	log.Debug("closing all managed components")
 	for i := len(n.closableComponents) - 1; i >= 0; i-- {
 		managedComponent := n.closableComponents[i]
-		log.Debug("closing", fmt.Sprintf("managedComponent %s", managedComponent))
+		componentName := n.getClosableComponentName(managedComponent, i)
+		log.Debug("closing", "managedComponent", componentName)
 		err := managedComponent.Close()
 		if err != nil {
 			if closeError == nil {
@@ -1237,6 +1239,15 @@ func (n *Node) Close() error {
 	time.Sleep(time.Second * 5)
 
 	return closeError
+}
+
+func (n *Node) getClosableComponentName(component mainFactory.Closer, index int) string {
+	componentStringer, ok := component.(fmt.Stringer)
+	if !ok {
+		return fmt.Sprintf("n.closableComponents[%d] - %v", index, component)
+	}
+
+	return componentStringer.String()
 }
 
 // IsInImportMode returns true if the node is in import mode

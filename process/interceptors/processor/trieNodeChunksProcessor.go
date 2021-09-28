@@ -146,7 +146,7 @@ func (proc *trieNodeChunksProcessor) processCheckRequest(cr checkRequest) {
 			return
 		}
 
-		chunkObject = chunk.NewChunk(cr.batch.MaxChunks)
+		chunkObject = chunk.NewChunk(cr.batch.MaxChunks, cr.batch.Reference)
 	}
 	chunkData, ok := chunkObject.(chunkHandler)
 	if !ok {
@@ -156,7 +156,7 @@ func (proc *trieNodeChunksProcessor) processCheckRequest(cr checkRequest) {
 			return
 		}
 
-		chunkData = chunk.NewChunk(cr.batch.MaxChunks)
+		chunkData = chunk.NewChunk(cr.batch.MaxChunks, cr.batch.Reference)
 	}
 
 	chunkData.Put(cr.batch.ChunkIndex, cr.batch.Data[0])

@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/stretchr/testify/assert"
@@ -76,6 +77,7 @@ func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 		OutportHandler:               &testscommon.OutportStub{},
 		AccountsDBSyncer:             &mock.AccountsDBSyncerStub{},
 		CurrentEpochProvider:         &testscommon.CurrentEpochProviderStub{},
+		HistoryRepo:                  &dblookupext.HistoryRepositoryStub{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 	}
 
@@ -89,7 +91,7 @@ func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 	return argsMetaBootstrapper
 }
 
-//------- NewMetaBootstrap
+// ------- NewMetaBootstrap
 
 func TestNewMetaBootstrap_NilPoolsHolderShouldErr(t *testing.T) {
 	t.Parallel()
@@ -395,7 +397,7 @@ func TestNewMetaBootstrap_OkValsShouldWork(t *testing.T) {
 	assert.False(t, bs.IsInImportMode())
 }
 
-//------- processing
+// ------- processing
 
 func TestMetaBootstrap_SyncBlockShouldCallRollBack(t *testing.T) {
 	t.Parallel()
@@ -1016,7 +1018,7 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 	assert.True(t, hdr == hdr2)
 }
 
-//------- testing received headers
+// ------- testing received headers
 
 func TestMetaBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *testing.T) {
 	t.Parallel()
@@ -1130,7 +1132,7 @@ func TestMetaBootstrap_ReceivedHeadersNotFoundInPoolShouldNotAddToForkDetector(t
 	assert.False(t, wasAdded)
 }
 
-//------- RollBack
+// ------- RollBack
 
 func TestMetaBootstrap_RollBackNilBlockchainHeaderShouldErr(t *testing.T) {
 	t.Parallel()
@@ -1202,19 +1204,19 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 
 	args := CreateMetaBootstrapMockArguments()
 
-	//retain if the remove process from different storage locations has been called
+	// retain if the remove process from different storage locations has been called
 	remFlags := &removedFlags{}
 
 	currentHdrNonce := uint64(8)
 	currentHdrHash := []byte("current header hash")
 
-	//define prev tx block body "strings" as in this test there are a lot of stubs that
-	//constantly need to check some defined symbols
-	//prevTxBlockBodyHash := []byte("prev block body hash")
+	// define prev tx block body "strings" as in this test there are a lot of stubs that
+	// constantly need to check some defined symbols
+	// prevTxBlockBodyHash := []byte("prev block body hash")
 	prevTxBlockBodyBytes := []byte("prev block body bytes")
 	prevTxBlockBody := &block.Body{}
 
-	//define prev header "strings"
+	// define prev header "strings"
 	prevHdrHash := []byte("prev header hash")
 	prevHdrBytes := []byte("prev header bytes")
 	prevHdrRootHash := []byte("prev header root hash")
@@ -1235,11 +1237,11 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 	}
 	args.PoolsHolder = pools
 
-	//a mock blockchain with special header and tx block bodies stubs (defined above)
+	// a mock blockchain with special header and tx block bodies stubs (defined above)
 	blkc := &mock.BlockChainMock{}
 	hdr := &block.MetaBlock{
 		Nonce: currentHdrNonce,
-		//empty bitmap
+		// empty bitmap
 		PrevHash: prevHdrHash,
 	}
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
@@ -1287,8 +1289,8 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 		},
 		UnmarshalCalled: func(obj interface{}, buff []byte) error {
 			if bytes.Equal(buff, prevHdrBytes) {
-				//bytes represent a header (strings are returns from hdrUnit.Get which is also a stub here)
-				//copy only defined fields
+				// bytes represent a header (strings are returns from hdrUnit.Get which is also a stub here)
+				// copy only defined fields
 				_, ok := obj.(*block.MetaBlock)
 				if !ok {
 					return nil
@@ -1299,8 +1301,8 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 				return nil
 			}
 			if bytes.Equal(buff, prevTxBlockBodyBytes) {
-				//bytes represent a tx block body (strings are returns from txBlockUnit.Get which is also a stub here)
-				//copy only defined fields
+				// bytes represent a tx block body (strings are returns from txBlockUnit.Get which is also a stub here)
+				// copy only defined fields
 				_, ok := obj.(*block.Body)
 				if !ok {
 					return nil
@@ -1338,19 +1340,19 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 
 	args := CreateMetaBootstrapMockArguments()
 
-	//retain if the remove process from different storage locations has been called
+	// retain if the remove process from different storage locations has been called
 	remFlags := &removedFlags{}
 
 	currentHdrNonce := uint64(1)
 	currentHdrHash := []byte("current header hash")
 
-	//define prev tx block body "strings" as in this test there are a lot of stubs that
-	//constantly need to check some defined symbols
-	//prevTxBlockBodyHash := []byte("prev block body hash")
+	// define prev tx block body "strings" as in this test there are a lot of stubs that
+	// constantly need to check some defined symbols
+	// prevTxBlockBodyHash := []byte("prev block body hash")
 	prevTxBlockBodyBytes := []byte("prev block body bytes")
 	prevTxBlockBody := &block.Body{}
 
-	//define prev header "strings"
+	// define prev header "strings"
 	prevHdrHash := []byte("prev header hash")
 	prevHdrBytes := []byte("prev header bytes")
 	prevHdrRootHash := []byte("prev header root hash")
@@ -1378,7 +1380,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 	}
 	hdr := &block.MetaBlock{
 		Nonce: currentHdrNonce,
-		//empty bitmap
+		// empty bitmap
 		PrevHash: prevHdrHash,
 	}
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
@@ -1430,15 +1432,15 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 				if !ok {
 					return nil
 				}
-				//bytes represent a header (strings are returns from hdrUnit.Get which is also a stub here)
-				//copy only defined fields
+				// bytes represent a header (strings are returns from hdrUnit.Get which is also a stub here)
+				// copy only defined fields
 				obj.(*block.MetaBlock).Signature = prevHdr.Signature
 				obj.(*block.MetaBlock).RootHash = prevHdrRootHash
 				return nil
 			}
 			if bytes.Equal(buff, prevTxBlockBodyBytes) {
-				//bytes represent a tx block body (strings are returns from txBlockUnit.Get which is also a stub here)
-				//copy only defined fields
+				// bytes represent a tx block body (strings are returns from txBlockUnit.Get which is also a stub here)
+				// copy only defined fields
 				_, ok := obj.(*block.Body)
 				if !ok {
 					return nil

@@ -294,15 +294,22 @@ func (s *SerialDB) Remove(key []byte) error {
 
 // Destroy removes the storage medium stored data
 func (s *SerialDB) Destroy() error {
+	log.Debug("serialDB.Destroy", "path", s.path)
+
+	//calling close on the SafeCloser instance should be the last instruction called
+	//(just to close some go routines started as edge cases that would otherwise hang)
+	defer s.closer.Close()
+
 	s.mutBatch.Lock()
 	s.batch.Reset()
 	s.sizeBatch = 0
 	s.mutBatch.Unlock()
 
-	s.cancel()
-
 	s.mutClosed.Lock()
 	s.closed = true
+
+	s.cancel()
+
 	err := s.db.Close()
 	s.mutClosed.Unlock()
 

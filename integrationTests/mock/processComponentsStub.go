@@ -218,6 +218,11 @@ func (pcs *ProcessComponentsStub) CurrentEpochProvider() process.CurrentNetworkE
 	return pcs.CurrentEpochProviderInternal
 }
 
+// String -
+func (pcs *ProcessComponentsStub) String() string {
+	return "ProcessComponentsStub"
+}
+
 // ScheduledTxsExecutionHandler -
 func (pcs *ProcessComponentsStub) ScheduledTxsExecutionHandler() process.ScheduledTxsExecutionHandler {
 	return pcs.ScheduledTxsExecutionHandlerInternal
