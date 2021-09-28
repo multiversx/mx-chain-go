@@ -939,6 +939,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 
 			txs.gasHandler.RemoveGasConsumed([][]byte{txHash})
 			txs.gasHandler.RemoveGasRefunded([][]byte{txHash})
+			txs.gasHandler.RemoveGasPenalized([][]byte{txHash})
 
 			gasConsumedByMiniBlocksInSenderShard = oldGasConsumedByMiniBlocksInSenderShard
 			mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] = oldGasConsumedByMiniBlockInReceiverShard
@@ -948,11 +949,18 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 
 		senderAddressToSkip = []byte("")
 
-		gasRefunded := txs.gasHandler.GasRefunded(txHash)
 		if senderShardID == receiverShardID {
-			gasConsumedByMiniBlocksInSenderShard -= gasRefunded
-			totalGasConsumedInSelfShard -= gasRefunded
-			mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] -= gasRefunded
+			gasRefunded := txs.gasHandler.GasRefunded(txHash)
+			gasPenalized := txs.gasHandler.GasPenalized(txHash)
+			gasToBeSubtracted := gasRefunded + gasPenalized
+			shouldDoTheSubtraction := gasToBeSubtracted <= gasConsumedByMiniBlocksInSenderShard &&
+				gasToBeSubtracted <= totalGasConsumedInSelfShard &&
+				gasToBeSubtracted <= mapGasConsumedByMiniBlockInReceiverShard[receiverShardID]
+			if shouldDoTheSubtraction {
+				gasConsumedByMiniBlocksInSenderShard -= gasToBeSubtracted
+				totalGasConsumedInSelfShard -= gasToBeSubtracted
+				mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] -= gasToBeSubtracted
+			}
 		}
 
 		if errors.Is(err, process.ErrFailedTransaction) {
@@ -1105,6 +1113,7 @@ func (txs *transactions) ProcessMiniBlock(
 		if err != nil {
 			txs.gasHandler.RemoveGasConsumed(processedTxHashes)
 			txs.gasHandler.RemoveGasRefunded(processedTxHashes)
+			txs.gasHandler.RemoveGasPenalized(processedTxHashes)
 		}
 	}()
 

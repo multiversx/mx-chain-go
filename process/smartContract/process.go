@@ -1659,6 +1659,9 @@ func (sc *scProcessor) penalizeUserIfNeeded(
 		}
 	}
 
+	//TODO: Execute this line only under the activation flag of OptimizeGasUsedInCrossMiniBlocksEnableEpoch
+	sc.gasHandler.SetGasPenalized(vmOutput.GasRemaining, txHash)
+
 	vmOutput.ReturnMessage += fmt.Sprintf("%s: gas needed = %d, gas remained = %d",
 		TooMuchGasProvidedMessage, gasUsed, vmOutput.GasRemaining)
 	vmOutput.GasRemaining = 0

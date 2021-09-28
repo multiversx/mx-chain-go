@@ -243,9 +243,13 @@ func TestTomlEconomicsParser(t *testing.T) {
 			},
 		},
 		FeeSettings: FeeSettings{
-			MaxGasLimitPerBlock: maxGasLimitPerBlock,
-			MinGasPrice:         minGasPrice,
-			MinGasLimit:         minGasLimit,
+			GasLimitSettings: []*GasLimitSetting{
+				{
+					MaxGasLimitPerBlock: maxGasLimitPerBlock,
+					MinGasLimit:         minGasLimit,
+				},
+			},
+			MinGasPrice: minGasPrice,
 		},
 	}
 

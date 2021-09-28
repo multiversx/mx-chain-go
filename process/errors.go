@@ -491,6 +491,15 @@ var ErrInsufficientGasLimitInTx = errors.New("insufficient gas limit in tx")
 // ErrInvalidMaxGasLimitPerBlock signals that an invalid max gas limit per block has been read from config file
 var ErrInvalidMaxGasLimitPerBlock = errors.New("invalid max gas limit per block")
 
+// ErrInvalidMaxGasLimitPerMiniBlock signals that an invalid max gas limit per mini block has been read from config file
+var ErrInvalidMaxGasLimitPerMiniBlock = errors.New("invalid max gas limit per mini block")
+
+// ErrInvalidMaxGasLimitPerMetaBlock signals that an invalid max gas limit per meta block has been read from config file
+var ErrInvalidMaxGasLimitPerMetaBlock = errors.New("invalid max gas limit per meta block")
+
+// ErrInvalidMaxGasLimitPerMetaMiniBlock signals that an invalid max gas limit per meta mini block has been read from config file
+var ErrInvalidMaxGasLimitPerMetaMiniBlock = errors.New("invalid max gas limit per meta mini block")
+
 // ErrInvalidGasPerDataByte signals that an invalid gas per data byte has been read from config file
 var ErrInvalidGasPerDataByte = errors.New("invalid gas per data byte")
 
