@@ -584,14 +584,14 @@ func TestEnableEpochConfig(t *testing.T) {
     # ComputeRewardCheckpointEnableEpoch represents the epoch when compute rewards checkpoint epoch is enabled
     ComputeRewardCheckpointEnableEpoch = 36
 
-    # ESDTNFTCreateOnMultiShardEnableEpoch represents the epoch when esdt nft creation on multiple shards is enabled
-    ESDTNFTCreateOnMultiShardEnableEpoch = 37
-
     # SCRSizeInvariantCheckEnableEpoch represents the epoch when the scr size invariant check is enabled
     SCRSizeInvariantCheckEnableEpoch = 37
 
     # BackwardCompSaveKeyValueEnableEpoch represents the epoch when backward compatibility save key value is enabled
     BackwardCompSaveKeyValueEnableEpoch = 38
+
+    # ESDTNFTCreateOnMultiShardEnableEpoch represents the epoch when esdt nft creation on multiple shards is enabled
+    ESDTNFTCreateOnMultiShardEnableEpoch = 39
 
     # MetaESDTSetEnableEpoch represents the epoch when the backward compatibility for save key value error is enabled
     MetaESDTSetEnableEpoch = 39
@@ -665,9 +665,9 @@ func TestEnableEpochConfig(t *testing.T) {
 			ESDTTransferRoleEnableEpoch:                 34,
 			BuiltInFunctionOnMetaEnableEpoch:            35,
 			ComputeRewardCheckpointEnableEpoch:          36,
-			ESDTNFTCreateOnMultiShardEnableEpoch:        37,
 			SCRSizeInvariantCheckEnableEpoch:            37,
 			BackwardCompSaveKeyValueEnableEpoch:         38,
+			ESDTNFTCreateOnMultiShardEnableEpoch:        39,
 			MetaESDTSetEnableEpoch:                      39,
 			AddTokensToDelegationEnableEpoch:            40,
 			MultiESDTTransferFixOnCallBackOnEnableEpoch: 41,
