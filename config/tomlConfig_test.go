@@ -590,6 +590,9 @@ func TestEnableEpochConfig(t *testing.T) {
     # BackwardCompSaveKeyValueEnableEpoch represents the epoch when backward compatibility save key value is enabled
     BackwardCompSaveKeyValueEnableEpoch = 38
 
+    # ESDTNFTCreateOnMultiShardEnableEpoch represents the epoch when esdt nft creation on multiple shards is enabled
+    ESDTNFTCreateOnMultiShardEnableEpoch = 37
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 36, MaxNumNodes = 37, NodesToShufflePerShard = 38 },
@@ -655,6 +658,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			ComputeRewardCheckpointEnableEpoch:          36,
 			SCRSizeInvariantCheckEnableEpoch:            37,
 			BackwardCompSaveKeyValueEnableEpoch:         38,
+			ESDTNFTCreateOnMultiShardEnableEpoch:        37,
 		},
 		GasSchedule: GasScheduleConfig{
 			GasScheduleByEpochs: []GasScheduleByEpochs{
