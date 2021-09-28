@@ -4309,13 +4309,13 @@ func TestEsdt_ExecuteChangeSFTToMetaESDT(t *testing.T) {
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "no ticker with given name"))
 
-	_ = e.saveToken(vmInput.Arguments[0], &ESDTData{TokenType: []byte(core.NonFungibleESDT), OwnerAddress: vmInput.CallerAddr})
+	_ = e.saveToken(vmInput.Arguments[0], &ESDTDataV2{TokenType: []byte(core.NonFungibleESDT), OwnerAddress: vmInput.CallerAddr})
 	eei.returnMessage = ""
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "change can happen to semi fungible tokens only"))
 
-	_ = e.saveToken(vmInput.Arguments[0], &ESDTData{TokenType: []byte(core.SemiFungibleESDT), OwnerAddress: vmInput.CallerAddr})
+	_ = e.saveToken(vmInput.Arguments[0], &ESDTDataV2{TokenType: []byte(core.SemiFungibleESDT), OwnerAddress: vmInput.CallerAddr})
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
 
