@@ -287,6 +287,8 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.getMetaData(args)
 	case "addTokens":
 		return d.addTokens(args)
+	case "correctNodesStatus":
+		return d.correctNodesStatus(args)
 	}
 
 	d.eei.AddReturnMessage(args.Function + " is an unknown function")
@@ -2292,6 +2294,76 @@ func (d *delegation) getNumNodes(args *vmcommon.ContractCallInput) vmcommon.Retu
 	d.eei.Finish(big.NewInt(int64(numNodes)).Bytes())
 
 	return vmcommon.Ok
+}
+
+func (d *delegation) correctNodesStatus(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !d.flagAddTokens.IsSet() {
+		d.eei.AddReturnMessage(args.Function + " is an unknown function")
+		return vmcommon.UserError
+	}
+	returnCode := d.checkArgumentsForGeneralViewFunc(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.GetAllNodeStates)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.OutOfGas
+	}
+
+	status, err := d.getDelegationStatus()
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	stakedKeys := make([]*NodesData, 0)
+	unStakedKeys := make([]*NodesData, 0)
+	notStakedKeys := make([]*NodesData, 0)
+
+	allNodesList := createMergedListWithoutDuplicates(status)
+	for _, key := range allNodesList {
+		keyStatus, _ := d.getBLSKeyStatus(key.BLSKey)
+		switch keyStatus {
+		case active:
+			stakedKeys = append(stakedKeys, key)
+		case unStaked:
+			unStakedKeys = append(unStakedKeys, key)
+		default:
+			notStakedKeys = append(notStakedKeys, key)
+		}
+	}
+
+	status.StakedKeys = stakedKeys
+	status.UnStakedKeys = unStakedKeys
+	status.NotStakedKeys = notStakedKeys
+	err = d.saveDelegationStatus(status)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
+}
+
+func createMergedListWithoutDuplicates(status *DelegationContractStatus) []*NodesData {
+	allNodesList := append(status.StakedKeys, status.UnStakedKeys...)
+	allNodesList = append(allNodesList, status.NotStakedKeys...)
+
+	nodesWithoutDuplicatesList := make([]*NodesData, 0)
+	mapAllNodes := make(map[string]struct{})
+
+	for _, node := range allNodesList {
+		_, found := mapAllNodes[string(node.BLSKey)]
+		if found {
+			continue
+		}
+
+		mapAllNodes[string(node.BLSKey)] = struct{}{}
+		nodesWithoutDuplicatesList = append(nodesWithoutDuplicatesList, node)
+	}
+
+	return nodesWithoutDuplicatesList
 }
 
 func (d *delegation) getAllNodeStates(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {

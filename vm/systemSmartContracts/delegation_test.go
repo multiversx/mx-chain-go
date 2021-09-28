@@ -120,6 +120,33 @@ func createDelegationManagerConfig(eei *vmContext, marshalizer marshal.Marshaliz
 	eei.SetStorageForAddress(vm.DelegationManagerSCAddress, []byte(delegationManagementKey), marshaledData)
 }
 
+func createDelegationContractAndEEI() (*delegation, *vmContext) {
+	args := createMockArgumentsForDelegation()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{
+			CurrentEpochCalled: func() uint32 {
+				return 2
+			},
+		},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&stateMock.AccountsStub{},
+		&mock.RaterMock{},
+	)
+	systemSCContainerStub := &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
+		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+			return vmcommon.Ok
+		}}, nil
+	}}
+	_ = eei.SetSystemSCContainer(systemSCContainerStub)
+
+	args.Eei = eei
+	args.DelegationSCConfig.MaxServiceFee = 10000
+	args.DelegationSCConfig.MinServiceFee = 0
+	d, _ := NewDelegationSystemSC(args)
+	return d, eei
+}
+
 func TestNewDelegationSystemSC_NilSystemEnvironmentShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -4768,7 +4795,7 @@ func TestDelegation_mergeValidatorDataToDelegation(t *testing.T) {
 		stakedData := &StakedDataV2_0{
 			Staked: true,
 		}
-		if i == 0 {
+		if i == 2 {
 			stakedData.Staked = false
 		}
 		marshaledData, _ = d.marshalizer.Marshal(stakedData)
@@ -4793,6 +4820,11 @@ func TestDelegation_mergeValidatorDataToDelegation(t *testing.T) {
 	eei.returnMessage = ""
 	returnCode = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, returnCode)
+
+	dStatus, err := d.getDelegationStatus()
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(dStatus.UnStakedKeys))
+	assert.Equal(t, 2, len(dStatus.StakedKeys))
 }
 
 func TestDelegation_whitelistForMerge(t *testing.T) {
@@ -5113,4 +5145,109 @@ func TestDelegation_AddTokens(t *testing.T) {
 	vmInput.CallerAddr = args.AddTokensAddress
 	returnCode = d.Execute(vmInput)
 	assert.Equal(t, returnCode, vmcommon.Ok)
+}
+
+func TestDelegation_correctNodesStatus(t *testing.T) {
+	d, eei := createDelegationContractAndEEI()
+	vmInput := getDefaultVmInputForFunc("correctNodesStatus", nil)
+
+	d.flagAddTokens.Unset()
+	returnCode := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "correctNodesStatus is an unknown function")
+
+	d.flagAddTokens.Set()
+	eei.returnMessage = ""
+	vmInput.CallValue.SetUint64(10)
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "call value must be zero")
+
+	eei.returnMessage = ""
+	eei.gasRemaining = 1
+	d.gasCost.MetaChainSystemSCsCost.GetAllNodeStates = 10
+	vmInput.CallValue.SetUint64(0)
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.OutOfGas, returnCode)
+
+	eei.returnMessage = ""
+	eei.gasRemaining = 11
+	vmInput.CallValue.SetUint64(0)
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "data was not found under requested key delegation status")
+
+	wrongStatus := &DelegationContractStatus{
+		StakedKeys:    []*NodesData{{BLSKey: []byte("key1")}, {BLSKey: []byte("key2")}, {BLSKey: []byte("key3")}},
+		NotStakedKeys: []*NodesData{{BLSKey: []byte("key4")}, {BLSKey: []byte("key5")}, {BLSKey: []byte("key3")}},
+		UnStakedKeys:  []*NodesData{{BLSKey: []byte("key6")}, {BLSKey: []byte("key7")}, {BLSKey: []byte("key3")}},
+		NumUsers:      0,
+	}
+	_ = d.saveDelegationStatus(wrongStatus)
+
+	stakedKeys := [][]byte{[]byte("key1"), []byte("key4"), []byte("key7")}
+	unStakedKeys := [][]byte{[]byte("key2"), []byte("key6")}
+	for i, blsKey := range stakedKeys {
+		stakedData := &StakedDataV2_0{
+			Staked: true,
+		}
+		if i == 2 {
+			stakedData.Staked = false
+			stakedData.Jailed = true
+		}
+		marshaledData, _ := d.marshalizer.Marshal(stakedData)
+		eei.SetStorageForAddress(d.stakingSCAddr, blsKey, marshaledData)
+	}
+
+	for _, blsKey := range unStakedKeys {
+		stakedData := &StakedDataV2_0{
+			Staked: false,
+		}
+		marshaledData, _ := d.marshalizer.Marshal(stakedData)
+		eei.SetStorageForAddress(d.stakingSCAddr, blsKey, marshaledData)
+	}
+
+	eei.returnMessage = ""
+	eei.gasRemaining = 11
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, returnCode)
+
+	correctedStatus, _ := d.getDelegationStatus()
+	assert.Equal(t, 3, len(correctedStatus.StakedKeys))
+	assert.Equal(t, 2, len(correctedStatus.UnStakedKeys))
+	assert.Equal(t, 2, len(correctedStatus.NotStakedKeys))
+
+	for _, stakedKey := range stakedKeys {
+		found := false
+		for _, stakedNode := range correctedStatus.StakedKeys {
+			if bytes.Equal(stakedNode.BLSKey, stakedKey) {
+				found = true
+				break
+			}
+		}
+		assert.True(t, found)
+	}
+
+	for _, unStakedKey := range unStakedKeys {
+		found := false
+		for _, unStakedNode := range correctedStatus.UnStakedKeys {
+			if bytes.Equal(unStakedNode.BLSKey, unStakedKey) {
+				found = true
+				break
+			}
+		}
+		assert.True(t, found)
+	}
+
+	notStakedKeys := [][]byte{[]byte("key3"), []byte("key5")}
+	for _, notStakedKey := range notStakedKeys {
+		found := false
+		for _, notStakedNode := range correctedStatus.NotStakedKeys {
+			if bytes.Equal(notStakedNode.BLSKey, notStakedKey) {
+				found = true
+				break
+			}
+		}
+		assert.True(t, found)
+	}
 }
