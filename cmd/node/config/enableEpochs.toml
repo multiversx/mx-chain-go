@@ -115,7 +115,7 @@
     SCRSizeInvariantCheckEnableEpoch = 1000000
 
     # BackwardCompSaveKeyValueEnableEpoch represents the epoch when the backward compatibility for save key value error is enabled
-    BackwardCompSaveKeyValueEnableEpoch = 5
+    BackwardCompSaveKeyValueEnableEpoch = 1000000
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
