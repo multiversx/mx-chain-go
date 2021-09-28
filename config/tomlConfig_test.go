@@ -594,13 +594,13 @@ func TestEnableEpochConfig(t *testing.T) {
     ESDTNFTCreateOnMultiShardEnableEpoch = 39
 
     # MetaESDTSetEnableEpoch represents the epoch when the backward compatibility for save key value error is enabled
-    MetaESDTSetEnableEpoch = 39
+    MetaESDTSetEnableEpoch = 40
 
     # AddTokensToDelegationEnableEpoch represents the epoch when adding tokens to delegation is enabled for whitelisted address
-    AddTokensToDelegationEnableEpoch = 40
+    AddTokensToDelegationEnableEpoch = 41
 
     # MultiESDTTransferFixOnCallBackOnEnableEpoch represents the epoch when multi esdt transfer on callback fix is enabled
-    MultiESDTTransferFixOnCallBackOnEnableEpoch = 41
+    MultiESDTTransferFixOnCallBackOnEnableEpoch = 42
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
@@ -668,9 +668,9 @@ func TestEnableEpochConfig(t *testing.T) {
 			SCRSizeInvariantCheckEnableEpoch:            37,
 			BackwardCompSaveKeyValueEnableEpoch:         38,
 			ESDTNFTCreateOnMultiShardEnableEpoch:        39,
-			MetaESDTSetEnableEpoch:                      39,
-			AddTokensToDelegationEnableEpoch:            40,
-			MultiESDTTransferFixOnCallBackOnEnableEpoch: 41,
+			MetaESDTSetEnableEpoch:                      40,
+			AddTokensToDelegationEnableEpoch:            41,
+			MultiESDTTransferFixOnCallBackOnEnableEpoch: 42,
 		},
 		GasSchedule: GasScheduleConfig{
 			GasScheduleByEpochs: []GasScheduleByEpochs{
