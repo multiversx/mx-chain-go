@@ -111,6 +111,9 @@
     # ComputeRewardCheckpointEnableEpoch represents the epoch when compute rewards checkpoint epoch is enabled
     ComputeRewardCheckpointEnableEpoch = 5
 
+    # ESDTNFTCreateOnMultiShard represents the epoch when esdt nft creation is enabled on multiple shards
+    ESDTNFTCreateOnMultiShard = 6
+
     # SCRSizeInvariantCheckEnableEpoch represents the epoch when the scr size invariant check is enabled
     SCRSizeInvariantCheckEnableEpoch = 5
 
