@@ -388,11 +388,9 @@ func TestGetBlockByNonce_GetBlockByRound_FromNormalNode(t *testing.T) {
 	dataComponentsMock := getDefaultDataComponents()
 	dataComponentsMock.Store = &mock.ChainStorerMock{
 		GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
-			if unitType == dataRetriever.ShardHdrNonceHashDataUnit {
+			if unitType == dataRetriever.ShardHdrNonceHashDataUnit ||
+				unitType == dataRetriever.ShardHdrRoundHashDataUnit {
 				return hex.DecodeString(headerHash)
-			} else if unitType == dataRetriever.RoundNonceUnit {
-				uInt64Converter := mock.NewNonceHashConverterMock()
-				return uInt64Converter.ToByteSlice(nonce), nil
 			}
 			blk := &block.Header{
 				Nonce:   nonce,

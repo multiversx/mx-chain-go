@@ -67,12 +67,20 @@ func (mbp *metaAPIBlockProcessor) GetBlockByHash(hash []byte, withTxs bool) (*ap
 
 // GetBlockByRound will return a meta APIBlock by round
 func (mbp *metaAPIBlockProcessor) GetBlockByRound(round uint64, withTxs bool) (*api.Block, error) {
-	nonce, err := mbp.getNonceParamByRound(round, withTxs)
+	storerUnit := dataRetriever.MetaHdrRoundHashDataUnit
+
+	roundToByteSlice := mbp.uint64ByteSliceConverter.ToByteSlice(round)
+	headerHash, err := mbp.store.Get(storerUnit, roundToByteSlice)
 	if err != nil {
 		return nil, err
 	}
 
-	return mbp.GetBlockByNonce(nonce, withTxs)
+	blockBytes, err := mbp.getFromStorer(dataRetriever.MetaBlockUnit, headerHash)
+	if err != nil {
+		return nil, err
+	}
+
+	return mbp.convertMetaBlockBytesToAPIBlock(headerHash, blockBytes, withTxs)
 }
 
 func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, blockBytes []byte, withTxs bool) (*api.Block, error) {

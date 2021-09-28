@@ -519,19 +519,23 @@ func (psf *StorageServiceFactory) setupDbLookupExtensions(chainStorer *dataRetri
 	createdStorers = append(createdStorers, miniblockHashByTxHashUnit)
 	chainStorer.AddStorer(dataRetriever.MiniblockHashByTxHashUnit, miniblockHashByTxHashUnit)
 
-	// Create the blockRoundByNonce (STATIC) storer
-	blockRoundByNonceConfig := psf.generalConfig.DbLookupExtensions.RoundNonceStorageConfig
-	blockRoundByNonceDBConfig := GetDBFromConfig(blockRoundByNonceConfig.DB)
-	blockRoundByNonceDBConfig.FilePath = psf.pathManager.PathForStatic(shardID, blockRoundByNonceConfig.DB.FilePath)
-	blockRoundByNonceCacherConfig := GetCacherFromConfig(blockRoundByNonceConfig.Cache)
-	blockRoundByNonceBloomFilter := GetBloomFromConfig(blockRoundByNonceConfig.Bloom)
-	blockRoundByNonceUnit, err := storageUnit.NewStorageUnitFromConf(blockRoundByNonceCacherConfig, blockRoundByNonceDBConfig, blockRoundByNonceBloomFilter)
+	hashByRoundUnitData := dataRetriever.ShardHdrRoundHashDataUnit + dataRetriever.UnitType(psf.shardCoordinator.SelfId())
+	if psf.shardCoordinator.SelfId() == core.MetachainShardId {
+		hashByRoundUnitData = dataRetriever.MetaHdrRoundHashDataUnit
+	}
+	// Create the blockHashByRound (STATIC) storer
+	blockHashByRoundConfig := psf.generalConfig.DbLookupExtensions.RoundHashStorageConfig
+	blockHashByRoundDBConfig := GetDBFromConfig(blockHashByRoundConfig.DB)
+	blockHashByRoundDBConfig.FilePath = psf.pathManager.PathForStatic(shardID, blockHashByRoundConfig.DB.FilePath)
+	blockHashByRoundCacherConfig := GetCacherFromConfig(blockHashByRoundConfig.Cache)
+	blockHashByRoundBloomFilter := GetBloomFromConfig(blockHashByRoundConfig.Bloom)
+	blockHashByRoundUnit, err := storageUnit.NewStorageUnitFromConf(blockHashByRoundCacherConfig, blockHashByRoundDBConfig, blockHashByRoundBloomFilter)
 	if err != nil {
 		return createdStorers, err
 	}
 
-	createdStorers = append(createdStorers, blockRoundByNonceUnit)
-	chainStorer.AddStorer(dataRetriever.RoundNonceUnit, blockRoundByNonceUnit)
+	createdStorers = append(createdStorers, blockHashByRoundUnit)
+	chainStorer.AddStorer(hashByRoundUnitData, blockHashByRoundUnit)
 
 	// Create the epochByHash (STATIC) storer
 	epochByHashConfig := psf.generalConfig.DbLookupExtensions.EpochByHashStorageConfig

@@ -158,18 +158,3 @@ func (bap *baseAPIBlockProcessor) computeStatusAndPutInBlock(blockAPI *api.Block
 
 	return blockAPI, nil
 }
-
-// GetBlockByRound will return a shard APIBlock by round
-func (bap *baseAPIBlockProcessor) getNonceParamByRound(round uint64, withTxs bool) (uint64, error) {
-	roundToByteSlice := bap.uint64ByteSliceConverter.ToByteSlice(round)
-	nonceBytes, err := bap.store.Get(dataRetriever.RoundNonceUnit, roundToByteSlice)
-	if err != nil {
-		return 0, err
-	}
-
-	nonce, err := bap.uint64ByteSliceConverter.ToUint64(nonceBytes)
-	if err != nil {
-		return 0, err
-	}
-	return nonce, nil
-}

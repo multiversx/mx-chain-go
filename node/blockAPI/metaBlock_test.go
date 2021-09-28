@@ -237,7 +237,6 @@ func TestMetaAPIBlockProcessor_GetBlockByNonceFromHistoryNode(t *testing.T) {
 func TestMetaAPIBlockProcessor_GetBlockByRoundFromStorer(t *testing.T) {
 	t.Parallel()
 
-	nonce := uint64(1)
 	round := uint64(2)
 	epoch := uint32(1)
 	miniblockHeader := []byte("miniBlockHash")
@@ -253,7 +252,6 @@ func TestMetaAPIBlockProcessor_GetBlockByRoundFromStorer(t *testing.T) {
 	)
 
 	header := &block.MetaBlock{
-		Nonce: nonce,
 		Round: round,
 		Epoch: epoch,
 		MiniBlockHeaders: []block.MiniBlockHeader{
@@ -273,12 +271,9 @@ func TestMetaAPIBlockProcessor_GetBlockByRoundFromStorer(t *testing.T) {
 
 	uint64Converter := metaAPIBlockProcessor.uint64ByteSliceConverter
 	roundBytes := uint64Converter.ToByteSlice(round)
-	nonceBytes := uint64Converter.ToByteSlice(nonce)
-	_ = storerMock.Put(roundBytes, nonceBytes)
-	_ = storerMock.Put(nonceBytes, headerHash)
+	_ = storerMock.Put(roundBytes, headerHash)
 
 	expectedBlock := &api.Block{
-		Nonce:           nonce,
 		Round:           round,
 		Shard:           core.MetachainShardId,
 		Epoch:           epoch,
@@ -297,7 +292,7 @@ func TestMetaAPIBlockProcessor_GetBlockByRoundFromStorer(t *testing.T) {
 		Status:                 BlockStatusOnChain,
 	}
 
-	blk, err := metaAPIBlockProcessor.GetBlockByRound(nonce, true)
+	blk, err := metaAPIBlockProcessor.GetBlockByRound(round+1, true)
 	assert.NotNil(t, err)
 	assert.Nil(t, blk)
 
@@ -433,7 +428,7 @@ func TestMetaAPIBlockProcessor_GetBlockByRound_GetBlockByNonce_EpochStartBlock(t
 	uint64Converter := metaAPIBlockProc.uint64ByteSliceConverter
 	roundBytes := uint64Converter.ToByteSlice(round)
 	nonceBytes := uint64Converter.ToByteSlice(nonce)
-	_ = storerMock.Put(roundBytes, nonceBytes)
+	_ = storerMock.Put(roundBytes, headerHash)
 	_ = storerMock.Put(nonceBytes, headerHash)
 
 	expectedBlock := &api.Block{
@@ -473,15 +468,7 @@ func TestMetaAPIBlockProcessor_GetBlockByRound_GetBlockByNonce_EpochStartBlock(t
 		},
 	}
 
-	blk, err := metaAPIBlockProc.GetBlockByNonce(round, false)
-	assert.NotNil(t, err)
-	assert.Nil(t, blk)
-
-	blk, err = metaAPIBlockProc.GetBlockByRound(nonce, false)
-	assert.NotNil(t, err)
-	assert.Nil(t, blk)
-
-	blk, err = metaAPIBlockProc.GetBlockByNonce(nonce, false)
+	blk, err := metaAPIBlockProc.GetBlockByNonce(nonce, false)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 

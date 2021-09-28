@@ -266,7 +266,7 @@ func TestShardAPIBlockProcessor_GetBlockByRoundFromStorer(t *testing.T) {
 	uint64Converter := shardAPIBlockProcessor.uint64ByteSliceConverter
 	roundBytes := uint64Converter.ToByteSlice(round)
 	nonceBytes := uint64Converter.ToByteSlice(nonce)
-	_ = storerMock.Put(roundBytes, nonceBytes)
+	_ = storerMock.Put(roundBytes, headerHash)
 	_ = storerMock.Put(nonceBytes, headerHash)
 
 	expectedBlock := &api.Block{
@@ -286,11 +286,7 @@ func TestShardAPIBlockProcessor_GetBlockByRoundFromStorer(t *testing.T) {
 		Status:          BlockStatusOnChain,
 	}
 
-	blk, err := shardAPIBlockProcessor.GetBlockByRound(nonce, false)
-	assert.NotNil(t, err)
-	assert.Nil(t, blk)
-
-	blk, err = shardAPIBlockProcessor.GetBlockByRound(round, false)
+	blk, err := shardAPIBlockProcessor.GetBlockByRound(round, false)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 }

@@ -33,7 +33,7 @@ func createMockHistoryRepoArgs(epoch uint32) HistoryRepositoryArguments {
 		MiniblockHashByTxHashStorer: genericMocks.NewStorerMock("MiniblockHashByTxHash", epoch),
 		EpochByHashStorer:           genericMocks.NewStorerMock("EpochByHash", epoch),
 		EventsHashesByTxHashStorer:  genericMocks.NewStorerMock("EventsHashesByTxHash", epoch),
-		BlockRoundByNonce:           genericMocks.NewStorerMock("BlockRoundByNonce", epoch),
+		BlockHashByRound:            genericMocks.NewStorerMock("BlockHashByRound", epoch),
 		Marshalizer:                 &mock.MarshalizerMock{},
 		Hasher:                      &mock.HasherMock{},
 		ESDTSuppliesHandler:         sp,
@@ -94,12 +94,12 @@ func TestNewHistoryRepository(t *testing.T) {
 	require.NotNil(t, repo)
 }
 
-func TestHistoryRepository_RecordBlock_InvalidBlockRoundByNonceStorer_ExpectError(t *testing.T) {
+func TestHistoryRepository_RecordBlock_InvalidBlockRoundByHashStorer_ExpectError(t *testing.T) {
 	t.Parallel()
 
 	errPut := errors.New("error put")
 	args := createMockHistoryRepoArgs(0)
-	args.BlockRoundByNonce = &dataMock.StorerStub{
+	args.BlockHashByRound = &dataMock.StorerStub{
 		PutCalled: func(key, data []byte) error {
 			return errPut
 		},
@@ -149,7 +149,7 @@ func TestHistoryRepository_RecordBlock(t *testing.T) {
 	// Two transactions
 	require.Equal(t, 2, repo.miniblockHashByTxHashIndex.(*genericMocks.StorerMock).GetCurrentEpochData().Len())
 	// One block, one block header
-	require.Equal(t, 1, repo.blockRoundByNonce.(*genericMocks.StorerMock).GetCurrentEpochData().Len())
+	require.Equal(t, 1, repo.blockHashByRound.(*genericMocks.StorerMock).GetCurrentEpochData().Len())
 }
 
 func TestHistoryRepository_GetMiniblockMetadata(t *testing.T) {

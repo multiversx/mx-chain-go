@@ -29,7 +29,7 @@ type HistoryRepositoryArguments struct {
 	SelfShardID                 uint32
 	MiniblocksMetadataStorer    storage.Storer
 	MiniblockHashByTxHashStorer storage.Storer
-	BlockRoundByNonce           storage.Storer
+	BlockHashByRound            storage.Storer
 	Uint64ByteSliceConverter    typeConverters.Uint64ByteSliceConverter
 	EpochByHashStorer           storage.Storer
 	EventsHashesByTxHashStorer  storage.Storer
@@ -42,7 +42,7 @@ type historyRepository struct {
 	selfShardID                uint32
 	miniblocksMetadataStorer   storage.Storer
 	miniblockHashByTxHashIndex storage.Storer
-	blockRoundByNonce          storage.Storer
+	blockHashByRound           storage.Storer
 	uint64ByteSliceConverter   typeConverters.Uint64ByteSliceConverter
 	epochByHashIndex           *epochByHashIndex
 	eventsHashesByTxHashIndex  *eventsHashesByTxHash
@@ -104,7 +104,7 @@ func NewHistoryRepository(arguments HistoryRepositoryArguments) (*historyReposit
 	return &historyRepository{
 		selfShardID:                           arguments.SelfShardID,
 		miniblocksMetadataStorer:              arguments.MiniblocksMetadataStorer,
-		blockRoundByNonce:                     arguments.BlockRoundByNonce,
+		blockHashByRound:                      arguments.BlockHashByRound,
 		marshalizer:                           arguments.Marshalizer,
 		hasher:                                arguments.Hasher,
 		epochByHashIndex:                      hashToEpochIndex,
@@ -167,7 +167,7 @@ func (hr *historyRepository) RecordBlock(
 		return err
 	}
 
-	err = hr.putRoundByNonce(blockHeader)
+	err = hr.putHashByRound(blockHeaderHash, blockHeader)
 	if err != nil {
 		return err
 	}
@@ -175,11 +175,9 @@ func (hr *historyRepository) RecordBlock(
 	return nil
 }
 
-func (hr *historyRepository) putRoundByNonce(header data.HeaderHandler) error {
+func (hr *historyRepository) putHashByRound(blockHeaderHash []byte, header data.HeaderHandler) error {
 	roundToByteSlice := hr.uint64ByteSliceConverter.ToByteSlice(header.GetRound())
-	nonceToByteSlice := hr.uint64ByteSliceConverter.ToByteSlice(header.GetNonce())
-
-	return hr.blockRoundByNonce.Put(roundToByteSlice, nonceToByteSlice)
+	return hr.blockHashByRound.Put(roundToByteSlice, blockHeaderHash)
 }
 
 func (hr *historyRepository) recordMiniblock(blockHeaderHash []byte, blockHeader data.HeaderHandler, miniblock *block.MiniBlock, epoch uint32) error {

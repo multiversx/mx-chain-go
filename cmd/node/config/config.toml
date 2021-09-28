@@ -791,12 +791,12 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 20000
         MaxOpenFiles = 10
-    [DbLookupExtensions.RoundNonceStorageConfig.Cache]
-        Name = "DbLookupExtensions.RoundNonceStorage"
+    [DbLookupExtensions.RoundHashStorageConfig.Cache]
+        Name = "DbLookupExtensions.RoundHashStorage"
         Capacity = 20000
         Type = "LRU"
-    [DbLookupExtensions.RoundNonceStorageConfig.DB]
-        FilePath = "DbLookupExtensions_RoundNonce"
+    [DbLookupExtensions.RoundHashStorageConfig.DB]
+        FilePath = "DbLookupExtensions_RoundHash"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 20000
