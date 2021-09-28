@@ -6,7 +6,7 @@ import (
 
 	apiErrors "github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/facade/disabled"
+	"github.com/ElrondNetwork/elrond-go/facade/initial"
 	"github.com/stretchr/testify/require"
 )
 
@@ -21,7 +21,7 @@ func TestCommon_checkArgs(t *testing.T) {
 	err := checkArgs(args)
 	require.True(t, errors.Is(err, apiErrors.ErrCannotCreateGinWebServer))
 
-	args.Facade = disabled.NewDisabledNodeFacade("api interface")
+	args.Facade = initial.NewInitialNodeFacade("api interface", false)
 	err = checkArgs(args)
 	require.NoError(t, err)
 }
