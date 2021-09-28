@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/common/mock"
+	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,7 +23,7 @@ func TestNewSoftwareVersionChecker_NilStatusHandlerShouldErr(t *testing.T) {
 func TestNewSoftwareVersionChecker_NilStableTagProviderShouldErr(t *testing.T) {
 	t.Parallel()
 
-	softwareChecker, err := NewSoftwareVersionChecker(&mock.AppStatusHandlerStub{}, nil, 1)
+	softwareChecker, err := NewSoftwareVersionChecker(&statusHandlerMock.AppStatusHandlerStub{}, nil, 1)
 
 	assert.Nil(t, softwareChecker)
 	assert.Equal(t, core.ErrNilStatusTagProvider, err)
@@ -31,7 +32,7 @@ func TestNewSoftwareVersionChecker_NilStableTagProviderShouldErr(t *testing.T) {
 func TestNewSoftwareVersionChecker_InvalidPollingIntervalShouldErr(t *testing.T) {
 	t.Parallel()
 
-	statusHandler := &mock.AppStatusHandlerStub{}
+	statusHandler := &statusHandlerMock.AppStatusHandlerStub{}
 	tagProvider := &mock.StableTagProviderStub{}
 	softwareChecker, err := NewSoftwareVersionChecker(statusHandler, tagProvider, 0)
 
@@ -42,7 +43,7 @@ func TestNewSoftwareVersionChecker_InvalidPollingIntervalShouldErr(t *testing.T)
 func TestNewSoftwareVersionChecker(t *testing.T) {
 	t.Parallel()
 
-	statusHandler := &mock.AppStatusHandlerStub{}
+	statusHandler := &statusHandlerMock.AppStatusHandlerStub{}
 	tagProvider := &mock.StableTagProviderStub{}
 	softwareChecker, err := NewSoftwareVersionChecker(statusHandler, tagProvider, 1)
 
@@ -55,7 +56,7 @@ func TestSoftwareVersionChecker_StartCheckSoftwareVersionShouldWork(t *testing.T
 
 	fetchChan := make(chan bool)
 	setStringChan := make(chan bool)
-	statusHandler := &mock.AppStatusHandlerStub{
+	statusHandler := &statusHandlerMock.AppStatusHandlerStub{
 		SetStringValueHandler: func(key string, value string) {
 			setStringChan <- true
 		},
@@ -89,7 +90,7 @@ func TestSoftwareVersionChecker_StartCheckSoftwareVersionShouldErrWhenFetchFails
 	localErr := errors.New("error")
 	fetchChan := make(chan bool)
 	setStringChan := make(chan bool)
-	statusHandler := &mock.AppStatusHandlerStub{
+	statusHandler := &statusHandlerMock.AppStatusHandlerStub{
 		SetStringValueHandler: func(key string, value string) {
 			setStringChan <- true
 		},

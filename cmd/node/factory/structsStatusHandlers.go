@@ -21,8 +21,6 @@ type statusHandlersInfo struct {
 	AppStatusHandler  core.AppStatusHandler
 	StatusMetrics     external.StatusMetricsHandler
 	PersistentHandler *persister.PersistentStatusHandler
-	chanStartViews    chan struct{}
-	chanLogRewrite    chan struct{}
 }
 
 type statusHandlerUtilsFactory struct {
@@ -41,8 +39,6 @@ func (shuf *statusHandlerUtilsFactory) Create(
 	var appStatusHandlers []core.AppStatusHandler
 	var err error
 	var handler core.AppStatusHandler
-	chanStartViews := make(chan struct{}, 1)
-	chanLogRewrite := make(chan struct{}, 1)
 
 	baseErrMessage := "error creating status handler"
 	if check.IfNil(marshalizer) {
@@ -72,8 +68,6 @@ func (shuf *statusHandlerUtilsFactory) Create(
 	}
 
 	statusHandlersInfoObject := new(statusHandlersInfo)
-	statusHandlersInfoObject.chanStartViews = chanStartViews
-	statusHandlersInfoObject.chanLogRewrite = chanLogRewrite
 	statusHandlersInfoObject.AppStatusHandler = handler
 	statusHandlersInfoObject.StatusMetrics = statusMetrics
 	statusHandlersInfoObject.PersistentHandler = persistentHandler
@@ -99,16 +93,6 @@ func (shi *statusHandlersInfo) StatusHandler() core.AppStatusHandler {
 // Metrics returns the status metrics
 func (shi *statusHandlersInfo) Metrics() external.StatusMetricsHandler {
 	return shi.StatusMetrics
-}
-
-// SignalStartViews signals to status handler to start the views
-func (shi *statusHandlersInfo) SignalStartViews() {
-	shi.chanStartViews <- struct{}{}
-}
-
-// SignalLogRewrite signals to status handler the logs rewrite
-func (shi *statusHandlersInfo) SignalLogRewrite() {
-	shi.chanLogRewrite <- struct{}{}
 }
 
 // IsInterfaceNil returns true if the interface is nil
