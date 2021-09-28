@@ -481,7 +481,11 @@ func (d *delegation) updateDelegationStatusFromValidatorData(
 		case active:
 			dStatus.StakedKeys = append(dStatus.StakedKeys, nodesData)
 		case unStaked:
-			dStatus.UnStakedKeys = append(dStatus.StakedKeys, nodesData)
+			if d.flagAddTokens.IsSet() {
+				dStatus.UnStakedKeys = append(dStatus.UnStakedKeys, nodesData)
+			} else {
+				dStatus.UnStakedKeys = append(dStatus.StakedKeys, nodesData)
+			}
 		}
 	}
 
