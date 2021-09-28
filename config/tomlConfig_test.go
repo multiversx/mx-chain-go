@@ -594,18 +594,18 @@ func TestEnableEpochConfig(t *testing.T) {
     ESDTNFTCreateOnMultiShardEnableEpoch = 39
 
     # OptimizeGasUsedInCrossMiniBlocksEnableEpoch represents the epoch when gas used in cross shard mini blocks will be optimized
-    OptimizeGasUsedInCrossMiniBlocksEnableEpoch = 38
+    OptimizeGasUsedInCrossMiniBlocksEnableEpoch = 40
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
-        { EpochEnable = 39, MaxNumNodes = 40, NodesToShufflePerShard = 41 },
-        { EpochEnable = 42, MaxNumNodes = 43, NodesToShufflePerShard = 44 }
+        { EpochEnable = 41, MaxNumNodes = 500, NodesToShufflePerShard = 501 },
+        { EpochEnable = 42, MaxNumNodes = 502, NodesToShufflePerShard = 503 }
     ]
 
 [GasSchedule]
     GasScheduleByEpochs = [
-        { StartEpoch = 45, FileName = "gasScheduleV1.toml" },
-        { StartEpoch = 46, FileName = "gasScheduleV3.toml" },
+        { StartEpoch = 43, FileName = "gasScheduleV1.toml" },
+        { StartEpoch = 44, FileName = "gasScheduleV3.toml" },
     ]
 `
 
@@ -625,14 +625,14 @@ func TestEnableEpochConfig(t *testing.T) {
 			RepairCallbackEnableEpoch:              12,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
-					EpochEnable:            39,
-					MaxNumNodes:            40,
-					NodesToShufflePerShard: 41,
+					EpochEnable:            41,
+					MaxNumNodes:            500,
+					NodesToShufflePerShard: 501,
 				},
 				{
 					EpochEnable:            42,
-					MaxNumNodes:            43,
-					NodesToShufflePerShard: 44,
+					MaxNumNodes:            502,
+					NodesToShufflePerShard: 503,
 				},
 			},
 			BlockGasAndFeesReCheckEnableEpoch:           13,
@@ -662,17 +662,16 @@ func TestEnableEpochConfig(t *testing.T) {
 			SCRSizeInvariantCheckEnableEpoch:            37,
 			BackwardCompSaveKeyValueEnableEpoch:         38,
 			ESDTNFTCreateOnMultiShardEnableEpoch:        39,
-			ESDTNFTCreateOnMultiShardEnableEpoch:        37,
-			OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 38,
+			OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 40,
 		},
 		GasSchedule: GasScheduleConfig{
 			GasScheduleByEpochs: []GasScheduleByEpochs{
 				{
-					StartEpoch: 45,
+					StartEpoch: 43,
 					FileName:   "gasScheduleV1.toml",
 				},
 				{
-					StartEpoch: 46,
+					StartEpoch: 44,
 					FileName:   "gasScheduleV3.toml",
 				},
 			},
