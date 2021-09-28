@@ -175,6 +175,10 @@ func TestEsdt_ExecuteIssueAlways6charactersForRandom(t *testing.T) {
 	assert.Equal(t, vmcommon.Ok, output)
 	lastOutput = eei.output[len(eei.output)-1]
 	assert.Equal(t, len(lastOutput), len(ticker)+1+6)
+
+	vmInput.Arguments = nil
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
 }
 
 func TestEsdt_ExecuteIssueWithMultiNFTCreate(t *testing.T) {

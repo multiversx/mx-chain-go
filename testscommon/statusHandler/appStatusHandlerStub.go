@@ -1,4 +1,4 @@
-package mock
+package statusHandler
 
 // AppStatusHandlerStub is a stub implementation of AppStatusHandler
 type AppStatusHandlerStub struct {
