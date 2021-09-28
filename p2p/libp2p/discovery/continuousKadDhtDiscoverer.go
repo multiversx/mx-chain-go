@@ -253,7 +253,7 @@ func (ckdd *ContinuousKadDhtDiscoverer) tryConnectToSeeder(
 
 func printConnectionErrorToSeeder(peer string, err error) {
 	if errors.Is(err, p2p.ErrUnwantedPeer) {
-		log.Trace("error connecting to seeder",
+		log.Trace("tryConnectToSeeder: unwanted peer",
 			"seeder", peer,
 			"error", err.Error(),
 		)
