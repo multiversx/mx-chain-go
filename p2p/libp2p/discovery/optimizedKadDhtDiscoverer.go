@@ -180,7 +180,7 @@ func (okdd *optimizedKadDhtDiscoverer) tryToReconnectAtLeastToASeeder(ctx contex
 	for _, seederAddress := range okdd.initialPeersList {
 		err := okdd.connectToSeeder(ctx, seederAddress)
 		if err != nil {
-			log.Debug("error connecting to seeder", "seeder", seederAddress, "error", err.Error())
+			log.Trace("error connecting to seeder", "seeder", seederAddress, "error", err.Error())
 		} else {
 			connectedToOneSeeder = true
 		}
