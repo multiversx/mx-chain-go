@@ -103,7 +103,7 @@ func TestRelayedBuiltInFunctionExecuteOnRelayerAndDstShardShouldWork(t *testing.
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, rtx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "10390", indexerTx.Fee)
+	require.Equal(t, uint64(424), indexerTx.GasUsed)
+	require.Equal(t, "4240", indexerTx.Fee)
 	require.Equal(t, transaction.TxStatusSuccess.String(), indexerTx.Status)
 }

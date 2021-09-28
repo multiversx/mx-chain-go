@@ -71,8 +71,8 @@ func TestRelayedBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, rtx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "13390", indexerTx.Fee)
+	require.Equal(t, uint64(424), indexerTx.GasUsed)
+	require.Equal(t, "4240", indexerTx.Fee)
 }
 
 func TestRelayedBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *testing.T) {

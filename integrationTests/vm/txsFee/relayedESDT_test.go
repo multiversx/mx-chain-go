@@ -65,8 +65,8 @@ func TestRelayedESDTTransferShouldWork(t *testing.T) {
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, rtx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "2750", indexerTx.Fee)
+	require.Equal(t, uint64(271), indexerTx.GasUsed)
+	require.Equal(t, "2710", indexerTx.Fee)
 }
 
 func TestTestRelayedESTTransferNotEnoughESTValueShouldConsumeGas(t *testing.T) {

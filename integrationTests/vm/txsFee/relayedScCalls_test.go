@@ -63,8 +63,8 @@ func TestRelayedScCallShouldWork(t *testing.T) {
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, rtx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "11870", indexerTx.Fee)
+	require.Equal(t, uint64(574), indexerTx.GasUsed)
+	require.Equal(t, "5740", indexerTx.Fee)
 }
 
 func TestRelayedScCallContractNotFoundShouldConsumeGas(t *testing.T) {

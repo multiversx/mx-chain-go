@@ -312,7 +312,7 @@ func (ti *testIndexer) putSCRSInTx(tx *indexerTypes.Transaction) {
 
 	for idx := 1; idx < len(split); idx += 2 {
 		newSCR := &indexerTypes.ScResult{}
-		err := json.Unmarshal(split[1], newSCR)
+		err := json.Unmarshal(split[idx], newSCR)
 		require.Nil(ti.t, err)
 
 		if newSCR.Receiver != "" {

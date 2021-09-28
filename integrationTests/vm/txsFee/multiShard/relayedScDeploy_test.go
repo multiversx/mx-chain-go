@@ -88,8 +88,8 @@ func TestRelayedSCDeployShouldWork(t *testing.T) {
 	testIndexer.SaveTransaction(rtx, block.TxBlock, txs)
 
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, rtx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "23070", indexerTx.Fee)
+	require.Equal(t, uint64(2156), indexerTx.GasUsed)
+	require.Equal(t, "21560", indexerTx.Fee)
 	require.Equal(t, transaction.TxStatusSuccess.String(), indexerTx.Status)
 
 	scr := txs[0]
