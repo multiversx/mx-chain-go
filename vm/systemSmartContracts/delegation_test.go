@@ -5210,10 +5210,28 @@ func TestDelegation_correctNodesStatus(t *testing.T) {
 	eei.returnMessage = ""
 	eei.gasRemaining = 11
 	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "storage is nil for given key")
+
+	validatorData := &ValidatorDataV2{BlsPubKeys: [][]byte{[]byte("key8")}}
+	marshaledData, _ := d.marshalizer.Marshal(validatorData)
+	eei.SetStorageForAddress(d.validatorSCAddr, vmInput.RecipientAddr, marshaledData)
+
+	stakedData := &StakedDataV2_0{
+		Staked: false,
+		Jailed: true,
+	}
+	marshaledData, _ = d.marshalizer.Marshal(stakedData)
+	eei.SetStorageForAddress(d.stakingSCAddr, []byte("key8"), marshaledData)
+	stakedKeys = append(stakedKeys, []byte("key8"))
+
+	eei.returnMessage = ""
+	eei.gasRemaining = 11
+	returnCode = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, returnCode)
 
 	correctedStatus, _ := d.getDelegationStatus()
-	assert.Equal(t, 3, len(correctedStatus.StakedKeys))
+	assert.Equal(t, 4, len(correctedStatus.StakedKeys))
 	assert.Equal(t, 2, len(correctedStatus.UnStakedKeys))
 	assert.Equal(t, 2, len(correctedStatus.NotStakedKeys))
 

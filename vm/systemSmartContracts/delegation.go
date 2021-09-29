@@ -2321,7 +2321,13 @@ func (d *delegation) correctNodesStatus(args *vmcommon.ContractCallInput) vmcomm
 	unStakedKeys := make([]*NodesData, 0)
 	notStakedKeys := make([]*NodesData, 0)
 
-	allNodesList := createMergedListWithoutDuplicates(status)
+	validatorData, err := d.getValidatorData(args.RecipientAddr)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	allNodesList := createMergedListWithoutDuplicates(status, validatorData.BlsPubKeys)
+
 	for _, key := range allNodesList {
 		keyStatus, _ := d.getBLSKeyStatus(key.BLSKey)
 		switch keyStatus {
@@ -2346,7 +2352,7 @@ func (d *delegation) correctNodesStatus(args *vmcommon.ContractCallInput) vmcomm
 	return vmcommon.Ok
 }
 
-func createMergedListWithoutDuplicates(status *DelegationContractStatus) []*NodesData {
+func createMergedListWithoutDuplicates(status *DelegationContractStatus, blsKeysFromValidatorSC [][]byte) []*NodesData {
 	allNodesList := append(status.StakedKeys, status.UnStakedKeys...)
 	allNodesList = append(allNodesList, status.NotStakedKeys...)
 
@@ -2361,6 +2367,16 @@ func createMergedListWithoutDuplicates(status *DelegationContractStatus) []*Node
 
 		mapAllNodes[string(node.BLSKey)] = struct{}{}
 		nodesWithoutDuplicatesList = append(nodesWithoutDuplicatesList, node)
+	}
+
+	for _, blsKey := range blsKeysFromValidatorSC {
+		_, found := mapAllNodes[string(blsKey)]
+		if found {
+			continue
+		}
+
+		mapAllNodes[string(blsKey)] = struct{}{}
+		nodesWithoutDuplicatesList = append(nodesWithoutDuplicatesList, &NodesData{BLSKey: blsKey, SignedMsg: blsKey})
 	}
 
 	return nodesWithoutDuplicatesList
