@@ -390,7 +390,7 @@ func TestGetBlockByNonce_GetBlockByRound_FromNormalNode(t *testing.T) {
 	dataComponentsMock.Store = &mock.ChainStorerMock{
 		GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
 			if unitType == dataRetriever.ShardHdrNonceHashDataUnit ||
-				unitType == dataRetriever.ShardHdrRoundHashDataUnit {
+				unitType == dataRetriever.RoundHdrHashDataUnit {
 				return hex.DecodeString(headerHash)
 			}
 			blk := &block.Header{

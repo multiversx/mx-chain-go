@@ -519,10 +519,6 @@ func (psf *StorageServiceFactory) setupDbLookupExtensions(chainStorer *dataRetri
 	createdStorers = append(createdStorers, miniblockHashByTxHashUnit)
 	chainStorer.AddStorer(dataRetriever.MiniblockHashByTxHashUnit, miniblockHashByTxHashUnit)
 
-	hashByRoundUnitData := dataRetriever.ShardHdrRoundHashDataUnit + dataRetriever.UnitType(psf.shardCoordinator.SelfId())
-	if psf.shardCoordinator.SelfId() == core.MetachainShardId {
-		hashByRoundUnitData = dataRetriever.MetaHdrRoundHashDataUnit
-	}
 	// Create the blockHashByRound (STATIC) storer
 	blockHashByRoundConfig := psf.generalConfig.DbLookupExtensions.RoundHashStorageConfig
 	blockHashByRoundDBConfig := GetDBFromConfig(blockHashByRoundConfig.DB)
@@ -535,7 +531,7 @@ func (psf *StorageServiceFactory) setupDbLookupExtensions(chainStorer *dataRetri
 	}
 
 	createdStorers = append(createdStorers, blockHashByRoundUnit)
-	chainStorer.AddStorer(hashByRoundUnitData, blockHashByRoundUnit)
+	chainStorer.AddStorer(dataRetriever.RoundHdrHashDataUnit, blockHashByRoundUnit)
 
 	// Create the epochByHash (STATIC) storer
 	epochByHashConfig := psf.generalConfig.DbLookupExtensions.EpochByHashStorageConfig

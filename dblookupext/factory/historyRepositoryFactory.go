@@ -73,16 +73,12 @@ func (hpf *historyRepositoryFactory) Create() (dblookupext.HistoryRepository, er
 	if err != nil {
 		return nil, err
 	}
-	blockHashByRoundDataUnit := dataRetriever.ShardHdrRoundHashDataUnit + dataRetriever.UnitType(hpf.selfShardID)
-	if hpf.selfShardID == core.MetachainShardId {
-		blockHashByRoundDataUnit = dataRetriever.MetaHdrRoundHashDataUnit
-	}
 
 	historyRepArgs := dblookupext.HistoryRepositoryArguments{
 		SelfShardID:                 hpf.selfShardID,
 		Hasher:                      hpf.hasher,
 		Marshalizer:                 hpf.marshalizer,
-		BlockHashByRound:            hpf.store.GetStorer(blockHashByRoundDataUnit),
+		BlockHashByRound:            hpf.store.GetStorer(dataRetriever.RoundHdrHashDataUnit),
 		Uint64ByteSliceConverter:    hpf.uInt64ByteSliceConverter,
 		MiniblocksMetadataStorer:    hpf.store.GetStorer(dataRetriever.MiniblocksMetadataUnit),
 		EpochByHashStorer:           hpf.store.GetStorer(dataRetriever.EpochByHashUnit),

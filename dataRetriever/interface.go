@@ -91,10 +91,8 @@ const (
 	TrieEpochRootHashUnit UnitType = 17
 	// ESDTSuppliesUnit is the ESDT supplies storage unit identifier
 	ESDTSuppliesUnit UnitType = 18
-	// MetaHdrRoundHashDataUnit is the meta header round-hash storage data pair unit identifier
-	MetaHdrRoundHashDataUnit UnitType = 49
-	// ShardHdrRoundHashDataUnit is the shard round-hash storage data unit identifier
-	ShardHdrRoundHashDataUnit UnitType = 50
+	// RoundHdrHashDataUnit is the round- block header hash storage data unit identifier
+	RoundHdrHashDataUnit UnitType = 19
 
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
 	//TODO: Add only unit types lower than 100

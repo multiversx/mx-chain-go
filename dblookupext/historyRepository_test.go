@@ -94,7 +94,7 @@ func TestNewHistoryRepository(t *testing.T) {
 	require.NotNil(t, repo)
 }
 
-func TestHistoryRepository_RecordBlock_InvalidBlockRoundByHashStorer_ExpectError(t *testing.T) {
+func TestHistoryRepository_RecordBlockInvalidBlockRoundByHashStorerExpectError(t *testing.T) {
 	t.Parallel()
 
 	errPut := errors.New("error put")
