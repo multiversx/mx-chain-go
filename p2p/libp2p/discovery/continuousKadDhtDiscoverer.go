@@ -231,7 +231,7 @@ func (ckdd *ContinuousKadDhtDiscoverer) tryConnectToSeeder(
 		initialPeer := initialPeersList[startIndex]
 		err := ckdd.host.ConnectToPeer(ckdd.context, initialPeer)
 		if err != nil {
-			log.Debug("error connecting to seeder",
+			log.Trace("error connecting to seeder",
 				"seeder", initialPeer,
 				"error", err.Error(),
 			)

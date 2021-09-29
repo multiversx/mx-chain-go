@@ -589,16 +589,19 @@ func TestEnableEpochConfig(t *testing.T) {
     # ESDTNFTCreateOnMultiShardEnableEpoch represents the epoch when esdt nft creation on multiple shards is enabled
     ESDTNFTCreateOnMultiShardEnableEpoch = 37
 
+    # OptimizeGasUsedInCrossMiniBlocksEnableEpoch represents the epoch when gas used in cross shard mini blocks will be optimized
+    OptimizeGasUsedInCrossMiniBlocksEnableEpoch = 38
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
-        { EpochEnable = 36, MaxNumNodes = 37, NodesToShufflePerShard = 38 },
-        { EpochEnable = 39, MaxNumNodes = 40, NodesToShufflePerShard = 41 }
+        { EpochEnable = 39, MaxNumNodes = 40, NodesToShufflePerShard = 41 },
+        { EpochEnable = 42, MaxNumNodes = 43, NodesToShufflePerShard = 44 }
     ]
 
 [GasSchedule]
     GasScheduleByEpochs = [
-        { StartEpoch = 42, FileName = "gasScheduleV1.toml" },
-        { StartEpoch = 43, FileName = "gasScheduleV3.toml" },
+        { StartEpoch = 45, FileName = "gasScheduleV1.toml" },
+        { StartEpoch = 46, FileName = "gasScheduleV3.toml" },
     ]
 `
 
@@ -618,14 +621,14 @@ func TestEnableEpochConfig(t *testing.T) {
 			RepairCallbackEnableEpoch:              12,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
-					EpochEnable:            36,
-					MaxNumNodes:            37,
-					NodesToShufflePerShard: 38,
-				},
-				{
 					EpochEnable:            39,
 					MaxNumNodes:            40,
 					NodesToShufflePerShard: 41,
+				},
+				{
+					EpochEnable:            42,
+					MaxNumNodes:            43,
+					NodesToShufflePerShard: 44,
 				},
 			},
 			BlockGasAndFeesReCheckEnableEpoch:           13,
@@ -653,15 +656,16 @@ func TestEnableEpochConfig(t *testing.T) {
 			BuiltInFunctionOnMetaEnableEpoch:            35,
 			ComputeRewardCheckpointEnableEpoch:          36,
 			ESDTNFTCreateOnMultiShardEnableEpoch:        37,
+			OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 38,
 		},
 		GasSchedule: GasScheduleConfig{
 			GasScheduleByEpochs: []GasScheduleByEpochs{
 				{
-					StartEpoch: 42,
+					StartEpoch: 45,
 					FileName:   "gasScheduleV1.toml",
 				},
 				{
-					StartEpoch: 43,
+					StartEpoch: 46,
 					FileName:   "gasScheduleV3.toml",
 				},
 			},

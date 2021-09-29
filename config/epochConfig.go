@@ -51,6 +51,7 @@ type EnableEpochs struct {
 	BuiltInFunctionOnMetaEnableEpoch            uint32
 	ComputeRewardCheckpointEnableEpoch          uint32
 	ESDTNFTCreateOnMultiShardEnableEpoch        uint32
+	OptimizeGasUsedInCrossMiniBlocksEnableEpoch uint32
 }
 
 // GasScheduleByEpochs represents a gas schedule toml entry that will be applied from the provided epoch

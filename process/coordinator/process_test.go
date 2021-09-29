@@ -461,6 +461,8 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		&mock.BlockTrackerMock{},
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
+		&mock.EpochNotifierStub{},
+		2,
 	)
 	container, _ := preFactory.Create()
 
@@ -552,6 +554,8 @@ func createPreProcessorContainerWithDataPool(
 		&mock.BlockTrackerMock{},
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
+		&mock.EpochNotifierStub{},
+		2,
 	)
 	container, _ := preFactory.Create()
 
@@ -807,6 +811,8 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		&mock.BlockTrackerMock{},
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
+		&mock.EpochNotifierStub{},
+		2,
 	)
 	container, _ := preFactory.Create()
 
@@ -936,6 +942,8 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 		&mock.BlockTrackerMock{},
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
+		&mock.EpochNotifierStub{},
+		2,
 	)
 	container, _ := preFactory.Create()
 
@@ -1037,6 +1045,8 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		&mock.BlockTrackerMock{},
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
+		&mock.EpochNotifierStub{},
+		2,
 	)
 	container, _ := preFactory.Create()
 
@@ -1557,6 +1567,8 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		&mock.BlockTrackerMock{},
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
+		&mock.EpochNotifierStub{},
+		2,
 	)
 	container, _ := preFactory.Create()
 
@@ -1675,6 +1687,8 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
+		&mock.EpochNotifierStub{},
+		2,
 	)
 	container, _ := preFactory.Create()
 
@@ -1810,6 +1824,8 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		&mock.BlockTrackerMock{},
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
+		&mock.EpochNotifierStub{},
+		2,
 	)
 	container, _ := preFactory.Create()
 
@@ -1939,6 +1955,8 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		&mock.BlockTrackerMock{},
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
+		&mock.EpochNotifierStub{},
+		2,
 	)
 	container, _ := preFactory.Create()
 
