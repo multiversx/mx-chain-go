@@ -4,7 +4,8 @@ type SlashingType string
 
 const (
 	None             SlashingType = "none"
-	MultipleProposal SlashingType = "header multiple proposal"
+	MultipleProposal SlashingType = "multiple header proposal"
+	MultipleSigning  SlashingType = "multiple header signing"
 )
 
 type SlashingLevel uint16
