@@ -298,7 +298,7 @@
     I32Clz = 100
     I32Ctz = 100
     I32Popcnt = 100
-    I32Add = 1
+    I32Add = 1000000
     I32Sub = 1
     I32Mul = 3
     I32DivS = 18
@@ -316,7 +316,7 @@
     I64Clz = 100
     I64Ctz = 100
     I64Popcnt = 100
-    I64Add = 1
+    I64Add = 1000000
     I64Sub = 1
     I64Mul = 3
     I64DivS = 18

@@ -3,6 +3,7 @@ package arwenvm
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math/big"
 	"time"
@@ -100,7 +101,7 @@ func RunTest(
 		RcvAddr:   scAddress,
 		SndAddr:   alice,
 		GasPrice:  1,
-		GasLimit:  gasLimit,
+		GasLimit:  15000000,
 		Data:      []byte(txData),
 		Signature: nil,
 	}
@@ -108,13 +109,20 @@ func RunTest(
 	startTime := time.Now()
 	for i := 0; i < numRun; i++ {
 		tx.Nonce = aliceNonce
-		_, _ = testContext.TxProcessor.ProcessTransaction(tx)
+		returnCode, err = testContext.TxProcessor.ProcessTransaction(tx)
+		if err != nil {
+			return ResultInfo{}, err
+		}
+		if returnCode != vmcommon.UserError {
+			return ResultInfo{}, errors.New("not good return code")
+		}
+
 		aliceNonce++
 	}
 
 	return ResultInfo{
 		FunctionName:      function,
-		GasUsed:           gasLimit - testContext.GetGasRemaining(),
+		GasUsed:           uint64(numRun) * tx.GasLimit,
 		ExecutionTimeSpan: time.Since(startTime),
 	}, nil
 }

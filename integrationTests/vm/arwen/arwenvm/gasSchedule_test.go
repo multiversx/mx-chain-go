@@ -7,6 +7,7 @@ package arwenvm
 import (
 	"crypto/rand"
 	"fmt"
+	"strings"
 
 	"math/big"
 	"testing"
@@ -17,6 +18,19 @@ import (
 
 func Benchmark_VmDeployWithFibbonacciAndExecute(b *testing.B) {
 	runWASMVMBenchmark(b, "../testdata/misc/fib_arwen/output/fib_arwen.wasm", 32, "_main", nil, b.N, nil)
+}
+
+func Benchmark_VmDeployWithBadContractAndExecute(b *testing.B) {
+	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV4.toml")
+
+	schedule := gasSchedule["WASMOpcodeCost"]
+	for val, _ := range schedule {
+		if strings.Contains(val, "I64") {
+			schedule[val] = 10
+		}
+	}
+
+	runWASMVMBenchmark(b, "../testdata/misc/bad.wasm", 0, "bigLoop", nil, b.N, gasSchedule)
 }
 
 func Benchmark_VmDeployWithCPUCalculateAndExecute(b *testing.B) {
