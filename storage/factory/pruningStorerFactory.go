@@ -618,11 +618,6 @@ func (psf *StorageServiceFactory) getNumActivePersistersForFullHistoryStorer(isF
 	}
 
 	if !isFullArchive && isDBLookupExtension {
-		// TODO: remove this if before merging (temp change to avoid config changes)
-		if psf.generalConfig.DbLookupExtensions.DbLookupMaxActivePersisters == 0 {
-			return 100
-		}
-
 		return psf.generalConfig.DbLookupExtensions.DbLookupMaxActivePersisters
 	}
 
