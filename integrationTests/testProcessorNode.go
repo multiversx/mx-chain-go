@@ -1000,12 +1000,18 @@ func (tpn *TestProcessorNode) createDefaultEconomicsConfig() *config.EconomicsCo
 			},
 		},
 		FeeSettings: config.FeeSettings{
-			MaxGasLimitPerBlock:     maxGasLimitPerBlock,
-			MaxGasLimitPerMetaBlock: maxGasLimitPerBlock,
-			MinGasPrice:             minGasPrice,
-			MinGasLimit:             minGasLimit,
-			GasPerDataByte:          "1",
-			GasPriceModifier:        0.01,
+			GasLimitSettings: []config.GasLimitSetting{
+				{
+					MaxGasLimitPerBlock:         maxGasLimitPerBlock,
+					MaxGasLimitPerMiniBlock:     maxGasLimitPerBlock,
+					MaxGasLimitPerMetaBlock:     maxGasLimitPerBlock,
+					MaxGasLimitPerMetaMiniBlock: maxGasLimitPerBlock,
+					MinGasLimit:                 minGasLimit,
+				},
+			},
+			MinGasPrice:      minGasPrice,
+			GasPerDataByte:   "1",
+			GasPriceModifier: 0.01,
 		},
 	}
 }

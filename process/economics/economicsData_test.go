@@ -1,6 +1,7 @@
 package economics_test
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -50,7 +51,7 @@ func createDummyEconomicsConfig(feeSettings config.FeeSettings) *config.Economic
 
 func feeSettingsDummy(gasModifier float64) config.FeeSettings {
 	return config.FeeSettings{
-		GasLimitSettings: []*config.GasLimitSetting{
+		GasLimitSettings: []config.GasLimitSetting{
 			{
 				MaxGasLimitPerBlock:         "100000",
 				MaxGasLimitPerMiniBlock:     "100000",
@@ -67,7 +68,7 @@ func feeSettingsDummy(gasModifier float64) config.FeeSettings {
 
 func feeSettingsReal() config.FeeSettings {
 	return config.FeeSettings{
-		GasLimitSettings: []*config.GasLimitSetting{
+		GasLimitSettings: []config.GasLimitSetting{
 			{
 				MaxGasLimitPerBlock:         "1500000000",
 				MaxGasLimitPerMiniBlock:     "1500000000",
@@ -137,7 +138,7 @@ func TestNewEconomicsData_InvalidMaxGasLimitPerBlockShouldErr(t *testing.T) {
 	for _, gasLimitPerBlock := range badGasLimitPerBlock {
 		args.Economics.FeeSettings.GasLimitSettings[0].MaxGasLimitPerBlock = gasLimitPerBlock
 		_, err := economics.NewEconomicsData(args)
-		assert.Equal(t, process.ErrInvalidMaxGasLimitPerBlock, err)
+		assert.True(t, errors.Is(err, process.ErrInvalidMaxGasLimitPerBlock))
 	}
 }
 

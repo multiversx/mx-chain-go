@@ -2446,6 +2446,9 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxGasLimitPerMi
 			MaxGasLimitPerBlockCalled: func() uint64 {
 				return maxGasLimitPerBlock
 			},
+			MaxGasLimitPerMiniBlockCalled: func() uint64 {
+				return maxGasLimitPerBlock
+			},
 		},
 		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
@@ -2501,6 +2504,9 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxAccumulatedFe
 				return maxGasLimitPerBlock
 			},
 			MaxGasLimitPerBlockCalled: func() uint64 {
+				return maxGasLimitPerBlock
+			},
+			MaxGasLimitPerMiniBlockCalled: func() uint64 {
 				return maxGasLimitPerBlock
 			},
 			DeveloperPercentageCalled: func() float64 {
@@ -2569,6 +2575,9 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxDeveloperFees
 			MaxGasLimitPerBlockCalled: func() uint64 {
 				return maxGasLimitPerBlock
 			},
+			MaxGasLimitPerMiniBlockCalled: func() uint64 {
+				return maxGasLimitPerBlock
+			},
 			DeveloperPercentageCalled: func() float64 {
 				return 0.1
 			},
@@ -2633,6 +2642,9 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldWork(t *testing.T) 
 				return maxGasLimitPerBlock
 			},
 			MaxGasLimitPerBlockCalled: func() uint64 {
+				return maxGasLimitPerBlock
+			},
+			MaxGasLimitPerMiniBlockCalled: func() uint64 {
 				return maxGasLimitPerBlock
 			},
 			DeveloperPercentageCalled: func() float64 {
@@ -2766,6 +2778,9 @@ func TestTransactionCoordinator_VerifyGasLimitShouldErrMaxGasLimitPerMiniBlockIn
 			MaxGasLimitPerBlockCalled: func() uint64 {
 				return tx1GasLimit + tx2GasLimit + tx3GasLimit - 1
 			},
+			MaxGasLimitPerMiniBlockCalled: func() uint64 {
+				return tx1GasLimit + tx2GasLimit + tx3GasLimit - 1
+			},
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return tx.GetGasLimit()
 			},
@@ -2850,6 +2865,9 @@ func TestTransactionCoordinator_VerifyGasLimitShouldWork(t *testing.T) {
 		BalanceComputation:   &mock.BalanceComputationStub{},
 		EconomicsFee: &mock.FeeHandlerStub{
 			MaxGasLimitPerBlockCalled: func() uint64 {
+				return tx1GasLimit + tx2GasLimit + tx3GasLimit
+			},
+			MaxGasLimitPerMiniBlockCalled: func() uint64 {
 				return tx1GasLimit + tx2GasLimit + tx3GasLimit
 			},
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
@@ -3083,6 +3101,9 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 			MaxGasLimitPerBlockCalled: func() uint64 {
 				return tx1GasLimit + tx2GasLimit + tx3GasLimit - 1
 			},
+			MaxGasLimitPerMiniBlockCalled: func() uint64 {
+				return tx1GasLimit + tx2GasLimit + tx3GasLimit - 1
+			},
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return tx.GetGasLimit()
 			},
@@ -3141,6 +3162,9 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 		BalanceComputation:   &mock.BalanceComputationStub{},
 		EconomicsFee: &mock.FeeHandlerStub{
 			MaxGasLimitPerBlockCalled: func() uint64 {
+				return tx1GasLimit + tx2GasLimit + tx3GasLimit
+			},
+			MaxGasLimitPerMiniBlockCalled: func() uint64 {
 				return tx1GasLimit + tx2GasLimit + tx3GasLimit
 			},
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {

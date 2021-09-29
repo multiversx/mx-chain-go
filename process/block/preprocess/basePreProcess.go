@@ -310,41 +310,46 @@ func (bpp *basePreProcess) computeGasConsumed(
 	gasConsumedByMiniBlockInSenderShard *uint64,
 	gasConsumedByMiniBlockInReceiverShard *uint64,
 	totalGasConsumedInSelfShard *uint64,
-) error {
+	maxGasLimitOfCrossMiniBlockInReceiverShard uint64,
+) (uint64, error) {
 	gasConsumedByTxInSenderShard, gasConsumedByTxInReceiverShard, err := bpp.computeGasConsumedByTx(
 		senderShardId,
 		receiverShardId,
 		tx,
 		txHash)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	gasConsumedByTxInSelfShard := uint64(0)
 	if bpp.shardCoordinator.SelfId() == senderShardId {
 		gasConsumedByTxInSelfShard = gasConsumedByTxInSenderShard
 
-		if *gasConsumedByMiniBlockInReceiverShard+gasConsumedByTxInReceiverShard > bpp.economicsFee.MaxGasLimitPerBlock(bpp.shardCoordinator.SelfId()) {
-			return process.ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached
+		maxGasLimit := bpp.economicsFee.MaxGasLimitPerBlock(bpp.shardCoordinator.SelfId())
+		if bpp.shardCoordinator.SelfId() != receiverShardId {
+			maxGasLimit = maxGasLimitOfCrossMiniBlockInReceiverShard
+		}
+
+		if *gasConsumedByMiniBlockInReceiverShard+gasConsumedByTxInReceiverShard > maxGasLimit {
+			return 0, process.ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached
 		}
 	} else {
 		gasConsumedByTxInSelfShard = gasConsumedByTxInReceiverShard
 
 		if *gasConsumedByMiniBlockInSenderShard+gasConsumedByTxInSenderShard > bpp.economicsFee.MaxGasLimitPerBlock(senderShardId) {
-			return process.ErrMaxGasLimitPerMiniBlockInSenderShardIsReached
+			return 0, process.ErrMaxGasLimitPerMiniBlockInSenderShardIsReached
 		}
 	}
 
 	if *totalGasConsumedInSelfShard+gasConsumedByTxInSelfShard > bpp.economicsFee.MaxGasLimitPerBlock(bpp.shardCoordinator.SelfId()) {
-		return process.ErrMaxGasLimitPerBlockInSelfShardIsReached
+		return 0, process.ErrMaxGasLimitPerBlockInSelfShardIsReached
 	}
 
 	*gasConsumedByMiniBlockInSenderShard += gasConsumedByTxInSenderShard
 	*gasConsumedByMiniBlockInReceiverShard += gasConsumedByTxInReceiverShard
 	*totalGasConsumedInSelfShard += gasConsumedByTxInSelfShard
-	bpp.gasHandler.SetGasConsumed(gasConsumedByTxInSelfShard, txHash)
 
-	return nil
+	return gasConsumedByTxInSelfShard, nil
 }
 
 func (bpp *basePreProcess) computeGasConsumedByTx(

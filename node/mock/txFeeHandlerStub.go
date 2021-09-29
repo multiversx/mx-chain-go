@@ -9,6 +9,7 @@ import (
 // EconomicsHandlerStub -
 type EconomicsHandlerStub struct {
 	MaxGasLimitPerBlockCalled                    func() uint64
+	MaxGasLimitPerMiniBlockCalled                func() uint64
 	SetMinGasPriceCalled                         func(minGasPrice uint64)
 	SetMinGasLimitCalled                         func(minGasLimit uint64)
 	ComputeGasLimitCalled                        func(tx data.TransactionWithFeeHandler) uint64
@@ -86,6 +87,11 @@ func (ehs *EconomicsHandlerStub) DeveloperPercentage() float64 {
 // MaxGasLimitPerBlock -
 func (ehs *EconomicsHandlerStub) MaxGasLimitPerBlock(uint32) uint64 {
 	return ehs.MaxGasLimitPerBlockCalled()
+}
+
+// MaxGasLimitPerMiniBlock -
+func (ehs *EconomicsHandlerStub) MaxGasLimitPerMiniBlock(uint32) uint64 {
+	return ehs.MaxGasLimitPerMiniBlockCalled()
 }
 
 // ComputeGasLimit -

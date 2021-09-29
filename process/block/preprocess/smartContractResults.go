@@ -466,24 +466,29 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 
 	log.Trace("smartContractResults.ProcessMiniBlock", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
 
+	var gasConsumedByTxInSelfShard uint64
 	for index := range miniBlockScrs {
 		if !haveTime() {
 			err = process.ErrTimeIsOut
 			return processedTxHashes, 0, err
 		}
 
-		err = scr.computeGasConsumed(
+		gasConsumedByTxInSelfShard, err = scr.computeGasConsumed(
 			miniBlock.SenderShardID,
 			miniBlock.ReceiverShardID,
 			miniBlockScrs[index],
 			miniBlockTxHashes[index],
 			&gasConsumedByMiniBlockInSenderShard,
 			&gasConsumedByMiniBlockInReceiverShard,
-			&totalGasConsumedInSelfShard)
+			&totalGasConsumedInSelfShard,
+			scr.economicsFee.MaxGasLimitPerBlock(scr.shardCoordinator.SelfId()),
+		)
 
 		if err != nil {
 			return processedTxHashes, 0, err
 		}
+
+		scr.gasHandler.SetGasConsumed(gasConsumedByTxInSelfShard, miniBlockTxHashes[index])
 
 		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[index])
 	}

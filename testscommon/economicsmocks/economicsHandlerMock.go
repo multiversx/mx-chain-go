@@ -17,6 +17,7 @@ type EconomicsHandlerMock struct {
 	SetMinGasPriceCalled                         func(minGasPrice uint64)
 	SetMinGasLimitCalled                         func(minGasLimit uint64)
 	MaxGasLimitPerBlockCalled                    func(shard uint32) uint64
+	MaxGasLimitPerMiniBlockCalled                func(shard uint32) uint64
 	ComputeGasLimitCalled                        func(tx data.TransactionWithFeeHandler) uint64
 	ComputeFeeCalled                             func(tx data.TransactionWithFeeHandler) *big.Int
 	CheckValidityTxValuesCalled                  func(tx data.TransactionWithFeeHandler) error
@@ -109,6 +110,11 @@ func (ehm *EconomicsHandlerMock) SetMinGasLimit(minGasLimit uint64) {
 // MaxGasLimitPerBlock -
 func (ehm *EconomicsHandlerMock) MaxGasLimitPerBlock(shard uint32) uint64 {
 	return ehm.MaxGasLimitPerBlockCalled(shard)
+}
+
+// MaxGasLimitPerMiniBlock -
+func (ehm *EconomicsHandlerMock) MaxGasLimitPerMiniBlock(shard uint32) uint64 {
+	return ehm.MaxGasLimitPerMiniBlockCalled(shard)
 }
 
 // ComputeGasLimit -

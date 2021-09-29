@@ -521,6 +521,12 @@ var ErrInvalidMinimumGasLimitForTx = errors.New("invalid minimum gas limit for t
 // ErrEmptyEpochRewardsConfig signals that the epoch rewards config is empty
 var ErrEmptyEpochRewardsConfig = errors.New("the epoch rewards config is empty")
 
+// ErrEmptyGasLimitSettings signals that the gas limit settings is empty
+var ErrEmptyGasLimitSettings = errors.New("the gas limit settings is empty")
+
+// ErrEmptyYearSettings signals that the year settings is empty
+var ErrEmptyYearSettings = errors.New("the year settings is empty")
+
 // ErrInvalidRewardsPercentages signals that rewards percentages are not correct
 var ErrInvalidRewardsPercentages = errors.New("invalid rewards percentages")
 
