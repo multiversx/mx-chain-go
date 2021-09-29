@@ -65,6 +65,7 @@ type scProcessor struct {
 	senderInOutTransferEnableEpoch              uint32
 	incrementSCRNonceInMultiTransferEnableEpoch uint32
 	builtInFunctionOnMetachainEnableEpoch       uint32
+	optimizeGasUsedInCrossMiniBlocksEnableEpoch uint32
 	flagStakingV2                               atomic.Flag
 	flagDeploy                                  atomic.Flag
 	flagBuiltin                                 atomic.Flag
@@ -74,6 +75,7 @@ type scProcessor struct {
 	flagSenderInOutTransfer                     atomic.Flag
 	flagIncrementSCRNonceInMultiTransfer        atomic.Flag
 	flagBuiltInFunctionOnMetachain              atomic.Flag
+	flagOptimizeGasUsedInCrossMiniBlocks        atomic.Flag
 	arwenChangeLocker                           process.Locker
 
 	badTxForwarder process.IntermediateTransactionHandler
@@ -121,6 +123,7 @@ type ArgsNewSmartContractProcessor struct {
 	VMOutputCacher                              storage.Cacher
 	ArwenChangeLocker                           process.Locker
 	IsGenesisProcessing                         bool
+	OptimizeGasUsedInCrossMiniBlocksEnableEpoch uint32
 }
 
 // NewSmartContractProcessor creates a smart contract processor that creates and interprets VM data
@@ -214,6 +217,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		vmOutputCacher:                        args.VMOutputCacher,
 
 		incrementSCRNonceInMultiTransferEnableEpoch: args.IncrementSCRNonceInMultiTransferEnableEpoch,
+		optimizeGasUsedInCrossMiniBlocksEnableEpoch: args.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
 	}
 
 	var err error
@@ -227,9 +231,9 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	log.Debug("smartContract/process: enable epoch for repair callback", "epoch", sc.repairCallBackEnableEpoch)
 	log.Debug("smartContract/process: enable epoch for penalized too much gas", "epoch", sc.penalizedTooMuchGasEnableEpoch)
 	log.Debug("smartContract/process: enable epoch for staking v2", "epoch", sc.stakingV2EnableEpoch)
-	log.Debug("smartContract/process: enable epoch for increment SCR nonce in multi transfer",
-		"epoch", sc.incrementSCRNonceInMultiTransferEnableEpoch)
+	log.Debug("smartContract/process: enable epoch for increment SCR nonce in multi transfer", "epoch", sc.incrementSCRNonceInMultiTransferEnableEpoch)
 	log.Debug("smartContract/process: enable epoch for built in functions on metachain", "epoch", sc.builtInFunctionOnMetachainEnableEpoch)
+	log.Debug("smartContract/process: enable epoch for optimize gas used in cross mini blocks", "epoch", sc.optimizeGasUsedInCrossMiniBlocksEnableEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(sc)
 	args.GasSchedule.RegisterNotifyHandler(sc)
@@ -1659,8 +1663,9 @@ func (sc *scProcessor) penalizeUserIfNeeded(
 		}
 	}
 
-	//TODO: Execute this line only under the activation flag of OptimizeGasUsedInCrossMiniBlocksEnableEpoch
-	sc.gasHandler.SetGasPenalized(vmOutput.GasRemaining, txHash)
+	if sc.flagOptimizeGasUsedInCrossMiniBlocks.IsSet() {
+		sc.gasHandler.SetGasPenalized(vmOutput.GasRemaining, txHash)
+	}
 
 	vmOutput.ReturnMessage += fmt.Sprintf("%s: gas needed = %d, gas remained = %d",
 		TooMuchGasProvidedMessage, gasUsed, vmOutput.GasRemaining)
@@ -2439,6 +2444,9 @@ func (sc *scProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 
 	sc.flagBuiltInFunctionOnMetachain.Toggle(epoch >= sc.builtInFunctionOnMetachainEnableEpoch)
 	log.Debug("scProcessor: built in functions on metachain", "enabled", sc.flagBuiltInFunctionOnMetachain.IsSet())
+
+	sc.flagOptimizeGasUsedInCrossMiniBlocks.Toggle(epoch >= sc.optimizeGasUsedInCrossMiniBlocksEnableEpoch)
+	log.Debug("scProcessor: optimize gas used in cross mini blocks", "enabled", sc.flagOptimizeGasUsedInCrossMiniBlocks.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

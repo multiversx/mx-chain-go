@@ -375,6 +375,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		VMOutputCacher:                        txcache.NewDisabledCache(),
 
 		IncrementSCRNonceInMultiTransferEnableEpoch: enableEpochs.IncrementSCRNonceInMultiTransferEnableEpoch,
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: enableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 	if err != nil {

@@ -1455,6 +1455,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		VMOutputCacher:                        txcache.NewDisabledCache(),
 		ArwenChangeLocker:                     tpn.ArwenChangeLocker,
 		BuiltInFunctionOnMetachainEnableEpoch: tpn.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: tpn.EnableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
 	}
 	sc, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	tpn.ScProcessor = smartContract.NewTestScProcessor(sc)
@@ -1686,6 +1687,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		VMOutputCacher:                        txcache.NewDisabledCache(),
 		ArwenChangeLocker:                     tpn.ArwenChangeLocker,
 		BuiltInFunctionOnMetachainEnableEpoch: tpn.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: tpn.EnableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
 	}
 	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	tpn.ScProcessor = smartContract.NewTestScProcessor(scProcessor)

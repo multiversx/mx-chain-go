@@ -427,6 +427,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		ArwenChangeLocker:                     genesisArwenLocker,
 
 		IncrementSCRNonceInMultiTransferEnableEpoch: enableEpochs.IncrementSCRNonceInMultiTransferEnableEpoch,
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: enableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {

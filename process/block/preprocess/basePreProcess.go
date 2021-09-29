@@ -313,46 +313,42 @@ func (bpp *basePreProcess) computeGasConsumed(
 	gasConsumedByMiniBlockInSenderShard *uint64,
 	gasConsumedByMiniBlockInReceiverShard *uint64,
 	totalGasConsumedInSelfShard *uint64,
-	maxGasLimitOfCrossMiniBlockInReceiverShard uint64,
-) (uint64, error) {
+) error {
 	gasConsumedByTxInSenderShard, gasConsumedByTxInReceiverShard, err := bpp.computeGasConsumedByTx(
 		senderShardId,
 		receiverShardId,
 		tx,
 		txHash)
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	gasConsumedByTxInSelfShard := uint64(0)
 	if bpp.shardCoordinator.SelfId() == senderShardId {
 		gasConsumedByTxInSelfShard = gasConsumedByTxInSenderShard
 
-		maxGasLimit := bpp.economicsFee.MaxGasLimitPerBlock(bpp.shardCoordinator.SelfId())
-		if bpp.shardCoordinator.SelfId() != receiverShardId {
-			maxGasLimit = maxGasLimitOfCrossMiniBlockInReceiverShard
-		}
-
-		if *gasConsumedByMiniBlockInReceiverShard+gasConsumedByTxInReceiverShard > maxGasLimit {
-			return 0, process.ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached
+		if *gasConsumedByMiniBlockInReceiverShard+gasConsumedByTxInReceiverShard > bpp.economicsFee.MaxGasLimitPerBlock(bpp.shardCoordinator.SelfId()) {
+			return process.ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached
 		}
 	} else {
 		gasConsumedByTxInSelfShard = gasConsumedByTxInReceiverShard
 
 		if *gasConsumedByMiniBlockInSenderShard+gasConsumedByTxInSenderShard > bpp.economicsFee.MaxGasLimitPerBlock(senderShardId) {
-			return 0, process.ErrMaxGasLimitPerMiniBlockInSenderShardIsReached
+			return process.ErrMaxGasLimitPerMiniBlockInSenderShardIsReached
 		}
 	}
 
 	if *totalGasConsumedInSelfShard+gasConsumedByTxInSelfShard > bpp.economicsFee.MaxGasLimitPerBlock(bpp.shardCoordinator.SelfId()) {
-		return 0, process.ErrMaxGasLimitPerBlockInSelfShardIsReached
+		return process.ErrMaxGasLimitPerBlockInSelfShardIsReached
 	}
 
 	*gasConsumedByMiniBlockInSenderShard += gasConsumedByTxInSenderShard
 	*gasConsumedByMiniBlockInReceiverShard += gasConsumedByTxInReceiverShard
 	*totalGasConsumedInSelfShard += gasConsumedByTxInSelfShard
 
-	return gasConsumedByTxInSelfShard, nil
+	bpp.gasHandler.SetGasConsumed(gasConsumedByTxInSelfShard, txHash)
+
+	return nil
 }
 
 func (bpp *basePreProcess) computeGasConsumedByTx(
@@ -430,15 +426,22 @@ func (bpp *basePreProcess) getTotalGasConsumed() uint64 {
 		return bpp.gasHandler.TotalGasConsumed()
 	}
 
-	totalGasConsumed := uint64(0)
-	if bpp.gasHandler.TotalGasConsumed() > bpp.gasHandler.TotalGasRefunded() {
-		totalGasConsumed = bpp.gasHandler.TotalGasConsumed() - bpp.gasHandler.TotalGasRefunded()
+	totalGasToBeSubtracted := bpp.gasHandler.TotalGasRefunded() + bpp.gasHandler.TotalGasPenalized()
+	totalGasConsumed := bpp.gasHandler.TotalGasConsumed()
+	if totalGasToBeSubtracted > totalGasConsumed {
+		log.Warn("basePreProcess.getTotalGasConsumed: too much gas to be subtracted",
+			"totalGasRefunded", bpp.gasHandler.TotalGasRefunded(),
+			"totalGasPenalized", bpp.gasHandler.TotalGasPenalized(),
+			"totalGasToBeSubtracted", totalGasToBeSubtracted,
+			"totalGasConsumed", totalGasConsumed,
+		)
+		return totalGasConsumed
 	}
 
-	return totalGasConsumed
+	return totalGasConsumed - totalGasToBeSubtracted
 }
 
-func (bpp *basePreProcess) updateGasConsumedWithGasRefunded(
+func (bpp *basePreProcess) updateGasConsumedWithGasRefundedAndGasPenalized(
 	txHash []byte,
 	gasConsumedByMiniBlockInReceiverShard *uint64,
 	totalGasConsumedInSelfShard *uint64,
@@ -448,17 +451,21 @@ func (bpp *basePreProcess) updateGasConsumedWithGasRefunded(
 	}
 
 	gasRefunded := bpp.gasHandler.GasRefunded(txHash)
-	if gasRefunded > *gasConsumedByMiniBlockInReceiverShard || gasRefunded > *totalGasConsumedInSelfShard {
-		log.Warn("basePreProcess.updateGasConsumedWithGasRefunded: too much gas refunded",
+	gasPenalized := bpp.gasHandler.GasPenalized(txHash)
+	gasToBeSubtracted := gasRefunded + gasPenalized
+	if gasToBeSubtracted > *gasConsumedByMiniBlockInReceiverShard || gasToBeSubtracted > *totalGasConsumedInSelfShard {
+		log.Warn("basePreProcess.updateGasConsumedWithGasRefundedAndGasPenalized: too much gas to be subtracted",
 			"gasRefunded", gasRefunded,
+			"gasPenalized", gasPenalized,
+			"gasToBeSubtracted", gasToBeSubtracted,
 			"gasConsumedByMiniBlockInReceiverShard", *gasConsumedByMiniBlockInReceiverShard,
 			"totalGasConsumedInSelfShard", *totalGasConsumedInSelfShard,
 		)
 		return
 	}
 
-	*gasConsumedByMiniBlockInReceiverShard -= gasRefunded
-	*totalGasConsumedInSelfShard -= gasRefunded
+	*gasConsumedByMiniBlockInReceiverShard -= gasToBeSubtracted
+	*totalGasConsumedInSelfShard -= gasToBeSubtracted
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
