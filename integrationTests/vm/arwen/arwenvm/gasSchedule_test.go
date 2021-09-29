@@ -7,8 +7,6 @@ package arwenvm
 import (
 	"crypto/rand"
 	"fmt"
-	"strings"
-
 	"math/big"
 	"testing"
 
@@ -23,14 +21,15 @@ func Benchmark_VmDeployWithFibbonacciAndExecute(b *testing.B) {
 func Benchmark_VmDeployWithBadContractAndExecute(b *testing.B) {
 	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV4.toml")
 
-	schedule := gasSchedule["WASMOpcodeCost"]
-	for val, _ := range schedule {
-		if strings.Contains(val, "I64") {
-			schedule[val] = 10
-		}
-	}
+	result, err := RunTest("../testdata/misc/bad.wasm", 0, "bigLoop", nil, b.N, gasSchedule, 15000000)
+	require.Nil(b, err)
 
-	runWASMVMBenchmark(b, "../testdata/misc/bad.wasm", 0, "bigLoop", nil, b.N, gasSchedule)
+	log.Info("test completed",
+		"function", result.FunctionName,
+		"consumed gas", result.GasUsed,
+		"time took", result.ExecutionTimeSpan,
+		"numRun", b.N,
+	)
 }
 
 func Benchmark_VmDeployWithCPUCalculateAndExecute(b *testing.B) {
@@ -368,7 +367,7 @@ func runWASMVMBenchmark(
 	numRun int,
 	gasSchedule map[string]map[string]uint64,
 ) {
-	result, err := RunTest(fileSC, testingValue, function, arguments, numRun, gasSchedule)
+	result, err := RunTest(fileSC, testingValue, function, arguments, numRun, gasSchedule, 0)
 	require.Nil(tb, err)
 
 	log.Info("test completed",
