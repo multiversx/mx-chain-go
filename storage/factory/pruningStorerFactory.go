@@ -621,7 +621,11 @@ func (psf *StorageServiceFactory) getNumActivePersistersForFullHistoryStorer(isF
 		return psf.generalConfig.DbLookupExtensions.DbLookupMaxActivePersisters
 	}
 
-	log.Warn("node is started with both Full Archive and DB Lookup Extension modes. It will use NumOfOldActivePersisters from full archive's settings")
+	if psf.generalConfig.DbLookupExtensions.DbLookupMaxActivePersisters != psf.generalConfig.StoragePruning.FullArchiveNumActivePersisters {
+		log.Warn("node is started with both Full Archive and DB Lookup Extension modes and have different values " +
+			"for the number of active persisters. It will use NumOfOldActivePersisters from full archive's settings")
+	}
+
 	return psf.generalConfig.StoragePruning.FullArchiveNumActivePersisters
 }
 
