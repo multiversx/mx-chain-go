@@ -48,7 +48,7 @@ func NewMetaBlockTrack(arguments ArgMetaTracker) (*metaBlockTrack, error) {
 		RoundHandler:                          arguments.RoundHandler,
 	}
 
-	blockProcessorObject, err := NewJlockProcessor(argBlockProcessor)
+	blockProcessorObject, err := NewBlockProcessor(argBlockProcessor)
 	if err != nil {
 		return nil, err
 	}
