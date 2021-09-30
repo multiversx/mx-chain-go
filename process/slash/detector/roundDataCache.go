@@ -71,7 +71,7 @@ func (rdc *roundDataCache) contains(round uint64, hash []byte) bool {
 
 func (rdc *roundDataCache) headers(round uint64) headerHashList {
 	if _, exist := rdc.cache[round]; !exist {
-		return nil
+		return headerHashList{}
 	}
 
 	return rdc.cache[round]
