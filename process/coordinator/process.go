@@ -946,6 +946,7 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 ) error {
 
 	snapshot := tc.accounts.JournalLen()
+	tc.initProcessedTxsResults()
 
 	txsToBeReverted, numTxsProcessed, err := preproc.ProcessMiniBlock(miniBlock, haveTime, tc.getNumOfCrossInterMbsAndTxs)
 	if err != nil {
@@ -976,13 +977,23 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 	return nil
 }
 
+func (tc *transactionCoordinator) initProcessedTxsResults() {
+	for _, value := range tc.keysInterimProcs {
+		interProc, ok := tc.interimProcessors[value]
+		if !ok {
+			continue
+		}
+		interProc.InitProcessedResults()
+	}
+}
+
 func (tc *transactionCoordinator) revertProcessedTxsResults(txHashes [][]byte) {
 	for _, value := range tc.keysInterimProcs {
 		interProc, ok := tc.interimProcessors[value]
 		if !ok {
 			continue
 		}
-		interProc.RemoveProcessedResultsFor(txHashes)
+		interProc.RemoveProcessedResults()
 	}
 	tc.feeHandler.RevertFees(txHashes)
 }

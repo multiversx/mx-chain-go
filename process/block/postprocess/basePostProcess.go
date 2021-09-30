@@ -38,7 +38,7 @@ type basePostProcessor struct {
 
 	mutInterResultsForBlock sync.Mutex
 	interResultsForBlock    map[string]*txInfo
-	mapTxToResult           map[string][]string
+	mapProcessedResult      map[string]struct{}
 	intraShardMiniBlock     *block.MiniBlock
 	economicsFee            process.FeeHandler
 }
@@ -72,7 +72,7 @@ func (bpp *basePostProcessor) CreateBlockStarted() {
 	bpp.mutInterResultsForBlock.Lock()
 	bpp.interResultsForBlock = make(map[string]*txInfo)
 	bpp.intraShardMiniBlock = nil
-	bpp.mapTxToResult = make(map[string][]string)
+	bpp.mapProcessedResult = make(map[string]struct{})
 	bpp.mutInterResultsForBlock.Unlock()
 }
 
@@ -158,26 +158,22 @@ func (bpp *basePostProcessor) GetCreatedInShardMiniBlock() *block.MiniBlock {
 	return bpp.intraShardMiniBlock.Clone()
 }
 
-// RemoveProcessedResultsFor will remove the created results for the transactions which were reverted
-func (bpp *basePostProcessor) RemoveProcessedResultsFor(txHashes [][]byte) {
+// RemoveProcessedResults will remove the processed results since the last init
+func (bpp *basePostProcessor) RemoveProcessedResults() {
 	bpp.mutInterResultsForBlock.Lock()
 	defer bpp.mutInterResultsForBlock.Unlock()
 
-	if len(bpp.mapTxToResult) == 0 {
-		return
+	for txHash := range bpp.mapProcessedResult {
+		delete(bpp.interResultsForBlock, txHash)
 	}
+}
 
-	for _, txHash := range txHashes {
-		resultHashes, ok := bpp.mapTxToResult[string(txHash)]
-		if !ok {
-			continue
-		}
+// InitProcessedResults will initialize the processed results
+func (bpp *basePostProcessor) InitProcessedResults() {
+	bpp.mutInterResultsForBlock.Lock()
+	defer bpp.mutInterResultsForBlock.Unlock()
 
-		for _, resultHash := range resultHashes {
-			delete(bpp.interResultsForBlock, resultHash)
-		}
-		delete(bpp.mapTxToResult, string(txHash))
-	}
+	bpp.mapProcessedResult = make(map[string]struct{})
 }
 
 func (bpp *basePostProcessor) splitMiniBlocksIfNeeded(miniBlocks []*block.MiniBlock) []*block.MiniBlock {
