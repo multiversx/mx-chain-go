@@ -47,8 +47,8 @@ func createGenesisConfig() config.EnableEpochs {
 	return config.EnableEpochs{
 		BuiltInFunctionsEnableEpoch:                 0,
 		SCDeployEnableEpoch:                         unreachableEpoch,
-		RelayedTransactionsEnableEpoch:              0,
-		PenalizedTooMuchGasEnableEpoch:              0,
+		RelayedTransactionsEnableEpoch:              unreachableEpoch,
+		PenalizedTooMuchGasEnableEpoch:              unreachableEpoch,
 		AheadOfTimeGasUsageEnableEpoch:              unreachableEpoch,
 		BelowSignedThresholdEnableEpoch:             unreachableEpoch,
 		GasPriceModifierEnableEpoch:                 unreachableEpoch,
@@ -61,6 +61,12 @@ func createGenesisConfig() config.EnableEpochs {
 		BuiltInFunctionOnMetaEnableEpoch:            unreachableEpoch,
 		ComputeRewardCheckpointEnableEpoch:          unreachableEpoch,
 		IncrementSCRNonceInMultiTransferEnableEpoch: unreachableEpoch,
+		SCRSizeInvariantCheckEnableEpoch:            unreachableEpoch,
+		BackwardCompSaveKeyValueEnableEpoch:         unreachableEpoch,
+		RepairCallbackEnableEpoch:                   unreachableEpoch,
+		MetaESDTSetEnableEpoch:                      unreachableEpoch,
+		AddTokensToDelegationEnableEpoch:            unreachableEpoch,
+		MultiESDTTransferFixOnCallBackOnEnableEpoch: unreachableEpoch,
 	}
 }
 
@@ -306,21 +312,15 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	}
 
 	argsNewVMFactory := shard.ArgVMContainerFactory{
-		Config:                         arg.VirtualMachineConfig,
-		BlockGasLimit:                  math.MaxUint64,
-		GasSchedule:                    arg.GasSchedule,
-		ArgBlockChainHook:              argsHook,
-		EpochNotifier:                  epochNotifier,
-		DeployEnableEpoch:              arg.EpochConfig.EnableEpochs.SCDeployEnableEpoch,
-		AheadOfTimeGasUsageEnableEpoch: arg.EpochConfig.EnableEpochs.AheadOfTimeGasUsageEnableEpoch,
-		ArwenV3EnableEpoch:             arg.EpochConfig.EnableEpochs.RepairCallbackEnableEpoch,
-		ArwenChangeLocker:              genesisArwenLocker,
-		ESDTTransferParser:             esdtTransferParser,
+		Config:             arg.VirtualMachineConfig,
+		BlockGasLimit:      math.MaxUint64,
+		GasSchedule:        arg.GasSchedule,
+		ArgBlockChainHook:  argsHook,
+		EpochNotifier:      epochNotifier,
+		EpochConfig:        arg.EpochConfig.EnableEpochs,
+		ArwenChangeLocker:  genesisArwenLocker,
+		ESDTTransferParser: esdtTransferParser,
 	}
-	log.Debug("shardGenesisCreator: enable epoch for sc deploy", "epoch", argsNewVMFactory.DeployEnableEpoch)
-	log.Debug("shardGenesisCreator: enable epoch for ahead of time gas usage", "epoch", argsNewVMFactory.AheadOfTimeGasUsageEnableEpoch)
-	log.Debug("shardGenesisCreator: enable epoch for repair callback", "epoch", argsNewVMFactory.ArwenV3EnableEpoch)
-
 	vmFactoryImpl, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	if err != nil {
 		return nil, err
@@ -420,6 +420,8 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		ReturnDataToLastTransferEnableEpoch:   enableEpochs.ReturnDataToLastTransferEnableEpoch,
 		SenderInOutTransferEnableEpoch:        enableEpochs.SenderInOutTransferEnableEpoch,
 		BuiltInFunctionOnMetachainEnableEpoch: enableEpochs.BuiltInFunctionOnMetaEnableEpoch,
+		SCRSizeInvariantCheckEnableEpoch:      enableEpochs.SCRSizeInvariantCheckEnableEpoch,
+		BackwardCompSaveKeyValueEnableEpoch:   enableEpochs.BackwardCompSaveKeyValueEnableEpoch,
 		IsGenesisProcessing:                   true,
 		StakingV2EnableEpoch:                  arg.EpochConfig.EnableEpochs.StakingV2EnableEpoch,
 		VMOutputCacher:                        txcache.NewDisabledCache(),

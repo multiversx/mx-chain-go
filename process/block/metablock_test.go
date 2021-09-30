@@ -25,6 +25,7 @@ import (
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -40,7 +41,7 @@ func createMockComponentHolders() (
 		IntMarsh:            &mock.MarshalizerMock{},
 		Hash:                &mock.HasherStub{},
 		UInt64ByteSliceConv: &mock.Uint64ByteSliceConverterMock{},
-		StatusField:         &mock.AppStatusHandlerStub{},
+		StatusField:         &statusHandlerMock.AppStatusHandlerStub{},
 		RoundField:          &mock.RoundHandlerMock{RoundTimeDuration: time.Second},
 	}
 
@@ -530,7 +531,7 @@ func TestMetaProcessor_ProcessWithHeaderNotFirstShouldErr(t *testing.T) {
 func TestMetaProcessor_ProcessWithHeaderNotCorrectNonceShouldErr(t *testing.T) {
 	t.Parallel()
 
-	blkc, _ := blockchain.NewMetaChain(&mock.AppStatusHandlerStub{})
+	blkc, _ := blockchain.NewMetaChain(&statusHandlerMock.AppStatusHandlerStub{})
 	_ = blkc.SetCurrentBlockHeader(
 		&block.MetaBlock{
 			Round: 1,
@@ -556,7 +557,7 @@ func TestMetaProcessor_ProcessWithHeaderNotCorrectNonceShouldErr(t *testing.T) {
 func TestMetaProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.T) {
 	t.Parallel()
 
-	blkc, _ := blockchain.NewMetaChain(&mock.AppStatusHandlerStub{})
+	blkc, _ := blockchain.NewMetaChain(&statusHandlerMock.AppStatusHandlerStub{})
 	_ = blkc.SetCurrentBlockHeader(
 		&block.MetaBlock{
 			Round: 1,
@@ -584,7 +585,7 @@ func TestMetaProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.T
 func TestMetaProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertState(t *testing.T) {
 	t.Parallel()
 
-	blkc, _ := blockchain.NewMetaChain(&mock.AppStatusHandlerStub{})
+	blkc, _ := blockchain.NewMetaChain(&statusHandlerMock.AppStatusHandlerStub{})
 	_ = blkc.SetCurrentBlockHeader(
 		&block.MetaBlock{
 			Nonce:                  0,
@@ -715,7 +716,7 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 	}
 	store := initStore()
 	store.AddStorer(dataRetriever.MetaBlockUnit, hdrUnit)
-	blkc, _ := blockchain.NewMetaChain(&mock.AppStatusHandlerStub{})
+	blkc, _ := blockchain.NewMetaChain(&statusHandlerMock.AppStatusHandlerStub{})
 	_ = blkc.SetGenesisHeader(&block.MetaBlock{Nonce: 0})
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
@@ -1882,7 +1883,7 @@ func TestMetaProcessor_CheckShardHeadersValidityRoundZeroLastNoted(t *testing.T)
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 	dataComponents.DataPool = pool
 	dataComponents.Storage = initStore()
-	dataComponents.BlockChain, _ = blockchain.NewMetaChain(&mock.AppStatusHandlerStub{})
+	dataComponents.BlockChain, _ = blockchain.NewMetaChain(&statusHandlerMock.AppStatusHandlerStub{})
 	_ = dataComponents.Blockchain().SetGenesisHeader(&block.MetaBlock{Nonce: 0})
 	_ = dataComponents.Blockchain().SetCurrentBlockHeader(&block.MetaBlock{Nonce: 1})
 	bootstrapComponents.Coordinator = mock.NewMultiShardsCoordinatorMock(noOfShards)

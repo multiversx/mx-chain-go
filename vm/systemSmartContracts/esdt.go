@@ -42,6 +42,7 @@ const upgradable = "canUpgrade"
 const canCreateMultiShard = "canCreateMultiShard"
 
 const conversionBase = 10
+const metaESDT = "MetaESDT"
 
 type esdt struct {
 	eei                    vm.SystemEI
@@ -63,6 +64,8 @@ type esdt struct {
 	flagTransferRole                 atomic.Flag
 	nftCreateONMultiShardEnableEpoch uint32
 	flagNFTCreateONMultiShard        atomic.Flag
+	metaESDTEnableEpoch              uint32
+	flagMetaESDT                     atomic.Flag
 }
 
 // ArgsNewESDTSmartContract defines the arguments needed for the esdt contract
@@ -119,6 +122,7 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 		globalMintBurnDisableEpoch:       args.EpochConfig.EnableEpochs.GlobalMintBurnDisableEpoch,
 		transferRoleEnableEpoch:          args.EpochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
 		nftCreateONMultiShardEnableEpoch: args.EpochConfig.EnableEpochs.ESDTNFTCreateOnMultiShardEnableEpoch,
+		metaESDTEnableEpoch:              args.EpochConfig.EnableEpochs.MetaESDTSetEnableEpoch,
 		endOfEpochSCAddress:              args.EndOfEpochSCAddress,
 		addressPubKeyConverter:           args.AddressPubKeyConverter,
 	}
@@ -126,6 +130,7 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 	log.Debug("esdt: enable epoch for contract global mint and burn", "epoch", e.globalMintBurnDisableEpoch)
 	log.Debug("esdt: enable epoch for contract transfer role", "epoch", e.transferRoleEnableEpoch)
 	log.Debug("esdt: enable epoch for esdt NFT create on multiple shards", "epoch", e.nftCreateONMultiShardEnableEpoch)
+	log.Debug("esdt: enable epoch for meta tokens, financial SFTs", "epoch", e.metaESDTEnableEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(e)
 
@@ -157,6 +162,10 @@ func (e *esdt) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return e.registerSemiFungible(args)
 	case "issueNonFungible":
 		return e.registerNonFungible(args)
+	case "registerMetaESDT":
+		return e.registerMetaESDT(args)
+	case "changeSFTToMetaESDT":
+		return e.changeSFTToMetaESDT(args)
 	case core.BuiltInFunctionESDTBurn:
 		return e.burn(args)
 	case "mint":
@@ -231,6 +240,10 @@ func (e *esdt) checkBasicCreateArguments(args *vmcommon.ContractCallInput) vmcom
 	esdtConfig, err := e.getESDTConfig()
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) < 1 {
+		e.eei.AddReturnMessage("not enough arguments")
 		return vmcommon.UserError
 	}
 	if len(args.Arguments[0]) < minLengthForTokenName ||
@@ -314,6 +327,11 @@ func (e *esdt) registerNonFungible(args *vmcommon.ContractCallInput) vmcommon.Re
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
+	if len(args.Arguments) < 2 {
+		e.eei.AddReturnMessage("not enough arguments")
+		return vmcommon.UserError
+	}
+
 	tokenIdentifier, err := e.createNewToken(
 		args.CallerAddr,
 		args.Arguments[0],
@@ -336,6 +354,11 @@ func (e *esdt) registerSemiFungible(args *vmcommon.ContractCallInput) vmcommon.R
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
+	if len(args.Arguments) < 2 {
+		e.eei.AddReturnMessage("not enough arguments")
+		return vmcommon.UserError
+	}
+
 	tokenIdentifier, err := e.createNewToken(
 		args.CallerAddr,
 		args.Arguments[0],
@@ -350,6 +373,88 @@ func (e *esdt) registerSemiFungible(args *vmcommon.ContractCallInput) vmcommon.R
 	}
 
 	e.eei.Finish(tokenIdentifier)
+
+	return vmcommon.Ok
+}
+
+func (e *esdt) registerMetaESDT(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !e.flagMetaESDT.IsSet() {
+		e.eei.AddReturnMessage("invalid method to call")
+		return vmcommon.UserError
+	}
+	returnCode := e.checkBasicCreateArguments(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+	if len(args.Arguments) < 3 {
+		e.eei.AddReturnMessage("not enough arguments")
+		return vmcommon.UserError
+	}
+	numOfDecimals := uint32(big.NewInt(0).SetBytes(args.Arguments[2]).Uint64())
+	if numOfDecimals < minNumberOfDecimals || numOfDecimals > maxNumberOfDecimals {
+		e.eei.AddReturnMessage(fmt.Errorf("%w, minimum: %d, maximum: %d, provided: %d",
+			vm.ErrInvalidNumberOfDecimals,
+			minNumberOfDecimals,
+			maxNumberOfDecimals,
+			numOfDecimals,
+		).Error())
+		return vmcommon.UserError
+	}
+
+	tokenIdentifier, err := e.createNewToken(
+		args.CallerAddr,
+		args.Arguments[0],
+		args.Arguments[1],
+		big.NewInt(0),
+		numOfDecimals,
+		args.Arguments[3:],
+		[]byte(metaESDT))
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	e.eei.Finish(tokenIdentifier)
+
+	return vmcommon.Ok
+}
+
+func (e *esdt) changeSFTToMetaESDT(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !e.flagMetaESDT.IsSet() {
+		e.eei.AddReturnMessage("invalid method to call")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) < 2 {
+		e.eei.AddReturnMessage("not enough arguments")
+		return vmcommon.UserError
+	}
+	numOfDecimals := uint32(big.NewInt(0).SetBytes(args.Arguments[1]).Uint64())
+	if numOfDecimals < minNumberOfDecimals || numOfDecimals > maxNumberOfDecimals {
+		e.eei.AddReturnMessage(fmt.Errorf("%w, minimum: %d, maximum: %d, provided: %d",
+			vm.ErrInvalidNumberOfDecimals,
+			minNumberOfDecimals,
+			maxNumberOfDecimals,
+			numOfDecimals,
+		).Error())
+		return vmcommon.UserError
+	}
+	token, returnCode := e.basicOwnershipChecks(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	if !bytes.Equal(token.TokenType, []byte(core.SemiFungibleESDT)) {
+		e.eei.AddReturnMessage("change can happen to semi fungible tokens only")
+		return vmcommon.UserError
+	}
+
+	token.TokenType = []byte(metaESDT)
+	token.NumDecimals = numOfDecimals
+	err := e.saveToken(args.Arguments[0], token)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
 
 	return vmcommon.Ok
 }
@@ -990,6 +1095,10 @@ func (e *esdt) basicOwnershipChecks(args *vmcommon.ContractCallInput) (*ESDTData
 	if err != nil {
 		e.eei.AddReturnMessage("not enough gas")
 		return nil, vmcommon.OutOfGas
+	}
+	if len(args.Arguments) < 1 {
+		e.eei.AddReturnMessage("not enough arguments")
+		return nil, vmcommon.UserError
 	}
 	token, err := e.getExistingToken(args.Arguments[0])
 	if err != nil {
@@ -1677,6 +1786,9 @@ func (e *esdt) EpochConfirmed(epoch uint32, _ uint64) {
 
 	e.flagNFTCreateONMultiShard.Toggle(epoch >= e.nftCreateONMultiShardEnableEpoch)
 	log.Debug("ESDT contract NFT create on multiple shards", "enabled", e.flagNFTCreateONMultiShard.IsSet())
+
+	e.flagMetaESDT.Toggle(epoch >= e.metaESDTEnableEpoch)
+	log.Debug("ESDT contract financial SFTs", "enabled", e.flagMetaESDT.IsSet())
 }
 
 // SetNewGasCost is called whenever a gas cost was changed
