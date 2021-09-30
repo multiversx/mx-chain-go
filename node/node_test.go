@@ -40,6 +40,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -566,15 +567,15 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 	sftToken := []byte("SFT-RANDOM")
 	nftToken := []byte("NFT-RANDOM")
 
-	esdtData := &systemSmartContracts.ESDTData{TokenName: []byte("fungible"), TokenType: []byte(core.FungibleESDT)}
+	esdtData := &systemSmartContracts.ESDTDataV2{TokenName: []byte("fungible"), TokenType: []byte(core.FungibleESDT)}
 	marshalledData, _ := getMarshalizer().Marshal(esdtData)
 	_ = acc.DataTrieTracker().SaveKeyValue(esdtToken, marshalledData)
 
-	sftData := &systemSmartContracts.ESDTData{TokenName: []byte("semi fungible"), TokenType: []byte(core.SemiFungibleESDT)}
+	sftData := &systemSmartContracts.ESDTDataV2{TokenName: []byte("semi fungible"), TokenType: []byte(core.SemiFungibleESDT)}
 	sftMarshalledData, _ := getMarshalizer().Marshal(sftData)
 	_ = acc.DataTrieTracker().SaveKeyValue(sftToken, sftMarshalledData)
 
-	nftData := &systemSmartContracts.ESDTData{TokenName: []byte("non fungible"), TokenType: []byte(core.NonFungibleESDT)}
+	nftData := &systemSmartContracts.ESDTDataV2{TokenName: []byte("non fungible"), TokenType: []byte(core.NonFungibleESDT)}
 	nftMarshalledData, _ := getMarshalizer().Marshal(nftData)
 	_ = acc.DataTrieTracker().SaveKeyValue(nftToken, nftMarshalledData)
 
@@ -668,7 +669,7 @@ func TestNode_GetESDTsWithRole(t *testing.T) {
 		},
 	}
 
-	esdtData := &systemSmartContracts.ESDTData{TokenName: []byte("fungible"), TokenType: []byte(core.FungibleESDT), SpecialRoles: specialRoles}
+	esdtData := &systemSmartContracts.ESDTDataV2{TokenName: []byte("fungible"), TokenType: []byte(core.FungibleESDT), SpecialRoles: specialRoles}
 	marshalledData, _ := getMarshalizer().Marshal(esdtData)
 	_ = acc.DataTrieTracker().SaveKeyValue(esdtToken, marshalledData)
 
@@ -748,7 +749,7 @@ func TestNode_GetESDTsRoles(t *testing.T) {
 		},
 	}
 
-	esdtData := &systemSmartContracts.ESDTData{TokenName: []byte("fungible"), TokenType: []byte(core.FungibleESDT), SpecialRoles: specialRoles}
+	esdtData := &systemSmartContracts.ESDTDataV2{TokenName: []byte("fungible"), TokenType: []byte(core.FungibleESDT), SpecialRoles: specialRoles}
 	marshalledData, _ := getMarshalizer().Marshal(esdtData)
 	_ = acc.DataTrieTracker().SaveKeyValue(esdtToken, marshalledData)
 
@@ -813,7 +814,7 @@ func TestNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
 	acc, _ := state.NewUserAccount(addrBytes)
 	esdtToken := []byte("TCK-RANDOM")
 
-	esdtData := &systemSmartContracts.ESDTData{TokenName: []byte("fungible"), TokenType: []byte(core.SemiFungibleESDT), OwnerAddress: addrBytes}
+	esdtData := &systemSmartContracts.ESDTDataV2{TokenName: []byte("fungible"), TokenType: []byte(core.SemiFungibleESDT), OwnerAddress: addrBytes}
 	marshalledData, _ := getMarshalizer().Marshal(esdtData)
 	_ = acc.DataTrieTracker().SaveKeyValue(esdtToken, marshalledData)
 
@@ -2650,7 +2651,7 @@ func TestNode_AppStatusHandlersShouldIncrement(t *testing.T) {
 	metricKey := common.MetricCurrentRound
 	incrementCalled := make(chan bool, 1)
 
-	appStatusHandlerStub := mock.AppStatusHandlerStub{
+	appStatusHandlerStub := statusHandlerMock.AppStatusHandlerStub{
 		IncrementHandler: func(key string) {
 			incrementCalled <- true
 		},
@@ -2678,7 +2679,7 @@ func TestNode_AppStatusHandlerShouldDecrement(t *testing.T) {
 	metricKey := common.MetricCurrentRound
 	decrementCalled := make(chan bool, 1)
 
-	appStatusHandlerStub := mock.AppStatusHandlerStub{
+	appStatusHandlerStub := statusHandlerMock.AppStatusHandlerStub{
 		DecrementHandler: func(key string) {
 			decrementCalled <- true
 		},
@@ -2706,7 +2707,7 @@ func TestNode_AppStatusHandlerShouldSetInt64Value(t *testing.T) {
 	metricKey := common.MetricCurrentRound
 	setInt64ValueCalled := make(chan bool, 1)
 
-	appStatusHandlerStub := mock.AppStatusHandlerStub{
+	appStatusHandlerStub := statusHandlerMock.AppStatusHandlerStub{
 		SetInt64ValueHandler: func(key string, value int64) {
 			setInt64ValueCalled <- true
 		},
@@ -2734,7 +2735,7 @@ func TestNode_AppStatusHandlerShouldSetUInt64Value(t *testing.T) {
 	metricKey := common.MetricCurrentRound
 	setUInt64ValueCalled := make(chan bool, 1)
 
-	appStatusHandlerStub := mock.AppStatusHandlerStub{
+	appStatusHandlerStub := statusHandlerMock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {
 			setUInt64ValueCalled <- true
 		},
@@ -3114,6 +3115,18 @@ func TestNode_ShouldWork(t *testing.T) {
 
 	pid1 := "pid1"
 	pid2 := "pid2"
+
+	processComponents := getDefaultProcessComponents()
+	processComponents.PeerMapper = &p2pmocks.NetworkShardingCollectorStub{
+		GetPeerInfoCalled: func(pid core.PeerID) core.P2PPeerInfo {
+			return core.P2PPeerInfo{
+				PeerType: 0,
+				ShardID:  0,
+				PkBytes:  pid.Bytes(),
+			}
+		},
+	}
+
 	networkComponents := getDefaultNetworkComponents()
 	networkComponents.Messenger = &p2pmocks.MessengerStub{
 		PeersCalled: func() []core.PeerID {
@@ -3130,15 +3143,7 @@ func TestNode_ShouldWork(t *testing.T) {
 
 	n, _ := node.NewNode(
 		node.WithNetworkComponents(networkComponents),
-		node.WithNetworkShardingCollector(&p2pmocks.NetworkShardingCollectorStub{
-			GetPeerInfoCalled: func(pid core.PeerID) core.P2PPeerInfo {
-				return core.P2PPeerInfo{
-					PeerType: 0,
-					ShardID:  0,
-					PkBytes:  pid.Bytes(),
-				}
-			},
-		}),
+		node.WithProcessComponents(processComponents),
 		node.WithCoreComponents(coreComponents),
 		node.WithPeerDenialEvaluator(&mock.PeerDenialEvaluatorStub{
 			IsDeniedCalled: func(pid core.PeerID) bool {
