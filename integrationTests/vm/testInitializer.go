@@ -566,16 +566,14 @@ func CreateVMAndBlockchainHookAndDataPool(
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(testMarshalizer)
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
 	argsNewVMFactory := shard.ArgVMContainerFactory{
-		Config:                         *vmConfig,
-		BlockGasLimit:                  maxGasLimitPerBlock,
-		GasSchedule:                    mock.NewGasScheduleNotifierMock(actualGasSchedule),
-		ArgBlockChainHook:              args,
-		EpochNotifier:                  globalEpochNotifier,
-		DeployEnableEpoch:              0,
-		AheadOfTimeGasUsageEnableEpoch: 0,
-		ArwenV3EnableEpoch:             0,
-		ArwenChangeLocker:              arwenChangeLocker,
-		ESDTTransferParser:             esdtTransferParser,
+		Config:             *vmConfig,
+		BlockGasLimit:      maxGasLimitPerBlock,
+		GasSchedule:        mock.NewGasScheduleNotifierMock(actualGasSchedule),
+		ArgBlockChainHook:  args,
+		EpochNotifier:      globalEpochNotifier,
+		EpochConfig:        config.EnableEpochs{},
+		ArwenChangeLocker:  arwenChangeLocker,
+		ESDTTransferParser: esdtTransferParser,
 	}
 	vmFactory, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	if err != nil {

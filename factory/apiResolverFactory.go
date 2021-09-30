@@ -294,16 +294,14 @@ func createScQueryElement(
 			return nil, err
 		}
 		argsNewVMFactory := shard.ArgVMContainerFactory{
-			Config:                         queryVirtualMachineConfig,
-			BlockGasLimit:                  args.coreComponents.EconomicsData().MaxGasLimitPerBlock(args.processComponents.ShardCoordinator().SelfId()),
-			GasSchedule:                    args.gasScheduleNotifier,
-			ArgBlockChainHook:              argsHook,
-			EpochNotifier:                  args.coreComponents.EpochNotifier(),
-			DeployEnableEpoch:              args.epochConfig.EnableEpochs.SCDeployEnableEpoch,
-			AheadOfTimeGasUsageEnableEpoch: args.epochConfig.EnableEpochs.AheadOfTimeGasUsageEnableEpoch,
-			ArwenV3EnableEpoch:             args.epochConfig.EnableEpochs.RepairCallbackEnableEpoch,
-			ArwenChangeLocker:              args.processComponents.ArwenChangeLocker(),
-			ESDTTransferParser:             esdtTransferParser,
+			Config:             queryVirtualMachineConfig,
+			BlockGasLimit:      args.coreComponents.EconomicsData().MaxGasLimitPerBlock(args.processComponents.ShardCoordinator().SelfId()),
+			GasSchedule:        args.gasScheduleNotifier,
+			ArgBlockChainHook:  argsHook,
+			EpochNotifier:      args.coreComponents.EpochNotifier(),
+			EpochConfig:        args.epochConfig.EnableEpochs,
+			ArwenChangeLocker:  args.processComponents.ArwenChangeLocker(),
+			ESDTTransferParser: esdtTransferParser,
 		}
 
 		log.Debug("apiResolver: enable epoch for sc deploy", "epoch", args.epochConfig.EnableEpochs.SCDeployEnableEpoch)
