@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -100,37 +101,27 @@ type scProcessor struct {
 
 // ArgsNewSmartContractProcessor defines the arguments needed for new smart contract processor
 type ArgsNewSmartContractProcessor struct {
-	VmContainer                                 process.VirtualMachinesContainer
-	ArgsParser                                  process.ArgumentsParser
-	Hasher                                      hashing.Hasher
-	Marshalizer                                 marshal.Marshalizer
-	AccountsDB                                  state.AccountsAdapter
-	BlockChainHook                              process.BlockChainHookHandler
-	PubkeyConv                                  core.PubkeyConverter
-	ShardCoordinator                            sharding.Coordinator
-	ScrForwarder                                process.IntermediateTransactionHandler
-	TxFeeHandler                                process.TransactionFeeHandler
-	EconomicsFee                                process.FeeHandler
-	TxTypeHandler                               process.TxTypeHandler
-	GasHandler                                  process.GasHandler
-	GasSchedule                                 core.GasScheduleNotifier
-	TxLogsProcessor                             process.TransactionLogProcessor
-	BadTxForwarder                              process.IntermediateTransactionHandler
-	DeployEnableEpoch                           uint32
-	BuiltinEnableEpoch                          uint32
-	PenalizedTooMuchGasEnableEpoch              uint32
-	RepairCallbackEnableEpoch                   uint32
-	StakingV2EnableEpoch                        uint32
-	ReturnDataToLastTransferEnableEpoch         uint32
-	SenderInOutTransferEnableEpoch              uint32
-	IncrementSCRNonceInMultiTransferEnableEpoch uint32
-	BuiltInFunctionOnMetachainEnableEpoch       uint32
-	SCRSizeInvariantCheckEnableEpoch            uint32
-	BackwardCompSaveKeyValueEnableEpoch         uint32
-	EpochNotifier                               process.EpochNotifier
-	VMOutputCacher                              storage.Cacher
-	ArwenChangeLocker                           process.Locker
-	IsGenesisProcessing                         bool
+	VmContainer         process.VirtualMachinesContainer
+	ArgsParser          process.ArgumentsParser
+	Hasher              hashing.Hasher
+	Marshalizer         marshal.Marshalizer
+	AccountsDB          state.AccountsAdapter
+	BlockChainHook      process.BlockChainHookHandler
+	PubkeyConv          core.PubkeyConverter
+	ShardCoordinator    sharding.Coordinator
+	ScrForwarder        process.IntermediateTransactionHandler
+	TxFeeHandler        process.TransactionFeeHandler
+	EconomicsFee        process.FeeHandler
+	TxTypeHandler       process.TxTypeHandler
+	GasHandler          process.GasHandler
+	GasSchedule         core.GasScheduleNotifier
+	TxLogsProcessor     process.TransactionLogProcessor
+	BadTxForwarder      process.IntermediateTransactionHandler
+	EnableEpochs        config.EnableEpochs
+	EpochNotifier       process.EpochNotifier
+	VMOutputCacher      storage.Cacher
+	ArwenChangeLocker   process.Locker
+	IsGenesisProcessing bool
 }
 
 // NewSmartContractProcessor creates a smart contract processor that creates and interprets VM data
@@ -212,22 +203,22 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		builtInGasCosts:                       builtInFuncCost,
 		txLogsProcessor:                       args.TxLogsProcessor,
 		badTxForwarder:                        args.BadTxForwarder,
-		deployEnableEpoch:                     args.DeployEnableEpoch,
-		builtinEnableEpoch:                    args.BuiltinEnableEpoch,
-		repairCallBackEnableEpoch:             args.RepairCallbackEnableEpoch,
-		penalizedTooMuchGasEnableEpoch:        args.PenalizedTooMuchGasEnableEpoch,
+		deployEnableEpoch:                     args.EnableEpochs.SCDeployEnableEpoch,
+		builtinEnableEpoch:                    args.EnableEpochs.BuiltInFunctionsEnableEpoch,
+		repairCallBackEnableEpoch:             args.EnableEpochs.RepairCallbackEnableEpoch,
+		penalizedTooMuchGasEnableEpoch:        args.EnableEpochs.PenalizedTooMuchGasEnableEpoch,
 		isGenesisProcessing:                   args.IsGenesisProcessing,
-		stakingV2EnableEpoch:                  args.StakingV2EnableEpoch,
-		returnDataToLastTransferEnableEpoch:   args.ReturnDataToLastTransferEnableEpoch,
-		senderInOutTransferEnableEpoch:        args.SenderInOutTransferEnableEpoch,
-		builtInFunctionOnMetachainEnableEpoch: args.BuiltInFunctionOnMetachainEnableEpoch,
-		scrSizeInvariantCheckEnableEpoch:      args.SCRSizeInvariantCheckEnableEpoch,
-		backwardCompSaveKeyValueEnableEpoch:   args.BackwardCompSaveKeyValueEnableEpoch,
+		stakingV2EnableEpoch:                  args.EnableEpochs.StakingV2EnableEpoch,
+		returnDataToLastTransferEnableEpoch:   args.EnableEpochs.ReturnDataToLastTransferEnableEpoch,
+		senderInOutTransferEnableEpoch:        args.EnableEpochs.SenderInOutTransferEnableEpoch,
+		builtInFunctionOnMetachainEnableEpoch: args.EnableEpochs.BuiltInFunctionsEnableEpoch,
+		scrSizeInvariantCheckEnableEpoch:      args.EnableEpochs.SCRSizeInvariantCheckEnableEpoch,
+		backwardCompSaveKeyValueEnableEpoch:   args.EnableEpochs.BackwardCompSaveKeyValueEnableEpoch,
 		arwenChangeLocker:                     args.ArwenChangeLocker,
 		vmOutputCacher:                        args.VMOutputCacher,
 		storePerByte:                          baseOperationCost["StorePerByte"],
 		persistPerByte:                        baseOperationCost["PersistPerByte"],
-		incrementSCRNonceInMultiTransferEnableEpoch: args.IncrementSCRNonceInMultiTransferEnableEpoch,
+		incrementSCRNonceInMultiTransferEnableEpoch: args.EnableEpochs.IncrementSCRNonceInMultiTransferEnableEpoch,
 	}
 
 	var err error

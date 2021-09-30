@@ -97,11 +97,10 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 		GasHandler: &mock.GasHandlerMock{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
-		GasSchedule:          mock.NewGasScheduleNotifierMock(gasSchedule),
-		EpochNotifier:        &mock.EpochNotifierStub{},
-		StakingV2EnableEpoch: 0,
-		ArwenChangeLocker:    &sync.RWMutex{},
-		VMOutputCacher:       txcache.NewDisabledCache(),
+		GasSchedule:       mock.NewGasScheduleNotifierMock(gasSchedule),
+		EpochNotifier:     &mock.EpochNotifierStub{},
+		ArwenChangeLocker: &sync.RWMutex{},
+		VMOutputCacher:    txcache.NewDisabledCache(),
 	}
 }
 
@@ -382,9 +381,6 @@ func TestNewSmartContractProcessorVerifyAllMembers(t *testing.T) {
 	assert.Equal(t, arguments.TxTypeHandler, sc.txTypeHandler)
 	assert.Equal(t, arguments.TxLogsProcessor, sc.txLogsProcessor)
 	assert.Equal(t, arguments.BadTxForwarder, sc.badTxForwarder)
-	assert.Equal(t, arguments.DeployEnableEpoch, sc.deployEnableEpoch)
-	assert.Equal(t, arguments.BuiltinEnableEpoch, sc.builtinEnableEpoch)
-	assert.Equal(t, arguments.PenalizedTooMuchGasEnableEpoch, sc.penalizedTooMuchGasEnableEpoch)
 }
 
 // ===================== TestGasScheduleChange =====================
@@ -522,7 +518,7 @@ func TestScProcessor_DeploySmartContractDisabled(t *testing.T) {
 	}}
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
-	arguments.DeployEnableEpoch = maxEpoch
+	arguments.EnableEpochs.SCDeployEnableEpoch = maxEpoch
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -556,7 +552,7 @@ func TestScProcessor_BuiltInCallSmartContractDisabled(t *testing.T) {
 	}}
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
-	arguments.BuiltinEnableEpoch = maxEpoch
+	arguments.EnableEpochs.BuiltInFunctionsEnableEpoch = maxEpoch
 	funcName := "builtIn"
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
@@ -590,7 +586,7 @@ func TestScProcessor_BuiltInCallSmartContractSenderFailed(t *testing.T) {
 	}}
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
-	arguments.BuiltinEnableEpoch = maxEpoch
+	arguments.EnableEpochs.BuiltInFunctionsEnableEpoch = maxEpoch
 	funcName := "builtIn"
 	localError := errors.New("failed built in call")
 	arguments.BlockChainHook = &mock.BlockChainHookHandlerMock{ProcessBuiltInFunctionCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
@@ -652,7 +648,7 @@ func TestScProcessor_ExecuteBuiltInFunctionSCResultCallSelfShard(t *testing.T) {
 	arguments.AccountsDB = accountState
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
-	arguments.BuiltinEnableEpoch = maxEpoch
+	arguments.EnableEpochs.BuiltInFunctionsEnableEpoch = maxEpoch
 	funcName := "builtIn"
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
@@ -711,7 +707,7 @@ func TestScProcessor_ExecuteBuiltInFunctionSCResultCallSelfShardCannotSaveLog(t 
 	arguments.AccountsDB = accountState
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
-	arguments.BuiltinEnableEpoch = maxEpoch
+	arguments.EnableEpochs.BuiltInFunctionsEnableEpoch = maxEpoch
 	funcName := "builtIn"
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
@@ -761,7 +757,7 @@ func TestScProcessor_ExecuteBuiltInFunction(t *testing.T) {
 	arguments.AccountsDB = accountState
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
-	arguments.BuiltinEnableEpoch = maxEpoch
+	arguments.EnableEpochs.BuiltInFunctionsEnableEpoch = maxEpoch
 	funcName := "builtIn"
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
@@ -2418,7 +2414,7 @@ func TestScProcessor_RefundGasToSender(t *testing.T) {
 	arguments.EconomicsFee = &mock.FeeHandlerStub{MinGasPriceCalled: func() uint64 {
 		return minGasPrice
 	}}
-	arguments.DeployEnableEpoch = 10
+	arguments.EnableEpochs.SCDeployEnableEpoch = 10
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -2458,7 +2454,7 @@ func TestScProcessor_DoNotRefundGasToSenderForAsyncCall(t *testing.T) {
 	arguments.EconomicsFee = &mock.FeeHandlerStub{MinGasPriceCalled: func() uint64 {
 		return minGasPrice
 	}}
-	arguments.DeployEnableEpoch = 10
+	arguments.EnableEpochs.SCDeployEnableEpoch = 10
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
