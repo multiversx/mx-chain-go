@@ -266,6 +266,7 @@ func TestAsyncMultiTransferOnCallback(t *testing.T) {
 
 	utils.CheckESDTNFTBalance(t, testContext, vaultAddr, sftTokenID, sftNonce, sftBalance)
 
+	lenSCRs := len(testContext.GetIntermediateTransactions(t))
 	// receive tokens from vault to forwarder on callback
 	// receive 500 + 500 of the SFT through multi-transfer
 	ownerAccount, _ = testContext.Accounts.LoadAccount(ownerAddr)
@@ -287,6 +288,7 @@ func TestAsyncMultiTransferOnCallback(t *testing.T) {
 	retCode, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
+	require.Equal(t, 2, len(testContext.GetIntermediateTransactions(t))-lenSCRs)
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)

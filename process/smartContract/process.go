@@ -70,6 +70,7 @@ type scProcessor struct {
 	builtInFunctionOnMetachainEnableEpoch       uint32
 	scrSizeInvariantCheckEnableEpoch            uint32
 	backwardCompSaveKeyValueEnableEpoch         uint32
+	createdCallBackCrossShardOnlyEnableEpoch    uint32
 	flagStakingV2                               atomic.Flag
 	flagDeploy                                  atomic.Flag
 	flagBuiltin                                 atomic.Flag
@@ -81,6 +82,7 @@ type scProcessor struct {
 	flagBuiltInFunctionOnMetachain              atomic.Flag
 	flagSCRSizeInvariantCheck                   atomic.Flag
 	flagBackwardCompOnSaveKeyValue              atomic.Flag
+	flagCreatedCallBackCrossShardOnly           atomic.Flag
 	arwenChangeLocker                           process.Locker
 
 	badTxForwarder process.IntermediateTransactionHandler
@@ -219,6 +221,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		storePerByte:                          baseOperationCost["StorePerByte"],
 		persistPerByte:                        baseOperationCost["PersistPerByte"],
 		incrementSCRNonceInMultiTransferEnableEpoch: args.EnableEpochs.IncrementSCRNonceInMultiTransferEnableEpoch,
+		createdCallBackCrossShardOnlyEnableEpoch:    args.EnableEpochs.MultiESDTTransferFixOnCallBackOnEnableEpoch,
 	}
 
 	var err error
@@ -237,6 +240,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	log.Debug("smartContract/process: enable epoch for built in functions on metachain", "epoch", sc.builtInFunctionOnMetachainEnableEpoch)
 	log.Debug("smartContract/process: enable epoch for scr size invariant check", "epoch", sc.scrSizeInvariantCheckEnableEpoch)
 	log.Debug("smartContract/process: disable epoch for backward compatibility check on save key value error", "epoch", sc.scrSizeInvariantCheckEnableEpoch)
+	log.Debug("smartContract/process: enable epoch for created async callback on cross shard only", "epoch", sc.createdCallBackCrossShardOnlyEnableEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(sc)
 	args.GasSchedule.RegisterNotifyHandler(sc)
@@ -1920,6 +1924,74 @@ func (sc *scProcessor) createAsyncCallBackSCRFromVMOutput(
 	return scr
 }
 
+func (sc *scProcessor) createSCRFromStakingSC(
+	outAcc *vmcommon.OutputAccount,
+	tx data.TransactionHandler,
+	txHash []byte,
+) *smartContractResult.SmartContractResult {
+	if !bytes.Equal(outAcc.Address, vm.StakingSCAddress) {
+		return nil
+	}
+
+	storageUpdates := process.GetSortedStorageUpdates(outAcc)
+	result := createBaseSCR(outAcc, tx, txHash, 0)
+	result.Data = append(result.Data, sc.argsParser.CreateDataFromStorageUpdate(storageUpdates)...)
+	return result
+}
+
+func (sc *scProcessor) createSCRIfNoOutputTransfer(
+	vmOutput *vmcommon.VMOutput,
+	callType vmData.CallType,
+	outAcc *vmcommon.OutputAccount,
+	tx data.TransactionHandler,
+	txHash []byte,
+) (bool, []data.TransactionHandler) {
+	if callType == vmData.AsynchronousCall && bytes.Equal(outAcc.Address, tx.GetSndAddr()) {
+		result := createBaseSCR(outAcc, tx, txHash, 0)
+		sc.addVMOutputResultsToSCR(vmOutput, result)
+		return true, []data.TransactionHandler{result}
+	}
+
+	if !sc.flagDeploy.IsSet() {
+		result := createBaseSCR(outAcc, tx, txHash, 0)
+		result.Code = outAcc.Code
+		result.Value.Set(outAcc.BalanceDelta)
+		if result.Value.Cmp(zero) > 0 {
+			result.OriginalSender = tx.GetSndAddr()
+		}
+
+		return false, []data.TransactionHandler{result}
+	}
+
+	return false, nil
+}
+
+func (sc *scProcessor) preprocessOutTransferToSCR(
+	index int,
+	outputTransfer vmcommon.OutputTransfer,
+	outAcc *vmcommon.OutputAccount,
+	tx data.TransactionHandler,
+	txHash []byte,
+) *smartContractResult.SmartContractResult {
+	transferNonce := uint64(0)
+	if sc.flagIncrementSCRNonceInMultiTransfer.IsSet() {
+		transferNonce = uint64(index)
+	}
+	result := createBaseSCR(outAcc, tx, txHash, transferNonce)
+
+	if outputTransfer.Value != nil {
+		result.Value.Set(outputTransfer.Value)
+	}
+	result.Data = outputTransfer.Data
+	result.GasLimit = outputTransfer.GasLimit
+	result.CallType = outputTransfer.CallType
+	setOriginalTxHash(result, txHash, tx)
+	if result.Value.Cmp(zero) > 0 {
+		result.OriginalSender = tx.GetSndAddr()
+	}
+	return result
+}
+
 func (sc *scProcessor) createSmartContractResults(
 	vmOutput *vmcommon.VMOutput,
 	callType vmData.CallType,
@@ -1928,60 +2000,28 @@ func (sc *scProcessor) createSmartContractResults(
 	txHash []byte,
 ) (bool, []data.TransactionHandler) {
 
-	if bytes.Equal(outAcc.Address, vm.StakingSCAddress) {
-		storageUpdates := process.GetSortedStorageUpdates(outAcc)
-		result := createBaseSCR(outAcc, tx, txHash, 0)
-		result.Data = append(result.Data, sc.argsParser.CreateDataFromStorageUpdate(storageUpdates)...)
-
+	result := sc.createSCRFromStakingSC(outAcc, tx, txHash)
+	if !check.IfNil(result) {
 		return false, []data.TransactionHandler{result}
 	}
 
 	lenOutTransfers := len(outAcc.OutputTransfers)
 	if lenOutTransfers == 0 {
-		if callType == vmData.AsynchronousCall && bytes.Equal(outAcc.Address, tx.GetSndAddr()) {
-			result := createBaseSCR(outAcc, tx, txHash, 0)
-			sc.addVMOutputResultsToSCR(vmOutput, result)
-			return true, []data.TransactionHandler{result}
-		}
-
-		if !sc.flagDeploy.IsSet() {
-			result := createBaseSCR(outAcc, tx, txHash, 0)
-			result.Code = outAcc.Code
-			result.Value.Set(outAcc.BalanceDelta)
-			if result.Value.Cmp(zero) > 0 {
-				result.OriginalSender = tx.GetSndAddr()
-			}
-
-			return false, []data.TransactionHandler{result}
-		}
-
-		return false, nil
+		return sc.createSCRIfNoOutputTransfer(vmOutput, callType, outAcc, tx, txHash)
 	}
 
 	createdAsyncCallBack := false
-	var result *smartContractResult.SmartContractResult
 	scResults := make([]data.TransactionHandler, 0, len(outAcc.OutputTransfers))
 	for i, outputTransfer := range outAcc.OutputTransfers {
-		transferNonce := uint64(0)
-		if sc.flagIncrementSCRNonceInMultiTransfer.IsSet() {
-			transferNonce = uint64(i)
-		}
-		result = createBaseSCR(outAcc, tx, txHash, transferNonce)
+		result = sc.preprocessOutTransferToSCR(i, outputTransfer, outAcc, tx, txHash)
 
-		if outputTransfer.Value != nil {
-			result.Value.Set(outputTransfer.Value)
-		}
-		result.Data = outputTransfer.Data
-		result.GasLimit = outputTransfer.GasLimit
-		result.CallType = outputTransfer.CallType
-		setOriginalTxHash(result, txHash, tx)
-		if result.Value.Cmp(zero) > 0 {
-			result.OriginalSender = tx.GetSndAddr()
-		}
-
+		isCrossShard := sc.shardCoordinator.ComputeId(outAcc.Address) != sc.shardCoordinator.SelfId()
 		if result.CallType == vmData.AsynchronousCallBack {
-			createdAsyncCallBack = true
-			result.GasLimit, _ = core.SafeAddUint64(result.GasLimit, vmOutput.GasRemaining)
+			if !sc.flagCreatedCallBackCrossShardOnly.IsSet() || isCrossShard {
+				// backward compatibility
+				createdAsyncCallBack = true
+				result.GasLimit, _ = core.SafeAddUint64(result.GasLimit, vmOutput.GasRemaining)
+			}
 		}
 
 		useSenderAddressFromOutTransfer := sc.flagSenderInOutTransfer.IsSet() &&
@@ -1995,14 +2035,16 @@ func (sc *scProcessor) createSmartContractResults(
 		outputTransferCopy := outputTransfer
 		isLastOutTransfer := i == lenOutTransfers-1
 		if !createdAsyncCallBack && isLastOutTransfer && isOutTransferTxRcvAddr &&
-			sc.useLastTransferAsAsyncCallBackWhenNeeded(callType, outAcc, &outputTransferCopy, vmOutput, tx, result) {
+			sc.useLastTransferAsAsyncCallBackWhenNeeded(callType, outAcc, &outputTransferCopy, vmOutput, tx, result, isCrossShard) {
 			createdAsyncCallBack = true
 		}
 
 		if result.CallType == vmData.AsynchronousCall {
-			result.GasLimit += outputTransfer.GasLocked
-			lastArgAsGasLocked := "@" + hex.EncodeToString(big.NewInt(0).SetUint64(outputTransfer.GasLocked).Bytes())
-			result.Data = append(result.Data, []byte(lastArgAsGasLocked)...)
+			if !sc.flagCreatedCallBackCrossShardOnly.IsSet() || isCrossShard {
+				result.GasLimit += outputTransfer.GasLocked
+				lastArgAsGasLocked := "@" + hex.EncodeToString(big.NewInt(0).SetUint64(outputTransfer.GasLocked).Bytes())
+				result.Data = append(result.Data, []byte(lastArgAsGasLocked)...)
+			}
 		}
 
 		scResults = append(scResults, result)
@@ -2018,6 +2060,7 @@ func (sc *scProcessor) useLastTransferAsAsyncCallBackWhenNeeded(
 	vmOutput *vmcommon.VMOutput,
 	tx data.TransactionHandler,
 	result *smartContractResult.SmartContractResult,
+	isCrossShard bool,
 ) bool {
 	if len(vmOutput.ReturnData) > 0 && !sc.flagReturnDataToLastTransfer.IsSet() {
 		return false
@@ -2026,6 +2069,10 @@ func (sc *scProcessor) useLastTransferAsAsyncCallBackWhenNeeded(
 	isAsyncTransferBackToSender := callType == vmData.AsynchronousCall &&
 		bytes.Equal(outAcc.Address, tx.GetSndAddr())
 	if !isAsyncTransferBackToSender {
+		return false
+	}
+
+	if sc.flagCreatedCallBackCrossShardOnly.IsSet() && !isCrossShard {
 		return false
 	}
 
@@ -2189,9 +2236,7 @@ func (sc *scProcessor) processSCOutputAccounts(
 			continue
 		}
 
-		storageUpdates := process.GetSortedStorageUpdates(outAcc)
-		for j := 0; j < len(storageUpdates); j++ {
-			storeUpdate := storageUpdates[j]
+		for _, storeUpdate := range outAcc.StorageUpdates {
 			if !process.IsAllowedToSaveUnderKey(storeUpdate.Offset) {
 				log.Trace("storeUpdate is not allowed", "acc", outAcc.Address, "key", storeUpdate.Offset, "data", storeUpdate.Data)
 				continue
@@ -2521,6 +2566,9 @@ func (sc *scProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 
 	sc.flagBackwardCompOnSaveKeyValue.Toggle(epoch < sc.backwardCompSaveKeyValueEnableEpoch)
 	log.Debug("scProcessor: backward compatibility on save key value", "enabled", sc.flagBackwardCompOnSaveKeyValue.IsSet())
+
+	sc.flagCreatedCallBackCrossShardOnly.Toggle(epoch >= sc.createdCallBackCrossShardOnlyEnableEpoch)
+	log.Debug("scProcessor: created callback cross shard only", "enabled", sc.flagCreatedCallBackCrossShardOnly.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
