@@ -13,21 +13,21 @@ type headerHash struct {
 	header data.HeaderHandler
 }
 
-type roundDataCache struct {
+type roundHeadersCache struct {
 	cache       map[uint64]headerHashList
 	oldestRound uint64
 	cacheSize   uint64
 }
 
-func newRoundDataCache(maxRounds uint64) *roundDataCache {
-	return &roundDataCache{
+func newRoundHeadersCache(maxRounds uint64) *roundHeadersCache {
+	return &roundHeadersCache{
 		cache:       make(map[uint64]headerHashList),
 		oldestRound: math.MaxUint64,
 		cacheSize:   maxRounds,
 	}
 }
 
-func (rdc *roundDataCache) add(round uint64, hash []byte, header data.HeaderHandler) {
+func (rdc *roundHeadersCache) add(round uint64, hash []byte, header data.HeaderHandler) {
 	if rdc.isCacheFull(round) {
 		if round < rdc.oldestRound {
 			return
@@ -54,7 +54,7 @@ func (rdc *roundDataCache) add(round uint64, hash []byte, header data.HeaderHand
 	}
 }
 
-func (rdc *roundDataCache) contains(round uint64, hash []byte) bool {
+func (rdc *roundHeadersCache) contains(round uint64, hash []byte) bool {
 	hashHeaderList, exist := rdc.cache[round]
 	if !exist {
 		return false
@@ -69,7 +69,7 @@ func (rdc *roundDataCache) contains(round uint64, hash []byte) bool {
 	return false
 }
 
-func (rdc *roundDataCache) headers(round uint64) headerHashList {
+func (rdc *roundHeadersCache) headers(round uint64) headerHashList {
 	if _, exist := rdc.cache[round]; !exist {
 		return headerHashList{}
 	}
@@ -77,7 +77,7 @@ func (rdc *roundDataCache) headers(round uint64) headerHashList {
 	return rdc.cache[round]
 }
 
-func (rdc *roundDataCache) isCacheFull(currRound uint64) bool {
+func (rdc *roundHeadersCache) isCacheFull(currRound uint64) bool {
 	_, currRoundInCache := rdc.cache[currRound]
 	return len(rdc.cache) >= int(rdc.cacheSize) && !currRoundInCache
 }

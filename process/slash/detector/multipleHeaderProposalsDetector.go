@@ -17,14 +17,13 @@ type detectorCache interface {
 }
 
 const CacheSize = 10
-const MaxDeltaToCurrentRound = 3
 const MinSlashableNoOfHeaders = 2
 
 // multipleHeaderProposalsDetector - checks slashable events in case a validator proposes multiple(possibly) malicious headers.
 type multipleHeaderProposalsDetector struct {
 	cache            detectorCache
 	nodesCoordinator sharding.NodesCoordinator
-	roundHandler     process.RoundHandler
+	baseSlashingDetector
 }
 
 // NewMultipleHeaderProposalsDetector - creates a new multipleHeaderProposalsDetector for multiple headers
@@ -43,10 +42,12 @@ func NewMultipleHeaderProposalsDetector(
 
 	//TODO: Here, instead of CacheSize, use maxRoundCacheSize = from config file
 	cache := newRoundProposerDataCache(CacheSize)
+	baseDetector := baseSlashingDetector{roundHandler: roundHandler}
+
 	return &multipleHeaderProposalsDetector{
-		cache:            cache,
-		nodesCoordinator: nodesCoordinator,
-		roundHandler:     roundHandler,
+		cache:                cache,
+		nodesCoordinator:     nodesCoordinator,
+		baseSlashingDetector: baseDetector,
 	}, nil
 }
 
@@ -77,18 +78,6 @@ func (mhp *multipleHeaderProposalsDetector) VerifyData(data process.InterceptedD
 		return slash.NewMultipleProposalProof(slashType, slashLevel, headers)
 	}
 	return nil, process.ErrNoSlashingEventDetected
-}
-
-func (mhp *multipleHeaderProposalsDetector) isRoundRelevant(headerRound uint64) bool {
-	currRound := uint64(mhp.roundHandler.Index())
-	return absDiff(currRound, headerRound) < MaxDeltaToCurrentRound
-}
-
-func absDiff(x, y uint64) uint64 {
-	if x < y {
-		return y - x
-	}
-	return x - y
 }
 
 func (mhp *multipleHeaderProposalsDetector) getProposerPubKey(header data.HeaderHandler) ([]byte, error) {

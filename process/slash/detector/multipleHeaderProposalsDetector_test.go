@@ -76,75 +76,22 @@ func TestMultipleHeaderProposalsDetector_VerifyData_CannotGetProposer_ExpectErro
 	require.Equal(t, expectedErr, err)
 }
 
-func TestMultipleHeaderProposalsDetector_VerifyData_DifferentRelevantAndIrrelevantRounds(t *testing.T) {
+func TestMultipleHeaderProposalsDetector_VerifyData_IrrelevantRound_ExpectError(t *testing.T) {
 	t.Parallel()
 
 	round := uint64(100)
 	sd, _ := detector.NewMultipleHeaderProposalsDetector(
-		&mockEpochStart.NodesCoordinatorStub{
-			ComputeConsensusGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
-				return []sharding.Validator{mock.NewValidatorMock([]byte("proposer1"))}, nil
-			},
-		},
+		&mockEpochStart.NodesCoordinatorStub{},
 		&mock.RoundHandlerMock{
 			RoundIndex: int64(round),
 		},
 		detector.CacheSize)
 
-	tests := []struct {
-		round       func() uint64
-		expectedErr error
-	}{
-		{
-			round: func() uint64 {
-				return round
-			},
-			expectedErr: process.ErrNoSlashingEventDetected,
-		},
-		{
-			round: func() uint64 {
-				return round - detector.MaxDeltaToCurrentRound + 1
-			},
-			expectedErr: process.ErrNoSlashingEventDetected,
-		},
-		{
-			round: func() uint64 {
-				return round + detector.MaxDeltaToCurrentRound - 1
-			},
-			expectedErr: process.ErrNoSlashingEventDetected,
-		},
-		{
-			round: func() uint64 {
-				return round - detector.MaxDeltaToCurrentRound
-			},
-			expectedErr: process.ErrHeaderRoundNotRelevant,
-		},
-		{
-			round: func() uint64 {
-				return round + detector.MaxDeltaToCurrentRound
-			},
-			expectedErr: process.ErrHeaderRoundNotRelevant,
-		},
-		{
-			round: func() uint64 {
-				return round - detector.MaxDeltaToCurrentRound - 1
-			},
-			expectedErr: process.ErrHeaderRoundNotRelevant,
-		},
-		{
-			round: func() uint64 {
-				return round + detector.MaxDeltaToCurrentRound + 1
-			},
-			expectedErr: process.ErrHeaderRoundNotRelevant,
-		},
-	}
+	hData := createInterceptedHeaderData(round+detector.MaxDeltaToCurrentRound+1, []byte("seed"))
+	res, err := sd.VerifyData(hData)
 
-	for _, currTest := range tests {
-		hData := createInterceptedHeaderData(currTest.round(), []byte("seed"))
-		res, err := sd.VerifyData(hData)
-		require.Nil(t, res)
-		require.Equal(t, currTest.expectedErr, err)
-	}
+	require.Nil(t, res)
+	require.Equal(t, process.ErrHeaderRoundNotRelevant, err)
 }
 
 func TestMultipleHeaderProposalsDetector_VerifyData_EmptyProposerList_ExpectError(t *testing.T) {

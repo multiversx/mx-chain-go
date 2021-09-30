@@ -3,6 +3,7 @@ package detector
 import (
 	"errors"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
@@ -13,19 +14,55 @@ import (
 )
 
 // SigningSlashingDetector - checks for slashable events for headers
+type headersCache interface {
+	add(round uint64, hash []byte, header data.HeaderHandler)
+	contains(round uint64, hash []byte) bool
+	headers(round uint64) headerHashList
+}
+
 type SigningSlashingDetector struct {
 	slashingCache    detectorCache
-	roundHashesCache roundDataCache
-	roundHeaderMap   map[string]string
+	headersCache     headersCache
 	nodesCoordinator sharding.NodesCoordinator
-	roundHandler     process.RoundHandler
 	hasher           hashing.Hasher
 	marshaller       marshal.Marshalizer
+	baseSlashingDetector
 }
 
 // NewSigningSlashingDetector - creates a new header slashing detector for multiple signatures
-func NewSigningSlashingDetector() slash.SlashingDetector {
-	return &SigningSlashingDetector{}
+func NewSigningSlashingDetector(
+	nodesCoordinator sharding.NodesCoordinator,
+	roundHandler process.RoundHandler,
+	hasher hashing.Hasher,
+	marshaller marshal.Marshalizer,
+	maxRoundCacheSize uint64,
+) (slash.SlashingDetector, error) {
+	if check.IfNil(nodesCoordinator) {
+		return nil, process.ErrNilShardCoordinator
+	}
+	if check.IfNil(roundHandler) {
+		return nil, process.ErrNilRoundHandler
+	}
+	if check.IfNil(hasher) {
+		return nil, process.ErrNilHasher
+	}
+	if check.IfNil(marshaller) {
+		return nil, process.ErrNilMarshalizer
+	}
+
+	//TODO: Here, instead of CacheSize, use maxRoundCacheSize = from config file
+	slashingCache := newRoundProposerDataCache(CacheSize)
+	headersCache := newRoundHeadersCache(CacheSize)
+	baseDetector := baseSlashingDetector{roundHandler: roundHandler}
+
+	return &SigningSlashingDetector{
+		slashingCache:        slashingCache,
+		headersCache:         headersCache,
+		nodesCoordinator:     nodesCoordinator,
+		baseSlashingDetector: baseDetector,
+		hasher:               hasher,
+		marshaller:           marshaller,
+	}, nil
 }
 
 // VerifyData - checks if an intercepted data represents a slashable event
@@ -45,11 +82,11 @@ func (ssd *SigningSlashingDetector) VerifyData(data process.InterceptedData) (sl
 		return nil, err
 	}
 
-	if ssd.roundHashesCache.contains(round, headerHash) {
+	if ssd.headersCache.contains(round, headerHash) {
 		return nil, errors.New("dsa")
 	}
 
-	for _, currData := range ssd.roundHashesCache.headers(round) {
+	for _, currData := range ssd.headersCache.headers(round) {
 		signers, _ := ssd.getValidatorsWhichSignedBothHeaders(currData.header, header.HeaderHandler())
 		if len(signers) >= 1 {
 			for _, signer := range signers {
@@ -58,11 +95,11 @@ func (ssd *SigningSlashingDetector) VerifyData(data process.InterceptedData) (sl
 		}
 	}
 
-	ssd.roundHashesCache.add(round, headerHash, header.HeaderHandler())
+	ssd.headersCache.add(round, headerHash, header.HeaderHandler())
 
 	// check another signature with the same round and proposer exists, but a different header exists
 	// if yes a slashingDetectorResult is returned with a message and the two signatures
-	return nil, nil
+	return nil, process.ErrNoSlashingEventDetected
 }
 
 func (ssd *SigningSlashingDetector) computeHashWithoutSignatures(header data.HeaderHandler) ([]byte, error) {
@@ -139,12 +176,7 @@ func doubleSigners(
 	return intersectionSet
 }
 
-func (ssd *SigningSlashingDetector) isRoundRelevant(headerRound uint64) bool {
-	currRound := uint64(ssd.roundHandler.Index())
-	return absDiff(currRound, headerRound) < MaxDeltaToCurrentRound
-}
-
-// GenerateProof - creates the SlashingProofHandler for the DetectorResult to be added to the Tx Data Field
+// ValidateProof - validates the given proof
 func (ssd *SigningSlashingDetector) ValidateProof(proof slash.SlashingProofHandler) error {
 	return nil
 }
