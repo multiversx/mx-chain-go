@@ -210,6 +210,7 @@ func TestAsyncMultiTransferOnCallback(t *testing.T) {
 	sftTokenID := []byte("SFT-123456")
 	sftNonce := uint64(1)
 	sftBalance := big.NewInt(1000)
+	halfBalance := big.NewInt(500)
 
 	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, ownerAddr, big.NewInt(1000000000), sftTokenID, sftNonce, sftBalance)
 	utils.CheckESDTNFTBalance(t, testContext, ownerAddr, sftTokenID, sftNonce, sftBalance)
@@ -232,8 +233,7 @@ func TestAsyncMultiTransferOnCallback(t *testing.T) {
 
 	// deploy vault
 	ownerAccount, _ = testContext.Accounts.LoadAccount(ownerAddr)
-	/* vaultAddr */
-	_ = utils.DoDeploySecond(t,
+	vaultAddr := utils.DoDeploySecond(t,
 		testContext,
 		"../esdt/testdata/vault-managed-api.wasm",
 		ownerAccount,
@@ -243,22 +243,47 @@ func TestAsyncMultiTransferOnCallback(t *testing.T) {
 		big.NewInt(0),
 	)
 
-	// send the tokens to forwarder
+	// send the tokens to vault
 	ownerAccount, _ = testContext.Accounts.LoadAccount(ownerAddr)
 	tx := utils.CreateESDTNFTTransferTx(
 		ownerAccount.GetNonce(),
 		ownerAddr,
-		forwarderAddr,
+		vaultAddr,
 		sftTokenID,
 		sftNonce,
 		sftBalance,
 		gasPrice,
 		txGasLimit,
-		"deposit",
-		[]byte{},
+		"just_accept_funds",
 	)
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
-	require.Nil(t, testContext.GetLatestError())
+	require.Equal(t, vmcommon.Ok, retCode)
+	require.Nil(t, err)
+
+	_, err = testContext.Accounts.Commit()
+	require.Nil(t, err)
+
+	utils.CheckESDTNFTBalance(t, testContext, vaultAddr, sftTokenID, sftNonce, sftBalance)
+
+	// receive tokens from vault to forwarder on callback
+	// receive 500 + 500 of the SFT through multi-transfer
+	ownerAccount, _ = testContext.Accounts.LoadAccount(ownerAddr)
+	tx = utils.CreateSmartContractCall(
+		ownerAccount.GetNonce(),
+		ownerAddr,
+		forwarderAddr,
+		gasPrice,
+		txGasLimit,
+		"forward_async_retrieve_multi_transfer_funds",
+		[]byte(vaultAddr),
+		[]byte(sftTokenID),
+		big.NewInt(int64(sftNonce)).Bytes(),
+		halfBalance.Bytes(),
+		[]byte(sftTokenID),
+		big.NewInt(int64(sftNonce)).Bytes(),
+		halfBalance.Bytes(),
+	)
+	retCode, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
 
