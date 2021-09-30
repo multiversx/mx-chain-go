@@ -91,10 +91,20 @@ func (fhps *FullHistoryPruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]
 // GetBulkFromEpoch will search a a bulk of keys in the persister for the given epoch
 // doesn't return an error if a key or any isn't found
 func (fhps *FullHistoryPruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[string][]byte, error) {
+	persister, err := fhps.getOrOpenPersister(epoch)
+	if err != nil {
+		return nil, err
+	}
+
 	results := make(map[string][]byte)
 	for _, key := range keys {
-		data, err := fhps.GetFromEpoch(key, epoch)
-		if err != nil && data != nil {
+		dataInCache, found := fhps.cacher.Get(key)
+		if found {
+			results[string(key)] = dataInCache.([]byte)
+			continue
+		}
+		data, err := persister.Get(key)
+		if err == nil && data != nil {
 			results[string(key)] = data
 		}
 	}
