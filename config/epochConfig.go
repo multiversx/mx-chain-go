@@ -50,7 +50,12 @@ type EnableEpochs struct {
 	ESDTTransferRoleEnableEpoch                 uint32
 	BuiltInFunctionOnMetaEnableEpoch            uint32
 	ComputeRewardCheckpointEnableEpoch          uint32
+	SCRSizeInvariantCheckEnableEpoch            uint32
+	BackwardCompSaveKeyValueEnableEpoch         uint32
 	ESDTNFTCreateOnMultiShardEnableEpoch        uint32
+	MetaESDTSetEnableEpoch                      uint32
+	AddTokensToDelegationEnableEpoch            uint32
+	MultiESDTTransferFixOnCallBackOnEnableEpoch uint32
 	OptimizeGasUsedInCrossMiniBlocksEnableEpoch uint32
 }
 

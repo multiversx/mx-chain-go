@@ -1,4 +1,4 @@
-package mock
+package statusHandler
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
@@ -13,6 +13,6 @@ type StatusHandlersFactoryMock struct {
 // Create -
 func (shfm *StatusHandlersFactoryMock) Create(_ marshal.Marshalizer, _ typeConverters.Uint64ByteSliceConverter) (factory.StatusHandlersUtils, error) {
 	return &StatusHandlersUtilsMock{
-		AppStatusHandler: &AppStatusHandlerMock{},
+		AppStatusHandler: NewAppStatusHandlerMock(),
 	}, nil
 }
