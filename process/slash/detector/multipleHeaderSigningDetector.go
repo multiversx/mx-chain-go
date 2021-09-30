@@ -40,27 +40,20 @@ func (ssd *SigningSlashingDetector) VerifyData(data process.InterceptedData) (sl
 		return nil, process.ErrHeaderRoundNotRelevant
 	}
 
-	headerCopy := header
-	headerCopy.HeaderHandler().SetPubKeysBitmap(nil)
-	headerCopy.HeaderHandler().SetSignature(nil)
-	headerCopy.HeaderHandler().SetLeaderSignature(nil)
-
-	headerBytes, err := ssd.marshaller.Marshal(headerCopy)
+	headerHash, err := ssd.computeHashWithoutSignatures(header.HeaderHandler())
 	if err != nil {
 		return nil, err
 	}
 
-	headerHash := ssd.hasher.Compute(string(headerBytes))
-
 	if ssd.roundHashesCache.contains(round, headerHash) {
-		return nil, errors.New("smth")
+		return nil, errors.New("dsa")
 	}
 
 	for _, currData := range ssd.roundHashesCache.headers(round) {
-		badBoys := ssd.baietiiCareAuSemnatMaiMulte(currData.header, header.HeaderHandler())
-		if len(badBoys) >= 1 {
-			for _, badBoy := range badBoys {
-				ssd.slashingCache.add(round, badBoy.PubKey(), header)
+		signers, _ := ssd.getValidatorsWhichSignedBothHeaders(currData.header, header.HeaderHandler())
+		if len(signers) >= 1 {
+			for _, signer := range signers {
+				ssd.slashingCache.add(round, signer.PubKey(), header)
 			}
 		}
 	}
@@ -72,30 +65,83 @@ func (ssd *SigningSlashingDetector) VerifyData(data process.InterceptedData) (sl
 	return nil, nil
 }
 
-func (ssd *SigningSlashingDetector) baietiiCareAuSemnatMaiMulte(header1 data.HeaderHandler, header2 data.HeaderHandler) []sharding.Validator {
-	return nil
+func (ssd *SigningSlashingDetector) computeHashWithoutSignatures(header data.HeaderHandler) ([]byte, error) {
+	header.SetPubKeysBitmap(nil)
+	header.SetSignature(nil)
+	header.SetLeaderSignature(nil)
+
+	headerBytes, err := ssd.marshaller.Marshal(header)
+	if err != nil {
+		return nil, err
+	}
+
+	return ssd.hasher.Compute(string(headerBytes)), nil
+}
+
+func (ssd *SigningSlashingDetector) getValidatorsWhichSignedBothHeaders(header1 data.HeaderHandler, header2 data.HeaderHandler) ([]sharding.Validator, error) {
+	group1, err := ssd.nodesCoordinator.ComputeConsensusGroup(
+		header1.GetPrevRandSeed(),
+		header1.GetRound(),
+		header1.GetShardID(),
+		header1.GetEpoch())
+	if err != nil {
+		return nil, err
+	}
+
+	group2, err := ssd.nodesCoordinator.ComputeConsensusGroup(
+		header2.GetPrevRandSeed(),
+		header2.GetRound(),
+		header2.GetShardID(),
+		header2.GetEpoch())
+	if err != nil {
+		return nil, err
+	}
+
+	pubKeyBitmap1 := header1.GetPubKeysBitmap()
+	pubKeyBitmap2 := header2.GetPubKeysBitmap()
+
+	return doubleSigners(group1, group2, pubKeyBitmap1, pubKeyBitmap2), nil
+}
+
+func isIndexSetInBitmap(index uint32, bitmap []byte) bool {
+	indexOutOfBounds := index >= uint32(len(bitmap))*8
+	if indexOutOfBounds {
+		return false
+	}
+
+	return bitmap[index/8]&(1<<uint8(index%8)) != 0
+}
+
+func doubleSigners(
+	group1 []sharding.Validator,
+	group2 []sharding.Validator,
+	bitmap1 []byte,
+	bitmap2 []byte,
+) []sharding.Validator {
+	intersectionSet := make([]sharding.Validator, 0)
+	if len(group1) == 0 || len(group2) == 0 {
+		return intersectionSet
+	}
+
+	hashMap := make(map[string]sharding.Validator, 0)
+	for _, validator := range group1 {
+		hashMap[string(validator.PubKey())] = validator
+	}
+
+	for _, validatorGroup2 := range group2 {
+		if validatorGroup1, found := hashMap[string(validatorGroup2.PubKey())]; found {
+			if isIndexSetInBitmap(validatorGroup1.Index(), bitmap1) &&
+				isIndexSetInBitmap(validatorGroup2.Index(), bitmap2) {
+				intersectionSet = append(intersectionSet, validatorGroup1)
+			}
+		}
+	}
+	return intersectionSet
 }
 
 func (ssd *SigningSlashingDetector) isRoundRelevant(headerRound uint64) bool {
 	currRound := uint64(ssd.roundHandler.Index())
 	return absDiff(currRound, headerRound) < MaxDeltaToCurrentRound
-}
-
-func (ssd *SigningSlashingDetector) getProposerPubKey(header data.HeaderHandler) ([]byte, error) {
-	validators, err := ssd.nodesCoordinator.ComputeConsensusGroup(
-		header.GetRandSeed(),
-		header.GetRound(),
-		header.GetShardID(),
-		header.GetEpoch())
-
-	if err != nil {
-		return nil, err
-	}
-	if len(validators) == 0 {
-		return nil, process.ErrEmptyConsensusGroup
-	}
-
-	return validators[0].PubKey(), nil
 }
 
 // GenerateProof - creates the SlashingProofHandler for the DetectorResult to be added to the Tx Data Field
