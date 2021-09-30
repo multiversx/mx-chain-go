@@ -739,6 +739,7 @@
 
 [DbLookupExtensions]
     Enabled = false
+    DbLookupMaxActivePersisters = 100
     [DbLookupExtensions.MiniblocksMetadataStorageConfig.Cache]
         Name = "DbLookupExtensions.MiniblocksMetadataStorage"
         Capacity = 20000
