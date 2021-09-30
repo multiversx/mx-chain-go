@@ -488,8 +488,8 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 			miniBlockTxHashes[index],
 			&gasConsumedByMiniBlockInSenderShard,
 			&gasConsumedByMiniBlockInReceiverShard,
-			&totalGasConsumedInSelfShard,
-		)
+			&totalGasConsumedInSelfShard)
+
 		if err != nil {
 			return processedTxHashes, index, err
 		}
