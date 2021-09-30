@@ -1218,8 +1218,6 @@ func (txs *transactions) ProcessMiniBlock(
 			return processedTxHashes, index, err
 		}
 
-		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[index])
-
 		err = txs.computeGasConsumed(
 			miniBlock.SenderShardID,
 			miniBlock.ReceiverShardID,
@@ -1232,6 +1230,8 @@ func (txs *transactions) ProcessMiniBlock(
 		if err != nil {
 			return processedTxHashes, index, err
 		}
+
+		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[index])
 
 		txs.saveAccountBalanceForAddress(miniBlockTxs[index].GetRcvAddr())
 
