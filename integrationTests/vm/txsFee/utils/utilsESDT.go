@@ -128,6 +128,32 @@ func ClearESDTRoles(
 	SetESDTRoles(t, accnts, pubKey, tokenIdentifier, [][]byte{})
 }
 
+func SetLastNFTNonce(
+	t *testing.T,
+	accnts state.AccountsAdapter,
+	pubKey []byte,
+	tokenIdentifier []byte,
+	lastNonce uint64,
+) {
+	account, err := accnts.LoadAccount(pubKey)
+	require.Nil(t, err)
+
+	userAccount, ok := account.(state.UserAccountHandler)
+	require.True(t, ok)
+
+	key := append([]byte(core.ElrondProtectedKeyPrefix), []byte(core.ESDTNFTLatestNonceIdentifier)...)
+	key = append(key, tokenIdentifier...)
+
+	err = userAccount.DataTrieTracker().SaveKeyValue(key, big.NewInt(int64(lastNonce)).Bytes())
+	require.Nil(t, err)
+
+	err = accnts.SaveAccount(account)
+	require.Nil(t, err)
+
+	_, err = accnts.Commit()
+	require.Nil(t, err)
+}
+
 // CreateESDTTransferTx -
 func CreateESDTTransferTx(nonce uint64, sndAddr, rcvAddr []byte, tokenIdentifier []byte, esdtValue *big.Int, gasPrice, gasLimit uint64) *transaction.Transaction {
 	hexEncodedToken := hex.EncodeToString(tokenIdentifier)
