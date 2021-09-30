@@ -1,4 +1,4 @@
-package mock
+package statusHandler
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -24,16 +24,6 @@ func (shum *StatusHandlersUtilsMock) StatusHandler() core.AppStatusHandler {
 // Metrics -
 func (shum *StatusHandlersUtilsMock) Metrics() external.StatusMetricsHandler {
 	return nil
-}
-
-// SignalStartViews -
-func (shum *StatusHandlersUtilsMock) SignalStartViews() {
-
-}
-
-// SignalLogRewrite -
-func (shum *StatusHandlersUtilsMock) SignalLogRewrite() {
-
 }
 
 // IsInterfaceNil -

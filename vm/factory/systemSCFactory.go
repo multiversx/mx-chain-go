@@ -249,6 +249,11 @@ func (scf *systemSCFactory) createGovernanceContract() (vm.SystemSmartContract, 
 }
 
 func (scf *systemSCFactory) createDelegationContract() (vm.SystemSmartContract, error) {
+	addTokensAddress, err := scf.addressPubKeyConverter.Decode(scf.systemSCConfig.DelegationManagerSystemSCConfig.ConfigChangeAddress)
+	if err != nil {
+		return nil, fmt.Errorf("%w for DelegationManagerSystemSCConfig.ConfigChangeAddress in systemSCFactory", vm.ErrInvalidAddress)
+	}
+
 	argsDelegation := systemSmartContracts.ArgsNewDelegation{
 		DelegationSCConfig:     scf.systemSCConfig.DelegationSystemSCConfig,
 		StakingSCConfig:        scf.systemSCConfig.StakingSystemSCConfig,
@@ -263,6 +268,7 @@ func (scf *systemSCFactory) createDelegationContract() (vm.SystemSmartContract, 
 		EndOfEpochAddress:      vm.EndOfEpochAddress,
 		GovernanceSCAddress:    vm.GovernanceSCAddress,
 		EpochConfig:            *scf.epochConfig,
+		AddTokensAddress:       addTokensAddress,
 	}
 	delegation, err := systemSmartContracts.NewDelegationSystemSC(argsDelegation)
 	return delegation, err

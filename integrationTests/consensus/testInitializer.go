@@ -49,6 +49,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
+	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -127,7 +128,7 @@ func displayAndStartNodes(nodes []*testNode) {
 }
 
 func createTestBlockChain() data.ChainHandler {
-	blockChain, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
+	blockChain, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
 	_ = blockChain.SetGenesisHeader(&dataBlock.Header{})
 
 	return blockChain
@@ -343,7 +344,7 @@ func createConsensusOnlyNode(
 		Storage:          createTestStore(),
 		Marshalizer:      testMarshalizer,
 		Hasher:           testHasher,
-		AppStatusHandler: &testscommon.AppStatusHandlerStub{},
+		AppStatusHandler: &statusHandlerMock.AppStatusHandlerStub{},
 	}
 	epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsNewMetaEpochStart)
 
