@@ -8,8 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	errorsErd "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/require"
 )
 
@@ -332,7 +332,7 @@ func getCoreArgs() factory.CoreComponentsFactoryArgs {
 		NodesFilename:         "mock/testdata/nodesSetupMock.json",
 		WorkingDirectory:      "home",
 		ChanStopNodeProcess:   make(chan endProcess.ArgEndProcess),
-		StatusHandlersFactory: &mock.StatusHandlersFactoryMock{},
+		StatusHandlersFactory: &statusHandler.StatusHandlersFactoryMock{},
 		EpochConfig: config.EpochConfig{
 			GasSchedule: config.GasScheduleConfig{
 				GasScheduleByEpochs: []config.GasScheduleByEpochs{

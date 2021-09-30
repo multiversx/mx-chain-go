@@ -126,6 +126,12 @@ func TestManagedProcessComponents_Create_ShouldWork(t *testing.T) {
 	require.False(t, check.IfNil(managedProcessComponents.FallbackHeaderValidator()))
 	require.False(t, check.IfNil(managedProcessComponents.PeerShardMapper()))
 	require.False(t, check.IfNil(managedProcessComponents.ShardCoordinator()))
+
+	nodeSkBytes, err := cryptoComponents.PrivateKey().ToByteArray()
+	require.Nil(t, err)
+	observerSkBytes, err := managedProcessComponents.NodeRedundancyHandler().ObserverPrivateKey().ToByteArray()
+	require.Nil(t, err)
+	require.NotEqual(t, nodeSkBytes, observerSkBytes)
 }
 
 func TestManagedProcessComponents_Close(t *testing.T) {

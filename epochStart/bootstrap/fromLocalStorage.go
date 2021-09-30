@@ -104,6 +104,8 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 			NumOfShards: e.baseData.numberOfShards,
 			NodesConfig: e.nodesConfig,
 		}
+		e.setEpochStartMetrics()
+
 		return parameters, nil
 	}
 
