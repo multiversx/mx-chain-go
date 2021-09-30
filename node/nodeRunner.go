@@ -1020,6 +1020,15 @@ func (nr *nodeRunner) CreateManagedDataComponents(
 		return nil, err
 	}
 
+	reloadStorers(managedBootstrapComponents, managedDataComponents)
+
+	return managedDataComponents, nil
+}
+
+func reloadStorers(
+	managedBootstrapComponents mainFactory.BootstrapComponentsHandler,
+	managedDataComponents mainFactory.DataComponentsHandler,
+) {
 	_, trieStorageManagers := managedBootstrapComponents.EpochStartBootstrapper().GetTriesComponents()
 	storers := managedDataComponents.StorageService()
 
@@ -1038,8 +1047,6 @@ func (nr *nodeRunner) CreateManagedDataComponents(
 			tsm.ReloadStorers(peerAccountStorer, peerAccountCheckpointsStorer)
 		}
 	}
-
-	return managedDataComponents, nil
 }
 
 // CreateManagedStateComponents is the managed state components factory

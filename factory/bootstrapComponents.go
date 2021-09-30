@@ -9,9 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
-	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
@@ -145,11 +143,6 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		return nil, err
 	}
 
-	storageService, err := bcf.getStorageService(genesisShardCoordinator)
-	if err != nil {
-		return nil, err
-	}
-
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
 		CoreComponentsHolder:       bcf.coreComponents,
 		CryptoComponentsHolder:     bcf.cryptoComponents,
@@ -169,7 +162,6 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		ArgumentsParser:            smartContract.NewArgumentParser(),
 		StatusHandler:              bcf.coreComponents.StatusHandler(),
 		HeaderIntegrityVerifier:    headerIntegrityVerifier,
-		StorageService:             storageService,
 	}
 
 	var epochStartBootstrapper EpochStartBootstrapper
@@ -219,46 +211,6 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		shardCoordinator:        shardCoordinator,
 		headerIntegrityVerifier: headerIntegrityVerifier,
 	}, nil
-}
-
-func (bcf *bootstrapComponentsFactory) getStorageService(genesisShardCoordinator sharding.Coordinator) (dataRetriever.StorageService, error) {
-	pathManager, err := storageFactory.CreatePathManager(
-		storageFactory.ArgCreatePathManager{
-			WorkingDir: bcf.importDbConfig.ImportDBWorkingDir,
-			ChainID:    bcf.coreComponents.ChainID(),
-		},
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	shardCoordinator, err := sharding.NewMultiShardCoordinator(genesisShardCoordinator.NumberOfShards(), genesisShardCoordinator.SelfId())
-	if err != nil {
-		return nil, err
-	}
-
-	mesn := notifier.NewManualEpochStartNotifier()
-	mesn.NewEpoch(bcf.importDbConfig.ImportDBStartInEpoch + 1)
-
-	storageServiceCreator, err := storageFactory.NewStorageServiceFactory(
-		&bcf.config,
-		&bcf.prefConfig.Preferences,
-		shardCoordinator,
-		pathManager,
-		mesn,
-		bcf.coreComponents.NodeTypeProvider(),
-		bcf.importDbConfig.ImportDBStartInEpoch,
-		bcf.importDbConfig.ImportDbSaveTrieEpochRootHash,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	if bcf.importDbConfig.ImportDBTargetShardID == core.MetachainShardId {
-		return storageServiceCreator.CreateForMeta()
-	}
-
-	return storageServiceCreator.CreateForShard()
 }
 
 // Close closes the bootstrap components, closing at the same time any running goroutines

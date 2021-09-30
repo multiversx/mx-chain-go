@@ -18,7 +18,7 @@ type StorageManagerStub struct {
 	ExitPruningBufferingModeCalled  func()
 	AddDirtyCheckpointHashesCalled  func([]byte, common.ModifiedHashes) bool
 	RemoveCalled                    func([]byte) error
-	ReloadStorersCalled             func(common.DBWriteCacher, common.DBWriteCacher)
+	ReloadStorersCalled             func(mainStorer common.DBWriteCacher, checkpointsStorer common.DBWriteCacher)
 	IsInterfaceNilCalled            func() bool
 	SetEpochForPutOperationCalled   func(uint32)
 }

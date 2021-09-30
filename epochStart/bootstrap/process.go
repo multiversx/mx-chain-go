@@ -98,7 +98,6 @@ type epochStartBootstrap struct {
 	numConcurrentTrieSyncers   int
 	maxHardCapForMissingNodes  int
 	trieSyncerVersion          int
-	storageService             dataRetriever.StorageService
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -156,7 +155,6 @@ type ArgsEpochStartBootstrap struct {
 	ArgumentsParser            process.ArgumentsParser
 	StatusHandler              core.AppStatusHandler
 	HeaderIntegrityVerifier    process.HeaderIntegrityVerifier
-	StorageService             dataRetriever.StorageService
 }
 
 // NewEpochStartBootstrap will return a new instance of epochStartBootstrap
@@ -192,7 +190,6 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		maxHardCapForMissingNodes:  args.GeneralConfig.TrieSync.MaxHardCapForMissingNodes,
 		trieSyncerVersion:          args.GeneralConfig.TrieSync.TrieSyncerVersion,
 		waitingListFixEnableEpoch:  args.EpochConfig.EnableEpochs.WaitingListFixEnableEpoch,
-		storageService:             args.StorageService,
 	}
 
 	log.Debug("process: enable epoch for transaction signed with tx hash", "epoch", epochStartProvider.enableSignTxWithHashEpoch)
@@ -305,13 +302,6 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 
 	defer func() {
 		e.cleanupOnBootstrapFinish()
-
-		if !check.IfNil(e.storageService) {
-			err := e.storageService.CloseAll()
-			if err != nil {
-				log.Debug("non critical error closing storage service", "error", err)
-			}
-		}
 	}()
 
 	var err error
@@ -894,9 +884,57 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 	return nil
 }
 
+func (e *epochStartBootstrap) createStorageService(
+	shardCoordinator sharding.Coordinator,
+	pathManager storage.PathManagerHandler,
+	epochStartNotifier storage.EpochStartNotifier,
+	startEpoch uint32,
+	createTrieEpochRootHashStorer bool,
+	targetShardId uint32,
+) (dataRetriever.StorageService, error) {
+	storageServiceCreator, err := storageFactory.NewStorageServiceFactory(
+		&e.generalConfig,
+		&e.prefsConfig,
+		shardCoordinator,
+		pathManager,
+		epochStartNotifier,
+		e.coreComponentsHolder.NodeTypeProvider(),
+		startEpoch,
+		createTrieEpochRootHashStorer,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if targetShardId == core.MetachainShardId {
+		return storageServiceCreator.CreateForMeta()
+	}
+
+	return storageServiceCreator.CreateForShard()
+}
+
 func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) error {
 	e.tryCloseExisting(factory.UserAccountTrie)
 	e.tryCloseExisting(factory.PeerAccountTrie)
+
+	storageService, err := e.createStorageService(
+		e.shardCoordinator,
+		e.coreComponentsHolder.PathHandler(),
+		&disabled.EpochStartNotifier{},
+		e.startEpoch,
+		false,
+		e.shardCoordinator.SelfId(),
+	)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		err := storageService.CloseAll()
+		if err != nil {
+			log.Debug("non critical error closing storage service", "error", err)
+		}
+	}()
 
 	trieFactoryArgs := factory.TrieFactoryArgs{
 		SnapshotDbCfg:            e.generalConfig.TrieSnapshotDB,
@@ -912,8 +950,8 @@ func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) er
 
 	args := factory.TrieCreateArgs{
 		TrieStorageConfig:  e.generalConfig.AccountsTrieStorageOld,
-		MainStorer:         e.storageService.GetStorer(dataRetriever.UserAccountsUnit),
-		CheckpointsStorer:  e.storageService.GetStorer(dataRetriever.UserAccountsCheckpointsUnit),
+		MainStorer:         storageService.GetStorer(dataRetriever.UserAccountsUnit),
+		CheckpointsStorer:  storageService.GetStorer(dataRetriever.UserAccountsCheckpointsUnit),
 		ShardID:            core.GetShardIDString(shardId),
 		PruningEnabled:     e.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
 		CheckpointsEnabled: e.generalConfig.StateTriesConfig.CheckpointsEnabled,
@@ -931,8 +969,8 @@ func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) er
 
 	args = factory.TrieCreateArgs{
 		TrieStorageConfig:  e.generalConfig.PeerAccountsTrieStorageOld,
-		MainStorer:         e.storageService.GetStorer(dataRetriever.PeerAccountsUnit),
-		CheckpointsStorer:  e.storageService.GetStorer(dataRetriever.PeerAccountsCheckpointsUnit),
+		MainStorer:         storageService.GetStorer(dataRetriever.PeerAccountsUnit),
+		CheckpointsStorer:  storageService.GetStorer(dataRetriever.PeerAccountsCheckpointsUnit),
 		ShardID:            core.GetShardIDString(shardId),
 		PruningEnabled:     e.generalConfig.StateTriesConfig.PeerStatePruningEnabled,
 		CheckpointsEnabled: e.generalConfig.StateTriesConfig.CheckpointsEnabled,

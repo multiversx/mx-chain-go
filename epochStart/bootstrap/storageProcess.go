@@ -37,6 +37,7 @@ type ArgsStorageEpochStartBootstrap struct {
 type storageEpochStartBootstrap struct {
 	*epochStartBootstrap
 	resolvers                  dataRetriever.ResolversContainer
+	store                      dataRetriever.StorageService
 	importDbConfig             config.ImportDbConfig
 	chanGracefullyClose        chan endProcess.ArgEndProcess
 	chainID                    string
@@ -82,8 +83,8 @@ func (sesb *storageEpochStartBootstrap) Bootstrap() (Parameters, error) {
 			}
 		}
 
-		if !check.IfNil(sesb.storageService) {
-			err := sesb.storageService.CloseAll()
+		if !check.IfNil(sesb.store) {
+			err := sesb.store.CloseAll()
 			if err != nil {
 				log.Debug("non critical error closing storage service", "error", err)
 			}
@@ -217,6 +218,10 @@ func (sesb *storageEpochStartBootstrap) createStorageResolvers() error {
 
 	mesn := notifier.NewManualEpochStartNotifier()
 	mesn.NewEpoch(sesb.importDbConfig.ImportDBStartInEpoch + 1)
+	sesb.store, err = sesb.createStoreForStorageResolvers(shardCoordinator, mesn)
+	if err != nil {
+		return err
+	}
 
 	resolversContainerFactoryArgs := storageResolversContainers.FactoryArgs{
 		GeneralConfig:            sesb.generalConfig,
@@ -226,7 +231,7 @@ func (sesb *storageEpochStartBootstrap) createStorageResolvers() error {
 		Hasher:                   sesb.coreComponentsHolder.Hasher(),
 		ShardCoordinator:         shardCoordinator,
 		Messenger:                sesb.messenger,
-		Store:                    sesb.storageService,
+		Store:                    sesb.store,
 		Marshalizer:              sesb.coreComponentsHolder.InternalMarshalizer(),
 		Uint64ByteSliceConverter: sesb.coreComponentsHolder.Uint64ByteSliceConverter(),
 		DataPacker:               dataPacker,
@@ -261,25 +266,14 @@ func (sesb *storageEpochStartBootstrap) createStoreForStorageResolvers(shardCoor
 		return nil, err
 	}
 
-	storageServiceCreator, err := storageFactory.NewStorageServiceFactory(
-		&sesb.generalConfig,
-		&sesb.prefsConfig,
+	return sesb.createStorageService(
 		shardCoordinator,
 		pathManager,
 		mesn,
-		sesb.coreComponentsHolder.NodeTypeProvider(),
 		sesb.importDbConfig.ImportDBStartInEpoch,
 		sesb.importDbConfig.ImportDbSaveTrieEpochRootHash,
+		sesb.importDbConfig.ImportDBTargetShardID,
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	if sesb.importDbConfig.ImportDBTargetShardID == core.MetachainShardId {
-		return storageServiceCreator.CreateForMeta()
-	} else {
-		return storageServiceCreator.CreateForShard()
-	}
 }
 
 func (sesb *storageEpochStartBootstrap) requestAndProcessFromStorage() (Parameters, error) {

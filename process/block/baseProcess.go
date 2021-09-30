@@ -1123,15 +1123,19 @@ func (bp *baseProcessor) RevertAccountState(_ data.HeaderHandler) {
 
 func (bp *baseProcessor) commitAll(headerHandler data.HeaderHandler) error {
 	if headerHandler.IsStartOfEpochBlock() {
-		currentEpoch := headerHandler.GetEpoch()
-		lastEpoch := currentEpoch - 1
-		if lastEpoch < 0 {
-			lastEpoch = 0
-		}
-		return bp.commitInEpoch(currentEpoch, lastEpoch)
+		return bp.commitInLastEpoch(headerHandler.GetEpoch())
 	}
 
 	return bp.commit()
+}
+
+func (bp *baseProcessor) commitInLastEpoch(currentEpoch uint32) error {
+	lastEpoch := currentEpoch - 1
+	if lastEpoch < 0 {
+		lastEpoch = 0
+	}
+
+	return bp.commitInEpoch(currentEpoch, lastEpoch)
 }
 
 func (bp *baseProcessor) commit() error {

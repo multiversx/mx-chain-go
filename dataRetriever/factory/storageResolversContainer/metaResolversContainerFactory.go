@@ -188,8 +188,8 @@ func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
 	identifierTrieNodes := factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 	storageManager, userAccountsDataTrie, err := mrcf.newImportDBTrieStorage(
 		mrcf.generalConfig.AccountsTrieStorageOld,
-		mrcf.store.GetStorer(dataRetriever.PeerAccountsUnit),
-		mrcf.store.GetStorer(dataRetriever.PeerAccountsCheckpointsUnit),
+		mrcf.store.GetStorer(dataRetriever.UserAccountsUnit),
+		mrcf.store.GetStorer(dataRetriever.UserAccountsCheckpointsUnit),
 	)
 	if err != nil {
 		return fmt.Errorf("%w while creating user accounts data trie storage getter", err)

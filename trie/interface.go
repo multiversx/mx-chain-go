@@ -83,3 +83,8 @@ type TimeoutHandler interface {
 	IsTimeout() bool
 	IsInterfaceNil() bool
 }
+
+// epochStorer is used for storers that have information stored by epochs
+type epochStorer interface {
+	setEpochForPutOperation(epoch uint32)
+}

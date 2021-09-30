@@ -32,10 +32,12 @@ func (ts *trieSyncer) trieNodeIntercepted(hash []byte, val interface{}) {
 	}
 }
 
+// PruningBlockingOperations -
 func (tsm *trieStorageManagerWithoutCheckpoints) PruningBlockingOperations() uint32 {
 	return tsm.pruningBlockingOps
 }
 
+// WaitForOperationToComplete -
 func WaitForOperationToComplete(tsm common.StorageManager) {
 	for tsm.IsPruningBlocked() {
 		time.Sleep(10 * time.Millisecond)
@@ -61,6 +63,7 @@ func (tsm *trieStorageManager) GetSnapshotThatContainsHash(rootHash []byte) comm
 	return nil
 }
 
+// NewSnapshotDb -
 func (tsm *trieStorageManager) NewSnapshotDb() (storage.Persister, error) {
 	snapshotPath := path.Join(tsm.snapshotDbCfg.FilePath, strconv.Itoa(tsm.snapshotId))
 	for directoryExists(snapshotPath) {
@@ -91,6 +94,7 @@ func (tsm *trieStorageManager) NewSnapshotDb() (storage.Persister, error) {
 	return db, nil
 }
 
+// GetSnapshots -
 func (tsm *trieStorageManager) GetSnapshots() []common.SnapshotDbHandler {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
@@ -98,6 +102,7 @@ func (tsm *trieStorageManager) GetSnapshots() []common.SnapshotDbHandler {
 	return tsm.snapshots
 }
 
+// SnapshotId -
 func (tsm *trieStorageManager) SnapshotId() int {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
@@ -105,6 +110,7 @@ func (tsm *trieStorageManager) SnapshotId() int {
 	return tsm.snapshotId
 }
 
+// GetFromCheckpoint -
 func (tsm *trieStorageManager) GetFromCheckpoint(key []byte) ([]byte, error) {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
@@ -112,6 +118,7 @@ func (tsm *trieStorageManager) GetFromCheckpoint(key []byte) ([]byte, error) {
 	return tsm.checkpointsStorer.Get(key)
 }
 
+// CreateSmallTestTrieAndStorageManager -
 func CreateSmallTestTrieAndStorageManager() (*patriciaMerkleTrie, *trieStorageManager) {
 	tr, trieStorage := newEmptyTrie()
 	_ = tr.Update([]byte("doe"), []byte("reindeer"))
@@ -123,6 +130,7 @@ func CreateSmallTestTrieAndStorageManager() (*patriciaMerkleTrie, *trieStorageMa
 	return tr, trieStorage
 }
 
+// GetDirtyHashes -
 func GetDirtyHashes(tr common.Trie) common.ModifiedHashes {
 	hashes, _ := tr.GetAllHashes()
 	dirtyHashes := make(common.ModifiedHashes)

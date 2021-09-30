@@ -3,7 +3,6 @@ package trie
 import (
 	"bytes"
 	"context"
-	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -240,8 +239,8 @@ func (tsm *trieStorageManager) Get(key []byte) ([]byte, error) {
 		return val, nil
 	}
 
-	for _, snapshot := range tsm.snapshots {
-		val, _ = snapshot.Get(key)
+	for i := len(tsm.snapshots) - 1; i >= 0; i-- {
+		val, _ = tsm.snapshots[i].Get(key)
 		if len(val) != 0 {
 			return val, nil
 		}
@@ -255,6 +254,7 @@ func (tsm *trieStorageManager) Put(key []byte, val []byte) error {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
 	log.Debug("put hash in tsm", "hash", key)
+
 	return tsm.mainStorer.Put(key, val)
 }
 
@@ -360,10 +360,7 @@ func (tsm *trieStorageManager) finishOperation(snapshotEntry *snapshotsQueueEntr
 func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, msh marshal.Marshalizer, hsh hashing.Hasher, ctx context.Context) {
 	defer tsm.finishOperation(snapshotEntry, "trie snapshot finished")
 
-	log.Debug("trie snapshot started", "rootHash", snapshotEntry.rootHash)
-	if hex.EncodeToString(snapshotEntry.rootHash) == "47cac53a2d9b86f8341a441f67d7d7fea961af50aa55bef0a7ee73777f3f6f2d" {
-		fmt.Println()
-	}
+	log.Trace("trie snapshot started", "rootHash", snapshotEntry.rootHash)
 
 	newRoot, err := newSnapshotNode(tsm, msh, hsh, snapshotEntry.rootHash)
 	if err != nil {
@@ -384,7 +381,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 func (tsm *trieStorageManager) takeCheckpoint(checkpointEntry *snapshotsQueueEntry, msh marshal.Marshalizer, hsh hashing.Hasher, ctx context.Context) {
 	defer tsm.finishOperation(checkpointEntry, "trie checkpoint finished")
 
-	log.Debug("trie checkpoint started", "rootHash", checkpointEntry.rootHash)
+	log.Trace("trie checkpoint started", "rootHash", checkpointEntry.rootHash)
 
 	newRoot, err := newSnapshotNode(tsm, msh, hsh, checkpointEntry.rootHash)
 	if err != nil {
@@ -449,10 +446,6 @@ func (tsm *trieStorageManager) Remove(hash []byte) error {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
 
-	if hex.EncodeToString(hash) == "88ed3124d3f12b3ca29376ffcb082385e819afb67257d792d0b9dd541712a2b6" {
-		fmt.Println()
-	}
-
 	tsm.checkpointHashesHolder.Remove(hash)
 	return tsm.mainStorer.Remove(hash)
 }
@@ -505,14 +498,15 @@ func (tsm *trieStorageManager) Close() error {
 	return nil
 }
 
+// SetEpochForPutOperation will set the storer for the given epoch as the current storer
 func (tsm *trieStorageManager) SetEpochForPutOperation(epoch uint32) {
-	storer, ok := tsm.mainStorer.(common.EpochStorer)
+	storer, ok := tsm.mainStorer.(epochStorer)
 	if !ok {
 		log.Error("invalid storer for ChangeEpochForPutOperations", "epoch", epoch)
 		return
 	}
 
-	storer.SetEpochForPutOperation(epoch)
+	storer.setEpochForPutOperation(epoch)
 }
 
 // ReloadStorers sets the given storers as the mainStorer and checkpointsStorer.

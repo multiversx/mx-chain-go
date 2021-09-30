@@ -73,7 +73,8 @@ type AccountsDB struct {
 	lastRootHash []byte
 	dataTries    TriesHolder
 	entries      []JournalEntry
-	mutOp        sync.RWMutex
+	//TODO use mutOp only for critical sections, and refactor to parallelize as much as possible
+	mutOp sync.RWMutex
 
 	numCheckpoints       uint32
 	loadCodeMeasurements *loadingMeasurements
@@ -974,10 +975,6 @@ func (adb *AccountsDB) CancelPrune(rootHash []byte, identifier TriePruningIdenti
 func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
-
-	if hex.EncodeToString(rootHash) == "47cac53a2d9b86f8341a441f67d7d7fea961af50aa55bef0a7ee73777f3f6f2d" {
-		fmt.Println()
-	}
 
 	trieStorageManager := adb.mainTrie.GetStorageManager()
 	log.Trace("accountsDB.SnapshotState", "root hash", rootHash)
