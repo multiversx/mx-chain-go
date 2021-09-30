@@ -47,8 +47,8 @@ func createGenesisConfig() config.EnableEpochs {
 	return config.EnableEpochs{
 		BuiltInFunctionsEnableEpoch:                 0,
 		SCDeployEnableEpoch:                         unreachableEpoch,
-		RelayedTransactionsEnableEpoch:              0,
-		PenalizedTooMuchGasEnableEpoch:              0,
+		RelayedTransactionsEnableEpoch:              unreachableEpoch,
+		PenalizedTooMuchGasEnableEpoch:              unreachableEpoch,
 		AheadOfTimeGasUsageEnableEpoch:              unreachableEpoch,
 		BelowSignedThresholdEnableEpoch:             unreachableEpoch,
 		GasPriceModifierEnableEpoch:                 unreachableEpoch,
@@ -63,6 +63,7 @@ func createGenesisConfig() config.EnableEpochs {
 		IncrementSCRNonceInMultiTransferEnableEpoch: unreachableEpoch,
 		SCRSizeInvariantCheckEnableEpoch:            unreachableEpoch,
 		BackwardCompSaveKeyValueEnableEpoch:         unreachableEpoch,
+		RepairCallbackEnableEpoch:                   unreachableEpoch,
 		MetaESDTSetEnableEpoch:                      unreachableEpoch,
 		AddTokensToDelegationEnableEpoch:            unreachableEpoch,
 		MultiESDTTransferFixOnCallBackOnEnableEpoch: unreachableEpoch,
