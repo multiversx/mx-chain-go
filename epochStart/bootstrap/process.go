@@ -918,12 +918,12 @@ func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) er
 	e.tryCloseExisting(factory.PeerAccountTrie)
 
 	storageService, err := e.createStorageService(
-		e.shardCoordinator,
+		e.genesisShardCoordinator,
 		e.coreComponentsHolder.PathHandler(),
 		&disabled.EpochStartNotifier{},
 		e.startEpoch,
 		false,
-		e.shardCoordinator.SelfId(),
+		shardId,
 	)
 	if err != nil {
 		return err
