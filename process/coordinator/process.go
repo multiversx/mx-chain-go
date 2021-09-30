@@ -499,7 +499,7 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 		numMiniBlocksProcessed += len(separatedBodies[blockType].MiniBlocks)
 	}
 
-	log.Debug("transactionCoordinator.processMiniBlocksFromMe: gas consumed and refunded info",
+	log.Debug("transactionCoordinator.processMiniBlocksFromMe: gas consumed, refunded and penalized info",
 		"num mini blocks processed", numMiniBlocksProcessed,
 		"total gas consumed", tc.gasHandler.TotalGasConsumed(),
 		"total gas refunded", tc.gasHandler.TotalGasRefunded(),
@@ -532,7 +532,7 @@ func (tc *transactionCoordinator) processMiniBlocksToMe(
 		}
 	}
 
-	log.Debug("transactionCoordinator.processMiniBlocksToMe: gas consumed and refunded info",
+	log.Debug("transactionCoordinator.processMiniBlocksToMe: gas consumed, refunded and penalized info",
 		"num mini blocks processed", len(body.MiniBlocks),
 		"total gas consumed", tc.gasHandler.TotalGasConsumed(),
 		"total gas refunded", tc.gasHandler.TotalGasRefunded(),
@@ -652,7 +652,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 
 	allMBsProcessed := nrMiniBlocksProcessed == len(crossMiniBlockInfos)
 
-	log.Debug("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: gas consumed and refunded info",
+	log.Debug("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: gas consumed, refunded and penalized info",
 		"header round", hdr.GetRound(),
 		"header nonce", hdr.GetNonce(),
 		"num mini blocks to be processed", len(crossMiniBlockInfos),
@@ -694,7 +694,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 		miniBlocks = append(miniBlocks, interMBs...)
 	}
 
-	log.Debug("transactionCoordinator.CreateMbsAndProcessTransactionsFromMe: gas consumed and refunded info",
+	log.Debug("transactionCoordinator.CreateMbsAndProcessTransactionsFromMe: gas consumed, refunded and penalized info",
 		"num mini blocks processed", numMiniBlocksProcessed,
 		"total gas consumed", tc.gasHandler.TotalGasConsumed(),
 		"total gas refunded", tc.gasHandler.TotalGasRefunded(),
