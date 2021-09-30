@@ -21,7 +21,7 @@ func Benchmark_VmDeployWithFibbonacciAndExecute(b *testing.B) {
 func Benchmark_VmDeployWithBadContractAndExecute(b *testing.B) {
 	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV4.toml")
 
-	result, err := RunTest("../testdata/misc/bad.wasm", 0, "bigLoop", nil, b.N, gasSchedule, 15000000)
+	result, err := RunTest("../testdata/misc/bad.wasm", 0, "bigLoop", nil, b.N, gasSchedule, 1500000000)
 	require.Nil(b, err)
 
 	log.Info("test completed",
