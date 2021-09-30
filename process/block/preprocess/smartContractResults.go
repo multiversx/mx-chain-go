@@ -480,6 +480,8 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 			return processedTxHashes, index, err
 		}
 
+		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[index])
+
 		err = scr.computeGasConsumed(
 			miniBlock.SenderShardID,
 			miniBlock.ReceiverShardID,
@@ -490,10 +492,8 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 			&totalGasConsumedInSelfShard)
 
 		if err != nil {
-			return processedTxHashes, 0, err
+			return processedTxHashes, index, err
 		}
-
-		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[index])
 
 		scr.saveAccountBalanceForAddress(miniBlockScrs[index].GetRcvAddr())
 
