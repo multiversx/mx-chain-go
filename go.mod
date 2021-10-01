@@ -5,13 +5,13 @@ go 1.13
 require (
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.30
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.30
-	github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.12
+	github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.16
 	github.com/ElrondNetwork/concurrent-map v0.1.3
 	github.com/ElrondNetwork/elastic-indexer-go v1.0.8
-	github.com/ElrondNetwork/elrond-go-core v1.0.1-0.20210802100738-75f99b3e75a0
+	github.com/ElrondNetwork/elrond-go-core v1.1.0
 	github.com/ElrondNetwork/elrond-go-crypto v1.0.1
 	github.com/ElrondNetwork/elrond-go-logger v1.0.5
-	github.com/ElrondNetwork/elrond-vm-common v1.1.9
+	github.com/ElrondNetwork/elrond-vm-common v1.2.2
 	github.com/ElrondNetwork/notifier-go v0.0.0-20210726084028-a78b3bbabc41
 	github.com/beevik/ntp v0.3.0
 	github.com/btcsuite/btcd v0.22.0-beta
@@ -33,7 +33,7 @@ require (
 	github.com/libp2p/go-libp2p-kbucket v0.4.7
 	github.com/libp2p/go-libp2p-pubsub v0.4.1
 	github.com/libp2p/go-libp2p-transport-upgrader v0.4.6
-	github.com/libp2p/go-tcp-transport v0.2.7
+	github.com/libp2p/go-tcp-transport v0.2.8
 	github.com/mitchellh/mapstructure v1.4.1
 	github.com/multiformats/go-multiaddr v0.3.3
 	github.com/pelletier/go-toml v1.9.3
@@ -54,4 +54,4 @@ replace github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.30 => github.com/Elrond
 
 replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.30 => github.com/ElrondNetwork/arwen-wasm-vm v1.3.30
 
-replace github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.12 => github.com/ElrondNetwork/arwen-wasm-vm v1.4.12
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.16 => github.com/ElrondNetwork/arwen-wasm-vm v1.4.16

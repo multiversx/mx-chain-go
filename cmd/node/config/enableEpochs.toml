@@ -108,6 +108,27 @@
     # BuiltInFunctionOnMetaEnableEpoch represents the epoch when built in function processing on metachain is enabled
     BuiltInFunctionOnMetaEnableEpoch = 5
 
+    # ComputeRewardCheckpointEnableEpoch represents the epoch when compute rewards checkpoint epoch is enabled
+    ComputeRewardCheckpointEnableEpoch = 5
+
+    # SCRSizeInvariantCheckEnableEpoch represents the epoch when the scr size invariant check is enabled
+    SCRSizeInvariantCheckEnableEpoch = 5
+
+    # BackwardCompSaveKeyValueEnableEpoch represents the epoch when the backward compatibility for save key value error is enabled
+    BackwardCompSaveKeyValueEnableEpoch = 5
+
+    # ESDTNFTCreateOnMultiShard represents the epoch when esdt nft creation is enabled on multiple shards
+    ESDTNFTCreateOnMultiShard = 6
+
+    # MetaESDTSetEnableEpoch represents the epoch when the backward compatibility for save key value error is enabled
+    MetaESDTSetEnableEpoch = 6
+
+    # AddTokensToDelegationEnableEpoch represents the epoch when adding tokens to delegation is enabled for whitelisted address
+    AddTokensToDelegationEnableEpoch = 6
+
+    # MultiESDTTransferFixOnCallBackOnEnableEpoch represents the epoch when multi esdt transfer on callback fix is enabled
+    MultiESDTTransferFixOnCallBackOnEnableEpoch = 6
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },

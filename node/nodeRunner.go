@@ -20,7 +20,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/gin"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
-	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/common/statistics"
@@ -29,10 +28,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	dbLookupFactory "github.com/ElrondNetwork/elrond-go/dblookupext/factory"
 	"github.com/ElrondNetwork/elrond-go/facade"
-	"github.com/ElrondNetwork/elrond-go/facade/disabled"
+	"github.com/ElrondNetwork/elrond-go/facade/initial"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
 	"github.com/ElrondNetwork/elrond-go/health"
+	"github.com/ElrondNetwork/elrond-go/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -146,7 +146,14 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("contract global mint and burn"), "epoch", enableEpochs.GlobalMintBurnDisableEpoch)
 	log.Debug(readEpochFor("contract transfer role"), "epoch", enableEpochs.ESDTTransferRoleEnableEpoch)
 	log.Debug(readEpochFor("built in functions on metachain"), "epoch", enableEpochs.BuiltInFunctionOnMetaEnableEpoch)
-
+	log.Debug(readEpochFor("compute rewards checkpoint on delegation"), "epoch", enableEpochs.ComputeRewardCheckpointEnableEpoch)
+	log.Debug(readEpochFor("esdt NFT create on multiple shards"), "epoch", enableEpochs.ESDTNFTCreateOnMultiShardEnableEpoch)
+	log.Debug(readEpochFor("SCR size invariant check"), "epoch", enableEpochs.SCRSizeInvariantCheckEnableEpoch)
+	log.Debug(readEpochFor("backward compatibility flag for save key value"), "epoch", enableEpochs.BackwardCompSaveKeyValueEnableEpoch)
+	log.Debug(readEpochFor("esdt NFT create on multiple shards"), "epoch", enableEpochs.ESDTNFTCreateOnMultiShardEnableEpoch)
+	log.Debug(readEpochFor("meta ESDT, financial SFT"), "epoch", enableEpochs.MetaESDTSetEnableEpoch)
+	log.Debug(readEpochFor("add tokens to delegation"), "epoch", enableEpochs.AddTokensToDelegationEnableEpoch)
+	log.Debug(readEpochFor("multi ESDT transfer on callback"), "epoch", enableEpochs.MultiESDTTransferFixOnCallBackOnEnableEpoch)
 	gasSchedule := configs.EpochConfig.GasSchedule
 
 	log.Debug(readEpochFor("gas schedule directories paths"), "epoch", gasSchedule.GasScheduleByEpochs)
@@ -186,14 +193,22 @@ func (nr *nodeRunner) shuffleOutStatsAndGC() {
 		log.Debug("node statistics after running GC", statistics.GetRuntimeStatistics()...)
 	}
 
-	if debugConfig.DoProfileOnShuffleOut {
-		log.Debug("running profile job")
-		parentPath := filepath.Join(nr.configs.FlagsConfig.WorkingDir, nr.configs.GeneralConfig.Health.FolderPath)
-		var stats runtime.MemStats
-		runtime.ReadMemStats(&stats)
-		err := health.WriteMemoryUseInfo(stats, time.Now(), parentPath, "softrestart")
-		log.LogIfError(err)
+	nr.doProfileOnShuffleOut()
+}
+
+func (nr *nodeRunner) doProfileOnShuffleOut() {
+	debugConfig := nr.configs.GeneralConfig.Debug.ShuffleOut
+	shouldDoProfile := debugConfig.DoProfileOnShuffleOut && nr.configs.FlagsConfig.UseHealthService
+	if !shouldDoProfile {
+		return
 	}
+
+	log.Debug("running profile job")
+	parentPath := filepath.Join(nr.configs.FlagsConfig.WorkingDir, nr.configs.GeneralConfig.Health.FolderPath)
+	var stats runtime.MemStats
+	runtime.ReadMemStats(&stats)
+	err := health.WriteMemoryUseInfo(stats, time.Now(), parentPath, "softrestart")
+	log.LogIfError(err)
 }
 
 func (nr *nodeRunner) executeOneComponentCreationCycle(
@@ -225,7 +240,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	}
 
 	log.Debug("creating disabled API services")
-	httpServerWrapper, err := nr.createInitialHttpServer()
+	webServerHandler, err := nr.createHttpServer()
 	if err != nil {
 		return true, err
 	}
@@ -244,6 +259,13 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
+	log.Trace("creating metrics")
+	//this should be called before setting the storer (done in the managedDataComponents creation)
+	err = nr.createMetrics(managedCoreComponents, managedCryptoComponents, managedBootstrapComponents)
+	if err != nil {
+		return true, err
+	}
+
 	log.Debug("creating data components")
 	managedDataComponents, err := nr.CreateManagedDataComponents(managedCoreComponents, managedBootstrapComponents)
 	if err != nil {
@@ -252,12 +274,6 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 
 	log.Debug("creating healthService")
 	healthService := nr.createHealthService(flagsConfig, managedDataComponents)
-
-	log.Trace("creating metrics")
-	err = nr.createMetrics(managedCoreComponents, managedCryptoComponents, managedBootstrapComponents)
-	if err != nil {
-		return true, err
-	}
 
 	nodesShufflerOut, err := mainFactory.CreateNodesShuffleOut(
 		managedCoreComponents.GenesisNodesSetup(),
@@ -399,7 +415,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	}
 
 	log.Debug("updating the API service after creating the node facade")
-	ef, err := nr.createApiFacade(currentNode, httpServerWrapper, gasScheduleNotifier)
+	ef, err := nr.createApiFacade(currentNode, webServerHandler, gasScheduleNotifier)
 	if err != nil {
 		return true, err
 	}
@@ -413,7 +429,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedCoreComponents.ChanStopNodeProcess(),
 		healthService,
 		ef,
-		httpServerWrapper,
+		webServerHandler,
 		currentNode,
 		goRoutinesNumberStart,
 	)
@@ -476,28 +492,21 @@ func (nr *nodeRunner) createApiFacade(
 
 	ef.SetSyncer(currentNode.coreComponents.SyncTimer())
 
-	err = upgradableHttpServer.GetHttpServer().Close()
-	if err != nil {
-		return nil, err
-	}
-
 	err = upgradableHttpServer.UpdateFacade(ef)
 	if err != nil {
 		return nil, err
 	}
 
-	go upgradableHttpServer.GetHttpServer().Start()
-
-	log.Debug("updated node facade and restarted the API services")
+	log.Debug("updated node facade")
 
 	log.Trace("starting background services")
 
 	return ef, nil
 }
 
-func (nr *nodeRunner) createInitialHttpServer() (shared.UpgradeableHttpServerHandler, error) {
+func (nr *nodeRunner) createHttpServer() (shared.UpgradeableHttpServerHandler, error) {
 	httpServerArgs := gin.ArgsNewWebServer{
-		Facade:          disabled.NewDisabledNodeFacade(nr.configs.FlagsConfig.RestApiInterface),
+		Facade:          initial.NewInitialNodeFacade(nr.configs.FlagsConfig.RestApiInterface, nr.configs.FlagsConfig.EnablePprof),
 		ApiConfig:       *nr.configs.ApiRoutesConfig,
 		AntiFloodConfig: nr.configs.GeneralConfig.Antiflood.WebServer,
 	}
@@ -507,17 +516,10 @@ func (nr *nodeRunner) createInitialHttpServer() (shared.UpgradeableHttpServerHan
 		return nil, err
 	}
 
-	httpSever, err := httpServerWrapper.CreateHttpServer()
+	err = httpServerWrapper.StartHttpServer()
 	if err != nil {
 		return nil, err
 	}
-
-	err = httpServerWrapper.SetHttpServer(httpSever)
-	if err != nil {
-		return nil, err
-	}
-
-	go httpSever.Start()
 
 	return httpServerWrapper, nil
 }
@@ -537,7 +539,6 @@ func (nr *nodeRunner) createMetrics(
 		nr.configs.EconomicsConfig,
 		nr.configs.GeneralConfig.EpochStartConfig.RoundsPerEpoch,
 		managedCoreComponents.MinTransactionVersion(),
-		nr.configs.EpochConfig,
 	)
 
 	if err != nil {

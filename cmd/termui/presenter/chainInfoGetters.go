@@ -164,13 +164,12 @@ func (psh *PresenterStatusHandler) GetEpochInfo() (uint64, uint64, int, string) 
 	if epochFinishRound < currentRound {
 		roundsRemained = 0
 	}
-	if roundsRemained == 0 || roundsPerEpoch == 0 || roundDuration == 0 {
+	if roundsPerEpoch == 0 || roundDuration == 0 {
 		return 0, 0, 0, ""
 	}
 	secondsRemainedInEpoch := roundsRemained * roundDuration / 1000
 
 	remainingTime := core.SecondsToHourMinSec(int(secondsRemainedInEpoch))
-
 	epochLoadPercent := 100 - int(float64(roundsRemained)/float64(roundsPerEpoch)*100.0)
 
 	return currentRound, epochFinishRound, epochLoadPercent, remainingTime
