@@ -2118,7 +2118,6 @@ func TestProofAndVerifyProofDataTrie(t *testing.T) {
 
 	defer integrationTests.CloseProcessorNodes(nodes)
 
-	fmt.Println("Generating private keys for senders...")
 	generateCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), 0)
 	senderPrivateKey, _, _ := integrationTests.GenerateSkAndPkInShard(generateCoordinator, senderShard)
 	address, _ := senderPrivateKey.GeneratePublic().ToByteArray()

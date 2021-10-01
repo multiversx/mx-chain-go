@@ -37,7 +37,7 @@ func (n *Node) GetClosableComponentName(component factory.Closer, index int) str
 	return n.getClosableComponentName(component, index)
 }
 
-// GetProof -
+// ComputeProof -
 func (n *Node) ComputeProof(rootHash []byte, key []byte) (*common.GetProofResponse, error) {
 	return n.getProof(rootHash, key)
 }
