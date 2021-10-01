@@ -1131,7 +1131,11 @@ func (txs *transactions) splitMiniBlockIfNeeded(miniBlock *block.MiniBlock) bloc
 				"initial num txs", len(miniBlock.TxHashes),
 				"adjusted num txs", len(currentMiniBlock.TxHashes),
 			)
-			splitMiniBlocks = append(splitMiniBlocks, currentMiniBlock)
+
+			if len(currentMiniBlock.TxHashes) > 0 {
+				splitMiniBlocks = append(splitMiniBlocks, currentMiniBlock)
+			}
+
 			currentMiniBlock = createEmptyMiniBlock(miniBlock)
 			gasLimitInReceiverShard = 0
 		}
@@ -1140,7 +1144,10 @@ func (txs *transactions) splitMiniBlockIfNeeded(miniBlock *block.MiniBlock) bloc
 		currentMiniBlock.TxHashes = append(currentMiniBlock.TxHashes, txHash)
 	}
 
-	splitMiniBlocks = append(splitMiniBlocks, currentMiniBlock)
+	if len(currentMiniBlock.TxHashes) > 0 {
+		splitMiniBlocks = append(splitMiniBlocks, currentMiniBlock)
+	}
+
 	return splitMiniBlocks
 }
 
