@@ -1,6 +1,7 @@
 package detector_test
 
 import (
+	"strconv"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
@@ -10,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/slash/detector"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	mock2 "github.com/ElrondNetwork/elrond-go/sharding/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
@@ -93,4 +95,36 @@ func TestMultipleHeaderSigningDetector_VerifyData_DifferentRelevantAndIrrelevant
 
 	require.Nil(t, res)
 	require.Equal(t, process.ErrHeaderRoundNotRelevant, err)
+}
+
+func TestMultipleHeaderSigningDetector_DoubleSigners(t *testing.T) {
+	v1 := mock2.NewValidatorMock([]byte("pubKey1"), 0, 0)
+	v2 := mock2.NewValidatorMock([]byte("pubKey2"), 0, 1)
+	v3 := mock2.NewValidatorMock([]byte("pubKey3"), 0, 4)
+	v4 := mock2.NewValidatorMock([]byte("pubKey4"), 0, 5)
+	v5 := mock2.NewValidatorMock([]byte("pubKey6"), 0, 8)
+	group1 := []sharding.Validator{v1, v2, v3, v4, v5}
+
+	v6 := mock2.NewValidatorMock([]byte("pubKey1"), 0, 0)
+	v7 := mock2.NewValidatorMock([]byte("pubKey2"), 0, 2)
+	v8 := mock2.NewValidatorMock([]byte("pubKey3"), 0, 4)
+	v9 := mock2.NewValidatorMock([]byte("pubKey4"), 0, 5)
+	v10 := mock2.NewValidatorMock([]byte("pubKey5"), 0, 6)
+	v11 := mock2.NewValidatorMock([]byte("pubKey6"), 0, 8)
+	group2 := []sharding.Validator{v6, v7, v8, v9, v10, v11}
+
+	byte1Map1, _ := strconv.ParseInt("00110011", 2, 64)
+	byte2Map1, _ := strconv.ParseInt("00000001", 2, 64)
+	bitmap1 := []byte{byte(byte1Map1), byte(byte2Map1)}
+
+	byte1Map2, _ := strconv.ParseInt("00010001", 2, 64)
+	byte2Map2, _ := strconv.ParseInt("00000001", 2, 64)
+	bitmap2 := []byte{byte(byte1Map2), byte(byte2Map2)}
+
+	doubleSigners := detector.DoubleSigners(group1, group2, bitmap1, bitmap2)
+
+	require.Len(t, doubleSigners, 3)
+	require.Equal(t, []byte("pubKey1"), doubleSigners[0].PubKey())
+	require.Equal(t, []byte("pubKey3"), doubleSigners[1].PubKey())
+	require.Equal(t, []byte("pubKey6"), doubleSigners[2].PubKey())
 }
