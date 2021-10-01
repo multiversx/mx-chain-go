@@ -26,7 +26,7 @@ func TestNewBlockGroup(t *testing.T) {
 	})
 
 	t.Run("should work", func(t *testing.T) {
-		hg, err := groups.NewBlockGroup(&mock.Facade{})
+		hg, err := groups.NewBlockGroup(&mock.FacadeStub{})
 		require.NoError(t, err)
 		require.NotNil(t, hg)
 	})
@@ -45,7 +45,7 @@ type blockResponse struct {
 func TestGetBlockByNonce_EmptyNonceUrlParameterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetBlockByNonceCalled: func(_ uint64, _ bool) (*api.Block, error) {
 			return &api.Block{}, nil
 		},
@@ -68,7 +68,7 @@ func TestGetBlockByNonce_EmptyNonceUrlParameterShouldErr(t *testing.T) {
 func TestGetBlockByNonce_InvalidNonceShouldErr(t *testing.T) {
 	t.Parallel()
 
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetBlockByNonceCalled: func(_ uint64, _ bool) (*api.Block, error) {
 			return &api.Block{}, nil
 		},
@@ -94,7 +94,7 @@ func TestGetBlockByNonce_FacadeErrorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("local err")
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetBlockByNonceCalled: func(_ uint64, _ bool) (*api.Block, error) {
 			return nil, expectedErr
 		},
@@ -123,7 +123,7 @@ func TestGetBlockByNonce_ShouldWork(t *testing.T) {
 		Nonce: 37,
 		Round: 39,
 	}
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetBlockByNonceCalled: func(_ uint64, _ bool) (*api.Block, error) {
 			return &expectedBlock, nil
 		},
@@ -150,7 +150,7 @@ func TestGetBlockByNonce_ShouldWork(t *testing.T) {
 func TestGetBlockByHash_NoHashUrlParameterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetBlockByNonceCalled: func(_ uint64, _ bool) (*api.Block, error) {
 			return &api.Block{}, nil
 		},
@@ -174,7 +174,7 @@ func TestGetBlockByHash_FacadeErrorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("local err")
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetBlockByHashCalled: func(_ string, _ bool) (*api.Block, error) {
 			return nil, expectedErr
 		},
@@ -203,7 +203,7 @@ func TestGetBlockByHash_ShouldWork(t *testing.T) {
 		Nonce: 37,
 		Round: 39,
 	}
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetBlockByHashCalled: func(_ string, _ bool) (*api.Block, error) {
 			return &expectedBlock, nil
 		},

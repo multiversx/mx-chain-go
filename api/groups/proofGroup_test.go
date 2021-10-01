@@ -31,7 +31,7 @@ func TestNewProofGroup(t *testing.T) {
 	})
 
 	t.Run("should work", func(t *testing.T) {
-		hg, err := groups.NewProofGroup(&mock.Facade{})
+		hg, err := groups.NewProofGroup(&mock.FacadeStub{})
 		require.NoError(t, err)
 		require.NotNil(t, hg)
 	})
@@ -41,7 +41,7 @@ func TestGetProof_GetProofError(t *testing.T) {
 	t.Parallel()
 
 	getProofErr := fmt.Errorf("GetProof error")
-	facade := &mock.Facade{
+	facade := &mock.FacadeStub{
 		GetProofCalled: func(rootHash string, address string) (*common.GetProofResponse, error) {
 			return nil, getProofErr
 		},
@@ -66,7 +66,7 @@ func TestGetProof(t *testing.T) {
 	t.Parallel()
 
 	validProof := [][]byte{[]byte("valid"), []byte("proof")}
-	facade := &mock.Facade{
+	facade := &mock.FacadeStub{
 		GetProofCalled: func(rootHash string, address string) (*common.GetProofResponse, error) {
 			assert.Equal(t, "roothash", rootHash)
 			assert.Equal(t, "addr", address)
@@ -106,7 +106,7 @@ func TestGetProofDataTrie_GetProofError(t *testing.T) {
 	t.Parallel()
 
 	getProofDataTrieErr := fmt.Errorf("GetProofDataTrie error")
-	facade := &mock.Facade{
+	facade := &mock.FacadeStub{
 		GetProofDataTrieCalled: func(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error) {
 			return nil, nil, getProofDataTrieErr
 		},
@@ -131,7 +131,7 @@ func TestGetProofDataTrie(t *testing.T) {
 
 	mainTrieProof := [][]byte{[]byte("main"), []byte("proof")}
 	dataTrieProof := [][]byte{[]byte("data"), []byte("proof")}
-	facade := &mock.Facade{
+	facade := &mock.FacadeStub{
 		GetProofDataTrieCalled: func(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error) {
 			assert.Equal(t, "roothash", rootHash)
 			assert.Equal(t, "addr", address)
@@ -182,7 +182,7 @@ func TestGetProofCurrentRootHash_GetProofError(t *testing.T) {
 	t.Parallel()
 
 	getProofErr := fmt.Errorf("GetProof error")
-	facade := &mock.Facade{
+	facade := &mock.FacadeStub{
 		GetProofCurrentRootHashCalled: func(address string) (*common.GetProofResponse, error) {
 			return nil, getProofErr
 		},
@@ -208,7 +208,7 @@ func TestGetProofCurrentRootHash(t *testing.T) {
 
 	validProof := [][]byte{[]byte("valid"), []byte("proof")}
 	rootHash := "rootHash"
-	facade := &mock.Facade{
+	facade := &mock.FacadeStub{
 		GetProofCurrentRootHashCalled: func(address string) (*common.GetProofResponse, error) {
 			assert.Equal(t, "addr", address)
 			return &common.GetProofResponse{
@@ -251,7 +251,7 @@ func TestGetProofCurrentRootHash(t *testing.T) {
 func TestVerifyProof_BadRequestShouldErr(t *testing.T) {
 	t.Parallel()
 
-	proofGroup, err := groups.NewProofGroup(&mock.Facade{})
+	proofGroup, err := groups.NewProofGroup(&mock.FacadeStub{})
 	require.NoError(t, err)
 
 	ws := startWebServer(proofGroup, "proof", getProofRoutesConfig())
@@ -272,7 +272,7 @@ func TestVerifyProof_VerifyProofErr(t *testing.T) {
 	t.Parallel()
 
 	verifyProfErr := fmt.Errorf("VerifyProof err")
-	facade := &mock.Facade{
+	facade := &mock.FacadeStub{
 		VerifyProofCalled: func(rootHash string, address string, proof [][]byte) (bool, error) {
 			return false, verifyProfErr
 		},
@@ -305,7 +305,7 @@ func TestVerifyProof_VerifyProofErr(t *testing.T) {
 func TestVerifyProof_VerifyProofCanNotDecodeProof(t *testing.T) {
 	t.Parallel()
 
-	facade := &mock.Facade{}
+	facade := &mock.FacadeStub{}
 
 	verifyProofParams := groups.VerifyProofRequest{
 		RootHash: "rootHash",
@@ -344,7 +344,7 @@ func TestVerifyProof(t *testing.T) {
 	}
 	verifyProofBytes, _ := json.Marshal(verifyProofParams)
 
-	facade := &mock.Facade{
+	facade := &mock.FacadeStub{
 		VerifyProofCalled: func(rH string, addr string, proof [][]byte) (bool, error) {
 			assert.Equal(t, rootHash, rH)
 			assert.Equal(t, address, addr)
