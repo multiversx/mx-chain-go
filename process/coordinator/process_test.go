@@ -47,6 +47,9 @@ func FeeHandlerMock() *mock.FeeHandlerStub {
 		MaxGasLimitPerBlockCalled: func() uint64 {
 			return MaxGasLimitPerBlock
 		},
+		MaxGasLimitPerMiniBlockCalled: func() uint64 {
+			return MaxGasLimitPerBlock
+		},
 	}
 }
 
@@ -1217,6 +1220,9 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 			MaxGasLimitPerBlockCalled: func() uint64 {
 				return MaxGasLimitPerBlock
 			},
+			MaxGasLimitPerMiniBlockCalled: func() uint64 {
+				return MaxGasLimitPerBlock
+			},
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return gasLimit / uint64(numMiniBlocks)
 			},
@@ -1272,6 +1278,9 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 		tdp,
 		&mock.FeeHandlerStub{
 			MaxGasLimitPerBlockCalled: func() uint64 {
+				return MaxGasLimitPerBlock
+			},
+			MaxGasLimitPerMiniBlockCalled: func() uint64 {
 				return MaxGasLimitPerBlock
 			},
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {

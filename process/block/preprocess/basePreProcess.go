@@ -327,6 +327,10 @@ func (bpp *basePreProcess) computeGasConsumed(
 	if bpp.shardCoordinator.SelfId() == senderShardId {
 		gasConsumedByTxInSelfShard = gasConsumedByTxInSenderShard
 
+		if gasConsumedByTxInReceiverShard > bpp.economicsFee.MaxGasLimitPerMiniBlock(process.ShardIDWithSafeMaxGasLimit) {
+			return process.ErrMaxGasLimitPerOneTxInReceiverShardIsReached
+		}
+
 		//TODO: MaxGasLimitPerBlock method should have parameter process.ShardIDWithSafeMaxGasLimit instead bpp.shardCoordinator.SelfId(),
 		//as if this mini block will be created by meta for shards, it could be created with 15 bil. instead 1.5 bil. gas,
 		//and the receiver shard will be stuck

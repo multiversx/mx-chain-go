@@ -796,6 +796,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 	numTxsFailed := 0
 	numTxsWithInitialBalanceConsumed := 0
 	numCrossShardScCallsOrSpecialTxs := 0
+	numCrossShardTxsWithTooMuchGas := 0
 
 	totalTimeUsedForProcesss := time.Duration(0)
 	totalTimeUsedForComputeGasConsumed := time.Duration(0)
@@ -913,6 +914,12 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 		totalTimeUsedForComputeGasConsumed += elapsedTime
 		if err != nil {
 			log.Trace("createAndProcessMiniBlocksFromMe.computeGasConsumed", "error", err)
+			isTxTargetedForDeletion := errors.Is(err, process.ErrMaxGasLimitPerOneTxInReceiverShardIsReached)
+			if isTxTargetedForDeletion {
+				numCrossShardTxsWithTooMuchGas++
+				strCache := process.ShardCacherIdentifier(senderShardID, receiverShardID)
+				txs.txPool.RemoveData(txHash, strCache)
+			}
 			continue
 		}
 
@@ -1038,6 +1045,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 		"num txs skipped", numTxsSkipped,
 		"num txs with initial balance consumed", numTxsWithInitialBalanceConsumed,
 		"num cross shard sc calls or special txs", numCrossShardScCallsOrSpecialTxs,
+		"num cross shard txs with too much gas", numCrossShardTxsWithTooMuchGas,
 		"used time for computeGasConsumed", totalTimeUsedForComputeGasConsumed,
 		"used time for processAndRemoveBadTransaction", totalTimeUsedForProcesss)
 
@@ -1131,11 +1139,7 @@ func (txs *transactions) splitMiniBlockIfNeeded(miniBlock *block.MiniBlock) bloc
 				"initial num txs", len(miniBlock.TxHashes),
 				"adjusted num txs", len(currentMiniBlock.TxHashes),
 			)
-
-			if len(currentMiniBlock.TxHashes) > 0 {
-				splitMiniBlocks = append(splitMiniBlocks, currentMiniBlock)
-			}
-
+			splitMiniBlocks = append(splitMiniBlocks, currentMiniBlock)
 			currentMiniBlock = createEmptyMiniBlock(miniBlock)
 			gasLimitInReceiverShard = 0
 		}
@@ -1144,10 +1148,7 @@ func (txs *transactions) splitMiniBlockIfNeeded(miniBlock *block.MiniBlock) bloc
 		currentMiniBlock.TxHashes = append(currentMiniBlock.TxHashes, txHash)
 	}
 
-	if len(currentMiniBlock.TxHashes) > 0 {
-		splitMiniBlocks = append(splitMiniBlocks, currentMiniBlock)
-	}
-
+	splitMiniBlocks = append(splitMiniBlocks, currentMiniBlock)
 	return splitMiniBlocks
 }
 

@@ -40,6 +40,9 @@ func feeHandlerMock() *mock.FeeHandlerStub {
 		MaxGasLimitPerBlockCalled: func() uint64 {
 			return MaxGasLimitPerBlock
 		},
+		MaxGasLimitPerMiniBlockCalled: func() uint64 {
+			return MaxGasLimitPerBlock
+		},
 	}
 }
 

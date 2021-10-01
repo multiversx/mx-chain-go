@@ -509,6 +509,9 @@ var ErrMaxGasLimitPerMiniBlockInSenderShardIsReached = errors.New("max gas limit
 // ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached signals that max gas limit per mini block in receiver shard has been reached
 var ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached = errors.New("max gas limit per mini block in receiver shard is reached")
 
+// ErrMaxGasLimitPerOneTxInReceiverShardIsReached signals that max gas limit per one transaction in receiver shard has been reached
+var ErrMaxGasLimitPerOneTxInReceiverShardIsReached = errors.New("max gas limit per one transaction in receiver shard is reached")
+
 // ErrMaxGasLimitPerBlockInSelfShardIsReached signals that max gas limit per block in self shard has been reached
 var ErrMaxGasLimitPerBlockInSelfShardIsReached = errors.New("max gas limit per block in self shard is reached")
 
