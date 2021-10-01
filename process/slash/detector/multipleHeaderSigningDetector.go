@@ -160,16 +160,16 @@ func doubleSigners(
 		return intersectionSet
 	}
 
-	hashMap := make(map[string]sharding.Validator, 0)
-	for _, validator := range group1 {
-		hashMap[string(validator.PubKey())] = validator
+	pubKeyIdxMap := make(map[string]uint32, 0)
+	for idx, validator := range group1 {
+		pubKeyIdxMap[string(validator.PubKey())] = uint32(idx)
 	}
 
-	for _, validatorGroup2 := range group2 {
-		if validatorGroup1, found := hashMap[string(validatorGroup2.PubKey())]; found {
-			if isIndexSetInBitmap(validatorGroup1.Index(), bitmap1) &&
-				isIndexSetInBitmap(validatorGroup2.Index(), bitmap2) {
-				intersectionSet = append(intersectionSet, validatorGroup1)
+	for idxGroup2, validatorGroup2 := range group2 {
+		if idxGroup1, found := pubKeyIdxMap[string(validatorGroup2.PubKey())]; found {
+			if isIndexSetInBitmap(idxGroup1, bitmap1) &&
+				isIndexSetInBitmap(uint32(idxGroup2), bitmap2) {
+				intersectionSet = append(intersectionSet, validatorGroup2)
 			}
 		}
 	}

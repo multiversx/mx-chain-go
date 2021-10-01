@@ -123,34 +123,42 @@ func TestMultipleHeaderSigningDetector_DoubleSigners_EmptyValidatorLists_ExpectN
 }
 
 func TestMultipleHeaderSigningDetector_DoubleSigners_ExpectThreeDoubleSigners(t *testing.T) {
-	v1 := mock2.NewValidatorMock([]byte("pubKey1"), 0, 0)
-	v2 := mock2.NewValidatorMock([]byte("pubKey2"), 0, 1)
-	v3 := mock2.NewValidatorMock([]byte("pubKey3"), 0, 4)
-	v4 := mock2.NewValidatorMock([]byte("pubKey4"), 0, 5)
-	v5 := mock2.NewValidatorMock([]byte("pubKey6"), 0, 8)
-	group1 := []sharding.Validator{v1, v2, v3, v4, v5}
+	v0g1 := mock.NewValidatorMock([]byte("pubKey0"))
+	v1g1 := mock.NewValidatorMock([]byte("pubKey1"))
+	v2g1 := mock.NewValidatorMock([]byte("pubKey2"))
+	v3g1 := mock.NewValidatorMock([]byte("pubKey3"))
+	v4g1 := mock.NewValidatorMock([]byte("pubKey4"))
+	v5g1 := mock.NewValidatorMock([]byte("pubKey5"))
+	v6g1 := mock.NewValidatorMock([]byte("pubKey6"))
+	v7g1 := mock.NewValidatorMock([]byte("pubKey7"))
+	v8g1 := mock.NewValidatorMock([]byte("pubKey8"))
 
-	v6 := mock2.NewValidatorMock([]byte("pubKey1"), 0, 11)
-	v7 := mock2.NewValidatorMock([]byte("pubKey2"), 0, 2)
-	v8 := mock2.NewValidatorMock([]byte("pubKey3"), 0, 4)
-	v9 := mock2.NewValidatorMock([]byte("pubKey4"), 0, 5)
-	v10 := mock2.NewValidatorMock([]byte("pubKey5"), 0, 6)
-	v11 := mock2.NewValidatorMock([]byte("pubKey6"), 0, 8)
-	v12 := mock2.NewValidatorMock([]byte("pubKey7"), 0, 10)
-	group2 := []sharding.Validator{v6, v7, v8, v9, v10, v11, v12}
+	group1 := []sharding.Validator{v0g1, v1g1, v2g1, v3g1, v4g1, v5g1, v6g1, v7g1, v8g1}
 
-	byte1Map1, _ := strconv.ParseInt("00110011", 2, 8)
-	byte2Map1, _ := strconv.ParseInt("00000001", 2, 8)
+	v0g2 := mock.NewValidatorMock([]byte("pubKey0"))
+	v1g2 := mock.NewValidatorMock([]byte("pubKey3"))
+	v2g2 := mock.NewValidatorMock([]byte("pubKey1"))
+	v3g2 := mock.NewValidatorMock([]byte("pubKey2"))
+	v4g2 := mock.NewValidatorMock([]byte("pubKey6"))
+	v5g2 := mock.NewValidatorMock([]byte("pubKey11"))
+	v6g2 := mock.NewValidatorMock([]byte("pubKey13"))
+	v7g2 := mock.NewValidatorMock([]byte("pubKey15"))
+	v8g2 := mock.NewValidatorMock([]byte("pubKey8"))
+
+	group2 := []sharding.Validator{v0g2, v1g2, v2g2, v3g2, v4g2, v5g2, v6g2, v7g2, v8g2}
+
+	byte1Map1, _ := strconv.ParseInt("01011111", 2, 9)
+	byte2Map1, _ := strconv.ParseInt("00000001", 2, 9)
 	bitmap1 := []byte{byte(byte1Map1), byte(byte2Map1)}
 
-	byte1Map2, _ := strconv.ParseInt("00010001", 2, 8)
-	byte2Map2, _ := strconv.ParseInt("00001101", 2, 8)
+	byte1Map2, _ := strconv.ParseInt("10100011", 2, 9)
+	byte2Map2, _ := strconv.ParseInt("00000001", 2, 9)
 	bitmap2 := []byte{byte(byte1Map2), byte(byte2Map2)}
 
 	doubleSigners := detector.DoubleSigners(group1, group2, bitmap1, bitmap2)
 
 	require.Len(t, doubleSigners, 3)
-	require.Equal(t, []byte("pubKey1"), doubleSigners[0].PubKey())
+	require.Equal(t, []byte("pubKey0"), doubleSigners[0].PubKey())
 	require.Equal(t, []byte("pubKey3"), doubleSigners[1].PubKey())
-	require.Equal(t, []byte("pubKey6"), doubleSigners[2].PubKey())
+	require.Equal(t, []byte("pubKey8"), doubleSigners[2].PubKey())
 }
