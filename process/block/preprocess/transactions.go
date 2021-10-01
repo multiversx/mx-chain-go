@@ -908,8 +908,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 			txHash,
 			&gasConsumedByMiniBlocksInSenderShard,
 			&gasConsumedByMiniBlockInReceiverShard,
-			&totalGasConsumedInSelfShard,
-		)
+			&totalGasConsumedInSelfShard)
 		elapsedTime := time.Since(startTime)
 		totalTimeUsedForComputeGasConsumed += elapsedTime
 		if err != nil {
@@ -1123,7 +1122,9 @@ func (txs *transactions) splitMiniBlockIfNeeded(miniBlock *block.MiniBlock) bloc
 			continue
 		}
 
-		isGasLimitExceeded := gasLimitInReceiverShard+gasConsumedByTxInReceiverShard > txs.economicsFee.MaxGasLimitPerMiniBlock(miniBlock.ReceiverShardID)
+		//TODO: MaxGasLimitPerBlock method should have parameter miniBlock.ReceiverShardID instead 0, as if
+		//this mini block will be created by shards for meta, it could be created with 15 bil. instead 1.5 bil. gas
+		isGasLimitExceeded := gasLimitInReceiverShard+gasConsumedByTxInReceiverShard > txs.economicsFee.MaxGasLimitPerMiniBlock(0)
 		if isGasLimitExceeded {
 			log.Debug("transactions.splitMiniBlockIfNeeded: gas limit exceeded",
 				"mb type", currentMiniBlock.Type,

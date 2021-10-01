@@ -179,8 +179,8 @@ type IntermediateTransactionHandler interface {
 	GetAllCurrentFinishedTxs() map[string]data.TransactionHandler
 	CreateBlockStarted()
 	GetCreatedInShardMiniBlock() *block.MiniBlock
-	InitProcessedResults()
 	RemoveProcessedResults()
+	InitProcessedResults()
 	IsInterfaceNil() bool
 }
 

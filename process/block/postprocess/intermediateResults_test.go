@@ -448,6 +448,12 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddAndRevert(t 
 	irp.RemoveProcessedResults()
 	irp.mutInterResultsForBlock.Lock()
 	assert.Equal(t, len(irp.interResultsForBlock), 0)
+	assert.Equal(t, len(irp.mapProcessedResult), len(txs))
+	irp.mutInterResultsForBlock.Unlock()
+
+	irp.InitProcessedResults()
+	irp.mutInterResultsForBlock.Lock()
+	assert.Equal(t, len(irp.mapProcessedResult), 0)
 	irp.mutInterResultsForBlock.Unlock()
 }
 
