@@ -67,6 +67,7 @@ func createGenesisConfig() config.EnableEpochs {
 		MetaESDTSetEnableEpoch:                      unreachableEpoch,
 		AddTokensToDelegationEnableEpoch:            unreachableEpoch,
 		MultiESDTTransferFixOnCallBackOnEnableEpoch: unreachableEpoch,
+		SenderInOutTransferEnableEpoch:              unreachableEpoch,
 	}
 }
 

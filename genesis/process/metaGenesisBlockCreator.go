@@ -381,8 +381,8 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		ScProcessor:                           scProcessor,
 		TxTypeHandler:                         txTypeHandler,
 		EconomicsFee:                          genesisFeeHandler,
-		ESDTEnableEpoch:                       arg.EpochConfig.EnableEpochs.ESDTEnableEpoch,
-		BuiltInFunctionOnMetachainEnableEpoch: arg.EpochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
+		ESDTEnableEpoch:                       enableEpochs.ESDTEnableEpoch,
+		BuiltInFunctionOnMetachainEnableEpoch: enableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 		EpochNotifier:                         epochNotifier,
 	}
 	txProcessor, err := processTransaction.NewMetaTxProcessor(argsNewMetaTxProcessor)

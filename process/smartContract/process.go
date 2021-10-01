@@ -213,7 +213,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		stakingV2EnableEpoch:                  args.EnableEpochs.StakingV2EnableEpoch,
 		returnDataToLastTransferEnableEpoch:   args.EnableEpochs.ReturnDataToLastTransferEnableEpoch,
 		senderInOutTransferEnableEpoch:        args.EnableEpochs.SenderInOutTransferEnableEpoch,
-		builtInFunctionOnMetachainEnableEpoch: args.EnableEpochs.BuiltInFunctionsEnableEpoch,
+		builtInFunctionOnMetachainEnableEpoch: args.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 		scrSizeInvariantCheckEnableEpoch:      args.EnableEpochs.SCRSizeInvariantCheckEnableEpoch,
 		backwardCompSaveKeyValueEnableEpoch:   args.EnableEpochs.BackwardCompSaveKeyValueEnableEpoch,
 		arwenChangeLocker:                     args.ArwenChangeLocker,

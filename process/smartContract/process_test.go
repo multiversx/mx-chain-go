@@ -366,6 +366,7 @@ func TestNewSmartContractProcessorVerifyAllMembers(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockSmartContractProcessorArguments()
+	arguments.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch = 10
 	sc, _ := NewSmartContractProcessor(arguments)
 
 	assert.Equal(t, arguments.VmContainer, sc.vmContainer)
@@ -381,6 +382,7 @@ func TestNewSmartContractProcessorVerifyAllMembers(t *testing.T) {
 	assert.Equal(t, arguments.TxTypeHandler, sc.txTypeHandler)
 	assert.Equal(t, arguments.TxLogsProcessor, sc.txLogsProcessor)
 	assert.Equal(t, arguments.BadTxForwarder, sc.badTxForwarder)
+	assert.Equal(t, arguments.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch, sc.builtInFunctionOnMetachainEnableEpoch)
 }
 
 // ===================== TestGasScheduleChange =====================
