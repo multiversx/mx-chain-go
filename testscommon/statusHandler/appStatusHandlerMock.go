@@ -1,4 +1,4 @@
-package mock
+package statusHandler
 
 import "sync"
 
@@ -104,7 +104,8 @@ func (ashm *AppStatusHandlerMock) GetUint64(key string) uint64 {
 }
 
 // Close -
-func (ashm *AppStatusHandlerMock) Close() {}
+func (ashm *AppStatusHandlerMock) Close() {
+}
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ashm *AppStatusHandlerMock) IsInterfaceNil() bool {
