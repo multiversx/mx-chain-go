@@ -1122,9 +1122,7 @@ func (txs *transactions) splitMiniBlockIfNeeded(miniBlock *block.MiniBlock) bloc
 			continue
 		}
 
-		//TODO: MaxGasLimitPerBlock method should have parameter miniBlock.ReceiverShardID instead 0, as if
-		//this mini block will be created by shards for meta, it could be created with 15 bil. instead 1.5 bil. gas
-		isGasLimitExceeded := gasLimitInReceiverShard+gasConsumedByTxInReceiverShard > txs.economicsFee.MaxGasLimitPerMiniBlock(0)
+		isGasLimitExceeded := gasLimitInReceiverShard+gasConsumedByTxInReceiverShard > txs.economicsFee.MaxGasLimitPerMiniBlock(process.ShardIDWithSafeMaxGasLimit)
 		if isGasLimitExceeded {
 			log.Debug("transactions.splitMiniBlockIfNeeded: gas limit exceeded",
 				"mb type", currentMiniBlock.Type,

@@ -196,10 +196,8 @@ func (bpp *basePostProcessor) splitMiniBlockIfNeeded(miniBlock *block.MiniBlock)
 			continue
 		}
 
-		//TODO: MaxGasLimitPerBlock method should have parameter miniBlock.ReceiverShardID instead 0, as if
-		//this mini block will be created by shards for meta, it could be created with 15 bil. instead 1.5 bil. gas
 		isGasLimitExceeded := gasLimitInReceiverShard+interResult.tx.GetGasLimit() >
-			bpp.economicsFee.MaxGasLimitPerBlock(0)
+			bpp.economicsFee.MaxGasLimitPerMiniBlock(process.ShardIDWithSafeMaxGasLimit)
 		if isGasLimitExceeded {
 			log.Debug("basePostProcessor.splitMiniBlockIfNeeded: gas limit exceeded",
 				"mb type", currentMiniBlock.Type,

@@ -692,3 +692,6 @@ func GetSortedStorageUpdates(account *vmcommon.OutputAccount) []*vmcommon.Storag
 
 	return storageUpdates
 }
+
+// ShardIDWithSafeMaxGasLimit defines the shard ID which has set the safe max gas limit (1.5 bil.)
+const ShardIDWithSafeMaxGasLimit = 0

@@ -1431,3 +1431,86 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 	assert.Equal(t, 0, len(txsToBeReverted))
 	assert.Equal(t, 3, numTxsProcessed)
 }
+
+func TestTransactionsPreprocessor_SplitMiniBlocksIfNeededShouldWork(t *testing.T) {
+	t.Parallel()
+
+	var gasLimitPerMiniBlock uint64
+	txGasLimit := uint64(100)
+	dataPool := initDataPool()
+	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
+	preprocessor, _ := NewTransactionPreprocessor(
+		dataPool.Transactions(),
+		&mock.ChainStorerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&testscommon.TxProcessorMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&stateMock.AccountsStub{},
+		requestTransaction,
+		&mock.FeeHandlerStub{
+			MaxGasLimitPerMiniBlockCalled: func() uint64 {
+				return gasLimitPerMiniBlock
+			},
+		},
+		&mock.GasHandlerMock{
+			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+				return txGasLimit, txGasLimit, nil
+			},
+		},
+		&mock.BlockTrackerMock{},
+		block.TxBlock,
+		createMockPubkeyConverter(),
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
+		&mock.EpochNotifierStub{},
+		2,
+	)
+
+	tx1 := transaction.Transaction{Nonce: 0, GasLimit: txGasLimit}
+	tx2 := transaction.Transaction{Nonce: 1, GasLimit: txGasLimit}
+	tx3 := transaction.Transaction{Nonce: 2, GasLimit: txGasLimit}
+	tx4 := transaction.Transaction{Nonce: 3, GasLimit: txGasLimit}
+	tx5 := transaction.Transaction{Nonce: 4, GasLimit: txGasLimit}
+	tx6 := transaction.Transaction{Nonce: 5, GasLimit: txGasLimit}
+	preprocessor.txsForCurrBlock.txHashAndInfo["hash1"] = &txInfo{tx: &tx1}
+	preprocessor.txsForCurrBlock.txHashAndInfo["hash2"] = &txInfo{tx: &tx2}
+	preprocessor.txsForCurrBlock.txHashAndInfo["hash3"] = &txInfo{tx: &tx3}
+	preprocessor.txsForCurrBlock.txHashAndInfo["hash4"] = &txInfo{tx: &tx4}
+	preprocessor.txsForCurrBlock.txHashAndInfo["hash5"] = &txInfo{tx: &tx5}
+	preprocessor.txsForCurrBlock.txHashAndInfo["hash6"] = &txInfo{tx: &tx6}
+
+	miniBlocks := make([]*block.MiniBlock, 0)
+
+	mb1 := block.MiniBlock{
+		ReceiverShardID: 1,
+		TxHashes:        [][]byte{[]byte("hash1"), []byte("hash2")},
+	}
+	miniBlocks = append(miniBlocks, &mb1)
+
+	mb2 := block.MiniBlock{
+		ReceiverShardID: 2,
+		TxHashes:        [][]byte{[]byte("hash3"), []byte("hash4"), []byte("hash5"), []byte("hash6"), []byte("hash7")},
+	}
+	miniBlocks = append(miniBlocks, &mb2)
+
+	mb3 := block.MiniBlock{
+		ReceiverShardID: 0,
+		TxHashes:        [][]byte{[]byte("hash1"), []byte("hash2")},
+	}
+	miniBlocks = append(miniBlocks, &mb3)
+
+	gasLimitPerMiniBlock = 300
+
+	splitMiniBlocks := preprocessor.splitMiniBlocksIfNeeded(miniBlocks)
+	assert.Equal(t, 3, len(splitMiniBlocks))
+
+	preprocessor.EpochConfirmed(2, 0)
+
+	splitMiniBlocks = preprocessor.splitMiniBlocksIfNeeded(miniBlocks)
+	assert.Equal(t, 4, len(splitMiniBlocks))
+
+	gasLimitPerMiniBlock = 199
+	splitMiniBlocks = preprocessor.splitMiniBlocksIfNeeded(miniBlocks)
+	assert.Equal(t, 7, len(splitMiniBlocks))
+}
