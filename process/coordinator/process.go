@@ -978,6 +978,9 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 }
 
 func (tc *transactionCoordinator) initProcessedTxsResults() {
+	tc.mutInterimProcessors.RLock()
+	defer tc.mutInterimProcessors.RUnlock()
+
 	for _, value := range tc.keysInterimProcs {
 		interProc, ok := tc.interimProcessors[value]
 		if !ok {
@@ -988,6 +991,9 @@ func (tc *transactionCoordinator) initProcessedTxsResults() {
 }
 
 func (tc *transactionCoordinator) revertProcessedTxsResults(txHashes [][]byte) {
+	tc.mutInterimProcessors.RLock()
+	defer tc.mutInterimProcessors.RUnlock()
+
 	for _, value := range tc.keysInterimProcs {
 		interProc, ok := tc.interimProcessors[value]
 		if !ok {
@@ -1000,12 +1006,12 @@ func (tc *transactionCoordinator) revertProcessedTxsResults(txHashes [][]byte) {
 
 // VerifyCreatedBlockTransactions checks whether the created transactions are the same as the one proposed
 func (tc *transactionCoordinator) VerifyCreatedBlockTransactions(hdr data.HeaderHandler, body *block.Body) error {
-	tc.mutInterimProcessors.RLock()
-	defer tc.mutInterimProcessors.RUnlock()
 	errMutex := sync.Mutex{}
 	var errFound error
 
 	wg := sync.WaitGroup{}
+
+	tc.mutInterimProcessors.RLock()
 	wg.Add(len(tc.interimProcessors))
 
 	for _, interimProc := range tc.interimProcessors {
@@ -1020,6 +1026,7 @@ func (tc *transactionCoordinator) VerifyCreatedBlockTransactions(hdr data.Header
 		}(interimProc)
 	}
 
+	tc.mutInterimProcessors.RUnlock()
 	wg.Wait()
 
 	if errFound != nil {
@@ -1044,6 +1051,9 @@ func (tc *transactionCoordinator) VerifyCreatedBlockTransactions(hdr data.Header
 
 // CreateReceiptsHash will return the hash for the receipts
 func (tc *transactionCoordinator) CreateReceiptsHash() ([]byte, error) {
+	tc.mutInterimProcessors.RLock()
+	defer tc.mutInterimProcessors.RUnlock()
+
 	allReceiptsHashes := make([][]byte, 0)
 
 	for _, value := range tc.keysInterimProcs {
@@ -1084,6 +1094,9 @@ func (tc *transactionCoordinator) CreateReceiptsHash() ([]byte, error) {
 
 // CreateMarshalizedReceipts will return all the receipts list in one marshalized object
 func (tc *transactionCoordinator) CreateMarshalizedReceipts() ([]byte, error) {
+	tc.mutInterimProcessors.RLock()
+	defer tc.mutInterimProcessors.RUnlock()
+
 	receiptsBatch := &batch.Batch{}
 	for _, blockType := range tc.keysInterimProcs {
 		interProc, ok := tc.interimProcessors[blockType]

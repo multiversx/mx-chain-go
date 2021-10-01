@@ -104,7 +104,10 @@ func (fhs *FeeHandlerStub) MaxGasLimitPerBlock(uint32) uint64 {
 
 // MaxGasLimitPerMiniBlock -
 func (fhs *FeeHandlerStub) MaxGasLimitPerMiniBlock(uint32) uint64 {
-	return fhs.MaxGasLimitPerMiniBlockCalled()
+	if fhs.MaxGasLimitPerMiniBlockCalled != nil {
+		return fhs.MaxGasLimitPerMiniBlockCalled()
+	}
+	return 0
 }
 
 // ComputeGasLimit -
