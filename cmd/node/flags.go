@@ -299,6 +299,14 @@ var (
 		Name:  "full-archive",
 		Usage: "Boolean option for settings an observer as full archive, which will sync the entire database of its shard",
 	}
+	// memBallast defines a flag that specifies the number of MegaBytes to be used as a memory ballast for Garbage Collector optimization
+	// if set to 0, the memory ballast won't be used
+	memBallast = cli.Uint64Flag{
+		Name:  "mem-ballast",
+		Value: 0,
+		Usage: "Flag that specifies the number of MegaBytes to be used as a memory ballast for Garbage Collector optimization. " +
+			"If set to 0, the feature will be disabled",
+	}
 )
 
 func getFlags() []cli.Flag {
@@ -345,6 +353,7 @@ func getFlags() []cli.Flag {
 		importDbStartInEpoch,
 		redundancyLevel,
 		fullArchive,
+		memBallast,
 	}
 }
 
