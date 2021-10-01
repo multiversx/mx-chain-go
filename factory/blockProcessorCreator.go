@@ -137,20 +137,18 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 
 	argsNewVMFactory := shard.ArgVMContainerFactory{
-		Config:                         pcf.config.VirtualMachine.Execution,
-		BlockGasLimit:                  pcf.coreData.EconomicsData().MaxGasLimitPerBlock(pcf.bootstrapComponents.ShardCoordinator().SelfId()),
-		GasSchedule:                    pcf.gasSchedule,
-		ArgBlockChainHook:              argsHook,
-		EpochNotifier:                  pcf.coreData.EpochNotifier(),
-		DeployEnableEpoch:              pcf.epochConfig.EnableEpochs.SCDeployEnableEpoch,
-		AheadOfTimeGasUsageEnableEpoch: pcf.epochConfig.EnableEpochs.AheadOfTimeGasUsageEnableEpoch,
-		ArwenV3EnableEpoch:             pcf.epochConfig.EnableEpochs.RepairCallbackEnableEpoch,
-		ArwenChangeLocker:              arwenChangeLocker,
-		ESDTTransferParser:             esdtTransferParser,
+		Config:             pcf.config.VirtualMachine.Execution,
+		BlockGasLimit:      pcf.coreData.EconomicsData().MaxGasLimitPerBlock(pcf.bootstrapComponents.ShardCoordinator().SelfId()),
+		GasSchedule:        pcf.gasSchedule,
+		ArgBlockChainHook:  argsHook,
+		EpochNotifier:      pcf.coreData.EpochNotifier(),
+		EpochConfig:        pcf.epochConfig.EnableEpochs,
+		ArwenChangeLocker:  arwenChangeLocker,
+		ESDTTransferParser: esdtTransferParser,
 	}
-	log.Debug("blockProcessorCreator: enable epoch for sc deploy", "epoch", argsNewVMFactory.DeployEnableEpoch)
-	log.Debug("blockProcessorCreator: enable epoch for ahead of time gas usage", "epoch", argsNewVMFactory.AheadOfTimeGasUsageEnableEpoch)
-	log.Debug("blockProcessorCreator: enable epoch for repair callback", "epoch", argsNewVMFactory.ArwenV3EnableEpoch)
+	log.Debug("blockProcessorCreator: enable epoch for sc deploy", "epoch", argsNewVMFactory.EpochConfig.SCDeployEnableEpoch)
+	log.Debug("blockProcessorCreator: enable epoch for ahead of time gas usage", "epoch", argsNewVMFactory.EpochConfig.AheadOfTimeGasUsageEnableEpoch)
+	log.Debug("blockProcessorCreator: enable epoch for repair callback", "epoch", argsNewVMFactory.EpochConfig.RepairCallbackEnableEpoch)
 
 	vmFactory, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	if err != nil {
