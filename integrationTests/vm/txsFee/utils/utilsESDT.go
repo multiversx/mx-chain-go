@@ -79,6 +79,7 @@ func CreateAccountWithESDTBalanceAndRoles(
 	SetESDTRoles(t, accnts, pubKey, tokenIdentifier, roles)
 }
 
+// SetESDTRoles -
 func SetESDTRoles(
 	t *testing.T,
 	accnts state.AccountsAdapter,
@@ -96,7 +97,7 @@ func SetESDTRoles(
 	key = append(key, tokenIdentifier...)
 
 	if len(roles) == 0 {
-		err := userAccount.DataTrieTracker().SaveKeyValue(key, []byte{})
+		err = userAccount.DataTrieTracker().SaveKeyValue(key, []byte{})
 		require.Nil(t, err)
 
 		return
@@ -119,15 +120,7 @@ func SetESDTRoles(
 	require.Nil(t, err)
 }
 
-func ClearESDTRoles(
-	t *testing.T,
-	accnts state.AccountsAdapter,
-	pubKey []byte,
-	tokenIdentifier []byte,
-) {
-	SetESDTRoles(t, accnts, pubKey, tokenIdentifier, [][]byte{})
-}
-
+// SetLastNFTNonce -
 func SetLastNFTNonce(
 	t *testing.T,
 	accnts state.AccountsAdapter,
