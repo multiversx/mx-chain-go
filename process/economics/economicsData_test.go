@@ -805,7 +805,7 @@ func TestEconomicsData_ComputeGasUsedAndFeeBasedOnRefundValueSpecialBuiltIn(t *t
 
 	tx := &transaction.Transaction{
 		GasPrice: 1000000000,
-		GasLimit: 120000,
+		GasLimit: 104009,
 		Data:     []byte("ESDTTransfer@54474e2d383862383366@0a"),
 	}
 
