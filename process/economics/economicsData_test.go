@@ -818,6 +818,30 @@ func TestEconomicsData_ComputeGasUsedAndFeeBasedOnRefundValueSpecialBuiltIn(t *t
 	require.Equal(t, expectedFee, fee)
 }
 
+func TestEconomicsData_ComputeGasUsedAndFeeBasedOnRefundValueSpecialBuiltInTooMuchGas(t *testing.T) {
+	t.Parallel()
+
+	builtInCostHandler, _ := economics.NewBuiltInFunctionsCost(&economics.ArgsBuiltInFunctionCost{
+		GasSchedule: mock.NewGasScheduleNotifierMock(defaults.FillGasMapInternal(map[string]map[string]uint64{}, 1)),
+		ArgsParser:  smartContract.NewArgumentParser(),
+	})
+	economicData, _ := economics.NewEconomicsData(createArgsForEconomicsDataRealFees(builtInCostHandler))
+
+	tx := &transaction.Transaction{
+		GasPrice: 1000000000,
+		GasLimit: 104011,
+		Data:     []byte("ESDTTransfer@54474e2d383862383366@0a"),
+	}
+
+	expectedGasUsed := uint64(104011)
+	expectedFee, _ := big.NewInt(0).SetString("104000110000000", 10)
+
+	refundValue, _ := big.NewInt(0).SetString("0", 10)
+	gasUsed, fee := economicData.ComputeGasUsedAndFeeBasedOnRefundValue(tx, refundValue)
+	require.Equal(t, expectedGasUsed, gasUsed)
+	require.Equal(t, expectedFee, fee)
+}
+
 func TestEconomicsData_ComputeGasLimitBasedOnBalance(t *testing.T) {
 	t.Parallel()
 
