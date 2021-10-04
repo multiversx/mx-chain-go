@@ -131,7 +131,9 @@ func (g *gasScheduleNotifier) EpochConfirmed(epoch uint32, _ uint64) {
 
 	g.lastGasSchedule = newGasSchedule
 	for _, handler := range g.handlers {
-		handler.GasScheduleChange(g.lastGasSchedule)
+		if !check.IfNil(handler) {
+			handler.GasScheduleChange(g.lastGasSchedule)
+		}
 	}
 }
 
