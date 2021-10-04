@@ -251,7 +251,6 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		VMOutputCacher:      txcache.NewDisabledCache(),
 		ArwenChangeLocker:   arwenChangeLocker,
 		EnableEpochs:        enableEpochs,
-		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: enableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -571,7 +570,6 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		VMOutputCacher:      txcache.NewDisabledCache(),
 		ArwenChangeLocker:   arwenChangeLocker,
 		EnableEpochs:        enableEpochs,
-		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: enableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {

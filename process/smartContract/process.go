@@ -126,7 +126,6 @@ type ArgsNewSmartContractProcessor struct {
 	VMOutputCacher      storage.Cacher
 	ArwenChangeLocker   process.Locker
 	IsGenesisProcessing bool
-	OptimizeGasUsedInCrossMiniBlocksEnableEpoch uint32
 }
 
 // NewSmartContractProcessor creates a smart contract processor that creates and interprets VM data
@@ -225,7 +224,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		persistPerByte:                        baseOperationCost["PersistPerByte"],
 		incrementSCRNonceInMultiTransferEnableEpoch: args.EnableEpochs.IncrementSCRNonceInMultiTransferEnableEpoch,
 		createdCallBackCrossShardOnlyEnableEpoch:    args.EnableEpochs.MultiESDTTransferFixOnCallBackOnEnableEpoch,
-		optimizeGasUsedInCrossMiniBlocksEnableEpoch: args.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
+		optimizeGasUsedInCrossMiniBlocksEnableEpoch: args.EnableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
 	}
 
 	var err error
