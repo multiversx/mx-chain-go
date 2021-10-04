@@ -112,8 +112,8 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 		eei:             args.Eei,
 		gasCost:         args.GasCost,
 		baseIssuingCost: baseIssuingCost,
-		//we should have called pubkeyConverter.Decode here instead of a byte slice cast. Since that change would break
-		//backwards compatibility, the fix was carried in the epochStart/metachain/systemSCs.go
+		// we should have called pubkeyConverter.Decode here instead of a byte slice cast. Since that change would break
+		// backwards compatibility, the fix was carried in the epochStart/metachain/systemSCs.go
 		ownerAddress:                     []byte(args.ESDTSCConfig.OwnerAddress),
 		eSDTSCAddress:                    args.ESDTSCAddress,
 		hasher:                           args.Hasher,
@@ -437,6 +437,13 @@ func (e *esdt) registerMetaESDT(args *vmcommon.ContractCallInput) vmcommon.Retur
 
 	e.eei.Finish(tokenIdentifier)
 
+	logEntry := &vmcommon.LogEntry{
+		Identifier: []byte(args.Function),
+		Address:    args.CallerAddr,
+		Topics:     [][]byte{tokenIdentifier, args.Arguments[0], args.Arguments[1], []byte(metaESDT)},
+	}
+	e.eei.AddLogEntry(logEntry)
+
 	return vmcommon.Ok
 }
 
@@ -476,6 +483,13 @@ func (e *esdt) changeSFTToMetaESDT(args *vmcommon.ContractCallInput) vmcommon.Re
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
+
+	logEntry := &vmcommon.LogEntry{
+		Identifier: []byte(args.Function),
+		Address:    args.CallerAddr,
+		Topics:     [][]byte{args.Arguments[0], token.TokenName, token.TickerName, []byte(metaESDT)},
+	}
+	e.eei.AddLogEntry(logEntry)
 
 	return vmcommon.Ok
 }
