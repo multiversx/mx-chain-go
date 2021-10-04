@@ -66,8 +66,8 @@ func NewSigningSlashingDetector(
 }
 
 // VerifyData - checks if an intercepted data represents a slashable event
-func (ssd *SigningSlashingDetector) VerifyData(data process.InterceptedData) (slash.SlashingProofHandler, error) {
-	header, castOk := data.(*interceptedBlocks.InterceptedHeader)
+func (ssd *SigningSlashingDetector) VerifyData(interceptedData process.InterceptedData) (slash.SlashingProofHandler, error) {
+	header, castOk := interceptedData.(*interceptedBlocks.InterceptedHeader)
 	if !castOk {
 		return nil, process.ErrCannotCastInterceptedDataToHeader
 	}
@@ -86,16 +86,26 @@ func (ssd *SigningSlashingDetector) VerifyData(data process.InterceptedData) (sl
 		return nil, errors.New("dsa")
 	}
 
+	validatorSignedHeaders := make(map[string]slash.DataWithSlashingLevel)
 	for _, currData := range ssd.headersCache.headers(round) {
 		signers, _ := ssd.getValidatorsWhichSignedBothHeaders(currData.header, header.HeaderHandler())
 		if len(signers) >= 1 {
 			for _, signer := range signers {
 				ssd.slashingCache.add(round, signer.PubKey(), header)
+
+				validatorSignedHeaders[string(signer.PubKey())] = slash.DataWithSlashingLevel{
+					SlashingLevel: 0,
+					Data:          ssd.slashingCache.proposedData(round, signer.PubKey()),
+				}
 			}
 		}
 	}
 
 	ssd.headersCache.add(round, headerHash, header.HeaderHandler())
+
+	if len(validatorSignedHeaders) != 0 {
+		return slash.NewMultipleHeaderSigningProof(validatorSignedHeaders)
+	}
 
 	// check another signature with the same round and proposer exists, but a different header exists
 	// if yes a slashingDetectorResult is returned with a message and the two signatures

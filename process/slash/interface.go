@@ -8,17 +8,24 @@ import (
 
 // SlashingProofHandler - contains a proof for a slashing event and can be wrapped in a transaction
 type SlashingProofHandler interface {
-	// GetLevel - contains the slashing level for the current slashing type
-	// multiple colluding parties should have a higher level
-	GetLevel() SlashingLevel
 	//GetType - contains the type of slashing detection
 	GetType() SlashingType
 }
 
 type MultipleProposalProofHandler interface {
 	SlashingProofHandler
-	//GetHeaders - returns the slashable proposed headers
+	// GetLevel - contains the slashing level for the current slashing type
+	// multiple colluding parties should have a higher level
+	GetLevel() SlashingLevel
+	//GetHeaders - returns the slashable proposed Data
 	GetHeaders() []*interceptedBlocks.InterceptedHeader
+}
+
+type MultipleSigningProofHandler interface {
+	SlashingProofHandler
+	GetPubKeys() [][]byte
+	GetLevel(pubKey []byte) SlashingLevel
+	GetHeaders(pubKey []byte) []*interceptedBlocks.InterceptedHeader
 }
 
 // SlashingDetector - checks for slashable events and generates proofs to be used for slash
