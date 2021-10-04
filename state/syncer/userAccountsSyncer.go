@@ -105,69 +105,7 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 
 	log.Debug("main trie synced, starting to sync data tries", "num data tries", len(u.dataTries))
 
-	rootHashes, err := u.findAllAccountRootHashes(mainTrie)
-	if err != nil {
-		return err
-	}
-
-	err = u.syncAccountDataTries(rootHashes, tss, ctx)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (u *userAccountsSyncer) syncAccountDataTries(rootHashes [][]byte, ssh data.SyncStatisticsHandler, ctx context.Context) error {
-	var errFound error
-	errMutex := sync.Mutex{}
-
-	wg := sync.WaitGroup{}
-	wg.Add(len(rootHashes))
-
-	for _, rootHash := range rootHashes {
-		for {
-			if u.throttler.CanProcess() {
-				break
-			}
-
-			select {
-			case <-time.After(timeBetweenRetries):
-				continue
-			case <-ctx.Done():
-				return data.ErrTimeIsOut
-			}
-		}
-
-		//throttler.StartProcessing is required to be here as it prevent the following edge-case:
-		//loop does 100k iterations because throttler.CanProcess allows it and starts 100k go routines that can
-		//not execute their first instructions that could tell the throttler they have started.
-		//Telling the throttler the processing has started here will prevent OOM exception because of too many go
-		//routines started.
-		u.throttler.StartProcessing()
-
-		go func(trieRootHash []byte) {
-			defer u.throttler.EndProcessing()
-
-			log.Trace("sync data trie", "roothash", trieRootHash)
-			newErr := u.syncDataTrie(trieRootHash, ssh, ctx)
-			if newErr != nil {
-				errMutex.Lock()
-				errFound = newErr
-				errMutex.Unlock()
-			}
-			atomic.AddInt32(&u.numTriesSynced, 1)
-			log.Trace("finished sync data trie", "roothash", trieRootHash)
-			wg.Done()
-		}(rootHash)
-	}
-
-	wg.Wait()
-
-	errMutex.Lock()
-	defer errMutex.Unlock()
-
-	return errFound
+	return u.syncAccountDataTries(mainTrie, tss, ctx)
 }
 
 func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ssh data.SyncStatisticsHandler, ctx context.Context) error {
@@ -207,18 +145,25 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ssh data.SyncStatisti
 	return nil
 }
 
-func (u *userAccountsSyncer) findAllAccountRootHashes(mainTrie common.Trie) ([][]byte, error) {
+func (u *userAccountsSyncer) syncAccountDataTries(
+	mainTrie common.Trie,
+	ssh data.SyncStatisticsHandler,
+	ctx context.Context,
+) error {
 	mainRootHash, err := mainTrie.RootHash()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	leavesChannel, err := mainTrie.GetAllLeavesOnChannel(mainRootHash)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	rootHashes := make([][]byte, 0)
+	var errFound error
+	errMutex := sync.Mutex{}
+	wg := sync.WaitGroup{}
+
 	for leaf := range leavesChannel {
 		u.resetTimeoutHandlerWatchdog()
 
@@ -229,13 +174,65 @@ func (u *userAccountsSyncer) findAllAccountRootHashes(mainTrie common.Trie) ([][
 			continue
 		}
 
-		if len(account.RootHash) > 0 {
-			rootHashes = append(rootHashes, account.RootHash)
-			atomic.AddInt32(&u.numMaxTries, 1)
+		if len(account.RootHash) == 0 {
+			continue
+		}
+
+		err = u.checkGoRoutinesThrottler(ctx)
+		if err != nil {
+			return err
+		}
+
+		//throttler.StartProcessing is required to be here as it prevent the following edge-case:
+		//loop does 100k iterations because throttler.CanProcess allows it and starts 100k go routines that can
+		//not execute their first instructions that could tell the throttler they have started.
+		//Telling the throttler the processing has started here will prevent OOM exception because of too many go
+		//routines started.
+		u.throttler.StartProcessing()
+
+		wg.Add(1)
+
+		go func(trieRootHash []byte) {
+			defer u.throttler.EndProcessing()
+
+			log.Trace("sync data trie", "roothash", trieRootHash)
+			newErr := u.syncDataTrie(trieRootHash, ssh, ctx)
+			if newErr != nil {
+				errMutex.Lock()
+				errFound = newErr
+				errMutex.Unlock()
+			}
+			atomic.AddInt32(&u.numTriesSynced, 1)
+			log.Trace("finished sync data trie", "roothash", trieRootHash)
+			wg.Done()
+		}(account.RootHash)
+
+		atomic.AddInt32(&u.numMaxTries, 1)
+	}
+
+	wg.Wait()
+
+	errMutex.Lock()
+	defer errMutex.Unlock()
+
+	return errFound
+}
+
+func (u *userAccountsSyncer) checkGoRoutinesThrottler(ctx context.Context) error {
+	for {
+		if u.throttler.CanProcess() {
+			break
+		}
+
+		select {
+		case <-time.After(timeBetweenRetries):
+			continue
+		case <-ctx.Done():
+			return data.ErrTimeIsOut
 		}
 	}
 
-	return rootHashes, nil
+	return nil
 }
 
 // resetTimeoutHandlerWatchdog this method should be called whenever the syncer is doing something other than
