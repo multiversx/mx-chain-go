@@ -5,12 +5,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 )
 
-type DataWithSlashingLevel struct {
+type SlashingData struct {
 	SlashingLevel SlashingLevel
 	Data          []process.InterceptedData
 }
 
-type headersWithSlashingLevel struct {
+type slashingHeaders struct {
 	slashingLevel SlashingLevel
 	headers       []*interceptedBlocks.InterceptedHeader
 }

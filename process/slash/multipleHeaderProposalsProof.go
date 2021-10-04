@@ -5,18 +5,18 @@ import (
 )
 
 type multipleProposalProof struct {
-	slashableHeaders headersWithSlashingLevel
+	slashableHeaders slashingHeaders
 }
 
 // NewMultipleProposalProof - creates a new double block proposal slashing proof with a level, type and data
-func NewMultipleProposalProof(slashableData DataWithSlashingLevel) (MultipleProposalProofHandler, error) {
+func NewMultipleProposalProof(slashableData SlashingData) (MultipleProposalProofHandler, error) {
 	headers, err := convertInterceptedDataToHeader(slashableData.Data)
 	if err != nil {
 		return nil, err
 	}
 
 	return &multipleProposalProof{
-		slashableHeaders: headersWithSlashingLevel{
+		slashableHeaders: slashingHeaders{
 			slashingLevel: slashableData.SlashingLevel,
 			headers:       headers,
 		},

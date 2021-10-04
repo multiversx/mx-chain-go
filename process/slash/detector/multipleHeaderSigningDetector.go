@@ -86,25 +86,28 @@ func (ssd *SigningSlashingDetector) VerifyData(interceptedData process.Intercept
 		return nil, errors.New("dsa")
 	}
 
-	validatorSignedHeaders := make(map[string]slash.DataWithSlashingLevel)
+	slashingData := make(map[string]slash.SlashingData)
 	for _, currData := range ssd.headersCache.headers(round) {
-		signers, _ := ssd.getValidatorsWhichSignedBothHeaders(currData.header, header.HeaderHandler())
-		if len(signers) >= 1 {
-			for _, signer := range signers {
-				ssd.slashingCache.add(round, signer.PubKey(), header)
+		doubleSigners, err := ssd.doubleSigningValidators(currData.header, header.HeaderHandler())
+		if err != nil {
+			return nil, err
+		}
+		if len(doubleSigners) >= 1 {
+			for _, doubleSigner := range doubleSigners {
+				ssd.slashingCache.add(round, doubleSigner.PubKey(), header)
+				headers := ssd.slashingCache.data(round, doubleSigner.PubKey())
 
-				validatorSignedHeaders[string(signer.PubKey())] = slash.DataWithSlashingLevel{
-					SlashingLevel: 0,
-					Data:          ssd.slashingCache.proposedData(round, signer.PubKey()),
+				slashingData[string(doubleSigner.PubKey())] = slash.SlashingData{
+					SlashingLevel: computeSlashLevel(headers),
+					Data:          headers,
 				}
 			}
 		}
 	}
 
 	ssd.headersCache.add(round, headerHash, header.HeaderHandler())
-
-	if len(validatorSignedHeaders) != 0 {
-		return slash.NewMultipleSigningProof(validatorSignedHeaders)
+	if len(slashingData) != 0 {
+		return slash.NewMultipleSigningProof(slashingData)
 	}
 
 	// check another signature with the same round and proposer exists, but a different header exists
@@ -125,7 +128,7 @@ func (ssd *SigningSlashingDetector) computeHashWithoutSignatures(header data.Hea
 	return ssd.hasher.Compute(string(headerBytes)), nil
 }
 
-func (ssd *SigningSlashingDetector) getValidatorsWhichSignedBothHeaders(header1 data.HeaderHandler, header2 data.HeaderHandler) ([]sharding.Validator, error) {
+func (ssd *SigningSlashingDetector) doubleSigningValidators(header1 data.HeaderHandler, header2 data.HeaderHandler) ([]sharding.Validator, error) {
 	group1, err := ssd.nodesCoordinator.ComputeConsensusGroup(
 		header1.GetPrevRandSeed(),
 		header1.GetRound(),

@@ -5,12 +5,12 @@ import (
 )
 
 type multipleSigningProof struct {
-	slashableHeaders map[string]headersWithSlashingLevel
+	slashableHeaders map[string]slashingHeaders
 	pubKeys          [][]byte
 }
 
 func NewMultipleSigningProof(
-	slashableData map[string]DataWithSlashingLevel,
+	slashableData map[string]SlashingData,
 ) (MultipleSigningProofHandler, error) {
 	slashableHeaders, pubKeys, err := convertData(slashableData)
 	if err != nil {
@@ -47,8 +47,8 @@ func (msp *multipleSigningProof) GetPubKeys() [][]byte {
 	return msp.pubKeys
 }
 
-func convertData(data map[string]DataWithSlashingLevel) (map[string]headersWithSlashingLevel, [][]byte, error) {
-	slashableHeaders := make(map[string]headersWithSlashingLevel)
+func convertData(data map[string]SlashingData) (map[string]slashingHeaders, [][]byte, error) {
+	slashableHeaders := make(map[string]slashingHeaders)
 	pubKeys := make([][]byte, 0, len(data))
 	idx := uint64(0)
 
@@ -58,7 +58,7 @@ func convertData(data map[string]DataWithSlashingLevel) (map[string]headersWithS
 			return nil, nil, err
 		}
 
-		slashableHeaders[pubKey] = headersWithSlashingLevel{
+		slashableHeaders[pubKey] = slashingHeaders{
 			slashingLevel: slashableData.SlashingLevel,
 			headers:       headers,
 		}

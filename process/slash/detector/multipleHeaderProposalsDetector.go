@@ -13,7 +13,7 @@ import (
 
 type detectorCache interface {
 	add(round uint64, pubKey []byte, data process.InterceptedData)
-	proposedData(round uint64, pubKey []byte) dataList
+	data(round uint64, pubKey []byte) dataList
 }
 
 const CacheSize = 10
@@ -76,7 +76,7 @@ func (mhp *multipleHeaderProposalsDetector) VerifyData(data process.InterceptedD
 
 	if slashType == slash.MultipleProposal {
 		return slash.NewMultipleProposalProof(
-			slash.DataWithSlashingLevel{
+			slash.SlashingData{
 				SlashingLevel: slashLevel,
 				Data:          headers,
 			},
@@ -110,17 +110,12 @@ func (mhp *multipleHeaderProposalsDetector) getSlashingResult(
 	headers := make([]process.InterceptedData, 0)
 	slashType := slash.None
 	slashLevel := slash.Level0
-	proposedHeaders := mhp.cache.proposedData(currRound, proposerPubKey)
+	proposedHeaders := mhp.cache.data(currRound, proposerPubKey)
 
 	if len(proposedHeaders) >= 1 {
 		headers = mhp.getProposedHeadersWithDifferentHash(currHeader.Hash(), proposedHeaders)
 		if len(headers) >= 1 {
-			// TODO: Maybe a linear interpolation to deduce severity?
-			if len(headers) == 1 {
-				slashLevel = slash.Level1
-			} else {
-				slashLevel = slash.Level2
-			}
+			slashLevel = computeSlashLevel(headers)
 			slashType = slash.MultipleProposal
 			headers = append(headers, currHeader)
 		}

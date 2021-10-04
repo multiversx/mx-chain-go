@@ -184,7 +184,7 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_InvalidProofType_ExpectEr
 
 	sd, _ := detector.NewMultipleHeaderProposalsDetector(&mockEpochStart.NodesCoordinatorStub{}, &mock.RoundHandlerMock{}, detector.CacheSize)
 
-	proof1, _ := slash.NewMultipleSigningProof(map[string]slash.DataWithSlashingLevel{})
+	proof1, _ := slash.NewMultipleSigningProof(map[string]slash.SlashingData{})
 	err := sd.ValidateProof(proof1)
 	require.Equal(t, process.ErrCannotCastProofToMultipleProposedHeaders, err)
 
@@ -247,7 +247,7 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 		sd, _ := detector.NewMultipleHeaderProposalsDetector(&mockEpochStart.NodesCoordinatorStub{}, &mock.RoundHandlerMock{}, detector.CacheSize)
 		level, data := currTest.args()
 		proof, _ := slash.NewMultipleProposalProof(
-			slash.DataWithSlashingLevel{
+			slash.SlashingData{
 				SlashingLevel: level,
 				Data:          data,
 			},
@@ -372,7 +372,7 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 	for _, currTest := range tests {
 		level, data := currTest.args()
 		proof, _ := slash.NewMultipleProposalProof(
-			slash.DataWithSlashingLevel{
+			slash.SlashingData{
 				SlashingLevel: level,
 				Data:          data,
 			},

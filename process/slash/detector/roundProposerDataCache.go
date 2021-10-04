@@ -55,7 +55,7 @@ func (rpd *roundProposerDataCache) isCacheFull(currRound uint64) bool {
 	return len(rpd.cache) >= int(rpd.cacheSize) && !currRoundInCache
 }
 
-func (rpd *roundProposerDataCache) proposedData(round uint64, pubKey []byte) dataList {
+func (rpd *roundProposerDataCache) data(round uint64, pubKey []byte) dataList {
 	pubKeyStr := string(pubKey)
 
 	if _, exists := rpd.cache[round]; exists {
