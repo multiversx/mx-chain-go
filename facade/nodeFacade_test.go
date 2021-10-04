@@ -956,22 +956,6 @@ func TestNodeFacade_GetProofDataTrie(t *testing.T) {
 	assert.Equal(t, expectedResponseDataTrie, dataTrieResponse)
 }
 
-func TestNodeFacade_VerifyProof(t *testing.T) {
-	t.Parallel()
-
-	arg := createMockArguments()
-	arg.Node = &mock.NodeStub{
-		VerifyProofCalled: func(_ string, _ string, _ [][]byte) (bool, error) {
-			return true, nil
-		},
-	}
-	nf, _ := NewNodeFacade(arg)
-
-	response, err := nf.VerifyProof("hash", "addr", [][]byte{[]byte("proof")})
-	assert.Nil(t, err)
-	assert.True(t, response)
-}
-
 func TestNodeFacade_ExecuteSCQuery(t *testing.T) {
 	t.Parallel()
 

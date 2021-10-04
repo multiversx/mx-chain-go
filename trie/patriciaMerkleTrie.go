@@ -602,15 +602,11 @@ func (tr *patriciaMerkleTrie) GetProof(key []byte) ([][]byte, []byte, error) {
 }
 
 // VerifyProof verifies the given Merkle proof
-func (tr *patriciaMerkleTrie) VerifyProof(key []byte, proof [][]byte) (bool, error) {
+func (tr *patriciaMerkleTrie) VerifyProof(rootHash []byte, key []byte, proof [][]byte) (bool, error) {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
-	wantHash, err := tr.getRootHash()
-	if err != nil {
-		return false, err
-	}
-
+	wantHash := rootHash
 	key = keyBytesToHex(key)
 	for _, encodedNode := range proof {
 		if encodedNode == nil {

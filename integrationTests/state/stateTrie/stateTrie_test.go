@@ -2146,21 +2146,23 @@ func TestProofAndVerifyProofDataTrie(t *testing.T) {
 	encodedAddr, _ := shardNode.Node.EncodeAddressPubkey(address)
 	account, err = shardNode.AccntState.GetExistingAccount(address)
 	assert.Nil(t, err)
-	dataTrieRootHash := hex.EncodeToString(account.(state.UserAccountHandler).GetRootHash())
+	dataTrieRootHashBytes := account.(state.UserAccountHandler).GetRootHash()
+	mainTrie, _ := shardNode.AccntState.GetTrie(rootHash)
 
 	for i := 0; i < numValsInDataTrie; i++ {
 		index := strconv.Itoa(i)
-		key := hex.EncodeToString([]byte("key" + index))
+		keyBytes := []byte("key" + index)
+		key := hex.EncodeToString(keyBytes)
 		value := []byte("value" + index)
 
 		mainTrieProof, dataTrieProof, err := shardNode.Node.GetProofDataTrie(rootHashHex, encodedAddr, key)
 		assert.Nil(t, err)
 
-		response, err := shardNode.Node.VerifyProof(rootHashHex, encodedAddr, mainTrieProof.Proof)
+		response, err := mainTrie.VerifyProof(rootHash, address, mainTrieProof.Proof)
 		assert.Nil(t, err)
 		assert.True(t, response)
 
-		response, err = shardNode.Node.VerifyProof(dataTrieRootHash, key, dataTrieProof.Proof)
+		response, err = mainTrie.VerifyProof(dataTrieRootHashBytes, keyBytes, dataTrieProof.Proof)
 		assert.Nil(t, err)
 		assert.True(t, response)
 		assert.Equal(t, value, dataTrieProof.Value)

@@ -1,9 +1,7 @@
 package groups_test
 
 import (
-	"bytes"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -246,137 +244,6 @@ func TestGetProofCurrentRootHash(t *testing.T) {
 	rh, ok := responseMap["rootHash"].(string)
 	assert.True(t, ok)
 	assert.Equal(t, rootHash, rh)
-}
-
-func TestVerifyProof_BadRequestShouldErr(t *testing.T) {
-	t.Parallel()
-
-	proofGroup, err := groups.NewProofGroup(&mock.FacadeStub{})
-	require.NoError(t, err)
-
-	ws := startWebServer(proofGroup, "proof", getProofRoutesConfig())
-
-	req, _ := http.NewRequest("POST", "/proof/verify", bytes.NewBuffer([]byte("invalid bytes")))
-
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := shared.GenericAPIResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, shared.ReturnCodeRequestError, response.Code)
-	assert.True(t, strings.Contains(response.Error, apiErrors.ErrValidation.Error()))
-}
-
-func TestVerifyProof_VerifyProofErr(t *testing.T) {
-	t.Parallel()
-
-	verifyProfErr := fmt.Errorf("VerifyProof err")
-	facade := &mock.FacadeStub{
-		VerifyProofCalled: func(rootHash string, address string, proof [][]byte) (bool, error) {
-			return false, verifyProfErr
-		},
-	}
-
-	verifyProofParams := groups.VerifyProofRequest{
-		RootHash: "rootHash",
-		Address:  "address",
-		Proof:    []string{hex.EncodeToString([]byte("valid")), hex.EncodeToString([]byte("proof"))},
-	}
-	verifyProofBytes, _ := json.Marshal(verifyProofParams)
-
-	proofGroup, err := groups.NewProofGroup(facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(proofGroup, "proof", getProofRoutesConfig())
-
-	req, _ := http.NewRequest("POST", "/proof/verify", bytes.NewBuffer(verifyProofBytes))
-
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := shared.GenericAPIResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
-	assert.True(t, strings.Contains(response.Error, apiErrors.ErrVerifyProof.Error()))
-}
-
-func TestVerifyProof_VerifyProofCanNotDecodeProof(t *testing.T) {
-	t.Parallel()
-
-	facade := &mock.FacadeStub{}
-
-	verifyProofParams := groups.VerifyProofRequest{
-		RootHash: "rootHash",
-		Address:  "address",
-		Proof:    []string{"invalid", "hex"},
-	}
-	verifyProofBytes, _ := json.Marshal(verifyProofParams)
-
-	proofGroup, err := groups.NewProofGroup(facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(proofGroup, "proof", getProofRoutesConfig())
-
-	req, _ := http.NewRequest("POST", "/proof/verify", bytes.NewBuffer(verifyProofBytes))
-
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := shared.GenericAPIResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, shared.ReturnCodeRequestError, response.Code)
-	assert.True(t, strings.Contains(response.Error, apiErrors.ErrValidation.Error()))
-}
-
-func TestVerifyProof(t *testing.T) {
-	t.Parallel()
-
-	rootHash := "rootHash"
-	address := "address"
-	validProof := []string{hex.EncodeToString([]byte("valid")), hex.EncodeToString([]byte("proof"))}
-	verifyProofParams := groups.VerifyProofRequest{
-		RootHash: rootHash,
-		Address:  address,
-		Proof:    validProof,
-	}
-	verifyProofBytes, _ := json.Marshal(verifyProofParams)
-
-	facade := &mock.FacadeStub{
-		VerifyProofCalled: func(rH string, addr string, proof [][]byte) (bool, error) {
-			assert.Equal(t, rootHash, rH)
-			assert.Equal(t, address, addr)
-			for i := range proof {
-				assert.Equal(t, validProof[i], hex.EncodeToString(proof[i]))
-			}
-
-			return true, nil
-		},
-	}
-
-	proofGroup, err := groups.NewProofGroup(facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(proofGroup, "proof", getProofRoutesConfig())
-
-	req, _ := http.NewRequest("POST", "/proof/verify", bytes.NewBuffer(verifyProofBytes))
-
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := shared.GenericAPIResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, shared.ReturnCodeSuccess, response.Code)
-
-	responseMap, ok := response.Data.(map[string]interface{})
-	assert.True(t, ok)
-
-	isValid, ok := responseMap["ok"].(bool)
-	assert.True(t, ok)
-	assert.True(t, isValid)
 }
 
 func getProofRoutesConfig() config.ApiRoutesConfig {

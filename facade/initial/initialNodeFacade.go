@@ -53,11 +53,6 @@ func (inf *initialNodeFacade) GetProofCurrentRootHash(_ string) (*common.GetProo
 	return nil, errNodeStarting
 }
 
-// VerifyProof -
-func (inf *initialNodeFacade) VerifyProof(_ string, _ string, _ [][]byte) (bool, error) {
-	return false, errNodeStarting
-}
-
 // SetSyncer does nothing
 func (inf *initialNodeFacade) SetSyncer(_ ntp.SyncTimer) {
 }

@@ -1298,26 +1298,6 @@ func (n *Node) GetProofDataTrie(rootHash string, address string, key string) (*c
 	return mainProofResponse, dataTrieProofResponse, nil
 }
 
-// VerifyProof verifies the given Merkle proof
-func (n *Node) VerifyProof(rootHash string, address string, proof [][]byte) (bool, error) {
-	rootHashBytes, err := hex.DecodeString(rootHash)
-	if err != nil {
-		return false, err
-	}
-
-	trie, err := n.stateComponents.AccountsAdapter().GetTrie(rootHashBytes)
-	if err != nil {
-		return false, err
-	}
-
-	key, err := n.getKeyBytes(address)
-	if err != nil {
-		return false, err
-	}
-
-	return trie.VerifyProof(key, proof)
-}
-
 func (n *Node) getRootHashAndAddressAsBytes(rootHash string, address string) ([]byte, []byte, error) {
 	rootHashBytes, err := hex.DecodeString(rootHash)
 	if err != nil {
@@ -1342,8 +1322,8 @@ func (n *Node) getAccountRootHashAndVal(address []byte, accBytes []byte, key []b
 	if !ok {
 		return nil, nil, fmt.Errorf("the address does not belong to a user account")
 	}
-	dataTrieRootHash := userAccount.GetRootHash()
 
+	dataTrieRootHash := userAccount.GetRootHash()
 	if len(dataTrieRootHash) == 0 {
 		return nil, nil, fmt.Errorf("empty dataTrie rootHash")
 	}

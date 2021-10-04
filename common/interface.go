@@ -29,7 +29,7 @@ type Trie interface {
 	GetAllLeavesOnChannel(rootHash []byte) (chan core.KeyValueHolder, error)
 	GetAllHashes() ([][]byte, error)
 	GetProof(key []byte) ([][]byte, []byte, error)
-	VerifyProof(key []byte, proof [][]byte) (bool, error)
+	VerifyProof(rootHash []byte, key []byte, proof [][]byte) (bool, error)
 	GetStorageManager() StorageManager
 	Close() error
 	IsInterfaceNil() bool

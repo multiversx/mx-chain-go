@@ -50,7 +50,6 @@ type NodeStub struct {
 	GetAllIssuedESDTsCalled                        func(tokenType string) ([]string, error)
 	GetProofCalled                                 func(rootHash string, key string) (*common.GetProofResponse, error)
 	GetProofDataTrieCalled                         func(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error)
-	VerifyProofCalled                              func(rootHash string, address string, proof [][]byte) (bool, error)
 }
 
 // GetProof -
@@ -69,15 +68,6 @@ func (ns *NodeStub) GetProofDataTrie(rootHash string, address string, key string
 	}
 
 	return nil, nil, nil
-}
-
-// VerifyProof -
-func (ns *NodeStub) VerifyProof(rootHash string, address string, proof [][]byte) (bool, error) {
-	if ns.VerifyProofCalled != nil {
-		return ns.VerifyProofCalled(rootHash, address, proof)
-	}
-
-	return false, nil
 }
 
 // GetUsername -
