@@ -88,7 +88,7 @@ func TestMultipleHeaderProposalsDetector_VerifyData_IrrelevantRound_ExpectError(
 		},
 		detector.CacheSize)
 
-	hData := createInterceptedHeaderData(round+detector.MaxDeltaToCurrentRound+1, []byte("seed"))
+	hData := createInterceptedHeaderData(&block.Header{Round: round + detector.MaxDeltaToCurrentRound + 1, RandSeed: []byte("seed")})
 	res, err := sd.VerifyData(hData)
 
 	require.Nil(t, res)
@@ -120,7 +120,7 @@ func TestMultipleHeaderProposalsDetector_VerifyData_MultipleHeaders_SameHash_Exp
 		},
 	}, &mock.RoundHandlerMock{}, detector.CacheSize)
 
-	hData := createInterceptedHeaderData(2, []byte("seed"))
+	hData := createInterceptedHeaderData(&block.Header{Round: 2, RandSeed: []byte("seed")})
 	res, err := sd.VerifyData(hData)
 	require.Nil(t, res)
 	require.Equal(t, process.ErrNoSlashingEventDetected, err)
@@ -143,12 +143,12 @@ func TestMultipleHeaderProposalsDetector_VerifyData_MultipleHeaders_DifferentHas
 		},
 	}, &mock.RoundHandlerMock{}, detector.CacheSize)
 
-	hData1 := createInterceptedHeaderData(2, []byte("seed1"))
+	hData1 := createInterceptedHeaderData(&block.Header{Round: 2, RandSeed: []byte("seed1")})
 	tmp, err := sd.VerifyData(hData1)
 	require.Nil(t, tmp)
 	require.Equal(t, process.ErrNoSlashingEventDetected, err)
 
-	hData2 := createInterceptedHeaderData(2, []byte("seed2"))
+	hData2 := createInterceptedHeaderData(&block.Header{Round: 2, RandSeed: []byte("seed2")})
 	tmp, _ = sd.VerifyData(hData2)
 	res := tmp.(slash.MultipleProposalProofHandler)
 	require.Equal(t, res.GetType(), slash.MultipleProposal)
@@ -157,7 +157,7 @@ func TestMultipleHeaderProposalsDetector_VerifyData_MultipleHeaders_DifferentHas
 	require.Equal(t, res.GetHeaders()[0], hData1)
 	require.Equal(t, res.GetHeaders()[1], hData2)
 
-	hData3 := createInterceptedHeaderData(2, []byte("seed3"))
+	hData3 := createInterceptedHeaderData(&block.Header{Round: 2, RandSeed: []byte("seed3")})
 	tmp, _ = sd.VerifyData(hData3)
 	res = tmp.(slash.MultipleProposalProofHandler)
 	require.Equal(t, res.GetType(), slash.MultipleProposal)
@@ -167,7 +167,7 @@ func TestMultipleHeaderProposalsDetector_VerifyData_MultipleHeaders_DifferentHas
 	require.Equal(t, res.GetHeaders()[1], hData2)
 	require.Equal(t, res.GetHeaders()[2], hData3)
 
-	hData4 := createInterceptedHeaderData(2, []byte("seed4"))
+	hData4 := createInterceptedHeaderData(&block.Header{Round: 2, RandSeed: []byte("seed4")})
 	tmp, _ = sd.VerifyData(hData4)
 	res = tmp.(slash.MultipleProposalProofHandler)
 	require.Equal(t, res.GetType(), slash.MultipleProposal)
@@ -225,9 +225,9 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 		{
 			args: func() (slash.SlashingLevel, []process.InterceptedData) {
 				return slash.Level1, []process.InterceptedData{
-					createInterceptedHeaderData(2, []byte("h1")),
-					createInterceptedHeaderData(2, []byte("h2")),
-					createInterceptedHeaderData(2, []byte("h3")),
+					createInterceptedHeaderData(&block.Header{Round: 2, RandSeed: []byte("h1")}),
+					createInterceptedHeaderData(&block.Header{Round: 2, RandSeed: []byte("h2")}),
+					createInterceptedHeaderData(&block.Header{Round: 2, RandSeed: []byte("h3")}),
 				}
 			},
 			expectedErr: process.ErrSlashLevelDoesNotMatchSlashType,
@@ -235,8 +235,8 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 		{
 			args: func() (slash.SlashingLevel, []process.InterceptedData) {
 				return slash.Level2, []process.InterceptedData{
-					createInterceptedHeaderData(2, []byte("h1")),
-					createInterceptedHeaderData(2, []byte("h2")),
+					createInterceptedHeaderData(&block.Header{Round: 2, RandSeed: []byte("h1")}),
+					createInterceptedHeaderData(&block.Header{Round: 2, RandSeed: []byte("h2")}),
 				}
 			},
 			expectedErr: process.ErrSlashLevelDoesNotMatchSlashType,
@@ -284,8 +284,8 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 		{
 			args: func() (slash.SlashingLevel, []process.InterceptedData) {
 				return slash.Level1, []process.InterceptedData{
-					createInterceptedHeaderData(5, []byte("h1")),
-					createInterceptedHeaderData(5, []byte("h1")),
+					createInterceptedHeaderData(&block.Header{Round: 5, RandSeed: []byte("h1")}),
+					createInterceptedHeaderData(&block.Header{Round: 5, RandSeed: []byte("h1")}),
 				}
 			},
 			expectedErr: process.ErrProposedHeadersDoNotHaveDifferentHashes,
@@ -293,9 +293,9 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 		{
 			args: func() (slash.SlashingLevel, []process.InterceptedData) {
 				return slash.Level2, []process.InterceptedData{
-					createInterceptedHeaderData(5, []byte("h1")),
-					createInterceptedHeaderData(5, []byte("h2")),
-					createInterceptedHeaderData(5, []byte("h2")),
+					createInterceptedHeaderData(&block.Header{Round: 5, RandSeed: []byte("h1")}),
+					createInterceptedHeaderData(&block.Header{Round: 5, RandSeed: []byte("h2")}),
+					createInterceptedHeaderData(&block.Header{Round: 5, RandSeed: []byte("h2")}),
 				}
 			},
 			expectedErr: process.ErrProposedHeadersDoNotHaveDifferentHashes,
@@ -303,8 +303,8 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 		{
 			args: func() (slash.SlashingLevel, []process.InterceptedData) {
 				return slash.Level1, []process.InterceptedData{
-					createInterceptedHeaderData(4, []byte("h1")),
-					createInterceptedHeaderData(5, []byte("h2")),
+					createInterceptedHeaderData(&block.Header{Round: 4, RandSeed: []byte("h1")}),
+					createInterceptedHeaderData(&block.Header{Round: 5, RandSeed: []byte("h1")}),
 				}
 			},
 			expectedErr: process.ErrHeadersDoNotHaveSameRound,
@@ -312,9 +312,9 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 		{
 			args: func() (slash.SlashingLevel, []process.InterceptedData) {
 				return slash.Level2, []process.InterceptedData{
-					createInterceptedHeaderData(4, []byte("h1")),
-					createInterceptedHeaderData(4, []byte("h2")),
-					createInterceptedHeaderData(5, []byte("h3")),
+					createInterceptedHeaderData(&block.Header{Round: 4, RandSeed: []byte("h1")}),
+					createInterceptedHeaderData(&block.Header{Round: 4, RandSeed: []byte("h2")}),
+					createInterceptedHeaderData(&block.Header{Round: 5, RandSeed: []byte("h3")}),
 				}
 			},
 			expectedErr: process.ErrHeadersDoNotHaveSameRound,
@@ -322,8 +322,8 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 		{
 			args: func() (slash.SlashingLevel, []process.InterceptedData) {
 				return slash.Level1, []process.InterceptedData{
-					createInterceptedHeaderData(0, []byte("h1")), // round ==0 && rndSeed == h1 => mock returns err
-					createInterceptedHeaderData(0, []byte("h2")),
+					createInterceptedHeaderData(&block.Header{Round: 0, RandSeed: []byte("h1")}), // round ==0 && rndSeed == h1 => mock returns err
+					createInterceptedHeaderData(&block.Header{Round: 0, RandSeed: []byte("h2")}),
 				}
 			},
 			expectedErr: errGetProposer,
@@ -331,8 +331,8 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 		{
 			args: func() (slash.SlashingLevel, []process.InterceptedData) {
 				return slash.Level1, []process.InterceptedData{
-					createInterceptedHeaderData(0, []byte("h")),
-					createInterceptedHeaderData(0, []byte("h1")),
+					createInterceptedHeaderData(&block.Header{Round: 0, RandSeed: []byte("h")}),
+					createInterceptedHeaderData(&block.Header{Round: 0, RandSeed: []byte("h1")}),
 				}
 			},
 			expectedErr: errGetProposer,
@@ -340,8 +340,8 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 		{
 			args: func() (slash.SlashingLevel, []process.InterceptedData) {
 				return slash.Level1, []process.InterceptedData{
-					createInterceptedHeaderData(1, []byte("h1")), // round == 1 && rndSeed == h1 => mock returns proposer1
-					createInterceptedHeaderData(1, []byte("h2")), // round == 1 && rndSeed == h2 => mock returns proposer2
+					createInterceptedHeaderData(&block.Header{Round: 1, RandSeed: []byte("h1")}), // round == 1 && rndSeed == h1 => mock returns proposer1
+					createInterceptedHeaderData(&block.Header{Round: 1, RandSeed: []byte("h2")}), // round == 1 && rndSeed == h2 => mock returns proposer2
 				}
 			},
 			expectedErr: process.ErrHeadersDoNotHaveSameProposer,
@@ -349,8 +349,8 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 		{
 			args: func() (slash.SlashingLevel, []process.InterceptedData) {
 				return slash.Level1, []process.InterceptedData{
-					createInterceptedHeaderData(4, []byte("h1")),
-					createInterceptedHeaderData(4, []byte("h2")),
+					createInterceptedHeaderData(&block.Header{Round: 4, RandSeed: []byte("h1")}),
+					createInterceptedHeaderData(&block.Header{Round: 4, RandSeed: []byte("h2")}),
 				}
 			},
 			expectedErr: nil,
@@ -358,9 +358,9 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 		{
 			args: func() (slash.SlashingLevel, []process.InterceptedData) {
 				return slash.Level2, []process.InterceptedData{
-					createInterceptedHeaderData(5, []byte("h1")),
-					createInterceptedHeaderData(5, []byte("h2")),
-					createInterceptedHeaderData(5, []byte("h3")),
+					createInterceptedHeaderData(&block.Header{Round: 5, RandSeed: []byte("h1")}),
+					createInterceptedHeaderData(&block.Header{Round: 5, RandSeed: []byte("h2")}),
+					createInterceptedHeaderData(&block.Header{Round: 5, RandSeed: []byte("h3")}),
 				}
 			},
 			expectedErr: nil,
@@ -382,7 +382,7 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 	}
 }
 
-func createInterceptedHeaderArg(round uint64, randSeed []byte) *interceptedBlocks.ArgInterceptedBlockHeader {
+func createInterceptedHeaderArg(header *block.Header) *interceptedBlocks.ArgInterceptedBlockHeader {
 	args := &interceptedBlocks.ArgInterceptedBlockHeader{
 		ShardCoordinator:        &mock.ShardCoordinatorStub{},
 		Hasher:                  &mock.HasherMock{},
@@ -393,23 +393,13 @@ func createInterceptedHeaderArg(round uint64, randSeed []byte) *interceptedBlock
 		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
 	}
 
-	hdr := createBlockHeaderData(round, randSeed)
-	args.HdrBuff, _ = args.Marshalizer.Marshal(hdr)
+	args.HdrBuff, _ = args.Marshalizer.Marshal(header)
 
 	return args
 }
 
-func createBlockHeaderData(round uint64, randSeed []byte) *block.Header {
-	return &block.Header{
-		RandSeed: randSeed,
-		ShardID:  1,
-		Round:    round,
-		Epoch:    3,
-	}
-}
-
-func createInterceptedHeaderData(round uint64, randSeed []byte) *interceptedBlocks.InterceptedHeader {
-	args := createInterceptedHeaderArg(round, randSeed)
+func createInterceptedHeaderData(header *block.Header) *interceptedBlocks.InterceptedHeader {
+	args := createInterceptedHeaderArg(header)
 	interceptedHeader, _ := interceptedBlocks.NewInterceptedHeader(args)
 
 	return interceptedHeader

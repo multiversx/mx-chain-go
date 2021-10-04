@@ -890,6 +890,9 @@ var ErrHeadersDoNotHaveSameProposer = errors.New("the headers from a multiple he
 // ErrHeadersDoNotHaveSameRound signals that the headers from a multiple header proposal proof have different rounds
 var ErrHeadersDoNotHaveSameRound = errors.New("the headers from a multiple header proposal proof have different rounds")
 
+// ErrHeadersShouldHaveDifferentHashes signals that header hashes in a multiple signing proof should be different
+var ErrHeadersShouldHaveDifferentHashes = errors.New("headers in a multiple signing proof should have different hashes")
+
 // ErrAccountNotPayable will be sent when trying to send money to a non-payable account
 var ErrAccountNotPayable = errors.New("sending value to non payable contract")
 

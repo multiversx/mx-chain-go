@@ -1,9 +1,11 @@
 package detector_test
 
 import (
+	"errors"
 	"strconv"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	mockEpochStart "github.com/ElrondNetwork/elrond-go/epochStart/mock"
@@ -77,7 +79,7 @@ func TestMultipleHeaderSigningDetector_VerifyData_CannotCastData_ExpectError(t *
 	require.Equal(t, process.ErrCannotCastInterceptedDataToHeader, err)
 }
 
-func TestMultipleHeaderSigningDetector_VerifyData_DifferentRelevantAndIrrelevantRounds(t *testing.T) {
+func TestMultipleHeaderSigningDetector_VerifyData_IrrelevantRounds_ExpectError(t *testing.T) {
 	t.Parallel()
 
 	round := uint64(100)
@@ -90,11 +92,91 @@ func TestMultipleHeaderSigningDetector_VerifyData_DifferentRelevantAndIrrelevant
 		&mock.MarshalizerMock{},
 		detector.CacheSize)
 
-	hData := createInterceptedHeaderData(round+detector.MaxDeltaToCurrentRound+1, []byte("seed"))
+	hData := createInterceptedHeaderData(&block.Header{Round: round + detector.MaxDeltaToCurrentRound + 1, RandSeed: []byte("seed")})
 	res, err := ssd.VerifyData(hData)
 
 	require.Nil(t, res)
 	require.Equal(t, process.ErrHeaderRoundNotRelevant, err)
+}
+
+func TestMultipleHeaderSigningDetector_VerifyData_InvalidMarshaller_ExpectError(t *testing.T) {
+	t.Parallel()
+
+	errMarshaller := errors.New("error marshaller")
+	ssd, _ := detector.NewSigningSlashingDetector(
+		&mockEpochStart.NodesCoordinatorStub{},
+		&mock.RoundHandlerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerStub{
+			MarshalCalled: func(_ interface{}) ([]byte, error) {
+				return nil, errMarshaller
+			},
+		},
+		detector.CacheSize)
+
+	hData := createInterceptedHeaderData(&block.Header{})
+	res, err := ssd.VerifyData(hData)
+
+	require.Nil(t, res)
+	require.Equal(t, errMarshaller, err)
+}
+
+func TestMultipleHeaderSigningDetector_VerifyData_SameHeaderData_DifferentSigners_ExpectError(t *testing.T) {
+	t.Parallel()
+
+	ssd, _ := detector.NewSigningSlashingDetector(
+		&mockEpochStart.NodesCoordinatorStub{},
+		&mock.RoundHandlerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		detector.CacheSize)
+
+	hData1 := createInterceptedHeaderData(&block.Header{Round: 2, Signature: []byte("signature")})
+	res, err := ssd.VerifyData(hData1)
+	require.Nil(t, res)
+	require.Equal(t, process.ErrNoSlashingEventDetected, err)
+
+	hData2 := createInterceptedHeaderData(&block.Header{Round: 2, LeaderSignature: []byte("leaderSignature")})
+	res, err = ssd.VerifyData(hData2)
+	require.Nil(t, res)
+	require.Equal(t, process.ErrHeadersShouldHaveDifferentHashes, err)
+
+	hData3 := createInterceptedHeaderData(&block.Header{Round: 2, PubKeysBitmap: []byte("bitmap")})
+	res, err = ssd.VerifyData(hData3)
+	require.Nil(t, res)
+	require.Equal(t, process.ErrHeadersShouldHaveDifferentHashes, err)
+}
+
+func TestMultipleHeaderSigningDetector_VerifyData(t *testing.T) {
+	t.Parallel()
+
+	ssd, _ := detector.NewSigningSlashingDetector(
+		&mockEpochStart.NodesCoordinatorStub{},
+		&mock.RoundHandlerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		detector.CacheSize)
+
+	hData1 := createInterceptedHeaderData(
+		&block.Header{
+			Round:   2,
+			TxCount: 4,
+		},
+	)
+	tmp, err := ssd.VerifyData(hData1)
+	require.Nil(t, tmp)
+	require.Equal(t, process.ErrNoSlashingEventDetected, err)
+
+	//hData2 := createInterceptedHeaderData(
+	//	&block.Header{
+	//		Round:   2,
+	//		TxCount: 5,
+	//	},
+	//)
+	//tmp, err = ssd.VerifyData(hData2)
+	//res := tmp.(slash.MultipleSigningProofHandler)
+	//require.NotNil(t, res)
+	//require.Equal(t, process.ErrNoSlashingEventDetected, err)
 }
 
 func TestMultipleHeaderSigningDetector_DoubleSigners_EmptyValidatorLists_ExpectNoDoubleSigners(t *testing.T) {

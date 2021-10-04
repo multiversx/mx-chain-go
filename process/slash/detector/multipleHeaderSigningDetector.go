@@ -1,7 +1,7 @@
 package detector
 
 import (
-	"errors"
+	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -81,9 +81,9 @@ func (ssd *SigningSlashingDetector) VerifyData(interceptedData process.Intercept
 	if err != nil {
 		return nil, err
 	}
-
+	fmt.Printf("%x\n", headerHash)
 	if ssd.headersCache.contains(round, headerHash) {
-		return nil, errors.New("dsa")
+		return nil, process.ErrHeadersShouldHaveDifferentHashes
 	}
 
 	slashingData := make(map[string]slash.SlashingData)
@@ -116,11 +116,12 @@ func (ssd *SigningSlashingDetector) VerifyData(interceptedData process.Intercept
 }
 
 func (ssd *SigningSlashingDetector) computeHashWithoutSignatures(header data.HeaderHandler) ([]byte, error) {
-	header.SetPubKeysBitmap(nil)
-	header.SetSignature(nil)
-	header.SetLeaderSignature(nil)
+	headerCopy := header.Clone()
+	headerCopy.SetPubKeysBitmap(nil)
+	headerCopy.SetSignature(nil)
+	headerCopy.SetLeaderSignature(nil)
 
-	headerBytes, err := ssd.marshaller.Marshal(header)
+	headerBytes, err := ssd.marshaller.Marshal(headerCopy)
 	if err != nil {
 		return nil, err
 	}
