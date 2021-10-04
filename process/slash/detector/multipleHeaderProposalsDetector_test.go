@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/slash"
 	"github.com/ElrondNetwork/elrond-go/process/slash/detector"
+	mockSlash "github.com/ElrondNetwork/elrond-go/process/slash/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
@@ -183,11 +184,15 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_InvalidProofType_ExpectEr
 
 	sd, _ := detector.NewMultipleHeaderProposalsDetector(&mockEpochStart.NodesCoordinatorStub{}, &mock.RoundHandlerMock{}, detector.CacheSize)
 
-	proof1 := slash.NewSlashingProof(slash.MultipleProposal, slash.Level1)
+	proof1, _ := slash.NewMultipleSigningProof(map[string]slash.DataWithSlashingLevel{})
 	err := sd.ValidateProof(proof1)
 	require.Equal(t, process.ErrCannotCastProofToMultipleProposedHeaders, err)
 
-	proof2, _ := slash.NewMultipleProposalProof(slash.None, slash.Level1, []process.InterceptedData{})
+	proof2 := &mockSlash.MultipleProposalProofStub{
+		GetTypeCalled: func() slash.SlashingType {
+			return slash.MultipleSigning
+		},
+	}
 	err = sd.ValidateProof(proof2)
 	require.Equal(t, process.ErrInvalidSlashType, err)
 }
@@ -196,30 +201,30 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 	t.Parallel()
 
 	tests := []struct {
-		args        func() (slash.SlashingType, slash.SlashingLevel, []process.InterceptedData)
+		args        func() (slash.SlashingLevel, []process.InterceptedData)
 		expectedErr error
 	}{
 		{
-			args: func() (slash.SlashingType, slash.SlashingLevel, []process.InterceptedData) {
-				return slash.MultipleProposal, slash.Level0, []process.InterceptedData{}
+			args: func() (slash.SlashingLevel, []process.InterceptedData) {
+				return slash.Level0, []process.InterceptedData{}
 			},
 			expectedErr: process.ErrInvalidSlashLevel,
 		},
 		{
-			args: func() (slash.SlashingType, slash.SlashingLevel, []process.InterceptedData) {
-				return slash.MultipleProposal, 4444, []process.InterceptedData{}
+			args: func() (slash.SlashingLevel, []process.InterceptedData) {
+				return 4444, []process.InterceptedData{}
 			},
 			expectedErr: process.ErrInvalidSlashLevel,
 		},
 		{
-			args: func() (slash.SlashingType, slash.SlashingLevel, []process.InterceptedData) {
-				return slash.MultipleProposal, slash.Level1, []process.InterceptedData{}
+			args: func() (slash.SlashingLevel, []process.InterceptedData) {
+				return slash.Level1, []process.InterceptedData{}
 			},
 			expectedErr: process.ErrNotEnoughHeadersProvided,
 		},
 		{
-			args: func() (slash.SlashingType, slash.SlashingLevel, []process.InterceptedData) {
-				return slash.MultipleProposal, slash.Level1, []process.InterceptedData{
+			args: func() (slash.SlashingLevel, []process.InterceptedData) {
+				return slash.Level1, []process.InterceptedData{
 					createInterceptedHeaderData(2, []byte("h1")),
 					createInterceptedHeaderData(2, []byte("h2")),
 					createInterceptedHeaderData(2, []byte("h3")),
@@ -228,8 +233,8 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 			expectedErr: process.ErrSlashLevelDoesNotMatchSlashType,
 		},
 		{
-			args: func() (slash.SlashingType, slash.SlashingLevel, []process.InterceptedData) {
-				return slash.MultipleProposal, slash.Level2, []process.InterceptedData{
+			args: func() (slash.SlashingLevel, []process.InterceptedData) {
+				return slash.Level2, []process.InterceptedData{
 					createInterceptedHeaderData(2, []byte("h1")),
 					createInterceptedHeaderData(2, []byte("h2")),
 				}
@@ -240,7 +245,13 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 
 	for _, currTest := range tests {
 		sd, _ := detector.NewMultipleHeaderProposalsDetector(&mockEpochStart.NodesCoordinatorStub{}, &mock.RoundHandlerMock{}, detector.CacheSize)
-		proof, _ := slash.NewMultipleProposalProof(currTest.args())
+		level, data := currTest.args()
+		proof, _ := slash.NewMultipleProposalProof(
+			slash.DataWithSlashingLevel{
+				SlashingLevel: level,
+				Data:          data,
+			},
+		)
 
 		err := sd.ValidateProof(proof)
 		require.Equal(t, currTest.expectedErr, err)
@@ -267,12 +278,12 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 		},
 	}
 	tests := []struct {
-		args        func() (slash.SlashingType, slash.SlashingLevel, []process.InterceptedData)
+		args        func() (slash.SlashingLevel, []process.InterceptedData)
 		expectedErr error
 	}{
 		{
-			args: func() (slash.SlashingType, slash.SlashingLevel, []process.InterceptedData) {
-				return slash.MultipleProposal, slash.Level1, []process.InterceptedData{
+			args: func() (slash.SlashingLevel, []process.InterceptedData) {
+				return slash.Level1, []process.InterceptedData{
 					createInterceptedHeaderData(5, []byte("h1")),
 					createInterceptedHeaderData(5, []byte("h1")),
 				}
@@ -280,8 +291,8 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 			expectedErr: process.ErrProposedHeadersDoNotHaveDifferentHashes,
 		},
 		{
-			args: func() (slash.SlashingType, slash.SlashingLevel, []process.InterceptedData) {
-				return slash.MultipleProposal, slash.Level2, []process.InterceptedData{
+			args: func() (slash.SlashingLevel, []process.InterceptedData) {
+				return slash.Level2, []process.InterceptedData{
 					createInterceptedHeaderData(5, []byte("h1")),
 					createInterceptedHeaderData(5, []byte("h2")),
 					createInterceptedHeaderData(5, []byte("h2")),
@@ -290,8 +301,8 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 			expectedErr: process.ErrProposedHeadersDoNotHaveDifferentHashes,
 		},
 		{
-			args: func() (slash.SlashingType, slash.SlashingLevel, []process.InterceptedData) {
-				return slash.MultipleProposal, slash.Level1, []process.InterceptedData{
+			args: func() (slash.SlashingLevel, []process.InterceptedData) {
+				return slash.Level1, []process.InterceptedData{
 					createInterceptedHeaderData(4, []byte("h1")),
 					createInterceptedHeaderData(5, []byte("h2")),
 				}
@@ -299,8 +310,8 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 			expectedErr: process.ErrHeadersDoNotHaveSameRound,
 		},
 		{
-			args: func() (slash.SlashingType, slash.SlashingLevel, []process.InterceptedData) {
-				return slash.MultipleProposal, slash.Level2, []process.InterceptedData{
+			args: func() (slash.SlashingLevel, []process.InterceptedData) {
+				return slash.Level2, []process.InterceptedData{
 					createInterceptedHeaderData(4, []byte("h1")),
 					createInterceptedHeaderData(4, []byte("h2")),
 					createInterceptedHeaderData(5, []byte("h3")),
@@ -309,8 +320,8 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 			expectedErr: process.ErrHeadersDoNotHaveSameRound,
 		},
 		{
-			args: func() (slash.SlashingType, slash.SlashingLevel, []process.InterceptedData) {
-				return slash.MultipleProposal, slash.Level1, []process.InterceptedData{
+			args: func() (slash.SlashingLevel, []process.InterceptedData) {
+				return slash.Level1, []process.InterceptedData{
 					createInterceptedHeaderData(0, []byte("h1")), // round ==0 && rndSeed == h1 => mock returns err
 					createInterceptedHeaderData(0, []byte("h2")),
 				}
@@ -318,8 +329,8 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 			expectedErr: errGetProposer,
 		},
 		{
-			args: func() (slash.SlashingType, slash.SlashingLevel, []process.InterceptedData) {
-				return slash.MultipleProposal, slash.Level1, []process.InterceptedData{
+			args: func() (slash.SlashingLevel, []process.InterceptedData) {
+				return slash.Level1, []process.InterceptedData{
 					createInterceptedHeaderData(0, []byte("h")),
 					createInterceptedHeaderData(0, []byte("h1")),
 				}
@@ -327,8 +338,8 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 			expectedErr: errGetProposer,
 		},
 		{
-			args: func() (slash.SlashingType, slash.SlashingLevel, []process.InterceptedData) {
-				return slash.MultipleProposal, slash.Level1, []process.InterceptedData{
+			args: func() (slash.SlashingLevel, []process.InterceptedData) {
+				return slash.Level1, []process.InterceptedData{
 					createInterceptedHeaderData(1, []byte("h1")), // round == 1 && rndSeed == h1 => mock returns proposer1
 					createInterceptedHeaderData(1, []byte("h2")), // round == 1 && rndSeed == h2 => mock returns proposer2
 				}
@@ -336,8 +347,8 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 			expectedErr: process.ErrHeadersDoNotHaveSameProposer,
 		},
 		{
-			args: func() (slash.SlashingType, slash.SlashingLevel, []process.InterceptedData) {
-				return slash.MultipleProposal, slash.Level1, []process.InterceptedData{
+			args: func() (slash.SlashingLevel, []process.InterceptedData) {
+				return slash.Level1, []process.InterceptedData{
 					createInterceptedHeaderData(4, []byte("h1")),
 					createInterceptedHeaderData(4, []byte("h2")),
 				}
@@ -345,8 +356,8 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 			expectedErr: nil,
 		},
 		{
-			args: func() (slash.SlashingType, slash.SlashingLevel, []process.InterceptedData) {
-				return slash.MultipleProposal, slash.Level2, []process.InterceptedData{
+			args: func() (slash.SlashingLevel, []process.InterceptedData) {
+				return slash.Level2, []process.InterceptedData{
 					createInterceptedHeaderData(5, []byte("h1")),
 					createInterceptedHeaderData(5, []byte("h2")),
 					createInterceptedHeaderData(5, []byte("h3")),
@@ -359,7 +370,13 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 	sd, _ := detector.NewMultipleHeaderProposalsDetector(nodesCoordinatorMock, &mock.RoundHandlerMock{}, detector.CacheSize)
 
 	for _, currTest := range tests {
-		proof, _ := slash.NewMultipleProposalProof(currTest.args())
+		level, data := currTest.args()
+		proof, _ := slash.NewMultipleProposalProof(
+			slash.DataWithSlashingLevel{
+				SlashingLevel: level,
+				Data:          data,
+			},
+		)
 		err := sd.ValidateProof(proof)
 		require.Equal(t, currTest.expectedErr, err)
 	}

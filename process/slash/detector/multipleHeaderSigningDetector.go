@@ -104,7 +104,7 @@ func (ssd *SigningSlashingDetector) VerifyData(interceptedData process.Intercept
 	ssd.headersCache.add(round, headerHash, header.HeaderHandler())
 
 	if len(validatorSignedHeaders) != 0 {
-		return slash.NewMultipleHeaderSigningProof(validatorSignedHeaders)
+		return slash.NewMultipleSigningProof(validatorSignedHeaders)
 	}
 
 	// check another signature with the same round and proposer exists, but a different header exists

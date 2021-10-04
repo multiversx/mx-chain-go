@@ -75,7 +75,12 @@ func (mhp *multipleHeaderProposalsDetector) VerifyData(data process.InterceptedD
 	mhp.cache.add(round, proposer, header)
 
 	if slashType == slash.MultipleProposal {
-		return slash.NewMultipleProposalProof(slashType, slashLevel, headers)
+		return slash.NewMultipleProposalProof(
+			slash.DataWithSlashingLevel{
+				SlashingLevel: slashLevel,
+				Data:          headers,
+			},
+		)
 	}
 	return nil, process.ErrNoSlashingEventDetected
 }

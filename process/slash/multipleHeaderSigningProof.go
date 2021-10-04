@@ -1,60 +1,49 @@
 package slash
 
 import (
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 )
 
-type DataWithSlashingLevel struct {
-	SlashingLevel SlashingLevel
-	Data          []process.InterceptedData
-}
-
-type headersWithSlashingLevel struct {
-	slashingLevel SlashingLevel
-	headers       []*interceptedBlocks.InterceptedHeader
-}
-
-type multipleHeaderSigningProof struct {
+type multipleSigningProof struct {
 	slashableHeaders map[string]headersWithSlashingLevel
 	pubKeys          [][]byte
 }
 
-func NewMultipleHeaderSigningProof(
-	headersWithSlashing map[string]DataWithSlashingLevel,
+func NewMultipleSigningProof(
+	slashableData map[string]DataWithSlashingLevel,
 ) (MultipleSigningProofHandler, error) {
-	slashableHeaders, pubKeys, err := convertData(headersWithSlashing)
+	slashableHeaders, pubKeys, err := convertData(slashableData)
 	if err != nil {
 		return nil, err
 	}
 
-	return &multipleHeaderSigningProof{
+	return &multipleSigningProof{
 		pubKeys:          pubKeys,
 		slashableHeaders: slashableHeaders,
 	}, nil
 }
 
 // GetType - gets the slashing proofs type
-func (msp *multipleHeaderSigningProof) GetType() SlashingType {
+func (msp *multipleSigningProof) GetType() SlashingType {
 	return MultipleSigning
 }
 
 // GetLevel - gets the slashing proofs level
-func (msp *multipleHeaderSigningProof) GetLevel(pubKey []byte) SlashingLevel {
+func (msp *multipleSigningProof) GetLevel(pubKey []byte) SlashingLevel {
 	if _, exists := msp.slashableHeaders[string(pubKey)]; exists {
 		return msp.slashableHeaders[string(pubKey)].slashingLevel
 	}
 	return Level0
 }
 
-func (msp *multipleHeaderSigningProof) GetHeaders(pubKey []byte) []*interceptedBlocks.InterceptedHeader {
+func (msp *multipleSigningProof) GetHeaders(pubKey []byte) []*interceptedBlocks.InterceptedHeader {
 	if _, exists := msp.slashableHeaders[string(pubKey)]; exists {
 		return msp.slashableHeaders[string(pubKey)].headers
 	}
 	return nil
 }
 
-func (msp *multipleHeaderSigningProof) GetPubKeys() [][]byte {
+func (msp *multipleSigningProof) GetPubKeys() [][]byte {
 	return msp.pubKeys
 }
 

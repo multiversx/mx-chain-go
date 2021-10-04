@@ -1,55 +1,39 @@
 package slash
 
 import (
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 )
 
 type multipleProposalProof struct {
-	level        SlashingLevel
-	slashingType SlashingType
-	headers      []*interceptedBlocks.InterceptedHeader
+	slashableHeaders headersWithSlashingLevel
 }
 
 // NewMultipleProposalProof - creates a new double block proposal slashing proof with a level, type and data
-func NewMultipleProposalProof(sType SlashingType, level SlashingLevel, data []process.InterceptedData) (MultipleProposalProofHandler, error) {
-	headers, err := convertInterceptedDataToHeader(data)
+func NewMultipleProposalProof(slashableData DataWithSlashingLevel) (MultipleProposalProofHandler, error) {
+	headers, err := convertInterceptedDataToHeader(slashableData.Data)
 	if err != nil {
 		return nil, err
 	}
 
 	return &multipleProposalProof{
-		level:        level,
-		slashingType: sType,
-		headers:      headers,
+		slashableHeaders: headersWithSlashingLevel{
+			slashingLevel: slashableData.SlashingLevel,
+			headers:       headers,
+		},
 	}, nil
 }
 
 // GetLevel - gets the slashing proofs level
 func (mpp *multipleProposalProof) GetLevel() SlashingLevel {
-	return mpp.level
+	return mpp.slashableHeaders.slashingLevel
 }
 
 // GetType - gets the slashing proofs type
 func (mpp *multipleProposalProof) GetType() SlashingType {
-	return mpp.slashingType
+	return MultipleProposal
 }
 
 // GetHeaders - gets the slashing proofs headers
 func (mpp *multipleProposalProof) GetHeaders() []*interceptedBlocks.InterceptedHeader {
-	return mpp.headers
-}
-
-func convertInterceptedDataToHeader(data []process.InterceptedData) ([]*interceptedBlocks.InterceptedHeader, error) {
-	headers := make([]*interceptedBlocks.InterceptedHeader, 0, len(data))
-
-	for _, d := range data {
-		header, castOk := d.(*interceptedBlocks.InterceptedHeader)
-		if !castOk {
-			return nil, process.ErrCannotCastInterceptedDataToHeader
-		}
-		headers = append(headers, header)
-	}
-
-	return headers, nil
+	return mpp.slashableHeaders.headers
 }
