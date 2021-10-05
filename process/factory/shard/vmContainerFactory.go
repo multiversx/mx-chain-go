@@ -144,7 +144,6 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 		vmf.arwenChangeLocker.Unlock()
 		return nil, err
 	}
-	vmf.gasSchedule.RegisterNotifyHandler(currentVM)
 
 	err = container.Add(factory.ArwenVirtualMachine, currentVM)
 	if err != nil {
@@ -215,7 +214,13 @@ func (vmf *vmContainerFactory) shouldReplaceArwenInstance(
 }
 
 func (vmf *vmContainerFactory) createArwenVM(version config.ArwenVersionByEpoch) (vmcommon.VMExecutionHandler, error) {
-	return vmf.createInProcessArwenVMByVersion(version)
+	currentVM, err := vmf.createInProcessArwenVMByVersion(version)
+	if err != nil {
+		return nil, err
+	}
+
+	vmf.gasSchedule.RegisterNotifyHandler(currentVM)
+	return currentVM, nil
 }
 
 func (vmf *vmContainerFactory) getMatchingVersion(epoch uint32) config.ArwenVersionByEpoch {
