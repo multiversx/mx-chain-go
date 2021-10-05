@@ -40,6 +40,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -2650,7 +2651,7 @@ func TestNode_AppStatusHandlersShouldIncrement(t *testing.T) {
 	metricKey := common.MetricCurrentRound
 	incrementCalled := make(chan bool, 1)
 
-	appStatusHandlerStub := mock.AppStatusHandlerStub{
+	appStatusHandlerStub := statusHandlerMock.AppStatusHandlerStub{
 		IncrementHandler: func(key string) {
 			incrementCalled <- true
 		},
@@ -2678,7 +2679,7 @@ func TestNode_AppStatusHandlerShouldDecrement(t *testing.T) {
 	metricKey := common.MetricCurrentRound
 	decrementCalled := make(chan bool, 1)
 
-	appStatusHandlerStub := mock.AppStatusHandlerStub{
+	appStatusHandlerStub := statusHandlerMock.AppStatusHandlerStub{
 		DecrementHandler: func(key string) {
 			decrementCalled <- true
 		},
@@ -2706,7 +2707,7 @@ func TestNode_AppStatusHandlerShouldSetInt64Value(t *testing.T) {
 	metricKey := common.MetricCurrentRound
 	setInt64ValueCalled := make(chan bool, 1)
 
-	appStatusHandlerStub := mock.AppStatusHandlerStub{
+	appStatusHandlerStub := statusHandlerMock.AppStatusHandlerStub{
 		SetInt64ValueHandler: func(key string, value int64) {
 			setInt64ValueCalled <- true
 		},
@@ -2734,7 +2735,7 @@ func TestNode_AppStatusHandlerShouldSetUInt64Value(t *testing.T) {
 	metricKey := common.MetricCurrentRound
 	setUInt64ValueCalled := make(chan bool, 1)
 
-	appStatusHandlerStub := mock.AppStatusHandlerStub{
+	appStatusHandlerStub := statusHandlerMock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {
 			setUInt64ValueCalled <- true
 		},

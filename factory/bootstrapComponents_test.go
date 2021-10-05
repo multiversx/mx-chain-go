@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/require"
 )
 
@@ -155,7 +156,7 @@ func getDefaultCoreComponents() *mock.CoreComponentsMock {
 		MinTransactionVersionCalled: func() uint32 {
 			return 1
 		},
-		AppStatusHdl:      &testscommon.AppStatusHandlerStub{},
+		AppStatusHdl:      &statusHandler.AppStatusHandlerStub{},
 		WatchdogTimer:     &testscommon.WatchdogMock{},
 		AlarmSch:          &testscommon.AlarmSchedulerStub{},
 		NtpSyncTimer:      &testscommon.SyncTimerStub{},
