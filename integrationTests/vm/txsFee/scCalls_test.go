@@ -10,10 +10,13 @@ import (
 	"math/big"
 	"testing"
 
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
@@ -228,4 +231,62 @@ func TestScCallOutOfGasShouldConsumeGas(t *testing.T) {
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
 	require.Equal(t, tx.GasLimit, indexerTx.GasUsed)
 	require.Equal(t, "200", indexerTx.Fee)
+}
+
+func TestScCallAndGasChangeShouldWork(t *testing.T) {
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
+	defer testContext.Close()
+
+	mockGasSchedule := testContext.GasSchedule.(*mock.GasScheduleNotifierMock)
+	testGasSchedule := arwenConfig.MakeGasMapForTests()
+	newGasSchedule := defaults.FillGasMapInternal(testGasSchedule, 2)
+
+	scAddress, _ := utils.DoDeploy(t, testContext, "../arwen/testdata/counter/output/counter.wasm")
+	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
+
+	sndAddr := []byte("12345678901234567890123456789112")
+	senderBalance := big.NewInt(10000000)
+	gasPrice := uint64(10)
+	gasLimit := uint64(1000)
+
+	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
+
+	for idx := uint64(0); idx < 10; idx++ {
+		tx := vm.CreateTransaction(idx, big.NewInt(0), sndAddr, scAddress, gasPrice, gasLimit, []byte("increment"))
+
+		_, err = testContext.TxProcessor.ProcessTransaction(tx)
+		require.Nil(t, err)
+		require.Nil(t, testContext.GetLatestError())
+
+		_, err = testContext.Accounts.Commit()
+		require.Nil(t, err)
+
+		intermediateTxs := testContext.GetIntermediateTransactions(t)
+		testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+		testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
+
+		indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
+		require.Equal(t, uint64(387), indexerTx.GasUsed)
+	}
+
+	mockGasSchedule.ChangeGasSchedule(newGasSchedule)
+
+	for idx := uint64(0); idx < 10; idx++ {
+		tx := vm.CreateTransaction(10+idx, big.NewInt(0), sndAddr, scAddress, gasPrice, gasLimit, []byte("increment"))
+
+		_, err = testContext.TxProcessor.ProcessTransaction(tx)
+		require.Nil(t, err)
+		require.Nil(t, testContext.GetLatestError())
+
+		_, err = testContext.Accounts.Commit()
+		require.Nil(t, err)
+
+		intermediateTxs := testContext.GetIntermediateTransactions(t)
+		testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+		testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
+
+		indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
+		require.Equal(t, uint64(748), indexerTx.GasUsed)
+	}
 }
