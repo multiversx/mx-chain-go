@@ -19,9 +19,9 @@ func (bsd *baseSlashingDetector) isRoundRelevant(round uint64) bool {
 func computeSlashLevel(data []process.InterceptedData) slash.SlashingLevel {
 	ret := slash.Level0
 	// TODO: Maybe a linear interpolation to deduce severity?
-	if len(data) == 1 {
+	if len(data) == 2 {
 		ret = slash.Level1
-	} else if len(data) >= 2 {
+	} else if len(data) >= 3 {
 		ret = slash.Level2
 	}
 

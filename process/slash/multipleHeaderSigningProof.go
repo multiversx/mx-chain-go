@@ -50,7 +50,6 @@ func (msp *multipleSigningProof) GetPubKeys() [][]byte {
 func convertData(data map[string]SlashingData) (map[string]slashingHeaders, [][]byte, error) {
 	slashableHeaders := make(map[string]slashingHeaders)
 	pubKeys := make([][]byte, 0, len(data))
-	idx := uint64(0)
 
 	for pubKey, slashableData := range data {
 		headers, err := convertInterceptedDataToHeader(slashableData.Data)
@@ -63,8 +62,7 @@ func convertData(data map[string]SlashingData) (map[string]slashingHeaders, [][]
 			headers:       headers,
 		}
 
-		pubKeys[idx] = []byte(pubKey)
-		idx++
+		pubKeys = append(pubKeys, []byte(pubKey))
 	}
 
 	return slashableHeaders, pubKeys, nil

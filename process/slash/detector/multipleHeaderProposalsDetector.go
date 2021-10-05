@@ -14,6 +14,7 @@ import (
 type detectorCache interface {
 	add(round uint64, pubKey []byte, data process.InterceptedData)
 	data(round uint64, pubKey []byte) dataList
+	validators(round uint64) [][]byte
 }
 
 const CacheSize = 10
@@ -115,9 +116,9 @@ func (mhp *multipleHeaderProposalsDetector) getSlashingResult(
 	if len(proposedHeaders) >= 1 {
 		headers = mhp.getProposedHeadersWithDifferentHash(currHeader.Hash(), proposedHeaders)
 		if len(headers) >= 1 {
+			headers = append(headers, currHeader)
 			slashLevel = computeSlashLevel(headers)
 			slashType = slash.MultipleProposal
-			headers = append(headers, currHeader)
 		}
 	}
 

@@ -66,3 +66,15 @@ func (rpd *roundProposerDataCache) data(round uint64, pubKey []byte) dataList {
 
 	return nil
 }
+
+func (rpd *roundProposerDataCache) validators(round uint64) [][]byte {
+	ret := make([][]byte, 0)
+
+	if _, exists := rpd.cache[round]; exists {
+		for pubKey, _ := range rpd.cache[round] {
+			ret = append(ret, []byte(pubKey))
+		}
+	}
+
+	return ret
+}

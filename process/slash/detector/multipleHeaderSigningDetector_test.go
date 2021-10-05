@@ -11,6 +11,7 @@ import (
 	mockEpochStart "github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/process/slash"
 	"github.com/ElrondNetwork/elrond-go/process/slash/detector"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	mock2 "github.com/ElrondNetwork/elrond-go/sharding/mock"
@@ -150,33 +151,112 @@ func TestMultipleHeaderSigningDetector_VerifyData_SameHeaderData_DifferentSigner
 func TestMultipleHeaderSigningDetector_VerifyData(t *testing.T) {
 	t.Parallel()
 
+	pk0 := []byte("pubKey0")
+	pk1 := []byte("pubKey1")
+	pk2 := []byte("pubKey2")
+	pk3 := []byte("pubKey3")
+	pk4 := []byte("pubKey4")
+	v0 := mock.NewValidatorMock(pk0)
+	v1 := mock.NewValidatorMock(pk1)
+	v2 := mock.NewValidatorMock(pk2)
+	v3 := mock.NewValidatorMock(pk3)
+	v4 := mock.NewValidatorMock(pk4)
+
+	group1 := []sharding.Validator{v0, v1, v3}
+	byteMap1, _ := strconv.ParseInt("00001011", 2, 9)
+	bitmap1 := []byte{byte(byteMap1)}
+
+	group2 := []sharding.Validator{v0, v2, v4}
+	byteMap2, _ := strconv.ParseInt("00010101", 2, 9)
+	bitmap2 := []byte{byte(byteMap2)}
+
+	group3 := []sharding.Validator{v4, v3, v2, v1, v0}
+	byteMap3, _ := strconv.ParseInt("00011000", 2, 9)
+	bitmap3 := []byte{byte(byteMap3)}
+
+	hData1 := createInterceptedHeaderData(
+		&block.Header{
+			PrevRandSeed:  []byte("rnd1"),
+			Round:         2,
+			PubKeysBitmap: bitmap1,
+		},
+	)
+	hData2 := createInterceptedHeaderData(
+		&block.Header{
+			PrevRandSeed:  []byte("rnd2"),
+			Round:         2,
+			PubKeysBitmap: bitmap2,
+		},
+	)
+	hData3 := createInterceptedHeaderData(
+		&block.Header{
+			PrevRandSeed:  []byte("rnd3"),
+			Round:         2,
+			PubKeysBitmap: bitmap3,
+		},
+	)
+
 	ssd, _ := detector.NewSigningSlashingDetector(
-		&mockEpochStart.NodesCoordinatorStub{},
+		&mockEpochStart.NodesCoordinatorStub{
+			ComputeConsensusGroupCalled: func(randomness []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
+				switch string(randomness) {
+				case "rnd1":
+					return group1, nil
+				case "rnd2":
+					return group2, nil
+				case "rnd3":
+					return group3, nil
+				default:
+					return nil, nil
+				}
+			},
+		},
 		&mock.RoundHandlerMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		detector.CacheSize)
 
-	hData1 := createInterceptedHeaderData(
-		&block.Header{
-			Round:   2,
-			TxCount: 4,
-		},
-	)
+	// For first header(same round): v0, v1, v3 signed => no slashing event
 	tmp, err := ssd.VerifyData(hData1)
 	require.Nil(t, tmp)
 	require.Equal(t, process.ErrNoSlashingEventDetected, err)
 
-	//hData2 := createInterceptedHeaderData(
-	//	&block.Header{
-	//		Round:   2,
-	//		TxCount: 5,
-	//	},
-	//)
-	//tmp, err = ssd.VerifyData(hData2)
-	//res := tmp.(slash.MultipleSigningProofHandler)
-	//require.NotNil(t, res)
-	//require.Equal(t, process.ErrNoSlashingEventDetected, err)
+	// For 2nd header(same round): v0, v2, v4 signed => v0 signed 2 headers this round(current and previous)
+	tmp, err = ssd.VerifyData(hData2)
+	res := tmp.(slash.MultipleSigningProofHandler)
+	require.Nil(t, err)
+	require.Equal(t, slash.MultipleSigning, res.GetType())
+
+	require.Len(t, res.GetPubKeys(), 1)
+	require.Equal(t, pk0, res.GetPubKeys()[0])
+	require.Equal(t, slash.Level1, res.GetLevel(pk0))
+
+	require.Len(t, res.GetHeaders(pk0), 2)
+	require.Equal(t, []byte("rnd1"), res.GetHeaders(pk0)[0].HeaderHandler().GetPrevRandSeed())
+	require.Equal(t, []byte("rnd2"), res.GetHeaders(pk0)[1].HeaderHandler().GetPrevRandSeed())
+
+	// For 3rd header(same round): v0, v1 signed =>
+	// 1. v0 signed 3 headers this round(current and previous 2 headers)
+	// 2. v1 signed 2 headers this round(current and first header)
+	tmp, err = ssd.VerifyData(hData3)
+	res = tmp.(slash.MultipleSigningProofHandler)
+	require.Nil(t, err)
+	require.Equal(t, slash.MultipleSigning, res.GetType())
+
+	require.Len(t, res.GetPubKeys(), 2)
+	require.Equal(t, pk0, res.GetPubKeys()[0])
+	require.Equal(t, pk1, res.GetPubKeys()[1])
+	require.Equal(t, slash.Level2, res.GetLevel(pk0))
+	require.Equal(t, slash.Level1, res.GetLevel(pk1))
+
+	require.Len(t, res.GetHeaders(pk0), 3)
+	require.Equal(t, []byte("rnd1"), res.GetHeaders(pk0)[0].HeaderHandler().GetPrevRandSeed())
+	require.Equal(t, []byte("rnd2"), res.GetHeaders(pk0)[1].HeaderHandler().GetPrevRandSeed())
+	require.Equal(t, []byte("rnd3"), res.GetHeaders(pk0)[2].HeaderHandler().GetPrevRandSeed())
+
+	require.Len(t, res.GetHeaders(pk1), 2)
+	require.Equal(t, []byte("rnd1"), res.GetHeaders(pk1)[0].HeaderHandler().GetPrevRandSeed())
+	require.Equal(t, []byte("rnd3"), res.GetHeaders(pk1)[1].HeaderHandler().GetPrevRandSeed())
 }
 
 func TestMultipleHeaderSigningDetector_DoubleSigners_EmptyValidatorLists_ExpectNoDoubleSigners(t *testing.T) {
@@ -185,7 +265,15 @@ func TestMultipleHeaderSigningDetector_DoubleSigners_EmptyValidatorLists_ExpectN
 	var bitmap1 []byte
 	var bitmap2 []byte
 
-	doubleSigners := detector.DoubleSigners(group1, group2, bitmap1, bitmap2)
+	ssd, _ := detector.NewSigningSlashingDetector(
+		&mockEpochStart.NodesCoordinatorStub{},
+		&mock.RoundHandlerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		detector.CacheSize)
+	slashDetector := ssd.(*detector.SigningSlashingDetector)
+
+	doubleSigners := slashDetector.DoubleSigners(group1, group2, bitmap1, bitmap2)
 	require.Len(t, doubleSigners, 0)
 
 	validator := mock2.NewValidatorMock([]byte("pubKey1"), 0, 0)
@@ -193,14 +281,14 @@ func TestMultipleHeaderSigningDetector_DoubleSigners_EmptyValidatorLists_ExpectN
 	byte1, _ := strconv.ParseInt("00000001", 2, 8)
 	bitmap1 = []byte{byte(byte1)}
 
-	doubleSigners = detector.DoubleSigners(group1, group2, bitmap1, bitmap2)
+	doubleSigners = slashDetector.DoubleSigners(group1, group2, bitmap1, bitmap2)
 	require.Len(t, doubleSigners, 0)
 
 	group1 = []sharding.Validator{}
 	group2 = []sharding.Validator{validator}
 	bitmap2 = []byte{byte(byte1)}
 
-	doubleSigners = detector.DoubleSigners(group1, group2, bitmap1, bitmap2)
+	doubleSigners = slashDetector.DoubleSigners(group1, group2, bitmap1, bitmap2)
 	require.Len(t, doubleSigners, 0)
 }
 
@@ -237,7 +325,15 @@ func TestMultipleHeaderSigningDetector_DoubleSigners_ExpectThreeDoubleSigners(t 
 	byte2Map2, _ := strconv.ParseInt("00000001", 2, 9)
 	bitmap2 := []byte{byte(byte1Map2), byte(byte2Map2)}
 
-	doubleSigners := detector.DoubleSigners(group1, group2, bitmap1, bitmap2)
+	ssd, _ := detector.NewSigningSlashingDetector(
+		&mockEpochStart.NodesCoordinatorStub{},
+		&mock.RoundHandlerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		detector.CacheSize)
+	slashDetector := ssd.(*detector.SigningSlashingDetector)
+
+	doubleSigners := slashDetector.DoubleSigners(group1, group2, bitmap1, bitmap2)
 
 	require.Len(t, doubleSigners, 3)
 	require.Equal(t, []byte("pubKey0"), doubleSigners[0].PubKey())

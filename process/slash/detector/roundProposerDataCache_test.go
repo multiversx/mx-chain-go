@@ -146,3 +146,40 @@ func TestRoundProposerDataCache_GetData(t *testing.T) {
 	data3 := dataCache.data(444, []byte("this proposer is not cached"))
 	require.Nil(t, data3)
 }
+
+func TestRoundProposerDataCache_GetValidators(t *testing.T) {
+	t.Parallel()
+	dataCache := newRoundProposerDataCache(2)
+
+	dataCache.add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
+		HashCalled: func() []byte {
+			return []byte("hash1")
+		},
+	})
+	dataCache.add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
+		HashCalled: func() []byte {
+			return []byte("hash2")
+		},
+	})
+	dataCache.add(1, []byte("proposer2"), &testscommon.InterceptedDataStub{
+		HashCalled: func() []byte {
+			return []byte("hash2")
+		},
+	})
+	dataCache.add(2, []byte("proposer2"), &testscommon.InterceptedDataStub{
+		HashCalled: func() []byte {
+			return []byte("hash2")
+		},
+	})
+
+	require.Len(t, dataCache.cache, 2)
+
+	validatorsRound1 := dataCache.validators(1)
+	require.Len(t, validatorsRound1, 2)
+	require.Equal(t, []byte("proposer1"), validatorsRound1[0])
+	require.Equal(t, []byte("proposer2"), validatorsRound1[1])
+
+	validatorsRound2 := dataCache.validators(2)
+	require.Len(t, validatorsRound2, 1)
+	require.Equal(t, []byte("proposer2"), validatorsRound2[0])
+}

@@ -1,8 +1,6 @@
 package detector
 
 import (
-	"fmt"
-
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
@@ -81,26 +79,52 @@ func (ssd *SigningSlashingDetector) VerifyData(interceptedData process.Intercept
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("%x\n", headerHash)
+
 	if ssd.headersCache.contains(round, headerHash) {
 		return nil, process.ErrHeadersShouldHaveDifferentHashes
 	}
 
 	slashingData := make(map[string]slash.SlashingData)
-	for _, currData := range ssd.headersCache.headers(round) {
-		doubleSigners, err := ssd.doubleSigningValidators(currData.header, header.HeaderHandler())
-		if err != nil {
-			return nil, err
-		}
-		if len(doubleSigners) >= 1 {
-			for _, doubleSigner := range doubleSigners {
-				ssd.slashingCache.add(round, doubleSigner.PubKey(), header)
-				headers := ssd.slashingCache.data(round, doubleSigner.PubKey())
+	/*
+		for _, currData := range ssd.headersCache.headers(round) {
+			doubleSigners, err := ssd.doubleSigningValidators(currData.header, header.HeaderHandler())
+			if err != nil {
+				return nil, err
+			}
+			if len(doubleSigners) >= 1 {
+				for _, doubleSigner := range doubleSigners {
+					ssd.slashingCache.add(round, doubleSigner.PubKey(), header)
+					headers := ssd.slashingCache.data(round, doubleSigner.PubKey())
 
-				slashingData[string(doubleSigner.PubKey())] = slash.SlashingData{
-					SlashingLevel: computeSlashLevel(headers),
-					Data:          headers,
+					slashingData[string(doubleSigner.PubKey())] = slash.SlashingData{
+						SlashingLevel: computeSlashLevel(headers),
+						Data:          headers,
+					}
 				}
+			}
+		}
+	*/
+
+	group, err := ssd.nodesCoordinator.ComputeConsensusGroup(
+		header.HeaderHandler().GetPrevRandSeed(),
+		header.HeaderHandler().GetRound(),
+		header.HeaderHandler().GetShardID(),
+		header.HeaderHandler().GetEpoch())
+	if err != nil {
+		return nil, err
+	}
+	bitmap := header.HeaderHandler().GetPubKeysBitmap()
+
+	for idx, validator := range group {
+		ssd.checkIfValidatorSignedAndCacheHim(round, validator.PubKey(), header, uint32(idx), bitmap)
+	}
+
+	for _, validator := range ssd.slashingCache.validators(round) {
+		signedHeaders := ssd.slashingCache.data(round, validator)
+		if len(signedHeaders) > 1 {
+			slashingData[string(validator)] = slash.SlashingData{
+				SlashingLevel: computeSlashLevel(signedHeaders),
+				Data:          signedHeaders,
 			}
 		}
 	}
@@ -129,29 +153,49 @@ func (ssd *SigningSlashingDetector) computeHashWithoutSignatures(header data.Hea
 	return ssd.hasher.Compute(string(headerBytes)), nil
 }
 
-func (ssd *SigningSlashingDetector) doubleSigningValidators(header1 data.HeaderHandler, header2 data.HeaderHandler) ([]sharding.Validator, error) {
+func (ssd *SigningSlashingDetector) doubleSigningValidators(
+	round uint64,
+	header1 *interceptedBlocks.InterceptedHeader,
+	header2 *interceptedBlocks.InterceptedHeader,
+) ([]sharding.Validator, error) {
 	group1, err := ssd.nodesCoordinator.ComputeConsensusGroup(
-		header1.GetPrevRandSeed(),
-		header1.GetRound(),
-		header1.GetShardID(),
-		header1.GetEpoch())
+		header1.HeaderHandler().GetPrevRandSeed(),
+		header1.HeaderHandler().GetRound(),
+		header1.HeaderHandler().GetShardID(),
+		header1.HeaderHandler().GetEpoch())
 	if err != nil {
 		return nil, err
 	}
 
 	group2, err := ssd.nodesCoordinator.ComputeConsensusGroup(
-		header2.GetPrevRandSeed(),
-		header2.GetRound(),
-		header2.GetShardID(),
-		header2.GetEpoch())
+		header2.HeaderHandler().GetPrevRandSeed(),
+		header2.HeaderHandler().GetRound(),
+		header2.HeaderHandler().GetShardID(),
+		header2.HeaderHandler().GetEpoch())
 	if err != nil {
 		return nil, err
 	}
 
-	pubKeyBitmap1 := header1.GetPubKeysBitmap()
-	pubKeyBitmap2 := header2.GetPubKeysBitmap()
+	bitmap1 := header1.HeaderHandler().GetPubKeysBitmap()
+	bitmap2 := header2.HeaderHandler().GetPubKeysBitmap()
 
-	return doubleSigners(group1, group2, pubKeyBitmap1, pubKeyBitmap2), nil
+	intersectionSet := make([]sharding.Validator, 0)
+	pubKeyIdxMap := make(map[string]uint32, 0)
+	for idx, validator := range group1 {
+		if ssd.checkIfValidatorSignedAndCacheHim(round, validator.PubKey(), header1, uint32(idx), bitmap1) {
+			pubKeyIdxMap[string(validator.PubKey())] = uint32(idx)
+		}
+	}
+
+	for idxGroup2, validatorGroup2 := range group2 {
+		if _, found := pubKeyIdxMap[string(validatorGroup2.PubKey())]; found {
+			if ssd.checkIfValidatorSignedAndCacheHim(round, validatorGroup2.PubKey(), header2, uint32(idxGroup2), bitmap2) {
+				intersectionSet = append(intersectionSet, validatorGroup2)
+			}
+		}
+	}
+	return intersectionSet, nil
+
 }
 
 func isIndexSetInBitmap(index uint32, bitmap []byte) bool {
@@ -163,7 +207,22 @@ func isIndexSetInBitmap(index uint32, bitmap []byte) bool {
 	return bitmap[index/8]&(1<<uint8(index%8)) != 0
 }
 
-func doubleSigners(
+func (ssd *SigningSlashingDetector) checkIfValidatorSignedAndCacheHim(
+	round uint64,
+	pubKey []byte,
+	header *interceptedBlocks.InterceptedHeader,
+	idx uint32,
+	bitmap []byte,
+) bool {
+	if isIndexSetInBitmap(idx, bitmap) {
+		ssd.slashingCache.add(round, pubKey, header)
+		return true
+	}
+	return false
+}
+
+func (ssd *SigningSlashingDetector) doubleSigners(
+	round uint64,
 	group1 []sharding.Validator,
 	group2 []sharding.Validator,
 	bitmap1 []byte,
@@ -176,7 +235,9 @@ func doubleSigners(
 
 	pubKeyIdxMap := make(map[string]uint32, 0)
 	for idx, validator := range group1 {
-		pubKeyIdxMap[string(validator.PubKey())] = uint32(idx)
+		if isIndexSetInBitmap(uint32(idx), bitmap1) {
+			pubKeyIdxMap[string(validator.PubKey())] = uint32(idx)
+		}
 	}
 
 	for idxGroup2, validatorGroup2 := range group2 {
