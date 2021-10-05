@@ -148,7 +148,7 @@ func TestMultipleHeaderSigningDetector_VerifyData_SameHeaderData_DifferentSigner
 	require.Equal(t, process.ErrHeadersShouldHaveDifferentHashes, err)
 }
 
-func TestMultipleHeaderSigningDetector_VerifyData(t *testing.T) {
+func TestMultipleHeaderSigningDetector_VerifyData_ValidateProof(t *testing.T) {
 	t.Parallel()
 
 	pk0 := []byte("pubKey0")
@@ -163,11 +163,11 @@ func TestMultipleHeaderSigningDetector_VerifyData(t *testing.T) {
 	v4 := mock.NewValidatorMock(pk4)
 
 	group1 := []sharding.Validator{v0, v1, v3}
-	byteMap1, _ := strconv.ParseInt("00001011", 2, 9)
+	byteMap1, _ := strconv.ParseInt("00000111", 2, 9)
 	bitmap1 := []byte{byte(byteMap1)}
 
 	group2 := []sharding.Validator{v0, v2, v4}
-	byteMap2, _ := strconv.ParseInt("00010101", 2, 9)
+	byteMap2, _ := strconv.ParseInt("00000111", 2, 9)
 	bitmap2 := []byte{byte(byteMap2)}
 
 	group3 := []sharding.Validator{v4, v3, v2, v1, v0}
@@ -224,7 +224,9 @@ func TestMultipleHeaderSigningDetector_VerifyData(t *testing.T) {
 	// For 2nd header(same round): v0, v2, v4 signed => v0 signed 2 headers this round(current and previous)
 	tmp, err = ssd.VerifyData(hData2)
 	res := tmp.(slash.MultipleSigningProofHandler)
+	errProof := ssd.ValidateProof(res)
 	require.Nil(t, err)
+	require.Nil(t, errProof)
 	require.Equal(t, slash.MultipleSigning, res.GetType())
 
 	require.Len(t, res.GetPubKeys(), 1)
@@ -240,7 +242,9 @@ func TestMultipleHeaderSigningDetector_VerifyData(t *testing.T) {
 	// 2. v1 signed 2 headers this round(current and first header)
 	tmp, err = ssd.VerifyData(hData3)
 	res = tmp.(slash.MultipleSigningProofHandler)
+	errProof = ssd.ValidateProof(res)
 	require.Nil(t, err)
+	require.Nil(t, errProof)
 	require.Equal(t, slash.MultipleSigning, res.GetType())
 
 	require.Len(t, res.GetPubKeys(), 2)
@@ -257,6 +261,14 @@ func TestMultipleHeaderSigningDetector_VerifyData(t *testing.T) {
 	require.Len(t, res.GetHeaders(pk1), 2)
 	require.Equal(t, []byte("rnd1"), res.GetHeaders(pk1)[0].HeaderHandler().GetPrevRandSeed())
 	require.Equal(t, []byte("rnd3"), res.GetHeaders(pk1)[1].HeaderHandler().GetPrevRandSeed())
+
+	// 4th header(same round) == 2nd header, but validators are changed within group =>
+	// no slashing, because headers do not have different hash (without signatures). This
+	// should be a slashing case of multiple header proposal.
+	group2 = []sharding.Validator{v4, v2, v0, v1}
+	tmp, err = ssd.VerifyData(hData2)
+	require.Nil(t, tmp)
+	require.Error(t, process.ErrHeadersShouldHaveDifferentHashes, hData2)
 }
 
 func TestMultipleHeaderSigningDetector_DoubleSigners_EmptyValidatorLists_ExpectNoDoubleSigners(t *testing.T) {

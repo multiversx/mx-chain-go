@@ -867,13 +867,16 @@ var ErrHeaderRoundNotRelevant = errors.New("current header that is checked by a 
 var ErrNoSlashingEventDetected = errors.New("no slashing event has been detected given the current data")
 
 // ErrCannotCastProofToMultipleProposedHeaders signals that a given proof cannot be cast to a multiple header proposal proof
-var ErrCannotCastProofToMultipleProposedHeaders = errors.New("cannot cast proof to multiple proposal header proof")
+var ErrCannotCastProofToMultipleProposedHeaders = errors.New("cannot cast proof to multiple header proposal proof")
+
+// ErrCannotCastProofToMultipleSignedHeaders signals that a given proof cannot be cast to a multiple header signing proof
+var ErrCannotCastProofToMultipleSignedHeaders = errors.New("cannot cast proof to multiple header signing proof")
 
 // ErrSlashLevelDoesNotMatchSlashType signals the slash type is not consistent with the slash severity level
 var ErrSlashLevelDoesNotMatchSlashType = errors.New("proof slash type is not consistent with proof severity level")
 
-// ErrProposedHeadersDoNotHaveDifferentHashes signals that multiple header proposal proof does not contain different header hashes
-var ErrProposedHeadersDoNotHaveDifferentHashes = errors.New("multiple header proposal proof does not contain different header hashes")
+// ErrProposedHeadersDoNotHaveDifferentHashes signals that multiple header proof does not contain different header hashes
+var ErrProposedHeadersDoNotHaveDifferentHashes = errors.New("multiple header proof does not contain different header hashes")
 
 // ErrInvalidSlashType signals that an invalid slash type has been provided for the given proof
 var ErrInvalidSlashType = errors.New("invalid slash type has been provided for the given proof")
@@ -881,17 +884,20 @@ var ErrInvalidSlashType = errors.New("invalid slash type has been provided for t
 // ErrInvalidSlashLevel signals that an invalid slash level has been provided for the given proof
 var ErrInvalidSlashLevel = errors.New("invalid slash level has been provided for the given proof")
 
-// ErrNotEnoughHeadersProvided signals that not enough headers have been provided for a multiple header proposal proof
-var ErrNotEnoughHeadersProvided = errors.New("not enough headers have been provided for a multiple header proposal proof")
+// ErrNotEnoughHeadersProvided signals that not enough headers have been provided for a multiple header proof
+var ErrNotEnoughHeadersProvided = errors.New("not enough headers have been provided for a multiple header proof")
 
 // ErrHeadersDoNotHaveSameProposer signals that the headers from a multiple header proposal proof are not proposed by the same validator
 var ErrHeadersDoNotHaveSameProposer = errors.New("the headers from a multiple header proposal proof are not proposed by the same validator")
 
-// ErrHeadersDoNotHaveSameRound signals that the headers from a multiple header proposal proof have different rounds
-var ErrHeadersDoNotHaveSameRound = errors.New("the headers from a multiple header proposal proof have different rounds")
+// ErrHeadersDoNotHaveSameRound signals that the headers from a multiple header proof have different rounds
+var ErrHeadersDoNotHaveSameRound = errors.New("the headers from a multiple header proof have different rounds")
 
 // ErrHeadersShouldHaveDifferentHashes signals that header hashes in a multiple signing proof should be different
 var ErrHeadersShouldHaveDifferentHashes = errors.New("headers in a multiple signing proof should have different hashes")
+
+// ErrHeaderNotSignedByValidator signals that the header is not signed by the given validator
+var ErrHeaderNotSignedByValidator = errors.New("header is not signed by the given validator")
 
 // ErrAccountNotPayable will be sent when trying to send money to a non-payable account
 var ErrAccountNotPayable = errors.New("sending value to non payable contract")
