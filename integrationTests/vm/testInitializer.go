@@ -533,7 +533,7 @@ func CreateVMAndBlockchainHookAndDataPool(
 	arwenChangeLocker process.Locker,
 ) (process.VirtualMachinesContainer, *hooks.BlockChainHookImpl, dataRetriever.PoolsHolder) {
 	actualGasSchedule := gasSchedule
-	if check.IfNil(gasSchedule) {
+	if check.IfNil(gasSchedule) || gasSchedule.LatestGasSchedule() == nil {
 		testGasSchedule := arwenConfig.MakeGasMapForTests()
 		defaults.FillGasMapInternal(testGasSchedule, 1)
 		actualGasSchedule = mock.NewGasScheduleNotifierMock(testGasSchedule)
@@ -603,7 +603,7 @@ func CreateVMAndBlockchainHookMeta(
 	arg ArgEnableEpoch,
 ) (process.VirtualMachinesContainer, *hooks.BlockChainHookImpl) {
 	actualGasSchedule := gasSchedule
-	if check.IfNil(gasSchedule) {
+	if check.IfNil(gasSchedule) || gasSchedule.LatestGasSchedule() == nil {
 		testGasSchedule := arwenConfig.MakeGasMapForTests()
 		defaults.FillGasMapInternal(testGasSchedule, 1)
 		actualGasSchedule = mock.NewGasScheduleNotifierMock(testGasSchedule)
