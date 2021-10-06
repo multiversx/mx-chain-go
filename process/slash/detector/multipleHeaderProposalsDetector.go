@@ -11,12 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-type detectorCache interface {
-	add(round uint64, pubKey []byte, data process.InterceptedData)
-	data(round uint64, pubKey []byte) dataList
-	validators(round uint64) [][]byte
-}
-
 // multipleHeaderProposalsDetector - checks slashable events in case a validator proposes multiple(possibly) malicious headers.
 type multipleHeaderProposalsDetector struct {
 	cache            detectorCache

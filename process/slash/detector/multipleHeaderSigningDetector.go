@@ -13,12 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-type headersCache interface {
-	add(round uint64, hash []byte, header data.HeaderHandler)
-	contains(round uint64, hash []byte) bool
-	headers(round uint64) headerHashList
-}
-
 // SigningSlashingDetector - checks for slashable events in case one(or more)
 // validator signs multiple headers in the same round
 type SigningSlashingDetector struct {

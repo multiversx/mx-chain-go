@@ -1,6 +1,7 @@
 package detector
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/process/slash"
@@ -9,6 +10,18 @@ import (
 const CacheSize = 10
 const MinSlashableNoOfHeaders = 2
 const MaxDeltaToCurrentRound = 3
+
+type detectorCache interface {
+	add(round uint64, pubKey []byte, data process.InterceptedData)
+	data(round uint64, pubKey []byte) dataList
+	validators(round uint64) [][]byte
+}
+
+type headersCache interface {
+	add(round uint64, hash []byte, header data.HeaderHandler)
+	contains(round uint64, hash []byte) bool
+	headers(round uint64) headerHashList
+}
 
 type baseSlashingDetector struct {
 	roundHandler process.RoundHandler
