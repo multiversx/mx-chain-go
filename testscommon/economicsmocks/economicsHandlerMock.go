@@ -111,7 +111,10 @@ func (ehm *EconomicsHandlerMock) SetMinGasLimit(minGasLimit uint64) {
 
 // MaxGasLimitPerBlock -
 func (ehm *EconomicsHandlerMock) MaxGasLimitPerBlock(shard uint32) uint64 {
-	return ehm.MaxGasLimitPerBlockCalled(shard)
+	if ehm.MaxGasLimitPerBlockCalled != nil {
+		return ehm.MaxGasLimitPerBlockCalled(shard)
+	}
+	return 0
 }
 
 // MaxGasLimitPerMiniBlock -

@@ -88,7 +88,10 @@ func (ehs *EconomicsHandlerStub) DeveloperPercentage() float64 {
 
 // MaxGasLimitPerBlock -
 func (ehs *EconomicsHandlerStub) MaxGasLimitPerBlock(uint32) uint64 {
-	return ehs.MaxGasLimitPerBlockCalled()
+	if ehs.MaxGasLimitPerBlockCalled != nil {
+		return ehs.MaxGasLimitPerBlockCalled()
+	}
+	return 0
 }
 
 // MaxGasLimitPerMiniBlock -
