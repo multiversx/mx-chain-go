@@ -14,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/slash"
 	"github.com/ElrondNetwork/elrond-go/process/slash/detector"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	mock2 "github.com/ElrondNetwork/elrond-go/sharding/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
@@ -122,7 +121,7 @@ func TestMultipleHeaderSigningDetector_VerifyData_InvalidMarshaller_ExpectError(
 	require.Equal(t, errMarshaller, err)
 }
 
-func TestMultipleHeaderSigningDetector_VerifyData_SameHeaderData_DifferentSigners_ExpectError(t *testing.T) {
+func TestMultipleHeaderSigningDetector_VerifyData_SameHeaderData_DifferentSigners_ExpectNoSlashingEvent(t *testing.T) {
 	t.Parallel()
 
 	ssd, _ := detector.NewSigningSlashingDetector(
@@ -271,84 +270,26 @@ func TestMultipleHeaderSigningDetector_VerifyData_ValidateProof(t *testing.T) {
 	require.Error(t, process.ErrHeadersShouldHaveDifferentHashes, hData2)
 }
 
-func TestMultipleHeaderSigningDetector_DoubleSigners_EmptyValidatorLists_ExpectNoDoubleSigners(t *testing.T) {
-	var group1 []sharding.Validator
-	var group2 []sharding.Validator
-	var bitmap1 []byte
-	var bitmap2 []byte
+func TestMultipleHeaderSigningDetector_IsIndexSetInBitmap(t *testing.T) {
+	byte1Map1, _ := strconv.ParseInt("11001101", 2, 9)
+	byte2Map1, _ := strconv.ParseInt("00000101", 2, 9)
+	bitmap := []byte{byte(byte1Map1), byte(byte2Map1)}
 
-	ssd, _ := detector.NewSigningSlashingDetector(
-		&mockEpochStart.NodesCoordinatorStub{},
-		&mock.RoundHandlerMock{},
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		detector.CacheSize)
-	slashDetector := ssd.(*detector.SigningSlashingDetector)
+	//Byte 1
+	require.True(t, detector.IsIndexSetInBitmap(0, bitmap))
+	require.False(t, detector.IsIndexSetInBitmap(1, bitmap))
+	require.True(t, detector.IsIndexSetInBitmap(2, bitmap))
+	require.True(t, detector.IsIndexSetInBitmap(3, bitmap))
+	require.False(t, detector.IsIndexSetInBitmap(4, bitmap))
+	require.False(t, detector.IsIndexSetInBitmap(5, bitmap))
+	require.True(t, detector.IsIndexSetInBitmap(6, bitmap))
+	require.True(t, detector.IsIndexSetInBitmap(7, bitmap))
+	// Byte 2
+	require.True(t, detector.IsIndexSetInBitmap(8, bitmap))
+	require.False(t, detector.IsIndexSetInBitmap(9, bitmap))
+	require.True(t, detector.IsIndexSetInBitmap(10, bitmap))
 
-	doubleSigners := slashDetector.DoubleSigners(group1, group2, bitmap1, bitmap2)
-	require.Len(t, doubleSigners, 0)
-
-	validator := mock2.NewValidatorMock([]byte("pubKey1"), 0, 0)
-	group1 = []sharding.Validator{validator}
-	byte1, _ := strconv.ParseInt("00000001", 2, 8)
-	bitmap1 = []byte{byte(byte1)}
-
-	doubleSigners = slashDetector.DoubleSigners(group1, group2, bitmap1, bitmap2)
-	require.Len(t, doubleSigners, 0)
-
-	group1 = []sharding.Validator{}
-	group2 = []sharding.Validator{validator}
-	bitmap2 = []byte{byte(byte1)}
-
-	doubleSigners = slashDetector.DoubleSigners(group1, group2, bitmap1, bitmap2)
-	require.Len(t, doubleSigners, 0)
-}
-
-func TestMultipleHeaderSigningDetector_DoubleSigners_ExpectThreeDoubleSigners(t *testing.T) {
-	v0g1 := mock.NewValidatorMock([]byte("pubKey0"))
-	v1g1 := mock.NewValidatorMock([]byte("pubKey1"))
-	v2g1 := mock.NewValidatorMock([]byte("pubKey2"))
-	v3g1 := mock.NewValidatorMock([]byte("pubKey3"))
-	v4g1 := mock.NewValidatorMock([]byte("pubKey4"))
-	v5g1 := mock.NewValidatorMock([]byte("pubKey5"))
-	v6g1 := mock.NewValidatorMock([]byte("pubKey6"))
-	v7g1 := mock.NewValidatorMock([]byte("pubKey7"))
-	v8g1 := mock.NewValidatorMock([]byte("pubKey8"))
-
-	group1 := []sharding.Validator{v0g1, v1g1, v2g1, v3g1, v4g1, v5g1, v6g1, v7g1, v8g1}
-
-	v0g2 := mock.NewValidatorMock([]byte("pubKey0"))
-	v1g2 := mock.NewValidatorMock([]byte("pubKey3"))
-	v2g2 := mock.NewValidatorMock([]byte("pubKey1"))
-	v3g2 := mock.NewValidatorMock([]byte("pubKey2"))
-	v4g2 := mock.NewValidatorMock([]byte("pubKey6"))
-	v5g2 := mock.NewValidatorMock([]byte("pubKey11"))
-	v6g2 := mock.NewValidatorMock([]byte("pubKey13"))
-	v7g2 := mock.NewValidatorMock([]byte("pubKey15"))
-	v8g2 := mock.NewValidatorMock([]byte("pubKey8"))
-
-	group2 := []sharding.Validator{v0g2, v1g2, v2g2, v3g2, v4g2, v5g2, v6g2, v7g2, v8g2}
-
-	byte1Map1, _ := strconv.ParseInt("01011111", 2, 9)
-	byte2Map1, _ := strconv.ParseInt("00000001", 2, 9)
-	bitmap1 := []byte{byte(byte1Map1), byte(byte2Map1)}
-
-	byte1Map2, _ := strconv.ParseInt("10100011", 2, 9)
-	byte2Map2, _ := strconv.ParseInt("00000001", 2, 9)
-	bitmap2 := []byte{byte(byte1Map2), byte(byte2Map2)}
-
-	ssd, _ := detector.NewSigningSlashingDetector(
-		&mockEpochStart.NodesCoordinatorStub{},
-		&mock.RoundHandlerMock{},
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		detector.CacheSize)
-	slashDetector := ssd.(*detector.SigningSlashingDetector)
-
-	doubleSigners := slashDetector.DoubleSigners(group1, group2, bitmap1, bitmap2)
-
-	require.Len(t, doubleSigners, 3)
-	require.Equal(t, []byte("pubKey0"), doubleSigners[0].PubKey())
-	require.Equal(t, []byte("pubKey3"), doubleSigners[1].PubKey())
-	require.Equal(t, []byte("pubKey8"), doubleSigners[2].PubKey())
+	for i := uint32(11); i <= 100; i++ {
+		require.False(t, detector.IsIndexSetInBitmap(i, bitmap))
+	}
 }

@@ -146,36 +146,16 @@ func (mhp *multipleHeaderProposalsDetector) ValidateProof(proof slash.SlashingPr
 	if !castOk {
 		return process.ErrCannotCastProofToMultipleProposedHeaders
 	}
+	if proof.GetType() != slash.MultipleProposal {
+		return process.ErrInvalidSlashType
+	}
 
-	err := checkSlashTypeAndLevel(multipleProposalProof)
+	err := checkSlashLevel(multipleProposalProof.GetHeaders(), multipleProposalProof.GetLevel())
 	if err != nil {
 		return err
 	}
 
 	return mhp.checkProposedHeaders(multipleProposalProof.GetHeaders())
-}
-
-func checkSlashTypeAndLevel(proof slash.MultipleProposalProofHandler) error {
-	if proof.GetType() != slash.MultipleProposal {
-		return process.ErrInvalidSlashType
-	}
-
-	headers := proof.GetHeaders()
-	level := proof.GetLevel()
-	if level < slash.Level1 || level > slash.Level2 {
-		return process.ErrInvalidSlashLevel
-	}
-	if len(headers) < MinSlashableNoOfHeaders {
-		return process.ErrNotEnoughHeadersProvided
-	}
-	if len(headers) == MinSlashableNoOfHeaders && level != slash.Level1 {
-		return process.ErrSlashLevelDoesNotMatchSlashType
-	}
-	if len(headers) > MinSlashableNoOfHeaders && level != slash.Level2 {
-		return process.ErrSlashLevelDoesNotMatchSlashType
-	}
-
-	return nil
 }
 
 func (mhp *multipleHeaderProposalsDetector) checkProposedHeaders(headers []*interceptedBlocks.InterceptedHeader) error {
