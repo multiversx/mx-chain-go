@@ -53,6 +53,8 @@ type transactions struct {
 	emptyAddress         []byte
 }
 
+//TODO: Change this long list of arguments into a single ArgTransactionPreprocessor struct
+
 // NewTransactionPreprocessor creates a new transaction preprocessor object
 func NewTransactionPreprocessor(
 	txDataPool dataRetriever.ShardedDataCacherNotifier,
@@ -1130,7 +1132,7 @@ func (txs *transactions) splitMiniBlockIfNeeded(miniBlock *block.MiniBlock) bloc
 			continue
 		}
 
-		isGasLimitExceeded := gasLimitInReceiverShard+gasConsumedByTxInReceiverShard > txs.economicsFee.MaxGasLimitPerMiniBlock(process.ShardIDWithSafeMaxGasLimit)
+		isGasLimitExceeded := gasLimitInReceiverShard+gasConsumedByTxInReceiverShard > txs.economicsFee.MaxGasLimitPerMiniBlockForSafeCrossShard()
 		if isGasLimitExceeded {
 			log.Debug("transactions.splitMiniBlockIfNeeded: gas limit exceeded",
 				"mb type", currentMiniBlock.Type,

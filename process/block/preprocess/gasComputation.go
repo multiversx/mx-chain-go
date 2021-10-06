@@ -14,8 +14,9 @@ import (
 var _ process.GasHandler = (*gasComputation)(nil)
 
 type gasComputation struct {
-	economicsFee    process.FeeHandler
-	txTypeHandler   process.TxTypeHandler
+	economicsFee  process.FeeHandler
+	txTypeHandler process.TxTypeHandler
+	//TODO: Refactor these mutexes and maps in separated structures that handle the locking and unlocking for each operation required
 	gasConsumed     map[string]uint64
 	mutGasConsumed  sync.RWMutex
 	gasRefunded     map[string]uint64

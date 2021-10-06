@@ -581,6 +581,8 @@ type feeHandler interface {
 	GasPerDataByte() uint64
 	MaxGasLimitPerBlock(shardID uint32) uint64
 	MaxGasLimitPerMiniBlock(shardID uint32) uint64
+	MaxGasLimitPerBlockForSafeCrossShard() uint64
+	MaxGasLimitPerMiniBlockForSafeCrossShard() uint64
 	ComputeGasLimit(tx data.TransactionWithFeeHandler) uint64
 	ComputeMoveBalanceFee(tx data.TransactionWithFeeHandler) *big.Int
 	ComputeTxFee(tx data.TransactionWithFeeHandler) *big.Int

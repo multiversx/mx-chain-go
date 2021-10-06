@@ -499,6 +499,22 @@ func (ed *economicsData) MaxGasLimitPerMiniBlock(shardID uint32) uint64 {
 	return ed.maxGasLimitPerMiniBlock
 }
 
+// MaxGasLimitPerBlockForSafeCrossShard will return maximum gas limit per block for safe cross shard
+func (ed *economicsData) MaxGasLimitPerBlockForSafeCrossShard() uint64 {
+	ed.mutGasLimitSettings.RLock()
+	defer ed.mutGasLimitSettings.RUnlock()
+
+	return core.MinUint64(ed.maxGasLimitPerBlock, ed.maxGasLimitPerMetaBlock)
+}
+
+// MaxGasLimitPerMiniBlockForSafeCrossShard will return maximum gas limit per mini block for safe cross shard
+func (ed *economicsData) MaxGasLimitPerMiniBlockForSafeCrossShard() uint64 {
+	ed.mutGasLimitSettings.RLock()
+	defer ed.mutGasLimitSettings.RUnlock()
+
+	return core.MinUint64(ed.maxGasLimitPerMiniBlock, ed.maxGasLimitPerMetaMiniBlock)
+}
+
 // DeveloperPercentage will return the developer percentage value
 func (ed *economicsData) DeveloperPercentage() float64 {
 	ed.mutRewardsSettings.RLock()
@@ -638,32 +654,21 @@ func (ed *economicsData) setRewardsEpochConfig(currentEpoch uint32) {
 		}
 	}
 
-	if ed.rewardsSettingEpoch == rewardSetting.EpochEnable {
-		log.Debug("economics: RewardsConfig",
-			"epoch", ed.rewardsSettingEpoch,
-			"leaderPercentage", ed.leaderPercentage,
-			"protocolSustainabilityPercentage", ed.protocolSustainabilityPercentage,
-			"protocolSustainabilityAddress", ed.protocolSustainabilityAddress,
-			"developerPercentage", ed.developerPercentage,
-			"topUpFactor", ed.topUpFactor,
-			"topUpGradientPoint", ed.topUpGradientPoint,
-		)
-		return
+	if ed.rewardsSettingEpoch != rewardSetting.EpochEnable {
+		ed.rewardsSettingEpoch = rewardSetting.EpochEnable
+		ed.leaderPercentage = rewardSetting.LeaderPercentage
+		ed.protocolSustainabilityPercentage = rewardSetting.ProtocolSustainabilityPercentage
+		ed.protocolSustainabilityAddress = rewardSetting.ProtocolSustainabilityAddress
+		ed.developerPercentage = rewardSetting.DeveloperPercentage
+		ed.topUpFactor = rewardSetting.TopUpFactor
+		// config was checked before for validity
+		ed.topUpGradientPoint, _ = big.NewInt(0).SetString(rewardSetting.TopUpGradientPoint, 10)
+
+		// TODO: add all metrics
+		ed.statusHandler.SetStringValue(common.MetricLeaderPercentage, fmt.Sprintf("%f", rewardSetting.LeaderPercentage))
+		ed.statusHandler.SetStringValue(common.MetricRewardsTopUpGradientPoint, rewardSetting.TopUpGradientPoint)
+		ed.statusHandler.SetStringValue(common.MetricTopUpFactor, fmt.Sprintf("%f", rewardSetting.TopUpFactor))
 	}
-
-	ed.rewardsSettingEpoch = rewardSetting.EpochEnable
-	ed.leaderPercentage = rewardSetting.LeaderPercentage
-	ed.protocolSustainabilityPercentage = rewardSetting.ProtocolSustainabilityPercentage
-	ed.protocolSustainabilityAddress = rewardSetting.ProtocolSustainabilityAddress
-	ed.developerPercentage = rewardSetting.DeveloperPercentage
-	ed.topUpFactor = rewardSetting.TopUpFactor
-	// config was checked before for validity
-	ed.topUpGradientPoint, _ = big.NewInt(0).SetString(rewardSetting.TopUpGradientPoint, 10)
-
-	// TODO: add all metrics
-	ed.statusHandler.SetStringValue(common.MetricLeaderPercentage, fmt.Sprintf("%f", rewardSetting.LeaderPercentage))
-	ed.statusHandler.SetStringValue(common.MetricRewardsTopUpGradientPoint, rewardSetting.TopUpGradientPoint)
-	ed.statusHandler.SetStringValue(common.MetricTopUpFactor, fmt.Sprintf("%f", rewardSetting.TopUpFactor))
 
 	log.Debug("economics: RewardsConfig",
 		"epoch", ed.rewardsSettingEpoch,
@@ -687,21 +692,11 @@ func (ed *economicsData) setGasLimitConfig(currentEpoch uint32) {
 		}
 	}
 
-	if ed.gasLimitSettingEpoch == gasLimitSetting.EnableEpoch {
-		log.Debug("economics: GasLimitConfig",
-			"epoch", ed.gasLimitSettingEpoch,
-			"maxGasLimitPerBlock", ed.maxGasLimitPerBlock,
-			"maxGasLimitPerMiniBlock", ed.maxGasLimitPerMiniBlock,
-			"maxGasLimitPerMetaBlock", ed.maxGasLimitPerMetaBlock,
-			"maxGasLimitPerMetaMiniBlock", ed.maxGasLimitPerMetaMiniBlock,
-			"minGasLimit", ed.minGasLimit,
-		)
-		return
-	}
-
-	err := ed.setGasLimitSetting(gasLimitSetting)
-	if err != nil {
-		log.Error("setGasLimitConfig", "error", err.Error())
+	if ed.gasLimitSettingEpoch != gasLimitSetting.EnableEpoch {
+		err := ed.setGasLimitSetting(gasLimitSetting)
+		if err != nil {
+			log.Error("setGasLimitConfig", "error", err.Error())
+		}
 	}
 
 	log.Debug("economics: GasLimitConfig",

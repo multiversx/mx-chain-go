@@ -50,6 +50,12 @@ func FeeHandlerMock() *mock.FeeHandlerStub {
 		MaxGasLimitPerMiniBlockCalled: func() uint64 {
 			return MaxGasLimitPerBlock
 		},
+		MaxGasLimitPerBlockForSafeCrossShardCalled: func() uint64 {
+			return MaxGasLimitPerBlock
+		},
+		MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
+			return MaxGasLimitPerBlock
+		},
 	}
 }
 
@@ -1220,7 +1226,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 			MaxGasLimitPerBlockCalled: func() uint64 {
 				return MaxGasLimitPerBlock
 			},
-			MaxGasLimitPerMiniBlockCalled: func() uint64 {
+			MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
 				return MaxGasLimitPerBlock
 			},
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
@@ -1280,7 +1286,7 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 			MaxGasLimitPerBlockCalled: func() uint64 {
 				return MaxGasLimitPerBlock
 			},
-			MaxGasLimitPerMiniBlockCalled: func() uint64 {
+			MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
 				return MaxGasLimitPerBlock
 			},
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
@@ -2533,7 +2539,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxAccumulatedFe
 			MaxGasLimitPerBlockCalled: func() uint64 {
 				return maxGasLimitPerBlock
 			},
-			MaxGasLimitPerMiniBlockCalled: func() uint64 {
+			MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
 				return maxGasLimitPerBlock
 			},
 			DeveloperPercentageCalled: func() float64 {
@@ -2602,7 +2608,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxDeveloperFees
 			MaxGasLimitPerBlockCalled: func() uint64 {
 				return maxGasLimitPerBlock
 			},
-			MaxGasLimitPerMiniBlockCalled: func() uint64 {
+			MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
 				return maxGasLimitPerBlock
 			},
 			DeveloperPercentageCalled: func() float64 {
@@ -2671,7 +2677,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldWork(t *testing.T) 
 			MaxGasLimitPerBlockCalled: func() uint64 {
 				return maxGasLimitPerBlock
 			},
-			MaxGasLimitPerMiniBlockCalled: func() uint64 {
+			MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
 				return maxGasLimitPerBlock
 			},
 			DeveloperPercentageCalled: func() float64 {
@@ -2894,7 +2900,7 @@ func TestTransactionCoordinator_VerifyGasLimitShouldWork(t *testing.T) {
 			MaxGasLimitPerBlockCalled: func() uint64 {
 				return tx1GasLimit + tx2GasLimit + tx3GasLimit
 			},
-			MaxGasLimitPerMiniBlockCalled: func() uint64 {
+			MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
 				return tx1GasLimit + tx2GasLimit + tx3GasLimit
 			},
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
@@ -3191,7 +3197,7 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 			MaxGasLimitPerBlockCalled: func() uint64 {
 				return tx1GasLimit + tx2GasLimit + tx3GasLimit
 			},
-			MaxGasLimitPerMiniBlockCalled: func() uint64 {
+			MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
 				return tx1GasLimit + tx2GasLimit + tx3GasLimit
 			},
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {

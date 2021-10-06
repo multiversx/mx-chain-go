@@ -203,7 +203,7 @@ func (bpp *basePostProcessor) splitMiniBlockIfNeeded(miniBlock *block.MiniBlock)
 		}
 
 		isGasLimitExceeded := gasLimitInReceiverShard+interResult.tx.GetGasLimit() >
-			bpp.economicsFee.MaxGasLimitPerMiniBlock(process.ShardIDWithSafeMaxGasLimit)
+			bpp.economicsFee.MaxGasLimitPerMiniBlockForSafeCrossShard()
 		if isGasLimitExceeded {
 			log.Debug("basePostProcessor.splitMiniBlockIfNeeded: gas limit exceeded",
 				"mb type", currentMiniBlock.Type,

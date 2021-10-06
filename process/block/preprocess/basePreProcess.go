@@ -327,20 +327,17 @@ func (bpp *basePreProcess) computeGasConsumed(
 	if bpp.shardCoordinator.SelfId() == senderShardId {
 		gasConsumedByTxInSelfShard = gasConsumedByTxInSenderShard
 
-		if gasConsumedByTxInReceiverShard > bpp.economicsFee.MaxGasLimitPerMiniBlock(process.ShardIDWithSafeMaxGasLimit) {
+		if gasConsumedByTxInReceiverShard > bpp.economicsFee.MaxGasLimitPerMiniBlockForSafeCrossShard() {
 			return process.ErrMaxGasLimitPerOneTxInReceiverShardIsReached
 		}
 
-		//TODO: MaxGasLimitPerBlock method should have parameter process.ShardIDWithSafeMaxGasLimit instead bpp.shardCoordinator.SelfId(),
-		//as if this mini block will be created by meta for shards, it could be created with 15 bil. instead 1.5 bil. gas,
-		//and the receiver shard will be stuck
-		if *gasConsumedByMiniBlockInReceiverShard+gasConsumedByTxInReceiverShard > bpp.economicsFee.MaxGasLimitPerBlock(process.ShardIDWithSafeMaxGasLimit) {
+		if *gasConsumedByMiniBlockInReceiverShard+gasConsumedByTxInReceiverShard > bpp.economicsFee.MaxGasLimitPerBlockForSafeCrossShard() {
 			return process.ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached
 		}
 	} else {
 		gasConsumedByTxInSelfShard = gasConsumedByTxInReceiverShard
 
-		if *gasConsumedByMiniBlockInSenderShard+gasConsumedByTxInSenderShard > bpp.economicsFee.MaxGasLimitPerBlock(process.ShardIDWithSafeMaxGasLimit) {
+		if *gasConsumedByMiniBlockInSenderShard+gasConsumedByTxInSenderShard > bpp.economicsFee.MaxGasLimitPerBlock(senderShardId) {
 			return process.ErrMaxGasLimitPerMiniBlockInSenderShardIsReached
 		}
 	}
@@ -460,7 +457,9 @@ func (bpp *basePreProcess) updateGasConsumedWithGasRefundedAndGasPenalized(
 	gasRefunded := bpp.gasHandler.GasRefunded(txHash)
 	gasPenalized := bpp.gasHandler.GasPenalized(txHash)
 	gasToBeSubtracted := gasRefunded + gasPenalized
-	if gasToBeSubtracted > *gasConsumedByMiniBlockInReceiverShard || gasToBeSubtracted > *totalGasConsumedInSelfShard {
+	couldUpdateGasConsumedWithGasSubtracted := gasToBeSubtracted <= *gasConsumedByMiniBlockInReceiverShard &&
+		gasToBeSubtracted <= *totalGasConsumedInSelfShard
+	if !couldUpdateGasConsumedWithGasSubtracted {
 		log.Warn("basePreProcess.updateGasConsumedWithGasRefundedAndGasPenalized: too much gas to be subtracted",
 			"gasRefunded", gasRefunded,
 			"gasPenalized", gasPenalized,

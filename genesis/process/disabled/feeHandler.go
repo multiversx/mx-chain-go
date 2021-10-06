@@ -51,6 +51,16 @@ func (fh *FeeHandler) MaxGasLimitPerMiniBlock(uint32) uint64 {
 	return math.MaxUint64
 }
 
+// MaxGasLimitPerBlockForSafeCrossShard returns max uint64
+func (fh *FeeHandler) MaxGasLimitPerBlockForSafeCrossShard() uint64 {
+	return math.MaxUint64
+}
+
+// MaxGasLimitPerMiniBlockForSafeCrossShard returns max uint64
+func (fh *FeeHandler) MaxGasLimitPerMiniBlockForSafeCrossShard() uint64 {
+	return math.MaxUint64
+}
+
 // ComputeGasLimit returns 0
 func (fh *FeeHandler) ComputeGasLimit(_ data.TransactionWithFeeHandler) uint64 {
 	return 0

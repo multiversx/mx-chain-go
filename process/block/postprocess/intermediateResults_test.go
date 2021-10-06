@@ -1033,7 +1033,7 @@ func TestIntermediateResultsProcessor_SplitMiniBlocksIfNeededShouldWork(t *testi
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{
-			MaxGasLimitPerMiniBlockCalled: func() uint64 {
+			MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
 				return gasLimit
 			},
 		},

@@ -230,8 +230,8 @@ func (tc *transactionCoordinator) IsDataPreparedForProcessing(haveTime func() ti
 		}(key, value)
 	}
 
-	tc.mutRequestedTxs.RUnlock()
 	wg.Wait()
+	tc.mutRequestedTxs.RUnlock()
 
 	return errFound
 }
@@ -1026,8 +1026,8 @@ func (tc *transactionCoordinator) VerifyCreatedBlockTransactions(hdr data.Header
 		}(interimProc)
 	}
 
-	tc.mutInterimProcessors.RUnlock()
 	wg.Wait()
+	tc.mutInterimProcessors.RUnlock()
 
 	if errFound != nil {
 		return errFound
@@ -1300,7 +1300,7 @@ func (tc *transactionCoordinator) checkGasConsumedByMiniBlockInReceiverShard(
 		}
 	}
 
-	if gasConsumedByMiniBlockInReceiverShard > tc.economicsFee.MaxGasLimitPerMiniBlock(process.ShardIDWithSafeMaxGasLimit) {
+	if gasConsumedByMiniBlockInReceiverShard > tc.economicsFee.MaxGasLimitPerMiniBlockForSafeCrossShard() {
 		return process.ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached
 	}
 
