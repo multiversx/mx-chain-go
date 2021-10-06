@@ -217,7 +217,6 @@ func (u *userAccountsSyncer) syncDataTrie(
 		return err
 	}
 
-	//TODO(iulian) check this
 	dataTrieIdentifier := genesis.CreateTrieIdentifier(shardId, genesis.DataTrie)
 	identifier := genesis.AddRootHashToIdentifier(dataTrieIdentifier, string(rootHash))
 

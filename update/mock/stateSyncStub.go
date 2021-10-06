@@ -31,7 +31,7 @@ func (sss *StateSyncStub) GetUnFinishedMetaBlocks() (map[string]*block.MetaBlock
 }
 
 // SyncAllState -
-func (sss *SyncStateStub) SyncAllState(epoch uint32, ownShardId uint32) error {
+func (sss *StateSyncStub) SyncAllState(epoch uint32, ownShardId uint32) error {
 	if sss.SyncAllStateCalled != nil {
 		return sss.SyncAllStateCalled(epoch, ownShardId)
 	}

@@ -19,7 +19,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/genesis"
 )
@@ -86,7 +85,7 @@ func NewTrieExport(
 }
 
 // ExportValidatorTrie exports the validator info from the validator trie
-func (te *trieExport) ExportValidatorTrie(trie temporary.Trie) error {
+func (te *trieExport) ExportValidatorTrie(trie common.Trie) error {
 	log.Debug("started validator trie export")
 	rootHash, err := trie.RootHash()
 	if err != nil {
@@ -115,7 +114,7 @@ func (te *trieExport) ExportValidatorTrie(trie temporary.Trie) error {
 }
 
 // ExportMainTrie exports the main trie, and returns the root hashes for the data tries
-func (te *trieExport) ExportMainTrie(key string, trie temporary.Trie) ([][]byte, error) {
+func (te *trieExport) ExportMainTrie(key string, trie common.Trie) ([][]byte, error) {
 	leavesChannel, accType, shId, identifier, err := te.getExportLeavesParameters(key, trie)
 	if err != nil {
 		return nil, err
@@ -125,7 +124,7 @@ func (te *trieExport) ExportMainTrie(key string, trie temporary.Trie) ([][]byte,
 }
 
 // ExportDataTrie exports the given data trie
-func (te *trieExport) ExportDataTrie(key string, trie temporary.Trie) error {
+func (te *trieExport) ExportDataTrie(key string, trie common.Trie) error {
 	leavesChannel, accType, shId, identifier, err := te.getExportLeavesParameters(key, trie)
 	if err != nil {
 		return err
@@ -136,7 +135,7 @@ func (te *trieExport) ExportDataTrie(key string, trie temporary.Trie) error {
 
 func (te *trieExport) getExportLeavesParameters(
 	key string,
-	trie temporary.Trie,
+	trie common.Trie,
 ) (chan core.KeyValueHolder, genesis.Type, uint32, string, error) {
 	identifier := "trie@" + key
 

@@ -4,8 +4,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 )
 
 type inactiveTrieExport struct {
@@ -22,12 +22,12 @@ func NewInactiveTrieExporter(marshalizer marshal.Marshalizer) (*inactiveTrieExpo
 }
 
 // ExportValidatorTrie does nothing
-func (ite *inactiveTrieExport) ExportValidatorTrie(_ temporary.Trie) error {
+func (ite *inactiveTrieExport) ExportValidatorTrie(_ common.Trie) error {
 	return nil
 }
 
 // ExportMainTrie exports nothing, but returns the root hashes for the data tries
-func (ite *inactiveTrieExport) ExportMainTrie(_ string, trie temporary.Trie) ([][]byte, error) {
+func (ite *inactiveTrieExport) ExportMainTrie(_ string, trie common.Trie) ([][]byte, error) {
 	mainRootHash, err := trie.RootHash()
 	if err != nil {
 		return nil, err
@@ -56,7 +56,7 @@ func (ite *inactiveTrieExport) ExportMainTrie(_ string, trie temporary.Trie) ([]
 }
 
 // ExportDataTrie does nothing
-func (ite *inactiveTrieExport) ExportDataTrie(_ string, _ temporary.Trie) error {
+func (ite *inactiveTrieExport) ExportDataTrie(_ string, _ common.Trie) error {
 	return nil
 }
 

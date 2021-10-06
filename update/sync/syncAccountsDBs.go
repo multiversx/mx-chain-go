@@ -216,7 +216,7 @@ func (st *syncAccountsDBs) tryRecreateTrie(
 func exportTrie(
 	trieExporter update.TrieExporter,
 	id string,
-	tr temporary.Trie,
+	tr common.Trie,
 	accountType genesis.Type,
 ) error {
 	if accountType == genesis.UserAccount {

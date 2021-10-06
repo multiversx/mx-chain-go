@@ -10,7 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -52,7 +52,7 @@ func TestInactiveTrieExport_ExportMainTrieInvalidTrieRootHashShouldErr(t *testin
 	ite, _ := NewInactiveTrieExporter(&mock.MarshalizerMock{})
 
 	expectedErr := fmt.Errorf("rootHash err")
-	tr := &testscommon.TrieStub{
+	tr := &trie.TrieStub{
 		RootCalled: func() ([]byte, error) {
 			return nil, expectedErr
 		},
@@ -69,7 +69,7 @@ func TestInactiveTrieExport_ExportMainTrieGetAllLeavesOnChannelErrShouldErr(t *t
 	ite, _ := NewInactiveTrieExporter(&mock.MarshalizerMock{})
 
 	expectedErr := fmt.Errorf("getAllLeavesOnChannel err")
-	tr := &testscommon.TrieStub{
+	tr := &trie.TrieStub{
 		RootCalled: func() ([]byte, error) {
 			return nil, nil
 		},
@@ -99,7 +99,7 @@ func TestInactiveTrieExport_ExportMainTrieShouldReturnDataTrieRootHashes(t *test
 	serializedAcc2, err := marshalizer.Marshal(account2)
 	assert.Nil(t, err)
 
-	tr := &testscommon.TrieStub{
+	tr := &trie.TrieStub{
 		RootCalled: func() ([]byte, error) {
 			return nil, nil
 		},
