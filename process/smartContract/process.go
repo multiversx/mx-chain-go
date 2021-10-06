@@ -420,6 +420,7 @@ func (sc *scProcessor) executeSmartContractCall(
 		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
 	}
 	vmOutput.GasRemaining += vmInput.GasLocked
+	log.Warn("executeSCCall", "gasRemaining", vmOutput.GasRemaining, "gasProvided", vmInput.GasProvided)
 	if vmOutput.ReturnCode != vmcommon.Ok {
 		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, vmOutput.ReturnCode.String(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
 	}
