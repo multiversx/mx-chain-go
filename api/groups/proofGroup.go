@@ -19,9 +19,11 @@ const (
 	getProofCurrentRootHashEndpoint = "/proof/address/:address"
 	getProofEndpoint                = "/proof/root-hash/:roothash/address/:address"
 	getProofDataTrieEndpoint        = "/proof/root-hash/:roothash/address/:address/key/:key"
+	verifyProofEndpoint             = "/proof/verify"
 	getProofCurrentRootHashPath     = "/address/:address"
 	getProofPath                    = "/root-hash/:roothash/address/:address"
 	getProofDataTriePath            = "/root-hash/:roothash/address/:address/key/:key"
+	verifyProofPath                 = "/verify"
 )
 
 // proofFacadeHandler defines the methods to be implemented by a facade for proof requests
@@ -29,6 +31,7 @@ type proofFacadeHandler interface {
 	GetProof(rootHash string, address string) (*common.GetProofResponse, error)
 	GetProofDataTrie(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error)
 	GetProofCurrentRootHash(address string) (*common.GetProofResponse, error)
+	VerifyProof(rootHash string, address string, proof [][]byte) (bool, error)
 	GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool)
 	IsInterfaceNil() bool
 }
@@ -80,6 +83,17 @@ func NewProofGroup(facade proofFacadeHandler) (*proofGroup, error) {
 			AdditionalMiddlewares: []shared.AdditionalMiddleware{
 				{
 					Middleware: middleware.CreateEndpointThrottlerFromFacade(getProofCurrentRootHashEndpoint, facade),
+					Position:   shared.Before,
+				},
+			},
+		},
+		{
+			Path:    verifyProofPath,
+			Method:  http.MethodPost,
+			Handler: pg.verifyProof,
+			AdditionalMiddlewares: []shared.AdditionalMiddleware{
+				{
+					Middleware: middleware.CreateEndpointThrottlerFromFacade(verifyProofEndpoint, facade),
 					Position:   shared.Before,
 				},
 			},
@@ -274,6 +288,65 @@ func (pg *proofGroup) getProofCurrentRootHash(c *gin.Context) {
 				"value":    hex.EncodeToString(response.Value),
 				"rootHash": response.RootHash,
 			},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+// verifyProof will receive a rootHash, an address and a Merkle proof from the client,
+// and it will verify the proof
+func (pg *proofGroup) verifyProof(c *gin.Context) {
+	var verifyProofParams = &VerifyProofRequest{}
+	err := c.ShouldBindJSON(&verifyProofParams)
+	if err != nil {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error()),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
+	}
+
+	proof := make([][]byte, 0)
+	for _, hexProof := range verifyProofParams.Proof {
+		bytesProof, err := hex.DecodeString(hexProof)
+		if err != nil {
+			c.JSON(
+				http.StatusBadRequest,
+				shared.GenericAPIResponse{
+					Data:  nil,
+					Error: fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error()),
+					Code:  shared.ReturnCodeRequestError,
+				},
+			)
+			return
+		}
+
+		proof = append(proof, bytesProof)
+	}
+
+	var proofOk bool
+	proofOk, err = pg.getFacade().VerifyProof(verifyProofParams.RootHash, verifyProofParams.Address, proof)
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrVerifyProof.Error(), err.Error()),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"ok": proofOk},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},

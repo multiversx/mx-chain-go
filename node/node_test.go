@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"math/big"
 	"strconv"
 	"strings"
@@ -3586,4 +3587,55 @@ func TestNode_GetProofDataTrieShouldWork(t *testing.T) {
 	assert.Equal(t, dataTrieProof, dataTrieResponse.Proof)
 	assert.Equal(t, dataTrieValue, dataTrieResponse.Value)
 	assert.Equal(t, hex.EncodeToString(dataTrieRootHash), dataTrieResponse.RootHash)
+}
+
+func TestNode_VerifyProofInvalidRootHash(t *testing.T) {
+	t.Parallel()
+
+	stateComponents := getDefaultStateComponents()
+	n, _ := node.NewNode(node.WithStateComponents(stateComponents))
+
+	response, err := n.VerifyProof("invalidRootHash", "0123", [][]byte{})
+	assert.False(t, response)
+	assert.NotNil(t, err)
+}
+
+func TestNode_VerifyProofInvalidAddress(t *testing.T) {
+	t.Parallel()
+
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &stateMock.AccountsStub{
+		GetTrieCalled: func(_ []byte) (common.Trie, error) {
+			return &trieMock.TrieStub{}, nil
+		},
+	}
+	n, _ := node.NewNode(
+		node.WithStateComponents(stateComponents),
+		node.WithCoreComponents(getDefaultCoreComponents()),
+	)
+
+	response, err := n.VerifyProof("deadbeef", "address", [][]byte{})
+	assert.False(t, response)
+	assert.NotNil(t, err)
+}
+
+func TestNode_VerifyProof(t *testing.T) {
+	t.Parallel()
+
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.Hash = sha256.NewSha256()
+	coreComponents.IntMarsh = &marshal.GogoProtoMarshalizer{}
+	n, _ := node.NewNode(
+		node.WithStateComponents(getDefaultStateComponents()),
+		node.WithCoreComponents(coreComponents),
+	)
+
+	rootHash := "bc2e549d98c31ffe6e9419b933d03b37e84f74c42601412302799d277651a6d8"
+	address := "bf42213747697e9dec4211ef50ba6061b54729b53ba0c4994948cab478af8854"
+	p, _ := hex.DecodeString("0a41040508080f0a0807040b0a0c080409040909040c000a0b03050b09020704050b010600060a0b00050f0e010102040c0e0d090e07090607040703010202040f0b10124c1202000022206182d14320be95434f5508acad9478d3b6cf837bfce7ebfe47c2e860d1b98ca72a20bf42213747697e9dec4211ef50ba6061b54729b53ba0c4994948cab478af88543202000001")
+	proof := [][]byte{p}
+
+	response, err := n.VerifyProof(rootHash, address, proof)
+	assert.True(t, response)
+	assert.Nil(t, err)
 }

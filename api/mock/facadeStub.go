@@ -60,6 +60,7 @@ type FacadeStub struct {
 	GetProofCalled                          func(string, string) (*common.GetProofResponse, error)
 	GetProofCurrentRootHashCalled           func(string) (*common.GetProofResponse, error)
 	GetProofDataTrieCalled                  func(string, string, string) (*common.GetProofResponse, *common.GetProofResponse, error)
+	VerifyProofCalled                       func(string, string, [][]byte) (bool, error)
 	GetTokenSupplyCalled                    func(token string) (string, error)
 }
 
@@ -97,6 +98,15 @@ func (f *FacadeStub) GetProofDataTrie(rootHash string, address string, key strin
 	}
 
 	return nil, nil, nil
+}
+
+// VerifyProof -
+func (f *FacadeStub) VerifyProof(rootHash string, address string, proof [][]byte) (bool, error) {
+	if f.VerifyProofCalled != nil {
+		return f.VerifyProofCalled(rootHash, address, proof)
+	}
+
+	return false, nil
 }
 
 // GetUsername -

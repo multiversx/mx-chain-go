@@ -36,6 +36,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	procTx "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -1298,6 +1299,26 @@ func (n *Node) GetProofDataTrie(rootHash string, address string, key string) (*c
 	return mainProofResponse, dataTrieProofResponse, nil
 }
 
+// VerifyProof verifies the given Merkle proof
+func (n *Node) VerifyProof(rootHash string, address string, proof [][]byte) (bool, error) {
+	rootHashBytes, err := hex.DecodeString(rootHash)
+	if err != nil {
+		return false, err
+	}
+
+	mpv, err := trie.NewMerkleProofVerifier(n.coreComponents.InternalMarshalizer(), n.coreComponents.Hasher())
+	if err != nil {
+		return false, err
+	}
+
+	key, err := n.getKeyBytes(address)
+	if err != nil {
+		return false, err
+	}
+
+	return mpv.VerifyProof(rootHashBytes, key, proof)
+}
+
 func (n *Node) getRootHashAndAddressAsBytes(rootHash string, address string) ([]byte, []byte, error) {
 	rootHashBytes, err := hex.DecodeString(rootHash)
 	if err != nil {
@@ -1337,12 +1358,12 @@ func (n *Node) getAccountRootHashAndVal(address []byte, accBytes []byte, key []b
 }
 
 func (n *Node) getProof(rootHash []byte, key []byte) (*common.GetProofResponse, error) {
-	trie, err := n.stateComponents.AccountsAdapter().GetTrie(rootHash)
+	tr, err := n.stateComponents.AccountsAdapter().GetTrie(rootHash)
 	if err != nil {
 		return nil, err
 	}
 
-	computedProof, value, err := trie.GetProof(key)
+	computedProof, value, err := tr.GetProof(key)
 	if err != nil {
 		return nil, err
 	}

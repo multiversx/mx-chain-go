@@ -149,6 +149,10 @@ func TestDisabledNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	assert.Nil(t, proof)
 	assert.Equal(t, errNodeStarting, err)
 
+	b, err = inf.VerifyProof("", "", nil)
+	assert.False(t, b)
+	assert.Equal(t, errNodeStarting, err)
+
 	sa, err := inf.GetNFTTokenIDsRegisteredByAddress("")
 	assert.Nil(t, sa)
 	assert.Equal(t, errNodeStarting, err)

@@ -415,6 +415,11 @@ func (nf *nodeFacade) GetProofCurrentRootHash(address string) (*common.GetProofR
 	return nf.node.GetProof(hexRootHash, address)
 }
 
+// VerifyProof verifies the given Merkle proof
+func (nf *nodeFacade) VerifyProof(rootHash string, address string, proof [][]byte) (bool, error) {
+	return nf.node.VerifyProof(rootHash, address, proof)
+}
+
 // GetNumCheckpointsFromPeerState returns the number of checkpoints of the peer state
 func (nf *nodeFacade) GetNumCheckpointsFromPeerState() uint32 {
 	return nf.peerState.GetNumCheckpoints()

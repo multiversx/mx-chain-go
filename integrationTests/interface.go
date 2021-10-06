@@ -94,5 +94,6 @@ type Facade interface {
 	GetProof(rootHash string, address string) (*common.GetProofResponse, error)
 	GetProofDataTrie(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error)
 	GetProofCurrentRootHash(address string) (*common.GetProofResponse, error)
+	VerifyProof(rootHash string, address string, proof [][]byte) (bool, error)
 	IsInterfaceNil() bool
 }

@@ -71,3 +71,8 @@ type SnapshotDbHandler interface {
 	MarkForDisconnection()
 	SetPath(string)
 }
+
+// MerkleProofVerifier is used to verify merkle proofs
+type MerkleProofVerifier interface {
+	VerifyProof(rootHash []byte, key []byte, proof [][]byte) (bool, error)
+}
