@@ -183,14 +183,9 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 			return err
 		}
 
-		//throttler.StartProcessing is required to be here as it prevent the following edge-case:
-		//loop does 100k iterations because throttler.CanProcess allows it and starts 100k go routines that can
-		//not execute their first instructions that could tell the throttler they have started.
-		//Telling the throttler the processing has started here will prevent OOM exception because of too many go
-		//routines started.
 		u.throttler.StartProcessing()
-
 		wg.Add(1)
+		atomic.AddInt32(&u.numMaxTries, 1)
 
 		go func(trieRootHash []byte) {
 			defer u.throttler.EndProcessing()
@@ -206,8 +201,6 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 			log.Trace("finished sync data trie", "roothash", trieRootHash)
 			wg.Done()
 		}(account.RootHash)
-
-		atomic.AddInt32(&u.numMaxTries, 1)
 	}
 
 	wg.Wait()
