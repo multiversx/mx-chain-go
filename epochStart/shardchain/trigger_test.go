@@ -13,6 +13,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,7 +28,7 @@ func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
 			},
 		},
 		Uint64Converter: &mock.Uint64ByteSliceConverterMock{},
-		DataPool: &testscommon.PoolsHolderStub{
+		DataPool: &dataRetrieverMock.PoolsHolderStub{
 			HeadersCalled: func() dataRetriever.HeadersPool {
 				return &mock.HeadersCacherStub{}
 			},
@@ -50,7 +52,7 @@ func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
 		EpochStartNotifier:   &mock.EpochStartNotifierStub{},
 		PeerMiniBlocksSyncer: &mock.ValidatorInfoSyncerStub{},
 		RoundHandler:         &mock.RoundHandlerStub{},
-		AppStatusHandler:     &mock.AppStatusHandlerStub{},
+		AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
 	}
 }
 
@@ -190,7 +192,7 @@ func TestNewEpochStartTrigger_NilHeadersPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockShardEpochStartTriggerArguments()
-	args.DataPool = &testscommon.PoolsHolderStub{
+	args.DataPool = &dataRetrieverMock.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return nil
 		},
@@ -366,7 +368,7 @@ func TestTrigger_ReceivedHeaderIsEpochStartTrueWithPeerMiniblocks(t *testing.T) 
 	noncesToHeader[fmt.Sprint(newHeader101.Nonce)] = newHeaderHash101
 	noncesToHeader[fmt.Sprint(newHeader102.Nonce)] = newHeaderHash102
 
-	args.DataPool = &testscommon.PoolsHolderStub{
+	args.DataPool = &dataRetrieverMock.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &mock.HeadersCacherStub{
 				GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, err error) {

@@ -16,12 +16,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/vm"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/api/address"
-	"github.com/ElrondNetwork/elrond-go/api/hardfork"
-	"github.com/ElrondNetwork/elrond-go/api/node"
-	transactionApi "github.com/ElrondNetwork/elrond-go/api/transaction"
-	"github.com/ElrondNetwork/elrond-go/api/validator"
-	"github.com/ElrondNetwork/elrond-go/api/vmValues"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
@@ -39,13 +33,6 @@ const DefaultRestInterface = "localhost:8080"
 // DefaultRestPortOff is the default value that should be passed if it is desired
 //  to start the node without a REST endpoint available
 const DefaultRestPortOff = "off"
-
-var _ = address.FacadeHandler(&nodeFacade{})
-var _ = hardfork.FacadeHandler(&nodeFacade{})
-var _ = node.FacadeHandler(&nodeFacade{})
-var _ = transactionApi.FacadeHandler(&nodeFacade{})
-var _ = validator.FacadeHandler(&nodeFacade{})
-var _ = vmValues.FacadeHandler(&nodeFacade{})
 
 var log = logger.GetOrCreate("facade")
 
@@ -193,6 +180,11 @@ func (nf *nodeFacade) GetESDTData(address string, key string, nonce uint64) (*es
 	return nf.node.GetESDTData(address, key, nonce)
 }
 
+// GetESDTsRoles returns all the tokens identifiers and roles for the given address
+func (nf *nodeFacade) GetESDTsRoles(address string) (map[string][]string, error) {
+	return nf.node.GetESDTsRoles(address)
+}
+
 // GetNFTTokenIDsRegisteredByAddress returns all the token identifiers for semi or non fungible tokens registered by the address
 func (nf *nodeFacade) GetNFTTokenIDsRegisteredByAddress(address string) ([]string, error) {
 	return nf.node.GetNFTTokenIDsRegisteredByAddress(address)
@@ -211,6 +203,11 @@ func (nf *nodeFacade) GetKeyValuePairs(address string) (map[string]string, error
 // GetAllESDTTokens returns all the esdt tokens for a given address
 func (nf *nodeFacade) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error) {
 	return nf.node.GetAllESDTTokens(address)
+}
+
+// GetTokenSupply returns the provided token supply
+func (nf *nodeFacade) GetTokenSupply(token string) (string, error) {
+	return nf.node.GetTokenSupply(token)
 }
 
 // GetAllIssuedESDTs returns all the issued esdts from the esdt system smart contract

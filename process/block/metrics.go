@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -198,7 +199,7 @@ func countMetaAcceptedSignedBlocks(
 }
 
 func indexRoundInfo(
-	indexerHandler process.Indexer,
+	outportHandler outport.OutportHandler,
 	nodesCoordinator sharding.NodesCoordinator,
 	shardId uint32,
 	header data.HeaderHandler,
@@ -214,7 +215,7 @@ func indexRoundInfo(
 	}
 
 	if check.IfNil(lastHeader) {
-		indexerHandler.SaveRoundsInfo([]*indexer.RoundInfo{roundInfo})
+		outportHandler.SaveRoundsInfo([]*indexer.RoundInfo{roundInfo})
 		return
 	}
 
@@ -240,17 +241,18 @@ func indexRoundInfo(
 			SignersIndexes:   signersIndexes,
 			BlockWasProposed: false,
 			ShardId:          shardId,
+			Epoch:            header.GetEpoch(),
 			Timestamp:        time.Duration(header.GetTimeStamp() - ((currentBlockRound - i) * roundDuration)),
 		}
 
 		roundsInfo = append(roundsInfo, roundInfo)
 	}
 
-	indexerHandler.SaveRoundsInfo(roundsInfo)
+	outportHandler.SaveRoundsInfo(roundsInfo)
 }
 
 func indexValidatorsRating(
-	indexerHandler process.Indexer,
+	outportHandler outport.OutportHandler,
 	valStatProc process.ValidatorStatisticsProcessor,
 	metaBlock data.HeaderHandler,
 ) {
@@ -279,15 +281,15 @@ func indexValidatorsRating(
 		shardValidatorsRating[indexID] = validatorsInfos
 	}
 
-	indexShardValidatorsRating(indexerHandler, shardValidatorsRating)
+	indexShardValidatorsRating(outportHandler, shardValidatorsRating)
 }
 
 func indexShardValidatorsRating(
-	indexerHandler process.Indexer,
+	outportHandler outport.OutportHandler,
 	shardValidatorsRating map[string][]*indexer.ValidatorRatingInfo,
 ) {
 	for indexID, validatorsInfos := range shardValidatorsRating {
-		indexerHandler.SaveValidatorsRating(indexID, validatorsInfos)
+		outportHandler.SaveValidatorsRating(indexID, validatorsInfos)
 	}
 }
 

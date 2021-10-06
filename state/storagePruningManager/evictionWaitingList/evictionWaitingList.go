@@ -8,8 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -19,7 +19,7 @@ var log = logger.GetOrCreate("state/evictionWaitingList")
 // If the cache is full, the keys will be stored in the underlying database. Writing at the same key in
 // cacher and db will overwrite the previous values.
 type evictionWaitingList struct {
-	cache       map[string]temporary.ModifiedHashes
+	cache       map[string]common.ModifiedHashes
 	cacheSize   uint
 	db          storage.Persister
 	marshalizer marshal.Marshalizer
@@ -39,7 +39,7 @@ func NewEvictionWaitingList(size uint, db storage.Persister, marshalizer marshal
 	}
 
 	return &evictionWaitingList{
-		cache:       make(map[string]temporary.ModifiedHashes),
+		cache:       make(map[string]common.ModifiedHashes),
 		cacheSize:   size,
 		db:          db,
 		marshalizer: marshalizer,
@@ -47,7 +47,7 @@ func NewEvictionWaitingList(size uint, db storage.Persister, marshalizer marshal
 }
 
 // Put stores the given hashes in the eviction waiting list, in the position given by the root hash
-func (ewl *evictionWaitingList) Put(rootHash []byte, hashes temporary.ModifiedHashes) error {
+func (ewl *evictionWaitingList) Put(rootHash []byte, hashes common.ModifiedHashes) error {
 	ewl.opMutex.Lock()
 	defer ewl.opMutex.Unlock()
 
@@ -79,7 +79,7 @@ func (ewl *evictionWaitingList) Put(rootHash []byte, hashes temporary.ModifiedHa
 }
 
 // Evict returns and removes from the waiting list all the hashes from the position given by the root hash
-func (ewl *evictionWaitingList) Evict(rootHash []byte) (temporary.ModifiedHashes, error) {
+func (ewl *evictionWaitingList) Evict(rootHash []byte) (common.ModifiedHashes, error) {
 	ewl.opMutex.Lock()
 	defer ewl.opMutex.Unlock()
 
@@ -106,7 +106,7 @@ func (ewl *evictionWaitingList) Evict(rootHash []byte) (temporary.ModifiedHashes
 		return nil, err
 	}
 
-	hashes = make(temporary.ModifiedHashes, len(b.Data))
+	hashes = make(common.ModifiedHashes, len(b.Data))
 	for _, h := range b.Data {
 		hashes[string(h)] = struct{}{}
 	}
@@ -126,7 +126,7 @@ func (ewl *evictionWaitingList) IsInterfaceNil() bool {
 
 // ShouldKeepHash searches for the given hash in all of the evictionWaitingList's newHashes.
 // If the identifier is equal to oldRoot, then we should also search in oldHashes.
-func (ewl *evictionWaitingList) ShouldKeepHash(hash string, identifier temporary.TriePruningIdentifier) (bool, error) {
+func (ewl *evictionWaitingList) ShouldKeepHash(hash string, identifier state.TriePruningIdentifier) (bool, error) {
 	ewl.opMutex.RLock()
 	defer ewl.opMutex.RUnlock()
 
@@ -136,7 +136,7 @@ func (ewl *evictionWaitingList) ShouldKeepHash(hash string, identifier temporary
 		}
 
 		lastByte := key[len(key)-1]
-		if temporary.TriePruningIdentifier(lastByte) == temporary.OldRoot && identifier == temporary.OldRoot {
+		if state.TriePruningIdentifier(lastByte) == state.OldRoot && identifier == state.OldRoot {
 			continue
 		}
 
@@ -154,7 +154,7 @@ func (ewl *evictionWaitingList) ShouldKeepHash(hash string, identifier temporary
 				return false, err
 			}
 
-			hashes = make(temporary.ModifiedHashes, len(b.Data))
+			hashes = make(common.ModifiedHashes, len(b.Data))
 			for _, h := range b.Data {
 				hashes[string(h)] = struct{}{}
 			}
@@ -171,9 +171,5 @@ func (ewl *evictionWaitingList) ShouldKeepHash(hash string, identifier temporary
 
 // Close - closes the underlying db
 func (ewl *evictionWaitingList) Close() error {
-	if !check.IfNil(ewl.db) {
-		//TODO: @beni verify if a flush is needed before closing the DB
-		return ewl.db.Close()
-	}
-	return nil
+	return ewl.db.Close()
 }

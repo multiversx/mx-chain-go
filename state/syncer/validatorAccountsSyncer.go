@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/trie/statistics"
@@ -27,13 +28,18 @@ func NewValidatorAccountsSyncer(args ArgsNewValidatorAccountsSyncer) (*validator
 		return nil, err
 	}
 
+	timeoutHandler, err := common.NewTimeoutHandler(args.Timeout)
+	if err != nil {
+		return nil, err
+	}
+
 	b := &baseAccountsSyncer{
 		hasher:                    args.Hasher,
 		marshalizer:               args.Marshalizer,
 		dataTries:                 make(map[string]struct{}),
 		trieStorageManager:        args.TrieStorageManager,
 		requestHandler:            args.RequestHandler,
-		timeout:                   args.Timeout,
+		timeoutHandler:            timeoutHandler,
 		shardId:                   core.MetachainShardId,
 		cacher:                    args.Cacher,
 		rootHash:                  nil,
@@ -55,6 +61,8 @@ func NewValidatorAccountsSyncer(args ArgsNewValidatorAccountsSyncer) (*validator
 func (v *validatorAccountsSyncer) SyncAccounts(rootHash []byte, _ uint32) error {
 	v.mutex.Lock()
 	defer v.mutex.Unlock()
+
+	v.timeoutHandler.ResetWatchdog()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer func() {

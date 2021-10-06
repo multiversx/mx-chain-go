@@ -5,11 +5,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
 var _ dataRetriever.Resolver = (*TrieNodeResolver)(nil)
+var logTrieNodes = logger.GetOrCreate("dataretriever/resolvers/trienoderesolver")
 
 // ArgTrieNodeResolver is the argument structure used to create new TrieNodeResolver instance
 type ArgTrieNodeResolver struct {
@@ -77,13 +79,13 @@ func (tnRes *TrieNodeResolver) ProcessReceivedMessage(message p2p.MessageP2P, fr
 	case dataRetriever.HashType:
 		return tnRes.resolveOneHash(rd.Value, rd.ChunkIndex, message)
 	case dataRetriever.HashArrayType:
-		return tnRes.resolveMultipleHashes(rd.Value, rd.ChunkIndex, message)
+		return tnRes.resolveMultipleHashes(rd.Value, message)
 	default:
 		return dataRetriever.ErrRequestTypeNotImplemented
 	}
 }
 
-func (tnRes *TrieNodeResolver) resolveMultipleHashes(hashesBuff []byte, chunkIndex uint32, message p2p.MessageP2P) error {
+func (tnRes *TrieNodeResolver) resolveMultipleHashes(hashesBuff []byte, message p2p.MessageP2P) error {
 	b := batch.Batch{}
 	err := tnRes.marshalizer.Unmarshal(&b, hashesBuff)
 	if err != nil {
@@ -91,15 +93,16 @@ func (tnRes *TrieNodeResolver) resolveMultipleHashes(hashesBuff []byte, chunkInd
 	}
 	hashes := b.Data
 
+	supportedChunkIndex := uint32(0)
 	nodes := make(map[string]struct{})
 	spaceUsed, usedAllSpace := tnRes.resolveOnlyRequestedHashes(hashes, nodes)
 	if usedAllSpace {
-		return tnRes.sendResponse(convertMapToSlice(nodes), hashes, chunkIndex, message)
+		return tnRes.sendResponse(convertMapToSlice(nodes), hashes, supportedChunkIndex, message)
 	}
 
 	tnRes.resolveSubTries(hashes, nodes, spaceUsed)
 
-	return tnRes.sendResponse(convertMapToSlice(nodes), hashes, chunkIndex, message)
+	return tnRes.sendResponse(convertMapToSlice(nodes), hashes, supportedChunkIndex, message)
 }
 
 func (tnRes *TrieNodeResolver) resolveOnlyRequestedHashes(hashes [][]byte, nodes map[string]struct{}) (int, bool) {
@@ -223,7 +226,7 @@ func (tnRes *TrieNodeResolver) sendLargeMessage(
 	message p2p.MessageP2P,
 ) error {
 
-	log.Trace("assembling chunk", "reference", reference, "len", len(largeBuff))
+	logTrieNodes.Trace("assembling chunk", "reference", reference, "len", len(largeBuff))
 	maxChunks := len(largeBuff) / core.MaxBufferSizeToSendTrieNodes
 	if len(largeBuff)%core.MaxBufferSizeToSendTrieNodes != 0 {
 		maxChunks++
@@ -240,7 +243,7 @@ func (tnRes *TrieNodeResolver) sendLargeMessage(
 	}
 	chunkBuffer := largeBuff[startIndex:endIndex]
 	chunk := batch.NewChunk(uint32(chunkIndex), reference, uint32(maxChunks), chunkBuffer)
-	log.Trace("assembled chunk", "index", chunkIndex, "reference", reference, "max chunks", maxChunks, "len", len(chunkBuffer))
+	logTrieNodes.Trace("assembled chunk", "index", chunkIndex, "reference", reference, "max chunks", maxChunks, "len", len(chunkBuffer))
 
 	buff, err := tnRes.marshalizer.Marshal(chunk)
 	if err != nil {

@@ -345,35 +345,27 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 
 	argsParser := smartContract.NewArgumentParser()
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
-		VmContainer:                         vmContainer,
-		ArgsParser:                          argsParser,
-		Hasher:                              arg.Core.Hasher(),
-		Marshalizer:                         arg.Core.InternalMarshalizer(),
-		AccountsDB:                          arg.Accounts,
-		BlockChainHook:                      virtualMachineFactory.BlockChainHookImpl(),
-		PubkeyConv:                          arg.Core.AddressPubKeyConverter(),
-		ShardCoordinator:                    arg.ShardCoordinator,
-		ScrForwarder:                        scForwarder,
-		TxFeeHandler:                        genesisFeeHandler,
-		EconomicsFee:                        genesisFeeHandler,
-		TxTypeHandler:                       txTypeHandler,
-		GasHandler:                          gasHandler,
-		GasSchedule:                         arg.GasSchedule,
-		TxLogsProcessor:                     arg.TxLogsProcessor,
-		BadTxForwarder:                      badTxForwarder,
-		EpochNotifier:                       epochNotifier,
-		DeployEnableEpoch:                   enableEpochs.SCDeployEnableEpoch,
-		BuiltinEnableEpoch:                  enableEpochs.BuiltInFunctionsEnableEpoch,
-		PenalizedTooMuchGasEnableEpoch:      enableEpochs.PenalizedTooMuchGasEnableEpoch,
-		RepairCallbackEnableEpoch:           enableEpochs.RepairCallbackEnableEpoch,
-		ReturnDataToLastTransferEnableEpoch: enableEpochs.ReturnDataToLastTransferEnableEpoch,
-		SenderInOutTransferEnableEpoch:      enableEpochs.SenderInOutTransferEnableEpoch,
-		IsGenesisProcessing:                 true,
-		StakingV2EnableEpoch:                arg.EpochConfig.EnableEpochs.StakingV2EnableEpoch,
-		ArwenChangeLocker:                   &sync.RWMutex{}, // local Locker as to not interfere with the rest of the components
-		VMOutputCacher:                      txcache.NewDisabledCache(),
-
-		IncrementSCRNonceInMultiTransferEnableEpoch: enableEpochs.IncrementSCRNonceInMultiTransferEnableEpoch,
+		VmContainer:         vmContainer,
+		ArgsParser:          argsParser,
+		Hasher:              arg.Core.Hasher(),
+		Marshalizer:         arg.Core.InternalMarshalizer(),
+		AccountsDB:          arg.Accounts,
+		BlockChainHook:      virtualMachineFactory.BlockChainHookImpl(),
+		PubkeyConv:          arg.Core.AddressPubKeyConverter(),
+		ShardCoordinator:    arg.ShardCoordinator,
+		ScrForwarder:        scForwarder,
+		TxFeeHandler:        genesisFeeHandler,
+		EconomicsFee:        genesisFeeHandler,
+		TxTypeHandler:       txTypeHandler,
+		GasHandler:          gasHandler,
+		GasSchedule:         arg.GasSchedule,
+		TxLogsProcessor:     arg.TxLogsProcessor,
+		BadTxForwarder:      badTxForwarder,
+		EpochNotifier:       epochNotifier,
+		EnableEpochs:        enableEpochs,
+		IsGenesisProcessing: true,
+		ArwenChangeLocker:   &sync.RWMutex{}, // local Locker as to not interfere with the rest of the components
+		VMOutputCacher:      txcache.NewDisabledCache(),
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 	if err != nil {
@@ -381,16 +373,17 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 	}
 
 	argsNewMetaTxProcessor := processTransaction.ArgsNewMetaTxProcessor{
-		Hasher:           arg.Core.Hasher(),
-		Marshalizer:      arg.Core.InternalMarshalizer(),
-		Accounts:         arg.Accounts,
-		PubkeyConv:       arg.Core.AddressPubKeyConverter(),
-		ShardCoordinator: arg.ShardCoordinator,
-		ScProcessor:      scProcessor,
-		TxTypeHandler:    txTypeHandler,
-		EconomicsFee:     genesisFeeHandler,
-		ESDTEnableEpoch:  arg.EpochConfig.EnableEpochs.ESDTEnableEpoch,
-		EpochNotifier:    epochNotifier,
+		Hasher:                                arg.Core.Hasher(),
+		Marshalizer:                           arg.Core.InternalMarshalizer(),
+		Accounts:                              arg.Accounts,
+		PubkeyConv:                            arg.Core.AddressPubKeyConverter(),
+		ShardCoordinator:                      arg.ShardCoordinator,
+		ScProcessor:                           scProcessor,
+		TxTypeHandler:                         txTypeHandler,
+		EconomicsFee:                          genesisFeeHandler,
+		ESDTEnableEpoch:                       enableEpochs.ESDTEnableEpoch,
+		BuiltInFunctionOnMetachainEnableEpoch: enableEpochs.BuiltInFunctionOnMetaEnableEpoch,
+		EpochNotifier:                         epochNotifier,
 	}
 	txProcessor, err := processTransaction.NewMetaTxProcessor(argsNewMetaTxProcessor)
 	if err != nil {

@@ -29,9 +29,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -45,21 +47,21 @@ func createMockPubkeyConverter() *mock.PubkeyConverterMock {
 
 //------- NewShardProcessor
 
-func initAccountsMock() *testscommon.AccountsStub {
+func initAccountsMock() *stateMock.AccountsStub {
 	rootHashCalled := func() ([]byte, error) {
 		return []byte("rootHash"), nil
 	}
-	return &testscommon.AccountsStub{
+	return &stateMock.AccountsStub{
 		RootHashCalled: rootHashCalled,
 	}
 }
 
-func initBasicTestData() (*testscommon.PoolsHolderMock, data.ChainHandler, []byte, *block.Body, [][]byte, *mock.HasherMock, *mock.MarshalizerMock, error, []byte) {
-	tdp := testscommon.NewPoolsHolderMock()
+func initBasicTestData() (*dataRetrieverMock.PoolsHolderMock, data.ChainHandler, []byte, *block.Body, [][]byte, *mock.HasherMock, *mock.MarshalizerMock, error, []byte) {
+	tdp := dataRetrieverMock.NewPoolsHolderMock()
 	txHash := []byte("tx_hash1")
 	randSeed := []byte("rand seed")
 	tdp.Transactions().AddData(txHash, &transaction.Transaction{}, 0, process.ShardCacherIdentifier(1, 0))
-	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
+	blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
 	_ = blkc.SetCurrentBlockHeader(
 		&block.Header{
 			Round:    1,
@@ -106,7 +108,7 @@ func CreateCoreComponentsMultiShard() (
 	*mock.StatusComponentsMock,
 ) {
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	dataComponents.BlockChain, _ = blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
+	dataComponents.BlockChain, _ = blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
 	_ = dataComponents.BlockChain.SetGenesisHeader(&block.Header{Nonce: 0})
 	dataComponents.DataPool = initDataPool([]byte("tx_hash1"))
 	bootstrapComponents.Coordinator = mock.NewMultiShardsCoordinatorMock(3)
@@ -345,7 +347,7 @@ func TestShardProcessor_ProcessWithDirtyAccountShouldErr(t *testing.T) {
 	body := &block.Body{}
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	arguments.AccountsDB[state.UserAccountsState] = &testscommon.AccountsStub{
+	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
 		JournalLenCalled:       journalLen,
 		RevertToSnapshotCalled: revToSnapshot,
 	}
@@ -387,7 +389,7 @@ func TestShardProcessor_ProcessBlockHeaderBodyMismatchShouldErr(t *testing.T) {
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	arguments.AccountsDB[state.UserAccountsState] = &testscommon.AccountsStub{
+	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
 		JournalLenCalled:       journalLen,
 		RevertToSnapshotCalled: revertToSnapshot,
 		RootHashCalled:         rootHashCalled,
@@ -452,7 +454,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		return []byte("rootHash"), nil
 	}
 
-	accounts := &testscommon.AccountsStub{
+	accounts := &stateMock.AccountsStub{
 		JournalLenCalled:       journalLen,
 		RevertToSnapshotCalled: revertToSnapshot,
 		RootHashCalled:         rootHashCalled,
@@ -512,7 +514,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 	coreComponents.Hash = hasher
 	coreComponents.IntMarsh = marshalizer
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	arguments.AccountsDB[state.UserAccountsState] = &testscommon.AccountsStub{
+	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
 		JournalLenCalled:       journalLen,
 		RevertToSnapshotCalled: revertToSnapshot,
 		RootHashCalled:         rootHashCalled,
@@ -570,7 +572,7 @@ func TestShardProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.
 	t.Parallel()
 
 	randSeed := []byte("rand seed")
-	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
+	blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
 	_ = blkc.SetCurrentBlockHeader(
 		&block.Header{
 			Nonce:    0,
@@ -611,7 +613,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 	tdp := initDataPool([]byte("tx_hash1"))
 	txHash := []byte("tx_hash1")
 	randSeed := []byte("rand seed")
-	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
+	blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
 	_ = blkc.SetCurrentBlockHeader(
 		&block.Header{
 			Nonce:    0,
@@ -673,7 +675,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
 	tpm := &testscommon.TxProcessorMock{ProcessTransactionCalled: txProcess}
 	store := &mock.ChainStorerMock{}
-	accounts := &testscommon.AccountsStub{
+	accounts := &stateMock.AccountsStub{
 		JournalLenCalled:       journalLen,
 		RevertToSnapshotCalled: revertToSnapshot,
 		RootHashCalled:         rootHashCalled,
@@ -761,7 +763,7 @@ func TestShardProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertStat
 	tdp := initDataPool([]byte("tx_hash1"))
 	randSeed := []byte("rand seed")
 	txHash := []byte("tx_hash1")
-	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
+	blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
 	_ = blkc.SetCurrentBlockHeader(
 		&block.Header{
 			Nonce:    0,
@@ -822,7 +824,7 @@ func TestShardProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertStat
 	dataComponents.DataPool = tdp
 	dataComponents.BlockChain = blkc
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	arguments.AccountsDB[state.UserAccountsState] = &testscommon.AccountsStub{
+	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
 		JournalLenCalled:       journalLen,
 		RevertToSnapshotCalled: revertToSnapshot,
 		RootHashCalled:         rootHashCalled,
@@ -849,7 +851,7 @@ func TestShardProcessor_ProcessBlockOnlyIntraShardShouldPass(t *testing.T) {
 	tdp := initDataPool([]byte("tx_hash1"))
 	randSeed := []byte("rand seed")
 	txHash := []byte("tx_hash1")
-	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
+	blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
 	_ = blkc.SetCurrentBlockHeader(
 		&block.Header{
 			Nonce:    0,
@@ -909,7 +911,7 @@ func TestShardProcessor_ProcessBlockOnlyIntraShardShouldPass(t *testing.T) {
 	dataComponents.DataPool = tdp
 	dataComponents.BlockChain = blkc
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	arguments.AccountsDB[state.UserAccountsState] = &testscommon.AccountsStub{
+	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
 		JournalLenCalled:       journalLen,
 		RevertToSnapshotCalled: revertToSnapshot,
 		RootHashCalled:         rootHashCalled,
@@ -929,7 +931,7 @@ func TestShardProcessor_ProcessBlockCrossShardWithoutMetaShouldFail(t *testing.T
 	randSeed := []byte("rand seed")
 	tdp := initDataPool([]byte("tx_hash1"))
 	txHash := []byte("tx_hash1")
-	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
+	blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
 	_ = blkc.SetCurrentBlockHeader(
 		&block.Header{
 			Nonce:    0,
@@ -990,7 +992,7 @@ func TestShardProcessor_ProcessBlockCrossShardWithoutMetaShouldFail(t *testing.T
 	dataComponents.DataPool = tdp
 	dataComponents.BlockChain = blkc
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	arguments.AccountsDB[state.UserAccountsState] = &testscommon.AccountsStub{
+	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
 		JournalLenCalled:       journalLen,
 		RevertToSnapshotCalled: revertToSnapshot,
 		RootHashCalled:         rootHashCalled,
@@ -1073,7 +1075,7 @@ func TestShardProcessor_ProcessBlockCrossShardWithMetaShouldPass(t *testing.T) {
 	dataComponents.DataPool = tdp
 	dataComponents.BlockChain = blkc
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	arguments.AccountsDB[state.UserAccountsState] = &testscommon.AccountsStub{
+	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
 		JournalLenCalled:       journalLen,
 		RevertToSnapshotCalled: revertToSnapshot,
 		RootHashCalled:         rootHashCalled,
@@ -1092,7 +1094,7 @@ func TestShardProcessor_ProcessBlockHaveTimeLessThanZeroShouldErr(t *testing.T) 
 	tdp := initDataPool(txHash)
 
 	randSeed := []byte("rand seed")
-	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
+	blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
 	_ = blkc.SetCurrentBlockHeader(
 		&block.Header{
 			Nonce:    1,
@@ -1218,7 +1220,7 @@ func TestShardProcessor_ProcessBlockWithMissingMetaHdrShouldErr(t *testing.T) {
 	dataComponents.DataPool = tdp
 	dataComponents.BlockChain = blkc
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	arguments.AccountsDB[state.UserAccountsState] = &testscommon.AccountsStub{
+	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
 		JournalLenCalled:       journalLen,
 		RevertToSnapshotCalled: revertToSnapshot,
 		RootHashCalled:         rootHashCalled,
@@ -1236,7 +1238,7 @@ func TestShardProcessor_ProcessBlockWithWrongMiniBlockHeaderShouldErr(t *testing
 	txHash := []byte("tx_hash1")
 	tdp := initDataPool(txHash)
 	randSeed := []byte("rand seed")
-	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
+	blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
 	_ = blkc.SetCurrentBlockHeader(
 		&block.Header{
 			Nonce:    1,
@@ -1280,7 +1282,7 @@ func TestShardProcessor_ProcessBlockWithWrongMiniBlockHeaderShouldErr(t *testing
 	dataComponents.DataPool = tdp
 	dataComponents.BlockChain = blkc
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	arguments.AccountsDB[state.UserAccountsState] = &testscommon.AccountsStub{
+	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
 		RootHashCalled: rootHashCalled,
 	}
 
@@ -1360,7 +1362,7 @@ func TestShardProcessor_CheckAndRequestIfMetaHeadersMissingShouldErr(t *testing.
 			atomic.AddInt32(&hdrNoncesRequestCalled, 1)
 		},
 	}
-	arguments.AccountsDB[state.UserAccountsState] = &testscommon.AccountsStub{
+	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
 		JournalLenCalled:       journalLen,
 		RevertToSnapshotCalled: revertToSnapshot,
 		RootHashCalled:         rootHashCalled,
@@ -1390,7 +1392,7 @@ func TestShardProcessor_CheckAndRequestIfMetaHeadersMissingShouldErr(t *testing.
 func TestShardProcessor_RequestMissingFinalityAttestingHeaders(t *testing.T) {
 	t.Parallel()
 
-	tdp := testscommon.NewPoolsHolderMock()
+	tdp := dataRetrieverMock.NewPoolsHolderMock()
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 	dataComponents.DataPool = tdp
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -1405,7 +1407,7 @@ func TestShardProcessor_RequestMissingFinalityAttestingHeaders(t *testing.T) {
 func TestShardProcessor_CheckMetaHeadersValidityAndFinalityShouldPass(t *testing.T) {
 	t.Parallel()
 
-	tdp := testscommon.NewPoolsHolderMock()
+	tdp := dataRetrieverMock.NewPoolsHolderMock()
 	txHash := []byte("tx_hash1")
 	tdp.Transactions().AddData(txHash, &transaction.Transaction{}, 0, process.ShardCacherIdentifier(1, 0))
 	rootHash := []byte("rootHash")
@@ -1495,7 +1497,7 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityShouldPass(t *testing
 func TestShardProcessor_CheckMetaHeadersValidityAndFinalityShouldReturnNilWhenNoMetaBlocksAreUsed(t *testing.T) {
 	t.Parallel()
 
-	tdp := testscommon.NewPoolsHolderMock()
+	tdp := dataRetrieverMock.NewPoolsHolderMock()
 	genesisBlocks := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3))
 	sp, _ := blproc.NewShardProcessorEmptyWith3shards(
 		tdp,
@@ -1517,7 +1519,7 @@ func TestShardProcessor_CommitBlockMarshalizerFailForHeaderShouldErr(t *testing.
 	t.Parallel()
 	tdp := initDataPool([]byte("tx_hash1"))
 	rootHash := []byte("root hash to be tested")
-	accounts := &testscommon.AccountsStub{
+	accounts := &stateMock.AccountsStub{
 		RootHashCalled: func() ([]byte, error) {
 			return rootHash, nil
 		},
@@ -1562,7 +1564,7 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 	putCalledNr := uint32(0)
 	rootHash := []byte("root hash to be tested")
 	marshalizer := &mock.MarshalizerMock{}
-	accounts := &testscommon.AccountsStub{
+	accounts := &stateMock.AccountsStub{
 		CommitCalled: func() ([]byte, error) {
 			return nil, nil
 		},
@@ -1599,7 +1601,7 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 	store := initStore()
 	store.AddStorer(dataRetriever.BlockHeaderUnit, hdrUnit)
 
-	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{
+	blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {},
 	})
 	_ = blkc.SetGenesisHeader(&block.Header{Nonce: 0})
@@ -1641,7 +1643,7 @@ func TestShardProcessor_CommitBlockStorageFailsForBodyShouldWork(t *testing.T) {
 	putCalledNr := uint32(0)
 	errPersister := errors.New("failure")
 	rootHash := []byte("root hash to be tested")
-	accounts := &testscommon.AccountsStub{
+	accounts := &stateMock.AccountsStub{
 		RootHashCalled: func() ([]byte, error) {
 			return rootHash, nil
 		},
@@ -1675,7 +1677,7 @@ func TestShardProcessor_CommitBlockStorageFailsForBodyShouldWork(t *testing.T) {
 	store := initStore()
 	store.AddStorer(dataRetriever.MiniBlockUnit, miniBlockUnit)
 
-	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{
+	blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {},
 	})
 	_ = blkc.SetGenesisHeader(&block.Header{Nonce: 0})
@@ -1754,7 +1756,7 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	mbHdrs = append(mbHdrs, mbHdr)
 	hdr.MiniBlockHeaders = mbHdrs
 
-	accounts := &testscommon.AccountsStub{
+	accounts := &stateMock.AccountsStub{
 		CommitCalled: func() (i []byte, e error) {
 			return rootHash, nil
 		},
@@ -1862,7 +1864,7 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 	mbHdrs = append(mbHdrs, mbHdr)
 	hdr.MiniBlockHeaders = mbHdrs
 
-	accounts := &testscommon.AccountsStub{
+	accounts := &stateMock.AccountsStub{
 		CommitCalled: func() (i []byte, e error) {
 			return rootHash, nil
 		},
@@ -1905,11 +1907,14 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
-	statusComponents.Indexer = &mock.IndexerMock{
+	statusComponents.Outport = &testscommon.OutportStub{
 		SaveBlockCalled: func(args *indexer.ArgsSaveBlockData) {
 			saveBlockCalledMutex.Lock()
 			txsPool = args.TransactionsPool
 			saveBlockCalledMutex.Unlock()
+		},
+		HasDriversCalled: func() bool {
+			return true
 		},
 	}
 
@@ -1962,7 +1967,7 @@ func TestShardProcessor_CreateTxBlockBodyWithDirtyAccStateShouldReturnEmptyBody(
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 	dataComponents.DataPool = tdp
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	arguments.AccountsDB[state.UserAccountsState] = &testscommon.AccountsStub{
+	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
 		JournalLenCalled:       journalLen,
 		RevertToSnapshotCalled: revToSnapshot,
 	}
@@ -1985,7 +1990,7 @@ func TestShardProcessor_CreateTxBlockBodyWithNoTimeShouldReturnEmptyBody(t *test
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 	dataComponents.DataPool = tdp
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	arguments.AccountsDB[state.UserAccountsState] = &testscommon.AccountsStub{
+	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
 		JournalLenCalled:       journalLen,
 		RootHashCalled:         rootHashfunc,
 		RevertToSnapshotCalled: revToSnapshot,
@@ -2013,7 +2018,7 @@ func TestShardProcessor_CreateTxBlockBodyOK(t *testing.T) {
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 	dataComponents.DataPool = tdp
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	arguments.AccountsDB[state.UserAccountsState] = &testscommon.AccountsStub{
+	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
 		JournalLenCalled: journalLen,
 		RootHashCalled:   rootHashfunc,
 	}
@@ -2118,9 +2123,8 @@ func TestShardProcessor_DisplayLogInfo(t *testing.T) {
 	hasher := mock.HasherMock{}
 	hdr, txBlock := createTestHdrTxBlockBody()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
-	statusHandler := &mock.AppStatusHandlerStub{
+	statusHandler := &statusHandlerMock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {
-
 		},
 	}
 
@@ -2231,7 +2235,7 @@ func TestShardProcessor_CommitBlockShouldRevertAccountStateWhenErr(t *testing.T)
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	arguments.AccountsDB[state.UserAccountsState] = &testscommon.AccountsStub{
+	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
 		RevertToSnapshotCalled: revToSnapshot,
 	}
 	bp, _ := blproc.NewShardProcessor(arguments)
@@ -2415,7 +2419,7 @@ func TestShardProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testi
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	datapool := testscommon.NewPoolsHolderMock()
+	datapool := dataRetrieverMock.NewPoolsHolderMock()
 
 	//we will have a metablock that will return 3 miniblock hashes
 	//1 miniblock hash will be in cache
@@ -2491,7 +2495,7 @@ func TestShardProcessor_ReceivedMetaBlockNoMissingMiniBlocksShouldPass(t *testin
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	datapool := testscommon.NewPoolsHolderMock()
+	datapool := dataRetrieverMock.NewPoolsHolderMock()
 
 	//we will have a metablock that will return 3 miniblock hashes
 	//1 miniblock hash will be in cache
@@ -2554,7 +2558,7 @@ func TestShardProcessor_ReceivedMetaBlockNoMissingMiniBlocksShouldPass(t *testin
 func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMe(t *testing.T) {
 	t.Parallel()
 
-	tdp := testscommon.NewPoolsHolderMock()
+	tdp := dataRetrieverMock.NewPoolsHolderMock()
 	txHash := []byte("tx_hash1")
 	tdp.Transactions().AddData(txHash, &transaction.Transaction{}, 0, process.ShardCacherIdentifier(1, 0))
 
@@ -2593,7 +2597,7 @@ func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMeProcessPartOfMiniBlo
 	haveTimeTrue := func() bool {
 		return true
 	}
-	tdp := testscommon.NewPoolsHolderMock()
+	tdp := dataRetrieverMock.NewPoolsHolderMock()
 	destShardId := uint32(2)
 
 	hasher := &mock.HasherStub{}
@@ -2673,7 +2677,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	datapool := testscommon.NewPoolsHolderMock()
+	datapool := dataRetrieverMock.NewPoolsHolderMock()
 
 	//we will have a 3 txs in pool
 
@@ -2724,7 +2728,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		},
 	}
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
-	accntAdapter := &testscommon.AccountsStub{
+	accntAdapter := &stateMock.AccountsStub{
 		RevertToSnapshotCalled: func(snapshot int) error {
 			assert.Fail(t, "revert should have not been called")
 			return nil
@@ -2819,7 +2823,7 @@ func TestShardProcessor_GetProcessedMetaBlockFromPoolShouldWork(t *testing.T) {
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	datapool := testscommon.NewPoolsHolderMock()
+	datapool := dataRetrieverMock.NewPoolsHolderMock()
 
 	miniblockHashes := make([][]byte, 6)
 
@@ -2914,7 +2918,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 
 	txHash := []byte("tx hash 1")
 
-	datapool := testscommon.NewPoolsHolderMock()
+	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	marshalizerMock := &mock.MarshalizerMock{}
 	hasherMock := &mock.HasherStub{}
 
@@ -3155,7 +3159,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	datapool := testscommon.NewPoolsHolderMock()
+	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	forkDetector := &mock.ForkDetectorMock{}
 	highNonce := uint64(500)
 	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
@@ -3310,7 +3314,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNotAllMBFinished(t *tes
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	datapool := testscommon.NewPoolsHolderMock()
+	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	forkDetector := &mock.ForkDetectorMock{}
 	highNonce := uint64(500)
 	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
@@ -3444,7 +3448,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrAllMBFinished(t *testin
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	datapool := testscommon.NewPoolsHolderMock()
+	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	forkDetector := &mock.ForkDetectorMock{}
 	highNonce := uint64(500)
 	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
@@ -3707,7 +3711,7 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolShouldPass(t *testing.T) {
 
 	marshalizer := &mock.MarshalizerMock{}
 
-	poolFake := testscommon.NewPoolsHolderMock()
+	poolFake := dataRetrieverMock.NewPoolsHolderMock()
 
 	metaBlock := block.MetaBlock{
 		Nonce:     1,
@@ -3837,7 +3841,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithoutOwnHd
 	t.Parallel()
 
 	processedHdrs := make([]data.HeaderHandler, 0)
-	datapool := testscommon.CreatePoolsHolder(1, 0)
+	datapool := dataRetrieverMock.CreatePoolsHolder(1, 0)
 	store := initStore()
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -3898,7 +3902,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrBu
 	t.Parallel()
 
 	processedHdrs := make([]data.HeaderHandler, 0)
-	datapool := testscommon.CreatePoolsHolder(1, 0)
+	datapool := dataRetrieverMock.CreatePoolsHolder(1, 0)
 	store := initStore()
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -3956,7 +3960,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrSt
 	t.Parallel()
 
 	processedHdrs := make([]data.HeaderHandler, 0)
-	datapool := testscommon.CreatePoolsHolder(1, 0)
+	datapool := dataRetrieverMock.CreatePoolsHolder(1, 0)
 	store := initStore()
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -4046,7 +4050,7 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolVerifyMiniblocks(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-	poolMock := testscommon.CreatePoolsHolder(1, 0)
+	poolMock := dataRetrieverMock.CreatePoolsHolder(1, 0)
 
 	storer := &mock.ChainStorerMock{}
 	shardC := mock.NewMultiShardsCoordinatorMock(3)
@@ -4125,7 +4129,7 @@ func TestShardProcessor_updateStateStorage(t *testing.T) {
 	pruneTrieWasCalled := false
 	cancelPruneWasCalled := false
 	rootHash := []byte("root-hash")
-	poolMock := testscommon.NewPoolsHolderMock()
+	poolMock := dataRetrieverMock.NewPoolsHolderMock()
 
 	hdrStore := &testscommon.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
@@ -4150,15 +4154,15 @@ func TestShardProcessor_updateStateStorage(t *testing.T) {
 
 	arguments.BlockTracker = &mock.BlockTrackerMock{}
 	arguments.Config.StateTriesConfig.CheckpointRoundsModulus = 2
-	arguments.AccountsDB[state.UserAccountsState] = &testscommon.AccountsStub{
+	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
 		IsPruningEnabledCalled: func() bool {
 			return true
 		},
-		PruneTrieCalled: func(rootHashParam []byte, identifier temporary.TriePruningIdentifier) {
+		PruneTrieCalled: func(rootHashParam []byte, identifier state.TriePruningIdentifier) {
 			pruneTrieWasCalled = true
 			assert.Equal(t, rootHash, rootHashParam)
 		},
-		CancelPruneCalled: func(rootHash []byte, identifier temporary.TriePruningIdentifier) {
+		CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
 			cancelPruneWasCalled = true
 		},
 	}

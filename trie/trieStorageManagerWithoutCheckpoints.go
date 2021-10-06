@@ -2,7 +2,7 @@ package trie
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder/disabled"
 )
 
@@ -23,12 +23,16 @@ func NewTrieStorageManagerWithoutCheckpoints(args NewTrieStorageManagerArgs) (*t
 }
 
 // SetCheckpoint does nothing if pruning is disabled
-func (tsm *trieStorageManagerWithoutCheckpoints) SetCheckpoint(_ []byte, _ chan core.KeyValueHolder) {
+func (tsm *trieStorageManagerWithoutCheckpoints) SetCheckpoint(_ []byte, chLeaves chan core.KeyValueHolder) {
+	if chLeaves != nil {
+		close(chLeaves)
+	}
+
 	log.Debug("trieStorageManagerWithoutCheckpoints - SetCheckpoint is disabled")
 }
 
 // AddDirtyCheckpointHashes returns false
-func (tsm *trieStorageManagerWithoutCheckpoints) AddDirtyCheckpointHashes(_ []byte, _ temporary.ModifiedHashes) bool {
+func (tsm *trieStorageManagerWithoutCheckpoints) AddDirtyCheckpointHashes(_ []byte, _ common.ModifiedHashes) bool {
 	return false
 }
 

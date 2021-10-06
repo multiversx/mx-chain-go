@@ -21,11 +21,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
@@ -77,7 +77,7 @@ type baseProcessor struct {
 	blockProcessor         blockProcessor
 	txCounter              *transactionCounter
 
-	indexer            process.Indexer
+	outportHandler     outport.OutportHandler
 	historyRepo        dblookupext.HistoryRepository
 	epochNotifier      process.EpochNotifier
 	vmContainerFactory process.VirtualMachinesContainerFactory
@@ -418,8 +418,8 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.BlockSizeThrottler) {
 		return process.ErrNilBlockSizeThrottler
 	}
-	if check.IfNil(arguments.StatusComponents.ElasticIndexer()) {
-		return process.ErrNilIndexer
+	if check.IfNil(arguments.StatusComponents.OutportHandler()) {
+		return process.ErrNilOutportHandler
 	}
 	if check.IfNil(arguments.HistoryRepository) {
 		return process.ErrNilHistoryRepository
@@ -1107,8 +1107,8 @@ func (bp *baseProcessor) updateStateStorage(
 		return
 	}
 
-	accounts.CancelPrune(rootHashToBePruned, temporary.NewRoot)
-	accounts.PruneTrie(rootHashToBePruned, temporary.OldRoot)
+	accounts.CancelPrune(rootHashToBePruned, state.NewRoot)
+	accounts.PruneTrie(rootHashToBePruned, state.OldRoot)
 }
 
 // RevertAccountState reverts the account state for cleanup failed process
@@ -1145,8 +1145,8 @@ func (bp *baseProcessor) PruneStateOnRollback(currHeader data.HeaderHandler, pre
 			continue
 		}
 
-		bp.accountsDB[key].CancelPrune(prevRootHash, temporary.OldRoot)
-		bp.accountsDB[key].PruneTrie(rootHash, temporary.NewRoot)
+		bp.accountsDB[key].CancelPrune(prevRootHash, state.OldRoot)
+		bp.accountsDB[key].PruneTrie(rootHash, state.NewRoot)
 	}
 }
 
@@ -1245,8 +1245,9 @@ func (bp *baseProcessor) requestMiniBlocksIfNeeded(headerHandler data.HeaderHand
 func (bp *baseProcessor) recordBlockInHistory(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler) {
 	scrResultsFromPool := bp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
 	receiptsFromPool := bp.txCoordinator.GetAllCurrentUsedTxs(block.ReceiptBlock)
+	logs := bp.txCoordinator.GetAllCurrentLogs()
 
-	err := bp.historyRepo.RecordBlock(blockHeaderHash, blockHeader, blockBody, scrResultsFromPool, receiptsFromPool)
+	err := bp.historyRepo.RecordBlock(blockHeaderHash, blockHeader, blockBody, scrResultsFromPool, receiptsFromPool, logs)
 	if err != nil {
 		log.Error("historyRepo.RecordBlock()", "blockHeaderHash", blockHeaderHash, "error", err.Error())
 	}

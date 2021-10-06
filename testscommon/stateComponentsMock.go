@@ -1,8 +1,8 @@
 package testscommon
 
 import (
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 )
 
 // StateComponentsMock -
@@ -11,7 +11,7 @@ type StateComponentsMock struct {
 	Accounts        state.AccountsAdapter
 	AccountsAPI     state.AccountsAdapter
 	Tries           state.TriesHolder
-	StorageManagers map[string]temporary.StorageManager
+	StorageManagers map[string]common.StorageManager
 }
 
 // Create -
@@ -50,8 +50,13 @@ func (scm *StateComponentsMock) TriesContainer() state.TriesHolder {
 }
 
 // TrieStorageManagers -
-func (scm *StateComponentsMock) TrieStorageManagers() map[string]temporary.StorageManager {
+func (scm *StateComponentsMock) TrieStorageManagers() map[string]common.StorageManager {
 	return scm.StorageManagers
+}
+
+// String -
+func (scm *StateComponentsMock) String() string {
+	return "StateComponentsMock"
 }
 
 // IsInterfaceNil -

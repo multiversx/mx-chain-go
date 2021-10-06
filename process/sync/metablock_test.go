@@ -20,6 +20,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -59,7 +62,7 @@ func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 		ForkDetector:         &mock.ForkDetectorMock{},
 		RequestHandler:       &testscommon.RequestHandlerStub{},
 		ShardCoordinator:     mock.NewOneShardCoordinatorMock(),
-		Accounts:             &testscommon.AccountsStub{},
+		Accounts:             &stateMock.AccountsStub{},
 		BlackListHandler:     &mock.BlackListHandlerStub{},
 		NetworkWatcher:       initNetworkWatcher(),
 		BootStorer:           &mock.BoostrapStorerMock{},
@@ -67,23 +70,24 @@ func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 		EpochHandler:         &mock.EpochStartTriggerStub{},
 		MiniblocksProvider:   &mock.MiniBlocksProviderStub{},
 		Uint64Converter:      &mock.Uint64ByteSliceConverterMock{},
-		AppStatusHandler:     &mock.AppStatusHandlerStub{},
-		Indexer:              &mock.IndexerMock{},
+		AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
+		OutportHandler:       &testscommon.OutportStub{},
 		AccountsDBSyncer:     &mock.AccountsDBSyncerStub{},
 		CurrentEpochProvider: &testscommon.CurrentEpochProviderStub{},
+		HistoryRepo:          &dblookupext.HistoryRepositoryStub{},
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{
 		ArgBaseBootstrapper:         argsBaseBootstrapper,
 		EpochBootstrapper:           &mock.EpochStartTriggerStub{},
-		ValidatorAccountsDB:         &testscommon.AccountsStub{},
+		ValidatorAccountsDB:         &stateMock.AccountsStub{},
 		ValidatorStatisticsDBSyncer: &mock.AccountsDBSyncerStub{},
 	}
 
 	return argsMetaBootstrapper
 }
 
-//------- NewMetaBootstrap
+// ------- NewMetaBootstrap
 
 func TestNewMetaBootstrap_NilPoolsHolderShouldErr(t *testing.T) {
 	t.Parallel()
@@ -329,16 +333,16 @@ func TestNewMetaBootstrap_NilMiniblocksProviderShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilMiniBlocksProvider, err)
 }
 
-func TestNewMetaBootstrap_NilIndexerProviderShouldErr(t *testing.T) {
+func TestNewMetaBootstrap_NilOutportProviderShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
-	args.Indexer = nil
+	args.OutportHandler = nil
 
 	bs, err := sync.NewMetaBootstrap(args)
 
 	assert.Nil(t, bs)
-	assert.Equal(t, process.ErrNilIndexer, err)
+	assert.Equal(t, process.ErrNilOutportHandler, err)
 }
 
 func TestNewMetaBootstrap_NilCurrentEpochProviderShouldErr(t *testing.T) {
@@ -389,7 +393,7 @@ func TestNewMetaBootstrap_OkValsShouldWork(t *testing.T) {
 	assert.False(t, bs.IsInImportMode())
 }
 
-//------- processing
+// ------- processing
 
 func TestMetaBootstrap_SyncBlockShouldCallRollBack(t *testing.T) {
 	t.Parallel()
@@ -400,7 +404,7 @@ func TestMetaBootstrap_SyncBlockShouldCallRollBack(t *testing.T) {
 
 	args.Store = createMetaStore()
 
-	blkc, _ := blockchain.NewMetaChain(&mock.AppStatusHandlerStub{})
+	blkc, _ := blockchain.NewMetaChain(&statusHandlerMock.AppStatusHandlerStub{})
 	_ = blkc.SetGenesisHeader(&block.MetaBlock{})
 	_ = blkc.SetCurrentBlockHeader(&hdr)
 	args.ChainHandler = blkc
@@ -554,7 +558,7 @@ func TestMetaBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 	}
 	args.ForkDetector = forkDetector
 
-	account := &testscommon.AccountsStub{}
+	account := &stateMock.AccountsStub{}
 	account.RootHashCalled = func() ([]byte, error) {
 		return nil, nil
 	}
@@ -1010,7 +1014,7 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 	assert.True(t, hdr == hdr2)
 }
 
-//------- testing received headers
+// ------- testing received headers
 
 func TestMetaBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *testing.T) {
 	t.Parallel()
@@ -1114,7 +1118,7 @@ func TestMetaBootstrap_ReceivedHeadersNotFoundInPoolShouldNotAddToForkDetector(t
 	}
 	args.Store = createMetaStore()
 	args.Store.AddStorer(dataRetriever.MetaBlockUnit, headerStorage)
-	args.ChainHandler, _ = blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
+	args.ChainHandler, _ = blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
 	args.RoundHandler = initRoundHandler()
 
 	bs, _ := sync.NewMetaBootstrap(args)
@@ -1124,7 +1128,7 @@ func TestMetaBootstrap_ReceivedHeadersNotFoundInPoolShouldNotAddToForkDetector(t
 	assert.False(t, wasAdded)
 }
 
-//------- RollBack
+// ------- RollBack
 
 func TestMetaBootstrap_RollBackNilBlockchainHeaderShouldErr(t *testing.T) {
 	t.Parallel()
@@ -1196,19 +1200,19 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 
 	args := CreateMetaBootstrapMockArguments()
 
-	//retain if the remove process from different storage locations has been called
+	// retain if the remove process from different storage locations has been called
 	remFlags := &removedFlags{}
 
 	currentHdrNonce := uint64(8)
 	currentHdrHash := []byte("current header hash")
 
-	//define prev tx block body "strings" as in this test there are a lot of stubs that
-	//constantly need to check some defined symbols
-	//prevTxBlockBodyHash := []byte("prev block body hash")
+	// define prev tx block body "strings" as in this test there are a lot of stubs that
+	// constantly need to check some defined symbols
+	// prevTxBlockBodyHash := []byte("prev block body hash")
 	prevTxBlockBodyBytes := []byte("prev block body bytes")
 	prevTxBlockBody := &block.Body{}
 
-	//define prev header "strings"
+	// define prev header "strings"
 	prevHdrHash := []byte("prev header hash")
 	prevHdrBytes := []byte("prev header bytes")
 	prevHdrRootHash := []byte("prev header root hash")
@@ -1229,11 +1233,11 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 	}
 	args.PoolsHolder = pools
 
-	//a mock blockchain with special header and tx block bodies stubs (defined above)
+	// a mock blockchain with special header and tx block bodies stubs (defined above)
 	blkc := &mock.BlockChainMock{}
 	hdr := &block.MetaBlock{
 		Nonce: currentHdrNonce,
-		//empty bitmap
+		// empty bitmap
 		PrevHash: prevHdrHash,
 	}
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
@@ -1281,8 +1285,8 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 		},
 		UnmarshalCalled: func(obj interface{}, buff []byte) error {
 			if bytes.Equal(buff, prevHdrBytes) {
-				//bytes represent a header (strings are returns from hdrUnit.Get which is also a stub here)
-				//copy only defined fields
+				// bytes represent a header (strings are returns from hdrUnit.Get which is also a stub here)
+				// copy only defined fields
 				_, ok := obj.(*block.MetaBlock)
 				if !ok {
 					return nil
@@ -1293,8 +1297,8 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 				return nil
 			}
 			if bytes.Equal(buff, prevTxBlockBodyBytes) {
-				//bytes represent a tx block body (strings are returns from txBlockUnit.Get which is also a stub here)
-				//copy only defined fields
+				// bytes represent a tx block body (strings are returns from txBlockUnit.Get which is also a stub here)
+				// copy only defined fields
 				_, ok := obj.(*block.Body)
 				if !ok {
 					return nil
@@ -1308,7 +1312,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 		},
 	}
 	args.ForkDetector = createForkDetector(currentHdrNonce, remFlags)
-	args.Accounts = &testscommon.AccountsStub{
+	args.Accounts = &stateMock.AccountsStub{
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
 		},
@@ -1332,19 +1336,19 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 
 	args := CreateMetaBootstrapMockArguments()
 
-	//retain if the remove process from different storage locations has been called
+	// retain if the remove process from different storage locations has been called
 	remFlags := &removedFlags{}
 
 	currentHdrNonce := uint64(1)
 	currentHdrHash := []byte("current header hash")
 
-	//define prev tx block body "strings" as in this test there are a lot of stubs that
-	//constantly need to check some defined symbols
-	//prevTxBlockBodyHash := []byte("prev block body hash")
+	// define prev tx block body "strings" as in this test there are a lot of stubs that
+	// constantly need to check some defined symbols
+	// prevTxBlockBodyHash := []byte("prev block body hash")
 	prevTxBlockBodyBytes := []byte("prev block body bytes")
 	prevTxBlockBody := &block.Body{}
 
-	//define prev header "strings"
+	// define prev header "strings"
 	prevHdrHash := []byte("prev header hash")
 	prevHdrBytes := []byte("prev header bytes")
 	prevHdrRootHash := []byte("prev header root hash")
@@ -1372,7 +1376,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 	}
 	hdr := &block.MetaBlock{
 		Nonce: currentHdrNonce,
-		//empty bitmap
+		// empty bitmap
 		PrevHash: prevHdrHash,
 	}
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
@@ -1424,15 +1428,15 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 				if !ok {
 					return nil
 				}
-				//bytes represent a header (strings are returns from hdrUnit.Get which is also a stub here)
-				//copy only defined fields
+				// bytes represent a header (strings are returns from hdrUnit.Get which is also a stub here)
+				// copy only defined fields
 				obj.(*block.MetaBlock).Signature = prevHdr.Signature
 				obj.(*block.MetaBlock).RootHash = prevHdrRootHash
 				return nil
 			}
 			if bytes.Equal(buff, prevTxBlockBodyBytes) {
-				//bytes represent a tx block body (strings are returns from txBlockUnit.Get which is also a stub here)
-				//copy only defined fields
+				// bytes represent a tx block body (strings are returns from txBlockUnit.Get which is also a stub here)
+				// copy only defined fields
 				_, ok := obj.(*block.Body)
 				if !ok {
 					return nil
@@ -1446,7 +1450,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 		},
 	}
 	args.ForkDetector = createForkDetector(currentHdrNonce, remFlags)
-	args.Accounts = &testscommon.AccountsStub{
+	args.Accounts = &stateMock.AccountsStub{
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
 		},
@@ -1611,10 +1615,10 @@ func TestMetaBootstrap_SyncBlockErrGetNodeDBShouldSyncAccounts(t *testing.T) {
 			validatorSyncCalled = true
 			return nil
 		}}
-	args.Accounts = &testscommon.AccountsStub{RootHashCalled: func() ([]byte, error) {
+	args.Accounts = &stateMock.AccountsStub{RootHashCalled: func() ([]byte, error) {
 		return []byte("roothash"), nil
 	}}
-	args.ValidatorAccountsDB = &testscommon.AccountsStub{RootHashCalled: func() ([]byte, error) {
+	args.ValidatorAccountsDB = &stateMock.AccountsStub{RootHashCalled: func() ([]byte, error) {
 		return []byte("roothash"), nil
 	}}
 

@@ -26,14 +26,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/ElrondNetwork/elrond-go-crypto/signing"
+	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
+	ed25519SingleSig "github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519/singlesig"
+	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
-	ed25519SingleSig "github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519/singlesig"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
 	"github.com/ElrondNetwork/elrond-go/genesis"
@@ -53,12 +54,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state/factory"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -340,7 +342,6 @@ func CreateStore(numOfShards uint32) dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.HeartbeatUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.BootstrapUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.StatusMetricsUnit, CreateMemUnit())
-	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.ReceiptsUnit, CreateMemUnit())
 
 	for i := uint32(0); i < numOfShards; i++ {
@@ -352,7 +353,7 @@ func CreateStore(numOfShards uint32) dataRetriever.StorageService {
 }
 
 // CreateTrieStorageManager creates the trie storage manager for the tests
-func CreateTrieStorageManager(store storage.Storer) (temporary.StorageManager, storage.Storer) {
+func CreateTrieStorageManager(store storage.Storer) (common.StorageManager, storage.Storer) {
 	// TODO change this implementation with a factory
 	tempDir, _ := ioutil.TempDir("", "integrationTests")
 	cfg := config.DBConfig{
@@ -383,8 +384,8 @@ func CreateTrieStorageManager(store storage.Storer) (temporary.StorageManager, s
 // CreateAccountsDB creates an account state with a valid trie implementation but with a memory storage
 func CreateAccountsDB(
 	accountType Type,
-	trieStorageManager temporary.StorageManager,
-) (*state.AccountsDB, temporary.Trie) {
+	trieStorageManager common.StorageManager,
+) (*state.AccountsDB, common.Trie) {
 	tr, _ := trie.NewTrie(trieStorageManager, TestMarshalizer, TestHasher, maxTrieLevelInMemory)
 
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), TestMarshalizer)
@@ -408,7 +409,7 @@ func getAccountFactory(accountType Type) state.AccountFactory {
 
 // CreateShardChain creates a blockchain implementation used by the shard nodes
 func CreateShardChain() data.ChainHandler {
-	blockChain, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
+	blockChain, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
 	_ = blockChain.SetGenesisHeader(&dataBlock.Header{})
 	genesisHeaderM, _ := TestMarshalizer.Marshal(blockChain.GetGenesisHeader())
 
@@ -419,7 +420,7 @@ func CreateShardChain() data.ChainHandler {
 
 // CreateMetaChain creates a blockchain implementation used by the meta nodes
 func CreateMetaChain() data.ChainHandler {
-	metaChain, _ := blockchain.NewMetaChain(&mock.AppStatusHandlerStub{})
+	metaChain, _ := blockchain.NewMetaChain(&statusHandlerMock.AppStatusHandlerStub{})
 	_ = metaChain.SetGenesisHeader(&dataBlock.MetaBlock{})
 	genesisHeaderHash, _ := core.CalculateHash(TestMarshalizer, TestHasher, metaChain.GetGenesisHeader())
 	metaChain.SetGenesisHeaderHash(genesisHeaderHash)
@@ -488,7 +489,7 @@ func CreateSimpleGenesisMetaBlock() *dataBlock.MetaBlock {
 func CreateGenesisBlocks(
 	accounts state.AccountsAdapter,
 	validatorAccounts state.AccountsAdapter,
-	trieStorageManagers map[string]temporary.StorageManager,
+	trieStorageManagers map[string]common.StorageManager,
 	pubkeyConv core.PubkeyConverter,
 	nodesSetup sharding.GenesisNodesSetupHandler,
 	shardCoordinator sharding.Coordinator,
@@ -529,7 +530,7 @@ func CreateGenesisBlocks(
 func CreateFullGenesisBlocks(
 	accounts state.AccountsAdapter,
 	validatorAccounts state.AccountsAdapter,
-	trieStorageManagers map[string]temporary.StorageManager,
+	trieStorageManagers map[string]common.StorageManager,
 	nodesSetup sharding.GenesisNodesSetupHandler,
 	shardCoordinator sharding.Coordinator,
 	store dataRetriever.StorageService,
@@ -647,7 +648,7 @@ func CreateFullGenesisBlocks(
 func CreateGenesisMetaBlock(
 	accounts state.AccountsAdapter,
 	validatorAccounts state.AccountsAdapter,
-	trieStorageManagers map[string]temporary.StorageManager,
+	trieStorageManagers map[string]common.StorageManager,
 	pubkeyConv core.PubkeyConverter,
 	nodesSetup sharding.GenesisNodesSetupHandler,
 	shardCoordinator sharding.Coordinator,
@@ -751,9 +752,9 @@ func CreateGenesisMetaBlock(
 			core.MetachainShardId,
 		)
 
-		newDataPool := testscommon.CreatePoolsHolder(1, shardCoordinator.SelfId())
+		newDataPool := dataRetrieverMock.CreatePoolsHolder(1, shardCoordinator.SelfId())
 
-		newBlkc, _ := blockchain.NewMetaChain(&mock.AppStatusHandlerStub{})
+		newBlkc, _ := blockchain.NewMetaChain(&statusHandlerMock.AppStatusHandlerStub{})
 		trieStorage, _ := CreateTrieStorageManager(CreateMemUnit())
 		newAccounts, _ := CreateAccountsDB(UserAccount, trieStorage)
 
@@ -947,7 +948,7 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 }
 
 // CreateNewDefaultTrie returns a new trie with test hasher and marsahalizer
-func CreateNewDefaultTrie() temporary.Trie {
+func CreateNewDefaultTrie() common.Trie {
 	generalCfg := config.TrieStorageManagerConfig{
 		PruningBufferLen:   1000,
 		SnapshotsBufferLen: 10,
@@ -1225,6 +1226,38 @@ func CreateNodes(
 
 	for i := 0; i < numMetaChainNodes; i++ {
 		metaNode := NewTestProcessorNode(uint32(numOfShards), core.MetachainShardId, 0)
+		idx = i + numOfShards*nodesPerShard
+		nodes[idx] = metaNode
+		connectableNodes[idx] = metaNode
+	}
+
+	ConnectNodes(connectableNodes)
+
+	return nodes
+}
+
+// CreateNodesWithEnableEpochs creates multiple nodes with custom epoch config
+func CreateNodesWithEnableEpochs(
+	numOfShards int,
+	nodesPerShard int,
+	numMetaChainNodes int,
+	epochConfig config.EnableEpochs,
+) []*TestProcessorNode {
+	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
+	connectableNodes := make([]Connectable, len(nodes))
+
+	idx := 0
+	for shardId := uint32(0); shardId < uint32(numOfShards); shardId++ {
+		for j := 0; j < nodesPerShard; j++ {
+			n := NewTestProcessorNodeWithEnableEpochs(uint32(numOfShards), shardId, shardId, epochConfig)
+			nodes[idx] = n
+			connectableNodes[idx] = n
+			idx++
+		}
+	}
+
+	for i := 0; i < numMetaChainNodes; i++ {
+		metaNode := NewTestProcessorNodeWithEnableEpochs(uint32(numOfShards), core.MetachainShardId, 0, epochConfig)
 		idx = i + numOfShards*nodesPerShard
 		nodes[idx] = metaNode
 		connectableNodes[idx] = metaNode
@@ -1900,7 +1933,7 @@ func requestMissingTransactions(n *TestProcessorNode, shardResolver uint32, need
 // CreateRequesterDataPool creates a datapool with a mock txPool
 func CreateRequesterDataPool(recvTxs map[int]map[string]struct{}, mutRecvTxs *sync.Mutex, nodeIndex int, _ uint32) dataRetriever.PoolsHolder {
 	//not allowed to request data from the same shard
-	return testscommon.CreatePoolsHolderWithTxPool(&testscommon.ShardedDataStub{
+	return dataRetrieverMock.CreatePoolsHolderWithTxPool(&testscommon.ShardedDataStub{
 		SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
 			return nil, false
 		},
@@ -1933,7 +1966,7 @@ func CreateResolversDataPool(
 
 	txHashes := make([][]byte, maxTxs)
 	txsSndAddr := make([][]byte, 0)
-	poolsHolder := testscommon.CreatePoolsHolder(1, shardCoordinator.SelfId())
+	poolsHolder := dataRetrieverMock.CreatePoolsHolder(1, shardCoordinator.SelfId())
 	txPool := poolsHolder.Transactions()
 
 	for i := 0; i < maxTxs; i++ {

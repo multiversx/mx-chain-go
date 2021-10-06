@@ -267,7 +267,9 @@
         MaxOpenFiles = 10
 
 [EvictionWaitingList]
-    Size = 10000
+    #total max size ~ 2 * [(RoothashesSize * 32) + (HashesSize * 32)]
+    RootHashesSize = 10000
+    HashesSize = 100000
     [EvictionWaitingList.DB]
         FilePath = "EvictionWaitingList"
         Type = "LvlDBSerial"
@@ -609,17 +611,15 @@
 [VirtualMachine]
     [VirtualMachine.Execution]
         ArwenVersions = [
-            { StartEpoch = 0, Version = "v1.2" },
-            { StartEpoch = 1, Version = "v1.3" },
-            { StartEpoch = 5, Version = "v1.4" },
+            { StartEpoch = 0, Version = "v1.3" },
+            { StartEpoch = 1, Version = "v1.4" },
         ]
 
     [VirtualMachine.Querying]
         NumConcurrentVMs = 1
         ArwenVersions = [
-            { StartEpoch = 0, Version = "v1.2" },
-            { StartEpoch = 1, Version = "v1.3" },
-            { StartEpoch = 5, Version = "v1.4" },
+            { StartEpoch = 0, Version = "v1.3" },
+            { StartEpoch = 1, Version = "v1.4" },
         ]
 
 [Hardfork]
@@ -739,6 +739,7 @@
 
 [DbLookupExtensions]
     Enabled = false
+    DbLookupMaxActivePersisters = 100
     [DbLookupExtensions.MiniblocksMetadataStorageConfig.Cache]
         Name = "DbLookupExtensions.MiniblocksMetadataStorage"
         Capacity = 20000
@@ -775,6 +776,16 @@
         Type = "LRU"
     [DbLookupExtensions.ResultsHashesByTxHashStorageConfig.DB]
         FilePath = "DbLookupExtensions_ResultsHashesByTx"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 20000
+        MaxOpenFiles = 10
+    [DbLookupExtensions.ESDTSuppliesStorageConfig.Cache]
+        Name = "DbLookupExtensions.ESDTSuppliesStorage"
+        Capacity = 20000
+        Type = "LRU"
+    [DbLookupExtensions.ESDTSuppliesStorageConfig.DB]
+        FilePath = "DbLookupExtensions_ESDTSupplies"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 20000

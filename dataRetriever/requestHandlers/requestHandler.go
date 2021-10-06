@@ -462,6 +462,7 @@ func (rrh *resolverRequestHandler) RequestTrieNode(requestHash []byte, topic str
 	}
 
 	rrh.whiteList.Add(unrequestedHashes)
+	rrh.whiteList.Add([][]byte{requestHash})
 
 	log.Trace("requesting trie node from network",
 		"topic", topic,
@@ -494,8 +495,8 @@ func (rrh *resolverRequestHandler) logTrieHashesFromAccumulator() {
 		return
 	}
 
-	for _, txHash := range rrh.trieHashesAccumulator {
-		log.Trace("requestByHashes", "hash", txHash)
+	for txHash := range rrh.trieHashesAccumulator {
+		log.Trace("logTrieHashesFromAccumulator", "hash", []byte(txHash))
 	}
 }
 

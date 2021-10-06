@@ -30,7 +30,7 @@ func TestNewStateExporter(t *testing.T) {
 				Marshalizer:              &mock.MarshalizerMock{},
 				ShardCoordinator:         nil,
 				Hasher:                   &mock.HasherStub{},
-				StateSyncer:              &mock.SyncStateStub{},
+				StateSyncer:              &mock.StateSyncStub{},
 				HardforkStorer:           &mock.HardforkStorerStub{},
 				AddressPubKeyConverter:   &mock.PubkeyConverterStub{},
 				ValidatorPubKeyConverter: &mock.PubkeyConverterStub{},
@@ -59,7 +59,7 @@ func TestNewStateExporter(t *testing.T) {
 			args: ArgsNewStateExporter{
 				Marshalizer:              nil,
 				ShardCoordinator:         mock.NewOneShardCoordinatorMock(),
-				StateSyncer:              &mock.SyncStateStub{},
+				StateSyncer:              &mock.StateSyncStub{},
 				HardforkStorer:           &mock.HardforkStorerStub{},
 				Hasher:                   &mock.HasherStub{},
 				AddressPubKeyConverter:   &mock.PubkeyConverterStub{},
@@ -74,7 +74,7 @@ func TestNewStateExporter(t *testing.T) {
 			args: ArgsNewStateExporter{
 				Marshalizer:              &mock.MarshalizerMock{},
 				ShardCoordinator:         mock.NewOneShardCoordinatorMock(),
-				StateSyncer:              &mock.SyncStateStub{},
+				StateSyncer:              &mock.StateSyncStub{},
 				HardforkStorer:           nil,
 				Hasher:                   &mock.HasherStub{},
 				AddressPubKeyConverter:   &mock.PubkeyConverterStub{},
@@ -89,7 +89,7 @@ func TestNewStateExporter(t *testing.T) {
 			args: ArgsNewStateExporter{
 				Marshalizer:              &mock.MarshalizerMock{},
 				ShardCoordinator:         mock.NewOneShardCoordinatorMock(),
-				StateSyncer:              &mock.SyncStateStub{},
+				StateSyncer:              &mock.StateSyncStub{},
 				HardforkStorer:           &mock.HardforkStorerStub{},
 				Hasher:                   nil,
 				AddressPubKeyConverter:   &mock.PubkeyConverterStub{},
@@ -105,7 +105,7 @@ func TestNewStateExporter(t *testing.T) {
 			args: ArgsNewStateExporter{
 				Marshalizer:              &mock.MarshalizerMock{},
 				ShardCoordinator:         mock.NewOneShardCoordinatorMock(),
-				StateSyncer:              &mock.SyncStateStub{},
+				StateSyncer:              &mock.StateSyncStub{},
 				HardforkStorer:           &mock.HardforkStorerStub{},
 				Hasher:                   &mock.HasherStub{},
 				AddressPubKeyConverter:   nil,
@@ -121,7 +121,7 @@ func TestNewStateExporter(t *testing.T) {
 			args: ArgsNewStateExporter{
 				Marshalizer:              &mock.MarshalizerMock{},
 				ShardCoordinator:         mock.NewOneShardCoordinatorMock(),
-				StateSyncer:              &mock.SyncStateStub{},
+				StateSyncer:              &mock.StateSyncStub{},
 				HardforkStorer:           &mock.HardforkStorerStub{},
 				Hasher:                   &mock.HasherStub{},
 				AddressPubKeyConverter:   &mock.PubkeyConverterStub{},
@@ -136,7 +136,7 @@ func TestNewStateExporter(t *testing.T) {
 			args: ArgsNewStateExporter{
 				Marshalizer:              &mock.MarshalizerMock{},
 				ShardCoordinator:         mock.NewOneShardCoordinatorMock(),
-				StateSyncer:              &mock.SyncStateStub{},
+				StateSyncer:              &mock.StateSyncStub{},
 				HardforkStorer:           &mock.HardforkStorerStub{},
 				Hasher:                   &mock.HasherStub{},
 				AddressPubKeyConverter:   &mock.PubkeyConverterStub{},
@@ -151,7 +151,7 @@ func TestNewStateExporter(t *testing.T) {
 			args: ArgsNewStateExporter{
 				Marshalizer:              &mock.MarshalizerMock{},
 				ShardCoordinator:         mock.NewOneShardCoordinatorMock(),
-				StateSyncer:              &mock.SyncStateStub{},
+				StateSyncer:              &mock.StateSyncStub{},
 				HardforkStorer:           &mock.HardforkStorerStub{},
 				Hasher:                   &mock.HasherStub{},
 				AddressPubKeyConverter:   &mock.PubkeyConverterStub{},
@@ -166,7 +166,7 @@ func TestNewStateExporter(t *testing.T) {
 			args: ArgsNewStateExporter{
 				Marshalizer:              &mock.MarshalizerMock{},
 				ShardCoordinator:         mock.NewOneShardCoordinatorMock(),
-				StateSyncer:              &mock.SyncStateStub{},
+				StateSyncer:              &mock.StateSyncStub{},
 				HardforkStorer:           &mock.HardforkStorerStub{},
 				Hasher:                   &mock.HasherStub{},
 				AddressPubKeyConverter:   &mock.PubkeyConverterStub{},
@@ -204,7 +204,7 @@ func TestExportAll(t *testing.T) {
 	}
 	miniBlock := &block.MiniBlock{}
 	tx := &transaction.Transaction{Nonce: 1, Value: big.NewInt(100), SndAddr: []byte("snd"), RcvAddr: []byte("rcv")}
-	stateSyncer := &mock.SyncStateStub{
+	stateSyncer := &mock.StateSyncStub{
 		GetEpochStartMetaBlockCalled: func() (block *block.MetaBlock, err error) {
 			return metaBlock, nil
 		},
@@ -279,7 +279,7 @@ func TestStateExport_ExportUnfinishedMetaBlocksShouldWork(t *testing.T) {
 	unFinishedMetaBlocks := map[string]*block.MetaBlock{
 		"hash": {Round: 1, ChainID: []byte("chainId")},
 	}
-	stateSyncer := &mock.SyncStateStub{
+	stateSyncer := &mock.StateSyncStub{
 		GetUnFinishedMetaBlocksCalled: func() (map[string]*block.MetaBlock, error) {
 			return unFinishedMetaBlocks, nil
 		},

@@ -19,19 +19,20 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	marshalizerFactory "github.com/ElrondNetwork/elrond-go-core/marshal/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
+	commonFactory "github.com/ElrondNetwork/elrond-go/common/factory"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/ElrondNetwork/elrond-go/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	stateFactory "github.com/ElrondNetwork/elrond-go/state/factory"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 )
@@ -141,12 +142,12 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 
 	uint64ByteSliceConverter := uint64ByteSlice.NewBigEndianConverter()
 
-	addressPubkeyConverter, err := stateFactory.NewPubkeyConverter(ccf.config.AddressPubkeyConverter)
+	addressPubkeyConverter, err := commonFactory.NewPubkeyConverter(ccf.config.AddressPubkeyConverter)
 	if err != nil {
 		return nil, fmt.Errorf("%w for AddressPubkeyConverter", err)
 	}
 
-	validatorPubkeyConverter, err := stateFactory.NewPubkeyConverter(ccf.config.ValidatorPubkeyConverter)
+	validatorPubkeyConverter, err := commonFactory.NewPubkeyConverter(ccf.config.ValidatorPubkeyConverter)
 	if err != nil {
 		return nil, fmt.Errorf("%w for AddressPubkeyConverter", err)
 	}
@@ -270,6 +271,16 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	}
 
 	statusHandlersInfo, err := ccf.statusHandlersFactory.Create(internalMarshalizer, uint64ByteSliceConverter)
+	if err != nil {
+		return nil, err
+	}
+
+	err = metrics.InitBaseMetrics(statusHandlersInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	err = metrics.InitConfigMetrics(statusHandlersInfo, ccf.epochConfig, ccf.economicsConfig)
 	if err != nil {
 		return nil, err
 	}

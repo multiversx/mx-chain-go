@@ -25,17 +25,16 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/ElrondNetwork/elrond-go-crypto/signing"
+	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
+	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
+	mclsig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
-	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/crypto/peerSignatureHandler"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
-	mclsig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/singlesig"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
@@ -45,6 +44,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
+	"github.com/ElrondNetwork/elrond-go/factory/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -78,17 +78,20 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/bootstrapMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
+	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	dblookupextMock "github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
@@ -125,7 +128,7 @@ var TestAddressPubkeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32,
 var TestValidatorPubkeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(96)
 
 // TestMultiSig represents a mock multisig
-var TestMultiSig = mock.NewMultiSigner(1)
+var TestMultiSig = cryptoMocks.NewMultiSigner(1)
 
 // TestKeyGenForAccounts represents a mock key generator for balances
 var TestKeyGenForAccounts = signing.NewKeyGenerator(ed25519.NewEd25519())
@@ -147,7 +150,7 @@ var TestBlockSizeComputationHandler, _ = preprocess.NewBlockSizeComputation(Test
 var TestBalanceComputationHandler, _ = preprocess.NewBalanceComputation()
 
 // TestAppStatusHandler represents an AppStatusHandler
-var TestAppStatusHandler = &mock.AppStatusHandlerStub{}
+var TestAppStatusHandler = &statusHandlerMock.AppStatusHandlerStub{}
 
 // MinTxGasPrice defines minimum gas price required by a transaction
 var MinTxGasPrice = uint64(100)
@@ -233,7 +236,7 @@ type TestProcessorNode struct {
 	Storage             dataRetriever.StorageService
 	PeerState           state.AccountsAdapter
 	AccntState          state.AccountsAdapter
-	TrieStorageManagers map[string]temporary.StorageManager
+	TrieStorageManagers map[string]common.StorageManager
 	TrieContainer       state.TriesHolder
 	BlockChain          data.ChainHandler
 	GenesisBlocks       map[uint32]data.HeaderHandler
@@ -305,16 +308,12 @@ type TestProcessorNode struct {
 	ChainID               []byte
 	MinTransactionVersion uint32
 
-	ExportHandler                     update.ExportHandler
-	WaitTime                          time.Duration
-	HistoryRepository                 dblookupext.HistoryRepository
-	EpochNotifier                     process.EpochNotifier
-	BuiltinEnableEpoch                uint32
-	DeployEnableEpoch                 uint32
-	RelayedTxEnableEpoch              uint32
-	PenalizedTooMuchGasEnableEpoch    uint32
-	BlockGasAndFeesReCheckEnableEpoch uint32
-	UseValidVmBlsSigVerifier          bool
+	ExportHandler            update.ExportHandler
+	WaitTime                 time.Duration
+	HistoryRepository        dblookupext.HistoryRepository
+	EpochNotifier            process.EpochNotifier
+	EnableEpochs             config.EnableEpochs
+	UseValidVmBlsSigVerifier bool
 
 	TransactionLogProcessor process.TransactionLogProcessor
 }
@@ -463,22 +462,16 @@ func NewTestProcessorNodeWithBLSSigVerifier(
 	return tpn
 }
 
-// NewTestProcessorNodeSoftFork returns a TestProcessorNode instance with soft fork parameters
-func NewTestProcessorNodeSoftFork(
+// NewTestProcessorNodeWithEnableEpochs returns a TestProcessorNode instance custom enable epochs
+func NewTestProcessorNodeWithEnableEpochs(
 	maxShards uint32,
 	nodeShardId uint32,
 	txSignPrivKeyShardId uint32,
-	builtinEnableEpoch uint32,
-	deployEnableEpoch uint32,
-	relayedTxEnableEpoch uint32,
-	penalizedTooMuchGasEnableEpoch uint32,
+	enableEpochs config.EnableEpochs,
 ) *TestProcessorNode {
 
 	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId)
-	tpn.BuiltinEnableEpoch = builtinEnableEpoch
-	tpn.DeployEnableEpoch = deployEnableEpoch
-	tpn.RelayedTxEnableEpoch = relayedTxEnableEpoch
-	tpn.PenalizedTooMuchGasEnableEpoch = penalizedTooMuchGasEnableEpoch
+	tpn.EnableEpochs = enableEpochs
 	tpn.initTestNode()
 
 	return tpn
@@ -628,15 +621,15 @@ func (tpn *TestProcessorNode) GetConnectableAddress() string {
 func (tpn *TestProcessorNode) initAccountDBs(store storage.Storer) {
 	trieStorageManager, _ := CreateTrieStorageManager(store)
 	tpn.TrieContainer = state.NewDataTriesHolder()
-	var stateTrie temporary.Trie
+	var stateTrie common.Trie
 	tpn.AccntState, stateTrie = CreateAccountsDB(UserAccount, trieStorageManager)
 	tpn.TrieContainer.Put([]byte(trieFactory.UserAccountTrie), stateTrie)
 
-	var peerTrie temporary.Trie
+	var peerTrie common.Trie
 	tpn.PeerState, peerTrie = CreateAccountsDB(ValidatorAccount, trieStorageManager)
 	tpn.TrieContainer.Put([]byte(trieFactory.PeerAccountTrie), peerTrie)
 
-	tpn.TrieStorageManagers = make(map[string]temporary.StorageManager)
+	tpn.TrieStorageManagers = make(map[string]common.StorageManager)
 	tpn.TrieStorageManagers[trieFactory.UserAccountTrie] = trieStorageManager
 	tpn.TrieStorageManagers[trieFactory.PeerAccountTrie] = trieStorageManager
 }
@@ -785,12 +778,13 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 	defaults.FillGasMapInternal(gasMap, 1)
 	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:      gasSchedule,
-		MapDNSAddresses:  make(map[string]struct{}),
-		Marshalizer:      TestMarshalizer,
-		Accounts:         tpn.AccntState,
-		ShardCoordinator: tpn.ShardCoordinator,
-		EpochNotifier:    tpn.EpochNotifier,
+		GasSchedule:                gasSchedule,
+		MapDNSAddresses:            make(map[string]struct{}),
+		Marshalizer:                TestMarshalizer,
+		Accounts:                   tpn.AccntState,
+		ShardCoordinator:           tpn.ShardCoordinator,
+		EpochNotifier:              tpn.EpochNotifier,
+		GlobalMintBurnDisableEpoch: tpn.EnableEpochs.GlobalMintBurnDisableEpoch,
 	}
 	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 
@@ -887,15 +881,13 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 					{StartEpoch: 0, Version: "*"},
 				},
 			},
-			BlockGasLimit:                  tpn.EconomicsData.MaxGasLimitPerBlock(tpn.ShardCoordinator.SelfId()),
-			GasSchedule:                    gasSchedule,
-			ArgBlockChainHook:              argsHook,
-			EpochNotifier:                  tpn.EpochNotifier,
-			DeployEnableEpoch:              0,
-			AheadOfTimeGasUsageEnableEpoch: 0,
-			ArwenV3EnableEpoch:             0,
-			ArwenChangeLocker:              tpn.ArwenChangeLocker,
-			ESDTTransferParser:             esdtTransferParser,
+			BlockGasLimit:      tpn.EconomicsData.MaxGasLimitPerBlock(tpn.ShardCoordinator.SelfId()),
+			GasSchedule:        gasSchedule,
+			ArgBlockChainHook:  argsHook,
+			EpochNotifier:      tpn.EpochNotifier,
+			EpochConfig:        tpn.EnableEpochs,
+			ArwenChangeLocker:  tpn.ArwenChangeLocker,
+			ESDTTransferParser: esdtTransferParser,
 		}
 		vmFactory, _ = shard.NewVMContainerFactory(argsNewVMFactory)
 	}
@@ -945,7 +937,7 @@ func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]
 }
 
 func (tpn *TestProcessorNode) initDataPools() {
-	tpn.DataPool = testscommon.CreatePoolsHolder(1, tpn.ShardCoordinator.SelfId())
+	tpn.DataPool = dataRetrieverMock.CreatePoolsHolder(1, tpn.ShardCoordinator.SelfId())
 	cacherCfg := storageUnit.CacheConfig{Capacity: 10000, Type: storageUnit.LRUCache, Shards: 1}
 	cache, _ := storageUnit.NewCache(cacherCfg)
 	tpn.WhiteListHandler, _ = interceptors.NewWhiteListDataVerifier(cache)
@@ -1152,7 +1144,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			Storage:            tpn.Storage,
 			Marshalizer:        TestMarshalizer,
 			Hasher:             TestHasher,
-			AppStatusHandler:   &testscommon.AppStatusHandlerStub{},
+			AppStatusHandler:   &statusHandlerMock.AppStatusHandlerStub{},
 		}
 		epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsEpochStart)
 		tpn.EpochStartTrigger = &metachain.TestTrigger{}
@@ -1208,7 +1200,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			EpochStartNotifier:   tpn.EpochStartNotifier,
 			PeerMiniBlocksSyncer: peerMiniBlockSyncer,
 			RoundHandler:         tpn.RoundHandler,
-			AppStatusHandler:     &testscommon.AppStatusHandlerStub{},
+			AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
 		}
 		epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
 		tpn.EpochStartTrigger = &shardchain.TestTrigger{}
@@ -1356,12 +1348,13 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 
 	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:      gasSchedule,
-		MapDNSAddresses:  mapDNSAddresses,
-		Marshalizer:      TestMarshalizer,
-		Accounts:         tpn.AccntState,
-		ShardCoordinator: tpn.ShardCoordinator,
-		EpochNotifier:    tpn.EpochNotifier,
+		GasSchedule:                gasSchedule,
+		MapDNSAddresses:            mapDNSAddresses,
+		Marshalizer:                TestMarshalizer,
+		Accounts:                   tpn.AccntState,
+		ShardCoordinator:           tpn.ShardCoordinator,
+		EpochNotifier:              tpn.EpochNotifier,
+		GlobalMintBurnDisableEpoch: tpn.EnableEpochs.GlobalMintBurnDisableEpoch,
 	}
 	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 
@@ -1391,15 +1384,13 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 				{StartEpoch: 0, Version: "*"},
 			},
 		},
-		BlockGasLimit:                  maxGasLimitPerBlock,
-		GasSchedule:                    gasSchedule,
-		ArgBlockChainHook:              argsHook,
-		EpochNotifier:                  tpn.EpochNotifier,
-		DeployEnableEpoch:              0,
-		AheadOfTimeGasUsageEnableEpoch: 0,
-		ArwenV3EnableEpoch:             0,
-		ArwenChangeLocker:              tpn.ArwenChangeLocker,
-		ESDTTransferParser:             esdtTransferParser,
+		BlockGasLimit:      maxGasLimitPerBlock,
+		GasSchedule:        gasSchedule,
+		ArgBlockChainHook:  argsHook,
+		EpochNotifier:      tpn.EpochNotifier,
+		EpochConfig:        tpn.EnableEpochs,
+		ArwenChangeLocker:  tpn.ArwenChangeLocker,
+		ESDTTransferParser: esdtTransferParser,
 	}
 	vmFactory, _ := shard.NewVMContainerFactory(argsNewVMFactory)
 
@@ -1428,32 +1419,30 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		ESDTTransferParser: esdtTransferParser,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
-	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler, tpn.EpochNotifier, tpn.DeployEnableEpoch)
+	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler, tpn.EpochNotifier, tpn.EnableEpochs.SCDeployEnableEpoch)
 	badBlocksHandler, _ := tpn.InterimProcContainer.Get(dataBlock.InvalidBlock)
 
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
-		VmContainer:                    tpn.VMContainer,
-		ArgsParser:                     tpn.ArgsParser,
-		Hasher:                         TestHasher,
-		Marshalizer:                    TestMarshalizer,
-		AccountsDB:                     tpn.AccntState,
-		BlockChainHook:                 vmFactory.BlockChainHookImpl(),
-		PubkeyConv:                     TestAddressPubkeyConverter,
-		ShardCoordinator:               tpn.ShardCoordinator,
-		ScrForwarder:                   tpn.ScrForwarder,
-		TxFeeHandler:                   tpn.FeeAccumulator,
-		EconomicsFee:                   tpn.EconomicsData,
-		TxTypeHandler:                  txTypeHandler,
-		GasHandler:                     tpn.GasHandler,
-		GasSchedule:                    gasSchedule,
-		TxLogsProcessor:                tpn.TransactionLogProcessor,
-		BadTxForwarder:                 badBlocksHandler,
-		EpochNotifier:                  tpn.EpochNotifier,
-		DeployEnableEpoch:              tpn.DeployEnableEpoch,
-		BuiltinEnableEpoch:             tpn.BuiltinEnableEpoch,
-		PenalizedTooMuchGasEnableEpoch: tpn.PenalizedTooMuchGasEnableEpoch,
-		VMOutputCacher:                 txcache.NewDisabledCache(),
-		ArwenChangeLocker:              tpn.ArwenChangeLocker,
+		VmContainer:       tpn.VMContainer,
+		ArgsParser:        tpn.ArgsParser,
+		Hasher:            TestHasher,
+		Marshalizer:       TestMarshalizer,
+		AccountsDB:        tpn.AccntState,
+		BlockChainHook:    vmFactory.BlockChainHookImpl(),
+		PubkeyConv:        TestAddressPubkeyConverter,
+		ShardCoordinator:  tpn.ShardCoordinator,
+		ScrForwarder:      tpn.ScrForwarder,
+		TxFeeHandler:      tpn.FeeAccumulator,
+		EconomicsFee:      tpn.EconomicsData,
+		TxTypeHandler:     txTypeHandler,
+		GasHandler:        tpn.GasHandler,
+		GasSchedule:       gasSchedule,
+		TxLogsProcessor:   tpn.TransactionLogProcessor,
+		BadTxForwarder:    badBlocksHandler,
+		EpochNotifier:     tpn.EpochNotifier,
+		VMOutputCacher:    txcache.NewDisabledCache(),
+		ArwenChangeLocker: tpn.ArwenChangeLocker,
+		EnableEpochs:      tpn.EnableEpochs,
 	}
 	sc, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	tpn.ScProcessor = smartContract.NewTestScProcessor(sc)
@@ -1475,8 +1464,8 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		ArgsParser:                     tpn.ArgsParser,
 		ScrForwarder:                   tpn.ScrForwarder,
 		EpochNotifier:                  tpn.EpochNotifier,
-		RelayedTxEnableEpoch:           tpn.RelayedTxEnableEpoch,
-		PenalizedTooMuchGasEnableEpoch: tpn.PenalizedTooMuchGasEnableEpoch,
+		RelayedTxEnableEpoch:           tpn.EnableEpochs.RelayedTransactionsEnableEpoch,
+		PenalizedTooMuchGasEnableEpoch: tpn.EnableEpochs.PenalizedTooMuchGasEnableEpoch,
 	}
 	tpn.TxProcessor, _ = transaction.NewTxProcessor(argsNewTxProcessor)
 
@@ -1516,7 +1505,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		BalanceComputation:                TestBalanceComputationHandler,
 		EconomicsFee:                      tpn.EconomicsData,
 		TxTypeHandler:                     txTypeHandler,
-		BlockGasAndFeesReCheckEnableEpoch: tpn.BlockGasAndFeesReCheckEnableEpoch,
+		BlockGasAndFeesReCheckEnableEpoch: tpn.EnableEpochs.BlockGasAndFeesReCheckEnableEpoch,
 		TransactionsLogProcessor:          tpn.TransactionLogProcessor,
 	}
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
@@ -1552,12 +1541,13 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	defaults.FillGasMapInternal(gasMap, 1)
 	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:      gasSchedule,
-		MapDNSAddresses:  make(map[string]struct{}),
-		Marshalizer:      TestMarshalizer,
-		Accounts:         tpn.AccntState,
-		ShardCoordinator: tpn.ShardCoordinator,
-		EpochNotifier:    tpn.EpochNotifier,
+		GasSchedule:                gasSchedule,
+		MapDNSAddresses:            make(map[string]struct{}),
+		Marshalizer:                TestMarshalizer,
+		Accounts:                   tpn.AccntState,
+		ShardCoordinator:           tpn.ShardCoordinator,
+		EpochNotifier:              tpn.EpochNotifier,
+		GlobalMintBurnDisableEpoch: tpn.EnableEpochs.GlobalMintBurnDisableEpoch,
 	}
 	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	argsHook := hooks.ArgBlockChainHook{
@@ -1633,12 +1623,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		ChanceComputer:      &mock.RaterMock{},
 		EpochNotifier:       tpn.EpochNotifier,
 		EpochConfig: &config.EpochConfig{
-			EnableEpochs: config.EnableEpochs{
-				StakingV2EnableEpoch:               0,
-				StakeEnableEpoch:                   0,
-				DelegationSmartContractEnableEpoch: 0,
-				DelegationManagerEnableEpoch:       0,
-			},
+			EnableEpochs: tpn.EnableEpochs,
 		},
 		ShardCoordinator: tpn.ShardCoordinator,
 	}
@@ -1661,45 +1646,44 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		ESDTTransferParser: esdtTransferParser,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
-	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler, tpn.EpochNotifier, tpn.DeployEnableEpoch)
+	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler, tpn.EpochNotifier, tpn.EnableEpochs.SCDeployEnableEpoch)
 	badBlocksHandler, _ := tpn.InterimProcContainer.Get(dataBlock.InvalidBlock)
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
-		VmContainer:                    tpn.VMContainer,
-		ArgsParser:                     tpn.ArgsParser,
-		Hasher:                         TestHasher,
-		Marshalizer:                    TestMarshalizer,
-		AccountsDB:                     tpn.AccntState,
-		BlockChainHook:                 vmFactory.BlockChainHookImpl(),
-		PubkeyConv:                     TestAddressPubkeyConverter,
-		ShardCoordinator:               tpn.ShardCoordinator,
-		ScrForwarder:                   tpn.ScrForwarder,
-		TxFeeHandler:                   tpn.FeeAccumulator,
-		EconomicsFee:                   tpn.EconomicsData,
-		TxTypeHandler:                  txTypeHandler,
-		GasHandler:                     tpn.GasHandler,
-		GasSchedule:                    gasSchedule,
-		TxLogsProcessor:                tpn.TransactionLogProcessor,
-		BadTxForwarder:                 badBlocksHandler,
-		EpochNotifier:                  tpn.EpochNotifier,
-		BuiltinEnableEpoch:             tpn.BuiltinEnableEpoch,
-		DeployEnableEpoch:              tpn.DeployEnableEpoch,
-		PenalizedTooMuchGasEnableEpoch: tpn.PenalizedTooMuchGasEnableEpoch,
-		VMOutputCacher:                 txcache.NewDisabledCache(),
-		ArwenChangeLocker:              tpn.ArwenChangeLocker,
+		VmContainer:       tpn.VMContainer,
+		ArgsParser:        tpn.ArgsParser,
+		Hasher:            TestHasher,
+		Marshalizer:       TestMarshalizer,
+		AccountsDB:        tpn.AccntState,
+		BlockChainHook:    vmFactory.BlockChainHookImpl(),
+		PubkeyConv:        TestAddressPubkeyConverter,
+		ShardCoordinator:  tpn.ShardCoordinator,
+		ScrForwarder:      tpn.ScrForwarder,
+		TxFeeHandler:      tpn.FeeAccumulator,
+		EconomicsFee:      tpn.EconomicsData,
+		TxTypeHandler:     txTypeHandler,
+		GasHandler:        tpn.GasHandler,
+		GasSchedule:       gasSchedule,
+		TxLogsProcessor:   tpn.TransactionLogProcessor,
+		BadTxForwarder:    badBlocksHandler,
+		EpochNotifier:     tpn.EpochNotifier,
+		VMOutputCacher:    txcache.NewDisabledCache(),
+		ArwenChangeLocker: tpn.ArwenChangeLocker,
+		EnableEpochs:      tpn.EnableEpochs,
 	}
 	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	tpn.ScProcessor = smartContract.NewTestScProcessor(scProcessor)
 	argsNewMetaTxProc := transaction.ArgsNewMetaTxProcessor{
-		Hasher:           TestHasher,
-		Marshalizer:      TestMarshalizer,
-		Accounts:         tpn.AccntState,
-		PubkeyConv:       TestAddressPubkeyConverter,
-		ShardCoordinator: tpn.ShardCoordinator,
-		ScProcessor:      tpn.ScProcessor,
-		TxTypeHandler:    txTypeHandler,
-		EconomicsFee:     tpn.EconomicsData,
-		ESDTEnableEpoch:  0,
-		EpochNotifier:    tpn.EpochNotifier,
+		Hasher:                                TestHasher,
+		Marshalizer:                           TestMarshalizer,
+		Accounts:                              tpn.AccntState,
+		PubkeyConv:                            TestAddressPubkeyConverter,
+		ShardCoordinator:                      tpn.ShardCoordinator,
+		ScProcessor:                           tpn.ScProcessor,
+		TxTypeHandler:                         txTypeHandler,
+		EconomicsFee:                          tpn.EconomicsData,
+		ESDTEnableEpoch:                       0,
+		EpochNotifier:                         tpn.EpochNotifier,
+		BuiltInFunctionOnMetachainEnableEpoch: tpn.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 	}
 	tpn.TxProcessor, _ = transaction.NewMetaTxProcessor(argsNewMetaTxProc)
 
@@ -1737,7 +1721,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		BalanceComputation:                TestBalanceComputationHandler,
 		EconomicsFee:                      tpn.EconomicsData,
 		TxTypeHandler:                     txTypeHandler,
-		BlockGasAndFeesReCheckEnableEpoch: tpn.BlockGasAndFeesReCheckEnableEpoch,
+		BlockGasAndFeesReCheckEnableEpoch: tpn.EnableEpochs.BlockGasAndFeesReCheckEnableEpoch,
 		TransactionsLogProcessor:          tpn.TransactionLogProcessor,
 	}
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
@@ -1928,7 +1912,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			Storage:            tpn.Storage,
 			Marshalizer:        TestMarshalizer,
 			Hasher:             TestHasher,
-			AppStatusHandler:   &testscommon.AppStatusHandlerStub{},
+			AppStatusHandler:   &statusHandlerMock.AppStatusHandlerStub{},
 		}
 		epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsEpochStart)
 		tpn.EpochStartTrigger = &metachain.TestTrigger{}
@@ -2075,7 +2059,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 				EpochStartNotifier:   tpn.EpochStartNotifier,
 				PeerMiniBlocksSyncer: peerMiniBlocksSyncer,
 				RoundHandler:         tpn.RoundHandler,
-				AppStatusHandler:     &testscommon.AppStatusHandlerStub{},
+				AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
 			}
 			epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
 			tpn.EpochStartTrigger = &shardchain.TestTrigger{}
@@ -2178,10 +2162,8 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithNetworkComponents(networkComponents),
 		node.WithStateComponents(stateComponents),
 		node.WithPeerDenialEvaluator(&mock.PeerDenialEvaluatorStub{}),
-		node.WithNetworkShardingCollector(tpn.NetworkShardingCollector),
 		node.WithTxAccumulator(txAccumulator),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
-		node.WithNodeRedundancyHandler(&mock.RedundancyHandlerStub{}),
 	)
 	log.LogIfError(err)
 
@@ -2702,7 +2684,6 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger(heartbeatPk str
 		node.WithCryptoComponents(cryptoComponents),
 		node.WithNetworkComponents(networkComponents),
 		node.WithProcessComponents(processComponents),
-		node.WithNodeRedundancyHandler(redundancyHandler),
 	)
 	log.LogIfError(err)
 
@@ -2762,7 +2743,7 @@ func GetDefaultCoreComponents() *mock.CoreComponentsStub {
 		MinTransactionVersionCalled: func() uint32 {
 			return 1
 		},
-		StatusHandlerField:     &testscommon.AppStatusHandlerStub{},
+		StatusHandlerField:     &statusHandlerMock.AppStatusHandlerStub{},
 		WatchdogField:          &testscommon.WatchdogMock{},
 		AlarmSchedulerField:    &testscommon.AlarmSchedulerStub{},
 		SyncTimerField:         &testscommon.SyncTimerStub{},
@@ -2817,6 +2798,7 @@ func GetDefaultProcessComponents() *mock.ProcessComponentsStub {
 			},
 		},
 		CurrentEpochProviderInternal: &testscommon.CurrentEpochProviderStub{},
+		HistoryRepositoryInternal:    &dblookupextMock.HistoryRepositoryStub{},
 	}
 }
 
@@ -2825,7 +2807,7 @@ func GetDefaultDataComponents() *mock.DataComponentsStub {
 	return &mock.DataComponentsStub{
 		BlockChain: &mock.BlockChainMock{},
 		Store:      &mock.ChainStorerMock{},
-		DataPool:   &testscommon.PoolsHolderMock{},
+		DataPool:   &dataRetrieverMock.PoolsHolderMock{},
 		MbProvider: &mock.MiniBlocksProviderStub{},
 	}
 }
@@ -2851,10 +2833,10 @@ func GetDefaultCryptoComponents() *mock.CryptoComponentsStub {
 // GetDefaultStateComponents -
 func GetDefaultStateComponents() *testscommon.StateComponentsMock {
 	return &testscommon.StateComponentsMock{
-		PeersAcc: &testscommon.AccountsStub{},
-		Accounts: &testscommon.AccountsStub{},
+		PeersAcc: &stateMock.AccountsStub{},
+		Accounts: &stateMock.AccountsStub{},
 		Tries:    &mock.TriesHolderStub{},
-		StorageManagers: map[string]temporary.StorageManager{
+		StorageManagers: map[string]common.StorageManager{
 			"0":                         &testscommon.StorageManagerStub{},
 			trieFactory.UserAccountTrie: &testscommon.StorageManagerStub{},
 			trieFactory.PeerAccountTrie: &testscommon.StorageManagerStub{},
@@ -2875,9 +2857,9 @@ func GetDefaultNetworkComponents() *mock.NetworkComponentsStub {
 // GetDefaultStatusComponents -
 func GetDefaultStatusComponents() *mock.StatusComponentsStub {
 	return &mock.StatusComponentsStub{
-		Indexer:              &mock.NilIndexer{},
+		Outport:              mock.NewNilOutport(),
 		SoftwareVersionCheck: &mock.SoftwareVersionCheckerMock{},
-		AppStatusHandler:     &mock.AppStatusHandlerStub{},
+		AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
 	}
 }
 
@@ -2886,7 +2868,7 @@ func GetDefaultBootstrapComponents(shardCoordinator sharding.Coordinator) *mainF
 	return &mainFactoryMocks.BootstrapComponentsStub{
 		Bootstrapper: &bootstrapMocks.EpochStartBootstrapperStub{
 			TrieHolder:      &mock.TriesHolderStub{},
-			StorageManagers: map[string]temporary.StorageManager{"0": &testscommon.StorageManagerStub{}},
+			StorageManagers: map[string]common.StorageManager{"0": &testscommon.StorageManagerStub{}},
 			BootstrapCalled: nil,
 		},
 		BootstrapParams:      &bootstrapMocks.BootstrapParamsHandlerMock{},

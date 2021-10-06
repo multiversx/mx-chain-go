@@ -41,6 +41,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
@@ -225,7 +226,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 
 	blockchainMock := &mock.BlockChainMock{}
 	chainStorer := &mock.ChainStorerMock{}
-	datapool := testscommon.NewPoolsHolderMock()
+	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
 		Accounts:           context.Accounts,
 		PubkeyConv:         pkConverter,
@@ -261,16 +262,14 @@ func (context *TestContext) initVMAndBlockchainHook() {
 
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(marshalizer)
 	argsNewVMFactory := shard.ArgVMContainerFactory{
-		Config:                         vmFactoryConfig,
-		BlockGasLimit:                  maxGasLimit,
-		GasSchedule:                    mock.NewGasScheduleNotifierMock(context.GasSchedule),
-		ArgBlockChainHook:              args,
-		EpochNotifier:                  context.EpochNotifier,
-		DeployEnableEpoch:              0,
-		AheadOfTimeGasUsageEnableEpoch: 0,
-		ArwenV3EnableEpoch:             0,
-		ArwenChangeLocker:              context.ArwenChangeLocker,
-		ESDTTransferParser:             esdtTransferParser,
+		Config:             vmFactoryConfig,
+		BlockGasLimit:      maxGasLimit,
+		GasSchedule:        mock.NewGasScheduleNotifierMock(context.GasSchedule),
+		ArgBlockChainHook:  args,
+		EpochNotifier:      context.EpochNotifier,
+		EpochConfig:        config.EnableEpochs{},
+		ArwenChangeLocker:  context.ArwenChangeLocker,
+		ESDTTransferParser: esdtTransferParser,
 	}
 	vmFactory, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	require.Nil(context.T, err)

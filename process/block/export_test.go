@@ -16,6 +16,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 )
 
 func (bp *baseProcessor) ComputeHeaderHash(hdr data.HeaderHandler) ([]byte, error) {
@@ -80,13 +82,13 @@ func NewShardProcessorEmptyWith3shards(
 	hdrValidator, _ := NewHeaderValidator(argsHeaderValidator)
 
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
-	accountsDb[state.UserAccountsState] = &testscommon.AccountsStub{}
+	accountsDb[state.UserAccountsState] = &stateMock.AccountsStub{}
 
 	coreComponents := &mock.CoreComponentsMock{
 		IntMarsh:            &mock.MarshalizerMock{},
 		Hash:                &mock.HasherMock{},
 		UInt64ByteSliceConv: &mock.Uint64ByteSliceConverterMock{},
-		StatusField:         &mock.AppStatusHandlerStub{},
+		StatusField:         &statusHandlerMock.AppStatusHandlerStub{},
 		RoundField:          &mock.RoundHandlerMock{},
 	}
 	dataComponents := &mock.DataComponentsMock{
@@ -99,7 +101,7 @@ func NewShardProcessorEmptyWith3shards(
 		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 	}
 	statusComponents := &mock.StatusComponentsMock{
-		Indexer: &mock.IndexerMock{},
+		Outport: &testscommon.OutportStub{},
 	}
 
 	arguments := ArgShardProcessor{

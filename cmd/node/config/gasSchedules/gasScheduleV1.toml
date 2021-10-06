@@ -87,6 +87,7 @@
     GetReturnData        = 100
     GetNumReturnData     = 100
     GetReturnDataSize    = 100
+    GetOriginalTxHash    = 10000
 
 [EthAPICost]
     UseGas              = 100
@@ -183,7 +184,28 @@
     MarshalCompressedECC   = 15000
     UnmarshalECC           = 20000
     UnmarshalCompressedECC = 270000
-    GenerateKeyECC         = 700000
+    GenerateKeyECC         = 7000000
+    EncodeDERSig           = 10000000
+
+[ManagedBufferAPICost]
+    MBufferNew                   = 2000
+    MBufferNewFromBytes          = 4000
+    MBufferSetBytes              = 2000
+    MBufferGetLength             = 2000
+    MBufferGetBytes              = 2000
+    MBufferGetByteSlice          = 2000
+    MBufferCopyByteSlice         = 2000
+    MBufferAppend                = 2000
+    MBufferAppendBytes           = 2000
+    MBufferToBigIntUnsigned      = 4000
+    MBufferToBigIntSigned        = 10000
+    MBufferFromBigIntUnsigned    = 4000
+    MBufferFromBigIntSigned      = 10000
+    MBufferStorageStore          = 250000
+    MBufferStorageLoad           = 100000
+    MBufferGetArgument           = 1000
+    MBufferFinish                = 1000
+    MBufferSetRandom             = 6000
 
 [WASMOpcodeCost]
     Unreachable = 1

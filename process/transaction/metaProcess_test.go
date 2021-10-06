@@ -13,6 +13,7 @@ import (
 	txproc "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
@@ -23,7 +24,7 @@ func createMockNewMetaTxArgs() txproc.ArgsNewMetaTxProcessor {
 	args := txproc.ArgsNewMetaTxProcessor{
 		Hasher:           &mock.HasherMock{},
 		Marshalizer:      &mock.MarshalizerMock{},
-		Accounts:         &testscommon.AccountsStub{},
+		Accounts:         &stateMock.AccountsStub{},
 		PubkeyConv:       createMockPubkeyConverter(),
 		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
 		ScProcessor:      &testscommon.SCProcessorMock{},
@@ -373,4 +374,69 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 	assert.Equal(t, nil, err)
 	assert.False(t, wasCalled)
 	assert.True(t, calledIfError)
+}
+
+func TestMetaTxProcessor_ProcessTransactionBuiltInCallTxShouldWork(t *testing.T) {
+	t.Parallel()
+
+	saveAccountCalled := 0
+
+	tx := transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = generateRandomByteSlice(createMockPubkeyConverter().Len())
+	tx.Value = big.NewInt(45)
+	tx.GasPrice = 1
+	tx.GasLimit = 1
+
+	acntSrc, err := state.NewUserAccount(tx.SndAddr)
+	assert.Nil(t, err)
+
+	acntDst, err := state.NewUserAccount(tx.RcvAddr)
+	assert.Nil(t, err)
+
+	acntSrc.Balance = big.NewInt(46)
+	acntDst.SetCode([]byte{65})
+
+	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
+	adb.SaveAccountCalled = func(account vmcommon.AccountHandler) error {
+		saveAccountCalled++
+		return nil
+	}
+	scProcessorMock := &testscommon.SCProcessorMock{}
+
+	wasCalled := false
+	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error) {
+		wasCalled = true
+		return 0, nil
+	}
+
+	args := createMockNewMetaTxArgs()
+	args.Accounts = adb
+	args.ScProcessor = scProcessorMock
+	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
+		},
+	}
+	txProc, _ := txproc.NewMetaTxProcessor(args)
+
+	txProc.ToggleFlagMetaBuiltIn(false)
+	_, err = txProc.ProcessTransaction(&tx)
+	assert.Nil(t, err)
+	assert.True(t, wasCalled)
+	assert.Equal(t, 0, saveAccountCalled)
+
+	txProc.ToggleFlagMetaBuiltIn(true)
+
+	builtInCalled := false
+	scProcessorMock.ExecuteBuiltInFunctionCalled = func(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error) {
+		builtInCalled = true
+		return 0, nil
+	}
+
+	_, err = txProc.ProcessTransaction(&tx)
+	assert.Nil(t, err)
+	assert.True(t, builtInCalled)
+	assert.Equal(t, 0, saveAccountCalled)
 }

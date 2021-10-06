@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -193,6 +194,33 @@ func TestAccount(
 	require.Equal(t, expectedNonce, senderRecovShardAccount.GetNonce())
 	require.Equal(t, expectedBalance, senderRecovShardAccount.GetBalance())
 	return senderRecovShardAccount.GetBalance()
+}
+
+func CreateSmartContractCall(
+	nonce uint64,
+	sndAddr []byte,
+	rcvAddr []byte,
+	gasPrice uint64,
+	gasLimit uint64,
+	endpointName string,
+	arguments ...[]byte) *transaction.Transaction {
+
+	txData := txDataBuilder.NewBuilder()
+	txData.Func(endpointName)
+
+	for _, arg := range arguments {
+		txData.Bytes(arg)
+	}
+
+	return &transaction.Transaction{
+		Nonce:    nonce,
+		SndAddr:  sndAddr,
+		RcvAddr:  rcvAddr,
+		GasLimit: gasLimit,
+		GasPrice: gasPrice,
+		Data:     txData.ToBytes(),
+		Value:    big.NewInt(0),
+	}
 }
 
 // ProcessSCRResult -

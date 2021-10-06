@@ -3,7 +3,7 @@ package mock
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
@@ -131,6 +131,11 @@ func (ccs *CryptoComponentsStub) Clone() interface{} {
 		MsgSigVerifier:  ccs.MsgSigVerifier,
 		mutMultiSig:     sync.RWMutex{},
 	}
+}
+
+// String -
+func (ccs *CryptoComponentsStub) String() string {
+	return "CryptoComponentsStub"
 }
 
 // IsInterfaceNil -

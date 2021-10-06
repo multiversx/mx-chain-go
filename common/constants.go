@@ -36,24 +36,9 @@ const CombinedPeerType = "%s (%s)"
 // the appVersion flag
 const UnVersionedAppString = "undefined"
 
-// NodeType represents the node's role in the network
-type NodeType string
-
-// NodeTypeObserver signals that a node is running as observer node
-const NodeTypeObserver NodeType = "observer"
-
-// NodeTypeValidator signals that a node is running as validator node
-const NodeTypeValidator NodeType = "validator"
-
 // DisabledShardIDAsObserver defines the uint32 identifier which tells that the node hasn't configured any preferred
 // shard to start in as observer
 const DisabledShardIDAsObserver = uint32(0xFFFFFFFF) - 7
-
-// pkPrefixSize specifies the max numbers of chars to be displayed from one public key
-const pkPrefixSize = 12
-
-// FileModeUserReadWrite represents the permission for a file which allows the user for reading and writing
-const FileModeUserReadWrite = 0600
 
 // MaxTxNonceDeltaAllowed specifies the maximum difference between an account's nonce and a received transaction's nonce
 // in order to mark the transaction as valid.
@@ -89,9 +74,6 @@ const MetricCurrentRound = "erd_current_round"
 
 // MetricNonce is the metric for monitoring the nonce of a node
 const MetricNonce = "erd_nonce"
-
-// MetricNonceForTPS is the metric for monitoring the nonce of a node used in TPS benchmarks
-const MetricNonceForTPS = "erd_nonce_for_tps"
 
 // MetricProbableHighestNonce is the metric for monitoring the max speculative nonce received by the node by listening on the network
 const MetricProbableHighestNonce = "erd_probable_highest_nonce"
@@ -209,9 +191,6 @@ const MetricCrossCheckBlockHeight = "erd_cross_check_block_height"
 
 // MetricNumProcessedTxs is the metric that stores the number of transactions processed
 const MetricNumProcessedTxs = "erd_num_transactions_processed"
-
-// MetricNumProcessedTxsTPSBenchmark is the metric that stores the number of transactions processed for tps benchmark
-const MetricNumProcessedTxsTPSBenchmark = "erd_num_transactions_processed_tps_benchmark"
 
 // MetricCurrentBlockHash is the metric that stores the current block hash
 const MetricCurrentBlockHash = "erd_current_block_hash"
@@ -339,15 +318,6 @@ const MetricStartTime = "erd_start_time"
 // MetricRoundDuration is the metric that specifies the round duration in milliseconds
 const MetricRoundDuration = "erd_round_duration"
 
-// MetricPeakTPS holds the peak transactions per second
-const MetricPeakTPS = "erd_peak_tps"
-
-// MetricLastBlockTxCount holds the number of transactions in the last block
-const MetricLastBlockTxCount = "erd_last_block_tx_count"
-
-// MetricAverageBlockTxCount holds the average count of transactions in a block
-const MetricAverageBlockTxCount = "erd_average_block_tx_count"
-
 // MetricTotalSupply holds the total supply value for the last epoch
 const MetricTotalSupply = "erd_total_supply"
 
@@ -369,17 +339,8 @@ const MetricTotalFees = "erd_total_fees"
 // MetricEpochForEconomicsData holds the epoch for which economics data are computed
 const MetricEpochForEconomicsData = "erd_epoch_for_economics_data"
 
-// LastNonceKeyMetricsStorage holds the key used for storing the last nonce for stored metrics
-const LastNonceKeyMetricsStorage = "lastNonce"
-
 // MetachainShardId will be used to identify a shard ID as metachain
 const MetachainShardId = uint32(0xFFFFFFFF)
-
-// AllShardId will be used to identify that a message is for all shards
-const AllShardId = uint32(0xFFFFFFF0)
-
-// MegabyteSize represents the size in bytes of a megabyte
-const MegabyteSize = 1024 * 1024
 
 // BaseOperationCost represents the field name for base operation costs
 const BaseOperationCost = "BaseOperationCost"
@@ -401,16 +362,16 @@ const AsyncCallStepField = "AsyncCallStep"
 const AsyncCallbackGasLockField = "AsyncCallbackGasLock"
 
 const (
-	// MetricScDeployEnableEpoch represents the epoch when the deployment of smart contracts will be enabled
+	// MetricScDeployEnableEpoch represents the epoch when the deployment of smart contracts is enabled
 	MetricScDeployEnableEpoch = "erd_smart_contract_deploy_enable_epoch"
 
-	//MetricBuiltInFunctionsEnableEpoch represents the epoch when the built in functions will be enabled
+	//MetricBuiltInFunctionsEnableEpoch represents the epoch when the built in functions is enabled
 	MetricBuiltInFunctionsEnableEpoch = "erd_built_in_functions_enable_epoch"
 
-	//MetricRelayedTransactionsEnableEpoch represents the epoch when the relayed transactions will be enabled
+	//MetricRelayedTransactionsEnableEpoch represents the epoch when the relayed transactions is enabled
 	MetricRelayedTransactionsEnableEpoch = "erd_relayed_transactions_enable_epoch"
 
-	//MetricPenalizedTooMuchGasEnableEpoch represents the epoch when the penalization for using too much gas will be enabled
+	//MetricPenalizedTooMuchGasEnableEpoch represents the epoch when the penalization for using too much gas is enabled
 	MetricPenalizedTooMuchGasEnableEpoch = "erd_penalized_too_much_gas_enable_epoch"
 
 	//MetricSwitchJailWaitingEnableEpoch represents the epoch when the system smart contract processing at end of epoch is enabled
@@ -430,13 +391,14 @@ const (
 	//MetricMetaProtectionEnableEpoch represents the epoch when the transactions to the metachain are checked to have enough gas
 	MetricMetaProtectionEnableEpoch = "erd_meta_protection_enable_epoch"
 
-	//MetricAheadOfTimeGasUsageEnableEpoch represents the epoch when the cost of smart contract prepare changes from compiler per byte to ahead of time prepare per byte
+	//MetricAheadOfTimeGasUsageEnableEpoch represents the epoch when the cost of smart contract prepare changes from compiler
+	//per byte to ahead of time prepare per byte
 	MetricAheadOfTimeGasUsageEnableEpoch = "erd_ahead_of_time_gas_usage_enable_epoch"
 
 	//MetricGasPriceModifierEnableEpoch represents the epoch when the gas price modifier in fee computation is enabled
 	MetricGasPriceModifierEnableEpoch = "erd_gas_price_modifier_enable_epoch"
 
-	//MetricRepairCallbackEnableEpoch represents the epoch when the callback repair is activated for scrs
+	//MetricRepairCallbackEnableEpoch represents the epoch when the callback repair is activated for smart contract results
 	MetricRepairCallbackEnableEpoch = "erd_repair_callback_enable_epoch"
 
 	//MetricBlockGasAndFreeRecheckEnableEpoch represents the epoch when gas and fees used in each created or processed block are re-checked
@@ -457,14 +419,53 @@ const (
 	//MetricGovernanceEnableEpoch  represents the epoch when governance is enabled
 	MetricGovernanceEnableEpoch = "erd_governance_enable_epoch"
 
-	//MetricDelegationManagerEnableEpoch represents the epoch when the delegation manager is enabled epoch should not be 0
+	//MetricDelegationManagerEnableEpoch represents the epoch when the delegation manager is enabled
 	MetricDelegationManagerEnableEpoch = "erd_delegation_manager_enable_epoch"
 
-	//MetricDelegationSmartContractEnableEpoch represents the epoch when delegation smart contract is enabled epoch should not be 0
+	//MetricDelegationSmartContractEnableEpoch represents the epoch when delegation smart contract is enabled
 	MetricDelegationSmartContractEnableEpoch = "erd_delegation_smart_contract_enable_epoch"
+
+	// MetricCorrectLastUnjailedEnableEpoch represents the epoch when the correction on the last unjailed node is applied
+	MetricCorrectLastUnjailedEnableEpoch = "erd_correct_last_unjailed_enable_epoch"
+
+	// MetricBalanceWaitingListsEnableEpoch represents the epoch when the balance waiting lists on shards fix is applied
+	MetricBalanceWaitingListsEnableEpoch = "erd_balance_waiting_lists_enable_epoch"
+
+	// MetricReturnDataToLastTransferEnableEpoch represents the epoch when the return data to last transfer is applied
+	MetricReturnDataToLastTransferEnableEpoch = "erd_return_data_to_last_transfer_enable_epoch"
+
+	// MetricSenderInOutTransferEnableEpoch represents the epoch when the sender in out transfer is applied
+	MetricSenderInOutTransferEnableEpoch = "erd_sender_in_out_transfer_enable_epoch"
+
+	// MetricRelayedTransactionsV2EnableEpoch represents the epoch when the relayed transactions v2 is enabled
+	MetricRelayedTransactionsV2EnableEpoch = "erd_relayed_transactions_v2_enable_epoch"
+
+	// MetricUnbondTokensV2EnableEpoch represents the epoch when the unbond tokens v2 is applied
+	MetricUnbondTokensV2EnableEpoch = "erd_unbond_tokens_v2_enable_epoch"
+
+	// MetricSaveJailedAlwaysEnableEpoch represents the epoch the save jailed fix is applied
+	MetricSaveJailedAlwaysEnableEpoch = "erd_save_jailed_always_enable_epoch"
+
+	// MetricValidatorToDelegationEnableEpoch represents the epoch when the validator to delegation feature (staking v3.5) is enabled
+	MetricValidatorToDelegationEnableEpoch = "erd_validator_to_delegation_enable_epoch"
+
+	// MetricReDelegateBelowMinCheckEnableEpoch represents the epoch when the re-delegation below minimum value fix is applied
+	MetricReDelegateBelowMinCheckEnableEpoch = "erd_redelegate_below_min_check_enable_epoch"
 
 	// MetricIncrementSCRNonceInMultiTransferEnableEpoch represents the epoch when the fix for multi transfer SCR is enabled
 	MetricIncrementSCRNonceInMultiTransferEnableEpoch = "erd_increment_scr_nonce_in_multi_transfer_enable_epoch"
+
+	// MetricESDTMultiTransferEnableEpoch represents the epoch when the ESDT multi transfer feature is enabled
+	MetricESDTMultiTransferEnableEpoch = "erd_esdt_multi_transfer_enable_epoch"
+
+	// MetricGlobalMintBurnDisableEpoch represents the epoch when the global mint and burn feature is disabled
+	MetricGlobalMintBurnDisableEpoch = "erd_global_mint_burn_disable_epoch"
+
+	// MetricESDTTransferRoleEnableEpoch represents the epoch when the ESDT transfer role feature is enabled
+	MetricESDTTransferRoleEnableEpoch = "erd_esdt_transfer_role_enable_epoch"
+
+	// MetricBuiltInFunctionOnMetaEnableEpoch represents the epoch when the builtin functions on metachain are enabled
+	MetricBuiltInFunctionOnMetaEnableEpoch = "erd_builtin_function_on_meta_enable_epoch"
 )
 
 const (
@@ -476,7 +477,7 @@ const (
 	ConsensusOrder
 	// NetworkShardingOrder defines the order in which the network sharding subsystem is notified of a start of epoch event
 	NetworkShardingOrder
-	// IndexerOrder defines the order in which Indexer is notified of a start of epoch event
+	// IndexerOrder defines the order in which indexer is notified of a start of epoch event
 	IndexerOrder
 	// NetStatisticsOrder defines the order in which netStatistic component is notified of a start of epoch event
 	NetStatisticsOrder
@@ -532,99 +533,6 @@ const TriggerRegistryInitialKeyPrefix = "initial_value_epoch_"
 // NodesCoordinatorRegistryKeyPrefix is the key prefix to save epoch start registry to storage
 const NodesCoordinatorRegistryKeyPrefix = "indexHashed_"
 
-// BuiltInFunctionClaimDeveloperRewards is the key for the claim developer rewards built-in function
-const BuiltInFunctionClaimDeveloperRewards = "ClaimDeveloperRewards"
-
-// BuiltInFunctionChangeOwnerAddress is the key for the change owner built in function built-in function
-const BuiltInFunctionChangeOwnerAddress = "ChangeOwnerAddress"
-
-// BuiltInFunctionSetUserName is the key for the set user name built-in function
-const BuiltInFunctionSetUserName = "SetUserName"
-
-// BuiltInFunctionSaveKeyValue is the key for the save key value built-in function
-const BuiltInFunctionSaveKeyValue = "SaveKeyValue"
-
-// BuiltInFunctionESDTTransfer is the key for the elrond standard digital token transfer built-in function
-const BuiltInFunctionESDTTransfer = "ESDTTransfer"
-
-// BuiltInFunctionESDTBurn is the key for the elrond standard digital token burn built-in function
-const BuiltInFunctionESDTBurn = "ESDTBurn"
-
-// BuiltInFunctionESDTFreeze is the key for the elrond standard digital token freeze built-in function
-const BuiltInFunctionESDTFreeze = "ESDTFreeze"
-
-// BuiltInFunctionESDTUnFreeze is the key for the elrond standard digital token unfreeze built-in function
-const BuiltInFunctionESDTUnFreeze = "ESDTUnFreeze"
-
-// BuiltInFunctionESDTWipe is the key for the elrond standard digital token wipe built-in function
-const BuiltInFunctionESDTWipe = "ESDTWipe"
-
-// BuiltInFunctionESDTPause is the key for the elrond standard digital token pause built-in function
-const BuiltInFunctionESDTPause = "ESDTPause"
-
-// BuiltInFunctionESDTUnPause is the key for the elrond standard digital token unpause built-in function
-const BuiltInFunctionESDTUnPause = "ESDTUnPause"
-
-// BuiltInFunctionSetESDTRole is the key for the elrond standard digital token set built-in function
-const BuiltInFunctionSetESDTRole = "ESDTSetRole"
-
-// BuiltInFunctionUnSetESDTRole is the key for the elrond standard digital token unset built-in function
-const BuiltInFunctionUnSetESDTRole = "ESDTUnSetRole"
-
-// BuiltInFunctionESDTLocalMint is the key for the elrond standard digital token local mint built-in function
-const BuiltInFunctionESDTLocalMint = "ESDTLocalMint"
-
-// BuiltInFunctionESDTLocalBurn is the key for the elrond standard digital token local burn built-in function
-const BuiltInFunctionESDTLocalBurn = "ESDTLocalBurn"
-
-// BuiltInFunctionESDTNFTTransfer is the key for the elrond standard digital token NFT transfer built-in function
-const BuiltInFunctionESDTNFTTransfer = "ESDTNFTTransfer"
-
-// BuiltInFunctionESDTNFTCreate is the key for the elrond standard digital token NFT create built-in function
-const BuiltInFunctionESDTNFTCreate = "ESDTNFTCreate"
-
-// BuiltInFunctionESDTNFTAddQuantity is the key for the elrond standard digital token NFT add quantity built-in function
-const BuiltInFunctionESDTNFTAddQuantity = "ESDTNFTAddQuantity"
-
-// BuiltInFunctionESDTNFTCreateRoleTransfer is the key for the elrond standard digital token create role transfer function
-const BuiltInFunctionESDTNFTCreateRoleTransfer = "ESDTNFTCreateRoleTransfer"
-
-// BuiltInFunctionESDTNFTBurn is the key for the elrond standard digital token NFT burn built-in function
-const BuiltInFunctionESDTNFTBurn = "ESDTNFTBurn"
-
-// ESDTRoleLocalMint is the constant string for the local role of mint for ESDT tokens
-const ESDTRoleLocalMint = "ESDTRoleLocalMint"
-
-// ESDTRoleLocalBurn is the constant string for the local role of burn for ESDT tokens
-const ESDTRoleLocalBurn = "ESDTRoleLocalBurn"
-
-// ESDTRoleNFTCreate is the constant string for the local role of create for ESDT NFT tokens
-const ESDTRoleNFTCreate = "ESDTRoleNFTCreate"
-
-// ESDTRoleNFTAddQuantity is the constant string for the local role of adding quantity for existing ESDT NFT tokens
-const ESDTRoleNFTAddQuantity = "ESDTRoleNFTAddQuantity"
-
-// ESDTRoleNFTBurn is the constant string for the local role of burn for ESDT NFT tokens
-const ESDTRoleNFTBurn = "ESDTRoleNFTBurn"
-
-// FungibleESDT defines the string for the token type of fungible ESDT
-const FungibleESDT = "FungibleESDT"
-
-// NonFungibleESDT defines the string for the token type of non fungible ESDT
-const NonFungibleESDT = "NonFungibleESDT"
-
-// SemiFungibleESDT defines the string for the token type of semi fungible ESDT
-const SemiFungibleESDT = "SemiFungibleESDT"
-
-// RelayedTransaction is the key for the elrond meta/gassless/relayed transaction standard
-const RelayedTransaction = "relayedTx"
-
-// RelayedTransactionV2 is the key for the optimized elrond meta/gassless/relayed transaction standard
-const RelayedTransactionV2 = "relayedTxV2"
-
-// SCDeployInitFunctionName is the key for the function which is called at smart contract deploy time
-const SCDeployInitFunctionName = "_init"
-
 // ShuffledOut signals that a restart is pending because the node was shuffled out
 const ShuffledOut = "shuffledOut"
 
@@ -639,9 +547,6 @@ const MaxRetriesToCreateDB = 10
 
 // SleepTimeBetweenCreateDBRetries represents the number of seconds to sleep between DB creates
 const SleepTimeBetweenCreateDBRetries = 5 * time.Second
-
-// ElrondProtectedKeyPrefix is the key prefix which is protected from writing in the trie - only for special builtin functions
-const ElrondProtectedKeyPrefix = "ELROND"
 
 // DefaultStatsPath is the default path where the node stats are logged
 const DefaultStatsPath = "stats"
@@ -666,15 +571,6 @@ const TemporaryPath = "temp"
 
 // SecondsToWaitForP2PBootstrap is the wait time for the P2P to bootstrap
 const SecondsToWaitForP2PBootstrap = 20
-
-// DelegationSystemSCKey is the key under which there is data in case of system delegation smart contracts
-const DelegationSystemSCKey = "delegation"
-
-// ESDTKeyIdentifier is the key prefix for esdt tokens
-const ESDTKeyIdentifier = "esdt"
-
-// ESDTRoleIdentifier is the key prefix for esdt role identifier
-const ESDTRoleIdentifier = "role"
 
 // MaxSoftwareVersionLengthInBytes represents the maximum length for the software version to be saved in block header
 const MaxSoftwareVersionLengthInBytes = 10
@@ -704,9 +600,6 @@ const DefaultUnstakedEpoch = math.MaxUint32
 // does not follow the protocol: example not useing the same marshaler as the other peers
 const InvalidMessageBlacklistDuration = time.Second * 3600
 
-// MaxNumShards represents the maximum number of shards possible in the system
-const MaxNumShards = 256
-
 // PublicKeyBlacklistDuration represents the time to keep a public key in the black list if it will degrade its
 // rating to a minimum threshold due to improper messages
 const PublicKeyBlacklistDuration = time.Second * 7200
@@ -734,29 +627,6 @@ const AdditionalScrForEachScCallOrSpecialTx = 3
 // MaxRoundsWithoutCommittedStartInEpochBlock defines the maximum rounds to wait for start in epoch block to be committed,
 // before a special action to be applied
 const MaxRoundsWithoutCommittedStartInEpochBlock = 50
-
-// MinMetaTxExtraGasCost is the constant defined for minimum gas value to be sent in meta transaction
-const MinMetaTxExtraGasCost = uint64(1_000_000)
-
-// MaxLeafSize represents maximum amount of data which can be saved under one leaf
-const MaxLeafSize = uint64(1 << 26) //64MB
-
-// MaxBufferSizeToSendTrieNodes represents max buffer size to send in bytes used when resolving trie nodes
-// Every trie node that has a greater size than this constant is considered a large trie node and should be split in
-// smaller chunks
-const MaxBufferSizeToSendTrieNodes = 1 << 18 //256KB
-
-// MaxUserNameLength represents the maximum number of bytes a UserName can have
-const MaxUserNameLength = 32
-
-// MinLenArgumentsESDTTransfer defines the min length of arguments for the ESDT transfer
-const MinLenArgumentsESDTTransfer = 2
-
-// MinLenArgumentsESDTNFTTransfer defines the minimum length for esdt nft transfer
-const MinLenArgumentsESDTNFTTransfer = 4
-
-// MaxLenForESDTIssueMint defines the maximum length in bytes for the issued/minted balance
-const MaxLenForESDTIssueMint = 100
 
 // DefaultResolversIdentifier represents the identifier that is used in conjunction with regular resolvers
 //(that makes the node run properly)

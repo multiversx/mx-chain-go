@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat/process"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/storage"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -75,7 +76,7 @@ func createMockArgHeartbeatMonitor() process.ArgHeartbeatMonitor {
 		ValidatorPubkeyConverter:           mock.NewPubkeyConverterMock(96),
 		HeartbeatRefreshIntervalInSec:      1,
 		HideInactiveValidatorIntervalInSec: 600,
-		AppStatusHandler:                   &mock.AppStatusHandlerStub{},
+		AppStatusHandler:                   &statusHandlerMock.AppStatusHandlerStub{},
 	}
 }
 
@@ -532,7 +533,7 @@ func TestMonitor_RemoveInactiveValidatorsIfIntervalExceeded(t *testing.T) {
 		ValidatorPubkeyConverter:           mock.NewPubkeyConverterMock(32),
 		HeartbeatRefreshIntervalInSec:      1,
 		HideInactiveValidatorIntervalInSec: 600,
-		AppStatusHandler:                   &mock.AppStatusHandlerStub{},
+		AppStatusHandler:                   &statusHandlerMock.AppStatusHandlerStub{},
 	}
 	mon, _ := process.NewMonitor(arg)
 	mon.SendHeartbeatMessage(&data.Heartbeat{Pubkey: []byte(pkValidator)})

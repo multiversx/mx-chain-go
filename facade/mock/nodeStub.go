@@ -44,6 +44,7 @@ type NodeStub struct {
 	GetAllESDTTokensCalled                         func(address string) (map[string]*esdt.ESDigitalToken, error)
 	GetNFTTokenIDsRegisteredByAddressCalled        func(address string) ([]string, error)
 	GetESDTsWithRoleCalled                         func(address string, role string) ([]string, error)
+	GetESDTsRolesCalled                            func(address string) (map[string][]string, error)
 	GetKeyValuePairsCalled                         func(address string) (map[string]string, error)
 	GetAllIssuedESDTsCalled                        func(tokenType string) ([]string, error)
 }
@@ -188,6 +189,15 @@ func (ns *NodeStub) GetESDTData(address, tokenID string, nonce uint64) (*esdt.ES
 	return &esdt.ESDigitalToken{Value: big.NewInt(0)}, nil
 }
 
+// GetESDTsRoles -
+func (ns *NodeStub) GetESDTsRoles(address string) (map[string][]string, error) {
+	if ns.GetESDTsRolesCalled != nil {
+		return ns.GetESDTsRolesCalled(address)
+	}
+
+	return map[string][]string{}, nil
+}
+
 // GetESDTsWithRole -
 func (ns *NodeStub) GetESDTsWithRole(address string, role string) ([]string, error) {
 	if ns.GetESDTsWithRoleCalled != nil {
@@ -204,6 +214,11 @@ func (ns *NodeStub) GetAllESDTTokens(address string) (map[string]*esdt.ESDigital
 	}
 
 	return make(map[string]*esdt.ESDigitalToken), nil
+}
+
+// GetTokenSupply -
+func (ns *NodeStub) GetTokenSupply(_ string) (string, error) {
+	return "", nil
 }
 
 // GetAllIssuedESDTs -

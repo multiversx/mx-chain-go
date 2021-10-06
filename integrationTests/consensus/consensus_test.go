@@ -8,13 +8,15 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/stretchr/testify/assert"
 )
+
+const consensusTimeBetweenRounds = time.Second
 
 func encodeAddress(address []byte) string {
 	return hex.EncodeToString(address)
@@ -178,7 +180,7 @@ func checkBlockProposedEveryRound(numCommBlock uint64, nonceForRoundMap map[uint
 
 		mutex.Unlock()
 
-		time.Sleep(integrationTests.StepDelay)
+		time.Sleep(consensusTimeBetweenRounds)
 	}
 }
 

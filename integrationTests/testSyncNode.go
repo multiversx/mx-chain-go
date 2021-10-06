@@ -272,10 +272,11 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		MiniblocksProvider:   tpn.MiniblocksProvider,
 		Uint64Converter:      TestUint64Converter,
 		AppStatusHandler:     TestAppStatusHandler,
-		Indexer:              &mock.NilIndexer{},
+		OutportHandler:       mock.NewNilOutport(),
 		AccountsDBSyncer:     &mock.AccountsDBSyncerStub{},
 		CurrentEpochProvider: &testscommon.CurrentEpochProviderStub{},
 		IsInImportMode:       false,
+		HistoryRepo:          &dblookupext.HistoryRepositoryStub{},
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -314,10 +315,11 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		MiniblocksProvider:   tpn.MiniblocksProvider,
 		Uint64Converter:      TestUint64Converter,
 		AppStatusHandler:     TestAppStatusHandler,
-		Indexer:              &mock.NilIndexer{},
+		OutportHandler:       mock.NewNilOutport(),
 		AccountsDBSyncer:     &mock.AccountsDBSyncerStub{},
 		CurrentEpochProvider: &testscommon.CurrentEpochProviderStub{},
 		IsInImportMode:       false,
+		HistoryRepo:          &dblookupext.HistoryRepositoryStub{},
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{

@@ -8,11 +8,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/process"
+	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -33,7 +34,7 @@ func createMockArgHeartbeatSender() process.ArgHeartbeatSender {
 		Topic:                "",
 		ShardCoordinator:     &mock.ShardCoordinatorMock{},
 		PeerTypeProvider:     &mock.PeerTypeProviderStub{},
-		StatusHandler:        &mock.AppStatusHandlerStub{},
+		StatusHandler:        &statusHandlerMock.AppStatusHandlerStub{},
 		VersionNumber:        "v0.1",
 		NodeDisplayName:      "undefined",
 		HardforkTrigger:      &mock.HardforkTriggerStub{},

@@ -48,6 +48,7 @@ type Facade struct {
 	GetESDTDataCalled                       func(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error)
 	GetAllESDTTokensCalled                  func(address string) (map[string]*esdt.ESDigitalToken, error)
 	GetESDTsWithRoleCalled                  func(address string, role string) ([]string, error)
+	GetESDTsRolesCalled                     func(address string) (map[string][]string, error)
 	GetNFTTokenIDsRegisteredByAddressCalled func(address string) ([]string, error)
 	GetBlockByHashCalled                    func(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonceCalled                   func(nonce uint64, withTxs bool) (*api.Block, error)
@@ -58,6 +59,16 @@ type Facade struct {
 	GetProofCalled                          func(string, string) ([][]byte, error)
 	GetProofCurrentRootHashCalled           func(string) ([][]byte, []byte, error)
 	VerifyProofCalled                       func(string, string, [][]byte) (bool, error)
+	GetTokenSupplyCalled                    func(token string) (string, error)
+}
+
+// GetTokenSupply -
+func (f *Facade) GetTokenSupply(token string) (string, error) {
+	if f.GetTokenSupplyCalled != nil {
+		return f.GetTokenSupplyCalled(token)
+	}
+
+	return "", nil
 }
 
 // GetProof -
@@ -155,6 +166,15 @@ func (f *Facade) GetESDTData(address string, key string, nonce uint64) (*esdt.ES
 	}
 
 	return &esdt.ESDigitalToken{Value: big.NewInt(0)}, nil
+}
+
+// GetESDTsRoles -
+func (f *Facade) GetESDTsRoles(address string) (map[string][]string, error) {
+	if f.GetESDTsRolesCalled != nil {
+		return f.GetESDTsRolesCalled(address)
+	}
+
+	return map[string][]string{}, nil
 }
 
 // GetAllESDTTokens -
@@ -328,6 +348,16 @@ func (f *Facade) GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error)
 // GetBlockByHash -
 func (f *Facade) GetBlockByHash(hash string, withTxs bool) (*api.Block, error) {
 	return f.GetBlockByHashCalled(hash, withTxs)
+}
+
+// Trigger -
+func (f *Facade) Trigger(_ uint32, _ bool) error {
+	return nil
+}
+
+// IsSelfTrigger -
+func (f *Facade) IsSelfTrigger() bool {
+	return false
 }
 
 // Close -

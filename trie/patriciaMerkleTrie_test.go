@@ -12,9 +12,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/mock"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/trie"
@@ -25,16 +24,16 @@ import (
 
 var emptyTrieHash = make([]byte, 32)
 
-func emptyTrie() temporary.Trie {
+func emptyTrie() common.Trie {
 	tr, _ := trie.NewTrie(getDefaultTrieParameters())
 
 	return tr
 }
 
-func getDefaultTrieParameters() (temporary.StorageManager, marshal.Marshalizer, hashing.Hasher, uint) {
-	db := mock.NewMemDbMock()
-	marshalizer := &mock.ProtobufMarshalizerMock{}
-	hasher := &mock.KeccakMock{}
+func getDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, hashing.Hasher, uint) {
+	db := testscommon.NewMemDbMock()
+	marshalizer := &testscommon.ProtobufMarshalizerMock{}
+	hasher := &testscommon.KeccakMock{}
 
 	tempDir, _ := ioutil.TempDir("", strconv.Itoa(rand.Intn(100000)))
 
@@ -64,7 +63,7 @@ func getDefaultTrieParameters() (temporary.StorageManager, marshal.Marshalizer, 
 	return trieStorageManager, marshalizer, hasher, maxTrieLevelInMemory
 }
 
-func initTrieMultipleValues(nr int) (temporary.Trie, [][]byte) {
+func initTrieMultipleValues(nr int) (common.Trie, [][]byte) {
 	tr := emptyTrie()
 
 	var values [][]byte
@@ -78,7 +77,7 @@ func initTrieMultipleValues(nr int) (temporary.Trie, [][]byte) {
 	return tr, values
 }
 
-func initTrie() temporary.Trie {
+func initTrie() common.Trie {
 	tr := emptyTrie()
 	_ = tr.Update([]byte("doe"), []byte("reindeer"))
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
@@ -506,20 +505,20 @@ func TestPatriciaMerkleTrie_GetSerializedNodesFromSnapshotShouldNotCommitToMainD
 func TestPatriciaMerkleTrie_GetSerializedNodesShouldCheckFirstInSnapshotsDB(t *testing.T) {
 	t.Parallel()
 
-	marshalizer := &mock.ProtobufMarshalizerMock{}
-	hasher := &mock.KeccakMock{}
+	marshalizer := &testscommon.ProtobufMarshalizerMock{}
+	hasher := &testscommon.KeccakMock{}
 
 	getDbCalled := false
 	getSnapshotCalled := false
 
 	trieStorageManager := &testscommon.StorageManagerStub{
-		GetDbThatContainsHashCalled: func(bytes []byte) temporary.DBWriteCacher {
+		GetDbThatContainsHashCalled: func(bytes []byte) common.DBWriteCacher {
 			getDbCalled = true
 			return nil
 		},
-		DatabaseCalled: func() temporary.DBWriteCacher {
+		DatabaseCalled: func() common.DBWriteCacher {
 			getSnapshotCalled = true
-			return mock.NewMemDbMock()
+			return testscommon.NewMemDbMock()
 		},
 	}
 	maxTrieLevelInMemory := uint(5)
@@ -729,7 +728,7 @@ func TestPatriciaMerkleTrie_GetAndVerifyProof(t *testing.T) {
 		proof, err := tr.GetProof(values[randNum])
 		if err != nil {
 			dumpTrieContents(tr, values)
-			fmt.Printf("error getting proof for %v, err = %s", values[randNum], err.Error())
+			fmt.Printf("error getting proof for %v, err = %s\n", values[randNum], err.Error())
 		}
 		require.Nil(t, err)
 		require.NotEqual(t, 0, len(proof))
@@ -737,14 +736,14 @@ func TestPatriciaMerkleTrie_GetAndVerifyProof(t *testing.T) {
 		ok, err := tr.VerifyProof(values[randNum], proof)
 		if err != nil {
 			dumpTrieContents(tr, values)
-			fmt.Printf("error verifying proof for %v, proof = %v, err = %s", values[randNum], proof, err.Error())
+			fmt.Printf("error verifying proof for %v, proof = %v, err = %s\n", values[randNum], proof, err.Error())
 		}
 		require.Nil(t, err)
 		require.True(t, ok)
 	}
 }
 
-func dumpTrieContents(tr temporary.Trie, values [][]byte) {
+func dumpTrieContents(tr common.Trie, values [][]byte) {
 	fmt.Println(tr.String())
 	for _, val := range values {
 		fmt.Println(val)
@@ -757,7 +756,7 @@ func TestPatriciaMerkleTrie_GetNumNodesNilRootShouldReturnEmpty(t *testing.T) {
 	tr := emptyTrie()
 
 	numNodes := tr.GetNumNodes()
-	assert.Equal(t, temporary.NumNodesDTO{}, numNodes)
+	assert.Equal(t, common.NumNodesDTO{}, numNodes)
 }
 
 func TestPatriciaMerkleTrie_GetNumNodes(t *testing.T) {

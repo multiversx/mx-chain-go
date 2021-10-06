@@ -16,19 +16,19 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/ElrondNetwork/elrond-go-crypto/signing"
+	ed25519SingleSig "github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519/singlesig"
+	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
+	mclsinglesig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
-	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/crypto/peerSignatureHandler"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing"
-	ed25519SingleSig "github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519/singlesig"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
-	mclsinglesig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/singlesig"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
+	"github.com/ElrondNetwork/elrond-go/factory/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/node"
@@ -46,7 +46,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
+	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
+	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -125,7 +128,7 @@ func displayAndStartNodes(nodes []*testNode) {
 }
 
 func createTestBlockChain() data.ChainHandler {
-	blockChain, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
+	blockChain, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
 	_ = blockChain.SetGenesisHeader(&dataBlock.Header{})
 
 	return blockChain
@@ -341,7 +344,7 @@ func createConsensusOnlyNode(
 		Storage:          createTestStore(),
 		Marshalizer:      testMarshalizer,
 		Hasher:           testHasher,
-		AppStatusHandler: &testscommon.AppStatusHandlerStub{},
+		AppStatusHandler: &statusHandlerMock.AppStatusHandlerStub{},
 	}
 	epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsNewMetaEpochStart)
 
@@ -375,7 +378,7 @@ func createConsensusOnlyNode(
 		inPubKeys[shardId] = append(inPubKeys[shardId], string(sPubKey))
 	}
 
-	testMultiSig := mock.NewMultiSigner(consensusSize)
+	testMultiSig := cryptoMocks.NewMultiSigner(consensusSize)
 	_ = testMultiSig.Reset(inPubKeys[shardId], uint16(selfId))
 
 	peerSigCache, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
@@ -435,7 +438,7 @@ func createConsensusOnlyNode(
 
 	dataComponents := integrationTests.GetDefaultDataComponents()
 	dataComponents.BlockChain = blockChain
-	dataComponents.DataPool = testscommon.CreatePoolsHolder(1, 0)
+	dataComponents.DataPool = dataRetrieverMock.CreatePoolsHolder(1, 0)
 	dataComponents.Store = createTestStore()
 
 	stateComponents := integrationTests.GetDefaultStateComponents()
@@ -459,12 +462,10 @@ func createConsensusOnlyNode(
 		node.WithConsensusType(consensusType),
 		node.WithGenesisTime(time.Unix(startTime, 0)),
 		node.WithPeerDenialEvaluator(&mock.PeerDenialEvaluatorStub{}),
-		node.WithNetworkShardingCollector(networkShardingCollector),
 		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
 		node.WithValidatorSignatureSize(signatureSize),
 		node.WithPublicKeySize(publicKeySize),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
-		node.WithNodeRedundancyHandler(&mock.RedundancyHandlerStub{}),
 	)
 
 	if err != nil {

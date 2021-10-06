@@ -7,10 +7,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/temporary"
 )
 
 // TrieExporter interface defines methods needed to export the state from a trie
@@ -34,7 +34,7 @@ type StateSyncer interface {
 // TrieSyncer synchronizes the trie, asking on the network for the missing nodes
 type TrieSyncer interface {
 	StartSyncing(rootHash []byte, ctx context.Context) error
-	Trie() temporary.Trie
+	Trie() common.Trie
 	IsInterfaceNil() bool
 }
 

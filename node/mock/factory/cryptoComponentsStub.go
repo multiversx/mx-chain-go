@@ -3,7 +3,7 @@ package factory
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
@@ -131,6 +131,11 @@ func (ccm *CryptoComponentsMock) Clone() interface{} {
 		MsgSigVerifier:  ccm.MsgSigVerifier,
 		mutMultiSig:     sync.RWMutex{},
 	}
+}
+
+// String -
+func (ccm *CryptoComponentsMock) String() string {
+	return "CryptoComponentsMock"
 }
 
 // IsInterfaceNil -

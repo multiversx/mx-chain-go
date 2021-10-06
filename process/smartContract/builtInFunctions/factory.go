@@ -11,16 +11,20 @@ import (
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 )
 
-// ArgsCreateBuiltInFunctionContainer -
+// ArgsCreateBuiltInFunctionContainer defines the argument structure to create new built in function container
 type ArgsCreateBuiltInFunctionContainer struct {
-	GasSchedule                  core.GasScheduleNotifier
-	MapDNSAddresses              map[string]struct{}
-	EnableUserNameChange         bool
-	Marshalizer                  marshal.Marshalizer
-	Accounts                     state.AccountsAdapter
-	ShardCoordinator             sharding.Coordinator
-	EpochNotifier                vmcommon.EpochNotifier
-	ESDTMultiTransferEnableEpoch uint32
+	GasSchedule                          core.GasScheduleNotifier
+	MapDNSAddresses                      map[string]struct{}
+	EnableUserNameChange                 bool
+	Marshalizer                          marshal.Marshalizer
+	Accounts                             state.AccountsAdapter
+	ShardCoordinator                     sharding.Coordinator
+	EpochNotifier                        vmcommon.EpochNotifier
+	ESDTMultiTransferEnableEpoch         uint32
+	ESDTTransferRoleEnableEpoch          uint32
+	GlobalMintBurnDisableEpoch           uint32
+	ESDTTransferMetaEnableEpoch          uint32
+	ESDTNFTCreateOnMultiShardEnableEpoch uint32
 }
 
 // CreateBuiltInFunctionContainer creates a container that will hold all the available built in functions
@@ -58,6 +62,9 @@ func CreateBuiltInFunctionContainer(args ArgsCreateBuiltInFunctionContainer) (vm
 		ShardCoordinator:                    args.ShardCoordinator,
 		EpochNotifier:                       args.EpochNotifier,
 		ESDTNFTImprovementV1ActivationEpoch: args.ESDTMultiTransferEnableEpoch,
+		ESDTTransferToMetaEnableEpoch:       args.ESDTTransferMetaEnableEpoch,
+		ESDTTransferRoleEnableEpoch:         args.ESDTTransferRoleEnableEpoch,
+		GlobalMintBurnDisableEpoch:          args.GlobalMintBurnDisableEpoch,
 	}
 
 	bContainerFactory, err := vmcommonBuiltInFunctions.NewBuiltInFunctionsFactory(modifiedArgs)

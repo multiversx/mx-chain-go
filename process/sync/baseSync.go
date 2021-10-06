@@ -19,6 +19,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -47,7 +49,8 @@ type notarizedInfo struct {
 }
 
 type baseBootstrap struct {
-	headers dataRetriever.HeadersPool
+	historyRepo dblookupext.HistoryRepository
+	headers     dataRetriever.HeadersPool
 
 	chainHandler   data.ChainHandler
 	blockProcessor process.BlockProcessor
@@ -105,7 +108,7 @@ type baseBootstrap struct {
 	storageBootstrapper  process.BootstrapperFromStorage
 	currentEpochProvider process.CurrentNetworkEpochProviderHandler
 
-	indexer          process.Indexer
+	outportHandler   outport.OutportHandler
 	accountsDBSyncer process.AccountsDBSyncer
 
 	chRcvMiniBlocks    chan bool
@@ -449,14 +452,17 @@ func checkBootstrapNilParameters(arguments ArgBaseBootstrapper) error {
 	if check.IfNil(arguments.AppStatusHandler) {
 		return process.ErrNilAppStatusHandler
 	}
-	if check.IfNil(arguments.Indexer) {
-		return process.ErrNilIndexer
+	if check.IfNil(arguments.OutportHandler) {
+		return process.ErrNilOutportHandler
 	}
 	if check.IfNil(arguments.AccountsDBSyncer) {
 		return process.ErrNilAccountsDBSyncer
 	}
 	if check.IfNil(arguments.CurrentEpochProvider) {
 		return process.ErrNilCurrentNetworkEpochProvider
+	}
+	if check.IfNil(arguments.HistoryRepo) {
+		return process.ErrNilHistoryRepository
 	}
 
 	return nil
@@ -725,7 +731,16 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			)
 		}
 
-		boot.indexer.RevertIndexedBlock(currHeader, currBody)
+		err = boot.historyRepo.RevertBlock(currHeader, currBody)
+		if err != nil {
+			log.Debug("boot.historyRepo.RevertBlock",
+				"error", err.Error(),
+			)
+
+			return err
+		}
+
+		boot.outportHandler.RevertIndexedBlock(currHeader, currBody)
 
 		shouldAddHeaderToBlackList := revertUsingForkNonce && boot.blockBootstrapper.isForkTriggeredByMeta()
 		if shouldAddHeaderToBlackList {
