@@ -1,7 +1,6 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
@@ -43,7 +42,6 @@ type ProcessComponentsStub struct {
 	ImportStartHandlerInternal     update.ImportStartHandler
 	RequestedItemsHandlerInternal  dataRetriever.RequestedItemsHandler
 	NodeRedundancyHandlerInternal  consensus.NodeRedundancyHandler
-	ArwenChangeLockerInternal      common.Locker
 	CurrentEpochProviderInternal   process.CurrentNetworkEpochProviderHandler
 }
 
