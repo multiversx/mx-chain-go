@@ -168,6 +168,9 @@ func (ssd *SigningSlashingDetector) ValidateProof(proof slash.SlashingProofHandl
 	if !castOk {
 		return process.ErrCannotCastProofToMultipleSignedHeaders
 	}
+	if multipleSigningProof.GetType() != slash.MultipleSigning {
+		return process.ErrInvalidSlashType
+	}
 
 	signers := multipleSigningProof.GetPubKeys()
 	for _, signer := range signers {

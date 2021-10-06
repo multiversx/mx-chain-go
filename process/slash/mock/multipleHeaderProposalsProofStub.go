@@ -5,33 +5,25 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/slash"
 )
 
-// MultipleProposalProofStub -
-type MultipleProposalProofStub struct {
-	GetTypeCalled    func() slash.SlashingType
-	GetLevelCalled   func() slash.SlashingLevel
-	GetHeadersCalled func() []*interceptedBlocks.InterceptedHeader
-}
-
-// GetLevel -
-func (mps *MultipleProposalProofStub) GetLevel() slash.SlashingLevel {
-	if mps.GetLevelCalled != nil {
-		return mps.GetLevelCalled()
-	}
-	return slash.Level0
-}
-
-// GetHeaders -
-func (mps *MultipleProposalProofStub) GetHeaders() []*interceptedBlocks.InterceptedHeader {
-	if mps.GetHeadersCalled != nil {
-		return mps.GetHeadersCalled()
-	}
-	return nil
+// MultipleHeaderProposalProofStub -
+type MultipleHeaderProposalProofStub struct {
+	GetTypeCalled func() slash.SlashingType
 }
 
 // GetType -
-func (mps *MultipleProposalProofStub) GetType() slash.SlashingType {
+func (mps *MultipleHeaderProposalProofStub) GetType() slash.SlashingType {
 	if mps.GetTypeCalled != nil {
 		return mps.GetTypeCalled()
 	}
 	return slash.None
+}
+
+// GetLevel -
+func (mps *MultipleHeaderProposalProofStub) GetLevel() slash.SlashingLevel {
+	return slash.Level0
+}
+
+// GetHeaders -
+func (mps *MultipleHeaderProposalProofStub) GetHeaders() []*interceptedBlocks.InterceptedHeader {
+	return nil
 }

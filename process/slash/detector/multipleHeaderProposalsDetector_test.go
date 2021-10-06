@@ -188,7 +188,7 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_InvalidProofType_ExpectEr
 	err := sd.ValidateProof(proof1)
 	require.Equal(t, process.ErrCannotCastProofToMultipleProposedHeaders, err)
 
-	proof2 := &mockSlash.MultipleProposalProofStub{
+	proof2 := &mockSlash.MultipleHeaderProposalProofStub{
 		GetTypeCalled: func() slash.SlashingType {
 			return slash.MultipleSigning
 		},

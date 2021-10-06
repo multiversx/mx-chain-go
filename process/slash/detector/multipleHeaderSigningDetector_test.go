@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/slash"
 	"github.com/ElrondNetwork/elrond-go/process/slash/detector"
+	mockSlash "github.com/ElrondNetwork/elrond-go/process/slash/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
@@ -119,6 +120,28 @@ func TestMultipleHeaderSigningDetector_VerifyData_InvalidMarshaller_ExpectError(
 
 	require.Nil(t, res)
 	require.Equal(t, errMarshaller, err)
+}
+
+func TestMultipleHeaderSigningDetector_VerifyData_InvalidNodesCoordinator_ExpectError(t *testing.T) {
+	t.Parallel()
+
+	errNodesCoordinator := errors.New("error nodes coordinator")
+	ssd, _ := detector.NewSigningSlashingDetector(
+		&mockEpochStart.NodesCoordinatorStub{
+			ComputeConsensusGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
+				return nil, errNodesCoordinator
+			},
+		},
+		&mock.RoundHandlerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		detector.CacheSize)
+
+	hData := createInterceptedHeaderData(&block.Header{})
+	res, err := ssd.VerifyData(hData)
+
+	require.Nil(t, res)
+	require.Equal(t, errNodesCoordinator, err)
 }
 
 func TestMultipleHeaderSigningDetector_VerifyData_SameHeaderData_DifferentSigners_ExpectNoSlashingEvent(t *testing.T) {
@@ -268,6 +291,183 @@ func TestMultipleHeaderSigningDetector_VerifyData_ValidateProof(t *testing.T) {
 	tmp, err = ssd.VerifyData(hData2)
 	require.Nil(t, tmp)
 	require.Error(t, process.ErrHeadersShouldHaveDifferentHashes, hData2)
+}
+
+func TestMultipleHeaderSigningDetector_ValidateProof_InvalidProofType_ExpectError(t *testing.T) {
+	t.Parallel()
+
+	ssd, _ := detector.NewSigningSlashingDetector(
+		&mockEpochStart.NodesCoordinatorStub{},
+		&mock.RoundHandlerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		detector.CacheSize)
+
+	err := ssd.ValidateProof(&mockSlash.MultipleHeaderProposalProofStub{})
+	require.Equal(t, process.ErrCannotCastProofToMultipleSignedHeaders, err)
+
+	err = ssd.ValidateProof(&mockSlash.MultipleHeaderSigningProofStub{
+		GetTypeCalled: func() slash.SlashingType {
+			return slash.MultipleProposal
+		},
+	})
+	require.Equal(t, process.ErrInvalidSlashType, err)
+}
+
+func TestMultipleHeaderSigningDetector_ValidateProof_NotEnoughHeaders_ExpectError(t *testing.T) {
+	t.Parallel()
+
+	ssd, _ := detector.NewSigningSlashingDetector(
+		&mockEpochStart.NodesCoordinatorStub{},
+		&mock.RoundHandlerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		detector.CacheSize)
+	proof, _ := slash.NewMultipleSigningProof(map[string]slash.SlashingData{
+		"pubKey": {
+			SlashingLevel: slash.Level1,
+			Data:          []process.InterceptedData{},
+		},
+	})
+
+	err := ssd.ValidateProof(proof)
+	require.Equal(t, process.ErrNotEnoughHeadersProvided, err)
+}
+
+func TestMultipleHeaderSigningDetector_ValidateProof_SignedHeadersHaveDifferentRound_ExpectError(t *testing.T) {
+	t.Parallel()
+
+	ssd, _ := detector.NewSigningSlashingDetector(
+		&mockEpochStart.NodesCoordinatorStub{
+			ComputeConsensusGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
+				return []sharding.Validator{mock.NewValidatorMock([]byte("pubKey"))}, nil
+			},
+		},
+		&mock.RoundHandlerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		detector.CacheSize)
+
+	h1 := createInterceptedHeaderData(&block.Header{Round: 1, PubKeysBitmap: []byte{byte(0x1)}})
+	h2 := createInterceptedHeaderData(&block.Header{Round: 2, PubKeysBitmap: []byte{byte(0x1)}})
+	proof, _ := slash.NewMultipleSigningProof(map[string]slash.SlashingData{
+		"pubKey": {
+			SlashingLevel: slash.Level1,
+			Data:          []process.InterceptedData{h1, h2},
+		},
+	})
+
+	err := ssd.ValidateProof(proof)
+	require.Equal(t, process.ErrHeadersDoNotHaveSameRound, err)
+}
+
+func TestMultipleHeaderSigningDetector_ValidateProof_InvalidMarshaller_ExpectError(t *testing.T) {
+	t.Parallel()
+
+	errMarshaller := errors.New("error marshaller")
+	ssd, _ := detector.NewSigningSlashingDetector(
+		&mockEpochStart.NodesCoordinatorStub{
+			ComputeConsensusGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
+				return []sharding.Validator{mock.NewValidatorMock([]byte("pubKey"))}, nil
+			},
+		},
+		&mock.RoundHandlerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerStub{
+			MarshalCalled: func(_ interface{}) ([]byte, error) {
+				return nil, errMarshaller
+			},
+		},
+		detector.CacheSize)
+
+	h1 := createInterceptedHeaderData(&block.Header{Round: 1, PubKeysBitmap: []byte{byte(0x1)}})
+	h2 := createInterceptedHeaderData(&block.Header{Round: 2, PubKeysBitmap: []byte{byte(0x1)}})
+	proof, _ := slash.NewMultipleSigningProof(map[string]slash.SlashingData{
+		"pubKey": {
+			SlashingLevel: slash.Level1,
+			Data:          []process.InterceptedData{h1, h2},
+		},
+	})
+
+	err := ssd.ValidateProof(proof)
+	require.Equal(t, errMarshaller, err)
+}
+
+func TestMultipleHeaderSigningDetector_ValidateProof_SignedHeadersHaveSameHash_ExpectError(t *testing.T) {
+	t.Parallel()
+
+	ssd, _ := detector.NewSigningSlashingDetector(
+		&mockEpochStart.NodesCoordinatorStub{
+			ComputeConsensusGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
+				return []sharding.Validator{mock.NewValidatorMock([]byte("pubKey"))}, nil
+			},
+		},
+		&mock.RoundHandlerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		detector.CacheSize)
+
+	h1 := createInterceptedHeaderData(&block.Header{Round: 1, PubKeysBitmap: []byte{byte(0x1)}})
+	h2 := createInterceptedHeaderData(&block.Header{Round: 1, PubKeysBitmap: []byte{byte(0x1)}})
+	proof, _ := slash.NewMultipleSigningProof(map[string]slash.SlashingData{
+		"pubKey": {
+			SlashingLevel: slash.Level1,
+			Data:          []process.InterceptedData{h1, h2},
+		},
+	})
+
+	err := ssd.ValidateProof(proof)
+	require.Equal(t, process.ErrProposedHeadersDoNotHaveDifferentHashes, err)
+}
+
+func TestMultipleHeaderSigningDetector_ValidateProof_HeadersNotSignedByTheSameValidator_ExpectError(t *testing.T) {
+	t.Parallel()
+
+	ssd, _ := detector.NewSigningSlashingDetector(
+		&mockEpochStart.NodesCoordinatorStub{
+			ComputeConsensusGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
+				return []sharding.Validator{mock.NewValidatorMock([]byte("pubKey2"))}, nil
+			},
+		},
+		&mock.RoundHandlerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		detector.CacheSize)
+
+	h1 := createInterceptedHeaderData(&block.Header{Round: 1, PubKeysBitmap: []byte{byte(0x1)}})
+	h2 := createInterceptedHeaderData(&block.Header{Round: 1, PubKeysBitmap: []byte{byte(0x2)}})
+	proof, _ := slash.NewMultipleSigningProof(map[string]slash.SlashingData{
+		"pubKey": {
+			SlashingLevel: slash.Level1,
+			Data:          []process.InterceptedData{h1, h2},
+		},
+	})
+
+	err := ssd.ValidateProof(proof)
+	require.Equal(t, process.ErrHeaderNotSignedByValidator, err)
+}
+
+func TestMultipleHeaderSigningDetector_ValidateProof_InvalidSlashLevel_ExpectError(t *testing.T) {
+	t.Parallel()
+
+	ssd, _ := detector.NewSigningSlashingDetector(
+		&mockEpochStart.NodesCoordinatorStub{},
+		&mock.RoundHandlerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		detector.CacheSize)
+
+	h1 := createInterceptedHeaderData(&block.Header{Round: 1})
+	h2 := createInterceptedHeaderData(&block.Header{Round: 1})
+	proof, _ := slash.NewMultipleSigningProof(map[string]slash.SlashingData{
+		"pubKey": {
+			SlashingLevel: slash.Level0,
+			Data:          []process.InterceptedData{h1, h2},
+		},
+	})
+
+	err := ssd.ValidateProof(proof)
+	require.Equal(t, process.ErrInvalidSlashLevel, err)
 }
 
 func TestMultipleHeaderSigningDetector_IsIndexSetInBitmap(t *testing.T) {
