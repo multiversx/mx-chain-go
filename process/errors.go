@@ -875,9 +875,6 @@ var ErrCannotCastProofToMultipleSignedHeaders = errors.New("cannot cast proof to
 // ErrSlashLevelDoesNotMatchSlashType signals the slash type is not consistent with the slash severity level
 var ErrSlashLevelDoesNotMatchSlashType = errors.New("proof slash type is not consistent with proof severity level")
 
-// ErrProposedHeadersDoNotHaveDifferentHashes signals that multiple header proof does not contain different header hashes
-var ErrProposedHeadersDoNotHaveDifferentHashes = errors.New("multiple header proof does not contain different header hashes")
-
 // ErrInvalidSlashType signals that an invalid slash type has been provided for the given proof
 var ErrInvalidSlashType = errors.New("invalid slash type has been provided for the given proof")
 
@@ -893,8 +890,8 @@ var ErrHeadersDoNotHaveSameProposer = errors.New("the headers from a multiple he
 // ErrHeadersDoNotHaveSameRound signals that the headers from a multiple header proof have different rounds
 var ErrHeadersDoNotHaveSameRound = errors.New("the headers from a multiple header proof have different rounds")
 
-// ErrHeadersShouldHaveDifferentHashes signals that header hashes in a multiple signing proof should be different
-var ErrHeadersShouldHaveDifferentHashes = errors.New("headers in a multiple signing proof should have different hashes")
+// ErrHeadersShouldHaveDifferentHashes signals that header hashes in a multiple header proof should be different
+var ErrHeadersShouldHaveDifferentHashes = errors.New("headers in a multiple header proof should have different hashes")
 
 // ErrHeaderNotSignedByValidator signals that the header is not signed by the given validator
 var ErrHeaderNotSignedByValidator = errors.New("header is not signed by the given validator")

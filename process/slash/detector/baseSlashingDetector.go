@@ -6,6 +6,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/slash"
 )
 
+const CacheSize = 10
+const MinSlashableNoOfHeaders = 2
 const MaxDeltaToCurrentRound = 3
 
 type baseSlashingDetector struct {

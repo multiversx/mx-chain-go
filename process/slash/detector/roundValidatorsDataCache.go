@@ -7,23 +7,23 @@ import (
 )
 
 type dataList []process.InterceptedData
-type proposerDataMap map[string]dataList
+type validatorDataMap map[string]dataList
 
-type roundProposerDataCache struct {
-	cache       map[uint64]proposerDataMap
+type roundValidatorsDataCache struct {
+	cache       map[uint64]validatorDataMap
 	oldestRound uint64
 	cacheSize   uint64
 }
 
-func newRoundProposerDataCache(maxRounds uint64) *roundProposerDataCache {
-	return &roundProposerDataCache{
-		cache:       make(map[uint64]proposerDataMap),
+func newRoundProposerDataCache(maxRounds uint64) *roundValidatorsDataCache {
+	return &roundValidatorsDataCache{
+		cache:       make(map[uint64]validatorDataMap),
 		oldestRound: math.MaxUint64,
 		cacheSize:   maxRounds,
 	}
 }
 
-func (rpd *roundProposerDataCache) add(round uint64, pubKey []byte, data process.InterceptedData) {
+func (rpd *roundValidatorsDataCache) add(round uint64, pubKey []byte, data process.InterceptedData) {
 	pubKeyStr := string(pubKey)
 
 	if rpd.isCacheFull(round) {
@@ -44,18 +44,18 @@ func (rpd *roundProposerDataCache) add(round uint64, pubKey []byte, data process
 		}
 	} else {
 		list := dataList{data}
-		proposerMap := proposerDataMap{pubKeyStr: list}
+		proposerMap := validatorDataMap{pubKeyStr: list}
 
 		rpd.cache[round] = proposerMap
 	}
 }
 
-func (rpd *roundProposerDataCache) isCacheFull(currRound uint64) bool {
+func (rpd *roundValidatorsDataCache) isCacheFull(currRound uint64) bool {
 	_, currRoundInCache := rpd.cache[currRound]
 	return len(rpd.cache) >= int(rpd.cacheSize) && !currRoundInCache
 }
 
-func (rpd *roundProposerDataCache) data(round uint64, pubKey []byte) dataList {
+func (rpd *roundValidatorsDataCache) data(round uint64, pubKey []byte) dataList {
 	pubKeyStr := string(pubKey)
 
 	if _, exists := rpd.cache[round]; exists {
@@ -67,7 +67,7 @@ func (rpd *roundProposerDataCache) data(round uint64, pubKey []byte) dataList {
 	return nil
 }
 
-func (rpd *roundProposerDataCache) validators(round uint64) [][]byte {
+func (rpd *roundValidatorsDataCache) validators(round uint64) [][]byte {
 	ret := make([][]byte, 0)
 
 	if _, exists := rpd.cache[round]; exists {

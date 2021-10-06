@@ -13,13 +13,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-// SigningSlashingDetector - checks for slashable events for headers
 type headersCache interface {
 	add(round uint64, hash []byte, header data.HeaderHandler)
 	contains(round uint64, hash []byte) bool
 	headers(round uint64) headerHashList
 }
 
+// SigningSlashingDetector - checks for slashable events in case one(or more)
+// validator signs multiple headers in the same round
 type SigningSlashingDetector struct {
 	slashingCache    detectorCache
 	headersCache     headersCache
@@ -97,8 +98,6 @@ func (ssd *SigningSlashingDetector) VerifyData(interceptedData process.Intercept
 		return slash.NewMultipleSigningProof(slashingData)
 	}
 
-	// check another signature with the same round and proposer exists, but a different header exists
-	// if yes a slashingDetectorResult is returned with a message and the two signatures
 	return nil, process.ErrNoSlashingEventDetected
 }
 
@@ -225,7 +224,7 @@ func (ssd *SigningSlashingDetector) checkHash(header data.HeaderHandler, hashes 
 	}
 
 	if _, exists := hashes[string(hash)]; exists {
-		return "", process.ErrProposedHeadersDoNotHaveDifferentHashes
+		return "", process.ErrHeadersShouldHaveDifferentHashes
 	}
 
 	return string(hash), nil

@@ -288,7 +288,7 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 					createInterceptedHeaderData(&block.Header{Round: 5, RandSeed: []byte("h1")}),
 				}
 			},
-			expectedErr: process.ErrProposedHeadersDoNotHaveDifferentHashes,
+			expectedErr: process.ErrHeadersShouldHaveDifferentHashes,
 		},
 		{
 			args: func() (slash.SlashingLevel, []process.InterceptedData) {
@@ -298,7 +298,7 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 					createInterceptedHeaderData(&block.Header{Round: 5, RandSeed: []byte("h2")}),
 				}
 			},
-			expectedErr: process.ErrProposedHeadersDoNotHaveDifferentHashes,
+			expectedErr: process.ErrHeadersShouldHaveDifferentHashes,
 		},
 		{
 			args: func() (slash.SlashingLevel, []process.InterceptedData) {

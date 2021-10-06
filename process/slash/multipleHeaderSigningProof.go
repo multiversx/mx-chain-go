@@ -9,6 +9,8 @@ type multipleSigningProof struct {
 	pubKeys          [][]byte
 }
 
+// NewMultipleSigningProof - creates a new multiple signing proof, which contains a list of
+// validators which signed multiple headers
 func NewMultipleSigningProof(
 	slashableData map[string]SlashingData,
 ) (MultipleSigningProofHandler, error) {
@@ -23,12 +25,12 @@ func NewMultipleSigningProof(
 	}, nil
 }
 
-// GetType - gets the slashing proofs type
+// GetType -returns MultipleSigning
 func (msp *multipleSigningProof) GetType() SlashingType {
 	return MultipleSigning
 }
 
-// GetLevel - gets the slashing proofs level
+// GetLevel - returns the slashing proof level for a given validator, if exists, Level0 otherwise
 func (msp *multipleSigningProof) GetLevel(pubKey []byte) SlashingLevel {
 	if _, exists := msp.slashableHeaders[string(pubKey)]; exists {
 		return msp.slashableHeaders[string(pubKey)].slashingLevel
@@ -36,6 +38,7 @@ func (msp *multipleSigningProof) GetLevel(pubKey []byte) SlashingLevel {
 	return Level0
 }
 
+// GetHeaders - returns the slashing proofs headers for a given validator, if exists, nil otherwise
 func (msp *multipleSigningProof) GetHeaders(pubKey []byte) []*interceptedBlocks.InterceptedHeader {
 	if _, exists := msp.slashableHeaders[string(pubKey)]; exists {
 		return msp.slashableHeaders[string(pubKey)].headers
@@ -43,6 +46,7 @@ func (msp *multipleSigningProof) GetHeaders(pubKey []byte) []*interceptedBlocks.
 	return nil
 }
 
+// GetPubKeys - returns all validator's public keys which signed multiple headers
 func (msp *multipleSigningProof) GetPubKeys() [][]byte {
 	return msp.pubKeys
 }

@@ -43,7 +43,8 @@ func (rdc *roundHeadersCache) add(round uint64, hash []byte, header data.HeaderH
 			headerHash{
 				hash:   string(hash),
 				header: header,
-			})
+			},
+		)
 	} else {
 		rdc.cache[round] = headerHashList{
 			headerHash{

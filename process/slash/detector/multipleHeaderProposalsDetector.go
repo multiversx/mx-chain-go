@@ -17,9 +17,6 @@ type detectorCache interface {
 	validators(round uint64) [][]byte
 }
 
-const CacheSize = 10
-const MinSlashableNoOfHeaders = 2
-
 // multipleHeaderProposalsDetector - checks slashable events in case a validator proposes multiple(possibly) malicious headers.
 type multipleHeaderProposalsDetector struct {
 	cache            detectorCache
@@ -173,7 +170,7 @@ func (mhp *multipleHeaderProposalsDetector) checkProposedHeaders(headers []*inte
 	for _, header := range headers {
 		hash := string(header.Hash())
 		if _, exists := hashes[hash]; exists {
-			return process.ErrProposedHeadersDoNotHaveDifferentHashes
+			return process.ErrHeadersShouldHaveDifferentHashes
 		}
 
 		err = mhp.checkHeaderHasSameProposerAndRound(header, round, proposer)

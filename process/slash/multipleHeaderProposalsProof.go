@@ -23,17 +23,17 @@ func NewMultipleProposalProof(slashableData SlashingData) (MultipleProposalProof
 	}, nil
 }
 
-// GetLevel - gets the slashing proofs level
+// GetLevel - returns the slashing proof level
 func (mpp *multipleProposalProof) GetLevel() SlashingLevel {
 	return mpp.slashableHeaders.slashingLevel
 }
 
-// GetType - gets the slashing proofs type
+// GetType - returns MultipleProposal
 func (mpp *multipleProposalProof) GetType() SlashingType {
 	return MultipleProposal
 }
 
-// GetHeaders - gets the slashing proofs headers
+// GetHeaders - returns the slashing proofs headers
 func (mpp *multipleProposalProof) GetHeaders() []*interceptedBlocks.InterceptedHeader {
 	return mpp.slashableHeaders.headers
 }

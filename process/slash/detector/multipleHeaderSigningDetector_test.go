@@ -80,7 +80,7 @@ func TestMultipleHeaderSigningDetector_VerifyData_CannotCastData_ExpectError(t *
 	require.Equal(t, process.ErrCannotCastInterceptedDataToHeader, err)
 }
 
-func TestMultipleHeaderSigningDetector_VerifyData_IrrelevantRounds_ExpectError(t *testing.T) {
+func TestMultipleHeaderSigningDetector_VerifyData_IrrelevantRound_ExpectError(t *testing.T) {
 	t.Parallel()
 
 	round := uint64(100)
@@ -417,7 +417,7 @@ func TestMultipleHeaderSigningDetector_ValidateProof_SignedHeadersHaveSameHash_E
 	})
 
 	err := ssd.ValidateProof(proof)
-	require.Equal(t, process.ErrProposedHeadersDoNotHaveDifferentHashes, err)
+	require.Equal(t, process.ErrHeadersShouldHaveDifferentHashes, err)
 }
 
 func TestMultipleHeaderSigningDetector_ValidateProof_HeadersNotSignedByTheSameValidator_ExpectError(t *testing.T) {

@@ -23,8 +23,11 @@ type MultipleProposalProofHandler interface {
 
 type MultipleSigningProofHandler interface {
 	SlashingProofHandler
+	// GetPubKeys - returns all validator's public keys which have signed multiple headers
 	GetPubKeys() [][]byte
+	// GetLevel - returns the slashing level for a given validator
 	GetLevel(pubKey []byte) SlashingLevel
+	// GetHeaders - returns the slashable signed headers proposed by a given validator
 	GetHeaders(pubKey []byte) []*interceptedBlocks.InterceptedHeader
 }
 
