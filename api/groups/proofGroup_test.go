@@ -254,7 +254,6 @@ func getProofRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/root-hash/:roothash/address/:address", Open: true},
 					{Name: "/root-hash/:roothash/address/:address/key/:key", Open: true},
 					{Name: "/address/:address", Open: true},
-					{Name: "/verify", Open: true},
 				},
 			},
 		},
