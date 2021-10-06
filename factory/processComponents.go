@@ -149,7 +149,6 @@ type processComponentsFactory struct {
 	historyRepo            dblookupext.HistoryRepository
 	epochNotifier          process.EpochNotifier
 	importHandler          update.ImportHandler
-	arwenChangeLocker      common.Locker
 
 	data                DataComponentsHolder
 	coreData            CoreComponentsHolder
@@ -193,7 +192,6 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		workingDir:             args.WorkingDir,
 		historyRepo:            args.HistoryRepo,
 		epochNotifier:          args.CoreData.EpochNotifier(),
-		arwenChangeLocker:      args.CoreData.ArwenChangeLocker(),
 	}, nil
 }
 
@@ -466,7 +464,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		blockTracker,
 		pendingMiniBlocksHandler,
 		txSimulatorProcessorArgs,
-		pcf.arwenChangeLocker,
+		pcf.coreData.ArwenChangeLocker(),
 	)
 	if err != nil {
 		return nil, err
