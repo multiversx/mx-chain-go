@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
@@ -42,7 +43,7 @@ type ProcessComponentsMock struct {
 	ImportStartHandlerInternal     update.ImportStartHandler
 	RequestedItemsHandlerInternal  dataRetriever.RequestedItemsHandler
 	NodeRedundancyHandlerInternal  consensus.NodeRedundancyHandler
-	ArwenChangeLockerInternal      process.Locker
+	ArwenChangeLockerInternal      common.Locker
 	CurrentEpochProviderInternal   process.CurrentNetworkEpochProviderHandler
 }
 
@@ -207,7 +208,7 @@ func (pcm *ProcessComponentsMock) NodeRedundancyHandler() consensus.NodeRedundan
 }
 
 // ArwenChangeLocker -
-func (pcm *ProcessComponentsMock) ArwenChangeLocker() process.Locker {
+func (pcm *ProcessComponentsMock) ArwenChangeLocker() common.Locker {
 	return pcm.ArwenChangeLockerInternal
 }
 

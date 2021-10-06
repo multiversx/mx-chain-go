@@ -23,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -399,7 +400,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 	accnts state.AccountsAdapter,
 	opGas uint64,
 	argEnableEpoch ArgEnableEpoch,
-	arwenChangeLocker process.Locker,
+	arwenChangeLocker common.Locker,
 ) (process.TransactionProcessor, error) {
 
 	builtInFuncs := vmcommonBuiltInFunctions.NewBuiltInFunctionContainer()
@@ -530,7 +531,7 @@ func CreateVMAndBlockchainHookAndDataPool(
 	gasSchedule core.GasScheduleNotifier,
 	vmConfig *config.VirtualMachineConfig,
 	shardCoordinator sharding.Coordinator,
-	arwenChangeLocker process.Locker,
+	arwenChangeLocker common.Locker,
 ) (process.VirtualMachinesContainer, *hooks.BlockChainHookImpl, dataRetriever.PoolsHolder) {
 	if check.IfNil(gasSchedule) || gasSchedule.LatestGasSchedule() == nil {
 		testGasSchedule := arwenConfig.MakeGasMapForTests()
@@ -749,7 +750,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	feeAccumulator process.TransactionFeeHandler,
 	shardCoordinator sharding.Coordinator,
 	argEnableEpoch ArgEnableEpoch,
-	arwenChangeLocker process.Locker,
+	arwenChangeLocker common.Locker,
 	poolsHolder dataRetriever.PoolsHolder,
 ) (
 	process.TransactionProcessor,
@@ -1160,7 +1161,7 @@ func CreatePreparedTxProcessorAndAccountsWithMockedVM(
 	senderAddressBytes []byte,
 	senderBalance *big.Int,
 	argEnableEpoch ArgEnableEpoch,
-	arwenChangeLocker process.Locker,
+	arwenChangeLocker common.Locker,
 ) (process.TransactionProcessor, state.AccountsAdapter, error) {
 
 	accnts := CreateInMemoryShardAccountsDB()

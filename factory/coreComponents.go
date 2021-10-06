@@ -3,6 +3,7 @@ package factory
 import (
 	"bytes"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -19,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	marshalizerFactory "github.com/ElrondNetwork/elrond-go-core/marshal/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
+	"github.com/ElrondNetwork/elrond-go/common"
 	commonFactory "github.com/ElrondNetwork/elrond-go/common/factory"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -95,6 +97,7 @@ type coreComponents struct {
 	chanStopNodeProcess           chan endProcess.ArgEndProcess
 	nodeTypeProvider              core.NodeTypeProviderHandler
 	encodedAddressLen             uint32
+	arwenChangeLocker             common.Locker
 }
 
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
@@ -340,6 +343,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		chanStopNodeProcess:           ccf.chanStopNodeProcess,
 		encodedAddressLen:             computeEncodedAddressLen(addressPubkeyConverter),
 		nodeTypeProvider:              nodeTypeProvider,
+		arwenChangeLocker:             &sync.RWMutex{},
 	}, nil
 }
 

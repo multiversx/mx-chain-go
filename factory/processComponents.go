@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	syncGo "sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -98,7 +97,6 @@ type processComponents struct {
 	importHandler               update.ImportHandler
 	nodeRedundancyHandler       consensus.NodeRedundancyHandler
 	currentEpochProvider        dataRetriever.CurrentNetworkEpochProviderHandler
-	arwenChangeLocker           process.Locker
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -151,6 +149,7 @@ type processComponentsFactory struct {
 	historyRepo            dblookupext.HistoryRepository
 	epochNotifier          process.EpochNotifier
 	importHandler          update.ImportHandler
+	arwenChangeLocker      common.Locker
 
 	data                DataComponentsHolder
 	coreData            CoreComponentsHolder
@@ -194,13 +193,12 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		workingDir:             args.WorkingDir,
 		historyRepo:            args.HistoryRepo,
 		epochNotifier:          args.CoreData.EpochNotifier(),
+		arwenChangeLocker:      args.CoreData.ArwenChangeLocker(),
 	}, nil
 }
 
 // Create will create and return a struct containing process components
 func (pcf *processComponentsFactory) Create() (*processComponents, error) {
-	arwenChangeLocker := &syncGo.RWMutex{}
-
 	currentEpochProvider, err := epochProviders.CreateCurrentEpochProvider(
 		pcf.config,
 		pcf.coreData.GenesisNodesSetup().GetRoundDuration(),
@@ -468,7 +466,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		blockTracker,
 		pendingMiniBlocksHandler,
 		txSimulatorProcessorArgs,
-		arwenChangeLocker,
+		pcf.arwenChangeLocker,
 	)
 	if err != nil {
 		return nil, err
@@ -559,7 +557,6 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		importHandler:               pcf.importHandler,
 		nodeRedundancyHandler:       nodeRedundancyHandler,
 		currentEpochProvider:        currentEpochProvider,
-		arwenChangeLocker:           arwenChangeLocker,
 	}, nil
 }
 

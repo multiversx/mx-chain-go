@@ -83,7 +83,7 @@ type scProcessor struct {
 	flagSCRSizeInvariantCheck                   atomic.Flag
 	flagBackwardCompOnSaveKeyValue              atomic.Flag
 	flagCreatedCallBackCrossShardOnly           atomic.Flag
-	arwenChangeLocker                           process.Locker
+	arwenChangeLocker                           common.Locker
 
 	badTxForwarder process.IntermediateTransactionHandler
 	scrForwarder   process.IntermediateTransactionHandler
@@ -122,7 +122,7 @@ type ArgsNewSmartContractProcessor struct {
 	EnableEpochs        config.EnableEpochs
 	EpochNotifier       process.EpochNotifier
 	VMOutputCacher      storage.Cacher
-	ArwenChangeLocker   process.Locker
+	ArwenChangeLocker   common.Locker
 	IsGenesisProcessing bool
 }
 

@@ -38,7 +38,7 @@ type vmContainerFactory struct {
 	epochConfig        config.EnableEpochs
 	container          process.VirtualMachinesContainer
 	arwenVersions      []config.ArwenVersionByEpoch
-	arwenChangeLocker  process.Locker
+	arwenChangeLocker  common.Locker
 	esdtTransferParser vmcommon.ESDTTransferParser
 }
 
@@ -50,7 +50,7 @@ type ArgVMContainerFactory struct {
 	ArgBlockChainHook  hooks.ArgBlockChainHook
 	EpochNotifier      process.EpochNotifier
 	EpochConfig        config.EnableEpochs
-	ArwenChangeLocker  process.Locker
+	ArwenChangeLocker  common.Locker
 	ESDTTransferParser vmcommon.ESDTTransferParser
 }
 
