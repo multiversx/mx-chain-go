@@ -553,14 +553,15 @@ func (ed *economicsData) ComputeGasLimit(tx data.TransactionWithFeeHandler) uint
 func (ed *economicsData) ComputeGasUsedAndFeeBasedOnRefundValue(tx data.TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int) {
 	if refundValue.Cmp(big.NewInt(0)) == 0 {
 		if ed.builtInFunctionsCostHandler.IsBuiltInFuncCall(tx) {
-			cost := ed.builtInFunctionsCostHandler.ComputeBuiltInCost(tx)
-			gasLimit := ed.ComputeGasLimit(tx)
+			builtInCost := ed.builtInFunctionsCostHandler.ComputeBuiltInCost(tx)
+			computedGasLimit := ed.ComputeGasLimit(tx)
 
-			gasLimitWithBuiltInCost := cost + gasLimit
+			gasLimitWithBuiltInCost := builtInCost + computedGasLimit
 			txFee := ed.ComputeTxFeeBasedOnGasUsed(tx, gasLimitWithBuiltInCost)
 
+			gasLimitWithoutMoveBalance := tx.GetGasLimit() - computedGasLimit
 			// transaction will consume all the gas if sender provided too much gas
-			if isTooMuchGasProvided(tx.GetGasLimit(), tx.GetGasLimit()-gasLimitWithBuiltInCost) {
+			if isTooMuchGasProvided(gasLimitWithoutMoveBalance, gasLimitWithoutMoveBalance-builtInCost) {
 				return tx.GetGasLimit(), ed.ComputeTxFee(tx)
 			}
 
