@@ -222,11 +222,13 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 
 	epochNotifier := forking.NewGenericEpochNotifier()
 
+	arwenChangeLocker := &sync.RWMutex{}
 	gasScheduleConfigurationFolderName := ccf.configPathsHolder.GasScheduleDirectoryName
 	argsGasScheduleNotifier := forking.ArgsNewGasScheduleNotifier{
 		GasScheduleConfig: ccf.epochConfig.GasSchedule,
 		ConfigDir:         gasScheduleConfigurationFolderName,
 		EpochNotifier:     epochNotifier,
+		ArwenChangeLocker: arwenChangeLocker,
 	}
 	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
 	if err != nil {
@@ -343,7 +345,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		chanStopNodeProcess:           ccf.chanStopNodeProcess,
 		encodedAddressLen:             computeEncodedAddressLen(addressPubkeyConverter),
 		nodeTypeProvider:              nodeTypeProvider,
-		arwenChangeLocker:             &sync.RWMutex{},
+		arwenChangeLocker:             arwenChangeLocker,
 	}, nil
 }
 

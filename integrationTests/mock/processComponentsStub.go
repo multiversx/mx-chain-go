@@ -207,11 +207,6 @@ func (pcs *ProcessComponentsStub) NodeRedundancyHandler() consensus.NodeRedundan
 	return pcs.NodeRedundancyHandlerInternal
 }
 
-// ArwenChangeLocker -
-func (pcs *ProcessComponentsStub) ArwenChangeLocker() common.Locker {
-	return pcs.ArwenChangeLockerInternal
-}
-
 // CurrentEpochProvider -
 func (pcs *ProcessComponentsStub) CurrentEpochProvider() process.CurrentNetworkEpochProviderHandler {
 	return pcs.CurrentEpochProviderInternal

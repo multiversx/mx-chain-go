@@ -207,11 +207,6 @@ func (pcm *ProcessComponentsMock) NodeRedundancyHandler() consensus.NodeRedundan
 	return pcm.NodeRedundancyHandlerInternal
 }
 
-// ArwenChangeLocker -
-func (pcm *ProcessComponentsMock) ArwenChangeLocker() common.Locker {
-	return pcm.ArwenChangeLockerInternal
-}
-
 // CurrentEpochProvider -
 func (pcm *ProcessComponentsMock) CurrentEpochProvider() process.CurrentNetworkEpochProviderHandler {
 	return pcm.CurrentEpochProviderInternal
