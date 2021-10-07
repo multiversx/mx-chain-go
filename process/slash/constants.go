@@ -3,15 +3,15 @@ package slash
 type SlashingType string
 
 const (
-	None             SlashingType = "none"
+	None             SlashingType = "no slashing"
 	MultipleProposal SlashingType = "multiple header proposal"
 	MultipleSigning  SlashingType = "multiple header signing"
 )
 
-type SlashingLevel uint16
+type ThreatLevel uint8
 
 const (
-	Level0 SlashingLevel = 0
-	Level1 SlashingLevel = 1
-	Level2 SlashingLevel = 2
+	Low    ThreatLevel = 0
+	Medium ThreatLevel = 1
+	High   ThreatLevel = 2
 )

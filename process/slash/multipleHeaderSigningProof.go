@@ -12,7 +12,7 @@ type multipleSigningProof struct {
 // NewMultipleSigningProof - creates a new multiple signing proof, which contains a list of
 // validators which signed multiple headers
 func NewMultipleSigningProof(
-	slashableData map[string]SlashingData,
+	slashableData map[string]SlashingResult,
 ) (MultipleSigningProofHandler, error) {
 	slashableHeaders, pubKeys, err := convertData(slashableData)
 	if err != nil {
@@ -30,12 +30,12 @@ func (msp *multipleSigningProof) GetType() SlashingType {
 	return MultipleSigning
 }
 
-// GetLevel - returns the slashing proof level for a given validator, if exists, Level0 otherwise
-func (msp *multipleSigningProof) GetLevel(pubKey []byte) SlashingLevel {
+// GetLevel - returns the slashing proof level for a given validator, if exists, Low otherwise
+func (msp *multipleSigningProof) GetLevel(pubKey []byte) ThreatLevel {
 	if _, exists := msp.slashableHeaders[string(pubKey)]; exists {
 		return msp.slashableHeaders[string(pubKey)].slashingLevel
 	}
-	return Level0
+	return Low
 }
 
 // GetHeaders - returns the slashing proofs headers for a given validator, if exists, nil otherwise
@@ -51,12 +51,12 @@ func (msp *multipleSigningProof) GetPubKeys() [][]byte {
 	return msp.pubKeys
 }
 
-func convertData(data map[string]SlashingData) (map[string]slashingHeaders, [][]byte, error) {
+func convertData(data map[string]SlashingResult) (map[string]slashingHeaders, [][]byte, error) {
 	slashableHeaders := make(map[string]slashingHeaders)
 	pubKeys := make([][]byte, 0, len(data))
 
 	for pubKey, slashableData := range data {
-		headers, err := convertInterceptedDataToHeader(slashableData.Data)
+		headers, err := convertInterceptedDataToInterceptedHeaders(slashableData.Data)
 		if err != nil {
 			return nil, nil, err
 		}

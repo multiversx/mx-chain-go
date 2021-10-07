@@ -7,13 +7,21 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/slash"
 )
 
+// CacheSize represents how many rounds will be cached in the slashing detector
 const CacheSize = 10
-const MinSlashableNoOfHeaders = 2
+
+// minSlashableNoOfHeaders represents the min number of headers required for a
+// proof to be considered slashable
+const minSlashableNoOfHeaders = 2
+
+// MaxDeltaToCurrentRound represents the max delta from the current round to any
+// other round from an intercepted data in order for a detector to process it and cache it
 const MaxDeltaToCurrentRound = 3
 
 type detectorCache interface {
 	add(round uint64, pubKey []byte, data process.InterceptedData)
 	data(round uint64, pubKey []byte) dataList
+	contains(round uint64, pubKey []byte, data process.InterceptedData) bool
 	validators(round uint64) [][]byte
 }
 
@@ -39,29 +47,29 @@ func absDiff(x, y uint64) uint64 {
 	return x - y
 }
 
-func computeSlashLevel(data []process.InterceptedData) slash.SlashingLevel {
-	ret := slash.Level0
+func computeSlashLevel(data []process.InterceptedData) slash.ThreatLevel {
+	ret := slash.Low
 	// TODO: Maybe a linear interpolation to deduce severity?
 	if len(data) == 2 {
-		ret = slash.Level1
+		ret = slash.Medium
 	} else if len(data) >= 3 {
-		ret = slash.Level2
+		ret = slash.High
 	}
 
 	return ret
 }
 
-func checkSlashLevel(headers []*interceptedBlocks.InterceptedHeader, level slash.SlashingLevel) error {
-	if level < slash.Level1 || level > slash.Level2 {
+func checkSlashLevel(headers []*interceptedBlocks.InterceptedHeader, level slash.ThreatLevel) error {
+	if level < slash.Medium || level > slash.High {
 		return process.ErrInvalidSlashLevel
 	}
-	if len(headers) < MinSlashableNoOfHeaders {
+	if len(headers) < minSlashableNoOfHeaders {
 		return process.ErrNotEnoughHeadersProvided
 	}
-	if len(headers) == MinSlashableNoOfHeaders && level != slash.Level1 {
+	if len(headers) == minSlashableNoOfHeaders && level != slash.Medium {
 		return process.ErrSlashLevelDoesNotMatchSlashType
 	}
-	if len(headers) > MinSlashableNoOfHeaders && level != slash.Level2 {
+	if len(headers) > minSlashableNoOfHeaders && level != slash.High {
 		return process.ErrSlashLevelDoesNotMatchSlashType
 	}
 

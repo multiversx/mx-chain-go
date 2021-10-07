@@ -183,3 +183,48 @@ func TestRoundProposerDataCache_GetValidators(t *testing.T) {
 	require.Len(t, validatorsRound2, 1)
 	require.Equal(t, []byte("proposer2"), validatorsRound2[0])
 }
+
+func TestRoundProposerDataCache_Contains(t *testing.T) {
+	t.Parallel()
+	dataCache := newRoundProposerDataCache(2)
+
+	dataCache.add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
+		HashCalled: func() []byte {
+			return []byte("hash1")
+		},
+	})
+	dataCache.add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
+		HashCalled: func() []byte {
+			return []byte("hash2")
+		},
+	})
+	dataCache.add(2, []byte("proposer2"), &testscommon.InterceptedDataStub{
+		HashCalled: func() []byte {
+			return []byte("hash3")
+		},
+	})
+
+	expectedData1 := &testscommon.InterceptedDataStub{
+		HashCalled: func() []byte {
+			return []byte("hash1")
+		},
+	}
+	expectedData2 := &testscommon.InterceptedDataStub{
+		HashCalled: func() []byte {
+			return []byte("hash2")
+		},
+	}
+	expectedData3 := &testscommon.InterceptedDataStub{
+		HashCalled: func() []byte {
+			return []byte("hash3")
+		},
+	}
+	require.True(t, dataCache.contains(1, []byte("proposer1"), expectedData1))
+	require.True(t, dataCache.contains(1, []byte("proposer1"), expectedData2))
+	require.True(t, dataCache.contains(2, []byte("proposer2"), expectedData3))
+
+	require.False(t, dataCache.contains(1, []byte("proposer1"), expectedData3))
+	require.False(t, dataCache.contains(2, []byte("proposer1"), expectedData1))
+	require.False(t, dataCache.contains(1, []byte("proposer2"), expectedData3))
+	require.False(t, dataCache.contains(1, []byte("proposer2"), expectedData2))
+}

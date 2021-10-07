@@ -48,38 +48,38 @@ func NewMultipleHeaderProposalsDetector(
 // slash.MultipleProposal is provided, otherwise a nil proof, along with an error is provided indicating that
 // no slashing event has been detected or an error occurred verifying the data.
 func (mhp *multipleHeaderProposalsDetector) VerifyData(data process.InterceptedData) (slash.SlashingProofHandler, error) {
-	header, castOk := data.(*interceptedBlocks.InterceptedHeader)
+	interceptedHeader, castOk := data.(*interceptedBlocks.InterceptedHeader)
 	if !castOk {
 		return nil, process.ErrCannotCastInterceptedDataToHeader
 	}
 
-	round := header.HeaderHandler().GetRound()
+	header := interceptedHeader.HeaderHandler()
+	round := header.GetRound()
 	if !mhp.isRoundRelevant(round) {
 		return nil, process.ErrHeaderRoundNotRelevant
 	}
 
-	proposer, err := mhp.getProposerPubKey(header.HeaderHandler())
+	proposer, err := mhp.getProposerPubKey(header)
 	if err != nil {
 		return nil, err
 	}
 
-	slashType, slashLevel, headers := mhp.getSlashingResult(header, round, proposer)
-	mhp.cache.add(round, proposer, header)
+	if mhp.cache.contains(round, proposer, interceptedHeader) {
+		return nil, process.ErrNoSlashingEventDetected
+	}
 
-	if slashType == slash.MultipleProposal {
-		return slash.NewMultipleProposalProof(
-			slash.SlashingData{
-				SlashingLevel: slashLevel,
-				Data:          headers,
-			},
-		)
+	mhp.cache.add(round, proposer, interceptedHeader)
+	slashingResult := mhp.getSlashingResult(round, proposer)
+
+	if slashingResult != nil {
+		return slash.NewMultipleProposalProof(slashingResult)
 	}
 	return nil, process.ErrNoSlashingEventDetected
 }
 
 func (mhp *multipleHeaderProposalsDetector) getProposerPubKey(header data.HeaderHandler) ([]byte, error) {
 	validators, err := mhp.nodesCoordinator.ComputeConsensusGroup(
-		header.GetRandSeed(),
+		header.GetPrevRandSeed(),
 		header.GetRound(),
 		header.GetShardID(),
 		header.GetEpoch())
@@ -94,43 +94,21 @@ func (mhp *multipleHeaderProposalsDetector) getProposerPubKey(header data.Header
 	return validators[0].PubKey(), nil
 }
 
-func (mhp *multipleHeaderProposalsDetector) getSlashingResult(
-	currHeader process.InterceptedData,
-	currRound uint64,
-	proposerPubKey []byte,
-) (slash.SlashingType, slash.SlashingLevel, []process.InterceptedData) {
-	headers := make([]process.InterceptedData, 0)
-	slashType := slash.None
-	slashLevel := slash.Level0
+func (mhp *multipleHeaderProposalsDetector) getSlashingResult(currRound uint64, proposerPubKey []byte) *slash.SlashingResult {
 	proposedHeaders := mhp.cache.data(currRound, proposerPubKey)
-
-	if len(proposedHeaders) >= 1 {
-		headers = mhp.getProposedHeadersWithDifferentHash(currHeader.Hash(), proposedHeaders)
-		if len(headers) >= 1 {
-			headers = append(headers, currHeader)
-			slashLevel = computeSlashLevel(headers)
-			slashType = slash.MultipleProposal
+	if len(proposedHeaders) >= 2 {
+		return &slash.SlashingResult{
+			SlashingLevel: computeSlashLevel(proposedHeaders),
+			Data:          proposedHeaders,
 		}
 	}
 
-	return slashType, slashLevel, headers
-}
-
-func (mhp *multipleHeaderProposalsDetector) getProposedHeadersWithDifferentHash(currHash []byte, otherHeaders dataList) []process.InterceptedData {
-	ret := make([]process.InterceptedData, 0)
-
-	for _, currHeader := range otherHeaders {
-		if !bytes.Equal(currHash, currHeader.Hash()) {
-			ret = append(ret, currHeader)
-		}
-	}
-
-	return ret
+	return nil
 }
 
 // ValidateProof - validates if the given proof is valid.
 // For a proof of type slash.MultipleProposal to be valid, it should:
-//  - Be of either level slash.Level1 (with 2 proposed headers) OR slash.Level2 (with >2 proposed headers)
+//  - Be of either level slash.Medium (with 2 proposed headers) OR slash.High (with >2 proposed headers)
 //  - Have all proposed headers with the same round and proposer, but different hashes
 func (mhp *multipleHeaderProposalsDetector) ValidateProof(proof slash.SlashingProofHandler) error {
 	multipleProposalProof, castOk := proof.(slash.MultipleProposalProofHandler)
@@ -150,7 +128,7 @@ func (mhp *multipleHeaderProposalsDetector) ValidateProof(proof slash.SlashingPr
 }
 
 func (mhp *multipleHeaderProposalsDetector) checkProposedHeaders(headers []*interceptedBlocks.InterceptedHeader) error {
-	if len(headers) < MinSlashableNoOfHeaders {
+	if len(headers) < minSlashableNoOfHeaders {
 		return process.ErrNotEnoughHeadersProvided
 	}
 

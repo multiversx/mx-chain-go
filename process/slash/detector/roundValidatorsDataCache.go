@@ -1,6 +1,7 @@
 package detector
 
 import (
+	"bytes"
 	"math"
 
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -36,18 +37,14 @@ func (rpd *roundValidatorsDataCache) add(round uint64, pubKey []byte, data proce
 		rpd.oldestRound = round
 	}
 
-	if _, exists := rpd.cache[round]; exists {
-		if _, exists = rpd.cache[round][pubKeyStr]; exists {
-			rpd.cache[round][pubKeyStr] = append(rpd.cache[round][pubKeyStr], data)
-		} else {
-			rpd.cache[round][pubKeyStr] = dataList{data}
-		}
-	} else {
-		list := dataList{data}
-		proposerMap := validatorDataMap{pubKeyStr: list}
-
-		rpd.cache[round] = proposerMap
+	validatorsMap, exists := rpd.cache[round]
+	if !exists {
+		rpd.cache[round] = validatorDataMap{pubKeyStr: dataList{data}}
+		return
 	}
+
+	validatorsMap[pubKeyStr] = append(validatorsMap[pubKeyStr], data)
+
 }
 
 func (rpd *roundValidatorsDataCache) isCacheFull(currRound uint64) bool {
@@ -58,23 +55,42 @@ func (rpd *roundValidatorsDataCache) isCacheFull(currRound uint64) bool {
 func (rpd *roundValidatorsDataCache) data(round uint64, pubKey []byte) dataList {
 	pubKeyStr := string(pubKey)
 
-	if _, exists := rpd.cache[round]; exists {
-		if _, exists = rpd.cache[round][pubKeyStr]; exists {
-			return rpd.cache[round][pubKeyStr]
-		}
+	data, exists := rpd.cache[round]
+	if !exists {
+		return nil
 	}
 
-	return nil
+	return data[pubKeyStr]
 }
 
 func (rpd *roundValidatorsDataCache) validators(round uint64) [][]byte {
 	ret := make([][]byte, 0)
 
 	if _, exists := rpd.cache[round]; exists {
-		for pubKey, _ := range rpd.cache[round] {
+		for pubKey := range rpd.cache[round] {
 			ret = append(ret, []byte(pubKey))
 		}
 	}
 
 	return ret
+}
+
+func (rpd *roundValidatorsDataCache) contains(round uint64, pubKey []byte, data process.InterceptedData) bool {
+	validatorsMap, exists := rpd.cache[round]
+	if !exists {
+		return false
+	}
+
+	dataList, exists := validatorsMap[string(pubKey)]
+	if !exists {
+		return false
+	}
+
+	for _, currData := range dataList {
+		if bytes.Equal(currData.Hash(), data.Hash()) {
+			return true
+		}
+	}
+
+	return false
 }

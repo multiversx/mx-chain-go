@@ -62,17 +62,18 @@ func NewSigningSlashingDetector(
 
 // VerifyData - checks if an intercepted data represents a slashable event
 func (ssd *SigningSlashingDetector) VerifyData(interceptedData process.InterceptedData) (slash.SlashingProofHandler, error) {
-	header, castOk := interceptedData.(*interceptedBlocks.InterceptedHeader)
+	interceptedHeader, castOk := interceptedData.(*interceptedBlocks.InterceptedHeader)
 	if !castOk {
 		return nil, process.ErrCannotCastInterceptedDataToHeader
 	}
 
-	round := header.HeaderHandler().GetRound()
+	header := interceptedHeader.HeaderHandler()
+	round := header.GetRound()
 	if !ssd.isRoundRelevant(round) {
 		return nil, process.ErrHeaderRoundNotRelevant
 	}
 
-	headerHash, err := ssd.computeHashWithoutSignatures(header.HeaderHandler())
+	headerHash, err := ssd.computeHashWithoutSignatures(header)
 	if err != nil {
 		return nil, err
 	}
@@ -81,15 +82,15 @@ func (ssd *SigningSlashingDetector) VerifyData(interceptedData process.Intercept
 		return nil, process.ErrHeadersShouldHaveDifferentHashes
 	}
 
-	err = ssd.cacheSigners(header)
+	err = ssd.cacheSigners(interceptedHeader)
 	if err != nil {
 		return nil, err
 	}
-	ssd.headersCache.add(round, headerHash, header.HeaderHandler())
+	ssd.headersCache.add(round, headerHash, header)
 
-	slashingData := ssd.getSlashingResult(round)
-	if len(slashingData) != 0 {
-		return slash.NewMultipleSigningProof(slashingData)
+	slashingResult := ssd.getSlashingResult(round)
+	if len(slashingResult) != 0 {
+		return slash.NewMultipleSigningProof(slashingResult)
 	}
 
 	return nil, process.ErrNoSlashingEventDetected
@@ -130,13 +131,13 @@ func (ssd *SigningSlashingDetector) cacheSigners(interceptedHeader *interceptedB
 	return nil
 }
 
-func (ssd *SigningSlashingDetector) getSlashingResult(round uint64) map[string]slash.SlashingData {
-	slashingData := make(map[string]slash.SlashingData)
+func (ssd *SigningSlashingDetector) getSlashingResult(round uint64) map[string]slash.SlashingResult {
+	slashingData := make(map[string]slash.SlashingResult)
 
 	for _, validator := range ssd.slashingCache.validators(round) {
 		signedHeaders := ssd.slashingCache.data(round, validator)
 		if len(signedHeaders) > 1 {
-			slashingData[string(validator)] = slash.SlashingData{
+			slashingData[string(validator)] = slash.SlashingResult{
 				SlashingLevel: computeSlashLevel(signedHeaders),
 				Data:          signedHeaders,
 			}
@@ -179,9 +180,9 @@ func (ssd *SigningSlashingDetector) ValidateProof(proof slash.SlashingProofHandl
 func (ssd *SigningSlashingDetector) checkSignedHeaders(
 	pubKey []byte,
 	headers []*interceptedBlocks.InterceptedHeader,
-	level slash.SlashingLevel,
+	level slash.ThreatLevel,
 ) error {
-	if len(headers) < MinSlashableNoOfHeaders {
+	if len(headers) < minSlashableNoOfHeaders {
 		return process.ErrNotEnoughHeadersProvided
 	}
 

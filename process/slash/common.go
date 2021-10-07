@@ -5,19 +5,19 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 )
 
-// SlashingData contains the slashable data as well as the severity(slashing level)
+// SlashingResult contains the slashable data as well as the severity(slashing level)
 // for a possible malicious validator
-type SlashingData struct {
-	SlashingLevel SlashingLevel
+type SlashingResult struct {
+	SlashingLevel ThreatLevel
 	Data          []process.InterceptedData
 }
 
 type slashingHeaders struct {
-	slashingLevel SlashingLevel
+	slashingLevel ThreatLevel
 	headers       []*interceptedBlocks.InterceptedHeader
 }
 
-func convertInterceptedDataToHeader(data []process.InterceptedData) ([]*interceptedBlocks.InterceptedHeader, error) {
+func convertInterceptedDataToInterceptedHeaders(data []process.InterceptedData) ([]*interceptedBlocks.InterceptedHeader, error) {
 	headers := make([]*interceptedBlocks.InterceptedHeader, 0, len(data))
 
 	for _, d := range data {

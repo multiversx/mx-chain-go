@@ -253,7 +253,7 @@ func TestMultipleHeaderSigningDetector_VerifyData_ValidateProof(t *testing.T) {
 
 	require.Len(t, res.GetPubKeys(), 1)
 	require.Equal(t, pk0, res.GetPubKeys()[0])
-	require.Equal(t, slash.Level1, res.GetLevel(pk0))
+	require.Equal(t, slash.Medium, res.GetLevel(pk0))
 
 	require.Len(t, res.GetHeaders(pk0), 2)
 	require.Equal(t, []byte("rnd1"), res.GetHeaders(pk0)[0].HeaderHandler().GetPrevRandSeed())
@@ -272,8 +272,8 @@ func TestMultipleHeaderSigningDetector_VerifyData_ValidateProof(t *testing.T) {
 	require.Len(t, res.GetPubKeys(), 2)
 	require.Equal(t, pk0, res.GetPubKeys()[0])
 	require.Equal(t, pk1, res.GetPubKeys()[1])
-	require.Equal(t, slash.Level2, res.GetLevel(pk0))
-	require.Equal(t, slash.Level1, res.GetLevel(pk1))
+	require.Equal(t, slash.High, res.GetLevel(pk0))
+	require.Equal(t, slash.Medium, res.GetLevel(pk1))
 
 	require.Len(t, res.GetHeaders(pk0), 3)
 	require.Equal(t, []byte("rnd1"), res.GetHeaders(pk0)[0].HeaderHandler().GetPrevRandSeed())
@@ -323,9 +323,9 @@ func TestMultipleHeaderSigningDetector_ValidateProof_NotEnoughHeaders_ExpectErro
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		detector.CacheSize)
-	proof, _ := slash.NewMultipleSigningProof(map[string]slash.SlashingData{
+	proof, _ := slash.NewMultipleSigningProof(map[string]slash.SlashingResult{
 		"pubKey": {
-			SlashingLevel: slash.Level1,
+			SlashingLevel: slash.Medium,
 			Data:          []process.InterceptedData{},
 		},
 	})
@@ -350,9 +350,9 @@ func TestMultipleHeaderSigningDetector_ValidateProof_SignedHeadersHaveDifferentR
 
 	h1 := createInterceptedHeaderData(&block.Header{Round: 1, PubKeysBitmap: []byte{byte(0x1)}})
 	h2 := createInterceptedHeaderData(&block.Header{Round: 2, PubKeysBitmap: []byte{byte(0x1)}})
-	proof, _ := slash.NewMultipleSigningProof(map[string]slash.SlashingData{
+	proof, _ := slash.NewMultipleSigningProof(map[string]slash.SlashingResult{
 		"pubKey": {
-			SlashingLevel: slash.Level1,
+			SlashingLevel: slash.Medium,
 			Data:          []process.InterceptedData{h1, h2},
 		},
 	})
@@ -382,9 +382,9 @@ func TestMultipleHeaderSigningDetector_ValidateProof_InvalidMarshaller_ExpectErr
 
 	h1 := createInterceptedHeaderData(&block.Header{Round: 1, PubKeysBitmap: []byte{byte(0x1)}})
 	h2 := createInterceptedHeaderData(&block.Header{Round: 2, PubKeysBitmap: []byte{byte(0x1)}})
-	proof, _ := slash.NewMultipleSigningProof(map[string]slash.SlashingData{
+	proof, _ := slash.NewMultipleSigningProof(map[string]slash.SlashingResult{
 		"pubKey": {
-			SlashingLevel: slash.Level1,
+			SlashingLevel: slash.Medium,
 			Data:          []process.InterceptedData{h1, h2},
 		},
 	})
@@ -409,9 +409,9 @@ func TestMultipleHeaderSigningDetector_ValidateProof_SignedHeadersHaveSameHash_E
 
 	h1 := createInterceptedHeaderData(&block.Header{Round: 1, PubKeysBitmap: []byte{byte(0x1)}})
 	h2 := createInterceptedHeaderData(&block.Header{Round: 1, PubKeysBitmap: []byte{byte(0x1)}})
-	proof, _ := slash.NewMultipleSigningProof(map[string]slash.SlashingData{
+	proof, _ := slash.NewMultipleSigningProof(map[string]slash.SlashingResult{
 		"pubKey": {
-			SlashingLevel: slash.Level1,
+			SlashingLevel: slash.Medium,
 			Data:          []process.InterceptedData{h1, h2},
 		},
 	})
@@ -436,9 +436,9 @@ func TestMultipleHeaderSigningDetector_ValidateProof_HeadersNotSignedByTheSameVa
 
 	h1 := createInterceptedHeaderData(&block.Header{Round: 1, PubKeysBitmap: []byte{byte(0x1)}})
 	h2 := createInterceptedHeaderData(&block.Header{Round: 1, PubKeysBitmap: []byte{byte(0x2)}})
-	proof, _ := slash.NewMultipleSigningProof(map[string]slash.SlashingData{
+	proof, _ := slash.NewMultipleSigningProof(map[string]slash.SlashingResult{
 		"pubKey": {
-			SlashingLevel: slash.Level1,
+			SlashingLevel: slash.Medium,
 			Data:          []process.InterceptedData{h1, h2},
 		},
 	})
@@ -459,9 +459,9 @@ func TestMultipleHeaderSigningDetector_ValidateProof_InvalidSlashLevel_ExpectErr
 
 	h1 := createInterceptedHeaderData(&block.Header{Round: 1})
 	h2 := createInterceptedHeaderData(&block.Header{Round: 1})
-	proof, _ := slash.NewMultipleSigningProof(map[string]slash.SlashingData{
+	proof, _ := slash.NewMultipleSigningProof(map[string]slash.SlashingResult{
 		"pubKey": {
-			SlashingLevel: slash.Level0,
+			SlashingLevel: slash.Low,
 			Data:          []process.InterceptedData{h1, h2},
 		},
 	})

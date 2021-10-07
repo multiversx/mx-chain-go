@@ -19,8 +19,8 @@ func (mps *MultipleHeaderProposalProofStub) GetType() slash.SlashingType {
 }
 
 // GetLevel -
-func (mps *MultipleHeaderProposalProofStub) GetLevel() slash.SlashingLevel {
-	return slash.Level0
+func (mps *MultipleHeaderProposalProofStub) GetLevel() slash.ThreatLevel {
+	return slash.Low
 }
 
 // GetHeaders -

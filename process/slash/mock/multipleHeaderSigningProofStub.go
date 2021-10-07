@@ -23,8 +23,8 @@ func (mps *MultipleHeaderSigningProofStub) GetPubKeys() [][]byte {
 }
 
 // GetLevel -
-func (mps *MultipleHeaderSigningProofStub) GetLevel(pubKey []byte) slash.SlashingLevel {
-	return slash.Level0
+func (mps *MultipleHeaderSigningProofStub) GetLevel(pubKey []byte) slash.ThreatLevel {
+	return slash.Low
 }
 
 // GetHeaders -
