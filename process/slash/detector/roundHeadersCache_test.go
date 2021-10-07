@@ -115,3 +115,10 @@ func TestRoundDataCache_Contains(t *testing.T) {
 	require.False(t, dataCache.Contains(1, []byte("hash3")))
 	require.False(t, dataCache.Contains(3, []byte("hash1")))
 }
+
+func TestRoundValidatorsDataCache_IsInterfaceNil(t *testing.T) {
+	cache := NewRoundValidatorDataCache(1)
+	require.False(t, cache.IsInterfaceNil())
+	cache = nil
+	require.True(t, cache.IsInterfaceNil())
+}

@@ -18,7 +18,7 @@ type roundValidatorsDataCache struct {
 	cacheSize   uint64
 }
 
-func newRoundProposerDataCache(maxRounds uint64) *roundValidatorsDataCache {
+func NewRoundValidatorDataCache(maxRounds uint64) *roundValidatorsDataCache {
 	return &roundValidatorsDataCache{
 		cache:       make(map[uint64]validatorDataMap),
 		mutexCache:  sync.RWMutex{},
@@ -27,24 +27,24 @@ func newRoundProposerDataCache(maxRounds uint64) *roundValidatorsDataCache {
 	}
 }
 
-func (rpd *roundValidatorsDataCache) Add(round uint64, pubKey []byte, data process.InterceptedData) {
+func (rdc *roundValidatorsDataCache) Add(round uint64, pubKey []byte, data process.InterceptedData) {
 	pubKeyStr := string(pubKey)
-	rpd.mutexCache.Lock()
-	defer rpd.mutexCache.Unlock()
+	rdc.mutexCache.Lock()
+	defer rdc.mutexCache.Unlock()
 
-	if rpd.isCacheFull(round) {
-		if round < rpd.oldestRound {
+	if rdc.isCacheFull(round) {
+		if round < rdc.oldestRound {
 			return
 		}
-		delete(rpd.cache, rpd.oldestRound)
+		delete(rdc.cache, rdc.oldestRound)
 	}
-	if round < rpd.oldestRound {
-		rpd.oldestRound = round
+	if round < rdc.oldestRound {
+		rdc.oldestRound = round
 	}
 
-	validatorsMap, exists := rpd.cache[round]
+	validatorsMap, exists := rdc.cache[round]
 	if !exists {
-		rpd.cache[round] = validatorDataMap{pubKeyStr: dataList{data}}
+		rdc.cache[round] = validatorDataMap{pubKeyStr: dataList{data}}
 		return
 	}
 
@@ -52,17 +52,17 @@ func (rpd *roundValidatorsDataCache) Add(round uint64, pubKey []byte, data proce
 
 }
 
-func (rpd *roundValidatorsDataCache) isCacheFull(currRound uint64) bool {
-	_, currRoundInCache := rpd.cache[currRound]
-	return len(rpd.cache) >= int(rpd.cacheSize) && !currRoundInCache
+func (rdc *roundValidatorsDataCache) isCacheFull(currRound uint64) bool {
+	_, currRoundInCache := rdc.cache[currRound]
+	return len(rdc.cache) >= int(rdc.cacheSize) && !currRoundInCache
 }
 
-func (rpd *roundValidatorsDataCache) GetData(round uint64, pubKey []byte) []process.InterceptedData {
+func (rdc *roundValidatorsDataCache) GetData(round uint64, pubKey []byte) []process.InterceptedData {
 	pubKeyStr := string(pubKey)
-	rpd.mutexCache.RLock()
-	defer rpd.mutexCache.RUnlock()
+	rdc.mutexCache.RLock()
+	defer rdc.mutexCache.RUnlock()
 
-	data, exists := rpd.cache[round]
+	data, exists := rdc.cache[round]
 	if !exists {
 		return nil
 	}
@@ -70,13 +70,13 @@ func (rpd *roundValidatorsDataCache) GetData(round uint64, pubKey []byte) []proc
 	return data[pubKeyStr]
 }
 
-func (rpd *roundValidatorsDataCache) GetPubKeys(round uint64) [][]byte {
+func (rdc *roundValidatorsDataCache) GetPubKeys(round uint64) [][]byte {
 	ret := make([][]byte, 0)
-	rpd.mutexCache.RLock()
-	defer rpd.mutexCache.RUnlock()
+	rdc.mutexCache.RLock()
+	defer rdc.mutexCache.RUnlock()
 
-	if _, exists := rpd.cache[round]; exists {
-		for pubKey := range rpd.cache[round] {
+	if _, exists := rdc.cache[round]; exists {
+		for pubKey := range rdc.cache[round] {
 			ret = append(ret, []byte(pubKey))
 		}
 	}
@@ -84,11 +84,11 @@ func (rpd *roundValidatorsDataCache) GetPubKeys(round uint64) [][]byte {
 	return ret
 }
 
-func (rpd *roundValidatorsDataCache) Contains(round uint64, pubKey []byte, data process.InterceptedData) bool {
-	rpd.mutexCache.RLock()
-	defer rpd.mutexCache.RUnlock()
+func (rdc *roundValidatorsDataCache) Contains(round uint64, pubKey []byte, data process.InterceptedData) bool {
+	rdc.mutexCache.RLock()
+	defer rdc.mutexCache.RUnlock()
 
-	validatorsMap, exists := rpd.cache[round]
+	validatorsMap, exists := rdc.cache[round]
 	if !exists {
 		return false
 	}
@@ -105,4 +105,7 @@ func (rpd *roundValidatorsDataCache) Contains(round uint64, pubKey []byte, data 
 	}
 
 	return false
+}
+func (rdc *roundValidatorsDataCache) IsInterfaceNil() bool {
+	return rdc == nil
 }

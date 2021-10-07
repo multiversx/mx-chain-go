@@ -10,7 +10,7 @@ import (
 
 func TestRoundProposerDataCache_Add_OneRound_TwoProposers_FourInterceptedData(t *testing.T) {
 	t.Parallel()
-	dataCache := newRoundProposerDataCache(1)
+	dataCache := NewRoundValidatorDataCache(1)
 
 	dataCache.Add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
 		HashCalled: func() []byte {
@@ -51,7 +51,7 @@ func TestRoundProposerDataCache_Add_OneRound_TwoProposers_FourInterceptedData(t 
 
 func TestRoundProposerDataCache_Add_CacheSizeTwo_FourEntriesInCache_ExpectOldestRoundInCacheRemoved(t *testing.T) {
 	t.Parallel()
-	dataCache := newRoundProposerDataCache(2)
+	dataCache := NewRoundValidatorDataCache(2)
 
 	dataCache.Add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
 		HashCalled: func() []byte {
@@ -106,7 +106,7 @@ func TestRoundProposerDataCache_Add_CacheSizeTwo_FourEntriesInCache_ExpectOldest
 
 func TestRoundProposerDataCache_GetData(t *testing.T) {
 	t.Parallel()
-	dataCache := newRoundProposerDataCache(3)
+	dataCache := NewRoundValidatorDataCache(3)
 
 	dataCache.Add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
 		HashCalled: func() []byte {
@@ -150,7 +150,7 @@ func TestRoundProposerDataCache_GetData(t *testing.T) {
 
 func TestRoundProposerDataCache_GetValidators(t *testing.T) {
 	t.Parallel()
-	dataCache := newRoundProposerDataCache(2)
+	dataCache := NewRoundValidatorDataCache(2)
 
 	dataCache.Add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
 		HashCalled: func() []byte {
@@ -187,7 +187,7 @@ func TestRoundProposerDataCache_GetValidators(t *testing.T) {
 
 func TestRoundProposerDataCache_Contains(t *testing.T) {
 	t.Parallel()
-	dataCache := newRoundProposerDataCache(2)
+	dataCache := NewRoundValidatorDataCache(2)
 
 	go dataCache.Add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
 		HashCalled: func() []byte {
@@ -229,4 +229,12 @@ func TestRoundProposerDataCache_Contains(t *testing.T) {
 	require.False(t, dataCache.Contains(2, []byte("proposer1"), expectedData1))
 	require.False(t, dataCache.Contains(1, []byte("proposer2"), expectedData3))
 	require.False(t, dataCache.Contains(1, []byte("proposer2"), expectedData2))
+	require.False(t, dataCache.Contains(3, []byte("proposer1"), expectedData1))
+}
+
+func TestRoundHeadersCache_IsInterfaceNil(t *testing.T) {
+	cache := newRoundHeadersCache(1)
+	require.False(t, cache.IsInterfaceNil())
+	cache = nil
+	require.True(t, cache.IsInterfaceNil())
 }

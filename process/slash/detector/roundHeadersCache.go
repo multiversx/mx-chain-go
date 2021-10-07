@@ -29,29 +29,29 @@ func newRoundHeadersCache(maxRounds uint64) *roundHeadersCache {
 	}
 }
 
-func (rdc *roundHeadersCache) Add(round uint64, hash []byte, header data.HeaderHandler) {
-	rdc.mutexCache.Lock()
-	defer rdc.mutexCache.Unlock()
+func (rhc *roundHeadersCache) Add(round uint64, hash []byte, header data.HeaderHandler) {
+	rhc.mutexCache.Lock()
+	defer rhc.mutexCache.Unlock()
 
-	if rdc.isCacheFull(round) {
-		if round < rdc.oldestRound {
+	if rhc.isCacheFull(round) {
+		if round < rhc.oldestRound {
 			return
 		}
-		delete(rdc.cache, rdc.oldestRound)
+		delete(rhc.cache, rhc.oldestRound)
 	}
-	if round < rdc.oldestRound {
-		rdc.oldestRound = round
+	if round < rhc.oldestRound {
+		rhc.oldestRound = round
 	}
 
-	if _, exists := rdc.cache[round]; exists {
-		rdc.cache[round] = append(rdc.cache[round],
+	if _, exists := rhc.cache[round]; exists {
+		rhc.cache[round] = append(rhc.cache[round],
 			headerHash{
 				hash:   string(hash),
 				header: header,
 			},
 		)
 	} else {
-		rdc.cache[round] = headerHashList{
+		rhc.cache[round] = headerHashList{
 			headerHash{
 				hash:   string(hash),
 				header: header,
@@ -60,11 +60,11 @@ func (rdc *roundHeadersCache) Add(round uint64, hash []byte, header data.HeaderH
 	}
 }
 
-func (rdc *roundHeadersCache) Contains(round uint64, hash []byte) bool {
-	rdc.mutexCache.RLock()
-	defer rdc.mutexCache.RUnlock()
+func (rhc *roundHeadersCache) Contains(round uint64, hash []byte) bool {
+	rhc.mutexCache.RLock()
+	defer rhc.mutexCache.RUnlock()
 
-	hashHeaderList, exist := rdc.cache[round]
+	hashHeaderList, exist := rhc.cache[round]
 	if !exist {
 		return false
 	}
@@ -78,7 +78,11 @@ func (rdc *roundHeadersCache) Contains(round uint64, hash []byte) bool {
 	return false
 }
 
-func (rdc *roundHeadersCache) isCacheFull(currRound uint64) bool {
-	_, currRoundInCache := rdc.cache[currRound]
-	return len(rdc.cache) >= int(rdc.cacheSize) && !currRoundInCache
+func (rhc *roundHeadersCache) isCacheFull(currRound uint64) bool {
+	_, currRoundInCache := rhc.cache[currRound]
+	return len(rhc.cache) >= int(rhc.cacheSize) && !currRoundInCache
+}
+
+func (rhc *roundHeadersCache) IsInterfaceNil() bool {
+	return rhc == nil
 }

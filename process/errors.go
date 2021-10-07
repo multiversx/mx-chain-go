@@ -896,6 +896,9 @@ var ErrHeadersShouldHaveDifferentHashes = errors.New("headers in a multiple head
 // ErrHeaderNotSignedByValidator signals that the header is not signed by the given validator
 var ErrHeaderNotSignedByValidator = errors.New("header is not signed by the given validator")
 
+// ErrNilRoundDetectorCache signals that a nil round detector cache has been provided
+var ErrNilRoundDetectorCache = errors.New("round detector cache is nil")
+
 // ErrAccountNotPayable will be sent when trying to send money to a non-payable account
 var ErrAccountNotPayable = errors.New("sending value to non payable contract")
 

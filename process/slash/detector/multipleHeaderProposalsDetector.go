@@ -23,7 +23,7 @@ type multipleHeaderProposalsDetector struct {
 func NewMultipleHeaderProposalsDetector(
 	nodesCoordinator sharding.NodesCoordinator,
 	roundHandler process.RoundHandler,
-	maxRoundCacheSize uint64,
+	cache RoundDetectorCache,
 ) (slash.SlashingDetector, error) {
 	if check.IfNil(nodesCoordinator) {
 		return nil, process.ErrNilShardCoordinator
@@ -31,9 +31,10 @@ func NewMultipleHeaderProposalsDetector(
 	if check.IfNil(roundHandler) {
 		return nil, process.ErrNilRoundHandler
 	}
+	if check.IfNil(cache) {
+		return nil, process.ErrNilRoundDetectorCache
+	}
 
-	//TODO: Here, instead of CacheSize, use maxRoundCacheSize = from config file
-	cache := newRoundProposerDataCache(CacheSize)
 	baseDetector := baseSlashingDetector{roundHandler: roundHandler}
 
 	return &multipleHeaderProposalsDetector{

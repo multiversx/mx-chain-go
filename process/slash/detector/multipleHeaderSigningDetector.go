@@ -46,7 +46,7 @@ func NewSigningSlashingDetector(
 	}
 
 	//TODO: Here, instead of CacheSize, use maxRoundCacheSize = from config file
-	slashingCache := newRoundProposerDataCache(CacheSize)
+	slashingCache := NewRoundValidatorDataCache(CacheSize)
 	headersCache := newRoundHeadersCache(CacheSize)
 	baseDetector := baseSlashingDetector{roundHandler: roundHandler}
 

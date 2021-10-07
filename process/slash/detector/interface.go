@@ -18,6 +18,8 @@ type RoundDetectorCache interface {
 	GetData(round uint64, pubKey []byte) []process.InterceptedData
 	// GetPubKeys returns all cached public keys for a given round
 	GetPubKeys(round uint64) [][]byte
+	// IsInterfaceNil checks if the interface is nil
+	IsInterfaceNil() bool
 }
 
 // HeadersCache defines what a header-hash-based cache should do
@@ -28,4 +30,6 @@ type HeadersCache interface {
 	Add(round uint64, hash []byte, header data.HeaderHandler)
 	// Contains checks if the hash in the given round is cached
 	Contains(round uint64, hash []byte) bool
+	// IsInterfaceNil checks if the interface is nil
+	IsInterfaceNil() bool
 }
