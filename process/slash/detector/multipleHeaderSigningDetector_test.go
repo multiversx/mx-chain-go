@@ -469,27 +469,3 @@ func TestMultipleHeaderSigningDetector_ValidateProof_InvalidSlashLevel_ExpectErr
 	err := ssd.ValidateProof(proof)
 	require.Equal(t, process.ErrInvalidSlashLevel, err)
 }
-
-func TestMultipleHeaderSigningDetector_IsIndexSetInBitmap(t *testing.T) {
-	byte1Map1, _ := strconv.ParseInt("11001101", 2, 9)
-	byte2Map1, _ := strconv.ParseInt("00000101", 2, 9)
-	bitmap := []byte{byte(byte1Map1), byte(byte2Map1)}
-
-	//Byte 1
-	require.True(t, detector.IsIndexSetInBitmap(0, bitmap))
-	require.False(t, detector.IsIndexSetInBitmap(1, bitmap))
-	require.True(t, detector.IsIndexSetInBitmap(2, bitmap))
-	require.True(t, detector.IsIndexSetInBitmap(3, bitmap))
-	require.False(t, detector.IsIndexSetInBitmap(4, bitmap))
-	require.False(t, detector.IsIndexSetInBitmap(5, bitmap))
-	require.True(t, detector.IsIndexSetInBitmap(6, bitmap))
-	require.True(t, detector.IsIndexSetInBitmap(7, bitmap))
-	// Byte 2
-	require.True(t, detector.IsIndexSetInBitmap(8, bitmap))
-	require.False(t, detector.IsIndexSetInBitmap(9, bitmap))
-	require.True(t, detector.IsIndexSetInBitmap(10, bitmap))
-
-	for i := uint32(11); i <= 100; i++ {
-		require.False(t, detector.IsIndexSetInBitmap(i, bitmap))
-	}
-}

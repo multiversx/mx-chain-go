@@ -3,6 +3,7 @@ package detector
 import (
 	"bytes"
 	"math"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -12,6 +13,7 @@ type validatorDataMap map[string]dataList
 
 type roundValidatorsDataCache struct {
 	cache       map[uint64]validatorDataMap
+	mutexCache  sync.RWMutex
 	oldestRound uint64
 	cacheSize   uint64
 }
@@ -19,6 +21,7 @@ type roundValidatorsDataCache struct {
 func newRoundProposerDataCache(maxRounds uint64) *roundValidatorsDataCache {
 	return &roundValidatorsDataCache{
 		cache:       make(map[uint64]validatorDataMap),
+		mutexCache:  sync.RWMutex{},
 		oldestRound: math.MaxUint64,
 		cacheSize:   maxRounds,
 	}
@@ -26,6 +29,8 @@ func newRoundProposerDataCache(maxRounds uint64) *roundValidatorsDataCache {
 
 func (rpd *roundValidatorsDataCache) add(round uint64, pubKey []byte, data process.InterceptedData) {
 	pubKeyStr := string(pubKey)
+	rpd.mutexCache.Lock()
+	defer rpd.mutexCache.Unlock()
 
 	if rpd.isCacheFull(round) {
 		if round < rpd.oldestRound {
@@ -54,6 +59,8 @@ func (rpd *roundValidatorsDataCache) isCacheFull(currRound uint64) bool {
 
 func (rpd *roundValidatorsDataCache) data(round uint64, pubKey []byte) dataList {
 	pubKeyStr := string(pubKey)
+	rpd.mutexCache.RLock()
+	defer rpd.mutexCache.RUnlock()
 
 	data, exists := rpd.cache[round]
 	if !exists {
@@ -65,6 +72,8 @@ func (rpd *roundValidatorsDataCache) data(round uint64, pubKey []byte) dataList 
 
 func (rpd *roundValidatorsDataCache) validators(round uint64) [][]byte {
 	ret := make([][]byte, 0)
+	rpd.mutexCache.RLock()
+	defer rpd.mutexCache.RUnlock()
 
 	if _, exists := rpd.cache[round]; exists {
 		for pubKey := range rpd.cache[round] {
@@ -76,6 +85,9 @@ func (rpd *roundValidatorsDataCache) validators(round uint64) [][]byte {
 }
 
 func (rpd *roundValidatorsDataCache) contains(round uint64, pubKey []byte, data process.InterceptedData) bool {
+	rpd.mutexCache.RLock()
+	defer rpd.mutexCache.RUnlock()
+
 	validatorsMap, exists := rpd.cache[round]
 	if !exists {
 		return false

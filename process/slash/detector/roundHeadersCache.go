@@ -2,6 +2,7 @@ package detector
 
 import (
 	"math"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
 )
@@ -15,6 +16,7 @@ type headerHash struct {
 
 type roundHeadersCache struct {
 	cache       map[uint64]headerHashList
+	mutexCache  sync.RWMutex
 	oldestRound uint64
 	cacheSize   uint64
 }
@@ -22,12 +24,16 @@ type roundHeadersCache struct {
 func newRoundHeadersCache(maxRounds uint64) *roundHeadersCache {
 	return &roundHeadersCache{
 		cache:       make(map[uint64]headerHashList),
+		mutexCache:  sync.RWMutex{},
 		oldestRound: math.MaxUint64,
 		cacheSize:   maxRounds,
 	}
 }
 
 func (rdc *roundHeadersCache) add(round uint64, hash []byte, header data.HeaderHandler) {
+	rdc.mutexCache.Lock()
+	defer rdc.mutexCache.Unlock()
+
 	if rdc.isCacheFull(round) {
 		if round < rdc.oldestRound {
 			return
@@ -56,6 +62,9 @@ func (rdc *roundHeadersCache) add(round uint64, hash []byte, header data.HeaderH
 }
 
 func (rdc *roundHeadersCache) contains(round uint64, hash []byte) bool {
+	rdc.mutexCache.RLock()
+	defer rdc.mutexCache.RUnlock()
+
 	hashHeaderList, exist := rdc.cache[round]
 	if !exist {
 		return false
@@ -71,6 +80,9 @@ func (rdc *roundHeadersCache) contains(round uint64, hash []byte) bool {
 }
 
 func (rdc *roundHeadersCache) headers(round uint64) headerHashList {
+	rdc.mutexCache.RLock()
+	defer rdc.mutexCache.RUnlock()
+
 	if _, exist := rdc.cache[round]; !exist {
 		return headerHashList{}
 	}

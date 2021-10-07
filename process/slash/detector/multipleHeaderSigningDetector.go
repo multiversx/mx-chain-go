@@ -123,7 +123,7 @@ func (ssd *SigningSlashingDetector) cacheSigners(interceptedHeader *interceptedB
 
 	bitmap := header.GetPubKeysBitmap()
 	for idx, validator := range group {
-		if isIndexSetInBitmap(uint32(idx), bitmap) {
+		if slash.IsIndexSetInBitmap(uint32(idx), bitmap) {
 			ssd.slashingCache.add(header.GetRound(), validator.PubKey(), interceptedHeader)
 		}
 	}
@@ -145,15 +145,6 @@ func (ssd *SigningSlashingDetector) getSlashingResult(round uint64) map[string]s
 	}
 
 	return slashingData
-}
-
-func isIndexSetInBitmap(index uint32, bitmap []byte) bool {
-	indexOutOfBounds := index >= uint32(len(bitmap))*8
-	if indexOutOfBounds {
-		return false
-	}
-
-	return bitmap[index/8]&(1<<uint8(index%8)) != 0
 }
 
 // ValidateProof - validates the given proof
@@ -237,7 +228,7 @@ func (ssd *SigningSlashingDetector) signedHeader(pubKey []byte, header data.Head
 
 	for idx, validator := range group {
 		if bytes.Equal(validator.PubKey(), pubKey) &&
-			isIndexSetInBitmap(uint32(idx), header.GetPubKeysBitmap()) {
+			slash.IsIndexSetInBitmap(uint32(idx), header.GetPubKeysBitmap()) {
 			return true
 		}
 	}

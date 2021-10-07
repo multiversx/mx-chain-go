@@ -2,6 +2,7 @@ package detector
 
 import (
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
@@ -188,21 +189,22 @@ func TestRoundProposerDataCache_Contains(t *testing.T) {
 	t.Parallel()
 	dataCache := newRoundProposerDataCache(2)
 
-	dataCache.add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
+	go dataCache.add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
 		HashCalled: func() []byte {
 			return []byte("hash1")
 		},
 	})
-	dataCache.add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
+	go dataCache.add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
 		HashCalled: func() []byte {
 			return []byte("hash2")
 		},
 	})
-	dataCache.add(2, []byte("proposer2"), &testscommon.InterceptedDataStub{
+	go dataCache.add(2, []byte("proposer2"), &testscommon.InterceptedDataStub{
 		HashCalled: func() []byte {
 			return []byte("hash3")
 		},
 	})
+	time.Sleep(time.Millisecond)
 
 	expectedData1 := &testscommon.InterceptedDataStub{
 		HashCalled: func() []byte {

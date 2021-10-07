@@ -17,6 +17,17 @@ type slashingHeaders struct {
 	headers       []*interceptedBlocks.InterceptedHeader
 }
 
+// IsIndexSetInBitmap - checks if a bit is set(1) in the given bitmap
+// TODO: Move this utility function in ELROND-GO-CORE
+func IsIndexSetInBitmap(index uint32, bitmap []byte) bool {
+	indexOutOfBounds := index >= uint32(len(bitmap))*8
+	if indexOutOfBounds {
+		return false
+	}
+
+	return bitmap[index/8]&(1<<uint8(index%8)) != 0
+}
+
 func convertInterceptedDataToInterceptedHeaders(data []process.InterceptedData) ([]*interceptedBlocks.InterceptedHeader, error) {
 	headers := make([]*interceptedBlocks.InterceptedHeader, 0, len(data))
 
