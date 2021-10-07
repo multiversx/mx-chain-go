@@ -352,6 +352,15 @@ func (s *stakingSC) unJailV1(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 }
 
 func (s *stakingSC) unJail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	defer func() {
+		waitingListBLSKeys, _ := s.getFirstElementsFromWaitingList(5)
+		if waitingListBLSKeys != nil {
+			for poz, bls := range waitingListBLSKeys.blsKeys {
+				log.Debug("Queue5", "poz", poz, "bls", bls)
+			}
+		}
+	}()
+
 	if !s.flagEnableStaking.IsSet() {
 		return s.unJailV1(args)
 	}
@@ -942,7 +951,19 @@ func (s *stakingSC) saveElementAndList(key []byte, element *ElementInList, waiti
 }
 
 func (s *stakingSC) removeFromWaitingList(blsKey []byte) error {
+	defer func() {
+		waitingListBLSKeys, _ := s.getFirstElementsFromWaitingList(5)
+		if waitingListBLSKeys != nil {
+			for poz, bls := range waitingListBLSKeys.blsKeys {
+				log.Debug("Queue5", "poz", poz, "bls", bls)
+			}
+		}
+	}()
+
 	inWaitingListKey := s.createWaitingListKey(blsKey)
+
+	log.Debug("removing from WaitingQueue", "bls", blsKey)
+
 	marshaledData := s.eei.GetStorage(inWaitingListKey)
 	if len(marshaledData) == 0 {
 		return nil
