@@ -305,7 +305,9 @@ var (
 		Name:  "mem-ballast",
 		Value: 0,
 		Usage: "Flag that specifies the number of MegaBytes to be used as a memory ballast for Garbage Collector optimization. " +
-			"If set to 0, the feature will be disabled",
+			"If set to 0 (or not set at all), the feature will be disabled. This flag should be used only for well-monitored nodes " +
+			"and by advanced users, as a too high memory ballast could lead to Out Of Memory panics. The memory ballast " +
+			"should not be higher than 20-25% of the machine's available RAM",
 	}
 )
 
