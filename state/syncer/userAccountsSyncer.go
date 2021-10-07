@@ -205,9 +205,6 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 
 	wg.Wait()
 
-	errMutex.Lock()
-	defer errMutex.Unlock()
-
 	return errFound
 }
 
