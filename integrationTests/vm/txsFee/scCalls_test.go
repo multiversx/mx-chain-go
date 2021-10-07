@@ -360,7 +360,6 @@ func TestESDTScCallAndGasChangeShouldWork(t *testing.T) {
 		testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 		indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-		// 2 esdt transfers and one api call - + 3
 		require.Equal(t, uint64(25095), indexerTx.GasUsed)
 	}
 }
