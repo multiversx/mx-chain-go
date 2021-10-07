@@ -13,7 +13,7 @@ require (
 	github.com/ElrondNetwork/elrond-go-crypto v1.0.1
 	github.com/ElrondNetwork/elrond-go-logger v1.0.5
 	github.com/ElrondNetwork/elrond-vm-common v1.2.2
-	github.com/ElrondNetwork/notifier-go v0.0.0-20210726084028-a78b3bbabc41
+	github.com/ElrondNetwork/notifier-go v0.0.0-20211007141533-3d57bb82bb14
 	github.com/beevik/ntp v0.3.0
 	github.com/btcsuite/btcd v0.22.0-beta
 	github.com/davecgh/go-spew v1.1.1
@@ -45,7 +45,7 @@ require (
 	github.com/urfave/cli v1.22.5
 	github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee
 	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97
-	golang.org/x/net v0.0.0-20210423184538-5f58ad60dda6
+	golang.org/x/net v0.0.0-20210428140749-89ef3d95e781
 	gopkg.in/go-playground/validator.v8 v8.18.2
 )
 
