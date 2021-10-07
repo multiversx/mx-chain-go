@@ -87,7 +87,7 @@ type TestContext struct {
 	UnsignexTxHandler process.TransactionFeeHandler
 	EconomicsFee      process.FeeHandler
 	LastConsumedFee   uint64
-	ArwenChangeLocker process.Locker
+	ArwenChangeLocker common.Locker
 
 	ScAddress        []byte
 	ScCodeMetadata   vmcommon.CodeMetadata
