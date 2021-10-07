@@ -13,7 +13,7 @@ import (
 
 // multipleHeaderProposalsDetector - checks slashable events in case a validator proposes multiple(possibly) malicious headers.
 type multipleHeaderProposalsDetector struct {
-	cache            detectorCache
+	cache            RoundDetectorCache
 	nodesCoordinator sharding.NodesCoordinator
 	baseSlashingDetector
 }
@@ -64,11 +64,11 @@ func (mhp *multipleHeaderProposalsDetector) VerifyData(data process.InterceptedD
 		return nil, err
 	}
 
-	if mhp.cache.contains(round, proposer, interceptedHeader) {
+	if mhp.cache.Contains(round, proposer, interceptedHeader) {
 		return nil, process.ErrNoSlashingEventDetected
 	}
 
-	mhp.cache.add(round, proposer, interceptedHeader)
+	mhp.cache.Add(round, proposer, interceptedHeader)
 	slashingResult := mhp.getSlashingResult(round, proposer)
 
 	if slashingResult != nil {
@@ -95,7 +95,7 @@ func (mhp *multipleHeaderProposalsDetector) getProposerPubKey(header data.Header
 }
 
 func (mhp *multipleHeaderProposalsDetector) getSlashingResult(currRound uint64, proposerPubKey []byte) *slash.SlashingResult {
-	proposedHeaders := mhp.cache.data(currRound, proposerPubKey)
+	proposedHeaders := mhp.cache.GetData(currRound, proposerPubKey)
 	if len(proposedHeaders) >= 2 {
 		return &slash.SlashingResult{
 			SlashingLevel: computeSlashLevel(proposedHeaders),

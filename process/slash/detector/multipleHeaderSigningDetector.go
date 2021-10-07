@@ -16,8 +16,8 @@ import (
 // SigningSlashingDetector - checks for slashable events in case one(or more)
 // validator signs multiple headers in the same round
 type SigningSlashingDetector struct {
-	slashingCache    detectorCache
-	headersCache     headersCache
+	slashingCache    RoundDetectorCache
+	headersCache     HeadersCache
 	nodesCoordinator sharding.NodesCoordinator
 	hasher           hashing.Hasher
 	marshaller       marshal.Marshalizer
@@ -78,7 +78,7 @@ func (ssd *SigningSlashingDetector) VerifyData(interceptedData process.Intercept
 		return nil, err
 	}
 
-	if ssd.headersCache.contains(round, headerHash) {
+	if ssd.headersCache.Contains(round, headerHash) {
 		return nil, process.ErrHeadersShouldHaveDifferentHashes
 	}
 
@@ -86,7 +86,7 @@ func (ssd *SigningSlashingDetector) VerifyData(interceptedData process.Intercept
 	if err != nil {
 		return nil, err
 	}
-	ssd.headersCache.add(round, headerHash, header)
+	ssd.headersCache.Add(round, headerHash, header)
 
 	slashingResult := ssd.getSlashingResult(round)
 	if len(slashingResult) != 0 {
@@ -124,7 +124,7 @@ func (ssd *SigningSlashingDetector) cacheSigners(interceptedHeader *interceptedB
 	bitmap := header.GetPubKeysBitmap()
 	for idx, validator := range group {
 		if slash.IsIndexSetInBitmap(uint32(idx), bitmap) {
-			ssd.slashingCache.add(header.GetRound(), validator.PubKey(), interceptedHeader)
+			ssd.slashingCache.Add(header.GetRound(), validator.PubKey(), interceptedHeader)
 		}
 	}
 
@@ -134,8 +134,8 @@ func (ssd *SigningSlashingDetector) cacheSigners(interceptedHeader *interceptedB
 func (ssd *SigningSlashingDetector) getSlashingResult(round uint64) map[string]slash.SlashingResult {
 	slashingData := make(map[string]slash.SlashingResult)
 
-	for _, validator := range ssd.slashingCache.validators(round) {
-		signedHeaders := ssd.slashingCache.data(round, validator)
+	for _, validator := range ssd.slashingCache.GetPubKeys(round) {
+		signedHeaders := ssd.slashingCache.GetData(round, validator)
 		if len(signedHeaders) > 1 {
 			slashingData[string(validator)] = slash.SlashingResult{
 				SlashingLevel: computeSlashLevel(signedHeaders),

@@ -1,7 +1,6 @@
 package detector
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/process/slash"
@@ -17,19 +16,6 @@ const minSlashableNoOfHeaders = 2
 // MaxDeltaToCurrentRound represents the max delta from the current round to any
 // other round from an intercepted data in order for a detector to process it and cache it
 const MaxDeltaToCurrentRound = 3
-
-type detectorCache interface {
-	add(round uint64, pubKey []byte, data process.InterceptedData)
-	data(round uint64, pubKey []byte) dataList
-	contains(round uint64, pubKey []byte, data process.InterceptedData) bool
-	validators(round uint64) [][]byte
-}
-
-type headersCache interface {
-	add(round uint64, hash []byte, header data.HeaderHandler)
-	contains(round uint64, hash []byte) bool
-	headers(round uint64) headerHashList
-}
 
 type baseSlashingDetector struct {
 	roundHandler process.RoundHandler

@@ -8,7 +8,6 @@ import (
 )
 
 type headerHashList []headerHash
-
 type headerHash struct {
 	hash   string
 	header data.HeaderHandler
@@ -30,7 +29,7 @@ func newRoundHeadersCache(maxRounds uint64) *roundHeadersCache {
 	}
 }
 
-func (rdc *roundHeadersCache) add(round uint64, hash []byte, header data.HeaderHandler) {
+func (rdc *roundHeadersCache) Add(round uint64, hash []byte, header data.HeaderHandler) {
 	rdc.mutexCache.Lock()
 	defer rdc.mutexCache.Unlock()
 
@@ -61,7 +60,7 @@ func (rdc *roundHeadersCache) add(round uint64, hash []byte, header data.HeaderH
 	}
 }
 
-func (rdc *roundHeadersCache) contains(round uint64, hash []byte) bool {
+func (rdc *roundHeadersCache) Contains(round uint64, hash []byte) bool {
 	rdc.mutexCache.RLock()
 	defer rdc.mutexCache.RUnlock()
 
@@ -77,17 +76,6 @@ func (rdc *roundHeadersCache) contains(round uint64, hash []byte) bool {
 	}
 
 	return false
-}
-
-func (rdc *roundHeadersCache) headers(round uint64) headerHashList {
-	rdc.mutexCache.RLock()
-	defer rdc.mutexCache.RUnlock()
-
-	if _, exist := rdc.cache[round]; !exist {
-		return headerHashList{}
-	}
-
-	return rdc.cache[round]
 }
 
 func (rdc *roundHeadersCache) isCacheFull(currRound uint64) bool {
