@@ -241,8 +241,6 @@ func TestScCallAndGasChangeShouldWork(t *testing.T) {
 	defer testContext.Close()
 
 	mockGasSchedule := testContext.GasSchedule.(*mock.GasScheduleNotifierMock)
-	testGasSchedule := arwenConfig.MakeGasMapForTests()
-	newGasSchedule := defaults.FillGasMapInternal(testGasSchedule, 2)
 
 	scAddress, _ := utils.DoDeploy(t, testContext, "../arwen/testdata/counter/output/counter.wasm")
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
@@ -272,6 +270,8 @@ func TestScCallAndGasChangeShouldWork(t *testing.T) {
 		require.Equal(t, uint64(387), indexerTx.GasUsed)
 	}
 
+	newGasSchedule := arwenConfig.MakeGasMapForTests()
+	newGasSchedule["WASMOpcodeCost"] = arwenConfig.FillGasMap_WASMOpcodeValues(2)
 	mockGasSchedule.ChangeGasSchedule(newGasSchedule)
 
 	for idx := uint64(0); idx < 10; idx++ {
@@ -289,7 +289,7 @@ func TestScCallAndGasChangeShouldWork(t *testing.T) {
 		testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 		indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-		require.Equal(t, uint64(748), indexerTx.GasUsed)
+		require.Equal(t, uint64(400), indexerTx.GasUsed)
 	}
 }
 
@@ -320,7 +320,7 @@ func TestESDTScCallAndGasChangeShouldWork(t *testing.T) {
 	txData := txDataBuilder.NewBuilder()
 	valueToSendToSc := int64(1000)
 	txData.TransferESDT(string(token), valueToSendToSc).Str("forward_direct_esdt_via_transf_exec").Bytes(sndAddr)
-	for idx := uint64(0); idx < 10; idx++ {
+	for idx := uint64(0); idx < 1; idx++ {
 		tx := vm.CreateTransaction(idx, big.NewInt(0), sndAddr, scAddress, gasPrice, gasLimit, txData.ToBytes())
 
 		_, err = testContext.TxProcessor.ProcessTransaction(tx)
@@ -345,8 +345,8 @@ func TestESDTScCallAndGasChangeShouldWork(t *testing.T) {
 	newGasSchedule["ElrondAPICost"]["TransferValue"] = 2
 	mockGasSchedule.ChangeGasSchedule(newGasSchedule)
 
-	for idx := uint64(0); idx < 10; idx++ {
-		tx := vm.CreateTransaction(10+idx, big.NewInt(0), sndAddr, scAddress, gasPrice, gasLimit, txData.ToBytes())
+	for idx := uint64(0); idx < 1; idx++ {
+		tx := vm.CreateTransaction(1+idx, big.NewInt(0), sndAddr, scAddress, gasPrice, gasLimit, txData.ToBytes())
 
 		_, err = testContext.TxProcessor.ProcessTransaction(tx)
 		require.Nil(t, err)
