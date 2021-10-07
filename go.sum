@@ -16,8 +16,8 @@ github.com/ElrondNetwork/arwen-wasm-vm v1.2.30 h1:J5M2PCQCLcA1da6bVHEc4DnR5MIUWE
 github.com/ElrondNetwork/arwen-wasm-vm v1.2.30/go.mod h1:smiWm3zO4Ifcjx0qXqpdzE02hYja8BcyzuCd/XhFX3Y=
 github.com/ElrondNetwork/arwen-wasm-vm v1.3.30 h1:TiFKS/zubOvZM6DfKU7t60vTkkgwJBCmH+VgOzKADxM=
 github.com/ElrondNetwork/arwen-wasm-vm v1.3.30/go.mod h1:esDwoZViDmW7qURcy5RnFlW1vt4n30Pz9Wny49sK7CI=
-github.com/ElrondNetwork/arwen-wasm-vm v1.4.17-0.20211007060802-167b9278627a h1:AgR0OkiAAfd5mvb1fzHUUEfZ6/VaezdRgvz6PGR/ihQ=
-github.com/ElrondNetwork/arwen-wasm-vm v1.4.17-0.20211007060802-167b9278627a/go.mod h1:SOxoldjn/YTEYip4/AIPBiRIsSkatflhvE4UiE0d4YQ=
+github.com/ElrondNetwork/arwen-wasm-vm v1.4.16 h1:9Y0wiNEgqx7WE1Tn2fXOKLLZUd3/Kdl0KDR5xYRb6bs=
+github.com/ElrondNetwork/arwen-wasm-vm v1.4.16/go.mod h1:6L6T6hBRTvTgJ2V8k6X5E4oeT8caZNYxzlOmP506KGk=
 github.com/ElrondNetwork/big-int-util v0.1.0 h1:vTMoJ5azhVmr7jhpSD3JUjQdkdyXoEPVkOvhdw1RjV4=
 github.com/ElrondNetwork/big-int-util v0.1.0/go.mod h1:96viBvoTXLjZOhEvE0D+QnAwg1IJLPAK6GVHMbC7Aw4=
 github.com/ElrondNetwork/concurrent-map v0.1.3 h1:j2LtPrNJuerannC1cQDE79STvi/P04gd61sNYo04Zf0=
@@ -40,9 +40,8 @@ github.com/ElrondNetwork/elrond-go-logger v1.0.5/go.mod h1:cBfgx0ST/CJx8jrxJSC5a
 github.com/ElrondNetwork/elrond-vm-common v1.1.0/go.mod h1:w3i6f8uiuRkE68Ie/gebRcLgTuHqvruJSYrFyZWuLrE=
 github.com/ElrondNetwork/elrond-vm-common v1.1.3/go.mod h1:09cTlI5tYUzD1bb8GEt0FcCm/qfQlidu4tIF3Dy+cWs=
 github.com/ElrondNetwork/elrond-vm-common v1.2.1/go.mod h1:07N31evc3GKh+tcmOXpc3xz/YsgV4yUHMo3LSlF0DIs=
+github.com/ElrondNetwork/elrond-vm-common v1.2.2 h1:qyuTni/e3gPCcZ4BOElbY7XOA9iOu9qTTP73Cw3RHqA=
 github.com/ElrondNetwork/elrond-vm-common v1.2.2/go.mod h1:07N31evc3GKh+tcmOXpc3xz/YsgV4yUHMo3LSlF0DIs=
-github.com/ElrondNetwork/elrond-vm-common v1.2.3-0.20211005101446-652cf8e5d883 h1:+WoG/VDQL4PEvJK73aBnX39TS/Pxe9OVwmgsZp/Me40=
-github.com/ElrondNetwork/elrond-vm-common v1.2.3-0.20211005101446-652cf8e5d883/go.mod h1:07N31evc3GKh+tcmOXpc3xz/YsgV4yUHMo3LSlF0DIs=
 github.com/ElrondNetwork/notifier-go v0.0.0-20210726084028-a78b3bbabc41 h1:heGvUbSMCg+Ngir82E5dL9WYvzEK1UpmmDdthJBJzNI=
 github.com/ElrondNetwork/notifier-go v0.0.0-20210726084028-a78b3bbabc41/go.mod h1:VkblRkTnCWB2ITwSYsj2q6Kyzm4hRtUBH3Ezl9nxuds=
 github.com/ElrondNetwork/protobuf v1.3.2 h1:qoCSYiO+8GtXBEZWEjw0WPcZfM3g7QuuJrwpN+y6Mvg=
