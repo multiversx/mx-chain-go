@@ -4,6 +4,7 @@ package config
 type ExternalConfig struct {
 	ElasticSearchConnector ElasticSearchConfig
 	EventNotifierConnector EventNotifierConfig
+	CovalentConnector      CovalentConfig
 }
 
 // ElasticSearchConfig will hold the configuration for the elastic search
@@ -24,4 +25,12 @@ type EventNotifierConfig struct {
 	ProxyUrl         string
 	Username         string
 	Password         string
+}
+
+// CovalentConfig will hold the configurations for covalent indexer
+type CovalentConfig struct {
+	Enabled              bool
+	URL                  string
+	RouteSendData        string
+	RouteAcknowledgeData string
 }
