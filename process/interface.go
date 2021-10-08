@@ -87,12 +87,6 @@ type HdrValidatorHandler interface {
 	HeaderHandler() data.HeaderHandler
 }
 
-// HeaderValidator can determine if a provided header handler is valid or not from the process point of view
-type HeaderValidator interface {
-	HeaderValidForProcessing(headerHandler HdrValidatorHandler) error
-	IsInterfaceNil() bool
-}
-
 // InterceptedDataFactory can create new instances of InterceptedData
 type InterceptedDataFactory interface {
 	Create(buff []byte) (InterceptedData, error)
