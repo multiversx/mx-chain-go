@@ -36,6 +36,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	procTx "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -1253,6 +1254,134 @@ func (n *Node) getClosableComponentName(component mainFactory.Closer, index int)
 // IsInImportMode returns true if the node is in import mode
 func (n *Node) IsInImportMode() bool {
 	return n.isInImportMode
+}
+
+// GetProof returns the Merkle proof for the given address and root hash
+func (n *Node) GetProof(rootHash string, key string) (*common.GetProofResponse, error) {
+	rootHashBytes, keyBytes, err := n.getRootHashAndAddressAsBytes(rootHash, key)
+	if err != nil {
+		return nil, err
+	}
+
+	return n.getProof(rootHashBytes, keyBytes)
+}
+
+// GetProofDataTrie returns the Merkle Proof for the given address, and another Merkle Proof
+// for the given key, if it exists in the dataTrie
+func (n *Node) GetProofDataTrie(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error) {
+	rootHashBytes, addressBytes, err := n.getRootHashAndAddressAsBytes(rootHash, address)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	keyBytes, err := hex.DecodeString(key)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	mainProofResponse, err := n.getProof(rootHashBytes, addressBytes)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	dataTrieRootHash, value, err := n.getAccountRootHashAndVal(addressBytes, mainProofResponse.Value, keyBytes)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	dataTrieProofResponse, err := n.getProof(dataTrieRootHash, keyBytes)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	dataTrieProofResponse.Value = value
+
+	return mainProofResponse, dataTrieProofResponse, nil
+}
+
+// VerifyProof verifies the given Merkle proof
+func (n *Node) VerifyProof(rootHash string, address string, proof [][]byte) (bool, error) {
+	rootHashBytes, err := hex.DecodeString(rootHash)
+	if err != nil {
+		return false, err
+	}
+
+	mpv, err := trie.NewMerkleProofVerifier(n.coreComponents.InternalMarshalizer(), n.coreComponents.Hasher())
+	if err != nil {
+		return false, err
+	}
+
+	key, err := n.getKeyBytes(address)
+	if err != nil {
+		return false, err
+	}
+
+	return mpv.VerifyProof(rootHashBytes, key, proof)
+}
+
+func (n *Node) getRootHashAndAddressAsBytes(rootHash string, address string) ([]byte, []byte, error) {
+	rootHashBytes, err := hex.DecodeString(rootHash)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	addressBytes, err := n.getKeyBytes(address)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return rootHashBytes, addressBytes, nil
+}
+
+func (n *Node) getAccountRootHashAndVal(address []byte, accBytes []byte, key []byte) ([]byte, []byte, error) {
+	account, err := n.stateComponents.AccountsAdapter().GetAccountFromBytes(address, accBytes)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	userAccount, ok := account.(state.UserAccountHandler)
+	if !ok {
+		return nil, nil, fmt.Errorf("the address does not belong to a user account")
+	}
+
+	dataTrieRootHash := userAccount.GetRootHash()
+	if len(dataTrieRootHash) == 0 {
+		return nil, nil, fmt.Errorf("empty dataTrie rootHash")
+	}
+
+	retrievedVal, err := userAccount.RetrieveValueFromDataTrieTracker(key)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return dataTrieRootHash, retrievedVal, nil
+}
+
+func (n *Node) getProof(rootHash []byte, key []byte) (*common.GetProofResponse, error) {
+	tr, err := n.stateComponents.AccountsAdapter().GetTrie(rootHash)
+	if err != nil {
+		return nil, err
+	}
+
+	computedProof, value, err := tr.GetProof(key)
+	if err != nil {
+		return nil, err
+	}
+
+	return &common.GetProofResponse{
+		Proof:    computedProof,
+		Value:    value,
+		RootHash: hex.EncodeToString(rootHash),
+	}, nil
+}
+
+func (n *Node) getKeyBytes(key string) ([]byte, error) {
+	addressBytes, err := n.DecodeAddressPubkey(key)
+	if err == nil {
+		return addressBytes, nil
+	}
+
+	return hex.DecodeString(key)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
