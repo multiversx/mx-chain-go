@@ -62,13 +62,13 @@ func NewIntermediateResultsProcessor(
 	}
 
 	base := &basePostProcessor{
-		hasher:           hasher,
-		marshalizer:      marshalizer,
-		shardCoordinator: coordinator,
-		store:            store,
-		storageType:      dataRetriever.UnsignedTransactionUnit,
-		mapTxToResult:    make(map[string][]string),
-		economicsFee:     economicsFee,
+		hasher:             hasher,
+		marshalizer:        marshalizer,
+		shardCoordinator:   coordinator,
+		store:              store,
+		storageType:        dataRetriever.UnsignedTransactionUnit,
+		mapProcessedResult: make(map[string]struct{}),
+		economicsFee:       economicsFee,
 	}
 
 	irp := &intermediateResultsProcessor{
@@ -236,7 +236,7 @@ func (irp *intermediateResultsProcessor) AddIntermediateTransactions(txs []data.
 		addScrShardInfo := &txShardInfo{receiverShardID: dstShId, senderShardID: sndShId}
 		scrInfo := &txInfo{tx: addScr, txShardInfo: addScrShardInfo}
 		irp.interResultsForBlock[string(scrHash)] = scrInfo
-		irp.mapTxToResult[string(addScr.PrevTxHash)] = append(irp.mapTxToResult[string(addScr.PrevTxHash)], string(scrHash))
+		irp.mapProcessedResult[string(scrHash)] = struct{}{}
 	}
 
 	return nil

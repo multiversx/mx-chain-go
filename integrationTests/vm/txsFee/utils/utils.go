@@ -63,6 +63,7 @@ func DoDeploy(t *testing.T, testContext *vm.VMTestContext, pathToContract string
 	return scAddr, owner
 }
 
+// DoDeployNoChecks -
 func DoDeployNoChecks(t *testing.T, testContext *vm.VMTestContext, pathToContract string) (scAddr []byte, owner []byte) {
 	owner = []byte("12345678901234567890123456789011")
 	senderNonce := uint64(0)
@@ -196,6 +197,7 @@ func TestAccount(
 	return senderRecovShardAccount.GetBalance()
 }
 
+// CreateSmartContractCall -
 func CreateSmartContractCall(
 	nonce uint64,
 	sndAddr []byte,
