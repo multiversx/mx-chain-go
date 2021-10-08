@@ -13,12 +13,12 @@ func NewDisabledTxValidator() *disabledTxValidator {
 	return &disabledTxValidator{}
 }
 
-// CheckTxValidity is a nil implementation that will return nil
+// CheckTxValidity is a disabled implementation that will return nil
 func (dtv *disabledTxValidator) CheckTxValidity(_ process.TxValidatorHandler) error {
 	return nil
 }
 
-// CheckTxWhiteList is a nil implementation that will return nil
+// CheckTxWhiteList is a disabled implementation that will return nil
 func (dtv *disabledTxValidator) CheckTxWhiteList(_ process.InterceptedData) error {
 	return nil
 }
