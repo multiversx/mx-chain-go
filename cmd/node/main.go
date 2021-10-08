@@ -23,7 +23,8 @@ const (
 )
 
 var (
-	nodeHelpTemplate = `NAME:
+	memoryBallastObject []byte
+	nodeHelpTemplate    = `NAME:
    {{.Name}} - {{.Usage}}
 USAGE:
    {{.HelpName}} {{if .VisibleFlags}}[global options]{{end}}
@@ -102,6 +103,14 @@ func startNodeRunner(c *cli.Context, log logger.Logger, version string) error {
 	err := applyFlags(c, cfgs, flagsConfig, log)
 	if err != nil {
 		return err
+	}
+
+	memBallastValue := c.GlobalUint64(memBallast.Name)
+	if memBallastValue > 0 {
+		// memory ballast is an optimization for golang's garbage collector. If set to a high value, it can decrease
+		// the number of times when GC performs STW processes, that results is a better performance over high load
+		memoryBallastObject = make([]byte, memBallastValue*core.MegabyteSize)
+		log.Debug("initialized memory ballast object", "size", core.ConvertBytes(uint64(len(memoryBallastObject))))
 	}
 
 	cfgs.FlagsConfig.Version = version
