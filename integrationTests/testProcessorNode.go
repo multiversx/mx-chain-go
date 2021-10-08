@@ -999,12 +999,18 @@ func (tpn *TestProcessorNode) createDefaultEconomicsConfig() *config.EconomicsCo
 			},
 		},
 		FeeSettings: config.FeeSettings{
-			MaxGasLimitPerBlock:     maxGasLimitPerBlock,
-			MaxGasLimitPerMetaBlock: maxGasLimitPerBlock,
-			MinGasPrice:             minGasPrice,
-			MinGasLimit:             minGasLimit,
-			GasPerDataByte:          "1",
-			GasPriceModifier:        0.01,
+			GasLimitSettings: []config.GasLimitSetting{
+				{
+					MaxGasLimitPerBlock:         maxGasLimitPerBlock,
+					MaxGasLimitPerMiniBlock:     maxGasLimitPerBlock,
+					MaxGasLimitPerMetaBlock:     maxGasLimitPerBlock,
+					MaxGasLimitPerMetaMiniBlock: maxGasLimitPerBlock,
+					MinGasLimit:                 minGasLimit,
+				},
+			},
+			MinGasPrice:      minGasPrice,
+			GasPerDataByte:   "1",
+			GasPriceModifier: 0.01,
 		},
 	}
 }
@@ -1487,6 +1493,8 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		tpn.BlockTracker,
 		TestBlockSizeComputationHandler,
 		TestBalanceComputationHandler,
+		tpn.EpochNotifier,
+		tpn.EnableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
@@ -1703,6 +1711,8 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		TestAddressPubkeyConverter,
 		TestBlockSizeComputationHandler,
 		TestBalanceComputationHandler,
+		tpn.EpochNotifier,
+		tpn.EnableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
