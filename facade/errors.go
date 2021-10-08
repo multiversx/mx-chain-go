@@ -31,3 +31,6 @@ var ErrNilBlockchain = errors.New("nil blockchain")
 
 // ErrNilBlockHeader signals that the current block header is nil
 var ErrNilBlockHeader = errors.New("nil block header")
+
+// ErrNilMarshalizer signals that an operation has been attempted to or with a nil Marshalizer implementation
+var ErrNilMarshalizer = errors.New("nil Marshalizer")
