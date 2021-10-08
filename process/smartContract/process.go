@@ -71,6 +71,7 @@ type scProcessor struct {
 	scrSizeInvariantCheckEnableEpoch            uint32
 	backwardCompSaveKeyValueEnableEpoch         uint32
 	createdCallBackCrossShardOnlyEnableEpoch    uint32
+	optimizeGasUsedInCrossMiniBlocksEnableEpoch uint32
 	flagStakingV2                               atomic.Flag
 	flagDeploy                                  atomic.Flag
 	flagBuiltin                                 atomic.Flag
@@ -83,7 +84,8 @@ type scProcessor struct {
 	flagSCRSizeInvariantCheck                   atomic.Flag
 	flagBackwardCompOnSaveKeyValue              atomic.Flag
 	flagCreatedCallBackCrossShardOnly           atomic.Flag
-	arwenChangeLocker                           process.Locker
+	arwenChangeLocker                           common.Locker
+	flagOptimizeGasUsedInCrossMiniBlocks        atomic.Flag
 
 	badTxForwarder process.IntermediateTransactionHandler
 	scrForwarder   process.IntermediateTransactionHandler
@@ -122,7 +124,7 @@ type ArgsNewSmartContractProcessor struct {
 	EnableEpochs        config.EnableEpochs
 	EpochNotifier       process.EpochNotifier
 	VMOutputCacher      storage.Cacher
-	ArwenChangeLocker   process.Locker
+	ArwenChangeLocker   common.Locker
 	IsGenesisProcessing bool
 }
 
@@ -222,6 +224,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		persistPerByte:                        baseOperationCost["PersistPerByte"],
 		incrementSCRNonceInMultiTransferEnableEpoch: args.EnableEpochs.IncrementSCRNonceInMultiTransferEnableEpoch,
 		createdCallBackCrossShardOnlyEnableEpoch:    args.EnableEpochs.MultiESDTTransferFixOnCallBackOnEnableEpoch,
+		optimizeGasUsedInCrossMiniBlocksEnableEpoch: args.EnableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
 	}
 
 	var err error
@@ -235,12 +238,12 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	log.Debug("smartContract/process: enable epoch for repair callback", "epoch", sc.repairCallBackEnableEpoch)
 	log.Debug("smartContract/process: enable epoch for penalized too much gas", "epoch", sc.penalizedTooMuchGasEnableEpoch)
 	log.Debug("smartContract/process: enable epoch for staking v2", "epoch", sc.stakingV2EnableEpoch)
-	log.Debug("smartContract/process: enable epoch for increment SCR nonce in multi transfer",
-		"epoch", sc.incrementSCRNonceInMultiTransferEnableEpoch)
+	log.Debug("smartContract/process: enable epoch for increment SCR nonce in multi transfer", "epoch", sc.incrementSCRNonceInMultiTransferEnableEpoch)
 	log.Debug("smartContract/process: enable epoch for built in functions on metachain", "epoch", sc.builtInFunctionOnMetachainEnableEpoch)
 	log.Debug("smartContract/process: enable epoch for scr size invariant check", "epoch", sc.scrSizeInvariantCheckEnableEpoch)
 	log.Debug("smartContract/process: disable epoch for backward compatibility check on save key value error", "epoch", sc.scrSizeInvariantCheckEnableEpoch)
 	log.Debug("smartContract/process: enable epoch for created async callback on cross shard only", "epoch", sc.createdCallBackCrossShardOnlyEnableEpoch)
+	log.Debug("smartContract/process: enable epoch for optimize gas used in cross mini blocks", "epoch", sc.optimizeGasUsedInCrossMiniBlocksEnableEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(sc)
 	args.GasSchedule.RegisterNotifyHandler(sc)
@@ -420,6 +423,7 @@ func (sc *scProcessor) executeSmartContractCall(
 		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
 	}
 	vmOutput.GasRemaining += vmInput.GasLocked
+
 	if vmOutput.ReturnCode != vmcommon.Ok {
 		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, vmOutput.ReturnCode.String(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
 	}
@@ -1741,6 +1745,10 @@ func (sc *scProcessor) penalizeUserIfNeeded(
 		}
 	}
 
+	if sc.flagOptimizeGasUsedInCrossMiniBlocks.IsSet() {
+		sc.gasHandler.SetGasPenalized(vmOutput.GasRemaining, txHash)
+	}
+
 	vmOutput.ReturnMessage += fmt.Sprintf("%s: gas needed = %d, gas remained = %d",
 		TooMuchGasProvidedMessage, gasUsed, vmOutput.GasRemaining)
 	vmOutput.GasRemaining = 0
@@ -2568,6 +2576,9 @@ func (sc *scProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 
 	sc.flagCreatedCallBackCrossShardOnly.Toggle(epoch >= sc.createdCallBackCrossShardOnlyEnableEpoch)
 	log.Debug("scProcessor: created callback cross shard only", "enabled", sc.flagCreatedCallBackCrossShardOnly.IsSet())
+
+	sc.flagOptimizeGasUsedInCrossMiniBlocks.Toggle(epoch >= sc.optimizeGasUsedInCrossMiniBlocksEnableEpoch)
+	log.Debug("scProcessor: optimize gas used in cross mini blocks", "enabled", sc.flagOptimizeGasUsedInCrossMiniBlocks.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

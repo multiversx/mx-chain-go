@@ -376,6 +376,11 @@ func (nf *nodeFacade) GetBlockByNonce(nonce uint64, withTxs bool) (*apiData.Bloc
 	return nf.node.GetBlockByNonce(nonce, withTxs)
 }
 
+// GetBlockByRound returns the block for a given round
+func (nf *nodeFacade) GetBlockByRound(round uint64, withTxs bool) (*apiData.Block, error) {
+	return nf.node.GetBlockByRound(round, withTxs)
+}
+
 // Close will cleanup started go routines
 func (nf *nodeFacade) Close() error {
 	log.LogIfError(nf.apiResolver.Close())

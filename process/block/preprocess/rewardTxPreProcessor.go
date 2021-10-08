@@ -446,14 +446,14 @@ func (rtp *rewardTxPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 			return processedTxHashes, index, process.ErrTimeIsOut
 		}
 
+		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[index])
+
 		rtp.saveAccountBalanceForAddress(miniBlockRewardTxs[index].GetRcvAddr())
 
 		err = rtp.rewardsProcessor.ProcessRewardTransaction(miniBlockRewardTxs[index])
 		if err != nil {
 			return processedTxHashes, index, err
 		}
-
-		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[index])
 	}
 
 	txShardData := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}

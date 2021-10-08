@@ -68,6 +68,7 @@ func createGenesisConfig() config.EnableEpochs {
 		AddTokensToDelegationEnableEpoch:            unreachableEpoch,
 		MultiESDTTransferFixOnCallBackOnEnableEpoch: unreachableEpoch,
 		SenderInOutTransferEnableEpoch:              unreachableEpoch,
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: unreachableEpoch,
 	}
 }
 
@@ -482,6 +483,8 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		disabledBlockTracker,
 		disabledBlockSizeComputationHandler,
 		disabledBalanceComputationHandler,
+		epochNotifier,
+		enableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
 	)
 	if err != nil {
 		return nil, err

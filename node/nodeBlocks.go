@@ -35,6 +35,15 @@ func (n *Node) GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error) {
 	return apiBlockProcessor.GetBlockByNonce(nonce, withTxs)
 }
 
+func (n *Node) GetBlockByRound(round uint64, withTxs bool) (*api.Block, error) {
+	apiBlockProcessor, err := n.createAPIBlockProcessor()
+	if err != nil {
+		return nil, err
+	}
+
+	return apiBlockProcessor.GetBlockByRound(round, withTxs)
+}
+
 func (n *Node) createAPIBlockProcessor() (blockAPI.APIBlockHandler, error) {
 	statusComputer, err := txstatus.NewStatusComputer(n.processComponents.ShardCoordinator().SelfId(), n.coreComponents.Uint64ByteSliceConverter(), n.dataComponents.StorageService())
 	if err != nil {

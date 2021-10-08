@@ -154,6 +154,8 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("meta ESDT, financial SFT"), "epoch", enableEpochs.MetaESDTSetEnableEpoch)
 	log.Debug(readEpochFor("add tokens to delegation"), "epoch", enableEpochs.AddTokensToDelegationEnableEpoch)
 	log.Debug(readEpochFor("multi ESDT transfer on callback"), "epoch", enableEpochs.MultiESDTTransferFixOnCallBackOnEnableEpoch)
+	log.Debug(readEpochFor("optimize gas used in cross mini blocks"), "epoch", enableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch)
+
 	gasSchedule := configs.EpochConfig.GasSchedule
 
 	log.Debug(readEpochFor("gas schedule directories paths"), "epoch", gasSchedule.GasScheduleByEpochs)
@@ -325,6 +327,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		GasScheduleConfig: configs.EpochConfig.GasSchedule,
 		ConfigDir:         configurationPaths.GasScheduleDirectoryName,
 		EpochNotifier:     managedCoreComponents.EpochNotifier(),
+		ArwenChangeLocker: managedCoreComponents.ArwenChangeLocker(),
 	}
 	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
 	if err != nil {
@@ -897,11 +900,12 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	}
 
 	historyRepoFactoryArgs := &dbLookupFactory.ArgsHistoryRepositoryFactory{
-		SelfShardID: managedBootstrapComponents.ShardCoordinator().SelfId(),
-		Config:      configs.GeneralConfig.DbLookupExtensions,
-		Hasher:      managedCoreComponents.Hasher(),
-		Marshalizer: managedCoreComponents.InternalMarshalizer(),
-		Store:       managedDataComponents.StorageService(),
+		SelfShardID:              managedBootstrapComponents.ShardCoordinator().SelfId(),
+		Config:                   configs.GeneralConfig.DbLookupExtensions,
+		Hasher:                   managedCoreComponents.Hasher(),
+		Marshalizer:              managedCoreComponents.InternalMarshalizer(),
+		Store:                    managedDataComponents.StorageService(),
+		Uint64ByteSliceConverter: managedCoreComponents.Uint64ByteSliceConverter(),
 	}
 	historyRepositoryFactory, err := dbLookupFactory.NewHistoryRepositoryFactory(historyRepoFactoryArgs)
 	if err != nil {

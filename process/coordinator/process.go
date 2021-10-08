@@ -230,8 +230,8 @@ func (tc *transactionCoordinator) IsDataPreparedForProcessing(haveTime func() ti
 		}(key, value)
 	}
 
-	tc.mutRequestedTxs.RUnlock()
 	wg.Wait()
+	tc.mutRequestedTxs.RUnlock()
 
 	return errFound
 }
@@ -478,6 +478,7 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 		}
 	}
 
+	numMiniBlocksProcessed := 0
 	separatedBodies := tc.separateBodyByType(body)
 	// processing has to be done in order, as the order of different type of transactions over the same account is strict
 	for _, blockType := range tc.keysTxPreProcs {
@@ -494,7 +495,15 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 		if err != nil {
 			return err
 		}
+
+		numMiniBlocksProcessed += len(separatedBodies[blockType].MiniBlocks)
 	}
+
+	log.Debug("transactionCoordinator.processMiniBlocksFromMe: gas consumed, refunded and penalized info",
+		"num mini blocks processed", numMiniBlocksProcessed,
+		"total gas consumed", tc.gasHandler.TotalGasConsumed(),
+		"total gas refunded", tc.gasHandler.TotalGasRefunded(),
+		"total gas penalized", tc.gasHandler.TotalGasPenalized())
 
 	return nil
 }
@@ -522,6 +531,12 @@ func (tc *transactionCoordinator) processMiniBlocksToMe(
 			return mbIndex, err
 		}
 	}
+
+	log.Debug("transactionCoordinator.processMiniBlocksToMe: gas consumed, refunded and penalized info",
+		"num mini blocks processed", len(body.MiniBlocks),
+		"total gas consumed", tc.gasHandler.TotalGasConsumed(),
+		"total gas refunded", tc.gasHandler.TotalGasRefunded(),
+		"total gas penalized", tc.gasHandler.TotalGasPenalized())
 
 	return mbIndex, nil
 }
@@ -637,6 +652,15 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 
 	allMBsProcessed := nrMiniBlocksProcessed == len(crossMiniBlockInfos)
 
+	log.Debug("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: gas consumed, refunded and penalized info",
+		"header round", hdr.GetRound(),
+		"header nonce", hdr.GetNonce(),
+		"num mini blocks to be processed", len(crossMiniBlockInfos),
+		"num mini blocks processed", nrMiniBlocksProcessed,
+		"total gas consumed", tc.gasHandler.TotalGasConsumed(),
+		"total gas refunded", tc.gasHandler.TotalGasRefunded(),
+		"total gas penalized", tc.gasHandler.TotalGasPenalized())
+
 	return miniBlocks, nrTxAdded, allMBsProcessed, nil
 }
 
@@ -645,6 +669,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 	haveTime func() bool,
 ) block.MiniBlockSlice {
 
+	numMiniBlocksProcessed := 0
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	for _, blockType := range tc.keysTxPreProcs {
 		txPreProc := tc.getPreProcessor(blockType)
@@ -660,12 +685,20 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 		if len(mbs) > 0 {
 			miniBlocks = append(miniBlocks, mbs...)
 		}
+
+		numMiniBlocksProcessed += len(mbs)
 	}
 
 	interMBs := tc.CreatePostProcessMiniBlocks()
 	if len(interMBs) > 0 {
 		miniBlocks = append(miniBlocks, interMBs...)
 	}
+
+	log.Debug("transactionCoordinator.CreateMbsAndProcessTransactionsFromMe: gas consumed, refunded and penalized info",
+		"num mini blocks processed", numMiniBlocksProcessed,
+		"total gas consumed", tc.gasHandler.TotalGasConsumed(),
+		"total gas refunded", tc.gasHandler.TotalGasRefunded(),
+		"total gas penalized", tc.gasHandler.TotalGasPenalized())
 
 	return miniBlocks
 }
@@ -913,6 +946,7 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 ) error {
 
 	snapshot := tc.accounts.JournalLen()
+	tc.initProcessedTxsResults()
 
 	txsToBeReverted, numTxsProcessed, err := preproc.ProcessMiniBlock(miniBlock, haveTime, tc.getNumOfCrossInterMbsAndTxs)
 	if err != nil {
@@ -943,25 +977,41 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 	return nil
 }
 
-func (tc *transactionCoordinator) revertProcessedTxsResults(txHashes [][]byte) {
+func (tc *transactionCoordinator) initProcessedTxsResults() {
+	tc.mutInterimProcessors.RLock()
+	defer tc.mutInterimProcessors.RUnlock()
+
 	for _, value := range tc.keysInterimProcs {
 		interProc, ok := tc.interimProcessors[value]
 		if !ok {
 			continue
 		}
-		interProc.RemoveProcessedResultsFor(txHashes)
+		interProc.InitProcessedResults()
+	}
+}
+
+func (tc *transactionCoordinator) revertProcessedTxsResults(txHashes [][]byte) {
+	tc.mutInterimProcessors.RLock()
+	defer tc.mutInterimProcessors.RUnlock()
+
+	for _, value := range tc.keysInterimProcs {
+		interProc, ok := tc.interimProcessors[value]
+		if !ok {
+			continue
+		}
+		interProc.RemoveProcessedResults()
 	}
 	tc.feeHandler.RevertFees(txHashes)
 }
 
 // VerifyCreatedBlockTransactions checks whether the created transactions are the same as the one proposed
 func (tc *transactionCoordinator) VerifyCreatedBlockTransactions(hdr data.HeaderHandler, body *block.Body) error {
-	tc.mutInterimProcessors.RLock()
-	defer tc.mutInterimProcessors.RUnlock()
 	errMutex := sync.Mutex{}
 	var errFound error
 
 	wg := sync.WaitGroup{}
+
+	tc.mutInterimProcessors.RLock()
 	wg.Add(len(tc.interimProcessors))
 
 	for _, interimProc := range tc.interimProcessors {
@@ -977,6 +1027,7 @@ func (tc *transactionCoordinator) VerifyCreatedBlockTransactions(hdr data.Header
 	}
 
 	wg.Wait()
+	tc.mutInterimProcessors.RUnlock()
 
 	if errFound != nil {
 		return errFound
@@ -1000,6 +1051,9 @@ func (tc *transactionCoordinator) VerifyCreatedBlockTransactions(hdr data.Header
 
 // CreateReceiptsHash will return the hash for the receipts
 func (tc *transactionCoordinator) CreateReceiptsHash() ([]byte, error) {
+	tc.mutInterimProcessors.RLock()
+	defer tc.mutInterimProcessors.RUnlock()
+
 	allReceiptsHashes := make([][]byte, 0)
 
 	for _, value := range tc.keysInterimProcs {
@@ -1040,6 +1094,9 @@ func (tc *transactionCoordinator) CreateReceiptsHash() ([]byte, error) {
 
 // CreateMarshalizedReceipts will return all the receipts list in one marshalized object
 func (tc *transactionCoordinator) CreateMarshalizedReceipts() ([]byte, error) {
+	tc.mutInterimProcessors.RLock()
+	defer tc.mutInterimProcessors.RUnlock()
+
 	receiptsBatch := &batch.Batch{}
 	for _, blockType := range tc.keysInterimProcs {
 		interProc, ok := tc.interimProcessors[blockType]
@@ -1243,7 +1300,7 @@ func (tc *transactionCoordinator) checkGasConsumedByMiniBlockInReceiverShard(
 		}
 	}
 
-	if gasConsumedByMiniBlockInReceiverShard > tc.economicsFee.MaxGasLimitPerBlock(miniBlock.ReceiverShardID) {
+	if gasConsumedByMiniBlockInReceiverShard > tc.economicsFee.MaxGasLimitPerMiniBlockForSafeCrossShard() {
 		return process.ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached
 	}
 
