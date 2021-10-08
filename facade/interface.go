@@ -91,6 +91,7 @@ type NodeHandler interface {
 
 	GetBlockByHash(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error)
+	GetBlockByRound(round uint64, withTxs bool) (*api.Block, error)
 }
 
 // TransactionSimulatorProcessor defines the actions which a transaction simulator processor has to implement

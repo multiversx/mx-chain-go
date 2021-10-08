@@ -240,6 +240,11 @@ func (inf *initialNodeFacade) GetBlockByNonce(_ uint64, _ bool) (*api.Block, err
 	return nil, errNodeStarting
 }
 
+// GetBlockByRound returns nil and error
+func (inf *initialNodeFacade) GetBlockByRound(_ uint64, _ bool) (*api.Block, error) {
+	return nil, errNodeStarting
+}
+
 // Close returns error
 func (inf *initialNodeFacade) Close() error {
 	return errNodeStarting

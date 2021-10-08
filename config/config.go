@@ -405,6 +405,7 @@ type DbLookupExtensionsConfig struct {
 	EpochByHashStorageConfig           StorageConfig
 	ResultsHashesByTxHashStorageConfig StorageConfig
 	ESDTSuppliesStorageConfig          StorageConfig
+	RoundHashStorageConfig             StorageConfig
 }
 
 // DebugConfig will hold debugging configuration
