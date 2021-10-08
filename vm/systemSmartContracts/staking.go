@@ -892,7 +892,7 @@ func (s *stakingSC) insertAfterLastJailed(
 			NextKey:      previousFirstKey,
 		}
 
-		if s.flagCorrectFirstQueued.IsSet() {
+		if s.flagCorrectFirstQueued.IsSet() && len(previousFirstKey) > 0 {
 			previousFirstElement, err := s.getWaitingListElement(previousFirstKey)
 			if err != nil {
 				return err

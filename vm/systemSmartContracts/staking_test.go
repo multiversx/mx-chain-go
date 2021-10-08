@@ -2353,7 +2353,6 @@ func TestStakingSc_InsertAfterLastJailedBeforeFix(t *testing.T) {
 
 	m := make(map[string]interface{})
 	m[string(firstKey)] = &ElementInList{firstBLS, firstKey, nil}
-	m[string(jailedKey)] = &ElementInList{jailedBLS, firstKey, nil}
 	waitingListHead := &WaitingList{firstKey, firstKey, 1, nil}
 	m[waitingListHeadKey] = waitingListHead
 
@@ -2412,7 +2411,6 @@ func TestStakingSc_InsertAfterLastJailedAfterFix(t *testing.T) {
 
 	m := make(map[string]interface{})
 	m[string(firstKey)] = &ElementInList{firstBLS, firstKey, nil}
-	m[string(jailedKey)] = &ElementInList{jailedBLS, firstKey, nil}
 	waitingListHead := &WaitingList{firstKey, firstKey, 1, nil}
 	m[waitingListHeadKey] = waitingListHead
 
@@ -2459,6 +2457,52 @@ func TestStakingSc_InsertAfterLastJailedAfterFix(t *testing.T) {
 	assert.Equal(t, firstBLS, previousFirstElement.BLSPublicKey)
 	assert.Equal(t, jailedKey, previousFirstElement.PreviousKey)
 	assert.Nil(t, previousFirstElement.NextKey)
+}
+
+func TestStakingSc_InsertAfterLastJailedAfterFixWithEmptyQueue(t *testing.T) {
+	t.Parallel()
+
+	jailedBLS := []byte("jailedBLS")
+	jailedKey := createWaitingListKey(jailedBLS)
+
+	m := make(map[string]interface{})
+	waitingListHead := &WaitingList{nil, nil, 0, nil}
+	m[waitingListHeadKey] = waitingListHead
+
+	marshalizer := &marshal.JsonMarshalizer{}
+
+	blockChainHook := &mock.BlockChainHookStub{}
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
+		obj, ok := m[string(index)]
+		if ok {
+			return marshalizer.Marshal(obj)
+		}
+
+		return nil, nil
+	}
+
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
+
+	args := createMockStakingScArguments()
+	args.Marshalizer = marshalizer
+	args.Eei = eei
+	sc, _ := NewStakingSmartContract(args)
+	sc.flagCorrectFirstQueued.Set()
+	err := sc.insertAfterLastJailed(waitingListHead, jailedBLS)
+	assert.Nil(t, err)
+
+	wlh, err := sc.getWaitingListHead()
+	assert.Nil(t, err)
+	assert.NotNil(t, wlh)
+	assert.Equal(t, jailedKey, wlh.FirstKey)
+	assert.Equal(t, jailedKey, wlh.LastJailedKey)
+
+	firstElement, err := sc.getWaitingListElement(wlh.FirstKey)
+	assert.Nil(t, err)
+	assert.NotNil(t, firstElement)
+	assert.Equal(t, jailedBLS, firstElement.BLSPublicKey)
+	assert.Equal(t, jailedKey, firstElement.PreviousKey)
+	assert.Equal(t, 0, len(firstElement.NextKey))
 }
 
 func doUnStakeAtEndOfEpoch(t *testing.T, sc *stakingSC, blsKey []byte, expectedReturnCode vmcommon.ReturnCode) {
