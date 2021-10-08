@@ -1011,23 +1011,9 @@ func (s *stakingSC) removeFromWaitingList(blsKey []byte) error {
 	previousElement, err := s.getWaitingListElement(elementToRemove.PreviousKey)
 	// search the other way around for the element in front
 	if s.flagCorrectFirstQueued.IsSet() && previousElement == nil {
-		index := uint32(1)
-		nextKey := make([]byte, len(waitingList.FirstKey))
-		copy(nextKey, waitingList.FirstKey)
-		for len(nextKey) != 0 && index <= waitingList.Length {
-			element, errGet := s.getWaitingListElement(nextKey)
-			if errGet != nil {
-				return errGet
-			}
-
-			if bytes.Equal(inWaitingListKey, element.NextKey) {
-				previousElement = element
-				elementToRemove.PreviousKey = createWaitingListKey(previousElement.BLSPublicKey)
-				break
-			}
-			index++
-			nextKey = make([]byte, len(element.NextKey))
-			copy(nextKey, element.NextKey)
+		previousElement, err = s.searchPreviousFromHead(waitingList, inWaitingListKey, elementToRemove)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -1054,6 +1040,29 @@ func (s *stakingSC) removeFromWaitingList(blsKey []byte) error {
 		return err
 	}
 	return s.saveElementAndList(elementToRemove.PreviousKey, previousElement, waitingList)
+}
+
+func (s *stakingSC) searchPreviousFromHead(waitingList *WaitingList, inWaitingListKey []byte, elementToRemove *ElementInList) (*ElementInList, error) {
+	var previousElement *ElementInList
+	index := uint32(1)
+	nextKey := make([]byte, len(waitingList.FirstKey))
+	copy(nextKey, waitingList.FirstKey)
+	for len(nextKey) != 0 && index <= waitingList.Length {
+		element, errGet := s.getWaitingListElement(nextKey)
+		if errGet != nil {
+			return nil, errGet
+		}
+
+		if bytes.Equal(inWaitingListKey, element.NextKey) {
+			previousElement = element
+			elementToRemove.PreviousKey = createWaitingListKey(previousElement.BLSPublicKey)
+			return previousElement, nil
+		}
+		index++
+		nextKey = make([]byte, len(element.NextKey))
+		copy(nextKey, element.NextKey)
+	}
+	return nil, vm.ErrElementNotFound
 }
 
 func (s *stakingSC) getWaitingListElement(key []byte) (*ElementInList, error) {
