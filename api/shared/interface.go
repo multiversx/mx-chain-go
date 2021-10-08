@@ -71,6 +71,7 @@ type FacadeHandler interface {
 	GetKeyValuePairs(address string) (map[string]string, error)
 	GetBlockByHash(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error)
+	GetBlockByRound(round uint64, withTxs bool) (*api.Block, error)
 	Trigger(epoch uint32, withEarlyEndOfEpoch bool) error
 	IsSelfTrigger() bool
 	GetTotalStakedValue() (*api.StakeValues, error)

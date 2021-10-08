@@ -1100,3 +1100,25 @@ func TestNodeFacade_ExecuteSCQuery(t *testing.T) {
 	require.Equal(t, expectedBalance, outputAccount.Balance)
 	require.Equal(t, hex.EncodeToString(expectedAddress), outputAccount.Address)
 }
+
+func TestNodeFacade_GetBlockByRoundShouldWork(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArguments()
+	blk := &api.Block{
+		Round: 1,
+		Nonce: 2,
+	}
+
+	arg.Node = &mock.NodeStub{
+		GetBlockByRoundCalled: func(_ uint64, _ bool) (*api.Block, error) {
+			return blk, nil
+		},
+	}
+
+	nf, _ := NewNodeFacade(arg)
+	ret, err := nf.GetBlockByRound(0, false)
+
+	assert.Nil(t, err)
+	assert.Equal(t, ret, blk)
+}
