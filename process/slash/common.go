@@ -25,7 +25,11 @@ func IsIndexSetInBitmap(index uint32, bitmap []byte) bool {
 		return false
 	}
 
-	return bitmap[index/8]&(1<<uint8(index%8)) != 0
+	bytePos := index / 8
+	byteInMap := bitmap[bytePos]
+	bitPos := index % 8
+	mask := uint8(1 << bitPos)
+	return (byteInMap & mask) != 0
 }
 
 func convertInterceptedDataToInterceptedHeaders(data []process.InterceptedData) ([]*interceptedBlocks.InterceptedHeader, error) {

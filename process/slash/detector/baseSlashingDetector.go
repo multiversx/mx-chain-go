@@ -6,9 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/slash"
 )
 
-// CacheSize represents how many rounds will be cached in the slashing detector
-const CacheSize = 10
-
 // minSlashableNoOfHeaders represents the min number of headers required for a
 // proof to be considered slashable
 const minSlashableNoOfHeaders = 2
