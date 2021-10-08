@@ -2173,85 +2173,68 @@ func TestStakingSc_ChangeRewardAndOwnerAddress(t *testing.T) {
 	assert.Equal(t, vmcommon.Ok, retCode)
 }
 
-func TestStakingSc_RemoveFromWaitingListFirstBeforeFix(t *testing.T) {
+func TestStakingSc_RemoveFromWaitingListFirst(t *testing.T) {
 	t.Parallel()
 
-	firstBLS := []byte("first")
-	firstKey := createWaitingListKey(firstBLS)
-	secondBLS := []byte("second")
-	secondKey := createWaitingListKey(secondBLS)
-
-	m := make(map[string]interface{})
-	m[string(firstKey)] = &ElementInList{firstBLS, firstKey, secondKey}
-	m[string(secondKey)] = &ElementInList{secondBLS, firstKey, nil}
-	m[waitingListHeadKey] = &WaitingList{firstKey, secondKey, 2, nil}
-
-	marshalizer := &marshal.JsonMarshalizer{}
-
-	blockChainHook := &mock.BlockChainHookStub{}
-	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
-		obj, ok := m[string(index)]
-		if ok {
-			return marshalizer.Marshal(obj)
-		}
-		return nil, nil
+	tests := []struct {
+		name string
+		flag bool
+	}{
+		{
+			name: "BeforeFix",
+			flag: false,
+		},
+		{
+			name: "AfterFix",
+			flag: true,
+		},
 	}
 
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
 
-	args := createMockStakingScArguments()
-	args.Marshalizer = marshalizer
-	args.Eei = eei
-	sc, _ := NewStakingSmartContract(args)
-	sc.flagCorrectFirstQueued.Unset()
-	err := sc.removeFromWaitingList(firstBLS)
+			firstBLS := []byte("first")
+			firstKey := createWaitingListKey(firstBLS)
+			secondBLS := []byte("second")
+			secondKey := createWaitingListKey(secondBLS)
 
-	assert.Nil(t, err)
-	wlh, err := sc.getWaitingListHead()
-	assert.Nil(t, err)
-	assert.NotNil(t, wlh)
-	assert.Equal(t, secondKey, wlh.FirstKey)
-	assert.Equal(t, secondKey, wlh.LastKey)
-}
+			m := make(map[string]interface{})
+			m[string(firstKey)] = &ElementInList{firstBLS, firstKey, secondKey}
+			m[string(secondKey)] = &ElementInList{secondBLS, firstKey, nil}
+			m[waitingListHeadKey] = &WaitingList{firstKey, secondKey, 2, nil}
 
-func TestStakingSc_RemoveFromWaitingListFirstAfterFix(t *testing.T) {
-	t.Parallel()
+			marshalizer := &marshal.JsonMarshalizer{}
 
-	firstBLS := []byte("first")
-	firstKey := createWaitingListKey(firstBLS)
-	secondBLS := []byte("second")
-	secondKey := createWaitingListKey(secondBLS)
+			blockChainHook := &mock.BlockChainHookStub{}
+			blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
+				obj, ok := m[string(index)]
+				if ok {
+					return marshalizer.Marshal(obj)
+				}
+				return nil, nil
+			}
 
-	m := make(map[string]interface{})
-	m[string(firstKey)] = &ElementInList{firstBLS, firstKey, secondKey}
-	m[string(secondKey)] = &ElementInList{secondBLS, firstKey, nil}
-	m[waitingListHeadKey] = &WaitingList{firstKey, secondKey, 2, nil}
+			eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
 
-	marshalizer := &marshal.JsonMarshalizer{}
+			args := createMockStakingScArguments()
+			args.Marshalizer = marshalizer
+			args.Eei = eei
+			sc, _ := NewStakingSmartContract(args)
+			if tt.flag {
+				sc.flagCorrectFirstQueued.Set()
+			} else {
+				sc.flagCorrectFirstQueued.Unset()
+			}
+			err := sc.removeFromWaitingList(firstBLS)
 
-	blockChainHook := &mock.BlockChainHookStub{}
-	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
-		obj, ok := m[string(index)]
-		if ok {
-			return marshalizer.Marshal(obj)
-		}
-		return nil, nil
+			assert.Nil(t, err)
+			wlh, err := sc.getWaitingListHead()
+			assert.Nil(t, err)
+			assert.NotNil(t, wlh)
+			assert.Equal(t, secondKey, wlh.FirstKey)
+			assert.Equal(t, secondKey, wlh.LastKey)
+		})
 	}
-
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
-
-	args := createMockStakingScArguments()
-	args.Marshalizer = marshalizer
-	args.Eei = eei
-	sc, _ := NewStakingSmartContract(args)
-	sc.flagCorrectFirstQueued.Set()
-	err := sc.removeFromWaitingList(firstBLS)
-	assert.Nil(t, err)
-	wlh, err := sc.getWaitingListHead()
-	assert.Nil(t, err)
-	assert.NotNil(t, wlh)
-	assert.Equal(t, secondKey, wlh.FirstKey)
-	assert.Equal(t, secondKey, wlh.LastKey)
 }
 
 func TestStakingSc_RemoveFromWaitingListSecondThatLooksLikeFirstBeforeFix(t *testing.T) {
@@ -2348,10 +2331,12 @@ func TestStakingSc_RemoveFromWaitingListSecondThatLooksLikeFirstAfterFix(t *test
 	assert.NotNil(t, wlh)
 	assert.Equal(t, firstKey, wlh.FirstKey)
 	assert.Equal(t, thirdKey, wlh.LastKey)
+
 	firstElement, err := sc.getWaitingListElement(firstKey)
 	assert.Nil(t, err)
 	assert.Equal(t, firstKey, firstElement.PreviousKey)
 	assert.Equal(t, thirdKey, firstElement.NextKey)
+
 	thirdElement, err := sc.getWaitingListElement(thirdKey)
 	assert.Nil(t, err)
 	assert.Equal(t, firstKey, thirdElement.PreviousKey)
