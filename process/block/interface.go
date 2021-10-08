@@ -9,7 +9,7 @@ type blockProcessor interface {
 }
 
 type gasConsumedProvider interface {
-	TotalGasConsumedInSelfShard() uint64
+	TotalGasConsumed() uint64
 	TotalGasRefunded() uint64
 	TotalGasPenalized() uint64
 	IsInterfaceNil() bool

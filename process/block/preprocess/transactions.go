@@ -395,9 +395,8 @@ func (txs *transactions) processTxsToMe(
 	gasConsumedByMiniBlockInReceiverShard := uint64(0)
 	totalGasConsumedInSelfShard := txs.getTotalGasConsumed()
 
-	log.Debug("processTxsToMe - before processing txs", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
+	log.Trace("processTxsToMe", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
 
-	gasConsumedInHeaderMetric := uint64(0)
 	for index := range txsToMe {
 		if !haveTime() {
 			return process.ErrTimeIsOut
@@ -437,30 +436,7 @@ func (txs *transactions) processTxsToMe(
 		}
 
 		txs.updateGasConsumedWithGasRefundedAndGasPenalized(txHash, &gasConsumedByMiniBlockInReceiverShard, &totalGasConsumedInSelfShard)
-
-		gasConsumedByTx, moveBalanceGas := txs.gasHandler.GasConsumed(txHash), txs.economicsFee.ComputeGasLimit(tx)
-		gasConsumedInHeaderMetric += gasConsumedByTx
-
-		shouldDecreaseMoveBalanceCost := (senderShardID != receiverShardID) && (moveBalanceGas < gasConsumedByTx)
-		if shouldDecreaseMoveBalanceCost {
-			gasConsumedInHeaderMetric += gasConsumedByTx - moveBalanceGas
-		}
 	}
-
-	totalGasRefunded := txs.gasHandler.TotalGasRefunded()
-	totalGasPenalized := txs.gasHandler.TotalGasPenalized()
-	totalGasToBeSubtracted := totalGasRefunded + totalGasPenalized
-	if totalGasToBeSubtracted <= gasConsumedInHeaderMetric { // avoid a result smaller than 0
-		gasConsumedInHeaderMetric -= totalGasToBeSubtracted
-	} else {
-		log.Warn("processTxsToMe: totalGasToBeSubtracted higher than gasConsumedInHeaderMetric",
-			"gasConsumedInHeaderMetric", gasConsumedInHeaderMetric,
-			"totalGasToBeSubtracted", totalGasToBeSubtracted,
-		)
-	}
-
-	log.Debug("processTxsToMe - after processing txs", "gasConsumedInHeaderMetric", gasConsumedInHeaderMetric)
-	txs.gasHandler.AddGasConsumedInSelfShard(gasConsumedInHeaderMetric)
 
 	return nil
 }
@@ -833,7 +809,6 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 	gasConsumedByMiniBlocksInSenderShard := uint64(0)
 	mapGasConsumedByMiniBlockInReceiverShard := make(map[uint32]uint64)
 	totalGasConsumedInSelfShard := txs.getTotalGasConsumed()
-	oldTotalGasConsumedInSelfShard := totalGasConsumedInSelfShard
 
 	log.Debug("createAndProcessMiniBlocksFromMe", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
 
@@ -1049,12 +1024,6 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 	}
 
 	miniBlocks := txs.getMiniBlockSliceFromMap(mapMiniBlocks)
-
-	if oldTotalGasConsumedInSelfShard <= totalGasConsumedInSelfShard {
-		totalGasConsumedInSelfShard -= oldTotalGasConsumedInSelfShard
-	}
-
-	txs.gasHandler.AddGasConsumedInSelfShard(totalGasConsumedInSelfShard)
 
 	log.Debug("createAndProcessMiniBlocksFromMe",
 		"self shard", txs.shardCoordinator.SelfId(),

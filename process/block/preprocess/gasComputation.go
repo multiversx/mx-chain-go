@@ -23,8 +23,6 @@ type gasComputation struct {
 	mutGasRefunded            sync.RWMutex
 	gasPenalized              map[string]uint64
 	mutGasPenalized           sync.RWMutex
-	gasConsumedInSelfShard    uint64
-	mutGasConsumedInSelfShard sync.RWMutex
 
 	flagGasComputeV2        atomic.Flag
 	gasComputeV2EnableEpoch uint32
@@ -75,10 +73,6 @@ func (gc *gasComputation) Init() {
 	gc.mutGasPenalized.Lock()
 	gc.gasPenalized = make(map[string]uint64)
 	gc.mutGasPenalized.Unlock()
-
-	gc.mutGasConsumedInSelfShard.Lock()
-	gc.gasConsumedInSelfShard = 0
-	gc.mutGasConsumedInSelfShard.Unlock()
 }
 
 // SetGasConsumed sets gas consumed for a given hash
@@ -141,21 +135,6 @@ func (gc *gasComputation) TotalGasConsumed() uint64 {
 	gc.mutGasConsumed.RUnlock()
 
 	return totalGasConsumed
-}
-
-// AddTotalGasConsumedInSelfShard will set the total gas consumed in self shard
-func (gc *gasComputation) AddGasConsumedInSelfShard(gasConsumed uint64) {
-	gc.mutGasConsumedInSelfShard.Lock()
-	gc.gasConsumedInSelfShard += gasConsumed
-	gc.mutGasConsumedInSelfShard.Unlock()
-}
-
-// TotalGasConsumedInSelfShard will return the total gas consumed in self shard
-func (gc *gasComputation) TotalGasConsumedInSelfShard() uint64 {
-	gc.mutGasConsumedInSelfShard.RLock()
-	defer gc.mutGasConsumedInSelfShard.RUnlock()
-
-	return gc.gasConsumedInSelfShard
 }
 
 // TotalGasRefunded gets the total gas refunded

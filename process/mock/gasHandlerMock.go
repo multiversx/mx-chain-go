@@ -22,24 +22,6 @@ type GasHandlerMock struct {
 	RemoveGasPenalizedCalled            func(hashes [][]byte)
 	ComputeGasConsumedByMiniBlockCalled func(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error)
 	ComputeGasConsumedByTxCalled        func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error)
-	AddGasConsumedInSelfShardCalled     func(gasConsumed uint64)
-	TotalGasConsumedInSelfShardCalled   func() uint64
-}
-
-// AddTotalGasConsumedInSelfShard -
-func (ghm *GasHandlerMock) AddGasConsumedInSelfShard(gasConsumed uint64) {
-	if ghm.AddGasConsumedInSelfShardCalled != nil {
-		ghm.AddGasConsumedInSelfShardCalled(gasConsumed)
-	}
-}
-
-// TotalGasConsumedInSelfShard -
-func (ghm *GasHandlerMock) TotalGasConsumedInSelfShard() uint64 {
-	if ghm.TotalGasConsumedInSelfShardCalled != nil {
-		return ghm.TotalGasConsumedInSelfShardCalled()
-	}
-
-	return 0
 }
 
 // Init -
