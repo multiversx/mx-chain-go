@@ -102,6 +102,7 @@ type DataTrieTracker interface {
 // implementation
 type AccountsAdapter interface {
 	GetExistingAccount(address []byte) (vmcommon.AccountHandler, error)
+	GetAccountFromBytes(address []byte, accountBytes []byte) (vmcommon.AccountHandler, error)
 	LoadAccount(address []byte) (vmcommon.AccountHandler, error)
 	SaveAccount(account vmcommon.AccountHandler) error
 	RemoveAccount(address []byte) error

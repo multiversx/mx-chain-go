@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
@@ -92,6 +93,10 @@ type NodeHandler interface {
 	GetBlockByHash(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error)
 	GetBlockByRound(round uint64, withTxs bool) (*api.Block, error)
+
+	GetProof(rootHash string, key string) (*common.GetProofResponse, error)
+	GetProofDataTrie(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error)
+	VerifyProof(rootHash string, address string, proof [][]byte) (bool, error)
 }
 
 // TransactionSimulatorProcessor defines the actions which a transaction simulator processor has to implement
