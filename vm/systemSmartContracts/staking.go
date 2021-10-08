@@ -986,9 +986,9 @@ func (s *stakingSC) removeFromWaitingList(blsKey []byte) error {
 	}
 
 	// remove the first element
-	isFirstElement := !s.flagCorrectFirstQueued.IsSet() && bytes.Equal(elementToRemove.PreviousKey, inWaitingListKey) ||
-		s.flagCorrectFirstQueued.IsSet() && bytes.Equal(waitingList.FirstKey, inWaitingListKey)
-	if isFirstElement {
+	isFirstElementBeforeFix := !s.flagCorrectFirstQueued.IsSet() && bytes.Equal(elementToRemove.PreviousKey, inWaitingListKey)
+	isFirstElementAfterFix := s.flagCorrectFirstQueued.IsSet() && bytes.Equal(waitingList.FirstKey, inWaitingListKey)
+	if isFirstElementBeforeFix || isFirstElementAfterFix {
 		if bytes.Equal(inWaitingListKey, waitingList.LastJailedKey) {
 			waitingList.LastJailedKey = make([]byte, 0)
 		}
@@ -1025,6 +1025,9 @@ func (s *stakingSC) removeFromWaitingList(blsKey []byte) error {
 				elementToRemove.PreviousKey = createWaitingListKey(previousElement.BLSPublicKey)
 				break
 			}
+			index++
+			nextKey = make([]byte, len(element.NextKey))
+			copy(nextKey, element.NextKey)
 		}
 	}
 

@@ -2343,6 +2343,47 @@ func TestStakingSc_RemoveFromWaitingListSecondThatLooksLikeFirstAfterFix(t *test
 	assert.Nil(t, nil, thirdElement.NextKey)
 }
 
+func TestStakingSc_RemoveFromWaitingListNotFoundPreviousShouldErrAndFinish(t *testing.T) {
+	t.Parallel()
+
+	firstBLS := []byte("first")
+	firstKey := createWaitingListKey(firstBLS)
+	secondBLS := []byte("second")
+	secondKey := createWaitingListKey(secondBLS)
+	thirdBLS := []byte("third")
+	thirdKey := createWaitingListKey(thirdBLS)
+	unknownBLS := []byte("unknown")
+	unknownKey := createWaitingListKey(unknownBLS)
+
+	m := make(map[string]interface{})
+	m[string(firstKey)] = &ElementInList{firstBLS, firstKey, secondKey}
+	m[string(secondKey)] = &ElementInList{secondBLS, secondKey, nil}
+	m[string(thirdKey)] = &ElementInList{thirdBLS, unknownKey, nil}
+	m[waitingListHeadKey] = &WaitingList{firstKey, thirdKey, 3, nil}
+
+	marshalizer := &marshal.JsonMarshalizer{}
+
+	blockChainHook := &mock.BlockChainHookStub{}
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
+		obj, ok := m[string(index)]
+		if ok {
+			return marshalizer.Marshal(obj)
+		}
+		return nil, nil
+	}
+
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
+
+	args := createMockStakingScArguments()
+	args.Marshalizer = marshalizer
+	args.Eei = eei
+	sc, _ := NewStakingSmartContract(args)
+	sc.flagCorrectFirstQueued.Set()
+
+	err := sc.removeFromWaitingList(thirdBLS)
+	assert.Equal(t, vm.ErrElementNotFound, err)
+}
+
 func TestStakingSc_InsertAfterLastJailedBeforeFix(t *testing.T) {
 	t.Parallel()
 
