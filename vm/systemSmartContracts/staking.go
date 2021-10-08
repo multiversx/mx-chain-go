@@ -1016,10 +1016,11 @@ func (s *stakingSC) removeFromWaitingList(blsKey []byte) error {
 			return err
 		}
 	}
-
-	previousElement, err = s.getWaitingListElement(elementToRemove.PreviousKey)
-	if err != nil {
-		return err
+	if previousElement == nil {
+		previousElement, err = s.getWaitingListElement(elementToRemove.PreviousKey)
+		if err != nil {
+			return err
+		}
 	}
 	if len(elementToRemove.NextKey) == 0 {
 		waitingList.LastKey = elementToRemove.PreviousKey
