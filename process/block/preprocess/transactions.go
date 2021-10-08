@@ -452,6 +452,11 @@ func (txs *transactions) processTxsToMe(
 	totalGasToBeSubtracted := totalGasRefunded + totalGasPenalized
 	if totalGasToBeSubtracted <= gasConsumedInHeaderMetric { // avoid a result smaller than 0
 		gasConsumedInHeaderMetric -= totalGasToBeSubtracted
+	} else {
+		log.Warn("processTxsToMe: totalGasToBeSubtracted higher than gasConsumedInHeaderMetric",
+			"gasConsumedInHeaderMetric", gasConsumedInHeaderMetric,
+			"totalGasToBeSubtracted", totalGasToBeSubtracted,
+		)
 	}
 
 	log.Debug("processTxsToMe - after processing txs", "gasConsumedInHeaderMetric", gasConsumedInHeaderMetric)

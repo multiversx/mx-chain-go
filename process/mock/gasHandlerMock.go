@@ -7,29 +7,29 @@ import (
 
 // GasHandlerMock -
 type GasHandlerMock struct {
-	InitCalled                           func()
-	SetGasConsumedCalled                 func(gasConsumed uint64, hash []byte)
-	SetGasRefundedCalled                 func(gasRefunded uint64, hash []byte)
-	SetGasPenalizedCalled                func(gasPenalized uint64, hash []byte)
-	GasConsumedCalled                    func(hash []byte) uint64
-	GasRefundedCalled                    func(hash []byte) uint64
-	GasPenalizedCalled                   func(hash []byte) uint64
-	TotalGasConsumedCalled               func() uint64
-	TotalGasRefundedCalled               func() uint64
-	TotalGasPenalizedCalled              func() uint64
-	RemoveGasConsumedCalled              func(hashes [][]byte)
-	RemoveGasRefundedCalled              func(hashes [][]byte)
-	RemoveGasPenalizedCalled             func(hashes [][]byte)
-	ComputeGasConsumedByMiniBlockCalled  func(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error)
-	ComputeGasConsumedByTxCalled         func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error)
-	AddTotalGasConsumedInSelfShardCalled func(gasConsumed uint64)
-	TotalGasConsumedInSelfShardCalled func() uint64
+	InitCalled                          func()
+	SetGasConsumedCalled                func(gasConsumed uint64, hash []byte)
+	SetGasRefundedCalled                func(gasRefunded uint64, hash []byte)
+	SetGasPenalizedCalled               func(gasPenalized uint64, hash []byte)
+	GasConsumedCalled                   func(hash []byte) uint64
+	GasRefundedCalled                   func(hash []byte) uint64
+	GasPenalizedCalled                  func(hash []byte) uint64
+	TotalGasConsumedCalled              func() uint64
+	TotalGasRefundedCalled              func() uint64
+	TotalGasPenalizedCalled             func() uint64
+	RemoveGasConsumedCalled             func(hashes [][]byte)
+	RemoveGasRefundedCalled             func(hashes [][]byte)
+	RemoveGasPenalizedCalled            func(hashes [][]byte)
+	ComputeGasConsumedByMiniBlockCalled func(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error)
+	ComputeGasConsumedByTxCalled        func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error)
+	AddGasConsumedInSelfShardCalled     func(gasConsumed uint64)
+	TotalGasConsumedInSelfShardCalled   func() uint64
 }
 
 // AddTotalGasConsumedInSelfShard -
 func (ghm *GasHandlerMock) AddGasConsumedInSelfShard(gasConsumed uint64) {
-	if ghm.AddTotalGasConsumedInSelfShardCalled != nil {
-		ghm.AddTotalGasConsumedInSelfShardCalled(gasConsumed)
+	if ghm.AddGasConsumedInSelfShardCalled != nil {
+		ghm.AddGasConsumedInSelfShardCalled(gasConsumed)
 	}
 }
 
