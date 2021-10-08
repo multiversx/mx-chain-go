@@ -658,6 +658,38 @@ func (adb *AccountsDB) GetExistingAccount(address []byte) (vmcommon.AccountHandl
 	return acnt, nil
 }
 
+// GetAccountFromBytes returns an account from the given bytes
+func (adb *AccountsDB) GetAccountFromBytes(address []byte, accountBytes []byte) (vmcommon.AccountHandler, error) {
+	adb.mutOp.Lock()
+	defer adb.mutOp.Unlock()
+
+	if len(address) == 0 {
+		return nil, fmt.Errorf("%w in GetAccountFromBytes", ErrNilAddress)
+	}
+
+	acnt, err := adb.accountFactory.CreateAccount(address)
+	if err != nil {
+		return nil, err
+	}
+
+	err = adb.marshalizer.Unmarshal(acnt, accountBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	baseAcc, ok := acnt.(baseAccountHandler)
+	if !ok {
+		return acnt, nil
+	}
+
+	err = adb.loadDataTrie(baseAcc)
+	if err != nil {
+		return nil, err
+	}
+
+	return acnt, nil
+}
+
 // loadCode retrieves and saves the SC code inside AccountState object. Errors if something went wrong
 func (adb *AccountsDB) loadCode(accountHandler baseAccountHandler) error {
 	if len(accountHandler.GetCodeHash()) == 0 {

@@ -28,8 +28,8 @@ type Trie interface {
 	GetNumNodes() NumNodesDTO
 	GetAllLeavesOnChannel(rootHash []byte) (chan core.KeyValueHolder, error)
 	GetAllHashes() ([][]byte, error)
-	GetProof(key []byte) ([][]byte, error)
-	VerifyProof(key []byte, proof [][]byte) (bool, error)
+	GetProof(key []byte) ([][]byte, []byte, error)
+	VerifyProof(rootHash []byte, key []byte, proof [][]byte) (bool, error)
 	GetStorageManager() StorageManager
 	Close() error
 	IsInterfaceNil() bool
@@ -78,4 +78,9 @@ type Locker interface {
 	Unlock()
 	RLock()
 	RUnlock()
+}
+
+// MerkleProofVerifier is used to verify merkle proofs
+type MerkleProofVerifier interface {
+	VerifyProof(rootHash []byte, key []byte, proof [][]byte) (bool, error)
 }
