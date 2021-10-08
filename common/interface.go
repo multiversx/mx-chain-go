@@ -72,6 +72,14 @@ type SnapshotDbHandler interface {
 	SetPath(string)
 }
 
+// Locker defines the operations used to lock different critical areas. Implemented by the RWMutex.
+type Locker interface {
+	Lock()
+	Unlock()
+	RLock()
+	RUnlock()
+}
+
 // MerkleProofVerifier is used to verify merkle proofs
 type MerkleProofVerifier interface {
 	VerifyProof(rootHash []byte, key []byte, proof [][]byte) (bool, error)
