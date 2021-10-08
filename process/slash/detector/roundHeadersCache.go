@@ -20,7 +20,7 @@ type roundHeadersCache struct {
 	cacheSize   uint64
 }
 
-func newRoundHeadersCache(maxRounds uint64) *roundHeadersCache {
+func NewRoundHeadersCache(maxRounds uint64) *roundHeadersCache {
 	return &roundHeadersCache{
 		cache:       make(map[uint64]headerHashList),
 		mutexCache:  sync.RWMutex{},

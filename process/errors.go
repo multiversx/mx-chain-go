@@ -899,6 +899,9 @@ var ErrHeaderNotSignedByValidator = errors.New("header is not signed by the give
 // ErrNilRoundDetectorCache signals that a nil round detector cache has been provided
 var ErrNilRoundDetectorCache = errors.New("round detector cache is nil")
 
+// ErrNilRoundHeadersCache signals that a nil round headers cache has been provided
+var ErrNilRoundHeadersCache = errors.New("round headers cache is nil")
+
 // ErrAccountNotPayable will be sent when trying to send money to a non-payable account
 var ErrAccountNotPayable = errors.New("sending value to non payable contract")
 

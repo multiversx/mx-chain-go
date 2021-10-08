@@ -177,8 +177,8 @@ func TestRoundProposerDataCache_GetValidators(t *testing.T) {
 
 	validatorsRound1 := dataCache.GetPubKeys(1)
 	require.Len(t, validatorsRound1, 2)
-	require.Equal(t, []byte("proposer1"), validatorsRound1[0])
-	require.Equal(t, []byte("proposer2"), validatorsRound1[1])
+	require.Contains(t, validatorsRound1, []byte("proposer1"))
+	require.Contains(t, validatorsRound1, []byte("proposer2"))
 
 	validatorsRound2 := dataCache.GetPubKeys(2)
 	require.Len(t, validatorsRound2, 1)
@@ -233,7 +233,7 @@ func TestRoundProposerDataCache_Contains(t *testing.T) {
 }
 
 func TestRoundHeadersCache_IsInterfaceNil(t *testing.T) {
-	cache := newRoundHeadersCache(1)
+	cache := NewRoundHeadersCache(1)
 	require.False(t, cache.IsInterfaceNil())
 	cache = nil
 	require.True(t, cache.IsInterfaceNil())

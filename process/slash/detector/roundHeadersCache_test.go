@@ -11,7 +11,7 @@ import (
 func TestRoundDataCache_Add_OneRound_FourHeaders(t *testing.T) {
 	t.Parallel()
 
-	dataCache := newRoundHeadersCache(1)
+	dataCache := NewRoundHeadersCache(1)
 
 	dataCache.Add(1, []byte("hash1"), &testscommon.HeaderHandlerStub{
 		TimestampField: 1,
@@ -46,7 +46,7 @@ func TestRoundDataCache_Add_OneRound_FourHeaders(t *testing.T) {
 func TestRoundDataCache_Add_CacheSizeTwo_FourEntriesInCache_ExpectOldestRoundInCacheRemoved(t *testing.T) {
 	t.Parallel()
 
-	dataCache := newRoundHeadersCache(2)
+	dataCache := NewRoundHeadersCache(2)
 
 	dataCache.Add(1, []byte("hash1"), &testscommon.HeaderHandlerStub{
 		TimestampField: 1,
@@ -95,7 +95,7 @@ func TestRoundDataCache_Add_CacheSizeTwo_FourEntriesInCache_ExpectOldestRoundInC
 func TestRoundDataCache_Contains(t *testing.T) {
 	t.Parallel()
 
-	dataCache := newRoundHeadersCache(2)
+	dataCache := NewRoundHeadersCache(2)
 
 	go dataCache.Add(1, []byte("hash1"), &testscommon.HeaderHandlerStub{
 		TimestampField: 1,
