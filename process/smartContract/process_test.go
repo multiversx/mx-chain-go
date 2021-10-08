@@ -3930,12 +3930,18 @@ func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
 				},
 			},
 			FeeSettings: config.FeeSettings{
-				MaxGasLimitPerBlock:     "1500000000",
-				MaxGasLimitPerMetaBlock: "15000000000",
-				GasPerDataByte:          "1500",
-				MinGasPrice:             "1000000000",
-				MinGasLimit:             "50000",
-				GasPriceModifier:        0.01,
+				GasLimitSettings: []config.GasLimitSetting{
+					{
+						MaxGasLimitPerBlock:         "1500000000",
+						MaxGasLimitPerMiniBlock:     "1500000000",
+						MaxGasLimitPerMetaBlock:     "15000000000",
+						MaxGasLimitPerMetaMiniBlock: "15000000000",
+						MinGasLimit:                 "50000",
+					},
+				},
+				GasPerDataByte:   "1500",
+				MinGasPrice:      "1000000000",
+				GasPriceModifier: 0.01,
 			},
 		},
 		EpochNotifier:                  &mock.EpochNotifierStub{},
@@ -3952,7 +3958,7 @@ func computeExpectedResults(
 	vmoutput *vmcommon.VMOutput,
 	stakingV2Enabled bool,
 ) (*big.Int, *big.Int) {
-	minGasLimitBigInt, _ := big.NewInt(0).SetString(args.Economics.FeeSettings.MinGasLimit, 10)
+	minGasLimitBigInt, _ := big.NewInt(0).SetString(args.Economics.FeeSettings.GasLimitSettings[0].MinGasLimit, 10)
 	gasPerByteBigInt, _ := big.NewInt(0).SetString(args.Economics.FeeSettings.GasPerDataByte, 10)
 	minGasLimit := minGasLimitBigInt.Uint64()
 	gasPerByte := gasPerByteBigInt.Uint64()
