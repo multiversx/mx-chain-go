@@ -133,7 +133,7 @@
     OptimizeGasUsedInCrossMiniBlocksEnableEpoch = 1000000
 
     # CorrectFirstQueuedEpoch represents the epoch when the backward compatibility for setting the first queued node is enabled
-    CorrectFirstQueuedEpoch = 5
+    CorrectFirstQueuedEpoch = 1000000
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
