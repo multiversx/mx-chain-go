@@ -27,7 +27,7 @@ func TestNewValidatorGroup(t *testing.T) {
 	})
 
 	t.Run("should work", func(t *testing.T) {
-		hg, err := groups.NewValidatorGroup(&mock.Facade{})
+		hg, err := groups.NewValidatorGroup(&mock.FacadeStub{})
 		require.NoError(t, err)
 		require.NotNil(t, hg)
 	})
@@ -43,7 +43,7 @@ func TestValidatorStatistics_ErrorWhenFacadeFails(t *testing.T) {
 
 	errStr := "error in facade"
 
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		ValidatorStatisticsHandler: func() (map[string]*state.ValidatorApiResponse, error) {
 			return nil, errors.New(errStr)
 		},
@@ -77,7 +77,7 @@ func TestValidatorStatistics_ReturnsSuccessfully(t *testing.T) {
 		NumValidatorFailure: 3,
 	}
 
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		ValidatorStatisticsHandler: func() (map[string]*state.ValidatorApiResponse, error) {
 			return mapToReturn, nil
 		},
