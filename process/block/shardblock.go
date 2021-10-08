@@ -591,7 +591,8 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		return
 	}
 
-	gasConsumedInHeader := sp.baseProcessor.gasConsumedProvider.GetTotalGasConsumedInSelfShard()
+	gasConsumedInHeader := sp.baseProcessor.gasConsumedProvider.TotalGasConsumedInSelfShard()
+	gasPenalizedInheader := sp.baseProcessor.gasConsumedProvider.TotalGasPenalized()
 	gasRefundedInHeader := sp.baseProcessor.gasConsumedProvider.TotalGasRefunded()
 	maxGasInHeader := sp.baseProcessor.economicsData.MaxGasLimitPerBlock(sp.shardCoordinator.SelfId())
 
@@ -603,6 +604,7 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		HeaderGasConsumption: indexer.HeaderGasConsumption{
 			GasConsumed:    gasConsumedInHeader,
 			GasRefunded:    gasRefundedInHeader,
+			GasPenalized:   gasPenalizedInheader,
 			MaxGasPerBlock: maxGasInHeader,
 		},
 		NotarizedHeadersHashes: nil,

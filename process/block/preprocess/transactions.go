@@ -448,12 +448,14 @@ func (txs *transactions) processTxsToMe(
 	}
 
 	totalGasRefunded := txs.gasHandler.TotalGasRefunded()
-	if totalGasRefunded < gasConsumedInHeaderMetric { // avoid a result smaller than 0
-		gasConsumedInHeaderMetric -= totalGasRefunded
+	totalGasPenalized := txs.gasHandler.TotalGasPenalized()
+	totalGasToBeSubtracted := totalGasRefunded + totalGasPenalized
+	if totalGasToBeSubtracted <= gasConsumedInHeaderMetric { // avoid a result smaller than 0
+		gasConsumedInHeaderMetric -= totalGasToBeSubtracted
 	}
 
 	log.Debug("processTxsToMe - after processing txs", "gasConsumedInHeaderMetric", gasConsumedInHeaderMetric)
-	txs.gasHandler.AddTotalGasConsumedInSelfShard(gasConsumedInHeaderMetric)
+	txs.gasHandler.AddGasConsumedInSelfShard(gasConsumedInHeaderMetric)
 
 	return nil
 }
@@ -826,6 +828,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 	gasConsumedByMiniBlocksInSenderShard := uint64(0)
 	mapGasConsumedByMiniBlockInReceiverShard := make(map[uint32]uint64)
 	totalGasConsumedInSelfShard := txs.getTotalGasConsumed()
+	oldTotalGasConsumedInSelfShard := totalGasConsumedInSelfShard
 
 	log.Debug("createAndProcessMiniBlocksFromMe", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
 
@@ -1042,7 +1045,11 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 
 	miniBlocks := txs.getMiniBlockSliceFromMap(mapMiniBlocks)
 
-	txs.gasHandler.AddTotalGasConsumedInSelfShard(totalGasConsumedInSelfShard)
+	if oldTotalGasConsumedInSelfShard <= totalGasConsumedInSelfShard {
+		totalGasConsumedInSelfShard -= oldTotalGasConsumedInSelfShard
+	}
+
+	txs.gasHandler.AddGasConsumedInSelfShard(totalGasConsumedInSelfShard)
 
 	log.Debug("createAndProcessMiniBlocksFromMe",
 		"self shard", txs.shardCoordinator.SelfId(),

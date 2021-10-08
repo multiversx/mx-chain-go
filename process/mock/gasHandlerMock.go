@@ -10,31 +10,33 @@ type GasHandlerMock struct {
 	InitCalled                           func()
 	SetGasConsumedCalled                 func(gasConsumed uint64, hash []byte)
 	SetGasRefundedCalled                 func(gasRefunded uint64, hash []byte)
-	SetGasPenalizedCalled               func(gasPenalized uint64, hash []byte)GasConsumedCalled                    func(hash []byte) uint64
+	SetGasPenalizedCalled                func(gasPenalized uint64, hash []byte)
+	GasConsumedCalled                    func(hash []byte) uint64
 	GasRefundedCalled                    func(hash []byte) uint64
-	GasPenalizedCalled                  func(hash []byte) uint64TotalGasConsumedCalled               func() uint64
+	GasPenalizedCalled                   func(hash []byte) uint64
+	TotalGasConsumedCalled               func() uint64
 	TotalGasRefundedCalled               func() uint64
-	TotalGasPenalizedCalledfunc() uint64
+	TotalGasPenalizedCalled              func() uint64
 	RemoveGasConsumedCalled              func(hashes [][]byte)
 	RemoveGasRefundedCalled              func(hashes [][]byte)
-	RemoveGasPenalizedCalledfunc(hashes [][]byte)
+	RemoveGasPenalizedCalled             func(hashes [][]byte)
 	ComputeGasConsumedByMiniBlockCalled  func(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error)
 	ComputeGasConsumedByTxCalled         func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error)
 	AddTotalGasConsumedInSelfShardCalled func(gasConsumed uint64)
-	GetTotalGasConsumedInSelfShardCalled func() uint64
+	TotalGasConsumedInSelfShardCalled func() uint64
 }
 
 // AddTotalGasConsumedInSelfShard -
-func (ghm *GasHandlerMock) AddTotalGasConsumedInSelfShard(gasConsumed uint64) {
+func (ghm *GasHandlerMock) AddGasConsumedInSelfShard(gasConsumed uint64) {
 	if ghm.AddTotalGasConsumedInSelfShardCalled != nil {
 		ghm.AddTotalGasConsumedInSelfShardCalled(gasConsumed)
 	}
 }
 
-// GetTotalGasConsumedInSelfShard -
-func (ghm *GasHandlerMock) GetTotalGasConsumedInSelfShard() uint64 {
-	if ghm.GetTotalGasConsumedInSelfShardCalled != nil {
-		return ghm.GetTotalGasConsumedInSelfShardCalled()
+// TotalGasConsumedInSelfShard -
+func (ghm *GasHandlerMock) TotalGasConsumedInSelfShard() uint64 {
+	if ghm.TotalGasConsumedInSelfShardCalled != nil {
+		return ghm.TotalGasConsumedInSelfShardCalled()
 	}
 
 	return 0
