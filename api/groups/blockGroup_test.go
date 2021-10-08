@@ -245,7 +245,7 @@ func TestGetBlockByRound_WrongFacadeShouldErr(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("local err")
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetBlockByRoundCalled: func(_ uint64, _ bool) (*api.Block, error) {
 			return nil, expectedErr
 		},
@@ -270,7 +270,7 @@ func TestGetBlockByRound_WrongFacadeShouldErr(t *testing.T) {
 func TestGetBlockByRound_EmptyRoundUrlParameterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetBlockByRoundCalled: func(_ uint64, _ bool) (*api.Block, error) {
 			return &api.Block{}, nil
 		},
@@ -293,7 +293,7 @@ func TestGetBlockByRound_EmptyRoundUrlParameterShouldErr(t *testing.T) {
 func TestGetBlockByRound_InvalidRoundShouldErr(t *testing.T) {
 	t.Parallel()
 
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetBlockByNonceCalled: func(_ uint64, _ bool) (*api.Block, error) {
 			return &api.Block{}, nil
 		},
@@ -319,7 +319,7 @@ func TestGetBlockByRound_FacadeErrorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("local err")
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetBlockByRoundCalled: func(_ uint64, _ bool) (*api.Block, error) {
 			return nil, expectedErr
 		},
@@ -348,7 +348,7 @@ func TestGetBlockByRound_ShouldWork(t *testing.T) {
 		Nonce: 37,
 		Round: 39,
 	}
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetBlockByRoundCalled: func(_ uint64, _ bool) (*api.Block, error) {
 			return &expectedBlock, nil
 		},
@@ -373,7 +373,7 @@ func TestGetBlockByRound_ShouldWork(t *testing.T) {
 func TestGetBlockByRound_WithInvalidTxs_ShouldErr(t *testing.T) {
 	t.Parallel()
 
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetBlockByRoundCalled: func(_ uint64, _ bool) (*api.Block, error) {
 			return &api.Block{}, nil
 		},
@@ -402,7 +402,7 @@ func TestGetBlockByRound_WithTxs_ShouldWork(t *testing.T) {
 		Nonce: 37,
 		Round: 39,
 	}
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetBlockByRoundCalled: func(_ uint64, _ bool) (*api.Block, error) {
 			return &expectedBlock, nil
 		},
