@@ -327,6 +327,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		GasScheduleConfig: configs.EpochConfig.GasSchedule,
 		ConfigDir:         configurationPaths.GasScheduleDirectoryName,
 		EpochNotifier:     managedCoreComponents.EpochNotifier(),
+		ArwenChangeLocker: managedCoreComponents.ArwenChangeLocker(),
 	}
 	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
 	if err != nil {

@@ -1070,14 +1070,6 @@ type NumConnectedPeersProvider interface {
 	IsInterfaceNil() bool
 }
 
-// Locker defines the operations used to lock different critical areas. Implemented by the RWMutex.
-type Locker interface {
-	Lock()
-	Unlock()
-	RLock()
-	RUnlock()
-}
-
 // CheckedChunkResult is the DTO used to hold the results after checking a chunk of intercepted data
 type CheckedChunkResult struct {
 	IsChunk        bool

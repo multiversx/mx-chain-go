@@ -84,6 +84,7 @@ type scProcessor struct {
 	flagSCRSizeInvariantCheck                   atomic.Flag
 	flagBackwardCompOnSaveKeyValue              atomic.Flag
 	flagCreatedCallBackCrossShardOnly           atomic.Flag
+	arwenChangeLocker                           common.Locker
 	flagOptimizeGasUsedInCrossMiniBlocks        atomic.Flag
 	arwenChangeLocker                           process.Locker
 
@@ -124,7 +125,7 @@ type ArgsNewSmartContractProcessor struct {
 	EnableEpochs        config.EnableEpochs
 	EpochNotifier       process.EpochNotifier
 	VMOutputCacher      storage.Cacher
-	ArwenChangeLocker   process.Locker
+	ArwenChangeLocker   common.Locker
 	IsGenesisProcessing bool
 }
 
@@ -423,6 +424,7 @@ func (sc *scProcessor) executeSmartContractCall(
 		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
 	}
 	vmOutput.GasRemaining += vmInput.GasLocked
+
 	if vmOutput.ReturnCode != vmcommon.Ok {
 		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, vmOutput.ReturnCode.String(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
 	}

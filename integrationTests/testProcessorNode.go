@@ -251,7 +251,7 @@ type TestProcessorNode struct {
 	ResolversContainer    dataRetriever.ResolversContainer
 	ResolverFinder        dataRetriever.ResolversFinder
 	RequestHandler        process.RequestHandler
-	ArwenChangeLocker     process.Locker
+	ArwenChangeLocker     common.Locker
 
 	InterimProcContainer   process.IntermediateProcessorContainer
 	TxProcessor            process.TransactionProcessor
@@ -2124,6 +2124,7 @@ func (tpn *TestProcessorNode) initNode() {
 	coreComponents.EconomicsDataField = tpn.EconomicsData
 	coreComponents.SyncTimerField = &mock.SyncTimerMock{}
 	coreComponents.EpochNotifierField = tpn.EpochNotifier
+	coreComponents.ArwenChangeLockerInternal = tpn.ArwenChangeLocker
 
 	dataComponents := GetDefaultDataComponents()
 	dataComponents.BlockChain = tpn.BlockChain
@@ -2144,7 +2145,6 @@ func (tpn *TestProcessorNode) initNode() {
 	processComponents.HistoryRepositoryInternal = tpn.HistoryRepository
 	processComponents.WhiteListHandlerInternal = tpn.WhiteListHandler
 	processComponents.WhiteListerVerifiedTxsInternal = tpn.WhiteListerVerifiedTxs
-	processComponents.ArwenChangeLockerInternal = tpn.ArwenChangeLocker
 
 	cryptoComponents := GetDefaultCryptoComponents()
 	cryptoComponents.PrivKey = tpn.NodeKeys.Sk

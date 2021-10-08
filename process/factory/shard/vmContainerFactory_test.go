@@ -228,7 +228,7 @@ func TestVmContainerFactory_ResolveArwenVersion(t *testing.T) {
 	require.Equal(t, "v1.4", getArwenVersion(t, container))
 	require.False(t, isOutOfProcess(t, container))
 
-	require.Equal(t, numCalled, 3)
+	require.Equal(t, numCalled, 1)
 }
 
 func makeHeaderHandlerStub(epoch uint32) data.HeaderHandler {
