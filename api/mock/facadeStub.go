@@ -53,6 +53,7 @@ type FacadeStub struct {
 	GetNFTTokenIDsRegisteredByAddressCalled func(address string) ([]string, error)
 	GetBlockByHashCalled                    func(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonceCalled                   func(nonce uint64, withTxs bool) (*api.Block, error)
+	GetBlockByRoundCalled                   func(round uint64, withTxs bool) (*api.Block, error)
 	GetTotalStakedValueHandler              func() (*api.StakeValues, error)
 	GetAllIssuedESDTsCalled                 func(tokenType string) ([]string, error)
 	GetDirectStakedListHandler              func() ([]*api.DirectStakedValue, error)
@@ -359,6 +360,14 @@ func (f *FacadeStub) GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, er
 // GetBlockByHash -
 func (f *FacadeStub) GetBlockByHash(hash string, withTxs bool) (*api.Block, error) {
 	return f.GetBlockByHashCalled(hash, withTxs)
+}
+
+// GetBlockByRound -
+func (f *Facade) GetBlockByRound(round uint64, withTxs bool) (*api.Block, error) {
+	if f.GetBlockByRoundCalled != nil {
+		return f.GetBlockByRoundCalled(round, withTxs)
+	}
+	return nil, nil
 }
 
 // Trigger -

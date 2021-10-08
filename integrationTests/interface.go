@@ -65,6 +65,7 @@ type Facade interface {
 	GetKeyValuePairs(address string) (map[string]string, error)
 	GetBlockByHash(hash string, withTxs bool) (*dataApi.Block, error)
 	GetBlockByNonce(nonce uint64, withTxs bool) (*dataApi.Block, error)
+	GetBlockByRound(round uint64, withTxs bool) (*dataApi.Block, error)
 	Trigger(epoch uint32, withEarlyEndOfEpoch bool) error
 	IsSelfTrigger() bool
 	GetTotalStakedValue() (*dataApi.StakeValues, error)

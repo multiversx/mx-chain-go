@@ -40,6 +40,7 @@ type NodeStub struct {
 	GetPeerInfoCalled                              func(pid string) ([]core.QueryP2PPeerInfo, error)
 	GetBlockByHashCalled                           func(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonceCalled                          func(nonce uint64, withTxs bool) (*api.Block, error)
+	GetBlockByRoundCalled                          func(round uint64, withTxs bool) (*api.Block, error)
 	GetUsernameCalled                              func(address string) (string, error)
 	GetESDTDataCalled                              func(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error)
 	GetAllESDTTokensCalled                         func(address string) (map[string]*esdt.ESDigitalToken, error)
@@ -120,6 +121,14 @@ func (ns *NodeStub) GetBlockByHash(hash string, withTxs bool) (*api.Block, error
 // GetBlockByNonce -
 func (ns *NodeStub) GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error) {
 	return ns.GetBlockByNonceCalled(nonce, withTxs)
+}
+
+// GetBlockByRound -
+func (ns *NodeStub) GetBlockByRound(round uint64, withTxs bool) (*api.Block, error) {
+	if ns.GetBlockByRoundCalled != nil {
+		return ns.GetBlockByRoundCalled(round, withTxs)
+	}
+	return nil, nil
 }
 
 // DecodeAddressPubkey -
