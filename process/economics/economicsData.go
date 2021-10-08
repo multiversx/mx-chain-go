@@ -709,7 +709,7 @@ func (ed *economicsData) setGasLimitConfig(currentEpoch uint32) {
 		"minGasLimit", ed.minGasLimit,
 	)
 
-	ed.statusHandler.SetUInt64Value(common.MetricMaxGasPerTransaction, ed.maxGasLimitPerMiniBlock)
+	ed.statusHandler.SetUInt64Value(common.MetricMaxGasPerTransaction, core.MinUint64(ed.maxGasLimitPerMiniBlock, ed.maxGasLimitPerMetaMiniBlock))
 }
 
 // ComputeGasLimitBasedOnBalance will compute gas limit for the given transaction based on the balance

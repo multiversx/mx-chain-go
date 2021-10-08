@@ -548,7 +548,6 @@ func (nr *nodeRunner) createMetrics(
 		return err
 	}
 
-	selfShardID := managedBootstrapComponents.ShardCoordinator().SelfId()
 	metrics.SaveStringMetric(managedCoreComponents.StatusHandler(), common.MetricNodeDisplayName, nr.configs.PreferencesConfig.Preferences.NodeDisplayName)
 	metrics.SaveStringMetric(managedCoreComponents.StatusHandler(), common.MetricChainId, managedCoreComponents.ChainID())
 	metrics.SaveUint64Metric(managedCoreComponents.StatusHandler(), common.MetricGasPerDataByte, managedCoreComponents.EconomicsData().GasPerDataByte())
@@ -557,7 +556,7 @@ func (nr *nodeRunner) createMetrics(
 	metrics.SaveStringMetric(managedCoreComponents.StatusHandler(), common.MetricRewardsTopUpGradientPoint, managedCoreComponents.EconomicsData().RewardsTopUpGradientPoint().String())
 	metrics.SaveStringMetric(managedCoreComponents.StatusHandler(), common.MetricTopUpFactor, fmt.Sprintf("%g", managedCoreComponents.EconomicsData().RewardsTopUpFactor()))
 	metrics.SaveStringMetric(managedCoreComponents.StatusHandler(), common.MetricGasPriceModifier, fmt.Sprintf("%g", managedCoreComponents.EconomicsData().GasPriceModifier()))
-	metrics.SaveUint64Metric(managedCoreComponents.StatusHandler(), common.MetricMaxGasPerTransaction, managedCoreComponents.EconomicsData().MaxGasLimitPerMiniBlock(selfShardID))
+	metrics.SaveUint64Metric(managedCoreComponents.StatusHandler(), common.MetricMaxGasPerTransaction, managedCoreComponents.EconomicsData().MaxGasLimitPerMiniBlockForSafeCrossShard())
 	return nil
 }
 
