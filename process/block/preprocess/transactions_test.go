@@ -42,6 +42,15 @@ func feeHandlerMock() *mock.FeeHandlerStub {
 		MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
 			return MaxGasLimitPerBlock
 		},
+		MaxGasLimitPerMiniBlockCalled: func() uint64 {
+			return MaxGasLimitPerBlock
+		},
+		MaxGasLimitPerBlockForSafeCrossShardCalled: func() uint64 {
+			return MaxGasLimitPerBlock
+		},
+		MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
+			return MaxGasLimitPerBlock
+		},
 	}
 }
 
@@ -196,7 +205,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilPool(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -227,7 +236,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilStore(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -258,7 +267,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilHasher(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -289,7 +298,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilMarsalizer(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -320,7 +329,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilTxProce(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -351,7 +360,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilShardCoord(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -382,7 +391,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilAccounts(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -412,7 +421,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilRequestFunc(t *testing.T) 
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -443,7 +452,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilFeeHandler(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -474,7 +483,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilGasHandler(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -505,7 +514,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilBlockTracker(t *testing.T)
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -536,7 +545,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilPubkeyConverter(t *testing
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -567,7 +576,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilBlockSizeComputationHandle
 		nil,
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -598,7 +607,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilBalanceComputationHandler(
 		&testscommon.BlockSizeComputationStub{},
 		nil,
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -629,7 +638,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilEpochNotifier(t *testing.T
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		nil,
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -722,7 +731,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorOkValsShouldWork(t *testing.T
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -949,7 +958,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testi
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -1024,7 +1033,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCal
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -1109,7 +1118,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -1174,6 +1183,126 @@ func TestTransactions_IsDataPrepared_NumMissingTxsGreaterThanZeroShouldWork(t *t
 
 	err := txs.IsDataPrepared(2, haveTime)
 	assert.Nil(t, err)
+}
+
+func TestTransactions_GetTotalGasConsumedShouldWork(t *testing.T) {
+	t.Parallel()
+
+	var gasConsumed uint64
+	var gasRefunded uint64
+	var gasPenalized uint64
+
+	dataPool := initDataPool()
+	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
+	preprocessor, _ := NewTransactionPreprocessor(
+		dataPool.Transactions(),
+		&mock.ChainStorerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&testscommon.TxProcessorMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&stateMock.AccountsStub{},
+		requestTransaction,
+		feeHandlerMock(),
+		&mock.GasHandlerMock{
+			TotalGasConsumedCalled: func() uint64 {
+				return gasConsumed
+			},
+			TotalGasRefundedCalled: func() uint64 {
+				return gasRefunded
+			},
+			TotalGasPenalizedCalled: func() uint64 {
+				return gasPenalized
+			},
+		},
+		&mock.BlockTrackerMock{},
+		block.TxBlock,
+		createMockPubkeyConverter(),
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
+		&mock.EpochNotifierStub{},
+		2,
+	)
+
+	gasConsumed = 10
+	gasRefunded = 2
+	gasPenalized = 3
+	totalGasConsumed := preprocessor.getTotalGasConsumed()
+	assert.Equal(t, gasConsumed, totalGasConsumed)
+
+	preprocessor.EpochConfirmed(2, 0)
+
+	totalGasConsumed = preprocessor.getTotalGasConsumed()
+	assert.Equal(t, gasConsumed-gasRefunded-gasPenalized, totalGasConsumed)
+
+	gasRefunded = 5
+	gasPenalized = 6
+	totalGasConsumed = preprocessor.getTotalGasConsumed()
+	assert.Equal(t, gasConsumed, totalGasConsumed)
+}
+
+func TestTransactions_UpdateGasConsumedWithGasRefundedAndGasPenalizedShouldWork(t *testing.T) {
+	t.Parallel()
+
+	var gasRefunded uint64
+	var gasPenalized uint64
+
+	dataPool := initDataPool()
+	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
+	preprocessor, _ := NewTransactionPreprocessor(
+		dataPool.Transactions(),
+		&mock.ChainStorerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&testscommon.TxProcessorMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&stateMock.AccountsStub{},
+		requestTransaction,
+		feeHandlerMock(),
+		&mock.GasHandlerMock{
+			GasRefundedCalled: func(hash []byte) uint64 {
+				return gasRefunded
+			},
+			GasPenalizedCalled: func(hash []byte) uint64 {
+				return gasPenalized
+			},
+		},
+		&mock.BlockTrackerMock{},
+		block.TxBlock,
+		createMockPubkeyConverter(),
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
+		&mock.EpochNotifierStub{},
+		2,
+	)
+
+	gasRefunded = 2
+	gasPenalized = 1
+	gasConsumedByMiniBlockInReceiverShard := uint64(5)
+	totalGasConsumedInSelfShard := uint64(10)
+	preprocessor.updateGasConsumedWithGasRefundedAndGasPenalized([]byte("txHash"), &gasConsumedByMiniBlockInReceiverShard, &totalGasConsumedInSelfShard)
+	assert.Equal(t, uint64(5), gasConsumedByMiniBlockInReceiverShard)
+	assert.Equal(t, uint64(10), totalGasConsumedInSelfShard)
+
+	preprocessor.EpochConfirmed(2, 0)
+
+	gasRefunded = 10
+	gasPenalized = 1
+	preprocessor.updateGasConsumedWithGasRefundedAndGasPenalized([]byte("txHash"), &gasConsumedByMiniBlockInReceiverShard, &totalGasConsumedInSelfShard)
+	assert.Equal(t, uint64(5), gasConsumedByMiniBlockInReceiverShard)
+	assert.Equal(t, uint64(10), totalGasConsumedInSelfShard)
+
+	gasRefunded = 5
+	gasPenalized = 1
+	preprocessor.updateGasConsumedWithGasRefundedAndGasPenalized([]byte("txHash"), &gasConsumedByMiniBlockInReceiverShard, &totalGasConsumedInSelfShard)
+	assert.Equal(t, uint64(5), gasConsumedByMiniBlockInReceiverShard)
+	assert.Equal(t, uint64(10), totalGasConsumedInSelfShard)
+
+	gasRefunded = 2
+	gasPenalized = 1
+	preprocessor.updateGasConsumedWithGasRefundedAndGasPenalized([]byte("txHash"), &gasConsumedByMiniBlockInReceiverShard, &totalGasConsumedInSelfShard)
+	assert.Equal(t, uint64(2), gasConsumedByMiniBlockInReceiverShard)
+	assert.Equal(t, uint64(7), totalGasConsumedInSelfShard)
 }
 
 func Example_sortTransactionsBySenderAndNonce() {
@@ -1243,7 +1372,7 @@ func createGoodPreprocessor(dataPool dataRetriever.PoolsHolder) *transactions {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -1292,7 +1421,7 @@ func TestTransactionPreprocessor_ProcessTxsToMeShouldUseCorrectSenderAndReceiver
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -1377,7 +1506,7 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 		},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -1418,4 +1547,87 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(txsToBeReverted))
 	assert.Equal(t, 3, numTxsProcessed)
+}
+
+func TestTransactionsPreprocessor_SplitMiniBlocksIfNeededShouldWork(t *testing.T) {
+	t.Parallel()
+
+	var gasLimitPerMiniBlock uint64
+	txGasLimit := uint64(100)
+	dataPool := initDataPool()
+	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
+	preprocessor, _ := NewTransactionPreprocessor(
+		dataPool.Transactions(),
+		&mock.ChainStorerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&testscommon.TxProcessorMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&stateMock.AccountsStub{},
+		requestTransaction,
+		&mock.FeeHandlerStub{
+			MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
+				return gasLimitPerMiniBlock
+			},
+		},
+		&mock.GasHandlerMock{
+			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+				return txGasLimit, txGasLimit, nil
+			},
+		},
+		&mock.BlockTrackerMock{},
+		block.TxBlock,
+		createMockPubkeyConverter(),
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
+		&mock.EpochNotifierStub{},
+		2,
+	)
+
+	tx1 := transaction.Transaction{Nonce: 0, GasLimit: txGasLimit}
+	tx2 := transaction.Transaction{Nonce: 1, GasLimit: txGasLimit}
+	tx3 := transaction.Transaction{Nonce: 2, GasLimit: txGasLimit}
+	tx4 := transaction.Transaction{Nonce: 3, GasLimit: txGasLimit}
+	tx5 := transaction.Transaction{Nonce: 4, GasLimit: txGasLimit}
+	tx6 := transaction.Transaction{Nonce: 5, GasLimit: txGasLimit}
+	preprocessor.txsForCurrBlock.txHashAndInfo["hash1"] = &txInfo{tx: &tx1}
+	preprocessor.txsForCurrBlock.txHashAndInfo["hash2"] = &txInfo{tx: &tx2}
+	preprocessor.txsForCurrBlock.txHashAndInfo["hash3"] = &txInfo{tx: &tx3}
+	preprocessor.txsForCurrBlock.txHashAndInfo["hash4"] = &txInfo{tx: &tx4}
+	preprocessor.txsForCurrBlock.txHashAndInfo["hash5"] = &txInfo{tx: &tx5}
+	preprocessor.txsForCurrBlock.txHashAndInfo["hash6"] = &txInfo{tx: &tx6}
+
+	miniBlocks := make([]*block.MiniBlock, 0)
+
+	mb1 := block.MiniBlock{
+		ReceiverShardID: 1,
+		TxHashes:        [][]byte{[]byte("hash1"), []byte("hash2")},
+	}
+	miniBlocks = append(miniBlocks, &mb1)
+
+	mb2 := block.MiniBlock{
+		ReceiverShardID: 2,
+		TxHashes:        [][]byte{[]byte("hash3"), []byte("hash4"), []byte("hash5"), []byte("hash6"), []byte("hash7")},
+	}
+	miniBlocks = append(miniBlocks, &mb2)
+
+	mb3 := block.MiniBlock{
+		ReceiverShardID: 0,
+		TxHashes:        [][]byte{[]byte("hash1"), []byte("hash2")},
+	}
+	miniBlocks = append(miniBlocks, &mb3)
+
+	gasLimitPerMiniBlock = 300
+
+	splitMiniBlocks := preprocessor.splitMiniBlocksIfNeeded(miniBlocks)
+	assert.Equal(t, 3, len(splitMiniBlocks))
+
+	preprocessor.EpochConfirmed(2, 0)
+
+	splitMiniBlocks = preprocessor.splitMiniBlocksIfNeeded(miniBlocks)
+	assert.Equal(t, 4, len(splitMiniBlocks))
+
+	gasLimitPerMiniBlock = 199
+	splitMiniBlocks = preprocessor.splitMiniBlocksIfNeeded(miniBlocks)
+	assert.Equal(t, 7, len(splitMiniBlocks))
 }

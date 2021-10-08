@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -31,13 +32,13 @@ func initSubroundSignatureWithContainer(container *mock.ConsensusCoreMock) bls.S
 		container,
 		chainID,
 		currentPid,
-		&mock.AppStatusHandlerStub{},
+		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	srSignature, _ := bls.NewSubroundSignature(
 		sr,
 		extend,
-		&mock.AppStatusHandlerStub{},
+		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	return srSignature
@@ -54,7 +55,7 @@ func TestSubroundSignature_NewSubroundSignatureNilSubroundShouldFail(t *testing.
 	srSignature, err := bls.NewSubroundSignature(
 		nil,
 		extend,
-		&mock.AppStatusHandlerStub{},
+		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.Nil(t, srSignature)
@@ -81,14 +82,14 @@ func TestSubroundSignature_NewSubroundSignatureNilConsensusStateShouldFail(t *te
 		container,
 		chainID,
 		currentPid,
-		&mock.AppStatusHandlerStub{},
+		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	sr.ConsensusState = nil
 	srSignature, err := bls.NewSubroundSignature(
 		sr,
 		extend,
-		&mock.AppStatusHandlerStub{},
+		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.Nil(t, srSignature)
@@ -115,13 +116,13 @@ func TestSubroundSignature_NewSubroundSignatureNilHasherShouldFail(t *testing.T)
 		container,
 		chainID,
 		currentPid,
-		&mock.AppStatusHandlerStub{},
+		&statusHandler.AppStatusHandlerStub{},
 	)
 	container.SetHasher(nil)
 	srSignature, err := bls.NewSubroundSignature(
 		sr,
 		extend,
-		&mock.AppStatusHandlerStub{},
+		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.Nil(t, srSignature)
@@ -148,13 +149,13 @@ func TestSubroundSignature_NewSubroundSignatureNilMultisignerShouldFail(t *testi
 		container,
 		chainID,
 		currentPid,
-		&mock.AppStatusHandlerStub{},
+		&statusHandler.AppStatusHandlerStub{},
 	)
 	container.SetMultiSigner(nil)
 	srSignature, err := bls.NewSubroundSignature(
 		sr,
 		extend,
-		&mock.AppStatusHandlerStub{},
+		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.Nil(t, srSignature)
@@ -181,14 +182,14 @@ func TestSubroundSignature_NewSubroundSignatureNilRoundHandlerShouldFail(t *test
 		container,
 		chainID,
 		currentPid,
-		&mock.AppStatusHandlerStub{},
+		&statusHandler.AppStatusHandlerStub{},
 	)
 	container.SetRoundHandler(nil)
 
 	srSignature, err := bls.NewSubroundSignature(
 		sr,
 		extend,
-		&mock.AppStatusHandlerStub{},
+		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.Nil(t, srSignature)
@@ -215,13 +216,13 @@ func TestSubroundSignature_NewSubroundSignatureNilSyncTimerShouldFail(t *testing
 		container,
 		chainID,
 		currentPid,
-		&mock.AppStatusHandlerStub{},
+		&statusHandler.AppStatusHandlerStub{},
 	)
 	container.SetSyncTimer(nil)
 	srSignature, err := bls.NewSubroundSignature(
 		sr,
 		extend,
-		&mock.AppStatusHandlerStub{},
+		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.Nil(t, srSignature)
@@ -248,13 +249,13 @@ func TestSubroundSignature_NewSubroundSignatureShouldWork(t *testing.T) {
 		container,
 		chainID,
 		currentPid,
-		&mock.AppStatusHandlerStub{},
+		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	srSignature, err := bls.NewSubroundSignature(
 		sr,
 		extend,
-		&mock.AppStatusHandlerStub{},
+		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.NotNil(t, srSignature)

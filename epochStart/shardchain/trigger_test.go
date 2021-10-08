@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -54,7 +55,7 @@ func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
 		EpochStartNotifier:   &mock.EpochStartNotifierStub{},
 		PeerMiniBlocksSyncer: &mock.ValidatorInfoSyncerStub{},
 		RoundHandler:         &mock.RoundHandlerStub{},
-		AppStatusHandler:     &mock.AppStatusHandlerStub{},
+		AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
 	}
 }
 

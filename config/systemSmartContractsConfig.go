@@ -66,6 +66,7 @@ type DelegationManagerSystemSCConfig struct {
 
 // DelegationSystemSCConfig defines a set of constants to initialize the delegation system smart contract
 type DelegationSystemSCConfig struct {
-	MinServiceFee uint64
-	MaxServiceFee uint64
+	MinServiceFee               uint64
+	MaxServiceFee               uint64
+	AddTokensWhitelistedAddress string
 }

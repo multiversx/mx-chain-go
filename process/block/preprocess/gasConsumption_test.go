@@ -94,6 +94,31 @@ func TestGasRefunded_ShouldWork(t *testing.T) {
 	assert.Equal(t, uint64(0), gc.TotalGasRefunded())
 }
 
+func TestGasPenalized_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	gc, _ := preprocess.NewGasComputation(
+		&mock.FeeHandlerStub{},
+		&testscommon.TxTypeHandlerMock{},
+		&mock.EpochNotifierStub{},
+		0,
+	)
+
+	gc.SetGasPenalized(2, []byte("hash1"))
+	assert.Equal(t, uint64(2), gc.GasPenalized([]byte("hash1")))
+
+	gc.SetGasPenalized(3, []byte("hash2"))
+	assert.Equal(t, uint64(3), gc.GasPenalized([]byte("hash2")))
+
+	assert.Equal(t, uint64(5), gc.TotalGasPenalized())
+
+	gc.RemoveGasPenalized([][]byte{[]byte("hash1")})
+	assert.Equal(t, uint64(3), gc.TotalGasPenalized())
+
+	gc.Init()
+	assert.Equal(t, uint64(0), gc.TotalGasPenalized())
+}
+
 func TestComputeGasConsumedByTx_ShouldErrWrongTypeAssertion(t *testing.T) {
 	t.Parallel()
 

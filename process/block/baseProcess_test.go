@@ -40,6 +40,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -291,14 +292,14 @@ func createComponentHolderMocks() (
 	*mock.BootstrapComponentsMock,
 	*mock.StatusComponentsMock,
 ) {
-	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
+	blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
 	_ = blkc.SetGenesisHeader(&block.Header{Nonce: 0})
 
 	coreComponents := &mock.CoreComponentsMock{
 		IntMarsh:            &mock.MarshalizerMock{},
 		Hash:                &mock.HasherStub{},
 		UInt64ByteSliceConv: &mock.Uint64ByteSliceConverterMock{},
-		StatusField:         &mock.AppStatusHandlerStub{},
+		StatusField:         &statusHandlerMock.AppStatusHandlerStub{},
 		RoundField:          &mock.RoundHandlerMock{},
 	}
 

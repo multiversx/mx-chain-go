@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -32,7 +33,7 @@ func createMockEpochStartTriggerArguments() *ArgsNewMetaEpochStartTrigger {
 		EpochStartNotifier: &mock.EpochStartNotifierStub{},
 		Marshalizer:        &mock.MarshalizerMock{},
 		Hasher:             &hashingMocks.HasherMock{},
-		AppStatusHandler:   &mock.AppStatusHandlerStub{},
+		AppStatusHandler:   &statusHandlerMock.AppStatusHandlerStub{},
 		Storage: &mock.ChainStorerStub{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 				return &testscommon.StorerStub{

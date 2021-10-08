@@ -20,7 +20,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/gin"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
-	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/common/statistics"
@@ -34,6 +33,7 @@ import (
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
 	"github.com/ElrondNetwork/elrond-go/health"
+	"github.com/ElrondNetwork/elrond-go/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -149,6 +149,13 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("built in functions on metachain"), "epoch", enableEpochs.BuiltInFunctionOnMetaEnableEpoch)
 	log.Debug(readEpochFor("compute rewards checkpoint on delegation"), "epoch", enableEpochs.ComputeRewardCheckpointEnableEpoch)
 	log.Debug(readEpochFor("esdt NFT create on multiple shards"), "epoch", enableEpochs.ESDTNFTCreateOnMultiShardEnableEpoch)
+	log.Debug(readEpochFor("SCR size invariant check"), "epoch", enableEpochs.SCRSizeInvariantCheckEnableEpoch)
+	log.Debug(readEpochFor("backward compatibility flag for save key value"), "epoch", enableEpochs.BackwardCompSaveKeyValueEnableEpoch)
+	log.Debug(readEpochFor("esdt NFT create on multiple shards"), "epoch", enableEpochs.ESDTNFTCreateOnMultiShardEnableEpoch)
+	log.Debug(readEpochFor("meta ESDT, financial SFT"), "epoch", enableEpochs.MetaESDTSetEnableEpoch)
+	log.Debug(readEpochFor("add tokens to delegation"), "epoch", enableEpochs.AddTokensToDelegationEnableEpoch)
+	log.Debug(readEpochFor("multi ESDT transfer on callback"), "epoch", enableEpochs.MultiESDTTransferFixOnCallBackOnEnableEpoch)
+	log.Debug(readEpochFor("optimize gas used in cross mini blocks"), "epoch", enableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch)
 	log.Debug(readEpochFor("built in functions on metachain"), "epoch", enableEpochs.BuiltInFunctionOnMetaEnableEpoch)
 	log.Debug(readEpochFor("scheduled mini blocks"), "epoch", enableEpochs.ScheduledMiniBlocksEnableEpoch)
 
@@ -191,14 +198,22 @@ func (nr *nodeRunner) shuffleOutStatsAndGC() {
 		log.Debug("node statistics after running GC", statistics.GetRuntimeStatistics()...)
 	}
 
-	if debugConfig.DoProfileOnShuffleOut {
-		log.Debug("running profile job")
-		parentPath := filepath.Join(nr.configs.FlagsConfig.WorkingDir, nr.configs.GeneralConfig.Health.FolderPath)
-		var stats runtime.MemStats
-		runtime.ReadMemStats(&stats)
-		err := health.WriteMemoryUseInfo(stats, time.Now(), parentPath, "softrestart")
-		log.LogIfError(err)
+	nr.doProfileOnShuffleOut()
+}
+
+func (nr *nodeRunner) doProfileOnShuffleOut() {
+	debugConfig := nr.configs.GeneralConfig.Debug.ShuffleOut
+	shouldDoProfile := debugConfig.DoProfileOnShuffleOut && nr.configs.FlagsConfig.UseHealthService
+	if !shouldDoProfile {
+		return
 	}
+
+	log.Debug("running profile job")
+	parentPath := filepath.Join(nr.configs.FlagsConfig.WorkingDir, nr.configs.GeneralConfig.Health.FolderPath)
+	var stats runtime.MemStats
+	runtime.ReadMemStats(&stats)
+	err := health.WriteMemoryUseInfo(stats, time.Now(), parentPath, "softrestart")
+	log.LogIfError(err)
 }
 
 func (nr *nodeRunner) executeOneComponentCreationCycle(
@@ -249,6 +264,13 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
+	log.Trace("creating metrics")
+	//this should be called before setting the storer (done in the managedDataComponents creation)
+	err = nr.createMetrics(managedCoreComponents, managedCryptoComponents, managedBootstrapComponents)
+	if err != nil {
+		return true, err
+	}
+
 	log.Debug("creating data components")
 	managedDataComponents, err := nr.CreateManagedDataComponents(managedCoreComponents, managedBootstrapComponents)
 	if err != nil {
@@ -257,12 +279,6 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 
 	log.Debug("creating healthService")
 	healthService := nr.createHealthService(flagsConfig, managedDataComponents)
-
-	log.Trace("creating metrics")
-	err = nr.createMetrics(managedCoreComponents, managedCryptoComponents, managedBootstrapComponents)
-	if err != nil {
-		return true, err
-	}
 
 	nodesShufflerOut, err := mainFactory.CreateNodesShuffleOut(
 		managedCoreComponents.GenesisNodesSetup(),
@@ -314,6 +330,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		GasScheduleConfig: configs.EpochConfig.GasSchedule,
 		ConfigDir:         configurationPaths.GasScheduleDirectoryName,
 		EpochNotifier:     managedCoreComponents.EpochNotifier(),
+		ArwenChangeLocker: managedCoreComponents.ArwenChangeLocker(),
 	}
 	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
 	if err != nil {
@@ -528,7 +545,6 @@ func (nr *nodeRunner) createMetrics(
 		nr.configs.EconomicsConfig,
 		nr.configs.GeneralConfig.EpochStartConfig.RoundsPerEpoch,
 		coreComponents.MinTransactionVersion(),
-		nr.configs.EpochConfig,
 	)
 
 	if err != nil {

@@ -28,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
+	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -220,7 +221,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		NodeShuffler:               &mock.NodeShufflerMock{},
 		RoundHandler:               roundHandler,
 		ArgumentsParser:            smartContract.NewArgumentParser(),
-		StatusHandler:              &mock.AppStatusHandlerStub{},
+		StatusHandler:              &statusHandlerMock.AppStatusHandlerStub{},
 		HeaderIntegrityVerifier:    integrationTests.CreateHeaderIntegrityVerifier(),
 	}
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)

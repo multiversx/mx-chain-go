@@ -627,17 +627,15 @@
 [VirtualMachine]
     [VirtualMachine.Execution]
         ArwenVersions = [
-            { StartEpoch = 0, Version = "v1.2" },
-            { StartEpoch = 1, Version = "v1.3" },
-            { StartEpoch = 5, Version = "v1.4" },
+            { StartEpoch = 0, Version = "v1.3" },
+            { StartEpoch = 1, Version = "v1.4" },
         ]
 
     [VirtualMachine.Querying]
         NumConcurrentVMs = 1
         ArwenVersions = [
-            { StartEpoch = 0, Version = "v1.2" },
-            { StartEpoch = 1, Version = "v1.3" },
-            { StartEpoch = 5, Version = "v1.4" },
+            { StartEpoch = 0, Version = "v1.3" },
+            { StartEpoch = 1, Version = "v1.4" },
         ]
 
 [Hardfork]
@@ -757,6 +755,7 @@
 
 [DbLookupExtensions]
     Enabled = false
+    DbLookupMaxActivePersisters = 10
     [DbLookupExtensions.MiniblocksMetadataStorageConfig.Cache]
         Name = "DbLookupExtensions.MiniblocksMetadataStorage"
         Capacity = 20000

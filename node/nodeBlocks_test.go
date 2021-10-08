@@ -29,6 +29,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -536,7 +537,7 @@ func getDefaultCoreComponents() *factory.CoreComponentsMock {
 		MinTransactionVersionCalled: func() uint32 {
 			return 1
 		},
-		AppStatusHdl:          &testscommon.AppStatusHandlerStub{},
+		AppStatusHdl:          &statusHandler.AppStatusHandlerStub{},
 		WDTimer:               &testscommon.WatchdogMock{},
 		Alarm:                 &testscommon.AlarmSchedulerStub{},
 		NtpTimer:              &testscommon.SyncTimerStub{},
