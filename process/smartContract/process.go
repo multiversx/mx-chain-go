@@ -86,7 +86,6 @@ type scProcessor struct {
 	flagCreatedCallBackCrossShardOnly           atomic.Flag
 	arwenChangeLocker                           common.Locker
 	flagOptimizeGasUsedInCrossMiniBlocks        atomic.Flag
-	arwenChangeLocker                           process.Locker
 
 	badTxForwarder process.IntermediateTransactionHandler
 	scrForwarder   process.IntermediateTransactionHandler
