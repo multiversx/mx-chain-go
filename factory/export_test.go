@@ -3,6 +3,7 @@ package factory
 import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
@@ -62,7 +63,7 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 	blockTracker process.BlockTracker,
 	pendingMiniBlocksHandler process.PendingMiniBlocksHandler,
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
-	arwenChangeLocker process.Locker,
+	arwenChangeLocker common.Locker,
 ) (process.BlockProcessor, error) {
 	return pcf.newBlockProcessor(
 		requestHandler,
