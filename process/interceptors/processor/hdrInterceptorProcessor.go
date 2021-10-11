@@ -16,7 +16,6 @@ var _ process.InterceptorProcessor = (*HdrInterceptorProcessor)(nil)
 // (shard headers, meta headers) structs which satisfy HeaderHandler interface.
 type HdrInterceptorProcessor struct {
 	headers            dataRetriever.HeadersPool
-	hdrValidator       process.HeaderValidator
 	blackList          process.TimeCacher
 	registeredHandlers []func(topic string, hash []byte, data interface{})
 	mutHandlers        sync.RWMutex
@@ -30,16 +29,12 @@ func NewHdrInterceptorProcessor(argument *ArgHdrInterceptorProcessor) (*HdrInter
 	if check.IfNil(argument.Headers) {
 		return nil, process.ErrNilCacher
 	}
-	if check.IfNil(argument.HdrValidator) {
-		return nil, process.ErrNilHdrValidator
-	}
 	if check.IfNil(argument.BlockBlackList) {
 		return nil, process.ErrNilBlackListCacher
 	}
 
 	return &HdrInterceptorProcessor{
 		headers:            argument.Headers,
-		hdrValidator:       argument.HdrValidator,
 		blackList:          argument.BlockBlackList,
 		registeredHandlers: make([]func(topic string, hash []byte, data interface{}), 0),
 	}, nil
@@ -58,7 +53,7 @@ func (hip *HdrInterceptorProcessor) Validate(data process.InterceptedData, _ cor
 		return process.ErrHeaderIsBlackListed
 	}
 
-	return hip.hdrValidator.HeaderValidForProcessing(interceptedHdr)
+	return nil
 }
 
 // Save will save the received data into the headers cacher as hash<->[plain header structure]

@@ -114,6 +114,8 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		vmContainerFactory:            arguments.VMContainersFactory,
 		vmContainer:                   arguments.VmContainer,
 		processDataTriesOnCommitEpoch: arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
+		gasConsumedProvider:           arguments.GasHandler,
+		economicsData:                 arguments.CoreComponents.EconomicsData(),
 	}
 
 	mp := metaProcessor{
@@ -561,7 +563,7 @@ func (mp *metaProcessor) indexBlock(
 	}
 
 	log.Debug("preparing to index block", "hash", headerHash, "nonce", metaBlock.GetNonce(), "round", metaBlock.GetRound())
-	
+
 	pool := &indexer.Pool{
 		Txs:     mp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock),
 		Scrs:    mp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock),
@@ -607,11 +609,22 @@ func (mp *metaProcessor) indexBlock(
 		return
 	}
 
+	gasConsumedInHeader := mp.baseProcessor.gasConsumedProvider.TotalGasConsumed()
+	gasPenalizedInHeader := mp.baseProcessor.gasConsumedProvider.TotalGasPenalized()
+	gasRefundedInHeader := mp.baseProcessor.gasConsumedProvider.TotalGasRefunded()
+	maxGasInHeader := mp.baseProcessor.economicsData.MaxGasLimitPerBlock(mp.shardCoordinator.SelfId())
+
 	args := &indexer.ArgsSaveBlockData{
-		HeaderHash:             headerHash,
-		Body:                   body,
-		Header:                 metaBlock,
-		SignersIndexes:         signersIndexes,
+		HeaderHash:     headerHash,
+		Body:           body,
+		Header:         metaBlock,
+		SignersIndexes: signersIndexes,
+		HeaderGasConsumption: indexer.HeaderGasConsumption{
+			GasConsumed:    gasConsumedInHeader,
+			GasRefunded:    gasRefundedInHeader,
+			GasPenalized:   gasPenalizedInHeader,
+			MaxGasPerBlock: maxGasInHeader,
+		},
 		NotarizedHeadersHashes: notarizedHeadersHashes,
 		TransactionsPool:       pool,
 	}

@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
 	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -72,7 +73,7 @@ func initFactoryWithContainer(container *mock.ConsensusCoreMock) bls.Factory {
 		worker,
 		chainID,
 		currentPid,
-		&mock.AppStatusHandlerStub{},
+		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	return fct
@@ -120,7 +121,7 @@ func TestFactory_NewFactoryNilContainerShouldFail(t *testing.T) {
 		worker,
 		chainID,
 		currentPid,
-		&mock.AppStatusHandlerStub{},
+		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -139,7 +140,7 @@ func TestFactory_NewFactoryNilConsensusStateShouldFail(t *testing.T) {
 		worker,
 		chainID,
 		currentPid,
-		&mock.AppStatusHandlerStub{},
+		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -160,7 +161,7 @@ func TestFactory_NewFactoryNilBlockchainShouldFail(t *testing.T) {
 		worker,
 		chainID,
 		currentPid,
-		&mock.AppStatusHandlerStub{},
+		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -181,7 +182,7 @@ func TestFactory_NewFactoryNilBlockProcessorShouldFail(t *testing.T) {
 		worker,
 		chainID,
 		currentPid,
-		&mock.AppStatusHandlerStub{},
+		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -202,7 +203,7 @@ func TestFactory_NewFactoryNilBootstrapperShouldFail(t *testing.T) {
 		worker,
 		chainID,
 		currentPid,
-		&mock.AppStatusHandlerStub{},
+		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -223,7 +224,7 @@ func TestFactory_NewFactoryNilChronologyHandlerShouldFail(t *testing.T) {
 		worker,
 		chainID,
 		currentPid,
-		&mock.AppStatusHandlerStub{},
+		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -244,7 +245,7 @@ func TestFactory_NewFactoryNilHasherShouldFail(t *testing.T) {
 		worker,
 		chainID,
 		currentPid,
-		&mock.AppStatusHandlerStub{},
+		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -265,7 +266,7 @@ func TestFactory_NewFactoryNilMarshalizerShouldFail(t *testing.T) {
 		worker,
 		chainID,
 		currentPid,
-		&mock.AppStatusHandlerStub{},
+		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -286,7 +287,7 @@ func TestFactory_NewFactoryNilMultiSignerShouldFail(t *testing.T) {
 		worker,
 		chainID,
 		currentPid,
-		&mock.AppStatusHandlerStub{},
+		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -307,7 +308,7 @@ func TestFactory_NewFactoryNilRoundHandlerShouldFail(t *testing.T) {
 		worker,
 		chainID,
 		currentPid,
-		&mock.AppStatusHandlerStub{},
+		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -328,7 +329,7 @@ func TestFactory_NewFactoryNilShardCoordinatorShouldFail(t *testing.T) {
 		worker,
 		chainID,
 		currentPid,
-		&mock.AppStatusHandlerStub{},
+		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -349,7 +350,7 @@ func TestFactory_NewFactoryNilSyncTimerShouldFail(t *testing.T) {
 		worker,
 		chainID,
 		currentPid,
-		&mock.AppStatusHandlerStub{},
+		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -370,7 +371,7 @@ func TestFactory_NewFactoryNilValidatorGroupSelectorShouldFail(t *testing.T) {
 		worker,
 		chainID,
 		currentPid,
-		&mock.AppStatusHandlerStub{},
+		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -389,7 +390,7 @@ func TestFactory_NewFactoryNilWorkerShouldFail(t *testing.T) {
 		nil,
 		chainID,
 		currentPid,
-		&mock.AppStatusHandlerStub{},
+		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -417,7 +418,7 @@ func TestFactory_NewFactoryEmptyChainIDShouldFail(t *testing.T) {
 		worker,
 		nil,
 		currentPid,
-		&mock.AppStatusHandlerStub{},
+		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.Nil(t, fct)
