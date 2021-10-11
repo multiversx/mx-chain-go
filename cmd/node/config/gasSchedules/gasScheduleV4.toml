@@ -45,7 +45,7 @@
     DataCopyPerByte   = 100
     PersistPerByte    = 1000
     CompilePerByte    = 300
-    AoTPreparePerByte = 300
+    AoTPreparePerByte = 100
     GetCode           = 1000000
 
 [ElrondAPICost]
