@@ -32,6 +32,8 @@ func TestNewPreProcessorsContainerFactory_NilShardCoordinator(t *testing.T) {
 		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
+		&mock.EpochNotifierStub{},
+		2,
 	)
 
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
@@ -57,6 +59,8 @@ func TestNewPreProcessorsContainerFactory_NilStore(t *testing.T) {
 		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
+		&mock.EpochNotifierStub{},
+		2,
 	)
 
 	assert.Equal(t, process.ErrNilStore, err)
@@ -82,6 +86,8 @@ func TestNewPreProcessorsContainerFactory_NilMarshalizer(t *testing.T) {
 		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
+		&mock.EpochNotifierStub{},
+		2,
 	)
 
 	assert.Equal(t, process.ErrNilMarshalizer, err)
@@ -107,6 +113,8 @@ func TestNewPreProcessorsContainerFactory_NilHasher(t *testing.T) {
 		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
+		&mock.EpochNotifierStub{},
+		2,
 	)
 
 	assert.Equal(t, process.ErrNilHasher, err)
@@ -132,6 +140,8 @@ func TestNewPreProcessorsContainerFactory_NilDataPool(t *testing.T) {
 		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
+		&mock.EpochNotifierStub{},
+		2,
 	)
 
 	assert.Equal(t, process.ErrNilDataPoolHolder, err)
@@ -157,6 +167,8 @@ func TestNewPreProcessorsContainerFactory_NilAccounts(t *testing.T) {
 		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
+		&mock.EpochNotifierStub{},
+		2,
 	)
 
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
@@ -182,6 +194,8 @@ func TestNewPreProcessorsContainerFactory_NilFeeHandler(t *testing.T) {
 		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
+		&mock.EpochNotifierStub{},
+		2,
 	)
 
 	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
@@ -207,6 +221,8 @@ func TestNewPreProcessorsContainerFactory_NilTxProcessor(t *testing.T) {
 		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
+		&mock.EpochNotifierStub{},
+		2,
 	)
 
 	assert.Equal(t, process.ErrNilTxProcessor, err)
@@ -232,6 +248,8 @@ func TestNewPreProcessorsContainerFactory_NilRequestHandler(t *testing.T) {
 		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
+		&mock.EpochNotifierStub{},
+		2,
 	)
 	assert.Equal(t, process.ErrNilRequestHandler, err)
 	assert.Nil(t, ppcm)
@@ -256,6 +274,8 @@ func TestNewPreProcessorsContainerFactory_NilGasHandler(t *testing.T) {
 		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
+		&mock.EpochNotifierStub{},
+		2,
 	)
 	assert.Equal(t, process.ErrNilGasHandler, err)
 	assert.Nil(t, ppcm)
@@ -280,6 +300,8 @@ func TestNewPreProcessorsContainerFactory_NilBlockTracker(t *testing.T) {
 		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
+		&mock.EpochNotifierStub{},
+		2,
 	)
 	assert.Equal(t, process.ErrNilBlockTracker, err)
 	assert.Nil(t, ppcm)
@@ -304,6 +326,8 @@ func TestNewPreProcessorsContainerFactory_NilPubkeyConverter(t *testing.T) {
 		nil,
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
+		&mock.EpochNotifierStub{},
+		2,
 	)
 	assert.Equal(t, process.ErrNilPubkeyConverter, err)
 	assert.Nil(t, ppcm)
@@ -328,6 +352,8 @@ func TestNewPreProcessorsContainerFactory_NilBlockSizeComputationHandler(t *test
 		createMockPubkeyConverter(),
 		nil,
 		&mock.BalanceComputationStub{},
+		&mock.EpochNotifierStub{},
+		2,
 	)
 	assert.Equal(t, process.ErrNilBlockSizeComputationHandler, err)
 	assert.Nil(t, ppcm)
@@ -352,8 +378,36 @@ func TestNewPreProcessorsContainerFactory_NilBalanceComputationHandler(t *testin
 		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
 		nil,
+		&mock.EpochNotifierStub{},
+		2,
 	)
 	assert.Equal(t, process.ErrNilBalanceComputationHandler, err)
+	assert.Nil(t, ppcm)
+}
+
+func TestNewPreProcessorsContainerFactory_NilEpochNotifier(t *testing.T) {
+	t.Parallel()
+
+	ppcm, err := metachain.NewPreProcessorsContainerFactory(
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.ChainStorerMock{},
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		dataRetrieverMock.NewPoolsHolderMock(),
+		&stateMock.AccountsStub{},
+		&testscommon.RequestHandlerStub{},
+		&testscommon.TxProcessorMock{},
+		&testscommon.SmartContractResultsProcessorMock{},
+		&mock.FeeHandlerStub{},
+		&mock.GasHandlerMock{},
+		&mock.BlockTrackerMock{},
+		createMockPubkeyConverter(),
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
+		nil,
+		2,
+	)
+	assert.Equal(t, process.ErrNilEpochNotifier, err)
 	assert.Nil(t, ppcm)
 }
 
@@ -376,6 +430,8 @@ func TestNewPreProcessorsContainerFactory(t *testing.T) {
 		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
+		&mock.EpochNotifierStub{},
+		2,
 	)
 
 	assert.Nil(t, err)
@@ -407,6 +463,8 @@ func TestPreProcessorsContainerFactory_CreateErrTxPreproc(t *testing.T) {
 		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
+		&mock.EpochNotifierStub{},
+		2,
 	)
 
 	assert.Nil(t, err)
@@ -436,6 +494,8 @@ func TestPreProcessorsContainerFactory_Create(t *testing.T) {
 		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
+		&mock.EpochNotifierStub{},
+		2,
 	)
 
 	assert.Nil(t, err)

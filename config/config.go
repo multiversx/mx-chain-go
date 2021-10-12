@@ -399,11 +399,13 @@ type LogsAndEventsConfig struct {
 // DbLookupExtensionsConfig holds the configuration for the db lookup extensions
 type DbLookupExtensionsConfig struct {
 	Enabled                            bool
+	DbLookupMaxActivePersisters        uint32
 	MiniblocksMetadataStorageConfig    StorageConfig
 	MiniblockHashByTxHashStorageConfig StorageConfig
 	EpochByHashStorageConfig           StorageConfig
 	ResultsHashesByTxHashStorageConfig StorageConfig
 	ESDTSuppliesStorageConfig          StorageConfig
+	RoundHashStorageConfig             StorageConfig
 }
 
 // DebugConfig will hold debugging configuration
