@@ -3,9 +3,11 @@ package sharding
 import (
 	"bytes"
 	"fmt"
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func sameValidatorsMaps(map1, map2 map[uint32][]Validator) bool {
@@ -123,6 +125,39 @@ func TestIndexHashedNodesCoordinator_registryToNodesCoordinator(t *testing.T) {
 	for epoch, config := range nodesCoordinator1.nodesConfig {
 		assert.True(t, sameValidatorsMaps(config.eligibleMap, nodesConfig[epoch].eligibleMap))
 		assert.True(t, sameValidatorsMaps(config.waitingMap, nodesConfig[epoch].waitingMap))
+	}
+}
+
+func TestIndexHashedNodesCooridinator_nodesCoordinatorToRegistryLimitNumEpochsInRegistry(t *testing.T) {
+	args := createArguments()
+	args.Epoch = 100
+	nodesCoordinator, _ := NewIndexHashedNodesCoordinator(args)
+	for e := uint32(0); e < args.Epoch; e++ {
+		eligibleMap := createDummyNodesMap(10, args.NbShards, "eligible")
+		waitingMap := createDummyNodesMap(3, args.NbShards, "waiting")
+
+		nodesCoordinator.nodesConfig[e] = &epochNodesConfig{
+			nbShards:    args.NbShards,
+			shardID:     args.ShardIDAsObserver,
+			eligibleMap: eligibleMap,
+			waitingMap:  waitingMap,
+			selectors:   make(map[uint32]RandomSelector),
+			leavingMap:  make(map[uint32][]Validator),
+			newList:     make([]Validator, 0),
+		}
+	}
+
+	ncr := nodesCoordinator.NodesCoordinatorToRegistry()
+	nc := nodesCoordinator.nodesConfig
+
+	require.Equal(t, nodesCoordinator.currentEpoch, ncr.CurrentEpoch)
+	require.Equal(t, nodeCoordinatorStoredEpochs, len(ncr.EpochsConfig))
+
+	for epochStr:= range ncr.EpochsConfig {
+		epoch, err := strconv.Atoi(epochStr)
+		require.Nil(t, err)
+		require.True(t, sameValidatorsDifferentMapTypes(nc[uint32(epoch)].eligibleMap, ncr.EpochsConfig[epochStr].EligibleValidators))
+		require.True(t, sameValidatorsDifferentMapTypes(nc[uint32(epoch)].waitingMap, ncr.EpochsConfig[epochStr].WaitingValidators))
 	}
 }
 

@@ -101,3 +101,8 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) ValidatorsWeights(validators [
 
 	return weights, nil
 }
+
+// LoadState loads the nodes coordinator state from the used boot storage
+func (ihgs *indexHashedNodesCoordinatorWithRater) LoadState(key []byte) error {
+	return ihgs.baseLoadState(key)
+}

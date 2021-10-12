@@ -29,13 +29,9 @@ type NodesCoordinatorRegistry struct {
 }
 
 // TODO: add proto marshalizer for these package - replace all json marshalizers
-// LoadState loads the nodes coordinator state from the used boot storage
-func (ihgs *indexHashedNodesCoordinator) LoadState(key []byte) error {
-	return ihgs.baseLoadState(key)
-}
 
 // LoadState loads the nodes coordinator state from the used boot storage
-func (ihgs *indexHashedNodesCoordinatorWithRater) LoadState(key []byte) error {
+func (ihgs *indexHashedNodesCoordinator) LoadState(key []byte) error {
 	return ihgs.baseLoadState(key)
 }
 
@@ -108,10 +104,20 @@ func (ihgs *indexHashedNodesCoordinator) NodesCoordinatorToRegistry() *NodesCoor
 
 	registry := &NodesCoordinatorRegistry{
 		CurrentEpoch: ihgs.currentEpoch,
-		EpochsConfig: make(map[string]*EpochValidators, len(ihgs.nodesConfig)),
+		EpochsConfig: make(map[string]*EpochValidators),
 	}
 
-	for epoch, epochNodesData := range ihgs.nodesConfig {
+	minEpoch := 0
+	if ihgs.currentEpoch >= nodeCoordinatorStoredEpochs {
+		minEpoch = int(ihgs.currentEpoch) - nodeCoordinatorStoredEpochs + 1
+	}
+
+	for epoch := uint32(minEpoch); epoch <= ihgs.currentEpoch; epoch++ {
+		epochNodesData, ok := ihgs.nodesConfig[epoch]
+		if !ok {
+			continue
+		}
+
 		registry.EpochsConfig[fmt.Sprint(epoch)] = epochNodesConfigToEpochValidators(epochNodesData)
 	}
 
