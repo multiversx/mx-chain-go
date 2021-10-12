@@ -167,6 +167,7 @@
     BigIntGetSignedArgument     = 100
     BigIntGetCallValue          = 100
     BigIntGetExternalBalance    = 500
+    CopyPerByteForTooBig        = 1000
 
 [CryptoAPICost]
     SHA256          = 600

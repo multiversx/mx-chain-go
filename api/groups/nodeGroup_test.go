@@ -39,7 +39,7 @@ func TestNewNodeGroup(t *testing.T) {
 	})
 
 	t.Run("should work", func(t *testing.T) {
-		hg, err := groups.NewNodeGroup(&mock.Facade{})
+		hg, err := groups.NewNodeGroup(&mock.FacadeStub{})
 		require.NoError(t, err)
 		require.NotNil(t, hg)
 	})
@@ -70,7 +70,7 @@ func TestHeartbeatstatus_FromFacadeErrors(t *testing.T) {
 	t.Parallel()
 
 	errExpected := errors.New("expected error")
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetHeartbeatsHandler: func() ([]data.PubKeyHeartbeat, error) {
 			return nil, errExpected
 		},
@@ -104,7 +104,7 @@ func TestHeartbeatstatus(t *testing.T) {
 			ReceivedShardID: uint32(0),
 		},
 	}
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetHeartbeatsHandler: func() (heartbeats []data.PubKeyHeartbeat, e error) {
 			return hbStatus, nil
 		},
@@ -136,7 +136,7 @@ func TestStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {
 	statusMetricsProvider.SetStringValue(p2pKey, "p2p value")
 	numCheckpoints := 2
 
-	facade := mock.Facade{}
+	facade := mock.FacadeStub{}
 	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
 		return statusMetricsProvider
 	}
@@ -181,7 +181,7 @@ func TestP2PStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {
 	p2pValue := "p2p value"
 	statusMetricsProvider.SetStringValue(p2pKey, p2pValue)
 
-	facade := mock.Facade{}
+	facade := mock.FacadeStub{}
 	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
 		return statusMetricsProvider
 	}
@@ -209,7 +209,7 @@ func TestQueryDebug_GetQueryErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("expected error")
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetQueryHandlerCalled: func(name string) (handler debug.QueryHandler, err error) {
 			return nil, expectedErr
 		},
@@ -239,7 +239,7 @@ func TestQueryDebug_GetQueryShouldWork(t *testing.T) {
 
 	str1 := "aaa"
 	str2 := "bbb"
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetQueryHandlerCalled: func(name string) (handler debug.QueryHandler, err error) {
 			return &mock.QueryHandlerStub{
 					QueryCalled: func(search string) []string {
@@ -279,7 +279,7 @@ func TestPeerInfo_PeerInfoErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("expected error")
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetPeerInfoCalled: func(pid string) ([]core.QueryP2PPeerInfo, error) {
 			return nil, expectedErr
 		},
@@ -309,7 +309,7 @@ func TestPeerInfo_PeerInfoShouldWork(t *testing.T) {
 	val := core.QueryP2PPeerInfo{
 		Pid: pidProvided,
 	}
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetPeerInfoCalled: func(pid string) ([]core.QueryP2PPeerInfo, error) {
 			if pid == pidProvided {
 				return []core.QueryP2PPeerInfo{val}, nil
@@ -347,7 +347,7 @@ func TestPrometheusMetrics_ShouldWork(t *testing.T) {
 	value := uint64(37)
 	statusMetricsProvider.SetUInt64Value(key, value)
 
-	facade := mock.Facade{}
+	facade := mock.FacadeStub{}
 	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
 		return statusMetricsProvider
 	}
@@ -395,4 +395,3 @@ func getNodeRoutesConfig() config.ApiRoutesConfig {
 		},
 	}
 }
-

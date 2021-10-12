@@ -23,6 +23,7 @@ type gasScheduleNotifier struct {
 	currentEpoch      uint32
 	lastGasSchedule   GasScheduleMap
 	handlers          []core.GasScheduleSubscribeHandler
+	arwenChangeLocker common.Locker
 }
 
 // ArgsNewGasScheduleNotifier defines the gas schedule notifier arguments
@@ -30,6 +31,7 @@ type ArgsNewGasScheduleNotifier struct {
 	GasScheduleConfig config.GasScheduleConfig
 	ConfigDir         string
 	EpochNotifier     vmcommon.EpochNotifier
+	ArwenChangeLocker common.Locker
 }
 
 // NewGasScheduleNotifier creates a new instance of a gasScheduleNotifier component
@@ -40,11 +42,15 @@ func NewGasScheduleNotifier(args ArgsNewGasScheduleNotifier) (*gasScheduleNotifi
 	if check.IfNil(args.EpochNotifier) {
 		return nil, core.ErrNilEpochStartNotifier
 	}
+	if check.IfNilReflect(args.ArwenChangeLocker) {
+		return nil, common.ErrNilArwenChangeLocker
+	}
 
 	g := &gasScheduleNotifier{
 		gasScheduleConfig: args.GasScheduleConfig,
 		handlers:          make([]core.GasScheduleSubscribeHandler, 0),
 		configDir:         args.ConfigDir,
+		arwenChangeLocker: args.ArwenChangeLocker,
 	}
 	log.Debug("gasSchedule: enable epoch for gas schedule directories paths epoch", "epoch", g.gasScheduleConfig.GasScheduleByEpochs)
 
@@ -129,12 +135,14 @@ func (g *gasScheduleNotifier) EpochConfirmed(epoch uint32, _ uint64) {
 		"num handlers", len(g.handlers),
 	)
 
+	g.arwenChangeLocker.Lock()
 	g.lastGasSchedule = newGasSchedule
 	for _, handler := range g.handlers {
 		if !check.IfNil(handler) {
 			handler.GasScheduleChange(g.lastGasSchedule)
 		}
 	}
+	g.arwenChangeLocker.Unlock()
 }
 
 // LatestGasSchedule returns the latest gas schedule
