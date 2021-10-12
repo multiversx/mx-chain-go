@@ -84,6 +84,16 @@ func (o *outport) SaveAccounts(blockTimestamp uint64, acc []data.UserAccountHand
 	}
 }
 
+// FinalizedBlock will call whenever a block is finalized
+func (o *outport) FinalizedBlock(headerHash []byte) {
+	o.mutex.RLock()
+	defer o.mutex.RUnlock()
+
+	for _, driver := range o.drivers {
+		driver.FinalizedBlock(headerHash)
+	}
+}
+
 // Close will close all the drivers that are in outport
 func (o *outport) Close() error {
 	o.mutex.RLock()
