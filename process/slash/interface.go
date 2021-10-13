@@ -43,7 +43,7 @@ type SlashingDetector interface {
 // SlashingNotifier - creates a transaction from the generated proof of the slash detector and sends it to the network
 type SlashingNotifier interface {
 	// CreateShardSlashingTransaction - creates a slash transaction from the generated SlashingProofHandler
-	CreateShardSlashingTransaction(proof SlashingProofHandler) data.TransactionHandler
+	CreateShardSlashingTransaction(proof SlashingProofHandler) (data.TransactionHandler, error)
 	// CreateMetaSlashingEscalatedTransaction - creates a transaction for the metachain if x rounds passed
 	// and no slash transaction has been created by any of the previous x proposers
 	CreateMetaSlashingEscalatedTransaction(proof SlashingProofHandler) data.TransactionHandler

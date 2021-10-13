@@ -15,3 +15,9 @@ const (
 	Medium ThreatLevel = 1
 	High   ThreatLevel = 2
 )
+
+var ProofIDs = map[SlashingType]byte{
+	None:             0x0,
+	MultipleProposal: 0x1,
+	MultipleSigning:  0x2,
+}
