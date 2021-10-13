@@ -1044,6 +1044,8 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 			sp.accountsDB[state.UserAccountsState],
 			sp.userStatePruningQueue,
 		)
+
+		sp.setFinalizedBlockInIndexer(prevHeader)
 	}
 }
 

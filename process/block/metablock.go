@@ -1392,6 +1392,8 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.HeaderHandler) {
 		mp.accountsDB[state.PeerAccountsState],
 		mp.peerStatePruningQueue,
 	)
+
+	mp.setFinalizedBlockInIndexer(prevHeader)
 }
 
 func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(
