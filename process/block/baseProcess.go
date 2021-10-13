@@ -1087,20 +1087,10 @@ func getLastSelfNotarizedHeaderByItself(chainHandler data.ChainHandler) (data.He
 	return currentHeader, currentBlockHash
 }
 
-func (bp *baseProcessor) setFinalizedBlockInIndexer(hdr data.HeaderHandler) {
-	if check.IfNil(hdr) {
-		return
-	}
+func (bp *baseProcessor) setFinalizedHeaderHashInIndexer(hdrHash []byte) {
+	log.Debug("baseProcessor.setFinalizedBlockInIndexer", "finalized header hash", hdrHash)
 
-	hash, nonCriticalErr := core.CalculateHash(bp.marshalizer, bp.hasher, hdr)
-	if nonCriticalErr != nil {
-		log.Warn("baseProcessor.setFinalizedBlockInIndexer error while computing hash", "error", nonCriticalErr)
-		return
-	}
-
-	log.Debug("baseProcessor.setFinalizedBlockInIndexer", "finalized header hash", hash)
-
-	bp.outportHandler.FinalizedBlock(hash)
+	bp.outportHandler.FinalizedBlock(hdrHash)
 }
 
 func (bp *baseProcessor) updateStateStorage(

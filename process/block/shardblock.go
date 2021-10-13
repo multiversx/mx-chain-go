@@ -1045,7 +1045,7 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 			sp.userStatePruningQueue,
 		)
 
-		sp.setFinalizedBlockInIndexer(prevHeader)
+		sp.setFinalizedHeaderHashInIndexer(hdr.GetPrevHash())
 	}
 }
 
