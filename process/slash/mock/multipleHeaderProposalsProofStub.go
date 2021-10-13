@@ -7,7 +7,8 @@ import (
 
 // MultipleHeaderProposalProofStub -
 type MultipleHeaderProposalProofStub struct {
-	GetTypeCalled func() slash.SlashingType
+	GetTypeCalled    func() slash.SlashingType
+	GetHeadersCalled func() []*interceptedBlocks.InterceptedHeader
 }
 
 // GetType -
@@ -25,5 +26,8 @@ func (mps *MultipleHeaderProposalProofStub) GetLevel() slash.ThreatLevel {
 
 // GetHeaders -
 func (mps *MultipleHeaderProposalProofStub) GetHeaders() []*interceptedBlocks.InterceptedHeader {
+	if mps.GetHeadersCalled != nil {
+		return mps.GetHeadersCalled()
+	}
 	return nil
 }
