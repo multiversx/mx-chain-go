@@ -12,8 +12,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/slash"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/update"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -30,18 +32,44 @@ type SlashingNotifier struct {
 }
 
 func NewSlashingNotifier(
+	privateKey crypto.PrivateKey,
+	publicKey crypto.PublicKey,
+	pubKeyConverter core.PubkeyConverter,
 	signer crypto.SingleSigner,
 	accountHandler vmcommon.AccountHandler,
+	hasher hashing.Hasher,
+	marshaller marshal.Marshalizer,
 ) (slash.SlashingNotifier, error) {
+	if check.IfNil(privateKey) {
+		return nil, crypto.ErrNilPrivateKey
+	}
+	if check.IfNil(publicKey) {
+		return nil, crypto.ErrNilPublicKey
+	}
+	if check.IfNil(pubKeyConverter) {
+		return nil, update.ErrNilPubKeyConverter
+	}
 	if check.IfNil(signer) {
 		return nil, crypto.ErrNilSingleSigner
 	}
 	if check.IfNil(accountHandler) {
 		return nil, state.ErrNilAccountHandler
 	}
+	if check.IfNil(hasher) {
+		return nil, process.ErrNilHasher
+	}
+	if check.IfNil(marshaller) {
+		return nil, process.ErrNilMarshalizer
+	}
 
 	return &SlashingNotifier{
-		signer: signer,
+		privateKey:      privateKey,
+		publicKey:       publicKey,
+		pubKeyConverter: pubKeyConverter,
+		signer:          signer,
+		accountHandler:  accountHandler,
+		marshaller:      marshaller,
+		hasher:          hasher,
 	}, nil
 }
 
