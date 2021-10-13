@@ -2,7 +2,6 @@ package vm
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"sync"
 	"testing"
@@ -174,7 +173,7 @@ func (ti *testIndexer) SaveTransaction(
 		Header:           header,
 		TransactionsPool: txsPool,
 	}
-	ti.outportDriver.SaveBlock(context.Background(), args)
+	ti.outportDriver.SaveBlock(args)
 
 	select {
 	case <-ti.saveDoneChan:
