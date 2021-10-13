@@ -1393,7 +1393,7 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.HeaderHandler) {
 		mp.peerStatePruningQueue,
 	)
 
-	mp.setFinalizedBlockInIndexer(lastMetaBlock)
+	mp.setFinalizedBlockInIndexer(prevHeader)
 }
 
 func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(
