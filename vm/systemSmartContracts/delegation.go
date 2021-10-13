@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
-	"strconv"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -1965,7 +1964,7 @@ func (d *delegation) claimRewards(args *vmcommon.ContractCallInput) vmcommon.Ret
 		return vmcommon.UserError
 	}
 
-	d.createAndAddLogEntry(args, claimedRewardsBytes, []byte(strconv.FormatBool(wasDeleted)))
+	d.createAndAddLogEntry(args, claimedRewardsBytes, boolToSlice(wasDeleted))
 
 	return vmcommon.Ok
 }

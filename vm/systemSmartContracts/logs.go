@@ -28,7 +28,7 @@ func (d *delegation) createAndAddLogEntryForWithdraw(
 	activeFund := d.getFundForLogEntry(delegator.ActiveFund)
 
 	numUsers := big.NewInt(0).SetUint64(dStatus.NumUsers)
-	d.createAndAddLogEntry(contractCallInput, actualUserUnBond.Bytes(), activeFund.Bytes(), numUsers.Bytes(), globalFund.TotalActive.Bytes(), []byte(strconv.FormatBool(wasDeleted)))
+	d.createAndAddLogEntry(contractCallInput, actualUserUnBond.Bytes(), activeFund.Bytes(), numUsers.Bytes(), globalFund.TotalActive.Bytes(), boolToSlice(wasDeleted))
 }
 
 func (d *delegation) createAndAddLogEntryForDelegate(
@@ -65,4 +65,8 @@ func (d *delegation) getFundForLogEntry(activeFund []byte) *big.Int {
 	}
 
 	return fund.Value
+}
+
+func boolToSlice(b bool) []byte {
+	return []byte(strconv.FormatBool(b))
 }
