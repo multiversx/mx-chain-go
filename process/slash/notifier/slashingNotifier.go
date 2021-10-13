@@ -2,13 +2,12 @@ package notifier
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
@@ -47,65 +46,109 @@ func NewSlashingNotifier(
 }
 
 func (sn *SlashingNotifier) CreateShardSlashingTransaction(proof slash.SlashingProofHandler) (data.TransactionHandler, error) {
-	switch t := proof.(type) {
+	var tx *transaction.Transaction
+	var err error
+
+	switch proofType := proof.(type) {
 	case slash.MultipleProposalProofHandler:
-		sn.createMultipleProposalProofTx(t)
+		tx, err = sn.createMultipleProposalProofTx(proofType)
 	case slash.MultipleSigningProofHandler:
+		tx, err = sn.createMultipleSignProofTx(proofType)
 	default:
 		return nil, errors.New("something")
 	}
 
-	return &transaction.Transaction{}, nil
+	if err != nil {
+		return nil, err
+	}
+
+	err = sn.signTx(tx)
+	if err != nil {
+		return nil, err
+	}
+
+	return tx, nil
 }
 
-func (sn *SlashingNotifier) createMultipleProposalProofTx(proof slash.MultipleProposalProofHandler) data.TransactionHandler {
-	tx := &transaction.Transaction{
+func (sn *SlashingNotifier) createMultipleProposalProofTx(proof slash.MultipleProposalProofHandler) (*transaction.Transaction, error) {
+	tx := sn.createUnsignedTx()
+
+	protoProof, err := slash.ToProtoMultipleHeaderProposal(proof)
+	if err != nil {
+		return nil, err
+	}
+
+	proofBytes, err := protoProof.Marshal()
+	if err != nil {
+		return nil, err
+	}
+	proofHash := sn.hasher.Compute(string(proofBytes))
+
+	id := slash.ProofIDs[slash.MultipleProposal]
+	crc := proofHash[len(proofHash)-2:]
+	signatureProof, err := sn.signer.Sign(sn.privateKey, proofHash)
+	if err != nil {
+		return nil, err
+	}
+
+	dataStr := fmt.Sprintf("%v@%v@%v", id, crc, signatureProof)
+	tx.Data = []byte(dataStr)
+	return tx, nil
+}
+
+func (sn *SlashingNotifier) createUnsignedTx() *transaction.Transaction {
+	return &transaction.Transaction{
 		Nonce:   sn.accountHandler.GetNonce(),
 		Value:   big.NewInt(CommitmentProofValue),
 		RcvAddr: nil, //core.MetachainShardId, , leave it dummy
 		SndAddr: sn.accountHandler.AddressBytes(),
 		Data:    nil,
 	}
-
-	protoProof := sn.convertToProtoProof(proof)
-	proofBytes, _ := protoProof.Marshal()
-
-	id := slash.ProofIDs[slash.MultipleProposal]
-	proofHash := sn.hasher.Compute(string(proofBytes))
-	crc := proofHash[len(proofHash)-2:]
-	signatureProof, _ := sn.signer.Sign(sn.privateKey, proofHash)
-
-	tmpData := make([]byte, 0)
-	tmpData = append(tmpData, id)
-	tmpData = append(tmpData, crc...)
-	tmpData = append(tmpData, signatureProof...)
-
-	tx.Data = tmpData
-
-	return tx
 }
 
-func (sn *SlashingNotifier) convertToProtoProof(proof slash.MultipleProposalProofHandler) *coreSlash.MultipleHeaderProposalProof {
-	interceptedHeaders := proof.GetHeaders()
-	headers := make([]*block.Header, 0, len(interceptedHeaders))
+func (sn *SlashingNotifier) createMultipleSignProofTx(proof slash.MultipleSigningProofHandler) (*transaction.Transaction, error) {
+	tx := sn.createUnsignedTx()
 
-	for _, interceptedHeader := range interceptedHeaders {
-		hdr, castOk := interceptedHeader.HeaderHandler().(*block.Header)
-		if !castOk {
-			return nil
-		}
-
-		headers = append(headers, hdr)
+	protoProof, err := slash.ToProtoMultipleHeaderSign(proof)
+	if err != nil {
+		return nil, err
 	}
 
-	return &coreSlash.MultipleHeaderProposalProof{
-		Level: coreSlash.ThreatLevel(proof.GetLevel()),
-		Headers: &coreSlash.Headers{
-			Headers: headers,
-		},
+	proofBytes, err := protoProof.Marshal()
+	if err != nil {
+		return nil, err
 	}
+
+	proofHash := sn.hasher.Compute(string(proofBytes))
+
+	id := slash.ProofIDs[slash.MultipleProposal]
+	crc := proofHash[len(proofHash)-2:]
+	signatureProof, err := sn.signer.Sign(sn.privateKey, proofHash)
+	if err != nil {
+		return nil, err
+	}
+
+	dataStr := fmt.Sprintf("%v@%v@%v", id, crc, signatureProof)
+
+	tx.Data = []byte(dataStr)
+	return tx, nil
 }
 
 func (sn *SlashingNotifier) CreateMetaSlashingEscalatedTransaction(slash.SlashingProofHandler) data.TransactionHandler {
+	return nil
+}
+
+func (sn *SlashingNotifier) signTx(tx *transaction.Transaction) error {
+	txBytes, err := tx.Marshal()
+	if err != nil {
+		return err
+	}
+
+	signature, err := sn.signer.Sign(sn.privateKey, txBytes)
+	if err != nil {
+		return err
+	}
+
+	tx.Signature = signature
 	return nil
 }
