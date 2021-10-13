@@ -135,6 +135,9 @@
     # CorrectFirstQueuedEpoch represents the epoch when the backward compatibility for setting the first queued node is enabled
     CorrectFirstQueuedEpoch = 5
 
+    # DeleteDelegatorAfterClaimRewardsEnableEpoch represents the epoch when the delegators data is deleted for delegators that have to claim rewards after they widrawal all funds
+    DeleteDelegatorAfterClaimRewardsEnableEpoch = 1000000
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },

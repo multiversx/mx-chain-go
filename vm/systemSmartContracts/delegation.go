@@ -59,17 +59,19 @@ type delegation struct {
 	unJailPrice            *big.Int
 	minStakeValue          *big.Int
 
-	mutExecution                       sync.RWMutex
-	stakingV2EnableEpoch               uint32
-	stakingV2Enabled                   atomic.Flag
-	flagValidatorToDelegation          atomic.Flag
-	validatorToDelegationEnableEpoch   uint32
-	flagReDelegateBelowMinCheck        atomic.Flag
-	reDelegateBelowMinCheckEnableEpoch uint32
-	flagComputeRewardCheckpoint        atomic.Flag
-	computeRewardCheckpointEnableEpoch uint32
-	flagAddTokens                      atomic.Flag
-	addTokensEnableEpoch               uint32
+	mutExecution                                    sync.RWMutex
+	stakingV2EnableEpoch                            uint32
+	stakingV2Enabled                                atomic.Flag
+	flagValidatorToDelegation                       atomic.Flag
+	validatorToDelegationEnableEpoch                uint32
+	flagReDelegateBelowMinCheck                     atomic.Flag
+	reDelegateBelowMinCheckEnableEpoch              uint32
+	flagComputeRewardCheckpoint                     atomic.Flag
+	computeRewardCheckpointEnableEpoch              uint32
+	flagAddTokens                                   atomic.Flag
+	addTokensEnableEpoch                            uint32
+	flagDeleteDelegatorDataAfterClaimRewards        atomic.Flag
+	deleteDelegatorDataAfterClaimRewardsEnableEpoch uint32
 }
 
 // ArgsNewDelegation defines the arguments to create the delegation smart contract
@@ -148,6 +150,8 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 		computeRewardCheckpointEnableEpoch: args.EpochConfig.EnableEpochs.ComputeRewardCheckpointEnableEpoch,
 		addTokensEnableEpoch:               args.EpochConfig.EnableEpochs.AddTokensToDelegationEnableEpoch,
 		addTokensAddr:                      args.AddTokensAddress,
+		deleteDelegatorDataAfterClaimRewardsEnableEpoch: args.EpochConfig.EnableEpochs.DeleteDelegatorAfterClaimRewardsEnableEpoch,
+		flagDeleteDelegatorDataAfterClaimRewards:        atomic.Flag{},
 	}
 	log.Debug("delegation: enable epoch for delegation smart contract", "epoch", d.enableDelegationEpoch)
 	log.Debug("delegation: enable epoch for staking v2", "epoch", d.stakingV2EnableEpoch)
@@ -155,6 +159,7 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 	log.Debug("delegation: enable epoch for re-delegate below minimum check", "epoch", d.reDelegateBelowMinCheckEnableEpoch)
 	log.Debug("delegation: enable epoch for compute rewards checkpoint", "epoch", d.computeRewardCheckpointEnableEpoch)
 	log.Debug("delegation: enable epoch for adding tokens", "epoch", d.addTokensEnableEpoch)
+	log.Debug("delegation: delete delegator data after claim rewards", "epoch", d.deleteDelegatorDataAfterClaimRewardsEnableEpoch)
 
 	var okValue bool
 
@@ -1948,7 +1953,7 @@ func (d *delegation) claimRewards(args *vmcommon.ContractCallInput) vmcommon.Ret
 		return vmcommon.UserError
 	}
 
-	claimedRewardsBytes := delegator.UnClaimedRewards.Bytes()
+	unclaimedRewardsBytes := delegator.UnClaimedRewards.Bytes()
 	delegator.TotalCumulatedRewards.Add(delegator.TotalCumulatedRewards, delegator.UnClaimedRewards)
 	delegator.UnClaimedRewards.SetUint64(0)
 	err = d.saveDelegatorData(args.CallerAddr, delegator)
@@ -1958,13 +1963,15 @@ func (d *delegation) claimRewards(args *vmcommon.ContractCallInput) vmcommon.Ret
 	}
 
 	var wasDeleted bool
-	wasDeleted, err = d.deleteDelegatorOnClaimRewardsIfNeeded(args.CallerAddr, delegator)
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
+	if d.flagDeleteDelegatorDataAfterClaimRewards.IsSet() {
+		wasDeleted, err = d.deleteDelegatorOnClaimRewardsIfNeeded(args.CallerAddr, delegator)
+		if err != nil {
+			d.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
 	}
 
-	d.createAndAddLogEntry(args, claimedRewardsBytes, boolToSlice(wasDeleted))
+	d.createAndAddLogEntry(args, unclaimedRewardsBytes, boolToSlice(wasDeleted))
 
 	return vmcommon.Ok
 }
@@ -3045,6 +3052,9 @@ func (d *delegation) EpochConfirmed(epoch uint32, _ uint64) {
 
 	d.flagAddTokens.Toggle(epoch >= d.addTokensEnableEpoch)
 	log.Debug("delegationSC: add tokens", "enabled", d.flagAddTokens.IsSet())
+
+	d.flagDeleteDelegatorDataAfterClaimRewards.Toggle(epoch >= d.deleteDelegatorDataAfterClaimRewardsEnableEpoch)
+	log.Debug("delegationSC: delete delegator data after claim rewards", "enabled", d.flagDeleteDelegatorDataAfterClaimRewards.IsSet())
 }
 
 // CanUseContract returns true if contract can be used
