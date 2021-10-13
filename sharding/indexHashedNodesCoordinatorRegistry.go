@@ -59,7 +59,7 @@ func (ihgs *indexHashedNodesCoordinator) baseLoadState(key []byte) error {
 	ihgs.mutSavedStateKey.Unlock()
 
 	ihgs.currentEpoch = config.CurrentEpoch
-	log.Debug("loaded nodes config", "current epoch", config.CurrentEpoch)
+	log.Debug("loaded nodes config", "current epoch", config.CurrentEpoch, "savedStateKey", key)
 
 	nodesConfig, err := ihgs.registryToNodesCoordinator(config)
 	if err != nil {
@@ -92,7 +92,14 @@ func (ihgs *indexHashedNodesCoordinator) saveState(key []byte) error {
 
 	ncInternalkey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), key...)
 
-	log.Debug("saving nodes coordinator config", "key", ncInternalkey)
+	log.Debug("saving nodes coordinator config", "key", ncInternalkey, "current epoch", registry.CurrentEpoch)
+	for epoch, cfg := range registry.EpochsConfig {
+		log.Debug("saving nodes coordinator config",
+			"epoch", epoch, "len(cfg.Eligible)", len(cfg.EligibleValidators),
+			"len(cfg.Leaving)", len(cfg.LeavingValidators),
+			"len(cfg.Waiting)", len(cfg.WaitingValidators),
+		)
+	}
 
 	return ihgs.bootStorer.Put(ncInternalkey, data)
 }
@@ -112,13 +119,23 @@ func (ihgs *indexHashedNodesCoordinator) NodesCoordinatorToRegistry() *NodesCoor
 		minEpoch = int(ihgs.currentEpoch) - nodeCoordinatorStoredEpochs + 1
 	}
 
+	log.Debug("indexHashedNodesCoordinator.NodesCoordinatorToRegistry",
+		"minEpoch", minEpoch, "current epoch", ihgs.currentEpoch)
+
 	for epoch := uint32(minEpoch); epoch <= ihgs.currentEpoch; epoch++ {
 		epochNodesData, ok := ihgs.nodesConfig[epoch]
 		if !ok {
 			continue
 		}
 
-		registry.EpochsConfig[fmt.Sprint(epoch)] = epochNodesConfigToEpochValidators(epochNodesData)
+		epochNodes := epochNodesConfigToEpochValidators(epochNodesData)
+		registry.EpochsConfig[fmt.Sprint(epoch)] = epochNodes
+
+		log.Debug("indexHashedNodesCoordinator.NodesCoordinatorToRegistry",
+			"epoch", epoch, "len(epochNodes.Eligible)", len(epochNodes.EligibleValidators),
+			"len(epochNodes.Leaving)", len(epochNodes.LeavingValidators),
+			"len(epochNodes.Waiting)", len(epochNodes.WaitingValidators),
+		)
 	}
 
 	return registry
