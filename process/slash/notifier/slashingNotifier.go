@@ -82,9 +82,19 @@ func (sn *SlashingNotifier) createMultipleProposalProofTx(proof slash.MultiplePr
 	if err != nil {
 		return nil, err
 	}
-	proofHash := sn.hasher.Compute(string(proofBytes))
 
-	id := slash.ProofIDs[slash.MultipleProposal]
+	txData, err := sn.computeTxProofData(slash.MultipleProposal, proofBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	tx.Data = txData
+	return tx, nil
+}
+
+func (sn *SlashingNotifier) computeTxProofData(slashType slash.SlashingType, proofBytes []byte) ([]byte, error) {
+	proofHash := sn.hasher.Compute(string(proofBytes))
+	id := slash.ProofIDs[slashType]
 	crc := proofHash[len(proofHash)-2:]
 	signatureProof, err := sn.signer.Sign(sn.privateKey, proofHash)
 	if err != nil {
@@ -92,8 +102,7 @@ func (sn *SlashingNotifier) createMultipleProposalProofTx(proof slash.MultiplePr
 	}
 
 	dataStr := fmt.Sprintf("%v@%v@%v", id, crc, signatureProof)
-	tx.Data = []byte(dataStr)
-	return tx, nil
+	return []byte(dataStr), nil
 }
 
 func (sn *SlashingNotifier) createUnsignedTx() *transaction.Transaction {
@@ -119,18 +128,12 @@ func (sn *SlashingNotifier) createMultipleSignProofTx(proof slash.MultipleSignin
 		return nil, err
 	}
 
-	proofHash := sn.hasher.Compute(string(proofBytes))
-
-	id := slash.ProofIDs[slash.MultipleProposal]
-	crc := proofHash[len(proofHash)-2:]
-	signatureProof, err := sn.signer.Sign(sn.privateKey, proofHash)
+	txData, err := sn.computeTxProofData(slash.MultipleSigning, proofBytes)
 	if err != nil {
 		return nil, err
 	}
 
-	dataStr := fmt.Sprintf("%v@%v@%v", id, crc, signatureProof)
-
-	tx.Data = []byte(dataStr)
+	tx.Data = txData
 	return tx, nil
 }
 
