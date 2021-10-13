@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -456,7 +457,7 @@ func TestSyncValidatorAccountsState_NilRequestHandlerErr(t *testing.T) {
 			}
 		},
 	}
-	_ = epochStartProvider.createTriesComponentsForShardId(args.GenesisShardCoordinator.SelfId())
+	_ = epochStartProvider.createTriesComponentsForShardId(args.GenesisShardCoordinator.SelfId(), disabled.NewChainStorer())
 	rootHash := []byte("rootHash")
 	err := epochStartProvider.syncValidatorAccountsState(rootHash)
 	assert.Equal(t, state.ErrNilRequestHandler, err)
@@ -468,7 +469,7 @@ func TestCreateTriesForNewShardID(t *testing.T) {
 	args.GeneralConfig = testscommon.GetGeneralConfig()
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
 
-	err := epochStartProvider.createTriesComponentsForShardId(1)
+	err := epochStartProvider.createTriesComponentsForShardId(1, disabled.NewChainStorer())
 	assert.Nil(t, err)
 }
 
@@ -487,7 +488,7 @@ func TestSyncUserAccountsState(t *testing.T) {
 			}
 		},
 	}
-	_ = epochStartProvider.createTriesComponentsForShardId(args.GenesisShardCoordinator.SelfId())
+	_ = epochStartProvider.createTriesComponentsForShardId(args.GenesisShardCoordinator.SelfId(), disabled.NewChainStorer())
 	rootHash := []byte("rootHash")
 	err := epochStartProvider.syncUserAccountsState(rootHash)
 	assert.Equal(t, state.ErrNilRequestHandler, err)
@@ -533,7 +534,7 @@ func TestRequestAndProcessForShard(t *testing.T) {
 
 	epochStartProvider.shardCoordinator = shardCoordinator
 	epochStartProvider.epochStartMeta = metaBlock
-	_ = epochStartProvider.createTriesComponentsForShardId(shardCoordinator.SelfId())
+	_ = epochStartProvider.createTriesComponentsForShardId(shardCoordinator.SelfId(), disabled.NewChainStorer())
 	err := epochStartProvider.requestAndProcessForShard()
 	assert.Equal(t, state.ErrNilRequestHandler, err)
 }

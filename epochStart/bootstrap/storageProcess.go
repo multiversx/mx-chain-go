@@ -19,6 +19,7 @@ import (
 	storageResolversContainers "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/storageResolversContainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
@@ -141,7 +142,7 @@ func (sesb *storageEpochStartBootstrap) Bootstrap() (Parameters, error) {
 }
 
 func (sesb *storageEpochStartBootstrap) prepareComponentsToSync() error {
-	err := sesb.createTriesComponentsForShardId(core.MetachainShardId)
+	err := sesb.createTriesComponentsForShardId(core.MetachainShardId, disabled.NewChainStorer())
 	if err != nil {
 		return err
 	}
@@ -323,11 +324,6 @@ func (sesb *storageEpochStartBootstrap) requestAndProcessFromStorage() (Paramete
 			return Parameters{}, err
 		}
 	} else {
-		err = sesb.createTriesComponentsForShardId(sesb.shardCoordinator.SelfId())
-		if err != nil {
-			return Parameters{}, err
-		}
-
 		err = sesb.requestAndProcessForShard()
 		if err != nil {
 			return Parameters{}, err
