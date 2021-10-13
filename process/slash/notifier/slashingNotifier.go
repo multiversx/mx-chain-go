@@ -21,6 +21,16 @@ import (
 
 const CommitmentProofValue = 1 // astea o sa fie in config undeva
 
+type SlashingNotifierArgs struct {
+	PrivateKey      crypto.PrivateKey
+	PublicKey       crypto.PublicKey
+	PubKeyConverter core.PubkeyConverter
+	Signer          crypto.SingleSigner
+	AccountHandler  vmcommon.AccountHandler // delete this
+	Marshaller      marshal.Marshalizer
+	Hasher          hashing.Hasher
+}
+
 type SlashingNotifier struct {
 	privateKey      crypto.PrivateKey
 	publicKey       crypto.PublicKey
@@ -31,45 +41,37 @@ type SlashingNotifier struct {
 	hasher          hashing.Hasher
 }
 
-func NewSlashingNotifier(
-	privateKey crypto.PrivateKey,
-	publicKey crypto.PublicKey,
-	pubKeyConverter core.PubkeyConverter,
-	signer crypto.SingleSigner,
-	accountHandler vmcommon.AccountHandler,
-	hasher hashing.Hasher,
-	marshaller marshal.Marshalizer,
-) (slash.SlashingNotifier, error) {
-	if check.IfNil(privateKey) {
+func NewSlashingNotifier(args *SlashingNotifierArgs) (slash.SlashingNotifier, error) {
+	if check.IfNil(args.PrivateKey) {
 		return nil, crypto.ErrNilPrivateKey
 	}
-	if check.IfNil(publicKey) {
+	if check.IfNil(args.PublicKey) {
 		return nil, crypto.ErrNilPublicKey
 	}
-	if check.IfNil(pubKeyConverter) {
+	if check.IfNil(args.PubKeyConverter) {
 		return nil, update.ErrNilPubKeyConverter
 	}
-	if check.IfNil(signer) {
+	if check.IfNil(args.Signer) {
 		return nil, crypto.ErrNilSingleSigner
 	}
-	if check.IfNil(accountHandler) {
+	if check.IfNil(args.AccountHandler) {
 		return nil, state.ErrNilAccountHandler
 	}
-	if check.IfNil(hasher) {
+	if check.IfNil(args.Hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if check.IfNil(marshaller) {
+	if check.IfNil(args.Marshaller) {
 		return nil, process.ErrNilMarshalizer
 	}
 
 	return &SlashingNotifier{
-		privateKey:      privateKey,
-		publicKey:       publicKey,
-		pubKeyConverter: pubKeyConverter,
-		signer:          signer,
-		accountHandler:  accountHandler,
-		marshaller:      marshaller,
-		hasher:          hasher,
+		privateKey:      args.PrivateKey,
+		publicKey:       args.PublicKey,
+		pubKeyConverter: args.PubKeyConverter,
+		signer:          args.Signer,
+		accountHandler:  args.AccountHandler,
+		marshaller:      args.Marshaller,
+		hasher:          args.Hasher,
 	}, nil
 }
 
@@ -86,21 +88,10 @@ func (sn *SlashingNotifier) CreateShardSlashingTransaction(proof slash.SlashingP
 		return nil, errors.New("something")
 	}
 
-	if err != nil {
-		return nil, err
-	}
-
-	err = sn.signTx(tx)
-	if err != nil {
-		return nil, err
-	}
-
-	return tx, nil
+	return tx, err
 }
 
 func (sn *SlashingNotifier) createMultipleProposalProofTx(proof slash.MultipleProposalProofHandler) (*transaction.Transaction, error) {
-	tx := sn.createUnsignedTx()
-
 	protoProof, err := slash.ToProtoMultipleHeaderProposal(proof)
 	if err != nil {
 		return nil, err
@@ -111,41 +102,10 @@ func (sn *SlashingNotifier) createMultipleProposalProofTx(proof slash.MultiplePr
 		return nil, err
 	}
 
-	txData, err := sn.computeTxProofData(slash.MultipleProposal, proofBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	tx.Data = txData
-	return tx, nil
-}
-
-func (sn *SlashingNotifier) computeTxProofData(slashType slash.SlashingType, proofBytes []byte) ([]byte, error) {
-	proofHash := sn.hasher.Compute(string(proofBytes))
-	id := slash.ProofIDs[slashType]
-	crc := proofHash[len(proofHash)-2:]
-	signatureProof, err := sn.signer.Sign(sn.privateKey, proofHash)
-	if err != nil {
-		return nil, err
-	}
-
-	dataStr := fmt.Sprintf("%v@%v@%v", id, crc, signatureProof)
-	return []byte(dataStr), nil
-}
-
-func (sn *SlashingNotifier) createUnsignedTx() *transaction.Transaction {
-	return &transaction.Transaction{
-		Nonce:   sn.accountHandler.GetNonce(),
-		Value:   big.NewInt(CommitmentProofValue),
-		RcvAddr: nil, //core.MetachainShardId, , leave it dummy
-		SndAddr: sn.accountHandler.AddressBytes(),
-		Data:    nil,
-	}
+	return sn.createSignedProofTx(slash.MultipleProposal, proofBytes)
 }
 
 func (sn *SlashingNotifier) createMultipleSignProofTx(proof slash.MultipleSigningProofHandler) (*transaction.Transaction, error) {
-	tx := sn.createUnsignedTx()
-
 	protoProof, err := slash.ToProtoMultipleHeaderSign(proof)
 	if err != nil {
 		return nil, err
@@ -156,17 +116,42 @@ func (sn *SlashingNotifier) createMultipleSignProofTx(proof slash.MultipleSignin
 		return nil, err
 	}
 
-	txData, err := sn.computeTxProofData(slash.MultipleSigning, proofBytes)
+	return sn.createSignedProofTx(slash.MultipleSigning, proofBytes)
+}
+
+func (sn *SlashingNotifier) createSignedProofTx(slashType slash.SlashingType, proofBytes []byte) (*transaction.Transaction, error) {
+	tx := &transaction.Transaction{
+		Nonce:   sn.accountHandler.GetNonce(),
+		Value:   big.NewInt(CommitmentProofValue),
+		RcvAddr: nil, //core.MetachainShardId, , leave it dummy
+		SndAddr: sn.accountHandler.AddressBytes(),
+	}
+
+	txData, err := sn.computeProofTxData(slashType, proofBytes)
 	if err != nil {
 		return nil, err
 	}
 
 	tx.Data = txData
+	err = sn.signTx(tx)
+	if err != nil {
+		return nil, err
+	}
+
 	return tx, nil
 }
 
-func (sn *SlashingNotifier) CreateMetaSlashingEscalatedTransaction(slash.SlashingProofHandler) data.TransactionHandler {
-	return nil
+func (sn *SlashingNotifier) computeProofTxData(slashType slash.SlashingType, proofBytes []byte) ([]byte, error) {
+	proofHash := sn.hasher.Compute(string(proofBytes))
+	id := slash.ProofIDs[slashType]
+	crc := proofHash[len(proofHash)-2:]
+	signatureProof, err := sn.signer.Sign(sn.privateKey, proofHash)
+	if err != nil {
+		return nil, err
+	}
+
+	dataStr := fmt.Sprintf("%s@%s@%s", []byte{id}, crc, signatureProof)
+	return []byte(dataStr), nil
 }
 
 func (sn *SlashingNotifier) signTx(tx *transaction.Transaction) error {
@@ -181,5 +166,9 @@ func (sn *SlashingNotifier) signTx(tx *transaction.Transaction) error {
 	}
 
 	tx.Signature = signature
+	return nil
+}
+
+func (sn *SlashingNotifier) CreateMetaSlashingEscalatedTransaction(slash.SlashingProofHandler) data.TransactionHandler {
 	return nil
 }

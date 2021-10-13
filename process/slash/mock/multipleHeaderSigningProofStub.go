@@ -7,7 +7,10 @@ import (
 
 // MultipleHeaderSigningProofStub -
 type MultipleHeaderSigningProofStub struct {
-	GetTypeCalled func() slash.SlashingType
+	GetTypeCalled    func() slash.SlashingType
+	GetPubKeysCalled func() [][]byte
+	GetHeadersCalled func(pubKey []byte) []*interceptedBlocks.InterceptedHeader
+	GetLevelCalled   func(pubKey []byte) slash.ThreatLevel
 }
 
 func (mps *MultipleHeaderSigningProofStub) GetType() slash.SlashingType {
@@ -19,15 +22,24 @@ func (mps *MultipleHeaderSigningProofStub) GetType() slash.SlashingType {
 
 // GetPubKeys -
 func (mps *MultipleHeaderSigningProofStub) GetPubKeys() [][]byte {
+	if mps.GetPubKeysCalled != nil {
+		return mps.GetPubKeysCalled()
+	}
 	return nil
 }
 
 // GetLevel -
 func (mps *MultipleHeaderSigningProofStub) GetLevel(pubKey []byte) slash.ThreatLevel {
+	if mps.GetLevelCalled != nil {
+		return mps.GetLevelCalled(pubKey)
+	}
 	return slash.Low
 }
 
 // GetHeaders -
 func (mps *MultipleHeaderSigningProofStub) GetHeaders(pubKey []byte) []*interceptedBlocks.InterceptedHeader {
+	if mps.GetHeadersCalled != nil {
+		return mps.GetHeadersCalled(pubKey)
+	}
 	return nil
 }
