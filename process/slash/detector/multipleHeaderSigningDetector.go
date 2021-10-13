@@ -163,7 +163,12 @@ func (ssd *signingSlashingDetector) ValidateProof(proof slash.SlashingProofHandl
 
 	signers := multipleSigningProof.GetPubKeys()
 	for _, signer := range signers {
-		err := ssd.checkSignedHeaders(signer, multipleSigningProof.GetHeaders(signer), multipleSigningProof.GetLevel(signer))
+		err := checkSlashLevel(multipleSigningProof.GetHeaders(signer), multipleSigningProof.GetLevel(signer))
+		if err != nil {
+			return err
+		}
+
+		err = ssd.checkSignedHeaders(signer, multipleSigningProof.GetHeaders(signer))
 		if err != nil {
 			return err
 		}
@@ -172,11 +177,7 @@ func (ssd *signingSlashingDetector) ValidateProof(proof slash.SlashingProofHandl
 	return nil
 }
 
-func (ssd *signingSlashingDetector) checkSignedHeaders(
-	pubKey []byte,
-	headers []*interceptedBlocks.InterceptedHeader,
-	level slash.ThreatLevel,
-) error {
+func (ssd *signingSlashingDetector) checkSignedHeaders(pubKey []byte, headers []*interceptedBlocks.InterceptedHeader) error {
 	if len(headers) < minSlashableNoOfHeaders {
 		return process.ErrNotEnoughHeadersProvided
 	}
@@ -186,11 +187,6 @@ func (ssd *signingSlashingDetector) checkSignedHeaders(
 	for _, header := range headers {
 		if header.HeaderHandler().GetRound() != round {
 			return process.ErrHeadersDoNotHaveSameRound
-		}
-
-		err := checkSlashLevel(headers, level)
-		if err != nil {
-			return err
 		}
 
 		hash, err := ssd.checkHash(header.HeaderHandler(), hashes)
