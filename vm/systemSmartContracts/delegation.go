@@ -1959,7 +1959,7 @@ func (d *delegation) claimRewards(args *vmcommon.ContractCallInput) vmcommon.Ret
 	}
 
 	var wasDeleted bool
-	wasDeleted, err = d.deleteDelegatorIfNeeded(args.CallerAddr, delegator)
+	wasDeleted, err = d.deleteDelegatorOnClaimRewardsIfNeeded(args.CallerAddr, delegator)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -2112,14 +2112,8 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
-	err = d.computeAndUpdateRewards(args.CallerAddr, delegator)
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-
 	var wasDeleted bool
-	wasDeleted, err = d.deleteDelegatorIfNeeded(args.CallerAddr, delegator)
+	wasDeleted, err = d.deleteDelegatorOnWithdrawIfNeeded(args.CallerAddr, delegator)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -2136,38 +2130,59 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	return vmcommon.Ok
 }
 
-func (d *delegation) deleteDelegatorIfNeeded(address []byte, delegator *DelegatorData) (bool, error) {
-	if d.isOwner(address) {
+func (d *delegation) deleteDelegatorOnWithdrawIfNeeded(address []byte, delegator *DelegatorData) (bool, error) {
+	if d.isUserWithFunds(address, delegator) {
 		return false, nil
+	}
+
+	err := d.computeAndUpdateRewards(address, delegator)
+	if err != nil {
+		return false, err
+	}
+
+	return d.deleteDelegatorIfNeeded(address, delegator)
+}
+
+func (d *delegation) deleteDelegatorOnClaimRewardsIfNeeded(address []byte, delegator *DelegatorData) (bool, error) {
+	if d.isUserWithFunds(address, delegator) {
+		return false, nil
+	}
+
+	return d.deleteDelegatorIfNeeded(address, delegator)
+}
+
+func (d *delegation) isUserWithFunds(address []byte, delegator *DelegatorData) bool {
+	if d.isOwner(address) {
+		return false
 	}
 
 	isDelegatorWithoutFunds := len(delegator.ActiveFund) == 0 && len(delegator.UnStakedFunds) == 0
-	if !isDelegatorWithoutFunds {
+
+	return !isDelegatorWithoutFunds
+}
+
+func (d *delegation) deleteDelegatorIfNeeded(address []byte, delegator *DelegatorData) (bool, error) {
+	if delegator.UnClaimedRewards.Cmp(zero) > 0 {
 		return false, nil
 	}
 
-	deleted := false
-	if delegator.UnClaimedRewards.Cmp(zero) == 0 {
-		d.eei.SetStorage(address, nil)
+	d.eei.SetStorage(address, nil)
 
-		dStatus, errGet := d.getDelegationStatus()
-		if errGet != nil {
-			return false, errGet
-		}
-
-		if dStatus.NumUsers > 0 {
-			dStatus.NumUsers--
-		}
-
-		err := d.saveDelegationStatus(dStatus)
-		if err != nil {
-			return false, err
-		}
-
-		deleted = true
+	dStatus, errGet := d.getDelegationStatus()
+	if errGet != nil {
+		return false, errGet
 	}
 
-	return deleted, nil
+	if dStatus.NumUsers > 0 {
+		dStatus.NumUsers--
+	}
+
+	err := d.saveDelegationStatus(dStatus)
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 func (d *delegation) unStakeAtEndOfEpoch(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
