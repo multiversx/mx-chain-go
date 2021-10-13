@@ -700,6 +700,7 @@ type GasHandler interface {
 	SetGasRefunded(gasRefunded uint64, hash []byte)
 	SetGasPenalized(gasPenalized uint64, hash []byte)
 	GasConsumed(hash []byte) uint64
+	GasConsumedAsScheduled(hash []byte) uint64
 	GasRefunded(hash []byte) uint64
 	GasPenalized(hash []byte) uint64
 	TotalGasConsumed() uint64

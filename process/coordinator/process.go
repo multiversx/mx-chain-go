@@ -474,13 +474,22 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 	body *block.Body,
 	haveTime func() bool,
 ) error {
+	numMiniBlocksProcessed := 0
+
+	defer func() {
+		log.Debug("transactionCoordinator.processMiniBlocksFromMe: gas consumed, refunded and penalized info",
+			"num mini blocks processed", numMiniBlocksProcessed,
+			"total gas consumed", tc.gasHandler.TotalGasConsumed(),
+			"total gas refunded", tc.gasHandler.TotalGasRefunded(),
+			"total gas penalized", tc.gasHandler.TotalGasPenalized())
+	}()
+
 	for _, mb := range body.MiniBlocks {
 		if mb.SenderShardID != tc.shardCoordinator.SelfId() {
 			return process.ErrMiniBlocksInWrongOrder
 		}
 	}
 
-	numMiniBlocksProcessed := 0
 	separatedBodies := tc.separateBodyByType(body)
 	// processing has to be done in order, as the order of different type of transactions over the same account is strict
 	for _, blockType := range tc.keysTxPreProcs {
@@ -501,12 +510,6 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 		numMiniBlocksProcessed += len(separatedBodies[blockType].MiniBlocks)
 	}
 
-	log.Debug("transactionCoordinator.processMiniBlocksFromMe: gas consumed, refunded and penalized info",
-		"num mini blocks processed", numMiniBlocksProcessed,
-		"total gas consumed", tc.gasHandler.TotalGasConsumed(),
-		"total gas refunded", tc.gasHandler.TotalGasRefunded(),
-		"total gas penalized", tc.gasHandler.TotalGasPenalized())
-
 	return nil
 }
 
@@ -515,6 +518,16 @@ func (tc *transactionCoordinator) processMiniBlocksToMe(
 	body *block.Body,
 	haveTime func() bool,
 ) (int, error) {
+	numMiniBlocksProcessed := 0
+
+	defer func() {
+		log.Debug("transactionCoordinator.processMiniBlocksToMe: gas consumed, refunded and penalized info",
+			"num mini blocks processed", numMiniBlocksProcessed,
+			"total gas consumed", tc.gasHandler.TotalGasConsumed(),
+			"total gas refunded", tc.gasHandler.TotalGasRefunded(),
+			"total gas penalized", tc.gasHandler.TotalGasPenalized())
+	}()
+
 	// processing has to be done in order, as the order of different type of transactions over the same account is strict
 	// processing destination ME miniblocks first
 	mbIndex := 0
@@ -533,13 +546,9 @@ func (tc *transactionCoordinator) processMiniBlocksToMe(
 		if err != nil {
 			return mbIndex, err
 		}
-	}
 
-	log.Debug("transactionCoordinator.processMiniBlocksToMe: gas consumed, refunded and penalized info",
-		"num mini blocks processed", len(body.MiniBlocks),
-		"total gas consumed", tc.gasHandler.TotalGasConsumed(),
-		"total gas refunded", tc.gasHandler.TotalGasRefunded(),
-		"total gas penalized", tc.gasHandler.TotalGasPenalized())
+		numMiniBlocksProcessed++
+	}
 
 	return mbIndex, nil
 }
@@ -556,7 +565,15 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	nrTxAdded := uint32(0)
-	nrMiniBlocksProcessed := 0
+	numMiniBlocksProcessed := 0
+
+	defer func() {
+		log.Debug("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: gas consumed, refunded and penalized info",
+			"num mini blocks processed", numMiniBlocksProcessed,
+			"total gas consumed", tc.gasHandler.TotalGasConsumed(),
+			"total gas refunded", tc.gasHandler.TotalGasRefunded(),
+			"total gas penalized", tc.gasHandler.TotalGasPenalized())
+	}()
 
 	if check.IfNil(hdr) {
 		return miniBlocks, nrTxAdded, false, nil
@@ -592,7 +609,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 
 		_, ok := processedMiniBlocksHashes[string(miniBlockInfo.Hash)]
 		if ok {
-			nrMiniBlocksProcessed++
+			numMiniBlocksProcessed++
 			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: mini block already processed",
 				"scheduled mode", scheduledMode,
 				"sender shard", miniBlockInfo.SenderShardID,
@@ -671,22 +688,13 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		// all txs processed, add to processed miniblocks
 		miniBlocks = append(miniBlocks, miniBlock)
 		nrTxAdded = nrTxAdded + uint32(len(miniBlock.TxHashes))
-		nrMiniBlocksProcessed++
+		numMiniBlocksProcessed++
 		if processedMiniBlocksHashes != nil {
 			processedMiniBlocksHashes[string(miniBlockInfo.Hash)] = struct{}{}
 		}
 	}
 
-	allMBsProcessed := nrMiniBlocksProcessed == len(crossMiniBlockInfos)
-
-	log.Debug("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: gas consumed, refunded and penalized info",
-		"header round", hdr.GetRound(),
-		"header nonce", hdr.GetNonce(),
-		"num mini blocks to be processed", len(crossMiniBlockInfos),
-		"num mini blocks processed", nrMiniBlocksProcessed,
-		"total gas consumed", tc.gasHandler.TotalGasConsumed(),
-		"total gas refunded", tc.gasHandler.TotalGasRefunded(),
-		"total gas penalized", tc.gasHandler.TotalGasPenalized())
+	allMBsProcessed := numMiniBlocksProcessed == len(crossMiniBlockInfos)
 
 	return miniBlocks, nrTxAdded, allMBsProcessed, nil
 }
@@ -696,8 +704,17 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 	haveTime func() bool,
 ) block.MiniBlockSlice {
 
-	numMiniBlocksProcessed := 0
 	miniBlocks := make(block.MiniBlockSlice, 0)
+	numMiniBlocksProcessed := 0
+
+	defer func() {
+		log.Debug("transactionCoordinator.CreateMbsAndProcessTransactionsFromMe: gas consumed, refunded and penalized info",
+			"num mini blocks processed", numMiniBlocksProcessed,
+			"total gas consumed", tc.gasHandler.TotalGasConsumed(),
+			"total gas refunded", tc.gasHandler.TotalGasRefunded(),
+			"total gas penalized", tc.gasHandler.TotalGasPenalized())
+	}()
+
 	for _, blockType := range tc.keysTxPreProcs {
 		txPreProc := tc.getPreProcessor(blockType)
 		if check.IfNil(txPreProc) {
@@ -720,12 +737,6 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 	if len(interMBs) > 0 {
 		miniBlocks = append(miniBlocks, interMBs...)
 	}
-
-	log.Debug("transactionCoordinator.CreateMbsAndProcessTransactionsFromMe: gas consumed, refunded and penalized info",
-		"num mini blocks processed", numMiniBlocksProcessed,
-		"total gas consumed", tc.gasHandler.TotalGasConsumed(),
-		"total gas refunded", tc.gasHandler.TotalGasRefunded(),
-		"total gas penalized", tc.gasHandler.TotalGasPenalized())
 
 	return miniBlocks
 }

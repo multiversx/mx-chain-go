@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestTransactionPreprocessor_SplitMiniBlockIfNeededShouldWork(t *testing.T) {
+func TestTransactionPreprocessor_SplitMiniBlockBasedOnTxTypeIfNeededShouldWork(t *testing.T) {
 	t.Parallel()
 
 	mb := block.MiniBlock{
@@ -22,7 +22,7 @@ func TestTransactionPreprocessor_SplitMiniBlockIfNeededShouldWork(t *testing.T) 
 	mb.TxHashes = append(mb.TxHashes, txHash2)
 	mapSCTxs[string(txHash1)] = struct{}{}
 
-	mbs := splitMiniBlockIfNeeded(&mb, mapSCTxs)
+	mbs := splitMiniBlockBasedOnTxTypeIfNeeded(&mb, mapSCTxs)
 	require.Equal(t, 2, len(mbs))
 	require.Equal(t, 1, len(mbs[0].TxHashes))
 	require.Equal(t, 1, len(mbs[1].TxHashes))

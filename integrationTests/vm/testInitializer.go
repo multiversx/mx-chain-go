@@ -230,7 +230,7 @@ func (vmTestContext *VMTestContext) GetVMOutputWithTransientVM(funcName string, 
 	}()
 
 	feeHandler := &mock.FeeHandlerStub{
-		MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
+		MaxGasLimitPerBlockCalled: func() uint64 {
 			return uint64(math.MaxUint64)
 		},
 	}
@@ -1288,7 +1288,7 @@ func GetVmOutput(gasSchedule map[string]map[string]uint64, accnts state.Accounts
 	}()
 
 	feeHandler := &mock.FeeHandlerStub{
-		MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
+		MaxGasLimitPerBlockCalled: func() uint64 {
 			return uint64(math.MaxUint64)
 		},
 	}

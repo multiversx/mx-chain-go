@@ -100,7 +100,7 @@ func TestGasPenalized_ShouldWork(t *testing.T) {
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
-		&mock.EpochNotifierStub{},
+		&epochNotifier.EpochNotifierStub{},
 		0,
 	)
 

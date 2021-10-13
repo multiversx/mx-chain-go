@@ -101,7 +101,7 @@ func TestNewVMContainerFactory_NilLockerShouldErr(t *testing.T) {
 		ArgBlockChainHook:  createMockVMAccountsArguments(),
 		EpochConfig:        config.EnableEpochs{},
 		ArwenChangeLocker:  nil,
-		EpochNotifier:      &mock.EpochNotifierStub{},
+		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 		ESDTTransferParser: esdtTransferParser,
 	}
 	vmf, err := NewVMContainerFactory(argsNewVMFactory)
@@ -121,7 +121,7 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 		ArgBlockChainHook:  createMockVMAccountsArguments(),
 		EpochConfig:        config.EnableEpochs{},
 		ArwenChangeLocker:  &sync.RWMutex{},
-		EpochNotifier:      &mock.EpochNotifierStub{},
+		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 		ESDTTransferParser: esdtTransferParser,
 	}
 	vmf, err := NewVMContainerFactory(argsNewVMFactory)
@@ -142,7 +142,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 		ArgBlockChainHook:  createMockVMAccountsArguments(),
 		EpochConfig:        config.EnableEpochs{},
 		ArwenChangeLocker:  &sync.RWMutex{},
-		EpochNotifier:      &mock.EpochNotifierStub{},
+		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 		ESDTTransferParser: esdtTransferParser,
 	}
 	vmf, err := NewVMContainerFactory(argsNewVMFactory)

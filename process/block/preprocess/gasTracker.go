@@ -33,7 +33,11 @@ func (gt *gasTracker) computeGasConsumed(
 	if gt.shardCoordinator.SelfId() == senderShardId {
 		gasConsumedByTxInSelfShard = gasConsumedByTxInSenderShard
 
-		if gasInfo.gasConsumedByMiniBlockInReceiverShard+gasConsumedByTxInReceiverShard > gt.economicsFee.MaxGasLimitPerBlock(gt.shardCoordinator.SelfId()) {
+		if gasConsumedByTxInReceiverShard > gt.economicsFee.MaxGasLimitPerMiniBlockForSafeCrossShard() {
+			return 0, process.ErrMaxGasLimitPerOneTxInReceiverShardIsReached
+		}
+
+		if gasInfo.gasConsumedByMiniBlockInReceiverShard+gasConsumedByTxInReceiverShard > gt.economicsFee.MaxGasLimitPerBlockForSafeCrossShard() {
 			return 0, process.ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached
 		}
 	} else {

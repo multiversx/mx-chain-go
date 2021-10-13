@@ -8,7 +8,7 @@ import (
 
 // EconomicsHandlerStub -
 type EconomicsHandlerStub struct {
-	MaxGasLimitPerBlockCalled                      func(shardID uint32) uint64
+	MaxGasLimitPerBlockCalled                      func() uint64
 	MaxGasLimitPerMiniBlockCalled                  func() uint64
 	MaxGasLimitPerBlockForSafeCrossShardCalled     func() uint64
 	MaxGasLimitPerMiniBlockForSafeCrossShardCalled func() uint64

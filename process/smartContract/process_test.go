@@ -25,9 +25,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/pkg/errors"
@@ -99,11 +99,10 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 		GasHandler: &testscommon.GasHandlerStub{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
-		GasSchedule:          mock.NewGasScheduleNotifierMock(gasSchedule),
-		EpochNotifier:        &epochNotifier.EpochNotifierStub{},
-		StakingV2EnableEpoch: 0,
-		ArwenChangeLocker:    &sync.RWMutex{},
-		VMOutputCacher:       txcache.NewDisabledCache(),
+		GasSchedule:       mock.NewGasScheduleNotifierMock(gasSchedule),
+		EpochNotifier:     &epochNotifier.EpochNotifierStub{},
+		ArwenChangeLocker: &sync.RWMutex{},
+		VMOutputCacher:    txcache.NewDisabledCache(),
 	}
 }
 

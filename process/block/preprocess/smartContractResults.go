@@ -507,7 +507,7 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 			return processedTxHashes, index, err
 		}
 
-		scr.updateGasConsumedWithGasRefundedAndGasPenalized(miniBlockTxHashes[index], &gasConsumedByMiniBlockInReceiverShard, &totalGasConsumedInSelfShard)
+		scr.updateGasConsumedWithGasRefundedAndGasPenalized(miniBlockTxHashes[index], &gasInfo)
 	}
 
 	txShardInfoToSet := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}
@@ -553,4 +553,10 @@ func (scr *smartContractResults) IsInterfaceNil() bool {
 
 func (scr *smartContractResults) isMiniBlockCorrect(mbType block.Type) bool {
 	return mbType == block.SmartContractResultBlock
+}
+
+// EpochConfirmed is called whenever a new epoch is confirmed
+func (scr *smartContractResults) EpochConfirmed(epoch uint32, _ uint64) {
+	scr.flagOptimizeGasUsedInCrossMiniBlocks.Toggle(epoch >= scr.optimizeGasUsedInCrossMiniBlocksEnableEpoch)
+	log.Debug("smartContractResults: optimize gas used in cross mini blocks", "enabled", scr.flagOptimizeGasUsedInCrossMiniBlocks.IsSet())
 }

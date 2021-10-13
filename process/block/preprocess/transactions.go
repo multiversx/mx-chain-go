@@ -177,6 +177,7 @@ func NewTransactionPreprocessor(
 	txs.emptyAddress = make([]byte, txs.pubkeyConverter.Len())
 
 	log.Debug("transactions: enable epoch for optimize gas used in cross shard mini blocks", "epoch", txs.optimizeGasUsedInCrossMiniBlocksEnableEpoch)
+	log.Debug("transactions: enable epoch for scheduled mini blocks", "epoch", txs.scheduledMiniBlocksEnableEpoch)
 	epochNotifier.RegisterNotifyHandler(txs)
 
 	return txs, nil
@@ -971,18 +972,14 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV1(
 		isShardStuck:              isShardStuck,
 		isMaxBlockSizeReached:     isMaxBlockSizeReached,
 		getTxMaxTotalCost:         getTxMaxTotalCost,
+		getTotalGasConsumed:       txs.getTotalGasConsumed,
+		txPool:                    txs.txPool,
 	}
-
-	//TODO: fix after merge
-	numCrossShardTxsWithTooMuchGas := 0
 
 	mbBuilder, err := newMiniBlockBuilder(args)
 	if err != nil {
 		return nil, err
 	}
-
-	//TODO: fix after merge
-	totalGasConsumedInSelfShard := txs.getTotalGasConsumed()
 
 	defer func() {
 		go txs.notifyTransactionProviderIfNeeded()
@@ -994,34 +991,8 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV1(
 			break
 		}
 
-		//TODO: fix after merge
-		isTxTargetedForDeletion := errors.Is(err, process.ErrMaxGasLimitPerOneTxInReceiverShardIsReached)
-		if isTxTargetedForDeletion {
-			numCrossShardTxsWithTooMuchGas++
-			strCache := process.ShardCacherIdentifier(senderShardID, receiverShardID)
-			txs.txPool.RemoveData(txHash, strCache)
-		}
-
 		if !canAddTx {
 			continue
-		}
-
-		//TODO: fix after merge
-		txs.gasHandler.RemoveGasPenalized([][]byte{txHash})
-
-		//TODO: fix after merge
-		if senderShardID == receiverShardID {
-			gasRefunded := txs.gasHandler.GasRefunded(txHash)
-			gasPenalized := txs.gasHandler.GasPenalized(txHash)
-			gasToBeSubtracted := gasRefunded + gasPenalized
-			shouldDoTheSubtraction := gasToBeSubtracted <= gasConsumedByMiniBlocksInSenderShard &&
-				gasToBeSubtracted <= totalGasConsumedInSelfShard &&
-				gasToBeSubtracted <= mapGasConsumedByMiniBlockInReceiverShard[receiverShardID]
-			if shouldDoTheSubtraction {
-				gasConsumedByMiniBlocksInSenderShard -= gasToBeSubtracted
-				totalGasConsumedInSelfShard -= gasToBeSubtracted
-				mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] -= gasToBeSubtracted
-			}
 		}
 
 		err = txs.processMiniBlockBuilderTx(mbBuilder, wtx, tx)
@@ -1127,7 +1098,8 @@ func (txs *transactions) refundGas(
 	mbb *miniBlocksBuilder,
 ) {
 	gasRefunded := txs.gasHandler.GasRefunded(wtx.TxHash)
-	mbb.handleGasRefund(wtx, gasRefunded)
+	gasPenalized := txs.gasHandler.GasPenalized(wtx.TxHash)
+	mbb.handleGasRefund(wtx, gasRefunded, gasPenalized)
 }
 
 func (txs *transactions) createEmptyMiniBlock(
@@ -1165,10 +1137,10 @@ func (txs *transactions) getMiniBlockSliceFromMap(mapMiniBlocks map[uint32]*bloc
 		}
 	}
 
-	return txs.splitMiniBlocksIfNeeded(miniBlocks)
+	return txs.splitMiniBlocksBasedOnMaxGasLimitIfNeeded(miniBlocks)
 }
 
-func (txs *transactions) splitMiniBlocksIfNeeded(miniBlocks block.MiniBlockSlice) block.MiniBlockSlice {
+func (txs *transactions) splitMiniBlocksBasedOnMaxGasLimitIfNeeded(miniBlocks block.MiniBlockSlice) block.MiniBlockSlice {
 	if !txs.flagOptimizeGasUsedInCrossMiniBlocks.IsSet() {
 		return miniBlocks
 	}
@@ -1180,15 +1152,15 @@ func (txs *transactions) splitMiniBlocksIfNeeded(miniBlocks block.MiniBlockSlice
 			continue
 		}
 
-		splitMiniBlocks = append(splitMiniBlocks, txs.splitMiniBlockIfNeeded(miniBlock)...)
+		splitMiniBlocks = append(splitMiniBlocks, txs.splitMiniBlockBasedOnMaxGasLimitIfNeeded(miniBlock)...)
 	}
 
 	return splitMiniBlocks
 }
 
-func (txs *transactions) splitMiniBlockIfNeeded(miniBlock *block.MiniBlock) block.MiniBlockSlice {
+func (txs *transactions) splitMiniBlockBasedOnMaxGasLimitIfNeeded(miniBlock *block.MiniBlock) block.MiniBlockSlice {
 	splitMiniBlocks := make(block.MiniBlockSlice, 0)
-	currentMiniBlock := createEmptyMiniBlock(miniBlock)
+	currentMiniBlock := createEmptyMiniBlockFromMiniBlock(miniBlock)
 	gasLimitInReceiverShard := uint64(0)
 
 	for _, txHash := range miniBlock.TxHashes {
@@ -1224,7 +1196,7 @@ func (txs *transactions) splitMiniBlockIfNeeded(miniBlock *block.MiniBlock) bloc
 				splitMiniBlocks = append(splitMiniBlocks, currentMiniBlock)
 			}
 
-			currentMiniBlock = createEmptyMiniBlock(miniBlock)
+			currentMiniBlock = createEmptyMiniBlockFromMiniBlock(miniBlock)
 			gasLimitInReceiverShard = 0
 		}
 
@@ -1239,7 +1211,7 @@ func (txs *transactions) splitMiniBlockIfNeeded(miniBlock *block.MiniBlock) bloc
 	return splitMiniBlocks
 }
 
-func createEmptyMiniBlock(miniBlock *block.MiniBlock) *block.MiniBlock {
+func createEmptyMiniBlockFromMiniBlock(miniBlock *block.MiniBlock) *block.MiniBlock {
 	return &block.MiniBlock{
 		SenderShardID:   miniBlock.SenderShardID,
 		ReceiverShardID: miniBlock.ReceiverShardID,
@@ -1419,6 +1391,9 @@ func (txs *transactions) GetAllCurrentUsedTxs() map[string]data.TransactionHandl
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (txs *transactions) EpochConfirmed(epoch uint32, _ uint64) {
+	txs.flagOptimizeGasUsedInCrossMiniBlocks.Toggle(epoch >= txs.optimizeGasUsedInCrossMiniBlocksEnableEpoch)
+	log.Debug("transactions: optimize gas used in cross mini blocks", "enabled", txs.flagOptimizeGasUsedInCrossMiniBlocks.IsSet())
+
 	txs.flagScheduledMiniBlocks.Toggle(epoch >= txs.scheduledMiniBlocksEnableEpoch)
 	log.Debug("transactions: scheduled mini blocks", "enabled", txs.flagScheduledMiniBlocks.IsSet())
 }

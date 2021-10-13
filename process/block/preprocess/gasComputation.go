@@ -116,6 +116,16 @@ func (gc *gasComputation) GasConsumed(hash []byte) uint64 {
 
 }
 
+// GasConsumedAsScheduled gets gas consumed as scheduled for a given hash
+func (gc *gasComputation) GasConsumedAsScheduled(hash []byte) uint64 {
+	gc.mutGasConsumed.RLock()
+	gasConsumedAsScheduled := gc.gasConsumedAsScheduled[string(hash)]
+	gc.mutGasConsumed.RUnlock()
+
+	return gasConsumedAsScheduled
+
+}
+
 // GasRefunded gets gas refunded for a given hash
 func (gc *gasComputation) GasRefunded(hash []byte) uint64 {
 	gc.mutGasRefunded.RLock()

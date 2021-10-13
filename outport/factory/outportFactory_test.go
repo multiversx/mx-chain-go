@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/outport/factory"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	notifierFactory "github.com/ElrondNetwork/notifier-go/factory"
 	"github.com/stretchr/testify/require"
@@ -93,7 +94,7 @@ func TestCreateOutport_EnabledDriversNilMockArgsExpectErrorSubscribingDrivers(t 
 func TestCreateOutport_SubscribeCovalentDriver(t *testing.T) {
 	args := createMockArgsOutportHandler(false, false, true)
 
-	args.CovalentIndexerFactoryArgs.Hasher = &mock.HasherMock{}
+	args.CovalentIndexerFactoryArgs.Hasher = &hashingMocks.HasherMock{}
 	args.CovalentIndexerFactoryArgs.ShardCoordinator = &mock.ShardCoordinatorStub{}
 	args.CovalentIndexerFactoryArgs.Marshaller = &mock.MarshalizerMock{}
 	args.CovalentIndexerFactoryArgs.Accounts = &stateMock.AccountsStub{}
