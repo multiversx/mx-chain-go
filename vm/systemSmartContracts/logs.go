@@ -2,6 +2,7 @@ package systemSmartContracts
 
 import (
 	"math/big"
+	"strconv"
 
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -22,11 +23,12 @@ func (d *delegation) createAndAddLogEntryForWithdraw(
 	globalFund *GlobalFundData,
 	delegator *DelegatorData,
 	dStatus *DelegationContractStatus,
+	wasDeleted bool,
 ) {
 	activeFund := d.getFundForLogEntry(delegator.ActiveFund)
 
 	numUsers := big.NewInt(0).SetUint64(dStatus.NumUsers)
-	d.createAndAddLogEntry(contractCallInput, actualUserUnBond.Bytes(), activeFund.Bytes(), numUsers.Bytes(), globalFund.TotalActive.Bytes())
+	d.createAndAddLogEntry(contractCallInput, actualUserUnBond.Bytes(), activeFund.Bytes(), numUsers.Bytes(), globalFund.TotalActive.Bytes(), []byte(strconv.FormatBool(wasDeleted)))
 }
 
 func (d *delegation) createAndAddLogEntryForDelegate(
