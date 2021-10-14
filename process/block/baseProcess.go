@@ -1087,6 +1087,12 @@ func getLastSelfNotarizedHeaderByItself(chainHandler data.ChainHandler) (data.He
 	return currentHeader, currentBlockHash
 }
 
+func (bp *baseProcessor) setFinalizedHeaderHashInIndexer(hdrHash []byte) {
+	log.Debug("baseProcessor.setFinalizedBlockInIndexer", "finalized header hash", hdrHash)
+
+	bp.outportHandler.FinalizedBlock(hdrHash)
+}
+
 func (bp *baseProcessor) updateStateStorage(
 	finalHeader data.HeaderHandler,
 	rootHash []byte,
