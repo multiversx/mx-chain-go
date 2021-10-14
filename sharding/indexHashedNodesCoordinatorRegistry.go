@@ -108,11 +108,12 @@ func (ihgs *indexHashedNodesCoordinator) NodesCoordinatorToRegistry() *NodesCoor
 	}
 
 	minEpoch := 0
-	if ihgs.currentEpoch >= nodeCoordinatorStoredEpochs {
-		minEpoch = int(ihgs.currentEpoch) - nodeCoordinatorStoredEpochs + 1
+	lastEpoch := ihgs.getLastEpochConfig()
+	if lastEpoch >= nodesCoordinatorStoredEpochs {
+		minEpoch = int(lastEpoch) - nodesCoordinatorStoredEpochs + 1
 	}
 
-	for epoch := uint32(minEpoch); epoch <= ihgs.currentEpoch; epoch++ {
+	for epoch := uint32(minEpoch); epoch <= lastEpoch; epoch++ {
 		epochNodesData, ok := ihgs.nodesConfig[epoch]
 		if !ok {
 			continue
@@ -122,6 +123,17 @@ func (ihgs *indexHashedNodesCoordinator) NodesCoordinatorToRegistry() *NodesCoor
 	}
 
 	return registry
+}
+
+func(ihgs *indexHashedNodesCoordinator) getLastEpochConfig() uint32 {
+	lastEpoch := uint32(0)
+	for epoch := range ihgs.nodesConfig {
+		if lastEpoch < epoch {
+			lastEpoch = epoch
+		}
+	}
+
+	return lastEpoch
 }
 
 func (ihgs *indexHashedNodesCoordinator) registryToNodesCoordinator(
