@@ -151,7 +151,7 @@ func TestIndexHashedNodesCooridinator_nodesCoordinatorToRegistryLimitNumEpochsIn
 	nc := nodesCoordinator.nodesConfig
 
 	require.Equal(t, nodesCoordinator.currentEpoch, ncr.CurrentEpoch)
-	require.Equal(t, nodeCoordinatorStoredEpochs, len(ncr.EpochsConfig))
+	require.Equal(t, nodesCoordinatorStoredEpochs, len(ncr.EpochsConfig))
 
 	for epochStr:= range ncr.EpochsConfig {
 		epoch, err := strconv.Atoi(epochStr)
