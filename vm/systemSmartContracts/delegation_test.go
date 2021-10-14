@@ -2858,6 +2858,9 @@ func TestDelegation_ExecuteClaimRewardsShouldDeleteDelegator(t *testing.T) {
 	vmInput = getDefaultVmInputForFunc("getTotalCumulatedRewardsForUser", [][]byte{vmInput.CallerAddr})
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
+
+	res := d.eei.GetStorage(vmInput.CallerAddr)
+	require.Len(t, res, 0)
 }
 
 func TestDelegation_ExecuteReDelegateRewardsNoExtraCheck(t *testing.T) {
