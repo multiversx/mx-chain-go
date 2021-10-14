@@ -1,12 +1,12 @@
 package testscommon
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 )
 
-func createInterceptedHeaderArg(header *block.Header) *interceptedBlocks.ArgInterceptedBlockHeader {
+func createInterceptedHeaderArg(header data.HeaderHandler) *interceptedBlocks.ArgInterceptedBlockHeader {
 	args := &interceptedBlocks.ArgInterceptedBlockHeader{
 		ShardCoordinator:        &mock.ShardCoordinatorStub{},
 		Hasher:                  &mock.HasherMock{},
@@ -22,7 +22,7 @@ func createInterceptedHeaderArg(header *block.Header) *interceptedBlocks.ArgInte
 	return args
 }
 
-func CreateInterceptedHeaderData(header *block.Header) *interceptedBlocks.InterceptedHeader {
+func CreateInterceptedHeaderData(header data.HeaderHandler) *interceptedBlocks.InterceptedHeader {
 	args := createInterceptedHeaderArg(header)
 	interceptedHeader, _ := interceptedBlocks.NewInterceptedHeader(args)
 

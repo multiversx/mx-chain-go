@@ -46,12 +46,16 @@ func getHeadersFromInterceptedHeaders(interceptedHeaders []*interceptedBlocks.In
 	headers := make([]*block.Header, 0, len(interceptedHeaders))
 
 	for _, interceptedHeader := range interceptedHeaders {
-		hdr, castOk := interceptedHeader.HeaderHandler().(*block.Header)
+		if interceptedHeader == nil || interceptedHeader.HeaderHandler() == nil {
+			return nil, process.ErrNilHeaderHandler
+		}
+
+		blockHeader, castOk := interceptedHeader.HeaderHandler().(*block.Header)
 		if !castOk {
 			return nil, process.ErrCannotCastHeaderHandlerToHeader
 		}
 
-		headers = append(headers, hdr)
+		headers = append(headers, blockHeader)
 	}
 
 	return headers, nil

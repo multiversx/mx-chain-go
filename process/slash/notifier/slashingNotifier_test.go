@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	mock3 "github.com/ElrondNetwork/elrond-go/genesis/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -136,6 +137,21 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidSlashType_Expect
 	require.Equal(t, process.ErrInvalidProof, err)
 }
 
+func TestSlashingNotifier_CreateShardSlashingTransaction_NilHeader_ExpectError(t *testing.T) {
+	args := generateSlashingNotifierArgs()
+	sn, _ := notifier.NewSlashingNotifier(args)
+	tx, err := sn.CreateShardSlashingTransaction(&mock4.MultipleHeaderSigningProofStub{
+		GetHeadersCalled: func(pubKey []byte) []*interceptedBlocks.InterceptedHeader {
+			return []*interceptedBlocks.InterceptedHeader{nil}
+		},
+		GetPubKeysCalled: func() [][]byte {
+			return [][]byte{[]byte("pubKey")}
+		},
+	})
+	require.Nil(t, tx)
+	require.Equal(t, process.ErrNilHeaderHandler, err)
+}
+
 func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidProofSignature_ExpectError(t *testing.T) {
 	args := generateSlashingNotifierArgs()
 	errSign := errors.New("signature error")
@@ -198,11 +214,16 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleProposalProof(t
 
 	expectedData := []byte{slash.MultipleProposalProofID, byte('@'), byte('c'), byte('d'), byte('@')}
 	expectedData = append(expectedData, []byte("signature")...)
+	expectedTx := &transaction.Transaction{
+		Data:      expectedData,
+		Nonce:     444,
+		SndAddr:   []byte("address"),
+		Value:     big.NewInt(notifier.CommitmentProofValue),
+		Signature: []byte("signature"),
+	}
 
 	tx, _ := sn.CreateShardSlashingTransaction(proof)
-	require.NotNil(t, tx)
-	require.Equal(t, expectedData, tx.GetData())
-	require.Equal(t, tx.GetValue(), big.NewInt(notifier.CommitmentProofValue))
+	require.Equal(t, expectedTx, tx)
 }
 
 func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleSignProof(t *testing.T) {
@@ -239,15 +260,23 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleSignProof(t *te
 
 	expectedData := []byte{slash.MultipleSigningProofID, byte('@'), byte('c'), byte('d'), byte('@')}
 	expectedData = append(expectedData, []byte("signature")...)
+	expectedTx := &transaction.Transaction{
+		Data:      expectedData,
+		Nonce:     444,
+		SndAddr:   []byte("address"),
+		Value:     big.NewInt(notifier.CommitmentProofValue),
+		Signature: []byte("signature"),
+	}
 
 	tx, _ := sn.CreateShardSlashingTransaction(proof)
-	require.NotNil(t, tx)
-	require.Equal(t, expectedData, tx.GetData())
-	require.Equal(t, tx.GetValue(), big.NewInt(notifier.CommitmentProofValue))
+	require.Equal(t, expectedTx, tx)
 }
 
 func generateSlashingNotifierArgs() *notifier.SlashingNotifierArgs {
-	accountHandler := &mock3.BaseAccountMock{}
+	accountHandler := &mock3.BaseAccountMock{
+		Nonce:             444,
+		AddressBytesField: []byte("address"),
+	}
 	accountsAdapter := &state2.AccountsStub{
 		GetExistingAccountCalled: func([]byte) (vmcommon.AccountHandler, error) {
 			return accountHandler, nil
