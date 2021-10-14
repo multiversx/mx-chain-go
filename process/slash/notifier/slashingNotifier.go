@@ -1,7 +1,6 @@
 package notifier
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
 
@@ -20,6 +19,10 @@ import (
 )
 
 const CommitmentProofValue = 1 // astea o sa fie in config undeva
+
+type proto interface {
+	Marshal() ([]byte, error)
+}
 
 type SlashingNotifierArgs struct {
 	PrivateKey      crypto.PrivateKey
@@ -76,50 +79,31 @@ func NewSlashingNotifier(args *SlashingNotifierArgs) (slash.SlashingNotifier, er
 }
 
 func (sn *SlashingNotifier) CreateShardSlashingTransaction(proof slash.SlashingProofHandler) (data.TransactionHandler, error) {
-	var tx *transaction.Transaction
-	var err error
+	protoProof, err := toProto(proof)
+	if err != nil {
+		return nil, err
+	}
 
-	switch proofType := proof.(type) {
+	proofBytes, err := protoProof.Marshal()
+	if err != nil {
+		return nil, err
+	}
+
+	return sn.createProofTx(proof.GetType(), proofBytes)
+}
+
+func toProto(proof slash.SlashingProofHandler) (proto, error) {
+	switch t := proof.(type) {
 	case slash.MultipleProposalProofHandler:
-		tx, err = sn.createMultipleProposalProofTx(proofType)
+		return slash.ToProtoMultipleHeaderProposal(t)
 	case slash.MultipleSigningProofHandler:
-		tx, err = sn.createMultipleSignProofTx(proofType)
+		return slash.ToProtoMultipleHeaderSign(t)
 	default:
-		return nil, errors.New("something")
+		return nil, process.ErrUnknownProof
 	}
-
-	return tx, err
 }
 
-func (sn *SlashingNotifier) createMultipleProposalProofTx(proof slash.MultipleProposalProofHandler) (*transaction.Transaction, error) {
-	protoProof, err := slash.ToProtoMultipleHeaderProposal(proof)
-	if err != nil {
-		return nil, err
-	}
-
-	proofBytes, err := protoProof.Marshal()
-	if err != nil {
-		return nil, err
-	}
-
-	return sn.createSignedProofTx(slash.MultipleProposal, proofBytes)
-}
-
-func (sn *SlashingNotifier) createMultipleSignProofTx(proof slash.MultipleSigningProofHandler) (*transaction.Transaction, error) {
-	protoProof, err := slash.ToProtoMultipleHeaderSign(proof)
-	if err != nil {
-		return nil, err
-	}
-
-	proofBytes, err := protoProof.Marshal()
-	if err != nil {
-		return nil, err
-	}
-
-	return sn.createSignedProofTx(slash.MultipleSigning, proofBytes)
-}
-
-func (sn *SlashingNotifier) createSignedProofTx(slashType slash.SlashingType, proofBytes []byte) (*transaction.Transaction, error) {
+func (sn *SlashingNotifier) createProofTx(slashType slash.SlashingType, proofBytes []byte) (*transaction.Transaction, error) {
 	tx := &transaction.Transaction{
 		Nonce:   sn.accountHandler.GetNonce(),
 		Value:   big.NewInt(CommitmentProofValue),
@@ -127,12 +111,12 @@ func (sn *SlashingNotifier) createSignedProofTx(slashType slash.SlashingType, pr
 		SndAddr: sn.accountHandler.AddressBytes(),
 	}
 
-	txData, err := sn.computeProofTxData(slashType, proofBytes)
+	txData, err := sn.computeTxData(slashType, proofBytes)
 	if err != nil {
 		return nil, err
 	}
-
 	tx.Data = txData
+
 	err = sn.signTx(tx)
 	if err != nil {
 		return nil, err
@@ -141,16 +125,21 @@ func (sn *SlashingNotifier) createSignedProofTx(slashType slash.SlashingType, pr
 	return tx, nil
 }
 
-func (sn *SlashingNotifier) computeProofTxData(slashType slash.SlashingType, proofBytes []byte) ([]byte, error) {
+func (sn *SlashingNotifier) computeTxData(slashType slash.SlashingType, proofBytes []byte) ([]byte, error) {
 	proofHash := sn.hasher.Compute(string(proofBytes))
-	id := slash.ProofIDs[slashType]
-	crc := proofHash[len(proofHash)-2:]
-	signatureProof, err := sn.signer.Sign(sn.privateKey, proofHash)
+	proofSignature, err := sn.signer.Sign(sn.privateKey, proofHash)
 	if err != nil {
 		return nil, err
 	}
 
-	dataStr := fmt.Sprintf("%s@%s@%s", []byte{id}, crc, signatureProof)
+	id, found := slash.ProofIDs[slashType]
+	if !found {
+		return nil, process.ErrUnknownProof
+	}
+
+	crc := proofHash[len(proofHash)-2:]
+
+	dataStr := fmt.Sprintf("%s@%s@%s", []byte{id}, crc, proofSignature)
 	return []byte(dataStr), nil
 }
 

@@ -1,6 +1,7 @@
 package notifier_test
 
 import (
+	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
@@ -111,12 +112,13 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleProposalProof(t
 		},
 	}
 
-	expectedData := []byte{0x1, byte('@'), byte('c'), byte('d'), byte('@')}
+	expectedData := []byte{slash.MultipleProposalProofID, byte('@'), byte('c'), byte('d'), byte('@')}
 	expectedData = append(expectedData, []byte("signature")...)
 
 	tx, _ := sn.CreateShardSlashingTransaction(proof)
 	require.NotNil(t, tx)
 	require.Equal(t, expectedData, tx.GetData())
+	require.Equal(t, tx.GetValue(), big.NewInt(notifier.CommitmentProofValue))
 }
 
 func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleSignProof(t *testing.T) {
@@ -151,12 +153,13 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleSignProof(t *te
 		},
 	}
 
-	expectedData := []byte{0x2, byte('@'), byte('c'), byte('d'), byte('@')}
+	expectedData := []byte{slash.MultipleSigningProofID, byte('@'), byte('c'), byte('d'), byte('@')}
 	expectedData = append(expectedData, []byte("signature")...)
 
 	tx, _ := sn.CreateShardSlashingTransaction(proof)
 	require.NotNil(t, tx)
 	require.Equal(t, expectedData, tx.GetData())
+	require.Equal(t, tx.GetValue(), big.NewInt(notifier.CommitmentProofValue))
 }
 
 func generateSlashingNotifierArgs() *notifier.SlashingNotifierArgs {

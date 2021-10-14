@@ -16,8 +16,12 @@ const (
 	High   ThreatLevel = 2
 )
 
+const (
+	MultipleProposalProofID byte = 0x1
+	MultipleSigningProofID  byte = 0x2
+)
+
 var ProofIDs = map[SlashingType]byte{
-	None:             0x0,
-	MultipleProposal: 0x1,
-	MultipleSigning:  0x2,
+	MultipleProposal: MultipleProposalProofID,
+	MultipleSigning:  MultipleSigningProofID,
 }

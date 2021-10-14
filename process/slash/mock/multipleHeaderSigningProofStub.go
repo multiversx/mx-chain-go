@@ -17,7 +17,7 @@ func (mps *MultipleHeaderSigningProofStub) GetType() slash.SlashingType {
 	if mps.GetTypeCalled != nil {
 		return mps.GetTypeCalled()
 	}
-	return slash.None
+	return slash.MultipleSigning
 }
 
 // GetPubKeys -
