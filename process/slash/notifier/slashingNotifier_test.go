@@ -1,6 +1,7 @@
 package notifier_test
 
 import (
+	"errors"
 	"math/big"
 	"testing"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/slash/notifier"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	state2 "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/update"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -69,14 +71,6 @@ func TestNewSlashingNotifier(t *testing.T) {
 		{
 			args: func() *notifier.SlashingNotifierArgs {
 				args := generateSlashingNotifierArgs()
-				args.Marshaller = nil
-				return args
-			},
-			expectedErr: process.ErrNilMarshalizer,
-		},
-		{
-			args: func() *notifier.SlashingNotifierArgs {
-				args := generateSlashingNotifierArgs()
 				args.Hasher = nil
 				return args
 			},
@@ -97,6 +91,85 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidProof_ExpectErro
 	tx, err := sn.CreateShardSlashingTransaction(&mock4.SlashingProofStub{})
 	require.Nil(t, tx)
 	require.Equal(t, process.ErrInvalidProof, err)
+}
+
+func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidPubKey_ExpectError(t *testing.T) {
+	args := generateSlashingNotifierArgs()
+	errPubKey := errors.New("pub key error")
+	args.PublicKey = &cryptoMocks.PublicKeyStub{
+		ToByteArrayStub: func() ([]byte, error) {
+			return nil, errPubKey
+		},
+	}
+
+	sn, _ := notifier.NewSlashingNotifier(args)
+	tx, err := sn.CreateShardSlashingTransaction(&mock4.MultipleHeaderSigningProofStub{})
+	require.Nil(t, tx)
+	require.Equal(t, errPubKey, err)
+}
+
+func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidAccount_ExpectError(t *testing.T) {
+	args := generateSlashingNotifierArgs()
+	errAcc := errors.New("accounts adapter error")
+	args.AccountAdapter = &state2.AccountsStub{
+		GetExistingAccountCalled: func([]byte) (vmcommon.AccountHandler, error) {
+			return nil, errAcc
+		},
+	}
+
+	sn, _ := notifier.NewSlashingNotifier(args)
+	tx, err := sn.CreateShardSlashingTransaction(&mock4.MultipleHeaderSigningProofStub{})
+	require.Nil(t, tx)
+	require.Equal(t, errAcc, err)
+}
+
+func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidSlashType_ExpectError(t *testing.T) {
+	args := generateSlashingNotifierArgs()
+
+	sn, _ := notifier.NewSlashingNotifier(args)
+	tx, err := sn.CreateShardSlashingTransaction(&mock4.MultipleHeaderSigningProofStub{
+		GetTypeCalled: func() slash.SlashingType {
+			return "invalid"
+		},
+	})
+	require.Nil(t, tx)
+	require.Equal(t, process.ErrInvalidProof, err)
+}
+
+func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidProofSignature_ExpectError(t *testing.T) {
+	args := generateSlashingNotifierArgs()
+	errSign := errors.New("signature error")
+	args.Signer = &cryptoMocks.SignerStub{
+		SignCalled: func(private crypto.PrivateKey, msg []byte) ([]byte, error) {
+			return nil, errSign
+		},
+	}
+
+	sn, _ := notifier.NewSlashingNotifier(args)
+	tx, err := sn.CreateShardSlashingTransaction(&mock4.MultipleHeaderSigningProofStub{})
+	require.Nil(t, tx)
+	require.Equal(t, errSign, err)
+}
+
+func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidTxSignature_ExpectError(t *testing.T) {
+	args := generateSlashingNotifierArgs()
+	errSign := errors.New("signature error")
+	flag := false
+	args.Signer = &cryptoMocks.SignerStub{
+		SignCalled: func(private crypto.PrivateKey, msg []byte) ([]byte, error) {
+			if flag {
+				return nil, errSign
+			}
+
+			flag = true
+			return []byte("signature"), nil
+		},
+	}
+
+	sn, _ := notifier.NewSlashingNotifier(args)
+	tx, err := sn.CreateShardSlashingTransaction(&mock4.MultipleHeaderSigningProofStub{})
+	require.Nil(t, tx)
+	require.Equal(t, errSign, err)
 }
 
 func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleProposalProof(t *testing.T) {
@@ -187,7 +260,6 @@ func generateSlashingNotifierArgs() *notifier.SlashingNotifierArgs {
 		PubKeyConverter: &testscommon.PubkeyConverterMock{},
 		Signer:          &mock.SignerMock{},
 		AccountAdapter:  accountsAdapter,
-		Marshaller:      &testscommon.MarshalizerMock{},
 		Hasher:          &testscommon.HasherMock{},
 	}
 }

@@ -905,9 +905,6 @@ var ErrNilRoundHeadersCache = errors.New("round headers cache is nil")
 // ErrCannotCastHeaderHandlerToHeader signals that a header handler interface cannot be cast to a block header
 var ErrCannotCastHeaderHandlerToHeader = errors.New("header handler interface cannot be cast to a block header")
 
-// ErrUnknownProof signals that an unknown proof has been provided
-var ErrUnknownProof = errors.New("an unknown proof has been provided")
-
 // ErrInvalidProof signals that an invalid proof has been provided
 var ErrInvalidProof = errors.New("an invalid proof has been provided")
 
