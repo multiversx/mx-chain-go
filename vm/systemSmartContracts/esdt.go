@@ -1176,7 +1176,7 @@ func (e *esdt) transferOwnership(args *vmcommon.ContractCallInput) vmcommon.Retu
 	logEntry := &vmcommon.LogEntry{
 		Identifier: []byte(args.Function),
 		Address:    args.CallerAddr,
-		Topics:     [][]byte{args.Arguments[0], args.Arguments[1]},
+		Topics:     [][]byte{args.Arguments[0], token.TokenName, token.TickerName, token.TokenType, args.Arguments[1]},
 	}
 	e.eei.AddLogEntry(logEntry)
 
