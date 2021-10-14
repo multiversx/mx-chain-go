@@ -246,30 +246,28 @@ func checkValues(economics *config.EconomicsConfig) error {
 	if len(economics.FeeSettings.GasLimitSettings) == 0 {
 		return process.ErrEmptyGasLimitSettings
 	}
-	conversionBase := 10
-	bitConversionSize := 64
 	for _, gasLimitSetting := range economics.FeeSettings.GasLimitSettings {
-		minGasLimit, err := strconv.ParseUint(gasLimitSetting.MinGasLimit, conversionBase, bitConversionSize)
+		minGasLimit, err := getConvertedValue(gasLimitSetting.MinGasLimit)
 		if err != nil {
 			return process.ErrInvalidMinimumGasLimitForTx
 		}
 
-		maxGasLimitPerBlock, err := strconv.ParseUint(gasLimitSetting.MaxGasLimitPerBlock, conversionBase, bitConversionSize)
+		maxGasLimitPerBlock, err := getConvertedValue(gasLimitSetting.MaxGasLimitPerBlock)
 		if err != nil {
 			return fmt.Errorf("%w for epoch %d", process.ErrInvalidMaxGasLimitPerBlock, gasLimitSetting.EnableEpoch)
 		}
 
-		maxGasLimitPerMiniBlock, err := strconv.ParseUint(gasLimitSetting.MaxGasLimitPerMiniBlock, conversionBase, bitConversionSize)
+		maxGasLimitPerMiniBlock, err := getConvertedValue(gasLimitSetting.MaxGasLimitPerMiniBlock)
 		if err != nil {
 			return fmt.Errorf("%w for epoch %d", process.ErrInvalidMaxGasLimitPerMiniBlock, gasLimitSetting.EnableEpoch)
 		}
 
-		maxGasLimitPerMetaBlock, err := strconv.ParseUint(gasLimitSetting.MaxGasLimitPerMetaBlock, conversionBase, bitConversionSize)
+		maxGasLimitPerMetaBlock, err := getConvertedValue(gasLimitSetting.MaxGasLimitPerMetaBlock)
 		if err != nil {
 			return fmt.Errorf("%w for epoch %d", process.ErrInvalidMaxGasLimitPerMetaBlock, gasLimitSetting.EnableEpoch)
 		}
 
-		maxGasLimitPerMetaMiniBlock, err := strconv.ParseUint(gasLimitSetting.MaxGasLimitPerMetaMiniBlock, conversionBase, bitConversionSize)
+		maxGasLimitPerMetaMiniBlock, err := getConvertedValue(gasLimitSetting.MaxGasLimitPerMetaMiniBlock)
 		if err != nil {
 			return fmt.Errorf("%w for epoch %d", process.ErrInvalidMaxGasLimitPerMetaMiniBlock, gasLimitSetting.EnableEpoch)
 		}
