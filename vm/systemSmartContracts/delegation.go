@@ -1406,11 +1406,11 @@ func (d *delegation) reDelegateRewards(args *vmcommon.ContractCallInput) vmcommo
 		return vmcommon.UserError
 	}
 
-	d.createAndAddLogEntryForDelegate(args, args.CallValue, globalFund, delegator, dStatus, isNew)
-
 	delegator.TotalCumulatedRewards.Add(delegator.TotalCumulatedRewards, delegator.UnClaimedRewards)
 	delegateValue := big.NewInt(0).Set(delegator.UnClaimedRewards)
 	delegator.UnClaimedRewards.SetUint64(0)
+
+	d.createAndAddLogEntryForDelegate(args, delegateValue, globalFund, delegator, dStatus, isNew)
 
 	return d.finishDelegateUser(globalFund, delegator, dConfig, dStatus, args.CallerAddr,
 		args.RecipientAddr, delegateValue, delegateValue, false, dConfig.CheckCapOnReDelegateRewards)
