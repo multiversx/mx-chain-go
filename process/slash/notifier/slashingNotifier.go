@@ -15,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/slash"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/update"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 const CommitmentProofValue = 1 // astea o sa fie in config undeva
@@ -29,7 +28,7 @@ type SlashingNotifierArgs struct {
 	PublicKey       crypto.PublicKey
 	PubKeyConverter core.PubkeyConverter
 	Signer          crypto.SingleSigner
-	AccountHandler  vmcommon.AccountHandler // delete this
+	AccountAdapter  state.AccountsAdapter
 	Marshaller      marshal.Marshalizer
 	Hasher          hashing.Hasher
 }
@@ -39,7 +38,7 @@ type SlashingNotifier struct {
 	publicKey       crypto.PublicKey
 	pubKeyConverter core.PubkeyConverter
 	signer          crypto.SingleSigner
-	accountHandler  vmcommon.AccountHandler // delete this
+	accountAdapter  state.AccountsAdapter
 	marshaller      marshal.Marshalizer
 	hasher          hashing.Hasher
 }
@@ -57,8 +56,8 @@ func NewSlashingNotifier(args *SlashingNotifierArgs) (slash.SlashingNotifier, er
 	if check.IfNil(args.Signer) {
 		return nil, crypto.ErrNilSingleSigner
 	}
-	if check.IfNil(args.AccountHandler) {
-		return nil, state.ErrNilAccountHandler
+	if check.IfNil(args.AccountAdapter) {
+		return nil, state.ErrNilAccountsAdapter
 	}
 	if check.IfNil(args.Hasher) {
 		return nil, process.ErrNilHasher
@@ -72,7 +71,7 @@ func NewSlashingNotifier(args *SlashingNotifierArgs) (slash.SlashingNotifier, er
 		publicKey:       args.PublicKey,
 		pubKeyConverter: args.PubKeyConverter,
 		signer:          args.Signer,
-		accountHandler:  args.AccountHandler,
+		accountAdapter:  args.AccountAdapter,
 		marshaller:      args.Marshaller,
 		hasher:          args.Hasher,
 	}, nil
@@ -99,23 +98,15 @@ func toProto(proof slash.SlashingProofHandler) (proto, error) {
 	case slash.MultipleSigningProofHandler:
 		return slash.ToProtoMultipleHeaderSign(t)
 	default:
-		return nil, process.ErrUnknownProof
+		return nil, process.ErrInvalidProof
 	}
 }
 
 func (sn *SlashingNotifier) createProofTx(slashType slash.SlashingType, proofBytes []byte) (*transaction.Transaction, error) {
-	tx := &transaction.Transaction{
-		Nonce:   sn.accountHandler.GetNonce(),
-		Value:   big.NewInt(CommitmentProofValue),
-		RcvAddr: nil, //core.MetachainShardId, , leave it dummy
-		SndAddr: sn.accountHandler.AddressBytes(),
-	}
-
-	txData, err := sn.computeTxData(slashType, proofBytes)
+	tx, err := sn.createUnsignedTx(slashType, proofBytes)
 	if err != nil {
 		return nil, err
 	}
-	tx.Data = txData
 
 	err = sn.signTx(tx)
 	if err != nil {
@@ -123,6 +114,29 @@ func (sn *SlashingNotifier) createProofTx(slashType slash.SlashingType, proofByt
 	}
 
 	return tx, nil
+}
+
+func (sn *SlashingNotifier) createUnsignedTx(slashType slash.SlashingType, proofBytes []byte) (*transaction.Transaction, error) {
+	pubKey, err := sn.publicKey.ToByteArray()
+	if err != nil {
+		return nil, err
+	}
+	account, err := sn.accountAdapter.GetExistingAccount(pubKey)
+	if err != nil {
+		return nil, err
+	}
+	txData, err := sn.computeTxData(slashType, proofBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return &transaction.Transaction{
+		Nonce:   account.GetNonce(),
+		Value:   big.NewInt(CommitmentProofValue),
+		RcvAddr: nil, //TODO: This should be changed to a meta chain address
+		SndAddr: account.AddressBytes(),
+		Data:    txData,
+	}, nil
 }
 
 func (sn *SlashingNotifier) computeTxData(slashType slash.SlashingType, proofBytes []byte) ([]byte, error) {

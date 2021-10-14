@@ -15,7 +15,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/slash/notifier"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	state2 "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/update"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
 
@@ -59,10 +61,10 @@ func TestNewSlashingNotifier(t *testing.T) {
 		{
 			args: func() *notifier.SlashingNotifierArgs {
 				args := generateSlashingNotifierArgs()
-				args.AccountHandler = nil
+				args.AccountAdapter = nil
 				return args
 			},
-			expectedErr: state.ErrNilAccountHandler,
+			expectedErr: state.ErrNilAccountsAdapter,
 		},
 		{
 			args: func() *notifier.SlashingNotifierArgs {
@@ -86,6 +88,15 @@ func TestNewSlashingNotifier(t *testing.T) {
 		_, err := notifier.NewSlashingNotifier(currTest.args())
 		require.Equal(t, currTest.expectedErr, err)
 	}
+}
+
+func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidProof_ExpectError(t *testing.T) {
+	args := generateSlashingNotifierArgs()
+	sn, _ := notifier.NewSlashingNotifier(args)
+
+	tx, err := sn.CreateShardSlashingTransaction(&mock4.SlashingProofStub{})
+	require.Nil(t, tx)
+	require.Equal(t, process.ErrInvalidProof, err)
 }
 
 func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleProposalProof(t *testing.T) {
@@ -163,12 +174,19 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleSignProof(t *te
 }
 
 func generateSlashingNotifierArgs() *notifier.SlashingNotifierArgs {
+	accountHandler := &mock3.BaseAccountMock{}
+	accountsAdapter := &state2.AccountsStub{
+		GetExistingAccountCalled: func([]byte) (vmcommon.AccountHandler, error) {
+			return accountHandler, nil
+		},
+	}
+
 	return &notifier.SlashingNotifierArgs{
 		PrivateKey:      &mock.PrivateKeyMock{},
 		PublicKey:       &mock.PublicKeyMock{},
 		PubKeyConverter: &testscommon.PubkeyConverterMock{},
 		Signer:          &mock.SignerMock{},
-		AccountHandler:  &mock3.BaseAccountMock{},
+		AccountAdapter:  accountsAdapter,
 		Marshaller:      &testscommon.MarshalizerMock{},
 		Hasher:          &testscommon.HasherMock{},
 	}

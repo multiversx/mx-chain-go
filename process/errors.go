@@ -908,6 +908,9 @@ var ErrCannotCastHeaderHandlerToHeader = errors.New("header handler interface ca
 // ErrUnknownProof signals that an unknown proof has been provided
 var ErrUnknownProof = errors.New("an unknown proof has been provided")
 
+// ErrInvalidProof signals that an invalid proof has been provided
+var ErrInvalidProof = errors.New("an invalid proof has been provided")
+
 // ErrAccountNotPayable will be sent when trying to send money to a non-payable account
 var ErrAccountNotPayable = errors.New("sending value to non payable contract")
 
