@@ -326,7 +326,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsShardIdMismatch
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{
-			MaxGasLimitPerMiniBlockCalled: func() uint64 {
+			MaxGasLimitPerMiniBlockCalled: func(_ uint32) uint64 {
 				return maxGasLimitPerBlock
 			},
 		},
@@ -400,7 +400,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddrGood(t *tes
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{
-			MaxGasLimitPerMiniBlockCalled: func() uint64 {
+			MaxGasLimitPerMiniBlockCalled: func(_ uint32) uint64 {
 				return maxGasLimitPerBlock
 			},
 		},
@@ -478,7 +478,7 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksNothingInCache(t *
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{
-			MaxGasLimitPerMiniBlockCalled: func() uint64 {
+			MaxGasLimitPerMiniBlockCalled: func(_ uint32) uint64 {
 				return maxGasLimitPerBlock
 			},
 		},
@@ -504,7 +504,7 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksNotCrossShard(t *t
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{
-			MaxGasLimitPerMiniBlockCalled: func() uint64 {
+			MaxGasLimitPerMiniBlockCalled: func(_ uint32) uint64 {
 				return maxGasLimitPerBlock
 			},
 		},
@@ -542,7 +542,7 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksCrossShard(t *test
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{
-			MaxGasLimitPerMiniBlockCalled: func() uint64 {
+			MaxGasLimitPerMiniBlockCalled: func(_ uint32) uint64 {
 				return maxGasLimitPerBlock
 			},
 		},
@@ -720,7 +720,7 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyMiniBlockMissmatc
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{
-			MaxGasLimitPerMiniBlockCalled: func() uint64 {
+			MaxGasLimitPerMiniBlockCalled: func(_ uint32) uint64 {
 				return maxGasLimitPerBlock
 			},
 		},
@@ -770,10 +770,10 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyShouldPass(t *tes
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{
-			MaxGasLimitPerMiniBlockCalled: func() uint64 {
+			MaxGasLimitPerMiniBlockCalled: func(_ uint32) uint64 {
 				return maxGasLimitPerBlock
 			},
-			MaxGasLimitPerBlockCalled: func() uint64 {
+			MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 				return maxGasLimitPerBlock
 			},
 		},

@@ -322,7 +322,7 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	err = mp.txCoordinator.ProcessBlockTransaction(body, haveTime)
+	err = mp.txCoordinator.ProcessBlockTransaction(body, haveTime, header.GetEpoch())
 	if err != nil {
 		return err
 	}
@@ -901,7 +901,7 @@ func (mp *metaProcessor) createBlockBody(metaBlock *block.MetaBlock, haveTime fu
 		"nonce", metaBlock.GetNonce(),
 	)
 
-	miniBlocks, err := mp.createMiniBlocks(haveTime)
+	miniBlocks, err := mp.createMiniBlocks(haveTime, metaBlock.GetEpoch())
 	if err != nil {
 		return nil, err
 	}
@@ -916,6 +916,7 @@ func (mp *metaProcessor) createBlockBody(metaBlock *block.MetaBlock, haveTime fu
 
 func (mp *metaProcessor) createMiniBlocks(
 	haveTime func() bool,
+	epoch uint32,
 ) (*block.Body, error) {
 	var miniBlocks block.MiniBlockSlice
 
@@ -939,7 +940,7 @@ func (mp *metaProcessor) createMiniBlocks(
 		)
 	}
 
-	mbsFromMe := mp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(haveTime)
+	mbsFromMe := mp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(haveTime, epoch)
 	if len(mbsFromMe) > 0 {
 		miniBlocks = append(miniBlocks, mbsFromMe...)
 

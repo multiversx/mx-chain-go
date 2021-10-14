@@ -313,6 +313,7 @@ func (bpp *basePreProcess) computeGasConsumed(
 	gasConsumedByMiniBlockInSenderShard *uint64,
 	gasConsumedByMiniBlockInReceiverShard *uint64,
 	totalGasConsumedInSelfShard *uint64,
+	epoch uint32,
 ) error {
 	gasConsumedByTxInSenderShard, gasConsumedByTxInReceiverShard, err := bpp.computeGasConsumedByTx(
 		senderShardId,
@@ -327,22 +328,22 @@ func (bpp *basePreProcess) computeGasConsumed(
 	if bpp.shardCoordinator.SelfId() == senderShardId {
 		gasConsumedByTxInSelfShard = gasConsumedByTxInSenderShard
 
-		if gasConsumedByTxInReceiverShard > bpp.economicsFee.MaxGasLimitPerMiniBlockForSafeCrossShard() {
+		if gasConsumedByTxInReceiverShard > bpp.economicsFee.MaxGasLimitPerMiniBlockForSafeCrossShardInEpoch(epoch) {
 			return process.ErrMaxGasLimitPerOneTxInReceiverShardIsReached
 		}
 
-		if *gasConsumedByMiniBlockInReceiverShard+gasConsumedByTxInReceiverShard > bpp.economicsFee.MaxGasLimitPerBlockForSafeCrossShard() {
+		if *gasConsumedByMiniBlockInReceiverShard+gasConsumedByTxInReceiverShard > bpp.economicsFee.MaxGasLimitPerBlockForSafeCrossShardInEpoch(epoch) {
 			return process.ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached
 		}
 	} else {
 		gasConsumedByTxInSelfShard = gasConsumedByTxInReceiverShard
 
-		if *gasConsumedByMiniBlockInSenderShard+gasConsumedByTxInSenderShard > bpp.economicsFee.MaxGasLimitPerBlock(senderShardId) {
+		if *gasConsumedByMiniBlockInSenderShard+gasConsumedByTxInSenderShard > bpp.economicsFee.MaxGasLimitPerBlockInEpoch(senderShardId, epoch) {
 			return process.ErrMaxGasLimitPerMiniBlockInSenderShardIsReached
 		}
 	}
 
-	if *totalGasConsumedInSelfShard+gasConsumedByTxInSelfShard > bpp.economicsFee.MaxGasLimitPerBlock(bpp.shardCoordinator.SelfId()) {
+	if *totalGasConsumedInSelfShard+gasConsumedByTxInSelfShard > bpp.economicsFee.MaxGasLimitPerBlockInEpoch(bpp.shardCoordinator.SelfId(), epoch) {
 		return process.ErrMaxGasLimitPerBlockInSelfShardIsReached
 	}
 

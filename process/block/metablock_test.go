@@ -2320,7 +2320,7 @@ func TestMetaProcessor_CreateMiniBlocksDestMe(t *testing.T) {
 		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, haveTime func() bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
 			return block.MiniBlockSlice{expectedMiniBlock1}, 0, true, nil
 		},
-		CreateMbsAndProcessTransactionsFromMeCalled: func(haveTime func() bool) block.MiniBlockSlice {
+		CreateMbsAndProcessTransactionsFromMeCalled: func(haveTime func() bool, epoch uint32) block.MiniBlockSlice {
 			return block.MiniBlockSlice{expectedMiniBlock2}
 		},
 	}
@@ -2487,7 +2487,7 @@ func TestMetaProcessor_VerifyCrossShardMiniBlocksDstMe(t *testing.T) {
 		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, haveTime func() bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
 			return block.MiniBlockSlice{miniBlock1}, 0, true, nil
 		},
-		CreateMbsAndProcessTransactionsFromMeCalled: func(haveTime func() bool) block.MiniBlockSlice {
+		CreateMbsAndProcessTransactionsFromMeCalled: func(haveTime func() bool, epoch uint32) block.MiniBlockSlice {
 			return block.MiniBlockSlice{miniBlock2}
 		},
 	}

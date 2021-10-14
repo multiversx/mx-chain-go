@@ -255,7 +255,7 @@ func (sp *shardProcessor) ProcessBlock(
 	}()
 
 	startTime := time.Now()
-	err = sp.txCoordinator.ProcessBlockTransaction(body, haveTime)
+	err = sp.txCoordinator.ProcessBlockTransaction(body, haveTime, header.GetEpoch())
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to process block transaction",
 		"time [s]", elapsedTime,
@@ -751,7 +751,7 @@ func (sp *shardProcessor) createBlockBody(shardHdr *block.Header, haveTime func(
 		"nonce", shardHdr.GetNonce(),
 	)
 
-	miniBlocks, err := sp.createMiniBlocks(haveTime)
+	miniBlocks, err := sp.createMiniBlocks(haveTime, shardHdr.GetEpoch())
 	if err != nil {
 		return nil, err
 	}
@@ -1692,7 +1692,7 @@ func (sp *shardProcessor) requestMetaHeadersIfNeeded(hdrsAdded uint32, lastMetaH
 	}
 }
 
-func (sp *shardProcessor) createMiniBlocks(haveTime func() bool) (*block.Body, error) {
+func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, epoch uint32) (*block.Body, error) {
 	var miniBlocks block.MiniBlockSlice
 
 	if sp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
@@ -1737,7 +1737,7 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool) (*block.Body, e
 	}
 
 	startTime = time.Now()
-	mbsFromMe := sp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(haveTime)
+	mbsFromMe := sp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(haveTime, epoch)
 	elapsedTime = time.Since(startTime)
 	log.Debug("elapsed time to create mbs from me",
 		"time [s]", elapsedTime,

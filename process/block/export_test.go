@@ -51,8 +51,8 @@ func (sp *shardProcessor) ReceivedMetaBlock(header data.HeaderHandler, metaBlock
 	sp.receivedMetaBlock(header, metaBlockHash)
 }
 
-func (sp *shardProcessor) CreateMiniBlocks(haveTime func() bool) (*block.Body, error) {
-	return sp.createMiniBlocks(haveTime)
+func (sp *shardProcessor) CreateMiniBlocks(haveTime func() bool, epoch uint32) (*block.Body, error) {
+	return sp.createMiniBlocks(haveTime, epoch)
 }
 
 func (sp *shardProcessor) GetOrderedProcessedMetaBlocksFromHeader(header *block.Header) ([]data.HeaderHandler, error) {

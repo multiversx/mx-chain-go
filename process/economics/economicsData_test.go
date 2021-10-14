@@ -70,10 +70,27 @@ func feeSettingsReal() config.FeeSettings {
 	return config.FeeSettings{
 		GasLimitSettings: []config.GasLimitSetting{
 			{
+				EnableEpoch:                 0,
 				MaxGasLimitPerBlock:         "1500000000",
 				MaxGasLimitPerMiniBlock:     "1500000000",
 				MaxGasLimitPerMetaBlock:     "15000000000",
 				MaxGasLimitPerMetaMiniBlock: "15000000000",
+				MinGasLimit:                 "50000",
+			},
+			{
+				EnableEpoch:                 2,
+				MaxGasLimitPerBlock:         "1400000000",
+				MaxGasLimitPerMiniBlock:     "600000000",
+				MaxGasLimitPerMetaBlock:     "14000000000",
+				MaxGasLimitPerMetaMiniBlock: "600000000",
+				MinGasLimit:                 "50000",
+			},
+			{
+				EnableEpoch:                 4,
+				MaxGasLimitPerBlock:         "1300000000",
+				MaxGasLimitPerMiniBlock:     "300000000",
+				MaxGasLimitPerMetaBlock:     "13000000000",
+				MaxGasLimitPerMetaMiniBlock: "300000000",
 				MinGasLimit:                 "50000",
 			},
 		},
@@ -1068,4 +1085,226 @@ func TestEconomicsData_ComputeGasLimitBasedOnBalance(t *testing.T) {
 	gasLimit, err = economicData.ComputeGasLimitBasedOnBalance(tx, senderBalance)
 	require.Nil(t, err)
 	require.Equal(t, uint64(11894070000), gasLimit)
+}
+
+func TestEconomicsData_MaxGasLimitPerBlock(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForEconomicsDataRealFees(&mock.BuiltInCostHandlerStub{})
+	args.GasPriceModifierEnableEpoch = 1
+	economicData, _ := economics.NewEconomicsData(args)
+
+	economicData.EpochConfirmed(0, 0)
+	maxGasLimitPerBlock := economicData.MaxGasLimitPerBlock(0)
+	assert.Equal(t, uint64(1500000000), maxGasLimitPerBlock)
+	maxGasLimitPerMetaBlock := economicData.MaxGasLimitPerBlock(core.MetachainShardId)
+	assert.Equal(t, uint64(15000000000), maxGasLimitPerMetaBlock)
+
+	economicData.EpochConfirmed(1, 0)
+	maxGasLimitPerBlock = economicData.MaxGasLimitPerBlock(0)
+	assert.Equal(t, uint64(1500000000), maxGasLimitPerBlock)
+	maxGasLimitPerMetaBlock = economicData.MaxGasLimitPerBlock(core.MetachainShardId)
+	assert.Equal(t, uint64(15000000000), maxGasLimitPerMetaBlock)
+
+	economicData.EpochConfirmed(2, 0)
+	maxGasLimitPerBlock = economicData.MaxGasLimitPerBlock(0)
+	assert.Equal(t, uint64(1400000000), maxGasLimitPerBlock)
+	maxGasLimitPerMetaBlock = economicData.MaxGasLimitPerBlock(core.MetachainShardId)
+	assert.Equal(t, uint64(14000000000), maxGasLimitPerMetaBlock)
+
+	economicData.EpochConfirmed(3, 0)
+	maxGasLimitPerBlock = economicData.MaxGasLimitPerBlock(0)
+	assert.Equal(t, uint64(1400000000), maxGasLimitPerBlock)
+	maxGasLimitPerMetaBlock = economicData.MaxGasLimitPerBlock(core.MetachainShardId)
+	assert.Equal(t, uint64(14000000000), maxGasLimitPerMetaBlock)
+
+	economicData.EpochConfirmed(4, 0)
+	maxGasLimitPerBlock = economicData.MaxGasLimitPerBlock(0)
+	assert.Equal(t, uint64(1300000000), maxGasLimitPerBlock)
+	maxGasLimitPerMetaBlock = economicData.MaxGasLimitPerBlock(core.MetachainShardId)
+	assert.Equal(t, uint64(13000000000), maxGasLimitPerMetaBlock)
+
+	economicData.EpochConfirmed(5, 0)
+	maxGasLimitPerBlock = economicData.MaxGasLimitPerBlock(0)
+	assert.Equal(t, uint64(1300000000), maxGasLimitPerBlock)
+	maxGasLimitPerMetaBlock = economicData.MaxGasLimitPerBlock(core.MetachainShardId)
+	assert.Equal(t, uint64(13000000000), maxGasLimitPerMetaBlock)
+}
+
+func TestEconomicsData_MaxGasLimitPerBlockInEpoch(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForEconomicsDataRealFees(&mock.BuiltInCostHandlerStub{})
+	args.GasPriceModifierEnableEpoch = 1
+	economicData, _ := economics.NewEconomicsData(args)
+
+	economicData.EpochConfirmed(10, 0)
+
+	epoch := uint32(0)
+	maxGasLimitPerBlockInEpoch := economicData.MaxGasLimitPerBlockInEpoch(0, epoch)
+	assert.Equal(t, uint64(1500000000), maxGasLimitPerBlockInEpoch)
+	maxGasLimitPerMetaBlockInEpoch := economicData.MaxGasLimitPerBlockInEpoch(core.MetachainShardId, epoch)
+	assert.Equal(t, uint64(15000000000), maxGasLimitPerMetaBlockInEpoch)
+
+	epoch = uint32(1)
+	maxGasLimitPerBlockInEpoch = economicData.MaxGasLimitPerBlockInEpoch(0, epoch)
+	assert.Equal(t, uint64(1500000000), maxGasLimitPerBlockInEpoch)
+	maxGasLimitPerMetaBlockInEpoch = economicData.MaxGasLimitPerBlockInEpoch(core.MetachainShardId, epoch)
+	assert.Equal(t, uint64(15000000000), maxGasLimitPerMetaBlockInEpoch)
+
+	epoch = uint32(2)
+	maxGasLimitPerBlockInEpoch = economicData.MaxGasLimitPerBlockInEpoch(0, epoch)
+	assert.Equal(t, uint64(1400000000), maxGasLimitPerBlockInEpoch)
+	maxGasLimitPerMetaBlockInEpoch = economicData.MaxGasLimitPerBlockInEpoch(core.MetachainShardId, epoch)
+	assert.Equal(t, uint64(14000000000), maxGasLimitPerMetaBlockInEpoch)
+
+	epoch = uint32(3)
+	maxGasLimitPerBlockInEpoch = economicData.MaxGasLimitPerBlockInEpoch(0, epoch)
+	assert.Equal(t, uint64(1400000000), maxGasLimitPerBlockInEpoch)
+	maxGasLimitPerMetaBlockInEpoch = economicData.MaxGasLimitPerBlockInEpoch(core.MetachainShardId, epoch)
+	assert.Equal(t, uint64(14000000000), maxGasLimitPerMetaBlockInEpoch)
+
+	epoch = uint32(4)
+	maxGasLimitPerBlockInEpoch = economicData.MaxGasLimitPerBlockInEpoch(0, epoch)
+	assert.Equal(t, uint64(1300000000), maxGasLimitPerBlockInEpoch)
+	maxGasLimitPerMetaBlockInEpoch = economicData.MaxGasLimitPerBlockInEpoch(core.MetachainShardId, epoch)
+	assert.Equal(t, uint64(13000000000), maxGasLimitPerMetaBlockInEpoch)
+
+	epoch = uint32(5)
+	maxGasLimitPerBlockInEpoch = economicData.MaxGasLimitPerBlockInEpoch(0, epoch)
+	assert.Equal(t, uint64(1300000000), maxGasLimitPerBlockInEpoch)
+	maxGasLimitPerMetaBlockInEpoch = economicData.MaxGasLimitPerBlockInEpoch(core.MetachainShardId, epoch)
+	assert.Equal(t, uint64(13000000000), maxGasLimitPerMetaBlockInEpoch)
+}
+
+func TestEconomicsData_MaxGasLimitPerBlockForSafeCrossShard(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForEconomicsDataRealFees(&mock.BuiltInCostHandlerStub{})
+	args.GasPriceModifierEnableEpoch = 1
+	economicData, _ := economics.NewEconomicsData(args)
+
+	economicData.EpochConfirmed(0, 0)
+	maxGasLimitPerBlockForSafeCrossShard := economicData.MaxGasLimitPerBlockForSafeCrossShard()
+	assert.Equal(t, uint64(1500000000), maxGasLimitPerBlockForSafeCrossShard)
+
+	economicData.EpochConfirmed(1, 0)
+	maxGasLimitPerBlockForSafeCrossShard = economicData.MaxGasLimitPerBlockForSafeCrossShard()
+	assert.Equal(t, uint64(1500000000), maxGasLimitPerBlockForSafeCrossShard)
+
+	economicData.EpochConfirmed(2, 0)
+	maxGasLimitPerBlockForSafeCrossShard = economicData.MaxGasLimitPerBlockForSafeCrossShard()
+	assert.Equal(t, uint64(1400000000), maxGasLimitPerBlockForSafeCrossShard)
+
+	economicData.EpochConfirmed(3, 0)
+	maxGasLimitPerBlockForSafeCrossShard = economicData.MaxGasLimitPerBlockForSafeCrossShard()
+	assert.Equal(t, uint64(1400000000), maxGasLimitPerBlockForSafeCrossShard)
+
+	economicData.EpochConfirmed(4, 0)
+	maxGasLimitPerBlockForSafeCrossShard = economicData.MaxGasLimitPerBlockForSafeCrossShard()
+	assert.Equal(t, uint64(1300000000), maxGasLimitPerBlockForSafeCrossShard)
+
+	economicData.EpochConfirmed(5, 0)
+	maxGasLimitPerBlockForSafeCrossShard = economicData.MaxGasLimitPerBlockForSafeCrossShard()
+	assert.Equal(t, uint64(1300000000), maxGasLimitPerBlockForSafeCrossShard)
+}
+
+func TestEconomicsData_MaxGasLimitPerBlockForSafeCrossShardInEpoch(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForEconomicsDataRealFees(&mock.BuiltInCostHandlerStub{})
+	args.GasPriceModifierEnableEpoch = 1
+	economicData, _ := economics.NewEconomicsData(args)
+
+	economicData.EpochConfirmed(10, 0)
+
+	epoch := uint32(0)
+	maxGasLimitPerBlockForSafeCrossShardInEpoch := economicData.MaxGasLimitPerBlockForSafeCrossShardInEpoch(epoch)
+	assert.Equal(t, uint64(1500000000), maxGasLimitPerBlockForSafeCrossShardInEpoch)
+
+	epoch = uint32(1)
+	maxGasLimitPerBlockForSafeCrossShardInEpoch = economicData.MaxGasLimitPerBlockForSafeCrossShardInEpoch(epoch)
+	assert.Equal(t, uint64(1500000000), maxGasLimitPerBlockForSafeCrossShardInEpoch)
+
+	epoch = uint32(2)
+	maxGasLimitPerBlockForSafeCrossShardInEpoch = economicData.MaxGasLimitPerBlockForSafeCrossShardInEpoch(epoch)
+	assert.Equal(t, uint64(1400000000), maxGasLimitPerBlockForSafeCrossShardInEpoch)
+
+	epoch = uint32(3)
+	maxGasLimitPerBlockForSafeCrossShardInEpoch = economicData.MaxGasLimitPerBlockForSafeCrossShardInEpoch(epoch)
+	assert.Equal(t, uint64(1400000000), maxGasLimitPerBlockForSafeCrossShardInEpoch)
+
+	epoch = uint32(4)
+	maxGasLimitPerBlockForSafeCrossShardInEpoch = economicData.MaxGasLimitPerBlockForSafeCrossShardInEpoch(epoch)
+	assert.Equal(t, uint64(1300000000), maxGasLimitPerBlockForSafeCrossShardInEpoch)
+
+	epoch = uint32(5)
+	maxGasLimitPerBlockForSafeCrossShardInEpoch = economicData.MaxGasLimitPerBlockForSafeCrossShardInEpoch(epoch)
+	assert.Equal(t, uint64(1300000000), maxGasLimitPerBlockForSafeCrossShardInEpoch)
+}
+
+func TestEconomicsData_MaxGasLimitPerMiniBlockForSafeCrossShard(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForEconomicsDataRealFees(&mock.BuiltInCostHandlerStub{})
+	args.GasPriceModifierEnableEpoch = 1
+	economicData, _ := economics.NewEconomicsData(args)
+
+	economicData.EpochConfirmed(0, 0)
+	maxGasLimitPerMiniBlockForSafeCrossShard := economicData.MaxGasLimitPerMiniBlockForSafeCrossShard()
+	assert.Equal(t, uint64(1500000000), maxGasLimitPerMiniBlockForSafeCrossShard)
+
+	economicData.EpochConfirmed(1, 0)
+	maxGasLimitPerMiniBlockForSafeCrossShard = economicData.MaxGasLimitPerMiniBlockForSafeCrossShard()
+	assert.Equal(t, uint64(1500000000), maxGasLimitPerMiniBlockForSafeCrossShard)
+
+	economicData.EpochConfirmed(2, 0)
+	maxGasLimitPerMiniBlockForSafeCrossShard = economicData.MaxGasLimitPerMiniBlockForSafeCrossShard()
+	assert.Equal(t, uint64(600000000), maxGasLimitPerMiniBlockForSafeCrossShard)
+
+	economicData.EpochConfirmed(3, 0)
+	maxGasLimitPerMiniBlockForSafeCrossShard = economicData.MaxGasLimitPerMiniBlockForSafeCrossShard()
+	assert.Equal(t, uint64(600000000), maxGasLimitPerMiniBlockForSafeCrossShard)
+
+	economicData.EpochConfirmed(4, 0)
+	maxGasLimitPerMiniBlockForSafeCrossShard = economicData.MaxGasLimitPerMiniBlockForSafeCrossShard()
+	assert.Equal(t, uint64(300000000), maxGasLimitPerMiniBlockForSafeCrossShard)
+
+	economicData.EpochConfirmed(5, 0)
+	maxGasLimitPerMiniBlockForSafeCrossShard = economicData.MaxGasLimitPerMiniBlockForSafeCrossShard()
+	assert.Equal(t, uint64(300000000), maxGasLimitPerMiniBlockForSafeCrossShard)
+}
+
+func TestEconomicsData_MaxGasLimitPerMiniBlockForSafeCrossShardInEpoch(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForEconomicsDataRealFees(&mock.BuiltInCostHandlerStub{})
+	args.GasPriceModifierEnableEpoch = 1
+	economicData, _ := economics.NewEconomicsData(args)
+
+	economicData.EpochConfirmed(10, 0)
+
+	epoch := uint32(0)
+	maxGasLimitPerMiniBlockForSafeCrossShardInEpoch := economicData.MaxGasLimitPerMiniBlockForSafeCrossShardInEpoch(epoch)
+	assert.Equal(t, uint64(1500000000), maxGasLimitPerMiniBlockForSafeCrossShardInEpoch)
+
+	epoch = uint32(1)
+	maxGasLimitPerMiniBlockForSafeCrossShardInEpoch = economicData.MaxGasLimitPerMiniBlockForSafeCrossShardInEpoch(epoch)
+	assert.Equal(t, uint64(1500000000), maxGasLimitPerMiniBlockForSafeCrossShardInEpoch)
+
+	epoch = uint32(2)
+	maxGasLimitPerMiniBlockForSafeCrossShardInEpoch = economicData.MaxGasLimitPerMiniBlockForSafeCrossShardInEpoch(epoch)
+	assert.Equal(t, uint64(600000000), maxGasLimitPerMiniBlockForSafeCrossShardInEpoch)
+
+	epoch = uint32(3)
+	maxGasLimitPerMiniBlockForSafeCrossShardInEpoch = economicData.MaxGasLimitPerMiniBlockForSafeCrossShardInEpoch(epoch)
+	assert.Equal(t, uint64(600000000), maxGasLimitPerMiniBlockForSafeCrossShardInEpoch)
+
+	epoch = uint32(4)
+	maxGasLimitPerMiniBlockForSafeCrossShardInEpoch = economicData.MaxGasLimitPerMiniBlockForSafeCrossShardInEpoch(epoch)
+	assert.Equal(t, uint64(300000000), maxGasLimitPerMiniBlockForSafeCrossShardInEpoch)
+
+	epoch = uint32(5)
+	maxGasLimitPerMiniBlockForSafeCrossShardInEpoch = economicData.MaxGasLimitPerMiniBlockForSafeCrossShardInEpoch(epoch)
+	assert.Equal(t, uint64(300000000), maxGasLimitPerMiniBlockForSafeCrossShardInEpoch)
 }

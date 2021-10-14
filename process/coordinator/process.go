@@ -419,6 +419,7 @@ func (tc *transactionCoordinator) RemoveTxsFromPool(body *block.Body) error {
 func (tc *transactionCoordinator) ProcessBlockTransaction(
 	body *block.Body,
 	timeRemaining func() time.Duration,
+	epoch uint32,
 ) error {
 	if check.IfNil(body) {
 		return process.ErrNilBlockBody
@@ -441,7 +442,7 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 	}
 
 	startTime := time.Now()
-	mbIndex, err := tc.processMiniBlocksToMe(body, haveTime)
+	mbIndex, err := tc.processMiniBlocksToMe(body, haveTime, epoch)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to processMiniBlocksToMe",
 		"time [s]", elapsedTime,
@@ -456,7 +457,7 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 
 	miniBlocksFromMe := body.MiniBlocks[mbIndex:]
 	startTime = time.Now()
-	err = tc.processMiniBlocksFromMe(&block.Body{MiniBlocks: miniBlocksFromMe}, haveTime)
+	err = tc.processMiniBlocksFromMe(&block.Body{MiniBlocks: miniBlocksFromMe}, haveTime, epoch)
 	elapsedTime = time.Since(startTime)
 	log.Debug("elapsed time to processMiniBlocksFromMe",
 		"time [s]", elapsedTime,
@@ -471,6 +472,7 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 func (tc *transactionCoordinator) processMiniBlocksFromMe(
 	body *block.Body,
 	haveTime func() bool,
+	epoch uint32,
 ) error {
 	for _, mb := range body.MiniBlocks {
 		if mb.SenderShardID != tc.shardCoordinator.SelfId() {
@@ -491,7 +493,7 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 			return process.ErrMissingPreProcessor
 		}
 
-		err := preProc.ProcessBlockTransactions(separatedBodies[blockType], haveTime)
+		err := preProc.ProcessBlockTransactions(separatedBodies[blockType], haveTime, epoch)
 		if err != nil {
 			return err
 		}
@@ -511,6 +513,7 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 func (tc *transactionCoordinator) processMiniBlocksToMe(
 	body *block.Body,
 	haveTime func() bool,
+	epoch uint32,
 ) (int, error) {
 	// processing has to be done in order, as the order of different type of transactions over the same account is strict
 	// processing destination ME miniblocks first
@@ -526,7 +529,7 @@ func (tc *transactionCoordinator) processMiniBlocksToMe(
 			return mbIndex, process.ErrMissingPreProcessor
 		}
 
-		err := preProc.ProcessBlockTransactions(&block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}}, haveTime)
+		err := preProc.ProcessBlockTransactions(&block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}}, haveTime, epoch)
 		if err != nil {
 			return mbIndex, err
 		}
@@ -633,7 +636,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			continue
 		}
 
-		err := tc.processCompleteMiniBlock(preproc, miniBlock, miniBlockInfo.Hash, haveTime)
+		err := tc.processCompleteMiniBlock(preproc, miniBlock, miniBlockInfo.Hash, haveTime, hdr.GetEpoch())
 		if err != nil {
 			shouldSkipShard[miniBlockInfo.SenderShardID] = true
 			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: processed complete mini block failed",
@@ -653,6 +656,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 	allMBsProcessed := nrMiniBlocksProcessed == len(crossMiniBlockInfos)
 
 	log.Debug("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: gas consumed, refunded and penalized info",
+		"header epoch", hdr.GetEpoch(),
 		"header round", hdr.GetRound(),
 		"header nonce", hdr.GetNonce(),
 		"num mini blocks to be processed", len(crossMiniBlockInfos),
@@ -667,6 +671,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 // CreateMbsAndProcessTransactionsFromMe creates miniblocks and processes transactions from pool
 func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 	haveTime func() bool,
+	epoch uint32,
 ) block.MiniBlockSlice {
 
 	numMiniBlocksProcessed := 0
@@ -677,7 +682,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 			return nil
 		}
 
-		mbs, err := txPreProc.CreateAndProcessMiniBlocks(haveTime)
+		mbs, err := txPreProc.CreateAndProcessMiniBlocks(haveTime, epoch)
 		if err != nil {
 			log.Debug("CreateAndProcessMiniBlocks", "error", err.Error())
 		}
@@ -943,12 +948,13 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 	miniBlock *block.MiniBlock,
 	miniBlockHash []byte,
 	haveTime func() bool,
+	epoch uint32,
 ) error {
 
 	snapshot := tc.accounts.JournalLen()
 	tc.initProcessedTxsResults()
 
-	txsToBeReverted, numTxsProcessed, err := preproc.ProcessMiniBlock(miniBlock, haveTime, tc.getNumOfCrossInterMbsAndTxs)
+	txsToBeReverted, numTxsProcessed, err := preproc.ProcessMiniBlock(miniBlock, haveTime, tc.getNumOfCrossInterMbsAndTxs, epoch)
 	if err != nil {
 		log.Debug("processCompleteMiniBlock.ProcessMiniBlock",
 			"hash", miniBlockHash,

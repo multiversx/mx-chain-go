@@ -37,16 +37,25 @@ func feeHandlerMock() *mock.FeeHandlerStub {
 		ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 			return 0
 		},
-		MaxGasLimitPerBlockCalled: func() uint64 {
+		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return MaxGasLimitPerBlock
 		},
-		MaxGasLimitPerMiniBlockCalled: func() uint64 {
+		MaxGasLimitPerBlockInEpochCalled: func(_ uint32, _ uint32) uint64 {
+			return MaxGasLimitPerBlock
+		},
+		MaxGasLimitPerMiniBlockCalled: func(_ uint32) uint64 {
 			return MaxGasLimitPerBlock
 		},
 		MaxGasLimitPerBlockForSafeCrossShardCalled: func() uint64 {
 			return MaxGasLimitPerBlock
 		},
+		MaxGasLimitPerBlockForSafeCrossShardInEpochCalled: func(_ uint32) uint64 {
+			return MaxGasLimitPerBlock
+		},
 		MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
+			return MaxGasLimitPerBlock
+		},
+		MaxGasLimitPerMiniBlockForSafeCrossShardInEpochCalled: func(_ uint32) uint64 {
 			return MaxGasLimitPerBlock
 		},
 	}
@@ -881,7 +890,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testi
 	}
 
 	sortedTxsAndHashes, _ := txs.computeSortedTxs(sndShardId, dstShardId)
-	miniBlocks, err := txs.createAndProcessMiniBlocksFromMe(haveTimeTrue, isShardStuckFalse, isMaxBlockSizeReachedFalse, sortedTxsAndHashes)
+	miniBlocks, err := txs.createAndProcessMiniBlocksFromMe(haveTimeTrue, isShardStuckFalse, isMaxBlockSizeReachedFalse, sortedTxsAndHashes, 0)
 	assert.Nil(t, err)
 
 	txHashes := 0
@@ -956,7 +965,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCal
 	}
 
 	sortedTxsAndHashes, _ := txs.computeSortedTxs(sndShardId, dstShardId)
-	miniBlocks, err := txs.createAndProcessMiniBlocksFromMe(haveTimeTrue, isShardStuckFalse, isMaxBlockSizeReachedFalse, sortedTxsAndHashes)
+	miniBlocks, err := txs.createAndProcessMiniBlocksFromMe(haveTimeTrue, isShardStuckFalse, isMaxBlockSizeReachedFalse, sortedTxsAndHashes, 0)
 	assert.Nil(t, err)
 
 	txHashes := 0
@@ -1035,7 +1044,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 	}
 
 	sortedTxsAndHashes, _ := txs.computeSortedTxs(sndShardId, dstShardId)
-	miniBlocks, err := txs.createAndProcessMiniBlocksFromMe(haveTimeTrue, isShardStuckFalse, isMaxBlockSizeReachedFalse, sortedTxsAndHashes)
+	miniBlocks, err := txs.createAndProcessMiniBlocksFromMe(haveTimeTrue, isShardStuckFalse, isMaxBlockSizeReachedFalse, sortedTxsAndHashes, 0)
 	assert.Nil(t, err)
 
 	txHashes := 0
@@ -1339,7 +1348,7 @@ func TestTransactionPreprocessor_ProcessTxsToMeShouldUseCorrectSenderAndReceiver
 	assert.Equal(t, uint32(1), senderShardID)
 	assert.Equal(t, uint32(0), receiverShardID)
 
-	_ = preprocessor.ProcessTxsToMe(&body, haveTimeTrue)
+	_ = preprocessor.ProcessTxsToMe(&body, haveTimeTrue, 0)
 
 	_, senderShardID, receiverShardID = preprocessor.GetTxInfoForCurrentBlock(txHash)
 	assert.Equal(t, uint32(2), senderShardID)
@@ -1422,7 +1431,7 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 		}
 		return nbTxsProcessed + 1, nbTxsProcessed * common.AdditionalScrForEachScCallOrSpecialTx
 	}
-	txsToBeReverted, numTxsProcessed, err := txs.ProcessMiniBlock(miniBlock, haveTimeTrue, f)
+	txsToBeReverted, numTxsProcessed, err := txs.ProcessMiniBlock(miniBlock, haveTimeTrue, f, 0)
 
 	assert.Equal(t, process.ErrMaxBlockSizeReached, err)
 	assert.Equal(t, 3, len(txsToBeReverted))
@@ -1434,7 +1443,7 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 		}
 		return nbTxsProcessed, nbTxsProcessed * common.AdditionalScrForEachScCallOrSpecialTx
 	}
-	txsToBeReverted, numTxsProcessed, err = txs.ProcessMiniBlock(miniBlock, haveTimeTrue, f)
+	txsToBeReverted, numTxsProcessed, err = txs.ProcessMiniBlock(miniBlock, haveTimeTrue, f, 0)
 
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(txsToBeReverted))

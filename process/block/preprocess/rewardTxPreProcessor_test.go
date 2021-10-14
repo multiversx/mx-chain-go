@@ -374,7 +374,7 @@ func TestRewardTxPreprocessor_ProcessMiniBlockInvalidMiniBlockTypeShouldErr(t *t
 		Type:            0,
 	}
 
-	_, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, getNumOfCrossInterMbsAndTxsZero)
+	_, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, getNumOfCrossInterMbsAndTxsZero, 0)
 	assert.Equal(t, process.ErrWrongTypeInMiniBlock, err)
 }
 
@@ -409,7 +409,7 @@ func TestRewardTxPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 	txs := []data.TransactionHandler{&rewardTx.RewardTx{}}
 	rtp.AddTxs(txHashes, txs)
 
-	_, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, getNumOfCrossInterMbsAndTxsZero)
+	_, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, getNumOfCrossInterMbsAndTxsZero, 0)
 	assert.Nil(t, err)
 
 	txsMap := rtp.GetAllCurrentUsedTxs()
@@ -449,7 +449,7 @@ func TestRewardTxPreprocessor_ProcessMiniBlockNotFromMeta(t *testing.T) {
 	txs := []data.TransactionHandler{&rewardTx.RewardTx{}}
 	rtp.AddTxs(txHashes, txs)
 
-	_, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, getNumOfCrossInterMbsAndTxsZero)
+	_, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, getNumOfCrossInterMbsAndTxsZero, 0)
 	assert.Equal(t, process.ErrRewardMiniBlockNotFromMeta, err)
 }
 
@@ -612,7 +612,7 @@ func TestRewardTxPreprocessor_ProcessBlockTransactions(t *testing.T) {
 	var blockBody block.Body
 	blockBody.MiniBlocks = append(blockBody.MiniBlocks, &mb1, &mb2)
 
-	err := rtp.ProcessBlockTransactions(&blockBody, haveTimeTrue)
+	err := rtp.ProcessBlockTransactions(&blockBody, haveTimeTrue, 0)
 	assert.Nil(t, err)
 }
 
@@ -748,7 +748,7 @@ func TestRewardTxPreprocessor_CreateAndProcessMiniBlocksShouldWork(t *testing.T)
 		&mock.BalanceComputationStub{},
 	)
 
-	mBlocksSlice, err := rtp.CreateAndProcessMiniBlocks(haveTimeTrue)
+	mBlocksSlice, err := rtp.CreateAndProcessMiniBlocks(haveTimeTrue, 0)
 	assert.NotNil(t, mBlocksSlice)
 	assert.Nil(t, err)
 }

@@ -131,7 +131,7 @@ type TransactionCoordinator interface {
 	RemoveBlockDataFromPool(body *block.Body) error
 	RemoveTxsFromPool(body *block.Body) error
 
-	ProcessBlockTransaction(body *block.Body, haveTime func() time.Duration) error
+	ProcessBlockTransaction(body *block.Body, haveTime func() time.Duration, epoch uint32) error
 
 	CreateBlockStarted()
 	CreateMbsAndProcessCrossShardTransactionsDstMe(
@@ -140,7 +140,7 @@ type TransactionCoordinator interface {
 
 		haveTime func() bool,
 	) (block.MiniBlockSlice, uint32, bool, error)
-	CreateMbsAndProcessTransactionsFromMe(haveTime func() bool) block.MiniBlockSlice
+	CreateMbsAndProcessTransactionsFromMe(haveTime func() bool, epoch uint32) block.MiniBlockSlice
 	CreatePostProcessMiniBlocks() block.MiniBlockSlice
 	CreateMarshalizedData(body *block.Body) map[string][][]byte
 	GetAllCurrentUsedTxs(blockType block.Type) map[string]data.TransactionHandler
@@ -208,12 +208,12 @@ type PreProcessor interface {
 	RestoreBlockDataIntoPools(body *block.Body, miniBlockPool storage.Cacher) (int, error)
 	SaveTxsToStorage(body *block.Body) error
 
-	ProcessBlockTransactions(body *block.Body, haveTime func() bool) error
+	ProcessBlockTransactions(body *block.Body, haveTime func() bool, epoch uint32) error
 	RequestBlockTransactions(body *block.Body) int
 
 	RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int
-	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, getNumOfCrossInterMbsAndTxs func() (int, int)) ([][]byte, int, error)
-	CreateAndProcessMiniBlocks(haveTime func() bool) (block.MiniBlockSlice, error)
+	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, getNumOfCrossInterMbsAndTxs func() (int, int), epoch uint32) ([][]byte, int, error)
+	CreateAndProcessMiniBlocks(haveTime func() bool, epoch uint32) (block.MiniBlockSlice, error)
 
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
 	IsInterfaceNil() bool
@@ -574,9 +574,12 @@ type feeHandler interface {
 	DeveloperPercentage() float64
 	GasPerDataByte() uint64
 	MaxGasLimitPerBlock(shardID uint32) uint64
+	MaxGasLimitPerBlockInEpoch(shardID uint32, epoch uint32) uint64
 	MaxGasLimitPerMiniBlock(shardID uint32) uint64
 	MaxGasLimitPerBlockForSafeCrossShard() uint64
+	MaxGasLimitPerBlockForSafeCrossShardInEpoch(epoch uint32) uint64
 	MaxGasLimitPerMiniBlockForSafeCrossShard() uint64
+	MaxGasLimitPerMiniBlockForSafeCrossShardInEpoch(epoch uint32) uint64
 	ComputeGasLimit(tx data.TransactionWithFeeHandler) uint64
 	ComputeMoveBalanceFee(tx data.TransactionWithFeeHandler) *big.Int
 	ComputeTxFee(tx data.TransactionWithFeeHandler) *big.Int

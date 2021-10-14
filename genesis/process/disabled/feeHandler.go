@@ -46,6 +46,11 @@ func (fh *FeeHandler) MaxGasLimitPerBlock(uint32) uint64 {
 	return math.MaxUint64
 }
 
+// MaxGasLimitPerBlockInEpoch -
+func (fh *FeeHandler) MaxGasLimitPerBlockInEpoch(shard uint32, epoch uint32) uint64 {
+	return math.MaxUint64
+}
+
 // MaxGasLimitPerMiniBlock returns max uint64
 func (fh *FeeHandler) MaxGasLimitPerMiniBlock(uint32) uint64 {
 	return math.MaxUint64
@@ -56,8 +61,18 @@ func (fh *FeeHandler) MaxGasLimitPerBlockForSafeCrossShard() uint64 {
 	return math.MaxUint64
 }
 
+// MaxGasLimitPerBlockForSafeCrossShardInEpoch -
+func (fh *FeeHandler) MaxGasLimitPerBlockForSafeCrossShardInEpoch(epoch uint32) uint64 {
+	return math.MaxUint64
+}
+
 // MaxGasLimitPerMiniBlockForSafeCrossShard returns max uint64
 func (fh *FeeHandler) MaxGasLimitPerMiniBlockForSafeCrossShard() uint64 {
+	return math.MaxUint64
+}
+
+// MaxGasLimitPerMiniBlockForSafeCrossShardInEpoch -
+func (fh *FeeHandler) MaxGasLimitPerMiniBlockForSafeCrossShardInEpoch(epoch uint32) uint64 {
 	return math.MaxUint64
 }
 

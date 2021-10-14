@@ -207,6 +207,7 @@ func (rtp *rewardTxPreprocessor) RestoreBlockDataIntoPools(
 func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 	body *block.Body,
 	haveTime func() bool,
+	_ uint32,
 ) error {
 	if check.IfNil(body) {
 		return process.ErrNilBlockBody
@@ -415,6 +416,7 @@ func (rtp *rewardTxPreprocessor) getAllRewardTxsFromMiniBlock(
 // as long as it has time
 func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlocks(
 	_ func() bool,
+	_ uint32,
 ) (block.MiniBlockSlice, error) {
 	// rewards are created only by meta
 	return make(block.MiniBlockSlice, 0), nil
@@ -422,7 +424,7 @@ func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlocks(
 
 // ProcessMiniBlock processes all the reward transactions from a miniblock and saves the processed reward transactions
 // in local cache
-func (rtp *rewardTxPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, _ func() (int, int)) ([][]byte, int, error) {
+func (rtp *rewardTxPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, _ func() (int, int), _ uint32) ([][]byte, int, error) {
 
 	if miniBlock.Type != block.RewardsBlock {
 		return nil, 0, process.ErrWrongTypeInMiniBlock

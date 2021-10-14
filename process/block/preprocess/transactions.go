@@ -261,14 +261,15 @@ func (txs *transactions) RestoreBlockDataIntoPools(
 func (txs *transactions) ProcessBlockTransactions(
 	body *block.Body,
 	haveTime func() bool,
+	epoch uint32,
 ) error {
 
 	if txs.isBodyToMe(body) {
-		return txs.processTxsToMe(body, haveTime)
+		return txs.processTxsToMe(body, haveTime, epoch)
 	}
 
 	if txs.isBodyFromMe(body) {
-		return txs.processTxsFromMe(body, haveTime)
+		return txs.processTxsFromMe(body, haveTime, epoch)
 	}
 
 	return process.ErrInvalidBody
@@ -381,6 +382,7 @@ func (txs *transactions) getShardFromAddress(address []byte) (uint32, error) {
 func (txs *transactions) processTxsToMe(
 	body *block.Body,
 	haveTime func() bool,
+	epoch uint32,
 ) error {
 	if check.IfNil(body) {
 		return process.ErrNilBlockBody
@@ -419,7 +421,7 @@ func (txs *transactions) processTxsToMe(
 			&gasConsumedByMiniBlockInSenderShard,
 			&gasConsumedByMiniBlockInReceiverShard,
 			&totalGasConsumedInSelfShard,
-		)
+			epoch)
 		if err != nil {
 			return err
 		}
@@ -444,6 +446,7 @@ func (txs *transactions) processTxsToMe(
 func (txs *transactions) processTxsFromMe(
 	body *block.Body,
 	haveTime func() bool,
+	epoch uint32,
 ) error {
 	if check.IfNil(body) {
 		return process.ErrNilBlockBody
@@ -468,7 +471,7 @@ func (txs *transactions) processTxsFromMe(
 		isShardStuckFalse,
 		isMaxBlockSizeReachedFalse,
 		txsFromMe,
-	)
+		epoch)
 	if err != nil {
 		return err
 	}
@@ -733,7 +736,7 @@ func (txs *transactions) getAllTxsFromMiniBlock(
 
 // CreateAndProcessMiniBlocks creates miniblocks from storage and processes the transactions added into the miniblocks
 // as long as it has time
-func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool) (block.MiniBlockSlice, error) {
+func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, epoch uint32) (block.MiniBlockSlice, error) {
 	startTime := time.Now()
 	sortedTxs, err := txs.computeSortedTxs(txs.shardCoordinator.SelfId(), txs.shardCoordinator.SelfId())
 	elapsedTime := time.Since(startTime)
@@ -768,7 +771,7 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool) (block
 		txs.blockTracker.IsShardStuck,
 		txs.blockSizeComputation.IsMaxBlockSizeReached,
 		sortedTxs,
-	)
+		epoch)
 	elapsedTime = time.Since(startTime)
 	log.Debug("elapsed time to createAndProcessMiniBlocksFromMe",
 		"time [s]", elapsedTime,
@@ -787,6 +790,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 	isShardStuck func(uint32) bool,
 	isMaxBlockSizeReached func(int, int) bool,
 	sortedTxs []*txcache.WrappedTransaction,
+	epoch uint32,
 ) (block.MiniBlockSlice, error) {
 	log.Debug("createAndProcessMiniBlocksFromMe has been started")
 
@@ -911,7 +915,8 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 			txHash,
 			&gasConsumedByMiniBlocksInSenderShard,
 			&gasConsumedByMiniBlockInReceiverShard,
-			&totalGasConsumedInSelfShard)
+			&totalGasConsumedInSelfShard,
+			epoch)
 		elapsedTime := time.Since(startTime)
 		totalTimeUsedForComputeGasConsumed += elapsedTime
 		if err != nil {
@@ -1195,6 +1200,7 @@ func (txs *transactions) ProcessMiniBlock(
 	miniBlock *block.MiniBlock,
 	haveTime func() bool,
 	getNumOfCrossInterMbsAndTxs func() (int, int),
+	epoch uint32,
 ) ([][]byte, int, error) {
 
 	if miniBlock.Type != block.TxBlock {
@@ -1241,7 +1247,8 @@ func (txs *transactions) ProcessMiniBlock(
 			miniBlockTxHashes[index],
 			&gasConsumedByMiniBlockInSenderShard,
 			&gasConsumedByMiniBlockInReceiverShard,
-			&totalGasConsumedInSelfShard)
+			&totalGasConsumedInSelfShard,
+			epoch)
 
 		if err != nil {
 			return processedTxHashes, index, err

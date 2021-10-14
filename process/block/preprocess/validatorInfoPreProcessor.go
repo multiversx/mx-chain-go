@@ -118,6 +118,7 @@ func (vip *validatorInfoPreprocessor) RestoreBlockDataIntoPools(
 func (vip *validatorInfoPreprocessor) ProcessBlockTransactions(
 	_ *block.Body,
 	_ func() bool,
+	_ uint32,
 ) error {
 	return nil
 }
@@ -142,13 +143,16 @@ func (vip *validatorInfoPreprocessor) RequestTransactionsForMiniBlock(_ *block.M
 }
 
 // CreateAndProcessMiniBlocks does nothing
-func (vip *validatorInfoPreprocessor) CreateAndProcessMiniBlocks(_ func() bool) (block.MiniBlockSlice, error) {
+func (vip *validatorInfoPreprocessor) CreateAndProcessMiniBlocks(
+	_ func() bool,
+	_ uint32,
+) (block.MiniBlockSlice, error) {
 	// validatorsInfo are created only by meta
 	return make(block.MiniBlockSlice, 0), nil
 }
 
 // ProcessMiniBlock does nothing
-func (vip *validatorInfoPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBlock, _ func() bool, _ func() (int, int)) ([][]byte, int, error) {
+func (vip *validatorInfoPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBlock, _ func() bool, _ func() (int, int), _ uint32) ([][]byte, int, error) {
 	if miniBlock.Type != block.PeerBlock {
 		return nil, 0, process.ErrWrongTypeInMiniBlock
 	}

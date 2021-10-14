@@ -225,6 +225,7 @@ func (scr *smartContractResults) RestoreBlockDataIntoPools(
 func (scr *smartContractResults) ProcessBlockTransactions(
 	body *block.Body,
 	haveTime func() bool,
+	_ uint32,
 ) error {
 	if check.IfNil(body) {
 		return process.ErrNilBlockBody
@@ -439,12 +440,15 @@ func (scr *smartContractResults) getAllScrsFromMiniBlock(
 
 // CreateAndProcessMiniBlocks creates miniblocks from storage and processes the reward transactions added into the miniblocks
 // as long as it has time
-func (scr *smartContractResults) CreateAndProcessMiniBlocks(_ func() bool) (block.MiniBlockSlice, error) {
+func (scr *smartContractResults) CreateAndProcessMiniBlocks(
+	_ func() bool,
+	_ uint32,
+) (block.MiniBlockSlice, error) {
 	return make(block.MiniBlockSlice, 0), nil
 }
 
 // ProcessMiniBlock processes all the smartContractResults from a and saves the processed smartContractResults in local cache complete miniblock
-func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, _ func() (int, int)) ([][]byte, int, error) {
+func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, _ func() (int, int), epoch uint32) ([][]byte, int, error) {
 
 	if miniBlock.Type != block.SmartContractResultBlock {
 		return nil, 0, process.ErrWrongTypeInMiniBlock
@@ -488,7 +492,8 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 			miniBlockTxHashes[index],
 			&gasConsumedByMiniBlockInSenderShard,
 			&gasConsumedByMiniBlockInReceiverShard,
-			&totalGasConsumedInSelfShard)
+			&totalGasConsumedInSelfShard,
+			epoch)
 
 		if err != nil {
 			return processedTxHashes, index, err

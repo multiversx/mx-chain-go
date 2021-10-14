@@ -16,12 +16,12 @@ type PreProcessorMock struct {
 	RemoveTxsFromPoolsCalled              func(body *block.Body) error
 	RestoreBlockDataIntoPoolsCalled       func(body *block.Body, miniBlockPool storage.Cacher) (int, error)
 	SaveTxsToStorageCalled                func(body *block.Body) error
-	ProcessBlockTransactionsCalled        func(body *block.Body, haveTime func() bool) error
+	ProcessBlockTransactionsCalled        func(body *block.Body, haveTime func() bool, epoch uint32) error
 	RequestBlockTransactionsCalled        func(body *block.Body) int
 	CreateMarshalizedDataCalled           func(txHashes [][]byte) ([][]byte, error)
 	RequestTransactionsForMiniBlockCalled func(miniBlock *block.MiniBlock) int
-	ProcessMiniBlockCalled                func(miniBlock *block.MiniBlock, haveTime func() bool, getNumOfCrossInterMbsAndTxs func() (int, int)) ([][]byte, int, error)
-	CreateAndProcessMiniBlocksCalled      func(haveTime func() bool) (block.MiniBlockSlice, error)
+	ProcessMiniBlockCalled                func(miniBlock *block.MiniBlock, haveTime func() bool, getNumOfCrossInterMbsAndTxs func() (int, int), epoch uint32) ([][]byte, int, error)
+	CreateAndProcessMiniBlocksCalled      func(haveTime func() bool, epoch uint32) (block.MiniBlockSlice, error)
 	GetAllCurrentUsedTxsCalled            func() map[string]data.TransactionHandler
 }
 
@@ -74,11 +74,11 @@ func (ppm *PreProcessorMock) SaveTxsToStorage(body *block.Body) error {
 }
 
 // ProcessBlockTransactions -
-func (ppm *PreProcessorMock) ProcessBlockTransactions(body *block.Body, haveTime func() bool) error {
+func (ppm *PreProcessorMock) ProcessBlockTransactions(body *block.Body, haveTime func() bool, epoch uint32) error {
 	if ppm.ProcessBlockTransactionsCalled == nil {
 		return nil
 	}
-	return ppm.ProcessBlockTransactionsCalled(body, haveTime)
+	return ppm.ProcessBlockTransactionsCalled(body, haveTime, epoch)
 }
 
 // RequestBlockTransactions -
@@ -106,20 +106,20 @@ func (ppm *PreProcessorMock) RequestTransactionsForMiniBlock(miniBlock *block.Mi
 }
 
 // ProcessMiniBlock -
-func (ppm *PreProcessorMock) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, getNumOfCrossInterMbsAndTxs func() (int, int)) ([][]byte, int, error) {
+func (ppm *PreProcessorMock) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, getNumOfCrossInterMbsAndTxs func() (int, int), epoch uint32) ([][]byte, int, error) {
 	if ppm.ProcessMiniBlockCalled == nil {
 		return nil, 0, nil
 	}
-	return ppm.ProcessMiniBlockCalled(miniBlock, haveTime, getNumOfCrossInterMbsAndTxs)
+	return ppm.ProcessMiniBlockCalled(miniBlock, haveTime, getNumOfCrossInterMbsAndTxs, epoch)
 }
 
 // CreateAndProcessMiniBlocks creates miniblocks from storage and processes the reward transactions added into the miniblocks
 // as long as it has time
-func (ppm *PreProcessorMock) CreateAndProcessMiniBlocks(haveTime func() bool) (block.MiniBlockSlice, error) {
+func (ppm *PreProcessorMock) CreateAndProcessMiniBlocks(haveTime func() bool, epoch uint32) (block.MiniBlockSlice, error) {
 	if ppm.CreateAndProcessMiniBlocksCalled == nil {
 		return nil, nil
 	}
-	return ppm.CreateAndProcessMiniBlocksCalled(haveTime)
+	return ppm.CreateAndProcessMiniBlocksCalled(haveTime, epoch)
 }
 
 // GetAllCurrentUsedTxs -
