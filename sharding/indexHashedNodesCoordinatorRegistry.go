@@ -3,6 +3,7 @@ package sharding
 import (
 	"encoding/json"
 	"fmt"
+	"runtime"
 	"strconv"
 
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -100,6 +101,9 @@ func (ihgs *indexHashedNodesCoordinator) saveState(key []byte) error {
 			"len(cfg.Waiting)", len(cfg.WaitingValidators),
 		)
 	}
+	buff := make([]byte, 100*1024*1024)
+	n := runtime.Stack(buff, false)
+	log.Debug("indexHashedNodesCoordinator.saveState call stack:\n" + string(buff[:n]))
 
 	return ihgs.bootStorer.Put(ncInternalkey, data)
 }
