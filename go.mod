@@ -7,13 +7,13 @@ require (
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.30
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.19
 	github.com/ElrondNetwork/concurrent-map v0.1.3
-	github.com/ElrondNetwork/covalent-indexer-go v1.0.2
-	github.com/ElrondNetwork/elastic-indexer-go v1.0.8
+	github.com/ElrondNetwork/covalent-indexer-go v1.0.3
+	github.com/ElrondNetwork/elastic-indexer-go v1.0.11
 	github.com/ElrondNetwork/elrond-go-core v1.1.2-0.20210927093437-8ee316aeb121
 	github.com/ElrondNetwork/elrond-go-crypto v1.0.1
 	github.com/ElrondNetwork/elrond-go-logger v1.0.5
 	github.com/ElrondNetwork/elrond-vm-common v1.2.3
-	github.com/ElrondNetwork/notifier-go v0.0.0-20210726084028-a78b3bbabc41
+	github.com/ElrondNetwork/notifier-go v1.0.1
 	github.com/beevik/ntp v0.3.0
 	github.com/btcsuite/btcd v0.22.0-beta
 	github.com/davecgh/go-spew v1.1.1
@@ -28,11 +28,11 @@ require (
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/ipfs/go-log v1.0.5
 	github.com/jbenet/goprocess v0.1.4
-	github.com/libp2p/go-libp2p v0.14.3
+	github.com/libp2p/go-libp2p v0.14.4
 	github.com/libp2p/go-libp2p-core v0.8.6
-	github.com/libp2p/go-libp2p-kad-dht v0.12.2
+	github.com/libp2p/go-libp2p-kad-dht v0.13.1
 	github.com/libp2p/go-libp2p-kbucket v0.4.7
-	github.com/libp2p/go-libp2p-pubsub v0.4.1
+	github.com/libp2p/go-libp2p-pubsub v0.5.5
 	github.com/libp2p/go-libp2p-transport-upgrader v0.4.6
 	github.com/libp2p/go-tcp-transport v0.2.8
 	github.com/mitchellh/mapstructure v1.4.1
@@ -45,7 +45,7 @@ require (
 	github.com/urfave/cli v1.22.5
 	github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee
 	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97
-	golang.org/x/net v0.0.0-20210423184538-5f58ad60dda6
+	golang.org/x/net v0.0.0-20210428140749-89ef3d95e781
 	gopkg.in/go-playground/validator.v8 v8.18.2
 )
 

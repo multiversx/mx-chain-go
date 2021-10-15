@@ -58,6 +58,7 @@ type EnableEpochs struct {
 	AddTokensToDelegationEnableEpoch            uint32
 	MultiESDTTransferFixOnCallBackOnEnableEpoch uint32
 	OptimizeGasUsedInCrossMiniBlocksEnableEpoch uint32
+	CorrectFirstQueuedEpoch                     uint32
 }
 
 // GasScheduleByEpochs represents a gas schedule toml entry that will be applied from the provided epoch

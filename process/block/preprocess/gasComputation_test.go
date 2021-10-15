@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewGasConsumption_NilEconomicsFeeHandlerShouldErr(t *testing.T) {
+func TestNewGasComputation_NilEconomicsFeeHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	gc, err := preprocess.NewGasComputation(
@@ -30,7 +30,7 @@ func TestNewGasConsumption_NilEconomicsFeeHandlerShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
 }
 
-func TestNewGasConsumption_ShouldWork(t *testing.T) {
+func TestNewGasComputation_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	gc, err := preprocess.NewGasComputation(

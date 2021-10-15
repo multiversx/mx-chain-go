@@ -156,6 +156,7 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("add tokens to delegation"), "epoch", enableEpochs.AddTokensToDelegationEnableEpoch)
 	log.Debug(readEpochFor("multi ESDT transfer on callback"), "epoch", enableEpochs.MultiESDTTransferFixOnCallBackOnEnableEpoch)
 	log.Debug(readEpochFor("optimize gas used in cross mini blocks"), "epoch", enableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch)
+	log.Debug(readEpochFor("correct first queued"), "epoch", enableEpochs.CorrectFirstQueuedEpoch)
 	log.Debug(readEpochFor("built in functions on metachain"), "epoch", enableEpochs.BuiltInFunctionOnMetaEnableEpoch)
 	log.Debug(readEpochFor("scheduled mini blocks"), "epoch", enableEpochs.ScheduledMiniBlocksEnableEpoch)
 
@@ -559,6 +560,7 @@ func (nr *nodeRunner) createMetrics(
 	metrics.SaveStringMetric(coreComponents.StatusHandler(), common.MetricRewardsTopUpGradientPoint, coreComponents.EconomicsData().RewardsTopUpGradientPoint().String())
 	metrics.SaveStringMetric(coreComponents.StatusHandler(), common.MetricTopUpFactor, fmt.Sprintf("%g", coreComponents.EconomicsData().RewardsTopUpFactor()))
 	metrics.SaveStringMetric(coreComponents.StatusHandler(), common.MetricGasPriceModifier, fmt.Sprintf("%g", coreComponents.EconomicsData().GasPriceModifier()))
+	metrics.SaveUint64Metric(coreComponents.StatusHandler(), common.MetricMaxGasPerTransaction, managedCoreComponents.EconomicsData().MaxGasLimitPerMiniBlockForSafeCrossShard())
 
 	return nil
 }
@@ -915,11 +917,12 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	}
 
 	historyRepoFactoryArgs := &dbLookupFactory.ArgsHistoryRepositoryFactory{
-		SelfShardID: bootstrapComponents.ShardCoordinator().SelfId(),
-		Config:      configs.GeneralConfig.DbLookupExtensions,
-		Hasher:      coreComponents.Hasher(),
-		Marshalizer: coreComponents.InternalMarshalizer(),
-		Store:       dataComponents.StorageService(),
+		SelfShardID:              bootstrapComponents.ShardCoordinator().SelfId(),
+		Config:                   configs.GeneralConfig.DbLookupExtensions,
+		Hasher:                   coreComponents.Hasher(),
+		Marshalizer:              coreComponents.InternalMarshalizer(),
+		Store:                    dataComponents.StorageService(),
+		Uint64ByteSliceConverter: coreComponents.Uint64ByteSliceConverter(),
 	}
 	historyRepositoryFactory, err := dbLookupFactory.NewHistoryRepositoryFactory(historyRepoFactoryArgs)
 	if err != nil {

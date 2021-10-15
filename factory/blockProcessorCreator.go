@@ -410,6 +410,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		EpochNotifier:                  pcf.epochNotifier,
 		VMContainersFactory:            vmFactory,
 		VmContainer:                    vmContainer,
+		GasHandler:                     gasHandler,
 		ScheduledTxsExecutionHandler:   scheduledTxsExecutionHandler,
 		ScheduledMiniBlocksEnableEpoch: enableEpochs.ScheduledMiniBlocksEnableEpoch,
 	}
@@ -822,6 +823,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		EpochNotifier:                  pcf.epochNotifier,
 		VMContainersFactory:            vmFactory,
 		VmContainer:                    vmContainer,
+		GasHandler:                     gasHandler,
 		ScheduledTxsExecutionHandler:   scheduledTxsExecutionHandler,
 		ScheduledMiniBlocksEnableEpoch: enableEpochs.ScheduledMiniBlocksEnableEpoch,
 	}
