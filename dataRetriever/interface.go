@@ -91,14 +91,16 @@ const (
 	TrieEpochRootHashUnit UnitType = 17
 	// ESDTSuppliesUnit is the ESDT supplies storage unit identifier
 	ESDTSuppliesUnit UnitType = 18
+	// RoundHdrHashDataUnit is the round- block header hash storage data unit identifier
+	RoundHdrHashDataUnit UnitType = 19
 	// UserAccountsUnit is the user accounts storage unit identifier
-	UserAccountsUnit UnitType = 19
+	UserAccountsUnit UnitType = 20
 	// UserAccountsCheckpointsUnit is the user accounts checkpoints storage unit identifier
-	UserAccountsCheckpointsUnit UnitType = 20
+	UserAccountsCheckpointsUnit UnitType = 21
 	// PeerAccountsUnit is the peer accounts storage unit identifier
-	PeerAccountsUnit UnitType = 21
+	PeerAccountsUnit UnitType = 22
 	// PeerAccountsCheckpointsUnit is the peer accounts checkpoints storage unit identifier
-	PeerAccountsCheckpointsUnit UnitType = 22
+	PeerAccountsCheckpointsUnit UnitType = 23
 
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
 	//TODO: Add only unit types lower than 100

@@ -888,6 +888,10 @@ func (bn *branchNode) sizeInBytes() int {
 	return nodeSize
 }
 
+func (bn *branchNode) getValue() []byte {
+	return []byte{}
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (bn *branchNode) IsInterfaceNil() bool {
 	return bn == nil

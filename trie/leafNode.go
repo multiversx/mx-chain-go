@@ -481,6 +481,10 @@ func (ln *leafNode) sizeInBytes() int {
 	return nodeSize
 }
 
+func (ln *leafNode) getValue() []byte {
+	return ln.Value
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (ln *leafNode) IsInterfaceNil() bool {
 	return ln == nil

@@ -32,6 +32,11 @@ func (r *readOnlyAccountsDB) GetExistingAccount(address []byte) (vmcommon.Accoun
 	return r.originalAccounts.GetExistingAccount(address)
 }
 
+// GetAccountFromBytes will call the original accounts' function with the same name
+func (r *readOnlyAccountsDB) GetAccountFromBytes(address []byte, accountBytes []byte) (vmcommon.AccountHandler, error) {
+	return r.originalAccounts.GetAccountFromBytes(address, accountBytes)
+}
+
 // LoadAccount will call the original accounts' function with the same name
 func (r *readOnlyAccountsDB) LoadAccount(address []byte) (vmcommon.AccountHandler, error) {
 	return r.originalAccounts.LoadAccount(address)

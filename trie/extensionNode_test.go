@@ -1025,3 +1025,10 @@ func TestExtensionNode_commitContextDone(t *testing.T) {
 	err = en.commitSnapshot(db, nil, ctx)
 	assert.Equal(t, ErrContextClosing, err)
 }
+
+func TestExtensionNode_getValueReturnsEmptyByteSlice(t *testing.T) {
+	t.Parallel()
+
+	en, _ := getEnAndCollapsedEn()
+	assert.Equal(t, []byte{}, en.getValue())
+}

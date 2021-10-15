@@ -154,6 +154,11 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("meta ESDT, financial SFT"), "epoch", enableEpochs.MetaESDTSetEnableEpoch)
 	log.Debug(readEpochFor("add tokens to delegation"), "epoch", enableEpochs.AddTokensToDelegationEnableEpoch)
 	log.Debug(readEpochFor("multi ESDT transfer on callback"), "epoch", enableEpochs.MultiESDTTransferFixOnCallBackOnEnableEpoch)
+	log.Debug(readEpochFor("optimize gas used in cross mini blocks"), "epoch", enableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch)
+	log.Debug(readEpochFor("correct first queued"), "epoch", enableEpochs.CorrectFirstQueuedEpoch)
+	log.Debug(readEpochFor("fix out of gas return code"), "epoch", enableEpochs.FixOOGReturnCodeEnableEpoch)
+	log.Debug(readEpochFor("remove non updated storage"), "epoch", enableEpochs.RemoveNonUpdatedStorageEnableEpoch)
+	log.Debug(readEpochFor("delete delegator data after claim rewards"), "epoch", enableEpochs.DeleteDelegatorAfterClaimRewardsEnableEpoch)
 	gasSchedule := configs.EpochConfig.GasSchedule
 
 	log.Debug(readEpochFor("gas schedule directories paths"), "epoch", gasSchedule.GasScheduleByEpochs)
@@ -270,7 +275,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	}
 
 	log.Trace("creating metrics")
-	//this should be called before setting the storer (done in the managedDataComponents creation)
+	// this should be called before setting the storer (done in the managedDataComponents creation)
 	err = nr.createMetrics(managedCoreComponents, managedCryptoComponents, managedBootstrapComponents)
 	if err != nil {
 		return true, err
@@ -329,6 +334,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		GasScheduleConfig: configs.EpochConfig.GasSchedule,
 		ConfigDir:         configurationPaths.GasScheduleDirectoryName,
 		EpochNotifier:     managedCoreComponents.EpochNotifier(),
+		ArwenChangeLocker: managedCoreComponents.ArwenChangeLocker(),
 	}
 	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
 	if err != nil {
@@ -557,7 +563,7 @@ func (nr *nodeRunner) createMetrics(
 	metrics.SaveStringMetric(managedCoreComponents.StatusHandler(), common.MetricRewardsTopUpGradientPoint, managedCoreComponents.EconomicsData().RewardsTopUpGradientPoint().String())
 	metrics.SaveStringMetric(managedCoreComponents.StatusHandler(), common.MetricTopUpFactor, fmt.Sprintf("%g", managedCoreComponents.EconomicsData().RewardsTopUpFactor()))
 	metrics.SaveStringMetric(managedCoreComponents.StatusHandler(), common.MetricGasPriceModifier, fmt.Sprintf("%g", managedCoreComponents.EconomicsData().GasPriceModifier()))
-
+	metrics.SaveUint64Metric(managedCoreComponents.StatusHandler(), common.MetricMaxGasPerTransaction, managedCoreComponents.EconomicsData().MaxGasLimitPerMiniBlockForSafeCrossShard())
 	return nil
 }
 
@@ -901,11 +907,12 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	}
 
 	historyRepoFactoryArgs := &dbLookupFactory.ArgsHistoryRepositoryFactory{
-		SelfShardID: managedBootstrapComponents.ShardCoordinator().SelfId(),
-		Config:      configs.GeneralConfig.DbLookupExtensions,
-		Hasher:      managedCoreComponents.Hasher(),
-		Marshalizer: managedCoreComponents.InternalMarshalizer(),
-		Store:       managedDataComponents.StorageService(),
+		SelfShardID:              managedBootstrapComponents.ShardCoordinator().SelfId(),
+		Config:                   configs.GeneralConfig.DbLookupExtensions,
+		Hasher:                   managedCoreComponents.Hasher(),
+		Marshalizer:              managedCoreComponents.InternalMarshalizer(),
+		Store:                    managedDataComponents.StorageService(),
+		Uint64ByteSliceConverter: managedCoreComponents.Uint64ByteSliceConverter(),
 	}
 	historyRepositoryFactory, err := dbLookupFactory.NewHistoryRepositoryFactory(historyRepoFactoryArgs)
 	if err != nil {

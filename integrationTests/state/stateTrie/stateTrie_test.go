@@ -20,7 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	dataTx "github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -37,6 +37,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -2090,5 +2091,73 @@ func checkDataTrieConsistency(
 			err := adb.RecreateTrie(rootHash)
 			require.Nil(t, err)
 		}
+	}
+}
+
+func TestProofAndVerifyProofDataTrie(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numOfShards := 1
+	nodesPerShard := 1
+	numMetachainNodes := 1
+	senderShard := uint32(0)
+	round := uint64(0)
+	nonce := uint64(0)
+
+	nodes, idxProposers := integrationTests.SetupSyncNodesOneShardAndMeta(nodesPerShard, numMetachainNodes)
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	defer integrationTests.CloseProcessorNodes(nodes)
+
+	generateCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), 0)
+	senderPrivateKey, _, _ := integrationTests.GenerateSkAndPkInShard(generateCoordinator, senderShard)
+	address, _ := senderPrivateKey.GeneratePublic().ToByteArray()
+
+	shardNode := nodes[0]
+
+	account, _ := shardNode.AccntState.LoadAccount(address)
+	numValsInDataTrie := 500
+	for i := 0; i < numValsInDataTrie; i++ {
+		index := strconv.Itoa(i)
+		key := []byte("key" + index)
+		value := []byte("value" + index)
+
+		err := account.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(key, value)
+		assert.Nil(t, err)
+	}
+
+	err := shardNode.AccntState.SaveAccount(account)
+	assert.Nil(t, err)
+
+	_, _ = shardNode.AccntState.Commit()
+	_, _ = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+
+	rootHash, _ := shardNode.AccntState.RootHash()
+	rootHashHex := hex.EncodeToString(rootHash)
+	encodedAddr, _ := shardNode.Node.EncodeAddressPubkey(address)
+	account, err = shardNode.AccntState.GetExistingAccount(address)
+	assert.Nil(t, err)
+	dataTrieRootHashBytes := account.(state.UserAccountHandler).GetRootHash()
+	mainTrie, _ := shardNode.AccntState.GetTrie(rootHash)
+
+	for i := 0; i < numValsInDataTrie; i++ {
+		index := strconv.Itoa(i)
+		keyBytes := []byte("key" + index)
+		key := hex.EncodeToString(keyBytes)
+		value := []byte("value" + index)
+
+		mainTrieProof, dataTrieProof, err := shardNode.Node.GetProofDataTrie(rootHashHex, encodedAddr, key)
+		assert.Nil(t, err)
+
+		response, err := mainTrie.VerifyProof(rootHash, address, mainTrieProof.Proof)
+		assert.Nil(t, err)
+		assert.True(t, response)
+
+		response, err = mainTrie.VerifyProof(dataTrieRootHashBytes, keyBytes, dataTrieProof.Proof)
+		assert.Nil(t, err)
+		assert.True(t, response)
+		assert.Equal(t, value, dataTrieProof.Value)
 	}
 }

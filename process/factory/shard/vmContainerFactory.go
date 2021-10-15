@@ -38,7 +38,7 @@ type vmContainerFactory struct {
 	epochConfig        config.EnableEpochs
 	container          process.VirtualMachinesContainer
 	arwenVersions      []config.ArwenVersionByEpoch
-	arwenChangeLocker  process.Locker
+	arwenChangeLocker  common.Locker
 	esdtTransferParser vmcommon.ESDTTransferParser
 }
 
@@ -50,7 +50,7 @@ type ArgVMContainerFactory struct {
 	ArgBlockChainHook  hooks.ArgBlockChainHook
 	EpochNotifier      process.EpochNotifier
 	EpochConfig        config.EnableEpochs
-	ArwenChangeLocker  process.Locker
+	ArwenChangeLocker  common.Locker
 	ESDTTransferParser vmcommon.ESDTTransferParser
 }
 
@@ -144,7 +144,6 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 		vmf.arwenChangeLocker.Unlock()
 		return nil, err
 	}
-	vmf.gasSchedule.RegisterNotifyHandler(currentVM)
 
 	err = container.Add(factory.ArwenVirtualMachine, currentVM)
 	if err != nil {
@@ -159,6 +158,7 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 	vmf.arwenChangeLocker.Unlock()
 
 	vmf.epochNotifier.RegisterNotifyHandler(vmf)
+	vmf.gasSchedule.RegisterNotifyHandler(vmf)
 
 	return container, nil
 }
@@ -166,6 +166,21 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 // Close closes the vm container factory
 func (vmf *vmContainerFactory) Close() error {
 	return vmf.blockChainHookImpl.Close()
+}
+
+// GasScheduleChange updates the gas schedule map in all the components
+func (vmf *vmContainerFactory) GasScheduleChange(gasSchedule map[string]map[string]uint64) {
+	// clear compiled codes always before changing gasSchedule
+	vmf.blockChainHookImpl.ClearCompiledCodes()
+	for _, key := range vmf.container.Keys() {
+		currentVM, err := vmf.container.Get(key)
+		if err != nil {
+			logVMContainerFactory.Error("cannot get VM on GasSchedule Change", "error", err)
+			continue
+		}
+
+		currentVM.GasScheduleChange(gasSchedule)
+	}
 }
 
 // EpochConfirmed updates the VM version in the container, depending on the epoch
@@ -215,7 +230,12 @@ func (vmf *vmContainerFactory) shouldReplaceArwenInstance(
 }
 
 func (vmf *vmContainerFactory) createArwenVM(version config.ArwenVersionByEpoch) (vmcommon.VMExecutionHandler, error) {
-	return vmf.createInProcessArwenVMByVersion(version)
+	currentVM, err := vmf.createInProcessArwenVMByVersion(version)
+	if err != nil {
+		return nil, err
+	}
+
+	return currentVM, nil
 }
 
 func (vmf *vmContainerFactory) getMatchingVersion(epoch uint32) config.ArwenVersionByEpoch {
@@ -283,6 +303,8 @@ func (vmf *vmContainerFactory) createInProcessArwenVMV14() (vmcommon.VMExecution
 		ESDTTransferParser:       vmf.esdtTransferParser,
 		EpochNotifier:            vmf.epochNotifier,
 		MultiESDTTransferAsyncCallBackEnableEpoch: vmf.epochConfig.MultiESDTTransferFixOnCallBackOnEnableEpoch,
+		FixOOGReturnCodeEnableEpoch:               vmf.epochConfig.FixOOGReturnCodeEnableEpoch,
+		RemoveNonUpdatedStorageEnableEpoch:        vmf.epochConfig.RemoveNonUpdatedStorageEnableEpoch,
 	}
 	return arwenHost14.NewArwenVM(vmf.blockChainHookImpl, hostParameters)
 }

@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -2174,6 +2175,66 @@ func TestAccountsDB_Close(t *testing.T) {
 	err := adb.Close()
 	assert.Nil(t, err)
 	assert.True(t, closeCalled)
+}
+
+func TestAccountsDB_GetAccountFromBytesInvalidAddress(t *testing.T) {
+	t.Parallel()
+
+	_, adb := getDefaultTrieAndAccountsDb()
+
+	acc, err := adb.GetAccountFromBytes([]byte{}, []byte{})
+	assert.Nil(t, acc)
+	assert.True(t, strings.Contains(err.Error(), state.ErrNilAddress.Error()))
+}
+
+func TestAccountsDB_GetAccountFromBytes(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &testscommon.MarshalizerMock{}
+	adr := make([]byte, 32)
+	accountExpected, _ := state.NewUserAccount(adr)
+	accountBytes, _ := marshalizer.Marshal(accountExpected)
+	_, adb := getDefaultTrieAndAccountsDb()
+
+	acc, err := adb.GetAccountFromBytes(adr, accountBytes)
+	assert.Nil(t, err)
+	assert.Equal(t, accountExpected, acc)
+}
+
+func TestAccountsDB_GetAccountFromBytesShouldLoadDataTrie(t *testing.T) {
+	t.Parallel()
+
+	acc := generateAccount()
+	acc.SetRootHash([]byte("root hash"))
+	dataTrie := &trieMock.TrieStub{}
+	marshalizer := &testscommon.MarshalizerMock{}
+	serializerAcc, _ := marshalizer.Marshal(acc)
+
+	trieStub := &trieMock.TrieStub{
+		GetCalled: func(key []byte) (i []byte, e error) {
+			if bytes.Equal(key, acc.AddressBytes()) {
+				return serializerAcc, nil
+			}
+			return nil, nil
+		},
+		RecreateCalled: func(root []byte) (d common.Trie, err error) {
+			return dataTrie, nil
+		},
+		GetStorageManagerCalled: func() common.StorageManager {
+			return &testscommon.StorageManagerStub{
+				DatabaseCalled: func() common.DBWriteCacher {
+					return testscommon.NewMemDbMock()
+				},
+			}
+		},
+	}
+
+	adb := generateAccountDBFromTrie(trieStub)
+	retrievedAccount, err := adb.GetAccountFromBytes(acc.AddressBytes(), serializerAcc)
+	assert.Nil(t, err)
+
+	account, _ := retrievedAccount.(state.UserAccountHandler)
+	assert.Equal(t, dataTrie, account.DataTrie())
 }
 
 func BenchmarkAccountsDb_GetCodeEntry(b *testing.B) {

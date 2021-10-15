@@ -13,26 +13,27 @@ var errNotImplemented = errors.New("not implemented")
 
 // AccountsStub -
 type AccountsStub struct {
-	GetExistingAccountCalled func(addressContainer []byte) (vmcommon.AccountHandler, error)
-	LoadAccountCalled        func(container []byte) (vmcommon.AccountHandler, error)
-	SaveAccountCalled        func(account vmcommon.AccountHandler) error
-	RemoveAccountCalled      func(addressContainer []byte) error
-	CommitCalled             func() ([]byte, error)
+	GetExistingAccountCalled  func(addressContainer []byte) (vmcommon.AccountHandler, error)
+	GetAccountFromBytesCalled func(address []byte, accountBytes []byte) (vmcommon.AccountHandler, error)
+	LoadAccountCalled         func(container []byte) (vmcommon.AccountHandler, error)
+	SaveAccountCalled         func(account vmcommon.AccountHandler) error
+	RemoveAccountCalled       func(addressContainer []byte) error
+	CommitCalled              func() ([]byte, error)
 	CommitInEpochCalled      func(uint32, uint32) ([]byte, error)
-	JournalLenCalled         func() int
-	RevertToSnapshotCalled   func(snapshot int) error
-	RootHashCalled           func() ([]byte, error)
-	RecreateTrieCalled       func(rootHash []byte) error
-	PruneTrieCalled          func(rootHash []byte, identifier state.TriePruningIdentifier)
-	CancelPruneCalled        func(rootHash []byte, identifier state.TriePruningIdentifier)
-	SnapshotStateCalled      func(rootHash []byte)
-	SetStateCheckpointCalled func(rootHash []byte)
-	IsPruningEnabledCalled   func() bool
-	GetAllLeavesCalled       func(rootHash []byte) (chan core.KeyValueHolder, error)
-	RecreateAllTriesCalled   func(rootHash []byte) (map[string]common.Trie, error)
-	GetNumCheckpointsCalled  func() uint32
-	GetCodeCalled            func([]byte) []byte
-	GetTrieCalled            func([]byte) (common.Trie, error)
+	JournalLenCalled          func() int
+	RevertToSnapshotCalled    func(snapshot int) error
+	RootHashCalled            func() ([]byte, error)
+	RecreateTrieCalled        func(rootHash []byte) error
+	PruneTrieCalled           func(rootHash []byte, identifier state.TriePruningIdentifier)
+	CancelPruneCalled         func(rootHash []byte, identifier state.TriePruningIdentifier)
+	SnapshotStateCalled       func(rootHash []byte)
+	SetStateCheckpointCalled  func(rootHash []byte)
+	IsPruningEnabledCalled    func() bool
+	GetAllLeavesCalled        func(rootHash []byte) (chan core.KeyValueHolder, error)
+	RecreateAllTriesCalled    func(rootHash []byte) (map[string]common.Trie, error)
+	GetNumCheckpointsCalled   func() uint32
+	GetCodeCalled             func([]byte) []byte
+	GetTrieCalled             func([]byte) (common.Trie, error)
 }
 
 // GetTrie -
@@ -97,6 +98,15 @@ func (as *AccountsStub) Commit() ([]byte, error) {
 func (as *AccountsStub) GetExistingAccount(addressContainer []byte) (vmcommon.AccountHandler, error) {
 	if as.GetExistingAccountCalled != nil {
 		return as.GetExistingAccountCalled(addressContainer)
+	}
+
+	return nil, errNotImplemented
+}
+
+// GetAccountFromBytes -
+func (as *AccountsStub) GetAccountFromBytes(address []byte, accountBytes []byte) (vmcommon.AccountHandler, error) {
+	if as.GetAccountFromBytesCalled != nil {
+		return as.GetAccountFromBytesCalled(address, accountBytes)
 	}
 
 	return nil, errNotImplemented

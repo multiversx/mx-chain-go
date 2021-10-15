@@ -44,6 +44,11 @@ func (a *accountsAdapter) GetExistingAccount(_ []byte) (vmcommon.AccountHandler,
 	return nil, nil
 }
 
+// GetAccountFromBytes -
+func (a *accountsAdapter) GetAccountFromBytes(_ []byte, _ []byte) (vmcommon.AccountHandler, error) {
+	return nil, nil
+}
+
 // RemoveAccount -
 func (a *accountsAdapter) RemoveAccount(_ []byte) error {
 	return nil

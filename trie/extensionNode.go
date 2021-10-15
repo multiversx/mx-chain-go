@@ -707,6 +707,10 @@ func (en *extensionNode) sizeInBytes() int {
 	return nodeSize
 }
 
+func (en *extensionNode) getValue() []byte {
+	return []byte{}
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (en *extensionNode) IsInterfaceNil() bool {
 	return en == nil
