@@ -266,7 +266,7 @@ func TestNewFullHistoryShardedPruningStorer_ShouldWork(t *testing.T) {
 }
 
 func TestFullHistoryPruningStorer_ConcurrentOperations(t *testing.T) {
-	t.Skip("this test should be ran only when troubleshooting pruning storer concurrent operations")
+	t.Skip("this test should be run only when troubleshooting pruning storer concurrent operations")
 
 	startTime := time.Now()
 
