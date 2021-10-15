@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/slash"
@@ -40,6 +41,7 @@ type SlashingNotifierArgs struct {
 	Signer          crypto.SingleSigner
 	AccountAdapter  state.AccountsAdapter
 	Hasher          hashing.Hasher
+	Marshaller      marshal.Marshalizer
 }
 
 type slashingNotifier struct {
@@ -49,6 +51,7 @@ type slashingNotifier struct {
 	signer          crypto.SingleSigner
 	accountAdapter  state.AccountsAdapter
 	hasher          hashing.Hasher
+	marshaller      marshal.Marshalizer
 }
 
 // NewSlashingNotifier creates a new instance of a slash.SlashingNotifier
@@ -71,6 +74,9 @@ func NewSlashingNotifier(args *SlashingNotifierArgs) (slash.SlashingNotifier, er
 	if check.IfNil(args.Hasher) {
 		return nil, process.ErrNilHasher
 	}
+	if check.IfNil(args.Marshaller) {
+		return nil, process.ErrNilMarshalizer
+	}
 
 	return &slashingNotifier{
 		privateKey:      args.PrivateKey,
@@ -79,6 +85,7 @@ func NewSlashingNotifier(args *SlashingNotifierArgs) (slash.SlashingNotifier, er
 		signer:          args.Signer,
 		accountAdapter:  args.AccountAdapter,
 		hasher:          args.Hasher,
+		marshaller:      args.Marshaller,
 	}, nil
 }
 
@@ -171,7 +178,7 @@ func (sn *slashingNotifier) computeTxData(slashType slash.SlashingType, proofByt
 }
 
 func (sn *slashingNotifier) signTx(tx *transaction.Transaction) error {
-	txBytes, err := tx.Marshal()
+	txBytes, err := tx.GetDataForSigning(sn.pubKeyConverter, sn.marshaller)
 	if err != nil {
 		return err
 	}

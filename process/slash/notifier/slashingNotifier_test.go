@@ -78,6 +78,14 @@ func TestNewSlashingNotifier(t *testing.T) {
 			},
 			expectedErr: process.ErrNilHasher,
 		},
+		{
+			args: func() *notifier.SlashingNotifierArgs {
+				args := generateSlashingNotifierArgs()
+				args.Marshaller = nil
+				return args
+			},
+			expectedErr: process.ErrNilMarshalizer,
+		},
 	}
 
 	for _, currTest := range tests {
@@ -123,6 +131,21 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidAccount_ExpectEr
 	tx, err := sn.CreateShardSlashingTransaction(&mockSlash.MultipleHeaderSigningProofStub{})
 	require.Nil(t, tx)
 	require.Equal(t, errAcc, err)
+}
+
+func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidMarshaller_ExpectError(t *testing.T) {
+	args := generateSlashingNotifierArgs()
+	errMarshaller := errors.New("marshaller error")
+	args.Marshaller = &testscommon.MarshalizerStub{
+		MarshalCalled: func(obj interface{}) ([]byte, error) {
+			return nil, errMarshaller
+		},
+	}
+
+	sn, _ := notifier.NewSlashingNotifier(args)
+	tx, err := sn.CreateShardSlashingTransaction(&mockSlash.MultipleHeaderSigningProofStub{})
+	require.Nil(t, tx)
+	require.Equal(t, errMarshaller, err)
 }
 
 func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidSlashType_ExpectError(t *testing.T) {
@@ -295,5 +318,6 @@ func generateSlashingNotifierArgs() *notifier.SlashingNotifierArgs {
 		Signer:          &mock.SignerMock{},
 		AccountAdapter:  accountsAdapter,
 		Hasher:          &testscommon.HasherMock{},
+		Marshaller:      &testscommon.MarshalizerMock{},
 	}
 }
