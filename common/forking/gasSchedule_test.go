@@ -1,6 +1,7 @@
 package forking
 
 import (
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -25,8 +26,9 @@ func createGasScheduleNotifierArgs() ArgsNewGasScheduleNotifier {
 					FileName:   "gasScheduleV2.toml",
 				},
 			}},
-		ConfigDir:     "../../cmd/node/config/gasSchedules",
-		EpochNotifier: NewGenericEpochNotifier(),
+		ConfigDir:         "../../cmd/node/config/gasSchedules",
+		EpochNotifier:     NewGenericEpochNotifier(),
+		ArwenChangeLocker: &sync.RWMutex{},
 	}
 }
 

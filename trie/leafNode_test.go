@@ -731,3 +731,10 @@ func TestLeafNode_commitContextDone(t *testing.T) {
 	err = ln.commitSnapshot(db, db, nil, ctx)
 	assert.Equal(t, ErrContextClosing, err)
 }
+
+func TestLeafNode_getValue(t *testing.T) {
+	t.Parallel()
+
+	ln := getLn(getTestMarshalizerAndHasher())
+	assert.Equal(t, ln.Value, ln.getValue())
+}

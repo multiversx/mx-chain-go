@@ -565,12 +565,12 @@ func logMapWithTrace(message string, paramName string, hashes common.ModifiedHas
 }
 
 // GetProof computes a Merkle proof for the node that is present at the given key
-func (tr *patriciaMerkleTrie) GetProof(key []byte) ([][]byte, error) {
+func (tr *patriciaMerkleTrie) GetProof(key []byte) ([][]byte, []byte, error) {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
 	if tr.root == nil {
-		return nil, ErrNilNode
+		return nil, nil, ErrNilNode
 	}
 
 	var proof [][]byte
@@ -579,37 +579,34 @@ func (tr *patriciaMerkleTrie) GetProof(key []byte) ([][]byte, error) {
 
 	err := currentNode.setRootHash()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	for {
 		encodedNode, errGet := currentNode.getEncodedNode()
 		if errGet != nil {
-			return nil, errGet
+			return nil, nil, errGet
 		}
 		proof = append(proof, encodedNode)
+		value := currentNode.getValue()
 
 		currentNode, hexKey, errGet = currentNode.getNext(hexKey, tr.trieStorage.Database())
 		if errGet != nil {
-			return nil, errGet
+			return nil, nil, errGet
 		}
 
 		if currentNode == nil {
-			return proof, nil
+			return proof, value, nil
 		}
 	}
 }
 
 // VerifyProof verifies the given Merkle proof
-func (tr *patriciaMerkleTrie) VerifyProof(key []byte, proof [][]byte) (bool, error) {
+func (tr *patriciaMerkleTrie) VerifyProof(rootHash []byte, key []byte, proof [][]byte) (bool, error) {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
-	wantHash, err := tr.getRootHash()
-	if err != nil {
-		return false, err
-	}
-
+	wantHash := rootHash
 	key = keyBytesToHex(key)
 	for _, encodedNode := range proof {
 		if encodedNode == nil {
