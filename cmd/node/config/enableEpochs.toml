@@ -135,6 +135,12 @@
     # CorrectFirstQueuedEpoch represents the epoch when the backward compatibility for setting the first queued node is enabled
     CorrectFirstQueuedEpoch = 5
 
+    # FixOOGReturnCodeEnableEpoch represents the epoch when the backward compatibility returning out of gas error is enabled
+    FixOOGReturnCodeEnableEpoch = 2
+
+    # RemoveNonUpdatedStorageEnableEpoch represents the epoch when the backward compatibility for removing non updated storage is enabled
+    RemoveNonUpdatedStorageEnableEpoch = 2
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },
