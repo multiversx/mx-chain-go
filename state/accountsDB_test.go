@@ -2221,11 +2221,7 @@ func TestAccountsDB_GetAccountFromBytesShouldLoadDataTrie(t *testing.T) {
 			return dataTrie, nil
 		},
 		GetStorageManagerCalled: func() common.StorageManager {
-			return &testscommon.StorageManagerStub{
-				DatabaseCalled: func() common.DBWriteCacher {
-					return testscommon.NewMemDbMock()
-				},
-			}
+			return &testscommon.StorageManagerStub{}
 		},
 	}
 
