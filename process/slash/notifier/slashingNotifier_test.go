@@ -8,17 +8,18 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	mock3 "github.com/ElrondNetwork/elrond-go/genesis/mock"
+	mockGenesis "github.com/ElrondNetwork/elrond-go/genesis/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/process/slash"
-	mock4 "github.com/ElrondNetwork/elrond-go/process/slash/mock"
+	mockSlash "github.com/ElrondNetwork/elrond-go/process/slash/mock"
 	"github.com/ElrondNetwork/elrond-go/process/slash/notifier"
+	slashCommon "github.com/ElrondNetwork/elrond-go/process/slash/testscommon"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
-	state2 "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/update"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
@@ -89,7 +90,7 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidProof_ExpectErro
 	args := generateSlashingNotifierArgs()
 	sn, _ := notifier.NewSlashingNotifier(args)
 
-	tx, err := sn.CreateShardSlashingTransaction(&mock4.SlashingProofStub{})
+	tx, err := sn.CreateShardSlashingTransaction(&mockSlash.SlashingProofStub{})
 	require.Nil(t, tx)
 	require.Equal(t, process.ErrInvalidProof, err)
 }
@@ -104,7 +105,7 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidPubKey_ExpectErr
 	}
 
 	sn, _ := notifier.NewSlashingNotifier(args)
-	tx, err := sn.CreateShardSlashingTransaction(&mock4.MultipleHeaderSigningProofStub{})
+	tx, err := sn.CreateShardSlashingTransaction(&mockSlash.MultipleHeaderSigningProofStub{})
 	require.Nil(t, tx)
 	require.Equal(t, errPubKey, err)
 }
@@ -112,14 +113,14 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidPubKey_ExpectErr
 func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidAccount_ExpectError(t *testing.T) {
 	args := generateSlashingNotifierArgs()
 	errAcc := errors.New("accounts adapter error")
-	args.AccountAdapter = &state2.AccountsStub{
+	args.AccountAdapter = &stateMock.AccountsStub{
 		GetExistingAccountCalled: func([]byte) (vmcommon.AccountHandler, error) {
 			return nil, errAcc
 		},
 	}
 
 	sn, _ := notifier.NewSlashingNotifier(args)
-	tx, err := sn.CreateShardSlashingTransaction(&mock4.MultipleHeaderSigningProofStub{})
+	tx, err := sn.CreateShardSlashingTransaction(&mockSlash.MultipleHeaderSigningProofStub{})
 	require.Nil(t, tx)
 	require.Equal(t, errAcc, err)
 }
@@ -128,7 +129,7 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidSlashType_Expect
 	args := generateSlashingNotifierArgs()
 
 	sn, _ := notifier.NewSlashingNotifier(args)
-	tx, err := sn.CreateShardSlashingTransaction(&mock4.MultipleHeaderSigningProofStub{
+	tx, err := sn.CreateShardSlashingTransaction(&mockSlash.MultipleHeaderSigningProofStub{
 		GetTypeCalled: func() slash.SlashingType {
 			return "invalid"
 		},
@@ -140,7 +141,7 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidSlashType_Expect
 func TestSlashingNotifier_CreateShardSlashingTransaction_NilHeader_ExpectError(t *testing.T) {
 	args := generateSlashingNotifierArgs()
 	sn, _ := notifier.NewSlashingNotifier(args)
-	tx, err := sn.CreateShardSlashingTransaction(&mock4.MultipleHeaderSigningProofStub{
+	tx, err := sn.CreateShardSlashingTransaction(&mockSlash.MultipleHeaderSigningProofStub{
 		GetHeadersCalled: func(pubKey []byte) []*interceptedBlocks.InterceptedHeader {
 			return []*interceptedBlocks.InterceptedHeader{nil}
 		},
@@ -162,7 +163,7 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidProofSignature_E
 	}
 
 	sn, _ := notifier.NewSlashingNotifier(args)
-	tx, err := sn.CreateShardSlashingTransaction(&mock4.MultipleHeaderSigningProofStub{})
+	tx, err := sn.CreateShardSlashingTransaction(&mockSlash.MultipleHeaderSigningProofStub{})
 	require.Nil(t, tx)
 	require.Equal(t, errSign, err)
 }
@@ -183,7 +184,7 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidTxSignature_Expe
 	}
 
 	sn, _ := notifier.NewSlashingNotifier(args)
-	tx, err := sn.CreateShardSlashingTransaction(&mock4.MultipleHeaderSigningProofStub{})
+	tx, err := sn.CreateShardSlashingTransaction(&mockSlash.MultipleHeaderSigningProofStub{})
 	require.Nil(t, tx)
 	require.Equal(t, errSign, err)
 }
@@ -198,15 +199,15 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleProposalProof(t
 
 	sn, _ := notifier.NewSlashingNotifier(args)
 
-	h1 := testscommon.CreateInterceptedHeaderData(&block.Header{
+	h1 := slashCommon.CreateInterceptedHeaderData(&block.Header{
 		Round:        4,
 		PrevRandSeed: []byte("seed1"),
 	})
-	h2 := testscommon.CreateInterceptedHeaderData(&block.Header{
+	h2 := slashCommon.CreateInterceptedHeaderData(&block.Header{
 		Round:        4,
 		PrevRandSeed: []byte("seed2"),
 	})
-	proof := &mock4.MultipleHeaderProposalProofStub{
+	proof := &mockSlash.MultipleHeaderProposalProofStub{
 		GetHeadersCalled: func() []*interceptedBlocks.InterceptedHeader {
 			return []*interceptedBlocks.InterceptedHeader{h1, h2}
 		},
@@ -219,6 +220,8 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleProposalProof(t
 		Nonce:     444,
 		SndAddr:   []byte("address"),
 		Value:     big.NewInt(notifier.CommitmentProofValue),
+		GasPrice:  notifier.CommitmentProofGasPrice,
+		GasLimit:  notifier.CommitmentProofGasLimit,
 		Signature: []byte("signature"),
 	}
 
@@ -238,15 +241,15 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleSignProof(t *te
 
 	pk1 := []byte("pubKey1")
 
-	h1 := testscommon.CreateInterceptedHeaderData(&block.Header{
+	h1 := slashCommon.CreateInterceptedHeaderData(&block.Header{
 		Round:        4,
 		PrevRandSeed: []byte("seed1"),
 	})
-	h2 := testscommon.CreateInterceptedHeaderData(&block.Header{
+	h2 := slashCommon.CreateInterceptedHeaderData(&block.Header{
 		Round:        4,
 		PrevRandSeed: []byte("seed2"),
 	})
-	proof := &mock4.MultipleHeaderSigningProofStub{
+	proof := &mockSlash.MultipleHeaderSigningProofStub{
 		GetLevelCalled: func([]byte) slash.ThreatLevel {
 			return slash.High
 		},
@@ -265,6 +268,8 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleSignProof(t *te
 		Nonce:     444,
 		SndAddr:   []byte("address"),
 		Value:     big.NewInt(notifier.CommitmentProofValue),
+		GasPrice:  notifier.CommitmentProofGasPrice,
+		GasLimit:  notifier.CommitmentProofGasLimit,
 		Signature: []byte("signature"),
 	}
 
@@ -273,11 +278,11 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleSignProof(t *te
 }
 
 func generateSlashingNotifierArgs() *notifier.SlashingNotifierArgs {
-	accountHandler := &mock3.BaseAccountMock{
+	accountHandler := &mockGenesis.BaseAccountMock{
 		Nonce:             444,
 		AddressBytesField: []byte("address"),
 	}
-	accountsAdapter := &state2.AccountsStub{
+	accountsAdapter := &stateMock.AccountsStub{
 		GetExistingAccountCalled: func([]byte) (vmcommon.AccountHandler, error) {
 			return accountHandler, nil
 		},

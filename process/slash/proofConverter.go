@@ -1,12 +1,14 @@
 package slash
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 )
 
+// ToProtoMultipleHeaderProposal converts a MultipleProposalProofHandler to its specific proto structure
 func ToProtoMultipleHeaderProposal(proof MultipleProposalProofHandler) (*coreSlash.MultipleHeaderProposalProof, error) {
 	headers, err := getHeadersFromInterceptedHeaders(proof.GetHeaders())
 	if err != nil {
@@ -21,6 +23,7 @@ func ToProtoMultipleHeaderProposal(proof MultipleProposalProofHandler) (*coreSla
 	}, nil
 }
 
+// ToProtoMultipleHeaderSign converts a MultipleSigningProofHandler to its specific proto structure
 func ToProtoMultipleHeaderSign(proof MultipleSigningProofHandler) (*coreSlash.MultipleHeaderSigningProof, error) {
 	levels := make(map[string]coreSlash.ThreatLevel)
 	headers := make(map[string]*coreSlash.Headers)
@@ -46,7 +49,7 @@ func getHeadersFromInterceptedHeaders(interceptedHeaders []*interceptedBlocks.In
 	headers := make([]*block.Header, 0, len(interceptedHeaders))
 
 	for _, interceptedHeader := range interceptedHeaders {
-		if interceptedHeader == nil || interceptedHeader.HeaderHandler() == nil {
+		if check.IfNil(interceptedHeader) || check.IfNil(interceptedHeader.HeaderHandler()) {
 			return nil, process.ErrNilHeaderHandler
 		}
 

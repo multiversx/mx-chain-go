@@ -22,6 +22,7 @@ func createInterceptedHeaderArg(header data.HeaderHandler) *interceptedBlocks.Ar
 	return args
 }
 
+// CreateInterceptedHeaderData creates a new interceptedBlocks.InterceptedHeader with given data.HeaderHandler
 func CreateInterceptedHeaderData(header data.HeaderHandler) *interceptedBlocks.InterceptedHeader {
 	args := createInterceptedHeaderArg(header)
 	interceptedHeader, _ := interceptedBlocks.NewInterceptedHeader(args)

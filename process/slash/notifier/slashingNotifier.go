@@ -16,12 +16,23 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
-const CommitmentProofValue = 1 // astea o sa fie in config undeva
+//TODO: Move this constants to config file, when slashing notifier is integrated.
+// Please note that these are just some dummy values and are meant to be changed.
+
+// CommitmentProofValue = value to issue a commitment tx proof
+const CommitmentProofValue = 1
+
+// CommitmentProofGasPrice = gas price to issue a commitment tx proof
+const CommitmentProofGasPrice = 1000000000
+
+// CommitmentProofGasLimit = gas limit to issue a commitment tx proof
+const CommitmentProofGasLimit = 70000
 
 type proto interface {
 	Marshal() ([]byte, error)
 }
 
+// SlashingNotifierArgs is a struct containing all arguments required to create a new slash.SlashingNotifier
 type SlashingNotifierArgs struct {
 	PrivateKey      crypto.PrivateKey
 	PublicKey       crypto.PublicKey
@@ -31,7 +42,7 @@ type SlashingNotifierArgs struct {
 	Hasher          hashing.Hasher
 }
 
-type SlashingNotifier struct {
+type slashingNotifier struct {
 	privateKey      crypto.PrivateKey
 	publicKey       crypto.PublicKey
 	pubKeyConverter core.PubkeyConverter
@@ -40,6 +51,7 @@ type SlashingNotifier struct {
 	hasher          hashing.Hasher
 }
 
+// NewSlashingNotifier creates a new instance of a slash.SlashingNotifier
 func NewSlashingNotifier(args *SlashingNotifierArgs) (slash.SlashingNotifier, error) {
 	if check.IfNil(args.PrivateKey) {
 		return nil, crypto.ErrNilPrivateKey
@@ -60,7 +72,7 @@ func NewSlashingNotifier(args *SlashingNotifierArgs) (slash.SlashingNotifier, er
 		return nil, process.ErrNilHasher
 	}
 
-	return &SlashingNotifier{
+	return &slashingNotifier{
 		privateKey:      args.PrivateKey,
 		publicKey:       args.PublicKey,
 		pubKeyConverter: args.PubKeyConverter,
@@ -70,7 +82,13 @@ func NewSlashingNotifier(args *SlashingNotifierArgs) (slash.SlashingNotifier, er
 	}, nil
 }
 
-func (sn *SlashingNotifier) CreateShardSlashingTransaction(proof slash.SlashingProofHandler) (data.TransactionHandler, error) {
+// CreateShardSlashingTransaction creates a so-called "commitment" transaction. If a slashing event has been detected,
+// then a transaction will be issued, but it will not unveil details about the slash event, only a commitment proof.
+// This tx is distinguished by its data field, which should be of format: ProofID@CRC@Sign(proof), where:
+// 1. ProofID = 1 byte representing the slashing event ID (e.g.: multiple sign/proposal)
+// 2. CRC = last 2 bytes of Hash(proof)
+// 3. Sign(proof) = detector's proof signature. This is used to avoid front-running.
+func (sn *slashingNotifier) CreateShardSlashingTransaction(proof slash.SlashingProofHandler) (data.TransactionHandler, error) {
 	protoProof, err := toProto(proof)
 	if err != nil {
 		return nil, err
@@ -95,7 +113,7 @@ func toProto(proof slash.SlashingProofHandler) (proto, error) {
 	}
 }
 
-func (sn *SlashingNotifier) createProofTx(slashType slash.SlashingType, proofBytes []byte) (*transaction.Transaction, error) {
+func (sn *slashingNotifier) createProofTx(slashType slash.SlashingType, proofBytes []byte) (*transaction.Transaction, error) {
 	tx, err := sn.createUnsignedTx(slashType, proofBytes)
 	if err != nil {
 		return nil, err
@@ -109,7 +127,7 @@ func (sn *SlashingNotifier) createProofTx(slashType slash.SlashingType, proofByt
 	return tx, nil
 }
 
-func (sn *SlashingNotifier) createUnsignedTx(slashType slash.SlashingType, proofBytes []byte) (*transaction.Transaction, error) {
+func (sn *slashingNotifier) createUnsignedTx(slashType slash.SlashingType, proofBytes []byte) (*transaction.Transaction, error) {
 	pubKey, err := sn.publicKey.ToByteArray()
 	if err != nil {
 		return nil, err
@@ -124,15 +142,17 @@ func (sn *SlashingNotifier) createUnsignedTx(slashType slash.SlashingType, proof
 	}
 
 	return &transaction.Transaction{
-		Nonce:   account.GetNonce(),
-		Value:   big.NewInt(CommitmentProofValue),
-		RcvAddr: nil, //TODO: This should be changed to a meta chain address
-		SndAddr: account.AddressBytes(),
-		Data:    txData,
+		Nonce:    account.GetNonce(),
+		Value:    big.NewInt(CommitmentProofValue),
+		RcvAddr:  nil, //TODO: This should be changed to a meta chain address
+		SndAddr:  account.AddressBytes(),
+		GasPrice: CommitmentProofGasPrice,
+		GasLimit: CommitmentProofGasLimit,
+		Data:     txData,
 	}, nil
 }
 
-func (sn *SlashingNotifier) computeTxData(slashType slash.SlashingType, proofBytes []byte) ([]byte, error) {
+func (sn *slashingNotifier) computeTxData(slashType slash.SlashingType, proofBytes []byte) ([]byte, error) {
 	proofHash := sn.hasher.Compute(string(proofBytes))
 	proofSignature, err := sn.signer.Sign(sn.privateKey, proofHash)
 	if err != nil {
@@ -150,7 +170,7 @@ func (sn *SlashingNotifier) computeTxData(slashType slash.SlashingType, proofByt
 	return []byte(dataStr), nil
 }
 
-func (sn *SlashingNotifier) signTx(tx *transaction.Transaction) error {
+func (sn *slashingNotifier) signTx(tx *transaction.Transaction) error {
 	txBytes, err := tx.Marshal()
 	if err != nil {
 		return err
@@ -165,6 +185,7 @@ func (sn *SlashingNotifier) signTx(tx *transaction.Transaction) error {
 	return nil
 }
 
-func (sn *SlashingNotifier) CreateMetaSlashingEscalatedTransaction(slash.SlashingProofHandler) data.TransactionHandler {
+// CreateMetaSlashingEscalatedTransaction currently not implemented
+func (sn *slashingNotifier) CreateMetaSlashingEscalatedTransaction(slash.SlashingProofHandler) data.TransactionHandler {
 	return nil
 }

@@ -9,7 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/process/slash"
 	"github.com/ElrondNetwork/elrond-go/process/slash/mock"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/process/slash/testscommon"
 	"github.com/stretchr/testify/require"
 )
 
