@@ -2,11 +2,11 @@ package factory_test
 
 import (
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"

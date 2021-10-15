@@ -1,19 +1,19 @@
 package factory
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/state"
 	"path"
 	"path/filepath"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/trie/factory"
 	"strconv"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -16,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/trie/factory"
 )
 
 func (e *epochStartBootstrap) initializeFromLocalStorage() {

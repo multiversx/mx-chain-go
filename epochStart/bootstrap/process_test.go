@@ -3,7 +3,6 @@ package bootstrap
 import (
 	"context"
 	"errors"
-	"github.com/ElrondNetwork/elrond-go/trie/factory"
 	"testing"
 	"time"
 
@@ -27,6 +26,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
+	"github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/stretchr/testify/assert"
 )
 

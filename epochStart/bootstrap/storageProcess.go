@@ -3,7 +3,6 @@ package bootstrap
 import (
 	"context"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/trie/factory"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -25,6 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/ElrondNetwork/elrond-go/trie/factory"
 )
 
 // ArgsStorageEpochStartBootstrap holds the arguments needed for creating an epoch start data provider component

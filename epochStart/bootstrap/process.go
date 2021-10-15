@@ -1044,6 +1044,7 @@ func (e *epochStartBootstrap) Close() error {
 	}
 
 	if !check.IfNil(e.trieContainer) {
+		log.Debug("closing all tries....")
 		tries := e.trieContainer.GetAll()
 		for _, trie := range tries {
 			err := trie.Close()
