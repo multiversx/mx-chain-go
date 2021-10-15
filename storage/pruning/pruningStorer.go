@@ -333,12 +333,6 @@ func (ps *PruningStorer) createAndInitPersister(pd *persisterData) (storage.Pers
 		}
 	}
 
-	err = persister.Init()
-	if err != nil {
-		log.Warn("createAndInitPersister(): persister.Init()", "error", err.Error())
-		return nil, nil, err
-	}
-
 	pd.setPersisterAndIsClosed(persister, false)
 
 	return persister, closeFunc, nil
@@ -701,11 +695,6 @@ func (ps *PruningStorer) changeEpoch(header data.HeaderHandler) error {
 	ps.activePersisters = append(singleItemPersisters, ps.activePersisters...)
 	ps.persistersMapByEpoch[epoch] = newPersister
 
-	err = ps.activePersisters[0].getPersister().Init()
-	if err != nil {
-		return err
-	}
-
 	wasExtended := ps.extendSavedEpochsIfNeeded(header)
 	if wasExtended {
 		if len(ps.activePersisters) > int(ps.numOfActivePersisters) {
@@ -901,12 +890,6 @@ func createPersisterDataForEpoch(args *StorerArgs, epoch uint32, shard string) (
 		epoch:     epoch,
 		path:      filePath,
 		isClosed:  false,
-	}
-
-	err = p.getPersister().Init()
-	if err != nil {
-		log.Warn("init old persister", "error", err.Error())
-		return nil, err
 	}
 
 	return p, nil

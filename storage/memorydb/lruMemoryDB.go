@@ -52,12 +52,6 @@ func (l *lruDB) Has(key []byte) error {
 	return storage.ErrKeyNotFound
 }
 
-// Init initializes the storage medium and prepares it for usage
-func (l *lruDB) Init() error {
-	l.cacher.Clear()
-	return nil
-}
-
 // Close closes the files/resources associated to the storage medium
 func (l *lruDB) Close() error {
 	l.cacher.Clear()

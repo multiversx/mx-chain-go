@@ -266,9 +266,8 @@ func TestNewFullHistoryShardedPruningStorer_ShouldWork(t *testing.T) {
 }
 
 func TestFullHistoryPruningStorer_ConcurrentOperations(t *testing.T) {
-	t.Skip()
+	t.Skip("this test should be ran only when troubleshooting pruning storer concurrent operations")
 
-	//_ = logger.SetLogLevel("*:DEBUG")
 	startTime := time.Now()
 
 	dbName := "db-concurrent-test"
