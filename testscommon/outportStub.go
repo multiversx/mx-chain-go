@@ -21,7 +21,7 @@ func (as *OutportStub) SaveBlock(args *indexer.ArgsSaveBlockData) {
 	}
 }
 
-// SaveValidatorsRating --
+// SaveValidatorsRating -
 func (as *OutportStub) SaveValidatorsRating(index string, validatorsInfo []*indexer.ValidatorRatingInfo) {
 	if as.SaveValidatorsRatingCalled != nil {
 		as.SaveValidatorsRatingCalled(index, validatorsInfo)
@@ -71,4 +71,8 @@ func (as *OutportStub) SaveRoundsInfo(_ []*indexer.RoundInfo) {
 // SubscribeDriver -
 func (as *OutportStub) SubscribeDriver(_ outport.Driver) error {
 	return nil
+}
+
+// FinalizedBlock -
+func (as *OutportStub) FinalizedBlock(_ []byte) {
 }

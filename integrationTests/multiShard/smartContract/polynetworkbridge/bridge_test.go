@@ -142,7 +142,7 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 func checkBurnedOnESDTContract(t *testing.T, nodes []*integrationTests.TestProcessorNode, tokenIdentifier []byte, burntValue *big.Int) {
 	esdtSCAcc := getUserAccountWithAddress(t, vm.ESDTSCAddress, nodes)
 	retrievedData, _ := esdtSCAcc.DataTrieTracker().RetrieveValue(tokenIdentifier)
-	tokenInSystemSC := &systemSmartContracts.ESDTData{}
+	tokenInSystemSC := &systemSmartContracts.ESDTDataV2{}
 	_ = integrationTests.TestMarshalizer.Unmarshal(tokenInSystemSC, retrievedData)
 
 	assert.Equal(t, tokenInSystemSC.BurntValue.String(), burntValue.String())

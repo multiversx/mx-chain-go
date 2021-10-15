@@ -27,7 +27,7 @@ func TestRelayedESDTTransferShouldWork(t *testing.T) {
 	relayerBalance := big.NewInt(10000000)
 	esdtBalance := big.NewInt(100000000)
 	token := []byte("miiutoken")
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), token, esdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), token, 0, esdtBalance)
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, relayerBalance)
 
 	gasPrice := uint64(10)
@@ -81,7 +81,7 @@ func TestTestRelayedESTTransferNotEnoughESTValueShouldConsumeGas(t *testing.T) {
 	relayerBalance := big.NewInt(10000000)
 	esdtBalance := big.NewInt(100000000)
 	token := []byte("miiutoken")
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), token, esdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), token, 0, esdtBalance)
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, relayerBalance)
 
 	gasPrice := uint64(10)

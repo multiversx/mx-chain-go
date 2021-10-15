@@ -4,9 +4,6 @@ import (
 	"errors"
 )
 
-// ErrNilAppContext signals that no context was passed to the routing system
-var ErrNilAppContext = errors.New("nil app context")
-
 // ErrInvalidAppContext signals an invalid context passed to the routing system
 var ErrInvalidAppContext = errors.New("invalid app context")
 
@@ -67,6 +64,9 @@ var ErrValidationEmptyTxHash = errors.New("TxHash is empty")
 // ErrInvalidBlockNonce signals that an invalid block nonce was provided
 var ErrInvalidBlockNonce = errors.New("invalid block nonce")
 
+// ErrInvalidBlockRound signals that an invalid block round was provided
+var ErrInvalidBlockRound = errors.New("invalid block round")
+
 // ErrInvalidQueryParameter signals and invalid query parameter was provided
 var ErrInvalidQueryParameter = errors.New("invalid query parameter")
 
@@ -97,6 +97,9 @@ var ErrValidationEmptyRootHash = errors.New("rootHash is empty")
 // ErrValidationEmptyAddress signals that an empty address was provided
 var ErrValidationEmptyAddress = errors.New("address is empty")
 
+// ErrValidationEmptyKey signals that an empty key was provided
+var ErrValidationEmptyKey = errors.New("key is empty")
+
 // ErrGetProof signals an error happening when trying to compute a Merkle proof
 var ErrGetProof = errors.New("getting proof failed")
 
@@ -108,3 +111,9 @@ var ErrNilHttpServer = errors.New("nil http server")
 
 // ErrCannotCreateGinWebServer signals that the gin web server cannot be created
 var ErrCannotCreateGinWebServer = errors.New("cannot create gin web server")
+
+// ErrNilFacadeHandler signals that a nil facade handler has been provided
+var ErrNilFacadeHandler = errors.New("nil facade handler")
+
+// ErrFacadeWrongTypeAssertion signals that a type conversion to a facade type failed
+var ErrFacadeWrongTypeAssertion = errors.New("facade - wrong type assertion")
