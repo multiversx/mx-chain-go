@@ -1582,6 +1582,69 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 	assert.Equal(t, 3, numTxsProcessed)
 }
 
+func TestTransactionsPreprocessor_ComputeGasConsumedShouldWork(t *testing.T) {
+	t.Parallel()
+
+	maxGasLimit := uint64(1500000000)
+	txGasLimitInSender := maxGasLimit + 1
+	txGasLimitInReceiver := maxGasLimit
+	dataPool := initDataPool()
+	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
+	preprocessor, _ := NewTransactionPreprocessor(
+		dataPool.Transactions(),
+		&mock.ChainStorerMock{},
+		&hashingMocks.HasherMock{},
+		&mock.MarshalizerMock{},
+		&testscommon.TxProcessorMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&stateMock.AccountsStub{},
+		requestTransaction,
+		&mock.FeeHandlerStub{
+			MaxGasLimitPerBlockCalled: func() uint64 {
+				return maxGasLimit
+			},
+		},
+		&mock.GasHandlerMock{
+			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+				return txGasLimitInSender, txGasLimitInReceiver, nil
+			},
+		},
+		&mock.BlockTrackerMock{},
+		block.TxBlock,
+		createMockPubkeyConverter(),
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
+		&epochNotifier.EpochNotifierStub{},
+		2,
+		2,
+		&testscommon.TxTypeHandlerMock{},
+		&testscommon.ScheduledTxsExecutionStub{},
+	)
+
+	tx := transaction.Transaction{}
+	txHash := []byte("hash")
+
+	gasInfo := gasConsumedInfo{
+		gasConsumedByMiniBlocksInSenderShard:  uint64(0),
+		gasConsumedByMiniBlockInReceiverShard: uint64(0),
+		totalGasConsumedInSelfShard:           uint64(0),
+	}
+
+	gasConsumedByTxInSelfShard, err := preprocessor.computeGasConsumed(
+		1,
+		0,
+		&tx,
+		txHash,
+		&gasInfo,
+	)
+
+	assert.Nil(t, err)
+	assert.Equal(t, maxGasLimit+1, gasInfo.gasConsumedByMiniBlocksInSenderShard)
+	assert.Equal(t, maxGasLimit, gasInfo.gasConsumedByMiniBlockInReceiverShard)
+	assert.Equal(t, maxGasLimit, gasConsumedByTxInSelfShard)
+	assert.Equal(t, maxGasLimit, gasInfo.totalGasConsumedInSelfShard)
+}
+
 func TestTransactionsPreprocessor_SplitMiniBlocksIfNeededShouldWork(t *testing.T) {
 	t.Parallel()
 

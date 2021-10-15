@@ -42,10 +42,6 @@ func (gt *gasTracker) computeGasConsumed(
 		}
 	} else {
 		gasConsumedByTxInSelfShard = gasConsumedByTxInReceiverShard
-
-		if gasInfo.gasConsumedByMiniBlocksInSenderShard+gasConsumedByTxInSenderShard > gt.economicsFee.MaxGasLimitPerBlock(senderShardId) {
-			return 0, process.ErrMaxGasLimitPerMiniBlockInSenderShardIsReached
-		}
 	}
 
 	if gasInfo.totalGasConsumedInSelfShard+gasConsumedByTxInSelfShard > gt.economicsFee.MaxGasLimitPerBlock(gt.shardCoordinator.SelfId()) {

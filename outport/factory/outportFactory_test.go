@@ -114,7 +114,7 @@ func TestCreateOutport_SubscribeNotifierDriver(t *testing.T) {
 	args := createMockArgsOutportHandler(false, true, false)
 
 	args.EventNotifierFactoryArgs.Marshalizer = &mock.MarshalizerMock{}
-	args.EventNotifierFactoryArgs.Hasher = &mock.HasherMock{}
+	args.EventNotifierFactoryArgs.Hasher = &hashingMocks.HasherMock{}
 	outPort, err := factory.CreateOutport(args)
 
 	defer func(c outport.OutportHandler) {
