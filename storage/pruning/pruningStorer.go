@@ -833,8 +833,7 @@ func (ps *PruningStorer) closePersisters(epoch uint32) error {
 	persistersToClose := make([]*persisterData, 0)
 
 	if ps.numOfActivePersisters < uint32(len(ps.activePersisters)) {
-		activePersistersCount := len(ps.activePersisters)
-		for idx := int(ps.numOfActivePersisters); idx < activePersistersCount; idx++ {
+		for idx := int(ps.numOfActivePersisters); idx < len(ps.activePersisters); idx++ {
 			persisterToClose := ps.activePersisters[idx]
 			// remove it from the active persisters slice
 			ps.activePersisters = ps.activePersisters[:ps.numOfActivePersisters]
