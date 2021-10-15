@@ -1441,6 +1441,64 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 	assert.Equal(t, 3, numTxsProcessed)
 }
 
+func TestTransactionsPreprocessor_ComputeGasConsumedShouldWork(t *testing.T) {
+	t.Parallel()
+
+	maxGasLimit := uint64(1500000000)
+	txGasLimitInSender := maxGasLimit + 1
+	txGasLimitInReceiver := maxGasLimit
+	dataPool := initDataPool()
+	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
+	preprocessor, _ := NewTransactionPreprocessor(
+		dataPool.Transactions(),
+		&mock.ChainStorerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&testscommon.TxProcessorMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&stateMock.AccountsStub{},
+		requestTransaction,
+		&mock.FeeHandlerStub{
+			MaxGasLimitPerBlockCalled: func() uint64 {
+				return maxGasLimit
+			},
+		},
+		&mock.GasHandlerMock{
+			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+				return txGasLimitInSender, txGasLimitInReceiver, nil
+			},
+		},
+		&mock.BlockTrackerMock{},
+		block.TxBlock,
+		createMockPubkeyConverter(),
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
+		&mock.EpochNotifierStub{},
+		2,
+	)
+
+	tx := transaction.Transaction{}
+	txHash := []byte("hash")
+	gasConsumedByMiniBlockInSenderShard := uint64(0)
+	gasConsumedByMiniBlockInReceiverShard := uint64(0)
+	totalGasConsumedInSelfShard := uint64(0)
+
+	err := preprocessor.computeGasConsumed(
+		1,
+		0,
+		&tx,
+		txHash,
+		&gasConsumedByMiniBlockInSenderShard,
+		&gasConsumedByMiniBlockInReceiverShard,
+		&totalGasConsumedInSelfShard,
+	)
+
+	assert.Nil(t, err)
+	assert.Equal(t, maxGasLimit+1, gasConsumedByMiniBlockInSenderShard)
+	assert.Equal(t, maxGasLimit, gasConsumedByMiniBlockInReceiverShard)
+	assert.Equal(t, maxGasLimit, totalGasConsumedInSelfShard)
+}
+
 func TestTransactionsPreprocessor_SplitMiniBlocksIfNeededShouldWork(t *testing.T) {
 	t.Parallel()
 
