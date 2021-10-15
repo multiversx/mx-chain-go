@@ -69,6 +69,8 @@ func createGenesisConfig() config.EnableEpochs {
 		MultiESDTTransferFixOnCallBackOnEnableEpoch: unreachableEpoch,
 		SenderInOutTransferEnableEpoch:              unreachableEpoch,
 		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: unreachableEpoch,
+		FixOOGReturnCodeEnableEpoch:                 unreachableEpoch,
+		RemoveNonUpdatedStorageEnableEpoch:          unreachableEpoch,
 	}
 }
 
