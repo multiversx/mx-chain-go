@@ -14,6 +14,7 @@ type Driver interface {
 	SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte, epoch uint32)
 	SaveValidatorsRating(indexID string, infoRating []*indexer.ValidatorRatingInfo)
 	SaveAccounts(blockTimestamp uint64, acc []data.UserAccountHandler)
+	FinalizedBlock(headerHash []byte)
 	Close() error
 	IsInterfaceNil() bool
 }
