@@ -158,6 +158,7 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("correct first queued"), "epoch", enableEpochs.CorrectFirstQueuedEpoch)
 	log.Debug(readEpochFor("fix out of gas return code"), "epoch", enableEpochs.FixOOGReturnCodeEnableEpoch)
 	log.Debug(readEpochFor("remove non updated storage"), "epoch", enableEpochs.RemoveNonUpdatedStorageEnableEpoch)
+	log.Debug(readEpochFor("delete delegator data after claim rewards"), "epoch", enableEpochs.DeleteDelegatorAfterClaimRewardsEnableEpoch)
 	gasSchedule := configs.EpochConfig.GasSchedule
 
 	log.Debug(readEpochFor("gas schedule directories paths"), "epoch", gasSchedule.GasScheduleByEpochs)
@@ -264,7 +265,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	}
 
 	log.Trace("creating metrics")
-	//this should be called before setting the storer (done in the managedDataComponents creation)
+	// this should be called before setting the storer (done in the managedDataComponents creation)
 	err = nr.createMetrics(managedCoreComponents, managedCryptoComponents, managedBootstrapComponents)
 	if err != nil {
 		return true, err
