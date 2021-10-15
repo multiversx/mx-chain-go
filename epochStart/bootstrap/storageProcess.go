@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"context"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/trie/factory"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -142,10 +143,18 @@ func (sesb *storageEpochStartBootstrap) Bootstrap() (Parameters, error) {
 }
 
 func (sesb *storageEpochStartBootstrap) prepareComponentsToSync() error {
-	err := sesb.createTriesComponentsForShardId(core.MetachainShardId, disabled.NewChainStorer())
+	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
+		sesb.generalConfig,
+		sesb.coreComponentsHolder,
+		core.MetachainShardId,
+		disabled.NewChainStorer(),
+	)
 	if err != nil {
 		return err
 	}
+
+	sesb.trieContainer = triesContainer
+	sesb.trieStorageManagers = trieStorageManagers
 
 	err = sesb.createStorageRequestHandler()
 	if err != nil {

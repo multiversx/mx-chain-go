@@ -1,6 +1,10 @@
 package factory
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"path"
 	"path/filepath"
 
@@ -166,4 +170,63 @@ func (tc *trieCreator) newTrieAndTrieStorageWithoutPruning(
 // IsInterfaceNil returns true if there is no value under the interface
 func (tc *trieCreator) IsInterfaceNil() bool {
 	return tc == nil
+}
+
+// CreateTriesComponentsForShardId creates the user and peer tries and trieStorageManagers
+func CreateTriesComponentsForShardId(
+	generalConfig config.Config,
+	coreComponentsHolder process.CoreComponentsHolder,
+	shardId uint32,
+	storageService dataRetriever.StorageService,
+) (state.TriesHolder, map[string]common.StorageManager, error) {
+	trieFactoryArgs := TrieFactoryArgs{
+		SnapshotDbCfg:            generalConfig.TrieSnapshotDB,
+		Marshalizer:              coreComponentsHolder.InternalMarshalizer(),
+		Hasher:                   coreComponentsHolder.Hasher(),
+		PathManager:              coreComponentsHolder.PathHandler(),
+		TrieStorageManagerConfig: generalConfig.TrieStorageManagerConfig,
+	}
+	trFactory, err := NewTrieFactory(trieFactoryArgs)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	args := TrieCreateArgs{
+		TrieStorageConfig:  generalConfig.AccountsTrieStorageOld,
+		MainStorer:         storageService.GetStorer(dataRetriever.UserAccountsUnit),
+		CheckpointsStorer:  storageService.GetStorer(dataRetriever.UserAccountsCheckpointsUnit),
+		ShardID:            core.GetShardIDString(shardId),
+		PruningEnabled:     generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
+		CheckpointsEnabled: generalConfig.StateTriesConfig.CheckpointsEnabled,
+		MaxTrieLevelInMem:  generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
+	}
+	userStorageManager, userAccountTrie, err := trFactory.Create(args)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	trieContainer := state.NewDataTriesHolder()
+	trieStorageManagers := make(map[string]common.StorageManager)
+
+	trieContainer.Put([]byte(UserAccountTrie), userAccountTrie)
+	trieStorageManagers[UserAccountTrie] = userStorageManager
+
+	args = TrieCreateArgs{
+		TrieStorageConfig:  generalConfig.PeerAccountsTrieStorageOld,
+		MainStorer:         storageService.GetStorer(dataRetriever.PeerAccountsUnit),
+		CheckpointsStorer:  storageService.GetStorer(dataRetriever.PeerAccountsCheckpointsUnit),
+		ShardID:            core.GetShardIDString(shardId),
+		PruningEnabled:     generalConfig.StateTriesConfig.PeerStatePruningEnabled,
+		CheckpointsEnabled: generalConfig.StateTriesConfig.CheckpointsEnabled,
+		MaxTrieLevelInMem:  generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
+	}
+	peerStorageManager, peerAccountsTrie, err := trFactory.Create(args)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	trieContainer.Put([]byte(PeerAccountTrie), peerAccountsTrie)
+	trieStorageManagers[PeerAccountTrie] = peerStorageManager
+
+	return trieContainer, trieStorageManagers, nil
 }

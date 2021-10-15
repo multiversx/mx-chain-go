@@ -509,15 +509,6 @@ func (tsm *trieStorageManager) SetEpochForPutOperation(epoch uint32) {
 	storer.setEpochForPutOperation(epoch)
 }
 
-// ReloadStorers sets the given storers as the mainStorer and checkpointsStorer.
-func (tsm *trieStorageManager) ReloadStorers(mainStorer common.DBWriteCacher, checkpointsStorer common.DBWriteCacher) {
-	tsm.storageOperationMutex.Lock()
-	defer tsm.storageOperationMutex.Unlock()
-
-	tsm.mainStorer = mainStorer
-	tsm.checkpointsStorer = checkpointsStorer
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (tsm *trieStorageManager) IsInterfaceNil() bool {
 	return tsm == nil

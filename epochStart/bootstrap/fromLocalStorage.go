@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/trie/factory"
 	"strconv"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -93,10 +94,18 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	err = e.createTriesComponentsForShardId(newShardId, disabled.NewChainStorer())
+	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
+		e.generalConfig,
+		e.coreComponentsHolder,
+		newShardId,
+		disabled.NewChainStorer(),
+	)
 	if err != nil {
 		return Parameters{}, err
 	}
+
+	e.trieContainer = triesContainer
+	e.trieStorageManagers = trieStorageManagers
 
 	if !isShuffledOut {
 		parameters := Parameters{

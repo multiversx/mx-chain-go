@@ -403,7 +403,6 @@ type BootstrapParamsHolder interface {
 
 // EpochStartBootstrapper defines the epoch start bootstrap functionality
 type EpochStartBootstrapper interface {
-	GetTriesComponents() (state.TriesHolder, map[string]common.StorageManager)
 	Bootstrap() (bootstrap.Parameters, error)
 	IsInterfaceNil() bool
 	Close() error

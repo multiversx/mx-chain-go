@@ -18,7 +18,6 @@ type StorageManagerStub struct {
 	ExitPruningBufferingModeCalled  func()
 	AddDirtyCheckpointHashesCalled  func([]byte, common.ModifiedHashes) bool
 	RemoveCalled                    func([]byte) error
-	ReloadStorersCalled             func(mainStorer common.DBWriteCacher, checkpointsStorer common.DBWriteCacher)
 	IsInterfaceNilCalled            func() bool
 	SetEpochForPutOperationCalled   func(uint32)
 }
@@ -106,13 +105,6 @@ func (sms *StorageManagerStub) Remove(hash []byte) error {
 // GetSnapshotDbBatchDelay -
 func (sms *StorageManagerStub) GetSnapshotDbBatchDelay() int {
 	return 0
-}
-
-// ReloadStorers -
-func (sms *StorageManagerStub) ReloadStorers(mainStorer common.DBWriteCacher, checkpointsStorer common.DBWriteCacher) {
-	if sms.ReloadStorersCalled != nil {
-		sms.ReloadStorersCalled(mainStorer, checkpointsStorer)
-	}
 }
 
 // SetEpochForPutOperation -

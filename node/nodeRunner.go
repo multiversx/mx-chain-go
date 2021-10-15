@@ -13,8 +13,6 @@ import (
 	"syscall"
 	"time"
 
-	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
-
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/closing"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
@@ -255,8 +253,18 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 
 	nr.logInformation(managedCoreComponents, managedCryptoComponents, managedBootstrapComponents)
 
+	log.Debug("creating data components")
+	managedDataComponents, err := nr.CreateManagedDataComponents(managedCoreComponents, managedBootstrapComponents)
+	if err != nil {
+		return true, err
+	}
+
 	log.Debug("creating state components")
-	managedStateComponents, err := nr.CreateManagedStateComponents(managedCoreComponents, managedBootstrapComponents)
+	managedStateComponents, err := nr.CreateManagedStateComponents(
+		managedCoreComponents,
+		managedBootstrapComponents,
+		managedDataComponents,
+	)
 	if err != nil {
 		return true, err
 	}
@@ -264,12 +272,6 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	log.Trace("creating metrics")
 	//this should be called before setting the storer (done in the managedDataComponents creation)
 	err = nr.createMetrics(managedCoreComponents, managedCryptoComponents, managedBootstrapComponents)
-	if err != nil {
-		return true, err
-	}
-
-	log.Debug("creating data components")
-	managedDataComponents, err := nr.CreateManagedDataComponents(managedCoreComponents, managedBootstrapComponents)
 	if err != nil {
 		return true, err
 	}
@@ -1021,47 +1023,20 @@ func (nr *nodeRunner) CreateManagedDataComponents(
 		return nil, err
 	}
 
-	reloadStorers(managedBootstrapComponents, managedDataComponents)
-
 	return managedDataComponents, nil
-}
-
-func reloadStorers(
-	managedBootstrapComponents mainFactory.BootstrapComponentsHandler,
-	managedDataComponents mainFactory.DataComponentsHandler,
-) {
-	_, trieStorageManagers := managedBootstrapComponents.EpochStartBootstrapper().GetTriesComponents()
-	storers := managedDataComponents.StorageService()
-
-	for key, tsm := range trieStorageManagers {
-		if key == trieFactory.UserAccountTrie {
-			userAccountStorer := storers.GetStorer(dataRetriever.UserAccountsUnit)
-			userAccountCheckpointsStorer := storers.GetStorer(dataRetriever.UserAccountsCheckpointsUnit)
-
-			tsm.ReloadStorers(userAccountStorer, userAccountCheckpointsStorer)
-		}
-
-		if key == trieFactory.PeerAccountTrie {
-			peerAccountStorer := storers.GetStorer(dataRetriever.PeerAccountsUnit)
-			peerAccountCheckpointsStorer := storers.GetStorer(dataRetriever.PeerAccountsCheckpointsUnit)
-
-			tsm.ReloadStorers(peerAccountStorer, peerAccountCheckpointsStorer)
-		}
-	}
 }
 
 // CreateManagedStateComponents is the managed state components factory
 func (nr *nodeRunner) CreateManagedStateComponents(
 	managedCoreComponents mainFactory.CoreComponentsHandler,
 	managedBootstrapComponents mainFactory.BootstrapComponentsHandler,
+	managedDataComponents mainFactory.DataComponentsHandler,
 ) (mainFactory.StateComponentsHandler, error) {
-	triesComponents, trieStorageManagers := managedBootstrapComponents.EpochStartBootstrapper().GetTriesComponents()
 	stateArgs := mainFactory.StateComponentsFactoryArgs{
-		Config:              *nr.configs.GeneralConfig,
-		ShardCoordinator:    managedBootstrapComponents.ShardCoordinator(),
-		Core:                managedCoreComponents,
-		TriesContainer:      triesComponents,
-		TrieStorageManagers: trieStorageManagers,
+		Config:           *nr.configs.GeneralConfig,
+		ShardCoordinator: managedBootstrapComponents.ShardCoordinator(),
+		Core:             managedCoreComponents,
+		StorageService:   managedDataComponents.StorageService(),
 	}
 
 	stateComponentsFactory, err := mainFactory.NewStateComponentsFactory(stateArgs)

@@ -13,11 +13,6 @@ type EpochStartBootstrapperStub struct {
 	BootstrapCalled func() (bootstrap.Parameters, error)
 }
 
-// GetTriesComponents -
-func (esbs *EpochStartBootstrapperStub) GetTriesComponents() (state.TriesHolder, map[string]common.StorageManager) {
-	return esbs.TrieHolder, esbs.StorageManagers
-}
-
 // Bootstrap -
 func (esbs *EpochStartBootstrapperStub) Bootstrap() (bootstrap.Parameters, error) {
 	if esbs.BootstrapCalled != nil {

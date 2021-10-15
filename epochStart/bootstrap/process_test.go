@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"context"
 	"errors"
+	"github.com/ElrondNetwork/elrond-go/trie/factory"
 	"testing"
 	"time"
 
@@ -457,9 +458,18 @@ func TestSyncValidatorAccountsState_NilRequestHandlerErr(t *testing.T) {
 			}
 		},
 	}
-	_ = epochStartProvider.createTriesComponentsForShardId(args.GenesisShardCoordinator.SelfId(), disabled.NewChainStorer())
+	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
+		args.GeneralConfig,
+		coreComp,
+		args.GenesisShardCoordinator.SelfId(),
+		disabled.NewChainStorer(),
+	)
+	assert.Nil(t, err)
+	epochStartProvider.trieContainer = triesContainer
+	epochStartProvider.trieStorageManagers = trieStorageManagers
+
 	rootHash := []byte("rootHash")
-	err := epochStartProvider.syncValidatorAccountsState(rootHash)
+	err = epochStartProvider.syncValidatorAccountsState(rootHash)
 	assert.Equal(t, state.ErrNilRequestHandler, err)
 }
 
@@ -469,7 +479,15 @@ func TestCreateTriesForNewShardID(t *testing.T) {
 	args.GeneralConfig = testscommon.GetGeneralConfig()
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
 
-	err := epochStartProvider.createTriesComponentsForShardId(1, disabled.NewChainStorer())
+	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
+		args.GeneralConfig,
+		coreComp,
+		1,
+		disabled.NewChainStorer(),
+	)
+	assert.Nil(t, err)
+	epochStartProvider.trieContainer = triesContainer
+	epochStartProvider.trieStorageManagers = trieStorageManagers
 	assert.Nil(t, err)
 }
 
@@ -488,9 +506,19 @@ func TestSyncUserAccountsState(t *testing.T) {
 			}
 		},
 	}
-	_ = epochStartProvider.createTriesComponentsForShardId(args.GenesisShardCoordinator.SelfId(), disabled.NewChainStorer())
+
+	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
+		args.GeneralConfig,
+		coreComp,
+		args.GenesisShardCoordinator.SelfId(),
+		disabled.NewChainStorer(),
+	)
+	assert.Nil(t, err)
+	epochStartProvider.trieContainer = triesContainer
+	epochStartProvider.trieStorageManagers = trieStorageManagers
+
 	rootHash := []byte("rootHash")
-	err := epochStartProvider.syncUserAccountsState(rootHash)
+	err = epochStartProvider.syncUserAccountsState(rootHash)
 	assert.Equal(t, state.ErrNilRequestHandler, err)
 }
 
@@ -534,8 +562,17 @@ func TestRequestAndProcessForShard(t *testing.T) {
 
 	epochStartProvider.shardCoordinator = shardCoordinator
 	epochStartProvider.epochStartMeta = metaBlock
-	_ = epochStartProvider.createTriesComponentsForShardId(shardCoordinator.SelfId(), disabled.NewChainStorer())
-	err := epochStartProvider.requestAndProcessForShard()
+	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
+		args.GeneralConfig,
+		coreComp,
+		shardCoordinator.SelfId(),
+		disabled.NewChainStorer(),
+	)
+	assert.Nil(t, err)
+	epochStartProvider.trieContainer = triesContainer
+	epochStartProvider.trieStorageManagers = trieStorageManagers
+
+	err = epochStartProvider.requestAndProcessForShard()
 	assert.Equal(t, state.ErrNilRequestHandler, err)
 }
 

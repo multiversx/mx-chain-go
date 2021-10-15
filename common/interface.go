@@ -48,7 +48,6 @@ type StorageManager interface {
 	GetSnapshotDbBatchDelay() int
 	AddDirtyCheckpointHashes([]byte, ModifiedHashes) bool
 	Remove(hash []byte) error
-	ReloadStorers(mainStorer DBWriteCacher, checkpointsStorer DBWriteCacher)
 	SetEpochForPutOperation(uint32)
 	Close() error
 	IsInterfaceNil() bool

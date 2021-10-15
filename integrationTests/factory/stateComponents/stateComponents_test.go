@@ -39,7 +39,7 @@ func TestStateComponents_Create_Close_ShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	managedDataComponents, err := nr.CreateManagedDataComponents(managedCoreComponents, managedBootstrapComponents)
 	require.Nil(t, err)
-	managedStateComponents, err := nr.CreateManagedStateComponents(managedCoreComponents, managedBootstrapComponents)
+	managedStateComponents, err := nr.CreateManagedStateComponents(managedCoreComponents, managedBootstrapComponents, managedDataComponents)
 	require.Nil(t, err)
 	require.NotNil(t, managedStateComponents)
 
