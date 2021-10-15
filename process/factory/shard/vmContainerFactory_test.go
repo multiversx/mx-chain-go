@@ -10,6 +10,7 @@ import (
 
 	ipcNodePart1_2 "github.com/ElrondNetwork/arwen-wasm-vm/v1_2/ipc/nodepart"
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -168,11 +169,17 @@ func TestVmContainerFactory_Create(t *testing.T) {
 func TestVmContainerFactory_ResolveArwenVersion(t *testing.T) {
 	epochNotifier := forking.NewGenericEpochNotifier()
 
+	numCalled := 0
+	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests())
+	gasScheduleNotifier.RegisterNotifyHandlerCalled = func(handler core.GasScheduleSubscribeHandler) {
+		numCalled++
+		handler.GasScheduleChange(gasScheduleNotifier.GasSchedule)
+	}
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(&mock.MarshalizerMock{})
 	argsNewVMFactory := ArgVMContainerFactory{
 		Config:             makeVMConfig(),
 		BlockGasLimit:      10000,
-		GasSchedule:        mock.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests()),
+		GasSchedule:        gasScheduleNotifier,
 		ArgBlockChainHook:  createMockVMAccountsArguments(),
 		EpochConfig:        config.EnableEpochs{},
 		ArwenChangeLocker:  &sync.RWMutex{},
@@ -220,6 +227,8 @@ func TestVmContainerFactory_ResolveArwenVersion(t *testing.T) {
 	epochNotifier.CheckEpoch(makeHeaderHandlerStub(20))
 	require.Equal(t, "v1.4", getArwenVersion(t, container))
 	require.False(t, isOutOfProcess(t, container))
+
+	require.Equal(t, numCalled, 1)
 }
 
 func makeHeaderHandlerStub(epoch uint32) data.HeaderHandler {

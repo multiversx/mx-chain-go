@@ -300,7 +300,7 @@ func createScQueryElement(
 			ArgBlockChainHook:  argsHook,
 			EpochNotifier:      args.coreComponents.EpochNotifier(),
 			EpochConfig:        args.epochConfig.EnableEpochs,
-			ArwenChangeLocker:  args.processComponents.ArwenChangeLocker(),
+			ArwenChangeLocker:  args.coreComponents.ArwenChangeLocker(),
 			ESDTTransferParser: esdtTransferParser,
 		}
 
@@ -329,7 +329,7 @@ func createScQueryElement(
 		EconomicsFee:      args.coreComponents.EconomicsData(),
 		BlockChainHook:    vmFactory.BlockChainHookImpl(),
 		BlockChain:        args.dataComponents.Blockchain(),
-		ArwenChangeLocker: args.processComponents.ArwenChangeLocker(),
+		ArwenChangeLocker: args.coreComponents.ArwenChangeLocker(),
 	}
 	scQueryService, err := smartContract.NewSCQueryService(argsNewSCQueryService)
 

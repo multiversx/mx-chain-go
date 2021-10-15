@@ -77,11 +77,13 @@ type baseProcessor struct {
 	blockProcessor         blockProcessor
 	txCounter              *transactionCounter
 
-	outportHandler     outport.OutportHandler
-	historyRepo        dblookupext.HistoryRepository
-	epochNotifier      process.EpochNotifier
-	vmContainerFactory process.VirtualMachinesContainerFactory
-	vmContainer        process.VirtualMachinesContainer
+	outportHandler      outport.OutportHandler
+	historyRepo         dblookupext.HistoryRepository
+	epochNotifier       process.EpochNotifier
+	vmContainerFactory  process.VirtualMachinesContainerFactory
+	vmContainer         process.VirtualMachinesContainer
+	gasConsumedProvider gasConsumedProvider
+	economicsData       process.EconomicsDataHandler
 
 	processDataTriesOnCommitEpoch bool
 }
@@ -432,6 +434,12 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.CoreComponents.StatusHandler()) {
 		return process.ErrNilAppStatusHandler
+	}
+	if check.IfNil(arguments.GasHandler) {
+		return process.ErrNilGasHandler
+	}
+	if check.IfNil(arguments.CoreComponents.EconomicsData()) {
+		return process.ErrNilEconomicsData
 	}
 
 	return nil
@@ -1077,6 +1085,12 @@ func getLastSelfNotarizedHeaderByItself(chainHandler data.ChainHandler) (data.He
 	currentBlockHash := chainHandler.GetCurrentBlockHeaderHash()
 
 	return currentHeader, currentBlockHash
+}
+
+func (bp *baseProcessor) setFinalizedHeaderHashInIndexer(hdrHash []byte) {
+	log.Debug("baseProcessor.setFinalizedBlockInIndexer", "finalized header hash", hdrHash)
+
+	bp.outportHandler.FinalizedBlock(hdrHash)
 }
 
 func (bp *baseProcessor) updateStateStorage(

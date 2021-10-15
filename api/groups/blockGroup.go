@@ -17,12 +17,14 @@ import (
 const (
 	getBlockByNoncePath = "/by-nonce/:nonce"
 	getBlockByHashPath  = "/by-hash/:hash"
+	getBlockByRoundPath = "/by-round/:round"
 )
 
 // blockFacadeHandler defines the methods to be implemented by a facade for handling block requests
 type blockFacadeHandler interface {
 	GetBlockByHash(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error)
+	GetBlockByRound(round uint64, withTxs bool) (*api.Block, error)
 	IsInterfaceNil() bool
 }
 
@@ -53,6 +55,11 @@ func NewBlockGroup(facade blockFacadeHandler) (*blockGroup, error) {
 			Path:    getBlockByHashPath,
 			Method:  http.MethodGet,
 			Handler: bg.getBlockByHash,
+		},
+		{
+			Path:    getBlockByRoundPath,
+			Method:  http.MethodGet,
+			Handler: bg.getBlockByRound,
 		},
 	}
 	bg.endpoints = endpoints
@@ -129,6 +136,40 @@ func (bg *blockGroup) getBlockByHash(c *gin.Context) {
 	shared.RespondWith(c, http.StatusOK, gin.H{"block": block}, "", shared.ReturnCodeSuccess)
 }
 
+func (bg *blockGroup) getBlockByRound(c *gin.Context) {
+	round, err := getQueryParamRound(c)
+	if err != nil {
+		shared.RespondWithValidationError(
+			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidBlockRound.Error()),
+		)
+		return
+	}
+
+	withTxs, err := getQueryParamWithTxs(c)
+	if err != nil {
+		shared.RespondWithValidationError(
+			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidQueryParameter.Error()),
+		)
+		return
+	}
+
+	start := time.Now()
+	block, err := bg.getFacade().GetBlockByRound(round, withTxs)
+	log.Debug(fmt.Sprintf("GetBlockByRound took %s", time.Since(start)))
+	if err != nil {
+		shared.RespondWith(
+			c,
+			http.StatusInternalServerError,
+			nil,
+			fmt.Sprintf("%s: %s", errors.ErrGetBlock.Error(), err.Error()),
+			shared.ReturnCodeInternalError,
+		)
+		return
+	}
+
+	shared.RespondWith(c, http.StatusOK, gin.H{"block": block}, "", shared.ReturnCodeSuccess)
+}
+
 func getQueryParamWithTxs(c *gin.Context) (bool, error) {
 	withTxsStr := c.Request.URL.Query().Get("withTxs")
 	if withTxsStr == "" {
@@ -140,11 +181,12 @@ func getQueryParamWithTxs(c *gin.Context) (bool, error) {
 
 func getQueryParamNonce(c *gin.Context) (uint64, error) {
 	nonceStr := c.Param("nonce")
-	if nonceStr == "" {
-		return 0, errors.ErrInvalidBlockNonce
-	}
-
 	return strconv.ParseUint(nonceStr, 10, 64)
+}
+
+func getQueryParamRound(c *gin.Context) (uint64, error) {
+	roundStr := c.Param("round")
+	return strconv.ParseUint(roundStr, 10, 64)
 }
 
 func (bg *blockGroup) getFacade() blockFacadeHandler {

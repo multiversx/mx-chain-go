@@ -2,6 +2,7 @@ package systemSmartContracts
 
 import (
 	"math/big"
+	"strconv"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
@@ -93,11 +94,12 @@ func TestCreateAndAddLogEntryForWithdraw(t *testing.T) {
 		&DelegationContractStatus{
 			NumUsers: 1,
 		},
+		false,
 	)
 
 	require.Equal(t, &vmcommon.LogEntry{
 		Identifier: []byte("withdrawal"),
 		Address:    []byte("caller"),
-		Topics:     [][]byte{actualUserUnBond.Bytes(), big.NewInt(5000).Bytes(), big.NewInt(1).Bytes(), big.NewInt(1000000).Bytes()},
+		Topics:     [][]byte{actualUserUnBond.Bytes(), big.NewInt(5000).Bytes(), big.NewInt(1).Bytes(), big.NewInt(1000000).Bytes(), []byte(strconv.FormatBool(false))},
 	}, res)
 }
