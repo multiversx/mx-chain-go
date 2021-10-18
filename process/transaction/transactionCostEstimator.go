@@ -67,8 +67,10 @@ func (tce *transactionCostEstimator) ComputeTransactionGasLimit(tx *transaction.
 	tce.mutExecution.RLock()
 	defer tce.mutExecution.RUnlock()
 
+	isReceiverSCAddress := vmcommon.IsSmartContractAddress(tx.GetRcvAddr())
 	txTypeOnSender, txTypeOnDestination := tce.txTypeHandler.ComputeTransactionType(tx)
-	if txTypeOnSender == process.MoveBalance && txTypeOnDestination == process.MoveBalance {
+	shouldTreatAsMoveBalance := txTypeOnSender == process.MoveBalance && txTypeOnDestination == process.MoveBalance && !isReceiverSCAddress
+	if  shouldTreatAsMoveBalance {
 		return tce.computeMoveBalanceCost(tx), nil
 	}
 
@@ -112,7 +114,7 @@ func (tce *transactionCostEstimator) simulateTransactionCost(tx *transaction.Tra
 		}, nil
 	}
 
-	isMoveBalanceOk := txType == process.MoveBalance && res.FailReason == ""
+	isMoveBalanceOk := txType == process.MoveBalance && res.FailReason == "" && len(res.ScResults) == 0
 	if isMoveBalanceOk {
 		return &transaction.CostResponse{
 			GasUnits:      tce.feeHandler.ComputeGasLimit(tx),
