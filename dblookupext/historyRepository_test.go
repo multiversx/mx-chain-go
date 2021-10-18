@@ -8,8 +8,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	dataMock "github.com/ElrondNetwork/elrond-go-core/data/mock"
 	"github.com/ElrondNetwork/elrond-go/common/mock"
 	"github.com/ElrondNetwork/elrond-go/dblookupext/esdtSupply"
+	"github.com/ElrondNetwork/elrond-go/process"
+	processMock "github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
@@ -31,9 +34,11 @@ func createMockHistoryRepoArgs(epoch uint32) HistoryRepositoryArguments {
 		MiniblockHashByTxHashStorer: genericMocks.NewStorerMock("MiniblockHashByTxHash", epoch),
 		EpochByHashStorer:           genericMocks.NewStorerMock("EpochByHash", epoch),
 		EventsHashesByTxHashStorer:  genericMocks.NewStorerMock("EventsHashesByTxHash", epoch),
+		BlockHashByRound:            genericMocks.NewStorerMock("BlockHashByRound", epoch),
 		Marshalizer:                 &mock.MarshalizerMock{},
 		Hasher:                      &hashingMocks.HasherMock{},
 		ESDTSuppliesHandler:         sp,
+		Uint64ByteSliceConverter:    &processMock.Uint64ByteSliceConverterMock{},
 	}
 
 	return args
@@ -79,9 +84,33 @@ func TestNewHistoryRepository(t *testing.T) {
 	require.Equal(t, core.ErrNilMarshalizer, err)
 
 	args = createMockHistoryRepoArgs(0)
+	args.Uint64ByteSliceConverter = nil
+	repo, err = NewHistoryRepository(args)
+	require.Nil(t, repo)
+	require.Equal(t, process.ErrNilUint64Converter, err)
+
+	args = createMockHistoryRepoArgs(0)
 	repo, err = NewHistoryRepository(args)
 	require.Nil(t, err)
 	require.NotNil(t, repo)
+}
+
+func TestHistoryRepository_RecordBlockInvalidBlockRoundByHashStorerExpectError(t *testing.T) {
+	t.Parallel()
+
+	errPut := errors.New("error put")
+	args := createMockHistoryRepoArgs(0)
+	args.BlockHashByRound = &dataMock.StorerStub{
+		PutCalled: func(key, data []byte) error {
+			return errPut
+		},
+	}
+
+	repo, err := NewHistoryRepository(args)
+	require.Nil(t, err)
+
+	err = repo.RecordBlock([]byte("headerHash"), &block.Header{}, &block.Body{}, nil, nil, nil)
+	require.Equal(t, err, errPut)
 }
 
 func TestHistoryRepository_RecordBlock(t *testing.T) {
@@ -93,6 +122,8 @@ func TestHistoryRepository_RecordBlock(t *testing.T) {
 
 	headerHash := []byte("headerHash")
 	blockHeader := &block.Header{
+		Nonce: 4,
+		Round: 5,
 		Epoch: 0,
 	}
 	blockBody := &block.Body{
@@ -118,6 +149,8 @@ func TestHistoryRepository_RecordBlock(t *testing.T) {
 	require.Equal(t, 3, repo.epochByHashIndex.storer.(*genericMocks.StorerMock).GetCurrentEpochData().Len())
 	// Two transactions
 	require.Equal(t, 2, repo.miniblockHashByTxHashIndex.(*genericMocks.StorerMock).GetCurrentEpochData().Len())
+	// One block, one block header
+	require.Equal(t, 1, repo.blockHashByRound.(*genericMocks.StorerMock).GetCurrentEpochData().Len())
 }
 
 func TestHistoryRepository_GetMiniblockMetadata(t *testing.T) {

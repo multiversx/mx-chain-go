@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewGasConsumption_NilEconomicsFeeHandlerShouldErr(t *testing.T) {
+func TestNewGasComputation_NilEconomicsFeeHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	gc, err := preprocess.NewGasComputation(
@@ -30,7 +30,7 @@ func TestNewGasConsumption_NilEconomicsFeeHandlerShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
 }
 
-func TestNewGasConsumption_ShouldWork(t *testing.T) {
+func TestNewGasComputation_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	gc, err := preprocess.NewGasComputation(
@@ -92,6 +92,31 @@ func TestGasRefunded_ShouldWork(t *testing.T) {
 
 	gc.Init()
 	assert.Equal(t, uint64(0), gc.TotalGasRefunded())
+}
+
+func TestGasPenalized_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	gc, _ := preprocess.NewGasComputation(
+		&mock.FeeHandlerStub{},
+		&testscommon.TxTypeHandlerMock{},
+		&epochNotifier.EpochNotifierStub{},
+		0,
+	)
+
+	gc.SetGasPenalized(2, []byte("hash1"))
+	assert.Equal(t, uint64(2), gc.GasPenalized([]byte("hash1")))
+
+	gc.SetGasPenalized(3, []byte("hash2"))
+	assert.Equal(t, uint64(3), gc.GasPenalized([]byte("hash2")))
+
+	assert.Equal(t, uint64(5), gc.TotalGasPenalized())
+
+	gc.RemoveGasPenalized([][]byte{[]byte("hash1")})
+	assert.Equal(t, uint64(3), gc.TotalGasPenalized())
+
+	gc.Init()
+	assert.Equal(t, uint64(0), gc.TotalGasPenalized())
 }
 
 func TestComputeGasConsumedByTx_ShouldErrWrongTypeAssertion(t *testing.T) {

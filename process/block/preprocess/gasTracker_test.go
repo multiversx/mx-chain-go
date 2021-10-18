@@ -434,7 +434,7 @@ func Test_computeGasConsumedMaxGasLimitInReceiverShardReached(t *testing.T) {
 		txHash,
 		gci,
 	)
-	require.Equal(t, process.ErrMaxGasLimitPerMiniBlockInSenderShardIsReached, err)
+	require.Equal(t, nil, err)
 }
 
 func Test_computeGasConsumedMaxGasLimitPerBlockReached(t *testing.T) {

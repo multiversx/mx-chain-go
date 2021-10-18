@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 )
 
 func (bp *baseProcessor) ComputeHeaderHash(hdr data.HeaderHandler) ([]byte, error) {
@@ -93,7 +94,7 @@ func NewShardProcessorEmptyWith3shards(
 		IntMarsh:            &mock.MarshalizerMock{},
 		Hash:                &hashingMocks.HasherMock{},
 		UInt64ByteSliceConv: &mock.Uint64ByteSliceConverterMock{},
-		StatusField:         &mock.AppStatusHandlerStub{},
+		StatusField:         &statusHandlerMock.AppStatusHandlerStub{},
 		RoundField:          &mock.RoundHandlerMock{},
 	}
 	dataComponents := &mock.DataComponentsMock{
@@ -135,6 +136,7 @@ func NewShardProcessorEmptyWith3shards(
 			Version:                         "softwareVersion",
 			HistoryRepository:               &dblookupext.HistoryRepositoryStub{},
 			EpochNotifier:                   &epochNotifier.EpochNotifierStub{},
+			GasHandler:                      &mock.GasHandlerMock{},
 			ScheduledTxsExecutionHandler:    &testscommon.ScheduledTxsExecutionStub{},
 			ScheduledMiniBlocksEnableEpoch:  2,
 			PostProcessorTxsHandler:         &testscommon.PostProcessorTxsStub{},

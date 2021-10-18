@@ -88,12 +88,6 @@ type HdrValidatorHandler interface {
 	HeaderHandler() data.HeaderHandler
 }
 
-// HeaderValidator can determine if a provided header handler is valid or not from the process point of view
-type HeaderValidator interface {
-	HeaderValidForProcessing(headerHandler HdrValidatorHandler) error
-	IsInterfaceNil() bool
-}
-
 // InterceptedDataFactory can create new instances of InterceptedData
 type InterceptedDataFactory interface {
 	Create(buff []byte) (InterceptedData, error)
@@ -178,7 +172,9 @@ type IntermediateTransactionHandler interface {
 	GetAllCurrentFinishedTxs() map[string]data.TransactionHandler
 	CreateBlockStarted()
 	GetCreatedInShardMiniBlock() *block.MiniBlock
-	RemoveProcessedResultsFor(txHashes [][]byte)
+	RemoveProcessedResults()
+	InitProcessedResults()
+	//TODO: Check if this method works correctly or could be replaced
 	GetAllIntermediateTxsForTxHash(txHash []byte) map[uint32][]*TxInfo
 	IsInterfaceNil() bool
 }
@@ -587,6 +583,9 @@ type feeHandler interface {
 	DeveloperPercentage() float64
 	GasPerDataByte() uint64
 	MaxGasLimitPerBlock(shardID uint32) uint64
+	MaxGasLimitPerMiniBlock(shardID uint32) uint64
+	MaxGasLimitPerBlockForSafeCrossShard() uint64
+	MaxGasLimitPerMiniBlockForSafeCrossShard() uint64
 	ComputeGasLimit(tx data.TransactionWithFeeHandler) uint64
 	ComputeMoveBalanceFee(tx data.TransactionWithFeeHandler) *big.Int
 	ComputeTxFee(tx data.TransactionWithFeeHandler) *big.Int
@@ -697,14 +696,19 @@ type GasHandler interface {
 	SetGasConsumed(gasConsumed uint64, hash []byte)
 	SetGasConsumedAsScheduled(gasConsumed uint64, hash []byte)
 	SetGasRefunded(gasRefunded uint64, hash []byte)
+	SetGasPenalized(gasPenalized uint64, hash []byte)
 	GasConsumed(hash []byte) uint64
+	GasConsumedAsScheduled(hash []byte) uint64
 	GasRefunded(hash []byte) uint64
+	GasPenalized(hash []byte) uint64
 	TotalGasConsumed() uint64
 	TotalGasConsumedAsScheduled() uint64
 	TotalGasRefunded() uint64
+	TotalGasPenalized() uint64
 	RemoveGasConsumed(hashes [][]byte)
 	RemoveGasConsumedAsScheduled(hashes [][]byte)
 	RemoveGasRefunded(hashes [][]byte)
+	RemoveGasPenalized(hashes [][]byte)
 	ComputeGasConsumedByMiniBlock(*block.MiniBlock, map[string]data.TransactionHandler) (uint64, uint64, error)
 	ComputeGasConsumedByTx(txSenderShardId uint32, txReceiverShardId uint32, txHandler data.TransactionHandler) (uint64, uint64, error)
 	IsInterfaceNil() bool
@@ -1071,14 +1075,6 @@ type CryptoComponentsHolder interface {
 type NumConnectedPeersProvider interface {
 	ConnectedPeers() []core.PeerID
 	IsInterfaceNil() bool
-}
-
-// Locker defines the operations used to lock different critical areas. Implemented by the RWMutex.
-type Locker interface {
-	Lock()
-	Unlock()
-	RLock()
-	RUnlock()
 }
 
 // CheckedChunkResult is the DTO used to hold the results after checking a chunk of intercepted data

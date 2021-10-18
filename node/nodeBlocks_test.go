@@ -29,6 +29,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -267,7 +268,7 @@ func TestGetBlockByHashFromNormalNode(t *testing.T) {
 	assert.Equal(t, expectedBlock, blk)
 }
 
-func TestGetBlockByNonce_NilStoreShouldErr(t *testing.T) {
+func TestGetBlockByNonce_GetBlockByRound_NilStoreShouldErr(t *testing.T) {
 	t.Parallel()
 
 	historyProc := &dblookupext.HistoryRepositoryStub{
@@ -279,6 +280,7 @@ func TestGetBlockByNonce_NilStoreShouldErr(t *testing.T) {
 		},
 	}
 	nonce := uint64(1)
+	round := uint64(2)
 	uint64Converter := mock.NewNonceHashConverterMock()
 	coreComponentsMock := getDefaultCoreComponents()
 	coreComponentsMock.UInt64ByteSliceConv = uint64Converter
@@ -294,6 +296,10 @@ func TestGetBlockByNonce_NilStoreShouldErr(t *testing.T) {
 	)
 
 	blk, err := n.GetBlockByNonce(nonce, false)
+	assert.Error(t, err)
+	assert.Nil(t, blk)
+
+	blk, err = n.GetBlockByRound(round, false)
 	assert.Error(t, err)
 	assert.Nil(t, blk)
 }
@@ -372,7 +378,7 @@ func TestGetBlockByNonceFromHistoryNode(t *testing.T) {
 	assert.Equal(t, expectedBlock, blk)
 }
 
-func TestGetBlockByNonceFromNormalNode(t *testing.T) {
+func TestGetBlockByNonce_GetBlockByRound_FromNormalNode(t *testing.T) {
 	t.Parallel()
 
 	nonce := uint64(1)
@@ -386,7 +392,8 @@ func TestGetBlockByNonceFromNormalNode(t *testing.T) {
 	dataComponentsMock := getDefaultDataComponents()
 	dataComponentsMock.Store = &mock.ChainStorerMock{
 		GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
-			if unitType == dataRetriever.ShardHdrNonceHashDataUnit {
+			if unitType == dataRetriever.ShardHdrNonceHashDataUnit ||
+				unitType == dataRetriever.RoundHdrHashDataUnit {
 				return hex.DecodeString(headerHash)
 			}
 			blk := &block.Header{
@@ -434,7 +441,11 @@ func TestGetBlockByNonceFromNormalNode(t *testing.T) {
 		Status:          blockAPI.BlockStatusOnChain,
 	}
 
-	blk, err := n.GetBlockByNonce(1, false)
+	blk, err := n.GetBlockByNonce(nonce, false)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedBlock, blk)
+
+	blk, err = n.GetBlockByRound(round, false)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 }
@@ -536,7 +547,7 @@ func getDefaultCoreComponents() *factory.CoreComponentsMock {
 		MinTransactionVersionCalled: func() uint32 {
 			return 1
 		},
-		AppStatusHdl:          &testscommon.AppStatusHandlerStub{},
+		AppStatusHdl:          &statusHandler.AppStatusHandlerStub{},
 		WDTimer:               &testscommon.WatchdogMock{},
 		Alarm:                 &testscommon.AlarmSchedulerStub{},
 		NtpTimer:              &testscommon.SyncTimerStub{},

@@ -28,7 +28,7 @@ type basePostProcessor struct {
 
 	mutInterResultsForBlock sync.RWMutex
 	interResultsForBlock    map[string]*process.TxInfo
-	mapTxToResult           map[string][]string
+	mapProcessedResult      map[string]struct{}
 	intraShardMiniBlock     *block.MiniBlock
 	economicsFee            process.FeeHandler
 }
@@ -62,7 +62,7 @@ func (bpp *basePostProcessor) CreateBlockStarted() {
 	bpp.mutInterResultsForBlock.Lock()
 	bpp.interResultsForBlock = make(map[string]*process.TxInfo)
 	bpp.intraShardMiniBlock = nil
-	bpp.mapTxToResult = make(map[string][]string)
+	bpp.mapProcessedResult = make(map[string]struct{})
 	bpp.mutInterResultsForBlock.Unlock()
 }
 
@@ -148,31 +148,32 @@ func (bpp *basePostProcessor) GetCreatedInShardMiniBlock() *block.MiniBlock {
 	return bpp.intraShardMiniBlock.Clone()
 }
 
-// RemoveProcessedResultsFor will remove the created results for the transactions which were reverted
-func (bpp *basePostProcessor) RemoveProcessedResultsFor(txHashes [][]byte) {
+// RemoveProcessedResults will remove the processed results since the last init
+func (bpp *basePostProcessor) RemoveProcessedResults() {
 	bpp.mutInterResultsForBlock.Lock()
 	defer bpp.mutInterResultsForBlock.Unlock()
 
-	if len(bpp.mapTxToResult) == 0 {
-		return
+	for txHash := range bpp.mapProcessedResult {
+		delete(bpp.interResultsForBlock, txHash)
 	}
+}
 
-	for _, txHash := range txHashes {
-		resultHashes, ok := bpp.mapTxToResult[string(txHash)]
-		if !ok {
-			continue
-		}
+// InitProcessedResults will initialize the processed results
+func (bpp *basePostProcessor) InitProcessedResults() {
+	bpp.mutInterResultsForBlock.Lock()
+	defer bpp.mutInterResultsForBlock.Unlock()
 
-		for _, resultHash := range resultHashes {
-			delete(bpp.interResultsForBlock, resultHash)
-		}
-		delete(bpp.mapTxToResult, string(txHash))
-	}
+	bpp.mapProcessedResult = make(map[string]struct{})
 }
 
 func (bpp *basePostProcessor) splitMiniBlocksIfNeeded(miniBlocks []*block.MiniBlock) []*block.MiniBlock {
 	splitMiniBlocks := make([]*block.MiniBlock, 0)
 	for _, miniBlock := range miniBlocks {
+		if miniBlock.ReceiverShardID == bpp.shardCoordinator.SelfId() {
+			splitMiniBlocks = append(splitMiniBlocks, miniBlock)
+			continue
+		}
+
 		splitMiniBlocks = append(splitMiniBlocks, bpp.splitMiniBlockIfNeeded(miniBlock)...)
 	}
 	return splitMiniBlocks
@@ -187,11 +188,12 @@ func (bpp *basePostProcessor) splitMiniBlockIfNeeded(miniBlock *block.MiniBlock)
 		interResult, ok := bpp.interResultsForBlock[string(txHash)]
 		if !ok {
 			log.Warn("basePostProcessor.splitMiniBlockIfNeeded: missing tx", "hash", txHash)
+			currentMiniBlock.TxHashes = append(currentMiniBlock.TxHashes, txHash)
 			continue
 		}
 
 		isGasLimitExceeded := gasLimitInReceiverShard+interResult.Tx.GetGasLimit() >
-			bpp.economicsFee.MaxGasLimitPerBlock(0)
+			bpp.economicsFee.MaxGasLimitPerMiniBlockForSafeCrossShard()
 		if isGasLimitExceeded {
 			log.Debug("basePostProcessor.splitMiniBlockIfNeeded: gas limit exceeded",
 				"mb type", currentMiniBlock.Type,
@@ -200,7 +202,11 @@ func (bpp *basePostProcessor) splitMiniBlockIfNeeded(miniBlock *block.MiniBlock)
 				"initial num txs", len(miniBlock.TxHashes),
 				"adjusted num txs", len(currentMiniBlock.TxHashes),
 			)
-			splitMiniBlocks = append(splitMiniBlocks, currentMiniBlock)
+
+			if len(currentMiniBlock.TxHashes) > 0 {
+				splitMiniBlocks = append(splitMiniBlocks, currentMiniBlock)
+			}
+
 			currentMiniBlock = createEmptyMiniBlock(miniBlock)
 			gasLimitInReceiverShard = 0
 		}
@@ -209,7 +215,10 @@ func (bpp *basePostProcessor) splitMiniBlockIfNeeded(miniBlock *block.MiniBlock)
 		currentMiniBlock.TxHashes = append(currentMiniBlock.TxHashes, txHash)
 	}
 
-	splitMiniBlocks = append(splitMiniBlocks, currentMiniBlock)
+	if len(currentMiniBlock.TxHashes) > 0 {
+		splitMiniBlocks = append(splitMiniBlocks, currentMiniBlock)
+	}
+
 	return splitMiniBlocks
 }
 

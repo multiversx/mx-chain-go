@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
@@ -26,7 +27,7 @@ type SCQueryService struct {
 	blockChain        data.ChainHandler
 	numQueries        int
 	gasForQuery       uint64
-	arwenChangeLocker process.Locker
+	arwenChangeLocker common.Locker
 }
 
 // ArgsNewSCQueryService defines the arguments needed for the sc query service
@@ -35,7 +36,7 @@ type ArgsNewSCQueryService struct {
 	EconomicsFee      process.FeeHandler
 	BlockChainHook    process.BlockChainHookHandler
 	BlockChain        data.ChainHandler
-	ArwenChangeLocker process.Locker
+	ArwenChangeLocker common.Locker
 }
 
 // NewSCQueryService returns a new instance of SCQueryService

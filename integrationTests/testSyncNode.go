@@ -214,6 +214,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		BlockSizeThrottler:              TestBlockSizeThrottler,
 		HistoryRepository:               tpn.HistoryRepository,
 		EpochNotifier:                   tpn.EpochNotifier,
+		GasHandler:                      tpn.GasHandler,
 		ScheduledTxsExecutionHandler:    &testscommon.ScheduledTxsExecutionStub{},
 		ScheduledMiniBlocksEnableEpoch:  ScheduledMiniBlocksEnableEpoch,
 		PostProcessorTxsHandler:         &testscommon.PostProcessorTxsStub{},

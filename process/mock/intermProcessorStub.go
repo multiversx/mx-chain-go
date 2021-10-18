@@ -17,14 +17,22 @@ type IntermediateTransactionHandlerStub struct {
 	CreateBlockStartedCalled                 func()
 	CreateMarshalizedDataCalled              func(txHashes [][]byte) ([][]byte, error)
 	GetAllCurrentFinishedTxsCalled           func() map[string]data.TransactionHandler
-	RemoveProcessedResultsForCalled          func(txHashes [][]byte)
+	RemoveProcessedResultsCalled             func()
+	InitProcessedResultsCalled               func()
 	intermediateTransactions                 []data.TransactionHandler
 }
 
-// RemoveProcessedResultsFor -
-func (ith *IntermediateTransactionHandlerStub) RemoveProcessedResultsFor(txHashes [][]byte) {
-	if ith.RemoveProcessedResultsForCalled != nil {
-		ith.RemoveProcessedResultsForCalled(txHashes)
+// RemoveProcessedResults -
+func (ith *IntermediateTransactionHandlerStub) RemoveProcessedResults() {
+	if ith.RemoveProcessedResultsCalled != nil {
+		ith.RemoveProcessedResultsCalled()
+	}
+}
+
+// InitProcessedResults -
+func (ith *IntermediateTransactionHandlerStub) InitProcessedResults() {
+	if ith.InitProcessedResultsCalled != nil {
+		ith.InitProcessedResultsCalled()
 	}
 }
 

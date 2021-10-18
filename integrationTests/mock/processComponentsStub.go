@@ -42,7 +42,6 @@ type ProcessComponentsStub struct {
 	ImportStartHandlerInternal           update.ImportStartHandler
 	RequestedItemsHandlerInternal        dataRetriever.RequestedItemsHandler
 	NodeRedundancyHandlerInternal        consensus.NodeRedundancyHandler
-	ArwenChangeLockerInternal            process.Locker
 	CurrentEpochProviderInternal         process.CurrentNetworkEpochProviderHandler
 	ScheduledTxsExecutionHandlerInternal process.ScheduledTxsExecutionHandler
 	PostProcessorTxsHandlerInternal      process.PostProcessorTxsHandler
@@ -206,11 +205,6 @@ func (pcs *ProcessComponentsStub) RequestedItemsHandler() dataRetriever.Requeste
 // NodeRedundancyHandler -
 func (pcs *ProcessComponentsStub) NodeRedundancyHandler() consensus.NodeRedundancyHandler {
 	return pcs.NodeRedundancyHandlerInternal
-}
-
-// ArwenChangeLocker -
-func (pcs *ProcessComponentsStub) ArwenChangeLocker() process.Locker {
-	return pcs.ArwenChangeLockerInternal
 }
 
 // CurrentEpochProvider -

@@ -189,10 +189,11 @@ func Test_MiniBlocksBuilderHandleGasRefundIntraShard(t *testing.T) {
 
 	initGas := uint64(200000)
 	refund := uint64(20000)
+	penalize := uint64(0)
 	mbb.gasInfo.GasConsumedByMiniBlocksInSenderShard = initGas
 	mbb.gasInfo.TotalGasConsumedInSelfShard = initGas
 	mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID] = initGas
-	mbb.handleGasRefund(wtx, refund)
+	mbb.handleGasRefund(wtx, refund, penalize)
 
 	require.Equal(t, initGas-refund, mbb.gasInfo.GasConsumedByMiniBlocksInSenderShard)
 	require.Equal(t, initGas-refund, mbb.gasInfo.TotalGasConsumedInSelfShard)
@@ -214,10 +215,11 @@ func Test_MiniBlocksBuilderHandleGasRefundCrossShard(t *testing.T) {
 
 	initGas := uint64(200000)
 	refund := uint64(20000)
+	penalize := uint64(20000)
 	mbb.gasInfo.GasConsumedByMiniBlocksInSenderShard = initGas
 	mbb.gasInfo.TotalGasConsumedInSelfShard = initGas
 	mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID] = initGas
-	mbb.handleGasRefund(wtx, refund)
+	mbb.handleGasRefund(wtx, refund, penalize)
 
 	require.Equal(t, initGas, mbb.gasInfo.GasConsumedByMiniBlocksInSenderShard)
 	require.Equal(t, initGas, mbb.gasInfo.TotalGasConsumedInSelfShard)
@@ -513,8 +515,9 @@ func Test_MiniBlocksBuilderAccountGasForTxComputeGasConsumedWithErr(t *testing.T
 		shardCoordinator: args.gasTracker.shardCoordinator,
 		economicsFee:     args.gasTracker.economicsFee,
 		gasHandler: &testscommon.GasHandlerStub{
-			RemoveGasConsumedCalled: func(hashes [][]byte) {},
-			RemoveGasRefundedCalled: func(hashes [][]byte) {},
+			RemoveGasConsumedCalled:  func(hashes [][]byte) {},
+			RemoveGasRefundedCalled:  func(hashes [][]byte) {},
+			RemoveGasPenalizedCalled: func(hashes [][]byte) {},
 			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
 				return 0, 0, expectedErr
 			},
@@ -867,6 +870,8 @@ func createDefaultMiniBlockBuilderArgs() miniBlocksBuilderArgs {
 				},
 				RemoveGasRefundedCalled: func(hashes [][]byte) {
 				},
+				RemoveGasPenalizedCalled: func(hashes [][]byte) {
+				},
 			},
 		},
 		accounts: &stateMock.AccountsStub{},
@@ -883,6 +888,8 @@ func createDefaultMiniBlockBuilderArgs() miniBlocksBuilderArgs {
 			txMaxTotalCost, _ := big.NewInt(0).SetString("1500000000", 0)
 			return txMaxTotalCost
 		},
+		getTotalGasConsumed: getTotalGasConsumedZero,
+		txPool:              shardedDataCacherNotifier(),
 	}
 }
 

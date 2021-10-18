@@ -67,11 +67,14 @@ func (tce *transactionCostEstimator) ComputeTransactionGasLimit(tx *transaction.
 	tce.mutExecution.RLock()
 	defer tce.mutExecution.RUnlock()
 
-	txType, _ := tce.txTypeHandler.ComputeTransactionType(tx)
+	txTypeOnSender, txTypeOnDestination := tce.txTypeHandler.ComputeTransactionType(tx)
+	if txTypeOnSender == process.MoveBalance && txTypeOnDestination == process.MoveBalance {
+		return tce.computeMoveBalanceCost(tx), nil
+	}
 
-	switch txType {
+	switch txTypeOnSender {
 	case process.SCDeployment, process.SCInvoking, process.BuiltInFunctionCall, process.MoveBalance:
-		return tce.simulateTransactionCost(tx, txType)
+		return tce.simulateTransactionCost(tx, txTypeOnSender)
 	case process.RelayedTx, process.RelayedTxV2:
 		// TODO implement in the next PR
 		return &transaction.CostResponse{
@@ -83,6 +86,15 @@ func (tce *transactionCostEstimator) ComputeTransactionGasLimit(tx *transaction.
 			GasUnits:      0,
 			ReturnMessage: process.ErrWrongTransaction.Error(),
 		}, nil
+	}
+}
+
+func (tce *transactionCostEstimator) computeMoveBalanceCost(tx *transaction.Transaction) *transaction.CostResponse {
+	gasUnits := tce.feeHandler.ComputeGasLimit(tx)
+
+	return &transaction.CostResponse{
+		GasUnits:      gasUnits,
+		ReturnMessage: "",
 	}
 }
 
