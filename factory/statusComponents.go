@@ -247,6 +247,7 @@ func (scf *statusComponentsFactory) makeEventNotifierArgs() *notifierFactory.Eve
 		Username:         eventNotifierConfig.Username,
 		Password:         eventNotifierConfig.Password,
 		Marshalizer:      scf.coreComponents.InternalMarshalizer(),
+		Hasher:           scf.coreComponents.Hasher(),
 	}
 }
 
