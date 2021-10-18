@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters/uint64ByteSlice"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
@@ -49,8 +48,6 @@ func TestStartInEpochForAMetaNodeInMultiShardedEnvironment(t *testing.T) {
 }
 
 func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound uint64) {
-	_ = logger.SetLogLevel("*:DEBUG")
-
 	numOfShards := 2
 	numNodesPerShard := 3
 	numMetachainNodes := 3

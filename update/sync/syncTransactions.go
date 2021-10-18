@@ -58,7 +58,7 @@ func NewTransactionsSyncer(args ArgsNewTransactionsSyncer) (*transactionsSync, e
 		return nil, process.ErrNilRequestHandler
 	}
 
-	p := &transactionsSync{
+	ts := &transactionsSync{
 		mutPendingTx:            sync.Mutex{},
 		mapTransactions:         make(map[string]data.TransactionHandler),
 		mapHashes:               make(map[string]*block.MiniBlock),
@@ -70,78 +70,78 @@ func NewTransactionsSyncer(args ArgsNewTransactionsSyncer) (*transactionsSync, e
 		waitTimeBetweenRequests: args.RequestHandler.RequestInterval(),
 	}
 
-	p.txPools = make(map[block.Type]dataRetriever.ShardedDataCacherNotifier)
-	p.txPools[block.TxBlock] = args.DataPools.Transactions()
-	p.txPools[block.SmartContractResultBlock] = args.DataPools.UnsignedTransactions()
-	p.txPools[block.RewardsBlock] = args.DataPools.RewardTransactions()
+	ts.txPools = make(map[block.Type]dataRetriever.ShardedDataCacherNotifier)
+	ts.txPools[block.TxBlock] = args.DataPools.Transactions()
+	ts.txPools[block.SmartContractResultBlock] = args.DataPools.UnsignedTransactions()
+	ts.txPools[block.RewardsBlock] = args.DataPools.RewardTransactions()
 
-	p.storage = make(map[block.Type]update.HistoryStorer)
-	p.storage[block.TxBlock] = args.Storages.GetStorer(dataRetriever.TransactionUnit)
-	p.storage[block.SmartContractResultBlock] = args.Storages.GetStorer(dataRetriever.UnsignedTransactionUnit)
-	p.storage[block.RewardsBlock] = args.Storages.GetStorer(dataRetriever.RewardTransactionUnit)
+	ts.storage = make(map[block.Type]update.HistoryStorer)
+	ts.storage[block.TxBlock] = args.Storages.GetStorer(dataRetriever.TransactionUnit)
+	ts.storage[block.SmartContractResultBlock] = args.Storages.GetStorer(dataRetriever.UnsignedTransactionUnit)
+	ts.storage[block.RewardsBlock] = args.Storages.GetStorer(dataRetriever.RewardTransactionUnit)
 
-	for _, pool := range p.txPools {
-		pool.RegisterOnAdded(p.receivedTransaction)
+	for _, pool := range ts.txPools {
+		pool.RegisterOnAdded(ts.receivedTransaction)
 	}
 
-	return p, nil
+	return ts, nil
 }
 
 // SyncTransactionsFor syncs transactions for a list of miniblocks
-func (p *transactionsSync) SyncTransactionsFor(miniBlocks map[string]*block.MiniBlock, epoch uint32, ctx context.Context) error {
-	_ = core.EmptyChannel(p.chReceivedAll)
+func (ts *transactionsSync) SyncTransactionsFor(miniBlocks map[string]*block.MiniBlock, epoch uint32, ctx context.Context) error {
+	_ = core.EmptyChannel(ts.chReceivedAll)
 
 	for {
-		p.mutPendingTx.Lock()
-		p.epochToSync = epoch
-		p.syncedAll = false
-		p.stopSync = false
+		ts.mutPendingTx.Lock()
+		ts.epochToSync = epoch
+		ts.syncedAll = false
+		ts.stopSync = false
 
 		requestedTxs := 0
 		for _, miniBlock := range miniBlocks {
 			for _, txHash := range miniBlock.TxHashes {
-				p.mapHashes[string(txHash)] = miniBlock
+				ts.mapHashes[string(txHash)] = miniBlock
 			}
-			requestedTxs += p.requestTransactionsFor(miniBlock)
+			requestedTxs += ts.requestTransactionsFor(miniBlock)
 		}
-		p.mutPendingTx.Unlock()
+		ts.mutPendingTx.Unlock()
 
 		if requestedTxs == 0 {
-			p.mutPendingTx.Lock()
-			p.stopSync = true
-			p.syncedAll = true
-			p.mutPendingTx.Unlock()
+			ts.mutPendingTx.Lock()
+			ts.stopSync = true
+			ts.syncedAll = true
+			ts.mutPendingTx.Unlock()
 			return nil
 		}
 
 		select {
-		case <-p.chReceivedAll:
-			p.mutPendingTx.Lock()
-			p.stopSync = true
-			p.syncedAll = true
-			p.mutPendingTx.Unlock()
+		case <-ts.chReceivedAll:
+			ts.mutPendingTx.Lock()
+			ts.stopSync = true
+			ts.syncedAll = true
+			ts.mutPendingTx.Unlock()
 			return nil
-		case <-time.After(p.waitTimeBetweenRequests):
+		case <-time.After(ts.waitTimeBetweenRequests):
 			continue
 		case <-ctx.Done():
-			p.mutPendingTx.Lock()
-			p.stopSync = true
-			p.mutPendingTx.Unlock()
+			ts.mutPendingTx.Lock()
+			ts.stopSync = true
+			ts.mutPendingTx.Unlock()
 			return update.ErrTimeIsOut
 		}
 	}
 }
 
-func (p *transactionsSync) requestTransactionsFor(miniBlock *block.MiniBlock) int {
+func (ts *transactionsSync) requestTransactionsFor(miniBlock *block.MiniBlock) int {
 	missingTxs := make([][]byte, 0)
 	for _, txHash := range miniBlock.TxHashes {
-		if _, ok := p.mapTransactions[string(txHash)]; ok {
+		if _, ok := ts.mapTransactions[string(txHash)]; ok {
 			continue
 		}
 
-		tx, ok := p.getTransactionFromPoolOrStorage(txHash)
+		tx, ok := ts.getTransactionFromPoolOrStorage(txHash)
 		if ok {
-			p.mapTransactions[string(txHash)] = tx
+			ts.mapTransactions[string(txHash)] = tx
 			continue
 		}
 
@@ -149,57 +149,56 @@ func (p *transactionsSync) requestTransactionsFor(miniBlock *block.MiniBlock) in
 	}
 
 	for _, txHash := range missingTxs {
-		p.mapHashes[string(txHash)] = miniBlock
+		ts.mapHashes[string(txHash)] = miniBlock
 	}
 
 	switch miniBlock.Type {
 	case block.TxBlock:
-		p.requestHandler.RequestTransaction(miniBlock.SenderShardID, missingTxs)
+		ts.requestHandler.RequestTransaction(miniBlock.SenderShardID, missingTxs)
 	case block.SmartContractResultBlock:
-		p.requestHandler.RequestUnsignedTransactions(miniBlock.SenderShardID, missingTxs)
+		ts.requestHandler.RequestUnsignedTransactions(miniBlock.SenderShardID, missingTxs)
 	case block.RewardsBlock:
-		p.requestHandler.RequestRewardTransactions(miniBlock.SenderShardID, missingTxs)
+		ts.requestHandler.RequestRewardTransactions(miniBlock.SenderShardID, missingTxs)
 	}
 
 	return len(missingTxs)
 }
 
-// receivedMiniBlock is a callback function when a new transactions was received
-func (p *transactionsSync) receivedTransaction(txHash []byte, val interface{}) {
-	p.mutPendingTx.Lock()
-	if p.stopSync {
-		p.mutPendingTx.Unlock()
+func (ts *transactionsSync) receivedTransaction(txHash []byte, val interface{}) {
+	ts.mutPendingTx.Lock()
+	if ts.stopSync {
+		ts.mutPendingTx.Unlock()
 		return
 	}
 
-	if _, ok := p.mapHashes[string(txHash)]; !ok {
-		p.mutPendingTx.Unlock()
+	if _, ok := ts.mapHashes[string(txHash)]; !ok {
+		ts.mutPendingTx.Unlock()
 		return
 	}
-	if _, ok := p.mapTransactions[string(txHash)]; ok {
-		p.mutPendingTx.Unlock()
+	if _, ok := ts.mapTransactions[string(txHash)]; ok {
+		ts.mutPendingTx.Unlock()
 		return
 	}
 
 	tx, ok := val.(data.TransactionHandler)
 	if !ok {
-		p.mutPendingTx.Unlock()
+		ts.mutPendingTx.Unlock()
 		return
 	}
 
-	p.mapTransactions[string(txHash)] = tx
-	receivedAllMissing := len(p.mapHashes) == len(p.mapTransactions)
-	p.mutPendingTx.Unlock()
+	ts.mapTransactions[string(txHash)] = tx
+	receivedAllMissing := len(ts.mapHashes) == len(ts.mapTransactions)
+	ts.mutPendingTx.Unlock()
 
 	if receivedAllMissing {
-		p.chReceivedAll <- true
+		ts.chReceivedAll <- true
 	}
 }
 
-func (p *transactionsSync) getTransactionFromPool(txHash []byte) (data.TransactionHandler, bool) {
-	mb := p.mapHashes[string(txHash)]
+func (ts *transactionsSync) getTransactionFromPool(txHash []byte) (data.TransactionHandler, bool) {
+	mb := ts.mapHashes[string(txHash)]
 	storeId := process.ShardCacherIdentifier(mb.SenderShardID, mb.ReceiverShardID)
-	shardTxStore := p.txPools[mb.Type].ShardDataStore(storeId)
+	shardTxStore := ts.txPools[mb.Type].ShardDataStore(storeId)
 	if check.IfNil(shardTxStore) {
 		return nil, false
 	}
@@ -217,18 +216,18 @@ func (p *transactionsSync) getTransactionFromPool(txHash []byte) (data.Transacti
 	return tx, true
 }
 
-func (p *transactionsSync) getTransactionFromPoolOrStorage(hash []byte) (data.TransactionHandler, bool) {
-	txFromPool, ok := p.getTransactionFromPool(hash)
+func (ts *transactionsSync) getTransactionFromPoolOrStorage(hash []byte) (data.TransactionHandler, bool) {
+	txFromPool, ok := ts.getTransactionFromPool(hash)
 	if ok {
 		return txFromPool, true
 	}
 
-	miniBlock, ok := p.mapHashes[string(hash)]
+	miniBlock, ok := ts.mapHashes[string(hash)]
 	if !ok {
 		return nil, false
 	}
 
-	txData, err := GetDataFromStorage(hash, p.storage[miniBlock.Type])
+	txData, err := GetDataFromStorage(hash, ts.storage[miniBlock.Type])
 	if err != nil {
 		return nil, false
 	}
@@ -243,7 +242,7 @@ func (p *transactionsSync) getTransactionFromPoolOrStorage(hash []byte) (data.Tr
 		tx = &rewardTx.RewardTx{}
 	}
 
-	err = p.marshalizer.Unmarshal(tx, txData)
+	err = ts.marshalizer.Unmarshal(tx, txData)
 	if err != nil {
 		return nil, false
 	}
@@ -252,17 +251,17 @@ func (p *transactionsSync) getTransactionFromPoolOrStorage(hash []byte) (data.Tr
 }
 
 // GetTransactions returns the synced transactions
-func (p *transactionsSync) GetTransactions() (map[string]data.TransactionHandler, error) {
-	p.mutPendingTx.Lock()
-	defer p.mutPendingTx.Unlock()
-	if !p.syncedAll {
+func (ts *transactionsSync) GetTransactions() (map[string]data.TransactionHandler, error) {
+	ts.mutPendingTx.Lock()
+	defer ts.mutPendingTx.Unlock()
+	if !ts.syncedAll {
 		return nil, update.ErrNotSynced
 	}
 
-	return p.mapTransactions, nil
+	return ts.mapTransactions, nil
 }
 
 // IsInterfaceNil returns true if underlying object is nil
-func (p *transactionsSync) IsInterfaceNil() bool {
-	return p == nil
+func (ts *transactionsSync) IsInterfaceNil() bool {
+	return ts == nil
 }

@@ -290,13 +290,13 @@ func (boot *baseBootstrap) computeNodeState() {
 	currentHeader := boot.chainHandler.GetCurrentBlockHeader()
 	if check.IfNil(currentHeader) {
 		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() == genesisNonce
-		log.Debug("TESTTEST: computeNodeState",
+		log.Debug("computeNodeState",
 			"probableHighestNonce", boot.forkDetector.ProbableHighestNonce(),
 			"currentBlockNonce", nil,
 			"boot.hasLastBlock", boot.hasLastBlock)
 	} else {
 		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() <= boot.chainHandler.GetCurrentBlockHeader().GetNonce()
-		log.Debug("TESTTEST: computeNodeState",
+		log.Debug("computeNodeState",
 			"probableHighestNonce", boot.forkDetector.ProbableHighestNonce(),
 			"currentBlockNonce", boot.chainHandler.GetCurrentBlockHeader().GetNonce(),
 			"boot.hasLastBlock", boot.hasLastBlock)
@@ -321,7 +321,7 @@ func (boot *baseBootstrap) computeNodeState() {
 	}
 
 	boot.statusHandler.SetUInt64Value(common.MetricIsSyncing, result)
-	log.Debug("TESTTEST: computeNodeState",
+	log.Debug("computeNodeState",
 		"isNodeStateCalculated", boot.isNodeStateCalculated,
 		"isNodeSynchronized", boot.isNodeSynchronized)
 
@@ -1066,13 +1066,6 @@ func (boot *baseBootstrap) requestHeaders(fromNonce uint64, toNonce uint64) {
 
 		boot.blockBootstrapper.requestHeaderByNonce(currentNonce)
 	}
-}
-
-// SetNodeSyncState sets the synced state of the node
-func (boot *baseBootstrap) SetNodeSyncState(synced bool) {
-	boot.mutNodeState.Lock()
-	boot.isNodeSynchronized = synced
-	boot.mutNodeState.Unlock()
 }
 
 // GetNodeState method returns the sync state of the node. If it returns 'NsNotSynchronized', this means that the node

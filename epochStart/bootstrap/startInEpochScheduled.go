@@ -21,7 +21,7 @@ type startInEpochWithScheduledDataSyncer struct {
 	scheduledEnableEpoch      uint32
 }
 
-func NewStartInEpochShardHeaderDataSyncerWithScheduled(
+func newStartInEpochShardHeaderDataSyncerWithScheduled(
 	scheduledTxsHandler process.ScheduledTxsExecutionHandler,
 	headersSyncer epochStart.HeadersByHashSyncer,
 	miniBlocksSyncer epochStart.PendingMiniBlocksSyncHandler,
@@ -29,6 +29,9 @@ func NewStartInEpochShardHeaderDataSyncerWithScheduled(
 	scheduledEnableEpoch uint32,
 ) (*startInEpochWithScheduledDataSyncer, error) {
 
+	if check.IfNil(scheduledTxsHandler) {
+		return nil, epochStart.ErrNilScheduledTxsHandler
+	}
 	if check.IfNil(headersSyncer) {
 		return nil, epochStart.ErrNilHeadersSyncer
 	}
@@ -64,11 +67,8 @@ func (ses *startInEpochWithScheduledDataSyncer) updateSyncDataIfNeeded(
 	if err != nil {
 		return nil, nil, err
 	}
-	err = ses.prepareScheduledSCRs(
-		headerToBeProcessed,
-		notarizedShardHeader,
-		allMiniBlocks,
-	)
+
+	err = ses.prepareScheduledSCRs(headerToBeProcessed, notarizedShardHeader, allMiniBlocks)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -79,7 +79,7 @@ func (ses *startInEpochWithScheduledDataSyncer) updateSyncDataIfNeeded(
 func (ses *startInEpochWithScheduledDataSyncer) getRequiredHeaderByHash(
 	notarizedShardHeader data.ShardHeaderHandler,
 ) (data.ShardHeaderHandler, map[string]data.HeaderHandler, error) {
-	shardIDs, hashesToRequest := getShardIdAndHashesForIncludedMetaBlocks(notarizedShardHeader)
+	shardIDs, hashesToRequest := getShardIDAndHashesForIncludedMetaBlocks(notarizedShardHeader)
 
 	shardIDs = append(shardIDs, notarizedShardHeader.GetShardID())
 	hashesToRequest = append(hashesToRequest, notarizedShardHeader.GetPrevHash())
@@ -94,7 +94,7 @@ func (ses *startInEpochWithScheduledDataSyncer) getRequiredHeaderByHash(
 		return nil, nil, epochStart.ErrMissingHeader
 	}
 
-	shardIDs, hashesToRequest = getShardIdAndHashesForIncludedMetaBlocks(headerToBeProcessed)
+	shardIDs, hashesToRequest = getShardIDAndHashesForIncludedMetaBlocks(headerToBeProcessed)
 	prevHeaders, err := ses.syncHeaders(shardIDs, hashesToRequest)
 	if err != nil {
 		return nil, nil, err
@@ -104,7 +104,7 @@ func (ses *startInEpochWithScheduledDataSyncer) getRequiredHeaderByHash(
 		headers[hash] = hdr
 	}
 
-	// get also the previous meta block to the first used meta block, which should should be completed
+	// get also the previous meta block to the first used meta block, which should be completed
 	if len(hashesToRequest) > 0 {
 		var prevPrevHeaders map[string]data.HeaderHandler
 		shardIDs = []uint32{core.MetachainShardId}
@@ -118,6 +118,7 @@ func (ses *startInEpochWithScheduledDataSyncer) getRequiredHeaderByHash(
 		if err != nil {
 			return nil, nil, err
 		}
+
 		for hash, hdr := range prevPrevHeaders {
 			headers[hash] = hdr
 		}
@@ -126,7 +127,7 @@ func (ses *startInEpochWithScheduledDataSyncer) getRequiredHeaderByHash(
 	return headerToBeProcessed, headers, nil
 }
 
-func getShardIdAndHashesForIncludedMetaBlocks(notarizedShardHeader data.ShardHeaderHandler) ([]uint32, [][]byte) {
+func getShardIDAndHashesForIncludedMetaBlocks(notarizedShardHeader data.ShardHeaderHandler) ([]uint32, [][]byte) {
 	shardIDs := make([]uint32, 0)
 	hashesToRequest := make([][]byte, 0)
 
@@ -151,18 +152,13 @@ func (ses *startInEpochWithScheduledDataSyncer) syncHeaders(
 		return nil, err
 	}
 
-	headers, err := ses.scheduledHeadersSyncer.GetHeaders()
-	if err != nil {
-		return nil, err
-	}
-	return headers, nil
+	return ses.scheduledHeadersSyncer.GetHeaders()
 }
 
 func (ses *startInEpochWithScheduledDataSyncer) getMiniBlocks(
 	notarizedShardHeader data.ShardHeaderHandler,
 ) (map[string]*block.MiniBlock, error) {
-	processedMiniBlockHeaders := notarizedShardHeader.GetMiniBlockHeaderHandlers()
-	return ses.getRequiredMiniBlocksByMbHeader(processedMiniBlockHeaders)
+	return ses.getRequiredMiniBlocksByMbHeader(notarizedShardHeader.GetMiniBlockHeaderHandlers())
 }
 
 func (ses *startInEpochWithScheduledDataSyncer) getRequiredMiniBlocksByMbHeader(
@@ -224,7 +220,6 @@ func (ses *startInEpochWithScheduledDataSyncer) filterScheduledSCRs(
 	scheduledTxHashes map[string]struct{},
 	allTxs map[string]data.TransactionHandler,
 ) (map[string]data.TransactionHandler, error) {
-
 	scheduledSCRs := make(map[string]data.TransactionHandler)
 	for txHash := range allTxs {
 		scr, ok := allTxs[txHash].(*smartContractResult.SmartContractResult)

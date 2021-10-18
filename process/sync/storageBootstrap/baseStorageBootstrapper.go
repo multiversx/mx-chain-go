@@ -259,11 +259,9 @@ func (st *storageBootstrapper) applyHeaderInfo(hdrInfo bootstrapStorage.Bootstra
 	rootHash := headerFromStorage.GetRootHash()
 	scheduledRootHash, err := st.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(headerHash)
 	if err == nil {
-		log.Debug("storageBootstrapper.applyHeaderInfo scheduledTxsExecutionHandler.GetScheduledRootHashForHeader", "scheduledRootHash", scheduledRootHash)
 		rootHash = scheduledRootHash
-	} else {
-		log.Debug("storageBootstrapper.applyHeaderInfo scheduledTxsExecutionHandler.GetScheduledRootHashForHeader", "error", err)
 	}
+	log.Debug("storageBootstrapper.applyHeaderInfo", "rootHash", rootHash, "scheduledRootHash", scheduledRootHash)
 
 	err = st.blkExecutor.RevertStateToBlock(headerFromStorage, rootHash)
 	if err != nil {

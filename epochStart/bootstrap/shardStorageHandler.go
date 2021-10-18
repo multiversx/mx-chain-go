@@ -208,7 +208,7 @@ func (ssh *shardStorageHandler) getProcessedAndPendingMiniBlocksWithScheduled(
 	header data.HeaderHandler,
 	withScheduled bool,
 ) ([]bootstrapStorage.MiniBlocksInMeta, []bootstrapStorage.PendingMiniBlocksInfo, error) {
-	log.Debug("TESTTEST: getProcessedAndPendingMiniBlocksWithScheduled", "withScheduled", withScheduled)
+	log.Debug("getProcessedAndPendingMiniBlocksWithScheduled", "withScheduled", withScheduled)
 	processedMiniBlocks, pendingMiniBlocks, err := ssh.getProcessedAndPendingMiniBlocks(meta, headers)
 	if err != nil {
 		return nil, nil, err
@@ -229,7 +229,7 @@ func (ssh *shardStorageHandler) getProcessedAndPendingMiniBlocksWithScheduled(
 	processedMiniBlocks = removeMbsFromProcessed(processedMiniBlocks, mapMbHeaderHandlers)
 	pendingMiniBlocks = addMbsToPending(pendingMiniBlocks, mapMbHeaderHandlers)
 
-	return processedMiniBlocks, pendingMiniBlocks, err
+	return processedMiniBlocks, pendingMiniBlocks, nil
 }
 
 func removeMbFromProcessedList(
@@ -239,7 +239,7 @@ func removeMbFromProcessedList(
 	for i := range list {
 		for j, mbHash := range list[i].MiniBlocksHashes {
 			if bytes.Equal(mbHash, mbHandler.GetHash()) {
-				list[i].MiniBlocksHashes = append(list[i].MiniBlocksHashes[j:], list[i].MiniBlocksHashes[:j+1]...)
+				list[i].MiniBlocksHashes = append(list[i].MiniBlocksHashes[:j], list[i].MiniBlocksHashes[j+1:]...)
 				return
 			}
 		}
@@ -251,11 +251,9 @@ func addMbToPendingList(
 	pendingMiniBlocks []bootstrapStorage.PendingMiniBlocksInfo,
 ) {
 	for i := range pendingMiniBlocks {
-		for _, mbHash := range pendingMiniBlocks[i].MiniBlocksHashes {
-			if bytes.Equal(mbHash, mbHandler.GetHash()) {
-				pendingMiniBlocks[i].MiniBlocksHashes = append(pendingMiniBlocks[i].MiniBlocksHashes, mbHandler.GetHash())
-				return
-			}
+		if pendingMiniBlocks[i].ShardID == mbHandler.GetReceiverShardID() {
+			pendingMiniBlocks[i].MiniBlocksHashes = append(pendingMiniBlocks[i].MiniBlocksHashes, mbHandler.GetHash())
+			return
 		}
 	}
 }

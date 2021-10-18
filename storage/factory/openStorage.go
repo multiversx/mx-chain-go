@@ -13,6 +13,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
+const cacheSize = 10
+
 // ArgsNewOpenStorageUnits defines the arguments in order to open a set of storage units from disk
 type ArgsNewOpenStorageUnits struct {
 	BootstrapDataProvider     BootstrapDataProviderHandler
@@ -66,7 +68,7 @@ func (o *openStorageUnits) GetMostRecentStorageUnit(dbConfig config.DBConfig) (s
 		return nil, err
 	}
 
-	cacher, err := lrucache.NewCache(10)
+	cacher, err := lrucache.NewCache(cacheSize)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +108,7 @@ func (o *openStorageUnits) OpenDB(dbConfig config.DBConfig, shardID uint32, epoc
 		return nil, err
 	}
 
-	cache, err := lrucache.NewCache(10)
+	cache, err := lrucache.NewCache(cacheSize)
 	if err != nil {
 		return nil, err
 	}
