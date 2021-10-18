@@ -27,9 +27,13 @@ func (ppth *PostProcessorTxsHandler) IsPostProcessorTxAdded(_ []byte) bool {
 func (ppth *PostProcessorTxsHandler) SetTransactionCoordinator(_ process.TransactionCoordinator) {
 }
 
-// GetAllIntermediateTxsForTxHash does nothing as it is a disabled component
-func (ppth *PostProcessorTxsHandler) GetAllIntermediateTxsForTxHash(_ []byte) map[block.Type]map[uint32][]*process.TxInfo {
+// GetProcessedResults does nothing as it is a disabled component
+func (ppth *PostProcessorTxsHandler) GetProcessedResults() map[block.Type]map[uint32][]*process.TxInfo {
 	return nil
+}
+
+// InitProcessedResults does nothing as it is a disabled component
+func (ppth *PostProcessorTxsHandler) InitProcessedResults() {
 }
 
 // IsInterfaceNil returns true if underlying object is nil

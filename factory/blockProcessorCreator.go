@@ -387,6 +387,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		PostProcessorTxsHandler:           postProcessorTxsHandler,
 		MixedTxsInMiniBlocksEnableEpoch:   pcf.epochConfig.EnableEpochs.MixedTxsInMiniBlocksEnableEpoch,
 		ScheduledMiniBlocksEnableEpoch:    pcf.epochConfig.EnableEpochs.ScheduledMiniBlocksEnableEpoch,
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: pcf.epochConfig.EnableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
@@ -707,6 +708,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		PostProcessorTxsHandler:           postProcessorTxsHandler,
 		MixedTxsInMiniBlocksEnableEpoch:   enableEpochs.MixedTxsInMiniBlocksEnableEpoch,
 		ScheduledMiniBlocksEnableEpoch:    enableEpochs.ScheduledMiniBlocksEnableEpoch,
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: enableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {

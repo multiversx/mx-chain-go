@@ -470,21 +470,6 @@ func (txs *transactions) processTxsToMe(
 		return err
 	}
 
-	//TODO: START: This should be moved in caller side if it is not yet there
-	var totalGasConsumed uint64
-	if scheduledMode {
-		totalGasConsumed = txs.gasHandler.TotalGasConsumedAsScheduled()
-	} else {
-		totalGasConsumed = txs.getTotalGasConsumed()
-	}
-
-	gasInfo := gasConsumedInfo{
-		gasConsumedByMiniBlockInReceiverShard: uint64(0),
-		gasConsumedByMiniBlocksInSenderShard:  uint64(0),
-		totalGasConsumedInSelfShard:           totalGasConsumed,
-	}
-	//TODO: STOP: This should be moved in caller side if it is not yet there
-
 	log.Trace("processTxsToMe", "scheduled mode", scheduledMode, "totalGasConsumedInSelfShard", gasConsumedInfo.TotalGasConsumedInSelfShard)
 
 	for index := range txsToMe {
@@ -527,7 +512,7 @@ func (txs *transactions) processTxsToMe(
 				return err
 			}
 
-			txs.updateGasConsumedWithGasRefundedAndGasPenalized(txHash, &gasInfo)
+			txs.updateGasConsumedWithGasRefundedAndGasPenalized(txHash, gasConsumedInfo)
 		}
 	}
 
@@ -1308,21 +1293,6 @@ func (txs *transactions) ProcessMiniBlock(
 			}
 		}
 	}()
-
-	//TODO: START: This should be moved in caller side if it is not yet there
-	var totalGasConsumed uint64
-	if scheduledMode {
-		totalGasConsumed = txs.gasHandler.TotalGasConsumedAsScheduled()
-	} else {
-		totalGasConsumed = txs.getTotalGasConsumed()
-	}
-
-	gasInfo := gasConsumedInfo{
-		gasConsumedByMiniBlockInReceiverShard: uint64(0),
-		gasConsumedByMiniBlocksInSenderShard:  uint64(0),
-		totalGasConsumedInSelfShard:           totalGasConsumed,
-	}
-	//TODO: STOP: This should be moved in caller side if it is not yet there
 
 	log.Trace("transactions.ProcessMiniBlock", "scheduled mode", scheduledMode,
 		"isNewMiniBlock", isNewMiniBlock,

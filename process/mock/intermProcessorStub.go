@@ -9,7 +9,7 @@ import (
 // IntermediateTransactionHandlerStub -
 type IntermediateTransactionHandlerStub struct {
 	AddIntermediateTransactionsCalled        func(txs []data.TransactionHandler) error
-	GetAllIntermediateTxsForTxHashCalled     func(txHash []byte) map[uint32][]*process.TxInfo
+	GetProcessedResultsCalled                func() map[uint32][]*process.TxInfo
 	GetNumOfCrossInterMbsAndTxsCalled        func() (int, int)
 	CreateAllInterMiniBlocksCalled           func() []*block.MiniBlock
 	VerifyInterMiniBlocksCalled              func(body *block.Body) error
@@ -54,9 +54,9 @@ func (ith *IntermediateTransactionHandlerStub) AddIntermediateTransactions(txs [
 }
 
 // GetAllIntermediateTxsForTxHash -
-func (ith *IntermediateTransactionHandlerStub) GetAllIntermediateTxsForTxHash(txHash []byte) map[uint32][]*process.TxInfo {
-	if ith.GetAllIntermediateTxsForTxHashCalled != nil {
-		return ith.GetAllIntermediateTxsForTxHashCalled(txHash)
+func (ith *IntermediateTransactionHandlerStub) GetProcessedResults() map[uint32][]*process.TxInfo {
+	if ith.GetProcessedResultsCalled != nil {
+		return ith.GetProcessedResultsCalled()
 	}
 	return nil
 }

@@ -75,6 +75,8 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 			break
 		}
 
+		txs.postProcessorTxsHandler.InitProcessedResults()
+
 		err := txs.processTransaction(
 			tx,
 			txHash,
@@ -96,7 +98,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 			txMbInfo,
 			mbInfo)
 
-		txs.applyGeneratedSCRs(txHash, mbInfo)
+		txs.applyGeneratedSCRs(mbInfo)
 	}
 
 	miniBlocks := txs.getMiniBlockSliceFromMapV2(mbInfo.mapMiniBlocks)
@@ -173,15 +175,12 @@ func getTxsTypeFromMiniBlock(miniBlock *block.MiniBlock, mapTxHashTxType map[str
 	return txsType, nil
 }
 
-func (txs *transactions) applyGeneratedSCRs(
-	txHash []byte,
-	mbInfo *createAndProcessMiniBlocksInfo,
-) {
+func (txs *transactions) applyGeneratedSCRs(mbInfo *createAndProcessMiniBlocksInfo) {
 	if !txs.flagMixedTxsInMiniBlocks.IsSet() {
 		return
 	}
 
-	mapAllIntermediateTxs := txs.postProcessorTxsHandler.GetAllIntermediateTxsForTxHash(txHash)
+	mapAllIntermediateTxs := txs.postProcessorTxsHandler.GetProcessedResults()
 	for blockType, mapIntermediateTxsPerBlockType := range mapAllIntermediateTxs {
 		if blockType != block.SmartContractResultBlock {
 			continue
@@ -335,21 +334,6 @@ func (txs *transactions) handleErrorIfNeeded(hei *handleErrorInfo) error {
 		mbInfo.processingInfo.numBadTxs++
 		log.Trace("bad tx", "error", hei.err, "hash", hei.txHash)
 
-		//TODO: START: This should be moved in revertGasAndAccountsState
-		errRevert := txs.accounts.RevertToSnapshot(snapshot)
-		if errRevert != nil {
-			log.Warn("revert to snapshot", "error", errRevert.Error())
-		}
-
-		txs.gasHandler.RemoveGasConsumed([][]byte{txHash})
-		txs.gasHandler.RemoveGasRefunded([][]byte{txHash})
-		txs.gasHandler.RemoveGasPenalized([][]byte{txHash})
-
-		mbInfo.gasInfo.gasConsumedByMiniBlocksInSenderShard = oldGasConsumedByMiniBlocksInSenderShard
-		mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType] = oldGasConsumedByMiniBlockInReceiverShard
-		mbInfo.gasInfo.totalGasConsumedInSelfShard = oldTotalGasConsumedInSelfShard
-		//TODO: STOP: This should be moved in revertGasAndAccountsState
-
 		shouldRevertGasAndAccountState = true
 		return hei.err
 	}
@@ -367,25 +351,25 @@ func (txs *transactions) handleErrorIfNeeded(hei *handleErrorInfo) error {
 		}
 	}
 
-	errCompute := txs.computeBlockSizeAndGasConsumedBySCRsFromTx(hei.txHash, mbInfo, txMbInfo, hei.isMaxBlockSizeReached)
+	errCompute := txs.computeBlockSizeAndGasConsumedBySCRsFromTx(mbInfo, txMbInfo, hei.isMaxBlockSizeReached)
 	if errCompute != nil {
 		shouldRevertGasAndAccountState = true
 		return errCompute
 	}
 
-	txs.applyGeneratedSCRs(hei.txHash, mbInfo)
+	txs.applyGeneratedSCRs(mbInfo)
 
 	if hei.senderShardID == hei.receiverShardID {
-		gasRefunded := txs.gasHandler.GasRefunded(txHash)
-		gasPenalized := txs.gasHandler.GasPenalized(txHash)
+		gasRefunded := txs.gasHandler.GasRefunded(hei.txHash)
+		gasPenalized := txs.gasHandler.GasPenalized(hei.txHash)
 		gasToBeSubtracted := gasRefunded + gasPenalized
 		shouldDoTheSubtraction := gasToBeSubtracted <= mbInfo.gasInfo.GasConsumedByMiniBlocksInSenderShard &&
 			gasToBeSubtracted <= mbInfo.gasInfo.TotalGasConsumedInSelfShard &&
-			gasToBeSubtracted <= mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType]
+			gasToBeSubtracted <= mbInfo.mapGasConsumedByMiniBlockInReceiverShard[hei.receiverShardID]
 		if shouldDoTheSubtraction {
 			mbInfo.gasInfo.GasConsumedByMiniBlocksInSenderShard -= gasToBeSubtracted
 			mbInfo.gasInfo.TotalGasConsumedInSelfShard -= gasToBeSubtracted
-			mbInfo.mapGasConsumedByMiniBlockInReceiverShard[hei.receiverShardID][txType] -= gasToBeSubtracted
+			mbInfo.mapGasConsumedByMiniBlockInReceiverShard[hei.receiverShardID] -= gasToBeSubtracted
 		}
 	}
 
@@ -410,6 +394,7 @@ func (txs *transactions) revertGasAndAccountsState(hei *handleErrorInfo) {
 
 	txs.gasHandler.RemoveGasConsumed([][]byte{hei.txHash})
 	txs.gasHandler.RemoveGasRefunded([][]byte{hei.txHash})
+	txs.gasHandler.RemoveGasPenalized([][]byte{hei.txHash})
 
 	mbInfo := hei.mbInfo
 	gasInfo := mbInfo.gasInfo
@@ -420,7 +405,6 @@ func (txs *transactions) revertGasAndAccountsState(hei *handleErrorInfo) {
 }
 
 func (txs *transactions) computeBlockSizeAndGasConsumedBySCRsFromTx(
-	txHash []byte,
 	mbInfo *createAndProcessMiniBlocksInfo,
 	txMbInfo *txAndMbInfo,
 	isMaxBlockSizeReached func(int, int) bool,
@@ -445,7 +429,7 @@ func (txs *transactions) computeBlockSizeAndGasConsumedBySCRsFromTx(
 		oldMapGasConsumedByMiniBlockInReceiverShard[receiverShardID] = gasConsumed
 	}
 
-	mapAllIntermediateTxsInfo := txs.postProcessorTxsHandler.GetAllIntermediateTxsForTxHash(txHash)
+	mapAllIntermediateTxsInfo := txs.postProcessorTxsHandler.GetProcessedResults()
 	for blockType, mapIntermediateTxsInfoPerBlockType := range mapAllIntermediateTxsInfo {
 		if blockType != block.SmartContractResultBlock {
 			continue
@@ -533,65 +517,18 @@ func (txs *transactions) getMiniBlockSliceFromMapV2(mapMiniBlocks map[uint32]*bl
 	for shardID := uint32(0); shardID < txs.shardCoordinator.NumberOfShards(); shardID++ {
 		if miniBlock, ok := mapMiniBlocks[shardID]; ok {
 			if len(miniBlock.TxHashes) > 0 {
-				miniBlocks = append(miniBlocks, splitMiniBlockBasedOnTxTypeIfNeeded(miniBlock, mapSCTxs)...)
-				//TODO: Which of these lines should remain?
-				//miniBlocks = append(miniBlocks, miniBlock)
+				miniBlocks = append(miniBlocks, miniBlock)
 			}
 		}
 	}
 
 	if miniBlock, ok := mapMiniBlocks[core.MetachainShardId]; ok {
 		if len(miniBlock.TxHashes) > 0 {
-			miniBlocks = append(miniBlocks, splitMiniBlockBasedOnTxTypeIfNeeded(miniBlock, mapSCTxs)...)
-			//TODO: Which of these lines should remain?
-			//miniBlocks = append(miniBlocks, miniBlock)
+			miniBlocks = append(miniBlocks, miniBlock)
 		}
 	}
 
 	return txs.splitMiniBlocksBasedOnMaxGasLimitIfNeeded(miniBlocks)
-}
-
-//TODO: This method could be deleted if the method above will not call anymore this method
-func splitMiniBlockBasedOnTxTypeIfNeeded(miniBlock *block.MiniBlock, mapSCTxs map[string]struct{}) block.MiniBlockSlice {
-	splitMiniBlocks := make(block.MiniBlockSlice, 0)
-	nonScTxHashes := make([][]byte, 0)
-	scTxHashes := make([][]byte, 0)
-
-	for _, txHash := range miniBlock.TxHashes {
-		_, isSCTx := mapSCTxs[string(txHash)]
-		if !isSCTx {
-			nonScTxHashes = append(nonScTxHashes, txHash)
-			continue
-		}
-
-		scTxHashes = append(scTxHashes, txHash)
-	}
-
-	if len(nonScTxHashes) > 0 {
-		nonScMiniBlock := &block.MiniBlock{
-			TxHashes:        nonScTxHashes,
-			SenderShardID:   miniBlock.SenderShardID,
-			ReceiverShardID: miniBlock.ReceiverShardID,
-			Type:            miniBlock.Type,
-			Reserved:        miniBlock.Reserved,
-		}
-
-		splitMiniBlocks = append(splitMiniBlocks, nonScMiniBlock)
-	}
-
-	if len(scTxHashes) > 0 {
-		scMiniBlock := &block.MiniBlock{
-			TxHashes:        scTxHashes,
-			SenderShardID:   miniBlock.SenderShardID,
-			ReceiverShardID: miniBlock.ReceiverShardID,
-			Type:            miniBlock.Type,
-			Reserved:        miniBlock.Reserved,
-		}
-
-		splitMiniBlocks = append(splitMiniBlocks, scMiniBlock)
-	}
-
-	return splitMiniBlocks
 }
 
 func (txs *transactions) createScheduledMiniBlocks(

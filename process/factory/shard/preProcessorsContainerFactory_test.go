@@ -721,6 +721,7 @@ func TestNewPreProcessorsContainerFactory_NilPostProcessorTxsHandler(t *testing.
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
 		2,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		2,

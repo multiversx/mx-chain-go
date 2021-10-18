@@ -33,26 +33,27 @@ var log = logger.GetOrCreate("process/coordinator")
 
 // ArgTransactionCoordinator holds all dependencies required by the transaction coordinator factory in order to create new instances
 type ArgTransactionCoordinator struct {
-	Hasher                            hashing.Hasher
-	Marshalizer                       marshal.Marshalizer
-	ShardCoordinator                  sharding.Coordinator
-	Accounts                          state.AccountsAdapter
-	MiniBlockPool                     storage.Cacher
-	RequestHandler                    process.RequestHandler
-	PreProcessors                     process.PreProcessorsContainer
-	InterProcessors                   process.IntermediateProcessorContainer
-	GasHandler                        process.GasHandler
-	FeeHandler                        process.TransactionFeeHandler
-	BlockSizeComputation              preprocess.BlockSizeComputationHandler
-	BalanceComputation                preprocess.BalanceComputationHandler
-	EconomicsFee                      process.FeeHandler
-	TxTypeHandler                     process.TxTypeHandler
-	TransactionsLogProcessor          process.TransactionLogProcessor
-	BlockGasAndFeesReCheckEnableEpoch uint32
-	EpochNotifier                     process.EpochNotifier
-	PostProcessorTxsHandler           process.PostProcessorTxsHandler
-	MixedTxsInMiniBlocksEnableEpoch   uint32
-	ScheduledMiniBlocksEnableEpoch    uint32
+	Hasher                                      hashing.Hasher
+	Marshalizer                                 marshal.Marshalizer
+	ShardCoordinator                            sharding.Coordinator
+	Accounts                                    state.AccountsAdapter
+	MiniBlockPool                               storage.Cacher
+	RequestHandler                              process.RequestHandler
+	PreProcessors                               process.PreProcessorsContainer
+	InterProcessors                             process.IntermediateProcessorContainer
+	GasHandler                                  process.GasHandler
+	FeeHandler                                  process.TransactionFeeHandler
+	BlockSizeComputation                        preprocess.BlockSizeComputationHandler
+	BalanceComputation                          preprocess.BalanceComputationHandler
+	EconomicsFee                                process.FeeHandler
+	TxTypeHandler                               process.TxTypeHandler
+	TransactionsLogProcessor                    process.TransactionLogProcessor
+	BlockGasAndFeesReCheckEnableEpoch           uint32
+	EpochNotifier                               process.EpochNotifier
+	PostProcessorTxsHandler                     process.PostProcessorTxsHandler
+	MixedTxsInMiniBlocksEnableEpoch             uint32
+	ScheduledMiniBlocksEnableEpoch              uint32
+	OptimizeGasUsedInCrossMiniBlocksEnableEpoch uint32
 }
 
 type transactionCoordinator struct {
@@ -73,22 +74,24 @@ type transactionCoordinator struct {
 	mutRequestedTxs sync.RWMutex
 	requestedTxs    map[block.Type]int
 
-	onRequestMiniBlock                func(shardId uint32, mbHash []byte)
-	gasHandler                        process.GasHandler
-	feeHandler                        process.TransactionFeeHandler
-	blockSizeComputation              preprocess.BlockSizeComputationHandler
-	balanceComputation                preprocess.BalanceComputationHandler
-	requestedItemsHandler             process.TimeCacher
-	economicsFee                      process.FeeHandler
-	txTypeHandler                     process.TxTypeHandler
-	transactionsLogProcessor          process.TransactionLogProcessor
-	blockGasAndFeesReCheckEnableEpoch uint32
-	mixedTxsInMiniBlocksEnableEpoch   uint32
-	scheduledMiniBlocksEnableEpoch    uint32
-	epochNotifier                     process.EpochNotifier
-	postProcessorTxsHandler           process.PostProcessorTxsHandler
-	flagMixedTxsInMiniBlocks          atomic.Flag
-	flagScheduledMiniBlocks           atomic.Flag
+	onRequestMiniBlock                          func(shardId uint32, mbHash []byte)
+	gasHandler                                  process.GasHandler
+	feeHandler                                  process.TransactionFeeHandler
+	blockSizeComputation                        preprocess.BlockSizeComputationHandler
+	balanceComputation                          preprocess.BalanceComputationHandler
+	requestedItemsHandler                       process.TimeCacher
+	economicsFee                                process.FeeHandler
+	txTypeHandler                               process.TxTypeHandler
+	transactionsLogProcessor                    process.TransactionLogProcessor
+	blockGasAndFeesReCheckEnableEpoch           uint32
+	mixedTxsInMiniBlocksEnableEpoch             uint32
+	scheduledMiniBlocksEnableEpoch              uint32
+	optimizeGasUsedInCrossMiniBlocksEnableEpoch uint32
+	epochNotifier                               process.EpochNotifier
+	postProcessorTxsHandler                     process.PostProcessorTxsHandler
+	flagMixedTxsInMiniBlocks                    atomic.Flag
+	flagScheduledMiniBlocks                     atomic.Flag
+	flagOptimizeGasUsedInCrossMiniBlocks        atomic.Flag
 }
 
 // NewTransactionCoordinator creates a transaction coordinator to run and coordinate preprocessors and processors
@@ -115,10 +118,12 @@ func NewTransactionCoordinator(arguments ArgTransactionCoordinator) (*transactio
 		postProcessorTxsHandler:           arguments.PostProcessorTxsHandler,
 		mixedTxsInMiniBlocksEnableEpoch:   arguments.MixedTxsInMiniBlocksEnableEpoch,
 		scheduledMiniBlocksEnableEpoch:    arguments.ScheduledMiniBlocksEnableEpoch,
+		optimizeGasUsedInCrossMiniBlocksEnableEpoch: arguments.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
 	}
 	log.Debug("coordinator/process: enable epoch for block gas and fees re-check", "epoch", tc.blockGasAndFeesReCheckEnableEpoch)
 	log.Debug("coordinator/process: enable epoch for mixed txs in mini blocks", "epoch", tc.mixedTxsInMiniBlocksEnableEpoch)
 	log.Debug("coordinator/process: enable epoch for scheduled mini blocks", "epoch", tc.scheduledMiniBlocksEnableEpoch)
+	log.Debug("coordinator/process: enable epoch for optimize gas used in cross mini blocks", "epoch", tc.optimizeGasUsedInCrossMiniBlocksEnableEpoch)
 
 	tc.miniBlockPool = arguments.MiniBlockPool
 	tc.onRequestMiniBlock = arguments.RequestHandler.RequestMiniBlock
@@ -649,6 +654,8 @@ func (tc *transactionCoordinator) processMiniBlocksToMe(
 		if err != nil {
 			return mbIndex, err
 		}
+
+		numMiniBlocksProcessed++
 	}
 
 	return mbIndex, nil
@@ -674,7 +681,7 @@ func (tc *transactionCoordinator) processMiniBlock(
 	if scheduledMode {
 		totalGasConsumed = tc.gasHandler.TotalGasConsumedAsScheduled()
 	} else {
-		totalGasConsumed = tc.gasHandler.TotalGasConsumed()
+		totalGasConsumed = tc.getTotalGasConsumed()
 	}
 
 	gasConsumedInfo := &process.GasConsumedInfo{
@@ -698,8 +705,6 @@ func (tc *transactionCoordinator) processMiniBlock(
 		if err != nil {
 			return err
 		}
-
-		numMiniBlocksProcessed++
 	}
 
 	return nil
@@ -1362,7 +1367,7 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 	if scheduledMode {
 		totalGasConsumed = tc.gasHandler.TotalGasConsumedAsScheduled()
 	} else {
-		totalGasConsumed = tc.gasHandler.TotalGasConsumed()
+		totalGasConsumed = tc.getTotalGasConsumed()
 	}
 
 	gasConsumedInfo := &process.GasConsumedInfo{
@@ -1418,15 +1423,13 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 }
 
 func (tc *transactionCoordinator) initProcessedTxsResults() {
-	tc.mutInterimProcessors.RLock()
-	defer tc.mutInterimProcessors.RUnlock()
-
-	for _, value := range tc.keysInterimProcs {
-		interProc, ok := tc.interimProcessors[value]
-		if !ok {
+	for _, blockType := range tc.keysInterimProcs {
+		interimProc := tc.getInterimProcessor(blockType)
+		if check.IfNil(interimProc) {
 			continue
 		}
-		interProc.InitProcessedResults()
+
+		interimProc.InitProcessedResults()
 	}
 }
 
@@ -1921,8 +1924,8 @@ func (tc *transactionCoordinator) GetAllIntermediateTxs() map[block.Type]map[str
 	return mapIntermediateTxs
 }
 
-// GetAllIntermediateTxsForTxHash gets all the intermediate transactions, for a given transaction hash, separated by block type
-func (tc *transactionCoordinator) GetAllIntermediateTxsForTxHash(txHash []byte) map[block.Type]map[uint32][]*process.TxInfo {
+// GetProcessedResults gets all the intermediate transactions, since the last init, separated by block type
+func (tc *transactionCoordinator) GetProcessedResults() map[block.Type]map[uint32][]*process.TxInfo {
 	mapIntermediateTxs := make(map[block.Type]map[uint32][]*process.TxInfo)
 	for _, blockType := range tc.keysInterimProcs {
 		interimProc := tc.getInterimProcessor(blockType)
@@ -1930,21 +1933,50 @@ func (tc *transactionCoordinator) GetAllIntermediateTxsForTxHash(txHash []byte) 
 			continue
 		}
 
-		mapIntermediateTxs[blockType] = interimProc.GetAllIntermediateTxsForTxHash(txHash)
+		mapIntermediateTxs[blockType] = interimProc.GetProcessedResults()
 	}
 
 	return mapIntermediateTxs
+}
+
+// InitProcessedResults initializes the processed results
+func (tc *transactionCoordinator) InitProcessedResults() {
+	tc.initProcessedTxsResults()
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (tc *transactionCoordinator) EpochConfirmed(epoch uint32, _ uint64) {
 	tc.flagMixedTxsInMiniBlocks.Toggle(epoch >= tc.mixedTxsInMiniBlocksEnableEpoch)
 	log.Debug("transactionCoordinator: mixed txs in mini blocks", "enabled", tc.flagMixedTxsInMiniBlocks.IsSet())
+
 	tc.flagScheduledMiniBlocks.Toggle(epoch >= tc.scheduledMiniBlocksEnableEpoch)
 	log.Debug("transactionCoordinator: scheduled mini blocks", "enabled", tc.flagScheduledMiniBlocks.IsSet())
+
+	tc.flagOptimizeGasUsedInCrossMiniBlocks.Toggle(epoch >= tc.optimizeGasUsedInCrossMiniBlocksEnableEpoch)
+	log.Debug("transactionCoordinator: optimize gas used in cross mini blocks", "enabled", tc.flagOptimizeGasUsedInCrossMiniBlocks.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (tc *transactionCoordinator) IsInterfaceNil() bool {
 	return tc == nil
+}
+
+func (tc *transactionCoordinator) getTotalGasConsumed() uint64 {
+	if !tc.flagOptimizeGasUsedInCrossMiniBlocks.IsSet() {
+		return tc.gasHandler.TotalGasConsumed()
+	}
+
+	totalGasToBeSubtracted := tc.gasHandler.TotalGasRefunded() + tc.gasHandler.TotalGasPenalized()
+	totalGasConsumed := tc.gasHandler.TotalGasConsumed()
+	if totalGasToBeSubtracted > totalGasConsumed {
+		log.Warn("transactionCoordinator.getTotalGasConsumed: too much gas to be subtracted",
+			"totalGasRefunded", tc.gasHandler.TotalGasRefunded(),
+			"totalGasPenalized", tc.gasHandler.TotalGasPenalized(),
+			"totalGasToBeSubtracted", totalGasToBeSubtracted,
+			"totalGasConsumed", totalGasConsumed,
+		)
+		return totalGasConsumed
+	}
+
+	return totalGasConsumed - totalGasToBeSubtracted
 }

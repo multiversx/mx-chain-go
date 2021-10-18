@@ -148,7 +148,8 @@ type TransactionCoordinator interface {
 	VerifyCreatedMiniBlocks(hdr data.HeaderHandler, body *block.Body) error
 	AddIntermediateTransactions(mapSCRs map[block.Type][]data.TransactionHandler) error
 	GetAllIntermediateTxs() map[block.Type]map[string]data.TransactionHandler
-	GetAllIntermediateTxsForTxHash(txHash []byte) map[block.Type]map[uint32][]*TxInfo
+	GetProcessedResults() map[block.Type]map[uint32][]*TxInfo
+	InitProcessedResults()
 	IsInterfaceNil() bool
 }
 
@@ -174,8 +175,7 @@ type IntermediateTransactionHandler interface {
 	GetCreatedInShardMiniBlock() *block.MiniBlock
 	RemoveProcessedResults()
 	InitProcessedResults()
-	//TODO: Check if this method works correctly or could be replaced
-	GetAllIntermediateTxsForTxHash(txHash []byte) map[uint32][]*TxInfo
+	GetProcessedResults() map[uint32][]*TxInfo
 	IsInterfaceNil() bool
 }
 
@@ -1129,6 +1129,7 @@ type PostProcessorTxsHandler interface {
 	AddPostProcessorTx(txHash []byte) bool
 	IsPostProcessorTxAdded(txHash []byte) bool
 	SetTransactionCoordinator(txCoordinator TransactionCoordinator)
-	GetAllIntermediateTxsForTxHash(txHash []byte) map[block.Type]map[uint32][]*TxInfo
+	GetProcessedResults() map[block.Type]map[uint32][]*TxInfo
+	InitProcessedResults()
 	IsInterfaceNil() bool
 }

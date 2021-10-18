@@ -487,13 +487,13 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 		}
 	}()
 
-	gasInfo := process.GasConsumedInfo{
+	gasConsumedInfo := &process.GasConsumedInfo{
 		GasConsumedByMiniBlockInReceiverShard: uint64(0),
 		GasConsumedByMiniBlocksInSenderShard:  uint64(0),
 		TotalGasConsumedInSelfShard:           scr.getTotalGasConsumed(),
 	}
 
-	log.Trace("smartContractResults.ProcessMiniBlock", "totalGasConsumedInSelfShard", gasInfo.TotalGasConsumedInSelfShard)
+	log.Trace("smartContractResults.ProcessMiniBlock", "totalGasConsumedInSelfShard", gasConsumedInfo.TotalGasConsumedInSelfShard)
 
 	for index := range miniBlockScrs {
 		if !haveTime() {
@@ -506,7 +506,7 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 			miniBlock.ReceiverShardID,
 			miniBlockScrs[index],
 			miniBlockTxHashes[index],
-			&gasInfo)
+			gasConsumedInfo)
 
 		if errComputeGas != nil {
 			return processedTxHashes, index, errComputeGas
@@ -522,7 +522,7 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 			return processedTxHashes, index, err
 		}
 
-		scr.updateGasConsumedWithGasRefundedAndGasPenalized(miniBlockTxHashes[index], &gasInfo)
+		scr.updateGasConsumedWithGasRefundedAndGasPenalized(miniBlockTxHashes[index], gasConsumedInfo)
 	}
 
 	txShardInfoToSet := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}

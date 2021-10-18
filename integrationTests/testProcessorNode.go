@@ -1544,6 +1544,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		PostProcessorTxsHandler:           postProcessorTxsHandler,
 		MixedTxsInMiniBlocksEnableEpoch:   tpn.EnableEpochs.MixedTxsInMiniBlocksEnableEpoch,
 		ScheduledMiniBlocksEnableEpoch:    tpn.EnableEpochs.ScheduledMiniBlocksEnableEpoch,
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: tpn.EnableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
 	}
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	scheduledTxsExecutionHandler.SetTransactionCoordinator(tpn.TxCoordinator)
@@ -1780,6 +1781,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		PostProcessorTxsHandler:           postProcessorTxsHandler,
 		MixedTxsInMiniBlocksEnableEpoch:   tpn.EnableEpochs.MixedTxsInMiniBlocksEnableEpoch,
 		ScheduledMiniBlocksEnableEpoch:    tpn.EnableEpochs.ScheduledMiniBlocksEnableEpoch,
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: tpn.EnableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
 	}
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	scheduledTxsExecutionHandler.SetTransactionCoordinator(tpn.TxCoordinator)

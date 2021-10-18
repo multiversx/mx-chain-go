@@ -440,7 +440,7 @@ func (bpp *basePreProcess) getTotalGasConsumed() uint64 {
 
 func (bpp *basePreProcess) updateGasConsumedWithGasRefundedAndGasPenalized(
 	txHash []byte,
-	gasInfo *gasConsumedInfo,
+	gasConsumedInfo *process.GasConsumedInfo,
 ) {
 	if !bpp.flagOptimizeGasUsedInCrossMiniBlocks.IsSet() {
 		return
@@ -449,19 +449,19 @@ func (bpp *basePreProcess) updateGasConsumedWithGasRefundedAndGasPenalized(
 	gasRefunded := bpp.gasHandler.GasRefunded(txHash)
 	gasPenalized := bpp.gasHandler.GasPenalized(txHash)
 	gasToBeSubtracted := gasRefunded + gasPenalized
-	couldUpdateGasConsumedWithGasSubtracted := gasToBeSubtracted <= gasInfo.gasConsumedByMiniBlockInReceiverShard &&
-		gasToBeSubtracted <= gasInfo.totalGasConsumedInSelfShard
+	couldUpdateGasConsumedWithGasSubtracted := gasToBeSubtracted <= gasConsumedInfo.GasConsumedByMiniBlockInReceiverShard &&
+		gasToBeSubtracted <= gasConsumedInfo.TotalGasConsumedInSelfShard
 	if !couldUpdateGasConsumedWithGasSubtracted {
 		log.Warn("basePreProcess.updateGasConsumedWithGasRefundedAndGasPenalized: too much gas to be subtracted",
 			"gasRefunded", gasRefunded,
 			"gasPenalized", gasPenalized,
 			"gasToBeSubtracted", gasToBeSubtracted,
-			"gasConsumedByMiniBlockInReceiverShard", gasInfo.gasConsumedByMiniBlockInReceiverShard,
-			"totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
+			"gasConsumedByMiniBlockInReceiverShard", gasConsumedInfo.GasConsumedByMiniBlockInReceiverShard,
+			"totalGasConsumedInSelfShard", gasConsumedInfo.TotalGasConsumedInSelfShard,
 		)
 		return
 	}
 
-	gasInfo.gasConsumedByMiniBlockInReceiverShard -= gasToBeSubtracted
-	gasInfo.totalGasConsumedInSelfShard -= gasToBeSubtracted
+	gasConsumedInfo.GasConsumedByMiniBlockInReceiverShard -= gasToBeSubtracted
+	gasConsumedInfo.TotalGasConsumedInSelfShard -= gasToBeSubtracted
 }

@@ -783,6 +783,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilPostProcessorTxsHandler(t 
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
 		2,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		2,
@@ -1321,6 +1322,8 @@ func TestTransactions_GetTotalGasConsumedShouldWork(t *testing.T) {
 		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		2,
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	gasConsumed = 10
@@ -1376,38 +1379,40 @@ func TestTransactions_UpdateGasConsumedWithGasRefundedAndGasPenalizedShouldWork(
 		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		2,
+		&testscommon.PostProcessorTxsStub{},
 	)
 
-	gasInfo := gasConsumedInfo{
-		gasConsumedByMiniBlockInReceiverShard: uint64(5),
-		totalGasConsumedInSelfShard:           uint64(10),
+	gasConsumedInfo := &process.GasConsumedInfo{
+		GasConsumedByMiniBlockInReceiverShard: uint64(5),
+		TotalGasConsumedInSelfShard:           uint64(10),
 	}
 
 	gasRefunded = 2
 	gasPenalized = 1
-	preprocessor.updateGasConsumedWithGasRefundedAndGasPenalized([]byte("txHash"), &gasInfo)
-	assert.Equal(t, uint64(5), gasInfo.gasConsumedByMiniBlockInReceiverShard)
-	assert.Equal(t, uint64(10), gasInfo.totalGasConsumedInSelfShard)
+	preprocessor.updateGasConsumedWithGasRefundedAndGasPenalized([]byte("txHash"), gasConsumedInfo)
+	assert.Equal(t, uint64(5), gasConsumedInfo.GasConsumedByMiniBlockInReceiverShard)
+	assert.Equal(t, uint64(10), gasConsumedInfo.TotalGasConsumedInSelfShard)
 
 	preprocessor.EpochConfirmed(2, 0)
 
 	gasRefunded = 10
 	gasPenalized = 1
-	preprocessor.updateGasConsumedWithGasRefundedAndGasPenalized([]byte("txHash"), &gasInfo)
-	assert.Equal(t, uint64(5), gasInfo.gasConsumedByMiniBlockInReceiverShard)
-	assert.Equal(t, uint64(10), gasInfo.totalGasConsumedInSelfShard)
+	preprocessor.updateGasConsumedWithGasRefundedAndGasPenalized([]byte("txHash"), gasConsumedInfo)
+	assert.Equal(t, uint64(5), gasConsumedInfo.GasConsumedByMiniBlockInReceiverShard)
+	assert.Equal(t, uint64(10), gasConsumedInfo.TotalGasConsumedInSelfShard)
 
 	gasRefunded = 5
 	gasPenalized = 1
-	preprocessor.updateGasConsumedWithGasRefundedAndGasPenalized([]byte("txHash"), &gasInfo)
-	assert.Equal(t, uint64(5), gasInfo.gasConsumedByMiniBlockInReceiverShard)
-	assert.Equal(t, uint64(10), gasInfo.totalGasConsumedInSelfShard)
+	preprocessor.updateGasConsumedWithGasRefundedAndGasPenalized([]byte("txHash"), gasConsumedInfo)
+	assert.Equal(t, uint64(5), gasConsumedInfo.GasConsumedByMiniBlockInReceiverShard)
+	assert.Equal(t, uint64(10), gasConsumedInfo.TotalGasConsumedInSelfShard)
 
 	gasRefunded = 2
 	gasPenalized = 1
-	preprocessor.updateGasConsumedWithGasRefundedAndGasPenalized([]byte("txHash"), &gasInfo)
-	assert.Equal(t, uint64(2), gasInfo.gasConsumedByMiniBlockInReceiverShard)
-	assert.Equal(t, uint64(7), gasInfo.totalGasConsumedInSelfShard)
+	preprocessor.updateGasConsumedWithGasRefundedAndGasPenalized([]byte("txHash"), gasConsumedInfo)
+	assert.Equal(t, uint64(2), gasConsumedInfo.GasConsumedByMiniBlockInReceiverShard)
+	assert.Equal(t, uint64(7), gasConsumedInfo.TotalGasConsumedInSelfShard)
 }
 
 func Example_sortTransactionsBySenderAndNonce() {
@@ -1700,15 +1705,17 @@ func TestTransactionsPreprocessor_ComputeGasConsumedShouldWork(t *testing.T) {
 		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		2,
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	tx := transaction.Transaction{}
 	txHash := []byte("hash")
 
-	gasInfo := gasConsumedInfo{
-		gasConsumedByMiniBlocksInSenderShard:  uint64(0),
-		gasConsumedByMiniBlockInReceiverShard: uint64(0),
-		totalGasConsumedInSelfShard:           uint64(0),
+	gasInfo := process.GasConsumedInfo{
+		GasConsumedByMiniBlocksInSenderShard:  uint64(0),
+		GasConsumedByMiniBlockInReceiverShard: uint64(0),
+		TotalGasConsumedInSelfShard:           uint64(0),
 	}
 
 	gasConsumedByTxInSelfShard, err := preprocessor.computeGasConsumed(
@@ -1720,10 +1727,10 @@ func TestTransactionsPreprocessor_ComputeGasConsumedShouldWork(t *testing.T) {
 	)
 
 	assert.Nil(t, err)
-	assert.Equal(t, maxGasLimit+1, gasInfo.gasConsumedByMiniBlocksInSenderShard)
-	assert.Equal(t, maxGasLimit, gasInfo.gasConsumedByMiniBlockInReceiverShard)
+	assert.Equal(t, maxGasLimit+1, gasInfo.GasConsumedByMiniBlocksInSenderShard)
+	assert.Equal(t, maxGasLimit, gasInfo.GasConsumedByMiniBlockInReceiverShard)
 	assert.Equal(t, maxGasLimit, gasConsumedByTxInSelfShard)
-	assert.Equal(t, maxGasLimit, gasInfo.totalGasConsumedInSelfShard)
+	assert.Equal(t, maxGasLimit, gasInfo.TotalGasConsumedInSelfShard)
 }
 
 func TestTransactionsPreprocessor_SplitMiniBlocksIfNeededShouldWork(t *testing.T) {
@@ -1762,6 +1769,8 @@ func TestTransactionsPreprocessor_SplitMiniBlocksIfNeededShouldWork(t *testing.T
 		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		2,
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	tx1 := transaction.Transaction{Nonce: 0, GasLimit: txGasLimit}

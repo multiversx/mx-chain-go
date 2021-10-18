@@ -31,6 +31,8 @@ type TransactionCoordinatorMock struct {
 	AddIntermediateTransactionsCalled                    func(mapSCRs map[block.Type][]data.TransactionHandler) error
 	GetAllIntermediateTxsCalled                          func() map[block.Type]map[string]data.TransactionHandler
 	GetAllIntermediateTxsForTxHashCalled                 func(txHash []byte) map[block.Type]map[uint32][]*process.TxInfo
+	GetProcessedResultsCalled                            func() map[block.Type]map[uint32][]*process.TxInfo
+	InitProcessedResultsCalled                           func()
 }
 
 // GetAllCurrentLogs -
@@ -219,13 +221,22 @@ func (tcm *TransactionCoordinatorMock) GetAllIntermediateTxs() map[block.Type]ma
 	return tcm.GetAllIntermediateTxsCalled()
 }
 
-// GetAllIntermediateTxsForTxHash -
-func (tcm *TransactionCoordinatorMock) GetAllIntermediateTxsForTxHash(txHash []byte) map[block.Type]map[uint32][]*process.TxInfo {
-	if tcm.GetAllIntermediateTxsForTxHashCalled == nil {
+// GetProcessedResults -
+func (tcm *TransactionCoordinatorMock) GetProcessedResults() map[block.Type]map[uint32][]*process.TxInfo {
+	if tcm.GetProcessedResultsCalled == nil {
 		return nil
 	}
 
-	return tcm.GetAllIntermediateTxsForTxHashCalled(txHash)
+	return tcm.GetProcessedResultsCalled()
+}
+
+// InitProcessedResults -
+func (tcm *TransactionCoordinatorMock) InitProcessedResults() {
+	if tcm.InitProcessedResultsCalled == nil {
+		return
+	}
+
+	tcm.InitProcessedResultsCalled()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

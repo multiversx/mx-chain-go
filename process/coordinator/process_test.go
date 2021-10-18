@@ -234,6 +234,7 @@ func createMockTransactionCoordinatorArguments() ArgTransactionCoordinator {
 		PostProcessorTxsHandler:           &testscommon.PostProcessorTxsStub{},
 		MixedTxsInMiniBlocksEnableEpoch:   3,
 		ScheduledMiniBlocksEnableEpoch:    2,
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 2,
 	}
 
 	return argsTransactionCoordinator
@@ -2520,6 +2521,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldReturnWhenEpochIsNo
 		PostProcessorTxsHandler:           &testscommon.PostProcessorTxsStub{},
 		MixedTxsInMiniBlocksEnableEpoch:   3,
 		ScheduledMiniBlocksEnableEpoch:    2,
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 2,
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -2561,13 +2563,14 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxGasLimitPerMi
 				return maxGasLimitPerBlock
 			},
 		},
-		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
-		BlockGasAndFeesReCheckEnableEpoch: 0,
-		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
-		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
-		PostProcessorTxsHandler:           &testscommon.PostProcessorTxsStub{},
-		MixedTxsInMiniBlocksEnableEpoch:   3,
-		ScheduledMiniBlocksEnableEpoch:    2,
+		TxTypeHandler:                               &testscommon.TxTypeHandlerMock{},
+		BlockGasAndFeesReCheckEnableEpoch:           0,
+		TransactionsLogProcessor:                    &mock.TxLogsProcessorStub{},
+		EpochNotifier:                               &epochNotifier.EpochNotifierStub{},
+		PostProcessorTxsHandler:                     &testscommon.PostProcessorTxsStub{},
+		MixedTxsInMiniBlocksEnableEpoch:             3,
+		ScheduledMiniBlocksEnableEpoch:              2,
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 2,
 	}
 
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -2628,13 +2631,14 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxAccumulatedFe
 				return 0.1
 			},
 		},
-		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
-		BlockGasAndFeesReCheckEnableEpoch: 0,
-		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
-		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
-		PostProcessorTxsHandler:           &testscommon.PostProcessorTxsStub{},
-		MixedTxsInMiniBlocksEnableEpoch:   3,
-		ScheduledMiniBlocksEnableEpoch:    2,
+		TxTypeHandler:                               &testscommon.TxTypeHandlerMock{},
+		BlockGasAndFeesReCheckEnableEpoch:           0,
+		TransactionsLogProcessor:                    &mock.TxLogsProcessorStub{},
+		EpochNotifier:                               &epochNotifier.EpochNotifierStub{},
+		PostProcessorTxsHandler:                     &testscommon.PostProcessorTxsStub{},
+		MixedTxsInMiniBlocksEnableEpoch:             3,
+		ScheduledMiniBlocksEnableEpoch:              2,
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 2,
 	}
 
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -2701,13 +2705,14 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxDeveloperFees
 				return 0.1
 			},
 		},
-		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
-		BlockGasAndFeesReCheckEnableEpoch: 0,
-		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
-		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
-		PostProcessorTxsHandler:           &testscommon.PostProcessorTxsStub{},
-		MixedTxsInMiniBlocksEnableEpoch:   3,
-		ScheduledMiniBlocksEnableEpoch:    2,
+		TxTypeHandler:                               &testscommon.TxTypeHandlerMock{},
+		BlockGasAndFeesReCheckEnableEpoch:           0,
+		TransactionsLogProcessor:                    &mock.TxLogsProcessorStub{},
+		EpochNotifier:                               &epochNotifier.EpochNotifierStub{},
+		PostProcessorTxsHandler:                     &testscommon.PostProcessorTxsStub{},
+		MixedTxsInMiniBlocksEnableEpoch:             3,
+		ScheduledMiniBlocksEnableEpoch:              2,
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 2,
 	}
 
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -2774,13 +2779,14 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldWork(t *testing.T) 
 				return 0.1
 			},
 		},
-		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
-		BlockGasAndFeesReCheckEnableEpoch: 0,
-		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
-		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
-		PostProcessorTxsHandler:           &testscommon.PostProcessorTxsStub{},
-		MixedTxsInMiniBlocksEnableEpoch:   3,
-		ScheduledMiniBlocksEnableEpoch:    2,
+		TxTypeHandler:                               &testscommon.TxTypeHandlerMock{},
+		BlockGasAndFeesReCheckEnableEpoch:           0,
+		TransactionsLogProcessor:                    &mock.TxLogsProcessorStub{},
+		EpochNotifier:                               &epochNotifier.EpochNotifierStub{},
+		PostProcessorTxsHandler:                     &testscommon.PostProcessorTxsStub{},
+		MixedTxsInMiniBlocksEnableEpoch:             3,
+		ScheduledMiniBlocksEnableEpoch:              2,
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 2,
 	}
 
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -2840,6 +2846,7 @@ func TestTransactionCoordinator_GetAllTransactionsShouldWork(t *testing.T) {
 		PostProcessorTxsHandler:           &testscommon.PostProcessorTxsStub{},
 		MixedTxsInMiniBlocksEnableEpoch:   3,
 		ScheduledMiniBlocksEnableEpoch:    2,
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 2,
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -2917,13 +2924,14 @@ func TestTransactionCoordinator_VerifyGasLimitShouldErrMaxGasLimitPerMiniBlockIn
 				return tx.GetGasLimit()
 			},
 		},
-		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
-		BlockGasAndFeesReCheckEnableEpoch: 0,
-		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
-		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
-		PostProcessorTxsHandler:           &testscommon.PostProcessorTxsStub{},
-		MixedTxsInMiniBlocksEnableEpoch:   3,
-		ScheduledMiniBlocksEnableEpoch:    2,
+		TxTypeHandler:                               &testscommon.TxTypeHandlerMock{},
+		BlockGasAndFeesReCheckEnableEpoch:           0,
+		TransactionsLogProcessor:                    &mock.TxLogsProcessorStub{},
+		EpochNotifier:                               &epochNotifier.EpochNotifierStub{},
+		PostProcessorTxsHandler:                     &testscommon.PostProcessorTxsStub{},
+		MixedTxsInMiniBlocksEnableEpoch:             3,
+		ScheduledMiniBlocksEnableEpoch:              2,
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 2,
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3010,13 +3018,14 @@ func TestTransactionCoordinator_VerifyGasLimitShouldWork(t *testing.T) {
 				return tx.GetGasLimit()
 			},
 		},
-		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
-		BlockGasAndFeesReCheckEnableEpoch: 0,
-		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
-		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
-		PostProcessorTxsHandler:           &testscommon.PostProcessorTxsStub{},
-		MixedTxsInMiniBlocksEnableEpoch:   3,
-		ScheduledMiniBlocksEnableEpoch:    2,
+		TxTypeHandler:                               &testscommon.TxTypeHandlerMock{},
+		BlockGasAndFeesReCheckEnableEpoch:           0,
+		TransactionsLogProcessor:                    &mock.TxLogsProcessorStub{},
+		EpochNotifier:                               &epochNotifier.EpochNotifierStub{},
+		PostProcessorTxsHandler:                     &testscommon.PostProcessorTxsStub{},
+		MixedTxsInMiniBlocksEnableEpoch:             3,
+		ScheduledMiniBlocksEnableEpoch:              2,
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 2,
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3096,6 +3105,7 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 		PostProcessorTxsHandler:           &testscommon.PostProcessorTxsStub{},
 		MixedTxsInMiniBlocksEnableEpoch:   3,
 		ScheduledMiniBlocksEnableEpoch:    2,
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 2,
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3140,12 +3150,13 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 				return process.MoveBalance, process.SCInvoking
 			},
 		},
-		BlockGasAndFeesReCheckEnableEpoch: 0,
-		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
-		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
-		PostProcessorTxsHandler:           &testscommon.PostProcessorTxsStub{},
-		MixedTxsInMiniBlocksEnableEpoch:   3,
-		ScheduledMiniBlocksEnableEpoch:    2,
+		BlockGasAndFeesReCheckEnableEpoch:           0,
+		TransactionsLogProcessor:                    &mock.TxLogsProcessorStub{},
+		EpochNotifier:                               &epochNotifier.EpochNotifierStub{},
+		PostProcessorTxsHandler:                     &testscommon.PostProcessorTxsStub{},
+		MixedTxsInMiniBlocksEnableEpoch:             3,
+		ScheduledMiniBlocksEnableEpoch:              2,
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 2,
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3198,12 +3209,13 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 				return process.MoveBalance, process.SCInvoking
 			},
 		},
-		BlockGasAndFeesReCheckEnableEpoch: 0,
-		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
-		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
-		PostProcessorTxsHandler:           &testscommon.PostProcessorTxsStub{},
-		MixedTxsInMiniBlocksEnableEpoch:   3,
-		ScheduledMiniBlocksEnableEpoch:    2,
+		BlockGasAndFeesReCheckEnableEpoch:           0,
+		TransactionsLogProcessor:                    &mock.TxLogsProcessorStub{},
+		EpochNotifier:                               &epochNotifier.EpochNotifierStub{},
+		PostProcessorTxsHandler:                     &testscommon.PostProcessorTxsStub{},
+		MixedTxsInMiniBlocksEnableEpoch:             3,
+		ScheduledMiniBlocksEnableEpoch:              2,
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 2,
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3262,13 +3274,14 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 				return tx.GetGasLimit()
 			},
 		},
-		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
-		BlockGasAndFeesReCheckEnableEpoch: 0,
-		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
-		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
-		PostProcessorTxsHandler:           &testscommon.PostProcessorTxsStub{},
-		MixedTxsInMiniBlocksEnableEpoch:   3,
-		ScheduledMiniBlocksEnableEpoch:    2,
+		TxTypeHandler:                               &testscommon.TxTypeHandlerMock{},
+		BlockGasAndFeesReCheckEnableEpoch:           0,
+		TransactionsLogProcessor:                    &mock.TxLogsProcessorStub{},
+		EpochNotifier:                               &epochNotifier.EpochNotifierStub{},
+		PostProcessorTxsHandler:                     &testscommon.PostProcessorTxsStub{},
+		MixedTxsInMiniBlocksEnableEpoch:             3,
+		ScheduledMiniBlocksEnableEpoch:              2,
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 2,
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3330,13 +3343,14 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 				return tx.GetGasLimit()
 			},
 		},
-		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
-		BlockGasAndFeesReCheckEnableEpoch: 0,
-		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
-		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
-		PostProcessorTxsHandler:           &testscommon.PostProcessorTxsStub{},
-		MixedTxsInMiniBlocksEnableEpoch:   3,
-		ScheduledMiniBlocksEnableEpoch:    2,
+		TxTypeHandler:                               &testscommon.TxTypeHandlerMock{},
+		BlockGasAndFeesReCheckEnableEpoch:           0,
+		TransactionsLogProcessor:                    &mock.TxLogsProcessorStub{},
+		EpochNotifier:                               &epochNotifier.EpochNotifierStub{},
+		PostProcessorTxsHandler:                     &testscommon.PostProcessorTxsStub{},
+		MixedTxsInMiniBlocksEnableEpoch:             3,
+		ScheduledMiniBlocksEnableEpoch:              2,
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 2,
 	}
 
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -3392,6 +3406,7 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMissingTransaction(t *testing
 		PostProcessorTxsHandler:           &testscommon.PostProcessorTxsStub{},
 		MixedTxsInMiniBlocksEnableEpoch:   3,
 		ScheduledMiniBlocksEnableEpoch:    2,
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 2,
 	}
 
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -3443,13 +3458,14 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxAccumulatedFeesExceeded(t 
 				return 0.1
 			},
 		},
-		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
-		BlockGasAndFeesReCheckEnableEpoch: 0,
-		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
-		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
-		PostProcessorTxsHandler:           &testscommon.PostProcessorTxsStub{},
-		MixedTxsInMiniBlocksEnableEpoch:   3,
-		ScheduledMiniBlocksEnableEpoch:    2,
+		TxTypeHandler:                               &testscommon.TxTypeHandlerMock{},
+		BlockGasAndFeesReCheckEnableEpoch:           0,
+		TransactionsLogProcessor:                    &mock.TxLogsProcessorStub{},
+		EpochNotifier:                               &epochNotifier.EpochNotifierStub{},
+		PostProcessorTxsHandler:                     &testscommon.PostProcessorTxsStub{},
+		MixedTxsInMiniBlocksEnableEpoch:             3,
+		ScheduledMiniBlocksEnableEpoch:              2,
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 2,
 	}
 
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -3511,13 +3527,14 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxDeveloperFeesExceeded(t *t
 				return 0.1
 			},
 		},
-		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
-		BlockGasAndFeesReCheckEnableEpoch: 0,
-		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
-		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
-		PostProcessorTxsHandler:           &testscommon.PostProcessorTxsStub{},
-		MixedTxsInMiniBlocksEnableEpoch:   3,
-		ScheduledMiniBlocksEnableEpoch:    2,
+		TxTypeHandler:                               &testscommon.TxTypeHandlerMock{},
+		BlockGasAndFeesReCheckEnableEpoch:           0,
+		TransactionsLogProcessor:                    &mock.TxLogsProcessorStub{},
+		EpochNotifier:                               &epochNotifier.EpochNotifierStub{},
+		PostProcessorTxsHandler:                     &testscommon.PostProcessorTxsStub{},
+		MixedTxsInMiniBlocksEnableEpoch:             3,
+		ScheduledMiniBlocksEnableEpoch:              2,
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 2,
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3578,13 +3595,14 @@ func TestTransactionCoordinator_VerifyFeesShouldWork(t *testing.T) {
 				return 0.1
 			},
 		},
-		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
-		BlockGasAndFeesReCheckEnableEpoch: 0,
-		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
-		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
-		PostProcessorTxsHandler:           &testscommon.PostProcessorTxsStub{},
-		MixedTxsInMiniBlocksEnableEpoch:   3,
-		ScheduledMiniBlocksEnableEpoch:    2,
+		TxTypeHandler:                               &testscommon.TxTypeHandlerMock{},
+		BlockGasAndFeesReCheckEnableEpoch:           0,
+		TransactionsLogProcessor:                    &mock.TxLogsProcessorStub{},
+		EpochNotifier:                               &epochNotifier.EpochNotifierStub{},
+		PostProcessorTxsHandler:                     &testscommon.PostProcessorTxsStub{},
+		MixedTxsInMiniBlocksEnableEpoch:             3,
+		ScheduledMiniBlocksEnableEpoch:              2,
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 2,
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3646,6 +3664,7 @@ func TestTransactionCoordinator_GetMaxAccumulatedAndDeveloperFeesShouldErr(t *te
 		PostProcessorTxsHandler:           &testscommon.PostProcessorTxsStub{},
 		MixedTxsInMiniBlocksEnableEpoch:   3,
 		ScheduledMiniBlocksEnableEpoch:    2,
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 2,
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3691,13 +3710,14 @@ func TestTransactionCoordinator_GetMaxAccumulatedAndDeveloperFeesShouldWork(t *t
 				return 0.1
 			},
 		},
-		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
-		BlockGasAndFeesReCheckEnableEpoch: 0,
-		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
-		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
-		PostProcessorTxsHandler:           &testscommon.PostProcessorTxsStub{},
-		MixedTxsInMiniBlocksEnableEpoch:   3,
-		ScheduledMiniBlocksEnableEpoch:    2,
+		TxTypeHandler:                               &testscommon.TxTypeHandlerMock{},
+		BlockGasAndFeesReCheckEnableEpoch:           0,
+		TransactionsLogProcessor:                    &mock.TxLogsProcessorStub{},
+		EpochNotifier:                               &epochNotifier.EpochNotifierStub{},
+		PostProcessorTxsHandler:                     &testscommon.PostProcessorTxsStub{},
+		MixedTxsInMiniBlocksEnableEpoch:             3,
+		ScheduledMiniBlocksEnableEpoch:              2,
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 2,
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
