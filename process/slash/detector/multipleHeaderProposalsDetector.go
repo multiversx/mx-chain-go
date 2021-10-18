@@ -99,12 +99,17 @@ func (mhp *multipleHeaderProposalsDetector) getSlashingResult(currRound uint64, 
 	proposedHeaders := mhp.cache.GetData(currRound, proposerPubKey)
 	if len(proposedHeaders) >= 2 {
 		return &slash.SlashingResult{
-			SlashingLevel: computeSlashLevel(proposedHeaders),
+			SlashingLevel: mhp.computeSlashLevel(proposedHeaders),
 			Data:          proposedHeaders,
 		}
 	}
 
 	return nil
+}
+
+// TODO: Add different logic here once slashing threat levels are clearly defined
+func (mhp *multipleHeaderProposalsDetector) computeSlashLevel(data []process.InterceptedData) slash.ThreatLevel {
+	return computeSlashLevelBasedOnHeadersCount(data)
 }
 
 // ValidateProof - validates if the given proof is valid.
@@ -120,12 +125,17 @@ func (mhp *multipleHeaderProposalsDetector) ValidateProof(proof slash.SlashingPr
 		return process.ErrInvalidSlashType
 	}
 
-	err := checkSlashLevel(multipleProposalProof.GetHeaders(), multipleProposalProof.GetLevel())
+	err := mhp.checkSlashLevel(multipleProposalProof.GetHeaders(), multipleProposalProof.GetLevel())
 	if err != nil {
 		return err
 	}
 
 	return mhp.checkProposedHeaders(multipleProposalProof.GetHeaders())
+}
+
+// TODO: Add different logic here once slashing threat levels are clearly defined
+func (mhp *multipleHeaderProposalsDetector) checkSlashLevel(headers []*interceptedBlocks.InterceptedHeader, level slash.ThreatLevel) error {
+	return checkSlashLevelBasedOnHeadersCount(headers, level)
 }
 
 func (mhp *multipleHeaderProposalsDetector) checkProposedHeaders(headers []*interceptedBlocks.InterceptedHeader) error {

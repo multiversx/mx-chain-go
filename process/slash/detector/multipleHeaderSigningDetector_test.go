@@ -71,7 +71,7 @@ func TestNewSigningSlashingDetector(t *testing.T) {
 	}
 
 	for _, currTest := range tests {
-		_, err := detector.NewSigningSlashingDetector(currTest.args())
+		_, err := detector.NewMultipleHeaderSigningDetector(currTest.args())
 		require.Equal(t, currTest.expectedErr, err)
 	}
 }
@@ -79,7 +79,7 @@ func TestNewSigningSlashingDetector(t *testing.T) {
 func TestMultipleHeaderSigningDetector_VerifyData_CannotCastData_ExpectError(t *testing.T) {
 	t.Parallel()
 
-	sd, _ := detector.NewSigningSlashingDetector(
+	sd, _ := detector.NewMultipleHeaderSigningDetector(
 		&mock.NodesCoordinatorMock{},
 		&mock.RoundHandlerMock{},
 		&mock.HasherMock{},
@@ -97,7 +97,7 @@ func TestMultipleHeaderSigningDetector_VerifyData_IrrelevantRound_ExpectError(t 
 	t.Parallel()
 
 	round := uint64(100)
-	ssd, _ := detector.NewSigningSlashingDetector(
+	ssd, _ := detector.NewMultipleHeaderSigningDetector(
 		&mockEpochStart.NodesCoordinatorStub{},
 		&mock.RoundHandlerMock{
 			RoundIndex: int64(round),
@@ -118,7 +118,7 @@ func TestMultipleHeaderSigningDetector_VerifyData_InvalidMarshaller_ExpectError(
 	t.Parallel()
 
 	errMarshaller := errors.New("error marshaller")
-	ssd, _ := detector.NewSigningSlashingDetector(
+	ssd, _ := detector.NewMultipleHeaderSigningDetector(
 		&mockEpochStart.NodesCoordinatorStub{},
 		&mock.RoundHandlerMock{},
 		&mock.HasherMock{},
@@ -141,7 +141,7 @@ func TestMultipleHeaderSigningDetector_VerifyData_InvalidNodesCoordinator_Expect
 	t.Parallel()
 
 	errNodesCoordinator := errors.New("error nodes coordinator")
-	ssd, _ := detector.NewSigningSlashingDetector(
+	ssd, _ := detector.NewMultipleHeaderSigningDetector(
 		&mockEpochStart.NodesCoordinatorStub{
 			ComputeConsensusGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
 				return nil, errNodesCoordinator
@@ -163,7 +163,7 @@ func TestMultipleHeaderSigningDetector_VerifyData_InvalidNodesCoordinator_Expect
 func TestMultipleHeaderSigningDetector_VerifyData_SameHeaderData_DifferentSigners_ExpectNoSlashingEvent(t *testing.T) {
 	t.Parallel()
 
-	ssd, _ := detector.NewSigningSlashingDetector(
+	ssd, _ := detector.NewMultipleHeaderSigningDetector(
 		&mockEpochStart.NodesCoordinatorStub{},
 		&mock.RoundHandlerMock{},
 		&mock.HasherMock{},
@@ -241,7 +241,7 @@ func TestMultipleHeaderSigningDetector_VerifyData_ValidateProof(t *testing.T) {
 
 	slashCache := detector.NewRoundValidatorDataCache(3)
 	headersCache := detector.NewRoundHeadersCache(3)
-	ssd, _ := detector.NewSigningSlashingDetector(
+	ssd, _ := detector.NewMultipleHeaderSigningDetector(
 		&mockEpochStart.NodesCoordinatorStub{
 			ComputeConsensusGroupCalled: func(randomness []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
 				switch string(randomness) {
@@ -320,7 +320,7 @@ func TestMultipleHeaderSigningDetector_VerifyData_ValidateProof(t *testing.T) {
 func TestMultipleHeaderSigningDetector_ValidateProof_InvalidProofType_ExpectError(t *testing.T) {
 	t.Parallel()
 
-	ssd, _ := detector.NewSigningSlashingDetector(
+	ssd, _ := detector.NewMultipleHeaderSigningDetector(
 		&mockEpochStart.NodesCoordinatorStub{},
 		&mock.RoundHandlerMock{},
 		&mock.HasherMock{},
@@ -342,7 +342,7 @@ func TestMultipleHeaderSigningDetector_ValidateProof_InvalidProofType_ExpectErro
 func TestMultipleHeaderSigningDetector_ValidateProof_NotEnoughHeaders_ExpectError(t *testing.T) {
 	t.Parallel()
 
-	ssd, _ := detector.NewSigningSlashingDetector(
+	ssd, _ := detector.NewMultipleHeaderSigningDetector(
 		&mockEpochStart.NodesCoordinatorStub{},
 		&mock.RoundHandlerMock{},
 		&mock.HasherMock{},
@@ -363,7 +363,7 @@ func TestMultipleHeaderSigningDetector_ValidateProof_NotEnoughHeaders_ExpectErro
 func TestMultipleHeaderSigningDetector_ValidateProof_SignedHeadersHaveDifferentRound_ExpectError(t *testing.T) {
 	t.Parallel()
 
-	ssd, _ := detector.NewSigningSlashingDetector(
+	ssd, _ := detector.NewMultipleHeaderSigningDetector(
 		&mockEpochStart.NodesCoordinatorStub{
 			ComputeConsensusGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
 				return []sharding.Validator{mock.NewValidatorMock([]byte("pubKey"))}, nil
@@ -392,7 +392,7 @@ func TestMultipleHeaderSigningDetector_ValidateProof_InvalidMarshaller_ExpectErr
 	t.Parallel()
 
 	errMarshaller := errors.New("error marshaller")
-	ssd, _ := detector.NewSigningSlashingDetector(
+	ssd, _ := detector.NewMultipleHeaderSigningDetector(
 		&mockEpochStart.NodesCoordinatorStub{
 			ComputeConsensusGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
 				return []sharding.Validator{mock.NewValidatorMock([]byte("pubKey"))}, nil
@@ -424,7 +424,7 @@ func TestMultipleHeaderSigningDetector_ValidateProof_InvalidMarshaller_ExpectErr
 func TestMultipleHeaderSigningDetector_ValidateProof_SignedHeadersHaveSameHash_ExpectError(t *testing.T) {
 	t.Parallel()
 
-	ssd, _ := detector.NewSigningSlashingDetector(
+	ssd, _ := detector.NewMultipleHeaderSigningDetector(
 		&mockEpochStart.NodesCoordinatorStub{
 			ComputeConsensusGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
 				return []sharding.Validator{mock.NewValidatorMock([]byte("pubKey"))}, nil
@@ -452,7 +452,7 @@ func TestMultipleHeaderSigningDetector_ValidateProof_SignedHeadersHaveSameHash_E
 func TestMultipleHeaderSigningDetector_ValidateProof_HeadersNotSignedByTheSameValidator_ExpectError(t *testing.T) {
 	t.Parallel()
 
-	ssd, _ := detector.NewSigningSlashingDetector(
+	ssd, _ := detector.NewMultipleHeaderSigningDetector(
 		&mockEpochStart.NodesCoordinatorStub{
 			ComputeConsensusGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
 				return []sharding.Validator{mock.NewValidatorMock([]byte("pubKey2"))}, nil
@@ -480,7 +480,7 @@ func TestMultipleHeaderSigningDetector_ValidateProof_HeadersNotSignedByTheSameVa
 func TestMultipleHeaderSigningDetector_ValidateProof_InvalidSlashLevel_ExpectError(t *testing.T) {
 	t.Parallel()
 
-	ssd, _ := detector.NewSigningSlashingDetector(
+	ssd, _ := detector.NewMultipleHeaderSigningDetector(
 		&mockEpochStart.NodesCoordinatorStub{},
 		&mock.RoundHandlerMock{},
 		&mock.HasherMock{},

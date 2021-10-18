@@ -30,19 +30,19 @@ func absDiff(x, y uint64) uint64 {
 	return x - y
 }
 
-func computeSlashLevel(data []process.InterceptedData) slash.ThreatLevel {
+func computeSlashLevelBasedOnHeadersCount(data []process.InterceptedData) slash.ThreatLevel {
 	ret := slash.Low
 	// TODO: Maybe a linear interpolation to deduce severity?
-	if len(data) == 2 {
+	if len(data) == minSlashableNoOfHeaders {
 		ret = slash.Medium
-	} else if len(data) >= 3 {
+	} else if len(data) >= minSlashableNoOfHeaders+1 {
 		ret = slash.High
 	}
 
 	return ret
 }
 
-func checkSlashLevel(headers []*interceptedBlocks.InterceptedHeader, level slash.ThreatLevel) error {
+func checkSlashLevelBasedOnHeadersCount(headers []*interceptedBlocks.InterceptedHeader, level slash.ThreatLevel) error {
 	if level < slash.Medium || level > slash.High {
 		return process.ErrInvalidSlashLevel
 	}
