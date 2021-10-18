@@ -32,7 +32,7 @@ func absDiff(x, y uint64) uint64 {
 
 func computeSlashLevelBasedOnHeadersCount(data []process.InterceptedData) slash.ThreatLevel {
 	ret := slash.Low
-	// TODO: Maybe a linear interpolation to deduce severity?
+
 	if len(data) == minSlashableNoOfHeaders {
 		ret = slash.Medium
 	} else if len(data) >= minSlashableNoOfHeaders+1 {

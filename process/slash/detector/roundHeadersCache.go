@@ -54,22 +54,7 @@ func (rhc *roundHeadersCache) Add(round uint64, hash []byte, header data.HeaderH
 		rhc.oldestRound = round
 	}
 
-	if _, exists := rhc.cache[round]; exists {
-		rhc.cache[round] = append(rhc.cache[round],
-			headerInfo{
-				hash:   hash,
-				header: header,
-			},
-		)
-	} else {
-		rhc.cache[round] = headerInfoList{
-			headerInfo{
-				hash:   hash,
-				header: header,
-			},
-		}
-	}
-
+	rhc.cache[round] = append(rhc.cache[round], headerInfo{hash: hash, header: header})
 	return nil
 }
 

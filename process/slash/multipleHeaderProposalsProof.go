@@ -23,7 +23,7 @@ func NewMultipleProposalProof(slashableData *SlashingResult) (MultipleProposalPr
 	}, nil
 }
 
-// GetLevel - returns the slashing proof level
+// GetLevel - returns the slashing proof threat level
 func (mpp *multipleProposalProof) GetLevel() ThreatLevel {
 	return mpp.slashableHeaders.slashingLevel
 }
