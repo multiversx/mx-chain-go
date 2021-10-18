@@ -4,22 +4,18 @@ import "github.com/ElrondNetwork/elrond-go/process"
 
 // RoundDetectorCacheStub -
 type RoundDetectorCacheStub struct {
-	ContainsCalled       func(round uint64, pubKey []byte, data process.InterceptedData) bool
+	AddCalled            func(round uint64, pubKey []byte, data process.InterceptedData) error
 	GetDataCalled        func(round uint64, pubKey []byte) []process.InterceptedData
 	GetPubKeysCalled     func(round uint64) [][]byte
 	IsInterfaceNilCalled func() bool
 }
 
 // Add -
-func (rdc *RoundDetectorCacheStub) Add(round uint64, pubKey []byte, data process.InterceptedData) {
-}
-
-// Contains -
-func (rdc *RoundDetectorCacheStub) Contains(round uint64, pubKey []byte, data process.InterceptedData) bool {
-	if rdc.ContainsCalled != nil {
-		return rdc.ContainsCalled(round, pubKey, data)
+func (rdc *RoundDetectorCacheStub) Add(round uint64, pubKey []byte, data process.InterceptedData) error {
+	if rdc.AddCalled != nil {
+		return rdc.AddCalled(round, pubKey, data)
 	}
-	return false
+	return nil
 }
 
 // GetData -

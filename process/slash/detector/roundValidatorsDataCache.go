@@ -31,14 +31,18 @@ func NewRoundValidatorDataCache(maxRounds uint64) *roundValidatorsDataCache {
 
 // Add adds in cache an intercepted data for a public key, in a given round.
 // It has an eviction mechanism which always removes the oldest round entry when cache is full
-func (rdc *roundValidatorsDataCache) Add(round uint64, pubKey []byte, data process.InterceptedData) {
+func (rdc *roundValidatorsDataCache) Add(round uint64, pubKey []byte, data process.InterceptedData) error {
 	pubKeyStr := string(pubKey)
 	rdc.cacheMutex.Lock()
 	defer rdc.cacheMutex.Unlock()
 
+	if rdc.contains(round, pubKey, data) {
+		return process.ErrHeadersNotDifferentHashes
+	}
+
 	if rdc.isCacheFull(round) {
 		if round < rdc.oldestRound {
-			return
+			return process.ErrHeaderRoundNotRelevant
 		}
 		delete(rdc.cache, rdc.oldestRound)
 		rdc.updateOldestRound()
@@ -50,11 +54,32 @@ func (rdc *roundValidatorsDataCache) Add(round uint64, pubKey []byte, data proce
 	validatorsMap, exists := rdc.cache[round]
 	if !exists {
 		rdc.cache[round] = validatorDataMap{pubKeyStr: dataList{data}}
-		return
+		return nil
 	}
 
 	validatorsMap[pubKeyStr] = append(validatorsMap[pubKeyStr], data)
 
+	return nil
+}
+
+func (rdc *roundValidatorsDataCache) contains(round uint64, pubKey []byte, data process.InterceptedData) bool {
+	validatorsMap, exists := rdc.cache[round]
+	if !exists {
+		return false
+	}
+
+	dataList, exists := validatorsMap[string(pubKey)]
+	if !exists {
+		return false
+	}
+
+	for _, currData := range dataList {
+		if bytes.Equal(currData.Hash(), data.Hash()) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (rdc *roundValidatorsDataCache) isCacheFull(currRound uint64) bool {
@@ -101,30 +126,6 @@ func (rdc *roundValidatorsDataCache) GetPubKeys(round uint64) [][]byte {
 	}
 
 	return ret
-}
-
-// Contains checks if a public key, in a given round has any data cached.
-func (rdc *roundValidatorsDataCache) Contains(round uint64, pubKey []byte, data process.InterceptedData) bool {
-	rdc.cacheMutex.RLock()
-	defer rdc.cacheMutex.RUnlock()
-
-	validatorsMap, exists := rdc.cache[round]
-	if !exists {
-		return false
-	}
-
-	dataList, exists := validatorsMap[string(pubKey)]
-	if !exists {
-		return false
-	}
-
-	for _, currData := range dataList {
-		if bytes.Equal(currData.Hash(), data.Hash()) {
-			return true
-		}
-	}
-
-	return false
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil

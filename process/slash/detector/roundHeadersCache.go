@@ -6,16 +6,17 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
-type headerHashList []headerHash
-type headerHash struct {
+type headerInfoList []headerInfo
+type headerInfo struct {
 	hash   []byte
 	header data.HeaderHandler
 }
 
 type roundHeadersCache struct {
-	cache       map[uint64]headerHashList
+	cache       map[uint64]headerInfoList
 	cacheMutex  sync.RWMutex
 	oldestRound uint64
 	cacheSize   uint64
@@ -24,7 +25,7 @@ type roundHeadersCache struct {
 // NewRoundHeadersCache creates an instance of roundHeadersCache, which is a header-hash-based cache
 func NewRoundHeadersCache(maxRounds uint64) *roundHeadersCache {
 	return &roundHeadersCache{
-		cache:       make(map[uint64]headerHashList),
+		cache:       make(map[uint64]headerInfoList),
 		cacheMutex:  sync.RWMutex{},
 		oldestRound: math.MaxUint64,
 		cacheSize:   maxRounds,
@@ -33,36 +34,58 @@ func NewRoundHeadersCache(maxRounds uint64) *roundHeadersCache {
 
 // Add adds a header-hash in cache, in a given round.
 // It has an eviction mechanism which always removes the oldest round entry when cache is full
-func (rhc *roundHeadersCache) Add(round uint64, hash []byte, header data.HeaderHandler) {
+func (rhc *roundHeadersCache) Add(round uint64, hash []byte, header data.HeaderHandler) error {
 	rhc.cacheMutex.Lock()
 	defer rhc.cacheMutex.Unlock()
 
+	if rhc.contains(round, hash) {
+		return process.ErrHeadersNotDifferentHashes
+	}
+
 	if rhc.isCacheFull(round) {
 		if round < rhc.oldestRound {
-			return
+			return process.ErrHeaderRoundNotRelevant
 		}
 		delete(rhc.cache, rhc.oldestRound)
 		rhc.updateOldestRound()
 	}
+
 	if round < rhc.oldestRound {
 		rhc.oldestRound = round
 	}
 
 	if _, exists := rhc.cache[round]; exists {
 		rhc.cache[round] = append(rhc.cache[round],
-			headerHash{
+			headerInfo{
 				hash:   hash,
 				header: header,
 			},
 		)
 	} else {
-		rhc.cache[round] = headerHashList{
-			headerHash{
+		rhc.cache[round] = headerInfoList{
+			headerInfo{
 				hash:   hash,
 				header: header,
 			},
 		}
 	}
+
+	return nil
+}
+
+func (rhc *roundHeadersCache) contains(round uint64, hash []byte) bool {
+	hashHeaderList, exist := rhc.cache[round]
+	if !exist {
+		return false
+	}
+
+	for _, currData := range hashHeaderList {
+		if bytes.Equal(currData.hash, hash) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (rhc *roundHeadersCache) isCacheFull(currRound uint64) bool {
@@ -80,25 +103,6 @@ func (rhc *roundHeadersCache) updateOldestRound() {
 	}
 
 	rhc.oldestRound = min
-}
-
-// Contains checks if the hash is cached in a given round
-func (rhc *roundHeadersCache) Contains(round uint64, hash []byte) bool {
-	rhc.cacheMutex.RLock()
-	defer rhc.cacheMutex.RUnlock()
-
-	hashHeaderList, exist := rhc.cache[round]
-	if !exist {
-		return false
-	}
-
-	for _, currData := range hashHeaderList {
-		if bytes.Equal(currData.hash, hash) {
-			return true
-		}
-	}
-
-	return false
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil

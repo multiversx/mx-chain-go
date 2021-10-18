@@ -83,15 +83,15 @@ func (mhs *multipleHeaderSigningDetector) VerifyData(interceptedData process.Int
 		return nil, err
 	}
 
-	if mhs.headersCache.Contains(round, headerHash) {
-		return nil, process.ErrHeadersNotDifferentHashes
+	err = mhs.headersCache.Add(round, headerHash, header)
+	if err != nil {
+		return nil, err
 	}
 
 	err = mhs.cacheSigners(interceptedHeader)
 	if err != nil {
 		return nil, err
 	}
-	mhs.headersCache.Add(round, headerHash, header)
 
 	slashingResult := mhs.getSlashingResult(round)
 	if len(slashingResult) != 0 {
@@ -124,7 +124,10 @@ func (mhs *multipleHeaderSigningDetector) cacheSigners(interceptedHeader *interc
 	bitmap := header.GetPubKeysBitmap()
 	for idx, validator := range group {
 		if slash.IsIndexSetInBitmap(uint32(idx), bitmap) {
-			mhs.slashingCache.Add(header.GetRound(), validator.PubKey(), interceptedHeader)
+			err = mhs.slashingCache.Add(header.GetRound(), validator.PubKey(), interceptedHeader)
+			if err != nil {
+				return err
+			}
 		}
 	}
 

@@ -65,11 +65,11 @@ func (mhp *multipleHeaderProposalsDetector) VerifyData(data process.InterceptedD
 		return nil, err
 	}
 
-	if mhp.cache.Contains(round, proposer, interceptedHeader) {
-		return nil, process.ErrHeadersNotDifferentHashes
+	err = mhp.cache.Add(round, proposer, interceptedHeader)
+	if err != nil {
+		return nil, err
 	}
 
-	mhp.cache.Add(round, proposer, interceptedHeader)
 	slashingResult := mhp.getSlashingResult(round, proposer)
 
 	if slashingResult != nil {

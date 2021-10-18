@@ -123,8 +123,11 @@ func TestMultipleHeaderProposalsDetector_VerifyData_MultipleHeaders_SameHash_Exp
 	round := uint64(1)
 	pubKey := []byte("proposer1")
 	cache := mockSlash.RoundDetectorCacheStub{
-		ContainsCalled: func(r uint64, pk []byte, data process.InterceptedData) bool {
-			return r == round && bytes.Equal(pk, pubKey)
+		AddCalled: func(r uint64, pk []byte, data process.InterceptedData) error {
+			if r == round && bytes.Equal(pk, pubKey) {
+				return process.ErrHeadersNotDifferentHashes
+			}
+			return nil
 		},
 	}
 	nodesCoordinator := &mockEpochStart.NodesCoordinatorStub{
@@ -150,18 +153,18 @@ func TestMultipleHeaderProposalsDetector_VerifyData_MultipleHeaders(t *testing.T
 	hData3 := createInterceptedHeaderData(&block.Header{Round: round, PrevRandSeed: []byte("seed3")})
 	hData4 := createInterceptedHeaderData(&block.Header{Round: round, PrevRandSeed: []byte("seed4")})
 	getCalledCt := 0
-	containsCalledCt := 0
+	addCalledCt := 0
 
 	cache := mockSlash.RoundDetectorCacheStub{
-		ContainsCalled: func(_ uint64, _ []byte, data process.InterceptedData) bool {
-			containsCalledCt++
-			if bytes.Equal(data.Hash(), hData2.Hash()) && containsCalledCt == 3 {
-				return true
+		AddCalled: func(_ uint64, _ []byte, data process.InterceptedData) error {
+			addCalledCt++
+			if bytes.Equal(data.Hash(), hData2.Hash()) && addCalledCt == 3 {
+				return process.ErrHeadersNotDifferentHashes
 			}
-			if containsCalledCt > 5 {
-				return true
+			if addCalledCt > 5 {
+				return process.ErrHeadersNotDifferentHashes
 			}
-			return false
+			return nil
 		},
 		GetPubKeysCalled: func(_ uint64) [][]byte {
 			return [][]byte{pubKey}

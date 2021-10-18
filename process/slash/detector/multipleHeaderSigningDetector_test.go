@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
@@ -170,8 +171,8 @@ func TestMultipleHeaderSigningDetector_VerifyData_SameHeaderData_DifferentSigner
 		&mock.MarshalizerMock{},
 		&mockSlash.RoundDetectorCacheStub{},
 		&mockSlash.HeadersCacheStub{
-			ContainsCalled: func(round uint64, hash []byte) bool {
-				return true
+			AddCalled: func(round uint64, hash []byte, header data.HeaderHandler) error {
+				return process.ErrHeadersNotDifferentHashes
 			},
 		})
 
