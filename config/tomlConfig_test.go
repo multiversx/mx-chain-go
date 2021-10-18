@@ -633,6 +633,12 @@ func TestEnableEpochConfig(t *testing.T) {
     # OptimizeGasUsedInCrossMiniBlocksEnableEpoch represents the epoch when gas used in cross shard mini blocks will be optimized
     OptimizeGasUsedInCrossMiniBlocksEnableEpoch = 43
 
+    # FixOOGReturnCodeEnableEpoch represents the epoch when the backward compatibility returning out of gas error is enabled
+    FixOOGReturnCodeEnableEpoch = 44
+
+    # RemoveNonUpdatedStorageEnableEpoch represents the epoch when the backward compatibility for removing non updated storage is enabled
+    RemoveNonUpdatedStorageEnableEpoch = 45
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -703,6 +709,8 @@ func TestEnableEpochConfig(t *testing.T) {
 			AddTokensToDelegationEnableEpoch:            41,
 			MultiESDTTransferFixOnCallBackOnEnableEpoch: 42,
 			OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 43,
+			FixOOGReturnCodeEnableEpoch:                 44,
+			RemoveNonUpdatedStorageEnableEpoch:          45,
 		},
 		GasSchedule: GasScheduleConfig{
 			GasScheduleByEpochs: []GasScheduleByEpochs{
