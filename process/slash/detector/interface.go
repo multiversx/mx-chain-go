@@ -16,7 +16,7 @@ type RoundDetectorCache interface {
 	Contains(round uint64, pubKey []byte, data process.InterceptedData) bool
 	// GetData returns all cached data for a public key, in a given round
 	GetData(round uint64, pubKey []byte) []process.InterceptedData
-	// GetPubKeys returns all cached public keys for a given round
+	// GetPubKeys returns all cached public keys in a given round
 	GetPubKeys(round uint64) [][]byte
 	// IsInterfaceNil checks if the interface is nil
 	IsInterfaceNil() bool

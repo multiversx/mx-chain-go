@@ -12,6 +12,7 @@ type SlashingProofHandler interface {
 	GetType() SlashingType
 }
 
+// MultipleProposalProofHandler contains proof data for a multiple header proposal slashing event
 type MultipleProposalProofHandler interface {
 	SlashingProofHandler
 	// GetLevel - contains the slashing level for the current slashing type
@@ -21,6 +22,7 @@ type MultipleProposalProofHandler interface {
 	GetHeaders() []*interceptedBlocks.InterceptedHeader
 }
 
+// MultipleSigningProofHandler contains proof data for a multiple header signing slashing event
 type MultipleSigningProofHandler interface {
 	SlashingProofHandler
 	// GetPubKeys - returns all validator's public keys which have signed multiple headers

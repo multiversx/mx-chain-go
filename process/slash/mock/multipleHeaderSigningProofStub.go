@@ -10,6 +10,7 @@ type MultipleHeaderSigningProofStub struct {
 	GetTypeCalled func() slash.SlashingType
 }
 
+// GetType -
 func (mps *MultipleHeaderSigningProofStub) GetType() slash.SlashingType {
 	if mps.GetTypeCalled != nil {
 		return mps.GetTypeCalled()

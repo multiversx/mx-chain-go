@@ -25,7 +25,7 @@ func NewMultipleSigningProof(
 	}, nil
 }
 
-// GetType -returns MultipleSigning
+// GetType - returns MultipleSigning
 func (msp *multipleSigningProof) GetType() SlashingType {
 	return MultipleSigning
 }

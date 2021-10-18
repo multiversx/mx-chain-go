@@ -884,14 +884,14 @@ var ErrInvalidSlashLevel = errors.New("invalid slash level has been provided for
 // ErrNotEnoughHeadersProvided signals that not enough headers have been provided for a multiple header proof
 var ErrNotEnoughHeadersProvided = errors.New("not enough headers have been provided for a multiple header proof")
 
-// ErrHeadersDoNotHaveSameProposer signals that the headers from a multiple header proposal proof are not proposed by the same validator
-var ErrHeadersDoNotHaveSameProposer = errors.New("the headers from a multiple header proposal proof are not proposed by the same validator")
+// ErrHeadersNotSameProposer signals that the headers from a multiple header proposal proof are not proposed by the same validator
+var ErrHeadersNotSameProposer = errors.New("the headers from a multiple header proposal proof are not proposed by the same validator")
 
-// ErrHeadersDoNotHaveSameRound signals that the headers from a multiple header proof have different rounds
-var ErrHeadersDoNotHaveSameRound = errors.New("the headers from a multiple header proof have different rounds")
+// ErrHeadersNotSameRound signals that the headers from a multiple header proof have different rounds
+var ErrHeadersNotSameRound = errors.New("the headers from a multiple header proof have different rounds")
 
-// ErrHeadersShouldHaveDifferentHashes signals that header hashes in a multiple header proof should be different
-var ErrHeadersShouldHaveDifferentHashes = errors.New("headers in a multiple header proof should have different hashes")
+// ErrHeadersNotDifferentHashes signals that header hashes in a multiple header proof should be different
+var ErrHeadersNotDifferentHashes = errors.New("headers in a multiple header proof should have different hashes")
 
 // ErrHeaderNotSignedByValidator signals that the header is not signed by the given validator
 var ErrHeaderNotSignedByValidator = errors.New("header is not signed by the given validator")

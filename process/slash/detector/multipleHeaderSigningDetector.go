@@ -3,6 +3,7 @@ package detector
 import (
 	"bytes"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
@@ -83,7 +84,7 @@ func (ssd *signingSlashingDetector) VerifyData(interceptedData process.Intercept
 	}
 
 	if ssd.headersCache.Contains(round, headerHash) {
-		return nil, process.ErrHeadersShouldHaveDifferentHashes
+		return nil, process.ErrHeadersNotDifferentHashes
 	}
 
 	err = ssd.cacheSigners(interceptedHeader)
@@ -106,12 +107,7 @@ func (ssd *signingSlashingDetector) computeHashWithoutSignatures(header data.Hea
 	headerCopy.SetSignature(nil)
 	headerCopy.SetLeaderSignature(nil)
 
-	headerBytes, err := ssd.marshaller.Marshal(headerCopy)
-	if err != nil {
-		return nil, err
-	}
-
-	return ssd.hasher.Compute(string(headerBytes)), nil
+	return core.CalculateHash(ssd.marshaller, ssd.hasher, headerCopy)
 }
 
 func (ssd *signingSlashingDetector) cacheSigners(interceptedHeader *interceptedBlocks.InterceptedHeader) error {
@@ -186,7 +182,7 @@ func (ssd *signingSlashingDetector) checkSignedHeaders(pubKey []byte, headers []
 	round := headers[0].HeaderHandler().GetRound()
 	for _, header := range headers {
 		if header.HeaderHandler().GetRound() != round {
-			return process.ErrHeadersDoNotHaveSameRound
+			return process.ErrHeadersNotSameRound
 		}
 
 		hash, err := ssd.checkHash(header.HeaderHandler(), hashes)
@@ -210,7 +206,7 @@ func (ssd *signingSlashingDetector) checkHash(header data.HeaderHandler, hashes 
 	}
 
 	if _, exists := hashes[string(hash)]; exists {
-		return "", process.ErrHeadersShouldHaveDifferentHashes
+		return "", process.ErrHeadersNotDifferentHashes
 	}
 
 	return string(hash), nil

@@ -120,7 +120,7 @@ func TestMultipleHeaderProposalsDetector_VerifyData_EmptyProposerList_ExpectErro
 func TestMultipleHeaderProposalsDetector_VerifyData_MultipleHeaders_SameHash_ExpectNoSlashing(t *testing.T) {
 	t.Parallel()
 
-	round := uint64(2)
+	round := uint64(1)
 	pubKey := []byte("proposer1")
 	cache := mockSlash.RoundDetectorCacheStub{
 		ContainsCalled: func(r uint64, pk []byte, data process.InterceptedData) bool {
@@ -137,9 +137,7 @@ func TestMultipleHeaderProposalsDetector_VerifyData_MultipleHeaders_SameHash_Exp
 	hData := createInterceptedHeaderData(&block.Header{Round: round, RandSeed: []byte("seed")})
 	res, err := sd.VerifyData(hData)
 	require.Nil(t, res)
-	require.Equal(t, process.ErrNoSlashingEventDetected, err)
-
-	//3211111111111113213211111111111111111111111111111111111111111111111111111111111111111111111111111 poate aici verific si daca merge cu alt header
+	require.Equal(t, process.ErrHeadersNotDifferentHashes, err)
 }
 
 func TestMultipleHeaderProposalsDetector_VerifyData_MultipleHeaders(t *testing.T) {
@@ -205,7 +203,7 @@ func TestMultipleHeaderProposalsDetector_VerifyData_MultipleHeaders(t *testing.T
 
 	tmp, err = sd.VerifyData(hData2)
 	require.Nil(t, tmp)
-	require.Equal(t, process.ErrNoSlashingEventDetected, err)
+	require.Equal(t, process.ErrHeadersNotDifferentHashes, err)
 
 	tmp, _ = sd.VerifyData(hData3)
 	res = tmp.(slash.MultipleProposalProofHandler)
@@ -228,7 +226,7 @@ func TestMultipleHeaderProposalsDetector_VerifyData_MultipleHeaders(t *testing.T
 
 	tmp, err = sd.VerifyData(hData4)
 	require.Nil(t, tmp)
-	require.Equal(t, process.ErrNoSlashingEventDetected, err)
+	require.Equal(t, process.ErrHeadersNotDifferentHashes, err)
 }
 
 func TestMultipleHeaderProposalsDetector_ValidateProof_InvalidProofType_ExpectError(t *testing.T) {
@@ -340,7 +338,7 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 					createInterceptedHeaderData(&block.Header{Round: 5, PrevRandSeed: []byte("h1")}),
 				}
 			},
-			expectedErr: process.ErrHeadersShouldHaveDifferentHashes,
+			expectedErr: process.ErrHeadersNotDifferentHashes,
 		},
 		{
 			args: func() (slash.ThreatLevel, []process.InterceptedData) {
@@ -350,7 +348,7 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 					createInterceptedHeaderData(&block.Header{Round: 5, PrevRandSeed: []byte("h2")}),
 				}
 			},
-			expectedErr: process.ErrHeadersShouldHaveDifferentHashes,
+			expectedErr: process.ErrHeadersNotDifferentHashes,
 		},
 		{
 			args: func() (slash.ThreatLevel, []process.InterceptedData) {
@@ -359,7 +357,7 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 					createInterceptedHeaderData(&block.Header{Round: 5, PrevRandSeed: []byte("h1")}),
 				}
 			},
-			expectedErr: process.ErrHeadersDoNotHaveSameRound,
+			expectedErr: process.ErrHeadersNotSameRound,
 		},
 		{
 			args: func() (slash.ThreatLevel, []process.InterceptedData) {
@@ -369,7 +367,7 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 					createInterceptedHeaderData(&block.Header{Round: 5, PrevRandSeed: []byte("h3")}),
 				}
 			},
-			expectedErr: process.ErrHeadersDoNotHaveSameRound,
+			expectedErr: process.ErrHeadersNotSameRound,
 		},
 		{
 			args: func() (slash.ThreatLevel, []process.InterceptedData) {
@@ -396,7 +394,7 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 					createInterceptedHeaderData(&block.Header{Round: 1, PrevRandSeed: []byte("h2")}), // round == 1 && rndSeed == h2 => mock returns proposer2
 				}
 			},
-			expectedErr: process.ErrHeadersDoNotHaveSameProposer,
+			expectedErr: process.ErrHeadersNotSameProposer,
 		},
 		{
 			args: func() (slash.ThreatLevel, []process.InterceptedData) {

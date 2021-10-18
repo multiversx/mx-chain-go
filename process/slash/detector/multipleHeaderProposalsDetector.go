@@ -66,7 +66,7 @@ func (mhp *multipleHeaderProposalsDetector) VerifyData(data process.InterceptedD
 	}
 
 	if mhp.cache.Contains(round, proposer, interceptedHeader) {
-		return nil, process.ErrNoSlashingEventDetected
+		return nil, process.ErrHeadersNotDifferentHashes
 	}
 
 	mhp.cache.Add(round, proposer, interceptedHeader)
@@ -143,7 +143,7 @@ func (mhp *multipleHeaderProposalsDetector) checkProposedHeaders(headers []*inte
 	for _, header := range headers {
 		hash := string(header.Hash())
 		if _, exists := hashes[hash]; exists {
-			return process.ErrHeadersShouldHaveDifferentHashes
+			return process.ErrHeadersNotDifferentHashes
 		}
 
 		err = mhp.checkHeaderHasSameProposerAndRound(header, round, proposer)
@@ -163,7 +163,7 @@ func (mhp *multipleHeaderProposalsDetector) checkHeaderHasSameProposerAndRound(
 	proposer []byte,
 ) error {
 	if header.HeaderHandler().GetRound() != round {
-		return process.ErrHeadersDoNotHaveSameRound
+		return process.ErrHeadersNotSameRound
 	}
 
 	currProposer, err := mhp.getProposerPubKey(header.HeaderHandler())
@@ -172,7 +172,7 @@ func (mhp *multipleHeaderProposalsDetector) checkHeaderHasSameProposerAndRound(
 	}
 
 	if !bytes.Equal(proposer, currProposer) {
-		return process.ErrHeadersDoNotHaveSameProposer
+		return process.ErrHeadersNotSameProposer
 	}
 
 	return nil

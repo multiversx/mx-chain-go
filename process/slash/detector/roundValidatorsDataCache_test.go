@@ -102,6 +102,21 @@ func TestRoundProposerDataCache_Add_CacheSizeTwo_FourEntriesInCache_ExpectOldest
 
 	require.Equal(t, dataCache.cache[2]["proposer2"][0].Hash(), []byte("hash2"))
 	require.Equal(t, dataCache.cache[3]["proposer3"][0].Hash(), []byte("hash3"))
+
+	dataCache.Add(4, []byte("proposer4"), &testscommon.InterceptedDataStub{
+		HashCalled: func() []byte {
+			return []byte("hash4")
+		},
+	})
+
+	require.Len(t, dataCache.cache, 2)
+	require.Len(t, dataCache.cache[3], 1)
+	require.Len(t, dataCache.cache[4], 1)
+	require.Len(t, dataCache.cache[3]["proposer3"], 1)
+	require.Len(t, dataCache.cache[4]["proposer4"], 1)
+
+	require.Equal(t, dataCache.cache[3]["proposer3"][0].Hash(), []byte("hash3"))
+	require.Equal(t, dataCache.cache[4]["proposer4"][0].Hash(), []byte("hash4"))
 }
 
 func TestRoundProposerDataCache_GetData(t *testing.T) {

@@ -178,17 +178,17 @@ func TestMultipleHeaderSigningDetector_VerifyData_SameHeaderData_DifferentSigner
 	hData1 := createInterceptedHeaderData(&block.Header{Round: 2, TimeStamp: 5, Signature: []byte("signature")})
 	res, err := ssd.VerifyData(hData1)
 	require.Nil(t, res)
-	require.Equal(t, process.ErrHeadersShouldHaveDifferentHashes, err)
+	require.Equal(t, process.ErrHeadersNotDifferentHashes, err)
 
 	hData2 := createInterceptedHeaderData(&block.Header{Round: 2, TimeStamp: 5, LeaderSignature: []byte("leaderSignature")})
 	res, err = ssd.VerifyData(hData2)
 	require.Nil(t, res)
-	require.Equal(t, process.ErrHeadersShouldHaveDifferentHashes, err)
+	require.Equal(t, process.ErrHeadersNotDifferentHashes, err)
 
 	hData3 := createInterceptedHeaderData(&block.Header{Round: 2, TimeStamp: 5, PubKeysBitmap: []byte("bitmap")})
 	res, err = ssd.VerifyData(hData3)
 	require.Nil(t, res)
-	require.Equal(t, process.ErrHeadersShouldHaveDifferentHashes, err)
+	require.Equal(t, process.ErrHeadersNotDifferentHashes, err)
 }
 
 func TestMultipleHeaderSigningDetector_VerifyData_ValidateProof(t *testing.T) {
@@ -314,7 +314,7 @@ func TestMultipleHeaderSigningDetector_VerifyData_ValidateProof(t *testing.T) {
 	group2 = []sharding.Validator{v4, v2, v0, v1}
 	tmp, err = ssd.VerifyData(hData2)
 	require.Nil(t, tmp)
-	require.Error(t, process.ErrHeadersShouldHaveDifferentHashes, hData2)
+	require.Error(t, process.ErrHeadersNotDifferentHashes, hData2)
 }
 
 func TestMultipleHeaderSigningDetector_ValidateProof_InvalidProofType_ExpectError(t *testing.T) {
@@ -385,7 +385,7 @@ func TestMultipleHeaderSigningDetector_ValidateProof_SignedHeadersHaveDifferentR
 	})
 
 	err := ssd.ValidateProof(proof)
-	require.Equal(t, process.ErrHeadersDoNotHaveSameRound, err)
+	require.Equal(t, process.ErrHeadersNotSameRound, err)
 }
 
 func TestMultipleHeaderSigningDetector_ValidateProof_InvalidMarshaller_ExpectError(t *testing.T) {
@@ -446,7 +446,7 @@ func TestMultipleHeaderSigningDetector_ValidateProof_SignedHeadersHaveSameHash_E
 	})
 
 	err := ssd.ValidateProof(proof)
-	require.Equal(t, process.ErrHeadersShouldHaveDifferentHashes, err)
+	require.Equal(t, process.ErrHeadersNotDifferentHashes, err)
 }
 
 func TestMultipleHeaderSigningDetector_ValidateProof_HeadersNotSignedByTheSameValidator_ExpectError(t *testing.T) {
