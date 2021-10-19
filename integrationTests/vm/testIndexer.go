@@ -9,6 +9,7 @@ import (
 	"time"
 
 	elasticIndexer "github.com/ElrondNetwork/elastic-indexer-go"
+	"github.com/ElrondNetwork/elastic-indexer-go/converters"
 	indexerTypes "github.com/ElrondNetwork/elastic-indexer-go/data"
 	elasticProcessor "github.com/ElrondNetwork/elastic-indexer-go/process"
 	"github.com/ElrondNetwork/elastic-indexer-go/process/accounts"
@@ -110,12 +111,14 @@ func (ti *testIndexer) createElasticProcessor(
 		Marshalizer:            testMarshalizer,
 		IsInImportMode:         false,
 	})
-	ap, _ := accounts.NewAccountsProcessor(18, testMarshalizer, pubkeyConv, &stateMock.AccountsStub{})
+
+	balanceConverter, _ := converters.NewBalanceConverter(18)
+	ap, _ := accounts.NewAccountsProcessor(testMarshalizer, pubkeyConv, &stateMock.AccountsStub{}, balanceConverter)
 	bp, _ := blockProc.NewBlockProcessor(testHasher, testMarshalizer)
 	mp, _ := miniblocks.NewMiniblocksProcessor(shardCoordinator.SelfId(), testHasher, testMarshalizer)
 	sp := statistics.NewStatisticsProcessor()
 	vp, _ := validators.NewValidatorsProcessor(pubkeyConv)
-	lp, _ := logsevents.NewLogsAndEventsProcessor(shardCoordinator, pubkeyConv, testMarshalizer)
+	lp, _ := logsevents.NewLogsAndEventsProcessor(shardCoordinator, pubkeyConv, testMarshalizer, balanceConverter, testHasher)
 
 	esIndexerArgs := &elasticProcessor.ArgElasticProcessor{
 		UseKibana:         false,
