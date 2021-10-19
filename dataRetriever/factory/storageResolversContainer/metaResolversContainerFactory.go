@@ -3,14 +3,13 @@ package storageResolversContainers
 import (
 	"fmt"
 
-	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
-
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/storageResolvers"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
+	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 )
 
 var _ dataRetriever.ResolversContainerFactory = (*metaResolversContainerFactory)(nil)
