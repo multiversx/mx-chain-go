@@ -50,8 +50,16 @@ func (steh *ScheduledTxsExecutionHandler) RollBackToBlock(_ []byte) error {
 	return nil
 }
 
+// SaveStateIfNeeded does nothing as it is disabled
+func (steh *ScheduledTxsExecutionHandler) SaveStateIfNeeded(_ []byte) {
+}
+
 // SaveState does nothing as it is disabled
-func (steh *ScheduledTxsExecutionHandler) SaveState(_ []byte) {
+func (steh *ScheduledTxsExecutionHandler) SaveState(
+	_ []byte,
+	_ []byte,
+	_ map[block.Type][]data.TransactionHandler,
+) {
 }
 
 // GetScheduledRootHash does nothing as it is a disabled component

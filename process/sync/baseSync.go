@@ -290,8 +290,16 @@ func (boot *baseBootstrap) computeNodeState() {
 	currentHeader := boot.chainHandler.GetCurrentBlockHeader()
 	if check.IfNil(currentHeader) {
 		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() == genesisNonce
+		log.Debug("computeNodeState",
+			"probableHighestNonce", boot.forkDetector.ProbableHighestNonce(),
+			"currentBlockNonce", nil,
+			"boot.hasLastBlock", boot.hasLastBlock)
 	} else {
 		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() <= boot.chainHandler.GetCurrentBlockHeader().GetNonce()
+		log.Debug("computeNodeState",
+			"probableHighestNonce", boot.forkDetector.ProbableHighestNonce(),
+			"currentBlockNonce", boot.chainHandler.GetCurrentBlockHeader().GetNonce(),
+			"boot.hasLastBlock", boot.hasLastBlock)
 	}
 
 	isNodeConnectedToTheNetwork := boot.networkWatcher.IsConnectedToTheNetwork()
@@ -313,6 +321,9 @@ func (boot *baseBootstrap) computeNodeState() {
 	}
 
 	boot.statusHandler.SetUInt64Value(common.MetricIsSyncing, result)
+	log.Debug("computeNodeState",
+		"isNodeStateCalculated", boot.isNodeStateCalculated,
+		"isNodeSynchronized", boot.isNodeSynchronized)
 
 	if boot.shouldTryToRequestHeaders() {
 		go boot.requestHeadersIfSyncIsStuck()

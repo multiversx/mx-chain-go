@@ -188,6 +188,10 @@ func (e *epochStartData) createShardStartDataAndLastProcessedHeaders() (*block.E
 			FirstPendingMetaBlock: firstPendingMetaHash,
 			LastFinishedMetaBlock: lastFinalizedMetaHash,
 		}
+		additionalData := lastCrossNotarizedHeaderForShard.GetAdditionalData()
+		if additionalData != nil {
+			finalHeader.ScheduledRootHash = additionalData.GetScheduledRootHash()
+		}
 
 		startData.LastFinalizedHeaders = append(startData.LastFinalizedHeaders, finalHeader)
 		allShardHdrList[shardID] = currShardHdrList

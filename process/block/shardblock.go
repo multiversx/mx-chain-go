@@ -477,12 +477,14 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinality() error {
 		return err
 	}
 
+	log.Debug("checkMetaHeadersValidityAndFinality", "lastCrossNotarizedHeader nonce", lastCrossNotarizedHeader.GetNonce())
 	usedMetaHdrs := sp.sortHeadersForCurrentBlockByNonce(true)
 	if len(usedMetaHdrs[core.MetachainShardId]) == 0 {
 		return nil
 	}
 
 	for _, metaHdr := range usedMetaHdrs[core.MetachainShardId] {
+		log.Debug("checkMetaHeadersValidityAndFinality", "metaHeader nonce", metaHdr.GetNonce())
 		err = sp.headerValidator.IsHeaderConstructionValid(metaHdr, lastCrossNotarizedHeader)
 		if err != nil {
 			return fmt.Errorf("%w : checkMetaHeadersValidityAndFinality -> isHdrConstructionValid", err)
@@ -1067,17 +1069,19 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 			return
 		}
 
-		headerRootHash := header.GetRootHash()
-		prevHeaderRootHash := prevHeader.GetRootHash()
+		headerRootHashForPruning := header.GetRootHash()
+		prevHeaderRootHashForPruning := prevHeader.GetRootHash()
 
-		scheduledHeaderRootHash, err := sp.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(headerHash)
-		if err == nil {
-			headerRootHash = scheduledHeaderRootHash
+		scheduledHeaderRootHash, _ := sp.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(headerHash)
+		headerAdditionalData := header.GetAdditionalData()
+		if headerAdditionalData != nil && headerAdditionalData.GetScheduledRootHash() != nil {
+			headerRootHashForPruning = headerAdditionalData.GetScheduledRootHash()
 		}
 
-		scheduledPrevHeaderRootHash, err := sp.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(prevHeaderHash)
-		if err == nil {
-			prevHeaderRootHash = scheduledPrevHeaderRootHash
+		prevHeaderAdditionalData := prevHeader.GetAdditionalData()
+		scheduledPrevHeaderRootHash, _ := sp.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(header.GetPrevHash())
+		if prevHeaderAdditionalData != nil && prevHeaderAdditionalData.GetScheduledRootHash() != nil {
+			prevHeaderRootHashForPruning = prevHeaderAdditionalData.GetScheduledRootHash()
 		}
 
 		log.Trace("updateState: prevHeader",
@@ -1086,7 +1090,8 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 			"round", prevHeader.GetRound(),
 			"nonce", prevHeader.GetNonce(),
 			"root hash", prevHeader.GetRootHash(),
-			"scheduled root hash", prevHeaderRootHash,
+			"scheduled root hash for pruning", prevHeaderRootHashForPruning,
+			"scheduled root hash after processing", scheduledPrevHeaderRootHash,
 		)
 
 		log.Trace("updateState: currHeader",
@@ -1095,13 +1100,14 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 			"round", header.GetRound(),
 			"nonce", header.GetNonce(),
 			"root hash", header.GetRootHash(),
-			"scheduled root hash", headerRootHash,
+			"scheduled root hash for pruning", headerRootHashForPruning,
+			"scheduled root hash after processing", scheduledHeaderRootHash,
 		)
 
 		sp.updateStateStorage(
 			header,
-			headerRootHash,
-			prevHeaderRootHash,
+			headerRootHashForPruning,
+			prevHeaderRootHashForPruning,
 			sp.accountsDB[state.UserAccountsState],
 			sp.userStatePruningQueue,
 		)
@@ -1138,6 +1144,11 @@ func (sp *shardProcessor) snapShotEpochStartFromMeta(header data.ShardHeaderHand
 			}
 
 			rootHash := epochStartShData.RootHash
+			schRootHash := epochStartShData.GetScheduledRootHash()
+			if schRootHash != nil {
+				log.Debug("using scheduled root hash for snapshotting", "schRootHash", schRootHash)
+				rootHash = schRootHash
+			}
 			log.Debug("shard trie snapshot from epoch start shard data", "rootHash", rootHash)
 			accounts.SnapshotState(rootHash)
 			saveEpochStartEconomicsMetrics(sp.appStatusHandler, metaHdr)
