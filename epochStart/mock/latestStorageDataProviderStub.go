@@ -7,6 +7,15 @@ type LatestStorageDataProviderStub struct {
 	GetParentDirAndLastEpochCalled func() (string, uint32, error)
 	GetCalled                      func() (storage.LatestDataFromStorage, error)
 	GetShardsFromDirectoryCalled   func(path string) ([]string, error)
+	GetParentDirectoryCalled       func() string
+}
+
+// GetParentDirectory -
+func (lsdps *LatestStorageDataProviderStub) GetParentDirectory() string {
+	if lsdps.GetParentDirectoryCalled != nil {
+		return lsdps.GetParentDirectoryCalled()
+	}
+	return ""
 }
 
 // GetParentDirAndLastEpoch -

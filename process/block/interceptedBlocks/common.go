@@ -8,6 +8,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+const maxLenMiniBlockReservedField = 10
+const maxLenMiniBlockHeaderReservedField = 1
+
 func checkBlockHeaderArgument(arg *ArgInterceptedBlockHeader) error {
 	if arg == nil {
 		return process.ErrNilArgumentStruct
@@ -111,7 +114,7 @@ func checkShardData(sd data.ShardDataHandler, coordinator sharding.Coordinator) 
 			return process.ErrInvalidShardId
 		}
 
-		if len(smbh.GetReserved()) > 1 {
+		if len(smbh.GetReserved()) > maxLenMiniBlockHeaderReservedField {
 			return process.ErrReservedFieldInvalid
 		}
 	}
@@ -132,7 +135,7 @@ func checkMiniblocks(miniblocks []data.MiniBlockHeaderHandler, coordinator shard
 			return process.ErrInvalidShardId
 		}
 
-		if len(miniblock.GetReserved()) > 1 {
+		if len(miniblock.GetReserved()) > maxLenMiniBlockReservedField {
 			return process.ErrReservedFieldInvalid
 		}
 	}

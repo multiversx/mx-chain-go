@@ -139,9 +139,9 @@ type EpochStartPendingMiniBlocksSyncHandler interface {
 	IsInterfaceNil() bool
 }
 
-// PendingTransactionsSyncHandler defines the methods to sync all transactions from a set of miniblocks
-type PendingTransactionsSyncHandler interface {
-	SyncPendingTransactionsFor(miniBlocks map[string]*block.MiniBlock, epoch uint32, ctx context.Context) error
+// TransactionsSyncHandler defines the methods to sync all transactions from a set of miniblocks
+type TransactionsSyncHandler interface {
+	SyncTransactionsFor(miniBlocks map[string]*block.MiniBlock, epoch uint32, ctx context.Context) error
 	GetTransactions() (map[string]data.TransactionHandler, error)
 	IsInterfaceNil() bool
 }

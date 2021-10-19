@@ -1080,7 +1080,7 @@ func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler, h
 		}
 	}
 
-	bp.scheduledTxsExecutionHandler.SaveState(headerHash)
+	bp.scheduledTxsExecutionHandler.SaveStateIfNeeded(headerHash)
 
 	elapsedTime := time.Since(startTime)
 	if elapsedTime >= common.PutInStorerMaxTime {
@@ -1264,6 +1264,14 @@ func (bp *baseProcessor) PruneStateOnRollback(currHeader data.HeaderHandler, cur
 			scheduledPrevRootHash, err := bp.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(prevHeaderHash)
 			if err == nil {
 				prevRootHash = scheduledPrevRootHash
+			}
+
+			var prevStartScheduledRootHash []byte
+			if prevHeader.GetAdditionalData() != nil && prevHeader.GetAdditionalData().GetScheduledRootHash() != nil {
+				prevStartScheduledRootHash = prevHeader.GetAdditionalData().GetScheduledRootHash()
+				if bytes.Equal(prevStartScheduledRootHash, prevRootHash) {
+					bp.accountsDB[key].CancelPrune(prevStartScheduledRootHash, state.OldRoot)
+				}
 			}
 		}
 

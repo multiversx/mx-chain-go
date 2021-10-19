@@ -24,7 +24,7 @@ type syncState struct {
 	headers      update.HeaderSyncHandler
 	tries        update.EpochStartTriesSyncHandler
 	miniBlocks   update.EpochStartPendingMiniBlocksSyncHandler
-	transactions update.PendingTransactionsSyncHandler
+	transactions update.TransactionsSyncHandler
 }
 
 // ArgsNewSyncState defines the arguments for the new sync state
@@ -32,7 +32,7 @@ type ArgsNewSyncState struct {
 	Headers      update.HeaderSyncHandler
 	Tries        update.EpochStartTriesSyncHandler
 	MiniBlocks   update.EpochStartPendingMiniBlocksSyncHandler
-	Transactions update.PendingTransactionsSyncHandler
+	Transactions update.TransactionsSyncHandler
 }
 
 // NewSyncState creates a complete syncer which saves the state of the blockchain with pending values as well
@@ -138,12 +138,12 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 		ctxDisplay, cancelDisplay = context.WithCancel(context.Background())
 		go displayStatusMessage(fmt.Sprintf("syncing pending transactions for epoch %d", epoch), ctxDisplay)
 		ctx, cancel = context.WithTimeout(context.Background(), time.Hour)
-		errSync = ss.transactions.SyncPendingTransactionsFor(syncedMiniBlocks, ss.syncingEpoch, ctx)
+		errSync = ss.transactions.SyncTransactionsFor(syncedMiniBlocks, ss.syncingEpoch, ctx)
 		cancelDisplay()
 		cancel()
 		if errSync != nil {
 			mutErr.Lock()
-			errFound = fmt.Errorf("%w in syncState.SyncAllState - SyncPendingTransactionsFor", errSync)
+			errFound = fmt.Errorf("%w in syncState.SyncAllState - SyncTransactionsFor", errSync)
 			mutErr.Unlock()
 			return
 		}

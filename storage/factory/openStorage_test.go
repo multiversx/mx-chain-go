@@ -15,7 +15,6 @@ import (
 
 func createMockArgsOpenStorageUnits() ArgsNewOpenStorageUnits {
 	return ArgsNewOpenStorageUnits{
-		GeneralConfig:             config.Config{},
 		BootstrapDataProvider:     &mock.BootStrapDataProviderStub{},
 		LatestStorageDataProvider: &mock.LatestStorageDataProviderStub{},
 		DefaultEpochString:        "Epoch",
@@ -52,7 +51,7 @@ func TestGetMostUpToDateDirectory(t *testing.T) {
 
 	shardIDsStr := []string{"0", "1"}
 	path := "currPath"
-	dirName, err := suoh.getMostUpToDateDirectory(path, shardIDsStr, nil)
+	dirName, err := suoh.getMostUpToDateDirectory(config.DBConfig{}, path, shardIDsStr, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, shardIDsStr[1], dirName)
 }
@@ -69,7 +68,7 @@ func TestGetMostRecentBootstrapStorageUnit_GetShardsFromDirectoryErr(t *testing.
 	}
 	suoh, _ := NewStorageUnitOpenHandler(args)
 
-	storer, err := suoh.GetMostRecentBootstrapStorageUnit()
+	storer, err := suoh.GetMostRecentStorageUnit(config.DBConfig{})
 	assert.Nil(t, storer)
 	assert.Equal(t, localErr, err)
 }
@@ -85,7 +84,7 @@ func TestGetMostRecentBootstrapStorageUnit_CannotGetMostUpToDateDirectory(t *tes
 	}
 	suoh, _ := NewStorageUnitOpenHandler(args)
 
-	storer, err := suoh.GetMostRecentBootstrapStorageUnit()
+	storer, err := suoh.GetMostRecentStorageUnit(config.DBConfig{})
 	assert.Nil(t, storer)
 	assert.Equal(t, storage.ErrBootstrapDataNotFoundInStorage, err)
 }
@@ -112,7 +111,7 @@ func TestGetMostRecentBootstrapStorageUnit_CannotCreatePersister(t *testing.T) {
 	}
 	suoh, _ := NewStorageUnitOpenHandler(args)
 
-	storer, err := suoh.GetMostRecentBootstrapStorageUnit()
+	storer, err := suoh.GetMostRecentStorageUnit(config.DBConfig{})
 	assert.Nil(t, storer)
 	assert.Equal(t, storage.ErrNotSupportedDBType, err)
 }
@@ -121,7 +120,7 @@ func TestGetMostRecentBootstrapStorageUnit(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgsOpenStorageUnits()
-	args.GeneralConfig = config.Config{BootstrapStorage: config.StorageConfig{
+	generalConfig := config.Config{BootstrapStorage: config.StorageConfig{
 		DB: config.DBConfig{Type: "MemoryDB"},
 	}}
 	args.LatestStorageDataProvider = &mock.LatestStorageDataProviderStub{
@@ -138,7 +137,7 @@ func TestGetMostRecentBootstrapStorageUnit(t *testing.T) {
 	}
 	suoh, _ := NewStorageUnitOpenHandler(args)
 
-	storer, err := suoh.GetMostRecentBootstrapStorageUnit()
+	storer, err := suoh.GetMostRecentStorageUnit(generalConfig.BootstrapStorage.DB)
 	assert.NoError(t, err)
 	assert.NotNil(t, storer)
 

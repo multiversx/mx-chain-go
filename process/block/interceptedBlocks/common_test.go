@@ -491,7 +491,7 @@ func TestCheckMiniblocks_ReservedPopulatedShouldErr(t *testing.T) {
 		ReceiverShardID: shardCoordinator.SelfId(),
 		TxCount:         0,
 		Type:            0,
-		Reserved:        []byte("rr"),
+		Reserved:        []byte("rrrrrrrrrrrr"),
 	}
 
 	err := checkMiniblocks([]data.MiniBlockHeaderHandler{&miniblockHeader}, shardCoordinator)
