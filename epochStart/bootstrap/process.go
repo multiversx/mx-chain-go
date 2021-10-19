@@ -887,25 +887,18 @@ func (e *epochStartBootstrap) getDataToSync(
 	shardNotarizedHeader data.ShardHeaderHandler,
 ) (*dataToSync, error) {
 	var err error
-	res := &dataToSync{
-		ownShardHdr:       nil,
-		rootHashToSync:    nil,
-		withScheduled:     false,
-		additionalHeaders: nil,
-	}
-
 	e.storerScheduledSCRs, err = e.storageOpenerHandler.OpenDB(
 		e.generalConfig.ScheduledSCRsStorage.DB,
 		epochStartData.GetShardID(),
 		epochStartData.GetEpoch(),
 	)
 	if err != nil {
-		return res, err
+		return nil, err
 	}
 
-	res.ownShardHdr, res.rootHashToSync, res.additionalHeaders, err = e.updateDataForScheduled(shardNotarizedHeader)
+	res, err := e.updateDataForScheduled(shardNotarizedHeader)
 	if err != nil {
-		return res, err
+		return nil, err
 	}
 
 	errClose := e.storerScheduledSCRs.Close()
@@ -917,7 +910,7 @@ func (e *epochStartBootstrap) getDataToSync(
 
 func (e *epochStartBootstrap) updateDataForScheduled(
 	shardNotarizedHeader data.ShardHeaderHandler,
-) (data.ShardHeaderHandler, []byte, map[string]data.HeaderHandler, error) {
+) (*dataToSync, error) {
 
 	scheduledTxsHandler, err := preprocess.NewScheduledTxsExecution(
 		&factoryDisabled.TxProcessor{},
@@ -926,7 +919,7 @@ func (e *epochStartBootstrap) updateDataForScheduled(
 		e.coreComponentsHolder.InternalMarshalizer(),
 	)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 
 	e.dataSyncerWithScheduled, err = newStartInEpochShardHeaderDataSyncerWithScheduled(
@@ -937,16 +930,24 @@ func (e *epochStartBootstrap) updateDataForScheduled(
 		e.enableEpochs.ScheduledMiniBlocksEnableEpoch,
 	)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 
-	ownShardHdr, headers, err := e.dataSyncerWithScheduled.updateSyncDataIfNeeded(shardNotarizedHeader)
+	res := &dataToSync{
+		ownShardHdr:       nil,
+		rootHashToSync:    nil,
+		withScheduled:     false,
+		additionalHeaders: nil,
+	}
+
+	res.ownShardHdr, res.additionalHeaders, err = e.dataSyncerWithScheduled.updateSyncDataIfNeeded(shardNotarizedHeader)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 
-	rootHashToSync := e.dataSyncerWithScheduled.getRootHashToSync(shardNotarizedHeader)
-	return ownShardHdr, rootHashToSync, headers, nil
+	res.rootHashToSync = e.dataSyncerWithScheduled.getRootHashToSync(shardNotarizedHeader)
+
+	return res, nil
 }
 
 func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
