@@ -290,6 +290,7 @@ func (e *epochStartBootstrap) isNodeInGenesisNodesConfig() bool {
 func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	defer func() {
 		_ = e.oldTrieStorageCreator.Close()
+		e.closeTrieComponents()
 	}()
 
 	if !e.generalConfig.GeneralSettings.StartInEpochEnabled {
@@ -1047,11 +1048,7 @@ func (e *epochStartBootstrap) applyShardIDAsObserverIfNeeded(receivedShardID uin
 	return receivedShardID
 }
 
-// Close closes the component's opened storage services/started go-routines
-func (e *epochStartBootstrap) Close() error {
-	e.mutTrieStorageManagers.RLock()
-	defer e.mutTrieStorageManagers.RUnlock()
-
+func (e *epochStartBootstrap) closeTrieComponents() {
 	if e.trieStorageManagers != nil {
 		log.Debug("closing all trieStorageManagers....")
 		for _, tsm := range e.trieStorageManagers {
@@ -1068,6 +1065,14 @@ func (e *epochStartBootstrap) Close() error {
 			log.LogIfError(err)
 		}
 	}
+}
+
+// Close closes the component's opened storage services/started go-routines
+func (e *epochStartBootstrap) Close() error {
+	e.mutTrieStorageManagers.RLock()
+	defer e.mutTrieStorageManagers.RUnlock()
+
+	e.closeTrieComponents()
 
 	if !check.IfNil(e.dataPool) && !check.IfNil(e.dataPool.TrieNodes()) {
 		log.Debug("closing trie nodes data pool....")

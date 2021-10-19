@@ -73,6 +73,7 @@ func NewStorageEpochStartBootstrap(args ArgsStorageEpochStartBootstrap) (*storag
 func (sesb *storageEpochStartBootstrap) Bootstrap() (Parameters, error) {
 	defer func() {
 		_ = sesb.oldTrieStorageCreator.Close()
+		sesb.closeTrieComponents()
 	}()
 
 	if !sesb.generalConfig.GeneralSettings.StartInEpochEnabled {

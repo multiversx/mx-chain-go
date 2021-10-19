@@ -506,7 +506,7 @@ func (tsm *trieStorageManager) SetEpochForPutOperation(epoch uint32) {
 		return
 	}
 
-	storer.setEpochForPutOperation(epoch)
+	storer.SetEpochForPutOperation(epoch)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
