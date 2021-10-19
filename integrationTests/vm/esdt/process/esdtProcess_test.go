@@ -2421,3 +2421,68 @@ func multiTransferFromSC(t *testing.T, numOfShards int) {
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 12, nonce, round, idxProposers)
 	esdtCommon.CheckAddressHasESDTTokens(t, destinationNode.OwnAccount.Address, nodes, string(tokenIdentifier), 20)
 }
+
+func TestESDTIssueUnderProtectedKeyWillReturnEGLD(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numOfShards := 1
+	nodesPerShard := 2
+	numMetachainNodes := 2
+
+	nodes := integrationTests.CreateNodesWithEnableEpochs(
+		numOfShards,
+		nodesPerShard,
+		numMetachainNodes,
+		config.EnableEpochs{},
+	)
+
+	idxProposers := make([]int, numOfShards+1)
+	for i := 0; i < numOfShards; i++ {
+		idxProposers[i] = i * nodesPerShard
+	}
+	idxProposers[numOfShards] = numOfShards * nodesPerShard
+
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	defer func() {
+		for _, n := range nodes {
+			_ = n.Messenger.Close()
+		}
+	}()
+
+	initialVal := int64(10000000000)
+	integrationTests.MintAllNodes(nodes, big.NewInt(initialVal))
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	// send token issue
+
+	initialSupply := int64(10000000000)
+	ticker := "ELRONDCOIN"
+	esdtCommon.IssueTestToken(nodes, initialSupply, ticker)
+	tokenIssuer := nodes[0]
+
+	time.Sleep(time.Second)
+
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	userAcc := esdtCommon.GetUserAccountWithAddress(t, tokenIssuer.OwnAccount.Address, nodes)
+	balanceBefore := userAcc.GetBalance()
+
+	nrRoundsToPropagateMultiShard := 12
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+
+	tokenIdentifier := integrationTests.GetTokenIdentifier(nodes, []byte(ticker))
+	require.Equal(t, 0, len(tokenIdentifier))
+
+	tokenPrice := big.NewInt(1000)
+	userAcc = esdtCommon.GetUserAccountWithAddress(t, tokenIssuer.OwnAccount.Address, nodes)
+	balanceAfter := userAcc.GetBalance()
+	require.Equal(t, balanceAfter, big.NewInt(0).Add(balanceBefore, tokenPrice))
+}
