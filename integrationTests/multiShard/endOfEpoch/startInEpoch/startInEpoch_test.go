@@ -288,6 +288,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 
 	err = bootstrapper.LoadFromStorage()
 	assert.NoError(t, err)
+
 	highestNonce := bootstrapper.GetHighestBlockNonce()
 	assert.True(t, highestNonce > expectedHighestRound)
 }

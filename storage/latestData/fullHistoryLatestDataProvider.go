@@ -44,6 +44,11 @@ func (ldp *fullHistoryLatestDataProvider) Get() (storage.LatestDataFromStorage, 
 	return storage.LatestDataFromStorage{}, err
 }
 
+// GetParentDirectory returns the parent directory
+func (ldp *fullHistoryLatestDataProvider) GetParentDirectory() string {
+	return ldp.parentDir
+}
+
 // GetParentDirAndLastEpoch returns the parent directory and last usable epoch for the full archive node
 func (ldp *fullHistoryLatestDataProvider) GetParentDirAndLastEpoch() (string, uint32, error) {
 	epochDirs, err := ldp.getEpochDirs()

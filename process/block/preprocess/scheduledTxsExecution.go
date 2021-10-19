@@ -316,26 +316,34 @@ func (ste *scheduledTxsExecution) RollBackToBlock(headerHash []byte) error {
 	return nil
 }
 
-func (ste *scheduledTxsExecution) SaveState(headerHash []byte) {
+func (ste *scheduledTxsExecution) SaveStateIfNeeded(headerHash []byte) {
 	scheduledRootHash := ste.GetScheduledRootHash()
 	mapScheduledSCRs := ste.GetScheduledSCRs()
 	ste.mutScheduledTxs.RLock()
 	numScheduledTxs := len(ste.scheduledTxs)
 	ste.mutScheduledTxs.RUnlock()
-	log.Debug("scheduledTxsExecution.SaveState", "num of scheduled txs", numScheduledTxs)
+	log.Debug("scheduledTxsExecution.SaveStateIfNeeded", "num of scheduled txs", numScheduledTxs)
 
 	if numScheduledTxs > 0 {
-		marshalledScheduledSCRs, err := ste.getMarshalledScheduledRootHashAndSCRs(scheduledRootHash, mapScheduledSCRs)
-		if err != nil {
-			log.Warn("scheduledTxsExecution.SaveState getMarshalledScheduledRootHashAndSCRs", "error", err.Error())
-			return
-		}
+		ste.SaveState(headerHash, scheduledRootHash, mapScheduledSCRs)
+	}
+}
 
-		log.Trace("scheduledTxsExecution.SaveState Put", "header hash", headerHash, "length of marshalized scheduled SCRs", len(marshalledScheduledSCRs))
-		err = ste.storer.Put(headerHash, marshalledScheduledSCRs)
-		if err != nil {
-			log.Warn("scheduledTxsExecution.SaveState Put -> ScheduledSCRsUnit", "error", err.Error())
-		}
+func (ste *scheduledTxsExecution) SaveState(
+	headerHash []byte,
+	scheduledRootHash []byte,
+	mapScheduledSCRs map[block.Type][]data.TransactionHandler,
+) {
+	marshalledScheduledSCRs, err := ste.getMarshalledScheduledRootHashAndSCRs(scheduledRootHash, mapScheduledSCRs)
+	if err != nil {
+		log.Warn("scheduledTxsExecution.SaveState getMarshalledScheduledRootHashAndSCRs", "error", err.Error())
+		return
+	}
+
+	log.Trace("scheduledTxsExecution.SaveState Put", "header hash", headerHash, "length of marshalized scheduled SCRs", len(marshalledScheduledSCRs))
+	err = ste.storer.Put(headerHash, marshalledScheduledSCRs)
+	if err != nil {
+		log.Warn("scheduledTxsExecution.SaveState Put -> ScheduledSCRsUnit", "error", err.Error())
 	}
 }
 

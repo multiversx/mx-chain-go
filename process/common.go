@@ -749,7 +749,7 @@ func IsScheduledMode(
 	for _, miniBlockHeader := range header.GetMiniBlockHeaderHandlers() {
 		if bytes.Equal(miniBlockHash, miniBlockHeader.GetHash()) {
 			reserved := miniBlockHeader.GetReserved()
-			return len(reserved) > 0 && reserved[0] == byte(block.ScheduledBlock), nil
+			return len(reserved) > 0 && reserved[0] == byte(block.Scheduled), nil
 		}
 	}
 

@@ -668,10 +668,15 @@ func (txs *transactions) isFirstMiniBlockSplitForReceiverShardFound(
 }
 
 func (txs *transactions) initCreateScheduledMiniBlocks() *createScheduledMiniBlocksInfo {
+	reserved, _ := (&block.MiniBlockReserved{
+		ExecutionType:    block.Scheduled,
+		TransactionsType: nil,
+	}).Marshal()
+
 	return &createScheduledMiniBlocksInfo{
 		mapCrossShardScCallTxs:                   make(map[uint32]int),
 		mapGasConsumedByMiniBlockInReceiverShard: txs.initGasConsumed(),
-		mapMiniBlocks:                            txs.createEmptyMiniBlocks(block.TxBlock, []byte{byte(block.ScheduledBlock)}),
+		mapMiniBlocks:                            txs.createEmptyMiniBlocks(block.TxBlock, reserved),
 		senderAddressToSkip:                      []byte(""),
 		maxCrossShardScCallTxsPerShard:           0,
 		firstCrossShardScCallTxFound:             false,

@@ -146,7 +146,6 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 	unitOpener, err := createUnitOpener(
 		bootstrapDataProvider,
 		latestStorageDataProvider,
-		bcf.config,
 		common.DefaultEpochString,
 		common.DefaultShardString,
 	)
@@ -160,7 +159,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		Messenger:                  bcf.networkComponents.NetworkMessenger(),
 		GeneralConfig:              bcf.config,
 		PrefsConfig:                bcf.prefConfig.Preferences,
-		EpochConfig:                bcf.epochConfig,
+		EnableEpochs:               bcf.epochConfig.EnableEpochs,
 		EconomicsData:              bcf.coreComponents.EconomicsData(),
 		GenesisNodesConfig:         bcf.coreComponents.GenesisNodesSetup(),
 		GenesisShardCoordinator:    genesisShardCoordinator,
@@ -303,12 +302,10 @@ func createLatestStorageDataProvider(
 func createUnitOpener(
 	bootstrapDataProvider storageFactory.BootstrapDataProviderHandler,
 	latestDataFromStorageProvider storage.LatestStorageDataProviderHandler,
-	generalConfig config.Config,
 	defaultEpochString string,
 	defaultShardString string,
 ) (storage.UnitOpenerHandler, error) {
 	argsStorageUnitOpener := storageFactory.ArgsNewOpenStorageUnits{
-		GeneralConfig:             generalConfig,
 		BootstrapDataProvider:     bootstrapDataProvider,
 		LatestStorageDataProvider: latestDataFromStorageProvider,
 		DefaultEpochString:        defaultEpochString,
