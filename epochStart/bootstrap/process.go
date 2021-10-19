@@ -914,6 +914,7 @@ func (e *epochStartBootstrap) updateDataForScheduled(
 
 	scheduledTxsHandler, err := preprocess.NewScheduledTxsExecution(
 		&factoryDisabled.TxProcessor{},
+		&factoryDisabled.ScrProcessor{},
 		&factoryDisabled.TxCoordinator{},
 		e.storerScheduledSCRs,
 		e.coreComponentsHolder.InternalMarshalizer(),
