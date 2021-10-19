@@ -71,6 +71,10 @@ func NewStorageEpochStartBootstrap(args ArgsStorageEpochStartBootstrap) (*storag
 
 // Bootstrap runs the fast bootstrap method from local storage or from import-db directory
 func (sesb *storageEpochStartBootstrap) Bootstrap() (Parameters, error) {
+	defer func() {
+		_ = sesb.oldTrieStorageCreator.Close()
+	}()
+
 	if !sesb.generalConfig.GeneralSettings.StartInEpochEnabled {
 		return sesb.bootstrapFromLocalStorage()
 	}
@@ -148,6 +152,7 @@ func (sesb *storageEpochStartBootstrap) prepareComponentsToSync() error {
 		sesb.coreComponentsHolder,
 		core.MetachainShardId,
 		disabled.NewChainStorer(),
+		sesb.oldTrieStorageCreator,
 	)
 	if err != nil {
 		return err

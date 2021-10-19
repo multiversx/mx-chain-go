@@ -253,7 +253,7 @@ func (tsm *trieStorageManager) Get(key []byte) ([]byte, error) {
 func (tsm *trieStorageManager) Put(key []byte, val []byte) error {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
-	log.Debug("put hash in tsm", "hash", key)
+	log.Trace("put hash in tsm", "hash", key)
 
 	return tsm.mainStorer.Put(key, val)
 }

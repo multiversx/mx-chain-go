@@ -99,6 +99,7 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 		e.coreComponentsHolder,
 		newShardId,
 		disabled.NewChainStorer(),
+		e.oldTrieStorageCreator,
 	)
 	if err != nil {
 		return Parameters{}, err

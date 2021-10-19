@@ -6,7 +6,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/trie"
@@ -16,16 +15,22 @@ import (
 )
 
 func getArgs() factory.TrieFactoryArgs {
+	generalConfig := config.Config{
+		PeerAccountsTrieStorageOld: createTrieStorageCfg(),
+		AccountsTrieStorageOld:     createTrieStorageCfg(),
+	}
+	tsc, _ := factory.NewOldTrieStorageCreator(&testscommon.PathManagerStub{}, generalConfig)
+
 	return factory.TrieFactoryArgs{
-		Marshalizer: &testscommon.MarshalizerMock{},
-		Hasher:      &testscommon.HasherMock{},
-		PathManager: &testscommon.PathManagerStub{},
+		Marshalizer:        &testscommon.MarshalizerMock{},
+		Hasher:             &testscommon.HasherMock{},
+		TrieStorageCreator: tsc,
 	}
 }
 
 func getCreateArgs() factory.TrieCreateArgs {
 	return factory.TrieCreateArgs{
-		TrieStorageConfig:  createTrieStorageCfg(),
+		TrieType:           factory.UserAccountTrie,
 		MainStorer:         testscommon.CreateMemUnit(),
 		CheckpointsStorer:  testscommon.CreateMemUnit(),
 		ShardID:            "0",
@@ -65,15 +70,15 @@ func TestNewTrieFactory_NilHasherShouldErr(t *testing.T) {
 	assert.Equal(t, trie.ErrNilHasher, err)
 }
 
-func TestNewTrieFactory_NilPathManagerShouldErr(t *testing.T) {
+func TestNewTrieFactory_NilTrieStorageCreatorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := getArgs()
-	args.PathManager = nil
+	args.TrieStorageCreator = nil
 	tf, err := factory.NewTrieFactory(args)
 
 	assert.Nil(t, tf)
-	assert.Equal(t, trie.ErrNilPathManager, err)
+	assert.Equal(t, trie.ErrNilTrieStorageCreator, err)
 }
 
 func TestNewTrieFactory_ShouldWork(t *testing.T) {
@@ -84,19 +89,6 @@ func TestNewTrieFactory_ShouldWork(t *testing.T) {
 	tf, err := factory.NewTrieFactory(args)
 	require.Nil(t, err)
 	require.False(t, check.IfNil(tf))
-}
-
-func TestTrieFactory_CreateNotSupportedCacheType(t *testing.T) {
-	t.Parallel()
-
-	args := getArgs()
-	tf, _ := factory.NewTrieFactory(args)
-
-	createArgs := getCreateArgs()
-	createArgs.TrieStorageConfig = config.StorageConfig{}
-	_, tr, err := tf.Create(createArgs)
-	require.Nil(t, tr)
-	require.Equal(t, storage.ErrNotSupportedCacheType, err)
 }
 
 func TestTrieFactory_CreateWithoutPruningShouldWork(t *testing.T) {

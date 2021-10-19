@@ -73,11 +73,17 @@ func NewStateComponentsFactory(args StateComponentsFactoryArgs) (*stateComponent
 
 // Create creates the state components
 func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
+	oldTrieStorageCreator, err := trieFactory.NewOldTrieStorageCreator(scf.core.PathHandler(), scf.config)
+	if err != nil {
+		return nil, err
+	}
+
 	triesContainer, trieStorageManagers, err := trieFactory.CreateTriesComponentsForShardId(
 		scf.config,
 		scf.core,
 		scf.shardCoordinator.SelfId(),
 		scf.storageService,
+		oldTrieStorageCreator,
 	)
 	if err != nil {
 		return nil, err
