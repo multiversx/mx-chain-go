@@ -2,7 +2,6 @@ package detector
 
 import (
 	"testing"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -231,32 +230,26 @@ func TestRoundProposerDataCache_Contains(t *testing.T) {
 	t.Parallel()
 	dataCache := NewRoundValidatorDataCache(2)
 
-	go func() {
-		err := dataCache.Add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
-			HashCalled: func() []byte {
-				return []byte("hash1")
-			},
-		})
-		require.Nil(t, err)
-	}()
-	go func() {
-		err := dataCache.Add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
-			HashCalled: func() []byte {
-				return []byte("hash2")
-			},
-		})
-		require.Nil(t, err)
-	}()
-	go func() {
-		err := dataCache.Add(2, []byte("proposer2"), &testscommon.InterceptedDataStub{
-			HashCalled: func() []byte {
-				return []byte("hash3")
-			},
-		})
-		require.Nil(t, err)
-	}()
+	err := dataCache.Add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
+		HashCalled: func() []byte {
+			return []byte("hash1")
+		},
+	})
+	require.Nil(t, err)
 
-	time.Sleep(time.Millisecond)
+	err = dataCache.Add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
+		HashCalled: func() []byte {
+			return []byte("hash2")
+		},
+	})
+	require.Nil(t, err)
+
+	err = dataCache.Add(2, []byte("proposer2"), &testscommon.InterceptedDataStub{
+		HashCalled: func() []byte {
+			return []byte("hash3")
+		},
+	})
+	require.Nil(t, err)
 
 	expectedData1 := &testscommon.InterceptedDataStub{
 		HashCalled: func() []byte {

@@ -2,7 +2,6 @@ package detector
 
 import (
 	"testing"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -122,25 +121,20 @@ func TestRoundDataCache_Contains(t *testing.T) {
 
 	dataCache := NewRoundHeadersCache(2)
 
-	go func() {
-		err := dataCache.Add(1, []byte("hash1"), &testscommon.HeaderHandlerStub{
-			TimestampField: 1,
-		})
-		require.Nil(t, err)
-	}()
-	go func() {
-		err := dataCache.Add(1, []byte("hash2"), &testscommon.HeaderHandlerStub{
-			TimestampField: 2,
-		})
-		require.Nil(t, err)
-	}()
-	go func() {
-		err := dataCache.Add(2, []byte("hash3"), &testscommon.HeaderHandlerStub{
-			TimestampField: 3,
-		})
-		require.Nil(t, err)
-	}()
-	time.Sleep(time.Millisecond)
+	err := dataCache.Add(1, []byte("hash1"), &testscommon.HeaderHandlerStub{
+		TimestampField: 1,
+	})
+	require.Nil(t, err)
+
+	err = dataCache.Add(1, []byte("hash2"), &testscommon.HeaderHandlerStub{
+		TimestampField: 2,
+	})
+	require.Nil(t, err)
+
+	err = dataCache.Add(2, []byte("hash3"), &testscommon.HeaderHandlerStub{
+		TimestampField: 3,
+	})
+	require.Nil(t, err)
 
 	require.True(t, dataCache.contains(1, []byte("hash1")))
 	require.True(t, dataCache.contains(1, []byte("hash2")))
