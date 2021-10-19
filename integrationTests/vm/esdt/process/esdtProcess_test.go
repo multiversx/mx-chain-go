@@ -2422,7 +2422,7 @@ func multiTransferFromSC(t *testing.T, numOfShards int) {
 	esdtCommon.CheckAddressHasESDTTokens(t, destinationNode.OwnAccount.Address, nodes, string(tokenIdentifier), 20)
 }
 
-func TestESDTIssueUnderProtectedKeyWillReturnEGLD(t *testing.T) {
+func TestESDTIssueUnderProtectedKeyWillReturnTokensBack(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -2476,7 +2476,7 @@ func TestESDTIssueUnderProtectedKeyWillReturnEGLD(t *testing.T) {
 	balanceBefore := userAcc.GetBalance()
 
 	nrRoundsToPropagateMultiShard := 12
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	tokenIdentifier := integrationTests.GetTokenIdentifier(nodes, []byte(ticker))
 	require.Equal(t, 0, len(tokenIdentifier))
