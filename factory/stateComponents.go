@@ -38,7 +38,7 @@ type stateComponents struct {
 	peerAccounts        state.AccountsAdapter
 	accountsAdapter     state.AccountsAdapter
 	accountsAdapterAPI  state.AccountsAdapter
-	triesContainer      state.TriesHolder
+	triesContainer      common.TriesHolder
 	trieStorageManagers map[string]common.StorageManager
 }
 
@@ -108,7 +108,7 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 	}, nil
 }
 
-func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer state.TriesHolder) (state.AccountsAdapter, state.AccountsAdapter, error) {
+func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.TriesHolder) (state.AccountsAdapter, state.AccountsAdapter, error) {
 	accountFactory := factoryState.NewAccountCreator()
 	merkleTrie := triesContainer.Get([]byte(trieFactory.UserAccountTrie))
 	storagePruning, err := scf.newStoragePruningManager()
@@ -141,7 +141,7 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer state.T
 	return accountsAdapter, accountsAdapterAPI, nil
 }
 
-func (scf *stateComponentsFactory) createPeerAdapter(triesContainer state.TriesHolder) (state.AccountsAdapter, error) {
+func (scf *stateComponentsFactory) createPeerAdapter(triesContainer common.TriesHolder) (state.AccountsAdapter, error) {
 	accountFactory := factoryState.NewPeerAccountCreator()
 	merkleTrie := triesContainer.Get([]byte(trieFactory.PeerAccountTrie))
 	storagePruning, err := scf.newStoragePruningManager()

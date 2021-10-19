@@ -132,16 +132,6 @@ type JournalEntry interface {
 	IsInterfaceNil() bool
 }
 
-// TriesHolder is used to store multiple tries
-type TriesHolder interface {
-	Put([]byte, common.Trie)
-	Replace(key []byte, tr common.Trie)
-	Get([]byte) common.Trie
-	GetAll() []common.Trie
-	Reset()
-	IsInterfaceNil() bool
-}
-
 type baseAccountHandler interface {
 	AddressBytes() []byte
 	IncreaseNonce(nonce uint64)

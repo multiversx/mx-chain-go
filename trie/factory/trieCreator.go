@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/trie"
@@ -153,11 +152,11 @@ func (tc *trieCreator) IsInterfaceNil() bool {
 // CreateTriesComponentsForShardId creates the user and peer tries and trieStorageManagers
 func CreateTriesComponentsForShardId(
 	generalConfig config.Config,
-	coreComponentsHolder process.CoreComponentsHolder,
+	coreComponentsHolder coreComponentsHandler,
 	shardId uint32,
 	storageService dataRetriever.StorageService,
 	trieStorageCreator TrieStorageCreator,
-) (state.TriesHolder, map[string]common.StorageManager, error) {
+) (common.TriesHolder, map[string]common.StorageManager, error) {
 	trieFactoryArgs := TrieFactoryArgs{
 		Marshalizer:              coreComponentsHolder.InternalMarshalizer(),
 		Hasher:                   coreComponentsHolder.Hasher(),

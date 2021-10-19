@@ -86,7 +86,7 @@ type epochStartBootstrap struct {
 	genesisNodesConfig         sharding.GenesisNodesSetupHandler
 	genesisShardCoordinator    sharding.Coordinator
 	rater                      sharding.ChanceComputer
-	trieContainer              state.TriesHolder
+	trieContainer              common.TriesHolder
 	trieStorageManagers        map[string]common.StorageManager
 	mutTrieStorageManagers     sync.RWMutex
 	nodeShuffler               sharding.NodesShuffler

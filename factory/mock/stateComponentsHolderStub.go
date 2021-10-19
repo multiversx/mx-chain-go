@@ -10,7 +10,7 @@ type StateComponentsHolderStub struct {
 	PeerAccountsCalled        func() state.AccountsAdapter
 	AccountsAdapterCalled     func() state.AccountsAdapter
 	AccountsAdapterAPICalled  func() state.AccountsAdapter
-	TriesContainerCalled      func() state.TriesHolder
+	TriesContainerCalled      func() common.TriesHolder
 	TrieStorageManagersCalled func() map[string]common.StorageManager
 }
 
@@ -42,7 +42,7 @@ func (s *StateComponentsHolderStub) AccountsAdapterAPI() state.AccountsAdapter {
 }
 
 // TriesContainer -
-func (s *StateComponentsHolderStub) TriesContainer() state.TriesHolder {
+func (s *StateComponentsHolderStub) TriesContainer() common.TriesHolder {
 	if s.TriesContainerCalled != nil {
 		return s.TriesContainerCalled()
 	}

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
@@ -79,7 +80,7 @@ func createStoreForMeta() dataRetriever.StorageService {
 	}
 }
 
-func createTriesHolderForMeta() state.TriesHolder {
+func createTriesHolderForMeta() common.TriesHolder {
 	triesHolder := state.NewDataTriesHolder()
 	triesHolder.Put([]byte(triesFactory.UserAccountTrie), &trieMock.TrieStub{})
 	triesHolder.Put([]byte(triesFactory.PeerAccountTrie), &trieMock.TrieStub{})

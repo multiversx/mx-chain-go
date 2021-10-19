@@ -73,6 +73,16 @@ type SnapshotDbHandler interface {
 	SetPath(string)
 }
 
+// TriesHolder is used to store multiple tries
+type TriesHolder interface {
+	Put([]byte, Trie)
+	Replace(key []byte, tr Trie)
+	Get([]byte) Trie
+	GetAll() []Trie
+	Reset()
+	IsInterfaceNil() bool
+}
+
 // Locker defines the operations used to lock different critical areas. Implemented by the RWMutex.
 type Locker interface {
 	Lock()

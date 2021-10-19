@@ -1,6 +1,8 @@
 package factory
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 )
@@ -11,4 +13,9 @@ type TrieStorageCreator interface {
 	GetSnapshotsConfig(shardId string, trieType string) config.DBConfig
 	Close() error
 	IsInterfaceNil() bool
+}
+
+type coreComponentsHandler interface {
+	InternalMarshalizer() marshal.Marshalizer
+	Hasher() hashing.Hasher
 }

@@ -130,7 +130,7 @@ func (msc *managedStateComponents) AccountsAdapterAPI() state.AccountsAdapter {
 }
 
 // TriesContainer returns the tries container
-func (msc *managedStateComponents) TriesContainer() state.TriesHolder {
+func (msc *managedStateComponents) TriesContainer() common.TriesHolder {
 	msc.mutStateComponents.RLock()
 	defer msc.mutStateComponents.RUnlock()
 
@@ -161,7 +161,7 @@ func (msc *managedStateComponents) TrieStorageManagers() map[string]common.Stora
 }
 
 // SetTriesContainer sets the internal tries container to the one given as parameter
-func (msc *managedStateComponents) SetTriesContainer(triesContainer state.TriesHolder) error {
+func (msc *managedStateComponents) SetTriesContainer(triesContainer common.TriesHolder) error {
 	if check.IfNil(triesContainer) {
 		return errors.ErrNilTriesContainer
 	}

@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/topicResolverSender"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 // EmptyExcludePeersOnTopic is an empty topic
@@ -29,7 +28,7 @@ type baseResolversContainerFactory struct {
 	uint64ByteSliceConverter    typeConverters.Uint64ByteSliceConverter
 	intRandomizer               dataRetriever.IntRandomizer
 	dataPacker                  dataRetriever.DataPacker
-	triesContainer              state.TriesHolder
+	triesContainer              common.TriesHolder
 	inputAntifloodHandler       dataRetriever.P2PAntifloodHandler
 	outputAntifloodHandler      dataRetriever.P2PAntifloodHandler
 	throttler                   dataRetriever.ResolverThrottler

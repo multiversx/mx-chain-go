@@ -84,7 +84,7 @@ func (d *dataTrieFactory) TrieStorageManager() common.StorageManager {
 }
 
 // Create creates a TriesHolder container to hold all the states
-func (d *dataTrieFactory) Create() (state.TriesHolder, error) {
+func (d *dataTrieFactory) Create() (common.TriesHolder, error) {
 	container := state.NewDataTriesHolder()
 
 	for i := uint32(0); i < d.shardCoordinator.NumberOfShards(); i++ {
@@ -107,7 +107,7 @@ func (d *dataTrieFactory) Create() (state.TriesHolder, error) {
 	return container, nil
 }
 
-func (d *dataTrieFactory) createAndAddOneTrie(shId uint32, accType genesis.Type, container state.TriesHolder) error {
+func (d *dataTrieFactory) createAndAddOneTrie(shId uint32, accType genesis.Type, container common.TriesHolder) error {
 	dataTrie, err := trie.NewTrie(d.trieStorage, d.marshalizer, d.hasher, d.maxTrieLevelInMemory)
 	if err != nil {
 		return err

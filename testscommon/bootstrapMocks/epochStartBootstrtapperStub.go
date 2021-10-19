@@ -3,12 +3,11 @@ package bootstrapMocks
 import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
-	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 // EpochStartBootstrapperStub -
 type EpochStartBootstrapperStub struct {
-	TrieHolder      state.TriesHolder
+	TrieHolder      common.TriesHolder
 	StorageManagers map[string]common.StorageManager
 	BootstrapCalled func() (bootstrap.Parameters, error)
 }
