@@ -102,10 +102,21 @@ func (mhs *multipleHeaderSigningDetector) VerifyData(interceptedData process.Int
 }
 
 func (mhs *multipleHeaderSigningDetector) computeHashWithoutSignatures(header data.HeaderHandler) ([]byte, error) {
-	headerCopy := header.Clone()
-	headerCopy.SetPubKeysBitmap(nil)
-	headerCopy.SetSignature(nil)
-	headerCopy.SetLeaderSignature(nil)
+	headerCopy := header.ShallowClone()
+	err := headerCopy.SetPubKeysBitmap(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	err = headerCopy.SetSignature(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	err = headerCopy.SetLeaderSignature(nil)
+	if err != nil {
+		return nil, err
+	}
 
 	return core.CalculateHash(mhs.marshaller, mhs.hasher, headerCopy)
 }

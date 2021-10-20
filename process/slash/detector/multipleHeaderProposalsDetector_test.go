@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/slash/detector"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/slashMocks"
 	"github.com/stretchr/testify/require"
 )
@@ -67,6 +68,16 @@ func TestMultipleHeaderProposalsDetector_VerifyData_CannotCastData_ExpectError(t
 	require.Equal(t, process.ErrCannotCastInterceptedDataToHeader, err)
 }
 
+func TestMultipleHeaderProposalsDetector_VerifyData_NilHeaderHandler_ExpectError(t *testing.T) {
+	t.Parallel()
+
+	sd, _ := detector.NewMultipleHeaderProposalsDetector(&mock.NodesCoordinatorMock{}, &mock.RoundHandlerMock{}, &slashMocks.RoundDetectorCacheStub{})
+	res, err := sd.VerifyData(&interceptedBlocks.InterceptedHeader{})
+
+	require.Nil(t, res)
+	require.Equal(t, process.ErrNilHeaderHandler, err)
+}
+
 func TestMultipleHeaderProposalsDetector_VerifyData_CannotGetProposer_ExpectError(t *testing.T) {
 	t.Parallel()
 
@@ -78,7 +89,7 @@ func TestMultipleHeaderProposalsDetector_VerifyData_CannotGetProposer_ExpectErro
 	}
 	sd, _ := detector.NewMultipleHeaderProposalsDetector(nodesCoordinator, &mock.RoundHandlerMock{}, &slashMocks.RoundDetectorCacheStub{})
 
-	res, err := sd.VerifyData(&interceptedBlocks.InterceptedHeader{})
+	res, err := sd.VerifyData(createInterceptedHeaderData(&block.Header{}))
 
 	require.Nil(t, res)
 	require.Equal(t, expectedErr, err)
@@ -112,7 +123,7 @@ func TestMultipleHeaderProposalsDetector_VerifyData_EmptyProposerList_ExpectErro
 	}
 	sd, _ := detector.NewMultipleHeaderProposalsDetector(&nodesCoordinator, &mock.RoundHandlerMock{}, &slashMocks.RoundDetectorCacheStub{})
 
-	res, err := sd.VerifyData(&interceptedBlocks.InterceptedHeader{})
+	res, err := sd.VerifyData(createInterceptedHeaderData(&block.Header{}))
 	require.Nil(t, res)
 	require.Equal(t, process.ErrEmptyConsensusGroup, err)
 }
@@ -438,7 +449,7 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 func createInterceptedHeaderArg(header *block.Header) *interceptedBlocks.ArgInterceptedBlockHeader {
 	args := &interceptedBlocks.ArgInterceptedBlockHeader{
 		ShardCoordinator:        &mock.ShardCoordinatorStub{},
-		Hasher:                  &mock.HasherMock{},
+		Hasher:                  &hashingMocks.HasherMock{},
 		Marshalizer:             &mock.MarshalizerMock{},
 		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
 		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
