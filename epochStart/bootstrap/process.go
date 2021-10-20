@@ -453,6 +453,7 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		return err
 	}
 
+	e.closeTrieComponents()
 	e.trieContainer = triesContainer
 	e.trieStorageManagers = trieStorageManagers
 
@@ -721,6 +722,7 @@ func (e *epochStartBootstrap) requestAndProcessForMeta() error {
 		return err
 	}
 
+	e.closeTrieComponents()
 	e.trieContainer = triesContainer
 	e.trieStorageManagers = trieStorageManagers
 
@@ -830,6 +832,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 
 	defer storageHandlerComponent.CloseStorageService()
 
+	e.closeTrieComponents()
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
 		e.generalConfig,
 		e.coreComponentsHolder,
@@ -1050,7 +1053,7 @@ func (e *epochStartBootstrap) applyShardIDAsObserverIfNeeded(receivedShardID uin
 
 func (e *epochStartBootstrap) closeTrieComponents() {
 	if e.trieStorageManagers != nil {
-		log.Debug("closing all trieStorageManagers....")
+		log.Debug("closing all trieStorageManagers", "num", len(e.trieStorageManagers))
 		for _, tsm := range e.trieStorageManagers {
 			err := tsm.Close()
 			log.LogIfError(err)
@@ -1058,8 +1061,8 @@ func (e *epochStartBootstrap) closeTrieComponents() {
 	}
 
 	if !check.IfNil(e.trieContainer) {
-		log.Debug("closing all tries....")
 		tries := e.trieContainer.GetAll()
+		log.Debug("closing all tries", "num", len(tries))
 		for _, trie := range tries {
 			err := trie.Close()
 			log.LogIfError(err)

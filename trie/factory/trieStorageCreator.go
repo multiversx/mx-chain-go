@@ -3,6 +3,7 @@ package factory
 import (
 	"path"
 	"path/filepath"
+	"strings"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -79,11 +80,6 @@ func (tsc *oldTrieStorageCreator) getStorage(
 ) (common.DBWriteCacher, error) {
 	storagePath, mainDb := path.Split(tsc.pathManager.PathForStatic(shardId, storageConfig.DB.FilePath))
 
-	existingStorage, ok := tsc.createdStorages[storagePath]
-	if ok {
-		return existingStorage, nil
-	}
-
 	dbConfig := factory.GetDBFromConfig(storageConfig.DB)
 	dbConfig.FilePath = path.Join(storagePath, mainDb)
 	trieStorage, err := storageUnit.NewStorageUnitFromConf(
@@ -92,10 +88,18 @@ func (tsc *oldTrieStorageCreator) getStorage(
 		factory.GetBloomFromConfig(storageConfig.Bloom),
 	)
 	if err != nil {
+		if strings.Contains(err.Error(), "resource temporarily unavailable") {
+			existingStorage, ok := tsc.createdStorages[storagePath]
+			if ok {
+				log.Debug("resource temporarily unavailable, get existing")
+				return existingStorage, nil
+			}
+		}
 		return nil, err
 	}
 
 	tsc.createdStorages[storagePath] = trieStorage
+	log.Debug("create new storage", "path", storagePath, "num existing", len(tsc.createdStorages))
 
 	return trieStorage, nil
 }

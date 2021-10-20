@@ -94,20 +94,6 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
-		e.generalConfig,
-		e.coreComponentsHolder,
-		newShardId,
-		disabled.NewChainStorer(),
-		e.oldTrieStorageCreator,
-	)
-	if err != nil {
-		return Parameters{}, err
-	}
-
-	e.trieContainer = triesContainer
-	e.trieStorageManagers = trieStorageManagers
-
 	if !isShuffledOut {
 		parameters := Parameters{
 			Epoch:       e.baseData.lastEpoch,
@@ -119,6 +105,21 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 
 		return parameters, nil
 	}
+
+	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
+		e.generalConfig,
+		e.coreComponentsHolder,
+		newShardId,
+		disabled.NewChainStorer(),
+		e.oldTrieStorageCreator,
+	)
+	if err != nil {
+		return Parameters{}, err
+	}
+
+	e.closeTrieComponents()
+	e.trieContainer = triesContainer
+	e.trieStorageManagers = trieStorageManagers
 
 	e.shuffledOut = isShuffledOut
 	log.Debug("prepareEpochFromStorage for shuffled out", "initial shard id", e.baseData.shardId, "new shard id", newShardId)

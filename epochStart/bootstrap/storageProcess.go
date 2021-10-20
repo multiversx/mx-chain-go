@@ -159,6 +159,7 @@ func (sesb *storageEpochStartBootstrap) prepareComponentsToSync() error {
 		return err
 	}
 
+	sesb.closeTrieComponents()
 	sesb.trieContainer = triesContainer
 	sesb.trieStorageManagers = trieStorageManagers
 
