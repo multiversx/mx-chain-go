@@ -17,7 +17,7 @@ func ToProtoMultipleHeaderProposal(proof MultipleProposalProofHandler) (*coreSla
 
 	return &coreSlash.MultipleHeaderProposalProof{
 		Level: coreSlash.ThreatLevel(proof.GetLevel()),
-		Headers: &coreSlash.Headers{
+		Headers: coreSlash.Headers{
 			Headers: headers,
 		},
 	}, nil
@@ -26,14 +26,14 @@ func ToProtoMultipleHeaderProposal(proof MultipleProposalProofHandler) (*coreSla
 // ToProtoMultipleHeaderSign converts a MultipleSigningProofHandler to its specific proto structure
 func ToProtoMultipleHeaderSign(proof MultipleSigningProofHandler) (*coreSlash.MultipleHeaderSigningProof, error) {
 	levels := make(map[string]coreSlash.ThreatLevel)
-	headers := make(map[string]*coreSlash.Headers)
+	headers := make(map[string]coreSlash.Headers)
 
 	for _, pubKey := range proof.GetPubKeys() {
 		currHeaders, err := getHeadersFromInterceptedHeaders(proof.GetHeaders(pubKey))
 		if err != nil {
 			return nil, err
 		}
-		headers[string(pubKey)] = &coreSlash.Headers{Headers: currHeaders}
+		headers[string(pubKey)] = coreSlash.Headers{Headers: currHeaders}
 
 		levels[string(pubKey)] = coreSlash.ThreatLevel(proof.GetLevel(pubKey))
 	}

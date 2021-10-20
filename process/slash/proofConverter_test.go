@@ -42,7 +42,7 @@ func TestToProtoMultipleHeaderProposal(t *testing.T) {
 
 	expectedRes := &coreSlash.MultipleHeaderProposalProof{
 		Level:   coreSlash.High,
-		Headers: &coreSlash.Headers{Headers: []*block.HeaderV2{h1, h2}},
+		Headers: coreSlash.Headers{Headers: []*block.HeaderV2{h1, h2}},
 	}
 	res, err := slash.ToProtoMultipleHeaderProposal(proof)
 	require.Nil(t, err)
@@ -106,7 +106,7 @@ func TestToProtoMultipleHeaderSign(t *testing.T) {
 			string(pk1): coreSlash.Medium,
 			string(pk2): coreSlash.High,
 		},
-		Headers: map[string]*coreSlash.Headers{
+		Headers: map[string]coreSlash.Headers{
 			string(pk1): {Headers: []*block.HeaderV2{h1}},
 			string(pk2): {Headers: []*block.HeaderV2{h1, h2}},
 		},

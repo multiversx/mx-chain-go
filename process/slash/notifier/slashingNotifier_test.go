@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/slashMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -221,14 +222,22 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleProposalProof(t
 
 	sn, _ := notifier.NewSlashingNotifier(args)
 
-	h1 := slashMocks.CreateInterceptedHeaderData(&block.Header{
-		Round:        4,
-		PrevRandSeed: []byte("seed1"),
-	})
-	h2 := slashMocks.CreateInterceptedHeaderData(&block.Header{
-		Round:        4,
-		PrevRandSeed: []byte("seed2"),
-	})
+	h1 := slashMocks.CreateInterceptedHeaderData(
+		&block.HeaderV2{
+			Header: &block.Header{
+				Round:        4,
+				PrevRandSeed: []byte("seed1"),
+			},
+		},
+	)
+	h2 := slashMocks.CreateInterceptedHeaderData(
+		&block.HeaderV2{
+			Header: &block.Header{
+				Round:        4,
+				PrevRandSeed: []byte("seed2"),
+			},
+		},
+	)
 	proof := &slashMocks.MultipleHeaderProposalProofStub{
 		GetHeadersCalled: func() []*interceptedBlocks.InterceptedHeader {
 			return []*interceptedBlocks.InterceptedHeader{h1, h2}
@@ -263,14 +272,22 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleSignProof(t *te
 
 	pk1 := []byte("pubKey1")
 
-	h1 := slashMocks.CreateInterceptedHeaderData(&block.Header{
-		Round:        4,
-		PrevRandSeed: []byte("seed1"),
-	})
-	h2 := slashMocks.CreateInterceptedHeaderData(&block.Header{
-		Round:        4,
-		PrevRandSeed: []byte("seed2"),
-	})
+	h1 := slashMocks.CreateInterceptedHeaderData(
+		&block.HeaderV2{
+			Header: &block.Header{
+				Round:        4,
+				PrevRandSeed: []byte("seed1"),
+			},
+		},
+	)
+	h2 := slashMocks.CreateInterceptedHeaderData(
+		&block.HeaderV2{
+			Header: &block.Header{
+				Round:        4,
+				PrevRandSeed: []byte("seed2"),
+			},
+		},
+	)
 	proof := &slashMocks.MultipleHeaderSigningProofStub{
 		GetLevelCalled: func([]byte) slash.ThreatLevel {
 			return slash.High
@@ -316,7 +333,7 @@ func generateSlashingNotifierArgs() *notifier.SlashingNotifierArgs {
 		PubKeyConverter: &testscommon.PubkeyConverterMock{},
 		Signer:          &mock.SignerMock{},
 		AccountAdapter:  accountsAdapter,
-		Hasher:          &testscommon.HasherMock{},
+		Hasher:          &hashingMocks.HasherMock{},
 		Marshaller:      &testscommon.MarshalizerMock{},
 	}
 }

@@ -14,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/slash/detector"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/slashMocks"
 	"github.com/stretchr/testify/require"
 )

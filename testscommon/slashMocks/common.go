@@ -4,12 +4,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 )
 
 func createInterceptedHeaderArg(header data.HeaderHandler) *interceptedBlocks.ArgInterceptedBlockHeader {
 	args := &interceptedBlocks.ArgInterceptedBlockHeader{
 		ShardCoordinator:        &mock.ShardCoordinatorStub{},
-		Hasher:                  &mock.HasherMock{},
+		Hasher:                  &hashingMocks.HasherMock{},
 		Marshalizer:             &mock.MarshalizerMock{},
 		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
 		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
