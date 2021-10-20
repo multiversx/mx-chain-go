@@ -1,55 +1,39 @@
 package slash
 
 import (
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 )
 
 type multipleProposalProof struct {
-	level        SlashingLevel
-	slashingType SlashingType
-	headers      []*interceptedBlocks.InterceptedHeader
+	slashableHeaders slashingHeaders
 }
 
 // NewMultipleProposalProof - creates a new double block proposal slashing proof with a level, type and data
-func NewMultipleProposalProof(sType SlashingType, level SlashingLevel, data []process.InterceptedData) (MultipleProposalProofHandler, error) {
-	headers, err := convertInterceptedDataToHeader(data)
+func NewMultipleProposalProof(slashableData *SlashingResult) (MultipleProposalProofHandler, error) {
+	headers, err := convertInterceptedDataToInterceptedHeaders(slashableData.Data)
 	if err != nil {
 		return nil, err
 	}
 
 	return &multipleProposalProof{
-		level:        level,
-		slashingType: sType,
-		headers:      headers,
+		slashableHeaders: slashingHeaders{
+			slashingLevel: slashableData.SlashingLevel,
+			headers:       headers,
+		},
 	}, nil
 }
 
-// GetLevel - gets the slashing proofs level
-func (mpp *multipleProposalProof) GetLevel() SlashingLevel {
-	return mpp.level
+// GetLevel - returns the slashing proof threat level
+func (mpp *multipleProposalProof) GetLevel() ThreatLevel {
+	return mpp.slashableHeaders.slashingLevel
 }
 
-// GetType - gets the slashing proofs type
+// GetType - returns MultipleProposal
 func (mpp *multipleProposalProof) GetType() SlashingType {
-	return mpp.slashingType
+	return MultipleProposal
 }
 
-// GetHeaders - gets the slashing proofs headers
+// GetHeaders - returns the slashing proofs headers
 func (mpp *multipleProposalProof) GetHeaders() []*interceptedBlocks.InterceptedHeader {
-	return mpp.headers
-}
-
-func convertInterceptedDataToHeader(data []process.InterceptedData) ([]*interceptedBlocks.InterceptedHeader, error) {
-	headers := make([]*interceptedBlocks.InterceptedHeader, 0, len(data))
-
-	for _, d := range data {
-		header, castOk := d.(*interceptedBlocks.InterceptedHeader)
-		if !castOk {
-			return nil, process.ErrCannotCastInterceptedDataToHeader
-		}
-		headers = append(headers, header)
-	}
-
-	return headers, nil
+	return mpp.slashableHeaders.headers
 }
