@@ -8,13 +8,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/process/slash"
-	"github.com/ElrondNetwork/elrond-go/process/slash/mock"
-	"github.com/ElrondNetwork/elrond-go/process/slash/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/slashMocks"
 	"github.com/stretchr/testify/require"
 )
 
 func TestToProtoMultipleHeaderProposal_NilHeaders_ExpectError(t *testing.T) {
-	proof := &mock.MultipleHeaderProposalProofStub{
+	proof := &slashMocks.MultipleHeaderProposalProofStub{
 		GetHeadersCalled: func() []*interceptedBlocks.InterceptedHeader {
 			return []*interceptedBlocks.InterceptedHeader{nil}
 		},
@@ -29,10 +28,10 @@ func TestToProtoMultipleHeaderProposal(t *testing.T) {
 	h1 := &block.Header{Nonce: 1, Round: 1}
 	h2 := &block.Header{Nonce: 2, Round: 2}
 
-	interceptedHeader1 := testscommon.CreateInterceptedHeaderData(h1)
-	interceptedHeader2 := testscommon.CreateInterceptedHeaderData(h2)
+	interceptedHeader1 := slashMocks.CreateInterceptedHeaderData(h1)
+	interceptedHeader2 := slashMocks.CreateInterceptedHeaderData(h2)
 
-	proof := &mock.MultipleHeaderProposalProofStub{
+	proof := &slashMocks.MultipleHeaderProposalProofStub{
 		GetHeadersCalled: func() []*interceptedBlocks.InterceptedHeader {
 			return []*interceptedBlocks.InterceptedHeader{interceptedHeader1, interceptedHeader2}
 		},
@@ -51,7 +50,7 @@ func TestToProtoMultipleHeaderProposal(t *testing.T) {
 }
 
 func TestToProtoMultipleHeaderSign_NilHeaders_ExpectError(t *testing.T) {
-	proof := &mock.MultipleHeaderSigningProofStub{
+	proof := &slashMocks.MultipleHeaderSigningProofStub{
 		GetPubKeysCalled: func() [][]byte {
 			return [][]byte{[]byte("address")}
 		},
@@ -69,13 +68,13 @@ func TestToProtoMultipleHeaderSign(t *testing.T) {
 	h1 := &block.Header{Nonce: 1, Round: 1}
 	h2 := &block.Header{Nonce: 2, Round: 2}
 
-	interceptedHeader1 := testscommon.CreateInterceptedHeaderData(h1)
-	interceptedHeader2 := testscommon.CreateInterceptedHeaderData(h2)
+	interceptedHeader1 := slashMocks.CreateInterceptedHeaderData(h1)
+	interceptedHeader2 := slashMocks.CreateInterceptedHeaderData(h2)
 
 	pk1 := []byte("pubKey1")
 	pk2 := []byte("pubKey2")
 
-	proof := &mock.MultipleHeaderSigningProofStub{
+	proof := &slashMocks.MultipleHeaderSigningProofStub{
 		GetPubKeysCalled: func() [][]byte {
 			return [][]byte{pk1, pk2}
 		},

@@ -95,7 +95,7 @@ func TestMultipleHeaderProposalsDetector_VerifyData_IrrelevantRound_ExpectError(
 		},
 		&slashMocks.RoundDetectorCacheStub{})
 
-	hData := slashMocks.createInterceptedHeaderData(&block.Header{Round: round + detector.MaxDeltaToCurrentRound + 1, RandSeed: []byte("seed")})
+	hData := slashMocks.CreateInterceptedHeaderData(&block.Header{Round: round + detector.MaxDeltaToCurrentRound + 1, RandSeed: []byte("seed")})
 	res, err := sd.VerifyData(hData)
 
 	require.Nil(t, res)

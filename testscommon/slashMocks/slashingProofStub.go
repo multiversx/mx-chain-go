@@ -1,4 +1,4 @@
-package mock
+package slashMocks
 
 import "github.com/ElrondNetwork/elrond-go/process/slash"
 

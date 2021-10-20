@@ -1,4 +1,4 @@
-package testscommon
+package slashMocks
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
