@@ -1,4 +1,4 @@
-package mock
+package slashMocks
 
 import (
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
@@ -13,6 +13,7 @@ type MultipleHeaderSigningProofStub struct {
 	GetLevelCalled   func(pubKey []byte) slash.ThreatLevel
 }
 
+// GetType -
 func (mps *MultipleHeaderSigningProofStub) GetType() slash.SlashingType {
 	if mps.GetTypeCalled != nil {
 		return mps.GetTypeCalled()

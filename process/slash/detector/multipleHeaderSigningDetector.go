@@ -3,6 +3,7 @@ package detector
 import (
 	"bytes"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
@@ -13,9 +14,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-// signingSlashingDetector - checks for slashable events in case one(or more)
+// multipleHeaderSigningDetector - checks for slashable events in case one(or more)
 // validator signs multiple headers in the same round
-type signingSlashingDetector struct {
+type multipleHeaderSigningDetector struct {
 	slashingCache    RoundDetectorCache
 	headersCache     HeadersCache
 	nodesCoordinator sharding.NodesCoordinator
@@ -24,8 +25,8 @@ type signingSlashingDetector struct {
 	baseSlashingDetector
 }
 
-// NewSigningSlashingDetector - creates a new header slashing detector for multiple signatures
-func NewSigningSlashingDetector(
+// NewMultipleHeaderSigningDetector - creates a new header slashing detector for multiple signatures
+func NewMultipleHeaderSigningDetector(
 	nodesCoordinator sharding.NodesCoordinator,
 	roundHandler process.RoundHandler,
 	hasher hashing.Hasher,
@@ -54,7 +55,7 @@ func NewSigningSlashingDetector(
 
 	baseDetector := baseSlashingDetector{roundHandler: roundHandler}
 
-	return &signingSlashingDetector{
+	return &multipleHeaderSigningDetector{
 		slashingCache:        slashingCache,
 		headersCache:         headersCache,
 		nodesCoordinator:     nodesCoordinator,
@@ -65,7 +66,7 @@ func NewSigningSlashingDetector(
 }
 
 // VerifyData - checks if an intercepted data represents a slashable event
-func (ssd *signingSlashingDetector) VerifyData(interceptedData process.InterceptedData) (slash.SlashingProofHandler, error) {
+func (mhs *multipleHeaderSigningDetector) VerifyData(interceptedData process.InterceptedData) (slash.SlashingProofHandler, error) {
 	interceptedHeader, castOk := interceptedData.(*interceptedBlocks.InterceptedHeader)
 	if !castOk {
 		return nil, process.ErrCannotCastInterceptedDataToHeader
@@ -73,26 +74,26 @@ func (ssd *signingSlashingDetector) VerifyData(interceptedData process.Intercept
 
 	header := interceptedHeader.HeaderHandler()
 	round := header.GetRound()
-	if !ssd.isRoundRelevant(round) {
+	if !mhs.isRoundRelevant(round) {
 		return nil, process.ErrHeaderRoundNotRelevant
 	}
 
-	headerHash, err := ssd.computeHashWithoutSignatures(header)
+	headerHash, err := mhs.computeHashWithoutSignatures(header)
 	if err != nil {
 		return nil, err
 	}
 
-	if ssd.headersCache.Contains(round, headerHash) {
-		return nil, process.ErrHeadersShouldHaveDifferentHashes
-	}
-
-	err = ssd.cacheSigners(interceptedHeader)
+	err = mhs.headersCache.Add(round, headerHash, header)
 	if err != nil {
 		return nil, err
 	}
-	ssd.headersCache.Add(round, headerHash, header)
 
-	slashingResult := ssd.getSlashingResult(round)
+	err = mhs.cacheSigners(interceptedHeader)
+	if err != nil {
+		return nil, err
+	}
+
+	slashingResult := mhs.getSlashingResult(round)
 	if len(slashingResult) != 0 {
 		return slash.NewMultipleSigningProof(slashingResult)
 	}
@@ -100,23 +101,18 @@ func (ssd *signingSlashingDetector) VerifyData(interceptedData process.Intercept
 	return nil, process.ErrNoSlashingEventDetected
 }
 
-func (ssd *signingSlashingDetector) computeHashWithoutSignatures(header data.HeaderHandler) ([]byte, error) {
+func (mhs *multipleHeaderSigningDetector) computeHashWithoutSignatures(header data.HeaderHandler) ([]byte, error) {
 	headerCopy := header.Clone()
 	headerCopy.SetPubKeysBitmap(nil)
 	headerCopy.SetSignature(nil)
 	headerCopy.SetLeaderSignature(nil)
 
-	headerBytes, err := ssd.marshaller.Marshal(headerCopy)
-	if err != nil {
-		return nil, err
-	}
-
-	return ssd.hasher.Compute(string(headerBytes)), nil
+	return core.CalculateHash(mhs.marshaller, mhs.hasher, headerCopy)
 }
 
-func (ssd *signingSlashingDetector) cacheSigners(interceptedHeader *interceptedBlocks.InterceptedHeader) error {
+func (mhs *multipleHeaderSigningDetector) cacheSigners(interceptedHeader *interceptedBlocks.InterceptedHeader) error {
 	header := interceptedHeader.HeaderHandler()
-	group, err := ssd.nodesCoordinator.ComputeConsensusGroup(
+	group, err := mhs.nodesCoordinator.ComputeConsensusGroup(
 		header.GetPrevRandSeed(),
 		header.GetRound(),
 		header.GetShardID(),
@@ -128,21 +124,24 @@ func (ssd *signingSlashingDetector) cacheSigners(interceptedHeader *interceptedB
 	bitmap := header.GetPubKeysBitmap()
 	for idx, validator := range group {
 		if slash.IsIndexSetInBitmap(uint32(idx), bitmap) {
-			ssd.slashingCache.Add(header.GetRound(), validator.PubKey(), interceptedHeader)
+			err = mhs.slashingCache.Add(header.GetRound(), validator.PubKey(), interceptedHeader)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
 	return nil
 }
 
-func (ssd *signingSlashingDetector) getSlashingResult(round uint64) map[string]slash.SlashingResult {
+func (mhs *multipleHeaderSigningDetector) getSlashingResult(round uint64) map[string]slash.SlashingResult {
 	slashingData := make(map[string]slash.SlashingResult)
 
-	for _, validator := range ssd.slashingCache.GetPubKeys(round) {
-		signedHeaders := ssd.slashingCache.GetData(round, validator)
+	for _, validator := range mhs.slashingCache.GetPubKeys(round) {
+		signedHeaders := mhs.slashingCache.GetData(round, validator)
 		if len(signedHeaders) > 1 {
 			slashingData[string(validator)] = slash.SlashingResult{
-				SlashingLevel: computeSlashLevel(signedHeaders),
+				SlashingLevel: mhs.computeSlashLevel(signedHeaders),
 				Data:          signedHeaders,
 			}
 		}
@@ -151,8 +150,13 @@ func (ssd *signingSlashingDetector) getSlashingResult(round uint64) map[string]s
 	return slashingData
 }
 
+// TODO: Add different logic here once slashing threat levels are clearly defined
+func (mhs *multipleHeaderSigningDetector) computeSlashLevel(data []process.InterceptedData) slash.ThreatLevel {
+	return computeSlashLevelBasedOnHeadersCount(data)
+}
+
 // ValidateProof - validates the given proof
-func (ssd *signingSlashingDetector) ValidateProof(proof slash.SlashingProofHandler) error {
+func (mhs *multipleHeaderSigningDetector) ValidateProof(proof slash.SlashingProofHandler) error {
 	multipleSigningProof, castOk := proof.(slash.MultipleSigningProofHandler)
 	if !castOk {
 		return process.ErrCannotCastProofToMultipleSignedHeaders
@@ -163,7 +167,12 @@ func (ssd *signingSlashingDetector) ValidateProof(proof slash.SlashingProofHandl
 
 	signers := multipleSigningProof.GetPubKeys()
 	for _, signer := range signers {
-		err := ssd.checkSignedHeaders(signer, multipleSigningProof.GetHeaders(signer), multipleSigningProof.GetLevel(signer))
+		err := mhs.checkSlashLevel(multipleSigningProof.GetHeaders(signer), multipleSigningProof.GetLevel(signer))
+		if err != nil {
+			return err
+		}
+
+		err = mhs.checkSignedHeaders(signer, multipleSigningProof.GetHeaders(signer))
 		if err != nil {
 			return err
 		}
@@ -172,11 +181,12 @@ func (ssd *signingSlashingDetector) ValidateProof(proof slash.SlashingProofHandl
 	return nil
 }
 
-func (ssd *signingSlashingDetector) checkSignedHeaders(
-	pubKey []byte,
-	headers []*interceptedBlocks.InterceptedHeader,
-	level slash.ThreatLevel,
-) error {
+// TODO: Add different logic here once slashing threat levels are clearly defined
+func (mhs *multipleHeaderSigningDetector) checkSlashLevel(headers []*interceptedBlocks.InterceptedHeader, level slash.ThreatLevel) error {
+	return checkSlashLevelBasedOnHeadersCount(headers, level)
+}
+
+func (mhs *multipleHeaderSigningDetector) checkSignedHeaders(pubKey []byte, headers []*interceptedBlocks.InterceptedHeader) error {
 	if len(headers) < minSlashableNoOfHeaders {
 		return process.ErrNotEnoughHeadersProvided
 	}
@@ -185,20 +195,15 @@ func (ssd *signingSlashingDetector) checkSignedHeaders(
 	round := headers[0].HeaderHandler().GetRound()
 	for _, header := range headers {
 		if header.HeaderHandler().GetRound() != round {
-			return process.ErrHeadersDoNotHaveSameRound
+			return process.ErrHeadersNotSameRound
 		}
 
-		err := checkSlashLevel(headers, level)
+		hash, err := mhs.checkHash(header.HeaderHandler(), hashes)
 		if err != nil {
 			return err
 		}
 
-		hash, err := ssd.checkHash(header.HeaderHandler(), hashes)
-		if err != nil {
-			return err
-		}
-
-		if !ssd.signedHeader(pubKey, header.HeaderHandler()) {
+		if !mhs.signedHeader(pubKey, header.HeaderHandler()) {
 			return process.ErrHeaderNotSignedByValidator
 		}
 		hashes[hash] = struct{}{}
@@ -207,21 +212,21 @@ func (ssd *signingSlashingDetector) checkSignedHeaders(
 	return nil
 }
 
-func (ssd *signingSlashingDetector) checkHash(header data.HeaderHandler, hashes map[string]struct{}) (string, error) {
-	hash, err := ssd.computeHashWithoutSignatures(header)
+func (mhs *multipleHeaderSigningDetector) checkHash(header data.HeaderHandler, hashes map[string]struct{}) (string, error) {
+	hash, err := mhs.computeHashWithoutSignatures(header)
 	if err != nil {
 		return "", err
 	}
 
 	if _, exists := hashes[string(hash)]; exists {
-		return "", process.ErrHeadersShouldHaveDifferentHashes
+		return "", process.ErrHeadersNotDifferentHashes
 	}
 
 	return string(hash), nil
 }
 
-func (ssd *signingSlashingDetector) signedHeader(pubKey []byte, header data.HeaderHandler) bool {
-	group, err := ssd.nodesCoordinator.ComputeConsensusGroup(
+func (mhs *multipleHeaderSigningDetector) signedHeader(pubKey []byte, header data.HeaderHandler) bool {
+	group, err := mhs.nodesCoordinator.ComputeConsensusGroup(
 		header.GetPrevRandSeed(),
 		header.GetRound(),
 		header.GetShardID(),

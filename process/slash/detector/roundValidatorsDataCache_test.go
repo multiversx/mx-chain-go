@@ -2,8 +2,8 @@ package detector
 
 import (
 	"testing"
-	"time"
 
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
@@ -12,37 +12,43 @@ func TestRoundProposerDataCache_Add_OneRound_TwoProposers_FourInterceptedData(t 
 	t.Parallel()
 	dataCache := NewRoundValidatorDataCache(1)
 
-	dataCache.Add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
+	err := dataCache.Add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
 		HashCalled: func() []byte {
 			return []byte("hash1")
 		},
 	})
-	dataCache.Add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
+	require.Nil(t, err)
+
+	err = dataCache.Add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
 		HashCalled: func() []byte {
 			return []byte("hash1")
 		},
 	})
-	dataCache.Add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
+	require.Equal(t, process.ErrHeadersNotDifferentHashes, err)
+
+	err = dataCache.Add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
 		HashCalled: func() []byte {
 			return []byte("hash2")
 		},
 	})
-	dataCache.Add(1, []byte("proposer2"), &testscommon.InterceptedDataStub{
+	require.Nil(t, err)
+
+	err = dataCache.Add(1, []byte("proposer2"), &testscommon.InterceptedDataStub{
 		HashCalled: func() []byte {
 			return []byte("hash3")
 		},
 	})
+	require.Nil(t, err)
 
 	// One round
 	require.Len(t, dataCache.cache, 1)
 	// Two proposers in same round
 	require.Len(t, dataCache.cache[1], 2)
 
-	// First proposer: proposed three headers
-	require.Len(t, dataCache.cache[1]["proposer1"], 3)
+	// First proposer: proposed two headers
+	require.Len(t, dataCache.cache[1]["proposer1"], 2)
 	require.Equal(t, dataCache.cache[1]["proposer1"][0].Hash(), []byte("hash1"))
-	require.Equal(t, dataCache.cache[1]["proposer1"][1].Hash(), []byte("hash1"))
-	require.Equal(t, dataCache.cache[1]["proposer1"][2].Hash(), []byte("hash2"))
+	require.Equal(t, dataCache.cache[1]["proposer1"][1].Hash(), []byte("hash2"))
 
 	// Second proposer: proposed one header
 	require.Len(t, dataCache.cache[1]["proposer2"], 1)
@@ -53,16 +59,19 @@ func TestRoundProposerDataCache_Add_CacheSizeTwo_FourEntriesInCache_ExpectOldest
 	t.Parallel()
 	dataCache := NewRoundValidatorDataCache(2)
 
-	dataCache.Add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
+	err := dataCache.Add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
 		HashCalled: func() []byte {
 			return []byte("hash1")
 		},
 	})
-	dataCache.Add(2, []byte("proposer2"), &testscommon.InterceptedDataStub{
+	require.Nil(t, err)
+
+	err = dataCache.Add(2, []byte("proposer2"), &testscommon.InterceptedDataStub{
 		HashCalled: func() []byte {
 			return []byte("hash2")
 		},
 	})
+	require.Nil(t, err)
 
 	require.Len(t, dataCache.cache, 2)
 	require.Len(t, dataCache.cache[1], 1)
@@ -73,11 +82,12 @@ func TestRoundProposerDataCache_Add_CacheSizeTwo_FourEntriesInCache_ExpectOldest
 	require.Equal(t, dataCache.cache[1]["proposer1"][0].Hash(), []byte("hash1"))
 	require.Equal(t, dataCache.cache[2]["proposer2"][0].Hash(), []byte("hash2"))
 
-	dataCache.Add(0, []byte("proposer3"), &testscommon.InterceptedDataStub{
+	err = dataCache.Add(0, []byte("proposer3"), &testscommon.InterceptedDataStub{
 		HashCalled: func() []byte {
 			return []byte("hash3")
 		},
 	})
+	require.Equal(t, process.ErrHeaderRoundNotRelevant, err)
 
 	require.Len(t, dataCache.cache, 2)
 	require.Len(t, dataCache.cache[1], 1)
@@ -88,11 +98,12 @@ func TestRoundProposerDataCache_Add_CacheSizeTwo_FourEntriesInCache_ExpectOldest
 	require.Equal(t, dataCache.cache[1]["proposer1"][0].Hash(), []byte("hash1"))
 	require.Equal(t, dataCache.cache[2]["proposer2"][0].Hash(), []byte("hash2"))
 
-	dataCache.Add(3, []byte("proposer3"), &testscommon.InterceptedDataStub{
+	err = dataCache.Add(3, []byte("proposer3"), &testscommon.InterceptedDataStub{
 		HashCalled: func() []byte {
 			return []byte("hash3")
 		},
 	})
+	require.Nil(t, err)
 
 	require.Len(t, dataCache.cache, 2)
 	require.Len(t, dataCache.cache[2], 1)
@@ -102,32 +113,55 @@ func TestRoundProposerDataCache_Add_CacheSizeTwo_FourEntriesInCache_ExpectOldest
 
 	require.Equal(t, dataCache.cache[2]["proposer2"][0].Hash(), []byte("hash2"))
 	require.Equal(t, dataCache.cache[3]["proposer3"][0].Hash(), []byte("hash3"))
+
+	err = dataCache.Add(4, []byte("proposer4"), &testscommon.InterceptedDataStub{
+		HashCalled: func() []byte {
+			return []byte("hash4")
+		},
+	})
+	require.Nil(t, err)
+
+	require.Len(t, dataCache.cache, 2)
+	require.Len(t, dataCache.cache[3], 1)
+	require.Len(t, dataCache.cache[4], 1)
+	require.Len(t, dataCache.cache[3]["proposer3"], 1)
+	require.Len(t, dataCache.cache[4]["proposer4"], 1)
+
+	require.Equal(t, dataCache.cache[3]["proposer3"][0].Hash(), []byte("hash3"))
+	require.Equal(t, dataCache.cache[4]["proposer4"][0].Hash(), []byte("hash4"))
 }
 
 func TestRoundProposerDataCache_GetData(t *testing.T) {
 	t.Parallel()
 	dataCache := NewRoundValidatorDataCache(3)
 
-	dataCache.Add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
+	err := dataCache.Add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
 		HashCalled: func() []byte {
 			return []byte("hash1")
 		},
 	})
-	dataCache.Add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
+	require.Nil(t, err)
+
+	err = dataCache.Add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
 		HashCalled: func() []byte {
 			return []byte("hash2")
 		},
 	})
-	dataCache.Add(2, []byte("proposer1"), &testscommon.InterceptedDataStub{
+	require.Nil(t, err)
+
+	err = dataCache.Add(2, []byte("proposer1"), &testscommon.InterceptedDataStub{
 		HashCalled: func() []byte {
 			return []byte("hash2")
 		},
 	})
-	dataCache.Add(2, []byte("proposer2"), &testscommon.InterceptedDataStub{
+	require.Nil(t, err)
+
+	err = dataCache.Add(2, []byte("proposer2"), &testscommon.InterceptedDataStub{
 		HashCalled: func() []byte {
 			return []byte("hash3")
 		},
 	})
+	require.Nil(t, err)
 
 	require.Len(t, dataCache.cache, 2)
 
@@ -152,26 +186,33 @@ func TestRoundProposerDataCache_GetValidators(t *testing.T) {
 	t.Parallel()
 	dataCache := NewRoundValidatorDataCache(2)
 
-	dataCache.Add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
+	err := dataCache.Add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
 		HashCalled: func() []byte {
 			return []byte("hash1")
 		},
 	})
-	dataCache.Add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
+	require.Nil(t, err)
+
+	err = dataCache.Add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
 		HashCalled: func() []byte {
 			return []byte("hash2")
 		},
 	})
-	dataCache.Add(1, []byte("proposer2"), &testscommon.InterceptedDataStub{
+	require.Nil(t, err)
+
+	err = dataCache.Add(1, []byte("proposer2"), &testscommon.InterceptedDataStub{
 		HashCalled: func() []byte {
 			return []byte("hash2")
 		},
 	})
-	dataCache.Add(2, []byte("proposer2"), &testscommon.InterceptedDataStub{
+	require.Nil(t, err)
+
+	err = dataCache.Add(2, []byte("proposer2"), &testscommon.InterceptedDataStub{
 		HashCalled: func() []byte {
 			return []byte("hash2")
 		},
 	})
+	require.Nil(t, err)
 
 	require.Len(t, dataCache.cache, 2)
 
@@ -189,22 +230,26 @@ func TestRoundProposerDataCache_Contains(t *testing.T) {
 	t.Parallel()
 	dataCache := NewRoundValidatorDataCache(2)
 
-	go dataCache.Add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
+	err := dataCache.Add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
 		HashCalled: func() []byte {
 			return []byte("hash1")
 		},
 	})
-	go dataCache.Add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
+	require.Nil(t, err)
+
+	err = dataCache.Add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
 		HashCalled: func() []byte {
 			return []byte("hash2")
 		},
 	})
-	go dataCache.Add(2, []byte("proposer2"), &testscommon.InterceptedDataStub{
+	require.Nil(t, err)
+
+	err = dataCache.Add(2, []byte("proposer2"), &testscommon.InterceptedDataStub{
 		HashCalled: func() []byte {
 			return []byte("hash3")
 		},
 	})
-	time.Sleep(time.Millisecond)
+	require.Nil(t, err)
 
 	expectedData1 := &testscommon.InterceptedDataStub{
 		HashCalled: func() []byte {
@@ -221,15 +266,15 @@ func TestRoundProposerDataCache_Contains(t *testing.T) {
 			return []byte("hash3")
 		},
 	}
-	require.True(t, dataCache.Contains(1, []byte("proposer1"), expectedData1))
-	require.True(t, dataCache.Contains(1, []byte("proposer1"), expectedData2))
-	require.True(t, dataCache.Contains(2, []byte("proposer2"), expectedData3))
+	require.True(t, dataCache.contains(1, []byte("proposer1"), expectedData1))
+	require.True(t, dataCache.contains(1, []byte("proposer1"), expectedData2))
+	require.True(t, dataCache.contains(2, []byte("proposer2"), expectedData3))
 
-	require.False(t, dataCache.Contains(1, []byte("proposer1"), expectedData3))
-	require.False(t, dataCache.Contains(2, []byte("proposer1"), expectedData1))
-	require.False(t, dataCache.Contains(1, []byte("proposer2"), expectedData3))
-	require.False(t, dataCache.Contains(1, []byte("proposer2"), expectedData2))
-	require.False(t, dataCache.Contains(3, []byte("proposer1"), expectedData1))
+	require.False(t, dataCache.contains(1, []byte("proposer1"), expectedData3))
+	require.False(t, dataCache.contains(2, []byte("proposer1"), expectedData1))
+	require.False(t, dataCache.contains(1, []byte("proposer2"), expectedData3))
+	require.False(t, dataCache.contains(1, []byte("proposer2"), expectedData2))
+	require.False(t, dataCache.contains(3, []byte("proposer1"), expectedData1))
 }
 
 func TestRoundHeadersCache_IsInterfaceNil(t *testing.T) {
