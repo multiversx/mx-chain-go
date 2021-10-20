@@ -493,7 +493,12 @@ func (txs *transactions) processTxsToMe(
 			return errComputeGas
 		}
 
-		txs.gasHandler.SetGasConsumedAsScheduled(gasConsumedByTxInSelfShard, txHash)
+		if scheduledMode {
+			txs.gasHandler.SetGasConsumedAsScheduled(gasConsumedByTxInSelfShard, txHash)
+		} else {
+			txs.gasHandler.SetGasConsumed(gasConsumedByTxInSelfShard, txHash)
+		}
+
 		txs.saveAccountBalanceForAddress(tx.GetRcvAddr())
 
 		if scheduledMode {
