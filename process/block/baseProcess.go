@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -27,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-vm-common/atomic"
 )
 
 var log = logger.GetOrCreate("process/block")
@@ -70,7 +72,10 @@ type baseProcessor struct {
 	blockChain              data.ChainHandler
 	hdrsForCurrBlock        *hdrForBlock
 	genesisNonce            uint64
-	headerIntegrityVerifier process.HeaderIntegrityVerifier
+
+	versionedHeaderFactory       nodeFactory.VersionedHeaderFactory
+	headerIntegrityVerifier      process.HeaderIntegrityVerifier
+	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 
 	appStatusHandler       core.AppStatusHandler
 	stateCheckpointModulus uint
@@ -83,7 +88,9 @@ type baseProcessor struct {
 	vmContainerFactory process.VirtualMachinesContainerFactory
 	vmContainer        process.VirtualMachinesContainer
 
-	processDataTriesOnCommitEpoch bool
+	processDataTriesOnCommitEpoch  bool
+	scheduledMiniBlocksEnableEpoch uint32
+	flagScheduledMiniBlocks        atomic.Flag
 }
 
 type bootStorerDataArgs struct {
@@ -184,6 +191,31 @@ func (bp *baseProcessor) checkBlockValidity(
 	return nil
 }
 
+// checkScheduledRootHash checks if the scheduled root hash from the given header is the same with the current user accounts state root hash
+func (bp *baseProcessor) checkScheduledRootHash(headerHandler data.HeaderHandler) error {
+	if !bp.flagScheduledMiniBlocks.IsSet() {
+		return nil
+	}
+
+	if check.IfNil(headerHandler) {
+		return process.ErrNilBlockHeader
+	}
+
+	additionalData := headerHandler.GetAdditionalData()
+	if check.IfNil(additionalData) {
+		return process.ErrNilAdditionalData
+	}
+
+	if !bytes.Equal(additionalData.GetScheduledRootHash(), bp.getRootHash()) {
+		log.Debug("scheduled root hash does not match",
+			"current root hash", bp.getRootHash(),
+			"header scheduled root hash", additionalData.GetScheduledRootHash())
+		return process.ErrScheduledRootHashDoesNotMatch
+	}
+
+	return nil
+}
+
 // verifyStateRoot verifies the state root hash given as parameter against the
 // Merkle trie root hash stored for accounts and returns if equal or not
 func (bp *baseProcessor) verifyStateRoot(rootHash []byte) bool {
@@ -221,7 +253,7 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 	missingNonces := make([]uint64, 0)
 	for i := 0; i < len(sortedHdrs); i++ {
 		currHdr := sortedHdrs[i]
-		if currHdr == nil {
+		if check.IfNil(currHdr) {
 			continue
 		}
 
@@ -280,6 +312,20 @@ func addMissingNonces(diff int64, lastNonce uint64, maxNumNoncesToAdd int) []uin
 }
 
 func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
+	var valStatRootHash, epochStartMetaHash, scheduledRootHash []byte
+	metaHeader, isMetaHeader := headerHandler.(data.MetaHeaderHandler)
+	if isMetaHeader {
+		valStatRootHash = metaHeader.GetValidatorStatsRootHash()
+	} else {
+		shardHeader, isShardHeader := headerHandler.(data.ShardHeaderHandler)
+		if isShardHeader {
+			epochStartMetaHash = shardHeader.GetEpochStartMetaHash()
+		}
+	}
+	additionalData := headerHandler.GetAdditionalData()
+	if !check.IfNil(additionalData) {
+		scheduledRootHash = additionalData.GetScheduledRootHash()
+	}
 	return []*display.LineData{
 		display.NewLineData(false, []string{
 			"",
@@ -327,12 +373,16 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 			logger.DisplayByteSlice(headerHandler.GetLeaderSignature())}),
 		display.NewLineData(false, []string{
 			"",
+			"Scheduled root hash",
+			logger.DisplayByteSlice(scheduledRootHash)}),
+		display.NewLineData(false, []string{
+			"",
 			"Root hash",
 			logger.DisplayByteSlice(headerHandler.GetRootHash())}),
 		display.NewLineData(false, []string{
 			"",
 			"Validator stats root hash",
-			logger.DisplayByteSlice(headerHandler.GetValidatorStatsRootHash())}),
+			logger.DisplayByteSlice(valStatRootHash)}),
 		display.NewLineData(false, []string{
 			"",
 			"Receipts hash",
@@ -340,7 +390,7 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 		display.NewLineData(true, []string{
 			"",
 			"Epoch start meta hash",
-			logger.DisplayByteSlice(headerHandler.GetEpochStartMetaHash())}),
+			logger.DisplayByteSlice(epochStartMetaHash)}),
 	}
 }
 
@@ -433,15 +483,27 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.CoreComponents.StatusHandler()) {
 		return process.ErrNilAppStatusHandler
 	}
-
+	if check.IfNil(arguments.ScheduledTxsExecutionHandler) {
+		return process.ErrNilScheduledTxsExecutionHandler
+	}
+	if check.IfNil(arguments.BootstrapComponents.VersionedHeaderFactory()) {
+		return process.ErrNilVersionedHeaderFactory
+	}
 	return nil
 }
 
-func (bp *baseProcessor) createBlockStarted() {
+func (bp *baseProcessor) createBlockStarted() error {
 	bp.hdrsForCurrBlock.resetMissingHdrs()
 	bp.hdrsForCurrBlock.initMaps()
 	bp.txCoordinator.CreateBlockStarted()
 	bp.feeHandler.CreateBlockStarted()
+
+	err := bp.txCoordinator.AddIntermediateTransactions(bp.scheduledTxsExecutionHandler.GetScheduledSCRs())
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (bp *baseProcessor) verifyFees(header data.HeaderHandler) error {
@@ -509,13 +571,13 @@ func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool
 	return hdrsHashesForCurrentBlock
 }
 
-func (bp *baseProcessor) createMiniBlockHeaders(body *block.Body) (int, []block.MiniBlockHeader, error) {
+func (bp *baseProcessor) createMiniBlockHeaderHandlers(body *block.Body) (int, []data.MiniBlockHeaderHandler, error) {
 	if len(body.MiniBlocks) == 0 {
 		return 0, nil, nil
 	}
 
 	totalTxCount := 0
-	miniBlockHeaders := make([]block.MiniBlockHeader, len(body.MiniBlocks))
+	miniBlockHeaderHandlers := make([]data.MiniBlockHeaderHandler, len(body.MiniBlocks))
 
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		txCount := len(body.MiniBlocks[i].TxHashes)
@@ -526,23 +588,30 @@ func (bp *baseProcessor) createMiniBlockHeaders(body *block.Body) (int, []block.
 			return 0, nil, err
 		}
 
-		miniBlockHeaders[i] = block.MiniBlockHeader{
+		var reserved []byte
+		notEmpty := len(body.MiniBlocks[i].TxHashes) > 0
+		if notEmpty && bp.scheduledTxsExecutionHandler.IsScheduledTx(body.MiniBlocks[i].TxHashes[0]) {
+			reserved = []byte{byte(block.Scheduled)}
+		}
+
+		miniBlockHeaderHandlers[i] = &block.MiniBlockHeader{
 			Hash:            miniBlockHash,
 			SenderShardID:   body.MiniBlocks[i].SenderShardID,
 			ReceiverShardID: body.MiniBlocks[i].ReceiverShardID,
 			TxCount:         uint32(txCount),
 			Type:            body.MiniBlocks[i].Type,
+			Reserved:        reserved,
 		}
 	}
 
-	return totalTxCount, miniBlockHeaders, nil
+	return totalTxCount, miniBlockHeaderHandlers, nil
 }
 
 // check if header has the same miniblocks as presented in body
-func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []block.MiniBlockHeader, body *block.Body) error {
-	mbHashesFromHdr := make(map[string]*block.MiniBlockHeader, len(miniBlockHeaders))
+func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body) error {
+	mbHashesFromHdr := make(map[string]data.MiniBlockHeaderHandler, len(miniBlockHeaders))
 	for i := 0; i < len(miniBlockHeaders); i++ {
-		mbHashesFromHdr[string(miniBlockHeaders[i].Hash)] = &miniBlockHeaders[i]
+		mbHashesFromHdr[string(miniBlockHeaders[i].GetHash())] = miniBlockHeaders[i]
 	}
 
 	if len(miniBlockHeaders) != len(body.MiniBlocks) {
@@ -565,15 +634,15 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []block.Min
 			return process.ErrHeaderBodyMismatch
 		}
 
-		if mbHdr.TxCount != uint32(len(miniBlock.TxHashes)) {
+		if mbHdr.GetTxCount() != uint32(len(miniBlock.TxHashes)) {
 			return process.ErrHeaderBodyMismatch
 		}
 
-		if mbHdr.ReceiverShardID != miniBlock.ReceiverShardID {
+		if mbHdr.GetReceiverShardID() != miniBlock.ReceiverShardID {
 			return process.ErrHeaderBodyMismatch
 		}
 
-		if mbHdr.SenderShardID != miniBlock.SenderShardID {
+		if mbHdr.GetSenderShardID() != miniBlock.SenderShardID {
 			return process.ErrHeaderBodyMismatch
 		}
 	}
@@ -963,24 +1032,7 @@ func (bp *baseProcessor) DecodeBlockBody(dta []byte) data.BodyHandler {
 	return body
 }
 
-// DecodeBlockHeader method decodes block header from a given byte array
-func (bp *baseProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
-	if dta == nil {
-		return nil
-	}
-
-	header := bp.blockChain.CreateNewHeader()
-
-	err := bp.marshalizer.Unmarshal(header, dta)
-	if err != nil {
-		log.Debug("DecodeBlockHeader.Unmarshal", "error", err.Error())
-		return nil
-	}
-
-	return header
-}
-
-func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler) {
+func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler, headerHash []byte) {
 	startTime := time.Now()
 
 	errNotCritical := bp.txCoordinator.SaveTxsToStorage(body)
@@ -1016,6 +1068,8 @@ func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler) {
 			}
 		}
 	}
+
+	bp.scheduledTxsExecutionHandler.SaveStateIfNeeded(headerHash)
 
 	elapsedTime := time.Since(startTime)
 	if elapsedTime >= common.PutInStorerMaxTime {
@@ -1081,7 +1135,7 @@ func getLastSelfNotarizedHeaderByItself(chainHandler data.ChainHandler) (data.He
 
 func (bp *baseProcessor) updateStateStorage(
 	finalHeader data.HeaderHandler,
-	rootHash []byte,
+	currRootHash []byte,
 	prevRootHash []byte,
 	accounts state.AccountsAdapter,
 	statePruningQueue core.Queue,
@@ -1093,12 +1147,12 @@ func (bp *baseProcessor) updateStateStorage(
 	// TODO generate checkpoint on a trigger
 	if bp.stateCheckpointModulus != 0 {
 		if finalHeader.GetNonce()%uint64(bp.stateCheckpointModulus) == 0 {
-			log.Debug("trie checkpoint", "rootHash", rootHash)
-			accounts.SetStateCheckpoint(rootHash)
+			log.Debug("trie checkpoint", "currRootHash", currRootHash)
+			accounts.SetStateCheckpoint(currRootHash)
 		}
 	}
 
-	if bytes.Equal(prevRootHash, rootHash) {
+	if bytes.Equal(prevRootHash, currRootHash) {
 		return
 	}
 
@@ -1111,12 +1165,56 @@ func (bp *baseProcessor) updateStateStorage(
 	accounts.PruneTrie(rootHashToBePruned, state.OldRoot)
 }
 
-// RevertAccountState reverts the account state for cleanup failed process
-func (bp *baseProcessor) RevertAccountState(_ data.HeaderHandler) {
+// RevertCurrentBlock reverts the current block for cleanup failed process
+func (bp *baseProcessor) RevertCurrentBlock() {
+	bp.revertAccountState()
+	bp.revertScheduledRootHashAndSCRs()
+}
+
+func (bp *baseProcessor) revertAccountState() {
 	for key := range bp.accountsDB {
 		err := bp.accountsDB[key].RevertToSnapshot(0)
 		if err != nil {
 			log.Debug("RevertToSnapshot", "error", err.Error())
+		}
+	}
+}
+
+func (bp *baseProcessor) revertScheduledRootHashAndSCRs() {
+	header, headerHash := bp.getLastCommittedHeaderAndHash()
+	err := bp.scheduledTxsExecutionHandler.RollBackToBlock(headerHash)
+	if err != nil {
+		bp.scheduledTxsExecutionHandler.SetScheduledRootHashAndSCRs(header.GetRootHash(), make(map[block.Type][]data.TransactionHandler))
+	}
+}
+
+func (bp *baseProcessor) getLastCommittedHeaderAndHash() (data.HeaderHandler, []byte) {
+	headerHandler := bp.blockChain.GetCurrentBlockHeader()
+	headerHash := bp.blockChain.GetCurrentBlockHeaderHash()
+	if check.IfNil(headerHandler) {
+		headerHandler = bp.blockChain.GetGenesisHeader()
+		headerHash = bp.blockChain.GetGenesisHeaderHash()
+	}
+
+	return headerHandler, headerHash
+}
+
+// GetAccountsDBSnapshot returns the account snapshot
+func (bp *baseProcessor) GetAccountsDBSnapshot() map[state.AccountsDbIdentifier]int {
+	snapshots := make(map[state.AccountsDbIdentifier]int)
+	for key := range bp.accountsDB {
+		snapshots[key] = bp.accountsDB[key].JournalLen()
+	}
+
+	return snapshots
+}
+
+// RevertAccountsDBToSnapshot reverts the accountsDB to the given snapshot
+func (bp *baseProcessor) RevertAccountsDBToSnapshot(accountsSnapshot map[state.AccountsDbIdentifier]int) {
+	for key := range bp.accountsDB {
+		err := bp.accountsDB[key].RevertToSnapshot(accountsSnapshot[key])
+		if err != nil {
+			log.Debug("RevertAccountsDBToSnapshot", "error", err.Error())
 		}
 	}
 }
@@ -1132,14 +1230,33 @@ func (bp *baseProcessor) commitAll() error {
 	return nil
 }
 
-// PruneStateOnRollback recreates the state tries to the root hashes indicated by the provided header
-func (bp *baseProcessor) PruneStateOnRollback(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) {
+// PruneStateOnRollback recreates the state tries to the root hashes indicated by the provided headers
+func (bp *baseProcessor) PruneStateOnRollback(currHeader data.HeaderHandler, currHeaderHash []byte, prevHeader data.HeaderHandler, prevHeaderHash []byte) {
 	for key := range bp.accountsDB {
 		if !bp.accountsDB[key].IsPruningEnabled() {
 			continue
 		}
 
 		rootHash, prevRootHash := bp.getRootHashes(currHeader, prevHeader, key)
+		if key == state.UserAccountsState {
+			scheduledRootHash, err := bp.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(currHeaderHash)
+			if err == nil {
+				rootHash = scheduledRootHash
+			}
+
+			scheduledPrevRootHash, err := bp.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(prevHeaderHash)
+			if err == nil {
+				prevRootHash = scheduledPrevRootHash
+			}
+
+			var prevStartScheduledRootHash []byte
+			if prevHeader.GetAdditionalData() != nil && prevHeader.GetAdditionalData().GetScheduledRootHash() != nil {
+				prevStartScheduledRootHash = prevHeader.GetAdditionalData().GetScheduledRootHash()
+				if bytes.Equal(prevStartScheduledRootHash, prevRootHash) {
+					bp.accountsDB[key].CancelPrune(prevStartScheduledRootHash, state.OldRoot)
+				}
+			}
+		}
 
 		if bytes.Equal(rootHash, prevRootHash) {
 			continue
@@ -1155,7 +1272,15 @@ func (bp *baseProcessor) getRootHashes(currHeader data.HeaderHandler, prevHeader
 	case state.UserAccountsState:
 		return currHeader.GetRootHash(), prevHeader.GetRootHash()
 	case state.PeerAccountsState:
-		return currHeader.GetValidatorStatsRootHash(), prevHeader.GetValidatorStatsRootHash()
+		currMetaHeader, ok := currHeader.(data.MetaHeaderHandler)
+		if !ok {
+			return []byte{}, []byte{}
+		}
+		prevMetaHeader, ok := prevHeader.(data.MetaHeaderHandler)
+		if !ok {
+			return []byte{}, []byte{}
+		}
+		return currMetaHeader.GetValidatorStatsRootHash(), prevMetaHeader.GetValidatorStatsRootHash()
 	default:
 		return []byte{}, []byte{}
 	}
@@ -1385,4 +1510,39 @@ func (bp *baseProcessor) Close() error {
 	}
 
 	return nil
+}
+
+// ProcessScheduledBlock processes a scheduled block
+func (bp *baseProcessor) ProcessScheduledBlock(_ data.HeaderHandler, _ data.BodyHandler, haveTime func() time.Duration) error {
+	var err error
+	defer func() {
+		if err != nil {
+			bp.RevertCurrentBlock()
+		}
+	}()
+
+	startTime := time.Now()
+	err = bp.scheduledTxsExecutionHandler.ExecuteAll(haveTime)
+	elapsedTime := time.Since(startTime)
+	log.Debug("elapsed time to execute all scheduled transactions",
+		"time [s]", elapsedTime,
+	)
+	if err != nil {
+		return err
+	}
+
+	rootHash, err := bp.accountsDB[state.UserAccountsState].RootHash()
+	if err != nil {
+		return err
+	}
+
+	bp.scheduledTxsExecutionHandler.SetScheduledRootHash(rootHash)
+
+	return nil
+}
+
+// EpochConfirmed is called whenever a new epoch is confirmed
+func (bp *baseProcessor) EpochConfirmed(epoch uint32, _ uint64) {
+	bp.flagScheduledMiniBlocks.Toggle(epoch >= bp.scheduledMiniBlocksEnableEpoch)
+	log.Debug("baseProcessor: scheduled mini blocks", "enabled", bp.flagScheduledMiniBlocks.IsSet())
 }

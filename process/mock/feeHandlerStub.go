@@ -11,7 +11,7 @@ type FeeHandlerStub struct {
 	SetMaxGasLimitPerBlockCalled                 func(maxGasLimitPerBlock uint64)
 	SetMinGasPriceCalled                         func(minGasPrice uint64)
 	SetMinGasLimitCalled                         func(minGasLimit uint64)
-	MaxGasLimitPerBlockCalled                    func() uint64
+	MaxGasLimitPerBlockCalled                    func(shardID uint32) uint64
 	ComputeGasLimitCalled                        func(tx data.TransactionWithFeeHandler) uint64
 	ComputeMoveBalanceFeeCalled                  func(tx data.TransactionWithFeeHandler) *big.Int
 	ComputeTxFeeCalled                           func(tx data.TransactionWithFeeHandler) *big.Int
@@ -97,8 +97,8 @@ func (fhs *FeeHandlerStub) SetMinGasLimit(minGasLimit uint64) {
 }
 
 // MaxGasLimitPerBlock -
-func (fhs *FeeHandlerStub) MaxGasLimitPerBlock(uint32) uint64 {
-	return fhs.MaxGasLimitPerBlockCalled()
+func (fhs *FeeHandlerStub) MaxGasLimitPerBlock(shardID uint32) uint64 {
+	return fhs.MaxGasLimitPerBlockCalled(shardID)
 }
 
 // ComputeGasLimit -

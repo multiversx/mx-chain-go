@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
 	"github.com/stretchr/testify/assert"
@@ -16,7 +17,7 @@ func getNewTrieStorageManagerArgs() trie.NewTrieStorageManagerArgs {
 	return trie.NewTrieStorageManagerArgs{
 		DB:                     testscommon.NewMemDbMock(),
 		Marshalizer:            &testscommon.MarshalizerMock{},
-		Hasher:                 &testscommon.HasherMock{},
+		Hasher:                 &hashingMocks.HasherMock{},
 		SnapshotDbConfig:       config.DBConfig{},
 		GeneralConfig:          config.TrieStorageManagerConfig{},
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, 32),

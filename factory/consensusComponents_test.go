@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
+	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	errorsErd "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
@@ -386,6 +387,13 @@ func getConsensusArgs(shardCoordinator sharding.Coordinator) factory.ConsensusCo
 		processComponents.NodesCoordinator(),
 	)
 
+	args := spos.ScheduledProcessorWrapperArgs{
+		SyncTimer:                  coreComponents.SyncTimer(),
+		Processor:                  processComponents.BlockProcessor(),
+		ProcessingTimeMilliSeconds: 10,
+	}
+	scheduledProcessor, _ := spos.NewScheduledProcessorWrapper(args)
+
 	return factory.ConsensusComponentsFactoryArgs{
 		Config:              testscommon.GetGeneralConfig(),
 		BootstrapRoundIndex: 0,
@@ -397,6 +405,7 @@ func getConsensusArgs(shardCoordinator sharding.Coordinator) factory.ConsensusCo
 		ProcessComponents:   processComponents,
 		StateComponents:     stateComponents,
 		StatusComponents:    statusComponents,
+		ScheduledProcessor:  scheduledProcessor,
 	}
 }
 

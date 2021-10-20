@@ -55,6 +55,10 @@ func (mhp *multipleHeaderProposalsDetector) VerifyData(data process.InterceptedD
 	}
 
 	header := interceptedHeader.HeaderHandler()
+	if check.IfNil(header) {
+		return nil, process.ErrNilHeaderHandler
+	}
+
 	round := header.GetRound()
 	if !mhp.isRoundRelevant(round) {
 		return nil, process.ErrHeaderRoundNotRelevant

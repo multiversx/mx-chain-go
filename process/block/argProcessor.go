@@ -6,7 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
+	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -35,7 +35,8 @@ type dataComponentsHolder interface {
 
 type bootstrapComponentsHolder interface {
 	ShardCoordinator() sharding.Coordinator
-	HeaderIntegrityVerifier() factory.HeaderIntegrityVerifierHandler
+	VersionedHeaderFactory() nodeFactory.VersionedHeaderFactory
+	HeaderIntegrityVerifier() nodeFactory.HeaderIntegrityVerifierHandler
 	IsInterfaceNil() bool
 }
 
@@ -47,29 +48,30 @@ type statusComponentsHolder interface {
 // ArgBaseProcessor holds all dependencies required by the process data factory in order to create
 // new instances
 type ArgBaseProcessor struct {
-	CoreComponents      coreComponentsHolder
-	DataComponents      dataComponentsHolder
-	BootstrapComponents bootstrapComponentsHolder
-	StatusComponents    statusComponentsHolder
-
-	Config              config.Config
-	AccountsDB          map[state.AccountsDbIdentifier]state.AccountsAdapter
-	ForkDetector        process.ForkDetector
-	NodesCoordinator    sharding.NodesCoordinator
-	FeeHandler          process.TransactionFeeHandler
-	RequestHandler      process.RequestHandler
-	BlockChainHook      process.BlockChainHookHandler
-	TxCoordinator       process.TransactionCoordinator
-	EpochStartTrigger   process.EpochStartTriggerHandler
-	HeaderValidator     process.HeaderConstructionValidator
-	BootStorer          process.BootStorer
-	BlockTracker        process.BlockTracker
-	BlockSizeThrottler  process.BlockSizeThrottler
-	Version             string
-	HistoryRepository   dblookupext.HistoryRepository
-	EpochNotifier       process.EpochNotifier
-	VMContainersFactory process.VirtualMachinesContainerFactory
-	VmContainer         process.VirtualMachinesContainer
+	CoreComponents                 coreComponentsHolder
+	DataComponents                 dataComponentsHolder
+	BootstrapComponents            bootstrapComponentsHolder
+	StatusComponents               statusComponentsHolder
+	Config                         config.Config
+	AccountsDB                     map[state.AccountsDbIdentifier]state.AccountsAdapter
+	ForkDetector                   process.ForkDetector
+	NodesCoordinator               sharding.NodesCoordinator
+	FeeHandler                     process.TransactionFeeHandler
+	RequestHandler                 process.RequestHandler
+	BlockChainHook                 process.BlockChainHookHandler
+	TxCoordinator                  process.TransactionCoordinator
+	EpochStartTrigger              process.EpochStartTriggerHandler
+	HeaderValidator                process.HeaderConstructionValidator
+	BootStorer                     process.BootStorer
+	BlockTracker                   process.BlockTracker
+	BlockSizeThrottler             process.BlockSizeThrottler
+	Version                        string
+	HistoryRepository              dblookupext.HistoryRepository
+	EpochNotifier                  process.EpochNotifier
+	VMContainersFactory            process.VirtualMachinesContainerFactory
+	VmContainer                    process.VirtualMachinesContainer
+	ScheduledTxsExecutionHandler   process.ScheduledTxsExecutionHandler
+	ScheduledMiniBlocksEnableEpoch uint32
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create

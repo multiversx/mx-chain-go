@@ -14,6 +14,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
@@ -22,7 +24,7 @@ import (
 
 func createMockNewMetaTxArgs() txproc.ArgsNewMetaTxProcessor {
 	args := txproc.ArgsNewMetaTxProcessor{
-		Hasher:           &mock.HasherMock{},
+		Hasher:           &hashingMocks.HasherMock{},
 		Marshalizer:      &mock.MarshalizerMock{},
 		Accounts:         &stateMock.AccountsStub{},
 		PubkeyConv:       createMockPubkeyConverter(),
@@ -31,7 +33,7 @@ func createMockNewMetaTxArgs() txproc.ArgsNewMetaTxProcessor {
 		TxTypeHandler:    &testscommon.TxTypeHandlerMock{},
 		EconomicsFee:     createFreeTxFeeHandler(),
 		ESDTEnableEpoch:  0,
-		EpochNotifier:    &mock.EpochNotifierStub{},
+		EpochNotifier:    &epochNotifier.EpochNotifierStub{},
 	}
 	return args
 }
@@ -358,7 +360,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 		ShardCoordinator:   shardCoordinator,
 		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
 		ArgumentParser:     parsers.NewCallArgsParser(),
-		EpochNotifier:      &mock.EpochNotifierStub{},
+		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 		ESDTTransferParser: esdtTransferParser,
 	}
 	computeType, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)

@@ -617,3 +617,6 @@ const TimeoutGettingTrieNodes = 2 * time.Minute //to consider syncing a very lar
 // TimeoutGettingTrieNodesInHardfork represents the maximum time allowed between 2 nodes fetches (and commits)
 // during the hardfork process
 const TimeoutGettingTrieNodesInHardfork = time.Minute * 10
+
+// ScheduledMode represents the name used to differentiate normal vs. scheduled mini blocks / transactions execution mode
+const ScheduledMode = "Scheduled"

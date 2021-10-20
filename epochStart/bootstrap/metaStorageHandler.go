@@ -1,7 +1,6 @@
 package bootstrap
 
 import (
-	"encoding/json"
 	"fmt"
 	"strconv"
 
@@ -16,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
-	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -138,7 +136,7 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 		return err
 	}
 
-	roundToUseAsKey := int64(components.EpochStartMetaBlock.Round)
+	roundToUseAsKey := int64(components.EpochStartMetaBlock.GetRound())
 	roundNum := bootstrapStorage.RoundNum{Num: roundToUseAsKey}
 	roundNumBytes, err := msh.marshalizer.Marshal(&roundNum)
 	if err != nil {
@@ -160,18 +158,18 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 }
 
 func (msh *metaStorageHandler) saveLastCrossNotarizedHeaders(
-	meta *block.MetaBlock,
+	meta data.MetaHeaderHandler,
 	mapHeaders map[string]data.HeaderHandler,
 ) ([]bootstrapStorage.BootstrapHeaderInfo, error) {
 	crossNotarizedHdrs := make([]bootstrapStorage.BootstrapHeaderInfo, 0)
-	for _, epochStartShardData := range meta.EpochStart.LastFinalizedHeaders {
+	for _, epochStartShardData := range meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
 		crossNotarizedHdrs = append(crossNotarizedHdrs, bootstrapStorage.BootstrapHeaderInfo{
-			ShardId: epochStartShardData.ShardID,
-			Nonce:   epochStartShardData.Nonce,
-			Hash:    epochStartShardData.HeaderHash,
+			ShardId: epochStartShardData.GetShardID(),
+			Nonce:   epochStartShardData.GetNonce(),
+			Hash:    epochStartShardData.GetHeaderHash(),
 		})
 
-		hdr, ok := mapHeaders[string(epochStartShardData.HeaderHash)]
+		hdr, ok := mapHeaders[string(epochStartShardData.GetHeaderHash())]
 		if !ok {
 			return nil, epochStart.ErrMissingHeader
 		}
@@ -185,7 +183,7 @@ func (msh *metaStorageHandler) saveLastCrossNotarizedHeaders(
 	return crossNotarizedHdrs, nil
 }
 
-func (msh *metaStorageHandler) saveLastHeader(metaBlock *block.MetaBlock) (bootstrapStorage.BootstrapHeaderInfo, error) {
+func (msh *metaStorageHandler) saveLastHeader(metaBlock data.HeaderHandler) (bootstrapStorage.BootstrapHeaderInfo, error) {
 	lastHeaderHash, err := msh.saveMetaHdrToStorage(metaBlock)
 	if err != nil {
 		return bootstrapStorage.BootstrapHeaderInfo{}, err
@@ -193,8 +191,8 @@ func (msh *metaStorageHandler) saveLastHeader(metaBlock *block.MetaBlock) (boots
 
 	bootstrapHdrInfo := bootstrapStorage.BootstrapHeaderInfo{
 		ShardId: core.MetachainShardId,
-		Epoch:   metaBlock.Epoch,
-		Nonce:   metaBlock.Nonce,
+		Epoch:   metaBlock.GetEpoch(),
+		Nonce:   metaBlock.GetNonce(),
 		Hash:    lastHeaderHash,
 	}
 
@@ -202,26 +200,30 @@ func (msh *metaStorageHandler) saveLastHeader(metaBlock *block.MetaBlock) (boots
 }
 
 func (msh *metaStorageHandler) saveTriggerRegistry(components *ComponentsNeededForBootstrap) ([]byte, error) {
-	metaBlock := components.EpochStartMetaBlock
+	metaBlock, ok := components.EpochStartMetaBlock.(*block.MetaBlock)
+	if !ok {
+		return nil, epochStart.ErrWrongTypeAssertion
+	}
+
 	hash, err := core.CalculateHash(msh.marshalizer, msh.hasher, metaBlock)
 	if err != nil {
 		return nil, err
 	}
 
-	triggerReg := metachain.TriggerRegistry{
-		Epoch:                       metaBlock.Epoch,
-		CurrentRound:                metaBlock.Round,
-		EpochFinalityAttestingRound: metaBlock.Round,
-		CurrEpochStartRound:         metaBlock.Round,
+	triggerReg := block.MetaTriggerRegistry{
+		Epoch:                       metaBlock.GetEpoch(),
+		CurrentRound:                metaBlock.GetRound(),
+		EpochFinalityAttestingRound: metaBlock.GetRound(),
+		CurrEpochStartRound:         metaBlock.GetRound(),
 		PrevEpochStartRound:         components.PreviousEpochStart.GetRound(),
 		EpochStartMetaHash:          hash,
 		EpochStartMeta:              metaBlock,
 	}
 
-	bootstrapKey := []byte(fmt.Sprint(metaBlock.Round))
+	bootstrapKey := []byte(fmt.Sprint(metaBlock.GetRound()))
 	trigInternalKey := append([]byte(common.TriggerRegistryKeyPrefix), bootstrapKey...)
 
-	triggerRegBytes, err := json.Marshal(&triggerReg)
+	triggerRegBytes, err := msh.marshalizer.Marshal(&triggerReg)
 	if err != nil {
 		return nil, err
 	}

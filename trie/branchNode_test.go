@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
 	"github.com/stretchr/testify/assert"
 )
@@ -1140,7 +1141,7 @@ func BenchmarkMarshallNodeJson(b *testing.B) {
 func TestBranchNode_newBranchNodeNilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	bn, err := newBranchNode(nil, testscommon.HasherMock{})
+	bn, err := newBranchNode(nil, &hashingMocks.HasherMock{})
 	assert.Nil(t, bn)
 	assert.Equal(t, ErrNilMarshalizer, err)
 }

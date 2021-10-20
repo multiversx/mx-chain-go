@@ -24,7 +24,7 @@ type syncState struct {
 	headers      update.HeaderSyncHandler
 	tries        update.EpochStartTriesSyncHandler
 	miniBlocks   update.EpochStartPendingMiniBlocksSyncHandler
-	transactions update.PendingTransactionsSyncHandler
+	transactions update.TransactionsSyncHandler
 }
 
 // ArgsNewSyncState defines the arguments for the new sync state
@@ -32,7 +32,7 @@ type ArgsNewSyncState struct {
 	Headers      update.HeaderSyncHandler
 	Tries        update.EpochStartTriesSyncHandler
 	MiniBlocks   update.EpochStartPendingMiniBlocksSyncHandler
-	Transactions update.PendingTransactionsSyncHandler
+	Transactions update.TransactionsSyncHandler
 }
 
 // NewSyncState creates a complete syncer which saves the state of the blockchain with pending values as well
@@ -138,12 +138,12 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 		ctxDisplay, cancelDisplay = context.WithCancel(context.Background())
 		go displayStatusMessage(fmt.Sprintf("syncing pending transactions for epoch %d", epoch), ctxDisplay)
 		ctx, cancel = context.WithTimeout(context.Background(), time.Hour)
-		errSync = ss.transactions.SyncPendingTransactionsFor(syncedMiniBlocks, ss.syncingEpoch, ctx)
+		errSync = ss.transactions.SyncTransactionsFor(syncedMiniBlocks, ss.syncingEpoch, ctx)
 		cancelDisplay()
 		cancel()
 		if errSync != nil {
 			mutErr.Lock()
-			errFound = fmt.Errorf("%w in syncState.SyncAllState - SyncPendingTransactionsFor", errSync)
+			errFound = fmt.Errorf("%w in syncState.SyncAllState - SyncTransactionsFor", errSync)
 			mutErr.Unlock()
 			return
 		}
@@ -175,30 +175,30 @@ func displayStatusMessage(message string, ctx context.Context) {
 	}
 }
 
-func (ss *syncState) printMetablockInfo(metaBlock *block.MetaBlock) {
+func (ss *syncState) printMetablockInfo(metaBlock data.MetaHeaderHandler) {
 	log.Info("epoch start meta block",
-		"nonce", metaBlock.Nonce,
-		"round", metaBlock.Round,
-		"root hash", metaBlock.RootHash,
-		"epoch", metaBlock.Epoch,
+		"nonce", metaBlock.GetNonce(),
+		"round", metaBlock.GetRound(),
+		"root hash", metaBlock.GetRootHash(),
+		"epoch", metaBlock.GetEpoch(),
 	)
-	for _, shardInfo := range metaBlock.ShardInfo {
+	for _, shardInfo := range metaBlock.GetShardInfoHandlers() {
 		log.Info("epoch start meta block -> shard info",
-			"header hash", shardInfo.HeaderHash,
-			"shard ID", shardInfo.ShardID,
-			"nonce", shardInfo.Nonce,
-			"round", shardInfo.Round,
+			"header hash", shardInfo.GetHeaderHash(),
+			"shard ID", shardInfo.GetShardID(),
+			"nonce", shardInfo.GetNonce(),
+			"round", shardInfo.GetRound(),
 		)
 	}
 }
 
 // GetEpochStartMetaBlock returns the synced metablock
-func (ss *syncState) GetEpochStartMetaBlock() (*block.MetaBlock, error) {
+func (ss *syncState) GetEpochStartMetaBlock() (data.MetaHeaderHandler, error) {
 	return ss.headers.GetEpochStartMetaBlock()
 }
 
 // GetUnFinishedMetaBlocks returns the synced unFinished metablocks
-func (ss *syncState) GetUnFinishedMetaBlocks() (map[string]*block.MetaBlock, error) {
+func (ss *syncState) GetUnFinishedMetaBlocks() (map[string]data.MetaHeaderHandler, error) {
 	return ss.headers.GetUnFinishedMetaBlocks()
 }
 

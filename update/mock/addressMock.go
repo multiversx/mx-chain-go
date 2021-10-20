@@ -4,6 +4,8 @@ import (
 	"math/rand"
 	"sync"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 )
 
 // AddressMock implements a mock address generator used in testing
@@ -20,7 +22,7 @@ func init() {
 
 // NewAddressMock generates a new address
 func NewAddressMock() *AddressMock {
-	hasherMock := &HasherMock{}
+	hasherMock := &hashingMocks.HasherMock{}
 	buff := make([]byte, hasherMock.Size())
 
 	mutex.Lock()

@@ -39,21 +39,21 @@ type ArgsHardForkProcessor struct {
 
 // GetPendingMiniBlocks get all the pending miniBlocks from epoch start metaBlock and unFinished metaBlocks
 func GetPendingMiniBlocks(
-	epochStartMetaBlock *block.MetaBlock,
-	unFinishedMetaBlocksMap map[string]*block.MetaBlock,
-) ([]block.MiniBlockHeader, error) {
+	epochStartMetaBlock data.MetaHeaderHandler,
+	unFinishedMetaBlocksMap map[string]data.MetaHeaderHandler,
+) ([]data.MiniBlockHeaderHandler, error) {
 
-	if epochStartMetaBlock == nil {
+	if check.IfNil(epochStartMetaBlock) {
 		return nil, ErrNilEpochStartMetaBlock
 	}
 	if unFinishedMetaBlocksMap == nil {
 		return nil, ErrNilUnFinishedMetaBlocksMap
 	}
 
-	pendingMiniBlocks := make([]block.MiniBlockHeader, 0)
+	pendingMiniBlocks := make([]data.MiniBlockHeaderHandler, 0)
 	nonceToHashMap := createNonceToHashMap(unFinishedMetaBlocksMap)
 
-	for _, shardData := range epochStartMetaBlock.EpochStart.LastFinalizedHeaders {
+	for _, shardData := range epochStartMetaBlock.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
 		computedPendingMiniBlocks, err := computePendingMiniBlocksFromUnFinishedMetaBlocks(
 			shardData,
 			unFinishedMetaBlocksMap,
@@ -71,7 +71,7 @@ func GetPendingMiniBlocks(
 }
 
 // createNonceToHashMap creates a map of nonce to hash from all the given metaBlocks
-func createNonceToHashMap(unFinishedMetaBlocks map[string]*block.MetaBlock) map[uint64]string {
+func createNonceToHashMap(unFinishedMetaBlocks map[string]data.MetaHeaderHandler) map[uint64]string {
 	nonceToHashMap := make(map[uint64]string, len(unFinishedMetaBlocks))
 	for metaBlockHash, metaBlock := range unFinishedMetaBlocks {
 		nonceToHashMap[metaBlock.GetNonce()] = metaBlockHash
@@ -82,15 +82,15 @@ func createNonceToHashMap(unFinishedMetaBlocks map[string]*block.MetaBlock) map[
 
 // computePendingMiniBlocksFromUnFinishedMetaBlocks computes all the pending miniBlocks from unFinished metaBlocks
 func computePendingMiniBlocksFromUnFinishedMetaBlocks(
-	epochStartShardData block.EpochStartShardData,
-	unFinishedMetaBlocks map[string]*block.MetaBlock,
+	epochStartShardData data.EpochStartShardDataHandler,
+	unFinishedMetaBlocks map[string]data.MetaHeaderHandler,
 	nonceToHashMap map[uint64]string,
 	epochStartMetaBlockNonce uint64,
-) ([]block.MiniBlockHeader, error) {
-	pendingMiniBlocks := make([]block.MiniBlockHeader, 0)
-	pendingMiniBlocks = append(pendingMiniBlocks, epochStartShardData.PendingMiniBlockHeaders...)
+) ([]data.MiniBlockHeaderHandler, error) {
+	pendingMiniBlocks := make([]data.MiniBlockHeaderHandler, 0)
+	pendingMiniBlocks = append(pendingMiniBlocks, epochStartShardData.GetPendingMiniBlockHeaderHandlers()...)
 
-	firstPendingMetaBlock, ok := unFinishedMetaBlocks[string(epochStartShardData.FirstPendingMetaBlock)]
+	firstPendingMetaBlock, ok := unFinishedMetaBlocks[string(epochStartShardData.GetFirstPendingMetaBlock())]
 	if !ok {
 		return nil, ErrWrongUnFinishedMetaHdrsMap
 	}
@@ -107,7 +107,7 @@ func computePendingMiniBlocksFromUnFinishedMetaBlocks(
 			return nil, ErrWrongUnFinishedMetaHdrsMap
 		}
 
-		pendingMiniBlocksFromMetaBlock := getAllMiniBlocksWithDst(metaBlock, epochStartShardData.ShardID)
+		pendingMiniBlocksFromMetaBlock := getAllMiniBlocksWithDst(metaBlock, epochStartShardData.GetShardID())
 		pendingMiniBlocks = append(pendingMiniBlocks, pendingMiniBlocksFromMetaBlock...)
 	}
 
@@ -115,23 +115,26 @@ func computePendingMiniBlocksFromUnFinishedMetaBlocks(
 }
 
 // getAllMiniBlocksWithDst returns all miniBlock headers with the given destination from the given metaBlock
-func getAllMiniBlocksWithDst(metaBlock *block.MetaBlock, destShardID uint32) []block.MiniBlockHeader {
-	mbHdrs := make([]block.MiniBlockHeader, 0)
-	for i := 0; i < len(metaBlock.ShardInfo); i++ {
-		if metaBlock.ShardInfo[i].ShardID == destShardID {
+func getAllMiniBlocksWithDst(metaBlock data.MetaHeaderHandler, destShardID uint32) []data.MiniBlockHeaderHandler {
+	mbHdrs := make([]data.MiniBlockHeaderHandler, 0)
+	shardInfoHandlers := metaBlock.GetShardInfoHandlers()
+	for i := 0; i < len(shardInfoHandlers); i++ {
+		if shardInfoHandlers[i].GetShardID() == destShardID {
 			continue
 		}
 
-		for _, mbHdr := range metaBlock.ShardInfo[i].ShardMiniBlockHeaders {
-			if mbHdr.ReceiverShardID == destShardID && mbHdr.SenderShardID != destShardID {
-				mbHdrs = append(mbHdrs, mbHdr)
+		miniBlockHeaderHandlers := shardInfoHandlers[i].GetShardMiniBlockHeaderHandlers()
+		for i, mbHdr := range miniBlockHeaderHandlers {
+			if mbHdr.GetReceiverShardID() == destShardID && mbHdr.GetSenderShardID() != destShardID {
+				mbHdrs = append(mbHdrs, miniBlockHeaderHandlers[i])
 			}
 		}
 	}
 
-	for _, mbHdr := range metaBlock.MiniBlockHeaders {
-		if mbHdr.ReceiverShardID == destShardID && mbHdr.SenderShardID != destShardID {
-			mbHdrs = append(mbHdrs, mbHdr)
+	miniBlockHeaderHandlers := metaBlock.GetMiniBlockHeaderHandlers()
+	for i, mbHdr := range  miniBlockHeaderHandlers{
+		if mbHdr.GetReceiverShardID() == destShardID && mbHdr.GetSenderShardID() != destShardID {
+			mbHdrs = append(mbHdrs, miniBlockHeaderHandlers[i])
 		}
 	}
 

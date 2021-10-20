@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -31,7 +32,7 @@ func createMockHistoryRepoArgs(epoch uint32) HistoryRepositoryArguments {
 		EpochByHashStorer:           genericMocks.NewStorerMock("EpochByHash", epoch),
 		EventsHashesByTxHashStorer:  genericMocks.NewStorerMock("EventsHashesByTxHash", epoch),
 		Marshalizer:                 &mock.MarshalizerMock{},
-		Hasher:                      &mock.HasherMock{},
+		Hasher:                      &hashingMocks.HasherMock{},
 		ESDTSuppliesHandler:         sp,
 	}
 

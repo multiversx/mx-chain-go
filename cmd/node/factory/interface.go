@@ -28,6 +28,19 @@ type HeaderIntegrityVerifierHandler interface {
 	IsInterfaceNil() bool
 }
 
+// HeaderVersionHandler handles the header version
+type HeaderVersionHandler interface {
+	GetVersion(epoch uint32) string
+	Verify(hdr data.HeaderHandler) error
+	IsInterfaceNil() bool
+}
+
+// VersionedHeaderFactory creates versioned headers
+type VersionedHeaderFactory interface {
+	Create(epoch uint32) data.HeaderHandler
+	IsInterfaceNil() bool
+}
+
 // P2PAntifloodHandler defines the behavior of a component able to signal that the system is too busy (or flooded) processing
 // p2p messages
 type P2PAntifloodHandler interface {

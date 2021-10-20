@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/slash/detector"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/slashMocks"
 	"github.com/stretchr/testify/require"
 )
@@ -29,13 +30,13 @@ func TestNewSigningSlashingDetector(t *testing.T) {
 	}{
 		{
 			args: func() (sharding.NodesCoordinator, process.RoundHandler, hashing.Hasher, marshal.Marshalizer, detector.RoundDetectorCache, detector.HeadersCache) {
-				return nil, &mock.RoundHandlerMock{}, &mock.HasherMock{}, &mock.MarshalizerMock{}, &slashMocks.RoundDetectorCacheStub{}, &slashMocks.HeadersCacheStub{}
+				return nil, &mock.RoundHandlerMock{}, &hashingMocks.HasherMock{}, &mock.MarshalizerMock{}, &slashMocks.RoundDetectorCacheStub{}, &slashMocks.HeadersCacheStub{}
 			},
 			expectedErr: process.ErrNilShardCoordinator,
 		},
 		{
 			args: func() (sharding.NodesCoordinator, process.RoundHandler, hashing.Hasher, marshal.Marshalizer, detector.RoundDetectorCache, detector.HeadersCache) {
-				return &mock.NodesCoordinatorMock{}, nil, &mock.HasherMock{}, &mock.MarshalizerMock{}, &slashMocks.RoundDetectorCacheStub{}, &slashMocks.HeadersCacheStub{}
+				return &mock.NodesCoordinatorMock{}, nil, &hashingMocks.HasherMock{}, &mock.MarshalizerMock{}, &slashMocks.RoundDetectorCacheStub{}, &slashMocks.HeadersCacheStub{}
 			},
 			expectedErr: process.ErrNilRoundHandler,
 		},
@@ -47,25 +48,25 @@ func TestNewSigningSlashingDetector(t *testing.T) {
 		},
 		{
 			args: func() (sharding.NodesCoordinator, process.RoundHandler, hashing.Hasher, marshal.Marshalizer, detector.RoundDetectorCache, detector.HeadersCache) {
-				return &mock.NodesCoordinatorMock{}, &mock.RoundHandlerMock{}, &mock.HasherMock{}, nil, &slashMocks.RoundDetectorCacheStub{}, &slashMocks.HeadersCacheStub{}
+				return &mock.NodesCoordinatorMock{}, &mock.RoundHandlerMock{}, &hashingMocks.HasherMock{}, nil, &slashMocks.RoundDetectorCacheStub{}, &slashMocks.HeadersCacheStub{}
 			},
 			expectedErr: process.ErrNilMarshalizer,
 		},
 		{
 			args: func() (sharding.NodesCoordinator, process.RoundHandler, hashing.Hasher, marshal.Marshalizer, detector.RoundDetectorCache, detector.HeadersCache) {
-				return &mock.NodesCoordinatorMock{}, &mock.RoundHandlerMock{}, &mock.HasherMock{}, &mock.MarshalizerMock{}, nil, &slashMocks.HeadersCacheStub{}
+				return &mock.NodesCoordinatorMock{}, &mock.RoundHandlerMock{}, &hashingMocks.HasherMock{}, &mock.MarshalizerMock{}, nil, &slashMocks.HeadersCacheStub{}
 			},
 			expectedErr: process.ErrNilRoundDetectorCache,
 		},
 		{
 			args: func() (sharding.NodesCoordinator, process.RoundHandler, hashing.Hasher, marshal.Marshalizer, detector.RoundDetectorCache, detector.HeadersCache) {
-				return &mock.NodesCoordinatorMock{}, &mock.RoundHandlerMock{}, &mock.HasherMock{}, &mock.MarshalizerMock{}, &slashMocks.RoundDetectorCacheStub{}, nil
+				return &mock.NodesCoordinatorMock{}, &mock.RoundHandlerMock{}, &hashingMocks.HasherMock{}, &mock.MarshalizerMock{}, &slashMocks.RoundDetectorCacheStub{}, nil
 			},
 			expectedErr: process.ErrNilRoundHeadersCache,
 		},
 		{
 			args: func() (sharding.NodesCoordinator, process.RoundHandler, hashing.Hasher, marshal.Marshalizer, detector.RoundDetectorCache, detector.HeadersCache) {
-				return &mock.NodesCoordinatorMock{}, &mock.RoundHandlerMock{}, &mock.HasherMock{}, &mock.MarshalizerMock{}, &slashMocks.RoundDetectorCacheStub{}, &slashMocks.HeadersCacheStub{}
+				return &mock.NodesCoordinatorMock{}, &mock.RoundHandlerMock{}, &hashingMocks.HasherMock{}, &mock.MarshalizerMock{}, &slashMocks.RoundDetectorCacheStub{}, &slashMocks.HeadersCacheStub{}
 			},
 			expectedErr: nil,
 		},
@@ -83,7 +84,7 @@ func TestMultipleHeaderSigningDetector_VerifyData_CannotCastData_ExpectError(t *
 	sd, _ := detector.NewMultipleHeaderSigningDetector(
 		&mock.NodesCoordinatorMock{},
 		&mock.RoundHandlerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&slashMocks.RoundDetectorCacheStub{},
 		&slashMocks.HeadersCacheStub{})
@@ -103,7 +104,7 @@ func TestMultipleHeaderSigningDetector_VerifyData_IrrelevantRound_ExpectError(t 
 		&mock.RoundHandlerMock{
 			RoundIndex: int64(round),
 		},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&slashMocks.RoundDetectorCacheStub{},
 		&slashMocks.HeadersCacheStub{})
@@ -122,7 +123,7 @@ func TestMultipleHeaderSigningDetector_VerifyData_InvalidMarshaller_ExpectError(
 	ssd, _ := detector.NewMultipleHeaderSigningDetector(
 		&mockEpochStart.NodesCoordinatorStub{},
 		&mock.RoundHandlerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerStub{
 			MarshalCalled: func(_ interface{}) ([]byte, error) {
 				return nil, errMarshaller
@@ -149,7 +150,7 @@ func TestMultipleHeaderSigningDetector_VerifyData_InvalidNodesCoordinator_Expect
 			},
 		},
 		&mock.RoundHandlerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&slashMocks.RoundDetectorCacheStub{},
 		&slashMocks.HeadersCacheStub{})
@@ -167,7 +168,7 @@ func TestMultipleHeaderSigningDetector_VerifyData_SameHeaderData_DifferentSigner
 	ssd, _ := detector.NewMultipleHeaderSigningDetector(
 		&mockEpochStart.NodesCoordinatorStub{},
 		&mock.RoundHandlerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&slashMocks.RoundDetectorCacheStub{},
 		&slashMocks.HeadersCacheStub{
@@ -258,7 +259,7 @@ func TestMultipleHeaderSigningDetector_VerifyData_ValidateProof(t *testing.T) {
 			},
 		},
 		&mock.RoundHandlerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		slashCache,
 		headersCache)
@@ -324,7 +325,7 @@ func TestMultipleHeaderSigningDetector_ValidateProof_InvalidProofType_ExpectErro
 	ssd, _ := detector.NewMultipleHeaderSigningDetector(
 		&mockEpochStart.NodesCoordinatorStub{},
 		&mock.RoundHandlerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&slashMocks.RoundDetectorCacheStub{},
 		&slashMocks.HeadersCacheStub{})
@@ -346,7 +347,7 @@ func TestMultipleHeaderSigningDetector_ValidateProof_NotEnoughHeaders_ExpectErro
 	ssd, _ := detector.NewMultipleHeaderSigningDetector(
 		&mockEpochStart.NodesCoordinatorStub{},
 		&mock.RoundHandlerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&slashMocks.RoundDetectorCacheStub{},
 		&slashMocks.HeadersCacheStub{})
@@ -371,7 +372,7 @@ func TestMultipleHeaderSigningDetector_ValidateProof_SignedHeadersHaveDifferentR
 			},
 		},
 		&mock.RoundHandlerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&slashMocks.RoundDetectorCacheStub{},
 		&slashMocks.HeadersCacheStub{})
@@ -400,7 +401,7 @@ func TestMultipleHeaderSigningDetector_ValidateProof_InvalidMarshaller_ExpectErr
 			},
 		},
 		&mock.RoundHandlerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerStub{
 			MarshalCalled: func(_ interface{}) ([]byte, error) {
 				return nil, errMarshaller
@@ -432,7 +433,7 @@ func TestMultipleHeaderSigningDetector_ValidateProof_SignedHeadersHaveSameHash_E
 			},
 		},
 		&mock.RoundHandlerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&slashMocks.RoundDetectorCacheStub{},
 		&slashMocks.HeadersCacheStub{})
@@ -460,7 +461,7 @@ func TestMultipleHeaderSigningDetector_ValidateProof_HeadersNotSignedByTheSameVa
 			},
 		},
 		&mock.RoundHandlerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&slashMocks.RoundDetectorCacheStub{},
 		&slashMocks.HeadersCacheStub{})
@@ -484,7 +485,7 @@ func TestMultipleHeaderSigningDetector_ValidateProof_InvalidSlashLevel_ExpectErr
 	ssd, _ := detector.NewMultipleHeaderSigningDetector(
 		&mockEpochStart.NodesCoordinatorStub{},
 		&mock.RoundHandlerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&slashMocks.RoundDetectorCacheStub{},
 		&slashMocks.HeadersCacheStub{})

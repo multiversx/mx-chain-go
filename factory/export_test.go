@@ -63,6 +63,7 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 	pendingMiniBlocksHandler process.PendingMiniBlocksHandler,
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
 	arwenChangeLocker process.Locker,
+	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
 ) (process.BlockProcessor, error) {
 	return pcf.newBlockProcessor(
 		requestHandler,
@@ -75,6 +76,7 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 		pendingMiniBlocksHandler,
 		txSimulatorProcessorArgs,
 		arwenChangeLocker,
+		scheduledTxsExecutionHandler,
 	)
 }
 

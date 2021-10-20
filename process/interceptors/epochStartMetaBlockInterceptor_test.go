@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -166,7 +167,7 @@ func TestEpochStartMetaBlockInterceptor_EntireFlowShouldWorkAndSetTheEpoch(t *te
 func getArgsEpochStartMetaBlockInterceptor() interceptors.ArgsEpochStartMetaBlockInterceptor {
 	return interceptors.ArgsEpochStartMetaBlockInterceptor{
 		Marshalizer:               &mock.MarshalizerMock{},
-		Hasher:                    &mock.HasherMock{},
+		Hasher:                    &hashingMocks.HasherMock{},
 		NumConnectedPeersProvider: &mock.MessengerStub{},
 		ConsensusPercentage:       50,
 	}

@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/stretchr/testify/assert"
@@ -17,7 +18,7 @@ import (
 func getArgs() factory.TrieFactoryArgs {
 	return factory.TrieFactoryArgs{
 		Marshalizer: &testscommon.MarshalizerMock{},
-		Hasher:      &testscommon.HasherMock{},
+		Hasher:      &hashingMocks.HasherMock{},
 		PathManager: &testscommon.PathManagerStub{},
 	}
 }
