@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state/factory"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
 	"github.com/stretchr/testify/assert"
@@ -24,7 +25,7 @@ func getDefaultTrieAndAccountsDbAndStoragePruningManager() (common.Trie, *state.
 		MaxSnapshots:       2,
 	}
 	marshalizer := &testscommon.MarshalizerMock{}
-	hsh := testscommon.HasherMock{}
+	hsh := &hashingMocks.HasherMock{}
 	args := trie.NewTrieStorageManagerArgs{
 		DB:          testscommon.NewMemDbMock(),
 		Marshalizer: marshalizer,

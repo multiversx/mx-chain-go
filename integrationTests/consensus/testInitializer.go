@@ -150,6 +150,7 @@ func createTestStore() dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
 	store.AddStorer(dataRetriever.BootstrapUnit, createMemUnit())
 	store.AddStorer(dataRetriever.ReceiptsUnit, createMemUnit())
+	store.AddStorer(dataRetriever.ScheduledSCRsUnit, createMemUnit())
 	return store
 }
 
@@ -277,7 +278,7 @@ func createConsensusOnlyNode(
 			_ = blockChain.SetCurrentBlockHeader(header)
 			return nil
 		},
-		RevertAccountStateCalled: func(header data.HeaderHandler) {
+		RevertCurrentBlockCalled: func() {
 		},
 		CreateBlockCalled: func(header data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
 			return header, &dataBlock.Body{}, nil
@@ -287,12 +288,12 @@ func createConsensusOnlyNode(
 			mrsTxs := make(map[string][][]byte)
 			return mrsData, mrsTxs, nil
 		},
-		CreateNewHeaderCalled: func(round uint64, nonce uint64) data.HeaderHandler {
+		CreateNewHeaderCalled: func(round uint64, nonce uint64) (data.HeaderHandler, error) {
 			return &dataBlock.Header{
 				Round:           round,
 				Nonce:           nonce,
 				SoftwareVersion: []byte("version"),
-			}
+			}, nil
 		},
 	}
 
@@ -434,6 +435,7 @@ func createConsensusOnlyNode(
 	processComponents.ReqHandler = &testscommon.RequestHandlerStub{}
 	processComponents.PeerMapper = networkShardingCollector
 	processComponents.RoundHandlerField = roundHandler
+	processComponents.ScheduledTxsExecutionHandlerInternal = &testscommon.ScheduledTxsExecutionStub{}
 
 	dataComponents := integrationTests.GetDefaultDataComponents()
 	dataComponents.BlockChain = blockChain

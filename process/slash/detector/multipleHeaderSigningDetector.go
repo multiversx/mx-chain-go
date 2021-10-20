@@ -103,7 +103,6 @@ func (mhs *multipleHeaderSigningDetector) VerifyData(interceptedData process.Int
 
 func (mhs *multipleHeaderSigningDetector) computeHashWithoutSignatures(header data.HeaderHandler) ([]byte, error) {
 	headerCopy := header.ShallowClone()
-
 	err := headerCopy.SetPubKeysBitmap(nil)
 	if err != nil {
 		return nil, err

@@ -471,7 +471,7 @@ func (e *economics) checkEconomicsInvariants(
 	inflationPerEpoch := e.computeInflationForEpoch(inflationRate, actualMaxBlocks)
 	maxRewardsInEpoch := core.GetIntTrimmedPercentageOfValue(computedEconomics.TotalSupply, inflationPerEpoch)
 	if maxRewardsInEpoch.Cmp(metaBlock.AccumulatedFeesInEpoch) < 0 {
-		maxRewardsInEpoch = metaBlock.AccumulatedFeesInEpoch
+		maxRewardsInEpoch.Set(metaBlock.AccumulatedFeesInEpoch)
 	}
 
 	if !core.IsInRangeInclusive(computedEconomics.RewardsForProtocolSustainability, zero, maxRewardsInEpoch) {

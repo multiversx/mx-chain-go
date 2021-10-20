@@ -27,6 +27,8 @@
    DefaultVersion = "default"
    VersionsByEpochs = [
        { StartEpoch = 0, Version = "*" },
+       # The value of StartEpoch parameter for version 2 should be the same with the ScheduledMiniBlocksEnableEpoch flag from enableEpoch.toml file
+       { StartEpoch = 2, Version = "2" },
    ]
    [Versions.Cache]
         Name = "VersionsCache"
@@ -80,6 +82,19 @@
         SizeInBytes = 10485760 #10MB
     [ReceiptsStorage.DB]
         FilePath = "Receipts"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
+
+[ScheduledSCRsStorage]
+    [ScheduledSCRsStorage.Cache]
+        Name = "ScheduledSCRsStorage"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 10485760 #10MB
+    [ScheduledSCRsStorage.DB]
+        FilePath = "ScheduledSCRs"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 100
@@ -585,6 +600,7 @@
 # Consensus type which will be used (the current implementation can manage "bn" and "bls")
 # When consensus type is "bls" the multisig hasher type should be "blake2b"
 [Consensus]
+   ScheduledExecutionMilliseconds = 1500
    Type = "bls"
 
 [NTPConfig]

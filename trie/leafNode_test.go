@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -604,7 +605,7 @@ func TestLeafNode_deleteDifferentKeyShouldNotModifyTrie(t *testing.T) {
 func TestLeafNode_newLeafNodeNilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ln, err := newLeafNode([]byte("key"), []byte("val"), nil, testscommon.HasherMock{})
+	ln, err := newLeafNode([]byte("key"), []byte("val"), nil, &hashingMocks.HasherMock{})
 	assert.Nil(t, ln)
 	assert.Equal(t, ErrNilMarshalizer, err)
 }

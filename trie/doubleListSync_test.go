@@ -15,13 +15,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 var marshalizer = &testscommon.MarshalizerMock{}
-var hasher = &testscommon.HasherMock{}
+var hasher = &hashingMocks.HasherMock{}
 
 func createMemUnit() storage.Storer {
 	capacity := uint32(10)

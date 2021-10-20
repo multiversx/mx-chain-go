@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/common/validatorInfo"
@@ -72,7 +73,7 @@ func NewRewardsCreatorV2(args RewardsCreatorArgsV2) (*rewardsCreatorV2, error) {
 // This method applies the rewards according to the economics version 2 proposal, which takes into consideration
 // stake top-up values per node
 func (rc *rewardsCreatorV2) CreateRewardsMiniBlocks(
-	metaBlock *block.MetaBlock,
+	metaBlock data.MetaHeaderHandler,
 	validatorsInfo map[uint32][]*state.ValidatorInfo,
 	computedEconomics *block.Economics,
 ) (block.MiniBlockSlice, error) {
@@ -90,7 +91,7 @@ func (rc *rewardsCreatorV2) CreateRewardsMiniBlocks(
 		"totalToDistribute", computedEconomics.TotalToDistribute,
 		"rewardsForProtocolSustainability", computedEconomics.RewardsForProtocolSustainability,
 		"rewardsPerBlock", computedEconomics.RewardsPerBlock,
-		"devFeesInEpoch", metaBlock.DevFeesInEpoch,
+		"devFeesInEpoch", metaBlock.GetDevFeesInEpoch(),
 		"rewardsForBlocks no fees", rc.economicsDataProvider.RewardsToBeDistributedForBlocks(),
 		"numberOfBlocks", rc.economicsDataProvider.NumberOfBlocks(),
 		"numberOfBlocksPerShard", rc.economicsDataProvider.NumberOfBlocksPerShard(),
@@ -148,7 +149,7 @@ func (rc *rewardsCreatorV2) adjustProtocolSustainabilityRewards(protocolSustaina
 
 // VerifyRewardsMiniBlocks verifies if received rewards miniblocks are correct
 func (rc *rewardsCreatorV2) VerifyRewardsMiniBlocks(
-	metaBlock *block.MetaBlock,
+	metaBlock data.MetaHeaderHandler,
 	validatorsInfo map[uint32][]*state.ValidatorInfo,
 	computedEconomics *block.Economics,
 ) error {
@@ -165,7 +166,7 @@ func (rc *rewardsCreatorV2) VerifyRewardsMiniBlocks(
 }
 
 func (rc *rewardsCreatorV2) addValidatorRewardsToMiniBlocks(
-	metaBlock *block.MetaBlock,
+	metaBlock data.HeaderHandler,
 	miniBlocks block.MiniBlockSlice,
 	nodesRewardInfo map[uint32][]*nodeRewardsData,
 ) (*big.Int, error) {

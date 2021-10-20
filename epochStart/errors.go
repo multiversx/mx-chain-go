@@ -29,13 +29,22 @@ var ErrNilTxSignMarshalizer = errors.New("nil tx sign marshalizer")
 // ErrNilStorage signals that nil storage has been provided
 var ErrNilStorage = errors.New("nil storage")
 
+// ErrNilHeadersSyncer signals that a nil headers syncer has been provided
+var ErrNilHeadersSyncer = errors.New("nil headers syncer")
+
+// ErrNilMiniBlocksSyncer signals that a nil miniBlocks syncer has been provided
+var ErrNilMiniBlocksSyncer = errors.New("nil miniBlocks syncer")
+
+// ErrNilTransactionsSyncer signals that a nil transactions syncer has been provided
+var ErrNilTransactionsSyncer = errors.New("nil transactions syncer")
+
 // ErrNilHeaderHandler signals that a nil header handler has been provided
 var ErrNilHeaderHandler = errors.New("nil header handler")
 
 // ErrNilMiniblocks signals that nil argument was passed
 var ErrNilMiniblocks = errors.New("nil arguments for miniblocks object")
 
-// ErrNilMiniblock signals that nil miniblock has been provided
+// ErrNilMiniblock signals that nil miniBlock has been provided
 var ErrNilMiniblock = errors.New("nil miniblock")
 
 // ErrMetaHdrNotFound signals that metaheader was not found
@@ -145,6 +154,9 @@ var ErrEpochStartDataForShardNotFound = errors.New("epoch start data for current
 
 // ErrMissingHeader signals that searched header is missing
 var ErrMissingHeader = errors.New("missing header")
+
+// ErrMissingMiniBlock signals that the searched miniBlock is missing
+var ErrMissingMiniBlock = errors.New("missing miniBlock")
 
 // ErrNilPathManager signals that a nil path manager has been provided
 var ErrNilPathManager = errors.New("nil path manager")
@@ -316,3 +328,6 @@ var ErrEmptyESDTOwnerAddress = errors.New("empty ESDT owner address")
 
 // ErrNilCurrentNetworkEpochSetter signals that a nil current network epoch setter has been provided
 var ErrNilCurrentNetworkEpochSetter = errors.New("nil current network epoch setter")
+
+// ErrNilScheduledTxsHandler signals that a nil scheduled transactions handler has been provided
+var ErrNilScheduledTxsHandler = errors.New("nil scheduled transactions handler")

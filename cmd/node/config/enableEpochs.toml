@@ -114,6 +114,9 @@
     # ESDTNFTCreateOnMultiShard represents the epoch when esdt nft creation is enabled on multiple shards
     ESDTNFTCreateOnMultiShard = 6
 
+    # ScheduledMiniBlocksEnableEpoch represents the epoch when scheduled mini blocks would be created if needed
+    ScheduledMiniBlocksEnableEpoch = 2
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },

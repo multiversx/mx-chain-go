@@ -70,7 +70,7 @@ import (
 )
 
 // StepDelay is used so that transactions can disseminate properly
-var StepDelay = time.Second / 10
+var StepDelay = time.Millisecond * 180
 
 // SyncDelay is used so that nodes have enough time to sync
 var SyncDelay = time.Second / 5
@@ -342,6 +342,7 @@ func CreateStore(numOfShards uint32) dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.BootstrapUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.StatusMetricsUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.ReceiptsUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.ScheduledSCRsUnit, CreateMemUnit())
 
 	for i := uint32(0); i < numOfShards; i++ {
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i)
@@ -658,7 +659,7 @@ func CreateGenesisMetaBlock(
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	dataPool dataRetriever.PoolsHolder,
 	economics process.EconomicsDataHandler,
-) data.HeaderHandler {
+) data.MetaHeaderHandler {
 	gasSchedule := arwenConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
 
@@ -1189,16 +1190,11 @@ func extractUint64ValueFromTxHandler(txHandler data.TransactionHandler) uint64 {
 
 // CreateHeaderIntegrityVerifier outputs a valid header integrity verifier handler
 func CreateHeaderIntegrityVerifier() process.HeaderIntegrityVerifier {
+	hvh := &testscommon.HeaderVersionHandlerStub{}
+
 	headerVersioning, _ := headerCheck.NewHeaderIntegrityVerifier(
 		ChainID,
-		[]config.VersionByEpochs{
-			{
-				StartEpoch: 0,
-				Version:    "*",
-			},
-		},
-		"default",
-		testscommon.NewCacherMock(),
+		hvh,
 	)
 
 	return headerVersioning

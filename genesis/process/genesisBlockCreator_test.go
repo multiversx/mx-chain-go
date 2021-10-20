@@ -24,6 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/factory"
@@ -58,7 +59,7 @@ func createMockArgument(
 		Core: &mock.CoreComponentsMock{
 			IntMarsh:            &mock.MarshalizerMock{},
 			TxMarsh:             &mock.MarshalizerMock{},
-			Hash:                &mock.HasherMock{},
+			Hash:                &hashingMocks.HasherMock{},
 			UInt64ByteSliceConv: &mock.Uint64ByteSliceConverterMock{},
 			AddrPubKeyConv:      mock.NewPubkeyConverterMock(32),
 			Chain:               "chainID",
@@ -140,7 +141,7 @@ func createMockArgument(
 	var err error
 	arg.Accounts, err = createAccountAdapter(
 		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		factoryState.NewAccountCreator(),
 		trieStorageManagers[factory.UserAccountTrie],
 	)
@@ -168,7 +169,7 @@ func createMockArgument(
 		GenesisTotalSupplyCalled: func() *big.Int {
 			return entireSupply
 		},
-		MaxGasLimitPerBlockCalled: func() uint64 {
+		MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
 			return math.MaxUint64
 		},
 	}

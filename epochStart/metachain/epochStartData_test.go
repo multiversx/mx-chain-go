@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -33,7 +34,7 @@ func createGenesisBlocks(shardCoordinator sharding.Coordinator) map[uint32]data.
 	return genesisBlocks
 }
 
-func createGenesisBlock(shardId uint32) *block.Header {
+func createGenesisBlock(shardId uint32) data.HeaderHandler {
 	rootHash := []byte("roothash")
 	return &block.Header{
 		Nonce:         0,
@@ -391,7 +392,7 @@ func TestMetaProcessor_CreateEpochStartFromMetaBlockEdgeCaseChecking(t *testing.
 			return true
 		},
 	}
-	arguments.Hasher = &mock.HasherMock{}
+	arguments.Hasher = &hashingMocks.HasherMock{}
 	arguments.ShardCoordinator, _ = sharding.NewMultiShardCoordinator(3, core.MetachainShardId)
 	arguments.DataPool = dataRetrieverMock.CreatePoolsHolder(1, core.MetachainShardId)
 

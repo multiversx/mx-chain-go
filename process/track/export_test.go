@@ -27,7 +27,7 @@ func (sbt *shardBlockTrack) GetLastShardProcessedMetaNonce(shardID uint32) uint6
 	return sbt.blockBalancer.GetLastShardProcessedMetaNonce(shardID)
 }
 
-func (sbt *shardBlockTrack) GetTrackedShardHeaderWithNonceAndHash(shardID uint32, nonce uint64, hash []byte) (*block.Header, error) {
+func (sbt *shardBlockTrack) GetTrackedShardHeaderWithNonceAndHash(shardID uint32, nonce uint64, hash []byte) (data.HeaderHandler, error) {
 	return sbt.getTrackedShardHeaderWithNonceAndHash(shardID, nonce, hash)
 }
 

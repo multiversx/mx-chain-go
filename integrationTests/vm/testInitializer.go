@@ -53,6 +53,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
@@ -227,7 +228,7 @@ func (vmTestContext *VMTestContext) GetVMOutputWithTransientVM(funcName string, 
 	}()
 
 	feeHandler := &mock.FeeHandlerStub{
-		MaxGasLimitPerBlockCalled: func() uint64 {
+		MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
 			return uint64(math.MaxUint64)
 		},
 	}
@@ -386,7 +387,7 @@ func createEconomicsData(penalizedTooMuchGasEnableEpoch uint32) (process.Economi
 			},
 		},
 		PenalizedTooMuchGasEnableEpoch: penalizedTooMuchGasEnableEpoch,
-		EpochNotifier:                  &mock.EpochNotifierStub{},
+		EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
 		BuiltInFunctionsCostHandler:    builtInCost,
 	}
 
@@ -459,7 +460,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		TxFeeHandler:     &testscommon.UnsignedTxHandlerStub{},
 		EconomicsFee:     economicsData,
 		TxTypeHandler:    txTypeHandler,
-		GasHandler: &mock.GasHandlerMock{
+		GasHandler: &testscommon.GasHandlerStub{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 		GasSchedule:                    mock.NewGasScheduleNotifierMock(gasSchedule),
@@ -648,7 +649,7 @@ func CreateVMAndBlockchainHookMeta(
 		SystemSCConfig:      createSystemSCConfig(),
 		ValidatorAccountsDB: accnts,
 		ChanceComputer:      &mock.NodesCoordinatorMock{},
-		EpochNotifier:       &mock.EpochNotifierStub{},
+		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
 		EpochConfig:         createEpochConfig(),
 		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(1),
 	}
@@ -1264,7 +1265,7 @@ func GetVmOutput(gasSchedule map[string]map[string]uint64, accnts state.Accounts
 	}()
 
 	feeHandler := &mock.FeeHandlerStub{
-		MaxGasLimitPerBlockCalled: func() uint64 {
+		MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
 			return uint64(math.MaxUint64)
 		},
 	}

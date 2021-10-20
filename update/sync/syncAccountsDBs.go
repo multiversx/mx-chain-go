@@ -7,7 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -51,8 +51,8 @@ func NewSyncAccountsDBsHandler(args ArgsNewSyncAccountsDBsHandler) (*syncAccount
 }
 
 // SyncTriesFrom syncs all the state tries from an epoch start metachain
-func (st *syncAccountsDBs) SyncTriesFrom(meta *block.MetaBlock) error {
-	if !meta.IsStartOfEpochBlock() && meta.Nonce > 0 {
+func (st *syncAccountsDBs) SyncTriesFrom(meta data.MetaHeaderHandler) error {
+	if !meta.IsStartOfEpochBlock() && meta.GetNonce() > 0 {
 		return update.ErrNotEpochStartBlock
 	}
 
@@ -64,7 +64,7 @@ func (st *syncAccountsDBs) SyncTriesFrom(meta *block.MetaBlock) error {
 	st.mutSynced.Unlock()
 
 	wg := sync.WaitGroup{}
-	wg.Add(1 + len(meta.EpochStart.LastFinalizedHeaders))
+	wg.Add(1 + len(meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers()))
 
 	// TODO: might think of a way to stop waiting at a signal
 	chDone := make(chan bool)
@@ -83,8 +83,8 @@ func (st *syncAccountsDBs) SyncTriesFrom(meta *block.MetaBlock) error {
 		wg.Done()
 	}()
 
-	for _, shData := range meta.EpochStart.LastFinalizedHeaders {
-		go func(shardData block.EpochStartShardData) {
+	for _, shData := range meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
+		go func(shardData data.EpochStartShardDataHandler) {
 			err := st.syncShard(shardData)
 			if err != nil {
 				mutErr.Lock()
@@ -108,13 +108,13 @@ func (st *syncAccountsDBs) SyncTriesFrom(meta *block.MetaBlock) error {
 	return nil
 }
 
-func (st *syncAccountsDBs) syncMeta(meta *block.MetaBlock) error {
-	err := st.syncAccountsOfType(genesis.UserAccount, state.UserAccountsState, core.MetachainShardId, meta.RootHash)
+func (st *syncAccountsDBs) syncMeta(meta data.MetaHeaderHandler) error {
+	err := st.syncAccountsOfType(genesis.UserAccount, state.UserAccountsState, core.MetachainShardId, meta.GetRootHash())
 	if err != nil {
 		return fmt.Errorf("%w UserAccount, shard: meta", err)
 	}
 
-	err = st.syncAccountsOfType(genesis.ValidatorAccount, state.PeerAccountsState, core.MetachainShardId, meta.ValidatorStatsRootHash)
+	err = st.syncAccountsOfType(genesis.ValidatorAccount, state.PeerAccountsState, core.MetachainShardId, meta.GetValidatorStatsRootHash())
 	if err != nil {
 		return fmt.Errorf("%w ValidatorAccount, shard: meta", err)
 	}
@@ -122,10 +122,10 @@ func (st *syncAccountsDBs) syncMeta(meta *block.MetaBlock) error {
 	return nil
 }
 
-func (st *syncAccountsDBs) syncShard(shardData block.EpochStartShardData) error {
-	err := st.syncAccountsOfType(genesis.UserAccount, state.UserAccountsState, shardData.ShardID, shardData.RootHash)
+func (st *syncAccountsDBs) syncShard(shardData data.EpochStartShardDataHandler) error {
+	err := st.syncAccountsOfType(genesis.UserAccount, state.UserAccountsState, shardData.GetShardID(), shardData.GetRootHash())
 	if err != nil {
-		return fmt.Errorf("%w UserAccount, shard: %d", err, shardData.ShardID)
+		return fmt.Errorf("%w UserAccount, shard: %d", err, shardData.GetShardID())
 	}
 	return nil
 }

@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
@@ -44,7 +45,7 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 		DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
 			return nil
 		},
-		RevertAccountStateCalled: func(header data.HeaderHandler) {
+		RevertCurrentBlockCalled: func() {
 		},
 		DecodeBlockBodyCalled: func(dta []byte) data.BodyHandler {
 			return nil
@@ -70,15 +71,23 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 		},
 	}
 	syncTimerMock := &mock.SyncTimerMock{}
-	hasher := &mock.HasherMock{}
+	hasher := &hashingMocks.HasherMock{}
 	blsService, _ := bls.NewConsensusService()
 	poolAdder := testscommon.NewCacherMock()
+
+	scheduledProcessorArgs := spos.ScheduledProcessorWrapperArgs{
+		SyncTimer:                  syncTimerMock,
+		Processor:                  blockProcessor,
+		ProcessingTimeMilliSeconds: 10,
+	}
+	scheduledProcessor, _ := spos.NewScheduledProcessorWrapper(scheduledProcessorArgs)
 
 	peerSigHandler := &mock.PeerSignatureHandler{Signer: singleSignerMock, KeyGen: keyGeneratorMock}
 	workerArgs := &spos.WorkerArgs{
 		ConsensusService:         blsService,
 		BlockChain:               blockchainMock,
 		BlockProcessor:           blockProcessor,
+		ScheduledProcessor:       scheduledProcessor,
 		Bootstrapper:             bootstrapperMock,
 		BroadcastMessenger:       broadcastMessengerMock,
 		ConsensusState:           consensusState,
@@ -582,7 +591,7 @@ func TestWorker_ProcessReceivedMessageComputeReceivedProposedBlockMetric(t *test
 				SoftwareVersion: []byte("version"),
 			}
 		},
-		RevertAccountStateCalled: func(header data.HeaderHandler) {
+		RevertCurrentBlockCalled: func() {
 		},
 		DecodeBlockBodyCalled: func(dta []byte) data.BodyHandler {
 			return nil
@@ -601,7 +610,7 @@ func TestWorker_ProcessReceivedMessageComputeReceivedProposedBlockMetric(t *test
 		},
 	})
 	hdr := &block.Header{ChainID: chainID}
-	hdrHash, _ := core.CalculateHash(mock.MarshalizerMock{}, mock.HasherMock{}, hdr)
+	hdrHash, _ := core.CalculateHash(mock.MarshalizerMock{}, &hashingMocks.HasherMock{}, hdr)
 	hdrStr, _ := mock.MarshalizerMock{}.Marshal(hdr)
 	cnsMsg := consensus.NewConsensusMessage(
 		hdrHash,
@@ -919,13 +928,13 @@ func TestWorker_ProcessReceivedMessageWrongChainIDInProposedBlockShouldError(t *
 					},
 				}
 			},
-			RevertAccountStateCalled: func(header data.HeaderHandler) {
+			RevertCurrentBlockCalled: func() {
 			},
 		},
 	)
 
 	hdr := &block.Header{ChainID: wrongChainID}
-	hdrHash, _ := core.CalculateHash(mock.MarshalizerMock{}, mock.HasherMock{}, hdr)
+	hdrHash, _ := core.CalculateHash(mock.MarshalizerMock{}, &hashingMocks.HasherMock{}, hdr)
 	cnsMsg := consensus.NewConsensusMessage(
 		hdrHash,
 		nil,
@@ -963,7 +972,7 @@ func TestWorker_ProcessReceivedMessageWithABadOriginatorShouldErr(t *testing.T) 
 					},
 				}
 			},
-			RevertAccountStateCalled: func(header data.HeaderHandler) {
+			RevertCurrentBlockCalled: func() {
 			},
 			DecodeBlockBodyCalled: func(dta []byte) data.BodyHandler {
 				return nil
@@ -972,7 +981,7 @@ func TestWorker_ProcessReceivedMessageWithABadOriginatorShouldErr(t *testing.T) 
 	)
 
 	hdr := &block.Header{ChainID: chainID}
-	hdrHash, _ := core.CalculateHash(mock.MarshalizerMock{}, mock.HasherMock{}, hdr)
+	hdrHash, _ := core.CalculateHash(mock.MarshalizerMock{}, &hashingMocks.HasherMock{}, hdr)
 	hdrStr, _ := mock.MarshalizerMock{}.Marshal(hdr)
 	cnsMsg := consensus.NewConsensusMessage(
 		hdrHash,
@@ -1016,7 +1025,7 @@ func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 					},
 				}
 			},
-			RevertAccountStateCalled: func(header data.HeaderHandler) {
+			RevertCurrentBlockCalled: func() {
 			},
 			DecodeBlockBodyCalled: func(dta []byte) data.BodyHandler {
 				return nil
@@ -1025,7 +1034,7 @@ func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 	)
 
 	hdr := &block.Header{ChainID: chainID}
-	hdrHash, _ := core.CalculateHash(mock.MarshalizerMock{}, mock.HasherMock{}, hdr)
+	hdrHash, _ := core.CalculateHash(mock.MarshalizerMock{}, &hashingMocks.HasherMock{}, hdr)
 	hdrStr, _ := mock.MarshalizerMock{}.Marshal(hdr)
 	cnsMsg := consensus.NewConsensusMessage(
 		hdrHash,
@@ -1436,7 +1445,7 @@ func TestWorker_ExtendShouldWorkAfterAWhile(t *testing.T) {
 	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	executed := int32(0)
 	blockProcessor := &mock.BlockProcessorMock{
-		RevertAccountStateCalled: func(header data.HeaderHandler) {
+		RevertCurrentBlockCalled: func() {
 			atomic.AddInt32(&executed, 1)
 		},
 	}
@@ -1461,7 +1470,7 @@ func TestWorker_ExtendShouldWork(t *testing.T) {
 	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	executed := int32(0)
 	blockProcessor := &mock.BlockProcessorMock{
-		RevertAccountStateCalled: func(header data.HeaderHandler) {
+		RevertCurrentBlockCalled: func() {
 			atomic.AddInt32(&executed, 1)
 		},
 	}
@@ -1536,7 +1545,7 @@ func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
 	hdr.Nonce = 1
 	hdr.TimeStamp = uint64(wrk.RoundHandler().TimeStamp().Unix())
 	hdrStr, _ := mock.MarshalizerMock{}.Marshal(hdr)
-	hdrHash := mock.HasherMock{}.Compute(string(hdrStr))
+	hdrHash := (&hashingMocks.HasherMock{}).Compute(string(hdrStr))
 	cnsMsg := consensus.NewConsensusMessage(
 		hdrHash,
 		nil,

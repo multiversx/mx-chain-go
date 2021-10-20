@@ -256,6 +256,7 @@ type ProcessComponentsHolder interface {
 	NodeRedundancyHandler() consensus.NodeRedundancyHandler
 	ArwenChangeLocker() process.Locker
 	CurrentEpochProvider() process.CurrentNetworkEpochProviderHandler
+	ScheduledTxsExecutionHandler() process.ScheduledTxsExecutionHandler
 	IsInterfaceNil() bool
 }
 
@@ -415,6 +416,8 @@ type BootstrapComponentsHolder interface {
 	EpochBootstrapParams() BootstrapParamsHolder
 	NodeType() core.NodeType
 	ShardCoordinator() sharding.Coordinator
+	VersionedHeaderFactory() factory.VersionedHeaderFactory
+	HeaderVersionHandler() factory.HeaderVersionHandler
 	HeaderIntegrityVerifier() factory.HeaderIntegrityVerifierHandler
 	IsInterfaceNil() bool
 }

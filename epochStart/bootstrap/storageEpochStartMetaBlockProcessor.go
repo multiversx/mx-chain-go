@@ -8,6 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
@@ -24,7 +25,7 @@ type storageEpochStartMetaBlockProcessor struct {
 	hasher         hashing.Hasher
 	chanReceived   chan struct{}
 	mutMetablock   sync.Mutex
-	metaBlock      *block.MetaBlock
+	metaBlock      data.MetaHeaderHandler
 }
 
 // NewStorageEpochStartMetaBlockProcessor will return an interceptor processor for epoch start meta block when importing
@@ -107,7 +108,7 @@ func (ses *storageEpochStartMetaBlockProcessor) Save(data process.InterceptedDat
 
 // GetEpochStartMetaBlock will return the metablock after it is confirmed or an error if the number of tries was exceeded
 // This is a blocking method which will end after the consensus for the meta block is obtained or the context is done
-func (ses *storageEpochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Context) (*block.MetaBlock, error) {
+func (ses *storageEpochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Context) (data.MetaHeaderHandler, error) {
 	ses.requestMetaBlock()
 
 	chanRequests := time.After(durationBetweenReRequests)
@@ -124,7 +125,7 @@ func (ses *storageEpochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx conte
 	}
 }
 
-func (ses *storageEpochStartMetaBlockProcessor) getMetablock() (*block.MetaBlock, error) {
+func (ses *storageEpochStartMetaBlockProcessor) getMetablock() (data.MetaHeaderHandler, error) {
 	ses.mutMetablock.Lock()
 	defer ses.mutMetablock.Unlock()
 

@@ -31,7 +31,7 @@ func (p *nilPendingMiniBlocks) GetPendingMiniBlocks(_ uint32) [][]byte {
 }
 
 // SetPendingMiniBlocks will set the pending miniblocks hashes for a given shard
-func (p *nilPendingMiniBlocks) SetPendingMiniBlocks(shardID uint32, mbHashes [][]byte) {
+func (p *nilPendingMiniBlocks) SetPendingMiniBlocks(_ uint32, _ [][]byte) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -290,8 +290,8 @@ var ErrNilRandSeed = errors.New("provided rand seed is nil")
 // ErrNilPrevRandSeed signals that a nil previous rand seed has been provided
 var ErrNilPrevRandSeed = errors.New("provided previous rand seed is nil")
 
-// ErrReservedFieldNotSupportedYet signals that reserved field is not empty
-var ErrReservedFieldNotSupportedYet = errors.New("reserved field not supported yet")
+// ErrReservedFieldInvalid signals that reserved field has an invalid content
+var ErrReservedFieldInvalid = errors.New("reserved field content is invalid")
 
 // ErrLowerRoundInBlock signals that a header round is too low for processing it
 var ErrLowerRoundInBlock = errors.New("header round is lower than last committed")
@@ -306,7 +306,7 @@ var ErrLowerNonceInBlock = errors.New("lower nonce in block")
 var ErrHigherNonceInBlock = errors.New("higher nonce in block")
 
 // ErrRandSeedDoesNotMatch signals that random seed does not match with the previous one
-var ErrRandSeedDoesNotMatch = errors.New("random seed do not match")
+var ErrRandSeedDoesNotMatch = errors.New("random seed does not match")
 
 // ErrHeaderNotFinal signals that header is not final and it should be
 var ErrHeaderNotFinal = errors.New("header in metablock is not final")
@@ -1024,3 +1024,36 @@ var ErrNilCurrentNetworkEpochProvider = errors.New("nil current network epoch pr
 
 // ErrNilESDTTransferParser signals that a nil ESDT transfer parser has been provider
 var ErrNilESDTTransferParser = errors.New("nil esdt transfer parser")
+
+// ErrNilScheduledTxsExecutionHandler signals that scheduled txs execution handler is nil
+var ErrNilScheduledTxsExecutionHandler = errors.New("nil scheduled txs execution handler")
+
+// ErrNilVersionedHeaderFactory signals that the versioned header factory is nil
+var ErrNilVersionedHeaderFactory = errors.New("nil versioned header factory")
+
+// ErrNilIntermediateProcessor signals that intermediate processors is nil
+var ErrNilIntermediateProcessor = errors.New("intermediate processor is nil")
+
+// ErrNilSyncTimer signals that the sync timer is nil
+var ErrNilSyncTimer = errors.New("sync timer is nil")
+
+// ErrInvalidProcessingTime signals an invalid processing time
+var ErrInvalidProcessingTime = errors.New("processing time is invalid")
+
+// ErrNilIsShardStuckHandler signals a nil shard stuck handler
+var ErrNilIsShardStuckHandler = errors.New("nil handler for checking stuck shard")
+
+// ErrNilIsMaxBlockSizeReachedHandler signals a nil max block size reached handler
+var ErrNilIsMaxBlockSizeReachedHandler = errors.New("nil handler for max block size reached")
+
+// ErrNilTxMaxTotalCostHandler signals a nil transaction max total cost
+var ErrNilTxMaxTotalCostHandler = errors.New("nil transaction max total cost")
+
+// ErrNilAccountTxsPerShard signals a nil mapping for account transactions to shard
+var ErrNilAccountTxsPerShard = errors.New("nil account transactions per shard mapping")
+
+// ErrScheduledRootHashDoesNotMatch signals that scheduled root hash does not match
+var ErrScheduledRootHashDoesNotMatch = errors.New("scheduled root hash does not match")
+
+// ErrNilAdditionalData signals that additional data is nil
+var ErrNilAdditionalData = errors.New("nil additional data")
