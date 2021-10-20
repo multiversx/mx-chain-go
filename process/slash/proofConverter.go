@@ -45,15 +45,15 @@ func ToProtoMultipleHeaderSign(proof MultipleSigningProofHandler) (*coreSlash.Mu
 	}, nil
 }
 
-func getHeadersFromInterceptedHeaders(interceptedHeaders []*interceptedBlocks.InterceptedHeader) ([]*block.Header, error) {
-	headers := make([]*block.Header, 0, len(interceptedHeaders))
+func getHeadersFromInterceptedHeaders(interceptedHeaders []*interceptedBlocks.InterceptedHeader) ([]*block.HeaderV2, error) {
+	headers := make([]*block.HeaderV2, 0, len(interceptedHeaders))
 
 	for _, interceptedHeader := range interceptedHeaders {
 		if check.IfNil(interceptedHeader) || check.IfNil(interceptedHeader.HeaderHandler()) {
 			return nil, process.ErrNilHeaderHandler
 		}
 
-		blockHeader, castOk := interceptedHeader.HeaderHandler().(*block.Header)
+		blockHeader, castOk := interceptedHeader.HeaderHandler().(*block.HeaderV2)
 		if !castOk {
 			return nil, process.ErrCannotCastHeaderHandlerToHeader
 		}

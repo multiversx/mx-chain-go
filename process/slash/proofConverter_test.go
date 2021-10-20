@@ -25,8 +25,8 @@ func TestToProtoMultipleHeaderProposal_NilHeaders_ExpectError(t *testing.T) {
 }
 
 func TestToProtoMultipleHeaderProposal(t *testing.T) {
-	h1 := &block.Header{Nonce: 1, Round: 1}
-	h2 := &block.Header{Nonce: 2, Round: 2}
+	h1 := &block.HeaderV2{Header: &block.Header{Nonce: 1, Round: 1}}
+	h2 := &block.HeaderV2{Header: &block.Header{Nonce: 2, Round: 2}}
 
 	interceptedHeader1 := slashMocks.CreateInterceptedHeaderData(h1)
 	interceptedHeader2 := slashMocks.CreateInterceptedHeaderData(h2)
@@ -42,7 +42,7 @@ func TestToProtoMultipleHeaderProposal(t *testing.T) {
 
 	expectedRes := &coreSlash.MultipleHeaderProposalProof{
 		Level:   coreSlash.High,
-		Headers: &coreSlash.Headers{Headers: []*block.Header{h1, h2}},
+		Headers: &coreSlash.Headers{Headers: []*block.HeaderV2{h1, h2}},
 	}
 	res, err := slash.ToProtoMultipleHeaderProposal(proof)
 	require.Nil(t, err)
@@ -65,8 +65,8 @@ func TestToProtoMultipleHeaderSign_NilHeaders_ExpectError(t *testing.T) {
 }
 
 func TestToProtoMultipleHeaderSign(t *testing.T) {
-	h1 := &block.Header{Nonce: 1, Round: 1}
-	h2 := &block.Header{Nonce: 2, Round: 2}
+	h1 := &block.HeaderV2{Header: &block.Header{Nonce: 1, Round: 1}}
+	h2 := &block.HeaderV2{Header: &block.Header{Nonce: 2, Round: 2}}
 
 	interceptedHeader1 := slashMocks.CreateInterceptedHeaderData(h1)
 	interceptedHeader2 := slashMocks.CreateInterceptedHeaderData(h2)
@@ -107,8 +107,8 @@ func TestToProtoMultipleHeaderSign(t *testing.T) {
 			string(pk2): coreSlash.High,
 		},
 		Headers: map[string]*coreSlash.Headers{
-			string(pk1): {Headers: []*block.Header{h1}},
-			string(pk2): {Headers: []*block.Header{h1, h2}},
+			string(pk1): {Headers: []*block.HeaderV2{h1}},
+			string(pk2): {Headers: []*block.HeaderV2{h1, h2}},
 		},
 	}
 	res, err := slash.ToProtoMultipleHeaderSign(proof)

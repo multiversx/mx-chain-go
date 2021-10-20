@@ -3,8 +3,8 @@ package detector
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
 
@@ -13,23 +13,23 @@ func TestRoundDataCache_Add_OneRound_FourHeaders(t *testing.T) {
 
 	dataCache := NewRoundHeadersCache(1)
 
-	err := dataCache.Add(1, []byte("hash1"), &testscommon.HeaderHandlerStub{
-		TimestampField: 1,
+	err := dataCache.Add(1, []byte("hash1"), &block.HeaderV2{
+		Header: &block.Header{TimeStamp: 1},
 	})
 	require.Nil(t, err)
 
-	err = dataCache.Add(1, []byte("hash1"), &testscommon.HeaderHandlerStub{
-		TimestampField: 2,
+	err = dataCache.Add(1, []byte("hash1"), &block.HeaderV2{
+		Header: &block.Header{TimeStamp: 2},
 	})
 	require.Equal(t, process.ErrHeadersNotDifferentHashes, err)
 
-	err = dataCache.Add(1, []byte("hash2"), &testscommon.HeaderHandlerStub{
-		TimestampField: 3,
+	err = dataCache.Add(1, []byte("hash2"), &block.HeaderV2{
+		Header: &block.Header{TimeStamp: 3},
 	})
 	require.Nil(t, err)
 
-	err = dataCache.Add(1, []byte("hash3"), &testscommon.HeaderHandlerStub{
-		TimestampField: 4,
+	err = dataCache.Add(1, []byte("hash3"), &block.HeaderV2{
+		Header: &block.Header{TimeStamp: 4},
 	})
 	require.Nil(t, err)
 
@@ -52,13 +52,13 @@ func TestRoundDataCache_Add_CacheSizeTwo_FourEntriesInCache_ExpectOldestRoundInC
 
 	dataCache := NewRoundHeadersCache(2)
 
-	err := dataCache.Add(1, []byte("hash1"), &testscommon.HeaderHandlerStub{
-		TimestampField: 1,
+	err := dataCache.Add(1, []byte("hash1"), &block.HeaderV2{
+		Header: &block.Header{TimeStamp: 1},
 	})
 	require.Nil(t, err)
 
-	err = dataCache.Add(2, []byte("hash2"), &testscommon.HeaderHandlerStub{
-		TimestampField: 2,
+	err = dataCache.Add(2, []byte("hash2"), &block.HeaderV2{
+		Header: &block.Header{TimeStamp: 2},
 	})
 	require.Nil(t, err)
 
@@ -72,7 +72,7 @@ func TestRoundDataCache_Add_CacheSizeTwo_FourEntriesInCache_ExpectOldestRoundInC
 	require.Equal(t, []byte("hash2"), dataCache.cache[2][0].hash)
 	require.Equal(t, uint64(2), dataCache.cache[2][0].header.GetTimeStamp())
 
-	err = dataCache.Add(0, []byte("hash0"), &testscommon.HeaderHandlerStub{})
+	err = dataCache.Add(0, []byte("hash0"), &block.HeaderV2{})
 	require.Equal(t, process.ErrHeaderRoundNotRelevant, err)
 
 	require.Len(t, dataCache.cache, 2)
@@ -85,8 +85,8 @@ func TestRoundDataCache_Add_CacheSizeTwo_FourEntriesInCache_ExpectOldestRoundInC
 	require.Equal(t, []byte("hash2"), dataCache.cache[2][0].hash)
 	require.Equal(t, uint64(2), dataCache.cache[2][0].header.GetTimeStamp())
 
-	err = dataCache.Add(3, []byte("hash3"), &testscommon.HeaderHandlerStub{
-		TimestampField: 3,
+	err = dataCache.Add(3, []byte("hash3"), &block.HeaderV2{
+		Header: &block.Header{TimeStamp: 3},
 	})
 	require.Nil(t, err)
 
@@ -100,8 +100,8 @@ func TestRoundDataCache_Add_CacheSizeTwo_FourEntriesInCache_ExpectOldestRoundInC
 	require.Equal(t, []byte("hash3"), dataCache.cache[3][0].hash)
 	require.Equal(t, uint64(3), dataCache.cache[3][0].header.GetTimeStamp())
 
-	err = dataCache.Add(4, []byte("hash4"), &testscommon.HeaderHandlerStub{
-		TimestampField: 4,
+	err = dataCache.Add(4, []byte("hash4"), &block.HeaderV2{
+		Header: &block.Header{TimeStamp: 4},
 	})
 	require.Nil(t, err)
 
@@ -121,18 +121,18 @@ func TestRoundDataCache_Contains(t *testing.T) {
 
 	dataCache := NewRoundHeadersCache(2)
 
-	err := dataCache.Add(1, []byte("hash1"), &testscommon.HeaderHandlerStub{
-		TimestampField: 1,
+	err := dataCache.Add(1, []byte("hash1"), &block.HeaderV2{
+		Header: &block.Header{TimeStamp: 1},
 	})
 	require.Nil(t, err)
 
-	err = dataCache.Add(1, []byte("hash2"), &testscommon.HeaderHandlerStub{
-		TimestampField: 2,
+	err = dataCache.Add(1, []byte("hash2"), &block.HeaderV2{
+		Header: &block.Header{TimeStamp: 2},
 	})
 	require.Nil(t, err)
 
-	err = dataCache.Add(2, []byte("hash3"), &testscommon.HeaderHandlerStub{
-		TimestampField: 3,
+	err = dataCache.Add(2, []byte("hash3"), &block.HeaderV2{
+		Header: &block.Header{TimeStamp: 3},
 	})
 	require.Nil(t, err)
 
