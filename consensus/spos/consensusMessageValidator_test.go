@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,7 +28,7 @@ func createDefaultConsensusMessageValidatorArgs() *spos.ArgsConsensusMessageVali
 	}
 	keyGeneratorMock, _, _ := mock.InitKeys()
 	peerSigHandler := &mock.PeerSignatureHandler{Signer: singleSignerMock, KeyGen: keyGeneratorMock}
-	hasher := &mock.HasherMock{}
+	hasher := &hashingMocks.HasherMock{}
 
 	argsConsensusMessageValidator := &spos.ArgsConsensusMessageValidator{
 		ConsensusState:       consensusState,

@@ -34,6 +34,7 @@ type ConsensusComponentsFactoryArgs struct {
 	ProcessComponents   ProcessComponentsHolder
 	StateComponents     StateComponentsHolder
 	StatusComponents    StatusComponentsHolder
+	ScheduledProcessor  consensus.ScheduledProcessor
 	IsInImportMode      bool
 }
 
@@ -48,6 +49,7 @@ type consensusComponentsFactory struct {
 	processComponents   ProcessComponentsHolder
 	stateComponents     StateComponentsHolder
 	statusComponents    StatusComponentsHolder
+	scheduledProcessor  consensus.ScheduledProcessor
 	isInImportMode      bool
 }
 
@@ -87,6 +89,9 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 	if check.IfNil(args.HardforkTrigger) {
 		return nil, errors.ErrNilHardforkTrigger
 	}
+	if check.IfNil(args.ScheduledProcessor) {
+		return nil, errors.ErrNilScheduledProcessor
+	}
 
 	return &consensusComponentsFactory{
 		config:              args.Config,
@@ -99,6 +104,7 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 		processComponents:   args.ProcessComponents,
 		stateComponents:     args.StateComponents,
 		statusComponents:    args.StatusComponents,
+		scheduledProcessor:  args.ScheduledProcessor,
 		isInImportMode:      args.IsInImportMode,
 	}, nil
 }
@@ -176,6 +182,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ConsensusService:         consensusService,
 		BlockChain:               ccf.dataComponents.Blockchain(),
 		BlockProcessor:           ccf.processComponents.BlockProcessor(),
+		ScheduledProcessor:       ccf.scheduledProcessor,
 		Bootstrapper:             cc.bootstrapper,
 		BroadcastMessenger:       cc.broadcastMessenger,
 		ConsensusState:           consensusState,
@@ -237,6 +244,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		HeaderSigVerifier:             ccf.processComponents.HeaderSigVerifier(),
 		FallbackHeaderValidator:       ccf.processComponents.FallbackHeaderValidator(),
 		NodeRedundancyHandler:         ccf.processComponents.NodeRedundancyHandler(),
+		ScheduledProcessor:            ccf.scheduledProcessor,
 	}
 
 	consensusDataContainer, err := spos.NewConsensusCore(
@@ -392,19 +400,20 @@ func (ccf *consensusComponentsFactory) createBootstrapper() (process.Bootstrappe
 
 func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootstrapper, error) {
 	argsBaseStorageBootstrapper := storageBootstrap.ArgsBaseStorageBootstrapper{
-		BootStorer:          ccf.processComponents.BootStorer(),
-		ForkDetector:        ccf.processComponents.ForkDetector(),
-		BlockProcessor:      ccf.processComponents.BlockProcessor(),
-		ChainHandler:        ccf.dataComponents.Blockchain(),
-		Marshalizer:         ccf.coreComponents.InternalMarshalizer(),
-		Store:               ccf.dataComponents.StorageService(),
-		Uint64Converter:     ccf.coreComponents.Uint64ByteSliceConverter(),
-		BootstrapRoundIndex: ccf.bootstrapRoundIndex,
-		ShardCoordinator:    ccf.processComponents.ShardCoordinator(),
-		NodesCoordinator:    ccf.processComponents.NodesCoordinator(),
-		EpochStartTrigger:   ccf.processComponents.EpochStartTrigger(),
-		BlockTracker:        ccf.processComponents.BlockTracker(),
-		ChainID:             ccf.coreComponents.ChainID(),
+		BootStorer:                   ccf.processComponents.BootStorer(),
+		ForkDetector:                 ccf.processComponents.ForkDetector(),
+		BlockProcessor:               ccf.processComponents.BlockProcessor(),
+		ChainHandler:                 ccf.dataComponents.Blockchain(),
+		Marshalizer:                  ccf.coreComponents.InternalMarshalizer(),
+		Store:                        ccf.dataComponents.StorageService(),
+		Uint64Converter:              ccf.coreComponents.Uint64ByteSliceConverter(),
+		BootstrapRoundIndex:          ccf.bootstrapRoundIndex,
+		ShardCoordinator:             ccf.processComponents.ShardCoordinator(),
+		NodesCoordinator:             ccf.processComponents.NodesCoordinator(),
+		EpochStartTrigger:            ccf.processComponents.EpochStartTrigger(),
+		BlockTracker:                 ccf.processComponents.BlockTracker(),
+		ChainID:                      ccf.coreComponents.ChainID(),
+		ScheduledTxsExecutionHandler: ccf.processComponents.ScheduledTxsExecutionHandler(),
 	}
 
 	argsShardStorageBootstrapper := storageBootstrap.ArgsShardStorageBootstrapper{
@@ -422,31 +431,32 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 	}
 
 	argsBaseBootstrapper := sync.ArgBaseBootstrapper{
-		PoolsHolder:          ccf.dataComponents.Datapool(),
-		Store:                ccf.dataComponents.StorageService(),
-		ChainHandler:         ccf.dataComponents.Blockchain(),
-		RoundHandler:         ccf.processComponents.RoundHandler(),
-		BlockProcessor:       ccf.processComponents.BlockProcessor(),
-		WaitTime:             ccf.processComponents.RoundHandler().TimeDuration(),
-		Hasher:               ccf.coreComponents.Hasher(),
-		Marshalizer:          ccf.coreComponents.InternalMarshalizer(),
-		ForkDetector:         ccf.processComponents.ForkDetector(),
-		RequestHandler:       ccf.processComponents.RequestHandler(),
-		ShardCoordinator:     ccf.processComponents.ShardCoordinator(),
-		Accounts:             ccf.stateComponents.AccountsAdapter(),
-		BlackListHandler:     ccf.processComponents.BlackListHandler(),
-		NetworkWatcher:       ccf.networkComponents.NetworkMessenger(),
-		BootStorer:           ccf.processComponents.BootStorer(),
-		StorageBootstrapper:  shardStorageBootstrapper,
-		EpochHandler:         ccf.processComponents.EpochStartTrigger(),
-		MiniblocksProvider:   ccf.dataComponents.MiniBlocksProvider(),
-		Uint64Converter:      ccf.coreComponents.Uint64ByteSliceConverter(),
-		AppStatusHandler:     ccf.coreComponents.StatusHandler(),
-		OutportHandler:       ccf.statusComponents.OutportHandler(),
-		AccountsDBSyncer:     accountsDBSyncer,
-		CurrentEpochProvider: ccf.processComponents.CurrentEpochProvider(),
-		IsInImportMode:       ccf.isInImportMode,
-		HistoryRepo:          ccf.processComponents.HistoryRepository(),
+		PoolsHolder:                  ccf.dataComponents.Datapool(),
+		Store:                        ccf.dataComponents.StorageService(),
+		ChainHandler:                 ccf.dataComponents.Blockchain(),
+		RoundHandler:                 ccf.processComponents.RoundHandler(),
+		BlockProcessor:               ccf.processComponents.BlockProcessor(),
+		WaitTime:                     ccf.processComponents.RoundHandler().TimeDuration(),
+		Hasher:                       ccf.coreComponents.Hasher(),
+		Marshalizer:                  ccf.coreComponents.InternalMarshalizer(),
+		ForkDetector:                 ccf.processComponents.ForkDetector(),
+		RequestHandler:               ccf.processComponents.RequestHandler(),
+		ShardCoordinator:             ccf.processComponents.ShardCoordinator(),
+		Accounts:                     ccf.stateComponents.AccountsAdapter(),
+		BlackListHandler:             ccf.processComponents.BlackListHandler(),
+		NetworkWatcher:               ccf.networkComponents.NetworkMessenger(),
+		BootStorer:                   ccf.processComponents.BootStorer(),
+		StorageBootstrapper:          shardStorageBootstrapper,
+		EpochHandler:                 ccf.processComponents.EpochStartTrigger(),
+		MiniblocksProvider:           ccf.dataComponents.MiniBlocksProvider(),
+		Uint64Converter:              ccf.coreComponents.Uint64ByteSliceConverter(),
+		AppStatusHandler:             ccf.coreComponents.StatusHandler(),
+		OutportHandler:               ccf.statusComponents.OutportHandler(),
+		AccountsDBSyncer:             accountsDBSyncer,
+		CurrentEpochProvider:         ccf.processComponents.CurrentEpochProvider(),
+		IsInImportMode:               ccf.isInImportMode,
+		HistoryRepo:                  ccf.processComponents.HistoryRepository(),
+		ScheduledTxsExecutionHandler: ccf.processComponents.ScheduledTxsExecutionHandler(),
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -508,19 +518,20 @@ func (ccf *consensusComponentsFactory) createUserAccountsSyncer() (process.Accou
 
 func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bootstrapper, error) {
 	argsBaseStorageBootstrapper := storageBootstrap.ArgsBaseStorageBootstrapper{
-		BootStorer:          ccf.processComponents.BootStorer(),
-		ForkDetector:        ccf.processComponents.ForkDetector(),
-		BlockProcessor:      ccf.processComponents.BlockProcessor(),
-		ChainHandler:        ccf.dataComponents.Blockchain(),
-		Marshalizer:         ccf.coreComponents.InternalMarshalizer(),
-		Store:               ccf.dataComponents.StorageService(),
-		Uint64Converter:     ccf.coreComponents.Uint64ByteSliceConverter(),
-		BootstrapRoundIndex: ccf.bootstrapRoundIndex,
-		ShardCoordinator:    ccf.processComponents.ShardCoordinator(),
-		NodesCoordinator:    ccf.processComponents.NodesCoordinator(),
-		EpochStartTrigger:   ccf.processComponents.EpochStartTrigger(),
-		BlockTracker:        ccf.processComponents.BlockTracker(),
-		ChainID:             ccf.coreComponents.ChainID(),
+		BootStorer:                   ccf.processComponents.BootStorer(),
+		ForkDetector:                 ccf.processComponents.ForkDetector(),
+		BlockProcessor:               ccf.processComponents.BlockProcessor(),
+		ChainHandler:                 ccf.dataComponents.Blockchain(),
+		Marshalizer:                  ccf.coreComponents.InternalMarshalizer(),
+		Store:                        ccf.dataComponents.StorageService(),
+		Uint64Converter:              ccf.coreComponents.Uint64ByteSliceConverter(),
+		BootstrapRoundIndex:          ccf.bootstrapRoundIndex,
+		ShardCoordinator:             ccf.processComponents.ShardCoordinator(),
+		NodesCoordinator:             ccf.processComponents.NodesCoordinator(),
+		EpochStartTrigger:            ccf.processComponents.EpochStartTrigger(),
+		BlockTracker:                 ccf.processComponents.BlockTracker(),
+		ChainID:                      ccf.coreComponents.ChainID(),
+		ScheduledTxsExecutionHandler: ccf.processComponents.ScheduledTxsExecutionHandler(),
 	}
 
 	argsMetaStorageBootstrapper := storageBootstrap.ArgsMetaStorageBootstrapper{
@@ -544,31 +555,32 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 	}
 
 	argsBaseBootstrapper := sync.ArgBaseBootstrapper{
-		PoolsHolder:          ccf.dataComponents.Datapool(),
-		Store:                ccf.dataComponents.StorageService(),
-		ChainHandler:         ccf.dataComponents.Blockchain(),
-		RoundHandler:         ccf.processComponents.RoundHandler(),
-		BlockProcessor:       ccf.processComponents.BlockProcessor(),
-		WaitTime:             ccf.processComponents.RoundHandler().TimeDuration(),
-		Hasher:               ccf.coreComponents.Hasher(),
-		Marshalizer:          ccf.coreComponents.InternalMarshalizer(),
-		ForkDetector:         ccf.processComponents.ForkDetector(),
-		RequestHandler:       ccf.processComponents.RequestHandler(),
-		ShardCoordinator:     ccf.processComponents.ShardCoordinator(),
-		Accounts:             ccf.stateComponents.AccountsAdapter(),
-		BlackListHandler:     ccf.processComponents.BlackListHandler(),
-		NetworkWatcher:       ccf.networkComponents.NetworkMessenger(),
-		BootStorer:           ccf.processComponents.BootStorer(),
-		StorageBootstrapper:  metaStorageBootstrapper,
-		EpochHandler:         ccf.processComponents.EpochStartTrigger(),
-		MiniblocksProvider:   ccf.dataComponents.MiniBlocksProvider(),
-		Uint64Converter:      ccf.coreComponents.Uint64ByteSliceConverter(),
-		AppStatusHandler:     ccf.coreComponents.StatusHandler(),
-		OutportHandler:       ccf.statusComponents.OutportHandler(),
-		AccountsDBSyncer:     accountsDBSyncer,
-		CurrentEpochProvider: ccf.processComponents.CurrentEpochProvider(),
-		IsInImportMode:       ccf.isInImportMode,
-		HistoryRepo:          ccf.processComponents.HistoryRepository(),
+		PoolsHolder:                  ccf.dataComponents.Datapool(),
+		Store:                        ccf.dataComponents.StorageService(),
+		ChainHandler:                 ccf.dataComponents.Blockchain(),
+		RoundHandler:                 ccf.processComponents.RoundHandler(),
+		BlockProcessor:               ccf.processComponents.BlockProcessor(),
+		WaitTime:                     ccf.processComponents.RoundHandler().TimeDuration(),
+		Hasher:                       ccf.coreComponents.Hasher(),
+		Marshalizer:                  ccf.coreComponents.InternalMarshalizer(),
+		ForkDetector:                 ccf.processComponents.ForkDetector(),
+		RequestHandler:               ccf.processComponents.RequestHandler(),
+		ShardCoordinator:             ccf.processComponents.ShardCoordinator(),
+		Accounts:                     ccf.stateComponents.AccountsAdapter(),
+		BlackListHandler:             ccf.processComponents.BlackListHandler(),
+		NetworkWatcher:               ccf.networkComponents.NetworkMessenger(),
+		BootStorer:                   ccf.processComponents.BootStorer(),
+		StorageBootstrapper:          metaStorageBootstrapper,
+		EpochHandler:                 ccf.processComponents.EpochStartTrigger(),
+		MiniblocksProvider:           ccf.dataComponents.MiniBlocksProvider(),
+		Uint64Converter:              ccf.coreComponents.Uint64ByteSliceConverter(),
+		AppStatusHandler:             ccf.coreComponents.StatusHandler(),
+		OutportHandler:               ccf.statusComponents.OutportHandler(),
+		AccountsDBSyncer:             accountsDBSyncer,
+		CurrentEpochProvider:         ccf.processComponents.CurrentEpochProvider(),
+		IsInImportMode:               ccf.isInImportMode,
+		HistoryRepo:                  ccf.processComponents.HistoryRepository(),
+		ScheduledTxsExecutionHandler: ccf.processComponents.ScheduledTxsExecutionHandler(),
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{

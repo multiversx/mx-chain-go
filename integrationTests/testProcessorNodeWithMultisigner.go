@@ -9,31 +9,29 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go/common/forking"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/factory/peerSignatureHandler"
-	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
-
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	mclmultisig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/multisig"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/multisig"
+	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
+	"github.com/ElrondNetwork/elrond-go/factory/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/process/rating"
+	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 )
 
 // NewTestProcessorNodeWithCustomNodesCoordinator returns a new TestProcessorNode instance with custom NodesCoordinator
@@ -70,6 +68,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 		TransactionLogProcessor: transactionLog.NewPrintTxLogProcessor(),
 	}
 
+	tpn.ScheduledMiniBlocksEnableEpoch = uint32(1000000)
 	tpn.NodeKeys = cp.Keys[nodeShardId][keyIndex]
 	blsHasher, _ := blake2b.NewBlake2bWithSize(hashing.BlsHashSize)
 	llsig := &mclmultisig.BlsMultiSigner{Hasher: blsHasher}
@@ -254,6 +253,7 @@ func CreateNodeWithBLSAndTxKeys(
 		TransactionLogProcessor: transactionLog.NewPrintTxLogProcessor(),
 	}
 
+	tpn.ScheduledMiniBlocksEnableEpoch = uint32(1000000)
 	tpn.NodeKeys = cp.Keys[shardId][keyIndex]
 	blsHasher, _ := blake2b.NewBlake2bWithSize(hashing.BlsHashSize)
 	llsig := &mclmultisig.BlsMultiSigner{Hasher: blsHasher}
@@ -445,16 +445,10 @@ func CreateNode(
 }
 
 func createHeaderIntegrityVerifier() process.HeaderIntegrityVerifier {
+	hvh := &testscommon.HeaderVersionHandlerStub{}
 	headerVersioning, _ := headerCheck.NewHeaderIntegrityVerifier(
 		ChainID,
-		[]config.VersionByEpochs{
-			{
-				StartEpoch: 0,
-				Version:    "*",
-			},
-		},
-		"default",
-		testscommon.NewCacherMock(),
+		hvh,
 	)
 
 	return headerVersioning
@@ -680,14 +674,18 @@ func ProposeBlockWithConsensusSignature(
 
 	pubKeys, err := nodesCoordinator.GetConsensusValidatorsPublicKeys(randomness, round, shardId, epoch)
 	if err != nil {
-		fmt.Println("Error getting the validators public keys: ", err)
+		log.Error("nodesCoordinator.GetConsensusValidatorsPublicKeys", "error", err)
 	}
 
 	// select nodes from map based on their pub keys
 	consensusNodes := selectTestNodesForPubKeys(nodesMap[shardId], pubKeys)
 	// first node is block proposer
 	body, header, txHashes := consensusNodes[0].ProposeBlock(round, nonce)
-	header.SetPrevRandSeed(randomness)
+	err = header.SetPrevRandSeed(randomness)
+	if err != nil {
+		log.Error("header.SetPrevRandSeed", "error", err)
+	}
+
 	header = DoConsensusSigningOnBlock(header, consensusNodes, pubKeys)
 
 	return body, header, txHashes, consensusNodes
@@ -727,10 +725,22 @@ func DoConsensusSigningOnBlock(
 	}
 
 	bitmap[len(consensusNodes)/8] >>= uint8(8 - (len(consensusNodes) % 8))
-	blockHeader.SetPubKeysBitmap(bitmap)
+	err := blockHeader.SetPubKeysBitmap(bitmap)
+	if err != nil {
+		log.Error("blockHeader.SetPubKeysBitmap", "error", err)
+	}
+
 	// clear signature, as we need to compute it below
-	blockHeader.SetSignature(nil)
-	blockHeader.SetPubKeysBitmap(nil)
+	err = blockHeader.SetSignature(nil)
+	if err != nil {
+		log.Error("blockHeader.SetSignature", "error", err)
+	}
+
+	err = blockHeader.SetPubKeysBitmap(nil)
+	if err != nil {
+		log.Error("blockHeader.SetPubKeysBitmap", "error", err)
+	}
+
 	blockHeaderHash, _ := core.CalculateHash(TestMarshalizer, TestHasher, blockHeader)
 
 	var msig crypto.MultiSigner
@@ -744,9 +754,20 @@ func DoConsensusSigningOnBlock(
 	}
 
 	sig, _ := msigProposer.AggregateSigs(bitmap)
-	blockHeader.SetSignature(sig)
-	blockHeader.SetPubKeysBitmap(bitmap)
-	blockHeader.SetLeaderSignature([]byte("leader sign"))
+	err = blockHeader.SetSignature(sig)
+	if err != nil {
+		log.Error("blockHeader.SetSignature", "error", err)
+	}
+
+	err = blockHeader.SetPubKeysBitmap(bitmap)
+	if err != nil {
+		log.Error("blockHeader.SetPubKeysBitmap", "error", err)
+	}
+
+	err = blockHeader.SetLeaderSignature([]byte("leader sign"))
+	if err != nil {
+		log.Error("blockHeader.SetLeaderSignature", "error", err)
+	}
 
 	return blockHeader
 }

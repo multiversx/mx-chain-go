@@ -45,7 +45,7 @@ func (mc *metaChain) SetGenesisHeader(header data.HeaderHandler) error {
 		return ErrWrongTypeInSet
 	}
 	mc.mut.Lock()
-	mc.genesisHeader = genBlock.Clone()
+	mc.genesisHeader = genBlock.ShallowClone()
 	mc.mut.Unlock()
 
 	return nil
@@ -70,15 +70,10 @@ func (mc *metaChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
 	mc.appStatusHandler.SetUInt64Value(common.MetricSynchronizedRound, currHead.Round)
 
 	mc.mut.Lock()
-	mc.currentBlockHeader = currHead.Clone()
+	mc.currentBlockHeader = currHead.ShallowClone()
 	mc.mut.Unlock()
 
 	return nil
-}
-
-// CreateNewHeader creates a new meta block
-func (mc *metaChain) CreateNewHeader() data.HeaderHandler {
-	return &block.MetaBlock{}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

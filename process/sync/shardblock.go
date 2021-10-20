@@ -38,32 +38,33 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 	}
 
 	base := &baseBootstrap{
-		chainHandler:         arguments.ChainHandler,
-		blockProcessor:       arguments.BlockProcessor,
-		store:                arguments.Store,
-		headers:              arguments.PoolsHolder.Headers(),
-		roundHandler:         arguments.RoundHandler,
-		waitTime:             arguments.WaitTime,
-		hasher:               arguments.Hasher,
-		marshalizer:          arguments.Marshalizer,
-		forkDetector:         arguments.ForkDetector,
-		requestHandler:       arguments.RequestHandler,
-		shardCoordinator:     arguments.ShardCoordinator,
-		accounts:             arguments.Accounts,
-		blackListHandler:     arguments.BlackListHandler,
-		networkWatcher:       arguments.NetworkWatcher,
-		bootStorer:           arguments.BootStorer,
-		storageBootstrapper:  arguments.StorageBootstrapper,
-		epochHandler:         arguments.EpochHandler,
-		miniBlocksProvider:   arguments.MiniblocksProvider,
-		uint64Converter:      arguments.Uint64Converter,
-		poolsHolder:          arguments.PoolsHolder,
-		statusHandler:        arguments.AppStatusHandler,
-		outportHandler:       arguments.OutportHandler,
-		accountsDBSyncer:     arguments.AccountsDBSyncer,
-		currentEpochProvider: arguments.CurrentEpochProvider,
-		isInImportMode:       arguments.IsInImportMode,
-		historyRepo:          arguments.HistoryRepo,
+		chainHandler:                 arguments.ChainHandler,
+		blockProcessor:               arguments.BlockProcessor,
+		store:                        arguments.Store,
+		headers:                      arguments.PoolsHolder.Headers(),
+		roundHandler:                 arguments.RoundHandler,
+		waitTime:                     arguments.WaitTime,
+		hasher:                       arguments.Hasher,
+		marshalizer:                  arguments.Marshalizer,
+		forkDetector:                 arguments.ForkDetector,
+		requestHandler:               arguments.RequestHandler,
+		shardCoordinator:             arguments.ShardCoordinator,
+		accounts:                     arguments.Accounts,
+		blackListHandler:             arguments.BlackListHandler,
+		networkWatcher:               arguments.NetworkWatcher,
+		bootStorer:                   arguments.BootStorer,
+		storageBootstrapper:          arguments.StorageBootstrapper,
+		epochHandler:                 arguments.EpochHandler,
+		miniBlocksProvider:           arguments.MiniblocksProvider,
+		uint64Converter:              arguments.Uint64Converter,
+		poolsHolder:                  arguments.PoolsHolder,
+		statusHandler:                arguments.AppStatusHandler,
+		outportHandler:               arguments.OutportHandler,
+		accountsDBSyncer:             arguments.AccountsDBSyncer,
+		currentEpochProvider:         arguments.CurrentEpochProvider,
+		isInImportMode:               arguments.IsInImportMode,
+		historyRepo:                  arguments.HistoryRepo,
+		scheduledTxsExecutionHandler: arguments.ScheduledTxsExecutionHandler,
 	}
 
 	if base.isInImportMode {
@@ -90,14 +91,14 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 }
 
 func (boot *ShardBootstrap) getBlockBody(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
-	header, ok := headerHandler.(*block.Header)
+	header, ok := headerHandler.(data.ShardHeaderHandler)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}
 
-	hashes := make([][]byte, len(header.MiniBlockHeaders))
-	for i := 0; i < len(header.MiniBlockHeaders); i++ {
-		hashes[i] = header.MiniBlockHeaders[i].Hash
+	hashes := make([][]byte, len(header.GetMiniBlockHeaderHandlers()))
+	for i := 0; i < len(header.GetMiniBlockHeaderHandlers()); i++ {
+		hashes[i] = header.GetMiniBlockHeaderHandlers()[i].GetHash()
 	}
 
 	miniBlocksAndHashes, missingMiniBlocksHashes := boot.miniBlocksProvider.GetMiniBlocks(hashes)
@@ -237,8 +238,7 @@ func (boot *ShardBootstrap) getPrevHeader(
 		return nil, err
 	}
 
-	prevHeader := &block.Header{}
-	err = boot.marshalizer.Unmarshal(prevHeader, buffHeader)
+	prevHeader, err := process.CreateShardHeader(boot.marshalizer, buffHeader)
 	if err != nil {
 		return nil, err
 	}
@@ -252,7 +252,7 @@ func (boot *ShardBootstrap) getCurrHeader() (data.HeaderHandler, error) {
 		return nil, process.ErrNilBlockHeader
 	}
 
-	header, ok := blockHeader.(*block.Header)
+	header, ok := blockHeader.(data.ShardHeaderHandler)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}
@@ -280,36 +280,36 @@ func (boot *ShardBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(header
 		return
 	}
 
-	header, ok := headerHandler.(*block.Header)
+	header, ok := headerHandler.(data.ShardHeaderHandler)
 	if !ok {
 		log.Warn("cannot convert headerHandler in block.Header")
 		return
 	}
 
-	hashes := make([][]byte, 0, len(header.MiniBlockHeaders))
-	for i := 0; i < len(header.MiniBlockHeaders); i++ {
-		hashes = append(hashes, header.MiniBlockHeaders[i].Hash)
+	hashes := make([][]byte, 0, len(header.GetMiniBlockHeaderHandlers()))
+	for i := 0; i < len(header.GetMiniBlockHeaderHandlers()); i++ {
+		hashes = append(hashes, header.GetMiniBlockHeaderHandlers()[i].GetHash())
 	}
 
 	_, missingMiniBlocksHashes := boot.miniBlocksProvider.GetMiniBlocksFromPool(hashes)
 	if len(missingMiniBlocksHashes) > 0 {
 		log.Trace("requesting in advance mini blocks",
 			"num miniblocks", len(missingMiniBlocksHashes),
-			"header nonce", header.Nonce,
+			"header nonce", header.GetNonce(),
 		)
 		boot.requestHandler.RequestMiniBlocks(boot.shardCoordinator.SelfId(), missingMiniBlocksHashes)
 	}
 }
 
 func (boot *ShardBootstrap) getBlockBodyRequestingIfMissing(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
-	header, ok := headerHandler.(*block.Header)
+	header, ok := headerHandler.(data.ShardHeaderHandler)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}
 
-	hashes := make([][]byte, len(header.MiniBlockHeaders))
-	for i := 0; i < len(header.MiniBlockHeaders); i++ {
-		hashes[i] = header.MiniBlockHeaders[i].Hash
+	hashes := make([][]byte, len(header.GetMiniBlockHeaderHandlers()))
+	for i := 0; i < len(header.GetMiniBlockHeaderHandlers()); i++ {
+		hashes[i] = header.GetMiniBlockHeaderHandlers()[i].GetHash()
 	}
 
 	boot.setRequestedMiniBlocks(nil)

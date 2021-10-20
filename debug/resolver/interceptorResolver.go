@@ -110,7 +110,7 @@ func NewInterceptorResolver(config config.InterceptorResolverDebugConfig) (*inte
 	if config.EnablePrint {
 		ctx, cancelFunc := context.WithCancel(context.Background())
 		ir.cancelFunc = cancelFunc
-		go ir.printContinously(ctx)
+		go ir.printContinuously(ctx)
 	}
 
 	return ir, nil
@@ -145,7 +145,7 @@ func (ir *interceptorResolver) parseConfig(config config.InterceptorResolverDebu
 	return nil
 }
 
-func (ir *interceptorResolver) printContinously(ctx context.Context) {
+func (ir *interceptorResolver) printContinuously(ctx context.Context) {
 	for {
 		select {
 		case <-time.After(ir.intervalAutoPrint):

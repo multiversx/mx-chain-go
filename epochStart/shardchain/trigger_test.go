@@ -8,19 +8,22 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
 	return &ArgsShardEpochStartTrigger{
-		Marshalizer: &mock.MarshalizerMock{},
-		Hasher:      &mock.HasherMock{},
+		Marshalizer: &marshal.GogoProtoMarshalizer{},
+		Hasher:      &hashingMocks.HasherMock{},
 		HeaderValidator: &mock.HeaderValidatorStub{
 			IsHeaderConstructionValidCalled: func(currHdr, prevHdr data.HeaderHandler) error {
 				return nil
@@ -416,21 +419,25 @@ func TestTrigger_ReceivedHeaderIsEpochStartTrueWithPeerMiniblocks(t *testing.T) 
 
 	epochStartTrigger, _ := NewEpochStartTrigger(args)
 
-	currHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, previousHeader99)
+	currHash, err := core.CalculateHash(args.Marshalizer, args.Hasher, previousHeader99)
+	require.Nil(t, err)
 	epochStartTrigger.receivedMetaBlock(previousHeader99, currHash)
-	assert.False(t, epochStartTrigger.IsEpochStart())
+	require.False(t, epochStartTrigger.IsEpochStart())
 
-	currHash, _ = core.CalculateHash(args.Marshalizer, args.Hasher, epochStartHeader)
+	currHash, err = core.CalculateHash(args.Marshalizer, args.Hasher, epochStartHeader)
+	require.Nil(t, err)
 	epochStartTrigger.receivedMetaBlock(epochStartHeader, currHash)
-	assert.False(t, epochStartTrigger.IsEpochStart())
+	require.False(t, epochStartTrigger.IsEpochStart())
 
-	currHash, _ = core.CalculateHash(args.Marshalizer, args.Hasher, newHeader101)
+	currHash, err = core.CalculateHash(args.Marshalizer, args.Hasher, newHeader101)
+	require.Nil(t, err)
 	epochStartTrigger.receivedMetaBlock(newHeader101, currHash)
-	assert.False(t, epochStartTrigger.IsEpochStart())
+	require.False(t, epochStartTrigger.IsEpochStart())
 
-	currHash, _ = core.CalculateHash(args.Marshalizer, args.Hasher, newHeader102)
+	currHash, err = core.CalculateHash(args.Marshalizer, args.Hasher, newHeader102)
+	require.Nil(t, err)
 	epochStartTrigger.receivedMetaBlock(newHeader102, currHash)
-	assert.True(t, epochStartTrigger.IsEpochStart())
+	require.True(t, epochStartTrigger.IsEpochStart())
 }
 
 func TestTrigger_Epoch(t *testing.T) {
@@ -580,7 +587,7 @@ func TestTrigger_RevertStateToBlockBehindEpochStartNoBlockInAnEpoch(t *testing.T
 	err = et.RevertStateToBlock(prevHdr)
 	assert.Nil(t, err)
 	assert.True(t, et.IsEpochStart())
-	assert.Equal(t, et.epochStartShardHeader.Epoch, prevEpochHdr.Epoch)
+	assert.Equal(t, et.epochStartShardHeader.GetEpoch(), prevEpochHdr.Epoch)
 }
 
 func TestTrigger_ReceivedHeaderChangeEpochFinalityAttestingRound(t *testing.T) {
@@ -606,17 +613,17 @@ func TestTrigger_ReceivedHeaderChangeEpochFinalityAttestingRound(t *testing.T) {
 	hash102, _ := core.CalculateHash(args.Marshalizer, args.Hasher, header102)
 	epochStartTrigger.receivedMetaBlock(header102, hash102)
 
-	assert.True(t, epochStartTrigger.IsEpochStart())
-	assert.Equal(t, uint64(102), epochStartTrigger.EpochFinalityAttestingRound())
+	require.True(t, epochStartTrigger.IsEpochStart())
+	require.Equal(t, uint64(102), epochStartTrigger.EpochFinalityAttestingRound())
 
 	header = &block.MetaBlock{Nonce: 101, Round: 101, Epoch: 1, PrevHash: epochStartHash}
 	currHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, header)
 	epochStartTrigger.receivedMetaBlock(header, currHash)
 
-	assert.Equal(t, uint64(101), epochStartTrigger.EpochFinalityAttestingRound())
+	require.Equal(t, uint64(101), epochStartTrigger.EpochFinalityAttestingRound())
 
 	header103 := &block.MetaBlock{Nonce: 102, Round: 103, Epoch: 1, PrevHash: hash102}
 	hash103, _ := core.CalculateHash(args.Marshalizer, args.Hasher, header102)
 	epochStartTrigger.receivedMetaBlock(header103, hash103)
-	assert.Equal(t, uint64(102), epochStartTrigger.EpochFinalityAttestingRound())
+	require.Equal(t, uint64(102), epochStartTrigger.EpochFinalityAttestingRound())
 }

@@ -67,7 +67,7 @@ func getMetricsFromBlockBody(
 }
 
 func getMetricsFromHeader(
-	header *block.Header,
+	header data.HeaderHandler,
 	numTxWithDst uint64,
 	marshalizer marshal.Marshalizer,
 	appStatusHandler core.AppStatusHandler,
@@ -88,7 +88,7 @@ func saveMetricsForCommittedShardBlock(
 	currentBlockHash string,
 	highestFinalBlockNonce uint64,
 	metaBlock data.HeaderHandler,
-	shardHeader *block.Header,
+	shardHeader data.HeaderHandler,
 ) {
 	incrementCountAcceptedBlocks(nodesCoordinator, appStatusHandler, shardHeader)
 	appStatusHandler.SetUInt64Value(common.MetricEpochNumber, uint64(shardHeader.GetEpoch()))
@@ -100,7 +100,7 @@ func saveMetricsForCommittedShardBlock(
 func incrementCountAcceptedBlocks(
 	nodesCoordinator sharding.NodesCoordinator,
 	appStatusHandler core.AppStatusHandler,
-	header *block.Header,
+	header data.HeaderHandler,
 ) {
 	consensusGroup, err := nodesCoordinator.ComputeConsensusGroup(
 		header.GetPrevRandSeed(),

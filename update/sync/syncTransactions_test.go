@@ -18,8 +18,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createMockArgs() ArgsNewPendingTransactionsSyncer {
-	return ArgsNewPendingTransactionsSyncer{
+func createMockArgs() ArgsNewTransactionsSyncer {
+	return ArgsNewTransactionsSyncer{
 		DataPools: dataRetrieverMock.NewPoolsHolderMock(),
 		Storages: &mock.ChainStorerMock{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
@@ -36,7 +36,7 @@ func TestNewPendingTransactionsSyncer(t *testing.T) {
 
 	args := createMockArgs()
 
-	pendingTxsSyncer, err := NewPendingTransactionsSyncer(args)
+	pendingTxsSyncer, err := NewTransactionsSyncer(args)
 	require.Nil(t, err)
 	require.NotNil(t, pendingTxsSyncer)
 	require.False(t, pendingTxsSyncer.IsInterfaceNil())
@@ -48,7 +48,7 @@ func TestNewPendingTransactionsSyncer_NilStorages(t *testing.T) {
 	args := createMockArgs()
 	args.Storages = nil
 
-	pendingTxsSyncer, err := NewPendingTransactionsSyncer(args)
+	pendingTxsSyncer, err := NewTransactionsSyncer(args)
 	require.Nil(t, pendingTxsSyncer)
 	require.NotNil(t, dataRetriever.ErrNilHeadersStorage, err)
 }
@@ -59,7 +59,7 @@ func TestNewPendingTransactionsSyncer_NilDataPools(t *testing.T) {
 	args := createMockArgs()
 	args.DataPools = nil
 
-	pendingTxsSyncer, err := NewPendingTransactionsSyncer(args)
+	pendingTxsSyncer, err := NewTransactionsSyncer(args)
 	require.Nil(t, pendingTxsSyncer)
 	require.NotNil(t, dataRetriever.ErrNilDataPoolHolder, err)
 }
@@ -70,7 +70,7 @@ func TestNewPendingTransactionsSyncer_NilMarshalizer(t *testing.T) {
 	args := createMockArgs()
 	args.Marshalizer = nil
 
-	pendingTxsSyncer, err := NewPendingTransactionsSyncer(args)
+	pendingTxsSyncer, err := NewTransactionsSyncer(args)
 	require.Nil(t, pendingTxsSyncer)
 	require.NotNil(t, dataRetriever.ErrNilMarshalizer, err)
 }
@@ -81,7 +81,7 @@ func TestNewPendingTransactionsSyncer_NilRequestHandler(t *testing.T) {
 	args := createMockArgs()
 	args.RequestHandler = nil
 
-	pendingTxsSyncer, err := NewPendingTransactionsSyncer(args)
+	pendingTxsSyncer, err := NewTransactionsSyncer(args)
 	require.Nil(t, pendingTxsSyncer)
 	require.NotNil(t, process.ErrNilRequestHandler, err)
 }
@@ -103,14 +103,14 @@ func TestSyncPendingTransactionsFor(t *testing.T) {
 		},
 	}
 
-	pendingTxsSyncer, err := NewPendingTransactionsSyncer(args)
+	pendingTxsSyncer, err := NewTransactionsSyncer(args)
 	require.Nil(t, err)
 
 	miniBlocks := make(map[string]*block.MiniBlock)
 	mb := &block.MiniBlock{TxHashes: [][]byte{[]byte("txHash")}}
 	miniBlocks["key"] = mb
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	err = pendingTxsSyncer.SyncPendingTransactionsFor(miniBlocks, 1, ctx)
+	err = pendingTxsSyncer.SyncTransactionsFor(miniBlocks, 1, ctx)
 	cancel()
 	require.Nil(t, err)
 }
@@ -130,7 +130,7 @@ func TestSyncPendingTransactionsFor_MissingTxFromPool(t *testing.T) {
 		},
 	}
 
-	pendingTxsSyncer, err := NewPendingTransactionsSyncer(args)
+	pendingTxsSyncer, err := NewTransactionsSyncer(args)
 	require.Nil(t, err)
 
 	miniBlocks := make(map[string]*block.MiniBlock)
@@ -140,7 +140,7 @@ func TestSyncPendingTransactionsFor_MissingTxFromPool(t *testing.T) {
 	// we need a value larger than the request interval as to also test what happens after the normal request interval has expired
 	timeout := time.Second + time.Millisecond*500
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	err = pendingTxsSyncer.SyncPendingTransactionsFor(miniBlocks, 1, ctx)
+	err = pendingTxsSyncer.SyncTransactionsFor(miniBlocks, 1, ctx)
 	cancel()
 	require.Equal(t, process.ErrTimeIsOut, err)
 }
@@ -161,7 +161,7 @@ func TestSyncPendingTransactionsFor_ReceiveMissingTx(t *testing.T) {
 		},
 	}
 
-	pendingTxsSyncer, err := NewPendingTransactionsSyncer(args)
+	pendingTxsSyncer, err := NewTransactionsSyncer(args)
 	require.Nil(t, err)
 
 	miniBlocks := make(map[string]*block.MiniBlock)
@@ -180,7 +180,7 @@ func TestSyncPendingTransactionsFor_ReceiveMissingTx(t *testing.T) {
 	}()
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	err = pendingTxsSyncer.SyncPendingTransactionsFor(miniBlocks, 1, ctx)
+	err = pendingTxsSyncer.SyncTransactionsFor(miniBlocks, 1, ctx)
 	cancel()
 	require.Nil(t, err)
 }

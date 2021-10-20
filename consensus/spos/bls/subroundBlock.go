@@ -93,7 +93,7 @@ func (sr *subroundBlock) doBlockJob() bool {
 		return false
 	}
 
-	sentWithSuccess := sr.sendBlock(body, header)
+	sentWithSuccess := sr.sendBlock(header, body)
 	if !sentWithSuccess {
 		return false
 	}
@@ -104,10 +104,12 @@ func (sr *subroundBlock) doBlockJob() bool {
 		return false
 	}
 
+	sr.ConsensusCoreHandler.ScheduledProcessor().StartScheduledProcessing(header, body)
+
 	return true
 }
 
-func (sr *subroundBlock) sendBlock(body data.BodyHandler, header data.HeaderHandler) bool {
+func (sr *subroundBlock) sendBlock(header data.HeaderHandler, body data.BodyHandler) bool {
 	marshalizedBody, err := sr.Marshalizer().Marshal(body)
 	if err != nil {
 		log.Debug("sendBlock.Marshal: body", "error", err.Error())
@@ -121,7 +123,7 @@ func (sr *subroundBlock) sendBlock(body data.BodyHandler, header data.HeaderHand
 	}
 
 	if sr.couldBeSentTogether(marshalizedBody, marshalizedHeader) {
-		return sr.sendBlockBodyAndHeader(body, header, marshalizedBody, marshalizedHeader)
+		return sr.sendHeaderAndBlockBody(header, body, marshalizedBody, marshalizedHeader)
 	}
 
 	if !sr.sendBlockBody(body, marshalizedBody) || !sr.sendBlockHeader(header, marshalizedHeader) {
@@ -159,10 +161,10 @@ func (sr *subroundBlock) createBlock(header data.HeaderHandler) (data.HeaderHand
 	return finalHeader, blockBody, nil
 }
 
-// sendBlockBodyAndHeader method sends the proposed block body and header in the subround Block
-func (sr *subroundBlock) sendBlockBodyAndHeader(
-	bodyHandler data.BodyHandler,
+// sendHeaderAndBlockBody method sends the proposed header and block body in the subround Block
+func (sr *subroundBlock) sendHeaderAndBlockBody(
 	headerHandler data.HeaderHandler,
+	bodyHandler data.BodyHandler,
 	marshalizedBody []byte,
 	marshalizedHeader []byte,
 ) bool {
@@ -186,7 +188,7 @@ func (sr *subroundBlock) sendBlockBodyAndHeader(
 
 	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
 	if err != nil {
-		log.Debug("sendBlockBodyAndHeader.BroadcastConsensusMessage", "error", err.Error())
+		log.Debug("sendHeaderAndBlockBody.BroadcastConsensusMessage", "error", err.Error())
 		return false
 	}
 
@@ -285,19 +287,45 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 	}
 
 	round := uint64(sr.RoundHandler().Index())
-	hdr := sr.BlockProcessor().CreateNewHeader(round, nonce)
-	hdr.SetPrevHash(prevHash)
+	hdr, err := sr.BlockProcessor().CreateNewHeader(round, nonce)
+	if err != nil {
+		return nil, err
+	}
+
+	err = hdr.SetPrevHash(prevHash)
+	if err != nil {
+		return nil, err
+	}
 
 	randSeed, err := sr.SingleSigner().Sign(sr.PrivateKey(), prevRandSeed)
 	if err != nil {
 		return nil, err
 	}
 
-	hdr.SetShardID(sr.ShardCoordinator().SelfId())
-	hdr.SetTimeStamp(uint64(sr.RoundHandler().TimeStamp().Unix()))
-	hdr.SetPrevRandSeed(prevRandSeed)
-	hdr.SetRandSeed(randSeed)
-	hdr.SetChainID(sr.ChainID())
+	err = hdr.SetShardID(sr.ShardCoordinator().SelfId())
+	if err != nil {
+		return nil, err
+	}
+
+	err = hdr.SetTimeStamp(uint64(sr.RoundHandler().TimeStamp().Unix()))
+	if err != nil {
+		return nil, err
+	}
+
+	err = hdr.SetPrevRandSeed(prevRandSeed)
+	if err != nil {
+		return nil, err
+	}
+
+	err = hdr.SetRandSeed(randSeed)
+	if err != nil {
+		return nil, err
+	}
+
+	err = hdr.SetChainID(sr.ChainID())
+	if err != nil {
+		return nil, err
+	}
 
 	return hdr, nil
 }
@@ -525,6 +553,8 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *consensus.Message) bool {
 			"error", err.Error())
 		return false
 	}
+
+	sr.ConsensusCoreHandler.ScheduledProcessor().StartScheduledProcessing(sr.Header, sr.Body)
 
 	return true
 }

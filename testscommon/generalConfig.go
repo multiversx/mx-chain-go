@@ -39,7 +39,8 @@ func GetGeneralConfig() config.Config {
 			SignatureLength: 48,
 		},
 		Consensus: config.ConsensusConfig{
-			Type: "bls",
+			ScheduledExecutionMilliseconds: 10,
+			Type:                           "bls",
 		},
 		ValidatorStatistics: config.ValidatorStatisticsConfig{
 			CacheRefreshIntervalInSec: uint32(100),
@@ -300,6 +301,16 @@ func GetGeneralConfig() config.Config {
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
 				FilePath:          AddTimestampSuffix("Receipts"),
+				Type:              string(storageUnit.MemoryDB),
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
+		ScheduledSCRsStorage: config.StorageConfig{
+			Cache: getLRUCacheConfig(),
+			DB: config.DBConfig{
+				FilePath:          AddTimestampSuffix("ScheduledSCRs"),
 				Type:              string(storageUnit.MemoryDB),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,

@@ -151,6 +151,9 @@ func (m *managedProcessComponents) CheckSubcomponents() error {
 	if check.IfNil(m.processComponents.currentEpochProvider) {
 		return errors.ErrNilCurrentEpochProvider
 	}
+	if check.IfNil(m.processComponents.scheduledTxsExecutionHandler) {
+		return errors.ErrNilScheduledTxsExecutionHandler
+	}
 
 	return nil
 }
@@ -525,6 +528,18 @@ func (m *managedProcessComponents) CurrentEpochProvider() process.CurrentNetwork
 	}
 
 	return m.processComponents.currentEpochProvider
+}
+
+// ScheduledTxsExecutionHandler returns the scheduled transactions execution handler
+func (m *managedProcessComponents) ScheduledTxsExecutionHandler() process.ScheduledTxsExecutionHandler {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.scheduledTxsExecutionHandler
 }
 
 // IsInterfaceNil returns true if the interface is nil

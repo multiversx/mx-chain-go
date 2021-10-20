@@ -3,6 +3,7 @@ package blockAPI
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
@@ -39,8 +40,8 @@ type baseAPIBlockProcessor struct {
 
 var log = logger.GetOrCreate("node/blockAPI")
 
-func (bap *baseAPIBlockProcessor) getTxsByMb(mbHeader *block.MiniBlockHeader, epoch uint32) []*transaction.ApiTransactionResult {
-	miniblockHash := mbHeader.Hash
+func (bap *baseAPIBlockProcessor) getTxsByMb(mbHeader data.MiniBlockHeaderHandler, epoch uint32) []*transaction.ApiTransactionResult {
+	miniblockHash := mbHeader.GetHash()
 	mbBytes, err := bap.getFromStorerWithEpoch(dataRetriever.MiniBlockUnit, miniblockHash, epoch)
 	if err != nil {
 		log.Warn("cannot get miniblock from storage",

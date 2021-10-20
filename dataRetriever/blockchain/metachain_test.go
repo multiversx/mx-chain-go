@@ -75,11 +75,3 @@ func TestMetaChain_SettersAndGettersNilValues(t *testing.T) {
 	assert.Nil(t, mc.GetGenesisHeader())
 	assert.Nil(t, mc.GetCurrentBlockHeader())
 }
-
-func TestMetaChain_CreateNewHeader(t *testing.T) {
-	t.Parallel()
-
-	mc, _ := blockchain.NewMetaChain(&mock.AppStatusHandlerStub{})
-
-	assert.Equal(t, &block.MetaBlock{}, mc.CreateNewHeader())
-}

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -13,8 +14,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -28,7 +30,7 @@ func GetShardHeader(
 	headersCacher dataRetriever.HeadersPool,
 	marshalizer marshal.Marshalizer,
 	storageService dataRetriever.StorageService,
-) (*block.Header, error) {
+) (data.ShardHeaderHandler, error) {
 
 	err := checkGetHeaderParamsForNil(headersCacher, marshalizer, storageService)
 	if err != nil {
@@ -74,14 +76,14 @@ func GetMetaHeader(
 func GetShardHeaderFromPool(
 	hash []byte,
 	headersCacher dataRetriever.HeadersPool,
-) (*block.Header, error) {
+) (data.ShardHeaderHandler, error) {
 
 	obj, err := getHeaderFromPool(hash, headersCacher)
 	if err != nil {
 		return nil, err
 	}
 
-	hdr, ok := obj.(*block.Header)
+	hdr, ok := obj.(data.ShardHeaderHandler)
 	if !ok {
 		return nil, ErrWrongTypeAssertion
 	}
@@ -113,15 +115,14 @@ func GetShardHeaderFromStorage(
 	hash []byte,
 	marshalizer marshal.Marshalizer,
 	storageService dataRetriever.StorageService,
-) (*block.Header, error) {
+) (data.ShardHeaderHandler, error) {
 
 	buffHdr, err := GetMarshalizedHeaderFromStorage(dataRetriever.BlockHeaderUnit, hash, marshalizer, storageService)
 	if err != nil {
 		return nil, err
 	}
 
-	hdr := &block.Header{}
-	err = marshalizer.Unmarshal(hdr, buffHdr)
+	hdr, err := CreateShardHeader(marshalizer, buffHdr)
 	if err != nil {
 		return nil, ErrUnmarshalWithoutSuccess
 	}
@@ -187,7 +188,7 @@ func GetShardHeaderWithNonce(
 	marshalizer marshal.Marshalizer,
 	storageService dataRetriever.StorageService,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
-) (*block.Header, []byte, error) {
+) (data.HeaderHandler, []byte, error) {
 
 	err := checkGetHeaderWithNonceParamsForNil(headersCacher, marshalizer, storageService, uint64Converter)
 	if err != nil {
@@ -235,14 +236,14 @@ func GetShardHeaderFromPoolWithNonce(
 	nonce uint64,
 	shardId uint32,
 	headersCacher dataRetriever.HeadersPool,
-) (*block.Header, []byte, error) {
+) (data.HeaderHandler, []byte, error) {
 
 	obj, hash, err := getHeaderFromPoolWithNonce(nonce, shardId, headersCacher)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	hdr, ok := obj.(*block.Header)
+	hdr, ok := obj.(data.ShardHeaderHandler)
 	if !ok {
 		return nil, nil, ErrWrongTypeAssertion
 	}
@@ -291,7 +292,7 @@ func GetShardHeaderFromStorageWithNonce(
 	storageService dataRetriever.StorageService,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	marshalizer marshal.Marshalizer,
-) (*block.Header, []byte, error) {
+) (data.HeaderHandler, []byte, error) {
 
 	hash, err := getHeaderHashFromStorageWithNonce(
 		nonce,
@@ -691,4 +692,76 @@ func GetSortedStorageUpdates(account *vmcommon.OutputAccount) []*vmcommon.Storag
 	})
 
 	return storageUpdates
+}
+
+// CreateShardHeader creates a shard header from the given byte array
+func CreateShardHeader(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.ShardHeaderHandler, error) {
+	hdr, err := CreateHeaderV2(marshalizer, hdrBuff)
+	if err == nil {
+		return hdr, nil
+	}
+
+	hdr, err = CreateHeaderV1(marshalizer, hdrBuff)
+	return hdr, err
+}
+
+// CreateHeaderV2 creates a header with version 2 from the given byte array
+func CreateHeaderV2(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.ShardHeaderHandler, error) {
+	hdrV2 := &block.HeaderV2{}
+	err := marshalizer.Unmarshal(hdrV2, hdrBuff)
+	if err != nil {
+		return nil, err
+	}
+	if check.IfNil(hdrV2.Header) {
+		return nil, fmt.Errorf("%w while checking inner header", ErrNilHeaderHandler)
+	}
+
+	return hdrV2, nil
+}
+
+// CreateHeaderV1 creates a header with version 1 from the given byte array
+func CreateHeaderV1(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.ShardHeaderHandler, error) {
+	hdr := &block.Header{}
+	err := marshalizer.Unmarshal(hdr, hdrBuff)
+	if err != nil {
+		return nil, err
+	}
+
+	return hdr, nil
+}
+
+// IsScheduledMode returns true if the first mini block from the given body is marked as a scheduled
+func IsScheduledMode(
+	header data.HeaderHandler,
+	body *block.Body,
+	hasher hashing.Hasher,
+	marshalizer marshal.Marshalizer,
+) (bool, error) {
+	if body == nil || len(body.MiniBlocks) == 0 {
+		return false, nil
+	}
+
+	miniBlockHash, err := core.CalculateHash(marshalizer, hasher, body.MiniBlocks[0])
+	if err != nil {
+		return false, err
+	}
+
+	for _, miniBlockHeader := range header.GetMiniBlockHeaderHandlers() {
+		if bytes.Equal(miniBlockHash, miniBlockHeader.GetHash()) {
+			reserved := miniBlockHeader.GetReserved()
+			return len(reserved) > 0 && reserved[0] == byte(block.Scheduled), nil
+		}
+	}
+
+	return false, nil
+}
+
+const additionalTimeForCreatingScheduledMiniBlocks = 150 * time.Millisecond
+
+// HaveAdditionalTime returns if the additional time allocated for scheduled mini blocks is elapsed
+func HaveAdditionalTime() func() bool {
+	startTime := time.Now()
+	return func() bool {
+		return additionalTimeForCreatingScheduledMiniBlocks > time.Since(startTime)
+	}
 }

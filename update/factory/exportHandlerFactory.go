@@ -408,13 +408,13 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		return nil, err
 	}
 
-	argsPendingTransactions := sync.ArgsNewPendingTransactionsSyncer{
+	argsPendingTransactions := sync.ArgsNewTransactionsSyncer{
 		DataPools:      e.dataPool,
 		Storages:       e.storageService,
 		Marshalizer:    e.CoreComponents.InternalMarshalizer(),
 		RequestHandler: e.requestHandler,
 	}
-	epochStartTransactionsSyncer, err := sync.NewPendingTransactionsSyncer(argsPendingTransactions)
+	epochStartTransactionsSyncer, err := sync.NewTransactionsSyncer(argsPendingTransactions)
 	if err != nil {
 		return nil, err
 	}

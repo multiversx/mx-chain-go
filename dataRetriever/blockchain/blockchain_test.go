@@ -74,11 +74,3 @@ func TestBlockChain_SettersAndGettersNilValues(t *testing.T) {
 	assert.Nil(t, bc.GetGenesisHeader())
 	assert.Nil(t, bc.GetCurrentBlockHeader())
 }
-
-func TestBlockChain_CreateNewHeader(t *testing.T) {
-	t.Parallel()
-
-	bc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
-
-	assert.Equal(t, &block.Header{}, bc.CreateNewHeader())
-}

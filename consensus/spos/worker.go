@@ -34,6 +34,7 @@ type Worker struct {
 	consensusService        ConsensusService
 	blockChain              data.ChainHandler
 	blockProcessor          process.BlockProcessor
+	scheduledProcessor      consensus.ScheduledProcessor
 	bootstrapper            process.Bootstrapper
 	broadcastMessenger      consensus.BroadcastMessenger
 	consensusState          *ConsensusState
@@ -79,6 +80,7 @@ type WorkerArgs struct {
 	ConsensusService         ConsensusService
 	BlockChain               data.ChainHandler
 	BlockProcessor           process.BlockProcessor
+	ScheduledProcessor       consensus.ScheduledProcessor
 	Bootstrapper             process.Bootstrapper
 	BroadcastMessenger       consensus.BroadcastMessenger
 	ConsensusState           *ConsensusState
@@ -127,6 +129,7 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		consensusService:         args.ConsensusService,
 		blockChain:               args.BlockChain,
 		blockProcessor:           args.BlockProcessor,
+		scheduledProcessor:       args.ScheduledProcessor,
 		bootstrapper:             args.Bootstrapper,
 		broadcastMessenger:       args.BroadcastMessenger,
 		consensusState:           args.ConsensusState,
@@ -184,6 +187,9 @@ func checkNewWorkerParams(args *WorkerArgs) error {
 	}
 	if check.IfNil(args.BlockProcessor) {
 		return ErrNilBlockProcessor
+	}
+	if check.IfNil(args.ScheduledProcessor) {
+		return ErrNilScheduledProcessor
 	}
 	if check.IfNil(args.Bootstrapper) {
 		return ErrNilBootstrapper
@@ -435,6 +441,12 @@ func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
 			ErrInvalidHeader)
 	}
 
+	var valStatsRootHash []byte
+	metaHeader, ok := header.(data.MetaHeaderHandler)
+	if ok {
+		valStatsRootHash = metaHeader.GetValidatorStatsRootHash()
+	}
+
 	log.Debug("received proposed block",
 		"from", core.GetTrimmedPk(hex.EncodeToString(cnsMsg.PubKey)),
 		"header hash", cnsMsg.BlockHeaderHash,
@@ -443,7 +455,7 @@ func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
 		"nonce", header.GetNonce(),
 		"prev hash", header.GetPrevHash(),
 		"nbTxs", header.GetTxCount(),
-		"val stats root hash", header.GetValidatorStatsRootHash())
+		"val stats root hash", valStatsRootHash)
 
 	err := wrk.headerIntegrityVerifier.Verify(header)
 	if err != nil {
@@ -606,9 +618,9 @@ func (wrk *Worker) Extend(subroundId int) {
 		time.Sleep(time.Millisecond)
 	}
 
-	wrk.blockProcessor.RevertAccountState(wrk.consensusState.Header)
-
-	log.Debug("account state is reverted to snapshot")
+	wrk.scheduledProcessor.ForceStopScheduledExecutionBlocking()
+	wrk.blockProcessor.RevertCurrentBlock()
+	log.Debug("current block is reverted")
 }
 
 // DisplayStatistics logs the consensus messages split on proposed headers

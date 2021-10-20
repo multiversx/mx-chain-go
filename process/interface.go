@@ -31,6 +31,7 @@ import (
 // TransactionProcessor is the main interface for transaction execution engine
 type TransactionProcessor interface {
 	ProcessTransaction(transaction *transaction.Transaction) (vmcommon.ReturnCode, error)
+	VerifyTransaction(transaction *transaction.Transaction) error
 	IsInterfaceNil() bool
 }
 
@@ -137,15 +138,10 @@ type TransactionCoordinator interface {
 	RemoveBlockDataFromPool(body *block.Body) error
 	RemoveTxsFromPool(body *block.Body) error
 
-	ProcessBlockTransaction(body *block.Body, haveTime func() time.Duration) error
+	ProcessBlockTransaction(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) error
 
 	CreateBlockStarted()
-	CreateMbsAndProcessCrossShardTransactionsDstMe(
-		header data.HeaderHandler,
-		processedMiniBlocksHashes map[string]struct{},
-
-		haveTime func() bool,
-	) (block.MiniBlockSlice, uint32, bool, error)
+	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (block.MiniBlockSlice, uint32, bool, error)
 	CreateMbsAndProcessTransactionsFromMe(haveTime func() bool) block.MiniBlockSlice
 	CreatePostProcessMiniBlocks() block.MiniBlockSlice
 	CreateMarshalizedData(body *block.Body) map[string][][]byte
@@ -156,6 +152,8 @@ type TransactionCoordinator interface {
 	VerifyCreatedBlockTransactions(hdr data.HeaderHandler, body *block.Body) error
 	CreateMarshalizedReceipts() ([]byte, error)
 	VerifyCreatedMiniBlocks(hdr data.HeaderHandler, body *block.Body) error
+	AddIntermediateTransactions(mapSCRs map[block.Type][]data.TransactionHandler) error
+	GetAllIntermediateTxs() map[block.Type]map[string]data.TransactionHandler
 	IsInterfaceNil() bool
 }
 
@@ -213,11 +211,11 @@ type PreProcessor interface {
 	RestoreBlockDataIntoPools(body *block.Body, miniBlockPool storage.Cacher) (int, error)
 	SaveTxsToStorage(body *block.Body) error
 
-	ProcessBlockTransactions(body *block.Body, haveTime func() bool) error
+	ProcessBlockTransactions(header data.HeaderHandler, body *block.Body, haveTime func() bool) error
 	RequestBlockTransactions(body *block.Body) int
 
 	RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int
-	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, getNumOfCrossInterMbsAndTxs func() (int, int)) ([][]byte, int, error)
+	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, haveAdditionalTime func() bool, getNumOfCrossInterMbsAndTxs func() (int, int), scheduledMode bool) ([][]byte, int, error)
 	CreateAndProcessMiniBlocks(haveTime func() bool) (block.MiniBlockSlice, error)
 
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
@@ -227,11 +225,12 @@ type PreProcessor interface {
 // BlockProcessor is the main interface for block execution engine
 type BlockProcessor interface {
 	ProcessBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
+	ProcessScheduledBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlock(header data.HeaderHandler, body data.BodyHandler) error
-	RevertAccountState(header data.HeaderHandler)
-	PruneStateOnRollback(currHeader data.HeaderHandler, prevHeader data.HeaderHandler)
-	RevertStateToBlock(header data.HeaderHandler) error
-	CreateNewHeader(round uint64, nonce uint64) data.HeaderHandler
+	RevertCurrentBlock()
+	PruneStateOnRollback(currHeader data.HeaderHandler, currHeaderHash []byte, prevHeader data.HeaderHandler, prevHeaderHash []byte)
+	RevertStateToBlock(header data.HeaderHandler, rootHash []byte) error
+	CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error)
 	RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error
 	CreateBlock(initialHdr data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
 	ApplyProcessedMiniBlocks(processedMiniBlocks *processedMb.ProcessedMiniBlockTracker)
@@ -243,10 +242,16 @@ type BlockProcessor interface {
 	Close() error
 }
 
+// ScheduledBlockProcessor is the interface for the scheduled miniBlocks execution part of the block processor
+type ScheduledBlockProcessor interface {
+	ProcessScheduledBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
+	IsInterfaceNil() bool
+}
+
 // ValidatorStatisticsProcessor is the main interface for validators' consensus participation statistics
 type ValidatorStatisticsProcessor interface {
-	UpdatePeerState(header data.HeaderHandler, cache map[string]data.HeaderHandler) ([]byte, error)
-	RevertPeerState(header data.HeaderHandler) error
+	UpdatePeerState(header data.MetaHeaderHandler, cache map[string]data.HeaderHandler) ([]byte, error)
+	RevertPeerState(header data.MetaHeaderHandler) error
 	Process(shardValidatorInfo data.ShardValidatorInfoHandler) error
 	IsInterfaceNil() bool
 	RootHash() ([]byte, error)
@@ -687,12 +692,15 @@ type SCQuery struct {
 type GasHandler interface {
 	Init()
 	SetGasConsumed(gasConsumed uint64, hash []byte)
+	SetGasConsumedAsScheduled(gasConsumed uint64, hash []byte)
 	SetGasRefunded(gasRefunded uint64, hash []byte)
 	GasConsumed(hash []byte) uint64
 	GasRefunded(hash []byte) uint64
 	TotalGasConsumed() uint64
+	TotalGasConsumedAsScheduled() uint64
 	TotalGasRefunded() uint64
 	RemoveGasConsumed(hashes [][]byte)
+	RemoveGasConsumedAsScheduled(hashes [][]byte)
 	RemoveGasRefunded(hashes [][]byte)
 	ComputeGasConsumedByMiniBlock(*block.MiniBlock, map[string]data.TransactionHandler) (uint64, uint64, error)
 	ComputeGasConsumedByTx(txSenderShardId uint32, txReceiverShardId uint32, txHandler data.TransactionHandler) (uint64, uint64, error)
@@ -825,18 +833,18 @@ type EpochStartDataCreator interface {
 // RewardsCreator defines the functionality for the metachain to create rewards at end of epoch
 type RewardsCreator interface {
 	CreateRewardsMiniBlocks(
-		metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+		metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
 	) (block.MiniBlockSlice, error)
 	VerifyRewardsMiniBlocks(
-		metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+		metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
 	) error
 	GetProtocolSustainabilityRewards() *big.Int
 	GetLocalTxCache() epochStart.TransactionCacher
 	CreateMarshalizedData(body *block.Body) map[string][][]byte
 	GetRewardsTxs(body *block.Body) map[string]data.TransactionHandler
-	SaveTxBlockToStorage(metaBlock *block.MetaBlock, body *block.Body)
-	DeleteTxsFromStorage(metaBlock *block.MetaBlock, body *block.Body)
-	RemoveBlockDataFromPools(metaBlock *block.MetaBlock, body *block.Body)
+	SaveTxBlockToStorage(metaBlock data.MetaHeaderHandler, body *block.Body)
+	DeleteTxsFromStorage(metaBlock data.MetaHeaderHandler, body *block.Body)
+	RemoveBlockDataFromPools(metaBlock data.MetaHeaderHandler, body *block.Body)
 	IsInterfaceNil() bool
 }
 
@@ -844,9 +852,9 @@ type RewardsCreator interface {
 type EpochStartValidatorInfoCreator interface {
 	CreateValidatorInfoMiniBlocks(validatorInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error)
 	VerifyValidatorInfoMiniBlocks(miniblocks []*block.MiniBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) error
-	SaveValidatorInfoBlocksToStorage(metaBlock *block.MetaBlock, body *block.Body)
-	DeleteValidatorInfoBlocksFromStorage(metaBlock *block.MetaBlock)
-	RemoveBlockDataFromPools(metaBlock *block.MetaBlock, body *block.Body)
+	SaveValidatorInfoBlocksToStorage(metaBlock data.HeaderHandler, body *block.Body)
+	DeleteValidatorInfoBlocksFromStorage(metaBlock data.HeaderHandler)
+	RemoveBlockDataFromPools(metaBlock data.HeaderHandler, body *block.Body)
 	IsInterfaceNil() bool
 }
 
@@ -917,7 +925,7 @@ type RatingsStepHandler interface {
 
 // ValidatorInfoSyncer defines the method needed for validatorInfoProcessing
 type ValidatorInfoSyncer interface {
-	SyncMiniBlocks(metaBlock *block.MetaBlock) ([][]byte, data.BodyHandler, error)
+	SyncMiniBlocks(metaBlock data.HeaderHandler) ([][]byte, data.BodyHandler, error)
 	IsInterfaceNil() bool
 }
 
@@ -1093,5 +1101,25 @@ type AccountsDBSyncer interface {
 // CurrentNetworkEpochProviderHandler is an interface able to compute if the provided epoch is active on the network or not
 type CurrentNetworkEpochProviderHandler interface {
 	EpochIsActiveInNetwork(epoch uint32) bool
+	IsInterfaceNil() bool
+}
+
+// ScheduledTxsExecutionHandler defines the functionality for execution of scheduled transactions
+type ScheduledTxsExecutionHandler interface {
+	Init()
+	Add(txHash []byte, tx data.TransactionHandler) bool
+	Execute(txHash []byte) error
+	ExecuteAll(haveTime func() time.Duration) error
+	GetScheduledSCRs() map[block.Type][]data.TransactionHandler
+	SetScheduledRootHashAndSCRs(rootHash []byte, mapSCRs map[block.Type][]data.TransactionHandler)
+	GetScheduledRootHashForHeader(headerHash []byte) ([]byte, error)
+	RollBackToBlock(headerHash []byte) error
+	SaveStateIfNeeded(headerHash []byte)
+	SaveState(headerHash []byte, scheduledRootHash []byte, mapScheduledSCRs map[block.Type][]data.TransactionHandler)
+	GetScheduledRootHash() []byte
+	SetScheduledRootHash(rootHash []byte)
+	SetTransactionProcessor(txProcessor TransactionProcessor)
+	SetTransactionCoordinator(txCoordinator TransactionCoordinator)
+	IsScheduledTx(txHash []byte) bool
 	IsInterfaceNil() bool
 }
