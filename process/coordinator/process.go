@@ -564,7 +564,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 ) (block.MiniBlockSlice, uint32, bool, error) {
 
 	miniBlocks := make(block.MiniBlockSlice, 0)
-	nrTxAdded := uint32(0)
+	numTxAdded := uint32(0)
 	numMiniBlocksProcessed := 0
 
 	defer func() {
@@ -576,7 +576,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 	}()
 
 	if check.IfNil(hdr) {
-		return miniBlocks, nrTxAdded, false, nil
+		return miniBlocks, numTxAdded, false, nil
 	}
 
 	shouldSkipShard := make(map[uint32]bool)
@@ -635,7 +635,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		miniBlock, ok := miniVal.(*block.MiniBlock)
 		if !ok {
 			shouldSkipShard[miniBlockInfo.SenderShardID] = true
-			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: mini block assertion type failed",
+			log.Error("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: mini block assertion type failed",
 				"scheduled mode", scheduledMode,
 				"sender shard", miniBlockInfo.SenderShardID,
 				"hash", miniBlockInfo.Hash,
@@ -646,7 +646,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 
 		if scheduledMode && !miniBlock.IsScheduledMiniBlock() {
 			shouldSkipShard[miniBlockInfo.SenderShardID] = true
-			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: mini block is not scheduled",
+			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: mini block was not scheduled in sender shard",
 				"scheduled mode", scheduledMode,
 				"sender shard", miniBlockInfo.SenderShardID,
 				"hash", miniBlockInfo.Hash,
@@ -687,7 +687,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 
 		// all txs processed, add to processed miniblocks
 		miniBlocks = append(miniBlocks, miniBlock)
-		nrTxAdded = nrTxAdded + uint32(len(miniBlock.TxHashes))
+		numTxAdded = numTxAdded + uint32(len(miniBlock.TxHashes))
 		numMiniBlocksProcessed++
 		if processedMiniBlocksHashes != nil {
 			processedMiniBlocksHashes[string(miniBlockInfo.Hash)] = struct{}{}
@@ -696,7 +696,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 
 	allMBsProcessed := numMiniBlocksProcessed == len(crossMiniBlockInfos)
 
-	return miniBlocks, nrTxAdded, allMBsProcessed, nil
+	return miniBlocks, numTxAdded, allMBsProcessed, nil
 }
 
 // CreateMbsAndProcessTransactionsFromMe creates miniblocks and processes transactions from pool
