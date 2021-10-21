@@ -902,9 +902,6 @@ var ErrNilRoundDetectorCache = errors.New("round detector cache is nil")
 // ErrNilRoundHeadersCache signals that a nil round headers cache has been provided
 var ErrNilRoundHeadersCache = errors.New("round headers cache is nil")
 
-// ErrCannotCastHeaderHandlerToHeader signals that a header handler interface cannot be cast to a block header
-var ErrCannotCastHeaderHandlerToHeader = errors.New("header handler interface cannot be cast to a block header")
-
 // ErrInvalidProof signals that an invalid proof has been provided
 var ErrInvalidProof = errors.New("an invalid proof has been provided")
 

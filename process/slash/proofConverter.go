@@ -31,8 +31,8 @@ func ToProtoMultipleHeaderSign(proof MultipleSigningProofHandler) (*coreSlash.Mu
 		if err != nil {
 			return nil, err
 		}
-		headers[string(pubKey)] = currHeaders
 
+		headers[string(pubKey)] = currHeaders
 		levels[string(pubKey)] = coreSlash.ThreatLevel(proof.GetLevel(pubKey))
 	}
 
