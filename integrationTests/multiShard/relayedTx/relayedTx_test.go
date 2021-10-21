@@ -206,7 +206,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
 	time.Sleep(time.Second)
 
 	tokenIdenfitifer := string(integrationTests.GetTokenIdentifier(nodes, []byte("RBT")))
-	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdenfitifer, initalSupply)
+	CheckAddressHasTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdenfitifer, initalSupply)
 
 	/////////------ send tx to players
 	valueToTopUp := big.NewInt(100000000)
@@ -249,8 +249,8 @@ func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
 	time.Sleep(time.Second)
 	finalBalance := big.NewInt(0).Mul(big.NewInt(int64(len(players))), big.NewInt(nrRoundsToTest))
 	finalBalance.Mul(finalBalance, sendValue)
-	checkAddressHasESDTTokens(t, receiverAddress1, nodes, tokenIdenfitifer, finalBalance)
-	checkAddressHasESDTTokens(t, receiverAddress2, nodes, tokenIdenfitifer, finalBalance)
+	CheckAddressHasTokens(t, receiverAddress1, nodes, tokenIdenfitifer, finalBalance)
+	CheckAddressHasTokens(t, receiverAddress2, nodes, tokenIdenfitifer, finalBalance)
 
 	players = append(players, relayer)
 	checkPlayerBalances(t, nodes, players)
@@ -390,7 +390,7 @@ func checkPlayerBalances(
 	}
 }
 
-func checkAddressHasESDTTokens(
+func CheckAddressHasTokens(
 	t *testing.T,
 	address []byte,
 	nodes []*integrationTests.TestProcessorNode,

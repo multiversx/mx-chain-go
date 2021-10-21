@@ -94,7 +94,7 @@ func TestESDTTransferWithMultisig(t *testing.T) {
 	time.Sleep(time.Second)
 
 	tokenIdentifier := integrationTests.GetTokenIdentifier(nodes, []byte(ticker))
-	esdt.CheckAddressHasESDTTokens(t, multisignContractAddress, nodes, string(tokenIdentifier), initalSupply.Int64())
+	esdt.CheckAddressHasTokens(t, multisignContractAddress, nodes, string(tokenIdentifier), initalSupply.Int64())
 
 	checkCallBackWasSaved(t, nodes, multisignContractAddress)
 
@@ -124,8 +124,8 @@ func TestESDTTransferWithMultisig(t *testing.T) {
 
 	expectedBalance := big.NewInt(0).Set(initalSupply)
 	expectedBalance.Sub(expectedBalance, transferValue)
-	esdt.CheckAddressHasESDTTokens(t, multisignContractAddress, nodes, string(tokenIdentifier), expectedBalance.Int64())
-	esdt.CheckAddressHasESDTTokens(t, destinationAddress, nodes, string(tokenIdentifier), transferValue.Int64())
+	esdt.CheckAddressHasTokens(t, multisignContractAddress, nodes, string(tokenIdentifier), expectedBalance.Int64())
+	esdt.CheckAddressHasTokens(t, destinationAddress, nodes, string(tokenIdentifier), transferValue.Int64())
 }
 
 func checkCallBackWasSaved(t *testing.T, nodes []*integrationTests.TestProcessorNode, contract []byte) {

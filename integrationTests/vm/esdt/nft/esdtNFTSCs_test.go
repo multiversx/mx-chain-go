@@ -69,9 +69,9 @@ func TestESDTNFTIssueCreateBurnSendViaAsyncViaExecuteOnSC(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 3, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	checkAddressHasNft(t, scAddress, scAddress, nodes, tokenIdentifier, 3, big.NewInt(1))
-	checkAddressHasNft(t, scAddress, scAddress, nodes, tokenIdentifier, 2, big.NewInt(1))
-	checkAddressHasNft(t, scAddress, scAddress, nodes, tokenIdentifier, 1, big.NewInt(1))
+	checkAddressHasNft(t, scAddress, scAddress, nodes, []byte(tokenIdentifier), 3, big.NewInt(1))
+	checkAddressHasNft(t, scAddress, scAddress, nodes, []byte(tokenIdentifier), 2, big.NewInt(1))
+	checkAddressHasNft(t, scAddress, scAddress, nodes, []byte(tokenIdentifier), 1, big.NewInt(1))
 
 	txData = []byte("nftBurn" + "@" + hex.EncodeToString([]byte(tokenIdentifier)) +
 		"@" + hex.EncodeToString(big.NewInt(1).Bytes()) + "@" + hex.EncodeToString(big.NewInt(1).Bytes()))
@@ -96,8 +96,8 @@ func TestESDTNFTIssueCreateBurnSendViaAsyncViaExecuteOnSC(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 3, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	checkAddressHasNft(t, scAddress, scAddress, nodes, tokenIdentifier, 2, big.NewInt(1))
-	checkAddressHasNft(t, scAddress, scAddress, nodes, tokenIdentifier, 1, big.NewInt(0))
+	checkAddressHasNft(t, scAddress, scAddress, nodes, []byte(tokenIdentifier), 2, big.NewInt(1))
+	checkAddressHasNft(t, scAddress, scAddress, nodes, []byte(tokenIdentifier), 1, big.NewInt(0))
 
 	destinationAddress := nodes[0].OwnAccount.Address
 	txData = []byte("transferNftViaAsyncCall" + "@" + hex.EncodeToString(destinationAddress) +
@@ -127,10 +127,10 @@ func TestESDTNFTIssueCreateBurnSendViaAsyncViaExecuteOnSC(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 3, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	checkAddressHasNft(t, scAddress, destinationAddress, nodes, tokenIdentifier, 2, big.NewInt(1))
-	checkAddressHasNft(t, scAddress, destinationAddress, nodes, tokenIdentifier, 3, big.NewInt(1))
-	checkAddressHasNft(t, scAddress, scAddress, nodes, tokenIdentifier, 2, big.NewInt(0))
-	checkAddressHasNft(t, scAddress, scAddress, nodes, tokenIdentifier, 3, big.NewInt(0))
+	checkAddressHasNft(t, scAddress, destinationAddress, nodes, []byte(tokenIdentifier), 2, big.NewInt(1))
+	checkAddressHasNft(t, scAddress, destinationAddress, nodes, []byte(tokenIdentifier), 3, big.NewInt(1))
+	checkAddressHasNft(t, scAddress, scAddress, nodes, []byte(tokenIdentifier), 2, big.NewInt(0))
+	checkAddressHasNft(t, scAddress, scAddress, nodes, []byte(tokenIdentifier), 3, big.NewInt(0))
 }
 
 func TestESDTSemiFTIssueCreateBurnSendViaAsyncViaExecuteOnSC(t *testing.T) {
@@ -183,7 +183,7 @@ func TestESDTSemiFTIssueCreateBurnSendViaAsyncViaExecuteOnSC(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 2, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	checkAddressHasNft(t, scAddress, scAddress, nodes, tokenIdentifier, 1, big.NewInt(11))
+	checkAddressHasNft(t, scAddress, scAddress, nodes, []byte(tokenIdentifier), 1, big.NewInt(11))
 
 	txData = []byte("nftBurn" + "@" + hex.EncodeToString([]byte(tokenIdentifier)) +
 		"@" + hex.EncodeToString(big.NewInt(1).Bytes()) + "@" + hex.EncodeToString(big.NewInt(1).Bytes()))
@@ -208,7 +208,7 @@ func TestESDTSemiFTIssueCreateBurnSendViaAsyncViaExecuteOnSC(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 2, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	checkAddressHasNft(t, scAddress, scAddress, nodes, tokenIdentifier, 1, big.NewInt(9))
+	checkAddressHasNft(t, scAddress, scAddress, nodes, []byte(tokenIdentifier), 1, big.NewInt(9))
 
 	destinationAddress := nodes[0].OwnAccount.Address
 	txData = []byte("transferNftViaAsyncCall" + "@" + hex.EncodeToString(destinationAddress) +
@@ -238,8 +238,8 @@ func TestESDTSemiFTIssueCreateBurnSendViaAsyncViaExecuteOnSC(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 2, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	checkAddressHasNft(t, scAddress, destinationAddress, nodes, tokenIdentifier, 1, big.NewInt(9))
-	checkAddressHasNft(t, scAddress, scAddress, nodes, tokenIdentifier, 1, big.NewInt(0))
+	checkAddressHasNft(t, scAddress, destinationAddress, nodes, []byte(tokenIdentifier), 1, big.NewInt(9))
+	checkAddressHasNft(t, scAddress, scAddress, nodes, []byte(tokenIdentifier), 1, big.NewInt(0))
 }
 
 func TestESDTTransferNFTBetweenContractsAcceptAndNotAcceptWithRevert(t *testing.T) {
@@ -289,8 +289,8 @@ func TestESDTTransferNFTBetweenContractsAcceptAndNotAcceptWithRevert(t *testing.
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 2, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	checkAddressHasNft(t, scAddress, scAddress, nodes, tokenIdentifier, 2, big.NewInt(1))
-	checkAddressHasNft(t, scAddress, scAddress, nodes, tokenIdentifier, 1, big.NewInt(1))
+	checkAddressHasNft(t, scAddress, scAddress, nodes, []byte(tokenIdentifier), 2, big.NewInt(1))
+	checkAddressHasNft(t, scAddress, scAddress, nodes, []byte(tokenIdentifier), 1, big.NewInt(1))
 
 	destinationSCAddress := esdt.DeployNonPayableSmartContract(t, nodes, idxProposers, &nonce, &round, "../testdata/nft-receiver.wasm")
 	txData = []byte("transferNftViaAsyncCall" + "@" + hex.EncodeToString(destinationSCAddress) +
@@ -320,10 +320,10 @@ func TestESDTTransferNFTBetweenContractsAcceptAndNotAcceptWithRevert(t *testing.
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 2, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	checkAddressHasNft(t, scAddress, destinationSCAddress, nodes, tokenIdentifier, 1, big.NewInt(0))
-	checkAddressHasNft(t, scAddress, destinationSCAddress, nodes, tokenIdentifier, 2, big.NewInt(0))
-	checkAddressHasNft(t, scAddress, scAddress, nodes, tokenIdentifier, 1, big.NewInt(1))
-	checkAddressHasNft(t, scAddress, scAddress, nodes, tokenIdentifier, 2, big.NewInt(1))
+	checkAddressHasNft(t, scAddress, destinationSCAddress, nodes, []byte(tokenIdentifier), 1, big.NewInt(0))
+	checkAddressHasNft(t, scAddress, destinationSCAddress, nodes, []byte(tokenIdentifier), 2, big.NewInt(0))
+	checkAddressHasNft(t, scAddress, scAddress, nodes, []byte(tokenIdentifier), 1, big.NewInt(1))
+	checkAddressHasNft(t, scAddress, scAddress, nodes, []byte(tokenIdentifier), 2, big.NewInt(1))
 
 	txData = []byte("transferNftViaAsyncCall" + "@" + hex.EncodeToString(destinationSCAddress) +
 		"@" + hex.EncodeToString([]byte(tokenIdentifier)) + "@" + hex.EncodeToString(big.NewInt(1).Bytes()) +
@@ -352,10 +352,10 @@ func TestESDTTransferNFTBetweenContractsAcceptAndNotAcceptWithRevert(t *testing.
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 2, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	checkAddressHasNft(t, scAddress, destinationSCAddress, nodes, tokenIdentifier, 1, big.NewInt(1))
-	checkAddressHasNft(t, scAddress, destinationSCAddress, nodes, tokenIdentifier, 2, big.NewInt(1))
-	checkAddressHasNft(t, scAddress, scAddress, nodes, tokenIdentifier, 1, big.NewInt(0))
-	checkAddressHasNft(t, scAddress, scAddress, nodes, tokenIdentifier, 2, big.NewInt(0))
+	checkAddressHasNft(t, scAddress, destinationSCAddress, nodes, []byte(tokenIdentifier), 1, big.NewInt(1))
+	checkAddressHasNft(t, scAddress, destinationSCAddress, nodes, []byte(tokenIdentifier), 2, big.NewInt(1))
+	checkAddressHasNft(t, scAddress, scAddress, nodes, []byte(tokenIdentifier), 1, big.NewInt(0))
+	checkAddressHasNft(t, scAddress, scAddress, nodes, []byte(tokenIdentifier), 2, big.NewInt(0))
 }
 
 func TestESDTTransferNFTToSCIntraShard(t *testing.T) {
@@ -412,7 +412,7 @@ func TestESDTTransferNFTToSCIntraShard(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 3, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	checkAddressHasNft(t, nodes[0].OwnAccount.Address, destinationSCAddress, nodes, tokenIdentifier, 1, big.NewInt(1))
+	checkAddressHasNft(t, nodes[0].OwnAccount.Address, destinationSCAddress, nodes, []byte(tokenIdentifier), 1, big.NewInt(1))
 }
 
 func TestESDTTransferNFTToSCCrossShard(t *testing.T) {
@@ -482,7 +482,7 @@ func TestESDTTransferNFTToSCCrossShard(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 10, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	checkAddressHasNft(t, nodeFromOtherShard.OwnAccount.Address, destinationSCAddress, nodes, tokenIdentifier, 1, big.NewInt(1))
+	checkAddressHasNft(t, nodeFromOtherShard.OwnAccount.Address, destinationSCAddress, nodes, []byte(tokenIdentifier), 1, big.NewInt(1))
 
 	txData = core.BuiltInFunctionESDTNFTTransfer + "@" + hex.EncodeToString([]byte(tokenIdentifier)) +
 		"@" + nonceArg + "@" + quantityToTransfer + "@" + hex.EncodeToString(destinationSCAddress) + "@" + hex.EncodeToString([]byte("wrongFunction"))
@@ -499,7 +499,7 @@ func TestESDTTransferNFTToSCCrossShard(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 10, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	checkAddressHasNft(t, nodeFromOtherShard.OwnAccount.Address, destinationSCAddress, nodes, tokenIdentifier, 1, big.NewInt(1))
+	checkAddressHasNft(t, nodeFromOtherShard.OwnAccount.Address, destinationSCAddress, nodes, []byte(tokenIdentifier), 1, big.NewInt(1))
 
 	txData = core.BuiltInFunctionESDTNFTTransfer + "@" + hex.EncodeToString([]byte(tokenIdentifier)) +
 		"@" + nonceArg + "@" + quantityToTransfer + "@" + hex.EncodeToString(destinationSCAddress)
@@ -516,7 +516,7 @@ func TestESDTTransferNFTToSCCrossShard(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 10, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	checkAddressHasNft(t, nodeFromOtherShard.OwnAccount.Address, destinationSCAddress, nodes, tokenIdentifier, 1, big.NewInt(1))
+	checkAddressHasNft(t, nodeFromOtherShard.OwnAccount.Address, destinationSCAddress, nodes, []byte(tokenIdentifier), 1, big.NewInt(1))
 }
 
 func deployAndIssueNFTSFTThroughSC(
@@ -571,13 +571,11 @@ func checkAddressHasNft(
 	creator []byte,
 	address []byte,
 	nodes []*integrationTests.TestProcessorNode,
-	tokenName string,
+	tickerID []byte,
 	nonce uint64,
 	quantity *big.Int,
 ) {
-	tokenIdentifierPlusNonce := []byte(tokenName)
-	tokenIdentifierPlusNonce = append(tokenIdentifierPlusNonce, big.NewInt(0).SetUint64(nonce).Bytes()...)
-	esdtData := esdt.GetESDTTokenData(t, address, nodes, string(tokenIdentifierPlusNonce))
+	esdtData := esdt.GetESDTTokenData(t, address, nodes, tickerID, nonce)
 
 	if quantity.Cmp(big.NewInt(0)) == 0 {
 		require.Nil(t, esdtData.TokenMetaData)
