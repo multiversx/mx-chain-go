@@ -1215,7 +1215,7 @@ func TestScACallsScBWithExecOnDestESDT_TxPending(t *testing.T) {
 
 	// no tokens in caller contract
 	esdtData = esdtCommon.GetESDTTokenData(t, callerScAddress, nodes, []byte(tokenIdentifier), 0)
-	require.EqualValues(t, &esdt.ESDigitalToken{}, esdtData)
+	require.EqualValues(t, &esdt.ESDigitalToken{Value: big.NewInt(0)}, esdtData)
 }
 
 func TestScACallsScBWithExecOnDestScAPerformsAsyncCall_NoCallbackInScB(t *testing.T) {
