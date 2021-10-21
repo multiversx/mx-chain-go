@@ -503,9 +503,6 @@ var ErrInvalidMaxGasLimitPerMetaMiniBlock = errors.New("invalid max gas limit pe
 // ErrInvalidGasPerDataByte signals that an invalid gas per data byte has been read from config file
 var ErrInvalidGasPerDataByte = errors.New("invalid gas per data byte")
 
-// ErrMaxGasLimitPerMiniBlockInSenderShardIsReached signals that max gas limit per mini block in sender shard has been reached
-var ErrMaxGasLimitPerMiniBlockInSenderShardIsReached = errors.New("max gas limit per mini block in sender shard is reached")
-
 // ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached signals that max gas limit per mini block in receiver shard has been reached
 var ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached = errors.New("max gas limit per mini block in receiver shard is reached")
 
@@ -994,6 +991,9 @@ var ErrNilESDTTransferParser = errors.New("nil esdt transfer parser")
 
 // ErrResultingSCRIsTooBig signals that resulting smart contract result is too big
 var ErrResultingSCRIsTooBig = errors.New("resulting SCR is too big")
+
+// ErrNotAllowedToWriteUnderProtectedKey signals that writing under protected key is not allowed
+var ErrNotAllowedToWriteUnderProtectedKey = errors.New("not allowed to write under protected key")
 
 // ErrNilScheduledTxsExecutionHandler signals that scheduled txs execution handler is nil
 var ErrNilScheduledTxsExecutionHandler = errors.New("nil scheduled txs execution handler")

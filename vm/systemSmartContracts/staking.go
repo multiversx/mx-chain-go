@@ -1008,7 +1008,7 @@ func (s *stakingSC) removeFromWaitingList(blsKey []byte) error {
 		copy(waitingList.LastJailedKey, elementToRemove.PreviousKey)
 	}
 
-	previousElement, err := s.getWaitingListElement(elementToRemove.PreviousKey)
+	previousElement, _ := s.getWaitingListElement(elementToRemove.PreviousKey)
 	// search the other way around for the element in front
 	if s.flagCorrectFirstQueued.IsSet() && previousElement == nil {
 		previousElement, err = s.searchPreviousFromHead(waitingList, inWaitingListKey, elementToRemove)
