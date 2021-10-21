@@ -69,7 +69,7 @@ func (mhp *multipleHeaderProposalsDetector) VerifyData(data process.InterceptedD
 		return nil, err
 	}
 
-	err = mhp.cache.Add(round, proposer, interceptedHeader)
+	err = mhp.cache.Add(round, proposer, slash.HeaderInfo{Header: header, Hash: interceptedHeader.Hash()})
 	if err != nil {
 		return nil, err
 	}
@@ -112,8 +112,8 @@ func (mhp *multipleHeaderProposalsDetector) getSlashingResult(currRound uint64, 
 }
 
 // TODO: Add different logic here once slashing threat levels are clearly defined
-func (mhp *multipleHeaderProposalsDetector) computeSlashLevel(data []process.InterceptedData) slash.ThreatLevel {
-	return computeSlashLevelBasedOnHeadersCount(data)
+func (mhp *multipleHeaderProposalsDetector) computeSlashLevel(headers slash.HeaderInfoList) slash.ThreatLevel {
+	return computeSlashLevelBasedOnHeadersCount(headers)
 }
 
 // ValidateProof - validates if the given proof is valid.

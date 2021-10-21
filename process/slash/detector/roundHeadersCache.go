@@ -7,16 +7,11 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/slash"
 )
 
-type headerInfoList []headerInfo
-type headerInfo struct {
-	hash   []byte
-	header data.HeaderHandler
-}
-
 type roundHeadersCache struct {
-	cache       map[uint64]headerInfoList
+	cache       map[uint64]slash.HeaderInfoList
 	cacheMutex  sync.RWMutex
 	oldestRound uint64
 	cacheSize   uint64
@@ -25,7 +20,7 @@ type roundHeadersCache struct {
 // NewRoundHeadersCache creates an instance of roundHeadersCache, which is a header-hash-based cache
 func NewRoundHeadersCache(maxRounds uint64) *roundHeadersCache {
 	return &roundHeadersCache{
-		cache:       make(map[uint64]headerInfoList),
+		cache:       make(map[uint64]slash.HeaderInfoList),
 		cacheMutex:  sync.RWMutex{},
 		oldestRound: math.MaxUint64,
 		cacheSize:   maxRounds,
@@ -54,7 +49,7 @@ func (rhc *roundHeadersCache) Add(round uint64, hash []byte, header data.HeaderH
 		rhc.oldestRound = round
 	}
 
-	rhc.cache[round] = append(rhc.cache[round], headerInfo{hash: hash, header: header})
+	rhc.cache[round] = append(rhc.cache[round], slash.HeaderInfo{Hash: hash, Header: header})
 	return nil
 }
 
@@ -65,7 +60,7 @@ func (rhc *roundHeadersCache) contains(round uint64, hash []byte) bool {
 	}
 
 	for _, currData := range hashHeaderList {
-		if bytes.Equal(currData.hash, hash) {
+		if bytes.Equal(currData.Hash, hash) {
 			return true
 		}
 	}

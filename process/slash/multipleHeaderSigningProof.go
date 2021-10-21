@@ -1,9 +1,5 @@
 package slash
 
-import (
-	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
-)
-
 type multipleSigningProof struct {
 	slashableHeaders map[string]slashingHeaders
 	pubKeys          [][]byte
@@ -39,7 +35,7 @@ func (msp *multipleSigningProof) GetLevel(pubKey []byte) ThreatLevel {
 }
 
 // GetHeaders - returns the slashing proofs headers for a given validator, if exists, nil otherwise
-func (msp *multipleSigningProof) GetHeaders(pubKey []byte) []*interceptedBlocks.InterceptedHeader {
+func (msp *multipleSigningProof) GetHeaders(pubKey []byte) HeaderInfoList {
 	if _, exists := msp.slashableHeaders[string(pubKey)]; exists {
 		return msp.slashableHeaders[string(pubKey)].headers
 	}
@@ -56,14 +52,9 @@ func convertData(data map[string]SlashingResult) (map[string]slashingHeaders, []
 	pubKeys := make([][]byte, 0, len(data))
 
 	for pubKey, slashableData := range data {
-		headers, err := convertInterceptedDataToInterceptedHeaders(slashableData.Data)
-		if err != nil {
-			return nil, nil, err
-		}
-
 		slashableHeaders[pubKey] = slashingHeaders{
 			slashingLevel: slashableData.SlashingLevel,
-			headers:       headers,
+			headers:       slashableData.Data,
 		}
 
 		pubKeys = append(pubKeys, []byte(pubKey))

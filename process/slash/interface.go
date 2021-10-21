@@ -3,7 +3,6 @@ package slash
 import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 )
 
 // SlashingProofHandler - contains a proof for a slashing event and can be wrapped in a transaction
@@ -19,7 +18,7 @@ type MultipleProposalProofHandler interface {
 	// multiple colluding parties should have a higher level
 	GetLevel() ThreatLevel
 	//GetHeaders - returns the slashable proposed Data
-	GetHeaders() []*interceptedBlocks.InterceptedHeader
+	GetHeaders() HeaderInfoList
 }
 
 // MultipleSigningProofHandler contains proof data for a multiple header signing slashing event
@@ -30,7 +29,7 @@ type MultipleSigningProofHandler interface {
 	// GetLevel - returns the slashing level for a given validator
 	GetLevel(pubKey []byte) ThreatLevel
 	// GetHeaders - returns the slashable signed headers proposed by a given validator
-	GetHeaders(pubKey []byte) []*interceptedBlocks.InterceptedHeader
+	GetHeaders(pubKey []byte) HeaderInfoList
 }
 
 // SlashingDetector - checks for slashable events and generates proofs to be used for slash

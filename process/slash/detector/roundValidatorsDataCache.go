@@ -6,13 +6,13 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/slash"
 )
 
-type dataList []process.InterceptedData
-type validatorDataMap map[string]dataList
+type validatorHeadersMap map[string]slash.HeaderInfoList
 
 type roundValidatorsDataCache struct {
-	cache       map[uint64]validatorDataMap
+	cache       map[uint64]validatorHeadersMap
 	cacheMutex  sync.RWMutex
 	oldestRound uint64
 	cacheSize   uint64
@@ -22,7 +22,7 @@ type roundValidatorsDataCache struct {
 // is a round-based(per validator data) cache
 func NewRoundValidatorDataCache(maxRounds uint64) *roundValidatorsDataCache {
 	return &roundValidatorsDataCache{
-		cache:       make(map[uint64]validatorDataMap),
+		cache:       make(map[uint64]validatorHeadersMap),
 		cacheMutex:  sync.RWMutex{},
 		oldestRound: math.MaxUint64,
 		cacheSize:   maxRounds,
@@ -31,12 +31,12 @@ func NewRoundValidatorDataCache(maxRounds uint64) *roundValidatorsDataCache {
 
 // Add adds in cache an intercepted data for a public key, in a given round.
 // It has an eviction mechanism which always removes the oldest round entry when cache is full
-func (rdc *roundValidatorsDataCache) Add(round uint64, pubKey []byte, data process.InterceptedData) error {
+func (rdc *roundValidatorsDataCache) Add(round uint64, pubKey []byte, headerInfo slash.HeaderInfo) error {
 	pubKeyStr := string(pubKey)
 	rdc.cacheMutex.Lock()
 	defer rdc.cacheMutex.Unlock()
 
-	if rdc.contains(round, pubKey, data) {
+	if rdc.contains(round, pubKey, headerInfo) {
 		return process.ErrHeadersNotDifferentHashes
 	}
 
@@ -53,16 +53,16 @@ func (rdc *roundValidatorsDataCache) Add(round uint64, pubKey []byte, data proce
 
 	validatorsMap, exists := rdc.cache[round]
 	if !exists {
-		rdc.cache[round] = validatorDataMap{pubKeyStr: dataList{data}}
+		rdc.cache[round] = validatorHeadersMap{pubKeyStr: slash.HeaderInfoList{headerInfo}}
 		return nil
 	}
 
-	validatorsMap[pubKeyStr] = append(validatorsMap[pubKeyStr], data)
+	validatorsMap[pubKeyStr] = append(validatorsMap[pubKeyStr], headerInfo)
 
 	return nil
 }
 
-func (rdc *roundValidatorsDataCache) contains(round uint64, pubKey []byte, data process.InterceptedData) bool {
+func (rdc *roundValidatorsDataCache) contains(round uint64, pubKey []byte, headerInfo slash.HeaderInfo) bool {
 	validatorsMap, exists := rdc.cache[round]
 	if !exists {
 		return false
@@ -74,7 +74,7 @@ func (rdc *roundValidatorsDataCache) contains(round uint64, pubKey []byte, data 
 	}
 
 	for _, currData := range dataList {
-		if bytes.Equal(currData.Hash(), data.Hash()) {
+		if bytes.Equal(currData.Hash, headerInfo.Hash) {
 			return true
 		}
 	}
@@ -100,7 +100,7 @@ func (rdc *roundValidatorsDataCache) updateOldestRound() {
 }
 
 // GetData returns all cached data for a public key, in a given round
-func (rdc *roundValidatorsDataCache) GetData(round uint64, pubKey []byte) []process.InterceptedData {
+func (rdc *roundValidatorsDataCache) GetData(round uint64, pubKey []byte) slash.HeaderInfoList {
 	pubKeyStr := string(pubKey)
 	rdc.cacheMutex.RLock()
 	defer rdc.cacheMutex.RUnlock()

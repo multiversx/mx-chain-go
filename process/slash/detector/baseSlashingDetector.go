@@ -30,12 +30,12 @@ func absDiff(x, y uint64) uint64 {
 	return x - y
 }
 
-func computeSlashLevelBasedOnHeadersCount(data []process.InterceptedData) slash.ThreatLevel {
+func computeSlashLevelBasedOnHeadersCount(headers slash.HeaderInfoList) slash.ThreatLevel {
 	ret := slash.Low
 
-	if len(data) == minSlashableNoOfHeaders {
+	if len(headers) == minSlashableNoOfHeaders {
 		ret = slash.Medium
-	} else if len(data) >= minSlashableNoOfHeaders+1 {
+	} else if len(headers) >= minSlashableNoOfHeaders+1 {
 		ret = slash.High
 	}
 

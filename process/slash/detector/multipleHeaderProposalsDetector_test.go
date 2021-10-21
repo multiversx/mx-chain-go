@@ -133,7 +133,7 @@ func TestMultipleHeaderProposalsDetector_VerifyData_MultipleHeaders_SameHash_Exp
 	round := uint64(1)
 	pubKey := []byte("proposer1")
 	cache := slashMocks.RoundDetectorCacheStub{
-		AddCalled: func(r uint64, pk []byte, data process.InterceptedData) error {
+		AddCalled: func(r uint64, pk []byte, header slash.HeaderInfo) error {
 			if r == round && bytes.Equal(pk, pubKey) {
 				return process.ErrHeadersNotDifferentHashes
 			}
@@ -162,13 +162,19 @@ func TestMultipleHeaderProposalsDetector_VerifyData_MultipleHeaders(t *testing.T
 	hData2 := slashMocks.CreateInterceptedHeaderData(&block.Header{Round: round, PrevRandSeed: []byte("seed2")})
 	hData3 := slashMocks.CreateInterceptedHeaderData(&block.Header{Round: round, PrevRandSeed: []byte("seed3")})
 	hData4 := slashMocks.CreateInterceptedHeaderData(&block.Header{Round: round, PrevRandSeed: []byte("seed4")})
+
+	h1 := slash.HeaderInfo{Header: hData1.HeaderHandler(), Hash: hData1.Hash()}
+	h2 := slash.HeaderInfo{Header: hData2.HeaderHandler(), Hash: hData2.Hash()}
+	h3 := slash.HeaderInfo{Header: hData3.HeaderHandler(), Hash: hData3.Hash()}
+	h4 := slash.HeaderInfo{Header: hData4.HeaderHandler(), Hash: hData4.Hash()}
+
 	getCalledCt := 0
 	addCalledCt := 0
 
 	cache := slashMocks.RoundDetectorCacheStub{
-		AddCalled: func(_ uint64, _ []byte, data process.InterceptedData) error {
+		AddCalled: func(_ uint64, _ []byte, header slash.HeaderInfo) error {
 			addCalledCt++
-			if bytes.Equal(data.Hash(), hData2.Hash()) && addCalledCt == 3 {
+			if bytes.Equal(header.Hash, hData2.Hash()) && addCalledCt == 3 {
 				return process.ErrHeadersNotDifferentHashes
 			}
 			if addCalledCt > 5 {
@@ -179,17 +185,17 @@ func TestMultipleHeaderProposalsDetector_VerifyData_MultipleHeaders(t *testing.T
 		GetPubKeysCalled: func(_ uint64) [][]byte {
 			return [][]byte{pubKey}
 		},
-		GetDataCalled: func(r uint64, pk []byte) []process.InterceptedData {
+		GetDataCalled: func(r uint64, pk []byte) slash.HeaderInfoList {
 			getCalledCt++
 			switch getCalledCt {
 			case 1:
-				return []process.InterceptedData{hData1}
+				return slash.HeaderInfoList{h1}
 			case 2:
-				return []process.InterceptedData{hData1, hData2}
+				return slash.HeaderInfoList{h1, h2}
 			case 3:
-				return []process.InterceptedData{hData1, hData2, hData3}
+				return slash.HeaderInfoList{h1, h2, h3}
 			case 4:
-				return []process.InterceptedData{hData1, hData2, hData3, hData4}
+				return slash.HeaderInfoList{h1, h2, h3, h4}
 			default:
 				return nil
 			}
@@ -264,42 +270,42 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 	t.Parallel()
 
 	tests := []struct {
-		args        func() (slash.ThreatLevel, []process.InterceptedData)
+		args        func() (slash.ThreatLevel, slash.HeaderInfoList)
 		expectedErr error
 	}{
 		{
-			args: func() (slash.ThreatLevel, []process.InterceptedData) {
-				return slash.Low, []process.InterceptedData{}
+			args: func() (slash.ThreatLevel, slash.HeaderInfoList) {
+				return slash.Low, slash.HeaderInfoList{}
 			},
 			expectedErr: process.ErrInvalidSlashLevel,
 		},
 		{
-			args: func() (slash.ThreatLevel, []process.InterceptedData) {
-				return slash.ThreatLevel(44), []process.InterceptedData{}
+			args: func() (slash.ThreatLevel, slash.HeaderInfoList) {
+				return slash.ThreatLevel(44), slash.HeaderInfoList{}
 			},
 			expectedErr: process.ErrInvalidSlashLevel,
 		},
 		{
-			args: func() (slash.ThreatLevel, []process.InterceptedData) {
-				return slash.Medium, []process.InterceptedData{}
+			args: func() (slash.ThreatLevel, slash.HeaderInfoList) {
+				return slash.Medium, slash.HeaderInfoList{}
 			},
 			expectedErr: process.ErrNotEnoughHeadersProvided,
 		},
 		{
-			args: func() (slash.ThreatLevel, []process.InterceptedData) {
-				return slash.Medium, []process.InterceptedData{
-					slashMocks.CreateInterceptedHeaderData(&block.Header{Round: 2, RandSeed: []byte("h1")}),
-					slashMocks.CreateInterceptedHeaderData(&block.Header{Round: 2, RandSeed: []byte("h2")}),
-					slashMocks.CreateInterceptedHeaderData(&block.Header{Round: 2, RandSeed: []byte("h3")}),
+			args: func() (slash.ThreatLevel, slash.HeaderInfoList) {
+				return slash.Medium, slash.HeaderInfoList{
+					slash.HeaderInfo{Header: &block.Header{Round: 2}, Hash: []byte("h1")},
+					slash.HeaderInfo{Header: &block.Header{Round: 2}, Hash: []byte("h2")},
+					slash.HeaderInfo{Header: &block.Header{Round: 2}, Hash: []byte("h3")},
 				}
 			},
 			expectedErr: process.ErrSlashLevelDoesNotMatchSlashType,
 		},
 		{
-			args: func() (slash.ThreatLevel, []process.InterceptedData) {
-				return slash.High, []process.InterceptedData{
-					slashMocks.CreateInterceptedHeaderData(&block.Header{Round: 2, RandSeed: []byte("h1")}),
-					slashMocks.CreateInterceptedHeaderData(&block.Header{Round: 2, RandSeed: []byte("h2")}),
+			args: func() (slash.ThreatLevel, slash.HeaderInfoList) {
+				return slash.High, slash.HeaderInfoList{
+					slash.HeaderInfo{Header: &block.Header{Round: 2}, Hash: []byte("h1")},
+					slash.HeaderInfo{Header: &block.Header{Round: 2}, Hash: []byte("h2")},
 				}
 			},
 			expectedErr: process.ErrSlashLevelDoesNotMatchSlashType,
@@ -341,89 +347,89 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 		},
 	}
 	tests := []struct {
-		args        func() (slash.ThreatLevel, []process.InterceptedData)
+		args        func() (slash.ThreatLevel, slash.HeaderInfoList)
 		expectedErr error
 	}{
 		{
-			args: func() (slash.ThreatLevel, []process.InterceptedData) {
-				return slash.Medium, []process.InterceptedData{
-					slashMocks.CreateInterceptedHeaderData(&block.Header{Round: 5, PrevRandSeed: []byte("h1")}),
-					slashMocks.CreateInterceptedHeaderData(&block.Header{Round: 5, PrevRandSeed: []byte("h1")}),
+			args: func() (slash.ThreatLevel, slash.HeaderInfoList) {
+				return slash.Medium, slash.HeaderInfoList{
+					slash.HeaderInfo{Header: &block.Header{Round: 5}, Hash: []byte("h1")},
+					slash.HeaderInfo{Header: &block.Header{Round: 5}, Hash: []byte("h1")},
 				}
 			},
 			expectedErr: process.ErrHeadersNotDifferentHashes,
 		},
 		{
-			args: func() (slash.ThreatLevel, []process.InterceptedData) {
-				return slash.High, []process.InterceptedData{
-					slashMocks.CreateInterceptedHeaderData(&block.Header{Round: 5, PrevRandSeed: []byte("h1")}),
-					slashMocks.CreateInterceptedHeaderData(&block.Header{Round: 5, PrevRandSeed: []byte("h2")}),
-					slashMocks.CreateInterceptedHeaderData(&block.Header{Round: 5, PrevRandSeed: []byte("h2")}),
+			args: func() (slash.ThreatLevel, slash.HeaderInfoList) {
+				return slash.High, slash.HeaderInfoList{
+					slash.HeaderInfo{Header: &block.Header{Round: 5}, Hash: []byte("h1")},
+					slash.HeaderInfo{Header: &block.Header{Round: 5}, Hash: []byte("h2")},
+					slash.HeaderInfo{Header: &block.Header{Round: 5}, Hash: []byte("h2")},
 				}
 			},
 			expectedErr: process.ErrHeadersNotDifferentHashes,
 		},
 		{
-			args: func() (slash.ThreatLevel, []process.InterceptedData) {
-				return slash.Medium, []process.InterceptedData{
-					slashMocks.CreateInterceptedHeaderData(&block.Header{Round: 4, PrevRandSeed: []byte("h1")}),
-					slashMocks.CreateInterceptedHeaderData(&block.Header{Round: 5, PrevRandSeed: []byte("h1")}),
+			args: func() (slash.ThreatLevel, slash.HeaderInfoList) {
+				return slash.Medium, slash.HeaderInfoList{
+					slash.HeaderInfo{Header: &block.Header{Round: 4}, Hash: []byte("h1")},
+					slash.HeaderInfo{Header: &block.Header{Round: 5}, Hash: []byte("h1")},
 				}
 			},
 			expectedErr: process.ErrHeadersNotSameRound,
 		},
 		{
-			args: func() (slash.ThreatLevel, []process.InterceptedData) {
-				return slash.High, []process.InterceptedData{
-					slashMocks.CreateInterceptedHeaderData(&block.Header{Round: 4, PrevRandSeed: []byte("h1")}),
-					slashMocks.CreateInterceptedHeaderData(&block.Header{Round: 4, PrevRandSeed: []byte("h2")}),
-					slashMocks.CreateInterceptedHeaderData(&block.Header{Round: 5, PrevRandSeed: []byte("h3")}),
+			args: func() (slash.ThreatLevel, slash.HeaderInfoList) {
+				return slash.High, slash.HeaderInfoList{
+					slash.HeaderInfo{Header: &block.Header{Round: 4}, Hash: []byte("h1")},
+					slash.HeaderInfo{Header: &block.Header{Round: 4}, Hash: []byte("h2")},
+					slash.HeaderInfo{Header: &block.Header{Round: 5}, Hash: []byte("h3")},
 				}
 			},
 			expectedErr: process.ErrHeadersNotSameRound,
 		},
 		{
-			args: func() (slash.ThreatLevel, []process.InterceptedData) {
-				return slash.Medium, []process.InterceptedData{
-					slashMocks.CreateInterceptedHeaderData(&block.Header{Round: 0, PrevRandSeed: []byte("h1")}), // round ==0 && rndSeed == h1 => mock returns err
-					slashMocks.CreateInterceptedHeaderData(&block.Header{Round: 0, PrevRandSeed: []byte("h2")}),
+			args: func() (slash.ThreatLevel, slash.HeaderInfoList) {
+				return slash.Medium, slash.HeaderInfoList{
+					slash.HeaderInfo{Header: &block.Header{Round: 0}, Hash: []byte("h1")}, // round ==0 && rndSeed == h1 => mock returns err
+					slash.HeaderInfo{Header: &block.Header{Round: 0}, Hash: []byte("h2")},
 				}
 			},
 			expectedErr: errGetProposer,
 		},
 		{
-			args: func() (slash.ThreatLevel, []process.InterceptedData) {
-				return slash.Medium, []process.InterceptedData{
-					slashMocks.CreateInterceptedHeaderData(&block.Header{Round: 0, PrevRandSeed: []byte("h")}),
-					slashMocks.CreateInterceptedHeaderData(&block.Header{Round: 0, PrevRandSeed: []byte("h1")}),
+			args: func() (slash.ThreatLevel, slash.HeaderInfoList) {
+				return slash.Medium, slash.HeaderInfoList{
+					slash.HeaderInfo{Header: &block.Header{Round: 0}, Hash: []byte("h")},
+					slash.HeaderInfo{Header: &block.Header{Round: 0}, Hash: []byte("h1")},
 				}
 			},
 			expectedErr: errGetProposer,
 		},
 		{
-			args: func() (slash.ThreatLevel, []process.InterceptedData) {
-				return slash.Medium, []process.InterceptedData{
-					slashMocks.CreateInterceptedHeaderData(&block.Header{Round: 1, PrevRandSeed: []byte("h1")}), // round == 1 && rndSeed == h1 => mock returns proposer1
-					slashMocks.CreateInterceptedHeaderData(&block.Header{Round: 1, PrevRandSeed: []byte("h2")}), // round == 1 && rndSeed == h2 => mock returns proposer2
+			args: func() (slash.ThreatLevel, slash.HeaderInfoList) {
+				return slash.Medium, slash.HeaderInfoList{
+					slash.HeaderInfo{Header: &block.Header{Round: 1}, Hash: []byte("h1")}, // round == 1 && rndSeed == h1 => mock returns proposer1
+					slash.HeaderInfo{Header: &block.Header{Round: 1}, Hash: []byte("h2")}, // round == 1 && rndSeed == h2 => mock returns proposer2
 				}
 			},
 			expectedErr: process.ErrHeadersNotSameProposer,
 		},
 		{
-			args: func() (slash.ThreatLevel, []process.InterceptedData) {
-				return slash.Medium, []process.InterceptedData{
-					slashMocks.CreateInterceptedHeaderData(&block.Header{Round: 4, PrevRandSeed: []byte("h1")}),
-					slashMocks.CreateInterceptedHeaderData(&block.Header{Round: 4, PrevRandSeed: []byte("h2")}),
+			args: func() (slash.ThreatLevel, slash.HeaderInfoList) {
+				return slash.Medium, slash.HeaderInfoList{
+					slash.HeaderInfo{Header: &block.Header{Round: 4}, Hash: []byte("h1")},
+					slash.HeaderInfo{Header: &block.Header{Round: 4}, Hash: []byte("h2")},
 				}
 			},
 			expectedErr: nil,
 		},
 		{
-			args: func() (slash.ThreatLevel, []process.InterceptedData) {
-				return slash.High, []process.InterceptedData{
-					slashMocks.CreateInterceptedHeaderData(&block.Header{Round: 5, PrevRandSeed: []byte("h1")}),
-					slashMocks.CreateInterceptedHeaderData(&block.Header{Round: 5, PrevRandSeed: []byte("h2")}),
-					slashMocks.CreateInterceptedHeaderData(&block.Header{Round: 5, PrevRandSeed: []byte("h3")}),
+			args: func() (slash.ThreatLevel, slash.HeaderInfoList) {
+				return slash.High, slash.HeaderInfoList{
+					slash.HeaderInfo{Header: &block.Header{Round: 5}, Hash: []byte("h1")},
+					slash.HeaderInfo{Header: &block.Header{Round: 5}, Hash: []byte("h2")},
+					slash.HeaderInfo{Header: &block.Header{Round: 5}, Hash: []byte("h3")},
 				}
 			},
 			expectedErr: nil,

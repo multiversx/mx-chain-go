@@ -135,7 +135,10 @@ func (mhs *multipleHeaderSigningDetector) cacheSigners(interceptedHeader *interc
 	bitmap := header.GetPubKeysBitmap()
 	for idx, validator := range group {
 		if slash.IsIndexSetInBitmap(uint32(idx), bitmap) {
-			err = mhs.slashingCache.Add(header.GetRound(), validator.PubKey(), interceptedHeader)
+			err = mhs.slashingCache.Add(
+				header.GetRound(),
+				validator.PubKey(),
+				slash.HeaderInfo{Header: header, Hash: interceptedHeader.Hash()})
 			if err != nil {
 				return err
 			}
@@ -162,8 +165,8 @@ func (mhs *multipleHeaderSigningDetector) getSlashingResult(round uint64) map[st
 }
 
 // TODO: Add different logic here once slashing threat levels are clearly defined
-func (mhs *multipleHeaderSigningDetector) computeSlashLevel(data []process.InterceptedData) slash.ThreatLevel {
-	return computeSlashLevelBasedOnHeadersCount(data)
+func (mhs *multipleHeaderSigningDetector) computeSlashLevel(headers slash.HeaderInfoList) slash.ThreatLevel {
+	return computeSlashLevelBasedOnHeadersCount(headers)
 }
 
 // ValidateProof - validates the given proof
