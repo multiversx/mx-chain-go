@@ -2,7 +2,6 @@ package detector
 
 import (
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/process/slash"
 )
 
@@ -42,7 +41,7 @@ func computeSlashLevelBasedOnHeadersCount(headers slash.HeaderInfoList) slash.Th
 	return ret
 }
 
-func checkSlashLevelBasedOnHeadersCount(headers []*interceptedBlocks.InterceptedHeader, level slash.ThreatLevel) error {
+func checkSlashLevelBasedOnHeadersCount(headers slash.HeaderInfoList, level slash.ThreatLevel) error {
 	if level < slash.Medium || level > slash.High {
 		return process.ErrInvalidSlashLevel
 	}

@@ -138,24 +138,24 @@ func (mhp *multipleHeaderProposalsDetector) ValidateProof(proof slash.SlashingPr
 }
 
 // TODO: Add different logic here once slashing threat levels are clearly defined
-func (mhp *multipleHeaderProposalsDetector) checkSlashLevel(headers []*interceptedBlocks.InterceptedHeader, level slash.ThreatLevel) error {
+func (mhp *multipleHeaderProposalsDetector) checkSlashLevel(headers slash.HeaderInfoList, level slash.ThreatLevel) error {
 	return checkSlashLevelBasedOnHeadersCount(headers, level)
 }
 
-func (mhp *multipleHeaderProposalsDetector) checkProposedHeaders(headers []*interceptedBlocks.InterceptedHeader) error {
+func (mhp *multipleHeaderProposalsDetector) checkProposedHeaders(headers slash.HeaderInfoList) error {
 	if len(headers) < minSlashableNoOfHeaders {
 		return process.ErrNotEnoughHeadersProvided
 	}
 
 	hashes := make(map[string]struct{})
-	round := headers[0].HeaderHandler().GetRound()
-	proposer, err := mhp.getProposerPubKey(headers[0].HeaderHandler())
+	round := headers[0].Header.GetRound()
+	proposer, err := mhp.getProposerPubKey(headers[0].Header)
 	if err != nil {
 		return err
 	}
 
 	for _, header := range headers {
-		hash := string(header.Hash())
+		hash := string(header.Hash)
 		if _, exists := hashes[hash]; exists {
 			return process.ErrHeadersNotDifferentHashes
 		}
@@ -172,15 +172,15 @@ func (mhp *multipleHeaderProposalsDetector) checkProposedHeaders(headers []*inte
 }
 
 func (mhp *multipleHeaderProposalsDetector) checkHeaderHasSameProposerAndRound(
-	header *interceptedBlocks.InterceptedHeader,
+	headerInfo slash.HeaderInfo,
 	round uint64,
 	proposer []byte,
 ) error {
-	if header.HeaderHandler().GetRound() != round {
+	if headerInfo.Header.GetRound() != round {
 		return process.ErrHeadersNotSameRound
 	}
 
-	currProposer, err := mhp.getProposerPubKey(header.HeaderHandler())
+	currProposer, err := mhp.getProposerPubKey(headerInfo.Header)
 	if err != nil {
 		return err
 	}

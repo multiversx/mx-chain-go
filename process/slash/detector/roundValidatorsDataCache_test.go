@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/slash"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
@@ -12,11 +13,7 @@ func TestRoundProposerDataCache_Add_OneRound_TwoProposers_FourInterceptedData(t 
 	t.Parallel()
 	dataCache := NewRoundValidatorDataCache(1)
 
-	err := dataCache.Add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{
-		HashCalled: func() []byte {
-			return []byte("hash1")
-		},
-	})
+	err := dataCache.Add(1, []byte("proposer1"), slash.HeaderInfo{Hash: []byte("hash1")})
 	require.Nil(t, err)
 
 	err = dataCache.Add(1, []byte("proposer1"), &testscommon.InterceptedDataStub{

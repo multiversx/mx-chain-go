@@ -282,8 +282,8 @@ func TestMultipleHeaderSigningDetector_VerifyData_ValidateProof(t *testing.T) {
 	require.Equal(t, slash.Medium, res.GetLevel(pk0))
 
 	require.Len(t, res.GetHeaders(pk0), 2)
-	require.Equal(t, []byte("rnd1"), res.GetHeaders(pk0)[0].HeaderHandler().GetPrevRandSeed())
-	require.Equal(t, []byte("rnd2"), res.GetHeaders(pk0)[1].HeaderHandler().GetPrevRandSeed())
+	require.Equal(t, []byte("rnd1"), res.GetHeaders(pk0)[0].Header.GetPrevRandSeed())
+	require.Equal(t, []byte("rnd2"), res.GetHeaders(pk0)[1].Header.GetPrevRandSeed())
 
 	// For 3rd header(same round): v0, v1 signed =>
 	// 1. v0 signed 3 headers this round(current and previous 2 headers)
@@ -302,13 +302,13 @@ func TestMultipleHeaderSigningDetector_VerifyData_ValidateProof(t *testing.T) {
 	require.Equal(t, slash.Medium, res.GetLevel(pk1))
 
 	require.Len(t, res.GetHeaders(pk0), 3)
-	require.Equal(t, []byte("rnd1"), res.GetHeaders(pk0)[0].HeaderHandler().GetPrevRandSeed())
-	require.Equal(t, []byte("rnd2"), res.GetHeaders(pk0)[1].HeaderHandler().GetPrevRandSeed())
-	require.Equal(t, []byte("rnd3"), res.GetHeaders(pk0)[2].HeaderHandler().GetPrevRandSeed())
+	require.Equal(t, []byte("rnd1"), res.GetHeaders(pk0)[0].Header.GetPrevRandSeed())
+	require.Equal(t, []byte("rnd2"), res.GetHeaders(pk0)[1].Header.GetPrevRandSeed())
+	require.Equal(t, []byte("rnd3"), res.GetHeaders(pk0)[2].Header.GetPrevRandSeed())
 
 	require.Len(t, res.GetHeaders(pk1), 2)
-	require.Equal(t, []byte("rnd1"), res.GetHeaders(pk1)[0].HeaderHandler().GetPrevRandSeed())
-	require.Equal(t, []byte("rnd3"), res.GetHeaders(pk1)[1].HeaderHandler().GetPrevRandSeed())
+	require.Equal(t, []byte("rnd1"), res.GetHeaders(pk1)[0].Header.GetPrevRandSeed())
+	require.Equal(t, []byte("rnd3"), res.GetHeaders(pk1)[1].Header.GetPrevRandSeed())
 
 	// 4th header(same round) == 2nd header, but validators are changed within group =>
 	// no slashing, because headers do not have different hash (without signatures). This
@@ -354,7 +354,7 @@ func TestMultipleHeaderSigningDetector_ValidateProof_NotEnoughHeaders_ExpectErro
 	proof, _ := slash.NewMultipleSigningProof(map[string]slash.SlashingResult{
 		"pubKey": {
 			SlashingLevel: slash.Medium,
-			Data:          []process.InterceptedData{},
+			Data:          slash.HeaderInfoList{},
 		},
 	})
 
@@ -377,12 +377,12 @@ func TestMultipleHeaderSigningDetector_ValidateProof_SignedHeadersHaveDifferentR
 		&slashMocks.RoundDetectorCacheStub{},
 		&slashMocks.HeadersCacheStub{})
 
-	h1 := slashMocks.CreateInterceptedHeaderData(&block.Header{Round: 1, PubKeysBitmap: []byte{byte(0x1)}})
-	h2 := slashMocks.CreateInterceptedHeaderData(&block.Header{Round: 2, PubKeysBitmap: []byte{byte(0x1)}})
+	h1 := slash.HeaderInfo{Header: &block.Header{Round: 1, PubKeysBitmap: []byte{byte(0x1)}}, Hash: []byte("h1")}
+	h2 := slash.HeaderInfo{Header: &block.Header{Round: 2, PubKeysBitmap: []byte{byte(0x1)}}, Hash: []byte("h2")}
 	proof, _ := slash.NewMultipleSigningProof(map[string]slash.SlashingResult{
 		"pubKey": {
 			SlashingLevel: slash.Medium,
-			Data:          []process.InterceptedData{h1, h2},
+			Data:          slash.HeaderInfoList{h1, h2},
 		},
 	})
 
@@ -410,12 +410,12 @@ func TestMultipleHeaderSigningDetector_ValidateProof_InvalidMarshaller_ExpectErr
 		&slashMocks.RoundDetectorCacheStub{},
 		&slashMocks.HeadersCacheStub{})
 
-	h1 := slashMocks.CreateInterceptedHeaderData(&block.Header{Round: 1, PubKeysBitmap: []byte{byte(0x1)}})
-	h2 := slashMocks.CreateInterceptedHeaderData(&block.Header{Round: 2, PubKeysBitmap: []byte{byte(0x1)}})
+	h1 := slash.HeaderInfo{Header: &block.Header{Round: 1, PubKeysBitmap: []byte{byte(0x1)}}, Hash: []byte("h1")}
+	h2 := slash.HeaderInfo{Header: &block.Header{Round: 2, PubKeysBitmap: []byte{byte(0x1)}}, Hash: []byte("h2")}
 	proof, _ := slash.NewMultipleSigningProof(map[string]slash.SlashingResult{
 		"pubKey": {
 			SlashingLevel: slash.Medium,
-			Data:          []process.InterceptedData{h1, h2},
+			Data:          slash.HeaderInfoList{h1, h2},
 		},
 	})
 
@@ -438,12 +438,12 @@ func TestMultipleHeaderSigningDetector_ValidateProof_SignedHeadersHaveSameHash_E
 		&slashMocks.RoundDetectorCacheStub{},
 		&slashMocks.HeadersCacheStub{})
 
-	h1 := slashMocks.CreateInterceptedHeaderData(&block.Header{Round: 1, PubKeysBitmap: []byte{byte(0x1)}})
-	h2 := slashMocks.CreateInterceptedHeaderData(&block.Header{Round: 1, PubKeysBitmap: []byte{byte(0x1)}})
+	h1 := slash.HeaderInfo{Header: &block.Header{Round: 1, PubKeysBitmap: []byte{byte(0x1)}}, Hash: []byte("h1")}
+	h2 := slash.HeaderInfo{Header: &block.Header{Round: 1, PubKeysBitmap: []byte{byte(0x1)}}, Hash: []byte("h2")}
 	proof, _ := slash.NewMultipleSigningProof(map[string]slash.SlashingResult{
 		"pubKey": {
 			SlashingLevel: slash.Medium,
-			Data:          []process.InterceptedData{h1, h2},
+			Data:          slash.HeaderInfoList{h1, h2},
 		},
 	})
 
@@ -466,12 +466,12 @@ func TestMultipleHeaderSigningDetector_ValidateProof_HeadersNotSignedByTheSameVa
 		&slashMocks.RoundDetectorCacheStub{},
 		&slashMocks.HeadersCacheStub{})
 
-	h1 := slashMocks.CreateInterceptedHeaderData(&block.Header{Round: 1, PubKeysBitmap: []byte{byte(0x1)}})
-	h2 := slashMocks.CreateInterceptedHeaderData(&block.Header{Round: 1, PubKeysBitmap: []byte{byte(0x2)}})
+	h1 := slash.HeaderInfo{Header: &block.Header{Round: 1, PubKeysBitmap: []byte{byte(0x1)}}, Hash: []byte("h1")}
+	h2 := slash.HeaderInfo{Header: &block.Header{Round: 1, PubKeysBitmap: []byte{byte(0x2)}}, Hash: []byte("h2")}
 	proof, _ := slash.NewMultipleSigningProof(map[string]slash.SlashingResult{
 		"pubKey": {
 			SlashingLevel: slash.Medium,
-			Data:          []process.InterceptedData{h1, h2},
+			Data:          slash.HeaderInfoList{h1, h2},
 		},
 	})
 
@@ -490,12 +490,12 @@ func TestMultipleHeaderSigningDetector_ValidateProof_InvalidSlashLevel_ExpectErr
 		&slashMocks.RoundDetectorCacheStub{},
 		&slashMocks.HeadersCacheStub{})
 
-	h1 := slashMocks.CreateInterceptedHeaderData(&block.Header{Round: 1})
-	h2 := slashMocks.CreateInterceptedHeaderData(&block.Header{Round: 1})
+	h1 := slash.HeaderInfo{Header: &block.Header{Round: 1}, Hash: []byte("h")}
+	h2 := slash.HeaderInfo{Header: &block.Header{Round: 1}, Hash: []byte("h")}
 	proof, _ := slash.NewMultipleSigningProof(map[string]slash.SlashingResult{
 		"pubKey": {
 			SlashingLevel: slash.Low,
-			Data:          []process.InterceptedData{h1, h2},
+			Data:          slash.HeaderInfoList{h1, h2},
 		},
 	})
 

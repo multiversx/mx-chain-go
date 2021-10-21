@@ -1,11 +1,9 @@
 package slash
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 )
 
 // ToProtoMultipleHeaderProposal converts a MultipleProposalProofHandler to its specific proto structure
@@ -43,16 +41,16 @@ func ToProtoMultipleHeaderSign(proof MultipleSigningProofHandler) (*coreSlash.Mu
 	}, nil
 }
 
-func getHeadersFromInterceptedHeaders(interceptedHeaders []*interceptedBlocks.InterceptedHeader) (coreSlash.Headers, error) {
+func getHeadersFromInterceptedHeaders(interceptedHeaders HeaderInfoList) (coreSlash.Headers, error) {
 	headers := make([]data.HeaderHandler, 0, len(interceptedHeaders))
 	ret := coreSlash.Headers{}
 
 	for _, interceptedHeader := range interceptedHeaders {
-		if check.IfNil(interceptedHeader) || check.IfNil(interceptedHeader.HeaderHandler()) {
+		if interceptedHeader.Header == nil {
 			return ret, process.ErrNilHeaderHandler
 		}
 
-		headers = append(headers, interceptedHeader.HeaderHandler())
+		headers = append(headers, interceptedHeader.Header)
 	}
 
 	err := ret.SetHeaders(headers)

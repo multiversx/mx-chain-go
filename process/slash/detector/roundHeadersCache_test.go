@@ -28,14 +28,14 @@ func TestRoundDataCache_Add_OneRound_FourHeaders(t *testing.T) {
 	require.Len(t, dataCache.cache, 1)
 	require.Len(t, dataCache.cache[1], 3)
 
-	require.Equal(t, []byte("hash1"), dataCache.cache[1][0].hash)
-	require.Equal(t, uint64(1), dataCache.cache[1][0].header.GetTimeStamp())
+	require.Equal(t, []byte("hash1"), dataCache.cache[1][0].Hash)
+	require.Equal(t, uint64(1), dataCache.cache[1][0].Header.GetTimeStamp())
 
-	require.Equal(t, []byte("hash2"), dataCache.cache[1][1].hash)
-	require.Equal(t, uint64(3), dataCache.cache[1][1].header.GetTimeStamp())
+	require.Equal(t, []byte("hash2"), dataCache.cache[1][1].Hash)
+	require.Equal(t, uint64(3), dataCache.cache[1][1].Header.GetTimeStamp())
 
-	require.Equal(t, []byte("hash3"), dataCache.cache[1][2].hash)
-	require.Equal(t, uint64(4), dataCache.cache[1][2].header.GetTimeStamp())
+	require.Equal(t, []byte("hash3"), dataCache.cache[1][2].Hash)
+	require.Equal(t, uint64(4), dataCache.cache[1][2].Header.GetTimeStamp())
 
 }
 
@@ -54,11 +54,11 @@ func TestRoundDataCache_Add_CacheSizeTwo_FourEntriesInCache_ExpectOldestRoundInC
 	require.Len(t, dataCache.cache[1], 1)
 	require.Len(t, dataCache.cache[2], 1)
 
-	require.Equal(t, []byte("hash1"), dataCache.cache[1][0].hash)
-	require.Equal(t, uint64(1), dataCache.cache[1][0].header.GetTimeStamp())
+	require.Equal(t, []byte("hash1"), dataCache.cache[1][0].Hash)
+	require.Equal(t, uint64(1), dataCache.cache[1][0].Header.GetTimeStamp())
 
-	require.Equal(t, []byte("hash2"), dataCache.cache[2][0].hash)
-	require.Equal(t, uint64(2), dataCache.cache[2][0].header.GetTimeStamp())
+	require.Equal(t, []byte("hash2"), dataCache.cache[2][0].Hash)
+	require.Equal(t, uint64(2), dataCache.cache[2][0].Header.GetTimeStamp())
 
 	err = dataCache.Add(0, []byte("hash0"), &testscommon.HeaderHandlerStub{})
 	require.Equal(t, process.ErrHeaderRoundNotRelevant, err)
@@ -67,11 +67,11 @@ func TestRoundDataCache_Add_CacheSizeTwo_FourEntriesInCache_ExpectOldestRoundInC
 	require.Len(t, dataCache.cache[1], 1)
 	require.Len(t, dataCache.cache[2], 1)
 
-	require.Equal(t, []byte("hash1"), dataCache.cache[1][0].hash)
-	require.Equal(t, uint64(1), dataCache.cache[1][0].header.GetTimeStamp())
+	require.Equal(t, []byte("hash1"), dataCache.cache[1][0].Hash)
+	require.Equal(t, uint64(1), dataCache.cache[1][0].Header.GetTimeStamp())
 
-	require.Equal(t, []byte("hash2"), dataCache.cache[2][0].hash)
-	require.Equal(t, uint64(2), dataCache.cache[2][0].header.GetTimeStamp())
+	require.Equal(t, []byte("hash2"), dataCache.cache[2][0].Hash)
+	require.Equal(t, uint64(2), dataCache.cache[2][0].Header.GetTimeStamp())
 
 	err = dataCache.Add(3, []byte("hash3"), &testscommon.HeaderHandlerStub{TimestampField: 3})
 	require.Nil(t, err)
@@ -80,11 +80,11 @@ func TestRoundDataCache_Add_CacheSizeTwo_FourEntriesInCache_ExpectOldestRoundInC
 	require.Len(t, dataCache.cache[2], 1)
 	require.Len(t, dataCache.cache[3], 1)
 
-	require.Equal(t, []byte("hash2"), dataCache.cache[2][0].hash)
-	require.Equal(t, uint64(2), dataCache.cache[2][0].header.GetTimeStamp())
+	require.Equal(t, []byte("hash2"), dataCache.cache[2][0].Hash)
+	require.Equal(t, uint64(2), dataCache.cache[2][0].Header.GetTimeStamp())
 
-	require.Equal(t, []byte("hash3"), dataCache.cache[3][0].hash)
-	require.Equal(t, uint64(3), dataCache.cache[3][0].header.GetTimeStamp())
+	require.Equal(t, []byte("hash3"), dataCache.cache[3][0].Hash)
+	require.Equal(t, uint64(3), dataCache.cache[3][0].Header.GetTimeStamp())
 
 	err = dataCache.Add(4, []byte("hash4"), &testscommon.HeaderHandlerStub{TimestampField: 4})
 	require.Nil(t, err)
@@ -93,11 +93,11 @@ func TestRoundDataCache_Add_CacheSizeTwo_FourEntriesInCache_ExpectOldestRoundInC
 	require.Len(t, dataCache.cache[3], 1)
 	require.Len(t, dataCache.cache[4], 1)
 
-	require.Equal(t, []byte("hash3"), dataCache.cache[3][0].hash)
-	require.Equal(t, uint64(3), dataCache.cache[3][0].header.GetTimeStamp())
+	require.Equal(t, []byte("hash3"), dataCache.cache[3][0].Hash)
+	require.Equal(t, uint64(3), dataCache.cache[3][0].Header.GetTimeStamp())
 
-	require.Equal(t, []byte("hash4"), dataCache.cache[4][0].hash)
-	require.Equal(t, uint64(4), dataCache.cache[4][0].header.GetTimeStamp())
+	require.Equal(t, []byte("hash4"), dataCache.cache[4][0].Hash)
+	require.Equal(t, uint64(4), dataCache.cache[4][0].Header.GetTimeStamp())
 }
 
 func TestRoundDataCache_Contains(t *testing.T) {

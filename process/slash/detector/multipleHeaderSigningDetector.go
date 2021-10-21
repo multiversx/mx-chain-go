@@ -196,28 +196,28 @@ func (mhs *multipleHeaderSigningDetector) ValidateProof(proof slash.SlashingProo
 }
 
 // TODO: Add different logic here once slashing threat levels are clearly defined
-func (mhs *multipleHeaderSigningDetector) checkSlashLevel(headers []*interceptedBlocks.InterceptedHeader, level slash.ThreatLevel) error {
+func (mhs *multipleHeaderSigningDetector) checkSlashLevel(headers slash.HeaderInfoList, level slash.ThreatLevel) error {
 	return checkSlashLevelBasedOnHeadersCount(headers, level)
 }
 
-func (mhs *multipleHeaderSigningDetector) checkSignedHeaders(pubKey []byte, headers []*interceptedBlocks.InterceptedHeader) error {
+func (mhs *multipleHeaderSigningDetector) checkSignedHeaders(pubKey []byte, headers slash.HeaderInfoList) error {
 	if len(headers) < minSlashableNoOfHeaders {
 		return process.ErrNotEnoughHeadersProvided
 	}
 
 	hashes := make(map[string]struct{})
-	round := headers[0].HeaderHandler().GetRound()
-	for _, header := range headers {
-		if header.HeaderHandler().GetRound() != round {
+	round := headers[0].Header.GetRound()
+	for _, headerInfo := range headers {
+		if headerInfo.Header.GetRound() != round {
 			return process.ErrHeadersNotSameRound
 		}
 
-		hash, err := mhs.checkHash(header.HeaderHandler(), hashes)
+		hash, err := mhs.checkHash(headerInfo.Header, hashes)
 		if err != nil {
 			return err
 		}
 
-		if !mhs.signedHeader(pubKey, header.HeaderHandler()) {
+		if !mhs.signedHeader(pubKey, headerInfo.Header) {
 			return process.ErrHeaderNotSignedByValidator
 		}
 		hashes[hash] = struct{}{}
