@@ -1793,7 +1793,9 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(
 	return createAndProcessInfo.miniBlocks, createAndProcessInfo.numTxsAdded, createAndProcessInfo.numHdrsAdded, nil
 }
 
-func (sp *shardProcessor) createMbsAndProcessCrossShardTransactionsDstMe(createAndProcessInfo *createMbsAndProcessTxsDestMeInfo) (bool, error) {
+func (sp *shardProcessor) createMbsAndProcessCrossShardTransactionsDstMe(
+	createAndProcessInfo *createMbsAndProcessTxsDestMeInfo,
+) (bool, error) {
 	currMiniBlocksAdded, currNumTxsAdded, hdrProcessFinished, errCreated := sp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
 		createAndProcessInfo.currMetaHdr,
 		createAndProcessInfo.processedMiniBlocksHashes,
