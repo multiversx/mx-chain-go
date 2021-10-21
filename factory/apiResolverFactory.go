@@ -92,7 +92,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, err
 	}
 
-	builtInFuncs, err := createBuiltinFuncs(
+	builtInFuncs, _, err := createBuiltinFuncs(
 		args.GasScheduleNotifier,
 		args.CoreComponents.InternalMarshalizer(),
 		args.StateComponents.AccountsAdapter(),
@@ -227,7 +227,7 @@ func createScQueryElement(
 	var vmFactory process.VirtualMachinesContainerFactory
 	var err error
 
-	builtInFuncs, err := createBuiltinFuncs(
+	builtInFuncs, nftStorageHandler, err := createBuiltinFuncs(
 		args.gasScheduleNotifier,
 		args.coreComponents.InternalMarshalizer(),
 		args.stateComponents.AccountsAdapter(),
@@ -260,6 +260,7 @@ func createScQueryElement(
 		Marshalizer:        args.coreComponents.InternalMarshalizer(),
 		Uint64Converter:    args.coreComponents.Uint64ByteSliceConverter(),
 		BuiltInFunctions:   builtInFuncs,
+		NFTStorageHandler:  nftStorageHandler,
 		DataPool:           args.dataComponents.Datapool(),
 		ConfigSCStorage:    scStorage,
 		CompiledSCPool:     smartContractsCache,
@@ -347,7 +348,7 @@ func createBuiltinFuncs(
 	esdtTransferRoleEnableEpoch uint32,
 	transferToMetaEnableEpoch uint32,
 	esdtNFTCreateOnMultiShard uint32,
-) (vmcommon.BuiltInFunctionContainer, error) {
+) (vmcommon.BuiltInFunctionContainer, vmcommon.SimpleESDTNFTStorageHandler, error) {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:                          gasScheduleNotifier,
 		MapDNSAddresses:                      make(map[string]struct{}),
@@ -361,10 +362,5 @@ func createBuiltinFuncs(
 		ESDTTransferMetaEnableEpoch:          transferToMetaEnableEpoch,
 		ESDTNFTCreateOnMultiShardEnableEpoch: esdtNFTCreateOnMultiShard,
 	}
-	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
-	if err != nil {
-		return nil, err
-	}
-
-	return builtInFuncs, nil
+	return builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 }

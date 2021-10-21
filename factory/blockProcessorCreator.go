@@ -111,7 +111,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		ESDTNFTCreateOnMultiShardEnableEpoch: pcf.epochConfig.EnableEpochs.ESDTNFTCreateOnMultiShardEnableEpoch,
 	}
 
-	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	builtInFuncs, nftStorageHandler, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	if err != nil {
 		return nil, err
 	}
@@ -125,6 +125,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		Marshalizer:        pcf.coreData.InternalMarshalizer(),
 		Uint64Converter:    pcf.coreData.Uint64ByteSliceConverter(),
 		BuiltInFunctions:   builtInFuncs,
+		NFTStorageHandler:  nftStorageHandler,
 		DataPool:           pcf.data.Datapool(),
 		CompiledSCPool:     pcf.data.Datapool().SmartContracts(),
 		WorkingDir:         pcf.workingDir,
@@ -439,7 +440,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		ESDTTransferMetaEnableEpoch:          pcf.epochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 		ESDTNFTCreateOnMultiShardEnableEpoch: pcf.epochConfig.EnableEpochs.ESDTNFTCreateOnMultiShardEnableEpoch,
 	}
-	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	builtInFuncs, nftStorageHandler, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	if err != nil {
 		return nil, err
 	}
@@ -453,6 +454,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		Marshalizer:        pcf.coreData.InternalMarshalizer(),
 		Uint64Converter:    pcf.coreData.Uint64ByteSliceConverter(),
 		BuiltInFunctions:   builtInFuncs,
+		NFTStorageHandler:  nftStorageHandler,
 		DataPool:           pcf.data.Datapool(),
 		CompiledSCPool:     pcf.data.Datapool().SmartContracts(),
 		ConfigSCStorage:    pcf.config.SmartContractsStorage,

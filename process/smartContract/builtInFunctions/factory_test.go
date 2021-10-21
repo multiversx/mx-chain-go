@@ -81,18 +81,18 @@ func TestCreateBuiltInFunctionContainer_Errors(t *testing.T) {
 
 	args := createMockArguments()
 	args.GasSchedule = nil
-	container, err := CreateBuiltInFunctionContainer(args)
+	container, _, err := CreateBuiltInFunctionContainer(args)
 	assert.NotNil(t, err)
 	assert.Nil(t, container)
 
 	args = createMockArguments()
 	args.MapDNSAddresses = nil
-	container, err = CreateBuiltInFunctionContainer(args)
+	container, _, err = CreateBuiltInFunctionContainer(args)
 	assert.Equal(t, process.ErrNilDnsAddresses, err)
 	assert.Nil(t, container)
 
 	args = createMockArguments()
-	container, err = CreateBuiltInFunctionContainer(args)
+	container, nftStorageHandler, err := CreateBuiltInFunctionContainer(args)
 	assert.Nil(t, err)
 	assert.Equal(t, len(container.Keys()), 25)
 
@@ -100,4 +100,5 @@ func TestCreateBuiltInFunctionContainer_Errors(t *testing.T) {
 	assert.Nil(t, err)
 
 	assert.False(t, container.IsInterfaceNil())
+	assert.False(t, nftStorageHandler.IsInterfaceNil())
 }

@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
 	"github.com/ElrondNetwork/elrond-go/genesis"
+	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/intermediate"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
@@ -414,6 +415,7 @@ func (gbc *genesisBlockCreator) computeDNSAddresses() error {
 		Marshalizer:        gbc.arg.Core.InternalMarshalizer(),
 		Uint64Converter:    gbc.arg.Core.Uint64ByteSliceConverter(),
 		BuiltInFunctions:   builtInFuncs,
+		NFTStorageHandler:  &disabled.SimpleNFTStorageHandler{},
 		DataPool:           gbc.arg.Data.Datapool(),
 		CompiledSCPool:     gbc.arg.Data.Datapool().SmartContracts(),
 		NilCompiledSCStore: true,

@@ -227,7 +227,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		ShardCoordinator: oneShardCoordinator,
 		EpochNotifier:    context.EpochNotifier,
 	}
-	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	builtInFuncs, nftStorageHandler, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	require.Nil(context.T, err)
 
 	blockchainMock := &mock.BlockChainMock{}
@@ -242,6 +242,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		Marshalizer:        marshalizer,
 		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
 		BuiltInFunctions:   builtInFuncs,
+		NFTStorageHandler:  nftStorageHandler,
 		DataPool:           datapool,
 		CompiledSCPool:     datapool.SmartContracts(),
 		NilCompiledSCStore: true,

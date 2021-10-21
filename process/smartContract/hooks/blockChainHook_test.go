@@ -39,6 +39,7 @@ func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 		Marshalizer:        &mock.MarshalizerMock{},
 		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
 		BuiltInFunctions:   vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
+		NFTStorageHandler:  &testscommon.SimpleNFTStorageHandlerStub{},
 		DataPool:           datapool,
 		CompiledSCPool:     datapool.SmartContracts(),
 		NilCompiledSCStore: true,

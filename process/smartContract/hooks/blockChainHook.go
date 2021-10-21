@@ -47,6 +47,7 @@ type ArgBlockChainHook struct {
 	Marshalizer        marshal.Marshalizer
 	Uint64Converter    typeConverters.Uint64ByteSliceConverter
 	BuiltInFunctions   vmcommon.BuiltInFunctionContainer
+	NFTStorageHandler  vmcommon.SimpleESDTNFTStorageHandler
 	CompiledSCPool     storage.Cacher
 	ConfigSCStorage    config.StorageConfig
 	WorkingDir         string
@@ -55,14 +56,15 @@ type ArgBlockChainHook struct {
 
 // BlockChainHookImpl is a wrapper over AccountsAdapter that satisfy vmcommon.BlockchainHook interface
 type BlockChainHookImpl struct {
-	accounts         state.AccountsAdapter
-	pubkeyConv       core.PubkeyConverter
-	storageService   dataRetriever.StorageService
-	blockChain       data.ChainHandler
-	shardCoordinator sharding.Coordinator
-	marshalizer      marshal.Marshalizer
-	uint64Converter  typeConverters.Uint64ByteSliceConverter
-	builtInFunctions vmcommon.BuiltInFunctionContainer
+	accounts          state.AccountsAdapter
+	pubkeyConv        core.PubkeyConverter
+	storageService    dataRetriever.StorageService
+	blockChain        data.ChainHandler
+	shardCoordinator  sharding.Coordinator
+	marshalizer       marshal.Marshalizer
+	uint64Converter   typeConverters.Uint64ByteSliceConverter
+	builtInFunctions  vmcommon.BuiltInFunctionContainer
+	nftStorageHandler vmcommon.SimpleESDTNFTStorageHandler
 
 	mutCurrentHdr sync.RWMutex
 	currentHdr    data.HeaderHandler
@@ -96,6 +98,7 @@ func NewBlockChainHookImpl(
 		configSCStorage:    args.ConfigSCStorage,
 		workingDir:         args.WorkingDir,
 		nilCompiledSCStore: args.NilCompiledSCStore,
+		nftStorageHandler:  args.NFTStorageHandler,
 	}
 
 	err = blockChainHookImpl.makeCompiledSCStorage()
@@ -136,6 +139,9 @@ func checkForNil(args ArgBlockChainHook) error {
 	}
 	if check.IfNil(args.CompiledSCPool) {
 		return process.ErrNilCacher
+	}
+	if check.IfNil(args.NFTStorageHandler) {
+		return process.ErrNilNFTStorageHandler
 	}
 
 	return nil
@@ -485,19 +491,7 @@ func (bh *BlockChainHookImpl) GetESDTToken(address []byte, tokenID []byte, nonce
 	}
 
 	esdtTokenKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + string(tokenID))
-	if nonce > 0 {
-		esdtTokenKey = append(esdtTokenKey, big.NewInt(0).SetUint64(nonce).Bytes()...)
-	}
-
-	value, err := userAcc.AccountDataHandler().RetrieveValue(esdtTokenKey)
-	if err != nil {
-		return nil, err
-	}
-	if len(value) == 0 {
-		return esdtData, nil
-	}
-
-	err = bh.marshalizer.Unmarshal(esdtData, value)
+	esdtData, _, err = bh.nftStorageHandler.GetESDTNFTTokenOnDestination(userAcc, esdtTokenKey, nonce)
 	if err != nil {
 		return nil, err
 	}

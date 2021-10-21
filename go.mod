@@ -12,7 +12,7 @@ require (
 	github.com/ElrondNetwork/elrond-go-core v1.1.2
 	github.com/ElrondNetwork/elrond-go-crypto v1.0.1
 	github.com/ElrondNetwork/elrond-go-logger v1.0.5
-	github.com/ElrondNetwork/elrond-vm-common v1.2.3
+	github.com/ElrondNetwork/elrond-vm-common v1.2.4-0.20211021084145-de7b26d5c08e
 	github.com/ElrondNetwork/notifier-go v1.0.1
 	github.com/beevik/ntp v0.3.0
 	github.com/btcsuite/btcd v0.22.0-beta
