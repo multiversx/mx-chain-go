@@ -2288,7 +2288,7 @@ func transferRejectedBySecondContract(
 	require.Equal(t, &esdt.ESDigitalToken{Value: big.NewInt(valueToSendToSc)}, esdtData)
 
 	esdtData = esdtCommon.GetESDTTokenData(t, secondScAddress, nodes, []byte(tokenIdentifier), 0)
-	require.Equal(t, &esdt.ESDigitalToken{}, esdtData)
+	require.Equal(t, &esdt.ESDigitalToken{Value: big.NewInt(0)}, esdtData)
 
 	return nonce, round
 }
