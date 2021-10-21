@@ -26,11 +26,13 @@ type esdtTransfer struct {
 	amount          int64
 }
 
-func issueFungibleToken(t *testing.T,
+func issueFungibleToken(
+	t *testing.T,
 	net *integrationTests.TestNetwork,
 	issuerNode *integrationTests.TestProcessorNode,
 	ticker string,
-	initialSupply int64) string {
+	initialSupply int64,
+) string {
 
 	issuerAddress := issuerNode.OwnAccount.Address
 
@@ -48,19 +50,20 @@ func issueFungibleToken(t *testing.T,
 		txData.ToString(), core.MinMetaTxExtraGasCost)
 	waitForOperationCompletion(net, numRoundsCrossShard)
 
-	tokenIdentifier := string(integrationTests.GetTokenIdentifier(net.Nodes, []byte(ticker)))
+	tokenIdentifier := integrationTests.GetTokenIdentifier(net.Nodes, []byte(ticker))
 
 	esdt.CheckAddressHasTokens(t, issuerAddress, net.Nodes,
 		tokenIdentifier, 0, initialSupply)
 
-	return tokenIdentifier
+	return string(tokenIdentifier)
 }
 
 func issueNft(
 	net *integrationTests.TestNetwork,
 	issuerNode *integrationTests.TestProcessorNode,
 	ticker string,
-	semiFungible bool) string {
+	semiFungible bool,
+) string {
 
 	tokenName := "token"
 	issuePrice := big.NewInt(1000)
@@ -130,7 +133,8 @@ func createSFT(
 	issuerNode *integrationTests.TestProcessorNode,
 	tokenIdentifier string,
 	createdTokenNonce int64,
-	initialSupply int64) {
+	initialSupply int64,
+) {
 
 	issuerAddress := issuerNode.OwnAccount.Address
 
@@ -160,7 +164,7 @@ func createSFT(
 	waitForOperationCompletion(net, numRoundsSameShard)
 
 	esdt.CheckAddressHasTokens(t, issuerAddress, net.Nodes,
-		tokenIdentifier, createdTokenNonce, initialSupply)
+		[]byte(tokenIdentifier), createdTokenNonce, initialSupply)
 }
 
 func createNFT(
@@ -168,7 +172,8 @@ func createNFT(
 	net *integrationTests.TestNetwork,
 	issuerNode *integrationTests.TestProcessorNode,
 	tokenIdentifier string,
-	createdTokenNonce int64) {
+	createdTokenNonce int64,
+) {
 
 	createSFT(t, net, issuerNode, tokenIdentifier, createdTokenNonce, 1)
 }
@@ -177,7 +182,8 @@ func buildEsdtMultiTransferTxData(
 	receiverAddress []byte,
 	transfers []*esdtTransfer,
 	endpointName string,
-	arguments ...[]byte) string {
+	arguments ...[]byte,
+) string {
 
 	nrTransfers := len(transfers)
 
@@ -216,7 +222,8 @@ func multiTransferToVault(
 	transfers []*esdtTransfer,
 	nrRoundsToWait int,
 	userBalances map[string]map[int64]int64,
-	scBalances map[string]map[int64]int64) {
+	scBalances map[string]map[int64]int64,
+) {
 
 	acceptMultiTransferEndpointName := "accept_funds_multi_transfer"
 	senderAddress := senderNode.OwnAccount.Address
@@ -248,9 +255,9 @@ func multiTransferToVault(
 		expectedScBalance := scBalances[transfer.tokenIdentifier][transfer.nonce]
 
 		esdt.CheckAddressHasTokens(t, senderAddress, net.Nodes,
-			transfer.tokenIdentifier, transfer.nonce, expectedUserBalance)
+			[]byte(transfer.tokenIdentifier), transfer.nonce, expectedUserBalance)
 		esdt.CheckAddressHasTokens(t, vaultScAddress, net.Nodes,
-			transfer.tokenIdentifier, transfer.nonce, expectedScBalance)
+			[]byte(transfer.tokenIdentifier), transfer.nonce, expectedScBalance)
 	}
 }
 

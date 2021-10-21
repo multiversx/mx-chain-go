@@ -60,7 +60,7 @@ func TestESDTLocalMintAndBurnFromSC(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	esdtCommon.CheckAddressHasTokens(t, scAddress, nodes, tokenIdentifier, 200)
+	esdtCommon.CheckAddressHasTokens(t, scAddress, nodes, []byte(tokenIdentifier), 0, 200)
 
 	txData = []byte("localBurn" + "@" + hex.EncodeToString([]byte(tokenIdentifier)) +
 		"@" + hex.EncodeToString(big.NewInt(50).Bytes()))
@@ -85,7 +85,7 @@ func TestESDTLocalMintAndBurnFromSC(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	esdtCommon.CheckAddressHasTokens(t, scAddress, nodes, tokenIdentifier, 100)
+	esdtCommon.CheckAddressHasTokens(t, scAddress, nodes, []byte(tokenIdentifier), 0, 100)
 }
 
 func TestESDTSetRolesAndLocalMintAndBurnFromSC(t *testing.T) {
@@ -166,7 +166,7 @@ func TestESDTSetRolesAndLocalMintAndBurnFromSC(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 2, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	esdtCommon.CheckAddressHasTokens(t, scAddress, nodes, tokenIdentifier, 201)
+	esdtCommon.CheckAddressHasTokens(t, scAddress, nodes, []byte(tokenIdentifier), 0, 201)
 
 	txData = []byte("localBurn" + "@" + hex.EncodeToString([]byte(tokenIdentifier)) +
 		"@" + hex.EncodeToString(big.NewInt(50).Bytes()))
@@ -191,5 +191,5 @@ func TestESDTSetRolesAndLocalMintAndBurnFromSC(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	esdtCommon.CheckAddressHasTokens(t, scAddress, nodes, tokenIdentifier, 101)
+	esdtCommon.CheckAddressHasTokens(t, scAddress, nodes, []byte(tokenIdentifier), 0, 101)
 }
