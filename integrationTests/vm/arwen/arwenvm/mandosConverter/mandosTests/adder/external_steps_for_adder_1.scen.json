@@ -1,0 +1,52 @@
+{
+    "name": "adder",
+    "comment": "add then check",
+    "gasSchedule": "v3",
+    "steps": [
+        {
+            "step": "setState",
+            "accounts": {
+                "address:alice": {
+                    "nonce": "5",
+                    "balance": "284",
+                    "storage": {},
+                    "code": ""
+                },
+                "address:adder": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "storage": {},
+                    "code": "file:adder.wasm",
+                    "owner": "address:owner"
+                }
+            }
+        },
+        {
+            "step": "externalSteps",
+            "comment": "verify that externalStep in externalStep appends accounts and transactions correctly",
+            "path": "external_steps_for_adder_2.scen.json"
+        },
+        {
+            "step": "scCall",
+            "txId": "1",
+            "tx": {
+                "from": "address:alice",
+                "to": "address:adder",
+                "value": "0",
+                "function": "add",
+                "arguments": [
+                    "3"
+                ],
+                "gasLimit": "5,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "",
+                "logs": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        }
+    ]
+}
