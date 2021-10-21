@@ -2161,7 +2161,8 @@ func (d *delegation) deleteDelegatorOnClaimRewardsIfNeeded(address []byte, deleg
 
 func (d *delegation) isUserWithFunds(address []byte, delegator *DelegatorData) bool {
 	if d.isOwner(address) {
-		return false
+		// never delete owner
+		return true
 	}
 
 	isDelegatorWithoutFunds := len(delegator.ActiveFund) == 0 && len(delegator.UnStakedFunds) == 0
