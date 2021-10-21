@@ -2,7 +2,7 @@ package slash
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
@@ -16,10 +16,8 @@ func ToProtoMultipleHeaderProposal(proof MultipleProposalProofHandler) (*coreSla
 	}
 
 	return &coreSlash.MultipleHeaderProposalProof{
-		Level: coreSlash.ThreatLevel(proof.GetLevel()),
-		Headers: coreSlash.Headers{
-			Headers: headers,
-		},
+		Level:   coreSlash.ThreatLevel(proof.GetLevel()),
+		Headers: headers,
 	}, nil
 }
 
@@ -33,7 +31,7 @@ func ToProtoMultipleHeaderSign(proof MultipleSigningProofHandler) (*coreSlash.Mu
 		if err != nil {
 			return nil, err
 		}
-		headers[string(pubKey)] = coreSlash.Headers{Headers: currHeaders}
+		headers[string(pubKey)] = currHeaders
 
 		levels[string(pubKey)] = coreSlash.ThreatLevel(proof.GetLevel(pubKey))
 	}
@@ -45,21 +43,18 @@ func ToProtoMultipleHeaderSign(proof MultipleSigningProofHandler) (*coreSlash.Mu
 	}, nil
 }
 
-func getHeadersFromInterceptedHeaders(interceptedHeaders []*interceptedBlocks.InterceptedHeader) ([]*block.HeaderV2, error) {
-	headers := make([]*block.HeaderV2, 0, len(interceptedHeaders))
+func getHeadersFromInterceptedHeaders(interceptedHeaders []*interceptedBlocks.InterceptedHeader) (coreSlash.Headers, error) {
+	headers := make([]data.HeaderHandler, 0, len(interceptedHeaders))
+	ret := coreSlash.Headers{}
 
 	for _, interceptedHeader := range interceptedHeaders {
 		if check.IfNil(interceptedHeader) || check.IfNil(interceptedHeader.HeaderHandler()) {
-			return nil, process.ErrNilHeaderHandler
+			return ret, process.ErrNilHeaderHandler
 		}
 
-		blockHeader, castOk := interceptedHeader.HeaderHandler().(*block.HeaderV2)
-		if !castOk {
-			return nil, process.ErrCannotCastHeaderHandlerToHeader
-		}
-
-		headers = append(headers, blockHeader)
+		headers = append(headers, interceptedHeader.HeaderHandler())
 	}
 
-	return headers, nil
+	err := ret.SetHeaders(headers)
+	return ret, err
 }
