@@ -2165,9 +2165,8 @@ func (d *delegation) isUserWithFunds(address []byte, delegator *DelegatorData) b
 		return true
 	}
 
-	isDelegatorWithoutFunds := len(delegator.ActiveFund) == 0 && len(delegator.UnStakedFunds) == 0
-
-	return !isDelegatorWithoutFunds
+	isDelegatorWithFunds := len(delegator.ActiveFund) > 0 || len(delegator.UnStakedFunds) > 0
+	return isDelegatorWithFunds
 }
 
 func (d *delegation) deleteDelegatorIfNeeded(address []byte, delegator *DelegatorData) (bool, error) {
