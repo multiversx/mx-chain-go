@@ -8,10 +8,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	mockGenesis "github.com/ElrondNetwork/elrond-go/genesis/mock"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	mockIntegration "github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/process/slash"
 	"github.com/ElrondNetwork/elrond-go/process/slash/notifier"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -165,8 +165,8 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_NilHeader_ExpectError(t
 	args := generateSlashingNotifierArgs()
 	sn, _ := notifier.NewSlashingNotifier(args)
 	tx, err := sn.CreateShardSlashingTransaction(&slashMocks.MultipleHeaderSigningProofStub{
-		GetHeadersCalled: func(pubKey []byte) []*interceptedBlocks.InterceptedHeader {
-			return []*interceptedBlocks.InterceptedHeader{nil}
+		GetHeadersCalled: func(pubKey []byte) slash.HeaderInfoList {
+			return slash.HeaderInfoList{}
 		},
 		GetPubKeysCalled: func() [][]byte {
 			return [][]byte{[]byte("pubKey")}
@@ -222,25 +222,25 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleProposalProof(t
 
 	sn, _ := notifier.NewSlashingNotifier(args)
 
-	h1 := slashMocks.CreateInterceptedHeaderData(
-		&block.HeaderV2{
+	h1 := slash.HeaderInfo{
+		Header: &block.HeaderV2{
 			Header: &block.Header{
-				Round:        4,
-				PrevRandSeed: []byte("seed1"),
+				Round: 4,
 			},
 		},
-	)
-	h2 := slashMocks.CreateInterceptedHeaderData(
-		&block.HeaderV2{
+		Hash: []byte("h1"),
+	}
+	h2 := slash.HeaderInfo{
+		Header: &block.HeaderV2{
 			Header: &block.Header{
-				Round:        4,
-				PrevRandSeed: []byte("seed2"),
+				Round: 4,
 			},
 		},
-	)
+		Hash: []byte("h2"),
+	}
 	proof := &slashMocks.MultipleHeaderProposalProofStub{
-		GetHeadersCalled: func() []*interceptedBlocks.InterceptedHeader {
-			return []*interceptedBlocks.InterceptedHeader{h1, h2}
+		GetHeadersCalled: func() slash.HeaderInfoList {
+			return slash.HeaderInfoList{h1, h2}
 		},
 	}
 
@@ -272,28 +272,28 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleSignProof(t *te
 
 	pk1 := []byte("pubKey1")
 
-	h1 := slashMocks.CreateInterceptedHeaderData(
-		&block.HeaderV2{
+	h1 := slash.HeaderInfo{
+		Header: &block.HeaderV2{
 			Header: &block.Header{
-				Round:        4,
-				PrevRandSeed: []byte("seed1"),
+				Round: 4,
 			},
 		},
-	)
-	h2 := slashMocks.CreateInterceptedHeaderData(
-		&block.HeaderV2{
+		Hash: []byte("h1"),
+	}
+	h2 := slash.HeaderInfo{
+		Header: &block.HeaderV2{
 			Header: &block.Header{
-				Round:        4,
-				PrevRandSeed: []byte("seed2"),
+				Round: 4,
 			},
 		},
-	)
+		Hash: []byte("h2"),
+	}
 	proof := &slashMocks.MultipleHeaderSigningProofStub{
 		GetLevelCalled: func([]byte) slash.ThreatLevel {
 			return slash.High
 		},
-		GetHeadersCalled: func([]byte) []*interceptedBlocks.InterceptedHeader {
-			return []*interceptedBlocks.InterceptedHeader{h1, h2}
+		GetHeadersCalled: func([]byte) slash.HeaderInfoList {
+			return slash.HeaderInfoList{h1, h2}
 		},
 		GetPubKeysCalled: func() [][]byte {
 			return [][]byte{pk1}
@@ -331,7 +331,7 @@ func generateSlashingNotifierArgs() *notifier.SlashingNotifierArgs {
 		PrivateKey:      &mock.PrivateKeyMock{},
 		PublicKey:       &mock.PublicKeyMock{},
 		PubKeyConverter: &testscommon.PubkeyConverterMock{},
-		Signer:          &mock.SignerMock{},
+		Signer:          &mockIntegration.SignerMock{},
 		AccountAdapter:  accountsAdapter,
 		Hasher:          &hashingMocks.HasherMock{},
 		Marshaller:      &testscommon.MarshalizerMock{},

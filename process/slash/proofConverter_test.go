@@ -6,7 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/process/slash"
 	"github.com/ElrondNetwork/elrond-go/testscommon/slashMocks"
 	"github.com/stretchr/testify/require"
@@ -14,8 +13,8 @@ import (
 
 func TestToProtoMultipleHeaderProposal_NilHeaders_ExpectError(t *testing.T) {
 	proof := &slashMocks.MultipleHeaderProposalProofStub{
-		GetHeadersCalled: func() []*interceptedBlocks.InterceptedHeader {
-			return []*interceptedBlocks.InterceptedHeader{nil}
+		GetHeadersCalled: func() slash.HeaderInfoList {
+			return slash.HeaderInfoList{}
 		},
 	}
 	res, err := slash.ToProtoMultipleHeaderProposal(proof)
@@ -28,12 +27,12 @@ func TestToProtoMultipleHeaderProposal(t *testing.T) {
 	h1 := &block.HeaderV2{Header: &block.Header{Nonce: 1, Round: 1}}
 	h2 := &block.HeaderV2{Header: &block.Header{Nonce: 2, Round: 2}}
 
-	interceptedHeader1 := slashMocks.CreateInterceptedHeaderData(h1)
-	interceptedHeader2 := slashMocks.CreateInterceptedHeaderData(h2)
+	h1Info := slash.HeaderInfo{Header: h1, Hash: []byte("h1")}
+	h2Info := slash.HeaderInfo{Header: h2, Hash: []byte("h2")}
 
 	proof := &slashMocks.MultipleHeaderProposalProofStub{
-		GetHeadersCalled: func() []*interceptedBlocks.InterceptedHeader {
-			return []*interceptedBlocks.InterceptedHeader{interceptedHeader1, interceptedHeader2}
+		GetHeadersCalled: func() slash.HeaderInfoList {
+			return slash.HeaderInfoList{h1Info, h2Info}
 		},
 		GetLevelCalled: func() slash.ThreatLevel {
 			return slash.High
@@ -54,8 +53,8 @@ func TestToProtoMultipleHeaderSign_NilHeaders_ExpectError(t *testing.T) {
 		GetPubKeysCalled: func() [][]byte {
 			return [][]byte{[]byte("address")}
 		},
-		GetHeadersCalled: func([]byte) []*interceptedBlocks.InterceptedHeader {
-			return []*interceptedBlocks.InterceptedHeader{nil}
+		GetHeadersCalled: func([]byte) slash.HeaderInfoList {
+			return slash.HeaderInfoList{}
 		},
 	}
 	res, err := slash.ToProtoMultipleHeaderSign(proof)
@@ -68,8 +67,8 @@ func TestToProtoMultipleHeaderSign(t *testing.T) {
 	h1 := &block.HeaderV2{Header: &block.Header{Nonce: 1, Round: 1}}
 	h2 := &block.HeaderV2{Header: &block.Header{Nonce: 2, Round: 2}}
 
-	interceptedHeader1 := slashMocks.CreateInterceptedHeaderData(h1)
-	interceptedHeader2 := slashMocks.CreateInterceptedHeaderData(h2)
+	h1Info := slash.HeaderInfo{Header: h1, Hash: []byte("h1")}
+	h2Info := slash.HeaderInfo{Header: h2, Hash: []byte("h2")}
 
 	pk1 := []byte("pubKey1")
 	pk2 := []byte("pubKey2")
@@ -78,12 +77,12 @@ func TestToProtoMultipleHeaderSign(t *testing.T) {
 		GetPubKeysCalled: func() [][]byte {
 			return [][]byte{pk1, pk2}
 		},
-		GetHeadersCalled: func(pubKey []byte) []*interceptedBlocks.InterceptedHeader {
+		GetHeadersCalled: func(pubKey []byte) slash.HeaderInfoList {
 			switch string(pubKey) {
 			case string(pk1):
-				return []*interceptedBlocks.InterceptedHeader{interceptedHeader1}
+				return slash.HeaderInfoList{h1Info}
 			case string(pk2):
-				return []*interceptedBlocks.InterceptedHeader{interceptedHeader1, interceptedHeader2}
+				return slash.HeaderInfoList{h1Info, h2Info}
 			default:
 				return nil
 			}

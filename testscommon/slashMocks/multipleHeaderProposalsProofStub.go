@@ -1,7 +1,6 @@
 package slashMocks
 
 import (
-	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/process/slash"
 )
 
@@ -9,7 +8,7 @@ import (
 type MultipleHeaderProposalProofStub struct {
 	GetTypeCalled    func() slash.SlashingType
 	GetLevelCalled   func() slash.ThreatLevel
-	GetHeadersCalled func() []*interceptedBlocks.InterceptedHeader
+	GetHeadersCalled func() slash.HeaderInfoList
 }
 
 // GetType -
@@ -29,7 +28,7 @@ func (mps *MultipleHeaderProposalProofStub) GetLevel() slash.ThreatLevel {
 }
 
 // GetHeaders -
-func (mps *MultipleHeaderProposalProofStub) GetHeaders() []*interceptedBlocks.InterceptedHeader {
+func (mps *MultipleHeaderProposalProofStub) GetHeaders() slash.HeaderInfoList {
 	if mps.GetHeadersCalled != nil {
 		return mps.GetHeadersCalled()
 	}
