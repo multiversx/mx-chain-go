@@ -63,34 +63,20 @@ func NewLatestDataProvider(args ArgsLatestDataProvider) (*latestDataProvider, er
 
 // Get will return a struct containing the latest usable data in storage
 func (ldp *latestDataProvider) Get() (storage.LatestDataFromStorage, error) {
-	epochDirs, err := ldp.getEpochDirs()
-	if err != nil {
-		return storage.LatestDataFromStorage{}, err
-	}
-
-	for index := range epochDirs {
-		parentDir, lastEpoch, errGetDir := ldp.getParentDirAndLastEpochWithIndex(index)
-		if errGetDir != nil {
-			err = errGetDir
-			continue
-		}
-
-		latestDataFromStorage, errGetEpoch := ldp.getLastEpochAndRoundFromStorage(parentDir, lastEpoch)
-		if errGetEpoch != nil {
-			err = errGetEpoch
-			continue
-		}
-		return latestDataFromStorage, nil
-	}
-
-	return storage.LatestDataFromStorage{}, err
+	lastData, _, _, err := ldp.getLastData()
+	return lastData, err
 }
 
 // GetParentDirAndLastEpoch returns the parent directory and last usable epoch for the node
 func (ldp *latestDataProvider) GetParentDirAndLastEpoch() (string, uint32, error) {
+	_, parentDir, lastEpoch, err := ldp.getLastData()
+	return parentDir, lastEpoch, err
+}
+
+func (ldp *latestDataProvider) getLastData() (storage.LatestDataFromStorage, string, uint32, error) {
 	epochDirs, err := ldp.getEpochDirs()
 	if err != nil {
-		return "", 0, err
+		return storage.LatestDataFromStorage{}, "", 0, err
 	}
 
 	for index := range epochDirs {
@@ -100,15 +86,16 @@ func (ldp *latestDataProvider) GetParentDirAndLastEpoch() (string, uint32, error
 			continue
 		}
 
-		_, errGetEpoch := ldp.getLastEpochAndRoundFromStorage(parentDir, lastEpoch)
+		dataFromStorage, errGetEpoch := ldp.getLastEpochAndRoundFromStorage(parentDir, lastEpoch)
 		if errGetEpoch != nil {
 			err = errGetEpoch
 			continue
 		}
-		return parentDir, lastEpoch, nil
+
+		return dataFromStorage, parentDir, lastEpoch, nil
 	}
 
-	return "", 0, err
+	return storage.LatestDataFromStorage{}, "", 0, err
 }
 
 func (ldp *latestDataProvider) getEpochDirs() ([]string, error) {
