@@ -1144,9 +1144,9 @@ func (bp *baseProcessor) commitAll(headerHandler data.HeaderHandler) error {
 }
 
 func (bp *baseProcessor) commitInLastEpoch(currentEpoch uint32) error {
-	lastEpoch := currentEpoch - 1
-	if lastEpoch < 0 {
-		lastEpoch = 0
+	lastEpoch := uint32(0)
+	if currentEpoch > 0 {
+		lastEpoch = currentEpoch - 1
 	}
 
 	return bp.commitInEpoch(currentEpoch, lastEpoch)
