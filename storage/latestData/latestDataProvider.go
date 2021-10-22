@@ -61,29 +61,54 @@ func NewLatestDataProvider(args ArgsLatestDataProvider) (*latestDataProvider, er
 	}, nil
 }
 
-// Get will return a struct containing the latest data in storage
+// Get will return a struct containing the latest usable data for the full archive node in storage
 func (ldp *latestDataProvider) Get() (storage.LatestDataFromStorage, error) {
-	parentDir, lastEpoch, err := ldp.GetParentDirAndLastEpoch()
+	epochDirs, err := ldp.getEpochDirs()
 	if err != nil {
 		return storage.LatestDataFromStorage{}, err
 	}
 
-	return ldp.getLastEpochAndRoundFromStorage(parentDir, lastEpoch)
+	for index := range epochDirs {
+		parentDir, lastEpoch, errGetDir := ldp.getParentDirAndLastEpochWithIndex(index)
+		if errGetDir != nil {
+			err = errGetDir
+			continue
+		}
+
+		latestDataFromStorage, errGetEpoch := ldp.getLastEpochAndRoundFromStorage(parentDir, lastEpoch)
+		if errGetEpoch != nil {
+			err = errGetEpoch
+			continue
+		}
+		return latestDataFromStorage, nil
+	}
+
+	return storage.LatestDataFromStorage{}, err
 }
 
-// GetParentDirAndLastEpoch returns the parent directory and last epoch
+// GetParentDirAndLastEpoch returns the parent directory and last usable epoch for the full archive node
 func (ldp *latestDataProvider) GetParentDirAndLastEpoch() (string, uint32, error) {
 	epochDirs, err := ldp.getEpochDirs()
 	if err != nil {
 		return "", 0, err
 	}
 
-	lastEpoch, err := ldp.GetLastEpochFromDirNames(epochDirs, 0)
-	if err != nil {
-		return "", 0, err
+	for index := range epochDirs {
+		parentDir, lastEpoch, errGetDir := ldp.getParentDirAndLastEpochWithIndex(index)
+		if errGetDir != nil {
+			err = errGetDir
+			continue
+		}
+
+		_, errGetEpoch := ldp.getLastEpochAndRoundFromStorage(parentDir, lastEpoch)
+		if errGetEpoch != nil {
+			err = errGetEpoch
+			continue
+		}
+		return parentDir, lastEpoch, nil
 	}
 
-	return ldp.parentDir, lastEpoch, nil
+	return "", 0, err
 }
 
 func (ldp *latestDataProvider) getEpochDirs() ([]string, error) {
@@ -282,4 +307,18 @@ func (ldp *latestDataProvider) GetShardsFromDirectory(path string) ([]string, er
 // IsInterfaceNil returns true if there is no value under the interface
 func (ldp *latestDataProvider) IsInterfaceNil() bool {
 	return ldp == nil
+}
+
+func (ldp *latestDataProvider) getParentDirAndLastEpochWithIndex(index int) (string, uint32, error) {
+	epochDirs, err := ldp.getEpochDirs()
+	if err != nil {
+		return "", 0, err
+	}
+
+	lastEpoch, err := ldp.GetLastEpochFromDirNames(epochDirs, index)
+	if err != nil {
+		return "", 0, err
+	}
+
+	return ldp.parentDir, lastEpoch, nil
 }
