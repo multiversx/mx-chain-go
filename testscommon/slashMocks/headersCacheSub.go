@@ -1,16 +1,18 @@
 package slashMocks
 
-import "github.com/ElrondNetwork/elrond-go-core/data"
+import (
+	"github.com/ElrondNetwork/elrond-go/process/slash"
+)
 
 // HeadersCacheStub -
 type HeadersCacheStub struct {
-	AddCalled func(round uint64, hash []byte, header data.HeaderHandler) error
+	AddCalled func(round uint64, header *slash.HeaderInfo) error
 }
 
 // Add -
-func (hcs *HeadersCacheStub) Add(round uint64, hash []byte, header data.HeaderHandler) error {
+func (hcs *HeadersCacheStub) Add(round uint64, header *slash.HeaderInfo) error {
 	if hcs.AddCalled != nil {
-		return hcs.AddCalled(round, hash, header)
+		return hcs.AddCalled(round, header)
 	}
 	return nil
 }

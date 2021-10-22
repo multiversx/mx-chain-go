@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/slash"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
@@ -13,16 +14,16 @@ func TestRoundDataCache_Add_OneRound_FourHeaders(t *testing.T) {
 
 	dataCache := NewRoundHeadersCache(1)
 
-	err := dataCache.Add(1, []byte("hash1"), &testscommon.HeaderHandlerStub{TimestampField: 1})
+	err := dataCache.Add(1, &slash.HeaderInfo{Header: &testscommon.HeaderHandlerStub{TimestampField: 1}, Hash: []byte("hash1")})
 	require.Nil(t, err)
 
-	err = dataCache.Add(1, []byte("hash1"), &testscommon.HeaderHandlerStub{TimestampField: 2})
+	err = dataCache.Add(1, &slash.HeaderInfo{Header: &testscommon.HeaderHandlerStub{TimestampField: 2}, Hash: []byte("hash1")})
 	require.Equal(t, process.ErrHeadersNotDifferentHashes, err)
 
-	err = dataCache.Add(1, []byte("hash2"), &testscommon.HeaderHandlerStub{TimestampField: 3})
+	err = dataCache.Add(1, &slash.HeaderInfo{Header: &testscommon.HeaderHandlerStub{TimestampField: 3}, Hash: []byte("hash2")})
 	require.Nil(t, err)
 
-	err = dataCache.Add(1, []byte("hash3"), &testscommon.HeaderHandlerStub{TimestampField: 4})
+	err = dataCache.Add(1, &slash.HeaderInfo{Header: &testscommon.HeaderHandlerStub{TimestampField: 4}, Hash: []byte("hash3")})
 	require.Nil(t, err)
 
 	require.Len(t, dataCache.cache, 1)
@@ -44,10 +45,10 @@ func TestRoundDataCache_Add_CacheSizeTwo_FourEntriesInCache_ExpectOldestRoundInC
 
 	dataCache := NewRoundHeadersCache(2)
 
-	err := dataCache.Add(1, []byte("hash1"), &testscommon.HeaderHandlerStub{TimestampField: 1})
+	err := dataCache.Add(1, &slash.HeaderInfo{Header: &testscommon.HeaderHandlerStub{TimestampField: 1}, Hash: []byte("hash1")})
 	require.Nil(t, err)
 
-	err = dataCache.Add(2, []byte("hash2"), &testscommon.HeaderHandlerStub{TimestampField: 2})
+	err = dataCache.Add(2, &slash.HeaderInfo{Header: &testscommon.HeaderHandlerStub{TimestampField: 2}, Hash: []byte("hash2")})
 	require.Nil(t, err)
 
 	require.Len(t, dataCache.cache, 2)
@@ -60,7 +61,7 @@ func TestRoundDataCache_Add_CacheSizeTwo_FourEntriesInCache_ExpectOldestRoundInC
 	require.Equal(t, []byte("hash2"), dataCache.cache[2][0].Hash)
 	require.Equal(t, uint64(2), dataCache.cache[2][0].Header.GetTimeStamp())
 
-	err = dataCache.Add(0, []byte("hash0"), &testscommon.HeaderHandlerStub{})
+	err = dataCache.Add(0, &slash.HeaderInfo{Header: &testscommon.HeaderHandlerStub{}, Hash: []byte("hash0")})
 	require.Equal(t, process.ErrHeaderRoundNotRelevant, err)
 
 	require.Len(t, dataCache.cache, 2)
@@ -73,7 +74,7 @@ func TestRoundDataCache_Add_CacheSizeTwo_FourEntriesInCache_ExpectOldestRoundInC
 	require.Equal(t, []byte("hash2"), dataCache.cache[2][0].Hash)
 	require.Equal(t, uint64(2), dataCache.cache[2][0].Header.GetTimeStamp())
 
-	err = dataCache.Add(3, []byte("hash3"), &testscommon.HeaderHandlerStub{TimestampField: 3})
+	err = dataCache.Add(3, &slash.HeaderInfo{Header: &testscommon.HeaderHandlerStub{TimestampField: 3}, Hash: []byte("hash3")})
 	require.Nil(t, err)
 
 	require.Len(t, dataCache.cache, 2)
@@ -86,7 +87,7 @@ func TestRoundDataCache_Add_CacheSizeTwo_FourEntriesInCache_ExpectOldestRoundInC
 	require.Equal(t, []byte("hash3"), dataCache.cache[3][0].Hash)
 	require.Equal(t, uint64(3), dataCache.cache[3][0].Header.GetTimeStamp())
 
-	err = dataCache.Add(4, []byte("hash4"), &testscommon.HeaderHandlerStub{TimestampField: 4})
+	err = dataCache.Add(4, &slash.HeaderInfo{Header: &testscommon.HeaderHandlerStub{TimestampField: 4}, Hash: []byte("hash4")})
 	require.Nil(t, err)
 
 	require.Len(t, dataCache.cache, 2)
@@ -105,13 +106,13 @@ func TestRoundDataCache_Contains(t *testing.T) {
 
 	dataCache := NewRoundHeadersCache(2)
 
-	err := dataCache.Add(1, []byte("hash1"), &testscommon.HeaderHandlerStub{TimestampField: 1})
+	err := dataCache.Add(1, &slash.HeaderInfo{Header: &testscommon.HeaderHandlerStub{TimestampField: 1}, Hash: []byte("hash1")})
 	require.Nil(t, err)
 
-	err = dataCache.Add(1, []byte("hash2"), &testscommon.HeaderHandlerStub{TimestampField: 2})
+	err = dataCache.Add(1, &slash.HeaderInfo{Header: &testscommon.HeaderHandlerStub{TimestampField: 2}, Hash: []byte("hash2")})
 	require.Nil(t, err)
 
-	err = dataCache.Add(2, []byte("hash3"), &testscommon.HeaderHandlerStub{TimestampField: 3})
+	err = dataCache.Add(2, &slash.HeaderInfo{Header: &testscommon.HeaderHandlerStub{TimestampField: 3}, Hash: []byte("hash3")})
 	require.Nil(t, err)
 
 	require.True(t, dataCache.contains(1, []byte("hash1")))
@@ -123,7 +124,7 @@ func TestRoundDataCache_Contains(t *testing.T) {
 }
 
 func TestRoundValidatorsDataCache_IsInterfaceNil(t *testing.T) {
-	cache := NewRoundValidatorDataCache(1)
+	cache := NewRoundValidatorHeaderCache(1)
 	require.False(t, cache.IsInterfaceNil())
 	cache = nil
 	require.True(t, cache.IsInterfaceNil())

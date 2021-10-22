@@ -1,7 +1,6 @@
 package detector
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/process/slash"
 )
 
@@ -28,7 +27,7 @@ type HeadersCache interface {
 	// round is irrelevant(obsolete) to be cached, an error should be returned.
 	// If the cache is full, it should have an eviction mechanism
 	// to always remove the oldest round entry
-	Add(round uint64, hash []byte, header data.HeaderHandler) error
+	Add(round uint64, header *slash.HeaderInfo) error
 	// IsInterfaceNil checks if the interface is nil
 	IsInterfaceNil() bool
 }

@@ -83,7 +83,7 @@ func (mhs *multipleHeaderSigningDetector) VerifyData(interceptedData process.Int
 		return nil, err
 	}
 
-	err = mhs.headersCache.Add(round, headerHash, header)
+	err = mhs.headersCache.Add(round, &slash.HeaderInfo{Header: header, Hash: headerHash})
 	if err != nil {
 		return nil, err
 	}
