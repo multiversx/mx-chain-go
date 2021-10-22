@@ -244,7 +244,8 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleProposalProof(t
 		},
 	}
 
-	expectedData := []byte{slash.MultipleProposalProofID, byte('@'), byte('c'), byte('d'), byte('@')}
+	expectedData := []byte(notifier.BuiltInFunctionSlashCommitmentProof)
+	expectedData = append(expectedData, byte('@'), slash.MultipleProposalProofID, byte('@'), byte('c'), byte('d'), byte('@'))
 	expectedData = append(expectedData, []byte("signature")...)
 	expectedTx := &transaction.Transaction{
 		Data:      expectedData,
@@ -300,7 +301,8 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleSignProof(t *te
 		},
 	}
 
-	expectedData := []byte{slash.MultipleSigningProofID, byte('@'), byte('c'), byte('d'), byte('@')}
+	expectedData := []byte(notifier.BuiltInFunctionSlashCommitmentProof)
+	expectedData = append(expectedData, byte('@'), slash.MultipleSigningProofID, byte('@'), byte('c'), byte('d'), byte('@'))
 	expectedData = append(expectedData, []byte("signature")...)
 	expectedTx := &transaction.Transaction{
 		Data:      expectedData,

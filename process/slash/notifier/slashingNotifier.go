@@ -20,6 +20,9 @@ import (
 //TODO: Move this constants to config file, when slashing notifier is integrated.
 // Please note that these are just some dummy values and are meant to be changed.
 
+// BuiltInFunctionSlashCommitmentProof = key for slashing commitment proof built-in function
+const BuiltInFunctionSlashCommitmentProof = "SlashCommitment"
+
 // CommitmentProofValue = value to issue a commitment tx proof
 const CommitmentProofValue = 1
 
@@ -173,7 +176,7 @@ func (sn *slashingNotifier) computeTxData(slashType slash.SlashingType, proofByt
 
 	crc := proofHash[len(proofHash)-2:]
 
-	dataStr := fmt.Sprintf("%s@%s@%s", []byte{id}, crc, proofSignature)
+	dataStr := fmt.Sprintf("%s@%s@%s@%s", BuiltInFunctionSlashCommitmentProof, []byte{id}, crc, proofSignature)
 	return []byte(dataStr), nil
 }
 
