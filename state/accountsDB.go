@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -77,6 +78,8 @@ type AccountsDB struct {
 
 	numCheckpoints       uint32
 	loadCodeMeasurements *loadingMeasurements
+
+	stackDebug []byte
 }
 
 var log = logger.GetOrCreate("state")
@@ -137,7 +140,7 @@ func getNumCheckpoints(trieStorageManager common.StorageManager) uint32 {
 	return binary.BigEndian.Uint32(val)
 }
 
-//GetCode returns the code for the given account
+// GetCode returns the code for the given account
 func (adb *AccountsDB) GetCode(codeHash []byte) []byte {
 	if len(codeHash) == 0 {
 		return nil
@@ -465,7 +468,7 @@ func (adb *AccountsDB) saveAccountToTrie(accountHandler vmcommon.AccountHandler)
 		"address", hex.EncodeToString(accountHandler.AddressBytes()),
 	)
 
-	//pass the reference to marshalizer, otherwise it will fail marshalizing balance
+	// pass the reference to marshalizer, otherwise it will fail marshalizing balance
 	buff, err := adb.marshalizer.Marshal(accountHandler)
 	if err != nil {
 		return err
@@ -779,7 +782,7 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 
 	oldHashes := make(common.ModifiedHashes)
 	newHashes := make(common.ModifiedHashes)
-	//Step 1. commit all data tries
+	// Step 1. commit all data tries
 	dataTries := adb.dataTries.GetAll()
 	for i := 0; i < len(dataTries); i++ {
 		err := adb.commitTrie(dataTries[i], oldHashes, newHashes)
@@ -791,7 +794,7 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 
 	oldRoot := adb.mainTrie.GetOldRoot()
 
-	//Step 2. commit main trie
+	// Step 2. commit main trie
 	err := adb.commitTrie(adb.mainTrie, oldHashes, newHashes)
 	if err != nil {
 		return nil, err
@@ -962,6 +965,17 @@ func (adb *AccountsDB) journalize(entry JournalEntry) {
 
 	adb.entries = append(adb.entries, entry)
 	log.Trace("accountsDB.Journalize", "new length", len(adb.entries))
+
+	if len(adb.entries) == 1 {
+		adb.stackDebug = debug.Stack()
+	}
+}
+
+func (adb *AccountsDB) GetStackDebugFirstEntry() []byte {
+	adb.mutOp.RLock()
+	defer adb.mutOp.RUnlock()
+
+	return adb.stackDebug
 }
 
 // PruneTrie removes old values from the trie database
