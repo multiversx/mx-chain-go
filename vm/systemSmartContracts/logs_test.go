@@ -91,9 +91,7 @@ func TestCreateAndAddLogEntryForWithdraw(t *testing.T) {
 		&DelegatorData{
 			ActiveFund: []byte("active-fund-key"),
 		},
-		&DelegationContractStatus{
-			NumUsers: 1,
-		},
+		1,
 		false,
 	)
 
