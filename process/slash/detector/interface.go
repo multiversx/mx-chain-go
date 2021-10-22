@@ -12,8 +12,8 @@ type RoundDetectorCache interface {
 	// If the cache is full, it should have an eviction mechanism to always remove
 	// the oldest round entry
 	Add(round uint64, pubKey []byte, header *slash.HeaderInfo) error
-	// GetData returns all cached data for a public key, in a given round
-	GetData(round uint64, pubKey []byte) slash.HeaderInfoList
+	// GetHeaders returns all cached headers for a public key, in a given round
+	GetHeaders(round uint64, pubKey []byte) slash.HeaderInfoList
 	// GetPubKeys returns all cached public keys in a given round
 	GetPubKeys(round uint64) [][]byte
 	// IsInterfaceNil checks if the interface is nil

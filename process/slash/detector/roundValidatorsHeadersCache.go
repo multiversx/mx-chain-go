@@ -99,8 +99,8 @@ func (rdc *roundValidatorsHeadersCache) updateOldestRound() {
 	rdc.oldestRound = min
 }
 
-// GetData returns all cached data for a public key, in a given round
-func (rdc *roundValidatorsHeadersCache) GetData(round uint64, pubKey []byte) slash.HeaderInfoList {
+// GetHeaders returns all cached data for a public key, in a given round
+func (rdc *roundValidatorsHeadersCache) GetHeaders(round uint64, pubKey []byte) slash.HeaderInfoList {
 	pubKeyStr := string(pubKey)
 	rdc.cacheMutex.RLock()
 	defer rdc.cacheMutex.RUnlock()

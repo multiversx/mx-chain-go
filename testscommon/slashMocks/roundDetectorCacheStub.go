@@ -20,8 +20,8 @@ func (rdc *RoundDetectorCacheStub) Add(round uint64, pubKey []byte, headerInfo *
 	return nil
 }
 
-// GetData -
-func (rdc *RoundDetectorCacheStub) GetData(round uint64, pubKey []byte) slash.HeaderInfoList {
+// GetHeaders -
+func (rdc *RoundDetectorCacheStub) GetHeaders(round uint64, pubKey []byte) slash.HeaderInfoList {
 	if rdc.GetDataCalled != nil {
 		return rdc.GetDataCalled(round, pubKey)
 	}

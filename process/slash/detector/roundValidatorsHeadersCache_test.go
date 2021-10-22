@@ -113,20 +113,20 @@ func TestRoundProposerDataCache_GetData(t *testing.T) {
 
 	require.Len(t, dataCache.cache, 2)
 
-	data1 := dataCache.GetData(1, []byte("proposer1"))
+	data1 := dataCache.GetHeaders(1, []byte("proposer1"))
 	require.Len(t, data1, 2)
 	require.Equal(t, data1[0].Hash, []byte("hash1"))
 	require.Equal(t, data1[1].Hash, []byte("hash2"))
 
-	data1 = dataCache.GetData(2, []byte("proposer1"))
+	data1 = dataCache.GetHeaders(2, []byte("proposer1"))
 	require.Len(t, data1, 1)
 	require.Equal(t, data1[0].Hash, []byte("hash2"))
 
-	data2 := dataCache.GetData(2, []byte("proposer2"))
+	data2 := dataCache.GetHeaders(2, []byte("proposer2"))
 	require.Len(t, data2, 1)
 	require.Equal(t, data2[0].Hash, []byte("hash3"))
 
-	data3 := dataCache.GetData(444, []byte("this proposer is not cached"))
+	data3 := dataCache.GetHeaders(444, []byte("this proposer is not cached"))
 	require.Nil(t, data3)
 }
 
