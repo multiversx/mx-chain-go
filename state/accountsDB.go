@@ -971,6 +971,7 @@ func (adb *AccountsDB) journalize(entry JournalEntry) {
 	}
 }
 
+// GetStackDebugFirstEntry will return the debug.Stack for the first entry from the adb.entries
 func (adb *AccountsDB) GetStackDebugFirstEntry() []byte {
 	adb.mutOp.RLock()
 	defer adb.mutOp.RUnlock()
