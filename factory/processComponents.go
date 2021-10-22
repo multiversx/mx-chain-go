@@ -471,6 +471,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		&disabled.TxCoordinator{},
 		pcf.data.StorageService().GetStorer(dataRetriever.ScheduledSCRsUnit),
 		pcf.coreData.InternalMarshalizer(),
+		pcf.bootstrapComponents.ShardCoordinator(),
 	)
 	if err != nil {
 		return nil, err
