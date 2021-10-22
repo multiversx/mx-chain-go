@@ -61,7 +61,7 @@ func NewLatestDataProvider(args ArgsLatestDataProvider) (*latestDataProvider, er
 	}, nil
 }
 
-// Get will return a struct containing the latest usable data for the full archive node in storage
+// Get will return a struct containing the latest usable data in storage
 func (ldp *latestDataProvider) Get() (storage.LatestDataFromStorage, error) {
 	epochDirs, err := ldp.getEpochDirs()
 	if err != nil {
@@ -86,7 +86,7 @@ func (ldp *latestDataProvider) Get() (storage.LatestDataFromStorage, error) {
 	return storage.LatestDataFromStorage{}, err
 }
 
-// GetParentDirAndLastEpoch returns the parent directory and last usable epoch for the full archive node
+// GetParentDirAndLastEpoch returns the parent directory and last usable epoch for the node
 func (ldp *latestDataProvider) GetParentDirAndLastEpoch() (string, uint32, error) {
 	epochDirs, err := ldp.getEpochDirs()
 	if err != nil {
