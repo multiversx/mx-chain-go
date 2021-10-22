@@ -81,103 +81,6 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 	return nil, nil, errors.New("could not create block processor")
 }
 
-func (pcf *processComponentsFactory) createVMFactoryShard(
-	accounts state.AccountsAdapter,
-	builtInFuncs vmcommon.BuiltInFunctionContainer,
-	esdtTransferParser vmcommon.ESDTTransferParser,
-	arwenChangeLocker common.Locker,
-	configSCStorage config.StorageConfig,
-) (process.VirtualMachinesContainerFactory, error) {
-	argsHook := hooks.ArgBlockChainHook{
-		Accounts:           accounts,
-		PubkeyConv:         pcf.coreData.AddressPubKeyConverter(),
-		StorageService:     pcf.data.StorageService(),
-		BlockChain:         pcf.data.Blockchain(),
-		ShardCoordinator:   pcf.bootstrapComponents.ShardCoordinator(),
-		Marshalizer:        pcf.coreData.InternalMarshalizer(),
-		Uint64Converter:    pcf.coreData.Uint64ByteSliceConverter(),
-		BuiltInFunctions:   builtInFuncs,
-		DataPool:           pcf.data.Datapool(),
-		CompiledSCPool:     pcf.data.Datapool().SmartContracts(),
-		WorkingDir:         pcf.workingDir,
-		NilCompiledSCStore: false,
-		ConfigSCStorage:    configSCStorage,
-	}
-
-	argsNewVMFactory := shard.ArgVMContainerFactory{
-		Config:             pcf.config.VirtualMachine.Execution,
-		BlockGasLimit:      pcf.coreData.EconomicsData().MaxGasLimitPerBlock(pcf.bootstrapComponents.ShardCoordinator().SelfId()),
-		GasSchedule:        pcf.gasSchedule,
-		ArgBlockChainHook:  argsHook,
-		EpochNotifier:      pcf.coreData.EpochNotifier(),
-		EpochConfig:        pcf.epochConfig.EnableEpochs,
-		ArwenChangeLocker:  arwenChangeLocker,
-		ESDTTransferParser: esdtTransferParser,
-	}
-
-	return shard.NewVMContainerFactory(argsNewVMFactory)
-}
-
-func (pcf *processComponentsFactory) createVMFactoryMeta(
-	accounts state.AccountsAdapter,
-	builtInFuncs vmcommon.BuiltInFunctionContainer,
-	configSCStorage config.StorageConfig,
-) (process.VirtualMachinesContainerFactory, error) {
-	argsHook := hooks.ArgBlockChainHook{
-		Accounts:           accounts,
-		PubkeyConv:         pcf.coreData.AddressPubKeyConverter(),
-		StorageService:     pcf.data.StorageService(),
-		BlockChain:         pcf.data.Blockchain(),
-		ShardCoordinator:   pcf.bootstrapComponents.ShardCoordinator(),
-		Marshalizer:        pcf.coreData.InternalMarshalizer(),
-		Uint64Converter:    pcf.coreData.Uint64ByteSliceConverter(),
-		BuiltInFunctions:   builtInFuncs,
-		DataPool:           pcf.data.Datapool(),
-		CompiledSCPool:     pcf.data.Datapool().SmartContracts(),
-		ConfigSCStorage:    configSCStorage,
-		WorkingDir:         pcf.workingDir,
-		NilCompiledSCStore: false,
-	}
-
-	argsNewVMContainer := metachain.ArgsNewVMContainerFactory{
-		ArgBlockChainHook:   argsHook,
-		Economics:           pcf.coreData.EconomicsData(),
-		MessageSignVerifier: pcf.crypto.MessageSignVerifier(),
-		GasSchedule:         pcf.gasSchedule,
-		NodesConfigProvider: pcf.coreData.GenesisNodesSetup(),
-		Hasher:              pcf.coreData.Hasher(),
-		Marshalizer:         pcf.coreData.InternalMarshalizer(),
-		SystemSCConfig:      pcf.systemSCConfig,
-		ValidatorAccountsDB: pcf.state.PeerAccounts(),
-		ChanceComputer:      pcf.coreData.Rater(),
-		EpochNotifier:       pcf.coreData.EpochNotifier(),
-		EpochConfig:         &pcf.epochConfig,
-		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
-	}
-	return metachain.NewVMContainerFactory(argsNewVMContainer)
-}
-
-func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
-	accounts state.AccountsAdapter,
-	mapDNSAddresses map[string]struct{},
-) (vmcommon.BuiltInFunctionContainer, error) {
-	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:                          pcf.gasSchedule,
-		MapDNSAddresses:                      mapDNSAddresses,
-		Marshalizer:                          pcf.coreData.InternalMarshalizer(),
-		Accounts:                             accounts,
-		ShardCoordinator:                     pcf.bootstrapComponents.ShardCoordinator(),
-		EpochNotifier:                        pcf.epochNotifier,
-		ESDTMultiTransferEnableEpoch:         pcf.epochConfig.EnableEpochs.ESDTMultiTransferEnableEpoch,
-		ESDTTransferRoleEnableEpoch:          pcf.epochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
-		GlobalMintBurnDisableEpoch:           pcf.epochConfig.EnableEpochs.GlobalMintBurnDisableEpoch,
-		ESDTTransferMetaEnableEpoch:          pcf.epochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
-		ESDTNFTCreateOnMultiShardEnableEpoch: pcf.epochConfig.EnableEpochs.ESDTNFTCreateOnMultiShardEnableEpoch,
-	}
-
-	return builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
-}
-
 func (pcf *processComponentsFactory) newShardBlockProcessor(
 	requestHandler process.RequestHandler,
 	forkDetector process.ForkDetector,
@@ -1050,4 +953,101 @@ func (pcf *processComponentsFactory) createMetaTxSimulatorProcessor(
 	txSimulatorProcessorArgs.IntermediateProcContainer = interimProcContainer
 
 	return vmFactory, nil
+}
+
+func (pcf *processComponentsFactory) createVMFactoryShard(
+	accounts state.AccountsAdapter,
+	builtInFuncs vmcommon.BuiltInFunctionContainer,
+	esdtTransferParser vmcommon.ESDTTransferParser,
+	arwenChangeLocker common.Locker,
+	configSCStorage config.StorageConfig,
+) (process.VirtualMachinesContainerFactory, error) {
+	argsHook := hooks.ArgBlockChainHook{
+		Accounts:           accounts,
+		PubkeyConv:         pcf.coreData.AddressPubKeyConverter(),
+		StorageService:     pcf.data.StorageService(),
+		BlockChain:         pcf.data.Blockchain(),
+		ShardCoordinator:   pcf.bootstrapComponents.ShardCoordinator(),
+		Marshalizer:        pcf.coreData.InternalMarshalizer(),
+		Uint64Converter:    pcf.coreData.Uint64ByteSliceConverter(),
+		BuiltInFunctions:   builtInFuncs,
+		DataPool:           pcf.data.Datapool(),
+		CompiledSCPool:     pcf.data.Datapool().SmartContracts(),
+		WorkingDir:         pcf.workingDir,
+		NilCompiledSCStore: false,
+		ConfigSCStorage:    configSCStorage,
+	}
+
+	argsNewVMFactory := shard.ArgVMContainerFactory{
+		Config:             pcf.config.VirtualMachine.Execution,
+		BlockGasLimit:      pcf.coreData.EconomicsData().MaxGasLimitPerBlock(pcf.bootstrapComponents.ShardCoordinator().SelfId()),
+		GasSchedule:        pcf.gasSchedule,
+		ArgBlockChainHook:  argsHook,
+		EpochNotifier:      pcf.coreData.EpochNotifier(),
+		EpochConfig:        pcf.epochConfig.EnableEpochs,
+		ArwenChangeLocker:  arwenChangeLocker,
+		ESDTTransferParser: esdtTransferParser,
+	}
+
+	return shard.NewVMContainerFactory(argsNewVMFactory)
+}
+
+func (pcf *processComponentsFactory) createVMFactoryMeta(
+	accounts state.AccountsAdapter,
+	builtInFuncs vmcommon.BuiltInFunctionContainer,
+	configSCStorage config.StorageConfig,
+) (process.VirtualMachinesContainerFactory, error) {
+	argsHook := hooks.ArgBlockChainHook{
+		Accounts:           accounts,
+		PubkeyConv:         pcf.coreData.AddressPubKeyConverter(),
+		StorageService:     pcf.data.StorageService(),
+		BlockChain:         pcf.data.Blockchain(),
+		ShardCoordinator:   pcf.bootstrapComponents.ShardCoordinator(),
+		Marshalizer:        pcf.coreData.InternalMarshalizer(),
+		Uint64Converter:    pcf.coreData.Uint64ByteSliceConverter(),
+		BuiltInFunctions:   builtInFuncs,
+		DataPool:           pcf.data.Datapool(),
+		CompiledSCPool:     pcf.data.Datapool().SmartContracts(),
+		ConfigSCStorage:    configSCStorage,
+		WorkingDir:         pcf.workingDir,
+		NilCompiledSCStore: false,
+	}
+
+	argsNewVMContainer := metachain.ArgsNewVMContainerFactory{
+		ArgBlockChainHook:   argsHook,
+		Economics:           pcf.coreData.EconomicsData(),
+		MessageSignVerifier: pcf.crypto.MessageSignVerifier(),
+		GasSchedule:         pcf.gasSchedule,
+		NodesConfigProvider: pcf.coreData.GenesisNodesSetup(),
+		Hasher:              pcf.coreData.Hasher(),
+		Marshalizer:         pcf.coreData.InternalMarshalizer(),
+		SystemSCConfig:      pcf.systemSCConfig,
+		ValidatorAccountsDB: pcf.state.PeerAccounts(),
+		ChanceComputer:      pcf.coreData.Rater(),
+		EpochNotifier:       pcf.coreData.EpochNotifier(),
+		EpochConfig:         &pcf.epochConfig,
+		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
+	}
+	return metachain.NewVMContainerFactory(argsNewVMContainer)
+}
+
+func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
+	accounts state.AccountsAdapter,
+	mapDNSAddresses map[string]struct{},
+) (vmcommon.BuiltInFunctionContainer, error) {
+	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
+		GasSchedule:                          pcf.gasSchedule,
+		MapDNSAddresses:                      mapDNSAddresses,
+		Marshalizer:                          pcf.coreData.InternalMarshalizer(),
+		Accounts:                             accounts,
+		ShardCoordinator:                     pcf.bootstrapComponents.ShardCoordinator(),
+		EpochNotifier:                        pcf.epochNotifier,
+		ESDTMultiTransferEnableEpoch:         pcf.epochConfig.EnableEpochs.ESDTMultiTransferEnableEpoch,
+		ESDTTransferRoleEnableEpoch:          pcf.epochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
+		GlobalMintBurnDisableEpoch:           pcf.epochConfig.EnableEpochs.GlobalMintBurnDisableEpoch,
+		ESDTTransferMetaEnableEpoch:          pcf.epochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
+		ESDTNFTCreateOnMultiShardEnableEpoch: pcf.epochConfig.EnableEpochs.ESDTNFTCreateOnMultiShardEnableEpoch,
+	}
+
+	return builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 }
