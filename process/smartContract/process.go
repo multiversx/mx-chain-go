@@ -73,6 +73,7 @@ type scProcessor struct {
 	createdCallBackCrossShardOnlyEnableEpoch    uint32
 	optimizeGasUsedInCrossMiniBlocksEnableEpoch uint32
 	saveKeyValueUnderProtectedErrorEnableEpoch  uint32
+	optimizeNFTStoreEnableEpoch                 uint32
 	flagStakingV2                               atomic.Flag
 	flagDeploy                                  atomic.Flag
 	flagBuiltin                                 atomic.Flag
@@ -88,6 +89,7 @@ type scProcessor struct {
 	arwenChangeLocker                           common.Locker
 	flagOptimizeGasUsedInCrossMiniBlocks        atomic.Flag
 	flagSaveKeyValueUnderProtectedError         atomic.Flag
+	flagOptimizeNFTStore                        atomic.Flag
 
 	badTxForwarder process.IntermediateTransactionHandler
 	scrForwarder   process.IntermediateTransactionHandler
@@ -228,6 +230,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		createdCallBackCrossShardOnlyEnableEpoch:    args.EnableEpochs.MultiESDTTransferFixOnCallBackOnEnableEpoch,
 		optimizeGasUsedInCrossMiniBlocksEnableEpoch: args.EnableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
 		saveKeyValueUnderProtectedErrorEnableEpoch:  args.EnableEpochs.RemoveNonUpdatedStorageEnableEpoch,
+		optimizeNFTStoreEnableEpoch:                 args.EnableEpochs.OptimizeNFTStoreEnableEpoch,
 	}
 
 	var err error
@@ -2628,6 +2631,9 @@ func (sc *scProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 
 	sc.flagSaveKeyValueUnderProtectedError.Toggle(epoch >= sc.saveKeyValueUnderProtectedErrorEnableEpoch)
 	log.Debug("scProcessor: return failure when saving under protected key", "enabled", sc.flagSaveKeyValueUnderProtectedError.IsSet())
+
+	sc.flagOptimizeNFTStore.Toggle(epoch >= sc.optimizeNFTStoreEnableEpoch)
+	log.Debug("scProcessor: optimize nft store", "enabled", sc.flagOptimizeNFTStore.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -98,17 +98,17 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:                          pcf.gasSchedule,
-		MapDNSAddresses:                      mapDNSAddresses,
-		Marshalizer:                          pcf.coreData.InternalMarshalizer(),
-		Accounts:                             pcf.state.AccountsAdapter(),
-		ShardCoordinator:                     pcf.bootstrapComponents.ShardCoordinator(),
-		EpochNotifier:                        pcf.epochNotifier,
-		ESDTMultiTransferEnableEpoch:         pcf.epochConfig.EnableEpochs.ESDTMultiTransferEnableEpoch,
-		ESDTTransferRoleEnableEpoch:          pcf.epochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
-		GlobalMintBurnDisableEpoch:           pcf.epochConfig.EnableEpochs.GlobalMintBurnDisableEpoch,
-		ESDTTransferMetaEnableEpoch:          pcf.epochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
-		ESDTNFTCreateOnMultiShardEnableEpoch: pcf.epochConfig.EnableEpochs.ESDTNFTCreateOnMultiShardEnableEpoch,
+		GasSchedule:                  pcf.gasSchedule,
+		MapDNSAddresses:              mapDNSAddresses,
+		Marshalizer:                  pcf.coreData.InternalMarshalizer(),
+		Accounts:                     pcf.state.AccountsAdapter(),
+		ShardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
+		EpochNotifier:                pcf.epochNotifier,
+		ESDTMultiTransferEnableEpoch: pcf.epochConfig.EnableEpochs.ESDTMultiTransferEnableEpoch,
+		ESDTTransferRoleEnableEpoch:  pcf.epochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
+		GlobalMintBurnDisableEpoch:   pcf.epochConfig.EnableEpochs.GlobalMintBurnDisableEpoch,
+		ESDTTransferMetaEnableEpoch:  pcf.epochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
+		OptimizeNFTStoreEnableEpoch:  pcf.epochConfig.EnableEpochs.OptimizeNFTStoreEnableEpoch,
 	}
 
 	builtInFuncs, nftStorageHandler, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
@@ -428,17 +428,17 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 ) (process.BlockProcessor, error) {
 
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:                          pcf.gasSchedule,
-		MapDNSAddresses:                      make(map[string]struct{}), // no dns for meta
-		Marshalizer:                          pcf.coreData.InternalMarshalizer(),
-		Accounts:                             pcf.state.AccountsAdapter(),
-		ShardCoordinator:                     pcf.bootstrapComponents.ShardCoordinator(),
-		EpochNotifier:                        pcf.epochNotifier,
-		ESDTMultiTransferEnableEpoch:         pcf.epochConfig.EnableEpochs.ESDTMultiTransferEnableEpoch,
-		ESDTTransferRoleEnableEpoch:          pcf.epochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
-		GlobalMintBurnDisableEpoch:           pcf.epochConfig.EnableEpochs.GlobalMintBurnDisableEpoch,
-		ESDTTransferMetaEnableEpoch:          pcf.epochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
-		ESDTNFTCreateOnMultiShardEnableEpoch: pcf.epochConfig.EnableEpochs.ESDTNFTCreateOnMultiShardEnableEpoch,
+		GasSchedule:                  pcf.gasSchedule,
+		MapDNSAddresses:              make(map[string]struct{}), // no dns for meta
+		Marshalizer:                  pcf.coreData.InternalMarshalizer(),
+		Accounts:                     pcf.state.AccountsAdapter(),
+		ShardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
+		EpochNotifier:                pcf.epochNotifier,
+		ESDTMultiTransferEnableEpoch: pcf.epochConfig.EnableEpochs.ESDTMultiTransferEnableEpoch,
+		ESDTTransferRoleEnableEpoch:  pcf.epochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
+		GlobalMintBurnDisableEpoch:   pcf.epochConfig.EnableEpochs.GlobalMintBurnDisableEpoch,
+		ESDTTransferMetaEnableEpoch:  pcf.epochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
+		OptimizeNFTStoreEnableEpoch:  pcf.epochConfig.EnableEpochs.OptimizeNFTStoreEnableEpoch,
 	}
 	builtInFuncs, nftStorageHandler, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	if err != nil {
