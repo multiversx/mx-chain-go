@@ -827,6 +827,7 @@ func (pcf *processComponentsFactory) createShardTxSimulatorProcessor(
 		return nil, err
 	}
 	scProcArgs.ScrForwarder = scForwarder
+	scProcArgs.BlockChainHook = vmFactory.BlockChainHookImpl()
 
 	receiptTxInterim, err := interimProcContainer.Get(dataBlock.ReceiptBlock)
 	if err != nil {
@@ -925,6 +926,7 @@ func (pcf *processComponentsFactory) createMetaTxSimulatorProcessor(
 	}
 
 	scProcArgs.VmContainer = vmContainer
+	scProcArgs.BlockChainHook = vmFactory.BlockChainHookImpl()
 
 	scProcessor, err := smartContract.NewSmartContractProcessor(scProcArgs)
 	if err != nil {
