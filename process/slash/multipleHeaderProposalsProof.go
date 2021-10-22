@@ -6,7 +6,7 @@ type multipleProposalProof struct {
 	slashableHeaders *SlashingResult
 }
 
-// NewMultipleProposalProof - creates a new double block proposal slashing proof with a level, type and data
+// NewMultipleProposalProof - creates a new multiple block proposal slashing proof with a level, type and headers
 func NewMultipleProposalProof(slashResult *SlashingResult) (MultipleProposalProofHandler, error) {
 	if slashResult == nil {
 		return nil, process.ErrNilSlashResult
