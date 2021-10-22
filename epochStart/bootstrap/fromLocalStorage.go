@@ -117,7 +117,6 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	e.closeTrieComponents()
 	e.trieContainer = triesContainer
 	e.trieStorageManagers = trieStorageManagers
 

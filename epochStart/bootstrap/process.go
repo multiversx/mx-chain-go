@@ -453,7 +453,6 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		return err
 	}
 
-	e.closeTrieComponents()
 	e.trieContainer = triesContainer
 	e.trieStorageManagers = trieStorageManagers
 
@@ -722,7 +721,6 @@ func (e *epochStartBootstrap) requestAndProcessForMeta() error {
 		return err
 	}
 
-	e.closeTrieComponents()
 	e.trieContainer = triesContainer
 	e.trieStorageManagers = trieStorageManagers
 
@@ -832,7 +830,6 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 
 	defer storageHandlerComponent.CloseStorageService()
 
-	e.closeTrieComponents()
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
 		e.generalConfig,
 		e.coreComponentsHolder,

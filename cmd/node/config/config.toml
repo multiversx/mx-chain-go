@@ -258,7 +258,7 @@
         Name = "AccountsTrieStorage"
         Capacity = 500000
         Type = "SizeLRU"
-        SizeInBytes = 314572800 #300MB
+        SizeInBytes = 52428800 #50MB
     [AccountsTrieStorageOld.DB]
         FilePath = "AccountsTrie/MainDB"
         Type = "LvlDBSerial"
@@ -271,7 +271,7 @@
         Name = "PeerAccountsTrieStorage"
         Capacity = 5000
         Type = "SizeLRU"
-        SizeInBytes = 104857600 #100MB
+        SizeInBytes = 52428800 #50MB
     [PeerAccountsTrieStorageOld.DB]
         FilePath = "PeerAccountsTrie/MainDB"
         Type = "LvlDBSerial"
