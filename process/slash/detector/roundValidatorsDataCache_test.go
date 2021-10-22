@@ -12,16 +12,16 @@ func TestRoundProposerDataCache_Add_OneRound_TwoProposers_FourInterceptedData(t 
 	t.Parallel()
 	dataCache := NewRoundValidatorDataCache(1)
 
-	err := dataCache.Add(1, []byte("proposer1"), slash.HeaderInfo{Hash: []byte("hash1")})
+	err := dataCache.Add(1, []byte("proposer1"), &slash.HeaderInfo{Hash: []byte("hash1")})
 	require.Nil(t, err)
 
-	err = dataCache.Add(1, []byte("proposer1"), slash.HeaderInfo{Hash: []byte("hash1")})
+	err = dataCache.Add(1, []byte("proposer1"), &slash.HeaderInfo{Hash: []byte("hash1")})
 	require.Equal(t, process.ErrHeadersNotDifferentHashes, err)
 
-	err = dataCache.Add(1, []byte("proposer1"), slash.HeaderInfo{Hash: []byte("hash2")})
+	err = dataCache.Add(1, []byte("proposer1"), &slash.HeaderInfo{Hash: []byte("hash2")})
 	require.Nil(t, err)
 
-	err = dataCache.Add(1, []byte("proposer2"), slash.HeaderInfo{Hash: []byte("hash3")})
+	err = dataCache.Add(1, []byte("proposer2"), &slash.HeaderInfo{Hash: []byte("hash3")})
 	require.Nil(t, err)
 
 	// One round
@@ -43,10 +43,10 @@ func TestRoundProposerDataCache_Add_CacheSizeTwo_FourEntriesInCache_ExpectOldest
 	t.Parallel()
 	dataCache := NewRoundValidatorDataCache(2)
 
-	err := dataCache.Add(1, []byte("proposer1"), slash.HeaderInfo{Hash: []byte("hash1")})
+	err := dataCache.Add(1, []byte("proposer1"), &slash.HeaderInfo{Hash: []byte("hash1")})
 	require.Nil(t, err)
 
-	err = dataCache.Add(2, []byte("proposer2"), slash.HeaderInfo{Hash: []byte("hash2")})
+	err = dataCache.Add(2, []byte("proposer2"), &slash.HeaderInfo{Hash: []byte("hash2")})
 	require.Nil(t, err)
 
 	require.Len(t, dataCache.cache, 2)
@@ -58,7 +58,7 @@ func TestRoundProposerDataCache_Add_CacheSizeTwo_FourEntriesInCache_ExpectOldest
 	require.Equal(t, dataCache.cache[1]["proposer1"][0].Hash, []byte("hash1"))
 	require.Equal(t, dataCache.cache[2]["proposer2"][0].Hash, []byte("hash2"))
 
-	err = dataCache.Add(0, []byte("proposer3"), slash.HeaderInfo{Hash: []byte("hash3")})
+	err = dataCache.Add(0, []byte("proposer3"), &slash.HeaderInfo{Hash: []byte("hash3")})
 	require.Equal(t, process.ErrHeaderRoundNotRelevant, err)
 
 	require.Len(t, dataCache.cache, 2)
@@ -70,7 +70,7 @@ func TestRoundProposerDataCache_Add_CacheSizeTwo_FourEntriesInCache_ExpectOldest
 	require.Equal(t, dataCache.cache[1]["proposer1"][0].Hash, []byte("hash1"))
 	require.Equal(t, dataCache.cache[2]["proposer2"][0].Hash, []byte("hash2"))
 
-	err = dataCache.Add(3, []byte("proposer3"), slash.HeaderInfo{Hash: []byte("hash1")})
+	err = dataCache.Add(3, []byte("proposer3"), &slash.HeaderInfo{Hash: []byte("hash3")})
 	require.Nil(t, err)
 
 	require.Len(t, dataCache.cache, 2)
@@ -82,7 +82,7 @@ func TestRoundProposerDataCache_Add_CacheSizeTwo_FourEntriesInCache_ExpectOldest
 	require.Equal(t, dataCache.cache[2]["proposer2"][0].Hash, []byte("hash2"))
 	require.Equal(t, dataCache.cache[3]["proposer3"][0].Hash, []byte("hash3"))
 
-	err = dataCache.Add(4, []byte("proposer4"), slash.HeaderInfo{Hash: []byte("hash4")})
+	err = dataCache.Add(4, []byte("proposer4"), &slash.HeaderInfo{Hash: []byte("hash4")})
 	require.Nil(t, err)
 
 	require.Len(t, dataCache.cache, 2)
@@ -99,16 +99,16 @@ func TestRoundProposerDataCache_GetData(t *testing.T) {
 	t.Parallel()
 	dataCache := NewRoundValidatorDataCache(3)
 
-	err := dataCache.Add(1, []byte("proposer1"), slash.HeaderInfo{Hash: []byte("hash1")})
+	err := dataCache.Add(1, []byte("proposer1"), &slash.HeaderInfo{Hash: []byte("hash1")})
 	require.Nil(t, err)
 
-	err = dataCache.Add(1, []byte("proposer1"), slash.HeaderInfo{Hash: []byte("hash2")})
+	err = dataCache.Add(1, []byte("proposer1"), &slash.HeaderInfo{Hash: []byte("hash2")})
 	require.Nil(t, err)
 
-	err = dataCache.Add(2, []byte("proposer1"), slash.HeaderInfo{Hash: []byte("hash2")})
+	err = dataCache.Add(2, []byte("proposer1"), &slash.HeaderInfo{Hash: []byte("hash2")})
 	require.Nil(t, err)
 
-	err = dataCache.Add(2, []byte("proposer2"), slash.HeaderInfo{Hash: []byte("hash3")})
+	err = dataCache.Add(2, []byte("proposer2"), &slash.HeaderInfo{Hash: []byte("hash3")})
 	require.Nil(t, err)
 
 	require.Len(t, dataCache.cache, 2)
@@ -134,16 +134,16 @@ func TestRoundProposerDataCache_GetValidators(t *testing.T) {
 	t.Parallel()
 	dataCache := NewRoundValidatorDataCache(2)
 
-	err := dataCache.Add(1, []byte("proposer1"), slash.HeaderInfo{Hash: []byte("hash1")})
+	err := dataCache.Add(1, []byte("proposer1"), &slash.HeaderInfo{Hash: []byte("hash1")})
 	require.Nil(t, err)
 
-	err = dataCache.Add(1, []byte("proposer1"), slash.HeaderInfo{Hash: []byte("hash2")})
+	err = dataCache.Add(1, []byte("proposer1"), &slash.HeaderInfo{Hash: []byte("hash2")})
 	require.Nil(t, err)
 
-	err = dataCache.Add(1, []byte("proposer2"), slash.HeaderInfo{Hash: []byte("hash2")})
+	err = dataCache.Add(1, []byte("proposer2"), &slash.HeaderInfo{Hash: []byte("hash2")})
 	require.Nil(t, err)
 
-	err = dataCache.Add(2, []byte("proposer2"), slash.HeaderInfo{Hash: []byte("hash2")})
+	err = dataCache.Add(2, []byte("proposer2"), &slash.HeaderInfo{Hash: []byte("hash2")})
 	require.Nil(t, err)
 
 	require.Len(t, dataCache.cache, 2)
@@ -162,18 +162,18 @@ func TestRoundProposerDataCache_Contains(t *testing.T) {
 	t.Parallel()
 	dataCache := NewRoundValidatorDataCache(2)
 
-	err := dataCache.Add(1, []byte("proposer1"), slash.HeaderInfo{Hash: []byte("hash1")})
+	err := dataCache.Add(1, []byte("proposer1"), &slash.HeaderInfo{Hash: []byte("hash1")})
 	require.Nil(t, err)
 
-	err = dataCache.Add(1, []byte("proposer1"), slash.HeaderInfo{Hash: []byte("hash2")})
+	err = dataCache.Add(1, []byte("proposer1"), &slash.HeaderInfo{Hash: []byte("hash2")})
 	require.Nil(t, err)
 
-	err = dataCache.Add(2, []byte("proposer2"), slash.HeaderInfo{Hash: []byte("hash3")})
+	err = dataCache.Add(2, []byte("proposer2"), &slash.HeaderInfo{Hash: []byte("hash3")})
 	require.Nil(t, err)
 
-	expectedData1 := slash.HeaderInfo{Hash: []byte("hash1")}
-	expectedData2 := slash.HeaderInfo{Hash: []byte("hash2")}
-	expectedData3 := slash.HeaderInfo{Hash: []byte("hash3")}
+	expectedData1 := &slash.HeaderInfo{Hash: []byte("hash1")}
+	expectedData2 := &slash.HeaderInfo{Hash: []byte("hash2")}
+	expectedData3 := &slash.HeaderInfo{Hash: []byte("hash3")}
 
 	require.True(t, dataCache.contains(1, []byte("proposer1"), expectedData1))
 	require.True(t, dataCache.contains(1, []byte("proposer1"), expectedData2))

@@ -166,7 +166,7 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_NilHeader_ExpectError(t
 	sn, _ := notifier.NewSlashingNotifier(args)
 	tx, err := sn.CreateShardSlashingTransaction(&slashMocks.MultipleHeaderSigningProofStub{
 		GetHeadersCalled: func(pubKey []byte) slash.HeaderInfoList {
-			return slash.HeaderInfoList{}
+			return slash.HeaderInfoList{nil}
 		},
 		GetPubKeysCalled: func() [][]byte {
 			return [][]byte{[]byte("pubKey")}
@@ -222,7 +222,7 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleProposalProof(t
 
 	sn, _ := notifier.NewSlashingNotifier(args)
 
-	h1 := slash.HeaderInfo{
+	h1 := &slash.HeaderInfo{
 		Header: &block.HeaderV2{
 			Header: &block.Header{
 				Round: 4,
@@ -230,7 +230,7 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleProposalProof(t
 		},
 		Hash: []byte("h1"),
 	}
-	h2 := slash.HeaderInfo{
+	h2 := &slash.HeaderInfo{
 		Header: &block.HeaderV2{
 			Header: &block.Header{
 				Round: 4,
@@ -272,7 +272,7 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleSignProof(t *te
 
 	pk1 := []byte("pubKey1")
 
-	h1 := slash.HeaderInfo{
+	h1 := &slash.HeaderInfo{
 		Header: &block.HeaderV2{
 			Header: &block.Header{
 				Round: 4,
@@ -280,7 +280,7 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleSignProof(t *te
 		},
 		Hash: []byte("h1"),
 	}
-	h2 := slash.HeaderInfo{
+	h2 := &slash.HeaderInfo{
 		Header: &block.HeaderV2{
 			Header: &block.Header{
 				Round: 4,

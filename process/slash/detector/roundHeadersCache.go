@@ -49,7 +49,7 @@ func (rhc *roundHeadersCache) Add(round uint64, hash []byte, header data.HeaderH
 		rhc.oldestRound = round
 	}
 
-	rhc.cache[round] = append(rhc.cache[round], slash.HeaderInfo{Hash: hash, Header: header})
+	rhc.cache[round] = append(rhc.cache[round], &slash.HeaderInfo{Hash: hash, Header: header})
 	return nil
 }
 

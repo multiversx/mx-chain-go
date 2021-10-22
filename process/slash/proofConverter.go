@@ -41,16 +41,16 @@ func ToProtoMultipleHeaderSign(proof MultipleSigningProofHandler) (*coreSlash.Mu
 	}, nil
 }
 
-func getHeadersFromInterceptedHeaders(interceptedHeaders HeaderInfoList) (coreSlash.Headers, error) {
-	headers := make([]data.HeaderHandler, 0, len(interceptedHeaders))
+func getHeadersFromInterceptedHeaders(headerInfoList HeaderInfoList) (coreSlash.Headers, error) {
+	headers := make([]data.HeaderHandler, 0, len(headerInfoList))
 	ret := coreSlash.Headers{}
 
-	for _, interceptedHeader := range interceptedHeaders {
-		if interceptedHeader.Header == nil {
+	for _, headerInfo := range headerInfoList {
+		if headerInfo == nil || headerInfo.Header == nil {
 			return ret, process.ErrNilHeaderHandler
 		}
 
-		headers = append(headers, interceptedHeader.Header)
+		headers = append(headers, headerInfo.Header)
 	}
 
 	err := ret.SetHeaders(headers)

@@ -133,7 +133,7 @@ func TestMultipleHeaderProposalsDetector_VerifyData_MultipleHeaders_SameHash_Exp
 	round := uint64(1)
 	pubKey := []byte("proposer1")
 	cache := slashMocks.RoundDetectorCacheStub{
-		AddCalled: func(r uint64, pk []byte, header slash.HeaderInfo) error {
+		AddCalled: func(r uint64, pk []byte, header *slash.HeaderInfo) error {
 			if r == round && bytes.Equal(pk, pubKey) {
 				return process.ErrHeadersNotDifferentHashes
 			}
@@ -163,16 +163,16 @@ func TestMultipleHeaderProposalsDetector_VerifyData_MultipleHeaders(t *testing.T
 	hData3 := slashMocks.CreateInterceptedHeaderData(&block.Header{Round: round, PrevRandSeed: []byte("seed3")})
 	hData4 := slashMocks.CreateInterceptedHeaderData(&block.Header{Round: round, PrevRandSeed: []byte("seed4")})
 
-	h1 := slash.HeaderInfo{Header: hData1.HeaderHandler(), Hash: hData1.Hash()}
-	h2 := slash.HeaderInfo{Header: hData2.HeaderHandler(), Hash: hData2.Hash()}
-	h3 := slash.HeaderInfo{Header: hData3.HeaderHandler(), Hash: hData3.Hash()}
-	h4 := slash.HeaderInfo{Header: hData4.HeaderHandler(), Hash: hData4.Hash()}
+	h1 := &slash.HeaderInfo{Header: hData1.HeaderHandler(), Hash: hData1.Hash()}
+	h2 := &slash.HeaderInfo{Header: hData2.HeaderHandler(), Hash: hData2.Hash()}
+	h3 := &slash.HeaderInfo{Header: hData3.HeaderHandler(), Hash: hData3.Hash()}
+	h4 := &slash.HeaderInfo{Header: hData4.HeaderHandler(), Hash: hData4.Hash()}
 
 	getCalledCt := 0
 	addCalledCt := 0
 
 	cache := slashMocks.RoundDetectorCacheStub{
-		AddCalled: func(_ uint64, _ []byte, header slash.HeaderInfo) error {
+		AddCalled: func(_ uint64, _ []byte, header *slash.HeaderInfo) error {
 			addCalledCt++
 			if bytes.Equal(header.Hash, hData2.Hash()) && addCalledCt == 3 {
 				return process.ErrHeadersNotDifferentHashes
@@ -217,8 +217,8 @@ func TestMultipleHeaderProposalsDetector_VerifyData_MultipleHeaders(t *testing.T
 	require.Equal(t, res.GetType(), slash.MultipleProposal)
 	require.Equal(t, res.GetLevel(), slash.Medium)
 	require.Len(t, res.GetHeaders(), 2)
-	require.Equal(t, res.GetHeaders()[0], hData1)
-	require.Equal(t, res.GetHeaders()[1], hData2)
+	require.Equal(t, res.GetHeaders()[0], h1)
+	require.Equal(t, res.GetHeaders()[1], h2)
 
 	tmp, err = sd.VerifyData(hData2)
 	require.Nil(t, tmp)
@@ -229,19 +229,19 @@ func TestMultipleHeaderProposalsDetector_VerifyData_MultipleHeaders(t *testing.T
 	require.Equal(t, res.GetType(), slash.MultipleProposal)
 	require.Equal(t, res.GetLevel(), slash.High)
 	require.Len(t, res.GetHeaders(), 3)
-	require.Equal(t, res.GetHeaders()[0], hData1)
-	require.Equal(t, res.GetHeaders()[1], hData2)
-	require.Equal(t, res.GetHeaders()[2], hData3)
+	require.Equal(t, res.GetHeaders()[0], h1)
+	require.Equal(t, res.GetHeaders()[1], h2)
+	require.Equal(t, res.GetHeaders()[2], h3)
 
 	tmp, _ = sd.VerifyData(hData4)
 	res = tmp.(slash.MultipleProposalProofHandler)
 	require.Equal(t, res.GetType(), slash.MultipleProposal)
 	require.Equal(t, res.GetLevel(), slash.High)
 	require.Len(t, res.GetHeaders(), 4)
-	require.Equal(t, res.GetHeaders()[0], hData1)
-	require.Equal(t, res.GetHeaders()[1], hData2)
-	require.Equal(t, res.GetHeaders()[2], hData3)
-	require.Equal(t, res.GetHeaders()[3], hData4)
+	require.Equal(t, res.GetHeaders()[0], h1)
+	require.Equal(t, res.GetHeaders()[1], h2)
+	require.Equal(t, res.GetHeaders()[2], h3)
+	require.Equal(t, res.GetHeaders()[3], h4)
 
 	tmp, err = sd.VerifyData(hData4)
 	require.Nil(t, tmp)
@@ -294,9 +294,9 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 		{
 			args: func() (slash.ThreatLevel, slash.HeaderInfoList) {
 				return slash.Medium, slash.HeaderInfoList{
-					slash.HeaderInfo{Header: &block.Header{Round: 2}, Hash: []byte("h1")},
-					slash.HeaderInfo{Header: &block.Header{Round: 2}, Hash: []byte("h2")},
-					slash.HeaderInfo{Header: &block.Header{Round: 2}, Hash: []byte("h3")},
+					&slash.HeaderInfo{Header: &block.Header{Round: 2}, Hash: []byte("h1")},
+					&slash.HeaderInfo{Header: &block.Header{Round: 2}, Hash: []byte("h2")},
+					&slash.HeaderInfo{Header: &block.Header{Round: 2}, Hash: []byte("h3")},
 				}
 			},
 			expectedErr: process.ErrSlashLevelDoesNotMatchSlashType,
@@ -304,8 +304,8 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 		{
 			args: func() (slash.ThreatLevel, slash.HeaderInfoList) {
 				return slash.High, slash.HeaderInfoList{
-					slash.HeaderInfo{Header: &block.Header{Round: 2}, Hash: []byte("h1")},
-					slash.HeaderInfo{Header: &block.Header{Round: 2}, Hash: []byte("h2")},
+					&slash.HeaderInfo{Header: &block.Header{Round: 2}, Hash: []byte("h1")},
+					&slash.HeaderInfo{Header: &block.Header{Round: 2}, Hash: []byte("h2")},
 				}
 			},
 			expectedErr: process.ErrSlashLevelDoesNotMatchSlashType,
@@ -353,8 +353,8 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 		{
 			args: func() (slash.ThreatLevel, slash.HeaderInfoList) {
 				return slash.Medium, slash.HeaderInfoList{
-					slash.HeaderInfo{Header: &block.Header{Round: 5}, Hash: []byte("h1")},
-					slash.HeaderInfo{Header: &block.Header{Round: 5}, Hash: []byte("h1")},
+					&slash.HeaderInfo{Header: &block.Header{Round: 5}, Hash: []byte("h1")},
+					&slash.HeaderInfo{Header: &block.Header{Round: 5}, Hash: []byte("h1")},
 				}
 			},
 			expectedErr: process.ErrHeadersNotDifferentHashes,
@@ -362,9 +362,9 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 		{
 			args: func() (slash.ThreatLevel, slash.HeaderInfoList) {
 				return slash.High, slash.HeaderInfoList{
-					slash.HeaderInfo{Header: &block.Header{Round: 5}, Hash: []byte("h1")},
-					slash.HeaderInfo{Header: &block.Header{Round: 5}, Hash: []byte("h2")},
-					slash.HeaderInfo{Header: &block.Header{Round: 5}, Hash: []byte("h2")},
+					&slash.HeaderInfo{Header: &block.Header{Round: 5}, Hash: []byte("h1")},
+					&slash.HeaderInfo{Header: &block.Header{Round: 5}, Hash: []byte("h2")},
+					&slash.HeaderInfo{Header: &block.Header{Round: 5}, Hash: []byte("h2")},
 				}
 			},
 			expectedErr: process.ErrHeadersNotDifferentHashes,
@@ -372,8 +372,8 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 		{
 			args: func() (slash.ThreatLevel, slash.HeaderInfoList) {
 				return slash.Medium, slash.HeaderInfoList{
-					slash.HeaderInfo{Header: &block.Header{Round: 4}, Hash: []byte("h1")},
-					slash.HeaderInfo{Header: &block.Header{Round: 5}, Hash: []byte("h1")},
+					&slash.HeaderInfo{Header: &block.Header{Round: 4}, Hash: []byte("h1")},
+					&slash.HeaderInfo{Header: &block.Header{Round: 5}, Hash: []byte("h2")},
 				}
 			},
 			expectedErr: process.ErrHeadersNotSameRound,
@@ -381,9 +381,9 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 		{
 			args: func() (slash.ThreatLevel, slash.HeaderInfoList) {
 				return slash.High, slash.HeaderInfoList{
-					slash.HeaderInfo{Header: &block.Header{Round: 4}, Hash: []byte("h1")},
-					slash.HeaderInfo{Header: &block.Header{Round: 4}, Hash: []byte("h2")},
-					slash.HeaderInfo{Header: &block.Header{Round: 5}, Hash: []byte("h3")},
+					&slash.HeaderInfo{Header: &block.Header{Round: 4}, Hash: []byte("h1")},
+					&slash.HeaderInfo{Header: &block.Header{Round: 4}, Hash: []byte("h2")},
+					&slash.HeaderInfo{Header: &block.Header{Round: 5}, Hash: []byte("h3")},
 				}
 			},
 			expectedErr: process.ErrHeadersNotSameRound,
@@ -391,8 +391,8 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 		{
 			args: func() (slash.ThreatLevel, slash.HeaderInfoList) {
 				return slash.Medium, slash.HeaderInfoList{
-					slash.HeaderInfo{Header: &block.Header{Round: 0}, Hash: []byte("h1")}, // round ==0 && rndSeed == h1 => mock returns err
-					slash.HeaderInfo{Header: &block.Header{Round: 0}, Hash: []byte("h2")},
+					&slash.HeaderInfo{Header: &block.Header{Round: 0, PrevRandSeed: []byte("h1")}, Hash: []byte("h1")}, // round ==0 && rndSeed == h1 => mock returns err
+					&slash.HeaderInfo{Header: &block.Header{Round: 0, PrevRandSeed: []byte("h1")}, Hash: []byte("h2")},
 				}
 			},
 			expectedErr: errGetProposer,
@@ -400,8 +400,8 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 		{
 			args: func() (slash.ThreatLevel, slash.HeaderInfoList) {
 				return slash.Medium, slash.HeaderInfoList{
-					slash.HeaderInfo{Header: &block.Header{Round: 0}, Hash: []byte("h")},
-					slash.HeaderInfo{Header: &block.Header{Round: 0}, Hash: []byte("h1")},
+					&slash.HeaderInfo{Header: &block.Header{Round: 0, PrevRandSeed: []byte("h")}, Hash: []byte("h")},
+					&slash.HeaderInfo{Header: &block.Header{Round: 0, PrevRandSeed: []byte("h1")}, Hash: []byte("h1")},
 				}
 			},
 			expectedErr: errGetProposer,
@@ -409,8 +409,8 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 		{
 			args: func() (slash.ThreatLevel, slash.HeaderInfoList) {
 				return slash.Medium, slash.HeaderInfoList{
-					slash.HeaderInfo{Header: &block.Header{Round: 1}, Hash: []byte("h1")}, // round == 1 && rndSeed == h1 => mock returns proposer1
-					slash.HeaderInfo{Header: &block.Header{Round: 1}, Hash: []byte("h2")}, // round == 1 && rndSeed == h2 => mock returns proposer2
+					&slash.HeaderInfo{Header: &block.Header{Round: 1, PrevRandSeed: []byte("h1")}, Hash: []byte("h1")}, // round == 1 && rndSeed == h1 => mock returns proposer1
+					&slash.HeaderInfo{Header: &block.Header{Round: 1, PrevRandSeed: []byte("h2")}, Hash: []byte("h2")}, // round == 1 && rndSeed == h2 => mock returns proposer2
 				}
 			},
 			expectedErr: process.ErrHeadersNotSameProposer,
@@ -418,8 +418,8 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 		{
 			args: func() (slash.ThreatLevel, slash.HeaderInfoList) {
 				return slash.Medium, slash.HeaderInfoList{
-					slash.HeaderInfo{Header: &block.Header{Round: 4}, Hash: []byte("h1")},
-					slash.HeaderInfo{Header: &block.Header{Round: 4}, Hash: []byte("h2")},
+					&slash.HeaderInfo{Header: &block.Header{Round: 4}, Hash: []byte("h1")},
+					&slash.HeaderInfo{Header: &block.Header{Round: 4}, Hash: []byte("h2")},
 				}
 			},
 			expectedErr: nil,
@@ -427,9 +427,9 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 		{
 			args: func() (slash.ThreatLevel, slash.HeaderInfoList) {
 				return slash.High, slash.HeaderInfoList{
-					slash.HeaderInfo{Header: &block.Header{Round: 5}, Hash: []byte("h1")},
-					slash.HeaderInfo{Header: &block.Header{Round: 5}, Hash: []byte("h2")},
-					slash.HeaderInfo{Header: &block.Header{Round: 5}, Hash: []byte("h3")},
+					&slash.HeaderInfo{Header: &block.Header{Round: 5}, Hash: []byte("h1")},
+					&slash.HeaderInfo{Header: &block.Header{Round: 5}, Hash: []byte("h2")},
+					&slash.HeaderInfo{Header: &block.Header{Round: 5}, Hash: []byte("h3")},
 				}
 			},
 			expectedErr: nil,

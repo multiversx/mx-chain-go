@@ -13,7 +13,7 @@ type HeaderInfo struct {
 }
 
 // HeaderInfoList defines a list of HeaderInfo
-type HeaderInfoList []HeaderInfo
+type HeaderInfoList []*HeaderInfo
 
 // SlashingResult contains the slashable data as well as the severity(slashing level)
 // for a possible malicious validator

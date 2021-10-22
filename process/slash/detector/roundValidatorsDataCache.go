@@ -31,7 +31,7 @@ func NewRoundValidatorDataCache(maxRounds uint64) *roundValidatorsDataCache {
 
 // Add adds in cache an intercepted data for a public key, in a given round.
 // It has an eviction mechanism which always removes the oldest round entry when cache is full
-func (rdc *roundValidatorsDataCache) Add(round uint64, pubKey []byte, headerInfo slash.HeaderInfo) error {
+func (rdc *roundValidatorsDataCache) Add(round uint64, pubKey []byte, headerInfo *slash.HeaderInfo) error {
 	pubKeyStr := string(pubKey)
 	rdc.cacheMutex.Lock()
 	defer rdc.cacheMutex.Unlock()
@@ -62,7 +62,7 @@ func (rdc *roundValidatorsDataCache) Add(round uint64, pubKey []byte, headerInfo
 	return nil
 }
 
-func (rdc *roundValidatorsDataCache) contains(round uint64, pubKey []byte, headerInfo slash.HeaderInfo) bool {
+func (rdc *roundValidatorsDataCache) contains(round uint64, pubKey []byte, headerInfo *slash.HeaderInfo) bool {
 	validatorsMap, exists := rdc.cache[round]
 	if !exists {
 		return false

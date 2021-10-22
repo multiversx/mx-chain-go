@@ -138,7 +138,7 @@ func (mhs *multipleHeaderSigningDetector) cacheSigners(interceptedHeader *interc
 			err = mhs.slashingCache.Add(
 				header.GetRound(),
 				validator.PubKey(),
-				slash.HeaderInfo{Header: header, Hash: interceptedHeader.Hash()})
+				&slash.HeaderInfo{Header: header, Hash: interceptedHeader.Hash()})
 			if err != nil {
 				return err
 			}

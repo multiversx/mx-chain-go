@@ -69,7 +69,7 @@ func (mhp *multipleHeaderProposalsDetector) VerifyData(data process.InterceptedD
 		return nil, err
 	}
 
-	err = mhp.cache.Add(round, proposer, slash.HeaderInfo{Header: header, Hash: interceptedHeader.Hash()})
+	err = mhp.cache.Add(round, proposer, &slash.HeaderInfo{Header: header, Hash: interceptedHeader.Hash()})
 	if err != nil {
 		return nil, err
 	}
@@ -172,7 +172,7 @@ func (mhp *multipleHeaderProposalsDetector) checkProposedHeaders(headers slash.H
 }
 
 func (mhp *multipleHeaderProposalsDetector) checkHeaderHasSameProposerAndRound(
-	headerInfo slash.HeaderInfo,
+	headerInfo *slash.HeaderInfo,
 	round uint64,
 	proposer []byte,
 ) error {
