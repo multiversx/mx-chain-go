@@ -902,6 +902,9 @@ var ErrNilRoundDetectorCache = errors.New("round detector cache is nil")
 // ErrNilRoundHeadersCache signals that a nil round headers cache has been provided
 var ErrNilRoundHeadersCache = errors.New("round headers cache is nil")
 
+// ErrNilSlashResult signals that a nil slash result has been provided
+var ErrNilSlashResult = errors.New("slash result is nil")
+
 // ErrInvalidProof signals that an invalid proof has been provided
 var ErrInvalidProof = errors.New("an invalid proof has been provided")
 

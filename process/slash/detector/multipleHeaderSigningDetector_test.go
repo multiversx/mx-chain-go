@@ -353,7 +353,7 @@ func TestMultipleHeaderSigningDetector_ValidateProof_NotEnoughHeaders_ExpectErro
 	proof, _ := slash.NewMultipleSigningProof(map[string]slash.SlashingResult{
 		"pubKey": {
 			SlashingLevel: slash.Medium,
-			Data:          slash.HeaderInfoList{},
+			Headers:       slash.HeaderInfoList{},
 		},
 	})
 
@@ -381,7 +381,7 @@ func TestMultipleHeaderSigningDetector_ValidateProof_SignedHeadersHaveDifferentR
 	proof, _ := slash.NewMultipleSigningProof(map[string]slash.SlashingResult{
 		"pubKey": {
 			SlashingLevel: slash.Medium,
-			Data:          slash.HeaderInfoList{h1, h2},
+			Headers:       slash.HeaderInfoList{h1, h2},
 		},
 	})
 
@@ -414,7 +414,7 @@ func TestMultipleHeaderSigningDetector_ValidateProof_InvalidMarshaller_ExpectErr
 	proof, _ := slash.NewMultipleSigningProof(map[string]slash.SlashingResult{
 		"pubKey": {
 			SlashingLevel: slash.Medium,
-			Data:          slash.HeaderInfoList{h1, h2},
+			Headers:       slash.HeaderInfoList{h1, h2},
 		},
 	})
 
@@ -442,7 +442,7 @@ func TestMultipleHeaderSigningDetector_ValidateProof_SignedHeadersHaveSameHash_E
 	proof, _ := slash.NewMultipleSigningProof(map[string]slash.SlashingResult{
 		"pubKey": {
 			SlashingLevel: slash.Medium,
-			Data:          slash.HeaderInfoList{h1, h2},
+			Headers:       slash.HeaderInfoList{h1, h2},
 		},
 	})
 
@@ -470,7 +470,7 @@ func TestMultipleHeaderSigningDetector_ValidateProof_HeadersNotSignedByTheSameVa
 	proof, _ := slash.NewMultipleSigningProof(map[string]slash.SlashingResult{
 		"pubKey": {
 			SlashingLevel: slash.Medium,
-			Data:          slash.HeaderInfoList{h1, h2},
+			Headers:       slash.HeaderInfoList{h1, h2},
 		},
 	})
 
@@ -494,7 +494,7 @@ func TestMultipleHeaderSigningDetector_ValidateProof_InvalidSlashLevel_ExpectErr
 	proof, _ := slash.NewMultipleSigningProof(map[string]slash.SlashingResult{
 		"pubKey": {
 			SlashingLevel: slash.Low,
-			Data:          slash.HeaderInfoList{h1, h2},
+			Headers:       slash.HeaderInfoList{h1, h2},
 		},
 	})
 

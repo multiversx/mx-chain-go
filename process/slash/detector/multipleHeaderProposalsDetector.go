@@ -104,7 +104,7 @@ func (mhp *multipleHeaderProposalsDetector) getSlashingResult(currRound uint64, 
 	if len(proposedHeaders) >= 2 {
 		return &slash.SlashingResult{
 			SlashingLevel: mhp.computeSlashLevel(proposedHeaders),
-			Data:          proposedHeaders,
+			Headers:       proposedHeaders,
 		}
 	}
 

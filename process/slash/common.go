@@ -19,12 +19,7 @@ type HeaderInfoList []*HeaderInfo
 // for a possible malicious validator
 type SlashingResult struct {
 	SlashingLevel ThreatLevel
-	Data          HeaderInfoList
-}
-
-type slashingHeaders struct {
-	slashingLevel ThreatLevel
-	headers       HeaderInfoList
+	Headers       HeaderInfoList
 }
 
 // IsIndexSetInBitmap - checks if a bit is set(1) in the given bitmap

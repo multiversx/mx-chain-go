@@ -318,7 +318,7 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 		proof, _ := slash.NewMultipleProposalProof(
 			&slash.SlashingResult{
 				SlashingLevel: level,
-				Data:          data,
+				Headers:       data,
 			},
 		)
 
@@ -443,7 +443,7 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 		proof, _ := slash.NewMultipleProposalProof(
 			&slash.SlashingResult{
 				SlashingLevel: level,
-				Data:          data,
+				Headers:       data,
 			},
 		)
 		err := sd.ValidateProof(proof)

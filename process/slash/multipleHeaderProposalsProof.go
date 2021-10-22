@@ -1,13 +1,22 @@
 package slash
 
+import "github.com/ElrondNetwork/elrond-go/process"
+
 type multipleProposalProof struct {
 	slashableHeaders *SlashingResult
 }
 
 // NewMultipleProposalProof - creates a new double block proposal slashing proof with a level, type and data
-func NewMultipleProposalProof(slashableData *SlashingResult) (MultipleProposalProofHandler, error) {
+func NewMultipleProposalProof(slashResult *SlashingResult) (MultipleProposalProofHandler, error) {
+	if slashResult == nil {
+		return nil, process.ErrNilSlashResult
+	}
+	if slashResult.Headers == nil {
+		return nil, process.ErrNilHeaderHandler
+	}
+
 	return &multipleProposalProof{
-		slashableHeaders: slashableData,
+		slashableHeaders: slashResult,
 	}, nil
 }
 
@@ -23,5 +32,5 @@ func (mpp *multipleProposalProof) GetType() SlashingType {
 
 // GetHeaders - returns the slashing proofs headers
 func (mpp *multipleProposalProof) GetHeaders() HeaderInfoList {
-	return mpp.slashableHeaders.Data
+	return mpp.slashableHeaders.Headers
 }

@@ -156,7 +156,7 @@ func (mhs *multipleHeaderSigningDetector) getSlashingResult(round uint64) map[st
 		if len(signedHeaders) > 1 {
 			slashingData[string(validator)] = slash.SlashingResult{
 				SlashingLevel: mhs.computeSlashLevel(signedHeaders),
-				Data:          signedHeaders,
+				Headers:       signedHeaders,
 			}
 		}
 	}
