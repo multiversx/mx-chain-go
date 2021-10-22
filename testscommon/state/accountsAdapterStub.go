@@ -200,6 +200,11 @@ func (as *AccountsStub) GetNumCheckpoints() uint32 {
 	return 0
 }
 
+// GetStackDebugFirstEntry -
+func (as *AccountsStub) GetStackDebugFirstEntry() []byte {
+	return nil
+}
+
 // Close -
 func (as *AccountsStub) Close() error {
 	return nil
