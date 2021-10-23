@@ -945,13 +945,11 @@ func TestDelegationSystemDelegateUnDelegateReceiveRewardsWhenAllIsUndelegated(t 
 	assert.Nil(t, err)
 
 	verifyDelegatorIsDeleted(t, tpn, delegators, delegationScAddress)
-	verifyDelegatorIsDeleted(t, tpn, [][]byte{tpn.OwnAccount.Address}, delegationScAddress)
 
 	addRewardsToDelegation(tpn, delegationScAddress, big.NewInt(600), 6, 150)
 	checkRewardData(t, tpn, delegationScAddress, 6, 600, 0, serviceFee)
 
 	verifyDelegatorIsDeleted(t, tpn, delegators, delegationScAddress)
-	verifyDelegatorIsDeleted(t, tpn, [][]byte{tpn.OwnAccount.Address}, delegationScAddress)
 }
 
 func TestDelegationSystemCleanUpContract(t *testing.T) {
