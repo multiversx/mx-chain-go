@@ -97,6 +97,13 @@ var (
 			" activation epochs configurations",
 		Value: "./config/enableEpochs.toml",
 	}
+	// roundConfigurationFile defines a flag for the path to the toml file containing the round configuration
+	roundConfigurationFile = cli.StringFlag{
+		Name: "round-config",
+		Usage: "The `" + filePathPlaceholder + "` for the round configuration file. This TOML file contains" +
+			" activation round configurations",
+		Value: "./config/enableRounds.toml",
+	}
 	// gasScheduleConfigurationDirectory defines a flag for the path to the directory containing the gas costs used in execution
 	gasScheduleConfigurationDirectory = cli.StringFlag{
 		Name:  "gas-costs-config",

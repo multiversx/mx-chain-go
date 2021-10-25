@@ -48,6 +48,7 @@ type CoreComponentsStub struct {
 	GenesisTimeField                   time.Time
 	TxVersionCheckField                process.TxVersionCheckerHandler
 	NodeTypeProviderField              core.NodeTypeProviderHandler
+	RoundActivationHandlerField        process.RoundActivationHandler
 	ArwenChangeLockerInternal          common.Locker
 }
 
@@ -227,6 +228,11 @@ func (ccs *CoreComponentsStub) NodeTypeProvider() core.NodeTypeProviderHandler {
 // ArwenChangeLocker -
 func (ccs *CoreComponentsStub) ArwenChangeLocker() common.Locker {
 	return ccs.ArwenChangeLockerInternal
+}
+
+// RoundActivationHandler -
+func (ccs *CoreComponentsStub) RoundActivationHandler() process.RoundActivationHandler {
+	return ccs.RoundActivationHandlerField
 }
 
 // String -

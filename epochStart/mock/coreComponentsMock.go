@@ -15,23 +15,24 @@ import (
 
 // CoreComponentsMock -
 type CoreComponentsMock struct {
-	IntMarsh                    marshal.Marshalizer
-	Marsh                       marshal.Marshalizer
-	Hash                        hashing.Hasher
-	EpochNotifierField          process.EpochNotifier
-	TxSignHasherField           hashing.Hasher
-	UInt64ByteSliceConv         typeConverters.Uint64ByteSliceConverter
-	AddrPubKeyConv              core.PubkeyConverter
-	ValPubKeyConv               core.PubkeyConverter
-	PathHdl                     storage.PathManagerHandler
-	ChainIdCalled               func() string
-	MinTransactionVersionCalled func() uint32
-	StatusHandlerCalled         func() core.AppStatusHandler
-	GenesisNodesSetupCalled     func() sharding.GenesisNodesSetupHandler
-	TxVersionCheckField         process.TxVersionCheckerHandler
-	ChanStopNode                chan endProcess.ArgEndProcess
-	NodeTypeProviderField       core.NodeTypeProviderHandler
-	mutCore                     sync.RWMutex
+	IntMarsh                     marshal.Marshalizer
+	Marsh                        marshal.Marshalizer
+	Hash                         hashing.Hasher
+	EpochNotifierField           process.EpochNotifier
+	TxSignHasherField            hashing.Hasher
+	UInt64ByteSliceConv          typeConverters.Uint64ByteSliceConverter
+	AddrPubKeyConv               core.PubkeyConverter
+	ValPubKeyConv                core.PubkeyConverter
+	PathHdl                      storage.PathManagerHandler
+	ChainIdCalled                func() string
+	MinTransactionVersionCalled  func() uint32
+	StatusHandlerCalled          func() core.AppStatusHandler
+	GenesisNodesSetupCalled      func() sharding.GenesisNodesSetupHandler
+	TxVersionCheckField          process.TxVersionCheckerHandler
+	ChanStopNode                 chan endProcess.ArgEndProcess
+	NodeTypeProviderField        core.NodeTypeProviderHandler
+	RoundActivationHandlerCalled func() process.RoundActivationHandler
+	mutCore                      sync.RWMutex
 }
 
 // ChanStopNodeProcess -
@@ -141,6 +142,14 @@ func (ccm *CoreComponentsMock) StatusHandler() core.AppStatusHandler {
 func (ccm *CoreComponentsMock) GenesisNodesSetup() sharding.GenesisNodesSetupHandler {
 	if ccm.GenesisNodesSetupCalled != nil {
 		return ccm.GenesisNodesSetupCalled()
+	}
+	return nil
+}
+
+// RoundActivationHandler -
+func (ccm *CoreComponentsMock) RoundActivationHandler() process.RoundActivationHandler {
+	if ccm.RoundActivationHandlerCalled != nil {
+		return ccm.RoundActivationHandlerCalled()
 	}
 	return nil
 }

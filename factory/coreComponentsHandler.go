@@ -139,8 +139,10 @@ func (mcc *managedCoreComponents) CheckSubcomponents() error {
 	if check.IfNil(mcc.nodesSetupHandler) {
 		return errors.ErrNilNodesConfig
 	}
-	if check.IfNil(mcc.epochNotifier) {
-		return errors.ErrNilEpochNotifier
+	if check.IfNil(mcc.roundActivationHandler) {
+		return errors.ErrNilRoundActivationHandler
+	}
+	if check.IfNil(mcc.roundHandler) {
 	}
 	if len(mcc.chainID) == 0 {
 		return errors.ErrInvalidChainID
@@ -524,6 +526,18 @@ func (mcc *managedCoreComponents) ArwenChangeLocker() common.Locker {
 	}
 
 	return mcc.coreComponents.arwenChangeLocker
+}
+
+// RoundActivationHandler returns the round activation handler
+func (mcc *managedCoreComponents) RoundActivationHandler() process.RoundActivationHandler {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.roundActivationHandler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

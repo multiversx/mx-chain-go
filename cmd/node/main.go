@@ -201,6 +201,13 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*config.Configs, error) {
 	}
 	log.Debug("config", "file", configurationPaths.Epoch)
 
+	configurationPaths.RoundActivation = ctx.GlobalString(roundConfigurationFile.Name)
+	roundConfig, err := common.LoadRoundConfig(configurationPaths.RoundActivation)
+	if err != nil {
+		return nil, err
+	}
+	log.Debug("config", "file", configurationPaths.RoundActivation)
+
 	if ctx.IsSet(port.Name) {
 		p2pConfig.Node.Port = ctx.GlobalString(port.Name)
 	}
@@ -225,6 +232,7 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*config.Configs, error) {
 		P2pConfig:                p2pConfig,
 		ConfigurationPathsHolder: configurationPaths,
 		EpochConfig:              epochConfig,
+		RoundConfig:              roundConfig,
 	}, nil
 }
 

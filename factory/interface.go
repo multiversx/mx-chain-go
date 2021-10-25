@@ -124,6 +124,7 @@ type CoreComponentsHolder interface {
 	EncodedAddressLen() uint32
 	NodeTypeProvider() core.NodeTypeProviderHandler
 	ArwenChangeLocker() common.Locker
+	RoundActivationHandler() process.RoundActivationHandler
 	IsInterfaceNil() bool
 }
 

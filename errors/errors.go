@@ -155,6 +155,9 @@ var ErrNilOutportHandler = errors.New("nil outport handler")
 // ErrNilEpochNotifier signals that a nil epoch notifier has been provided
 var ErrNilEpochNotifier = errors.New("nil epoch notifier")
 
+// ErrNilRoundActivationHandler signals that a nil round activation handler has been provided
+var ErrNilRoundActivationHandler = errors.New("nil round activation handler")
+
 // ErrNilEpochStartBootstrapper signals that a nil epoch start bootstrapper was provided
 var ErrNilEpochStartBootstrapper = errors.New("nil epoch start bootstrapper")
 

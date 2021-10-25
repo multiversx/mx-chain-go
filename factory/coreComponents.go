@@ -44,6 +44,7 @@ type CoreComponentsFactoryArgs struct {
 	Config                config.Config
 	ConfigPathsHolder     config.ConfigurationPathsHolder
 	EpochConfig           config.EpochConfig
+	RoundConfig           config.RoundConfig
 	RatingsConfig         config.RatingsConfig
 	EconomicsConfig       config.EconomicsConfig
 	ImportDbConfig        config.ImportDbConfig
@@ -58,6 +59,7 @@ type coreComponentsFactory struct {
 	config                config.Config
 	configPathsHolder     config.ConfigurationPathsHolder
 	epochConfig           config.EpochConfig
+	roundConfig           config.RoundConfig
 	ratingsConfig         config.RatingsConfig
 	economicsConfig       config.EconomicsConfig
 	importDbConfig        config.ImportDbConfig
@@ -98,6 +100,7 @@ type coreComponents struct {
 	nodeTypeProvider              core.NodeTypeProviderHandler
 	encodedAddressLen             uint32
 	arwenChangeLocker             common.Locker
+	roundActivationHandler        process.RoundActivationHandler
 }
 
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
@@ -106,6 +109,7 @@ func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) (*coreComponentsFa
 		config:                args.Config,
 		configPathsHolder:     args.ConfigPathsHolder,
 		epochConfig:           args.EpochConfig,
+		roundConfig:           args.RoundConfig,
 		ratingsConfig:         args.RatingsConfig,
 		importDbConfig:        args.ImportDbConfig,
 		economicsConfig:       args.EconomicsConfig,
@@ -346,6 +350,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		encodedAddressLen:             computeEncodedAddressLen(addressPubkeyConverter),
 		nodeTypeProvider:              nodeTypeProvider,
 		arwenChangeLocker:             arwenChangeLocker,
+		// TODO: HERE ADD ROUNDACTIVATIONHANDLER component
 	}, nil
 }
 

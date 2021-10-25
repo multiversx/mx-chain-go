@@ -1,0 +1,5 @@
+[EnableRounds]
+    EnableRoundsByName = [
+        {Name = "Fix1", Round = 444, Shard = 1},
+        {Name = "Fix2", Round = 6, Shard = 2},
+    ]
