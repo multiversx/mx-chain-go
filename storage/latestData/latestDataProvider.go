@@ -68,6 +68,11 @@ func (ldp *latestDataProvider) Get() (storage.LatestDataFromStorage, error) {
 	return lastData, err
 }
 
+// GetParentDirectory returns the parent directory
+func (ldp *latestDataProvider) GetParentDirectory() string {
+	return ldp.parentDir
+}
+
 // GetParentDirAndLastEpoch returns the parent directory and last usable epoch for the node
 func (ldp *latestDataProvider) GetParentDirAndLastEpoch() (string, uint32, error) {
 	_, parentDir, lastEpoch, err := ldp.getLastData()

@@ -1,6 +1,7 @@
 package latestData
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -83,7 +84,7 @@ func TestLatestDataProvider_Get(t *testing.T) {
 	}
 
 	startRound, lastRound := uint64(5), int64(10)
-	state := &shardchain.TriggerRegistry{
+	state := &block.ShardTriggerRegistry{
 		EpochStartRound: startRound,
 	}
 	storer := &testscommon.StorerStub{
@@ -134,7 +135,7 @@ func TestLoadEpochStartRoundShard(t *testing.T) {
 	key := []byte("123")
 	shardID := uint32(0)
 	startRound := uint64(100)
-	state := &shardchain.TriggerRegistry{
+	state := &block.ShardTriggerRegistry{
 		EpochStartRound: startRound,
 	}
 	storer := &testscommon.StorerStub{
@@ -158,12 +159,13 @@ func TestLoadEpochStartRoundMetachain(t *testing.T) {
 	key := []byte("123")
 	shardID := core.MetachainShardId
 	startRound := uint64(1000)
-	state := &metachain.TriggerRegistry{
+	state := &block.MetaTriggerRegistry{
 		CurrEpochStartRound: startRound,
 	}
+	marshaller := &marshal.GogoProtoMarshalizer{}
 	storer := &testscommon.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
-			stateBytes, _ := json.Marshal(state)
+			stateBytes, _ := marshaller.Marshal(state)
 			return stateBytes, nil
 		},
 	}
@@ -201,7 +203,7 @@ func TestLatestDataProvider_ShouldWork(t *testing.T) {
 
 	storerStub := &testscommon.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
-			return json.Marshal(&shardchain.TriggerRegistry{
+			return json.Marshal(&block.ShardTriggerRegistry{
 				EpochStartRound: 1,
 			})
 		},
