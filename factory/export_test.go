@@ -65,7 +65,7 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
 	arwenChangeLocker common.Locker,
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
-) (process.BlockProcessor, error) {
+) (process.BlockProcessor, process.VirtualMachinesContainerFactory, error) {
 	return pcf.newBlockProcessor(
 		requestHandler,
 		forkDetector,

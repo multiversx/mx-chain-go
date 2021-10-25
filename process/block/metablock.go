@@ -255,6 +255,7 @@ func (mp *metaProcessor) ProcessBlock(
 	}
 
 	if mp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
+		log.Error("metaProcessor.ProcessBlock first entry", "stack", string(mp.accountsDB[state.UserAccountsState].GetStackDebugFirstEntry()))
 		return process.ErrAccountStateDirty
 	}
 
@@ -727,6 +728,7 @@ func (mp *metaProcessor) CreateBlock(
 	var body data.BodyHandler
 
 	if mp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
+		log.Error("metaProcessor.CreateBlock first entry", "stack", string(mp.accountsDB[state.UserAccountsState].GetStackDebugFirstEntry()))
 		return nil, nil, process.ErrAccountStateDirty
 	}
 

@@ -137,7 +137,6 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		parentDir,
 		common.DefaultEpochString,
 		common.DefaultShardString,
-		bcf.prefConfig.Preferences.FullArchive,
 	)
 	if err != nil {
 		return nil, err
@@ -279,7 +278,6 @@ func createLatestStorageDataProvider(
 	parentDir string,
 	defaultEpochString string,
 	defaultShardString string,
-	fullHistoryObserver bool,
 ) (storage.LatestStorageDataProviderHandler, error) {
 	directoryReader := directoryhandler.NewDirectoryReader()
 
@@ -292,9 +290,6 @@ func createLatestStorageDataProvider(
 		DefaultShardString:    defaultShardString,
 	}
 
-	if fullHistoryObserver {
-		return latestData.NewFullHistoryLatestDataProvider(latestStorageDataArgs)
-	}
 	return latestData.NewLatestDataProvider(latestStorageDataArgs)
 }
 

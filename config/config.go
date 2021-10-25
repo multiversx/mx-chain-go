@@ -126,6 +126,7 @@ type Config struct {
 	SmartContractsStorage           StorageConfig
 	SmartContractsStorageForSCQuery StorageConfig
 	TrieEpochRootHashStorage        StorageConfig
+	SmartContractsStorageSimulate   StorageConfig
 
 	BootstrapStorage StorageConfig
 	MetaBlockStorage StorageConfig
