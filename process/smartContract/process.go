@@ -1293,6 +1293,13 @@ func (sc *scProcessor) ProcessIfError(
 
 	sc.txFeeHandler.ProcessTransactionFee(consumedFee, big.NewInt(0), txHash)
 
+	if sc.flagOptimizeNFTStore.IsSet() {
+		err = sc.blockChainHook.SaveNFTMetaDataToSystemAccount(tx)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

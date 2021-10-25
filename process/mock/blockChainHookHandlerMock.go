@@ -30,6 +30,11 @@ func (e *BlockChainHookHandlerMock) IsPayable(address []byte) (bool, error) {
 	return true, nil
 }
 
+// SaveNFTMetaDataToSystemAccount -
+func (e *BlockChainHookHandlerMock) SaveNFTMetaDataToSystemAccount(_ data.TransactionHandler) error {
+	return nil
+}
+
 // SetCurrentHeader -
 func (e *BlockChainHookHandlerMock) SetCurrentHeader(hdr data.HeaderHandler) {
 	if e.SetCurrentHeaderCalled != nil {

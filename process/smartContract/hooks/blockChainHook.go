@@ -387,6 +387,11 @@ func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCal
 	return vmOutput, nil
 }
 
+// SaveNFTMetaDataToSystemAccount will save NFT meta data to system account for the given transaction
+func (bh *BlockChainHookImpl) SaveNFTMetaDataToSystemAccount(tx data.TransactionHandler) error {
+	return bh.nftStorageHandler.SaveNFTMetaDataToSystemAccount(tx)
+}
+
 // GetShardOfAddress is the hook that returns the shard of a given address
 func (bh *BlockChainHookImpl) GetShardOfAddress(address []byte) uint32 {
 	return bh.shardCoordinator.ComputeId(address)
