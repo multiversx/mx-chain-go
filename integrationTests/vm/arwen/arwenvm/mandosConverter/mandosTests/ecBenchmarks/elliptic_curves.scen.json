@@ -1,0 +1,46 @@
+{
+  "name": "adder",
+  "comment": "add then check",
+  "gasSchedule": "v3",
+  "steps": [
+      {
+          "step": "setState",
+          "accounts": {
+              "address:owner": {
+                  "nonce": "1",
+                  "balance": "60000000",
+                  "storage": {},
+                  "code": ""
+              },
+              "sc:elliptic_curves_contract": {
+                  "nonce": "0",
+                  "balance": "0",
+                  "storage": {},
+                  "code": "file:../../../../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm",
+                  "owner": "address:owner"
+              }
+          }
+      },
+      {
+          "step": "scCall",
+          "txId": "1",
+          "tx": {
+              "from": "address:owner",
+              "to": "address:elliptic_curves_contract",
+              "value": "0",
+              "nonce": "1",
+              "function": "p224AddEcTest",
+              "arguments": [],
+              "gasLimit": "5,000,000",
+              "gasPrice": "1"
+          },
+          "expect": {
+              "out": [],
+              "status": "",
+              "logs": [],
+              "gas": "*",
+              "refund": "*"
+          }
+      }
+  ]
+}

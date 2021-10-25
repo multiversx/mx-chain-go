@@ -1,0 +1,47 @@
+{
+  "name": "adder",
+  "comment": "add then check",
+  "gasSchedule": "v3",
+  "steps": [
+      {
+          "step": "setState",
+          "accounts": {
+              "address:owner": {
+                  "nonce": "1",
+                  "balance": "48",
+                  "storage": {},
+                  "code": ""
+              },
+              "address:adder": {
+                  "nonce": "0",
+                  "balance": "0",
+                  "storage": {},
+                  "code": "file:./adder.wasm",
+                  "owner": "address:owner"
+              }
+          }
+      },
+      {
+          "step": "scCall",
+          "txId": "1",
+          "tx": {
+              "from": "address:owner",
+              "to": "address:adder",
+              "value": "0",
+              "function": "add",
+              "arguments": [
+                  "3"
+              ],
+              "gasLimit": "5,000,000",
+              "gasPrice": "0"
+          },
+          "expect": {
+              "out": [],
+              "status": "",
+              "logs": [],
+              "gas": "*",
+              "refund": "*"
+          }
+      }
+  ]
+}

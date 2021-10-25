@@ -8,7 +8,7 @@
             "accounts": {
                 "address:bob": {
                     "nonce": "3",
-                    "balance": "11",
+                    "balance": "30000000",
                     "storage": {},
                     "code": ""
                 }
@@ -21,12 +21,13 @@
                 "from": "address:bob",
                 "to": "address:adder",
                 "value": "0",
+                "nonce": "3",
                 "function": "add",
                 "arguments": [
                     "3"
                 ],
                 "gasLimit": "5,000,000",
-                "gasPrice": "0"
+                "gasPrice": "1"
             },
             "expect": {
                 "out": [],

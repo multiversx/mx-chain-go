@@ -2,11 +2,12 @@ package testadder
 
 import (
 	"fmt"
+	"testing"
+
 	mge "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/mandos-go/elrondgo-exporter"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	mc "github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen/arwenvm/mandosConverter"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestMandosConverter_Adder(t *testing.T) {
@@ -14,7 +15,7 @@ func TestMandosConverter_Adder(t *testing.T) {
 	require.Nil(t, err)
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
 	require.Nil(t, err)
-	err = mc.CreateAccountsFromMandosAccs(testContext.Accounts, mandosAccounts)
+	err = mc.CreateAccountsFromMandosAccs(*testContext, mandosAccounts)
 	require.Nil(t, err)
 	mc.CheckAccounts(t, testContext.Accounts, mandosAccounts)
 	transactions := mc.CreateTransactionsFromMandosTxs(mandosTransactions)
@@ -27,8 +28,10 @@ func Benchmark_MandosConverter_Adder(b *testing.B) {
 		fmt.Println("Setting state went wrong: ", err)
 		return
 	}
+	defer testContext.Close()
+
 	b.ResetTimer()
-	err = mc.RunSingleTransactionBenchmark(b,testContext,transactions[0])
+	err = mc.RunSingleTransactionBenchmark(b, testContext, transactions[0])
 	if err != nil {
 		fmt.Println("Proccess transaction went wrong: ", err)
 	}
