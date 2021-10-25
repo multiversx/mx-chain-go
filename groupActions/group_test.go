@@ -12,37 +12,48 @@ import (
 )
 
 func TestNewGroupNilLocker(t *testing.T) {
+	t.Parallel()
+
 	gr, err := NewGroup(nil, "grID")
 	require.Equal(t, errNilLocker, err)
 	require.Nil(t, gr)
 }
 
 func TestNewGroupInvalidGroupID(t *testing.T) {
+	t.Parallel()
+
 	gr, err := NewGroup(&sync.RWMutex{}, "")
 	require.Equal(t, errInvalidGroupID, err)
 	require.Nil(t, gr)
 }
 func TestNewGroup(t *testing.T) {
+	t.Parallel()
+
 	gr, err := NewGroup(&sync.RWMutex{}, "grID")
 	require.Nil(t, err)
 	require.NotNil(t, gr)
 }
 
 func TestNewGroupWithDefaultLockInvalidGroupID(t *testing.T) {
+	t.Parallel()
+
 	gr, err := NewGroupWithDefaultLock("")
 	require.Equal(t, errInvalidGroupID, err)
 	require.Nil(t, gr)
 }
 
 func TestNewGroupWithDefaultLock(t *testing.T) {
+	t.Parallel()
+
 	gr, err := NewGroupWithDefaultLock("grID")
 	require.Nil(t, err)
 	require.NotNil(t, gr)
 }
 
 func TestGroup_AddToGroupFirstMember(t *testing.T) {
-	gr, _ := NewGroupWithDefaultLock("grID")
+	t.Parallel()
 
+	gr, _ := NewGroupWithDefaultLock("grID")
 	m1 := &groupActionsMocks.ActionHandlerStub{}
 
 	err := gr.AddToGroup(m1)
@@ -52,8 +63,9 @@ func TestGroup_AddToGroupFirstMember(t *testing.T) {
 }
 
 func TestGroup_AddToGroupExistingMember(t *testing.T) {
-	gr, _ := NewGroupWithDefaultLock("grID")
+	t.Parallel()
 
+	gr, _ := NewGroupWithDefaultLock("grID")
 	m1 := &groupActionsMocks.ActionHandlerStub{}
 
 	_ = gr.AddToGroup(m1)
@@ -65,8 +77,9 @@ func TestGroup_AddToGroupExistingMember(t *testing.T) {
 }
 
 func TestGroup_AddToGroupSecondMember(t *testing.T) {
-	gr, _ := NewGroupWithDefaultLock("grID")
+	t.Parallel()
 
+	gr, _ := NewGroupWithDefaultLock("grID")
 	m1 := &groupActionsMocks.ActionHandlerStub{}
 	m2 := &groupActionsMocks.ActionHandlerStub{}
 
@@ -80,6 +93,8 @@ func TestGroup_AddToGroupSecondMember(t *testing.T) {
 }
 
 func TestGroup_GroupID_NewGroup(t *testing.T) {
+	t.Parallel()
+
 	groupID := "grID1"
 	gr, _ := NewGroup(&sync.RWMutex{}, groupID)
 
@@ -87,6 +102,8 @@ func TestGroup_GroupID_NewGroup(t *testing.T) {
 }
 
 func TestGroup_GroupID_NewGroupWithDefaultLock(t *testing.T) {
+	t.Parallel()
+
 	groupID := "grID1"
 	gr, _ := NewGroupWithDefaultLock(groupID)
 
@@ -94,6 +111,8 @@ func TestGroup_GroupID_NewGroupWithDefaultLock(t *testing.T) {
 }
 
 func TestGroup_HandleActionNoMembers(t *testing.T) {
+	t.Parallel()
+
 	groupID := "grID1"
 	gr, _ := NewGroupWithDefaultLock(groupID)
 
@@ -103,6 +122,8 @@ func TestGroup_HandleActionNoMembers(t *testing.T) {
 }
 
 func TestGroup_HandleActionOneMember(t *testing.T) {
+	t.Parallel()
+
 	groupID := "grID1"
 	gr, _ := NewGroupWithDefaultLock(groupID)
 	var m1Called atomic.Flag
@@ -121,6 +142,8 @@ func TestGroup_HandleActionOneMember(t *testing.T) {
 }
 
 func TestGroup_HandleActionTwoMembers(t *testing.T) {
+	t.Parallel()
+
 	groupID := "grID1"
 	gr, _ := NewGroupWithDefaultLock(groupID)
 	var m1Called, m2Called atomic.Flag
@@ -147,6 +170,8 @@ func TestGroup_HandleActionTwoMembers(t *testing.T) {
 }
 
 func TestGroup_HandleActionTwoMembersOneWithError(t *testing.T) {
+	t.Parallel()
+
 	groupID := "grID1"
 	gr, _ := NewGroupWithDefaultLock(groupID)
 	var m1Called, m2Called atomic.Flag

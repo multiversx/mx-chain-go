@@ -16,6 +16,8 @@ import (
 )
 
 func TestNewGroupActionNotifier(t *testing.T) {
+	t.Parallel()
+
 	gan := NewGroupActionNotifier()
 	require.NotNil(t, gan)
 	require.Equal(t, 0, len(gan.groupsPerEvent))
@@ -24,6 +26,8 @@ func TestNewGroupActionNotifier(t *testing.T) {
 }
 
 func TestGroupNotifier_addTriggerOK(t *testing.T) {
+	t.Parallel()
+
 	gan := NewGroupActionNotifier()
 
 	epochStartTrigger := &epochStart.EpochStartNotifierStub{}
@@ -36,6 +40,8 @@ func TestGroupNotifier_addTriggerOK(t *testing.T) {
 }
 
 func TestGroupNotifier_addTriggerAlreadyPresent(t *testing.T) {
+	t.Parallel()
+
 	gan := NewGroupActionNotifier()
 
 	epochStartTrigger := &epochStart.EpochStartNotifierStub{}
@@ -48,6 +54,8 @@ func TestGroupNotifier_addTriggerAlreadyPresent(t *testing.T) {
 }
 
 func TestGroupNotifier_RegisterTriggerNilTrigger(t *testing.T) {
+	t.Parallel()
+
 	gan := NewGroupActionNotifier()
 
 	err := gan.RegisterTrigger(nil)
@@ -55,6 +63,8 @@ func TestGroupNotifier_RegisterTriggerNilTrigger(t *testing.T) {
 }
 
 func TestGroupNotifier_RegisterTriggerOK(t *testing.T) {
+	t.Parallel()
+
 	gan := NewGroupActionNotifier()
 	epochStartTrigger := &epochStart.EpochStartNotifierStub{}
 
@@ -66,6 +76,8 @@ func TestGroupNotifier_RegisterTriggerOK(t *testing.T) {
 }
 
 func TestGroupNotifier_RegisterTriggerAlreadyPresent(t *testing.T) {
+	t.Parallel()
+
 	gan := NewGroupActionNotifier()
 	epochStartTrigger := &epochStart.EpochStartNotifierStub{}
 	_ = gan.RegisterTrigger(epochStartTrigger)
@@ -75,6 +87,8 @@ func TestGroupNotifier_RegisterTriggerAlreadyPresent(t *testing.T) {
 }
 
 func TestGroupNotifier_RegisterTriggerSecond(t *testing.T) {
+	t.Parallel()
+
 	gan := NewGroupActionNotifier()
 	epochStartTrigger1 := &epochStart.EpochStartNotifierStub{
 		GetNameCalled: func() string {
@@ -94,6 +108,8 @@ func TestGroupNotifier_RegisterTriggerSecond(t *testing.T) {
 }
 
 func TestGroupNotifier_RegisterGroupAction(t *testing.T) {
+	t.Parallel()
+
 	gan := NewGroupActionNotifier()
 	epochStartTrigger := &epochStart.EpochStartNotifierStub{}
 	_ = gan.RegisterTrigger(epochStartTrigger)
@@ -104,6 +120,8 @@ func TestGroupNotifier_RegisterGroupAction(t *testing.T) {
 }
 
 func TestGroupNotifier_RegisterGroupActionNilActionHandler(t *testing.T) {
+	t.Parallel()
+
 	gan := NewGroupActionNotifier()
 	epochStartTrigger := &epochStart.EpochStartNotifierStub{}
 	_ = gan.RegisterTrigger(epochStartTrigger)
@@ -113,6 +131,8 @@ func TestGroupNotifier_RegisterGroupActionNilActionHandler(t *testing.T) {
 }
 
 func TestGroupNotifier_RegisterGroupActionInvalidTriggerID(t *testing.T) {
+	t.Parallel()
+
 	gan := NewGroupActionNotifier()
 	epochStartTrigger := &epochStart.EpochStartNotifierStub{}
 	_ = gan.RegisterTrigger(epochStartTrigger)
@@ -123,6 +143,8 @@ func TestGroupNotifier_RegisterGroupActionInvalidTriggerID(t *testing.T) {
 }
 
 func TestGroupNotifier_RegisterGroupActionUnknownTrigger(t *testing.T) {
+	t.Parallel()
+
 	gan := NewGroupActionNotifier()
 	epochStartTrigger := &epochStart.EpochStartNotifierStub{}
 
@@ -132,6 +154,8 @@ func TestGroupNotifier_RegisterGroupActionUnknownTrigger(t *testing.T) {
 }
 
 func TestGroupNotifier_RegisterGroupActionAlreadyRegisteredGroup(t *testing.T) {
+	t.Parallel()
+
 	gan := NewGroupActionNotifier()
 	epochStartTrigger := &epochStart.EpochStartNotifierStub{}
 	_ = gan.RegisterTrigger(epochStartTrigger)
@@ -143,6 +167,8 @@ func TestGroupNotifier_RegisterGroupActionAlreadyRegisteredGroup(t *testing.T) {
 }
 
 func TestGroupNotifier_RegisterGroupActionTwoGroupsSameTrigger(t *testing.T) {
+	t.Parallel()
+
 	gan := NewGroupActionNotifier()
 	epochStartTrigger := &epochStart.EpochStartNotifierStub{}
 	_ = gan.RegisterTrigger(epochStartTrigger)
@@ -157,6 +183,8 @@ func TestGroupNotifier_RegisterGroupActionTwoGroupsSameTrigger(t *testing.T) {
 }
 
 func TestGroupNotifier_notifyGroupsForTriggerNoGroupRegisteredShouldNotPanic(t *testing.T) {
+	t.Parallel()
+
 	defer func() {
 		r := recover()
 		if r != nil {
@@ -171,6 +199,8 @@ func TestGroupNotifier_notifyGroupsForTriggerNoGroupRegisteredShouldNotPanic(t *
 }
 
 func TestGroupNotifier_notifyGroupsForTriggerTriggerMissingShouldNotPanic(t *testing.T) {
+	t.Parallel()
+
 	defer func() {
 		r := recover()
 		if r != nil {
@@ -184,6 +214,8 @@ func TestGroupNotifier_notifyGroupsForTriggerTriggerMissingShouldNotPanic(t *tes
 }
 
 func TestGroupNotifier_notifyGroupsForTriggerOneGroup(t *testing.T) {
+	t.Parallel()
+
 	gan := NewGroupActionNotifier()
 	epochStartTrigger := &epochStart.EpochStartNotifierStub{}
 	_ = gan.RegisterTrigger(epochStartTrigger)
@@ -204,6 +236,8 @@ func TestGroupNotifier_notifyGroupsForTriggerOneGroup(t *testing.T) {
 }
 
 func TestGroupNotifier_notifyGroupsForTriggerTwoGroups(t *testing.T) {
+	t.Parallel()
+
 	gan := NewGroupActionNotifier()
 	epochStartTrigger := &epochStart.EpochStartNotifierStub{}
 	_ = gan.RegisterTrigger(epochStartTrigger)
@@ -240,6 +274,8 @@ func TestGroupNotifier_notifyGroupsForTriggerTwoGroups(t *testing.T) {
 }
 
 func TestGroupNotifier_notifyGroupsForTriggerHandleActionOneFailed(t *testing.T) {
+	t.Parallel()
+
 	gan := NewGroupActionNotifier()
 	epochStartTrigger := &epochStart.EpochStartNotifierStub{}
 	_ = gan.RegisterTrigger(epochStartTrigger)
@@ -276,6 +312,8 @@ func TestGroupNotifier_notifyGroupsForTriggerHandleActionOneFailed(t *testing.T)
 }
 
 func TestGroupNotifier_CloseNoEventNoGroup(t *testing.T) {
+	t.Parallel()
+
 	gan1 := NewGroupActionNotifier()
 	gan2 := NewGroupActionNotifier()
 
@@ -285,6 +323,8 @@ func TestGroupNotifier_CloseNoEventNoGroup(t *testing.T) {
 }
 
 func TestGroupNotifier_CloseOneEventNoGroup(t *testing.T) {
+	t.Parallel()
+
 	gan1 := NewGroupActionNotifier()
 	gan2 := NewGroupActionNotifier()
 
@@ -303,6 +343,8 @@ func TestGroupNotifier_CloseOneEventNoGroup(t *testing.T) {
 }
 
 func TestGroupNotifier_CloseOneEventOneGroup(t *testing.T) {
+	t.Parallel()
+
 	gan1 := NewGroupActionNotifier()
 	gan2 := NewGroupActionNotifier()
 
@@ -328,6 +370,8 @@ func TestGroupNotifier_CloseOneEventOneGroup(t *testing.T) {
 }
 
 func TestGroupNotifier_CloseTwoEventsTwoGroups(t *testing.T) {
+	t.Parallel()
+
 	gan1 := NewGroupActionNotifier()
 	gan2 := NewGroupActionNotifier()
 
@@ -380,6 +424,8 @@ func TestGroupNotifier_CloseTwoEventsTwoGroups(t *testing.T) {
 }
 
 func TestGroupNotifier_getOrderedGroupsKeys(t *testing.T) {
+	t.Parallel()
+
 	groups := make(map[string]groupTypes.GroupActionHandler)
 
 	for i := 0; i < 9; i++ {
