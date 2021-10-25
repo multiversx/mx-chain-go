@@ -915,7 +915,7 @@ func TestScrsPreprocessor_ProcessBlockTransactionsShouldWork(t *testing.T) {
 
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	scrPrepoc, _ := NewSmartContractResultPreprocessor(
+	scrPreproc, _ := NewSmartContractResultPreprocessor(
 		tdp.UnsignedTransactions(),
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
@@ -952,16 +952,16 @@ func TestScrsPreprocessor_ProcessBlockTransactionsShouldWork(t *testing.T) {
 
 	body.MiniBlocks = append(body.MiniBlocks, &miniblock)
 
-	scrPrepoc.AddScrHashToRequestedList([]byte("txHash"))
+	scrPreproc.AddScrHashToRequestedList([]byte("txHash"))
 	txshardInfo := txShardInfo{0, 0}
 	scr := smartContractResult.SmartContractResult{
 		Nonce: 1,
 		Data:  []byte("tx"),
 	}
 
-	scrPrepoc.scrForBlock.txHashAndInfo["txHash"] = &txInfo{&scr, &txshardInfo}
+	scrPreproc.scrForBlock.txHashAndInfo["txHash"] = &txInfo{&scr, &txshardInfo}
 
-	err := scrPrepoc.ProcessBlockTransactions(body, haveTimeTrue)
+	err := scrPreproc.ProcessBlockTransactions(body, haveTimeTrue)
 
 	assert.Nil(t, err)
 }
@@ -971,7 +971,7 @@ func TestScrsPreprocessor_ProcessBlockTransactionsShouldErrMaxGasLimitPerBlockIn
 
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	scrPrepoc, _ := NewSmartContractResultPreprocessor(
+	scrPreproc, _ := NewSmartContractResultPreprocessor(
 		tdp.UnsignedTransactions(),
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
@@ -1012,21 +1012,21 @@ func TestScrsPreprocessor_ProcessBlockTransactionsShouldErrMaxGasLimitPerBlockIn
 
 	body.MiniBlocks = append(body.MiniBlocks, &miniblock)
 
-	scrPrepoc.AddScrHashToRequestedList([]byte("txHash"))
+	scrPreproc.AddScrHashToRequestedList([]byte("txHash"))
 	txshardInfo := txShardInfo{0, 0}
 	scr := smartContractResult.SmartContractResult{
 		Nonce: 1,
 		Data:  []byte("tx"),
 	}
 
-	scrPrepoc.scrForBlock.txHashAndInfo["txHash"] = &txInfo{&scr, &txshardInfo}
+	scrPreproc.scrForBlock.txHashAndInfo["txHash"] = &txInfo{&scr, &txshardInfo}
 
-	err := scrPrepoc.ProcessBlockTransactions(body, haveTimeTrue)
+	err := scrPreproc.ProcessBlockTransactions(body, haveTimeTrue)
 	assert.Nil(t, err)
 
-	scrPrepoc.EpochConfirmed(2, 0)
+	scrPreproc.EpochConfirmed(2, 0)
 
-	err = scrPrepoc.ProcessBlockTransactions(body, haveTimeTrue)
+	err = scrPreproc.ProcessBlockTransactions(body, haveTimeTrue)
 	assert.Equal(t, process.ErrMaxGasLimitPerBlockInSelfShardIsReached, err)
 }
 
