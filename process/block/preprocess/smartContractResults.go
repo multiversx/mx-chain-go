@@ -267,22 +267,24 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 				return process.ErrWrongTypeAssertion
 			}
 
-			err := scr.computeGasConsumed(
-				miniBlock.SenderShardID,
-				miniBlock.ReceiverShardID,
-				currScr,
-				txHash,
-				&gasConsumedByMiniBlockInSenderShard,
-				&gasConsumedByMiniBlockInReceiverShard,
-				&totalGasConsumedInSelfShard)
+			if scr.flagOptimizeGasUsedInCrossMiniBlocks.IsSet() {
+				err := scr.computeGasConsumed(
+					miniBlock.SenderShardID,
+					miniBlock.ReceiverShardID,
+					currScr,
+					txHash,
+					&gasConsumedByMiniBlockInSenderShard,
+					&gasConsumedByMiniBlockInReceiverShard,
+					&totalGasConsumedInSelfShard)
 
-			if err != nil {
-				return err
+				if err != nil {
+					return err
+				}
 			}
 
 			scr.saveAccountBalanceForAddress(currScr.GetRcvAddr())
 
-			_, err = scr.scrProcessor.ProcessSmartContractResult(currScr)
+			_, err := scr.scrProcessor.ProcessSmartContractResult(currScr)
 			if err != nil {
 				return err
 			}
