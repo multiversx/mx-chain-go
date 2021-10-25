@@ -122,6 +122,7 @@ type AccountsAdapter interface {
 	GetAllLeaves(rootHash []byte) (chan core.KeyValueHolder, error)
 	RecreateAllTries(rootHash []byte) (map[string]common.Trie, error)
 	GetTrie(rootHash []byte) (common.Trie, error)
+	GetStackDebugFirstEntry() []byte
 	Close() error
 	IsInterfaceNil() bool
 }

@@ -210,6 +210,11 @@ func (as *AccountsStub) CommitInEpoch(currentEpoch uint32, epochToCommit uint32)
 	return nil, nil
 }
 
+// GetStackDebugFirstEntry -
+func (as *AccountsStub) GetStackDebugFirstEntry() []byte {
+	return nil
+}
+
 // Close -
 func (as *AccountsStub) Close() error {
 	return nil
