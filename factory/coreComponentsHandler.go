@@ -139,7 +139,8 @@ func (mcc *managedCoreComponents) CheckSubcomponents() error {
 	if check.IfNil(mcc.nodesSetupHandler) {
 		return errors.ErrNilNodesConfig
 	}
-	if check.IfNil(mcc.roundHandler) {
+	if check.IfNil(mcc.epochNotifier) {
+		return errors.ErrNilEpochNotifier
 	}
 	if len(mcc.chainID) == 0 {
 		return errors.ErrInvalidChainID
