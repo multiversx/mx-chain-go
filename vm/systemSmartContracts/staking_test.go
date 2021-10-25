@@ -2546,6 +2546,71 @@ func TestStakingSc_InsertAfterLastJailedAfterFixWithEmptyQueue(t *testing.T) {
 	assert.Equal(t, 0, len(firstElement.NextKey))
 }
 
+func TestStakingSc_getWaitingListRegisterNonceAndRewardAddressWhenLentghIsHigherThanOne(t *testing.T) {
+	t.Parallel()
+
+	blockChainHook := &mock.BlockChainHookStub{}
+	marshalizer := &marshal.JsonMarshalizer{}
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
+	m := make(map[string]interface{})
+	waitingListHead := &WaitingList{nil, nil, 0, nil}
+	m[waitingListHeadKey] = waitingListHead
+
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
+		obj, found := m[string(index)]
+		if found {
+			return marshalizer.Marshal(obj)
+		}
+
+		return nil, nil
+	}
+
+	args := createMockStakingScArguments()
+	args.Marshalizer = marshalizer
+	args.Eei = eei
+	stakingAccessAddress := []byte("stakingAccessAddress")
+	args.StakingAccessAddr = stakingAccessAddress
+	args.StakingSCConfig.MaxNumberOfNodesForStake = 2
+	sc, _ := NewStakingSmartContract(args)
+	sc.flagCorrectFirstQueued.Set()
+	stakerAddress := []byte("stakerAddr")
+
+	waitingBlsKeys := [][]byte{
+		[]byte("waitingBlsKey1"),
+		[]byte("waitingBlsKey2"),
+		[]byte("waitingBlsKey3"),
+	}
+	doStake(t, sc, stakingAccessAddress, stakerAddress, []byte("eligibleBlsKey1"))
+	doStake(t, sc, stakingAccessAddress, stakerAddress, []byte("eligibleBlsKey2"))
+	for _, waitingKey := range waitingBlsKeys {
+		doStake(t, sc, stakingAccessAddress, stakerAddress, waitingKey)
+	}
+
+	// manually alter the length
+	buff := eei.GetStorage([]byte(waitingListHeadKey))
+	existingWaitingListHead := &WaitingList{}
+	err := marshalizer.Unmarshal(existingWaitingListHead, buff)
+	require.Nil(t, err)
+	existingWaitingListHead.Length++
+	buff, err = marshalizer.Marshal(existingWaitingListHead)
+	require.Nil(t, err)
+	eei.SetStorage([]byte(waitingListHeadKey), buff)
+
+	eei.output = make([][]byte, 0)
+
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "getQueueRegisterNonceAndRewardAddress"
+	arguments.CallerAddr = stakingAccessAddress
+	arguments.Arguments = make([][]byte, 0)
+
+	retCode := sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+	assert.Equal(t, 3*len(waitingBlsKeys), len(eei.output))
+	for i, waitingKey := range waitingBlsKeys {
+		assert.Equal(t, waitingKey, eei.output[i*3])
+	}
+}
+
 func doUnStakeAtEndOfEpoch(t *testing.T, sc *stakingSC, blsKey []byte, expectedReturnCode vmcommon.ReturnCode) {
 	arguments := CreateVmContractCallInput()
 	arguments.CallerAddr = sc.endOfEpochAccessAddr

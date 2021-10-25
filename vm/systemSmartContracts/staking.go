@@ -1063,6 +1063,9 @@ func (s *stakingSC) searchPreviousFromHead(waitingList *WaitingList, inWaitingLi
 		}
 		index++
 		nextKey = make([]byte, len(element.NextKey))
+		if len(element.NextKey) == 0 {
+			break
+		}
 		copy(nextKey, element.NextKey)
 	}
 	return nil, vm.ErrElementNotFound
@@ -1939,10 +1942,8 @@ func (s *stakingSC) fixWaitingListQueueSize(args *vmcommon.ContractCallInput) vm
 		return vmcommon.UserError
 	}
 
-	if waitingListHead.Length == 0 {
-		waitingListHead.Length = 0
-
-		return s.saveWaitingListReturningErrorCode(waitingListHead)
+	if waitingListHead.Length <= 1 {
+		return vmcommon.Ok
 	}
 
 	index := uint32(1)
