@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -909,12 +910,12 @@ func TestScrsPreprocessor_SaveTxsToStorageMissingTransactionsShouldErr(t *testin
 	assert.Equal(t, process.ErrMissingTransaction, err)
 }
 
-func TestScrsPreprocessor_ProcessBlockTransactions(t *testing.T) {
+func TestScrsPreprocessor_ProcessBlockTransactionsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	scr, _ := NewSmartContractResultPreprocessor(
+	scrPrepoc, _ := NewSmartContractResultPreprocessor(
 		tdp.UnsignedTransactions(),
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
@@ -951,18 +952,78 @@ func TestScrsPreprocessor_ProcessBlockTransactions(t *testing.T) {
 
 	body.MiniBlocks = append(body.MiniBlocks, &miniblock)
 
-	scr.AddScrHashToRequestedList([]byte("txHash"))
+	scrPrepoc.AddScrHashToRequestedList([]byte("txHash"))
 	txshardInfo := txShardInfo{0, 0}
-	smartcr := smartContractResult.SmartContractResult{
+	scr := smartContractResult.SmartContractResult{
 		Nonce: 1,
 		Data:  []byte("tx"),
 	}
 
-	scr.scrForBlock.txHashAndInfo["txHash"] = &txInfo{&smartcr, &txshardInfo}
+	scrPrepoc.scrForBlock.txHashAndInfo["txHash"] = &txInfo{&scr, &txshardInfo}
 
-	err := scr.ProcessBlockTransactions(body, haveTimeTrue)
+	err := scrPrepoc.ProcessBlockTransactions(body, haveTimeTrue)
 
 	assert.Nil(t, err)
+}
+
+func TestScrsPreprocessor_ProcessBlockTransactionsShouldErrMaxGasLimitPerBlockInSelfShardIsReached(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
+	scrPrepoc, _ := NewSmartContractResultPreprocessor(
+		tdp.UnsignedTransactions(),
+		&mock.ChainStorerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&testscommon.TxProcessorMock{
+			ProcessSmartContractResultCalled: func(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error) {
+				return 0, nil
+			},
+		},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&stateMock.AccountsStub{},
+		requestTransaction,
+		&mock.GasHandlerMock{
+			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+				return 0, MaxGasLimitPerBlock + 1, nil
+			},
+		},
+		feeHandlerMock(),
+		createMockPubkeyConverter(),
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
+		&mock.EpochNotifierStub{},
+		2,
+	)
+
+	body := &block.Body{}
+
+	txHash := []byte("txHash")
+	txHashes := make([][]byte, 0)
+	txHashes = append(txHashes, txHash)
+
+	miniblock := block.MiniBlock{
+		ReceiverShardID: 0,
+		SenderShardID:   1,
+		TxHashes:        txHashes,
+		Type:            block.SmartContractResultBlock,
+	}
+
+	body.MiniBlocks = append(body.MiniBlocks, &miniblock)
+
+	scrPrepoc.AddScrHashToRequestedList([]byte("txHash"))
+	txshardInfo := txShardInfo{0, 0}
+	scr := smartContractResult.SmartContractResult{
+		Nonce: 1,
+		Data:  []byte("tx"),
+	}
+
+	scrPrepoc.scrForBlock.txHashAndInfo["txHash"] = &txInfo{&scr, &txshardInfo}
+
+	err := scrPrepoc.ProcessBlockTransactions(body, haveTimeTrue)
+
+	assert.Equal(t, process.ErrMaxGasLimitPerBlockInSelfShardIsReached, err)
 }
 
 func TestScrsPreprocessor_ProcessMiniBlock(t *testing.T) {
@@ -1196,7 +1257,7 @@ func TestSmartContractResults_GetAllCurrentUsedTxs(t *testing.T) {
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 
-	scr, _ := NewSmartContractResultPreprocessor(
+	scrPreproc, _ := NewSmartContractResultPreprocessor(
 		tdp.UnsignedTransactions(),
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
@@ -1215,12 +1276,12 @@ func TestSmartContractResults_GetAllCurrentUsedTxs(t *testing.T) {
 	)
 
 	txshardInfo := txShardInfo{0, 3}
-	smartcr := smartContractResult.SmartContractResult{
+	scr := smartContractResult.SmartContractResult{
 		Nonce: 1,
 		Data:  []byte("tx"),
 	}
-	scr.scrForBlock.txHashAndInfo["txHash"] = &txInfo{&smartcr, &txshardInfo}
+	scrPreproc.scrForBlock.txHashAndInfo["txHash"] = &txInfo{&scr, &txshardInfo}
 
-	retMap := scr.GetAllCurrentUsedTxs()
+	retMap := scrPreproc.GetAllCurrentUsedTxs()
 	assert.NotNil(t, retMap)
 }
