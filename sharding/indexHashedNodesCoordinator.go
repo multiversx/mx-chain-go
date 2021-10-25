@@ -534,7 +534,7 @@ func (ihgs *indexHashedNodesCoordinator) GetValidatorsIndexes(
 	return signersIndexes, nil
 }
 
-// EpochStartPrepare is called when an epoch start event is observed, but not yet confirmed/committed.
+// Prepare is called when an epoch start event is observed, but not yet confirmed/committed.
 // Some components may need to do some initialisation on this event
 func (ihgs *indexHashedNodesCoordinator) Prepare(metaHdr data.HeaderHandler, body data.BodyHandler) {
 	if !metaHdr.IsStartOfEpochBlock() {
@@ -797,7 +797,7 @@ func (ihgs *indexHashedNodesCoordinator) addValidatorToPreviousMap(
 	}
 }
 
-// EpochStartAction is called upon a start of epoch event.
+// Action is called upon a start of epoch event.
 // NodeCoordinator has to get the nodes assignment to shards using the shuffler.
 func (ihgs *indexHashedNodesCoordinator) Action(hdr data.HeaderHandler) {
 	newEpoch := hdr.GetEpoch()

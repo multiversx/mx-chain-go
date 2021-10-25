@@ -168,7 +168,7 @@ func (s *syncValidatorStatus) processValidatorChangesFor(metaBlock *block.MetaBl
 	if err != nil {
 		return err
 	}
-	s.nodeCoordinator.EpochStartPrepare(metaBlock, blockBody)
+	s.nodeCoordinator.Prepare(metaBlock, blockBody)
 
 	return nil
 }
