@@ -31,7 +31,7 @@ const waitingElementPrefix = "w_"
 type stakingSC struct {
 	eei                              vm.SystemEI
 	unBondPeriod                     uint64
-	stakeAccessAddr                  []byte //TODO add a viewAddress field and use it on all system SC view functions
+	stakeAccessAddr                  []byte // TODO add a viewAddress field and use it on all system SC view functions
 	jailAccessAddr                   []byte
 	endOfEpochAccessAddr             []byte
 	numRoundsWithoutBleed            uint64
@@ -225,6 +225,8 @@ func (s *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return s.cleanAdditionalQueue(args)
 	case "changeOwnerAndRewardAddress":
 		return s.changeOwnerAndRewardAddress(args)
+	case "fixWaitingListQueueSize":
+		return s.fixWaitingListQueueSize(args)
 	}
 
 	return vmcommon.UserError
@@ -1898,13 +1900,88 @@ func (s *stakingSC) getFirstElementsFromWaitingList(numNodes uint32) (*waitingLi
 		blsKeysToStake = append(blsKeysToStake, element.BLSPublicKey)
 		stakedDataList = append(stakedDataList, stakedData)
 		index++
+		if len(element.NextKey) == 0 {
+			break
+		}
 		copy(nextKey, element.NextKey)
+	}
+
+	if len(blsKeysToStake) != int(waitingListHead.Length) {
+		log.Warn("mismatch length on waiting list elements in stakingSC.getFirstElementsFromWaitingList")
 	}
 
 	waitingListData.blsKeys = blsKeysToStake
 	waitingListData.stakedDataList = stakedDataList
 	waitingListData.lastKey = nextKey
 	return waitingListData, nil
+}
+
+func (s *stakingSC) fixWaitingListQueueSize(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !s.flagCorrectFirstQueued.IsSet() {
+		s.eei.AddReturnMessage("invalid method to call")
+		return vmcommon.UserError
+	}
+
+	if args.CallValue.Cmp(zero) != 0 {
+		s.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
+		return vmcommon.UserError
+	}
+
+	err := s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.FixWaitingListSize)
+	if err != nil {
+		s.eei.AddReturnMessage("insufficient gas")
+		return vmcommon.OutOfGas
+	}
+
+	waitingListHead, err := s.getWaitingListHead()
+	if err != nil {
+		s.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	if waitingListHead.Length == 0 {
+		waitingListHead.Length = 0
+
+		return s.saveWaitingListReturningErrorCode(waitingListHead)
+	}
+
+	index := uint32(1)
+	nextKey := make([]byte, len(waitingListHead.FirstKey))
+	copy(nextKey, waitingListHead.FirstKey)
+	for len(nextKey) != 0 && index <= waitingListHead.Length {
+		element, errGet := s.getWaitingListElement(nextKey)
+		if errGet != nil {
+			s.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
+
+		_, errGet = s.getOrCreateRegisteredData(element.BLSPublicKey)
+		if errGet != nil {
+			s.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
+
+		index++
+		if len(element.NextKey) == 0 {
+			break
+		}
+		copy(nextKey, element.NextKey)
+	}
+
+	waitingListHead.Length = index
+	waitingListHead.LastKey = nextKey
+
+	return s.saveWaitingListReturningErrorCode(waitingListHead)
+}
+
+func (s *stakingSC) saveWaitingListReturningErrorCode(waitingList *WaitingList) vmcommon.ReturnCode {
+	err := s.saveWaitingListHead(waitingList)
+	if err != nil {
+		s.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
