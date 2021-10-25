@@ -2546,9 +2546,200 @@ func TestStakingSc_InsertAfterLastJailedAfterFixWithEmptyQueue(t *testing.T) {
 	assert.Equal(t, 0, len(firstElement.NextKey))
 }
 
-func TestStakingSc_getWaitingListRegisterNonceAndRewardAddressWhenLentghIsHigherThanOne(t *testing.T) {
+func TestStakingSc_getWaitingListRegisterNonceAndRewardAddressWhenLengthIsHigherThanOne(t *testing.T) {
 	t.Parallel()
 
+	waitingBlsKeys := [][]byte{
+		[]byte("waitingBlsKey1"),
+		[]byte("waitingBlsKey2"),
+		[]byte("waitingBlsKey3"),
+	}
+	sc, eei, marshalizer, stakingAccessAddress := makeWrongConfigForWaitingBlsKeysList(t, waitingBlsKeys)
+	alterWaitingListLength(t, eei, marshalizer)
+
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "getQueueRegisterNonceAndRewardAddress"
+	arguments.CallerAddr = stakingAccessAddress
+	arguments.Arguments = make([][]byte, 0)
+
+	retCode := sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+	assert.Equal(t, 3*len(waitingBlsKeys), len(eei.output))
+	for i, waitingKey := range waitingBlsKeys {
+		assert.Equal(t, waitingKey, eei.output[i*3])
+	}
+}
+
+func TestStakingSc_fixWaitingListQueueSize(t *testing.T) {
+	t.Parallel()
+
+	t.Run("inactive fix should error", func(t *testing.T) {
+		waitingBlsKeys := [][]byte{
+			[]byte("waitingBlsKey1"),
+			[]byte("waitingBlsKey2"),
+			[]byte("waitingBlsKey3"),
+		}
+		sc, eei, marshalizer, _ := makeWrongConfigForWaitingBlsKeysList(t, waitingBlsKeys)
+		alterWaitingListLength(t, eei, marshalizer)
+		sc.flagCorrectFirstQueued.Unset()
+		eei.SetGasProvided(500000000)
+
+		arguments := CreateVmContractCallInput()
+		arguments.Function = "fixWaitingListQueueSize"
+		arguments.CallerAddr = []byte("caller")
+		arguments.Arguments = make([][]byte, 0)
+		arguments.CallValue = big.NewInt(0)
+
+		retCode := sc.Execute(arguments)
+		assert.Equal(t, vmcommon.UserError, retCode)
+		assert.Equal(t, "invalid method to call", eei.returnMessage)
+	})
+	t.Run("provided value should error", func(t *testing.T) {
+		waitingBlsKeys := [][]byte{
+			[]byte("waitingBlsKey1"),
+			[]byte("waitingBlsKey2"),
+			[]byte("waitingBlsKey3"),
+		}
+		sc, eei, marshalizer, _ := makeWrongConfigForWaitingBlsKeysList(t, waitingBlsKeys)
+		alterWaitingListLength(t, eei, marshalizer)
+		eei.SetGasProvided(500000000)
+
+		arguments := CreateVmContractCallInput()
+		arguments.Function = "fixWaitingListQueueSize"
+		arguments.CallerAddr = []byte("caller")
+		arguments.Arguments = make([][]byte, 0)
+		arguments.CallValue = big.NewInt(1)
+
+		retCode := sc.Execute(arguments)
+		assert.Equal(t, vmcommon.UserError, retCode)
+		assert.Equal(t, vm.TransactionValueMustBeZero, eei.returnMessage)
+	})
+	t.Run("not enough gas should error", func(t *testing.T) {
+		waitingBlsKeys := [][]byte{
+			[]byte("waitingBlsKey1"),
+			[]byte("waitingBlsKey2"),
+			[]byte("waitingBlsKey3"),
+		}
+		sc, eei, marshalizer, _ := makeWrongConfigForWaitingBlsKeysList(t, waitingBlsKeys)
+		alterWaitingListLength(t, eei, marshalizer)
+		eei.SetGasProvided(499999999)
+
+		arguments := CreateVmContractCallInput()
+		arguments.Function = "fixWaitingListQueueSize"
+		arguments.CallerAddr = []byte("caller")
+		arguments.Arguments = make([][]byte, 0)
+		arguments.CallValue = big.NewInt(0)
+
+		retCode := sc.Execute(arguments)
+		assert.Equal(t, vmcommon.OutOfGas, retCode)
+		assert.Equal(t, "insufficient gas", eei.returnMessage)
+	})
+	t.Run("should repair", func(t *testing.T) {
+		waitingBlsKeys := [][]byte{
+			[]byte("waitingBlsKey1"),
+			[]byte("waitingBlsKey2"),
+			[]byte("waitingBlsKey3"),
+		}
+		sc, eei, marshalizer, _ := makeWrongConfigForWaitingBlsKeysList(t, waitingBlsKeys)
+		alterWaitingListLength(t, eei, marshalizer)
+		eei.SetGasProvided(500000000)
+
+		arguments := CreateVmContractCallInput()
+		arguments.Function = "fixWaitingListQueueSize"
+		arguments.CallerAddr = []byte("caller")
+		arguments.Arguments = make([][]byte, 0)
+		arguments.CallValue = big.NewInt(0)
+
+		retCode := sc.Execute(arguments)
+		assert.Equal(t, vmcommon.Ok, retCode)
+
+		buff := eei.GetStorage([]byte(waitingListHeadKey))
+		waitingListHead := &WaitingList{}
+		err := marshalizer.Unmarshal(waitingListHead, buff)
+		require.Nil(t, err)
+
+		assert.Equal(t, len(waitingBlsKeys), int(waitingListHead.Length))
+		assert.Equal(t, waitingBlsKeys[len(waitingBlsKeys)-1], waitingListHead.LastKey[2:])
+		assert.Equal(t, waitingBlsKeys[0], waitingListHead.FirstKey[2:])
+	})
+	t.Run("should not alter if repair is not needed", func(t *testing.T) {
+		waitingBlsKeys := [][]byte{
+			[]byte("waitingBlsKey1"),
+			[]byte("waitingBlsKey2"),
+			[]byte("waitingBlsKey3"),
+		}
+		sc, eei, marshalizer, _ := makeWrongConfigForWaitingBlsKeysList(t, waitingBlsKeys)
+		eei.SetGasProvided(500000000)
+
+		arguments := CreateVmContractCallInput()
+		arguments.Function = "fixWaitingListQueueSize"
+		arguments.CallerAddr = []byte("caller")
+		arguments.Arguments = make([][]byte, 0)
+		arguments.CallValue = big.NewInt(0)
+
+		retCode := sc.Execute(arguments)
+		assert.Equal(t, vmcommon.Ok, retCode)
+
+		buff := eei.GetStorage([]byte(waitingListHeadKey))
+		waitingListHead := &WaitingList{}
+		err := marshalizer.Unmarshal(waitingListHead, buff)
+		require.Nil(t, err)
+
+		assert.Equal(t, len(waitingBlsKeys), int(waitingListHead.Length))
+		assert.Equal(t, waitingBlsKeys[len(waitingBlsKeys)-1], waitingListHead.LastKey[2:])
+		assert.Equal(t, waitingBlsKeys[0], waitingListHead.FirstKey[2:])
+	})
+	t.Run("should not alter if the waiting list size is 1", func(t *testing.T) {
+		waitingBlsKeys := [][]byte{
+			[]byte("waitingBlsKey1"),
+		}
+		sc, eei, marshalizer, _ := makeWrongConfigForWaitingBlsKeysList(t, waitingBlsKeys)
+		eei.SetGasProvided(500000000)
+
+		arguments := CreateVmContractCallInput()
+		arguments.Function = "fixWaitingListQueueSize"
+		arguments.CallerAddr = []byte("caller")
+		arguments.Arguments = make([][]byte, 0)
+		arguments.CallValue = big.NewInt(0)
+
+		retCode := sc.Execute(arguments)
+		assert.Equal(t, vmcommon.Ok, retCode)
+
+		buff := eei.GetStorage([]byte(waitingListHeadKey))
+		waitingListHead := &WaitingList{}
+		err := marshalizer.Unmarshal(waitingListHead, buff)
+		require.Nil(t, err)
+
+		assert.Equal(t, len(waitingBlsKeys), int(waitingListHead.Length))
+		assert.Equal(t, waitingBlsKeys[len(waitingBlsKeys)-1], waitingListHead.LastKey[2:])
+		assert.Equal(t, waitingBlsKeys[0], waitingListHead.FirstKey[2:])
+	})
+	t.Run("should not alter if the waiting list size is 0", func(t *testing.T) {
+		waitingBlsKeys := make([][]byte, 0)
+		sc, eei, marshalizer, _ := makeWrongConfigForWaitingBlsKeysList(t, waitingBlsKeys)
+		eei.SetGasProvided(500000000)
+
+		arguments := CreateVmContractCallInput()
+		arguments.Function = "fixWaitingListQueueSize"
+		arguments.CallerAddr = []byte("caller")
+		arguments.Arguments = make([][]byte, 0)
+		arguments.CallValue = big.NewInt(0)
+
+		retCode := sc.Execute(arguments)
+		assert.Equal(t, vmcommon.Ok, retCode)
+
+		buff := eei.GetStorage([]byte(waitingListHeadKey))
+		waitingListHead := &WaitingList{}
+		err := marshalizer.Unmarshal(waitingListHead, buff)
+		require.Nil(t, err)
+
+		assert.Equal(t, len(waitingBlsKeys), int(waitingListHead.Length))
+		assert.Nil(t, waitingListHead.LastKey)
+		assert.Nil(t, waitingListHead.FirstKey)
+	})
+}
+
+func makeWrongConfigForWaitingBlsKeysList(t *testing.T, waitingBlsKeys [][]byte) (*stakingSC, *vmContext, marshal.Marshalizer, []byte) {
 	blockChainHook := &mock.BlockChainHookStub{}
 	marshalizer := &marshal.JsonMarshalizer{}
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
@@ -2571,21 +2762,24 @@ func TestStakingSc_getWaitingListRegisterNonceAndRewardAddressWhenLentghIsHigher
 	stakingAccessAddress := []byte("stakingAccessAddress")
 	args.StakingAccessAddr = stakingAccessAddress
 	args.StakingSCConfig.MaxNumberOfNodesForStake = 2
+	args.GasCost.MetaChainSystemSCsCost.FixWaitingListSize = 500000000
 	sc, _ := NewStakingSmartContract(args)
 	sc.flagCorrectFirstQueued.Set()
 	stakerAddress := []byte("stakerAddr")
 
-	waitingBlsKeys := [][]byte{
-		[]byte("waitingBlsKey1"),
-		[]byte("waitingBlsKey2"),
-		[]byte("waitingBlsKey3"),
-	}
 	doStake(t, sc, stakingAccessAddress, stakerAddress, []byte("eligibleBlsKey1"))
 	doStake(t, sc, stakingAccessAddress, stakerAddress, []byte("eligibleBlsKey2"))
 	for _, waitingKey := range waitingBlsKeys {
 		doStake(t, sc, stakingAccessAddress, stakerAddress, waitingKey)
 	}
 
+	eei.output = make([][]byte, 0)
+	eei.returnMessage = ""
+
+	return sc, eei, marshalizer, stakingAccessAddress
+}
+
+func alterWaitingListLength(t *testing.T, eei *vmContext, marshalizer marshal.Marshalizer) {
 	// manually alter the length
 	buff := eei.GetStorage([]byte(waitingListHeadKey))
 	existingWaitingListHead := &WaitingList{}
@@ -2595,20 +2789,6 @@ func TestStakingSc_getWaitingListRegisterNonceAndRewardAddressWhenLentghIsHigher
 	buff, err = marshalizer.Marshal(existingWaitingListHead)
 	require.Nil(t, err)
 	eei.SetStorage([]byte(waitingListHeadKey), buff)
-
-	eei.output = make([][]byte, 0)
-
-	arguments := CreateVmContractCallInput()
-	arguments.Function = "getQueueRegisterNonceAndRewardAddress"
-	arguments.CallerAddr = stakingAccessAddress
-	arguments.Arguments = make([][]byte, 0)
-
-	retCode := sc.Execute(arguments)
-	assert.Equal(t, vmcommon.Ok, retCode)
-	assert.Equal(t, 3*len(waitingBlsKeys), len(eei.output))
-	for i, waitingKey := range waitingBlsKeys {
-		assert.Equal(t, waitingKey, eei.output[i*3])
-	}
 }
 
 func doUnStakeAtEndOfEpoch(t *testing.T, sc *stakingSC, blsKey []byte, expectedReturnCode vmcommon.ReturnCode) {

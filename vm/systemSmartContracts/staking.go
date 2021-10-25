@@ -1061,11 +1061,12 @@ func (s *stakingSC) searchPreviousFromHead(waitingList *WaitingList, inWaitingLi
 			elementToRemove.PreviousKey = createWaitingListKey(previousElement.BLSPublicKey)
 			return previousElement, nil
 		}
-		index++
+
 		nextKey = make([]byte, len(element.NextKey))
 		if len(element.NextKey) == 0 {
 			break
 		}
+		index++
 		copy(nextKey, element.NextKey)
 	}
 	return nil, vm.ErrElementNotFound
@@ -1305,6 +1306,9 @@ func (s *stakingSC) getWaitingListIndex(args *vmcommon.ContractCallInput) vmcomm
 			return vmcommon.UserError
 		}
 
+		if len(prevElement.NextKey) == 0 {
+			break
+		}
 		index++
 		copy(nextKey, prevElement.NextKey)
 	}
@@ -1902,10 +1906,11 @@ func (s *stakingSC) getFirstElementsFromWaitingList(numNodes uint32) (*waitingLi
 
 		blsKeysToStake = append(blsKeysToStake, element.BLSPublicKey)
 		stakedDataList = append(stakedDataList, stakedData)
-		index++
+
 		if len(element.NextKey) == 0 {
 			break
 		}
+		index++
 		copy(nextKey, element.NextKey)
 	}
 
@@ -1962,10 +1967,10 @@ func (s *stakingSC) fixWaitingListQueueSize(args *vmcommon.ContractCallInput) vm
 			return vmcommon.UserError
 		}
 
-		index++
 		if len(element.NextKey) == 0 {
 			break
 		}
+		index++
 		copy(nextKey, element.NextKey)
 	}
 
