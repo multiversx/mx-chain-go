@@ -30,7 +30,7 @@ const (
 )
 
 // TODO: move this to config parameters
-const nodeCoordinatorStoredEpochs = 3
+const nodesCoordinatorStoredEpochs = 4
 
 type validatorWithShardID struct {
 	validator Validator
@@ -102,7 +102,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		return nil, err
 	}
 
-	nodesConfig := make(map[uint32]*epochNodesConfig, nodeCoordinatorStoredEpochs)
+	nodesConfig := make(map[uint32]*epochNodesConfig, nodesCoordinatorStoredEpochs)
 
 	nodesConfig[arguments.Epoch] = &epochNodesConfig{
 		nbShards:    arguments.NbShards,
@@ -801,7 +801,7 @@ func (ihgs *indexHashedNodesCoordinator) addValidatorToPreviousMap(
 // NodeCoordinator has to get the nodes assignment to shards using the shuffler.
 func (ihgs *indexHashedNodesCoordinator) Action(hdr data.HeaderHandler) {
 	newEpoch := hdr.GetEpoch()
-	epochToRemove := int32(newEpoch) - nodeCoordinatorStoredEpochs
+	epochToRemove := int32(newEpoch) - nodesCoordinatorStoredEpochs
 	needToRemove := epochToRemove >= 0
 	ihgs.currentEpoch = newEpoch
 

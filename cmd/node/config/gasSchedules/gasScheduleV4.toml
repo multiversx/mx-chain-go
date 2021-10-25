@@ -45,7 +45,7 @@
     DataCopyPerByte   = 100
     PersistPerByte    = 1000
     CompilePerByte    = 300
-    AoTPreparePerByte = 300
+    AoTPreparePerByte = 100
     GetCode           = 1000000
 
 [ElrondAPICost]
@@ -167,6 +167,7 @@
     BigIntGetSignedArgument     = 1000
     BigIntGetCallValue          = 1000
     BigIntGetExternalBalance    = 10000
+    CopyPerByteForTooBig        = 1000
 
 [CryptoAPICost]
     SHA256                 = 1000000
@@ -189,7 +190,7 @@
 
 [ManagedBufferAPICost]
     MBufferNew                   = 2000
-    MBufferNewFromBytes          = 4000
+    MBufferNewFromBytes          = 2000
     MBufferGetLength             = 2000
     MBufferGetBytes              = 2000
     MBufferGetByteSlice          = 2000
@@ -197,10 +198,10 @@
     MBufferSetBytes              = 2000
     MBufferAppend                = 2000
     MBufferAppendBytes           = 2000
-    MBufferToBigIntUnsigned      = 4000
-    MBufferToBigIntSigned        = 10000
-    MBufferFromBigIntUnsigned    = 4000
-    MBufferFromBigIntSigned      = 10000
+    MBufferToBigIntUnsigned      = 2000
+    MBufferToBigIntSigned        = 5000
+    MBufferFromBigIntUnsigned    = 2000
+    MBufferFromBigIntSigned      = 5000
     MBufferStorageStore          = 75000
     MBufferStorageLoad           = 50000
     MBufferGetArgument           = 1000
@@ -318,7 +319,7 @@
     I64Popcnt = 100
     I64Add = 5
     I64Sub = 5
-    I64Mul = 10
+    I64Mul = 5
     I64DivS = 18
     I64DivU = 18
     I64RemS = 18

@@ -67,6 +67,10 @@ func createGenesisConfig() config.EnableEpochs {
 		MetaESDTSetEnableEpoch:                      unreachableEpoch,
 		AddTokensToDelegationEnableEpoch:            unreachableEpoch,
 		MultiESDTTransferFixOnCallBackOnEnableEpoch: unreachableEpoch,
+		SenderInOutTransferEnableEpoch:              unreachableEpoch,
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: unreachableEpoch,
+		FixOOGReturnCodeEnableEpoch:                 unreachableEpoch,
+		RemoveNonUpdatedStorageEnableEpoch:          unreachableEpoch,
 	}
 }
 
@@ -396,38 +400,27 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	}
 
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
-		VmContainer:                           vmContainer,
-		ArgsParser:                            smartContract.NewArgumentParser(),
-		Hasher:                                arg.Core.Hasher(),
-		Marshalizer:                           arg.Core.InternalMarshalizer(),
-		AccountsDB:                            arg.Accounts,
-		BlockChainHook:                        vmFactoryImpl.BlockChainHookImpl(),
-		PubkeyConv:                            arg.Core.AddressPubKeyConverter(),
-		ShardCoordinator:                      arg.ShardCoordinator,
-		ScrForwarder:                          scForwarder,
-		TxFeeHandler:                          genesisFeeHandler,
-		EconomicsFee:                          genesisFeeHandler,
-		TxTypeHandler:                         txTypeHandler,
-		GasHandler:                            gasHandler,
-		GasSchedule:                           arg.GasSchedule,
-		TxLogsProcessor:                       arg.TxLogsProcessor,
-		BadTxForwarder:                        badTxInterim,
-		EpochNotifier:                         epochNotifier,
-		BuiltinEnableEpoch:                    enableEpochs.BuiltInFunctionsEnableEpoch,
-		DeployEnableEpoch:                     enableEpochs.SCDeployEnableEpoch,
-		PenalizedTooMuchGasEnableEpoch:        enableEpochs.PenalizedTooMuchGasEnableEpoch,
-		RepairCallbackEnableEpoch:             enableEpochs.RepairCallbackEnableEpoch,
-		ReturnDataToLastTransferEnableEpoch:   enableEpochs.ReturnDataToLastTransferEnableEpoch,
-		SenderInOutTransferEnableEpoch:        enableEpochs.SenderInOutTransferEnableEpoch,
-		BuiltInFunctionOnMetachainEnableEpoch: enableEpochs.BuiltInFunctionOnMetaEnableEpoch,
-		SCRSizeInvariantCheckEnableEpoch:      enableEpochs.SCRSizeInvariantCheckEnableEpoch,
-		BackwardCompSaveKeyValueEnableEpoch:   enableEpochs.BackwardCompSaveKeyValueEnableEpoch,
-		IsGenesisProcessing:                   true,
-		StakingV2EnableEpoch:                  arg.EpochConfig.EnableEpochs.StakingV2EnableEpoch,
-		VMOutputCacher:                        txcache.NewDisabledCache(),
-		ArwenChangeLocker:                     genesisArwenLocker,
-
-		IncrementSCRNonceInMultiTransferEnableEpoch: enableEpochs.IncrementSCRNonceInMultiTransferEnableEpoch,
+		VmContainer:         vmContainer,
+		ArgsParser:          smartContract.NewArgumentParser(),
+		Hasher:              arg.Core.Hasher(),
+		Marshalizer:         arg.Core.InternalMarshalizer(),
+		AccountsDB:          arg.Accounts,
+		BlockChainHook:      vmFactoryImpl.BlockChainHookImpl(),
+		PubkeyConv:          arg.Core.AddressPubKeyConverter(),
+		ShardCoordinator:    arg.ShardCoordinator,
+		ScrForwarder:        scForwarder,
+		TxFeeHandler:        genesisFeeHandler,
+		EconomicsFee:        genesisFeeHandler,
+		TxTypeHandler:       txTypeHandler,
+		GasHandler:          gasHandler,
+		GasSchedule:         arg.GasSchedule,
+		TxLogsProcessor:     arg.TxLogsProcessor,
+		BadTxForwarder:      badTxInterim,
+		EpochNotifier:       epochNotifier,
+		IsGenesisProcessing: true,
+		VMOutputCacher:      txcache.NewDisabledCache(),
+		ArwenChangeLocker:   genesisArwenLocker,
+		EnableEpochs:        enableEpochs,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -492,6 +485,8 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		disabledBlockTracker,
 		disabledBlockSizeComputationHandler,
 		disabledBalanceComputationHandler,
+		epochNotifier,
+		enableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
 	)
 	if err != nil {
 		return nil, err

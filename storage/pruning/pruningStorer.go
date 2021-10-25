@@ -450,7 +450,7 @@ func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[stri
 		log.Warn("get from removed persister",
 			"id", ps.identifier,
 			"epoch", epoch)
-		return nil, errors.New("persister does not exits")
+		return nil, errors.New("persister does not exist")
 	}
 
 	persisterToRead, closePersister, err := ps.createAndInitPersisterIfClosed(pd)

@@ -59,17 +59,19 @@ type delegation struct {
 	unJailPrice            *big.Int
 	minStakeValue          *big.Int
 
-	mutExecution                       sync.RWMutex
-	stakingV2EnableEpoch               uint32
-	stakingV2Enabled                   atomic.Flag
-	flagValidatorToDelegation          atomic.Flag
-	validatorToDelegationEnableEpoch   uint32
-	flagReDelegateBelowMinCheck        atomic.Flag
-	reDelegateBelowMinCheckEnableEpoch uint32
-	flagComputeRewardCheckpoint        atomic.Flag
-	computeRewardCheckpointEnableEpoch uint32
-	flagAddTokens                      atomic.Flag
-	addTokensEnableEpoch               uint32
+	mutExecution                                    sync.RWMutex
+	stakingV2EnableEpoch                            uint32
+	stakingV2Enabled                                atomic.Flag
+	flagValidatorToDelegation                       atomic.Flag
+	validatorToDelegationEnableEpoch                uint32
+	flagReDelegateBelowMinCheck                     atomic.Flag
+	reDelegateBelowMinCheckEnableEpoch              uint32
+	flagComputeRewardCheckpoint                     atomic.Flag
+	computeRewardCheckpointEnableEpoch              uint32
+	flagAddTokens                                   atomic.Flag
+	addTokensEnableEpoch                            uint32
+	flagDeleteDelegatorDataAfterClaimRewards        atomic.Flag
+	deleteDelegatorDataAfterClaimRewardsEnableEpoch uint32
 }
 
 // ArgsNewDelegation defines the arguments to create the delegation smart contract
@@ -148,6 +150,8 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 		computeRewardCheckpointEnableEpoch: args.EpochConfig.EnableEpochs.ComputeRewardCheckpointEnableEpoch,
 		addTokensEnableEpoch:               args.EpochConfig.EnableEpochs.AddTokensToDelegationEnableEpoch,
 		addTokensAddr:                      args.AddTokensAddress,
+		deleteDelegatorDataAfterClaimRewardsEnableEpoch: args.EpochConfig.EnableEpochs.DeleteDelegatorAfterClaimRewardsEnableEpoch,
+		flagDeleteDelegatorDataAfterClaimRewards:        atomic.Flag{},
 	}
 	log.Debug("delegation: enable epoch for delegation smart contract", "epoch", d.enableDelegationEpoch)
 	log.Debug("delegation: enable epoch for staking v2", "epoch", d.stakingV2EnableEpoch)
@@ -155,6 +159,7 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 	log.Debug("delegation: enable epoch for re-delegate below minimum check", "epoch", d.reDelegateBelowMinCheckEnableEpoch)
 	log.Debug("delegation: enable epoch for compute rewards checkpoint", "epoch", d.computeRewardCheckpointEnableEpoch)
 	log.Debug("delegation: enable epoch for adding tokens", "epoch", d.addTokensEnableEpoch)
+	log.Debug("delegation: delete delegator data after claim rewards", "epoch", d.deleteDelegatorDataAfterClaimRewardsEnableEpoch)
 
 	var okValue bool
 
@@ -1401,11 +1406,11 @@ func (d *delegation) reDelegateRewards(args *vmcommon.ContractCallInput) vmcommo
 		return vmcommon.UserError
 	}
 
-	d.createAndAddLogEntryForDelegate(args, args.CallValue, globalFund, delegator, dStatus, isNew)
-
 	delegator.TotalCumulatedRewards.Add(delegator.TotalCumulatedRewards, delegator.UnClaimedRewards)
 	delegateValue := big.NewInt(0).Set(delegator.UnClaimedRewards)
 	delegator.UnClaimedRewards.SetUint64(0)
+
+	d.createAndAddLogEntryForDelegate(args, delegateValue, globalFund, delegator, dStatus, isNew)
 
 	return d.finishDelegateUser(globalFund, delegator, dConfig, dStatus, args.CallerAddr,
 		args.RecipientAddr, delegateValue, delegateValue, false, dConfig.CheckCapOnReDelegateRewards)
@@ -1948,6 +1953,7 @@ func (d *delegation) claimRewards(args *vmcommon.ContractCallInput) vmcommon.Ret
 		return vmcommon.UserError
 	}
 
+	unclaimedRewardsBytes := delegator.UnClaimedRewards.Bytes()
 	delegator.TotalCumulatedRewards.Add(delegator.TotalCumulatedRewards, delegator.UnClaimedRewards)
 	delegator.UnClaimedRewards.SetUint64(0)
 	err = d.saveDelegatorData(args.CallerAddr, delegator)
@@ -1956,7 +1962,16 @@ func (d *delegation) claimRewards(args *vmcommon.ContractCallInput) vmcommon.Ret
 		return vmcommon.UserError
 	}
 
-	d.createAndAddLogEntry(args, delegator.UnClaimedRewards.Bytes())
+	var wasDeleted bool
+	if d.flagDeleteDelegatorDataAfterClaimRewards.IsSet() {
+		wasDeleted, err = d.deleteDelegatorOnClaimRewardsIfNeeded(args.CallerAddr, delegator)
+		if err != nil {
+			d.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
+	}
+
+	d.createAndAddLogEntry(args, unclaimedRewardsBytes, boolToSlice(wasDeleted))
 
 	return vmcommon.Ok
 }
@@ -2103,57 +2118,79 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
-	err = d.deleteDelegatorIfNeeded(args.CallerAddr, delegator)
+	var wasDeleted bool
+	wasDeleted, err = d.deleteDelegatorOnWithdrawIfNeeded(args.CallerAddr, delegator)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
-	dStatus, errGet := d.getDelegationStatus()
-	if errGet != nil {
-		d.eei.AddReturnMessage(errGet.Error())
-		return vmcommon.UserError
-	}
-
-	d.createAndAddLogEntryForWithdraw(args, actualUserUnBond, globalFund, delegator, dStatus)
+	d.createAndAddLogEntryForWithdraw(args, actualUserUnBond, globalFund, delegator, d.numUsers(), wasDeleted)
 
 	return vmcommon.Ok
 }
 
-func (d *delegation) deleteDelegatorIfNeeded(address []byte, delegator *DelegatorData) error {
-	if d.isOwner(address) {
-		return nil
+func (d *delegation) numUsers() uint64 {
+	dStatus, errGet := d.getDelegationStatus()
+	if errGet != nil {
+		return 0
 	}
+	return dStatus.NumUsers
+}
 
-	isDelegatorWithoutFunds := len(delegator.ActiveFund) == 0 && len(delegator.UnStakedFunds) == 0
-	if !isDelegatorWithoutFunds {
-		return nil
+func (d *delegation) deleteDelegatorOnWithdrawIfNeeded(address []byte, delegator *DelegatorData) (bool, error) {
+	if d.isUserWithFunds(address, delegator) {
+		return false, nil
 	}
 
 	err := d.computeAndUpdateRewards(address, delegator)
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	if delegator.UnClaimedRewards.Cmp(zero) == 0 {
-		d.eei.SetStorage(address, nil)
+	return d.deleteDelegatorIfNeeded(address, delegator)
+}
 
-		dStatus, errGet := d.getDelegationStatus()
-		if errGet != nil {
-			return errGet
-		}
-
-		if dStatus.NumUsers > 0 {
-			dStatus.NumUsers--
-		}
-
-		err = d.saveDelegationStatus(dStatus)
-		if err != nil {
-			return err
-		}
+func (d *delegation) deleteDelegatorOnClaimRewardsIfNeeded(address []byte, delegator *DelegatorData) (bool, error) {
+	if d.isUserWithFunds(address, delegator) {
+		return false, nil
 	}
 
-	return nil
+	return d.deleteDelegatorIfNeeded(address, delegator)
+}
+
+func (d *delegation) isUserWithFunds(address []byte, delegator *DelegatorData) bool {
+	if d.isOwner(address) {
+		// never delete owner
+		return true
+	}
+
+	isDelegatorWithFunds := len(delegator.ActiveFund) > 0 || len(delegator.UnStakedFunds) > 0
+	return isDelegatorWithFunds
+}
+
+func (d *delegation) deleteDelegatorIfNeeded(address []byte, delegator *DelegatorData) (bool, error) {
+	if delegator.UnClaimedRewards.Cmp(zero) > 0 {
+		return false, nil
+	}
+
+	d.eei.SetStorage(address, nil)
+
+	dStatus, errGet := d.getDelegationStatus()
+	if errGet != nil {
+		return false, errGet
+	}
+
+	if dStatus.NumUsers > 0 {
+		dStatus.NumUsers--
+	}
+
+	err := d.saveDelegationStatus(dStatus)
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 func (d *delegation) unStakeAtEndOfEpoch(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -3017,6 +3054,9 @@ func (d *delegation) EpochConfirmed(epoch uint32, _ uint64) {
 
 	d.flagAddTokens.Toggle(epoch >= d.addTokensEnableEpoch)
 	log.Debug("delegationSC: add tokens", "enabled", d.flagAddTokens.IsSet())
+
+	d.flagDeleteDelegatorDataAfterClaimRewards.Toggle(epoch >= d.deleteDelegatorDataAfterClaimRewardsEnableEpoch)
+	log.Debug("delegationSC: delete delegator data after claim rewards", "enabled", d.flagDeleteDelegatorDataAfterClaimRewards.IsSet())
 }
 
 // CanUseContract returns true if contract can be used

@@ -46,6 +46,8 @@ type stakingSC struct {
 	flagEnableStaking                atomic.Flag
 	flagStakingV2                    atomic.Flag
 	flagCorrectLastUnjailed          atomic.Flag
+	flagCorrectFirstQueued           atomic.Flag
+	correctFirstQueuedEpoch          uint32
 	correctLastUnjailedEpoch         uint32
 	stakingV2Epoch                   uint32
 	walletAddressLen                 int
@@ -132,11 +134,13 @@ func NewStakingSmartContract(
 		minNodePrice:                     minStakeValue,
 		correctLastUnjailedEpoch:         args.EpochConfig.EnableEpochs.CorrectLastUnjailedEnableEpoch,
 		validatorToDelegationEnableEpoch: args.EpochConfig.EnableEpochs.ValidatorToDelegationEnableEpoch,
+		correctFirstQueuedEpoch:          args.EpochConfig.EnableEpochs.CorrectFirstQueuedEpoch,
 	}
 	log.Debug("staking: enable epoch for stake", "epoch", reg.enableStakingEpoch)
 	log.Debug("staking: enable epoch for staking v2", "epoch", reg.stakingV2Epoch)
 	log.Debug("staking: enable epoch for correct last unjailed", "epoch", reg.correctLastUnjailedEpoch)
 	log.Debug("staking: enable epoch for validator to delegation", "epoch", reg.validatorToDelegationEnableEpoch)
+	log.Debug("staking: enable epoch for correct first queued", "epoch", reg.correctFirstQueuedEpoch)
 
 	var conversionOk bool
 	reg.stakeValue, conversionOk = big.NewInt(0).SetString(args.StakingSCConfig.GenesisNodePrice, conversionBase)
@@ -677,7 +681,7 @@ func (s *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 }
 
 func (s *stakingSC) moveFirstFromWaitingToStakedIfNeeded(blsKey []byte) (bool, error) {
-	waitingElementKey := s.createWaitingListKey(blsKey)
+	waitingElementKey := createWaitingListKey(blsKey)
 	_, err := s.getWaitingListElement(waitingElementKey)
 	if err == nil {
 		// node in waiting - remove from it - and that's it
@@ -813,7 +817,7 @@ func (s *stakingSC) isStaked(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 }
 
 func (s *stakingSC) addToWaitingList(blsKey []byte, addJailed bool) error {
-	inWaitingListKey := s.createWaitingListKey(blsKey)
+	inWaitingListKey := createWaitingListKey(blsKey)
 	marshaledData := s.eei.GetStorage(inWaitingListKey)
 	if len(marshaledData) != 0 {
 		return nil
@@ -848,7 +852,7 @@ func (s *stakingSC) addToWaitingList(blsKey []byte, addJailed bool) error {
 }
 
 func (s *stakingSC) addToEndOfTheList(waitingList *WaitingList, blsKey []byte) error {
-	inWaitingListKey := s.createWaitingListKey(blsKey)
+	inWaitingListKey := createWaitingListKey(blsKey)
 	oldLastKey := make([]byte, len(waitingList.LastKey))
 	copy(oldLastKey, waitingList.LastKey)
 
@@ -876,17 +880,30 @@ func (s *stakingSC) insertAfterLastJailed(
 	waitingList *WaitingList,
 	blsKey []byte,
 ) error {
-	inWaitingListKey := s.createWaitingListKey(blsKey)
+	inWaitingListKey := createWaitingListKey(blsKey)
 	if len(waitingList.LastJailedKey) == 0 {
-		nextKey := make([]byte, len(waitingList.FirstKey))
-		copy(nextKey, waitingList.FirstKey)
+		previousFirstKey := make([]byte, len(waitingList.FirstKey))
+		copy(previousFirstKey, waitingList.FirstKey)
 		waitingList.FirstKey = inWaitingListKey
 		waitingList.LastJailedKey = inWaitingListKey
 		elementInWaiting := &ElementInList{
 			BLSPublicKey: blsKey,
 			PreviousKey:  inWaitingListKey,
-			NextKey:      nextKey,
+			NextKey:      previousFirstKey,
 		}
+
+		if s.flagCorrectFirstQueued.IsSet() && len(previousFirstKey) > 0 {
+			previousFirstElement, err := s.getWaitingListElement(previousFirstKey)
+			if err != nil {
+				return err
+			}
+			previousFirstElement.PreviousKey = inWaitingListKey
+			err = s.saveWaitingListElement(previousFirstKey, previousFirstElement)
+			if err != nil {
+				return err
+			}
+		}
+
 		return s.saveElementAndList(inWaitingListKey, elementInWaiting, waitingList)
 	}
 
@@ -942,7 +959,7 @@ func (s *stakingSC) saveElementAndList(key []byte, element *ElementInList, waiti
 }
 
 func (s *stakingSC) removeFromWaitingList(blsKey []byte) error {
-	inWaitingListKey := s.createWaitingListKey(blsKey)
+	inWaitingListKey := createWaitingListKey(blsKey)
 	marshaledData := s.eei.GetStorage(inWaitingListKey)
 	if len(marshaledData) == 0 {
 		return nil
@@ -969,7 +986,9 @@ func (s *stakingSC) removeFromWaitingList(blsKey []byte) error {
 	}
 
 	// remove the first element
-	if bytes.Equal(elementToRemove.PreviousKey, inWaitingListKey) {
+	isFirstElementBeforeFix := !s.flagCorrectFirstQueued.IsSet() && bytes.Equal(elementToRemove.PreviousKey, inWaitingListKey)
+	isFirstElementAfterFix := s.flagCorrectFirstQueued.IsSet() && bytes.Equal(waitingList.FirstKey, inWaitingListKey)
+	if isFirstElementBeforeFix || isFirstElementAfterFix {
 		if bytes.Equal(inWaitingListKey, waitingList.LastJailedKey) {
 			waitingList.LastJailedKey = make([]byte, 0)
 		}
@@ -989,9 +1008,19 @@ func (s *stakingSC) removeFromWaitingList(blsKey []byte) error {
 		copy(waitingList.LastJailedKey, elementToRemove.PreviousKey)
 	}
 
-	previousElement, err := s.getWaitingListElement(elementToRemove.PreviousKey)
-	if err != nil {
-		return err
+	previousElement, _ := s.getWaitingListElement(elementToRemove.PreviousKey)
+	// search the other way around for the element in front
+	if s.flagCorrectFirstQueued.IsSet() && previousElement == nil {
+		previousElement, err = s.searchPreviousFromHead(waitingList, inWaitingListKey, elementToRemove)
+		if err != nil {
+			return err
+		}
+	}
+	if previousElement == nil {
+		previousElement, err = s.getWaitingListElement(elementToRemove.PreviousKey)
+		if err != nil {
+			return err
+		}
 	}
 	if len(elementToRemove.NextKey) == 0 {
 		waitingList.LastKey = elementToRemove.PreviousKey
@@ -1012,6 +1041,29 @@ func (s *stakingSC) removeFromWaitingList(blsKey []byte) error {
 		return err
 	}
 	return s.saveElementAndList(elementToRemove.PreviousKey, previousElement, waitingList)
+}
+
+func (s *stakingSC) searchPreviousFromHead(waitingList *WaitingList, inWaitingListKey []byte, elementToRemove *ElementInList) (*ElementInList, error) {
+	var previousElement *ElementInList
+	index := uint32(1)
+	nextKey := make([]byte, len(waitingList.FirstKey))
+	copy(nextKey, waitingList.FirstKey)
+	for len(nextKey) != 0 && index <= waitingList.Length {
+		element, errGet := s.getWaitingListElement(nextKey)
+		if errGet != nil {
+			return nil, errGet
+		}
+
+		if bytes.Equal(inWaitingListKey, element.NextKey) {
+			previousElement = element
+			elementToRemove.PreviousKey = createWaitingListKey(previousElement.BLSPublicKey)
+			return previousElement, nil
+		}
+		index++
+		nextKey = make([]byte, len(element.NextKey))
+		copy(nextKey, element.NextKey)
+	}
+	return nil, vm.ErrElementNotFound
 }
 
 func (s *stakingSC) getWaitingListElement(key []byte) (*ElementInList, error) {
@@ -1069,7 +1121,7 @@ func (s *stakingSC) saveWaitingListHead(waitingList *WaitingList) error {
 	return nil
 }
 
-func (s *stakingSC) createWaitingListKey(blsKey []byte) []byte {
+func createWaitingListKey(blsKey []byte) []byte {
 	return []byte(waitingElementPrefix + string(blsKey))
 }
 
@@ -1205,7 +1257,7 @@ func (s *stakingSC) getWaitingListIndex(args *vmcommon.ContractCallInput) vmcomm
 		return vmcommon.UserError
 	}
 
-	waitingElementKey := s.createWaitingListKey(args.Arguments[0])
+	waitingElementKey := createWaitingListKey(args.Arguments[0])
 	_, err := s.getWaitingListElement(waitingElementKey)
 	if err != nil {
 		s.eei.AddReturnMessage(err.Error())
@@ -1868,6 +1920,9 @@ func (s *stakingSC) EpochConfirmed(epoch uint32, _ uint64) {
 
 	s.flagValidatorToDelegation.Toggle(epoch >= s.validatorToDelegationEnableEpoch)
 	log.Debug("stakingSC: validator to delegation", "enabled", s.flagValidatorToDelegation.IsSet())
+
+	s.flagCorrectFirstQueued.Toggle(epoch >= s.correctFirstQueuedEpoch)
+	log.Debug("stakingSC: correct first queued", "enabled", s.flagCorrectFirstQueued.IsSet())
 }
 
 // CanUseContract returns true if contract can be used

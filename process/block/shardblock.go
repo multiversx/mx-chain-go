@@ -84,6 +84,8 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		vmContainerFactory:            arguments.VMContainersFactory,
 		vmContainer:                   arguments.VmContainer,
 		processDataTriesOnCommitEpoch: arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
+		gasConsumedProvider:           arguments.GasHandler,
+		economicsData:                 arguments.CoreComponents.EconomicsData(),
 	}
 
 	sp := shardProcessor{
@@ -219,6 +221,7 @@ func (sp *shardProcessor) ProcessBlock(
 	}
 
 	if sp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
+		log.Error("shardProcessor.ProcessBlock first entry", "stack", string(sp.accountsDB[state.UserAccountsState].GetStackDebugFirstEntry()))
 		return process.ErrAccountStateDirty
 	}
 
@@ -589,11 +592,22 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		return
 	}
 
+	gasConsumedInHeader := sp.baseProcessor.gasConsumedProvider.TotalGasConsumed()
+	gasPenalizedInheader := sp.baseProcessor.gasConsumedProvider.TotalGasPenalized()
+	gasRefundedInHeader := sp.baseProcessor.gasConsumedProvider.TotalGasRefunded()
+	maxGasInHeader := sp.baseProcessor.economicsData.MaxGasLimitPerBlock(sp.shardCoordinator.SelfId())
+
 	args := &indexer.ArgsSaveBlockData{
-		HeaderHash:             headerHash,
-		Body:                   body,
-		Header:                 header,
-		SignersIndexes:         signersIndexes,
+		HeaderHash:     headerHash,
+		Body:           body,
+		Header:         header,
+		SignersIndexes: signersIndexes,
+		HeaderGasConsumption: indexer.HeaderGasConsumption{
+			GasConsumed:    gasConsumedInHeader,
+			GasRefunded:    gasRefundedInHeader,
+			GasPenalized:   gasPenalizedInheader,
+			MaxGasPerBlock: maxGasInHeader,
+		},
 		NotarizedHeadersHashes: nil,
 		TransactionsPool:       pool,
 	}
@@ -1031,6 +1045,8 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 			sp.accountsDB[state.UserAccountsState],
 			sp.userStatePruningQueue,
 		)
+
+		sp.setFinalizedHeaderHashInIndexer(hdr.GetPrevHash())
 	}
 }
 
@@ -1683,7 +1699,10 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool) (*block.Body, e
 	var miniBlocks block.MiniBlockSlice
 
 	if sp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
-		log.Error("shardProcessor.createMiniBlocks", "error", process.ErrAccountStateDirty)
+		log.Error("shardProcessor.createMiniBlocks", "error", process.ErrAccountStateDirty,
+			"stack", string(sp.accountsDB[state.UserAccountsState].GetStackDebugFirstEntry()),
+		)
+
 		return &block.Body{MiniBlocks: miniBlocks}, nil
 	}
 

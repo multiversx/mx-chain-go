@@ -26,7 +26,7 @@ func TestNewBlockGroup(t *testing.T) {
 	})
 
 	t.Run("should work", func(t *testing.T) {
-		hg, err := groups.NewBlockGroup(&mock.Facade{})
+		hg, err := groups.NewBlockGroup(&mock.FacadeStub{})
 		require.NoError(t, err)
 		require.NotNil(t, hg)
 	})
@@ -45,7 +45,7 @@ type blockResponse struct {
 func TestGetBlockByNonce_EmptyNonceUrlParameterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetBlockByNonceCalled: func(_ uint64, _ bool) (*api.Block, error) {
 			return &api.Block{}, nil
 		},
@@ -68,7 +68,7 @@ func TestGetBlockByNonce_EmptyNonceUrlParameterShouldErr(t *testing.T) {
 func TestGetBlockByNonce_InvalidNonceShouldErr(t *testing.T) {
 	t.Parallel()
 
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetBlockByNonceCalled: func(_ uint64, _ bool) (*api.Block, error) {
 			return &api.Block{}, nil
 		},
@@ -94,7 +94,7 @@ func TestGetBlockByNonce_FacadeErrorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("local err")
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetBlockByNonceCalled: func(_ uint64, _ bool) (*api.Block, error) {
 			return nil, expectedErr
 		},
@@ -123,7 +123,7 @@ func TestGetBlockByNonce_ShouldWork(t *testing.T) {
 		Nonce: 37,
 		Round: 39,
 	}
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetBlockByNonceCalled: func(_ uint64, _ bool) (*api.Block, error) {
 			return &expectedBlock, nil
 		},
@@ -150,7 +150,7 @@ func TestGetBlockByNonce_ShouldWork(t *testing.T) {
 func TestGetBlockByHash_NoHashUrlParameterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetBlockByNonceCalled: func(_ uint64, _ bool) (*api.Block, error) {
 			return &api.Block{}, nil
 		},
@@ -174,7 +174,7 @@ func TestGetBlockByHash_FacadeErrorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("local err")
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetBlockByHashCalled: func(_ string, _ bool) (*api.Block, error) {
 			return nil, expectedErr
 		},
@@ -203,7 +203,7 @@ func TestGetBlockByHash_ShouldWork(t *testing.T) {
 		Nonce: 37,
 		Round: 39,
 	}
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetBlockByHashCalled: func(_ string, _ bool) (*api.Block, error) {
 			return &expectedBlock, nil
 		},
@@ -232,8 +232,194 @@ func getBlockRoutesConfig() config.ApiRoutesConfig {
 				Routes: []config.RouteConfig{
 					{Name: "/by-nonce/:nonce", Open: true},
 					{Name: "/by-hash/:hash", Open: true},
+					{Name: "/by-round/:round", Open: true},
 				},
 			},
 		},
 	}
+}
+
+// ---- by round
+
+func TestGetBlockByRound_WrongFacadeShouldErr(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("local err")
+	facade := mock.FacadeStub{
+		GetBlockByRoundCalled: func(_ uint64, _ bool) (*api.Block, error) {
+			return nil, expectedErr
+		},
+	}
+
+	blockGroup, err := groups.NewBlockGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(blockGroup, "block", getBlockRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/block/by-round/2", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := blockResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
+}
+
+func TestGetBlockByRound_EmptyRoundUrlParameterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	facade := mock.FacadeStub{
+		GetBlockByRoundCalled: func(_ uint64, _ bool) (*api.Block, error) {
+			return &api.Block{}, nil
+		},
+	}
+
+	blockGroup, err := groups.NewBlockGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(blockGroup, "block", getBlockRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/block/by-round", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := blockResponse{}
+	loadResponse(resp.Body, &response)
+	assert.Equal(t, http.StatusNotFound, resp.Code)
+}
+
+func TestGetBlockByRound_InvalidRoundShouldErr(t *testing.T) {
+	t.Parallel()
+
+	facade := mock.FacadeStub{
+		GetBlockByNonceCalled: func(_ uint64, _ bool) (*api.Block, error) {
+			return &api.Block{}, nil
+		},
+	}
+
+	blockGroup, err := groups.NewBlockGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(blockGroup, "block", getBlockRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/block/by-round/invalid", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := blockResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.True(t, strings.Contains(response.Error, apiErrors.ErrInvalidBlockRound.Error()))
+}
+
+func TestGetBlockByRound_FacadeErrorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("local err")
+	facade := mock.FacadeStub{
+		GetBlockByRoundCalled: func(_ uint64, _ bool) (*api.Block, error) {
+			return nil, expectedErr
+		},
+	}
+
+	blockGroup, err := groups.NewBlockGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(blockGroup, "block", getBlockRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/block/by-round/37", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := blockResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
+}
+
+func TestGetBlockByRound_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	expectedBlock := api.Block{
+		Nonce: 37,
+		Round: 39,
+	}
+	facade := mock.FacadeStub{
+		GetBlockByRoundCalled: func(_ uint64, _ bool) (*api.Block, error) {
+			return &expectedBlock, nil
+		},
+	}
+
+	blockGroup, err := groups.NewBlockGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(blockGroup, "block", getBlockRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/block/by-round/37", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := blockResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, expectedBlock, response.Data.Block)
+}
+
+func TestGetBlockByRound_WithInvalidTxs_ShouldErr(t *testing.T) {
+	t.Parallel()
+
+	facade := mock.FacadeStub{
+		GetBlockByRoundCalled: func(_ uint64, _ bool) (*api.Block, error) {
+			return &api.Block{}, nil
+		},
+	}
+
+	blockGroup, err := groups.NewBlockGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(blockGroup, "block", getBlockRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/block/by-round/37?withTxs=invalid", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := blockResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.True(t, strings.Contains(response.Error, apiErrors.ErrInvalidQueryParameter.Error()))
+}
+
+func TestGetBlockByRound_WithTxs_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	expectedBlock := api.Block{
+		Nonce: 37,
+		Round: 39,
+	}
+	facade := mock.FacadeStub{
+		GetBlockByRoundCalled: func(_ uint64, _ bool) (*api.Block, error) {
+			return &expectedBlock, nil
+		},
+	}
+
+	blockGroup, err := groups.NewBlockGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(blockGroup, "block", getBlockRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/block/by-round/37?withTxs=true", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := blockResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, expectedBlock, response.Data.Block)
 }

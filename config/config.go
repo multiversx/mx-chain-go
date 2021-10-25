@@ -124,6 +124,7 @@ type Config struct {
 	SmartContractsStorage           StorageConfig
 	SmartContractsStorageForSCQuery StorageConfig
 	TrieEpochRootHashStorage        StorageConfig
+	SmartContractsStorageSimulate   StorageConfig
 
 	BootstrapStorage StorageConfig
 	MetaBlockStorage StorageConfig
@@ -405,6 +406,7 @@ type DbLookupExtensionsConfig struct {
 	EpochByHashStorageConfig           StorageConfig
 	ResultsHashesByTxHashStorageConfig StorageConfig
 	ESDTSuppliesStorageConfig          StorageConfig
+	RoundHashStorageConfig             StorageConfig
 }
 
 // DebugConfig will hold debugging configuration

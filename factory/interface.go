@@ -124,6 +124,7 @@ type CoreComponentsHolder interface {
 	TxVersionChecker() process.TxVersionCheckerHandler
 	EncodedAddressLen() uint32
 	NodeTypeProvider() core.NodeTypeProviderHandler
+	ArwenChangeLocker() common.Locker
 	IsInterfaceNil() bool
 }
 
@@ -255,7 +256,6 @@ type ProcessComponentsHolder interface {
 	ImportStartHandler() update.ImportStartHandler
 	RequestedItemsHandler() dataRetriever.RequestedItemsHandler
 	NodeRedundancyHandler() consensus.NodeRedundancyHandler
-	ArwenChangeLocker() process.Locker
 	CurrentEpochProvider() process.CurrentNetworkEpochProviderHandler
 	IsInterfaceNil() bool
 }

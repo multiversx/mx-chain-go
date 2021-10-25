@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	syncGo "sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -98,7 +97,7 @@ type processComponents struct {
 	importHandler               update.ImportHandler
 	nodeRedundancyHandler       consensus.NodeRedundancyHandler
 	currentEpochProvider        dataRetriever.CurrentNetworkEpochProviderHandler
-	arwenChangeLocker           process.Locker
+	vmFactoryForTxSimulator     process.VirtualMachinesContainerFactory
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -199,8 +198,6 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 
 // Create will create and return a struct containing process components
 func (pcf *processComponentsFactory) Create() (*processComponents, error) {
-	arwenChangeLocker := &syncGo.RWMutex{}
-
 	currentEpochProvider, err := epochProviders.CreateCurrentEpochProvider(
 		pcf.config,
 		pcf.coreData.GenesisNodesSetup().GetRoundDuration(),
@@ -458,7 +455,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		Marshalizer:            pcf.coreData.InternalMarshalizer(),
 	}
 
-	blockProcessor, err := pcf.newBlockProcessor(
+	blockProcessor, vmFactoryTxSimulator, err := pcf.newBlockProcessor(
 		requestHandler,
 		forkDetector,
 		epochStartTrigger,
@@ -468,7 +465,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		blockTracker,
 		pendingMiniBlocksHandler,
 		txSimulatorProcessorArgs,
-		arwenChangeLocker,
+		pcf.coreData.ArwenChangeLocker(),
 	)
 	if err != nil {
 		return nil, err
@@ -559,7 +556,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		importHandler:               pcf.importHandler,
 		nodeRedundancyHandler:       nodeRedundancyHandler,
 		currentEpochProvider:        currentEpochProvider,
-		arwenChangeLocker:           arwenChangeLocker,
+		vmFactoryForTxSimulator:     vmFactoryTxSimulator,
 	}, nil
 }
 
@@ -836,6 +833,12 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32
 			HeaderHash: genesisBlockHash,
 			Body:       &dataBlock.Body{},
 			Header:     genesisBlockHeader,
+			HeaderGasConsumption: indexer.HeaderGasConsumption{
+				GasConsumed:    0,
+				GasRefunded:    0,
+				GasPenalized:   0,
+				MaxGasPerBlock: pcf.coreData.EconomicsData().MaxGasLimitPerBlock(core.MetachainShardId),
+			},
 		}
 		pcf.statusComponents.OutportHandler().SaveBlock(arg)
 	}
@@ -1418,5 +1421,9 @@ func (pc *processComponents) Close() error {
 	if !check.IfNil(pc.interceptorsContainer) {
 		log.LogIfError(pc.interceptorsContainer.Close())
 	}
+	if !check.IfNil(pc.vmFactoryForTxSimulator) {
+		log.LogIfError(pc.vmFactoryForTxSimulator.Close())
+	}
+
 	return nil
 }

@@ -33,7 +33,7 @@ func TestNewNetworkGroup(t *testing.T) {
 	})
 
 	t.Run("should work", func(t *testing.T) {
-		hg, err := groups.NewNetworkGroup(&mock.Facade{})
+		hg, err := groups.NewNetworkGroup(&mock.FacadeStub{})
 		require.NoError(t, err)
 		require.NotNil(t, hg)
 	})
@@ -57,7 +57,7 @@ func TestNetworkConfigMetrics_ShouldWork(t *testing.T) {
 	value := uint64(37)
 	statusMetricsProvider.SetUInt64Value(key, value)
 
-	facade := mock.Facade{}
+	facade := mock.FacadeStub{}
 	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
 		return statusMetricsProvider
 	}
@@ -87,7 +87,7 @@ func TestNetworkStatusMetrics_ShouldWork(t *testing.T) {
 	value := uint64(37)
 	statusMetricsProvider.SetUInt64Value(key, value)
 
-	facade := mock.Facade{}
+	facade := mock.FacadeStub{}
 	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
 		return statusMetricsProvider
 	}
@@ -115,7 +115,7 @@ func TestEconomicsMetrics_ShouldWork(t *testing.T) {
 	value := "12345"
 	statusMetricsProvider.SetStringValue(key, value)
 
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetTotalStakedValueHandler: func() (*api.StakeValues, error) {
 			return &api.StakeValues{
 				BaseStaked: big.NewInt(100),
@@ -151,7 +151,7 @@ func TestEconomicsMetrics_CannotGetStakeValues(t *testing.T) {
 	statusMetricsProvider.SetStringValue(key, value)
 
 	localErr := fmt.Errorf("%s", "local error")
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetTotalStakedValueHandler: func() (*api.StakeValues, error) {
 			return nil, localErr
 		},
@@ -174,7 +174,7 @@ func TestEconomicsMetrics_CannotGetStakeValues(t *testing.T) {
 
 func TestGetAllIssuedESDTs_ShouldWork(t *testing.T) {
 	tokens := []string{"tokenA", "tokenB"}
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetAllIssuedESDTsCalled: func(_ string) ([]string, error) {
 			return tokens, nil
 		},
@@ -198,7 +198,7 @@ func TestGetAllIssuedESDTs_ShouldWork(t *testing.T) {
 
 func TestGetAllIssuedESDTs_Error(t *testing.T) {
 	localErr := fmt.Errorf("%s", "local error")
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetAllIssuedESDTsCalled: func(_ string) ([]string, error) {
 			return nil, localErr
 		},
@@ -230,7 +230,7 @@ func TestDirectStakedInfo_ShouldWork(t *testing.T) {
 		Total:      "9999",
 	}
 
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetDirectStakedListHandler: func() ([]*api.DirectStakedValue, error) {
 			return []*api.DirectStakedValue{&stakedData1, &stakedData2}, nil
 		},
@@ -260,7 +260,7 @@ func directStakedFoundInResponse(response string, stakedData api.DirectStakedVal
 
 func TestDirectStakedInfo_CannotGetDirectStakedList(t *testing.T) {
 	expectedError := fmt.Errorf("%s", "expected error")
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetDirectStakedListHandler: func() ([]*api.DirectStakedValue, error) {
 			return nil, expectedError
 		},
@@ -315,7 +315,7 @@ func TestDelegatedInfo_ShouldWork(t *testing.T) {
 		TotalAsBigInt: big.NewInt(13331),
 	}
 
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetDelegatorsListHandler: func() ([]*api.Delegator, error) {
 			return []*api.Delegator{&delegator1, &delegator2}, nil
 		},
@@ -354,7 +354,7 @@ func delegatorFoundInResponse(response string, delegator api.Delegator) bool {
 
 func TestDelegatedInfo_CannotGetDelegatedList(t *testing.T) {
 	expectedError := fmt.Errorf("%s", "expected error")
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetDelegatorsListHandler: func() ([]*api.Delegator, error) {
 			return nil, expectedError
 		},
@@ -384,7 +384,7 @@ func TestGetEnableEpochs_ShouldWork(t *testing.T) {
 	value := uint64(4)
 	statusMetrics.SetUInt64Value(key, value)
 
-	facade := mock.Facade{}
+	facade := mock.FacadeStub{}
 	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
 		return statusMetrics
 	}
@@ -408,7 +408,7 @@ func TestGetEnableEpochs_ShouldWork(t *testing.T) {
 
 func TestGetESDTTotalSupply_InternalError(t *testing.T) {
 	expectedErr := errors.New("expected error")
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetTokenSupplyCalled: func(token string) (string, error) {
 			return "", expectedErr
 		},
@@ -432,7 +432,7 @@ func TestGetESDTTotalSupply_InternalError(t *testing.T) {
 }
 
 func TestGetESDTTotalSupply(t *testing.T) {
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetTokenSupplyCalled: func(token string) (string, error) {
 			return "1000", nil
 		},

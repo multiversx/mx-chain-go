@@ -8,4 +8,5 @@ import (
 type APIBlockHandler interface {
 	GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error)
 	GetBlockByHash(hash []byte, withTxs bool) (*api.Block, error)
+	GetBlockByRound(round uint64, withTxs bool) (*api.Block, error)
 }
