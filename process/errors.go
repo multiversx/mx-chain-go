@@ -994,3 +994,6 @@ var ErrResultingSCRIsTooBig = errors.New("resulting SCR is too big")
 
 // ErrNotAllowedToWriteUnderProtectedKey signals that writing under protected key is not allowed
 var ErrNotAllowedToWriteUnderProtectedKey = errors.New("not allowed to write under protected key")
+
+// ErrDuplicateRoundActivationName signals a round activation name is already taken
+var ErrDuplicateRoundActivationName = errors.New("round activation name already exists in config file")

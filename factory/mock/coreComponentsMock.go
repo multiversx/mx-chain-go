@@ -53,7 +53,6 @@ type CoreComponentsMock struct {
 	StartTime                   time.Time
 	NodeTypeProviderField       core.NodeTypeProviderHandler
 	ArwenChangeLockerInternal   common.Locker
-	RoundActivationHandlerField process.RoundActivationHandler
 }
 
 // InternalMarshalizer -
@@ -228,10 +227,6 @@ func (ccm *CoreComponentsMock) NodeTypeProvider() core.NodeTypeProviderHandler {
 // ArwenChangeLocker -
 func (ccm *CoreComponentsMock) ArwenChangeLocker() common.Locker {
 	return ccm.ArwenChangeLockerInternal
-}
-
-func (ccm *CoreComponentsMock) RoundActivationHandler() process.RoundActivationHandler {
-	return ccm.RoundActivationHandlerField
 }
 
 // IsInterfaceNil -

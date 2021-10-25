@@ -1152,7 +1152,6 @@ func (nr *nodeRunner) CreateManagedCoreComponents(
 		Config:                *nr.configs.GeneralConfig,
 		ConfigPathsHolder:     *nr.configs.ConfigurationPathsHolder,
 		EpochConfig:           *nr.configs.EpochConfig,
-		RoundConfig:           *nr.configs.RoundConfig,
 		ImportDbConfig:        *nr.configs.ImportDbConfig,
 		RatingsConfig:         *nr.configs.RatingsConfig,
 		EconomicsConfig:       *nr.configs.EconomicsConfig,

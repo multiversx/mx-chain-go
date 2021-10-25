@@ -9,6 +9,7 @@ import (
 	errorsErd "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/require"
@@ -119,6 +120,33 @@ func TestBootstrapComponentsFactory_Create_EpochStartBootstrapCreationFail(t *te
 	require.True(t, errors.Is(err, errorsErd.ErrNewEpochStartBootstrap))
 }
 
+func TestBootstrapComponents_Create_InvalidRoundActivationConfigExpectError(t *testing.T) {
+	t.Parallel()
+
+	args := getBootStrapArgs()
+	args.RoundConfig = config.RoundConfig{
+		EnableRoundsByName: []config.EnableRoundsByName{
+			{
+				Name:  "DummyName1",
+				Round: 10000,
+				Shard: 1,
+			},
+			{
+				Name:  "DummyName1",
+				Round: 10000,
+				Shard: 1,
+			},
+		},
+	}
+
+	bcf, err := factory.NewBootstrapComponentsFactory(args)
+	require.Nil(t, err)
+
+	bc, err := bcf.Create()
+	require.Equal(t, process.ErrDuplicateRoundActivationName, err)
+	require.Nil(t, bc)
+}
+
 func getBootStrapArgs() factory.BootstrapComponentsFactoryArgs {
 	coreComponents := getCoreComponents()
 	networkComponents := getNetworkComponents()
@@ -136,6 +164,15 @@ func getBootStrapArgs() factory.BootstrapComponentsFactoryArgs {
 		},
 		ImportDbConfig: config.ImportDbConfig{
 			IsImportDBMode: false,
+		},
+		RoundConfig: config.RoundConfig{
+			EnableRoundsByName: []config.EnableRoundsByName{
+				{
+					Name:  "DummyName1",
+					Round: 10000,
+					Shard: 1,
+				},
+			},
 		},
 	}
 }

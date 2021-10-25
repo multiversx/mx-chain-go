@@ -11,7 +11,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
 	"github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
+	"github.com/ElrondNetwork/elrond-go/process/roundActivation"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -25,6 +27,7 @@ import (
 type BootstrapComponentsFactoryArgs struct {
 	Config            config.Config
 	EpochConfig       config.EpochConfig
+	RoundConfig       config.RoundConfig
 	PrefConfig        config.Preferences
 	ImportDbConfig    config.ImportDbConfig
 	WorkingDir        string
@@ -36,6 +39,7 @@ type BootstrapComponentsFactoryArgs struct {
 type bootstrapComponentsFactory struct {
 	config            config.Config
 	epochConfig       config.EpochConfig
+	roundConfig       config.RoundConfig
 	prefConfig        config.Preferences
 	importDbConfig    config.ImportDbConfig
 	workingDir        string
@@ -50,6 +54,7 @@ type bootstrapComponents struct {
 	nodeType                core.NodeType
 	shardCoordinator        sharding.Coordinator
 	headerIntegrityVerifier factory.HeaderIntegrityVerifierHandler
+	roundActivationHandler  process.RoundActivationHandler
 }
 
 // NewBootstrapComponentsFactory creates an instance of bootstrapComponentsFactory
@@ -70,6 +75,7 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 	return &bootstrapComponentsFactory{
 		config:            args.Config,
 		epochConfig:       args.EpochConfig,
+		roundConfig:       args.RoundConfig,
 		prefConfig:        args.PrefConfig,
 		importDbConfig:    args.ImportDbConfig,
 		workingDir:        args.WorkingDir,
@@ -202,6 +208,11 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		return nil, err
 	}
 
+	roundActivationHandler, err := roundActivation.NewRoundActivation(bcf.coreComponents.RoundHandler(), shardCoordinator, bcf.roundConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	return &bootstrapComponents{
 		epochStartBootstrapper: epochStartBootstrapper,
 		bootstrapParamsHolder: &bootstrapParams{
@@ -210,6 +221,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		nodeType:                nodeType,
 		shardCoordinator:        shardCoordinator,
 		headerIntegrityVerifier: headerIntegrityVerifier,
+		roundActivationHandler:  roundActivationHandler,
 	}, nil
 }
 
