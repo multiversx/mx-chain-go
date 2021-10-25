@@ -9,6 +9,12 @@ const (
 	Action  TriggerStage = 1
 )
 
+// TriggerData represents the trigger data reported to subscribers
+type TriggerData struct {
+	TriggerID string
+	Data interface{}
+}
+
 // GroupActionHandler allows defining the trigger handle and adding members to the group
 type GroupActionHandler interface {
 	AddToGroup(member ActionHandler) error

@@ -280,9 +280,12 @@ func TestGroupNotifier_notifyGroupsForTriggerHandleActionOneFailed(t *testing.T)
 	epochStartTrigger := &epochStart.EpochStartNotifierStub{}
 	_ = gan.RegisterTrigger(epochStartTrigger)
 	var handleAction1Called, handleAction2Called atomic.Flag
+	var action1Trigger, action2Trigger atomic.String
 
 	group1Action := &groupActionsMocks.GroupActionStub{
 		HandleActionCalled: func(triggerData interface{}, stage groupTypes.TriggerStage) error {
+			td, _ := triggerData.(*groupTypes.TriggerData)
+			action1Trigger.Set(td.TriggerID)
 			handleAction1Called.Set()
 			return errors.New("error")
 		},
@@ -293,6 +296,8 @@ func TestGroupNotifier_notifyGroupsForTriggerHandleActionOneFailed(t *testing.T)
 
 	group2Action := &groupActionsMocks.GroupActionStub{
 		HandleActionCalled: func(triggerData interface{}, stage groupTypes.TriggerStage) error {
+			td, _ := triggerData.(*groupTypes.TriggerData)
+			action2Trigger.Set(td.TriggerID)
 			handleAction2Called.Set()
 			return nil
 		},
@@ -306,9 +311,13 @@ func TestGroupNotifier_notifyGroupsForTriggerHandleActionOneFailed(t *testing.T)
 
 	require.False(t, handleAction1Called.IsSet())
 	require.False(t, handleAction2Called.IsSet())
+	require.Equal(t, "", action1Trigger.Get())
+	require.Equal(t, "", action2Trigger.Get())
 	gan.notifyGroupsForTrigger(epochStartTrigger.GetName(), &block.Header{}, groupTypes.Prepare)
 	require.True(t, handleAction1Called.IsSet())
 	require.True(t, handleAction2Called.IsSet())
+	require.Equal(t, epochStartTrigger.GetName(), action1Trigger.Get())
+	require.Equal(t, epochStartTrigger.GetName(), action2Trigger.Get())
 }
 
 func TestGroupNotifier_CloseNoEventNoGroup(t *testing.T) {

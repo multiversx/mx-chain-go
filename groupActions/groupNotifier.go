@@ -136,7 +136,12 @@ func (gn *groupNotifier) notifyGroupsForTrigger(triggerID string, header data.He
 			continue
 		}
 
-		err := gr.HandleAction(header, stage)
+		td := &groupTypes.TriggerData{
+			TriggerID: triggerID,
+			Data: header,
+		}
+
+		err := gr.HandleAction(td, stage)
 		if err != nil {
 			log.Warn("error trigger Action", "trigger", triggerID, "group", gr.GroupID(), "error", err)
 		}
