@@ -18,7 +18,12 @@ type roundActivation struct {
 	configMap        map[string]roundInfo
 }
 
-func NewRoundActivation(roundHandler process.RoundHandler, shardCoordinator sharding.Coordinator, config config.RoundConfig) (process.RoundActivationHandler, error) {
+// NewRoundActivation creates a new round activation handler component
+func NewRoundActivation(
+	roundHandler process.RoundHandler,
+	shardCoordinator sharding.Coordinator,
+	config config.RoundConfig,
+) (process.RoundActivationHandler, error) {
 	if check.IfNil(roundHandler) {
 		return nil, process.ErrNilRoundHandler
 	}
@@ -26,7 +31,44 @@ func NewRoundActivation(roundHandler process.RoundHandler, shardCoordinator shar
 		return nil, process.ErrNilShardCoordinator
 	}
 
+	configMap, err := getConfigNamesMap(config)
+	if err != nil {
+		return nil, err
+	}
+
+	return &roundActivation{
+		roundHandler:     roundHandler,
+		shardCoordinator: shardCoordinator,
+		configMap:        configMap,
+	}, nil
+}
+
+// IsEnabled checks if the queried round flag name is enabled in the queried round
+func (ra *roundActivation) IsEnabled(name string, round uint64) bool {
+	if info, exists := ra.configMap[name]; exists {
+		return info.round == round && info.shard == ra.shardCoordinator.SelfId()
+	}
+
+	return false
+}
+
+// IsEnabledInCurrentRound checks if the queried round flag name is enabled in current round
+func (ra *roundActivation) IsEnabledInCurrentRound(name string) bool {
+	if info, exists := ra.configMap[name]; exists {
+		return info.round == uint64(ra.roundHandler.Index()) && info.shard == ra.shardCoordinator.SelfId()
+	}
+
+	return false
+}
+
+// IsInterfaceNil checks if the underlying pointer receiver is nil
+func (ra *roundActivation) IsInterfaceNil() bool {
+	return ra == nil
+}
+
+func getConfigNamesMap(config config.RoundConfig) (map[string]roundInfo, error) {
 	configMap := make(map[string]roundInfo, len(config.EnableRoundsByName))
+
 	for _, roundConfig := range config.EnableRoundsByName {
 		if _, exists := configMap[roundConfig.Name]; exists {
 			return nil, process.ErrDuplicateRoundActivationName
@@ -38,29 +80,5 @@ func NewRoundActivation(roundHandler process.RoundHandler, shardCoordinator shar
 		}
 	}
 
-	return &roundActivation{
-		roundHandler:     roundHandler,
-		shardCoordinator: shardCoordinator,
-		configMap:        configMap,
-	}, nil
-}
-
-func (ra *roundActivation) IsEnabled(name string, round uint64) bool {
-	if info, exists := ra.configMap[name]; exists {
-		return info.round == round && info.shard == ra.shardCoordinator.SelfId()
-	}
-
-	return false
-}
-
-func (ra *roundActivation) IsEnabledInCurrentRound(name string) bool {
-	if info, exists := ra.configMap[name]; exists {
-		return info.round == uint64(ra.roundHandler.Index()) && info.shard == ra.shardCoordinator.SelfId()
-	}
-
-	return false
-}
-
-func (ra *roundActivation) IsInterfaceNil() bool {
-	return ra == nil
+	return configMap, nil
 }
