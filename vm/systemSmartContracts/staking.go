@@ -1951,6 +1951,8 @@ func (s *stakingSC) fixWaitingListQueueSize(args *vmcommon.ContractCallInput) vm
 		return vmcommon.Ok
 	}
 
+	foundLastJailedKey := len(waitingListHead.LastJailedKey) == 0
+
 	index := uint32(1)
 	nextKey := make([]byte, len(waitingListHead.FirstKey))
 	copy(nextKey, waitingListHead.FirstKey)
@@ -1959,6 +1961,10 @@ func (s *stakingSC) fixWaitingListQueueSize(args *vmcommon.ContractCallInput) vm
 		if errGet != nil {
 			s.eei.AddReturnMessage(err.Error())
 			return vmcommon.UserError
+		}
+
+		if bytes.Equal(waitingListHead.LastJailedKey, nextKey) {
+			foundLastJailedKey = true
 		}
 
 		_, errGet = s.getOrCreateRegisteredData(element.BLSPublicKey)
@@ -1976,6 +1982,9 @@ func (s *stakingSC) fixWaitingListQueueSize(args *vmcommon.ContractCallInput) vm
 
 	waitingListHead.Length = index
 	waitingListHead.LastKey = nextKey
+	if !foundLastJailedKey {
+		waitingListHead.LastJailedKey = make([]byte, 0)
+	}
 
 	err = s.saveWaitingListHead(waitingListHead)
 	if err != nil {

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"math"
 	"math/big"
 	"strconv"
@@ -2737,14 +2738,83 @@ func TestStakingSc_fixWaitingListQueueSize(t *testing.T) {
 		assert.Nil(t, waitingListHead.LastKey)
 		assert.Nil(t, waitingListHead.FirstKey)
 	})
+	t.Run("should not alter lastJailedKey if exists", func(t *testing.T) {
+		lastJailedBLSString := "lastJailedKey1"
+		waitingBlsKeys := [][]byte{
+			[]byte(lastJailedBLSString),
+			[]byte("waitingBlsKey2"),
+		}
+		lastJailedKey := []byte(fmt.Sprintf("w_%s", lastJailedBLSString))
+		sc, eei, marshalizer, _ := makeWrongConfigForWaitingBlsKeysListWithLastJailed(t, waitingBlsKeys, lastJailedKey)
+		eei.SetGasProvided(500000000)
+
+		arguments := CreateVmContractCallInput()
+		arguments.Function = "fixWaitingListQueueSize"
+		arguments.CallerAddr = []byte("caller")
+		arguments.Arguments = make([][]byte, 0)
+		arguments.CallValue = big.NewInt(0)
+
+		beforeBuff := eei.GetStorage([]byte(waitingListHeadKey))
+		beforeWaitingListHead := &WaitingList{}
+		beforeErr := marshalizer.Unmarshal(beforeWaitingListHead, beforeBuff)
+		require.Nil(t, beforeErr)
+		assert.Equal(t, lastJailedKey, beforeWaitingListHead.LastJailedKey)
+
+		retCode := sc.Execute(arguments)
+		assert.Equal(t, vmcommon.Ok, retCode)
+
+		buff := eei.GetStorage([]byte(waitingListHeadKey))
+		waitingListHead := &WaitingList{}
+		err := marshalizer.Unmarshal(waitingListHead, buff)
+		require.Nil(t, err)
+
+		assert.Equal(t, len(waitingBlsKeys), int(waitingListHead.Length))
+		assert.Equal(t, lastJailedKey, waitingListHead.LastJailedKey)
+	})
+	t.Run("should alter lastJailedKey if NOT exists", func(t *testing.T) {
+		waitingBlsKeys := [][]byte{
+			[]byte("waitingBlsKey1"),
+			[]byte("waitingBlsKey2"),
+		}
+		lastJailedKey := []byte("lastJailedKey")
+		sc, eei, marshalizer, _ := makeWrongConfigForWaitingBlsKeysListWithLastJailed(t, waitingBlsKeys, lastJailedKey)
+		eei.SetGasProvided(500000000)
+
+		arguments := CreateVmContractCallInput()
+		arguments.Function = "fixWaitingListQueueSize"
+		arguments.CallerAddr = []byte("caller")
+		arguments.Arguments = make([][]byte, 0)
+		arguments.CallValue = big.NewInt(0)
+
+		beforeBuff := eei.GetStorage([]byte(waitingListHeadKey))
+		beforeWaitingListHead := &WaitingList{}
+		beforeErr := marshalizer.Unmarshal(beforeWaitingListHead, beforeBuff)
+		require.Nil(t, beforeErr)
+		assert.Equal(t, lastJailedKey, beforeWaitingListHead.LastJailedKey)
+
+		retCode := sc.Execute(arguments)
+		assert.Equal(t, vmcommon.Ok, retCode)
+
+		buff := eei.GetStorage([]byte(waitingListHeadKey))
+		waitingListHead := &WaitingList{}
+		err := marshalizer.Unmarshal(waitingListHead, buff)
+		require.Nil(t, err)
+
+		assert.Equal(t, len(waitingBlsKeys), int(waitingListHead.Length))
+		assert.Equal(t, 0, len(waitingListHead.LastJailedKey))
+	})
 }
 
 func makeWrongConfigForWaitingBlsKeysList(t *testing.T, waitingBlsKeys [][]byte) (*stakingSC, *vmContext, marshal.Marshalizer, []byte) {
+	return makeWrongConfigForWaitingBlsKeysListWithLastJailed(t, waitingBlsKeys, nil)
+}
+
+func makeWrongConfigForWaitingBlsKeysListWithLastJailed(t *testing.T, waitingBlsKeys [][]byte, lastJailedKey []byte) (*stakingSC, *vmContext, marshal.Marshalizer, []byte) {
 	blockChainHook := &mock.BlockChainHookStub{}
 	marshalizer := &marshal.JsonMarshalizer{}
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
 	m := make(map[string]interface{})
-	waitingListHead := &WaitingList{nil, nil, 0, nil}
+	waitingListHead := &WaitingList{nil, nil, 0, lastJailedKey}
 	m[waitingListHeadKey] = waitingListHead
 
 	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
