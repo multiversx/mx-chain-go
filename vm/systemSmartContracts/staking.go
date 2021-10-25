@@ -1909,7 +1909,7 @@ func (s *stakingSC) getFirstElementsFromWaitingList(numNodes uint32) (*waitingLi
 		copy(nextKey, element.NextKey)
 	}
 
-	if len(blsKeysToStake) != int(waitingListHead.Length) {
+	if numNodes >= waitingListHead.Length && len(blsKeysToStake) != int(waitingListHead.Length) {
 		log.Warn("mismatch length on waiting list elements in stakingSC.getFirstElementsFromWaitingList")
 	}
 
@@ -1972,11 +1972,7 @@ func (s *stakingSC) fixWaitingListQueueSize(args *vmcommon.ContractCallInput) vm
 	waitingListHead.Length = index
 	waitingListHead.LastKey = nextKey
 
-	return s.saveWaitingListReturningErrorCode(waitingListHead)
-}
-
-func (s *stakingSC) saveWaitingListReturningErrorCode(waitingList *WaitingList) vmcommon.ReturnCode {
-	err := s.saveWaitingListHead(waitingList)
+	err = s.saveWaitingListHead(waitingListHead)
 	if err != nil {
 		s.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
