@@ -63,8 +63,8 @@ type RequestHandler interface {
 
 // ActionHandler defines the action taken on epoch start event
 type ActionHandler interface {
-	EpochStartAction(hdr data.HeaderHandler)
-	EpochStartPrepare(metaHdr data.HeaderHandler, body data.BodyHandler)
+	Action(hdr data.HeaderHandler)
+	Prepare(metaHdr data.HeaderHandler, body data.BodyHandler)
 	NotifyOrder() uint32
 }
 

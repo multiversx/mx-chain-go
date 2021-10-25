@@ -45,7 +45,7 @@ func (esnm *EpochStartNotifierStub) NotifyAllPrepare(metaHdr data.HeaderHandler,
 	}
 
 	for _, hdl := range esnm.epochStartHdls {
-		hdl.EpochStartPrepare(metaHdr, body)
+		hdl.Prepare(metaHdr, body)
 	}
 }
 
@@ -56,7 +56,7 @@ func (esnm *EpochStartNotifierStub) NotifyAll(hdr data.HeaderHandler) {
 	}
 
 	for _, hdl := range esnm.epochStartHdls {
-		hdl.EpochStartAction(hdr)
+		hdl.Action(hdr)
 	}
 }
 
@@ -65,6 +65,11 @@ func (esnm *EpochStartNotifierStub) NotifyEpochChangeConfirmed(epoch uint32) {
 	if esnm.NotifyEpochChangeConfirmedCalled != nil {
 		esnm.NotifyEpochChangeConfirmedCalled(epoch)
 	}
+}
+
+// GetName -
+func (esnm *EpochStartNotifierStub) GetName() string {
+	return "EpochStartNotifierStub"
 }
 
 // IsInterfaceNil -

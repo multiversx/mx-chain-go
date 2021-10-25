@@ -30,6 +30,11 @@ func (desn *EpochStartNotifier) NotifyAllPrepare(_ data.HeaderHandler, _ data.Bo
 func (desn *EpochStartNotifier) NotifyAll(_ data.HeaderHandler) {
 }
 
+// GetName -
+func (desn *EpochStartNotifier) GetName() string {
+	return "disabledEpochStartNotifier"
+}
+
 // IsInterfaceNil -
 func (desn *EpochStartNotifier) IsInterfaceNil() bool {
 	return desn == nil

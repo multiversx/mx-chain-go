@@ -1141,8 +1141,8 @@ func TestIndexHashedNodesCoordinator_EpochStart(t *testing.T) {
 	ihgs.nodesConfig[epoch] = ihgs.nodesConfig[0]
 
 	body := createBlockBodyFromNodesCoordinator(ihgs, epoch)
-	ihgs.EpochStartPrepare(header, body)
-	ihgs.EpochStartAction(header)
+	ihgs.Prepare(header, body)
+	ihgs.Action(header)
 
 	validators, err := ihgs.GetAllEligibleValidatorsPublicKeys(epoch)
 	require.Nil(t, err)
@@ -1295,8 +1295,8 @@ func TestIndexHashedNodesCoordinator_EpochStartInEligible(t *testing.T) {
 		},
 	}
 	body := createBlockBodyFromNodesCoordinator(ihgs, epoch)
-	ihgs.EpochStartPrepare(header, body)
-	ihgs.EpochStartAction(header)
+	ihgs.Prepare(header, body)
+	ihgs.Action(header)
 
 	computedShardId, isValidator := ihgs.computeShardForSelfPublicKey(ihgs.nodesConfig[epoch])
 
@@ -1330,8 +1330,8 @@ func TestIndexHashedNodesCoordinator_EpochStartInWaiting(t *testing.T) {
 		},
 	}
 	body := createBlockBodyFromNodesCoordinator(ihgs, epoch)
-	ihgs.EpochStartPrepare(header, body)
-	ihgs.EpochStartAction(header)
+	ihgs.Prepare(header, body)
+	ihgs.Action(header)
 
 	computedShardId, isValidator := ihgs.computeShardForSelfPublicKey(ihgs.nodesConfig[epoch])
 	require.Equal(t, validatorShard, computedShardId)
@@ -1369,8 +1369,8 @@ func TestIndexHashedNodesCoordinator_EpochStartInLeaving(t *testing.T) {
 		},
 	}
 	body := createBlockBodyFromNodesCoordinator(ihgs, epoch)
-	ihgs.EpochStartPrepare(header, body)
-	ihgs.EpochStartAction(header)
+	ihgs.Prepare(header, body)
+	ihgs.Action(header)
 
 	computedShardId, isValidator := ihgs.computeShardForSelfPublicKey(ihgs.nodesConfig[epoch])
 	require.Equal(t, validatorShard, computedShardId)
@@ -1438,7 +1438,7 @@ func TestIndexHashedNodesCoordinator_EpochStart_EligibleSortedAscendingByIndex(t
 	ihgs.nodesConfig[epoch] = ihgs.nodesConfig[0]
 
 	body := createBlockBodyFromNodesCoordinator(ihgs, epoch)
-	ihgs.EpochStartPrepare(header, body)
+	ihgs.Prepare(header, body)
 
 	newNodesConfig := ihgs.nodesConfig[1]
 
@@ -1529,8 +1529,8 @@ func TestIndexHashedNodesCoordinator_GetSavedStateKey(t *testing.T) {
 	}
 
 	body := createBlockBodyFromNodesCoordinator(ihgs, 0)
-	ihgs.EpochStartPrepare(header, body)
-	ihgs.EpochStartAction(header)
+	ihgs.Prepare(header, body)
+	ihgs.Action(header)
 
 	key := ihgs.GetSavedStateKey()
 	require.Equal(t, []byte("rand seed"), key)
@@ -1613,8 +1613,8 @@ func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesEpoch1(t *testi
 	}
 
 	body := createBlockBodyFromNodesCoordinator(ihgs, 0)
-	ihgs.EpochStartPrepare(header, body)
-	ihgs.EpochStartAction(header)
+	ihgs.Prepare(header, body)
+	ihgs.Action(header)
 
 	nodesPrevEpoch, err := ihgs.GetAllEligibleValidatorsPublicKeys(0)
 	require.Nil(t, err)
@@ -1654,8 +1654,8 @@ func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesAfterRevertToEp
 	}
 
 	body := createBlockBodyFromNodesCoordinator(ihgs, 0)
-	ihgs.EpochStartPrepare(header, body)
-	ihgs.EpochStartAction(header)
+	ihgs.Prepare(header, body)
+	ihgs.Action(header)
 
 	body = createBlockBodyFromNodesCoordinator(ihgs, 1)
 	header = &block.MetaBlock{
@@ -1663,8 +1663,8 @@ func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesAfterRevertToEp
 		EpochStart:   block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{}}},
 		Epoch:        2,
 	}
-	ihgs.EpochStartPrepare(header, body)
-	ihgs.EpochStartAction(header)
+	ihgs.Prepare(header, body)
+	ihgs.Action(header)
 
 	body = createBlockBodyFromNodesCoordinator(ihgs, 2)
 	header = &block.MetaBlock{
@@ -1672,8 +1672,8 @@ func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesAfterRevertToEp
 		EpochStart:   block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{}}},
 		Epoch:        3,
 	}
-	ihgs.EpochStartPrepare(header, body)
-	ihgs.EpochStartAction(header)
+	ihgs.Prepare(header, body)
+	ihgs.Action(header)
 
 	nodesEpoch1, err := ihgs.GetAllEligibleValidatorsPublicKeys(1)
 	require.Nil(t, err)

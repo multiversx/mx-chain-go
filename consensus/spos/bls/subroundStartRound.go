@@ -301,12 +301,12 @@ func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error
 
 // EpochStartPrepare wis called when an epoch start event is observed, but not yet confirmed/committed.
 // Some components may need to do initialisation on this event
-func (sr *subroundStartRound) EpochStartPrepare(metaHdr data.HeaderHandler, _ data.BodyHandler) {
+func (sr *subroundStartRound) Prepare(metaHdr data.HeaderHandler, _ data.BodyHandler) {
 	log.Trace(fmt.Sprintf("epoch %d start prepare in consensus", metaHdr.GetEpoch()))
 }
 
 // EpochStartAction is called upon a start of epoch event.
-func (sr *subroundStartRound) EpochStartAction(hdr data.HeaderHandler) {
+func (sr *subroundStartRound) Action(hdr data.HeaderHandler) {
 	log.Trace(fmt.Sprintf("epoch %d start action in consensus", hdr.GetEpoch()))
 
 	sr.changeEpoch(hdr.GetEpoch())

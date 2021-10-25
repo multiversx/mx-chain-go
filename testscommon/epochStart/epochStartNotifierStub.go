@@ -1,4 +1,4 @@
-package mock
+package epochStart
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -7,11 +7,11 @@ import (
 
 // EpochStartNotifierStub -
 type EpochStartNotifierStub struct {
-	RegisterHandlerCalled            func(handler epochStart.ActionHandler)
-	UnregisterHandlerCalled          func(handler epochStart.ActionHandler)
-	NotifyAllPrepareCalled           func(hdr data.HeaderHandler, body data.BodyHandler)
-	NotifyAllCalled                  func(hdr data.HeaderHandler)
-	NotifyEpochChangeConfirmedCalled func(epoch uint32)
+	RegisterHandlerCalled   func(handler epochStart.ActionHandler)
+	UnregisterHandlerCalled func(handler epochStart.ActionHandler)
+	NotifyAllPrepareCalled  func(hdr data.HeaderHandler, body data.BodyHandler)
+	NotifyAllCalled         func(hdr data.HeaderHandler)
+	GetNameCalled           func() string
 }
 
 // RegisterHandler -
@@ -42,18 +42,13 @@ func (esnm *EpochStartNotifierStub) NotifyAll(hdr data.HeaderHandler) {
 	}
 }
 
-// NotifyEpochChangeConfirmed -
-func (esnm *EpochStartNotifierStub) NotifyEpochChangeConfirmed(epoch uint32) {
-	if esnm.NotifyEpochChangeConfirmedCalled != nil {
-		esnm.NotifyEpochChangeConfirmedCalled(epoch)
-	}
-}
-
 // GetName -
 func (esnm *EpochStartNotifierStub) GetName() string {
+	if esnm.GetNameCalled != nil {
+		return esnm.GetNameCalled()
+	}
 	return "EpochStartNotifierStub"
 }
-
 
 // IsInterfaceNil -
 func (esnm *EpochStartNotifierStub) IsInterfaceNil() bool {

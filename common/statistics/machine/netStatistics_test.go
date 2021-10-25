@@ -226,7 +226,7 @@ func TestNetStatistics_EpochStartEventHandler(t *testing.T) {
 	populateFields(ns)
 
 	handler := ns.EpochStartEventHandler()
-	handler.EpochStartAction(nil)
+	handler.Action(nil)
 
 	assert.Equal(t, uint64(0), ns.TotalBytesSentInCurrentEpoch())
 	assert.Equal(t, uint64(0), ns.TotalBytesReceivedInCurrentEpoch())

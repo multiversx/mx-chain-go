@@ -101,9 +101,9 @@ func TestOldDatabaseCleaner_EpochChangeShouldErrIfOldestEpochComputationFails(t 
 	odc.directoryReader = directoryReader
 	require.False(t, check.IfNil(odc))
 
-	handlerFunc.EpochStartAction(&block.Header{Epoch: 5})
+	handlerFunc.Action(&block.Header{Epoch: 5})
 	require.False(t, fileRemoverWasCalled)
-	handlerFunc.EpochStartAction(&block.Header{Epoch: 6})
+	handlerFunc.Action(&block.Header{Epoch: 6})
 	require.False(t, fileRemoverWasCalled)
 }
 
@@ -133,9 +133,9 @@ func TestOldDatabaseCleaner_EpochChangeDirectoryReadFailsShouldNotRemove(t *test
 	odc.directoryReader = directoryReader
 	require.False(t, check.IfNil(odc))
 
-	handlerFunc.EpochStartAction(&block.Header{Epoch: 5})
+	handlerFunc.Action(&block.Header{Epoch: 5})
 	require.False(t, fileRemoverWasCalled)
-	handlerFunc.EpochStartAction(&block.Header{Epoch: 6})
+	handlerFunc.Action(&block.Header{Epoch: 6})
 	require.False(t, fileRemoverWasCalled)
 }
 
@@ -165,9 +165,9 @@ func TestOldDatabaseCleaner_EpochChangeNoEpochDirectory(t *testing.T) {
 	odc.directoryReader = directoryReader
 	require.False(t, check.IfNil(odc))
 
-	handlerFunc.EpochStartAction(&block.Header{Epoch: 5})
+	handlerFunc.Action(&block.Header{Epoch: 5})
 	require.False(t, fileRemoverWasCalled)
-	handlerFunc.EpochStartAction(&block.Header{Epoch: 6})
+	handlerFunc.Action(&block.Header{Epoch: 6})
 	require.False(t, fileRemoverWasCalled)
 }
 
@@ -200,11 +200,11 @@ func TestOldDatabaseCleaner_EpochChangeShouldNotRemoveIfNewOldestEpochIsOlder(t 
 	odc.directoryReader = directoryReader
 	require.False(t, check.IfNil(odc))
 
-	handlerFunc.EpochStartAction(&block.Header{Epoch: 5})
+	handlerFunc.Action(&block.Header{Epoch: 5})
 	require.Empty(t, removedFiles)
 
 	odc.storageListProvider = getStorageListProviderWithOldEpoch(3)
-	handlerFunc.EpochStartAction(&block.Header{Epoch: 6})
+	handlerFunc.Action(&block.Header{Epoch: 6})
 	require.Equal(t,
 		[]string{},
 		removedFiles,
@@ -244,9 +244,9 @@ func TestOldDatabaseCleaner_EpochChange(t *testing.T) {
 	odc.directoryReader = directoryReader
 	require.False(t, check.IfNil(odc))
 
-	handlerFunc.EpochStartAction(&block.Header{Epoch: 5})
+	handlerFunc.Action(&block.Header{Epoch: 5})
 	require.Empty(t, removedFiles)
-	handlerFunc.EpochStartAction(&block.Header{Epoch: 6})
+	handlerFunc.Action(&block.Header{Epoch: 6})
 	require.Equal(t,
 		[]string{"db/D/Epoch_0", "db/D/Epoch_1"},
 		removedFiles,

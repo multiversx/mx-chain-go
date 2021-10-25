@@ -10,14 +10,14 @@ type ActionHandlerStub struct {
 }
 
 // EpochStartAction -
-func (ahs *ActionHandlerStub) EpochStartAction(hdr data.HeaderHandler) {
+func (ahs *ActionHandlerStub) Action(hdr data.HeaderHandler) {
 	if ahs.EpochStartActionCalled != nil {
 		ahs.EpochStartActionCalled(hdr)
 	}
 }
 
 // EpochStartPrepare -
-func (ahs *ActionHandlerStub) EpochStartPrepare(metaHdr data.HeaderHandler, body data.BodyHandler) {
+func (ahs *ActionHandlerStub) Prepare(metaHdr data.HeaderHandler, body data.BodyHandler) {
 	if ahs.EpochStartPrepareCalled != nil {
 		ahs.EpochStartPrepareCalled(metaHdr, body)
 	}
