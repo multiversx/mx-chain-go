@@ -208,8 +208,7 @@ func (ste *scheduledTxsExecution) getAllIntermediateTxsAfterScheduledExecution(
 		}
 
 		if ste.shardCoordinator.SameShard(txHandler.GetSndAddr(), txHandler.GetRcvAddr()) {
-			//TODO: Change this to log.Trace
-			log.Debug("scheduledTxsExecution.getAllIntermediateTxsAfterScheduledExecution: intra shard scr skipped", "hash", txHash)
+			log.Trace("scheduledTxsExecution.getAllIntermediateTxsAfterScheduledExecution: intra shard scr skipped", "hash", []byte(txHash))
 			continue
 		}
 
