@@ -113,8 +113,6 @@ type epochStartBootstrap struct {
 	latestStorageDataProvider storage.LatestStorageDataProviderHandler
 	argumentsParser           process.ArgumentsParser
 	waitingListFixEnableEpoch uint32
-	//TODO remove this after it is in production
-	oldTrieStorageCreator factory.TrieStorageCreator
 
 	// gathered data
 	epochStartMeta     *block.MetaBlock
@@ -222,14 +220,6 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		epochStartProvider.baseData.epochStartRound = uint64(epochStartProvider.startRound)
 	}
 
-	epochStartProvider.oldTrieStorageCreator, err = factory.NewOldTrieStorageCreator(
-		epochStartProvider.coreComponentsHolder.PathHandler(),
-		epochStartProvider.generalConfig,
-	)
-	if err != nil {
-		return nil, err
-	}
-
 	return epochStartProvider, nil
 }
 
@@ -289,7 +279,6 @@ func (e *epochStartBootstrap) isNodeInGenesisNodesConfig() bool {
 // Bootstrap runs the fast bootstrap method from the network or local storage
 func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	defer func() {
-		_ = e.oldTrieStorageCreator.Close()
 		e.closeTrieComponents()
 	}()
 
@@ -442,12 +431,12 @@ func (e *epochStartBootstrap) computeIfCurrentEpochIsSaved() bool {
 }
 
 func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
+	e.closeTrieComponents()
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
 		e.generalConfig,
 		e.coreComponentsHolder,
 		core.MetachainShardId,
 		disabled.NewChainStorer(),
-		e.oldTrieStorageCreator,
 	)
 	if err != nil {
 		return err
@@ -710,12 +699,12 @@ func (e *epochStartBootstrap) requestAndProcessForMeta() error {
 
 	defer storageHandlerComponent.CloseStorageService()
 
+	e.closeTrieComponents()
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
 		e.generalConfig,
 		e.coreComponentsHolder,
 		core.MetachainShardId,
 		storageHandlerComponent.storageService,
-		e.oldTrieStorageCreator,
 	)
 	if err != nil {
 		return err
@@ -830,12 +819,12 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 
 	defer storageHandlerComponent.CloseStorageService()
 
+	e.closeTrieComponents()
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
 		e.generalConfig,
 		e.coreComponentsHolder,
-		epochStartData.GetEpoch(),
+		e.shardCoordinator.SelfId(),
 		storageHandlerComponent.storageService,
-		e.oldTrieStorageCreator,
 	)
 	if err != nil {
 		return err

@@ -105,9 +105,3 @@ var ErrTrieSyncTimeout = errors.New("trie sync timeout")
 
 // ErrKeyNotFound is raised when a key is not found
 var ErrKeyNotFound = errors.New("key not found")
-
-// ErrInvalidTrieType signals that the given trie type is invalid
-var ErrInvalidTrieType = errors.New("invalid trie type")
-
-// ErrNilTrieStorageCreator is raised when a nil trie storage creator has been provided
-var ErrNilTrieStorageCreator = errors.New("nil trie storage creator")

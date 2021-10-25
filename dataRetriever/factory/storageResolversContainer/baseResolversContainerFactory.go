@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 )
 
@@ -189,15 +190,25 @@ func (brcf *baseResolversContainerFactory) createMiniBlocksResolver(responseTopi
 }
 
 func (brcf *baseResolversContainerFactory) newImportDBTrieStorage(
-	oldTrieStorageCreator trieFactory.TrieStorageCreator,
-	trieType string,
+	trieStorageConfig config.StorageConfig,
 	mainStorer storage.Storer,
 	checkpointsStorer storage.Storer,
 ) (common.StorageManager, dataRetriever.TrieDataGetter, error) {
+	pathManager, err := storageFactory.CreatePathManager(
+		storageFactory.ArgCreatePathManager{
+			WorkingDir: brcf.workingDir,
+			ChainID:    brcf.chainID,
+		},
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	trieFactoryArgs := trieFactory.TrieFactoryArgs{
-		TrieStorageCreator:       oldTrieStorageCreator,
+		SnapshotDbCfg:            brcf.generalConfig.TrieSnapshotDB,
 		Marshalizer:              brcf.marshalizer,
 		Hasher:                   brcf.hasher,
+		PathManager:              pathManager,
 		TrieStorageManagerConfig: brcf.generalConfig.TrieStorageManagerConfig,
 	}
 	trieFactoryInstance, err := trieFactory.NewTrieFactory(trieFactoryArgs)
@@ -206,7 +217,7 @@ func (brcf *baseResolversContainerFactory) newImportDBTrieStorage(
 	}
 
 	args := trieFactory.TrieCreateArgs{
-		TrieType:           trieType,
+		TrieStorageConfig:  trieStorageConfig,
 		MainStorer:         mainStorer,
 		CheckpointsStorer:  checkpointsStorer,
 		ShardID:            core.GetShardIDString(brcf.shardIDForTries),
@@ -214,6 +225,5 @@ func (brcf *baseResolversContainerFactory) newImportDBTrieStorage(
 		CheckpointsEnabled: brcf.generalConfig.StateTriesConfig.CheckpointsEnabled,
 		MaxTrieLevelInMem:  brcf.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
 	}
-
 	return trieFactoryInstance.Create(args)
 }

@@ -8,8 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/storageResolvers"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 )
 
 var _ dataRetriever.ResolversContainerFactory = (*shardResolversContainerFactory)(nil)
@@ -162,25 +160,9 @@ func (srcf *shardResolversContainerFactory) generateTrieNodesResolvers() error {
 	keys := make([]string, 0)
 	resolversSlice := make([]dataRetriever.Resolver, 0)
 
-	pathManager, err := storageFactory.CreatePathManager(
-		storageFactory.ArgCreatePathManager{
-			WorkingDir: srcf.workingDir,
-			ChainID:    srcf.chainID,
-		},
-	)
-	if err != nil {
-		return err
-	}
-
-	trieStorageCreator, err := trieFactory.NewOldTrieStorageCreator(pathManager, srcf.generalConfig)
-	if err != nil {
-		return err
-	}
-
 	identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	storageManager, userAccountsDataTrie, err := srcf.newImportDBTrieStorage(
-		trieStorageCreator,
-		trieFactory.UserAccountTrie,
+		srcf.generalConfig.AccountsTrieStorageOld,
 		srcf.store.GetStorer(dataRetriever.UserAccountsUnit),
 		srcf.store.GetStorer(dataRetriever.UserAccountsCheckpointsUnit),
 	)

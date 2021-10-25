@@ -35,12 +35,11 @@ type stateComponentsFactory struct {
 
 // stateComponents struct holds the state components of the Elrond protocol
 type stateComponents struct {
-	peerAccounts          state.AccountsAdapter
-	accountsAdapter       state.AccountsAdapter
-	accountsAdapterAPI    state.AccountsAdapter
-	triesContainer        common.TriesHolder
-	trieStorageManagers   map[string]common.StorageManager
-	oldTrieStorageCreator trieFactory.TrieStorageCreator
+	peerAccounts        state.AccountsAdapter
+	accountsAdapter     state.AccountsAdapter
+	accountsAdapterAPI  state.AccountsAdapter
+	triesContainer      common.TriesHolder
+	trieStorageManagers map[string]common.StorageManager
 }
 
 // NewStateComponentsFactory will return a new instance of stateComponentsFactory
@@ -74,17 +73,11 @@ func NewStateComponentsFactory(args StateComponentsFactoryArgs) (*stateComponent
 
 // Create creates the state components
 func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
-	oldTrieStorageCreator, err := trieFactory.NewOldTrieStorageCreator(scf.core.PathHandler(), scf.config)
-	if err != nil {
-		return nil, err
-	}
-
 	triesContainer, trieStorageManagers, err := trieFactory.CreateTriesComponentsForShardId(
 		scf.config,
 		scf.core,
 		scf.shardCoordinator.SelfId(),
 		scf.storageService,
-		oldTrieStorageCreator,
 	)
 	if err != nil {
 		return nil, err
@@ -101,12 +94,11 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 	}
 
 	return &stateComponents{
-		peerAccounts:          peerAdapter,
-		accountsAdapter:       accountsAdapter,
-		accountsAdapterAPI:    accountsAdapterAPI,
-		triesContainer:        triesContainer,
-		trieStorageManagers:   trieStorageManagers,
-		oldTrieStorageCreator: oldTrieStorageCreator,
+		peerAccounts:        peerAdapter,
+		accountsAdapter:     accountsAdapter,
+		accountsAdapterAPI:  accountsAdapterAPI,
+		triesContainer:      triesContainer,
+		trieStorageManagers: trieStorageManagers,
 	}, nil
 }
 
@@ -219,8 +211,6 @@ func (pc *stateComponents) Close() error {
 			errString += fmt.Errorf("trieStorageManager close failed: %w ", err).Error()
 		}
 	}
-
-	_ = pc.oldTrieStorageCreator.Close()
 
 	if len(errString) != 0 {
 		return fmt.Errorf("state components close failed: %s", errString)

@@ -1,6 +1,9 @@
 package factory
 
 import (
+	"path"
+	"path/filepath"
+
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
@@ -11,13 +14,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
 )
 
 // TrieCreateArgs holds arguments for calling the Create method on the TrieFactory
 type TrieCreateArgs struct {
-	TrieType           string
+	TrieStorageConfig  config.StorageConfig
 	MainStorer         storage.Storer
 	CheckpointsStorer  storage.Storer
 	ShardID            string
@@ -27,7 +32,7 @@ type TrieCreateArgs struct {
 }
 
 type trieCreator struct {
-	trieStorageCreator       TrieStorageCreator
+	snapshotDbCfg            config.DBConfig
 	marshalizer              marshal.Marshalizer
 	hasher                   hashing.Hasher
 	pathManager              storage.PathManagerHandler
@@ -46,21 +51,30 @@ func NewTrieFactory(
 	if check.IfNil(args.Hasher) {
 		return nil, trie.ErrNilHasher
 	}
-	if check.IfNil(args.TrieStorageCreator) {
-		return nil, trie.ErrNilTrieStorageCreator
+	if check.IfNil(args.PathManager) {
+		return nil, trie.ErrNilPathManager
 	}
 
 	return &trieCreator{
+		snapshotDbCfg:            args.SnapshotDbCfg,
 		marshalizer:              args.Marshalizer,
 		hasher:                   args.Hasher,
+		pathManager:              args.PathManager,
 		trieStorageManagerConfig: args.TrieStorageManagerConfig,
-		trieStorageCreator:       args.TrieStorageCreator,
 	}, nil
 }
 
 // Create creates a new trie
 func (tc *trieCreator) Create(args TrieCreateArgs) (common.StorageManager, common.Trie, error) {
-	accountsTrieStorage, err := tc.trieStorageCreator.GetStorageForShard(args.ShardID, args.TrieType)
+	trieStoragePath, mainDb := path.Split(tc.pathManager.PathForStatic(args.ShardID, args.TrieStorageConfig.DB.FilePath))
+
+	dbConfig := factory.GetDBFromConfig(args.TrieStorageConfig.DB)
+	dbConfig.FilePath = path.Join(trieStoragePath, mainDb)
+	accountsTrieStorage, err := storageUnit.NewStorageUnitFromConf(
+		factory.GetCacherFromConfig(args.TrieStorageConfig.Cache),
+		dbConfig,
+		factory.GetBloomFromConfig(args.TrieStorageConfig.Bloom),
+	)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -68,6 +82,14 @@ func (tc *trieCreator) Create(args TrieCreateArgs) (common.StorageManager, commo
 	log.Debug("trie pruning status", "enabled", args.PruningEnabled)
 	if !args.PruningEnabled {
 		return tc.newTrieAndTrieStorageWithoutPruning(accountsTrieStorage, args.MaxTrieLevelInMem)
+	}
+
+	snapshotDbCfg := config.DBConfig{
+		FilePath:          filepath.Join(trieStoragePath, tc.snapshotDbCfg.FilePath),
+		Type:              tc.snapshotDbCfg.Type,
+		BatchDelaySeconds: tc.snapshotDbCfg.BatchDelaySeconds,
+		MaxBatchSize:      tc.snapshotDbCfg.MaxBatchSize,
+		MaxOpenFiles:      tc.snapshotDbCfg.MaxOpenFiles,
 	}
 
 	checkpointHashesHolder := hashesHolder.NewCheckpointHashesHolder(
@@ -80,7 +102,7 @@ func (tc *trieCreator) Create(args TrieCreateArgs) (common.StorageManager, commo
 		CheckpointsStorer:      args.CheckpointsStorer,
 		Marshalizer:            tc.marshalizer,
 		Hasher:                 tc.hasher,
-		SnapshotDbConfig:       tc.trieStorageCreator.GetSnapshotsConfig(args.ShardID, args.TrieType),
+		SnapshotDbConfig:       snapshotDbCfg,
 		GeneralConfig:          tc.trieStorageManagerConfig,
 		CheckpointHashesHolder: checkpointHashesHolder,
 	}
@@ -155,13 +177,13 @@ func CreateTriesComponentsForShardId(
 	coreComponentsHolder coreComponentsHandler,
 	shardId uint32,
 	storageService dataRetriever.StorageService,
-	trieStorageCreator TrieStorageCreator,
 ) (common.TriesHolder, map[string]common.StorageManager, error) {
 	trieFactoryArgs := TrieFactoryArgs{
+		SnapshotDbCfg:            generalConfig.TrieSnapshotDB,
 		Marshalizer:              coreComponentsHolder.InternalMarshalizer(),
 		Hasher:                   coreComponentsHolder.Hasher(),
+		PathManager:              coreComponentsHolder.PathHandler(),
 		TrieStorageManagerConfig: generalConfig.TrieStorageManagerConfig,
-		TrieStorageCreator:       trieStorageCreator,
 	}
 	trFactory, err := NewTrieFactory(trieFactoryArgs)
 	if err != nil {
@@ -169,7 +191,7 @@ func CreateTriesComponentsForShardId(
 	}
 
 	args := TrieCreateArgs{
-		TrieType:           UserAccountTrie,
+		TrieStorageConfig:  generalConfig.AccountsTrieStorageOld,
 		MainStorer:         storageService.GetStorer(dataRetriever.UserAccountsUnit),
 		CheckpointsStorer:  storageService.GetStorer(dataRetriever.UserAccountsCheckpointsUnit),
 		ShardID:            core.GetShardIDString(shardId),
@@ -189,7 +211,7 @@ func CreateTriesComponentsForShardId(
 	trieStorageManagers[UserAccountTrie] = userStorageManager
 
 	args = TrieCreateArgs{
-		TrieType:           PeerAccountTrie,
+		TrieStorageConfig:  generalConfig.PeerAccountsTrieStorageOld,
 		MainStorer:         storageService.GetStorer(dataRetriever.PeerAccountsUnit),
 		CheckpointsStorer:  storageService.GetStorer(dataRetriever.PeerAccountsCheckpointsUnit),
 		ShardID:            core.GetShardIDString(shardId),
