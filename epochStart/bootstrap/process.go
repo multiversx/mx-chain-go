@@ -278,17 +278,13 @@ func (e *epochStartBootstrap) isNodeInGenesisNodesConfig() bool {
 
 // Bootstrap runs the fast bootstrap method from the network or local storage
 func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
-	defer func() {
-		e.closeTrieComponents()
-	}()
+	defer e.closeTrieComponents()
 
 	if !e.generalConfig.GeneralSettings.StartInEpochEnabled {
 		return e.bootstrapFromLocalStorage()
 	}
 
-	defer func() {
-		e.cleanupOnBootstrapFinish()
-	}()
+	defer e.cleanupOnBootstrapFinish()
 
 	var err error
 	e.shardCoordinator, err = sharding.NewMultiShardCoordinator(e.genesisShardCoordinator.NumberOfShards(), core.MetachainShardId)
