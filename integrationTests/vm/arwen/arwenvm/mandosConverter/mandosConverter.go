@@ -9,9 +9,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 )
 
-func CreateAccountsFromMandosAccs(accAdapter state.AccountsAdapter, mandosUserAccounts []*mge.TestAccount) (err error) {
+func CreateAccountsFromMandosAccs(tc vm.VMTestContext, mandosUserAccounts []*mge.TestAccount) (err error) {
 	for _, mandosAcc := range mandosUserAccounts {
-		acc, err := accAdapter.LoadAccount(mandosAcc.GetAddress())
+		acc, err := tc.Accounts.LoadAccount(mandosAcc.GetAddress())
 		if err != nil {
 			return err
 		}
@@ -29,25 +29,24 @@ func CreateAccountsFromMandosAccs(accAdapter state.AccountsAdapter, mandosUserAc
 				return err
 			}
 		}
-		err = accAdapter.SaveAccount(account)
-		if err != nil {
-			return err
-		}
 
 		accountCode := mandosAcc.GetCode()
 		if len(accountCode) != 0 {
 			account.SetCode(accountCode)
 			ownerAddress := mandosAcc.GetOwner()
-			if len(ownerAddress) != 0 {
-				account.SetOwnerAddress(ownerAddress)
-			}
+			account.SetOwnerAddress(ownerAddress)
+			account.SetCodeMetadata([]byte{0, 0})
 		}
-		accAdapter.SaveAccount(account)
+		err = tc.Accounts.SaveAccount(account)
+		if err != nil {
+			return err
+		}
 	}
-	_, err = accAdapter.Commit()
+	_, err = tc.Accounts.Commit()
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 

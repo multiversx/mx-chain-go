@@ -67,27 +67,27 @@ func CheckTransactions(t *testing.T, transactions []*dataTransaction.Transaction
 	}
 }
 
-func SetStateFromMandosTest(mandosTestPath string) (testContext *vm.VMTestContext,transactions []*dataTransaction.Transaction,err error) {
+func SetStateFromMandosTest(mandosTestPath string) (testContext *vm.VMTestContext, transactions []*dataTransaction.Transaction, err error) {
 	mandosAccounts, mandosTransactions, err := mge.GetAccountsAndTransactionsFromMandos(mandosTestPath)
 	if err != nil {
-		return nil,nil, err
+		return nil, nil, err
 	}
 	testContext, err = vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
 	if err != nil {
-		return nil, nil,err
+		return nil, nil, err
 	}
-	err = CreateAccountsFromMandosAccs(testContext.Accounts, mandosAccounts)
+	err = CreateAccountsFromMandosAccs(*testContext, mandosAccounts)
 	if err != nil {
-		return nil, nil,err
+		return nil, nil, err
 	}
 	transactions = CreateTransactionsFromMandosTxs(mandosTransactions)
-	return testContext,transactions,nil
+	return testContext, transactions, nil
 }
 
-func RunSingleTransactionBenchmark(b *testing.B,testContext *vm.VMTestContext, tx *dataTransaction.Transaction) (err error){
+func RunSingleTransactionBenchmark(b *testing.B, testContext *vm.VMTestContext, tx *dataTransaction.Transaction) (err error) {
 	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 	b.StopTimer()
-	if err!=nil {
+	if err != nil {
 		return err
 	}
 	return nil
