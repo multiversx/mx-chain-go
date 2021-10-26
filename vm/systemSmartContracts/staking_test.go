@@ -3021,18 +3021,108 @@ func TestStakingSc_fixMissingNodeOnQueue(t *testing.T) {
 		[]byte("waitingBlsKey2"),
 		[]byte("waitingBlsKey3"),
 	}
-	sc, eei, marshalizer, stakingAccessAddress := makeWrongConfigForWaitingBlsKeysList(t, waitingBlsKeys)
-	alterWaitingListLength(t, eei, marshalizer)
+	sc, eei, _, stakingAccessAddress := makeWrongConfigForWaitingBlsKeysList(t, waitingBlsKeys)
 
 	arguments := CreateVmContractCallInput()
-	arguments.Function = "getQueueRegisterNonceAndRewardAddress"
-	arguments.CallerAddr = stakingAccessAddress
+	arguments.Function = "addMissingNodeToQueue"
+	arguments.CallerAddr = bytes.Repeat([]byte{1}, 32)
 	arguments.Arguments = make([][]byte, 0)
+
+	eei.returnMessage = ""
+	sc.flagCorrectFirstQueued.Unset()
+	retCode := sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, retCode)
+	assert.Equal(t, "invalid method to call", eei.returnMessage)
+
+	eei.returnMessage = ""
+	sc.flagCorrectFirstQueued.Set()
+	arguments.CallValue = big.NewInt(10)
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, retCode)
+	assert.Equal(t, vm.TransactionValueMustBeZero, eei.returnMessage)
+
+	eei.gasRemaining = 1
+	sc.gasCost.MetaChainSystemSCsCost.FixWaitingListSize = 50
+	eei.returnMessage = ""
+	arguments.CallValue = big.NewInt(0)
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.OutOfGas, retCode)
+	assert.Equal(t, "insufficient gas", eei.returnMessage)
+
+	eei.gasRemaining = 50
+	eei.returnMessage = ""
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, retCode)
+	assert.Equal(t, "invalid number of arguments", eei.returnMessage)
+
+	eei.gasRemaining = 50
+	eei.returnMessage = ""
+	arguments.Arguments = append(arguments.Arguments, []byte("waitingBlsKey4"))
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, retCode)
+	assert.Equal(t, "element was not found", eei.returnMessage)
+
+	doStake(t, sc, stakingAccessAddress, arguments.CallerAddr, []byte("waitingBlsKey4"))
+
+	eei.gasRemaining = 50
+	eei.returnMessage = ""
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, retCode)
+	assert.Equal(t, "key is in queue, not missing", eei.returnMessage)
+}
+
+func TestStakingSc_fixMissingNodeAddOneNodeOnly(t *testing.T) {
+	t.Parallel()
+
+	sc, eei, _, _ := makeWrongConfigForWaitingBlsKeysList(t, nil)
+
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "addMissingNodeToQueue"
+	arguments.CallerAddr = bytes.Repeat([]byte{1}, 32)
+	arguments.Arguments = make([][]byte, 0)
+
+	blsKey := []byte("waitingBlsKey1")
+	eei.returnMessage = ""
+	arguments.Arguments = append(arguments.Arguments, blsKey)
+	eei.gasRemaining = 50
+
+	sc.gasCost.MetaChainSystemSCsCost.FixWaitingListSize = 50
+	_ = sc.saveWaitingListElement(createWaitingListKey(blsKey), &ElementInList{BLSPublicKey: blsKey})
 
 	retCode := sc.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
-	assert.Equal(t, 3*len(waitingBlsKeys), len(eei.output))
-	for i, waitingKey := range waitingBlsKeys {
-		assert.Equal(t, waitingKey, eei.output[i*3])
+
+	waitingListData, _ := sc.getFirstElementsFromWaitingList(50)
+	assert.Equal(t, len(waitingListData.blsKeys), 1)
+	assert.Equal(t, waitingListData.blsKeys[0], blsKey)
+}
+
+func TestStakingSc_fixMissingNodeAddAsLast(t *testing.T) {
+	t.Parallel()
+
+	waitingBlsKeys := [][]byte{
+		[]byte("waitingBlsKey1"),
+		[]byte("waitingBlsKey2"),
+		[]byte("waitingBlsKey3"),
 	}
+	sc, eei, _, _ := makeWrongConfigForWaitingBlsKeysList(t, waitingBlsKeys)
+	sc.gasCost.MetaChainSystemSCsCost.FixWaitingListSize = 50
+
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "addMissingNodeToQueue"
+	arguments.CallerAddr = bytes.Repeat([]byte{1}, 32)
+	arguments.Arguments = make([][]byte, 0)
+
+	blsKey := []byte("waitingBlsKey4")
+	eei.returnMessage = ""
+	arguments.Arguments = append(arguments.Arguments, blsKey)
+	eei.gasRemaining = 50
+	_ = sc.saveWaitingListElement(createWaitingListKey(blsKey), &ElementInList{BLSPublicKey: blsKey})
+
+	retCode := sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	waitingListData, _ := sc.getFirstElementsFromWaitingList(50)
+	assert.Equal(t, len(waitingListData.blsKeys), 4)
+	assert.Equal(t, waitingListData.blsKeys[3], blsKey)
 }

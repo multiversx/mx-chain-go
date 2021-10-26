@@ -2021,12 +2021,12 @@ func (s *stakingSC) addMissingNodeToQueue(args *vmcommon.ContractCallInput) vmco
 		return vmcommon.OutOfGas
 	}
 	if len(args.Arguments) != 1 {
-		s.eei.AddReturnMessage("not enough arguments")
+		s.eei.AddReturnMessage("invalid number of arguments")
 		return vmcommon.UserError
 	}
 
 	blsKey := args.Arguments[0]
-	_, err = s.getWaitingListElement(blsKey)
+	_, err = s.getWaitingListElement(createWaitingListKey(blsKey))
 	if err != nil {
 		s.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
