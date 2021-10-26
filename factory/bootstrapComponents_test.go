@@ -125,17 +125,9 @@ func TestBootstrapComponents_Create_InvalidRoundActivationConfigExpectError(t *t
 
 	args := getBootStrapArgs()
 	args.RoundConfig = config.RoundConfig{
-		EnableRoundsByName: []config.EnableRoundsByName{
-			{
-				Name:  "DummyName1",
-				Round: 10000,
-				Shard: 1,
-			},
-			{
-				Name:  "DummyName1",
-				Round: 10000,
-				Shard: 1,
-			},
+		ActivationDummy1: config.ActivationRoundByName{
+			Name:  "",
+			Round: 1000,
 		},
 	}
 
@@ -143,7 +135,7 @@ func TestBootstrapComponents_Create_InvalidRoundActivationConfigExpectError(t *t
 	require.Nil(t, err)
 
 	bc, err := bcf.Create()
-	require.Equal(t, process.ErrDuplicateRoundActivationName, err)
+	require.Equal(t, process.ErrNilActivationRoundName, err)
 	require.Nil(t, bc)
 }
 
@@ -166,12 +158,9 @@ func getBootStrapArgs() factory.BootstrapComponentsFactoryArgs {
 			IsImportDBMode: false,
 		},
 		RoundConfig: config.RoundConfig{
-			EnableRoundsByName: []config.EnableRoundsByName{
-				{
-					Name:  "DummyName1",
-					Round: 10000,
-					Shard: 1,
-				},
+			ActivationDummy1: config.ActivationRoundByName{
+				Name:  "DummyFix1",
+				Round: 1000,
 			},
 		},
 	}

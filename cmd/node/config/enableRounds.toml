@@ -1,3 +1,4 @@
-EnableRoundsByName = [
-    {Name = "DummyFix1", Round = 444, Shard = 1},
-]
+[ActivationDummy1]
+   Name = "ActivationDummyFix1"
+   Round = 444
+

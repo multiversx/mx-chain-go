@@ -2,12 +2,12 @@ package config
 
 // RoundConfig contains round activation configurations
 type RoundConfig struct {
-	EnableRoundsByName []EnableRoundsByName
+	//TODO: Remove this once we have first activation flag
+	ActivationDummy1 ActivationRoundByName
 }
 
-// EnableRoundsByName contains information related to a round activation event
-type EnableRoundsByName struct {
+// ActivationRoundByName contains information related to a round activation event
+type ActivationRoundByName struct {
 	Name  string
 	Round uint64
-	Shard uint32
 }

@@ -1,61 +1,52 @@
 package roundActivation
 
 import (
+	"reflect"
+
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-type roundInfo struct {
-	round uint64
-	shard uint32
-}
-
 type roundActivation struct {
-	roundHandler     process.RoundHandler
-	shardCoordinator sharding.Coordinator
-	configMap        map[string]roundInfo
+	roundHandler   process.RoundHandler
+	roundByNameMap map[string]uint64
 }
 
 // NewRoundActivation creates a new round activation handler component
-func NewRoundActivation(
-	roundHandler process.RoundHandler,
-	shardCoordinator sharding.Coordinator,
-	config config.RoundConfig,
-) (process.RoundActivationHandler, error) {
+func NewRoundActivation(roundHandler process.RoundHandler, config config.RoundConfig) (process.RoundActivationHandler, error) {
 	if check.IfNil(roundHandler) {
 		return nil, process.ErrNilRoundHandler
 	}
-	if check.IfNil(shardCoordinator) {
-		return nil, process.ErrNilShardCoordinator
-	}
 
-	configMap, err := getConfigNamesMap(config)
+	configMap, err := getRoundsByNameMap(config)
 	if err != nil {
 		return nil, err
 	}
 
 	return &roundActivation{
-		roundHandler:     roundHandler,
-		shardCoordinator: shardCoordinator,
-		configMap:        configMap,
+		roundHandler:   roundHandler,
+		roundByNameMap: configMap,
 	}, nil
 }
 
 // IsEnabled checks if the queried round flag name is enabled in the queried round
 func (ra *roundActivation) IsEnabled(name string, round uint64) bool {
-	if info, exists := ra.configMap[name]; exists {
-		return info.round == round && info.shard == ra.shardCoordinator.SelfId()
+	if r, exists := ra.roundByNameMap[name]; exists {
+		return r == round && ra.isCurrentRound(round)
 	}
 
 	return false
 }
 
+func (ra *roundActivation) isCurrentRound(round uint64) bool {
+	return round == uint64(ra.roundHandler.Index())
+}
+
 // IsEnabledInCurrentRound checks if the queried round flag name is enabled in current round
 func (ra *roundActivation) IsEnabledInCurrentRound(name string) bool {
-	if info, exists := ra.configMap[name]; exists {
-		return info.round == uint64(ra.roundHandler.Index()) && info.shard == ra.shardCoordinator.SelfId()
+	if round, exists := ra.roundByNameMap[name]; exists {
+		return ra.isCurrentRound(round)
 	}
 
 	return false
@@ -66,19 +57,26 @@ func (ra *roundActivation) IsInterfaceNil() bool {
 	return ra == nil
 }
 
-func getConfigNamesMap(config config.RoundConfig) (map[string]roundInfo, error) {
-	configMap := make(map[string]roundInfo, len(config.EnableRoundsByName))
+func getRoundsByNameMap(roundConfig config.RoundConfig) (map[string]uint64, error) {
+	v := reflect.ValueOf(roundConfig)
+	ret := make(map[string]uint64, v.NumField())
 
-	for _, roundConfig := range config.EnableRoundsByName {
-		if _, exists := configMap[roundConfig.Name]; exists {
+	for i := 0; i < v.NumField(); i++ {
+		tmp := v.Field(i).Interface()
+
+		roundByName, castOk := tmp.(config.ActivationRoundByName)
+		if !castOk {
+			return nil, process.ErrInvalidRoundActivationConfig
+		}
+		if len(roundByName.Name) == 0 {
+			return nil, process.ErrNilActivationRoundName
+		}
+		if _, exists := ret[roundByName.Name]; exists {
 			return nil, process.ErrDuplicateRoundActivationName
 		}
 
-		configMap[roundConfig.Name] = roundInfo{
-			round: roundConfig.Round,
-			shard: roundConfig.Shard,
-		}
+		ret[roundByName.Name] = roundByName.Round
 	}
 
-	return configMap, nil
+	return ret, nil
 }

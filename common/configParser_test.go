@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -71,11 +72,30 @@ func TestLoadGasScheduleConfig(t *testing.T) {
 }
 
 func TestLoadRoundConfig(t *testing.T) {
-	roundConfig, err := common.LoadRoundConfig("invalid path")
-	require.Nil(t, roundConfig)
-	require.NotNil(t, err)
+	testString := `
+[ActivationDummy1]
+   Name = "Fix1"
+   Round = 222
+`
 
-	roundConfig, err = common.LoadRoundConfig("../cmd/node/config/enableRounds.toml")
-	require.True(t, len(roundConfig.EnableRoundsByName) != 0)
-	require.Nil(t, err)
+	file, err := os.Create("testEnableRounds.toml")
+	assert.Nil(t, err)
+
+	_, _ = file.WriteString(testString)
+	_ = file.Close()
+
+	roundActivationConfig, err := common.LoadRoundConfig("testEnableRounds.toml")
+	assert.Nil(t, err)
+
+	if _, err = os.Stat("testEnableRounds.toml"); err == nil {
+		_ = os.Remove("testEnableRounds.toml")
+	}
+
+	expectedRoundActivation := &config.RoundConfig{
+		ActivationDummy1: config.ActivationRoundByName{
+			Name:  "Fix1",
+			Round: 222,
+		},
+	}
+	require.Equal(t, expectedRoundActivation, roundActivationConfig)
 }

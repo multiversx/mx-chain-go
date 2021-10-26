@@ -207,7 +207,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		return nil, err
 	}
 
-	roundActivationHandler, err := roundActivation.NewRoundActivation(bcf.coreComponents.RoundHandler(), shardCoordinator, bcf.roundConfig)
+	roundActivationHandler, err := roundActivation.NewRoundActivation(bcf.coreComponents.RoundHandler(), bcf.roundConfig)
 	if err != nil {
 		return nil, err
 	}
