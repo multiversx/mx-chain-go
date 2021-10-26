@@ -12,6 +12,8 @@ import (
 )
 
 func TestNewRoundActivation(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		args        func() (process.RoundHandler, config.RoundConfig)
 		expectedErr error
@@ -42,6 +44,8 @@ func TestNewRoundActivation(t *testing.T) {
 }
 
 func TestRoundActivation_IsEnabled(t *testing.T) {
+	t.Parallel()
+
 	ra, _ := roundActivation.NewRoundActivation(
 		&mock2.RoundHandlerStub{
 			RoundIndex: 1000,
@@ -61,6 +65,8 @@ func TestRoundActivation_IsEnabled(t *testing.T) {
 }
 
 func TestRoundActivation_IsEnabledInCurrentRound(t *testing.T) {
+	t.Parallel()
+
 	ra, _ := roundActivation.NewRoundActivation(
 		&mock2.RoundHandlerStub{
 			RoundIndex: 1000,
@@ -78,6 +84,8 @@ func TestRoundActivation_IsEnabledInCurrentRound(t *testing.T) {
 }
 
 func TestRoundActivation_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
 	ra, _ := roundActivation.NewRoundActivation(
 		&mock.RoundHandlerMock{},
 		config.RoundConfig{
