@@ -38,6 +38,7 @@
     GetAllNodeStates      = 20000000
     UnstakeTokens         = 5000000
     UnbondTokens          = 5000000
+    FixWaitingListSize    = 500000000
 
 [BaseOperationCost]
     StorePerByte      = 50000
