@@ -3012,3 +3012,27 @@ func checkIsStaked(t *testing.T, sc *stakingSC, callerAddr, stakerPubKey []byte,
 	retCode := sc.Execute(arguments)
 	assert.Equal(t, expectedCode, retCode)
 }
+
+func TestStakingSc_fixMissingNodeOnQueue(t *testing.T) {
+	t.Parallel()
+
+	waitingBlsKeys := [][]byte{
+		[]byte("waitingBlsKey1"),
+		[]byte("waitingBlsKey2"),
+		[]byte("waitingBlsKey3"),
+	}
+	sc, eei, marshalizer, stakingAccessAddress := makeWrongConfigForWaitingBlsKeysList(t, waitingBlsKeys)
+	alterWaitingListLength(t, eei, marshalizer)
+
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "getQueueRegisterNonceAndRewardAddress"
+	arguments.CallerAddr = stakingAccessAddress
+	arguments.Arguments = make([][]byte, 0)
+
+	retCode := sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+	assert.Equal(t, 3*len(waitingBlsKeys), len(eei.output))
+	for i, waitingKey := range waitingBlsKeys {
+		assert.Equal(t, waitingKey, eei.output[i*3])
+	}
+}

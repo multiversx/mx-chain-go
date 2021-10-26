@@ -2058,6 +2058,8 @@ func (s *stakingSC) addMissingNodeToQueue(args *vmcommon.ContractCallInput) vmco
 			s.eei.AddReturnMessage(err.Error())
 			return vmcommon.UserError
 		}
+
+		return vmcommon.Ok
 	}
 
 	err = s.addToEndOfTheList(waitingList, blsKey)
