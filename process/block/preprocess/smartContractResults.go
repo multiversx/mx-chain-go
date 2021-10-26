@@ -248,10 +248,10 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 		return process.ErrNilBlockBody
 	}
 
-	gasInfo := gasConsumedInfo{
-		gasConsumedByMiniBlocksInSenderShard:  uint64(0),
-		gasConsumedByMiniBlockInReceiverShard: uint64(0),
-		totalGasConsumedInSelfShard:           scr.getTotalGasConsumed(),
+	gasConsumedInfo := &process.GasConsumedInfo{
+		GasConsumedByMiniBlocksInSenderShard:  uint64(0),
+		GasConsumedByMiniBlockInReceiverShard: uint64(0),
+		TotalGasConsumedInSelfShard:           scr.getTotalGasConsumed(),
 	}
 
 	// basic validation already done in interceptors
@@ -293,7 +293,7 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 					miniBlock.ReceiverShardID,
 					currScr,
 					txHash,
-					&gasInfo)
+					gasConsumedInfo)
 
 				if err != nil {
 					return err
@@ -309,7 +309,7 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 				return err
 			}
 
-			scr.updateGasConsumedWithGasRefundedAndGasPenalized(txHash, &gasInfo)
+			scr.updateGasConsumedWithGasRefundedAndGasPenalized(txHash, gasConsumedInfo)
 		}
 	}
 	return nil

@@ -971,7 +971,7 @@ func TestScrsPreprocessor_ProcessBlockTransactionsShouldWork(t *testing.T) {
 
 	scrPreproc.scrForBlock.txHashAndInfo["txHash"] = &txInfo{&scr, &txshardInfo}
 
-	err := scrPreproc.ProcessBlockTransactions(&block.Header{}, body, haveTimeTrue)
+	err := scrPreproc.ProcessBlockTransactions(&block.Header{}, body, haveTimeTrue, false, &process.GasConsumedInfo{})
 
 	assert.Nil(t, err)
 }
