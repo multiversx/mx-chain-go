@@ -233,9 +233,11 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 		return process.ErrNilBlockBody
 	}
 
-	gasConsumedByMiniBlockInSenderShard := uint64(0)
-	gasConsumedByMiniBlockInReceiverShard := uint64(0)
-	totalGasConsumedInSelfShard := scr.getTotalGasConsumed()
+	gasInfo := gasConsumedInfo{
+		gasConsumedByMiniBlocksInSenderShard:  uint64(0),
+		gasConsumedByMiniBlockInReceiverShard: uint64(0),
+		totalGasConsumedInSelfShard:           scr.getTotalGasConsumed(),
+	}
 
 	// basic validation already done in interceptors
 	for i := 0; i < len(body.MiniBlocks); i++ {
@@ -271,18 +273,18 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 			}
 
 			if scr.flagOptimizeGasUsedInCrossMiniBlocks.IsSet() {
-				err := scr.computeGasConsumed(
+				gasConsumedByTxInSelfShard, err := scr.computeGasConsumed(
 					miniBlock.SenderShardID,
 					miniBlock.ReceiverShardID,
 					currScr,
 					txHash,
-					&gasConsumedByMiniBlockInSenderShard,
-					&gasConsumedByMiniBlockInReceiverShard,
-					&totalGasConsumedInSelfShard)
+					&gasInfo)
 
 				if err != nil {
 					return err
 				}
+
+				scr.gasHandler.SetGasConsumed(gasConsumedByTxInSelfShard, txHash)
 			}
 
 			scr.saveAccountBalanceForAddress(currScr.GetRcvAddr())
@@ -292,7 +294,7 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 				return err
 			}
 
-			scr.updateGasConsumedWithGasRefundedAndGasPenalized(txHash, &gasConsumedByMiniBlockInReceiverShard, &totalGasConsumedInSelfShard)
+			scr.updateGasConsumedWithGasRefundedAndGasPenalized(txHash, &gasInfo)
 		}
 	}
 	return nil
