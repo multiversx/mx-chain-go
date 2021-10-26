@@ -13,20 +13,26 @@ import (
 // CheckAccounts will verify if mandosAccounts correspond to AccountsAdapter accounts
 func CheckAccounts(t *testing.T, accAdapter state.AccountsAdapter, mandosAccounts []*mge.TestAccount) {
 	for _, mandosAcc := range mandosAccounts {
-		account, err := accAdapter.LoadAccount(mandosAcc.GetAddress())
+		accHandler, err := accAdapter.LoadAccount(mandosAcc.GetAddress())
 		require.Nil(t, err)
-		ownerAccount := account.(state.UserAccountHandler)
+		account := accHandler.(state.UserAccountHandler)
 
-		require.Equal(t, mandosAcc.GetBalance(), ownerAccount.GetBalance())
-		require.Equal(t, mandosAcc.GetNonce(), ownerAccount.GetNonce())
-		owner := mandosAcc.GetOwner()
-		if len(owner) == 0 {
-			require.Nil(t, ownerAccount.GetOwnerAddress())
+		require.Equal(t, mandosAcc.GetBalance(), account.GetBalance())
+		require.Equal(t, mandosAcc.GetNonce(), account.GetNonce())
+
+		scOwnerAddress := mandosAcc.GetOwner()
+		if len(scOwnerAddress) == 0 {
+			require.Nil(t, account.GetOwnerAddress())
 		} else {
-			require.Equal(t, mandosAcc.GetOwner(), ownerAccount.GetOwnerAddress())
+			require.Equal(t, mandosAcc.GetOwner(), account.GetOwnerAddress())
 		}
+
+		codeHash := account.GetCodeHash()
+		code := accAdapter.GetCode(codeHash)
+		require.Equal(t, mandosAcc.GetCode(), code)
+
 		mandosAccStorage := mandosAcc.GetStorage()
-		accStorage := ownerAccount.DataTrieTracker()
+		accStorage := account.DataTrieTracker()
 		CheckStorage(t, accStorage, mandosAccStorage)
 	}
 }
