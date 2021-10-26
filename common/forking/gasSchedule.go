@@ -114,20 +114,35 @@ func (g *gasScheduleNotifier) EpochConfirmed(epoch uint32, _ uint64) {
 		return
 	}
 
+	newGasSchedule := g.changeLatestGasSchedule(epoch, old)
+	if newGasSchedule == nil {
+		return
+	}
+
+	g.arwenChangeLocker.Lock()
+	for _, handler := range g.handlers {
+		if !check.IfNil(handler) {
+			handler.GasScheduleChange(newGasSchedule)
+		}
+	}
+	g.arwenChangeLocker.Unlock()
+}
+
+func (g *gasScheduleNotifier) changeLatestGasSchedule(epoch uint32, oldEpoch uint32) map[string]map[string]uint64 {
 	g.mutNotifier.Lock()
 	defer g.mutNotifier.Unlock()
 	newVersion := g.getMatchingVersion(epoch)
-	oldVersion := g.getMatchingVersion(old)
+	oldVersion := g.getMatchingVersion(oldEpoch)
 
 	if newVersion.StartEpoch == oldVersion.StartEpoch {
 		// gasSchedule is still the same
-		return
+		return nil
 	}
 
 	newGasSchedule, err := common.LoadGasScheduleConfig(filepath.Join(g.configDir, newVersion.FileName))
 	if err != nil {
 		log.Error("could not load the new gas schedule")
-		return
+		return nil
 	}
 
 	log.Debug("gasScheduleNotifier.EpochConfirmed new gas schedule",
@@ -135,14 +150,9 @@ func (g *gasScheduleNotifier) EpochConfirmed(epoch uint32, _ uint64) {
 		"num handlers", len(g.handlers),
 	)
 
-	g.arwenChangeLocker.Lock()
 	g.lastGasSchedule = newGasSchedule
-	for _, handler := range g.handlers {
-		if !check.IfNil(handler) {
-			handler.GasScheduleChange(g.lastGasSchedule)
-		}
-	}
-	g.arwenChangeLocker.Unlock()
+
+	return newGasSchedule
 }
 
 // LatestGasSchedule returns the latest gas schedule

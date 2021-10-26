@@ -204,6 +204,20 @@
         MaxBatchSize = 100
         MaxOpenFiles = 10
 
+[SmartContractsStorageSimulate]
+    [SmartContractsStorageSimulate.Cache]
+        Name = "SmartContractsStorageSimulate"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 52428800 #50MB
+    [SmartContractsStorageSimulate.DB]
+        FilePath = "SmartContractsStorageSimulate"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
+
+
 [SmartContractsStorageForSCQuery]
     [SmartContractsStorageForSCQuery.Cache]
         Name = "SmartContractsStorageForSCQuery"

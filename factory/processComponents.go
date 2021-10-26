@@ -100,6 +100,7 @@ type processComponents struct {
 	importHandler                update.ImportHandler
 	nodeRedundancyHandler        consensus.NodeRedundancyHandler
 	currentEpochProvider         dataRetriever.CurrentNetworkEpochProviderHandler
+	vmFactoryForTxSimulator      process.VirtualMachinesContainerFactory
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	postProcessorTxsHandler      process.PostProcessorTxsHandler
 }
@@ -474,6 +475,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		&disabled.TxCoordinator{},
 		pcf.data.StorageService().GetStorer(dataRetriever.ScheduledSCRsUnit),
 		pcf.coreData.InternalMarshalizer(),
+		pcf.bootstrapComponents.ShardCoordinator(),
 	)
 	if err != nil {
 		return nil, err
@@ -484,7 +486,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	blockProcessor, err := pcf.newBlockProcessor(
+	blockProcessor, vmFactoryTxSimulator, err := pcf.newBlockProcessor(
 		requestHandler,
 		forkDetector,
 		epochStartTrigger,
@@ -587,6 +589,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		importHandler:                pcf.importHandler,
 		nodeRedundancyHandler:        nodeRedundancyHandler,
 		currentEpochProvider:         currentEpochProvider,
+		vmFactoryForTxSimulator:      vmFactoryTxSimulator,
 		scheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		postProcessorTxsHandler:      postProcessorTxsHandler,
 	}, nil
@@ -1453,5 +1456,9 @@ func (pc *processComponents) Close() error {
 	if !check.IfNil(pc.interceptorsContainer) {
 		log.LogIfError(pc.interceptorsContainer.Close())
 	}
+	if !check.IfNil(pc.vmFactoryForTxSimulator) {
+		log.LogIfError(pc.vmFactoryForTxSimulator.Close())
+	}
+
 	return nil
 }
