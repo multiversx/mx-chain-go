@@ -40,6 +40,7 @@ func TestScheduledTxsExecution_NewScheduledTxsExecutionNilSmartContractResultPro
 		&mock.TransactionCoordinatorMock{},
 		&genericMocks.StorerMock{},
 		&marshal.GogoProtoMarshalizer{},
+		&mock.ShardCoordinatorStub{},
 	)
 
 	assert.Nil(t, scheduledTxsExec)
@@ -99,6 +100,7 @@ func TestScheduledTxsExecution_NewScheduledTxsExecutionNilShardCoordinator(t *te
 
 	scheduledTxsExec, err := NewScheduledTxsExecution(
 		&testscommon.TxProcessorMock{},
+		&testscommon.SCProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
 		&genericMocks.StorerMock{},
 		&marshal.GogoProtoMarshalizer{},
