@@ -353,14 +353,14 @@ func (tsm *trieStorageManager) safelyCloseChan(ch chan core.KeyValueHolder) {
 
 func (tsm *trieStorageManager) finishOperation(snapshotEntry *snapshotsQueueEntry, message string) {
 	tsm.ExitPruningBufferingMode()
-	log.Trace(message, "rootHash", snapshotEntry.rootHash)
+	log.Debug(message, "rootHash", snapshotEntry.rootHash)
 	tsm.safelyCloseChan(snapshotEntry.leavesChan)
 }
 
 func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, msh marshal.Marshalizer, hsh hashing.Hasher, ctx context.Context) {
 	defer tsm.finishOperation(snapshotEntry, "trie snapshot finished")
 
-	log.Trace("trie snapshot started", "rootHash", snapshotEntry.rootHash)
+	log.Debug("trie snapshot started", "rootHash", snapshotEntry.rootHash)
 
 	newRoot, err := newSnapshotNode(tsm, msh, hsh, snapshotEntry.rootHash)
 	if err != nil {
@@ -381,7 +381,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 func (tsm *trieStorageManager) takeCheckpoint(checkpointEntry *snapshotsQueueEntry, msh marshal.Marshalizer, hsh hashing.Hasher, ctx context.Context) {
 	defer tsm.finishOperation(checkpointEntry, "trie checkpoint finished")
 
-	log.Trace("trie checkpoint started", "rootHash", checkpointEntry.rootHash)
+	log.Debug("trie checkpoint started", "rootHash", checkpointEntry.rootHash)
 
 	newRoot, err := newSnapshotNode(tsm, msh, hsh, checkpointEntry.rootHash)
 	if err != nil {

@@ -1037,6 +1037,7 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 
 		log.Debug("snapshotState", stopWatch.GetMeasurements()...)
 		trieStorageManager.ExitPruningBufferingMode()
+		core.DumpGoRoutinesToLog(0, log)
 
 		adb.increaseNumCheckpoints()
 	}()
@@ -1087,6 +1088,7 @@ func (adb *AccountsDB) setStateCheckpoint(rootHash []byte) {
 
 		log.Debug("setStateCheckpoint", stopWatch.GetMeasurements()...)
 		trieStorageManager.ExitPruningBufferingMode()
+		core.DumpGoRoutinesToLog(0, log)
 
 		adb.increaseNumCheckpoints()
 	}()
