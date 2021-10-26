@@ -227,6 +227,8 @@ func (s *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return s.changeOwnerAndRewardAddress(args)
 	case "fixWaitingListQueueSize":
 		return s.fixWaitingListQueueSize(args)
+	case "addMissingNodeToQueue":
+		return s.addMissingNodeToQueue(args)
 	}
 
 	return vmcommon.UserError
@@ -832,18 +834,7 @@ func (s *stakingSC) addToWaitingList(blsKey []byte, addJailed bool) error {
 
 	waitingList.Length += 1
 	if waitingList.Length == 1 {
-		waitingList.FirstKey = inWaitingListKey
-		waitingList.LastKey = inWaitingListKey
-		if addJailed {
-			waitingList.LastJailedKey = inWaitingListKey
-		}
-
-		elementInWaiting := &ElementInList{
-			BLSPublicKey: blsKey,
-			PreviousKey:  waitingList.LastKey,
-			NextKey:      make([]byte, 0),
-		}
-		return s.saveElementAndList(inWaitingListKey, elementInWaiting, waitingList)
+		return s.startWaitingList(waitingList, addJailed, blsKey)
 	}
 
 	if addJailed {
@@ -851,6 +842,26 @@ func (s *stakingSC) addToWaitingList(blsKey []byte, addJailed bool) error {
 	}
 
 	return s.addToEndOfTheList(waitingList, blsKey)
+}
+
+func (s *stakingSC) startWaitingList(
+	waitingList *WaitingList,
+	addJailed bool,
+	blsKey []byte,
+) error {
+	inWaitingListKey := createWaitingListKey(blsKey)
+	waitingList.FirstKey = inWaitingListKey
+	waitingList.LastKey = inWaitingListKey
+	if addJailed {
+		waitingList.LastJailedKey = inWaitingListKey
+	}
+
+	elementInWaiting := &ElementInList{
+		BLSPublicKey: blsKey,
+		PreviousKey:  waitingList.LastKey,
+		NextKey:      make([]byte, 0),
+	}
+	return s.saveElementAndList(inWaitingListKey, elementInWaiting, waitingList)
 }
 
 func (s *stakingSC) addToEndOfTheList(waitingList *WaitingList, blsKey []byte) error {
@@ -1959,7 +1970,7 @@ func (s *stakingSC) fixWaitingListQueueSize(args *vmcommon.ContractCallInput) vm
 	for len(nextKey) != 0 && index <= waitingListHead.Length {
 		element, errGet := s.getWaitingListElement(nextKey)
 		if errGet != nil {
-			s.eei.AddReturnMessage(err.Error())
+			s.eei.AddReturnMessage(errGet.Error())
 			return vmcommon.UserError
 		}
 
@@ -1969,7 +1980,7 @@ func (s *stakingSC) fixWaitingListQueueSize(args *vmcommon.ContractCallInput) vm
 
 		_, errGet = s.getOrCreateRegisteredData(element.BLSPublicKey)
 		if errGet != nil {
-			s.eei.AddReturnMessage(err.Error())
+			s.eei.AddReturnMessage(errGet.Error())
 			return vmcommon.UserError
 		}
 
@@ -1987,6 +1998,69 @@ func (s *stakingSC) fixWaitingListQueueSize(args *vmcommon.ContractCallInput) vm
 	}
 
 	err = s.saveWaitingListHead(waitingListHead)
+	if err != nil {
+		s.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
+}
+
+func (s *stakingSC) addMissingNodeToQueue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !s.flagCorrectFirstQueued.IsSet() {
+		s.eei.AddReturnMessage("invalid method to call")
+		return vmcommon.UserError
+	}
+	if args.CallValue.Cmp(zero) != 0 {
+		s.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
+		return vmcommon.UserError
+	}
+	err := s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.FixWaitingListSize)
+	if err != nil {
+		s.eei.AddReturnMessage("insufficient gas")
+		return vmcommon.OutOfGas
+	}
+	if len(args.Arguments) != 1 {
+		s.eei.AddReturnMessage("not enough arguments")
+		return vmcommon.UserError
+	}
+
+	blsKey := args.Arguments[0]
+	_, err = s.getWaitingListElement(blsKey)
+	if err != nil {
+		s.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	waitingListData, err := s.getFirstElementsFromWaitingList(math.MaxUint32)
+	if err != nil {
+		s.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	for _, keyInList := range waitingListData.blsKeys {
+		if bytes.Equal(keyInList, blsKey) {
+			s.eei.AddReturnMessage("key is in queue, not missing")
+			return vmcommon.UserError
+		}
+	}
+
+	waitingList, err := s.getWaitingListHead()
+	if err != nil {
+		s.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	waitingList.Length += 1
+	if waitingList.Length == 1 {
+		err = s.startWaitingList(waitingList, false, blsKey)
+		if err != nil {
+			s.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
+	}
+
+	err = s.addToEndOfTheList(waitingList, blsKey)
 	if err != nil {
 		s.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
