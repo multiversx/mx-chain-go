@@ -29,7 +29,7 @@ func CheckAccounts(t *testing.T, accAdapter state.AccountsAdapter, mandosAccount
 
 		codeHash := account.GetCodeHash()
 		code := accAdapter.GetCode(codeHash)
-		require.Equal(t, mandosAcc.GetCode(), code)
+		require.Equal(t, len(mandosAcc.GetCode()), len(code))
 
 		mandosAccStorage := mandosAcc.GetStorage()
 		accStorage := account.DataTrieTracker()
