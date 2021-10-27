@@ -53,7 +53,7 @@ func (ith *IntermediateTransactionHandlerStub) AddIntermediateTransactions(txs [
 	return ith.AddIntermediateTransactionsCalled(txs)
 }
 
-// GetAllIntermediateTxsForTxHash -
+// GetProcessedResults -
 func (ith *IntermediateTransactionHandlerStub) GetProcessedResults() map[uint32][]*process.TxInfo {
 	if ith.GetProcessedResultsCalled != nil {
 		return ith.GetProcessedResultsCalled()

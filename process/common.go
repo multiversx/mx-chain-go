@@ -766,13 +766,13 @@ func HaveAdditionalTime() func() bool {
 	}
 }
 
-// TxShardInfo hold info about the transaction's receiver and sender shards
+// TxShardInfo holds info about the transaction's receiver and sender shards
 type TxShardInfo struct {
 	SenderShardID   uint32
 	ReceiverShardID uint32
 }
 
-// TxInfo hold info about the transaction
+// TxInfo holds info about the transaction
 type TxInfo struct {
 	Tx     data.TransactionHandler
 	TxHash []byte

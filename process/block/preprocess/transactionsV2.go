@@ -162,14 +162,14 @@ func generateTransactionsTypeBytes(txsType []block.Type) []byte {
 }
 
 func getTxsTypeFromMiniBlock(miniBlock *block.MiniBlock, mapTxHashTxType map[string]block.Type) ([]block.Type, error) {
-	txsType := make([]block.Type, 0)
-	for _, txHash := range miniBlock.TxHashes {
+	txsType := make([]block.Type, len(miniBlock.TxHashes))
+	for index, txHash := range miniBlock.TxHashes {
 		txType, ok := mapTxHashTxType[string(txHash)]
 		if !ok {
 			return nil, process.ErrTxNotFound
 		}
 
-		txsType = append(txsType, txType)
+		txsType[index] = txType
 	}
 
 	return txsType, nil

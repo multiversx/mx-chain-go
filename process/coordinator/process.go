@@ -193,7 +193,10 @@ func createSeparateBodiesFromMiniBlocks(mapSeparatedBodies map[block.Type]*block
 		}
 
 		if _, ok := mapSeparatedBodies[blockType]; !ok {
-			mapSeparatedBodies[blockType] = &block.Body{}
+			blockBody := &block.Body{
+				MiniBlocks: make([]*block.MiniBlock, 0),
+			}
+			mapSeparatedBodies[blockType] = blockBody
 		}
 
 		mapSeparatedBodies[blockType].MiniBlocks = append(mapSeparatedBodies[blockType].MiniBlocks, mb)

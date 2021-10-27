@@ -263,6 +263,11 @@ func (bpp *basePostProcessor) GetProcessedResults() map[uint32][]*process.TxInfo
 		}
 
 		txInfo.TxHash = []byte(intermediateTxHash)
+
+		if _, ok = mapIntermediateTxs[txInfo.ReceiverShardID]; !ok {
+			mapIntermediateTxs[txInfo.ReceiverShardID] = make([]*process.TxInfo, 0)
+		}
+
 		mapIntermediateTxs[txInfo.ReceiverShardID] = append(mapIntermediateTxs[txInfo.ReceiverShardID], txInfo)
 	}
 
