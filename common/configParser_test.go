@@ -72,11 +72,7 @@ func TestLoadGasScheduleConfig(t *testing.T) {
 }
 
 func TestLoadRoundConfig(t *testing.T) {
-	testString := `
-[ActivationDummy1]
-   Name = "Fix1"
-   Round = 222
-`
+	testString := ""
 
 	file, err := os.Create("testEnableRounds.toml")
 	assert.Nil(t, err)
@@ -91,11 +87,5 @@ func TestLoadRoundConfig(t *testing.T) {
 		_ = os.Remove("testEnableRounds.toml")
 	}
 
-	expectedRoundActivation := &config.RoundConfig{
-		ActivationDummy1: config.ActivationRoundByName{
-			Name:  "Fix1",
-			Round: 222,
-		},
-	}
-	require.Equal(t, expectedRoundActivation, roundActivationConfig)
+	require.Equal(t, &config.RoundConfig{}, roundActivationConfig)
 }

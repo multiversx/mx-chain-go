@@ -25,7 +25,8 @@ func NewRoundActivation(config config.RoundConfig) (process.RoundActivationHandl
 
 // IsEnabled checks if the queried round flag name is enabled in the queried round
 func (ra *roundActivation) IsEnabled(name string, round uint64) bool {
-	if r, exists := ra.roundByNameMap[name]; exists {
+	r, exists := ra.roundByNameMap[name]
+	if exists {
 		return round >= r
 	}
 
