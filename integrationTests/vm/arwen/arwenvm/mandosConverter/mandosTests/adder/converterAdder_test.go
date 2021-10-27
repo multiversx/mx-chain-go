@@ -15,7 +15,7 @@ func TestMandosConverter_Adder(t *testing.T) {
 	require.Nil(t, err)
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
 	require.Nil(t, err)
-	err = mc.CreateAccountsFromMandosAccs(*testContext, mandosAccounts)
+	err = mc.CreateAccountsFromMandosAccs(testContext, mandosAccounts)
 	require.Nil(t, err)
 	mc.CheckAccounts(t, testContext.Accounts, mandosAccounts)
 	transactions := mc.CreateTransactionsFromMandosTxs(mandosTransactions)

@@ -9,7 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 )
 
-func CreateAccountsFromMandosAccs(tc vm.VMTestContext, mandosUserAccounts []*mge.TestAccount) (err error) {
+func CreateAccountsFromMandosAccs(tc *vm.VMTestContext, mandosUserAccounts []*mge.TestAccount) (err error) {
 	for _, mandosAcc := range mandosUserAccounts {
 		acc, err := tc.Accounts.LoadAccount(mandosAcc.GetAddress())
 		if err != nil {

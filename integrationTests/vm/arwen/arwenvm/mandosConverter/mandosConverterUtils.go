@@ -82,7 +82,7 @@ func SetStateFromMandosTest(mandosTestPath string) (testContext *vm.VMTestContex
 	if err != nil {
 		return nil, nil, err
 	}
-	err = CreateAccountsFromMandosAccs(*testContext, mandosAccounts)
+	err = CreateAccountsFromMandosAccs(testContext, mandosAccounts)
 	if err != nil {
 		return nil, nil, err
 	}
