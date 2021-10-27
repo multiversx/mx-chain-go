@@ -491,14 +491,23 @@ var ErrInsufficientGasLimitInTx = errors.New("insufficient gas limit in tx")
 // ErrInvalidMaxGasLimitPerBlock signals that an invalid max gas limit per block has been read from config file
 var ErrInvalidMaxGasLimitPerBlock = errors.New("invalid max gas limit per block")
 
+// ErrInvalidMaxGasLimitPerMiniBlock signals that an invalid max gas limit per mini block has been read from config file
+var ErrInvalidMaxGasLimitPerMiniBlock = errors.New("invalid max gas limit per mini block")
+
+// ErrInvalidMaxGasLimitPerMetaBlock signals that an invalid max gas limit per meta block has been read from config file
+var ErrInvalidMaxGasLimitPerMetaBlock = errors.New("invalid max gas limit per meta block")
+
+// ErrInvalidMaxGasLimitPerMetaMiniBlock signals that an invalid max gas limit per meta mini block has been read from config file
+var ErrInvalidMaxGasLimitPerMetaMiniBlock = errors.New("invalid max gas limit per meta mini block")
+
 // ErrInvalidGasPerDataByte signals that an invalid gas per data byte has been read from config file
 var ErrInvalidGasPerDataByte = errors.New("invalid gas per data byte")
 
-// ErrMaxGasLimitPerMiniBlockInSenderShardIsReached signals that max gas limit per mini block in sender shard has been reached
-var ErrMaxGasLimitPerMiniBlockInSenderShardIsReached = errors.New("max gas limit per mini block in sender shard is reached")
-
 // ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached signals that max gas limit per mini block in receiver shard has been reached
 var ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached = errors.New("max gas limit per mini block in receiver shard is reached")
+
+// ErrMaxGasLimitPerOneTxInReceiverShardIsReached signals that max gas limit per one transaction in receiver shard has been reached
+var ErrMaxGasLimitPerOneTxInReceiverShardIsReached = errors.New("max gas limit per one transaction in receiver shard is reached")
 
 // ErrMaxGasLimitPerBlockInSelfShardIsReached signals that max gas limit per block in self shard has been reached
 var ErrMaxGasLimitPerBlockInSelfShardIsReached = errors.New("max gas limit per block in self shard is reached")
@@ -511,6 +520,12 @@ var ErrInvalidMinimumGasLimitForTx = errors.New("invalid minimum gas limit for t
 
 // ErrEmptyEpochRewardsConfig signals that the epoch rewards config is empty
 var ErrEmptyEpochRewardsConfig = errors.New("the epoch rewards config is empty")
+
+// ErrEmptyGasLimitSettings signals that the gas limit settings is empty
+var ErrEmptyGasLimitSettings = errors.New("the gas limit settings is empty")
+
+// ErrEmptyYearSettings signals that the year settings is empty
+var ErrEmptyYearSettings = errors.New("the year settings is empty")
 
 // ErrInvalidRewardsPercentages signals that rewards percentages are not correct
 var ErrInvalidRewardsPercentages = errors.New("invalid rewards percentages")
@@ -973,6 +988,12 @@ var ErrNilCurrentNetworkEpochProvider = errors.New("nil current network epoch pr
 
 // ErrNilESDTTransferParser signals that a nil ESDT transfer parser has been provider
 var ErrNilESDTTransferParser = errors.New("nil esdt transfer parser")
+
+// ErrResultingSCRIsTooBig signals that resulting smart contract result is too big
+var ErrResultingSCRIsTooBig = errors.New("resulting SCR is too big")
+
+// ErrNotAllowedToWriteUnderProtectedKey signals that writing under protected key is not allowed
+var ErrNotAllowedToWriteUnderProtectedKey = errors.New("not allowed to write under protected key")
 
 // ErrNilScheduledTxsExecutionHandler signals that scheduled txs execution handler is nil
 var ErrNilScheduledTxsExecutionHandler = errors.New("nil scheduled txs execution handler")

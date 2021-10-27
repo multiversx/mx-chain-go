@@ -38,6 +38,7 @@
     GetAllNodeStates      = 20000000
     UnstakeTokens         = 5000000
     UnbondTokens          = 5000000
+    FixWaitingListSize    = 500000000
 
 [BaseOperationCost]
     StorePerByte      = 50000
@@ -167,6 +168,7 @@
     BigIntGetSignedArgument     = 1000
     BigIntGetCallValue          = 1000
     BigIntGetExternalBalance    = 10000
+    CopyPerByteForTooBig        = 1000
 
 [CryptoAPICost]
     SHA256                 = 1000000

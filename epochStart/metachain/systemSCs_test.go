@@ -45,6 +45,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -900,7 +901,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 	}
 	vCreator, _ := peer.NewValidatorStatisticsProcessor(argsValidatorsProcessor)
 
-	blockChain, _ := blockchain.NewMetaChain(&mock.AppStatusHandlerStub{})
+	blockChain, _ := blockchain.NewMetaChain(&statusHandlerMock.AppStatusHandlerStub{})
 	testDataPool := dataRetrieverMock.NewPoolsHolderMock()
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:           userAccountsDB,
@@ -1050,12 +1051,18 @@ func createEconomicsData() process.EconomicsDataHandler {
 				},
 			},
 			FeeSettings: config.FeeSettings{
-				MaxGasLimitPerBlock:     maxGasLimitPerBlock,
-				MaxGasLimitPerMetaBlock: maxGasLimitPerBlock,
-				MinGasPrice:             minGasPrice,
-				MinGasLimit:             minGasLimit,
-				GasPerDataByte:          "1",
-				GasPriceModifier:        1.0,
+				GasLimitSettings: []config.GasLimitSetting{
+					{
+						MaxGasLimitPerBlock:         maxGasLimitPerBlock,
+						MaxGasLimitPerMiniBlock:     maxGasLimitPerBlock,
+						MaxGasLimitPerMetaBlock:     maxGasLimitPerBlock,
+						MaxGasLimitPerMetaMiniBlock: maxGasLimitPerBlock,
+						MinGasLimit:                 minGasLimit,
+					},
+				},
+				MinGasPrice:      minGasPrice,
+				GasPerDataByte:   "1",
+				GasPriceModifier: 1.0,
 			},
 		},
 		PenalizedTooMuchGasEnableEpoch: 0,

@@ -3,10 +3,11 @@ package preprocess
 import (
 	"encoding/hex"
 	"errors"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"math/big"
 	"sync"
 	"testing"
+
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
@@ -188,10 +189,11 @@ func Test_MiniBlocksBuilderHandleGasRefundIntraShard(t *testing.T) {
 
 	initGas := uint64(200000)
 	refund := uint64(20000)
+	penalize := uint64(0)
 	mbb.gasInfo.gasConsumedByMiniBlocksInSenderShard = initGas
 	mbb.gasInfo.totalGasConsumedInSelfShard = initGas
 	mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID] = initGas
-	mbb.handleGasRefund(wtx, refund)
+	mbb.handleGasRefund(wtx, refund, penalize)
 
 	require.Equal(t, initGas-refund, mbb.gasInfo.gasConsumedByMiniBlocksInSenderShard)
 	require.Equal(t, initGas-refund, mbb.gasInfo.totalGasConsumedInSelfShard)
@@ -213,10 +215,11 @@ func Test_MiniBlocksBuilderHandleGasRefundCrossShard(t *testing.T) {
 
 	initGas := uint64(200000)
 	refund := uint64(20000)
+	penalize := uint64(20000)
 	mbb.gasInfo.gasConsumedByMiniBlocksInSenderShard = initGas
 	mbb.gasInfo.totalGasConsumedInSelfShard = initGas
 	mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID] = initGas
-	mbb.handleGasRefund(wtx, refund)
+	mbb.handleGasRefund(wtx, refund, penalize)
 
 	require.Equal(t, initGas, mbb.gasInfo.gasConsumedByMiniBlocksInSenderShard)
 	require.Equal(t, initGas, mbb.gasInfo.totalGasConsumedInSelfShard)
@@ -512,8 +515,9 @@ func Test_MiniBlocksBuilderAccountGasForTxComputeGasConsumedWithErr(t *testing.T
 		shardCoordinator: args.gasTracker.shardCoordinator,
 		economicsFee:     args.gasTracker.economicsFee,
 		gasHandler: &testscommon.GasHandlerStub{
-			RemoveGasConsumedCalled: func(hashes [][]byte) {},
-			RemoveGasRefundedCalled: func(hashes [][]byte) {},
+			RemoveGasConsumedCalled:  func(hashes [][]byte) {},
+			RemoveGasRefundedCalled:  func(hashes [][]byte) {},
+			RemoveGasPenalizedCalled: func(hashes [][]byte) {},
 			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
 				return 0, 0, expectedErr
 			},
@@ -866,6 +870,8 @@ func createDefaultMiniBlockBuilderArgs() miniBlocksBuilderArgs {
 				},
 				RemoveGasRefundedCalled: func(hashes [][]byte) {
 				},
+				RemoveGasPenalizedCalled: func(hashes [][]byte) {
+				},
 			},
 		},
 		accounts: &stateMock.AccountsStub{},
@@ -882,6 +888,8 @@ func createDefaultMiniBlockBuilderArgs() miniBlocksBuilderArgs {
 			txMaxTotalCost, _ := big.NewInt(0).SetString("1500000000", 0)
 			return txMaxTotalCost
 		},
+		getTotalGasConsumed: getTotalGasConsumedZero,
+		txPool:              shardedDataCacherNotifier(),
 	}
 }
 

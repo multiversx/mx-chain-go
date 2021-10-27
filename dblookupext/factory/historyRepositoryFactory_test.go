@@ -9,6 +9,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext/factory"
+	"github.com/ElrondNetwork/elrond-go/process"
+	processMock "github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
@@ -34,6 +36,12 @@ func TestNewHistoryRepositoryFactory(t *testing.T) {
 	argsNilHasher.Hasher = nil
 	hrf, err = factory.NewHistoryRepositoryFactory(argsNilHasher)
 	require.Equal(t, core.ErrNilHasher, err)
+	require.Nil(t, hrf)
+
+	argsNilUint64Converter := getArgs()
+	argsNilUint64Converter.Uint64ByteSliceConverter = nil
+	hrf, err = factory.NewHistoryRepositoryFactory(argsNilUint64Converter)
+	require.Equal(t, process.ErrNilUint64Converter, err)
 	require.Nil(t, hrf)
 
 	hrf, err = factory.NewHistoryRepositoryFactory(args)
@@ -69,10 +77,11 @@ func TestHistoryRepositoryFactory_CreateShouldCreateRegularRepository(t *testing
 
 func getArgs() *factory.ArgsHistoryRepositoryFactory {
 	return &factory.ArgsHistoryRepositoryFactory{
-		SelfShardID: 0,
-		Config:      config.DbLookupExtensionsConfig{},
-		Store:       &mock.ChainStorerMock{},
-		Marshalizer: &mock.MarshalizerMock{},
-		Hasher:      &hashingMocks.HasherMock{},
+		SelfShardID:              0,
+		Config:                   config.DbLookupExtensionsConfig{},
+		Store:                    &mock.ChainStorerMock{},
+		Marshalizer:              &mock.MarshalizerMock{},
+		Hasher:                   &hashingMocks.HasherMock{},
+		Uint64ByteSliceConverter: &processMock.Uint64ByteSliceConverterMock{},
 	}
 }

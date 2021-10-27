@@ -32,6 +32,11 @@ func (r *readOnlyAccountsDB) GetExistingAccount(address []byte) (vmcommon.Accoun
 	return r.originalAccounts.GetExistingAccount(address)
 }
 
+// GetAccountFromBytes will call the original accounts' function with the same name
+func (r *readOnlyAccountsDB) GetAccountFromBytes(address []byte, accountBytes []byte) (vmcommon.AccountHandler, error) {
+	return r.originalAccounts.GetAccountFromBytes(address, accountBytes)
+}
+
 // LoadAccount will call the original accounts' function with the same name
 func (r *readOnlyAccountsDB) LoadAccount(address []byte) (vmcommon.AccountHandler, error) {
 	return r.originalAccounts.LoadAccount(address)
@@ -111,6 +116,11 @@ func (r *readOnlyAccountsDB) RecreateAllTries(_ []byte) (map[string]common.Trie,
 // GetTrie will return an error which indicates that this operation is not supported
 func (r *readOnlyAccountsDB) GetTrie(_ []byte) (common.Trie, error) {
 	return nil, nil
+}
+
+// GetStackDebugFirstEntry -
+func (r *readOnlyAccountsDB) GetStackDebugFirstEntry() []byte {
+	return nil
 }
 
 // Close will handle the closing of the underlying components

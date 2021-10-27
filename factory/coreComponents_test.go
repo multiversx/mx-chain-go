@@ -8,8 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	errorsErd "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/require"
 )
 
@@ -333,7 +333,7 @@ func getCoreArgs() factory.CoreComponentsFactoryArgs {
 		NodesFilename:         "mock/testdata/nodesSetupMock.json",
 		WorkingDirectory:      "home",
 		ChanStopNodeProcess:   make(chan endProcess.ArgEndProcess),
-		StatusHandlersFactory: &mock.StatusHandlersFactoryMock{},
+		StatusHandlersFactory: &statusHandler.StatusHandlersFactoryMock{},
 		EpochConfig: config.EpochConfig{
 			GasSchedule: config.GasScheduleConfig{
 				GasScheduleByEpochs: []config.GasScheduleByEpochs{
@@ -371,12 +371,18 @@ func createDummyEconomicsConfig() config.EconomicsConfig {
 			},
 		},
 		FeeSettings: config.FeeSettings{
-			MaxGasLimitPerBlock:     "1500000000",
-			MaxGasLimitPerMetaBlock: "15000000000",
-			MinGasPrice:             "1000000000",
-			MinGasLimit:             "50000",
-			GasPerDataByte:          "1500",
-			GasPriceModifier:        1,
+			GasLimitSettings: []config.GasLimitSetting{
+				{
+					MaxGasLimitPerBlock:         "1500000000",
+					MaxGasLimitPerMiniBlock:     "1500000000",
+					MaxGasLimitPerMetaBlock:     "15000000000",
+					MaxGasLimitPerMetaMiniBlock: "15000000000",
+					MinGasLimit:                 "50000",
+				},
+			},
+			MinGasPrice:      "1000000000",
+			GasPerDataByte:   "1500",
+			GasPriceModifier: 1,
 		},
 	}
 }

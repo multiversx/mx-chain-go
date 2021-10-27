@@ -23,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -73,7 +74,7 @@ func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 		EpochHandler:                 &mock.EpochStartTriggerStub{},
 		MiniblocksProvider:           &mock.MiniBlocksProviderStub{},
 		Uint64Converter:              &mock.Uint64ByteSliceConverterMock{},
-		AppStatusHandler:             &mock.AppStatusHandlerStub{},
+		AppStatusHandler:             &statusHandlerMock.AppStatusHandlerStub{},
 		OutportHandler:               &testscommon.OutportStub{},
 		AccountsDBSyncer:             &mock.AccountsDBSyncerStub{},
 		CurrentEpochProvider:         &testscommon.CurrentEpochProviderStub{},
@@ -408,7 +409,7 @@ func TestMetaBootstrap_SyncBlockShouldCallRollBack(t *testing.T) {
 
 	args.Store = createMetaStore()
 
-	blkc, _ := blockchain.NewMetaChain(&mock.AppStatusHandlerStub{})
+	blkc, _ := blockchain.NewMetaChain(&statusHandlerMock.AppStatusHandlerStub{})
 	_ = blkc.SetGenesisHeader(&block.MetaBlock{})
 	_ = blkc.SetCurrentBlockHeader(&hdr)
 	args.ChainHandler = blkc
@@ -1122,7 +1123,7 @@ func TestMetaBootstrap_ReceivedHeadersNotFoundInPoolShouldNotAddToForkDetector(t
 	}
 	args.Store = createMetaStore()
 	args.Store.AddStorer(dataRetriever.MetaBlockUnit, headerStorage)
-	args.ChainHandler, _ = blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
+	args.ChainHandler, _ = blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
 	args.RoundHandler = initRoundHandler()
 
 	bs, _ := sync.NewMetaBootstrap(args)

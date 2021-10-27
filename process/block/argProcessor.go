@@ -23,6 +23,7 @@ type coreComponentsHolder interface {
 	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
 	RoundHandler() consensus.RoundHandler
 	StatusHandler() core.AppStatusHandler
+	EconomicsData() process.EconomicsDataHandler
 	IsInterfaceNil() bool
 }
 
@@ -48,10 +49,11 @@ type statusComponentsHolder interface {
 // ArgBaseProcessor holds all dependencies required by the process data factory in order to create
 // new instances
 type ArgBaseProcessor struct {
-	CoreComponents                 coreComponentsHolder
-	DataComponents                 dataComponentsHolder
-	BootstrapComponents            bootstrapComponentsHolder
-	StatusComponents               statusComponentsHolder
+	CoreComponents      coreComponentsHolder
+	DataComponents      dataComponentsHolder
+	BootstrapComponents bootstrapComponentsHolder
+	StatusComponents    statusComponentsHolder
+
 	Config                         config.Config
 	AccountsDB                     map[state.AccountsDbIdentifier]state.AccountsAdapter
 	ForkDetector                   process.ForkDetector
@@ -70,6 +72,7 @@ type ArgBaseProcessor struct {
 	EpochNotifier                  process.EpochNotifier
 	VMContainersFactory            process.VirtualMachinesContainerFactory
 	VmContainer                    process.VirtualMachinesContainer
+	GasHandler                     gasConsumedProvider
 	ScheduledTxsExecutionHandler   process.ScheduledTxsExecutionHandler
 	ScheduledMiniBlocksEnableEpoch uint32
 }

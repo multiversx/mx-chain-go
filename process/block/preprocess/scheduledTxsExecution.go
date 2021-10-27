@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -33,6 +34,7 @@ type scheduledTxsExecution struct {
 	storer            storage.Storer
 	marshaller        marshal.Marshalizer
 	mutScheduledTxs   sync.RWMutex
+	shardCoordinator  sharding.Coordinator
 }
 
 // NewScheduledTxsExecution creates a new object which handles the execution of scheduled transactions
@@ -41,6 +43,7 @@ func NewScheduledTxsExecution(
 	txCoordinator process.TransactionCoordinator,
 	storer storage.Storer,
 	marshaller marshal.Marshalizer,
+	shardCoordinator sharding.Coordinator,
 ) (*scheduledTxsExecution, error) {
 
 	if check.IfNil(txProcessor) {
@@ -55,6 +58,9 @@ func NewScheduledTxsExecution(
 	if check.IfNil(marshaller) {
 		return nil, process.ErrNilMarshalizer
 	}
+	if check.IfNil(shardCoordinator) {
+		return nil, process.ErrNilShardCoordinator
+	}
 
 	ste := &scheduledTxsExecution{
 		txProcessor:       txProcessor,
@@ -65,6 +71,7 @@ func NewScheduledTxsExecution(
 		storer:            storer,
 		marshaller:        marshaller,
 		scheduledRootHash: nil,
+		shardCoordinator:  shardCoordinator,
 	}
 
 	return ste, nil
@@ -160,7 +167,7 @@ func (ste *scheduledTxsExecution) computeScheduledSCRs(
 	numScheduledSCRs := 0
 	ste.mapScheduledSCRs = make(map[block.Type][]data.TransactionHandler)
 	for blockType, allIntermediateTxsAfterScheduledExecution := range mapAllIntermediateTxsAfterScheduledExecution {
-		scrsInfo := getAllIntermediateTxsAfterScheduledExecution(
+		scrsInfo := ste.getAllIntermediateTxsAfterScheduledExecution(
 			mapAllIntermediateTxsBeforeScheduledExecution,
 			allIntermediateTxsAfterScheduledExecution,
 			blockType,
@@ -185,7 +192,7 @@ func (ste *scheduledTxsExecution) computeScheduledSCRs(
 	log.Debug("scheduledTxsExecution.computeScheduledSCRs", "num of scheduled scrs created", numScheduledSCRs)
 }
 
-func getAllIntermediateTxsAfterScheduledExecution(
+func (ste *scheduledTxsExecution) getAllIntermediateTxsAfterScheduledExecution(
 	mapAllIntermediateTxsBeforeScheduledExecution map[block.Type]map[string]data.TransactionHandler,
 	allIntermediateTxsAfterScheduledExecution map[string]data.TransactionHandler,
 	blockType block.Type,
@@ -198,6 +205,11 @@ func getAllIntermediateTxsAfterScheduledExecution(
 			if txExists {
 				continue
 			}
+		}
+
+		if ste.shardCoordinator.SameShard(txHandler.GetSndAddr(), txHandler.GetRcvAddr()) {
+			log.Trace("scheduledTxsExecution.getAllIntermediateTxsAfterScheduledExecution: intra shard scr skipped", "hash", []byte(txHash))
+			continue
 		}
 
 		scrsInfo = append(scrsInfo, &scrInfo{

@@ -272,16 +272,16 @@ func (ses *startInEpochWithScheduledDataSyncer) getAllTransactionsForMiniBlocks(
 
 func (ses *startInEpochWithScheduledDataSyncer) getScheduledMiniBlockHeaders(header data.HeaderHandler) []data.MiniBlockHeaderHandler {
 	miniBlockHeaders := header.GetMiniBlockHeaderHandlers()
-	schMiniBlockHashes := make([]data.MiniBlockHeaderHandler, 0)
+	schMiniBlockHeaders := make([]data.MiniBlockHeaderHandler, 0)
 
 	for i, mbh := range miniBlockHeaders {
 		reserved := mbh.GetReserved()
 		if len(reserved) > 0 && reserved[0] == byte(block.Scheduled) {
-			schMiniBlockHashes = append(schMiniBlockHashes, miniBlockHeaders[i])
+			schMiniBlockHeaders = append(schMiniBlockHeaders, miniBlockHeaders[i])
 		}
 	}
 
-	return schMiniBlockHashes
+	return schMiniBlockHeaders
 }
 
 func (ses *startInEpochWithScheduledDataSyncer) getScheduledTransactionHashes(header data.HeaderHandler) (map[string]struct{}, error) {

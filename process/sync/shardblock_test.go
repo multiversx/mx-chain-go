@@ -27,6 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -196,7 +197,7 @@ func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 		EpochHandler:                 &mock.EpochStartTriggerStub{},
 		MiniblocksProvider:           &mock.MiniBlocksProviderStub{},
 		Uint64Converter:              &mock.Uint64ByteSliceConverterMock{},
-		AppStatusHandler:             &mock.AppStatusHandlerStub{},
+		AppStatusHandler:             &statusHandlerMock.AppStatusHandlerStub{},
 		OutportHandler:               &testscommon.OutportStub{},
 		AccountsDBSyncer:             &mock.AccountsDBSyncerStub{},
 		CurrentEpochProvider:         &testscommon.CurrentEpochProviderStub{},
@@ -476,7 +477,7 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 	store.AddStorer(dataRetriever.MiniBlockUnit, blockBodyUnit)
 	args.Store = store
 
-	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{
+	blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {},
 	})
 
@@ -1638,7 +1639,7 @@ func TestBootstrap_GetTxBodyHavingHashReturnsFromCacherShouldWork(t *testing.T) 
 	requestedHash = append(requestedHash, mbh)
 	mbsAndHashes := make([]*block.MiniblockAndHash, 0)
 
-	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{
+	blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {},
 	})
 	args.ChainHandler = blkc
@@ -1675,7 +1676,7 @@ func TestBootstrap_GetTxBodyHavingHashNotFoundInCacherOrStorageShouldRetEmptySli
 		},
 	}
 
-	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{
+	blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {},
 	})
 	args.ChainHandler = blkc
@@ -1698,7 +1699,7 @@ func TestBootstrap_GetTxBodyHavingHashFoundInStorageShouldWork(t *testing.T) {
 	requestedHash = append(requestedHash, mbh)
 	mbsAndHashes := make([]*block.MiniblockAndHash, 0)
 
-	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{
+	blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {},
 	})
 

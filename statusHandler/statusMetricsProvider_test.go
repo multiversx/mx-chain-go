@@ -159,6 +159,7 @@ func TestStatusMetrics_NetworkConfig(t *testing.T) {
 	sm.SetStringValue(common.MetricRewardsTopUpGradientPoint, "12345")
 	sm.SetUInt64Value(common.MetricGasPerDataByte, 1500)
 	sm.SetStringValue(common.MetricChainId, "local-id")
+	sm.SetUInt64Value(common.MetricMaxGasPerTransaction, 15000)
 	sm.SetUInt64Value(common.MetricRoundDuration, 5000)
 	sm.SetUInt64Value(common.MetricStartTime, 9999)
 	sm.SetStringValue(common.MetricLatestTagSoftwareVersion, "version1.0")
@@ -187,6 +188,7 @@ func TestStatusMetrics_NetworkConfig(t *testing.T) {
 		"erd_top_up_factor":                 "12.134",
 		"erd_gas_price_modifier":            "0.5",
 		"erd_rounds_per_epoch":              uint64(144),
+		"erd_max_gas_per_transaction":       uint64(15000),
 	}
 
 	configMetrics := sm.ConfigMetrics()

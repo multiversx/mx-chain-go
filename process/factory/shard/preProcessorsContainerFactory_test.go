@@ -40,7 +40,8 @@ func TestNewPreProcessorsContainerFactory_NilShardCoordinator(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -71,7 +72,8 @@ func TestNewPreProcessorsContainerFactory_NilStore(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -102,7 +104,8 @@ func TestNewPreProcessorsContainerFactory_NilMarshalizer(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -133,7 +136,8 @@ func TestNewPreProcessorsContainerFactory_NilHasher(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -164,7 +168,8 @@ func TestNewPreProcessorsContainerFactory_NilDataPool(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -195,7 +200,8 @@ func TestNewPreProcessorsContainerFactory_NilAddrConv(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -226,7 +232,8 @@ func TestNewPreProcessorsContainerFactory_NilAccounts(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -257,7 +264,8 @@ func TestNewPreProcessorsContainerFactory_NilTxProcessor(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -288,7 +296,8 @@ func TestNewPreProcessorsContainerFactory_NilSCProcessor(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -319,7 +328,8 @@ func TestNewPreProcessorsContainerFactory_NilSCR(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -350,7 +360,8 @@ func TestNewPreProcessorsContainerFactory_NilRewardTxProcessor(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -381,7 +392,8 @@ func TestNewPreProcessorsContainerFactory_NilRequestHandler(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -412,7 +424,8 @@ func TestNewPreProcessorsContainerFactory_NilFeeHandler(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -443,7 +456,8 @@ func TestNewPreProcessorsContainerFactory_NilGasHandler(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -474,7 +488,8 @@ func TestNewPreProcessorsContainerFactory_NilBlockTracker(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -505,7 +520,8 @@ func TestNewPreProcessorsContainerFactory_NilBlockSizeComputationHandler(t *test
 		nil,
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -536,7 +552,8 @@ func TestNewPreProcessorsContainerFactory_NilBalanceComputationHandler(t *testin
 		&testscommon.BlockSizeComputationStub{},
 		nil,
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -567,7 +584,8 @@ func TestNewPreProcessorsContainerFactory_NilEpochNotifier(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		nil,
-		0,
+		2,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -598,7 +616,8 @@ func TestNewPreProcessorsContainerFactory_NilTxTypeHandler(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
+		2,
 		nil,
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -629,7 +648,8 @@ func TestNewPreProcessorsContainerFactory_NilScheduledTxsExecutionHandler(t *tes
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		nil,
 	)
@@ -660,7 +680,8 @@ func TestNewPreProcessorsContainerFactory(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -696,7 +717,8 @@ func TestPreProcessorsContainerFactory_CreateErrTxPreproc(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -738,7 +760,8 @@ func TestPreProcessorsContainerFactory_CreateErrScrPreproc(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -783,7 +806,8 @@ func TestPreProcessorsContainerFactory_Create(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
-		0,
+		2,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)

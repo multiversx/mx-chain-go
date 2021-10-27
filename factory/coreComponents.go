@@ -3,6 +3,7 @@ package factory
 import (
 	"bytes"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -19,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	marshalizerFactory "github.com/ElrondNetwork/elrond-go-core/marshal/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
+	"github.com/ElrondNetwork/elrond-go/common"
 	commonFactory "github.com/ElrondNetwork/elrond-go/common/factory"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -26,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/ElrondNetwork/elrond-go/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
@@ -94,6 +97,7 @@ type coreComponents struct {
 	chanStopNodeProcess           chan endProcess.ArgEndProcess
 	nodeTypeProvider              core.NodeTypeProviderHandler
 	encodedAddressLen             uint32
+	arwenChangeLocker             common.Locker
 }
 
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
@@ -218,11 +222,13 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 
 	epochNotifier := forking.NewGenericEpochNotifier()
 
+	arwenChangeLocker := &sync.RWMutex{}
 	gasScheduleConfigurationFolderName := ccf.configPathsHolder.GasScheduleDirectoryName
 	argsGasScheduleNotifier := forking.ArgsNewGasScheduleNotifier{
 		GasScheduleConfig: ccf.epochConfig.GasSchedule,
 		ConfigDir:         gasScheduleConfigurationFolderName,
 		EpochNotifier:     epochNotifier,
+		ArwenChangeLocker: arwenChangeLocker,
 	}
 	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
 	if err != nil {
@@ -270,6 +276,16 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	}
 
 	statusHandlersInfo, err := ccf.statusHandlersFactory.Create(internalMarshalizer, uint64ByteSliceConverter)
+	if err != nil {
+		return nil, err
+	}
+
+	err = metrics.InitBaseMetrics(statusHandlersInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	err = metrics.InitConfigMetrics(statusHandlersInfo, ccf.epochConfig, ccf.economicsConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -329,6 +345,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		chanStopNodeProcess:           ccf.chanStopNodeProcess,
 		encodedAddressLen:             computeEncodedAddressLen(addressPubkeyConverter),
 		nodeTypeProvider:              nodeTypeProvider,
+		arwenChangeLocker:             arwenChangeLocker,
 	}, nil
 }
 

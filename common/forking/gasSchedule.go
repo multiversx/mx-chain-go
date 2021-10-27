@@ -23,6 +23,7 @@ type gasScheduleNotifier struct {
 	currentEpoch      uint32
 	lastGasSchedule   GasScheduleMap
 	handlers          []core.GasScheduleSubscribeHandler
+	arwenChangeLocker common.Locker
 }
 
 // ArgsNewGasScheduleNotifier defines the gas schedule notifier arguments
@@ -30,6 +31,7 @@ type ArgsNewGasScheduleNotifier struct {
 	GasScheduleConfig config.GasScheduleConfig
 	ConfigDir         string
 	EpochNotifier     vmcommon.EpochNotifier
+	ArwenChangeLocker common.Locker
 }
 
 // NewGasScheduleNotifier creates a new instance of a gasScheduleNotifier component
@@ -40,11 +42,15 @@ func NewGasScheduleNotifier(args ArgsNewGasScheduleNotifier) (*gasScheduleNotifi
 	if check.IfNil(args.EpochNotifier) {
 		return nil, core.ErrNilEpochStartNotifier
 	}
+	if check.IfNilReflect(args.ArwenChangeLocker) {
+		return nil, common.ErrNilArwenChangeLocker
+	}
 
 	g := &gasScheduleNotifier{
 		gasScheduleConfig: args.GasScheduleConfig,
 		handlers:          make([]core.GasScheduleSubscribeHandler, 0),
 		configDir:         args.ConfigDir,
+		arwenChangeLocker: args.ArwenChangeLocker,
 	}
 	log.Debug("gasSchedule: enable epoch for gas schedule directories paths epoch", "epoch", g.gasScheduleConfig.GasScheduleByEpochs)
 
@@ -108,20 +114,35 @@ func (g *gasScheduleNotifier) EpochConfirmed(epoch uint32, _ uint64) {
 		return
 	}
 
+	newGasSchedule := g.changeLatestGasSchedule(epoch, old)
+	if newGasSchedule == nil {
+		return
+	}
+
+	g.arwenChangeLocker.Lock()
+	for _, handler := range g.handlers {
+		if !check.IfNil(handler) {
+			handler.GasScheduleChange(newGasSchedule)
+		}
+	}
+	g.arwenChangeLocker.Unlock()
+}
+
+func (g *gasScheduleNotifier) changeLatestGasSchedule(epoch uint32, oldEpoch uint32) map[string]map[string]uint64 {
 	g.mutNotifier.Lock()
 	defer g.mutNotifier.Unlock()
 	newVersion := g.getMatchingVersion(epoch)
-	oldVersion := g.getMatchingVersion(old)
+	oldVersion := g.getMatchingVersion(oldEpoch)
 
 	if newVersion.StartEpoch == oldVersion.StartEpoch {
 		// gasSchedule is still the same
-		return
+		return nil
 	}
 
 	newGasSchedule, err := common.LoadGasScheduleConfig(filepath.Join(g.configDir, newVersion.FileName))
 	if err != nil {
 		log.Error("could not load the new gas schedule")
-		return
+		return nil
 	}
 
 	log.Debug("gasScheduleNotifier.EpochConfirmed new gas schedule",
@@ -130,9 +151,8 @@ func (g *gasScheduleNotifier) EpochConfirmed(epoch uint32, _ uint64) {
 	)
 
 	g.lastGasSchedule = newGasSchedule
-	for _, handler := range g.handlers {
-		handler.GasScheduleChange(g.lastGasSchedule)
-	}
+
+	return newGasSchedule
 }
 
 // LatestGasSchedule returns the latest gas schedule

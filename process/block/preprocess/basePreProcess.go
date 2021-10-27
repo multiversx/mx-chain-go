@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-vm-common/atomic"
 )
 
 type txType int32
@@ -51,6 +52,7 @@ type processedTxsInfo struct {
 	numTxsFailed                       int
 	numTxsWithInitialBalanceConsumed   int
 	numCrossShardScCallsOrSpecialTxs   int
+	numCrossShardTxsWithTooMuchGas     int
 	totalTimeUsedForProcess            time.Duration
 	totalTimeUsedForComputeGasConsumed time.Duration
 }
@@ -76,6 +78,7 @@ type scheduledTxsInfo struct {
 	numScheduledTxsSkipped                      int
 	numScheduledTxsWithInitialBalanceConsumed   int
 	numScheduledCrossShardScCalls               int
+	numCrossShardTxsWithTooMuchGas              int
 	totalTimeUsedForScheduledVerify             time.Duration
 	totalTimeUsedForScheduledComputeGasConsumed time.Duration
 }
@@ -109,12 +112,14 @@ type txsForBlock struct {
 
 type basePreProcess struct {
 	gasTracker
-	hasher               hashing.Hasher
-	marshalizer          marshal.Marshalizer
-	blockSizeComputation BlockSizeComputationHandler
-	balanceComputation   BalanceComputationHandler
-	accounts             state.AccountsAdapter
-	pubkeyConverter      core.PubkeyConverter
+	hasher                                      hashing.Hasher
+	marshalizer                                 marshal.Marshalizer
+	blockSizeComputation                        BlockSizeComputationHandler
+	balanceComputation                          BalanceComputationHandler
+	accounts                                    state.AccountsAdapter
+	pubkeyConverter                             core.PubkeyConverter
+	optimizeGasUsedInCrossMiniBlocksEnableEpoch uint32
+	flagOptimizeGasUsedInCrossMiniBlocks        atomic.Flag
 }
 
 func (bpp *basePreProcess) removeBlockDataFromPools(
@@ -374,6 +379,38 @@ func (bpp *basePreProcess) requestMissingTxsForShard(
 	return requestedTxs
 }
 
+func (bpp *basePreProcess) computeGasConsumedByTx(
+	senderShardId uint32,
+	receiverShardId uint32,
+	tx data.TransactionHandler,
+	txHash []byte,
+) (uint64, uint64, error) {
+
+	txGasLimitInSenderShard, txGasLimitInReceiverShard, err := bpp.gasHandler.ComputeGasConsumedByTx(
+		senderShardId,
+		receiverShardId,
+		tx)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	if core.IsSmartContractAddress(tx.GetRcvAddr()) {
+		txGasRefunded := bpp.gasHandler.GasRefunded(txHash)
+		txGasPenalized := bpp.gasHandler.GasPenalized(txHash)
+		txGasToBeSubtracted := txGasRefunded + txGasPenalized
+		if txGasLimitInReceiverShard < txGasToBeSubtracted {
+			return 0, 0, process.ErrInsufficientGasLimitInTx
+		}
+
+		if senderShardId == receiverShardId {
+			txGasLimitInSenderShard -= txGasToBeSubtracted
+			txGasLimitInReceiverShard -= txGasToBeSubtracted
+		}
+	}
+
+	return txGasLimitInSenderShard, txGasLimitInReceiverShard, nil
+}
+
 func (bpp *basePreProcess) saveAccountBalanceForAddress(address []byte) {
 	if bpp.balanceComputation.IsAddressSet(address) {
 		return
@@ -410,4 +447,52 @@ func getTxMaxTotalCost(txHandler data.TransactionHandler) *big.Int {
 	}
 
 	return cost
+}
+
+func (bpp *basePreProcess) getTotalGasConsumed() uint64 {
+	if !bpp.flagOptimizeGasUsedInCrossMiniBlocks.IsSet() {
+		return bpp.gasHandler.TotalGasConsumed()
+	}
+
+	totalGasToBeSubtracted := bpp.gasHandler.TotalGasRefunded() + bpp.gasHandler.TotalGasPenalized()
+	totalGasConsumed := bpp.gasHandler.TotalGasConsumed()
+	if totalGasToBeSubtracted > totalGasConsumed {
+		log.Warn("basePreProcess.getTotalGasConsumed: too much gas to be subtracted",
+			"totalGasRefunded", bpp.gasHandler.TotalGasRefunded(),
+			"totalGasPenalized", bpp.gasHandler.TotalGasPenalized(),
+			"totalGasToBeSubtracted", totalGasToBeSubtracted,
+			"totalGasConsumed", totalGasConsumed,
+		)
+		return totalGasConsumed
+	}
+
+	return totalGasConsumed - totalGasToBeSubtracted
+}
+
+func (bpp *basePreProcess) updateGasConsumedWithGasRefundedAndGasPenalized(
+	txHash []byte,
+	gasInfo *gasConsumedInfo,
+) {
+	if !bpp.flagOptimizeGasUsedInCrossMiniBlocks.IsSet() {
+		return
+	}
+
+	gasRefunded := bpp.gasHandler.GasRefunded(txHash)
+	gasPenalized := bpp.gasHandler.GasPenalized(txHash)
+	gasToBeSubtracted := gasRefunded + gasPenalized
+	couldUpdateGasConsumedWithGasSubtracted := gasToBeSubtracted <= gasInfo.gasConsumedByMiniBlockInReceiverShard &&
+		gasToBeSubtracted <= gasInfo.totalGasConsumedInSelfShard
+	if !couldUpdateGasConsumedWithGasSubtracted {
+		log.Warn("basePreProcess.updateGasConsumedWithGasRefundedAndGasPenalized: too much gas to be subtracted",
+			"gasRefunded", gasRefunded,
+			"gasPenalized", gasPenalized,
+			"gasToBeSubtracted", gasToBeSubtracted,
+			"gasConsumedByMiniBlockInReceiverShard", gasInfo.gasConsumedByMiniBlockInReceiverShard,
+			"totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
+		)
+		return
+	}
+
+	gasInfo.gasConsumedByMiniBlockInReceiverShard -= gasToBeSubtracted
+	gasInfo.totalGasConsumedInSelfShard -= gasToBeSubtracted
 }

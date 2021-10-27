@@ -38,6 +38,7 @@
     DelegationMgrOps      = 50000000
     ValidatorToDelegation = 500000000
     GetAllNodeStates      = 100000000
+    FixWaitingListSize    = 500000000
 
 [BaseOperationCost]
     StorePerByte      = 50000
@@ -167,6 +168,7 @@
     BigIntGetSignedArgument     = 100
     BigIntGetCallValue          = 100
     BigIntGetExternalBalance    = 500
+    CopyPerByteForTooBig        = 1000
 
 [CryptoAPICost]
     SHA256          = 600

@@ -26,6 +26,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
+	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/testscommon/syncer"
 	"github.com/stretchr/testify/assert"
 )
@@ -166,7 +167,7 @@ func createMockEpochStartBootstrapArgs(
 		LatestStorageDataProvider:  &mock.LatestStorageDataProviderStub{},
 		StorageUnitOpener:          &mock.UnitOpenerStub{},
 		ArgumentsParser:            &mock.ArgumentParserMock{},
-		StatusHandler:              &mock.AppStatusHandlerStub{},
+		StatusHandler:              &statusHandlerMock.AppStatusHandlerStub{},
 		HeaderIntegrityVerifier:    &mock.HeaderIntegrityVerifierStub{},
 	}
 }

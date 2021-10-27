@@ -222,15 +222,6 @@ func initPersistersInEpoch(
 		"oldestEpochActive", oldestEpochActive,
 	)
 
-	// If "database lookup extensions" is enabled, we'll create shallow (not initialized) persisters for all epochs
-	if args.EnabledDbLookupExtensions {
-		for epoch := int64(args.StartingEpoch); epoch >= 0; epoch-- {
-			log.Debug("initPersistersInEpoch(): createShallowPersisterDataForEpoch", "identifier", args.Identifier, "epoch", epoch, "shardID", shardIDStr)
-			persistersMapByEpoch[uint32(epoch)] = createShallowPersisterDataForEpoch(args, uint32(epoch), shardIDStr)
-		}
-	}
-
-	// Shallow persister data will be overwritten in case of active persisters
 	for epoch := int64(args.StartingEpoch); epoch >= oldestEpochKeep; epoch-- {
 		log.Debug("initPersistersInEpoch(): createPersisterDataForEpoch", "identifier", args.Identifier, "epoch", epoch, "shardID", shardIDStr)
 		p, err := createPersisterDataForEpoch(args, uint32(epoch), shardIDStr)
@@ -459,7 +450,7 @@ func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[stri
 		log.Warn("get from removed persister",
 			"id", ps.identifier,
 			"epoch", epoch)
-		return nil, errors.New("persister does not exits")
+		return nil, errors.New("persister does not exist")
 	}
 
 	persisterToRead, closePersister, err := ps.createAndInitPersisterIfClosed(pd)
@@ -903,17 +894,6 @@ func (ps *PruningStorer) RangeKeys(_ func(key []byte, val []byte) bool) {
 // IsInterfaceNil returns true if there is no value under the interface
 func (ps *PruningStorer) IsInterfaceNil() bool {
 	return ps == nil
-}
-
-func createShallowPersisterDataForEpoch(args *StorerArgs, epoch uint32, shard string) *persisterData {
-	filePath := createPersisterPathForEpoch(args, epoch, shard)
-
-	return &persisterData{
-		persister: args.PersisterFactory.CreateDisabled(),
-		epoch:     epoch,
-		path:      filePath,
-		isClosed:  true,
-	}
 }
 
 func createPersisterPathForEpoch(args *StorerArgs, epoch uint32, shard string) string {
