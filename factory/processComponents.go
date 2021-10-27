@@ -592,6 +592,7 @@ func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.
 		SwitchJailWaitingEnableEpoch:    pcf.epochConfig.EnableEpochs.SwitchJailWaitingEnableEpoch,
 		BelowSignedThresholdEnableEpoch: pcf.epochConfig.EnableEpochs.BelowSignedThresholdEnableEpoch,
 		StakingV2EnableEpoch:            pcf.epochConfig.EnableEpochs.StakingV2EnableEpoch,
+		StopDecreasingValidatorRatingWhenStuckEpoch: pcf.epochConfig.EnableEpochs.StopDecreasingValidatorRatingWhenStuckEpoch,
 	}
 
 	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)

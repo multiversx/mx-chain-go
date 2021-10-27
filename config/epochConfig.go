@@ -61,6 +61,7 @@ type EnableEpochs struct {
 	FixOOGReturnCodeEnableEpoch                 uint32
 	RemoveNonUpdatedStorageEnableEpoch          uint32
 	DeleteDelegatorAfterClaimRewardsEnableEpoch uint32
+	StopDecreasingValidatorRatingWhenStuckEpoch uint32
 }
 
 // GasScheduleByEpochs represents a gas schedule toml entry that will be applied from the provided epoch

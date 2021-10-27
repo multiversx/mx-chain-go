@@ -38,46 +38,49 @@ const (
 
 // ArgValidatorStatisticsProcessor holds all dependencies for the validatorStatistics
 type ArgValidatorStatisticsProcessor struct {
-	Marshalizer                     marshal.Marshalizer
-	NodesCoordinator                sharding.NodesCoordinator
-	ShardCoordinator                sharding.Coordinator
-	DataPool                        DataPool
-	StorageService                  dataRetriever.StorageService
-	PubkeyConv                      core.PubkeyConverter
-	PeerAdapter                     state.AccountsAdapter
-	Rater                           sharding.PeerAccountListAndRatingHandler
-	RewardsHandler                  process.RewardsHandler
-	MaxComputableRounds             uint64
-	NodesSetup                      sharding.GenesisNodesSetupHandler
-	GenesisNonce                    uint64
-	RatingEnableEpoch               uint32
-	SwitchJailWaitingEnableEpoch    uint32
-	BelowSignedThresholdEnableEpoch uint32
-	StakingV2EnableEpoch            uint32
-	EpochNotifier                   process.EpochNotifier
+	Marshalizer                                 marshal.Marshalizer
+	NodesCoordinator                            sharding.NodesCoordinator
+	ShardCoordinator                            sharding.Coordinator
+	DataPool                                    DataPool
+	StorageService                              dataRetriever.StorageService
+	PubkeyConv                                  core.PubkeyConverter
+	PeerAdapter                                 state.AccountsAdapter
+	Rater                                       sharding.PeerAccountListAndRatingHandler
+	RewardsHandler                              process.RewardsHandler
+	MaxComputableRounds                         uint64
+	NodesSetup                                  sharding.GenesisNodesSetupHandler
+	GenesisNonce                                uint64
+	RatingEnableEpoch                           uint32
+	SwitchJailWaitingEnableEpoch                uint32
+	BelowSignedThresholdEnableEpoch             uint32
+	StakingV2EnableEpoch                        uint32
+	StopDecreasingValidatorRatingWhenStuckEpoch uint32
+	EpochNotifier                               process.EpochNotifier
 }
 
 type validatorStatistics struct {
-	marshalizer                     marshal.Marshalizer
-	dataPool                        DataPool
-	storageService                  dataRetriever.StorageService
-	nodesCoordinator                sharding.NodesCoordinator
-	shardCoordinator                sharding.Coordinator
-	pubkeyConv                      core.PubkeyConverter
-	peerAdapter                     state.AccountsAdapter
-	rater                           sharding.PeerAccountListAndRatingHandler
-	rewardsHandler                  process.RewardsHandler
-	maxComputableRounds             uint64
-	missedBlocksCounters            validatorRoundCounters
-	mutValidatorStatistics          sync.RWMutex
-	genesisNonce                    uint64
-	ratingEnableEpoch               uint32
-	lastFinalizedRootHash           []byte
-	jailedEnableEpoch               uint32
-	belowSignedThresholdEnableEpoch uint32
-	stakingV2EnableEpoch            uint32
-	flagJailedEnabled               atomic.Flag
-	flagStakingV2Enabled            atomic.Flag
+	marshalizer                                 marshal.Marshalizer
+	dataPool                                    DataPool
+	storageService                              dataRetriever.StorageService
+	nodesCoordinator                            sharding.NodesCoordinator
+	shardCoordinator                            sharding.Coordinator
+	pubkeyConv                                  core.PubkeyConverter
+	peerAdapter                                 state.AccountsAdapter
+	rater                                       sharding.PeerAccountListAndRatingHandler
+	rewardsHandler                              process.RewardsHandler
+	maxComputableRounds                         uint64
+	missedBlocksCounters                        validatorRoundCounters
+	mutValidatorStatistics                      sync.RWMutex
+	genesisNonce                                uint64
+	ratingEnableEpoch                           uint32
+	lastFinalizedRootHash                       []byte
+	jailedEnableEpoch                           uint32
+	belowSignedThresholdEnableEpoch             uint32
+	stakingV2EnableEpoch                        uint32
+	stopDecreasingValidatorRatingWhenStuckEpoch uint32
+	flagJailedEnabled                           atomic.Flag
+	flagStakingV2Enabled                        atomic.Flag
+	flagStopDecreasingValidatorRating           atomic.Flag
 }
 
 // NewValidatorStatisticsProcessor instantiates a new validatorStatistics structure responsible of keeping account of
@@ -137,10 +140,12 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 		jailedEnableEpoch:               arguments.SwitchJailWaitingEnableEpoch,
 		belowSignedThresholdEnableEpoch: arguments.BelowSignedThresholdEnableEpoch,
 		stakingV2EnableEpoch:            arguments.StakingV2EnableEpoch,
+		stopDecreasingValidatorRatingWhenStuckEpoch: arguments.StopDecreasingValidatorRatingWhenStuckEpoch,
 	}
 	log.Debug("peer/process: enable epoch for switch jail waiting", "epoch", vs.jailedEnableEpoch)
 	log.Debug("peer/process: enable epoch for below signed threshold", "epoch", vs.belowSignedThresholdEnableEpoch)
 	log.Debug("peer/process: enable epoch for staking v2", "epoch", vs.stakingV2EnableEpoch)
+	log.Debug("peer/process: enable epoch for stop decreasing validator rating when stuck", "epoch", vs.stopDecreasingValidatorRatingWhenStuckEpoch)
 
 	arguments.EpochNotifier.RegisterNotifyHandler(vs)
 
@@ -1230,4 +1235,6 @@ func (vs *validatorStatistics) EpochConfirmed(epoch uint32, _ uint64) {
 	log.Debug("validatorStatistics: jailed", "enabled", vs.flagJailedEnabled.IsSet())
 	vs.flagStakingV2Enabled.Toggle(epoch > vs.stakingV2EnableEpoch)
 	log.Debug("validatorStatistics: stakingV2", vs.flagStakingV2Enabled.IsSet())
+	vs.flagStopDecreasingValidatorRating.Toggle(epoch >= vs.stopDecreasingValidatorRatingWhenStuckEpoch)
+	log.Debug("validatorStatistics: stop decreasing validator rating", vs.flagStopDecreasingValidatorRating.IsSet())
 }
