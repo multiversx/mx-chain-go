@@ -848,6 +848,8 @@ func (nr *nodeRunner) logSessionInformation(
 			configurationPaths.ApiRoutes,
 			configurationPaths.External,
 			configurationPaths.SystemSC,
+			configurationPaths.RoundActivation,
+			configurationPaths.Epoch,
 		})
 
 	statsFile := filepath.Join(statsFolder, "session.info")

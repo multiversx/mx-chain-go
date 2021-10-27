@@ -332,6 +332,7 @@ func getFlags() []cli.Flag {
 		externalConfigFile,
 		p2pConfigurationFile,
 		epochConfigurationFile,
+		roundConfigurationFile,
 		gasScheduleConfigurationDirectory,
 		validatorKeyIndex,
 		validatorKeyPemFile,

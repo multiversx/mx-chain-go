@@ -3,29 +3,22 @@ package roundActivation
 import (
 	"reflect"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 type roundActivation struct {
-	roundHandler   process.RoundHandler
 	roundByNameMap map[string]uint64
 }
 
 // NewRoundActivation creates a new round activation handler component
-func NewRoundActivation(roundHandler process.RoundHandler, config config.RoundConfig) (process.RoundActivationHandler, error) {
-	if check.IfNil(roundHandler) {
-		return nil, process.ErrNilRoundHandler
-	}
-
+func NewRoundActivation(config config.RoundConfig) (process.RoundActivationHandler, error) {
 	configMap, err := getRoundsByNameMap(config)
 	if err != nil {
 		return nil, err
 	}
 
 	return &roundActivation{
-		roundHandler:   roundHandler,
 		roundByNameMap: configMap,
 	}, nil
 }
@@ -33,20 +26,7 @@ func NewRoundActivation(roundHandler process.RoundHandler, config config.RoundCo
 // IsEnabled checks if the queried round flag name is enabled in the queried round
 func (ra *roundActivation) IsEnabled(name string, round uint64) bool {
 	if r, exists := ra.roundByNameMap[name]; exists {
-		return r == round && ra.isCurrentRound(round)
-	}
-
-	return false
-}
-
-func (ra *roundActivation) isCurrentRound(round uint64) bool {
-	return round == uint64(ra.roundHandler.Index())
-}
-
-// IsEnabledInCurrentRound checks if the queried round flag name is enabled in current round
-func (ra *roundActivation) IsEnabledInCurrentRound(name string) bool {
-	if round, exists := ra.roundByNameMap[name]; exists {
-		return ra.isCurrentRound(round)
+		return round >= r
 	}
 
 	return false
