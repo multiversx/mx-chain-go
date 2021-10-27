@@ -113,6 +113,8 @@ type epochStartBootstrap struct {
 	latestStorageDataProvider storage.LatestStorageDataProviderHandler
 	argumentsParser           process.ArgumentsParser
 	waitingListFixEnableEpoch uint32
+	//TODO remove this when it is no longer needed
+	storageService dataRetriever.StorageService
 
 	// gathered data
 	epochStartMeta     *block.MetaBlock
@@ -428,11 +430,12 @@ func (e *epochStartBootstrap) computeIfCurrentEpochIsSaved() bool {
 
 func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 	e.closeTrieComponents()
+	e.storageService = disabled.NewChainStorer()
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
 		e.generalConfig,
 		e.coreComponentsHolder,
 		core.MetachainShardId,
-		disabled.NewChainStorer(),
+		e.storageService,
 	)
 	if err != nil {
 		return err
@@ -1049,6 +1052,11 @@ func (e *epochStartBootstrap) closeTrieComponents() {
 			err := trie.Close()
 			log.LogIfError(err)
 		}
+	}
+
+	if !check.IfNil(e.storageService) {
+		err := e.storageService.Destroy()
+		log.LogIfError(err)
 	}
 }
 

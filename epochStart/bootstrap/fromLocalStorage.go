@@ -107,11 +107,12 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 	}
 
 	e.closeTrieComponents()
+	e.storageService = disabled.NewChainStorer()
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
 		e.generalConfig,
 		e.coreComponentsHolder,
 		newShardId,
-		disabled.NewChainStorer(),
+		e.storageService,
 	)
 	if err != nil {
 		return Parameters{}, err

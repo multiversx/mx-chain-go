@@ -146,11 +146,12 @@ func (sesb *storageEpochStartBootstrap) Bootstrap() (Parameters, error) {
 
 func (sesb *storageEpochStartBootstrap) prepareComponentsToSync() error {
 	sesb.closeTrieComponents()
+	sesb.storageService = disabled.NewChainStorer()
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
 		sesb.generalConfig,
 		sesb.coreComponentsHolder,
 		core.MetachainShardId,
-		disabled.NewChainStorer(),
+		sesb.storageService,
 	)
 	if err != nil {
 		return err
