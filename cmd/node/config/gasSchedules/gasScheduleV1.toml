@@ -38,6 +38,7 @@
     DelegationMgrOps      = 50000000
     ValidatorToDelegation = 500000000
     GetAllNodeStates      = 100000000
+    FixWaitingListSize    = 500000000
 
 [BaseOperationCost]
     StorePerByte      = 50000

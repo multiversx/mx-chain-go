@@ -25,9 +25,6 @@
     ChangeRewardAddress   = 5000000
     ChangeValidatorKeys   = 5000000
     UnJail                = 5000000
-    DelegationOps         = 1000000
-    DelegationMgrOps      = 50000000
-    ValidatorToDelegation = 500000000
     ESDTIssue             = 50000000
     ESDTOperations        = 50000000
     Proposal              = 5000000
@@ -35,7 +32,13 @@
     DelegateVote          = 1000000
     RevokeVote            = 500000
     CloseProposal         = 1000000
-    GetAllNodeStates      = 20000000
+    DelegationOps         = 1000000
+    UnstakeTokens         = 5000000
+    UnbondTokens          = 5000000
+    DelegationMgrOps      = 50000000
+    ValidatorToDelegation = 500000000
+    GetAllNodeStates      = 100000000
+    FixWaitingListSize    = 500000000
 
 [BaseOperationCost]
     StorePerByte      = 50000
