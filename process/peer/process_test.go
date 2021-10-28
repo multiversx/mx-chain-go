@@ -116,7 +116,7 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 		NodesSetup:                           &mock.NodesSetupStub{},
 		EpochNotifier:                        &mock.EpochNotifierStub{},
 		StakingV2EnableEpoch:                 5,
-		StopDecreasingValidatorRatingWhenStuckEpoch: 1500,
+		StopDecreasingValidatorRatingWhenStuckEnableEpoch: 1500,
 	}
 	return arguments
 }
@@ -1350,7 +1350,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksMissedRoundsGreaterTha
 	arguments := createMockArguments()
 	arguments.NodesCoordinator = nodesCoordinatorMock
 	arguments.MaxComputableRounds = 1
-	arguments.StopDecreasingValidatorRatingWhenStuckEpoch = 2
+	arguments.StopDecreasingValidatorRatingWhenStuckEnableEpoch = 2
 	arguments.MaxConsecutiveRoundsOfRatingDecrease = 4
 
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
