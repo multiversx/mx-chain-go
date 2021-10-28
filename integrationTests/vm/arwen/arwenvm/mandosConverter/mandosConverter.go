@@ -1,14 +1,23 @@
 package mandosConverter
 
 import (
+	"bytes"
+	"errors"
+	"math/big"
+
 	mge "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/mandos-go/elrondgo-exporter"
 	mgutil "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/mandos-go/util"
 	dataTransaction "github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
+var errDeployRetCodeNotOk = errors.New("returnCode on deploy is not 0(Ok)")
+
+// CreateAccountsFromMandosAccs uses mandosAccounts to populate the AccountsAdapter
 func CreateAccountsFromMandosAccs(tc *vm.VMTestContext, mandosUserAccounts []*mge.TestAccount) (err error) {
 	for _, mandosAcc := range mandosUserAccounts {
 		acc, err := tc.Accounts.LoadAccount(mandosAcc.GetAddress())
@@ -50,6 +59,7 @@ func CreateAccountsFromMandosAccs(tc *vm.VMTestContext, mandosUserAccounts []*mg
 	return nil
 }
 
+// CreateTransactionsFromMandosTxs converts mandos transactions intro trasnsactions that can be processed by the txProcessor
 func CreateTransactionsFromMandosTxs(mandosTxs []*mge.Transaction) (transactions []*dataTransaction.Transaction) {
 	transactions = make([]*dataTransaction.Transaction, 0)
 	for _, mandosTx := range mandosTxs {
@@ -77,6 +87,24 @@ func CreateTransactionsFromMandosTxs(mandosTxs []*mge.Transaction) (transactions
 	return transactions
 }
 
+// DeploySCsFromMandosDeployTxs deploys all smartContracts correspondent to "scDeploy" in a mandos test, then replaces with the correct computed address in all the transactions.
+func DeploySCsFromMandosDeployTxs(testContext *vm.VMTestContext, deployMandosTxs []*mge.Transaction, mandosTxs []*mge.Transaction, deployedScAccounts []*mge.TestAccount) (err error) {
+	for _, deployMandosTransaction := range deployMandosTxs {
+		deployedScAddress, err := deploySC(testContext, deployMandosTransaction)
+		if err != nil {
+			return err
+		}
+		addressToBeReplaced := deployedScAccounts[0].GetAddress()
+		for _, mandosTx := range mandosTxs {
+			if bytes.Equal(mandosTx.GetReceiverAddress(), addressToBeReplaced) {
+				mandosTx.WithReceiverAddress(deployedScAddress)
+			}
+		}
+		deployedScAccounts = deployedScAccounts[1:]
+	}
+	return nil
+}
+
 func createData(functionName string, arguments [][]byte) []byte {
 	builder := txDataBuilder.NewBuilder()
 	builder.Func(functionName)
@@ -84,4 +112,35 @@ func createData(functionName string, arguments [][]byte) []byte {
 		builder.Bytes(arg)
 	}
 	return builder.ToBytes()
+}
+
+func deploySC(testContext *vm.VMTestContext, deployMandosTx *mge.Transaction) (scAddress []byte, err error) {
+	gasLimit, gasPrice := deployMandosTx.GetGasLimitAndPrice()
+	ownerAddr := deployMandosTx.GetSenderAddress()
+	deployData := deployMandosTx.GetDeployData()
+
+	ownerAcc, err := testContext.Accounts.LoadAccount(ownerAddr)
+	if err != nil {
+		return nil, err
+	}
+	ownerNonce := ownerAcc.GetNonce()
+	tx := vm.CreateTransaction(ownerNonce, big.NewInt(0), ownerAddr, vm.CreateEmptyAddress(), gasPrice, gasLimit, deployData)
+
+	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
+	if err != nil {
+		return nil, err
+	}
+	if retCode != vmcommon.Ok {
+		return nil, errDeployRetCodeNotOk
+	}
+	_, err = testContext.Accounts.Commit()
+	if err != nil {
+		return nil, err
+	}
+	scAddress, err = testContext.BlockchainHook.NewAddress(ownerAddr, ownerNonce, factory.ArwenVirtualMachine)
+	if err != nil {
+		return nil, err
+	}
+
+	return scAddress, nil
 }

@@ -73,8 +73,9 @@ func CheckTransactions(t *testing.T, transactions []*dataTransaction.Transaction
 	}
 }
 
+// SetStateFromMandosTest recieves path to mandosTest, returns a VMTestContext with the specified accounts, an array with the specified transactions and an error
 func SetStateFromMandosTest(mandosTestPath string) (testContext *vm.VMTestContext, transactions []*dataTransaction.Transaction, err error) {
-	mandosAccounts, mandosTransactions, err := mge.GetAccountsAndTransactionsFromMandos(mandosTestPath)
+	mandosAccounts, deployedMandosAccounts, mandosTransactions, deployMandosTransactions, err := mge.GetAccountsAndTransactionsFromMandos(mandosTestPath)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -86,10 +87,15 @@ func SetStateFromMandosTest(mandosTestPath string) (testContext *vm.VMTestContex
 	if err != nil {
 		return nil, nil, err
 	}
+	err = DeploySCsFromMandosDeployTxs(testContext, deployMandosTransactions, mandosTransactions, deployedMandosAccounts)
+	if err != nil {
+		return nil, nil, err
+	}
 	transactions = CreateTransactionsFromMandosTxs(mandosTransactions)
 	return testContext, transactions, nil
 }
 
+// RunSingleTransactionBenchmark receives the VMTestContext (which can be created with SetStateFromMandosTest), a tx and performs a benchmark on that specific tx. If processing transaction fails, it will return error, else will return nil
 func RunSingleTransactionBenchmark(b *testing.B, testContext *vm.VMTestContext, tx *dataTransaction.Transaction) (err error) {
 	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 	b.StopTimer()
