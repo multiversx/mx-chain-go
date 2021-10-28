@@ -2,6 +2,7 @@ package groupTypes
 
 import "github.com/ElrondNetwork/elrond-go/epochStart"
 
+// TriggerStage defines the known trigger stages
 type TriggerStage int32
 
 const (
@@ -12,13 +13,13 @@ const (
 // TriggerData represents the trigger data reported to subscribers
 type TriggerData struct {
 	TriggerID string
-	Data interface{}
+	Data      interface{}
 }
 
 // GroupActionHandler allows defining the trigger handle and adding members to the group
 type GroupActionHandler interface {
-	AddToGroup(member ActionHandler) error
-	GroupID() string
+	Add(member ActionHandler) error
+	ID() string
 	ActionHandler
 }
 
@@ -38,7 +39,6 @@ type RegistrationHandler interface {
 
 // GroupActionNotifier allows the registration of user defined group actions to preregistered triggers
 type GroupActionNotifier interface {
-	RegisterGroupAction(groupAction GroupActionHandler, triggerType string) error
-	RegisterTrigger(trigger RegistrationHandler) error
+	Register(groupAction GroupActionHandler, trigger RegistrationHandler) error
 	Close() error
 }

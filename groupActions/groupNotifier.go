@@ -29,26 +29,31 @@ func NewGroupActionNotifier() *groupNotifier {
 	}
 }
 
-// RegisterGroupAction adds a groupAction together with the Action trigger
-func (gn *groupNotifier) RegisterGroupAction(group groupTypes.GroupActionHandler, triggerType string) error {
+// Register adds a groupAction together with the Action trigger
+func (gn *groupNotifier) Register(group groupTypes.GroupActionHandler, trigger groupTypes.RegistrationHandler) error {
 	if check.IfNil(group) {
-		return errNilActionHandler
+		return errNilGroupActionHandler
 	}
-	if len(triggerType) == 0 {
-		return errNilTriggerType
+	if check.IfNil(trigger) {
+		return errNilTrigger
 	}
 
 	gn.Lock()
 	defer gn.Unlock()
 
-	groupsForTrigger, ok := gn.groupsPerEvent[triggerType]
-	if !ok {
+	err := gn.registerTrigger(trigger)
+	if err != nil {
+		return err
+	}
+
+	groupsForTrigger, exists := gn.groupsPerEvent[trigger.GetName()]
+	if !exists {
 		return errUnknownTrigger
 	}
 
-	groupID := group.GroupID()
-	_, ok = groupsForTrigger[groupID]
-	if ok {
+	groupID := group.ID()
+	_, exists = groupsForTrigger[groupID]
+	if exists {
 		return errGroupAlreadyRegisteredForTrigger
 	}
 
@@ -57,22 +62,15 @@ func (gn *groupNotifier) RegisterGroupAction(group groupTypes.GroupActionHandler
 	return nil
 }
 
-// RegisterTrigger registers a new trigger that can be used by groups to be notified on it's triggered events
-func (gn *groupNotifier) RegisterTrigger(trigger groupTypes.RegistrationHandler) error {
-	if check.IfNil(trigger) {
-		return errNilTrigger
-	}
-
-	gn.Lock()
-	defer gn.Unlock()
-
-	err := gn.addTrigger(trigger)
+// registerTrigger registers a new trigger that can be used by groups to be notified on it's triggered events
+func (gn *groupNotifier) registerTrigger(trigger groupTypes.RegistrationHandler) error {
+	notifyOrder := gn.computeNextNotifyOrder()
+	gnt, err := newGroupNotifierTrigger(trigger.GetName(), notifyOrder, gn.notifyGroupsForTrigger)
 	if err != nil {
 		return err
 	}
 
-	notifyOrder := gn.computeNextNotifyOrder()
-	gnt, err := newGroupNotifierTrigger(trigger.GetName(), notifyOrder, gn.notifyGroupsForTrigger)
+	err = gn.addTrigger(trigger)
 	if err != nil {
 		return err
 	}
@@ -89,8 +87,8 @@ func (gn *groupNotifier) Close() error {
 	defer gn.Unlock()
 
 	for _, at := range gn.activeTriggers {
-		trig, ok := gn.triggers[at.triggerID]
-		if !ok {
+		trig, exists := gn.triggers[at.triggerID]
+		if !exists {
 			log.Warn("groupNotifier.Close", "trigger", at.triggerID, "err", "trigger not found")
 			continue
 		}
@@ -106,9 +104,12 @@ func (gn *groupNotifier) Close() error {
 
 func (gn *groupNotifier) addTrigger(trigger groupTypes.RegistrationHandler) error {
 	triggerType := trigger.GetName()
-	_, ok := gn.triggers[triggerType]
-	if ok {
-		return errTriggerAlreadyRegistered
+	if len(triggerType) == 0 {
+		return errInvalidTriggerID
+	}
+	_, exists := gn.triggers[triggerType]
+	if exists {
+		return nil
 	}
 
 	gn.triggers[triggerType] = trigger
@@ -121,8 +122,8 @@ func (gn *groupNotifier) notifyGroupsForTrigger(triggerID string, header data.He
 	gn.RLock()
 	defer gn.RUnlock()
 
-	groups, ok := gn.groupsPerEvent[triggerID]
-	if !ok {
+	groups, exists := gn.groupsPerEvent[triggerID]
+	if !exists {
 		log.Warn("no groups found", "trigger", triggerID)
 		return
 	}
@@ -138,13 +139,10 @@ func (gn *groupNotifier) notifyGroupsForTrigger(triggerID string, header data.He
 
 		td := &groupTypes.TriggerData{
 			TriggerID: triggerID,
-			Data: header,
+			Data:      header,
 		}
 
-		err := gr.HandleAction(td, stage)
-		if err != nil {
-			log.Warn("error trigger Action", "trigger", triggerID, "group", gr.GroupID(), "error", err)
-		}
+		_ = gr.HandleAction(td, stage)
 	}
 }
 

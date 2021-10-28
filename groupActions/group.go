@@ -10,6 +10,7 @@ import (
 
 var log = logger.GetOrCreate("groupActions")
 
+// Locker defines the operations used to lock different critical areas. Implemented by the RWMutex
 type Locker interface {
 	Lock()
 	Unlock()
@@ -50,8 +51,8 @@ func NewGroupWithDefaultLock(groupID string) (*group, error) {
 	}, nil
 }
 
-// AddToGroup  adds a new member to group
-func (g *group) AddToGroup(member groupTypes.ActionHandler) error {
+// Add  adds a new member to group
+func (g *group) Add(member groupTypes.ActionHandler) error {
 	if check.IfNil(member) {
 		return errNilActionHandler
 	}
@@ -78,8 +79,8 @@ func (g *group) HandleAction(triggerData interface{}, stage groupTypes.TriggerSt
 
 	for i := range g.members {
 		err := g.members[i].HandleAction(triggerData, stage)
-		log.LogIfError(err)
 		if err != nil {
+			log.Error(err.Error())
 			lastErr = err
 		}
 	}
@@ -87,8 +88,8 @@ func (g *group) HandleAction(triggerData interface{}, stage groupTypes.TriggerSt
 	return lastErr
 }
 
-// GroupID returns the group ID
-func (g *group) GroupID() string {
+// ID returns the group ID
+func (g *group) ID() string {
 	return g.groupID
 }
 

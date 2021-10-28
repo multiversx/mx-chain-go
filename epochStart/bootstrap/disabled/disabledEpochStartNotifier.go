@@ -5,6 +5,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
 
+const epochStartNotifierName = "disabledEpochStartNotifier"
+
 // EpochStartNotifier -
 type EpochStartNotifier struct {
 }
@@ -32,7 +34,7 @@ func (desn *EpochStartNotifier) NotifyAll(_ data.HeaderHandler) {
 
 // GetName -
 func (desn *EpochStartNotifier) GetName() string {
-	return "disabledEpochStartNotifier"
+	return epochStartNotifierName
 }
 
 // IsInterfaceNil -

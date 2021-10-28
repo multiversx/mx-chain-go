@@ -21,7 +21,7 @@ func (gas *GroupActionStub) HandleAction(triggerData interface{}, stage groupTyp
 }
 
 // AddToGroup -
-func (gas *GroupActionStub) AddToGroup(member groupTypes.ActionHandler) error {
+func (gas *GroupActionStub) Add(member groupTypes.ActionHandler) error {
 	if gas.AddToGroupCalled != nil {
 		return gas.AddToGroupCalled(member)
 	}
@@ -29,7 +29,7 @@ func (gas *GroupActionStub) AddToGroup(member groupTypes.ActionHandler) error {
 }
 
 // GroupID -
-func (gas *GroupActionStub) GroupID() string {
+func (gas *GroupActionStub) ID() string {
 	if gas.GroupIDCalled != nil {
 		return gas.GroupIDCalled()
 	}

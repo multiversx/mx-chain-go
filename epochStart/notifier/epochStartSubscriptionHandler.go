@@ -8,6 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
 
+const epochStartSubscriptionHandlerName = "epochStartSubscriptionHandler"
+
 // EpochStartNotifier defines which actions should be done for handling new epoch's events
 type EpochStartNotifier interface {
 	RegisterHandler(handler epochStart.ActionHandler)
@@ -111,7 +113,7 @@ func (essh *epochStartSubscriptionHandler) NotifyEpochChangeConfirmed(epoch uint
 
 // GetName returns the notifier name
 func (essh *epochStartSubscriptionHandler) GetName() string {
-	return "epochStartSubscriptionHandler"
+	return epochStartSubscriptionHandlerName
 }
 
 // IsInterfaceNil -

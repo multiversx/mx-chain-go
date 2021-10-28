@@ -19,13 +19,14 @@ func TestNewGroupNilLocker(t *testing.T) {
 	require.Nil(t, gr)
 }
 
-func TestNewGroupInvalidGroupID(t *testing.T) {
+func TestNewGroupInvalidID(t *testing.T) {
 	t.Parallel()
 
 	gr, err := NewGroup(&sync.RWMutex{}, "")
 	require.Equal(t, errInvalidGroupID, err)
 	require.Nil(t, gr)
 }
+
 func TestNewGroup(t *testing.T) {
 	t.Parallel()
 
@@ -34,7 +35,7 @@ func TestNewGroup(t *testing.T) {
 	require.NotNil(t, gr)
 }
 
-func TestNewGroupWithDefaultLockInvalidGroupID(t *testing.T) {
+func TestNewGroupWithDefaultLockInvalidID(t *testing.T) {
 	t.Parallel()
 
 	gr, err := NewGroupWithDefaultLock("")
@@ -50,41 +51,51 @@ func TestNewGroupWithDefaultLock(t *testing.T) {
 	require.NotNil(t, gr)
 }
 
-func TestGroup_AddToGroupFirstMember(t *testing.T) {
+func TestGroup_AddNilMember(t *testing.T) {
+	t.Parallel()
+
+	gr, _ := NewGroupWithDefaultLock("grID")
+
+	err := gr.Add(nil)
+	require.Equal(t, errNilActionHandler, err)
+	require.Equal(t, 0, len(gr.members))
+}
+
+func TestGroup_AddFirstMember(t *testing.T) {
 	t.Parallel()
 
 	gr, _ := NewGroupWithDefaultLock("grID")
 	m1 := &groupActionsMocks.ActionHandlerStub{}
 
-	err := gr.AddToGroup(m1)
+	err := gr.Add(m1)
 	require.Nil(t, err)
 	require.Equal(t, 1, len(gr.members))
 	require.Equal(t, m1, gr.members[0])
 }
 
-func TestGroup_AddToGroupExistingMember(t *testing.T) {
+func TestGroup_AddExistingMember(t *testing.T) {
 	t.Parallel()
 
 	gr, _ := NewGroupWithDefaultLock("grID")
 	m1 := &groupActionsMocks.ActionHandlerStub{}
 
-	_ = gr.AddToGroup(m1)
-	err := gr.AddToGroup(m1)
+	_ = gr.Add(m1)
+	err := gr.Add(m1)
 
 	require.Equal(t, errGroupMemberAlreadyExists, err)
 	require.Equal(t, 1, len(gr.members))
 	require.Equal(t, m1, gr.members[0])
 }
 
-func TestGroup_AddToGroupSecondMember(t *testing.T) {
+func TestGroup_AddSecondMember(t *testing.T) {
 	t.Parallel()
 
 	gr, _ := NewGroupWithDefaultLock("grID")
 	m1 := &groupActionsMocks.ActionHandlerStub{}
 	m2 := &groupActionsMocks.ActionHandlerStub{}
 
-	_ = gr.AddToGroup(m1)
-	err := gr.AddToGroup(m2)
+	_ = gr.Add(m1)
+	err := gr.Add(m2)
 
 	require.Nil(t, err)
 	require.Equal(t, 2, len(gr.members))
@@ -92,22 +103,22 @@ func TestGroup_AddToGroupSecondMember(t *testing.T) {
 	require.Equal(t, m2, gr.members[1])
 }
 
-func TestGroup_GroupID_NewGroup(t *testing.T) {
+func TestGroup_ID_NewGroup(t *testing.T) {
 	t.Parallel()
 
 	groupID := "grID1"
 	gr, _ := NewGroup(&sync.RWMutex{}, groupID)
 
-	require.Equal(t, groupID, gr.GroupID())
+	require.Equal(t, groupID, gr.ID())
 }
 
-func TestGroup_GroupID_NewGroupWithDefaultLock(t *testing.T) {
+func TestGroup_ID_NewGroupWithDefaultLock(t *testing.T) {
 	t.Parallel()
 
 	groupID := "grID1"
 	gr, _ := NewGroupWithDefaultLock(groupID)
 
-	require.Equal(t, groupID, gr.GroupID())
+	require.Equal(t, groupID, gr.ID())
 }
 
 func TestGroup_HandleActionNoMembers(t *testing.T) {
@@ -134,7 +145,7 @@ func TestGroup_HandleActionOneMember(t *testing.T) {
 		},
 	}
 
-	_ = gr.AddToGroup(m1)
+	_ = gr.Add(m1)
 	err := gr.HandleAction(interface{}(1), groupTypes.Prepare)
 
 	require.Nil(t, err)
@@ -160,8 +171,8 @@ func TestGroup_HandleActionTwoMembers(t *testing.T) {
 		},
 	}
 
-	_ = gr.AddToGroup(m1)
-	_ = gr.AddToGroup(m2)
+	_ = gr.Add(m1)
+	_ = gr.Add(m2)
 	err := gr.HandleAction(interface{}(1), groupTypes.Prepare)
 
 	require.Nil(t, err)
@@ -190,8 +201,8 @@ func TestGroup_HandleActionTwoMembersOneWithError(t *testing.T) {
 		},
 	}
 
-	_ = gr.AddToGroup(m1)
-	_ = gr.AddToGroup(m2)
+	_ = gr.Add(m1)
+	_ = gr.Add(m2)
 	err := gr.HandleAction(interface{}(1), groupTypes.Prepare)
 
 	require.Equal(t, expectedError, err)
