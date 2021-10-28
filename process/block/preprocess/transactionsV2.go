@@ -214,7 +214,7 @@ func (txs *transactions) addSCRsToMiniBlock(
 
 		for _, txInfo := range intermediateTxsPerShard {
 			miniBlock.TxHashes = append(miniBlock.TxHashes, txInfo.TxHash)
-			txs.postProcessorTxsHandler.AddPostProcessorTx(txInfo.TxHash)
+			txs.postProcessorTxsHandler.AddPostProcessorTx(txInfo.TxHash, txInfo.Tx)
 			mbInfo.mapTxHashTxType[string(txInfo.TxHash)] = blockType
 		}
 	}

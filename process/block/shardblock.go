@@ -1943,7 +1943,8 @@ func (sp *shardProcessor) createPostProcessMiniBlocks() block.MiniBlockSlice {
 	miniBlocks := sp.txCoordinator.CreatePostProcessMiniBlocks()
 	for _, miniBlock := range miniBlocks {
 		for _, txHash := range miniBlock.TxHashes {
-			sp.postProcessorTxsHandler.AddPostProcessorTx(txHash)
+			//TODO: Check if here we should add the real tx handler or not
+			sp.postProcessorTxsHandler.AddPostProcessorTx(txHash, nil)
 		}
 	}
 

@@ -1175,6 +1175,7 @@ func (txs *transactions) splitMiniBlocksBasedOnMaxGasLimitIfNeeded(miniBlocks bl
 }
 
 func (txs *transactions) splitMiniBlockBasedOnMaxGasLimitIfNeeded(miniBlock *block.MiniBlock) block.MiniBlockSlice {
+	var txHandler data.TransactionHandler
 	splitMiniBlocks := make(block.MiniBlockSlice, 0)
 	currentMiniBlock := createEmptyMiniBlockFromMiniBlock(miniBlock)
 	gasLimitInReceiverShard := uint64(0)
@@ -1182,6 +1183,12 @@ func (txs *transactions) splitMiniBlockBasedOnMaxGasLimitIfNeeded(miniBlock *blo
 	for _, txHash := range miniBlock.TxHashes {
 		txInfo, ok := txs.txsForCurrBlock.txHashAndInfo[string(txHash)]
 		if !ok {
+			txHandler = txs.postProcessorTxsHandler.GetPostProcessorTx(txHash)
+		} else {
+			txHandler = txInfo.tx
+		}
+
+		if check.IfNil(txHandler) {
 			log.Warn("transactions.splitMiniBlockIfNeeded: missing tx", "hash", txHash)
 			currentMiniBlock.TxHashes = append(currentMiniBlock.TxHashes, txHash)
 			continue
@@ -1190,7 +1197,7 @@ func (txs *transactions) splitMiniBlockBasedOnMaxGasLimitIfNeeded(miniBlock *blo
 		_, gasConsumedByTxInReceiverShard, err := txs.computeGasConsumedByTx(
 			miniBlock.SenderShardID,
 			miniBlock.ReceiverShardID,
-			txInfo.tx,
+			txHandler,
 			txHash)
 		if err != nil {
 			log.Warn("transactions.splitMiniBlockIfNeeded: failed to compute gas consumed by tx", "hash", txHash, "error", err.Error())

@@ -1127,7 +1127,8 @@ type ScheduledTxsExecutionHandler interface {
 // PostProcessorTxsHandler defines the functionality to handle post processor txs
 type PostProcessorTxsHandler interface {
 	Init()
-	AddPostProcessorTx(txHash []byte) bool
+	AddPostProcessorTx(txHash []byte, txHandler data.TransactionHandler) bool
+	GetPostProcessorTx(txHash []byte) data.TransactionHandler
 	IsPostProcessorTxAdded(txHash []byte) bool
 	SetTransactionCoordinator(txCoordinator TransactionCoordinator)
 	GetProcessedResults() map[block.Type]map[uint32][]*TxInfo

@@ -1731,25 +1731,33 @@ func (tc *transactionCoordinator) checkGasConsumedByMiniBlockInReceiverShard(
 	miniBlock *block.MiniBlock,
 	mapMiniBlockTypeAllTxs map[block.Type]map[string]data.TransactionHandler,
 ) error {
-	var err error
 	var gasConsumedByTxInReceiverShard uint64
 	gasConsumedByMiniBlockInReceiverShard := uint64(0)
 
-	for _, txHash := range miniBlock.TxHashes {
+	txsType, err := miniBlock.GetTxsTypeFromMiniBlock()
+	if err != nil {
+		return err
+	}
+
+	for index, txHash := range miniBlock.TxHashes {
 		txHandler, ok := isTxHashInMap(txHash, mapMiniBlockTypeAllTxs)
 		if !ok {
 			log.Debug("missing transaction in checkGasConsumedByMiniBlockInReceiverShard ", "type", miniBlock.Type, "txHash", txHash)
 			return process.ErrMissingTransaction
 		}
 
-		_, txTypeDstShard := tc.txTypeHandler.ComputeTransactionType(txHandler)
-		moveBalanceGasLimit := tc.economicsFee.ComputeGasLimit(txHandler)
-		if txTypeDstShard == process.MoveBalance {
-			gasConsumedByTxInReceiverShard = moveBalanceGasLimit
+		if txsType[index] == block.SmartContractResultBlock {
+			gasConsumedByTxInReceiverShard = txHandler.GetGasLimit()
 		} else {
-			gasConsumedByTxInReceiverShard, err = core.SafeSubUint64(txHandler.GetGasLimit(), moveBalanceGasLimit)
-			if err != nil {
-				return err
+			_, txTypeDstShard := tc.txTypeHandler.ComputeTransactionType(txHandler)
+			moveBalanceGasLimit := tc.economicsFee.ComputeGasLimit(txHandler)
+			if txTypeDstShard == process.MoveBalance {
+				gasConsumedByTxInReceiverShard = moveBalanceGasLimit
+			} else {
+				gasConsumedByTxInReceiverShard, err = core.SafeSubUint64(txHandler.GetGasLimit(), moveBalanceGasLimit)
+				if err != nil {
+					return err
+				}
 			}
 		}
 
@@ -1811,7 +1819,7 @@ func (tc *transactionCoordinator) getMaxAccumulatedAndDeveloperFees(
 	for _, txHash := range miniBlock.TxHashes {
 		txHandler, ok := isTxHashInMap(txHash, mapMiniBlockTypeAllTxs)
 		if !ok {
-			log.Debug("missing transaction in getMaxAccumulatedFeesAndDeveloperFees ", "type", miniBlock.Type, "txHash", txHash)
+			log.Debug("missing transaction in getMaxAccumulatedFeesAndDeveloperFees", "type", miniBlock.Type, "txHash", txHash)
 			return big.NewInt(0), big.NewInt(0), process.ErrMissingTransaction
 		}
 

@@ -1,6 +1,7 @@
 package postprocess
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -13,7 +14,7 @@ var _ process.PostProcessorTxsHandler = (*postProcessorTxs)(nil)
 type postProcessorTxs struct {
 	txCoordinator          process.TransactionCoordinator
 	mutMapPostProcessorTxs sync.RWMutex
-	mapPostProcessorTxs    map[string]struct{}
+	mapPostProcessorTxs    map[string]data.TransactionHandler
 }
 
 // NewPostProcessorTxs creates a new postProcessorTxs object
@@ -26,7 +27,7 @@ func NewPostProcessorTxs(
 
 	postProcessorTxs := &postProcessorTxs{
 		txCoordinator:       txCoordinator,
-		mapPostProcessorTxs: make(map[string]struct{}),
+		mapPostProcessorTxs: make(map[string]data.TransactionHandler),
 	}
 
 	return postProcessorTxs, nil
@@ -37,11 +38,11 @@ func (ppt *postProcessorTxs) Init() {
 	ppt.mutMapPostProcessorTxs.Lock()
 	defer ppt.mutMapPostProcessorTxs.Unlock()
 
-	ppt.mapPostProcessorTxs = make(map[string]struct{})
+	ppt.mapPostProcessorTxs = make(map[string]data.TransactionHandler)
 }
 
-// AddPostProcessorTx adds the given tx hash in the post processor txs map
-func (ppt *postProcessorTxs) AddPostProcessorTx(txHash []byte) bool {
+// AddPostProcessorTx adds the given tx in the post processor txs map
+func (ppt *postProcessorTxs) AddPostProcessorTx(txHash []byte, txHandler data.TransactionHandler) bool {
 	ppt.mutMapPostProcessorTxs.Lock()
 	defer ppt.mutMapPostProcessorTxs.Unlock()
 
@@ -49,8 +50,16 @@ func (ppt *postProcessorTxs) AddPostProcessorTx(txHash []byte) bool {
 		return false
 	}
 
-	ppt.mapPostProcessorTxs[string(txHash)] = struct{}{}
+	ppt.mapPostProcessorTxs[string(txHash)] = txHandler
 	return true
+}
+
+// GetPostProcessorTx gets the tx from the post processor txs map with the given tx hash
+func (ppt *postProcessorTxs) GetPostProcessorTx(txHash []byte) data.TransactionHandler {
+	ppt.mutMapPostProcessorTxs.RLock()
+	defer ppt.mutMapPostProcessorTxs.RUnlock()
+
+	return ppt.mapPostProcessorTxs[string(txHash)]
 }
 
 // IsPostProcessorTxAdded returns true if the given tx hash has been already added in the post processor txs map, otherwise it returns false

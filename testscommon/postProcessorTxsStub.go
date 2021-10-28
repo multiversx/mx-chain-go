@@ -1,6 +1,7 @@
 package testscommon
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -8,7 +9,8 @@ import (
 // PostProcessorTxsStub -
 type PostProcessorTxsStub struct {
 	InitCalled                      func()
-	AddPostProcessorTxCalled        func([]byte) bool
+	AddPostProcessorTxCalled        func([]byte, data.TransactionHandler) bool
+	GetPostProcessorTxCalled        func([]byte) data.TransactionHandler
 	IsPostProcessorTxAddedCalled    func([]byte) bool
 	SetTransactionCoordinatorCalled func(process.TransactionCoordinator)
 	GetProcessedResultsCalled       func() map[block.Type]map[uint32][]*process.TxInfo
@@ -23,11 +25,19 @@ func (ppts *PostProcessorTxsStub) Init() {
 }
 
 // AddPostProcessorTx -
-func (ppts *PostProcessorTxsStub) AddPostProcessorTx(txHash []byte) bool {
+func (ppts *PostProcessorTxsStub) AddPostProcessorTx(txHash []byte, txHandler data.TransactionHandler) bool {
 	if ppts.AddPostProcessorTxCalled != nil {
-		return ppts.AddPostProcessorTxCalled(txHash)
+		return ppts.AddPostProcessorTxCalled(txHash, txHandler)
 	}
 	return true
+}
+
+// GetPostProcessorTx -
+func (ppts *PostProcessorTxsStub) GetPostProcessorTx(txHash []byte) data.TransactionHandler {
+	if ppts.GetPostProcessorTxCalled != nil {
+		return ppts.GetPostProcessorTxCalled(txHash)
+	}
+	return nil
 }
 
 // SetTransactionCoordinator -

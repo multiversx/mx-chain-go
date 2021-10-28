@@ -1,6 +1,7 @@
 package disabled
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -14,8 +15,13 @@ func (ppth *PostProcessorTxsHandler) Init() {
 }
 
 // AddPostProcessorTx does nothing as it is a disabled component
-func (ppth *PostProcessorTxsHandler) AddPostProcessorTx(_ []byte) bool {
+func (ppth *PostProcessorTxsHandler) AddPostProcessorTx(_ []byte, _ data.TransactionHandler) bool {
 	return true
+}
+
+// GetPostProcessorTx does nothing as it is a disabled component
+func (ppth *PostProcessorTxsHandler) GetPostProcessorTx(_ []byte) data.TransactionHandler {
+	return nil
 }
 
 // IsPostProcessorTxAdded does nothing as it is a disabled component
