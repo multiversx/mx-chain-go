@@ -216,12 +216,6 @@ func (s *SerialDB) tryWriteInDbAccessChan(req serialQueryer) error {
 	}
 }
 
-// Init initializes the storage medium and prepares it for usage
-func (s *SerialDB) Init() error {
-	// no special initialization needed
-	return nil
-}
-
 // putBatch writes the Batch data into the database
 func (s *SerialDB) putBatch() error {
 	s.mutBatch.Lock()

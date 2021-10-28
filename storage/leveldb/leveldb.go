@@ -178,12 +178,6 @@ func (s *DB) Has(key []byte) error {
 	return storage.ErrKeyNotFound
 }
 
-// Init initializes the storage medium and prepares it for usage
-func (s *DB) Init() error {
-	// no special initialization needed
-	return nil
-}
-
 // CreateBatch returns a batcher to be used for batch writing data to the database
 func (s *DB) createBatch() storage.Batcher {
 	return NewBatch()
