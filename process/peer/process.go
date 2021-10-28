@@ -48,6 +48,7 @@ type ArgValidatorStatisticsProcessor struct {
 	Rater                                       sharding.PeerAccountListAndRatingHandler
 	RewardsHandler                              process.RewardsHandler
 	MaxComputableRounds                         uint64
+	MaxConsecutiveRoundsOfRatingDecrease        uint64
 	NodesSetup                                  sharding.GenesisNodesSetupHandler
 	GenesisNonce                                uint64
 	RatingEnableEpoch                           uint32
@@ -69,6 +70,7 @@ type validatorStatistics struct {
 	rater                                       sharding.PeerAccountListAndRatingHandler
 	rewardsHandler                              process.RewardsHandler
 	maxComputableRounds                         uint64
+	maxConsecutiveRoundsOfRatingDecrease        uint64
 	missedBlocksCounters                        validatorRoundCounters
 	mutValidatorStatistics                      sync.RWMutex
 	genesisNonce                                uint64
@@ -124,22 +126,23 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	}
 
 	vs := &validatorStatistics{
-		peerAdapter:                     arguments.PeerAdapter,
-		pubkeyConv:                      arguments.PubkeyConv,
-		nodesCoordinator:                arguments.NodesCoordinator,
-		shardCoordinator:                arguments.ShardCoordinator,
-		dataPool:                        arguments.DataPool,
-		storageService:                  arguments.StorageService,
-		marshalizer:                     arguments.Marshalizer,
-		missedBlocksCounters:            make(validatorRoundCounters),
-		rater:                           arguments.Rater,
-		rewardsHandler:                  arguments.RewardsHandler,
-		maxComputableRounds:             arguments.MaxComputableRounds,
-		genesisNonce:                    arguments.GenesisNonce,
-		ratingEnableEpoch:               arguments.RatingEnableEpoch,
-		jailedEnableEpoch:               arguments.SwitchJailWaitingEnableEpoch,
-		belowSignedThresholdEnableEpoch: arguments.BelowSignedThresholdEnableEpoch,
-		stakingV2EnableEpoch:            arguments.StakingV2EnableEpoch,
+		peerAdapter:                          arguments.PeerAdapter,
+		pubkeyConv:                           arguments.PubkeyConv,
+		nodesCoordinator:                     arguments.NodesCoordinator,
+		shardCoordinator:                     arguments.ShardCoordinator,
+		dataPool:                             arguments.DataPool,
+		storageService:                       arguments.StorageService,
+		marshalizer:                          arguments.Marshalizer,
+		missedBlocksCounters:                 make(validatorRoundCounters),
+		rater:                                arguments.Rater,
+		rewardsHandler:                       arguments.RewardsHandler,
+		maxComputableRounds:                  arguments.MaxComputableRounds,
+		maxConsecutiveRoundsOfRatingDecrease: arguments.MaxConsecutiveRoundsOfRatingDecrease,
+		genesisNonce:                         arguments.GenesisNonce,
+		ratingEnableEpoch:                    arguments.RatingEnableEpoch,
+		jailedEnableEpoch:                    arguments.SwitchJailWaitingEnableEpoch,
+		belowSignedThresholdEnableEpoch:      arguments.BelowSignedThresholdEnableEpoch,
+		stakingV2EnableEpoch:                 arguments.StakingV2EnableEpoch,
 		stopDecreasingValidatorRatingWhenStuckEpoch: arguments.StopDecreasingValidatorRatingWhenStuckEpoch,
 	}
 	log.Debug("peer/process: enable epoch for switch jail waiting", "epoch", vs.jailedEnableEpoch)
@@ -729,6 +732,11 @@ func (vs *validatorStatistics) checkForMissedBlocks(
 	missedRounds := currentHeaderRound - previousHeaderRound
 	if missedRounds <= 1 {
 		return nil
+	}
+	if vs.flagStopDecreasingValidatorRating.IsSet() {
+		if missedRounds > vs.maxConsecutiveRoundsOfRatingDecrease {
+			return nil
+		}
 	}
 
 	tooManyComputations := missedRounds > vs.maxComputableRounds

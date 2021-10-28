@@ -237,12 +237,12 @@ type MaxNodesChangeConfig struct {
 type GeneralSettingsConfig struct {
 	StatusPollingIntervalSec             int
 	MaxComputableRounds                  uint64
+	MaxConsecutiveRoundsOfRatingDecrease uint64
 	StartInEpochEnabled                  bool
 	ChainID                              string
 	MinTransactionVersion                uint32
 	GenesisString                        string
 	GenesisMaxNumberOfShards             uint32
-	MaxConsecutiveRoundsOfRatingDecrease uint32
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade
