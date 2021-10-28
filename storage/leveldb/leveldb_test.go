@@ -23,14 +23,6 @@ func createLevelDb(t *testing.T, batchDelaySeconds int, maxBatchSize int, maxOpe
 	return lvdb
 }
 
-func TestDB_InitNoError(t *testing.T) {
-	ldb := createLevelDb(t, 10, 1, 10)
-
-	err := ldb.Init()
-
-	assert.Nil(t, err, "error initializing DB")
-}
-
 func TestDB_CorruptdeDBShouldRecover(t *testing.T) {
 	dir, _ := ioutil.TempDir("", "leveldb_temp")
 	defer func() {
