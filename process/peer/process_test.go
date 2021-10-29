@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/keyValStorage"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
@@ -205,6 +204,17 @@ func TestNewValidatorStatisticsProcessor_ZeroMaxComputableRoundsShouldErr(t *tes
 
 	assert.Nil(t, validatorStatistics)
 	assert.Equal(t, process.ErrZeroMaxComputableRounds, err)
+}
+
+func TestNewValidatorStatisticsProcessor_ZeroMaxConsecutiveRoundsOfRatingDecreaseShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockArguments()
+	arguments.MaxConsecutiveRoundsOfRatingDecrease = 0
+	validatorStatistics, err := peer.NewValidatorStatisticsProcessor(arguments)
+
+	assert.Nil(t, validatorStatistics)
+	assert.Equal(t, process.ErrZeroMaxConsecutiveRoundsOfRatingDecrease, err)
 }
 
 func TestNewValidatorStatisticsProcessor_NilRaterShouldErr(t *testing.T) {
@@ -1340,14 +1350,28 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksNoMissedBlocks(t *test
 func TestValidatorStatisticsProcessor_CheckForMissedBlocksMissedRoundsGreaterThanMaxConsecutiveRoundsOfRatingDecrease(t *testing.T) {
 	t.Parallel()
 
-	flag := atomic.Flag{}
+	validatorPublicKeys := make(map[uint32][][]byte)
+	validatorPublicKeys[0] = make([][]byte, 1)
+	validatorPublicKeys[0][0] = []byte("validator")
+	validatorRating := 100
+
 	nodesCoordinatorMock := &mock.NodesCoordinatorMock{
 		GetAllEligibleValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
-			flag.Set()
-			return nil, nil
+			return validatorPublicKeys, nil
 		},
 	}
+
+	peerAdapter := getAccountsMock()
+	peerAdapter.LoadAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
+		return &mock.PeerAccountHandlerMock{
+			SetTempRatingCalled: func(value uint32) {
+				validatorRating--
+			},
+		}, nil
+	}
+
 	arguments := createMockArguments()
+	arguments.PeerAdapter = peerAdapter
 	arguments.NodesCoordinator = nodesCoordinatorMock
 	arguments.MaxComputableRounds = 1
 	arguments.StopDecreasingValidatorRatingWhenStuckEnableEpoch = 2
@@ -1355,23 +1379,24 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksMissedRoundsGreaterTha
 
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 
-	// Flag to stop decreasing validator rating is NOT set => decrease all validator ratings
+	// Flag to stop decreasing validator rating is NOT set => decrease validator rating
 	err := validatorStatistics.CheckForMissedBlocks(5, 0, []byte("prev"), 0, 0)
 	require.Nil(t, err)
-	require.True(t, flag.IsSet())
+	require.Equal(t, 99, validatorRating)
 
-	// Flag to stop decreasing validator rating is set, but NOT enough missed rounds to stop decreasing ratings => decrease all validator ratings again
-	flag.Unset()
+	// Flag to stop decreasing validator rating is set, but NOT enough missed rounds to stop decreasing ratings => decrease validator rating again
 	validatorStatistics.EpochConfirmed(2, 0)
 	err = validatorStatistics.CheckForMissedBlocks(4, 0, []byte("prev"), 0, 0)
 	require.Nil(t, err)
-	require.True(t, flag.IsSet())
+	require.Equal(t, 98, validatorRating)
 
-	// Flag to stop decreasing validator rating is set AND missed rounds > max rounds of rating decrease => decrease all validator ratings is NOT called
-	flag.Unset()
+	// Flag to stop decreasing validator rating is set AND missed rounds > max rounds of rating decrease => validator rating is NOT decreased
 	err = validatorStatistics.CheckForMissedBlocks(5, 0, []byte("prev"), 0, 0)
 	require.Nil(t, err)
-	require.False(t, flag.IsSet())
+	require.Equal(t, 98, validatorRating)
+	err = validatorStatistics.CheckForMissedBlocks(6, 0, []byte("prev"), 0, 0)
+	require.Nil(t, err)
+	require.Equal(t, 98, validatorRating)
 }
 
 func TestValidatorStatisticsProcessor_CheckForMissedBlocksErrOnComputeValidatorList(t *testing.T) {

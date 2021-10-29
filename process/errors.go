@@ -569,6 +569,9 @@ var ErrNilEconomicsData = errors.New("nil economics data")
 // ErrZeroMaxComputableRounds signals that a value of zero was provided on the maxComputableRounds
 var ErrZeroMaxComputableRounds = errors.New("max computable rounds is zero")
 
+// ErrZeroMaxConsecutiveRoundsOfRatingDecrease signals that a value of zero was provided on the MaxConsecutiveRoundsOfRatingDecrease
+var ErrZeroMaxConsecutiveRoundsOfRatingDecrease = errors.New("max consecutive number of rounds in which we can decrease a validator rating is zero")
+
 // ErrNilRater signals that nil rater has been provided
 var ErrNilRater = errors.New("nil rater")
 

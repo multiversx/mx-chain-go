@@ -23,9 +23,10 @@
    # GenesisMaxNumberOfShards represents the maximum number of shards to be created at genesis (excluding metaChain shard)
    GenesisMaxNumberOfShards  = 3
 
-   # MaxConsecutiveRoundsOfRatingDecrease represents the max number of consecutive rounds in which a validator's rating
-   # can be decrease in case of not processing/signing a block. If, for instance, a shard gets stuck for more rounds
-   # than this value, then we should stop decreasing validator's rating so they won't get jailed.
+   # MaxConsecutiveRoundsOfRatingDecrease represents the max number of consecutive rounds in which a block is not proposed
+   # on a shard and and the validators' rating could be decreased. If, for instance, a shard gets stuck for more rounds
+   # than this value, then we should stop decreasing validator's rating so they won't get jailed => then the validators
+   # rating decrease should stop.
    MaxConsecutiveRoundsOfRatingDecrease = 600
 
 [Versions]

@@ -112,6 +112,9 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	if arguments.MaxComputableRounds == 0 {
 		return nil, process.ErrZeroMaxComputableRounds
 	}
+	if arguments.MaxConsecutiveRoundsOfRatingDecrease == 0 {
+		return nil, process.ErrZeroMaxConsecutiveRoundsOfRatingDecrease
+	}
 	if check.IfNil(arguments.Rater) {
 		return nil, process.ErrNilRater
 	}
@@ -1244,5 +1247,6 @@ func (vs *validatorStatistics) EpochConfirmed(epoch uint32, _ uint64) {
 	vs.flagStakingV2Enabled.Toggle(epoch > vs.stakingV2EnableEpoch)
 	log.Debug("validatorStatistics: stakingV2", vs.flagStakingV2Enabled.IsSet())
 	vs.flagStopDecreasingValidatorRatingEnabled.Toggle(epoch >= vs.stopDecreasingValidatorRatingWhenStuckEnableEpoch)
-	log.Debug("validatorStatistics: stop decreasing validator rating", vs.flagStopDecreasingValidatorRatingEnabled.IsSet())
+	log.Debug("validatorStatistics: stop decreasing validator rating, is enabled: ", vs.flagStopDecreasingValidatorRatingEnabled.IsSet(),
+		"max consecutive rounds of rating decrease", vs.maxConsecutiveRoundsOfRatingDecrease)
 }
