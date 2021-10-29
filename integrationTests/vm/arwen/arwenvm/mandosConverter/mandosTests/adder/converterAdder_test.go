@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestMandosConverter_Adder(t *testing.T) {
-	mandosAccounts, mandosTransactions, err := mge.GetAccountsAndTransactionsFromMandos("./adder_with_external_steps.scen.json")
+func TestMandosConverter_AdderWithExternalSteps(t *testing.T) {
+	mandosAccounts, _, mandosTransactions, _, err := mge.GetAccountsAndTransactionsFromMandos("./adder_with_external_steps.scen.json")
 	require.Nil(t, err)
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
 	require.Nil(t, err)
@@ -22,17 +22,22 @@ func TestMandosConverter_Adder(t *testing.T) {
 	mc.CheckTransactions(t, transactions, mandosTransactions)
 }
 
-func Benchmark_MandosConverter_Adder(b *testing.B) {
+func Benchmark_MandosConverter_SimpleAdderWithDeploy(b *testing.B) {
+	testContext, transactions, err := mc.SetStateFromMandosTest("./adder.scen.json")
+	if err != nil {
+		fmt.Println("Setting state went wrong: ", err)
+		return
+	}
+	defer testContext.Close()
+	mc.RunSingleTransactionBenchmark(b, testContext, transactions[0])
+}
+
+func Benchmark_MandosConverter_AdderWithExternalSteps(b *testing.B) {
 	testContext, transactions, err := mc.SetStateFromMandosTest("./adder_with_external_steps.scen.json")
 	if err != nil {
 		fmt.Println("Setting state went wrong: ", err)
 		return
 	}
 	defer testContext.Close()
-
-	b.ResetTimer()
-	err = mc.RunSingleTransactionBenchmark(b, testContext, transactions[0])
-	if err != nil {
-		fmt.Println("Proccess transaction went wrong: ", err)
-	}
+	mc.RunSingleTransactionBenchmark(b, testContext, transactions[0])
 }

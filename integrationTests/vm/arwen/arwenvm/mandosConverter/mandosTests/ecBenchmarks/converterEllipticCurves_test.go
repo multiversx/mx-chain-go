@@ -11,7 +11,7 @@ import (
 )
 
 func TestMandosConverter_EllipticCurves(t *testing.T) {
-	mandosAccounts, mandosTransactions, err := mge.GetAccountsAndTransactionsFromMandos("./elliptic_curves.scen.json")
+	mandosAccounts, _, mandosTransactions, _, err := mge.GetAccountsAndTransactionsFromMandos("./elliptic_curves.scen.json")
 	require.Nil(t, err)
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
 	require.Nil(t, err)
@@ -28,9 +28,5 @@ func Benchmark_MandosConverter_EllipticCurves(b *testing.B) {
 		fmt.Println("Setting state went wrong: ", err)
 		return
 	}
-	b.ResetTimer()
-	err = mc.RunSingleTransactionBenchmark(b, testContext, transactions[0])
-	if err != nil {
-		fmt.Println("Proccess transaction went wrong: ", err)
-	}
+	mc.RunSingleTransactionBenchmark(b, testContext, transactions[0])
 }

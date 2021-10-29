@@ -8,7 +8,7 @@
           "accounts": {
               "address:owner": {
                   "nonce": "1",
-                  "balance": "60000000",
+                  "balance": "60000000000000000000000000000",
                   "storage": {},
                   "code": ""
               },
@@ -26,12 +26,12 @@
           "txId": "1",
           "tx": {
               "from": "address:owner",
-              "to": "address:elliptic_curves_contract",
+              "to": "sc:elliptic_curves_contract",
               "value": "0",
               "nonce": "1",
               "function": "p224AddEcTest",
-              "arguments": [],
-              "gasLimit": "5,000,000",
+              "arguments": ["i64:10000"],
+              "gasLimit": "1,499,999,999",
               "gasPrice": "1"
           },
           "expect": {
