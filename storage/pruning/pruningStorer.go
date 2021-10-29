@@ -396,7 +396,10 @@ func (ps *PruningStorer) Close() error {
 		}
 	}
 
+	ps.cacher.Clear()
+
 	if closedSuccessfully {
+		log.Debug("successfully closed pruningStorer", "identifier", ps.identifier)
 		return nil
 	}
 
