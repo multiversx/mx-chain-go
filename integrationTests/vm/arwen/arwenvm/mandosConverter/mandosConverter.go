@@ -7,7 +7,7 @@ import (
 
 	mge "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/mandos-go/elrondgo-exporter"
 	mgutil "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/mandos-go/util"
-	dataTransaction "github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -15,7 +15,7 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
-var errDeployRetCodeNotOk = errors.New("returnCode is not 0(Ok)")
+var errReturnCodeNotOk = errors.New("returnCode is not 0(Ok)")
 
 // CreateAccountsFromMandosAccs uses mandosAccounts to populate the AccountsAdapter
 func CreateAccountsFromMandosAccs(tc *vm.VMTestContext, mandosUserAccounts []*mge.TestAccount) (err error) {
@@ -60,8 +60,8 @@ func CreateAccountsFromMandosAccs(tc *vm.VMTestContext, mandosUserAccounts []*mg
 }
 
 // CreateTransactionsFromMandosTxs converts mandos transactions intro trasnsactions that can be processed by the txProcessor
-func CreateTransactionsFromMandosTxs(mandosTxs []*mge.Transaction) (transactions []*dataTransaction.Transaction) {
-	transactions = make([]*dataTransaction.Transaction, 0)
+func CreateTransactionsFromMandosTxs(mandosTxs []*mge.Transaction) (transactions []*transaction.Transaction) {
+	transactions = make([]*transaction.Transaction, 0)
 	for _, mandosTx := range mandosTxs {
 		gasLimit, gasPrice := mandosTx.GetGasLimitAndPrice()
 		var data []byte
@@ -131,7 +131,7 @@ func deploySC(testContext *vm.VMTestContext, deployMandosTx *mge.Transaction) (s
 		return nil, err
 	}
 	if retCode != vmcommon.Ok {
-		return nil, errDeployRetCodeNotOk
+		return nil, errReturnCodeNotOk
 	}
 	_, err = testContext.Accounts.Commit()
 	if err != nil {

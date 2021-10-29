@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	mge "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/mandos-go/elrondgo-exporter"
-	dataTransaction "github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -48,7 +48,7 @@ func CheckStorage(t *testing.T, dataTrie state.DataTrieTracker, mandosAccStorage
 }
 
 // CheckTransactions checks if the transactions correspond with the mandosTransactions
-func CheckTransactions(t *testing.T, transactions []*dataTransaction.Transaction, mandosTransactions []*mge.Transaction) {
+func CheckTransactions(t *testing.T, transactions []*transaction.Transaction, mandosTransactions []*mge.Transaction) {
 	expectedLength := len(mandosTransactions)
 	require.Equal(t, expectedLength, len(transactions))
 	for i := 0; i < expectedLength; i++ {
@@ -75,7 +75,7 @@ func CheckTransactions(t *testing.T, transactions []*dataTransaction.Transaction
 }
 
 // SetStateFromMandosTest recieves path to mandosTest, returns a VMTestContext with the specified accounts, an array with the specified transactions and an error
-func SetStateFromMandosTest(mandosTestPath string) (testContext *vm.VMTestContext, transactions []*dataTransaction.Transaction, err error) {
+func SetStateFromMandosTest(mandosTestPath string) (testContext *vm.VMTestContext, transactions []*transaction.Transaction, err error) {
 	mandosAccounts, deployedMandosAccounts, mandosTransactions, deployMandosTransactions, err := mge.GetAccountsAndTransactionsFromMandos(mandosTestPath)
 	if err != nil {
 		return nil, nil, err
@@ -97,7 +97,7 @@ func SetStateFromMandosTest(mandosTestPath string) (testContext *vm.VMTestContex
 }
 
 // RunSingleTransactionBenchmark receives the VMTestContext (which can be created with SetStateFromMandosTest), a tx and performs a benchmark on that specific tx. If processing transaction fails, it will return error, else will return nil
-func RunSingleTransactionBenchmark(b *testing.B, testContext *vm.VMTestContext, tx *dataTransaction.Transaction) (err error) {
+func RunSingleTransactionBenchmark(b *testing.B, testContext *vm.VMTestContext, tx *transaction.Transaction) (err error) {
 	var returnCode vmcommon.ReturnCode
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -109,7 +109,7 @@ func RunSingleTransactionBenchmark(b *testing.B, testContext *vm.VMTestContext, 
 		return err
 	}
 	if returnCode != vmcommon.Ok {
-		return errDeployRetCodeNotOk
+		return errReturnCodeNotOk
 	}
 	return nil
 }
