@@ -7,6 +7,7 @@ import (
 	dataTransaction "github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/state"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
 
@@ -97,10 +98,18 @@ func SetStateFromMandosTest(mandosTestPath string) (testContext *vm.VMTestContex
 
 // RunSingleTransactionBenchmark receives the VMTestContext (which can be created with SetStateFromMandosTest), a tx and performs a benchmark on that specific tx. If processing transaction fails, it will return error, else will return nil
 func RunSingleTransactionBenchmark(b *testing.B, testContext *vm.VMTestContext, tx *dataTransaction.Transaction) (err error) {
-	_, err = testContext.TxProcessor.ProcessTransaction(tx)
+	var returnCode vmcommon.ReturnCode
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		returnCode, err = testContext.TxProcessor.ProcessTransaction(tx)
+		tx.Nonce++
+	}
 	b.StopTimer()
 	if err != nil {
 		return err
+	}
+	if returnCode != vmcommon.Ok {
+		return errDeployRetCodeNotOk
 	}
 	return nil
 }

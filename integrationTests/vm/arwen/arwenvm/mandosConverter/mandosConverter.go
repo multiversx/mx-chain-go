@@ -15,7 +15,7 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
-var errDeployRetCodeNotOk = errors.New("returnCode on deploy is not 0(Ok)")
+var errDeployRetCodeNotOk = errors.New("returnCode is not 0(Ok)")
 
 // CreateAccountsFromMandosAccs uses mandosAccounts to populate the AccountsAdapter
 func CreateAccountsFromMandosAccs(tc *vm.VMTestContext, mandosUserAccounts []*mge.TestAccount) (err error) {
