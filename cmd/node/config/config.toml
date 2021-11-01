@@ -24,9 +24,8 @@
    GenesisMaxNumberOfShards  = 3
 
    # MaxConsecutiveRoundsOfRatingDecrease represents the max number of consecutive rounds in which a block is not proposed
-   # on a shard and and the validators' rating could be decreased. If, for instance, a shard gets stuck for more rounds
-   # than this value, then we should stop decreasing validator's rating so they won't get jailed => then the validators
-   # rating decrease should stop.
+   # on a shard and the validators' rating could be decreased. If, for instance, a shard gets stuck for more rounds
+   # than this value, then the validators rating decrease should stop so they won't get jailed
    MaxConsecutiveRoundsOfRatingDecrease = 600
 
 [Versions]
