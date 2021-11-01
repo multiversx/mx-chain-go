@@ -113,7 +113,15 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidPubKey_ExpectErr
 	}
 
 	sn, _ := notifier.NewSlashingNotifier(args)
-	tx, err := sn.CreateShardSlashingTransaction(&slashMocks.MultipleHeaderSigningProofStub{})
+	proofStub := &slashMocks.MultipleHeaderProposalProofStub{
+		GetHeadersCalled: func() []*interceptedBlocks.InterceptedHeader {
+			return []*interceptedBlocks.InterceptedHeader{
+				slashMocks.CreateInterceptedHeaderData(&block.HeaderV2{Header: &block.Header{Round: 1}}),
+			}
+		},
+	}
+
+	tx, err := sn.CreateShardSlashingTransaction(proofStub)
 	require.Nil(t, tx)
 	require.Equal(t, errPubKey, err)
 }
@@ -126,9 +134,16 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidAccount_ExpectEr
 			return nil, errAcc
 		},
 	}
-
 	sn, _ := notifier.NewSlashingNotifier(args)
-	tx, err := sn.CreateShardSlashingTransaction(&slashMocks.MultipleHeaderSigningProofStub{})
+	proofStub := &slashMocks.MultipleHeaderProposalProofStub{
+		GetHeadersCalled: func() []*interceptedBlocks.InterceptedHeader {
+			return []*interceptedBlocks.InterceptedHeader{
+				slashMocks.CreateInterceptedHeaderData(&block.HeaderV2{Header: &block.Header{Round: 1}}),
+			}
+		},
+	}
+
+	tx, err := sn.CreateShardSlashingTransaction(proofStub)
 	require.Nil(t, tx)
 	require.Equal(t, errAcc, err)
 }
@@ -143,7 +158,15 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidMarshaller_Expec
 	}
 
 	sn, _ := notifier.NewSlashingNotifier(args)
-	tx, err := sn.CreateShardSlashingTransaction(&slashMocks.MultipleHeaderSigningProofStub{})
+	proofStub := &slashMocks.MultipleHeaderProposalProofStub{
+		GetHeadersCalled: func() []*interceptedBlocks.InterceptedHeader {
+			return []*interceptedBlocks.InterceptedHeader{
+				slashMocks.CreateInterceptedHeaderData(&block.HeaderV2{Header: &block.Header{Round: 1}}),
+			}
+		},
+	}
+
+	tx, err := sn.CreateShardSlashingTransaction(proofStub)
 	require.Nil(t, tx)
 	require.Equal(t, errMarshaller, err)
 }
@@ -152,11 +175,19 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidSlashType_Expect
 	args := generateSlashingNotifierArgs()
 
 	sn, _ := notifier.NewSlashingNotifier(args)
-	tx, err := sn.CreateShardSlashingTransaction(&slashMocks.MultipleHeaderSigningProofStub{
+	proofStub := &slashMocks.MultipleHeaderProposalProofStub{
+		GetHeadersCalled: func() []*interceptedBlocks.InterceptedHeader {
+			return []*interceptedBlocks.InterceptedHeader{
+				slashMocks.CreateInterceptedHeaderData(&block.HeaderV2{Header: &block.Header{Round: 1}}),
+			}
+		},
 		GetTypeCalled: func() slash.SlashingType {
 			return "invalid"
 		},
-	})
+	}
+
+	tx, err := sn.CreateShardSlashingTransaction(proofStub)
+
 	require.Nil(t, tx)
 	require.Equal(t, process.ErrInvalidProof, err)
 }
@@ -186,7 +217,15 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidProofSignature_E
 	}
 
 	sn, _ := notifier.NewSlashingNotifier(args)
-	tx, err := sn.CreateShardSlashingTransaction(&slashMocks.MultipleHeaderSigningProofStub{})
+	proofStub := &slashMocks.MultipleHeaderProposalProofStub{
+		GetHeadersCalled: func() []*interceptedBlocks.InterceptedHeader {
+			return []*interceptedBlocks.InterceptedHeader{
+				slashMocks.CreateInterceptedHeaderData(&block.HeaderV2{Header: &block.Header{Round: 1}}),
+			}
+		},
+	}
+
+	tx, err := sn.CreateShardSlashingTransaction(proofStub)
 	require.Nil(t, tx)
 	require.Equal(t, errSign, err)
 }
@@ -207,7 +246,15 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidTxSignature_Expe
 	}
 
 	sn, _ := notifier.NewSlashingNotifier(args)
-	tx, err := sn.CreateShardSlashingTransaction(&slashMocks.MultipleHeaderSigningProofStub{})
+	proofStub := &slashMocks.MultipleHeaderProposalProofStub{
+		GetHeadersCalled: func() []*interceptedBlocks.InterceptedHeader {
+			return []*interceptedBlocks.InterceptedHeader{
+				slashMocks.CreateInterceptedHeaderData(&block.HeaderV2{Header: &block.Header{Round: 1}}),
+			}
+		},
+	}
+
+	tx, err := sn.CreateShardSlashingTransaction(proofStub)
 	require.Nil(t, tx)
 	require.Equal(t, errSign, err)
 }

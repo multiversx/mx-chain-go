@@ -32,10 +32,6 @@ const CommitmentProofGasPrice = 1000000000
 // CommitmentProofGasLimit = gas limit to issue a commitment tx proof
 const CommitmentProofGasLimit = 70000
 
-type proto interface {
-	Marshal() ([]byte, error)
-}
-
 // SlashingNotifierArgs is a struct containing all arguments required to create a new slash.SlashingNotifier
 type SlashingNotifierArgs struct {
 	PrivateKey      crypto.PrivateKey
@@ -94,37 +90,32 @@ func NewSlashingNotifier(args *SlashingNotifierArgs) (slash.SlashingNotifier, er
 
 // CreateShardSlashingTransaction creates a so-called "commitment" transaction. If a slashing event has been detected,
 // then a transaction will be issued, but it will not unveil details about the slash event, only a commitment proof.
-// This tx is distinguished by its data field, which should be of format: ProofID@CRC@Sign(proof), where:
+// This tx is distinguished by its data field, which should be of format: SlashCommitment@ProofID@CRC@Sign(proof), where:
 // 1. ProofID = 1 byte representing the slashing event ID (e.g.: multiple sign/proposal)
 // 2. CRC = last 2 bytes of Hash(proof)
 // 3. Sign(proof) = detector's proof signature. This is used to avoid front-running.
 func (sn *slashingNotifier) CreateShardSlashingTransaction(proof slash.SlashingProofHandler) (data.TransactionHandler, error) {
-	protoProof, err := toProto(proof)
+	proofTxData, err := getProofTxData(proof)
 	if err != nil {
 		return nil, err
 	}
 
-	proofBytes, err := protoProof.Marshal()
-	if err != nil {
-		return nil, err
-	}
-
-	return sn.createProofTx(proof.GetType(), proofBytes)
+	return sn.createProofTx(proofTxData)
 }
 
-func toProto(proof slash.SlashingProofHandler) (proto, error) {
+func getProofTxData(proof slash.SlashingProofHandler) (*proofTxData, error) {
 	switch t := proof.(type) {
 	case slash.MultipleProposalProofHandler:
-		return slash.ToProtoMultipleHeaderProposal(t)
+		return txDataFromMultipleHeaderProposalProof(t)
 	case slash.MultipleSigningProofHandler:
-		return slash.ToProtoMultipleHeaderSign(t)
+		return txDataFromMultipleHeaderSigningProof(t)
 	default:
 		return nil, process.ErrInvalidProof
 	}
 }
 
-func (sn *slashingNotifier) createProofTx(slashType slash.SlashingType, proofBytes []byte) (*transaction.Transaction, error) {
-	tx, err := sn.createUnsignedTx(slashType, proofBytes)
+func (sn *slashingNotifier) createProofTx(data *proofTxData) (*transaction.Transaction, error) {
+	tx, err := sn.createUnsignedTx(data)
 	if err != nil {
 		return nil, err
 	}
@@ -137,7 +128,7 @@ func (sn *slashingNotifier) createProofTx(slashType slash.SlashingType, proofByt
 	return tx, nil
 }
 
-func (sn *slashingNotifier) createUnsignedTx(slashType slash.SlashingType, proofBytes []byte) (*transaction.Transaction, error) {
+func (sn *slashingNotifier) createUnsignedTx(proofData *proofTxData) (*transaction.Transaction, error) {
 	pubKey, err := sn.publicKey.ToByteArray()
 	if err != nil {
 		return nil, err
@@ -146,7 +137,7 @@ func (sn *slashingNotifier) createUnsignedTx(slashType slash.SlashingType, proof
 	if err != nil {
 		return nil, err
 	}
-	txData, err := sn.computeTxData(slashType, proofBytes)
+	txData, err := sn.computeTxData(proofData)
 	if err != nil {
 		return nil, err
 	}
@@ -162,14 +153,14 @@ func (sn *slashingNotifier) createUnsignedTx(slashType slash.SlashingType, proof
 	}, nil
 }
 
-func (sn *slashingNotifier) computeTxData(slashType slash.SlashingType, proofBytes []byte) ([]byte, error) {
-	proofHash := sn.hasher.Compute(string(proofBytes))
+func (sn *slashingNotifier) computeTxData(proofData *proofTxData) ([]byte, error) {
+	proofHash := sn.hasher.Compute(string(proofData.bytes))
 	proofSignature, err := sn.signer.Sign(sn.privateKey, proofHash)
 	if err != nil {
 		return nil, err
 	}
 
-	id, found := slash.ProofIDs[slashType]
+	id, found := slash.ProofIDs[proofData.slashType]
 	if !found {
 		return nil, process.ErrInvalidProof
 	}
