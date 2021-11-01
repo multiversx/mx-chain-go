@@ -390,6 +390,7 @@ func TestPruningStorer_GetFromOldEpochsWithoutCacheSearchesOnlyOldEpochs(t *test
 
 	err = ps.ChangeEpochSimple(1)
 	assert.Nil(t, err)
+	ps.SetEpochForPutOperation(1)
 
 	err = ps.Put(testKey2, testVal2)
 	assert.Nil(t, err)
