@@ -54,7 +54,6 @@ func (esnm *EpochStartNotifierStub) GetName() string {
 	return "EpochStartNotifierStub"
 }
 
-
 // IsInterfaceNil -
 func (esnm *EpochStartNotifierStub) IsInterfaceNil() bool {
 	return esnm == nil

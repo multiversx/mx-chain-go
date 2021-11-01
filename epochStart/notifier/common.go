@@ -37,7 +37,7 @@ func (hs *handlerStruct) Prepare(metaHdr data.HeaderHandler, _ data.BodyHandler)
 	}
 }
 
-// EpochStartAction will notify the subscribed function if not nil
+// Action will notify the subscribed function if not nil
 func (hs *handlerStruct) Action(hdr data.HeaderHandler) {
 	if hs.act != nil {
 		hs.act(hdr)

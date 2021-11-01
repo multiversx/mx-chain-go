@@ -21,7 +21,7 @@ type Locker interface {
 type group struct {
 	groupID string
 	members []groupTypes.ActionHandler
-	locker  Locker
+	Locker
 }
 
 // NewGroup creates a new group with external lock
@@ -35,7 +35,7 @@ func NewGroup(locker Locker, groupID string) (*group, error) {
 	return &group{
 		groupID: groupID,
 		members: nil,
-		locker:  locker,
+		Locker:  locker,
 	}, nil
 }
 
@@ -47,18 +47,18 @@ func NewGroupWithDefaultLock(groupID string) (*group, error) {
 	return &group{
 		groupID: groupID,
 		members: nil,
-		locker:  &sync.RWMutex{},
+		Locker:  &sync.RWMutex{},
 	}, nil
 }
 
-// Add  adds a new member to group
+// Add adds a new member to group
 func (g *group) Add(member groupTypes.ActionHandler) error {
 	if check.IfNil(member) {
 		return errNilActionHandler
 	}
 
-	g.locker.Lock()
-	defer g.locker.Unlock()
+	g.Lock()
+	defer g.Unlock()
 
 	// allow every member only once
 	for i := range g.members {
@@ -73,8 +73,8 @@ func (g *group) Add(member groupTypes.ActionHandler) error {
 
 // HandleAction handles the group Action, returning the last error if any or nil otherwise
 func (g *group) HandleAction(triggerData interface{}, stage groupTypes.TriggerStage) error {
-	g.locker.RLock()
-	defer g.locker.RUnlock()
+	g.RLock()
+	defer g.RUnlock()
 	var lastErr error
 
 	for i := range g.members {

@@ -22,21 +22,19 @@ func TestNewGroupActionNotifier(t *testing.T) {
 	require.NotNil(t, gan)
 	require.Len(t, gan.groupsPerEvent, 0)
 	require.Len(t, gan.triggers, 0)
-	require.Len(t, gan.activeTriggers, 0)
 }
 
 func TestGroupNotifier_addTriggerOK(t *testing.T) {
 	t.Parallel()
 
 	gan := NewGroupActionNotifier()
-
+	gnt := &groupNotifierTrigger{}
 	epochStartTrigger := &epochStart.EpochStartNotifierStub{}
-	err := gan.addTrigger(epochStartTrigger)
-	require.Len(t, gan.triggers, 1)
-	require.Len(t, gan.groupsPerEvent, 1)
-	require.Len(t, gan.activeTriggers, 0)
+	err := gan.addTriggerWithGroupNotifier(epochStartTrigger, gnt)
 
 	require.Nil(t, err)
+	require.Len(t, gan.triggers, 1)
+	require.Len(t, gan.groupsPerEvent, 1)
 }
 
 func TestGroupNotifier_addTriggerAlreadyPresentOK(t *testing.T) {
@@ -44,12 +42,25 @@ func TestGroupNotifier_addTriggerAlreadyPresentOK(t *testing.T) {
 
 	gan := NewGroupActionNotifier()
 
-	epochStartTrigger := &epochStart.EpochStartNotifierStub{}
-	_ = gan.addTrigger(epochStartTrigger)
-	err := gan.addTrigger(epochStartTrigger)
+	epochStartTrigger := &epochStart.EpochStartNotifierStub{
+		GetNameCalled: func() string {
+			return "t1"
+		},
+	}
+	gnt := &groupNotifierTrigger{
+		triggerID: epochStartTrigger.GetName(),
+	}
+	gnt2 := &groupNotifierTrigger{
+		triggerID: epochStartTrigger.GetName(),
+	}
+
+	_ = gan.addTriggerWithGroupNotifier(epochStartTrigger, gnt)
 	require.Len(t, gan.triggers, 1)
 	require.Len(t, gan.groupsPerEvent, 1)
-	require.Len(t, gan.activeTriggers, 0)
+
+	err := gan.addTriggerWithGroupNotifier(epochStartTrigger, gnt2)
+	require.Len(t, gan.triggers, 1)
+	require.Len(t, gan.groupsPerEvent, 1)
 	require.Nil(t, err)
 }
 
@@ -57,11 +68,13 @@ func TestGroupNotifier_registerTriggerOK(t *testing.T) {
 	t.Parallel()
 
 	gan := NewGroupActionNotifier()
-	epochStartTrigger := &epochStart.EpochStartNotifierStub{}
-
+	epochStartTrigger := &epochStart.EpochStartNotifierStub{
+		GetNameCalled: func() string {
+			return "t1"
+		},
+	}
 	err := gan.registerTrigger(epochStartTrigger)
-	require.Equal(t, epochStartTrigger, gan.triggers[epochStartTrigger.GetName()])
-	require.Len(t, gan.activeTriggers, 1)
+	require.Equal(t, epochStartTrigger, gan.triggers[epochStartTrigger.GetName()].trigger)
 	require.Len(t, gan.groupsPerEvent, 1)
 	require.Nil(t, err)
 }
@@ -95,9 +108,9 @@ func TestGroupNotifier_registerTriggerSecond(t *testing.T) {
 	_ = gan.registerTrigger(epochStartTrigger1)
 	err := gan.registerTrigger(epochStartTrigger2)
 	require.Nil(t, err)
-	require.Len(t, gan.triggers, 2 )
-	require.Equal(t, gan.triggers[epochStartTrigger1.GetName()], epochStartTrigger1)
-	require.Equal(t, gan.triggers[epochStartTrigger2.GetName()], epochStartTrigger2)
+	require.Len(t, gan.triggers, 2)
+	require.Equal(t, epochStartTrigger1, gan.triggers[epochStartTrigger1.GetName()].trigger)
+	require.Equal(t, epochStartTrigger2, gan.triggers[epochStartTrigger2.GetName()].trigger)
 }
 
 func TestGroupNotifier_Register(t *testing.T) {
@@ -176,7 +189,7 @@ func TestGroupNotifier_RegisterTwoGroupsSameTrigger(t *testing.T) {
 	require.Equal(t, group2Action, gan.groupsPerEvent[epochStartTrigger.GetName()][gr2])
 }
 
-func TestGroupNotifier_notifyGroupsForTriggerNoGroupRegisteredShouldNotPanic(t *testing.T) {
+func TestGroupNotifier_ReceiveNotificationNoGroupRegisteredShouldNotPanic(t *testing.T) {
 	t.Parallel()
 
 	defer func() {
@@ -189,10 +202,10 @@ func TestGroupNotifier_notifyGroupsForTriggerNoGroupRegisteredShouldNotPanic(t *
 	gan := NewGroupActionNotifier()
 	epochStartTrigger := &epochStart.EpochStartNotifierStub{}
 	_ = gan.registerTrigger(epochStartTrigger)
-	gan.notifyGroupsForTrigger(epochStartTrigger.GetName(), &block.Header{}, groupTypes.Prepare)
+	gan.ReceiveNotification(epochStartTrigger.GetName(), &block.Header{}, groupTypes.Prepare)
 }
 
-func TestGroupNotifier_notifyGroupsForTriggerTriggerMissingShouldNotPanic(t *testing.T) {
+func TestGroupNotifier_ReceiveNotificationTriggerMissingShouldNotPanic(t *testing.T) {
 	t.Parallel()
 
 	defer func() {
@@ -204,10 +217,10 @@ func TestGroupNotifier_notifyGroupsForTriggerTriggerMissingShouldNotPanic(t *tes
 
 	gan := NewGroupActionNotifier()
 	epochStartTrigger := &epochStart.EpochStartNotifierStub{}
-	gan.notifyGroupsForTrigger(epochStartTrigger.GetName(), &block.Header{}, groupTypes.Prepare)
+	gan.ReceiveNotification(epochStartTrigger.GetName(), &block.Header{}, groupTypes.Prepare)
 }
 
-func TestGroupNotifier_notifyGroupsForTriggerOneGroup(t *testing.T) {
+func TestGroupNotifier_ReceiveNotificationOneGroup(t *testing.T) {
 	t.Parallel()
 
 	gan := NewGroupActionNotifier()
@@ -224,11 +237,11 @@ func TestGroupNotifier_notifyGroupsForTriggerOneGroup(t *testing.T) {
 	_ = gan.Register(groupAction, epochStartTrigger)
 
 	require.False(t, handleActionCalled.IsSet())
-	gan.notifyGroupsForTrigger(epochStartTrigger.GetName(), &block.Header{}, groupTypes.Prepare)
+	gan.ReceiveNotification(epochStartTrigger.GetName(), &block.Header{}, groupTypes.Prepare)
 	require.True(t, handleActionCalled.IsSet())
 }
 
-func TestGroupNotifier_notifyGroupsForTriggerTwoGroups(t *testing.T) {
+func TestGroupNotifier_ReceiveNotificationTwoGroups(t *testing.T) {
 	t.Parallel()
 
 	gan := NewGroupActionNotifier()
@@ -260,12 +273,12 @@ func TestGroupNotifier_notifyGroupsForTriggerTwoGroups(t *testing.T) {
 
 	require.False(t, handleAction1Called.IsSet())
 	require.False(t, handleAction2Called.IsSet())
-	gan.notifyGroupsForTrigger(epochStartTrigger.GetName(), &block.Header{}, groupTypes.Prepare)
+	gan.ReceiveNotification(epochStartTrigger.GetName(), &block.Header{}, groupTypes.Prepare)
 	require.True(t, handleAction1Called.IsSet())
 	require.True(t, handleAction2Called.IsSet())
 }
 
-func TestGroupNotifier_notifyGroupsForTriggerHandleActionOneFailed(t *testing.T) {
+func TestGroupNotifier_ReceiveNotificationHandleActionOneFailed(t *testing.T) {
 	t.Parallel()
 
 	gan := NewGroupActionNotifier()
@@ -299,7 +312,7 @@ func TestGroupNotifier_notifyGroupsForTriggerHandleActionOneFailed(t *testing.T)
 
 	require.Equal(t, "", action1Trigger.Get())
 	require.Equal(t, "", action2Trigger.Get())
-	gan.notifyGroupsForTrigger(epochStartTrigger.GetName(), &block.Header{}, groupTypes.Prepare)
+	gan.ReceiveNotification(epochStartTrigger.GetName(), &block.Header{}, groupTypes.Prepare)
 	require.Equal(t, epochStartTrigger.GetName(), action1Trigger.Get())
 	require.Equal(t, epochStartTrigger.GetName(), action2Trigger.Get())
 }
@@ -437,8 +450,7 @@ func TestGroupNotifier_RegisterTrigger(t *testing.T) {
 	epochStartTrigger := &epochStart.EpochStartNotifierStub{}
 
 	err := gan.registerTrigger(epochStartTrigger)
-	require.Equal(t, epochStartTrigger, gan.triggers[epochStartTrigger.GetName()])
-	require.Len(t, gan.activeTriggers, 1)
+	require.Equal(t, epochStartTrigger, gan.triggers[epochStartTrigger.GetName()].trigger)
 	require.Len(t, gan.groupsPerEvent, 1)
 	require.Nil(t, err)
 
@@ -449,7 +461,6 @@ func TestGroupNotifier_RegisterTrigger(t *testing.T) {
 	require.Equal(t, errInvalidTriggerID, err)
 	require.Len(t, gan.groupsPerEvent, 1)
 	require.Len(t, gan.triggers, 1)
-	require.Len(t, gan.activeTriggers, 1)
 
 	epochStartTrigger3 := &epochStart.EpochStartNotifierStub{GetNameCalled: func() string {
 		return "33"
@@ -458,5 +469,4 @@ func TestGroupNotifier_RegisterTrigger(t *testing.T) {
 	require.Equal(t, nil, err)
 	require.Len(t, gan.groupsPerEvent, 2)
 	require.Len(t, gan.triggers, 2)
-	require.Len(t, gan.activeTriggers, 2)
 }
