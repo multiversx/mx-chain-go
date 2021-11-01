@@ -884,6 +884,9 @@ var ErrInvalidSlashLevel = errors.New("invalid slash level has been provided for
 // ErrNotEnoughHeadersProvided signals that not enough headers have been provided for a multiple header proof
 var ErrNotEnoughHeadersProvided = errors.New("not enough headers have been provided for a multiple header proof")
 
+// ErrNotEnoughPubKeysProvided signals that not enough pub keys have been provided for a multiple header proof
+var ErrNotEnoughPubKeysProvided = errors.New("not enough pub keys have been provided for a multiple header proof")
+
 // ErrHeadersNotSameProposer signals that the headers from a multiple header proposal proof are not proposed by the same validator
 var ErrHeadersNotSameProposer = errors.New("the headers from a multiple header proposal proof are not proposed by the same validator")
 
