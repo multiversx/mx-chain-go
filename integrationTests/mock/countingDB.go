@@ -34,11 +34,6 @@ func (cdb *countingDB) Has(key []byte) error {
 	return cdb.db.Has(key)
 }
 
-// Init will initialize the db
-func (cdb *countingDB) Init() error {
-	return cdb.db.Init()
-}
-
 // Close will close the db
 func (cdb *countingDB) Close() error {
 	return cdb.db.Close()

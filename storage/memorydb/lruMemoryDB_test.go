@@ -8,14 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestLruDB_LruDB_InitNoError(t *testing.T) {
-	mdb, err := memorydb.NewlruDB(10000)
-	assert.Nil(t, err, "failed to create memorydb: %s", err)
-
-	err = mdb.Init()
-	assert.Nil(t, err, "error initializing db")
-}
-
 func TestLruDB_LruDB_InitBadSize(t *testing.T) {
 	mdb, err := memorydb.NewlruDB(0)
 	assert.Nil(t, mdb)
