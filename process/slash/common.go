@@ -2,8 +2,6 @@ package slash
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 )
 
 // HeaderInfo contains a HeaderHandler and its associated hash
@@ -35,18 +33,4 @@ func IsIndexSetInBitmap(index uint32, bitmap []byte) bool {
 	bitPos := index % 8
 	mask := uint8(1 << bitPos)
 	return (byteInMap & mask) != 0
-}
-
-func convertInterceptedDataToInterceptedHeaders(data []process.InterceptedData) ([]*interceptedBlocks.InterceptedHeader, error) {
-	headers := make([]*interceptedBlocks.InterceptedHeader, 0, len(data))
-
-	for _, d := range data {
-		header, castOk := d.(*interceptedBlocks.InterceptedHeader)
-		if !castOk {
-			return nil, process.ErrCannotCastInterceptedDataToHeader
-		}
-		headers = append(headers, header)
-	}
-
-	return headers, nil
 }
