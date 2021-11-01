@@ -5,7 +5,6 @@ type PersisterStub struct {
 	PutCalled           func(key, val []byte) error
 	GetCalled           func(key []byte) ([]byte, error)
 	HasCalled           func(key []byte) error
-	InitCalled          func() error
 	CloseCalled         func() error
 	RemoveCalled        func(key []byte) error
 	DestroyCalled       func() error
@@ -35,15 +34,6 @@ func (p *PersisterStub) Get(key []byte) ([]byte, error) {
 func (p *PersisterStub) Has(key []byte) error {
 	if p.HasCalled != nil {
 		return p.HasCalled(key)
-	}
-
-	return nil
-}
-
-// Init -
-func (p *PersisterStub) Init() error {
-	if p.InitCalled != nil {
-		return p.InitCalled()
 	}
 
 	return nil
