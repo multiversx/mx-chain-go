@@ -90,7 +90,7 @@ func NewSlashingNotifier(args *SlashingNotifierArgs) (slash.SlashingNotifier, er
 
 // CreateShardSlashingTransaction creates a so-called "commitment" transaction. If a slashing event has been detected,
 // then a transaction will be issued, but it will not unveil details about the slash event, only a commitment proof.
-// This tx is distinguished by its data field, which should be of format: SlashCommitment@ProofID@CRC@Sign(proof), where:
+// This tx is distinguished by its data field, which should be of format: SlashCommitment@ProofID@ShardID@Round@CRC@Sign(proof), where:
 // 1. ProofID = 1 byte representing the slashing event ID (e.g.: multiple sign/proposal)
 // 2. CRC = last 2 bytes of Hash(proof)
 // 3. Sign(proof) = detector's proof signature. This is used to avoid front-running.
@@ -160,14 +160,16 @@ func (sn *slashingNotifier) computeTxData(proofData *proofTxData) ([]byte, error
 		return nil, err
 	}
 
-	id, found := slash.ProofIDs[proofData.slashType]
+	proofID, found := slash.ProofIDs[proofData.slashType]
 	if !found {
 		return nil, process.ErrInvalidProof
 	}
 
-	crc := proofHash[len(proofHash)-2:]
+	proofCRC := proofHash[len(proofHash)-2:]
 
-	dataStr := fmt.Sprintf("%s@%s@%s@%s", BuiltInFunctionSlashCommitmentProof, []byte{id}, crc, proofSignature)
+	dataStr := fmt.Sprintf("%s@%s@%d@%d@%s@%s", BuiltInFunctionSlashCommitmentProof,
+		[]byte{proofID}, proofData.shardID, proofData.round, proofCRC, proofSignature)
+
 	return []byte(dataStr), nil
 }
 

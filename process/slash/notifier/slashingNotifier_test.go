@@ -2,6 +2,7 @@ package notifier_test
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -269,10 +270,13 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleProposalProof(t
 
 	sn, _ := notifier.NewSlashingNotifier(args)
 
+	round := uint64(100000)
+	shardID := uint32(2)
 	h1 := slashMocks.CreateInterceptedHeaderData(
 		&block.HeaderV2{
 			Header: &block.Header{
-				Round:        4,
+				Round:        round,
+				ShardID:      shardID,
 				PrevRandSeed: []byte("seed1"),
 			},
 		},
@@ -280,7 +284,8 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleProposalProof(t
 	h2 := slashMocks.CreateInterceptedHeaderData(
 		&block.HeaderV2{
 			Header: &block.Header{
-				Round:        4,
+				Round:        round,
+				ShardID:      shardID,
 				PrevRandSeed: []byte("seed2"),
 			},
 		},
@@ -291,9 +296,9 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleProposalProof(t
 		},
 	}
 
-	expectedData := []byte(notifier.BuiltInFunctionSlashCommitmentProof)
-	expectedData = append(expectedData, byte('@'), slash.MultipleProposalProofID, byte('@'), byte('c'), byte('d'), byte('@'))
-	expectedData = append(expectedData, []byte("signature")...)
+	expectedData := []byte(fmt.Sprintf("%s@%s@%d@%d@%s@%s", notifier.BuiltInFunctionSlashCommitmentProof,
+		[]byte{slash.MultipleProposalProofID}, shardID, round, []byte{byte('c'), byte('d')}, []byte("signature")))
+
 	expectedTx := &transaction.Transaction{
 		Data:      expectedData,
 		Nonce:     444,
@@ -318,12 +323,15 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleSignProof(t *te
 
 	sn, _ := notifier.NewSlashingNotifier(args)
 
+	round := uint64(100000)
+	shardID := uint32(2)
 	pk1 := []byte("pubKey1")
 
 	h1 := slashMocks.CreateInterceptedHeaderData(
 		&block.HeaderV2{
 			Header: &block.Header{
-				Round:        4,
+				Round:        round,
+				ShardID:      shardID,
 				PrevRandSeed: []byte("seed1"),
 			},
 		},
@@ -331,7 +339,8 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleSignProof(t *te
 	h2 := slashMocks.CreateInterceptedHeaderData(
 		&block.HeaderV2{
 			Header: &block.Header{
-				Round:        4,
+				Round:        round,
+				ShardID:      shardID,
 				PrevRandSeed: []byte("seed2"),
 			},
 		},
@@ -348,9 +357,8 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleSignProof(t *te
 		},
 	}
 
-	expectedData := []byte(notifier.BuiltInFunctionSlashCommitmentProof)
-	expectedData = append(expectedData, byte('@'), slash.MultipleSigningProofID, byte('@'), byte('c'), byte('d'), byte('@'))
-	expectedData = append(expectedData, []byte("signature")...)
+	expectedData := []byte(fmt.Sprintf("%s@%s@%d@%d@%s@%s", notifier.BuiltInFunctionSlashCommitmentProof,
+		[]byte{slash.MultipleSigningProofID}, shardID, round, []byte{byte('c'), byte('d')}, []byte("signature")))
 	expectedTx := &transaction.Transaction{
 		Data:      expectedData,
 		Nonce:     444,
