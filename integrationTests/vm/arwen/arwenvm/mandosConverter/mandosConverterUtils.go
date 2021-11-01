@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	mge "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/mandos-go/elrondgo-exporter"
+	mgutil "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/mandos-go/util"
+
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -43,7 +45,11 @@ func CheckStorage(t *testing.T, dataTrie state.DataTrieTracker, mandosAccStorage
 	for key := range mandosAccStorage {
 		dataTrieValue, err := dataTrie.RetrieveValue([]byte(key))
 		require.Nil(t, err)
-		require.Equal(t, mandosAccStorage[key], dataTrieValue)
+		if len(mandosAccStorage[key]) == 0 {
+			require.Nil(t, dataTrieValue)
+		} else {
+			require.Equal(t, mandosAccStorage[key], dataTrieValue)
+		}
 	}
 }
 
@@ -57,9 +63,9 @@ func CheckTransactions(t *testing.T, transactions []*transaction.Transaction, ma
 		expectedCallValue := mandosTransactions[i].GetCallValue()
 		expectedCallFunction := mandosTransactions[i].GetCallFunction()
 		expectedCallArguments := mandosTransactions[i].GetCallArguments()
+		expectedEsdtTransfers := mandosTransactions[i].GetESDTTransfers()
 		expectedGasLimit, expectedGasPrice := mandosTransactions[i].GetGasLimitAndPrice()
 		expectedNonce := mandosTransactions[i].GetNonce()
-		//expectedEsdtTransfers := mandosTransactions[i].GetESDTTransfers()
 
 		require.Equal(t, expectedSender, transactions[i].GetSndAddr())
 		require.Equal(t, expectedReceiver, transactions[i].GetRcvAddr())
@@ -68,7 +74,12 @@ func CheckTransactions(t *testing.T, transactions []*transaction.Transaction, ma
 		require.Equal(t, expectedGasPrice, transactions[i].GetGasPrice())
 		require.Equal(t, expectedNonce, transactions[i].GetNonce())
 
-		expectedData := createData(expectedCallFunction, expectedCallArguments)
+		var expectedData []byte
+		if len(expectedEsdtTransfers) != 0 {
+			expectedData = mgutil.CreateMultiTransferData(expectedReceiver, expectedEsdtTransfers, expectedCallFunction, expectedCallArguments)
+		} else {
+			expectedData = createData(expectedCallFunction, expectedCallArguments)
+		}
 		actualData := transactions[i].GetData()
 		require.Equal(t, expectedData, actualData)
 	}
@@ -94,6 +105,18 @@ func SetStateFromMandosTest(mandosTestPath string) (testContext *vm.VMTestContex
 	}
 	transactions = CreateTransactionsFromMandosTxs(mandosTransactions)
 	return testContext, transactions, nil
+}
+
+func CheckConverter(t *testing.T, mandosTestPath string) {
+	mandosAccounts, _, mandosTransactions, _, err := mge.GetAccountsAndTransactionsFromMandos(mandosTestPath)
+	require.Nil(t, err)
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
+	err = CreateAccountsFromMandosAccs(testContext, mandosAccounts)
+	require.Nil(t, err)
+	CheckAccounts(t, testContext.Accounts, mandosAccounts)
+	transactions := CreateTransactionsFromMandosTxs(mandosTransactions)
+	CheckTransactions(t, transactions, mandosTransactions)
 }
 
 // RunSingleTransactionBenchmark receives the VMTestContext (which can be created with SetStateFromMandosTest), a tx and performs a benchmark on that specific tx. If processing transaction fails, it will return error, else will return nil
