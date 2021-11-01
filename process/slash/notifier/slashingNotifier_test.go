@@ -115,10 +115,8 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidPubKey_ExpectErr
 
 	sn, _ := notifier.NewSlashingNotifier(args)
 	proofStub := &slashMocks.MultipleHeaderProposalProofStub{
-		GetHeadersCalled: func() []*interceptedBlocks.InterceptedHeader {
-			return []*interceptedBlocks.InterceptedHeader{
-				slashMocks.CreateInterceptedHeaderData(&block.HeaderV2{Header: &block.Header{Round: 1}}),
-			}
+		GetHeadersCalled: func() slash.HeaderInfoList {
+			return slash.HeaderInfoList{&slash.HeaderInfo{Header: &block.HeaderV2{}}}
 		},
 	}
 
@@ -137,10 +135,8 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidAccount_ExpectEr
 	}
 	sn, _ := notifier.NewSlashingNotifier(args)
 	proofStub := &slashMocks.MultipleHeaderProposalProofStub{
-		GetHeadersCalled: func() []*interceptedBlocks.InterceptedHeader {
-			return []*interceptedBlocks.InterceptedHeader{
-				slashMocks.CreateInterceptedHeaderData(&block.HeaderV2{Header: &block.Header{Round: 1}}),
-			}
+		GetHeadersCalled: func() slash.HeaderInfoList {
+			return slash.HeaderInfoList{&slash.HeaderInfo{Header: &block.HeaderV2{}}}
 		},
 	}
 
@@ -160,10 +156,8 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidMarshaller_Expec
 
 	sn, _ := notifier.NewSlashingNotifier(args)
 	proofStub := &slashMocks.MultipleHeaderProposalProofStub{
-		GetHeadersCalled: func() []*interceptedBlocks.InterceptedHeader {
-			return []*interceptedBlocks.InterceptedHeader{
-				slashMocks.CreateInterceptedHeaderData(&block.HeaderV2{Header: &block.Header{Round: 1}}),
-			}
+		GetHeadersCalled: func() slash.HeaderInfoList {
+			return slash.HeaderInfoList{&slash.HeaderInfo{Header: &block.HeaderV2{}}}
 		},
 	}
 
@@ -177,10 +171,8 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidSlashType_Expect
 
 	sn, _ := notifier.NewSlashingNotifier(args)
 	proofStub := &slashMocks.MultipleHeaderProposalProofStub{
-		GetHeadersCalled: func() []*interceptedBlocks.InterceptedHeader {
-			return []*interceptedBlocks.InterceptedHeader{
-				slashMocks.CreateInterceptedHeaderData(&block.HeaderV2{Header: &block.Header{Round: 1}}),
-			}
+		GetHeadersCalled: func() slash.HeaderInfoList {
+			return slash.HeaderInfoList{&slash.HeaderInfo{Header: &block.HeaderV2{}}}
 		},
 		GetTypeCalled: func() slash.SlashingType {
 			return "invalid"
@@ -219,10 +211,8 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidProofSignature_E
 
 	sn, _ := notifier.NewSlashingNotifier(args)
 	proofStub := &slashMocks.MultipleHeaderProposalProofStub{
-		GetHeadersCalled: func() []*interceptedBlocks.InterceptedHeader {
-			return []*interceptedBlocks.InterceptedHeader{
-				slashMocks.CreateInterceptedHeaderData(&block.HeaderV2{Header: &block.Header{Round: 1}}),
-			}
+		GetHeadersCalled: func() slash.HeaderInfoList {
+			return slash.HeaderInfoList{&slash.HeaderInfo{Header: &block.HeaderV2{}}}
 		},
 	}
 
@@ -248,10 +238,8 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidTxSignature_Expe
 
 	sn, _ := notifier.NewSlashingNotifier(args)
 	proofStub := &slashMocks.MultipleHeaderProposalProofStub{
-		GetHeadersCalled: func() []*interceptedBlocks.InterceptedHeader {
-			return []*interceptedBlocks.InterceptedHeader{
-				slashMocks.CreateInterceptedHeaderData(&block.HeaderV2{Header: &block.Header{Round: 1}}),
-			}
+		GetHeadersCalled: func() slash.HeaderInfoList {
+			return slash.HeaderInfoList{&slash.HeaderInfo{Header: &block.HeaderV2{}}}
 		},
 	}
 
@@ -272,27 +260,24 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleProposalProof(t
 
 	round := uint64(100000)
 	shardID := uint32(2)
-	h1 := slashMocks.CreateInterceptedHeaderData(
-		&block.HeaderV2{
-			Header: &block.Header{
-				Round:        round,
-				ShardID:      shardID,
-				PrevRandSeed: []byte("seed1"),
-			},
+	h1 := &block.HeaderV2{
+		Header: &block.Header{
+			Round:        round,
+			ShardID:      shardID,
+			PrevRandSeed: []byte("seed1"),
 		},
-	)
-	h2 := slashMocks.CreateInterceptedHeaderData(
-		&block.HeaderV2{
-			Header: &block.Header{
-				Round:        round,
-				ShardID:      shardID,
-				PrevRandSeed: []byte("seed2"),
-			},
+	}
+	h2 := &block.HeaderV2{
+		Header: &block.Header{
+			Round:        round,
+			ShardID:      shardID,
+			PrevRandSeed: []byte("seed2"),
 		},
-	)
+	}
+
 	proof := &slashMocks.MultipleHeaderProposalProofStub{
 		GetHeadersCalled: func() slash.HeaderInfoList {
-			return slash.HeaderInfoList{h1, h2}
+			return slash.HeaderInfoList{&slash.HeaderInfo{Header: h1}, &slash.HeaderInfo{Header: h2}}
 		},
 	}
 
@@ -327,30 +312,27 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleSignProof(t *te
 	shardID := uint32(2)
 	pk1 := []byte("pubKey1")
 
-	h1 := slashMocks.CreateInterceptedHeaderData(
-		&block.HeaderV2{
-			Header: &block.Header{
-				Round:        round,
-				ShardID:      shardID,
-				PrevRandSeed: []byte("seed1"),
-			},
+	h1 := &block.HeaderV2{
+		Header: &block.Header{
+			Round:        round,
+			ShardID:      shardID,
+			PrevRandSeed: []byte("seed1"),
 		},
-	)
-	h2 := slashMocks.CreateInterceptedHeaderData(
-		&block.HeaderV2{
-			Header: &block.Header{
-				Round:        round,
-				ShardID:      shardID,
-				PrevRandSeed: []byte("seed2"),
-			},
+	}
+	h2 := &block.HeaderV2{
+		Header: &block.Header{
+			Round:        round,
+			ShardID:      shardID,
+			PrevRandSeed: []byte("seed2"),
 		},
-	)
+	}
+
 	proof := &slashMocks.MultipleHeaderSigningProofStub{
 		GetLevelCalled: func([]byte) slash.ThreatLevel {
 			return slash.High
 		},
 		GetHeadersCalled: func([]byte) slash.HeaderInfoList {
-			return slash.HeaderInfoList{h1, h2}
+			return slash.HeaderInfoList{&slash.HeaderInfo{Header: h1}, &slash.HeaderInfo{Header: h2}}
 		},
 		GetPubKeysCalled: func() [][]byte {
 			return [][]byte{pk1}

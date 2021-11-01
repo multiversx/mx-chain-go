@@ -27,8 +27,8 @@ func txDataFromMultipleHeaderProposalProof(proof slash.MultipleProposalProofHand
 	}
 
 	return &proofTxData{
-		round:     headers[0].HeaderHandler().GetRound(),
-		shardID:   headers[0].HeaderHandler().GetShardID(),
+		round:     headers[0].Header.GetRound(),
+		shardID:   headers[0].Header.GetShardID(),
 		bytes:     proofBytes,
 		slashType: proof.GetType(),
 	}, nil
@@ -54,8 +54,8 @@ func txDataFromMultipleHeaderSigningProof(proof slash.MultipleSigningProofHandle
 	}
 
 	return &proofTxData{
-		round:     headers[0].HeaderHandler().GetRound(),
-		shardID:   headers[0].HeaderHandler().GetShardID(),
+		round:     headers[0].Header.GetRound(),
+		shardID:   headers[0].Header.GetShardID(),
 		bytes:     proofBytes,
 		slashType: proof.GetType(),
 	}, nil
