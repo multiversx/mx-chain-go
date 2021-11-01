@@ -265,6 +265,34 @@ func (ps *PruningStorer) Put(key, data []byte) error {
 	return ps.doPutInPersister(key, data, persisterToUse.getPersister())
 }
 
+// PutWithoutCache adds data to persistence medium and updates the bloom filter
+func (ps *PruningStorer) PutWithoutCache(key, data []byte) error {
+	ps.lock.RLock()
+	persisterToUse := ps.activePersisters[0]
+	if ps.pruningEnabled {
+		persisterInSetEpoch, ok := ps.persistersMapByEpoch[ps.epochForPutOperation]
+		if ok && !persisterInSetEpoch.getIsClosed() {
+			persisterToUse = persisterInSetEpoch
+		} else {
+			log.Debug("active persister not found",
+				"epoch", ps.epochForPutOperation,
+				"used", persisterToUse.epoch)
+		}
+	}
+	ps.lock.RUnlock()
+
+	err := persisterToUse.getPersister().Put(key, data)
+	if err != nil {
+		return err
+	}
+
+	if ps.bloomFilter != nil {
+		ps.bloomFilter.Add(key)
+	}
+
+	return nil
+}
+
 func (ps *PruningStorer) doPutInPersister(key, data []byte, persister storage.Persister) error {
 	err := persister.Put(key, data)
 	if err != nil {
@@ -382,6 +410,35 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 	}
 
 	return v.([]byte), nil
+}
+
+// GetFromOldEpochsWithoutCache searches the old epochs for the given key without updating the cache
+func (ps *PruningStorer) GetFromOldEpochsWithoutCache(key []byte) ([]byte, error) {
+	v, ok := ps.cacher.Get(key)
+	if ok {
+		buff, isByteSlice := v.([]byte)
+		if isByteSlice {
+			return buff, nil
+		}
+	}
+
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+
+	if ps.bloomFilter != nil && !ps.bloomFilter.MayContain(key) {
+		return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
+	}
+
+	for idx := uint32(1); (idx < ps.numOfActivePersisters) && (idx < uint32(len(ps.activePersisters))); idx++ {
+		val, err := ps.activePersisters[idx].persister.Get(key)
+		if err != nil {
+			continue
+		}
+
+		return val, nil
+	}
+
+	return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
 }
 
 // Close will close PruningStorer

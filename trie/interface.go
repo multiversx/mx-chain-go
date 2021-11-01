@@ -89,3 +89,9 @@ type TimeoutHandler interface {
 type epochStorer interface {
 	SetEpochForPutOperation(epoch uint32)
 }
+
+type snapshotPruningStorer interface {
+	common.DBWriteCacher
+	GetFromOldEpochsWithoutCache(key []byte) ([]byte, error)
+	PutWithoutCache(key, data []byte) error
+}

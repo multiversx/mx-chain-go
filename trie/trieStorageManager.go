@@ -229,7 +229,11 @@ func (tsm *trieStorageManager) Get(key []byte) ([]byte, error) {
 		return val, nil
 	}
 
-	val, _ = tsm.db.Get(key)
+	return tsm.getFromOtherStorers(key)
+}
+
+func (tsm *trieStorageManager) getFromOtherStorers(key []byte) ([]byte, error) {
+	val, _ := tsm.db.Get(key)
 	if len(val) != 0 {
 		return val, nil
 	}
@@ -368,7 +372,13 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 		return
 	}
 
-	err = newRoot.commitSnapshot(tsm, snapshotEntry.leavesChan, ctx)
+	stsm, err := newSnapshotTrieStorageManager(tsm)
+	if err != nil {
+		log.Error("takeSnapshot: trie storage manager: newSnapshotTrieStorageManager", "err", err.Error())
+		return
+	}
+
+	err = newRoot.commitSnapshot(stsm, snapshotEntry.leavesChan, ctx)
 	if err == ErrContextClosing {
 		log.Debug("context closing while in commitSnapshot operation")
 		return

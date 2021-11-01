@@ -374,6 +374,56 @@ func TestNewPruningStorer_OldDataHasToBeRemoved(t *testing.T) {
 	assert.True(t, strings.Contains(err.Error(), "not found"))
 }
 
+func TestPruningStorer_GetFromOldEpochsWithoutCacheSearchesOnlyOldEpochs(t *testing.T) {
+	t.Parallel()
+
+	args := getDefaultArgs()
+	ps, _ := pruning.NewPruningStorer(args)
+
+	testKey1 := []byte("key1")
+	testVal1 := []byte("value1")
+	testKey2 := []byte("key2")
+	testVal2 := []byte("value2")
+
+	err := ps.Put(testKey1, testVal1)
+	assert.Nil(t, err)
+
+	err = ps.ChangeEpochSimple(1)
+	assert.Nil(t, err)
+
+	err = ps.Put(testKey2, testVal2)
+	assert.Nil(t, err)
+	ps.ClearCache()
+
+	res, err := ps.GetFromOldEpochsWithoutCache(testKey1)
+	assert.Equal(t, testVal1, res)
+	assert.Nil(t, err)
+
+	res, err = ps.GetFromOldEpochsWithoutCache(testKey2)
+	assert.Nil(t, res)
+	assert.NotNil(t, err)
+	assert.True(t, strings.Contains(err.Error(), "not found"))
+}
+
+func TestPruningStorer_GetFromOldEpochsWithoutCacheDoesNotSearchInCurrentStorer(t *testing.T) {
+	t.Parallel()
+
+	args := getDefaultArgs()
+	ps, _ := pruning.NewPruningStorer(args)
+
+	testKey1 := []byte("key1")
+	testVal1 := []byte("value1")
+
+	err := ps.Put(testKey1, testVal1)
+	assert.Nil(t, err)
+	ps.ClearCache()
+
+	res, err := ps.GetFromOldEpochsWithoutCache(testKey1)
+	assert.Nil(t, res)
+	assert.NotNil(t, err)
+	assert.True(t, strings.Contains(err.Error(), "not found"))
+}
+
 func TestNewPruningStorer_GetDataFromClosedPersister(t *testing.T) {
 	t.Parallel()
 
