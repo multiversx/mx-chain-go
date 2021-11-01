@@ -4595,10 +4595,14 @@ func TestShardProcessor_CheckEpochCorrectnessShouldRemoveAndRequestStartOfEpochM
 			}
 		},
 	}
+
+	ch := make(chan struct{})
+
 	requestHandlerStub := &testscommon.RequestHandlerStub{
 		RequestMetaHeaderCalled: func(headerHash []byte) {
 			if bytes.Equal(headerHash, epochStartMetaHash) {
 				requestMetaHeaderWasCalled = true
+				close(ch)
 			}
 		},
 	}
@@ -4613,7 +4617,11 @@ func TestShardProcessor_CheckEpochCorrectnessShouldRemoveAndRequestStartOfEpochM
 
 	err := sp.CheckEpochCorrectness(nextHeader)
 
-	time.Sleep(100 * time.Millisecond)
+	select {
+	case <-ch:
+	case <-time.After(time.Minute):
+		assert.Fail(t, "timeout while waiting the sending of the request for the meta header")
+	}
 
 	assert.True(t, removeHeaderByHashWasCalled)
 	assert.True(t, requestMetaHeaderWasCalled)
