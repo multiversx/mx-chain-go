@@ -524,14 +524,12 @@ func processConfigFullArchiveMode(log logger.Logger, configs *config.Configs) er
 	configs.GeneralConfig.StoragePruning.ValidatorCleanOldEpochsData = false
 	configs.GeneralConfig.StoragePruning.ObserverCleanOldEpochsData = false
 	configs.GeneralConfig.StoragePruning.Enabled = true
-	configs.GeneralConfig.StoragePruning.NumEpochsToKeep = math.MaxUint64
 
 	log.Warn("the node is in full archive mode! Will auto-set some config values",
 		"GeneralSettings.StartInEpochEnabled", generalConfigs.GeneralSettings.StartInEpochEnabled,
 		"StoragePruning.ValidatorCleanOldEpochsData", generalConfigs.StoragePruning.ValidatorCleanOldEpochsData,
 		"StoragePruning.ObserverCleanOldEpochsData", generalConfigs.StoragePruning.ObserverCleanOldEpochsData,
 		"StoragePruning.Enabled", generalConfigs.StoragePruning.Enabled,
-		"StoragePruning.NumEpochsToKeep", configs.GeneralConfig.StoragePruning.NumEpochsToKeep,
 	)
 
 	return nil
