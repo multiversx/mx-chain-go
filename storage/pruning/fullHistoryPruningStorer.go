@@ -215,9 +215,10 @@ func (fhps *FullHistoryPruningStorer) getPersisterData(epochString string, epoch
 		return pdata.(*persisterData), true
 	}
 
-	pdata, exists = fhps.persistersMapByEpoch[epoch]
+	var pDataObj *persisterData
+	pDataObj, exists = fhps.persistersMapByEpoch[epoch]
 	if exists {
-		return pdata.(*persisterData), true
+		return pDataObj, true
 	}
 
 	return nil, false

@@ -291,11 +291,6 @@ func NewStorageUnit(c storage.Cacher, p storage.Persister) (*Unit, error) {
 		bloomFilter: nil,
 	}
 
-	err := sUnit.persister.Init()
-	if err != nil {
-		return nil, err
-	}
-
 	return sUnit, nil
 }
 
@@ -316,11 +311,6 @@ func NewStorageUnitWithBloomFilter(c storage.Cacher, p storage.Persister, b stor
 		persister:   p,
 		cacher:      c,
 		bloomFilter: b,
-	}
-
-	err := sUnit.persister.Init()
-	if err != nil {
-		return nil, err
 	}
 
 	return sUnit, nil
