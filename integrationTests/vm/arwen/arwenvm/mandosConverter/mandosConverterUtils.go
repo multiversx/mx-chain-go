@@ -119,6 +119,18 @@ func CheckConverter(t *testing.T, mandosTestPath string) {
 	CheckTransactions(t, transactions, mandosTransactions)
 }
 
+func ProcessAllTransactions(testContext *vm.VMTestContext, transactions []*transaction.Transaction) (err error) {
+	for _, tx := range transactions {
+		returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
+		if err != nil {
+			return err
+		} else if returnCode != vmcommon.Ok {
+			return errReturnCodeNotOk
+		}
+	}
+	return nil
+}
+
 // RunSingleTransactionBenchmark receives the VMTestContext (which can be created with SetStateFromMandosTest), a tx and performs a benchmark on that specific tx. If processing transaction fails, it will return error, else will return nil
 func RunSingleTransactionBenchmark(b *testing.B, testContext *vm.VMTestContext, tx *transaction.Transaction) (err error) {
 	var returnCode vmcommon.ReturnCode
