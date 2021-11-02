@@ -25,13 +25,14 @@
             "tx": {
                 "from": "address:owner",
                 "to": "address:adder",
+                "nonce": "1",
                 "value": "0",
                 "function": "add",
                 "arguments": [
                     "3"
                 ],
                 "gasLimit": "5,000,000",
-                "gasPrice": "0"
+                "gasPrice": "1"
             },
             "expect": {
                 "out": [],

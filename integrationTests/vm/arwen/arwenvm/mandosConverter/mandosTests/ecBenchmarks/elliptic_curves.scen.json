@@ -23,7 +23,7 @@
       },
       {
           "step": "scCall",
-          "txId": "1",
+          "txId": "benchmark",
           "tx": {
               "from": "address:owner",
               "to": "sc:elliptic_curves_contract",
@@ -32,7 +32,7 @@
               "function": "p224AddEcTest",
               "arguments": ["i64:10000"],
               "gasLimit": "1,499,999,999",
-              "gasPrice": "1"
+              "gasPrice": "0"
           },
           "expect": {
               "out": [],
