@@ -12,17 +12,6 @@ type SlashingProofHandler interface {
 	GetType() SlashingType
 }
 
-// MultipleSigningProofHandler contains proof data for a multiple header signing slashing event
-type MultipleSigningProofHandler interface {
-	SlashingProofHandler
-	// GetPubKeys - returns all validator's public keys which have signed multiple headers
-	GetPubKeys() [][]byte
-	// GetLevel - returns the slashing level for a given validator
-	GetLevel(pubKey []byte) ThreatLevel
-	// GetHeaders - returns the slashable signed headers proposed by a given validator
-	GetHeaders(pubKey []byte) HeaderInfoList
-}
-
 // SlashingDetector - checks for slashable events and generates proofs to be used for slash
 type SlashingDetector interface {
 	// VerifyData - checks if an intercepted data represents a slashable event and returns a proof if so,

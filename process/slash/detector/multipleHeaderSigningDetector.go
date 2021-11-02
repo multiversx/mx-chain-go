@@ -6,6 +6,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -66,7 +68,7 @@ func NewMultipleHeaderSigningDetector(
 }
 
 // VerifyData - checks if an intercepted data represents a slashable event
-func (mhs *multipleHeaderSigningDetector) VerifyData(interceptedData process.InterceptedData) (slash.SlashingProofHandler, error) {
+func (mhs *multipleHeaderSigningDetector) VerifyData(interceptedData process.InterceptedData) (coreSlash.SlashingProofHandler, error) {
 	interceptedHeader, castOk := interceptedData.(*interceptedBlocks.InterceptedHeader)
 	if !castOk {
 		return nil, process.ErrCannotCastInterceptedDataToHeader
@@ -83,19 +85,23 @@ func (mhs *multipleHeaderSigningDetector) VerifyData(interceptedData process.Int
 		return nil, err
 	}
 
-	err = mhs.headersCache.Add(round, &slash.HeaderInfo{Header: header, Hash: headerHash})
+	headerInfo, err := block.NewHeaderInfo(header, headerHash)
+	if err != nil {
+		return nil, err
+	}
+	err = mhs.headersCache.Add(round, headerInfo)
 	if err != nil {
 		return nil, err
 	}
 
-	err = mhs.cacheSigners(interceptedHeader)
+	err = mhs.cacheSigners(headerInfo)
 	if err != nil {
 		return nil, err
 	}
 
 	slashingResult := mhs.getSlashingResult(round)
 	if len(slashingResult) != 0 {
-		return slash.NewMultipleSigningProof(slashingResult)
+		return coreSlash.NewMultipleSigningProof(slashingResult)
 	}
 
 	return nil, process.ErrNoSlashingEventDetected
@@ -121,8 +127,8 @@ func (mhs *multipleHeaderSigningDetector) computeHashWithoutSignatures(header da
 	return core.CalculateHash(mhs.marshaller, mhs.hasher, headerCopy)
 }
 
-func (mhs *multipleHeaderSigningDetector) cacheSigners(interceptedHeader *interceptedBlocks.InterceptedHeader) error {
-	header := interceptedHeader.HeaderHandler()
+func (mhs *multipleHeaderSigningDetector) cacheSigners(headerInfo data.HeaderInfoHandler) error {
+	header := headerInfo.GetHeaderHandler()
 	group, err := mhs.nodesCoordinator.ComputeConsensusGroup(
 		header.GetPrevRandSeed(),
 		header.GetRound(),
@@ -135,10 +141,7 @@ func (mhs *multipleHeaderSigningDetector) cacheSigners(interceptedHeader *interc
 	bitmap := header.GetPubKeysBitmap()
 	for idx, validator := range group {
 		if slash.IsIndexSetInBitmap(uint32(idx), bitmap) {
-			err = mhs.slashingCache.Add(
-				header.GetRound(),
-				validator.PubKey(),
-				&slash.HeaderInfo{Header: header, Hash: interceptedHeader.Hash()})
+			err = mhs.slashingCache.Add(header.GetRound(), validator.PubKey(), headerInfo)
 			if err != nil {
 				return err
 			}
@@ -148,13 +151,13 @@ func (mhs *multipleHeaderSigningDetector) cacheSigners(interceptedHeader *interc
 	return nil
 }
 
-func (mhs *multipleHeaderSigningDetector) getSlashingResult(round uint64) map[string]slash.SlashingResult {
-	slashingData := make(map[string]slash.SlashingResult)
+func (mhs *multipleHeaderSigningDetector) getSlashingResult(round uint64) map[string]coreSlash.SlashingResult {
+	slashingData := make(map[string]coreSlash.SlashingResult)
 
 	for _, validator := range mhs.slashingCache.GetPubKeys(round) {
 		signedHeaders := mhs.slashingCache.GetHeaders(round, validator)
 		if len(signedHeaders) > 1 {
-			slashingData[string(validator)] = slash.SlashingResult{
+			slashingData[string(validator)] = coreSlash.SlashingResult{
 				SlashingLevel: mhs.computeSlashLevel(signedHeaders),
 				Headers:       signedHeaders,
 			}
@@ -165,17 +168,17 @@ func (mhs *multipleHeaderSigningDetector) getSlashingResult(round uint64) map[st
 }
 
 // TODO: Add different logic here once slashing threat levels are clearly defined
-func (mhs *multipleHeaderSigningDetector) computeSlashLevel(headers slash.HeaderInfoList) slash.ThreatLevel {
+func (mhs *multipleHeaderSigningDetector) computeSlashLevel(headers slash.HeaderInfoList) coreSlash.ThreatLevel {
 	return computeSlashLevelBasedOnHeadersCount(headers)
 }
 
 // ValidateProof - validates the given proof
-func (mhs *multipleHeaderSigningDetector) ValidateProof(proof slash.SlashingProofHandler) error {
-	multipleSigningProof, castOk := proof.(slash.MultipleSigningProofHandler)
+func (mhs *multipleHeaderSigningDetector) ValidateProof(proof coreSlash.SlashingProofHandler) error {
+	multipleSigningProof, castOk := proof.(coreSlash.MultipleSigningProofHandler)
 	if !castOk {
 		return process.ErrCannotCastProofToMultipleSignedHeaders
 	}
-	if multipleSigningProof.GetType() != slash.MultipleSigning {
+	if multipleSigningProof.GetType() != coreSlash.MultipleSigning {
 		return process.ErrInvalidSlashType
 	}
 
@@ -196,7 +199,7 @@ func (mhs *multipleHeaderSigningDetector) ValidateProof(proof slash.SlashingProo
 }
 
 // TODO: Add different logic here once slashing threat levels are clearly defined
-func (mhs *multipleHeaderSigningDetector) checkSlashLevel(headers slash.HeaderInfoList, level slash.ThreatLevel) error {
+func (mhs *multipleHeaderSigningDetector) checkSlashLevel(headers slash.HeaderInfoList, level coreSlash.ThreatLevel) error {
 	return checkSlashLevelBasedOnHeadersCount(headers, level)
 }
 
@@ -206,18 +209,18 @@ func (mhs *multipleHeaderSigningDetector) checkSignedHeaders(pubKey []byte, head
 	}
 
 	hashes := make(map[string]struct{})
-	round := headers[0].Header.GetRound()
+	round := headers[0].GetHeaderHandler().GetRound()
 	for _, headerInfo := range headers {
-		if headerInfo.Header.GetRound() != round {
+		if headerInfo.GetHeaderHandler().GetRound() != round {
 			return process.ErrHeadersNotSameRound
 		}
 
-		hash, err := mhs.checkHash(headerInfo.Header, hashes)
+		hash, err := mhs.checkHash(headerInfo.GetHeaderHandler(), hashes)
 		if err != nil {
 			return err
 		}
 
-		if !mhs.signedHeader(pubKey, headerInfo.Header) {
+		if !mhs.signedHeader(pubKey, headerInfo.GetHeaderHandler()) {
 			return process.ErrHeaderNotSignedByValidator
 		}
 		hashes[hash] = struct{}{}
