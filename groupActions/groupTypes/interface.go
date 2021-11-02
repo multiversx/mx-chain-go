@@ -6,7 +6,9 @@ import "github.com/ElrondNetwork/elrond-go/epochStart"
 type TriggerStage int32
 
 const (
+	// Prepare is used when the event is seen, but not confirmed
 	Prepare TriggerStage = 0
+	// Action is used when the event is confirmed
 	Action  TriggerStage = 1
 )
 

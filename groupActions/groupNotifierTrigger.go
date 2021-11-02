@@ -33,22 +33,17 @@ func newGroupNotifierTrigger(triggerID string, notifyOrder uint32, subscriber Su
 	}, nil
 }
 
-// Prepare -
+// Prepare is called when the event is seen
 func (nt *groupNotifierTrigger) Prepare(hdr data.HeaderHandler, _ data.BodyHandler) {
 	nt.subscriber.ReceiveNotification(nt.triggerID, hdr, groupTypes.Prepare)
 }
 
-// Action -
+// Action is called when the event is confirmed
 func (nt *groupNotifierTrigger) Action(hdr data.HeaderHandler) {
 	nt.subscriber.ReceiveNotification(nt.triggerID, hdr, groupTypes.Action)
 }
 
-// NotifyOrder -
+// NotifyOrder gives the notification order for subscribers on the same trigger
 func (nt *groupNotifierTrigger) NotifyOrder() uint32 {
 	return nt.notifyOrder
-}
-
-// IsInterfaceNil returns true if the receiver is nil and true otherwise
-func (nt *groupNotifierTrigger) IsInterfaceNil() bool {
-	return nt == nil
 }

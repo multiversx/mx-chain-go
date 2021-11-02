@@ -10,6 +10,7 @@ import (
 )
 
 const (
+	// TODO: move to elrond-go-core
 	notifierOrderStart = 100
 )
 
@@ -52,7 +53,7 @@ func (gn *groupNotifier) Register(group groupTypes.GroupActionHandler, trigger g
 		return err
 	}
 
-	groupsForTrigger, _ := gn.groupsPerEvent[trigger.GetName()]
+	groupsForTrigger := gn.groupsPerEvent[trigger.GetName()]
 	groupID := group.ID()
 	_, exists := groupsForTrigger[groupID]
 	if exists {
@@ -107,7 +108,7 @@ func (gn *groupNotifier) ReceiveNotification(triggerID string, header data.Heade
 	}
 }
 
-// IsInterfaceNil returns true if the receiver is nil, false otherise
+// IsInterfaceNil returns true if the receiver is nil, false otherwise
 func (gn *groupNotifier) IsInterfaceNil() bool {
 	return gn == nil
 }
