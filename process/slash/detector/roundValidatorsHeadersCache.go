@@ -5,6 +5,7 @@ import (
 	"math"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/slash"
 )
@@ -31,12 +32,12 @@ func NewRoundValidatorHeaderCache(maxRounds uint64) *roundValidatorsHeadersCache
 
 // Add adds in cache an intercepted data for a public key, in a given round.
 // It has an eviction mechanism which always removes the oldest round entry when cache is full
-func (rdc *roundValidatorsHeadersCache) Add(round uint64, pubKey []byte, headerInfo *slash.HeaderInfo) error {
+func (rdc *roundValidatorsHeadersCache) Add(round uint64, pubKey []byte, headerInfo data.HeaderInfoHandler) error {
 	pubKeyStr := string(pubKey)
 	rdc.cacheMutex.Lock()
 	defer rdc.cacheMutex.Unlock()
 
-	if rdc.contains(round, pubKey, headerInfo.Hash) {
+	if rdc.contains(round, pubKey, headerInfo.GetHash()) {
 		return process.ErrHeadersNotDifferentHashes
 	}
 
@@ -74,7 +75,7 @@ func (rdc *roundValidatorsHeadersCache) contains(round uint64, pubKey []byte, ha
 	}
 
 	for _, currData := range dataList {
-		if bytes.Equal(currData.Hash, hash) {
+		if bytes.Equal(currData.GetHash(), hash) {
 			return true
 		}
 	}
@@ -100,17 +101,17 @@ func (rdc *roundValidatorsHeadersCache) updateOldestRound() {
 }
 
 // GetHeaders returns all cached data for a public key, in a given round
-func (rdc *roundValidatorsHeadersCache) GetHeaders(round uint64, pubKey []byte) slash.HeaderInfoList {
+func (rdc *roundValidatorsHeadersCache) GetHeaders(round uint64, pubKey []byte) []data.HeaderInfoHandler {
 	pubKeyStr := string(pubKey)
 	rdc.cacheMutex.RLock()
 	defer rdc.cacheMutex.RUnlock()
 
-	data, exists := rdc.cache[round]
+	headerInfo, exists := rdc.cache[round]
 	if !exists {
 		return nil
 	}
 
-	return data[pubKeyStr]
+	return headerInfo[pubKeyStr]
 }
 
 // GetPubKeys returns all cached public keys in a given round

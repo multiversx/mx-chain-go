@@ -1,34 +1,35 @@
 package slashMocks
 
 import (
-	"github.com/ElrondNetwork/elrond-go/process/slash"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
 )
 
 // MultipleHeaderProposalProofStub -
 type MultipleHeaderProposalProofStub struct {
-	GetTypeCalled    func() slash.SlashingType
-	GetLevelCalled   func() slash.ThreatLevel
-	GetHeadersCalled func() slash.HeaderInfoList
+	GetTypeCalled    func() coreSlash.SlashingType
+	GetLevelCalled   func() coreSlash.ThreatLevel
+	GetHeadersCalled func() []data.HeaderInfoHandler
 }
 
 // GetType -
-func (mps *MultipleHeaderProposalProofStub) GetType() slash.SlashingType {
+func (mps *MultipleHeaderProposalProofStub) GetType() coreSlash.SlashingType {
 	if mps.GetTypeCalled != nil {
 		return mps.GetTypeCalled()
 	}
-	return slash.MultipleProposal
+	return coreSlash.MultipleProposal
 }
 
 // GetLevel -
-func (mps *MultipleHeaderProposalProofStub) GetLevel() slash.ThreatLevel {
+func (mps *MultipleHeaderProposalProofStub) GetLevel() coreSlash.ThreatLevel {
 	if mps.GetLevelCalled != nil {
 		return mps.GetLevelCalled()
 	}
-	return slash.Low
+	return coreSlash.Low
 }
 
 // GetHeaders -
-func (mps *MultipleHeaderProposalProofStub) GetHeaders() slash.HeaderInfoList {
+func (mps *MultipleHeaderProposalProofStub) GetHeaders() []data.HeaderInfoHandler {
 	if mps.GetHeadersCalled != nil {
 		return mps.GetHeadersCalled()
 	}

@@ -1,5 +1,6 @@
 package slash
 
+/*
 import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
@@ -56,3 +57,5 @@ func getHeadersFromInterceptedHeaders(headerInfoList HeaderInfoList) (coreSlash.
 	err := ret.SetHeaders(headers)
 	return ret, err
 }
+
+*/

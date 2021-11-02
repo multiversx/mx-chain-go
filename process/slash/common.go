@@ -1,5 +1,10 @@
 package slash
 
+import "github.com/ElrondNetwork/elrond-go-core/data"
+
+// HeaderInfoList defines a list of data.HeaderInfoHandler
+type HeaderInfoList []data.HeaderInfoHandler
+
 // IsIndexSetInBitmap - checks if a bit is set(1) in the given bitmap
 // TODO: Move this utility function in ELROND-GO-CORE
 func IsIndexSetInBitmap(index uint32, bitmap []byte) bool {

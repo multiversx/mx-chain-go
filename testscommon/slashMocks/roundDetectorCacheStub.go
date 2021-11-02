@@ -1,19 +1,19 @@
 package slashMocks
 
 import (
-	"github.com/ElrondNetwork/elrond-go/process/slash"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 )
 
 // RoundDetectorCacheStub -
 type RoundDetectorCacheStub struct {
-	AddCalled            func(round uint64, pubKey []byte, header *slash.HeaderInfo) error
-	GetDataCalled        func(round uint64, pubKey []byte) slash.HeaderInfoList
+	AddCalled            func(round uint64, pubKey []byte, headerInfo data.HeaderInfoHandler) error
+	GetDataCalled        func(round uint64, pubKey []byte) []data.HeaderInfoHandler
 	GetPubKeysCalled     func(round uint64) [][]byte
 	IsInterfaceNilCalled func() bool
 }
 
 // Add -
-func (rdc *RoundDetectorCacheStub) Add(round uint64, pubKey []byte, headerInfo *slash.HeaderInfo) error {
+func (rdc *RoundDetectorCacheStub) Add(round uint64, pubKey []byte, headerInfo data.HeaderInfoHandler) error {
 	if rdc.AddCalled != nil {
 		return rdc.AddCalled(round, pubKey, headerInfo)
 	}
@@ -21,7 +21,7 @@ func (rdc *RoundDetectorCacheStub) Add(round uint64, pubKey []byte, headerInfo *
 }
 
 // GetHeaders -
-func (rdc *RoundDetectorCacheStub) GetHeaders(round uint64, pubKey []byte) slash.HeaderInfoList {
+func (rdc *RoundDetectorCacheStub) GetHeaders(round uint64, pubKey []byte) []data.HeaderInfoHandler {
 	if rdc.GetDataCalled != nil {
 		return rdc.GetDataCalled(round, pubKey)
 	}
