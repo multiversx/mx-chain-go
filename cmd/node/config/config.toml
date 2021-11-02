@@ -489,7 +489,7 @@
         Type = "LRU"
     [Antiflood.Topic]
         DefaultMaxMessagesPerSec = 15000
-        MaxMessages = [{ Topic = "heartbeat", NumMessagesPerSec = 60 },
+        MaxMessages = [{ Topic = "heartbeat", NumMessagesPerSec = 70 },
                        { Topic = "shardBlocks*", NumMessagesPerSec = 30 },
                        { Topic = "metachainBlocks", NumMessagesPerSec = 30 }]
     [Antiflood.WebServer]
@@ -627,6 +627,7 @@
         ArwenVersions = [
             { StartEpoch = 0, Version = "v1.2" },
             { StartEpoch = 326, Version = "v1.3" },
+            { StartEpoch = 432, Version = "v1.4" },
         ]
 
     [VirtualMachine.Querying]
@@ -634,6 +635,7 @@
         ArwenVersions = [
             { StartEpoch = 0, Version = "v1.2" },
             { StartEpoch = 326, Version = "v1.3" },
+            { StartEpoch = 432, Version = "v1.4" },
         ]
 
 [Hardfork]
