@@ -1,6 +1,7 @@
 package detector
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/process/slash"
 )
 
@@ -11,9 +12,9 @@ type RoundDetectorCache interface {
 	// irrelevant(obsolete) to be cached, an error should be returned.
 	// If the cache is full, it should have an eviction mechanism to always remove
 	// the oldest round entry
-	Add(round uint64, pubKey []byte, header *slash.HeaderInfo) error
+	Add(round uint64, pubKey []byte, header data.HeaderInfoHandler) error
 	// GetHeaders returns all cached headers for a public key, in a given round
-	GetHeaders(round uint64, pubKey []byte) slash.HeaderInfoList
+	GetHeaders(round uint64, pubKey []byte) []data.HeaderInfoHandler
 	// GetPubKeys returns all cached public keys in a given round
 	GetPubKeys(round uint64) [][]byte
 	// IsInterfaceNil checks if the interface is nil

@@ -5,6 +5,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/process/slash"
@@ -48,7 +50,7 @@ func NewMultipleHeaderProposalsDetector(
 // If another header with the same round and proposer exists, but a different hash, then a proof of type
 // slash.MultipleProposal is provided, otherwise a nil proof, along with an error is provided indicating that
 // no slashing event has been detected or an error occurred verifying the data.
-func (mhp *multipleHeaderProposalsDetector) VerifyData(data process.InterceptedData) (slash.SlashingProofHandler, error) {
+func (mhp *multipleHeaderProposalsDetector) VerifyData(data process.InterceptedData) (coreSlash.SlashingProofHandler, error) {
 	interceptedHeader, castOk := data.(*interceptedBlocks.InterceptedHeader)
 	if !castOk {
 		return nil, process.ErrCannotCastInterceptedDataToHeader
@@ -69,7 +71,11 @@ func (mhp *multipleHeaderProposalsDetector) VerifyData(data process.InterceptedD
 		return nil, err
 	}
 
-	err = mhp.cache.Add(round, proposer, &slash.HeaderInfo{Header: header, Hash: interceptedHeader.Hash()})
+	headerInfo, err := block.NewHeaderInfo(header, interceptedHeader.Hash())
+	if err != nil {
+		return nil, err
+	}
+	err = mhp.cache.Add(round, proposer, headerInfo)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +83,7 @@ func (mhp *multipleHeaderProposalsDetector) VerifyData(data process.InterceptedD
 	slashingResult := mhp.getSlashingResult(round, proposer)
 
 	if slashingResult != nil {
-		return slash.NewMultipleProposalProof(slashingResult)
+		return coreSlash.NewMultipleProposalProof(slashingResult)
 	}
 	return nil, process.ErrNoSlashingEventDetected
 }
@@ -99,10 +105,10 @@ func (mhp *multipleHeaderProposalsDetector) getProposerPubKey(header data.Header
 	return validators[0].PubKey(), nil
 }
 
-func (mhp *multipleHeaderProposalsDetector) getSlashingResult(currRound uint64, proposerPubKey []byte) *slash.SlashingResult {
+func (mhp *multipleHeaderProposalsDetector) getSlashingResult(currRound uint64, proposerPubKey []byte) *coreSlash.SlashingResult {
 	proposedHeaders := mhp.cache.GetHeaders(currRound, proposerPubKey)
 	if len(proposedHeaders) >= 2 {
-		return &slash.SlashingResult{
+		return &coreSlash.SlashingResult{
 			SlashingLevel: mhp.computeSlashLevel(proposedHeaders),
 			Headers:       proposedHeaders,
 		}
@@ -112,7 +118,7 @@ func (mhp *multipleHeaderProposalsDetector) getSlashingResult(currRound uint64, 
 }
 
 // TODO: Add different logic here once slashing threat levels are clearly defined
-func (mhp *multipleHeaderProposalsDetector) computeSlashLevel(headers slash.HeaderInfoList) slash.ThreatLevel {
+func (mhp *multipleHeaderProposalsDetector) computeSlashLevel(headers []data.HeaderInfoHandler) coreSlash.ThreatLevel {
 	return computeSlashLevelBasedOnHeadersCount(headers)
 }
 
@@ -120,12 +126,12 @@ func (mhp *multipleHeaderProposalsDetector) computeSlashLevel(headers slash.Head
 // For a proof of type slash.MultipleProposal to be valid, it should:
 //  - Be of either level slash.Medium (with 2 proposed headers) OR slash.High (with >2 proposed headers)
 //  - Have all proposed headers with the same round and proposer, but different hashes
-func (mhp *multipleHeaderProposalsDetector) ValidateProof(proof slash.SlashingProofHandler) error {
-	multipleProposalProof, castOk := proof.(slash.MultipleProposalProofHandler)
+func (mhp *multipleHeaderProposalsDetector) ValidateProof(proof coreSlash.SlashingProofHandler) error {
+	multipleProposalProof, castOk := proof.(coreSlash.MultipleProposalProofHandler)
 	if !castOk {
 		return process.ErrCannotCastProofToMultipleProposedHeaders
 	}
-	if proof.GetType() != slash.MultipleProposal {
+	if proof.GetType() != coreSlash.MultipleProposal {
 		return process.ErrInvalidSlashType
 	}
 
@@ -138,24 +144,24 @@ func (mhp *multipleHeaderProposalsDetector) ValidateProof(proof slash.SlashingPr
 }
 
 // TODO: Add different logic here once slashing threat levels are clearly defined
-func (mhp *multipleHeaderProposalsDetector) checkSlashLevel(headers slash.HeaderInfoList, level slash.ThreatLevel) error {
+func (mhp *multipleHeaderProposalsDetector) checkSlashLevel(headers []data.HeaderInfoHandler, level coreSlash.ThreatLevel) error {
 	return checkSlashLevelBasedOnHeadersCount(headers, level)
 }
 
-func (mhp *multipleHeaderProposalsDetector) checkProposedHeaders(headers slash.HeaderInfoList) error {
+func (mhp *multipleHeaderProposalsDetector) checkProposedHeaders(headers []data.HeaderInfoHandler) error {
 	if len(headers) < minSlashableNoOfHeaders {
 		return process.ErrNotEnoughHeadersProvided
 	}
 
 	hashes := make(map[string]struct{})
-	round := headers[0].Header.GetRound()
-	proposer, err := mhp.getProposerPubKey(headers[0].Header)
+	round := headers[0].GetHeaderHandler().GetRound()
+	proposer, err := mhp.getProposerPubKey(headers[0].GetHeaderHandler())
 	if err != nil {
 		return err
 	}
 
 	for _, header := range headers {
-		hash := string(header.Hash)
+		hash := string(header.GetHash())
 		if _, exists := hashes[hash]; exists {
 			return process.ErrHeadersNotDifferentHashes
 		}
@@ -172,15 +178,15 @@ func (mhp *multipleHeaderProposalsDetector) checkProposedHeaders(headers slash.H
 }
 
 func (mhp *multipleHeaderProposalsDetector) checkHeaderHasSameProposerAndRound(
-	headerInfo *slash.HeaderInfo,
+	headerInfo data.HeaderInfoHandler,
 	round uint64,
 	proposer []byte,
 ) error {
-	if headerInfo.Header.GetRound() != round {
+	if headerInfo.GetHeaderHandler().GetRound() != round {
 		return process.ErrHeadersNotSameRound
 	}
 
-	currProposer, err := mhp.getProposerPubKey(headerInfo.Header)
+	currProposer, err := mhp.getProposerPubKey(headerInfo.GetHeaderHandler())
 	if err != nil {
 		return err
 	}

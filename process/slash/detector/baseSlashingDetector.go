@@ -1,8 +1,9 @@
 package detector
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/slash"
 )
 
 // minSlashableNoOfHeaders represents the min number of headers required for a
@@ -29,29 +30,29 @@ func absDiff(x, y uint64) uint64 {
 	return x - y
 }
 
-func computeSlashLevelBasedOnHeadersCount(headers slash.HeaderInfoList) slash.ThreatLevel {
-	ret := slash.Low
+func computeSlashLevelBasedOnHeadersCount(headers []data.HeaderInfoHandler) coreSlash.ThreatLevel {
+	ret := coreSlash.Low
 
 	if len(headers) == minSlashableNoOfHeaders {
-		ret = slash.Medium
+		ret = coreSlash.Medium
 	} else if len(headers) >= minSlashableNoOfHeaders+1 {
-		ret = slash.High
+		ret = coreSlash.High
 	}
 
 	return ret
 }
 
-func checkSlashLevelBasedOnHeadersCount(headers slash.HeaderInfoList, level slash.ThreatLevel) error {
-	if level < slash.Medium || level > slash.High {
+func checkSlashLevelBasedOnHeadersCount(headers []data.HeaderInfoHandler, level coreSlash.ThreatLevel) error {
+	if level < coreSlash.Medium || level > coreSlash.High {
 		return process.ErrInvalidSlashLevel
 	}
 	if len(headers) < minSlashableNoOfHeaders {
 		return process.ErrNotEnoughHeadersProvided
 	}
-	if len(headers) == minSlashableNoOfHeaders && level != slash.Medium {
+	if len(headers) == minSlashableNoOfHeaders && level != coreSlash.Medium {
 		return process.ErrSlashLevelDoesNotMatchSlashType
 	}
-	if len(headers) > minSlashableNoOfHeaders && level != slash.High {
+	if len(headers) > minSlashableNoOfHeaders && level != coreSlash.High {
 		return process.ErrSlashLevelDoesNotMatchSlashType
 	}
 

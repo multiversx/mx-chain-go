@@ -2,6 +2,7 @@ package slash
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -9,16 +10,6 @@ import (
 type SlashingProofHandler interface {
 	//GetType - contains the type of slashing detection
 	GetType() SlashingType
-}
-
-// MultipleProposalProofHandler contains proof data for a multiple header proposal slashing event
-type MultipleProposalProofHandler interface {
-	SlashingProofHandler
-	// GetLevel - contains the slashing level for the current slashing type
-	// multiple colluding parties should have a higher level
-	GetLevel() ThreatLevel
-	//GetHeaders - returns the slashable proposed Data
-	GetHeaders() HeaderInfoList
 }
 
 // MultipleSigningProofHandler contains proof data for a multiple header signing slashing event
@@ -36,9 +27,9 @@ type MultipleSigningProofHandler interface {
 type SlashingDetector interface {
 	// VerifyData - checks if an intercepted data represents a slashable event and returns a proof if so,
 	// otherwise returns nil and error
-	VerifyData(data process.InterceptedData) (SlashingProofHandler, error)
+	VerifyData(data process.InterceptedData) (coreSlash.SlashingProofHandler, error)
 	// ValidateProof - checks if a given proof is valid
-	ValidateProof(proof SlashingProofHandler) error
+	ValidateProof(proof coreSlash.SlashingProofHandler) error
 }
 
 // SlashingNotifier - creates a transaction from the generated proof of the slash detector and sends it to the network
