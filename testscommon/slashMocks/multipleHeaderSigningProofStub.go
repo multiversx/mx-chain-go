@@ -1,23 +1,24 @@
 package slashMocks
 
 import (
-	"github.com/ElrondNetwork/elrond-go/process/slash"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
 )
 
 // MultipleHeaderSigningProofStub -
 type MultipleHeaderSigningProofStub struct {
-	GetTypeCalled    func() slash.SlashingType
+	GetTypeCalled    func() coreSlash.SlashingType
 	GetPubKeysCalled func() [][]byte
-	GetHeadersCalled func(pubKey []byte) slash.HeaderInfoList
-	GetLevelCalled   func(pubKey []byte) slash.ThreatLevel
+	GetHeadersCalled func(pubKey []byte) []data.HeaderInfoHandler
+	GetLevelCalled   func(pubKey []byte) coreSlash.ThreatLevel
 }
 
 // GetType -
-func (mps *MultipleHeaderSigningProofStub) GetType() slash.SlashingType {
+func (mps *MultipleHeaderSigningProofStub) GetType() coreSlash.SlashingType {
 	if mps.GetTypeCalled != nil {
 		return mps.GetTypeCalled()
 	}
-	return slash.MultipleSigning
+	return coreSlash.MultipleSigning
 }
 
 // GetPubKeys -
@@ -29,15 +30,15 @@ func (mps *MultipleHeaderSigningProofStub) GetPubKeys() [][]byte {
 }
 
 // GetLevel -
-func (mps *MultipleHeaderSigningProofStub) GetLevel(pubKey []byte) slash.ThreatLevel {
+func (mps *MultipleHeaderSigningProofStub) GetLevel(pubKey []byte) coreSlash.ThreatLevel {
 	if mps.GetLevelCalled != nil {
 		return mps.GetLevelCalled(pubKey)
 	}
-	return slash.Low
+	return coreSlash.Low
 }
 
 // GetHeaders -
-func (mps *MultipleHeaderSigningProofStub) GetHeaders(pubKey []byte) slash.HeaderInfoList {
+func (mps *MultipleHeaderSigningProofStub) GetHeaders(pubKey []byte) []data.HeaderInfoHandler {
 	if mps.GetHeadersCalled != nil {
 		return mps.GetHeadersCalled(pubKey)
 	}
