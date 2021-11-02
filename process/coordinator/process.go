@@ -175,6 +175,17 @@ func (tc *transactionCoordinator) separateBodyByType(body *block.Body, withMixed
 			if err != nil {
 				return nil, err
 			}
+			log.Debug("DEBUGGING: transactionCoordinator.separateBodyByType", "mb type", miniBlock.Type,
+				"sender", miniBlock.SenderShardID,
+				"receiver", miniBlock.ReceiverShardID,
+				"num txs in mb", len(miniBlock.TxHashes))
+
+			for _, mb := range splitAndCompactedMiniBlocks {
+				log.Debug("DEBUGGING: separateBodyByType.splitAndCompactMiniBlockBasedOnTxsType", "mb type", mb.Type,
+					"sender", mb.SenderShardID,
+					"receiver", mb.ReceiverShardID,
+					"num txs in mb", len(mb.TxHashes))
+			}
 		} else {
 			splitAndCompactedMiniBlocks = block.MiniBlockSlice{miniBlock}
 		}
@@ -546,7 +557,8 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 	}
 
 	for _, miniBlock := range body.MiniBlocks {
-		log.Trace("ProcessBlockTransaction: miniblock",
+		//TODO: This should be move on log.Trace
+		log.Debug("DEBUGGING: ProcessBlockTransaction: miniblock",
 			"sender shard", miniBlock.SenderShardID,
 			"receiver shard", miniBlock.ReceiverShardID,
 			"type", miniBlock.Type,
@@ -602,7 +614,7 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 		}
 	}
 
-	separatedBodies, err := tc.separateBodyByType(body, true)
+	separatedBodies, err := tc.separateBodyByType(body, false)
 	if err != nil {
 		return err
 	}
@@ -696,6 +708,18 @@ func (tc *transactionCoordinator) processMiniBlock(
 	miniBlocks, err = tc.splitMiniBlockBasedOnTxsType(miniBlock)
 	if err != nil {
 		return err
+	}
+
+	log.Debug("DEBUGGING: transactionCoordinator.processMiniBlock", "mb type", miniBlock.Type,
+		"sender", miniBlock.SenderShardID,
+		"receiver", miniBlock.ReceiverShardID,
+		"num txs in mb", len(miniBlock.TxHashes))
+
+	for _, mb := range miniBlocks {
+		log.Debug("DEBUGGING: processMiniBlock.splitMiniBlockBasedOnTxsType", "mb type", mb.Type,
+			"sender", mb.SenderShardID,
+			"receiver", mb.ReceiverShardID,
+			"num txs in mb", len(mb.TxHashes))
 	}
 
 	for _, mb := range miniBlocks {
@@ -804,17 +828,19 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			continue
 		}
 
-		//if scheduledMode && !miniBlock.IsScheduledMiniBlock() {
-		//	shouldSkipShard[miniBlockInfo.SenderShardID] = true
-		//	//TODO: Change this to log.Trace
-		//	log.Debug("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: mini block was not scheduled in sender shard",
-		//		"scheduled mode", scheduledMode,
-		//		"sender shard", miniBlockInfo.SenderShardID,
-		//		"hash", miniBlockInfo.Hash,
-		//		"round", miniBlockInfo.Round,
-		//	)
-		//	continue
-		//}
+		if !tc.flagMixedTxsInMiniBlocks.IsSet() {
+			if scheduledMode && !miniBlock.IsScheduledMiniBlock() {
+				shouldSkipShard[miniBlockInfo.SenderShardID] = true
+				//TODO: Change this to log.Trace
+				log.Debug("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: mini block was not scheduled in sender shard",
+					"scheduled mode", scheduledMode,
+					"sender shard", miniBlockInfo.SenderShardID,
+					"hash", miniBlockInfo.Hash,
+					"round", miniBlockInfo.Round,
+				)
+				continue
+			}
+		}
 
 		shouldSkip, err := tc.requestMissingTxsAndProcessMiniBlock(
 			miniBlock,
@@ -1100,6 +1126,13 @@ func (tc *transactionCoordinator) createPostProcessMiniBlocks() block.MiniBlockS
 			}
 			txHashes = append(txHashes, txHash)
 		}
+
+		//TODO: This should be move on log.Trace
+		log.Debug("DEBUGGING: transactionCoordinator.createPostProcessMiniBlocks", "mb type", miniBlocks[i].Type,
+			"sender", miniBlocks[i].SenderShardID,
+			"receiver", miniBlocks[i].ReceiverShardID,
+			"num txs in mb", len(miniBlocks[i].TxHashes),
+			"num txs added", len(txHashes))
 
 		if len(txHashes) == 0 {
 			continue

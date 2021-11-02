@@ -414,8 +414,8 @@ func (sp *shardProcessor) checkEpochCorrectness(
 		sp.epochStartTrigger.MetaEpoch() == currentBlockHeader.GetEpoch()
 	if incorrectStartOfEpochBlock {
 		if header.IsStartOfEpochBlock() {
-			sp.dataPool.Headers().RemoveHeaderByHash(header.EpochStartMetaHash)
-			go sp.requestHandler.RequestMetaHeader(header.EpochStartMetaHash)
+			sp.dataPool.Headers().RemoveHeaderByHash(header.GetEpochStartMetaHash())
+			go sp.requestHandler.RequestMetaHeader(header.GetEpochStartMetaHash())
 		}
 		return fmt.Errorf("%w proposed header with new epoch %d with trigger still in last epoch %d",
 			process.ErrEpochDoesNotMatch, header.GetEpoch(), sp.epochStartTrigger.MetaEpoch())
@@ -1950,6 +1950,11 @@ func (sp *shardProcessor) createPostProcessMiniBlocks() block.MiniBlockSlice {
 			//TODO: Check if here we should add the real tx handler or not
 			sp.postProcessorTxsHandler.AddPostProcessorTx(txHash, nil)
 		}
+		//TODO: This should be move on log.Trace
+		log.Debug("DEBUGGING: shardProcessor.createPostProcessMiniBlocks", "mb type", miniBlock.Type,
+			"sender", miniBlock.SenderShardID,
+			"receiver", miniBlock.ReceiverShardID,
+			"num txs in mb", len(miniBlock.TxHashes))
 	}
 
 	return miniBlocks

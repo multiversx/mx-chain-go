@@ -403,7 +403,17 @@ func (txs *transactions) computeScheduledTxsFromMe(body *block.Body) ([]*txcache
 
 func (txs *transactions) computeTxsFromMiniBlock(miniBlock *block.MiniBlock) ([]*txcache.WrappedTransaction, error) {
 	txsFromMiniBlock := make([]*txcache.WrappedTransaction, 0, len(miniBlock.TxHashes))
+
+	txsType, err := miniBlock.GetTxsTypeFromMiniBlock()
+	if err != nil {
+		return nil, err
+	}
+
 	for i := 0; i < len(miniBlock.TxHashes); i++ {
+		if txsType[i] != block.TxBlock && txsType[i] != block.InvalidBlock {
+			continue
+		}
+
 		txHash := miniBlock.TxHashes[i]
 		txs.txsForCurrBlock.mutTxsForBlock.RLock()
 		txInfoFromMap, ok := txs.txsForCurrBlock.txHashAndInfo[string(txHash)]

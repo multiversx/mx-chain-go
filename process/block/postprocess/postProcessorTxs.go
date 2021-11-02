@@ -38,6 +38,8 @@ func (ppt *postProcessorTxs) Init() {
 	ppt.mutMapPostProcessorTxs.Lock()
 	defer ppt.mutMapPostProcessorTxs.Unlock()
 
+	log.Debug("DEBUGGING: postProcessorTxs.Init", "num of last txs", len(ppt.mapPostProcessorTxs))
+
 	ppt.mapPostProcessorTxs = make(map[string]data.TransactionHandler)
 }
 
@@ -49,6 +51,9 @@ func (ppt *postProcessorTxs) AddPostProcessorTx(txHash []byte, txHandler data.Tr
 	if ppt.isPostProcessorTxAdded(txHash) {
 		return false
 	}
+
+	//TODO: This should be move on log.Trace
+	log.Debug("DEBUGGING: postProcessorTxs.AddPostProcessorTx", "txHash", txHash, "num of txs added", len(ppt.mapPostProcessorTxs))
 
 	ppt.mapPostProcessorTxs[string(txHash)] = txHandler
 	return true
@@ -88,6 +93,7 @@ func (ppt *postProcessorTxs) GetProcessedResults() map[block.Type]map[uint32][]*
 // InitProcessedResults initializes the processed results
 func (ppt *postProcessorTxs) InitProcessedResults() {
 	ppt.txCoordinator.InitProcessedResults()
+	log.Debug("DEBUGGING: postProcessorTxs.InitProcessedResults")
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
