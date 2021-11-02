@@ -156,7 +156,7 @@ func TestMultipleHeaderSigningDetector_VerifyData_InvalidNodesCoordinator_Expect
 		&slashMocks.RoundDetectorCacheStub{},
 		&slashMocks.HeadersCacheStub{})
 
-	hData := slashMocks.CreateInterceptedHeaderData(&block.Header{})
+	hData := slashMocks.CreateInterceptedHeaderData(&block.HeaderV2{Header: &block.Header{}})
 	res, err := ssd.VerifyData(hData)
 
 	require.Nil(t, res)
@@ -178,17 +178,17 @@ func TestMultipleHeaderSigningDetector_VerifyData_SameHeaderData_DifferentSigner
 			},
 		})
 
-	hData1 := slashMocks.CreateInterceptedHeaderData(&block.Header{Round: 2, TimeStamp: 5, Signature: []byte("signature")})
+	hData1 := slashMocks.CreateInterceptedHeaderData(&block.HeaderV2{Header: &block.Header{Round: 2, TimeStamp: 5, Signature: []byte("signature")}})
 	res, err := ssd.VerifyData(hData1)
 	require.Nil(t, res)
 	require.Equal(t, process.ErrHeadersNotDifferentHashes, err)
 
-	hData2 := slashMocks.CreateInterceptedHeaderData(&block.Header{Round: 2, TimeStamp: 5, LeaderSignature: []byte("leaderSignature")})
+	hData2 := slashMocks.CreateInterceptedHeaderData(&block.HeaderV2{Header: &block.Header{Round: 2, TimeStamp: 5, LeaderSignature: []byte("leaderSignature")}})
 	res, err = ssd.VerifyData(hData2)
 	require.Nil(t, res)
 	require.Equal(t, process.ErrHeadersNotDifferentHashes, err)
 
-	hData3 := slashMocks.CreateInterceptedHeaderData(&block.Header{Round: 2, TimeStamp: 5, PubKeysBitmap: []byte("bitmap")})
+	hData3 := slashMocks.CreateInterceptedHeaderData(&block.HeaderV2{Header: &block.Header{Round: 2, TimeStamp: 5, PubKeysBitmap: []byte("bitmap")}})
 	res, err = ssd.VerifyData(hData3)
 	require.Nil(t, res)
 	require.Equal(t, process.ErrHeadersNotDifferentHashes, err)
@@ -220,27 +220,27 @@ func TestMultipleHeaderSigningDetector_VerifyData_ValidateProof(t *testing.T) {
 	byteMap3, _ := strconv.ParseInt("00011000", 2, 9)
 	bitmap3 := []byte{byte(byteMap3)}
 
-	hData1 := slashMocks.CreateInterceptedHeaderData(
-		&block.Header{
+	hData1 := slashMocks.CreateInterceptedHeaderData(&block.HeaderV2{
+		Header: &block.Header{
 			PrevRandSeed:  []byte("rnd1"),
 			Round:         2,
 			PubKeysBitmap: bitmap1,
 		},
-	)
-	hData2 := slashMocks.CreateInterceptedHeaderData(
-		&block.Header{
+	})
+	hData2 := slashMocks.CreateInterceptedHeaderData(&block.HeaderV2{
+		Header: &block.Header{
 			PrevRandSeed:  []byte("rnd2"),
 			Round:         2,
 			PubKeysBitmap: bitmap2,
 		},
-	)
-	hData3 := slashMocks.CreateInterceptedHeaderData(
-		&block.Header{
+	})
+	hData3 := slashMocks.CreateInterceptedHeaderData(&block.HeaderV2{
+		Header: &block.Header{
 			PrevRandSeed:  []byte("rnd3"),
 			Round:         2,
 			PubKeysBitmap: bitmap3,
 		},
-	)
+	})
 
 	slashCache := detector.NewRoundValidatorHeaderCache(3)
 	headersCache := detector.NewRoundHeadersCache(3)
@@ -276,11 +276,11 @@ func TestMultipleHeaderSigningDetector_VerifyData_ValidateProof(t *testing.T) {
 	errProof := ssd.ValidateProof(res)
 	require.Nil(t, err)
 	require.Nil(t, errProof)
-	require.Equal(t, slash.MultipleSigning, res.GetType())
+	require.Equal(t, coreSlash.MultipleSigning, res.GetType())
 
 	require.Len(t, res.GetPubKeys(), 1)
 	require.Equal(t, pk0, res.GetPubKeys()[0])
-	require.Equal(t, slash.Medium, res.GetLevel(pk0))
+	require.Equal(t, coreSlash.Medium, res.GetLevel(pk0))
 
 	require.Len(t, res.GetHeaders(pk0), 2)
 	require.Equal(t, []byte("rnd1"), res.GetHeaders(pk0)[0].GetHeaderHandler().GetPrevRandSeed())
@@ -294,13 +294,13 @@ func TestMultipleHeaderSigningDetector_VerifyData_ValidateProof(t *testing.T) {
 	errProof = ssd.ValidateProof(res)
 	require.Nil(t, err)
 	require.Nil(t, errProof)
-	require.Equal(t, slash.MultipleSigning, res.GetType())
+	require.Equal(t, coreSlash.MultipleSigning, res.GetType())
 
 	require.Len(t, res.GetPubKeys(), 2)
 	require.Contains(t, res.GetPubKeys(), pk0)
 	require.Contains(t, res.GetPubKeys(), pk1)
-	require.Equal(t, slash.High, res.GetLevel(pk0))
-	require.Equal(t, slash.Medium, res.GetLevel(pk1))
+	require.Equal(t, coreSlash.High, res.GetLevel(pk0))
+	require.Equal(t, coreSlash.Medium, res.GetLevel(pk1))
 
 	require.Len(t, res.GetHeaders(pk0), 3)
 	require.Equal(t, []byte("rnd1"), res.GetHeaders(pk0)[0].GetHeaderHandler().GetPrevRandSeed())

@@ -149,7 +149,7 @@ func TestMultipleHeaderProposalsDetector_VerifyData_MultipleHeaders_SameHash_Exp
 	}
 	sd, _ := detector.NewMultipleHeaderProposalsDetector(nodesCoordinator, &mock.RoundHandlerMock{}, &cache)
 
-	hData := slashMocks.CreateInterceptedHeaderData(&block.Header{Round: round, RandSeed: []byte("seed")})
+	hData := slashMocks.CreateInterceptedHeaderData(&block.HeaderV2{Header: &block.Header{Round: round, RandSeed: []byte("seed")}})
 	res, err := sd.VerifyData(hData)
 	require.Nil(t, res)
 	require.Equal(t, process.ErrHeadersNotDifferentHashes, err)
@@ -160,10 +160,10 @@ func TestMultipleHeaderProposalsDetector_VerifyData_MultipleHeaders(t *testing.T
 
 	round := uint64(2)
 	pubKey := []byte("proposer1")
-	hData1 := slashMocks.CreateInterceptedHeaderData(&block.Header{Round: round, PrevRandSeed: []byte("seed1")})
-	hData2 := slashMocks.CreateInterceptedHeaderData(&block.Header{Round: round, PrevRandSeed: []byte("seed2")})
-	hData3 := slashMocks.CreateInterceptedHeaderData(&block.Header{Round: round, PrevRandSeed: []byte("seed3")})
-	hData4 := slashMocks.CreateInterceptedHeaderData(&block.Header{Round: round, PrevRandSeed: []byte("seed4")})
+	hData1 := slashMocks.CreateInterceptedHeaderData(&block.HeaderV2{Header: &block.Header{Round: round, PrevRandSeed: []byte("seed1")}})
+	hData2 := slashMocks.CreateInterceptedHeaderData(&block.HeaderV2{Header: &block.Header{Round: round, PrevRandSeed: []byte("seed2")}})
+	hData3 := slashMocks.CreateInterceptedHeaderData(&block.HeaderV2{Header: &block.Header{Round: round, PrevRandSeed: []byte("seed3")}})
+	hData4 := slashMocks.CreateInterceptedHeaderData(&block.HeaderV2{Header: &block.Header{Round: round, PrevRandSeed: []byte("seed4")}})
 
 	h1, _ := block.NewHeaderInfo(hData1.HeaderHandler(), hData1.Hash())
 	h2, _ := block.NewHeaderInfo(hData2.HeaderHandler(), hData2.Hash())
@@ -216,8 +216,8 @@ func TestMultipleHeaderProposalsDetector_VerifyData_MultipleHeaders(t *testing.T
 
 	tmp, _ = sd.VerifyData(hData2)
 	res := tmp.(coreSlash.MultipleProposalProofHandler)
-	require.Equal(t, res.GetType(), slash.MultipleProposal)
-	require.Equal(t, res.GetLevel(), slash.Medium)
+	require.Equal(t, res.GetType(), coreSlash.MultipleProposal)
+	require.Equal(t, res.GetLevel(), coreSlash.Medium)
 	require.Len(t, res.GetHeaders(), 2)
 	require.Equal(t, res.GetHeaders()[0], h1)
 	require.Equal(t, res.GetHeaders()[1], h2)
@@ -228,8 +228,8 @@ func TestMultipleHeaderProposalsDetector_VerifyData_MultipleHeaders(t *testing.T
 
 	tmp, _ = sd.VerifyData(hData3)
 	res = tmp.(coreSlash.MultipleProposalProofHandler)
-	require.Equal(t, res.GetType(), slash.MultipleProposal)
-	require.Equal(t, res.GetLevel(), slash.High)
+	require.Equal(t, res.GetType(), coreSlash.MultipleProposal)
+	require.Equal(t, res.GetLevel(), coreSlash.High)
 	require.Len(t, res.GetHeaders(), 3)
 	require.Equal(t, res.GetHeaders()[0], h1)
 	require.Equal(t, res.GetHeaders()[1], h2)
@@ -237,8 +237,8 @@ func TestMultipleHeaderProposalsDetector_VerifyData_MultipleHeaders(t *testing.T
 
 	tmp, _ = sd.VerifyData(hData4)
 	res = tmp.(coreSlash.MultipleProposalProofHandler)
-	require.Equal(t, res.GetType(), slash.MultipleProposal)
-	require.Equal(t, res.GetLevel(), slash.High)
+	require.Equal(t, res.GetType(), coreSlash.MultipleProposal)
+	require.Equal(t, res.GetLevel(), coreSlash.High)
 	require.Len(t, res.GetHeaders(), 4)
 	require.Equal(t, res.GetHeaders()[0], h1)
 	require.Equal(t, res.GetHeaders()[1], h2)
