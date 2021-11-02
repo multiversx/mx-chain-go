@@ -1,23 +1,20 @@
 package notifier
 
 import (
+	coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/slash"
 )
 
 type proofTxData struct {
 	round     uint64
 	shardID   uint32
 	bytes     []byte
-	slashType slash.SlashingType
+	slashType coreSlash.SlashingType
 }
 
-func txDataFromMultipleHeaderProposalProof(proof slash.MultipleProposalProofHandler) (*proofTxData, error) {
-	protoProof, err := slash.ToProtoMultipleHeaderProposal(proof)
-	if err != nil {
-		return nil, err
-	}
-	proofBytes, err := protoProof.Marshal()
+func txDataFromMultipleHeaderProposalProof(marshaller marshal.Marshalizer, proof coreSlash.MultipleProposalProofHandler) (*proofTxData, error) {
+	proofBytes, err := marshaller.Marshal(proof)
 	if err != nil {
 		return nil, err
 	}
@@ -27,19 +24,15 @@ func txDataFromMultipleHeaderProposalProof(proof slash.MultipleProposalProofHand
 	}
 
 	return &proofTxData{
-		round:     headers[0].Header.GetRound(),
-		shardID:   headers[0].Header.GetShardID(),
+		round:     headers[0].GetHeaderHandler().GetRound(),
+		shardID:   headers[0].GetHeaderHandler().GetShardID(),
 		bytes:     proofBytes,
 		slashType: proof.GetType(),
 	}, nil
 }
 
-func txDataFromMultipleHeaderSigningProof(proof slash.MultipleSigningProofHandler) (*proofTxData, error) {
-	protoProof, err := slash.ToProtoMultipleHeaderSign(proof)
-	if err != nil {
-		return nil, err
-	}
-	proofBytes, err := protoProof.Marshal()
+func txDataFromMultipleHeaderSigningProof(marshaller marshal.Marshalizer, proof coreSlash.MultipleSigningProofHandler) (*proofTxData, error) {
+	proofBytes, err := marshaller.Marshal(proof)
 	if err != nil {
 		return nil, err
 	}
@@ -54,8 +47,8 @@ func txDataFromMultipleHeaderSigningProof(proof slash.MultipleSigningProofHandle
 	}
 
 	return &proofTxData{
-		round:     headers[0].Header.GetRound(),
-		shardID:   headers[0].Header.GetShardID(),
+		round:     headers[0].GetHeaderHandler().GetRound(),
+		shardID:   headers[0].GetHeaderHandler().GetShardID(),
 		bytes:     proofBytes,
 		slashType: proof.GetType(),
 	}, nil

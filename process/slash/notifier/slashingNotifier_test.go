@@ -6,7 +6,9 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
@@ -115,8 +117,8 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidPubKey_ExpectErr
 
 	sn, _ := notifier.NewSlashingNotifier(args)
 	proofStub := &slashMocks.MultipleHeaderProposalProofStub{
-		GetHeadersCalled: func() slash.HeaderInfoList {
-			return slash.HeaderInfoList{&slash.HeaderInfo{Header: &block.HeaderV2{}}}
+		GetHeadersCalled: func() []data.HeaderInfoHandler {
+			return slash.HeaderInfoList{&block.HeaderInfo{Header: &block.HeaderV2{}}}
 		},
 	}
 
@@ -135,8 +137,8 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidAccount_ExpectEr
 	}
 	sn, _ := notifier.NewSlashingNotifier(args)
 	proofStub := &slashMocks.MultipleHeaderProposalProofStub{
-		GetHeadersCalled: func() slash.HeaderInfoList {
-			return slash.HeaderInfoList{&slash.HeaderInfo{Header: &block.HeaderV2{}}}
+		GetHeadersCalled: func() []data.HeaderInfoHandler {
+			return slash.HeaderInfoList{&block.HeaderInfo{Header: &block.HeaderV2{}}}
 		},
 	}
 
@@ -156,8 +158,8 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidMarshaller_Expec
 
 	sn, _ := notifier.NewSlashingNotifier(args)
 	proofStub := &slashMocks.MultipleHeaderProposalProofStub{
-		GetHeadersCalled: func() slash.HeaderInfoList {
-			return slash.HeaderInfoList{&slash.HeaderInfo{Header: &block.HeaderV2{}}}
+		GetHeadersCalled: func() []data.HeaderInfoHandler {
+			return slash.HeaderInfoList{&block.HeaderInfo{Header: &block.HeaderV2{}}}
 		},
 	}
 
@@ -171,11 +173,11 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidSlashType_Expect
 
 	sn, _ := notifier.NewSlashingNotifier(args)
 	proofStub := &slashMocks.MultipleHeaderProposalProofStub{
-		GetHeadersCalled: func() slash.HeaderInfoList {
-			return slash.HeaderInfoList{&slash.HeaderInfo{Header: &block.HeaderV2{}}}
+		GetHeadersCalled: func() []data.HeaderInfoHandler {
+			return slash.HeaderInfoList{&block.HeaderInfo{Header: &block.HeaderV2{}}}
 		},
-		GetTypeCalled: func() slash.SlashingType {
-			return "invalid"
+		GetTypeCalled: func() coreSlash.SlashingType {
+			return 9999999
 		},
 	}
 
@@ -189,7 +191,7 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_NilHeader_ExpectError(t
 	args := generateSlashingNotifierArgs()
 	sn, _ := notifier.NewSlashingNotifier(args)
 	tx, err := sn.CreateShardSlashingTransaction(&slashMocks.MultipleHeaderSigningProofStub{
-		GetHeadersCalled: func(pubKey []byte) slash.HeaderInfoList {
+		GetHeadersCalled: func(pubKey []byte) []data.HeaderInfoHandler {
 			return slash.HeaderInfoList{nil}
 		},
 		GetPubKeysCalled: func() [][]byte {
@@ -211,8 +213,8 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidProofSignature_E
 
 	sn, _ := notifier.NewSlashingNotifier(args)
 	proofStub := &slashMocks.MultipleHeaderProposalProofStub{
-		GetHeadersCalled: func() slash.HeaderInfoList {
-			return slash.HeaderInfoList{&slash.HeaderInfo{Header: &block.HeaderV2{}}}
+		GetHeadersCalled: func() []data.HeaderInfoHandler {
+			return slash.HeaderInfoList{&block.HeaderInfo{Header: &block.HeaderV2{}}}
 		},
 	}
 
@@ -238,8 +240,8 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidTxSignature_Expe
 
 	sn, _ := notifier.NewSlashingNotifier(args)
 	proofStub := &slashMocks.MultipleHeaderProposalProofStub{
-		GetHeadersCalled: func() slash.HeaderInfoList {
-			return slash.HeaderInfoList{&slash.HeaderInfo{Header: &block.HeaderV2{}}}
+		GetHeadersCalled: func() []data.HeaderInfoHandler {
+			return slash.HeaderInfoList{&block.HeaderInfo{Header: &block.HeaderV2{}}}
 		},
 	}
 
@@ -276,8 +278,8 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleProposalProof(t
 	}
 
 	proof := &slashMocks.MultipleHeaderProposalProofStub{
-		GetHeadersCalled: func() slash.HeaderInfoList {
-			return slash.HeaderInfoList{&slash.HeaderInfo{Header: h1}, &slash.HeaderInfo{Header: h2}}
+		GetHeadersCalled: func() []data.HeaderInfoHandler {
+			return slash.HeaderInfoList{&block.HeaderInfo{Header: h1}, &block.HeaderInfo{Header: h2}}
 		},
 	}
 
@@ -328,11 +330,11 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleSignProof(t *te
 	}
 
 	proof := &slashMocks.MultipleHeaderSigningProofStub{
-		GetLevelCalled: func([]byte) slash.ThreatLevel {
-			return slash.High
+		GetLevelCalled: func([]byte) coreSlash.ThreatLevel {
+			return coreSlash.High
 		},
-		GetHeadersCalled: func([]byte) slash.HeaderInfoList {
-			return slash.HeaderInfoList{&slash.HeaderInfo{Header: h1}, &slash.HeaderInfo{Header: h2}}
+		GetHeadersCalled: func([]byte) []data.HeaderInfoHandler {
+			return slash.HeaderInfoList{&block.HeaderInfo{Header: h1}, &block.HeaderInfo{Header: h2}}
 		},
 		GetPubKeysCalled: func() [][]byte {
 			return [][]byte{pk1}

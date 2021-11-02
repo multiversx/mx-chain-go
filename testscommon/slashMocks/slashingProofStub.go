@@ -1,17 +1,19 @@
 package slashMocks
 
-import "github.com/ElrondNetwork/elrond-go/process/slash"
+import (
+	coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
+)
 
 // SlashingProofStub -
 type SlashingProofStub struct {
-	GetTypeCalled func() slash.SlashingType
+	GetTypeCalled func() coreSlash.SlashingType
 }
 
 // GetType -
-func (sps *SlashingProofStub) GetType() slash.SlashingType {
+func (sps *SlashingProofStub) GetType() coreSlash.SlashingType {
 	if sps.GetTypeCalled != nil {
 		return sps.GetTypeCalled()
 	}
 
-	return slash.None
+	return coreSlash.None
 }

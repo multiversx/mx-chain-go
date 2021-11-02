@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
@@ -94,8 +95,8 @@ func NewSlashingNotifier(args *SlashingNotifierArgs) (slash.SlashingNotifier, er
 // 1. ProofID = 1 byte representing the slashing event ID (e.g.: multiple sign/proposal)
 // 2. CRC = last 2 bytes of Hash(proof)
 // 3. Sign(proof) = detector's proof signature. This is used to avoid front-running.
-func (sn *slashingNotifier) CreateShardSlashingTransaction(proof slash.SlashingProofHandler) (data.TransactionHandler, error) {
-	proofTxData, err := getProofTxData(proof)
+func (sn *slashingNotifier) CreateShardSlashingTransaction(proof coreSlash.SlashingProofHandler) (data.TransactionHandler, error) {
+	proofTxData, err := sn.getProofTxData(proof)
 	if err != nil {
 		return nil, err
 	}
@@ -103,12 +104,12 @@ func (sn *slashingNotifier) CreateShardSlashingTransaction(proof slash.SlashingP
 	return sn.createProofTx(proofTxData)
 }
 
-func getProofTxData(proof slash.SlashingProofHandler) (*proofTxData, error) {
+func (sn *slashingNotifier) getProofTxData(proof coreSlash.SlashingProofHandler) (*proofTxData, error) {
 	switch t := proof.(type) {
-	case slash.MultipleProposalProofHandler:
-		return txDataFromMultipleHeaderProposalProof(t)
-	case slash.MultipleSigningProofHandler:
-		return txDataFromMultipleHeaderSigningProof(t)
+	case coreSlash.MultipleProposalProofHandler:
+		return txDataFromMultipleHeaderProposalProof(sn.marshaller, t)
+	case coreSlash.MultipleSigningProofHandler:
+		return txDataFromMultipleHeaderSigningProof(sn.marshaller, t)
 	default:
 		return nil, process.ErrInvalidProof
 	}
@@ -189,6 +190,6 @@ func (sn *slashingNotifier) signTx(tx *transaction.Transaction) error {
 }
 
 // CreateMetaSlashingEscalatedTransaction currently not implemented
-func (sn *slashingNotifier) CreateMetaSlashingEscalatedTransaction(slash.SlashingProofHandler) data.TransactionHandler {
+func (sn *slashingNotifier) CreateMetaSlashingEscalatedTransaction(coreSlash.SlashingProofHandler) data.TransactionHandler {
 	return nil
 }
