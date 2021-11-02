@@ -281,8 +281,8 @@ func TestMultipleHeaderSigningDetector_VerifyData_ValidateProof(t *testing.T) {
 	require.Equal(t, slash.Medium, res.GetLevel(pk0))
 
 	require.Len(t, res.GetHeaders(pk0), 2)
-	require.Equal(t, []byte("rnd1"), res.GetHeaders(pk0)[0].Header.GetPrevRandSeed())
-	require.Equal(t, []byte("rnd2"), res.GetHeaders(pk0)[1].Header.GetPrevRandSeed())
+	require.Equal(t, []byte("rnd1"), res.GetHeaders(pk0)[0].GetHeaderHandler().GetPrevRandSeed())
+	require.Equal(t, []byte("rnd2"), res.GetHeaders(pk0)[1].GetHeaderHandler().GetPrevRandSeed())
 
 	// For 3rd header(same round): v0, v1 signed =>
 	// 1. v0 signed 3 headers this round(current and previous 2 headers)
@@ -301,13 +301,13 @@ func TestMultipleHeaderSigningDetector_VerifyData_ValidateProof(t *testing.T) {
 	require.Equal(t, slash.Medium, res.GetLevel(pk1))
 
 	require.Len(t, res.GetHeaders(pk0), 3)
-	require.Equal(t, []byte("rnd1"), res.GetHeaders(pk0)[0].Header.GetPrevRandSeed())
-	require.Equal(t, []byte("rnd2"), res.GetHeaders(pk0)[1].Header.GetPrevRandSeed())
-	require.Equal(t, []byte("rnd3"), res.GetHeaders(pk0)[2].Header.GetPrevRandSeed())
+	require.Equal(t, []byte("rnd1"), res.GetHeaders(pk0)[0].GetHeaderHandler().GetPrevRandSeed())
+	require.Equal(t, []byte("rnd2"), res.GetHeaders(pk0)[1].GetHeaderHandler().GetPrevRandSeed())
+	require.Equal(t, []byte("rnd3"), res.GetHeaders(pk0)[2].GetHeaderHandler().GetPrevRandSeed())
 
 	require.Len(t, res.GetHeaders(pk1), 2)
-	require.Equal(t, []byte("rnd1"), res.GetHeaders(pk1)[0].Header.GetPrevRandSeed())
-	require.Equal(t, []byte("rnd3"), res.GetHeaders(pk1)[1].Header.GetPrevRandSeed())
+	require.Equal(t, []byte("rnd1"), res.GetHeaders(pk1)[0].GetHeaderHandler().GetPrevRandSeed())
+	require.Equal(t, []byte("rnd3"), res.GetHeaders(pk1)[1].GetHeaderHandler().GetPrevRandSeed())
 
 	// 4th header(same round) == 2nd header, but validators are changed within group =>
 	// no slashing, because headers do not have different hash (without signatures). This

@@ -5,6 +5,7 @@ import (
 	"math"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/slash"
 )
@@ -28,11 +29,11 @@ func NewRoundHeadersCache(maxRounds uint64) *roundHeadersCache {
 
 // Add adds a header-hash in cache, in a given round.
 // It has an eviction mechanism which always removes the oldest round entry when cache is full
-func (rhc *roundHeadersCache) Add(round uint64, header *slash.HeaderInfo) error {
+func (rhc *roundHeadersCache) Add(round uint64, header data.HeaderInfoHandler) error {
 	rhc.cacheMutex.Lock()
 	defer rhc.cacheMutex.Unlock()
 
-	if rhc.contains(round, header.Hash) {
+	if rhc.contains(round, header.GetHash()) {
 		return process.ErrHeadersNotDifferentHashes
 	}
 
@@ -59,7 +60,7 @@ func (rhc *roundHeadersCache) contains(round uint64, hash []byte) bool {
 	}
 
 	for _, currData := range hashHeaderList {
-		if bytes.Equal(currData.Hash, hash) {
+		if bytes.Equal(currData.GetHash(), hash) {
 			return true
 		}
 	}
