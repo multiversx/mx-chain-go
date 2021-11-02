@@ -1055,5 +1055,5 @@ func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
 		OptimizeNFTStoreEnableEpoch:  pcf.epochConfig.EnableEpochs.OptimizeNFTStoreEnableEpoch,
 	}
 
-	return builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	return builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 }

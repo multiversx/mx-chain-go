@@ -362,5 +362,5 @@ func createBuiltinFuncs(
 		ESDTTransferMetaEnableEpoch:  transferToMetaEnableEpoch,
 		OptimizeNFTStoreEnableEpoch:  optimizeNFTStoreEnableEpoch,
 	}
-	return builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	return builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 }

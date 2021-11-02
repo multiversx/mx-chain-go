@@ -415,7 +415,7 @@ func (gbc *genesisBlockCreator) computeDNSAddresses() error {
 		Marshalizer:        gbc.arg.Core.InternalMarshalizer(),
 		Uint64Converter:    gbc.arg.Core.Uint64ByteSliceConverter(),
 		BuiltInFunctions:   builtInFuncs,
-		NFTStorageHandler:  &disabled.SimpleNFTStorageHandler{},
+		NFTStorageHandler:  &disabled.SimpleNFTStorage{},
 		DataPool:           gbc.arg.Data.Datapool(),
 		CompiledSCPool:     gbc.arg.Data.Datapool().SmartContracts(),
 		NilCompiledSCStore: true,

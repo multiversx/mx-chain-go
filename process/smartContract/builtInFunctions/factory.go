@@ -27,8 +27,8 @@ type ArgsCreateBuiltInFunctionContainer struct {
 	OptimizeNFTStoreEnableEpoch  uint32
 }
 
-// CreateBuiltInFunctionContainer creates a container that will hold all the available built in functions
-func CreateBuiltInFunctionContainer(args ArgsCreateBuiltInFunctionContainer) (vmcommon.BuiltInFunctionContainer, vmcommon.SimpleESDTNFTStorageHandler, error) {
+// CreateBuiltInFuncContainerAndNFTStorageHandler creates a container that will hold all the available built in functions
+func CreateBuiltInFuncContainerAndNFTStorageHandler(args ArgsCreateBuiltInFunctionContainer) (vmcommon.BuiltInFunctionContainer, vmcommon.SimpleESDTNFTStorageHandler, error) {
 	if check.IfNil(args.GasSchedule) {
 		return nil, nil, process.ErrNilGasSchedule
 	}

@@ -8,21 +8,21 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
-// SimpleNFTStorageHandler implements the SimpleNFTStorageHandler interface but does nothing as it is disabled
-type SimpleNFTStorageHandler struct {
+// SimpleNFTStorage implements the SimpleNFTStorage interface but does nothing as it is disabled
+type SimpleNFTStorage struct {
 }
 
 // GetESDTNFTTokenOnDestination is disabled
-func (s *SimpleNFTStorageHandler) GetESDTNFTTokenOnDestination(_ vmcommon.UserAccountHandler, _ []byte, _ uint64) (*esdt.ESDigitalToken, bool, error) {
+func (s *SimpleNFTStorage) GetESDTNFTTokenOnDestination(_ vmcommon.UserAccountHandler, _ []byte, _ uint64) (*esdt.ESDigitalToken, bool, error) {
 	return &esdt.ESDigitalToken{Value: big.NewInt(0)}, true, nil
 }
 
 // SaveNFTMetaDataToSystemAccount is disabled
-func (s *SimpleNFTStorageHandler) SaveNFTMetaDataToSystemAccount(_ data.TransactionHandler) error {
+func (s *SimpleNFTStorage) SaveNFTMetaDataToSystemAccount(_ data.TransactionHandler) error {
 	return nil
 }
 
 // IsInterfaceNil return true if underlying object is nil
-func (s *SimpleNFTStorageHandler) IsInterfaceNil() bool {
+func (s *SimpleNFTStorage) IsInterfaceNil() bool {
 	return s == nil
 }

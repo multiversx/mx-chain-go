@@ -227,7 +227,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		ShardCoordinator: oneShardCoordinator,
 		EpochNotifier:    context.EpochNotifier,
 	}
-	builtInFuncs, nftStorageHandler, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	builtInFuncs, nftStorageHandler, err := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 	require.Nil(context.T, err)
 
 	blockchainMock := &mock.BlockChainMock{}

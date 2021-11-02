@@ -293,7 +293,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		GlobalMintBurnDisableEpoch:   unreachableEpoch,
 		ESDTTransferMetaEnableEpoch:  unreachableEpoch,
 	}
-	builtInFuncs, nftStorageHandler, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	builtInFuncs, nftStorageHandler, err := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 	if err != nil {
 		return nil, err
 	}
