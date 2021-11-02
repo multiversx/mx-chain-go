@@ -2174,12 +2174,7 @@ func (d *delegation) numUsers() uint64 {
 	return dStatus.NumUsers
 }
 
-func (d *delegation) deleteDelegatorIfNeeded(address []byte, delegator *DelegatorData, delegationAddress []byte) error {
-	if d.isOwner(address) {
-		return nil
-	}
-
-func (d *delegation) deleteDelegatorOnWithdrawIfNeeded(address []byte, delegator *DelegatorData) (bool, error) {
+func (d *delegation) deleteDelegatorOnWithdrawIfNeeded(address []byte, delegator *DelegatorData, delegationAddress []byte) (bool, error) {
 	if d.isUserWithFunds(address, delegator) {
 		return false, nil
 	}
