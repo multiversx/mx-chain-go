@@ -82,6 +82,9 @@ func CreateTransactionsFromMandosTxs(mandosTxs []*mge.Transaction) (transactions
 			gasPrice,
 			gasLimit,
 			data)
+		if len(esdtTransfers) != 0 {
+			tx.RcvAddr = tx.SndAddr
+		}
 		transactions = append(transactions, tx)
 	}
 	return transactions
@@ -95,9 +98,10 @@ func DeploySCsFromMandosDeployTxs(testContext *vm.VMTestContext, deployMandosTxs
 			return err
 		}
 		addressToBeReplaced := deployedScAccounts[0].GetAddress()
-		for _, mandosTx := range mandosTxs {
+		for i, mandosTx := range mandosTxs {
 			if bytes.Equal(mandosTx.GetReceiverAddress(), addressToBeReplaced) {
 				mandosTx.WithReceiverAddress(deployedScAddress)
+				mandosTxs[i] = mandosTx
 			}
 		}
 		deployedScAccounts = deployedScAccounts[1:]
