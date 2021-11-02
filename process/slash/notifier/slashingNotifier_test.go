@@ -367,6 +367,11 @@ func generateSlashingNotifierArgs() *notifier.SlashingNotifierArgs {
 			return accountHandler, nil
 		},
 	}
+	marshaller := &testscommon.MarshalizerStub{
+		MarshalCalled: func(obj interface{}) ([]byte, error) {
+			return nil, nil
+		},
+	}
 
 	return &notifier.SlashingNotifierArgs{
 		PrivateKey:      &mock.PrivateKeyMock{},
@@ -375,6 +380,6 @@ func generateSlashingNotifierArgs() *notifier.SlashingNotifierArgs {
 		Signer:          &mockIntegration.SignerMock{},
 		AccountAdapter:  accountsAdapter,
 		Hasher:          &hashingMocks.HasherMock{},
-		Marshaller:      &testscommon.MarshalizerMock{},
+		Marshaller:      marshaller,
 	}
 }

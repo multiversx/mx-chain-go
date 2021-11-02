@@ -1,6 +1,7 @@
 package notifier
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -44,6 +45,9 @@ func txDataFromMultipleHeaderSigningProof(marshaller marshal.Marshalizer, proof 
 	headers := proof.GetHeaders(pubKey)
 	if len(headers) == 0 {
 		return nil, process.ErrNotEnoughHeadersProvided
+	}
+	if headers[0] == nil || check.IfNil(headers[0].GetHeaderHandler()) {
+		return nil, process.ErrNilHeaderHandler
 	}
 
 	return &proofTxData{
