@@ -28,8 +28,8 @@ type Trie interface {
 	GetNumNodes() NumNodesDTO
 	GetAllLeavesOnChannel(rootHash []byte) (chan core.KeyValueHolder, error)
 	GetAllHashes() ([][]byte, error)
-	GetProof(key []byte) ([][]byte, error)
-	VerifyProof(key []byte, proof [][]byte) (bool, error)
+	GetProof(key []byte) ([][]byte, []byte, error)
+	VerifyProof(rootHash []byte, key []byte, proof [][]byte) (bool, error)
 	GetStorageManager() StorageManager
 	Close() error
 	IsInterfaceNil() bool
@@ -70,4 +70,17 @@ type SnapshotDbHandler interface {
 	MarkForRemoval()
 	MarkForDisconnection()
 	SetPath(string)
+}
+
+// Locker defines the operations used to lock different critical areas. Implemented by the RWMutex.
+type Locker interface {
+	Lock()
+	Unlock()
+	RLock()
+	RUnlock()
+}
+
+// MerkleProofVerifier is used to verify merkle proofs
+type MerkleProofVerifier interface {
+	VerifyProof(rootHash []byte, key []byte, proof [][]byte) (bool, error)
 }

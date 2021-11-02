@@ -1,6 +1,7 @@
 package economics_test
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -50,23 +51,35 @@ func createDummyEconomicsConfig(feeSettings config.FeeSettings) *config.Economic
 
 func feeSettingsDummy(gasModifier float64) config.FeeSettings {
 	return config.FeeSettings{
-		MaxGasLimitPerBlock:     "100000",
-		MaxGasLimitPerMetaBlock: "1000000",
-		MinGasPrice:             "18446744073709551615",
-		MinGasLimit:             "500",
-		GasPerDataByte:          "1",
-		GasPriceModifier:        gasModifier,
+		GasLimitSettings: []config.GasLimitSetting{
+			{
+				MaxGasLimitPerBlock:         "100000",
+				MaxGasLimitPerMiniBlock:     "100000",
+				MaxGasLimitPerMetaBlock:     "1000000",
+				MaxGasLimitPerMetaMiniBlock: "1000000",
+				MinGasLimit:                 "500",
+			},
+		},
+		MinGasPrice:      "18446744073709551615",
+		GasPerDataByte:   "1",
+		GasPriceModifier: gasModifier,
 	}
 }
 
 func feeSettingsReal() config.FeeSettings {
 	return config.FeeSettings{
-		MaxGasLimitPerBlock:     "1500000000",
-		MaxGasLimitPerMetaBlock: "15000000000",
-		MinGasPrice:             "1000000000",
-		MinGasLimit:             "50000",
-		GasPerDataByte:          "1500",
-		GasPriceModifier:        0.01,
+		GasLimitSettings: []config.GasLimitSetting{
+			{
+				MaxGasLimitPerBlock:         "1500000000",
+				MaxGasLimitPerMiniBlock:     "1500000000",
+				MaxGasLimitPerMetaBlock:     "15000000000",
+				MaxGasLimitPerMetaMiniBlock: "15000000000",
+				MinGasLimit:                 "50000",
+			},
+		},
+		MinGasPrice:      "1000000000",
+		GasPerDataByte:   "1500",
+		GasPriceModifier: 0.01,
 	}
 }
 
@@ -106,6 +119,34 @@ func TestNewEconomicsData_NilOrEmptyEpochRewardsConfigShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrEmptyEpochRewardsConfig, err)
 }
 
+func TestNewEconomicsData_NilOrEmptyYearSettingsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForEconomicsData(1)
+	args.Economics.GlobalSettings.YearSettings = nil
+
+	_, err := economics.NewEconomicsData(args)
+	assert.Equal(t, process.ErrEmptyYearSettings, err)
+
+	args.Economics.GlobalSettings.YearSettings = make([]*config.YearSetting, 0)
+	_, err = economics.NewEconomicsData(args)
+	assert.Equal(t, process.ErrEmptyYearSettings, err)
+}
+
+func TestNewEconomicsData_NilOrEmptyGasLimitSettingsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForEconomicsData(1)
+	args.Economics.FeeSettings.GasLimitSettings = nil
+
+	_, err := economics.NewEconomicsData(args)
+	assert.Equal(t, process.ErrEmptyGasLimitSettings, err)
+
+	args.Economics.FeeSettings.GasLimitSettings = make([]config.GasLimitSetting, 0)
+	_, err = economics.NewEconomicsData(args)
+	assert.Equal(t, process.ErrEmptyGasLimitSettings, err)
+}
+
 func TestNewEconomicsData_InvalidMaxGasLimitPerBlockShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -123,9 +164,78 @@ func TestNewEconomicsData_InvalidMaxGasLimitPerBlockShouldErr(t *testing.T) {
 	}
 
 	for _, gasLimitPerBlock := range badGasLimitPerBlock {
-		args.Economics.FeeSettings.MaxGasLimitPerBlock = gasLimitPerBlock
+		args.Economics.FeeSettings.GasLimitSettings[0].MaxGasLimitPerBlock = gasLimitPerBlock
 		_, err := economics.NewEconomicsData(args)
-		assert.Equal(t, process.ErrInvalidMaxGasLimitPerBlock, err)
+		assert.True(t, errors.Is(err, process.ErrInvalidMaxGasLimitPerBlock))
+	}
+}
+
+func TestNewEconomicsData_InvalidMaxGasLimitPerMiniBlockShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForEconomicsData(1)
+	badGasLimitPerMiniBlock := []string{
+		"-1",
+		"-100000000000000000000",
+		"badValue",
+		"",
+		"#########",
+		"11112S",
+		"1111O0000",
+		"10ERD",
+		"10000000000000000000000000000000000000000000000000000000000000",
+	}
+
+	for _, gasLimitPerMiniBlock := range badGasLimitPerMiniBlock {
+		args.Economics.FeeSettings.GasLimitSettings[0].MaxGasLimitPerMiniBlock = gasLimitPerMiniBlock
+		_, err := economics.NewEconomicsData(args)
+		assert.True(t, errors.Is(err, process.ErrInvalidMaxGasLimitPerMiniBlock))
+	}
+}
+
+func TestNewEconomicsData_InvalidMaxGasLimitPerMetaBlockShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForEconomicsData(1)
+	badGasLimitPerMetaBlock := []string{
+		"-1",
+		"-100000000000000000000",
+		"badValue",
+		"",
+		"#########",
+		"11112S",
+		"1111O0000",
+		"10ERD",
+		"10000000000000000000000000000000000000000000000000000000000000",
+	}
+
+	for _, gasLimitPerMetaBlock := range badGasLimitPerMetaBlock {
+		args.Economics.FeeSettings.GasLimitSettings[0].MaxGasLimitPerMetaBlock = gasLimitPerMetaBlock
+		_, err := economics.NewEconomicsData(args)
+		assert.True(t, errors.Is(err, process.ErrInvalidMaxGasLimitPerMetaBlock))
+	}
+}
+
+func TestNewEconomicsData_InvalidMaxGasLimitPerMetaMiniBlockShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForEconomicsData(1)
+	badGasLimitPerMetaMiniBlock := []string{
+		"-1",
+		"-100000000000000000000",
+		"badValue",
+		"",
+		"#########",
+		"11112S",
+		"1111O0000",
+		"10ERD",
+		"10000000000000000000000000000000000000000000000000000000000000",
+	}
+
+	for _, gasLimitPerMetaMiniBlock := range badGasLimitPerMetaMiniBlock {
+		args.Economics.FeeSettings.GasLimitSettings[0].MaxGasLimitPerMetaMiniBlock = gasLimitPerMetaMiniBlock
+		_, err := economics.NewEconomicsData(args)
+		assert.True(t, errors.Is(err, process.ErrInvalidMaxGasLimitPerMetaMiniBlock))
 	}
 }
 
@@ -170,7 +280,7 @@ func TestNewEconomicsData_InvalidMinGasLimitShouldErr(t *testing.T) {
 	}
 
 	for _, minGasLimit := range bagMinGasLimit {
-		args.Economics.FeeSettings.MinGasLimit = minGasLimit
+		args.Economics.FeeSettings.GasLimitSettings[0].MinGasLimit = minGasLimit
 		_, err := economics.NewEconomicsData(args)
 		assert.Equal(t, process.ErrInvalidMinimumGasLimitForTx, err)
 	}
@@ -225,7 +335,7 @@ func TestEconomicsData_ComputeMoveBalanceFeeNoTxData(t *testing.T) {
 	args := createArgsForEconomicsData(1)
 	gasPrice := uint64(500)
 	minGasLimit := uint64(12)
-	args.Economics.FeeSettings.MinGasLimit = strconv.FormatUint(minGasLimit, 10)
+	args.Economics.FeeSettings.GasLimitSettings[0].MinGasLimit = strconv.FormatUint(minGasLimit, 10)
 	economicsData, _ := economics.NewEconomicsData(args)
 	tx := &transaction.Transaction{
 		GasPrice: gasPrice,
@@ -247,7 +357,7 @@ func TestEconomicsData_ComputeMoveBalanceFeeWithTxData(t *testing.T) {
 	gasPrice := uint64(500)
 	minGasLimit := uint64(12)
 	txData := "text to be notarized"
-	args.Economics.FeeSettings.MinGasLimit = strconv.FormatUint(minGasLimit, 10)
+	args.Economics.FeeSettings.GasLimitSettings[0].MinGasLimit = strconv.FormatUint(minGasLimit, 10)
 	economicsData, _ := economics.NewEconomicsData(args)
 	tx := &transaction.Transaction{
 		GasPrice: gasPrice,
@@ -272,7 +382,7 @@ func TestEconomicsData_ComputeTxFeeShouldWork(t *testing.T) {
 	gasPrice := uint64(500)
 	gasLimit := uint64(20)
 	minGasLimit := uint64(10)
-	args.Economics.FeeSettings.MinGasLimit = strconv.FormatUint(minGasLimit, 10)
+	args.Economics.FeeSettings.GasLimitSettings[0].MinGasLimit = strconv.FormatUint(minGasLimit, 10)
 	args.Economics.FeeSettings.GasPriceModifier = 0.01
 	args.PenalizedTooMuchGasEnableEpoch = 1
 	args.GasPriceModifierEnableEpoch = 2
@@ -341,6 +451,48 @@ func TestEconomicsData_ConfirmedEpochRewardsSettingsChangeOrderedConfigs(t *test
 	require.Equal(t, rs[1], *rewardsActiveConfig)
 }
 
+func TestEconomicsData_ConfirmedGasLimitSettingsChangeOrderedConfigs(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForEconomicsData(1)
+	gls := []config.GasLimitSetting{
+		{
+			EnableEpoch:                 0,
+			MaxGasLimitPerBlock:         "1500000000",
+			MaxGasLimitPerMiniBlock:     "1500000000",
+			MaxGasLimitPerMetaBlock:     "15000000000",
+			MaxGasLimitPerMetaMiniBlock: "15000000000",
+			MinGasLimit:                 "50000",
+		},
+		{
+			EnableEpoch:                 2,
+			MaxGasLimitPerBlock:         "1500000000",
+			MaxGasLimitPerMiniBlock:     "500000000",
+			MaxGasLimitPerMetaBlock:     "15000000000",
+			MaxGasLimitPerMetaMiniBlock: "5000000000",
+			MinGasLimit:                 "50000",
+		},
+	}
+
+	args.Economics.FeeSettings.GasLimitSettings = gls
+	economicsData, _ := economics.NewEconomicsData(args)
+
+	economicsData.EpochConfirmed(1, 0)
+	gasLimitSetting := economicsData.GetGasLimitSetting()
+	require.NotNil(t, gasLimitSetting)
+	require.Equal(t, gls[0], *gasLimitSetting)
+
+	economicsData.EpochConfirmed(2, 0)
+	gasLimitSetting = economicsData.GetGasLimitSetting()
+	require.NotNil(t, gasLimitSetting)
+	require.Equal(t, gls[1], *gasLimitSetting)
+
+	economicsData.EpochConfirmed(3, 0)
+	gasLimitSetting = economicsData.GetGasLimitSetting()
+	require.NotNil(t, gasLimitSetting)
+	require.Equal(t, gls[1], *gasLimitSetting)
+}
+
 func TestEconomicsData_ConfirmedEpochRewardsSettingsChangeUnOrderedConfigs(t *testing.T) {
 	t.Parallel()
 
@@ -385,6 +537,48 @@ func TestEconomicsData_ConfirmedEpochRewardsSettingsChangeUnOrderedConfigs(t *te
 	require.Equal(t, rs[0], *rewardsActiveConfig)
 }
 
+func TestEconomicsData_ConfirmedGasLimitSettingsChangeUnOrderedConfigs(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForEconomicsData(1)
+	gls := []config.GasLimitSetting{
+		{
+			EnableEpoch:                 2,
+			MaxGasLimitPerBlock:         "1500000000",
+			MaxGasLimitPerMiniBlock:     "500000000",
+			MaxGasLimitPerMetaBlock:     "15000000000",
+			MaxGasLimitPerMetaMiniBlock: "5000000000",
+			MinGasLimit:                 "50000",
+		},
+		{
+			EnableEpoch:                 0,
+			MaxGasLimitPerBlock:         "1500000000",
+			MaxGasLimitPerMiniBlock:     "1500000000",
+			MaxGasLimitPerMetaBlock:     "15000000000",
+			MaxGasLimitPerMetaMiniBlock: "15000000000",
+			MinGasLimit:                 "50000",
+		},
+	}
+
+	args.Economics.FeeSettings.GasLimitSettings = gls
+	economicsData, _ := economics.NewEconomicsData(args)
+
+	economicsData.EpochConfirmed(1, 0)
+	gasLimitSetting := economicsData.GetGasLimitSetting()
+	require.NotNil(t, gasLimitSetting)
+	require.Equal(t, gls[1], *gasLimitSetting)
+
+	economicsData.EpochConfirmed(2, 0)
+	gasLimitSetting = economicsData.GetGasLimitSetting()
+	require.NotNil(t, gasLimitSetting)
+	require.Equal(t, gls[0], *gasLimitSetting)
+
+	economicsData.EpochConfirmed(3, 0)
+	gasLimitSetting = economicsData.GetGasLimitSetting()
+	require.NotNil(t, gasLimitSetting)
+	require.Equal(t, gls[0], *gasLimitSetting)
+}
+
 func TestEconomicsData_TxWithLowerGasPriceShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -392,7 +586,7 @@ func TestEconomicsData_TxWithLowerGasPriceShouldErr(t *testing.T) {
 	minGasPrice := uint64(500)
 	minGasLimit := uint64(12)
 	args.Economics.FeeSettings.MinGasPrice = fmt.Sprintf("%d", minGasPrice)
-	args.Economics.FeeSettings.MinGasLimit = fmt.Sprintf("%d", minGasLimit)
+	args.Economics.FeeSettings.GasLimitSettings[0].MinGasLimit = fmt.Sprintf("%d", minGasLimit)
 	economicsData, _ := economics.NewEconomicsData(args)
 	tx := &transaction.Transaction{
 		GasPrice: minGasPrice - 1,
@@ -412,7 +606,7 @@ func TestEconomicsData_TxWithLowerGasLimitShouldErr(t *testing.T) {
 	minGasPrice := uint64(500)
 	minGasLimit := uint64(12)
 	args.Economics.FeeSettings.MinGasPrice = fmt.Sprintf("%d", minGasPrice)
-	args.Economics.FeeSettings.MinGasLimit = fmt.Sprintf("%d", minGasLimit)
+	args.Economics.FeeSettings.GasLimitSettings[0].MinGasLimit = fmt.Sprintf("%d", minGasLimit)
 	economicsData, _ := economics.NewEconomicsData(args)
 	tx := &transaction.Transaction{
 		GasPrice: minGasPrice,
@@ -432,9 +626,9 @@ func TestEconomicsData_TxWithHigherGasLimitShouldErr(t *testing.T) {
 	minGasPrice := uint64(500)
 	minGasLimit := uint64(12)
 	maxGasLimitPerBlock := minGasLimit
-	args.Economics.FeeSettings.MaxGasLimitPerBlock = fmt.Sprintf("%d", maxGasLimitPerBlock)
+	args.Economics.FeeSettings.GasLimitSettings[0].MaxGasLimitPerBlock = fmt.Sprintf("%d", maxGasLimitPerBlock)
 	args.Economics.FeeSettings.MinGasPrice = fmt.Sprintf("%d", minGasPrice)
-	args.Economics.FeeSettings.MinGasLimit = fmt.Sprintf("%d", minGasLimit)
+	args.Economics.FeeSettings.GasLimitSettings[0].MinGasLimit = fmt.Sprintf("%d", minGasLimit)
 	economicsData, _ := economics.NewEconomicsData(args)
 	tx := &transaction.Transaction{
 		GasPrice: minGasPrice,
@@ -455,9 +649,9 @@ func TestEconomicsData_TxWithWithMinGasPriceAndLimitShouldWork(t *testing.T) {
 	minGasPrice := uint64(500)
 	minGasLimit := uint64(12)
 	maxGasLimitPerBlock := minGasLimit + 1
-	args.Economics.FeeSettings.MaxGasLimitPerBlock = fmt.Sprintf("%d", maxGasLimitPerBlock)
+	args.Economics.FeeSettings.GasLimitSettings[0].MaxGasLimitPerBlock = fmt.Sprintf("%d", maxGasLimitPerBlock)
 	args.Economics.FeeSettings.MinGasPrice = fmt.Sprintf("%d", minGasPrice)
-	args.Economics.FeeSettings.MinGasLimit = fmt.Sprintf("%d", minGasLimit)
+	args.Economics.FeeSettings.GasLimitSettings[0].MinGasLimit = fmt.Sprintf("%d", minGasLimit)
 	economicsData, _ := economics.NewEconomicsData(args)
 	tx := &transaction.Transaction{
 		GasPrice: minGasPrice,
@@ -477,9 +671,9 @@ func TestEconomicsData_TxWithWithMoreGasLimitThanMaximumPerBlockShouldNotWork(t 
 	minGasPrice := uint64(500)
 	minGasLimit := uint64(12)
 	maxGasLimitPerBlock := uint64(42)
-	args.Economics.FeeSettings.MaxGasLimitPerBlock = fmt.Sprintf("%d", maxGasLimitPerBlock)
+	args.Economics.FeeSettings.GasLimitSettings[0].MaxGasLimitPerBlock = fmt.Sprintf("%d", maxGasLimitPerBlock)
 	args.Economics.FeeSettings.MinGasPrice = fmt.Sprintf("%d", minGasPrice)
-	args.Economics.FeeSettings.MinGasLimit = fmt.Sprintf("%d", minGasLimit)
+	args.Economics.FeeSettings.GasLimitSettings[0].MinGasLimit = fmt.Sprintf("%d", minGasLimit)
 	economicsData, _ := economics.NewEconomicsData(args)
 
 	tx := &transaction.Transaction{
@@ -514,9 +708,9 @@ func TestEconomicsData_TxWithWithMoreValueThanGenesisSupplyShouldError(t *testin
 	minGasPrice := uint64(500)
 	minGasLimit := uint64(12)
 	maxGasLimitPerBlock := minGasLimit + 42
-	args.Economics.FeeSettings.MaxGasLimitPerBlock = fmt.Sprintf("%d", maxGasLimitPerBlock)
+	args.Economics.FeeSettings.GasLimitSettings[0].MaxGasLimitPerBlock = fmt.Sprintf("%d", maxGasLimitPerBlock)
 	args.Economics.FeeSettings.MinGasPrice = fmt.Sprintf("%d", minGasPrice)
-	args.Economics.FeeSettings.MinGasLimit = fmt.Sprintf("%d", minGasLimit)
+	args.Economics.FeeSettings.GasLimitSettings[0].MinGasLimit = fmt.Sprintf("%d", minGasLimit)
 	economicsData, _ := economics.NewEconomicsData(args)
 	tx := &transaction.Transaction{
 		GasPrice: minGasPrice + 1,
@@ -539,9 +733,9 @@ func TestEconomicsData_SCRWithNotEnoughMoveBalanceShouldNotError(t *testing.T) {
 	minGasPrice := uint64(500)
 	minGasLimit := uint64(12)
 	maxGasLimitPerBlock := minGasLimit + 42
-	args.Economics.FeeSettings.MaxGasLimitPerBlock = fmt.Sprintf("%d", maxGasLimitPerBlock)
+	args.Economics.FeeSettings.GasLimitSettings[0].MaxGasLimitPerBlock = fmt.Sprintf("%d", maxGasLimitPerBlock)
 	args.Economics.FeeSettings.MinGasPrice = fmt.Sprintf("%d", minGasPrice)
-	args.Economics.FeeSettings.MinGasLimit = fmt.Sprintf("%d", minGasLimit)
+	args.Economics.FeeSettings.GasLimitSettings[0].MinGasLimit = fmt.Sprintf("%d", minGasLimit)
 	economicsData, _ := economics.NewEconomicsData(args)
 	scr := &smartContractResult.SmartContractResult{
 		GasPrice: minGasPrice + 1,
@@ -805,12 +999,36 @@ func TestEconomicsData_ComputeGasUsedAndFeeBasedOnRefundValueSpecialBuiltIn(t *t
 
 	tx := &transaction.Transaction{
 		GasPrice: 1000000000,
-		GasLimit: 120000,
+		GasLimit: 104009,
 		Data:     []byte("ESDTTransfer@54474e2d383862383366@0a"),
 	}
 
 	expectedGasUsed := uint64(104001)
 	expectedFee, _ := big.NewInt(0).SetString("104000010000000", 10)
+
+	refundValue, _ := big.NewInt(0).SetString("0", 10)
+	gasUsed, fee := economicData.ComputeGasUsedAndFeeBasedOnRefundValue(tx, refundValue)
+	require.Equal(t, expectedGasUsed, gasUsed)
+	require.Equal(t, expectedFee, fee)
+}
+
+func TestEconomicsData_ComputeGasUsedAndFeeBasedOnRefundValueSpecialBuiltInTooMuchGas(t *testing.T) {
+	t.Parallel()
+
+	builtInCostHandler, _ := economics.NewBuiltInFunctionsCost(&economics.ArgsBuiltInFunctionCost{
+		GasSchedule: mock.NewGasScheduleNotifierMock(defaults.FillGasMapInternal(map[string]map[string]uint64{}, 1)),
+		ArgsParser:  smartContract.NewArgumentParser(),
+	})
+	economicData, _ := economics.NewEconomicsData(createArgsForEconomicsDataRealFees(builtInCostHandler))
+
+	tx := &transaction.Transaction{
+		GasPrice: 1000000000,
+		GasLimit: 104011,
+		Data:     []byte("ESDTTransfer@54474e2d383862383366@0a"),
+	}
+
+	expectedGasUsed := uint64(104011)
+	expectedFee, _ := big.NewInt(0).SetString("104000110000000", 10)
 
 	refundValue, _ := big.NewInt(0).SetString("0", 10)
 	gasUsed, fee := economicData.ComputeGasUsedAndFeeBasedOnRefundValue(tx, refundValue)

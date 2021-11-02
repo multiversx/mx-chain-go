@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	interceptorFactory "github.com/ElrondNetwork/elrond-go/process/interceptors/factory"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -314,11 +313,6 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateShardHeaderInterceptor
 }
 
 func (ficf *fullSyncInterceptorsContainerFactory) createOneShardHeaderInterceptor(topic string) (process.Interceptor, error) {
-	hdrValidator, err := dataValidators.NewNilHeaderValidator()
-	if err != nil {
-		return nil, err
-	}
-
 	hdrFactory, err := interceptorFactory.NewInterceptedShardHeaderDataFactory(ficf.argInterceptorFactory)
 	if err != nil {
 		return nil, err
@@ -326,7 +320,6 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneShardHeaderIntercepto
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
 		Headers:        ficf.dataPool.Headers(),
-		HdrValidator:   hdrValidator,
 		BlockBlackList: ficf.blockBlackList,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
@@ -534,14 +527,9 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneTxInterceptor(topic s
 }
 
 func (ficf *fullSyncInterceptorsContainerFactory) createOneUnsignedTxInterceptor(topic string) (process.Interceptor, error) {
-	txValidator, err := mock.NewNilTxValidator()
-	if err != nil {
-		return nil, err
-	}
-
 	argProcessor := &processor.ArgTxInterceptorProcessor{
 		ShardedDataCache: ficf.dataPool.UnsignedTransactions(),
-		TxValidator:      txValidator,
+		TxValidator:      dataValidators.NewDisabledTxValidator(),
 	}
 	txProcessor, err := processor.NewTxInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -574,14 +562,9 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneUnsignedTxInterceptor
 }
 
 func (ficf *fullSyncInterceptorsContainerFactory) createOneRewardTxInterceptor(topic string) (process.Interceptor, error) {
-	txValidator, err := mock.NewNilTxValidator()
-	if err != nil {
-		return nil, err
-	}
-
 	argProcessor := &processor.ArgTxInterceptorProcessor{
 		ShardedDataCache: ficf.dataPool.RewardTransactions(),
-		TxValidator:      txValidator,
+		TxValidator:      dataValidators.NewDisabledTxValidator(),
 	}
 	txProcessor, err := processor.NewTxInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -691,11 +674,6 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateMetachainHeaderInterce
 		return nil
 	}
 
-	hdrValidator, err := dataValidators.NewNilHeaderValidator()
-	if err != nil {
-		return err
-	}
-
 	hdrFactory, err := interceptorFactory.NewInterceptedMetaHeaderDataFactory(ficf.argInterceptorFactory)
 	if err != nil {
 		return err
@@ -703,7 +681,6 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateMetachainHeaderInterce
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
 		Headers:        ficf.dataPool.Headers(),
-		HdrValidator:   hdrValidator,
 		BlockBlackList: ficf.blockBlackList,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)

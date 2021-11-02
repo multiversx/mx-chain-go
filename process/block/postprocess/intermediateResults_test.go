@@ -325,7 +325,11 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsShardIdMismatch
 		&mock.ChainStorerMock{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
+		&mock.FeeHandlerStub{
+			MaxGasLimitPerMiniBlockCalled: func() uint64 {
+				return maxGasLimitPerBlock
+			},
+		},
 	)
 
 	assert.NotNil(t, irp)
@@ -395,7 +399,11 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddrGood(t *tes
 		&mock.ChainStorerMock{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
+		&mock.FeeHandlerStub{
+			MaxGasLimitPerMiniBlockCalled: func() uint64 {
+				return maxGasLimitPerBlock
+			},
+		},
 	)
 
 	assert.NotNil(t, irp)
@@ -442,13 +450,18 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddAndRevert(t 
 	err = irp.AddIntermediateTransactions(txs)
 	assert.Nil(t, err)
 	irp.mutInterResultsForBlock.Lock()
-	assert.Equal(t, len(irp.mapTxToResult[string(txHash)]), len(txs))
+	assert.Equal(t, len(irp.mapProcessedResult), len(txs))
 	irp.mutInterResultsForBlock.Unlock()
 
-	irp.RemoveProcessedResultsFor([][]byte{txHash})
+	irp.RemoveProcessedResults()
 	irp.mutInterResultsForBlock.Lock()
-	assert.Equal(t, len(irp.mapTxToResult[string(txHash)]), 0)
 	assert.Equal(t, len(irp.interResultsForBlock), 0)
+	assert.Equal(t, len(irp.mapProcessedResult), len(txs))
+	irp.mutInterResultsForBlock.Unlock()
+
+	irp.InitProcessedResults()
+	irp.mutInterResultsForBlock.Lock()
+	assert.Equal(t, len(irp.mapProcessedResult), 0)
 	irp.mutInterResultsForBlock.Unlock()
 }
 
@@ -464,7 +477,11 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksNothingInCache(t *
 		&mock.ChainStorerMock{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
+		&mock.FeeHandlerStub{
+			MaxGasLimitPerMiniBlockCalled: func() uint64 {
+				return maxGasLimitPerBlock
+			},
+		},
 	)
 
 	assert.NotNil(t, irp)
@@ -487,7 +504,7 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksNotCrossShard(t *t
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{
-			MaxGasLimitPerBlockCalled: func() uint64 {
+			MaxGasLimitPerMiniBlockCalled: func() uint64 {
 				return maxGasLimitPerBlock
 			},
 		},
@@ -525,7 +542,7 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksCrossShard(t *test
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{
-			MaxGasLimitPerBlockCalled: func() uint64 {
+			MaxGasLimitPerMiniBlockCalled: func() uint64 {
 				return maxGasLimitPerBlock
 			},
 		},
@@ -703,7 +720,7 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyMiniBlockMissmatc
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{
-			MaxGasLimitPerBlockCalled: func() uint64 {
+			MaxGasLimitPerMiniBlockCalled: func() uint64 {
 				return maxGasLimitPerBlock
 			},
 		},
@@ -753,6 +770,9 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyShouldPass(t *tes
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{
+			MaxGasLimitPerMiniBlockCalled: func() uint64 {
+				return maxGasLimitPerBlock
+			},
 			MaxGasLimitPerBlockCalled: func() uint64 {
 				return maxGasLimitPerBlock
 			},
@@ -1013,7 +1033,7 @@ func TestIntermediateResultsProcessor_SplitMiniBlocksIfNeededShouldWork(t *testi
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{
-			MaxGasLimitPerBlockCalled: func() uint64 {
+			MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
 				return gasLimit
 			},
 		},

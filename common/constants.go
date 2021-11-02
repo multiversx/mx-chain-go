@@ -309,6 +309,9 @@ const MetricMinTransactionVersion = "erd_min_transaction_version"
 // MetricGasPerDataByte is the metric that specifies the required gas for a data byte
 const MetricGasPerDataByte = "erd_gas_per_data_byte"
 
+// MetricMaxGasPerTransaction is the metric that specifies the maximum gas limit for a transaction
+const MetricMaxGasPerTransaction = "erd_max_gas_per_transaction"
+
 // MetricChainId is the metric that specifies current chain id
 const MetricChainId = "erd_chain_id"
 

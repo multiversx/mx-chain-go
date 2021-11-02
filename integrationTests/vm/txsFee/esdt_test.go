@@ -28,7 +28,7 @@ func TestESDTTransferShouldWork(t *testing.T) {
 	egldBalance := big.NewInt(100000000)
 	esdtBalance := big.NewInt(100000000)
 	token := []byte("miiutoken")
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, egldBalance, token, esdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, egldBalance, token, 0, esdtBalance)
 
 	gasPrice := uint64(10)
 	gasLimit := uint64(40)
@@ -74,7 +74,7 @@ func TestESDTTransferShouldWorkToMuchGasShouldConsumeAllGas(t *testing.T) {
 	egldBalance := big.NewInt(100000000)
 	esdtBalance := big.NewInt(100000000)
 	token := []byte("miiutoken")
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, egldBalance, token, esdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, egldBalance, token, 0, esdtBalance)
 
 	gasPrice := uint64(10)
 	gasLimit := uint64(1000)
@@ -120,7 +120,7 @@ func TestESDTTransferInvalidESDTValueShouldConsumeGas(t *testing.T) {
 	egldBalance := big.NewInt(100000000)
 	esdtBalance := big.NewInt(100000000)
 	token := []byte("miiutoken")
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, egldBalance, token, esdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, egldBalance, token, 0, esdtBalance)
 
 	gasPrice := uint64(10)
 	gasLimit := uint64(1000)
@@ -169,7 +169,7 @@ func TestESDTTransferCallBackOnErrorShouldNotGenerateSCRsFurther(t *testing.T) {
 	egldBalance := big.NewInt(100000000)
 	esdtBalance := big.NewInt(100000000)
 	token := []byte("miiutoken")
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, egldBalance, token, esdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, egldBalance, token, 0, esdtBalance)
 
 	hexEncodedToken := hex.EncodeToString(token)
 	esdtValueEncoded := hex.EncodeToString(big.NewInt(100).Bytes())

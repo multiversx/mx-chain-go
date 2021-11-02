@@ -7,8 +7,8 @@ import (
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
 	dataTransaction "github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/api"
-	"github.com/ElrondNetwork/elrond-go/api/middleware"
+	"github.com/ElrondNetwork/elrond-go/api/groups"
+	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/config"
 	nodeFacade "github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -102,7 +102,7 @@ func createTestApiConfig() config.ApiRoutesConfig {
 		"validator":   {"/statistics"},
 		"vm-values":   {"/hex", "/string", "/int", "/query"},
 		"transaction": {"/send", "/simulate", "/send-multiple", "/cost", "/:txhash"},
-		"block":       {"/by-nonce/:nonce", "/by-hash/:hash"},
+		"block":       {"/by-nonce/:nonce", "/by-hash/:hash", "/by-round/:round"},
 	}
 
 	routesConfig := config.ApiRoutesConfig{
@@ -216,13 +216,62 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 func createGinServer(facade Facade, apiConfig config.ApiRoutesConfig) *gin.Engine {
 	ws := gin.New()
 	ws.Use(cors.Default())
-	ws.Use(middleware.WithFacade(facade))
 
-	api.RegisterRoutes(
-		ws,
-		apiConfig,
-		facade,
-	)
+	groupsMap := createGroups(facade)
+	for groupName, groupHandler := range groupsMap {
+		ginGroup := ws.Group(groupName)
+		groupHandler.RegisterRoutes(ginGroup, apiConfig)
+	}
 
 	return ws
+}
+
+func createGroups(facade Facade) map[string]shared.GroupHandler {
+	groupsMap := make(map[string]shared.GroupHandler)
+	addressGroup, err := groups.NewAddressGroup(facade)
+	if err == nil {
+		groupsMap["address"] = addressGroup
+	}
+
+	blockGroup, err := groups.NewBlockGroup(facade)
+	if err == nil {
+		groupsMap["block"] = blockGroup
+	}
+
+	hardforkGroup, err := groups.NewHardforkGroup(facade)
+	if err == nil {
+		groupsMap["hardfork"] = hardforkGroup
+	}
+
+	networkGroup, err := groups.NewNetworkGroup(facade)
+	if err == nil {
+		groupsMap["network"] = networkGroup
+	}
+
+	nodeGroup, err := groups.NewNodeGroup(facade)
+	if err == nil {
+		groupsMap["node"] = nodeGroup
+	}
+
+	proofGroup, err := groups.NewProofGroup(facade)
+	if err == nil {
+		groupsMap["proof"] = proofGroup
+	}
+
+	transactionGroup, err := groups.NewTransactionGroup(facade)
+	if err == nil {
+		groupsMap["transaction"] = transactionGroup
+	}
+
+	validatorGroup, err := groups.NewValidatorGroup(facade)
+	if err == nil {
+		groupsMap["validator"] = validatorGroup
+	}
+
+	vmValuesGroup, err := groups.NewVmValuesGroup(facade)
+	if err == nil {
+		groupsMap["vm-values"] = vmValuesGroup
+	}
+
+	return groupsMap
 }

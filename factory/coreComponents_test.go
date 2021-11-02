@@ -370,12 +370,18 @@ func createDummyEconomicsConfig() config.EconomicsConfig {
 			},
 		},
 		FeeSettings: config.FeeSettings{
-			MaxGasLimitPerBlock:     "1500000000",
-			MaxGasLimitPerMetaBlock: "15000000000",
-			MinGasPrice:             "1000000000",
-			MinGasLimit:             "50000",
-			GasPerDataByte:          "1500",
-			GasPriceModifier:        1,
+			GasLimitSettings: []config.GasLimitSetting{
+				{
+					MaxGasLimitPerBlock:         "1500000000",
+					MaxGasLimitPerMiniBlock:     "1500000000",
+					MaxGasLimitPerMetaBlock:     "15000000000",
+					MaxGasLimitPerMetaMiniBlock: "15000000000",
+					MinGasLimit:                 "50000",
+				},
+			},
+			MinGasPrice:      "1000000000",
+			GasPerDataByte:   "1500",
+			GasPriceModifier: 1,
 		},
 	}
 }

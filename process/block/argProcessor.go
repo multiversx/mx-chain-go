@@ -23,6 +23,7 @@ type coreComponentsHolder interface {
 	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
 	RoundHandler() consensus.RoundHandler
 	StatusHandler() core.AppStatusHandler
+	EconomicsData() process.EconomicsDataHandler
 	IsInterfaceNil() bool
 }
 
@@ -70,6 +71,7 @@ type ArgBaseProcessor struct {
 	EpochNotifier       process.EpochNotifier
 	VMContainersFactory process.VirtualMachinesContainerFactory
 	VmContainer         process.VirtualMachinesContainer
+	GasHandler          gasConsumedProvider
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create

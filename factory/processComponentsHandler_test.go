@@ -80,7 +80,6 @@ func TestManagedProcessComponents_Create_ShouldWork(t *testing.T) {
 	require.True(t, check.IfNil(managedProcessComponents.TxLogsProcessor()))
 	require.True(t, check.IfNil(managedProcessComponents.HeaderConstructionValidator()))
 	require.True(t, check.IfNil(managedProcessComponents.HeaderIntegrityVerifier()))
-	require.True(t, check.IfNilReflect(managedProcessComponents.ArwenChangeLocker()))
 	require.True(t, check.IfNil(managedProcessComponents.CurrentEpochProvider()))
 	require.True(t, check.IfNil(managedProcessComponents.NodeRedundancyHandler()))
 	require.True(t, check.IfNil(managedProcessComponents.WhiteListHandler()))
@@ -114,7 +113,6 @@ func TestManagedProcessComponents_Create_ShouldWork(t *testing.T) {
 	require.False(t, check.IfNil(managedProcessComponents.TxLogsProcessor()))
 	require.False(t, check.IfNil(managedProcessComponents.HeaderConstructionValidator()))
 	require.False(t, check.IfNil(managedProcessComponents.HeaderIntegrityVerifier()))
-	require.False(t, check.IfNilReflect(managedProcessComponents.ArwenChangeLocker()))
 	require.False(t, check.IfNil(managedProcessComponents.CurrentEpochProvider()))
 	require.False(t, check.IfNil(managedProcessComponents.NodeRedundancyHandler()))
 	require.False(t, check.IfNil(managedProcessComponents.WhiteListHandler()))
@@ -126,6 +124,12 @@ func TestManagedProcessComponents_Create_ShouldWork(t *testing.T) {
 	require.False(t, check.IfNil(managedProcessComponents.FallbackHeaderValidator()))
 	require.False(t, check.IfNil(managedProcessComponents.PeerShardMapper()))
 	require.False(t, check.IfNil(managedProcessComponents.ShardCoordinator()))
+
+	nodeSkBytes, err := cryptoComponents.PrivateKey().ToByteArray()
+	require.Nil(t, err)
+	observerSkBytes, err := managedProcessComponents.NodeRedundancyHandler().ObserverPrivateKey().ToByteArray()
+	require.Nil(t, err)
+	require.NotEqual(t, nodeSkBytes, observerSkBytes)
 }
 
 func TestManagedProcessComponents_Close(t *testing.T) {

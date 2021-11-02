@@ -1366,3 +1366,10 @@ func TestBranchNode_commitContextDone(t *testing.T) {
 	err = bn.commitSnapshot(db, db, nil, ctx)
 	assert.Equal(t, ErrContextClosing, err)
 }
+
+func TestBranchNode_getValueReturnsEmptyByteSlice(t *testing.T) {
+	t.Parallel()
+
+	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
+	assert.Equal(t, []byte{}, bn.getValue())
+}

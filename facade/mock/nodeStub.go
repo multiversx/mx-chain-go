@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -39,6 +40,7 @@ type NodeStub struct {
 	GetPeerInfoCalled                              func(pid string) ([]core.QueryP2PPeerInfo, error)
 	GetBlockByHashCalled                           func(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonceCalled                          func(nonce uint64, withTxs bool) (*api.Block, error)
+	GetBlockByRoundCalled                          func(round uint64, withTxs bool) (*api.Block, error)
 	GetUsernameCalled                              func(address string) (string, error)
 	GetESDTDataCalled                              func(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error)
 	GetAllESDTTokensCalled                         func(address string) (map[string]*esdt.ESDigitalToken, error)
@@ -47,6 +49,36 @@ type NodeStub struct {
 	GetESDTsRolesCalled                            func(address string) (map[string][]string, error)
 	GetKeyValuePairsCalled                         func(address string) (map[string]string, error)
 	GetAllIssuedESDTsCalled                        func(tokenType string) ([]string, error)
+	GetProofCalled                                 func(rootHash string, key string) (*common.GetProofResponse, error)
+	GetProofDataTrieCalled                         func(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error)
+	VerifyProofCalled                              func(rootHash string, address string, proof [][]byte) (bool, error)
+}
+
+// GetProof -
+func (ns *NodeStub) GetProof(rootHash string, key string) (*common.GetProofResponse, error) {
+	if ns.GetProofCalled != nil {
+		return ns.GetProofCalled(rootHash, key)
+	}
+
+	return nil, nil
+}
+
+// GetProofDataTrie -
+func (ns *NodeStub) GetProofDataTrie(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error) {
+	if ns.GetProofDataTrieCalled != nil {
+		return ns.GetProofDataTrieCalled(rootHash, address, key)
+	}
+
+	return nil, nil, nil
+}
+
+// VerifyProof -
+func (ns *NodeStub) VerifyProof(rootHash string, address string, proof [][]byte) (bool, error) {
+	if ns.VerifyProofCalled != nil {
+		return ns.VerifyProofCalled(rootHash, address, proof)
+	}
+
+	return false, nil
 }
 
 // GetUsername -
@@ -58,7 +90,7 @@ func (ns *NodeStub) GetUsername(address string) (string, error) {
 	return "", nil
 }
 
-// GetKeyValuesPairs -
+// GetKeyValuePairs -
 func (ns *NodeStub) GetKeyValuePairs(address string) (map[string]string, error) {
 	if ns.GetKeyValuePairsCalled != nil {
 		return ns.GetKeyValuePairsCalled(address)
@@ -89,6 +121,14 @@ func (ns *NodeStub) GetBlockByHash(hash string, withTxs bool) (*api.Block, error
 // GetBlockByNonce -
 func (ns *NodeStub) GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error) {
 	return ns.GetBlockByNonceCalled(nonce, withTxs)
+}
+
+// GetBlockByRound -
+func (ns *NodeStub) GetBlockByRound(round uint64, withTxs bool) (*api.Block, error) {
+	if ns.GetBlockByRoundCalled != nil {
+		return ns.GetBlockByRoundCalled(round, withTxs)
+	}
+	return nil, nil
 }
 
 // DecodeAddressPubkey -

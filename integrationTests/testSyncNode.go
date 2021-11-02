@@ -214,6 +214,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		BlockSizeThrottler: TestBlockSizeThrottler,
 		HistoryRepository:  tpn.HistoryRepository,
 		EpochNotifier:      tpn.EpochNotifier,
+		GasHandler:         tpn.GasHandler,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {

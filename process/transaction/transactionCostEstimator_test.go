@@ -87,6 +87,38 @@ func TestComputeTransactionGasLimit_MoveBalance(t *testing.T) {
 	require.Equal(t, consumedGasUnits, cost.GasUnits)
 }
 
+func TestComputeTransactionGasLimit_MoveBalanceInvalidNonceShouldStillComputeCost(t *testing.T) {
+	t.Parallel()
+
+	simulationErr := errors.New("invalid nonce")
+	consumedGasUnits := uint64(1000)
+	tce, _ := NewTransactionCostEstimator(&testscommon.TxTypeHandlerMock{
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			return process.MoveBalance, process.MoveBalance
+		},
+	}, &mock.FeeHandlerStub{
+		MaxGasLimitPerBlockCalled: func() uint64 {
+			return math.MaxUint64
+		},
+		ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
+			return consumedGasUnits
+		},
+	}, &mock.TransactionSimulatorStub{
+		ProcessTxCalled: func(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
+			return nil, simulationErr
+		},
+	}, &stateMock.AccountsStub{
+		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
+			return &stateMock.UserAccountStub{Balance: big.NewInt(100000)}, nil
+		},
+	}, &mock.ShardCoordinatorStub{})
+
+	tx := &transaction.Transaction{}
+	cost, err := tce.ComputeTransactionGasLimit(tx)
+	require.Nil(t, err)
+	require.Equal(t, consumedGasUnits, cost.GasUnits)
+}
+
 func TestComputeTransactionGasLimit_BuiltInFunction(t *testing.T) {
 	consumedGasUnits := uint64(4000)
 	tce, _ := NewTransactionCostEstimator(&testscommon.TxTypeHandlerMock{

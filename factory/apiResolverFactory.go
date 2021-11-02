@@ -102,6 +102,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		args.Configs.EpochConfig.EnableEpochs.GlobalMintBurnDisableEpoch,
 		args.Configs.EpochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
 		args.Configs.EpochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
+		args.Configs.EpochConfig.EnableEpochs.ESDTNFTCreateOnMultiShardEnableEpoch,
 	)
 	if err != nil {
 		return nil, err
@@ -236,6 +237,7 @@ func createScQueryElement(
 		args.epochConfig.EnableEpochs.GlobalMintBurnDisableEpoch,
 		args.epochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
 		args.epochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
+		args.epochConfig.EnableEpochs.ESDTNFTCreateOnMultiShardEnableEpoch,
 	)
 	if err != nil {
 		return nil, err
@@ -292,16 +294,14 @@ func createScQueryElement(
 			return nil, err
 		}
 		argsNewVMFactory := shard.ArgVMContainerFactory{
-			Config:                         queryVirtualMachineConfig,
-			BlockGasLimit:                  args.coreComponents.EconomicsData().MaxGasLimitPerBlock(args.processComponents.ShardCoordinator().SelfId()),
-			GasSchedule:                    args.gasScheduleNotifier,
-			ArgBlockChainHook:              argsHook,
-			EpochNotifier:                  args.coreComponents.EpochNotifier(),
-			DeployEnableEpoch:              args.epochConfig.EnableEpochs.SCDeployEnableEpoch,
-			AheadOfTimeGasUsageEnableEpoch: args.epochConfig.EnableEpochs.AheadOfTimeGasUsageEnableEpoch,
-			ArwenV3EnableEpoch:             args.epochConfig.EnableEpochs.RepairCallbackEnableEpoch,
-			ArwenChangeLocker:              args.processComponents.ArwenChangeLocker(),
-			ESDTTransferParser:             esdtTransferParser,
+			Config:             queryVirtualMachineConfig,
+			BlockGasLimit:      args.coreComponents.EconomicsData().MaxGasLimitPerBlock(args.processComponents.ShardCoordinator().SelfId()),
+			GasSchedule:        args.gasScheduleNotifier,
+			ArgBlockChainHook:  argsHook,
+			EpochNotifier:      args.coreComponents.EpochNotifier(),
+			EpochConfig:        args.epochConfig.EnableEpochs,
+			ArwenChangeLocker:  args.coreComponents.ArwenChangeLocker(),
+			ESDTTransferParser: esdtTransferParser,
 		}
 
 		log.Debug("apiResolver: enable epoch for sc deploy", "epoch", args.epochConfig.EnableEpochs.SCDeployEnableEpoch)
@@ -329,7 +329,7 @@ func createScQueryElement(
 		EconomicsFee:      args.coreComponents.EconomicsData(),
 		BlockChainHook:    vmFactory.BlockChainHookImpl(),
 		BlockChain:        args.dataComponents.Blockchain(),
-		ArwenChangeLocker: args.processComponents.ArwenChangeLocker(),
+		ArwenChangeLocker: args.coreComponents.ArwenChangeLocker(),
 	}
 	scQueryService, err := smartContract.NewSCQueryService(argsNewSCQueryService)
 
@@ -346,18 +346,20 @@ func createBuiltinFuncs(
 	esdtGlobalMintBurnDisableEpoch uint32,
 	esdtTransferRoleEnableEpoch uint32,
 	transferToMetaEnableEpoch uint32,
+	esdtNFTCreateOnMultiShard uint32,
 ) (vmcommon.BuiltInFunctionContainer, error) {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:                  gasScheduleNotifier,
-		MapDNSAddresses:              make(map[string]struct{}),
-		Marshalizer:                  marshalizer,
-		Accounts:                     accnts,
-		ShardCoordinator:             shardCoordinator,
-		EpochNotifier:                epochNotifier,
-		ESDTMultiTransferEnableEpoch: esdtMultiTransferEnableEpoch,
-		ESDTTransferRoleEnableEpoch:  esdtTransferRoleEnableEpoch,
-		GlobalMintBurnDisableEpoch:   esdtGlobalMintBurnDisableEpoch,
-		ESDTTransferMetaEnableEpoch:  transferToMetaEnableEpoch,
+		GasSchedule:                          gasScheduleNotifier,
+		MapDNSAddresses:                      make(map[string]struct{}),
+		Marshalizer:                          marshalizer,
+		Accounts:                             accnts,
+		ShardCoordinator:                     shardCoordinator,
+		EpochNotifier:                        epochNotifier,
+		ESDTMultiTransferEnableEpoch:         esdtMultiTransferEnableEpoch,
+		ESDTTransferRoleEnableEpoch:          esdtTransferRoleEnableEpoch,
+		GlobalMintBurnDisableEpoch:           esdtGlobalMintBurnDisableEpoch,
+		ESDTTransferMetaEnableEpoch:          transferToMetaEnableEpoch,
+		ESDTNFTCreateOnMultiShardEnableEpoch: esdtNFTCreateOnMultiShard,
 	}
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	if err != nil {

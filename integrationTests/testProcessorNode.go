@@ -251,7 +251,7 @@ type TestProcessorNode struct {
 	ResolversContainer    dataRetriever.ResolversContainer
 	ResolverFinder        dataRetriever.ResolversFinder
 	RequestHandler        process.RequestHandler
-	ArwenChangeLocker     process.Locker
+	ArwenChangeLocker     common.Locker
 
 	InterimProcContainer   process.IntermediateProcessorContainer
 	TxProcessor            process.TransactionProcessor
@@ -881,15 +881,13 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 					{StartEpoch: 0, Version: "*"},
 				},
 			},
-			BlockGasLimit:                  tpn.EconomicsData.MaxGasLimitPerBlock(tpn.ShardCoordinator.SelfId()),
-			GasSchedule:                    gasSchedule,
-			ArgBlockChainHook:              argsHook,
-			EpochNotifier:                  tpn.EpochNotifier,
-			DeployEnableEpoch:              0,
-			AheadOfTimeGasUsageEnableEpoch: 0,
-			ArwenV3EnableEpoch:             0,
-			ArwenChangeLocker:              tpn.ArwenChangeLocker,
-			ESDTTransferParser:             esdtTransferParser,
+			BlockGasLimit:      tpn.EconomicsData.MaxGasLimitPerBlock(tpn.ShardCoordinator.SelfId()),
+			GasSchedule:        gasSchedule,
+			ArgBlockChainHook:  argsHook,
+			EpochNotifier:      tpn.EpochNotifier,
+			EpochConfig:        tpn.EnableEpochs,
+			ArwenChangeLocker:  tpn.ArwenChangeLocker,
+			ESDTTransferParser: esdtTransferParser,
 		}
 		vmFactory, _ = shard.NewVMContainerFactory(argsNewVMFactory)
 	}
@@ -1001,12 +999,18 @@ func (tpn *TestProcessorNode) createDefaultEconomicsConfig() *config.EconomicsCo
 			},
 		},
 		FeeSettings: config.FeeSettings{
-			MaxGasLimitPerBlock:     maxGasLimitPerBlock,
-			MaxGasLimitPerMetaBlock: maxGasLimitPerBlock,
-			MinGasPrice:             minGasPrice,
-			MinGasLimit:             minGasLimit,
-			GasPerDataByte:          "1",
-			GasPriceModifier:        0.01,
+			GasLimitSettings: []config.GasLimitSetting{
+				{
+					MaxGasLimitPerBlock:         maxGasLimitPerBlock,
+					MaxGasLimitPerMiniBlock:     maxGasLimitPerBlock,
+					MaxGasLimitPerMetaBlock:     maxGasLimitPerBlock,
+					MaxGasLimitPerMetaMiniBlock: maxGasLimitPerBlock,
+					MinGasLimit:                 minGasLimit,
+				},
+			},
+			MinGasPrice:      minGasPrice,
+			GasPerDataByte:   "1",
+			GasPriceModifier: 0.01,
 		},
 	}
 }
@@ -1386,15 +1390,13 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 				{StartEpoch: 0, Version: "*"},
 			},
 		},
-		BlockGasLimit:                  maxGasLimitPerBlock,
-		GasSchedule:                    gasSchedule,
-		ArgBlockChainHook:              argsHook,
-		EpochNotifier:                  tpn.EpochNotifier,
-		DeployEnableEpoch:              0,
-		AheadOfTimeGasUsageEnableEpoch: 0,
-		ArwenV3EnableEpoch:             0,
-		ArwenChangeLocker:              tpn.ArwenChangeLocker,
-		ESDTTransferParser:             esdtTransferParser,
+		BlockGasLimit:      maxGasLimitPerBlock,
+		GasSchedule:        gasSchedule,
+		ArgBlockChainHook:  argsHook,
+		EpochNotifier:      tpn.EpochNotifier,
+		EpochConfig:        tpn.EnableEpochs,
+		ArwenChangeLocker:  tpn.ArwenChangeLocker,
+		ESDTTransferParser: esdtTransferParser,
 	}
 	vmFactory, _ := shard.NewVMContainerFactory(argsNewVMFactory)
 
@@ -1427,31 +1429,26 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	badBlocksHandler, _ := tpn.InterimProcContainer.Get(dataBlock.InvalidBlock)
 
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
-		VmContainer:                           tpn.VMContainer,
-		ArgsParser:                            tpn.ArgsParser,
-		Hasher:                                TestHasher,
-		Marshalizer:                           TestMarshalizer,
-		AccountsDB:                            tpn.AccntState,
-		BlockChainHook:                        vmFactory.BlockChainHookImpl(),
-		PubkeyConv:                            TestAddressPubkeyConverter,
-		ShardCoordinator:                      tpn.ShardCoordinator,
-		ScrForwarder:                          tpn.ScrForwarder,
-		TxFeeHandler:                          tpn.FeeAccumulator,
-		EconomicsFee:                          tpn.EconomicsData,
-		TxTypeHandler:                         txTypeHandler,
-		GasHandler:                            tpn.GasHandler,
-		GasSchedule:                           gasSchedule,
-		TxLogsProcessor:                       tpn.TransactionLogProcessor,
-		BadTxForwarder:                        badBlocksHandler,
-		EpochNotifier:                         tpn.EpochNotifier,
-		DeployEnableEpoch:                     tpn.EnableEpochs.SCDeployEnableEpoch,
-		BuiltinEnableEpoch:                    tpn.EnableEpochs.BuiltInFunctionsEnableEpoch,
-		PenalizedTooMuchGasEnableEpoch:        tpn.EnableEpochs.PenalizedTooMuchGasEnableEpoch,
-		VMOutputCacher:                        txcache.NewDisabledCache(),
-		ArwenChangeLocker:                     tpn.ArwenChangeLocker,
-		BuiltInFunctionOnMetachainEnableEpoch: tpn.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
-		SCRSizeInvariantCheckEnableEpoch:      tpn.EnableEpochs.SCRSizeInvariantCheckEnableEpoch,
-		BackwardCompSaveKeyValueEnableEpoch:   tpn.EnableEpochs.BackwardCompSaveKeyValueEnableEpoch,
+		VmContainer:       tpn.VMContainer,
+		ArgsParser:        tpn.ArgsParser,
+		Hasher:            TestHasher,
+		Marshalizer:       TestMarshalizer,
+		AccountsDB:        tpn.AccntState,
+		BlockChainHook:    vmFactory.BlockChainHookImpl(),
+		PubkeyConv:        TestAddressPubkeyConverter,
+		ShardCoordinator:  tpn.ShardCoordinator,
+		ScrForwarder:      tpn.ScrForwarder,
+		TxFeeHandler:      tpn.FeeAccumulator,
+		EconomicsFee:      tpn.EconomicsData,
+		TxTypeHandler:     txTypeHandler,
+		GasHandler:        tpn.GasHandler,
+		GasSchedule:       gasSchedule,
+		TxLogsProcessor:   tpn.TransactionLogProcessor,
+		BadTxForwarder:    badBlocksHandler,
+		EpochNotifier:     tpn.EpochNotifier,
+		VMOutputCacher:    txcache.NewDisabledCache(),
+		ArwenChangeLocker: tpn.ArwenChangeLocker,
+		EnableEpochs:      tpn.EnableEpochs,
 	}
 	sc, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	tpn.ScProcessor = smartContract.NewTestScProcessor(sc)
@@ -1496,6 +1493,8 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		tpn.BlockTracker,
 		TestBlockSizeComputationHandler,
 		TestBalanceComputationHandler,
+		tpn.EpochNotifier,
+		tpn.EnableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
@@ -1658,31 +1657,26 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler, tpn.EpochNotifier, tpn.EnableEpochs.SCDeployEnableEpoch)
 	badBlocksHandler, _ := tpn.InterimProcContainer.Get(dataBlock.InvalidBlock)
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
-		VmContainer:                           tpn.VMContainer,
-		ArgsParser:                            tpn.ArgsParser,
-		Hasher:                                TestHasher,
-		Marshalizer:                           TestMarshalizer,
-		AccountsDB:                            tpn.AccntState,
-		BlockChainHook:                        vmFactory.BlockChainHookImpl(),
-		PubkeyConv:                            TestAddressPubkeyConverter,
-		ShardCoordinator:                      tpn.ShardCoordinator,
-		ScrForwarder:                          tpn.ScrForwarder,
-		TxFeeHandler:                          tpn.FeeAccumulator,
-		EconomicsFee:                          tpn.EconomicsData,
-		TxTypeHandler:                         txTypeHandler,
-		GasHandler:                            tpn.GasHandler,
-		GasSchedule:                           gasSchedule,
-		TxLogsProcessor:                       tpn.TransactionLogProcessor,
-		BadTxForwarder:                        badBlocksHandler,
-		EpochNotifier:                         tpn.EpochNotifier,
-		BuiltinEnableEpoch:                    tpn.EnableEpochs.BuiltInFunctionsEnableEpoch,
-		DeployEnableEpoch:                     tpn.EnableEpochs.SCDeployEnableEpoch,
-		PenalizedTooMuchGasEnableEpoch:        tpn.EnableEpochs.PenalizedTooMuchGasEnableEpoch,
-		VMOutputCacher:                        txcache.NewDisabledCache(),
-		ArwenChangeLocker:                     tpn.ArwenChangeLocker,
-		BuiltInFunctionOnMetachainEnableEpoch: tpn.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
-		SCRSizeInvariantCheckEnableEpoch:      tpn.EnableEpochs.SCRSizeInvariantCheckEnableEpoch,
-		BackwardCompSaveKeyValueEnableEpoch:   tpn.EnableEpochs.BackwardCompSaveKeyValueEnableEpoch,
+		VmContainer:       tpn.VMContainer,
+		ArgsParser:        tpn.ArgsParser,
+		Hasher:            TestHasher,
+		Marshalizer:       TestMarshalizer,
+		AccountsDB:        tpn.AccntState,
+		BlockChainHook:    vmFactory.BlockChainHookImpl(),
+		PubkeyConv:        TestAddressPubkeyConverter,
+		ShardCoordinator:  tpn.ShardCoordinator,
+		ScrForwarder:      tpn.ScrForwarder,
+		TxFeeHandler:      tpn.FeeAccumulator,
+		EconomicsFee:      tpn.EconomicsData,
+		TxTypeHandler:     txTypeHandler,
+		GasHandler:        tpn.GasHandler,
+		GasSchedule:       gasSchedule,
+		TxLogsProcessor:   tpn.TransactionLogProcessor,
+		BadTxForwarder:    badBlocksHandler,
+		EpochNotifier:     tpn.EpochNotifier,
+		VMOutputCacher:    txcache.NewDisabledCache(),
+		ArwenChangeLocker: tpn.ArwenChangeLocker,
+		EnableEpochs:      tpn.EnableEpochs,
 	}
 	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	tpn.ScProcessor = smartContract.NewTestScProcessor(scProcessor)
@@ -1717,6 +1711,8 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		TestAddressPubkeyConverter,
 		TestBlockSizeComputationHandler,
 		TestBalanceComputationHandler,
+		tpn.EpochNotifier,
+		tpn.EnableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
@@ -1908,6 +1904,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		BlockSizeThrottler: TestBlockSizeThrottler,
 		HistoryRepository:  tpn.HistoryRepository,
 		EpochNotifier:      tpn.EpochNotifier,
+		GasHandler:         tpn.GasHandler,
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {
@@ -2128,6 +2125,7 @@ func (tpn *TestProcessorNode) initNode() {
 	coreComponents.EconomicsDataField = tpn.EconomicsData
 	coreComponents.SyncTimerField = &mock.SyncTimerMock{}
 	coreComponents.EpochNotifierField = tpn.EpochNotifier
+	coreComponents.ArwenChangeLockerInternal = tpn.ArwenChangeLocker
 
 	dataComponents := GetDefaultDataComponents()
 	dataComponents.BlockChain = tpn.BlockChain
@@ -2148,7 +2146,6 @@ func (tpn *TestProcessorNode) initNode() {
 	processComponents.HistoryRepositoryInternal = tpn.HistoryRepository
 	processComponents.WhiteListHandlerInternal = tpn.WhiteListHandler
 	processComponents.WhiteListerVerifiedTxsInternal = tpn.WhiteListerVerifiedTxs
-	processComponents.ArwenChangeLockerInternal = tpn.ArwenChangeLocker
 
 	cryptoComponents := GetDefaultCryptoComponents()
 	cryptoComponents.PrivKey = tpn.NodeKeys.Sk
