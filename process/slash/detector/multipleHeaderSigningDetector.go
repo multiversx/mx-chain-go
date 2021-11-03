@@ -80,21 +80,12 @@ func (mhs *multipleHeaderSigningDetector) VerifyData(interceptedData process.Int
 		return nil, process.ErrHeaderRoundNotRelevant
 	}
 
-	headerHash, err := mhs.computeHashWithoutSignatures(header)
+	err := mhs.cacheHeaderWithoutSignatures(header)
 	if err != nil {
 		return nil, err
 	}
 
-	headerInfo, err := block.NewHeaderInfo(header, headerHash)
-	if err != nil {
-		return nil, err
-	}
-	err = mhs.headersCache.Add(round, headerInfo)
-	if err != nil {
-		return nil, err
-	}
-
-	err = mhs.cacheSigners(headerInfo)
+	err = mhs.cacheSigners(header, interceptedHeader.Hash())
 	if err != nil {
 		return nil, err
 	}
@@ -105,6 +96,19 @@ func (mhs *multipleHeaderSigningDetector) VerifyData(interceptedData process.Int
 	}
 
 	return nil, process.ErrNoSlashingEventDetected
+}
+
+func (mhs *multipleHeaderSigningDetector) cacheHeaderWithoutSignatures(header data.HeaderHandler) error {
+	headerHash, err := mhs.computeHashWithoutSignatures(header)
+	if err != nil {
+		return err
+	}
+	headerInfo, err := block.NewHeaderInfo(header, headerHash)
+	if err != nil {
+		return err
+	}
+
+	return mhs.headersCache.Add(header.GetRound(), headerInfo)
 }
 
 func (mhs *multipleHeaderSigningDetector) computeHashWithoutSignatures(header data.HeaderHandler) ([]byte, error) {
@@ -127,8 +131,7 @@ func (mhs *multipleHeaderSigningDetector) computeHashWithoutSignatures(header da
 	return core.CalculateHash(mhs.marshaller, mhs.hasher, headerCopy)
 }
 
-func (mhs *multipleHeaderSigningDetector) cacheSigners(headerInfo data.HeaderInfoHandler) error {
-	header := headerInfo.GetHeaderHandler()
+func (mhs *multipleHeaderSigningDetector) cacheSigners(header data.HeaderHandler, hash []byte) error {
 	group, err := mhs.nodesCoordinator.ComputeConsensusGroup(
 		header.GetPrevRandSeed(),
 		header.GetRound(),
@@ -141,6 +144,11 @@ func (mhs *multipleHeaderSigningDetector) cacheSigners(headerInfo data.HeaderInf
 	bitmap := header.GetPubKeysBitmap()
 	for idx, validator := range group {
 		if slash.IsIndexSetInBitmap(uint32(idx), bitmap) {
+			headerInfo, err := block.NewHeaderInfo(header, hash)
+			if err != nil {
+				return err
+			}
+
 			err = mhs.slashingCache.Add(header.GetRound(), validator.PubKey(), headerInfo)
 			if err != nil {
 				return err
@@ -183,6 +191,10 @@ func (mhs *multipleHeaderSigningDetector) ValidateProof(proof coreSlash.Slashing
 	}
 
 	signers := multipleSigningProof.GetPubKeys()
+	if len(signers) == 0 {
+		return process.ErrNotEnoughPubKeysProvided
+	}
+
 	for _, signer := range signers {
 		err := mhs.checkSlashLevel(multipleSigningProof.GetHeaders(signer), multipleSigningProof.GetLevel(signer))
 		if err != nil {

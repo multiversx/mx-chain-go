@@ -71,11 +71,7 @@ func (mhp *multipleHeaderProposalsDetector) VerifyData(data process.InterceptedD
 		return nil, err
 	}
 
-	headerInfo, err := block.NewHeaderInfo(header, interceptedHeader.Hash())
-	if err != nil {
-		return nil, err
-	}
-	err = mhp.cache.Add(round, proposer, headerInfo)
+	err = mhp.cacheProposedHeader(proposer, header, interceptedHeader.Hash())
 	if err != nil {
 		return nil, err
 	}
@@ -103,6 +99,20 @@ func (mhp *multipleHeaderProposalsDetector) getProposerPubKey(header data.Header
 	}
 
 	return validators[0].PubKey(), nil
+}
+
+func (mhp *multipleHeaderProposalsDetector) cacheProposedHeader(proposer []byte, header data.HeaderHandler, hash []byte) error {
+	headerInfo, err := block.NewHeaderInfo(header, hash)
+	if err != nil {
+		return err
+	}
+
+	err = mhp.cache.Add(header.GetRound(), proposer, headerInfo)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (mhp *multipleHeaderProposalsDetector) getSlashingResult(currRound uint64, proposerPubKey []byte) *coreSlash.SlashingResult {

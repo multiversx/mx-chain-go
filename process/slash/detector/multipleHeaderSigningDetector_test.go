@@ -96,6 +96,23 @@ func TestMultipleHeaderSigningDetector_VerifyData_CannotCastData_ExpectError(t *
 	require.Equal(t, process.ErrCannotCastInterceptedDataToHeader, err)
 }
 
+func TestMultipleHeaderSigningDetector_VerifyData_InvalidBlockHeaderVersion_ExpectError(t *testing.T) {
+	t.Parallel()
+
+	sd, _ := detector.NewMultipleHeaderSigningDetector(
+		&mock.NodesCoordinatorMock{},
+		&mock.RoundHandlerMock{},
+		&hashingMocks.HasherMock{},
+		&mock.MarshalizerMock{},
+		&slashMocks.RoundDetectorCacheStub{},
+		&slashMocks.HeadersCacheStub{})
+
+	res, err := sd.VerifyData(slashMocks.CreateInterceptedHeaderData(&block.Header{}))
+
+	require.Nil(t, res)
+	require.NotNil(t, err)
+}
+
 func TestMultipleHeaderSigningDetector_VerifyData_IrrelevantRound_ExpectError(t *testing.T) {
 	t.Parallel()
 
@@ -318,6 +335,23 @@ func TestMultipleHeaderSigningDetector_VerifyData_ValidateProof(t *testing.T) {
 	tmp, err = ssd.VerifyData(hData2)
 	require.Nil(t, tmp)
 	require.Equal(t, process.ErrHeadersNotDifferentHashes, err)
+}
+
+func TestMultipleHeaderSigningDetector_ValidateProof_NotEnoughPubKeys_ExpectError(t *testing.T) {
+	t.Parallel()
+
+	ssd, _ := detector.NewMultipleHeaderSigningDetector(
+		&mockEpochStart.NodesCoordinatorStub{},
+		&mock.RoundHandlerMock{},
+		&hashingMocks.HasherMock{},
+		&mock.MarshalizerMock{},
+		&slashMocks.RoundDetectorCacheStub{},
+		&slashMocks.HeadersCacheStub{})
+
+	proof := &slashMocks.MultipleHeaderSigningProofStub{}
+	err := ssd.ValidateProof(proof)
+
+	require.Equal(t, process.ErrNotEnoughPubKeysProvided, err)
 }
 
 func TestMultipleHeaderSigningDetector_ValidateProof_InvalidProofType_ExpectError(t *testing.T) {
