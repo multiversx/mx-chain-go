@@ -9,7 +9,7 @@ import (
 type MultipleHeaderProposalProofStub struct {
 	GetTypeCalled    func() coreSlash.SlashingType
 	GetLevelCalled   func() coreSlash.ThreatLevel
-	GetHeadersCalled func() []data.HeaderInfoHandler
+	GetHeadersCalled func() []data.HeaderHandler
 }
 
 // GetType -
@@ -29,7 +29,7 @@ func (mps *MultipleHeaderProposalProofStub) GetLevel() coreSlash.ThreatLevel {
 }
 
 // GetHeaders -
-func (mps *MultipleHeaderProposalProofStub) GetHeaders() []data.HeaderInfoHandler {
+func (mps *MultipleHeaderProposalProofStub) GetHeaders() []data.HeaderHandler {
 	if mps.GetHeadersCalled != nil {
 		return mps.GetHeadersCalled()
 	}

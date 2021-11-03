@@ -9,7 +9,7 @@ import (
 type MultipleHeaderSigningProofStub struct {
 	GetTypeCalled    func() coreSlash.SlashingType
 	GetPubKeysCalled func() [][]byte
-	GetHeadersCalled func(pubKey []byte) []data.HeaderInfoHandler
+	GetHeadersCalled func(pubKey []byte) []data.HeaderHandler
 	GetLevelCalled   func(pubKey []byte) coreSlash.ThreatLevel
 }
 
@@ -38,7 +38,7 @@ func (mps *MultipleHeaderSigningProofStub) GetLevel(pubKey []byte) coreSlash.Thr
 }
 
 // GetHeaders -
-func (mps *MultipleHeaderSigningProofStub) GetHeaders(pubKey []byte) []data.HeaderInfoHandler {
+func (mps *MultipleHeaderSigningProofStub) GetHeaders(pubKey []byte) []data.HeaderHandler {
 	if mps.GetHeadersCalled != nil {
 		return mps.GetHeadersCalled(pubKey)
 	}

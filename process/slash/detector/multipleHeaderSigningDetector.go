@@ -6,7 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
@@ -103,10 +102,7 @@ func (mhs *multipleHeaderSigningDetector) cacheHeaderWithoutSignatures(header da
 	if err != nil {
 		return err
 	}
-	headerInfo, err := block.NewHeaderInfo(header, headerHash)
-	if err != nil {
-		return err
-	}
+	headerInfo := &slash.HeaderInfo{Header: header, Hash: headerHash}
 
 	return mhs.headersCache.Add(header.GetRound(), headerInfo)
 }
@@ -144,10 +140,7 @@ func (mhs *multipleHeaderSigningDetector) cacheSigners(header data.HeaderHandler
 	bitmap := header.GetPubKeysBitmap()
 	for idx, validator := range group {
 		if slash.IsIndexSetInBitmap(uint32(idx), bitmap) {
-			headerInfo, err := block.NewHeaderInfo(header, hash)
-			if err != nil {
-				return err
-			}
+			headerInfo := &slash.HeaderInfo{Header: header, Hash: hash}
 
 			err = mhs.slashingCache.Add(header.GetRound(), validator.PubKey(), headerInfo)
 			if err != nil {
@@ -176,7 +169,7 @@ func (mhs *multipleHeaderSigningDetector) getSlashingResult(round uint64) map[st
 }
 
 // TODO: Add different logic here once slashing threat levels are clearly defined
-func (mhs *multipleHeaderSigningDetector) computeSlashLevel(headers slash.HeaderInfoList) coreSlash.ThreatLevel {
+func (mhs *multipleHeaderSigningDetector) computeSlashLevel(headers slash.HeaderList) coreSlash.ThreatLevel {
 	return computeSlashLevelBasedOnHeadersCount(headers)
 }
 
@@ -211,28 +204,28 @@ func (mhs *multipleHeaderSigningDetector) ValidateProof(proof coreSlash.Slashing
 }
 
 // TODO: Add different logic here once slashing threat levels are clearly defined
-func (mhs *multipleHeaderSigningDetector) checkSlashLevel(headers slash.HeaderInfoList, level coreSlash.ThreatLevel) error {
+func (mhs *multipleHeaderSigningDetector) checkSlashLevel(headers slash.HeaderList, level coreSlash.ThreatLevel) error {
 	return checkSlashLevelBasedOnHeadersCount(headers, level)
 }
 
-func (mhs *multipleHeaderSigningDetector) checkSignedHeaders(pubKey []byte, headers slash.HeaderInfoList) error {
+func (mhs *multipleHeaderSigningDetector) checkSignedHeaders(pubKey []byte, headers slash.HeaderList) error {
 	if len(headers) < minSlashableNoOfHeaders {
 		return process.ErrNotEnoughHeadersProvided
 	}
 
 	hashes := make(map[string]struct{})
-	round := headers[0].GetHeaderHandler().GetRound()
-	for _, headerInfo := range headers {
-		if headerInfo.GetHeaderHandler().GetRound() != round {
+	round := headers[0].GetRound()
+	for _, header := range headers {
+		if header.GetRound() != round {
 			return process.ErrHeadersNotSameRound
 		}
 
-		hash, err := mhs.checkHash(headerInfo.GetHeaderHandler(), hashes)
+		hash, err := mhs.checkHash(header, hashes)
 		if err != nil {
 			return err
 		}
 
-		if !mhs.signedHeader(pubKey, headerInfo.GetHeaderHandler()) {
+		if !mhs.signedHeader(pubKey, header) {
 			return process.ErrHeaderNotSignedByValidator
 		}
 		hashes[hash] = struct{}{}

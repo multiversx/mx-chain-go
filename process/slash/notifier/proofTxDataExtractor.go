@@ -43,8 +43,8 @@ func (ptd *proofTxDataExtractor) txDataFromMultipleHeaderProposalProof(proof cor
 	}
 
 	return &ProofTxData{
-		Round:     headers[0].GetHeaderHandler().GetRound(),
-		ShardID:   headers[0].GetHeaderHandler().GetShardID(),
+		Round:     headers[0].GetRound(),
+		ShardID:   headers[0].GetShardID(),
 		Bytes:     proofBytes,
 		SlashType: proof.GetType(),
 	}, nil
@@ -64,13 +64,13 @@ func (ptd *proofTxDataExtractor) txDataFromMultipleHeaderSigningProof(proof core
 	if len(headers) == 0 {
 		return nil, process.ErrNotEnoughHeadersProvided
 	}
-	if headers[0] == nil || check.IfNil(headers[0].GetHeaderHandler()) {
+	if check.IfNil(headers[0]) {
 		return nil, process.ErrNilHeaderHandler
 	}
 
 	return &ProofTxData{
-		Round:     headers[0].GetHeaderHandler().GetRound(),
-		ShardID:   headers[0].GetHeaderHandler().GetShardID(),
+		Round:     headers[0].GetRound(),
+		ShardID:   headers[0].GetShardID(),
 		Bytes:     proofBytes,
 		SlashType: proof.GetType(),
 	}, nil

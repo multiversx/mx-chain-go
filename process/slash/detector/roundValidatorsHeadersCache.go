@@ -32,12 +32,12 @@ func NewRoundValidatorHeaderCache(maxRounds uint64) *roundValidatorsHeadersCache
 
 // Add adds in cache an intercepted data for a public key, in a given round.
 // It has an eviction mechanism which always removes the oldest round entry when cache is full
-func (rdc *roundValidatorsHeadersCache) Add(round uint64, pubKey []byte, headerInfo *slash.HeaderInfo) error {
+func (rdc *roundValidatorsHeadersCache) Add(round uint64, pubKey []byte, headerInfo data.HeaderInfoHandler) error {
 	pubKeyStr := string(pubKey)
 	rdc.cacheMutex.Lock()
 	defer rdc.cacheMutex.Unlock()
 
-	if rdc.contains(round, pubKey, headerInfo.Hash) {
+	if rdc.contains(round, pubKey, headerInfo.GetHash()) {
 		return process.ErrHeadersNotDifferentHashes
 	}
 
