@@ -881,6 +881,9 @@ var ErrInvalidSlashType = errors.New("invalid slash type has been provided for t
 // ErrInvalidSlashLevel signals that an invalid slash level has been provided for the given proof
 var ErrInvalidSlashLevel = errors.New("invalid slash level has been provided for the given proof")
 
+// ErrNilProofTxDataExtractor signals that nil proof tx data extractor has been provided
+var ErrNilProofTxDataExtractor = errors.New("nil proof tx data extractor has been provided")
+
 // ErrNotEnoughHeadersProvided signals that not enough headers have been provided for a multiple header proof
 var ErrNotEnoughHeadersProvided = errors.New("not enough headers have been provided for a multiple header proof")
 

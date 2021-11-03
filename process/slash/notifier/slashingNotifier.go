@@ -35,23 +35,25 @@ const CommitmentProofGasLimit = 70000
 
 // SlashingNotifierArgs is a struct containing all arguments required to create a new slash.SlashingNotifier
 type SlashingNotifierArgs struct {
-	PrivateKey      crypto.PrivateKey
-	PublicKey       crypto.PublicKey
-	PubKeyConverter core.PubkeyConverter
-	Signer          crypto.SingleSigner
-	AccountAdapter  state.AccountsAdapter
-	Hasher          hashing.Hasher
-	Marshaller      marshal.Marshalizer
+	PrivateKey           crypto.PrivateKey
+	PublicKey            crypto.PublicKey
+	PubKeyConverter      core.PubkeyConverter
+	Signer               crypto.SingleSigner
+	AccountAdapter       state.AccountsAdapter
+	Hasher               hashing.Hasher
+	Marshaller           marshal.Marshalizer
+	ProofTxDataExtractor ProofTxDataExtractor
 }
 
 type slashingNotifier struct {
-	privateKey      crypto.PrivateKey
-	publicKey       crypto.PublicKey
-	pubKeyConverter core.PubkeyConverter
-	signer          crypto.SingleSigner
-	accountAdapter  state.AccountsAdapter
-	hasher          hashing.Hasher
-	marshaller      marshal.Marshalizer
+	privateKey           crypto.PrivateKey
+	publicKey            crypto.PublicKey
+	pubKeyConverter      core.PubkeyConverter
+	signer               crypto.SingleSigner
+	accountAdapter       state.AccountsAdapter
+	hasher               hashing.Hasher
+	marshaller           marshal.Marshalizer
+	proofTxDataExtractor ProofTxDataExtractor
 }
 
 // NewSlashingNotifier creates a new instance of a slash.SlashingNotifier
@@ -77,15 +79,19 @@ func NewSlashingNotifier(args *SlashingNotifierArgs) (slash.SlashingNotifier, er
 	if check.IfNil(args.Marshaller) {
 		return nil, process.ErrNilMarshalizer
 	}
+	if check.IfNil(args.ProofTxDataExtractor) {
+		return nil, process.ErrNilProofTxDataExtractor
+	}
 
 	return &slashingNotifier{
-		privateKey:      args.PrivateKey,
-		publicKey:       args.PublicKey,
-		pubKeyConverter: args.PubKeyConverter,
-		signer:          args.Signer,
-		accountAdapter:  args.AccountAdapter,
-		hasher:          args.Hasher,
-		marshaller:      args.Marshaller,
+		privateKey:           args.PrivateKey,
+		publicKey:            args.PublicKey,
+		pubKeyConverter:      args.PubKeyConverter,
+		signer:               args.Signer,
+		accountAdapter:       args.AccountAdapter,
+		hasher:               args.Hasher,
+		marshaller:           args.Marshaller,
+		proofTxDataExtractor: args.ProofTxDataExtractor,
 	}, nil
 }
 
@@ -93,10 +99,10 @@ func NewSlashingNotifier(args *SlashingNotifierArgs) (slash.SlashingNotifier, er
 // then a transaction will be issued, but it will not unveil details about the slash event, only a commitment proof.
 // This tx is distinguished by its data field, which should be of format: SlashCommitment@ProofID@ShardID@Round@CRC@Sign(proof), where:
 // 1. ProofID = 1 byte representing the slashing event ID (e.g.: multiple sign/proposal)
-// 2. CRC = last 2 bytes of Hash(proof)
+// 2. CRC = last 2 Bytes of Hash(proof)
 // 3. Sign(proof) = detector's proof signature. This is used to avoid front-running.
 func (sn *slashingNotifier) CreateShardSlashingTransaction(proof coreSlash.SlashingProofHandler) (data.TransactionHandler, error) {
-	proofTxData, err := sn.getProofTxData(proof)
+	proofTxData, err := sn.proofTxDataExtractor.GetProofTxData(proof)
 	if err != nil {
 		return nil, err
 	}
@@ -104,18 +110,7 @@ func (sn *slashingNotifier) CreateShardSlashingTransaction(proof coreSlash.Slash
 	return sn.createProofTx(proofTxData)
 }
 
-func (sn *slashingNotifier) getProofTxData(proof coreSlash.SlashingProofHandler) (*proofTxData, error) {
-	switch t := proof.(type) {
-	case coreSlash.MultipleProposalProofHandler:
-		return txDataFromMultipleHeaderProposalProof(sn.marshaller, t)
-	case coreSlash.MultipleSigningProofHandler:
-		return txDataFromMultipleHeaderSigningProof(sn.marshaller, t)
-	default:
-		return nil, process.ErrInvalidProof
-	}
-}
-
-func (sn *slashingNotifier) createProofTx(data *proofTxData) (*transaction.Transaction, error) {
+func (sn *slashingNotifier) createProofTx(data *ProofTxData) (*transaction.Transaction, error) {
 	tx, err := sn.createUnsignedTx(data)
 	if err != nil {
 		return nil, err
@@ -129,7 +124,7 @@ func (sn *slashingNotifier) createProofTx(data *proofTxData) (*transaction.Trans
 	return tx, nil
 }
 
-func (sn *slashingNotifier) createUnsignedTx(proofData *proofTxData) (*transaction.Transaction, error) {
+func (sn *slashingNotifier) createUnsignedTx(proofData *ProofTxData) (*transaction.Transaction, error) {
 	pubKey, err := sn.publicKey.ToByteArray()
 	if err != nil {
 		return nil, err
@@ -154,14 +149,14 @@ func (sn *slashingNotifier) createUnsignedTx(proofData *proofTxData) (*transacti
 	}, nil
 }
 
-func (sn *slashingNotifier) computeTxData(proofData *proofTxData) ([]byte, error) {
-	proofHash := sn.hasher.Compute(string(proofData.bytes))
+func (sn *slashingNotifier) computeTxData(proofData *ProofTxData) ([]byte, error) {
+	proofHash := sn.hasher.Compute(string(proofData.Bytes))
 	proofSignature, err := sn.signer.Sign(sn.privateKey, proofHash)
 	if err != nil {
 		return nil, err
 	}
 
-	proofID, found := slash.ProofIDs[proofData.slashType]
+	proofID, found := slash.ProofIDs[proofData.SlashType]
 	if !found {
 		return nil, process.ErrInvalidProof
 	}
@@ -169,7 +164,7 @@ func (sn *slashingNotifier) computeTxData(proofData *proofTxData) ([]byte, error
 	proofCRC := proofHash[len(proofHash)-2:]
 
 	dataStr := fmt.Sprintf("%s@%s@%d@%d@%s@%s", BuiltInFunctionSlashCommitmentProof,
-		[]byte{proofID}, proofData.shardID, proofData.round, proofCRC, proofSignature)
+		[]byte{proofID}, proofData.ShardID, proofData.Round, proofCRC, proofSignature)
 
 	return []byte(dataStr), nil
 }
