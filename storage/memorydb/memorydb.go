@@ -63,12 +63,6 @@ func (s *DB) Has(key []byte) error {
 	return nil
 }
 
-// Init initializes the storage medium and prepares it for usage
-func (s *DB) Init() error {
-	// no special initialization needed
-	return nil
-}
-
 // Close closes the files/resources associated to the storage medium
 func (s *DB) Close() error {
 	// nothing to do
