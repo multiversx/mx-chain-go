@@ -125,8 +125,8 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidPubKey_ExpectErr
 
 	sn, _ := notifier.NewSlashingNotifier(args)
 	proofStub := &slashMocks.MultipleHeaderProposalProofStub{
-		GetHeadersCalled: func() []data.HeaderInfoHandler {
-			return slash.HeaderInfoList{&block.HeaderInfo{Header: &block.HeaderV2{}}}
+		GetHeadersCalled: func() []data.HeaderHandler {
+			return slash.HeaderList{&block.HeaderV2{}}
 		},
 	}
 
@@ -145,8 +145,8 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidAccount_ExpectEr
 	}
 	sn, _ := notifier.NewSlashingNotifier(args)
 	proofStub := &slashMocks.MultipleHeaderProposalProofStub{
-		GetHeadersCalled: func() []data.HeaderInfoHandler {
-			return slash.HeaderInfoList{&block.HeaderInfo{Header: &block.HeaderV2{}}}
+		GetHeadersCalled: func() []data.HeaderHandler {
+			return slash.HeaderList{&block.HeaderV2{}}
 		},
 	}
 
@@ -166,8 +166,8 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidMarshaller_Expec
 
 	sn, _ := notifier.NewSlashingNotifier(args)
 	proof := &slashMocks.MultipleHeaderProposalProofStub{
-		GetHeadersCalled: func() []data.HeaderInfoHandler {
-			return slash.HeaderInfoList{&block.HeaderInfo{Header: &block.HeaderV2{}}}
+		GetHeadersCalled: func() []data.HeaderHandler {
+			return slash.HeaderList{&block.HeaderV2{}}
 		},
 	}
 
@@ -181,8 +181,8 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidSlashType_Expect
 
 	sn, _ := notifier.NewSlashingNotifier(args)
 	proofStub := &slashMocks.MultipleHeaderProposalProofStub{
-		GetHeadersCalled: func() []data.HeaderInfoHandler {
-			return slash.HeaderInfoList{&block.HeaderInfo{Header: &block.HeaderV2{}}}
+		GetHeadersCalled: func() []data.HeaderHandler {
+			return slash.HeaderList{&block.HeaderV2{}}
 		},
 		GetTypeCalled: func() coreSlash.SlashingType {
 			return 9999999
@@ -221,8 +221,8 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidProofSignature_E
 
 	sn, _ := notifier.NewSlashingNotifier(args)
 	proofStub := &slashMocks.MultipleHeaderProposalProofStub{
-		GetHeadersCalled: func() []data.HeaderInfoHandler {
-			return slash.HeaderInfoList{&block.HeaderInfo{Header: &block.HeaderV2{}}}
+		GetHeadersCalled: func() []data.HeaderHandler {
+			return slash.HeaderList{&block.HeaderV2{}}
 		},
 	}
 
@@ -248,8 +248,8 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidTxSignature_Expe
 
 	sn, _ := notifier.NewSlashingNotifier(args)
 	proofStub := &slashMocks.MultipleHeaderProposalProofStub{
-		GetHeadersCalled: func() []data.HeaderInfoHandler {
-			return slash.HeaderInfoList{&block.HeaderInfo{Header: &block.HeaderV2{}}}
+		GetHeadersCalled: func() []data.HeaderHandler {
+			return slash.HeaderList{&block.HeaderV2{}}
 		},
 	}
 
@@ -296,8 +296,8 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleProposalProof(t
 	}
 
 	proof := &slashMocks.MultipleHeaderProposalProofStub{
-		GetHeadersCalled: func() []data.HeaderInfoHandler {
-			return slash.HeaderInfoList{&block.HeaderInfo{Header: h1}, &block.HeaderInfo{Header: h2}}
+		GetHeadersCalled: func() []data.HeaderHandler {
+			return slash.HeaderList{h1, h2}
 		},
 	}
 
@@ -360,8 +360,8 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleSignProof(t *te
 		GetLevelCalled: func([]byte) coreSlash.ThreatLevel {
 			return coreSlash.High
 		},
-		GetHeadersCalled: func([]byte) []data.HeaderInfoHandler {
-			return slash.HeaderInfoList{&block.HeaderInfo{Header: h1}, &block.HeaderInfo{Header: h2}}
+		GetHeadersCalled: func([]byte) []data.HeaderHandler {
+			return slash.HeaderList{h1, h2}
 		},
 		GetPubKeysCalled: func() [][]byte {
 			return [][]byte{pk1}
