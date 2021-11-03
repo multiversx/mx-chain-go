@@ -145,10 +145,10 @@
     RemoveNonUpdatedStorageEnableEpoch = 1
 
     # ScheduledMiniBlocksEnableEpoch represents the epoch when scheduled mini blocks would be created if needed
-    ScheduledMiniBlocksEnableEpoch = 2
+    ScheduledMiniBlocksEnableEpoch = 3
 
     # MixedTxsInMiniBlocksEnableEpoch represents the epoch when mixed txs in mini blocks functionality will be enabled
-    MixedTxsInMiniBlocksEnableEpoch = 3
+    MixedTxsInMiniBlocksEnableEpoch = 4
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
