@@ -32,12 +32,12 @@ func NewRoundValidatorHeaderCache(maxRounds uint64) *roundValidatorsHeadersCache
 
 // Add adds in cache an intercepted data for a public key, in a given round.
 // It has an eviction mechanism which always removes the oldest round entry when cache is full
-func (rdc *roundValidatorsHeadersCache) Add(round uint64, pubKey []byte, headerInfo data.HeaderInfoHandler) error {
+func (rdc *roundValidatorsHeadersCache) Add(round uint64, pubKey []byte, headerInfo *slash.HeaderInfo) error {
 	pubKeyStr := string(pubKey)
 	rdc.cacheMutex.Lock()
 	defer rdc.cacheMutex.Unlock()
 
-	if rdc.contains(round, pubKey, headerInfo.GetHash()) {
+	if rdc.contains(round, pubKey, headerInfo.Hash) {
 		return process.ErrHeadersNotDifferentHashes
 	}
 
@@ -101,17 +101,26 @@ func (rdc *roundValidatorsHeadersCache) updateOldestRound() {
 }
 
 // GetHeaders returns all cached data for a public key, in a given round
-func (rdc *roundValidatorsHeadersCache) GetHeaders(round uint64, pubKey []byte) []data.HeaderInfoHandler {
+func (rdc *roundValidatorsHeadersCache) GetHeaders(round uint64, pubKey []byte) []data.HeaderHandler {
 	pubKeyStr := string(pubKey)
 	rdc.cacheMutex.RLock()
 	defer rdc.cacheMutex.RUnlock()
 
-	headerInfo, exists := rdc.cache[round]
+	validatorData, exists := rdc.cache[round]
+	if !exists {
+		return nil
+	}
+	headersInfo, exists := validatorData[pubKeyStr]
 	if !exists {
 		return nil
 	}
 
-	return headerInfo[pubKeyStr]
+	headers := make([]data.HeaderHandler, 0, len(headersInfo))
+	for _, headerInfo := range headersInfo {
+		headers = append(headers, headerInfo.GetHeaderHandler())
+	}
+
+	return headers
 }
 
 // GetPubKeys returns all cached public keys in a given round

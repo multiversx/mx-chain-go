@@ -7,7 +7,7 @@ import (
 // RoundDetectorCacheStub -
 type RoundDetectorCacheStub struct {
 	AddCalled            func(round uint64, pubKey []byte, headerInfo data.HeaderInfoHandler) error
-	GetDataCalled        func(round uint64, pubKey []byte) []data.HeaderInfoHandler
+	GetDataCalled        func(round uint64, pubKey []byte) []data.HeaderHandler
 	GetPubKeysCalled     func(round uint64) [][]byte
 	IsInterfaceNilCalled func() bool
 }
@@ -21,7 +21,7 @@ func (rdc *RoundDetectorCacheStub) Add(round uint64, pubKey []byte, headerInfo d
 }
 
 // GetHeaders -
-func (rdc *RoundDetectorCacheStub) GetHeaders(round uint64, pubKey []byte) []data.HeaderInfoHandler {
+func (rdc *RoundDetectorCacheStub) GetHeaders(round uint64, pubKey []byte) []data.HeaderHandler {
 	if rdc.GetDataCalled != nil {
 		return rdc.GetDataCalled(round, pubKey)
 	}

@@ -5,6 +5,9 @@ import "github.com/ElrondNetwork/elrond-go-core/data"
 // HeaderInfoList defines a list of data.HeaderInfoHandler
 type HeaderInfoList []data.HeaderInfoHandler
 
+// HeaderList defines a list of data.HeaderHandler
+type HeaderList []data.HeaderHandler
+
 // HeaderInfo defines a HeaderHandler and its corresponding hash
 type HeaderInfo struct {
 	Header data.HeaderHandler
