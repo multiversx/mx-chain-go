@@ -5,6 +5,22 @@ import "github.com/ElrondNetwork/elrond-go-core/data"
 // HeaderInfoList defines a list of data.HeaderInfoHandler
 type HeaderInfoList []data.HeaderInfoHandler
 
+// HeaderInfo defines a HeaderHandler and its corresponding hash
+type HeaderInfo struct {
+	Header data.HeaderHandler
+	Hash   []byte
+}
+
+// GetHeaderHandler returns data.HeaderHandler
+func (hi *HeaderInfo) GetHeaderHandler() data.HeaderHandler {
+	return hi.Header
+}
+
+// GetHash returns header's hash
+func (hi *HeaderInfo) GetHash() []byte {
+	return hi.Hash
+}
+
 // IsIndexSetInBitmap - checks if a bit is set(1) in the given bitmap
 // TODO: Move this utility function in ELROND-GO-CORE
 func IsIndexSetInBitmap(index uint32, bitmap []byte) bool {

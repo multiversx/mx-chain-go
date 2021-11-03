@@ -3,10 +3,12 @@ package detector
 import (
 	"bytes"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/process/slash"
@@ -17,6 +19,8 @@ import (
 type multipleHeaderProposalsDetector struct {
 	cache            RoundDetectorCache
 	nodesCoordinator sharding.NodesCoordinator
+	hasher           hashing.Hasher
+	marshaller       marshal.Marshalizer
 	baseSlashingDetector
 }
 
@@ -71,7 +75,7 @@ func (mhp *multipleHeaderProposalsDetector) VerifyData(data process.InterceptedD
 		return nil, err
 	}
 
-	err = mhp.cacheProposedHeader(proposer, header, interceptedHeader.Hash())
+	err = mhp.cache.Add(round, proposer, &slash.HeaderInfo{Header: header, Hash: interceptedHeader.Hash()})
 	if err != nil {
 		return nil, err
 	}
@@ -101,20 +105,6 @@ func (mhp *multipleHeaderProposalsDetector) getProposerPubKey(header data.Header
 	return validators[0].PubKey(), nil
 }
 
-func (mhp *multipleHeaderProposalsDetector) cacheProposedHeader(proposer []byte, header data.HeaderHandler, hash []byte) error {
-	headerInfo, err := block.NewHeaderInfo(header, hash)
-	if err != nil {
-		return err
-	}
-
-	err = mhp.cache.Add(header.GetRound(), proposer, headerInfo)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (mhp *multipleHeaderProposalsDetector) getSlashingResult(currRound uint64, proposerPubKey []byte) *coreSlash.SlashingResult {
 	proposedHeaders := mhp.cache.GetHeaders(currRound, proposerPubKey)
 	if len(proposedHeaders) >= 2 {
@@ -128,7 +118,7 @@ func (mhp *multipleHeaderProposalsDetector) getSlashingResult(currRound uint64, 
 }
 
 // TODO: Add different logic here once slashing threat levels are clearly defined
-func (mhp *multipleHeaderProposalsDetector) computeSlashLevel(headers []data.HeaderInfoHandler) coreSlash.ThreatLevel {
+func (mhp *multipleHeaderProposalsDetector) computeSlashLevel(headers []data.HeaderHandler) coreSlash.ThreatLevel {
 	return computeSlashLevelBasedOnHeadersCount(headers)
 }
 
@@ -154,25 +144,29 @@ func (mhp *multipleHeaderProposalsDetector) ValidateProof(proof coreSlash.Slashi
 }
 
 // TODO: Add different logic here once slashing threat levels are clearly defined
-func (mhp *multipleHeaderProposalsDetector) checkSlashLevel(headers []data.HeaderInfoHandler, level coreSlash.ThreatLevel) error {
+func (mhp *multipleHeaderProposalsDetector) checkSlashLevel(headers []data.HeaderHandler, level coreSlash.ThreatLevel) error {
 	return checkSlashLevelBasedOnHeadersCount(headers, level)
 }
 
-func (mhp *multipleHeaderProposalsDetector) checkProposedHeaders(headers []data.HeaderInfoHandler) error {
+func (mhp *multipleHeaderProposalsDetector) checkProposedHeaders(headers []data.HeaderHandler) error {
 	if len(headers) < minSlashableNoOfHeaders {
 		return process.ErrNotEnoughHeadersProvided
 	}
 
 	hashes := make(map[string]struct{})
-	round := headers[0].GetHeaderHandler().GetRound()
-	proposer, err := mhp.getProposerPubKey(headers[0].GetHeaderHandler())
+	round := headers[0].GetRound()
+	proposer, err := mhp.getProposerPubKey(headers[0])
 	if err != nil {
 		return err
 	}
 
 	for _, header := range headers {
-		hash := string(header.GetHash())
-		if _, exists := hashes[hash]; exists {
+		hash, err := core.CalculateHash(mhp.marshaller, mhp.hasher, header)
+		if err != nil {
+			return err
+		}
+
+		if _, exists := hashes[string(hash)]; exists {
 			return process.ErrHeadersNotDifferentHashes
 		}
 
@@ -181,22 +175,22 @@ func (mhp *multipleHeaderProposalsDetector) checkProposedHeaders(headers []data.
 			return err
 		}
 
-		hashes[hash] = struct{}{}
+		hashes[string(hash)] = struct{}{}
 	}
 
 	return nil
 }
 
 func (mhp *multipleHeaderProposalsDetector) checkHeaderHasSameProposerAndRound(
-	headerInfo data.HeaderInfoHandler,
+	header data.HeaderHandler,
 	round uint64,
 	proposer []byte,
 ) error {
-	if headerInfo.GetHeaderHandler().GetRound() != round {
+	if header.GetRound() != round {
 		return process.ErrHeadersNotSameRound
 	}
 
-	currProposer, err := mhp.getProposerPubKey(headerInfo.GetHeaderHandler())
+	currProposer, err := mhp.getProposerPubKey(header)
 	if err != nil {
 		return err
 	}
