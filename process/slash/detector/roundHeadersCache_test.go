@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/slash"
 	"github.com/stretchr/testify/require"
 )
 
@@ -13,10 +14,10 @@ func TestRoundDataCache_Add_OneRound_FourHeaders(t *testing.T) {
 
 	dataCache := NewRoundHeadersCache(1)
 
-	h1, _ := block.NewHeaderInfo(&block.HeaderV2{Header: &block.Header{TimeStamp: 1}}, []byte("hash1"))
-	h2, _ := block.NewHeaderInfo(&block.HeaderV2{Header: &block.Header{TimeStamp: 2}}, []byte("hash1"))
-	h3, _ := block.NewHeaderInfo(&block.HeaderV2{Header: &block.Header{TimeStamp: 3}}, []byte("hash2"))
-	h4, _ := block.NewHeaderInfo(&block.HeaderV2{Header: &block.Header{TimeStamp: 4}}, []byte("hash3"))
+	h1 := &slash.HeaderInfo{Header: &block.HeaderV2{Header: &block.Header{TimeStamp: 1}}, Hash: []byte("hash1")}
+	h2 := &slash.HeaderInfo{Header: &block.HeaderV2{Header: &block.Header{TimeStamp: 2}}, Hash: []byte("hash1")}
+	h3 := &slash.HeaderInfo{Header: &block.HeaderV2{Header: &block.Header{TimeStamp: 3}}, Hash: []byte("hash2")}
+	h4 := &slash.HeaderInfo{Header: &block.HeaderV2{Header: &block.Header{TimeStamp: 4}}, Hash: []byte("hash3")}
 
 	err := dataCache.Add(1, h1)
 	require.Nil(t, err)
@@ -49,11 +50,11 @@ func TestRoundDataCache_Add_CacheSizeTwo_FourEntriesInCache_ExpectOldestRoundInC
 
 	dataCache := NewRoundHeadersCache(2)
 
-	h0, _ := block.NewHeaderInfo(&block.HeaderV2{Header: &block.Header{}}, []byte("hash0"))
-	h1, _ := block.NewHeaderInfo(&block.HeaderV2{Header: &block.Header{TimeStamp: 1}}, []byte("hash1"))
-	h2, _ := block.NewHeaderInfo(&block.HeaderV2{Header: &block.Header{TimeStamp: 2}}, []byte("hash2"))
-	h3, _ := block.NewHeaderInfo(&block.HeaderV2{Header: &block.Header{TimeStamp: 3}}, []byte("hash3"))
-	h4, _ := block.NewHeaderInfo(&block.HeaderV2{Header: &block.Header{TimeStamp: 4}}, []byte("hash4"))
+	h0 := &slash.HeaderInfo{Header: &block.HeaderV2{Header: &block.Header{}}, Hash: []byte("hash0")}
+	h1 := &slash.HeaderInfo{Header: &block.HeaderV2{Header: &block.Header{TimeStamp: 1}}, Hash: []byte("hash1")}
+	h2 := &slash.HeaderInfo{Header: &block.HeaderV2{Header: &block.Header{TimeStamp: 2}}, Hash: []byte("hash2")}
+	h3 := &slash.HeaderInfo{Header: &block.HeaderV2{Header: &block.Header{TimeStamp: 3}}, Hash: []byte("hash3")}
+	h4 := &slash.HeaderInfo{Header: &block.HeaderV2{Header: &block.Header{TimeStamp: 4}}, Hash: []byte("hash4")}
 
 	err := dataCache.Add(1, h1)
 	require.Nil(t, err)
@@ -116,9 +117,9 @@ func TestRoundDataCache_Contains(t *testing.T) {
 
 	dataCache := NewRoundHeadersCache(2)
 
-	h1, _ := block.NewHeaderInfo(&block.HeaderV2{Header: &block.Header{TimeStamp: 1}}, []byte("hash1"))
-	h2, _ := block.NewHeaderInfo(&block.HeaderV2{Header: &block.Header{TimeStamp: 2}}, []byte("hash2"))
-	h3, _ := block.NewHeaderInfo(&block.HeaderV2{Header: &block.Header{TimeStamp: 3}}, []byte("hash3"))
+	h1 := &slash.HeaderInfo{Header: &block.HeaderV2{Header: &block.Header{TimeStamp: 1}}, Hash: []byte("hash1")}
+	h2 := &slash.HeaderInfo{Header: &block.HeaderV2{Header: &block.Header{TimeStamp: 2}}, Hash: []byte("hash2")}
+	h3 := &slash.HeaderInfo{Header: &block.HeaderV2{Header: &block.Header{TimeStamp: 3}}, Hash: []byte("hash3")}
 
 	err := dataCache.Add(1, h1)
 	require.Nil(t, err)
