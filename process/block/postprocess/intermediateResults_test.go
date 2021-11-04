@@ -2,6 +2,7 @@ package postprocess
 
 import (
 	"bytes"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"math/big"
 	"sort"
 	"strconv"
@@ -37,6 +38,7 @@ func TestNewIntermediateResultsProcessor_NilHashes(t *testing.T) {
 		block.TxBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Nil(t, irp)
@@ -55,6 +57,7 @@ func TestNewIntermediateResultsProcessor_NilMarshalizer(t *testing.T) {
 		block.TxBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Nil(t, irp)
@@ -73,6 +76,7 @@ func TestNewIntermediateResultsProcessor_NilShardCoordinator(t *testing.T) {
 		block.TxBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Nil(t, irp)
@@ -91,6 +95,7 @@ func TestNewIntermediateResultsProcessor_NilPubkeyConverter(t *testing.T) {
 		block.TxBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Nil(t, irp)
@@ -109,6 +114,7 @@ func TestNewIntermediateResultsProcessor_NilStorer(t *testing.T) {
 		block.TxBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Nil(t, irp)
@@ -127,6 +133,7 @@ func TestNewIntermediateResultsProcessor_NilTxForCurrentBlockHandler(t *testing.
 		block.TxBlock,
 		nil,
 		&mock.FeeHandlerStub{},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Nil(t, irp)
@@ -145,10 +152,30 @@ func TestNewIntermediateResultsProcessor_NilEconomicsFeeHandler(t *testing.T) {
 		block.TxBlock,
 		&mock.TxForCurrentBlockStub{},
 		nil,
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Nil(t, irp)
 	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
+}
+
+func TestNewIntermediateResultsProcessor_NilPostProcessorTxsHandler(t *testing.T) {
+	t.Parallel()
+
+	irp, err := NewIntermediateResultsProcessor(
+		&hashingMocks.HasherMock{},
+		&mock.MarshalizerMock{},
+		mock.NewMultiShardsCoordinatorMock(5),
+		createMockPubkeyConverter(),
+		&mock.ChainStorerMock{},
+		block.TxBlock,
+		&mock.TxForCurrentBlockStub{},
+		&mock.FeeHandlerStub{},
+		nil,
+	)
+
+	assert.Nil(t, irp)
+	assert.Equal(t, process.ErrNilPostProcessorTxsHandler, err)
 }
 
 func TestNewIntermediateResultsProcessor_Good(t *testing.T) {
@@ -163,6 +190,7 @@ func TestNewIntermediateResultsProcessor_Good(t *testing.T) {
 		block.TxBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -182,6 +210,7 @@ func TestIntermediateResultsProcessor_getShardIdsFromAddressesGood(t *testing.T)
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -207,6 +236,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactions(t *testing.T) 
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -229,6 +259,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsWrongType(t *te
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -254,6 +285,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsNilSender(t *te
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -287,6 +319,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsNilReceiver(t *
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -331,6 +364,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsShardIdMismatch
 				return maxGasLimitPerBlock
 			},
 		},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -361,6 +395,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsNegativeValueIn
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -405,6 +440,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddrGood(t *tes
 				return maxGasLimitPerBlock
 			},
 		},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -435,6 +471,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddAndRevert(t 
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -483,6 +520,7 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksNothingInCache(t *
 				return maxGasLimitPerBlock
 			},
 		},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -509,6 +547,7 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksNotCrossShard(t *t
 				return maxGasLimitPerBlock
 			},
 		},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -547,6 +586,7 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksCrossShard(t *test
 				return maxGasLimitPerBlock
 			},
 		},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -606,6 +646,7 @@ func TestIntermediateResultsProcessor_GetNumOfCrossInterMbsAndTxsShouldWork(t *t
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	txs := make([]data.TransactionHandler, 0)
@@ -641,6 +682,7 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksNilBody(t *testing.T)
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -665,6 +707,7 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyShouldpassAsNotCr
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -694,6 +737,7 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyMissingMiniblock(
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -725,6 +769,7 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyMiniBlockMissmatc
 				return maxGasLimitPerBlock
 			},
 		},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -778,6 +823,7 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyShouldPass(t *tes
 				return maxGasLimitPerBlock
 			},
 		},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -845,6 +891,7 @@ func TestIntermediateResultsProcessor_SaveCurrentIntermediateTxToStorageShouldSa
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -890,6 +937,7 @@ func TestIntermediateResultsProcessor_CreateMarshalizedDataNothingToMarshal(t *t
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -922,6 +970,7 @@ func TestIntermediateResultsProcessor_CreateMarshalizedData(t *testing.T) {
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -990,6 +1039,7 @@ func TestIntermediateResultsProcessor_GetAllCurrentUsedTxs(t *testing.T) {
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -1038,6 +1088,7 @@ func TestIntermediateResultsProcessor_SplitMiniBlocksIfNeededShouldWork(t *testi
 				return gasLimit
 			},
 		},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	tx1 := transaction.Transaction{Nonce: 0, GasLimit: 100}

@@ -299,6 +299,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 	}
 
 	genesisFeeHandler := &disabled.FeeHandler{}
+	disabledPostProcessorTxsHandler := &disabled.PostProcessorTxsHandler{}
 	interimProcFactory, err := metachain.NewIntermediateProcessorsContainerFactory(
 		arg.ShardCoordinator,
 		arg.Core.InternalMarshalizer(),
@@ -307,6 +308,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		arg.Data.StorageService(),
 		arg.Data.Datapool(),
 		genesisFeeHandler,
+		disabledPostProcessorTxsHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -403,7 +405,6 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 	disabledBlockSizeComputationHandler := &disabled.BlockSizeComputationHandler{}
 	disabledBalanceComputationHandler := &disabled.BalanceComputationHandler{}
 	disabledScheduledTxsExecutionHandler := &disabled.ScheduledTxsExecutionHandler{}
-	disabledPostProcessorTxsHandler := &disabled.PostProcessorTxsHandler{}
 
 	preProcFactory, err := metachain.NewPreProcessorsContainerFactory(
 		arg.ShardCoordinator,

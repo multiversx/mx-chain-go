@@ -500,6 +500,7 @@ func createInterimProcessorContainer() process.IntermediateProcessorContainer {
 		initStore(),
 		initDataPool([]byte("test_hash1")),
 		&mock.FeeHandlerStub{},
+		&testscommon.PostProcessorTxsStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -2091,6 +2092,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsNilOrMiss(t *testi
 		&mock.ChainStorerMock{},
 		tdp,
 		&mock.FeeHandlerStub{},
+		&testscommon.PostProcessorTxsStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -2149,6 +2151,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 				return MaxGasLimitPerBlock
 			},
 		},
+		&testscommon.PostProcessorTxsStub{},
 	)
 	container, _ := interFactory.Create()
 

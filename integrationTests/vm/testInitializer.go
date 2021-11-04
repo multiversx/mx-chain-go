@@ -1,3 +1,4 @@
+//go:build cgo
 // +build cgo
 
 package vm
@@ -869,6 +870,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		disabled.NewChainStorer(),
 		poolsHolder,
 		&processDisabled.FeeHandler{},
+		&processDisabled.PostProcessorTxsHandler{},
 	)
 	if err != nil {
 		return nil, nil, nil, nil, nil, err

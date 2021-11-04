@@ -38,6 +38,7 @@ func NewIntermediateResultsProcessor(
 	blockType block.Type,
 	currTxs dataRetriever.TransactionCacher,
 	economicsFee process.FeeHandler,
+	postProcessorTxsHandler process.PostProcessorTxsHandler,
 ) (*intermediateResultsProcessor, error) {
 	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
@@ -60,15 +61,19 @@ func NewIntermediateResultsProcessor(
 	if check.IfNil(economicsFee) {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
+	if check.IfNil(postProcessorTxsHandler) {
+		return nil, process.ErrNilPostProcessorTxsHandler
+	}
 
 	base := &basePostProcessor{
-		hasher:             hasher,
-		marshalizer:        marshalizer,
-		shardCoordinator:   coordinator,
-		store:              store,
-		storageType:        dataRetriever.UnsignedTransactionUnit,
-		mapProcessedResult: make(map[string]struct{}),
-		economicsFee:       economicsFee,
+		hasher:                  hasher,
+		marshalizer:             marshalizer,
+		shardCoordinator:        coordinator,
+		store:                   store,
+		storageType:             dataRetriever.UnsignedTransactionUnit,
+		mapProcessedResult:      make(map[string]struct{}),
+		economicsFee:            economicsFee,
+		postProcessorTxsHandler: postProcessorTxsHandler,
 	}
 
 	irp := &intermediateResultsProcessor{
@@ -163,7 +168,8 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() []*block.Min
 // VerifyInterMiniBlocks verifies if the smart contract results added to the block are valid
 func (irp *intermediateResultsProcessor) VerifyInterMiniBlocks(body *block.Body) error {
 	scrMbs := irp.CreateAllInterMiniBlocks()
-	createdMapMbs := createMiniBlocksMap(scrMbs)
+	filteredMbs := irp.filterPostProcessMiniBlocks(scrMbs)
+	createdMapMbs := createMiniBlocksMap(filteredMbs)
 
 	countedCrossShard := 0
 	for i := 0; i < len(body.MiniBlocks); i++ {
@@ -183,7 +189,7 @@ func (irp *intermediateResultsProcessor) VerifyInterMiniBlocks(body *block.Body)
 	}
 
 	createCrossShard := 0
-	for _, mb := range scrMbs {
+	for _, mb := range filteredMbs {
 		if mb.Type != irp.blockType {
 			continue
 		}

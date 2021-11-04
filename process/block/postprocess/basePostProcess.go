@@ -31,6 +31,7 @@ type basePostProcessor struct {
 	mapProcessedResult      map[string]struct{}
 	intraShardMiniBlock     *block.MiniBlock
 	economicsFee            process.FeeHandler
+	postProcessorTxsHandler process.PostProcessorTxsHandler
 }
 
 // SaveCurrentIntermediateTxToStorage saves all current intermediate results to the provided storage unit
@@ -254,7 +255,7 @@ func (bpp *basePostProcessor) GetProcessedResults() map[uint32][]*process.TxInfo
 	mapIntermediateTxs := make(map[uint32][]*process.TxInfo)
 
 	for intermediateTxHash := range bpp.mapProcessedResult {
-		txInfo, ok := bpp.interResultsForBlock[string(intermediateTxHash)]
+		txInfo, ok := bpp.interResultsForBlock[intermediateTxHash]
 		if !ok {
 			log.Error("basePostProcessor.GetProcessedResults",
 				"scr hash", intermediateTxHash,
@@ -272,4 +273,33 @@ func (bpp *basePostProcessor) GetProcessedResults() map[uint32][]*process.TxInfo
 	}
 
 	return mapIntermediateTxs
+}
+
+func (bpp *basePostProcessor) filterPostProcessMiniBlocks(miniBlocks block.MiniBlockSlice) block.MiniBlockSlice {
+	finalMiniBlocks := make(block.MiniBlockSlice, 0)
+	for i := 0; i < len(miniBlocks); i++ {
+		txHashes := make([][]byte, 0)
+		for _, txHash := range miniBlocks[i].TxHashes {
+			if bpp.postProcessorTxsHandler.IsPostProcessorTxAdded(txHash) {
+				continue
+			}
+			txHashes = append(txHashes, txHash)
+		}
+
+		//TODO: This should be move on log.Trace
+		log.Debug("DEBUGGING: basePostProcessor.filterPostProcessMiniBlocks", "mb type", miniBlocks[i].Type,
+			"sender", miniBlocks[i].SenderShardID,
+			"receiver", miniBlocks[i].ReceiverShardID,
+			"num txs in mb", len(miniBlocks[i].TxHashes),
+			"num txs added", len(txHashes))
+
+		if len(txHashes) == 0 {
+			continue
+		}
+
+		miniBlocks[i].TxHashes = txHashes
+		finalMiniBlocks = append(finalMiniBlocks, miniBlocks[i])
+	}
+
+	return finalMiniBlocks
 }

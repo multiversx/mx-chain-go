@@ -28,8 +28,9 @@ func NewTestIntermediateResultsProcessor(
 	blockType block.Type,
 	currTxs dataRetriever.TransactionCacher,
 	economicsFee process.FeeHandler,
+	postProcessorTxsHandler process.PostProcessorTxsHandler,
 ) (*TestIntermediateResProc, error) {
-	interimProc, err := NewIntermediateResultsProcessor(hasher, marshalizer, coordinator, pubkeyConv, store, blockType, currTxs, economicsFee)
+	interimProc, err := NewIntermediateResultsProcessor(hasher, marshalizer, coordinator, pubkeyConv, store, blockType, currTxs, economicsFee, postProcessorTxsHandler)
 	return &TestIntermediateResProc{interimProc}, err
 }
 

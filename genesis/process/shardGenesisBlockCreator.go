@@ -347,6 +347,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	}
 
 	genesisFeeHandler := &disabled.FeeHandler{}
+	disabledPostProcessorTxsHandler := &disabled.PostProcessorTxsHandler{}
 	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(
 		arg.ShardCoordinator,
 		arg.Core.InternalMarshalizer(),
@@ -355,6 +356,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		arg.Data.StorageService(),
 		arg.Data.Datapool(),
 		genesisFeeHandler,
+		disabledPostProcessorTxsHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -473,7 +475,6 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	disabledBlockSizeComputationHandler := &disabled.BlockSizeComputationHandler{}
 	disabledBalanceComputationHandler := &disabled.BalanceComputationHandler{}
 	disabledScheduledTxsExecutionHandler := &disabled.ScheduledTxsExecutionHandler{}
-	disabledPostProcessorTxsHandler := &disabled.PostProcessorTxsHandler{}
 
 	preProcFactory, err := shard.NewPreProcessorsContainerFactory(
 		arg.ShardCoordinator,

@@ -1,6 +1,7 @@
 package metachain_test
 
 import (
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -26,6 +27,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilShardCoord(t *testing.T) {
 		&mock.ChainStorerMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
 		&mock.FeeHandlerStub{},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -43,6 +45,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilMarshalizer(t *testing.T) 
 		&mock.ChainStorerMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
 		&mock.FeeHandlerStub{},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -60,6 +63,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilHasher(t *testing.T) {
 		&mock.ChainStorerMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
 		&mock.FeeHandlerStub{},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -77,6 +81,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilAdrConv(t *testing.T) {
 		&mock.ChainStorerMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
 		&mock.FeeHandlerStub{},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -94,6 +99,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilStorer(t *testing.T) {
 		nil,
 		dataRetrieverMock.NewPoolsHolderMock(),
 		&mock.FeeHandlerStub{},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -111,6 +117,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilPoolsHolder(t *testing.T) 
 		&mock.ChainStorerMock{},
 		nil,
 		&mock.FeeHandlerStub{},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -128,10 +135,29 @@ func TestNewIntermediateProcessorsContainerFactory_NilEconomicsFeeHandler(t *tes
 		&mock.ChainStorerMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
 		nil,
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Nil(t, ipcf)
 	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
+}
+
+func TestNewIntermediateProcessorsContainerFactory_PostProcessorTxsHandler(t *testing.T) {
+	t.Parallel()
+
+	ipcf, err := metachain.NewIntermediateProcessorsContainerFactory(
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.MarshalizerMock{},
+		&hashingMocks.HasherMock{},
+		createMockPubkeyConverter(),
+		&mock.ChainStorerMock{},
+		dataRetrieverMock.NewPoolsHolderMock(),
+		&mock.FeeHandlerStub{},
+		nil,
+	)
+
+	assert.Nil(t, ipcf)
+	assert.Equal(t, process.ErrNilPostProcessorTxsHandler, err)
 }
 
 func TestNewIntermediateProcessorsContainerFactory(t *testing.T) {
@@ -145,6 +171,7 @@ func TestNewIntermediateProcessorsContainerFactory(t *testing.T) {
 		&mock.ChainStorerMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
 		&mock.FeeHandlerStub{},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Nil(t, err)
@@ -163,6 +190,7 @@ func TestIntermediateProcessorsContainerFactory_Create(t *testing.T) {
 		&mock.ChainStorerMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
 		&mock.FeeHandlerStub{},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Nil(t, err)

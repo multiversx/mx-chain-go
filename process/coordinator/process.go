@@ -1632,12 +1632,11 @@ func (tc *transactionCoordinator) isMaxBlockSizeReached(body *block.Body) bool {
 	numCrossShardScCallsOrSpecialTxs := 0
 
 	allTxs := make(map[string]data.TransactionHandler)
-
-	preProc := tc.getPreProcessor(block.TxBlock)
-	if check.IfNil(preProc) {
-		log.Warn("transactionCoordinator.isMaxBlockSizeReached: preProc is nil", "blockType", block.TxBlock)
-	} else {
-		allTxs = preProc.GetAllCurrentUsedTxs()
+	allTxsInfoPerBlockType := tc.getAllTransactions()
+	for _, allTxsInfo := range allTxsInfoPerBlockType {
+		for txHash, tx := range allTxsInfo {
+			allTxs[txHash] = tx
+		}
 	}
 
 	for _, mb := range body.MiniBlocks {

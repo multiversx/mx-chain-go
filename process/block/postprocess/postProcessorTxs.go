@@ -52,10 +52,11 @@ func (ppt *postProcessorTxs) AddPostProcessorTx(txHash []byte, txHandler data.Tr
 		return false
 	}
 
+	ppt.mapPostProcessorTxs[string(txHash)] = txHandler
+
 	//TODO: This should be move on log.Trace
 	log.Debug("DEBUGGING: postProcessorTxs.AddPostProcessorTx", "txHash", txHash, "num of txs added", len(ppt.mapPostProcessorTxs))
 
-	ppt.mapPostProcessorTxs[string(txHash)] = txHandler
 	return true
 }
 
@@ -93,7 +94,6 @@ func (ppt *postProcessorTxs) GetProcessedResults() map[block.Type]map[uint32][]*
 // InitProcessedResults initializes the processed results
 func (ppt *postProcessorTxs) InitProcessedResults() {
 	ppt.txCoordinator.InitProcessedResults()
-	log.Debug("DEBUGGING: postProcessorTxs.InitProcessedResults")
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

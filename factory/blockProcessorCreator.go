@@ -144,6 +144,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		pcf.data.StorageService(),
 		pcf.data.Datapool(),
 		pcf.coreData.EconomicsData(),
+		postProcessorTxsHandler,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -442,6 +443,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		pcf.data.StorageService(),
 		pcf.data.Datapool(),
 		pcf.coreData.EconomicsData(),
+		postProcessorTxsHandler,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -844,6 +846,7 @@ func (pcf *processComponentsFactory) createShardTxSimulatorProcessor(
 		disabled.NewChainStorer(),
 		pcf.data.Datapool(),
 		&processDisabled.FeeHandler{},
+		&processDisabled.PostProcessorTxsHandler{},
 	)
 	if err != nil {
 		return nil, err
@@ -928,6 +931,7 @@ func (pcf *processComponentsFactory) createMetaTxSimulatorProcessor(
 		disabled.NewChainStorer(),
 		pcf.data.Datapool(),
 		&processDisabled.FeeHandler{},
+		&processDisabled.PostProcessorTxsHandler{},
 	)
 	if err != nil {
 		return nil, err

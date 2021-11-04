@@ -62,6 +62,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilShardCoord(t *testing.T) {
 		&mock.ChainStorerMock{},
 		dPool,
 		&mock.FeeHandlerStub{},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -80,6 +81,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilMarshalizer(t *testing.T) 
 		&mock.ChainStorerMock{},
 		dPool,
 		&mock.FeeHandlerStub{},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -98,6 +100,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilHasher(t *testing.T) {
 		&mock.ChainStorerMock{},
 		dPool,
 		&mock.FeeHandlerStub{},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -116,6 +119,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilAdrConv(t *testing.T) {
 		&mock.ChainStorerMock{},
 		dPool,
 		&mock.FeeHandlerStub{},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -134,6 +138,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilStorer(t *testing.T) {
 		nil,
 		dPool,
 		&mock.FeeHandlerStub{},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -151,6 +156,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilPoolsHolder(t *testing.T) 
 		&mock.ChainStorerMock{},
 		nil,
 		&mock.FeeHandlerStub{},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -169,10 +175,30 @@ func TestNewIntermediateProcessorsContainerFactory_NilEconomicsFeeHandler(t *tes
 		&mock.ChainStorerMock{},
 		dPool,
 		nil,
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Nil(t, ipcf)
 	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
+}
+
+func TestNewIntermediateProcessorsContainerFactory_NilPostProcessorTxsHandler(t *testing.T) {
+	t.Parallel()
+
+	dPool := createDataPools()
+	ipcf, err := shard.NewIntermediateProcessorsContainerFactory(
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.MarshalizerMock{},
+		&hashingMocks.HasherMock{},
+		createMockPubkeyConverter(),
+		&mock.ChainStorerMock{},
+		dPool,
+		&mock.FeeHandlerStub{},
+		nil,
+	)
+
+	assert.Nil(t, ipcf)
+	assert.Equal(t, process.ErrNilPostProcessorTxsHandler, err)
 }
 
 func TestNewIntermediateProcessorsContainerFactory(t *testing.T) {
@@ -187,6 +213,7 @@ func TestNewIntermediateProcessorsContainerFactory(t *testing.T) {
 		&mock.ChainStorerMock{},
 		dPool,
 		&mock.FeeHandlerStub{},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Nil(t, err)
@@ -206,6 +233,7 @@ func TestIntermediateProcessorsContainerFactory_Create(t *testing.T) {
 		&mock.ChainStorerMock{},
 		dPool,
 		&mock.FeeHandlerStub{},
+		&testscommon.PostProcessorTxsStub{},
 	)
 
 	assert.Nil(t, err)

@@ -14,13 +14,14 @@ import (
 )
 
 type intermediateProcessorsContainerFactory struct {
-	shardCoordinator sharding.Coordinator
-	marshalizer      marshal.Marshalizer
-	hasher           hashing.Hasher
-	pubkeyConverter  core.PubkeyConverter
-	store            dataRetriever.StorageService
-	poolsHolder      dataRetriever.PoolsHolder
-	economicsFee     process.FeeHandler
+	shardCoordinator        sharding.Coordinator
+	marshalizer             marshal.Marshalizer
+	hasher                  hashing.Hasher
+	pubkeyConverter         core.PubkeyConverter
+	store                   dataRetriever.StorageService
+	poolsHolder             dataRetriever.PoolsHolder
+	economicsFee            process.FeeHandler
+	postProcessorTxsHandler process.PostProcessorTxsHandler
 }
 
 // NewIntermediateProcessorsContainerFactory is responsible for creating a new intermediate processors factory object
@@ -32,6 +33,7 @@ func NewIntermediateProcessorsContainerFactory(
 	store dataRetriever.StorageService,
 	poolsHolder dataRetriever.PoolsHolder,
 	economicsFee process.FeeHandler,
+	postProcessorTxsHandler process.PostProcessorTxsHandler,
 ) (*intermediateProcessorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -55,15 +57,19 @@ func NewIntermediateProcessorsContainerFactory(
 	if check.IfNil(economicsFee) {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
+	if check.IfNil(postProcessorTxsHandler) {
+		return nil, process.ErrNilPostProcessorTxsHandler
+	}
 
 	return &intermediateProcessorsContainerFactory{
-		shardCoordinator: shardCoordinator,
-		marshalizer:      marshalizer,
-		hasher:           hasher,
-		pubkeyConverter:  pubkeyConverter,
-		poolsHolder:      poolsHolder,
-		store:            store,
-		economicsFee:     economicsFee,
+		shardCoordinator:        shardCoordinator,
+		marshalizer:             marshalizer,
+		hasher:                  hasher,
+		pubkeyConverter:         pubkeyConverter,
+		poolsHolder:             poolsHolder,
+		store:                   store,
+		economicsFee:            economicsFee,
+		postProcessorTxsHandler: postProcessorTxsHandler,
 	}, nil
 }
 
@@ -104,6 +110,7 @@ func (ppcm *intermediateProcessorsContainerFactory) createSmartContractResultsIn
 		block.SmartContractResultBlock,
 		ppcm.poolsHolder.CurrentBlockTxs(),
 		ppcm.economicsFee,
+		ppcm.postProcessorTxsHandler,
 	)
 
 	return irp, err
@@ -118,6 +125,7 @@ func (ppcm *intermediateProcessorsContainerFactory) createBadTransactionsInterme
 		block.InvalidBlock,
 		dataRetriever.TransactionUnit,
 		ppcm.economicsFee,
+		ppcm.postProcessorTxsHandler,
 	)
 
 	return irp, err

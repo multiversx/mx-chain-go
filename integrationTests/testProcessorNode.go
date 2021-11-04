@@ -1329,6 +1329,8 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		tpn.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{}
 	}
 
+	postProcessorTxsHandler, _ := postprocess.NewPostProcessorTxs(&mock.TransactionCoordinatorMock{})
+
 	interimProcFactory, _ := shard.NewIntermediateProcessorsContainerFactory(
 		tpn.ShardCoordinator,
 		TestMarshalizer,
@@ -1337,6 +1339,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		tpn.Storage,
 		tpn.DataPool,
 		tpn.EconomicsData,
+		postProcessorTxsHandler,
 	)
 
 	tpn.InterimProcContainer, _ = interimProcFactory.Create()
@@ -1349,6 +1352,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		dataBlock.SmartContractResultBlock,
 		tpn.DataPool.CurrentBlockTxs(),
 		tpn.EconomicsData,
+		postProcessorTxsHandler,
 	)
 
 	tpn.InterimProcContainer.Remove(dataBlock.SmartContractResultBlock)
@@ -1495,7 +1499,6 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		TestMarshalizer,
 		tpn.ShardCoordinator,
 	)
-	postProcessorTxsHandler, _ := postprocess.NewPostProcessorTxs(&mock.TransactionCoordinatorMock{})
 
 	fact, _ := shard.NewPreProcessorsContainerFactory(
 		tpn.ShardCoordinator,
@@ -1554,6 +1557,8 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 }
 
 func (tpn *TestProcessorNode) initMetaInnerProcessors() {
+	postProcessorTxsHandler, _ := postprocess.NewPostProcessorTxs(&mock.TransactionCoordinatorMock{})
+
 	interimProcFactory, _ := metaProcess.NewIntermediateProcessorsContainerFactory(
 		tpn.ShardCoordinator,
 		TestMarshalizer,
@@ -1562,6 +1567,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.Storage,
 		tpn.DataPool,
 		tpn.EconomicsData,
+		postProcessorTxsHandler,
 	)
 
 	tpn.InterimProcContainer, _ = interimProcFactory.Create()
@@ -1574,6 +1580,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		dataBlock.SmartContractResultBlock,
 		tpn.DataPool.CurrentBlockTxs(),
 		tpn.EconomicsData,
+		postProcessorTxsHandler,
 	)
 
 	tpn.InterimProcContainer.Remove(dataBlock.SmartContractResultBlock)
@@ -1735,7 +1742,6 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.Storage.GetStorer(dataRetriever.ScheduledSCRsUnit),
 		TestMarshalizer,
 		tpn.ShardCoordinator)
-	postProcessorTxsHandler, _ := postprocess.NewPostProcessorTxs(&mock.TransactionCoordinatorMock{})
 
 	fact, _ := metaProcess.NewPreProcessorsContainerFactory(
 		tpn.ShardCoordinator,
