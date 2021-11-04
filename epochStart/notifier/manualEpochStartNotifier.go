@@ -53,7 +53,7 @@ func (mesn *manualEpochStartNotifier) NewEpoch(epoch uint32) {
 		hdr := &block.Header{
 			Epoch: epoch,
 		}
-		handler.EpochStartAction(hdr)
+		handler.Action(hdr)
 	}
 }
 

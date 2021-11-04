@@ -534,16 +534,16 @@ func (ihgs *indexHashedNodesCoordinator) GetValidatorsIndexes(
 	return signersIndexes, nil
 }
 
-// EpochStartPrepare is called when an epoch start event is observed, but not yet confirmed/committed.
+// Prepare is called when an epoch start event is observed, but not yet confirmed/committed.
 // Some components may need to do some initialisation on this event
-func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHandler, body data.BodyHandler) {
+func (ihgs *indexHashedNodesCoordinator) Prepare(metaHdr data.HeaderHandler, body data.BodyHandler) {
 	if !metaHdr.IsStartOfEpochBlock() {
-		log.Error("could not process EpochStartPrepare on nodesCoordinator - not epoch start block")
+		log.Error("could not process Prepare on nodesCoordinator - not epoch start block")
 		return
 	}
 
 	if _, ok := metaHdr.(*block.MetaBlock); !ok {
-		log.Error("could not process EpochStartPrepare on nodesCoordinator - not metaBlock")
+		log.Error("could not process Prepare on nodesCoordinator - not metaBlock")
 		return
 	}
 
@@ -797,9 +797,9 @@ func (ihgs *indexHashedNodesCoordinator) addValidatorToPreviousMap(
 	}
 }
 
-// EpochStartAction is called upon a start of epoch event.
+// Action is called upon a start of epoch event.
 // NodeCoordinator has to get the nodes assignment to shards using the shuffler.
-func (ihgs *indexHashedNodesCoordinator) EpochStartAction(hdr data.HeaderHandler) {
+func (ihgs *indexHashedNodesCoordinator) Action(hdr data.HeaderHandler) {
 	newEpoch := hdr.GetEpoch()
 	epochToRemove := int32(newEpoch) - nodesCoordinatorStoredEpochs
 	needToRemove := epochToRemove >= 0

@@ -496,8 +496,8 @@ func TestPeerShardMapper_EpochStartPrepareShouldNotPanic(t *testing.T) {
 	}()
 
 	psm := createPeerShardMapper()
-	psm.EpochStartPrepare(nil, nil)
-	psm.EpochStartPrepare(
+	psm.Prepare(nil, nil)
+	psm.Prepare(
 		&testscommon.HeaderHandlerStub{
 			EpochField: 0,
 		},
@@ -516,7 +516,7 @@ func TestPeerShardMapper_EpochStartActionWithnilHeaderShouldNotPanic(t *testing.
 	}()
 
 	psm := createPeerShardMapper()
-	psm.EpochStartAction(nil)
+	psm.Action(nil)
 }
 
 func TestPeerShardMapper_EpochStartActionShouldWork(t *testing.T) {
@@ -525,7 +525,7 @@ func TestPeerShardMapper_EpochStartActionShouldWork(t *testing.T) {
 	psm := createPeerShardMapper()
 
 	epoch := uint32(676)
-	psm.EpochStartAction(
+	psm.Action(
 		&testscommon.HeaderHandlerStub{
 			EpochField: epoch,
 		},

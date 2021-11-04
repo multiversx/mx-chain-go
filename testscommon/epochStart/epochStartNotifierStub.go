@@ -1,4 +1,4 @@
-package mock
+package epochStart
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -9,9 +9,9 @@ import (
 type EpochStartNotifierStub struct {
 	RegisterHandlerCalled   func(handler epochStart.ActionHandler)
 	UnregisterHandlerCalled func(handler epochStart.ActionHandler)
-	NotifyAllCalled         func(hdr data.HeaderHandler)
 	NotifyAllPrepareCalled  func(hdr data.HeaderHandler, body data.BodyHandler)
-	epochStartHdls          []epochStart.ActionHandler
+	NotifyAllCalled         func(hdr data.HeaderHandler)
+	GetNameCalled           func() string
 }
 
 // RegisterHandler -
@@ -19,21 +19,12 @@ func (esnm *EpochStartNotifierStub) RegisterHandler(handler epochStart.ActionHan
 	if esnm.RegisterHandlerCalled != nil {
 		esnm.RegisterHandlerCalled(handler)
 	}
-
-	esnm.epochStartHdls = append(esnm.epochStartHdls, handler)
 }
 
 // UnregisterHandler -
 func (esnm *EpochStartNotifierStub) UnregisterHandler(handler epochStart.ActionHandler) {
 	if esnm.UnregisterHandlerCalled != nil {
 		esnm.UnregisterHandlerCalled(handler)
-	}
-
-	for i, hdl := range esnm.epochStartHdls {
-		if hdl == handler {
-			esnm.epochStartHdls = append(esnm.epochStartHdls[:i], esnm.epochStartHdls[i+1:]...)
-			break
-		}
 	}
 }
 
@@ -42,10 +33,6 @@ func (esnm *EpochStartNotifierStub) NotifyAllPrepare(metaHdr data.HeaderHandler,
 	if esnm.NotifyAllPrepareCalled != nil {
 		esnm.NotifyAllPrepareCalled(metaHdr, body)
 	}
-
-	for _, hdl := range esnm.epochStartHdls {
-		hdl.Prepare(metaHdr, body)
-	}
 }
 
 // NotifyAll -
@@ -53,10 +40,14 @@ func (esnm *EpochStartNotifierStub) NotifyAll(hdr data.HeaderHandler) {
 	if esnm.NotifyAllCalled != nil {
 		esnm.NotifyAllCalled(hdr)
 	}
+}
 
-	for _, hdl := range esnm.epochStartHdls {
-		hdl.Action(hdr)
+// GetName -
+func (esnm *EpochStartNotifierStub) GetName() string {
+	if esnm.GetNameCalled != nil {
+		return esnm.GetNameCalled()
 	}
+	return "EpochStartNotifierStub"
 }
 
 // IsInterfaceNil -

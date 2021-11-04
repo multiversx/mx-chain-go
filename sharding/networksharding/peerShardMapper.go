@@ -333,12 +333,12 @@ func (psm *PeerShardMapper) UpdatePeerIdSubType(pid core.PeerID, peerSubType cor
 }
 
 // EpochStartAction is the method called whenever an action needs to be undertaken in respect to the epoch change
-func (psm *PeerShardMapper) EpochStartAction(hdr data.HeaderHandler) {
+func (psm *PeerShardMapper) Action(hdr data.HeaderHandler) {
 	if check.IfNil(hdr) {
-		log.Warn("nil header on PeerShardMapper.EpochStartAction")
+		log.Warn("nil header on PeerShardMapper.Action")
 		return
 	}
-	log.Trace("PeerShardMapper.EpochStartAction event", "epoch", hdr.GetEpoch())
+	log.Trace("PeerShardMapper.Action event", "epoch", hdr.GetEpoch())
 
 	psm.mutEpoch.Lock()
 	psm.epoch = hdr.GetEpoch()
@@ -347,13 +347,13 @@ func (psm *PeerShardMapper) EpochStartAction(hdr data.HeaderHandler) {
 }
 
 // EpochStartPrepare is the method called whenever an action needs to be undertaken in respect to the epoch preparation change
-func (psm *PeerShardMapper) EpochStartPrepare(metaHdr data.HeaderHandler, _ data.BodyHandler) {
+func (psm *PeerShardMapper) Prepare(metaHdr data.HeaderHandler, _ data.BodyHandler) {
 	if check.IfNil(metaHdr) {
-		log.Warn("nil header on PeerShardMapper.EpochStartPrepare")
+		log.Warn("nil header on PeerShardMapper.Prepare")
 		return
 	}
 
-	log.Trace("PeerShardMapper.EpochStartPrepare event", "epoch", metaHdr.GetEpoch())
+	log.Trace("PeerShardMapper.Prepare event", "epoch", metaHdr.GetEpoch())
 }
 
 // NotifyOrder returns the notification order of this component
