@@ -51,7 +51,7 @@ func newStartInEpochShardHeaderDataSyncerWithScheduled(
 	}, nil
 }
 
-func (ses *startInEpochWithScheduledDataSyncer) updateSyncDataIfNeeded(
+func (ses *startInEpochWithScheduledDataSyncer) UpdateSyncDataIfNeeded(
 	notarizedShardHeader data.ShardHeaderHandler,
 ) (data.ShardHeaderHandler, map[string]data.HeaderHandler, error) {
 	if ses.scheduledEnableEpoch > notarizedShardHeader.GetEpoch() {
@@ -175,7 +175,7 @@ func (ses *startInEpochWithScheduledDataSyncer) getRequiredMiniBlocksByMbHeader(
 	return ses.scheduledMiniBlocksSyncer.GetMiniBlocks()
 }
 
-func (ses *startInEpochWithScheduledDataSyncer) getRootHashToSync(notarizedShardHeader data.ShardHeaderHandler) []byte {
+func (ses *startInEpochWithScheduledDataSyncer) GetRootHashToSync(notarizedShardHeader data.ShardHeaderHandler) []byte {
 	if ses.scheduledEnableEpoch > notarizedShardHeader.GetEpoch() {
 		return notarizedShardHeader.GetRootHash()
 	}

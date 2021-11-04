@@ -152,6 +152,8 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		return nil, err
 	}
 
+	dataSyncerFactory := bootstrap.NewScheduledDataSyncerFactory()
+
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
 		CoreComponentsHolder:       bcf.coreComponents,
 		CryptoComponentsHolder:     bcf.cryptoComponents,
@@ -171,6 +173,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		ArgumentsParser:            smartContract.NewArgumentParser(),
 		StatusHandler:              bcf.coreComponents.StatusHandler(),
 		HeaderIntegrityVerifier:    headerIntegrityVerifier,
+		DataSyncerCreator:          dataSyncerFactory,
 	}
 
 	var epochStartBootstrapper EpochStartBootstrapper
