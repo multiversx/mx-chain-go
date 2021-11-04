@@ -290,7 +290,7 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_InvalidProofType_ExpectEr
 	require.Equal(t, process.ErrInvalidSlashType, err)
 }
 
-func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_DifferentSlashLevelsAndTypes(t *testing.T) {
+func TestMultipleHeaderProposalsDetector_ValidateProof_DifferentSlashLevelsAndTypes(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -351,7 +351,7 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 	}
 }
 
-func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_DifferentHeaders(t *testing.T) {
+func TestMultipleHeaderProposalsDetector_ValidateProof_DifferentHeaders(t *testing.T) {
 	t.Parallel()
 
 	errGetProposer := errors.New("cannot get proposer")

@@ -15,6 +15,16 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+// MultipleHeaderSingingDetectorArgs is a a struct containing all arguments required to create a new multipleHeaderSigningDetector
+type MultipleHeaderSingingDetectorArgs struct {
+	NodesCoordinator sharding.NodesCoordinator
+	RoundHandler     process.RoundHandler
+	Hasher           hashing.Hasher
+	Marshaller       marshal.Marshalizer
+	SlashingCache    RoundDetectorCache
+	HeadersCache     HeadersCache
+}
+
 // multipleHeaderSigningDetector - checks for slashable events in case one(or more)
 // validator signs multiple headers in the same round
 type multipleHeaderSigningDetector struct {
@@ -27,42 +37,35 @@ type multipleHeaderSigningDetector struct {
 }
 
 // NewMultipleHeaderSigningDetector - creates a new header slashing detector for multiple signatures
-func NewMultipleHeaderSigningDetector(
-	nodesCoordinator sharding.NodesCoordinator,
-	roundHandler process.RoundHandler,
-	hasher hashing.Hasher,
-	marshaller marshal.Marshalizer,
-	slashingCache RoundDetectorCache,
-	headersCache HeadersCache,
-) (slash.SlashingDetector, error) {
-	if check.IfNil(nodesCoordinator) {
+func NewMultipleHeaderSigningDetector(args *MultipleHeaderSingingDetectorArgs) (slash.SlashingDetector, error) {
+	if check.IfNil(args.NodesCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if check.IfNil(roundHandler) {
+	if check.IfNil(args.RoundHandler) {
 		return nil, process.ErrNilRoundHandler
 	}
-	if check.IfNil(hasher) {
+	if check.IfNil(args.Hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if check.IfNil(marshaller) {
+	if check.IfNil(args.Marshaller) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if check.IfNil(slashingCache) {
+	if check.IfNil(args.SlashingCache) {
 		return nil, process.ErrNilRoundDetectorCache
 	}
-	if check.IfNil(headersCache) {
+	if check.IfNil(args.HeadersCache) {
 		return nil, process.ErrNilRoundHeadersCache
 	}
 
-	baseDetector := baseSlashingDetector{roundHandler: roundHandler}
+	baseDetector := baseSlashingDetector{roundHandler: args.RoundHandler}
 
 	return &multipleHeaderSigningDetector{
-		slashingCache:        slashingCache,
-		headersCache:         headersCache,
-		nodesCoordinator:     nodesCoordinator,
 		baseSlashingDetector: baseDetector,
-		hasher:               hasher,
-		marshaller:           marshaller,
+		slashingCache:        args.SlashingCache,
+		headersCache:         args.HeadersCache,
+		nodesCoordinator:     args.NodesCoordinator,
+		hasher:               args.Hasher,
+		marshaller:           args.Marshaller,
 	}, nil
 }
 
