@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	testVm "github.com/ElrondNetwork/elrond-go/integrationTests/vm"
@@ -27,16 +26,21 @@ func GetESDTTokenData(
 	t *testing.T,
 	address []byte,
 	nodes []*integrationTests.TestProcessorNode,
-	tokenName string,
+	tickerID []byte,
+	nonce uint64,
 ) *esdt.ESDigitalToken {
-	userAcc := GetUserAccountWithAddress(t, address, nodes)
-	require.False(t, check.IfNil(userAcc))
+	accShardID := nodes[0].ShardCoordinator.ComputeId(address)
+	for _, node := range nodes {
+		if node.ShardCoordinator.SelfId() != accShardID {
+			continue
+		}
 
-	tokenKey := []byte(core.ElrondProtectedKeyPrefix + "esdt" + tokenName)
-	esdtData, err := GetESDTDataFromKey(userAcc, tokenKey)
-	require.Nil(t, err)
+		esdtData, err := node.BlockchainHook.GetESDTToken(address, tickerID, nonce)
+		require.Nil(t, err)
+		return esdtData
+	}
 
-	return esdtData
+	return &esdt.ESDigitalToken{Value: big.NewInt(0)}
 }
 
 // GetUserAccountWithAddress -
@@ -58,22 +62,6 @@ func GetUserAccountWithAddress(
 	}
 
 	return nil
-}
-
-// GetESDTDataFromKey -
-func GetESDTDataFromKey(userAcnt state.UserAccountHandler, key []byte) (*esdt.ESDigitalToken, error) {
-	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(0)}
-	marshaledData, err := userAcnt.DataTrieTracker().RetrieveValue(key)
-	if err != nil {
-		return esdtData, nil
-	}
-
-	err = integrationTests.TestMarshalizer.Unmarshal(esdtData, marshaledData)
-	if err != nil {
-		return nil, err
-	}
-
-	return esdtData, nil
 }
 
 // SetRoles -
@@ -120,42 +108,19 @@ func DeployNonPayableSmartContract(
 	return scAddress
 }
 
-// CheckAddressHasESDTTokens -
-func CheckAddressHasESDTTokens(
-	t *testing.T,
-	address []byte,
-	nodes []*integrationTests.TestProcessorNode,
-	tokenName string,
-	value int64,
-) {
-	esdtData := GetESDTTokenData(t, address, nodes, tokenName)
-	bigValue := big.NewInt(value)
-	if esdtData.Value.Cmp(bigValue) != 0 {
-		require.Fail(t, fmt.Sprintf("esdt balance difference. Token %s, expected %s, but got %s",
-			tokenName, bigValue.String(), esdtData.Value.String()))
-	}
-}
-
 // CheckAddressHasTokens - Works for both fungible and non-fungible, according to nonce
 func CheckAddressHasTokens(
 	t *testing.T,
 	address []byte,
 	nodes []*integrationTests.TestProcessorNode,
-	tokenName string,
+	tickerID []byte,
 	nonce int64,
 	value int64,
 ) {
-	if nonce == 0 {
-		CheckAddressHasESDTTokens(t, address, nodes, tokenName, value)
-		return
-	}
-
 	nonceAsBigInt := big.NewInt(nonce)
 	valueAsBigInt := big.NewInt(value)
 
-	tokenIdentifierPlusNonce := []byte(tokenName)
-	tokenIdentifierPlusNonce = append(tokenIdentifierPlusNonce, nonceAsBigInt.Bytes()...)
-	esdtData := GetESDTTokenData(t, address, nodes, string(tokenIdentifierPlusNonce))
+	esdtData := GetESDTTokenData(t, address, nodes, tickerID, uint64(nonce))
 
 	if esdtData == nil {
 		esdtData = &esdt.ESDigitalToken{
@@ -168,7 +133,7 @@ func CheckAddressHasTokens(
 
 	if valueAsBigInt.Cmp(esdtData.Value) != 0 {
 		require.Fail(t, fmt.Sprintf("esdt NFT balance difference. Token %s, nonce %s, expected %s, but got %s",
-			tokenName, nonceAsBigInt.String(), valueAsBigInt.String(), esdtData.Value.String()))
+			tickerID, nonceAsBigInt.String(), valueAsBigInt.String(), esdtData.Value.String()))
 	}
 }
 
