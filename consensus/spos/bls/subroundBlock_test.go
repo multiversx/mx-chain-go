@@ -13,8 +13,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
-	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -328,6 +328,154 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 	r = sr.DoBlockJob()
 	assert.True(t, r)
 	assert.Equal(t, uint64(1), sr.Header.GetNonce())
+}
+
+func TestSubroundBlock_ReceivedBlockBodyAndHeaderDataAlreadySet(t *testing.T) {
+	t.Parallel()
+
+	container := mock.InitConsensusCore()
+	sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
+
+	hdr := &block.Header{Nonce: 1}
+	blkBody := &block.Body{}
+
+	cnsMsg := createConsensusMessage(hdr, blkBody, []byte(sr.ConsensusGroup()[0]), bls.MtBlockBodyAndHeader)
+
+	sr.Data = []byte("some data")
+	r := sr.ReceivedBlockBodyAndHeader(cnsMsg)
+	assert.False(t, r)
+}
+
+func TestSubroundBlock_ReceivedBlockBodyAndHeaderNodeNotLeaderInCurrentRound(t *testing.T) {
+	t.Parallel()
+
+	container := mock.InitConsensusCore()
+	sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
+
+	hdr := &block.Header{Nonce: 1}
+	blkBody := &block.Body{}
+
+	cnsMsg := createConsensusMessage(hdr, blkBody, []byte(sr.ConsensusGroup()[1]), bls.MtBlockBodyAndHeader)
+
+	sr.Data = nil
+	r := sr.ReceivedBlockBodyAndHeader(cnsMsg)
+	assert.False(t, r)
+}
+
+func TestSubroundBlock_ReceivedBlockBodyAndHeaderCannotProcessJobDone(t *testing.T) {
+	t.Parallel()
+
+	container := mock.InitConsensusCore()
+	sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
+
+	hdr := &block.Header{Nonce: 1}
+	blkBody := &block.Body{}
+
+	cnsMsg := createConsensusMessage(hdr, blkBody, []byte(sr.ConsensusGroup()[0]), bls.MtBlockBodyAndHeader)
+
+	sr.Data = nil
+	_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrBlock, true)
+	r := sr.ReceivedBlockBodyAndHeader(cnsMsg)
+
+	assert.False(t, r)
+}
+
+func TestSubroundBlock_ReceivedBlockBodyAndHeaderErrorDecoding(t *testing.T) {
+	t.Parallel()
+
+	container := mock.InitConsensusCore()
+	blProc := mock.InitBlockProcessorMock()
+	blProc.DecodeBlockHeaderCalled = func(dta []byte) data.HeaderHandler {
+		// error decoding so return nil
+		return nil
+	}
+	container.SetBlockProcessor(blProc)
+
+	sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
+
+	hdr := &block.Header{Nonce: 1}
+	blkBody := &block.Body{}
+
+	cnsMsg := createConsensusMessage(hdr, blkBody, []byte(sr.ConsensusGroup()[0]), bls.MtBlockBodyAndHeader)
+
+	sr.Data = nil
+	r := sr.ReceivedBlockBodyAndHeader(cnsMsg)
+
+	assert.False(t, r)
+}
+
+func TestSubroundBlock_ReceivedBlockBodyAndHeaderBodyAlreadyReceived(t *testing.T) {
+	t.Parallel()
+
+	container := mock.InitConsensusCore()
+	sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
+
+	hdr := &block.Header{Nonce: 1}
+	blkBody := &block.Body{}
+
+	cnsMsg := createConsensusMessage(hdr, blkBody, []byte(sr.ConsensusGroup()[0]), bls.MtBlockBodyAndHeader)
+
+	sr.Data = nil
+	sr.Body = &block.Body{}
+	r := sr.ReceivedBlockBodyAndHeader(cnsMsg)
+
+	assert.False(t, r)
+}
+
+func TestSubroundBlock_ReceivedBlockBodyAndHeaderHeaderAlreadyReceived(t *testing.T) {
+	t.Parallel()
+
+	container := mock.InitConsensusCore()
+	sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
+
+	hdr := &block.Header{Nonce: 1}
+	blkBody := &block.Body{}
+
+	cnsMsg := createConsensusMessage(hdr, blkBody, []byte(sr.ConsensusGroup()[0]), bls.MtBlockBodyAndHeader)
+
+	sr.Data = nil
+	sr.Header = &block.Header{Nonce: 1}
+	r := sr.ReceivedBlockBodyAndHeader(cnsMsg)
+	assert.False(t, r)
+}
+
+func TestSubroundBlock_ReceivedBlockBodyAndHeaderOK(t *testing.T) {
+	t.Parallel()
+
+	container := mock.InitConsensusCore()
+	sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
+
+	hdr := &block.Header{Nonce: 1}
+	blkBody := &block.Body{}
+	cnsMsg := createConsensusMessage(hdr, blkBody, []byte(sr.ConsensusGroup()[0]), bls.MtBlockBodyAndHeader)
+	sr.Data = nil
+	r := sr.ReceivedBlockBodyAndHeader(cnsMsg)
+	assert.True(t, r)
+}
+
+func createConsensusMessage(header *block.Header, body *block.Body, leader []byte, topic consensus.MessageType) *consensus.Message {
+	marshaller := &mock.MarshalizerMock{}
+	hasher := &hashingMocks.HasherMock{}
+
+	hdrStr, _ := marshaller.Marshal(header)
+	hdrHash := hasher.Compute(string(hdrStr))
+	blkBodyStr, _ := marshaller.Marshal(body)
+
+	return consensus.NewConsensusMessage(
+		hdrHash,
+		nil,
+		blkBodyStr,
+		hdrStr,
+		leader,
+		[]byte("sig"),
+		int(topic),
+		0,
+		chainID,
+		nil,
+		nil,
+		nil,
+		currentPid,
+	)
 }
 
 func TestSubroundBlock_ReceivedBlock(t *testing.T) {

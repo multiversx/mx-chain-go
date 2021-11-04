@@ -76,6 +76,11 @@ func (ses *startInEpochWithScheduledDataSyncer) UpdateSyncDataIfNeeded(
 	return headerToBeProcessed, headers, nil
 }
 
+// IsInterfaceNil returns true if the receiver is nil, false otherwise
+func (ses *startInEpochWithScheduledDataSyncer) IsInterfaceNil() bool {
+	return ses == nil
+}
+
 func (ses *startInEpochWithScheduledDataSyncer) getRequiredHeaderByHash(
 	notarizedShardHeader data.ShardHeaderHandler,
 ) (data.ShardHeaderHandler, map[string]data.HeaderHandler, error) {

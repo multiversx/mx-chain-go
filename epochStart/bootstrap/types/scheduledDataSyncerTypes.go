@@ -22,4 +22,5 @@ type ScheduledDataSyncerCreator interface {
 type ScheduledDataSyncer interface {
 	UpdateSyncDataIfNeeded(notarizedShardHeader data.ShardHeaderHandler) (data.ShardHeaderHandler, map[string]data.HeaderHandler, error)
 	GetRootHashToSync(notarizedShardHeader data.ShardHeaderHandler) []byte
+	IsInterfaceNil() bool
 }
