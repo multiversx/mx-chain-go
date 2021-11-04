@@ -8,6 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
 
+const epochStartSubscriptionHandlerName = "epochStartSubscriptionHandler"
+
 // EpochStartNotifier defines which actions should be done for handling new epoch's events
 type EpochStartNotifier interface {
 	RegisterHandler(handler epochStart.ActionHandler)
@@ -16,6 +18,7 @@ type EpochStartNotifier interface {
 	NotifyAllPrepare(metaHdr data.HeaderHandler, body data.BodyHandler)
 	NotifyEpochChangeConfirmed(epoch uint32)
 	RegisterForEpochChangeConfirmed(handler func(epoch uint32))
+	GetName() string
 	IsInterfaceNil() bool
 }
 
@@ -68,7 +71,7 @@ func (essh *epochStartSubscriptionHandler) NotifyAll(hdr data.HeaderHandler) {
 	})
 
 	for i := 0; i < len(essh.epochStartHandlers); i++ {
-		essh.epochStartHandlers[i].EpochStartAction(hdr)
+		essh.epochStartHandlers[i].Action(hdr)
 	}
 	essh.mutEpochStartHandler.RUnlock()
 }
@@ -83,7 +86,7 @@ func (essh *epochStartSubscriptionHandler) NotifyAllPrepare(metaHdr data.HeaderH
 	})
 
 	for i := 0; i < len(essh.epochStartHandlers); i++ {
-		essh.epochStartHandlers[i].EpochStartPrepare(metaHdr, body)
+		essh.epochStartHandlers[i].Prepare(metaHdr, body)
 	}
 	essh.mutEpochStartHandler.RUnlock()
 }
@@ -106,6 +109,11 @@ func (essh *epochStartSubscriptionHandler) NotifyEpochChangeConfirmed(epoch uint
 		go handler(epoch)
 	}
 	essh.mutEpochStartHandler.RUnlock()
+}
+
+// GetName returns the notifier name
+func (essh *epochStartSubscriptionHandler) GetName() string {
+	return epochStartSubscriptionHandlerName
 }
 
 // IsInterfaceNil -

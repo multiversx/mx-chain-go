@@ -29,16 +29,16 @@ func NewHandlerForEpochStart(
 	return &handler
 }
 
-// EpochStartPrepare will notify the subscriber to prepare for a start of epoch.
+// Prepare will notify the subscriber to prepare for a start of epoch.
 // The event can be triggered multiple times
-func (hs *handlerStruct) EpochStartPrepare(metaHdr data.HeaderHandler, _ data.BodyHandler) {
+func (hs *handlerStruct) Prepare(metaHdr data.HeaderHandler, _ data.BodyHandler) {
 	if hs.act != nil {
 		hs.prepare(metaHdr)
 	}
 }
 
-// EpochStartAction will notify the subscribed function if not nil
-func (hs *handlerStruct) EpochStartAction(hdr data.HeaderHandler) {
+// Action will notify the subscribed function if not nil
+func (hs *handlerStruct) Action(hdr data.HeaderHandler) {
 	if hs.act != nil {
 		hs.act(hdr)
 	}

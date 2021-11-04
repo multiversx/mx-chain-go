@@ -33,6 +33,11 @@ func (esnm *EpochStartNotifierStub) NotifyAll(hdr data.HeaderHandler) {
 	}
 }
 
+// GetName -
+func (esnm *EpochStartNotifierStub) GetName() string {
+	return "EpochStartNotifierStub"
+}
+
 // IsInterfaceNil -
 func (esnm *EpochStartNotifierStub) IsInterfaceNil() bool {
 	return esnm == nil

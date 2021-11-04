@@ -980,6 +980,7 @@ type EpochHandler interface {
 type EpochStartEventNotifier interface {
 	RegisterHandler(handler epochStart.ActionHandler)
 	UnregisterHandler(handler epochStart.ActionHandler)
+	GetName() string
 	IsInterfaceNil() bool
 }
 
