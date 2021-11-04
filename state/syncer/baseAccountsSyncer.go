@@ -77,7 +77,7 @@ func checkArgs(args ArgsNewBaseAccountsSyncer) error {
 func (b *baseAccountsSyncer) syncMainTrie(
 	rootHash []byte,
 	trieTopic string,
-	ssh SyncStatisticsHandler,
+	ssh common.SizeSyncStatisticsHandler,
 	ctx context.Context,
 ) (common.Trie, error) {
 	b.rootHash = rootHash
@@ -119,17 +119,35 @@ func (b *baseAccountsSyncer) syncMainTrie(
 	return dataTrie.Recreate(rootHash)
 }
 
-func (b *baseAccountsSyncer) printStatistics(ssh SyncStatisticsHandler, ctx context.Context) {
+func (b *baseAccountsSyncer) printStatistics(ssh common.SizeSyncStatisticsHandler, ctx context.Context) {
+	lastDataReceived := uint64(0)
+	peakDataReceived := uint64(0)
 	for {
 		select {
 		case <-ctx.Done():
+			peakSpeed := convertBytesPerIntervalToSpeed(peakDataReceived, timeBetweenStatisticsPrints)
+
 			log.Info("finished trie sync",
 				"name", b.name,
 				"num received", ssh.NumReceived(),
 				"num large nodes", ssh.NumLarge(),
-				"num missing", ssh.NumMissing())
+				"num missing", ssh.NumMissing(),
+				"data size received", core.ConvertBytes(ssh.NumBytesReceived()),
+				"peak network speed", peakSpeed,
+			)
 			return
 		case <-time.After(timeBetweenStatisticsPrints):
+			bytesReceivedDelta := ssh.NumBytesReceived() - lastDataReceived
+			lastDataReceived = ssh.NumBytesReceived()
+			if bytesReceivedDelta < 0 {
+				bytesReceivedDelta = 0
+			}
+
+			speed := convertBytesPerIntervalToSpeed(bytesReceivedDelta, timeBetweenStatisticsPrints)
+			if peakDataReceived < bytesReceivedDelta {
+				peakDataReceived = bytesReceivedDelta
+			}
+
 			log.Info("trie sync in progress",
 				"name", b.name,
 				"num received", ssh.NumReceived(),
@@ -137,13 +155,27 @@ func (b *baseAccountsSyncer) printStatistics(ssh SyncStatisticsHandler, ctx cont
 				"num missing", ssh.NumMissing(),
 				"num tries", fmt.Sprintf("%d/%d", atomic.LoadInt32(&b.numTriesSynced), atomic.LoadInt32(&b.numMaxTries)),
 				"intercepted trie nodes cache size", core.ConvertBytes(b.cacher.SizeInBytesContained()),
-				"num of intercepted trie nodes", b.cacher.Len())
+				"num of intercepted trie nodes", b.cacher.Len(),
+				"data size received", core.ConvertBytes(ssh.NumBytesReceived()),
+				"network speed", speed)
 		}
 	}
 }
 
+func convertBytesPerIntervalToSpeed(bytes uint64, interval time.Duration) string {
+	if interval < time.Millisecond {
+		// con not compute precisely, highly likely to get an overflow
+		return "N/A"
+	}
+
+	bytesReceivedPerSec := float64(bytes) / timeBetweenStatisticsPrints.Seconds()
+	uint64Val := uint64(bytesReceivedPerSec)
+
+	return fmt.Sprintf("%s/s", core.ConvertBytes(uint64Val))
+}
+
 // Deprecated: GetSyncedTries returns the synced map of data trie. This is likely to case OOM exceptions
-//TODO remove this function after fixing the hardfork sync state mechanism
+// TODO remove this function after fixing the hardfork sync state mechanism
 func (b *baseAccountsSyncer) GetSyncedTries() map[string]common.Trie {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
