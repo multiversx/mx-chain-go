@@ -122,10 +122,14 @@ func (b *baseAccountsSyncer) syncMainTrie(
 func (b *baseAccountsSyncer) printStatistics(ssh common.SizeSyncStatisticsHandler, ctx context.Context) {
 	lastDataReceived := uint64(0)
 	peakDataReceived := uint64(0)
+	startedSync := time.Now()
 	for {
 		select {
 		case <-ctx.Done():
 			peakSpeed := convertBytesPerIntervalToSpeed(peakDataReceived, timeBetweenStatisticsPrints)
+			finishedSync := time.Now()
+			totalSyncDuration := finishedSync.Sub(startedSync)
+			averageSpeed := convertBytesPerIntervalToSpeed(ssh.NumBytesReceived(), totalSyncDuration)
 
 			log.Info("finished trie sync",
 				"name", b.name,
@@ -134,6 +138,7 @@ func (b *baseAccountsSyncer) printStatistics(ssh common.SizeSyncStatisticsHandle
 				"num missing", ssh.NumMissing(),
 				"data size received", core.ConvertBytes(ssh.NumBytesReceived()),
 				"peak network speed", peakSpeed,
+				"average network speed", averageSpeed,
 			)
 			return
 		case <-time.After(timeBetweenStatisticsPrints):
@@ -168,7 +173,7 @@ func convertBytesPerIntervalToSpeed(bytes uint64, interval time.Duration) string
 		return "N/A"
 	}
 
-	bytesReceivedPerSec := float64(bytes) / timeBetweenStatisticsPrints.Seconds()
+	bytesReceivedPerSec := float64(bytes) / interval.Seconds()
 	uint64Val := uint64(bytesReceivedPerSec)
 
 	return fmt.Sprintf("%s/s", core.ConvertBytes(uint64Val))
