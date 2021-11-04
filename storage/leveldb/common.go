@@ -2,6 +2,7 @@ package leveldb
 
 import (
 	"fmt"
+	"runtime/debug"
 	"time"
 
 	"github.com/syndtr/goleveldb/leveldb"
@@ -24,11 +25,13 @@ func openLevelDB(path string, options *opt.Options) (*leveldb.DB, error) {
 			return nil, err
 		}
 
-		log.Debug("error opening DB",
+		log.Warn("error opening DB",
 			"error", err,
 			"path", path,
 			"retry", retries,
 		)
+
+		debug.PrintStack()
 
 		time.Sleep(timeBetweenRetries)
 		retries++
