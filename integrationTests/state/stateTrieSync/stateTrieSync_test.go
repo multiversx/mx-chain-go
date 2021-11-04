@@ -182,17 +182,14 @@ func printStatistics(ctx context.Context, stats common.SizeSyncStatisticsHandler
 			)
 			return
 		case <-time.After(printInterval):
-			speed := ""
 			bytesReceivedDelta := stats.NumBytesReceived() - lastDataReceived
-			lastDataReceived = stats.NumBytesReceived()
-			if bytesReceivedDelta < 0 {
-				log.Warn("programming error, bytesReceivedDelta is negative",
-					"bytesReceivedDelta", "ssh.NumBytesReceived()", stats.NumBytesReceived())
+			if stats.NumBytesReceived() < lastDataReceived {
 				bytesReceivedDelta = 0
 			}
+			lastDataReceived = stats.NumBytesReceived()
 
 			bytesReceivedPerSec := float64(bytesReceivedDelta) / printInterval.Seconds()
-			speed = fmt.Sprintf("%s/s", core.ConvertBytes(uint64(bytesReceivedPerSec)))
+			speed := fmt.Sprintf("%s/s", core.ConvertBytes(uint64(bytesReceivedPerSec)))
 
 			log.Info("trie sync in progress",
 				"num received", stats.NumReceived(),

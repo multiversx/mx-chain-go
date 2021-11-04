@@ -143,10 +143,10 @@ func (b *baseAccountsSyncer) printStatistics(ssh common.SizeSyncStatisticsHandle
 			return
 		case <-time.After(timeBetweenStatisticsPrints):
 			bytesReceivedDelta := ssh.NumBytesReceived() - lastDataReceived
-			lastDataReceived = ssh.NumBytesReceived()
-			if bytesReceivedDelta < 0 {
+			if ssh.NumBytesReceived() < lastDataReceived {
 				bytesReceivedDelta = 0
 			}
+			lastDataReceived = ssh.NumBytesReceived()
 
 			speed := convertBytesPerIntervalToSpeed(bytesReceivedDelta, timeBetweenStatisticsPrints)
 			if peakDataReceived < bytesReceivedDelta {
