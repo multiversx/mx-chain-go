@@ -373,6 +373,10 @@ func (sp *shardProcessor) CheckEpochCorrectnessCrossChain() error {
 	return sp.checkEpochCorrectnessCrossChain()
 }
 
+func (sp *shardProcessor) CheckEpochCorrectness(header *block.Header) error {
+	return sp.checkEpochCorrectness(header)
+}
+
 func (sp *shardProcessor) GetBootstrapHeadersInfo(
 	selfNotarizedHeaders []data.HeaderHandler,
 	selfNotarizedHeadersHashes [][]byte,

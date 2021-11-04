@@ -370,40 +370,31 @@ func (ps *PruningStorer) createAndInitPersister(pd *persisterData) (storage.Pers
 // if the key may be in the db. If bloom filter confirms then it further searches in the databases.
 func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 	v, ok := ps.cacher.Get(key)
-	var err error
-
-	if !ok {
-		// not found in cache
-		// search it in active persisters
-		found := false
-		ps.lock.RLock()
-		for idx := uint32(0); (idx < ps.numOfActivePersisters) && (idx < uint32(len(ps.activePersisters))); idx++ {
-			if ps.bloomFilter == nil || ps.bloomFilter.MayContain(key) {
-				v, err = ps.activePersisters[idx].persister.Get(key)
-				if err != nil {
-					continue
-				}
-
-				buff, isByteSlice := v.([]byte)
-				if !isByteSlice {
-					continue
-				}
-
-				found = true
-				// if found in persistence unit, add it to cache
-				ps.cacher.Put(key, v, len(buff))
-				break
-			}
-		}
-		ps.lock.RUnlock()
-
-		if !found {
-			return nil, fmt.Errorf("key %s not found in %s",
-				hex.EncodeToString(key), ps.identifier)
-		}
+	if ok {
+		return v.([]byte), nil
 	}
 
-	return v.([]byte), nil
+	if ps.bloomFilter != nil && !ps.bloomFilter.MayContain(key) {
+		return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
+	}
+
+	// not found in cache
+	// search it in active persisters
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+
+	for idx := uint32(0); (idx < ps.numOfActivePersisters) && (idx < uint32(len(ps.activePersisters))); idx++ {
+		val, err := ps.activePersisters[idx].persister.Get(key)
+		if err != nil {
+			continue
+		}
+
+		// if found in persistence unit, add it to cache and return
+		_ = ps.cacher.Put(key, val, len(val))
+		return val, nil
+	}
+
+	return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
 }
 
 // GetFromOldEpochsWithoutCache searches the old epochs for the given key without updating the cache
