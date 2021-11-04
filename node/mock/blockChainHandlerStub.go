@@ -37,6 +37,11 @@ func (e *BlockChainHookHandlerStub) SetCurrentHeader(hdr data.HeaderHandler) {
 	}
 }
 
+// SaveNFTMetaDataToSystemAccount -
+func (e *BlockChainHookHandlerStub) SaveNFTMetaDataToSystemAccount(_ data.TransactionHandler) error {
+	return nil
+}
+
 // NewAddress -
 func (e *BlockChainHookHandlerStub) NewAddress(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error) {
 	if e.NewAddressCalled != nil {

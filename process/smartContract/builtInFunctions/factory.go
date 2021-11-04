@@ -13,44 +13,44 @@ import (
 
 // ArgsCreateBuiltInFunctionContainer defines the argument structure to create new built in function container
 type ArgsCreateBuiltInFunctionContainer struct {
-	GasSchedule                          core.GasScheduleNotifier
-	MapDNSAddresses                      map[string]struct{}
-	EnableUserNameChange                 bool
-	Marshalizer                          marshal.Marshalizer
-	Accounts                             state.AccountsAdapter
-	ShardCoordinator                     sharding.Coordinator
-	EpochNotifier                        vmcommon.EpochNotifier
-	ESDTMultiTransferEnableEpoch         uint32
-	ESDTTransferRoleEnableEpoch          uint32
-	GlobalMintBurnDisableEpoch           uint32
-	ESDTTransferMetaEnableEpoch          uint32
-	ESDTNFTCreateOnMultiShardEnableEpoch uint32
+	GasSchedule                  core.GasScheduleNotifier
+	MapDNSAddresses              map[string]struct{}
+	EnableUserNameChange         bool
+	Marshalizer                  marshal.Marshalizer
+	Accounts                     state.AccountsAdapter
+	ShardCoordinator             sharding.Coordinator
+	EpochNotifier                vmcommon.EpochNotifier
+	ESDTMultiTransferEnableEpoch uint32
+	ESDTTransferRoleEnableEpoch  uint32
+	GlobalMintBurnDisableEpoch   uint32
+	ESDTTransferMetaEnableEpoch  uint32
+	OptimizeNFTStoreEnableEpoch  uint32
 }
 
-// CreateBuiltInFunctionContainer creates a container that will hold all the available built in functions
-func CreateBuiltInFunctionContainer(args ArgsCreateBuiltInFunctionContainer) (vmcommon.BuiltInFunctionContainer, error) {
+// CreateBuiltInFuncContainerAndNFTStorageHandler creates a container that will hold all the available built in functions
+func CreateBuiltInFuncContainerAndNFTStorageHandler(args ArgsCreateBuiltInFunctionContainer) (vmcommon.BuiltInFunctionContainer, vmcommon.SimpleESDTNFTStorageHandler, error) {
 	if check.IfNil(args.GasSchedule) {
-		return nil, process.ErrNilGasSchedule
+		return nil, nil, process.ErrNilGasSchedule
 	}
 	if check.IfNil(args.Marshalizer) {
-		return nil, process.ErrNilMarshalizer
+		return nil, nil, process.ErrNilMarshalizer
 	}
 	if check.IfNil(args.Accounts) {
-		return nil, process.ErrNilAccountsAdapter
+		return nil, nil, process.ErrNilAccountsAdapter
 	}
 	if args.MapDNSAddresses == nil {
-		return nil, process.ErrNilDnsAddresses
+		return nil, nil, process.ErrNilDnsAddresses
 	}
 	if check.IfNil(args.ShardCoordinator) {
-		return nil, process.ErrNilShardCoordinator
+		return nil, nil, process.ErrNilShardCoordinator
 	}
 	if check.IfNil(args.EpochNotifier) {
-		return nil, process.ErrNilEpochNotifier
+		return nil, nil, process.ErrNilEpochNotifier
 	}
 
 	vmcommonAccounts, ok := args.Accounts.(vmcommon.AccountsAdapter)
 	if !ok {
-		return nil, process.ErrWrongTypeAssertion
+		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
 	modifiedArgs := vmcommonBuiltInFunctions.ArgsCreateBuiltInFunctionContainer{
@@ -65,19 +65,20 @@ func CreateBuiltInFunctionContainer(args ArgsCreateBuiltInFunctionContainer) (vm
 		ESDTTransferToMetaEnableEpoch:       args.ESDTTransferMetaEnableEpoch,
 		ESDTTransferRoleEnableEpoch:         args.ESDTTransferRoleEnableEpoch,
 		GlobalMintBurnDisableEpoch:          args.GlobalMintBurnDisableEpoch,
+		SaveNFTToSystemAccountEnableEpoch:   args.OptimizeNFTStoreEnableEpoch,
 	}
 
-	bContainerFactory, err := vmcommonBuiltInFunctions.NewBuiltInFunctionsFactory(modifiedArgs)
+	bContainerFactory, err := vmcommonBuiltInFunctions.NewBuiltInFunctionsCreator(modifiedArgs)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	container, err := bContainerFactory.CreateBuiltInFunctionContainer()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	args.GasSchedule.RegisterNotifyHandler(bContainerFactory)
 
-	return container, nil
+	return container, bContainerFactory.NFTStorageHandler(), nil
 }
