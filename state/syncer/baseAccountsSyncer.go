@@ -139,6 +139,7 @@ func (b *baseAccountsSyncer) printStatistics(ssh common.SizeSyncStatisticsHandle
 				"data size received", core.ConvertBytes(ssh.NumBytesReceived()),
 				"peak network speed", peakSpeed,
 				"average network speed", averageSpeed,
+				"total sync duration", totalSyncDuration,
 			)
 			return
 		case <-time.After(timeBetweenStatisticsPrints):
