@@ -297,7 +297,7 @@ func TestFullHistoryPruningStorer_ConcurrentOperations(t *testing.T) {
 	require.NotNil(t, fhps)
 
 	rnd := random.ConcurrentSafeIntRandomizer{}
-	numOperations := 500
+	numOperations := 5000
 	wg := sync.WaitGroup{}
 	wg.Add(numOperations)
 	for idx := 0; idx < numOperations; idx++ {
@@ -326,5 +326,5 @@ func TestFullHistoryPruningStorer_ConcurrentOperations(t *testing.T) {
 
 	elapsedTime := time.Since(startTime)
 	// if the "resource temporary unavailable" occurs, this test will take longer than this to execute
-	require.True(t, elapsedTime < 10*time.Second)
+	require.True(t, elapsedTime < 100*time.Second)
 }
