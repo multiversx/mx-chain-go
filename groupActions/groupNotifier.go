@@ -22,7 +22,7 @@ type groupNotifierTriggerData struct {
 type groupNotifier struct {
 	groupsPerEvent map[string]map[string]groupTypes.GroupActionHandler
 	triggers       map[string]*groupNotifierTriggerData
-	sync.RWMutex
+	mut sync.RWMutex
 }
 
 // NewGroupActionNotifier creates a group notifier instance
@@ -45,8 +45,8 @@ func (gn *groupNotifier) Register(group groupTypes.GroupActionHandler, trigger g
 		return errInvalidTriggerID
 	}
 
-	gn.Lock()
-	defer gn.Unlock()
+	gn.mut.Lock()
+	defer gn.mut.Unlock()
 
 	err := gn.registerTrigger(trigger)
 	if err != nil {
@@ -67,8 +67,8 @@ func (gn *groupNotifier) Register(group groupTypes.GroupActionHandler, trigger g
 
 // Close cleans up the group notifier
 func (gn *groupNotifier) Close() error {
-	gn.Lock()
-	defer gn.Unlock()
+	gn.mut.Lock()
+	defer gn.mut.Unlock()
 
 	for _, at := range gn.triggers {
 		at.trigger.UnregisterHandler(at.registeredNotifier)
@@ -81,8 +81,8 @@ func (gn *groupNotifier) Close() error {
 
 // ReceiveNotification is the registered notification function for a specific trigger
 func (gn *groupNotifier) ReceiveNotification(triggerID string, header data.HeaderHandler, stage groupTypes.TriggerStage) {
-	gn.RLock()
-	defer gn.RUnlock()
+	gn.mut.RLock()
+	defer gn.mut.RUnlock()
 
 	groups, exists := gn.groupsPerEvent[triggerID]
 	if !exists {
