@@ -15,6 +15,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+// MultipleHeaderProposalDetectorArgs is a a struct containing all arguments required to create a new multipleHeaderProposalsDetector
+type MultipleHeaderProposalDetectorArgs struct {
+	NodesCoordinator sharding.NodesCoordinator
+	RoundHandler     process.RoundHandler
+	Cache            RoundDetectorCache
+	Hasher           hashing.Hasher
+	Marshaller       marshal.Marshalizer
+}
+
 // multipleHeaderProposalsDetector - checks slashable events in case a validator proposes multiple(possibly) malicious headers.
 type multipleHeaderProposalsDetector struct {
 	cache            RoundDetectorCache
@@ -30,12 +39,20 @@ func NewMultipleHeaderProposalsDetector(
 	nodesCoordinator sharding.NodesCoordinator,
 	roundHandler process.RoundHandler,
 	cache RoundDetectorCache,
+	hasher hashing.Hasher,
+	marshaller marshal.Marshalizer,
 ) (slash.SlashingDetector, error) {
 	if check.IfNil(nodesCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
 	if check.IfNil(roundHandler) {
 		return nil, process.ErrNilRoundHandler
+	}
+	if check.IfNil(hasher) {
+		return nil, process.ErrNilHasher
+	}
+	if check.IfNil(marshaller) {
+		return nil, process.ErrNilMarshalizer
 	}
 	if check.IfNil(cache) {
 		return nil, process.ErrNilRoundDetectorCache
