@@ -35,34 +35,30 @@ type multipleHeaderProposalsDetector struct {
 
 // NewMultipleHeaderProposalsDetector - creates a new multipleHeaderProposalsDetector for multiple headers
 // proposal detection or multiple headers proposal proof verification
-func NewMultipleHeaderProposalsDetector(
-	nodesCoordinator sharding.NodesCoordinator,
-	roundHandler process.RoundHandler,
-	cache RoundDetectorCache,
-	hasher hashing.Hasher,
-	marshaller marshal.Marshalizer,
-) (slash.SlashingDetector, error) {
-	if check.IfNil(nodesCoordinator) {
+func NewMultipleHeaderProposalsDetector(args *MultipleHeaderProposalDetectorArgs) (slash.SlashingDetector, error) {
+	if check.IfNil(args.NodesCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if check.IfNil(roundHandler) {
+	if check.IfNil(args.RoundHandler) {
 		return nil, process.ErrNilRoundHandler
 	}
-	if check.IfNil(hasher) {
+	if check.IfNil(args.Hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if check.IfNil(marshaller) {
+	if check.IfNil(args.Marshaller) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if check.IfNil(cache) {
+	if check.IfNil(args.Cache) {
 		return nil, process.ErrNilRoundDetectorCache
 	}
 
-	baseDetector := baseSlashingDetector{roundHandler: roundHandler}
+	baseDetector := baseSlashingDetector{roundHandler: args.RoundHandler}
 
 	return &multipleHeaderProposalsDetector{
-		cache:                cache,
-		nodesCoordinator:     nodesCoordinator,
+		cache:                args.Cache,
+		nodesCoordinator:     args.NodesCoordinator,
+		hasher:               args.Hasher,
+		marshaller:           args.Marshaller,
 		baseSlashingDetector: baseDetector,
 	}, nil
 }
@@ -178,13 +174,9 @@ func (mhp *multipleHeaderProposalsDetector) checkProposedHeaders(headers []data.
 	}
 
 	for _, header := range headers {
-		hash, err := core.CalculateHash(mhp.marshaller, mhp.hasher, header)
+		hash, err := mhp.checkHash(header, hashes)
 		if err != nil {
 			return err
-		}
-
-		if _, exists := hashes[string(hash)]; exists {
-			return process.ErrHeadersNotDifferentHashes
 		}
 
 		err = mhp.checkHeaderHasSameProposerAndRound(header, round, proposer)
@@ -196,6 +188,19 @@ func (mhp *multipleHeaderProposalsDetector) checkProposedHeaders(headers []data.
 	}
 
 	return nil
+}
+
+func (mhp *multipleHeaderProposalsDetector) checkHash(header data.HeaderHandler, hashes map[string]struct{}) (string, error) {
+	hash, err := core.CalculateHash(mhp.marshaller, mhp.hasher, header)
+	if err != nil {
+		return "", err
+	}
+
+	if _, exists := hashes[string(hash)]; exists {
+		return "", process.ErrHeadersNotDifferentHashes
+	}
+
+	return string(hash), nil
 }
 
 func (mhp *multipleHeaderProposalsDetector) checkHeaderHasSameProposerAndRound(

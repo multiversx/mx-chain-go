@@ -8,8 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	mockEpochStart "github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
@@ -27,36 +25,46 @@ func TestNewMultipleHeaderProposalsDetector(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		args        func() (sharding.NodesCoordinator, process.RoundHandler, detector.RoundDetectorCache, hashing.Hasher, marshal.Marshalizer)
+		args        func() *detector.MultipleHeaderProposalDetectorArgs
 		expectedErr error
 	}{
 		{
-			args: func() (sharding.NodesCoordinator, process.RoundHandler, detector.RoundDetectorCache, hashing.Hasher, marshal.Marshalizer) {
-				return nil, &mock.RoundHandlerMock{}, &slashMocks.RoundDetectorCacheStub{}, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{}
+			args: func() *detector.MultipleHeaderProposalDetectorArgs {
+				args := generateMultipleHeaderProposalDetectorArgs()
+				args.NodesCoordinator = nil
+				return args
 			},
 			expectedErr: process.ErrNilShardCoordinator,
 		},
 		{
-			args: func() (sharding.NodesCoordinator, process.RoundHandler, detector.RoundDetectorCache, hashing.Hasher, marshal.Marshalizer) {
-				return &mock.NodesCoordinatorMock{}, nil, &slashMocks.RoundDetectorCacheStub{}, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{}
+			args: func() *detector.MultipleHeaderProposalDetectorArgs {
+				args := generateMultipleHeaderProposalDetectorArgs()
+				args.RoundHandler = nil
+				return args
 			},
 			expectedErr: process.ErrNilRoundHandler,
 		},
 		{
-			args: func() (sharding.NodesCoordinator, process.RoundHandler, detector.RoundDetectorCache, hashing.Hasher, marshal.Marshalizer) {
-				return &mock.NodesCoordinatorMock{}, &mock.RoundHandlerMock{}, nil, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{}
+			args: func() *detector.MultipleHeaderProposalDetectorArgs {
+				args := generateMultipleHeaderProposalDetectorArgs()
+				args.Cache = nil
+				return args
 			},
 			expectedErr: process.ErrNilRoundDetectorCache,
 		},
 		{
-			args: func() (sharding.NodesCoordinator, process.RoundHandler, detector.RoundDetectorCache, hashing.Hasher, marshal.Marshalizer) {
-				return &mock.NodesCoordinatorMock{}, &mock.RoundHandlerMock{}, &slashMocks.RoundDetectorCacheStub{}, nil, &testscommon.MarshalizerMock{}
+			args: func() *detector.MultipleHeaderProposalDetectorArgs {
+				args := generateMultipleHeaderProposalDetectorArgs()
+				args.Hasher = nil
+				return args
 			},
 			expectedErr: process.ErrNilHasher,
 		},
 		{
-			args: func() (sharding.NodesCoordinator, process.RoundHandler, detector.RoundDetectorCache, hashing.Hasher, marshal.Marshalizer) {
-				return &mock.NodesCoordinatorMock{}, &mock.RoundHandlerMock{}, &slashMocks.RoundDetectorCacheStub{}, &hashingMocks.HasherMock{}, nil
+			args: func() *detector.MultipleHeaderProposalDetectorArgs {
+				args := generateMultipleHeaderProposalDetectorArgs()
+				args.Marshaller = nil
+				return args
 			},
 			expectedErr: process.ErrNilMarshalizer,
 		},
@@ -71,7 +79,8 @@ func TestNewMultipleHeaderProposalsDetector(t *testing.T) {
 func TestMultipleHeaderProposalsDetector_VerifyData_CannotCastData_ExpectError(t *testing.T) {
 	t.Parallel()
 
-	sd, _ := detector.NewMultipleHeaderProposalsDetector(&mock.NodesCoordinatorMock{}, &mock.RoundHandlerMock{}, &slashMocks.RoundDetectorCacheStub{}, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	args := generateMultipleHeaderProposalDetectorArgs()
+	sd, _ := detector.NewMultipleHeaderProposalsDetector(args)
 	res, err := sd.VerifyData(&testscommon.InterceptedDataStub{})
 
 	require.Nil(t, res)
@@ -81,7 +90,8 @@ func TestMultipleHeaderProposalsDetector_VerifyData_CannotCastData_ExpectError(t
 func TestMultipleHeaderProposalsDetector_VerifyData_NilHeaderHandler_ExpectError(t *testing.T) {
 	t.Parallel()
 
-	sd, _ := detector.NewMultipleHeaderProposalsDetector(&mock.NodesCoordinatorMock{}, &mock.RoundHandlerMock{}, &slashMocks.RoundDetectorCacheStub{}, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	args := generateMultipleHeaderProposalDetectorArgs()
+	sd, _ := detector.NewMultipleHeaderProposalsDetector(args)
 	res, err := sd.VerifyData(&interceptedBlocks.InterceptedHeader{})
 
 	require.Nil(t, res)
@@ -92,12 +102,14 @@ func TestMultipleHeaderProposalsDetector_VerifyData_CannotGetProposer_ExpectErro
 	t.Parallel()
 
 	expectedErr := errors.New("cannot get proposer")
+	args := generateMultipleHeaderProposalDetectorArgs()
 	nodesCoordinator := &mockEpochStart.NodesCoordinatorStub{
 		ComputeConsensusGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
 			return nil, expectedErr
 		},
 	}
-	sd, _ := detector.NewMultipleHeaderProposalsDetector(nodesCoordinator, &mock.RoundHandlerMock{}, &slashMocks.RoundDetectorCacheStub{}, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	args.NodesCoordinator = nodesCoordinator
+	sd, _ := detector.NewMultipleHeaderProposalsDetector(args)
 
 	res, err := sd.VerifyData(slashMocks.CreateInterceptedHeaderData(&block.Header{}))
 
@@ -109,12 +121,9 @@ func TestMultipleHeaderProposalsDetector_VerifyData_IrrelevantRound_ExpectError(
 	t.Parallel()
 
 	round := uint64(100)
-	sd, _ := detector.NewMultipleHeaderProposalsDetector(
-		&mockEpochStart.NodesCoordinatorStub{},
-		&mock.RoundHandlerMock{
-			RoundIndex: int64(round),
-		},
-		&slashMocks.RoundDetectorCacheStub{}, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	args := generateMultipleHeaderProposalDetectorArgs()
+	args.RoundHandler = &mock.RoundHandlerMock{RoundIndex: int64(round)}
+	sd, _ := detector.NewMultipleHeaderProposalsDetector(args)
 
 	hData := slashMocks.CreateInterceptedHeaderData(&block.Header{Round: round + detector.MaxDeltaToCurrentRound + 1, RandSeed: []byte("seed")})
 	res, err := sd.VerifyData(hData)
@@ -126,12 +135,13 @@ func TestMultipleHeaderProposalsDetector_VerifyData_IrrelevantRound_ExpectError(
 func TestMultipleHeaderProposalsDetector_VerifyData_EmptyProposerList_ExpectError(t *testing.T) {
 	t.Parallel()
 
-	nodesCoordinator := mockEpochStart.NodesCoordinatorStub{
+	args := generateMultipleHeaderProposalDetectorArgs()
+	args.NodesCoordinator = &mockEpochStart.NodesCoordinatorStub{
 		ComputeConsensusGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
 			return []sharding.Validator{}, nil
 		},
 	}
-	sd, _ := detector.NewMultipleHeaderProposalsDetector(&nodesCoordinator, &mock.RoundHandlerMock{}, &slashMocks.RoundDetectorCacheStub{}, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	sd, _ := detector.NewMultipleHeaderProposalsDetector(args)
 
 	res, err := sd.VerifyData(slashMocks.CreateInterceptedHeaderData(&block.Header{}))
 	require.Nil(t, res)
@@ -143,7 +153,14 @@ func TestMultipleHeaderProposalsDetector_VerifyData_MultipleHeaders_SameHash_Exp
 
 	round := uint64(1)
 	pubKey := []byte("proposer1")
-	cache := slashMocks.RoundDetectorCacheStub{
+
+	args := generateMultipleHeaderProposalDetectorArgs()
+	args.NodesCoordinator = &mockEpochStart.NodesCoordinatorStub{
+		ComputeConsensusGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
+			return []sharding.Validator{mock.NewValidatorMock(pubKey)}, nil
+		},
+	}
+	args.Cache = &slashMocks.RoundDetectorCacheStub{
 		AddCalled: func(r uint64, pk []byte, header data.HeaderInfoHandler) error {
 			if r == round && bytes.Equal(pk, pubKey) {
 				return process.ErrHeadersNotDifferentHashes
@@ -151,12 +168,7 @@ func TestMultipleHeaderProposalsDetector_VerifyData_MultipleHeaders_SameHash_Exp
 			return nil
 		},
 	}
-	nodesCoordinator := &mockEpochStart.NodesCoordinatorStub{
-		ComputeConsensusGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
-			return []sharding.Validator{mock.NewValidatorMock(pubKey)}, nil
-		},
-	}
-	sd, _ := detector.NewMultipleHeaderProposalsDetector(nodesCoordinator, &mock.RoundHandlerMock{}, &cache, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	sd, _ := detector.NewMultipleHeaderProposalsDetector(args)
 
 	hData := slashMocks.CreateInterceptedHeaderData(&block.HeaderV2{Header: &block.Header{Round: round, RandSeed: []byte("seed")}})
 	res, err := sd.VerifyData(hData)
@@ -181,8 +193,8 @@ func TestMultipleHeaderProposalsDetector_VerifyData_MultipleHeaders(t *testing.T
 
 	getCalledCt := 0
 	addCalledCt := 0
-
-	cache := slashMocks.RoundDetectorCacheStub{
+	args := generateMultipleHeaderProposalDetectorArgs()
+	args.Cache = &slashMocks.RoundDetectorCacheStub{
 		AddCalled: func(_ uint64, _ []byte, header data.HeaderInfoHandler) error {
 			addCalledCt++
 			if bytes.Equal(header.GetHash(), hData2.Hash()) && addCalledCt == 3 {
@@ -212,12 +224,12 @@ func TestMultipleHeaderProposalsDetector_VerifyData_MultipleHeaders(t *testing.T
 			}
 		},
 	}
-	nodesCoordinator := &mockEpochStart.NodesCoordinatorStub{
+	args.NodesCoordinator = &mockEpochStart.NodesCoordinatorStub{
 		ComputeConsensusGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
 			return []sharding.Validator{mock.NewValidatorMock(pubKey)}, nil
 		},
 	}
-	sd, _ := detector.NewMultipleHeaderProposalsDetector(nodesCoordinator, &mock.RoundHandlerMock{}, &cache, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	sd, _ := detector.NewMultipleHeaderProposalsDetector(args)
 
 	tmp, err := sd.VerifyData(hData1)
 	require.Nil(t, tmp)
@@ -262,7 +274,8 @@ func TestMultipleHeaderProposalsDetector_VerifyData_MultipleHeaders(t *testing.T
 func TestMultipleHeaderProposalsDetector_ValidateProof_InvalidProofType_ExpectError(t *testing.T) {
 	t.Parallel()
 
-	sd, _ := detector.NewMultipleHeaderProposalsDetector(&mockEpochStart.NodesCoordinatorStub{}, &mock.RoundHandlerMock{}, &slashMocks.RoundDetectorCacheStub{}, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	args := generateMultipleHeaderProposalDetectorArgs()
+	sd, _ := detector.NewMultipleHeaderProposalsDetector(args)
 
 	proof1, _ := coreSlash.NewMultipleSigningProof(map[string]coreSlash.SlashingResult{})
 	err := sd.ValidateProof(proof1)
@@ -323,7 +336,8 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 	}
 
 	for _, currTest := range tests {
-		sd, _ := detector.NewMultipleHeaderProposalsDetector(&mockEpochStart.NodesCoordinatorStub{}, &mock.RoundHandlerMock{}, &slashMocks.RoundDetectorCacheStub{}, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+		args := generateMultipleHeaderProposalDetectorArgs()
+		sd, _ := detector.NewMultipleHeaderProposalsDetector(args)
 		level, headers := currTest.args()
 		proof, _ := coreSlash.NewMultipleProposalProof(
 			&coreSlash.SlashingResult{
@@ -337,7 +351,6 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 	}
 }
 
-// TODO: AICI E FOARTE DELICATA SITUATIA, TREBUIE MOCKUIT SI HASHERUL
 func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_DifferentHeaders(t *testing.T) {
 	t.Parallel()
 
@@ -363,82 +376,84 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 	}{
 		{
 			args: func() (coreSlash.ThreatLevel, slash.HeaderList) {
-				h1 := &block.HeaderV2{Header: &block.Header{Round: 5}} //, []byte("h1"), )
-				h2 := &block.HeaderV2{Header: &block.Header{Round: 5}} //, []byte("h1"))
+				h1 := &block.HeaderV2{Header: &block.Header{Round: 5}}
+				h2 := &block.HeaderV2{Header: &block.Header{Round: 5}}
 				return coreSlash.Medium, slash.HeaderList{h1, h2}
 			},
 			expectedErr: process.ErrHeadersNotDifferentHashes,
 		},
 		{
 			args: func() (coreSlash.ThreatLevel, slash.HeaderList) {
-				h1 := &block.HeaderV2{Header: &block.Header{Round: 5}} //, []byte("h1"))
-				h2 := &block.HeaderV2{Header: &block.Header{Round: 5}} //, []byte("h2"))
-				h3 := &block.HeaderV2{Header: &block.Header{Round: 5}} //, []byte("h2"))
+				h1 := &block.HeaderV2{Header: &block.Header{Round: 5}}
+				h2 := &block.HeaderV2{Header: &block.Header{Round: 5}}
+				h3 := &block.HeaderV2{Header: &block.Header{Round: 5}}
 				return coreSlash.High, slash.HeaderList{h1, h2, h3}
 			},
 			expectedErr: process.ErrHeadersNotDifferentHashes,
 		},
 		{
 			args: func() (coreSlash.ThreatLevel, slash.HeaderList) {
-				h1 := &block.HeaderV2{Header: &block.Header{Round: 4}} //, []byte("h1"), )
-				h2 := &block.HeaderV2{Header: &block.Header{Round: 5}} //, []byte("h2"))
+				h1 := &block.HeaderV2{Header: &block.Header{Round: 4}}
+				h2 := &block.HeaderV2{Header: &block.Header{Round: 5}}
 				return coreSlash.Medium, slash.HeaderList{h1, h2}
 			},
 			expectedErr: process.ErrHeadersNotSameRound,
 		},
 		{
 			args: func() (coreSlash.ThreatLevel, slash.HeaderList) {
-				h1 := &block.HeaderV2{Header: &block.Header{Round: 4}} //, []byte("h1"))
-				h2 := &block.HeaderV2{Header: &block.Header{Round: 4}} //, []byte("h2"))
-				h3 := &block.HeaderV2{Header: &block.Header{Round: 5}} //, []byte("h3"))
+				h1 := &block.HeaderV2{Header: &block.Header{Round: 4, TimeStamp: 1}}
+				h2 := &block.HeaderV2{Header: &block.Header{Round: 4, TimeStamp: 2}}
+				h3 := &block.HeaderV2{Header: &block.Header{Round: 5, TimeStamp: 3}}
 				return coreSlash.High, slash.HeaderList{h1, h2, h3}
 			},
 			expectedErr: process.ErrHeadersNotSameRound,
 		},
 		{
 			args: func() (coreSlash.ThreatLevel, slash.HeaderList) {
-				h1 := &block.HeaderV2{Header: &block.Header{Round: 0, PrevRandSeed: []byte("h1")}} //, []byte("h1"), )
-				h2 := &block.HeaderV2{Header: &block.Header{Round: 0, PrevRandSeed: []byte("h1")}} //, []byte("h2"))
+				h1 := &block.HeaderV2{Header: &block.Header{Round: 0, PrevRandSeed: []byte("h1"), TimeStamp: 1}}
+				h2 := &block.HeaderV2{Header: &block.Header{Round: 0, PrevRandSeed: []byte("h1"), TimeStamp: 2}}
 				return coreSlash.Medium, slash.HeaderList{h1, h2}
 			},
 			expectedErr: errGetProposer,
 		},
 		{
 			args: func() (coreSlash.ThreatLevel, slash.HeaderList) {
-				h1 := &block.HeaderV2{Header: &block.Header{Round: 0, PrevRandSeed: []byte("h")}}  //, []byte("h"), )
-				h2 := &block.HeaderV2{Header: &block.Header{Round: 0, PrevRandSeed: []byte("h1")}} //, []byte("h1"))
+				h1 := &block.HeaderV2{Header: &block.Header{Round: 0, PrevRandSeed: []byte("h")}}
+				h2 := &block.HeaderV2{Header: &block.Header{Round: 0, PrevRandSeed: []byte("h1")}}
 				return coreSlash.Medium, slash.HeaderList{h1, h2}
 			},
 			expectedErr: errGetProposer,
 		},
 		{
 			args: func() (coreSlash.ThreatLevel, slash.HeaderList) {
-				h1 := &block.HeaderV2{Header: &block.Header{Round: 1, PrevRandSeed: []byte("h1")}} //, []byte("h1"), )
-				h2 := &block.HeaderV2{Header: &block.Header{Round: 1, PrevRandSeed: []byte("h2")}} //, []byte("h2"))
+				h1 := &block.HeaderV2{Header: &block.Header{Round: 1, PrevRandSeed: []byte("h1")}}
+				h2 := &block.HeaderV2{Header: &block.Header{Round: 1, PrevRandSeed: []byte("h2")}}
 				return coreSlash.Medium, slash.HeaderList{h1, h2}
 			},
 			expectedErr: process.ErrHeadersNotSameProposer,
 		},
 		{
 			args: func() (coreSlash.ThreatLevel, slash.HeaderList) {
-				h1 := &block.HeaderV2{Header: &block.Header{Round: 4}} //, []byte("h1"), )
-				h2 := &block.HeaderV2{Header: &block.Header{Round: 4}} //, []byte("h2"))
+				h1 := &block.HeaderV2{Header: &block.Header{Round: 4, TimeStamp: 1}}
+				h2 := &block.HeaderV2{Header: &block.Header{Round: 4, TimeStamp: 2}}
 				return coreSlash.Medium, slash.HeaderList{h1, h2}
 			},
 			expectedErr: nil,
 		},
 		{
 			args: func() (coreSlash.ThreatLevel, slash.HeaderList) {
-				h1 := &block.HeaderV2{Header: &block.Header{Round: 5}} //, []byte("h1"), )
-				h2 := &block.HeaderV2{Header: &block.Header{Round: 5}} //, []byte("h2"))
-				h3 := &block.HeaderV2{Header: &block.Header{Round: 5}} //, []byte("h3"))
+				h1 := &block.HeaderV2{Header: &block.Header{Round: 5, TimeStamp: 1}}
+				h2 := &block.HeaderV2{Header: &block.Header{Round: 5, TimeStamp: 2}}
+				h3 := &block.HeaderV2{Header: &block.Header{Round: 5, TimeStamp: 3}}
 				return coreSlash.High, slash.HeaderList{h1, h2, h3}
 			},
 			expectedErr: nil,
 		},
 	}
 
-	sd, _ := detector.NewMultipleHeaderProposalsDetector(nodesCoordinatorMock, &mock.RoundHandlerMock{}, &slashMocks.RoundDetectorCacheStub{}, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	args := generateMultipleHeaderProposalDetectorArgs()
+	args.NodesCoordinator = nodesCoordinatorMock
+	sd, _ := detector.NewMultipleHeaderProposalsDetector(args)
 
 	for _, currTest := range tests {
 		level, headers := currTest.args()
@@ -450,5 +465,15 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_MultipleProposalProof_Dif
 		)
 		err := sd.ValidateProof(proof)
 		require.Equal(t, currTest.expectedErr, err)
+	}
+}
+
+func generateMultipleHeaderProposalDetectorArgs() *detector.MultipleHeaderProposalDetectorArgs {
+	return &detector.MultipleHeaderProposalDetectorArgs{
+		NodesCoordinator: &mock.NodesCoordinatorMock{},
+		RoundHandler:     &mock.RoundHandlerMock{},
+		Cache:            &slashMocks.RoundDetectorCacheStub{},
+		Hasher:           &hashingMocks.HasherMock{},
+		Marshaller:       &testscommon.MarshalizerMock{},
 	}
 }
