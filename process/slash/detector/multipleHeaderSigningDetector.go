@@ -22,14 +22,14 @@ type MultipleHeaderSingingDetectorArgs struct {
 	Hasher           hashing.Hasher
 	Marshaller       marshal.Marshalizer
 	SlashingCache    RoundDetectorCache
-	HeadersCache     HeadersCache
+	HeadersCache     RoundHashCache
 }
 
 // multipleHeaderSigningDetector - checks for slashable events in case one(or more)
 // validator signs multiple headers in the same round
 type multipleHeaderSigningDetector struct {
 	slashingCache    RoundDetectorCache
-	headersCache     HeadersCache
+	headersCache     RoundHashCache
 	nodesCoordinator sharding.NodesCoordinator
 	hasher           hashing.Hasher
 	marshaller       marshal.Marshalizer
@@ -105,23 +105,21 @@ func (mhs *multipleHeaderSigningDetector) cacheHeaderWithoutSignatures(header da
 	if err != nil {
 		return err
 	}
-	headerInfo := &slash.HeaderInfo{Header: header, Hash: headerHash}
 
-	return mhs.headersCache.Add(header.GetRound(), headerInfo)
+	return mhs.headersCache.Add(header.GetRound(), headerHash)
 }
 
 func (mhs *multipleHeaderSigningDetector) computeHashWithoutSignatures(header data.HeaderHandler) ([]byte, error) {
 	headerCopy := header.ShallowClone()
+
 	err := headerCopy.SetPubKeysBitmap(nil)
 	if err != nil {
 		return nil, err
 	}
-
 	err = headerCopy.SetSignature(nil)
 	if err != nil {
 		return nil, err
 	}
-
 	err = headerCopy.SetLeaderSignature(nil)
 	if err != nil {
 		return nil, err

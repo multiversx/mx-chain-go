@@ -192,7 +192,7 @@ func TestRoundProposerDataCache_Contains(t *testing.T) {
 }
 
 func TestRoundHeadersCache_IsInterfaceNil(t *testing.T) {
-	cache := NewRoundHeadersCache(1)
+	cache := NewRoundHashCache(1)
 	require.False(t, cache.IsInterfaceNil())
 	cache = nil
 	require.True(t, cache.IsInterfaceNil())

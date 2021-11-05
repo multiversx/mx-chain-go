@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
 	mockEpochStart "github.com/ElrondNetwork/elrond-go/epochStart/mock"
@@ -171,7 +170,7 @@ func TestMultipleHeaderSigningDetector_VerifyData_SameHeaderData_DifferentSigner
 
 	args := generateMultipleHeaderSigningDetectorArgs()
 	args.HeadersCache = &slashMocks.HeadersCacheStub{
-		AddCalled: func(round uint64, header data.HeaderInfoHandler) error {
+		AddCalled: func(round uint64, hash []byte) error {
 			return process.ErrHeadersNotDifferentHashes
 		},
 	}
@@ -243,7 +242,7 @@ func TestMultipleHeaderSigningDetector_VerifyData_ValidateProof(t *testing.T) {
 
 	args := generateMultipleHeaderSigningDetectorArgs()
 	args.SlashingCache = detector.NewRoundValidatorHeaderCache(3)
-	args.HeadersCache = detector.NewRoundHeadersCache(3)
+	args.HeadersCache = detector.NewRoundHashCache(3)
 	args.NodesCoordinator = &mockEpochStart.NodesCoordinatorStub{
 		ComputeConsensusGroupCalled: func(randomness []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
 			switch string(randomness) {
