@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/sliceUtil"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
@@ -154,7 +155,7 @@ func (mhs *multipleHeaderSigningDetector) cacheSigners(header data.HeaderHandler
 	bitmap := header.GetPubKeysBitmap()
 	headerInfo := &slash.HeaderInfo{Header: header, Hash: hash}
 	for idx, validator := range group {
-		if slash.IsIndexSetInBitmap(uint32(idx), bitmap) {
+		if sliceUtil.IsIndexSetInBitmap(uint32(idx), bitmap) {
 			// We could never have an error here, since an error could only happen if:
 			// 1. Round is irrelevant = false, because it is checked before calling this func
 			// 2. Header is already cached = false, because it is already checked before using mhs.hashesCache
@@ -272,7 +273,7 @@ func (mhs *multipleHeaderSigningDetector) signedHeader(pubKey []byte, header dat
 
 	for idx, validator := range group {
 		if bytes.Equal(validator.PubKey(), pubKey) &&
-			slash.IsIndexSetInBitmap(uint32(idx), header.GetPubKeysBitmap()) {
+			sliceUtil.IsIndexSetInBitmap(uint32(idx), header.GetPubKeysBitmap()) {
 			return true
 		}
 	}
