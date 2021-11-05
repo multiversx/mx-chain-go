@@ -10,6 +10,7 @@ import (
 	coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
 	mockEpochStart "github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/slash"
 	"github.com/ElrondNetwork/elrond-go/process/slash/detector"
@@ -99,6 +100,17 @@ func TestMultipleHeaderSigningDetector_VerifyData_CannotCastData_ExpectError(t *
 
 	require.Nil(t, res)
 	require.Equal(t, process.ErrCannotCastInterceptedDataToHeader, err)
+}
+
+func TestMultipleHeaderSigningDetector_ValidateProof_NilHeaderHandler_ExpectError(t *testing.T) {
+	t.Parallel()
+
+	args := generateMultipleHeaderSigningDetectorArgs()
+	sd, _ := detector.NewMultipleHeaderSigningDetector(args)
+	res, err := sd.VerifyData(&interceptedBlocks.InterceptedHeader{})
+
+	require.Nil(t, res)
+	require.Equal(t, process.ErrNilHeaderHandler, err)
 }
 
 func TestMultipleHeaderSigningDetector_VerifyData_InvalidBlockHeaderVersion_ExpectError(t *testing.T) {
@@ -395,7 +407,6 @@ func TestMultipleHeaderSigningDetector_VerifyData_ValidateProof_CachingSignersFa
 	require.Len(t, proof.GetHeaders(pubKey), 2)
 	require.Contains(t, proof.GetHeaders(pubKey), h1)
 	require.Contains(t, proof.GetHeaders(pubKey), h2)
-
 }
 
 func TestMultipleHeaderSigningDetector_ValidateProof_NotEnoughPubKeys_ExpectError(t *testing.T) {

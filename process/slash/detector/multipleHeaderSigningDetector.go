@@ -80,19 +80,23 @@ func (mhs *multipleHeaderSigningDetector) VerifyData(interceptedData process.Int
 	}
 
 	header := interceptedHeader.HeaderHandler()
+	if check.IfNil(header) {
+		return nil, process.ErrNilHeaderHandler
+	}
+
 	round := header.GetRound()
 	if !mhs.isRoundRelevant(round) {
 		return nil, process.ErrHeaderRoundNotRelevant
 	}
 
-	headerHashWithoutSignature, err := mhs.cacheHeaderHashWithoutSignatures(header)
+	headerHashWithoutSignatures, err := mhs.cacheHeaderHashWithoutSignatures(header)
 	if err != nil {
 		return nil, err
 	}
 
 	err = mhs.cacheSigners(header, interceptedHeader.Hash())
 	if err != nil {
-		mhs.hashesCache.Remove(round, headerHashWithoutSignature)
+		mhs.hashesCache.Remove(round, headerHashWithoutSignatures)
 		return nil, err
 	}
 
@@ -192,7 +196,6 @@ func (mhs *multipleHeaderSigningDetector) ValidateProof(proof coreSlash.Slashing
 	if multipleSigningProof.GetType() != coreSlash.MultipleSigning {
 		return process.ErrInvalidSlashType
 	}
-
 	signers := multipleSigningProof.GetPubKeys()
 	if len(signers) == 0 {
 		return process.ErrNotEnoughPubKeysProvided

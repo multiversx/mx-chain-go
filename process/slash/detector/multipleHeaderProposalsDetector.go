@@ -184,7 +184,7 @@ func (mhp *multipleHeaderProposalsDetector) checkProposedHeaders(headers []data.
 			return err
 		}
 
-		hashes[string(hash)] = struct{}{}
+		hashes[hash] = struct{}{}
 	}
 
 	return nil
