@@ -160,6 +160,7 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("fix out of gas return code"), "epoch", enableEpochs.FixOOGReturnCodeEnableEpoch)
 	log.Debug(readEpochFor("remove non updated storage"), "epoch", enableEpochs.RemoveNonUpdatedStorageEnableEpoch)
 	log.Debug(readEpochFor("delete delegator data after claim rewards"), "epoch", enableEpochs.DeleteDelegatorAfterClaimRewardsEnableEpoch)
+	log.Debug(readEpochFor("optimize nft metadata store"), "epoch", enableEpochs.OptimizeNFTStoreEnableEpoch)
 	log.Debug(readEpochFor("built in functions on metachain"), "epoch", enableEpochs.BuiltInFunctionOnMetaEnableEpoch)
 	log.Debug(readEpochFor("scheduled mini blocks"), "epoch", enableEpochs.ScheduledMiniBlocksEnableEpoch)
 	log.Debug(readEpochFor("mixed txs in mini blocks"), "epoch", enableEpochs.MixedTxsInMiniBlocksEnableEpoch)

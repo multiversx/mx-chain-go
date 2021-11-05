@@ -4,10 +4,11 @@ import "sync"
 
 type trieSyncStatistics struct {
 	sync.RWMutex
-	numReceived int
-	numMissing  int
-	numLarge    int
-	missingMap  map[string]int
+	numReceived      int
+	numMissing       int
+	numLarge         int
+	missingMap       map[string]int
+	numBytesReceived uint64
 }
 
 // NewTrieSyncStatistics returns a structure able to collect sync statistics from a trie and store them
@@ -23,6 +24,7 @@ func (tss *trieSyncStatistics) Reset() {
 	tss.numReceived = 0
 	tss.numMissing = 0
 	tss.numLarge = 0
+	tss.numBytesReceived = 0
 	tss.Unlock()
 }
 
@@ -30,6 +32,13 @@ func (tss *trieSyncStatistics) Reset() {
 func (tss *trieSyncStatistics) AddNumReceived(value int) {
 	tss.Lock()
 	tss.numReceived += value
+	tss.Unlock()
+}
+
+// AddNumBytesReceived will add the provided value to the existing numBytesReceived
+func (tss *trieSyncStatistics) AddNumBytesReceived(numBytes uint64) {
+	tss.Lock()
+	tss.numBytesReceived += numBytes
 	tss.Unlock()
 }
 
@@ -82,6 +91,14 @@ func (tss *trieSyncStatistics) NumMissing() int {
 	defer tss.RUnlock()
 
 	return tss.numMissing
+}
+
+// NumBytesReceived returns the number of bytes received
+func (tss *trieSyncStatistics) NumBytesReceived() uint64 {
+	tss.RLock()
+	defer tss.RUnlock()
+
+	return tss.numBytesReceived
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

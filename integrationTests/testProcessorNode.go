@@ -799,7 +799,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 		EpochNotifier:              tpn.EpochNotifier,
 		GlobalMintBurnDisableEpoch: tpn.EnableEpochs.GlobalMintBurnDisableEpoch,
 	}
-	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	builtInFuncs, nftStorageHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 
 	smartContractsCache := testscommon.NewCacherMock()
 
@@ -812,6 +812,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 		Marshalizer:        TestMarshalizer,
 		Uint64Converter:    TestUint64Converter,
 		BuiltInFunctions:   builtInFuncs,
+		NFTStorageHandler:  nftStorageHandler,
 		DataPool:           tpn.DataPool,
 		CompiledSCPool:     smartContractsCache,
 		NilCompiledSCStore: true,
@@ -1379,7 +1380,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		EpochNotifier:              tpn.EpochNotifier,
 		GlobalMintBurnDisableEpoch: tpn.EnableEpochs.GlobalMintBurnDisableEpoch,
 	}
-	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	builtInFuncs, nftStorageHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 
 	for name, function := range TestBuiltinFunctions {
 		err := builtInFuncs.Add(name, function)
@@ -1395,6 +1396,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		Marshalizer:        TestMarshalizer,
 		Uint64Converter:    TestUint64Converter,
 		BuiltInFunctions:   builtInFuncs,
+		NFTStorageHandler:  nftStorageHandler,
 		DataPool:           tpn.DataPool,
 		CompiledSCPool:     tpn.DataPool.SmartContracts(),
 		NilCompiledSCStore: true,
@@ -1598,7 +1600,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		EpochNotifier:              tpn.EpochNotifier,
 		GlobalMintBurnDisableEpoch: tpn.EnableEpochs.GlobalMintBurnDisableEpoch,
 	}
-	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	builtInFuncs, nftStorageHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:           tpn.AccntState,
 		PubkeyConv:         TestAddressPubkeyConverter,
@@ -1608,6 +1610,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		Marshalizer:        TestMarshalizer,
 		Uint64Converter:    TestUint64Converter,
 		BuiltInFunctions:   builtInFuncs,
+		NFTStorageHandler:  nftStorageHandler,
 		DataPool:           tpn.DataPool,
 		CompiledSCPool:     tpn.DataPool.SmartContracts(),
 		NilCompiledSCStore: true,

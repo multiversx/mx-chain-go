@@ -422,6 +422,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		Marshalizer:        testMarshalizer,
 		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
 		BuiltInFunctions:   builtInFuncs,
+		NFTStorageHandler:  &testscommon.SimpleNFTStorageHandlerStub{},
 		DataPool:           datapool,
 		CompiledSCPool:     datapool.SmartContracts(),
 		NilCompiledSCStore: true,
@@ -522,6 +523,7 @@ func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutio
 		Marshalizer:        testMarshalizer,
 		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
 		BuiltInFunctions:   vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
+		NFTStorageHandler:  &testscommon.SimpleNFTStorageHandlerStub{},
 		DataPool:           datapool,
 		CompiledSCPool:     datapool.SmartContracts(),
 		NilCompiledSCStore: true,
@@ -557,7 +559,7 @@ func CreateVMAndBlockchainHookAndDataPool(
 		ShardCoordinator: shardCoordinator,
 		EpochNotifier:    globalEpochNotifier,
 	}
-	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	builtInFuncs, nftStorageHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
@@ -569,6 +571,7 @@ func CreateVMAndBlockchainHookAndDataPool(
 		Marshalizer:        testMarshalizer,
 		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
 		BuiltInFunctions:   builtInFuncs,
+		NFTStorageHandler:  nftStorageHandler,
 		DataPool:           datapool,
 		CompiledSCPool:     datapool.SmartContracts(),
 		NilCompiledSCStore: true,
@@ -626,7 +629,7 @@ func CreateVMAndBlockchainHookMeta(
 		ShardCoordinator: shardCoordinator,
 		EpochNotifier:    globalEpochNotifier,
 	}
-	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	builtInFuncs, nftStorageHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
@@ -638,6 +641,7 @@ func CreateVMAndBlockchainHookMeta(
 		Marshalizer:        testMarshalizer,
 		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
 		BuiltInFunctions:   builtInFuncs,
+		NFTStorageHandler:  nftStorageHandler,
 		DataPool:           datapool,
 		CompiledSCPool:     datapool.SmartContracts(),
 		NilCompiledSCStore: true,
