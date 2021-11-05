@@ -77,11 +77,10 @@ func (pd *persisterData) setPersisterAndIsClosed(persister storage.Persister, is
 
 // PruningStorer represents a storer which creates a new persister for each epoch and removes older activePersisters
 type PruningStorer struct {
-	lock sync.RWMutex
-	//lockCreateAndInitPersister sync.Mutex
+	lock             sync.RWMutex
 	shardCoordinator storage.ShardCoordinator
 	activePersisters []*persisterData
-	//it is mandatory to keep map of pointers for persistersMapByEpoch as a loaded pointer might get modified in inner functions
+	// it is mandatory to keep map of pointers for persistersMapByEpoch as a loaded pointer might get modified in inner functions
 	persistersMapByEpoch   map[uint32]*persisterData
 	cacher                 storage.Cacher
 	bloomFilter            storage.BloomFilter
