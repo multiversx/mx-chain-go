@@ -753,17 +753,6 @@ func (ps *PruningStorer) changeEpochWithExisting(epoch uint32) error {
 		oldestEpochActive = 0
 	}
 
-	maxEpoch := uint32(0)
-	for epochInMap := range ps.persistersMapByEpoch {
-		if epochInMap > maxEpoch {
-			maxEpoch = epochInMap
-		}
-	}
-
-	if maxEpoch > epoch {
-		return nil
-	}
-
 	persisters := make([]*persisterData, 0)
 	for e := int64(epoch); e >= oldestEpochActive; e-- {
 		p, ok := ps.persistersMapByEpoch[uint32(e)]
