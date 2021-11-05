@@ -13,6 +13,10 @@ func (hcs *HeadersCacheStub) Add(round uint64, hash []byte) error {
 	return nil
 }
 
+// Remove -
+func (hcs *HeadersCacheStub) Remove(_ uint64, _ []byte) {
+}
+
 // IsInterfaceNil -
 func (hcs *HeadersCacheStub) IsInterfaceNil() bool {
 	return hcs == nil

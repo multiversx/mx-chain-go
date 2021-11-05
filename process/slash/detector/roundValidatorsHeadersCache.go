@@ -45,7 +45,6 @@ func (rdc *roundValidatorsHeadersCache) Add(round uint64, pubKey []byte, headerI
 		if round < rdc.oldestRound {
 			return process.ErrHeaderRoundNotRelevant
 		}
-		delete(rdc.cache, rdc.oldestRound)
 		rdc.updateOldestRound()
 	}
 	if round < rdc.oldestRound {
@@ -84,11 +83,12 @@ func (rdc *roundValidatorsHeadersCache) contains(round uint64, pubKey []byte, ha
 }
 
 func (rdc *roundValidatorsHeadersCache) isCacheFull(currRound uint64) bool {
-	_, currRoundInCache := rdc.cache[currRound]
-	return len(rdc.cache) >= int(rdc.cacheSize) && !currRoundInCache
+	_, isCurrRoundInCache := rdc.cache[currRound]
+	return len(rdc.cache) >= int(rdc.cacheSize) && !isCurrRoundInCache
 }
 
 func (rdc *roundValidatorsHeadersCache) updateOldestRound() {
+	delete(rdc.cache, rdc.oldestRound)
 	min := uint64(math.MaxUint64)
 
 	for round := range rdc.cache {

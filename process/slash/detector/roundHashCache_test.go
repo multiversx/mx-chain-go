@@ -105,9 +105,37 @@ func TestRoundDataCache_Contains(t *testing.T) {
 	require.False(t, dataCache.contains(3, []byte("hash1")))
 }
 
+func TestRoundHashCache_Remove(t *testing.T) {
+	t.Parallel()
+
+	dataCache := NewRoundHashCache(2)
+
+	err := dataCache.Add(1, []byte("hash1"))
+	require.Nil(t, err)
+	err = dataCache.Add(1, []byte("hash2"))
+	require.Nil(t, err)
+	err = dataCache.Add(2, []byte("hash3"))
+	require.Nil(t, err)
+
+	dataCache.Remove(1, []byte("hash2"))
+	require.Len(t, dataCache.cache, 2)
+	require.Len(t, dataCache.cache[1], 1)
+	require.Equal(t, []byte("hash1"), dataCache.cache[1][0])
+	require.Len(t, dataCache.cache[2], 1)
+	require.Equal(t, []byte("hash3"), dataCache.cache[2][0])
+
+	dataCache.Remove(2, []byte("hash3"))
+	require.Len(t, dataCache.cache, 1)
+	require.Len(t, dataCache.cache[1], 1)
+	require.Equal(t, []byte("hash1"), dataCache.cache[1][0])
+
+	dataCache.Remove(2, []byte("hash1"))
+	require.Len(t, dataCache.cache, 1)
+	require.Len(t, dataCache.cache[1], 1)
+	require.Equal(t, []byte("hash1"), dataCache.cache[1][0])
+}
+
 func TestRoundValidatorsDataCache_IsInterfaceNil(t *testing.T) {
-	cache := NewRoundValidatorHeaderCache(1)
+	cache := NewRoundHashCache(1)
 	require.False(t, cache.IsInterfaceNil())
-	cache = nil
-	require.True(t, cache.IsInterfaceNil())
 }

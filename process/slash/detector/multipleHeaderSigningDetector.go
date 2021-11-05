@@ -9,11 +9,14 @@ import (
 	coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/process/slash"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
+
+var log = logger.GetOrCreate("process/slash/detector/multipleHeaderSigning")
 
 // MultipleHeaderSingingDetectorArgs is a a struct containing all arguments required to create a new multipleHeaderSigningDetector
 type MultipleHeaderSingingDetectorArgs struct {
@@ -22,14 +25,14 @@ type MultipleHeaderSingingDetectorArgs struct {
 	Hasher           hashing.Hasher
 	Marshaller       marshal.Marshalizer
 	SlashingCache    RoundDetectorCache
-	HeadersCache     RoundHashCache
+	RoundHashCache   RoundHashCache
 }
 
 // multipleHeaderSigningDetector - checks for slashable events in case one(or more)
 // validator signs multiple headers in the same round
 type multipleHeaderSigningDetector struct {
 	slashingCache    RoundDetectorCache
-	headersCache     RoundHashCache
+	hashesCache      RoundHashCache
 	nodesCoordinator sharding.NodesCoordinator
 	hasher           hashing.Hasher
 	marshaller       marshal.Marshalizer
@@ -53,7 +56,7 @@ func NewMultipleHeaderSigningDetector(args *MultipleHeaderSingingDetectorArgs) (
 	if check.IfNil(args.SlashingCache) {
 		return nil, process.ErrNilRoundDetectorCache
 	}
-	if check.IfNil(args.HeadersCache) {
+	if check.IfNil(args.RoundHashCache) {
 		return nil, process.ErrNilRoundHeadersCache
 	}
 
@@ -62,7 +65,7 @@ func NewMultipleHeaderSigningDetector(args *MultipleHeaderSingingDetectorArgs) (
 	return &multipleHeaderSigningDetector{
 		baseSlashingDetector: baseDetector,
 		slashingCache:        args.SlashingCache,
-		headersCache:         args.HeadersCache,
+		hashesCache:          args.RoundHashCache,
 		nodesCoordinator:     args.NodesCoordinator,
 		hasher:               args.Hasher,
 		marshaller:           args.Marshaller,
@@ -82,13 +85,14 @@ func (mhs *multipleHeaderSigningDetector) VerifyData(interceptedData process.Int
 		return nil, process.ErrHeaderRoundNotRelevant
 	}
 
-	err := mhs.cacheHeaderWithoutSignatures(header)
+	headerHashWithoutSignature, err := mhs.cacheHeaderHashWithoutSignatures(header)
 	if err != nil {
 		return nil, err
 	}
 
 	err = mhs.cacheSigners(header, interceptedHeader.Hash())
 	if err != nil {
+		mhs.hashesCache.Remove(round, headerHashWithoutSignature)
 		return nil, err
 	}
 
@@ -100,13 +104,18 @@ func (mhs *multipleHeaderSigningDetector) VerifyData(interceptedData process.Int
 	return nil, process.ErrNoSlashingEventDetected
 }
 
-func (mhs *multipleHeaderSigningDetector) cacheHeaderWithoutSignatures(header data.HeaderHandler) error {
+func (mhs *multipleHeaderSigningDetector) cacheHeaderHashWithoutSignatures(header data.HeaderHandler) ([]byte, error) {
 	headerHash, err := mhs.computeHashWithoutSignatures(header)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return mhs.headersCache.Add(header.GetRound(), headerHash)
+	err = mhs.hashesCache.Add(header.GetRound(), headerHash)
+	if err != nil {
+		return nil, err
+	}
+
+	return headerHash, nil
 }
 
 func (mhs *multipleHeaderSigningDetector) computeHashWithoutSignatures(header data.HeaderHandler) ([]byte, error) {
@@ -139,14 +148,14 @@ func (mhs *multipleHeaderSigningDetector) cacheSigners(header data.HeaderHandler
 	}
 
 	bitmap := header.GetPubKeysBitmap()
+	headerInfo := &slash.HeaderInfo{Header: header, Hash: hash}
 	for idx, validator := range group {
 		if slash.IsIndexSetInBitmap(uint32(idx), bitmap) {
-			headerInfo := &slash.HeaderInfo{Header: header, Hash: hash}
-
+			// We could never have an error here, since an error could only happen if:
+			// 1. Round is irrelevant = false, because it is checked before calling this func
+			// 2. Header is already cached = false, because it is already checked before using mhs.hashesCache
 			err = mhs.slashingCache.Add(header.GetRound(), validator.PubKey(), headerInfo)
-			if err != nil {
-				return err
-			}
+			log.LogIfError(err)
 		}
 	}
 

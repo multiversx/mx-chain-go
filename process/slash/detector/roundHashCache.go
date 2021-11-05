@@ -41,7 +41,6 @@ func (rhc *roundHashCache) Add(round uint64, hash []byte) error {
 		if round < rhc.oldestRound {
 			return process.ErrHeaderRoundNotRelevant
 		}
-		delete(rhc.cache, rhc.oldestRound)
 		rhc.updateOldestRound()
 	}
 
@@ -54,12 +53,12 @@ func (rhc *roundHashCache) Add(round uint64, hash []byte) error {
 }
 
 func (rhc *roundHashCache) contains(round uint64, hash []byte) bool {
-	hashHeaderList, exist := rhc.cache[round]
+	hashList, exist := rhc.cache[round]
 	if !exist {
 		return false
 	}
 
-	for _, currData := range hashHeaderList {
+	for _, currData := range hashList {
 		if bytes.Equal(currData, hash) {
 			return true
 		}
@@ -69,11 +68,12 @@ func (rhc *roundHashCache) contains(round uint64, hash []byte) bool {
 }
 
 func (rhc *roundHashCache) isCacheFull(currRound uint64) bool {
-	_, currRoundInCache := rhc.cache[currRound]
-	return len(rhc.cache) >= int(rhc.cacheSize) && !currRoundInCache
+	_, isCurrRoundInCache := rhc.cache[currRound]
+	return len(rhc.cache) >= int(rhc.cacheSize) && !isCurrRoundInCache
 }
 
 func (rhc *roundHashCache) updateOldestRound() {
+	delete(rhc.cache, rhc.oldestRound)
 	min := uint64(math.MaxUint64)
 
 	for round := range rhc.cache {
@@ -83,6 +83,38 @@ func (rhc *roundHashCache) updateOldestRound() {
 	}
 
 	rhc.oldestRound = min
+}
+
+// Remove removes the given hash in the given round. If there is no match for given data, it does nothing
+func (rhc *roundHashCache) Remove(round uint64, hash []byte) {
+	hashes, exists := rhc.cache[round]
+	if !exists {
+		return
+	}
+
+	for idx, currHash := range hashes {
+		if bytes.Equal(currHash, hash) {
+			if len(hashes) == 1 {
+				// If only one hash is cached in the given round, completely delete the entry in cache
+				delete(rhc.cache, round)
+
+			} else {
+				// Otherwise, delete the hash from the hashes list in the given round
+				rhc.cache[round] = rhc.remove(hashes, idx)
+			}
+
+			return
+		}
+	}
+}
+
+func (rhc *roundHashCache) remove(hashes hashList, idx int) hashList {
+	lastHashIdx := len(hashes) - 1
+
+	// Indexing here is safe, since this is called only when len(hashes) >= 1
+	hashes[idx] = hashes[lastHashIdx] // Copy last elem to the index = index to be removed
+	hashes[lastHashIdx] = nil         // Erase last elem
+	return hashes[:lastHashIdx]       // Truncate slice
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil

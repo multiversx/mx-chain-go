@@ -20,7 +20,7 @@ type RoundDetectorCache interface {
 	IsInterfaceNil() bool
 }
 
-// RoundHashCache defines what a header-hash-based cache should do
+// RoundHashCache defines what a round-hash-based cache should do
 type RoundHashCache interface {
 	// Add should add a hash in cache for a given round.
 	// If the hash is already cached in the given round OR the
@@ -28,6 +28,8 @@ type RoundHashCache interface {
 	// If the cache is full, it should have an eviction mechanism
 	// to always remove the oldest round entry
 	Add(round uint64, hash []byte) error
+	// Remove should remove a hash, from the list of hashes, in a given round
+	Remove(round uint64, hash []byte)
 	// IsInterfaceNil checks if the interface is nil
 	IsInterfaceNil() bool
 }
