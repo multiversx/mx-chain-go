@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -27,7 +26,7 @@ type doubleListTrieSyncer struct {
 	interceptedNodesCacher    storage.Cacher
 	mutOperation              sync.RWMutex
 	handlerID                 string
-	trieSyncStatistics        data.SyncStatisticsHandler
+	trieSyncStatistics        common.SizeSyncStatisticsHandler
 	timeoutHandler            TimeoutHandler
 	maxHardCapForMissingNodes int
 	existingNodes             map[string]node
@@ -161,6 +160,7 @@ func (d *doubleListTrieSyncer) processExistingNodes() error {
 		if numBytes > core.MaxBufferSizeToSendTrieNodes {
 			d.trieSyncStatistics.AddNumLarge(1)
 		}
+		d.trieSyncStatistics.AddNumBytesReceived(uint64(numBytes))
 		d.timeoutHandler.ResetWatchdog()
 
 		var children []node
