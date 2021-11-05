@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/random"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
@@ -270,6 +272,7 @@ func TestFullHistoryPruningStorer_ConcurrentOperations(t *testing.T) {
 
 	startTime := time.Now()
 
+	_ = logger.SetLogLevel("*:DEBUG")
 	dbName := "db-concurrent-test"
 	testDir, err := ioutil.TempDir("", "")
 	require.NoError(t, err)
@@ -293,18 +296,30 @@ func TestFullHistoryPruningStorer_ConcurrentOperations(t *testing.T) {
 	fhps, _ := pruning.NewFullHistoryPruningStorer(fhArgs)
 	require.NotNil(t, fhps)
 
-	numOperations := 500
+	rnd := random.ConcurrentSafeIntRandomizer{}
+	numOperations := 5000
 	wg := sync.WaitGroup{}
 	wg.Add(numOperations)
 	for idx := 0; idx < numOperations; idx++ {
 		go func(index int) {
-			switch index % 3 {
+			time.Sleep(time.Duration(index) * 1 * time.Millisecond)
+			switch index % 7 {
 			case 0:
 				_ = fhps.ChangeEpochSimple(uint32(index))
 			case 1:
 				_, _ = fhps.GetFromEpoch([]byte("key"), uint32(index-1))
 			case 2:
 				_ = fhps.Put([]byte("key"), []byte("value"))
+			case 3:
+				_, _ = fhps.Get([]byte("key"))
+			case 4:
+				_, _ = fhps.GetFromEpoch([]byte("key"), uint32(rnd.Intn(100)))
+			case 5:
+				_, _ = fhps.GetBulkFromEpoch([][]byte{[]byte("key")}, uint32(rnd.Intn(100)))
+			case 6:
+				epoch := uint32(rnd.Intn(100))
+				err = fhps.ChangeEpochSimple(epoch)
+				require.NoError(t, err)
 			}
 			wg.Done()
 		}(idx)
@@ -314,5 +329,5 @@ func TestFullHistoryPruningStorer_ConcurrentOperations(t *testing.T) {
 
 	elapsedTime := time.Since(startTime)
 	// if the "resource temporary unavailable" occurs, this test will take longer than this to execute
-	require.True(t, elapsedTime < 10*time.Second)
+	require.True(t, elapsedTime < 100*time.Second)
 }
