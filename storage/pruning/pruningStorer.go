@@ -746,7 +746,6 @@ func (ps *PruningStorer) extendSavedEpochsIfNeeded(header data.HeaderHandler) bo
 func (ps *PruningStorer) changeEpochWithExisting(epoch uint32) error {
 	numActivePersisters := ps.numOfActivePersisters
 
-	var err error
 	activePersisters := make([]*persisterData, 0)
 
 	oldestEpochActive := int64(epoch) - int64(numActivePersisters) + 1
@@ -776,10 +775,12 @@ func (ps *PruningStorer) changeEpochWithExisting(epoch uint32) error {
 
 	for _, p := range persisters {
 		if p.getIsClosed() {
-			_, err = ps.persisterFactory.Create(p.path)
+			db, err := ps.persisterFactory.Create(p.path)
 			if err != nil {
 				return err
 			}
+
+			p.setPersisterAndIsClosedUnprotected(db, false)
 		}
 
 		activePersisters = append(activePersisters, p)

@@ -272,7 +272,7 @@ func TestFullHistoryPruningStorer_ConcurrentOperations(t *testing.T) {
 
 	startTime := time.Now()
 
-	logger.SetLogLevel("*:DEBUG")
+	_ = logger.SetLogLevel("*:DEBUG")
 	dbName := "db-concurrent-test"
 	testDir, err := ioutil.TempDir("", "")
 	require.NoError(t, err)
@@ -297,11 +297,12 @@ func TestFullHistoryPruningStorer_ConcurrentOperations(t *testing.T) {
 	require.NotNil(t, fhps)
 
 	rnd := random.ConcurrentSafeIntRandomizer{}
-	numOperations := 5000
+	numOperations := 500
 	wg := sync.WaitGroup{}
 	wg.Add(numOperations)
 	for idx := 0; idx < numOperations; idx++ {
 		go func(index int) {
+			time.Sleep(time.Duration(index) * 1 * time.Millisecond)
 			switch index % 7 {
 			case 0:
 				_ = fhps.ChangeEpochSimple(uint32(index))
@@ -316,7 +317,9 @@ func TestFullHistoryPruningStorer_ConcurrentOperations(t *testing.T) {
 			case 5:
 				_, _ = fhps.GetBulkFromEpoch([][]byte{[]byte("key")}, uint32(rnd.Intn(100)))
 			case 6:
-				_ = fhps.ChangeEpochSimple(uint32(rnd.Intn(100)))
+				epoch := uint32(rnd.Intn(100))
+				err = fhps.ChangeEpochSimple(epoch)
+				require.NoError(t, err)
 			}
 			wg.Done()
 		}(idx)
