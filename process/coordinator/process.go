@@ -1240,45 +1240,54 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body *block.Body) map[st
 		return mrsTxs
 	}
 
-	for i := 0; i < len(body.MiniBlocks); i++ {
-		miniBlock := body.MiniBlocks[i]
-		if miniBlock.SenderShardID != tc.shardCoordinator.SelfId() ||
-			miniBlock.ReceiverShardID == tc.shardCoordinator.SelfId() {
-			continue
-		}
+	separatedBodies, err := tc.separateBodyByType(body, true)
+	if err != nil {
+		log.Warn("CreateMarshalizedData.separateBodyByType", "error", err.Error())
+		return mrsTxs
+	}
 
-		broadcastTopic, err := createBroadcastTopic(tc.shardCoordinator, miniBlock.ReceiverShardID, miniBlock.Type)
-		if err != nil {
-			log.Warn("CreateMarshalizedData.createBroadcastTopic", "error", err.Error())
-			continue
-		}
-
-		isPreProcessMiniBlock := miniBlock.Type == block.TxBlock
-		preproc := tc.getPreProcessor(miniBlock.Type)
-		if !check.IfNil(preproc) && isPreProcessMiniBlock {
-			dataMarshalizer, ok := preproc.(process.DataMarshalizer)
-			if ok {
-				// preproc supports marshalizing items
-				tc.appendMarshalizedItems(
-					dataMarshalizer,
-					miniBlock.TxHashes,
-					mrsTxs,
-					broadcastTopic,
-				)
+	for blockType, separatedBody := range separatedBodies {
+		miniBlocks := separatedBody.MiniBlocks
+		for i := 0; i < len(miniBlocks); i++ {
+			miniBlock := miniBlocks[i]
+			if miniBlock.SenderShardID != tc.shardCoordinator.SelfId() ||
+				miniBlock.ReceiverShardID == tc.shardCoordinator.SelfId() {
+				continue
 			}
-		}
 
-		interimProc := tc.getInterimProcessor(miniBlock.Type)
-		if !check.IfNil(interimProc) && !isPreProcessMiniBlock {
-			dataMarshalizer, ok := interimProc.(process.DataMarshalizer)
-			if ok {
-				// interimProc supports marshalizing items
-				tc.appendMarshalizedItems(
-					dataMarshalizer,
-					miniBlock.TxHashes,
-					mrsTxs,
-					broadcastTopic,
-				)
+			broadcastTopic, err := createBroadcastTopic(tc.shardCoordinator, miniBlock.ReceiverShardID, blockType)
+			if err != nil {
+				log.Warn("CreateMarshalizedData.createBroadcastTopic", "error", err.Error())
+				continue
+			}
+
+			isPreProcessMiniBlock := blockType == block.TxBlock
+			preproc := tc.getPreProcessor(blockType)
+			if !check.IfNil(preproc) && isPreProcessMiniBlock {
+				dataMarshalizer, ok := preproc.(process.DataMarshalizer)
+				if ok {
+					// preproc supports marshalizing items
+					tc.appendMarshalizedItems(
+						dataMarshalizer,
+						miniBlock.TxHashes,
+						mrsTxs,
+						broadcastTopic,
+					)
+				}
+			}
+
+			interimProc := tc.getInterimProcessor(blockType)
+			if !check.IfNil(interimProc) && !isPreProcessMiniBlock {
+				dataMarshalizer, ok := interimProc.(process.DataMarshalizer)
+				if ok {
+					// interimProc supports marshalizing items
+					tc.appendMarshalizedItems(
+						dataMarshalizer,
+						miniBlock.TxHashes,
+						mrsTxs,
+						broadcastTopic,
+					)
+				}
 			}
 		}
 	}
@@ -1426,17 +1435,17 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 			return fmt.Errorf("%w unknown block type %d", process.ErrNilPreProcessor, mb.Type)
 		}
 
-		txsToBeReverted, numTxsProcessed, errProcess := preproc.ProcessMiniBlock(miniBlock, haveTime, haveAdditionalTime, tc.getNumOfCrossInterMbsAndTxs, scheduledMode, index == 0, gasConsumedInfo)
+		txsToBeReverted, numTxsProcessed, errProcess := preproc.ProcessMiniBlock(mb, haveTime, haveAdditionalTime, tc.getNumOfCrossInterMbsAndTxs, scheduledMode, index == 0, gasConsumedInfo)
 		allTxsToBeReverted = append(allTxsToBeReverted, txsToBeReverted...)
 		allNumTxsProcessed += numTxsProcessed
 		if errProcess != nil {
 			log.Debug("processCompleteMiniBlock.ProcessMiniBlock",
 				"scheduled mode", scheduledMode,
 				"hash", miniBlockHash,
-				"type", miniBlock.Type,
-				"snd shard", miniBlock.SenderShardID,
-				"rcv shard", miniBlock.ReceiverShardID,
-				"num txs", len(miniBlock.TxHashes),
+				"type", mb.Type,
+				"snd shard", mb.SenderShardID,
+				"rcv shard", mb.ReceiverShardID,
+				"num txs", len(mb.TxHashes),
 				"txs to be reverted", len(allTxsToBeReverted),
 				"num txs processed", allNumTxsProcessed,
 				"error", errProcess.Error(),
