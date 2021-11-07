@@ -889,6 +889,8 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		totalSupply,
 		managedCoreComponents.AddressPubKeyConverter(),
 		managedCryptoComponents.TxSignKeyGen(),
+		managedCoreComponents.Hasher(),
+		managedCoreComponents.TxMarshalizer(),
 	)
 	if err != nil {
 		return nil, err

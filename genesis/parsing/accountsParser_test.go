@@ -75,6 +75,8 @@ func TestNewAccountsParser_NilEntireBalanceShouldErr(t *testing.T) {
 		nil,
 		createMockHexPubkeyConverter(),
 		&mock.KeyGeneratorStub{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
 	)
 
 	assert.True(t, check.IfNil(ap))
@@ -89,6 +91,8 @@ func TestNewAccountsParser_ZeroEntireBalanceShouldErr(t *testing.T) {
 		big.NewInt(0),
 		createMockHexPubkeyConverter(),
 		&mock.KeyGeneratorStub{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
 	)
 
 	assert.True(t, check.IfNil(ap))
@@ -103,6 +107,8 @@ func TestNewAccountsParser_BadFilenameShouldErr(t *testing.T) {
 		big.NewInt(1),
 		createMockHexPubkeyConverter(),
 		&mock.KeyGeneratorStub{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
 	)
 
 	assert.True(t, check.IfNil(ap))
@@ -117,6 +123,8 @@ func TestNewAccountsParser_NilPubkeyConverterShouldErr(t *testing.T) {
 		big.NewInt(1),
 		nil,
 		&mock.KeyGeneratorStub{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
 	)
 
 	assert.True(t, check.IfNil(ap))
@@ -131,6 +139,8 @@ func TestNewAccountsParser_NilKeyGeneratorShouldErr(t *testing.T) {
 		big.NewInt(1),
 		createMockHexPubkeyConverter(),
 		nil,
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
 	)
 
 	assert.True(t, check.IfNil(ap))
@@ -145,6 +155,8 @@ func TestNewAccountsParser_BadJsonShouldErr(t *testing.T) {
 		big.NewInt(1),
 		createMockHexPubkeyConverter(),
 		&mock.KeyGeneratorStub{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
 	)
 
 	assert.True(t, check.IfNil(ap))
@@ -159,6 +171,8 @@ func TestNewAccountsParser_ShouldWork(t *testing.T) {
 		big.NewInt(30),
 		createMockHexPubkeyConverter(),
 		&mock.KeyGeneratorStub{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
 	)
 
 	assert.False(t, check.IfNil(ap))
@@ -434,4 +448,113 @@ func TestAccountsParser_GetInitialAccountsForDelegated(t *testing.T) {
 	require.Equal(t, 0, len(list))
 	delegated = ap.GetTotalStakedForDelegationAddress(hex.EncodeToString([]byte("not delegated")))
 	assert.Equal(t, big.NewInt(0), delegated)
+}
+
+//------- GetMintTransactions
+
+func TestAccountsParser_GetMintTransactionsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
+	ibs, err := ap.InitialAccountsSplitOnAddressesShards(
+		nil,
+	)
+
+	assert.Nil(t, ibs)
+	assert.Equal(t, genesis.ErrNilShardCoordinator, err)
+}
+
+func TestAccountsParser_generateMintTransactions(t *testing.T) {
+	t.Parallel()
+
+	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
+	balance := int64(1)
+	ibs := []*data.InitialAccount{
+		createSimpleInitialAccount("0001", balance),
+		createSimpleInitialAccount("0002", balance),
+		createSimpleInitialAccount("0000", balance),
+		createSimpleInitialAccount("0101", balance),
+	}
+
+	ap.SetEntireSupply(big.NewInt(int64(len(ibs)) * balance))
+	ap.SetInitialAccounts(ibs)
+
+	sharder := &mock.ShardCoordinatorMock{
+		NumOfShards: 3,
+		SelfShardId: 0,
+	}
+
+	txs := ap.GenerateGenesisMintTransactions(sharder)
+
+	assert.Equal(t, 4, len(txs[0]))
+}
+
+func TestAccountsParser_GenerateMiniBlocks(t *testing.T) {
+	t.Parallel()
+
+	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
+	balance := int64(1)
+	ibs := []*data.InitialAccount{
+		createSimpleInitialAccount("0001", balance),
+		createSimpleInitialAccount("0002", balance),
+		createSimpleInitialAccount("0000", balance),
+		createSimpleInitialAccount("0103", balance),
+		createSimpleInitialAccount("1001", balance),
+		createSimpleInitialAccount("1002", balance),
+		createSimpleInitialAccount("1000", balance),
+		createSimpleInitialAccount("1103", balance),
+	}
+
+	ap.SetEntireSupply(big.NewInt(int64(len(ibs)) * balance))
+	ap.SetInitialAccounts(ibs)
+
+	err := ap.Process()
+	require.Nil(t, err)
+
+	sharder := &mock.ShardCoordinatorMock{
+		NumOfShards: 4,
+		SelfShardId: 0,
+	}
+
+	txs := ap.GenerateGenesisMintTransactions(sharder)
+
+	miniBlocks, _ := ap.GenerateGenesisMiniBlocks(txs)
+
+	assert.Equal(t, 4, len(miniBlocks))
+	assert.Equal(t, 2, len(miniBlocks[0].GetTxHashes()))
+	assert.Equal(t, 2, len(miniBlocks[1].GetTxHashes()))
+	assert.Equal(t, 2, len(miniBlocks[2].GetTxHashes()))
+	assert.Equal(t, 2, len(miniBlocks[3].GetTxHashes()))
+}
+
+func TestAccountsParser_calculateTxHashes(t *testing.T) {
+	t.Parallel()
+
+	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
+	balance := int64(1)
+	ibs := []*data.InitialAccount{
+		createSimpleInitialAccount("0001", balance),
+		createSimpleInitialAccount("0002", balance),
+		createSimpleInitialAccount("0000", balance),
+		createSimpleInitialAccount("0101", balance),
+	}
+
+	ap.SetEntireSupply(big.NewInt(int64(len(ibs)) * balance))
+	ap.SetInitialAccounts(ibs)
+
+	err := ap.Process()
+	require.Nil(t, err)
+
+	sharder := &mock.ShardCoordinatorMock{
+		NumOfShards: 4,
+		SelfShardId: 0,
+	}
+
+	txs := ap.GenerateGenesisMintTransactions(sharder)
+	assert.Equal(t, 1, len(txs[0]))
+
+	txHashes, err := ap.CalculateTxHashes(txs[0])
+	require.Nil(t, err)
+
+	assert.Equal(t, 1, len(txHashes))
 }

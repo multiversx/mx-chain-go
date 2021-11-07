@@ -829,9 +829,14 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32
 	if pcf.statusComponents.OutportHandler().HasDrivers() {
 		log.Info("indexGenesisBlocks(): indexer.SaveBlock", "hash", genesisBlockHash)
 
+		miniBlocks, err := pcf.accountsParser.GenerateMiniBlocks(pcf.bootstrapComponents.ShardCoordinator())
+		if err != nil {
+			return err
+		}
+
 		arg := &indexer.ArgsSaveBlockData{
 			HeaderHash: genesisBlockHash,
-			Body:       &dataBlock.Body{},
+			Body:       &dataBlock.Body{miniBlocks},
 			Header:     genesisBlockHeader,
 			HeaderGasConsumption: indexer.HeaderGasConsumption{
 				GasConsumed:    0,
@@ -839,6 +844,7 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32
 				GasPenalized:   0,
 				MaxGasPerBlock: pcf.coreData.EconomicsData().MaxGasLimitPerBlock(core.MetachainShardId),
 			},
+			TransactionsPool: nil,
 		}
 		pcf.statusComponents.OutportHandler().SaveBlock(arg)
 	}

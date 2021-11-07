@@ -40,6 +40,8 @@ func TestCreationOfTheGenesisState(t *testing.T) {
 		big.NewInt(6000000000),
 		integrationTests.TestAddressPubkeyConverter,
 		&mock.KeyGenMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
 	)
 	assert.Nil(t, err)
 

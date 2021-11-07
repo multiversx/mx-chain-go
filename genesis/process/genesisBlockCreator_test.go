@@ -179,6 +179,8 @@ func createMockArgument(
 		arg.Economics.GenesisTotalSupply(),
 		arg.Core.AddressPubKeyConverter(),
 		&mock.KeyGeneratorStub{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
 	)
 	require.Nil(t, err)
 
