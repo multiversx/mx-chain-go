@@ -36,6 +36,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1624,7 +1625,7 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 	body := &block.Body{}
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	hdrUnit := &testscommon.StorerStub{
+	hdrUnit := &storageStubs.StorerStub{
 		GetCalled: func(key []byte) (i []byte, e error) {
 			return marshalizer.Marshal(&block.Header{})
 		},
@@ -1706,7 +1707,7 @@ func TestShardProcessor_CommitBlockStorageFailsForBodyShouldWork(t *testing.T) {
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	miniBlockUnit := &testscommon.StorerStub{
+	miniBlockUnit := &storageStubs.StorerStub{
 		PutCalled: func(key, data []byte) error {
 			atomic.AddUint32(&putCalledNr, 1)
 			wg.Done()
@@ -3049,7 +3050,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 	datapool.Headers().AddHeader(metablockHash, metablockHeader)
 
 	store.GetStorerCalled = func(unitType dataRetriever.UnitType) storage.Storer {
-		return &testscommon.StorerStub{
+		return &storageStubs.StorerStub{
 			RemoveCalled: func(key []byte) error {
 				return nil
 			},
@@ -3787,7 +3788,7 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolShouldPass(t *testing.T) {
 
 	store := &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &testscommon.StorerStub{
+			return &storageStubs.StorerStub{
 				RemoveCalled: func(key []byte) error {
 					return nil
 				},
@@ -4170,7 +4171,7 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolVerifyMiniblocks(t *testing.T) {
 		return metaBytes, nil
 	}
 	storer.GetStorerCalled = func(unitType dataRetriever.UnitType) storage.Storer {
-		return &testscommon.StorerStub{
+		return &storageStubs.StorerStub{
 			RemoveCalled: func(key []byte) error {
 				return nil
 			},
@@ -4198,7 +4199,7 @@ func TestShardProcessor_updateStateStorage(t *testing.T) {
 	rootHash := []byte("root-hash")
 	poolMock := dataRetrieverMock.NewPoolsHolderMock()
 
-	hdrStore := &testscommon.StorerStub{
+	hdrStore := &storageStubs.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			hdr := block.Header{Nonce: 7, RootHash: rootHash}
 			return json.Marshal(hdr)

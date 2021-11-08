@@ -41,6 +41,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -1357,7 +1358,7 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldWork(t *testing.T) {
 	coreComponents.UInt64ByteSliceConv = uint64ByteSlice.NewBigEndianConverter()
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.TrieEpochRootHashUnit,
-		&testscommon.StorerStub{
+		&storageStubs.StorerStub{
 			PutCalled: func(key, data []byte) error {
 				restoredEpoch, err := coreComponents.UInt64ByteSliceConv.ToUint64(key)
 				require.NoError(t, err)
@@ -1416,7 +1417,7 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldUseDataTrieIfNeededW
 
 		store := dataRetriever.NewChainStorer()
 		store.AddStorer(dataRetriever.TrieEpochRootHashUnit,
-			&testscommon.StorerStub{
+			&storageStubs.StorerStub{
 				PutCalled: func(key, data []byte) error {
 					restoredEpoch, err := coreComponents.UInt64ByteSliceConv.ToUint64(key)
 					require.NoError(t, err)
@@ -1473,7 +1474,7 @@ func TestBaseProcessor_updateState(t *testing.T) {
 		headers[i] = block.Header{Nonce: uint64(i), RootHash: []byte(strconv.Itoa(i))}
 	}
 
-	hdrStore := &testscommon.StorerStub{
+	hdrStore := &storageStubs.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			if len(headers) != 0 {
 				header := headers[0]

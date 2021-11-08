@@ -28,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -61,7 +62,7 @@ func createMockPools() *dataRetrieverMock.PoolsHolderStub {
 func createStore() *mock.ChainStorerMock {
 	return &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &testscommon.StorerStub{
+			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					return nil, process.ErrMissingHeader
 				},
@@ -467,7 +468,7 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 	args := CreateShardBootstrapMockArguments()
 
 	hdr := block.Header{Nonce: 1, PubKeysBitmap: []byte("X")}
-	blockBodyUnit := &testscommon.StorerStub{
+	blockBodyUnit := &storageStubs.StorerStub{
 		GetCalled: func(key []byte) (i []byte, e error) {
 			return nil, nil
 		},
@@ -1415,7 +1416,7 @@ func TestBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *testin
 	args.ChainHandler = blkc
 	args.Store = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &testscommon.StorerStub{
+			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					return prevHdrBytes, nil
 				},
@@ -1555,7 +1556,7 @@ func TestBootstrap_RollbackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t *tes
 	args.ChainHandler = blkc
 	args.Store = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &testscommon.StorerStub{
+			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					return prevHdrBytes, nil
 				},
@@ -1670,7 +1671,7 @@ func TestBootstrap_GetTxBodyHavingHashNotFoundInCacherOrStorageShouldRetEmptySli
 	requestedHash := make([][]byte, 0)
 	requestedHash = append(requestedHash, mbh)
 
-	txBlockUnit := &testscommon.StorerStub{
+	txBlockUnit := &storageStubs.StorerStub{
 		GetCalled: func(key []byte) (i []byte, e error) {
 			return nil, errors.New("not found")
 		},

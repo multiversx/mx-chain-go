@@ -28,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -822,7 +823,7 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 	body := &block.Body{}
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	hdrUnit := &testscommon.StorerStub{
+	hdrUnit := &storageStubs.StorerStub{
 		PutCalled: func(key, data []byte) error {
 			wasCalled = true
 			wg.Done()
@@ -936,7 +937,7 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 		},
 	}
 	hasher := &mock.HasherStub{}
-	blockHeaderUnit := &testscommon.StorerStub{
+	blockHeaderUnit := &storageStubs.StorerStub{
 		PutCalled: func(key, data []byte) error {
 			return nil
 		},
@@ -1712,7 +1713,7 @@ func TestMetaProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 
 	store := &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &testscommon.StorerStub{
+			return &storageStubs.StorerStub{
 				RemoveCalled: func(key []byte) error {
 					return nil
 				},

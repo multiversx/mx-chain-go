@@ -38,6 +38,7 @@ import (
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/update"
 	updateSync "github.com/ElrondNetwork/elrond-go/update/sync"
@@ -205,6 +206,8 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		trieSyncerVersion:          args.GeneralConfig.TrieSync.TrieSyncerVersion,
 		enableEpochs:               args.EnableEpochs,
 		dataSyncerFactory:          args.DataSyncerCreator,
+		storerScheduledSCRs:        genericMocks.NewStorerMock("path", 0),
+		shardCoordinator:           args.GenesisShardCoordinator,
 	}
 
 	log.Debug("process: enable epoch for transaction signed with tx hash", "epoch", epochStartProvider.enableEpochs.TransactionSignedWithTxHashEnableEpoch)
