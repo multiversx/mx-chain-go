@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/dblookupext/esdtSupply"
 )
 
 // HistoryRepositoryStub -
@@ -74,8 +75,8 @@ func (hp *HistoryRepositoryStub) RevertBlock(_ data.HeaderHandler, _ data.BodyHa
 }
 
 // GetESDTSupply -
-func (hp *HistoryRepositoryStub) GetESDTSupply(_ string) (string, error) {
-	return "", nil
+func (hp *HistoryRepositoryStub) GetESDTSupply(_ string) (*esdtSupply.SupplyESDT, error) {
+	return nil, nil
 }
 
 // IsInterfaceNil -
