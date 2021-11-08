@@ -53,13 +53,13 @@ func (rhc *roundHashCache) Add(round uint64, hash []byte) error {
 }
 
 func (rhc *roundHashCache) contains(round uint64, hash []byte) bool {
-	hashList, exist := rhc.cache[round]
+	hashes, exist := rhc.cache[round]
 	if !exist {
 		return false
 	}
 
-	for _, currData := range hashList {
-		if bytes.Equal(currData, hash) {
+	for _, currHash := range hashes {
+		if bytes.Equal(currHash, hash) {
 			return true
 		}
 	}

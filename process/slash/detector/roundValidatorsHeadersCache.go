@@ -68,13 +68,13 @@ func (rdc *roundValidatorsHeadersCache) contains(round uint64, pubKey []byte, ha
 		return false
 	}
 
-	dataList, exists := validatorsMap[string(pubKey)]
-	if !exists {
+	headers, exist := validatorsMap[string(pubKey)]
+	if !exist {
 		return false
 	}
 
-	for _, currData := range dataList {
-		if bytes.Equal(currData.GetHash(), hash) {
+	for _, currHeader := range headers {
+		if bytes.Equal(currHeader.GetHash(), hash) {
 			return true
 		}
 	}

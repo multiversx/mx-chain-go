@@ -19,14 +19,14 @@ import (
 type MultipleHeaderProposalDetectorArgs struct {
 	NodesCoordinator sharding.NodesCoordinator
 	RoundHandler     process.RoundHandler
-	Cache            RoundDetectorCache
+	Cache            RoundValidatorHeadersCache
 	Hasher           hashing.Hasher
 	Marshaller       marshal.Marshalizer
 }
 
 // multipleHeaderProposalsDetector - checks slashable events in case a validator proposes multiple(possibly) malicious headers.
 type multipleHeaderProposalsDetector struct {
-	cache            RoundDetectorCache
+	cache            RoundValidatorHeadersCache
 	nodesCoordinator sharding.NodesCoordinator
 	hasher           hashing.Hasher
 	marshaller       marshal.Marshalizer

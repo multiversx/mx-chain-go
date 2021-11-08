@@ -99,7 +99,7 @@ func NewSlashingNotifier(args *SlashingNotifierArgs) (slash.SlashingNotifier, er
 // then a transaction will be issued, but it will not unveil details about the slash event, only a commitment proof.
 // This tx is distinguished by its data field, which should be of format: SlashCommitment@ProofID@ShardID@Round@CRC@Sign(proof), where:
 // 1. ProofID = 1 byte representing the slashing event ID (e.g.: multiple sign/proposal)
-// 2. CRC = last 2 Bytes of Hash(proof)
+// 2. CRC = last 2 bytes of Hash(proof)
 // 3. Sign(proof) = detector's proof signature. This is used to avoid front-running.
 func (sn *slashingNotifier) CreateShardSlashingTransaction(proof coreSlash.SlashingProofHandler) (data.TransactionHandler, error) {
 	proofTxData, err := sn.proofTxDataExtractor.GetProofTxData(proof)

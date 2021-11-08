@@ -96,7 +96,7 @@ func TestRoundProposerDataCache_Add_CacheSizeTwo_FourEntriesInCache_ExpectOldest
 	require.Equal(t, dataCache.cache[4]["proposer4"][0].GetHash(), []byte("hash4"))
 }
 
-func TestRoundProposerDataCache_GetData(t *testing.T) {
+func TestRoundProposerDataCache_GetHeaders(t *testing.T) {
 	t.Parallel()
 	dataCache := NewRoundValidatorHeaderCache(3)
 
@@ -131,11 +131,16 @@ func TestRoundProposerDataCache_GetData(t *testing.T) {
 	require.Len(t, data2, 1)
 	require.Equal(t, data2[0], h3.Header)
 
+	// Round not cached. Proposer not cached
 	data3 := dataCache.GetHeaders(444, []byte("this proposer is not cached"))
 	require.Nil(t, data3)
+
+	// Round cached. Proposer not cached
+	data4 := dataCache.GetHeaders(1, []byte("this proposer is not cached"))
+	require.Nil(t, data4)
 }
 
-func TestRoundProposerDataCache_GetValidators(t *testing.T) {
+func TestRoundProposerDataCache_GetPubKeys(t *testing.T) {
 	t.Parallel()
 	dataCache := NewRoundValidatorHeaderCache(2)
 

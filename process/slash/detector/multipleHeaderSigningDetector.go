@@ -26,14 +26,14 @@ type MultipleHeaderSingingDetectorArgs struct {
 	RoundHandler     process.RoundHandler
 	Hasher           hashing.Hasher
 	Marshaller       marshal.Marshalizer
-	SlashingCache    RoundDetectorCache
+	SlashingCache    RoundValidatorHeadersCache
 	RoundHashCache   RoundHashCache
 }
 
 // multipleHeaderSigningDetector - checks for slashable events in case one(or more)
 // validator signs multiple headers in the same round
 type multipleHeaderSigningDetector struct {
-	slashingCache    RoundDetectorCache
+	slashingCache    RoundValidatorHeadersCache
 	hashesCache      RoundHashCache
 	nodesCoordinator sharding.NodesCoordinator
 	hasher           hashing.Hasher

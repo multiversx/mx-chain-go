@@ -4,8 +4,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 )
 
-// RoundDetectorCache defines what a round-based(per validator data) cache should do.
-type RoundDetectorCache interface {
+// RoundValidatorHeadersCache defines what a round-based(per validator data) cache should do.
+type RoundValidatorHeadersCache interface {
 	// Add should add in cache a header info data for a public key, in a given round.
 	// If the public key has any data cached in the given round OR the round is
 	// irrelevant(obsolete) to be cached, an error should be returned.
