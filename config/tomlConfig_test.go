@@ -613,6 +613,9 @@ func TestEnableEpochConfig(t *testing.T) {
     # RemoveNonUpdatedStorageEnableEpoch represents the epoch when the backward compatibility for removing non updated storage is enabled
     RemoveNonUpdatedStorageEnableEpoch = 45
 
+    # OptimizeNFTStoreEnableEpoch represents the epoch when optimizations on NFT metadata store and send are enabled
+    OptimizeNFTStoreEnableEpoch = 46
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -685,6 +688,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 43,
 			FixOOGReturnCodeEnableEpoch:                 44,
 			RemoveNonUpdatedStorageEnableEpoch:          45,
+			OptimizeNFTStoreEnableEpoch:                 46,
 		},
 		GasSchedule: GasScheduleConfig{
 			GasScheduleByEpochs: []GasScheduleByEpochs{

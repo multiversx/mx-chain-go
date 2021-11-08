@@ -77,11 +77,10 @@ func (pd *persisterData) setPersisterAndIsClosed(persister storage.Persister, is
 
 // PruningStorer represents a storer which creates a new persister for each epoch and removes older activePersisters
 type PruningStorer struct {
-	lock                       sync.RWMutex
-	lockCreateAndInitPersister sync.Mutex
-	shardCoordinator           storage.ShardCoordinator
-	activePersisters           []*persisterData
-	//it is mandatory to keep map of pointers for persistersMapByEpoch as a loaded pointer might get modified in inner functions
+	lock             sync.RWMutex
+	shardCoordinator storage.ShardCoordinator
+	activePersisters []*persisterData
+	// it is mandatory to keep map of pointers for persistersMapByEpoch as a loaded pointer might get modified in inner functions
 	persistersMapByEpoch   map[uint32]*persisterData
 	cacher                 storage.Cacher
 	bloomFilter            storage.BloomFilter
@@ -290,7 +289,7 @@ func (ps *PruningStorer) PutInEpoch(key, data []byte, epoch uint32) error {
 		return fmt.Errorf("put in epoch: persister for epoch %d not found", epoch)
 	}
 
-	persister, closePersister, err := ps.createAndInitPersisterIfClosed(pd)
+	persister, closePersister, err := ps.createAndInitPersisterIfClosedProtected(pd)
 	if err != nil {
 		return err
 	}
@@ -299,7 +298,14 @@ func (ps *PruningStorer) PutInEpoch(key, data []byte, epoch uint32) error {
 	return ps.doPutInPersister(key, data, persister)
 }
 
-func (ps *PruningStorer) createAndInitPersisterIfClosed(pd *persisterData) (storage.Persister, func(), error) {
+func (ps *PruningStorer) createAndInitPersisterIfClosedProtected(pd *persisterData) (storage.Persister, func(), error) {
+	ps.lock.Lock()
+	defer ps.lock.Unlock()
+
+	return ps.createAndInitPersisterIfClosedUnprotected(pd)
+}
+
+func (ps *PruningStorer) createAndInitPersisterIfClosedUnprotected(pd *persisterData) (storage.Persister, func(), error) {
 	isOpen := !pd.getIsClosed()
 	if isOpen {
 		noopClose := func() {}
@@ -310,10 +316,6 @@ func (ps *PruningStorer) createAndInitPersisterIfClosed(pd *persisterData) (stor
 }
 
 func (ps *PruningStorer) createAndInitPersister(pd *persisterData) (storage.Persister, func(), error) {
-	//this is considered a critical area, do not reuse this mutex somewhere else.
-	ps.lockCreateAndInitPersister.Lock()
-	defer ps.lockCreateAndInitPersister.Unlock()
-
 	isOpen := !pd.getIsClosed()
 	if isOpen {
 		noopClose := func() {}
@@ -342,40 +344,31 @@ func (ps *PruningStorer) createAndInitPersister(pd *persisterData) (storage.Pers
 // if the key may be in the db. If bloom filter confirms then it further searches in the databases.
 func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 	v, ok := ps.cacher.Get(key)
-	var err error
-
-	if !ok {
-		// not found in cache
-		// search it in active persisters
-		found := false
-		ps.lock.RLock()
-		for idx := uint32(0); (idx < ps.numOfActivePersisters) && (idx < uint32(len(ps.activePersisters))); idx++ {
-			if ps.bloomFilter == nil || ps.bloomFilter.MayContain(key) {
-				v, err = ps.activePersisters[idx].persister.Get(key)
-				if err != nil {
-					continue
-				}
-
-				buff, isByteSlice := v.([]byte)
-				if !isByteSlice {
-					continue
-				}
-
-				found = true
-				// if found in persistence unit, add it to cache
-				ps.cacher.Put(key, v, len(buff))
-				break
-			}
-		}
-		ps.lock.RUnlock()
-
-		if !found {
-			return nil, fmt.Errorf("key %s not found in %s",
-				hex.EncodeToString(key), ps.identifier)
-		}
+	if ok {
+		return v.([]byte), nil
 	}
 
-	return v.([]byte), nil
+	if ps.bloomFilter != nil && !ps.bloomFilter.MayContain(key) {
+		return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
+	}
+
+	// not found in cache
+	// search it in active persisters
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+
+	for idx := uint32(0); (idx < ps.numOfActivePersisters) && (idx < uint32(len(ps.activePersisters))); idx++ {
+		val, err := ps.activePersisters[idx].persister.Get(key)
+		if err != nil {
+			continue
+		}
+
+		// if found in persistence unit, add it to cache and return
+		_ = ps.cacher.Put(key, val, len(val))
+		return val, nil
+	}
+
+	return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
 }
 
 // Close will close PruningStorer
@@ -413,7 +406,7 @@ func (ps *PruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) 
 			hex.EncodeToString(key), ps.identifier)
 	}
 
-	persister, closePersister, err := ps.createAndInitPersisterIfClosed(pd)
+	persister, closePersister, err := ps.createAndInitPersisterIfClosedProtected(pd)
 	if err != nil {
 		return nil, err
 	}
@@ -447,7 +440,7 @@ func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[stri
 		return nil, errors.New("persister does not exist")
 	}
 
-	persisterToRead, closePersister, err := ps.createAndInitPersisterIfClosed(pd)
+	persisterToRead, closePersister, err := ps.createAndInitPersisterIfClosedProtected(pd)
 	if err != nil {
 		return nil, err
 	}
@@ -755,7 +748,6 @@ func (ps *PruningStorer) extendSavedEpochsIfNeeded(header data.HeaderHandler) bo
 func (ps *PruningStorer) changeEpochWithExisting(epoch uint32) error {
 	numActivePersisters := ps.numOfActivePersisters
 
-	var err error
 	activePersisters := make([]*persisterData, 0, numActivePersisters)
 
 	oldestEpochActive := int64(epoch) - int64(numActivePersisters) + 1
@@ -774,10 +766,12 @@ func (ps *PruningStorer) changeEpochWithExisting(epoch uint32) error {
 
 	for _, p := range persisters {
 		if p.getIsClosed() {
-			_, err = ps.persisterFactory.Create(p.path)
-			if err != nil {
-				return err
+			db, errCreate := ps.persisterFactory.Create(p.path)
+			if errCreate != nil {
+				return errCreate
 			}
+
+			p.setPersisterAndIsClosed(db, false)
 		}
 
 		activePersisters = append(activePersisters, p)

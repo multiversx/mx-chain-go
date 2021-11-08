@@ -80,3 +80,20 @@ func TestTrieSyncStatistics_Large(t *testing.T) {
 	tss.Reset()
 	assert.Equal(t, 0, tss.NumLarge())
 }
+
+func TestTrieSyncStatistics_BytesReceived(t *testing.T) {
+	t.Parallel()
+
+	tss := NewTrieSyncStatistics()
+
+	assert.Equal(t, uint64(0), tss.NumBytesReceived())
+
+	tss.AddNumBytesReceived(2)
+	assert.Equal(t, uint64(2), tss.NumBytesReceived())
+
+	tss.AddNumBytesReceived(4)
+	assert.Equal(t, uint64(6), tss.NumBytesReceived())
+
+	tss.Reset()
+	assert.Equal(t, uint64(0), tss.NumBytesReceived())
+}

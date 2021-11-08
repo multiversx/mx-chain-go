@@ -782,7 +782,6 @@ func (vs *validatorStatistics) computeDecrease(
 		swInner.Start("loadPeerAccount")
 		leaderPeerAcc, err := vs.loadPeerAccount(consensusGroup[0].PubKey())
 		leaderPK := core.GetTrimmedPk(vs.pubkeyConv.Encode(consensusGroup[0].PubKey()))
-		log.Debug("decreasing for leader", "leader", leaderPK, "round", i)
 		swInner.Stop("loadPeerAccount")
 		if err != nil {
 			return err
@@ -805,6 +804,11 @@ func (vs *validatorStatistics) computeDecrease(
 
 		swInner.Start("SetTempRating")
 		leaderPeerAcc.SetTempRating(newRating)
+		log.Debug("decreasing for leader",
+			"leader", leaderPK,
+			"round", i,
+			"temp rating", newRating,
+			"consecutive misses", leaderPeerAcc.GetConsecutiveProposerMisses())
 		vs.jailValidatorIfBadRatingAndInactive(leaderPeerAcc)
 
 		err = vs.peerAdapter.SaveAccount(leaderPeerAcc)

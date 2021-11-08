@@ -912,6 +912,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 		Marshalizer:        marshalizer,
 		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
 		BuiltInFunctions:   vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
+		NFTStorageHandler:  &testscommon.SimpleNFTStorageHandlerStub{},
 		DataPool:           testDataPool,
 		CompiledSCPool:     testDataPool.SmartContracts(),
 		NilCompiledSCStore: true,

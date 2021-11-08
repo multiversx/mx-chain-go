@@ -61,6 +61,7 @@ type EnableEpochs struct {
 	FixOOGReturnCodeEnableEpoch                       uint32
 	RemoveNonUpdatedStorageEnableEpoch                uint32
 	DeleteDelegatorAfterClaimRewardsEnableEpoch       uint32
+	OptimizeNFTStoreEnableEpoch                       uint32
 	StopDecreasingValidatorRatingWhenStuckEnableEpoch uint32
 }
 
