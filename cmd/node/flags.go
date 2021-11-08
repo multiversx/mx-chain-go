@@ -491,6 +491,7 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 	generalConfigs.StoragePruning.NumActivePersisters = generalConfigs.StoragePruning.NumEpochsToKeep
 	generalConfigs.TrieStorageManagerConfig.KeepSnapshots = true
 	generalConfigs.StateTriesConfig.CheckpointsEnabled = false
+	generalConfigs.StateTriesConfig.CheckpointRoundsModulus = 100000000
 	p2pConfigs.Node.ThresholdMinConnectedPeers = 0
 	p2pConfigs.KadDhtPeerDiscovery.Enabled = false
 
@@ -507,6 +508,7 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 	log.Warn("the node is in import mode! Will auto-set some config values, including storage config values",
 		"GeneralSettings.StartInEpochEnabled", generalConfigs.GeneralSettings.StartInEpochEnabled,
 		"StateTriesConfig.CheckpointsEnabled", generalConfigs.StateTriesConfig.CheckpointsEnabled,
+		"StateTriesConfig.CheckpointRoundsModulus", generalConfigs.StateTriesConfig.CheckpointRoundsModulus,
 		"StoragePruning.NumActivePersisters", generalConfigs.StoragePruning.NumEpochsToKeep,
 		"TrieStorageManagerConfig.KeepSnapshots", generalConfigs.TrieStorageManagerConfig.KeepSnapshots,
 		"p2p.ThresholdMinConnectedPeers", p2pConfigs.Node.ThresholdMinConnectedPeers,
@@ -530,14 +532,12 @@ func processConfigFullArchiveMode(log logger.Logger, configs *config.Configs) er
 	configs.GeneralConfig.StoragePruning.ValidatorCleanOldEpochsData = false
 	configs.GeneralConfig.StoragePruning.ObserverCleanOldEpochsData = false
 	configs.GeneralConfig.StoragePruning.Enabled = true
-	configs.GeneralConfig.StoragePruning.NumEpochsToKeep = math.MaxUint64
 
 	log.Warn("the node is in full archive mode! Will auto-set some config values",
 		"GeneralSettings.StartInEpochEnabled", generalConfigs.GeneralSettings.StartInEpochEnabled,
 		"StoragePruning.ValidatorCleanOldEpochsData", generalConfigs.StoragePruning.ValidatorCleanOldEpochsData,
 		"StoragePruning.ObserverCleanOldEpochsData", generalConfigs.StoragePruning.ObserverCleanOldEpochsData,
 		"StoragePruning.Enabled", generalConfigs.StoragePruning.Enabled,
-		"StoragePruning.NumEpochsToKeep", configs.GeneralConfig.StoragePruning.NumEpochsToKeep,
 	)
 
 	return nil

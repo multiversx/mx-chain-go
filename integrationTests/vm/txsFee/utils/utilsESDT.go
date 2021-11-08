@@ -253,28 +253,9 @@ func checkEsdtBalance(
 	addr []byte,
 	tokenIdentifier []byte,
 	esdtNonce uint64,
-	expectedBalance *big.Int) {
-
-	account, err := testContext.Accounts.LoadAccount(addr)
+	expectedBalance *big.Int,
+) {
+	esdtData, err := testContext.BlockchainHook.GetESDTToken(addr, tokenIdentifier, esdtNonce)
 	require.Nil(t, err)
-
-	userAccount, ok := account.(state.UserAccountHandler)
-	require.True(t, ok)
-
-	tokenKey := core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + string(tokenIdentifier)
-	if esdtNonce > 0 {
-		tokenKey += string(big.NewInt(int64(esdtNonce)).Bytes())
-	}
-
-	valueBytes, err := userAccount.DataTrieTracker().RetrieveValue([]byte(tokenKey))
-	if err != nil || len(valueBytes) == 0 {
-		require.Equal(t, big.NewInt(0), expectedBalance)
-		return
-	}
-
-	esdtToken := &esdt.ESDigitalToken{}
-	err = protoMarshalizer.Unmarshal(esdtToken, valueBytes)
-	require.Nil(t, err)
-
-	require.Equal(t, expectedBalance, esdtToken.Value)
+	require.Equal(t, expectedBalance, esdtData.Value)
 }
