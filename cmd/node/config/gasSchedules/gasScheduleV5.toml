@@ -255,7 +255,7 @@
     I64Store16 = 5
     I64Store32 = 5
     MemorySize = 5
-    MemoryGrow = 50_000_000
+    MemoryGrow = 5
     I32Const = 5
     I64Const = 5
     F32Const = 5
@@ -659,4 +659,4 @@
     I16x8RoundingAverageU = 200
     LocalAllocate = 5
     LocalsUnmetered = 100
-    MaxMemoryGrowDelta = 10
+    MaxMemoryGrowDelta = 1
