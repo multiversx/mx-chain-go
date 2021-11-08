@@ -11,7 +11,7 @@ type RoundDetectorCache interface {
 	// irrelevant(obsolete) to be cached, an error should be returned.
 	// If the cache is full, it should have an eviction mechanism to always remove
 	// the oldest round entry
-	Add(round uint64, pubKey []byte, header data.HeaderInfoHandler) error
+	Add(round uint64, pubKey []byte, headerInfo data.HeaderInfoHandler) error
 	// GetHeaders returns all cached headers for a public key, in a given round
 	GetHeaders(round uint64, pubKey []byte) []data.HeaderHandler
 	// GetPubKeys returns all cached public keys in a given round
@@ -20,7 +20,7 @@ type RoundDetectorCache interface {
 	IsInterfaceNil() bool
 }
 
-// RoundHashCache defines what a round-hash-based cache should do
+// RoundHashCache defines what a <round, hash>(<key, val>) cache should do
 type RoundHashCache interface {
 	// Add should add a hash in cache for a given round.
 	// If the hash is already cached in the given round OR the

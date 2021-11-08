@@ -2,6 +2,7 @@ package detector
 
 import (
 	"bytes"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -37,6 +38,7 @@ type multipleHeaderSigningDetector struct {
 	nodesCoordinator sharding.NodesCoordinator
 	hasher           hashing.Hasher
 	marshaller       marshal.Marshalizer
+	cachesMutex      sync.RWMutex
 	baseSlashingDetector
 }
 
@@ -70,6 +72,7 @@ func NewMultipleHeaderSigningDetector(args *MultipleHeaderSingingDetectorArgs) (
 		nodesCoordinator:     args.NodesCoordinator,
 		hasher:               args.Hasher,
 		marshaller:           args.Marshaller,
+		cachesMutex:          sync.RWMutex{},
 	}, nil
 }
 
@@ -90,16 +93,20 @@ func (mhs *multipleHeaderSigningDetector) VerifyData(interceptedData process.Int
 		return nil, process.ErrHeaderRoundNotRelevant
 	}
 
+	mhs.cachesMutex.Lock()
 	headerHashWithoutSignatures, err := mhs.cacheHeaderHashWithoutSignatures(header)
 	if err != nil {
+		mhs.cachesMutex.Unlock()
 		return nil, err
 	}
 
 	err = mhs.cacheSigners(header, interceptedHeader.Hash())
 	if err != nil {
 		mhs.hashesCache.Remove(round, headerHashWithoutSignatures)
+		mhs.cachesMutex.Unlock()
 		return nil, err
 	}
+	mhs.cachesMutex.Unlock()
 
 	slashingResult := mhs.getSlashingResult(round)
 	if len(slashingResult) != 0 {
@@ -197,6 +204,7 @@ func (mhs *multipleHeaderSigningDetector) ValidateProof(proof coreSlash.Slashing
 	if multipleSigningProof.GetType() != coreSlash.MultipleSigning {
 		return process.ErrInvalidSlashType
 	}
+
 	signers := multipleSigningProof.GetPubKeys()
 	if len(signers) == 0 {
 		return process.ErrNotEnoughPubKeysProvided
@@ -242,6 +250,7 @@ func (mhs *multipleHeaderSigningDetector) checkSignedHeaders(pubKey []byte, head
 		if !mhs.signedHeader(pubKey, header) {
 			return process.ErrHeaderNotSignedByValidator
 		}
+
 		hashes[hash] = struct{}{}
 	}
 
