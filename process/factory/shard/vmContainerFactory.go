@@ -305,7 +305,7 @@ func (vmf *vmContainerFactory) createInProcessArwenVMV14() (vmcommon.VMExecution
 		MultiESDTTransferAsyncCallBackEnableEpoch: vmf.epochConfig.MultiESDTTransferFixOnCallBackOnEnableEpoch,
 		FixOOGReturnCodeEnableEpoch:               vmf.epochConfig.FixOOGReturnCodeEnableEpoch,
 		RemoveNonUpdatedStorageEnableEpoch:        vmf.epochConfig.RemoveNonUpdatedStorageEnableEpoch,
-		CreateNFTThroughExecByCallerEnableEpoch:   vmf.epochConfig.OptimizeNFTStoreEnableEpoch,
+		CreateNFTThroughExecByCallerEnableEpoch:   vmf.epochConfig.CreateNFTThroughExecByCallerEnableEpoch,
 	}
 	return arwenHost14.NewArwenVM(vmf.blockChainHookImpl, hostParameters)
 }
