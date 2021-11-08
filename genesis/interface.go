@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
@@ -30,7 +31,7 @@ type AccountsParser interface {
 	InitialAccounts() []InitialAccountHandler
 	GetTotalStakedForDelegationAddress(delegationAddress string) *big.Int
 	GetInitialAccountsForDelegated(addressBytes []byte) []InitialAccountHandler
-	GenerateMiniBlocks(shardCoordinator sharding.Coordinator) ([]*block.MiniBlock, error)
+	GenerateInitialTransactions(shardCoordinator sharding.Coordinator) ([]*block.MiniBlock, *indexer.Pool, error)
 	IsInterfaceNil() bool
 }
 

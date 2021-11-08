@@ -7,7 +7,9 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	coreData "github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	transactionData "github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
@@ -290,82 +292,73 @@ func (ap *accountsParser) IsInterfaceNil() bool {
 	return ap == nil
 }
 
-func (ap *accountsParser) calculateTxHashes(txs []*transactionData.Transaction) ([][]byte, error) {
-	var txHashes = make([][]byte, 0)
-
-	for _, tx := range txs {
-		txHash, err := core.CalculateHash(ap.marshalizer, ap.hasher, tx)
-		if err != nil {
-			return nil, err
-		}
-
-		txHashes = append(txHashes, txHash)
-	}
-
-	return txHashes, nil
-}
-
-func (ap *accountsParser) generateInShardMiniBlocks(txsPerShards map[uint32][]*transactionData.Transaction) ([]*block.MiniBlock, error) {
+func (ap *accountsParser) generateInShardMiniBlocks(txsHashesPerShard map[uint32][][]byte) []*block.MiniBlock {
 	var miniBlocks = make([]*block.MiniBlock, 0)
 
-	for shardId, txs := range txsPerShards {
-
-		txHashes, err := ap.calculateTxHashes(txs)
-		if err != nil {
-			return nil, err
-		}
-
+	for shardId, txsHashes := range txsHashesPerShard {
 		miniBlock := &block.MiniBlock{
-			TxHashes:        txHashes,
+			TxHashes:        txsHashes,
 			ReceiverShardID: shardId,
 			SenderShardID:   shardId,
-			Type:            0,
+			Type:            block.TxBlock,
 			Reserved:        nil,
 		}
 
 		miniBlocks = append(miniBlocks, miniBlock)
 	}
 
-	return miniBlocks, nil
+	return miniBlocks
 }
 
-func (ap *accountsParser) generateMintTransactionsPerShards(shardCoordinator sharding.Coordinator) map[uint32][]*transactionData.Transaction {
-	var txsPerShard = make(map[uint32][]*transactionData.Transaction)
+func (ap *accountsParser) getMintTransaction(ia *data.InitialAccount, nonce uint64) *transactionData.Transaction {
+	tx := &transactionData.Transaction{
+		Nonce:     nonce,
+		SndAddr:   nil,
+		Value:     ia.GetSupply(),
+		RcvAddr:   ia.AddressBytes(),
+		GasPrice:  0,
+		GasLimit:  0,
+		Data:      nil,
+		Signature: nil,
+	}
+
+	return tx
+}
+
+// GenerateInitialTransactions will generate initial transactions pool and the in shard miniblocks for the generated transactions
+func (ap *accountsParser) GenerateInitialTransactions(shardCoordinator sharding.Coordinator) ([]*block.MiniBlock, *indexer.Pool, error) {
+	if check.IfNil(shardCoordinator) {
+		return nil, nil, genesis.ErrNilShardCoordinator
+	}
+
+	var txsHashesPerShard = make(map[uint32][][]byte)
+
+	txsPool := &indexer.Pool{
+		Txs:      make(map[string]coreData.TransactionHandler),
+		Scrs:     nil,
+		Rewards:  nil,
+		Invalid:  nil,
+		Receipts: nil,
+	}
 
 	var nonce uint64 = 0
 	for _, ia := range ap.initialAccounts {
 		shardID := shardCoordinator.ComputeId(ia.AddressBytes())
 
-		tx := &transactionData.Transaction{
-			Nonce:     nonce,
-			SndAddr:   nil,
-			Value:     ia.GetSupply(),
-			RcvAddr:   ia.AddressBytes(),
-			GasPrice:  0,
-			GasLimit:  0,
-			Data:      nil,
-			Signature: nil,
-		}
+		tx := ap.getMintTransaction(ia, nonce)
+
 		nonce++
 
-		txsPerShard[shardID] = append(txsPerShard[shardID], tx)
+		txHash, err := core.CalculateHash(ap.marshalizer, ap.hasher, tx)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		txsPool.Txs[string(txHash)] = tx
+		txsHashesPerShard[shardID] = append(txsHashesPerShard[shardID], txHash)
 	}
 
-	return txsPerShard
-}
+	miniBlocks := ap.generateInShardMiniBlocks(txsHashesPerShard)
 
-// GenerateMiniBlocks
-func (ap *accountsParser) GenerateMiniBlocks(shardCoordinator sharding.Coordinator) ([]*block.MiniBlock, error) {
-	if check.IfNil(shardCoordinator) {
-		return nil, genesis.ErrNilShardCoordinator
-	}
-
-	txs := ap.generateMintTransactionsPerShards(shardCoordinator)
-
-	miniBlocks, err := ap.generateInShardMiniBlocks(txs)
-	if err != nil {
-		return nil, err
-	}
-
-	return miniBlocks, nil
+	return miniBlocks, txsPool, nil
 }

@@ -5,11 +5,9 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	transactionData "github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/genesis/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 func (ap *accountsParser) SetInitialAccounts(initialAccounts []*data.InitialAccount) {
@@ -24,16 +22,8 @@ func (ap *accountsParser) Process() error {
 	return ap.process()
 }
 
-func (ap *accountsParser) GenerateGenesisMintTransactions(shardCoordinator sharding.Coordinator) map[uint32][]*transactionData.Transaction {
-	return ap.generateMintTransactionsPerShards(shardCoordinator)
-}
-
-func (ap *accountsParser) GenerateGenesisMiniBlocks(txsPerShards map[uint32][]*transactionData.Transaction) ([]*block.MiniBlock, error) {
-	return ap.generateInShardMiniBlocks(txsPerShards)
-}
-
-func (ap *accountsParser) CalculateTxHashes(txs []*transactionData.Transaction) ([][]byte, error) {
-	return ap.calculateTxHashes(txs)
+func (ap *accountsParser) GenerateInShardMiniBlocks(txsHashesPerShard map[uint32][][]byte) []*block.MiniBlock {
+	return ap.generateInShardMiniBlocks(txsHashesPerShard)
 }
 
 func (ap *accountsParser) SetPukeyConverter(pubkeyConverter core.PubkeyConverter) {

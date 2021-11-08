@@ -464,7 +464,7 @@ func TestAccountsParser_GetMintTransactionsShouldErr(t *testing.T) {
 	assert.Equal(t, genesis.ErrNilShardCoordinator, err)
 }
 
-func TestAccountsParser_generateMintTransactions(t *testing.T) {
+func TestAccountsParser_generateInShardMiniBlocks(t *testing.T) {
 	t.Parallel()
 
 	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
@@ -472,24 +472,28 @@ func TestAccountsParser_generateMintTransactions(t *testing.T) {
 	ibs := []*data.InitialAccount{
 		createSimpleInitialAccount("0001", balance),
 		createSimpleInitialAccount("0002", balance),
-		createSimpleInitialAccount("0000", balance),
-		createSimpleInitialAccount("0101", balance),
+		createSimpleInitialAccount("0003", balance),
+		createSimpleInitialAccount("0104", balance),
 	}
 
 	ap.SetEntireSupply(big.NewInt(int64(len(ibs)) * balance))
 	ap.SetInitialAccounts(ibs)
 
-	sharder := &mock.ShardCoordinatorMock{
-		NumOfShards: 3,
-		SelfShardId: 0,
-	}
+	err := ap.Process()
+	require.Nil(t, err)
 
-	txs := ap.GenerateGenesisMintTransactions(sharder)
+	var txsHashesPerShard = make(map[uint32][][]byte)
+	txsHashesPerShard[0] = [][]byte{ibs[0].AddressBytes()}
+	txsHashesPerShard[1] = [][]byte{ibs[1].AddressBytes()}
+	txsHashesPerShard[2] = [][]byte{ibs[2].AddressBytes()}
+	txsHashesPerShard[3] = [][]byte{ibs[3].AddressBytes()}
 
-	assert.Equal(t, 4, len(txs[0]))
+	miniBlocks := ap.GenerateInShardMiniBlocks(txsHashesPerShard)
+
+	assert.Equal(t, 4, len(miniBlocks))
 }
 
-func TestAccountsParser_GenerateMiniBlocks(t *testing.T) {
+func TestAccountsParser_GenerateInitialTransactions(t *testing.T) {
 	t.Parallel()
 
 	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
@@ -516,45 +520,13 @@ func TestAccountsParser_GenerateMiniBlocks(t *testing.T) {
 		SelfShardId: 0,
 	}
 
-	txs := ap.GenerateGenesisMintTransactions(sharder)
-
-	miniBlocks, _ := ap.GenerateGenesisMiniBlocks(txs)
+	miniBlocks, txPool, err := ap.GenerateInitialTransactions(sharder)
 
 	assert.Equal(t, 4, len(miniBlocks))
 	assert.Equal(t, 2, len(miniBlocks[0].GetTxHashes()))
 	assert.Equal(t, 2, len(miniBlocks[1].GetTxHashes()))
 	assert.Equal(t, 2, len(miniBlocks[2].GetTxHashes()))
 	assert.Equal(t, 2, len(miniBlocks[3].GetTxHashes()))
-}
 
-func TestAccountsParser_calculateTxHashes(t *testing.T) {
-	t.Parallel()
-
-	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
-	balance := int64(1)
-	ibs := []*data.InitialAccount{
-		createSimpleInitialAccount("0001", balance),
-		createSimpleInitialAccount("0002", balance),
-		createSimpleInitialAccount("0000", balance),
-		createSimpleInitialAccount("0101", balance),
-	}
-
-	ap.SetEntireSupply(big.NewInt(int64(len(ibs)) * balance))
-	ap.SetInitialAccounts(ibs)
-
-	err := ap.Process()
-	require.Nil(t, err)
-
-	sharder := &mock.ShardCoordinatorMock{
-		NumOfShards: 4,
-		SelfShardId: 0,
-	}
-
-	txs := ap.GenerateGenesisMintTransactions(sharder)
-	assert.Equal(t, 1, len(txs[0]))
-
-	txHashes, err := ap.CalculateTxHashes(txs[0])
-	require.Nil(t, err)
-
-	assert.Equal(t, 1, len(txHashes))
+	assert.Equal(t, 8, len(txPool.Txs))
 }

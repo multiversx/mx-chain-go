@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -15,7 +16,7 @@ type AccountsParserStub struct {
 	InitialAccountsCalled                                 func() []genesis.InitialAccountHandler
 	GetTotalStakedForDelegationAddressCalled              func(delegationAddress string) *big.Int
 	GetInitialAccountsForDelegatedCalled                  func(addressBytes []byte) []genesis.InitialAccountHandler
-	GenerateMiniBlocksCalled                              func(shardCoordinator sharding.Coordinator) ([]*block.MiniBlock, error)
+	GenerateInitialTransactionsCalled                     func(shardCoordinator sharding.Coordinator) ([]*block.MiniBlock, *indexer.Pool, error)
 }
 
 // GetTotalStakedForDelegationAddress -
@@ -63,13 +64,13 @@ func (aps *AccountsParserStub) InitialAccounts() []genesis.InitialAccountHandler
 	return make([]genesis.InitialAccountHandler, 0)
 }
 
-// GenerateMiniBlocks -
-func (aps *AccountsParserStub) GenerateMiniBlocks(shardCoordinator sharding.Coordinator) ([]*block.MiniBlock, error) {
-	if aps.GenerateMiniBlocksCalled != nil {
-		return aps.GenerateMiniBlocks(shardCoordinator)
+// GenerateInitialTransactions -
+func (aps *AccountsParserStub) GenerateInitialTransactions(shardCoordinator sharding.Coordinator) ([]*block.MiniBlock, *indexer.Pool, error) {
+	if aps.GenerateInitialTransactionsCalled != nil {
+		return aps.GenerateInitialTransactions(shardCoordinator)
 	}
 
-	return make([]*block.MiniBlock, 0), nil
+	return make([]*block.MiniBlock, 0), &indexer.Pool{}, nil
 }
 
 // IsInterfaceNil -
