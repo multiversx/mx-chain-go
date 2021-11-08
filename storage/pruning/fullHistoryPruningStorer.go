@@ -196,7 +196,7 @@ func (fhps *FullHistoryPruningStorer) getOrOpenPersister(epoch uint32) (storage.
 
 		return newPdata.getPersister(), nil
 	}
-	persister, _, err := fhps.createAndInitPersisterIfClosed(pdata)
+	persister, _, err := fhps.createAndInitPersisterIfClosedUnprotected(pdata)
 	if err != nil {
 		return nil, err
 	}
