@@ -255,7 +255,7 @@
     I64Store16 = 5
     I64Store32 = 5
     MemorySize = 5
-    MemoryGrow = 5
+    MemoryGrow = 50_000_000
     I32Const = 5
     I64Const = 5
     F32Const = 5
