@@ -1042,6 +1042,7 @@ func (nr *nodeRunner) CreateManagedStateComponents(
 ) (mainFactory.StateComponentsHandler, error) {
 	stateArgs := mainFactory.StateComponentsFactoryArgs{
 		Config:           *nr.configs.GeneralConfig,
+		EnableEpochs:     nr.configs.EpochConfig.EnableEpochs,
 		ShardCoordinator: managedBootstrapComponents.ShardCoordinator(),
 		Core:             managedCoreComponents,
 		StorageService:   managedDataComponents.StorageService(),

@@ -22,13 +22,15 @@ import (
 
 // TrieCreateArgs holds arguments for calling the Create method on the TrieFactory
 type TrieCreateArgs struct {
-	TrieStorageConfig  config.StorageConfig
-	MainStorer         storage.Storer
-	CheckpointsStorer  storage.Storer
-	ShardID            string
-	PruningEnabled     bool
-	CheckpointsEnabled bool
-	MaxTrieLevelInMem  uint
+	TrieStorageConfig          config.StorageConfig
+	MainStorer                 storage.Storer
+	CheckpointsStorer          storage.Storer
+	ShardID                    string
+	PruningEnabled             bool
+	CheckpointsEnabled         bool
+	MaxTrieLevelInMem          uint
+	DisableOldTrieStorageEpoch uint32
+	EpochStartNotifier         trie.EpochNotifier
 }
 
 type trieCreator struct {
@@ -97,14 +99,16 @@ func (tc *trieCreator) Create(args TrieCreateArgs) (common.StorageManager, commo
 		uint64(tc.hasher.Size()),
 	)
 	storageManagerArgs := trie.NewTrieStorageManagerArgs{
-		DB:                     accountsTrieStorage,
-		MainStorer:             args.MainStorer,
-		CheckpointsStorer:      args.CheckpointsStorer,
-		Marshalizer:            tc.marshalizer,
-		Hasher:                 tc.hasher,
-		SnapshotDbConfig:       snapshotDbCfg,
-		GeneralConfig:          tc.trieStorageManagerConfig,
-		CheckpointHashesHolder: checkpointHashesHolder,
+		EpochNotifier:              args.EpochStartNotifier,
+		DisableOldTrieStorageEpoch: args.DisableOldTrieStorageEpoch,
+		DB:                         accountsTrieStorage,
+		MainStorer:                 args.MainStorer,
+		CheckpointsStorer:          args.CheckpointsStorer,
+		Marshalizer:                tc.marshalizer,
+		Hasher:                     tc.hasher,
+		SnapshotDbConfig:           snapshotDbCfg,
+		GeneralConfig:              tc.trieStorageManagerConfig,
+		CheckpointHashesHolder:     checkpointHashesHolder,
 	}
 
 	log.Debug("trie checkpoints status", "enabled", args.CheckpointsEnabled)
@@ -177,6 +181,8 @@ func CreateTriesComponentsForShardId(
 	coreComponentsHolder coreComponentsHandler,
 	shardId uint32,
 	storageService dataRetriever.StorageService,
+	disableoOldTrieStorageEpoch uint32,
+	notifier trie.EpochNotifier,
 ) (common.TriesHolder, map[string]common.StorageManager, error) {
 	trieFactoryArgs := TrieFactoryArgs{
 		SnapshotDbCfg:            generalConfig.TrieSnapshotDB,
@@ -191,13 +197,15 @@ func CreateTriesComponentsForShardId(
 	}
 
 	args := TrieCreateArgs{
-		TrieStorageConfig:  generalConfig.AccountsTrieStorageOld,
-		MainStorer:         storageService.GetStorer(dataRetriever.UserAccountsUnit),
-		CheckpointsStorer:  storageService.GetStorer(dataRetriever.UserAccountsCheckpointsUnit),
-		ShardID:            core.GetShardIDString(shardId),
-		PruningEnabled:     generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
-		CheckpointsEnabled: generalConfig.StateTriesConfig.CheckpointsEnabled,
-		MaxTrieLevelInMem:  generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
+		TrieStorageConfig:          generalConfig.AccountsTrieStorageOld,
+		MainStorer:                 storageService.GetStorer(dataRetriever.UserAccountsUnit),
+		CheckpointsStorer:          storageService.GetStorer(dataRetriever.UserAccountsCheckpointsUnit),
+		ShardID:                    core.GetShardIDString(shardId),
+		PruningEnabled:             generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
+		CheckpointsEnabled:         generalConfig.StateTriesConfig.CheckpointsEnabled,
+		MaxTrieLevelInMem:          generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
+		DisableOldTrieStorageEpoch: disableoOldTrieStorageEpoch,
+		EpochStartNotifier:         notifier,
 	}
 	userStorageManager, userAccountTrie, err := trFactory.Create(args)
 	if err != nil {
@@ -211,13 +219,15 @@ func CreateTriesComponentsForShardId(
 	trieStorageManagers[UserAccountTrie] = userStorageManager
 
 	args = TrieCreateArgs{
-		TrieStorageConfig:  generalConfig.PeerAccountsTrieStorageOld,
-		MainStorer:         storageService.GetStorer(dataRetriever.PeerAccountsUnit),
-		CheckpointsStorer:  storageService.GetStorer(dataRetriever.PeerAccountsCheckpointsUnit),
-		ShardID:            core.GetShardIDString(shardId),
-		PruningEnabled:     generalConfig.StateTriesConfig.PeerStatePruningEnabled,
-		CheckpointsEnabled: generalConfig.StateTriesConfig.CheckpointsEnabled,
-		MaxTrieLevelInMem:  generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
+		TrieStorageConfig:          generalConfig.PeerAccountsTrieStorageOld,
+		MainStorer:                 storageService.GetStorer(dataRetriever.PeerAccountsUnit),
+		CheckpointsStorer:          storageService.GetStorer(dataRetriever.PeerAccountsCheckpointsUnit),
+		ShardID:                    core.GetShardIDString(shardId),
+		PruningEnabled:             generalConfig.StateTriesConfig.PeerStatePruningEnabled,
+		CheckpointsEnabled:         generalConfig.StateTriesConfig.CheckpointsEnabled,
+		MaxTrieLevelInMem:          generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
+		DisableOldTrieStorageEpoch: disableoOldTrieStorageEpoch,
+		EpochStartNotifier:         notifier,
 	}
 	peerStorageManager, peerAccountsTrie, err := trFactory.Create(args)
 	if err != nil {

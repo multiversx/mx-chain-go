@@ -105,3 +105,6 @@ var ErrTrieSyncTimeout = errors.New("trie sync timeout")
 
 // ErrKeyNotFound is raised when a key is not found
 var ErrKeyNotFound = errors.New("key not found")
+
+// ErrNilEpochNotifier signals that the provided EpochNotifier is nil
+var ErrNilEpochNotifier = errors.New("nil EpochNotifier")

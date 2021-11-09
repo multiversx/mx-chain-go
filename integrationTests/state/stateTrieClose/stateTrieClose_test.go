@@ -10,6 +10,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/goroutines"
 	"github.com/ElrondNetwork/elrond-go/trie"
@@ -96,6 +97,7 @@ func TestTrieStorageManager_Close(t *testing.T) {
 		SnapshotDbConfig:       config.DBConfig{},
 		GeneralConfig:          config.TrieStorageManagerConfig{},
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, 32),
+		EpochNotifier:          &mock.EpochNotifierStub{},
 	}
 
 	gc := goroutines.NewGoCounter(goroutines.TestsRelevantGoRoutines)
@@ -124,13 +126,15 @@ func TestTrieStorageManager_CloseErr(t *testing.T) {
 				return closeErr
 			},
 		},
-		MainStorer:             testscommon.CreateMemUnit(),
-		CheckpointsStorer:      testscommon.CreateMemUnit(),
-		Marshalizer:            &testscommon.MarshalizerMock{},
-		Hasher:                 &testscommon.HasherMock{},
-		SnapshotDbConfig:       config.DBConfig{},
-		GeneralConfig:          config.TrieStorageManagerConfig{},
-		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, 32),
+		MainStorer:                 testscommon.CreateMemUnit(),
+		CheckpointsStorer:          testscommon.CreateMemUnit(),
+		Marshalizer:                &testscommon.MarshalizerMock{},
+		Hasher:                     &testscommon.HasherMock{},
+		SnapshotDbConfig:           config.DBConfig{},
+		GeneralConfig:              config.TrieStorageManagerConfig{},
+		CheckpointHashesHolder:     hashesHolder.NewCheckpointHashesHolder(10, 32),
+		DisableOldTrieStorageEpoch: 1,
+		EpochNotifier:              &mock.EpochNotifierStub{},
 	}
 	gc := goroutines.NewGoCounter(goroutines.TestsRelevantGoRoutines)
 	idxInitial, _ := gc.Snapshot()

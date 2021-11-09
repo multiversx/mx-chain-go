@@ -51,6 +51,7 @@ func getNewTrieStorageManagerArgs() trie.NewTrieStorageManagerArgs {
 		SnapshotDbConfig:       config.DBConfig{},
 		GeneralConfig:          config.TrieStorageManagerConfig{},
 		CheckpointHashesHolder: &trieMock.CheckpointHashesHolderStub{},
+		EpochNotifier:          &mock.EpochNotifierStub{},
 	}
 }
 

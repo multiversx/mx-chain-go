@@ -463,6 +463,8 @@ func TestSyncValidatorAccountsState_NilRequestHandlerErr(t *testing.T) {
 		coreComp,
 		args.GenesisShardCoordinator.SelfId(),
 		disabled.NewChainStorer(),
+		0,
+		coreComp.EpochNotifier(),
 	)
 	assert.Nil(t, err)
 	epochStartProvider.trieContainer = triesContainer
@@ -484,6 +486,8 @@ func TestCreateTriesForNewShardID(t *testing.T) {
 		coreComp,
 		1,
 		disabled.NewChainStorer(),
+		0,
+		coreComp.EpochNotifier(),
 	)
 	assert.Nil(t, err)
 	epochStartProvider.trieContainer = triesContainer
@@ -512,6 +516,8 @@ func TestSyncUserAccountsState(t *testing.T) {
 		coreComp,
 		args.GenesisShardCoordinator.SelfId(),
 		disabled.NewChainStorer(),
+		0,
+		coreComp.EpochNotifier(),
 	)
 	assert.Nil(t, err)
 	epochStartProvider.trieContainer = triesContainer
@@ -567,6 +573,8 @@ func TestRequestAndProcessForShard(t *testing.T) {
 		coreComp,
 		shardCoordinator.SelfId(),
 		disabled.NewChainStorer(),
+		0,
+		coreComp.EpochNotifier(),
 	)
 	assert.Nil(t, err)
 	epochStartProvider.trieContainer = triesContainer

@@ -17,26 +17,29 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 )
 
 const defaultBeforeGracefulClose = time.Minute
 
 type baseResolversContainerFactory struct {
-	container                dataRetriever.ResolversContainer
-	shardCoordinator         sharding.Coordinator
-	messenger                dataRetriever.TopicMessageHandler
-	store                    dataRetriever.StorageService
-	marshalizer              marshal.Marshalizer
-	hasher                   hashing.Hasher
-	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
-	dataPacker               dataRetriever.DataPacker
-	manualEpochStartNotifier dataRetriever.ManualEpochStartNotifier
-	chanGracefullyClose      chan endProcess.ArgEndProcess
-	generalConfig            config.Config
-	shardIDForTries          uint32
-	chainID                  string
-	workingDir               string
+	container                  dataRetriever.ResolversContainer
+	shardCoordinator           sharding.Coordinator
+	messenger                  dataRetriever.TopicMessageHandler
+	store                      dataRetriever.StorageService
+	marshalizer                marshal.Marshalizer
+	hasher                     hashing.Hasher
+	uint64ByteSliceConverter   typeConverters.Uint64ByteSliceConverter
+	dataPacker                 dataRetriever.DataPacker
+	manualEpochStartNotifier   dataRetriever.ManualEpochStartNotifier
+	chanGracefullyClose        chan endProcess.ArgEndProcess
+	generalConfig              config.Config
+	shardIDForTries            uint32
+	chainID                    string
+	workingDir                 string
+	disableOldTrieStorageEpoch uint32
+	epochNotifier              trie.EpochNotifier
 }
 
 func (brcf *baseResolversContainerFactory) checkParams() error {
@@ -66,6 +69,9 @@ func (brcf *baseResolversContainerFactory) checkParams() error {
 	}
 	if check.IfNil(brcf.hasher) {
 		return dataRetriever.ErrNilHasher
+	}
+	if check.IfNil(brcf.epochNotifier) {
+		return dataRetriever.ErrNilEpochNotifier
 	}
 
 	return nil
@@ -217,13 +223,15 @@ func (brcf *baseResolversContainerFactory) newImportDBTrieStorage(
 	}
 
 	args := trieFactory.TrieCreateArgs{
-		TrieStorageConfig:  trieStorageConfig,
-		MainStorer:         mainStorer,
-		CheckpointsStorer:  checkpointsStorer,
-		ShardID:            core.GetShardIDString(brcf.shardIDForTries),
-		PruningEnabled:     brcf.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
-		CheckpointsEnabled: brcf.generalConfig.StateTriesConfig.CheckpointsEnabled,
-		MaxTrieLevelInMem:  brcf.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
+		TrieStorageConfig:          trieStorageConfig,
+		MainStorer:                 mainStorer,
+		CheckpointsStorer:          checkpointsStorer,
+		ShardID:                    core.GetShardIDString(brcf.shardIDForTries),
+		PruningEnabled:             brcf.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
+		CheckpointsEnabled:         brcf.generalConfig.StateTriesConfig.CheckpointsEnabled,
+		MaxTrieLevelInMem:          brcf.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
+		DisableOldTrieStorageEpoch: brcf.disableOldTrieStorageEpoch,
+		EpochStartNotifier:         brcf.epochNotifier,
 	}
 	return trieFactoryInstance.Create(args)
 }

@@ -62,6 +62,7 @@ type EnableEpochs struct {
 	RemoveNonUpdatedStorageEnableEpoch          uint32
 	DeleteDelegatorAfterClaimRewardsEnableEpoch uint32
 	OptimizeNFTStoreEnableEpoch                 uint32
+	DisableOldTrieStorageEpoch                  uint32
 }
 
 // GasScheduleByEpochs represents a gas schedule toml entry that will be applied from the provided epoch

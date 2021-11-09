@@ -30,6 +30,7 @@ func getNewTrieStorageManagerArgs() trie.NewTrieStorageManagerArgs {
 		SnapshotDbConfig:       config.DBConfig{},
 		GeneralConfig:          config.TrieStorageManagerConfig{},
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, hashSize),
+		EpochNotifier:          &mock.EpochNotifierStub{},
 	}
 }
 
@@ -101,6 +102,7 @@ func TestNewTrieStorageManagerWithExistingSnapshot(t *testing.T) {
 
 	args := getNewTrieStorageManagerArgs()
 	args.SnapshotDbConfig = cfg
+	args.DisableOldTrieStorageEpoch = 1
 	args.GeneralConfig = generalCfg
 	args.CheckpointHashesHolder = hashesHolder.NewCheckpointHashesHolder(checkpointHashesHolderMaxSize, hashSize)
 	trieStorage, _ := trie.NewTrieStorageManager(args)
@@ -142,6 +144,7 @@ func TestNewTrieStorageManagerLoadsSnapshotsInOrder(t *testing.T) {
 
 	args := getNewTrieStorageManagerArgs()
 	args.SnapshotDbConfig = cfg
+	args.DisableOldTrieStorageEpoch = 1
 	args.GeneralConfig = generalCfg
 	args.CheckpointHashesHolder = hashesHolder.NewCheckpointHashesHolder(checkpointHashesHolderMaxSize, hashSize)
 	trieStorage, _ := trie.NewTrieStorageManager(args)

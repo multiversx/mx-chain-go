@@ -100,21 +100,21 @@ type epochStartBootstrap struct {
 	trieSyncerVersion          int
 
 	// created components
-	requestHandler            process.RequestHandler
-	interceptorContainer      process.InterceptorsContainer
-	dataPool                  dataRetriever.PoolsHolder
-	miniBlocksSyncer          epochStart.PendingMiniBlocksSyncHandler
-	headersSyncer             epochStart.HeadersByHashSyncer
-	epochStartMetaBlockSyncer epochStart.StartOfEpochMetaSyncer
-	nodesConfigHandler        StartOfEpochNodesConfigHandler
-	whiteListHandler          update.WhiteListHandler
-	whiteListerVerifiedTxs    update.WhiteListHandler
-	storageOpenerHandler      storage.UnitOpenerHandler
-	latestStorageDataProvider storage.LatestStorageDataProviderHandler
-	argumentsParser           process.ArgumentsParser
-	waitingListFixEnableEpoch uint32
-	//TODO remove this when it is no longer needed
-	storageService dataRetriever.StorageService
+	requestHandler             process.RequestHandler
+	interceptorContainer       process.InterceptorsContainer
+	dataPool                   dataRetriever.PoolsHolder
+	miniBlocksSyncer           epochStart.PendingMiniBlocksSyncHandler
+	headersSyncer              epochStart.HeadersByHashSyncer
+	epochStartMetaBlockSyncer  epochStart.StartOfEpochMetaSyncer
+	nodesConfigHandler         StartOfEpochNodesConfigHandler
+	whiteListHandler           update.WhiteListHandler
+	whiteListerVerifiedTxs     update.WhiteListHandler
+	storageOpenerHandler       storage.UnitOpenerHandler
+	latestStorageDataProvider  storage.LatestStorageDataProviderHandler
+	argumentsParser            process.ArgumentsParser
+	waitingListFixEnableEpoch  uint32
+	disableOldTrieStorageEpoch uint32
+	storageService             dataRetriever.StorageService
 
 	// gathered data
 	epochStartMeta     *block.MetaBlock
@@ -192,6 +192,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		maxHardCapForMissingNodes:  args.GeneralConfig.TrieSync.MaxHardCapForMissingNodes,
 		trieSyncerVersion:          args.GeneralConfig.TrieSync.TrieSyncerVersion,
 		waitingListFixEnableEpoch:  args.EpochConfig.EnableEpochs.WaitingListFixEnableEpoch,
+		disableOldTrieStorageEpoch: args.EpochConfig.EnableEpochs.DisableOldTrieStorageEpoch,
 	}
 
 	log.Debug("process: enable epoch for transaction signed with tx hash", "epoch", epochStartProvider.enableSignTxWithHashEpoch)
@@ -436,6 +437,8 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		e.coreComponentsHolder,
 		core.MetachainShardId,
 		e.storageService,
+		e.disableOldTrieStorageEpoch,
+		e.epochNotifier,
 	)
 	if err != nil {
 		return err
@@ -704,6 +707,8 @@ func (e *epochStartBootstrap) requestAndProcessForMeta() error {
 		e.coreComponentsHolder,
 		core.MetachainShardId,
 		storageHandlerComponent.storageService,
+		e.disableOldTrieStorageEpoch,
+		e.epochNotifier,
 	)
 	if err != nil {
 		return err
@@ -824,6 +829,8 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 		e.coreComponentsHolder,
 		e.shardCoordinator.SelfId(),
 		storageHandlerComponent.storageService,
+		e.disableOldTrieStorageEpoch,
+		e.epochNotifier,
 	)
 	if err != nil {
 		return err

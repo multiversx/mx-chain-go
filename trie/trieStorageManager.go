@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-vm-common/atomic"
 )
 
 // trieStorageManager manages all the storage operations of the trie (commit, snapshot, checkpoint, pruning)
@@ -36,12 +37,15 @@ type trieStorageManager struct {
 	closed                 bool
 
 	// TODO remove these fields after the new implementation is in production
-	db            common.DBWriteCacher
-	snapshots     []common.SnapshotDbHandler
-	snapshotId    int
-	snapshotDbCfg config.DBConfig
-	maxSnapshots  uint32
-	keepSnapshots bool
+	db                     common.DBWriteCacher
+	snapshots              []common.SnapshotDbHandler
+	snapshotId             int
+	snapshotDbCfg          config.DBConfig
+	maxSnapshots           uint32
+	keepSnapshots          bool
+	flagDisableOldStorage  atomic.Flag
+	disableOldStorageEpoch uint32
+	oldStorageClosed       bool
 }
 
 type snapshotsQueueEntry struct {
@@ -52,14 +56,16 @@ type snapshotsQueueEntry struct {
 
 // NewTrieStorageManagerArgs holds the arguments needed for creating a new trieStorageManager
 type NewTrieStorageManagerArgs struct {
-	DB                     common.DBWriteCacher
-	MainStorer             common.DBWriteCacher
-	CheckpointsStorer      common.DBWriteCacher
-	Marshalizer            marshal.Marshalizer
-	Hasher                 hashing.Hasher
-	SnapshotDbConfig       config.DBConfig
-	GeneralConfig          config.TrieStorageManagerConfig
-	CheckpointHashesHolder CheckpointHashesHolder
+	EpochNotifier              EpochNotifier
+	DisableOldTrieStorageEpoch uint32
+	DB                         common.DBWriteCacher
+	MainStorer                 common.DBWriteCacher
+	CheckpointsStorer          common.DBWriteCacher
+	Marshalizer                marshal.Marshalizer
+	Hasher                     hashing.Hasher
+	SnapshotDbConfig           config.DBConfig
+	GeneralConfig              config.TrieStorageManagerConfig
+	CheckpointHashesHolder     CheckpointHashesHolder
 }
 
 // NewTrieStorageManager creates a new instance of trieStorageManager
@@ -82,10 +88,8 @@ func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager,
 	if check.IfNil(args.CheckpointHashesHolder) {
 		return nil, ErrNilCheckpointHashesHolder
 	}
-
-	snapshots, snapshotId, err := getSnapshotsAndSnapshotId(args.SnapshotDbConfig)
-	if err != nil {
-		log.Debug("get snapshot", "error", err.Error())
+	if check.IfNil(args.EpochNotifier) {
+		return nil, ErrNilEpochNotifier
 	}
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
@@ -94,8 +98,6 @@ func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager,
 		db:                     args.DB,
 		mainStorer:             args.MainStorer,
 		checkpointsStorer:      args.CheckpointsStorer,
-		snapshots:              snapshots,
-		snapshotId:             snapshotId,
 		snapshotDbCfg:          args.SnapshotDbConfig,
 		snapshotReq:            make(chan *snapshotsQueueEntry, args.GeneralConfig.SnapshotsBufferLen),
 		checkpointReq:          make(chan *snapshotsQueueEntry, args.GeneralConfig.SnapshotsBufferLen),
@@ -105,7 +107,31 @@ func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager,
 		cancelFunc:             cancelFunc,
 		checkpointHashesHolder: args.CheckpointHashesHolder,
 		closer:                 closing.NewSafeChanCloser(),
+		disableOldStorageEpoch: args.DisableOldTrieStorageEpoch,
+		oldStorageClosed:       false,
 	}
+
+	log.Debug("epoch for disabling old trie storage", "epoch", tsm.disableOldStorageEpoch)
+	args.EpochNotifier.RegisterNotifyHandler(tsm)
+
+	if tsm.flagDisableOldStorage.IsSet() {
+		err := tsm.db.Close()
+		if err != nil {
+			return nil, err
+		}
+		tsm.oldStorageClosed = true
+
+		go tsm.doCheckpointsAndSnapshots(ctx, args.Marshalizer, args.Hasher)
+		return tsm, nil
+	}
+
+	snapshots, snapshotId, err := getSnapshotsAndSnapshotId(args.SnapshotDbConfig)
+	if err != nil {
+		log.Debug("get snapshot", "error", err.Error())
+	}
+
+	tsm.snapshots = snapshots
+	tsm.snapshotId = snapshotId
 
 	go tsm.doCheckpointsAndSnapshots(ctx, args.Marshalizer, args.Hasher)
 	return tsm, nil
@@ -233,12 +259,16 @@ func (tsm *trieStorageManager) Get(key []byte) ([]byte, error) {
 }
 
 func (tsm *trieStorageManager) getFromOtherStorers(key []byte) ([]byte, error) {
-	val, _ := tsm.db.Get(key)
+	val, _ := tsm.checkpointsStorer.Get(key)
 	if len(val) != 0 {
 		return val, nil
 	}
 
-	val, _ = tsm.checkpointsStorer.Get(key)
+	if tsm.flagDisableOldStorage.IsSet() {
+		return nil, ErrKeyNotFound
+	}
+
+	val, _ = tsm.db.Get(key)
 	if len(val) != 0 {
 		return val, nil
 	}
@@ -479,14 +509,9 @@ func (tsm *trieStorageManager) Close() error {
 	//(just to close some go routines started as edge cases that would otherwise hang)
 	defer tsm.closer.Close()
 
-	err := tsm.db.Close()
-
-	for _, sdb := range tsm.snapshots {
-		errSnapshotClose := sdb.Close()
-		if errSnapshotClose != nil {
-			log.Error("trieStorageManager.Close snapshotClose", "error", errSnapshotClose)
-			err = errSnapshotClose
-		}
+	var err error
+	if !tsm.flagDisableOldStorage.IsSet() {
+		err = tsm.closeOldTrieStorage()
 	}
 
 	errMainStorerClose := tsm.mainStorer.Close()
@@ -508,6 +533,21 @@ func (tsm *trieStorageManager) Close() error {
 	return nil
 }
 
+func (tsm *trieStorageManager) closeOldTrieStorage() error {
+	err := tsm.db.Close()
+
+	for _, sdb := range tsm.snapshots {
+		errSnapshotClose := sdb.Close()
+		if errSnapshotClose != nil {
+			log.Error("trieStorageManager.Close snapshotClose", "error", errSnapshotClose)
+			err = errSnapshotClose
+		}
+	}
+
+	tsm.oldStorageClosed = true
+	return err
+}
+
 // SetEpochForPutOperation will set the storer for the given epoch as the current storer
 func (tsm *trieStorageManager) SetEpochForPutOperation(epoch uint32) {
 	storer, ok := tsm.mainStorer.(epochStorer)
@@ -517,6 +557,18 @@ func (tsm *trieStorageManager) SetEpochForPutOperation(epoch uint32) {
 	}
 
 	storer.SetEpochForPutOperation(epoch)
+}
+
+func (tsm *trieStorageManager) EpochConfirmed(epoch uint32, _ uint64) {
+	tsm.flagDisableOldStorage.Toggle(epoch >= tsm.disableOldStorageEpoch)
+	log.Debug("old trie storage", "disabled", tsm.flagDisableOldStorage.IsSet())
+
+	if tsm.flagDisableOldStorage.IsSet() && !tsm.oldStorageClosed {
+		err := tsm.closeOldTrieStorage()
+		if err != nil {
+			log.Error("could not close old trie storage", "error", err.Error())
+		}
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

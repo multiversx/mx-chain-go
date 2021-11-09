@@ -21,6 +21,7 @@ import (
 // StateComponentsFactoryArgs holds the arguments needed for creating a state components factory
 type StateComponentsFactoryArgs struct {
 	Config           config.Config
+	EnableEpochs     config.EnableEpochs
 	ShardCoordinator sharding.Coordinator
 	Core             CoreComponentsHolder
 	StorageService   dataRetriever.StorageService
@@ -31,6 +32,7 @@ type stateComponentsFactory struct {
 	shardCoordinator sharding.Coordinator
 	core             CoreComponentsHolder
 	storageService   dataRetriever.StorageService
+	enableEpochs     config.EnableEpochs
 }
 
 // stateComponents struct holds the state components of the Elrond protocol
@@ -68,6 +70,7 @@ func NewStateComponentsFactory(args StateComponentsFactoryArgs) (*stateComponent
 		shardCoordinator: args.ShardCoordinator,
 		core:             args.Core,
 		storageService:   args.StorageService,
+		enableEpochs:     args.EnableEpochs,
 	}, nil
 }
 
@@ -78,6 +81,8 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 		scf.core,
 		scf.shardCoordinator.SelfId(),
 		scf.storageService,
+		scf.enableEpochs.DisableOldTrieStorageEpoch,
+		scf.core.EpochNotifier(),
 	)
 	if err != nil {
 		return nil, err

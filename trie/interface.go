@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 type node interface {
@@ -94,4 +95,10 @@ type snapshotPruningStorer interface {
 	common.DBWriteCacher
 	GetFromOldEpochsWithoutCache(key []byte) ([]byte, error)
 	PutWithoutCache(key, data []byte) error
+}
+
+// EpochNotifier can notify upon an epoch change and provide the current epoch
+type EpochNotifier interface {
+	RegisterNotifyHandler(handler vmcommon.EpochSubscriberHandler)
+	IsInterfaceNil() bool
 }
