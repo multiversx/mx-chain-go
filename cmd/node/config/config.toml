@@ -26,7 +26,7 @@
    # MaxConsecutiveRoundsOfRatingDecrease represents the max number of consecutive rounds in which a block is not proposed
    # on a shard and the validators' rating could be decreased. If, for instance, a shard gets stuck for more rounds
    # than this value, then the validators rating decrease should stop so they won't get jailed
-   MaxConsecutiveRoundsOfRatingDecrease = 600
+   MaxConsecutiveRoundsOfRatingDecrease = 200
 
 [Versions]
    DefaultVersion = "default"
