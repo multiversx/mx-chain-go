@@ -463,7 +463,7 @@ func (bp *baseProcessor) verifyFees(header data.HeaderHandler) error {
 	return nil
 }
 
-//TODO: remove bool parameter and give instead the set to sort
+// TODO: remove bool parameter and give instead the set to sort
 func (bp *baseProcessor) sortHeadersForCurrentBlockByNonce(usedInBlock bool) map[uint32][]data.HeaderHandler {
 	hdrsForCurrentBlock := make(map[uint32][]data.HeaderHandler)
 
@@ -1087,10 +1087,10 @@ func getLastSelfNotarizedHeaderByItself(chainHandler data.ChainHandler) (data.He
 	return currentHeader, currentBlockHash
 }
 
-func (bp *baseProcessor) setFinalizedHeaderHashInIndexer(hdrHash []byte) {
+func (bp *baseProcessor) setFinalizedHeaderHashInIndexer(hdrHash []byte) error {
 	log.Debug("baseProcessor.setFinalizedBlockInIndexer", "finalized header hash", hdrHash)
 
-	bp.outportHandler.FinalizedBlock(hdrHash)
+	return bp.outportHandler.FinalizedBlock(hdrHash)
 }
 
 func (bp *baseProcessor) updateStateStorage(

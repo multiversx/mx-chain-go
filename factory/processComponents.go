@@ -739,8 +739,7 @@ func (pcf *processComponentsFactory) indexGenesisAccounts() error {
 		genesisAccounts = append(genesisAccounts, userAccount)
 	}
 
-	pcf.statusComponents.OutportHandler().SaveAccounts(uint64(pcf.coreData.GenesisNodesSetup().GetStartTime()), genesisAccounts)
-	return nil
+	return pcf.statusComponents.OutportHandler().SaveAccounts(uint64(pcf.coreData.GenesisNodesSetup().GetStartTime()), genesisAccounts)
 }
 
 func (pcf *processComponentsFactory) unmarshalUserAccount(address []byte, userAccountsBytes []byte) (state.UserAccountHandler, error) {
@@ -840,7 +839,10 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32
 				MaxGasPerBlock: pcf.coreData.EconomicsData().MaxGasLimitPerBlock(core.MetachainShardId),
 			},
 		}
-		pcf.statusComponents.OutportHandler().SaveBlock(arg)
+		err = pcf.statusComponents.OutportHandler().SaveBlock(arg)
+		if err != nil {
+			return err
+		}
 	}
 
 	// In "dblookupext" index, record both the metachain and the shardID blocks

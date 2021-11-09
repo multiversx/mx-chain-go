@@ -25,73 +25,108 @@ func NewOutport() *outport {
 }
 
 // SaveBlock will save block for every driver
-func (o *outport) SaveBlock(args *indexer.ArgsSaveBlockData) {
+func (o *outport) SaveBlock(args *indexer.ArgsSaveBlockData) error {
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
 	for _, driver := range o.drivers {
-		driver.SaveBlock(args)
+		err := driver.SaveBlock(args)
+		if err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
 // RevertIndexedBlock will revert block for every driver
-func (o *outport) RevertIndexedBlock(header data.HeaderHandler, body data.BodyHandler) {
+func (o *outport) RevertIndexedBlock(header data.HeaderHandler, body data.BodyHandler) error {
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
 	for _, driver := range o.drivers {
-		driver.RevertIndexedBlock(header, body)
+		err := driver.RevertIndexedBlock(header, body)
+		if err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
 // SaveRoundsInfo will save rounds information for every driver
-func (o *outport) SaveRoundsInfo(roundsInfos []*indexer.RoundInfo) {
+func (o *outport) SaveRoundsInfo(roundsInfos []*indexer.RoundInfo) error {
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
 	for _, driver := range o.drivers {
-		driver.SaveRoundsInfo(roundsInfos)
+		err := driver.SaveRoundsInfo(roundsInfos)
+		if err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
 // SaveValidatorsPubKeys will save validators public keys for every driver
-func (o *outport) SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte, epoch uint32) {
+func (o *outport) SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte, epoch uint32) error {
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
 	for _, driver := range o.drivers {
-		driver.SaveValidatorsPubKeys(validatorsPubKeys, epoch)
+		err := driver.SaveValidatorsPubKeys(validatorsPubKeys, epoch)
+		if err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
 // SaveValidatorsRating will save validators rating for every driver
-func (o *outport) SaveValidatorsRating(indexID string, infoRating []*indexer.ValidatorRatingInfo) {
+func (o *outport) SaveValidatorsRating(indexID string, infoRating []*indexer.ValidatorRatingInfo) error {
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
 	for _, driver := range o.drivers {
-		driver.SaveValidatorsRating(indexID, infoRating)
+		err := driver.SaveValidatorsRating(indexID, infoRating)
+		if err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
 // SaveAccounts will save accounts  for every driver
-func (o *outport) SaveAccounts(blockTimestamp uint64, acc []data.UserAccountHandler) {
+func (o *outport) SaveAccounts(blockTimestamp uint64, acc []data.UserAccountHandler) error {
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
 	for _, driver := range o.drivers {
-		driver.SaveAccounts(blockTimestamp, acc)
+		err := driver.SaveAccounts(blockTimestamp, acc)
+		if err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
 // FinalizedBlock will call all the drivers that a block is finalized
-func (o *outport) FinalizedBlock(headerHash []byte) {
+func (o *outport) FinalizedBlock(headerHash []byte) error {
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
 	for _, driver := range o.drivers {
-		driver.FinalizedBlock(headerHash)
+		err := driver.FinalizedBlock(headerHash)
+		if err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
 // Close will close all the drivers that are in outport

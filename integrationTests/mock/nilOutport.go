@@ -14,31 +14,38 @@ func NewNilOutport() *nilOutport {
 }
 
 // SaveBlock -
-func (n *nilOutport) SaveBlock(_ *indexer.ArgsSaveBlockData) {
+func (n *nilOutport) SaveBlock(_ *indexer.ArgsSaveBlockData) error {
+	return nil
 }
 
 // RevertIndexedBlock -
-func (n *nilOutport) RevertIndexedBlock(_ data.HeaderHandler, _ data.BodyHandler) {
+func (n *nilOutport) RevertIndexedBlock(_ data.HeaderHandler, _ data.BodyHandler) error {
+	return nil
 }
 
 // SaveRoundsInfo -
-func (n *nilOutport) SaveRoundsInfo(_ []*indexer.RoundInfo) {
+func (n *nilOutport) SaveRoundsInfo(_ []*indexer.RoundInfo) error {
+	return nil
 }
 
 // SaveValidatorsPubKeys -
-func (n *nilOutport) SaveValidatorsPubKeys(_ map[uint32][][]byte, _ uint32) {
+func (n *nilOutport) SaveValidatorsPubKeys(_ map[uint32][][]byte, _ uint32) error {
+	return nil
 }
 
 // SaveValidatorsRating -
-func (n *nilOutport) SaveValidatorsRating(_ string, _ []*indexer.ValidatorRatingInfo) {
+func (n *nilOutport) SaveValidatorsRating(_ string, _ []*indexer.ValidatorRatingInfo) error {
+	return nil
 }
 
 // SaveAccounts -
-func (n *nilOutport) SaveAccounts(_ uint64, _ []data.UserAccountHandler) {
+func (n *nilOutport) SaveAccounts(_ uint64, _ []data.UserAccountHandler) error {
+	return nil
 }
 
 // FinalizedBlock -
-func (n *nilOutport) FinalizedBlock(_ []byte) {
+func (n *nilOutport) FinalizedBlock(_ []byte) error {
+	return nil
 }
 
 // Close -

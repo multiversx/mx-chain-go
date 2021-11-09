@@ -257,7 +257,8 @@ func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 		Timestamp:        time.Duration(sr.RoundTimeStamp.Unix()),
 	}
 
-	sr.outportHandler.SaveRoundsInfo([]*indexer.RoundInfo{roundInfo})
+	err = sr.outportHandler.SaveRoundsInfo([]*indexer.RoundInfo{roundInfo})
+	log.LogIfError(err)
 }
 
 func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error {

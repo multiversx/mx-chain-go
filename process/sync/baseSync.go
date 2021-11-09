@@ -740,7 +740,14 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			return err
 		}
 
-		boot.outportHandler.RevertIndexedBlock(currHeader, currBody)
+		err = boot.outportHandler.RevertIndexedBlock(currHeader, currBody)
+		if err != nil {
+			log.Debug("boot.outportHandler.RevertIndexedBlock",
+				"error", err.Error(),
+			)
+
+			return err
+		}
 
 		shouldAddHeaderToBlackList := revertUsingForkNonce && boot.blockBootstrapper.isForkTriggeredByMeta()
 		if shouldAddHeaderToBlackList {

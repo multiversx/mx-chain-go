@@ -13,32 +13,39 @@ func NewDisabledOutport() *disabledOutport {
 	return new(disabledOutport)
 }
 
-// SaveBlock does nothing
-func (n *disabledOutport) SaveBlock(_ *indexer.ArgsSaveBlockData) {
+// SaveBlock returns nil
+func (n *disabledOutport) SaveBlock(_ *indexer.ArgsSaveBlockData) error {
+	return nil
 }
 
-// RevertIndexedBlock does nothing
-func (n *disabledOutport) RevertIndexedBlock(_ data.HeaderHandler, _ data.BodyHandler) {
+// RevertIndexedBlock returns nil
+func (n *disabledOutport) RevertIndexedBlock(_ data.HeaderHandler, _ data.BodyHandler) error {
+	return nil
 }
 
-// SaveRoundsInfo does nothing
-func (n *disabledOutport) SaveRoundsInfo(_ []*indexer.RoundInfo) {
+// SaveRoundsInfo returns nil
+func (n *disabledOutport) SaveRoundsInfo(_ []*indexer.RoundInfo) error {
+	return nil
 }
 
-// SaveValidatorsPubKeys does nothing
-func (n *disabledOutport) SaveValidatorsPubKeys(_ map[uint32][][]byte, _ uint32) {
+// SaveValidatorsPubKeys returns nil
+func (n *disabledOutport) SaveValidatorsPubKeys(_ map[uint32][][]byte, _ uint32) error {
+	return nil
 }
 
-// SaveValidatorsRating does nothing
-func (n *disabledOutport) SaveValidatorsRating(_ string, _ []*indexer.ValidatorRatingInfo) {
+// SaveValidatorsRating returns nil
+func (n *disabledOutport) SaveValidatorsRating(_ string, _ []*indexer.ValidatorRatingInfo) error {
+	return nil
 }
 
-// SaveAccounts does nothing
-func (n *disabledOutport) SaveAccounts(_ uint64, _ []data.UserAccountHandler) {
+// SaveAccounts returns nil
+func (n *disabledOutport) SaveAccounts(_ uint64, _ []data.UserAccountHandler) error {
+	return nil
 }
 
-// FinalizedBlock does nothing
-func (n *disabledOutport) FinalizedBlock(_ []byte) {
+// FinalizedBlock returns nil
+func (n *disabledOutport) FinalizedBlock(_ []byte) error {
+	return nil
 }
 
 // Close does nothing

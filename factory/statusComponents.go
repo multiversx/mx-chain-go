@@ -176,7 +176,8 @@ func (pc *statusComponents) epochStartEventHandler() epochStart.ActionHandler {
 				"error", err.Error())
 		}
 
-		pc.outportHandler.SaveValidatorsPubKeys(validatorsPubKeys, currentEpoch)
+		err = pc.outportHandler.SaveValidatorsPubKeys(validatorsPubKeys, currentEpoch)
+		log.LogIfError(err)
 
 	}, func(_ nodeData.HeaderHandler) {}, common.IndexerOrder)
 

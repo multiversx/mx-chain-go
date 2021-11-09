@@ -216,7 +216,9 @@ func indexRoundInfo(
 	}
 
 	if check.IfNil(lastHeader) {
-		outportHandler.SaveRoundsInfo([]*indexer.RoundInfo{roundInfo})
+		err := outportHandler.SaveRoundsInfo([]*indexer.RoundInfo{roundInfo})
+		log.LogIfError(err)
+
 		return
 	}
 
@@ -249,7 +251,8 @@ func indexRoundInfo(
 		roundsInfo = append(roundsInfo, roundInfo)
 	}
 
-	outportHandler.SaveRoundsInfo(roundsInfo)
+	err := outportHandler.SaveRoundsInfo(roundsInfo)
+	log.LogIfError(err)
 }
 
 func indexValidatorsRating(
@@ -290,7 +293,8 @@ func indexShardValidatorsRating(
 	shardValidatorsRating map[string][]*indexer.ValidatorRatingInfo,
 ) {
 	for indexID, validatorsInfos := range shardValidatorsRating {
-		outportHandler.SaveValidatorsRating(indexID, validatorsInfos)
+		err := outportHandler.SaveValidatorsRating(indexID, validatorsInfos)
+		log.LogIfError(err)
 	}
 }
 

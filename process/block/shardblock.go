@@ -2,6 +2,7 @@ package block
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"time"
@@ -524,15 +525,15 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 	headerHash []byte,
 	header data.HeaderHandler,
 	lastBlockHeader data.HeaderHandler,
-) {
+) error {
 	if !sp.outportHandler.HasDrivers() {
-		return
+		return nil
 	}
 	if check.IfNil(header) {
-		return
+		return nil
 	}
 	if check.IfNil(body) {
-		return
+		return nil
 	}
 
 	log.Debug("preparing to index block", "hash", headerHash, "nonce", header.GetNonce(), "round", header.GetRound())
@@ -561,39 +562,26 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		epoch,
 	)
 	if err != nil {
-		log.Debug("indexBlockIfNeeded: GetConsensusValidatorsPublicKeys",
-			"hash", headerHash,
-			"epoch", epoch,
-			"error", err.Error())
-		return
+		return fmt.Errorf("%w in shardProcessor.indexBlockIfNeeded, GetConsensusValidatorsPublicKeys stage, "+
+			"epoch: %d, hash: %s", err, header.GetEpoch(), hex.EncodeToString(headerHash))
 	}
 
 	nodesCoordinatorShardID, err := sp.nodesCoordinator.ShardIdForEpoch(epoch)
 	if err != nil {
-		log.Debug("indexBlockIfNeeded: ShardIdForEpoch",
-			"hash", headerHash,
-			"epoch", epoch,
-			"error", err.Error())
-		return
+		return fmt.Errorf("%w in shardProcessor.indexBlockIfNeeded, ShardIdForEpoch stage, "+
+			"epoch: %d, hash: %s", err, header.GetEpoch(), hex.EncodeToString(headerHash))
 	}
 
 	if shardId != nodesCoordinatorShardID {
-		log.Debug("indexBlockIfNeeded: shardId != nodesCoordinatorShardID",
-			"epoch", epoch,
-			"shardCoordinator.ShardID", shardId,
-			"nodesCoordinator.ShardID", nodesCoordinatorShardID)
-		return
+		return fmt.Errorf("%w in shardProcessor.indexBlockIfNeeded, shard ID mismach, "+
+			"epoch: %d, hash: %s, shardCoordinator.ShardID: %d, nodesCoordinator.ShardID: %d",
+			err, header.GetEpoch(), hex.EncodeToString(headerHash), shardId, nodesCoordinatorShardID)
 	}
 
 	signersIndexes, err := sp.nodesCoordinator.GetValidatorsIndexes(pubKeys, epoch)
 	if err != nil {
-		log.Error("indexBlockIfNeeded: GetValidatorsIndexes",
-			"round", header.GetRound(),
-			"nonce", header.GetNonce(),
-			"hash", headerHash,
-			"error", err.Error(),
-		)
-		return
+		return fmt.Errorf("%w in shardProcessor.indexBlockIfNeeded, GetValidatorsIndexes stage, "+
+			"epoch: %d, hash: %s, nonce: %d", err, header.GetEpoch(), hex.EncodeToString(headerHash), header.GetNonce())
 	}
 
 	gasConsumedInHeader := sp.baseProcessor.gasConsumedProvider.TotalGasConsumed()
@@ -616,10 +604,15 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		TransactionsPool:       pool,
 	}
 
-	sp.outportHandler.SaveBlock(args)
+	err = sp.outportHandler.SaveBlock(args)
+	if err != nil {
+		return err
+	}
 	log.Debug("indexed block", "hash", headerHash, "nonce", header.GetNonce(), "round", header.GetRound())
 
 	indexRoundInfo(sp.outportHandler, sp.nodesCoordinator, shardId, header, lastBlockHeader, signersIndexes)
+
+	return nil
 }
 
 // RestoreBlockIntoPools restores the TxBlock and MetaBlock into associated pools
@@ -895,7 +888,11 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	sp.blockChain.SetCurrentBlockHeaderHash(headerHash)
-	sp.indexBlockIfNeeded(bodyHandler, headerHash, headerHandler, lastBlockHeader)
+	err = sp.indexBlockIfNeeded(bodyHandler, headerHash, headerHandler, lastBlockHeader)
+	if err != nil {
+		return err
+	}
+
 	sp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
 
 	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
@@ -1050,7 +1047,11 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 			sp.userStatePruningQueue,
 		)
 
-		sp.setFinalizedHeaderHashInIndexer(hdr.GetPrevHash())
+		errNotCritical = sp.setFinalizedHeaderHashInIndexer(hdr.GetPrevHash())
+		if errNotCritical != nil {
+			log.Debug("could not send setFinalizedHeaderHashInIndexer to outport driver")
+			return
+		}
 	}
 }
 

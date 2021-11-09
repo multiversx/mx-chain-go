@@ -1365,7 +1365,8 @@ func indexValidatorsListIfNeeded(
 	}
 
 	if len(validatorsPubKeys) > 0 {
-		outportHandler.SaveValidatorsPubKeys(validatorsPubKeys, epoch)
+		err = outportHandler.SaveValidatorsPubKeys(validatorsPubKeys, epoch)
+		log.LogIfError(err)
 	}
 }
 

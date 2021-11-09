@@ -8,31 +8,37 @@ import (
 
 // OutportStub is a mock implementation fot the OutportHandler interface
 type OutportStub struct {
-	SaveBlockCalled             func(args *indexer.ArgsSaveBlockData)
-	SaveValidatorsRatingCalled  func(index string, validatorsInfo []*indexer.ValidatorRatingInfo)
-	SaveValidatorsPubKeysCalled func(shardPubKeys map[uint32][][]byte, epoch uint32)
+	SaveBlockCalled             func(args *indexer.ArgsSaveBlockData) error
+	SaveValidatorsRatingCalled  func(index string, validatorsInfo []*indexer.ValidatorRatingInfo) error
+	SaveValidatorsPubKeysCalled func(shardPubKeys map[uint32][][]byte, epoch uint32) error
 	HasDriversCalled            func() bool
 }
 
 // SaveBlock -
-func (as *OutportStub) SaveBlock(args *indexer.ArgsSaveBlockData) {
+func (as *OutportStub) SaveBlock(args *indexer.ArgsSaveBlockData) error {
 	if as.SaveBlockCalled != nil {
-		as.SaveBlockCalled(args)
+		return as.SaveBlockCalled(args)
 	}
+
+	return nil
 }
 
 // SaveValidatorsRating -
-func (as *OutportStub) SaveValidatorsRating(index string, validatorsInfo []*indexer.ValidatorRatingInfo) {
+func (as *OutportStub) SaveValidatorsRating(index string, validatorsInfo []*indexer.ValidatorRatingInfo) error {
 	if as.SaveValidatorsRatingCalled != nil {
-		as.SaveValidatorsRatingCalled(index, validatorsInfo)
+		return as.SaveValidatorsRatingCalled(index, validatorsInfo)
 	}
+
+	return nil
 }
 
 // SaveValidatorsPubKeys -
-func (as *OutportStub) SaveValidatorsPubKeys(shardPubKeys map[uint32][][]byte, epoch uint32) {
+func (as *OutportStub) SaveValidatorsPubKeys(shardPubKeys map[uint32][][]byte, epoch uint32) error {
 	if as.SaveValidatorsPubKeysCalled != nil {
-		as.SaveValidatorsPubKeysCalled(shardPubKeys, epoch)
+		return as.SaveValidatorsPubKeysCalled(shardPubKeys, epoch)
 	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
@@ -49,13 +55,13 @@ func (as *OutportStub) HasDrivers() bool {
 }
 
 // RevertIndexedBlock -
-func (as *OutportStub) RevertIndexedBlock(_ data.HeaderHandler, _ data.BodyHandler) {
-
+func (as *OutportStub) RevertIndexedBlock(_ data.HeaderHandler, _ data.BodyHandler) error {
+	return nil
 }
 
 // SaveAccounts -
-func (as *OutportStub) SaveAccounts(_ uint64, _ []data.UserAccountHandler) {
-
+func (as *OutportStub) SaveAccounts(_ uint64, _ []data.UserAccountHandler) error {
+	return nil
 }
 
 // Close -
@@ -64,8 +70,8 @@ func (as *OutportStub) Close() error {
 }
 
 // SaveRoundsInfo -
-func (as *OutportStub) SaveRoundsInfo(_ []*indexer.RoundInfo) {
-
+func (as *OutportStub) SaveRoundsInfo(_ []*indexer.RoundInfo) error {
+	return nil
 }
 
 // SubscribeDriver -
@@ -74,5 +80,6 @@ func (as *OutportStub) SubscribeDriver(_ outport.Driver) error {
 }
 
 // FinalizedBlock -
-func (as *OutportStub) FinalizedBlock(_ []byte) {
+func (as *OutportStub) FinalizedBlock(_ []byte) error {
+	return nil
 }

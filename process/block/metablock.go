@@ -558,9 +558,9 @@ func (mp *metaProcessor) indexBlock(
 	lastMetaBlock data.HeaderHandler,
 	notarizedHeadersHashes []string,
 	rewardsTxs map[string]data.TransactionHandler,
-) {
+) error {
 	if !mp.outportHandler.HasDrivers() {
-		return
+		return nil
 	}
 
 	log.Debug("preparing to index block", "hash", headerHash, "nonce", metaBlock.GetNonce(), "round", metaBlock.GetRound())
@@ -576,38 +576,28 @@ func (mp *metaProcessor) indexBlock(
 		metaBlock.GetPrevRandSeed(), metaBlock.GetRound(), core.MetachainShardId, metaBlock.GetEpoch(),
 	)
 	if err != nil {
-		log.Debug("indexBlock: GetConsensusValidatorsPublicKeys",
-			"hash", headerHash,
-			"epoch", metaBlock.GetEpoch(),
-			"error", err.Error())
-		return
+		return fmt.Errorf("%w in metaProcessor.indexBlock, GetConsensusValidatorsPublicKeys stage, "+
+			"epoch: %d, hash: %s", err, metaBlock.GetEpoch(), hex.EncodeToString(headerHash))
 	}
 
 	epoch := metaBlock.GetEpoch()
 	shardCoordinatorShardID := mp.shardCoordinator.SelfId()
 	nodesCoordinatorShardID, err := mp.nodesCoordinator.ShardIdForEpoch(epoch)
 	if err != nil {
-		log.Debug("indexBlock",
-			"epoch", epoch,
-			"error", err.Error())
-		return
+		return fmt.Errorf("%w in metaProcessor.indexBlock, ShardIdForEpoch stage, "+
+			"epoch: %d, hash: %s", err, metaBlock.GetEpoch(), hex.EncodeToString(headerHash))
 	}
 
 	if shardCoordinatorShardID != nodesCoordinatorShardID {
-		log.Debug("indexBlock",
-			"epoch", epoch,
-			"shardCoordinator.ShardID", shardCoordinatorShardID,
-			"nodesCoordinator.ShardID", nodesCoordinatorShardID)
-		return
+		return fmt.Errorf("%w in metaProcessor.indexBlock, shard ID mismach, "+
+			"epoch: %d, hash: %s, shardCoordinator.ShardID: %d, nodesCoordinator.ShardID: %d", err,
+			metaBlock.GetEpoch(), hex.EncodeToString(headerHash), shardCoordinatorShardID, nodesCoordinatorShardID)
 	}
 
 	signersIndexes, err := mp.nodesCoordinator.GetValidatorsIndexes(publicKeys, epoch)
 	if err != nil {
-		log.Debug("indexBlock: GetValidatorsIndexes",
-			"hash", headerHash,
-			"epoch", metaBlock.GetEpoch(),
-			"error", err.Error())
-		return
+		return fmt.Errorf("%w in metaProcessor.indexBlock, GetValidatorsIndexes stage, "+
+			"epoch: %d, hash: %s", err, metaBlock.GetEpoch(), hex.EncodeToString(headerHash))
 	}
 
 	gasConsumedInHeader := mp.baseProcessor.gasConsumedProvider.TotalGasConsumed()
@@ -629,16 +619,22 @@ func (mp *metaProcessor) indexBlock(
 		NotarizedHeadersHashes: notarizedHeadersHashes,
 		TransactionsPool:       pool,
 	}
-	mp.outportHandler.SaveBlock(args)
+	err = mp.outportHandler.SaveBlock(args)
+	if err != nil {
+		return err
+	}
+
 	log.Debug("indexed block", "hash", headerHash, "nonce", metaBlock.GetNonce(), "round", metaBlock.GetRound())
 
 	indexRoundInfo(mp.outportHandler, mp.nodesCoordinator, core.MetachainShardId, metaBlock, lastMetaBlock, signersIndexes)
 
 	if metaBlock.GetNonce() != 1 && !metaBlock.IsStartOfEpochBlock() {
-		return
+		return nil
 	}
 
 	indexValidatorsRating(mp.outportHandler, mp.validatorStatisticsProcessor, metaBlock)
+
+	return nil
 }
 
 // RestoreBlockIntoPools restores the block into associated pools
@@ -1223,7 +1219,11 @@ func (mp *metaProcessor) CommitBlock(
 		mp.blockTracker.CleanupInvalidCrossHeaders(header.Epoch, header.Round)
 	}
 
-	mp.indexBlock(header, headerHash, body, lastMetaBlock, notarizedHeadersHashes, rewardsTxs)
+	err = mp.indexBlock(header, headerHash, body, lastMetaBlock, notarizedHeadersHashes, rewardsTxs)
+	if err != nil {
+		return err
+	}
+
 	mp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
 
 	highestFinalBlockNonce := mp.forkDetector.GetHighestFinalBlockNonce()
@@ -1395,7 +1395,11 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.HeaderHandler) {
 		mp.peerStatePruningQueue,
 	)
 
-	mp.setFinalizedHeaderHashInIndexer(lastMetaBlock.GetPrevHash())
+	errNotCritical = mp.setFinalizedHeaderHashInIndexer(lastMetaBlock.GetPrevHash())
+	if errNotCritical != nil {
+		log.Debug("could not send setFinalizedHeaderHashInIndexer to outport driver")
+		return
+	}
 }
 
 func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(
