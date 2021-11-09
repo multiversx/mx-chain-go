@@ -29,14 +29,15 @@ func (o *outport) SaveBlock(args *indexer.ArgsSaveBlockData) error {
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
+	var lastError error
 	for _, driver := range o.drivers {
 		err := driver.SaveBlock(args)
 		if err != nil {
-			return err
+			lastError = err
 		}
 	}
 
-	return nil
+	return lastError
 }
 
 // RevertIndexedBlock will revert block for every driver
@@ -44,14 +45,15 @@ func (o *outport) RevertIndexedBlock(header data.HeaderHandler, body data.BodyHa
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
+	var lastError error
 	for _, driver := range o.drivers {
 		err := driver.RevertIndexedBlock(header, body)
 		if err != nil {
-			return err
+			lastError = err
 		}
 	}
 
-	return nil
+	return lastError
 }
 
 // SaveRoundsInfo will save rounds information for every driver
@@ -59,14 +61,15 @@ func (o *outport) SaveRoundsInfo(roundsInfos []*indexer.RoundInfo) error {
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
+	var lastError error
 	for _, driver := range o.drivers {
 		err := driver.SaveRoundsInfo(roundsInfos)
 		if err != nil {
-			return err
+			lastError = err
 		}
 	}
 
-	return nil
+	return lastError
 }
 
 // SaveValidatorsPubKeys will save validators public keys for every driver
@@ -74,14 +77,15 @@ func (o *outport) SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte, e
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
+	var lastError error
 	for _, driver := range o.drivers {
 		err := driver.SaveValidatorsPubKeys(validatorsPubKeys, epoch)
 		if err != nil {
-			return err
+			lastError = err
 		}
 	}
 
-	return nil
+	return lastError
 }
 
 // SaveValidatorsRating will save validators rating for every driver
@@ -89,14 +93,15 @@ func (o *outport) SaveValidatorsRating(indexID string, infoRating []*indexer.Val
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
+	var lastError error
 	for _, driver := range o.drivers {
 		err := driver.SaveValidatorsRating(indexID, infoRating)
 		if err != nil {
-			return err
+			lastError = err
 		}
 	}
 
-	return nil
+	return lastError
 }
 
 // SaveAccounts will save accounts  for every driver
@@ -104,14 +109,15 @@ func (o *outport) SaveAccounts(blockTimestamp uint64, acc []data.UserAccountHand
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
+	var lastError error
 	for _, driver := range o.drivers {
 		err := driver.SaveAccounts(blockTimestamp, acc)
 		if err != nil {
-			return err
+			lastError = err
 		}
 	}
 
-	return nil
+	return lastError
 }
 
 // FinalizedBlock will call all the drivers that a block is finalized
@@ -119,14 +125,15 @@ func (o *outport) FinalizedBlock(headerHash []byte) error {
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
+	var lastError error
 	for _, driver := range o.drivers {
 		err := driver.FinalizedBlock(headerHash)
 		if err != nil {
-			return err
+			lastError = err
 		}
 	}
 
-	return nil
+	return lastError
 }
 
 // Close will close all the drivers that are in outport

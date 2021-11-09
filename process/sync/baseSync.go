@@ -733,19 +733,11 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 
 		err = boot.historyRepo.RevertBlock(currHeader, currBody)
 		if err != nil {
-			log.Debug("boot.historyRepo.RevertBlock",
-				"error", err.Error(),
-			)
-
 			return err
 		}
 
 		err = boot.outportHandler.RevertIndexedBlock(currHeader, currBody)
 		if err != nil {
-			log.Debug("boot.outportHandler.RevertIndexedBlock",
-				"error", err.Error(),
-			)
-
 			return err
 		}
 
