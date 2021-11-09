@@ -31,7 +31,7 @@ type AccountsParser interface {
 	InitialAccounts() []InitialAccountHandler
 	GetTotalStakedForDelegationAddress(delegationAddress string) *big.Int
 	GetInitialAccountsForDelegated(addressBytes []byte) []InitialAccountHandler
-	GenerateInitialTransactions(shardCoordinator sharding.Coordinator) ([]*block.MiniBlock, *indexer.Pool, error)
+	GenerateInitialTransactions(shardCoordinator sharding.Coordinator) ([]*block.MiniBlock, map[uint32]*indexer.Pool, error)
 	IsInterfaceNil() bool
 }
 

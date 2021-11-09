@@ -820,7 +820,8 @@ func (pcf *processComponentsFactory) prepareGenesisBlock(genesisBlocks map[uint3
 
 func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32]data.HeaderHandler) error {
 	// In Elastic Indexer, only index the metachain block
-	genesisBlockHeader := genesisBlocks[core.MetachainShardId]
+	shardId := pcf.bootstrapComponents.ShardCoordinator().SelfId()
+	genesisBlockHeader := genesisBlocks[shardId]
 	genesisBlockHash, err := core.CalculateHash(pcf.coreData.InternalMarshalizer(), pcf.coreData.Hasher(), genesisBlockHeader)
 	if err != nil {
 		return err
@@ -829,22 +830,30 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32
 	if pcf.statusComponents.OutportHandler().HasDrivers() {
 		log.Info("indexGenesisBlocks(): indexer.SaveBlock", "hash", genesisBlockHash)
 
-		miniBlocks, err := pcf.accountsParser.GenerateMiniBlocks(pcf.bootstrapComponents.ShardCoordinator())
+		miniBlocks, txsPoolPerShard, err := pcf.accountsParser.GenerateInitialTransactions(pcf.bootstrapComponents.ShardCoordinator())
 		if err != nil {
 			return err
 		}
 
+		var indexMiniBlocks = make([]*dataBlock.MiniBlock, 0)
+		for _, miniBlock := range miniBlocks {
+			if miniBlock.GetSenderShardID() == shardId {
+				indexMiniBlocks = append(indexMiniBlocks, miniBlock)
+			}
+		}
+		genesisMiniBlocks := &dataBlock.Body{indexMiniBlocks}
+
 		arg := &indexer.ArgsSaveBlockData{
 			HeaderHash: genesisBlockHash,
-			Body:       &dataBlock.Body{miniBlocks},
+			Body:       genesisMiniBlocks,
 			Header:     genesisBlockHeader,
 			HeaderGasConsumption: indexer.HeaderGasConsumption{
 				GasConsumed:    0,
 				GasRefunded:    0,
 				GasPenalized:   0,
-				MaxGasPerBlock: pcf.coreData.EconomicsData().MaxGasLimitPerBlock(core.MetachainShardId),
+				MaxGasPerBlock: pcf.coreData.EconomicsData().MaxGasLimitPerBlock(shardId),
 			},
-			TransactionsPool: nil,
+			TransactionsPool: txsPoolPerShard[shardId],
 		}
 		pcf.statusComponents.OutportHandler().SaveBlock(arg)
 	}

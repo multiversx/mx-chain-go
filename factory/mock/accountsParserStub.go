@@ -16,7 +16,7 @@ type AccountsParserStub struct {
 	InitialAccountsCalled                                 func() []genesis.InitialAccountHandler
 	GetTotalStakedForDelegationAddressCalled              func(delegationAddress string) *big.Int
 	GetInitialAccountsForDelegatedCalled                  func(addressBytes []byte) []genesis.InitialAccountHandler
-	GenerateInitialTransactionsCalled                     func(shardCoordinator sharding.Coordinator) ([]*block.MiniBlock, *indexer.Pool, error)
+	GenerateInitialTransactionsCalled                     func(shardCoordinator sharding.Coordinator) ([]*block.MiniBlock, map[uint32]*indexer.Pool, error)
 }
 
 // GetTotalStakedForDelegationAddress -
@@ -65,12 +65,12 @@ func (aps *AccountsParserStub) InitialAccounts() []genesis.InitialAccountHandler
 }
 
 // GenerateInitialTransactions -
-func (aps *AccountsParserStub) GenerateInitialTransactions(shardCoordinator sharding.Coordinator) ([]*block.MiniBlock, *indexer.Pool, error) {
+func (aps *AccountsParserStub) GenerateInitialTransactions(shardCoordinator sharding.Coordinator) ([]*block.MiniBlock, map[uint32]*indexer.Pool, error) {
 	if aps.GenerateInitialTransactionsCalled != nil {
 		return aps.GenerateInitialTransactions(shardCoordinator)
 	}
 
-	return make([]*block.MiniBlock, 0), &indexer.Pool{}, nil
+	return make([]*block.MiniBlock, 0), make(map[uint32]*indexer.Pool), nil
 }
 
 // IsInterfaceNil -

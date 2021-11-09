@@ -520,7 +520,7 @@ func TestAccountsParser_GenerateInitialTransactions(t *testing.T) {
 		SelfShardId: 0,
 	}
 
-	miniBlocks, txPool, err := ap.GenerateInitialTransactions(sharder)
+	miniBlocks, txsPoolPerShard, err := ap.GenerateInitialTransactions(sharder)
 
 	assert.Equal(t, 4, len(miniBlocks))
 	assert.Equal(t, 2, len(miniBlocks[0].GetTxHashes()))
@@ -528,5 +528,5 @@ func TestAccountsParser_GenerateInitialTransactions(t *testing.T) {
 	assert.Equal(t, 2, len(miniBlocks[2].GetTxHashes()))
 	assert.Equal(t, 2, len(miniBlocks[3].GetTxHashes()))
 
-	assert.Equal(t, 8, len(txPool.Txs))
+	assert.Equal(t, 2, len(txsPoolPerShard[0].Txs))
 }

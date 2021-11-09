@@ -311,9 +311,10 @@ func (ap *accountsParser) generateInShardMiniBlocks(txsHashesPerShard map[uint32
 }
 
 func (ap *accountsParser) getMintTransaction(ia *data.InitialAccount, nonce uint64) *transactionData.Transaction {
+	var tmp = make([]byte, 32)
 	tx := &transactionData.Transaction{
 		Nonce:     nonce,
-		SndAddr:   nil,
+		SndAddr:   tmp,
 		Value:     ia.GetSupply(),
 		RcvAddr:   ia.AddressBytes(),
 		GasPrice:  0,
@@ -326,19 +327,23 @@ func (ap *accountsParser) getMintTransaction(ia *data.InitialAccount, nonce uint
 }
 
 // GenerateInitialTransactions will generate initial transactions pool and the in shard miniblocks for the generated transactions
-func (ap *accountsParser) GenerateInitialTransactions(shardCoordinator sharding.Coordinator) ([]*block.MiniBlock, *indexer.Pool, error) {
+func (ap *accountsParser) GenerateInitialTransactions(shardCoordinator sharding.Coordinator) ([]*block.MiniBlock, map[uint32]*indexer.Pool, error) {
 	if check.IfNil(shardCoordinator) {
 		return nil, nil, genesis.ErrNilShardCoordinator
 	}
 
 	var txsHashesPerShard = make(map[uint32][][]byte)
+	var txsPoolPerShard = make(map[uint32]*indexer.Pool)
 
-	txsPool := &indexer.Pool{
-		Txs:      make(map[string]coreData.TransactionHandler),
-		Scrs:     nil,
-		Rewards:  nil,
-		Invalid:  nil,
-		Receipts: nil,
+	var i uint32
+	for i = 0; i < shardCoordinator.NumberOfShards(); i++ {
+		txsPoolPerShard[i] = &indexer.Pool{
+			Txs:      make(map[string]coreData.TransactionHandler),
+			Scrs:     nil,
+			Rewards:  nil,
+			Invalid:  nil,
+			Receipts: nil,
+		}
 	}
 
 	var nonce uint64 = 0
@@ -354,11 +359,11 @@ func (ap *accountsParser) GenerateInitialTransactions(shardCoordinator sharding.
 			return nil, nil, err
 		}
 
-		txsPool.Txs[string(txHash)] = tx
+		txsPoolPerShard[shardID].Txs[string(txHash)] = tx
 		txsHashesPerShard[shardID] = append(txsHashesPerShard[shardID], txHash)
 	}
 
 	miniBlocks := ap.generateInShardMiniBlocks(txsHashesPerShard)
 
-	return miniBlocks, txsPool, nil
+	return miniBlocks, txsPoolPerShard, nil
 }
