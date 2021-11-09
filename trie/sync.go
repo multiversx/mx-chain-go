@@ -51,7 +51,7 @@ type ArgTrieSyncer struct {
 	InterceptedNodes          storage.Cacher
 	ShardId                   uint32
 	Topic                     string
-	TrieSyncStatistics        data.SyncStatisticsHandler
+	TrieSyncStatistics        common.SizeSyncStatisticsHandler
 	MaxHardCapForMissingNodes int
 	TimeoutHandler            TimeoutHandler
 }

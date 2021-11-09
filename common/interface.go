@@ -1,6 +1,9 @@
 package common
 
-import "github.com/ElrondNetwork/elrond-go-core/core"
+import (
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+)
 
 // NumNodesDTO represents the DTO structure that will hold the number of nodes split by category and other
 // trie structure relevant data such as maximum number of trie levels including the roothash node and all leaves
@@ -11,7 +14,7 @@ type NumNodesDTO struct {
 	MaxLevel   int
 }
 
-//Trie is an interface for Merkle Trees implementations
+// Trie is an interface for Merkle Trees implementations
 type Trie interface {
 	Get(key []byte) ([]byte, error)
 	Update(key, value []byte) error
@@ -94,4 +97,11 @@ type Locker interface {
 // MerkleProofVerifier is used to verify merkle proofs
 type MerkleProofVerifier interface {
 	VerifyProof(rootHash []byte, key []byte, proof [][]byte) (bool, error)
+}
+
+// SizeSyncStatisticsHandler extends the SyncStatisticsHandler interface by allowing setting up the trie node size
+type SizeSyncStatisticsHandler interface {
+	data.SyncStatisticsHandler
+	AddNumBytesReceived(bytes uint64)
+	NumBytesReceived() uint64
 }
