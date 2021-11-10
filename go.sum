@@ -41,8 +41,8 @@ github.com/ElrondNetwork/elrond-vm-common v1.1.0/go.mod h1:w3i6f8uiuRkE68Ie/gebR
 github.com/ElrondNetwork/elrond-vm-common v1.2.1/go.mod h1:07N31evc3GKh+tcmOXpc3xz/YsgV4yUHMo3LSlF0DIs=
 github.com/ElrondNetwork/elrond-vm-common v1.2.5 h1:AZm5TJTNXwaFgvquVgDQnNFkGd0cUzzpyfY/ZqyR6rE=
 github.com/ElrondNetwork/elrond-vm-common v1.2.5/go.mod h1:07N31evc3GKh+tcmOXpc3xz/YsgV4yUHMo3LSlF0DIs=
-github.com/ElrondNetwork/notifier-go v1.0.1 h1:jk2YKYl/t65bYyDFpJFAs4sToW3fCLUWpTT9/u+qwRo=
-github.com/ElrondNetwork/notifier-go v1.0.1/go.mod h1:2O5LGUMdvYSoff5oxq79kJ4uOSP3PSoF4k/7nPND2ic=
+github.com/ElrondNetwork/notifier-go v1.0.2 h1:s/cJMRr4o5CD07M8ElNFRnJf/deUt2vtSBU6Z8Ow6uM=
+github.com/ElrondNetwork/notifier-go v1.0.2/go.mod h1:2O5LGUMdvYSoff5oxq79kJ4uOSP3PSoF4k/7nPND2ic=
 github.com/ElrondNetwork/protobuf v1.3.2 h1:qoCSYiO+8GtXBEZWEjw0WPcZfM3g7QuuJrwpN+y6Mvg=
 github.com/ElrondNetwork/protobuf v1.3.2/go.mod h1:SlYgWuQ5SjCEi6WLHjHCa1yvBfUnHcTbrrZtXPKa29o=
 github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
