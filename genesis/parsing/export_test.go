@@ -36,11 +36,12 @@ func (ap *accountsParser) SetKeyGenerator(keyGen crypto.KeyGenerator) {
 
 func NewTestAccountsParser(pubkeyConverter core.PubkeyConverter) *accountsParser {
 	return &accountsParser{
-		pubkeyConverter: pubkeyConverter,
-		initialAccounts: make([]*data.InitialAccount, 0),
-		keyGenerator:    &mock.KeyGeneratorStub{},
-		hasher:          &mock.HasherMock{},
-		marshalizer:     &mock.MarshalizerMock{},
+		pubkeyConverter:        pubkeyConverter,
+		initialAccounts:        make([]*data.InitialAccount, 0),
+		mintSenderAddressBytes: []byte{},
+		keyGenerator:           &mock.KeyGeneratorStub{},
+		hasher:                 &mock.HasherMock{},
+		marshalizer:            &mock.MarshalizerMock{},
 	}
 }
 

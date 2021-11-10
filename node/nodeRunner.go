@@ -884,9 +884,12 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 			configs.EconomicsConfig.GlobalSettings.GenesisTotalSupply)
 	}
 
+	mintingSenderAddress := configs.EconomicsConfig.GlobalSettings.GenesisMintingSenderAddress
+
 	accountsParser, err := parsing.NewAccountsParser(
 		configurationPaths.Genesis,
 		totalSupply,
+		mintingSenderAddress,
 		managedCoreComponents.AddressPubKeyConverter(),
 		managedCryptoComponents.TxSignKeyGen(),
 		managedCoreComponents.Hasher(),

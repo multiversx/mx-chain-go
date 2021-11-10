@@ -73,6 +73,7 @@ func TestNewAccountsParser_NilEntireBalanceShouldErr(t *testing.T) {
 	ap, err := parsing.NewAccountsParser(
 		"./testdata/genesis_ok.json",
 		nil,
+		"",
 		createMockHexPubkeyConverter(),
 		&mock.KeyGeneratorStub{},
 		&mock.HasherMock{},
@@ -89,6 +90,7 @@ func TestNewAccountsParser_ZeroEntireBalanceShouldErr(t *testing.T) {
 	ap, err := parsing.NewAccountsParser(
 		"./testdata/genesis_ok.json",
 		big.NewInt(0),
+		"",
 		createMockHexPubkeyConverter(),
 		&mock.KeyGeneratorStub{},
 		&mock.HasherMock{},
@@ -105,6 +107,7 @@ func TestNewAccountsParser_BadFilenameShouldErr(t *testing.T) {
 	ap, err := parsing.NewAccountsParser(
 		"inexistent file",
 		big.NewInt(1),
+		"",
 		createMockHexPubkeyConverter(),
 		&mock.KeyGeneratorStub{},
 		&mock.HasherMock{},
@@ -121,6 +124,7 @@ func TestNewAccountsParser_NilPubkeyConverterShouldErr(t *testing.T) {
 	ap, err := parsing.NewAccountsParser(
 		"inexistent file",
 		big.NewInt(1),
+		"",
 		nil,
 		&mock.KeyGeneratorStub{},
 		&mock.HasherMock{},
@@ -137,6 +141,7 @@ func TestNewAccountsParser_NilKeyGeneratorShouldErr(t *testing.T) {
 	ap, err := parsing.NewAccountsParser(
 		"inexistent file",
 		big.NewInt(1),
+		"",
 		createMockHexPubkeyConverter(),
 		nil,
 		&mock.HasherMock{},
@@ -153,6 +158,7 @@ func TestNewAccountsParser_BadJsonShouldErr(t *testing.T) {
 	ap, err := parsing.NewAccountsParser(
 		"testdata/genesis_bad.json",
 		big.NewInt(1),
+		"",
 		createMockHexPubkeyConverter(),
 		&mock.KeyGeneratorStub{},
 		&mock.HasherMock{},
@@ -169,6 +175,7 @@ func TestNewAccountsParser_ShouldWork(t *testing.T) {
 	ap, err := parsing.NewAccountsParser(
 		"testdata/genesis_ok.json",
 		big.NewInt(30),
+		"",
 		createMockHexPubkeyConverter(),
 		&mock.KeyGeneratorStub{},
 		&mock.HasherMock{},
@@ -456,11 +463,12 @@ func TestAccountsParser_GetMintTransactionsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
-	ibs, err := ap.InitialAccountsSplitOnAddressesShards(
+	miniBlocks, txsPoolPerShard, err := ap.GenerateInitialTransactions(
 		nil,
 	)
 
-	assert.Nil(t, ibs)
+	assert.Nil(t, miniBlocks)
+	assert.Nil(t, txsPoolPerShard)
 	assert.Equal(t, genesis.ErrNilShardCoordinator, err)
 }
 
@@ -503,10 +511,6 @@ func TestAccountsParser_GenerateInitialTransactions(t *testing.T) {
 		createSimpleInitialAccount("0002", balance),
 		createSimpleInitialAccount("0000", balance),
 		createSimpleInitialAccount("0103", balance),
-		createSimpleInitialAccount("1001", balance),
-		createSimpleInitialAccount("1002", balance),
-		createSimpleInitialAccount("1000", balance),
-		createSimpleInitialAccount("1103", balance),
 	}
 
 	ap.SetEntireSupply(big.NewInt(int64(len(ibs)) * balance))
@@ -523,10 +527,11 @@ func TestAccountsParser_GenerateInitialTransactions(t *testing.T) {
 	miniBlocks, txsPoolPerShard, err := ap.GenerateInitialTransactions(sharder)
 
 	assert.Equal(t, 4, len(miniBlocks))
-	assert.Equal(t, 2, len(miniBlocks[0].GetTxHashes()))
-	assert.Equal(t, 2, len(miniBlocks[1].GetTxHashes()))
-	assert.Equal(t, 2, len(miniBlocks[2].GetTxHashes()))
-	assert.Equal(t, 2, len(miniBlocks[3].GetTxHashes()))
+	assert.Equal(t, 1, len(miniBlocks[0].GetTxHashes()))
+	assert.Equal(t, 1, len(miniBlocks[1].GetTxHashes()))
+	assert.Equal(t, 1, len(miniBlocks[2].GetTxHashes()))
+	assert.Equal(t, 1, len(miniBlocks[3].GetTxHashes()))
 
-	assert.Equal(t, 2, len(txsPoolPerShard[0].Txs))
+	assert.Equal(t, 1, len(txsPoolPerShard[0].Txs))
+	assert.Equal(t, 1, len(txsPoolPerShard[1].Txs))
 }

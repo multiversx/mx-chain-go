@@ -177,6 +177,7 @@ func createMockArgument(
 	arg.AccountsParser, err = parsing.NewAccountsParser(
 		genesisFilename,
 		arg.Economics.GenesisTotalSupply(),
+		"",
 		arg.Core.AddressPubKeyConverter(),
 		&mock.KeyGeneratorStub{},
 		&mock.HasherMock{},

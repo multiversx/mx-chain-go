@@ -21,18 +21,20 @@ import (
 
 // accountsParser hold data for initial accounts decoded data from json file
 type accountsParser struct {
-	initialAccounts []*data.InitialAccount
-	entireSupply    *big.Int
-	pubkeyConverter core.PubkeyConverter
-	keyGenerator    crypto.KeyGenerator
-	hasher          hashing.Hasher
-	marshalizer     marshal.Marshalizer
+	initialAccounts        []*data.InitialAccount
+	entireSupply           *big.Int
+	mintSenderAddressBytes []byte
+	pubkeyConverter        core.PubkeyConverter
+	keyGenerator           crypto.KeyGenerator
+	hasher                 hashing.Hasher
+	marshalizer            marshal.Marshalizer
 }
 
 // NewAccountsParser creates a new decoded accounts genesis structure from json config file
 func NewAccountsParser(
 	genesisFilePath string,
 	entireSupply *big.Int,
+	genesisMintSenderAddress string,
 	pubkeyConverter core.PubkeyConverter,
 	keyGenerator crypto.KeyGenerator,
 	hasher hashing.Hasher,
@@ -58,13 +60,19 @@ func NewAccountsParser(
 		return nil, err
 	}
 
+	senderAddressBytes, err := pubkeyConverter.Decode(genesisMintSenderAddress)
+	if err != nil {
+		return nil, fmt.Errorf("%w for `%s`", genesis.ErrInvalidAddress, genesisMintSenderAddress)
+	}
+
 	gp := &accountsParser{
-		initialAccounts: initialAccounts,
-		entireSupply:    entireSupply,
-		pubkeyConverter: pubkeyConverter,
-		keyGenerator:    keyGenerator,
-		hasher:          hasher,
-		marshalizer:     marshalizer,
+		initialAccounts:        initialAccounts,
+		entireSupply:           entireSupply,
+		mintSenderAddressBytes: senderAddressBytes,
+		pubkeyConverter:        pubkeyConverter,
+		keyGenerator:           keyGenerator,
+		hasher:                 hasher,
+		marshalizer:            marshalizer,
 	}
 
 	err = gp.process()
@@ -311,10 +319,9 @@ func (ap *accountsParser) generateInShardMiniBlocks(txsHashesPerShard map[uint32
 }
 
 func (ap *accountsParser) getMintTransaction(ia *data.InitialAccount, nonce uint64) *transactionData.Transaction {
-	var tmp = make([]byte, 32)
 	tx := &transactionData.Transaction{
 		Nonce:     nonce,
-		SndAddr:   tmp,
+		SndAddr:   ap.mintSenderAddressBytes,
 		Value:     ia.GetSupply(),
 		RcvAddr:   ia.AddressBytes(),
 		GasPrice:  0,
