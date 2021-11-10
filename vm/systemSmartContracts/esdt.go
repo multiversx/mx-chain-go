@@ -14,7 +14,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -55,6 +57,7 @@ type esdt struct {
 	hasher                 hashing.Hasher
 	mutExecution           sync.RWMutex
 	addressPubKeyConverter core.PubkeyConverter
+	statusHandler          core.AppStatusHandler
 
 	enabledEpoch                     uint32
 	flagEnabled                      atomic.Flag
@@ -80,6 +83,7 @@ type ArgsNewESDTSmartContract struct {
 	EndOfEpochSCAddress    []byte
 	AddressPubKeyConverter core.PubkeyConverter
 	EpochConfig            config.EpochConfig
+	StatusHandler          core.AppStatusHandler
 }
 
 // NewESDTSmartContract creates the esdt smart contract, which controls the issuing of tokens
@@ -108,6 +112,11 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 		return nil, vm.ErrInvalidBaseIssuingCost
 	}
 
+	appStatusHandler := args.StatusHandler
+	if appStatusHandler == nil {
+		appStatusHandler = statusHandler.NewNilStatusHandler()
+	}
+
 	e := &esdt{
 		eei:             args.Eei,
 		gasCost:         args.GasCost,
@@ -125,6 +134,7 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 		metaESDTEnableEpoch:              args.EpochConfig.EnableEpochs.MetaESDTSetEnableEpoch,
 		endOfEpochSCAddress:              args.EndOfEpochSCAddress,
 		addressPubKeyConverter:           args.AddressPubKeyConverter,
+		statusHandler:                    appStatusHandler,
 	}
 	log.Debug("esdt: enable epoch for esdt", "epoch", e.enabledEpoch)
 	log.Debug("esdt: enable epoch for contract global mint and burn", "epoch", e.globalMintBurnDisableEpoch)
@@ -1004,6 +1014,8 @@ func (e *esdt) configChange(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
+
+	e.statusHandler.SetStringValue(common.MetricESDTIssuanceCost, newConfig.BaseIssuingCost.String())
 
 	return vmcommon.Ok
 }

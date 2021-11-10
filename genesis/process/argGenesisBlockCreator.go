@@ -26,6 +26,7 @@ type coreComponentsHandler interface {
 	AddressPubKeyConverter() core.PubkeyConverter
 	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
 	ChainID() string
+	StatusHandler() core.AppStatusHandler
 	IsInterfaceNil() bool
 }
 

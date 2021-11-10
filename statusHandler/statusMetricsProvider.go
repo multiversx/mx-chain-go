@@ -153,6 +153,7 @@ func (sm *statusMetrics) EconomicsMetrics() map[string]interface{} {
 	economicsMetrics[common.MetricDevRewardsInEpoch] = sm.loadStringMetric(common.MetricDevRewardsInEpoch)
 	economicsMetrics[common.MetricInflation] = sm.loadStringMetric(common.MetricInflation)
 	economicsMetrics[common.MetricEpochForEconomicsData] = sm.loadUint64Metric(common.MetricEpochForEconomicsData)
+	economicsMetrics[common.MetricESDTIssuanceCost] = sm.loadStringMetric(common.MetricESDTIssuanceCost)
 
 	return economicsMetrics
 }

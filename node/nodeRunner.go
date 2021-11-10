@@ -561,6 +561,7 @@ func (nr *nodeRunner) createMetrics(
 	metrics.SaveStringMetric(managedCoreComponents.StatusHandler(), common.MetricTopUpFactor, fmt.Sprintf("%g", managedCoreComponents.EconomicsData().RewardsTopUpFactor()))
 	metrics.SaveStringMetric(managedCoreComponents.StatusHandler(), common.MetricGasPriceModifier, fmt.Sprintf("%g", managedCoreComponents.EconomicsData().GasPriceModifier()))
 	metrics.SaveUint64Metric(managedCoreComponents.StatusHandler(), common.MetricMaxGasPerTransaction, managedCoreComponents.EconomicsData().MaxGasLimitPerMiniBlockForSafeCrossShard())
+	metrics.SaveStringMetric(managedCoreComponents.StatusHandler(), common.MetricESDTIssuanceCost, nr.configs.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost)
 	return nil
 }
 

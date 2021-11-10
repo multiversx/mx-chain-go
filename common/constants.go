@@ -342,6 +342,9 @@ const MetricTotalFees = "erd_total_fees"
 // MetricEpochForEconomicsData holds the epoch for which economics data are computed
 const MetricEpochForEconomicsData = "erd_epoch_for_economics_data"
 
+// MetricESDTIssuanceCost holds the value needed for issuing an ESDT
+const MetricESDTIssuanceCost = "erd_esdt_issuance_cost"
+
 // MetachainShardId will be used to identify a shard ID as metachain
 const MetachainShardId = uint32(0xFFFFFFFF)
 

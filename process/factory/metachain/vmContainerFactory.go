@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	systemVMFactory "github.com/ElrondNetwork/elrond-go/vm/factory"
 	systemVMProcess "github.com/ElrondNetwork/elrond-go/vm/process"
@@ -42,6 +43,7 @@ type vmContainerFactory struct {
 	scFactory              vm.SystemSCContainerFactory
 	epochConfig            *config.EpochConfig
 	shardCoordinator       sharding.Coordinator
+	statusHandler          core.AppStatusHandler
 }
 
 // ArgsNewVMContainerFactory defines the arguments needed to create a new VM container factory
@@ -59,6 +61,7 @@ type ArgsNewVMContainerFactory struct {
 	EpochNotifier       process.EpochNotifier
 	EpochConfig         *config.EpochConfig
 	ShardCoordinator    sharding.Coordinator
+	StatusHandler       core.AppStatusHandler
 }
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
@@ -103,6 +106,11 @@ func NewVMContainerFactory(args ArgsNewVMContainerFactory) (*vmContainerFactory,
 	}
 	cryptoHook := hooks.NewVMCryptoHook()
 
+	appStatusHandler := args.StatusHandler
+	if appStatusHandler == nil {
+		appStatusHandler = statusHandler.NewNilStatusHandler()
+	}
+
 	return &vmContainerFactory{
 		blockChainHookImpl:     blockChainHookImpl,
 		cryptoHook:             cryptoHook,
@@ -119,6 +127,7 @@ func NewVMContainerFactory(args ArgsNewVMContainerFactory) (*vmContainerFactory,
 		addressPubKeyConverter: args.ArgBlockChainHook.PubkeyConv,
 		epochConfig:            args.EpochConfig,
 		shardCoordinator:       args.ShardCoordinator,
+		statusHandler:          appStatusHandler,
 	}, nil
 }
 
@@ -190,6 +199,7 @@ func (vmf *vmContainerFactory) createSystemVMFactoryAndEEI() (vm.SystemSCContain
 		AddressPubKeyConverter: vmf.addressPubKeyConverter,
 		EpochConfig:            vmf.epochConfig,
 		ShardCoordinator:       vmf.shardCoordinator,
+		StatusHandler:          vmf.statusHandler,
 	}
 	scFactory, err := systemVMFactory.NewSystemSCFactory(argsNewSystemScFactory)
 	if err != nil {

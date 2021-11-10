@@ -65,6 +65,7 @@ func (psh *PersistentStatusHandler) initMap() {
 	psh.persistentMetrics.Store(common.MetricTotalFees, zeroString)
 	psh.persistentMetrics.Store(common.MetricDevRewardsInEpoch, zeroString)
 	psh.persistentMetrics.Store(common.MetricInflation, zeroString)
+	psh.persistentMetrics.Store(common.MetricESDTIssuanceCost, zeroString)
 	psh.persistentMetrics.Store(common.MetricEpochForEconomicsData, initUint)
 }
 

@@ -60,6 +60,11 @@ func (ccm *CoreComponentsMock) MinTransactionVersion() uint32 {
 	return ccm.MinTxVersion
 }
 
+// StatusHandler -
+func (ccm *CoreComponentsMock) StatusHandler() core.AppStatusHandler {
+	return ccm.StatHandler
+}
+
 // IsInterfaceNil -
 func (ccm *CoreComponentsMock) IsInterfaceNil() bool {
 	return ccm == nil

@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	factoryState "github.com/ElrondNetwork/elrond-go/state/factory"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
@@ -63,6 +64,7 @@ func createMockArgument(
 			AddrPubKeyConv:      mock.NewPubkeyConverterMock(32),
 			Chain:               "chainID",
 			MinTxVersion:        1,
+			StatHandler:         statusHandler.NewNilStatusHandler(),
 		},
 		Data: &mock.DataComponentsMock{
 			Storage: &mock.ChainStorerStub{

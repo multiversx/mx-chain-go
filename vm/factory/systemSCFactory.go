@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	"github.com/mitchellh/mapstructure"
@@ -32,6 +33,7 @@ type systemSCFactory struct {
 	addressPubKeyConverter core.PubkeyConverter
 	epochConfig            *config.EpochConfig
 	shardCoordinator       sharding.Coordinator
+	statusHandler          core.AppStatusHandler
 }
 
 // ArgsNewSystemSCFactory defines the arguments struct needed to create the system SCs
@@ -48,6 +50,7 @@ type ArgsNewSystemSCFactory struct {
 	AddressPubKeyConverter core.PubkeyConverter
 	EpochConfig            *config.EpochConfig
 	ShardCoordinator       sharding.Coordinator
+	StatusHandler          core.AppStatusHandler
 }
 
 // NewSystemSCFactory creates a factory which will instantiate the system smart contracts
@@ -83,6 +86,10 @@ func NewSystemSCFactory(args ArgsNewSystemSCFactory) (*systemSCFactory, error) {
 		return nil, fmt.Errorf("%w in NewSystemSCFactory", vm.ErrNilShardCoordinator)
 	}
 
+	appStatusHandler := args.StatusHandler
+	if appStatusHandler == nil {
+		appStatusHandler = statusHandler.NewNilStatusHandler()
+	}
 	scf := &systemSCFactory{
 		systemEI:               args.SystemEI,
 		sigVerifier:            args.SigVerifier,
@@ -95,6 +102,7 @@ func NewSystemSCFactory(args ArgsNewSystemSCFactory) (*systemSCFactory, error) {
 		addressPubKeyConverter: args.AddressPubKeyConverter,
 		epochConfig:            args.EpochConfig,
 		shardCoordinator:       args.ShardCoordinator,
+		statusHandler:          appStatusHandler,
 	}
 
 	err := scf.createGasConfig(args.GasSchedule.LatestGasSchedule())
@@ -220,6 +228,7 @@ func (scf *systemSCFactory) createESDTContract() (vm.SystemSmartContract, error)
 		AddressPubKeyConverter: scf.addressPubKeyConverter,
 		EndOfEpochSCAddress:    vm.EndOfEpochAddress,
 		EpochConfig:            *scf.epochConfig,
+		StatusHandler:          scf.statusHandler,
 	}
 	esdt, err := systemSmartContracts.NewESDTSmartContract(argsESDT)
 	return esdt, err

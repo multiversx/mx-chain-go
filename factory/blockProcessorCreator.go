@@ -1033,6 +1033,7 @@ func (pcf *processComponentsFactory) createVMFactoryMeta(
 		EpochNotifier:       pcf.coreData.EpochNotifier(),
 		EpochConfig:         &pcf.epochConfig,
 		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
+		StatusHandler:       pcf.coreData.StatusHandler(),
 	}
 	return metachain.NewVMContainerFactory(argsNewVMContainer)
 }

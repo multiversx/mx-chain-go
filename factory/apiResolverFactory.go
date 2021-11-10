@@ -283,6 +283,7 @@ func createScQueryElement(
 			EpochNotifier:       args.coreComponents.EpochNotifier(),
 			EpochConfig:         args.epochConfig,
 			ShardCoordinator:    args.processComponents.ShardCoordinator(),
+			StatusHandler:       args.coreComponents.StatusHandler(),
 		}
 		vmFactory, err = metachain.NewVMContainerFactory(argsNewVmFactory)
 		if err != nil {
