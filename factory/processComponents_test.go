@@ -146,8 +146,7 @@ func getProcessArgs(
 			},
 			GenerateInitialTransactionsCalled: func(shardCoordinator sharding.Coordinator) ([]*block.MiniBlock, map[uint32]*indexer.Pool, error) {
 				txsPool := make(map[uint32]*indexer.Pool)
-				var i uint32
-				for i = 0; i < shardCoordinator.NumberOfShards(); i++ {
+				for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
 					txsPool[i] = &indexer.Pool{}
 				}
 
@@ -274,8 +273,7 @@ func TestProcessComponents_IndexGenesisBlocks(t *testing.T) {
 
 	genesisBlocks := make(map[uint32]coreData.HeaderHandler)
 
-	var i uint32
-	for i = 0; i < shardCoordinator.NumberOfShards(); i++ {
+	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
 		genesisBlocks[i] = &block.Header{}
 	}
 

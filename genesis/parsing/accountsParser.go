@@ -342,8 +342,7 @@ func (ap *accountsParser) GenerateInitialTransactions(shardCoordinator sharding.
 	var txsHashesPerShard = make(map[uint32][][]byte)
 	var txsPoolPerShard = make(map[uint32]*indexer.Pool)
 
-	var i uint32
-	for i = 0; i < shardCoordinator.NumberOfShards(); i++ {
+	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
 		txsPoolPerShard[i] = &indexer.Pool{
 			Txs:      make(map[string]coreData.TransactionHandler),
 			Scrs:     nil,

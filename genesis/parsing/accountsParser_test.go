@@ -525,6 +525,7 @@ func TestAccountsParser_GenerateInitialTransactions(t *testing.T) {
 	}
 
 	miniBlocks, txsPoolPerShard, err := ap.GenerateInitialTransactions(sharder)
+	require.Nil(t, err)
 
 	assert.Equal(t, 4, len(miniBlocks))
 	assert.Equal(t, 1, len(miniBlocks[0].GetTxHashes()))
