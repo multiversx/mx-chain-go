@@ -125,6 +125,7 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 		transferRoleEnableEpoch:          args.EpochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
 		nftCreateONMultiShardEnableEpoch: args.EpochConfig.EnableEpochs.ESDTNFTCreateOnMultiShardEnableEpoch,
 		metaESDTEnableEpoch:              args.EpochConfig.EnableEpochs.MetaESDTSetEnableEpoch,
+		registerAndSetEnableEpoch:        args.EpochConfig.EnableEpochs.ESDTRegisterAndSetAllEnableEpoch,
 		endOfEpochSCAddress:              args.EndOfEpochSCAddress,
 		addressPubKeyConverter:           args.AddressPubKeyConverter,
 	}
@@ -133,6 +134,7 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 	log.Debug("esdt: enable epoch for contract transfer role", "epoch", e.transferRoleEnableEpoch)
 	log.Debug("esdt: enable epoch for esdt NFT create on multiple shards", "epoch", e.nftCreateONMultiShardEnableEpoch)
 	log.Debug("esdt: enable epoch for meta tokens, financial SFTs", "epoch", e.metaESDTEnableEpoch)
+	log.Debug("esdt: enable epoch for esdt register and set all function", "epoch", e.registerAndSetEnableEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(e)
 
@@ -168,7 +170,7 @@ func (e *esdt) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return e.registerMetaESDT(args)
 	case "changeSFTToMetaESDT":
 		return e.changeSFTToMetaESDT(args)
-	case "registerAndSetRoles":
+	case "registerAndSetAll":
 		return e.registerAndSetRoles(args)
 	case core.BuiltInFunctionESDTBurn:
 		return e.burn(args)
@@ -1971,6 +1973,9 @@ func (e *esdt) EpochConfirmed(epoch uint32, _ uint64) {
 
 	e.flagMetaESDT.Toggle(epoch >= e.metaESDTEnableEpoch)
 	log.Debug("ESDT contract financial SFTs", "enabled", e.flagMetaESDT.IsSet())
+
+	e.flagRegisterAndSet.Toggle(epoch >= e.registerAndSetEnableEpoch)
+	log.Debug("ESDT register and set all", "enabled", e.flagRegisterAndSet.IsSet())
 }
 
 // SetNewGasCost is called whenever a gas cost was changed
