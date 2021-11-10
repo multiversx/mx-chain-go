@@ -35,17 +35,17 @@ func TestRoundNotifier_RegisterNotifyHandler(t *testing.T) {
 }
 
 func TestRoundNotifier_CheckRound(t *testing.T) {
-	flag1 := atomic.Counter{}
+	counter1 := atomic.Counter{}
 	subscriber1 := &mock.RoundSubscriberHandlerStub{
 		RoundConfirmedCalled: func(uint64) {
-			flag1.Increment()
+			counter1.Increment()
 		},
 	}
 
-	flag2 := atomic.Counter{}
+	counter2 := atomic.Counter{}
 	subscriber2 := &mock.RoundSubscriberHandlerStub{
 		RoundConfirmedCalled: func(uint64) {
-			flag2.Increment()
+			counter2.Increment()
 		},
 	}
 
@@ -53,18 +53,18 @@ func TestRoundNotifier_CheckRound(t *testing.T) {
 
 	roundNotifier.RegisterNotifyHandler(subscriber1)
 	roundNotifier.RegisterNotifyHandler(subscriber2)
-	require.Equal(t, int64(1), flag1.Get())
-	require.Equal(t, int64(1), flag1.Get())
+	require.Equal(t, int64(1), counter1.Get())
+	require.Equal(t, int64(1), counter1.Get())
 
 	// Check new round, expect all subscriber are notifier
 	roundNotifier.CheckRound(1)
-	require.Equal(t, int64(2), flag1.Get())
-	require.Equal(t, int64(2), flag1.Get())
+	require.Equal(t, int64(2), counter1.Get())
+	require.Equal(t, int64(2), counter1.Get())
 
 	// Check same round as before, expect no subscriber is notified
 	roundNotifier.CheckRound(1)
-	require.Equal(t, int64(2), flag1.Get())
-	require.Equal(t, int64(2), flag1.Get())
+	require.Equal(t, int64(2), counter1.Get())
+	require.Equal(t, int64(2), counter1.Get())
 }
 
 func TestRoundNotifier_IsInterfaceNil(t *testing.T) {
