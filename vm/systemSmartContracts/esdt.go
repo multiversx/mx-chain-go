@@ -66,6 +66,8 @@ type esdt struct {
 	flagNFTCreateONMultiShard        atomic.Flag
 	metaESDTEnableEpoch              uint32
 	flagMetaESDT                     atomic.Flag
+	registerAndSetEnableEpoch        uint32
+	flagRegisterAndSet               atomic.Flag
 }
 
 // ArgsNewESDTSmartContract defines the arguments needed for the esdt contract
@@ -166,6 +168,8 @@ func (e *esdt) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return e.registerMetaESDT(args)
 	case "changeSFTToMetaESDT":
 		return e.changeSFTToMetaESDT(args)
+	case "registerAndSetRoles":
+		return e.registerAndSetRoles(args)
 	case core.BuiltInFunctionESDTBurn:
 		return e.burn(args)
 	case "mint":
@@ -445,6 +449,85 @@ func (e *esdt) registerMetaESDT(args *vmcommon.ContractCallInput) vmcommon.Retur
 	e.eei.AddLogEntry(logEntry)
 
 	return vmcommon.Ok
+}
+
+// arguments list: tokenName, tickerID prefix, type of token, numDecimals, numGlobalSettings, listGlobalSettings, list(address, special roles)
+func (e *esdt) registerAndSetRoles(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !e.flagRegisterAndSet.IsSet() {
+		e.eei.AddReturnMessage("invalid method to call")
+		return vmcommon.FunctionNotFound
+	}
+
+	returnCode := e.checkBasicCreateArguments(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	if len(args.Arguments) < 5 {
+		e.eei.AddReturnMessage("not enough arguments")
+		return vmcommon.UserError
+	}
+
+	numOfDecimals := uint32(big.NewInt(0).SetBytes(args.Arguments[3]).Uint64())
+	if numOfDecimals < minNumberOfDecimals || numOfDecimals > maxNumberOfDecimals {
+		e.eei.AddReturnMessage(fmt.Errorf("%w, minimum: %d, maximum: %d, provided: %d",
+			vm.ErrInvalidNumberOfDecimals,
+			minNumberOfDecimals,
+			maxNumberOfDecimals,
+			numOfDecimals,
+		).Error())
+		return vmcommon.UserError
+	}
+
+	tokenType, err := getTokenType(args.Arguments[2])
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	numGlobalSettings := uint32(big.NewInt(0).SetBytes(args.Arguments[4]).Uint64())
+	if uint32(len(args.Arguments)) < 5+numGlobalSettings {
+		e.eei.AddReturnMessage("not enough arguments")
+		return vmcommon.UserError
+	}
+
+	tokenIdentifier, err := e.createNewToken(
+		args.CallerAddr,
+		args.Arguments[0],
+		args.Arguments[1],
+		big.NewInt(0),
+		numOfDecimals,
+		args.Arguments[3:],
+		tokenType)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	e.eei.Finish(tokenIdentifier)
+
+	logEntry := &vmcommon.LogEntry{
+		Identifier: []byte(args.Function),
+		Address:    args.CallerAddr,
+		Topics:     [][]byte{tokenIdentifier, args.Arguments[0], args.Arguments[1], []byte(metaESDT)},
+	}
+	e.eei.AddLogEntry(logEntry)
+
+	return vmcommon.Ok
+}
+
+func getTokenType(compressed []byte) ([]byte, error) {
+	switch string(compressed) {
+	case "NFT":
+		return []byte(core.NonFungibleESDT), nil
+	case "SFT":
+		return []byte(core.SemiFungibleESDT), nil
+	case "META":
+		return []byte(metaESDT), nil
+	case "FNG":
+		return []byte(core.FungibleESDT), nil
+	}
+	return nil, vm.ErrInvalidArgument
 }
 
 func (e *esdt) changeSFTToMetaESDT(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
