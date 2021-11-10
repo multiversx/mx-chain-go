@@ -660,4 +660,4 @@
     LocalAllocate = 5
     LocalsUnmetered = 100
     MaxMemoryGrowDelta = 1
-    MaxMemoryGrow = 5
+    MaxMemoryGrow = 100
