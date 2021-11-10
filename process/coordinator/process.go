@@ -782,7 +782,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		}
 
 		if shouldSkipShard[miniBlockInfo.SenderShardID] {
-			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: should skip shard",
+			log.Debug("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: should skip shard",
 				"scheduled mode", scheduledMode,
 				"sender shard", miniBlockInfo.SenderShardID,
 				"hash", miniBlockInfo.Hash,
@@ -807,7 +807,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		if miniVal == nil {
 			go tc.onRequestMiniBlock(miniBlockInfo.SenderShardID, miniBlockInfo.Hash)
 			shouldSkipShard[miniBlockInfo.SenderShardID] = true
-			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: mini block not found and was requested",
+			log.Debug("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: mini block not found and was requested",
 				"scheduled mode", scheduledMode,
 				"sender shard", miniBlockInfo.SenderShardID,
 				"hash", miniBlockInfo.Hash,
@@ -897,7 +897,7 @@ func (tc *transactionCoordinator) requestMissingTxsAndProcessMiniBlock(
 
 	if numTxsRequested > 0 {
 		shouldSkipShard[miniBlockInfo.SenderShardID] = true
-		log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: transactions not found and were requested",
+		log.Debug("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: transactions not found and were requested",
 			"scheduled mode", scheduledMode,
 			"sender shard", miniBlockInfo.SenderShardID,
 			"hash", miniBlockInfo.Hash,
@@ -910,11 +910,12 @@ func (tc *transactionCoordinator) requestMissingTxsAndProcessMiniBlock(
 	err = tc.processCompleteMiniBlock(miniBlock, miniBlockInfo.Hash, haveTime, haveAdditionalTime, scheduledMode)
 	if err != nil {
 		shouldSkipShard[miniBlockInfo.SenderShardID] = true
-		log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: processed complete mini block failed",
+		log.Debug("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: processed complete mini block failed",
 			"scheduled mode", scheduledMode,
 			"sender shard", miniBlockInfo.SenderShardID,
 			"hash", miniBlockInfo.Hash,
 			"round", miniBlockInfo.Round,
+			"error", err.Error(),
 		)
 		return true, nil
 	}
