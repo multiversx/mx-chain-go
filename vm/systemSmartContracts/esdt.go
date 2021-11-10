@@ -299,7 +299,7 @@ func (e *esdt) issue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return vmcommon.UserError
 	}
 
-	tokenIdentifier, err := e.createNewToken(
+	tokenIdentifier, _, err := e.createNewToken(
 		args.CallerAddr,
 		args.Arguments[0],
 		args.Arguments[1],
@@ -343,7 +343,7 @@ func (e *esdt) registerNonFungible(args *vmcommon.ContractCallInput) vmcommon.Re
 		return vmcommon.UserError
 	}
 
-	tokenIdentifier, err := e.createNewToken(
+	tokenIdentifier, _, err := e.createNewToken(
 		args.CallerAddr,
 		args.Arguments[0],
 		args.Arguments[1],
@@ -377,7 +377,7 @@ func (e *esdt) registerSemiFungible(args *vmcommon.ContractCallInput) vmcommon.R
 		return vmcommon.UserError
 	}
 
-	tokenIdentifier, err := e.createNewToken(
+	tokenIdentifier, _, err := e.createNewToken(
 		args.CallerAddr,
 		args.Arguments[0],
 		args.Arguments[1],
@@ -426,7 +426,7 @@ func (e *esdt) registerMetaESDT(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return vmcommon.UserError
 	}
 
-	tokenIdentifier, err := e.createNewToken(
+	tokenIdentifier, _, err := e.createNewToken(
 		args.CallerAddr,
 		args.Arguments[0],
 		args.Arguments[1],
@@ -462,72 +462,101 @@ func (e *esdt) registerAndSetRoles(args *vmcommon.ContractCallInput) vmcommon.Re
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
-
-	if len(args.Arguments) < 5 {
-		e.eei.AddReturnMessage("not enough arguments")
+	if len(args.Arguments) != 4 {
+		e.eei.AddReturnMessage("arguments length mismatch")
 		return vmcommon.UserError
 	}
-
-	numOfDecimals := uint32(big.NewInt(0).SetBytes(args.Arguments[3]).Uint64())
-	if numOfDecimals < minNumberOfDecimals || numOfDecimals > maxNumberOfDecimals {
-		e.eei.AddReturnMessage(fmt.Errorf("%w, minimum: %d, maximum: %d, provided: %d",
-			vm.ErrInvalidNumberOfDecimals,
-			minNumberOfDecimals,
-			maxNumberOfDecimals,
-			numOfDecimals,
-		).Error())
-		return vmcommon.UserError
-	}
-
-	tokenType, err := getTokenType(args.Arguments[2])
+	isWithDecimals, tokenType, err := getTokenType(args.Arguments[2])
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
-	numGlobalSettings := uint32(big.NewInt(0).SetBytes(args.Arguments[4]).Uint64())
-	if uint32(len(args.Arguments)) < 5+numGlobalSettings {
-		e.eei.AddReturnMessage("not enough arguments")
-		return vmcommon.UserError
+	numOfDecimals := uint32(0)
+	if isWithDecimals {
+		numOfDecimals = uint32(big.NewInt(0).SetBytes(args.Arguments[3]).Uint64())
+		if numOfDecimals < minNumberOfDecimals || numOfDecimals > maxNumberOfDecimals {
+			e.eei.AddReturnMessage(fmt.Errorf("%w, minimum: %d, maximum: %d, provided: %d",
+				vm.ErrInvalidNumberOfDecimals,
+				minNumberOfDecimals,
+				maxNumberOfDecimals,
+				numOfDecimals,
+			).Error())
+			return vmcommon.UserError
+		}
 	}
 
-	tokenIdentifier, err := e.createNewToken(
+	tokenIdentifier, token, err := e.createNewToken(
 		args.CallerAddr,
 		args.Arguments[0],
 		args.Arguments[1],
 		big.NewInt(0),
 		numOfDecimals,
-		args.Arguments[3:],
+		[][]byte{},
 		tokenType)
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
-	e.eei.Finish(tokenIdentifier)
+	allRoles, err := getAllRolesForTokenType(string(tokenType))
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	transferRoleExists, isMultiShardNFTCreateSet, returnCode := e.setRolesForTokenAndAddress(token, args.CallerAddr, allRoles)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	returnCode = e.prepareAndSendRoleChangeData(tokenIdentifier, args.CallerAddr, allRoles, transferRoleExists, isMultiShardNFTCreateSet)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	err = e.saveToken(tokenIdentifier, token)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
 
 	logEntry := &vmcommon.LogEntry{
 		Identifier: []byte(args.Function),
 		Address:    args.CallerAddr,
 		Topics:     [][]byte{tokenIdentifier, args.Arguments[0], args.Arguments[1], []byte(metaESDT)},
 	}
+	e.eei.Finish(tokenIdentifier)
 	e.eei.AddLogEntry(logEntry)
 
 	return vmcommon.Ok
 }
 
-func getTokenType(compressed []byte) ([]byte, error) {
+func getAllRolesForTokenType(tokenType string) ([][]byte, error) {
+	switch tokenType {
+	case core.NonFungibleESDT:
+		return [][]byte{[]byte(core.ESDTRoleNFTCreate), []byte(core.ESDTRoleNFTBurn), []byte(core.ESDTRoleNFTUpdateAttributes), []byte(core.ESDTRoleNFTAddURI)}, nil
+	case core.SemiFungibleESDT, metaESDT:
+		return [][]byte{[]byte(core.ESDTRoleNFTCreate), []byte(core.ESDTRoleNFTBurn), []byte(core.ESDTRoleNFTAddQuantity)}, nil
+	case core.FungibleESDT:
+		return [][]byte{[]byte(core.ESDTRoleLocalMint), []byte(core.ESDTRoleLocalBurn)}, nil
+	}
+
+	return nil, vm.ErrInvalidArgument
+}
+
+func getTokenType(compressed []byte) (bool, []byte, error) {
 	switch string(compressed) {
 	case "NFT":
-		return []byte(core.NonFungibleESDT), nil
+		return false, []byte(core.NonFungibleESDT), nil
 	case "SFT":
-		return []byte(core.SemiFungibleESDT), nil
+		return false, []byte(core.SemiFungibleESDT), nil
 	case "META":
-		return []byte(metaESDT), nil
+		return true, []byte(metaESDT), nil
 	case "FNG":
-		return []byte(core.FungibleESDT), nil
+		return true, []byte(core.FungibleESDT), nil
 	}
-	return nil, vm.ErrInvalidArgument
+	return false, nil, vm.ErrInvalidArgument
 }
 
 func (e *esdt) changeSFTToMetaESDT(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -585,17 +614,17 @@ func (e *esdt) createNewToken(
 	numDecimals uint32,
 	properties [][]byte,
 	tokenType []byte,
-) ([]byte, error) {
+) ([]byte, *ESDTDataV2, error) {
 	if !isTokenNameHumanReadable(tokenName) {
-		return nil, vm.ErrTokenNameNotHumanReadable
+		return nil, nil, vm.ErrTokenNameNotHumanReadable
 	}
 	if !isTickerValid(tickerName) {
-		return nil, vm.ErrTickerNameNotValid
+		return nil, nil, vm.ErrTickerNameNotValid
 	}
 
 	tokenIdentifier, err := e.createNewTokenIdentifier(owner, tickerName)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	newESDTToken := &ESDTDataV2{
@@ -611,14 +640,14 @@ func (e *esdt) createNewToken(
 	}
 	err = e.upgradeProperties(newESDTToken, properties, true)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	err = e.saveToken(tokenIdentifier, newESDTToken)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return tokenIdentifier, nil
+	return tokenIdentifier, newESDTToken, nil
 }
 
 func isTickerValid(tickerName []byte) bool {
@@ -1409,6 +1438,83 @@ func (e *esdt) checkSpecialRolesAccordingToTokenType(args [][]byte, token *ESDTD
 	return nil
 }
 
+func (e *esdt) setRolesForTokenAndAddress(
+	token *ESDTDataV2,
+	address []byte,
+	roles [][]byte,
+) (bool, bool, vmcommon.ReturnCode) {
+
+	if !token.CanAddSpecialRoles {
+		e.eei.AddReturnMessage("cannot add special roles")
+		return false, false, vmcommon.UserError
+	}
+
+	if !token.CanCreateMultiShard && checkIfDefinedRoleExistsInArgsAndToken(roles, token, []byte(core.ESDTRoleNFTCreate)) {
+		e.eei.AddReturnMessage(vm.ErrNFTCreateRoleAlreadyExists.Error())
+		return false, false, vmcommon.UserError
+	}
+
+	err := e.checkSpecialRolesAccordingToTokenType(roles, token)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return false, false, vmcommon.UserError
+	}
+
+	transferRoleExists := checkIfDefinedRoleExistsInArgsAndToken(roles, token, []byte(core.ESDTRoleTransfer))
+
+	esdtRole, isNew := getRolesForAddress(token, address)
+	if isNew {
+		esdtRole.Roles = append(esdtRole.Roles, roles...)
+		token.SpecialRoles = append(token.SpecialRoles, esdtRole)
+	} else {
+		for _, arg := range roles {
+			index := getRoleIndex(esdtRole, arg)
+			if index >= 0 {
+				e.eei.AddReturnMessage("special role already exists for given address")
+				return false, false, vmcommon.UserError
+			}
+
+			esdtRole.Roles = append(esdtRole.Roles, arg)
+		}
+	}
+
+	isMultiShardNFTCreateSet := token.CanCreateMultiShard && isDefinedRoleInArgs(roles, []byte(core.ESDTRoleNFTCreate))
+	if isMultiShardNFTCreateSet {
+		err = checkCorrectAddressForNFTCreateMultiShard(token)
+		if err != nil {
+			e.eei.AddReturnMessage(err.Error())
+			return false, false, vmcommon.UserError
+		}
+	}
+
+	return transferRoleExists, isMultiShardNFTCreateSet, vmcommon.Ok
+}
+
+func (e *esdt) prepareAndSendRoleChangeData(
+	tokenID []byte,
+	address []byte,
+	roles [][]byte,
+	transferRoleExists bool,
+	isMultiShardNFTCreateSet bool,
+) vmcommon.ReturnCode {
+	allRoles := roles
+	if isMultiShardNFTCreateSet {
+		allRoles = append(allRoles, []byte(core.ESDTRoleNFTCreateMultiShard))
+	}
+	err := e.sendRoleChangeData(tokenID, address, allRoles, core.BuiltInFunctionSetESDTRole)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	firstTransferRoleSet := !transferRoleExists && isDefinedRoleInArgs(roles, []byte(core.ESDTRoleTransfer))
+	if firstTransferRoleSet {
+		esdtTransferData := core.BuiltInFunctionESDTSetLimitedTransfer + "@" + hex.EncodeToString(tokenID)
+		e.eei.SendGlobalSettingToAll(e.eSDTSCAddress, []byte(esdtTransferData))
+	}
+
+	return vmcommon.Ok
+}
+
 func (e *esdt) setSpecialRole(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	returnCode := e.checkArgumentsForSpecialRoleChanges(args)
 	if returnCode != vmcommon.Ok {
@@ -1420,69 +1526,20 @@ func (e *esdt) setSpecialRole(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return returnCode
 	}
 
-	if !token.CanAddSpecialRoles {
-		e.eei.AddReturnMessage("cannot add special roles")
-		return vmcommon.UserError
+	transferRoleExists, isMultiShardNFTCreateSet, returnCode := e.setRolesForTokenAndAddress(token, args.Arguments[1], args.Arguments[2:])
+	if returnCode != vmcommon.Ok {
+		return returnCode
 	}
 
-	if !token.CanCreateMultiShard && checkIfDefinedRoleExistsInArgsAndToken(args.Arguments[2:], token, []byte(core.ESDTRoleNFTCreate)) {
-		e.eei.AddReturnMessage(vm.ErrNFTCreateRoleAlreadyExists.Error())
-		return vmcommon.UserError
+	returnCode = e.prepareAndSendRoleChangeData(args.Arguments[0], args.Arguments[1], args.Arguments[2:], transferRoleExists, isMultiShardNFTCreateSet)
+	if returnCode != vmcommon.Ok {
+		return returnCode
 	}
 
-	err := e.checkSpecialRolesAccordingToTokenType(args.Arguments[2:], token)
+	err := e.saveToken(args.Arguments[0], token)
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
-	}
-
-	transferRoleExists := checkIfDefinedRoleExistsInArgsAndToken(args.Arguments[2:], token, []byte(core.ESDTRoleTransfer))
-	address := args.Arguments[1]
-	esdtRole, isNew := getRolesForAddress(token, address)
-	if isNew {
-		esdtRole.Roles = append(esdtRole.Roles, args.Arguments[2:]...)
-		token.SpecialRoles = append(token.SpecialRoles, esdtRole)
-	} else {
-		for _, arg := range args.Arguments[2:] {
-			index := getRoleIndex(esdtRole, arg)
-			if index >= 0 {
-				e.eei.AddReturnMessage("special role already exists for given address")
-				return vmcommon.UserError
-			}
-
-			esdtRole.Roles = append(esdtRole.Roles, arg)
-		}
-	}
-
-	isMultiShardNFTCreateSet := token.CanCreateMultiShard && isDefinedRoleInArgs(args.Arguments[2:], []byte(core.ESDTRoleNFTCreate))
-	if isMultiShardNFTCreateSet {
-		err = checkCorrectAddressForNFTCreateMultiShard(token)
-		if err != nil {
-			e.eei.AddReturnMessage(err.Error())
-			return vmcommon.UserError
-		}
-	}
-
-	allRoles := args.Arguments[2:]
-	if isMultiShardNFTCreateSet {
-		allRoles = append(allRoles, []byte(core.ESDTRoleNFTCreateMultiShard))
-	}
-	err = e.sendRoleChangeData(args.Arguments[0], args.Arguments[1], allRoles, core.BuiltInFunctionSetESDTRole)
-	if err != nil {
-		e.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-
-	err = e.saveToken(args.Arguments[0], token)
-	if err != nil {
-		e.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-
-	firstTransferRoleSet := !transferRoleExists && isDefinedRoleInArgs(args.Arguments[2:], []byte(core.ESDTRoleTransfer))
-	if firstTransferRoleSet {
-		esdtTransferData := core.BuiltInFunctionESDTSetLimitedTransfer + "@" + hex.EncodeToString(args.Arguments[0])
-		e.eei.SendGlobalSettingToAll(e.eSDTSCAddress, []byte(esdtTransferData))
 	}
 
 	return vmcommon.Ok
