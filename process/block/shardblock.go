@@ -2,6 +2,7 @@ package block
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"math/big"
 	"time"
@@ -282,6 +283,18 @@ func (sp *shardProcessor) ProcessBlock(
 
 	if !sp.verifyStateRoot(header.GetRootHash()) {
 		err = process.ErrRootStateDoesNotMatch
+		return err
+	}
+
+	if headerHandler.GetRound() >= 1050 && headerHandler.GetRound() <= 1350 {
+		err = errors.New("injected error to process shard block")
+		log.Info("###Blocking shard INTRA EPOCH", "shard ID", headerHandler.GetShardID(), "epoch", headerHandler.GetEpoch(), "round", headerHandler.GetRound())
+		return err
+	}
+
+	if headerHandler.GetRound() >= 1800 && headerHandler.GetRound() <= 2300 {
+		err = errors.New("injected error to process shard block")
+		log.Info("###Blocking shard ON EXTRA EPOCHS", "shard ID", headerHandler.GetShardID(), "epoch", headerHandler.GetEpoch(), "round", headerHandler.GetRound())
 		return err
 	}
 

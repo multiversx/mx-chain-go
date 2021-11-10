@@ -738,6 +738,7 @@ func (vs *validatorStatistics) checkForMissedBlocks(
 	}
 	if vs.flagStopDecreasingValidatorRatingEnabled.IsSet() {
 		if missedRounds > vs.maxConsecutiveRoundsOfRatingDecrease {
+			log.Info("###Stop decreasing validator rating", "current round", currentHeaderRound, "epoch", epoch, "shardID", shardID)
 			return nil
 		}
 	}

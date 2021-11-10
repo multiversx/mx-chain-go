@@ -3,6 +3,7 @@ package block
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math/big"
 	"sync"
@@ -353,6 +354,11 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
+	if headerHandler.GetRound() >= 600 && headerHandler.GetRound() <= 950 {
+		err = errors.New("injected error to process meta block")
+		log.Info("###Blocking meta shard", "epoch", headerHandler.GetEpoch(), "round", headerHandler.GetRound())
+		return err
+	}
 	return nil
 }
 
