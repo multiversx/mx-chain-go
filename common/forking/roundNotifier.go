@@ -35,8 +35,8 @@ func (rn *roundNotifier) RegisterNotifyHandler(handler process.RoundSubscriberHa
 // CheckRound should be called whenever a new round is known. It will trigger the notifications of the
 // registered handlers only if the current stored round is different from the one provided
 func (rn *roundNotifier) CheckRound(round uint64) {
-	rn.mutex.Lock()
-	defer rn.mutex.Unlock()
+	rn.mutex.RLock()
+	defer rn.mutex.RUnlock()
 
 	if rn.round == round {
 		return
