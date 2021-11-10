@@ -212,6 +212,9 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		return nil, err
 	}
 
+	roundNotifier := bcf.coreComponents.RoundNotifier()
+	roundNotifier.RegisterNotifyHandler(roundActivationHandler)
+
 	return &bootstrapComponents{
 		epochStartBootstrapper: epochStartBootstrapper,
 		bootstrapParamsHolder: &bootstrapParams{

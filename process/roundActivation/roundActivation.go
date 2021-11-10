@@ -15,7 +15,7 @@ type roundActivation struct {
 }
 
 // NewRoundActivation creates a new round activation handler component
-func NewRoundActivation(config config.RoundConfig) (process.RoundActivationHandler, error) {
+func NewRoundActivation(config config.RoundConfig) (*roundActivation, error) {
 	configMap, err := getRoundsByNameMap(config)
 	if err != nil {
 		return nil, err
