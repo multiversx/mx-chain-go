@@ -5,6 +5,9 @@ import (
 	"testing"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
+	coreData "github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/common"
 	commonFactory "github.com/ElrondNetwork/elrond-go/common/factory"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -15,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -140,6 +144,15 @@ func getProcessArgs(
 
 				return initialAccounts
 			},
+			GenerateInitialTransactionsCalled: func(shardCoordinator sharding.Coordinator) ([]*block.MiniBlock, map[uint32]*indexer.Pool, error) {
+				txsPool := make(map[uint32]*indexer.Pool)
+				var i uint32
+				for i = 0; i < shardCoordinator.NumberOfShards(); i++ {
+					txsPool[i] = &indexer.Pool{}
+				}
+
+				return make([]*block.MiniBlock, 4), txsPool, nil
+			},
 		},
 		SmartContractParser:    &mock.SmartContractParserStub{},
 		GasSchedule:            gasScheduleNotifier,
@@ -232,4 +245,40 @@ func FillGasMapMetaChainSystemSCsCosts(value uint64) map[string]uint64 {
 	gasMap["FixWaitingListSize"] = value
 
 	return gasMap
+}
+
+func TestProcessComponents_IndexGenesisBlocks(t *testing.T) {
+	t.Parallel()
+
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	processArgs := getProcessComponentsArgs(shardCoordinator)
+	processArgs.Data = &mock.DataComponentsMock{
+		Storage: &mock.ChainStorerMock{},
+	}
+
+	outportHandler := &testscommon.OutportStub{
+		HasDriversCalled: func() bool {
+			return true
+		},
+		SaveBlockCalled: func(args *indexer.ArgsSaveBlockData) {
+			require.NotNil(t, args)
+		},
+	}
+
+	processArgs.StatusComponents = &mainFactoryMocks.StatusComponentsStub{
+		Outport: outportHandler,
+	}
+
+	pcf, err := factory.NewProcessComponentsFactory(processArgs)
+	require.Nil(t, err)
+
+	genesisBlocks := make(map[uint32]coreData.HeaderHandler)
+
+	var i uint32
+	for i = 0; i < shardCoordinator.NumberOfShards(); i++ {
+		genesisBlocks[i] = &block.Header{}
+	}
+
+	err = pcf.IndexGenesisBlocks(genesisBlocks)
+	require.Nil(t, err)
 }

@@ -841,7 +841,9 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32
 				indexMiniBlocks = append(indexMiniBlocks, miniBlock)
 			}
 		}
-		genesisMiniBlocks := &dataBlock.Body{indexMiniBlocks}
+		genesisMiniBlocks := &dataBlock.Body{
+			MiniBlocks: indexMiniBlocks,
+		}
 
 		arg := &indexer.ArgsSaveBlockData{
 			HeaderHash: genesisBlockHash,

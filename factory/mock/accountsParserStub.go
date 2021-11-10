@@ -67,7 +67,7 @@ func (aps *AccountsParserStub) InitialAccounts() []genesis.InitialAccountHandler
 // GenerateInitialTransactions -
 func (aps *AccountsParserStub) GenerateInitialTransactions(shardCoordinator sharding.Coordinator) ([]*block.MiniBlock, map[uint32]*indexer.Pool, error) {
 	if aps.GenerateInitialTransactionsCalled != nil {
-		return aps.GenerateInitialTransactions(shardCoordinator)
+		return aps.GenerateInitialTransactionsCalled(shardCoordinator)
 	}
 
 	return make([]*block.MiniBlock, 0), make(map[uint32]*indexer.Pool), nil
