@@ -1,7 +1,9 @@
 package outport
 
 import (
+	"fmt"
 	"sync"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -9,19 +11,29 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 )
 
-type outport struct {
-	mutex   sync.RWMutex
-	drivers []Driver
-}
-
 var log = logger.GetOrCreate("outport")
 
+const minimumRetrialInterval = time.Millisecond * 10
+
+type outport struct {
+	mutex           sync.RWMutex
+	drivers         []Driver
+	retrialInterval time.Duration
+	chanClose       chan struct{}
+}
+
 // NewOutport will create a new instance of proxy
-func NewOutport() *outport {
-	return &outport{
-		drivers: make([]Driver, 0),
-		mutex:   sync.RWMutex{},
+func NewOutport(retrialInterval time.Duration) (*outport, error) {
+	if retrialInterval < minimumRetrialInterval {
+		return nil, fmt.Errorf("%w, provided: %d, minimum: %d", ErrInvalidRetrialInterval, retrialInterval, minimumRetrialInterval)
 	}
+
+	return &outport{
+		drivers:         make([]Driver, 0),
+		mutex:           sync.RWMutex{},
+		retrialInterval: retrialInterval,
+		chanClose:       make(chan struct{}),
+	}, nil
 }
 
 // SaveBlock will save block for every driver
@@ -30,7 +42,34 @@ func (o *outport) SaveBlock(args *indexer.ArgsSaveBlockData) {
 	defer o.mutex.RUnlock()
 
 	for _, driver := range o.drivers {
-		driver.SaveBlock(args)
+		o.saveBlockBlocking(args, driver)
+	}
+}
+
+func (o *outport) saveBlockBlocking(args *indexer.ArgsSaveBlockData, driver Driver) {
+	for {
+		err := driver.SaveBlock(args)
+		if err == nil {
+			return
+		}
+
+		log.Error("error calling SaveBlock, will retry",
+			"driver", driverString(driver),
+			"retrial in", o.retrialInterval,
+			"error", err)
+
+		if o.shouldTerminate() {
+			return
+		}
+	}
+}
+
+func (o *outport) shouldTerminate() bool {
+	select {
+	case <-o.chanClose:
+		return true
+	case <-time.After(o.retrialInterval):
+		return false
 	}
 }
 
@@ -40,17 +79,53 @@ func (o *outport) RevertIndexedBlock(header data.HeaderHandler, body data.BodyHa
 	defer o.mutex.RUnlock()
 
 	for _, driver := range o.drivers {
-		driver.RevertIndexedBlock(header, body)
+		o.revertIndexedBlockBlocking(header, body, driver)
+	}
+}
+
+func (o *outport) revertIndexedBlockBlocking(header data.HeaderHandler, body data.BodyHandler, driver Driver) {
+	for {
+		err := driver.RevertIndexedBlock(header, body)
+		if err == nil {
+			return
+		}
+
+		log.Error("error calling RevertIndexedBlock, will retry",
+			"driver", driverString(driver),
+			"retrial in", o.retrialInterval,
+			"error", err)
+
+		if o.shouldTerminate() {
+			return
+		}
 	}
 }
 
 // SaveRoundsInfo will save rounds information for every driver
-func (o *outport) SaveRoundsInfo(roundsInfos []*indexer.RoundInfo) {
+func (o *outport) SaveRoundsInfo(roundsInfo []*indexer.RoundInfo) {
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
 	for _, driver := range o.drivers {
-		driver.SaveRoundsInfo(roundsInfos)
+		o.saveRoundsInfoBlocking(roundsInfo, driver)
+	}
+}
+
+func (o *outport) saveRoundsInfoBlocking(roundsInfo []*indexer.RoundInfo, driver Driver) {
+	for {
+		err := driver.SaveRoundsInfo(roundsInfo)
+		if err == nil {
+			return
+		}
+
+		log.Error("error calling SaveRoundsInfo, will retry",
+			"driver", driverString(driver),
+			"retrial in", o.retrialInterval,
+			"error", err)
+
+		if o.shouldTerminate() {
+			return
+		}
 	}
 }
 
@@ -60,7 +135,25 @@ func (o *outport) SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte, e
 	defer o.mutex.RUnlock()
 
 	for _, driver := range o.drivers {
-		driver.SaveValidatorsPubKeys(validatorsPubKeys, epoch)
+		o.saveValidatorsPubKeysBlocking(validatorsPubKeys, epoch, driver)
+	}
+}
+
+func (o *outport) saveValidatorsPubKeysBlocking(validatorsPubKeys map[uint32][][]byte, epoch uint32, driver Driver) {
+	for {
+		err := driver.SaveValidatorsPubKeys(validatorsPubKeys, epoch)
+		if err == nil {
+			return
+		}
+
+		log.Error("error calling SaveValidatorsPubKeys, will retry",
+			"driver", driverString(driver),
+			"retrial in", o.retrialInterval,
+			"error", err)
+
+		if o.shouldTerminate() {
+			return
+		}
 	}
 }
 
@@ -70,7 +163,25 @@ func (o *outport) SaveValidatorsRating(indexID string, infoRating []*indexer.Val
 	defer o.mutex.RUnlock()
 
 	for _, driver := range o.drivers {
-		driver.SaveValidatorsRating(indexID, infoRating)
+		o.saveValidatorsRatingBlocking(indexID, infoRating, driver)
+	}
+}
+
+func (o *outport) saveValidatorsRatingBlocking(indexID string, infoRating []*indexer.ValidatorRatingInfo, driver Driver) {
+	for {
+		err := driver.SaveValidatorsRating(indexID, infoRating)
+		if err == nil {
+			return
+		}
+
+		log.Error("error calling SaveValidatorsRating, will retry",
+			"driver", driverString(driver),
+			"retrial in", o.retrialInterval,
+			"error", err)
+
+		if o.shouldTerminate() {
+			return
+		}
 	}
 }
 
@@ -80,7 +191,25 @@ func (o *outport) SaveAccounts(blockTimestamp uint64, acc []data.UserAccountHand
 	defer o.mutex.RUnlock()
 
 	for _, driver := range o.drivers {
-		driver.SaveAccounts(blockTimestamp, acc)
+		o.saveAccountsBlocking(blockTimestamp, acc, driver)
+	}
+}
+
+func (o *outport) saveAccountsBlocking(blockTimestamp uint64, acc []data.UserAccountHandler, driver Driver) {
+	for {
+		err := driver.SaveAccounts(blockTimestamp, acc)
+		if err == nil {
+			return
+		}
+
+		log.Error("error calling SaveAccounts, will retry",
+			"driver", driverString(driver),
+			"retrial in", o.retrialInterval,
+			"error", err)
+
+		if o.shouldTerminate() {
+			return
+		}
 	}
 }
 
@@ -90,12 +219,32 @@ func (o *outport) FinalizedBlock(headerHash []byte) {
 	defer o.mutex.RUnlock()
 
 	for _, driver := range o.drivers {
-		driver.FinalizedBlock(headerHash)
+		o.finalizedBlockBlocking(headerHash, driver)
+	}
+}
+
+func (o *outport) finalizedBlockBlocking(headerHash []byte, driver Driver) {
+	for {
+		err := driver.FinalizedBlock(headerHash)
+		if err == nil {
+			return
+		}
+
+		log.Error("error calling FinalizedBlock, will retry",
+			"driver", driverString(driver),
+			"retrial in", o.retrialInterval,
+			"error", err)
+
+		if o.shouldTerminate() {
+			return
+		}
 	}
 }
 
 // Close will close all the drivers that are in outport
 func (o *outport) Close() error {
+	close(o.chanClose)
+
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
@@ -130,7 +279,13 @@ func (o *outport) SubscribeDriver(driver Driver) error {
 	o.drivers = append(o.drivers, driver)
 	o.mutex.Unlock()
 
+	log.Debug("outport.SubscribeDriver new driver added", "driver", driverString(driver))
+
 	return nil
+}
+
+func driverString(driver Driver) string {
+	return fmt.Sprintf("%T", driver)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
