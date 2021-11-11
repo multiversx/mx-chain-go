@@ -1154,6 +1154,9 @@ func TestStakingSc_ExecuteStakeStakeJailAndSwitchWithBoundaries(t *testing.T) {
 	callerAddress := []byte("data")
 	stakeValue := big.NewInt(100)
 
+	didNotSwitchNoWaitingMessage := "did not switch as nobody in waiting, but jailed"
+	didNotSwitchNotEnoughValidatorsMessage := "did not switch as not enough validators remaining"
+
 	tests := []struct {
 		name                       string
 		stakedNodesNumber          int
@@ -1161,6 +1164,7 @@ func TestStakingSc_ExecuteStakeStakeJailAndSwitchWithBoundaries(t *testing.T) {
 		shouldBeJailed             bool
 		shouldBeStaked             bool
 		remainingStakedNodesNumber int
+		returnMessage              string
 	}{
 		{
 			name:                       "no queue, before fix, max nodes",
@@ -1169,6 +1173,7 @@ func TestStakingSc_ExecuteStakeStakeJailAndSwitchWithBoundaries(t *testing.T) {
 			shouldBeJailed:             true,
 			shouldBeStaked:             true,
 			remainingStakedNodesNumber: maxStakedNodesNumber,
+			returnMessage:              didNotSwitchNoWaitingMessage,
 		},
 		{
 			name:                       "no queue, before fix, min nodes",
@@ -1177,6 +1182,7 @@ func TestStakingSc_ExecuteStakeStakeJailAndSwitchWithBoundaries(t *testing.T) {
 			shouldBeJailed:             true,
 			shouldBeStaked:             true,
 			remainingStakedNodesNumber: minStakedNodesNumber,
+			returnMessage:              didNotSwitchNoWaitingMessage,
 		},
 		{
 			name:                       "no queue, after fix, max nodes",
@@ -1185,6 +1191,7 @@ func TestStakingSc_ExecuteStakeStakeJailAndSwitchWithBoundaries(t *testing.T) {
 			shouldBeJailed:             true,
 			shouldBeStaked:             false,
 			remainingStakedNodesNumber: maxStakedNodesNumber - 1,
+			returnMessage:              "",
 		},
 		{
 			name:                       "no queue, after fix, min nodes ",
@@ -1193,6 +1200,7 @@ func TestStakingSc_ExecuteStakeStakeJailAndSwitchWithBoundaries(t *testing.T) {
 			shouldBeJailed:             true,
 			shouldBeStaked:             true,
 			remainingStakedNodesNumber: minStakedNodesNumber,
+			returnMessage:              didNotSwitchNotEnoughValidatorsMessage,
 		},
 		{
 			name:                       "with 1 queue, before fix, max nodes",
@@ -1201,6 +1209,7 @@ func TestStakingSc_ExecuteStakeStakeJailAndSwitchWithBoundaries(t *testing.T) {
 			shouldBeJailed:             true,
 			shouldBeStaked:             false,
 			remainingStakedNodesNumber: maxStakedNodesNumber,
+			returnMessage:              "",
 		},
 		{
 			name:                       "with 1 queue, after fix, max nodes",
@@ -1209,6 +1218,7 @@ func TestStakingSc_ExecuteStakeStakeJailAndSwitchWithBoundaries(t *testing.T) {
 			shouldBeJailed:             true,
 			shouldBeStaked:             false,
 			remainingStakedNodesNumber: maxStakedNodesNumber,
+			returnMessage:              "",
 		},
 	}
 
@@ -1241,12 +1251,16 @@ func TestStakingSc_ExecuteStakeStakeJailAndSwitchWithBoundaries(t *testing.T) {
 				checkIsStaked(t, stakingSmartContract, callerAddress, []byte(fmt.Sprintf("staked_%v", i)), stakedResult)
 			}
 
+			eei.returnMessage = ""
+
 			arguments := CreateVmContractCallInput()
 			arguments.Function = "switchJailedWithWaiting"
 			arguments.CallerAddr = args.EndOfEpochAccessAddr
 			arguments.Arguments = [][]byte{jailedKey}
 			retCode := stakingSmartContract.Execute(arguments)
-			assert.Equal(t, retCode, vmcommon.Ok)
+			assert.Equal(t, vmcommon.Ok, retCode)
+
+			assert.Equal(t, tt.returnMessage, eei.returnMessage)
 
 			stakedResult = vmcommon.Ok
 			if !tt.shouldBeStaked {
@@ -1263,10 +1277,10 @@ func TestStakingSc_ExecuteStakeStakeJailAndSwitchWithBoundaries(t *testing.T) {
 			arguments.Function = "getTotalNumberOfRegisteredNodes"
 			arguments.Arguments = [][]byte{}
 			retCode = stakingSmartContract.Execute(arguments)
-			assert.Equal(t, retCode, vmcommon.Ok)
+			assert.Equal(t, vmcommon.Ok, retCode)
 
 			lastOutput := eei.output[len(eei.output)-1]
-			assert.Equal(t, lastOutput, []byte{byte(tt.remainingStakedNodesNumber)})
+			assert.Equal(t, []byte{byte(tt.remainingStakedNodesNumber)}, lastOutput)
 		})
 	}
 }

@@ -1155,7 +1155,8 @@ func (s *stakingSC) switchJailedWithWaiting(args *vmcommon.ContractCallInput) vm
 		return vmcommon.UserError
 	}
 
-	registrationData, err := s.getOrCreateRegisteredData(args.Arguments[0])
+	blsKey := args.Arguments[0]
+	registrationData, err := s.getOrCreateRegisteredData(blsKey)
 	if err != nil {
 		s.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -1172,7 +1173,7 @@ func (s *stakingSC) switchJailedWithWaiting(args *vmcommon.ContractCallInput) vm
 		s.eei.AddReturnMessage(vm.ErrBLSPublicKeyAlreadyJailed.Error())
 		return vmcommon.UserError
 	}
-	switched, err := s.moveFirstFromWaitingToStakedIfNeeded(args.Arguments[0])
+	switched, err := s.moveFirstFromWaitingToStakedIfNeeded(blsKey)
 	if err != nil {
 		s.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -1185,24 +1186,36 @@ func (s *stakingSC) switchJailedWithWaiting(args *vmcommon.ContractCallInput) vm
 	if !switched && !s.flagCorrectJailedNotUnstakedEmptyQueue.IsSet() {
 		s.eei.AddReturnMessage("did not switch as nobody in waiting, but jailed")
 	} else {
-		if s.canUnStake() {
-			s.removeFromStakedNodes()
-			registrationData.Staked = false
-			registrationData.UnStakedEpoch = s.eei.BlockChainHook().CurrentEpoch()
-			registrationData.UnStakedNonce = s.eei.BlockChainHook().CurrentNonce()
-			registrationData.StakedNonce = math.MaxUint64
-		} else {
-			s.eei.AddReturnMessage("did not switch as not enough validators remaining")
-		}
+		s.tryRemoveJailedNodeFromStaked(registrationData)
 	}
 
-	err = s.saveStakingData(args.Arguments[0], registrationData)
+	err = s.saveStakingData(blsKey, registrationData)
 	if err != nil {
 		s.eei.AddReturnMessage("cannot save staking data: error " + err.Error())
 		return vmcommon.UserError
 	}
 
 	return vmcommon.Ok
+}
+
+func (s *stakingSC) tryRemoveJailedNodeFromStaked(registrationData *StakedDataV2_0) {
+	if !s.flagCorrectJailedNotUnstakedEmptyQueue.IsSet() {
+		s.removeAndSetUnstaked(registrationData)
+	} else {
+		if s.canUnStake() {
+			s.removeAndSetUnstaked(registrationData)
+		} else {
+			s.eei.AddReturnMessage("did not switch as not enough validators remaining")
+		}
+	}
+}
+
+func (s *stakingSC) removeAndSetUnstaked(registrationData *StakedDataV2_0) {
+	s.removeFromStakedNodes()
+	registrationData.Staked = false
+	registrationData.UnStakedEpoch = s.eei.BlockChainHook().CurrentEpoch()
+	registrationData.UnStakedNonce = s.eei.BlockChainHook().CurrentNonce()
+	registrationData.StakedNonce = math.MaxUint64
 }
 
 func (s *stakingSC) updateConfigMinNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
