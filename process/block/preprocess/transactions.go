@@ -395,7 +395,7 @@ func (txs *transactions) processTxsToMe(
 	gasConsumedByMiniBlockInReceiverShard := uint64(0)
 	totalGasConsumedInSelfShard := txs.getTotalGasConsumed()
 
-	log.Trace("processTxsToMe", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
+	log.Debug("processTxsToMe", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
 
 	for index := range txsToMe {
 		if !haveTime() {
@@ -437,6 +437,8 @@ func (txs *transactions) processTxsToMe(
 
 		txs.updateGasConsumedWithGasRefundedAndGasPenalized(txHash, &gasConsumedByMiniBlockInReceiverShard, &totalGasConsumedInSelfShard)
 	}
+
+	log.Debug("processTxsToMe after processing", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard, "gasConsumedByMiniBlockInReceiverShard", gasConsumedByMiniBlockInReceiverShard)
 
 	return nil
 }

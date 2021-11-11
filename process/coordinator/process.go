@@ -512,6 +512,15 @@ func (tc *transactionCoordinator) processMiniBlocksToMe(
 	body *block.Body,
 	haveTime func() bool,
 ) (int, error) {
+
+	defer func() {
+		log.Debug("transactionCoordinator.processMiniBlocksToMe: gas consumed, refunded and penalized info",
+			"num mini blocks processed", len(body.MiniBlocks),
+			"total gas consumed", tc.gasHandler.TotalGasConsumed(),
+			"total gas refunded", tc.gasHandler.TotalGasRefunded(),
+			"total gas penalized", tc.gasHandler.TotalGasPenalized())
+	}()
+
 	// processing has to be done in order, as the order of different type of transactions over the same account is strict
 	// processing destination ME miniblocks first
 	mbIndex := 0
@@ -526,17 +535,12 @@ func (tc *transactionCoordinator) processMiniBlocksToMe(
 			return mbIndex, process.ErrMissingPreProcessor
 		}
 
+		log.Debug("processMiniBlocksToMe: miniblock", "type", miniBlock.Type)
 		err := preProc.ProcessBlockTransactions(&block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}}, haveTime)
 		if err != nil {
 			return mbIndex, err
 		}
 	}
-
-	log.Debug("transactionCoordinator.processMiniBlocksToMe: gas consumed, refunded and penalized info",
-		"num mini blocks processed", len(body.MiniBlocks),
-		"total gas consumed", tc.gasHandler.TotalGasConsumed(),
-		"total gas refunded", tc.gasHandler.TotalGasRefunded(),
-		"total gas penalized", tc.gasHandler.TotalGasPenalized())
 
 	return mbIndex, nil
 }
@@ -643,6 +647,14 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			)
 			continue
 		}
+
+		log.Debug("transactionsCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: process mini block",
+			"hash", miniBlockInfo.Hash,
+			"mb type", miniBlock.Type,
+			"total gas consumed", tc.gasHandler.TotalGasConsumed(),
+			"total gas refunded", tc.gasHandler.TotalGasRefunded(),
+			"total gas penalized", tc.gasHandler.TotalGasPenalized(),
+		)
 
 		// all txs processed, add to processed miniblocks
 		miniBlocks = append(miniBlocks, miniBlock)
