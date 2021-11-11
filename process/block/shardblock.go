@@ -286,13 +286,13 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	if headerHandler.GetRound() >= 1050 && headerHandler.GetRound() <= 1350 {
+	if headerHandler.GetRound() >= 600 && headerHandler.GetRound() <= 900 && headerHandler.GetShardID() == 0 {
 		err = errors.New("injected error to process shard block")
 		log.Info("###Blocking shard INTRA EPOCH", "shard ID", headerHandler.GetShardID(), "epoch", headerHandler.GetEpoch(), "round", headerHandler.GetRound())
 		return err
 	}
 
-	if headerHandler.GetRound() >= 1800 && headerHandler.GetRound() <= 2300 {
+	if headerHandler.GetRound() >= 1300 && headerHandler.GetRound() <= 1800 && headerHandler.GetShardID() == 1 {
 		err = errors.New("injected error to process shard block")
 		log.Info("###Blocking shard ON EXTRA EPOCHS", "shard ID", headerHandler.GetShardID(), "epoch", headerHandler.GetEpoch(), "round", headerHandler.GetRound())
 		return err
