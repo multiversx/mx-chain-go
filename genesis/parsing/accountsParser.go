@@ -2,6 +2,7 @@ package parsing
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 
@@ -301,7 +302,7 @@ func (ap *accountsParser) IsInterfaceNil() bool {
 }
 
 func (ap *accountsParser) generateInShardMiniBlocks(txsHashesPerShard map[uint32][][]byte) []*block.MiniBlock {
-	var miniBlocks = make([]*block.MiniBlock, 0)
+	miniBlocks := make([]*block.MiniBlock, 0)
 
 	for shardId, txsHashes := range txsHashesPerShard {
 		miniBlock := &block.MiniBlock{
@@ -318,7 +319,7 @@ func (ap *accountsParser) generateInShardMiniBlocks(txsHashesPerShard map[uint32
 	return miniBlocks
 }
 
-func (ap *accountsParser) getMintTransaction(ia *data.InitialAccount, nonce uint64) *transactionData.Transaction {
+func (ap *accountsParser) getMintTransaction(ia *data.InitialAccount, nonce uint64, signature []byte) *transactionData.Transaction {
 	tx := &transactionData.Transaction{
 		Nonce:     nonce,
 		SndAddr:   ap.mintSenderAddressBytes,
@@ -327,7 +328,7 @@ func (ap *accountsParser) getMintTransaction(ia *data.InitialAccount, nonce uint
 		GasPrice:  0,
 		GasLimit:  0,
 		Data:      nil,
-		Signature: nil,
+		Signature: signature,
 	}
 
 	return tx
@@ -339,8 +340,12 @@ func (ap *accountsParser) GenerateInitialTransactions(shardCoordinator sharding.
 		return nil, nil, genesis.ErrNilShardCoordinator
 	}
 
-	var txsHashesPerShard = make(map[uint32][][]byte)
-	var txsPoolPerShard = make(map[uint32]*indexer.Pool)
+	txsHashesPerShard := make(map[uint32][][]byte)
+	txsPoolPerShard := make(map[uint32]*indexer.Pool)
+
+	mintTxSign := []byte("GENESIS")
+	mintTxSignBytes := make([]byte, hex.EncodedLen(len(mintTxSign)))
+	hex.Encode(mintTxSignBytes, mintTxSign)
 
 	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
 		txsPoolPerShard[i] = &indexer.Pool{
@@ -356,7 +361,7 @@ func (ap *accountsParser) GenerateInitialTransactions(shardCoordinator sharding.
 	for _, ia := range ap.initialAccounts {
 		shardID := shardCoordinator.ComputeId(ia.AddressBytes())
 
-		tx := ap.getMintTransaction(ia, nonce)
+		tx := ap.getMintTransaction(ia, nonce, mintTxSignBytes)
 
 		nonce++
 
