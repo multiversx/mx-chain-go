@@ -934,9 +934,9 @@ func TestStakingSc_ExecuteNilArgs(t *testing.T) {
 
 // TestStakingSc_ExecuteIsStaked
 // Will test next behaviour
-// 1 - will execute function shouldBeStaked should return UserError
-// 2 - will execute function stake and after that will call function shouldBeStaked and will return Ok
-// 3 - will execute function unStake and after that will cal function shouldBeStaked and will return UserError
+// 1 - will execute function isStaked should return UserError
+// 2 - will execute function stake and after that will call function isStaked and will return Ok
+// 3 - will execute function unStake and after that will cal function isStaked and will return UserError
 func TestStakingSc_ExecuteIsStaked(t *testing.T) {
 	t.Parallel()
 
@@ -967,7 +967,7 @@ func TestStakingSc_ExecuteIsStaked(t *testing.T) {
 	// do stake should work
 	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("anotherKey"))
 	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, stakerPubKey)
-	// check again shouldBeStaked should return vmcommon.Ok
+	// check again isStaked should return vmcommon.Ok
 	checkIsStaked(t, stakingSmartContract, callerAddress, stakerPubKey, vmcommon.Ok)
 	//do unStake
 	doUnStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, stakerPubKey, vmcommon.Ok)
