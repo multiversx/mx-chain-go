@@ -147,9 +147,6 @@
     # OptimizeNFTStoreEnableEpoch represents the epoch when optimizations on NFT metadata store and send are enabled
     OptimizeNFTStoreEnableEpoch = 3
 
-    # DisableOldTrieStorageEpoch represents the epoch when the old trie storage implementation will be disabled
-    DisableOldTrieStorageEpoch = 4
-
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },

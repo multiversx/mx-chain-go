@@ -75,23 +75,6 @@ func GetGeneralConfig() config.Config {
 				MaxOpenFiles:      10,
 			},
 		},
-		TrieSnapshotDB: config.DBConfig{
-			FilePath:          AddTimestampSuffix("TrieSnapshot"),
-			Type:              string(storageUnit.MemoryDB),
-			BatchDelaySeconds: 30,
-			MaxBatchSize:      6,
-			MaxOpenFiles:      10,
-		},
-		AccountsTrieStorageOld: config.StorageConfig{
-			Cache: getLRUCacheConfig(),
-			DB: config.DBConfig{
-				FilePath:          AddTimestampSuffix("AccountsTrie/MainDB"),
-				Type:              string(storageUnit.MemoryDB),
-				BatchDelaySeconds: 30,
-				MaxBatchSize:      6,
-				MaxOpenFiles:      10,
-			},
-		},
 		AccountsTrieStorage: config.StorageConfig{
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
@@ -106,16 +89,6 @@ func GetGeneralConfig() config.Config {
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
 				FilePath:          AddTimestampSuffix("AccountsTrieCheckpoints"),
-				Type:              string(storageUnit.MemoryDB),
-				BatchDelaySeconds: 30,
-				MaxBatchSize:      6,
-				MaxOpenFiles:      10,
-			},
-		},
-		PeerAccountsTrieStorageOld: config.StorageConfig{
-			Cache: getLRUCacheConfig(),
-			DB: config.DBConfig{
-				FilePath:          AddTimestampSuffix("PeerAccountsTrie/MainDB"),
 				Type:              string(storageUnit.MemoryDB),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,

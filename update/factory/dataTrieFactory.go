@@ -1,18 +1,15 @@
 package factory
 
 import (
-	"path"
-
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
-	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/genesis"
@@ -20,7 +17,7 @@ import (
 
 // ArgsNewDataTrieFactory is the argument structure for the new data trie factory
 type ArgsNewDataTrieFactory struct {
-	StorageConfig        config.StorageConfig
+	StorageService       dataRetriever.StorageService
 	SyncFolder           string
 	Marshalizer          marshal.Marshalizer
 	Hasher               hashing.Hasher
@@ -50,19 +47,19 @@ func NewDataTrieFactory(args ArgsNewDataTrieFactory) (*dataTrieFactory, error) {
 	if check.IfNil(args.Hasher) {
 		return nil, update.ErrNilHasher
 	}
-
-	dbConfig := storageFactory.GetDBFromConfig(args.StorageConfig.DB)
-	dbConfig.FilePath = path.Join(args.SyncFolder, args.StorageConfig.DB.FilePath)
-	accountsTrieStorage, err := storageUnit.NewStorageUnitFromConf(
-		storageFactory.GetCacherFromConfig(args.StorageConfig.Cache),
-		dbConfig,
-		storageFactory.GetBloomFromConfig(args.StorageConfig.Bloom),
-	)
-	if err != nil {
-		return nil, err
+	if check.IfNil(args.StorageService) {
+		return nil, update.ErrNilStorage
 	}
 
-	trieStorage, err := trie.NewTrieStorageManagerWithoutPruning(accountsTrieStorage)
+	trieStorageArgs := trie.NewTrieStorageManagerArgs{
+		MainStorer:        args.StorageService.GetStorer(dataRetriever.UserAccountsUnit),
+		CheckpointsStorer: args.StorageService.GetStorer(dataRetriever.UserAccountsUnit),
+		Marshalizer:       args.Marshalizer,
+		Hasher:            args.Hasher,
+		GeneralConfig:     config.TrieStorageManagerConfig{SnapshotsBufferLen: 100000},
+	}
+
+	trieStorage, err := trie.NewTrieStorageManagerWithoutCheckpoints(trieStorageArgs)
 	if err != nil {
 		return nil, err
 	}

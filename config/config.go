@@ -129,13 +129,10 @@ type Config struct {
 	BootstrapStorage StorageConfig
 	MetaBlockStorage StorageConfig
 
-	AccountsTrieStorageOld             StorageConfig
-	PeerAccountsTrieStorageOld         StorageConfig
 	AccountsTrieStorage                StorageConfig
 	PeerAccountsTrieStorage            StorageConfig
 	AccountsTrieCheckpointsStorage     StorageConfig
 	PeerAccountsTrieCheckpointsStorage StorageConfig
-	TrieSnapshotDB                     DBConfig
 	EvictionWaitingList                EvictionWaitingListConfig
 	StateTriesConfig                   StateTriesConfig
 	TrieStorageManagerConfig           TrieStorageManagerConfig

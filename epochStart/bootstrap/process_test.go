@@ -91,20 +91,11 @@ func createMockEpochStartBootstrapArgs(
 			TrieEpochRootHashStorage:           generalCfg.TrieEpochRootHashStorage,
 			BootstrapStorage:                   generalCfg.BootstrapStorage,
 			MetaBlockStorage:                   generalCfg.MetaBlockStorage,
-			AccountsTrieStorageOld:             generalCfg.AccountsTrieStorageOld,
-			PeerAccountsTrieStorageOld:         generalCfg.PeerAccountsTrieStorageOld,
 			AccountsTrieStorage:                generalCfg.AccountsTrieStorage,
 			PeerAccountsTrieStorage:            generalCfg.PeerAccountsTrieStorage,
 			AccountsTrieCheckpointsStorage:     generalCfg.AccountsTrieCheckpointsStorage,
 			PeerAccountsTrieCheckpointsStorage: generalCfg.PeerAccountsTrieCheckpointsStorage,
 			Heartbeat:                          generalCfg.Heartbeat,
-			TrieSnapshotDB: config.DBConfig{
-				FilePath:          "TrieSnapshot",
-				Type:              "MemoryDB",
-				BatchDelaySeconds: 30,
-				MaxBatchSize:      6,
-				MaxOpenFiles:      10,
-			},
 			EvictionWaitingList: config.EvictionWaitingListConfig{
 				HashesSize:     100,
 				RootHashesSize: 100,
@@ -463,8 +454,6 @@ func TestSyncValidatorAccountsState_NilRequestHandlerErr(t *testing.T) {
 		coreComp,
 		args.GenesisShardCoordinator.SelfId(),
 		disabled.NewChainStorer(),
-		0,
-		coreComp.EpochNotifier(),
 	)
 	assert.Nil(t, err)
 	epochStartProvider.trieContainer = triesContainer
@@ -486,8 +475,6 @@ func TestCreateTriesForNewShardID(t *testing.T) {
 		coreComp,
 		1,
 		disabled.NewChainStorer(),
-		0,
-		coreComp.EpochNotifier(),
 	)
 	assert.Nil(t, err)
 	epochStartProvider.trieContainer = triesContainer
@@ -516,8 +503,6 @@ func TestSyncUserAccountsState(t *testing.T) {
 		coreComp,
 		args.GenesisShardCoordinator.SelfId(),
 		disabled.NewChainStorer(),
-		0,
-		coreComp.EpochNotifier(),
 	)
 	assert.Nil(t, err)
 	epochStartProvider.trieContainer = triesContainer
@@ -573,8 +558,6 @@ func TestRequestAndProcessForShard(t *testing.T) {
 		coreComp,
 		shardCoordinator.SelfId(),
 		disabled.NewChainStorer(),
-		0,
-		coreComp.EpochNotifier(),
 	)
 	assert.Nil(t, err)
 	epochStartProvider.trieContainer = triesContainer

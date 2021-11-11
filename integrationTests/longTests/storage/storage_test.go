@@ -2,6 +2,7 @@ package storage
 
 import (
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"sync"
 	"testing"
 	"time"
@@ -105,7 +106,14 @@ func TestWriteContinuouslyInTree(t *testing.T) {
 	testStorage := integrationTests.NewTestStorage()
 	store := testStorage.CreateStorageLevelDB()
 
-	trieStorage, _ := trie.NewTrieStorageManagerWithoutPruning(store)
+	argsStorageManager := trie.NewTrieStorageManagerArgs{
+		MainStorer:        store,
+		CheckpointsStorer: store,
+		Marshalizer:       &marshal.JsonMarshalizer{},
+		Hasher:            blake2b.NewBlake2b(),
+		GeneralConfig:     config.TrieStorageManagerConfig{SnapshotsBufferLen: 1000},
+	}
+	trieStorage, _ := trie.NewTrieStorageManagerWithoutCheckpoints(argsStorageManager)
 
 	maxTrieLevelInMemory := uint(5)
 	tr, _ := trie.NewTrie(trieStorage, &marshal.JsonMarshalizer{}, blake2b.NewBlake2b(), maxTrieLevelInMemory)

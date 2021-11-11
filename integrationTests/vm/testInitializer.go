@@ -291,7 +291,6 @@ func CreateMemUnit() storage.Storer {
 // CreateInMemoryShardAccountsDB -
 func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 	marsh := &marshal.GogoProtoMarshalizer{}
-	store := CreateMemUnit()
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), marsh)
 	generalCfg := config.TrieStorageManagerConfig{
 		PruningBufferLen:   1000,
@@ -299,21 +298,12 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 		MaxSnapshots:       2,
 	}
 	args := trie.NewTrieStorageManagerArgs{
-		DB:                store,
-		MainStorer:        CreateMemUnit(),
-		CheckpointsStorer: CreateMemUnit(),
-		Marshalizer:       marsh,
-		Hasher:            testHasher,
-		SnapshotDbConfig: config.DBConfig{
-			FilePath:          "TrieStorage",
-			Type:              "MemoryDB",
-			BatchDelaySeconds: 30,
-			MaxBatchSize:      6,
-			MaxOpenFiles:      10,
-		},
+		MainStorer:             CreateMemUnit(),
+		CheckpointsStorer:      CreateMemUnit(),
+		Marshalizer:            marsh,
+		Hasher:                 testHasher,
 		GeneralConfig:          generalCfg,
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(testHasher.Size())),
-		EpochNotifier:          &mock.EpochNotifierStub{},
 	}
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 

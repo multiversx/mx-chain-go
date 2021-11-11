@@ -1,6 +1,7 @@
 package factory_test
 
 import (
+	"github.com/ElrondNetwork/elrond-go/config"
 	"sync"
 	"testing"
 
@@ -78,8 +79,14 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	networkComponents := getNetworkComponents()
 	cryptoComponents := getCryptoComponents(coreComponents)
 
-	memDBMock := mock.NewMemDbMock()
-	storageManager, _ := trie.NewTrieStorageManagerWithoutPruning(memDBMock)
+	argsStorageManager := trie.NewTrieStorageManagerArgs{
+		MainStorer:        mock.NewMemDbMock(),
+		CheckpointsStorer: mock.NewMemDbMock(),
+		Marshalizer:       coreComponents.InternalMarshalizer(),
+		Hasher:            coreComponents.Hasher(),
+		GeneralConfig:     config.TrieStorageManagerConfig{SnapshotsBufferLen: 1000},
+	}
+	storageManager, _ := trie.NewTrieStorageManagerWithoutCheckpoints(argsStorageManager)
 
 	trieStorageManagers := make(map[string]common.StorageManager)
 	trieStorageManagers[trieFactory.UserAccountTrie] = storageManager

@@ -297,7 +297,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	}
 
 	argsDataTrieFactory := ArgsNewDataTrieFactory{
-		StorageConfig:        e.exportTriesStorageConfig,
+		StorageService:       e.storageService,
 		SyncFolder:           e.exportFolder,
 		Marshalizer:          e.CoreComponents.InternalMarshalizer(),
 		Hasher:               e.CoreComponents.Hasher(),

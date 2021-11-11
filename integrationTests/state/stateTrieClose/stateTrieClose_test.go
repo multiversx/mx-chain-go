@@ -10,7 +10,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/goroutines"
 	"github.com/ElrondNetwork/elrond-go/trie"
@@ -82,22 +81,25 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 }
 
 func TestTrieStorageManager_Close(t *testing.T) {
-	closeCalled := false
+	mainStorerCloseCalled := false
+	checkpointsStorerCloseCalled := false
 	args := trie.NewTrieStorageManagerArgs{
-		DB: &testscommon.StorerStub{
+		MainStorer: &testscommon.StorerStub{
 			CloseCalled: func() error {
-				closeCalled = true
+				mainStorerCloseCalled = true
 				return nil
 			},
 		},
-		MainStorer:             testscommon.CreateMemUnit(),
-		CheckpointsStorer:      testscommon.CreateMemUnit(),
+		CheckpointsStorer: &testscommon.StorerStub{
+			CloseCalled: func() error {
+				checkpointsStorerCloseCalled = true
+				return nil
+			},
+		},
 		Marshalizer:            &testscommon.MarshalizerMock{},
 		Hasher:                 &testscommon.HasherMock{},
-		SnapshotDbConfig:       config.DBConfig{},
 		GeneralConfig:          config.TrieStorageManagerConfig{},
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, 32),
-		EpochNotifier:          &mock.EpochNotifierStub{},
 	}
 
 	gc := goroutines.NewGoCounter(goroutines.TestsRelevantGoRoutines)
@@ -113,28 +115,31 @@ func TestTrieStorageManager_Close(t *testing.T) {
 	idx, _ = gc.Snapshot()
 	diff = gc.DiffGoRoutines(idxInitial, idx)
 	assert.Equal(t, 0, len(diff), fmt.Sprintf("%v", diff))
-	assert.True(t, closeCalled)
+	assert.True(t, mainStorerCloseCalled)
+	assert.True(t, checkpointsStorerCloseCalled)
 }
 
 func TestTrieStorageManager_CloseErr(t *testing.T) {
-	closeCalled := false
+	mainStorerCloseCalled := false
+	checkpointsStorerCloseCalled := false
 	closeErr := errors.New("close error")
 	args := trie.NewTrieStorageManagerArgs{
-		DB: &testscommon.StorerStub{
+		MainStorer: &testscommon.StorerStub{
 			CloseCalled: func() error {
-				closeCalled = true
+				mainStorerCloseCalled = true
 				return closeErr
 			},
 		},
-		MainStorer:                 testscommon.CreateMemUnit(),
-		CheckpointsStorer:          testscommon.CreateMemUnit(),
-		Marshalizer:                &testscommon.MarshalizerMock{},
-		Hasher:                     &testscommon.HasherMock{},
-		SnapshotDbConfig:           config.DBConfig{},
-		GeneralConfig:              config.TrieStorageManagerConfig{},
-		CheckpointHashesHolder:     hashesHolder.NewCheckpointHashesHolder(10, 32),
-		DisableOldTrieStorageEpoch: 1,
-		EpochNotifier:              &mock.EpochNotifierStub{},
+		CheckpointsStorer: &testscommon.StorerStub{
+			CloseCalled: func() error {
+				checkpointsStorerCloseCalled = true
+				return closeErr
+			},
+		},
+		Marshalizer:            &testscommon.MarshalizerMock{},
+		Hasher:                 &testscommon.HasherMock{},
+		GeneralConfig:          config.TrieStorageManagerConfig{},
+		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, 32),
 	}
 	gc := goroutines.NewGoCounter(goroutines.TestsRelevantGoRoutines)
 	idxInitial, _ := gc.Snapshot()
@@ -150,5 +155,6 @@ func TestTrieStorageManager_CloseErr(t *testing.T) {
 	idx, _ = gc.Snapshot()
 	diff = gc.DiffGoRoutines(idxInitial, idx)
 	assert.Equal(t, 0, len(diff), fmt.Sprintf("%v", diff))
-	assert.True(t, closeCalled)
+	assert.True(t, mainStorerCloseCalled)
+	assert.True(t, checkpointsStorerCloseCalled)
 }

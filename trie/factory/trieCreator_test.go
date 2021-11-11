@@ -5,10 +5,6 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/factory/mock"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/factory"
@@ -26,22 +22,11 @@ func getArgs() factory.TrieFactoryArgs {
 
 func getCreateArgs() factory.TrieCreateArgs {
 	return factory.TrieCreateArgs{
-		TrieStorageConfig:  createTrieStorageCfg(),
 		MainStorer:         testscommon.CreateMemUnit(),
 		CheckpointsStorer:  testscommon.CreateMemUnit(),
 		ShardID:            "0",
-		PruningEnabled:     false,
 		CheckpointsEnabled: false,
 		MaxTrieLevelInMem:  5,
-		EpochStartNotifier: &mock.EpochNotifierStub{},
-	}
-}
-
-func createTrieStorageCfg() config.StorageConfig {
-	return config.StorageConfig{
-		Cache: config.CacheConfig{Type: "LRU", Capacity: 1000},
-		DB:    config.DBConfig{Type: string(storageUnit.MemoryDB)},
-		Bloom: config.BloomFilterConfig{},
 	}
 }
 
@@ -88,19 +73,6 @@ func TestNewTrieFactory_ShouldWork(t *testing.T) {
 	require.False(t, check.IfNil(tf))
 }
 
-func TestTrieFactory_CreateNotSupportedCacheType(t *testing.T) {
-	t.Parallel()
-
-	args := getArgs()
-	tf, _ := factory.NewTrieFactory(args)
-
-	createArgs := getCreateArgs()
-	createArgs.TrieStorageConfig = config.StorageConfig{}
-	_, tr, err := tf.Create(createArgs)
-	require.Nil(t, tr)
-	require.Equal(t, storage.ErrNotSupportedCacheType, err)
-}
-
 func TestTrieFactory_CreateWithoutPruningShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -112,19 +84,6 @@ func TestTrieFactory_CreateWithoutPruningShouldWork(t *testing.T) {
 	require.Nil(t, err)
 }
 
-func TestTrieCreator_CreateWithPruningShouldWork(t *testing.T) {
-	t.Parallel()
-
-	args := getArgs()
-	tf, _ := factory.NewTrieFactory(args)
-
-	createArgs := getCreateArgs()
-	createArgs.PruningEnabled = true
-	_, tr, err := tf.Create(createArgs)
-	require.NotNil(t, tr)
-	require.Nil(t, err)
-}
-
 func TestTrieCreator_CreateWithoutCheckpointShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -132,7 +91,6 @@ func TestTrieCreator_CreateWithoutCheckpointShouldWork(t *testing.T) {
 	tf, _ := factory.NewTrieFactory(args)
 
 	createArgs := getCreateArgs()
-	createArgs.PruningEnabled = true
 	createArgs.CheckpointsEnabled = true
 	_, tr, err := tf.Create(createArgs)
 	require.NotNil(t, tr)
@@ -146,7 +104,6 @@ func TestTrieCreator_CreateWithNilMainStorerShouldErr(t *testing.T) {
 	tf, _ := factory.NewTrieFactory(args)
 
 	createArgs := getCreateArgs()
-	createArgs.PruningEnabled = true
 	createArgs.MainStorer = nil
 	_, tr, err := tf.Create(createArgs)
 	require.Nil(t, tr)
@@ -160,7 +117,6 @@ func TestTrieCreator_CreateWithNilCheckpointsStorerShouldErr(t *testing.T) {
 	tf, _ := factory.NewTrieFactory(args)
 
 	createArgs := getCreateArgs()
-	createArgs.PruningEnabled = true
 	createArgs.CheckpointsStorer = nil
 	_, tr, err := tf.Create(createArgs)
 	require.Nil(t, tr)

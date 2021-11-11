@@ -878,7 +878,15 @@ func createAccountsDB(
 func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieStorer storage.Storer) (ArgsNewEpochStartSystemSCProcessing, vm.SystemSCContainer) {
 	hasher := sha256.NewSha256()
 	marshalizer := &marshal.GogoProtoMarshalizer{}
-	trieFactoryManager, _ := trie.NewTrieStorageManagerWithoutPruning(trieStorer)
+
+	argsStorageManager := trie.NewTrieStorageManagerArgs{
+		MainStorer:        trieStorer,
+		CheckpointsStorer: createMemUnit(),
+		Marshalizer:       marshalizer,
+		Hasher:            hasher,
+		GeneralConfig:     config.TrieStorageManagerConfig{SnapshotsBufferLen: 1000},
+	}
+	trieFactoryManager, _ := trie.NewTrieStorageManagerWithoutCheckpoints(argsStorageManager)
 	userAccountsDB := createAccountsDB(hasher, marshalizer, factory.NewAccountCreator(), trieFactoryManager)
 	peerAccountsDB := createAccountsDB(hasher, marshalizer, factory.NewPeerAccountCreator(), trieFactoryManager)
 	epochNotifier := forking.NewGenericEpochNotifier()

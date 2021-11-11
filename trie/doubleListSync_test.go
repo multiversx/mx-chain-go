@@ -4,14 +4,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -37,29 +35,18 @@ func createMemUnit() storage.Storer {
 
 // CreateTrieStorageManager creates the trie storage manager for the tests
 func createTrieStorageManager(store storage.Storer) (common.StorageManager, storage.Storer) {
-	tempDir, _ := ioutil.TempDir("", "trie")
-	cfg := config.DBConfig{
-		FilePath:          tempDir,
-		Type:              string(storageUnit.LvlDBSerial),
-		BatchDelaySeconds: 4,
-		MaxBatchSize:      10000,
-		MaxOpenFiles:      10,
-	}
 	generalCfg := config.TrieStorageManagerConfig{
 		PruningBufferLen:   1000,
 		SnapshotsBufferLen: 10,
 		MaxSnapshots:       2,
 	}
 	args := NewTrieStorageManagerArgs{
-		DB:                     store,
 		MainStorer:             store,
 		CheckpointsStorer:      store,
 		Marshalizer:            marshalizer,
 		Hasher:                 hasher,
-		SnapshotDbConfig:       cfg,
 		GeneralConfig:          generalCfg,
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(hasher.Size())),
-		EpochNotifier:          &mock.EpochNotifierStub{},
 	}
 	tsm, _ := NewTrieStorageManager(args)
 

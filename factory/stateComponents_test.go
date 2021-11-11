@@ -85,10 +85,23 @@ func TestStateComponents_Close_ShouldWork(t *testing.T) {
 }
 
 func getStateArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator sharding.Coordinator) factory.StateComponentsFactoryArgs {
-	memDBUsers := mock.NewMemDbMock()
-	memdbPeers := mock.NewMemDbMock()
-	storageManagerUser, _ := trie.NewTrieStorageManagerWithoutPruning(memDBUsers)
-	storageManagerPeer, _ := trie.NewTrieStorageManagerWithoutPruning(memdbPeers)
+	argsUserStorageManager := trie.NewTrieStorageManagerArgs{
+		MainStorer:        mock.NewMemDbMock(),
+		CheckpointsStorer: mock.NewMemDbMock(),
+		Marshalizer:       coreComponents.InternalMarshalizer(),
+		Hasher:            coreComponents.Hasher(),
+		GeneralConfig:     config.TrieStorageManagerConfig{SnapshotsBufferLen: 1000},
+	}
+	argsPeerStorageManager := trie.NewTrieStorageManagerArgs{
+		MainStorer:        mock.NewMemDbMock(),
+		CheckpointsStorer: mock.NewMemDbMock(),
+		Marshalizer:       coreComponents.InternalMarshalizer(),
+		Hasher:            coreComponents.Hasher(),
+		GeneralConfig:     config.TrieStorageManagerConfig{SnapshotsBufferLen: 1000},
+	}
+
+	storageManagerUser, _ := trie.NewTrieStorageManagerWithoutCheckpoints(argsUserStorageManager)
+	storageManagerPeer, _ := trie.NewTrieStorageManagerWithoutCheckpoints(argsPeerStorageManager)
 
 	trieStorageManagers := make(map[string]common.StorageManager)
 	trieStorageManagers[trieFactory.UserAccountTrie] = storageManagerUser
@@ -130,27 +143,6 @@ func getStateArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator 
 					MaxOpenFiles:      10,
 				},
 			},
-			TrieSnapshotDB: config.DBConfig{
-				FilePath:          "TrieSnapshot",
-				Type:              "MemoryDB",
-				BatchDelaySeconds: 30,
-				MaxBatchSize:      6,
-				MaxOpenFiles:      10,
-			},
-			AccountsTrieStorageOld: config.StorageConfig{
-				Cache: config.CacheConfig{
-					Capacity: 10000,
-					Type:     "LRU",
-					Shards:   1,
-				},
-				DB: config.DBConfig{
-					FilePath:          "AccountsTrie",
-					Type:              "MemoryDB",
-					BatchDelaySeconds: 30,
-					MaxBatchSize:      6,
-					MaxOpenFiles:      10,
-				},
-			},
 			AccountsTrieStorage: config.StorageConfig{
 				Cache: config.CacheConfig{
 					Capacity: 10000,
@@ -173,20 +165,6 @@ func getStateArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator 
 				},
 				DB: config.DBConfig{
 					FilePath:          "AccountsTrieCheckpoints",
-					Type:              "MemoryDB",
-					BatchDelaySeconds: 30,
-					MaxBatchSize:      6,
-					MaxOpenFiles:      10,
-				},
-			},
-			PeerAccountsTrieStorageOld: config.StorageConfig{
-				Cache: config.CacheConfig{
-					Capacity: 10000,
-					Type:     "LRU",
-					Shards:   1,
-				},
-				DB: config.DBConfig{
-					FilePath:          "PeerAccountsTrie",
 					Type:              "MemoryDB",
 					BatchDelaySeconds: 30,
 					MaxBatchSize:      6,

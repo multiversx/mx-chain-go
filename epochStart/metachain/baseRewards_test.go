@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -1122,7 +1123,15 @@ func TestBaseRewardsCreator_getMiniBlockWithReceiverShardIDFound(t *testing.T) {
 func getBaseRewardsArguments() BaseRewardsCreatorArgs {
 	hasher := sha256.NewSha256()
 	marshalizer := &marshal.GogoProtoMarshalizer{}
-	trieFactoryManager, _ := trie.NewTrieStorageManagerWithoutPruning(createMemUnit())
+
+	args := trie.NewTrieStorageManagerArgs{
+		MainStorer:        createMemUnit(),
+		CheckpointsStorer: createMemUnit(),
+		Marshalizer:       marshalizer,
+		Hasher:            hasher,
+		GeneralConfig:     config.TrieStorageManagerConfig{SnapshotsBufferLen: 1000},
+	}
+	trieFactoryManager, _ := trie.NewTrieStorageManagerWithoutCheckpoints(args)
 	userAccountsDB := createAccountsDB(hasher, marshalizer, factory.NewAccountCreator(), trieFactoryManager)
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	shardCoordinator.CurrentShard = core.MetachainShardId

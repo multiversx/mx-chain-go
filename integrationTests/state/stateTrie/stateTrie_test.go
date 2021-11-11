@@ -43,15 +43,12 @@ import (
 
 func getNewTrieStorageManagerArgs() trie.NewTrieStorageManagerArgs {
 	return trie.NewTrieStorageManagerArgs{
-		DB:                     memorydb.New(),
 		MainStorer:             integrationTests.CreateMemUnit(),
 		CheckpointsStorer:      integrationTests.CreateMemUnit(),
 		Marshalizer:            integrationTests.TestMarshalizer,
 		Hasher:                 integrationTests.TestHasher,
-		SnapshotDbConfig:       config.DBConfig{},
 		GeneralConfig:          config.TrieStorageManagerConfig{},
 		CheckpointHashesHolder: &trieMock.CheckpointHashesHolderStub{},
-		EpochNotifier:          &mock.EpochNotifierStub{},
 	}
 }
 
@@ -267,7 +264,7 @@ func TestTrieDB_RecreateFromStorageShouldWork(t *testing.T) {
 	hasher := integrationTests.TestHasher
 	store := integrationTests.CreateMemUnit()
 	args := getNewTrieStorageManagerArgs()
-	args.DB = store
+	args.MainStorer = store
 	args.Hasher = hasher
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 
@@ -1048,7 +1045,7 @@ func createAccounts(
 
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
 	args := getNewTrieStorageManagerArgs()
-	args.DB = store
+	args.MainStorer = store
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 	maxTrieLevelInMemory := uint(5)
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, maxTrieLevelInMemory)

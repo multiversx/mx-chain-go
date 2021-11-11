@@ -6,7 +6,6 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"strings"
 	"sync"
@@ -26,7 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
 	ed25519SingleSig "github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519/singlesig"
@@ -345,6 +344,10 @@ func CreateStore(numOfShards uint32) dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.BootstrapUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.StatusMetricsUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.ReceiptsUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.UserAccountsUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.UserAccountsCheckpointsUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.PeerAccountsUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.PeerAccountsCheckpointsUnit, CreateMemUnit())
 
 	for i := uint32(0); i < numOfShards; i++ {
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i)
@@ -355,15 +358,11 @@ func CreateStore(numOfShards uint32) dataRetriever.StorageService {
 }
 
 // CreateTrieStorageManagerWithPruningStorer creates the trie storage manager for the tests
-func CreateTrieStorageManagerWithPruningStorer(store storage.Storer, coordinator sharding.Coordinator, notifier pruning.EpochStartNotifier) common.StorageManager {
-	tempDir, _ := ioutil.TempDir("", "integrationTests")
-	cfg := config.DBConfig{
-		FilePath:          tempDir,
-		Type:              string(storageUnit.LvlDBSerial),
-		BatchDelaySeconds: 4,
-		MaxBatchSize:      10000,
-		MaxOpenFiles:      10,
-	}
+func CreateTrieStorageManagerWithPruningStorer(
+	coordinator sharding.Coordinator,
+	notifier pruning.EpochStartNotifier,
+	storageService dataRetriever.StorageService,
+) common.StorageManager {
 	generalCfg := config.TrieStorageManagerConfig{
 		PruningBufferLen:   1000,
 		SnapshotsBufferLen: 10,
@@ -378,16 +377,15 @@ func CreateTrieStorageManagerWithPruningStorer(store storage.Storer, coordinator
 	if err != nil {
 		fmt.Println("err creating checkpoints storer" + err.Error())
 	}
+	storageService.AddStorer(dataRetriever.UserAccountsUnit, mainStorer)
+	storageService.AddStorer(dataRetriever.UserAccountsCheckpointsUnit, checkpointsStorer)
 	args := trie.NewTrieStorageManagerArgs{
-		DB:                     store,
 		MainStorer:             mainStorer,
 		CheckpointsStorer:      checkpointsStorer,
 		Marshalizer:            TestMarshalizer,
 		Hasher:                 TestHasher,
-		SnapshotDbConfig:       cfg,
 		GeneralConfig:          generalCfg,
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(TestHasher.Size())),
-		EpochNotifier:          &mock.EpochNotifierStub{},
 	}
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
 
@@ -397,29 +395,18 @@ func CreateTrieStorageManagerWithPruningStorer(store storage.Storer, coordinator
 // CreateTrieStorageManager creates the trie storage manager for the tests
 func CreateTrieStorageManager(store storage.Storer) (common.StorageManager, storage.Storer) {
 	// TODO change this implementation with a factory
-	tempDir, _ := ioutil.TempDir("", "integrationTests")
-	cfg := config.DBConfig{
-		FilePath:          tempDir,
-		Type:              string(storageUnit.LvlDBSerial),
-		BatchDelaySeconds: 4,
-		MaxBatchSize:      10000,
-		MaxOpenFiles:      10,
-	}
 	generalCfg := config.TrieStorageManagerConfig{
 		PruningBufferLen:   1000,
 		SnapshotsBufferLen: 10,
 		MaxSnapshots:       3,
 	}
 	args := trie.NewTrieStorageManagerArgs{
-		DB:                     store,
-		MainStorer:             CreateMemUnit(),
+		MainStorer:             store,
 		CheckpointsStorer:      CreateMemUnit(),
 		Marshalizer:            TestMarshalizer,
 		Hasher:                 TestHasher,
-		SnapshotDbConfig:       cfg,
 		GeneralConfig:          generalCfg,
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(TestHasher.Size())),
-		EpochNotifier:          &mock.EpochNotifierStub{},
 	}
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
 
@@ -1055,15 +1042,12 @@ func CreateNewDefaultTrie() common.Trie {
 		MaxSnapshots:       2,
 	}
 	args := trie.NewTrieStorageManagerArgs{
-		DB:                     CreateMemUnit(),
 		MainStorer:             CreateMemUnit(),
 		CheckpointsStorer:      CreateMemUnit(),
 		Marshalizer:            TestMarshalizer,
 		Hasher:                 TestHasher,
-		SnapshotDbConfig:       config.DBConfig{},
 		GeneralConfig:          generalCfg,
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(TestHasher.Size())),
-		EpochNotifier:          &mock.EpochNotifierStub{},
 	}
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 

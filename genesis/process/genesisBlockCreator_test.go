@@ -45,8 +45,14 @@ func createMockArgument(
 	entireSupply *big.Int,
 ) ArgsGenesisBlockCreator {
 
-	memDBMock := mock.NewMemDbMock()
-	storageManager, _ := trie.NewTrieStorageManagerWithoutPruning(memDBMock)
+	argsStorageManager := trie.NewTrieStorageManagerArgs{
+		MainStorer:        mock.NewMemDbMock(),
+		CheckpointsStorer: mock.NewMemDbMock(),
+		Marshalizer:       &mock.MarshalizerMock{},
+		Hasher:            &mock.HasherMock{},
+		GeneralConfig:     config.TrieStorageManagerConfig{SnapshotsBufferLen: 1000},
+	}
+	storageManager, _ := trie.NewTrieStorageManagerWithoutCheckpoints(argsStorageManager)
 
 	trieStorageManagers := make(map[string]common.StorageManager)
 	trieStorageManagers[factory.UserAccountTrie] = storageManager

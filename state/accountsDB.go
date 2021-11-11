@@ -2,12 +2,10 @@ package state
 
 import (
 	"bytes"
-	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"runtime/debug"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -24,8 +22,6 @@ const (
 	useExistingDb     = false
 	leavesChannelSize = 100
 )
-
-var numCheckpointsKey = []byte("state checkpoint")
 
 type loadingMeasurements struct {
 	sync.Mutex
@@ -77,10 +73,8 @@ type AccountsDB struct {
 	//TODO use mutOp only for critical sections, and refactor to parallelize as much as possible
 	mutOp sync.RWMutex
 
-	numCheckpoints       uint32
 	loadCodeMeasurements *loadingMeasurements
-
-	stackDebug []byte
+	stackDebug           []byte
 }
 
 var log = logger.GetOrCreate("state")
@@ -109,7 +103,6 @@ func NewAccountsDB(
 		return nil, ErrNilStoragePruningManager
 	}
 
-	numCheckpoints := getNumCheckpoints(trie.GetStorageManager())
 	return &AccountsDB{
 		mainTrie:               trie,
 		hasher:                 hasher,
@@ -120,25 +113,10 @@ func NewAccountsDB(
 		mutOp:                  sync.RWMutex{},
 		dataTries:              NewDataTriesHolder(),
 		obsoleteDataTrieHashes: make(map[string][][]byte),
-		numCheckpoints:         numCheckpoints,
 		loadCodeMeasurements: &loadingMeasurements{
 			identifier: "load code",
 		},
 	}, nil
-}
-
-func getNumCheckpoints(trieStorageManager common.StorageManager) uint32 {
-	val, err := trieStorageManager.Get(numCheckpointsKey)
-	if err != nil {
-		return 0
-	}
-
-	bytesForUint32 := 4
-	if len(val) < bytesForUint32 {
-		return 0
-	}
-
-	return binary.BigEndian.Uint32(val)
 }
 
 // GetCode returns the code for the given account
@@ -1037,8 +1015,6 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 
 		log.Debug("snapshotState", stopWatch.GetMeasurements()...)
 		trieStorageManager.ExitPruningBufferingMode()
-
-		adb.increaseNumCheckpoints()
 	}()
 }
 
@@ -1087,24 +1063,7 @@ func (adb *AccountsDB) setStateCheckpoint(rootHash []byte) {
 
 		log.Debug("setStateCheckpoint", stopWatch.GetMeasurements()...)
 		trieStorageManager.ExitPruningBufferingMode()
-
-		adb.increaseNumCheckpoints()
 	}()
-}
-
-func (adb *AccountsDB) increaseNumCheckpoints() {
-	trieStorageManager := adb.mainTrie.GetStorageManager()
-	time.Sleep(time.Duration(trieStorageManager.GetSnapshotDbBatchDelay()) * time.Second)
-	atomic.AddUint32(&adb.numCheckpoints, 1)
-
-	numCheckpoints := atomic.LoadUint32(&adb.numCheckpoints)
-	numCheckpointsVal := make([]byte, 4)
-	binary.BigEndian.PutUint32(numCheckpointsVal, numCheckpoints)
-
-	err := trieStorageManager.Put(numCheckpointsKey, numCheckpointsVal)
-	if err != nil {
-		log.Warn("could not add num checkpoints to database", "error", err)
-	}
 }
 
 // IsPruningEnabled returns true if state pruning is enabled
@@ -1118,11 +1077,6 @@ func (adb *AccountsDB) GetAllLeaves(rootHash []byte) (chan core.KeyValueHolder, 
 	defer adb.mutOp.Unlock()
 
 	return adb.mainTrie.GetAllLeavesOnChannel(rootHash)
-}
-
-// GetNumCheckpoints returns the total number of state checkpoints
-func (adb *AccountsDB) GetNumCheckpoints() uint32 {
-	return atomic.LoadUint32(&adb.numCheckpoints)
 }
 
 // Close will handle the closing of the underlying components

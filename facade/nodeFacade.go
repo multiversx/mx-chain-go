@@ -391,11 +391,6 @@ func (nf *nodeFacade) Close() error {
 	return nil
 }
 
-// GetNumCheckpointsFromAccountState returns the number of checkpoints of the account state
-func (nf *nodeFacade) GetNumCheckpointsFromAccountState() uint32 {
-	return nf.accountsState.GetNumCheckpoints()
-}
-
 // GetProof returns the Merkle proof for the given address and root hash
 func (nf *nodeFacade) GetProof(rootHash string, address string) (*common.GetProofResponse, error) {
 	return nf.node.GetProof(rootHash, address)
@@ -423,11 +418,6 @@ func (nf *nodeFacade) GetProofCurrentRootHash(address string) (*common.GetProofR
 // VerifyProof verifies the given Merkle proof
 func (nf *nodeFacade) VerifyProof(rootHash string, address string, proof [][]byte) (bool, error) {
 	return nf.node.VerifyProof(rootHash, address, proof)
-}
-
-// GetNumCheckpointsFromPeerState returns the number of checkpoints of the peer state
-func (nf *nodeFacade) GetNumCheckpointsFromPeerState() uint32 {
-	return nf.peerState.GetNumCheckpoints()
 }
 
 func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm.VMOutputApi {

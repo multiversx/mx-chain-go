@@ -2,9 +2,6 @@ package statistics
 
 import (
 	"context"
-	"io/ioutil"
-	"path"
-	"path/filepath"
 	"runtime"
 	"time"
 
@@ -67,22 +64,6 @@ func (rm *ResourceMonitor) GenerateStatistics() []interface{} {
 		}
 	}
 
-	pathManager := rm.pathManager
-	generalConfig := rm.generalConfig
-	shardId := rm.shardId
-
-	trieStoragePath, mainDb := path.Split(pathManager.PathForStatic(shardId, generalConfig.AccountsTrieStorage.DB.FilePath))
-
-	trieDbFilePath := filepath.Join(trieStoragePath, mainDb)
-	evictionWaitingListDbFilePath := filepath.Join(trieStoragePath, generalConfig.EvictionWaitingList.DB.FilePath)
-	snapshotsDbFilePath := filepath.Join(trieStoragePath, generalConfig.TrieSnapshotDB.FilePath)
-
-	peerTrieStoragePath, mainDb := path.Split(pathManager.PathForStatic(shardId, generalConfig.PeerAccountsTrieStorage.DB.FilePath))
-
-	peerTrieDbFilePath := filepath.Join(peerTrieStoragePath, mainDb)
-	peerTrieEvictionWaitingListDbFilePath := filepath.Join(peerTrieStoragePath, generalConfig.EvictionWaitingList.DB.FilePath)
-	peerTrieSnapshotsDbFilePath := filepath.Join(peerTrieStoragePath, generalConfig.TrieSnapshotDB.FilePath)
-
 	stats := []interface{}{
 		"uptime", time.Duration(time.Now().UnixNano() - rm.startTime.UnixNano()).Round(time.Second),
 	}
@@ -91,12 +72,6 @@ func (rm *ResourceMonitor) GenerateStatistics() []interface{} {
 		"FDs", fileDescriptors,
 		"num opened files", numOpenFiles,
 		"num conns", numConns,
-		"accountsTrieDbMem", getDirMemSize(trieDbFilePath),
-		"evictionDbMem", getDirMemSize(evictionWaitingListDbFilePath),
-		"snapshotsDbMem", getDirMemSize(snapshotsDbFilePath),
-		"peerTrieDbMem", getDirMemSize(peerTrieDbFilePath),
-		"peerTrieEvictionDbMem", getDirMemSize(peerTrieEvictionWaitingListDbFilePath),
-		"peerTrieSnapshotsDbMem", getDirMemSize(peerTrieSnapshotsDbFilePath),
 	}...,
 	)
 
@@ -121,17 +96,6 @@ func GetRuntimeStatistics() []interface{} {
 		"sys mem", core.ConvertBytes(memStats.Sys),
 		"num GC", memStats.NumGC,
 	}
-}
-
-func getDirMemSize(dir string) string {
-	files, _ := ioutil.ReadDir(dir)
-
-	size := int64(0)
-	for _, f := range files {
-		size += f.Size()
-	}
-
-	return core.ConvertBytes(uint64(size))
 }
 
 // SaveStatistics generates and saves statistic data on the disk

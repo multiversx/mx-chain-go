@@ -67,11 +67,6 @@ func (r *readOnlyAccountsDB) RevertToSnapshot(_ int) error {
 	return nil
 }
 
-// GetNumCheckpoints will call the original accounts' function with the same name
-func (r *readOnlyAccountsDB) GetNumCheckpoints() uint32 {
-	return r.originalAccounts.GetNumCheckpoints()
-}
-
 // RootHash will call the original accounts' function with the same name
 func (r *readOnlyAccountsDB) RootHash() ([]byte, error) {
 	return r.originalAccounts.RootHash()

@@ -109,7 +109,6 @@ func TestReadOnlyAccountsDB_ReadOperationsShouldWork(t *testing.T) {
 	expectedJournalLen := 37
 	expectedRootHash := []byte("root")
 	expectedLeavesChannel := make(chan core.KeyValueHolder)
-	expectedNumCheckpoints := uint32(7)
 
 	accDb := &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
@@ -129,9 +128,6 @@ func TestReadOnlyAccountsDB_ReadOperationsShouldWork(t *testing.T) {
 		},
 		GetAllLeavesCalled: func(_ []byte) (chan core.KeyValueHolder, error) {
 			return expectedLeavesChannel, nil
-		},
-		GetNumCheckpointsCalled: func() uint32 {
-			return expectedNumCheckpoints
 		},
 	}
 
@@ -159,7 +155,4 @@ func TestReadOnlyAccountsDB_ReadOperationsShouldWork(t *testing.T) {
 	actualAllLeaves, err := roAccDb.GetAllLeaves(nil)
 	require.NoError(t, err)
 	require.Equal(t, expectedLeavesChannel, actualAllLeaves)
-
-	actualNumCheckpoints := roAccDb.GetNumCheckpoints()
-	require.Equal(t, expectedNumCheckpoints, actualNumCheckpoints)
 }

@@ -48,7 +48,6 @@ type StorageManager interface {
 	IsPruningBlocked() bool
 	EnterPruningBufferingMode()
 	ExitPruningBufferingMode()
-	GetSnapshotDbBatchDelay() int
 	AddDirtyCheckpointHashes([]byte, ModifiedHashes) bool
 	Remove(hash []byte) error
 	SetEpochForPutOperation(uint32)
@@ -63,17 +62,6 @@ type DBWriteCacher interface {
 	Remove(key []byte) error
 	Close() error
 	IsInterfaceNil() bool
-}
-
-// SnapshotDbHandler is used to keep track of how many references a snapshot db has
-type SnapshotDbHandler interface {
-	DBWriteCacher
-	IsInUse() bool
-	DecreaseNumReferences()
-	IncreaseNumReferences()
-	MarkForRemoval()
-	MarkForDisconnection()
-	SetPath(string)
 }
 
 // TriesHolder is used to store multiple tries

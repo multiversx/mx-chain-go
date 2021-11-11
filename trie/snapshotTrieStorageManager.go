@@ -29,7 +29,12 @@ func (stsm *snapshotTrieStorageManager) Get(key []byte) ([]byte, error) {
 		return val, nil
 	}
 
-	return stsm.getFromOtherStorers(key)
+	val, _ = stsm.checkpointsStorer.Get(key)
+	if len(val) != 0 {
+		return val, nil
+	}
+
+	return nil, ErrKeyNotFound
 }
 
 // Put adds the given value to the main storer
