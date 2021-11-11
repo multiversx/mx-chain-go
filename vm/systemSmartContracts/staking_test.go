@@ -934,9 +934,9 @@ func TestStakingSc_ExecuteNilArgs(t *testing.T) {
 
 // TestStakingSc_ExecuteIsStaked
 // Will test next behaviour
-// 1 - will execute function isStaked should return UserError
-// 2 - will execute function stake and after that will call function isStaked and will return Ok
-// 3 - will execute function unStake and after that will cal function isStaked and will return UserError
+// 1 - will execute function shouldBeStaked should return UserError
+// 2 - will execute function stake and after that will call function shouldBeStaked and will return Ok
+// 3 - will execute function unStake and after that will cal function shouldBeStaked and will return UserError
 func TestStakingSc_ExecuteIsStaked(t *testing.T) {
 	t.Parallel()
 
@@ -967,7 +967,7 @@ func TestStakingSc_ExecuteIsStaked(t *testing.T) {
 	// do stake should work
 	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("anotherKey"))
 	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, stakerPubKey)
-	// check again isStaked should return vmcommon.Ok
+	// check again shouldBeStaked should return vmcommon.Ok
 	checkIsStaked(t, stakingSmartContract, callerAddress, stakerPubKey, vmcommon.Ok)
 	//do unStake
 	doUnStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, stakerPubKey, vmcommon.Ok)
@@ -1097,6 +1097,8 @@ func TestStakingSc_ExecuteStakeStakeJailAndSwitch(t *testing.T) {
 	args.Eei = eei
 	stakingSmartContract, _ := NewStakingSmartContract(args)
 
+	stakingSmartContract.flagCorrectJailedNotUnstakedEmptyQueue.Unset()
+
 	stakerAddress := []byte("stakerAddr")
 	stakerPubKey := []byte("stakerPublicKey")
 	callerAddress := []byte("data")
@@ -1140,6 +1142,145 @@ func TestStakingSc_ExecuteStakeStakeJailAndSwitch(t *testing.T) {
 
 	lastOutput := eei.output[len(eei.output)-1]
 	assert.Equal(t, lastOutput, []byte{2})
+}
+
+func TestStakingSc_ExecuteStakeStakeJailAndSwitchWithBoundaries(t *testing.T) {
+	t.Parallel()
+
+	maxStakedNodesNumber := 3
+	minStakedNodesNumber := 1
+	stakingAccessAddress := []byte("stakingAccessAddress")
+	stakerAddress := []byte("stakerAddr")
+	callerAddress := []byte("data")
+	stakeValue := big.NewInt(100)
+
+	tests := []struct {
+		name                       string
+		stakedNodesNumber          int
+		flagJailedRemoveEnabled    bool
+		shouldBeJailed             bool
+		shouldBeStaked             bool
+		remainingStakedNodesNumber int
+	}{
+		{
+			name:                       "no queue, before fix, max nodes",
+			stakedNodesNumber:          maxStakedNodesNumber,
+			flagJailedRemoveEnabled:    false,
+			shouldBeJailed:             true,
+			shouldBeStaked:             true,
+			remainingStakedNodesNumber: maxStakedNodesNumber,
+		},
+		{
+			name:                       "no queue, before fix, min nodes",
+			stakedNodesNumber:          minStakedNodesNumber,
+			flagJailedRemoveEnabled:    false,
+			shouldBeJailed:             true,
+			shouldBeStaked:             true,
+			remainingStakedNodesNumber: minStakedNodesNumber,
+		},
+		{
+			name:                       "no queue, after fix, max nodes",
+			stakedNodesNumber:          maxStakedNodesNumber,
+			flagJailedRemoveEnabled:    true,
+			shouldBeJailed:             true,
+			shouldBeStaked:             false,
+			remainingStakedNodesNumber: maxStakedNodesNumber - 1,
+		},
+		{
+			name:                       "no queue, after fix, min nodes ",
+			stakedNodesNumber:          minStakedNodesNumber,
+			flagJailedRemoveEnabled:    true,
+			shouldBeJailed:             true,
+			shouldBeStaked:             true,
+			remainingStakedNodesNumber: minStakedNodesNumber,
+		},
+		{
+			name:                       "with 1 queue, before fix, max nodes",
+			stakedNodesNumber:          maxStakedNodesNumber + 1,
+			flagJailedRemoveEnabled:    false,
+			shouldBeJailed:             true,
+			shouldBeStaked:             false,
+			remainingStakedNodesNumber: maxStakedNodesNumber,
+		},
+		{
+			name:                       "with 1 queue, after fix, max nodes",
+			stakedNodesNumber:          maxStakedNodesNumber + 1,
+			flagJailedRemoveEnabled:    true,
+			shouldBeJailed:             true,
+			shouldBeStaked:             false,
+			remainingStakedNodesNumber: maxStakedNodesNumber,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			jailedKey := []byte(fmt.Sprintf("staked_%v", 0))
+
+			var stakedResult vmcommon.ReturnCode
+			blockChainHook := &mock.BlockChainHookStub{}
+			blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
+				return nil, nil
+			}
+
+			eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
+			args := createStakingSCArgs(eei, stakingAccessAddress, stakeValue, maxStakedNodesNumber)
+			stakingSmartContract, _ := NewStakingSmartContract(args)
+
+			stakingSmartContract.flagCorrectJailedNotUnstakedEmptyQueue.Toggle(tt.flagJailedRemoveEnabled)
+
+			for i := 0; i < tt.stakedNodesNumber; i++ {
+				doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte(fmt.Sprintf("staked_%v", i)))
+			}
+
+			for i := 0; i < tt.stakedNodesNumber; i++ {
+				stakedResult = vmcommon.Ok
+				shouldBeOnQueue := i >= maxStakedNodesNumber
+				if shouldBeOnQueue {
+					stakedResult = vmcommon.UserError
+				}
+				checkIsStaked(t, stakingSmartContract, callerAddress, []byte(fmt.Sprintf("staked_%v", i)), stakedResult)
+			}
+
+			arguments := CreateVmContractCallInput()
+			arguments.Function = "switchJailedWithWaiting"
+			arguments.CallerAddr = args.EndOfEpochAccessAddr
+			arguments.Arguments = [][]byte{jailedKey}
+			retCode := stakingSmartContract.Execute(arguments)
+			assert.Equal(t, retCode, vmcommon.Ok)
+
+			stakedResult = vmcommon.Ok
+			if !tt.shouldBeStaked {
+				stakedResult = vmcommon.UserError
+			}
+			checkIsStaked(t, stakingSmartContract, callerAddress, jailedKey, stakedResult)
+
+			marshaledData := args.Eei.GetStorage(jailedKey)
+			stakedData := &StakedDataV2_0{}
+			_ = json.Unmarshal(marshaledData, stakedData)
+			assert.Equal(t, tt.shouldBeJailed, stakedData.Jailed)
+			assert.Equal(t, tt.shouldBeStaked, stakedData.Staked)
+
+			arguments.Function = "getTotalNumberOfRegisteredNodes"
+			arguments.Arguments = [][]byte{}
+			retCode = stakingSmartContract.Execute(arguments)
+			assert.Equal(t, retCode, vmcommon.Ok)
+
+			lastOutput := eei.output[len(eei.output)-1]
+			assert.Equal(t, lastOutput, []byte{byte(tt.remainingStakedNodesNumber)})
+		})
+	}
+}
+
+func createStakingSCArgs(eei *vmContext, stakingAccessAddress []byte, stakeValue *big.Int, maxStakedNodesNumber int) ArgsNewStakingSmartContract {
+	eei.SetSCAddress([]byte("addr"))
+
+	args := createMockStakingScArguments()
+	args.StakingAccessAddr = stakingAccessAddress
+	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
+	args.StakingSCConfig.MaxNumberOfNodesForStake = uint64(maxStakedNodesNumber)
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
+	args.Eei = eei
+	return args
 }
 
 func TestStakingSc_ExecuteStakeStakeStakeJailJailUnJailTwice(t *testing.T) {
