@@ -818,10 +818,25 @@ func (pcf *processComponentsFactory) prepareGenesisBlock(genesisBlocks map[uint3
 	return nil
 }
 
+func getGenesisMiniBlocksForCurrentShard(miniBlocks []*dataBlock.MiniBlock, shardId uint32) *dataBlock.Body {
+	var indexMiniBlocks = make([]*dataBlock.MiniBlock, 0)
+
+	for _, miniBlock := range miniBlocks {
+		if miniBlock.GetSenderShardID() == shardId {
+			indexMiniBlocks = append(indexMiniBlocks, miniBlock)
+		}
+	}
+
+	genesisMiniBlocks := &dataBlock.Body{
+		MiniBlocks: indexMiniBlocks,
+	}
+
+	return genesisMiniBlocks
+}
+
 func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32]data.HeaderHandler) error {
-	// In Elastic Indexer, only index the metachain block
-	shardId := pcf.bootstrapComponents.ShardCoordinator().SelfId()
-	genesisBlockHeader := genesisBlocks[shardId]
+	currentShardId := pcf.bootstrapComponents.ShardCoordinator().SelfId()
+	genesisBlockHeader := genesisBlocks[currentShardId]
 	genesisBlockHash, err := core.CalculateHash(pcf.coreData.InternalMarshalizer(), pcf.coreData.Hasher(), genesisBlockHeader)
 	if err != nil {
 		return err
@@ -835,15 +850,7 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32
 			return err
 		}
 
-		var indexMiniBlocks = make([]*dataBlock.MiniBlock, 0)
-		for _, miniBlock := range miniBlocks {
-			if miniBlock.GetSenderShardID() == shardId {
-				indexMiniBlocks = append(indexMiniBlocks, miniBlock)
-			}
-		}
-		genesisMiniBlocks := &dataBlock.Body{
-			MiniBlocks: indexMiniBlocks,
-		}
+		genesisMiniBlocks := getGenesisMiniBlocksForCurrentShard(miniBlocks, currentShardId)
 
 		arg := &indexer.ArgsSaveBlockData{
 			HeaderHash: genesisBlockHash,
@@ -853,37 +860,24 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32
 				GasConsumed:    0,
 				GasRefunded:    0,
 				GasPenalized:   0,
-				MaxGasPerBlock: pcf.coreData.EconomicsData().MaxGasLimitPerBlock(shardId),
+				MaxGasPerBlock: pcf.coreData.EconomicsData().MaxGasLimitPerBlock(currentShardId),
 			},
-			TransactionsPool: txsPoolPerShard[shardId],
+			TransactionsPool: txsPoolPerShard[currentShardId],
 		}
 		pcf.statusComponents.OutportHandler().SaveBlock(arg)
 	}
 
-	// In "dblookupext" index, record both the metachain and the shardID blocks
-	var shardID uint32
-	for shardID, genesisBlockHeader = range genesisBlocks {
-		if pcf.bootstrapComponents.ShardCoordinator().SelfId() != shardID {
-			continue
-		}
+	log.Info("indexGenesisBlocks(): historyRepo.RecordBlock", "shardID", currentShardId, "hash", genesisBlockHash)
+	err = pcf.historyRepo.RecordBlock(genesisBlockHash, genesisBlockHeader, &dataBlock.Body{}, nil, nil, nil)
+	if err != nil {
+		return err
+	}
 
-		genesisBlockHash, err = core.CalculateHash(pcf.coreData.InternalMarshalizer(), pcf.coreData.Hasher(), genesisBlockHeader)
-		if err != nil {
-			return err
-		}
-
-		log.Info("indexGenesisBlocks(): historyRepo.RecordBlock", "shardID", shardID, "hash", genesisBlockHash)
-		err = pcf.historyRepo.RecordBlock(genesisBlockHash, genesisBlockHeader, &dataBlock.Body{}, nil, nil, nil)
-		if err != nil {
-			return err
-		}
-
-		nonceByHashDataUnit := dataRetriever.GetHdrNonceHashDataUnit(shardID)
-		nonceAsBytes := pcf.coreData.Uint64ByteSliceConverter().ToByteSlice(genesisBlockHeader.GetNonce())
-		err = pcf.data.StorageService().Put(nonceByHashDataUnit, nonceAsBytes, genesisBlockHash)
-		if err != nil {
-			return err
-		}
+	nonceByHashDataUnit := dataRetriever.GetHdrNonceHashDataUnit(currentShardId)
+	nonceAsBytes := pcf.coreData.Uint64ByteSliceConverter().ToByteSlice(genesisBlockHeader.GetNonce())
+	err = pcf.data.StorageService().Put(nonceByHashDataUnit, nonceAsBytes, genesisBlockHash)
+	if err != nil {
+		return err
 	}
 
 	return nil
