@@ -3,6 +3,7 @@ package factory_test
 import (
 	"errors"
 	"testing"
+	"time"
 
 	covalentFactory "github.com/ElrondNetwork/covalent-indexer-go/factory"
 	indexerFactory "github.com/ElrondNetwork/elastic-indexer-go/factory"
@@ -25,6 +26,7 @@ func createMockArgsOutportHandler(indexerEnabled, notifierEnabled, covalentEnabl
 		Enabled: covalentEnabled,
 	}
 	return &factory.OutportFactoryArgs{
+		RetrialInterval:            time.Second,
 		ElasticIndexerFactoryArgs:  mockElasticArgs,
 		EventNotifierFactoryArgs:   mockNotifierArgs,
 		CovalentIndexerFactoryArgs: mockCovalentArgs,
@@ -44,6 +46,15 @@ func TestNewIndexerFactory(t *testing.T) {
 				return nil
 			},
 			exError: outport.ErrNilArgsOutportFactory,
+		},
+		{
+			name: "invalid retrial duration",
+			argsFunc: func() *factory.OutportFactoryArgs {
+				args := createMockArgsOutportHandler(false, false, false)
+				args.RetrialInterval = 0
+				return args
+			},
+			exError: outport.ErrInvalidRetrialInterval,
 		},
 		{
 			name: "AllOkShouldWork",

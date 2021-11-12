@@ -14,6 +14,11 @@ type BlockChainHookHandlerMock struct {
 	ProcessBuiltInFunctionCalled func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
 }
 
+// SaveNFTMetaDataToSystemAccount -
+func (e *BlockChainHookHandlerMock) SaveNFTMetaDataToSystemAccount(_ data.TransactionHandler) error {
+	return nil
+}
+
 // ProcessBuiltInFunction -
 func (e *BlockChainHookHandlerMock) ProcessBuiltInFunction(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 	if e.ProcessBuiltInFunctionCalled != nil {

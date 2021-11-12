@@ -72,6 +72,8 @@ type scProcessor struct {
 	backwardCompSaveKeyValueEnableEpoch         uint32
 	createdCallBackCrossShardOnlyEnableEpoch    uint32
 	optimizeGasUsedInCrossMiniBlocksEnableEpoch uint32
+	saveKeyValueUnderProtectedErrorEnableEpoch  uint32
+	optimizeNFTStoreEnableEpoch                 uint32
 	flagStakingV2                               atomic.Flag
 	flagDeploy                                  atomic.Flag
 	flagBuiltin                                 atomic.Flag
@@ -86,6 +88,8 @@ type scProcessor struct {
 	flagCreatedCallBackCrossShardOnly           atomic.Flag
 	arwenChangeLocker                           common.Locker
 	flagOptimizeGasUsedInCrossMiniBlocks        atomic.Flag
+	flagSaveKeyValueUnderProtectedError         atomic.Flag
+	flagOptimizeNFTStore                        atomic.Flag
 
 	badTxForwarder process.IntermediateTransactionHandler
 	scrForwarder   process.IntermediateTransactionHandler
@@ -225,6 +229,8 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		incrementSCRNonceInMultiTransferEnableEpoch: args.EnableEpochs.IncrementSCRNonceInMultiTransferEnableEpoch,
 		createdCallBackCrossShardOnlyEnableEpoch:    args.EnableEpochs.MultiESDTTransferFixOnCallBackOnEnableEpoch,
 		optimizeGasUsedInCrossMiniBlocksEnableEpoch: args.EnableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
+		saveKeyValueUnderProtectedErrorEnableEpoch:  args.EnableEpochs.RemoveNonUpdatedStorageEnableEpoch,
+		optimizeNFTStoreEnableEpoch:                 args.EnableEpochs.OptimizeNFTStoreEnableEpoch,
 	}
 
 	var err error
@@ -244,6 +250,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	log.Debug("smartContract/process: disable epoch for backward compatibility check on save key value error", "epoch", sc.scrSizeInvariantCheckEnableEpoch)
 	log.Debug("smartContract/process: enable epoch for created async callback on cross shard only", "epoch", sc.createdCallBackCrossShardOnlyEnableEpoch)
 	log.Debug("smartContract/process: enable epoch for optimize gas used in cross mini blocks", "epoch", sc.optimizeGasUsedInCrossMiniBlocksEnableEpoch)
+	log.Debug("smartContract/process: enable epoch for return as failure when saving under protected key", "epoch", sc.saveKeyValueUnderProtectedErrorEnableEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(sc)
 	args.GasSchedule.RegisterNotifyHandler(sc)
@@ -1286,6 +1293,13 @@ func (sc *scProcessor) ProcessIfError(
 
 	sc.txFeeHandler.ProcessTransactionFee(consumedFee, big.NewInt(0), txHash)
 
+	if sc.flagOptimizeNFTStore.IsSet() {
+		err = sc.blockChainHook.SaveNFTMetaDataToSystemAccount(tx)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -2284,6 +2298,10 @@ func (sc *scProcessor) processSCOutputAccounts(
 		for _, storeUpdate := range outAcc.StorageUpdates {
 			if !process.IsAllowedToSaveUnderKey(storeUpdate.Offset) {
 				log.Trace("storeUpdate is not allowed", "acc", outAcc.Address, "key", storeUpdate.Offset, "data", storeUpdate.Data)
+				if sc.flagSaveKeyValueUnderProtectedError.IsSet() {
+					return false, nil, process.ErrNotAllowedToWriteUnderProtectedKey
+				}
+
 				continue
 			}
 
@@ -2617,6 +2635,12 @@ func (sc *scProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 
 	sc.flagOptimizeGasUsedInCrossMiniBlocks.Toggle(epoch >= sc.optimizeGasUsedInCrossMiniBlocksEnableEpoch)
 	log.Debug("scProcessor: optimize gas used in cross mini blocks", "enabled", sc.flagOptimizeGasUsedInCrossMiniBlocks.IsSet())
+
+	sc.flagSaveKeyValueUnderProtectedError.Toggle(epoch >= sc.saveKeyValueUnderProtectedErrorEnableEpoch)
+	log.Debug("scProcessor: return failure when saving under protected key", "enabled", sc.flagSaveKeyValueUnderProtectedError.IsSet())
+
+	sc.flagOptimizeNFTStore.Toggle(epoch >= sc.optimizeNFTStoreEnableEpoch)
+	log.Debug("scProcessor: optimize nft store", "enabled", sc.flagOptimizeNFTStore.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

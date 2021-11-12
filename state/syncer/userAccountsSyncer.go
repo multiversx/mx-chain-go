@@ -108,7 +108,7 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 	return u.syncAccountDataTries(mainTrie, tss, ctx)
 }
 
-func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ssh data.SyncStatisticsHandler, ctx context.Context) error {
+func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ssh common.SizeSyncStatisticsHandler, ctx context.Context) error {
 	u.syncerMutex.Lock()
 	_, ok := u.dataTries[string(rootHash)]
 	if ok {
@@ -147,7 +147,7 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ssh data.SyncStatisti
 
 func (u *userAccountsSyncer) syncAccountDataTries(
 	mainTrie common.Trie,
-	ssh data.SyncStatisticsHandler,
+	ssh common.SizeSyncStatisticsHandler,
 	ctx context.Context,
 ) error {
 	mainRootHash, err := mainTrie.RootHash()

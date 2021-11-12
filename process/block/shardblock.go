@@ -221,6 +221,7 @@ func (sp *shardProcessor) ProcessBlock(
 	}
 
 	if sp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
+		log.Error("shardProcessor.ProcessBlock first entry", "stack", string(sp.accountsDB[state.UserAccountsState].GetStackDebugFirstEntry()))
 		return process.ErrAccountStateDirty
 	}
 
@@ -377,6 +378,10 @@ func (sp *shardProcessor) checkEpochCorrectness(
 	incorrectStartOfEpochBlock := header.GetEpoch() != currentBlockHeader.GetEpoch() &&
 		sp.epochStartTrigger.MetaEpoch() == currentBlockHeader.GetEpoch()
 	if incorrectStartOfEpochBlock {
+		if header.IsStartOfEpochBlock() {
+			sp.dataPool.Headers().RemoveHeaderByHash(header.EpochStartMetaHash)
+			go sp.requestHandler.RequestMetaHeader(header.EpochStartMetaHash)
+		}
 		return fmt.Errorf("%w proposed header with new epoch %d with trigger still in last epoch %d",
 			process.ErrEpochDoesNotMatch, header.GetEpoch(), sp.epochStartTrigger.MetaEpoch())
 	}
@@ -1698,7 +1703,10 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool) (*block.Body, e
 	var miniBlocks block.MiniBlockSlice
 
 	if sp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
-		log.Error("shardProcessor.createMiniBlocks", "error", process.ErrAccountStateDirty)
+		log.Error("shardProcessor.createMiniBlocks", "error", process.ErrAccountStateDirty,
+			"stack", string(sp.accountsDB[state.UserAccountsState].GetStackDebugFirstEntry()),
+		)
+
 		return &block.Body{MiniBlocks: miniBlocks}, nil
 	}
 

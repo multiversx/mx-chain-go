@@ -18,14 +18,6 @@ func createSerialLevelDb(t *testing.T, batchDelaySeconds int, maxBatchSize int, 
 	return lvdb
 }
 
-func TestSerialDB_InitNoError(t *testing.T) {
-	ldb := createSerialLevelDb(t, 10, 1, 10)
-
-	err := ldb.Init()
-
-	assert.Nil(t, err, "error initializing DB")
-}
-
 func TestSerialDB_PutNoError(t *testing.T) {
 	key, val := []byte("key"), []byte("value")
 	ldb := createSerialLevelDb(t, 10, 1, 10)

@@ -116,6 +116,11 @@ func (a *accountsAdapter) GetNumCheckpoints() uint32 {
 	return 0
 }
 
+// GetStackDebugFirstEntry -
+func (a *accountsAdapter) GetStackDebugFirstEntry() []byte {
+	return nil
+}
+
 // Close -
 func (a *accountsAdapter) Close() error {
 	return nil

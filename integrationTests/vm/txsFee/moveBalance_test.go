@@ -192,7 +192,7 @@ func TestMoveBalanceHigherNonceShouldNotConsumeGas(t *testing.T) {
 	require.Equal(t, big.NewInt(0), accumulatedFees)
 }
 
-func TestMoveBalanceMoreGasThanGasLimitPerBlock(t *testing.T) {
+func TestMoveBalanceMoreGasThanGasLimitPerMiniBlockForSafeCrossShard(t *testing.T) {
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -208,7 +208,7 @@ func TestMoveBalanceMoreGasThanGasLimitPerBlock(t *testing.T) {
 	tx := vm.CreateTransaction(0, big.NewInt(500), sndAddr, rcvAddr, gasPrice, gasLimit, []byte("aaaa"))
 
 	_, err = testContext.TxProcessor.ProcessTransaction(tx)
-	require.Equal(t, process.ErrMoreGasThanGasLimitPerBlock, err)
+	require.Equal(t, process.ErrMoreGasThanGasLimitPerMiniBlockForSafeCrossShard, err)
 	require.Nil(t, testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
