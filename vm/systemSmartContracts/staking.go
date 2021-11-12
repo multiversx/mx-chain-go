@@ -1201,13 +1201,15 @@ func (s *stakingSC) switchJailedWithWaiting(args *vmcommon.ContractCallInput) vm
 func (s *stakingSC) tryRemoveJailedNodeFromStaked(registrationData *StakedDataV2_0) {
 	if !s.flagCorrectJailedNotUnstakedEmptyQueue.IsSet() {
 		s.removeAndSetUnstaked(registrationData)
-	} else {
-		if s.canUnStake() {
-			s.removeAndSetUnstaked(registrationData)
-		} else {
-			s.eei.AddReturnMessage("did not switch as not enough validators remaining")
-		}
+		return
 	}
+
+	if s.canUnStake() {
+		s.removeAndSetUnstaked(registrationData)
+		return
+	}
+
+	s.eei.AddReturnMessage("did not switch as not enough validators remaining")
 }
 
 func (s *stakingSC) removeAndSetUnstaked(registrationData *StakedDataV2_0) {
