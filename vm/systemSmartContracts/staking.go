@@ -144,7 +144,7 @@ func NewStakingSmartContract(
 	log.Debug("staking: enable epoch for correct last unjailed", "epoch", reg.correctLastUnjailedEpoch)
 	log.Debug("staking: enable epoch for validator to delegation", "epoch", reg.validatorToDelegationEnableEpoch)
 	log.Debug("staking: enable epoch for correct first queued", "epoch", reg.correctFirstQueuedEpoch)
-	log.Debug("staking: enable epoch for correct jailed not unstaked with empty queue", "epoch", reg.flagCorrectJailedNotUnstakedEmptyQueue)
+	log.Debug("staking: enable epoch for correct jailed not unstaked with empty queue", "epoch", reg.correctJailedNotUnstakedEmptyQueueEpoch)
 
 	var conversionOk bool
 	reg.stakeValue, conversionOk = big.NewInt(0).SetString(args.StakingSCConfig.GenesisNodePrice, conversionBase)
@@ -2112,7 +2112,7 @@ func (s *stakingSC) EpochConfirmed(epoch uint32, _ uint64) {
 	s.flagCorrectFirstQueued.Toggle(epoch >= s.correctFirstQueuedEpoch)
 	log.Debug("stakingSC: correct first queued", "enabled", s.flagCorrectFirstQueued.IsSet())
 
-	s.flagCorrectJailedNotUnstakedEmptyQueue.Toggle(epoch >= s.correctFirstQueuedEpoch)
+	s.flagCorrectJailedNotUnstakedEmptyQueue.Toggle(epoch >= s.correctJailedNotUnstakedEmptyQueueEpoch)
 	log.Debug("stakingSC: correct jailed not unstaked with empty queue", "enabled", s.flagCorrectJailedNotUnstakedEmptyQueue.IsSet())
 }
 

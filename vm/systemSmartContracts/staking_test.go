@@ -1297,6 +1297,35 @@ func createStakingSCArgs(eei *vmContext, stakingAccessAddress []byte, stakeValue
 	return args
 }
 
+func TestStakingSc_ExecuteJailNoQueueActivation(t *testing.T) {
+	maxStakedNodesNumber := 3
+	stakingAccessAddress := []byte("stakingAccessAddress")
+	stakeValue := big.NewInt(100)
+
+	correctJailedNoQueueEnableEpoch := uint32(5)
+
+	blockChainHook := &mock.BlockChainHookStub{}
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
+		return nil, nil
+	}
+
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
+	args := createStakingSCArgs(eei, stakingAccessAddress, stakeValue, maxStakedNodesNumber)
+	args.EpochConfig.EnableEpochs.CorrectJailedNotUnstakedEmptyQueueEpoch = correctJailedNoQueueEnableEpoch
+	stakingSmartContract, _ := NewStakingSmartContract(args)
+
+	assert.False(t, stakingSmartContract.flagCorrectJailedNotUnstakedEmptyQueue.IsSet())
+
+	stakingSmartContract.EpochConfirmed(correctJailedNoQueueEnableEpoch-1, 0)
+	assert.False(t, stakingSmartContract.flagCorrectJailedNotUnstakedEmptyQueue.IsSet())
+
+	stakingSmartContract.EpochConfirmed(correctJailedNoQueueEnableEpoch, 0)
+	assert.True(t, stakingSmartContract.flagCorrectJailedNotUnstakedEmptyQueue.IsSet())
+
+	stakingSmartContract.EpochConfirmed(correctJailedNoQueueEnableEpoch+1, 0)
+	assert.True(t, stakingSmartContract.flagCorrectJailedNotUnstakedEmptyQueue.IsSet())
+}
+
 func TestStakingSc_ExecuteStakeStakeStakeJailJailUnJailTwice(t *testing.T) {
 	t.Parallel()
 
