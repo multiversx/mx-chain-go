@@ -147,6 +147,9 @@
     # OptimizeNFTStoreEnableEpoch represents the epoch when optimizations on NFT metadata store and send are enabled
     OptimizeNFTStoreEnableEpoch = 3
 
+    # CreateNFTThroughExecByCallerEnableEpoch represents the epoch when nft creation through execution on destination by caller is enabled
+    CreateNFTThroughExecByCallerEnableEpoch = 3
+
     # DisableOldTrieStorageEpoch represents the epoch when the old trie storage implementation will be disabled
     DisableOldTrieStorageEpoch = 4
 
@@ -160,4 +163,5 @@
     GasScheduleByEpochs = [
         { StartEpoch = 0, FileName = "gasScheduleV1.toml" },
         { StartEpoch = 1, FileName = "gasScheduleV4.toml" },
+        { StartEpoch = 3, FileName = "gasScheduleV5.toml" },
     ]

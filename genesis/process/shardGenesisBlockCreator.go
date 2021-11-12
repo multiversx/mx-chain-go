@@ -72,6 +72,7 @@ func createGenesisConfig() config.EnableEpochs {
 		FixOOGReturnCodeEnableEpoch:                 unreachableEpoch,
 		RemoveNonUpdatedStorageEnableEpoch:          unreachableEpoch,
 		OptimizeNFTStoreEnableEpoch:                 unreachableEpoch,
+		CreateNFTThroughExecByCallerEnableEpoch:     unreachableEpoch,
 		DisableOldTrieStorageEpoch:                  unreachableEpoch,
 	}
 }
