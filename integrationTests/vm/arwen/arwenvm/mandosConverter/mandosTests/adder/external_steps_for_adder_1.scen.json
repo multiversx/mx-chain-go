@@ -16,7 +16,7 @@
                     "nonce": "0",
                     "balance": "0",
                     "storage": {},
-                    "code": "file:adder.wasm",
+                    "code": "file:./output/adder.wasm",
                     "owner": "address:owner"
                 }
             }

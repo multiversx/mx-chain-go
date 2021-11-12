@@ -1,18 +1,20 @@
 package mandosConverter
 
 import (
-	"fmt"
 	"testing"
 
 	mge "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/mandos-go/elrondgo-exporter"
 	mgutil "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/mandos-go/util"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
+
+var log = logger.GetOrCreate("mandosConverte")
 
 // CheckAccounts will verify if mandosAccounts correspond to AccountsAdapter accounts
 func CheckAccounts(t *testing.T, accAdapter state.AccountsAdapter, mandosAccounts []*mge.TestAccount) {
@@ -69,7 +71,6 @@ func CheckTransactions(t *testing.T, transactions []*transaction.Transaction, ma
 		expectedNonce := mandosTransactions[i].GetNonce()
 
 		require.Equal(t, expectedSender, transactions[i].GetSndAddr())
-		require.Equal(t, expectedReceiver, transactions[i].GetRcvAddr())
 		require.Equal(t, expectedCallValue, transactions[i].GetValue())
 		require.Equal(t, expectedGasLimit, transactions[i].GetGasLimit())
 		require.Equal(t, expectedGasPrice, transactions[i].GetGasPrice())
@@ -78,9 +79,12 @@ func CheckTransactions(t *testing.T, transactions []*transaction.Transaction, ma
 		var expectedData []byte
 		if len(expectedEsdtTransfers) != 0 {
 			expectedData = mgutil.CreateMultiTransferData(expectedReceiver, expectedEsdtTransfers, expectedCallFunction, expectedCallArguments)
+			require.Equal(t, expectedSender, transactions[i].GetRcvAddr())
 		} else {
+			require.Equal(t, expectedReceiver, transactions[i].GetRcvAddr())
 			expectedData = createData(expectedCallFunction, expectedCallArguments)
 		}
+
 		actualData := transactions[i].GetData()
 		require.Equal(t, expectedData, actualData)
 	}
@@ -89,29 +93,29 @@ func CheckTransactions(t *testing.T, transactions []*transaction.Transaction, ma
 func BenchmarkMandosSpecificTx(b *testing.B, mandosTestPath string) {
 	testContext, transactions, benchmarkTxPos, err := SetStateFromMandosTest(mandosTestPath)
 	if err != nil {
-		fmt.Println("Setting state went wrong: ", err)
+		log.Trace("Setting state went wrong:", "error", err)
 		return
 	}
 	defer testContext.Close()
 	if benchmarkTxPos == mge.InvalidBenchmarkTxPos {
-		fmt.Println("There is not benchmark to be made")
+		log.Trace("no transactions marked for benchmarking")
 	}
 	if len(transactions) > 1 {
 		err = ProcessAllTransactions(testContext, transactions[:benchmarkTxPos])
 		if err != nil {
-			fmt.Println("Processing transactions went wrong:", err)
+			log.Trace("Processing transactions went wrong:", "error", err)
 		}
 	}
 
 	err = RunSingleTransactionBenchmark(b, testContext, transactions[benchmarkTxPos])
 	if err != nil {
-		fmt.Println("Processing benchmark transaction went wrong:", err)
+		log.Trace("Processing benchmark transaction went wrong:", "error", err)
 	}
 }
 
 // SetStateFromMandosTest recieves path to mandosTest, returns a VMTestContext with the specified accounts, an array with the specified transactions and an error
 func SetStateFromMandosTest(mandosTestPath string) (testContext *vm.VMTestContext, transactions []*transaction.Transaction, bechmarkTxPos int, err error) {
-	mandosAccounts, deployedMandosAccounts, mandosTransactions, deployMandosTransactions, benchmarkTxPos, err := mge.GetAccountsAndTransactionsFromMandos(mandosTestPath)
+	stateAndBenchmarkInfo, err := mge.GetAccountsAndTransactionsFromMandos(mandosTestPath)
 	if err != nil {
 		return nil, nil, mge.InvalidBenchmarkTxPos, err
 	}
@@ -119,28 +123,29 @@ func SetStateFromMandosTest(mandosTestPath string) (testContext *vm.VMTestContex
 	if err != nil {
 		return nil, nil, mge.InvalidBenchmarkTxPos, err
 	}
-	err = CreateAccountsFromMandosAccs(testContext, mandosAccounts)
+	err = CreateAccountsFromMandosAccs(testContext, stateAndBenchmarkInfo.Accs)
 	if err != nil {
 		return nil, nil, mge.InvalidBenchmarkTxPos, err
 	}
-	err = DeploySCsFromMandosDeployTxs(testContext, deployMandosTransactions, mandosTransactions, deployedMandosAccounts)
+	newAddresses, err := DeploySCsFromMandosDeployTxs(testContext, stateAndBenchmarkInfo.DeployTxs)
 	if err != nil {
 		return nil, nil, mge.InvalidBenchmarkTxPos, err
 	}
-	transactions = CreateTransactionsFromMandosTxs(mandosTransactions)
-	return testContext, transactions, benchmarkTxPos, nil
+	ReplaceMandosScAddressesWithNewScAddresses(stateAndBenchmarkInfo.DeployedAccs, newAddresses, stateAndBenchmarkInfo.Txs)
+	transactions = CreateTransactionsFromMandosTxs(stateAndBenchmarkInfo.Txs)
+	return testContext, transactions, stateAndBenchmarkInfo.BenchmarkTxPos, nil
 }
 
 func CheckConverter(t *testing.T, mandosTestPath string) {
-	mandosAccounts, _, mandosTransactions, _, _, err := mge.GetAccountsAndTransactionsFromMandos(mandosTestPath)
+	stateAndBenchmarkInfo, err := mge.GetAccountsAndTransactionsFromMandos(mandosTestPath)
 	require.Nil(t, err)
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
 	require.Nil(t, err)
-	err = CreateAccountsFromMandosAccs(testContext, mandosAccounts)
+	err = CreateAccountsFromMandosAccs(testContext, stateAndBenchmarkInfo.Accs)
 	require.Nil(t, err)
-	CheckAccounts(t, testContext.Accounts, mandosAccounts)
-	transactions := CreateTransactionsFromMandosTxs(mandosTransactions)
-	CheckTransactions(t, transactions, mandosTransactions)
+	CheckAccounts(t, testContext.Accounts, stateAndBenchmarkInfo.Accs)
+	transactions := CreateTransactionsFromMandosTxs(stateAndBenchmarkInfo.Txs)
+	CheckTransactions(t, transactions, stateAndBenchmarkInfo.Txs)
 }
 
 func ProcessAllTransactions(testContext *vm.VMTestContext, transactions []*transaction.Transaction) (err error) {

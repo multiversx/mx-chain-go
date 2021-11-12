@@ -61,10 +61,11 @@ func CreateAccountsFromMandosAccs(tc *vm.VMTestContext, mandosUserAccounts []*mg
 
 // CreateTransactionsFromMandosTxs converts mandos transactions intro trasnsactions that can be processed by the txProcessor
 func CreateTransactionsFromMandosTxs(mandosTxs []*mge.Transaction) (transactions []*transaction.Transaction) {
+	var data []byte
 	transactions = make([]*transaction.Transaction, 0)
+
 	for _, mandosTx := range mandosTxs {
 		gasLimit, gasPrice := mandosTx.GetGasLimitAndPrice()
-		var data []byte
 		esdtTransfers := mandosTx.GetESDTTransfers()
 		endpointName := mandosTx.GetCallFunction()
 		args := mandosTx.GetCallArguments()
@@ -91,22 +92,29 @@ func CreateTransactionsFromMandosTxs(mandosTxs []*mge.Transaction) (transactions
 }
 
 // DeploySCsFromMandosDeployTxs deploys all smartContracts correspondent to "scDeploy" in a mandos test, then replaces with the correct computed address in all the transactions.
-func DeploySCsFromMandosDeployTxs(testContext *vm.VMTestContext, deployMandosTxs []*mge.Transaction, mandosTxs []*mge.Transaction, deployedScAccounts []*mge.TestAccount) (err error) {
+func DeploySCsFromMandosDeployTxs(testContext *vm.VMTestContext, deployMandosTxs []*mge.Transaction) (newScAddresses [][]byte, err error) {
+	newScAddresses = make([][]byte, 0)
 	for _, deployMandosTransaction := range deployMandosTxs {
 		deployedScAddress, err := deploySC(testContext, deployMandosTransaction)
 		if err != nil {
-			return err
+			return newScAddresses, err
 		}
+		newScAddresses = append(newScAddresses, deployedScAddress)
+	}
+	return newScAddresses, nil
+}
+
+// ReplaceMandosScAddressesWithNewScAddresses corrects the Mandos SC Addresses, with the new Addresses obtained from deploying the SCs
+func ReplaceMandosScAddressesWithNewScAddresses(deployedScAccounts []*mge.TestAccount, newScAddresses [][]byte, mandosTxs []*mge.Transaction) {
+	for _, newScAddr := range newScAddresses {
 		addressToBeReplaced := deployedScAccounts[0].GetAddress()
-		for i, mandosTx := range mandosTxs {
+		for _, mandosTx := range mandosTxs {
 			if bytes.Equal(mandosTx.GetReceiverAddress(), addressToBeReplaced) {
-				mandosTx.WithReceiverAddress(deployedScAddress)
-				mandosTxs[i] = mandosTx
+				mandosTx.WithReceiverAddress(newScAddr)
 			}
 		}
 		deployedScAccounts = deployedScAccounts[1:]
 	}
-	return nil
 }
 
 func createData(functionName string, arguments [][]byte) []byte {
