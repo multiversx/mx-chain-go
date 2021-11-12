@@ -657,3 +657,6 @@ const TimeoutGettingTrieNodes = 2 * time.Minute //to consider syncing a very lar
 // TimeoutGettingTrieNodesInHardfork represents the maximum time allowed between 2 nodes fetches (and commits)
 // during the hardfork process
 const TimeoutGettingTrieNodesInHardfork = time.Minute * 10
+
+// RetrialIntervalForOutportDriver is the interval in which the outport driver should try to call the driver again
+const RetrialIntervalForOutportDriver = time.Second * 10
