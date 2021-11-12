@@ -7,63 +7,77 @@ import (
 
 // DriverStub -
 type DriverStub struct {
-	SaveBlockCalled             func(args *indexer.ArgsSaveBlockData)
-	RevertBlockCalled           func(header data.HeaderHandler, body data.BodyHandler)
-	SaveRoundsInfoCalled        func(roundsInfos []*indexer.RoundInfo)
-	SaveValidatorsPubKeysCalled func(validatorsPubKeys map[uint32][][]byte, epoch uint32)
-	SaveValidatorsRatingCalled  func(indexID string, infoRating []*indexer.ValidatorRatingInfo)
-	SaveAccountsCalled          func(timestamp uint64, acc []data.UserAccountHandler)
-	FinalizedBlockCalled        func(headerHash []byte)
+	SaveBlockCalled             func(args *indexer.ArgsSaveBlockData) error
+	RevertBlockCalled           func(header data.HeaderHandler, body data.BodyHandler) error
+	SaveRoundsInfoCalled        func(roundsInfos []*indexer.RoundInfo) error
+	SaveValidatorsPubKeysCalled func(validatorsPubKeys map[uint32][][]byte, epoch uint32) error
+	SaveValidatorsRatingCalled  func(indexID string, infoRating []*indexer.ValidatorRatingInfo) error
+	SaveAccountsCalled          func(timestamp uint64, acc []data.UserAccountHandler) error
+	FinalizedBlockCalled        func(headerHash []byte) error
 	CloseCalled                 func() error
 }
 
 // SaveBlock -
-func (d *DriverStub) SaveBlock(args *indexer.ArgsSaveBlockData) {
+func (d *DriverStub) SaveBlock(args *indexer.ArgsSaveBlockData) error {
 	if d.SaveBlockCalled != nil {
-		d.SaveBlockCalled(args)
+		return d.SaveBlockCalled(args)
 	}
+
+	return nil
 }
 
 // RevertIndexedBlock -
-func (d *DriverStub) RevertIndexedBlock(header data.HeaderHandler, body data.BodyHandler) {
+func (d *DriverStub) RevertIndexedBlock(header data.HeaderHandler, body data.BodyHandler) error {
 	if d.RevertBlockCalled != nil {
-		d.RevertBlockCalled(header, body)
+		return d.RevertBlockCalled(header, body)
 	}
+
+	return nil
 }
 
 // SaveRoundsInfo -
-func (d *DriverStub) SaveRoundsInfo(roundsInfos []*indexer.RoundInfo) {
+func (d *DriverStub) SaveRoundsInfo(roundsInfos []*indexer.RoundInfo) error {
 	if d.SaveRoundsInfoCalled != nil {
-		d.SaveRoundsInfoCalled(roundsInfos)
+		return d.SaveRoundsInfoCalled(roundsInfos)
 	}
+
+	return nil
 }
 
 // SaveValidatorsPubKeys -
-func (d *DriverStub) SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte, epoch uint32) {
+func (d *DriverStub) SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte, epoch uint32) error {
 	if d.SaveValidatorsPubKeysCalled != nil {
-		d.SaveValidatorsPubKeysCalled(validatorsPubKeys, epoch)
+		return d.SaveValidatorsPubKeysCalled(validatorsPubKeys, epoch)
 	}
+
+	return nil
 }
 
 // SaveValidatorsRating -
-func (d *DriverStub) SaveValidatorsRating(indexID string, infoRating []*indexer.ValidatorRatingInfo) {
+func (d *DriverStub) SaveValidatorsRating(indexID string, infoRating []*indexer.ValidatorRatingInfo) error {
 	if d.SaveValidatorsRatingCalled != nil {
-		d.SaveValidatorsRatingCalled(indexID, infoRating)
+		return d.SaveValidatorsRatingCalled(indexID, infoRating)
 	}
+
+	return nil
 }
 
 // SaveAccounts -
-func (d *DriverStub) SaveAccounts(timestamp uint64, acc []data.UserAccountHandler) {
+func (d *DriverStub) SaveAccounts(timestamp uint64, acc []data.UserAccountHandler) error {
 	if d.SaveAccountsCalled != nil {
-		d.SaveAccountsCalled(timestamp, acc)
+		return d.SaveAccountsCalled(timestamp, acc)
 	}
+
+	return nil
 }
 
 // FinalizedBlock -
-func (d *DriverStub) FinalizedBlock(headerHash []byte) {
+func (d *DriverStub) FinalizedBlock(headerHash []byte) error {
 	if d.FinalizedBlockCalled != nil {
-		d.FinalizedBlockCalled(headerHash)
+		return d.FinalizedBlockCalled(headerHash)
 	}
+
+	return nil
 }
 
 // Close -
