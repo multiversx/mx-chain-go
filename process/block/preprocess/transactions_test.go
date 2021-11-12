@@ -86,6 +86,8 @@ func shardedDataCacherNotifier() dataRetriever.ShardedDataCacherNotifier {
 			}
 			return nil, false
 		},
+		RemoveDataCalled: func(key []byte, cacheID string) {
+		},
 	}
 }
 
