@@ -57,6 +57,9 @@ const NodesSetupJsonFileName = "nodesSetup.json"
 // ConsensusTopic is the topic used in consensus algorithm
 const ConsensusTopic = "consensus"
 
+// GenesisMinterAddressString is the string used to generate genesis transaction signature as 128 hex characters
+const GenesisTxSignatureString = "GENESISGENESISGENESISGENESISGENESISGENESISGENESISGENESISGENESISG"
+
 // HeartbeatTopic is the topic used for heartbeat signaling
 const HeartbeatTopic = "heartbeat"
 

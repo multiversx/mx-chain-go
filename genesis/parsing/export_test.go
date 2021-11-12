@@ -23,7 +23,7 @@ func (ap *accountsParser) Process() error {
 }
 
 func (ap *accountsParser) GenerateInShardMiniBlocks(txsHashesPerShard map[uint32][][]byte) []*block.MiniBlock {
-	return ap.generateInShardMiniBlocks(txsHashesPerShard)
+	return ap.generateIntraShardMiniBlocks(txsHashesPerShard)
 }
 
 func (ap *accountsParser) SetPukeyConverter(pubkeyConverter core.PubkeyConverter) {
@@ -36,12 +36,12 @@ func (ap *accountsParser) SetKeyGenerator(keyGen crypto.KeyGenerator) {
 
 func NewTestAccountsParser(pubkeyConverter core.PubkeyConverter) *accountsParser {
 	return &accountsParser{
-		pubkeyConverter:        pubkeyConverter,
-		initialAccounts:        make([]*data.InitialAccount, 0),
-		mintSenderAddressBytes: []byte{},
-		keyGenerator:           &mock.KeyGeneratorStub{},
-		hasher:                 &mock.HasherMock{},
-		marshalizer:            &mock.MarshalizerMock{},
+		pubkeyConverter:    pubkeyConverter,
+		initialAccounts:    make([]*data.InitialAccount, 0),
+		minterAddressBytes: []byte{},
+		keyGenerator:       &mock.KeyGeneratorStub{},
+		hasher:             &mock.HasherMock{},
+		marshalizer:        &mock.MarshalizerMock{},
 	}
 }
 

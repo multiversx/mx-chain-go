@@ -2,7 +2,6 @@ package parsing
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
 	"math/big"
 
@@ -15,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -22,20 +22,20 @@ import (
 
 // accountsParser hold data for initial accounts decoded data from json file
 type accountsParser struct {
-	initialAccounts        []*data.InitialAccount
-	entireSupply           *big.Int
-	mintSenderAddressBytes []byte
-	pubkeyConverter        core.PubkeyConverter
-	keyGenerator           crypto.KeyGenerator
-	hasher                 hashing.Hasher
-	marshalizer            marshal.Marshalizer
+	initialAccounts    []*data.InitialAccount
+	entireSupply       *big.Int
+	minterAddressBytes []byte
+	pubkeyConverter    core.PubkeyConverter
+	keyGenerator       crypto.KeyGenerator
+	hasher             hashing.Hasher
+	marshalizer        marshal.Marshalizer
 }
 
 // NewAccountsParser creates a new decoded accounts genesis structure from json config file
 func NewAccountsParser(
 	genesisFilePath string,
 	entireSupply *big.Int,
-	genesisMintSenderAddress string,
+	minterAddress string,
 	pubkeyConverter core.PubkeyConverter,
 	keyGenerator crypto.KeyGenerator,
 	hasher hashing.Hasher,
@@ -54,6 +54,12 @@ func NewAccountsParser(
 	if check.IfNil(keyGenerator) {
 		return nil, genesis.ErrNilKeyGenerator
 	}
+	if check.IfNil(hasher) {
+		return nil, genesis.ErrNilHasher
+	}
+	if check.IfNil(marshalizer) {
+		return nil, genesis.ErrNilMarshalizer
+	}
 
 	initialAccounts := make([]*data.InitialAccount, 0)
 	err := core.LoadJsonFile(&initialAccounts, genesisFilePath)
@@ -61,19 +67,19 @@ func NewAccountsParser(
 		return nil, err
 	}
 
-	senderAddressBytes, err := pubkeyConverter.Decode(genesisMintSenderAddress)
+	minterAddressBytes, err := pubkeyConverter.Decode(minterAddress)
 	if err != nil {
-		return nil, fmt.Errorf("%w for `%s`", genesis.ErrInvalidAddress, genesisMintSenderAddress)
+		return nil, fmt.Errorf("%w for `%s`", genesis.ErrInvalidAddress, minterAddress)
 	}
 
 	gp := &accountsParser{
-		initialAccounts:        initialAccounts,
-		entireSupply:           entireSupply,
-		mintSenderAddressBytes: senderAddressBytes,
-		pubkeyConverter:        pubkeyConverter,
-		keyGenerator:           keyGenerator,
-		hasher:                 hasher,
-		marshalizer:            marshalizer,
+		initialAccounts:    initialAccounts,
+		entireSupply:       entireSupply,
+		minterAddressBytes: minterAddressBytes,
+		pubkeyConverter:    pubkeyConverter,
+		keyGenerator:       keyGenerator,
+		hasher:             hasher,
+		marshalizer:        marshalizer,
 	}
 
 	err = gp.process()
@@ -301,7 +307,7 @@ func (ap *accountsParser) IsInterfaceNil() bool {
 	return ap == nil
 }
 
-func (ap *accountsParser) generateInShardMiniBlocks(txsHashesPerShard map[uint32][][]byte) []*block.MiniBlock {
+func (ap *accountsParser) generateIntraShardMiniBlocks(txsHashesPerShard map[uint32][][]byte) []*block.MiniBlock {
 	miniBlocks := make([]*block.MiniBlock, 0)
 
 	for shardId, txsHashes := range txsHashesPerShard {
@@ -310,7 +316,6 @@ func (ap *accountsParser) generateInShardMiniBlocks(txsHashesPerShard map[uint32
 			ReceiverShardID: shardId,
 			SenderShardID:   shardId,
 			Type:            block.TxBlock,
-			Reserved:        nil,
 		}
 
 		miniBlocks = append(miniBlocks, miniBlock)
@@ -322,12 +327,11 @@ func (ap *accountsParser) generateInShardMiniBlocks(txsHashesPerShard map[uint32
 func (ap *accountsParser) getMintTransaction(ia *data.InitialAccount, nonce uint64, signature []byte) *transactionData.Transaction {
 	tx := &transactionData.Transaction{
 		Nonce:     nonce,
-		SndAddr:   ap.mintSenderAddressBytes,
+		SndAddr:   ap.minterAddressBytes,
 		Value:     ia.GetSupply(),
 		RcvAddr:   ia.AddressBytes(),
 		GasPrice:  0,
 		GasLimit:  0,
-		Data:      nil,
 		Signature: signature,
 	}
 
@@ -343,17 +347,11 @@ func (ap *accountsParser) GenerateInitialTransactions(shardCoordinator sharding.
 	txsHashesPerShard := make(map[uint32][][]byte)
 	txsPoolPerShard := make(map[uint32]*indexer.Pool)
 
-	mintTxSign := []byte("GENESIS")
-	mintTxSignBytes := make([]byte, hex.EncodedLen(len(mintTxSign)))
-	hex.Encode(mintTxSignBytes, mintTxSign)
+	mintTxSignatureBytes := []byte(common.GenesisTxSignatureString)
 
 	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
 		txsPoolPerShard[i] = &indexer.Pool{
-			Txs:      make(map[string]coreData.TransactionHandler),
-			Scrs:     nil,
-			Rewards:  nil,
-			Invalid:  nil,
-			Receipts: nil,
+			Txs: make(map[string]coreData.TransactionHandler),
 		}
 	}
 
@@ -361,7 +359,7 @@ func (ap *accountsParser) GenerateInitialTransactions(shardCoordinator sharding.
 	for _, ia := range ap.initialAccounts {
 		shardID := shardCoordinator.ComputeId(ia.AddressBytes())
 
-		tx := ap.getMintTransaction(ia, nonce, mintTxSignBytes)
+		tx := ap.getMintTransaction(ia, nonce, mintTxSignatureBytes)
 
 		nonce++
 
@@ -374,7 +372,7 @@ func (ap *accountsParser) GenerateInitialTransactions(shardCoordinator sharding.
 		txsHashesPerShard[shardID] = append(txsHashesPerShard[shardID], txHash)
 	}
 
-	miniBlocks := ap.generateInShardMiniBlocks(txsHashesPerShard)
+	miniBlocks := ap.generateIntraShardMiniBlocks(txsHashesPerShard)
 
 	return miniBlocks, txsPoolPerShard, nil
 }

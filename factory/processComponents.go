@@ -818,7 +818,7 @@ func (pcf *processComponentsFactory) prepareGenesisBlock(genesisBlocks map[uint3
 	return nil
 }
 
-func getGenesisMiniBlocksForCurrentShard(miniBlocks []*dataBlock.MiniBlock, shardId uint32) *dataBlock.Body {
+func getGenesisBlockForCurrentShard(miniBlocks []*dataBlock.MiniBlock, shardId uint32) *dataBlock.Body {
 	var indexMiniBlocks = make([]*dataBlock.MiniBlock, 0)
 
 	for _, miniBlock := range miniBlocks {
@@ -850,11 +850,11 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32
 			return err
 		}
 
-		genesisMiniBlocks := getGenesisMiniBlocksForCurrentShard(miniBlocks, currentShardId)
+		genesisBody := getGenesisBlockForCurrentShard(miniBlocks, currentShardId)
 
 		arg := &indexer.ArgsSaveBlockData{
 			HeaderHash: genesisBlockHash,
-			Body:       genesisMiniBlocks,
+			Body:       genesisBody,
 			Header:     genesisBlockHeader,
 			HeaderGasConsumption: indexer.HeaderGasConsumption{
 				GasConsumed:    0,

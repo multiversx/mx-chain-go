@@ -2,11 +2,13 @@ package factory_test
 
 import (
 	"math/big"
+	"sync"
 	"testing"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
 	coreData "github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	dataBlock "github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/common"
 	commonFactory "github.com/ElrondNetwork/elrond-go/common/factory"
@@ -19,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -249,18 +252,31 @@ func FillGasMapMetaChainSystemSCsCosts(value uint64) map[string]uint64 {
 func TestProcessComponents_IndexGenesisBlocks(t *testing.T) {
 	t.Parallel()
 
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
 	processArgs := getProcessComponentsArgs(shardCoordinator)
 	processArgs.Data = &mock.DataComponentsMock{
 		Storage: &mock.ChainStorerMock{},
 	}
+
+	saveBlockCalledMutex := sync.Mutex{}
 
 	outportHandler := &testscommon.OutportStub{
 		HasDriversCalled: func() bool {
 			return true
 		},
 		SaveBlockCalled: func(args *indexer.ArgsSaveBlockData) {
+			saveBlockCalledMutex.Lock()
 			require.NotNil(t, args)
+
+			bodyRequired := &dataBlock.Body{
+				MiniBlocks: make([]*block.MiniBlock, 4),
+			}
+
+			txsPoolRequired := &indexer.Pool{}
+
+			assert.Equal(t, txsPoolRequired, args.TransactionsPool)
+			assert.Equal(t, bodyRequired, args.Body)
+			saveBlockCalledMutex.Unlock()
 		},
 	}
 
