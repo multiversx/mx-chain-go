@@ -1,6 +1,8 @@
 package factory
 
 import (
+	"time"
+
 	covalentFactory "github.com/ElrondNetwork/covalent-indexer-go/factory"
 	indexerFactory "github.com/ElrondNetwork/elastic-indexer-go/factory"
 	"github.com/ElrondNetwork/elrond-go/outport"
@@ -9,6 +11,7 @@ import (
 
 // OutportFactoryArgs holds the factory arguments of different outport drivers
 type OutportFactoryArgs struct {
+	RetrialInterval            time.Duration
 	ElasticIndexerFactoryArgs  *indexerFactory.ArgsIndexerFactory
 	EventNotifierFactoryArgs   *notifierFactory.EventNotifierFactoryArgs
 	CovalentIndexerFactoryArgs *covalentFactory.ArgsCovalentIndexerFactory
@@ -21,7 +24,11 @@ func CreateOutport(args *OutportFactoryArgs) (outport.OutportHandler, error) {
 		return nil, err
 	}
 
-	outportHandler := outport.NewOutport()
+	outportHandler, err := outport.NewOutport(args.RetrialInterval)
+	if err != nil {
+		return nil, err
+	}
+
 	err = createAndSubscribeDrivers(outportHandler, args)
 	if err != nil {
 		return nil, err
