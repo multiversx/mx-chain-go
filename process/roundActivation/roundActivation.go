@@ -23,12 +23,16 @@ func NewRoundActivation(config config.RoundConfig) (*roundActivation, error) {
 
 	return &roundActivation{
 		roundByNameMap: configMap,
+		mutex:          sync.RWMutex{},
 	}, nil
 }
 
 // IsEnabledInRound checks if the queried round flag name is enabled in the queried round
 func (ra *roundActivation) IsEnabledInRound(name string, round uint64) bool {
+	ra.mutex.RLock()
 	r, exists := ra.roundByNameMap[name]
+	ra.mutex.RUnlock()
+
 	if exists {
 		return round >= r
 	}
