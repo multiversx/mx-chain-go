@@ -28,8 +28,17 @@ func (rn *roundNotifier) RegisterNotifyHandler(handler process.RoundSubscriberHa
 
 	rn.mutex.Lock()
 	rn.handlers = append(rn.handlers, handler)
-	handler.RoundConfirmed(rn.round)
 	rn.mutex.Unlock()
+
+	currRound := rn.getRound()
+	handler.RoundConfirmed(currRound)
+}
+
+func (rn *roundNotifier) getRound() uint64 {
+	rn.mutex.RLock()
+	defer rn.mutex.RUnlock()
+
+	return rn.round
 }
 
 // CheckRound should be called whenever a new round is known. It will trigger the notifications of the
