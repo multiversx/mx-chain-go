@@ -2,12 +2,14 @@ package roundActivation
 
 import (
 	"reflect"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 type roundActivation struct {
+	mutex          sync.RWMutex
 	roundByNameMap map[string]uint64
 }
 
@@ -20,12 +22,16 @@ func NewRoundActivation(config config.RoundConfig) (process.RoundActivationHandl
 
 	return &roundActivation{
 		roundByNameMap: configMap,
+		mutex:          sync.RWMutex{},
 	}, nil
 }
 
 // IsEnabled checks if the queried round flag name is enabled in the queried round
 func (ra *roundActivation) IsEnabled(name string, round uint64) bool {
+	ra.mutex.RLock()
 	r, exists := ra.roundByNameMap[name]
+	ra.mutex.RUnlock()
+
 	if exists {
 		return round >= r
 	}
