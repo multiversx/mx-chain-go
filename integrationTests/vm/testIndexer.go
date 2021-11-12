@@ -173,7 +173,7 @@ func (ti *testIndexer) SaveTransaction(
 		Header:           header,
 		TransactionsPool: txsPool,
 	}
-	ti.outportDriver.SaveBlock(args)
+	_ = ti.outportDriver.SaveBlock(args)
 
 	select {
 	case <-ti.saveDoneChan:
