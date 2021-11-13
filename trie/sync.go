@@ -275,7 +275,7 @@ func (ts *trieSyncer) getNode(hash []byte) (node, error) {
 		return nodeInfo.trieNode, nil
 	}
 
-	return getNodeFromStorage(
+	return getNodeFromCacheOrStorage(
 		hash,
 		ts.interceptedNodesCacher,
 		ts.db,
@@ -284,17 +284,16 @@ func (ts *trieSyncer) getNode(hash []byte) (node, error) {
 	)
 }
 
-func getNodeFromStorage(
+func getNodeFromCacheOrStorage(
 	hash []byte,
 	interceptedNodesCacher storage.Cacher,
 	db common.DBWriteCacher,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 ) (node, error) {
-	n, ok := interceptedNodesCacher.Get(hash)
-	if ok {
-		interceptedNodesCacher.Remove(hash)
-		return trieNode(n, marshalizer, hasher)
+	n, err := getNodeFromCache(hash, interceptedNodesCacher, marshalizer, hasher)
+	if err == nil {
+		return n, nil
 	}
 
 	existingNode, err := getNodeFromDBAndDecode(hash, db, marshalizer, hasher)
@@ -307,6 +306,21 @@ func getNodeFromStorage(
 	}
 
 	return existingNode, nil
+}
+
+func getNodeFromCache(
+	hash []byte,
+	interceptedNodesCacher storage.Cacher,
+	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
+) (node, error) {
+	n, ok := interceptedNodesCacher.Get(hash)
+	if ok {
+		interceptedNodesCacher.Remove(hash)
+		return trieNode(n, marshalizer, hasher)
+	}
+
+	return nil, ErrNodeNotFound
 }
 
 func trieNode(

@@ -138,7 +138,7 @@ func (d *doubleListTrieSyncer) processMissingAndExisting() error {
 
 func (d *doubleListTrieSyncer) processMissingHashes() {
 	for hash := range d.missingHashes {
-		n, err := d.getNode([]byte(hash))
+		n, err := d.getNodeFromCache([]byte(hash))
 		if err != nil {
 			continue
 		}
@@ -156,11 +156,6 @@ func (d *doubleListTrieSyncer) processExistingNodes() error {
 			return err
 		}
 
-		d.trieSyncStatistics.AddNumReceived(1)
-		if numBytes > core.MaxBufferSizeToSendTrieNodes {
-			d.trieSyncStatistics.AddNumLarge(1)
-		}
-		d.trieSyncStatistics.AddNumBytesReceived(uint64(numBytes))
 		d.timeoutHandler.ResetWatchdog()
 
 		var children []node
@@ -174,6 +169,11 @@ func (d *doubleListTrieSyncer) processExistingNodes() error {
 			break
 		}
 
+		d.trieSyncStatistics.AddNumReceived(1)
+		if numBytes > core.MaxBufferSizeToSendTrieNodes {
+			d.trieSyncStatistics.AddNumLarge(1)
+		}
+		d.trieSyncStatistics.AddNumBytesReceived(uint64(numBytes))
 		delete(d.existingNodes, hash)
 
 		for _, child := range children {
@@ -189,10 +189,19 @@ func (d *doubleListTrieSyncer) processExistingNodes() error {
 }
 
 func (d *doubleListTrieSyncer) getNode(hash []byte) (node, error) {
-	return getNodeFromStorage(
+	return getNodeFromCacheOrStorage(
 		hash,
 		d.interceptedNodesCacher,
 		d.db,
+		d.marshalizer,
+		d.hasher,
+	)
+}
+
+func (d *doubleListTrieSyncer) getNodeFromCache(hash []byte) (node, error) {
+	return getNodeFromCache(
+		hash,
+		d.interceptedNodesCacher,
 		d.marshalizer,
 		d.hasher,
 	)
