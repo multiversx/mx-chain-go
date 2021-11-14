@@ -120,6 +120,14 @@ func (d *doubleListTrieSyncer) checkIsSyncedWhileProcessingMissingAndExisting() 
 	if len(d.missingHashes) > 0 {
 		marginSlice := make([][]byte, 0, len(d.missingHashes))
 		for hash := range d.missingHashes {
+			n, errGet := d.getNodeFromCache([]byte(hash))
+			if errGet == nil {
+				d.existingNodes[hash] = n
+				delete(d.missingHashes, hash)
+
+				continue
+			}
+
 			marginSlice = append(marginSlice, []byte(hash))
 		}
 
@@ -171,10 +179,6 @@ func (d *doubleListTrieSyncer) processExistingNodes() error {
 			return err
 		}
 
-		if len(missingChildrenHashes) > 0 && len(d.missingHashes) > d.maxHardCapForMissingNodes {
-			break
-		}
-
 		d.trieSyncStatistics.AddNumReceived(1)
 		if numBytes > core.MaxBufferSizeToSendTrieNodes {
 			d.trieSyncStatistics.AddNumLarge(1)
@@ -190,6 +194,10 @@ func (d *doubleListTrieSyncer) processExistingNodes() error {
 
 		for _, missingHash := range missingChildrenHashes {
 			d.missingHashes[string(missingHash)] = struct{}{}
+		}
+
+		if len(missingChildrenHashes) > 0 && len(d.missingHashes) > d.maxHardCapForMissingNodes {
+			break
 		}
 	}
 

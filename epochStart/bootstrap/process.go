@@ -406,6 +406,9 @@ func (e *epochStartBootstrap) cleanupOnBootstrapFinish() {
 
 	errMessenger = e.messenger.UnjoinAllTopics()
 	log.LogIfError(errMessenger)
+
+	errTrieNodesClosed := e.dataPool.TrieNodes().Close()
+	log.LogIfError(errTrieNodesClosed)
 }
 
 func (e *epochStartBootstrap) startFromSavedEpoch() (Parameters, bool, error) {
