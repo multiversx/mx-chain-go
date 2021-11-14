@@ -14,6 +14,7 @@ import (
 )
 
 type doubleListTrieSyncer struct {
+	baseSyncTrie
 	rootFound                 bool
 	shardId                   uint32
 	topic                     string
@@ -81,6 +82,11 @@ func (d *doubleListTrieSyncer) StartSyncing(rootHash []byte, ctx context.Context
 	d.rootHash = rootHash
 
 	d.missingHashes[string(rootHash)] = struct{}{}
+
+	timeStart := time.Now()
+	defer func() {
+		d.setSyncDuration(time.Since(timeStart))
+	}()
 
 	for {
 		isSynced, err := d.checkIsSyncedWhileProcessingMissingAndExisting()
@@ -174,6 +180,8 @@ func (d *doubleListTrieSyncer) processExistingNodes() error {
 			d.trieSyncStatistics.AddNumLarge(1)
 		}
 		d.trieSyncStatistics.AddNumBytesReceived(uint64(numBytes))
+		d.updateStats(uint64(numBytes), element)
+
 		delete(d.existingNodes, hash)
 
 		for _, child := range children {

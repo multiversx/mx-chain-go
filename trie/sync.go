@@ -22,6 +22,7 @@ type trieNodeInfo struct {
 }
 
 type trieSyncer struct {
+	baseSyncTrie
 	rootFound                 bool
 	shardId                   uint32
 	topic                     string
@@ -131,6 +132,11 @@ func (ts *trieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
 	ts.rootFound = false
 	ts.rootHash = rootHash
 
+	timeStart := time.Now()
+	defer func() {
+		ts.setSyncDuration(time.Since(timeStart))
+	}()
+
 	for {
 		shouldRetryAfterRequest, err := ts.checkIfSynced()
 		if err != nil {
@@ -226,11 +232,14 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 
 			delete(ts.nodesForTrie, nodeHash)
 
-			_, err = encodeNodeAndCommitToDB(currentNode, ts.db)
+			var numBytes int
+			numBytes, err = encodeNodeAndCommitToDB(currentNode, ts.db)
 			if err != nil {
 				return false, err
 			}
 			ts.timeoutHandler.ResetWatchdog()
+
+			ts.updateStats(uint64(numBytes), currentNode)
 
 			if !ts.rootFound && bytes.Equal([]byte(nodeHash), ts.rootHash) {
 				ts.rootFound = true

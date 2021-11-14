@@ -866,8 +866,9 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 			MaxHardCapForMissingNodes: e.maxHardCapForMissingNodes,
 			TrieSyncerVersion:         e.trieSyncerVersion,
 		},
-		ShardId:   e.shardCoordinator.SelfId(),
-		Throttler: thr,
+		ShardId:                e.shardCoordinator.SelfId(),
+		Throttler:              thr,
+		AddressPubKeyConverter: e.coreComponentsHolder.AddressPubKeyConverter(),
 	}
 	accountsDBSyncer, err := syncer.NewUserAccountsSyncer(argsUserAccountsSyncer)
 	if err != nil {
