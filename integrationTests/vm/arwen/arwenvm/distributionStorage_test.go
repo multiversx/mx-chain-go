@@ -23,7 +23,7 @@ func TestStorageForDistribution(t *testing.T) {
 	_ = logger.SetLogLevel("*:ERROR")
 	ownerAddressBytes := []byte("12345678901234567890123456789011")
 	ownerNonce := uint64(0)
-	ownerBalance := big.NewInt(0).Mul(big.NewInt(999999999999999999), big.NewInt(999999999999999999))
+	ownerBalance := big.NewInt(0).SetBytes([]byte("9999999999999999999999999999999999999999999999999999999999999999"))
 	gasPrice := uint64(1)
 	gasLimit := uint64(500000000)
 
@@ -63,7 +63,7 @@ func TestStorageForDistribution(t *testing.T) {
 	require.Equal(t, returnCode, vmcommon.Ok)
 	ownerNonce++
 
-	tx = vm.CreateTransaction(ownerNonce, big.NewInt(0), ownerAddressBytes, scAddress, gasPrice, 10000000, []byte("setCommunityDistribution@0781A4DA9A1E3D1C0007271E30@01ce"))
+	tx = vm.CreateTransaction(ownerNonce, big.NewInt(0), ownerAddressBytes, scAddress, gasPrice, 10000000, []byte("setCommunityDistribution@0781A4DA9A1E3D1C0007271E30FFFFFFFFFF@01ce"))
 	returnCode, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
 	require.Equal(t, returnCode, vmcommon.Ok)
@@ -76,17 +76,17 @@ func TestStorageForDistribution(t *testing.T) {
 	testAddresses := createTestAddresses(uint64(numAddresses))
 	fmt.Println("SETUP DONE")
 
-	valueToDistribute := big.NewInt(0).Mul(big.NewInt(100000000000), big.NewInt(100000000000))
+	valueToDistribute := big.NewInt(0).Mul(big.NewInt(10000000000000), big.NewInt(10000000000000))
 
-	totalSteps := numAddresses / 250
+	userPerStep := 100
+	totalSteps := numAddresses / userPerStep
 	fmt.Printf("Need to process %d transactions \n", totalSteps)
 
-	_ = logger.SetLogLevel("*:WARN")
-	for i := 0; i < numAddresses/250; i++ {
+	for i := 0; i < numAddresses/userPerStep; i++ {
 		start := time.Now()
 		txData := "setPerUserDistributedLockedAssets@01ce"
 
-		for j := i * 250; j < (i+1)*250; j++ {
+		for j := i * userPerStep; j < (i+1)*userPerStep; j++ {
 			txData += "@" + hex.EncodeToString(testAddresses[j]) + "@" + hex.EncodeToString(valueToDistribute.Bytes())
 		}
 
