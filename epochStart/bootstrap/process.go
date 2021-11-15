@@ -407,6 +407,17 @@ func (e *epochStartBootstrap) cleanupOnBootstrapFinish() {
 	errMessenger = e.messenger.UnjoinAllTopics()
 	log.LogIfError(errMessenger)
 
+	e.closeTrieNodes()
+}
+
+func (e *epochStartBootstrap) closeTrieNodes() {
+	if check.IfNil(e.dataPool) {
+		return
+	}
+	if check.IfNil(e.dataPool.TrieNodes()) {
+		return
+	}
+
 	errTrieNodesClosed := e.dataPool.TrieNodes().Close()
 	log.LogIfError(errTrieNodesClosed)
 }
