@@ -30,6 +30,12 @@ func TestNewSigningSlashingDetector(t *testing.T) {
 	}{
 		{
 			args: func() *detector.MultipleHeaderSingingDetectorArgs {
+				return nil
+			},
+			expectedErr: process.ErrNilMultipleHeaderSigningDetectorArgs,
+		},
+		{
+			args: func() *detector.MultipleHeaderSingingDetectorArgs {
 				args := generateMultipleHeaderSigningDetectorArgs()
 				args.NodesCoordinator = nil
 				return args
@@ -418,7 +424,7 @@ func TestMultipleHeaderSigningDetector_ValidateProof_NotEnoughPubKeys_ExpectErro
 	proof := &slashMocks.MultipleHeaderSigningProofStub{}
 	err := ssd.ValidateProof(proof)
 
-	require.Equal(t, process.ErrNotEnoughPubKeysProvided, err)
+	require.Equal(t, process.ErrNotEnoughPublicKeysProvided, err)
 }
 
 func TestMultipleHeaderSigningDetector_ValidateProof_InvalidProofType_ExpectError(t *testing.T) {
@@ -427,14 +433,20 @@ func TestMultipleHeaderSigningDetector_ValidateProof_InvalidProofType_ExpectErro
 	args := generateMultipleHeaderSigningDetectorArgs()
 	ssd, _ := detector.NewMultipleHeaderSigningDetector(args)
 
-	err := ssd.ValidateProof(&slashMocks.MultipleHeaderProposalProofStub{})
+	proof1 := &slashMocks.MultipleHeaderProposalProofStub{
+		GetTypeCalled: func() coreSlash.SlashingType {
+			return coreSlash.MultipleSigning
+		},
+	}
+	err := ssd.ValidateProof(proof1)
 	require.Equal(t, process.ErrCannotCastProofToMultipleSignedHeaders, err)
 
-	err = ssd.ValidateProof(&slashMocks.MultipleHeaderSigningProofStub{
+	proof2 := &slashMocks.MultipleHeaderSigningProofStub{
 		GetTypeCalled: func() coreSlash.SlashingType {
 			return coreSlash.MultipleProposal
 		},
-	})
+	}
+	err = ssd.ValidateProof(proof2)
 	require.Equal(t, process.ErrInvalidSlashType, err)
 }
 

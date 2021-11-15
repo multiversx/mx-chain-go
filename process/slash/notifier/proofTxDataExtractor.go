@@ -57,7 +57,7 @@ func (ptd *proofTxDataExtractor) txDataFromMultipleHeaderSigningProof(proof core
 	}
 	pubKeys := proof.GetPubKeys()
 	if len(pubKeys) == 0 {
-		return nil, process.ErrNotEnoughPubKeysProvided
+		return nil, process.ErrNotEnoughPublicKeysProvided
 	}
 	pubKey := pubKeys[0]
 	headers := proof.GetHeaders(pubKey)

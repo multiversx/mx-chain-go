@@ -1,9 +1,11 @@
 package detector
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 )
 
 // minSlashableNoOfHeaders represents the min number of headers required for a
@@ -28,6 +30,35 @@ func absDiff(x, y uint64) uint64 {
 		return y - x
 	}
 	return x - y
+}
+
+func checkAndGetHeader(interceptedData process.InterceptedData) (data.HeaderHandler, error) {
+	if check.IfNil(interceptedData) {
+		return nil, process.ErrNilInterceptedData
+	}
+
+	interceptedHeader, castOk := interceptedData.(*interceptedBlocks.InterceptedHeader)
+	if !castOk {
+		return nil, process.ErrCannotCastInterceptedDataToHeader
+	}
+
+	header := interceptedHeader.HeaderHandler()
+	if check.IfNil(header) {
+		return nil, process.ErrNilHeaderHandler
+	}
+
+	return header, nil
+}
+
+func checkProofType(proof coreSlash.SlashingProofHandler, expectedType coreSlash.SlashingType) error {
+	if proof == nil {
+		return process.ErrNilProof
+	}
+	if proof.GetType() != expectedType {
+		return process.ErrInvalidSlashType
+	}
+
+	return nil
 }
 
 func getHeaderHandlers(headersInfo []data.HeaderInfoHandler) []data.HeaderHandler {

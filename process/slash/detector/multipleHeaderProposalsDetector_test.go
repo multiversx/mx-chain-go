@@ -31,6 +31,12 @@ func TestNewMultipleHeaderProposalsDetector(t *testing.T) {
 	}{
 		{
 			args: func() *detector.MultipleHeaderProposalDetectorArgs {
+				return nil
+			},
+			expectedErr: process.ErrNilMultipleHeaderProposalDetectorArgs,
+		},
+		{
+			args: func() *detector.MultipleHeaderProposalDetectorArgs {
 				args := generateMultipleHeaderProposalDetectorArgs()
 				args.NodesCoordinator = nil
 				return args
@@ -77,13 +83,24 @@ func TestNewMultipleHeaderProposalsDetector(t *testing.T) {
 	}
 }
 
+func TestMultipleHeaderProposalsDetector_VerifyData_Nil_ExpectError(t *testing.T) {
+	t.Parallel()
+
+	args := generateMultipleHeaderProposalDetectorArgs()
+	sd, _ := detector.NewMultipleHeaderProposalsDetector(args)
+
+	res, err := sd.VerifyData(nil)
+	require.Nil(t, res)
+	require.Equal(t, process.ErrNilInterceptedData, err)
+}
+
 func TestMultipleHeaderProposalsDetector_VerifyData_CannotCastData_ExpectError(t *testing.T) {
 	t.Parallel()
 
 	args := generateMultipleHeaderProposalDetectorArgs()
 	sd, _ := detector.NewMultipleHeaderProposalsDetector(args)
-	res, err := sd.VerifyData(&testscommon.InterceptedDataStub{})
 
+	res, err := sd.VerifyData(&testscommon.InterceptedDataStub{})
 	require.Nil(t, res)
 	require.Equal(t, process.ErrCannotCastInterceptedDataToHeader, err)
 }
@@ -93,8 +110,8 @@ func TestMultipleHeaderProposalsDetector_VerifyData_NilHeaderHandler_ExpectError
 
 	args := generateMultipleHeaderProposalDetectorArgs()
 	sd, _ := detector.NewMultipleHeaderProposalsDetector(args)
-	res, err := sd.VerifyData(&interceptedBlocks.InterceptedHeader{})
 
+	res, err := sd.VerifyData(&interceptedBlocks.InterceptedHeader{})
 	require.Nil(t, res)
 	require.Equal(t, process.ErrNilHeaderHandler, err)
 }
@@ -113,7 +130,6 @@ func TestMultipleHeaderProposalsDetector_VerifyData_CannotGetProposer_ExpectErro
 	sd, _ := detector.NewMultipleHeaderProposalsDetector(args)
 
 	res, err := sd.VerifyData(slashMocks.CreateInterceptedHeaderData(&block.Header{}))
-
 	require.Nil(t, res)
 	require.Equal(t, expectedErr, err)
 }
@@ -277,13 +293,27 @@ func TestMultipleHeaderProposalsDetector_VerifyData_MultipleHeaders(t *testing.T
 	require.Equal(t, process.ErrHeadersNotDifferentHashes, err)
 }
 
+func TestMultipleHeaderProposalsDetector_ValidateProof_NilProof_ExpectError(t *testing.T) {
+	t.Parallel()
+
+	args := generateMultipleHeaderProposalDetectorArgs()
+	sd, _ := detector.NewMultipleHeaderProposalsDetector(args)
+
+	err := sd.ValidateProof(nil)
+	require.Equal(t, process.ErrNilProof, err)
+}
+
 func TestMultipleHeaderProposalsDetector_ValidateProof_InvalidProofType_ExpectError(t *testing.T) {
 	t.Parallel()
 
 	args := generateMultipleHeaderProposalDetectorArgs()
 	sd, _ := detector.NewMultipleHeaderProposalsDetector(args)
 
-	proof1, _ := coreSlash.NewMultipleSigningProof(map[string]coreSlash.SlashingResult{})
+	proof1 := &slashMocks.MultipleHeaderSigningProofStub{
+		GetTypeCalled: func() coreSlash.SlashingType {
+			return coreSlash.MultipleProposal
+		},
+	}
 	err := sd.ValidateProof(proof1)
 	require.Equal(t, process.ErrCannotCastProofToMultipleProposedHeaders, err)
 

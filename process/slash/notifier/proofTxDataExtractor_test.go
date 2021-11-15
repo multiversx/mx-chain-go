@@ -93,7 +93,7 @@ func TestProofTxDataExtractor_GetProofTxData_MultipleSigningProof_NotEnoughPubKe
 	res, err := extractor.GetProofTxData(proof)
 
 	require.Nil(t, res)
-	require.Equal(t, process.ErrNotEnoughPubKeysProvided, err)
+	require.Equal(t, process.ErrNotEnoughPublicKeysProvided, err)
 }
 
 func TestProofTxDataExtractor_GetProofTxData_MultipleSigningProof_NotEnoughHeaders_ExpectError(t *testing.T) {

@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/process/slash"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -36,6 +35,9 @@ type multipleHeaderProposalsDetector struct {
 // NewMultipleHeaderProposalsDetector - creates a new multipleHeaderProposalsDetector for multiple headers
 // proposal detection or multiple headers proposal proof verification
 func NewMultipleHeaderProposalsDetector(args *MultipleHeaderProposalDetectorArgs) (slash.SlashingDetector, error) {
+	if args == nil {
+		return nil, process.ErrNilMultipleHeaderProposalDetectorArgs
+	}
 	if check.IfNil(args.NodesCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
@@ -67,15 +69,10 @@ func NewMultipleHeaderProposalsDetector(args *MultipleHeaderProposalDetectorArgs
 // If another header with the same round and proposer exists, but a different hash, then a proof of type
 // slash.MultipleProposal is provided, otherwise a nil proof, along with an error is provided indicating that
 // no slashing event has been detected or an error occurred verifying the data.
-func (mhp *multipleHeaderProposalsDetector) VerifyData(data process.InterceptedData) (coreSlash.SlashingProofHandler, error) {
-	interceptedHeader, castOk := data.(*interceptedBlocks.InterceptedHeader)
-	if !castOk {
-		return nil, process.ErrCannotCastInterceptedDataToHeader
-	}
-
-	header := interceptedHeader.HeaderHandler()
-	if check.IfNil(header) {
-		return nil, process.ErrNilHeaderHandler
+func (mhp *multipleHeaderProposalsDetector) VerifyData(interceptedData process.InterceptedData) (coreSlash.SlashingProofHandler, error) {
+	header, err := checkAndGetHeader(interceptedData)
+	if err != nil {
+		return nil, err
 	}
 
 	round := header.GetRound()
@@ -88,7 +85,7 @@ func (mhp *multipleHeaderProposalsDetector) VerifyData(data process.InterceptedD
 		return nil, err
 	}
 
-	err = mhp.cache.Add(round, proposer, &slash.HeaderInfo{Header: header, Hash: interceptedHeader.Hash()})
+	err = mhp.cache.Add(round, proposer, &slash.HeaderInfo{Header: header, Hash: interceptedData.Hash()})
 	if err != nil {
 		return nil, err
 	}
@@ -141,15 +138,16 @@ func (mhp *multipleHeaderProposalsDetector) computeSlashLevel(headers []data.Hea
 //  - Be of either level slash.Medium (with 2 proposed headers) OR slash.High (with >2 proposed headers)
 //  - Have all proposed headers with the same round and proposer, but different hashes
 func (mhp *multipleHeaderProposalsDetector) ValidateProof(proof coreSlash.SlashingProofHandler) error {
+	err := checkProofType(proof, coreSlash.MultipleProposal)
+	if err != nil {
+		return err
+	}
 	multipleProposalProof, castOk := proof.(coreSlash.MultipleProposalProofHandler)
 	if !castOk {
 		return process.ErrCannotCastProofToMultipleProposedHeaders
 	}
-	if proof.GetType() != coreSlash.MultipleProposal {
-		return process.ErrInvalidSlashType
-	}
 
-	err := mhp.checkSlashLevel(multipleProposalProof.GetHeaders(), multipleProposalProof.GetLevel())
+	err = mhp.checkSlashLevel(multipleProposalProof.GetHeaders(), multipleProposalProof.GetLevel())
 	if err != nil {
 		return err
 	}

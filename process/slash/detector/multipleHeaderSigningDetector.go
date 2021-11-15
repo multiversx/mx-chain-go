@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/process/slash"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -44,6 +43,9 @@ type multipleHeaderSigningDetector struct {
 
 // NewMultipleHeaderSigningDetector - creates a new header slashing detector for multiple signatures
 func NewMultipleHeaderSigningDetector(args *MultipleHeaderSingingDetectorArgs) (slash.SlashingDetector, error) {
+	if args == nil {
+		return nil, process.ErrNilMultipleHeaderSigningDetectorArgs
+	}
 	if check.IfNil(args.NodesCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
@@ -78,14 +80,9 @@ func NewMultipleHeaderSigningDetector(args *MultipleHeaderSingingDetectorArgs) (
 
 // VerifyData - checks if an intercepted data represents a slashable event
 func (mhs *multipleHeaderSigningDetector) VerifyData(interceptedData process.InterceptedData) (coreSlash.SlashingProofHandler, error) {
-	interceptedHeader, castOk := interceptedData.(*interceptedBlocks.InterceptedHeader)
-	if !castOk {
-		return nil, process.ErrCannotCastInterceptedDataToHeader
-	}
-
-	header := interceptedHeader.HeaderHandler()
-	if check.IfNil(header) {
-		return nil, process.ErrNilHeaderHandler
+	header, err := checkAndGetHeader(interceptedData)
+	if err != nil {
+		return nil, err
 	}
 
 	round := header.GetRound()
@@ -100,7 +97,7 @@ func (mhs *multipleHeaderSigningDetector) VerifyData(interceptedData process.Int
 		return nil, err
 	}
 
-	err = mhs.cacheSigners(header, interceptedHeader.Hash())
+	err = mhs.cacheSigners(header, interceptedData.Hash())
 	if err != nil {
 		mhs.hashesCache.Remove(round, headerHashWithoutSignatures)
 		mhs.cachesMutex.Unlock()
@@ -198,17 +195,18 @@ func (mhs *multipleHeaderSigningDetector) computeSlashLevel(headers slash.Header
 
 // ValidateProof - validates the given proof
 func (mhs *multipleHeaderSigningDetector) ValidateProof(proof coreSlash.SlashingProofHandler) error {
+	err := checkProofType(proof, coreSlash.MultipleSigning)
+	if err != nil {
+		return err
+	}
 	multipleSigningProof, castOk := proof.(coreSlash.MultipleSigningProofHandler)
 	if !castOk {
 		return process.ErrCannotCastProofToMultipleSignedHeaders
 	}
-	if multipleSigningProof.GetType() != coreSlash.MultipleSigning {
-		return process.ErrInvalidSlashType
-	}
 
 	signers := multipleSigningProof.GetPubKeys()
 	if len(signers) == 0 {
-		return process.ErrNotEnoughPubKeysProvided
+		return process.ErrNotEnoughPublicKeysProvided
 	}
 
 	for _, signer := range signers {

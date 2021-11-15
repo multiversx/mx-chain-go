@@ -97,6 +97,12 @@ func TestNewSlashingNotifier(t *testing.T) {
 			},
 			expectedErr: process.ErrNilProofTxDataExtractor,
 		},
+		{
+			args: func() *notifier.SlashingNotifierArgs {
+				return generateSlashingNotifierArgs()
+			},
+			expectedErr: nil,
+		},
 	}
 
 	for _, currTest := range tests {
