@@ -497,7 +497,7 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 	testHasher := sha256.NewSha256()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	pubkeyConv, _ := pubkeyConverter.NewHexPubkeyConverter(32)
-	accnts := vm.CreateInMemoryShardAccountsDB()
+	accnts, _ := vm.CreateInMemoryShardAccountsDB()
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(testMarshalizer)
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:    pubkeyConv,
