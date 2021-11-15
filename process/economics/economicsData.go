@@ -461,7 +461,7 @@ func (ed *economicsData) CheckValidityTxValues(tx data.TransactionWithFeeHandler
 		}
 	}
 
-	if tx.GetGasLimit() >= ed.MaxGasLimitPerMiniBlockForSafeCrossShard() {
+	if tx.GetGasLimit() > ed.MaxGasLimitPerMiniBlockForSafeCrossShard() {
 		return process.ErrMoreGasThanGasLimitPerMiniBlockForSafeCrossShard
 	}
 
