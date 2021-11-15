@@ -7,10 +7,12 @@ import (
 	"testing"
 	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
@@ -18,7 +20,7 @@ import (
 func TestStorageForDistribution(t *testing.T) {
 	// Only a test to benchmark storage on distribution contract
 	//t.Skip()
-
+	_ = logger.SetLogLevel("*:ERROR")
 	ownerAddressBytes := []byte("12345678901234567890123456789011")
 	ownerNonce := uint64(0)
 	ownerBalance := big.NewInt(0).Mul(big.NewInt(999999999999999999), big.NewInt(999999999999999999))
@@ -78,6 +80,8 @@ func TestStorageForDistribution(t *testing.T) {
 
 	totalSteps := numAddresses / 250
 	fmt.Printf("Need to process %d transactions \n", totalSteps)
+
+	_ = logger.SetLogLevel("*:WARN")
 	for i := 0; i < numAddresses/250; i++ {
 		start := time.Now()
 		txData := "setPerUserDistributedLockedAssets@01ce"
@@ -102,4 +106,15 @@ func TestStorageForDistribution(t *testing.T) {
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
+
+	globalMap := smartContract.GlobalStorageMap
+	keySize := uint64(0)
+	valueSize := uint64(0)
+	for key, val := range globalMap {
+		keySize += uint64(len(key))
+		valueSize += uint64(len(val))
+	}
+
+	fmt.Printf("KEY   SIZE %d \n", keySize)
+	fmt.Printf("VALUE SIZE %d \n", valueSize)
 }

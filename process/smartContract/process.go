@@ -47,6 +47,9 @@ const (
 	upgradeFunctionName = "upgradeContract"
 )
 
+// GlobalStorageMap -
+var GlobalStorageMap = make(map[string][]byte)
+
 var zero = big.NewInt(0)
 
 type scProcessor struct {
@@ -2311,6 +2314,8 @@ func (sc *scProcessor) processSCOutputAccounts(
 				return false, nil, err
 			}
 			log.Trace("storeUpdate", "acc", outAcc.Address, "key", storeUpdate.Offset, "data", storeUpdate.Data)
+
+			GlobalStorageMap[string(storeUpdate.Offset)] = storeUpdate.Data
 		}
 
 		sc.updateSmartContractCode(vmOutput, acc, outAcc)
