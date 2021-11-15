@@ -77,7 +77,7 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 			},
 		},
 		ShardCoordinator: &mock.ShardCoordinatorStub{},
-		StatusHandler:    &statusHandler.AppStatusHandlerMock{},
+		StatusHandler:    &statusHandler.AppStatusHandlerStub{},
 	}
 }
 

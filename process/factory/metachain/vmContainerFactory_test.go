@@ -94,7 +94,7 @@ func createVmContainerMockArgument(gasSchedule core.GasScheduleNotifier) ArgsNew
 			},
 		},
 		ShardCoordinator: &mock.ShardCoordinatorStub{},
-		StatusHandler:    &statusHandler.AppStatusHandlerMock{},
+		StatusHandler:    &statusHandler.AppStatusHandlerStub{},
 	}
 }
 
@@ -370,7 +370,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 			},
 		},
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(1),
-		StatusHandler:    &statusHandler.AppStatusHandlerMock{},
+		StatusHandler:    &statusHandler.AppStatusHandlerStub{},
 	}
 	vmf, err := NewVMContainerFactory(argsNewVMContainerFactory)
 	assert.NotNil(t, vmf)
