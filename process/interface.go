@@ -1024,6 +1024,12 @@ type FallbackHeaderValidator interface {
 	IsInterfaceNil() bool
 }
 
+// RoundActivationHandler is a component which can be queried to check for round activation features/fixes
+type RoundActivationHandler interface {
+	IsEnabled(name string, round uint64) bool
+	IsInterfaceNil() bool
+}
+
 // CoreComponentsHolder holds the core components needed by the interceptors
 type CoreComponentsHolder interface {
 	InternalMarshalizer() marshal.Marshalizer

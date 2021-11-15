@@ -508,6 +508,7 @@ type Configs struct {
 	ImportDbConfig           *ImportDbConfig
 	ConfigurationPathsHolder *ConfigurationPathsHolder
 	EpochConfig              *EpochConfig
+	RoundConfig              *RoundConfig
 }
 
 // ConfigurationPathsHolder holds all configuration filenames and configuration paths used to start the node
@@ -526,6 +527,7 @@ type ConfigurationPathsHolder struct {
 	SmartContracts           string
 	ValidatorKey             string
 	Epoch                    string
+	RoundActivation          string
 }
 
 // TrieSyncConfig represents the trie synchronization configuration area

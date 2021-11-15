@@ -849,6 +849,8 @@ func (nr *nodeRunner) logSessionInformation(
 			configurationPaths.ApiRoutes,
 			configurationPaths.External,
 			configurationPaths.SystemSC,
+			configurationPaths.RoundActivation,
+			configurationPaths.Epoch,
 		})
 
 	statsFile := filepath.Join(statsFolder, "session.info")
@@ -1071,6 +1073,7 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 	bootstrapComponentsFactoryArgs := mainFactory.BootstrapComponentsFactoryArgs{
 		Config:            *nr.configs.GeneralConfig,
 		EpochConfig:       *nr.configs.EpochConfig,
+		RoundConfig:       *nr.configs.RoundConfig,
 		PrefConfig:        *nr.configs.PreferencesConfig,
 		ImportDbConfig:    *nr.configs.ImportDbConfig,
 		WorkingDir:        nr.configs.FlagsConfig.WorkingDir,

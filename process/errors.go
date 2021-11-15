@@ -997,3 +997,12 @@ var ErrNotAllowedToWriteUnderProtectedKey = errors.New("not allowed to write und
 
 // ErrNilNFTStorageHandler signals that nil NFT storage handler has been provided
 var ErrNilNFTStorageHandler = errors.New("nil NFT storage handler")
+
+// ErrDuplicateRoundActivationName signals a round activation name is already taken
+var ErrDuplicateRoundActivationName = errors.New("round activation name already exists in config file")
+
+// ErrNilActivationRoundName signals an empty activation round name has been set in config file
+var ErrNilActivationRoundName = errors.New("round activation name is empty in config file")
+
+// ErrInvalidRoundActivationConfig signals that RoundConfig struct is invalid
+var ErrInvalidRoundActivationConfig = errors.New("invalid round config struct; should be of type config.ActivationRoundByName")
