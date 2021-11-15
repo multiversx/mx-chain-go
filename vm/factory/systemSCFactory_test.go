@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
@@ -76,6 +77,7 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 			},
 		},
 		ShardCoordinator: &mock.ShardCoordinatorStub{},
+		StatusHandler:    &statusHandler.AppStatusHandlerMock{},
 	}
 }
 
@@ -187,6 +189,17 @@ func TestNewSystemSCFactory_NilShardCoordinator(t *testing.T) {
 
 	assert.True(t, check.IfNil(scFactory))
 	assert.True(t, errors.Is(err, vm.ErrNilShardCoordinator))
+}
+
+func TestNewSystemSCFactory_NilStatusHandler(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockNewSystemScFactoryArgs()
+	arguments.StatusHandler = nil
+	scFactory, err := NewSystemSCFactory(arguments)
+
+	assert.True(t, check.IfNil(scFactory))
+	assert.True(t, errors.Is(err, vm.ErrNilStatusHandler))
 }
 
 func TestNewSystemSCFactory_Ok(t *testing.T) {

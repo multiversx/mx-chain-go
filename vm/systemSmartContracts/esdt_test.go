@@ -13,9 +13,11 @@ import (
 	coreMock "github.com/ElrondNetwork/elrond-go-core/core/mock"
 	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
 	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -37,6 +39,7 @@ func createMockArgumentsForESDT() ArgsNewESDTSmartContract {
 		AddressPubKeyConverter: mock.NewPubkeyConverterMock(32),
 		EndOfEpochSCAddress:    vm.EndOfEpochAddress,
 		EpochConfig:            config.EpochConfig{EnableEpochs: config.EnableEpochs{GlobalMintBurnDisableEpoch: 10}},
+		StatusHandler:          &statusHandler.AppStatusHandlerStub{},
 	}
 }
 
@@ -105,6 +108,17 @@ func TestNewESDTSmartContract_NilPubKeyConverterShouldErr(t *testing.T) {
 	e, err := NewESDTSmartContract(args)
 	assert.Nil(t, e)
 	assert.Equal(t, vm.ErrNilAddressPubKeyConverter, err)
+}
+
+func TestNewESDTSmartContract_NilStatusHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	args.StatusHandler = nil
+
+	e, err := NewESDTSmartContract(args)
+	assert.Nil(t, e)
+	assert.Equal(t, vm.ErrNilStatusHandler, err)
 }
 
 func TestNewESDTSmartContract_BaseIssuingCostLessThanZeroShouldErr(t *testing.T) {
@@ -4366,4 +4380,43 @@ func TestEsdt_ExecuteIssueSFTAndChangeSFTToMetaESDT(t *testing.T) {
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "change can happen to semi fungible tokens only"))
+}
+
+func TestEsdt_IssuanceCostMetricShouldUpdate(t *testing.T) {
+	t.Parallel()
+
+	initialCost, updatedCost := "7500", "7900"
+	numTimesSetStringMetricIsCalled := 0
+	args := createMockArgumentsForESDT()
+	args.ESDTSCConfig.BaseIssuingCost = initialCost
+	args.StatusHandler = &statusHandler.AppStatusHandlerStub{
+		SetStringValueHandler: func(key string, value string) {
+			numTimesSetStringMetricIsCalled++
+			if key != common.MetricESDTIssuanceCost {
+				return
+			}
+
+			if numTimesSetStringMetricIsCalled == 1 {
+				require.Equal(t, initialCost, value)
+				return
+			}
+
+			require.Equal(t, updatedCost, value)
+		},
+	}
+
+	e, _ := NewESDTSmartContract(args)
+
+	newBaseIssingCost, _ := big.NewInt(0).SetString(updatedCost, 10)
+	newMinTokenNameLength := int64(5)
+	newMaxTokenNameLength := int64(20)
+
+	vmInput := getDefaultVmInputForFunc("configChange",
+		[][]byte{[]byte("addr"), newBaseIssingCost.Bytes(), big.NewInt(newMinTokenNameLength).Bytes(),
+			big.NewInt(newMaxTokenNameLength).Bytes()})
+	vmInput.CallerAddr = e.ownerAddress
+	output := e.Execute(vmInput)
+
+	require.Equal(t, vmcommon.Ok, output)
+	require.Equal(t, 2, numTimesSetStringMetricIsCalled)
 }

@@ -18,6 +18,7 @@ import (
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
@@ -93,6 +94,7 @@ func createVmContainerMockArgument(gasSchedule core.GasScheduleNotifier) ArgsNew
 			},
 		},
 		ShardCoordinator: &mock.ShardCoordinatorStub{},
+		StatusHandler:    &statusHandler.AppStatusHandlerMock{},
 	}
 }
 
@@ -240,6 +242,18 @@ func TestNewVMContainerFactory_NilShardCoordinator(t *testing.T) {
 	assert.True(t, errors.Is(err, vm.ErrNilShardCoordinator))
 }
 
+func TestNewVMContainerFactory_NilStatusHandler(t *testing.T) {
+	t.Parallel()
+
+	gasSchedule := makeGasSchedule()
+	argsNewVmContainerFactory := createVmContainerMockArgument(gasSchedule)
+	argsNewVmContainerFactory.StatusHandler = nil
+	vmf, err := NewVMContainerFactory(argsNewVmContainerFactory)
+
+	assert.True(t, check.IfNil(vmf))
+	assert.True(t, errors.Is(err, vm.ErrNilStatusHandler))
+}
+
 func TestNewVMContainerFactory_OkValues(t *testing.T) {
 	t.Parallel()
 
@@ -356,6 +370,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 			},
 		},
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(1),
+		StatusHandler:    &statusHandler.AppStatusHandlerMock{},
 	}
 	vmf, err := NewVMContainerFactory(argsNewVMContainerFactory)
 	assert.NotNil(t, vmf)

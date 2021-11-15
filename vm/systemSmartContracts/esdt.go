@@ -16,7 +16,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -106,16 +105,16 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 	if len(args.EndOfEpochSCAddress) == 0 {
 		return nil, vm.ErrNilEndOfEpochSmartContractAddress
 	}
+	if check.IfNil(args.StatusHandler) {
+		return nil, vm.ErrNilStatusHandler
+	}
 
 	baseIssuingCost, okConvert := big.NewInt(0).SetString(args.ESDTSCConfig.BaseIssuingCost, conversionBase)
 	if !okConvert || baseIssuingCost.Cmp(big.NewInt(0)) < 0 {
 		return nil, vm.ErrInvalidBaseIssuingCost
 	}
 
-	appStatusHandler := args.StatusHandler
-	if appStatusHandler == nil {
-		appStatusHandler = statusHandler.NewNilStatusHandler()
-	}
+	args.StatusHandler.SetStringValue(common.MetricESDTIssuanceCost, baseIssuingCost.String())
 
 	e := &esdt{
 		eei:             args.Eei,
@@ -134,7 +133,7 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 		metaESDTEnableEpoch:              args.EpochConfig.EnableEpochs.MetaESDTSetEnableEpoch,
 		endOfEpochSCAddress:              args.EndOfEpochSCAddress,
 		addressPubKeyConverter:           args.AddressPubKeyConverter,
-		statusHandler:                    appStatusHandler,
+		statusHandler:                    args.StatusHandler,
 	}
 	log.Debug("esdt: enable epoch for esdt", "epoch", e.enabledEpoch)
 	log.Debug("esdt: enable epoch for contract global mint and burn", "epoch", e.globalMintBurnDisableEpoch)

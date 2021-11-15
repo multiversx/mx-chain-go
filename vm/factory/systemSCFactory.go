@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	"github.com/mitchellh/mapstructure"
@@ -85,11 +84,10 @@ func NewSystemSCFactory(args ArgsNewSystemSCFactory) (*systemSCFactory, error) {
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, fmt.Errorf("%w in NewSystemSCFactory", vm.ErrNilShardCoordinator)
 	}
-
-	appStatusHandler := args.StatusHandler
-	if appStatusHandler == nil {
-		appStatusHandler = statusHandler.NewNilStatusHandler()
+	if check.IfNil(args.StatusHandler) {
+		return nil, fmt.Errorf("%w in NewSystemSCFactory", vm.ErrNilStatusHandler)
 	}
+
 	scf := &systemSCFactory{
 		systemEI:               args.SystemEI,
 		sigVerifier:            args.SigVerifier,
@@ -102,7 +100,7 @@ func NewSystemSCFactory(args ArgsNewSystemSCFactory) (*systemSCFactory, error) {
 		addressPubKeyConverter: args.AddressPubKeyConverter,
 		epochConfig:            args.EpochConfig,
 		shardCoordinator:       args.ShardCoordinator,
-		statusHandler:          appStatusHandler,
+		statusHandler:          args.StatusHandler,
 	}
 
 	err := scf.createGasConfig(args.GasSchedule.LatestGasSchedule())

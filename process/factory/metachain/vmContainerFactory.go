@@ -14,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	systemVMFactory "github.com/ElrondNetwork/elrond-go/vm/factory"
 	systemVMProcess "github.com/ElrondNetwork/elrond-go/vm/process"
@@ -99,17 +98,15 @@ func NewVMContainerFactory(args ArgsNewVMContainerFactory) (*vmContainerFactory,
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, fmt.Errorf("%w in NewVMContainerFactory", vm.ErrNilShardCoordinator)
 	}
+	if check.IfNil(args.StatusHandler) {
+		return nil, fmt.Errorf("%w in NewVmContainerFactory", vm.ErrNilStatusHandler)
+	}
 
 	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(args.ArgBlockChainHook)
 	if err != nil {
 		return nil, fmt.Errorf("%w in NewVMContainerFactory", err)
 	}
 	cryptoHook := hooks.NewVMCryptoHook()
-
-	appStatusHandler := args.StatusHandler
-	if appStatusHandler == nil {
-		appStatusHandler = statusHandler.NewNilStatusHandler()
-	}
 
 	return &vmContainerFactory{
 		blockChainHookImpl:     blockChainHookImpl,
@@ -127,7 +124,7 @@ func NewVMContainerFactory(args ArgsNewVMContainerFactory) (*vmContainerFactory,
 		addressPubKeyConverter: args.ArgBlockChainHook.PubkeyConv,
 		epochConfig:            args.EpochConfig,
 		shardCoordinator:       args.ShardCoordinator,
-		statusHandler:          appStatusHandler,
+		statusHandler:          args.StatusHandler,
 	}, nil
 }
 

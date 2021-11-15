@@ -95,9 +95,6 @@ var ErrNilValidatorSmartContractAddress = errors.New("nil validator smart contra
 // ErrInvalidStakingAccessAddress signals that invalid staking access address was provided
 var ErrInvalidStakingAccessAddress = errors.New("invalid staking access address")
 
-// ErrInvalidGovernanceSCAddress signals that invalid governance address was provided
-var ErrInvalidGovernanceSCAddress = errors.New("invalid governance smart contract address")
-
 // ErrInvalidJailAccessAddress signals that invalid jailing access address was provided
 var ErrInvalidJailAccessAddress = errors.New("invalid jailing access address")
 
@@ -247,3 +244,6 @@ var ErrProposalNotFound = errors.New("proposal was not found in storage")
 
 // ErrInvalidNumOfInitialWhiteListedAddress signals that 0 initial whiteListed addresses were provided to the governance contract
 var ErrInvalidNumOfInitialWhiteListedAddress = errors.New("0 initial whiteListed addresses provided to the governance contract")
+
+// ErrNilStatusHandler signals that a nil instance of status handler has been provided
+var ErrNilStatusHandler = errors.New("nil status handler")
