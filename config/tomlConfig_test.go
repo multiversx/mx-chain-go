@@ -616,6 +616,9 @@ func TestEnableEpochConfig(t *testing.T) {
     # OptimizeNFTStoreEnableEpoch represents the epoch when optimizations on NFT metadata store and send are enabled
     OptimizeNFTStoreEnableEpoch = 46
 
+    # CreateNFTThroughExecByCallerEnableEpoch represents the epoch when nft creation through execution on destination by caller is enabled
+    CreateNFTThroughExecByCallerEnableEpoch = 47
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -689,6 +692,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			FixOOGReturnCodeEnableEpoch:                 44,
 			RemoveNonUpdatedStorageEnableEpoch:          45,
 			OptimizeNFTStoreEnableEpoch:                 46,
+			CreateNFTThroughExecByCallerEnableEpoch:     47,
 		},
 		GasSchedule: GasScheduleConfig{
 			GasScheduleByEpochs: []GasScheduleByEpochs{

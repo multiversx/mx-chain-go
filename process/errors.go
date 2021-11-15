@@ -569,6 +569,9 @@ var ErrNilEconomicsData = errors.New("nil economics data")
 // ErrZeroMaxComputableRounds signals that a value of zero was provided on the maxComputableRounds
 var ErrZeroMaxComputableRounds = errors.New("max computable rounds is zero")
 
+// ErrZeroMaxConsecutiveRoundsOfRatingDecrease signals that a value of zero was provided on the MaxConsecutiveRoundsOfRatingDecrease
+var ErrZeroMaxConsecutiveRoundsOfRatingDecrease = errors.New("max consecutive number of rounds, in which we can decrease a validator rating, is zero")
+
 // ErrNilRater signals that nil rater has been provided
 var ErrNilRater = errors.New("nil rater")
 
@@ -935,8 +938,8 @@ var ErrMoreGasConsumedThanProvided = errors.New("more gas used than provided")
 // ErrInvalidGasModifier signals that provided gas modifier is invalid
 var ErrInvalidGasModifier = errors.New("invalid gas modifier")
 
-// ErrMoreGasThanGasLimitPerBlock signals that more gas was provided than gas limit per block
-var ErrMoreGasThanGasLimitPerBlock = errors.New("more gas was provided than gas limit per block")
+// ErrMoreGasThanGasLimitPerMiniBlockForSafeCrossShard signals that more gas was provided than gas limit per mini block for safe cross shard
+var ErrMoreGasThanGasLimitPerMiniBlockForSafeCrossShard = errors.New("more gas was provided than gas limit per mini block for safe cross shard")
 
 // ErrNotEnoughGasInUserTx signals that not enough gas was provided in user tx
 var ErrNotEnoughGasInUserTx = errors.New("not enough gas provided in user tx")
