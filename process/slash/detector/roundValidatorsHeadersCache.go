@@ -101,7 +101,7 @@ func (rdc *roundValidatorsHeadersCache) updateOldestRound() {
 }
 
 // GetHeaders returns all cached data for a public key, in a given round
-func (rdc *roundValidatorsHeadersCache) GetHeaders(round uint64, pubKey []byte) []data.HeaderHandler {
+func (rdc *roundValidatorsHeadersCache) GetHeaders(round uint64, pubKey []byte) []data.HeaderInfoHandler {
 	pubKeyStr := string(pubKey)
 	rdc.cacheMutex.RLock()
 	defer rdc.cacheMutex.RUnlock()
@@ -115,12 +115,7 @@ func (rdc *roundValidatorsHeadersCache) GetHeaders(round uint64, pubKey []byte) 
 		return nil
 	}
 
-	headers := make([]data.HeaderHandler, 0, len(headersInfo))
-	for _, headerInfo := range headersInfo {
-		headers = append(headers, headerInfo.GetHeaderHandler())
-	}
-
-	return headers
+	return headersInfo
 }
 
 // GetPubKeys returns all cached public keys in a given round

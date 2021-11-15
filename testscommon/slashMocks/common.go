@@ -2,6 +2,7 @@ package slashMocks
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	mockCoreData "github.com/ElrondNetwork/elrond-go-core/data/mock"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
@@ -29,4 +30,18 @@ func CreateInterceptedHeaderData(header data.HeaderHandler) *interceptedBlocks.I
 	interceptedHeader, _ := interceptedBlocks.NewInterceptedHeader(args)
 
 	return interceptedHeader
+}
+
+// CreateHeaderInfoData creates a new data.HeaderInfoHandler with given data.HeaderHandler
+func CreateHeaderInfoData(header data.HeaderHandler) data.HeaderInfoHandler {
+	hasher := hashingMocks.HasherMock{}
+	marshaller := mock.MarshalizerMock{}
+
+	headerBytes, _ := marshaller.Marshal(header)
+	headerHash := hasher.Compute(string(headerBytes))
+
+	return &mockCoreData.HeaderInfoStub{
+		Header: header,
+		Hash:   headerHash,
+	}
 }

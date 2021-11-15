@@ -13,7 +13,7 @@ type RoundValidatorHeadersCache interface {
 	// the oldest round entry
 	Add(round uint64, pubKey []byte, headerInfo data.HeaderInfoHandler) error
 	// GetHeaders returns all cached headers for a public key, in a given round
-	GetHeaders(round uint64, pubKey []byte) []data.HeaderHandler
+	GetHeaders(round uint64, pubKey []byte) []data.HeaderInfoHandler
 	// GetPubKeys returns all cached public keys in a given round
 	GetPubKeys(round uint64) [][]byte
 	// IsInterfaceNil checks if the interface is nil

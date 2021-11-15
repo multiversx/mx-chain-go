@@ -120,16 +120,16 @@ func TestRoundProposerDataCache_GetHeaders(t *testing.T) {
 
 	data1 := dataCache.GetHeaders(1, []byte("proposer1"))
 	require.Len(t, data1, 2)
-	require.Equal(t, data1[0], h1.Header)
-	require.Equal(t, data1[1], h2.Header)
+	require.Equal(t, data1[0], h1)
+	require.Equal(t, data1[1], h2)
 
 	data1 = dataCache.GetHeaders(2, []byte("proposer1"))
 	require.Len(t, data1, 1)
-	require.Equal(t, data1[0], h2.Header)
+	require.Equal(t, data1[0], h2)
 
 	data2 := dataCache.GetHeaders(2, []byte("proposer2"))
 	require.Len(t, data2, 1)
-	require.Equal(t, data2[0], h3.Header)
+	require.Equal(t, data2[0], h3)
 
 	// Round not cached. Proposer not cached
 	data3 := dataCache.GetHeaders(444, []byte("this proposer is not cached"))

@@ -178,11 +178,12 @@ func (mhs *multipleHeaderSigningDetector) getSlashingResult(round uint64) map[st
 	slashingData := make(map[string]coreSlash.SlashingResult)
 
 	for _, validator := range mhs.slashingCache.GetPubKeys(round) {
-		signedHeaders := mhs.slashingCache.GetHeaders(round, validator)
-		if len(signedHeaders) > 1 {
+		signedHeadersInfo := mhs.slashingCache.GetHeaders(round, validator)
+		if len(signedHeadersInfo) > 1 {
+			headerHandlers := getHeaderHandlers(signedHeadersInfo)
 			slashingData[string(validator)] = coreSlash.SlashingResult{
-				SlashingLevel: mhs.computeSlashLevel(signedHeaders),
-				Headers:       signedHeaders,
+				SlashingLevel: mhs.computeSlashLevel(headerHandlers),
+				Headers:       signedHeadersInfo,
 			}
 		}
 	}

@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	mockCoreData "github.com/ElrondNetwork/elrond-go-core/data/mock"
 	coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
 	mockEpochStart "github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -191,6 +192,11 @@ func TestMultipleHeaderProposalsDetector_VerifyData_MultipleHeaders(t *testing.T
 	hData3 := slashMocks.CreateInterceptedHeaderData(h3)
 	hData4 := slashMocks.CreateInterceptedHeaderData(h4)
 
+	hInfo1 := &mockCoreData.HeaderInfoStub{Header: h1, Hash: []byte("h1")}
+	hInfo2 := &mockCoreData.HeaderInfoStub{Header: h2, Hash: []byte("h2")}
+	hInfo3 := &mockCoreData.HeaderInfoStub{Header: h3, Hash: []byte("h3")}
+	hInfo4 := &mockCoreData.HeaderInfoStub{Header: h4, Hash: []byte("h4")}
+
 	getCalledCt := 0
 	addCalledCt := 0
 	args := generateMultipleHeaderProposalDetectorArgs()
@@ -208,17 +214,17 @@ func TestMultipleHeaderProposalsDetector_VerifyData_MultipleHeaders(t *testing.T
 		GetPubKeysCalled: func(_ uint64) [][]byte {
 			return [][]byte{pubKey}
 		},
-		GetDataCalled: func(r uint64, pk []byte) []data.HeaderHandler {
+		GetHeadersCalled: func(r uint64, pk []byte) []data.HeaderInfoHandler {
 			getCalledCt++
 			switch getCalledCt {
 			case 1:
-				return slash.HeaderList{h1}
+				return slash.HeaderInfoList{hInfo1}
 			case 2:
-				return slash.HeaderList{h1, h2}
+				return slash.HeaderInfoList{hInfo1, hInfo2}
 			case 3:
-				return slash.HeaderList{h1, h2, h3}
+				return slash.HeaderInfoList{hInfo1, hInfo2, hInfo3}
 			case 4:
-				return slash.HeaderList{h1, h2, h3, h4}
+				return slash.HeaderInfoList{hInfo1, hInfo2, hInfo3, hInfo4}
 			default:
 				return nil
 			}
@@ -294,42 +300,41 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_DifferentSlashLevelsAndTy
 	t.Parallel()
 
 	tests := []struct {
-		args        func() (coreSlash.ThreatLevel, slash.HeaderList)
+		args        func() (coreSlash.ThreatLevel, slash.HeaderInfoList)
 		expectedErr error
 	}{
 		{
-			args: func() (coreSlash.ThreatLevel, slash.HeaderList) {
-				return coreSlash.Low, slash.HeaderList{}
+			args: func() (coreSlash.ThreatLevel, slash.HeaderInfoList) {
+				return coreSlash.Low, slash.HeaderInfoList{}
 			},
 			expectedErr: process.ErrInvalidSlashLevel,
 		},
 		{
-			args: func() (coreSlash.ThreatLevel, slash.HeaderList) {
-				return coreSlash.ThreatLevel(44), slash.HeaderList{}
+			args: func() (coreSlash.ThreatLevel, slash.HeaderInfoList) {
+				return coreSlash.ThreatLevel(44), slash.HeaderInfoList{}
 			},
 			expectedErr: process.ErrInvalidSlashLevel,
 		},
 		{
-			args: func() (coreSlash.ThreatLevel, slash.HeaderList) {
-				return coreSlash.Medium, slash.HeaderList{}
+			args: func() (coreSlash.ThreatLevel, slash.HeaderInfoList) {
+				return coreSlash.Medium, slash.HeaderInfoList{}
 			},
 			expectedErr: process.ErrNotEnoughHeadersProvided,
 		},
 		{
-			args: func() (coreSlash.ThreatLevel, slash.HeaderList) {
-				h1 := &block.HeaderV2{Header: &block.Header{Round: 2, Nonce: 1}}
-				h2 := &block.HeaderV2{Header: &block.Header{Round: 2, Nonce: 2}}
-				h3 := &block.HeaderV2{Header: &block.Header{Round: 2, Nonce: 3}}
-
-				return coreSlash.Medium, slash.HeaderList{h1, h2, h3}
+			args: func() (coreSlash.ThreatLevel, slash.HeaderInfoList) {
+				h1 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 2, Nonce: 1}})
+				h2 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 2, Nonce: 2}})
+				h3 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 2, Nonce: 3}})
+				return coreSlash.Medium, slash.HeaderInfoList{h1, h2, h3}
 			},
 			expectedErr: process.ErrSlashLevelDoesNotMatchSlashType,
 		},
 		{
-			args: func() (coreSlash.ThreatLevel, slash.HeaderList) {
-				h1 := &block.HeaderV2{Header: &block.Header{Round: 2, Nonce: 1}}
-				h2 := &block.HeaderV2{Header: &block.Header{Round: 2, Nonce: 2}}
-				return coreSlash.High, slash.HeaderList{h1, h2}
+			args: func() (coreSlash.ThreatLevel, slash.HeaderInfoList) {
+				h1 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 2, Nonce: 1}})
+				h2 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 2, Nonce: 2}})
+				return coreSlash.High, slash.HeaderInfoList{h1, h2}
 			},
 			expectedErr: process.ErrSlashLevelDoesNotMatchSlashType,
 		},
@@ -371,81 +376,81 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_DifferentHeaders(t *testi
 		},
 	}
 	tests := []struct {
-		args        func() (coreSlash.ThreatLevel, slash.HeaderList)
+		args        func() (coreSlash.ThreatLevel, slash.HeaderInfoList)
 		expectedErr error
 	}{
 		{
-			args: func() (coreSlash.ThreatLevel, slash.HeaderList) {
-				h1 := &block.HeaderV2{Header: &block.Header{Round: 5}}
-				h2 := &block.HeaderV2{Header: &block.Header{Round: 5}}
-				return coreSlash.Medium, slash.HeaderList{h1, h2}
+			args: func() (coreSlash.ThreatLevel, slash.HeaderInfoList) {
+				h1 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 5}})
+				h2 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 5}})
+				return coreSlash.Medium, slash.HeaderInfoList{h1, h2}
 			},
 			expectedErr: process.ErrHeadersNotDifferentHashes,
 		},
 		{
-			args: func() (coreSlash.ThreatLevel, slash.HeaderList) {
-				h1 := &block.HeaderV2{Header: &block.Header{Round: 5}}
-				h2 := &block.HeaderV2{Header: &block.Header{Round: 5}}
-				h3 := &block.HeaderV2{Header: &block.Header{Round: 5}}
-				return coreSlash.High, slash.HeaderList{h1, h2, h3}
+			args: func() (coreSlash.ThreatLevel, slash.HeaderInfoList) {
+				h1 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 5}})
+				h2 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 5}})
+				h3 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 5}})
+				return coreSlash.High, slash.HeaderInfoList{h1, h2, h3}
 			},
 			expectedErr: process.ErrHeadersNotDifferentHashes,
 		},
 		{
-			args: func() (coreSlash.ThreatLevel, slash.HeaderList) {
-				h1 := &block.HeaderV2{Header: &block.Header{Round: 4}}
-				h2 := &block.HeaderV2{Header: &block.Header{Round: 5}}
-				return coreSlash.Medium, slash.HeaderList{h1, h2}
+			args: func() (coreSlash.ThreatLevel, slash.HeaderInfoList) {
+				h1 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 4}})
+				h2 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 5}})
+				return coreSlash.Medium, slash.HeaderInfoList{h1, h2}
 			},
 			expectedErr: process.ErrHeadersNotSameRound,
 		},
 		{
-			args: func() (coreSlash.ThreatLevel, slash.HeaderList) {
-				h1 := &block.HeaderV2{Header: &block.Header{Round: 4, TimeStamp: 1}}
-				h2 := &block.HeaderV2{Header: &block.Header{Round: 4, TimeStamp: 2}}
-				h3 := &block.HeaderV2{Header: &block.Header{Round: 5, TimeStamp: 3}}
-				return coreSlash.High, slash.HeaderList{h1, h2, h3}
+			args: func() (coreSlash.ThreatLevel, slash.HeaderInfoList) {
+				h1 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 4, TimeStamp: 1}})
+				h2 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 4, TimeStamp: 2}})
+				h3 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 5, TimeStamp: 3}})
+				return coreSlash.High, slash.HeaderInfoList{h1, h2, h3}
 			},
 			expectedErr: process.ErrHeadersNotSameRound,
 		},
 		{
-			args: func() (coreSlash.ThreatLevel, slash.HeaderList) {
-				h1 := &block.HeaderV2{Header: &block.Header{Round: 0, PrevRandSeed: []byte("h1"), TimeStamp: 1}}
-				h2 := &block.HeaderV2{Header: &block.Header{Round: 0, PrevRandSeed: []byte("h1"), TimeStamp: 2}}
-				return coreSlash.Medium, slash.HeaderList{h1, h2}
+			args: func() (coreSlash.ThreatLevel, slash.HeaderInfoList) {
+				h1 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 0, PrevRandSeed: []byte("h1"), TimeStamp: 1}})
+				h2 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 0, PrevRandSeed: []byte("h1"), TimeStamp: 2}})
+				return coreSlash.Medium, slash.HeaderInfoList{h1, h2}
 			},
 			expectedErr: errGetProposer,
 		},
 		{
-			args: func() (coreSlash.ThreatLevel, slash.HeaderList) {
-				h1 := &block.HeaderV2{Header: &block.Header{Round: 0, PrevRandSeed: []byte("h")}}
-				h2 := &block.HeaderV2{Header: &block.Header{Round: 0, PrevRandSeed: []byte("h1")}}
-				return coreSlash.Medium, slash.HeaderList{h1, h2}
+			args: func() (coreSlash.ThreatLevel, slash.HeaderInfoList) {
+				h1 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 0, PrevRandSeed: []byte("h")}})
+				h2 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 0, PrevRandSeed: []byte("h1")}})
+				return coreSlash.Medium, slash.HeaderInfoList{h1, h2}
 			},
 			expectedErr: errGetProposer,
 		},
 		{
-			args: func() (coreSlash.ThreatLevel, slash.HeaderList) {
-				h1 := &block.HeaderV2{Header: &block.Header{Round: 1, PrevRandSeed: []byte("h1")}}
-				h2 := &block.HeaderV2{Header: &block.Header{Round: 1, PrevRandSeed: []byte("h2")}}
-				return coreSlash.Medium, slash.HeaderList{h1, h2}
+			args: func() (coreSlash.ThreatLevel, slash.HeaderInfoList) {
+				h1 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 1, PrevRandSeed: []byte("h1")}})
+				h2 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 1, PrevRandSeed: []byte("h2")}})
+				return coreSlash.Medium, slash.HeaderInfoList{h1, h2}
 			},
 			expectedErr: process.ErrHeadersNotSameProposer,
 		},
 		{
-			args: func() (coreSlash.ThreatLevel, slash.HeaderList) {
-				h1 := &block.HeaderV2{Header: &block.Header{Round: 4, TimeStamp: 1}}
-				h2 := &block.HeaderV2{Header: &block.Header{Round: 4, TimeStamp: 2}}
-				return coreSlash.Medium, slash.HeaderList{h1, h2}
+			args: func() (coreSlash.ThreatLevel, slash.HeaderInfoList) {
+				h1 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 4, TimeStamp: 1}})
+				h2 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 4, TimeStamp: 2}})
+				return coreSlash.Medium, slash.HeaderInfoList{h1, h2}
 			},
 			expectedErr: nil,
 		},
 		{
-			args: func() (coreSlash.ThreatLevel, slash.HeaderList) {
-				h1 := &block.HeaderV2{Header: &block.Header{Round: 5, TimeStamp: 1}}
-				h2 := &block.HeaderV2{Header: &block.Header{Round: 5, TimeStamp: 2}}
-				h3 := &block.HeaderV2{Header: &block.Header{Round: 5, TimeStamp: 3}}
-				return coreSlash.High, slash.HeaderList{h1, h2, h3}
+			args: func() (coreSlash.ThreatLevel, slash.HeaderInfoList) {
+				h1 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 5, TimeStamp: 1}})
+				h2 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 5, TimeStamp: 2}})
+				h3 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 5, TimeStamp: 3}})
+				return coreSlash.High, slash.HeaderInfoList{h1, h2, h3}
 			},
 			expectedErr: nil,
 		},

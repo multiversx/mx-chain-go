@@ -30,6 +30,15 @@ func absDiff(x, y uint64) uint64 {
 	return x - y
 }
 
+func getHeaderHandlers(headersInfo []data.HeaderInfoHandler) []data.HeaderHandler {
+	headers := make([]data.HeaderHandler, 0, len(headersInfo))
+	for _, headerInfo := range headersInfo {
+		headers = append(headers, headerInfo.GetHeaderHandler())
+	}
+
+	return headers
+}
+
 func computeSlashLevelBasedOnHeadersCount(headers []data.HeaderHandler) coreSlash.ThreatLevel {
 	ret := coreSlash.Low
 
