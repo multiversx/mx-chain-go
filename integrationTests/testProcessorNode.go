@@ -1638,6 +1638,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 			EnableEpochs: tpn.EnableEpochs,
 		},
 		ShardCoordinator: tpn.ShardCoordinator,
+		StatusHandler:    TestAppStatusHandler,
 	}
 	vmFactory, _ := metaProcess.NewVMContainerFactory(argsVMContainerFactory)
 
