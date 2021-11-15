@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
@@ -111,12 +110,16 @@ func TestStorageForDistribution(t *testing.T) {
 	accnt, err := testContext.Accounts.GetExistingAccount(scAddress)
 	require.Nil(t, err)
 
-	userAccnt := accnt.(vmcommon.UserAccountHandler)
+	scAccount := accnt.(vmcommon.UserAccountHandler)
 
 	globalMap := smartContract.GlobalStorageMap
 	keySize := uint64(0)
 	valueSize := uint64(0)
 	for key, val := range globalMap {
+		if len(val) == 0 {
+			continue
+		}
+
 		keySize += uint64(len(key))
 		valueSize += uint64(len(val))
 	}
@@ -124,43 +127,25 @@ func TestStorageForDistribution(t *testing.T) {
 	fmt.Printf("KEY   SIZE %d \n", keySize)
 	fmt.Printf("VALUE SIZE %d \n", valueSize)
 
-	err = doTraceFile(userAccnt.GetRootHash(), testContext.Trie)
+	err = computeTrieStorage(scAccount.GetRootHash(), testContext.Trie)
 	require.Nil(t, err)
 }
 
-func doTraceFile(roothash []byte, tr common.Trie) error {
-	log.Warn("saving trie trace file")
-
-	traceFile, err := core.CreateFile(core.ArgCreateFileArgument{
-		Directory:     "",
-		Prefix:        "TRACE",
-		FileExtension: "log",
-	})
-	if err != nil {
-		return err
-	}
-	defer func() {
-		_ = traceFile.Close()
-	}()
-
-	keysBytes := uint64(0)
-	valueBytes := uint64(0)
-
+func computeTrieStorage(roothash []byte, tr common.Trie) error {
 	ch, err := tr.GetAllLeavesOnChannel(roothash)
 	if err != nil {
 		return err
 	}
-	for keyVal := range ch {
-		_, err = traceFile.WriteString(fmt.Sprintf("%s : %s\n", hex.EncodeToString(keyVal.Key()), hex.EncodeToString(keyVal.Value())))
-		if err != nil {
-			return err
-		}
 
+	keysBytes := uint64(0)
+	valueBytes := uint64(0)
+	for keyVal := range ch {
 		keysBytes += uint64(len(keyVal.Key()))
 		valueBytes += uint64(len(keyVal.Value()))
 	}
 
-	_, err = traceFile.WriteString(fmt.Sprintf("TOTAL:\n  keys: %s\n  values: %s\n", core.ConvertBytes(keysBytes), core.ConvertBytes(valueBytes)))
+	fmt.Printf("TRIE KEY   SIZE %d \n", keysBytes)
+	fmt.Printf("TRIE VALUE SIZE %d \n", valueBytes)
 
 	return nil
 }
