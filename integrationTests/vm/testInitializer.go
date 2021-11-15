@@ -54,6 +54,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
@@ -664,6 +665,7 @@ func CreateVMAndBlockchainHookMeta(
 		EpochNotifier:       &mock.EpochNotifierStub{},
 		EpochConfig:         createEpochConfig(),
 		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(1),
+		StatusHandler:       &statusHandlerMock.AppStatusHandlerStub{},
 	}
 	argVMContainer.EpochConfig.EnableEpochs.UnbondTokensV2EnableEpoch = arg.UnbondTokensV2EnableEpoch
 	vmFactory, err := metachain.NewVMContainerFactory(argVMContainer)

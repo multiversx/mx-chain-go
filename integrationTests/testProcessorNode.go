@@ -873,6 +873,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 				},
 			},
 			ShardCoordinator: tpn.ShardCoordinator,
+			StatusHandler:    TestAppStatusHandler,
 		}
 		vmFactory, _ = metaProcess.NewVMContainerFactory(argsNewVmFactory)
 	} else {

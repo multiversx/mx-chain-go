@@ -980,6 +980,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 			},
 		},
 		ShardCoordinator: &mock.ShardCoordinatorStub{},
+		StatusHandler:    &statusHandlerMock.AppStatusHandlerStub{},
 	}
 	metaVmFactory, _ := metaProcess.NewVMContainerFactory(argsNewVMContainerFactory)
 
