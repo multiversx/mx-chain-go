@@ -103,6 +103,7 @@ type VMTestContext struct {
 	TxProcessor      process.TransactionProcessor
 	ScProcessor      *smartContract.TestScProcessor
 	Accounts         state.AccountsAdapter
+	Trie             common.Trie
 	BlockchainHook   vmcommon.BlockchainHook
 	VMContainer      process.VirtualMachinesContainer
 	TxFeeHandler     process.TransactionFeeHandler
@@ -289,7 +290,7 @@ func CreateMemUnit() storage.Storer {
 }
 
 // CreateInMemoryShardAccountsDB -
-func CreateInMemoryShardAccountsDB() *state.AccountsDB {
+func CreateInMemoryShardAccountsDB() (*state.AccountsDB, common.Trie) {
 	marsh := &marshal.GogoProtoMarshalizer{}
 	store := CreateMemUnit()
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), marsh)
@@ -318,7 +319,7 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 	adb, _ := state.NewAccountsDB(tr, testHasher, marsh, &accountFactory{}, spm)
 
-	return adb
+	return adb, tr
 }
 
 // CreateAccount -
@@ -1006,7 +1007,7 @@ func CreatePreparedTxProcessorAndAccountsWithVMs(
 	argEnableEpoch ArgEnableEpoch,
 ) (*VMTestContext, error) {
 	feeAccumulator, _ := postprocess.NewFeeAccumulator()
-	accounts := CreateInMemoryShardAccountsDB()
+	accounts, _ := CreateInMemoryShardAccountsDB()
 	_, _ = CreateAccount(accounts, senderAddressBytes, senderNonce, senderBalance)
 	vmConfig := createDefaultVMConfig()
 	arwenChangeLocker := &sync.RWMutex{}
@@ -1044,7 +1045,7 @@ func CreatePreparedTxProcessorWithVMs(argEnableEpoch ArgEnableEpoch) (*VMTestCon
 // CreatePreparedTxProcessorWithVMsWithShardCoordinator -
 func CreatePreparedTxProcessorWithVMsWithShardCoordinator(argEnableEpoch ArgEnableEpoch, shardCoordinator sharding.Coordinator) (*VMTestContext, error) {
 	feeAccumulator, _ := postprocess.NewFeeAccumulator()
-	accounts := CreateInMemoryShardAccountsDB()
+	accounts, _ := CreateInMemoryShardAccountsDB()
 	vmConfig := createDefaultVMConfig()
 	arwenChangeLocker := &sync.RWMutex{}
 
@@ -1091,7 +1092,7 @@ func CreateTxProcessorArwenVMWithGasSchedule(
 	argEnableEpoch ArgEnableEpoch,
 ) (*VMTestContext, error) {
 	feeAccumulator, _ := postprocess.NewFeeAccumulator()
-	accounts := CreateInMemoryShardAccountsDB()
+	accounts, tr := CreateInMemoryShardAccountsDB()
 	_, _ = CreateAccount(accounts, senderAddressBytes, senderNonce, senderBalance)
 	vmConfig := createDefaultVMConfig()
 	arwenChangeLocker := &sync.RWMutex{}
@@ -1122,6 +1123,7 @@ func CreateTxProcessorArwenVMWithGasSchedule(
 		TxFeeHandler:   feeAccumulator,
 		ScForwarder:    scForwarder,
 		GasSchedule:    gasScheduleNotifier,
+		Trie:           tr,
 	}, nil
 }
 
@@ -1132,7 +1134,7 @@ func CreateTxProcessorArwenWithVMConfig(
 	gasSchedule map[string]map[string]uint64,
 ) (*VMTestContext, error) {
 	feeAccumulator, _ := postprocess.NewFeeAccumulator()
-	accounts := CreateInMemoryShardAccountsDB()
+	accounts, _ := CreateInMemoryShardAccountsDB()
 	arwenChangeLocker := &sync.RWMutex{}
 	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasSchedule)
 	vmContainer, blockchainHook, pool := CreateVMAndBlockchainHookAndDataPool(accounts, gasScheduleNotifier, vmConfig, oneShardCoordinator, arwenChangeLocker)
@@ -1174,7 +1176,7 @@ func CreatePreparedTxProcessorAndAccountsWithMockedVM(
 	arwenChangeLocker common.Locker,
 ) (process.TransactionProcessor, state.AccountsAdapter, error) {
 
-	accnts := CreateInMemoryShardAccountsDB()
+	accnts, _ := CreateInMemoryShardAccountsDB()
 	_, _ = CreateAccount(accnts, senderAddressBytes, senderNonce, senderBalance)
 
 	txProcessor, err := CreateTxProcessorWithOneSCExecutorMockVM(accnts, vmOpGas, argEnableEpoch, arwenChangeLocker)
@@ -1410,7 +1412,7 @@ func CreatePreparedTxProcessorWithVMsMultiShard(selfShardID uint32, argEnableEpo
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(3, selfShardID)
 
 	feeAccumulator, _ := postprocess.NewFeeAccumulator()
-	accounts := CreateInMemoryShardAccountsDB()
+	accounts, _ := CreateInMemoryShardAccountsDB()
 
 	arwenChangeLocker := &sync.RWMutex{}
 	var vmContainer process.VirtualMachinesContainer
