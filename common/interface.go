@@ -42,8 +42,8 @@ type Trie interface {
 type StorageManager interface {
 	Get(key []byte) ([]byte, error)
 	Put(key []byte, val []byte) error
-	TakeSnapshot([]byte, bool, chan core.KeyValueHolder)
-	SetCheckpoint([]byte, chan core.KeyValueHolder)
+	TakeSnapshot([]byte, chan core.KeyValueHolder, SnapshotStatisticsHandler)
+	SetCheckpoint([]byte, chan core.KeyValueHolder, SnapshotStatisticsHandler)
 	IsPruningEnabled() bool
 	IsPruningBlocked() bool
 	EnterPruningBufferingMode()
@@ -104,4 +104,12 @@ type SizeSyncStatisticsHandler interface {
 	data.SyncStatisticsHandler
 	AddNumBytesReceived(bytes uint64)
 	NumBytesReceived() uint64
+}
+
+// SnapshotStatisticsHandler is used to measure different statistics for the trie snapshot
+type SnapshotStatisticsHandler interface {
+	AddSize(uint64)
+	SnapshotFinished()
+	NewSnapshotStarted()
+	NewDataTrie()
 }

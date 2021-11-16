@@ -204,6 +204,7 @@ func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 			},
 		},
 		storagePruning,
+		false,
 	)
 	return adb
 }

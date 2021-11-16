@@ -31,19 +31,21 @@ func (tsm *trieStorageManagerWithoutPruning) Get(key []byte) ([]byte, error) {
 }
 
 // TakeSnapshot does nothing if pruning is disabled
-func (tsm *trieStorageManagerWithoutPruning) TakeSnapshot(_ []byte, _ bool, chLeaves chan core.KeyValueHolder) {
+func (tsm *trieStorageManagerWithoutPruning) TakeSnapshot(_ []byte, chLeaves chan core.KeyValueHolder, stats common.SnapshotStatisticsHandler) {
 	if chLeaves != nil {
 		close(chLeaves)
 	}
+	stats.SnapshotFinished()
 
 	log.Trace("trieStorageManagerWithoutPruning - TakeSnapshot:trie storage pruning is disabled")
 }
 
 // SetCheckpoint does nothing if pruning is disabled
-func (tsm *trieStorageManagerWithoutPruning) SetCheckpoint(_ []byte, chLeaves chan core.KeyValueHolder) {
+func (tsm *trieStorageManagerWithoutPruning) SetCheckpoint(_ []byte, chLeaves chan core.KeyValueHolder, stats common.SnapshotStatisticsHandler) {
 	if chLeaves != nil {
 		close(chLeaves)
 	}
+	stats.SnapshotFinished()
 
 	log.Trace("trieStorageManagerWithoutPruning - SetCheckpoint:trie storage pruning is disabled")
 }

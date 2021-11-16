@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/common"
+	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/stretchr/testify/assert"
 )
@@ -54,11 +55,11 @@ func TestTrieStorageManagerWithoutCheckpoints_SetCheckpoint(t *testing.T) {
 	args := getNewTrieStorageManagerArgs()
 	ts, _ := trie.NewTrieStorageManagerWithoutCheckpoints(args)
 
-	ts.SetCheckpoint([]byte("rootHash"), nil)
+	ts.SetCheckpoint([]byte("rootHash"), nil, &trieMock.MockStatistics{})
 	assert.Equal(t, uint32(0), ts.PruningBlockingOperations())
 
 	chLeaves := make(chan core.KeyValueHolder)
-	ts.SetCheckpoint([]byte("rootHash"), chLeaves)
+	ts.SetCheckpoint([]byte("rootHash"), chLeaves, &trieMock.MockStatistics{})
 	assert.Equal(t, uint32(0), ts.PruningBlockingOperations())
 
 	select {

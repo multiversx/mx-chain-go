@@ -40,7 +40,7 @@ func getDefaultTrieAndAccountsDbAndStoragePruningManager() (common.Trie, *state.
 	tr, _ := trie.NewTrie(trieStorage, marshalizer, hsh, 5)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, testscommon.NewMemDbMock(), marshalizer)
 	spm, _ := NewStoragePruningManager(ewl, generalCfg.PruningBufferLen)
-	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, factory.NewAccountCreator(), spm)
+	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, factory.NewAccountCreator(), spm, false)
 
 	return tr, adb, spm
 }

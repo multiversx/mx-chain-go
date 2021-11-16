@@ -319,7 +319,7 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 
 	tr, _ := trie.NewTrie(trieStorage, marsh, testHasher, maxTrieLevelInMemory)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
-	adb, _ := state.NewAccountsDB(tr, testHasher, marsh, &accountFactory{}, spm)
+	adb, _ := state.NewAccountsDB(tr, testHasher, marsh, &accountFactory{}, spm, false)
 
 	return adb
 }

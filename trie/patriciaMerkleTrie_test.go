@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
 	"github.com/stretchr/testify/assert"
@@ -435,7 +436,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodesGetFromCheckpoint(t *testing.T) {
 	storageManager := tr.GetStorageManager()
 	dirtyHashes := trie.GetDirtyHashes(tr)
 	storageManager.AddDirtyCheckpointHashes(rootHash, dirtyHashes)
-	storageManager.SetCheckpoint(rootHash, nil)
+	storageManager.SetCheckpoint(rootHash, nil, &trieMock.MockStatistics{})
 	trie.WaitForOperationToComplete(storageManager)
 
 	err := storageManager.Remove(rootHash)

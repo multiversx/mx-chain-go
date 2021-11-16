@@ -204,6 +204,7 @@ func (en *extensionNode) commitCheckpoint(
 	checkpointHashes CheckpointHashesHolder,
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
+	stats common.SnapshotStatisticsHandler,
 ) error {
 	if shouldStopIfContextDone(ctx) {
 		return ErrContextClosing
@@ -229,19 +230,20 @@ func (en *extensionNode) commitCheckpoint(
 		return nil
 	}
 
-	err = en.child.commitCheckpoint(originDb, targetDb, checkpointHashes, leavesChan, ctx)
+	err = en.child.commitCheckpoint(originDb, targetDb, checkpointHashes, leavesChan, ctx, stats)
 	if err != nil {
 		return err
 	}
 
 	checkpointHashes.Remove(hash)
-	return en.saveToStorage(targetDb)
+	return en.saveToStorage(targetDb, stats)
 }
 
 func (en *extensionNode) commitSnapshot(
 	db common.DBWriteCacher,
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
+	stats common.SnapshotStatisticsHandler,
 ) error {
 	if shouldStopIfContextDone(ctx) {
 		return ErrContextClosing
@@ -257,19 +259,21 @@ func (en *extensionNode) commitSnapshot(
 		return err
 	}
 
-	err = en.child.commitSnapshot(db, leavesChan, ctx)
+	err = en.child.commitSnapshot(db, leavesChan, ctx, stats)
 	if err != nil {
 		return err
 	}
 
-	return en.saveToStorage(db)
+	return en.saveToStorage(db, stats)
 }
 
-func (en *extensionNode) saveToStorage(targetDb common.DBWriteCacher) error {
-	_, err := encodeNodeAndCommitToDB(en, targetDb)
+func (en *extensionNode) saveToStorage(targetDb common.DBWriteCacher, stats common.SnapshotStatisticsHandler) error {
+	nodeSize, err := encodeNodeAndCommitToDB(en, targetDb)
 	if err != nil {
 		return err
 	}
+
+	stats.AddSize(uint64(nodeSize))
 
 	en.child = nil
 	return nil

@@ -491,7 +491,7 @@ func CreateAccountsDB(
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), TestMarshalizer)
 	accountFactory := getAccountFactory(accountType)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
-	adb, _ := state.NewAccountsDB(tr, sha256.NewSha256(), TestMarshalizer, accountFactory, spm)
+	adb, _ := state.NewAccountsDB(tr, sha256.NewSha256(), TestMarshalizer, accountFactory, spm, false)
 
 	return adb, tr
 }

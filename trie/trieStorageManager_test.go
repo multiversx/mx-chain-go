@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
@@ -183,7 +184,7 @@ func TestTrieCheckpoint(t *testing.T) {
 	dirtyHashes := trie.GetDirtyHashes(tr)
 
 	trieStorage.AddDirtyCheckpointHashes(rootHash, dirtyHashes)
-	trieStorage.SetCheckpoint(rootHash, nil)
+	trieStorage.SetCheckpoint(rootHash, nil, &trieMock.MockStatistics{})
 	trie.WaitForOperationToComplete(trieStorage)
 
 	val, err = trieStorage.GetFromCheckpoint(rootHash)
@@ -201,7 +202,7 @@ func TestTrieCheckpoint_DoesNotSaveToCheckpointStorageIfNotDirty(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Nil(t, val)
 
-	trieStorage.SetCheckpoint(rootHash, nil)
+	trieStorage.SetCheckpoint(rootHash, nil, &trieMock.MockStatistics{})
 	trie.WaitForOperationToComplete(trieStorage)
 
 	val, err = trieStorage.GetFromCheckpoint(rootHash)

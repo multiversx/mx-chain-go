@@ -50,8 +50,8 @@ type trieStorageManager struct {
 
 type snapshotsQueueEntry struct {
 	rootHash   []byte
-	newDb      bool
 	leavesChan chan core.KeyValueHolder
+	stats      common.SnapshotStatisticsHandler
 }
 
 // NewTrieStorageManagerArgs holds the arguments needed for creating a new trieStorageManager
@@ -321,15 +321,17 @@ func (tsm *trieStorageManager) ExitPruningBufferingMode() {
 
 // TakeSnapshot creates a new snapshot, or if there is another snapshot or checkpoint in progress,
 // it adds this snapshot in the queue.
-func (tsm *trieStorageManager) TakeSnapshot(rootHash []byte, newDb bool, leavesChan chan core.KeyValueHolder) {
+func (tsm *trieStorageManager) TakeSnapshot(rootHash []byte, leavesChan chan core.KeyValueHolder, stats common.SnapshotStatisticsHandler) {
 	if tsm.isClosed() {
 		tsm.safelyCloseChan(leavesChan)
+		stats.SnapshotFinished()
 		return
 	}
 
 	if bytes.Equal(rootHash, EmptyTrieHash) {
 		log.Trace("should not snapshot an empty trie")
 		tsm.safelyCloseChan(leavesChan)
+		stats.SnapshotFinished()
 		return
 	}
 
@@ -338,29 +340,32 @@ func (tsm *trieStorageManager) TakeSnapshot(rootHash []byte, newDb bool, leavesC
 
 	snapshotEntry := &snapshotsQueueEntry{
 		rootHash:   rootHash,
-		newDb:      newDb,
 		leavesChan: leavesChan,
+		stats:      stats,
 	}
 	select {
 	case tsm.snapshotReq <- snapshotEntry:
 	case <-tsm.closer.ChanClose():
 		tsm.ExitPruningBufferingMode()
 		tsm.safelyCloseChan(leavesChan)
+		stats.SnapshotFinished()
 	}
 }
 
 // SetCheckpoint creates a new checkpoint, or if there is another snapshot or checkpoint in progress,
 // it adds this checkpoint in the queue. The checkpoint operation creates a new snapshot file
 // only if there was no snapshot done prior to this
-func (tsm *trieStorageManager) SetCheckpoint(rootHash []byte, leavesChan chan core.KeyValueHolder) {
+func (tsm *trieStorageManager) SetCheckpoint(rootHash []byte, leavesChan chan core.KeyValueHolder, stats common.SnapshotStatisticsHandler) {
 	if tsm.isClosed() {
 		tsm.safelyCloseChan(leavesChan)
+		stats.SnapshotFinished()
 		return
 	}
 
 	if bytes.Equal(rootHash, EmptyTrieHash) {
 		log.Trace("should not set checkpoint for empty trie")
 		tsm.safelyCloseChan(leavesChan)
+		stats.SnapshotFinished()
 		return
 	}
 
@@ -368,14 +373,15 @@ func (tsm *trieStorageManager) SetCheckpoint(rootHash []byte, leavesChan chan co
 
 	checkpointEntry := &snapshotsQueueEntry{
 		rootHash:   rootHash,
-		newDb:      false,
 		leavesChan: leavesChan,
+		stats:      stats,
 	}
 	select {
 	case tsm.checkpointReq <- checkpointEntry:
 	case <-tsm.closer.ChanClose():
 		tsm.ExitPruningBufferingMode()
 		tsm.safelyCloseChan(leavesChan)
+		stats.SnapshotFinished()
 	}
 }
 
@@ -389,6 +395,7 @@ func (tsm *trieStorageManager) finishOperation(snapshotEntry *snapshotsQueueEntr
 	tsm.ExitPruningBufferingMode()
 	log.Trace(message, "rootHash", snapshotEntry.rootHash)
 	tsm.safelyCloseChan(snapshotEntry.leavesChan)
+	snapshotEntry.stats.SnapshotFinished()
 }
 
 func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, msh marshal.Marshalizer, hsh hashing.Hasher, ctx context.Context) {
@@ -408,13 +415,13 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 		return
 	}
 
-	err = newRoot.commitSnapshot(stsm, snapshotEntry.leavesChan, ctx)
+	err = newRoot.commitSnapshot(stsm, snapshotEntry.leavesChan, ctx, snapshotEntry.stats)
 	if err == ErrContextClosing {
 		log.Debug("context closing while in commitSnapshot operation")
 		return
 	}
 	if err != nil {
-		log.Error("trie storage manager: commit", "error", err.Error())
+		log.Error("trie storage manager: takeSnapshot commit", "error", err.Error())
 	}
 }
 
@@ -429,13 +436,13 @@ func (tsm *trieStorageManager) takeCheckpoint(checkpointEntry *snapshotsQueueEnt
 		return
 	}
 
-	err = newRoot.commitCheckpoint(tsm, tsm.checkpointsStorer, tsm.checkpointHashesHolder, checkpointEntry.leavesChan, ctx)
+	err = newRoot.commitCheckpoint(tsm, tsm.checkpointsStorer, tsm.checkpointHashesHolder, checkpointEntry.leavesChan, ctx, checkpointEntry.stats)
 	if err == ErrContextClosing {
 		log.Debug("context closing while in commitCheckpoint operation")
 		return
 	}
 	if err != nil {
-		log.Error("trie storage manager: commit", "error", err.Error())
+		log.Error("trie storage manager: takeCheckpoint commit", "error", err.Error())
 	}
 }
 

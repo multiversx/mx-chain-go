@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
 	"github.com/stretchr/testify/assert"
 )
@@ -1051,7 +1052,7 @@ func TestBranchNode_getChildrenCollapsedBn(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	_ = bn.commitSnapshot(db, nil, context.Background())
+	_ = bn.commitSnapshot(db, nil, context.Background(), &trieMock.MockStatistics{})
 
 	children, err := collapsedBn.getChildren(db)
 	assert.Nil(t, err)
@@ -1251,8 +1252,8 @@ func TestBranchNode_printShouldNotPanicEvenIfNodeIsCollapsed(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	_ = bn.commitSnapshot(db, nil, context.Background())
-	_ = collapsedBn.commitSnapshot(db, nil, context.Background())
+	_ = bn.commitSnapshot(db, nil, context.Background(), &trieMock.MockStatistics{})
+	_ = collapsedBn.commitSnapshot(db, nil, context.Background(), &trieMock.MockStatistics{})
 
 	bn.print(bnWriter, 0, db)
 	collapsedBn.print(collapsedBnWriter, 0, db)
@@ -1289,7 +1290,7 @@ func TestBranchNode_getAllHashesResolvesCollapsed(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	_ = bn.commitSnapshot(db, nil, context.Background())
+	_ = bn.commitSnapshot(db, nil, context.Background(), &trieMock.MockStatistics{})
 
 	hashes, err := collapsedBn.getAllHashes(db)
 	assert.Nil(t, err)
@@ -1370,10 +1371,10 @@ func TestBranchNode_commitContextDone(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	err := bn.commitCheckpoint(db, db, nil, nil, ctx)
+	err := bn.commitCheckpoint(db, db, nil, nil, ctx, &trieMock.MockStatistics{})
 	assert.Equal(t, ErrContextClosing, err)
 
-	err = bn.commitSnapshot(db, nil, ctx)
+	err = bn.commitSnapshot(db, nil, ctx, &trieMock.MockStatistics{})
 	assert.Equal(t, ErrContextClosing, err)
 }
 

@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -725,10 +726,10 @@ func TestLeafNode_commitContextDone(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	err := ln.commitCheckpoint(db, db, nil, nil, ctx)
+	err := ln.commitCheckpoint(db, db, nil, nil, ctx, &trieMock.MockStatistics{})
 	assert.Equal(t, ErrContextClosing, err)
 
-	err = ln.commitSnapshot(db, nil, ctx)
+	err = ln.commitSnapshot(db, nil, ctx, &trieMock.MockStatistics{})
 	assert.Equal(t, ErrContextClosing, err)
 }
 

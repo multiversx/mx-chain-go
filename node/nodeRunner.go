@@ -1047,6 +1047,7 @@ func (nr *nodeRunner) CreateManagedStateComponents(
 		ShardCoordinator: managedBootstrapComponents.ShardCoordinator(),
 		Core:             managedCoreComponents,
 		StorageService:   managedDataComponents.StorageService(),
+		IsImportDbMode:   nr.configs.ImportDbConfig.IsImportDBMode,
 	}
 
 	stateComponentsFactory, err := mainFactory.NewStateComponentsFactory(stateArgs)

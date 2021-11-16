@@ -9,8 +9,8 @@ import (
 type StorageManagerStub struct {
 	PutCalled                       func([]byte, []byte) error
 	GetCalled                       func([]byte) ([]byte, error)
-	TakeSnapshotCalled              func([]byte, bool, chan core.KeyValueHolder)
-	SetCheckpointCalled             func([]byte, chan core.KeyValueHolder)
+	TakeSnapshotCalled              func([]byte, chan core.KeyValueHolder, common.SnapshotStatisticsHandler)
+	SetCheckpointCalled             func([]byte, chan core.KeyValueHolder, common.SnapshotStatisticsHandler)
 	GetDbThatContainsHashCalled     func([]byte) common.DBWriteCacher
 	IsPruningEnabledCalled          func() bool
 	IsPruningBlockedCalled          func() bool
@@ -41,16 +41,16 @@ func (sms *StorageManagerStub) Get(key []byte) ([]byte, error) {
 }
 
 // TakeSnapshot -
-func (sms *StorageManagerStub) TakeSnapshot(rootHash []byte, newDB bool, leavesChan chan core.KeyValueHolder) {
+func (sms *StorageManagerStub) TakeSnapshot(rootHash []byte, leavesChan chan core.KeyValueHolder, stats common.SnapshotStatisticsHandler) {
 	if sms.TakeSnapshotCalled != nil {
-		sms.TakeSnapshotCalled(rootHash, newDB, leavesChan)
+		sms.TakeSnapshotCalled(rootHash, leavesChan, stats)
 	}
 }
 
 // SetCheckpoint -
-func (sms *StorageManagerStub) SetCheckpoint(rootHash []byte, leavesChan chan core.KeyValueHolder) {
+func (sms *StorageManagerStub) SetCheckpoint(rootHash []byte, leavesChan chan core.KeyValueHolder, stats common.SnapshotStatisticsHandler) {
 	if sms.SetCheckpointCalled != nil {
-		sms.SetCheckpointCalled(rootHash, leavesChan)
+		sms.SetCheckpointCalled(rootHash, leavesChan, stats)
 	}
 }
 

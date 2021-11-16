@@ -25,6 +25,7 @@ type StateComponentsFactoryArgs struct {
 	ShardCoordinator sharding.Coordinator
 	Core             CoreComponentsHolder
 	StorageService   dataRetriever.StorageService
+	IsImportDbMode   bool
 }
 
 type stateComponentsFactory struct {
@@ -33,6 +34,7 @@ type stateComponentsFactory struct {
 	core             CoreComponentsHolder
 	storageService   dataRetriever.StorageService
 	enableEpochs     config.EnableEpochs
+	isImportDbMode   bool
 }
 
 // stateComponents struct holds the state components of the Elrond protocol
@@ -71,6 +73,7 @@ func NewStateComponentsFactory(args StateComponentsFactoryArgs) (*stateComponent
 		core:             args.Core,
 		storageService:   args.StorageService,
 		enableEpochs:     args.EnableEpochs,
+		isImportDbMode:   args.IsImportDbMode,
 	}, nil
 }
 
@@ -121,6 +124,7 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 		scf.core.InternalMarshalizer(),
 		accountFactory,
 		storagePruning,
+		scf.isImportDbMode,
 	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("%w: %s", errors.ErrAccountsAdapterCreation, err.Error())
@@ -132,6 +136,7 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 		scf.core.InternalMarshalizer(),
 		accountFactory,
 		storagePruning,
+		scf.isImportDbMode,
 	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("accounts adapter API: %w: %s", errors.ErrAccountsAdapterCreation, err.Error())

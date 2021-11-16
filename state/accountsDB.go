@@ -20,8 +20,6 @@ import (
 )
 
 const (
-	createNewDb       = true
-	useExistingDb     = false
 	leavesChannelSize = 100
 )
 
@@ -75,8 +73,8 @@ type AccountsDB struct {
 	dataTries    common.TriesHolder
 	entries      []JournalEntry
 	//TODO use mutOp only for critical sections, and refactor to parallelize as much as possible
-	mutOp sync.RWMutex
-
+	mutOp                sync.RWMutex
+	isImportDbMode       bool
 	numCheckpoints       uint32
 	loadCodeMeasurements *loadingMeasurements
 
@@ -92,6 +90,7 @@ func NewAccountsDB(
 	marshalizer marshal.Marshalizer,
 	accountFactory AccountFactory,
 	storagePruningManager StoragePruningManager,
+	isImportDbMode bool,
 ) (*AccountsDB, error) {
 	if check.IfNil(trie) {
 		return nil, ErrNilTrie
@@ -124,6 +123,7 @@ func NewAccountsDB(
 		loadCodeMeasurements: &loadingMeasurements{
 			identifier: "load code",
 		},
+		isImportDbMode: isImportDbMode,
 	}, nil
 }
 
@@ -1027,22 +1027,47 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 	log.Trace("accountsDB.SnapshotState", "root hash", rootHash)
 	trieStorageManager.EnterPruningBufferingMode()
 
-	go func() {
-		stopWatch := core.NewStopWatch()
-		stopWatch.Start("snapshotState")
-		leavesChannel := make(chan core.KeyValueHolder, leavesChannelSize)
-		trieStorageManager.TakeSnapshot(rootHash, createNewDb, leavesChannel)
-		adb.snapshotUserAccountDataTrie(true, leavesChannel)
-		stopWatch.Stop("snapshotState")
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	stats := &snapshotStatistics{
+		wg:        wg,
+		startTime: time.Now(),
+	}
 
-		log.Debug("snapshotState", stopWatch.GetMeasurements()...)
+	go func() {
+		leavesChannel := make(chan core.KeyValueHolder, leavesChannelSize)
+		stats.NewSnapshotStarted()
+		trieStorageManager.TakeSnapshot(rootHash, leavesChannel, stats)
+		adb.snapshotUserAccountDataTrie(true, leavesChannel, stats)
 		trieStorageManager.ExitPruningBufferingMode()
 
 		adb.increaseNumCheckpoints()
+		wg.Done()
 	}()
+
+	go printStats(stats, "snapshotState user trie")
+
+	if adb.isImportDbMode {
+		wg.Wait()
+	}
 }
 
-func (adb *AccountsDB) snapshotUserAccountDataTrie(isSnapshot bool, leavesChannel chan core.KeyValueHolder) {
+func printStats(stats *snapshotStatistics, identifier string) {
+	stats.wg.Wait()
+
+	stats.mutex.RLock()
+	defer stats.mutex.RUnlock()
+
+	log.Debug("snapshot statistics",
+		"type", identifier,
+		"duration", time.Since(stats.startTime).Truncate(time.Second),
+		"total num of nodes", stats.numNodes,
+		"total size", core.ConvertBytes(stats.trieSize),
+		"num data tries", stats.numDataTries,
+	)
+}
+
+func (adb *AccountsDB) snapshotUserAccountDataTrie(isSnapshot bool, leavesChannel chan core.KeyValueHolder, stats common.SnapshotStatisticsHandler) {
 	for leaf := range leavesChannel {
 		account := &userAccount{}
 		err := adb.marshalizer.Unmarshal(account, leaf.Value())
@@ -1055,12 +1080,15 @@ func (adb *AccountsDB) snapshotUserAccountDataTrie(isSnapshot bool, leavesChanne
 			continue
 		}
 
+		stats.NewSnapshotStarted()
+		stats.NewDataTrie()
+
 		if isSnapshot {
-			adb.mainTrie.GetStorageManager().TakeSnapshot(account.RootHash, useExistingDb, nil)
+			adb.mainTrie.GetStorageManager().TakeSnapshot(account.RootHash, nil, stats)
 			continue
 		}
 
-		adb.mainTrie.GetStorageManager().SetCheckpoint(account.RootHash, nil)
+		adb.mainTrie.GetStorageManager().SetCheckpoint(account.RootHash, nil, stats)
 	}
 }
 
@@ -1077,19 +1105,29 @@ func (adb *AccountsDB) setStateCheckpoint(rootHash []byte) {
 	log.Trace("accountsDB.SetStateCheckpoint", "root hash", rootHash)
 	trieStorageManager.EnterPruningBufferingMode()
 
-	go func() {
-		stopWatch := core.NewStopWatch()
-		stopWatch.Start("setStateCheckpoint")
-		leavesChannel := make(chan core.KeyValueHolder, leavesChannelSize)
-		trieStorageManager.SetCheckpoint(rootHash, leavesChannel)
-		adb.snapshotUserAccountDataTrie(false, leavesChannel)
-		stopWatch.Stop("setStateCheckpoint")
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	stats := &snapshotStatistics{
+		wg:        wg,
+		startTime: time.Now(),
+	}
 
-		log.Debug("setStateCheckpoint", stopWatch.GetMeasurements()...)
+	go func() {
+		leavesChannel := make(chan core.KeyValueHolder, leavesChannelSize)
+		stats.NewSnapshotStarted()
+		trieStorageManager.SetCheckpoint(rootHash, leavesChannel, stats)
+		adb.snapshotUserAccountDataTrie(false, leavesChannel, stats)
 		trieStorageManager.ExitPruningBufferingMode()
 
 		adb.increaseNumCheckpoints()
+		wg.Done()
 	}()
+
+	go printStats(stats, "setStateCheckpoint user trie")
+
+	if adb.isImportDbMode {
+		wg.Wait()
+	}
 }
 
 func (adb *AccountsDB) increaseNumCheckpoints() {
