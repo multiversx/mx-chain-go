@@ -4381,15 +4381,15 @@ func TestEsdt_ExecuteRegisterAndSetErrors(t *testing.T) {
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
 
-	e.flagRegisterAndSet.Unset()
-	vmInput := getDefaultVmInputForFunc("registerAndSetAll", nil)
+	e.flagRegisterAndSetAllRoles.Unset()
+	vmInput := getDefaultVmInputForFunc("registerAndSetAllRoles", nil)
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.FunctionNotFound, output)
 	assert.Equal(t, eei.returnMessage, "invalid method to call")
 
 	eei.returnMessage = ""
 	eei.gasRemaining = 9999
-	e.flagRegisterAndSet.Set()
+	e.flagRegisterAndSetAllRoles.Set()
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.Equal(t, eei.returnMessage, "not enough arguments")
@@ -4433,7 +4433,7 @@ func TestEsdt_ExecuteRegisterAndSetFungible(t *testing.T) {
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
 
-	vmInput := getDefaultVmInputForFunc("registerAndSetAll", nil)
+	vmInput := getDefaultVmInputForFunc("registerAndSetAllRoles", nil)
 	vmInput.CallValue = big.NewInt(0).Set(e.baseIssuingCost)
 
 	vmInput.Arguments = [][]byte{[]byte("tokenName"), []byte("TICKER"), []byte("FNG"), big.NewInt(10).Bytes()}
@@ -4461,7 +4461,7 @@ func TestEsdt_ExecuteRegisterAndSetNonFungible(t *testing.T) {
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
 
-	vmInput := getDefaultVmInputForFunc("registerAndSetAll", nil)
+	vmInput := getDefaultVmInputForFunc("registerAndSetAllRoles", nil)
 	vmInput.CallValue = big.NewInt(0).Set(e.baseIssuingCost)
 
 	vmInput.Arguments = [][]byte{[]byte("tokenName"), []byte("TICKER"), []byte("NFT"), big.NewInt(10).Bytes()}
@@ -4489,7 +4489,7 @@ func TestEsdt_ExecuteRegisterAndSetSemiFungible(t *testing.T) {
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
 
-	vmInput := getDefaultVmInputForFunc("registerAndSetAll", nil)
+	vmInput := getDefaultVmInputForFunc("registerAndSetAllRoles", nil)
 	vmInput.CallValue = big.NewInt(0).Set(e.baseIssuingCost)
 
 	vmInput.Arguments = [][]byte{[]byte("tokenName"), []byte("TICKER"), []byte("SFT"), big.NewInt(10).Bytes()}
@@ -4517,7 +4517,7 @@ func TestEsdt_ExecuteRegisterAndSetMetaESDT(t *testing.T) {
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
 
-	vmInput := getDefaultVmInputForFunc("registerAndSetAll", nil)
+	vmInput := getDefaultVmInputForFunc("registerAndSetAllRoles", nil)
 	vmInput.CallValue = big.NewInt(0).Set(e.baseIssuingCost)
 
 	vmInput.Arguments = [][]byte{[]byte("tokenName"), []byte("TICKER"), []byte("META"), big.NewInt(10).Bytes()}
