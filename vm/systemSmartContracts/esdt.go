@@ -512,7 +512,7 @@ func (e *esdt) registerAndSetRoles(args *vmcommon.ContractCallInput) vmcommon.Re
 		return returnCode
 	}
 
-	returnCode = e.prepareAndSendRoleChangeData(tokenIdentifier, args.CallerAddr, allRoles, properties.transferRoleExists, properties.isMultiShardNFTCreateSet)
+	returnCode = e.prepareAndSendRoleChangeData(tokenIdentifier, args.CallerAddr, allRoles, properties)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
@@ -1505,11 +1505,10 @@ func (e *esdt) prepareAndSendRoleChangeData(
 	tokenID []byte,
 	address []byte,
 	roles [][]byte,
-	transferRoleExists bool,
-	isMultiShardNFTCreateSet bool,
+	properties *rolesProperties,
 ) vmcommon.ReturnCode {
 	allRoles := roles
-	if isMultiShardNFTCreateSet {
+	if properties.isMultiShardNFTCreateSet {
 		allRoles = append(allRoles, []byte(core.ESDTRoleNFTCreateMultiShard))
 	}
 	err := e.sendRoleChangeData(tokenID, address, allRoles, core.BuiltInFunctionSetESDTRole)
@@ -1517,7 +1516,7 @@ func (e *esdt) prepareAndSendRoleChangeData(
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
-	firstTransferRoleSet := !transferRoleExists && isDefinedRoleInArgs(roles, []byte(core.ESDTRoleTransfer))
+	firstTransferRoleSet := !properties.transferRoleExists && isDefinedRoleInArgs(roles, []byte(core.ESDTRoleTransfer))
 	if firstTransferRoleSet {
 		esdtTransferData := core.BuiltInFunctionESDTSetLimitedTransfer + "@" + hex.EncodeToString(tokenID)
 		e.eei.SendGlobalSettingToAll(e.eSDTSCAddress, []byte(esdtTransferData))
@@ -1542,7 +1541,7 @@ func (e *esdt) setSpecialRole(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return returnCode
 	}
 
-	returnCode = e.prepareAndSendRoleChangeData(args.Arguments[0], args.Arguments[1], args.Arguments[2:], properties.transferRoleExists, properties.isMultiShardNFTCreateSet)
+	returnCode = e.prepareAndSendRoleChangeData(args.Arguments[0], args.Arguments[1], args.Arguments[2:], properties)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
