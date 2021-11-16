@@ -25,17 +25,17 @@ func TestNewSigningSlashingDetector(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		args        func() *detector.MultipleHeaderSingingDetectorArgs
+		args        func() *detector.MultipleHeaderSigningDetectorArgs
 		expectedErr error
 	}{
 		{
-			args: func() *detector.MultipleHeaderSingingDetectorArgs {
+			args: func() *detector.MultipleHeaderSigningDetectorArgs {
 				return nil
 			},
 			expectedErr: process.ErrNilMultipleHeaderSigningDetectorArgs,
 		},
 		{
-			args: func() *detector.MultipleHeaderSingingDetectorArgs {
+			args: func() *detector.MultipleHeaderSigningDetectorArgs {
 				args := generateMultipleHeaderSigningDetectorArgs()
 				args.NodesCoordinator = nil
 				return args
@@ -43,7 +43,7 @@ func TestNewSigningSlashingDetector(t *testing.T) {
 			expectedErr: process.ErrNilShardCoordinator,
 		},
 		{
-			args: func() *detector.MultipleHeaderSingingDetectorArgs {
+			args: func() *detector.MultipleHeaderSigningDetectorArgs {
 				args := generateMultipleHeaderSigningDetectorArgs()
 				args.RoundHandler = nil
 				return args
@@ -51,7 +51,7 @@ func TestNewSigningSlashingDetector(t *testing.T) {
 			expectedErr: process.ErrNilRoundHandler,
 		},
 		{
-			args: func() *detector.MultipleHeaderSingingDetectorArgs {
+			args: func() *detector.MultipleHeaderSigningDetectorArgs {
 				args := generateMultipleHeaderSigningDetectorArgs()
 				args.Hasher = nil
 				return args
@@ -59,7 +59,7 @@ func TestNewSigningSlashingDetector(t *testing.T) {
 			expectedErr: process.ErrNilHasher,
 		},
 		{
-			args: func() *detector.MultipleHeaderSingingDetectorArgs {
+			args: func() *detector.MultipleHeaderSigningDetectorArgs {
 				args := generateMultipleHeaderSigningDetectorArgs()
 				args.Marshaller = nil
 				return args
@@ -67,7 +67,7 @@ func TestNewSigningSlashingDetector(t *testing.T) {
 			expectedErr: process.ErrNilMarshalizer,
 		},
 		{
-			args: func() *detector.MultipleHeaderSingingDetectorArgs {
+			args: func() *detector.MultipleHeaderSigningDetectorArgs {
 				args := generateMultipleHeaderSigningDetectorArgs()
 				args.SlashingCache = nil
 				return args
@@ -75,7 +75,7 @@ func TestNewSigningSlashingDetector(t *testing.T) {
 			expectedErr: process.ErrNilRoundDetectorCache,
 		},
 		{
-			args: func() *detector.MultipleHeaderSingingDetectorArgs {
+			args: func() *detector.MultipleHeaderSigningDetectorArgs {
 				args := generateMultipleHeaderSigningDetectorArgs()
 				args.RoundHashCache = nil
 				return args
@@ -83,7 +83,7 @@ func TestNewSigningSlashingDetector(t *testing.T) {
 			expectedErr: process.ErrNilRoundHeadersCache,
 		},
 		{
-			args: func() *detector.MultipleHeaderSingingDetectorArgs {
+			args: func() *detector.MultipleHeaderSigningDetectorArgs {
 				return generateMultipleHeaderSigningDetectorArgs()
 			},
 			expectedErr: nil,
@@ -598,8 +598,8 @@ func TestMultipleHeaderSigningDetector_ValidateProof_InvalidSlashLevel_ExpectErr
 	require.Equal(t, process.ErrInvalidSlashLevel, err)
 }
 
-func generateMultipleHeaderSigningDetectorArgs() *detector.MultipleHeaderSingingDetectorArgs {
-	return &detector.MultipleHeaderSingingDetectorArgs{
+func generateMultipleHeaderSigningDetectorArgs() *detector.MultipleHeaderSigningDetectorArgs {
+	return &detector.MultipleHeaderSigningDetectorArgs{
 		NodesCoordinator: &mockEpochStart.NodesCoordinatorStub{},
 		RoundHandler:     &mock.RoundHandlerMock{},
 		Hasher:           &hashingMocks.HasherMock{},

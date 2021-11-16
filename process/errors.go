@@ -923,6 +923,9 @@ var ErrNilProof = errors.New("nil proof has been provided")
 // ErrNilMultipleHeaderSigningDetectorArgs signals that nil arguments have been provided to create a multiple header signing detector
 var ErrNilMultipleHeaderSigningDetectorArgs = errors.New("nil arguments have been provided to create a multiple header signing detector")
 
+// ErrNilSlashingNotifierArgs signals that nil arguments have been provided to create a slashing notifier
+var ErrNilSlashingNotifierArgs = errors.New("nil arguments have been provided to create a slashing notifier")
+
 // ErrAccountNotPayable will be sent when trying to send money to a non-payable account
 var ErrAccountNotPayable = errors.New("sending value to non payable contract")
 

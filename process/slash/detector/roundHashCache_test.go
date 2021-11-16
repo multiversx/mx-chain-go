@@ -26,11 +26,8 @@ func TestRoundDataCache_Add_OneRound_FourHeaders(t *testing.T) {
 
 	require.Len(t, dataCache.cache, 1)
 	require.Len(t, dataCache.cache[1], 3)
-
 	require.Equal(t, []byte("hash1"), dataCache.cache[1][0])
-
 	require.Equal(t, []byte("hash2"), dataCache.cache[1][1])
-
 	require.Equal(t, []byte("hash3"), dataCache.cache[1][2])
 }
 

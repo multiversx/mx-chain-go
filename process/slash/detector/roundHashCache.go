@@ -87,6 +87,9 @@ func (rhc *roundHashCache) updateOldestRound() {
 
 // Remove removes the given hash in the given round. If there is no match for given data, it does nothing
 func (rhc *roundHashCache) Remove(round uint64, hash []byte) {
+	rhc.cacheMutex.Lock()
+	defer rhc.cacheMutex.Unlock()
+
 	hashes, exists := rhc.cache[round]
 	if !exists {
 		return

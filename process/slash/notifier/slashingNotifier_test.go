@@ -35,6 +35,12 @@ func TestNewSlashingNotifier(t *testing.T) {
 	}{
 		{
 			args: func() *notifier.SlashingNotifierArgs {
+				return nil
+			},
+			expectedErr: process.ErrNilSlashingNotifierArgs,
+		},
+		{
+			args: func() *notifier.SlashingNotifierArgs {
 				args := generateSlashingNotifierArgs()
 				args.PrivateKey = nil
 				return args

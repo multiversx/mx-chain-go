@@ -19,8 +19,8 @@ import (
 
 var log = logger.GetOrCreate("process/slash/detector/multipleHeaderSigning")
 
-// MultipleHeaderSingingDetectorArgs is a a struct containing all arguments required to create a new multipleHeaderSigningDetector
-type MultipleHeaderSingingDetectorArgs struct {
+// MultipleHeaderSigningDetectorArgs is a a struct containing all arguments required to create a new multipleHeaderSigningDetector
+type MultipleHeaderSigningDetectorArgs struct {
 	NodesCoordinator sharding.NodesCoordinator
 	RoundHandler     process.RoundHandler
 	Hasher           hashing.Hasher
@@ -42,7 +42,7 @@ type multipleHeaderSigningDetector struct {
 }
 
 // NewMultipleHeaderSigningDetector - creates a new header slashing detector for multiple signatures
-func NewMultipleHeaderSigningDetector(args *MultipleHeaderSingingDetectorArgs) (slash.SlashingDetector, error) {
+func NewMultipleHeaderSigningDetector(args *MultipleHeaderSigningDetectorArgs) (slash.SlashingDetector, error) {
 	if args == nil {
 		return nil, process.ErrNilMultipleHeaderSigningDetectorArgs
 	}
@@ -91,19 +91,18 @@ func (mhs *multipleHeaderSigningDetector) VerifyData(interceptedData process.Int
 	}
 
 	mhs.cachesMutex.Lock()
+	defer mhs.cachesMutex.Unlock()
+
 	headerHashWithoutSignatures, err := mhs.cacheHeaderHashWithoutSignatures(header)
 	if err != nil {
-		mhs.cachesMutex.Unlock()
 		return nil, err
 	}
 
 	err = mhs.cacheSigners(header, interceptedData.Hash())
 	if err != nil {
 		mhs.hashesCache.Remove(round, headerHashWithoutSignatures)
-		mhs.cachesMutex.Unlock()
 		return nil, err
 	}
-	mhs.cachesMutex.Unlock()
 
 	slashingResult := mhs.getSlashingResult(round)
 	if len(slashingResult) != 0 {

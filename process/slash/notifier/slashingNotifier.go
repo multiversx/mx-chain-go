@@ -58,6 +58,9 @@ type slashingNotifier struct {
 
 // NewSlashingNotifier creates a new instance of a slash.SlashingNotifier
 func NewSlashingNotifier(args *SlashingNotifierArgs) (slash.SlashingNotifier, error) {
+	if args == nil {
+		return nil, process.ErrNilSlashingNotifierArgs
+	}
 	if check.IfNil(args.PrivateKey) {
 		return nil, crypto.ErrNilPrivateKey
 	}

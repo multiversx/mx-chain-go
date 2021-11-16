@@ -117,7 +117,7 @@ func (mhp *multipleHeaderProposalsDetector) getProposerPubKey(header data.Header
 
 func (mhp *multipleHeaderProposalsDetector) getSlashingResult(currRound uint64, proposerPubKey []byte) *coreSlash.SlashingResult {
 	proposedHeadersInfo := mhp.cache.GetHeaders(currRound, proposerPubKey)
-	if len(proposedHeadersInfo) >= 2 {
+	if len(proposedHeadersInfo) >= minSlashableNoOfHeaders {
 		headerHandlers := getHeaderHandlers(proposedHeadersInfo)
 		return &coreSlash.SlashingResult{
 			SlashingLevel: mhp.computeSlashLevel(headerHandlers),
