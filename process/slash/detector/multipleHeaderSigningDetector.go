@@ -226,7 +226,7 @@ func (mhs *multipleHeaderSigningDetector) ValidateProof(proof coreSlash.Slashing
 
 // TODO: Add different logic here once slashing threat levels are clearly defined
 func (mhs *multipleHeaderSigningDetector) checkSlashLevel(headers slash.HeaderList, level coreSlash.ThreatLevel) error {
-	return checkSlashLevelBasedOnHeadersCount(headers, level)
+	return checkThreatLevelBasedOnHeadersCount(headers, level)
 }
 
 func (mhs *multipleHeaderSigningDetector) checkSignedHeaders(pubKey []byte, headers slash.HeaderList) error {

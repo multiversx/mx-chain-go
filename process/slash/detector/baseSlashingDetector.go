@@ -71,7 +71,7 @@ func getHeaderHandlers(headersInfo []data.HeaderInfoHandler) []data.HeaderHandle
 }
 
 func computeSlashLevelBasedOnHeadersCount(headers []data.HeaderHandler) coreSlash.ThreatLevel {
-	ret := coreSlash.Low
+	ret := coreSlash.Zero
 
 	if len(headers) == minSlashableNoOfHeaders {
 		ret = coreSlash.Medium
@@ -82,7 +82,7 @@ func computeSlashLevelBasedOnHeadersCount(headers []data.HeaderHandler) coreSlas
 	return ret
 }
 
-func checkSlashLevelBasedOnHeadersCount(headers []data.HeaderHandler, level coreSlash.ThreatLevel) error {
+func checkThreatLevelBasedOnHeadersCount(headers []data.HeaderHandler, level coreSlash.ThreatLevel) error {
 	if level < coreSlash.Medium || level > coreSlash.High {
 		return process.ErrInvalidSlashLevel
 	}

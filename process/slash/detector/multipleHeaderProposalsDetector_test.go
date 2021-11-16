@@ -11,7 +11,6 @@ import (
 	coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
 	mockEpochStart "github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/slash"
 	"github.com/ElrondNetwork/elrond-go/process/slash/detector"
@@ -83,7 +82,7 @@ func TestNewMultipleHeaderProposalsDetector(t *testing.T) {
 	}
 }
 
-func TestMultipleHeaderProposalsDetector_VerifyData_Nil_ExpectError(t *testing.T) {
+func TestMultipleHeaderProposalsDetector_VerifyData_NilData_ExpectError(t *testing.T) {
 	t.Parallel()
 
 	args := generateMultipleHeaderProposalDetectorArgs()
@@ -92,28 +91,6 @@ func TestMultipleHeaderProposalsDetector_VerifyData_Nil_ExpectError(t *testing.T
 	res, err := sd.VerifyData(nil)
 	require.Nil(t, res)
 	require.Equal(t, process.ErrNilInterceptedData, err)
-}
-
-func TestMultipleHeaderProposalsDetector_VerifyData_CannotCastData_ExpectError(t *testing.T) {
-	t.Parallel()
-
-	args := generateMultipleHeaderProposalDetectorArgs()
-	sd, _ := detector.NewMultipleHeaderProposalsDetector(args)
-
-	res, err := sd.VerifyData(&testscommon.InterceptedDataStub{})
-	require.Nil(t, res)
-	require.Equal(t, process.ErrCannotCastInterceptedDataToHeader, err)
-}
-
-func TestMultipleHeaderProposalsDetector_VerifyData_NilHeaderHandler_ExpectError(t *testing.T) {
-	t.Parallel()
-
-	args := generateMultipleHeaderProposalDetectorArgs()
-	sd, _ := detector.NewMultipleHeaderProposalsDetector(args)
-
-	res, err := sd.VerifyData(&interceptedBlocks.InterceptedHeader{})
-	require.Nil(t, res)
-	require.Equal(t, process.ErrNilHeaderHandler, err)
 }
 
 func TestMultipleHeaderProposalsDetector_VerifyData_CannotGetProposer_ExpectError(t *testing.T) {
@@ -142,7 +119,7 @@ func TestMultipleHeaderProposalsDetector_VerifyData_IrrelevantRound_ExpectError(
 	args.RoundHandler = &mock.RoundHandlerMock{RoundIndex: int64(round)}
 	sd, _ := detector.NewMultipleHeaderProposalsDetector(args)
 
-	hData := slashMocks.CreateInterceptedHeaderData(&block.Header{Round: round + detector.MaxDeltaToCurrentRound + 1, RandSeed: []byte("seed")})
+	hData := slashMocks.CreateInterceptedHeaderData(&block.Header{Round: round + detector.MaxDeltaToCurrentRound + 1})
 	res, err := sd.VerifyData(hData)
 
 	require.Nil(t, res)
@@ -309,81 +286,28 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_InvalidProofType_ExpectEr
 	args := generateMultipleHeaderProposalDetectorArgs()
 	sd, _ := detector.NewMultipleHeaderProposalsDetector(args)
 
-	proof1 := &slashMocks.MultipleHeaderSigningProofStub{
+	proof := &slashMocks.MultipleHeaderSigningProofStub{
 		GetTypeCalled: func() coreSlash.SlashingType {
 			return coreSlash.MultipleProposal
 		},
 	}
-	err := sd.ValidateProof(proof1)
+	err := sd.ValidateProof(proof)
 	require.Equal(t, process.ErrCannotCastProofToMultipleProposedHeaders, err)
-
-	proof2 := &slashMocks.MultipleHeaderProposalProofStub{
-		GetTypeCalled: func() coreSlash.SlashingType {
-			return coreSlash.MultipleSigning
-		},
-	}
-	err = sd.ValidateProof(proof2)
-	require.Equal(t, process.ErrInvalidSlashType, err)
 }
 
-func TestMultipleHeaderProposalsDetector_ValidateProof_DifferentSlashLevelsAndTypes(t *testing.T) {
+func TestMultipleHeaderProposalsDetector_ValidateProof_InvalidThreatLevel(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		args        func() (coreSlash.ThreatLevel, slash.HeaderInfoList)
-		expectedErr error
-	}{
-		{
-			args: func() (coreSlash.ThreatLevel, slash.HeaderInfoList) {
-				return coreSlash.Low, slash.HeaderInfoList{}
-			},
-			expectedErr: process.ErrInvalidSlashLevel,
-		},
-		{
-			args: func() (coreSlash.ThreatLevel, slash.HeaderInfoList) {
-				return coreSlash.ThreatLevel(44), slash.HeaderInfoList{}
-			},
-			expectedErr: process.ErrInvalidSlashLevel,
-		},
-		{
-			args: func() (coreSlash.ThreatLevel, slash.HeaderInfoList) {
-				return coreSlash.Medium, slash.HeaderInfoList{}
-			},
-			expectedErr: process.ErrNotEnoughHeadersProvided,
-		},
-		{
-			args: func() (coreSlash.ThreatLevel, slash.HeaderInfoList) {
-				h1 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 2, Nonce: 1}})
-				h2 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 2, Nonce: 2}})
-				h3 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 2, Nonce: 3}})
-				return coreSlash.Medium, slash.HeaderInfoList{h1, h2, h3}
-			},
-			expectedErr: process.ErrSlashLevelDoesNotMatchSlashType,
-		},
-		{
-			args: func() (coreSlash.ThreatLevel, slash.HeaderInfoList) {
-				h1 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 2, Nonce: 1}})
-				h2 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 2, Nonce: 2}})
-				return coreSlash.High, slash.HeaderInfoList{h1, h2}
-			},
-			expectedErr: process.ErrSlashLevelDoesNotMatchSlashType,
+	args := generateMultipleHeaderProposalDetectorArgs()
+	sd, _ := detector.NewMultipleHeaderProposalsDetector(args)
+
+	proof := &slashMocks.MultipleHeaderProposalProofStub{
+		GetLevelCalled: func() coreSlash.ThreatLevel {
+			return coreSlash.Zero
 		},
 	}
-
-	for _, currTest := range tests {
-		args := generateMultipleHeaderProposalDetectorArgs()
-		sd, _ := detector.NewMultipleHeaderProposalsDetector(args)
-		level, headers := currTest.args()
-		proof, _ := coreSlash.NewMultipleProposalProof(
-			&coreSlash.SlashingResult{
-				SlashingLevel: level,
-				Headers:       headers,
-			},
-		)
-
-		err := sd.ValidateProof(proof)
-		require.Equal(t, currTest.expectedErr, err)
-	}
+	err := sd.ValidateProof(proof)
+	require.Equal(t, process.ErrInvalidSlashLevel, err)
 }
 
 func TestMultipleHeaderProposalsDetector_ValidateProof_DifferentHeaders(t *testing.T) {

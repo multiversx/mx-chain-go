@@ -91,10 +91,10 @@ func (mhp *multipleHeaderProposalsDetector) VerifyData(interceptedData process.I
 	}
 
 	slashingResult := mhp.getSlashingResult(round, proposer)
-
 	if slashingResult != nil {
 		return coreSlash.NewMultipleProposalProof(slashingResult)
 	}
+
 	return nil, process.ErrNoSlashingEventDetected
 }
 
@@ -142,12 +142,13 @@ func (mhp *multipleHeaderProposalsDetector) ValidateProof(proof coreSlash.Slashi
 	if err != nil {
 		return err
 	}
+
 	multipleProposalProof, castOk := proof.(coreSlash.MultipleProposalProofHandler)
 	if !castOk {
 		return process.ErrCannotCastProofToMultipleProposedHeaders
 	}
 
-	err = mhp.checkSlashLevel(multipleProposalProof.GetHeaders(), multipleProposalProof.GetLevel())
+	err = mhp.checkThreatLevel(multipleProposalProof.GetHeaders(), multipleProposalProof.GetLevel())
 	if err != nil {
 		return err
 	}
@@ -156,8 +157,8 @@ func (mhp *multipleHeaderProposalsDetector) ValidateProof(proof coreSlash.Slashi
 }
 
 // TODO: Add different logic here once slashing threat levels are clearly defined
-func (mhp *multipleHeaderProposalsDetector) checkSlashLevel(headers []data.HeaderHandler, level coreSlash.ThreatLevel) error {
-	return checkSlashLevelBasedOnHeadersCount(headers, level)
+func (mhp *multipleHeaderProposalsDetector) checkThreatLevel(headers []data.HeaderHandler, level coreSlash.ThreatLevel) error {
+	return checkThreatLevelBasedOnHeadersCount(headers, level)
 }
 
 func (mhp *multipleHeaderProposalsDetector) checkProposedHeaders(headers []data.HeaderHandler) error {
