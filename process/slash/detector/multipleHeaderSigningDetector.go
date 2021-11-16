@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/slash"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -21,23 +22,25 @@ var log = logger.GetOrCreate("process/slash/detector/multipleHeaderSigning")
 
 // MultipleHeaderSigningDetectorArgs is a a struct containing all arguments required to create a new multipleHeaderSigningDetector
 type MultipleHeaderSigningDetectorArgs struct {
-	NodesCoordinator sharding.NodesCoordinator
-	RoundHandler     process.RoundHandler
-	Hasher           hashing.Hasher
-	Marshaller       marshal.Marshalizer
-	SlashingCache    RoundValidatorHeadersCache
-	RoundHashCache   RoundHashCache
+	NodesCoordinator  sharding.NodesCoordinator
+	RoundHandler      process.RoundHandler
+	Hasher            hashing.Hasher
+	Marshaller        marshal.Marshalizer
+	SlashingCache     RoundValidatorHeadersCache
+	RoundHashCache    RoundHashCache
+	HeaderSigVerifier consensus.HeaderSigVerifier
 }
 
 // multipleHeaderSigningDetector - checks for slashable events in case one(or more)
 // validator signs multiple headers in the same round
 type multipleHeaderSigningDetector struct {
-	slashingCache    RoundValidatorHeadersCache
-	hashesCache      RoundHashCache
-	nodesCoordinator sharding.NodesCoordinator
-	hasher           hashing.Hasher
-	marshaller       marshal.Marshalizer
-	cachesMutex      sync.RWMutex
+	slashingCache     RoundValidatorHeadersCache
+	hashesCache       RoundHashCache
+	nodesCoordinator  sharding.NodesCoordinator
+	hasher            hashing.Hasher
+	marshaller        marshal.Marshalizer
+	cachesMutex       sync.RWMutex
+	headerSigVerifier consensus.HeaderSigVerifier
 	baseSlashingDetector
 }
 
@@ -64,6 +67,9 @@ func NewMultipleHeaderSigningDetector(args *MultipleHeaderSigningDetectorArgs) (
 	if check.IfNil(args.RoundHashCache) {
 		return nil, process.ErrNilRoundHeadersCache
 	}
+	if check.IfNil(args.HeaderSigVerifier) {
+		return nil, process.ErrNilHeaderSigVerifier
+	}
 
 	baseDetector := baseSlashingDetector{roundHandler: args.RoundHandler}
 
@@ -74,6 +80,7 @@ func NewMultipleHeaderSigningDetector(args *MultipleHeaderSigningDetectorArgs) (
 		nodesCoordinator:     args.NodesCoordinator,
 		hasher:               args.Hasher,
 		marshaller:           args.Marshaller,
+		headerSigVerifier:    args.HeaderSigVerifier,
 		cachesMutex:          sync.RWMutex{},
 	}, nil
 }
@@ -283,6 +290,11 @@ func (mhs *multipleHeaderSigningDetector) signedHeader(pubKey []byte, header dat
 			sliceUtil.IsIndexSetInBitmap(uint32(idx), header.GetPubKeysBitmap()) {
 			return true
 		}
+	}
+
+	err = mhs.headerSigVerifier.VerifySignature(header)
+	if err != nil {
+		return true
 	}
 
 	return false

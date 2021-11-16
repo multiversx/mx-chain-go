@@ -600,11 +600,12 @@ func TestMultipleHeaderSigningDetector_ValidateProof_InvalidSlashLevel_ExpectErr
 
 func generateMultipleHeaderSigningDetectorArgs() *detector.MultipleHeaderSigningDetectorArgs {
 	return &detector.MultipleHeaderSigningDetectorArgs{
-		NodesCoordinator: &mockEpochStart.NodesCoordinatorStub{},
-		RoundHandler:     &mock.RoundHandlerMock{},
-		Hasher:           &hashingMocks.HasherMock{},
-		Marshaller:       &mock.MarshalizerMock{},
-		SlashingCache:    &slashMocks.RoundDetectorCacheStub{},
-		RoundHashCache:   &slashMocks.HeadersCacheStub{},
+		NodesCoordinator:  &mockEpochStart.NodesCoordinatorStub{},
+		RoundHandler:      &mock.RoundHandlerMock{},
+		Hasher:            &hashingMocks.HasherMock{},
+		Marshaller:        &mock.MarshalizerMock{},
+		SlashingCache:     &slashMocks.RoundDetectorCacheStub{},
+		RoundHashCache:    &slashMocks.HeadersCacheStub{},
+		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
 	}
 }
