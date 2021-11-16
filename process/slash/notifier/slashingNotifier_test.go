@@ -6,8 +6,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
@@ -97,14 +95,6 @@ func TestNewSlashingNotifier(t *testing.T) {
 		},
 		{
 			args: func() *notifier.SlashingNotifierArgs {
-				args := generateSlashingNotifierArgs()
-				args.ProofTxDataExtractor = nil
-				return args
-			},
-			expectedErr: process.ErrNilProofTxDataExtractor,
-		},
-		{
-			args: func() *notifier.SlashingNotifierArgs {
 				return generateSlashingNotifierArgs()
 			},
 			expectedErr: nil,
@@ -136,13 +126,7 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidPubKey_ExpectErr
 	}
 
 	sn, _ := notifier.NewSlashingNotifier(args)
-	proofStub := &slashMocks.MultipleHeaderProposalProofStub{
-		GetHeadersCalled: func() []data.HeaderHandler {
-			return slash.HeaderList{&block.HeaderV2{}}
-		},
-	}
-
-	tx, err := sn.CreateShardSlashingTransaction(proofStub)
+	tx, err := sn.CreateShardSlashingTransaction(&slashMocks.MultipleHeaderProposalProofStub{})
 	require.Nil(t, tx)
 	require.Equal(t, errPubKey, err)
 }
@@ -155,14 +139,9 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidAccount_ExpectEr
 			return nil, errAcc
 		},
 	}
-	sn, _ := notifier.NewSlashingNotifier(args)
-	proofStub := &slashMocks.MultipleHeaderProposalProofStub{
-		GetHeadersCalled: func() []data.HeaderHandler {
-			return slash.HeaderList{&block.HeaderV2{}}
-		},
-	}
 
-	tx, err := sn.CreateShardSlashingTransaction(proofStub)
+	sn, _ := notifier.NewSlashingNotifier(args)
+	tx, err := sn.CreateShardSlashingTransaction(&slashMocks.MultipleHeaderProposalProofStub{})
 	require.Nil(t, tx)
 	require.Equal(t, errAcc, err)
 }
@@ -177,13 +156,27 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidMarshaller_Expec
 	}
 
 	sn, _ := notifier.NewSlashingNotifier(args)
-	proof := &slashMocks.MultipleHeaderProposalProofStub{
-		GetHeadersCalled: func() []data.HeaderHandler {
-			return slash.HeaderList{&block.HeaderV2{}}
+	tx, err := sn.CreateShardSlashingTransaction(&slashMocks.MultipleHeaderProposalProofStub{})
+	require.Nil(t, tx)
+	require.Equal(t, errMarshaller, err)
+}
+
+func TestSlashingNotifier_CreateShardSlashingTransaction_CannotGetDataForSigningBecauseOfInvalidMarshaller_ExpectError(t *testing.T) {
+	args := generateSlashingNotifierArgs()
+	errMarshaller := errors.New("marshaller error")
+	flag := false
+	args.Marshaller = &testscommon.MarshalizerStub{
+		MarshalCalled: func(obj interface{}) ([]byte, error) {
+			if flag {
+				return nil, errMarshaller
+			}
+			flag = true
+			return []byte("ok"), nil
 		},
 	}
 
-	tx, err := sn.CreateShardSlashingTransaction(proof)
+	sn, _ := notifier.NewSlashingNotifier(args)
+	tx, err := sn.CreateShardSlashingTransaction(&slashMocks.MultipleHeaderProposalProofStub{})
 	require.Nil(t, tx)
 	require.Equal(t, errMarshaller, err)
 }
@@ -192,32 +185,28 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidSlashType_Expect
 	args := generateSlashingNotifierArgs()
 
 	sn, _ := notifier.NewSlashingNotifier(args)
-	proofStub := &slashMocks.MultipleHeaderProposalProofStub{
-		GetHeadersCalled: func() []data.HeaderHandler {
-			return slash.HeaderList{&block.HeaderV2{}}
-		},
+	proof := &slashMocks.SlashingProofStub{
 		GetTypeCalled: func() coreSlash.SlashingType {
 			return 9999999
 		},
 	}
-
-	tx, err := sn.CreateShardSlashingTransaction(proofStub)
-
+	tx, err := sn.CreateShardSlashingTransaction(proof)
 	require.Nil(t, tx)
 	require.Equal(t, process.ErrInvalidProof, err)
 }
 
-func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidProofTxDataExtractor_ExpectError(t *testing.T) {
+func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidProofTxData_ExpectError(t *testing.T) {
 	args := generateSlashingNotifierArgs()
 
 	expectedErr := errors.New("invalid tx data extractor")
-	args.ProofTxDataExtractor = &slashMocks.ProofTxDataExtractorStub{
-		GetProofTxDataCalled: func(proof coreSlash.SlashingProofHandler) (*notifier.ProofTxData, error) {
+	proof := &slashMocks.MultipleHeaderProposalProofStub{
+		GetProofTxDataCalled: func() (*coreSlash.ProofTxData, error) {
 			return nil, expectedErr
 		},
 	}
+
 	sn, _ := notifier.NewSlashingNotifier(args)
-	tx, err := sn.CreateShardSlashingTransaction(&slashMocks.MultipleHeaderSigningProofStub{})
+	tx, err := sn.CreateShardSlashingTransaction(proof)
 	require.Nil(t, tx)
 	require.Equal(t, expectedErr, err)
 }
@@ -232,13 +221,7 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidProofSignature_E
 	}
 
 	sn, _ := notifier.NewSlashingNotifier(args)
-	proofStub := &slashMocks.MultipleHeaderProposalProofStub{
-		GetHeadersCalled: func() []data.HeaderHandler {
-			return slash.HeaderList{&block.HeaderV2{}}
-		},
-	}
-
-	tx, err := sn.CreateShardSlashingTransaction(proofStub)
+	tx, err := sn.CreateShardSlashingTransaction(&slashMocks.MultipleHeaderProposalProofStub{})
 	require.Nil(t, tx)
 	require.Equal(t, errSign, err)
 }
@@ -259,13 +242,7 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidTxSignature_Expe
 	}
 
 	sn, _ := notifier.NewSlashingNotifier(args)
-	proofStub := &slashMocks.MultipleHeaderProposalProofStub{
-		GetHeadersCalled: func() []data.HeaderHandler {
-			return slash.HeaderList{&block.HeaderV2{}}
-		},
-	}
-
-	tx, err := sn.CreateShardSlashingTransaction(proofStub)
+	tx, err := sn.CreateShardSlashingTransaction(&slashMocks.MultipleHeaderProposalProofStub{})
 	require.Nil(t, tx)
 	require.Equal(t, errSign, err)
 }
@@ -280,36 +257,13 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleProposalProof(t
 			return []byte{byte('a'), byte('b'), byte('c'), byte('d')}
 		},
 	}
-	args.ProofTxDataExtractor = &slashMocks.ProofTxDataExtractorStub{
-		GetProofTxDataCalled: func(proof coreSlash.SlashingProofHandler) (*notifier.ProofTxData, error) {
-			return &notifier.ProofTxData{
-				Round:     round,
-				ShardID:   shardID,
-				SlashType: coreSlash.MultipleProposal,
-			}, nil
-		},
-	}
-
 	sn, _ := notifier.NewSlashingNotifier(args)
-
-	h1 := &block.HeaderV2{
-		Header: &block.Header{
-			Round:        round,
-			ShardID:      shardID,
-			PrevRandSeed: []byte("seed1"),
-		},
-	}
-	h2 := &block.HeaderV2{
-		Header: &block.Header{
-			Round:        round,
-			ShardID:      shardID,
-			PrevRandSeed: []byte("seed2"),
-		},
-	}
-
 	proof := &slashMocks.MultipleHeaderProposalProofStub{
-		GetHeadersCalled: func() []data.HeaderHandler {
-			return slash.HeaderList{h1, h2}
+		GetProofTxDataCalled: func() (*coreSlash.ProofTxData, error) {
+			return &coreSlash.ProofTxData{
+				Round:   round,
+				ShardID: shardID,
+			}, nil
 		},
 	}
 
@@ -333,7 +287,6 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleProposalProof(t
 func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleSignProof(t *testing.T) {
 	round := uint64(100000)
 	shardID := uint32(2)
-	pk1 := []byte("pubKey1")
 
 	args := generateSlashingNotifierArgs()
 	args.Hasher = &testscommon.HasherStub{
@@ -341,42 +294,13 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleSignProof(t *te
 			return []byte{byte('a'), byte('b'), byte('c'), byte('d')}
 		},
 	}
-	args.ProofTxDataExtractor = &slashMocks.ProofTxDataExtractorStub{
-		GetProofTxDataCalled: func(proof coreSlash.SlashingProofHandler) (*notifier.ProofTxData, error) {
-			return &notifier.ProofTxData{
-				Round:     round,
-				ShardID:   shardID,
-				SlashType: coreSlash.MultipleSigning,
-			}, nil
-		},
-	}
-
 	sn, _ := notifier.NewSlashingNotifier(args)
-
-	h1 := &block.HeaderV2{
-		Header: &block.Header{
-			Round:        round,
-			ShardID:      shardID,
-			PrevRandSeed: []byte("seed1"),
-		},
-	}
-	h2 := &block.HeaderV2{
-		Header: &block.Header{
-			Round:        round,
-			ShardID:      shardID,
-			PrevRandSeed: []byte("seed2"),
-		},
-	}
-
 	proof := &slashMocks.MultipleHeaderSigningProofStub{
-		GetLevelCalled: func([]byte) coreSlash.ThreatLevel {
-			return coreSlash.High
-		},
-		GetHeadersCalled: func([]byte) []data.HeaderHandler {
-			return slash.HeaderList{h1, h2}
-		},
-		GetPubKeysCalled: func() [][]byte {
-			return [][]byte{pk1}
+		GetProofTxDataCalled: func() (*coreSlash.ProofTxData, error) {
+			return &coreSlash.ProofTxData{
+				Round:   round,
+				ShardID: shardID,
+			}, nil
 		},
 	}
 
@@ -413,13 +337,12 @@ func generateSlashingNotifierArgs() *notifier.SlashingNotifierArgs {
 	}
 
 	return &notifier.SlashingNotifierArgs{
-		PrivateKey:           &mock.PrivateKeyMock{},
-		PublicKey:            &mock.PublicKeyMock{},
-		PubKeyConverter:      &testscommon.PubkeyConverterMock{},
-		Signer:               &mockIntegration.SignerMock{},
-		AccountAdapter:       accountsAdapter,
-		Hasher:               &hashingMocks.HasherMock{},
-		Marshaller:           marshaller,
-		ProofTxDataExtractor: &slashMocks.ProofTxDataExtractorStub{},
+		PrivateKey:      &mock.PrivateKeyMock{},
+		PublicKey:       &mock.PublicKeyMock{},
+		PubKeyConverter: &testscommon.PubkeyConverterMock{},
+		Signer:          &mockIntegration.SignerMock{},
+		AccountAdapter:  accountsAdapter,
+		Hasher:          &hashingMocks.HasherMock{},
+		Marshaller:      marshaller,
 	}
 }
