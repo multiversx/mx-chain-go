@@ -429,10 +429,11 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_DifferentHeaders(t *testi
 
 func generateMultipleHeaderProposalDetectorArgs() *detector.MultipleHeaderProposalDetectorArgs {
 	return &detector.MultipleHeaderProposalDetectorArgs{
-		NodesCoordinator: &mock.NodesCoordinatorMock{},
-		RoundHandler:     &mock.RoundHandlerMock{},
-		Cache:            &slashMocks.RoundDetectorCacheStub{},
-		Hasher:           &hashingMocks.HasherMock{},
-		Marshaller:       &testscommon.MarshalizerMock{},
+		NodesCoordinator:  &mock.NodesCoordinatorMock{},
+		RoundHandler:      &mock.RoundHandlerMock{},
+		Cache:             &slashMocks.RoundDetectorCacheStub{},
+		Hasher:            &hashingMocks.HasherMock{},
+		Marshaller:        &testscommon.MarshalizerMock{},
+		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
 	}
 }
