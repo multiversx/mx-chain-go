@@ -62,6 +62,10 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 		return core.MetachainShardId
 	}
 	shardC.ComputeIdCalled = func(address []byte) uint32 {
+		if len(address) == 0 {
+			return 0
+		}
+
 		if core.IsSmartContractOnMetachain(address[len(address)-1:], address) {
 			return core.MetachainShardId
 		}

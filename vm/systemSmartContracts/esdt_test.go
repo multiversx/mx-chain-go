@@ -143,6 +143,20 @@ func TestNewESDTSmartContract_InvalidBaseIssuingCostShouldErr(t *testing.T) {
 	assert.Equal(t, vm.ErrInvalidBaseIssuingCost, err)
 }
 
+func TestNewESDTSmartContract_CannotSetIssuanceCostMetricShouldErr(t *testing.T) {
+	args := createMockArgumentsForESDT()
+	args.Eei = &mock.SystemEIStub{
+		GetStorageCalled: func(_ []byte) []byte {
+			return []byte("wrong esdt config bytes")
+		},
+	}
+
+	e, err := NewESDTSmartContract(args)
+	require.Nil(t, e)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "while setting the ESDT issuance cost metric")
+}
+
 func TestEsdt_ExecuteIssueAlways6charactersForRandom(t *testing.T) {
 	t.Parallel()
 

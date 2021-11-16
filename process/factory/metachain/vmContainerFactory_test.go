@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
+	"github.com/ElrondNetwork/elrond-go/testscommon/userAccountMock"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
@@ -31,7 +32,7 @@ func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 	arguments := hooks.ArgBlockChainHook{
 		Accounts: &stateMock.AccountsStub{
 			GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
-				return &mock.AccountWrapMock{}, nil
+				return &userAccountMock.UserAccountMock{}, nil
 			},
 		},
 		PubkeyConv:         mock.NewPubkeyConverterMock(32),

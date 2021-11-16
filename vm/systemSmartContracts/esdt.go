@@ -114,8 +114,6 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 		return nil, vm.ErrInvalidBaseIssuingCost
 	}
 
-	args.StatusHandler.SetStringValue(common.MetricESDTIssuanceCost, baseIssuingCost.String())
-
 	e := &esdt{
 		eei:             args.Eei,
 		gasCost:         args.GasCost,
@@ -142,8 +140,22 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 	log.Debug("esdt: enable epoch for meta tokens, financial SFTs", "epoch", e.metaESDTEnableEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(e)
+	err := e.setEsdtIssuanceCostMetric()
+	if err != nil {
+		return nil, fmt.Errorf("%w while setting the ESDT issuance cost metric", err)
+	}
 
 	return e, nil
+}
+
+func (e *esdt) setEsdtIssuanceCostMetric() error {
+	esdtConfig, err := e.getESDTConfig()
+	if err != nil {
+		return err
+	}
+
+	e.statusHandler.SetStringValue(common.MetricESDTIssuanceCost, esdtConfig.BaseIssuingCost.String())
+	return nil
 }
 
 // Execute calls one of the functions from the esdt smart contract and runs the code according to the input

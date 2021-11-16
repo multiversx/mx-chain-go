@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/userAccountMock"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
@@ -165,7 +166,7 @@ func TestTxExecutionProcessor_AddBalanceNegativeValueShouldErr(t *testing.T) {
 		&testscommon.TxProcessorStub{},
 		&stateMock.AccountsStub{
 			LoadAccountCalled: func(container []byte) (vmcommon.AccountHandler, error) {
-				return &mock.UserAccountMock{
+				return &userAccountMock.UserAccountMock{
 					BalanceField: big.NewInt(0),
 				}, nil
 			},
@@ -174,7 +175,7 @@ func TestTxExecutionProcessor_AddBalanceNegativeValueShouldErr(t *testing.T) {
 
 	err := tep.AddBalance([]byte("sender"), big.NewInt(-1))
 
-	assert.Equal(t, mock.ErrNegativeValue, err)
+	assert.Equal(t, userAccountMock.ErrNegativeValue, err)
 }
 
 func TestTxExecutionProcessor_AddBalanceShouldWork(t *testing.T) {
@@ -186,7 +187,7 @@ func TestTxExecutionProcessor_AddBalanceShouldWork(t *testing.T) {
 		&testscommon.TxProcessorStub{},
 		&stateMock.AccountsStub{
 			LoadAccountCalled: func(container []byte) (vmcommon.AccountHandler, error) {
-				return &mock.UserAccountMock{
+				return &userAccountMock.UserAccountMock{
 					BalanceField: big.NewInt(0).Set(initialBalance),
 				}, nil
 			},
