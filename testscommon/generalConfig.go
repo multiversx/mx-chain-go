@@ -45,9 +45,10 @@ func GetGeneralConfig() config.Config {
 			CacheRefreshIntervalInSec: uint32(100),
 		},
 		GeneralSettings: config.GeneralSettingsConfig{
-			StartInEpochEnabled:      true,
-			GenesisMaxNumberOfShards: 100,
-			MaxComputableRounds:      1000,
+			StartInEpochEnabled:                  true,
+			GenesisMaxNumberOfShards:             100,
+			MaxComputableRounds:                  1000,
+			MaxConsecutiveRoundsOfRatingDecrease: 2000,
 		},
 		EpochStartConfig: config.EpochStartConfig{
 			MinRoundsBetweenEpochs:            5,
