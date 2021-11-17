@@ -45,7 +45,7 @@ type multipleHeaderSigningDetector struct {
 }
 
 // NewMultipleHeaderSigningDetector - creates a new header slashing detector for multiple signatures
-func NewMultipleHeaderSigningDetector(args *MultipleHeaderSigningDetectorArgs) (slash.SlashingDetector, error) {
+func NewMultipleHeaderSigningDetector(args *MultipleHeaderSigningDetectorArgs) (*multipleHeaderSigningDetector, error) {
 	if args == nil {
 		return nil, process.ErrNilMultipleHeaderSigningDetectorArgs
 	}
@@ -134,17 +134,7 @@ func (mhs *multipleHeaderSigningDetector) cacheHeaderHashWithoutSignatures(heade
 }
 
 func (mhs *multipleHeaderSigningDetector) computeHashWithoutSignatures(header data.HeaderHandler) ([]byte, error) {
-	headerCopy := header.ShallowClone()
-
-	err := headerCopy.SetPubKeysBitmap(nil)
-	if err != nil {
-		return nil, err
-	}
-	err = headerCopy.SetSignature(nil)
-	if err != nil {
-		return nil, err
-	}
-	err = headerCopy.SetLeaderSignature(nil)
+	headerCopy, err := process.CopyHeaderWithoutSig(header)
 	if err != nil {
 		return nil, err
 	}
@@ -287,14 +277,10 @@ func (mhs *multipleHeaderSigningDetector) signedHeader(pubKey []byte, header dat
 
 	for idx, validator := range group {
 		if bytes.Equal(validator.PubKey(), pubKey) &&
-			sliceUtil.IsIndexSetInBitmap(uint32(idx), header.GetPubKeysBitmap()) {
+			sliceUtil.IsIndexSetInBitmap(uint32(idx), header.GetPubKeysBitmap()) &&
+			mhs.headerSigVerifier.VerifySignature(header) == nil {
 			return true
 		}
-	}
-
-	err = mhs.headerSigVerifier.VerifySignature(header)
-	if err != nil {
-		return true
 	}
 
 	return false

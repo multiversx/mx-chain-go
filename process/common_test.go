@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetShardHeaderShouldErrNilCacher(t *testing.T) {
@@ -1892,3 +1893,81 @@ func TestSortHeadersByNonceShouldWork(t *testing.T) {
 	assert.Equal(t, uint64(3), headers[2].GetNonce())
 }
 
+func TestCopyHeaderWithoutSig(t *testing.T) {
+	errSetSignature := errors.New("err set signature")
+	errSetPubKeys := errors.New("err set pub keys bitmap")
+	errSetLeaderSig := errors.New("err set leader signature")
+
+	headerCopy1 := &testscommon.HeaderHandlerStub{
+		SetSignatureCalled: func([]byte) error {
+			return errSetSignature
+		},
+		SetPubKeysBitmapCalled: func([]byte) error {
+			return nil
+		},
+		SetLeaderSignatureCalled: func([]byte) error {
+			return nil
+		},
+	}
+	headerCopy2 := &testscommon.HeaderHandlerStub{
+		SetSignatureCalled: func([]byte) error {
+			return nil
+		},
+		SetPubKeysBitmapCalled: func([]byte) error {
+			return errSetPubKeys
+		},
+		SetLeaderSignatureCalled: func([]byte) error {
+			return nil
+		},
+	}
+	headerCopy3 := &testscommon.HeaderHandlerStub{
+		SetSignatureCalled: func([]byte) error {
+			return nil
+		},
+		SetPubKeysBitmapCalled: func([]byte) error {
+			return nil
+		},
+		SetLeaderSignatureCalled: func([]byte) error {
+			return errSetLeaderSig
+		},
+	}
+	headerCopy4 := &block.Header{TimeStamp: 1}
+
+	tests := []struct {
+		headerCopy  data.HeaderHandler
+		expectedErr error
+	}{
+		{
+			headerCopy:  headerCopy1,
+			expectedErr: errSetSignature,
+		},
+		{
+			headerCopy:  headerCopy2,
+			expectedErr: errSetPubKeys,
+		},
+		{
+			headerCopy:  headerCopy3,
+			expectedErr: errSetLeaderSig,
+		},
+		{
+			headerCopy:  headerCopy4,
+			expectedErr: nil,
+		},
+	}
+
+	for _, currTest := range tests {
+		header := &testscommon.HeaderHandlerStub{
+			CloneCalled: func() data.HeaderHandler {
+				return currTest.headerCopy
+			},
+		}
+		ret, err := process.CopyHeaderWithoutSig(header)
+		require.Equal(t, currTest.expectedErr, err)
+		if err != nil {
+			require.Nil(t, ret)
+		} else {
+			require.Equal(t, currTest.headerCopy, ret)
+		}
+	}
+
+}

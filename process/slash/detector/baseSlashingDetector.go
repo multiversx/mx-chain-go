@@ -5,7 +5,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 )
 
 // minSlashableNoOfHeaders represents the min number of headers required for a
@@ -37,7 +36,7 @@ func checkAndGetHeader(interceptedData process.InterceptedData) (data.HeaderHand
 		return nil, process.ErrNilInterceptedData
 	}
 
-	interceptedHeader, castOk := interceptedData.(*interceptedBlocks.InterceptedHeader)
+	interceptedHeader, castOk := interceptedData.(process.InterceptedHeader)
 	if !castOk {
 		return nil, process.ErrCannotCastInterceptedDataToHeader
 	}

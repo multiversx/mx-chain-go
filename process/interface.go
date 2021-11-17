@@ -111,6 +111,12 @@ type InterceptedData interface {
 	String() string
 }
 
+// InterceptedHeader represents the intercepted header
+type InterceptedHeader interface {
+	InterceptedData
+	HeaderHandler() data.HeaderHandler
+}
+
 // InterceptorProcessor further validates and saves received data
 type InterceptorProcessor interface {
 	Validate(data InterceptedData, fromConnectedPeer core.PeerID) error

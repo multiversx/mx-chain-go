@@ -3,6 +3,7 @@ package slashMocks
 import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	mockCoreData "github.com/ElrondNetwork/elrond-go-core/data/mock"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
@@ -25,7 +26,7 @@ func createInterceptedHeaderArg(header data.HeaderHandler) *interceptedBlocks.Ar
 }
 
 // CreateInterceptedHeaderData creates a new interceptedBlocks.InterceptedHeader with given data.HeaderHandler
-func CreateInterceptedHeaderData(header data.HeaderHandler) *interceptedBlocks.InterceptedHeader {
+func CreateInterceptedHeaderData(header data.HeaderHandler) process.InterceptedHeader {
 	args := createInterceptedHeaderArg(header)
 	interceptedHeader, _ := interceptedBlocks.NewInterceptedHeader(args)
 

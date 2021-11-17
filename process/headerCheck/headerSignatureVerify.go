@@ -131,7 +131,7 @@ func (hsv *HeaderSigVerifier) VerifySignature(header data.HeaderHandler) error {
 
 	// get marshalled block header without signature and bitmap
 	// as this is the message that was signed
-	headerCopy, err := hsv.copyHeaderWithoutSig(header)
+	headerCopy, err := process.CopyHeaderWithoutSig(header)
 	if err != nil {
 		return err
 	}
@@ -283,26 +283,6 @@ func (hsv *HeaderSigVerifier) getLeader(header data.HeaderHandler) (crypto.Publi
 
 	leaderPubKeyValidator := headerConsensusGroup[0]
 	return hsv.keyGen.PublicKeyFromByteArray(leaderPubKeyValidator.PubKey())
-}
-
-func (hsv *HeaderSigVerifier) copyHeaderWithoutSig(header data.HeaderHandler) (data.HeaderHandler, error) {
-	headerCopy := header.ShallowClone()
-	err := headerCopy.SetSignature(nil)
-	if err != nil {
-		return nil, err
-	}
-
-	err = headerCopy.SetPubKeysBitmap(nil)
-	if err != nil {
-		return nil, err
-	}
-
-	err = headerCopy.SetLeaderSignature(nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return headerCopy, nil
 }
 
 func (hsv *HeaderSigVerifier) copyHeaderWithoutLeaderSig(header data.HeaderHandler) (data.HeaderHandler, error) {
