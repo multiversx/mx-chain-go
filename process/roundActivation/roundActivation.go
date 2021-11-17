@@ -30,9 +30,13 @@ func NewRoundActivation(config config.RoundConfig) (*roundActivation, error) {
 // IsEnabledInRound checks if the queried round flag name is enabled in the queried round
 func (ra *roundActivation) IsEnabledInRound(name string, round uint64) bool {
 	ra.mutex.RLock()
-	r, exists := ra.roundByNameMap[name]
-	ra.mutex.RUnlock()
+	defer ra.mutex.RUnlock()
 
+	return ra.isEnabledInRound(name, round)
+}
+
+func (ra *roundActivation) isEnabledInRound(name string, round uint64) bool {
+	r, exists := ra.roundByNameMap[name]
 	if exists {
 		return round >= r
 	}
@@ -43,10 +47,10 @@ func (ra *roundActivation) IsEnabledInRound(name string, round uint64) bool {
 // IsEnabled checks if the queried round flag name is enabled in the current processed round
 func (ra *roundActivation) IsEnabled(name string) bool {
 	ra.mutex.RLock()
-	currRound := ra.round
-	ra.mutex.RUnlock()
+	defer ra.mutex.RUnlock()
 
-	return ra.IsEnabledInRound(name, currRound)
+	currRound := ra.round
+	return ra.isEnabledInRound(name, currRound)
 }
 
 // RoundConfirmed resets the current stored round
