@@ -650,6 +650,34 @@ func TestMultipleHeaderSigningDetector_CheckSignedHeaders_NotEnoughHeaders_Expec
 	require.Equal(t, process.ErrNotEnoughHeadersProvided, err)
 }
 
+func TestMultipleHeaderProposalsDetector_CheckSignedHeaders_NilHeaders_ExpectErr(t *testing.T) {
+	t.Parallel()
+
+	args := generateMultipleHeaderSigningDetectorArgs()
+	sd, _ := detector.NewMultipleHeaderSigningDetector(args)
+
+	header1 := data.HeaderHandler(nil)
+	header2 := data.HeaderHandler(nil)
+	header3 := data.HeaderHandler(nil)
+
+	// All headers nil
+	headers := []data.HeaderHandler{header1, header2, header3}
+	err := sd.CheckSignedHeaders([]byte("validator"), headers)
+	require.Equal(t, process.ErrNilHeaderHandler, err)
+
+	// First header valid, second and third headers nil
+	header1 = &block.Header{Round: 1, TimeStamp: 1, PubKeysBitmap: []byte{0x1}}
+	headers = []data.HeaderHandler{header1, header2, header3}
+	err = sd.CheckSignedHeaders([]byte("validator"), headers)
+	require.Equal(t, process.ErrNilHeaderHandler, err)
+
+	// First and second header valid, third header nil
+	header2 = &block.Header{Round: 1, TimeStamp: 2, PubKeysBitmap: []byte{0x1}}
+	headers = []data.HeaderHandler{header1, header2, header3}
+	err = sd.CheckSignedHeaders([]byte("validator"), headers)
+	require.Equal(t, process.ErrNilHeaderHandler, err)
+}
+
 func TestMultipleHeaderSigningDetector_SignedHeader_CannotGetConsensusGroup_ExpectFalse(t *testing.T) {
 	t.Parallel()
 
@@ -706,8 +734,15 @@ func TestMultipleHeaderSigningDetector_SignedHeader_CannotVerifySignature_Expect
 }
 
 func generateMultipleHeaderSigningDetectorArgs() *detector.MultipleHeaderSigningDetectorArgs {
+	nodesCoordinator := &mockEpochStart.NodesCoordinatorStub{
+		ComputeConsensusGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
+			validator := mock.NewValidatorMock([]byte("validator"))
+			return []sharding.Validator{validator}, nil
+		},
+	}
+
 	return &detector.MultipleHeaderSigningDetectorArgs{
-		NodesCoordinator:  &mockEpochStart.NodesCoordinatorStub{},
+		NodesCoordinator:  nodesCoordinator,
 		RoundHandler:      &mock.RoundHandlerMock{},
 		Hasher:            &hashingMocks.HasherMock{},
 		Marshaller:        &mock.MarshalizerMock{},

@@ -229,10 +229,16 @@ func (mhs *multipleHeaderSigningDetector) checkSignedHeaders(pubKey []byte, head
 	if len(headers) < minSlashableNoOfHeaders {
 		return process.ErrNotEnoughHeadersProvided
 	}
+	if check.IfNil(headers[0]) {
+		return process.ErrNilHeaderHandler
+	}
 
-	hashes := make(map[string]struct{})
 	round := headers[0].GetRound()
+	hashes := make(map[string]struct{})
 	for _, header := range headers {
+		if check.IfNil(header) {
+			return process.ErrNilHeaderHandler
+		}
 		if header.GetRound() != round {
 			return process.ErrHeadersNotSameRound
 		}
