@@ -29,6 +29,8 @@ func (eht *eventsHashesByTxHash) saveResultsHashes(epoch uint32, scResults, rece
 	for txHash, resultHashes := range results {
 		resultHashesBytes, err := eht.marshalizer.Marshal(resultHashes)
 		if err != nil {
+			log.Warn("saveResultsHashes() cannot marshal result hashes",
+				"error", err.Error())
 			continue
 		}
 
@@ -102,12 +104,16 @@ func (eht *eventsHashesByTxHash) mergeRecordsFromStorageIfExists(
 	for originalTxHash, results := range records {
 		rawBytes, err := eht.storer.Get([]byte(originalTxHash))
 		if err != nil {
+			log.Warn("eventsHashesByTxHash cannot mergeRecordsFromStorageIfExists - Get",
+				"error", err.Error())
 			continue
 		}
 
 		record := &ResultsHashesByTxHash{}
 		err = eht.marshalizer.Unmarshal(record, rawBytes)
 		if err != nil {
+			log.Warn("eventsHashesByTxHash cannot mergeRecordsFromStorageIfExists - Unmarshal",
+				"error", err.Error())
 			continue
 		}
 

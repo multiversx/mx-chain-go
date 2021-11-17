@@ -153,6 +153,9 @@ func (hr *historyRepository) RecordBlock(
 
 		err = hr.recordMiniblock(blockHeaderHash, blockHeader, miniblock, epoch)
 		if err != nil {
+			log.Warn("could not save miniblock in historyRepository.RecordBlock",
+				"block header hash", blockHeaderHash,
+				"error", err)
 			continue
 		}
 	}
@@ -440,6 +443,7 @@ func (hr *historyRepository) consumePendingNotificationsNoLock(pendingMap *conta
 		miniblockHash := []byte(keyTyped)
 		metadata, err := hr.getMiniblockMetadataByMiniblockHash(miniblockHash)
 		if err != nil {
+			log.Debug("historyRepository.consumePendingNotificationsNoLock while calling getMiniblockMetadataByMiniblockHash", "error", err)
 			// Maybe not yet committed / saved in storer
 			continue
 		}

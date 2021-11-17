@@ -70,6 +70,8 @@ func (lg *logsGetter) getLogsBasedOnMB(mb *block.MiniBlock) (map[string]data.Log
 func (lg *logsGetter) getTxLog(txHash []byte) (data.LogHandler, bool, error) {
 	logBytes, err := lg.logsStorer.Get(txHash)
 	if err != nil {
+		log.Debug("logsGetter.getTxLog could not find any logs",
+			"tx hash", txHash, "error", err)
 		return nil, false, nil
 	}
 
