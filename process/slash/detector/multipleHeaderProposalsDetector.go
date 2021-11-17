@@ -37,7 +37,7 @@ type multipleHeaderProposalsDetector struct {
 
 // NewMultipleHeaderProposalsDetector - creates a new multipleHeaderProposalsDetector for multiple headers
 // proposal detection or multiple headers proposal proof verification
-func NewMultipleHeaderProposalsDetector(args *MultipleHeaderProposalDetectorArgs) (slash.SlashingDetector, error) {
+func NewMultipleHeaderProposalsDetector(args *MultipleHeaderProposalDetectorArgs) (*multipleHeaderProposalsDetector, error) {
 	if args == nil {
 		return nil, process.ErrNilMultipleHeaderProposalDetectorArgs
 	}

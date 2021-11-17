@@ -21,6 +21,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// NewMultipleHeaderProposalsDetector ---
 func TestNewMultipleHeaderProposalsDetector(t *testing.T) {
 	t.Parallel()
 
@@ -74,6 +75,14 @@ func TestNewMultipleHeaderProposalsDetector(t *testing.T) {
 			},
 			expectedErr: process.ErrNilMarshalizer,
 		},
+		{
+			args: func() *detector.MultipleHeaderProposalDetectorArgs {
+				args := generateMultipleHeaderProposalDetectorArgs()
+				args.HeaderSigVerifier = nil
+				return args
+			},
+			expectedErr: process.ErrNilHeaderSigVerifier,
+		},
 	}
 
 	for _, currTest := range tests {
@@ -82,6 +91,7 @@ func TestNewMultipleHeaderProposalsDetector(t *testing.T) {
 	}
 }
 
+// VerifyData ---
 func TestMultipleHeaderProposalsDetector_VerifyData_NilData_ExpectError(t *testing.T) {
 	t.Parallel()
 
@@ -170,7 +180,7 @@ func TestMultipleHeaderProposalsDetector_VerifyData_MultipleHeaders_SameHash_Exp
 	require.Equal(t, process.ErrHeadersNotDifferentHashes, err)
 }
 
-func TestMultipleHeaderProposalsDetector_VerifyData_MultipleHeaders(t *testing.T) {
+func TestMultipleHeaderProposalsDetector_VerifyData_MultipleProposedHeadersSameRound(t *testing.T) {
 	t.Parallel()
 
 	round := uint64(2)
@@ -270,6 +280,7 @@ func TestMultipleHeaderProposalsDetector_VerifyData_MultipleHeaders(t *testing.T
 	require.Equal(t, process.ErrHeadersNotDifferentHashes, err)
 }
 
+// ValidateProof
 func TestMultipleHeaderProposalsDetector_ValidateProof_NilProof_ExpectError(t *testing.T) {
 	t.Parallel()
 
@@ -313,12 +324,8 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_InvalidThreatLevel(t *tes
 func TestMultipleHeaderProposalsDetector_ValidateProof_DifferentHeaders(t *testing.T) {
 	t.Parallel()
 
-	errGetProposer := errors.New("cannot get proposer")
 	nodesCoordinatorMock := &mockEpochStart.NodesCoordinatorStub{
 		ComputeConsensusGroupCalled: func(randomness []byte, round uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
-			if round == 0 && bytes.Equal(randomness, []byte("h1")) {
-				return nil, errGetProposer
-			}
 			if round == 1 && bytes.Equal(randomness, []byte("h1")) {
 				return []sharding.Validator{mock.NewValidatorMock([]byte("proposer1"))}, nil
 			}
@@ -369,22 +376,6 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_DifferentHeaders(t *testi
 		},
 		{
 			args: func() (coreSlash.ThreatLevel, slash.HeaderInfoList) {
-				h1 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 0, PrevRandSeed: []byte("h1"), TimeStamp: 1}})
-				h2 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 0, PrevRandSeed: []byte("h1"), TimeStamp: 2}})
-				return coreSlash.Medium, slash.HeaderInfoList{h1, h2}
-			},
-			expectedErr: errGetProposer,
-		},
-		{
-			args: func() (coreSlash.ThreatLevel, slash.HeaderInfoList) {
-				h1 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 0, PrevRandSeed: []byte("h")}})
-				h2 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 0, PrevRandSeed: []byte("h1")}})
-				return coreSlash.Medium, slash.HeaderInfoList{h1, h2}
-			},
-			expectedErr: errGetProposer,
-		},
-		{
-			args: func() (coreSlash.ThreatLevel, slash.HeaderInfoList) {
 				h1 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 1, PrevRandSeed: []byte("h1")}})
 				h2 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 1, PrevRandSeed: []byte("h2")}})
 				return coreSlash.Medium, slash.HeaderInfoList{h1, h2}
@@ -427,9 +418,154 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_DifferentHeaders(t *testi
 	}
 }
 
+// CheckProposedHeaders ---
+func TestMultipleHeaderProposalsDetector_CheckProposedHeaders_NotEnoughHeaders_ExpectErr(t *testing.T) {
+	args := generateMultipleHeaderProposalDetectorArgs()
+	sd, _ := detector.NewMultipleHeaderProposalsDetector(args)
+
+	err := sd.CheckProposedHeaders([]data.HeaderHandler{})
+	require.Equal(t, process.ErrNotEnoughHeadersProvided, err)
+}
+
+func TestMultipleHeaderProposalsDetector_CheckProposedHeaders_NilHeaders_ExpectErr(t *testing.T) {
+	args := generateMultipleHeaderProposalDetectorArgs()
+	sd, _ := detector.NewMultipleHeaderProposalsDetector(args)
+
+	header1 := data.HeaderHandler(nil)
+	header2 := data.HeaderHandler(nil)
+	header3 := data.HeaderHandler(nil)
+
+	// All headers nil
+	headers := []data.HeaderHandler{header1, header2, header3}
+	err := sd.CheckProposedHeaders(headers)
+	require.Equal(t, process.ErrNilHeaderHandler, err)
+
+	// First header valid, second and third headers nil
+	header1 = &block.Header{Round: 1, TimeStamp: 1}
+	headers = []data.HeaderHandler{header1, header2, header3}
+	err = sd.CheckProposedHeaders(headers)
+	require.Equal(t, process.ErrNilHeaderHandler, err)
+
+	// First and second header valid, third header nil
+	header2 = &block.Header{Round: 1, TimeStamp: 2}
+	headers = []data.HeaderHandler{header1, header2, header3}
+	err = sd.CheckProposedHeaders(headers)
+	require.Equal(t, process.ErrNilHeaderHandler, err)
+}
+
+func TestMultipleHeaderProposalsDetector_CheckProposedHeaders_CannotGetProposer_ExpectError(t *testing.T) {
+	args := generateMultipleHeaderProposalDetectorArgs()
+	errGetProposer := errors.New("cannot get proposer")
+	args.NodesCoordinator = &mockEpochStart.NodesCoordinatorStub{
+		ComputeConsensusGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
+			return nil, errGetProposer
+		},
+	}
+	sd, _ := detector.NewMultipleHeaderProposalsDetector(args)
+
+	header1 := &block.Header{Round: 1, TimeStamp: 1}
+	header2 := &block.Header{Round: 1, TimeStamp: 2}
+	headers := []data.HeaderHandler{header1, header2}
+	err := sd.CheckProposedHeaders(headers)
+	require.Equal(t, errGetProposer, err)
+}
+
+func TestMultipleHeaderProposalsDetector_CheckProposedHeaders_CannotComputeHash_ExpectError(t *testing.T) {
+	args := generateMultipleHeaderProposalDetectorArgs()
+	errMarshaller := errors.New("error marshaller")
+	args.Marshaller = &testscommon.MarshalizerStub{
+		MarshalCalled: func(interface{}) ([]byte, error) {
+			return nil, errMarshaller
+		},
+	}
+	sd, _ := detector.NewMultipleHeaderProposalsDetector(args)
+
+	headers := []data.HeaderHandler{&block.Header{}, &block.Header{}}
+	err := sd.CheckProposedHeaders(headers)
+	require.Equal(t, errMarshaller, err)
+}
+
+func TestMultipleHeaderProposalsDetector_CheckProposedHeaders_HeadersSameHash_ExpectError(t *testing.T) {
+	args := generateMultipleHeaderProposalDetectorArgs()
+	sd, _ := detector.NewMultipleHeaderProposalsDetector(args)
+
+	header1 := &block.Header{Round: 1}
+	header2 := &block.Header{Round: 1}
+	headers := []data.HeaderHandler{header1, header2}
+	err := sd.CheckProposedHeaders(headers)
+	require.Equal(t, process.ErrHeadersNotDifferentHashes, err)
+}
+
+func TestMultipleHeaderProposalsDetector_CheckProposedHeaders_ErrHeadersNotSameRound_ExpectError(t *testing.T) {
+	args := generateMultipleHeaderProposalDetectorArgs()
+	sd, _ := detector.NewMultipleHeaderProposalsDetector(args)
+
+	header1 := &block.Header{Round: 1}
+	header2 := &block.Header{Round: 2}
+	headers := []data.HeaderHandler{header1, header2}
+	err := sd.CheckProposedHeaders(headers)
+	require.Equal(t, process.ErrHeadersNotSameRound, err)
+}
+
+// CheckHeaderHasSameProposerAndRound ---
+func TestMultipleHeaderProposalsDetector_CheckHeaderHasSameProposerAndRound_CannotGetProposer_ExpectError(t *testing.T) {
+	args := generateMultipleHeaderProposalDetectorArgs()
+	errGetProposer := errors.New("cannot get proposer")
+	args.NodesCoordinator = &mockEpochStart.NodesCoordinatorStub{
+		ComputeConsensusGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
+			return nil, errGetProposer
+		},
+	}
+	sd, _ := detector.NewMultipleHeaderProposalsDetector(args)
+
+	header := &block.Header{Round: 1}
+	err := sd.CheckHeaderHasSameProposerAndRound(header, 1, []byte("proposer"))
+	require.Equal(t, errGetProposer, err)
+}
+
+func TestMultipleHeaderProposalsDetector_CheckHeaderHasSameProposerAndRound_NotSameRound_ExpectError(t *testing.T) {
+	args := generateMultipleHeaderProposalDetectorArgs()
+	sd, _ := detector.NewMultipleHeaderProposalsDetector(args)
+
+	header := &block.Header{Round: 100}
+	err := sd.CheckHeaderHasSameProposerAndRound(header, 99, []byte("proposer"))
+	require.Equal(t, process.ErrHeadersNotSameRound, err)
+}
+
+func TestMultipleHeaderProposalsDetector_CheckHeaderHasSameProposerAndRound_NotSameProposer_ExpectError(t *testing.T) {
+	args := generateMultipleHeaderProposalDetectorArgs()
+	sd, _ := detector.NewMultipleHeaderProposalsDetector(args)
+
+	header := &block.Header{Round: 1}
+	err := sd.CheckHeaderHasSameProposerAndRound(header, 1, []byte("proposer2"))
+	require.Equal(t, process.ErrHeadersNotSameProposer, err)
+}
+
+func TestMultipleHeaderProposalsDetector_CheckHeaderHasSameProposerAndRound_LeaderDidNotSignHeader_ExpectError(t *testing.T) {
+	args := generateMultipleHeaderProposalDetectorArgs()
+	errSignature := errors.New("leader did not sign this header")
+	args.HeaderSigVerifier = &mock.HeaderSigVerifierStub{
+		VerifyLeaderSignatureCalled: func(data.HeaderHandler) error {
+			return errSignature
+		},
+	}
+	sd, _ := detector.NewMultipleHeaderProposalsDetector(args)
+
+	header := &block.Header{Round: 1}
+	err := sd.CheckHeaderHasSameProposerAndRound(header, 1, []byte("proposer"))
+	require.Equal(t, errSignature, err)
+}
+
 func generateMultipleHeaderProposalDetectorArgs() *detector.MultipleHeaderProposalDetectorArgs {
+	nodesCoordinator := &mockEpochStart.NodesCoordinatorStub{
+		ComputeConsensusGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
+			validator := mock.NewValidatorMock([]byte("proposer"))
+			return []sharding.Validator{validator}, nil
+		},
+	}
+
 	return &detector.MultipleHeaderProposalDetectorArgs{
-		NodesCoordinator:  &mock.NodesCoordinatorMock{},
+		NodesCoordinator:  nodesCoordinator,
 		RoundHandler:      &mock.RoundHandlerMock{},
 		Cache:             &slashMocks.RoundDetectorCacheStub{},
 		Hasher:            &hashingMocks.HasherMock{},

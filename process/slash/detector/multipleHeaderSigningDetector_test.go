@@ -84,6 +84,14 @@ func TestNewSigningSlashingDetector(t *testing.T) {
 		},
 		{
 			args: func() *detector.MultipleHeaderSigningDetectorArgs {
+				args := generateMultipleHeaderSigningDetectorArgs()
+				args.HeaderSigVerifier = nil
+				return args
+			},
+			expectedErr: process.ErrNilHeaderSigVerifier,
+		},
+		{
+			args: func() *detector.MultipleHeaderSigningDetectorArgs {
 				return generateMultipleHeaderSigningDetectorArgs()
 			},
 			expectedErr: nil,
