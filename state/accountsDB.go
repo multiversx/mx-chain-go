@@ -1045,14 +1045,14 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 		wg.Done()
 	}()
 
-	go printStats(stats, "snapshotState user trie")
+	go printStats(stats, "snapshotState user trie", rootHash)
 
 	if adb.isImportDbMode {
 		wg.Wait()
 	}
 }
 
-func printStats(stats *snapshotStatistics, identifier string) {
+func printStats(stats *snapshotStatistics, identifier string, rootHash []byte) {
 	stats.wg.Wait()
 
 	stats.mutex.RLock()
@@ -1064,6 +1064,7 @@ func printStats(stats *snapshotStatistics, identifier string) {
 		"total num of nodes", stats.numNodes,
 		"total size", core.ConvertBytes(stats.trieSize),
 		"num data tries", stats.numDataTries,
+		"rootHash", rootHash,
 	)
 }
 
@@ -1123,7 +1124,7 @@ func (adb *AccountsDB) setStateCheckpoint(rootHash []byte) {
 		wg.Done()
 	}()
 
-	go printStats(stats, "setStateCheckpoint user trie")
+	go printStats(stats, "setStateCheckpoint user trie", rootHash)
 
 	if adb.isImportDbMode {
 		wg.Wait()
