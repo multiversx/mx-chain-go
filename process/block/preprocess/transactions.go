@@ -1316,7 +1316,7 @@ func (txs *transactions) ProcessMiniBlock(
 		}
 	}()
 
-	log.Trace("transactions.ProcessMiniBlock", "scheduled mode", scheduledMode,
+	log.Debug("transactions.ProcessMiniBlock", "scheduled mode", scheduledMode,
 		"isNewMiniBlock", isNewMiniBlock,
 		"totalGasConsumedInSelfShard", gasConsumedInfo.TotalGasConsumedInSelfShard)
 
