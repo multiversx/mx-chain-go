@@ -271,6 +271,7 @@ type StateTriesConfig struct {
 type TrieStorageManagerConfig struct {
 	PruningBufferLen              uint32
 	SnapshotsBufferLen            uint32
+	SnapshotsGoroutineNum         uint32
 	MaxSnapshots                  uint32
 	KeepSnapshots                 bool
 	CheckpointHashesHolderMaxSize uint64

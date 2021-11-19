@@ -371,6 +371,7 @@
 [TrieStorageManagerConfig]
     PruningBufferLen = 100000
     SnapshotsBufferLen = 1000000
+    SnapshotsGoroutineNum = 10
     MaxSnapshots = 3
     KeepSnapshots = false
     CheckpointHashesHolderMaxSize = 52428800 #50MB

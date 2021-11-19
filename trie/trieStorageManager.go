@@ -10,10 +10,12 @@ import (
 	"sort"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/closing"
+	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -110,6 +112,10 @@ func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager,
 		disableOldStorageEpoch: args.DisableOldTrieStorageEpoch,
 		oldStorageClosed:       false,
 	}
+	goRoutinesThrottler, err := throttler.NewNumGoRoutinesThrottler(int32(args.GeneralConfig.SnapshotsGoroutineNum))
+	if err != nil {
+		return nil, err
+	}
 
 	log.Debug("epoch for disabling old trie storage", "epoch", tsm.disableOldStorageEpoch)
 	args.EpochNotifier.RegisterNotifyHandler(tsm)
@@ -121,7 +127,7 @@ func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager,
 		}
 		tsm.oldStorageClosed = true
 
-		go tsm.doCheckpointsAndSnapshots(ctx, args.Marshalizer, args.Hasher)
+		go tsm.doCheckpointsAndSnapshots(ctx, args.Marshalizer, args.Hasher, goRoutinesThrottler)
 		return tsm, nil
 	}
 
@@ -133,27 +139,59 @@ func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager,
 	tsm.snapshots = snapshots
 	tsm.snapshotId = snapshotId
 
-	go tsm.doCheckpointsAndSnapshots(ctx, args.Marshalizer, args.Hasher)
+	go tsm.doCheckpointsAndSnapshots(ctx, args.Marshalizer, args.Hasher, goRoutinesThrottler)
 	return tsm, nil
 }
 
-func (tsm *trieStorageManager) doCheckpointsAndSnapshots(ctx context.Context, msh marshal.Marshalizer, hsh hashing.Hasher) {
-	tsm.doProcessLoop(ctx, msh, hsh)
+func (tsm *trieStorageManager) doCheckpointsAndSnapshots(ctx context.Context, msh marshal.Marshalizer, hsh hashing.Hasher, goRoutinesThrottler core.Throttler) {
+	tsm.doProcessLoop(ctx, msh, hsh, goRoutinesThrottler)
 	tsm.cleanupChans()
 }
 
-func (tsm *trieStorageManager) doProcessLoop(ctx context.Context, msh marshal.Marshalizer, hsh hashing.Hasher) {
+func (tsm *trieStorageManager) doProcessLoop(ctx context.Context, msh marshal.Marshalizer, hsh hashing.Hasher, goRoutinesThrottler core.Throttler) {
+	defer log.Debug("trieStorageManager.storageProcessLoop go routine is closing...")
+
 	for {
 		select {
 		case snapshotRequest := <-tsm.snapshotReq:
-			tsm.takeSnapshot(snapshotRequest, msh, hsh, ctx)
+			err := checkGoRoutinesThrottler(ctx, goRoutinesThrottler)
+			if err != nil {
+				tsm.finishOperation(snapshotRequest, "did not start snapshot, goroutione is closing")
+				return
+			}
+
+			goRoutinesThrottler.StartProcessing()
+			go tsm.takeSnapshot(snapshotRequest, msh, hsh, ctx, goRoutinesThrottler)
 		case snapshotRequest := <-tsm.checkpointReq:
-			tsm.takeCheckpoint(snapshotRequest, msh, hsh, ctx)
+			err := checkGoRoutinesThrottler(ctx, goRoutinesThrottler)
+			if err != nil {
+				tsm.finishOperation(snapshotRequest, "did not start checkpoint, goroutione is closing")
+				return
+			}
+
+			goRoutinesThrottler.StartProcessing()
+			go tsm.takeCheckpoint(snapshotRequest, msh, hsh, ctx, goRoutinesThrottler)
 		case <-ctx.Done():
-			log.Debug("trieStorageManager.storageProcessLoop go routine is closing...")
 			return
 		}
 	}
+}
+
+func checkGoRoutinesThrottler(ctx context.Context, goRoutinesThrottler core.Throttler) error {
+	for {
+		if goRoutinesThrottler.CanProcess() {
+			break
+		}
+
+		select {
+		case <-time.After(time.Millisecond * 100):
+			continue
+		case <-ctx.Done():
+			return ErrTimeIsOut
+		}
+	}
+
+	return nil
 }
 
 func (tsm *trieStorageManager) cleanupChans() {
@@ -398,8 +436,11 @@ func (tsm *trieStorageManager) finishOperation(snapshotEntry *snapshotsQueueEntr
 	snapshotEntry.stats.SnapshotFinished()
 }
 
-func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, msh marshal.Marshalizer, hsh hashing.Hasher, ctx context.Context) {
-	defer tsm.finishOperation(snapshotEntry, "trie snapshot finished")
+func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, msh marshal.Marshalizer, hsh hashing.Hasher, ctx context.Context, goRoutinesThrottler core.Throttler) {
+	defer func() {
+		tsm.finishOperation(snapshotEntry, "trie snapshot finished")
+		goRoutinesThrottler.EndProcessing()
+	}()
 
 	log.Trace("trie snapshot started", "rootHash", snapshotEntry.rootHash)
 
@@ -425,8 +466,11 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 	}
 }
 
-func (tsm *trieStorageManager) takeCheckpoint(checkpointEntry *snapshotsQueueEntry, msh marshal.Marshalizer, hsh hashing.Hasher, ctx context.Context) {
-	defer tsm.finishOperation(checkpointEntry, "trie checkpoint finished")
+func (tsm *trieStorageManager) takeCheckpoint(checkpointEntry *snapshotsQueueEntry, msh marshal.Marshalizer, hsh hashing.Hasher, ctx context.Context, goRoutinesThrottler core.Throttler) {
+	defer func() {
+		tsm.finishOperation(checkpointEntry, "trie checkpoint finished")
+		goRoutinesThrottler.EndProcessing()
+	}()
 
 	log.Trace("trie checkpoint started", "rootHash", checkpointEntry.rootHash)
 
