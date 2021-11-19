@@ -435,7 +435,7 @@ func TestSyncHeadersFrom_MockHeadersSyncerShouldSyncHeaders(t *testing.T) {
 	coreComp, cryptoComp := createComponentsForEpochStart()
 	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
-	epochStartProvider.headersSyncer = &mock.HeadersByHashSyncerStub{
+	epochStartProvider.headersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
 		SyncMissingHeadersByHashCalled: func(shardIDs []uint32, headersHashes [][]byte, ctx context.Context) error {
 			return nil
 		},
@@ -539,8 +539,8 @@ func TestRequestAndProcessForShard(t *testing.T) {
 
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
 	epochStartProvider.syncedHeaders = make(map[string]data.HeaderHandler)
-	epochStartProvider.miniBlocksSyncer = &mock.PendingMiniBlockSyncHandlerStub{}
-	epochStartProvider.headersSyncer = &mock.HeadersByHashSyncerStub{
+	epochStartProvider.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{}
+	epochStartProvider.headersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
 		GetHeadersCalled: func() (m map[string]data.HeaderHandler, err error) {
 			return map[string]data.HeaderHandler{
 				string(notarizedShardHeaderHash): notarizedShardHeader,
@@ -653,7 +653,7 @@ func TestRequestAndProcessing(t *testing.T) {
 
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
 	epochStartProvider.epochStartMeta = epochStartMetaBlock
-	epochStartProvider.headersSyncer = &mock.HeadersByHashSyncerStub{
+	epochStartProvider.headersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
 		GetHeadersCalled: func() (m map[string]data.HeaderHandler, err error) {
 			return map[string]data.HeaderHandler{
 				string(notarizedShardHeaderHash):     notarizedShardHeader,
@@ -679,7 +679,7 @@ func TestRequestAndProcessing(t *testing.T) {
 		},
 	}
 	epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}
-	epochStartProvider.miniBlocksSyncer = &mock.PendingMiniBlockSyncHandlerStub{}
+	epochStartProvider.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{}
 	epochStartProvider.txSyncerForScheduled = &syncer.TransactionsSyncHandlerMock{}
 
 	params, err := epochStartProvider.requestAndProcessing()
