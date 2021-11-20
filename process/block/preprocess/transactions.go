@@ -511,22 +511,6 @@ func (txs *transactions) processTxsFromMe(
 			"received body hash", receivedBodyHash,
 			"calculated body hash", calculatedBodyHash)
 
-		log.Debug("received miniblock", "nb miniBlocks", len(receivedMiniBlocks))
-
-		for i, mb:= range receivedMiniBlocks{
-			log.Debug("", "mb", mb)
-			for _, tx := range mb.TxHashes{
-				log.Debug("---", "index", i, "txHash", tx)
-			}
-		}
-
-		for j, mb:= range calculatedMiniBlocks{
-			log.Debug("", "mb", mb)
-			for _, tx := range mb.TxHashes{
-				log.Debug("---", "index", j, "txHash", tx)
-			}
-		}
-
 		return process.ErrBlockBodyHashMismatch
 	}
 
