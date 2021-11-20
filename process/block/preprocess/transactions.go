@@ -731,11 +731,23 @@ func (txs *transactions) getAllTxsFromMiniBlock(
 	return txsSlice, txHashes, nil
 }
 
+func (txs *transactions) getRemainingGasPerBlock() uint64 {
+	gasConsumed := txs.gasHandler.TotalGasConsumed()
+	maxGasPerBlock := txs.economicsFee.MaxGasLimitPerBlock(txs.shardCoordinator.SelfId())
+	gasBandwidth := uint64(0)
+	if gasConsumed < maxGasPerBlock {
+		gasBandwidth = maxGasPerBlock - gasConsumed
+	}
+	return gasBandwidth
+}
+
 // CreateAndProcessMiniBlocks creates miniblocks from storage and processes the transactions added into the miniblocks
 // as long as it has time
 func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool) (block.MiniBlockSlice, error) {
 	startTime := time.Now()
-	sortedTxs, err := txs.computeSortedTxs(txs.shardCoordinator.SelfId(), txs.shardCoordinator.SelfId())
+
+	gasBandwidth := txs.getRemainingGasPerBlock()
+	sortedTxs, err := txs.computeSortedTxs(txs.shardCoordinator.SelfId(), txs.shardCoordinator.SelfId(), gasBandwidth)
 	elapsedTime := time.Since(startTime)
 	if err != nil {
 		log.Debug("computeSortedTxs", "error", err.Error())
@@ -1174,6 +1186,7 @@ func createEmptyMiniBlock(miniBlock *block.MiniBlock) *block.MiniBlock {
 func (txs *transactions) computeSortedTxs(
 	sndShardId uint32,
 	dstShardId uint32,
+	gasBandwidth uint64,
 ) ([]*txcache.WrappedTransaction, error) {
 	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 	txShardPool := txs.txPool.ShardDataStore(strCache)
@@ -1186,7 +1199,9 @@ func (txs *transactions) computeSortedTxs(
 	log.Debug("computeSortedTxs.GetSortedTransactions")
 	sortedTxs := sortedTransactionsProvider.GetSortedTransactions()
 
-	SortTransactionsBySenderAndNonce(sortedTxs)
+	selectedTxs := preFilterTransactions(sortedTxs, gasBandwidth, txs.gasHandler)
+
+	SortTransactionsBySenderAndNonce(selectedTxs)
 	return sortedTxs, nil
 }
 
@@ -1332,6 +1347,60 @@ func SortTransactionsBySenderAndNonce(transactions []*txcache.WrappedTransaction
 	}
 
 	sort.Slice(transactions, sorter)
+}
+
+// preFilterTransactions filters the transactions prioritising the move balance operations
+func preFilterTransactions(
+	transactions []*txcache.WrappedTransaction,
+	gasBandwidth uint64,
+	gasHandler process.GasHandler,
+) []*txcache.WrappedTransaction {
+	selectedTxs := make([]*txcache.WrappedTransaction, 0, len(transactions))
+	skippedTxs := make([]*txcache.WrappedTransaction, 0)
+	skippedAddresses := make(map[string]struct{})
+
+	skipped := 0
+	gasEstimation := uint64(0)
+	for i, tx := range transactions {
+		// prioritize move balance operations
+		// and don't care about gas cost for them
+		if len(tx.Tx.GetData()) > 0 {
+			skippedTxs = append(skippedTxs, transactions[i])
+			skippedAddresses[string(tx.Tx.GetSndAddr())] = struct{}{}
+			skipped++
+			continue
+		}
+
+		if shouldSkipTransactionIfMarkedAddress(tx, skippedAddresses) {
+			skippedTxs = append(skippedTxs, transactions[i])
+			continue
+		}
+
+		selectedTxs = append(selectedTxs, transactions[i])
+		gasEstimation += tx.Tx.GetGasLimit()
+	}
+
+	for i, tx := range skippedTxs {
+		gasInShard, _, err := gasHandler.ComputeGasConsumedByTx(tx.SenderShardID, tx.ReceiverShardID, tx.Tx)
+		if err != nil {
+			continue
+		}
+		if gasEstimation+gasInShard > gasBandwidth {
+			break
+		}
+
+		selectedTxs = append(selectedTxs, skippedTxs[i])
+		gasEstimation += tx.Tx.GetGasLimit()
+	}
+
+	log.Debug("preFilterTransactions estimation", "gasCost", gasEstimation, "selected", len(selectedTxs), "skipped", len(transactions)-len(selectedTxs))
+
+	return selectedTxs
+}
+
+func shouldSkipTransactionIfMarkedAddress(tx *txcache.WrappedTransaction, addressesToSkip map[string]struct{}) bool {
+	_, ok := addressesToSkip[string(tx.Tx.GetSndAddr())]
+	return ok
 }
 
 func (txs *transactions) isBodyToMe(body *block.Body) bool {
