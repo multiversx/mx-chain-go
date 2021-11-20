@@ -33,6 +33,8 @@ var _ process.PreProcessor = (*transactions)(nil)
 
 var log = logger.GetOrCreate("process/block/preprocess")
 
+const selectionGasBandwidthIncrease = 0.3
+
 // TODO: increase code coverage with unit test
 
 type transactions struct {
@@ -454,7 +456,7 @@ func (txs *transactions) processTxsFromMe(
 		return err
 	}
 
-	SortTransactionsBySenderAndNonce(txsFromMe)
+	sortTransactionsBySenderAndNonce(txsFromMe)
 
 	isShardStuckFalse := func(uint32) bool {
 		return false
@@ -746,7 +748,8 @@ func (txs *transactions) getRemainingGasPerBlock() uint64 {
 func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool) (block.MiniBlockSlice, error) {
 	startTime := time.Now()
 
-	gasBandwidth := txs.getRemainingGasPerBlock()
+	gasBandwidth := uint64(float64(txs.getRemainingGasPerBlock()) * (1 + selectionGasBandwidthIncrease))
+
 	sortedTxs, err := txs.computeSortedTxs(txs.shardCoordinator.SelfId(), txs.shardCoordinator.SelfId(), gasBandwidth)
 	elapsedTime := time.Since(startTime)
 	if err != nil {
@@ -1199,9 +1202,9 @@ func (txs *transactions) computeSortedTxs(
 	log.Debug("computeSortedTxs.GetSortedTransactions")
 	sortedTxs := sortedTransactionsProvider.GetSortedTransactions()
 
-	selectedTxs := preFilterTransactions(sortedTxs, gasBandwidth, txs.gasHandler)
+	selectedTxs := txs.preFilterTransactions(sortedTxs, gasBandwidth)
 
-	SortTransactionsBySenderAndNonce(selectedTxs)
+	sortTransactionsBySenderAndNonce(selectedTxs)
 	return sortedTxs, nil
 }
 
@@ -1332,8 +1335,8 @@ func (txs *transactions) IsInterfaceNil() bool {
 	return txs == nil
 }
 
-// SortTransactionsBySenderAndNonce sorts the provided transactions and hashes simultaneously
-func SortTransactionsBySenderAndNonce(transactions []*txcache.WrappedTransaction) {
+// sortTransactionsBySenderAndNonce sorts the provided transactions and hashes simultaneously
+func sortTransactionsBySenderAndNonce(transactions []*txcache.WrappedTransaction) {
 	sorter := func(i, j int) bool {
 		txI := transactions[i].Tx
 		txJ := transactions[j].Tx
@@ -1350,13 +1353,12 @@ func SortTransactionsBySenderAndNonce(transactions []*txcache.WrappedTransaction
 }
 
 // preFilterTransactions filters the transactions prioritising the move balance operations
-func preFilterTransactions(
+func (txs *transactions) preFilterTransactions(
 	transactions []*txcache.WrappedTransaction,
 	gasBandwidth uint64,
-	gasHandler process.GasHandler,
 ) []*txcache.WrappedTransaction {
 	selectedTxs := make([]*txcache.WrappedTransaction, 0, len(transactions))
-	skippedTxs := make([]*txcache.WrappedTransaction, 0)
+	skippedTxs := make([]*txcache.WrappedTransaction, 0, len(transactions))
 	skippedAddresses := make(map[string]struct{})
 
 	skipped := 0
@@ -1377,11 +1379,11 @@ func preFilterTransactions(
 		}
 
 		selectedTxs = append(selectedTxs, transactions[i])
-		gasEstimation += tx.Tx.GetGasLimit()
+		gasEstimation += txs.economicsFee.MinGasLimit()
 	}
 
 	for i, tx := range skippedTxs {
-		gasInShard, _, err := gasHandler.ComputeGasConsumedByTx(tx.SenderShardID, tx.ReceiverShardID, tx.Tx)
+		gasInShard, _, err := txs.gasHandler.ComputeGasConsumedByTx(tx.SenderShardID, tx.ReceiverShardID, tx.Tx)
 		if err != nil {
 			continue
 		}
@@ -1390,7 +1392,7 @@ func preFilterTransactions(
 		}
 
 		selectedTxs = append(selectedTxs, skippedTxs[i])
-		gasEstimation += tx.Tx.GetGasLimit()
+		gasEstimation += gasInShard
 	}
 
 	log.Debug("preFilterTransactions estimation", "gasCost", gasEstimation, "selected", len(selectedTxs), "skipped", len(transactions)-len(selectedTxs))
