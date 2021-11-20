@@ -1186,16 +1186,15 @@ func (txs *transactions) computeSortedTxs(
 	log.Debug("computeSortedTxs.GetSortedTransactions")
 	sortedTxs := sortedTransactionsProvider.GetSortedTransactions()
 
-	filteredTxs := filterTransactionsPrioritizeMoveBalance(sortedTxs)
+	filteredTxs := txs.filterTransactionsPrioritizeMoveBalance(sndShardId, dstShardId, sortedTxs)
 	SortTransactionsBySenderAndNonce(filteredTxs)
 
 	return filteredTxs, nil
 }
 
-const moveBalanceGasCost = 50000
-const maxGasLimitToSelect = uint64(2000000000)
-
-func filterTransactionsPrioritizeMoveBalance(transactions []*txcache.WrappedTransaction) []*txcache.WrappedTransaction {
+func (txs *transactions) filterTransactionsPrioritizeMoveBalance(
+	senderShardId, receiverShardId uint32,
+	transactions []*txcache.WrappedTransaction) []*txcache.WrappedTransaction {
 	// should prioritize transactions with move balance
 	newList := make([]*txcache.WrappedTransaction, 0)
 	totalMoveBalance := 0
@@ -1206,13 +1205,22 @@ func filterTransactionsPrioritizeMoveBalance(transactions []*txcache.WrappedTran
 		}
 	}
 
-	consumedGas := uint64(totalMoveBalance * moveBalanceGasCost)
+	maxGasLimitToSelect := core.MinUint64(txs.economicsFee.MaxGasLimitPerBlockForSafeCrossShard()-txs.getTotalGasConsumed(), txs.economicsFee.MaxGasLimitPerMiniBlockForSafeCrossShard())
+	consumedGas := uint64(totalMoveBalance) * txs.economicsFee.MinGasLimit()
 	for _, wrappedTx := range transactions {
 		if len(wrappedTx.Tx.GetData()) == 0 {
 			continue
 		}
 
-		consumedGas += wrappedTx.Tx.GetGasLimit()
+		txGasLimitInSenderShard, _, err := txs.gasHandler.ComputeGasConsumedByTx(
+			senderShardId,
+			receiverShardId,
+			wrappedTx.Tx)
+		if err != nil {
+			continue
+		}
+
+		consumedGas += txGasLimitInSenderShard
 		if consumedGas > maxGasLimitToSelect {
 			break
 		}
