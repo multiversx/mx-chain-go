@@ -1186,8 +1186,41 @@ func (txs *transactions) computeSortedTxs(
 	log.Debug("computeSortedTxs.GetSortedTransactions")
 	sortedTxs := sortedTransactionsProvider.GetSortedTransactions()
 
-	SortTransactionsBySenderAndNonce(sortedTxs)
-	return sortedTxs, nil
+	filteredTxs := filterTransactionsPrioritizeMoveBalance(sortedTxs)
+	SortTransactionsBySenderAndNonce(filteredTxs)
+
+	return filteredTxs, nil
+}
+
+const moveBalanceGasCost = 50000
+const maxGasLimitToSelect = uint64(2000000000)
+
+func filterTransactionsPrioritizeMoveBalance(transactions []*txcache.WrappedTransaction) []*txcache.WrappedTransaction {
+	// should prioritize transactions with move balance
+	newList := make([]*txcache.WrappedTransaction, 0)
+	totalMoveBalance := 0
+	for _, wrappedTx := range transactions {
+		if len(wrappedTx.Tx.GetData()) == 0 {
+			newList = append(newList, wrappedTx)
+			totalMoveBalance++
+		}
+	}
+
+	consumedGas := uint64(totalMoveBalance * moveBalanceGasCost)
+	for _, wrappedTx := range transactions {
+		if len(wrappedTx.Tx.GetData()) == 0 {
+			continue
+		}
+
+		consumedGas += wrappedTx.Tx.GetGasLimit()
+		if consumedGas > maxGasLimitToSelect {
+			break
+		}
+
+		newList = append(newList, wrappedTx)
+	}
+
+	return newList
 }
 
 // ProcessMiniBlock processes all the transactions from a and saves the processed transactions in local cache complete miniblock
