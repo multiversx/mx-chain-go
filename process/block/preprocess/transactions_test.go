@@ -1234,6 +1234,37 @@ func Example_sortTransactionsBySenderAndNonce() {
 	// 3 ffff b
 }
 
+func Example_sortTransactionsBySenderAndNonce2() {
+	txs := []*txcache.WrappedTransaction{
+		{Tx: &transaction.Transaction{Nonce: 2, SndAddr: []byte("bbbb")}, TxHash: []byte("w")},
+		{Tx: &transaction.Transaction{Nonce: 1, SndAddr: []byte("aaaa")}, TxHash: []byte("x")},
+		{Tx: &transaction.Transaction{Nonce: 1, SndAddr: []byte("bbbb")}, TxHash: []byte("y")},
+		{Tx: &transaction.Transaction{Nonce: 2, SndAddr: []byte("aaaa")}, TxHash: []byte("z")},
+		{Tx: &transaction.Transaction{Nonce: 7, SndAddr: []byte("aabb")}, TxHash: []byte("t")},
+		{Tx: &transaction.Transaction{Nonce: 6, SndAddr: []byte("aabb")}, TxHash: []byte("a")},
+		{Tx: &transaction.Transaction{Nonce: 1, SndAddr: []byte("ffff")}, TxHash: []byte("b")},
+		{Tx: &transaction.Transaction{Nonce: 3, SndAddr: []byte("eeee")}, TxHash: []byte("c")},
+		{Tx: &transaction.Transaction{Nonce: 3, SndAddr: []byte("bbbb")}, TxHash: []byte("c")},
+	}
+
+	sortTransactionsBySenderAndNonce(txs)
+
+	for _, item := range txs {
+		fmt.Println(item.Tx.GetNonce(), string(item.Tx.GetSndAddr()), string(item.TxHash))
+	}
+
+	// Output:
+	// 1 aaaa x
+	// 2 aaaa z
+	// 6 aabb a
+	// 7 aabb t
+	// 1 bbbb y
+	// 2 bbbb w
+	// 3 bbbb c
+	// 3 eeee c
+	// 1 ffff b
+}
+
 func BenchmarkSortTransactionsByNonceAndSender_WhenReversedNonces(b *testing.B) {
 	numTx := 100000
 	txs := make([]*txcache.WrappedTransaction, numTx)

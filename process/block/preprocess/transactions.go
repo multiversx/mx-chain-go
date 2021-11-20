@@ -510,6 +510,23 @@ func (txs *transactions) processTxsFromMe(
 		log.Debug("block body missmatch",
 			"received body hash", receivedBodyHash,
 			"calculated body hash", calculatedBodyHash)
+
+		log.Debug("received miniblock", "nb miniBlocks", len(receivedMiniBlocks))
+
+		for i, mb:= range receivedMiniBlocks{
+			log.Debug("", "mb", mb)
+			for _, tx := range mb.TxHashes{
+				log.Debug("---", "index", i, "txHash", tx)
+			}
+		}
+
+		for j, mb:= range calculatedMiniBlocks{
+			log.Debug("", "mb", mb)
+			for _, tx := range mb.TxHashes{
+				log.Debug("---", "index", j, "txHash", tx)
+			}
+		}
+
 		return process.ErrBlockBodyHashMismatch
 	}
 
@@ -1205,7 +1222,7 @@ func (txs *transactions) computeSortedTxs(
 	selectedTxs := txs.preFilterTransactions(sortedTxs, gasBandwidth)
 
 	sortTransactionsBySenderAndNonce(selectedTxs)
-	return sortedTxs, nil
+	return selectedTxs, nil
 }
 
 // ProcessMiniBlock processes all the transactions from a and saves the processed transactions in local cache complete miniblock
