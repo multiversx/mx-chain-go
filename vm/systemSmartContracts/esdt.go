@@ -134,7 +134,7 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 	log.Debug("esdt: enable epoch for contract transfer role", "epoch", e.transferRoleEnableEpoch)
 	log.Debug("esdt: enable epoch for esdt NFT create on multiple shards", "epoch", e.nftCreateONMultiShardEnableEpoch)
 	log.Debug("esdt: enable epoch for meta tokens, financial SFTs", "epoch", e.metaESDTEnableEpoch)
-	log.Debug("esdt: enable epoch for esdt register and set all function", "epoch", e.registerAndSetAllRolesEnableEpoch)
+	log.Debug("esdt: enable epoch for esdt register and set all roles function", "epoch", e.registerAndSetAllRolesEnableEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(e)
 
@@ -1983,7 +1983,7 @@ func (e *esdt) EpochConfirmed(epoch uint32, _ uint64) {
 	log.Debug("ESDT contract financial SFTs", "enabled", e.flagMetaESDT.IsSet())
 
 	e.flagRegisterAndSetAllRoles.Toggle(epoch >= e.registerAndSetAllRolesEnableEpoch)
-	log.Debug("ESDT register and set all", "enabled", e.flagRegisterAndSetAllRoles.IsSet())
+	log.Debug("ESDT register and set all roles", "enabled", e.flagRegisterAndSetAllRoles.IsSet())
 }
 
 // SetNewGasCost is called whenever a gas cost was changed
