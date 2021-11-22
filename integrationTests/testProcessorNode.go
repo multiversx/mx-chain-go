@@ -532,7 +532,6 @@ func NewTestProcessorNodeWithFullGenesis(
 		BlockChainHook:    tpn.BlockchainHook,
 		BlockChain:        tpn.BlockChain,
 		ArwenChangeLocker: tpn.ArwenChangeLocker,
-		Accounts:          tpn.AccntState,
 		Bootstrapper:      tpn.Bootstrapper,
 	}
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
@@ -706,7 +705,6 @@ func (tpn *TestProcessorNode) initTestNode() {
 		BlockChainHook:    tpn.BlockchainHook,
 		BlockChain:        tpn.BlockChain,
 		ArwenChangeLocker: tpn.ArwenChangeLocker,
-		Accounts:          tpn.AccntState,
 		Bootstrapper:      syncDisabled.NewDisabledBootstrapper(),
 	}
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
@@ -908,7 +906,6 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 		BlockChainHook:    vmFactory.BlockChainHookImpl(),
 		BlockChain:        tpn.BlockChain,
 		ArwenChangeLocker: tpn.ArwenChangeLocker,
-		Accounts:          tpn.AccntState,
 		Bootstrapper:      tpn.Bootstrapper,
 	}
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
@@ -925,7 +922,6 @@ func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]
 		BlockChainHook:    tpn.BlockchainHook,
 		BlockChain:        tpn.BlockChain,
 		ArwenChangeLocker: tpn.ArwenChangeLocker,
-		Accounts:          tpn.AccntState,
 		Bootstrapper:      tpn.Bootstrapper,
 	}
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)

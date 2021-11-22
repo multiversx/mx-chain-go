@@ -43,7 +43,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
@@ -147,7 +146,6 @@ func SetupTestContext(t *testing.T) *TestContext {
 		BlockChainHook:    context.BlockchainHook,
 		BlockChain:        &mock.BlockChainMock{},
 		ArwenChangeLocker: &sync.RWMutex{},
-		Accounts:          &stateMock.AccountsStub{},
 		Bootstrapper:      disabled.NewDisabledBootstrapper(),
 	}
 	context.QueryService, _ = smartContract.NewSCQueryService(argsNewSCQueryService)

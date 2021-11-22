@@ -1506,7 +1506,7 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityShouldReturnNilWhenNo
 	sp, _ := blproc.NewShardProcessorEmptyWith3shards(
 		tdp,
 		genesisBlocks,
-		&mock.BlockChainMock{
+		&mock.BlockChainStub{
 			GetGenesisHeaderCalled: func() data.HeaderHandler {
 				return &block.Header{Nonce: 0}
 			},
@@ -4193,7 +4193,7 @@ func TestShardProcessor_updateStateStorage(t *testing.T) {
 func TestShardProcessor_checkEpochCorrectnessCrossChainNilCurrentBlock(t *testing.T) {
 	t.Parallel()
 
-	chain := &mock.BlockChainMock{
+	chain := &mock.BlockChainStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return nil
 		},
@@ -4221,7 +4221,7 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainCorrectEpoch(t *testing.T
 			return 1
 		},
 	}
-	blockChain := &mock.BlockChainMock{
+	blockChain := &mock.BlockChainStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{Epoch: 1}
 		},
@@ -4260,7 +4260,7 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochStorageErro
 	}
 
 	header := &block.Header{Epoch: epochStartTrigger.Epoch() - 1, Round: epochStartTrigger.EpochFinalityAttestingRound() + process.EpochChangeGracePeriod + 1}
-	blockChain := &mock.BlockChainMock{
+	blockChain := &mock.BlockChainStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return header
 		},
@@ -4314,7 +4314,7 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochRollback1Bl
 		Round:    epochStartTrigger.EpochFinalityAttestingRound() + process.EpochChangeGracePeriod + 1,
 		PrevHash: prevHash}
 
-	blockChain := &mock.BlockChainMock{
+	blockChain := &mock.BlockChainStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return currHeader
 		},
@@ -4377,7 +4377,7 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochRollback2Bl
 		Round:    epochStartTrigger.EpochFinalityAttestingRound() + process.EpochChangeGracePeriod + 2,
 		PrevHash: prevHash}
 
-	blockChain := &mock.BlockChainMock{
+	blockChain := &mock.BlockChainStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return header
 		},
@@ -4574,7 +4574,7 @@ func TestShardProcessor_CheckEpochCorrectnessShouldRemoveAndRequestStartOfEpochM
 		EpochStartMetaHash: epochStartMetaHash,
 	}
 
-	blockChainMock := &mock.BlockChainMock{
+	blockChainMock := &mock.BlockChainStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return currentHeader
 		},

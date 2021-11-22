@@ -10,11 +10,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,10 +28,9 @@ func createMockArgumentsForSCQuery() ArgsNewSCQueryService {
 		VmContainer:       &mock.VMContainerMock{},
 		EconomicsFee:      &mock.FeeHandlerStub{},
 		BlockChainHook:    &mock.BlockChainHookHandlerMock{},
-		BlockChain:        &mock.BlockChainMock{},
+		BlockChain:        &mock.BlockChainStub{},
 		ArwenChangeLocker: &sync.RWMutex{},
 		Bootstrapper:      &mock.BootstrapperStub{},
-		Accounts:          &state.AccountsStub{},
 	}
 }
 
@@ -98,17 +98,6 @@ func TestNewSCQueryService_NilBootstrapperShouldErr(t *testing.T) {
 
 	assert.Nil(t, target)
 	assert.Equal(t, process.ErrNilBootstrapper, err)
-}
-
-func TestNewSCQueryService_NilAccountsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := createMockArgumentsForSCQuery()
-	args.Accounts = nil
-	target, err := NewSCQueryService(args)
-
-	assert.Nil(t, target)
-	assert.Equal(t, process.ErrNilAccountsAdapter, err)
 }
 
 func TestNewSCQueryService_ShouldWork(t *testing.T) {
@@ -473,14 +462,19 @@ func TestSCQueryService_ShouldFailIfStateChanged(t *testing.T) {
 	args := createMockArgumentsForSCQuery()
 
 	rootHashCalled := false
-	args.Accounts = &state.AccountsStub{
-		RootHashCalled: func() ([]byte, error) {
+	args.BlockChain = &mock.BlockChainStub{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			if !rootHashCalled {
 				rootHashCalled = true
-				return []byte("first root hash"), nil
+				return &block.Header{
+					RootHash: []byte("first root hash"),
+				}
 			}
 
-			return []byte("second root hash"), nil
+			return &block.Header{
+				RootHash: []byte("second root hash"),
+			}
+
 		},
 	}
 
@@ -500,9 +494,12 @@ func TestSCQueryService_ShouldWorkIfStateDidntChange(t *testing.T) {
 
 	args := createMockArgumentsForSCQuery()
 
-	args.Accounts = &state.AccountsStub{
-		RootHashCalled: func() ([]byte, error) {
-			return []byte("same root hash"), nil
+	args.BlockChain = &mock.BlockChainStub{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{
+				RootHash: []byte("same root hash"),
+			}
+
 		},
 	}
 
@@ -601,10 +598,9 @@ func TestNewSCQueryService_CloseShouldWork(t *testing.T) {
 		},
 		EconomicsFee:      &mock.FeeHandlerStub{},
 		BlockChainHook:    &mock.BlockChainHookHandlerMock{},
-		BlockChain:        &mock.BlockChainMock{},
+		BlockChain:        &mock.BlockChainStub{},
 		ArwenChangeLocker: &sync.RWMutex{},
 		Bootstrapper:      &mock.BootstrapperStub{},
-		Accounts:          &state.AccountsStub{},
 	}
 
 	target, _ := NewSCQueryService(argsNewSCQueryService)

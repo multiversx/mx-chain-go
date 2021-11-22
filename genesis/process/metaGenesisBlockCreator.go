@@ -454,7 +454,6 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		BlockChainHook:    virtualMachineFactory.BlockChainHookImpl(),
 		BlockChain:        arg.Data.Blockchain(),
 		ArwenChangeLocker: &sync.RWMutex{},
-		Accounts:          arg.Accounts,
 		Bootstrapper:      syncDisabled.NewDisabledBootstrapper(),
 	}
 	queryService, err := smartContract.NewSCQueryService(argsNewSCQueryService)

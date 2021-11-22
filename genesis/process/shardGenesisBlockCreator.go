@@ -530,7 +530,6 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		BlockChainHook:    vmFactoryImpl.BlockChainHookImpl(),
 		BlockChain:        arg.Data.Blockchain(),
 		ArwenChangeLocker: genesisArwenLocker,
-		Accounts:          arg.Accounts,
 		Bootstrapper:      syncDisabled.NewDisabledBootstrapper(),
 	}
 	queryService, err := smartContract.NewSCQueryService(argsNewSCQueryService)

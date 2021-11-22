@@ -336,7 +336,6 @@ func createScQueryElement(
 		BlockChainHook:    vmFactory.BlockChainHookImpl(),
 		BlockChain:        args.dataComponents.Blockchain(),
 		ArwenChangeLocker: args.coreComponents.ArwenChangeLocker(),
-		Accounts:          args.stateComponents.AccountsAdapter(),
 		Bootstrapper:      args.bootstrapper,
 	}
 	scQueryService, err := smartContract.NewSCQueryService(argsNewSCQueryService)

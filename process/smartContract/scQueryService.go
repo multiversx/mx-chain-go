@@ -3,7 +3,6 @@ package smartContract
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"math"
 	"math/big"
 	"sync"
@@ -31,7 +30,6 @@ type SCQueryService struct {
 	gasForQuery       uint64
 	arwenChangeLocker common.Locker
 	bootstrapper      process.Bootstrapper
-	accounts          vmcommon.AccountsAdapter
 }
 
 // ArgsNewSCQueryService defines the arguments needed for the sc query service
@@ -42,7 +40,6 @@ type ArgsNewSCQueryService struct {
 	BlockChain        data.ChainHandler
 	ArwenChangeLocker common.Locker
 	Bootstrapper      process.Bootstrapper
-	Accounts          vmcommon.AccountsAdapter
 }
 
 // NewSCQueryService returns a new instance of SCQueryService
@@ -67,9 +64,6 @@ func NewSCQueryService(
 	if check.IfNil(args.Bootstrapper) {
 		return nil, process.ErrNilBootstrapper
 	}
-	if check.IfNil(args.Accounts) {
-		return nil, process.ErrNilAccountsAdapter
-	}
 
 	return &SCQueryService{
 		vmContainer:       args.VmContainer,
@@ -78,7 +72,6 @@ func NewSCQueryService(
 		blockChainHook:    args.BlockChainHook,
 		arwenChangeLocker: args.ArwenChangeLocker,
 		bootstrapper:      args.Bootstrapper,
-		accounts:          args.Accounts,
 		gasForQuery:       math.MaxUint64,
 	}, nil
 }
@@ -112,10 +105,7 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 	var err error
 
 	if shouldCheckRootHashChanges {
-		rootHashBeforeExecution, err = service.accounts.RootHash()
-		if err != nil {
-			return nil, fmt.Errorf("cannot get root hash while executing vm query: %w", err)
-		}
+		rootHashBeforeExecution = service.blockChain.GetCurrentBlockHeader().GetRootHash()
 	}
 
 	service.blockChainHook.SetCurrentHeader(service.blockChain.GetCurrentBlockHeader())
@@ -155,15 +145,9 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 }
 
 func (service *SCQueryService) checkForRootHashChanges(rootHashBefore []byte) error {
-	// TODO: extend the functionality so if the state has changed since the starting point, check for the SC address
-	// root hash as well. This involves some changes in the trie part (add a function that returns the leaf key for
-	// an account)
-	rootHashAfter, err := service.accounts.RootHash()
-	if err != nil {
-		return err
-	}
+	rootHashAfter := service.blockChain.GetCurrentBlockHeader().GetRootHash()
 
-	if bytes.Compare(rootHashBefore, rootHashAfter) == 0 {
+	if bytes.Equal(rootHashBefore, rootHashAfter) {
 		return nil
 	}
 
