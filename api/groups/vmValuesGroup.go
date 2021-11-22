@@ -170,9 +170,11 @@ func (vvg *vmValuesGroup) createSCQuery(request *VMValueRequest) (*process.SCQue
 	}
 
 	scQuery := &process.SCQuery{
-		ScAddress: decodedAddress,
-		FuncName:  request.FuncName,
-		Arguments: arguments,
+		ScAddress:      decodedAddress,
+		FuncName:       request.FuncName,
+		Arguments:      arguments,
+		SameScState:    request.SameScState,
+		ShouldBeSynced: request.ShouldBeSynced,
 	}
 
 	if len(request.CallerAddr) > 0 {
