@@ -488,10 +488,17 @@ func (n *Node) GetTokenSupply(token string) (*api.ESDTSupply, error) {
 		return nil, err
 	}
 
+	bigToString := func(bigValue *big.Int) string {
+		if bigValue == nil {
+			return "0"
+		}
+		return bigValue.String()
+	}
+
 	return &api.ESDTSupply{
-		Supply: esdtSupply.Supply.String(),
-		Burned: esdtSupply.Burned.String(),
-		Minted: esdtSupply.Minted.String(),
+		Supply: bigToString(esdtSupply.Supply),
+		Burned: bigToString(esdtSupply.Minted),
+		Minted: bigToString(esdtSupply.Burned),
 	}, nil
 }
 
