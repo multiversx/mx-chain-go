@@ -237,13 +237,14 @@ type MaxNodesChangeConfig struct {
 
 // GeneralSettingsConfig will hold the general settings for a node
 type GeneralSettingsConfig struct {
-	StatusPollingIntervalSec int
-	MaxComputableRounds      uint64
-	StartInEpochEnabled      bool
-	ChainID                  string
-	MinTransactionVersion    uint32
-	GenesisString            string
-	GenesisMaxNumberOfShards uint32
+	StatusPollingIntervalSec             int
+	MaxComputableRounds                  uint64
+	MaxConsecutiveRoundsOfRatingDecrease uint64
+	StartInEpochEnabled                  bool
+	ChainID                              string
+	MinTransactionVersion                uint32
+	GenesisString                        string
+	GenesisMaxNumberOfShards             uint32
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade

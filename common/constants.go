@@ -658,5 +658,8 @@ const TimeoutGettingTrieNodes = 2 * time.Minute //to consider syncing a very lar
 // during the hardfork process
 const TimeoutGettingTrieNodesInHardfork = time.Minute * 10
 
+// RetrialIntervalForOutportDriver is the interval in which the outport driver should try to call the driver again
+const RetrialIntervalForOutportDriver = time.Second * 10
+
 // ScheduledMode represents the name used to differentiate normal vs. scheduled mini blocks / transactions execution mode
 const ScheduledMode = "Scheduled"

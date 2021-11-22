@@ -92,7 +92,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, err
 	}
 
-	builtInFuncs, err := createBuiltinFuncs(
+	builtInFuncs, _, err := createBuiltinFuncs(
 		args.GasScheduleNotifier,
 		args.CoreComponents.InternalMarshalizer(),
 		args.StateComponents.AccountsAdapter(),
@@ -102,7 +102,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		args.Configs.EpochConfig.EnableEpochs.GlobalMintBurnDisableEpoch,
 		args.Configs.EpochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
 		args.Configs.EpochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
-		args.Configs.EpochConfig.EnableEpochs.ESDTNFTCreateOnMultiShardEnableEpoch,
+		args.Configs.EpochConfig.EnableEpochs.OptimizeNFTStoreEnableEpoch,
 	)
 	if err != nil {
 		return nil, err
@@ -227,7 +227,7 @@ func createScQueryElement(
 	var vmFactory process.VirtualMachinesContainerFactory
 	var err error
 
-	builtInFuncs, err := createBuiltinFuncs(
+	builtInFuncs, nftStorageHandler, err := createBuiltinFuncs(
 		args.gasScheduleNotifier,
 		args.coreComponents.InternalMarshalizer(),
 		args.stateComponents.AccountsAdapter(),
@@ -237,7 +237,7 @@ func createScQueryElement(
 		args.epochConfig.EnableEpochs.GlobalMintBurnDisableEpoch,
 		args.epochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
 		args.epochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
-		args.epochConfig.EnableEpochs.ESDTNFTCreateOnMultiShardEnableEpoch,
+		args.epochConfig.EnableEpochs.OptimizeNFTStoreEnableEpoch,
 	)
 	if err != nil {
 		return nil, err
@@ -260,6 +260,7 @@ func createScQueryElement(
 		Marshalizer:        args.coreComponents.InternalMarshalizer(),
 		Uint64Converter:    args.coreComponents.Uint64ByteSliceConverter(),
 		BuiltInFunctions:   builtInFuncs,
+		NFTStorageHandler:  nftStorageHandler,
 		DataPool:           args.dataComponents.Datapool(),
 		ConfigSCStorage:    scStorage,
 		CompiledSCPool:     smartContractsCache,
@@ -346,25 +347,20 @@ func createBuiltinFuncs(
 	esdtGlobalMintBurnDisableEpoch uint32,
 	esdtTransferRoleEnableEpoch uint32,
 	transferToMetaEnableEpoch uint32,
-	esdtNFTCreateOnMultiShard uint32,
-) (vmcommon.BuiltInFunctionContainer, error) {
+	optimizeNFTStoreEnableEpoch uint32,
+) (vmcommon.BuiltInFunctionContainer, vmcommon.SimpleESDTNFTStorageHandler, error) {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:                          gasScheduleNotifier,
-		MapDNSAddresses:                      make(map[string]struct{}),
-		Marshalizer:                          marshalizer,
-		Accounts:                             accnts,
-		ShardCoordinator:                     shardCoordinator,
-		EpochNotifier:                        epochNotifier,
-		ESDTMultiTransferEnableEpoch:         esdtMultiTransferEnableEpoch,
-		ESDTTransferRoleEnableEpoch:          esdtTransferRoleEnableEpoch,
-		GlobalMintBurnDisableEpoch:           esdtGlobalMintBurnDisableEpoch,
-		ESDTTransferMetaEnableEpoch:          transferToMetaEnableEpoch,
-		ESDTNFTCreateOnMultiShardEnableEpoch: esdtNFTCreateOnMultiShard,
+		GasSchedule:                  gasScheduleNotifier,
+		MapDNSAddresses:              make(map[string]struct{}),
+		Marshalizer:                  marshalizer,
+		Accounts:                     accnts,
+		ShardCoordinator:             shardCoordinator,
+		EpochNotifier:                epochNotifier,
+		ESDTMultiTransferEnableEpoch: esdtMultiTransferEnableEpoch,
+		ESDTTransferRoleEnableEpoch:  esdtTransferRoleEnableEpoch,
+		GlobalMintBurnDisableEpoch:   esdtGlobalMintBurnDisableEpoch,
+		ESDTTransferMetaEnableEpoch:  transferToMetaEnableEpoch,
+		OptimizeNFTStoreEnableEpoch:  optimizeNFTStoreEnableEpoch,
 	}
-	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
-	if err != nil {
-		return nil, err
-	}
-
-	return builtInFuncs, nil
+	return builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 }

@@ -461,8 +461,8 @@ func (ed *economicsData) CheckValidityTxValues(tx data.TransactionWithFeeHandler
 		}
 	}
 
-	if tx.GetGasLimit() >= ed.maxGasLimitPerBlock {
-		return process.ErrMoreGasThanGasLimitPerBlock
+	if tx.GetGasLimit() >= ed.MaxGasLimitPerMiniBlockForSafeCrossShard() {
+		return process.ErrMoreGasThanGasLimitPerMiniBlockForSafeCrossShard
 	}
 
 	// The following is required to mitigate a "big value" attack

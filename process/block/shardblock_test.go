@@ -4618,6 +4618,75 @@ func TestShardProcessor_RequestMetaHeadersIfNeededShouldAddHeaderIntoTrackerPool
 	assert.Equal(t, expectedAddedNonces, addedNonces)
 }
 
+func TestShardProcessor_CheckEpochCorrectnessShouldRemoveAndRequestStartOfEpochMetaBlockWhenEpochDoesNotMatch(t *testing.T) {
+	t.Parallel()
+
+	removeHeaderByHashWasCalled := false
+	requestMetaHeaderWasCalled := false
+	epochStartMetaHash := []byte("epoch start meta hash")
+
+	currentHeader := &block.Header{
+		Epoch: uint32(1),
+	}
+	nextHeader := &block.Header{
+		Epoch:              uint32(2),
+		EpochStartMetaHash: epochStartMetaHash,
+	}
+
+	blockChainMock := &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return currentHeader
+		},
+	}
+	epochStartTriggerStub := &mock.EpochStartTriggerStub{
+		MetaEpochCalled: func() uint32 {
+			return currentHeader.Epoch
+		},
+	}
+	poolsHolderStub := &dataRetrieverMock.PoolsHolderStub{
+		HeadersCalled: func() dataRetriever.HeadersPool {
+			return &mock.HeadersCacherStub{
+				RemoveHeaderByHashCalled: func(headerHash []byte) {
+					if bytes.Equal(headerHash, epochStartMetaHash) {
+						removeHeaderByHashWasCalled = true
+					}
+				},
+			}
+		},
+	}
+
+	ch := make(chan struct{})
+
+	requestHandlerStub := &testscommon.RequestHandlerStub{
+		RequestMetaHeaderCalled: func(headerHash []byte) {
+			if bytes.Equal(headerHash, epochStartMetaHash) {
+				requestMetaHeaderWasCalled = true
+				close(ch)
+			}
+		},
+	}
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	dataComponents.BlockChain = blockChainMock
+	dataComponents.DataPool = poolsHolderStub
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.EpochStartTrigger = epochStartTriggerStub
+	arguments.RequestHandler = requestHandlerStub
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	err := sp.CheckEpochCorrectness(nextHeader)
+
+	select {
+	case <-ch:
+	case <-time.After(time.Minute):
+		assert.Fail(t, "timeout while waiting the sending of the request for the meta header")
+	}
+
+	assert.True(t, removeHeaderByHashWasCalled)
+	assert.True(t, requestMetaHeaderWasCalled)
+	assert.True(t, errors.Is(err, process.ErrEpochDoesNotMatch))
+}
+
 func TestShardProcessor_CreateNewHeaderErrWrongTypeAssertion(t *testing.T) {
 	t.Parallel()
 
