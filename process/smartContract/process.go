@@ -59,6 +59,7 @@ type scProcessor struct {
 	vmContainer                                 process.VirtualMachinesContainer
 	argsParser                                  process.ArgumentsParser
 	esdtTransferParser                          vmcommon.ESDTTransferParser
+	builtInFunctions                            vmcommon.BuiltInFunctionContainer
 	deployEnableEpoch                           uint32
 	builtinEnableEpoch                          uint32
 	penalizedTooMuchGasEnableEpoch              uint32
@@ -74,6 +75,7 @@ type scProcessor struct {
 	optimizeGasUsedInCrossMiniBlocksEnableEpoch uint32
 	saveKeyValueUnderProtectedErrorEnableEpoch  uint32
 	optimizeNFTStoreEnableEpoch                 uint32
+	cleanupSCRDataEnableEpoch                   uint32
 	flagStakingV2                               atomic.Flag
 	flagDeploy                                  atomic.Flag
 	flagBuiltin                                 atomic.Flag
@@ -90,6 +92,7 @@ type scProcessor struct {
 	flagOptimizeGasUsedInCrossMiniBlocks        atomic.Flag
 	flagSaveKeyValueUnderProtectedError         atomic.Flag
 	flagOptimizeNFTStore                        atomic.Flag
+	flagCleanUpSCRData                          atomic.Flag
 
 	badTxForwarder process.IntermediateTransactionHandler
 	scrForwarder   process.IntermediateTransactionHandler
@@ -115,6 +118,7 @@ type ArgsNewSmartContractProcessor struct {
 	Marshalizer         marshal.Marshalizer
 	AccountsDB          state.AccountsAdapter
 	BlockChainHook      process.BlockChainHookHandler
+	BuiltInFunctions    vmcommon.BuiltInFunctionContainer
 	PubkeyConv          core.PubkeyConverter
 	ShardCoordinator    sharding.Coordinator
 	ScrForwarder        process.IntermediateTransactionHandler
@@ -191,6 +195,9 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	if check.IfNil(args.VMOutputCacher) {
 		return nil, process.ErrNilCacher
 	}
+	if check.IfNil(args.BuiltInFunctions) {
+		return nil, process.ErrNilBuiltInFunction
+	}
 
 	builtInFuncCost := args.GasSchedule.LatestGasSchedule()[common.BuiltInCost]
 	baseOperationCost := args.GasSchedule.LatestGasSchedule()[common.BaseOperationCost]
@@ -211,6 +218,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		builtInGasCosts:                       builtInFuncCost,
 		txLogsProcessor:                       args.TxLogsProcessor,
 		badTxForwarder:                        args.BadTxForwarder,
+		builtInFunctions:                      args.BuiltInFunctions,
 		deployEnableEpoch:                     args.EnableEpochs.SCDeployEnableEpoch,
 		builtinEnableEpoch:                    args.EnableEpochs.BuiltInFunctionsEnableEpoch,
 		repairCallBackEnableEpoch:             args.EnableEpochs.RepairCallbackEnableEpoch,
@@ -231,6 +239,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		optimizeGasUsedInCrossMiniBlocksEnableEpoch: args.EnableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
 		saveKeyValueUnderProtectedErrorEnableEpoch:  args.EnableEpochs.RemoveNonUpdatedStorageEnableEpoch,
 		optimizeNFTStoreEnableEpoch:                 args.EnableEpochs.OptimizeNFTStoreEnableEpoch,
+		cleanupSCRDataEnableEpoch:                   args.EnableEpochs.CleanUpSCRDataEnableEpoch,
 	}
 
 	var err error
@@ -251,6 +260,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	log.Debug("smartContract/process: enable epoch for created async callback on cross shard only", "epoch", sc.createdCallBackCrossShardOnlyEnableEpoch)
 	log.Debug("smartContract/process: enable epoch for optimize gas used in cross mini blocks", "epoch", sc.optimizeGasUsedInCrossMiniBlocksEnableEpoch)
 	log.Debug("smartContract/process: enable epoch for return as failure when saving under protected key", "epoch", sc.saveKeyValueUnderProtectedErrorEnableEpoch)
+	log.Debug("smartContract/process: enable epoch for cleaning up created scrs which contain only information", "epoch", sc.cleanupSCRDataEnableEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(sc)
 	args.GasSchedule.RegisterNotifyHandler(sc)
@@ -442,6 +452,43 @@ func (sc *scProcessor) executeSmartContractCall(
 	}
 
 	return vmOutput, nil
+}
+
+func (sc *scProcessor) cleanSCRDataWithOnlyInfo(scrs []data.TransactionHandler) ([]data.TransactionHandler, []*vmcommon.LogEntry) {
+	cleanedUPSCrs := make([]data.TransactionHandler, 0)
+	logsFromSCRs := make([]*vmcommon.LogEntry, 0)
+
+	for _, scr := range scrs {
+		if scr.GetValue().Cmp(zero) > 0 {
+			cleanedUPSCrs = append(cleanedUPSCrs, scr)
+			continue
+		}
+
+		function, _, err := sc.argsParser.ParseCallData(string(scr.GetData()))
+		if err != nil {
+			// create logs from scr
+			continue
+		}
+
+		if core.IsSmartContractAddress(scr.GetRcvAddr()) {
+			cleanedUPSCrs = append(cleanedUPSCrs, scr)
+			continue
+		}
+
+		_, err = sc.builtInFunctions.Get(function)
+		if err != nil {
+			// create logs from scr
+			continue
+		}
+
+		cleanedUPSCrs = append(cleanedUPSCrs, scr)
+	}
+
+	if sc.flagCleanUpSCRData.IsSet() {
+		return scrs, logsFromSCRs
+	}
+
+	return nil, nil
 }
 
 func (sc *scProcessor) finishSCExecution(
