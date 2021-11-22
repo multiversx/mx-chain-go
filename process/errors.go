@@ -569,6 +569,9 @@ var ErrNilEconomicsData = errors.New("nil economics data")
 // ErrZeroMaxComputableRounds signals that a value of zero was provided on the maxComputableRounds
 var ErrZeroMaxComputableRounds = errors.New("max computable rounds is zero")
 
+// ErrZeroMaxConsecutiveRoundsOfRatingDecrease signals that a value of zero was provided on the MaxConsecutiveRoundsOfRatingDecrease
+var ErrZeroMaxConsecutiveRoundsOfRatingDecrease = errors.New("max consecutive number of rounds, in which we can decrease a validator rating, is zero")
+
 // ErrNilRater signals that nil rater has been provided
 var ErrNilRater = errors.New("nil rater")
 
@@ -935,8 +938,8 @@ var ErrMoreGasConsumedThanProvided = errors.New("more gas used than provided")
 // ErrInvalidGasModifier signals that provided gas modifier is invalid
 var ErrInvalidGasModifier = errors.New("invalid gas modifier")
 
-// ErrMoreGasThanGasLimitPerBlock signals that more gas was provided than gas limit per block
-var ErrMoreGasThanGasLimitPerBlock = errors.New("more gas was provided than gas limit per block")
+// ErrMoreGasThanGasLimitPerMiniBlockForSafeCrossShard signals that more gas was provided than gas limit per mini block for safe cross shard
+var ErrMoreGasThanGasLimitPerMiniBlockForSafeCrossShard = errors.New("more gas was provided than gas limit per mini block for safe cross shard")
 
 // ErrNotEnoughGasInUserTx signals that not enough gas was provided in user tx
 var ErrNotEnoughGasInUserTx = errors.New("not enough gas provided in user tx")
@@ -986,7 +989,7 @@ var ErrNilAccountsDBSyncer = errors.New("nil accounts DB syncer")
 // ErrNilCurrentNetworkEpochProvider signals that a nil CurrentNetworkEpochProvider handler has been provided
 var ErrNilCurrentNetworkEpochProvider = errors.New("nil current network epoch provider")
 
-// ErrNilESDTTransferParser signals that a nil ESDT transfer parser has been provider
+// ErrNilESDTTransferParser signals that a nil ESDT transfer parser has been provided
 var ErrNilESDTTransferParser = errors.New("nil esdt transfer parser")
 
 // ErrResultingSCRIsTooBig signals that resulting smart contract result is too big
@@ -994,3 +997,6 @@ var ErrResultingSCRIsTooBig = errors.New("resulting SCR is too big")
 
 // ErrNotAllowedToWriteUnderProtectedKey signals that writing under protected key is not allowed
 var ErrNotAllowedToWriteUnderProtectedKey = errors.New("not allowed to write under protected key")
+
+// ErrNilNFTStorageHandler signals that nil NFT storage handler has been provided
+var ErrNilNFTStorageHandler = errors.New("nil NFT storage handler")

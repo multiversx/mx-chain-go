@@ -3,6 +3,7 @@ package syncer
 import (
 	"context"
 	"fmt"
+	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -24,18 +25,33 @@ var _ epochStart.AccountsDBSyncer = (*userAccountsSyncer)(nil)
 var log = logger.GetOrCreate("syncer")
 
 const timeBetweenRetries = 100 * time.Millisecond
+const smallTrieThreshold = 1 * 1024 * 1024 // 1MB
+
+type stats struct {
+	address      []byte
+	numBytes     uint64
+	numTrieNodes uint64
+	numLeaves    uint64
+	duration     time.Duration
+}
 
 type userAccountsSyncer struct {
 	*baseAccountsSyncer
-	throttler   data.GoRoutineThrottler
-	syncerMutex sync.Mutex
+	throttler      data.GoRoutineThrottler
+	syncerMutex    sync.Mutex
+	pubkeyCoverter core.PubkeyConverter
+
+	mutStatistics sync.RWMutex
+	largeTries    []*stats
+	numSmallTries int
 }
 
 // ArgsNewUserAccountsSyncer defines the arguments needed for the new account syncer
 type ArgsNewUserAccountsSyncer struct {
 	ArgsNewBaseAccountsSyncer
-	ShardId   uint32
-	Throttler data.GoRoutineThrottler
+	ShardId                uint32
+	Throttler              data.GoRoutineThrottler
+	AddressPubKeyConverter core.PubkeyConverter
 }
 
 // NewUserAccountsSyncer creates a user account syncer
@@ -47,6 +63,9 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 
 	if check.IfNil(args.Throttler) {
 		return nil, data.ErrNilThrottler
+	}
+	if check.IfNil(args.AddressPubKeyConverter) {
+		return nil, ErrNilPubkeyConverter
 	}
 
 	timeoutHandler, err := common.NewTimeoutHandler(args.Timeout)
@@ -73,6 +92,8 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 	u := &userAccountsSyncer{
 		baseAccountsSyncer: b,
 		throttler:          args.Throttler,
+		pubkeyCoverter:     args.AddressPubKeyConverter,
+		largeTries:         make([]*stats, 0),
 	}
 
 	return u, nil
@@ -108,7 +129,7 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 	return u.syncAccountDataTries(mainTrie, tss, ctx)
 }
 
-func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ssh data.SyncStatisticsHandler, ctx context.Context) error {
+func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ssh common.SizeSyncStatisticsHandler, address []byte, ctx context.Context) error {
 	u.syncerMutex.Lock()
 	_, ok := u.dataTries[string(rootHash)]
 	if ok {
@@ -142,14 +163,39 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ssh data.SyncStatisti
 		return err
 	}
 
+	u.updateDataTrieStatistics(trieSyncer, address)
+
 	return nil
+}
+
+func (u *userAccountsSyncer) updateDataTrieStatistics(trieSyncer trie.TrieSyncer, address []byte) {
+	isSmallTrie := trieSyncer.NumBytes() < smallTrieThreshold
+
+	u.mutStatistics.Lock()
+	defer u.mutStatistics.Unlock()
+
+	if isSmallTrie {
+		u.numSmallTries++
+		return
+	}
+
+	trieStats := &stats{
+		address:      address,
+		numBytes:     trieSyncer.NumBytes(),
+		numTrieNodes: trieSyncer.NumTrieNodes(),
+		numLeaves:    trieSyncer.NumLeaves(),
+		duration:     trieSyncer.Duration(),
+	}
+	u.largeTries = append(u.largeTries, trieStats)
 }
 
 func (u *userAccountsSyncer) syncAccountDataTries(
 	mainTrie common.Trie,
-	ssh data.SyncStatisticsHandler,
+	ssh common.SizeSyncStatisticsHandler,
 	ctx context.Context,
 ) error {
+	defer u.printDataTrieStatistics()
+
 	mainRootHash, err := mainTrie.RootHash()
 	if err != nil {
 		return err
@@ -187,11 +233,11 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 		wg.Add(1)
 		atomic.AddInt32(&u.numMaxTries, 1)
 
-		go func(trieRootHash []byte) {
+		go func(trieRootHash []byte, address []byte) {
 			defer u.throttler.EndProcessing()
 
 			log.Trace("sync data trie", "roothash", trieRootHash)
-			newErr := u.syncDataTrie(trieRootHash, ssh, ctx)
+			newErr := u.syncDataTrie(trieRootHash, ssh, address, ctx)
 			if newErr != nil {
 				errMutex.Lock()
 				errFound = newErr
@@ -200,12 +246,39 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 			atomic.AddInt32(&u.numTriesSynced, 1)
 			log.Trace("finished sync data trie", "roothash", trieRootHash)
 			wg.Done()
-		}(account.RootHash)
+		}(account.RootHash, account.Address)
 	}
 
 	wg.Wait()
 
 	return errFound
+}
+
+func (u *userAccountsSyncer) printDataTrieStatistics() {
+	u.mutStatistics.RLock()
+	defer u.mutStatistics.RUnlock()
+
+	log.Debug("user accounts tries sync has finished",
+		"num small data tries", u.numSmallTries, "threshold", core.ConvertBytes(uint64(smallTrieThreshold)))
+
+	sort.Slice(u.largeTries, func(i, j int) bool {
+		trieI := u.largeTries[i]
+		trieJ := u.largeTries[j]
+
+		return trieI.numBytes >= trieJ.numBytes
+	})
+
+	for _, trieStat := range u.largeTries {
+		address := u.pubkeyCoverter.Encode(trieStat.address)
+
+		log.Debug("datatrie for "+address,
+			"num trie nodes", trieStat.numTrieNodes,
+			"num leaves", trieStat.numLeaves,
+			"size", core.ConvertBytes(trieStat.numBytes),
+			"time used to sync the trie", trieStat.duration.Truncate(time.Second),
+		)
+	}
+
 }
 
 func (u *userAccountsSyncer) checkGoRoutinesThrottler(ctx context.Context) error {

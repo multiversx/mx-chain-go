@@ -406,6 +406,20 @@ func (e *epochStartBootstrap) cleanupOnBootstrapFinish() {
 
 	errMessenger = e.messenger.UnjoinAllTopics()
 	log.LogIfError(errMessenger)
+
+	e.closeTrieNodes()
+}
+
+func (e *epochStartBootstrap) closeTrieNodes() {
+	if check.IfNil(e.dataPool) {
+		return
+	}
+	if check.IfNil(e.dataPool.TrieNodes()) {
+		return
+	}
+
+	errTrieNodesClosed := e.dataPool.TrieNodes().Close()
+	log.LogIfError(errTrieNodesClosed)
 }
 
 func (e *epochStartBootstrap) startFromSavedEpoch() (Parameters, bool, error) {
@@ -866,8 +880,9 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 			MaxHardCapForMissingNodes: e.maxHardCapForMissingNodes,
 			TrieSyncerVersion:         e.trieSyncerVersion,
 		},
-		ShardId:   e.shardCoordinator.SelfId(),
-		Throttler: thr,
+		ShardId:                e.shardCoordinator.SelfId(),
+		Throttler:              thr,
+		AddressPubKeyConverter: e.coreComponentsHolder.AddressPubKeyConverter(),
 	}
 	accountsDBSyncer, err := syncer.NewUserAccountsSyncer(argsUserAccountsSyncer)
 	if err != nil {

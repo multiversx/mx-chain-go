@@ -646,20 +646,21 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 	}
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
-		PeerAdapter:          tpn.PeerState,
-		PubkeyConv:           TestValidatorPubkeyConverter,
-		NodesCoordinator:     tpn.NodesCoordinator,
-		ShardCoordinator:     tpn.ShardCoordinator,
-		DataPool:             tpn.DataPool,
-		StorageService:       tpn.Storage,
-		Marshalizer:          TestMarshalizer,
-		Rater:                rater,
-		MaxComputableRounds:  1000,
-		RewardsHandler:       tpn.EconomicsData,
-		NodesSetup:           tpn.NodesSetup,
-		GenesisNonce:         tpn.BlockChain.GetGenesisHeader().GetNonce(),
-		EpochNotifier:        &mock.EpochNotifierStub{},
-		StakingV2EnableEpoch: StakingV2Epoch,
+		PeerAdapter:                          tpn.PeerState,
+		PubkeyConv:                           TestValidatorPubkeyConverter,
+		NodesCoordinator:                     tpn.NodesCoordinator,
+		ShardCoordinator:                     tpn.ShardCoordinator,
+		DataPool:                             tpn.DataPool,
+		StorageService:                       tpn.Storage,
+		Marshalizer:                          TestMarshalizer,
+		Rater:                                rater,
+		MaxComputableRounds:                  1000,
+		MaxConsecutiveRoundsOfRatingDecrease: 2000,
+		RewardsHandler:                       tpn.EconomicsData,
+		NodesSetup:                           tpn.NodesSetup,
+		GenesisNonce:                         tpn.BlockChain.GetGenesisHeader().GetNonce(),
+		EpochNotifier:                        &mock.EpochNotifierStub{},
+		StakingV2EnableEpoch:                 StakingV2Epoch,
 	}
 
 	tpn.ValidatorStatisticsProcessor, _ = peer.NewValidatorStatisticsProcessor(arguments)
@@ -786,7 +787,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 		EpochNotifier:              tpn.EpochNotifier,
 		GlobalMintBurnDisableEpoch: tpn.EnableEpochs.GlobalMintBurnDisableEpoch,
 	}
-	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	builtInFuncs, nftStorageHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 
 	smartContractsCache := testscommon.NewCacherMock()
 
@@ -799,6 +800,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 		Marshalizer:        TestMarshalizer,
 		Uint64Converter:    TestUint64Converter,
 		BuiltInFunctions:   builtInFuncs,
+		NFTStorageHandler:  nftStorageHandler,
 		DataPool:           tpn.DataPool,
 		CompiledSCPool:     smartContractsCache,
 		NilCompiledSCStore: true,
@@ -1362,7 +1364,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		EpochNotifier:              tpn.EpochNotifier,
 		GlobalMintBurnDisableEpoch: tpn.EnableEpochs.GlobalMintBurnDisableEpoch,
 	}
-	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	builtInFuncs, nftStorageHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 
 	for name, function := range TestBuiltinFunctions {
 		err := builtInFuncs.Add(name, function)
@@ -1378,6 +1380,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		Marshalizer:        TestMarshalizer,
 		Uint64Converter:    TestUint64Converter,
 		BuiltInFunctions:   builtInFuncs,
+		NFTStorageHandler:  nftStorageHandler,
 		DataPool:           tpn.DataPool,
 		CompiledSCPool:     tpn.DataPool.SmartContracts(),
 		NilCompiledSCStore: true,
@@ -1557,7 +1560,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		EpochNotifier:              tpn.EpochNotifier,
 		GlobalMintBurnDisableEpoch: tpn.EnableEpochs.GlobalMintBurnDisableEpoch,
 	}
-	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	builtInFuncs, nftStorageHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:           tpn.AccntState,
 		PubkeyConv:         TestAddressPubkeyConverter,
@@ -1567,6 +1570,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		Marshalizer:        TestMarshalizer,
 		Uint64Converter:    TestUint64Converter,
 		BuiltInFunctions:   builtInFuncs,
+		NFTStorageHandler:  nftStorageHandler,
 		DataPool:           tpn.DataPool,
 		CompiledSCPool:     tpn.DataPool.SmartContracts(),
 		NilCompiledSCStore: true,
