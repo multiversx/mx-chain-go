@@ -42,6 +42,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	syncDisabled "github.com/ElrondNetwork/elrond-go/process/sync/disabled"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -240,6 +241,8 @@ func (vmTestContext *VMTestContext) GetVMOutputWithTransientVM(funcName string, 
 		BlockChainHook:    blockChainHook,
 		BlockChain:        &mock.BlockChainMock{},
 		ArwenChangeLocker: &sync.RWMutex{},
+		Accounts:          accnts,
+		Bootstrapper:      syncDisabled.NewDisabledBootstrapper(),
 	}
 	scQueryService, _ := smartContract.NewSCQueryService(argsNewSCQueryService)
 
@@ -1302,6 +1305,8 @@ func GetVmOutput(gasSchedule map[string]map[string]uint64, accnts state.Accounts
 		BlockChainHook:    blockChainHook,
 		BlockChain:        &mock.BlockChainMock{},
 		ArwenChangeLocker: &sync.RWMutex{},
+		Accounts:          accnts,
+		Bootstrapper:      syncDisabled.NewDisabledBootstrapper(),
 	}
 	scQueryService, _ := smartContract.NewSCQueryService(argsNewSCQueryService)
 
@@ -1340,6 +1345,8 @@ func ComputeGasLimit(gasSchedule map[string]map[string]uint64, testContext *VMTe
 			},
 		},
 		ArwenChangeLocker: &sync.RWMutex{},
+		Accounts:          testContext.Accounts,
+		Bootstrapper:      syncDisabled.NewDisabledBootstrapper(),
 	}
 	scQueryService, _ := smartContract.NewSCQueryService(argsNewSCQueryService)
 

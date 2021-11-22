@@ -72,7 +72,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
-	sync2 "github.com/ElrondNetwork/elrond-go/process/sync"
+	processSync "github.com/ElrondNetwork/elrond-go/process/sync"
+	syncDisabled "github.com/ElrondNetwork/elrond-go/process/sync/disabled"
 	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
@@ -531,6 +532,8 @@ func NewTestProcessorNodeWithFullGenesis(
 		BlockChainHook:    tpn.BlockchainHook,
 		BlockChain:        tpn.BlockChain,
 		ArwenChangeLocker: tpn.ArwenChangeLocker,
+		Accounts:          tpn.AccntState,
+		Bootstrapper:      tpn.Bootstrapper,
 	}
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
 	tpn.initBlockProcessor(stateCheckpointModulus)
@@ -703,6 +706,8 @@ func (tpn *TestProcessorNode) initTestNode() {
 		BlockChainHook:    tpn.BlockchainHook,
 		BlockChain:        tpn.BlockChain,
 		ArwenChangeLocker: tpn.ArwenChangeLocker,
+		Accounts:          tpn.AccntState,
+		Bootstrapper:      syncDisabled.NewDisabledBootstrapper(),
 	}
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
 	tpn.initBlockProcessor(stateCheckpointModulus)
@@ -903,6 +908,8 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 		BlockChainHook:    vmFactory.BlockChainHookImpl(),
 		BlockChain:        tpn.BlockChain,
 		ArwenChangeLocker: tpn.ArwenChangeLocker,
+		Accounts:          tpn.AccntState,
+		Bootstrapper:      tpn.Bootstrapper,
 	}
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
 }
@@ -918,6 +925,8 @@ func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]
 		BlockChainHook:    tpn.BlockchainHook,
 		BlockChain:        tpn.BlockChain,
 		ArwenChangeLocker: tpn.ArwenChangeLocker,
+		Accounts:          tpn.AccntState,
+		Bootstrapper:      tpn.Bootstrapper,
 	}
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
 	tpn.initBlockProcessor(stateCheckpointModulus)
@@ -1853,9 +1862,9 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 	var err error
 
 	if tpn.ShardCoordinator.SelfId() != core.MetachainShardId {
-		tpn.ForkDetector, _ = sync2.NewShardForkDetector(tpn.RoundHandler, tpn.BlockBlackListHandler, tpn.BlockTracker, tpn.NodesSetup.GetStartTime())
+		tpn.ForkDetector, _ = processSync.NewShardForkDetector(tpn.RoundHandler, tpn.BlockBlackListHandler, tpn.BlockTracker, tpn.NodesSetup.GetStartTime())
 	} else {
-		tpn.ForkDetector, _ = sync2.NewMetaForkDetector(tpn.RoundHandler, tpn.BlockBlackListHandler, tpn.BlockTracker, tpn.NodesSetup.GetStartTime())
+		tpn.ForkDetector, _ = processSync.NewMetaForkDetector(tpn.RoundHandler, tpn.BlockBlackListHandler, tpn.BlockTracker, tpn.NodesSetup.GetStartTime())
 	}
 
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)

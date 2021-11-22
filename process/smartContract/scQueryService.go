@@ -1,7 +1,9 @@
 package smartContract
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
 	"math"
 	"math/big"
 	"sync"
@@ -28,6 +30,8 @@ type SCQueryService struct {
 	numQueries        int
 	gasForQuery       uint64
 	arwenChangeLocker common.Locker
+	bootstrapper      process.Bootstrapper
+	accounts          vmcommon.AccountsAdapter
 }
 
 // ArgsNewSCQueryService defines the arguments needed for the sc query service
@@ -37,6 +41,8 @@ type ArgsNewSCQueryService struct {
 	BlockChainHook    process.BlockChainHookHandler
 	BlockChain        data.ChainHandler
 	ArwenChangeLocker common.Locker
+	Bootstrapper      process.Bootstrapper
+	Accounts          vmcommon.AccountsAdapter
 }
 
 // NewSCQueryService returns a new instance of SCQueryService
@@ -58,6 +64,12 @@ func NewSCQueryService(
 	if check.IfNilReflect(args.ArwenChangeLocker) {
 		return nil, process.ErrNilLocker
 	}
+	if check.IfNil(args.Bootstrapper) {
+		return nil, process.ErrNilBootstrapper
+	}
+	if check.IfNil(args.Accounts) {
+		return nil, process.ErrNilAccountsAdapter
+	}
 
 	return &SCQueryService{
 		vmContainer:       args.VmContainer,
@@ -65,6 +77,8 @@ func NewSCQueryService(
 		blockChain:        args.BlockChain,
 		blockChainHook:    args.BlockChainHook,
 		arwenChangeLocker: args.ArwenChangeLocker,
+		bootstrapper:      args.Bootstrapper,
+		accounts:          args.Accounts,
 		gasForQuery:       math.MaxUint64,
 	}, nil
 }
@@ -87,6 +101,22 @@ func (service *SCQueryService) ExecuteQuery(query *process.SCQuery) (*vmcommon.V
 func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice uint64) (*vmcommon.VMOutput, error) {
 	log.Trace("executeScCall", "function", query.FuncName, "numQueries", service.numQueries)
 	service.numQueries++
+
+	shouldEarlyExitBecauseOfSyncState := query.ShouldBeSynced && service.bootstrapper.GetNodeState() == common.NsNotSynchronized
+	if shouldEarlyExitBecauseOfSyncState {
+		return nil, process.ErrNodeIsNotSynced
+	}
+
+	shouldCheckRootHashChanges := query.SameScState
+	rootHashBeforeExecution := make([]byte, 0)
+	var err error
+
+	if shouldCheckRootHashChanges {
+		rootHashBeforeExecution, err = service.accounts.RootHash()
+		if err != nil {
+			return nil, fmt.Errorf("cannot get root hash while executing vm query: %w", err)
+		}
+	}
 
 	service.blockChainHook.SetCurrentHeader(service.blockChain.GetCurrentBlockHeader())
 
@@ -114,7 +144,27 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 		}
 	}
 
+	if query.SameScState {
+		err := service.checkForRootHashChanges(rootHashBeforeExecution)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return vmOutput, nil
+}
+
+func (service *SCQueryService) checkForRootHashChanges(rootHashBefore []byte) error {
+	rootHashAfter, err := service.accounts.RootHash()
+	if err != nil {
+		return err
+	}
+
+	if bytes.Compare(rootHashBefore, rootHashAfter) == 0 {
+		return nil
+	}
+
+	return process.ErrStateChangedWhileExecutingVmQuery
 }
 
 func prepareScQuery(query *process.SCQuery) *process.SCQuery {

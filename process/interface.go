@@ -675,11 +675,13 @@ type NetworkConnectionWatcher interface {
 
 // SCQuery represents a prepared query for executing a function of the smart contract
 type SCQuery struct {
-	ScAddress  []byte
-	FuncName   string
-	CallerAddr []byte
-	CallValue  *big.Int
-	Arguments  [][]byte
+	ScAddress      []byte
+	FuncName       string
+	CallerAddr     []byte
+	CallValue      *big.Int
+	Arguments      [][]byte
+	SameScState    bool
+	ShouldBeSynced bool
 }
 
 // GasHandler is able to perform some gas calculation

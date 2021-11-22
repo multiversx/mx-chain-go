@@ -14,7 +14,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go/process/sync/disabled"
 	"github.com/ElrondNetwork/elrond-go/state"
+	state2 "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -38,6 +40,8 @@ func TestVmGetShouldReturnValue(t *testing.T) {
 		BlockChainHook:    &mock.BlockChainHookHandlerMock{},
 		BlockChain:        &mock.BlockChainMock{},
 		ArwenChangeLocker: &sync.RWMutex{},
+		Accounts:          &state2.AccountsStub{},
+		Bootstrapper:      disabled.NewDisabledBootstrapper(),
 	}
 	service, _ := smartContract.NewSCQueryService(argsNewSCQueryService)
 
