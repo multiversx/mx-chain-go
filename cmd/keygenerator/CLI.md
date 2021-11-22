@@ -19,7 +19,6 @@ GLOBAL OPTIONS:
    --key-type value  What king of keys should generate. Available options: validator, wallet, both (default: "validator")
    --help, -h        show help
    --version, -v     print the version
-   
-
+   --hex-key-prefix value special pattern for the hex key prefix: Example 00f00 (default nopattern)
+   --shard-id value  Which shard should manage the address: Example: 0 (default -1 - no prefference)
 ```
-

@@ -23,15 +23,21 @@ import (
 )
 
 type cfg struct {
-	numKeys    int
-	keyType    string
-	consoleOut bool
-	noSplit    bool
+	numKeys       int
+	keyType       string
+	consoleOut    bool
+	noSplit       bool
+	prefixPattern string
+	shardID       int
 }
 
 const validatorType = "validator"
 const walletType = "wallet"
 const bothType = "both"
+const minedWalletPrefixKeys = "mined-wallet"
+const nopattern = "nopattern"
+const desiredpattern = "[0-f]+"
+const noshard = -1
 
 type key struct {
 	skBytes []byte
@@ -70,10 +76,11 @@ VERSION:
 	keyType = cli.StringFlag{
 		Name: "key-type",
 		Usage: fmt.Sprintf(
-			"What king of keys should generate. Available options: %s, %s, %s",
+			"What king of keys should generate. Available options: %s, %s, %s, %s",
 			validatorType,
 			walletType,
-			bothType),
+			bothType,
+			minedWalletPrefixKeys),
 		Value:       "validator",
 		Destination: &argsConfig.keyType,
 	}
@@ -89,7 +96,22 @@ VERSION:
 		Usage:       "Boolean option that will make each generated key added in the same file",
 		Destination: &argsConfig.noSplit,
 	}
-
+	keyPrefix = cli.StringFlag{
+		Name: "hex-key-prefix",
+		Usage: fmt.Sprintf(
+			"only used for special patterns in key. Available options: %s, %s",
+			nopattern,
+			desiredpattern,
+		),
+		Value:       nopattern,
+		Destination: &argsConfig.prefixPattern,
+	}
+	shardID = cli.IntFlag{
+		Name:        "shard-id",
+		Usage:       fmt.Sprintf("integer option that will make each generated wallet key allocated to the desired shard (affects suffix of the key)\navailable patterns: %s, %s", "-1", "[0-2]"),
+		Value:       -1,
+		Destination: &argsConfig.shardID,
+	}
 	argsConfig = &cfg{}
 
 	walletKeyFilenameTemplate    = "walletKey%s.pem"
@@ -118,10 +140,12 @@ func main() {
 		keyType,
 		consoleOut,
 		noSplit,
+		shardID,
+		keyPrefix,
 	}
 
 	app.Action = func(_ *cli.Context) error {
-		return process()
+		return process(keyPrefix, shardID)
 	}
 
 	err := app.Run(os.Args)
@@ -132,8 +156,8 @@ func main() {
 	}
 }
 
-func process() error {
-	validatorKeys, walletKeys, err := generateKeys(argsConfig.keyType, argsConfig.numKeys)
+func process(prefix, shardID cli.Flag) error {
+	validatorKeys, walletKeys, err := generateKeys(argsConfig.keyType, argsConfig.numKeys, argsConfig.prefixPattern, argsConfig.shardID)
 	if err != nil {
 		return err
 	}
@@ -141,7 +165,7 @@ func process() error {
 	return outputKeys(validatorKeys, walletKeys, argsConfig.consoleOut, argsConfig.noSplit)
 }
 
-func generateKeys(typeKey string, numKeys int) ([]key, []key, error) {
+func generateKeys(typeKey string, numKeys int, prefix string, shardID int) ([]key, []key, error) {
 	if numKeys < 1 {
 		return nil, nil, fmt.Errorf("number of keys should be a number greater or equal to 1")
 	}
@@ -175,6 +199,12 @@ func generateKeys(typeKey string, numKeys int) ([]key, []key, error) {
 			if err != nil {
 				return nil, nil, err
 			}
+
+		case minedWalletPrefixKeys:
+			walletKeys, err = generateMinedWalletKeys(txSigningGenerator, walletKeys, prefix, shardID)
+			if err != nil {
+				return nil, nil, err
+			}
 		default:
 			return nil, nil, fmt.Errorf("unknown key type %s", argsConfig.keyType)
 		}
@@ -204,6 +234,51 @@ func generateKey(keyGen crypto.KeyGenerator, list []key) ([]key, error) {
 	)
 
 	return list, nil
+}
+
+func generateMinedWalletKeys(keyGen crypto.KeyGenerator, list []key, startingHexPattern string, shardID int) ([]key, error) {
+	pattern := nopattern != startingHexPattern
+	withPreferredShard := shardID != noshard && shardID >= 0 && shardID <= 255
+	var patternHexBytes []byte
+	var err error
+	if pattern {
+		patternHexBytes, err = hex.DecodeString(startingHexPattern)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	nbTrials := 0
+	printDeltaTrials := 1000
+	for {
+		if nbTrials%printDeltaTrials == 0 {
+			log.Info("mining address...", "trials", nbTrials)
+		}
+		keys, errKey := generateKey(keyGen, list)
+		if errKey != nil {
+			return nil, errKey
+		}
+		keyBytes := keys[len(keys)-1].pkBytes
+
+		if pattern && !keyHasPattern(keyBytes, patternHexBytes) {
+			nbTrials++
+			continue
+		}
+		if withPreferredShard && !keyInShard(keyBytes, byte(shardID)) {
+			nbTrials++
+			continue
+		}
+		return keys, nil
+	}
+}
+
+func keyHasPattern(key []byte, pattern []byte) bool {
+	return bytes.HasPrefix(key, pattern)
+}
+
+func keyInShard(keyBytes []byte, shardID byte) bool {
+	lastByte := keyBytes[len(keyBytes)-1]
+	return lastByte == shardID
 }
 
 func outputKeys(
