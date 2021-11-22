@@ -884,19 +884,20 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 	epochNotifier := forking.NewGenericEpochNotifier()
 
 	argsValidatorsProcessor := peer.ArgValidatorStatisticsProcessor{
-		Marshalizer:          marshalizer,
-		NodesCoordinator:     &mock.NodesCoordinatorStub{},
-		ShardCoordinator:     &mock.ShardCoordinatorStub{},
-		DataPool:             &dataRetrieverMock.PoolsHolderStub{},
-		StorageService:       &mock.ChainStorerStub{},
-		PubkeyConv:           &mock.PubkeyConverterMock{},
-		PeerAdapter:          peerAccountsDB,
-		Rater:                &mock.RaterStub{},
-		RewardsHandler:       &mock.RewardsHandlerStub{},
-		NodesSetup:           &mock.NodesSetupStub{},
-		MaxComputableRounds:  1,
-		EpochNotifier:        epochNotifier,
-		StakingV2EnableEpoch: stakingV2EnableEpoch,
+		Marshalizer:                          marshalizer,
+		NodesCoordinator:                     &mock.NodesCoordinatorStub{},
+		ShardCoordinator:                     &mock.ShardCoordinatorStub{},
+		DataPool:                             &dataRetrieverMock.PoolsHolderStub{},
+		StorageService:                       &mock.ChainStorerStub{},
+		PubkeyConv:                           &mock.PubkeyConverterMock{},
+		PeerAdapter:                          peerAccountsDB,
+		Rater:                                &mock.RaterStub{},
+		RewardsHandler:                       &mock.RewardsHandlerStub{},
+		NodesSetup:                           &mock.NodesSetupStub{},
+		MaxComputableRounds:                  1,
+		MaxConsecutiveRoundsOfRatingDecrease: 2000,
+		EpochNotifier:                        epochNotifier,
+		StakingV2EnableEpoch:                 stakingV2EnableEpoch,
 	}
 	vCreator, _ := peer.NewValidatorStatisticsProcessor(argsValidatorsProcessor)
 
@@ -1098,7 +1099,7 @@ func TestSystemSCProcessor_ProcessDelegationRewardsNothingToExecute(t *testing.T
 	args, _ := createFullArgumentsForSystemSCProcessing(1000, createMemUnit())
 	s, _ := NewSystemSCProcessor(args)
 
-	localCache, _ := dataPool.NewCurrentBlockPool()
+	localCache := dataPool.NewCurrentBlockPool()
 	miniBlocks := []*block.MiniBlock{
 		{
 			SenderShardID:   0,
@@ -1117,7 +1118,7 @@ func TestSystemSCProcessor_ProcessDelegationRewardsErrors(t *testing.T) {
 	args, _ := createFullArgumentsForSystemSCProcessing(1000, createMemUnit())
 	s, _ := NewSystemSCProcessor(args)
 
-	localCache, _ := dataPool.NewCurrentBlockPool()
+	localCache := dataPool.NewCurrentBlockPool()
 	miniBlocks := []*block.MiniBlock{
 		{
 			SenderShardID:   core.MetachainShardId,
@@ -1162,7 +1163,7 @@ func TestSystemSCProcessor_ProcessDelegationRewards(t *testing.T) {
 	args, scContainer := createFullArgumentsForSystemSCProcessing(1000, createMemUnit())
 	s, _ := NewSystemSCProcessor(args)
 
-	localCache, _ := dataPool.NewCurrentBlockPool()
+	localCache := dataPool.NewCurrentBlockPool()
 	miniBlocks := []*block.MiniBlock{
 		{
 			SenderShardID:   core.MetachainShardId,
