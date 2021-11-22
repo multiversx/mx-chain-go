@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
-	"runtime/debug"
 	"strings"
 	"sync"
 
@@ -1858,9 +1857,6 @@ func (e *esdt) CanUseContract() bool {
 }
 
 func (e *esdt) getContractConfig(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	log.Warn("entered getContractConfig")
-	debug.PrintStack()
-
 	returnCode := e.checkArgumentsForGeneralViewFunc(args)
 	if returnCode != vmcommon.Ok {
 		return returnCode
