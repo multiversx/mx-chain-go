@@ -152,6 +152,57 @@ func TestNewAccountsParser_NilKeyGeneratorShouldErr(t *testing.T) {
 	assert.Equal(t, genesis.ErrNilKeyGenerator, err)
 }
 
+func TestNewAccountsParser_NilHasherShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ap, err := parsing.NewAccountsParser(
+		"inexistent file",
+		big.NewInt(1),
+		"",
+		createMockHexPubkeyConverter(),
+		&mock.KeyGeneratorStub{},
+		nil,
+		&mock.MarshalizerMock{},
+	)
+
+	assert.True(t, check.IfNil(ap))
+	assert.Equal(t, genesis.ErrNilHasher, err)
+}
+
+func TestNewAccountsParser_NilMarshalizerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ap, err := parsing.NewAccountsParser(
+		"inexistent file",
+		big.NewInt(1),
+		"",
+		createMockHexPubkeyConverter(),
+		&mock.KeyGeneratorStub{},
+		&mock.HasherMock{},
+		nil,
+	)
+
+	assert.True(t, check.IfNil(ap))
+	assert.Equal(t, genesis.ErrNilMarshalizer, err)
+}
+
+func TestNewAccountsParser_WrongMinterAddressFormatShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ap, err := parsing.NewAccountsParser(
+		"./testdata/genesis_ok.json",
+		big.NewInt(1),
+		"wrongaddressformat",
+		createMockHexPubkeyConverter(),
+		&mock.KeyGeneratorStub{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+	)
+
+	assert.True(t, check.IfNil(ap))
+	assert.Equal(t, genesis.ErrInvalidAddress, err)
+}
+
 func TestNewAccountsParser_BadJsonShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -535,12 +586,18 @@ func TestAccountsParser_GenerateInitialTransactions(t *testing.T) {
 	require.Nil(t, err)
 
 	assert.Equal(t, 9, len(miniBlocks))
-	// assert.Equal(t, 1, len(miniBlocks[0].GetTxHashes()))
-	// assert.Equal(t, 2, len(miniBlocks[1].GetTxHashes()))
-	// assert.Equal(t, 1, len(miniBlocks[2].GetTxHashes()))
-	// assert.Equal(t, 1, len(miniBlocks[3].GetTxHashes()))
 
-	// assert.Equal(t, 1, len(txsPoolPerShard[0].Txs))
-	// assert.Equal(t, 1, len(txsPoolPerShard[1].Txs))
 	assert.Equal(t, 3, len(txsPoolPerShard))
+	assert.Equal(t, 2, len(txsPoolPerShard[0].Txs))
+	assert.Equal(t, 2, len(txsPoolPerShard[1].Txs))
+	assert.Equal(t, 0, len(txsPoolPerShard[core.MetachainShardId].Txs))
+	assert.Equal(t, 0, len(txsPoolPerShard[0].Scrs))
+	assert.Equal(t, 0, len(txsPoolPerShard[1].Scrs))
+	assert.Equal(t, 0, len(txsPoolPerShard[core.MetachainShardId].Scrs))
+
+	for i := uint32(0); i < sharder.NumberOfShards(); i++ {
+		for _, tx := range txsPoolPerShard[i].Txs {
+			assert.Equal(t, uint64(0), tx.GetGasLimit())
+		}
+	}
 }
