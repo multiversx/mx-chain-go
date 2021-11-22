@@ -3670,6 +3670,7 @@ func TestGetESDTSupply(t *testing.T) {
 		GetESDTSupplyCalled: func(token string) (*esdtSupply.SupplyESDT, error) {
 			return &esdtSupply.SupplyESDT{
 				Supply: big.NewInt(100),
+				Minted: big.NewInt(15),
 			}, nil
 		},
 	}
@@ -3686,6 +3687,6 @@ func TestGetESDTSupply(t *testing.T) {
 	require.Equal(t, &api.ESDTSupply{
 		Supply: "100",
 		Burned: "0",
-		Minted: "0",
+		Minted: "15",
 	}, supply)
 }

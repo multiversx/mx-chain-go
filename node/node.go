@@ -497,8 +497,8 @@ func (n *Node) GetTokenSupply(token string) (*api.ESDTSupply, error) {
 
 	return &api.ESDTSupply{
 		Supply: bigToString(esdtSupply.Supply),
-		Burned: bigToString(esdtSupply.Minted),
-		Minted: bigToString(esdtSupply.Burned),
+		Burned: bigToString(esdtSupply.Burned),
+		Minted: bigToString(esdtSupply.Minted),
 	}, nil
 }
 
