@@ -147,7 +147,7 @@ func getProcessArgs(
 
 				return initialAccounts
 			},
-			GenerateInitialTransactionsCalled: func(shardCoordinator sharding.Coordinator) ([]*block.MiniBlock, map[uint32]*indexer.Pool, error) {
+			GenerateInitialTransactionsCalled: func(shardCoordinator sharding.Coordinator, initialIndexingData map[uint32]genesis.InitialIndexingDataHandler) ([]*block.MiniBlock, map[uint32]*indexer.Pool, error) {
 				txsPool := make(map[uint32]*indexer.Pool)
 				for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
 					txsPool[i] = &indexer.Pool{}
@@ -288,11 +288,12 @@ func TestProcessComponents_IndexGenesisBlocks(t *testing.T) {
 	require.Nil(t, err)
 
 	genesisBlocks := make(map[uint32]coreData.HeaderHandler)
+	indexingData := make(map[uint32]genesis.InitialIndexingDataHandler)
 
 	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
 		genesisBlocks[i] = &block.Header{}
 	}
 
-	err = pcf.IndexGenesisBlocks(genesisBlocks)
+	err = pcf.IndexGenesisBlocks(genesisBlocks, indexingData)
 	require.Nil(t, err)
 }
