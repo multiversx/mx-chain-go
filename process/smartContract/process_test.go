@@ -27,6 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -76,6 +77,7 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 			},
 		},
 		BlockChainHook:   &mock.BlockChainHookHandlerMock{},
+		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
 		PubkeyConv:       createMockPubkeyConverter(),
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(5),
 		ScrForwarder:     &mock.IntermediateTransactionHandlerMock{},

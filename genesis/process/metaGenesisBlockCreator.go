@@ -352,6 +352,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		Marshalizer:         arg.Core.InternalMarshalizer(),
 		AccountsDB:          arg.Accounts,
 		BlockChainHook:      virtualMachineFactory.BlockChainHookImpl(),
+		BuiltInFunctions:    builtInFuncs,
 		PubkeyConv:          arg.Core.AddressPubKeyConverter(),
 		ShardCoordinator:    arg.ShardCoordinator,
 		ScrForwarder:        scForwarder,

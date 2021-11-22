@@ -409,6 +409,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		Marshalizer:         arg.Core.InternalMarshalizer(),
 		AccountsDB:          arg.Accounts,
 		BlockChainHook:      vmFactoryImpl.BlockChainHookImpl(),
+		BuiltInFunctions:    builtInFuncs,
 		PubkeyConv:          arg.Core.AddressPubKeyConverter(),
 		ShardCoordinator:    arg.ShardCoordinator,
 		ScrForwarder:        scForwarder,

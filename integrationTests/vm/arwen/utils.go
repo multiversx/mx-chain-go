@@ -313,6 +313,7 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		Marshalizer:      marshalizer,
 		AccountsDB:       context.Accounts,
 		BlockChainHook:   context.BlockchainHook,
+		BuiltInFunctions: context.BlockchainHook.GetBuiltinFunctionsContainer(),
 		PubkeyConv:       pkConverter,
 		ShardCoordinator: oneShardCoordinator,
 		ScrForwarder:     context.SCRForwarder,
