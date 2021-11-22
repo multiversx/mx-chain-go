@@ -100,7 +100,7 @@ func CreateShardGenesisBlock(
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	//indexingData.ScrsTxs = scTxs
+	indexingData.DeployInitialSCTxs = scTxs
 
 	numSetBalances, err := setBalancesToTrie(arg)
 	if err != nil {
@@ -119,8 +119,6 @@ func CreateShardGenesisBlock(
 		return nil, nil, nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while execution delegation",
 			err, arg.ShardCoordinator.SelfId())
 	}
-
-	delegationTxs = append(delegationTxs, scTxs...)
 	indexingData.DelegationTxs = delegationTxs
 
 	numCrossShardDelegations, err := incrementNoncesForCrossShardDelegations(processors, arg)

@@ -120,5 +120,6 @@ type InitialIndexingDataHandler interface {
 	GetDelegationTxs() []data.TransactionHandler
 	GetStakingTxs() []data.TransactionHandler
 	GetDeploySystemScTxs() []data.TransactionHandler
+	GetDeployInitialSCTxs() []data.TransactionHandler
 	IsInterfaceNil() bool
 }

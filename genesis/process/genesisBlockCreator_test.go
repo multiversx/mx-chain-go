@@ -442,18 +442,28 @@ func TestGenesisBlockCreator_GetIndexingDataShouldWork(t *testing.T) {
 	require.Nil(t, err)
 
 	blocks, err := gbc.CreateGenesisBlocks()
-
-	// indexingData := gbc.GetIndexingData()
-
-	// for i := uint32(0); i < gbc.arg.ShardCoordinator.NumberOfShards(); i++ {
-	// 	scrs := indexingData[i].GetScrsTxs()
-	// 	t.Log("indexingData", "num staking txs", len(scrs))
-	// 	assert.Equal(t, 2, len(indexingData[i].GetDelegationTxs()))
-	// 	assert.Equal(t, 2, len(indexingData[i].GetStakingTxs()))
-	// }
-
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(blocks))
+
+	indexingData := gbc.GetIndexingData()
+
+	assert.Equal(t, 257, len(indexingData[0].GetDeployInitialSCTxs()))
+	assert.Equal(t, 0, len(indexingData[0].GetDeploySystemScTxs()))
+	assert.Equal(t, 4, len(indexingData[0].GetDelegationTxs()))
+	assert.Equal(t, 0, len(indexingData[0].GetStakingTxs()))
+	assert.Equal(t, 522, len(indexingData[0].GetScrsTxs()))
+
+	assert.Equal(t, 256, len(indexingData[1].GetDeployInitialSCTxs()))
+	assert.Equal(t, 0, len(indexingData[1].GetDeploySystemScTxs()))
+	assert.Equal(t, 0, len(indexingData[1].GetDelegationTxs()))
+	assert.Equal(t, 0, len(indexingData[1].GetStakingTxs()))
+	assert.Equal(t, 512, len(indexingData[1].GetScrsTxs()))
+
+	assert.Equal(t, 0, len(indexingData[core.MetachainShardId].GetDeployInitialSCTxs()))
+	assert.Equal(t, 4, len(indexingData[core.MetachainShardId].GetDeploySystemScTxs()))
+	assert.Equal(t, 0, len(indexingData[core.MetachainShardId].GetDelegationTxs()))
+	assert.Equal(t, 8, len(indexingData[core.MetachainShardId].GetStakingTxs()))
+	assert.Equal(t, 32, len(indexingData[core.MetachainShardId].GetScrsTxs()))
 }
 
 func TestCreateArgsGenesisBlockCreator_ShouldErrWhenGetNewArgForShardFails(t *testing.T) {
