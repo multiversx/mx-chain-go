@@ -129,6 +129,8 @@ func TestNewStandardDelegationProcessor_ShouldWork(t *testing.T) {
 
 //------- ExecuteDelegation
 
+// TODO: handler indexingData
+
 func TestStandardDelegationProcessor_ExecuteDelegationSplitFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -149,7 +151,7 @@ func TestStandardDelegationProcessor_ExecuteDelegationSplitFailsShouldErr(t *tes
 
 	dp, _ := NewStandardDelegationProcessor(arg)
 
-	result, err := dp.ExecuteDelegation()
+	result, _, err := dp.ExecuteDelegation()
 
 	assert.Equal(t, expectedErr, err)
 	assert.Equal(t, genesis.DelegationResult{}, result)
@@ -179,7 +181,7 @@ func TestStandardDelegationProcessor_ExecuteDelegationNoDelegationScShouldRetNil
 	}
 	dp, _ := NewStandardDelegationProcessor(arg)
 
-	result, err := dp.ExecuteDelegation()
+	result, _, err := dp.ExecuteDelegation()
 
 	assert.Nil(t, err)
 	assert.Equal(t, genesis.DelegationResult{}, result)
@@ -293,7 +295,7 @@ func TestStandardDelegationProcessor_ExecuteDelegationStakeShouldWork(t *testing
 	}
 	dp, _ := NewStandardDelegationProcessor(arg)
 
-	result, err := dp.ExecuteDelegation()
+	result, _, err := dp.ExecuteDelegation()
 
 	expectedResult := genesis.DelegationResult{
 		NumTotalDelegated: 3,

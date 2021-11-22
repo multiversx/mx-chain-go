@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -31,7 +32,7 @@ type AccountsParser interface {
 	InitialAccounts() []InitialAccountHandler
 	GetTotalStakedForDelegationAddress(delegationAddress string) *big.Int
 	GetInitialAccountsForDelegated(addressBytes []byte) []InitialAccountHandler
-	GenerateInitialTransactions(shardCoordinator sharding.Coordinator) ([]*block.MiniBlock, map[uint32]*indexer.Pool, error)
+	GenerateInitialTransactions(shardCoordinator sharding.Coordinator, initialIndexingData map[uint32]InitialIndexingDataHandler) ([]*block.MiniBlock, map[uint32]*indexer.Pool, error)
 	IsInterfaceNil() bool
 }
 
@@ -96,6 +97,7 @@ type TxExecutionProcessor interface {
 	GetNonce(senderBytes []byte) (uint64, error)
 	AddBalance(senderBytes []byte, value *big.Int) error
 	AddNonce(senderBytes []byte, nonce uint64) error
+	GetTransactions() []data.TransactionHandler
 	IsInterfaceNil() bool
 }
 
@@ -109,5 +111,14 @@ type NodesListSplitter interface {
 // DeployProcessor is able to deploy a smart contract
 type DeployProcessor interface {
 	Deploy(sc InitialSmartContractHandler) ([][]byte, error)
+	IsInterfaceNil() bool
+}
+
+// InitialIndexingDataHandler represents the interface that describes the data held by initial indexing data
+type InitialIndexingDataHandler interface {
+	GetScrsTxs() map[string]data.TransactionHandler
+	GetDelegationTxs() []data.TransactionHandler
+	GetStakingTxs() []data.TransactionHandler
+	GetDeploySystemScTxs() []data.TransactionHandler
 	IsInterfaceNil() bool
 }

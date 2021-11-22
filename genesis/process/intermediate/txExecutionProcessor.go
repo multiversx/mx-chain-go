@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	transactionData "github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -14,6 +15,7 @@ import (
 type txExecutionProcessor struct {
 	txProcessor process.TransactionProcessor
 	accounts    state.AccountsAdapter
+	txs         []data.TransactionHandler
 }
 
 // NewTxExecutionProcessor is able to execute a transaction
@@ -28,9 +30,12 @@ func NewTxExecutionProcessor(
 		return nil, process.ErrNilAccountsAdapter
 	}
 
+	txs := make([]data.TransactionHandler, 0)
+
 	return &txExecutionProcessor{
 		txProcessor: txProcessor,
 		accounts:    accounts,
+		txs:         txs,
 	}, nil
 }
 
@@ -53,8 +58,14 @@ func (tep *txExecutionProcessor) ExecuteTransaction(
 		Signature: nil,
 	}
 
+	tep.txs = append(tep.txs, tx)
+
 	_, err := tep.txProcessor.ProcessTransaction(tx)
 	return err
+}
+
+func (tep *txExecutionProcessor) GetTransactions() []data.TransactionHandler {
+	return tep.txs
 }
 
 // GetNonce returns the current nonce of the provided sender account
