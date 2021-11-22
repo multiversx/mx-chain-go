@@ -155,6 +155,9 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 }
 
 func (service *SCQueryService) checkForRootHashChanges(rootHashBefore []byte) error {
+	// TODO: extend the functionality so if the state has changed since the starting point, check for the SC address
+	// root hash as well. This involves some changes in the trie part (add a function that returns the leaf key for
+	// an account)
 	rootHashAfter, err := service.accounts.RootHash()
 	if err != nil {
 		return err
