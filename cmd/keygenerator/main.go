@@ -28,7 +28,7 @@ type cfg struct {
 	consoleOut    bool
 	noSplit       bool
 	prefixPattern string
-	shardID       int
+	shardIDByte   int
 }
 
 const validatorType = "validator"
@@ -106,11 +106,11 @@ VERSION:
 		Value:       nopattern,
 		Destination: &argsConfig.prefixPattern,
 	}
-	shardID = cli.IntFlag{
-		Name:        "shard-id",
+	shardIDByte = cli.IntFlag{
+		Name:        "shard",
 		Usage:       fmt.Sprintf("integer option that will make each generated wallet key allocated to the desired shard (affects suffix of the key)\navailable patterns: %s, %s", "-1", "[0-2]"),
 		Value:       -1,
-		Destination: &argsConfig.shardID,
+		Destination: &argsConfig.shardIDByte,
 	}
 	argsConfig = &cfg{}
 
@@ -140,12 +140,12 @@ func main() {
 		keyType,
 		consoleOut,
 		noSplit,
-		shardID,
+		shardIDByte,
 		keyPrefix,
 	}
 
 	app.Action = func(_ *cli.Context) error {
-		return process(keyPrefix, shardID)
+		return process()
 	}
 
 	err := app.Run(os.Args)
@@ -156,8 +156,8 @@ func main() {
 	}
 }
 
-func process(prefix, shardID cli.Flag) error {
-	validatorKeys, walletKeys, err := generateKeys(argsConfig.keyType, argsConfig.numKeys, argsConfig.prefixPattern, argsConfig.shardID)
+func process() error {
+	validatorKeys, walletKeys, err := generateKeys(argsConfig.keyType, argsConfig.numKeys, argsConfig.prefixPattern, argsConfig.shardIDByte)
 	if err != nil {
 		return err
 	}
