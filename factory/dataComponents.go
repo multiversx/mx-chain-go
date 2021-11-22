@@ -99,6 +99,12 @@ func (dcf *dataComponentsFactory) Create() (*dataComponents, error) {
 		return nil, fmt.Errorf("%w: %s", errors.ErrDataPoolCreation, err.Error())
 	}
 
+	log.Debug("closing the datapool trie nodes cacher")
+	errNotCritical := datapool.TrieNodes().Close()
+	if errNotCritical != nil {
+		log.Warn("unable to close the trie nodes cacher...continuing", "error", errNotCritical)
+	}
+
 	arg := provider.ArgMiniBlockProvider{
 		MiniBlockPool:    datapool.MiniBlocks(),
 		MiniBlockStorage: store.GetStorer(dataRetriever.MiniBlockUnit),

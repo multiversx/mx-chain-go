@@ -1133,7 +1133,7 @@ func addRewardsToDelegation(tpn *integrationTests.TestProcessorNode, recvAddr []
 		},
 	}
 
-	txCacher, _ := dataPool.NewCurrentBlockPool()
+	txCacher := dataPool.NewCurrentBlockPool()
 	txCacher.AddTx(rewardTxHash, tx)
 
 	_ = tpn.EpochStartSystemSCProcessor.ProcessDelegationRewards(mbSlice, txCacher)
