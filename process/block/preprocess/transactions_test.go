@@ -25,9 +25,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const MaxGasLimitPerBlock = uint64(100000)
@@ -880,7 +882,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testi
 		addedTxs = append(addedTxs, newTx)
 	}
 
-	sortedTxsAndHashes, _ := txs.computeSortedTxs(sndShardId, dstShardId)
+	sortedTxsAndHashes, _ := txs.computeSortedTxs(sndShardId, dstShardId, MaxGasLimitPerBlock)
 	miniBlocks, err := txs.createAndProcessMiniBlocksFromMe(haveTimeTrue, isShardStuckFalse, isMaxBlockSizeReachedFalse, sortedTxsAndHashes)
 	assert.Nil(t, err)
 
@@ -955,7 +957,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCal
 		addedTxs = append(addedTxs, newTx)
 	}
 
-	sortedTxsAndHashes, _ := txs.computeSortedTxs(sndShardId, dstShardId)
+	sortedTxsAndHashes, _ := txs.computeSortedTxs(sndShardId, dstShardId, MaxGasLimitPerBlock)
 	miniBlocks, err := txs.createAndProcessMiniBlocksFromMe(haveTimeTrue, isShardStuckFalse, isMaxBlockSizeReachedFalse, sortedTxsAndHashes)
 	assert.Nil(t, err)
 
@@ -1034,7 +1036,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 		txPool.AddData(txHash, newTx, newTx.Size(), strCache)
 	}
 
-	sortedTxsAndHashes, _ := txs.computeSortedTxs(sndShardId, dstShardId)
+	sortedTxsAndHashes, _ := txs.computeSortedTxs(sndShardId, dstShardId, MaxGasLimitPerBlock)
 	miniBlocks, err := txs.createAndProcessMiniBlocksFromMe(haveTimeTrue, isShardStuckFalse, isMaxBlockSizeReachedFalse, sortedTxsAndHashes)
 	assert.Nil(t, err)
 
@@ -1203,7 +1205,7 @@ func TestTransactions_UpdateGasConsumedWithGasRefundedAndGasPenalizedShouldWork(
 	assert.Equal(t, uint64(7), totalGasConsumedInSelfShard)
 }
 
-func ExampleSortTransactionsBySenderAndNonce() {
+func Example_sortTransactionsBySenderAndNonce() {
 	txs := []*txcache.WrappedTransaction{
 		{Tx: &transaction.Transaction{Nonce: 3, SndAddr: []byte("bbbb")}, TxHash: []byte("w")},
 		{Tx: &transaction.Transaction{Nonce: 1, SndAddr: []byte("aaaa")}, TxHash: []byte("x")},
@@ -1215,7 +1217,7 @@ func ExampleSortTransactionsBySenderAndNonce() {
 		{Tx: &transaction.Transaction{Nonce: 3, SndAddr: []byte("eeee")}, TxHash: []byte("c")},
 	}
 
-	SortTransactionsBySenderAndNonce(txs)
+	sortTransactionsBySenderAndNonce(txs)
 
 	for _, item := range txs {
 		fmt.Println(item.Tx.GetNonce(), string(item.Tx.GetSndAddr()), string(item.TxHash))
@@ -1230,6 +1232,37 @@ func ExampleSortTransactionsBySenderAndNonce() {
 	// 5 bbbb y
 	// 3 eeee c
 	// 3 ffff b
+}
+
+func Example_sortTransactionsBySenderAndNonce2() {
+	txs := []*txcache.WrappedTransaction{
+		{Tx: &transaction.Transaction{Nonce: 2, SndAddr: []byte("bbbb")}, TxHash: []byte("w")},
+		{Tx: &transaction.Transaction{Nonce: 1, SndAddr: []byte("aaaa")}, TxHash: []byte("x")},
+		{Tx: &transaction.Transaction{Nonce: 1, SndAddr: []byte("bbbb")}, TxHash: []byte("y")},
+		{Tx: &transaction.Transaction{Nonce: 2, SndAddr: []byte("aaaa")}, TxHash: []byte("z")},
+		{Tx: &transaction.Transaction{Nonce: 7, SndAddr: []byte("aabb")}, TxHash: []byte("t")},
+		{Tx: &transaction.Transaction{Nonce: 6, SndAddr: []byte("aabb")}, TxHash: []byte("a")},
+		{Tx: &transaction.Transaction{Nonce: 1, SndAddr: []byte("ffff")}, TxHash: []byte("b")},
+		{Tx: &transaction.Transaction{Nonce: 3, SndAddr: []byte("eeee")}, TxHash: []byte("c")},
+		{Tx: &transaction.Transaction{Nonce: 3, SndAddr: []byte("bbbb")}, TxHash: []byte("c")},
+	}
+
+	sortTransactionsBySenderAndNonce(txs)
+
+	for _, item := range txs {
+		fmt.Println(item.Tx.GetNonce(), string(item.Tx.GetSndAddr()), string(item.TxHash))
+	}
+
+	// Output:
+	// 1 aaaa x
+	// 2 aaaa z
+	// 6 aabb a
+	// 7 aabb t
+	// 1 bbbb y
+	// 2 bbbb w
+	// 3 bbbb c
+	// 3 eeee c
+	// 1 ffff b
 }
 
 func BenchmarkSortTransactionsByNonceAndSender_WhenReversedNonces(b *testing.B) {
@@ -1247,7 +1280,7 @@ func BenchmarkSortTransactionsByNonceAndSender_WhenReversedNonces(b *testing.B) 
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		SortTransactionsBySenderAndNonce(txs)
+		sortTransactionsBySenderAndNonce(txs)
 	}
 }
 
@@ -1580,4 +1613,270 @@ func TestTransactionsPreprocessor_SplitMiniBlocksIfNeededShouldWork(t *testing.T
 	gasLimitPerMiniBlock = 199
 	splitMiniBlocks = preprocessor.splitMiniBlocksIfNeeded(miniBlocks)
 	assert.Equal(t, 7, len(splitMiniBlocks))
+}
+
+func TestTransactionsPreProcessor_preFilterTransactionsNoBandwidth(t *testing.T) {
+	gasHandler := &mock.GasHandlerMock{
+		ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+			return txHandler.GetGasLimit(), txHandler.GetGasLimit(), nil
+		},
+	}
+	economicsFee := &economicsmocks.EconomicsHandlerStub{
+		MinGasLimitCalled: func() uint64 {
+			return 10
+		},
+	}
+	txsProcessor := &transactions{
+		basePreProcess: &basePreProcess{
+			gasHandler: gasHandler,
+			economicsFee: economicsFee,
+		},
+	}
+
+	nbMoveBalance := 2
+	nbSCCalls := 2
+	sender0 := []byte("sender0")
+	sender1 := []byte("sender00")
+	moveGasCost := uint64(10)
+	scCallGasCost := uint64(1000)
+	bandwidth := uint64(10)
+
+	txsMoveSender0 := createWrappedMoveBalanceTxs(nbMoveBalance, 0, 1, sender0, moveGasCost)
+	txsSCCallsSender0 := createWrappedTxsWithData(nbSCCalls, 0, 1, sender0, scCallGasCost)
+	txsMoveSender1 := createWrappedMoveBalanceTxs(nbMoveBalance, 0, 2, sender1, moveGasCost)
+	txsSCCallsSender1 := createWrappedTxsWithData(nbSCCalls, 0, 0, sender1, scCallGasCost)
+
+	txs := make([]*txcache.WrappedTransaction, 0)
+	txs = append(txs, txsMoveSender0...)
+	txs = append(txs, txsSCCallsSender0...)
+	txs = append(txs, txsMoveSender1...)
+	txs = append(txs, txsSCCallsSender1...)
+
+	var expectedPreFiltered []*txcache.WrappedTransaction
+	expectedPreFiltered = append(expectedPreFiltered, txsMoveSender0...)
+	expectedPreFiltered = append(expectedPreFiltered, txsMoveSender1...)
+
+	filteredTxs := txsProcessor.preFilterTransactions(txs, bandwidth)
+	require.Len(t, filteredTxs, 4)
+	require.Equal(t, expectedPreFiltered, filteredTxs)
+}
+
+func TestTransactionsPreProcessor_preFilterTransactionsLimitedBandwidthMultipleTxs(t *testing.T) {
+	gasHandler := &mock.GasHandlerMock{
+		ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+			return txHandler.GetGasLimit(), txHandler.GetGasLimit(), nil
+		},
+	}
+	economicsFee := &economicsmocks.EconomicsHandlerStub{
+		MinGasLimitCalled: func() uint64 {
+			return 10
+		},
+	}
+	txsProcessor := &transactions{
+		basePreProcess: &basePreProcess{
+			gasHandler: gasHandler,
+			economicsFee: economicsFee,
+		},
+	}
+
+	nbMoveBalance := 2
+	nbSCCalls := 2
+	sender0 := []byte("sender0")
+	sender1 := []byte("sender00")
+	moveGasCost := uint64(10)
+	scCallGasCost := uint64(1000)
+	bandwidth := uint64(1000)
+
+	txsMoveSender0 := createWrappedMoveBalanceTxs(nbMoveBalance, 0, 1, sender0, moveGasCost)
+	txsSCCallsSender0 := createWrappedTxsWithData(nbSCCalls, 0, 1, sender0, scCallGasCost)
+	txsMoveSender1 := createWrappedMoveBalanceTxs(nbMoveBalance, 0, 2, sender1, moveGasCost)
+	txsSCCallsSender1 := createWrappedTxsWithData(nbSCCalls, 0, 0, sender1, scCallGasCost)
+
+	txs := make([]*txcache.WrappedTransaction, 0)
+	txs = append(txs, txsMoveSender0...)
+	txs = append(txs, txsSCCallsSender0...)
+	txs = append(txs, txsMoveSender1...)
+	txs = append(txs, txsSCCallsSender1...)
+
+	var expectedPreFiltered []*txcache.WrappedTransaction
+	expectedPreFiltered = append(expectedPreFiltered, txsMoveSender0...)
+	expectedPreFiltered = append(expectedPreFiltered, txsMoveSender1...)
+
+	filteredTxs := txsProcessor.preFilterTransactions(txs, bandwidth)
+	require.Len(t, filteredTxs, 4)
+	require.Equal(t, expectedPreFiltered, filteredTxs)
+
+	bandwidth = uint64(2000)
+	expectedPreFiltered = append(expectedPreFiltered, txsSCCallsSender0[0])
+	filteredTxs = txsProcessor.preFilterTransactions(txs, bandwidth)
+	require.Len(t, filteredTxs, 5)
+	require.Equal(t, expectedPreFiltered, filteredTxs)
+
+	bandwidth = uint64(4000)
+	expectedPreFiltered = append(expectedPreFiltered, txsSCCallsSender0[1], txsSCCallsSender1[0])
+	filteredTxs = txsProcessor.preFilterTransactions(txs, bandwidth)
+	require.Len(t, filteredTxs, 7)
+	require.Equal(t, expectedPreFiltered, filteredTxs)
+}
+
+func TestTransactionsPreProcessor_preFilterTransactionsLimitedBandwidthMultipleTxsWithSkippedMoveBalance(t *testing.T) {
+	gasHandler := &mock.GasHandlerMock{
+		ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+			return txHandler.GetGasLimit(), txHandler.GetGasLimit(), nil
+		},
+	}
+	economicsFee := &economicsmocks.EconomicsHandlerStub{
+		MinGasLimitCalled: func() uint64 {
+			return 10
+		},
+	}
+	txsProcessor := &transactions{
+		basePreProcess: &basePreProcess{
+			gasHandler: gasHandler,
+			economicsFee: economicsFee,
+		},
+	}
+
+	nbMoveBalance := 2
+	nbSCCalls := 2
+	sender0 := []byte("sender0")
+	sender1 := []byte("sender00")
+	moveGasCost := uint64(10)
+	scCallGasCost := uint64(1000)
+	bandwidth := uint64(1000)
+
+	txsMoveSender0 := createWrappedMoveBalanceTxs(nbMoveBalance, 0, 1, sender0, moveGasCost)
+	txsMoveBatch2Sender0 := createWrappedMoveBalanceTxs(nbMoveBalance, 0, 1, sender0, moveGasCost)
+	txsSCCallsSender0 := createWrappedTxsWithData(nbSCCalls, 0, 1, sender0, scCallGasCost)
+	txsMoveSender1 := createWrappedMoveBalanceTxs(nbMoveBalance, 0, 2, sender1, moveGasCost)
+	txsSCCallsSender1 := createWrappedTxsWithData(nbSCCalls, 0, 0, sender1, scCallGasCost)
+
+	txs := make([]*txcache.WrappedTransaction, 0)
+	txs = append(txs, txsMoveSender0...)
+	txs = append(txs, txsSCCallsSender0...)
+	txs = append(txs, txsMoveBatch2Sender0...)
+	// second sender has sc calls before move balance
+	txs = append(txs, txsSCCallsSender1...)
+	txs = append(txs, txsMoveSender1...)
+
+	var expectedPreFiltered []*txcache.WrappedTransaction
+	expectedPreFiltered = append(expectedPreFiltered, txsMoveSender0...)
+
+	filteredTxs := txsProcessor.preFilterTransactions(txs, bandwidth)
+	require.Len(t, filteredTxs, 2)
+	require.Equal(t, expectedPreFiltered, filteredTxs)
+
+	bandwidth = uint64(2000)
+	expectedPreFiltered = append(expectedPreFiltered, txsSCCallsSender0[0])
+	filteredTxs = txsProcessor.preFilterTransactions(txs, bandwidth)
+	require.Len(t, filteredTxs, 3)
+	require.Equal(t, expectedPreFiltered, filteredTxs)
+
+	bandwidth = uint64(4000)
+	expectedPreFiltered = append(
+		expectedPreFiltered,
+		txsSCCallsSender0[1],
+		txsMoveBatch2Sender0[0],
+		txsMoveBatch2Sender0[1],
+		txsSCCallsSender1[0],
+	)
+	filteredTxs = txsProcessor.preFilterTransactions(txs, bandwidth)
+	require.Len(t, filteredTxs, 7)
+	require.Equal(t, expectedPreFiltered, filteredTxs)
+}
+
+func TestTransactionsPreProcessor_preFilterTransactionsHighBandwidth(t *testing.T) {
+	gasHandler := &mock.GasHandlerMock{
+		ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+			return txHandler.GetGasLimit(), txHandler.GetGasLimit(), nil
+		},
+	}
+	economicsFee := &economicsmocks.EconomicsHandlerStub{
+		MinGasLimitCalled: func() uint64 {
+			return 10
+		},
+	}
+	txsProcessor := &transactions{
+		basePreProcess: &basePreProcess{
+			gasHandler: gasHandler,
+			economicsFee: economicsFee,
+		},
+	}
+
+	nbMoveBalance := 2
+	nbSCCalls := 2
+	sender0 := []byte("sender0")
+	sender1 := []byte("sender00")
+	moveGasCost := uint64(10)
+	scCallGasCost := uint64(1000)
+	bandwidth := uint64(10000)
+
+	txsMoveSender0 := createWrappedMoveBalanceTxs(nbMoveBalance, 0, 1, sender0, moveGasCost)
+	txsMoveBatch2Sender0 := createWrappedMoveBalanceTxs(nbMoveBalance, 0, 1, sender0, moveGasCost)
+	txsSCCallsSender0 := createWrappedTxsWithData(nbSCCalls, 0, 1, sender0, scCallGasCost)
+	txsMoveSender1 := createWrappedMoveBalanceTxs(nbMoveBalance, 0, 2, sender1, moveGasCost)
+	txsMoveBatch2Sender1 := createWrappedMoveBalanceTxs(nbMoveBalance, 0, 2, sender1, moveGasCost)
+	txsSCCallsSender1 := createWrappedTxsWithData(nbSCCalls, 0, 0, sender1, scCallGasCost)
+
+	txs := make([]*txcache.WrappedTransaction, 0)
+	txs = append(txs, txsMoveSender0...)
+	txs = append(txs, txsSCCallsSender0...)
+	txs = append(txs, txsMoveBatch2Sender0...)
+	txs = append(txs, txsMoveSender1...)
+	txs = append(txs, txsSCCallsSender1...)
+	txs = append(txs, txsMoveBatch2Sender1...)
+
+	var expectedPreFiltered []*txcache.WrappedTransaction
+	expectedPreFiltered = append(expectedPreFiltered, txsMoveSender0...)
+	expectedPreFiltered = append(expectedPreFiltered, txsMoveSender1...)
+	expectedPreFiltered = append(expectedPreFiltered, txsSCCallsSender0...)
+	expectedPreFiltered = append(expectedPreFiltered, txsMoveBatch2Sender0...)
+	expectedPreFiltered = append(expectedPreFiltered, txsSCCallsSender1...)
+	expectedPreFiltered = append(expectedPreFiltered, txsMoveBatch2Sender1...)
+
+	filteredTxs := txsProcessor.preFilterTransactions(txs, bandwidth)
+	require.Len(t, filteredTxs, 12)
+	require.Equal(t, expectedPreFiltered, filteredTxs)
+}
+
+func createWrappedMoveBalanceTxs(nb int, srcShard uint32, rcvShard uint32, sender []byte, gasCost uint64) []*txcache.WrappedTransaction {
+	txs := make([]*txcache.WrappedTransaction, nb)
+
+	for i := 0; i < nb; i++ {
+		txs[i] = &txcache.WrappedTransaction{
+			Tx: &transaction.Transaction{
+				Nonce:    uint64(i),
+				GasLimit: gasCost,
+				SndAddr:  sender,
+				RcvAddr:  []byte("receiver"),
+				Data:     nil,
+			},
+			TxHash:          []byte(fmt.Sprintf("transactionHash%d", i)),
+			SenderShardID:   srcShard,
+			ReceiverShardID: rcvShard,
+		}
+	}
+
+	return txs
+}
+
+func createWrappedTxsWithData(nb int, srcShard uint32, rcvShard uint32, sender []byte, gasCost uint64) []*txcache.WrappedTransaction {
+	txs := make([]*txcache.WrappedTransaction, nb)
+
+	for i := 0; i < nb; i++ {
+		txs[i] = &txcache.WrappedTransaction{
+			Tx: &transaction.Transaction{
+				Nonce:    uint64(i),
+				GasLimit: gasCost,
+				SndAddr:  sender,
+				RcvAddr:  []byte("receiver1"),
+				Data:     []byte("callfunc@@@"),
+			},
+			TxHash:          []byte(fmt.Sprintf("transactionHash%d", i)),
+			SenderShardID:   srcShard,
+			ReceiverShardID: rcvShard,
+		}
+	}
+
+	return txs
 }
