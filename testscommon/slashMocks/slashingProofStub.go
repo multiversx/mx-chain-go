@@ -6,17 +6,7 @@ import (
 
 // SlashingProofStub -
 type SlashingProofStub struct {
-	GetTypeCalled        func() coreSlash.SlashingType
 	GetProofTxDataCalled func() (*coreSlash.ProofTxData, error)
-}
-
-// GetType -
-func (sps *SlashingProofStub) GetType() coreSlash.SlashingType {
-	if sps.GetTypeCalled != nil {
-		return sps.GetTypeCalled()
-	}
-
-	return coreSlash.None
 }
 
 // GetProofTxData -

@@ -191,7 +191,7 @@ func (mhs *multipleHeaderSigningDetector) computeSlashLevel(headers slash.Header
 
 // ValidateProof - validates the given proof
 func (mhs *multipleHeaderSigningDetector) ValidateProof(proof coreSlash.SlashingProofHandler) error {
-	err := checkProofType(proof, coreSlash.MultipleSigning)
+	err := checkProofType(proof, coreSlash.MultipleSigningProofID)
 	if err != nil {
 		return err
 	}

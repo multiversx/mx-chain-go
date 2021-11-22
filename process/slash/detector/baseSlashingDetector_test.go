@@ -165,17 +165,19 @@ func TestBaseSlashingDetector_CheckSlashLevelBasedOnHeadersCount_DifferentSlashL
 }
 
 func TestBaseSlashingDetector_CheckProofType(t *testing.T) {
-	err := checkProofType(nil, coreSlash.MultipleProposal)
+	err := checkProofType(nil, coreSlash.MultipleProposalProofID)
 	require.Equal(t, process.ErrNilProof, err)
 
 	proof := &slashMocks.SlashingProofStub{
-		GetTypeCalled: func() coreSlash.SlashingType {
-			return coreSlash.MultipleProposal
+		GetProofTxDataCalled: func() (*coreSlash.ProofTxData, error) {
+			return &coreSlash.ProofTxData{
+				ProofID: coreSlash.MultipleProposalProofID,
+			}, nil
 		},
 	}
-	err = checkProofType(proof, coreSlash.MultipleSigning)
+	err = checkProofType(proof, coreSlash.MultipleSigningProofID)
 	require.Equal(t, process.ErrInvalidSlashType, err)
 
-	err = checkProofType(proof, coreSlash.MultipleProposal)
+	err = checkProofType(proof, coreSlash.MultipleProposalProofID)
 	require.Nil(t, err)
 }

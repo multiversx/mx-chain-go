@@ -145,7 +145,7 @@ func (mhp *multipleHeaderProposalsDetector) computeSlashLevel(headers []data.Hea
 //  - Be of either level slash.Medium (with 2 proposed headers) OR slash.High (with >2 proposed headers)
 //  - Have all proposed headers with the same round and proposer, but different hashes
 func (mhp *multipleHeaderProposalsDetector) ValidateProof(proof coreSlash.SlashingProofHandler) error {
-	err := checkProofType(proof, coreSlash.MultipleProposal)
+	err := checkProofType(proof, coreSlash.MultipleProposalProofID)
 	if err != nil {
 		return err
 	}

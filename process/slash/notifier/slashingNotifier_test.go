@@ -13,7 +13,6 @@ import (
 	mockGenesis "github.com/ElrondNetwork/elrond-go/genesis/mock"
 	mockIntegration "github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/slash"
 	"github.com/ElrondNetwork/elrond-go/process/slash/notifier"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -107,15 +106,6 @@ func TestNewSlashingNotifier(t *testing.T) {
 	}
 }
 
-func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidProof_ExpectError(t *testing.T) {
-	args := generateSlashingNotifierArgs()
-	sn, _ := notifier.NewSlashingNotifier(args)
-
-	tx, err := sn.CreateShardSlashingTransaction(&slashMocks.SlashingProofStub{})
-	require.Nil(t, tx)
-	require.Equal(t, process.ErrInvalidProof, err)
-}
-
 func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidPubKey_ExpectError(t *testing.T) {
 	args := generateSlashingNotifierArgs()
 	errPubKey := errors.New("pub key error")
@@ -179,20 +169,6 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_CannotGetDataForSigning
 	tx, err := sn.CreateShardSlashingTransaction(&slashMocks.MultipleHeaderProposalProofStub{})
 	require.Nil(t, tx)
 	require.Equal(t, errMarshaller, err)
-}
-
-func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidSlashType_ExpectError(t *testing.T) {
-	args := generateSlashingNotifierArgs()
-
-	sn, _ := notifier.NewSlashingNotifier(args)
-	proof := &slashMocks.SlashingProofStub{
-		GetTypeCalled: func() coreSlash.SlashingType {
-			return 9999999
-		},
-	}
-	tx, err := sn.CreateShardSlashingTransaction(proof)
-	require.Nil(t, tx)
-	require.Equal(t, process.ErrInvalidProof, err)
 }
 
 func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidProofTxData_ExpectError(t *testing.T) {
@@ -263,12 +239,13 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleProposalProof(t
 			return &coreSlash.ProofTxData{
 				Round:   round,
 				ShardID: shardID,
+				ProofID: coreSlash.MultipleProposalProofID,
 			}, nil
 		},
 	}
 
 	expectedData := []byte(fmt.Sprintf("%s@%s@%d@%d@%s@%s", notifier.BuiltInFunctionSlashCommitmentProof,
-		[]byte{slash.MultipleProposalProofID}, shardID, round, []byte{byte('c'), byte('d')}, []byte("signature")))
+		[]byte{byte(coreSlash.MultipleProposalProofID)}, shardID, round, []byte{byte('c'), byte('d')}, []byte("signature")))
 
 	expectedTx := &transaction.Transaction{
 		Data:      expectedData,
@@ -300,12 +277,13 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleSignProof(t *te
 			return &coreSlash.ProofTxData{
 				Round:   round,
 				ShardID: shardID,
+				ProofID: coreSlash.MultipleSigningProofID,
 			}, nil
 		},
 	}
 
 	expectedData := []byte(fmt.Sprintf("%s@%s@%d@%d@%s@%s", notifier.BuiltInFunctionSlashCommitmentProof,
-		[]byte{slash.MultipleSigningProofID}, shardID, round, []byte{byte('c'), byte('d')}, []byte("signature")))
+		[]byte{byte(coreSlash.MultipleSigningProofID)}, shardID, round, []byte{byte('c'), byte('d')}, []byte("signature")))
 	expectedTx := &transaction.Transaction{
 		Data:      expectedData,
 		Nonce:     444,

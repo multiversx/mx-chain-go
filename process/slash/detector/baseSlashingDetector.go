@@ -49,11 +49,15 @@ func checkAndGetHeader(interceptedData process.InterceptedData) (data.HeaderHand
 	return header, nil
 }
 
-func checkProofType(proof coreSlash.SlashingProofHandler, expectedType coreSlash.SlashingType) error {
+func checkProofType(proof coreSlash.SlashingProofHandler, expectedType coreSlash.ProofID) error {
 	if proof == nil {
 		return process.ErrNilProof
 	}
-	if proof.GetType() != expectedType {
+	proofData, err := proof.GetProofTxData()
+	if err != nil {
+		return err
+	}
+	if proofData.ProofID != expectedType {
 		return process.ErrInvalidSlashType
 	}
 
