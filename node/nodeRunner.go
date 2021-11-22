@@ -893,7 +893,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		managedCoreComponents.AddressPubKeyConverter(),
 		managedCryptoComponents.TxSignKeyGen(),
 		managedCoreComponents.Hasher(),
-		managedCoreComponents.TxMarshalizer(),
+		managedCoreComponents.InternalMarshalizer(),
 	)
 	if err != nil {
 		return nil, err
