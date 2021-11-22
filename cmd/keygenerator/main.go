@@ -237,11 +237,11 @@ func generateKey(keyGen crypto.KeyGenerator, list []key) ([]key, error) {
 }
 
 func generateMinedWalletKeys(keyGen crypto.KeyGenerator, list []key, startingHexPattern string, shardID int) ([]key, error) {
-	pattern := nopattern != startingHexPattern
+	isPatternProvided := nopattern != startingHexPattern
 	withPreferredShard := shardID != noshard && shardID >= 0 && shardID <= 255
 	var patternHexBytes []byte
 	var err error
-	if pattern {
+	if isPatternProvided {
 		patternHexBytes, err = hex.DecodeString(startingHexPattern)
 		if err != nil {
 			return nil, err
@@ -260,7 +260,7 @@ func generateMinedWalletKeys(keyGen crypto.KeyGenerator, list []key, startingHex
 		}
 		keyBytes := keys[len(keys)-1].pkBytes
 
-		if pattern && !keyHasPattern(keyBytes, patternHexBytes) {
+		if isPatternProvided && !keyHasPattern(keyBytes, patternHexBytes) {
 			nbTrials++
 			continue
 		}
