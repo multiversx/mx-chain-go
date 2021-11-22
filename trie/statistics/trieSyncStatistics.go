@@ -25,6 +25,7 @@ func (tss *trieSyncStatistics) Reset() {
 	tss.numMissing = 0
 	tss.numLarge = 0
 	tss.numBytesReceived = 0
+	tss.missingMap = make(map[string]int)
 	tss.Unlock()
 }
 
@@ -99,6 +100,14 @@ func (tss *trieSyncStatistics) NumBytesReceived() uint64 {
 	defer tss.RUnlock()
 
 	return tss.numBytesReceived
+}
+
+// NumTries returns the number of tries that are currently syncing
+func (tss *trieSyncStatistics) NumTries() int {
+	tss.RLock()
+	defer tss.RUnlock()
+
+	return len(tss.missingMap)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
