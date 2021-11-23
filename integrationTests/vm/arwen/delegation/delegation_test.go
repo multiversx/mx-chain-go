@@ -127,7 +127,7 @@ func TestDelegation_Claims(t *testing.T) {
 	RequireAlmostEquals(t, NewBalance(400), NewBalanceBig(context.GetAccountBalanceDelta(&context.Bob)))
 
 	err = context.ExecuteSC(&context.Carol, "claimRewards")
-	require.Equal(t, errors.New("user error"), err)
+	require.Equal(t, errors.New("unknown caller"), err)
 }
 
 func TestDelegation_WithManyUsers_Claims(t *testing.T) {
@@ -278,9 +278,9 @@ func delegationProcessManyTimes(t *testing.T, fileName string, txPerBenchmark in
 			"@"+hex.EncodeToString(value.Bytes())+"@"+hex.EncodeToString(totalDelegationCap.Bytes()),
 	)
 
-	_, err = testContext.TxProcessor.ProcessTransaction(tx)
+	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetLatestError())
+	require.Equal(t, vmcommon.Ok, returnCode)
 	ownerNonce++
 
 	testAddresses := createTestAddresses(uint64(txPerBenchmark * 2))

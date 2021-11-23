@@ -72,7 +72,6 @@ func TestAsyncCallShouldWork(t *testing.T) {
 	retCode, err := testContextSender.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContextSender.GetLatestError())
 
 	require.Equal(t, big.NewInt(120), testContextSender.TxFeeHandler.GetAccumulatedFees())
 
@@ -90,7 +89,6 @@ func TestAsyncCallShouldWork(t *testing.T) {
 	retCode, err = testContextSecondContract.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContextSender.GetLatestError())
 
 	require.Equal(t, big.NewInt(3830), testContextSecondContract.TxFeeHandler.GetAccumulatedFees())
 	require.Equal(t, big.NewInt(383), testContextSecondContract.TxFeeHandler.GetDeveloperFees())

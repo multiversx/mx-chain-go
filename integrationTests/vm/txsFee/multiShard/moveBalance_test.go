@@ -33,9 +33,9 @@ func TestMoveBalanceShouldWork(t *testing.T) {
 
 	tx := vm.CreateTransaction(senderNonce, big.NewInt(100), sndAddr, rcvAddr, gasPrice, gasLimit, []byte("aaaa"))
 
-	_, err = testContext.TxProcessor.ProcessTransaction(tx)
+	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetLatestError())
+	require.Equal(t, vmcommon.Ok, returnCode)
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -184,7 +184,6 @@ func TestMoveBalanceExecuteOneSourceAndDestinationShard(t *testing.T) {
 	retCode, err := testContextSource.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContextSource.GetLatestError())
 
 	//verify sender
 	expectedBalanceSender := big.NewInt(99810)
@@ -206,7 +205,6 @@ func TestMoveBalanceExecuteOneSourceAndDestinationShard(t *testing.T) {
 	retCode, err = testContextDst.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContextDst.GetLatestError())
 
 	_, err = testContextDst.Accounts.Commit()
 	require.Nil(t, err)

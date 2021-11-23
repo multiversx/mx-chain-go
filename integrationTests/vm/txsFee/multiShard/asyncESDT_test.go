@@ -75,7 +75,6 @@ func TestAsyncESDTTransferWithSCCallShouldWork(t *testing.T) {
 	retCode, err := testContextSender.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContextSender.GetLatestError())
 
 	_, err = testContextSender.Accounts.Commit()
 	require.Nil(t, err)
@@ -94,7 +93,6 @@ func TestAsyncESDTTransferWithSCCallShouldWork(t *testing.T) {
 	retCode, err = testContextFirstContract.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContextFirstContract.GetLatestError())
 
 	_, err = testContextSender.Accounts.Commit()
 	require.Nil(t, err)
@@ -195,7 +193,6 @@ func TestAsyncESDTTransferWithSCCallSecondContractAnotherToken(t *testing.T) {
 	retCode, err := testContextSender.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContextSender.GetLatestError())
 
 	_, err = testContextSender.Accounts.Commit()
 	require.Nil(t, err)
@@ -214,7 +211,6 @@ func TestAsyncESDTTransferWithSCCallSecondContractAnotherToken(t *testing.T) {
 	retCode, err = testContextFirstContract.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContextFirstContract.GetLatestError())
 
 	_, err = testContextSender.Accounts.Commit()
 	require.Nil(t, err)

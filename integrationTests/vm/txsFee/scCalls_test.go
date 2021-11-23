@@ -44,9 +44,9 @@ func TestScCallShouldWork(t *testing.T) {
 		calculatedGasLimit := vm.ComputeGasLimit(nil, testContext, tx)
 		require.Equal(t, uint64(387), calculatedGasLimit)
 
-		_, err = testContext.TxProcessor.ProcessTransaction(tx)
+		returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 		require.Nil(t, err)
-		require.Nil(t, testContext.GetLatestError())
+		require.Equal(t, vmcommon.Ok, returnCode)
 
 		_, err = testContext.Accounts.Commit()
 		require.Nil(t, err)
@@ -92,7 +92,6 @@ func TestScCallContractNotFoundShouldConsumeGas(t *testing.T) {
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Nil(t, err)
-	require.Equal(t, fmt.Errorf("contract not found"), testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -173,7 +172,6 @@ func TestScCallInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
 	tx := vm.CreateTransaction(0, big.NewInt(0), sndAddr, scAddress, gasPrice, gasLimit, []byte("increment"))
 	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, process.ErrInsufficientGasLimitInTx, err)
-	require.Nil(t, testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -255,9 +253,9 @@ func TestScCallAndGasChangeShouldWork(t *testing.T) {
 	for idx := uint64(0); idx < numIterations; idx++ {
 		tx := vm.CreateTransaction(idx, big.NewInt(0), sndAddr, scAddress, gasPrice, gasLimit, []byte("increment"))
 
-		_, err = testContext.TxProcessor.ProcessTransaction(tx)
+		returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 		require.Nil(t, err)
-		require.Nil(t, testContext.GetLatestError())
+		require.Equal(t, vmcommon.Ok, returnCode)
 
 		_, err = testContext.Accounts.Commit()
 		require.Nil(t, err)
@@ -277,9 +275,9 @@ func TestScCallAndGasChangeShouldWork(t *testing.T) {
 	for idx := uint64(0); idx < numIterations; idx++ {
 		tx := vm.CreateTransaction(numIterations+idx, big.NewInt(0), sndAddr, scAddress, gasPrice, gasLimit, []byte("increment"))
 
-		_, err = testContext.TxProcessor.ProcessTransaction(tx)
+		returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 		require.Nil(t, err)
-		require.Nil(t, testContext.GetLatestError())
+		require.Equal(t, vmcommon.Ok, returnCode)
 
 		_, err = testContext.Accounts.Commit()
 		require.Nil(t, err)
@@ -324,9 +322,9 @@ func TestESDTScCallAndGasChangeShouldWork(t *testing.T) {
 	for idx := uint64(0); idx < numIterations; idx++ {
 		tx := vm.CreateTransaction(idx, big.NewInt(0), sndAddr, scAddress, gasPrice, gasLimit, txData.ToBytes())
 
-		_, err = testContext.TxProcessor.ProcessTransaction(tx)
+		returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 		require.Nil(t, err)
-		require.Nil(t, testContext.GetLatestError())
+		require.Equal(t, vmcommon.Ok, returnCode)
 
 		_, err = testContext.Accounts.Commit()
 		require.Nil(t, err)
@@ -349,9 +347,9 @@ func TestESDTScCallAndGasChangeShouldWork(t *testing.T) {
 	for idx := uint64(0); idx < numIterations; idx++ {
 		tx := vm.CreateTransaction(numIterations+idx, big.NewInt(0), sndAddr, scAddress, gasPrice, gasLimit, txData.ToBytes())
 
-		_, err = testContext.TxProcessor.ProcessTransaction(tx)
+		returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 		require.Nil(t, err)
-		require.Nil(t, testContext.GetLatestError())
+		require.Equal(t, vmcommon.Ok, returnCode)
 
 		_, err = testContext.Accounts.Commit()
 		require.Nil(t, err)

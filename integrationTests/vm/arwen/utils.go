@@ -38,6 +38,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -305,6 +306,8 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 	gasSchedule := make(map[string]map[string]uint64)
 	defaults.FillGasMapInternal(gasSchedule, 1)
 
+	argsLogProcessor := transactionLog.ArgTxLogProcessor{Marshalizer: marshalizer}
+	logsProcessor, _ := transactionLog.NewTxLogProcessor(argsLogProcessor)
 	context.SCRForwarder = &mock.IntermediateTransactionHandlerMock{}
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:      context.VMContainer,
@@ -325,7 +328,7 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 		GasSchedule:       mock.NewGasScheduleNotifierMock(gasSchedule),
-		TxLogsProcessor:   &mock.TxLogsProcessorStub{},
+		TxLogsProcessor:   logsProcessor,
 		EpochNotifier:     forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker: context.ArwenChangeLocker,
 		VMOutputCacher:    txcache.NewDisabledCache(),

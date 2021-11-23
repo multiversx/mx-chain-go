@@ -24,6 +24,20 @@ func NewTestScProcessor(internalData *scProcessor) *TestScProcessor {
 // GetLatestTestError locates the latest error in the collection of smart contracts results
 func (tsp *TestScProcessor) GetLatestTestError() error {
 
+	if tsp.flagCleanUpSCRData.IsSet() {
+		allLogs := tsp.txLogsProcessor.GetAllCurrentLogs()
+		tsp.txLogsProcessor.Clean()
+		for _, logs := range allLogs {
+			for _, event := range logs.GetLogEvents() {
+				topics := event.GetTopics()
+				if len(topics) > 1 && string(topics[0]) == signalError {
+					return fmt.Errorf(string(topics[1]))
+				}
+			}
+		}
+		return nil
+	}
+
 	scrProvider, ok := tsp.scrForwarder.(interface {
 		GetIntermediateTransactions() []data.TransactionHandler
 	})

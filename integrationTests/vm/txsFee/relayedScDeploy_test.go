@@ -5,7 +5,6 @@
 package txsFee
 
 import (
-	"errors"
 	"math/big"
 	"testing"
 
@@ -93,7 +92,6 @@ func TestRelayedScDeployInvalidCodeShouldConsumeGas(t *testing.T) {
 
 	retCode, _ := testContext.TxProcessor.ProcessTransaction(rtx)
 	require.Equal(t, vmcommon.UserError, retCode)
-	require.Nil(t, testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -142,7 +140,6 @@ func TestRelayedScDeployInsufficientGasLimitShouldConsumeGas(t *testing.T) {
 
 	retCode, _ := testContext.TxProcessor.ProcessTransaction(rtx)
 	require.Equal(t, vmcommon.UserError, retCode)
-	require.Nil(t, testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -192,7 +189,6 @@ func TestRelayedScDeployOutOfGasShouldConsumeGas(t *testing.T) {
 	code, err := testContext.TxProcessor.ProcessTransaction(rtx)
 	require.Equal(t, vmcommon.UserError, code)
 	require.Nil(t, err)
-	require.Equal(t, errors.New("out of gas"), testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)

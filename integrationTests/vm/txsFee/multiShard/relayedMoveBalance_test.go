@@ -97,7 +97,6 @@ func TestRelayedMoveBalanceRelayerAndInnerTxSenderShard0ReceiverShard1(t *testin
 	retCode, err := testContext.TxProcessor.ProcessTransaction(rtx)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -159,7 +158,6 @@ func TestRelayedMoveBalanceExecuteOnSourceAndDestination(t *testing.T) {
 	retCode, err := testContextSource.TxProcessor.ProcessTransaction(rtx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContextSource.GetLatestError())
 
 	// check relayed balance
 	utils.TestAccount(t, testContextSource.Accounts, relayerAddr, 1, big.NewInt(97270))
@@ -181,7 +179,6 @@ func TestRelayedMoveBalanceExecuteOnSourceAndDestination(t *testing.T) {
 	retCode, err = testContextDst.TxProcessor.ProcessTransaction(rtx)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContextDst.GetLatestError())
 
 	_, err = testContextDst.Accounts.Commit()
 	require.Nil(t, err)
@@ -241,7 +238,6 @@ func TestRelayedMoveBalanceExecuteOnSourceAndDestinationRelayerAndInnerTxSenderS
 	retCode, err := testContextSource.TxProcessor.ProcessTransaction(rtx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContextSource.GetLatestError())
 
 	// check relayed balance
 	utils.TestAccount(t, testContextSource.Accounts, relayerAddr, 1, big.NewInt(97270))
@@ -311,7 +307,6 @@ func TestRelayedMoveBalanceRelayerAndInnerTxReceiverShard0SenderShard1(t *testin
 	retCode, err := testContextSource.TxProcessor.ProcessTransaction(rtx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContextSource.GetLatestError())
 
 	// check relayed balance
 	utils.TestAccount(t, testContextSource.Accounts, relayerAddr, 1, big.NewInt(97270))
@@ -339,7 +334,6 @@ func TestRelayedMoveBalanceRelayerAndInnerTxReceiverShard0SenderShard1(t *testin
 	retCode, err = testContextDst.TxProcessor.ProcessTransaction(rtx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContextDst.GetLatestError())
 
 	utils.TestAccount(t, testContextDst.Accounts, sndAddr, 1, big.NewInt(0))
 
@@ -406,7 +400,6 @@ func TestMoveBalanceRelayerShard0InnerTxSenderShard1InnerTxReceiverShard2ShouldW
 	retCode, err := testContextRelayer.TxProcessor.ProcessTransaction(rtx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContextRelayer.GetLatestError())
 
 	// check relayed balance
 	utils.TestAccount(t, testContextRelayer.Accounts, relayerAddr, 1, big.NewInt(97270))
@@ -434,7 +427,6 @@ func TestMoveBalanceRelayerShard0InnerTxSenderShard1InnerTxReceiverShard2ShouldW
 	retCode, err = testContextInnerSource.TxProcessor.ProcessTransaction(rtx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContextInnerSource.GetLatestError())
 
 	utils.TestAccount(t, testContextInnerSource.Accounts, sndAddr, 1, big.NewInt(0))
 

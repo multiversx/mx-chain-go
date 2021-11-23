@@ -57,9 +57,9 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 
 	txData := []byte(core.BuiltInFunctionChangeOwnerAddress + "@" + hex.EncodeToString(newOwner))
 	tx := vm.CreateTransaction(1, big.NewInt(0), owner, scAddr, gasPrice, gasLimit, txData)
-	_, err = testContextDst.TxProcessor.ProcessTransaction(tx)
+	returnCode, err := testContextDst.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
-	require.Nil(t, testContextDst.GetLatestError())
+	require.Equal(t, vmcommon.Ok, returnCode)
 
 	_, err = testContextDst.Accounts.Commit()
 	require.Nil(t, err)
@@ -95,7 +95,6 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 	retCode, err := testContextDst.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContextDst.GetLatestError())
 
 	_, err = testContextDst.Accounts.Commit()
 	require.Nil(t, err)
@@ -128,7 +127,6 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 	retCode, err = testContextSource.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContextSource.GetLatestError())
 
 	expectedBalance = big.NewInt(9770)
 	utils.TestAccount(t, testContextSource.Accounts, newOwner, 1, expectedBalance)
@@ -154,7 +152,6 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 	retCode, err = testContextDst.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContextDst.GetLatestError())
 
 	txs := testContextDst.GetIntermediateTransactions(t)
 	scr := txs[0]

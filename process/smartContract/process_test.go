@@ -552,9 +552,8 @@ func TestScProcessor_DeploySmartContractDisabled(t *testing.T) {
 		return vm, nil
 	}
 
-	_, _ = sc.DeploySmartContract(tx, acntSrc)
-	tsc := NewTestScProcessor(sc)
-	require.Equal(t, process.ErrSmartContractDeploymentIsDisabled, tsc.GetLatestTestError())
+	_, err = sc.DeploySmartContract(tx, acntSrc)
+	require.Equal(t, process.ErrSmartContractDeploymentIsDisabled, err)
 }
 
 func TestScProcessor_BuiltInCallSmartContractDisabled(t *testing.T) {
@@ -1387,10 +1386,9 @@ func TestScProcessor_DeploySmartContract(t *testing.T) {
 		return acntSrc, nil
 	}
 
-	_, err = sc.DeploySmartContract(tx, acntSrc)
-	tsp := NewTestScProcessor(sc)
+	returnCode, err := sc.DeploySmartContract(tx, acntSrc)
 	require.Nil(t, err)
-	require.Nil(t, tsp.GetLatestTestError())
+	require.Equal(t, vmcommon.Ok, returnCode)
 }
 
 func TestScProcessor_ExecuteSmartContractTransactionNilTx(t *testing.T) {

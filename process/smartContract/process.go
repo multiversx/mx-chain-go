@@ -492,7 +492,7 @@ func (sc *scProcessor) cleanSCRDataWithOnlyInfo(scrs []data.TransactionHandler) 
 		cleanedUPSCrs = append(cleanedUPSCrs, scr)
 	}
 
-	if sc.flagCleanUpSCRData.IsSet() {
+	if !sc.flagCleanUpSCRData.IsSet() {
 		return scrs, logsFromSCRs
 	}
 
@@ -1332,9 +1332,9 @@ func (sc *scProcessor) ProcessIfError(
 		return err
 	}
 
-	userErrorLog := createNewLogFromSCR(scrIfError)
+	userErrorLog := createNewLogFromSCRIfError(scrIfError)
 
-	if !sc.flagCleanUpSCRData.IsSet() || sc.isSCROnlyInformational(scrIfError) {
+	if !sc.flagCleanUpSCRData.IsSet() || !sc.isSCROnlyInformational(scrIfError) {
 		err = sc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{scrIfError})
 		if err != nil {
 			return err
@@ -1467,30 +1467,33 @@ func (sc *scProcessor) processForRelayerWhenError(
 		}
 	}
 
-	newLog := createNewLogFromSCR(scrForRelayer)
+	newLog := createNewLogFromSCRIfError(scrForRelayer)
 
 	return newLog, nil
 }
 
 func createNewLogFromSCR(txHandler data.TransactionHandler) *vmcommon.LogEntry {
+	newLog := &vmcommon.LogEntry{
+		Identifier: txHandler.GetSndAddr(),
+		Address:    txHandler.GetRcvAddr(),
+		Topics:     [][]byte{[]byte(generalSCRTopicName)},
+		Data:       txHandler.GetData(),
+	}
+
+	return newLog
+}
+
+func createNewLogFromSCRIfError(txHandler data.TransactionHandler) *vmcommon.LogEntry {
 	returnMessage := make([]byte, 0)
 	scr, ok := txHandler.(*smartContractResult.SmartContractResult)
 	if ok {
 		returnMessage = scr.ReturnMessage
 	}
 
-	topics := make([][]byte, 0)
-	if len(returnMessage) > 0 {
-		topics = append(topics, []byte(signalError))
-		topics = append(topics, returnMessage)
-	} else {
-		topics = append(topics, []byte(generalSCRTopicName))
-	}
-
 	newLog := &vmcommon.LogEntry{
 		Identifier: txHandler.GetSndAddr(),
 		Address:    txHandler.GetRcvAddr(),
-		Topics:     topics,
+		Topics:     [][]byte{[]byte(signalError), returnMessage},
 		Data:       txHandler.GetData(),
 	}
 
@@ -2745,6 +2748,9 @@ func (sc *scProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 
 	sc.flagOptimizeNFTStore.Toggle(epoch >= sc.optimizeNFTStoreEnableEpoch)
 	log.Debug("scProcessor: optimize nft store", "enabled", sc.flagOptimizeNFTStore.IsSet())
+
+	sc.flagCleanUpSCRData.Toggle(epoch >= sc.cleanupSCRDataEnableEpoch)
+	log.Debug("scProcessor: cleanup scr data", "enabled", sc.flagCleanUpSCRData.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -14,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
@@ -1182,27 +1181,21 @@ func deployNewSc(
 	value *big.Int,
 	ownerAddress []byte,
 ) []byte {
-	scrForwarder, _ := tpn.ScrForwarder.(interface {
-		CleanIntermediateTransactions()
-	})
-	scrForwarder.CleanIntermediateTransactions()
-
 	txData := "createNewDelegationContract" + "@" + hex.EncodeToString(maxDelegationCap.Bytes()) + "@" + hex.EncodeToString(serviceFee.Bytes())
 	returnedCode, err := processTransaction(tpn, ownerAddress, vm.DelegationManagerSCAddress, txData, value)
 	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.Ok, returnedCode)
 
-	scrs := tpn.ScProcessor.GetAllSCRs()
-	for i := range scrs {
-		tx, isScr := scrs[i].(*smartContractResult.SmartContractResult)
-		if !isScr {
-			continue
-		}
+	logs := tpn.TransactionLogProcessor.GetAllCurrentLogs()
+	tpn.TransactionLogProcessor.Clean()
 
-		if bytes.Equal(tx.RcvAddr, ownerAddress) {
-			tokens := strings.Split(string(tx.GetData()), "@")
-			address, _ := hex.DecodeString(tokens[2])
-			return address
+	for _, log := range logs {
+		for _, event := range log.GetLogEvents() {
+			if bytes.Equal(event.GetIdentifier(), vm.DelegationManagerSCAddress) {
+				tokens := strings.Split(string(event.GetData()), "@")
+				address, _ := hex.DecodeString(tokens[2])
+				return address
+			}
 		}
 	}
 

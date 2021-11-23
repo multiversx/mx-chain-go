@@ -49,7 +49,6 @@ func TestScCallExecuteOnSourceAndDstShardShouldWork(t *testing.T) {
 	retCode, err := testContextSource.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContextSource.GetLatestError())
 
 	_, err = testContextSource.Accounts.Commit()
 	require.Nil(t, err)
@@ -77,7 +76,6 @@ func TestScCallExecuteOnSourceAndDstShardShouldWork(t *testing.T) {
 	retCode, err = testContextDst.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContextDst.GetLatestError())
 
 	ret := vm.GetIntValueFromSC(nil, testContextDst.Accounts, scAddr, "get")
 	require.Equal(t, big.NewInt(2), ret)
@@ -143,7 +141,6 @@ func TestScCallExecuteOnSourceAndDstShardInvalidOnDst(t *testing.T) {
 	retCode, err := testContextSource.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContextSource.GetLatestError())
 
 	_, err = testContextSource.Accounts.Commit()
 	require.Nil(t, err)

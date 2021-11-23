@@ -43,6 +43,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -805,6 +806,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		BackwardCompSaveKeyValueEnableEpoch: argEnableEpoch.BackwardCompSaveKeyValueEnableEpoch,
 	}
 	intermediateTxHandler := &mock.IntermediateTransactionHandlerMock{}
+	txLogsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: testMarshalizer})
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:       vmContainer,
 		ArgsParser:        smartContract.NewArgumentParser(),
@@ -822,7 +824,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		TxTypeHandler:     txTypeHandler,
 		GasHandler:        gasComp,
 		GasSchedule:       mock.NewGasScheduleNotifierMock(gasSchedule),
-		TxLogsProcessor:   &mock.TxLogsProcessorStub{},
+		TxLogsProcessor:   txLogsProcessor,
 		EpochNotifier:     forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker: arwenChangeLocker,
 		VMOutputCacher:    txcache.NewDisabledCache(),
