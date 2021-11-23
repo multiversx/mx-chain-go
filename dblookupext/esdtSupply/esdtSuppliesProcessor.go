@@ -72,7 +72,7 @@ func (sp *suppliesProcessor) RevertChanges(header data.HeaderHandler, body data.
 }
 
 // GetESDTSupply will return the supply from the storage for the given token
-func (sp *suppliesProcessor) GetESDTSupply(token string) (string, error) {
+func (sp *suppliesProcessor) GetESDTSupply(token string) (*SupplyESDT, error) {
 	return sp.logsProc.getESDTSupply(token)
 }
 
