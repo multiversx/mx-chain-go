@@ -98,7 +98,7 @@ func TestESDTNonFungibleTokenCreateAndBurn(t *testing.T) {
 		nodes[1].OwnAccount.Address,
 		nodes[1].OwnAccount.Address,
 		nodes,
-		tokenIdentifier,
+		[]byte(tokenIdentifier),
 		nftMetaData,
 		1,
 	)
@@ -186,7 +186,7 @@ func TestESDTSemiFungibleTokenCreateAddAndBurn(t *testing.T) {
 		nodes[1].OwnAccount.Address,
 		nodes[1].OwnAccount.Address,
 		nodes,
-		tokenIdentifier,
+		[]byte(tokenIdentifier),
 		nftMetaData,
 		1,
 	)
@@ -201,7 +201,7 @@ func TestESDTSemiFungibleTokenCreateAddAndBurn(t *testing.T) {
 		nodes[1].OwnAccount.Address,
 		nodes[1].OwnAccount.Address,
 		nodes,
-		tokenIdentifier,
+		[]byte(tokenIdentifier),
 		nftMetaData,
 		1,
 	)
@@ -231,7 +231,7 @@ func TestESDTSemiFungibleTokenCreateAddAndBurn(t *testing.T) {
 		nodes[1].OwnAccount.Address,
 		nodes[1].OwnAccount.Address,
 		nodes,
-		tokenIdentifier,
+		[]byte(tokenIdentifier),
 		nftMetaData,
 		1,
 	)
@@ -327,7 +327,7 @@ func TestESDTNonFungibleTokenTransferSelfShard(t *testing.T) {
 		nodes[1].OwnAccount.Address,
 		nodeInSameShard.OwnAccount.Address,
 		nodes,
-		tokenIdentifier,
+		[]byte(tokenIdentifier),
 		nftMetaData,
 		1,
 	)
@@ -339,7 +339,7 @@ func TestESDTNonFungibleTokenTransferSelfShard(t *testing.T) {
 		nodes[1].OwnAccount.Address,
 		nodes[1].OwnAccount.Address,
 		nodes,
-		tokenIdentifier,
+		[]byte(tokenIdentifier),
 		nftMetaData,
 		1,
 	)
@@ -436,7 +436,7 @@ func TestESDTSemiFungibleTokenTransferCrossShard(t *testing.T) {
 		nodeInDifferentShard.OwnAccount.Address,
 		nodeInDifferentShard.OwnAccount.Address,
 		nodes,
-		tokenIdentifier,
+		[]byte(tokenIdentifier),
 		nftMetaData,
 		1,
 	)
@@ -451,7 +451,7 @@ func TestESDTSemiFungibleTokenTransferCrossShard(t *testing.T) {
 		nodeInDifferentShard.OwnAccount.Address,
 		nodeInDifferentShard.OwnAccount.Address,
 		nodes,
-		tokenIdentifier,
+		[]byte(tokenIdentifier),
 		nftMetaData,
 		1,
 	)
@@ -481,7 +481,7 @@ func TestESDTSemiFungibleTokenTransferCrossShard(t *testing.T) {
 		nodeInDifferentShard.OwnAccount.Address,
 		nodeInDifferentShard.OwnAccount.Address,
 		nodes,
-		tokenIdentifier,
+		[]byte(tokenIdentifier),
 		nftMetaData,
 		1,
 	)
@@ -492,7 +492,7 @@ func TestESDTSemiFungibleTokenTransferCrossShard(t *testing.T) {
 		nodeInDifferentShard.OwnAccount.Address,
 		nodes[0].OwnAccount.Address,
 		nodes,
-		tokenIdentifier,
+		[]byte(tokenIdentifier),
 		nftMetaData,
 		1,
 	)
@@ -580,7 +580,7 @@ func TestESDTSemiFungibleTokenTransferToSystemScAddressShouldReceiveBack(t *test
 		nodes[0].OwnAccount.Address,
 		nodes[0].OwnAccount.Address,
 		nodes,
-		tokenIdentifier,
+		[]byte(tokenIdentifier),
 		nftMetaData,
 		1,
 	)
@@ -595,7 +595,7 @@ func TestESDTSemiFungibleTokenTransferToSystemScAddressShouldReceiveBack(t *test
 		nodes[0].OwnAccount.Address,
 		nodes[0].OwnAccount.Address,
 		nodes,
-		tokenIdentifier,
+		[]byte(tokenIdentifier),
 		nftMetaData,
 		1,
 	)
@@ -625,7 +625,7 @@ func TestESDTSemiFungibleTokenTransferToSystemScAddressShouldReceiveBack(t *test
 		nodes[0].OwnAccount.Address,
 		vm.ESDTSCAddress,
 		nodes,
-		tokenIdentifier,
+		[]byte(tokenIdentifier),
 		nftMetaData,
 		1,
 	)
@@ -636,7 +636,7 @@ func TestESDTSemiFungibleTokenTransferToSystemScAddressShouldReceiveBack(t *test
 		nodes[0].OwnAccount.Address,
 		nodes[0].OwnAccount.Address,
 		nodes,
-		tokenIdentifier,
+		[]byte(tokenIdentifier),
 		nftMetaData,
 		1,
 	)
@@ -721,7 +721,7 @@ func testNFTSendCreateRole(t *testing.T, numOfShards int) {
 		nextNftCreator.OwnAccount.Address,
 		nextNftCreator.OwnAccount.Address,
 		nodes,
-		tokenIdentifier,
+		[]byte(tokenIdentifier),
 		nftMetaData,
 		2,
 	)
@@ -789,7 +789,7 @@ func prepareNFTWithRoles(
 		nftCreator.OwnAccount.Address,
 		nftCreator.OwnAccount.Address,
 		nodes,
-		tokenIdentifier,
+		[]byte(tokenIdentifier),
 		&nftMetaData,
 		1,
 	)
@@ -826,13 +826,11 @@ func checkNftData(
 	creator []byte,
 	address []byte,
 	nodes []*integrationTests.TestProcessorNode,
-	tokenName string,
+	tickerID []byte,
 	args *nftArguments,
 	nonce uint64,
 ) {
-	tokenIdentifierPlusNonce := []byte(tokenName)
-	tokenIdentifierPlusNonce = append(tokenIdentifierPlusNonce, big.NewInt(0).SetUint64(nonce).Bytes()...)
-	esdtData := esdt.GetESDTTokenData(t, address, nodes, string(tokenIdentifierPlusNonce))
+	esdtData := esdt.GetESDTTokenData(t, address, nodes, tickerID, nonce)
 
 	if args.quantity == 0 {
 		require.Nil(t, esdtData.TokenMetaData)
