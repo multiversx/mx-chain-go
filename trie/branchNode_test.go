@@ -62,9 +62,10 @@ func newEmptyTrie() (*patriciaMerkleTrie, *trieStorageManager) {
 		MaxOpenFiles:      10,
 	}
 	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:   1000,
-		SnapshotsBufferLen: 10,
-		MaxSnapshots:       2,
+		PruningBufferLen:      1000,
+		SnapshotsBufferLen:    10,
+		MaxSnapshots:          2,
+		SnapshotsGoroutineNum: 1,
 	}
 
 	args := NewTrieStorageManagerArgs{
@@ -206,7 +207,7 @@ func TestBranchNode_setRootHash(t *testing.T) {
 		Marshalizer:            marsh,
 		Hasher:                 hsh,
 		SnapshotDbConfig:       cfg,
-		GeneralConfig:          config.TrieStorageManagerConfig{},
+		GeneralConfig:          config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, uint64(hsh.Size())),
 		EpochNotifier:          &mock.EpochNotifierStub{},
 	}
@@ -218,7 +219,7 @@ func TestBranchNode_setRootHash(t *testing.T) {
 		Marshalizer:            marsh,
 		Hasher:                 hsh,
 		SnapshotDbConfig:       cfg,
-		GeneralConfig:          config.TrieStorageManagerConfig{},
+		GeneralConfig:          config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, uint64(hsh.Size())),
 		EpochNotifier:          &mock.EpochNotifierStub{},
 	}

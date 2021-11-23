@@ -168,7 +168,7 @@ func createAccountAdapter(
 		return nil, err
 	}
 
-	adb, err := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory, disabled.NewDisabledStoragePruningManager(), false)
+	adb, err := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory, disabled.NewDisabledStoragePruningManager(), common.Normal)
 	if err != nil {
 		return nil, err
 	}

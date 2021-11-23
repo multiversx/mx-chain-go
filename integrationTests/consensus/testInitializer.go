@@ -21,6 +21,7 @@ import (
 	ed25519SingleSig "github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519/singlesig"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
 	mclsinglesig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -171,9 +172,10 @@ func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 		MaxOpenFiles:      10,
 	}
 	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:   1000,
-		SnapshotsBufferLen: 10,
-		MaxSnapshots:       2,
+		PruningBufferLen:      1000,
+		SnapshotsBufferLen:    10,
+		MaxSnapshots:          2,
+		SnapshotsGoroutineNum: 1,
 	}
 	args := trie.NewTrieStorageManagerArgs{
 		DB:                     store,
@@ -204,7 +206,7 @@ func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 			},
 		},
 		storagePruning,
-		false,
+		common.Normal,
 	)
 	return adb
 }

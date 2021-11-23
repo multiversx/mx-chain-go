@@ -154,18 +154,16 @@ func (tsm *trieStorageManager) doProcessLoop(ctx context.Context, msh marshal.Ma
 	for {
 		select {
 		case snapshotRequest := <-tsm.snapshotReq:
-			err := checkGoRoutinesThrottler(ctx, goRoutinesThrottler)
+			err := tsm.checkGoRoutinesThrottler(ctx, goRoutinesThrottler, snapshotRequest)
 			if err != nil {
-				tsm.finishOperation(snapshotRequest, "did not start snapshot, goroutione is closing")
 				return
 			}
 
 			goRoutinesThrottler.StartProcessing()
 			go tsm.takeSnapshot(snapshotRequest, msh, hsh, ctx, goRoutinesThrottler)
 		case snapshotRequest := <-tsm.checkpointReq:
-			err := checkGoRoutinesThrottler(ctx, goRoutinesThrottler)
+			err := tsm.checkGoRoutinesThrottler(ctx, goRoutinesThrottler, snapshotRequest)
 			if err != nil {
-				tsm.finishOperation(snapshotRequest, "did not start checkpoint, goroutione is closing")
 				return
 			}
 
@@ -177,7 +175,11 @@ func (tsm *trieStorageManager) doProcessLoop(ctx context.Context, msh marshal.Ma
 	}
 }
 
-func checkGoRoutinesThrottler(ctx context.Context, goRoutinesThrottler core.Throttler) error {
+func (tsm *trieStorageManager) checkGoRoutinesThrottler(
+	ctx context.Context,
+	goRoutinesThrottler core.Throttler,
+	snapshotRequest *snapshotsQueueEntry,
+) error {
 	for {
 		if goRoutinesThrottler.CanProcess() {
 			break
@@ -187,6 +189,7 @@ func checkGoRoutinesThrottler(ctx context.Context, goRoutinesThrottler core.Thro
 		case <-time.After(time.Millisecond * 100):
 			continue
 		case <-ctx.Done():
+			tsm.finishOperation(snapshotRequest, "did not start snapshot, goroutione is closing")
 			return ErrTimeIsOut
 		}
 	}

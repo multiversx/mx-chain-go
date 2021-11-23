@@ -17,9 +17,10 @@ import (
 
 func getDefaultTrieAndAccountsDbAndStoragePruningManager() (common.Trie, *state.AccountsDB, *storagePruningManager) {
 	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:   1000,
-		SnapshotsBufferLen: 10,
-		MaxSnapshots:       2,
+		PruningBufferLen:      1000,
+		SnapshotsBufferLen:    10,
+		MaxSnapshots:          2,
+		SnapshotsGoroutineNum: 1,
 	}
 	marshalizer := &testscommon.MarshalizerMock{}
 	hsh := testscommon.HasherMock{}
@@ -40,7 +41,7 @@ func getDefaultTrieAndAccountsDbAndStoragePruningManager() (common.Trie, *state.
 	tr, _ := trie.NewTrie(trieStorage, marshalizer, hsh, 5)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, testscommon.NewMemDbMock(), marshalizer)
 	spm, _ := NewStoragePruningManager(ewl, generalCfg.PruningBufferLen)
-	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, factory.NewAccountCreator(), spm, false)
+	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, factory.NewAccountCreator(), spm, common.Normal)
 
 	return tr, adb, spm
 }

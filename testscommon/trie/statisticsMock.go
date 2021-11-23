@@ -25,3 +25,7 @@ func (m *MockStatistics) NewSnapshotStarted() {
 func (m *MockStatistics) NewDataTrie() {
 	m.numDataTries++
 }
+
+// WaitForSnapshotsToFinish -
+func (m *MockStatistics) WaitForSnapshotsToFinish() {
+}

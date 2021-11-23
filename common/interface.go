@@ -112,4 +112,5 @@ type SnapshotStatisticsHandler interface {
 	SnapshotFinished()
 	NewSnapshotStarted()
 	NewDataTrie()
+	WaitForSnapshotsToFinish()
 }

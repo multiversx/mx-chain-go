@@ -399,7 +399,7 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32) (state.Accoun
 				si.marshalizer,
 				accountFactory,
 				disabled.NewDisabledStoragePruningManager(),
-				false,
+				common.Normal,
 			)
 			if errCreate != nil {
 				return nil, nil, errCreate
@@ -420,7 +420,7 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32) (state.Accoun
 		si.marshalizer,
 		accountFactory,
 		disabled.NewDisabledStoragePruningManager(),
-		false,
+		common.Normal,
 	)
 	si.accountDBsMap[shardID] = accountsDB
 	return accountsDB, currentTrie, err

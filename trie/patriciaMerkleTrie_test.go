@@ -47,9 +47,10 @@ func getDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, has
 		MaxOpenFiles:      10,
 	}
 	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:   1000,
-		SnapshotsBufferLen: 10,
-		MaxSnapshots:       2,
+		PruningBufferLen:      1000,
+		SnapshotsBufferLen:    10,
+		MaxSnapshots:          2,
+		SnapshotsGoroutineNum: 1,
 	}
 	args := trie.NewTrieStorageManagerArgs{
 		DB:                     db,

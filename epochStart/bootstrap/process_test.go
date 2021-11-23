@@ -124,9 +124,10 @@ func createMockEpochStartBootstrapArgs(
 				MaxPeerTrieLevelInMemory:    5,
 			},
 			TrieStorageManagerConfig: config.TrieStorageManagerConfig{
-				PruningBufferLen:   1000,
-				SnapshotsBufferLen: 10,
-				MaxSnapshots:       2,
+				PruningBufferLen:      1000,
+				SnapshotsBufferLen:    10,
+				MaxSnapshots:          2,
+				SnapshotsGoroutineNum: 1,
 			},
 			WhiteListPool: config.CacheConfig{
 				Type:     "LRU",

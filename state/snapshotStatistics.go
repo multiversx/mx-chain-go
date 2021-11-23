@@ -15,6 +15,15 @@ type snapshotStatistics struct {
 	mutex sync.RWMutex
 }
 
+func newSnapshotStatistics(delta int) *snapshotStatistics {
+	wg := &sync.WaitGroup{}
+	wg.Add(delta)
+	return &snapshotStatistics{
+		wg:        wg,
+		startTime: time.Now(),
+	}
+}
+
 // AddSize will add the given size to the trie size counter
 func (ss *snapshotStatistics) AddSize(size uint64) {
 	ss.mutex.Lock()
@@ -26,17 +35,11 @@ func (ss *snapshotStatistics) AddSize(size uint64) {
 
 // SnapshotFinished marks the ending of a snapshot goroutine
 func (ss *snapshotStatistics) SnapshotFinished() {
-	ss.mutex.Lock()
-	defer ss.mutex.Unlock()
-
 	ss.wg.Done()
 }
 
 // NewSnapshotStarted marks the starting of a new snapshot goroutine
 func (ss *snapshotStatistics) NewSnapshotStarted() {
-	ss.mutex.Lock()
-	defer ss.mutex.Unlock()
-
 	ss.wg.Add(1)
 }
 
@@ -46,4 +49,9 @@ func (ss *snapshotStatistics) NewDataTrie() {
 	defer ss.mutex.Unlock()
 
 	ss.numDataTries++
+}
+
+// WaitForSnapshotsToFinish will wait until the waitGroup counter is zero
+func (ss *snapshotStatistics) WaitForSnapshotsToFinish() {
+	ss.wg.Wait()
 }

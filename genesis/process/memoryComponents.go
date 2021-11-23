@@ -28,7 +28,7 @@ func createAccountAdapter(
 		marshalizer,
 		accountFactory,
 		disabled.NewDisabledStoragePruningManager(),
-		false,
+		common.Normal,
 	)
 	if err != nil {
 		return nil, err

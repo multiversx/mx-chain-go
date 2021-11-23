@@ -1041,13 +1041,17 @@ func (nr *nodeRunner) CreateManagedStateComponents(
 	managedBootstrapComponents mainFactory.BootstrapComponentsHandler,
 	managedDataComponents mainFactory.DataComponentsHandler,
 ) (mainFactory.StateComponentsHandler, error) {
+	processingMode := common.Normal
+	if nr.configs.ImportDbConfig.IsImportDBMode {
+		processingMode = common.ImportDb
+	}
 	stateArgs := mainFactory.StateComponentsFactoryArgs{
 		Config:           *nr.configs.GeneralConfig,
 		EnableEpochs:     nr.configs.EpochConfig.EnableEpochs,
 		ShardCoordinator: managedBootstrapComponents.ShardCoordinator(),
 		Core:             managedCoreComponents,
 		StorageService:   managedDataComponents.StorageService(),
-		IsImportDbMode:   nr.configs.ImportDbConfig.IsImportDBMode,
+		ProcessingMode:   processingMode,
 	}
 
 	stateComponentsFactory, err := mainFactory.NewStateComponentsFactory(stateArgs)

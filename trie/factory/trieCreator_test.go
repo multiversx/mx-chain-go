@@ -18,9 +18,10 @@ import (
 
 func getArgs() factory.TrieFactoryArgs {
 	return factory.TrieFactoryArgs{
-		Marshalizer: &testscommon.MarshalizerMock{},
-		Hasher:      &testscommon.HasherMock{},
-		PathManager: &testscommon.PathManagerStub{},
+		Marshalizer:              &testscommon.MarshalizerMock{},
+		Hasher:                   &testscommon.HasherMock{},
+		PathManager:              &testscommon.PathManagerStub{},
+		TrieStorageManagerConfig: config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
 	}
 }
 

@@ -95,7 +95,7 @@ func TestTrieStorageManager_Close(t *testing.T) {
 		Marshalizer:            &testscommon.MarshalizerMock{},
 		Hasher:                 &testscommon.HasherMock{},
 		SnapshotDbConfig:       config.DBConfig{},
-		GeneralConfig:          config.TrieStorageManagerConfig{},
+		GeneralConfig:          config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, 32),
 		EpochNotifier:          &mock.EpochNotifierStub{},
 	}
@@ -131,7 +131,7 @@ func TestTrieStorageManager_CloseErr(t *testing.T) {
 		Marshalizer:                &testscommon.MarshalizerMock{},
 		Hasher:                     &testscommon.HasherMock{},
 		SnapshotDbConfig:           config.DBConfig{},
-		GeneralConfig:              config.TrieStorageManagerConfig{},
+		GeneralConfig:              config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
 		CheckpointHashesHolder:     hashesHolder.NewCheckpointHashesHolder(10, 32),
 		DisableOldTrieStorageEpoch: 1,
 		EpochNotifier:              &mock.EpochNotifierStub{},

@@ -81,8 +81,9 @@ type PruningStorer struct {
 	shardCoordinator storage.ShardCoordinator
 	activePersisters []*persisterData
 	// it is mandatory to keep map of pointers for persistersMapByEpoch as a loaded pointer might get modified in inner functions
-	persistersMapByEpoch   map[uint32]*persisterData
-	cacher                 storage.Cacher
+	persistersMapByEpoch map[uint32]*persisterData
+	cacher               storage.Cacher
+	// TODO remove bloom filter
 	bloomFilter            storage.BloomFilter
 	pathManager            storage.PathManagerHandler
 	dbPath                 string
@@ -248,37 +249,13 @@ func initPersistersInEpoch(
 func (ps *PruningStorer) Put(key, data []byte) error {
 	ps.cacher.Put(key, data, len(data))
 
-	ps.lock.RLock()
-	persisterToUse := ps.activePersisters[0]
-	if ps.pruningEnabled {
-		persisterInSetEpoch, ok := ps.persistersMapByEpoch[ps.epochForPutOperation]
-		if ok && !persisterInSetEpoch.getIsClosed() {
-			persisterToUse = persisterInSetEpoch
-		} else {
-			log.Debug("active persister not found",
-				"epoch", ps.epochForPutOperation,
-				"used", persisterToUse.epoch)
-		}
-	}
-	ps.lock.RUnlock()
+	persisterToUse := ps.getPersisterToUse()
 	return ps.doPutInPersister(key, data, persisterToUse.getPersister())
 }
 
 // PutWithoutCache adds data to persistence medium and updates the bloom filter
 func (ps *PruningStorer) PutWithoutCache(key, data []byte) error {
-	ps.lock.RLock()
-	persisterToUse := ps.activePersisters[0]
-	if ps.pruningEnabled {
-		persisterInSetEpoch, ok := ps.persistersMapByEpoch[ps.epochForPutOperation]
-		if ok && !persisterInSetEpoch.getIsClosed() {
-			persisterToUse = persisterInSetEpoch
-		} else {
-			log.Debug("active persister not found",
-				"epoch", ps.epochForPutOperation,
-				"used", persisterToUse.epoch)
-		}
-	}
-	ps.lock.RUnlock()
+	persisterToUse := ps.getPersisterToUse()
 
 	err := persisterToUse.getPersister().Put(key, data)
 	if err != nil {
@@ -290,6 +267,27 @@ func (ps *PruningStorer) PutWithoutCache(key, data []byte) error {
 	}
 
 	return nil
+}
+
+func (ps *PruningStorer) getPersisterToUse() *persisterData {
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+
+	persisterToUse := ps.activePersisters[0]
+	if !ps.pruningEnabled {
+		return persisterToUse
+	}
+
+	persisterInSetEpoch, ok := ps.persistersMapByEpoch[ps.epochForPutOperation]
+	if ok && !persisterInSetEpoch.getIsClosed() {
+		persisterToUse = persisterInSetEpoch
+	} else {
+		log.Debug("active persister not found",
+			"epoch", ps.epochForPutOperation,
+			"used", persisterToUse.epoch)
+	}
+
+	return persisterToUse
 }
 
 func (ps *PruningStorer) doPutInPersister(key, data []byte, persister storage.Persister) error {
@@ -401,14 +399,6 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 
 // GetFromOldEpochsWithoutCache searches the old epochs for the given key without updating the cache
 func (ps *PruningStorer) GetFromOldEpochsWithoutCache(key []byte) ([]byte, error) {
-	v, ok := ps.cacher.Get(key)
-	if ok {
-		buff, isByteSlice := v.([]byte)
-		if isByteSlice {
-			return buff, nil
-		}
-	}
-
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 

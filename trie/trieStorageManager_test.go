@@ -29,7 +29,7 @@ func getNewTrieStorageManagerArgs() trie.NewTrieStorageManagerArgs {
 		Marshalizer:            &mock.MarshalizerMock{},
 		Hasher:                 &mock.HasherMock{},
 		SnapshotDbConfig:       config.DBConfig{},
-		GeneralConfig:          config.TrieStorageManagerConfig{},
+		GeneralConfig:          config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, hashSize),
 		EpochNotifier:          &mock.EpochNotifierStub{},
 	}
@@ -96,9 +96,10 @@ func TestNewTrieStorageManagerWithExistingSnapshot(t *testing.T) {
 		MaxOpenFiles:      10,
 	}
 	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:   1000,
-		SnapshotsBufferLen: 10,
-		MaxSnapshots:       2,
+		PruningBufferLen:      1000,
+		SnapshotsBufferLen:    10,
+		MaxSnapshots:          2,
+		SnapshotsGoroutineNum: 1,
 	}
 
 	args := getNewTrieStorageManagerArgs()
@@ -138,9 +139,10 @@ func TestNewTrieStorageManagerLoadsSnapshotsInOrder(t *testing.T) {
 		MaxOpenFiles:      10,
 	}
 	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:   1000,
-		SnapshotsBufferLen: 10,
-		MaxSnapshots:       2,
+		PruningBufferLen:      1000,
+		SnapshotsBufferLen:    10,
+		MaxSnapshots:          2,
+		SnapshotsGoroutineNum: 1,
 	}
 
 	args := getNewTrieStorageManagerArgs()

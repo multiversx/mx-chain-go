@@ -222,14 +222,16 @@ func getStateArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator 
 				},
 			},
 			TrieStorageManagerConfig: config.TrieStorageManagerConfig{
-				PruningBufferLen:   1000,
-				SnapshotsBufferLen: 10,
-				MaxSnapshots:       2,
+				PruningBufferLen:      1000,
+				SnapshotsBufferLen:    10,
+				MaxSnapshots:          2,
+				SnapshotsGoroutineNum: 1,
 			},
 		},
 		ShardCoordinator: shardCoordinator,
 		Core:             coreComponents,
 		StorageService:   disabled.NewChainStorer(),
+		ProcessingMode:   common.Normal,
 	}
 
 	return stateComponentsFactoryArgs
