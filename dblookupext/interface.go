@@ -2,6 +2,7 @@ package dblookupext
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go/dblookupext/esdtSupply"
 )
 
 // HistoryRepositoryFactory can create new instances of HistoryRepository
@@ -25,7 +26,7 @@ type HistoryRepository interface {
 	GetEpochByHash(hash []byte) (uint32, error)
 	GetResultsHashesByTxHash(txHash []byte, epoch uint32) (*ResultsHashesByTxHash, error)
 	RevertBlock(blockHeader data.HeaderHandler, blockBody data.BodyHandler) error
-	GetESDTSupply(token string) (string, error)
+	GetESDTSupply(token string) (*esdtSupply.SupplyESDT, error)
 	IsEnabled() bool
 	IsInterfaceNil() bool
 }
@@ -43,6 +44,6 @@ type BlockTracker interface {
 type SuppliesHandler interface {
 	ProcessLogs(blockNonce uint64, logs map[string]data.LogHandler) error
 	RevertChanges(header data.HeaderHandler, body data.BodyHandler) error
-	GetESDTSupply(token string) (string, error)
+	GetESDTSupply(token string) (*esdtSupply.SupplyESDT, error)
 	IsInterfaceNil() bool
 }
