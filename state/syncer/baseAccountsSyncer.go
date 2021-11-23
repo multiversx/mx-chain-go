@@ -133,13 +133,13 @@ func (b *baseAccountsSyncer) printStatistics(ssh common.SizeSyncStatisticsHandle
 
 			log.Info("finished trie sync",
 				"name", b.name,
-				"num received", ssh.NumReceived(),
+				"time elapsed", totalSyncDuration.Truncate(time.Second),
+				"num processed", ssh.NumReceived(),
 				"num large nodes", ssh.NumLarge(),
 				"num missing", ssh.NumMissing(),
-				"data size received", core.ConvertBytes(ssh.NumBytesReceived()),
+				"state data size", core.ConvertBytes(ssh.NumBytesReceived()),
 				"peak network speed", peakSpeed,
 				"average network speed", averageSpeed,
-				"total sync duration", totalSyncDuration,
 			)
 			return
 		case <-time.After(timeBetweenStatisticsPrints):
@@ -156,13 +156,15 @@ func (b *baseAccountsSyncer) printStatistics(ssh common.SizeSyncStatisticsHandle
 
 			log.Info("trie sync in progress",
 				"name", b.name,
-				"num received", ssh.NumReceived(),
+				"time elapsed", time.Since(startedSync).Truncate(time.Second),
+				"num tries currently syncing", ssh.NumTries(),
+				"num processed", ssh.NumReceived(),
 				"num large nodes", ssh.NumLarge(),
 				"num missing", ssh.NumMissing(),
-				"num tries", fmt.Sprintf("%d/%d", atomic.LoadInt32(&b.numTriesSynced), atomic.LoadInt32(&b.numMaxTries)),
+				"num tries synced", fmt.Sprintf("%d/%d", atomic.LoadInt32(&b.numTriesSynced), atomic.LoadInt32(&b.numMaxTries)),
 				"intercepted trie nodes cache size", core.ConvertBytes(b.cacher.SizeInBytesContained()),
 				"num of intercepted trie nodes", b.cacher.Len(),
-				"data size received", core.ConvertBytes(ssh.NumBytesReceived()),
+				"state data size", core.ConvertBytes(ssh.NumBytesReceived()),
 				"network speed", speed)
 		}
 	}

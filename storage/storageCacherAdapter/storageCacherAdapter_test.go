@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewStorageCacherAdapter_NilCacher(t *testing.T) {
@@ -126,6 +127,49 @@ func TestStorageCacherAdapter_Put(t *testing.T) {
 	assert.True(t, addSizedAndReturnEvictedCalled)
 }
 
+func TestStorageCacherAdapter_PutWithClosedDB(t *testing.T) {
+	t.Parallel()
+
+	addedKey := "key1"
+	addedVal := []byte("value1")
+	addSizedAndReturnEvictedCalled := false
+	putCalled := false
+	sca, err := NewStorageCacherAdapter(
+		&storageMock.AdaptedSizedLruCacheStub{
+			AddSizedAndReturnEvictedCalled: func(key, value interface{}, _ int64) map[interface{}]interface{} {
+				stringKey, ok := key.(string)
+				assert.True(t, ok)
+				assert.Equal(t, addedKey, stringKey)
+
+				res := make(map[interface{}]interface{})
+				res[100] = 10
+				res[stringKey] = value
+
+				addSizedAndReturnEvictedCalled = true
+				return res
+			},
+		},
+		&storageMock.PersisterStub{
+			PutCalled: func(key, _ []byte) error {
+				assert.Equal(t, []byte(addedKey), key)
+				putCalled = true
+				return nil
+			},
+		},
+		trieFactory.NewTrieNodeFactory(),
+		&mock.MarshalizerMock{},
+	)
+	require.Nil(t, err)
+
+	err = sca.Close()
+	require.Nil(t, err)
+
+	evicted := sca.Put([]byte(addedKey), addedVal, 100)
+	assert.True(t, evicted)
+	assert.False(t, putCalled)
+	assert.True(t, addSizedAndReturnEvictedCalled)
+}
+
 func TestStorageCacherAdapter_GetFoundInCacherShouldNotCallDbGet(t *testing.T) {
 	t.Parallel()
 
@@ -215,6 +259,42 @@ func TestStorageCacherAdapter_GetFromDb(t *testing.T) {
 	assert.Equal(t, testData.Value, val.Value)
 	assert.True(t, cacherGetCalled)
 	assert.True(t, dbGetCalled)
+}
+
+func TestStorageCacherAdapter_GetWithClosedDB(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &mock.MarshalizerMock{}
+	cacherGetCalled := false
+	dbGetCalled := false
+	sca, err := NewStorageCacherAdapter(
+		&storageMock.AdaptedSizedLruCacheStub{
+			GetCalled: func(_ interface{}) (interface{}, bool) {
+				cacherGetCalled = true
+				return nil, false
+			},
+		},
+		&storageMock.PersisterStub{
+			GetCalled: func(_ []byte) ([]byte, error) {
+				dbGetCalled = true
+				return nil, nil
+			},
+		},
+		&testStoredDataImpl{},
+		marshalizer,
+	)
+	assert.Nil(t, err)
+
+	err = sca.Close()
+	require.Nil(t, err)
+
+	retrievedVal, _ := sca.Get([]byte("key"))
+
+	val, ok := retrievedVal.(*testStoredData)
+	assert.False(t, ok)
+	assert.Nil(t, val)
+	assert.True(t, cacherGetCalled)
+	assert.False(t, dbGetCalled)
 }
 
 func TestStorageCacherAdapter_HasReturnsIfFoundInCacher(t *testing.T) {
@@ -310,6 +390,39 @@ func TestStorageCacherAdapter_HasReturnsFalseIfNotFound(t *testing.T) {
 	assert.True(t, hasCalled)
 }
 
+func TestStorageCacherAdapter_HasWithClosedDB(t *testing.T) {
+	t.Parallel()
+
+	containsCalled := false
+	hasCalled := false
+	sca, err := NewStorageCacherAdapter(
+		&storageMock.AdaptedSizedLruCacheStub{
+			ContainsCalled: func(_ interface{}) bool {
+				containsCalled = true
+				return false
+			},
+		},
+		&storageMock.PersisterStub{
+			HasCalled: func(_ []byte) error {
+				hasCalled = true
+				return nil
+			},
+		},
+		trieFactory.NewTrieNodeFactory(),
+		&mock.MarshalizerMock{},
+	)
+	assert.Nil(t, err)
+
+	err = sca.Close()
+	require.Nil(t, err)
+
+	isPresent := sca.Has([]byte("key"))
+
+	assert.False(t, isPresent)
+	assert.True(t, containsCalled)
+	assert.False(t, hasCalled)
+}
+
 func TestStorageCacherAdapter_Peek(t *testing.T) {
 	t.Parallel()
 
@@ -398,6 +511,38 @@ func TestStorageCacherAdapter_RemoveFromDb(t *testing.T) {
 	assert.True(t, dbRemoveCalled)
 }
 
+func TestStorageCacherAdapter_RemoveWithClosedDB(t *testing.T) {
+	t.Parallel()
+
+	cacherRemoveCalled := false
+	dbRemoveCalled := false
+	sca, err := NewStorageCacherAdapter(
+		&storageMock.AdaptedSizedLruCacheStub{
+			RemoveCalled: func(_ interface{}) bool {
+				cacherRemoveCalled = true
+				return false
+			},
+		},
+		&storageMock.PersisterStub{
+			RemoveCalled: func(_ []byte) error {
+				dbRemoveCalled = true
+				return nil
+			},
+		},
+		trieFactory.NewTrieNodeFactory(),
+		&mock.MarshalizerMock{},
+	)
+	assert.Nil(t, err)
+
+	err = sca.Close()
+	require.Nil(t, err)
+
+	sca.Remove([]byte("key"))
+
+	assert.True(t, cacherRemoveCalled)
+	assert.False(t, dbRemoveCalled)
+}
+
 func TestStorageCacherAdapter_Keys(t *testing.T) {
 	t.Parallel()
 
@@ -406,9 +551,7 @@ func TestStorageCacherAdapter_Keys(t *testing.T) {
 	sca, err := NewStorageCacherAdapter(
 		&storageMock.AdaptedSizedLruCacheStub{
 			KeysCalled: func() []interface{} {
-				res := make([]interface{}, 0)
-				res = append(res, "key2")
-				return res
+				return []interface{}{"key2"}
 			},
 		},
 		db,
@@ -419,6 +562,31 @@ func TestStorageCacherAdapter_Keys(t *testing.T) {
 
 	keys := sca.Keys()
 	assert.Equal(t, 2, len(keys))
+}
+
+func TestStorageCacherAdapter_KeysWithClosedDB(t *testing.T) {
+	t.Parallel()
+
+	db := testscommon.NewMemDbMock()
+	_ = db.Put([]byte("key"), []byte("val"))
+	sca, err := NewStorageCacherAdapter(
+		&storageMock.AdaptedSizedLruCacheStub{
+			KeysCalled: func() []interface{} {
+				return []interface{}{"key2"}
+			},
+		},
+		db,
+		trieFactory.NewTrieNodeFactory(),
+		&mock.MarshalizerMock{},
+	)
+	assert.Nil(t, err)
+
+	err = sca.Close()
+	require.Nil(t, err)
+
+	keys := sca.Keys()
+	assert.Equal(t, 1, len(keys))
+	assert.Equal(t, []byte("key2"), keys[0])
 }
 
 func TestStorageCacherAdapter_Len(t *testing.T) {
