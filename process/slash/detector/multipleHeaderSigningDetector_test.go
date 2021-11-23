@@ -3,13 +3,18 @@ package detector_test
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"strconv"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
+	"github.com/ElrondNetwork/elrond-go-core/core/sliceUtil"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	mock2 "github.com/ElrondNetwork/elrond-go-core/data/mock"
 	coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	mockEpochStart "github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
@@ -711,6 +716,75 @@ func TestMultipleHeaderSigningDetector_SignedHeader_CannotVerifySignature_Expect
 	header := &block.Header{Round: 1}
 	signedHeader := ssd.SignedHeader(validatorPubKey, header)
 	require.False(t, signedHeader)
+}
+
+func BenchmarkMultipleHeaderSigningDetector_ValidateProof(b *testing.B) {
+	// Worst case scenario: 25% of a consensus group of 400 validators on metachain signed 3 different headers
+	noOfPubKeys := uint32(0.25 * 400)
+	noOfHeaders := uint32(3)
+	validators := make([]sharding.Validator, 0, noOfPubKeys)
+	slashRes := GenerateSlashResults(b, noOfPubKeys, noOfHeaders)
+	for pubKey := range slashRes {
+		currValidator := mock.NewValidatorMock([]byte(pubKey))
+		validators = append(validators, currValidator)
+	}
+
+	args := generateMultipleHeaderSigningDetectorArgs()
+	args.NodesCoordinator = &mockEpochStart.NodesCoordinatorStub{
+		ComputeConsensusGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
+			return validators, nil
+		},
+	}
+	ssd, _ := detector.NewMultipleHeaderSigningDetector(args)
+
+	for n := 0; n < b.N; n++ {
+		b.StopTimer()
+		proof, err := coreSlash.NewMultipleSigningProof(slashRes)
+		require.NotNil(b, proof)
+		require.Nil(b, err)
+		b.StartTimer()
+
+		err = ssd.ValidateProof(proof)
+		require.Nil(b, err)
+	}
+}
+
+func GenerateSlashResults(b *testing.B, noOfPubKeys uint32, noOfHeaders uint32) map[string]coreSlash.SlashingResult {
+	hasher := &hashingMocks.HasherMock{}
+	marshaller := &marshal.GogoProtoMarshalizer{}
+
+	bitmap := make([]byte, noOfPubKeys/8+1)
+	for i := 0; i < int(noOfPubKeys); i++ {
+		sliceUtil.SetIndexInBitmap(uint32(i), bitmap)
+	}
+
+	headers := make([]data.HeaderInfoHandler, 0, noOfHeaders)
+	for i := 0; i < int(noOfHeaders); i++ {
+		header := &block.HeaderV2{Header: &block.Header{Round: 1, TimeStamp: uint64(i), PubKeysBitmap: bitmap}}
+		hash, err := core.CalculateHash(marshaller, hasher, header)
+		require.Nil(b, err)
+
+		headerInfo := &mock2.HeaderInfoStub{Header: header, Hash: hash}
+		headers = append(headers, headerInfo)
+	}
+
+	threatLevel := coreSlash.Zero
+	if noOfHeaders == coreSlash.MinSlashableNoOfHeaders {
+		threatLevel = coreSlash.Medium
+	} else if noOfHeaders >= coreSlash.MinSlashableNoOfHeaders {
+		threatLevel = coreSlash.High
+	}
+	slashRes := make(map[string]coreSlash.SlashingResult, noOfPubKeys)
+	for i := 0; i < int(noOfPubKeys); i++ {
+		tmp := fmt.Sprintf("pubKey%v", i)
+		pubKey := hasher.Compute(tmp)
+		slashRes[string(pubKey)] = coreSlash.SlashingResult{
+			Headers:       headers,
+			SlashingLevel: threatLevel,
+		}
+	}
+
+	return slashRes
 }
 
 func generateMultipleHeaderSigningDetectorArgs() *detector.MultipleHeaderSigningDetectorArgs {
