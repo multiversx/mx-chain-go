@@ -452,7 +452,7 @@ func (ap *accountsParser) setTxsPoolAndMiniBlocks(
 	return nil
 }
 
-// GenerateInitialTransactions will generate initial transactions pool and the in shard miniblocks for the generated transactions
+// GenerateInitialTransactions will generate initial transactions pool and the miniblocks for the generated transactions
 func (ap *accountsParser) GenerateInitialTransactions(
 	shardCoordinator sharding.Coordinator,
 	indexingData map[uint32]genesis.InitialIndexingDataHandler,

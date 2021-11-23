@@ -128,12 +128,7 @@ func CreateShardGenesisBlock(
 	}
 
 	scrsTxs := processors.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
-	log.Debug("shard block genesis", "num scrs txs", len(scrsTxs))
-
 	indexingData.ScrsTxs = scrsTxs
-
-	allTxs := processors.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock)
-	log.Debug("shard block genesis", "num all txs", len(allTxs))
 
 	rootHash, err := arg.Accounts.Commit()
 	if err != nil {

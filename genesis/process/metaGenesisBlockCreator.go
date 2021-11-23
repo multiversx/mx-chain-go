@@ -62,7 +62,6 @@ func CreateMetaGenesisBlock(
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	log.Debug("shard block genesis", "num deploySystemSC txs", len(deploySystemSCTxs))
 	indexingData.DeploySystemScTxs = deploySystemSCTxs
 
 	stakingTxs, err := setStakedData(arg, processors, nodesListSplitter)
@@ -78,11 +77,6 @@ func CreateMetaGenesisBlock(
 
 	scrsTxs := processors.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
 	indexingData.ScrsTxs = scrsTxs
-
-	log.Debug("shard block genesis", "num scrs txs", len(scrsTxs))
-
-	allTxs := processors.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock)
-	log.Debug("shard block genesis", "num all txs", len(allTxs))
 
 	round, nonce, epoch := getGenesisBlocksRoundNonceEpoch(arg)
 
