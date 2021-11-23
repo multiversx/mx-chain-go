@@ -4,10 +4,14 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	coreData "github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	transactionData "github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/genesis/mock"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 func (ap *accountsParser) SetInitialAccounts(initialAccounts []*data.InitialAccount) {
@@ -22,16 +26,20 @@ func (ap *accountsParser) Process() error {
 	return ap.process()
 }
 
-func (ap *accountsParser) GenerateInShardMiniBlocks(txsHashesPerShard map[uint32][][]byte) []*block.MiniBlock {
-	return ap.generateIntraShardMiniBlocks(txsHashesPerShard)
-}
-
 func (ap *accountsParser) SetPukeyConverter(pubkeyConverter core.PubkeyConverter) {
 	ap.pubkeyConverter = pubkeyConverter
 }
 
 func (ap *accountsParser) SetKeyGenerator(keyGen crypto.KeyGenerator) {
 	ap.keyGenerator = keyGen
+}
+
+func (ap *accountsParser) CreateMintTransactions() []coreData.TransactionHandler {
+	return ap.createMintTransactions()
+}
+
+func (ap *accountsParser) CreateMintTransaction(ia genesis.InitialAccountHandler, nonce uint64) *transactionData.Transaction {
+	return ap.createMintTransaction(ia, nonce)
 }
 
 func NewTestAccountsParser(pubkeyConverter core.PubkeyConverter) *accountsParser {
@@ -73,4 +81,12 @@ func (scp *smartContractParser) SetFileHandler(handler func(string) error) {
 
 func (scp *smartContractParser) SetKeyGenerator(keyGen crypto.KeyGenerator) {
 	scp.keyGenerator = keyGen
+}
+
+func CreateMiniBlocks(shardIDs []uint32, blockType block.Type) []*block.MiniBlock {
+	return createMiniBlocks(shardIDs, blockType)
+}
+
+func GetShardIDs(shardCoordinator sharding.Coordinator) []uint32 {
+	return getShardIDs(shardCoordinator)
 }

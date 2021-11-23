@@ -316,29 +316,12 @@ func (ap *accountsParser) createIndexerPools(shardIDs []uint32) map[uint32]*inde
 	return txsPoolPerShard
 }
 
-func (ap *accountsParser) generateIntraShardMiniBlocks(txsHashesPerShard map[uint32][][]byte) []*block.MiniBlock {
-	miniBlocks := make([]*block.MiniBlock, 0)
-
-	for shardId, txsHashes := range txsHashesPerShard {
-		miniBlock := &block.MiniBlock{
-			TxHashes:        txsHashes,
-			ReceiverShardID: shardId,
-			SenderShardID:   shardId,
-			Type:            block.TxBlock,
-		}
-
-		miniBlocks = append(miniBlocks, miniBlock)
-	}
-
-	return miniBlocks
-}
-
-func (ap *accountsParser) generateMintTxs() []coreData.TransactionHandler {
+func (ap *accountsParser) createMintTransactions() []coreData.TransactionHandler {
 	txs := make([]coreData.TransactionHandler, 0)
 
 	var nonce uint64 = 0
 	for _, ia := range ap.initialAccounts {
-		tx := ap.getMintTransaction(ia, nonce)
+		tx := ap.createMintTransaction(ia, nonce)
 
 		nonce++
 
@@ -348,7 +331,7 @@ func (ap *accountsParser) generateMintTxs() []coreData.TransactionHandler {
 	return txs
 }
 
-func (ap *accountsParser) getMintTransaction(ia *data.InitialAccount, nonce uint64) *transactionData.Transaction {
+func (ap *accountsParser) createMintTransaction(ia genesis.InitialAccountHandler, nonce uint64) *transactionData.Transaction {
 	tx := &transactionData.Transaction{
 		Nonce:     nonce,
 		SndAddr:   ap.minterAddressBytes,
@@ -412,8 +395,7 @@ func (ap *accountsParser) setScrsTxsPool(
 	txsPoolPerShard map[uint32]*indexer.Pool,
 ) {
 	for _, id := range indexingData {
-		txs := id.GetScrsTxs()
-		for txHash, tx := range txs {
+		for txHash, tx := range id.GetScrsTxs() {
 			senderShardID := shardCoordinator.ComputeId(tx.GetSndAddr())
 			receiverShardID := shardCoordinator.ComputeId(tx.GetRcvAddr())
 
@@ -479,7 +461,7 @@ func (ap *accountsParser) GenerateInitialTransactions(
 		return nil, nil, genesis.ErrNilShardCoordinator
 	}
 
-	mintTxs := ap.generateMintTxs()
+	mintTxs := ap.createMintTransactions()
 	allTxs := ap.getAllTxs(indexingData, mintTxs)
 
 	shardIDs := getShardIDs(shardCoordinator)

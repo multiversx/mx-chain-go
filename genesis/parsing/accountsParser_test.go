@@ -9,6 +9,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/genesis/mock"
@@ -510,7 +512,7 @@ func TestAccountsParser_GetInitialAccountsForDelegated(t *testing.T) {
 
 //------- GetMintTransactions
 
-func TestAccountsParser_GetMintTransactionsShouldErr(t *testing.T) {
+func TestAccountsParser_GenerateInitialTransactionsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
@@ -524,16 +526,23 @@ func TestAccountsParser_GetMintTransactionsShouldErr(t *testing.T) {
 	assert.Equal(t, genesis.ErrNilShardCoordinator, err)
 }
 
-func TestAccountsParser_generateInShardMiniBlocks(t *testing.T) {
+func TestAccountsParser_getShardIDs(t *testing.T) {
 	t.Parallel()
 
+	sharder := &mock.ShardCoordinatorMock{
+		NumOfShards: 2,
+		SelfShardId: 0,
+	}
+
+	shardIDs := parsing.GetShardIDs(sharder)
+	assert.Equal(t, 3, len(shardIDs))
+}
+
+func TestAccountsParser_createMintTransaction(t *testing.T) {
 	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
 	balance := int64(1)
 	ibs := []*data.InitialAccount{
 		createSimpleInitialAccount("0001", balance),
-		createSimpleInitialAccount("0002", balance),
-		createSimpleInitialAccount("0003", balance),
-		createSimpleInitialAccount("0104", balance),
 	}
 
 	ap.SetEntireSupply(big.NewInt(int64(len(ibs)) * balance))
@@ -542,14 +551,46 @@ func TestAccountsParser_generateInShardMiniBlocks(t *testing.T) {
 	err := ap.Process()
 	require.Nil(t, err)
 
-	var txsHashesPerShard = make(map[uint32][][]byte)
-	txsHashesPerShard[0] = [][]byte{ibs[0].AddressBytes()}
-	txsHashesPerShard[1] = [][]byte{ibs[1].AddressBytes()}
-	txsHashesPerShard[2] = [][]byte{ibs[2].AddressBytes()}
-	txsHashesPerShard[3] = [][]byte{ibs[3].AddressBytes()}
+	ia := ap.InitialAccounts()
 
-	miniBlocks := ap.GenerateInShardMiniBlocks(txsHashesPerShard)
+	tx := ap.CreateMintTransaction(ia[0], uint64(0))
+	assert.Equal(t, uint64(0), tx.GetNonce())
+	assert.Equal(t, ia[0].AddressBytes(), tx.GetRcvAddr())
+	assert.Equal(t, ia[0].GetSupply(), tx.GetValue())
+	assert.Equal(t, []byte{}, tx.GetSndAddr())
+	assert.Equal(t, []byte(common.GenesisTxSignatureString), tx.GetSignature())
+	assert.Equal(t, uint64(0), tx.GetGasLimit())
+	assert.Equal(t, uint64(0), tx.GetGasPrice())
+}
 
+func TestAccountsParser_createMintTransactions(t *testing.T) {
+	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
+	balance := int64(1)
+	ibs := []*data.InitialAccount{
+		createSimpleInitialAccount("0001", balance),
+		createSimpleInitialAccount("0002", balance),
+		createSimpleInitialAccount("0000", balance),
+		createSimpleInitialAccount("0103", balance),
+	}
+
+	ap.SetEntireSupply(big.NewInt(int64(len(ibs)) * balance))
+	ap.SetInitialAccounts(ibs)
+
+	err := ap.Process()
+	require.Nil(t, err)
+
+	txs := ap.CreateMintTransactions()
+	assert.Equal(t, 4, len(txs))
+	assert.Equal(t, uint64(0), txs[0].GetNonce())
+	assert.Equal(t, uint64(3), txs[3].GetNonce())
+}
+
+func TestAccountsParser_createMiniBlocks(t *testing.T) {
+	t.Parallel()
+
+	shardIDs := []uint32{0, 1}
+
+	miniBlocks := parsing.CreateMiniBlocks(shardIDs, block.TxBlock)
 	assert.Equal(t, 4, len(miniBlocks))
 }
 

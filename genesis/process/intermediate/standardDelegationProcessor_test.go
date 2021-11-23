@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	coreData "github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/genesis/mock"
@@ -129,8 +130,6 @@ func TestNewStandardDelegationProcessor_ShouldWork(t *testing.T) {
 
 //------- ExecuteDelegation
 
-// TODO: handler indexingData
-
 func TestStandardDelegationProcessor_ExecuteDelegationSplitFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -151,10 +150,11 @@ func TestStandardDelegationProcessor_ExecuteDelegationSplitFailsShouldErr(t *tes
 
 	dp, _ := NewStandardDelegationProcessor(arg)
 
-	result, _, err := dp.ExecuteDelegation()
+	result, delegationTxs, err := dp.ExecuteDelegation()
 
 	assert.Equal(t, expectedErr, err)
 	assert.Equal(t, genesis.DelegationResult{}, result)
+	assert.Equal(t, []coreData.TransactionHandler(nil), delegationTxs)
 }
 
 func TestStandardDelegationProcessor_ExecuteDelegationNoDelegationScShouldRetNil(t *testing.T) {
