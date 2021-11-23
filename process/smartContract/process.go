@@ -36,6 +36,8 @@ var _ process.SmartContractProcessor = (*scProcessor)(nil)
 var log = logger.GetOrCreate("process/smartcontract")
 
 const maxTotalSCRsSize = 3 * (1 << 18) //768KB
+const generalSCRTopicName = "writeLog"
+const signalError = "signalError"
 
 const (
 	// TooMuchGasProvidedMessage is the message for the too much gas provided error
@@ -454,30 +456,35 @@ func (sc *scProcessor) executeSmartContractCall(
 	return vmOutput, nil
 }
 
+func (sc *scProcessor) isSCROnlyInformational(scr data.TransactionHandler) bool {
+	if scr.GetValue().Cmp(zero) > 0 {
+		return false
+	}
+
+	function, _, err := sc.argsParser.ParseCallData(string(scr.GetData()))
+	if err != nil {
+		return true
+	}
+
+	if core.IsSmartContractAddress(scr.GetRcvAddr()) {
+		return false
+	}
+
+	_, err = sc.builtInFunctions.Get(function)
+	if err != nil {
+		return true
+	}
+
+	return false
+}
+
 func (sc *scProcessor) cleanSCRDataWithOnlyInfo(scrs []data.TransactionHandler) ([]data.TransactionHandler, []*vmcommon.LogEntry) {
 	cleanedUPSCrs := make([]data.TransactionHandler, 0)
 	logsFromSCRs := make([]*vmcommon.LogEntry, 0)
 
 	for _, scr := range scrs {
-		if scr.GetValue().Cmp(zero) > 0 {
-			cleanedUPSCrs = append(cleanedUPSCrs, scr)
-			continue
-		}
-
-		function, _, err := sc.argsParser.ParseCallData(string(scr.GetData()))
-		if err != nil {
-			// create logs from scr
-			continue
-		}
-
-		if core.IsSmartContractAddress(scr.GetRcvAddr()) {
-			cleanedUPSCrs = append(cleanedUPSCrs, scr)
-			continue
-		}
-
-		_, err = sc.builtInFunctions.Get(function)
-		if err != nil {
-			// create logs from scr
+		if sc.isSCROnlyInformational(scr) {
+			logsFromSCRs = append(logsFromSCRs, createNewLogFromSCR(scr))
 			continue
 		}
 
@@ -488,7 +495,7 @@ func (sc *scProcessor) cleanSCRDataWithOnlyInfo(scrs []data.TransactionHandler) 
 		return scrs, logsFromSCRs
 	}
 
-	return nil, nil
+	return cleanedUPSCrs, logsFromSCRs
 }
 
 func (sc *scProcessor) finishSCExecution(
@@ -498,7 +505,9 @@ func (sc *scProcessor) finishSCExecution(
 	vmOutput *vmcommon.VMOutput,
 	builtInFuncGasUsed uint64,
 ) (vmcommon.ReturnCode, error) {
-	finalResults := sc.deleteSCRsWithValueZeroGoingToMeta(results)
+	resultWithoutMeta := sc.deleteSCRsWithValueZeroGoingToMeta(results)
+	finalResults, logsFromSCRs := sc.cleanSCRDataWithOnlyInfo(resultWithoutMeta)
+
 	err := sc.scrForwarder.AddIntermediateTransactions(finalResults)
 	if err != nil {
 		log.Error("AddIntermediateTransactions error", "error", err.Error())
@@ -511,6 +520,7 @@ func (sc *scProcessor) finishSCExecution(
 		return 0, err
 	}
 
+	vmOutput.Logs = append(vmOutput.Logs, logsFromSCRs...)
 	ignorableError := sc.txLogsProcessor.SaveLog(txHash, tx, vmOutput.Logs)
 	if ignorableError != nil {
 		log.Debug("scProcessor.finishSCExecution txLogsProcessor.SaveLog()", "error", ignorableError.Error())
@@ -1321,14 +1331,29 @@ func (sc *scProcessor) ProcessIfError(
 		return err
 	}
 
-	err = sc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{scrIfError})
+	userErrorLog := createNewLogFromSCR(scrIfError)
+
+	if !sc.flagCleanUpSCRData.IsSet() || sc.isSCROnlyInformational(scrIfError) {
+		err = sc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{scrIfError})
+		if err != nil {
+			return err
+		}
+	}
+
+	relayerLog, err := sc.processForRelayerWhenError(tx, txHash, returnMessage)
 	if err != nil {
 		return err
 	}
 
-	err = sc.processForRelayerWhenError(tx, txHash, returnMessage)
-	if err != nil {
-		return err
+	processIfErrorLogs := make([]*vmcommon.LogEntry, 0)
+	processIfErrorLogs = append(processIfErrorLogs, userErrorLog)
+	if relayerLog != nil {
+		processIfErrorLogs = append(processIfErrorLogs, relayerLog)
+	}
+
+	ignorableError := sc.txLogsProcessor.SaveLog(txHash, tx, processIfErrorLogs)
+	if ignorableError != nil {
+		log.Debug("scProcessor.ProcessIfError() txLogsProcessor.SaveLog()", "error", ignorableError.Error())
 	}
 
 	txType, _ := sc.txTypeHandler.ComputeTransactionType(tx)
@@ -1397,30 +1422,30 @@ func (sc *scProcessor) processForRelayerWhenError(
 	originalTx data.TransactionHandler,
 	txHash []byte,
 	returnMessage []byte,
-) error {
+) (*vmcommon.LogEntry, error) {
 	relayedSCR, isRelayed := isRelayedTx(originalTx)
 	if !isRelayed {
-		return nil
+		return nil, nil
 	}
 	if relayedSCR.Value.Cmp(zero) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	relayerAcnt, err := sc.getAccountFromAddress(relayedSCR.RelayerAddr)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if !check.IfNil(relayerAcnt) {
 		err = relayerAcnt.AddToBalance(relayedSCR.RelayedValue)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		err = sc.accounts.SaveAccount(relayerAcnt)
 		if err != nil {
 			log.Debug("error saving account")
-			return err
+			return nil, err
 		}
 	}
 
@@ -1434,12 +1459,41 @@ func (sc *scProcessor) processForRelayerWhenError(
 		ReturnMessage:  returnMessage,
 	}
 
-	err = sc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{scrForRelayer})
-	if err != nil {
-		return err
+	if !sc.flagCleanUpSCRData.IsSet() || scrForRelayer.Value.Cmp(zero) > 0 {
+		err = sc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{scrForRelayer})
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return nil
+	newLog := createNewLogFromSCR(scrForRelayer)
+
+	return newLog, nil
+}
+
+func createNewLogFromSCR(txHandler data.TransactionHandler) *vmcommon.LogEntry {
+	returnMessage := make([]byte, 0)
+	scr, ok := txHandler.(*smartContractResult.SmartContractResult)
+	if ok {
+		returnMessage = scr.ReturnMessage
+	}
+
+	topics := make([][]byte, 0)
+	if len(returnMessage) > 0 {
+		topics = append(topics, []byte(signalError))
+		topics = append(topics, returnMessage)
+	} else {
+		topics = append(topics, []byte(generalSCRTopicName))
+	}
+
+	newLog := &vmcommon.LogEntry{
+		Identifier: txHandler.GetSndAddr(),
+		Address:    txHandler.GetRcvAddr(),
+		Topics:     topics,
+		Data:       txHandler.GetData(),
+	}
+
+	return newLog
 }
 
 // transaction must be of type SCR and relayed address to be set with relayed value higher than 0
@@ -1613,7 +1667,9 @@ func (sc *scProcessor) doDeploySmartContract(
 		log.Debug("reloadLocalAccount error", "error", err.Error())
 		return 0, err
 	}
-	err = sc.scrForwarder.AddIntermediateTransactions(results)
+	finalResults, logsFromSCRs := sc.cleanSCRDataWithOnlyInfo(results)
+	vmOutput.Logs = append(vmOutput.Logs, logsFromSCRs...)
+	err = sc.scrForwarder.AddIntermediateTransactions(finalResults)
 	if err != nil {
 		log.Debug("AddIntermediate Transaction error", "error", err.Error())
 		return 0, err
