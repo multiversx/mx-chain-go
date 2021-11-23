@@ -26,6 +26,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createPkBytes(numShards uint32) map[uint32][]byte {
@@ -146,7 +147,11 @@ func createMockEpochStartBootstrapArgs(
 				TrieSyncerVersion:         2,
 			},
 		},
-		EconomicsData:              &economicsmocks.EconomicsHandlerStub{},
+		EconomicsData: &economicsmocks.EconomicsHandlerStub{
+			MinGasPriceCalled: func() uint64 {
+				return 1
+			},
+		},
 		GenesisNodesConfig:         &mock.NodesSetupStub{},
 		GenesisShardCoordinator:    mock.NewMultipleShardsCoordinatorMock(),
 		Rater:                      &mock.RaterStub{},
@@ -254,7 +259,7 @@ func TestEpochStartBootstrap_BootstrapStartInEpochNotEnabled(t *testing.T) {
 	assert.NotNil(t, params)
 }
 
-func TestEpochStartBootstrap_Bootstrap(t *testing.T) {
+func TestEpochStartBootstrap_BootstrapShouldStartBootstrapProcess(t *testing.T) {
 	roundsPerEpoch := int64(100)
 	roundDuration := uint64(60000)
 	coreComp, cryptoComp := createComponentsForEpochStart()
@@ -266,12 +271,14 @@ func TestEpochStartBootstrap_Bootstrap(t *testing.T) {
 	}
 	args.GeneralConfig = testscommon.GetGeneralConfig()
 	args.GeneralConfig.EpochStartConfig.RoundsPerEpoch = roundsPerEpoch
-	epochStartProvider, _ := NewEpochStartBootstrap(args)
+	epochStartProvider, err := NewEpochStartBootstrap(args)
+	require.Nil(t, err)
 
 	done := make(chan bool, 1)
 
 	go func() {
-		_, _ = epochStartProvider.Bootstrap()
+		_, err = epochStartProvider.Bootstrap()
+		require.Nil(t, err)
 		<-done
 	}()
 
@@ -280,7 +287,6 @@ func TestEpochStartBootstrap_Bootstrap(t *testing.T) {
 		case <-done:
 			assert.Fail(t, "should not be reach")
 		case <-time.After(time.Second):
-			assert.True(t, true, "pass with timeout")
 			return
 		}
 	}
