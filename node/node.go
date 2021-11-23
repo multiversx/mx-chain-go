@@ -488,18 +488,18 @@ func (n *Node) GetTokenSupply(token string) (*api.ESDTSupply, error) {
 		return nil, err
 	}
 
-	bigToString := func(bigValue *big.Int) string {
-		if bigValue == nil {
-			return "0"
-		}
-		return bigValue.String()
-	}
-
 	return &api.ESDTSupply{
 		Supply: bigToString(esdtSupply.Supply),
 		Burned: bigToString(esdtSupply.Burned),
 		Minted: bigToString(esdtSupply.Minted),
 	}, nil
+}
+
+func bigToString(bigValue *big.Int) string {
+	if bigValue == nil {
+		return "0"
+	}
+	return bigValue.String()
 }
 
 // GetAllESDTTokens returns all the ESDTs that the given address interacted with
