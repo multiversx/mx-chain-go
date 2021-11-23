@@ -36,8 +36,6 @@ var _ process.SmartContractProcessor = (*scProcessor)(nil)
 var log = logger.GetOrCreate("process/smartcontract")
 
 const maxTotalSCRsSize = 3 * (1 << 18) //768KB
-const generalSCRTopicName = "writeLog"
-const signalError = "signalError"
 
 const (
 	// TooMuchGasProvidedMessage is the message for the too much gas provided error
@@ -47,6 +45,9 @@ const (
 
 	// TODO: Move to vm-common.
 	upgradeFunctionName = "upgradeContract"
+
+	generalSCRTopicName = "writeLog"
+	signalError         = "signalError"
 )
 
 var zero = big.NewInt(0)
