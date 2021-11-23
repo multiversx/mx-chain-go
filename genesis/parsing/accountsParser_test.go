@@ -9,7 +9,9 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	coreData "github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	transactionData "github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
@@ -594,7 +596,7 @@ func TestAccountsParser_createMiniBlocks(t *testing.T) {
 	assert.Equal(t, 4, len(miniBlocks))
 }
 
-func TestAccountsParser_GenerateInitialTransactions(t *testing.T) {
+func TestAccountsParser_GenerateInitialTransactionsTxsPool(t *testing.T) {
 	t.Parallel()
 
 	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
@@ -640,5 +642,52 @@ func TestAccountsParser_GenerateInitialTransactions(t *testing.T) {
 		for _, tx := range txsPoolPerShard[i].Txs {
 			assert.Equal(t, uint64(0), tx.GetGasLimit())
 		}
+	}
+}
+
+func TestAccountsParser_GenerateInitialTransactionsTx(t *testing.T) {
+	t.Parallel()
+
+	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
+	balance := int64(1)
+	ibs := []*data.InitialAccount{}
+
+	ap.SetEntireSupply(big.NewInt(int64(len(ibs)) * balance))
+	ap.SetInitialAccounts(ibs)
+
+	err := ap.Process()
+	require.Nil(t, err)
+
+	sharder := &mock.ShardCoordinatorMock{
+		NumOfShards: 1,
+		SelfShardId: 0,
+	}
+
+	tx := &transactionData.Transaction{
+		Nonce:     0,
+		GasPrice:  0,
+		GasLimit:  0,
+		Signature: []byte(common.GenesisTxSignatureString),
+	}
+	hashHex := "cef3536e36ae01d3c84c97b0e6fae577f34c12c0cfdb51a04a2668afd5f5efe7"
+	txHash, err := hex.DecodeString(hashHex)
+	require.Nil(t, err)
+
+	indexingDataMap := make(map[uint32]genesis.InitialIndexingDataHandler)
+	indexingData := &data.IndexingData{
+		DelegationTxs: []coreData.TransactionHandler{tx},
+	}
+	indexingDataMap[0] = indexingData
+
+	miniBlocks, txsPoolPerShard, err := ap.GenerateInitialTransactions(sharder, indexingDataMap)
+	require.Nil(t, err)
+
+	assert.Equal(t, 4, len(miniBlocks))
+	assert.Equal(t, 2, len(txsPoolPerShard))
+	assert.Equal(t, 1, len(txsPoolPerShard[0].Txs))
+
+	for hashString, v := range txsPoolPerShard[0].Txs {
+		assert.Equal(t, txHash, []byte(hashString))
+		assert.Equal(t, tx, v)
 	}
 }
