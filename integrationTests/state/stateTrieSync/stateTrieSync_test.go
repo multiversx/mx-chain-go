@@ -376,8 +376,9 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 			MaxHardCapForMissingNodes: 5000,
 			TrieSyncerVersion:         2,
 		},
-		ShardId:   shardID,
-		Throttler: thr,
+		ShardId:                shardID,
+		Throttler:              thr,
+		AddressPubKeyConverter: integrationTests.TestAddressPubkeyConverter,
 	}
 
 	userAccSyncer, err := syncer.NewUserAccountsSyncer(syncerArgs)

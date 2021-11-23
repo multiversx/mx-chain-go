@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -243,6 +244,16 @@ func TestDoubleListTrieSyncer_StartSyncingNewTrieShouldWork(t *testing.T) {
 		require.Nil(t, err)
 		require.Equal(t, keyVal, val)
 	}
+
+	assert.Equal(t, uint64(numKeysValues), d.NumLeaves())
+	assert.True(t, d.NumTrieNodes() > d.NumLeaves())
+	assert.True(t, d.NumBytes() > 0)
+	assert.True(t, d.Duration() > 0)
+	log.Info("synced trie",
+		"num trie nodes", d.NumTrieNodes(),
+		"num leaves", d.NumLeaves(),
+		"data size", core.ConvertBytes(d.NumBytes()),
+		"duration", d.Duration())
 }
 
 func TestDoubleListTrieSyncer_StartSyncingPartiallyFilledTrieShouldWork(t *testing.T) {

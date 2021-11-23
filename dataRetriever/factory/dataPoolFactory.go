@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"fmt"
 	"io/ioutil"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -60,40 +61,34 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		TxGasHandler:   args.EconomicsData,
 	})
 	if err != nil {
-		log.Error("error creating txpool")
-		return nil, err
+		return nil, fmt.Errorf("%w while creating the cache for the transactions", err)
 	}
 
 	uTxPool, err := shardedData.NewShardedData(dataRetriever.UnsignedTxPoolName, factory.GetCacherFromConfig(mainConfig.UnsignedTransactionDataPool))
 	if err != nil {
-		log.Error("error creating smart contract result pool")
-		return nil, err
+		return nil, fmt.Errorf("%w while creating the cache for the unsigned transactions", err)
 	}
 
 	rewardTxPool, err := shardedData.NewShardedData(dataRetriever.RewardTxPoolName, factory.GetCacherFromConfig(mainConfig.RewardTransactionDataPool))
 	if err != nil {
-		log.Error("error creating reward transaction pool")
-		return nil, err
+		return nil, fmt.Errorf("%w while creating the cache for the rewards", err)
 	}
 
 	hdrPool, err := headersCache.NewHeadersPool(mainConfig.HeadersPoolConfig)
 	if err != nil {
-		log.Error("error creating headers pool")
-		return nil, err
+		return nil, fmt.Errorf("%w while creating the cache for the headers", err)
 	}
 
 	cacherCfg := factory.GetCacherFromConfig(mainConfig.TxBlockBodyDataPool)
 	txBlockBody, err := storageUnit.NewCache(cacherCfg)
 	if err != nil {
-		log.Error("error creating txBlockBody")
-		return nil, err
+		return nil, fmt.Errorf("%w while creating the cache for the miniblocks", err)
 	}
 
 	cacherCfg = factory.GetCacherFromConfig(mainConfig.PeerBlockBodyDataPool)
 	peerChangeBlockBody, err := storageUnit.NewCache(cacherCfg)
 	if err != nil {
-		log.Error("error creating peerChangeBlockBody")
-		return nil, err
+		return nil, fmt.Errorf("%w while creating the cache for the peer mini block body", err)
 	}
 
 	cacher, err := capacity.NewCapacityLRU(
@@ -101,7 +96,7 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		int64(mainConfig.TrieSyncStorage.SizeInBytes),
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w while creating the cache for the trie nodes", err)
 	}
 
 	dbCfg := factory.GetDBFromConfig(mainConfig.TrieSyncStorage.DB)
@@ -115,9 +110,9 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 	}
 
 	if mainConfig.TrieSyncStorage.DB.UseTmpAsFilePath {
-		filePath, err := ioutil.TempDir("", "trieSyncStorage")
-		if err != nil {
-			return nil, err
+		filePath, errTempDir := ioutil.TempDir("", "trieSyncStorage")
+		if errTempDir != nil {
+			return nil, errTempDir
 		}
 
 		argDB.Path = filePath
@@ -125,34 +120,28 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 
 	db, err := storageUnit.NewDB(argDB)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w while creating the db for the trie nodes", err)
 	}
 
 	tnf := trieFactory.NewTrieNodeFactory()
 	adaptedTrieNodesStorage, err := storageCacherAdapter.NewStorageCacherAdapter(cacher, db, tnf, args.Marshalizer)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w while creating the adapter for the trie nodes", err)
 	}
 
 	cacherCfg = factory.GetCacherFromConfig(mainConfig.TrieNodesChunksDataPool)
 	trieNodesChunks, err := storageUnit.NewCache(cacherCfg)
 	if err != nil {
-		log.Error("error creating trieNodesChunks")
-		return nil, err
+		return nil, fmt.Errorf("%w while creating the cache for the trie chunks", err)
 	}
 
 	cacherCfg = factory.GetCacherFromConfig(mainConfig.SmartContractDataPool)
 	smartContracts, err := storageUnit.NewCache(cacherCfg)
 	if err != nil {
-		log.Error("error creating smartContracts cache unit")
-		return nil, err
+		return nil, fmt.Errorf("%w while creating the cache for the smartcontract results", err)
 	}
 
-	currBlockTxs, err := dataPool.NewCurrentBlockPool()
-	if err != nil {
-		return nil, err
-	}
-
+	currBlockTxs := dataPool.NewCurrentBlockPool()
 	dataPoolArgs := dataPool.DataPoolArgs{
 		Transactions:             txPool,
 		UnsignedTransactions:     uTxPool,

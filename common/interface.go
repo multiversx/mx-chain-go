@@ -104,6 +104,7 @@ type SizeSyncStatisticsHandler interface {
 	data.SyncStatisticsHandler
 	AddNumBytesReceived(bytes uint64)
 	NumBytesReceived() uint64
+	NumTries() int
 }
 
 // SnapshotStatisticsHandler is used to measure different statistics for the trie snapshot

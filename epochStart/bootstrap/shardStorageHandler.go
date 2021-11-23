@@ -181,24 +181,28 @@ func (ssh *shardStorageHandler) getProcessedAndPendingMiniBlocks(
 	meta *block.MetaBlock,
 	headers map[string]data.HeaderHandler,
 ) ([]bootstrapStorage.MiniBlocksInMeta, []bootstrapStorage.PendingMiniBlocksInfo, error) {
-	shardData, err := getEpochStartShardData(meta, ssh.shardCoordinator.SelfId())
+	epochStartShardData, err := getEpochStartShardData(meta, ssh.shardCoordinator.SelfId())
 	if err != nil {
 		return nil, nil, err
 	}
 
-	neededMeta, ok := headers[string(shardData.FirstPendingMetaBlock)].(*block.MetaBlock)
+	header, ok := headers[string(epochStartShardData.FirstPendingMetaBlock)]
 	if !ok {
 		return nil, nil, epochStart.ErrMissingHeader
 	}
+	neededMeta, ok := header.(*block.MetaBlock)
+	if !ok {
+		return nil, nil, epochStart.ErrWrongTypeAssertion
+	}
 	if check.IfNil(neededMeta) {
-		return nil, nil, epochStart.ErrMissingHeader
+		return nil, nil, epochStart.ErrNilMetaBlock
 	}
 
 	pendingMBsMap := make(map[string]struct{})
 	pendingMBsPerShardMap := make(map[uint32][][]byte)
-	for _, mbHeader := range shardData.PendingMiniBlockHeaders {
-		senderShId := mbHeader.SenderShardID
-		pendingMBsPerShardMap[senderShId] = append(pendingMBsPerShardMap[senderShId], mbHeader.Hash)
+	for _, mbHeader := range epochStartShardData.PendingMiniBlockHeaders {
+		receiverShardID := mbHeader.ReceiverShardID
+		pendingMBsPerShardMap[receiverShardID] = append(pendingMBsPerShardMap[receiverShardID], mbHeader.Hash)
 		pendingMBsMap[string(mbHeader.Hash)] = struct{}{}
 	}
 
@@ -215,7 +219,7 @@ func (ssh *shardStorageHandler) getProcessedAndPendingMiniBlocks(
 	processedMiniBlocks := make([]bootstrapStorage.MiniBlocksInMeta, 0)
 	if len(processedMbHashes) > 0 {
 		processedMiniBlocks = append(processedMiniBlocks, bootstrapStorage.MiniBlocksInMeta{
-			MetaHash:         shardData.FirstPendingMetaBlock,
+			MetaHash:         epochStartShardData.FirstPendingMetaBlock,
 			MiniBlocksHashes: processedMbHashes,
 		})
 	}
@@ -323,10 +327,6 @@ func (ssh *shardStorageHandler) saveTriggerRegistry(components *ComponentsNeeded
 func getAllMiniBlocksWithDst(metaBlock *block.MetaBlock, destId uint32) map[string]block.MiniBlockHeader {
 	hashDst := make(map[string]block.MiniBlockHeader)
 	for i := 0; i < len(metaBlock.ShardInfo); i++ {
-		if metaBlock.ShardInfo[i].ShardID == destId {
-			continue
-		}
-
 		for _, val := range metaBlock.ShardInfo[i].ShardMiniBlockHeaders {
 			isCrossShardDestMe := val.ReceiverShardID == destId && val.SenderShardID != destId
 			if !isCrossShardDestMe {
