@@ -196,7 +196,21 @@ func (ts *transactionsSync) receivedTransaction(txHash []byte, val interface{}) 
 }
 
 func (ts *transactionsSync) getTransactionFromPool(txHash []byte) (data.TransactionHandler, bool) {
-	mb := ts.mapHashes[string(txHash)]
+	mb, ok := ts.mapHashes[string(txHash)]
+	if !ok {
+		return nil, false
+	}
+
+	if _, ok = ts.txPools[mb.Type]; !ok {
+		log.Debug("transactionsSync.getTransactionFromPool: missing mini block type from sharded data cacher notifier map",
+			"tx hash", txHash,
+			"mb type", mb.Type,
+			"mb sender shard", mb.SenderShardID,
+			"mb receiver shard", mb.ReceiverShardID,
+			"mb num txs", len(mb.TxHashes))
+		return nil, false
+	}
+
 	storeId := process.ShardCacherIdentifier(mb.SenderShardID, mb.ReceiverShardID)
 	shardTxStore := ts.txPools[mb.Type].ShardDataStore(storeId)
 	if check.IfNil(shardTxStore) {
