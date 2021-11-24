@@ -97,10 +97,10 @@ func (ti *testIndexer) createElasticProcessor(
 ) elasticIndexer.ElasticProcessor {
 	databaseClient := ti.createDatabaseClient(hasResults)
 
-	enabledIndexes := []string{"transactions", "scresults", "receipts"}
-	enabledIndexesMap := make(map[string]struct{})
-	for _, index := range enabledIndexes {
-		enabledIndexesMap[index] = struct{}{}
+	enabledIndices := []string{"transactions", "scresults", "receipts"}
+	enabledIndicesMap := make(map[string]struct{})
+	for _, index := range enabledIndices {
+		enabledIndicesMap[index] = struct{}{}
 	}
 
 	transactionProc, _ := transactions.NewTransactionsProcessor(&transactions.ArgsTransactionProcessor{
@@ -125,7 +125,7 @@ func (ti *testIndexer) createElasticProcessor(
 		SelfShardID:       shardCoordinator.SelfId(),
 		IndexTemplates:    nil,
 		IndexPolicies:     nil,
-		EnabledIndexes:    enabledIndexesMap,
+		EnabledIndexes:    enabledIndicesMap,
 		TransactionsProc:  transactionProc,
 		AccountsProc:      ap,
 		BlockProc:         bp,
