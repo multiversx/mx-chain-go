@@ -95,6 +95,7 @@ func TestAsyncCallShouldWork(t *testing.T) {
 
 	intermediateTxs := testContextSecondContract.GetIntermediateTransactions(t)
 	testIndexer = vm.CreateTestIndexer(t, testContextSecondContract.ShardCoordinator, testContextSecondContract.EconomicsData)
+	testIndexer.SetTxLogProcessor(testContextSecondContract.TxsLogsProcessor)
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)

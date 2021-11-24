@@ -5,7 +5,6 @@
 package multiShard
 
 import (
-	"fmt"
 	"math/big"
 	"testing"
 
@@ -169,7 +168,6 @@ func TestScCallExecuteOnSourceAndDstShardInvalidOnDst(t *testing.T) {
 	retCode, err = testContextDst.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Nil(t, err)
-	require.Equal(t, fmt.Errorf("function not found"), testContextDst.GetLatestError())
 
 	ret := vm.GetIntValueFromSC(nil, testContextDst.Accounts, scAddr, "get")
 	require.Equal(t, big.NewInt(1), ret)
@@ -185,16 +183,13 @@ func TestScCallExecuteOnSourceAndDstShardInvalidOnDst(t *testing.T) {
 	txs := testContextDst.GetIntermediateTransactions(t)
 
 	testIndexer = vm.CreateTestIndexer(t, testContextDst.ShardCoordinator, testContextDst.EconomicsData)
+	testIndexer.SetTxLogProcessor(testContextDst.TxsLogsProcessor)
 	testIndexer.SaveTransaction(tx, block.TxBlock, txs)
 
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
 	require.Equal(t, tx.GasLimit, indexerTx.GasUsed)
 	require.Equal(t, "5000", indexerTx.Fee)
 	require.Equal(t, transaction.TxStatusFail.String(), indexerTx.Status)
-
-	scr := txs[0]
-
-	utils.ProcessSCRResult(t, testContextSource, scr, vmcommon.Ok, nil)
 
 	// check sender balance after refund
 	expectedBalance = big.NewInt(5000)

@@ -31,10 +31,11 @@ type testIndexer struct {
 	shardCoordinator sharding.Coordinator
 	mutex            sync.RWMutex
 	saveDoneChan     chan struct{}
+	txsLogsProcessor process.TransactionLogProcessor
 	t                testing.TB
 }
 
-const timeoutSave = 10 * time.Second
+const timeoutSave = 100 * time.Second
 
 // CreateTestIndexer -
 func CreateTestIndexer(
@@ -73,8 +74,13 @@ func CreateTestIndexer(
 	ti.hasher = testHasher
 	ti.t = t
 	ti.saveDoneChan = make(chan struct{})
+	ti.txsLogsProcessor = &mock.TxLogsProcessorStub{}
 
 	return ti
+}
+
+func (ti *testIndexer) SetTxLogProcessor(txsLogsProcessor process.TransactionLogProcessor) {
+	ti.txsLogsProcessor = txsLogsProcessor
 }
 
 func (ti *testIndexer) createElasticProcessor(
@@ -142,6 +148,7 @@ func (ti *testIndexer) SaveTransaction(
 		Rewards:  nil,
 		Invalid:  nil,
 		Receipts: nil,
+		Logs:     ti.txsLogsProcessor.GetAllCurrentLogs(),
 	}
 
 	txsPool.Txs[string(txHash)] = tx
