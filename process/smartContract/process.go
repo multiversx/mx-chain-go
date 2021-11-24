@@ -78,7 +78,7 @@ type scProcessor struct {
 	optimizeGasUsedInCrossMiniBlocksEnableEpoch uint32
 	saveKeyValueUnderProtectedErrorEnableEpoch  uint32
 	optimizeNFTStoreEnableEpoch                 uint32
-	cleanupSCRDataEnableEpoch                   uint32
+	cleanUpInformativeSCRsEnableEpoch           uint32
 	flagStakingV2                               atomic.Flag
 	flagDeploy                                  atomic.Flag
 	flagBuiltin                                 atomic.Flag
@@ -95,7 +95,7 @@ type scProcessor struct {
 	flagOptimizeGasUsedInCrossMiniBlocks        atomic.Flag
 	flagSaveKeyValueUnderProtectedError         atomic.Flag
 	flagOptimizeNFTStore                        atomic.Flag
-	flagCleanUpSCRData                          atomic.Flag
+	flagCleanUpInformativeSCRs                  atomic.Flag
 
 	badTxForwarder process.IntermediateTransactionHandler
 	scrForwarder   process.IntermediateTransactionHandler
@@ -242,7 +242,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		optimizeGasUsedInCrossMiniBlocksEnableEpoch: args.EnableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
 		saveKeyValueUnderProtectedErrorEnableEpoch:  args.EnableEpochs.RemoveNonUpdatedStorageEnableEpoch,
 		optimizeNFTStoreEnableEpoch:                 args.EnableEpochs.OptimizeNFTStoreEnableEpoch,
-		cleanupSCRDataEnableEpoch:                   args.EnableEpochs.CleanUpSCRDataEnableEpoch,
+		cleanUpInformativeSCRsEnableEpoch:           args.EnableEpochs.CleanUpInformativeSCRsEnableEpoch,
 	}
 
 	var err error
@@ -263,7 +263,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	log.Debug("smartContract/process: enable epoch for created async callback on cross shard only", "epoch", sc.createdCallBackCrossShardOnlyEnableEpoch)
 	log.Debug("smartContract/process: enable epoch for optimize gas used in cross mini blocks", "epoch", sc.optimizeGasUsedInCrossMiniBlocksEnableEpoch)
 	log.Debug("smartContract/process: enable epoch for return as failure when saving under protected key", "epoch", sc.saveKeyValueUnderProtectedErrorEnableEpoch)
-	log.Debug("smartContract/process: enable epoch for cleaning up created scrs which contain only information", "epoch", sc.cleanupSCRDataEnableEpoch)
+	log.Debug("smartContract/process: enable epoch for cleaning up created scrs that are informative only", "epoch", sc.cleanUpInformativeSCRsEnableEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(sc)
 	args.GasSchedule.RegisterNotifyHandler(sc)
@@ -457,7 +457,7 @@ func (sc *scProcessor) executeSmartContractCall(
 	return vmOutput, nil
 }
 
-func (sc *scProcessor) isSCROnlyInformational(txHandler data.TransactionHandler) bool {
+func (sc *scProcessor) isInformativeSCR(txHandler data.TransactionHandler) bool {
 	if txHandler.GetValue().Cmp(zero) > 0 {
 		return false
 	}
@@ -484,12 +484,12 @@ func (sc *scProcessor) isSCROnlyInformational(txHandler data.TransactionHandler)
 	return false
 }
 
-func (sc *scProcessor) cleanSCRDataWithOnlyInfo(scrs []data.TransactionHandler) ([]data.TransactionHandler, []*vmcommon.LogEntry) {
+func (sc *scProcessor) cleanInformativeOnlySCRs(scrs []data.TransactionHandler) ([]data.TransactionHandler, []*vmcommon.LogEntry) {
 	cleanedUPSCrs := make([]data.TransactionHandler, 0)
 	logsFromSCRs := make([]*vmcommon.LogEntry, 0)
 
 	for _, scr := range scrs {
-		if sc.isSCROnlyInformational(scr) {
+		if sc.isInformativeSCR(scr) {
 			logsFromSCRs = append(logsFromSCRs, createNewLogFromSCR(scr))
 			continue
 		}
@@ -497,7 +497,7 @@ func (sc *scProcessor) cleanSCRDataWithOnlyInfo(scrs []data.TransactionHandler) 
 		cleanedUPSCrs = append(cleanedUPSCrs, scr)
 	}
 
-	if !sc.flagCleanUpSCRData.IsSet() {
+	if !sc.flagCleanUpInformativeSCRs.IsSet() {
 		return scrs, logsFromSCRs
 	}
 
@@ -512,7 +512,7 @@ func (sc *scProcessor) finishSCExecution(
 	builtInFuncGasUsed uint64,
 ) (vmcommon.ReturnCode, error) {
 	resultWithoutMeta := sc.deleteSCRsWithValueZeroGoingToMeta(results)
-	finalResults, logsFromSCRs := sc.cleanSCRDataWithOnlyInfo(resultWithoutMeta)
+	finalResults, logsFromSCRs := sc.cleanInformativeOnlySCRs(resultWithoutMeta)
 
 	err := sc.scrForwarder.AddIntermediateTransactions(finalResults)
 	if err != nil {
@@ -1339,7 +1339,7 @@ func (sc *scProcessor) ProcessIfError(
 
 	userErrorLog := createNewLogFromSCRIfError(scrIfError)
 
-	if !sc.flagCleanUpSCRData.IsSet() || !sc.isSCROnlyInformational(scrIfError) {
+	if !sc.flagCleanUpInformativeSCRs.IsSet() || !sc.isInformativeSCR(scrIfError) {
 		err = sc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{scrIfError})
 		if err != nil {
 			return err
@@ -1465,7 +1465,7 @@ func (sc *scProcessor) processForRelayerWhenError(
 		ReturnMessage:  returnMessage,
 	}
 
-	if !sc.flagCleanUpSCRData.IsSet() || scrForRelayer.Value.Cmp(zero) > 0 {
+	if !sc.flagCleanUpInformativeSCRs.IsSet() || scrForRelayer.Value.Cmp(zero) > 0 {
 		err = sc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{scrForRelayer})
 		if err != nil {
 			return nil, err
@@ -1676,7 +1676,7 @@ func (sc *scProcessor) doDeploySmartContract(
 		log.Debug("reloadLocalAccount error", "error", err.Error())
 		return 0, err
 	}
-	finalResults, logsFromSCRs := sc.cleanSCRDataWithOnlyInfo(results)
+	finalResults, logsFromSCRs := sc.cleanInformativeOnlySCRs(results)
 
 	vmOutput.Logs = append(vmOutput.Logs, logsFromSCRs...)
 	err = sc.scrForwarder.AddIntermediateTransactions(finalResults)
@@ -2755,8 +2755,8 @@ func (sc *scProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 	sc.flagOptimizeNFTStore.Toggle(epoch >= sc.optimizeNFTStoreEnableEpoch)
 	log.Debug("scProcessor: optimize nft store", "enabled", sc.flagOptimizeNFTStore.IsSet())
 
-	sc.flagCleanUpSCRData.Toggle(epoch >= sc.cleanupSCRDataEnableEpoch)
-	log.Debug("scProcessor: cleanup scr data", "enabled", sc.flagCleanUpSCRData.IsSet())
+	sc.flagCleanUpInformativeSCRs.Toggle(epoch >= sc.cleanUpInformativeSCRsEnableEpoch)
+	log.Debug("scProcessor: cleanup scr data", "enabled", sc.flagCleanUpInformativeSCRs.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

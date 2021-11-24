@@ -153,8 +153,8 @@
     # StopDecreasingValidatorRatingWhenStuckEnableEpoch represents the epoch when we should stop decreasing validator's rating if, for instance, a shard gets stuck
     StopDecreasingValidatorRatingWhenStuckEnableEpoch = 2
 
-    # CleanUpSCRDataEnableEpoch represents the epoch the informational scrs are cleaned from miniblocks
-    CleanUpSCRDataEnableEpoch = 3
+    # CleanUpInformativeSCRsEnableEpoch represents the epoch when the scrs which contain only information are cleaned from miniblocks and logs are created from it
+    CleanUpInformativeSCRsEnableEpoch = 3
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [

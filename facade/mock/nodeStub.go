@@ -257,8 +257,8 @@ func (ns *NodeStub) GetAllESDTTokens(address string) (map[string]*esdt.ESDigital
 }
 
 // GetTokenSupply -
-func (ns *NodeStub) GetTokenSupply(_ string) (string, error) {
-	return "", nil
+func (ns *NodeStub) GetTokenSupply(_ string) (*api.ESDTSupply, error) {
+	return nil, nil
 }
 
 // GetAllIssuedESDTs -

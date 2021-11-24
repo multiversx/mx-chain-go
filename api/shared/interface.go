@@ -79,7 +79,7 @@ type FacadeHandler interface {
 	GetDirectStakedList() ([]*api.DirectStakedValue, error)
 	GetDelegatorsList() ([]*api.Delegator, error)
 	StatusMetrics() external.StatusMetricsHandler
-	GetTokenSupply(token string) (string, error)
+	GetTokenSupply(token string) (*api.ESDTSupply, error)
 	GetAllIssuedESDTs(tokenType string) ([]string, error)
 	GetHeartbeats() ([]data.PubKeyHeartbeat, error)
 	GetQueryHandler(name string) (debug.QueryHandler, error)
