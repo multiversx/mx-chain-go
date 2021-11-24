@@ -125,47 +125,55 @@ func (lp *logsProcessor) processEvent(txLog *transaction.Event, supplies map[str
 		tokenIdentifier = bytes.Join([][]byte{tokenIdentifier, []byte(nonceHexStr)}, []byte("-"))
 	}
 
-	bigValue := big.NewInt(0).SetBytes(txLog.Topics[2])
+	valueFromEvent := big.NewInt(0).SetBytes(txLog.Topics[2])
 
-	negValue := string(txLog.Identifier) == core.BuiltInFunctionESDTLocalBurn || string(txLog.Identifier) == core.BuiltInFunctionESDTNFTBurn ||
-		string(txLog.Identifier) == core.BuiltInFunctionESDTWipe
-	xorBooleanVariable := negValue != isRevert
+	tokenIDStr := string(tokenIdentifier)
+	tokenSupply, found := supplies[tokenIDStr]
+	if found {
+		lp.updateTokenSupply(tokenSupply, valueFromEvent, string(txLog.Identifier), isRevert)
+		return nil
+	}
+
+	supply, err := lp.getSupply(tokenIdentifier)
+	if err != nil {
+		return err
+	}
+
+	supplies[tokenIDStr] = supply
+	lp.updateTokenSupply(supplies[tokenIDStr], valueFromEvent, string(txLog.Identifier), isRevert)
+
+	return nil
+}
+
+func (lp *logsProcessor) updateTokenSupply(tokenSupply *SupplyESDT, valueFromEvent *big.Int, eventIdentifier string, isRevert bool) {
+	isBurnOP := eventIdentifier == core.BuiltInFunctionESDTLocalBurn || eventIdentifier == core.BuiltInFunctionESDTNFTBurn ||
+		eventIdentifier == core.BuiltInFunctionESDTWipe
+	xorBooleanVariable := isBurnOP != isRevert
 	// need this because
 	//  negValue | isRevert  => res
 	//   false   |   false   => false
 	//   false   |   true    => true
 	//   true    |   true    => false
 	//   true    |   false   => true
+	bigValue := big.NewInt(0).Set(valueFromEvent)
 	if xorBooleanVariable {
-		bigValue = big.NewInt(0).Neg(bigValue)
+		bigValue = big.NewInt(0).Neg(valueFromEvent)
 	}
 
-	tokenIDStr := string(tokenIdentifier)
-	_, found := supplies[tokenIDStr]
-	if found {
-		supplies[tokenIDStr].Supply.Add(supplies[tokenIDStr].Supply, bigValue)
-		return nil
+	switch {
+	case isBurnOP:
+		tokenSupply.Burned.Add(tokenSupply.Burned, valueFromEvent)
+	case eventIdentifier == core.BuiltInFunctionESDTNFTAddQuantity || eventIdentifier == core.BuiltInFunctionESDTLocalMint:
+		tokenSupply.Minted.Add(tokenSupply.Minted, valueFromEvent)
 	}
 
-	supplyFromStorage, err := lp.getSupply(tokenIdentifier)
-	if err != nil {
-		return err
-	}
-
-	newSupply := big.NewInt(0).Add(supplyFromStorage.Supply, bigValue)
-	supplies[tokenIDStr] = &SupplyESDT{
-		Supply: newSupply,
-	}
-
-	return nil
+	tokenSupply.Supply.Add(tokenSupply.Supply, bigValue)
 }
 
 func (lp *logsProcessor) getSupply(tokenIdentifier []byte) (*SupplyESDT, error) {
 	supplyFromStorageBytes, err := lp.suppliesStorer.Get(tokenIdentifier)
 	if err != nil {
-		return &SupplyESDT{
-			big.NewInt(0),
-		}, nil
+		return newSupplyESDTZero(), nil
 	}
 
 	supplyFromStorage := &SupplyESDT{}
@@ -183,20 +191,28 @@ func (lp *logsProcessor) shouldIgnoreEvent(event *transaction.Event) bool {
 	return !found
 }
 
-func (lp *logsProcessor) getESDTSupply(token string) (string, error) {
+func (lp *logsProcessor) getESDTSupply(token string) (*SupplyESDT, error) {
 	supplyBytes, err := lp.suppliesStorer.Get([]byte(token))
 	if err != nil && err == storage.ErrKeyNotFound {
-		return big.NewInt(0).String(), nil
+		return newSupplyESDTZero(), nil
 	}
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	supply := &SupplyESDT{}
 	err = lp.marshalizer.Unmarshal(supply, supplyBytes)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return supply.Supply.String(), nil
+	return supply, nil
+}
+
+func newSupplyESDTZero() *SupplyESDT {
+	return &SupplyESDT{
+		Burned: big.NewInt(0),
+		Minted: big.NewInt(0),
+		Supply: big.NewInt(0),
+	}
 }

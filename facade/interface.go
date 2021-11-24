@@ -50,7 +50,7 @@ type NodeHandler interface {
 	GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error)
 
 	// GetTokenSupply returns the provided token supply from current shard
-	GetTokenSupply(token string) (string, error)
+	GetTokenSupply(token string) (*api.ESDTSupply, error)
 
 	// CreateTransaction will return a transaction from all needed fields
 	CreateTransaction(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
