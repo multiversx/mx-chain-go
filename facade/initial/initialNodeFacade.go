@@ -297,8 +297,8 @@ func (inf *initialNodeFacade) GetAllIssuedESDTs(_ string) ([]string, error) {
 }
 
 // GetTokenSupply returns nil and error
-func (inf *initialNodeFacade) GetTokenSupply(_ string) (string, error) {
-	return "", errNodeStarting
+func (inf *initialNodeFacade) GetTokenSupply(_ string) (*api.ESDTSupply, error) {
+	return nil, errNodeStarting
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

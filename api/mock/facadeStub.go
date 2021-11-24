@@ -62,16 +62,16 @@ type FacadeStub struct {
 	GetProofCurrentRootHashCalled           func(string) (*common.GetProofResponse, error)
 	GetProofDataTrieCalled                  func(string, string, string) (*common.GetProofResponse, *common.GetProofResponse, error)
 	VerifyProofCalled                       func(string, string, [][]byte) (bool, error)
-	GetTokenSupplyCalled                    func(token string) (string, error)
+	GetTokenSupplyCalled                    func(token string) (*api.ESDTSupply, error)
 }
 
 // GetTokenSupply -
-func (f *FacadeStub) GetTokenSupply(token string) (string, error) {
+func (f *FacadeStub) GetTokenSupply(token string) (*api.ESDTSupply, error) {
 	if f.GetTokenSupplyCalled != nil {
 		return f.GetTokenSupplyCalled(token)
 	}
 
-	return "", nil
+	return nil, nil
 }
 
 // GetProof -
