@@ -28,40 +28,44 @@ import (
 )
 
 func BenchmarkMultipleHeaderSigningDetector_ValidateProof(b *testing.B) {
-	consensusGroupSize := uint16(0.25 * 400)
-	numOfSigners := uint16(0.25 * 400)
-	noOfHeaders := uint32(3)
+	consensusGroupSize := uint16(400)
+	numOfSigners := uint16(268) // 2/3 * 400 + 14 // MALICIOUS SIGNERS
+	noOfHeaders := uint32(2)
 
-	bitmapSize := consensusGroupSize/8 + 1
+	//	bitmapSize := consensusGroupSize/8 + 1
 	// set bitmap to select all members
-	bitmap := make([]byte, bitmapSize)
-	byteMask := 0xFF
-	for i := uint16(0); i < bitmapSize; i++ {
-		bitmap[i] = byte((((1 << consensusGroupSize) - 1) >> i) & byteMask)
-	}
+	//	bitmap := make([]byte, bitmapSize)
+	//	byteMask := 0xFF
+	//	for i := uint16(0); i < bitmapSize; i++ {
+	//		bitmap[i] = byte((((1 << consensusGroupSize) - 1) >> i) & byteMask)
+	//	}
 
 	hashSize := 16
 	hasher, _ := blake2b.NewBlake2bWithSize(hashSize)
 	suite := mcl.NewSuiteBLS12()
 	kg := signing.NewKeyGenerator(suite)
-	pubKeysStr, blsSigners, leaderPrivateKey := createMultiSignersBls(numOfSigners, consensusGroupSize, hasher, kg)
+	pubKeysStr, blsSigners, privateKeys := createMultiSignersBls(consensusGroupSize, consensusGroupSize, hasher, kg)
 
 	args := createAll(b, hasher, blsSigners[0], kg, pubKeysStr)
 	ssd, err := detector.NewMultipleHeaderSigningDetector(args)
 	require.Nil(b, err)
 	// Worst case scenario: 25% of a consensus group of 400 validators on metachain signed 3 different headers
-	slashRes := GenerateSlashResults(b, hasher, uint32(numOfSigners), leaderPrivateKey, noOfHeaders, blsSigners)
-
+	slashRes := GenerateSlashResults(b, hasher, uint32(numOfSigners), privateKeys, noOfHeaders, blsSigners, pubKeysStr, args.NodesCoordinator)
+	//	b.StopTimer()
+	proof, err := coreSlash.NewMultipleSigningProof(slashRes)
+	require.NotNil(b, proof)
+	require.Nil(b, err)
+	//	b.StartTimer()
+	_ = ssd
+	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		b.StopTimer()
-		proof, err := coreSlash.NewMultipleSigningProof(slashRes)
-		require.NotNil(b, proof)
-		require.Nil(b, err)
-		b.StartTimer()
-
+		//x := 1 + 1
+		//fmt.Println(x)
 		err = ssd.ValidateProof(proof)
+
 		require.Nil(b, err)
 	}
+
 }
 
 const (
@@ -87,7 +91,8 @@ func createAll(b *testing.B, hasher hashing.Hasher, multiSigVerifier crypto.Mult
 		KeyGen:                  keyGen,
 		FallbackHeaderValidator: &testscommon.FallBackHeaderValidatorStub{},
 	}
-	headerSig, _ := headerCheck.NewHeaderSigVerifier(&headerSigVerifierArgs)
+	headerSig, err := headerCheck.NewHeaderSigVerifier(&headerSigVerifierArgs)
+	require.Nil(b, err)
 
 	return &detector.MultipleHeaderSigningDetectorArgs{
 		NodesCoordinator:  nodesCoordinator,
@@ -105,7 +110,7 @@ func createMultiSignersBls(
 	grSize uint16,
 	hasher hashing.Hasher,
 	kg crypto.KeyGenerator,
-) ([]string, []crypto.MultiSigner, crypto.PrivateKey) {
+) ([]string, []crypto.MultiSigner, []crypto.PrivateKey) {
 	var pubKeyBytes []byte
 
 	privKeys := make([]crypto.PrivateKey, grSize)
@@ -128,16 +133,16 @@ func createMultiSignersBls(
 		multiSigners[i], _ = multisig.NewBLSMultisig(llSigner, pubKeysStr, privKeys[i], kg, i)
 	}
 
-	return pubKeysStr, multiSigners, privKeys[0]
+	return pubKeysStr, multiSigners, privKeys
 }
 
 func createArguments(pubKeys []string) sharding.ArgNodesCoordinator {
 	nbShards := uint32(1)
-	eligibleMap := createDummyNodesMap(10, nbShards, pubKeys)
+	eligibleMap := createDummyNodesMap(400, nbShards, pubKeys)
 	waitingMap := createDummyNodesMap(3, nbShards, pubKeys)
 	shufflerArgs := &sharding.NodesShufflerArgs{
-		NodesShard:           10,
-		NodesMeta:            10,
+		NodesShard:           400,
+		NodesMeta:            400,
 		Hysteresis:           hysteresis,
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
@@ -149,8 +154,8 @@ func createArguments(pubKeys []string) sharding.ArgNodesCoordinator {
 	bootStorer := mock.NewStorerMock()
 
 	arguments := sharding.ArgNodesCoordinator{
-		ShardConsensusGroupSize:    1,
-		MetaConsensusGroupSize:     1,
+		ShardConsensusGroupSize:    63,
+		MetaConsensusGroupSize:     400,
 		Marshalizer:                &marshal.GogoProtoMarshalizer{},
 		Hasher:                     &hashingMocks.HasherMock{},
 		Shuffler:                   nodeShuffler,
