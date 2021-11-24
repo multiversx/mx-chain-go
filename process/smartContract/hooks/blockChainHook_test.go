@@ -485,7 +485,7 @@ func TestBlockChainHookImpl_IsPayablePayable(t *testing.T) {
 	assert.Nil(t, err)
 
 	isPayable, err = bh.IsPayable(make([]byte, 32), make([]byte, 32))
-	assert.False(t, isPayable)
+	assert.True(t, isPayable)
 	assert.Nil(t, err)
 }
 
