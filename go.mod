@@ -51,8 +51,8 @@ require (
 
 replace github.com/gogo/protobuf => github.com/ElrondNetwork/protobuf v1.3.2
 
-replace github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.33 => github.com/ElrondNetwork/arwen-wasm-vm v1.2.33
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.33 => github.com/ElrondNetwork/arwen-wasm-vm v1.2.34-0.20211124103800-40e4aa28f2e2
 
-replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.33 => github.com/ElrondNetwork/arwen-wasm-vm v1.3.33
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.33 => github.com/ElrondNetwork/arwen-wasm-vm v1.3.33-0.20211124104415-9f96af0a1852
 
-replace github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.27 => github.com/ElrondNetwork/arwen-wasm-vm v1.4.27
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.27 => github.com/ElrondNetwork/arwen-wasm-vm v1.4.28-0.20211124105122-b573e744990f
