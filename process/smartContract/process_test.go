@@ -3920,6 +3920,61 @@ func TestProcessSCRSizeTooBig(t *testing.T) {
 	assert.Equal(t, err, process.ErrResultingSCRIsTooBig)
 }
 
+func TestProcessIsInformativeSCR(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
+	arguments.BuiltInFunctions = builtInFuncs
+	arguments.ArgsParser = NewArgumentParser()
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	scr := &smartContractResult.SmartContractResult{Value: big.NewInt(1)}
+	assert.False(t, sc.isInformativeSCR(scr))
+
+	scr.Value = big.NewInt(0)
+	scr.CallType = vmData.AsynchronousCallBack
+	assert.False(t, sc.isInformativeSCR(scr))
+
+	scr.CallType = vmData.DirectCall
+	scr.Data = []byte("@abab")
+	assert.True(t, sc.isInformativeSCR(scr))
+
+	scr.Data = []byte("ab@ab")
+	scr.RcvAddr = make([]byte, 32)
+	assert.False(t, sc.isInformativeSCR(scr))
+
+	scr.RcvAddr = []byte("address")
+	assert.True(t, sc.isInformativeSCR(scr))
+
+	_ = builtInFuncs.Add("ab", &mock.BuiltInFunctionStub{})
+	assert.False(t, sc.isInformativeSCR(scr))
+}
+
+func TestCleanInformativeOnlySCRs(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
+	arguments.BuiltInFunctions = builtInFuncs
+	arguments.ArgsParser = NewArgumentParser()
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	scrs := make([]data.TransactionHandler, 0)
+	scrs = append(scrs, &smartContractResult.SmartContractResult{Value: big.NewInt(1)})
+	scrs = append(scrs, &smartContractResult.SmartContractResult{Value: big.NewInt(0), Data: []byte("@6b6f")})
+
+	sc.flagCleanUpInformativeSCRs.Unset()
+	finalSCRs, logs := sc.cleanInformativeOnlySCRs(scrs)
+	assert.Equal(t, len(finalSCRs), len(scrs))
+	assert.Equal(t, 1, len(logs))
+
+	sc.flagCleanUpInformativeSCRs.Set()
+	finalSCRs, logs = sc.cleanInformativeOnlySCRs(scrs)
+	assert.Equal(t, 1, len(finalSCRs))
+	assert.Equal(t, 1, len(logs))
+}
+
 func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
 	return &economics.ArgsNewEconomicsData{
 		Economics: &config.EconomicsConfig{
