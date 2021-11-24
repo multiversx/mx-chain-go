@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -28,6 +29,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	atomic2 "github.com/ElrondNetwork/elrond-vm-common/atomic"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -915,22 +917,111 @@ func Example_sortTransactionsBySenderAndNonce2() {
 	// 1 ffff b
 }
 
-func BenchmarkSortTransactionsByNonceAndSender_WhenReversedNonces(b *testing.B) {
-	numTx := 100000
+func Example_sortTransactionsBySenderAndNonceWithFrontRunningProtection() {
+	txPreproc := transactions{
+		basePreProcess: &basePreProcess{
+			hasher: &mock.HasherStub{
+				ComputeCalled: func(s string) []byte {
+					return []byte{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
+				},
+			},
+		},
+	}
+
+	nbSenders := 5
+	randomness := "randomness"
+	usedRandomness := txPreproc.hasher.Compute("randomness")
+	senders := make([][]byte, 0)
+	for i := 0; i < nbSenders; i++ {
+		sender := make([]byte, len(usedRandomness))
+		copy(sender, usedRandomness)
+		sender[len(usedRandomness)-1-i] = 0
+		senders = append(senders, sender)
+	}
+
+	txs := []*txcache.WrappedTransaction{
+		{Tx: &transaction.Transaction{Nonce: 2, SndAddr: senders[2]}, TxHash: []byte("w")},
+		{Tx: &transaction.Transaction{Nonce: 1, SndAddr: senders[0]}, TxHash: []byte("x")},
+		{Tx: &transaction.Transaction{Nonce: 1, SndAddr: senders[2]}, TxHash: []byte("y")},
+		{Tx: &transaction.Transaction{Nonce: 2, SndAddr: senders[0]}, TxHash: []byte("z")},
+		{Tx: &transaction.Transaction{Nonce: 7, SndAddr: senders[1]}, TxHash: []byte("t")},
+		{Tx: &transaction.Transaction{Nonce: 6, SndAddr: senders[1]}, TxHash: []byte("a")},
+		{Tx: &transaction.Transaction{Nonce: 1, SndAddr: senders[4]}, TxHash: []byte("b")},
+		{Tx: &transaction.Transaction{Nonce: 3, SndAddr: senders[3]}, TxHash: []byte("c")},
+		{Tx: &transaction.Transaction{Nonce: 3, SndAddr: senders[2]}, TxHash: []byte("c")},
+	}
+
+	txPreproc.sortTransactionsBySenderAndNonceWithFrontRunningProtection(txs, []byte(randomness))
+
+	for _, item := range txs {
+		fmt.Println(item.Tx.GetNonce(), hex.EncodeToString(item.Tx.GetSndAddr()), string(item.TxHash))
+	}
+
+	// Output:
+	// 1 ffffffffffffffffffffffffffffff00 x
+	// 2 ffffffffffffffffffffffffffffff00 z
+	// 6 ffffffffffffffffffffffffffff00ff a
+	// 7 ffffffffffffffffffffffffffff00ff t
+	// 1 ffffffffffffffffffffffffff00ffff y
+	// 2 ffffffffffffffffffffffffff00ffff w
+	// 3 ffffffffffffffffffffffffff00ffff c
+	// 3 ffffffffffffffffffffffff00ffffff c
+	// 1 ffffffffffffffffffffff00ffffffff b
+}
+
+func BenchmarkSortTransactionsByNonceAndSender_WhenReversedNoncesLegacy(b *testing.B) {
+	numTx := 30000
+	hasher := sha256.NewSha256()
 	txs := make([]*txcache.WrappedTransaction, numTx)
 	for i := 0; i < numTx; i++ {
+		addr := hasher.Compute(fmt.Sprintf("sender-%d", i))
 		txs[i] = &txcache.WrappedTransaction{
 			Tx: &transaction.Transaction{
 				Nonce:   uint64(numTx - i),
-				SndAddr: []byte(fmt.Sprintf("sender-%d", i)),
+				SndAddr: addr,
 			},
 		}
 	}
 
 	b.ResetTimer()
-
 	for i := 0; i < b.N; i++ {
 		sortTransactionsBySenderAndNonceLegacy(txs)
+	}
+}
+
+func BenchmarkSortTransactionsByNonceAndSender_WhenReversedNoncesWithFrontRunningProtection(b *testing.B) {
+	numTx := 30000
+	hasher := sha256.NewSha256()
+	marshaller := &marshal.GogoProtoMarshalizer{}
+	txs := make([]*txcache.WrappedTransaction, numTx)
+	for i := 0; i < numTx; i++ {
+		addr := hasher.Compute(fmt.Sprintf("sender-%d", i))
+		txs[i] = &txcache.WrappedTransaction{
+			Tx: &transaction.Transaction{
+				Nonce:   uint64(numTx - i),
+				SndAddr: addr,
+			},
+		}
+	}
+
+	var frontRunProtection atomic2.Flag
+	frontRunProtection.Set()
+	txpreproc := &transactions{
+		basePreProcess: &basePreProcess{
+			hasher:                     hasher,
+			marshalizer:                marshaller,
+			flagFrontRunningProtection: frontRunProtection,
+		},
+	}
+	numRands := 1000
+	randomness := make([][]byte, numRands)
+	for i := 0; i < numRands; i++ {
+		randomness[i] = hasher.Compute(fmt.Sprintf("%d", i))
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		txpreproc.sortTransactionsBySenderAndNonce(txs, randomness[i%numRands])
 	}
 }
 

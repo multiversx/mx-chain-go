@@ -1350,6 +1350,10 @@ func (txs *transactions) sortTransactionsBySenderAndNonce(transactions []*txcach
 		return
 	}
 
+	txs.sortTransactionsBySenderAndNonceWithFrontRunningProtection(transactions, randomness)
+}
+
+func (txs *transactions) sortTransactionsBySenderAndNonceWithFrontRunningProtection(transactions []*txcache.WrappedTransaction, randomness []byte) {
 	// make sure randomness is 32bytes and uniform
 	randSeed := txs.hasher.Compute(string(randomness))
 	xoredAddresses := make(map[string][]byte)
