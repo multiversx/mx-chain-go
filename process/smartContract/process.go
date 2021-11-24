@@ -46,8 +46,8 @@ const (
 	// TODO: Move to vm-common.
 	upgradeFunctionName = "upgradeContract"
 
-	generalSCRTopicName = "writeLog"
-	signalError         = "signalError"
+	generalSCRIdentifier = "writeLog"
+	signalError          = "signalError"
 )
 
 var zero = big.NewInt(0)
@@ -1479,9 +1479,9 @@ func (sc *scProcessor) processForRelayerWhenError(
 
 func createNewLogFromSCR(txHandler data.TransactionHandler) *vmcommon.LogEntry {
 	newLog := &vmcommon.LogEntry{
-		Identifier: txHandler.GetSndAddr(),
-		Address:    txHandler.GetRcvAddr(),
-		Topics:     [][]byte{[]byte(generalSCRTopicName)},
+		Identifier: []byte(generalSCRIdentifier),
+		Address:    txHandler.GetSndAddr(),
+		Topics:     [][]byte{txHandler.GetRcvAddr()},
 		Data:       txHandler.GetData(),
 	}
 
@@ -1496,9 +1496,9 @@ func createNewLogFromSCRIfError(txHandler data.TransactionHandler) *vmcommon.Log
 	}
 
 	newLog := &vmcommon.LogEntry{
-		Identifier: txHandler.GetSndAddr(),
-		Address:    txHandler.GetRcvAddr(),
-		Topics:     [][]byte{[]byte(signalError), returnMessage},
+		Identifier: []byte(signalError),
+		Address:    txHandler.GetSndAddr(),
+		Topics:     [][]byte{txHandler.GetRcvAddr(), returnMessage},
 		Data:       txHandler.GetData(),
 	}
 
