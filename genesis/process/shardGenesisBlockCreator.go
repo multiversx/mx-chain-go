@@ -311,6 +311,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		NFTStorageHandler:  nftStorageHandler,
 		DataPool:           arg.Data.Datapool(),
 		CompiledSCPool:     arg.Data.Datapool().SmartContracts(),
+		EpochNotifier:      epochNotifier,
 		NilCompiledSCStore: true,
 	}
 	esdtTransferParser, err := parsers.NewESDTTransferParser(arg.Core.InternalMarshalizer())

@@ -153,6 +153,9 @@
     # StopDecreasingValidatorRatingWhenStuckEnableEpoch represents the epoch when we should stop decreasing validator's rating if, for instance, a shard gets stuck
     StopDecreasingValidatorRatingWhenStuckEnableEpoch = 2
 
+    # IsPayableBySCEnableEpoch represents the epoch when a new flag isPayable by SC is enabled
+    IsPayableBySCEnableEpoch = 3
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },

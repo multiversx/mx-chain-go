@@ -92,20 +92,23 @@ func NewBlockChainHookImpl(
 	}
 
 	blockChainHookImpl := &BlockChainHookImpl{
-		accounts:           args.Accounts,
-		pubkeyConv:         args.PubkeyConv,
-		storageService:     args.StorageService,
-		blockChain:         args.BlockChain,
-		shardCoordinator:   args.ShardCoordinator,
-		marshalizer:        args.Marshalizer,
-		uint64Converter:    args.Uint64Converter,
-		builtInFunctions:   args.BuiltInFunctions,
-		compiledScPool:     args.CompiledSCPool,
-		configSCStorage:    args.ConfigSCStorage,
-		workingDir:         args.WorkingDir,
-		nilCompiledSCStore: args.NilCompiledSCStore,
-		nftStorageHandler:  args.NFTStorageHandler,
+		accounts:                 args.Accounts,
+		pubkeyConv:               args.PubkeyConv,
+		storageService:           args.StorageService,
+		blockChain:               args.BlockChain,
+		shardCoordinator:         args.ShardCoordinator,
+		marshalizer:              args.Marshalizer,
+		uint64Converter:          args.Uint64Converter,
+		builtInFunctions:         args.BuiltInFunctions,
+		compiledScPool:           args.CompiledSCPool,
+		configSCStorage:          args.ConfigSCStorage,
+		workingDir:               args.WorkingDir,
+		nilCompiledSCStore:       args.NilCompiledSCStore,
+		nftStorageHandler:        args.NFTStorageHandler,
+		isPayableBySCEnableEpoch: args.EnableEpochs.IsPayableBySCEnableEpoch,
 	}
+
+	log.Debug("blockchainHook: payable by SC", "epoch", blockChainHookImpl.isPayableBySCEnableEpoch)
 
 	err = blockChainHookImpl.makeCompiledSCStorage()
 	if err != nil {

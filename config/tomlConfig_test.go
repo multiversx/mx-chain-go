@@ -619,6 +619,9 @@ func TestEnableEpochConfig(t *testing.T) {
     # CreateNFTThroughExecByCallerEnableEpoch represents the epoch when nft creation through execution on destination by caller is enabled
     CreateNFTThroughExecByCallerEnableEpoch = 47
 
+    # IsPayableBySCEnableEpoch represents the epoch when a new flag isPayable by SC is enabled
+    IsPayableBySCEnableEpoch = 48
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -693,6 +696,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			RemoveNonUpdatedStorageEnableEpoch:          45,
 			OptimizeNFTStoreEnableEpoch:                 46,
 			CreateNFTThroughExecByCallerEnableEpoch:     47,
+			IsPayableBySCEnableEpoch:                    48,
 		},
 		GasSchedule: GasScheduleConfig{
 			GasScheduleByEpochs: []GasScheduleByEpochs{
