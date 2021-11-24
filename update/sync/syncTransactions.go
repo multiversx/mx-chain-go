@@ -152,7 +152,12 @@ func (ts *transactionsSync) requestTransactionsFor(miniBlock *block.MiniBlock) i
 		ts.mapHashes[string(txHash)] = miniBlock
 	}
 
-	switch miniBlock.Type {
+	mbType := miniBlock.Type
+	if mbType == block.InvalidBlock {
+		mbType = block.TxBlock
+	}
+
+	switch mbType {
 	case block.TxBlock:
 		ts.requestHandler.RequestTransaction(miniBlock.SenderShardID, missingTxs)
 	case block.SmartContractResultBlock:
@@ -201,10 +206,16 @@ func (ts *transactionsSync) getTransactionFromPool(txHash []byte) (data.Transact
 		return nil, false
 	}
 
-	if _, ok = ts.txPools[mb.Type]; !ok {
+	mbType := mb.Type
+	if mbType == block.InvalidBlock {
+		mbType = block.TxBlock
+	}
+
+	if _, ok = ts.txPools[mbType]; !ok {
 		log.Debug("transactionsSync.getTransactionFromPool: missing mini block type from sharded data cacher notifier map",
 			"tx hash", txHash,
-			"mb type", mb.Type,
+			"original mb type", mb.Type,
+			"mb type", mbType,
 			"mb sender shard", mb.SenderShardID,
 			"mb receiver shard", mb.ReceiverShardID,
 			"mb num txs", len(mb.TxHashes))
@@ -212,7 +223,7 @@ func (ts *transactionsSync) getTransactionFromPool(txHash []byte) (data.Transact
 	}
 
 	storeId := process.ShardCacherIdentifier(mb.SenderShardID, mb.ReceiverShardID)
-	shardTxStore := ts.txPools[mb.Type].ShardDataStore(storeId)
+	shardTxStore := ts.txPools[mbType].ShardDataStore(storeId)
 	if check.IfNil(shardTxStore) {
 		return nil, false
 	}
@@ -241,13 +252,18 @@ func (ts *transactionsSync) getTransactionFromPoolOrStorage(hash []byte) (data.T
 		return nil, false
 	}
 
-	txData, err := GetDataFromStorage(hash, ts.storage[miniBlock.Type])
+	mbType := miniBlock.Type
+	if mbType == block.InvalidBlock {
+		mbType = block.TxBlock
+	}
+
+	txData, err := GetDataFromStorage(hash, ts.storage[mbType])
 	if err != nil {
 		return nil, false
 	}
 
 	var tx data.TransactionHandler
-	switch miniBlock.Type {
+	switch mbType {
 	case block.TxBlock:
 		tx = &transaction.Transaction{}
 	case block.SmartContractResultBlock:
