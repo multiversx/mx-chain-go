@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/dblookupext/esdtSupply"
 )
 
 // HistoryRepositoryStub -
@@ -14,6 +15,7 @@ type HistoryRepositoryStub struct {
 	GetMiniblockMetadataByTxHashCalled func(hash []byte) (*dblookupext.MiniblockMetadata, error)
 	GetEpochByHashCalled               func(hash []byte) (uint32, error)
 	GetEventsHashesByTxHashCalled      func(hash []byte, epoch uint32) (*dblookupext.ResultsHashesByTxHash, error)
+	GetESDTSupplyCalled                func(token string) (*esdtSupply.SupplyESDT, error)
 	IsEnabledCalled                    func() bool
 }
 
@@ -74,8 +76,12 @@ func (hp *HistoryRepositoryStub) RevertBlock(_ data.HeaderHandler, _ data.BodyHa
 }
 
 // GetESDTSupply -
-func (hp *HistoryRepositoryStub) GetESDTSupply(_ string) (string, error) {
-	return "", nil
+func (hp *HistoryRepositoryStub) GetESDTSupply(token string) (*esdtSupply.SupplyESDT, error) {
+	if hp.GetESDTSupplyCalled != nil {
+		return hp.GetESDTSupplyCalled(token)
+	}
+
+	return nil, nil
 }
 
 // IsInterfaceNil -
