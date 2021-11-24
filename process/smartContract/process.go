@@ -477,11 +477,7 @@ func (sc *scProcessor) isInformativeSCR(txHandler data.TransactionHandler) bool 
 	}
 
 	_, err = sc.builtInFunctions.Get(function)
-	if err != nil {
-		return true
-	}
-
-	return false
+	return err != nil
 }
 
 func (sc *scProcessor) cleanInformativeOnlySCRs(scrs []data.TransactionHandler) ([]data.TransactionHandler, []*vmcommon.LogEntry) {
