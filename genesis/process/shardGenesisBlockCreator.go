@@ -490,6 +490,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		disabledBalanceComputationHandler,
 		epochNotifier,
 		enableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
+		enableEpochs.FrontRunningProtectionEnableEpoch,
 	)
 	if err != nil {
 		return nil, err

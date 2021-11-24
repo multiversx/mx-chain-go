@@ -1498,6 +1498,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		TestBalanceComputationHandler,
 		tpn.EpochNotifier,
 		tpn.EnableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
+		tpn.EnableEpochs.FrontRunningProtectionEnableEpoch,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
@@ -1717,6 +1718,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		TestBalanceComputationHandler,
 		tpn.EpochNotifier,
 		tpn.EnableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
+		tpn.EnableEpochs.FrontRunningProtectionEnableEpoch,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
