@@ -535,6 +535,7 @@ func TestScProcessor_DeploySmartContractDisabled(t *testing.T) {
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
 	arguments.EnableEpochs.SCDeployEnableEpoch = maxEpoch
+
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -552,8 +553,9 @@ func TestScProcessor_DeploySmartContractDisabled(t *testing.T) {
 		return vm, nil
 	}
 
-	_, err = sc.DeploySmartContract(tx, acntSrc)
-	require.Equal(t, process.ErrSmartContractDeploymentIsDisabled, err)
+	returnCode, err := sc.DeploySmartContract(tx, acntSrc)
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.UserError, returnCode)
 }
 
 func TestScProcessor_BuiltInCallSmartContractDisabled(t *testing.T) {

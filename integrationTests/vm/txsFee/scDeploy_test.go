@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	"github.com/ElrondNetwork/elrond-go/process"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/require"
 )
@@ -150,7 +149,7 @@ func TestScDeployOutOfGasShouldConsumeGas(t *testing.T) {
 
 	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
-	require.Equal(t, vmcommon.OutOfGas.String(), testContext.GetLatestError().Error())
+	require.Equal(t, "not enough gas", testContext.GetLatestError().Error())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)

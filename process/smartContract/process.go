@@ -457,17 +457,22 @@ func (sc *scProcessor) executeSmartContractCall(
 	return vmOutput, nil
 }
 
-func (sc *scProcessor) isSCROnlyInformational(scr data.TransactionHandler) bool {
-	if scr.GetValue().Cmp(zero) > 0 {
+func (sc *scProcessor) isSCROnlyInformational(txHandler data.TransactionHandler) bool {
+	if txHandler.GetValue().Cmp(zero) > 0 {
 		return false
 	}
 
-	function, _, err := sc.argsParser.ParseCallData(string(scr.GetData()))
+	scr, ok := txHandler.(*smartContractResult.SmartContractResult)
+	if ok && scr.CallType == vmData.AsynchronousCallBack {
+		return false
+	}
+
+	function, _, err := sc.argsParser.ParseCallData(string(txHandler.GetData()))
 	if err != nil {
 		return true
 	}
 
-	if core.IsSmartContractAddress(scr.GetRcvAddr()) {
+	if core.IsSmartContractAddress(txHandler.GetRcvAddr()) {
 		return false
 	}
 
@@ -1672,6 +1677,7 @@ func (sc *scProcessor) doDeploySmartContract(
 		return 0, err
 	}
 	finalResults, logsFromSCRs := sc.cleanSCRDataWithOnlyInfo(results)
+
 	vmOutput.Logs = append(vmOutput.Logs, logsFromSCRs...)
 	err = sc.scrForwarder.AddIntermediateTransactions(finalResults)
 	if err != nil {

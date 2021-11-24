@@ -35,7 +35,6 @@ func (tsp *TestScProcessor) GetLatestTestError() error {
 				}
 			}
 		}
-		return nil
 	}
 
 	scrProvider, ok := tsp.scrForwarder.(interface {
@@ -74,6 +73,8 @@ func (tsp *TestScProcessor) GetLatestTestError() error {
 
 		return fmt.Errorf(returnCodeHex)
 	}
+
+	tsp.scrForwarder.CreateBlockStarted()
 
 	return nil
 }
