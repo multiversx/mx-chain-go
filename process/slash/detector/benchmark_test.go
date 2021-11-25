@@ -36,6 +36,7 @@ const (
 	hashSize                = 16
 	metaConsensusGroupSize  = 100
 	shardConsensusGroupSize = 63
+	leaderGroupIndex        = 0
 )
 
 func BenchmarkMultipleHeaderSigningDetector_ValidateProof(b *testing.B) {

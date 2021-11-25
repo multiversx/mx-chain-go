@@ -719,16 +719,19 @@ func TestMultipleHeaderSigningDetector_SignedHeader_CannotVerifySignature_Expect
 	require.False(t, signedHeader)
 }
 
-func createSignaturesShares(multiSigners []crypto.MultiSigner, message []byte, sigShares []sigShareData) {
+func createSignaturesShares(multiSigners []crypto.MultiSigner, message []byte, sigShares []sigShareData) error {
 	for i := uint16(0); i < uint16(len(multiSigners)); i++ {
-		sigShare, _ := multiSigners[i].CreateSignatureShare(message, []byte(""))
+		sigShare, err := multiSigners[i].CreateSignatureShare(message, []byte(""))
+		if err != nil {
+			return err
+		}
 		sigShares[i].signature = sigShare
 	}
-
+	return nil
 }
 
 func setSignatureSharesAllSignersBls(multiSigners []crypto.MultiSigner, sigsData []sigShareData) error {
-	grSize := uint16(len(multiSigners)) // + 1// TODO: REFACTOR. THIS IS THE +1 for the leader
+	grSize := uint16(len(multiSigners))
 	var err error
 
 	for i := uint16(0); i < grSize; i++ {
@@ -803,34 +806,26 @@ func GenerateSlashResults(
 				PrevRandSeed: randomness,
 			},
 		}
+
 		consensusGroup, err := nodesCoordinator.ComputeConsensusGroup(randomness, round, core.MetachainShardId, epoch)
 		require.Nil(b, err)
-
-		pubKeysIndexMap := make(map[string]uint32, len(consensusGroup))
-		newPubKeys := make([]string, 0, len(consensusGroup))
-		for idx, validator := range consensusGroup {
-			pubKeyStr := string(validator.PubKey())
-
-			pubKeysIndexMap[pubKeyStr] = uint32(idx)
-			newPubKeys = append(newPubKeys, pubKeyStr)
-		}
+		publicKeys, err := nodesCoordinator.GetConsensusValidatorsPublicKeys(randomness, round, core.MetachainShardId, epoch)
+		require.Nil(b, err)
 
 		bitmap := make([]byte, bitmapSize)
 		minRequiredSigners := make([]crypto.MultiSigner, 0)
 		signaturesData := make([]sigShareData, 0, len(minRequiredSigners))
 		noOfSigners := uint32(0)
-		for pubKey, signerData := range allMultiSigData {
-			newIndex := pubKeysIndexMap[pubKey]
-			err = signerData.multiSigner.Reset(newPubKeys, uint16(newIndex))
+		for idx, validator := range consensusGroup {
+			pubKeyStr := string(validator.PubKey())
+			err = allMultiSigData[pubKeyStr].multiSigner.Reset(publicKeys, uint16(idx))
 			require.Nil(b, err)
 
-			_, isMalicious := maliciousSigners[pubKey]
-			if isMalicious || noOfSigners < minRequiredConsensus {
-				sliceUtil.SetIndexInBitmap(newIndex, bitmap)
-				minRequiredSigners = append(minRequiredSigners, signerData.multiSigner)
-				signaturesData = append(signaturesData, sigShareData{
-					index: newIndex,
-				})
+			_, isMalicious := maliciousSigners[pubKeyStr]
+			if isMalicious || noOfSigners < minRequiredConsensus || idx == leaderGroupIndex {
+				sliceUtil.SetIndexInBitmap(uint32(idx), bitmap)
+				minRequiredSigners = append(minRequiredSigners, allMultiSigData[pubKeyStr].multiSigner)
+				signaturesData = append(signaturesData, sigShareData{index: uint32(idx)})
 			}
 			noOfSigners++
 		}
@@ -838,15 +833,6 @@ func GenerateSlashResults(
 		leaderPubKey := string(consensusGroup[0].PubKey())
 		leaderPrivateKey := allMultiSigData[leaderPubKey].privateKey
 		leaderMultiSigner := allMultiSigData[leaderPubKey].multiSigner
-		leaderNewIndex := pubKeysIndexMap[leaderPubKey]
-		sliceUtil.SetIndexInBitmap(0, bitmap)
-		signaturesData = append(signaturesData, sigShareData{
-			index: 0,
-		})
-
-		err = leaderMultiSigner.Reset(newPubKeys, uint16(leaderNewIndex))
-		require.Nil(b, err)
-		minRequiredSigners = append(minRequiredSigners, leaderMultiSigner)
 
 		headerBytes, err := marshaller.Marshal(header)
 		require.Nil(b, err)
@@ -854,21 +840,26 @@ func GenerateSlashResults(
 		hash, err := core.CalculateHash(marshaller, hasher, header)
 		require.Nil(b, err)
 
-		createSignaturesShares(minRequiredSigners, hash, signaturesData)
+		err = createSignaturesShares(minRequiredSigners, hash, signaturesData)
+		require.Nil(b, err)
+
 		err = setSignatureSharesAllSignersBls(minRequiredSigners, signaturesData)
 		require.Nil(b, err)
 
 		aggregatedSig, err := leaderMultiSigner.AggregateSigs(bitmap)
 		require.Nil(b, err)
 		err = header.SetSignature(aggregatedSig)
+
 		require.Nil(b, err)
 		err = header.SetPubKeysBitmap(bitmap)
 
 		leaderSigner := singlesig.NewBlsSigner()
 		headerBytes, err = marshaller.Marshal(header)
 		require.Nil(b, err)
+
 		leaderSignature, err := leaderSigner.Sign(leaderPrivateKey, headerBytes)
 		require.Nil(b, err)
+
 		err = header.SetLeaderSignature(leaderSignature)
 		require.Nil(b, err)
 
