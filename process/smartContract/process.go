@@ -1474,11 +1474,20 @@ func (sc *scProcessor) processForRelayerWhenError(
 }
 
 func createNewLogFromSCR(txHandler data.TransactionHandler) *vmcommon.LogEntry {
+	returnMessage := make([]byte, 0)
+	scr, ok := txHandler.(*smartContractResult.SmartContractResult)
+	if ok {
+		returnMessage = scr.ReturnMessage
+	}
+
 	newLog := &vmcommon.LogEntry{
 		Identifier: []byte(generalSCRIdentifier),
 		Address:    txHandler.GetSndAddr(),
 		Topics:     [][]byte{txHandler.GetRcvAddr()},
 		Data:       txHandler.GetData(),
+	}
+	if len(returnMessage) > 0 {
+		newLog.Topics = append(newLog.Topics, returnMessage)
 	}
 
 	return newLog
