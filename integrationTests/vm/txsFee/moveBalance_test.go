@@ -210,7 +210,7 @@ func TestMoveBalanceMoreGasThanGasLimitPerMiniBlockForSafeCrossShard(t *testing.
 
 	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, process.ErrMoreGasThanGasLimitPerMiniBlockForSafeCrossShard, err)
-	require.Equal(t, vmcommon.Ok, returnCode)
+	require.Equal(t, vmcommon.UserError, returnCode)
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)

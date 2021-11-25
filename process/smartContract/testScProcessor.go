@@ -29,9 +29,8 @@ func (tsp *TestScProcessor) GetLatestTestError() error {
 		tsp.txLogsProcessor.Clean()
 		for _, logs := range allLogs {
 			for _, event := range logs.GetLogEvents() {
-				topics := event.GetTopics()
-				if len(topics) > 1 && string(topics[0]) == signalError {
-					return fmt.Errorf(string(topics[1]))
+				if string(event.GetIdentifier()) == signalError {
+					return fmt.Errorf(string(event.GetTopics()[1]))
 				}
 			}
 		}
