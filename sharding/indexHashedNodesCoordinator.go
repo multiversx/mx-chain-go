@@ -788,3 +788,8 @@ func (ihgs *indexHashedNodesCoordinator) updateEpochFlags(epoch uint32) {
 	ihgs.flagWaitingListFix.Toggle(epoch >= ihgs.GetWaitingListFixEnableEpoch())
 	log.Debug("indexHashedNodesCoordinator: waiting list fix", "enabled", ihgs.flagWaitingListFix.IsSet())
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ihgs *indexHashedNodesCoordinator) IsInterfaceNil() bool {
+	return ihgs == nil
+}

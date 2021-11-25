@@ -3,6 +3,7 @@ package nodesCoordinator
 import (
 	"crypto/rand"
 	"encoding/binary"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -87,6 +88,13 @@ func computeRandomnessAsUint64(randomness []byte, index int) uint64 {
 	randomnessAsUint64 := binary.BigEndian.Uint64(indexHash)
 
 	return randomnessAsUint64
+}
+
+func displayVals(vals []uint32) {
+	for _, v := range vals {
+		fmt.Println(v)
+	}
+	fmt.Println()
 }
 
 func reslice(slice []uint32, idx int64) []uint32 {

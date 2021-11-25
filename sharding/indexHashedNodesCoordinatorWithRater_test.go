@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/sharding/mock"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/stretchr/testify/assert"
@@ -52,14 +53,14 @@ func TestIndexHashedGroupSelectorWithRater_SetNilEligibleMapShouldErr(t *testing
 	waiting := createDummyNodesMap(2, 1, "waiting")
 	nc, _ := NewIndexHashedNodesCoordinator(createArguments())
 	ihgs, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
-	assert.Equal(t, ErrNilInputNodesMap, ihgs.setNodesPerShards(nil, waiting, nil, 0))
+	assert.Equal(t, ErrNilInputNodesMap, ihgs.SetNodesPerShards(nil, waiting, nil, 0))
 }
 
 func TestIndexHashedGroupSelectorWithRater_OkValShouldWork(t *testing.T) {
 	t.Parallel()
 
 	eligibleMap := createDummyNodesMap(3, 1, "waiting")
-	waitingMap := make(map[uint32][]Validator)
+	waitingMap := make(map[uint32][]nodesCoordinator.Validator)
 	shufflerArgs := &NodesShufflerArgs{
 		NodesShard:           3,
 		NodesMeta:            3,
@@ -95,14 +96,14 @@ func TestIndexHashedGroupSelectorWithRater_OkValShouldWork(t *testing.T) {
 	}
 	nc, err := NewIndexHashedNodesCoordinator(arguments)
 	assert.Nil(t, err)
-	readEligible := nc.nodesConfig[0].eligibleMap[0]
+	readEligible := nc.nodesConfig[0].EligibleMap[0]
 	assert.Equal(t, eligibleMap[0], readEligible)
 
 	rater := &mock.RaterMock{}
 	ihgs, err := NewIndexHashedNodesCoordinatorWithRater(nc, rater)
 	assert.Nil(t, err)
 
-	readEligible = ihgs.nodesConfig[0].eligibleMap[0]
+	readEligible = ihgs.nodesConfig[0].EligibleMap[0]
 	assert.Equal(t, eligibleMap[0], readEligible)
 }
 
@@ -111,8 +112,8 @@ func TestIndexHashedGroupSelectorWithRater_OkValShouldWork(t *testing.T) {
 func TestIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup1ValidatorShouldNotCallGetRating(t *testing.T) {
 	t.Parallel()
 
-	list := []Validator{
-		mock.NewValidatorMock([]byte("pk0"), 1, defaultSelectionChances),
+	list := []nodesCoordinator.Validator{
+		mock.NewValidatorMock([]byte("pk0"), 1, nodesCoordinator.DefaultSelectionChances),
 	}
 
 	arguments := createArguments()
@@ -140,19 +141,19 @@ func BenchmarkIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup63of400(b 
 	b.ReportAllocs()
 
 	consensusGroupSize := 63
-	list := make([]Validator, 0)
+	list := make([]nodesCoordinator.Validator, 0)
 
 	//generate 400 validators
 	for i := 0; i < 400; i++ {
-		list = append(list, mock.NewValidatorMock([]byte("pk"+strconv.Itoa(i)), 1, defaultSelectionChances))
+		list = append(list, mock.NewValidatorMock([]byte("pk"+strconv.Itoa(i)), 1, nodesCoordinator.DefaultSelectionChances))
 	}
-	listMeta := []Validator{
-		mock.NewValidatorMock([]byte("pkMeta1"), 1, defaultSelectionChances),
-		mock.NewValidatorMock([]byte("pkMeta2"), 1, defaultSelectionChances),
+	listMeta := []nodesCoordinator.Validator{
+		mock.NewValidatorMock([]byte("pkMeta1"), 1, nodesCoordinator.DefaultSelectionChances),
+		mock.NewValidatorMock([]byte("pkMeta2"), 1, nodesCoordinator.DefaultSelectionChances),
 	}
 
-	eligibleMap := make(map[uint32][]Validator)
-	waitingMap := make(map[uint32][]Validator)
+	eligibleMap := make(map[uint32][]nodesCoordinator.Validator)
+	waitingMap := make(map[uint32][]nodesCoordinator.Validator)
 	eligibleMap[0] = list
 	eligibleMap[core.MetachainShardId] = listMeta
 
@@ -207,15 +208,15 @@ func Test_ComputeValidatorsGroup63of400(t *testing.T) {
 
 	consensusGroupSize := 63
 	shardSize := uint32(400)
-	list := make([]Validator, 0)
+	list := make([]nodesCoordinator.Validator, 0)
 
 	//generate 400 validators
 	for i := uint32(0); i < shardSize; i++ {
-		list = append(list, mock.NewValidatorMock([]byte(fmt.Sprintf("pk%v", i)), 1, defaultSelectionChances))
+		list = append(list, mock.NewValidatorMock([]byte(fmt.Sprintf("pk%v", i)), 1, nodesCoordinator.DefaultSelectionChances))
 	}
-	listMeta := []Validator{
-		mock.NewValidatorMock([]byte("pkMeta1"), 1, defaultSelectionChances),
-		mock.NewValidatorMock([]byte("pkMeta2"), 1, defaultSelectionChances),
+	listMeta := []nodesCoordinator.Validator{
+		mock.NewValidatorMock([]byte("pkMeta1"), 1, nodesCoordinator.DefaultSelectionChances),
+		mock.NewValidatorMock([]byte("pkMeta2"), 1, nodesCoordinator.DefaultSelectionChances),
 	}
 
 	consensusAppearances := make(map[string]uint64)
@@ -225,8 +226,8 @@ func Test_ComputeValidatorsGroup63of400(t *testing.T) {
 		leaderAppearances[string(v.PubKey())] = 0
 	}
 
-	eligibleMap := make(map[uint32][]Validator)
-	waitingMap := make(map[uint32][]Validator)
+	eligibleMap := make(map[uint32][]nodesCoordinator.Validator)
+	waitingMap := make(map[uint32][]nodesCoordinator.Validator)
 	eligibleMap[0] = list
 	eligibleMap[core.MetachainShardId] = listMeta
 	shufflerArgs := &NodesShufflerArgs{
@@ -293,11 +294,11 @@ func Test_ComputeValidatorsGroup63of400(t *testing.T) {
 func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturnErrNilPubKey(t *testing.T) {
 	t.Parallel()
 
-	list := []Validator{
-		mock.NewValidatorMock([]byte("pk0"), 1, defaultSelectionChances),
+	list := []nodesCoordinator.Validator{
+		mock.NewValidatorMock([]byte("pk0"), 1, nodesCoordinator.DefaultSelectionChances),
 	}
-	eligibleMap := make(map[uint32][]Validator)
-	waitingMap := make(map[uint32][]Validator)
+	eligibleMap := make(map[uint32][]nodesCoordinator.Validator)
+	waitingMap := make(map[uint32][]nodesCoordinator.Validator)
 	eligibleMap[0] = list
 	eligibleMap[core.MetachainShardId] = list
 	sufflerArgs := &NodesShufflerArgs{
@@ -343,12 +344,12 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturnErrValidatorNotFound(t *testing.T) {
 	t.Parallel()
 
-	list := []Validator{
-		mock.NewValidatorMock([]byte("pk0"), 1, defaultSelectionChances),
+	list := []nodesCoordinator.Validator{
+		mock.NewValidatorMock([]byte("pk0"), 1, nodesCoordinator.DefaultSelectionChances),
 	}
 
-	eligibleMap := make(map[uint32][]Validator)
-	waitingMap := make(map[uint32][]Validator)
+	eligibleMap := make(map[uint32][]nodesCoordinator.Validator)
+	waitingMap := make(map[uint32][]nodesCoordinator.Validator)
 	eligibleMap[0] = list
 	eligibleMap[core.MetachainShardId] = list
 
@@ -395,24 +396,24 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldWork(t *testing.T) {
 	t.Parallel()
 
-	listMeta := []Validator{
-		mock.NewValidatorMock([]byte("pk0_meta"), 1, defaultSelectionChances),
-		mock.NewValidatorMock([]byte("pk1_meta"), 1, defaultSelectionChances),
-		mock.NewValidatorMock([]byte("pk2_meta"), 1, defaultSelectionChances),
+	listMeta := []nodesCoordinator.Validator{
+		mock.NewValidatorMock([]byte("pk0_meta"), 1, nodesCoordinator.DefaultSelectionChances),
+		mock.NewValidatorMock([]byte("pk1_meta"), 1, nodesCoordinator.DefaultSelectionChances),
+		mock.NewValidatorMock([]byte("pk2_meta"), 1, nodesCoordinator.DefaultSelectionChances),
 	}
-	listShard0 := []Validator{
-		mock.NewValidatorMock([]byte("pk0_shard0"), 1, defaultSelectionChances),
-		mock.NewValidatorMock([]byte("pk1_shard0"), 1, defaultSelectionChances),
-		mock.NewValidatorMock([]byte("pk2_shard0"), 1, defaultSelectionChances),
+	listShard0 := []nodesCoordinator.Validator{
+		mock.NewValidatorMock([]byte("pk0_shard0"), 1, nodesCoordinator.DefaultSelectionChances),
+		mock.NewValidatorMock([]byte("pk1_shard0"), 1, nodesCoordinator.DefaultSelectionChances),
+		mock.NewValidatorMock([]byte("pk2_shard0"), 1, nodesCoordinator.DefaultSelectionChances),
 	}
-	listShard1 := []Validator{
-		mock.NewValidatorMock([]byte("pk0_shard1"), 1, defaultSelectionChances),
-		mock.NewValidatorMock([]byte("pk1_shard1"), 1, defaultSelectionChances),
-		mock.NewValidatorMock([]byte("pk2_shard1"), 1, defaultSelectionChances),
+	listShard1 := []nodesCoordinator.Validator{
+		mock.NewValidatorMock([]byte("pk0_shard1"), 1, nodesCoordinator.DefaultSelectionChances),
+		mock.NewValidatorMock([]byte("pk1_shard1"), 1, nodesCoordinator.DefaultSelectionChances),
+		mock.NewValidatorMock([]byte("pk2_shard1"), 1, nodesCoordinator.DefaultSelectionChances),
 	}
 
-	eligibleMap := make(map[uint32][]Validator)
-	waitingMap := make(map[uint32][]Validator)
+	eligibleMap := make(map[uint32][]nodesCoordinator.Validator)
+	waitingMap := make(map[uint32][]nodesCoordinator.Validator)
 
 	shufflerArgs := &NodesShufflerArgs{
 		NodesShard:           3,
@@ -478,24 +479,24 @@ func TestIndexHashedGroupSelectorWithRater_GetAllEligibleValidatorsPublicKeys(t 
 		core.MetachainShardId: {[]byte("pk0_meta"), []byte("pk1_meta"), []byte("pk2_meta")},
 	}
 
-	listMeta := []Validator{
-		mock.NewValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][0], 1, defaultSelectionChances),
-		mock.NewValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][1], 1, defaultSelectionChances),
-		mock.NewValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][2], 1, defaultSelectionChances),
+	listMeta := []nodesCoordinator.Validator{
+		mock.NewValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][0], 1, nodesCoordinator.DefaultSelectionChances),
+		mock.NewValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][1], 1, nodesCoordinator.DefaultSelectionChances),
+		mock.NewValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][2], 1, nodesCoordinator.DefaultSelectionChances),
 	}
-	listShard0 := []Validator{
-		mock.NewValidatorMock(expectedValidatorsPubKeys[shardZeroId][0], 1, defaultSelectionChances),
-		mock.NewValidatorMock(expectedValidatorsPubKeys[shardZeroId][1], 1, defaultSelectionChances),
-		mock.NewValidatorMock(expectedValidatorsPubKeys[shardZeroId][2], 1, defaultSelectionChances),
+	listShard0 := []nodesCoordinator.Validator{
+		mock.NewValidatorMock(expectedValidatorsPubKeys[shardZeroId][0], 1, nodesCoordinator.DefaultSelectionChances),
+		mock.NewValidatorMock(expectedValidatorsPubKeys[shardZeroId][1], 1, nodesCoordinator.DefaultSelectionChances),
+		mock.NewValidatorMock(expectedValidatorsPubKeys[shardZeroId][2], 1, nodesCoordinator.DefaultSelectionChances),
 	}
-	listShard1 := []Validator{
-		mock.NewValidatorMock(expectedValidatorsPubKeys[shardOneId][0], 1, defaultSelectionChances),
-		mock.NewValidatorMock(expectedValidatorsPubKeys[shardOneId][1], 1, defaultSelectionChances),
-		mock.NewValidatorMock(expectedValidatorsPubKeys[shardOneId][2], 1, defaultSelectionChances),
+	listShard1 := []nodesCoordinator.Validator{
+		mock.NewValidatorMock(expectedValidatorsPubKeys[shardOneId][0], 1, nodesCoordinator.DefaultSelectionChances),
+		mock.NewValidatorMock(expectedValidatorsPubKeys[shardOneId][1], 1, nodesCoordinator.DefaultSelectionChances),
+		mock.NewValidatorMock(expectedValidatorsPubKeys[shardOneId][2], 1, nodesCoordinator.DefaultSelectionChances),
 	}
 
-	eligibleMap := make(map[uint32][]Validator)
-	waitingMap := make(map[uint32][]Validator)
+	eligibleMap := make(map[uint32][]nodesCoordinator.Validator)
+	waitingMap := make(map[uint32][]nodesCoordinator.Validator)
 
 	shufflerArgs := &NodesShufflerArgs{
 		NodesShard:           3,
@@ -789,20 +790,20 @@ func BenchmarkIndexHashedGroupSelectorWithRater_TestHashes(b *testing.B) {
 
 func BenchmarkIndexHashedWithRaterGroupSelector_ComputeValidatorsGroup21of400(b *testing.B) {
 	consensusGroupSize := 21
-	list := make([]Validator, 0)
+	list := make([]nodesCoordinator.Validator, 0)
 
 	//generate 400 validators
 	for i := 0; i < 400; i++ {
-		list = append(list, mock.NewValidatorMock([]byte("pk"+strconv.Itoa(i)), 1, defaultSelectionChances))
+		list = append(list, mock.NewValidatorMock([]byte("pk"+strconv.Itoa(i)), 1, nodesCoordinator.DefaultSelectionChances))
 	}
 
-	listMeta := []Validator{
-		mock.NewValidatorMock([]byte("pkMeta1"), 1, defaultSelectionChances),
-		mock.NewValidatorMock([]byte("pkMeta2"), 1, defaultSelectionChances),
+	listMeta := []nodesCoordinator.Validator{
+		mock.NewValidatorMock([]byte("pkMeta1"), 1, nodesCoordinator.DefaultSelectionChances),
+		mock.NewValidatorMock([]byte("pkMeta2"), 1, nodesCoordinator.DefaultSelectionChances),
 	}
 
-	eligibleMap := make(map[uint32][]Validator)
-	waitingMap := make(map[uint32][]Validator)
+	eligibleMap := make(map[uint32][]nodesCoordinator.Validator)
+	waitingMap := make(map[uint32][]nodesCoordinator.Validator)
 	eligibleMap[0] = list
 	eligibleMap[core.MetachainShardId] = listMeta
 	shufflerArgs := &NodesShufflerArgs{

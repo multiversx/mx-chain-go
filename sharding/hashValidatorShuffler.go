@@ -585,6 +585,15 @@ func removeValidatorFromList(validatorList []nodesCoordinator.Validator, index i
 	return validatorList[:len(validatorList)-1]
 }
 
+func removeValidatorFromListKeepOrder(validatorList []nodesCoordinator.Validator, index int) []nodesCoordinator.Validator {
+	indexNotOK := index > len(validatorList)-1 || index < 0
+	if indexNotOK {
+		return validatorList
+	}
+
+	return append(validatorList[:index], validatorList[index+1:]...)
+}
+
 // splitShards prepares for the shards split, or if already prepared does the split returning the resulting
 // shards configuration for eligible and waiting lists
 func (rhs *randHashShuffler) splitShards(

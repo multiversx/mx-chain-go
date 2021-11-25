@@ -38,9 +38,8 @@ func generateValidatorList(number int) []nodesCoordinator.Validator {
 	v := make([]nodesCoordinator.Validator, number)
 
 	for i := 0; i < number; i++ {
-		v[i] = &validator{
-			pubKey: generateRandomByteArray(32),
-		}
+		val, _ := nodesCoordinator.NewValidator(generateRandomByteArray(32), 0, 0)
+		v[i] = val
 	}
 
 	return v
@@ -1504,13 +1503,14 @@ func TestRandHashShuffler_UpdateNodeListsWithNonExistentUnstakeLeavingDoesNotRem
 
 	args := createShufflerArgs(eligiblePerShard, waitingPerShard, nbShards)
 
+	v1, err := nodesCoordinator.NewValidator(generateRandomByteArray(32), 0, 0)
+	require.Nil(t, err)
+	v2, err := nodesCoordinator.NewValidator(generateRandomByteArray(32), 0, 0)
+	require.Nil(t, err)
+
 	args.UnStakeLeaving = []nodesCoordinator.Validator{
-		&validator{
-			pubKey: generateRandomByteArray(32),
-		},
-		&validator{
-			pubKey: generateRandomByteArray(32),
-		},
+		v1,
+		v2,
 	}
 
 	resUpdateNodeList, err := shuffler.UpdateNodeLists(args)
