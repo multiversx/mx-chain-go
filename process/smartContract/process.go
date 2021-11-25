@@ -1295,6 +1295,23 @@ func (sc *scProcessor) isCrossShardESDTTransfer(tx data.TransactionHandler) (str
 	return "", false
 }
 
+func (sc *scProcessor) getOriginalTxHashIfIntraShardRelayedSCR(
+	tx data.TransactionHandler,
+	txHash []byte) []byte {
+	relayedSCR, isRelayed := isRelayedTx(tx)
+	if !isRelayed {
+		return txHash
+	}
+
+	sndShardID := sc.shardCoordinator.ComputeId(relayedSCR.SndAddr)
+	rcvShardID := sc.shardCoordinator.ComputeId(relayedSCR.RcvAddr)
+	if sndShardID != rcvShardID {
+		return txHash
+	}
+
+	return relayedSCR.OriginalTxHash
+}
+
 // ProcessIfError creates a smart contract result, consumes the gas and returns the value to the user
 func (sc *scProcessor) ProcessIfError(
 	acntSnd state.UserAccountHandler,
@@ -1353,7 +1370,8 @@ func (sc *scProcessor) ProcessIfError(
 		processIfErrorLogs = append(processIfErrorLogs, relayerLog)
 	}
 
-	ignorableError := sc.txLogsProcessor.SaveLog(txHash, tx, processIfErrorLogs)
+	logsTxHash := sc.getOriginalTxHashIfIntraShardRelayedSCR(tx, txHash)
+	ignorableError := sc.txLogsProcessor.SaveLog(logsTxHash, tx, processIfErrorLogs)
 	if ignorableError != nil {
 		log.Debug("scProcessor.ProcessIfError() txLogsProcessor.SaveLog()", "error", ignorableError.Error())
 	}
