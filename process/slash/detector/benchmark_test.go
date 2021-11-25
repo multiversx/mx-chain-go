@@ -44,9 +44,9 @@ func BenchmarkMultipleHeaderSigningDetector_ValidateProof(b *testing.B) {
 
 	blsSuite := mcl.NewSuiteBLS12()
 	keyGenerator := signing.NewKeyGenerator(blsSuite)
-	pubKeysStr, blsSigners, privateKeys := createMultiSignersBls(metaConsensusGroupSize, hasher, keyGenerator)
+	multiSigData := createMultiSignersBls(metaConsensusGroupSize, hasher, keyGenerator)
 
-	args := createHeaderSigningDetectorArgs(b, hasher, blsSigners[0], keyGenerator, pubKeysStr)
+	args := createHeaderSigningDetectorArgs(b, hasher, keyGenerator, multiSigData)
 	ssd, err := detector.NewMultipleHeaderSigningDetector(args)
 	require.NotNil(b, ssd)
 	require.Nil(b, err)
@@ -54,7 +54,7 @@ func BenchmarkMultipleHeaderSigningDetector_ValidateProof(b *testing.B) {
 	// Worst case scenario: 25% * 400() + 1
 	noOfMaliciousSigners := uint16(70)
 	noOfSignedHeaders := uint32(2)
-	slashRes := GenerateSlashResults(b, hasher, uint32(noOfMaliciousSigners), privateKeys, noOfSignedHeaders, blsSigners, pubKeysStr, args.NodesCoordinator)
+	slashRes := GenerateSlashResults(b, hasher, uint32(noOfMaliciousSigners), noOfSignedHeaders, args.NodesCoordinator, multiSigData)
 	proof, err := coreSlash.NewMultipleSigningProof(slashRes)
 	require.NotNil(b, proof)
 	require.Nil(b, err)
@@ -67,14 +67,18 @@ func BenchmarkMultipleHeaderSigningDetector_ValidateProof(b *testing.B) {
 
 }
 
+type multiSignerData struct {
+	multiSigner crypto.MultiSigner
+	privateKey  crypto.PrivateKey
+}
+
 func createMultiSignersBls(
 	noOfSigners uint16,
 	hasher hashing.Hasher,
 	keyGenerator crypto.KeyGenerator,
-) ([]string, []crypto.MultiSigner, []crypto.PrivateKey) {
+) map[string]multiSignerData {
 	privateKeys := make([]crypto.PrivateKey, noOfSigners)
 	pubKeysStr := make([]string, noOfSigners)
-
 	for i := uint16(0); i < noOfSigners; i++ {
 		sk, pk := keyGenerator.GeneratePair()
 		privateKeys[i] = sk
@@ -85,21 +89,38 @@ func createMultiSignersBls(
 
 	multiSigners := make([]crypto.MultiSigner, noOfSigners)
 	llSigner := &llsig.BlsMultiSigner{Hasher: hasher}
-
 	for i := uint16(0); i < noOfSigners; i++ {
 		multiSigners[i], _ = multisig.NewBLSMultisig(llSigner, pubKeysStr, privateKeys[i], keyGenerator, i)
 	}
 
-	return pubKeysStr, multiSigners, privateKeys
+	allMultiSigData := make(map[string]multiSignerData)
+	for i, pubKey := range pubKeysStr {
+		allMultiSigData[pubKey] = multiSignerData{
+			multiSigner: multiSigners[i],
+			privateKey:  privateKeys[i],
+		}
+	}
+
+	return allMultiSigData
 }
 
 func createHeaderSigningDetectorArgs(
 	b *testing.B,
 	hasher hashing.Hasher,
-	multiSigVerifier crypto.MultiSigVerifier,
 	keyGenerator crypto.KeyGenerator,
-	pubKeys []string,
+	multiSignersData map[string]multiSignerData,
 ) *detector.MultipleHeaderSigningDetectorArgs {
+	var multiSigVerifier crypto.MultiSigVerifier
+	for pubKey := range multiSignersData {
+		multiSigVerifier = multiSignersData[pubKey].multiSigner
+		break
+	}
+
+	pubKeys := make([]string, 0, len(multiSignersData))
+	for pubKey := range multiSignersData {
+		pubKeys = append(pubKeys, pubKey)
+	}
+
 	nodesCoordinatorArgs := createNodesCoordinatorArgs(hasher, pubKeys)
 	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(nodesCoordinatorArgs)
 	require.Nil(b, err)

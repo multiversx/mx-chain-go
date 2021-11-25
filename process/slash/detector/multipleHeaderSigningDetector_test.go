@@ -744,12 +744,6 @@ func setSignatureSharesAllSignersBls(multiSigners []crypto.MultiSigner, sigsData
 	return nil
 }
 
-type multiSignerData struct {
-	multiSigner crypto.MultiSigner
-	privateKey  crypto.PrivateKey
-	pubKey      string
-}
-
 type sigData struct {
 	sig   []byte
 	index uint32
@@ -759,30 +753,18 @@ func GenerateSlashResults(
 	b *testing.B,
 	hasher hashing.Hasher,
 	noOfMaliciousSigners uint32,
-	privateKeys []crypto.PrivateKey,
 	noOfHeaders uint32,
-	multiSigners []crypto.MultiSigner,
-	pubKeys []string,
 	nodesCoordinator sharding.NodesCoordinator,
+	allMultiSigData map[string]multiSignerData,
 ) map[string]coreSlash.SlashingResult {
-	expectedBitmapSize := len(pubKeys) / 8
-	if len(pubKeys)%8 != 0 {
+	expectedBitmapSize := len(allMultiSigData) / 8
+	if len(allMultiSigData)%8 != 0 {
 		expectedBitmapSize++
 	}
 
-	allMultiSigData := make(map[string]multiSignerData)
-
 	maliciousSigners := make(map[string]struct{}, noOfMaliciousSigners)
-	for i := 0; i < int(noOfMaliciousSigners); i++ {
-		maliciousSigners[pubKeys[i]] = struct{}{}
-	}
-
-	for i, pubKey := range pubKeys {
-		allMultiSigData[pubKey] = multiSignerData{
-			multiSigner: multiSigners[i],
-			privateKey:  privateKeys[i],
-			pubKey:      pubKey,
-		}
+	for pubKey := range allMultiSigData {
+		maliciousSigners[pubKey] = struct{}{}
 	}
 
 	headers := make([]data.HeaderInfoHandler, 0, noOfHeaders)
