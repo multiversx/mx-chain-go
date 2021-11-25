@@ -26,7 +26,6 @@ func (tsp *TestScProcessor) GetLatestTestError() error {
 
 	if tsp.flagCleanUpInformativeSCRs.IsSet() {
 		allLogs := tsp.txLogsProcessor.GetAllCurrentLogs()
-		tsp.txLogsProcessor.Clean()
 		for _, logs := range allLogs {
 			for _, event := range logs.GetLogEvents() {
 				if string(event.GetIdentifier()) == signalError {
