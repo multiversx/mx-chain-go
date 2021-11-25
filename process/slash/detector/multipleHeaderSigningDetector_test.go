@@ -745,17 +745,6 @@ func setSignatureSharesAllSignersBls(multiSigners []crypto.MultiSigner, sigsData
 	return nil
 }
 
-// 0 <= index <= len(a)
-func insert(a []string, index int, value string) []string {
-	if len(a) == index { // nil or empty slice or after last element
-		return append(a, value)
-	}
-
-	a = append(a[:index+1], a[index:]...) // index < len(a)
-	a[index] = value
-	return a
-}
-
 type maliciousSingerData struct {
 	multiSigner crypto.MultiSigner
 	privateKey  crypto.PrivateKey
@@ -780,12 +769,6 @@ func GenerateSlashResults(b *testing.B, hasher hashing.Hasher, noOfPubKeys uint3
 	for i := 0; i < int(len(privateKeys)); i++ {
 		sliceUtil.SetIndexInBitmap(uint32(i), bitmap)
 	}
-
-	//	bitmapSize := 4//noOfPubKeys/8 + 1
-	//	byteMask := 0xFF
-	//	for i := uint16(0); i < uint16(bitmapSize); i++ {
-	//		bitmap[i] = byte((((1 << noOfPubKeys) - 1) >> i) & byteMask)
-	//	}
 
 	allMultiSignersData := make([]maliciousSingerData, len(multiSigners))
 	for i, multiSigner := range multiSigners {
