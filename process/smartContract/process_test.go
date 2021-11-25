@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/postprocess"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
@@ -3973,6 +3974,33 @@ func TestCleanInformativeOnlySCRs(t *testing.T) {
 	finalSCRs, logs = sc.cleanInformativeOnlySCRs(scrs)
 	assert.Equal(t, 1, len(finalSCRs))
 	assert.Equal(t, 1, len(logs))
+}
+
+func TestProcessGetOriginalTxHashForRelayedIntraShard(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.ArgsParser = NewArgumentParser()
+	shardCoordinator, _ := sharding.NewMultiShardCoordinator(2, 0)
+	arguments.ShardCoordinator = shardCoordinator
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	scr := &smartContractResult.SmartContractResult{Value: big.NewInt(1), SndAddr: bytes.Repeat([]byte{1}, 32)}
+	scrHash := []byte("hash")
+
+	logHash := sc.getOriginalTxHashIfIntraShardRelayedSCR(scr, scrHash)
+	assert.Equal(t, scrHash, logHash)
+
+	scr.OriginalTxHash = []byte("originalHash")
+	scr.RelayerAddr = bytes.Repeat([]byte{1}, 32)
+	scr.SndAddr = bytes.Repeat([]byte{1}, 32)
+	scr.RcvAddr = bytes.Repeat([]byte{1}, 32)
+	logHash = sc.getOriginalTxHashIfIntraShardRelayedSCR(scr, scrHash)
+	assert.Equal(t, scr.OriginalTxHash, logHash)
+
+	scr.RcvAddr = bytes.Repeat([]byte{2}, 32)
+	logHash = sc.getOriginalTxHashIfIntraShardRelayedSCR(scr, scrHash)
+	assert.Equal(t, scrHash, logHash)
 }
 
 func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
