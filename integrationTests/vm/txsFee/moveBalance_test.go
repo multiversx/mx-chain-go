@@ -240,9 +240,8 @@ func TestMoveBalanceInvalidUserNames(t *testing.T) {
 	tx.SndUserName = []byte("invalidUserName")
 	tx.RcvUserName = []byte("invalidRcvUserName")
 
-	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
+	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, process.ErrFailedTransaction, err)
-	require.Equal(t, vmcommon.Ok, returnCode)
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
