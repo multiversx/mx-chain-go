@@ -1,12 +1,14 @@
 package sharding
 
+import "github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+
 // IntraShardValidatorDistributor - distributes validators from source to destination inside the same shard
 type IntraShardValidatorDistributor struct{}
 
 // DistributeValidators will handle the moving of the nodes to the map for intra shard validator distributor
 func (vd *IntraShardValidatorDistributor) DistributeValidators(
-	destination map[uint32][]Validator,
-	source map[uint32][]Validator,
+	destination map[uint32][]nodesCoordinator.Validator,
+	source map[uint32][]nodesCoordinator.Validator,
 	_ []byte,
 	_ bool,
 ) error {
@@ -23,12 +25,12 @@ type CrossShardValidatorDistributor struct{}
 
 // DistributeValidators will handle the moving of the nodes to the map for cross shard validator distributor
 func (vd *CrossShardValidatorDistributor) DistributeValidators(
-	destination map[uint32][]Validator,
-	source map[uint32][]Validator,
+	destination map[uint32][]nodesCoordinator.Validator,
+	source map[uint32][]nodesCoordinator.Validator,
 	rand []byte,
 	balanced bool,
 ) error {
-	allValidators := make([]Validator, 0)
+	allValidators := make([]nodesCoordinator.Validator, 0)
 	for _, list := range source {
 		allValidators = append(allValidators, list...)
 	}

@@ -1037,6 +1037,10 @@ func (ihgs *IndexHashedNodesCoordinatorLite) GetWaitingListFixEnableEpoch() uint
 	return ihgs.waitingListFixEnableEpoch
 }
 
+func (ihgs *IndexHashedNodesCoordinatorLite) GetEpochRegistrationHandler() EpochStartEventNotifier {
+	return ihgs.epochStartRegistrationHandler
+}
+
 // GetOwnPublicKey will return current node public key  for block sign
 // p no
 func (ihgs *IndexHashedNodesCoordinatorLite) GetOwnPublicKey() []byte {

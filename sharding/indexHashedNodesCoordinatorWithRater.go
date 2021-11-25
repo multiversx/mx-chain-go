@@ -3,10 +3,11 @@ package sharding
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
 
-var _ NodesCoordinatorHelper = (*indexHashedNodesCoordinatorWithRater)(nil)
+var _ nodesCoordinator.NodesCoordinatorHelper = (*indexHashedNodesCoordinatorWithRater)(nil)
 
 type indexHashedNodesCoordinatorWithRater struct {
 	*indexHashedNodesCoordinator
@@ -30,21 +31,21 @@ func NewIndexHashedNodesCoordinatorWithRater(
 		chanceComputer:              chanceComputer,
 	}
 
-	ihncr.nodesCoordinatorHelper = ihncr
+	ihncr.SetNodesCoordinatorHelper(ihncr)
 
 	ihncr.mutNodesConfig.Lock()
 	defer ihncr.mutNodesConfig.Unlock()
 
-	nodesConfig, ok := ihncr.nodesConfig[ihncr.currentEpoch]
+	nodesConfig, ok := ihncr.nodesConfig[ihncr.GetCurrentEpoch()]
 	if !ok {
-		nodesConfig = &epochNodesConfig{}
+		nodesConfig = &nodesCoordinator.EpochNodesConfig{}
 	}
 
-	nodesConfig.mutNodesMaps.Lock()
-	defer nodesConfig.mutNodesMaps.Unlock()
+	nodesConfig.MutNodesMaps.Lock()
+	defer nodesConfig.MutNodesMaps.Unlock()
 
 	var err error
-	nodesConfig.selectors, err = ihncr.createSelectors(nodesConfig)
+	nodesConfig.Selectors, err = ihncr.CreateSelectors(nodesConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -55,8 +56,8 @@ func NewIndexHashedNodesCoordinatorWithRater(
 }
 
 // ComputeAdditionalLeaving - computes the extra leaving validators that have a threshold below the minimum rating
-func (ihgs *indexHashedNodesCoordinatorWithRater) ComputeAdditionalLeaving(allValidators []*state.ShardValidatorInfo) (map[uint32][]Validator, error) {
-	extraLeavingNodesMap := make(map[uint32][]Validator)
+func (ihgs *indexHashedNodesCoordinatorWithRater) ComputeAdditionalLeaving(allValidators []*state.ShardValidatorInfo) (map[uint32][]nodesCoordinator.Validator, error) {
+	extraLeavingNodesMap := make(map[uint32][]nodesCoordinator.Validator)
 	minChances := ihgs.GetChance(0)
 	for _, vInfo := range allValidators {
 		if vInfo.List == string(common.InactiveList) || vInfo.List == string(common.JailedList) {
@@ -64,7 +65,7 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) ComputeAdditionalLeaving(allVa
 		}
 		chances := ihgs.GetChance(vInfo.TempRating)
 		if chances < minChances {
-			val, err := NewValidator(vInfo.PublicKey, chances, vInfo.Index)
+			val, err := nodesCoordinator.NewValidator(vInfo.PublicKey, chances, vInfo.Index)
 			if err != nil {
 				return nil, err
 			}
@@ -87,7 +88,7 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) GetChance(rating uint32) uint3
 }
 
 // ValidatorsWeights returns the weights/chances for each given validator
-func (ihgs *indexHashedNodesCoordinatorWithRater) ValidatorsWeights(validators []Validator) ([]uint32, error) {
+func (ihgs *indexHashedNodesCoordinatorWithRater) ValidatorsWeights(validators []nodesCoordinator.Validator) ([]uint32, error) {
 	minChance := ihgs.GetChance(0)
 	weights := make([]uint32, len(validators))
 

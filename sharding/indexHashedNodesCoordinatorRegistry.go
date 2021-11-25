@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
 // SerializableValidator holds the minimal data required for marshalling and un-marshalling a validator
@@ -58,7 +59,7 @@ func (ihgs *indexHashedNodesCoordinator) baseLoadState(key []byte) error {
 	ihgs.savedStateKey = key
 	ihgs.mutSavedStateKey.Unlock()
 
-	ihgs.currentEpoch = config.CurrentEpoch
+	ihgs.SetCurrentEpoch(config.CurrentEpoch)
 	log.Debug("loaded nodes config", "current epoch", config.CurrentEpoch)
 
 	nodesConfig, err := ihgs.registryToNodesCoordinator(config)
@@ -74,11 +75,11 @@ func (ihgs *indexHashedNodesCoordinator) baseLoadState(key []byte) error {
 	return nil
 }
 
-func displayNodesConfigInfo(config map[uint32]*epochNodesConfig) {
+func displayNodesConfigInfo(config map[uint32]*nodesCoordinator.EpochNodesConfig) {
 	for epoch, cfg := range config {
 		log.Debug("restored config for",
 			"epoch", epoch,
-			"computed shard ID", cfg.shardID,
+			"computed shard ID", cfg.ShardID,
 		)
 	}
 }
@@ -103,7 +104,7 @@ func (ihgs *indexHashedNodesCoordinator) NodesCoordinatorToRegistry() *NodesCoor
 	defer ihgs.mutNodesConfig.RUnlock()
 
 	registry := &NodesCoordinatorRegistry{
-		CurrentEpoch: ihgs.currentEpoch,
+		CurrentEpoch: ihgs.GetCurrentEpoch(),
 		EpochsConfig: make(map[string]*EpochValidators),
 	}
 
@@ -125,7 +126,7 @@ func (ihgs *indexHashedNodesCoordinator) NodesCoordinatorToRegistry() *NodesCoor
 	return registry
 }
 
-func(ihgs *indexHashedNodesCoordinator) getLastEpochConfig() uint32 {
+func (ihgs *indexHashedNodesCoordinator) getLastEpochConfig() uint32 {
 	lastEpoch := uint32(0)
 	for epoch := range ihgs.nodesConfig {
 		if lastEpoch < epoch {
@@ -138,10 +139,10 @@ func(ihgs *indexHashedNodesCoordinator) getLastEpochConfig() uint32 {
 
 func (ihgs *indexHashedNodesCoordinator) registryToNodesCoordinator(
 	config *NodesCoordinatorRegistry,
-) (map[uint32]*epochNodesConfig, error) {
+) (map[uint32]*nodesCoordinator.EpochNodesConfig, error) {
 	var err error
 	var epoch int64
-	result := make(map[uint32]*epochNodesConfig)
+	result := make(map[uint32]*nodesCoordinator.EpochNodesConfig)
 
 	for epochStr, epochValidators := range config.EpochsConfig {
 		epoch, err = strconv.ParseInt(epochStr, 10, 64)
@@ -149,24 +150,24 @@ func (ihgs *indexHashedNodesCoordinator) registryToNodesCoordinator(
 			return nil, err
 		}
 
-		var nodesConfig *epochNodesConfig
+		var nodesConfig *nodesCoordinator.EpochNodesConfig
 		nodesConfig, err = epochValidatorsToEpochNodesConfig(epochValidators)
 		if err != nil {
 			return nil, err
 		}
 
-		nbShards := uint32(len(nodesConfig.eligibleMap))
+		nbShards := uint32(len(nodesConfig.EligibleMap))
 		if nbShards < 2 {
 			return nil, ErrInvalidNumberOfShards
 		}
 
 		// shards without metachain shard
-		nodesConfig.nbShards = nbShards - 1
-		nodesConfig.shardID, _ = ihgs.computeShardForSelfPublicKey(nodesConfig)
+		nodesConfig.NbShards = nbShards - 1
+		nodesConfig.ShardID, _ = ihgs.computeShardForSelfPublicKey(nodesConfig)
 		epoch32 := uint32(epoch)
 		result[epoch32] = nodesConfig
 		log.Debug("registry to nodes coordinator", "epoch", epoch32)
-		result[epoch32].selectors, err = ihgs.createSelectors(nodesConfig)
+		result[epoch32].Selectors, err = ihgs.CreateSelectors(nodesConfig)
 		if err != nil {
 			return nil, err
 		}
@@ -175,43 +176,43 @@ func (ihgs *indexHashedNodesCoordinator) registryToNodesCoordinator(
 	return result, nil
 }
 
-func epochNodesConfigToEpochValidators(config *epochNodesConfig) *EpochValidators {
+func epochNodesConfigToEpochValidators(config *nodesCoordinator.EpochNodesConfig) *EpochValidators {
 	result := &EpochValidators{
-		EligibleValidators: make(map[string][]*SerializableValidator, len(config.eligibleMap)),
-		WaitingValidators:  make(map[string][]*SerializableValidator, len(config.waitingMap)),
-		LeavingValidators:  make(map[string][]*SerializableValidator, len(config.leavingMap)),
+		EligibleValidators: make(map[string][]*SerializableValidator, len(config.EligibleMap)),
+		WaitingValidators:  make(map[string][]*SerializableValidator, len(config.WaitingMap)),
+		LeavingValidators:  make(map[string][]*SerializableValidator, len(config.LeavingMap)),
 	}
 
-	for k, v := range config.eligibleMap {
+	for k, v := range config.EligibleMap {
 		result.EligibleValidators[fmt.Sprint(k)] = ValidatorArrayToSerializableValidatorArray(v)
 	}
 
-	for k, v := range config.waitingMap {
+	for k, v := range config.WaitingMap {
 		result.WaitingValidators[fmt.Sprint(k)] = ValidatorArrayToSerializableValidatorArray(v)
 	}
 
-	for k, v := range config.leavingMap {
+	for k, v := range config.LeavingMap {
 		result.LeavingValidators[fmt.Sprint(k)] = ValidatorArrayToSerializableValidatorArray(v)
 	}
 
 	return result
 }
 
-func epochValidatorsToEpochNodesConfig(config *EpochValidators) (*epochNodesConfig, error) {
-	result := &epochNodesConfig{}
+func epochValidatorsToEpochNodesConfig(config *EpochValidators) (*nodesCoordinator.EpochNodesConfig, error) {
+	result := &nodesCoordinator.EpochNodesConfig{}
 	var err error
 
-	result.eligibleMap, err = serializableValidatorsMapToValidatorsMap(config.EligibleValidators)
+	result.EligibleMap, err = serializableValidatorsMapToValidatorsMap(config.EligibleValidators)
 	if err != nil {
 		return nil, err
 	}
 
-	result.waitingMap, err = serializableValidatorsMapToValidatorsMap(config.WaitingValidators)
+	result.WaitingMap, err = serializableValidatorsMapToValidatorsMap(config.WaitingValidators)
 	if err != nil {
 		return nil, err
 	}
 
-	result.leavingMap, err = serializableValidatorsMapToValidatorsMap(config.LeavingValidators)
+	result.LeavingMap, err = serializableValidatorsMapToValidatorsMap(config.LeavingValidators)
 	if err != nil {
 		return nil, err
 	}
@@ -221,9 +222,9 @@ func epochValidatorsToEpochNodesConfig(config *EpochValidators) (*epochNodesConf
 
 func serializableValidatorsMapToValidatorsMap(
 	sValidators map[string][]*SerializableValidator,
-) (map[uint32][]Validator, error) {
+) (map[uint32][]nodesCoordinator.Validator, error) {
 
-	result := make(map[uint32][]Validator, len(sValidators))
+	result := make(map[uint32][]nodesCoordinator.Validator, len(sValidators))
 
 	for k, v := range sValidators {
 		key, err := strconv.ParseInt(k, 10, 64)
@@ -241,7 +242,7 @@ func serializableValidatorsMapToValidatorsMap(
 }
 
 // ValidatorArrayToSerializableValidatorArray -
-func ValidatorArrayToSerializableValidatorArray(validators []Validator) []*SerializableValidator {
+func ValidatorArrayToSerializableValidatorArray(validators []nodesCoordinator.Validator) []*SerializableValidator {
 	result := make([]*SerializableValidator, len(validators))
 
 	for i, v := range validators {
@@ -255,12 +256,12 @@ func ValidatorArrayToSerializableValidatorArray(validators []Validator) []*Seria
 	return result
 }
 
-func serializableValidatorArrayToValidatorArray(sValidators []*SerializableValidator) ([]Validator, error) {
-	result := make([]Validator, len(sValidators))
+func serializableValidatorArrayToValidatorArray(sValidators []*SerializableValidator) ([]nodesCoordinator.Validator, error) {
+	result := make([]nodesCoordinator.Validator, len(sValidators))
 	var err error
 
 	for i, v := range sValidators {
-		result[i], err = NewValidator(v.PubKey, v.Chances, v.Index)
+		result[i], err = nodesCoordinator.NewValidator(v.PubKey, v.Chances, v.Index)
 		if err != nil {
 			return nil, err
 		}
@@ -270,13 +271,13 @@ func serializableValidatorArrayToValidatorArray(sValidators []*SerializableValid
 }
 
 // NodesInfoToValidators maps nodeInfo to validator interface
-func NodesInfoToValidators(nodesInfo map[uint32][]GenesisNodeInfoHandler) (map[uint32][]Validator, error) {
-	validatorsMap := make(map[uint32][]Validator)
+func NodesInfoToValidators(nodesInfo map[uint32][]GenesisNodeInfoHandler) (map[uint32][]nodesCoordinator.Validator, error) {
+	validatorsMap := make(map[uint32][]nodesCoordinator.Validator)
 
 	for shId, nodeInfoList := range nodesInfo {
-		validators := make([]Validator, 0, len(nodeInfoList))
+		validators := make([]nodesCoordinator.Validator, 0, len(nodeInfoList))
 		for index, nodeInfo := range nodeInfoList {
-			validatorObj, err := NewValidator(nodeInfo.PubKeyBytes(), defaultSelectionChances, uint32(index))
+			validatorObj, err := nodesCoordinator.NewValidator(nodeInfo.PubKeyBytes(), nodesCoordinator.DefaultSelectionChances, uint32(index))
 			if err != nil {
 				return nil, err
 			}

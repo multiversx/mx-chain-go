@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -14,12 +15,12 @@ type ArgNodesCoordinator struct {
 	Marshalizer                marshal.Marshalizer
 	Hasher                     hashing.Hasher
 	Shuffler                   NodesShuffler
-	EpochStartNotifier         EpochStartEventNotifier
+	EpochStartNotifier         nodesCoordinator.EpochStartEventNotifier
 	BootStorer                 storage.Storer
 	ShardIDAsObserver          uint32
 	NbShards                   uint32
-	EligibleNodes              map[uint32][]Validator
-	WaitingNodes               map[uint32][]Validator
+	EligibleNodes              map[uint32][]nodesCoordinator.Validator
+	WaitingNodes               map[uint32][]nodesCoordinator.Validator
 	SelfPublicKey              []byte
 	Epoch                      uint32
 	StartEpoch                 uint32
@@ -27,6 +28,6 @@ type ArgNodesCoordinator struct {
 	ShuffledOutHandler         ShuffledOutHandler
 	WaitingListFixEnabledEpoch uint32
 	ChanStopNode               chan endProcess.ArgEndProcess
-	NodeTypeProvider           NodeTypeProviderHandler
+	NodeTypeProvider           nodesCoordinator.NodeTypeProviderHandler
 	IsFullArchive              bool
 }

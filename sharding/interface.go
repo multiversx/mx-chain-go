@@ -1,10 +1,8 @@
 package sharding
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
 // Coordinator defines what a shard state coordinator should hold
@@ -17,46 +15,11 @@ type Coordinator interface {
 	IsInterfaceNil() bool
 }
 
-// Validator defines a node that can be allocated to a shard for participation in a consensus group as validator
-// or block proposer
-type Validator interface {
-	PubKey() []byte
-	Chances() uint32
-	Index() uint32
-	Size() int
-}
-
 // NodesCoordinator defines the behaviour of a struct able to do validator group selection
 type NodesCoordinator interface {
-	NodesCoordinatorHelper
-	PublicKeysSelector
-	ComputeConsensusGroup(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []Validator, err error)
-	GetValidatorWithPublicKey(publicKey []byte) (validator Validator, shardId uint32, err error)
-	LoadState(key []byte) error
-	GetSavedStateKey() []byte
-	ShardIdForEpoch(epoch uint32) (uint32, error)
+	nodesCoordinator.NodesCoordinatorLite
 	ShuffleOutForEpoch(_ uint32)
-	GetConsensusWhitelistedNodes(epoch uint32) (map[string]struct{}, error)
-	ConsensusGroupSize(uint32) int
-	GetNumTotalEligible() uint64
-	IsInterfaceNil() bool
-}
-
-// EpochStartEventNotifier provides Register and Unregister functionality for the end of epoch events
-type EpochStartEventNotifier interface {
-	RegisterHandler(handler epochStart.ActionHandler)
-	UnregisterHandler(handler epochStart.ActionHandler)
-	IsInterfaceNil() bool
-}
-
-// PublicKeysSelector allows retrieval of eligible validators public keys
-type PublicKeysSelector interface {
-	GetValidatorsIndexes(publicKeys []string, epoch uint32) ([]uint64, error)
-	GetAllEligibleValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
-	GetAllWaitingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
-	GetAllLeavingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
-	GetConsensusValidatorsPublicKeys(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
-	GetOwnPublicKey() []byte
+	LoadState(key []byte) error
 }
 
 // EpochHandler defines what a component which handles current epoch should be able to do
@@ -67,11 +30,11 @@ type EpochHandler interface {
 
 // ArgsUpdateNodes holds the parameters required by the shuffler to generate a new nodes configuration
 type ArgsUpdateNodes struct {
-	Eligible          map[uint32][]Validator
-	Waiting           map[uint32][]Validator
-	NewNodes          []Validator
-	UnStakeLeaving    []Validator
-	AdditionalLeaving []Validator
+	Eligible          map[uint32][]nodesCoordinator.Validator
+	Waiting           map[uint32][]nodesCoordinator.Validator
+	NewNodes          []nodesCoordinator.Validator
+	UnStakeLeaving    []nodesCoordinator.Validator
+	AdditionalLeaving []nodesCoordinator.Validator
 	Rand              []byte
 	NbShards          uint32
 	Epoch             uint32
@@ -79,10 +42,10 @@ type ArgsUpdateNodes struct {
 
 // ResUpdateNodes holds the result of the UpdateNodes method
 type ResUpdateNodes struct {
-	Eligible       map[uint32][]Validator
-	Waiting        map[uint32][]Validator
-	Leaving        []Validator
-	StillRemaining []Validator
+	Eligible       map[uint32][]nodesCoordinator.Validator
+	Waiting        map[uint32][]nodesCoordinator.Validator
+	Leaving        []nodesCoordinator.Validator
+	StillRemaining []nodesCoordinator.Validator
 }
 
 // NodesShuffler provides shuffling functionality for nodes
@@ -90,13 +53,6 @@ type NodesShuffler interface {
 	UpdateParams(numNodesShard uint32, numNodesMeta uint32, hysteresis float32, adaptivity bool)
 	UpdateNodeLists(args ArgsUpdateNodes) (*ResUpdateNodes, error)
 	IsInterfaceNil() bool
-}
-
-// NodesCoordinatorHelper provides polymorphism functionality for nodesCoordinator
-type NodesCoordinatorHelper interface {
-	ValidatorsWeights(validators []Validator) ([]uint32, error)
-	ComputeAdditionalLeaving(allValidators []*state.ShardValidatorInfo) (map[uint32][]Validator, error)
-	GetChance(uint32) uint32
 }
 
 //PeerAccountListAndRatingHandler provides Rating Computation Capabilites for the Nodes Coordinator and ValidatorStatistics
@@ -182,13 +138,6 @@ type GenesisNodesSetupHandler interface {
 	IsInterfaceNil() bool
 }
 
-// NodeTypeProviderHandler defines the actions needed for a component that can handle the node type
-type NodeTypeProviderHandler interface {
-	SetType(nodeType core.NodeType)
-	GetType() core.NodeType
-	IsInterfaceNil() bool
-}
-
 // GenesisNodeInfoHandler defines the public methods for the genesis nodes info
 type GenesisNodeInfoHandler interface {
 	AssignedShard() uint32
@@ -200,6 +149,6 @@ type GenesisNodeInfoHandler interface {
 
 // ValidatorsDistributor distributes validators across shards
 type ValidatorsDistributor interface {
-	DistributeValidators(destination map[uint32][]Validator, source map[uint32][]Validator, rand []byte, balanced bool) error
+	DistributeValidators(destination map[uint32][]nodesCoordinator.Validator, source map[uint32][]nodesCoordinator.Validator, rand []byte, balanced bool) error
 	IsInterfaceNil() bool
 }
