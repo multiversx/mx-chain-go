@@ -586,7 +586,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testi
 		},
 	}
 
-	txs, err := NewTransactionPreprocessor(args)
+	txs, _ := NewTransactionPreprocessor(args)
 	assert.NotNil(t, txs)
 
 	sndShardId := uint32(0)

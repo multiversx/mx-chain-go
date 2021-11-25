@@ -33,7 +33,8 @@ var _ process.PreProcessor = (*transactions)(nil)
 
 var log = logger.GetOrCreate("process/block/preprocess")
 
-const selectionGasBandwidthIncrease = 0.3
+// 200% bandwidth to allow also 100% overshooting estimations
+const selectionGasBandwidthIncrease = 2
 
 // TODO: increase code coverage with unit test
 
@@ -248,8 +249,6 @@ func (txs *transactions) RestoreBlockDataIntoPools(
 			txs.txPool.AddData([]byte(txHash), &tx, tx.Size(), strCache)
 		}
 
-		//TODO: Should be analyzed if restoring into pool only cross-shard miniBlocks with destination in self shard
-		// would create problems or not
 		if miniBlock.SenderShardID != txs.shardCoordinator.SelfId() {
 			miniBlockHash, errHash := core.CalculateHash(txs.marshalizer, txs.hasher, miniBlock)
 			if errHash != nil {
@@ -750,12 +749,12 @@ func (txs *transactions) getRemainingGasPerBlock() uint64 {
 	return gasBandwidth
 }
 
-// CreateAndProcessMiniBlocks creates miniblocks from storage and processes the transactions added into the miniblocks
+// CreateAndProcessMiniBlocks creates miniBlocks from storage and processes the transactions added into the miniblocks
 // as long as it has time
 func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, randomness []byte) (block.MiniBlockSlice, error) {
 	startTime := time.Now()
 
-	gasBandwidth := uint64(float64(txs.getRemainingGasPerBlock()) * (1 + selectionGasBandwidthIncrease))
+	gasBandwidth := txs.getRemainingGasPerBlock() * selectionGasBandwidthIncrease
 
 	sortedTxs, err := txs.computeSortedTxs(txs.shardCoordinator.SelfId(), txs.shardCoordinator.SelfId(), gasBandwidth, randomness)
 	elapsedTime := time.Since(startTime)

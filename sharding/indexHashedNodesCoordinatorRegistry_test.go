@@ -153,7 +153,7 @@ func TestIndexHashedNodesCooridinator_nodesCoordinatorToRegistryLimitNumEpochsIn
 	require.Equal(t, nodesCoordinator.currentEpoch, ncr.CurrentEpoch)
 	require.Equal(t, nodesCoordinatorStoredEpochs, len(ncr.EpochsConfig))
 
-	for epochStr:= range ncr.EpochsConfig {
+	for epochStr := range ncr.EpochsConfig {
 		epoch, err := strconv.Atoi(epochStr)
 		require.Nil(t, err)
 		require.True(t, sameValidatorsDifferentMapTypes(nc[uint32(epoch)].eligibleMap, ncr.EpochsConfig[epochStr].EligibleValidators))
