@@ -751,6 +751,7 @@ func (txs *transactions) getRemainingGasPerBlock() uint64 {
 
 // CreateAndProcessMiniBlocks creates miniBlocks from storage and processes the transactions added into the miniblocks
 // as long as it has time
+// TODO: check if possible for transaction pre processor to receive a blockChainHook and use it to get the randomness instead
 func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, randomness []byte) (block.MiniBlockSlice, error) {
 	startTime := time.Now()
 
@@ -1209,6 +1210,7 @@ func (txs *transactions) computeSortedTxs(
 	log.Debug("computeSortedTxs.GetSortedTransactions")
 	sortedTxs := sortedTransactionsProvider.GetSortedTransactions()
 
+	// TODO: this could be moved to SortedTransactionsProvider
 	selectedTxs := txs.preFilterTransactions(sortedTxs, gasBandwidth)
 	txs.sortTransactionsBySenderAndNonce(selectedTxs, randomness)
 
