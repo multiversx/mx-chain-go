@@ -242,7 +242,7 @@ func TestBuildInFunctionChangeOwnerOutOfGasShouldConsumeGas(t *testing.T) {
 func TestBuildInFunctionSaveKeyValue_WrongDestination(t *testing.T) {
 	shardCoord, _ := sharding.NewMultiShardCoordinator(2, 0)
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinator(vm.ArgEnableEpoch{}, shardCoord)
+	testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinator(vm.ArgEnableEpoch{CleanUpInformativeSCRsEnableEpoch: 10}, shardCoord)
 	require.Nil(t, err)
 	defer testContext.Close()
 

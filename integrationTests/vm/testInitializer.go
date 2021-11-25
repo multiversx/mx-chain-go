@@ -89,6 +89,7 @@ type ArgEnableEpoch struct {
 	RelayedTxEnableEpoch                uint32
 	UnbondTokensV2EnableEpoch           uint32
 	BackwardCompSaveKeyValueEnableEpoch uint32
+	CleanUpInformativeSCRsEnableEpoch   uint32
 }
 
 // VMTestAccount -
@@ -807,6 +808,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		BuiltInFunctionsEnableEpoch:         argEnableEpoch.BuiltinEnableEpoch,
 		SCDeployEnableEpoch:                 argEnableEpoch.DeployEnableEpoch,
 		BackwardCompSaveKeyValueEnableEpoch: argEnableEpoch.BackwardCompSaveKeyValueEnableEpoch,
+		CleanUpInformativeSCRsEnableEpoch:   argEnableEpoch.CleanUpInformativeSCRsEnableEpoch,
 	}
 	logProc, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
 		SaveInStorageEnabled: false,
