@@ -468,6 +468,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		Marshalizer:      testMarshalizer,
 		AccountsDB:       accnts,
 		BlockChainHook:   blockChainHook,
+		BuiltInFunctions: builtInFuncs,
 		PubkeyConv:       pubkeyConv,
 		ShardCoordinator: oneShardCoordinator,
 		ScrForwarder:     &mock.IntermediateTransactionHandlerMock{},

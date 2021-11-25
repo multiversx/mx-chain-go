@@ -1191,7 +1191,7 @@ func deployNewSc(
 
 	for _, log := range logs {
 		for _, event := range log.GetLogEvents() {
-			if bytes.Equal(event.GetIdentifier(), vm.DelegationManagerSCAddress) {
+			if string(event.GetIdentifier()) == "writeLog" && bytes.Equal(event.GetAddress(), vm.DelegationManagerSCAddress) {
 				tokens := strings.Split(string(event.GetData()), "@")
 				address, _ := hex.DecodeString(tokens[2])
 				return address
