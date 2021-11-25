@@ -107,6 +107,7 @@ func TestAsyncESDTTransferWithSCCallShouldWork(t *testing.T) {
 
 	intermediateTxs := testContextFirstContract.GetIntermediateTransactions(t)
 	testIndexer = vm.CreateTestIndexer(t, testContextFirstContract.ShardCoordinator, testContextFirstContract.EconomicsData)
+	testIndexer.SetTxLogProcessor(testContextFirstContract.TxsLogsProcessor)
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
@@ -225,6 +226,7 @@ func TestAsyncESDTTransferWithSCCallSecondContractAnotherToken(t *testing.T) {
 
 	intermediateTxs := testContextFirstContract.GetIntermediateTransactions(t)
 	testIndexer = vm.CreateTestIndexer(t, testContextFirstContract.ShardCoordinator, testContextFirstContract.EconomicsData)
+	testIndexer.SetTxLogProcessor(testContextFirstContract.TxsLogsProcessor)
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)

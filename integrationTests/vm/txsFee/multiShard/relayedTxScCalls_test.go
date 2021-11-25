@@ -257,10 +257,6 @@ func TestRelayedTxScCallMultiShardFailOnInnerTxDst(t *testing.T) {
 	developerFees = testContextInnerDst.TxFeeHandler.GetDeveloperFees()
 	require.Equal(t, big.NewInt(0), developerFees)
 
-	txs = testContextInnerDst.GetIntermediateTransactions(t)
-	scr = txs[0]
-
-	utils.ProcessSCRResult(t, testContextInnerSource, scr, vmcommon.Ok, nil)
 	expectedBalance = big.NewInt(0)
 	utils.TestAccount(t, testContextInnerSource.Accounts, sndAddr, 1, expectedBalance)
 
