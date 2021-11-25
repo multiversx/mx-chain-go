@@ -728,13 +728,13 @@ func createSignaturesShares(multiSigners []crypto.MultiSigner, message []byte) [
 	return sigShares
 }
 
-func setSignatureSharesAllSignersBls(multiSigners []crypto.MultiSigner, sigsData []sigData) error {
+func setSignatureSharesAllSignersBls(multiSigners []crypto.MultiSigner, sigsData []sigShareData) error {
 	grSize := uint16(len(multiSigners)) // + 1// TODO: REFACTOR. THIS IS THE +1 for the leader
 	var err error
 
 	for i := uint16(0); i < grSize; i++ {
 		for j := uint16(0); j < grSize; j++ {
-			err = multiSigners[j].StoreSignatureShare(uint16(sigsData[i].index), sigsData[i].sig)
+			err = multiSigners[j].StoreSignatureShare(uint16(sigsData[i].index), sigsData[i].signature)
 			if err != nil {
 				return err
 			}
@@ -744,9 +744,9 @@ func setSignatureSharesAllSignersBls(multiSigners []crypto.MultiSigner, sigsData
 	return nil
 }
 
-type sigData struct {
-	sig   []byte
-	index uint32
+type sigShareData struct {
+	signature []byte
+	index     uint32
 }
 
 func GenerateSlashResults(
@@ -763,44 +763,65 @@ func GenerateSlashResults(
 	}
 
 	maliciousSigners := make(map[string]struct{}, noOfMaliciousSigners)
+	i := uint32(0)
 	for pubKey := range allMultiSigData {
+		if i >= noOfMaliciousSigners {
+			break
+		}
 		maliciousSigners[pubKey] = struct{}{}
+		i++
 	}
 
 	headers := make([]data.HeaderInfoHandler, 0, noOfHeaders)
+	round := uint64(1)
+	epoch := uint32(0)
 	for i := 0; i < int(noOfHeaders); i++ {
-		randomness := []byte(strconv.Itoa(int(i)))
-		header := &block.HeaderV2{Header: &block.Header{Round: 1, ShardID: core.MetachainShardId, Epoch: 0, PrevRandSeed: randomness, TimeStamp: uint64(i)}}
-		group, err := nodesCoordinator.ComputeConsensusGroup(randomness, 1, core.MetachainShardId, 0)
+		randomness := []byte(strconv.Itoa(i))
+		header := &block.HeaderV2{
+			Header: &block.Header{
+				TimeStamp:    uint64(i),
+				Round:        round,
+				ShardID:      core.MetachainShardId,
+				Epoch:        epoch,
+				PrevRandSeed: randomness,
+			},
+		}
+		consensusGroup, err := nodesCoordinator.ComputeConsensusGroup(randomness, round, core.MetachainShardId, epoch)
 		require.Nil(b, err)
 
+		pubKeysIndexMap := make(map[string]uint32, len(consensusGroup))
+		newPubKeys := make([]string, 0, len(consensusGroup))
+		for idx, validator := range consensusGroup {
+			pubKeyStr := string(validator.PubKey())
+
+			pubKeysIndexMap[pubKeyStr] = uint32(idx)
+			newPubKeys = append(newPubKeys, pubKeyStr)
+		}
+
 		bitmap := make([]byte, expectedBitmapSize)
-		pubKeysIndexMap := make(map[string]uint32, len(group))
-		newPubKeys := make([]string, 0, len(group))
-		for idx, validator := range group {
-			pubKeysIndexMap[string(validator.PubKey())] = uint32(idx)
-			newPubKeys = append(newPubKeys, string(validator.PubKey()))
-		}
-
 		newMaliciousSigners := make([]crypto.MultiSigner, 0)
-		signaturesData := make([]sigData, 0, len(newMaliciousSigners))
-		for maliciousSigner := range maliciousSigners {
-			newIndex := pubKeysIndexMap[maliciousSigner]
-			sliceUtil.SetIndexInBitmap(newIndex, bitmap)
-			err = allMultiSigData[maliciousSigner].multiSigner.Reset(newPubKeys, uint16(newIndex))
+		signaturesData := make([]sigShareData, 0, len(newMaliciousSigners))
+
+		for pubKey, signerData := range allMultiSigData {
+			newIndex := pubKeysIndexMap[pubKey]
+			err = signerData.multiSigner.Reset(newPubKeys, uint16(newIndex))
 			require.Nil(b, err)
-			newMaliciousSigners = append(newMaliciousSigners, allMultiSigData[maliciousSigner].multiSigner)
-			signaturesData = append(signaturesData, sigData{
-				index: newIndex,
-			})
-			require.Nil(b, err)
+
+			_, isMalicious := maliciousSigners[pubKey]
+			if isMalicious {
+				sliceUtil.SetIndexInBitmap(newIndex, bitmap)
+				newMaliciousSigners = append(newMaliciousSigners, signerData.multiSigner)
+				signaturesData = append(signaturesData, sigShareData{
+					index: newIndex,
+				})
+			}
 		}
 
-		leaderPubKey := string(group[0].PubKey())
+		leaderPubKey := string(consensusGroup[0].PubKey())
 		leaderPrivateKey := allMultiSigData[leaderPubKey].privateKey
 		leaderMultiSigner := allMultiSigData[leaderPubKey].multiSigner
 		sliceUtil.SetIndexInBitmap(0, bitmap)
-		signaturesData = append(signaturesData, sigData{
+		signaturesData = append(signaturesData, sigShareData{
 			index: 0,
 		})
 		err = leaderMultiSigner.Reset(newPubKeys, uint16(pubKeysIndexMap[leaderPubKey]))
@@ -815,7 +836,7 @@ func GenerateSlashResults(
 
 		signatures := createSignaturesShares(newMaliciousSigners, hash)
 		for iiii, signature := range signatures {
-			signaturesData[iiii].sig = signature
+			signaturesData[iiii].signature = signature
 		}
 		err = setSignatureSharesAllSignersBls(newMaliciousSigners, signaturesData)
 		require.Nil(b, err)
