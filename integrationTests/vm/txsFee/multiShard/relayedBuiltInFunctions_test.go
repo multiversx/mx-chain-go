@@ -92,7 +92,7 @@ func TestRelayedBuiltInFunctionExecuteOnRelayerAndDstShardShouldWork(t *testing.
 	require.Equal(t, expectedFees, accumulatedFees)
 
 	txs := testContextInner.GetIntermediateTransactions(t)
-	scr := txs[1]
+	scr := txs[0]
 	utils.ProcessSCRResult(t, testContextRelayer, scr, vmcommon.Ok, nil)
 
 	expectedRelayerBalance = big.NewInt(10760)
