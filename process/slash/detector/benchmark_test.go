@@ -34,7 +34,7 @@ const (
 	hysteresis              = float32(0.2)
 	defaultSelectionChances = uint32(1)
 	hashSize                = 16
-	metaConsensusGroupSize  = 400
+	metaConsensusGroupSize  = 100
 	shardConsensusGroupSize = 63
 )
 
@@ -52,7 +52,7 @@ func BenchmarkMultipleHeaderSigningDetector_ValidateProof(b *testing.B) {
 	require.Nil(b, err)
 
 	// Worst case scenario: 25% * 400() + 1
-	noOfMaliciousSigners := uint16(134)
+	noOfMaliciousSigners := uint16(70)
 	noOfSignedHeaders := uint32(2)
 	slashRes := GenerateSlashResults(b, hasher, uint32(noOfMaliciousSigners), privateKeys, noOfSignedHeaders, blsSigners, pubKeysStr, args.NodesCoordinator)
 	proof, err := coreSlash.NewMultipleSigningProof(slashRes)

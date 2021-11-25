@@ -14,7 +14,6 @@ import (
 	mock2 "github.com/ElrondNetwork/elrond-go-core/data/mock"
 	coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
 	mockEpochStart "github.com/ElrondNetwork/elrond-go/epochStart/mock"
@@ -720,9 +719,9 @@ func TestMultipleHeaderSigningDetector_SignedHeader_CannotVerifySignature_Expect
 	require.False(t, signedHeader)
 }
 
-func createSignaturesShares(numOfSigners uint16, multiSigners []crypto.MultiSigner, message []byte) [][]byte {
-	sigShares := make([][]byte, numOfSigners)
-	for i := uint16(0); i < numOfSigners; i++ {
+func createSignaturesShares(multiSigners []crypto.MultiSigner, message []byte) [][]byte {
+	sigShares := make([][]byte, len(multiSigners))
+	for i := uint16(0); i < uint16(len(multiSigners)); i++ {
 		sigShares[i], _ = multiSigners[i].CreateSignatureShare(message, []byte(""))
 	}
 
@@ -745,11 +744,10 @@ func setSignatureSharesAllSignersBls(multiSigners []crypto.MultiSigner, sigsData
 	return nil
 }
 
-type maliciousSingerData struct {
+type multiSignerData struct {
 	multiSigner crypto.MultiSigner
 	privateKey  crypto.PrivateKey
 	pubKey      string
-	index       uint32
 }
 
 type sigData struct {
@@ -757,43 +755,34 @@ type sigData struct {
 	index uint32
 }
 
-func GenerateSlashResults(b *testing.B, hasher hashing.Hasher, noOfPubKeys uint32, privateKeys []crypto.PrivateKey, noOfHeaders uint32, multiSigners []crypto.MultiSigner, pubKeys []string, nodesCoordinator sharding.NodesCoordinator) map[string]coreSlash.SlashingResult {
-	marshaller := &marshal.GogoProtoMarshalizer{}
-
+func GenerateSlashResults(
+	b *testing.B,
+	hasher hashing.Hasher,
+	noOfMaliciousSigners uint32,
+	privateKeys []crypto.PrivateKey,
+	noOfHeaders uint32,
+	multiSigners []crypto.MultiSigner,
+	pubKeys []string,
+	nodesCoordinator sharding.NodesCoordinator,
+) map[string]coreSlash.SlashingResult {
 	expectedBitmapSize := len(pubKeys) / 8
 	if len(pubKeys)%8 != 0 {
 		expectedBitmapSize++
 	}
 
-	bitmap := make([]byte, expectedBitmapSize)
-	for i := 0; i < int(len(privateKeys)); i++ {
-		sliceUtil.SetIndexInBitmap(uint32(i), bitmap)
+	allMultiSigData := make(map[string]multiSignerData)
+
+	maliciousSigners := make(map[string]struct{}, noOfMaliciousSigners)
+	for i := 0; i < int(noOfMaliciousSigners); i++ {
+		maliciousSigners[pubKeys[i]] = struct{}{}
 	}
 
-	allMultiSignersData := make([]maliciousSingerData, len(multiSigners))
-	for i, multiSigner := range multiSigners {
-		allMultiSignersData[i] = maliciousSingerData{
-			multiSigner: multiSigner,
-			pubKey:      pubKeys[i],
+	for i, pubKey := range pubKeys {
+		allMultiSigData[pubKey] = multiSignerData{
+			multiSigner: multiSigners[i],
 			privateKey:  privateKeys[i],
-			index:       uint32(i),
+			pubKey:      pubKey,
 		}
-	}
-
-	maliciousSigners := make([]maliciousSingerData, noOfPubKeys)
-	for i := 0; i < int(noOfPubKeys); i++ {
-		maliciousSigners[i] = maliciousSingerData{
-			multiSigner: allMultiSignersData[i].multiSigner,
-			pubKey:      allMultiSignersData[i].pubKey,
-			privateKey:  allMultiSignersData[i].privateKey,
-			index:       allMultiSignersData[i].index,
-		}
-	}
-	allPrivateKeys := make(map[string]crypto.PrivateKey)
-	allSigners := make(map[string]crypto.MultiSigner)
-	for _, multiSigner := range allMultiSignersData {
-		allPrivateKeys[multiSigner.pubKey] = multiSigner.privateKey
-		allSigners[multiSigner.pubKey] = multiSigner.multiSigner
 	}
 
 	headers := make([]data.HeaderInfoHandler, 0, noOfHeaders)
@@ -802,24 +791,23 @@ func GenerateSlashResults(b *testing.B, hasher hashing.Hasher, noOfPubKeys uint3
 		header := &block.HeaderV2{Header: &block.Header{Round: 1, ShardID: core.MetachainShardId, Epoch: 0, PrevRandSeed: randomness, TimeStamp: uint64(i)}}
 		group, err := nodesCoordinator.ComputeConsensusGroup(randomness, 1, core.MetachainShardId, 0)
 		require.Nil(b, err)
-		bitmap = make([]byte, expectedBitmapSize)
+
+		bitmap := make([]byte, expectedBitmapSize)
 		pubKeysIndexMap := make(map[string]uint32, len(group))
 		newPubKeys := make([]string, 0, len(group))
 		for idx, validator := range group {
 			pubKeysIndexMap[string(validator.PubKey())] = uint32(idx)
 			newPubKeys = append(newPubKeys, string(validator.PubKey()))
-
-			//fmt.Println(fmt.Sprintf("%d.%s", idx, hex.EncodeToString(validator.PubKey())))
 		}
 
 		newMaliciousSigners := make([]crypto.MultiSigner, 0)
 		signaturesData := make([]sigData, 0, len(newMaliciousSigners))
-		for ii, maliciousSigner := range maliciousSigners {
-			newIndex := pubKeysIndexMap[maliciousSigner.pubKey]
-			maliciousSigner.index = newIndex
+		for maliciousSigner := range maliciousSigners {
+			newIndex := pubKeysIndexMap[maliciousSigner]
 			sliceUtil.SetIndexInBitmap(newIndex, bitmap)
-			err = multiSigners[ii].Reset(newPubKeys, uint16(newIndex))
-			newMaliciousSigners = append(newMaliciousSigners, multiSigners[ii])
+			err = allMultiSigData[maliciousSigner].multiSigner.Reset(newPubKeys, uint16(newIndex))
+			require.Nil(b, err)
+			newMaliciousSigners = append(newMaliciousSigners, allMultiSigData[maliciousSigner].multiSigner)
 			signaturesData = append(signaturesData, sigData{
 				index: newIndex,
 			})
@@ -827,8 +815,8 @@ func GenerateSlashResults(b *testing.B, hasher hashing.Hasher, noOfPubKeys uint3
 		}
 
 		leaderPubKey := string(group[0].PubKey())
-		leaderPrivateKey := allPrivateKeys[leaderPubKey]
-		leaderMultiSigner := allSigners[leaderPubKey]
+		leaderPrivateKey := allMultiSigData[leaderPubKey].privateKey
+		leaderMultiSigner := allMultiSigData[leaderPubKey].multiSigner
 		sliceUtil.SetIndexInBitmap(0, bitmap)
 		signaturesData = append(signaturesData, sigData{
 			index: 0,
@@ -843,7 +831,7 @@ func GenerateSlashResults(b *testing.B, hasher hashing.Hasher, noOfPubKeys uint3
 		hash, err := core.CalculateHash(marshaller, hasher, header)
 		require.Nil(b, err)
 
-		signatures := createSignaturesShares(uint16(noOfPubKeys+1), newMaliciousSigners, hash)
+		signatures := createSignaturesShares(newMaliciousSigners, hash)
 		for iiii, signature := range signatures {
 			signaturesData[iiii].sig = signature
 		}
@@ -875,9 +863,9 @@ func GenerateSlashResults(b *testing.B, hasher hashing.Hasher, noOfPubKeys uint3
 	} else if noOfHeaders >= coreSlash.MinSlashableNoOfHeaders {
 		threatLevel = coreSlash.High
 	}
-	slashRes := make(map[string]coreSlash.SlashingResult, noOfPubKeys)
-	for _, maliciousSigner := range maliciousSigners {
-		slashRes[maliciousSigner.pubKey] = coreSlash.SlashingResult{
+	slashRes := make(map[string]coreSlash.SlashingResult, noOfMaliciousSigners)
+	for maliciousSigner := range maliciousSigners {
+		slashRes[maliciousSigner] = coreSlash.SlashingResult{
 			Headers:       headers,
 			SlashingLevel: threatLevel,
 		}
