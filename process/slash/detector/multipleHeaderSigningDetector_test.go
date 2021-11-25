@@ -719,13 +719,12 @@ func TestMultipleHeaderSigningDetector_SignedHeader_CannotVerifySignature_Expect
 	require.False(t, signedHeader)
 }
 
-func createSignaturesShares(multiSigners []crypto.MultiSigner, message []byte) [][]byte {
-	sigShares := make([][]byte, len(multiSigners))
+func createSignaturesShares(multiSigners []crypto.MultiSigner, message []byte, sigShares []sigShareData) {
 	for i := uint16(0); i < uint16(len(multiSigners)); i++ {
-		sigShares[i], _ = multiSigners[i].CreateSignatureShare(message, []byte(""))
+		sigShare, _ := multiSigners[i].CreateSignatureShare(message, []byte(""))
+		sigShares[i].signature = sigShare
 	}
 
-	return sigShares
 }
 
 func setSignatureSharesAllSignersBls(multiSigners []crypto.MultiSigner, sigsData []sigShareData) error {
@@ -749,6 +748,34 @@ type sigShareData struct {
 	index     uint32
 }
 
+func selectMaliciousSigners(noOfMaliciousSigners uint32, allMultiSigData map[string]multiSignerData) map[string]struct{} {
+	maliciousSigners := make(map[string]struct{}, noOfMaliciousSigners)
+
+	ct := uint32(0)
+	for pubKey := range allMultiSigData {
+		if ct > noOfMaliciousSigners {
+			break
+		}
+		maliciousSigners[pubKey] = struct{}{}
+		ct++
+	}
+
+	return maliciousSigners
+}
+
+func calcBitmapSize(consensusGroupSize int) int {
+	bitmapSize := consensusGroupSize / 8
+	if consensusGroupSize%8 != 0 {
+		bitmapSize++
+	}
+	return bitmapSize
+}
+
+func calcMinRequiredSignatures(consensusGroupSize int) uint32 {
+	// Min required signatures = 2/3 * consensusGroup + 1
+	return uint32(0.67*float32(consensusGroupSize)) + 1
+}
+
 func GenerateSlashResults(
 	b *testing.B,
 	hasher hashing.Hasher,
@@ -757,20 +784,10 @@ func GenerateSlashResults(
 	nodesCoordinator sharding.NodesCoordinator,
 	allMultiSigData map[string]multiSignerData,
 ) map[string]coreSlash.SlashingResult {
-	expectedBitmapSize := len(allMultiSigData) / 8
-	if len(allMultiSigData)%8 != 0 {
-		expectedBitmapSize++
-	}
-
-	maliciousSigners := make(map[string]struct{}, noOfMaliciousSigners)
-	i := uint32(0)
-	for pubKey := range allMultiSigData {
-		if i >= noOfMaliciousSigners {
-			break
-		}
-		maliciousSigners[pubKey] = struct{}{}
-		i++
-	}
+	consensusGroupSize := len(allMultiSigData)
+	minRequiredConsensus := calcMinRequiredSignatures(consensusGroupSize)
+	bitmapSize := calcBitmapSize(consensusGroupSize)
+	maliciousSigners := selectMaliciousSigners(noOfMaliciousSigners, allMultiSigData)
 
 	headers := make([]data.HeaderInfoHandler, 0, noOfHeaders)
 	round := uint64(1)
@@ -798,35 +815,38 @@ func GenerateSlashResults(
 			newPubKeys = append(newPubKeys, pubKeyStr)
 		}
 
-		bitmap := make([]byte, expectedBitmapSize)
-		newMaliciousSigners := make([]crypto.MultiSigner, 0)
-		signaturesData := make([]sigShareData, 0, len(newMaliciousSigners))
-
+		bitmap := make([]byte, bitmapSize)
+		minRequiredSigners := make([]crypto.MultiSigner, 0)
+		signaturesData := make([]sigShareData, 0, len(minRequiredSigners))
+		noOfSigners := uint32(0)
 		for pubKey, signerData := range allMultiSigData {
 			newIndex := pubKeysIndexMap[pubKey]
 			err = signerData.multiSigner.Reset(newPubKeys, uint16(newIndex))
 			require.Nil(b, err)
 
 			_, isMalicious := maliciousSigners[pubKey]
-			if isMalicious {
+			if isMalicious || noOfSigners < minRequiredConsensus {
 				sliceUtil.SetIndexInBitmap(newIndex, bitmap)
-				newMaliciousSigners = append(newMaliciousSigners, signerData.multiSigner)
+				minRequiredSigners = append(minRequiredSigners, signerData.multiSigner)
 				signaturesData = append(signaturesData, sigShareData{
 					index: newIndex,
 				})
 			}
+			noOfSigners++
 		}
 
 		leaderPubKey := string(consensusGroup[0].PubKey())
 		leaderPrivateKey := allMultiSigData[leaderPubKey].privateKey
 		leaderMultiSigner := allMultiSigData[leaderPubKey].multiSigner
+		leaderNewIndex := pubKeysIndexMap[leaderPubKey]
 		sliceUtil.SetIndexInBitmap(0, bitmap)
 		signaturesData = append(signaturesData, sigShareData{
 			index: 0,
 		})
-		err = leaderMultiSigner.Reset(newPubKeys, uint16(pubKeysIndexMap[leaderPubKey]))
+
+		err = leaderMultiSigner.Reset(newPubKeys, uint16(leaderNewIndex))
 		require.Nil(b, err)
-		newMaliciousSigners = append(newMaliciousSigners, leaderMultiSigner)
+		minRequiredSigners = append(minRequiredSigners, leaderMultiSigner)
 
 		headerBytes, err := marshaller.Marshal(header)
 		require.Nil(b, err)
@@ -834,11 +854,8 @@ func GenerateSlashResults(
 		hash, err := core.CalculateHash(marshaller, hasher, header)
 		require.Nil(b, err)
 
-		signatures := createSignaturesShares(newMaliciousSigners, hash)
-		for iiii, signature := range signatures {
-			signaturesData[iiii].signature = signature
-		}
-		err = setSignatureSharesAllSignersBls(newMaliciousSigners, signaturesData)
+		createSignaturesShares(minRequiredSigners, hash, signaturesData)
+		err = setSignatureSharesAllSignersBls(minRequiredSigners, signaturesData)
 		require.Nil(b, err)
 
 		aggregatedSig, err := leaderMultiSigner.AggregateSigs(bitmap)

@@ -52,7 +52,7 @@ func BenchmarkMultipleHeaderSigningDetector_ValidateProof(b *testing.B) {
 	require.Nil(b, err)
 
 	// Worst case scenario: 25% * 400() + 1
-	noOfMaliciousSigners := uint16(70)
+	noOfMaliciousSigners := uint16(30)
 	noOfSignedHeaders := uint32(2)
 	slashRes := GenerateSlashResults(b, hasher, uint32(noOfMaliciousSigners), noOfSignedHeaders, args.NodesCoordinator, multiSigData)
 	proof, err := coreSlash.NewMultipleSigningProof(slashRes)
