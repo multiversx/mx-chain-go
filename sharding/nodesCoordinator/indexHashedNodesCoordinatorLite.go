@@ -111,7 +111,7 @@ func NewIndexHashedNodesCoordinatorLite(arguments ArgNodesCoordinatorLite) (*Ind
 		return nil, err
 	}
 
-	ihgs.fillPublicKeyToValidatorMap()
+	ihgs.FillPublicKeyToValidatorMap()
 	// err = ihgs.saveState(ihgs.savedStateKey)
 	// if err != nil {
 	// 	log.Error("saving initial nodes coordinator config failed",
@@ -614,7 +614,7 @@ func (ihgs *IndexHashedNodesCoordinatorLite) EpochStartPrepare(metaHdr data.Head
 	panic("method not implemented in this lite version")
 }
 
-func (ihgs *IndexHashedNodesCoordinatorLite) fillPublicKeyToValidatorMap() {
+func (ihgs *IndexHashedNodesCoordinatorLite) FillPublicKeyToValidatorMap() {
 	ihgs.mutNodesConfig.Lock()
 	defer ihgs.mutNodesConfig.Unlock()
 
@@ -1023,10 +1023,6 @@ func (ihgs *IndexHashedNodesCoordinatorLite) GetShardIDAsObserver() uint32 {
 
 func (ihgs *IndexHashedNodesCoordinatorLite) GetConsensusGroupHasher() Cacher {
 	return ihgs.consensusGroupCacher
-}
-
-func (ihgs *IndexHashedNodesCoordinatorLite) GetPublicKeyToValidatorsMap() map[string]*ValidatorWithShardID {
-	return ihgs.publicKeyToValidatorMap
 }
 
 func (ihgs *IndexHashedNodesCoordinatorLite) GetFalWaitingListFix() atomicFlags.Flag {
