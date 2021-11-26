@@ -43,7 +43,7 @@
 [BaseOperationCost]
     StorePerByte      = 10000
     ReleasePerByte    = 1000
-    DataCopyPerByte   = 100
+    DataCopyPerByte   = 50
     PersistPerByte    = 1000
     CompilePerByte    = 300
     AoTPreparePerByte = 100
