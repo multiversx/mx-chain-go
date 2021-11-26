@@ -75,7 +75,7 @@ func TestRelayedAsyncESDTCallShouldWork(t *testing.T) {
 	require.Equal(t, expectedAccumulatedFees, accumulatedFees)
 
 	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, testContext.TxsLogsProcessor)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true, testContext.TxsLogsProcessor)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -142,12 +142,12 @@ func TestRelayedAsyncESDTCall_InvalidCallFirstContract(t *testing.T) {
 	require.Equal(t, expectedAccumulatedFees, accumulatedFees)
 
 	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, testContext.TxsLogsProcessor)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true, testContext.TxsLogsProcessor)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, rtx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "5003730", indexerTx.Fee)
+	require.Equal(t, uint64(400374), indexerTx.GasUsed)
+	require.Equal(t, "4003740", indexerTx.Fee)
 }
 
 func TestRelayedAsyncESDTCall_InvalidOutOfGas(t *testing.T) {
@@ -210,7 +210,7 @@ func TestRelayedAsyncESDTCall_InvalidOutOfGas(t *testing.T) {
 	require.Equal(t, expectedAccumulatedFees, accumulatedFees)
 
 	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, testContext.TxsLogsProcessor)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true, testContext.TxsLogsProcessor)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
