@@ -72,7 +72,7 @@ func TestRelayedBuiltInFunctionExecuteOnRelayerAndDstShardShouldWork(t *testing.
 	require.Equal(t, expectedFees, accumulatedFees)
 
 	intermediateTxs := testContextRelayer.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContextRelayer.ShardCoordinator, testContextRelayer.EconomicsData, testContextRelayer.TxsLogsProcessor)
+	testIndexer := vm.CreateTestIndexer(t, testContextRelayer.ShardCoordinator, testContextRelayer.EconomicsData, false, testContextRelayer.TxsLogsProcessor)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -99,11 +99,11 @@ func TestRelayedBuiltInFunctionExecuteOnRelayerAndDstShardShouldWork(t *testing.
 	utils.TestAccount(t, testContextRelayer.Accounts, relayerAddr, 1, expectedRelayerBalance)
 
 	intermediateTxs = testContextInner.GetIntermediateTransactions(t)
-	testIndexer = vm.CreateTestIndexer(t, testContextInner.ShardCoordinator, testContextInner.EconomicsData, testContextInner.TxsLogsProcessor)
+	testIndexer = vm.CreateTestIndexer(t, testContextInner.ShardCoordinator, testContextInner.EconomicsData, true, testContextInner.TxsLogsProcessor)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, rtx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "10390", indexerTx.Fee)
+	require.Equal(t, uint64(424), indexerTx.GasUsed)
+	require.Equal(t, "4240", indexerTx.Fee)
 	require.Equal(t, transaction.TxStatusSuccess.String(), indexerTx.Status)
 }
