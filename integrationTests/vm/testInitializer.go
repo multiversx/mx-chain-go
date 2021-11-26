@@ -756,7 +756,8 @@ func createDefaultVMConfig() *config.VirtualMachineConfig {
 	}
 }
 
-type ResultsCreateTxProcessor struct {
+// CreateTxProcessorResults -
+type CreateTxProcessorResults struct {
 	TxProc             process.TransactionProcessor
 	SCProc             *smartContract.TestScProcessor
 	IntermediateTxProc process.IntermediateTransactionHandler
@@ -775,7 +776,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	argEnableEpoch ArgEnableEpoch,
 	arwenChangeLocker common.Locker,
 	poolsHolder dataRetriever.PoolsHolder,
-) (*ResultsCreateTxProcessor, error) {
+) (*CreateTxProcessorResults, error) {
 	if check.IfNil(poolsHolder) {
 		poolsHolder = dataRetrieverMock.NewPoolsHolderMock()
 	}
@@ -964,7 +965,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		return nil, err
 	}
 
-	return &ResultsCreateTxProcessor{
+	return &CreateTxProcessorResults{
 		TxProc:             txProcessor,
 		SCProc:             testScProcessor,
 		IntermediateTxProc: intermediateTxHandler,

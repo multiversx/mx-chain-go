@@ -60,8 +60,7 @@ func TestAsyncCallShouldWork(t *testing.T) {
 	require.Equal(t, big.NewInt(50000000), testContext.TxFeeHandler.GetAccumulatedFees())
 	require.Equal(t, big.NewInt(4999988), testContext.TxFeeHandler.GetDeveloperFees())
 
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
-	testIndexer.SetTxLogProcessor(testContext.TxsLogsProcessor)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, testContext.TxsLogsProcessor)
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)

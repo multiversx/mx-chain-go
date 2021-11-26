@@ -63,7 +63,7 @@ func TestScCallExecuteOnSourceAndDstShardShouldWork(t *testing.T) {
 	require.Equal(t, big.NewInt(0), developerFees)
 
 	intermediateTxs := testContextSource.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContextSource.ShardCoordinator, testContextSource.EconomicsData)
+	testIndexer := vm.CreateTestIndexer(t, testContextSource.ShardCoordinator, testContextSource.EconomicsData, testContextSource.TxsLogsProcessor)
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -89,7 +89,7 @@ func TestScCallExecuteOnSourceAndDstShardShouldWork(t *testing.T) {
 	// execute sc result with gas refund
 	txs := testContextDst.GetIntermediateTransactions(t)
 
-	testIndexer = vm.CreateTestIndexer(t, testContextDst.ShardCoordinator, testContextDst.EconomicsData)
+	testIndexer = vm.CreateTestIndexer(t, testContextDst.ShardCoordinator, testContextDst.EconomicsData, testContextDst.TxsLogsProcessor)
 	testIndexer.SaveTransaction(tx, block.TxBlock, txs)
 
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
@@ -155,7 +155,7 @@ func TestScCallExecuteOnSourceAndDstShardInvalidOnDst(t *testing.T) {
 	require.Equal(t, big.NewInt(0), developerFees)
 
 	intermediateTxs := testContextSource.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContextSource.ShardCoordinator, testContextSource.EconomicsData)
+	testIndexer := vm.CreateTestIndexer(t, testContextSource.ShardCoordinator, testContextSource.EconomicsData, testContextSource.TxsLogsProcessor)
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -182,8 +182,7 @@ func TestScCallExecuteOnSourceAndDstShardInvalidOnDst(t *testing.T) {
 	// execute sc result with gas refund
 	txs := testContextDst.GetIntermediateTransactions(t)
 
-	testIndexer = vm.CreateTestIndexer(t, testContextDst.ShardCoordinator, testContextDst.EconomicsData)
-	testIndexer.SetTxLogProcessor(testContextDst.TxsLogsProcessor)
+	testIndexer = vm.CreateTestIndexer(t, testContextDst.ShardCoordinator, testContextDst.EconomicsData, testContextDst.TxsLogsProcessor)
 	testIndexer.SaveTransaction(tx, block.TxBlock, txs)
 
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)

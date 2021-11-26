@@ -42,6 +42,7 @@ func CreateTestIndexer(
 	t testing.TB,
 	coordinator sharding.Coordinator,
 	economicsDataHandler process.EconomicsDataHandler,
+	txsLogsProcessor process.TransactionLogProcessor,
 ) *testIndexer {
 	ti := &testIndexer{
 		indexerData: map[string]*bytes.Buffer{},
@@ -65,22 +66,18 @@ func CreateTestIndexer(
 		DataDispatcher:   dispatcher,
 	}
 
-	testIndexer, err := elasticIndexer.NewDataIndexer(arguments)
+	outPutDriver, err := elasticIndexer.NewDataIndexer(arguments)
 	require.Nil(t, err)
 
-	ti.outportDriver = testIndexer
+	ti.outportDriver = outPutDriver
 	ti.shardCoordinator = coordinator
 	ti.marshalizer = testMarshalizer
 	ti.hasher = testHasher
 	ti.t = t
 	ti.saveDoneChan = make(chan struct{})
-	ti.txsLogsProcessor = &mock.TxLogsProcessorStub{}
+	ti.txsLogsProcessor = txsLogsProcessor
 
 	return ti
-}
-
-func (ti *testIndexer) SetTxLogProcessor(txsLogsProcessor process.TransactionLogProcessor) {
-	ti.txsLogsProcessor = txsLogsProcessor
 }
 
 func (ti *testIndexer) createElasticProcessor(
