@@ -246,7 +246,7 @@ func (ses *startInEpochWithScheduledDataSyncer) saveScheduledSCRs(
 	scheduledRootHash []byte,
 	headerHash []byte,
 ) {
-	if scheduledRootHash == nil {
+	if len(scheduledRootHash) == 0 {
 		return
 	}
 
