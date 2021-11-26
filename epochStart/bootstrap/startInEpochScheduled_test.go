@@ -120,8 +120,23 @@ func TestStartInEpochWithScheduledDataSyncer_UpdateSyncDataIfNeededGetMiniBlocks
 	require.Equal(t, notarizedShardHeader, header)
 }
 
-func TestStartInEpochWithScheduledDataSyncer_getRequiredHeaderByHash(t *testing.T) {
+func TestStartInEpochWithScheduledDataSyncer_UpdateSyncDataIfNeededScheduledEnabled(t *testing.T) {
+	t.Parallel()
 
+	args := createDefaultDataSyncerFactoryArgs()
+	ds, _ := newStartInEpochShardHeaderDataSyncerWithScheduled(args.ScheduledTxsHandler, args.HeadersSyncer, args.MiniBlocksSyncer, args.TxSyncer, 0)
+
+	notarizedShardHeader := createTestHeader()
+	notarizedShardHeader.Epoch = 2
+
+	header, headersMap, err := ds.UpdateSyncDataIfNeeded(notarizedShardHeader)
+	require.Nil(t, err)
+	require.Nil(t, headersMap)
+	require.Equal(t, notarizedShardHeader, header)
+}
+
+func TestStartInEpochWithScheduledDataSyncer_getRequiredHeaderByHash(t *testing.T) {
+	// TODO: add test
 }
 
 func TestStartInEpochWithScheduledDataSyncer_syncHeadersShouldErrOnFailureToSync(t *testing.T) {
@@ -166,7 +181,7 @@ func TestStartInEpochWithScheduledDataSyncer_syncHeaders(t *testing.T) {
 }
 
 func TestStartInEpochWithScheduledDataSyncer_getMiniBlocks(t *testing.T) {
-
+	// TODO: add test
 }
 
 func TestStartInEpochWithScheduledDataSyncer_getRequiredMiniBlocksByMbHeaderWithSyncPendingMbsError(t *testing.T) {
@@ -271,7 +286,7 @@ func TestStartInEpochWithScheduledDataSyncer_GetRootHashToSyncWithScheduled(t *t
 }
 
 func TestStartInEpochWithScheduledDataSyncer_prepareScheduledSCRs(t *testing.T) {
-
+	// TODO: add test
 }
 
 func TestStartInEpochWithScheduledDataSyncer_filterScheduledSCRs(t *testing.T) {
