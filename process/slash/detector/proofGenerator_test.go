@@ -8,7 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/sliceUtil"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	mock2 "github.com/ElrondNetwork/elrond-go-core/data/mock"
+	coreDataMock "github.com/ElrondNetwork/elrond-go-core/data/mock"
 	coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
@@ -22,10 +22,6 @@ type sigShareData struct {
 	index     uint32
 }
 
-// This function creates a noOfHeaders, which are all signed by a randomly
-// selected noOfMaliciousSigners, from allMultiSigners.
-// If noOfMaliciousSigners < minRequiredSignatures in a consensus group, then
-// the rest of the signers are randomly selected from allMultiSigners
 func generateSlashResults(
 	b *testing.B,
 	hasher hashing.Hasher,
@@ -34,6 +30,31 @@ func generateSlashResults(
 	nodesCoordinator sharding.NodesCoordinator,
 	allMultiSigners map[string]multiSignerData,
 ) map[string]coreSlash.SlashingResult {
+	headersInfo, maliciousSigners := generateSlashableHeaders(b, hasher, noOfMaliciousSigners, noOfHeaders, nodesCoordinator, allMultiSigners)
+
+	slashRes := make(map[string]coreSlash.SlashingResult, noOfMaliciousSigners)
+	for maliciousSigner := range maliciousSigners {
+		slashRes[maliciousSigner] = coreSlash.SlashingResult{
+			Headers:       headersInfo,
+			SlashingLevel: calcThreatLevel(noOfHeaders),
+		}
+	}
+
+	return slashRes
+}
+
+// This function creates a noOfHeaders, which are all signed by a randomly
+// selected noOfMaliciousSigners, from allMultiSigners.
+// If noOfMaliciousSigners < minRequiredSigners in a consensus group, then
+// the rest of the signers are randomly selected from allMultiSigners
+func generateSlashableHeaders(
+	b *testing.B,
+	hasher hashing.Hasher,
+	noOfMaliciousSigners uint32,
+	noOfHeaders uint64,
+	nodesCoordinator sharding.NodesCoordinator,
+	allMultiSigners map[string]multiSignerData,
+) (headers []data.HeaderInfoHandler, signers map[string]struct{}) {
 	consensusGroupSize := len(allMultiSigners)
 	minRequiredSignatures := calcMinRequiredSignatures(consensusGroupSize)
 	bitmapSize := calcBitmapSize(consensusGroupSize)
@@ -66,19 +87,11 @@ func generateSlashResults(
 		headerHash, err = core.CalculateHash(marshaller, hasher, header)
 		require.Nil(b, err)
 
-		headerInfo := &mock2.HeaderInfoStub{Header: header, Hash: headerHash}
+		headerInfo := &coreDataMock.HeaderInfoStub{Header: header, Hash: headerHash}
 		headersInfo = append(headersInfo, headerInfo)
 	}
 
-	slashRes := make(map[string]coreSlash.SlashingResult, noOfMaliciousSigners)
-	for maliciousSigner := range maliciousSigners {
-		slashRes[maliciousSigner] = coreSlash.SlashingResult{
-			Headers:       headersInfo,
-			SlashingLevel: calcThreatLevel(noOfHeaders),
-		}
-	}
-
-	return slashRes
+	return headersInfo, maliciousSigners
 }
 
 func calcMinRequiredSignatures(consensusGroupSize int) uint32 {

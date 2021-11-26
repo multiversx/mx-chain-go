@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
@@ -15,6 +16,7 @@ import (
 	llsig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/multisig"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/multisig"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/slash/detector"
@@ -22,7 +24,6 @@ import (
 	shardingMock "github.com/ElrondNetwork/elrond-go/sharding/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
-	"github.com/ElrondNetwork/elrond-go/testscommon/slashMocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -34,10 +35,85 @@ const (
 	hysteresis              = float32(0.2)
 	defaultSelectionChances = uint32(1)
 	hashSize                = 16
-	metaConsensusGroupSize  = 64
+	metaConsensusGroupSize  = 400
 	shardConsensusGroupSize = 63
 	leaderGroupIndex        = 0
 )
+
+func BenchmarkMultipleHeaderSigningDetector_VerifyData(b *testing.B) {
+	hasher, err := blake2b.NewBlake2bWithSize(hashSize)
+	require.Nil(b, err)
+
+	blsSuite := mcl.NewSuiteBLS12()
+	keyGenerator := signing.NewKeyGenerator(blsSuite)
+	blsSigners := createMultiSignersBls(metaConsensusGroupSize, hasher, keyGenerator)
+
+	args := createHeaderSigningDetectorArgs(b, hasher, keyGenerator, blsSigners)
+	// Worst case scenario: 1/4 * metaConsensusGroupSize + 1 sign the same 3 headers
+	noOfMaliciousSigners := uint32(float32(0.25*metaConsensusGroupSize)) + 1
+	noOfSignedHeaders := uint64(3)
+	headersInfo, _ := generateSlashableHeaders(b, hasher, noOfMaliciousSigners, noOfSignedHeaders, args.NodesCoordinator, blsSigners)
+	interceptedHeaders := createInterceptedHeaders(headersInfo)
+
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		b.Run("", func(b *testing.B) {
+			benchMarkVerifyData(b, hasher, keyGenerator, blsSigners, interceptedHeaders)
+		})
+	}
+}
+
+func createInterceptedHeaders(headersInfo []data.HeaderInfoHandler) []process.InterceptedHeader {
+	interceptedHeaders := make([]process.InterceptedHeader, 0)
+
+	for _, headerInfo := range headersInfo {
+		hash := headerInfo.GetHash()
+		header := headerInfo.GetHeaderHandler()
+
+		interceptedData := testscommon.InterceptedDataStub{
+			HashCalled: func() []byte {
+				return hash
+			},
+		}
+		interceptedHeader := &testscommon.InterceptedHeaderStub{
+			InterceptedDataStub: interceptedData,
+			HeaderHandlerCalled: func() data.HeaderHandler {
+				return header
+			},
+		}
+		interceptedHeaders = append(interceptedHeaders, interceptedHeader)
+	}
+
+	return interceptedHeaders
+}
+
+func benchMarkVerifyData(
+	b *testing.B,
+	hasher hashing.Hasher,
+	keyGenerator crypto.KeyGenerator,
+	blsSigners map[string]multiSignerData,
+	interceptedHeaders []process.InterceptedHeader) {
+	var proof coreSlash.SlashingProofHandler
+	var err error
+
+	args := createHeaderSigningDetectorArgs(b, hasher, keyGenerator, blsSigners)
+	ssd, err := detector.NewMultipleHeaderSigningDetector(args)
+	require.NotNil(b, ssd)
+	require.Nil(b, err)
+
+	b.ResetTimer()
+	for idx, interceptedHeader := range interceptedHeaders {
+		if idx == 0 {
+			proof, err = ssd.VerifyData(interceptedHeader)
+			require.Nil(b, proof)
+			require.Equal(b, process.ErrNoSlashingEventDetected, err)
+			continue
+		}
+		proof, err = ssd.VerifyData(interceptedHeader)
+		require.NotNil(b, proof)
+		require.Nil(b, err)
+	}
+}
 
 func BenchmarkMultipleHeaderSigningDetector_ValidateProof(b *testing.B) {
 	hasher, err := blake2b.NewBlake2bWithSize(hashSize)
@@ -52,9 +128,9 @@ func BenchmarkMultipleHeaderSigningDetector_ValidateProof(b *testing.B) {
 	require.NotNil(b, ssd)
 	require.Nil(b, err)
 
-	// Worst case scenario: 25% * 400() + 1
-	noOfMaliciousSigners := uint32(10)
-	noOfSignedHeaders := uint64(2)
+	// Worst case scenario: (1/4 * metaConsensusGroupSize + 1) sign the same 3 headers
+	noOfMaliciousSigners := uint32(float32(0.25*metaConsensusGroupSize)) + 1
+	noOfSignedHeaders := uint64(3)
 	slashRes := generateSlashResults(b, hasher, noOfMaliciousSigners, noOfSignedHeaders, args.NodesCoordinator, blsSigners)
 	proof, err := coreSlash.NewMultipleSigningProof(slashRes)
 	require.NotNil(b, proof)
@@ -134,8 +210,8 @@ func createHeaderSigningDetectorArgs(
 		RoundHandler:      &mock.RoundHandlerMock{},
 		Hasher:            hasher,
 		Marshaller:        &marshal.GogoProtoMarshalizer{},
-		SlashingCache:     &slashMocks.RoundDetectorCacheStub{},
-		RoundHashCache:    &slashMocks.HeadersCacheStub{},
+		SlashingCache:     detector.NewRoundValidatorHeaderCache(3),
+		RoundHashCache:    detector.NewRoundHashCache(3),
 		HeaderSigVerifier: headerSigVerifier,
 	}
 }
@@ -183,20 +259,6 @@ func createNodesCoordinatorArgs(hasher hashing.Hasher, pubKeys []string) shardin
 	}
 }
 
-func createNodesShuffler() sharding.NodesShuffler {
-	shufflerArgs := &sharding.NodesShufflerArgs{
-		NodesShard:           metaConsensusGroupSize,
-		NodesMeta:            metaConsensusGroupSize,
-		Hysteresis:           hysteresis,
-		Adaptivity:           adaptivity,
-		ShuffleBetweenShards: shuffleBetweenShards,
-		MaxNodesEnableConfig: nil,
-	}
-
-	nodeShuffler, _ := sharding.NewHashValidatorsShuffler(shufflerArgs)
-	return nodeShuffler
-}
-
 func createShardValidatorMap(validatorsPerShard uint32, noOfShards uint32, pubKeys []string) map[uint32][]sharding.Validator {
 	shardValidatorsMap := make(map[uint32][]sharding.Validator)
 	for i := uint32(0); i <= noOfShards; i++ {
@@ -221,4 +283,18 @@ func createValidatorList(nbNodes uint32, pubKeys []string) []sharding.Validator 
 	}
 
 	return validators
+}
+
+func createNodesShuffler() sharding.NodesShuffler {
+	shufflerArgs := &sharding.NodesShufflerArgs{
+		NodesShard:           metaConsensusGroupSize,
+		NodesMeta:            metaConsensusGroupSize,
+		Hysteresis:           hysteresis,
+		Adaptivity:           adaptivity,
+		ShuffleBetweenShards: shuffleBetweenShards,
+		MaxNodesEnableConfig: nil,
+	}
+
+	nodeShuffler, _ := sharding.NewHashValidatorsShuffler(shufflerArgs)
+	return nodeShuffler
 }
