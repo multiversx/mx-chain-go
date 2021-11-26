@@ -625,6 +625,9 @@ func TestEnableEpochConfig(t *testing.T) {
 	# CleanUpInformativeSCRsEnableEpoch represents the epoch when the scrs which contain only information are cleaned from miniblocks and logs are created from it
 	CleanUpInformativeSCRsEnableEpoch = 49
 
+    # StorageAPICostOptimizationEnableEpoch represents the epoch when new storage helper functions are enabled and cost is reduced in Arwen
+    StorageAPICostOptimizationEnableEpoch = 50
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -701,6 +704,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			CreateNFTThroughExecByCallerEnableEpoch:     47,
 			IsPayableBySCEnableEpoch:                    48,
 			CleanUpInformativeSCRsEnableEpoch:           49,
+			StorageAPICostOptimizationEnableEpoch:       50,
 		},
 		GasSchedule: GasScheduleConfig{
 			GasScheduleByEpochs: []GasScheduleByEpochs{
