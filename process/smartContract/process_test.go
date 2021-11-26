@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/postprocess"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
@@ -27,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -76,6 +78,7 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 			},
 		},
 		BlockChainHook:   &mock.BlockChainHookHandlerMock{},
+		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
 		PubkeyConv:       createMockPubkeyConverter(),
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(5),
 		ScrForwarder:     &mock.IntermediateTransactionHandlerMock{},
@@ -127,6 +130,18 @@ func TestNewSmartContractProcessorNilVMOutputCacher(t *testing.T) {
 	require.Nil(t, sc)
 	require.Nil(t, sc)
 	require.Equal(t, process.ErrNilCacher, err)
+}
+
+func TestNewSmartContractProcessorNilBuiltInFunctions(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.BuiltInFunctions = nil
+	sc, err := NewSmartContractProcessor(arguments)
+
+	require.Nil(t, sc)
+	require.Nil(t, sc)
+	require.Equal(t, process.ErrNilBuiltInFunction, err)
 }
 
 func TestNewSmartContractProcessorNilArgsParser(t *testing.T) {
@@ -521,6 +536,7 @@ func TestScProcessor_DeploySmartContractDisabled(t *testing.T) {
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
 	arguments.EnableEpochs.SCDeployEnableEpoch = maxEpoch
+
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -538,9 +554,9 @@ func TestScProcessor_DeploySmartContractDisabled(t *testing.T) {
 		return vm, nil
 	}
 
-	_, _ = sc.DeploySmartContract(tx, acntSrc)
-	tsc := NewTestScProcessor(sc)
-	require.Equal(t, process.ErrSmartContractDeploymentIsDisabled, tsc.GetLatestTestError())
+	returnCode, err := sc.DeploySmartContract(tx, acntSrc)
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.UserError, returnCode)
 }
 
 func TestScProcessor_BuiltInCallSmartContractDisabled(t *testing.T) {
@@ -1373,10 +1389,9 @@ func TestScProcessor_DeploySmartContract(t *testing.T) {
 		return acntSrc, nil
 	}
 
-	_, err = sc.DeploySmartContract(tx, acntSrc)
-	tsp := NewTestScProcessor(sc)
+	returnCode, err := sc.DeploySmartContract(tx, acntSrc)
 	require.Nil(t, err)
-	require.Nil(t, tsp.GetLatestTestError())
+	require.Equal(t, vmcommon.Ok, returnCode)
 }
 
 func TestScProcessor_ExecuteSmartContractTransactionNilTx(t *testing.T) {
@@ -3904,6 +3919,88 @@ func TestProcessSCRSizeTooBig(t *testing.T) {
 
 	err = sc.checkSCRSizeInvariant(scrs)
 	assert.Equal(t, err, process.ErrResultingSCRIsTooBig)
+}
+
+func TestProcessIsInformativeSCR(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
+	arguments.BuiltInFunctions = builtInFuncs
+	arguments.ArgsParser = NewArgumentParser()
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	scr := &smartContractResult.SmartContractResult{Value: big.NewInt(1)}
+	assert.False(t, sc.isInformativeSCR(scr))
+
+	scr.Value = big.NewInt(0)
+	scr.CallType = vmData.AsynchronousCallBack
+	assert.False(t, sc.isInformativeSCR(scr))
+
+	scr.CallType = vmData.DirectCall
+	scr.Data = []byte("@abab")
+	assert.True(t, sc.isInformativeSCR(scr))
+
+	scr.Data = []byte("ab@ab")
+	scr.RcvAddr = make([]byte, 32)
+	assert.False(t, sc.isInformativeSCR(scr))
+
+	scr.RcvAddr = []byte("address")
+	assert.True(t, sc.isInformativeSCR(scr))
+
+	_ = builtInFuncs.Add("ab", &mock.BuiltInFunctionStub{})
+	assert.False(t, sc.isInformativeSCR(scr))
+}
+
+func TestCleanInformativeOnlySCRs(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
+	arguments.BuiltInFunctions = builtInFuncs
+	arguments.ArgsParser = NewArgumentParser()
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	scrs := make([]data.TransactionHandler, 0)
+	scrs = append(scrs, &smartContractResult.SmartContractResult{Value: big.NewInt(1)})
+	scrs = append(scrs, &smartContractResult.SmartContractResult{Value: big.NewInt(0), Data: []byte("@6b6f")})
+
+	sc.flagCleanUpInformativeSCRs.Unset()
+	finalSCRs, logs := sc.cleanInformativeOnlySCRs(scrs)
+	assert.Equal(t, len(finalSCRs), len(scrs))
+	assert.Equal(t, 1, len(logs))
+
+	sc.flagCleanUpInformativeSCRs.Set()
+	finalSCRs, logs = sc.cleanInformativeOnlySCRs(scrs)
+	assert.Equal(t, 1, len(finalSCRs))
+	assert.Equal(t, 1, len(logs))
+}
+
+func TestProcessGetOriginalTxHashForRelayedIntraShard(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.ArgsParser = NewArgumentParser()
+	shardCoordinator, _ := sharding.NewMultiShardCoordinator(2, 0)
+	arguments.ShardCoordinator = shardCoordinator
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	scr := &smartContractResult.SmartContractResult{Value: big.NewInt(1), SndAddr: bytes.Repeat([]byte{1}, 32)}
+	scrHash := []byte("hash")
+
+	logHash := sc.getOriginalTxHashIfIntraShardRelayedSCR(scr, scrHash)
+	assert.Equal(t, scrHash, logHash)
+
+	scr.OriginalTxHash = []byte("originalHash")
+	scr.RelayerAddr = bytes.Repeat([]byte{1}, 32)
+	scr.SndAddr = bytes.Repeat([]byte{1}, 32)
+	scr.RcvAddr = bytes.Repeat([]byte{1}, 32)
+	logHash = sc.getOriginalTxHashIfIntraShardRelayedSCR(scr, scrHash)
+	assert.Equal(t, scr.OriginalTxHash, logHash)
+
+	scr.RcvAddr = bytes.Repeat([]byte{2}, 32)
+	logHash = sc.getOriginalTxHashIfIntraShardRelayedSCR(scr, scrHash)
+	assert.Equal(t, scrHash, logHash)
 }
 
 func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {

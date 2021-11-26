@@ -75,7 +75,7 @@ func TestRelayedAsyncESDTCallShouldWork(t *testing.T) {
 	require.Equal(t, expectedAccumulatedFees, accumulatedFees)
 
 	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, testContext.TxsLogsProcessor)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -142,7 +142,7 @@ func TestRelayedAsyncESDTCall_InvalidCallFirstContract(t *testing.T) {
 	require.Equal(t, expectedAccumulatedFees, accumulatedFees)
 
 	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, testContext.TxsLogsProcessor)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -191,6 +191,7 @@ func TestRelayedAsyncESDTCall_InvalidOutOfGas(t *testing.T) {
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, innerTx.Value, relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
+	testContext.TxsLogsProcessor.Clean()
 	retCode, err := testContext.TxProcessor.ProcessTransaction(rtx)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Nil(t, err)
@@ -209,7 +210,7 @@ func TestRelayedAsyncESDTCall_InvalidOutOfGas(t *testing.T) {
 	require.Equal(t, expectedAccumulatedFees, accumulatedFees)
 
 	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, testContext.TxsLogsProcessor)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)

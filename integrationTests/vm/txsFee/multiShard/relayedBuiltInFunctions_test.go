@@ -72,7 +72,7 @@ func TestRelayedBuiltInFunctionExecuteOnRelayerAndDstShardShouldWork(t *testing.
 	require.Equal(t, expectedFees, accumulatedFees)
 
 	intermediateTxs := testContextRelayer.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContextRelayer.ShardCoordinator, testContextRelayer.EconomicsData)
+	testIndexer := vm.CreateTestIndexer(t, testContextRelayer.ShardCoordinator, testContextRelayer.EconomicsData, testContextRelayer.TxsLogsProcessor)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -92,14 +92,14 @@ func TestRelayedBuiltInFunctionExecuteOnRelayerAndDstShardShouldWork(t *testing.
 	require.Equal(t, expectedFees, accumulatedFees)
 
 	txs := testContextInner.GetIntermediateTransactions(t)
-	scr := txs[1]
+	scr := txs[0]
 	utils.ProcessSCRResult(t, testContextRelayer, scr, vmcommon.Ok, nil)
 
 	expectedRelayerBalance = big.NewInt(10760)
 	utils.TestAccount(t, testContextRelayer.Accounts, relayerAddr, 1, expectedRelayerBalance)
 
 	intermediateTxs = testContextInner.GetIntermediateTransactions(t)
-	testIndexer = vm.CreateTestIndexer(t, testContextInner.ShardCoordinator, testContextInner.EconomicsData)
+	testIndexer = vm.CreateTestIndexer(t, testContextInner.ShardCoordinator, testContextInner.EconomicsData, testContextInner.TxsLogsProcessor)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)

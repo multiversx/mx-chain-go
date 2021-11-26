@@ -82,7 +82,7 @@ func TestRelayedTxScCallMultiShardShouldWork(t *testing.T) {
 	require.Equal(t, big.NewInt(0), developerFees)
 
 	intermediateTxs := testContextRelayer.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContextRelayer.ShardCoordinator, testContextRelayer.EconomicsData)
+	testIndexer := vm.CreateTestIndexer(t, testContextRelayer.ShardCoordinator, testContextRelayer.EconomicsData, testContextRelayer.TxsLogsProcessor)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -111,7 +111,7 @@ func TestRelayedTxScCallMultiShardShouldWork(t *testing.T) {
 
 	txs := testContextInnerSource.GetIntermediateTransactions(t)
 
-	testIndexer = vm.CreateTestIndexer(t, testContextInnerSource.ShardCoordinator, testContextInnerSource.EconomicsData)
+	testIndexer = vm.CreateTestIndexer(t, testContextInnerSource.ShardCoordinator, testContextInnerSource.EconomicsData, testContextInnerSource.TxsLogsProcessor)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, txs)
 
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
@@ -205,7 +205,7 @@ func TestRelayedTxScCallMultiShardFailOnInnerTxDst(t *testing.T) {
 	require.Equal(t, big.NewInt(0), developerFees)
 
 	intermediateTxs := testContextRelayer.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContextRelayer.ShardCoordinator, testContextRelayer.EconomicsData)
+	testIndexer := vm.CreateTestIndexer(t, testContextRelayer.ShardCoordinator, testContextRelayer.EconomicsData, testContextRelayer.TxsLogsProcessor)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -234,7 +234,7 @@ func TestRelayedTxScCallMultiShardFailOnInnerTxDst(t *testing.T) {
 
 	txs := testContextInnerSource.GetIntermediateTransactions(t)
 
-	testIndexer = vm.CreateTestIndexer(t, testContextInnerSource.ShardCoordinator, testContextInnerSource.EconomicsData)
+	testIndexer = vm.CreateTestIndexer(t, testContextInnerSource.ShardCoordinator, testContextInnerSource.EconomicsData, testContextInnerSource.TxsLogsProcessor)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, txs)
 
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
@@ -257,10 +257,6 @@ func TestRelayedTxScCallMultiShardFailOnInnerTxDst(t *testing.T) {
 	developerFees = testContextInnerDst.TxFeeHandler.GetDeveloperFees()
 	require.Equal(t, big.NewInt(0), developerFees)
 
-	txs = testContextInnerDst.GetIntermediateTransactions(t)
-	scr = txs[0]
-
-	utils.ProcessSCRResult(t, testContextInnerSource, scr, vmcommon.Ok, nil)
 	expectedBalance = big.NewInt(0)
 	utils.TestAccount(t, testContextInnerSource.Accounts, sndAddr, 1, expectedBalance)
 

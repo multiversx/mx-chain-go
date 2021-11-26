@@ -162,12 +162,12 @@ func DeployAndExecuteERC20WithBigInt(
 		arwen.CreateDeployTxData(scCode)+"@"+initialSupply,
 	)
 
-	_, err = testContext.TxProcessor.ProcessTransaction(tx)
+	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	if err != nil {
 		return nil, err
 	}
-	if testContext.GetLatestError() != nil {
-		return nil, testContext.GetLatestError()
+	if returnCode != vmcommon.Ok {
+		return nil, fmt.Errorf(returnCode.String())
 	}
 	ownerNonce++
 
@@ -181,7 +181,7 @@ func DeployAndExecuteERC20WithBigInt(
 	initAlice := big.NewInt(100000)
 	tx = vm.CreateTransferTokenTx(ownerNonce, functionName, initAlice, scAddress, ownerAddressBytes, alice)
 
-	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
+	returnCode, err = testContext.TxProcessor.ProcessTransaction(tx)
 	if err != nil {
 		return nil, err
 	}
@@ -254,12 +254,12 @@ func SetupERC20Test(
 		arwen.CreateDeployTxData(scCode)+"@"+initialSupply,
 	)
 
-	_, err = testContext.TxProcessor.ProcessTransaction(tx)
+	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	if err != nil {
 		return err
 	}
-	if testContext.GetLatestError() != nil {
-		return testContext.GetLatestError()
+	if returnCode != vmcommon.Ok {
+		return fmt.Errorf(returnCode.String())
 	}
 
 	testContext.ContractOwner.Nonce++
@@ -285,7 +285,7 @@ func SetupERC20Test(
 		"transferToken",
 	)
 
-	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
+	returnCode, err = testContext.TxProcessor.ProcessTransaction(tx)
 	if err != nil {
 		return err
 	}

@@ -622,6 +622,9 @@ func TestEnableEpochConfig(t *testing.T) {
     # IsPayableBySCEnableEpoch represents the epoch when a new flag isPayable by SC is enabled
     IsPayableBySCEnableEpoch = 48
 
+	# CleanUpInformativeSCRsEnableEpoch represents the epoch when the scrs which contain only information are cleaned from miniblocks and logs are created from it
+	CleanUpInformativeSCRsEnableEpoch = 49
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -697,6 +700,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			OptimizeNFTStoreEnableEpoch:                 46,
 			CreateNFTThroughExecByCallerEnableEpoch:     47,
 			IsPayableBySCEnableEpoch:                    48,
+			CleanUpInformativeSCRsEnableEpoch:           49,
 		},
 		GasSchedule: GasScheduleConfig{
 			GasScheduleByEpochs: []GasScheduleByEpochs{

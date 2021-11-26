@@ -1,3 +1,4 @@
+//go:build !race
 // +build !race
 
 // TODO remove build condition above to allow -race -short, after Arwen fix
@@ -12,8 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	"github.com/ElrondNetwork/elrond-go/process"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/require"
 )
 
@@ -49,7 +48,7 @@ func TestScDeployShouldWork(t *testing.T) {
 	require.Equal(t, big.NewInt(8490), accumulatedFees)
 
 	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, testContext.TxsLogsProcessor)
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -78,7 +77,6 @@ func TestScDeployInvalidContractCodeShouldConsumeGas(t *testing.T) {
 
 	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
-	require.Equal(t, parsers.ErrInvalidCode, testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -91,7 +89,7 @@ func TestScDeployInvalidContractCodeShouldConsumeGas(t *testing.T) {
 	require.Equal(t, big.NewInt(10000), accumulatedFees)
 
 	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, testContext.TxsLogsProcessor)
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -150,7 +148,7 @@ func TestScDeployOutOfGasShouldConsumeGas(t *testing.T) {
 
 	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
-	require.Equal(t, vmcommon.OutOfGas.String(), testContext.GetLatestError().Error())
+	require.Equal(t, "not enough gas", testContext.GetLatestError().Error())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -163,7 +161,7 @@ func TestScDeployOutOfGasShouldConsumeGas(t *testing.T) {
 	require.Equal(t, big.NewInt(5700), accumulatedFees)
 
 	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, testContext.TxsLogsProcessor)
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)

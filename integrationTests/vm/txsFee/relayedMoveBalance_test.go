@@ -59,7 +59,7 @@ func TestRelayedMoveBalanceShouldWork(t *testing.T) {
 	require.Equal(t, big.NewInt(2750), accumulatedFees)
 
 	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, testContext.TxsLogsProcessor)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -87,7 +87,6 @@ func TestRelayedMoveBalanceInvalidGasLimitShouldConsumeGas(t *testing.T) {
 
 	_, err = testContext.TxProcessor.ProcessTransaction(rtx)
 	require.Equal(t, process.ErrFailedTransaction, err)
-	require.Nil(t, testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -100,7 +99,7 @@ func TestRelayedMoveBalanceInvalidGasLimitShouldConsumeGas(t *testing.T) {
 	require.Equal(t, big.NewInt(276), accumulatedFees)
 
 	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, testContext.TxsLogsProcessor)
 	testIndexer.SaveTransaction(rtx, block.InvalidBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -128,7 +127,6 @@ func TestRelayedMoveBalanceInvalidUserTxShouldConsumeGas(t *testing.T) {
 
 	retcode, _ := testContext.TxProcessor.ProcessTransaction(rtx)
 	require.Equal(t, vmcommon.UserError, retcode)
-	require.Nil(t, testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -141,7 +139,7 @@ func TestRelayedMoveBalanceInvalidUserTxShouldConsumeGas(t *testing.T) {
 	require.Equal(t, big.NewInt(279), accumulatedFees)
 
 	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, testContext.TxsLogsProcessor)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -169,7 +167,6 @@ func TestRelayedMoveBalanceInvalidUserTxValueShouldConsumeGas(t *testing.T) {
 
 	retCode, _ := testContext.TxProcessor.ProcessTransaction(rtx)
 	require.Equal(t, vmcommon.UserError, retCode)
-	require.Nil(t, testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -182,7 +179,7 @@ func TestRelayedMoveBalanceInvalidUserTxValueShouldConsumeGas(t *testing.T) {
 	require.Equal(t, big.NewInt(275), accumulatedFees)
 
 	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, testContext.TxsLogsProcessor)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)

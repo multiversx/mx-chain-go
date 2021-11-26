@@ -65,6 +65,7 @@ type EnableEpochs struct {
 	CreateNFTThroughExecByCallerEnableEpoch           uint32
 	StopDecreasingValidatorRatingWhenStuckEnableEpoch uint32
 	IsPayableBySCEnableEpoch                          uint32
+	CleanUpInformativeSCRsEnableEpoch                 uint32
 }
 
 // GasScheduleByEpochs represents a gas schedule toml entry that will be applied from the provided epoch

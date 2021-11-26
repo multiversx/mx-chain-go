@@ -55,7 +55,6 @@ func TestAsyncESDTCallShouldWork(t *testing.T) {
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -71,7 +70,7 @@ func TestAsyncESDTCallShouldWork(t *testing.T) {
 	require.Equal(t, expectedAccumulatedFees, accumulatedFees)
 
 	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, testContext.TxsLogsProcessor)
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -133,7 +132,7 @@ func TestAsyncESDTCallSecondScRefusesPayment(t *testing.T) {
 	require.Equal(t, expectedAccumulatedFees, accumulatedFees)
 
 	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, testContext.TxsLogsProcessor)
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -194,7 +193,7 @@ func TestAsyncESDTCallsOutOfGas(t *testing.T) {
 	require.Equal(t, expectedAccumulatedFees, accumulatedFees)
 
 	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, testContext.TxsLogsProcessor)
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -288,7 +287,7 @@ func TestAsyncMultiTransferOnCallback(t *testing.T) {
 	retCode, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Equal(t, 2, len(testContext.GetIntermediateTransactions(t))-lenSCRs)
+	require.Equal(t, 1, len(testContext.GetIntermediateTransactions(t))-lenSCRs)
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)

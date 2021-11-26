@@ -44,7 +44,6 @@ func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetLatestError())
 
 	vm.TestAccount(t, testContext.Accounts, sndAddr, 1, big.NewInt(9297800))
 	// check accumulated fees
@@ -55,7 +54,7 @@ func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(
 	require.Equal(t, big.NewInt(70176), developerFees)
 
 	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, testContext.TxsLogsProcessor)
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -71,7 +70,6 @@ func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(
 	retCode, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -103,7 +101,7 @@ func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(
 	require.Equal(t, rcvUserName, un)
 
 	intermediateTxs = testContext.GetIntermediateTransactions(t)
-	testIndexer = vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer = vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, testContext.TxsLogsProcessor)
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
@@ -118,9 +116,8 @@ func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(
 	retCode, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Equal(t, nil, testContext.GetLatestError())
 
-	testIndexer = vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer = vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, testContext.TxsLogsProcessor)
 	testIndexer.SaveTransaction(tx, block.TxBlock, nil)
 
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)

@@ -31,16 +31,18 @@ type testIndexer struct {
 	shardCoordinator sharding.Coordinator
 	mutex            sync.RWMutex
 	saveDoneChan     chan struct{}
+	txsLogsProcessor process.TransactionLogProcessor
 	t                testing.TB
 }
 
-const timeoutSave = 10 * time.Second
+const timeoutSave = 100 * time.Second
 
 // CreateTestIndexer -
 func CreateTestIndexer(
 	t testing.TB,
 	coordinator sharding.Coordinator,
 	economicsDataHandler process.EconomicsDataHandler,
+	txsLogsProcessor process.TransactionLogProcessor,
 ) *testIndexer {
 	ti := &testIndexer{
 		indexerData: map[string]*bytes.Buffer{},
@@ -64,15 +66,16 @@ func CreateTestIndexer(
 		DataDispatcher:   dispatcher,
 	}
 
-	testIndexer, err := elasticIndexer.NewDataIndexer(arguments)
+	outPutDriver, err := elasticIndexer.NewDataIndexer(arguments)
 	require.Nil(t, err)
 
-	ti.outportDriver = testIndexer
+	ti.outportDriver = outPutDriver
 	ti.shardCoordinator = coordinator
 	ti.marshalizer = testMarshalizer
 	ti.hasher = testHasher
 	ti.t = t
 	ti.saveDoneChan = make(chan struct{})
+	ti.txsLogsProcessor = txsLogsProcessor
 
 	return ti
 }
@@ -142,6 +145,7 @@ func (ti *testIndexer) SaveTransaction(
 		Rewards:  nil,
 		Invalid:  nil,
 		Receipts: nil,
+		Logs:     ti.txsLogsProcessor.GetAllCurrentLogs(),
 	}
 
 	txsPool.Txs[string(txHash)] = tx

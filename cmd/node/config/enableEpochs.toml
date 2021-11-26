@@ -156,6 +156,9 @@
     # IsPayableBySCEnableEpoch represents the epoch when a new flag isPayable by SC is enabled
     IsPayableBySCEnableEpoch = 3
 
+    # CleanUpInformativeSCRsEnableEpoch represents the epoch when the informative-only scrs are cleaned from miniblocks and logs are created from them
+    CleanUpInformativeSCRsEnableEpoch = 3
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },
