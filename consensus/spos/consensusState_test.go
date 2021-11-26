@@ -9,7 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	nCoordinator "github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -153,7 +153,7 @@ func TestConsensusState_GetNextConsensusGroupShouldFailWhenComputeValidatorsGrou
 		round uint64,
 		shardId uint32,
 		epoch uint32,
-	) ([]sharding.Validator, error) {
+	) ([]nCoordinator.Validator, error) {
 		return nil, err
 	}
 

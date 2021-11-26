@@ -9,7 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/display"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
 	mclsig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
@@ -24,6 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -340,7 +341,7 @@ func CreateNodesWithTestP2PNodes(
 			ConsensusGroupCache:        cache,
 			Shuffler:                   &mock.NodeShufflerMock{},
 			BootStorer:                 CreateMemUnit(),
-			WaitingNodes:               make(map[uint32][]sharding.Validator),
+			WaitingNodes:               make(map[uint32][]nodesCoordinator.Validator),
 			Epoch:                      0,
 			EpochStartNotifier:         notifier.NewEpochStartSubscriptionHandler(),
 			ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
@@ -385,7 +386,7 @@ func CreateNodesWithTestP2PNodes(
 				ConsensusGroupCache:        cache,
 				Shuffler:                   &mock.NodeShufflerMock{},
 				BootStorer:                 CreateMemUnit(),
-				WaitingNodes:               make(map[uint32][]sharding.Validator),
+				WaitingNodes:               make(map[uint32][]nodesCoordinator.Validator),
 				Epoch:                      0,
 				EpochStartNotifier:         notifier.NewEpochStartSubscriptionHandler(),
 				ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},

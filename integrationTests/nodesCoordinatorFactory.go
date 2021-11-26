@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 )
@@ -19,11 +20,11 @@ type ArgIndexHashedNodesCoordinatorFactory struct {
 	metaConsensusGroupSize  int
 	shardId                 uint32
 	nbShards                int
-	validatorsMap           map[uint32][]sharding.Validator
-	waitingMap              map[uint32][]sharding.Validator
+	validatorsMap           map[uint32][]nodesCoordinator.Validator
+	waitingMap              map[uint32][]nodesCoordinator.Validator
 	keyIndex                int
 	cp                      *CryptoParams
-	epochStartSubscriber    sharding.EpochStartEventNotifier
+	epochStartSubscriber    nodesCoordinator.EpochStartEventNotifier
 	hasher                  hashing.Hasher
 	consensusGroupCache     sharding.Cacher
 	bootStorer              storage.Storer

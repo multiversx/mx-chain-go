@@ -1,6 +1,9 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/sharding"
+import (
+	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+)
 
 // NodeShufflerMock -
 type NodeShufflerMock struct {
@@ -22,7 +25,7 @@ func (nsm *NodeShufflerMock) UpdateNodeLists(args sharding.ArgsUpdateNodes) (*sh
 		Eligible:       args.Eligible,
 		Waiting:        args.Waiting,
 		Leaving:        args.UnStakeLeaving,
-		StillRemaining: make([]sharding.Validator, 0),
+		StillRemaining: make([]nodesCoordinator.Validator, 0),
 	}, nil
 }
 

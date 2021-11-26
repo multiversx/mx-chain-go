@@ -1002,8 +1002,8 @@ func (ihgs *IndexHashedNodesCoordinatorLite) SetCurrentEpoch(epoch uint32) {
 	ihgs.currentEpoch = epoch
 }
 
-func (ihgs *IndexHashedNodesCoordinatorLite) GetMutNodesConfig() sync.RWMutex {
-	return ihgs.mutNodesConfig
+func (ihgs *IndexHashedNodesCoordinatorLite) GetMutNodesConfig() *sync.RWMutex {
+	return &ihgs.mutNodesConfig
 }
 
 func (ihgs *IndexHashedNodesCoordinatorLite) GetNodesConfig() map[uint32]*EpochNodesConfig {

@@ -1458,7 +1458,7 @@ func TestIndexHashedNodesCoordinator_GetConsensusValidatorsPublicKeysNotExisting
 	var pKeys []string
 	randomness := []byte("randomness")
 	pKeys, err = ihgs.GetConsensusValidatorsPublicKeys(randomness, 0, 0, 1)
-	require.True(t, errors.Is(err, ErrEpochNodesConfigDoesNotExist))
+	require.True(t, errors.Is(err, nodesCoordinator.ErrEpochNodesConfigDoesNotExist))
 	require.Nil(t, pKeys)
 }
 
@@ -1557,7 +1557,7 @@ func TestIndexHashedNodesCoordinator_ShardIdForEpochInvalidEpoch(t *testing.T) {
 	require.Nil(t, err)
 
 	shardId, err := ihgs.ShardIdForEpoch(1)
-	require.True(t, errors.Is(err, ErrEpochNodesConfigDoesNotExist))
+	require.True(t, errors.Is(err, nodesCoordinator.ErrEpochNodesConfigDoesNotExist))
 	require.Equal(t, uint32(0), shardId)
 }
 

@@ -10,10 +10,12 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/factory/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
@@ -24,7 +26,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
-	"github.com/ElrondNetwork/elrond-go-crypto"
 	mclmultisig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/multisig"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/multisig"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
@@ -151,11 +152,11 @@ func CreateNodesWithNodesCoordinatorAndTxKeys(
 	}
 	waitingMap[core.MetachainShardId] = make([]sharding.GenesisNodeInfoHandler, 0)
 
-	waitingMapForNodesCoordinator := make(map[uint32][]sharding.Validator)
+	waitingMapForNodesCoordinator := make(map[uint32][]nodesCoordinator.Validator)
 	for i := 0; i < nbShards; i++ {
-		waitingMapForNodesCoordinator[uint32(i)] = make([]sharding.Validator, 0)
+		waitingMapForNodesCoordinator[uint32(i)] = make([]nodesCoordinator.Validator, 0)
 	}
-	waitingMapForNodesCoordinator[core.MetachainShardId] = make([]sharding.Validator, 0)
+	waitingMapForNodesCoordinator[core.MetachainShardId] = make([]nodesCoordinator.Validator, 0)
 
 	nodesSetup := &mock.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]sharding.GenesisNodeInfoHandler, m2 map[uint32][]sharding.GenesisNodeInfoHandler) {
 		return validatorsMap, waitingMap
@@ -205,8 +206,8 @@ func CreateNodeWithBLSAndTxKeys(
 	metaConsensusGroupSize int,
 	shardId uint32,
 	nbShards int,
-	validatorsMap map[uint32][]sharding.Validator,
-	waitingMap map[uint32][]sharding.Validator,
+	validatorsMap map[uint32][]nodesCoordinator.Validator,
+	waitingMap map[uint32][]nodesCoordinator.Validator,
 	keyIndex int,
 	cp *CryptoParams,
 	cache sharding.Cacher,
@@ -398,8 +399,8 @@ func CreateNode(
 	metaConsensusGroupSize int,
 	shardId uint32,
 	nbShards int,
-	validatorsMap map[uint32][]sharding.Validator,
-	waitingMap map[uint32][]sharding.Validator,
+	validatorsMap map[uint32][]nodesCoordinator.Validator,
+	waitingMap map[uint32][]nodesCoordinator.Validator,
 	keyIndex int,
 	cp *CryptoParams,
 	cache sharding.Cacher,
@@ -508,7 +509,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 			ShardIDAsObserver:          shardId,
 			NbShards:                   uint32(nbShards),
 			EligibleNodes:              validatorsMapForNodesCoordinator,
-			WaitingNodes:               make(map[uint32][]sharding.Validator),
+			WaitingNodes:               make(map[uint32][]nodesCoordinator.Validator),
 			SelfPublicKey:              []byte(strconv.Itoa(int(shardId))),
 			ConsensusGroupCache:        consensusCache,
 			ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},

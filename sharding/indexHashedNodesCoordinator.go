@@ -82,7 +82,7 @@ type indexHashedNodesCoordinator struct {
 	marshalizer                   marshal.Marshalizer
 	shuffler                      NodesShuffler
 	shuffledOutHandler            ShuffledOutHandler
-	mutNodesConfig                sync.RWMutex
+	mutNodesConfig                *sync.RWMutex
 	nodesConfig                   map[uint32]*nodesCoordinator.EpochNodesConfig
 	mutSavedStateKey              sync.RWMutex
 }

@@ -5,7 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
@@ -29,8 +29,8 @@ func TestMetrics_IncrementCountAcceptedBlocks_KeyNotFoundShouldNotIncrement(t *t
 	incrementWasCalled := false
 
 	nodesCoord := &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
-			return []sharding.Validator{
+		ComputeValidatorsGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]nodesCoordinator.Validator, error) {
+			return []nodesCoordinator.Validator{
 				mock.NewValidatorMock([]byte("wrong-key1")), // nodes coordinator default return for OwnPubKey()
 				mock.NewValidatorMock([]byte("wrong-key2")),
 			}, nil
@@ -52,8 +52,8 @@ func TestMetrics_IncrementCountAcceptedBlocks_IndexOutOfBoundsShouldNotIncrement
 	incrementWasCalled := false
 
 	nodesCoord := &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
-			return []sharding.Validator{
+		ComputeValidatorsGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]nodesCoordinator.Validator, error) {
+			return []nodesCoordinator.Validator{
 				mock.NewValidatorMock([]byte("key")), // nodes coordinator default return for OwnPubKey()
 				mock.NewValidatorMock([]byte("wrong-key2")),
 			}, nil
@@ -75,8 +75,8 @@ func TestMetrics_IncrementCountAcceptedBlocks_ShouldWork(t *testing.T) {
 	incrementWasCalled := false
 
 	nodesCoord := &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
-			return []sharding.Validator{
+		ComputeValidatorsGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]nodesCoordinator.Validator, error) {
+			return []nodesCoordinator.Validator{
 				mock.NewValidatorMock([]byte("another-key")),
 				mock.NewValidatorMock([]byte("key")), // nodes coordinator default return for OwnPubKey()
 			}, nil
