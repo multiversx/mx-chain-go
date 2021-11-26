@@ -978,6 +978,7 @@ func (pcf *processComponentsFactory) createVMFactoryShard(
 		CompiledSCPool:     pcf.data.Datapool().SmartContracts(),
 		WorkingDir:         pcf.workingDir,
 		NFTStorageHandler:  nftStorageHandler,
+		EpochNotifier:      pcf.coreData.EpochNotifier(),
 		NilCompiledSCStore: false,
 		ConfigSCStorage:    configSCStorage,
 	}
@@ -1016,6 +1017,7 @@ func (pcf *processComponentsFactory) createVMFactoryMeta(
 		ConfigSCStorage:    configSCStorage,
 		WorkingDir:         pcf.workingDir,
 		NFTStorageHandler:  nftStorageHandler,
+		EpochNotifier:      pcf.coreData.EpochNotifier(),
 		NilCompiledSCStore: false,
 	}
 

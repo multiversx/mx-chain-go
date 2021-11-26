@@ -803,6 +803,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 		NFTStorageHandler:  nftStorageHandler,
 		DataPool:           tpn.DataPool,
 		CompiledSCPool:     smartContractsCache,
+		EpochNotifier:      tpn.EpochNotifier,
 		NilCompiledSCStore: true,
 	}
 
@@ -1383,6 +1384,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		NFTStorageHandler:  nftStorageHandler,
 		DataPool:           tpn.DataPool,
 		CompiledSCPool:     tpn.DataPool.SmartContracts(),
+		EpochNotifier:      tpn.EpochNotifier,
 		NilCompiledSCStore: true,
 	}
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
@@ -1573,6 +1575,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		NFTStorageHandler:  nftStorageHandler,
 		DataPool:           tpn.DataPool,
 		CompiledSCPool:     tpn.DataPool.SmartContracts(),
+		EpochNotifier:      tpn.EpochNotifier,
 		NilCompiledSCStore: true,
 	}
 
