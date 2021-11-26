@@ -2688,7 +2688,7 @@ func (sc *scProcessor) processSimpleSCR(
 		return nil
 	}
 
-	isPayable, err := sc.IsPayable(scResult.RcvAddr)
+	isPayable, err := sc.IsPayable(scResult.SndAddr, scResult.RcvAddr)
 	if err != nil {
 		return err
 	}
@@ -2727,8 +2727,8 @@ func (sc *scProcessor) checkUpgradePermission(contract state.UserAccountHandler,
 }
 
 // IsPayable returns if address is payable, smart contract ca set to false
-func (sc *scProcessor) IsPayable(address []byte) (bool, error) {
-	return sc.blockChainHook.IsPayable(address)
+func (sc *scProcessor) IsPayable(sndAddress []byte, recvAddress []byte) (bool, error) {
+	return sc.blockChainHook.IsPayable(sndAddress, recvAddress)
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed

@@ -42,6 +42,7 @@ func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 		NFTStorageHandler:  &testscommon.SimpleNFTStorageHandlerStub{},
 		DataPool:           datapool,
 		CompiledSCPool:     datapool.SmartContracts(),
+		EpochNotifier:      &mock.EpochNotifierStub{},
 		NilCompiledSCStore: true,
 	}
 	return arguments
@@ -444,7 +445,7 @@ func TestBlockChainHookImpl_IsPayableNormalAccount(t *testing.T) {
 
 	args := createMockVMAccountsArguments()
 	bh, _ := hooks.NewBlockChainHookImpl(args)
-	isPayable, err := bh.IsPayable([]byte("address"))
+	isPayable, err := bh.IsPayable([]byte("address"), []byte("address"))
 	assert.True(t, isPayable)
 	assert.Nil(t, err)
 }
@@ -461,7 +462,7 @@ func TestBlockChainHookImpl_IsPayableSCNonPayable(t *testing.T) {
 		},
 	}
 	bh, _ := hooks.NewBlockChainHookImpl(args)
-	isPayable, err := bh.IsPayable(make([]byte, 32))
+	isPayable, err := bh.IsPayable([]byte("address"), make([]byte, 32))
 	assert.False(t, isPayable)
 	assert.Nil(t, err)
 }
@@ -479,7 +480,29 @@ func TestBlockChainHookImpl_IsPayablePayable(t *testing.T) {
 	}
 
 	bh, _ := hooks.NewBlockChainHookImpl(args)
-	isPayable, err := bh.IsPayable(make([]byte, 32))
+	isPayable, err := bh.IsPayable([]byte("address"), make([]byte, 32))
+	assert.True(t, isPayable)
+	assert.Nil(t, err)
+
+	isPayable, err = bh.IsPayable(make([]byte, 32), make([]byte, 32))
+	assert.True(t, isPayable)
+	assert.Nil(t, err)
+}
+
+func TestBlockChainHookImpl_IsPayablePayableBySC(t *testing.T) {
+	t.Parallel()
+
+	args := createMockVMAccountsArguments()
+	args.Accounts = &stateMock.AccountsStub{
+		GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
+			acc := &mock.AccountWrapMock{}
+			acc.SetCodeMetadata([]byte{0, vmcommon.MetadataPayableBySC})
+			return acc, nil
+		},
+	}
+
+	bh, _ := hooks.NewBlockChainHookImpl(args)
+	isPayable, err := bh.IsPayable(make([]byte, 32), make([]byte, 32))
 	assert.True(t, isPayable)
 	assert.Nil(t, err)
 }

@@ -246,6 +246,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		NFTStorageHandler:  nftStorageHandler,
 		DataPool:           datapool,
 		CompiledSCPool:     datapool.SmartContracts(),
+		EpochNotifier:      context.EpochNotifier,
 		NilCompiledSCStore: true,
 		ConfigSCStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
