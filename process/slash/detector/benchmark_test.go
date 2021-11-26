@@ -34,7 +34,7 @@ const (
 	hysteresis              = float32(0.2)
 	defaultSelectionChances = uint32(1)
 	hashSize                = 16
-	metaConsensusGroupSize  = 100
+	metaConsensusGroupSize  = 64
 	shardConsensusGroupSize = 63
 	leaderGroupIndex        = 0
 )
@@ -45,17 +45,17 @@ func BenchmarkMultipleHeaderSigningDetector_ValidateProof(b *testing.B) {
 
 	blsSuite := mcl.NewSuiteBLS12()
 	keyGenerator := signing.NewKeyGenerator(blsSuite)
-	multiSigData := createMultiSignersBls(metaConsensusGroupSize, hasher, keyGenerator)
+	blsSigners := createMultiSignersBls(metaConsensusGroupSize, hasher, keyGenerator)
 
-	args := createHeaderSigningDetectorArgs(b, hasher, keyGenerator, multiSigData)
+	args := createHeaderSigningDetectorArgs(b, hasher, keyGenerator, blsSigners)
 	ssd, err := detector.NewMultipleHeaderSigningDetector(args)
 	require.NotNil(b, ssd)
 	require.Nil(b, err)
 
 	// Worst case scenario: 25% * 400() + 1
-	noOfMaliciousSigners := uint16(30)
-	noOfSignedHeaders := uint32(2)
-	slashRes := GenerateSlashResults(b, hasher, uint32(noOfMaliciousSigners), noOfSignedHeaders, args.NodesCoordinator, multiSigData)
+	noOfMaliciousSigners := uint32(10)
+	noOfSignedHeaders := uint64(2)
+	slashRes := generateSlashResults(b, hasher, noOfMaliciousSigners, noOfSignedHeaders, args.NodesCoordinator, blsSigners)
 	proof, err := coreSlash.NewMultipleSigningProof(slashRes)
 	require.NotNil(b, proof)
 	require.Nil(b, err)
@@ -65,7 +65,6 @@ func BenchmarkMultipleHeaderSigningDetector_ValidateProof(b *testing.B) {
 		err = ssd.ValidateProof(proof)
 		require.Nil(b, err)
 	}
-
 }
 
 type multiSignerData struct {
@@ -216,7 +215,8 @@ func createValidatorList(nbNodes uint32, pubKeys []string) []sharding.Validator 
 	validators := make([]sharding.Validator, 0)
 
 	for i := uint32(0); i < nbNodes; i++ {
-		validator := shardingMock.NewValidatorMock([]byte(pubKeys[i]), 1, defaultSelectionChances)
+		pubKey := []byte(pubKeys[i])
+		validator := shardingMock.NewValidatorMock(pubKey, defaultSelectionChances, defaultSelectionChances)
 		validators = append(validators, validator)
 	}
 
