@@ -1,3 +1,4 @@
+//go:build !race
 // +build !race
 
 // TODO remove build condition above to allow -race -short, after Arwen fix
@@ -82,7 +83,7 @@ func TestRelayedTxScCallMultiShardShouldWork(t *testing.T) {
 	require.Equal(t, big.NewInt(0), developerFees)
 
 	intermediateTxs := testContextRelayer.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContextRelayer.ShardCoordinator, testContextRelayer.EconomicsData, false, testContextDst.TxsLogsProcessor)
+	testIndexer := vm.CreateTestIndexer(t, testContextRelayer.ShardCoordinator, testContextRelayer.EconomicsData, false, testContextRelayer.TxsLogsProcessor)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -111,7 +112,7 @@ func TestRelayedTxScCallMultiShardShouldWork(t *testing.T) {
 
 	txs := testContextInnerSource.GetIntermediateTransactions(t)
 
-	testIndexer = vm.CreateTestIndexer(t, testContextInnerSource.ShardCoordinator, testContextInnerSource.EconomicsData, true, testContextDst.TxsLogsProcessor)
+	testIndexer = vm.CreateTestIndexer(t, testContextInnerSource.ShardCoordinator, testContextInnerSource.EconomicsData, true, testContextInnerSource.TxsLogsProcessor)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, txs)
 
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
@@ -205,7 +206,7 @@ func TestRelayedTxScCallMultiShardFailOnInnerTxDst(t *testing.T) {
 	require.Equal(t, big.NewInt(0), developerFees)
 
 	intermediateTxs := testContextRelayer.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContextRelayer.ShardCoordinator, testContextRelayer.EconomicsData, false, testContextDst.TxsLogsProcessor)
+	testIndexer := vm.CreateTestIndexer(t, testContextRelayer.ShardCoordinator, testContextRelayer.EconomicsData, false, testContextRelayer.TxsLogsProcessor)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -234,7 +235,7 @@ func TestRelayedTxScCallMultiShardFailOnInnerTxDst(t *testing.T) {
 
 	txs := testContextInnerSource.GetIntermediateTransactions(t)
 
-	testIndexer = vm.CreateTestIndexer(t, testContextInnerSource.ShardCoordinator, testContextInnerSource.EconomicsData, true, testContextDst.TxsLogsProcessor)
+	testIndexer = vm.CreateTestIndexer(t, testContextInnerSource.ShardCoordinator, testContextInnerSource.EconomicsData, true, testContextInnerSource.TxsLogsProcessor)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, txs)
 
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)

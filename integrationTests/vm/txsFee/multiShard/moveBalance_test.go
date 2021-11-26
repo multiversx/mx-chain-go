@@ -189,7 +189,7 @@ func TestMoveBalanceExecuteOneSourceAndDestinationShard(t *testing.T) {
 	expectedBalanceSender := big.NewInt(99810)
 	utils.TestAccount(t, testContextSource.Accounts, sndAddr, 1, expectedBalanceSender)
 
-	testIndexer := vm.CreateTestIndexer(t, testContextSource.ShardCoordinator, testContextSource.EconomicsData, false, testContext.TxsLogsProcessor)
+	testIndexer := vm.CreateTestIndexer(t, testContextSource.ShardCoordinator, testContextSource.EconomicsData, false, testContextSource.TxsLogsProcessor)
 	testIndexer.SaveTransaction(tx, block.TxBlock, nil)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -217,7 +217,7 @@ func TestMoveBalanceExecuteOneSourceAndDestinationShard(t *testing.T) {
 	accumulatedFees = testContextDst.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, big.NewInt(0), accumulatedFees)
 
-	testIndexer = vm.CreateTestIndexer(t, testContextDst.ShardCoordinator, testContextDst.EconomicsData, false, testContext.TxsLogsProcessor)
+	testIndexer = vm.CreateTestIndexer(t, testContextDst.ShardCoordinator, testContextDst.EconomicsData, false, testContextDst.TxsLogsProcessor)
 	testIndexer.SaveTransaction(tx, block.TxBlock, nil)
 
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)

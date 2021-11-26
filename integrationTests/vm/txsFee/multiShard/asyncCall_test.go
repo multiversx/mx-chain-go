@@ -1,3 +1,4 @@
+//go:build !race
 // +build !race
 
 package multiShard
@@ -75,7 +76,7 @@ func TestAsyncCallShouldWork(t *testing.T) {
 
 	require.Equal(t, big.NewInt(120), testContextSender.TxFeeHandler.GetAccumulatedFees())
 
-	testIndexer := vm.CreateTestIndexer(t, testContextSender.ShardCoordinator, testContextSender.EconomicsData, testContextSender.TxsLogsProcessor, false)
+	testIndexer := vm.CreateTestIndexer(t, testContextSender.ShardCoordinator, testContextSender.EconomicsData, false, testContextSender.TxsLogsProcessor)
 	testIndexer.SaveTransaction(tx, block.TxBlock, nil)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -94,7 +95,7 @@ func TestAsyncCallShouldWork(t *testing.T) {
 	require.Equal(t, big.NewInt(383), testContextSecondContract.TxFeeHandler.GetDeveloperFees())
 
 	intermediateTxs := testContextSecondContract.GetIntermediateTransactions(t)
-	testIndexer = vm.CreateTestIndexer(t, testContextSecondContract.ShardCoordinator, testContextSecondContract.EconomicsData, testContextSender.TxsLogsProcessor, true)
+	testIndexer = vm.CreateTestIndexer(t, testContextSecondContract.ShardCoordinator, testContextSecondContract.EconomicsData, true, testContextSecondContract.TxsLogsProcessor)
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)

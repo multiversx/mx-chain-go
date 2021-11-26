@@ -47,7 +47,7 @@ type testIndexer struct {
 	t                testing.TB
 }
 
-const timeoutSave = 100 * time.Second
+const timeoutSave = 3 * time.Second
 
 // CreateTestIndexer -
 func CreateTestIndexer(
@@ -123,7 +123,7 @@ func (ti *testIndexer) createElasticProcessor(
 	mp, _ := miniblocks.NewMiniblocksProcessor(shardCoordinator.SelfId(), testHasher, testMarshalizer)
 	sp := statistics.NewStatisticsProcessor()
 	vp, _ := validators.NewValidatorsProcessor(pubkeyConv)
-	lp, _ := logsevents.NewLogsAndEventsProcessor(shardCoordinator, pubkeyConv, testMarshalizer, balanceConverter, testHasher)
+	lp, _ := logsevents.NewLogsAndEventsProcessor(shardCoordinator, pubkeyConv, testMarshalizer, balanceConverter, testHasher, transactionFeeCalculator)
 
 	esIndexerArgs := &elasticProcessor.ArgElasticProcessor{
 		UseKibana:         false,
