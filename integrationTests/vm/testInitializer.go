@@ -347,7 +347,7 @@ func CreateAccount(accnts state.AccountsAdapter, pubKey []byte, nonce uint64, ba
 }
 
 func createEconomicsData(penalizedTooMuchGasEnableEpoch uint32) (process.EconomicsDataHandler, error) {
-	maxGasLimitPerBlock := strconv.FormatUint(math.MaxUint64, 10)
+	maxGasLimitPerBlock := strconv.FormatUint(math.MaxUint64-1, 10)
 	minGasPrice := strconv.FormatUint(1, 10)
 	minGasLimit := strconv.FormatUint(1, 10)
 	testProtocolSustainabilityAddress := "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp"
