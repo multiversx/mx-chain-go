@@ -61,12 +61,12 @@ func TestRelayedESDTTransferShouldWork(t *testing.T) {
 	require.Equal(t, big.NewInt(2710), accumulatedFees)
 
 	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, testContext.TxsLogsProcessor)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true, testContext.TxsLogsProcessor)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, rtx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "2750", indexerTx.Fee)
+	require.Equal(t, uint64(271), indexerTx.GasUsed)
+	require.Equal(t, "2710", indexerTx.Fee)
 }
 
 func TestTestRelayedESTTransferNotEnoughESTValueShouldConsumeGas(t *testing.T) {
@@ -115,7 +115,7 @@ func TestTestRelayedESTTransferNotEnoughESTValueShouldConsumeGas(t *testing.T) {
 	require.Equal(t, big.NewInt(2870), accumulatedFees)
 
 	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, testContext.TxsLogsProcessor)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true, testContext.TxsLogsProcessor)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
