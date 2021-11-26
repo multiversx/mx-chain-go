@@ -84,20 +84,83 @@ func (ses *startInEpochWithScheduledDataSyncer) getRequiredHeaderByHash(
 	shardIDs = append(shardIDs, notarizedShardHeader.GetShardID())
 	hashesToRequest = append(hashesToRequest, notarizedShardHeader.GetPrevHash())
 
+	//TODO: Remove this for
+	for _, shardID := range shardIDs {
+		log.Debug("startInEpochWithScheduledDataSyncer.getRequiredHeaderByHash: getShardIDAndHashesForIncludedMetaBlocks(notarizedShardHeader)",
+			"shard id to request", shardID)
+	}
+
+	//TODO: Remove this for
+	for _, hashToRequest := range hashesToRequest {
+		log.Debug("startInEpochWithScheduledDataSyncer.getRequiredHeaderByHash: getShardIDAndHashesForIncludedMetaBlocks(notarizedShardHeader)",
+			"hash to request", hashToRequest)
+	}
+
 	headers, err := ses.syncHeaders(shardIDs, hashesToRequest)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	//TODO: Remove this for
+	for hash, hdr := range headers {
+		log.Debug("startInEpochWithScheduledDataSyncer.getRequiredHeaderByHash: syncHeaders -> headers",
+			"hash", hash,
+			"epoch", hdr.GetEpoch(),
+			"shard", hdr.GetChainID(),
+			"round", hdr.GetRound(),
+			"nonce", hdr.GetNonce(),
+		)
+	}
+
 	headerToBeProcessed, ok := headers[string(notarizedShardHeader.GetPrevHash())].(data.ShardHeaderHandler)
 	if !ok {
+		//TODO: Remove this log
+		log.Debug("startInEpochWithScheduledDataSyncer.getRequiredHeaderByHash: headers[notarizedShardHeader.GetPrevHash()]",
+			"prev hash", notarizedShardHeader.GetPrevHash(),
+			"epoch", notarizedShardHeader.GetEpoch(),
+			"shard", notarizedShardHeader.GetShardID(),
+			"round", notarizedShardHeader.GetRound(),
+			"nonce", notarizedShardHeader.GetNonce(),
+		)
 		return nil, nil, epochStart.ErrMissingHeader
 	}
 
+	log.Debug("startInEpochWithScheduledDataSyncer.getRequiredHeaderByHash: headerToBeProcessed",
+		"prev hash", headerToBeProcessed.GetPrevHash(),
+		"epoch", headerToBeProcessed.GetEpoch(),
+		"shard", headerToBeProcessed.GetShardID(),
+		"round", headerToBeProcessed.GetRound(),
+		"nonce", headerToBeProcessed.GetNonce(),
+	)
+
 	shardIDs, hashesToRequest = getShardIDAndHashesForIncludedMetaBlocks(headerToBeProcessed)
+
+	//TODO: Remove this for
+	for _, shardID := range shardIDs {
+		log.Debug("startInEpochWithScheduledDataSyncer.getRequiredHeaderByHash: getShardIDAndHashesForIncludedMetaBlocks(headerToBeProcessed)",
+			"shard id to request", shardID)
+	}
+
+	//TODO: Remove this for
+	for _, hashToRequest := range hashesToRequest {
+		log.Debug("startInEpochWithScheduledDataSyncer.getRequiredHeaderByHash: getShardIDAndHashesForIncludedMetaBlocks(headerToBeProcessed)",
+			"hash to request", hashToRequest)
+	}
+
 	prevHeaders, err := ses.syncHeaders(shardIDs, hashesToRequest)
 	if err != nil {
 		return nil, nil, err
+	}
+
+	//TODO: Remove this for
+	for hash, hdr := range prevHeaders {
+		log.Debug("startInEpochWithScheduledDataSyncer.getRequiredHeaderByHash: syncHeaders -> prevHeaders",
+			"hash", hash,
+			"epoch", hdr.GetEpoch(),
+			"shard", hdr.GetChainID(),
+			"round", hdr.GetRound(),
+			"nonce", hdr.GetNonce(),
+		)
 	}
 
 	for hash, hdr := range prevHeaders {
@@ -110,6 +173,10 @@ func (ses *startInEpochWithScheduledDataSyncer) getRequiredHeaderByHash(
 		shardIDs = []uint32{core.MetachainShardId}
 		header := prevHeaders[string(hashesToRequest[0])]
 		if header == nil {
+			//TODO: Remove this log
+			log.Debug("startInEpochWithScheduledDataSyncer.getRequiredHeaderByHash: prevHeaders[hashesToRequest[0]]",
+				"hash to request", hashesToRequest[0],
+			)
 			return nil, nil, epochStart.ErrMissingHeader
 		}
 
