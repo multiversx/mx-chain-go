@@ -227,7 +227,7 @@ func Test_copyValidatorMap(t *testing.T) {
 	t.Parallel()
 
 	valMap := generateValidatorMap(30, 2)
-	v2 := copyValidatorMap(valMap)
+	v2 := nodesCoordinator.CopyValidatorMap(valMap)
 	assert.Equal(t, valMap, v2)
 
 	valMap[0] = valMap[0][1:]
@@ -239,7 +239,7 @@ func Test_promoteWaitingToEligibleEmptyList(t *testing.T) {
 
 	eligibleMap := generateValidatorMap(30, 2)
 	waitingMap := generateValidatorMap(0, 2)
-	eligibleMapCopy := copyValidatorMap(eligibleMap)
+	eligibleMapCopy := nodesCoordinator.CopyValidatorMap(eligibleMap)
 
 	for k := range eligibleMap {
 		assert.Equal(t, eligibleMap[k], eligibleMapCopy[k])
@@ -258,8 +258,8 @@ func Test_promoteWaitingToEligible_ZeroEligible(t *testing.T) {
 	eligibleMap := generateValidatorMap(0, 2)
 	waitingMap := generateValidatorMap(numWaiting, 2)
 
-	eligibleMapCopy := copyValidatorMap(eligibleMap)
-	waitingMapCopy := copyValidatorMap(waitingMap)
+	eligibleMapCopy := nodesCoordinator.CopyValidatorMap(eligibleMap)
+	waitingMapCopy := nodesCoordinator.CopyValidatorMap(waitingMap)
 
 	err := moveMaxNumNodesToMap(eligibleMap, waitingMap, numMeta, numShard)
 	assert.Nil(t, err)
@@ -281,8 +281,8 @@ func Test_promoteWaitingToEligible_LessWaitingThanRemainingSize(t *testing.T) {
 	eligibleMap := generateValidatorMap(30, 2)
 	waitingMap := generateValidatorMap(numWaiting, 2)
 
-	eligibleMapCopy := copyValidatorMap(eligibleMap)
-	waitingMapCopy := copyValidatorMap(waitingMap)
+	eligibleMapCopy := nodesCoordinator.CopyValidatorMap(eligibleMap)
+	waitingMapCopy := nodesCoordinator.CopyValidatorMap(waitingMap)
 
 	err := moveMaxNumNodesToMap(eligibleMap, waitingMap, numMeta, numShard)
 	assert.Nil(t, err)
@@ -304,8 +304,8 @@ func Test_promoteWaitingToEligible_ExactlyWaitingToRemainingSize(t *testing.T) {
 	eligibleMap := generateValidatorMap(30, 2)
 	waitingMap := generateValidatorMap(numWaiting, 2)
 
-	eligibleMapCopy := copyValidatorMap(eligibleMap)
-	waitingMapCopy := copyValidatorMap(waitingMap)
+	eligibleMapCopy := nodesCoordinator.CopyValidatorMap(eligibleMap)
+	waitingMapCopy := nodesCoordinator.CopyValidatorMap(waitingMap)
 
 	err := moveMaxNumNodesToMap(eligibleMap, waitingMap, numMeta, numShard)
 	assert.Nil(t, err)
@@ -327,8 +327,8 @@ func Test_promoteWaitingToEligible_MoreWaitingThanRemainingSize(t *testing.T) {
 	eligibleMap := generateValidatorMap(30, 2)
 	waitingMap := generateValidatorMap(numWaiting, 2)
 
-	eligibleMapCopy := copyValidatorMap(eligibleMap)
-	waitingMapCopy := copyValidatorMap(waitingMap)
+	eligibleMapCopy := nodesCoordinator.CopyValidatorMap(eligibleMap)
+	waitingMapCopy := nodesCoordinator.CopyValidatorMap(waitingMap)
 
 	err := moveMaxNumNodesToMap(eligibleMap, waitingMap, numMeta, numShard)
 	assert.Nil(t, err)
@@ -350,8 +350,8 @@ func Test_promoteWaitingToEligible_2xMoreWaitingThanRemainingSize(t *testing.T) 
 	eligibleMap := generateValidatorMap(20, 2)
 	waitingMap := generateValidatorMap(numWaiting, 2)
 
-	eligibleMapCopy := copyValidatorMap(eligibleMap)
-	waitingMapCopy := copyValidatorMap(waitingMap)
+	eligibleMapCopy := nodesCoordinator.CopyValidatorMap(eligibleMap)
+	waitingMapCopy := nodesCoordinator.CopyValidatorMap(waitingMap)
 
 	err := moveMaxNumNodesToMap(eligibleMap, waitingMap, numMeta, numShard)
 	assert.Nil(t, err)
@@ -393,8 +393,8 @@ func Test_promoteWaitingToEligible_(t *testing.T) {
 	eligibleMap := generateValidatorMap(30, 2)
 	waitingMap := generateValidatorMap(22, 2)
 
-	eligibleMapCopy := copyValidatorMap(eligibleMap)
-	waitingMapCopy := copyValidatorMap(waitingMap)
+	eligibleMapCopy := nodesCoordinator.CopyValidatorMap(eligibleMap)
+	waitingMapCopy := nodesCoordinator.CopyValidatorMap(waitingMap)
 
 	err := moveNodesToMap(eligibleMap, waitingMap)
 	assert.Nil(t, err)
@@ -722,7 +722,7 @@ func Test_equalizeValidatorsListsZeroToDistributeNoError(t *testing.T) {
 
 	nbToDistribute := 0
 	validatorsToDistribute := generateValidatorList(nbToDistribute)
-	validatorsCopy := copyValidatorMap(validatorsMap)
+	validatorsCopy := nodesCoordinator.CopyValidatorMap(validatorsMap)
 	remainingToDistribute := equalizeValidatorsLists(validatorsMap, validatorsToDistribute)
 	v, _ := removeValidatorsFromList(validatorsToDistribute, remainingToDistribute, len(remainingToDistribute))
 	require.Equal(t, nbToDistribute, len(v))
@@ -740,7 +740,7 @@ func Test_equalizeValidatorsListsOneEmptyWaitingListNotEnoughToEqualize(t *testi
 
 	nbToDistribute := 10
 	validatorsToDistribute := generateValidatorList(nbToDistribute)
-	validatorsCopy := copyValidatorMap(validatorsMap)
+	validatorsCopy := nodesCoordinator.CopyValidatorMap(validatorsMap)
 	remainingToDistribute := equalizeValidatorsLists(validatorsMap, validatorsToDistribute)
 	v, _ := removeValidatorsFromList(validatorsToDistribute, remainingToDistribute, len(remainingToDistribute))
 	require.Equal(t, nbToDistribute, len(v))
@@ -758,7 +758,7 @@ func Test_equalizeValidatorsListsOneEmptyWaitingListExactNumberToEqualize(t *tes
 
 	nbToDistribute := 30
 	validatorsToDistribute := generateValidatorList(nbToDistribute)
-	validatorsCopy := copyValidatorMap(validatorsMap)
+	validatorsCopy := nodesCoordinator.CopyValidatorMap(validatorsMap)
 	remainingToDistribute := equalizeValidatorsLists(validatorsMap, validatorsToDistribute)
 	v, _ := removeValidatorsFromList(validatorsToDistribute, remainingToDistribute, len(remainingToDistribute))
 	require.Equal(t, nbToDistribute, len(v))
@@ -780,7 +780,7 @@ func Test_equalizeValidatorsListsUnbalancedListsEnoughToDistribute(t *testing.T)
 	nbLists := len(validatorsMap)
 	newNodesPerShard := 20
 	validatorsToDistribute := generateValidatorList(nbLists * newNodesPerShard)
-	validatorsCopy := copyValidatorMap(validatorsMap)
+	validatorsCopy := nodesCoordinator.CopyValidatorMap(validatorsMap)
 
 	remainingToDistribute := equalizeValidatorsLists(validatorsMap, validatorsToDistribute)
 	for _, nbValidators := range validatorsMap {
@@ -801,7 +801,7 @@ func Test_equalizeValidatorsListsUnbalancedListsNotEnoughToDistribute(t *testing
 	}
 
 	validatorsToDistribute := generateValidatorList(25)
-	validatorsCopy := copyValidatorMap(validatorsMap)
+	validatorsCopy := nodesCoordinator.CopyValidatorMap(validatorsMap)
 
 	remainingToDistribute := equalizeValidatorsLists(validatorsMap, validatorsToDistribute)
 	v, _ := removeValidatorsFromList(validatorsToDistribute, remainingToDistribute, len(remainingToDistribute))
@@ -817,7 +817,7 @@ func Test_distributeValidatorsEqualNumber(t *testing.T) {
 	nodesPerShard := 30
 	newNodesPerShard := 10
 	validatorsMap := generateValidatorMap(nodesPerShard, nbShards)
-	validatorsCopy := copyValidatorMap(validatorsMap)
+	validatorsCopy := nodesCoordinator.CopyValidatorMap(validatorsMap)
 
 	nbLists := len(validatorsMap)
 	validatorsToDistribute := generateValidatorList(nbLists * newNodesPerShard)
@@ -839,7 +839,7 @@ func Test_distributeValidatorsEqualNumberNoMeta(t *testing.T) {
 		validatorsMap[i] = generateValidatorList(nodesPerShard)
 	}
 
-	validatorsCopy := copyValidatorMap(validatorsMap)
+	validatorsCopy := nodesCoordinator.CopyValidatorMap(validatorsMap)
 
 	nbLists := len(validatorsMap)
 	validatorsToDistribute := generateValidatorList(nbLists * newNodesPerShard)
@@ -857,7 +857,7 @@ func Test_distributeValidatorsEqualNumberConsistent(t *testing.T) {
 	nodesPerShard := 30
 	newNodesPerShard := 10
 	validatorsMap := generateValidatorMap(nodesPerShard, nbShards)
-	validatorsCopy := copyValidatorMap(validatorsMap)
+	validatorsCopy := nodesCoordinator.CopyValidatorMap(validatorsMap)
 
 	nbLists := len(validatorsMap)
 	validatorsToDistribute := generateValidatorList(nbLists * newNodesPerShard)
@@ -879,7 +879,7 @@ func Test_distributeValidatorsUnequalNumber(t *testing.T) {
 	nodesPerShard := 30
 	nbShards := uint32(2)
 	validatorsMap := generateValidatorMap(nodesPerShard, nbShards)
-	validatorsCopy := copyValidatorMap(validatorsMap)
+	validatorsCopy := nodesCoordinator.CopyValidatorMap(validatorsMap)
 
 	nbLists := len(validatorsMap)
 	maxNewNodesPerShard := 10
@@ -897,7 +897,7 @@ func Test_distributeValidatorsUnequalNumberConsistent(t *testing.T) {
 	nodesPerShard := 30
 	nbShards := uint32(2)
 	validatorsMap := generateValidatorMap(nodesPerShard, nbShards)
-	validatorsCopy := copyValidatorMap(validatorsMap)
+	validatorsCopy := nodesCoordinator.CopyValidatorMap(validatorsMap)
 
 	nbLists := len(validatorsMap)
 	maxNewNodesPerShard := 10
@@ -978,8 +978,8 @@ func Test_shuffleOutNodesWithLeaving(t *testing.T) {
 		numToRemove[shardId] = len(waitingMap[shardId])
 	}
 
-	copyEligibleMap := copyValidatorMap(eligibleMap)
-	copyWaitingMap := copyValidatorMap(waitingMap)
+	copyEligibleMap := nodesCoordinator.CopyValidatorMap(eligibleMap)
+	copyWaitingMap := nodesCoordinator.CopyValidatorMap(waitingMap)
 	newEligible, _, stillRemainingInLeaving := removeLeavingNodesFromValidatorMaps(
 		copyEligibleMap,
 		copyWaitingMap,
@@ -1015,8 +1015,8 @@ func Test_shuffleOutNodesWithLeavingMoreThanWaiting(t *testing.T) {
 	for shardId := range waitingMap {
 		numToRemove[shardId] = len(waitingMap[shardId])
 	}
-	copyEligibleMap := copyValidatorMap(eligibleMap)
-	copyWaitingMap := copyValidatorMap(waitingMap)
+	copyEligibleMap := nodesCoordinator.CopyValidatorMap(eligibleMap)
+	copyWaitingMap := nodesCoordinator.CopyValidatorMap(waitingMap)
 
 	newEligible, _, stillRemainingInLeaving := removeLeavingNodesFromValidatorMaps(
 		copyEligibleMap,
@@ -1072,8 +1072,8 @@ func Test_removeLeavingNodesFromValidatorMaps(t *testing.T) {
 			for shardId := range waitingMap {
 				numToRemove[shardId] = maxShuffleOutNumber
 			}
-			copyEligibleMap := copyValidatorMap(eligibleMap)
-			copyWaitingMap := copyValidatorMap(waitingMap)
+			copyEligibleMap := nodesCoordinator.CopyValidatorMap(eligibleMap)
+			copyWaitingMap := nodesCoordinator.CopyValidatorMap(waitingMap)
 
 			_, _, _ = removeLeavingNodesFromValidatorMaps(
 				copyEligibleMap,
@@ -1732,8 +1732,8 @@ func TestRandHashShuffler_RemoveLeavingNodesFromValidatorMaps_FromEligible(t *te
 		numToRemove[shardId] = waitingPerShard
 	}
 
-	eligibleCopy := copyValidatorMap(eligibleMap)
-	waitingCopy := copyValidatorMap(waitingMap)
+	eligibleCopy := nodesCoordinator.CopyValidatorMap(eligibleMap)
+	waitingCopy := nodesCoordinator.CopyValidatorMap(waitingMap)
 
 	newEligible, newWaiting, stillRemaining := removeLeavingNodesFromValidatorMaps(
 		eligibleCopy,
@@ -1773,8 +1773,8 @@ func TestRandHashShuffler_RemoveLeavingNodesFromValidatorMaps_FromWaiting(t *tes
 		numToRemove[shardId] = waitingPerShard
 	}
 
-	eligibleCopy := copyValidatorMap(eligibleMap)
-	waitingCopy := copyValidatorMap(waitingMap)
+	eligibleCopy := nodesCoordinator.CopyValidatorMap(eligibleMap)
+	waitingCopy := nodesCoordinator.CopyValidatorMap(waitingMap)
 
 	newEligible, newWaiting, stillRemaining := removeLeavingNodesFromValidatorMaps(
 		eligibleCopy,
@@ -1812,8 +1812,8 @@ func TestRandHashShuffler_RemoveLeavingNodesFromValidatorMaps_NonExisting(t *tes
 		numToRemove[shardId] = waitingPerShard
 	}
 
-	eligibleCopy := copyValidatorMap(eligibleMap)
-	waitingCopy := copyValidatorMap(waitingMap)
+	eligibleCopy := nodesCoordinator.CopyValidatorMap(eligibleMap)
+	waitingCopy := nodesCoordinator.CopyValidatorMap(waitingMap)
 
 	newEligible, newWaiting, stillRemaining := removeLeavingNodesFromValidatorMaps(
 		eligibleCopy,
@@ -1858,8 +1858,8 @@ func TestRandHashShuffler_RemoveLeavingNodesFromValidatorMaps_2Eligible2Waiting2
 		numToRemove[shardId] = waitingPerShard
 	}
 
-	eligibleCopy := copyValidatorMap(eligibleMap)
-	waitingCopy := copyValidatorMap(waitingMap)
+	eligibleCopy := nodesCoordinator.CopyValidatorMap(eligibleMap)
+	waitingCopy := nodesCoordinator.CopyValidatorMap(waitingMap)
 
 	newEligible, newWaiting, stillRemaining := removeLeavingNodesFromValidatorMaps(
 		eligibleCopy,
@@ -1918,8 +1918,8 @@ func TestRandHashShuffler_RemoveLeavingNodesFromValidatorMaps_2FromEligible2From
 		numToRemove[shardId] = waitingPerShard
 	}
 
-	eligibleCopy := copyValidatorMap(eligibleMap)
-	waitingCopy := copyValidatorMap(waitingMap)
+	eligibleCopy := nodesCoordinator.CopyValidatorMap(eligibleMap)
+	waitingCopy := nodesCoordinator.CopyValidatorMap(waitingMap)
 
 	newEligible, newWaiting, stillRemaining := removeLeavingNodesFromValidatorMaps(
 		eligibleCopy,

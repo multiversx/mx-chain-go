@@ -76,3 +76,15 @@ func DisplayNodesConfiguration(
 		}
 	}
 }
+
+// CopyValidatorMap creates a copy for the Validators map, creating copies for each of the lists for each shard
+func CopyValidatorMap(validatorsMap map[uint32][]Validator) map[uint32][]Validator {
+	result := make(map[uint32][]Validator)
+
+	for shardId, validators := range validatorsMap {
+		elems := make([]Validator, 0)
+		result[shardId] = append(elems, validators...)
+	}
+
+	return result
+}

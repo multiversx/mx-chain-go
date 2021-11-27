@@ -143,8 +143,8 @@ func (rhs *randHashShuffler) UpdateParams(
 //          c)  No change in the number of shards then nothing extra needs to be done
 func (rhs *randHashShuffler) UpdateNodeLists(args ArgsUpdateNodes) (*ResUpdateNodes, error) {
 	rhs.UpdateShufflerConfig(args.Epoch)
-	eligibleAfterReshard := copyValidatorMap(args.Eligible)
-	waitingAfterReshard := copyValidatorMap(args.Waiting)
+	eligibleAfterReshard := nodesCoordinator.CopyValidatorMap(args.Eligible)
+	waitingAfterReshard := nodesCoordinator.CopyValidatorMap(args.Waiting)
 
 	args.AdditionalLeaving = removeDupplicates(args.UnStakeLeaving, args.AdditionalLeaving)
 	totalLeavingNum := len(args.AdditionalLeaving) + len(args.UnStakeLeaving)
@@ -239,8 +239,8 @@ func (rhs *randHashShuffler) IsInterfaceNil() bool {
 func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 	allLeaving := append(arg.unstakeLeaving, arg.additionalLeaving...)
 
-	waitingCopy := copyValidatorMap(arg.waiting)
-	eligibleCopy := copyValidatorMap(arg.eligible)
+	waitingCopy := nodesCoordinator.CopyValidatorMap(arg.waiting)
+	eligibleCopy := nodesCoordinator.CopyValidatorMap(arg.eligible)
 
 	createListsForAllShards(waitingCopy, arg.nbShards)
 
@@ -604,7 +604,7 @@ func (rhs *randHashShuffler) splitShards(
 	log.Error(ErrNotImplemented.Error())
 
 	// TODO: do the split
-	return copyValidatorMap(eligible), copyValidatorMap(waiting)
+	return nodesCoordinator.CopyValidatorMap(eligible), nodesCoordinator.CopyValidatorMap(waiting)
 }
 
 // mergeShards merges the required shards, returning the resulting shards configuration for eligible and waiting lists
@@ -616,19 +616,7 @@ func (rhs *randHashShuffler) mergeShards(
 	log.Error(ErrNotImplemented.Error())
 
 	// TODO: do the merge
-	return copyValidatorMap(eligible), copyValidatorMap(waiting)
-}
-
-// copyValidatorMap creates a copy for the Validators map, creating copies for each of the lists for each shard
-func copyValidatorMap(validatorsMap map[uint32][]nodesCoordinator.Validator) map[uint32][]nodesCoordinator.Validator {
-	result := make(map[uint32][]nodesCoordinator.Validator)
-
-	for shardId, validators := range validatorsMap {
-		elems := make([]nodesCoordinator.Validator, 0)
-		result[shardId] = append(elems, validators...)
-	}
-
-	return result
+	return nodesCoordinator.CopyValidatorMap(eligible), nodesCoordinator.CopyValidatorMap(waiting)
 }
 
 // moveNodesToMap moves the validators in the source list to the corresponding destination list
