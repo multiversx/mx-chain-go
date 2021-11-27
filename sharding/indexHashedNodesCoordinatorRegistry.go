@@ -209,9 +209,9 @@ func epochValidatorsToEpochNodesConfig(config *EpochValidators) (*nodesCoordinat
 
 func serializableValidatorsMapToValidatorsMap(
 	sValidators map[string][]*SerializableValidator,
-) (map[uint32][]nodesCoordinator.Validator, error) {
+) (map[uint32][]Validator, error) {
 
-	result := make(map[uint32][]nodesCoordinator.Validator, len(sValidators))
+	result := make(map[uint32][]Validator, len(sValidators))
 
 	for k, v := range sValidators {
 		key, err := strconv.ParseInt(k, 10, 64)
@@ -229,7 +229,7 @@ func serializableValidatorsMapToValidatorsMap(
 }
 
 // ValidatorArrayToSerializableValidatorArray -
-func ValidatorArrayToSerializableValidatorArray(validators []nodesCoordinator.Validator) []*SerializableValidator {
+func ValidatorArrayToSerializableValidatorArray(validators []Validator) []*SerializableValidator {
 	result := make([]*SerializableValidator, len(validators))
 
 	for i, v := range validators {
@@ -243,8 +243,8 @@ func ValidatorArrayToSerializableValidatorArray(validators []nodesCoordinator.Va
 	return result
 }
 
-func serializableValidatorArrayToValidatorArray(sValidators []*SerializableValidator) ([]nodesCoordinator.Validator, error) {
-	result := make([]nodesCoordinator.Validator, len(sValidators))
+func serializableValidatorArrayToValidatorArray(sValidators []*SerializableValidator) ([]Validator, error) {
+	result := make([]Validator, len(sValidators))
 	var err error
 
 	for i, v := range sValidators {
@@ -258,11 +258,11 @@ func serializableValidatorArrayToValidatorArray(sValidators []*SerializableValid
 }
 
 // NodesInfoToValidators maps nodeInfo to validator interface
-func NodesInfoToValidators(nodesInfo map[uint32][]GenesisNodeInfoHandler) (map[uint32][]nodesCoordinator.Validator, error) {
-	validatorsMap := make(map[uint32][]nodesCoordinator.Validator)
+func NodesInfoToValidators(nodesInfo map[uint32][]GenesisNodeInfoHandler) (map[uint32][]Validator, error) {
+	validatorsMap := make(map[uint32][]Validator)
 
 	for shId, nodeInfoList := range nodesInfo {
-		validators := make([]nodesCoordinator.Validator, 0, len(nodeInfoList))
+		validators := make([]Validator, 0, len(nodeInfoList))
 		for index, nodeInfo := range nodeInfoList {
 			validatorObj, err := nodesCoordinator.NewValidator(nodeInfo.PubKeyBytes(), nodesCoordinator.DefaultSelectionChances, uint32(index))
 			if err != nil {

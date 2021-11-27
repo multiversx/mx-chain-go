@@ -5,6 +5,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
+type Validator = nodesCoordinator.Validator
+
 // Coordinator defines what a shard state coordinator should hold
 type Coordinator interface {
 	NumberOfShards() uint32
@@ -30,11 +32,11 @@ type EpochHandler interface {
 
 // ArgsUpdateNodes holds the parameters required by the shuffler to generate a new nodes configuration
 type ArgsUpdateNodes struct {
-	Eligible          map[uint32][]nodesCoordinator.Validator
-	Waiting           map[uint32][]nodesCoordinator.Validator
-	NewNodes          []nodesCoordinator.Validator
-	UnStakeLeaving    []nodesCoordinator.Validator
-	AdditionalLeaving []nodesCoordinator.Validator
+	Eligible          map[uint32][]Validator
+	Waiting           map[uint32][]Validator
+	NewNodes          []Validator
+	UnStakeLeaving    []Validator
+	AdditionalLeaving []Validator
 	Rand              []byte
 	NbShards          uint32
 	Epoch             uint32
@@ -42,10 +44,10 @@ type ArgsUpdateNodes struct {
 
 // ResUpdateNodes holds the result of the UpdateNodes method
 type ResUpdateNodes struct {
-	Eligible       map[uint32][]nodesCoordinator.Validator
-	Waiting        map[uint32][]nodesCoordinator.Validator
-	Leaving        []nodesCoordinator.Validator
-	StillRemaining []nodesCoordinator.Validator
+	Eligible       map[uint32][]Validator
+	Waiting        map[uint32][]Validator
+	Leaving        []Validator
+	StillRemaining []Validator
 }
 
 // NodesShuffler provides shuffling functionality for nodes
@@ -149,6 +151,6 @@ type GenesisNodeInfoHandler interface {
 
 // ValidatorsDistributor distributes validators across shards
 type ValidatorsDistributor interface {
-	DistributeValidators(destination map[uint32][]nodesCoordinator.Validator, source map[uint32][]nodesCoordinator.Validator, rand []byte, balanced bool) error
+	DistributeValidators(destination map[uint32][]Validator, source map[uint32][]Validator, rand []byte, balanced bool) error
 	IsInterfaceNil() bool
 }

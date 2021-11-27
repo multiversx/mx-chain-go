@@ -24,7 +24,9 @@ var _ NodesCoordinator = (*indexHashedNodesCoordinator)(nil)
 // TODO: move this to config parameters
 const nodesCoordinatorStoredEpochs = 4
 
-type validatorList []nodesCoordinator.Validator
+type ValidatorWithShardID = nodesCoordinator.ValidatorWithShardID
+
+type validatorList []Validator
 
 // Len will return the length of the validatorList
 func (v validatorList) Len() int { return len(v) }
@@ -334,8 +336,8 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 	ihgs.GetConsensusGroupHasher().Clear()
 }
 
-func (ihgs *indexHashedNodesCoordinator) createSortedListFromMap(validatorsMap map[uint32][]nodesCoordinator.Validator) []nodesCoordinator.Validator {
-	sortedList := make([]nodesCoordinator.Validator, 0)
+func (ihgs *indexHashedNodesCoordinator) createSortedListFromMap(validatorsMap map[uint32][]Validator) []Validator {
+	sortedList := make([]Validator, 0)
 	for _, validators := range validatorsMap {
 		sortedList = append(sortedList, validators...)
 	}
@@ -347,10 +349,10 @@ func (ihgs *indexHashedNodesCoordinator) computeNodesConfigFromList(
 	previousEpochConfig *nodesCoordinator.EpochNodesConfig,
 	validatorInfos []*state.ShardValidatorInfo,
 ) (*nodesCoordinator.EpochNodesConfig, error) {
-	eligibleMap := make(map[uint32][]nodesCoordinator.Validator)
-	waitingMap := make(map[uint32][]nodesCoordinator.Validator)
-	leavingMap := make(map[uint32][]nodesCoordinator.Validator)
-	newNodesList := make([]nodesCoordinator.Validator, 0)
+	eligibleMap := make(map[uint32][]Validator)
+	waitingMap := make(map[uint32][]Validator)
+	leavingMap := make(map[uint32][]Validator)
+	newNodesList := make([]Validator, 0)
 
 	if ihgs.flagWaitingListFix.IsSet() && previousEpochConfig == nil {
 		return nil, ErrNilPreviousEpochConfig
@@ -421,9 +423,9 @@ func (ihgs *indexHashedNodesCoordinator) computeNodesConfigFromList(
 
 func (ihgs *indexHashedNodesCoordinator) addValidatorToPreviousMap(
 	previousEpochConfig *nodesCoordinator.EpochNodesConfig,
-	eligibleMap map[uint32][]nodesCoordinator.Validator,
-	waitingMap map[uint32][]nodesCoordinator.Validator,
-	currentValidator nodesCoordinator.Validator,
+	eligibleMap map[uint32][]Validator,
+	waitingMap map[uint32][]Validator,
+	currentValidator Validator,
 	currentValidatorShardId uint32) {
 
 	if !ihgs.flagWaitingListFix.IsSet() {
@@ -517,7 +519,7 @@ func isValidator(config *nodesCoordinator.EpochNodesConfig, pk []byte) bool {
 	return found
 }
 
-func searchInMap(validatorMap map[uint32][]nodesCoordinator.Validator, pk []byte) (bool, uint32) {
+func searchInMap(validatorMap map[uint32][]Validator, pk []byte) (bool, uint32) {
 	for shardId, validatorsInShard := range validatorMap {
 		for _, val := range validatorsInShard {
 			if bytes.Equal(val.PubKey(), pk) {
@@ -576,13 +578,13 @@ func (ihgs *indexHashedNodesCoordinator) GetConsensusWhitelistedNodes(
 }
 
 func (ihgs *indexHashedNodesCoordinator) createPublicKeyToValidatorMap(
-	eligible map[uint32][]nodesCoordinator.Validator,
-	waiting map[uint32][]nodesCoordinator.Validator,
-) map[string]*nodesCoordinator.ValidatorWithShardID {
-	publicKeyToValidatorMap := make(map[string]*nodesCoordinator.ValidatorWithShardID)
+	eligible map[uint32][]Validator,
+	waiting map[uint32][]Validator,
+) map[string]*ValidatorWithShardID {
+	publicKeyToValidatorMap := make(map[string]*ValidatorWithShardID)
 	for shardId, shardEligible := range eligible {
 		for i := 0; i < len(shardEligible); i++ {
-			publicKeyToValidatorMap[string(shardEligible[i].PubKey())] = &nodesCoordinator.ValidatorWithShardID{
+			publicKeyToValidatorMap[string(shardEligible[i].PubKey())] = &ValidatorWithShardID{
 				Validator: shardEligible[i],
 				ShardID:   shardId,
 			}
@@ -590,7 +592,7 @@ func (ihgs *indexHashedNodesCoordinator) createPublicKeyToValidatorMap(
 	}
 	for shardId, shardWaiting := range waiting {
 		for i := 0; i < len(shardWaiting); i++ {
-			publicKeyToValidatorMap[string(shardWaiting[i].PubKey())] = &nodesCoordinator.ValidatorWithShardID{
+			publicKeyToValidatorMap[string(shardWaiting[i].PubKey())] = &ValidatorWithShardID{
 				Validator: shardWaiting[i],
 				ShardID:   shardId,
 			}
@@ -648,12 +650,12 @@ func (ihgs *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfi
 }
 
 func createActuallyLeavingPerShards(
-	unstakeLeaving map[uint32][]nodesCoordinator.Validator,
-	additionalLeaving map[uint32][]nodesCoordinator.Validator,
-	leaving []nodesCoordinator.Validator,
-) (map[uint32][]nodesCoordinator.Validator, map[uint32][]nodesCoordinator.Validator) {
-	actuallyLeaving := make(map[uint32][]nodesCoordinator.Validator)
-	actuallyRemaining := make(map[uint32][]nodesCoordinator.Validator)
+	unstakeLeaving map[uint32][]Validator,
+	additionalLeaving map[uint32][]Validator,
+	leaving []Validator,
+) (map[uint32][]Validator, map[uint32][]Validator) {
+	actuallyLeaving := make(map[uint32][]Validator)
+	actuallyRemaining := make(map[uint32][]Validator)
 	processedValidatorsMap := make(map[string]bool)
 
 	computeActuallyLeaving(unstakeLeaving, leaving, actuallyLeaving, actuallyRemaining, processedValidatorsMap)
@@ -663,10 +665,10 @@ func createActuallyLeavingPerShards(
 }
 
 func computeActuallyLeaving(
-	unstakeLeaving map[uint32][]nodesCoordinator.Validator,
-	leaving []nodesCoordinator.Validator,
-	actuallyLeaving map[uint32][]nodesCoordinator.Validator,
-	actuallyRemaining map[uint32][]nodesCoordinator.Validator,
+	unstakeLeaving map[uint32][]Validator,
+	leaving []Validator,
+	actuallyLeaving map[uint32][]Validator,
+	actuallyRemaining map[uint32][]Validator,
 	processedValidatorsMap map[string]bool,
 ) {
 	sortedShardIds := sortKeys(unstakeLeaving)

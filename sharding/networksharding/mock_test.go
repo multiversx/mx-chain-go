@@ -9,7 +9,7 @@ import (
 // NodesCoordinatorStub can not be moved inside mock package as it generates cyclic imports.
 //TODO refactor mock package & sharding package & remove this file. Put tests in sharding_test package
 type nodesCoordinatorStub struct {
-	GetValidatorWithPublicKeyCalled func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error)
+	GetValidatorWithPublicKeyCalled func(publicKey []byte) (validator Validator, shardId uint32, err error)
 }
 
 // GetChance -
@@ -23,7 +23,7 @@ func (ncs *nodesCoordinatorStub) GetAllLeavingValidatorsPublicKeys(_ uint32) (ma
 }
 
 // ComputeAdditionalLeaving -
-func (ncs *nodesCoordinatorStub) ComputeAdditionalLeaving(_ []*state.ShardValidatorInfo) (map[uint32][]nodesCoordinator.Validator, error) {
+func (ncs *nodesCoordinatorStub) ComputeAdditionalLeaving(_ []*state.ShardValidatorInfo) (map[uint32][]Validator, error) {
 	panic("implement me")
 }
 
@@ -63,12 +63,12 @@ func (ncs *nodesCoordinatorStub) GetOwnPublicKey() []byte {
 }
 
 // SetNodesPerShards -
-func (ncs *nodesCoordinatorStub) SetNodesPerShards(_ map[uint32][]nodesCoordinator.Validator, _ map[uint32][]nodesCoordinator.Validator, _ []nodesCoordinator.Validator, _ uint32) error {
+func (ncs *nodesCoordinatorStub) SetNodesPerShards(_ map[uint32][]Validator, _ map[uint32][]Validator, _ []Validator, _ uint32) error {
 	panic("implement me")
 }
 
 // ComputeConsensusGroup -
-func (ncs *nodesCoordinatorStub) ComputeConsensusGroup(_ []byte, _ uint64, _ uint32, _ uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
+func (ncs *nodesCoordinatorStub) ComputeConsensusGroup(_ []byte, _ uint64, _ uint32, _ uint32) (validatorsGroup []Validator, err error) {
 	panic("implement me")
 }
 
@@ -103,7 +103,7 @@ func (ncs *nodesCoordinatorStub) ConsensusGroupSize(uint32) int {
 }
 
 // GetValidatorWithPublicKey -
-func (ncs *nodesCoordinatorStub) GetValidatorWithPublicKey(publicKey []byte) (nodesCoordinator.Validator, uint32, error) {
+func (ncs *nodesCoordinatorStub) GetValidatorWithPublicKey(publicKey []byte) (Validator, uint32, error) {
 	if ncs.GetValidatorWithPublicKeyCalled != nil {
 		return ncs.GetValidatorWithPublicKeyCalled(publicKey)
 	}
@@ -112,7 +112,7 @@ func (ncs *nodesCoordinatorStub) GetValidatorWithPublicKey(publicKey []byte) (no
 }
 
 // ValidatorsWeights -
-func (ncs *nodesCoordinatorStub) ValidatorsWeights(validators []nodesCoordinator.Validator) ([]uint32, error) {
+func (ncs *nodesCoordinatorStub) ValidatorsWeights(validators []Validator) ([]uint32, error) {
 	weights := make([]uint32, len(validators))
 	for i := range validators {
 		weights[i] = 1

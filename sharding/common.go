@@ -10,8 +10,8 @@ import (
 var log = logger.GetOrCreate("sharding")
 
 // SerializableValidatorsToValidators creates the validator map from serializable validator map
-func SerializableValidatorsToValidators(nodeRegistryValidators map[string][]*SerializableValidator) (map[uint32][]nodesCoordinator.Validator, error) {
-	validators := make(map[uint32][]nodesCoordinator.Validator)
+func SerializableValidatorsToValidators(nodeRegistryValidators map[string][]*SerializableValidator) (map[uint32][]Validator, error) {
+	validators := make(map[uint32][]Validator)
 	for shardId, shardValidators := range nodeRegistryValidators {
 		newValidators, err := SerializableShardValidatorListToValidatorList(shardValidators)
 		if err != nil {
@@ -28,8 +28,8 @@ func SerializableValidatorsToValidators(nodeRegistryValidators map[string][]*Ser
 }
 
 // SerializableShardValidatorListToValidatorList creates the validator list from serializable validator list
-func SerializableShardValidatorListToValidatorList(shardValidators []*SerializableValidator) ([]nodesCoordinator.Validator, error) {
-	newValidators := make([]nodesCoordinator.Validator, len(shardValidators))
+func SerializableShardValidatorListToValidatorList(shardValidators []*SerializableValidator) ([]Validator, error) {
+	newValidators := make([]Validator, len(shardValidators))
 	for i, shardValidator := range shardValidators {
 		v, err := nodesCoordinator.NewValidator(shardValidator.PubKey, shardValidator.Chances, shardValidator.Index)
 		if err != nil {
