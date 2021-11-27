@@ -36,7 +36,7 @@ func NewIndexHashedNodesCoordinatorWithRater(
 	ihncr.mutNodesConfig.Lock()
 	defer ihncr.mutNodesConfig.Unlock()
 
-	nodesConfig, ok := ihncr.nodesConfig[ihncr.GetCurrentEpoch()]
+	nodesConfig, ok := ihncr.GetNodesConfigPerEpoch(ihncr.GetCurrentEpoch())
 	if !ok {
 		nodesConfig = &nodesCoordinator.EpochNodesConfig{}
 	}

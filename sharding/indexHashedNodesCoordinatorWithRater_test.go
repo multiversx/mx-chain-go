@@ -96,14 +96,14 @@ func TestIndexHashedGroupSelectorWithRater_OkValShouldWork(t *testing.T) {
 	}
 	nc, err := NewIndexHashedNodesCoordinator(arguments)
 	assert.Nil(t, err)
-	readEligible := nc.nodesConfig[0].EligibleMap[0]
+	readEligible := nc.GetNodesConfig()[0].EligibleMap[0]
 	assert.Equal(t, eligibleMap[0], readEligible)
 
 	rater := &mock.RaterMock{}
 	ihgs, err := NewIndexHashedNodesCoordinatorWithRater(nc, rater)
 	assert.Nil(t, err)
 
-	readEligible = ihgs.nodesConfig[0].EligibleMap[0]
+	readEligible = ihgs.GetNodesConfig()[0].EligibleMap[0]
 	assert.Equal(t, eligibleMap[0], readEligible)
 }
 

@@ -263,7 +263,8 @@ func TestIndexHashedNodesCoordinator_OkValShouldWork(t *testing.T) {
 	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
 	require.Nil(t, err)
 
-	readEligible := ihgs.nodesConfig[arguments.Epoch].EligibleMap[0]
+	nodeConfig, _ := ihgs.GetNodesConfigPerEpoch(arguments.Epoch)
+	readEligible := nodeConfig.EligibleMap[0]
 	require.Equal(t, eligibleMap[0], readEligible)
 }
 
@@ -693,8 +694,8 @@ func BenchmarkIndexHashedNodesCoordinator_CopyMaps(b *testing.B) {
 		testMutex.RLock()
 
 		copiedPrevious := &nodesCoordinator.EpochNodesConfig{}
-		copiedPrevious.EligibleMap = copyValidatorMap(previousConfig.EligibleMap)
-		copiedPrevious.WaitingMap = copyValidatorMap(previousConfig.WaitingMap)
+		copiedPrevious.EligibleMap = nodesCoordinator.CopyValidatorMap(previousConfig.EligibleMap)
+		copiedPrevious.WaitingMap = nodesCoordinator.CopyValidatorMap(previousConfig.WaitingMap)
 		copiedPrevious.NbShards = previousConfig.NbShards
 
 		testMutex.RUnlock()
@@ -1091,13 +1092,15 @@ func TestIndexHashedGroupSelector_GetAllWaitingValidatorsPublicKeys(t *testing.T
 func createBlockBodyFromNodesCoordinator(ihgs *indexHashedNodesCoordinator, epoch uint32) *block.Body {
 	body := &block.Body{MiniBlocks: make([]*block.MiniBlock, 0)}
 
-	mbs := createMiniBlocksForNodesMap(ihgs.nodesConfig[epoch].EligibleMap, string(common.EligibleList), ihgs.marshalizer)
+	nodeConfig, _ := ihgs.GetNodesConfigPerEpoch(epoch)
+
+	mbs := createMiniBlocksForNodesMap(nodeConfig.EligibleMap, string(common.EligibleList), ihgs.marshalizer)
 	body.MiniBlocks = append(body.MiniBlocks, mbs...)
 
-	mbs = createMiniBlocksForNodesMap(ihgs.nodesConfig[epoch].WaitingMap, string(common.WaitingList), ihgs.marshalizer)
+	mbs = createMiniBlocksForNodesMap(nodeConfig.WaitingMap, string(common.WaitingList), ihgs.marshalizer)
 	body.MiniBlocks = append(body.MiniBlocks, mbs...)
 
-	mbs = createMiniBlocksForNodesMap(ihgs.nodesConfig[epoch].LeavingMap, string(common.LeavingList), ihgs.marshalizer)
+	mbs = createMiniBlocksForNodesMap(nodeConfig.LeavingMap, string(common.LeavingList), ihgs.marshalizer)
 	body.MiniBlocks = append(body.MiniBlocks, mbs...)
 
 	return body
@@ -1139,7 +1142,9 @@ func TestIndexHashedNodesCoordinator_EpochStart(t *testing.T) {
 		Epoch:        epoch,
 	}
 
-	ihgs.nodesConfig[epoch] = ihgs.nodesConfig[0]
+	nodeConfig, _ := ihgs.GetNodesConfigPerEpoch(0)
+
+	ihgs.SetNodesConfigPerEpoch(epoch, nodeConfig)
 
 	body := createBlockBodyFromNodesCoordinator(ihgs, epoch)
 	ihgs.EpochStartPrepare(header, body)
@@ -1149,7 +1154,7 @@ func TestIndexHashedNodesCoordinator_EpochStart(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, validators)
 
-	computedShardId, isValidator := ihgs.computeShardForSelfPublicKey(ihgs.nodesConfig[0])
+	computedShardId, isValidator := ihgs.computeShardForSelfPublicKey(nodeConfig)
 	// should remain in same shard with intra shard shuffling
 	require.Equal(t, arguments.ShardIDAsObserver, computedShardId)
 	require.False(t, isValidator)
@@ -1287,19 +1292,20 @@ func TestIndexHashedNodesCoordinator_EpochStartInEligible(t *testing.T) {
 	}
 
 	validatorShard := core.MetachainShardId
-	ihgs.nodesConfig = map[uint32]*nodesCoordinator.EpochNodesConfig{
+	ihgs.SetNodesConfig(map[uint32]*nodesCoordinator.EpochNodesConfig{
 		epoch: {
 			ShardID: validatorShard,
 			EligibleMap: map[uint32][]nodesCoordinator.Validator{
 				validatorShard: {mock.NewValidatorMock(pk, 1, 1)},
 			},
 		},
-	}
+	})
 	body := createBlockBodyFromNodesCoordinator(ihgs, epoch)
 	ihgs.EpochStartPrepare(header, body)
 	ihgs.EpochStartAction(header)
 
-	computedShardId, isValidator := ihgs.computeShardForSelfPublicKey(ihgs.nodesConfig[epoch])
+	nodeConfig, _ := ihgs.GetNodesConfigPerEpoch(epoch)
+	computedShardId, isValidator := ihgs.computeShardForSelfPublicKey(nodeConfig)
 
 	require.Equal(t, validatorShard, computedShardId)
 	require.True(t, isValidator)
@@ -1322,19 +1328,20 @@ func TestIndexHashedNodesCoordinator_EpochStartInWaiting(t *testing.T) {
 	}
 
 	validatorShard := core.MetachainShardId
-	ihgs.nodesConfig = map[uint32]*nodesCoordinator.EpochNodesConfig{
+	ihgs.SetNodesConfig(map[uint32]*nodesCoordinator.EpochNodesConfig{
 		epoch: {
 			ShardID: validatorShard,
 			WaitingMap: map[uint32][]nodesCoordinator.Validator{
 				validatorShard: {mock.NewValidatorMock(pk, 1, 1)},
 			},
 		},
-	}
+	})
 	body := createBlockBodyFromNodesCoordinator(ihgs, epoch)
 	ihgs.EpochStartPrepare(header, body)
 	ihgs.EpochStartAction(header)
 
-	computedShardId, isValidator := ihgs.computeShardForSelfPublicKey(ihgs.nodesConfig[epoch])
+	nodeConfig, _ := ihgs.GetNodesConfigPerEpoch(epoch)
+	computedShardId, isValidator := ihgs.computeShardForSelfPublicKey(nodeConfig)
 	require.Equal(t, validatorShard, computedShardId)
 	require.True(t, isValidator)
 }
@@ -1356,7 +1363,7 @@ func TestIndexHashedNodesCoordinator_EpochStartInLeaving(t *testing.T) {
 	}
 
 	validatorShard := core.MetachainShardId
-	ihgs.nodesConfig = map[uint32]*nodesCoordinator.EpochNodesConfig{
+	ihgs.SetNodesConfig(map[uint32]*nodesCoordinator.EpochNodesConfig{
 		epoch: {
 			ShardID: validatorShard,
 			EligibleMap: map[uint32][]nodesCoordinator.Validator{
@@ -1368,12 +1375,13 @@ func TestIndexHashedNodesCoordinator_EpochStartInLeaving(t *testing.T) {
 				validatorShard: {mock.NewValidatorMock(pk, 1, 1)},
 			},
 		},
-	}
+	})
 	body := createBlockBodyFromNodesCoordinator(ihgs, epoch)
 	ihgs.EpochStartPrepare(header, body)
 	ihgs.EpochStartAction(header)
 
-	computedShardId, isValidator := ihgs.computeShardForSelfPublicKey(ihgs.nodesConfig[epoch])
+	nodeConfig, _ := ihgs.GetNodesConfigPerEpoch(epoch)
+	computedShardId, isValidator := ihgs.computeShardForSelfPublicKey(nodeConfig)
 	require.Equal(t, validatorShard, computedShardId)
 	require.True(t, isValidator)
 }
@@ -1436,12 +1444,15 @@ func TestIndexHashedNodesCoordinator_EpochStart_EligibleSortedAscendingByIndex(t
 		Epoch:        epoch,
 	}
 
-	ihgs.nodesConfig[epoch] = ihgs.nodesConfig[0]
+	nodeConfig, _ := ihgs.GetNodesConfigPerEpoch(0)
+
+	ihgs.SetNodesConfigPerEpoch(epoch, nodeConfig)
 
 	body := createBlockBodyFromNodesCoordinator(ihgs, epoch)
 	ihgs.EpochStartPrepare(header, body)
 
-	newNodesConfig := ihgs.nodesConfig[1]
+	nodeConfig, _ = ihgs.GetNodesConfigPerEpoch(1)
+	newNodesConfig := nodeConfig
 
 	firstEligible := newNodesConfig.EligibleMap[core.MetachainShardId][0]
 	secondEligible := newNodesConfig.EligibleMap[core.MetachainShardId][1]
@@ -1766,14 +1777,14 @@ func TestIndexHashedNodesCoordinator_ShuffleOutWithEligible(t *testing.T) {
 
 	epoch := uint32(2)
 	validatorShard := uint32(7)
-	ihgs.nodesConfig = map[uint32]*nodesCoordinator.EpochNodesConfig{
+	ihgs.SetNodesConfig(map[uint32]*nodesCoordinator.EpochNodesConfig{
 		epoch: {
 			ShardID: validatorShard,
 			EligibleMap: map[uint32][]nodesCoordinator.Validator{
 				validatorShard: {mock.NewValidatorMock(pk, 1, 1)},
 			},
 		},
-	}
+	})
 
 	ihgs.ShuffleOutForEpoch(epoch)
 	require.True(t, processCalled)
@@ -1801,14 +1812,14 @@ func TestIndexHashedNodesCoordinator_ShuffleOutWithWaiting(t *testing.T) {
 
 	epoch := uint32(2)
 	validatorShard := uint32(7)
-	ihgs.nodesConfig = map[uint32]*nodesCoordinator.EpochNodesConfig{
+	ihgs.SetNodesConfig(map[uint32]*nodesCoordinator.EpochNodesConfig{
 		epoch: {
 			ShardID: validatorShard,
 			WaitingMap: map[uint32][]nodesCoordinator.Validator{
 				validatorShard: {mock.NewValidatorMock(pk, 1, 1)},
 			},
 		},
-	}
+	})
 
 	ihgs.ShuffleOutForEpoch(epoch)
 	require.True(t, processCalled)
@@ -1836,7 +1847,7 @@ func TestIndexHashedNodesCoordinator_ShuffleOutWithObserver(t *testing.T) {
 
 	epoch := uint32(2)
 	validatorShard := uint32(7)
-	ihgs.nodesConfig = map[uint32]*nodesCoordinator.EpochNodesConfig{
+	ihgs.SetNodesConfig(map[uint32]*nodesCoordinator.EpochNodesConfig{
 		epoch: {
 			ShardID: validatorShard,
 			EligibleMap: map[uint32][]nodesCoordinator.Validator{
@@ -1848,7 +1859,7 @@ func TestIndexHashedNodesCoordinator_ShuffleOutWithObserver(t *testing.T) {
 			LeavingMap: map[uint32][]nodesCoordinator.Validator{
 				validatorShard: {mock.NewValidatorMock(pk, 1, 1)}},
 		},
-	}
+	})
 
 	ihgs.ShuffleOutForEpoch(epoch)
 	require.False(t, processCalled)
@@ -1877,7 +1888,7 @@ func TestIndexHashedNodesCoordinator_ShuffleOutNotFound(t *testing.T) {
 
 	epoch := uint32(2)
 	validatorShard := uint32(7)
-	ihgs.nodesConfig = map[uint32]*nodesCoordinator.EpochNodesConfig{
+	ihgs.SetNodesConfig(map[uint32]*nodesCoordinator.EpochNodesConfig{
 		epoch: {
 			ShardID: validatorShard,
 			EligibleMap: map[uint32][]nodesCoordinator.Validator{
@@ -1890,7 +1901,7 @@ func TestIndexHashedNodesCoordinator_ShuffleOutNotFound(t *testing.T) {
 				validatorShard: {mock.NewValidatorMock([]byte("observerKey"), 1, 1)},
 			},
 		},
-	}
+	})
 
 	ihgs.ShuffleOutForEpoch(epoch)
 	require.False(t, processCalled)
@@ -1918,9 +1929,9 @@ func TestIndexHashedNodesCoordinator_ShuffleOutNilConfig(t *testing.T) {
 	require.Nil(t, err)
 
 	epoch := uint32(2)
-	ihgs.nodesConfig = map[uint32]*nodesCoordinator.EpochNodesConfig{
+	ihgs.SetNodesConfig(map[uint32]*nodesCoordinator.EpochNodesConfig{
 		epoch: nil,
-	}
+	})
 
 	ihgs.ShuffleOutForEpoch(epoch)
 	require.False(t, processCalled)

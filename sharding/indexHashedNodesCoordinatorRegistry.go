@@ -68,9 +68,7 @@ func (ihgs *indexHashedNodesCoordinator) baseLoadState(key []byte) error {
 	}
 
 	displayNodesConfigInfo(nodesConfig)
-	ihgs.mutNodesConfig.Lock()
-	ihgs.nodesConfig = nodesConfig
-	ihgs.mutNodesConfig.Unlock()
+	ihgs.SetNodesConfig(nodesConfig)
 
 	return nil
 }
@@ -109,13 +107,13 @@ func (ihgs *indexHashedNodesCoordinator) NodesCoordinatorToRegistry() *NodesCoor
 	}
 
 	minEpoch := 0
-	lastEpoch := ihgs.getLastEpochConfig()
+	lastEpoch := ihgs.GetLastEpochConfig()
 	if lastEpoch >= nodesCoordinatorStoredEpochs {
 		minEpoch = int(lastEpoch) - nodesCoordinatorStoredEpochs + 1
 	}
 
 	for epoch := uint32(minEpoch); epoch <= lastEpoch; epoch++ {
-		epochNodesData, ok := ihgs.nodesConfig[epoch]
+		epochNodesData, ok := ihgs.GetNodesConfigPerEpoch(epoch)
 		if !ok {
 			continue
 		}
@@ -124,17 +122,6 @@ func (ihgs *indexHashedNodesCoordinator) NodesCoordinatorToRegistry() *NodesCoor
 	}
 
 	return registry
-}
-
-func (ihgs *indexHashedNodesCoordinator) getLastEpochConfig() uint32 {
-	lastEpoch := uint32(0)
-	for epoch := range ihgs.nodesConfig {
-		if lastEpoch < epoch {
-			lastEpoch = epoch
-		}
-	}
-
-	return lastEpoch
 }
 
 func (ihgs *indexHashedNodesCoordinator) registryToNodesCoordinator(

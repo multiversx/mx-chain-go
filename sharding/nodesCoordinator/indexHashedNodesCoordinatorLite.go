@@ -140,6 +140,7 @@ func NewIndexHashedNodesCoordinatorLite(arguments ArgNodesCoordinatorLite) (*Ind
 	return ihgs, nil
 }
 
+// TODO: check if list of arguments is still accurate
 func checkArguments(arguments ArgNodesCoordinatorLite) error {
 	if arguments.ShardConsensusGroupSize < 1 || arguments.MetaConsensusGroupSize < 1 {
 		return ErrInvalidConsensusGroupSize
@@ -1006,8 +1007,45 @@ func (ihgs *IndexHashedNodesCoordinatorLite) GetMutNodesConfig() *sync.RWMutex {
 	return &ihgs.mutNodesConfig
 }
 
+func (ihgs *IndexHashedNodesCoordinatorLite) SetNodesConfig(nodesConfig map[uint32]*EpochNodesConfig) {
+	ihgs.mutNodesConfig.Lock()
+	ihgs.nodesConfig = nodesConfig
+	ihgs.mutNodesConfig.Unlock()
+}
+
+func (ihgs *IndexHashedNodesCoordinatorLite) GetLastEpochConfig() uint32 {
+	ihgs.mutNodesConfig.Lock()
+	defer ihgs.mutNodesConfig.Unlock()
+
+	lastEpoch := uint32(0)
+	for epoch := range ihgs.nodesConfig {
+		if lastEpoch < epoch {
+			lastEpoch = epoch
+		}
+	}
+
+	return lastEpoch
+}
+
 func (ihgs *IndexHashedNodesCoordinatorLite) GetNodesConfig() map[uint32]*EpochNodesConfig {
+	ihgs.mutNodesConfig.RLock()
+	defer ihgs.mutNodesConfig.RUnlock()
+
 	return ihgs.nodesConfig
+}
+
+func (ihgs *IndexHashedNodesCoordinatorLite) GetNodesConfigPerEpoch(epoch uint32) (*EpochNodesConfig, bool) {
+	ihgs.mutNodesConfig.RLock()
+	nodesConfig, ok := ihgs.nodesConfig[epoch]
+	ihgs.mutNodesConfig.RUnlock()
+
+	return nodesConfig, ok
+}
+
+func (ihgs *IndexHashedNodesCoordinatorLite) SetNodesConfigPerEpoch(epoch uint32, nodeConfig *EpochNodesConfig) {
+	ihgs.mutNodesConfig.RLock()
+	ihgs.nodesConfig[epoch] = nodeConfig
+	ihgs.mutNodesConfig.RUnlock()
 }
 
 func (ihgs *IndexHashedNodesCoordinatorLite) GetNodesCoordinatorHelper() NodesCoordinatorHelper {
@@ -1084,63 +1122,32 @@ func (ihgs *IndexHashedNodesCoordinatorLite) ValidatorsWeights(validators []Vali
 	return weights, nil
 }
 
-// func (ihgs *IndexHashedNodesCoordinatorLite) saveState(key []byte) error {
-// 	registry := ihgs.NodesCoordinatorToRegistry()
-// 	data, err := json.Marshal(registry)
-// 	if err != nil {
-// 		return err
-// 	}
+func (ihgs *IndexHashedNodesCoordinatorLite) GetPreviousConfigCopy() *EpochNodesConfig {
+	ihgs.mutNodesConfig.RLock()
+	defer ihgs.mutNodesConfig.RUnlock()
 
-// 	ncInternalkey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), key...)
+	previousConfig := ihgs.nodesConfig[ihgs.GetCurrentEpoch()]
+	if previousConfig == nil {
+		return nil
+	}
 
-// 	log.Debug("saving nodes coordinator config", "key", ncInternalkey)
+	copiedPrevious := &EpochNodesConfig{}
+	copiedPrevious.EligibleMap = CopyValidatorMap(previousConfig.EligibleMap)
+	copiedPrevious.WaitingMap = CopyValidatorMap(previousConfig.WaitingMap)
+	copiedPrevious.NbShards = previousConfig.NbShards
 
-// 	return ihgs.bootStorer.Put(ncInternalkey, data)
-// }
+	return copiedPrevious
+}
 
-// // LoadState loads the nodes coordinator state from the used boot storage
-// func (ihgs *IndexHashedNodesCoordinatorLite) LoadState(key []byte) error {
-// 	return ihgs.baseLoadState(key)
-// }
-
-// func (ihgs *IndexHashedNodesCoordinatorLite) baseLoadState(key []byte) error {
-// 	ncInternalkey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), key...)
-
-// 	log.Debug("getting nodes coordinator config", "key", ncInternalkey)
-
-// 	ihgs.loadingFromDisk.Store(true)
-// 	defer ihgs.loadingFromDisk.Store(false)
-
-// 	data, err := ihgs.bootStorer.Get(ncInternalkey)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	config := &NodesCoordinatorRegistry{}
-// 	err = json.Unmarshal(data, config)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	ihgs.mutSavedStateKey.Lock()
-// 	ihgs.savedStateKey = key
-// 	ihgs.mutSavedStateKey.Unlock()
-
-// 	ihgs.currentEpoch = config.CurrentEpoch
-// 	log.Debug("loaded nodes config", "current epoch", config.CurrentEpoch)
-
-// 	nodesConfig, err := ihgs.registryToNodesCoordinator(config)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	displayNodesConfigInfo(nodesConfig)
-// 	ihgs.mutNodesConfig.Lock()
-// 	ihgs.nodesConfig = nodesConfig
-// 	ihgs.mutNodesConfig.Unlock()
-
-// 	return nil
-// }
+func (ihgs *IndexHashedNodesCoordinatorLite) RemoveNodesConfigEpochs(epochToRemove int32) {
+	ihgs.mutNodesConfig.RLock()
+	for epoch := range ihgs.nodesConfig {
+		if epoch <= uint32(epochToRemove) {
+			delete(ihgs.nodesConfig, epoch)
+		}
+	}
+	ihgs.mutNodesConfig.RUnlock()
+}
 
 func selectValidators(
 	selector RandomSelector,

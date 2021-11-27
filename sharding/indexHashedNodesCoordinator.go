@@ -81,8 +81,7 @@ type indexHashedNodesCoordinator struct {
 	marshalizer                   marshal.Marshalizer
 	shuffler                      NodesShuffler
 	shuffledOutHandler            ShuffledOutHandler
-	mutNodesConfig                *sync.RWMutex
-	nodesConfig                   map[uint32]*nodesCoordinator.EpochNodesConfig
+	mutNodesConfig                sync.RWMutex
 	mutSavedStateKey              sync.RWMutex
 }
 
@@ -130,8 +129,6 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		marshalizer:                     arguments.Marshalizer,
 		shuffler:                        arguments.Shuffler,
 		shuffledOutHandler:              arguments.ShuffledOutHandler,
-		mutNodesConfig:                  ihgsLite.GetMutNodesConfig(),
-		nodesConfig:                     ihgsLite.GetNodesConfig(),
 	}
 
 	ihgs.loadingFromDisk.Store(false)
@@ -148,6 +145,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 	return ihgs, nil
 }
 
+// TODO: check if list of arguments is still accurate
 func checkArguments(arguments ArgNodesCoordinator) error {
 	if check.IfNil(arguments.Shuffler) {
 		return ErrNilShuffler
@@ -166,9 +164,7 @@ func checkArguments(arguments ArgNodesCoordinator) error {
 func (ihgs *indexHashedNodesCoordinator) GetAllEligibleValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error) {
 	validatorsPubKeys := make(map[uint32][][]byte)
 
-	ihgs.mutNodesConfig.RLock()
-	nodesConfig, ok := ihgs.nodesConfig[epoch]
-	ihgs.mutNodesConfig.RUnlock()
+	nodesConfig, ok := ihgs.GetNodesConfigPerEpoch(epoch)
 
 	if !ok {
 		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, epoch)
@@ -190,9 +186,7 @@ func (ihgs *indexHashedNodesCoordinator) GetAllEligibleValidatorsPublicKeys(epoc
 func (ihgs *indexHashedNodesCoordinator) GetAllWaitingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error) {
 	validatorsPubKeys := make(map[uint32][][]byte)
 
-	ihgs.mutNodesConfig.RLock()
-	nodesConfig, ok := ihgs.nodesConfig[epoch]
-	ihgs.mutNodesConfig.RUnlock()
+	nodesConfig, ok := ihgs.GetNodesConfigPerEpoch(epoch)
 
 	if !ok {
 		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, epoch)
@@ -214,9 +208,7 @@ func (ihgs *indexHashedNodesCoordinator) GetAllWaitingValidatorsPublicKeys(epoch
 func (ihgs *indexHashedNodesCoordinator) GetAllLeavingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error) {
 	validatorsPubKeys := make(map[uint32][][]byte)
 
-	ihgs.mutNodesConfig.RLock()
-	nodesConfig, ok := ihgs.nodesConfig[epoch]
-	ihgs.mutNodesConfig.RUnlock()
+	nodesConfig, ok := ihgs.GetNodesConfigPerEpoch(epoch)
 
 	if !ok {
 		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, epoch)
@@ -263,21 +255,12 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 
 	ihgs.updateEpochFlags(newEpoch)
 
-	ihgs.mutNodesConfig.RLock()
-	previousConfig := ihgs.nodesConfig[ihgs.GetCurrentEpoch()]
-	if previousConfig == nil {
+	//TODO: remove the copy if no changes are done to the maps
+	copiedPrevious := ihgs.GetPreviousConfigCopy()
+	if copiedPrevious == nil {
 		log.Error("previous nodes config is nil")
-		ihgs.mutNodesConfig.RUnlock()
 		return
 	}
-
-	//TODO: remove the copy if no changes are done to the maps
-	copiedPrevious := &nodesCoordinator.EpochNodesConfig{}
-	copiedPrevious.EligibleMap = copyValidatorMap(previousConfig.EligibleMap)
-	copiedPrevious.WaitingMap = copyValidatorMap(previousConfig.WaitingMap)
-	copiedPrevious.NbShards = previousConfig.NbShards
-
-	ihgs.mutNodesConfig.RUnlock()
 
 	// TODO: compare with previous nodesConfig if exists
 	newNodesConfig, err := ihgs.computeNodesConfigFromList(copiedPrevious, allValidatorInfo)
@@ -476,15 +459,9 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartAction(hdr data.HeaderHandler
 		log.Error("saving nodes coordinator config failed", "error", err.Error())
 	}
 
-	ihgs.mutNodesConfig.Lock()
 	if needToRemove {
-		for epoch := range ihgs.nodesConfig {
-			if epoch <= uint32(epochToRemove) {
-				delete(ihgs.nodesConfig, epoch)
-			}
-		}
+		ihgs.RemoveNodesConfigEpochs(epochToRemove)
 	}
-	ihgs.mutNodesConfig.Unlock()
 }
 
 // NotifyOrder returns the notification order for a start of epoch event
@@ -505,9 +482,7 @@ func (ihgs *indexHashedNodesCoordinator) GetSavedStateKey() []byte {
 func (ihgs *indexHashedNodesCoordinator) ShuffleOutForEpoch(epoch uint32) {
 	log.Debug("shuffle out called for", "epoch", epoch)
 
-	ihgs.mutNodesConfig.Lock()
-	nodesConfig := ihgs.nodesConfig[epoch]
-	ihgs.mutNodesConfig.Unlock()
+	nodesConfig, _ := ihgs.GetNodesConfigPerEpoch(epoch)
 
 	if nodesConfig == nil {
 		log.Warn("shuffleOutForEpoch failed",
@@ -628,7 +603,7 @@ func (ihgs *indexHashedNodesCoordinator) createPublicKeyToValidatorMap(
 func (ihgs *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfig *nodesCoordinator.EpochNodesConfig) (uint32, bool) {
 	pubKey := ihgs.GetSelfPubKey()
 	selfShard := ihgs.GetShardIDAsObserver()
-	epNodesConfig, ok := ihgs.nodesConfig[ihgs.GetCurrentEpoch()]
+	epNodesConfig, ok := ihgs.GetNodesConfigPerEpoch(ihgs.GetCurrentEpoch())
 	if ok {
 		log.Trace("computeShardForSelfPublicKey found existing config",
 			"shard", epNodesConfig.ShardID,
