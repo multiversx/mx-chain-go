@@ -56,7 +56,7 @@ func TestRoundNotifier_CheckRound(t *testing.T) {
 	require.Equal(t, int64(1), counter1.Get())
 	require.Equal(t, int64(1), counter1.Get())
 
-	// Check new round, expect all subscriber are notifier
+	// Check new round, expect all subscriber are notified
 	roundNotifier.CheckRound(1)
 	require.Equal(t, int64(2), counter1.Get())
 	require.Equal(t, int64(2), counter1.Get())
