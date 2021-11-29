@@ -16,9 +16,9 @@ AUTHOR:
    
 GLOBAL OPTIONS:
    --num-keys value  How many keys should generate. Example: 1 (default: 1)
-   --key-type value  What king of keys should generate. Available options: validator, wallet, both (default: "validator")
+   --key-type value  What kind of keys should generate. Available options: validator, wallet, both (default: "validator")
    --help, -h        Show help
    --version, -v     Print the version
-   --hex-key-prefix  Value special pattern for the hex key prefix: Example 00f00 (default nopattern)
+   --hex-key-prefix  Value special pattern for the hex key prefix: Example 0f00 (default nopattern). Give even number of hex chars.
    --shard value     Which shard should manage the address: Example: 0 (default -1 - no prefference)
 ```

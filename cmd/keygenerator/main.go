@@ -76,7 +76,7 @@ VERSION:
 	keyType = cli.StringFlag{
 		Name: "key-type",
 		Usage: fmt.Sprintf(
-			"What king of keys should generate. Available options: %s, %s, %s, %s",
+			"What kind of keys should generate. Available options: %s, %s, %s, %s",
 			validatorType,
 			walletType,
 			bothType,
