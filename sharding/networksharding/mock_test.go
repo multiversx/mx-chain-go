@@ -6,6 +6,8 @@ import (
 	state "github.com/ElrondNetwork/elrond-go/state"
 )
 
+type Validator = nodesCoordinator.Validator
+
 // NodesCoordinatorStub can not be moved inside mock package as it generates cyclic imports.
 //TODO refactor mock package & sharding package & remove this file. Put tests in sharding_test package
 type nodesCoordinatorStub struct {

@@ -27,6 +27,8 @@ const (
 	waitingPerShard      = 30
 )
 
+const numValidatorsInEligibleList = 400
+
 func generateRandomByteArray(size int) []byte {
 	r := make([]byte, size)
 	_, _ = rand.Read(r)

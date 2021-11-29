@@ -20,12 +20,7 @@ type NodesCoordinatorLite interface {
 	NodesCoordinatorHelper
 	PublicKeysSelector
 	ComputeConsensusGroup(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []Validator, err error)
-	GetValidatorWithPublicKey(publicKey []byte) (validator Validator, shardId uint32, err error)
-	//LoadState(key []byte) error
-	GetSavedStateKey() []byte
 	ShardIdForEpoch(epoch uint32) (uint32, error)
-	//ShuffleOutForEpoch(_ uint32)
-	GetConsensusWhitelistedNodes(epoch uint32) (map[string]struct{}, error)
 	ConsensusGroupSize(uint32) int
 	GetNumTotalEligible() uint64
 	IsInterfaceNil() bool

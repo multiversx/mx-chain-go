@@ -22,6 +22,9 @@ type NodesCoordinator interface {
 	nodesCoordinator.NodesCoordinatorLite
 	ShuffleOutForEpoch(_ uint32)
 	LoadState(key []byte) error
+	GetConsensusWhitelistedNodes(epoch uint32) (map[string]struct{}, error)
+	GetValidatorWithPublicKey(publicKey []byte) (validator Validator, shardId uint32, err error)
+	GetSavedStateKey() []byte
 }
 
 // EpochHandler defines what a component which handles current epoch should be able to do

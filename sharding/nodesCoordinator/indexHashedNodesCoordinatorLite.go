@@ -7,9 +7,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	atomicFlags "github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -46,25 +44,22 @@ type EpochNodesConfig struct {
 }
 
 type IndexHashedNodesCoordinatorLite struct {
-	shardIDAsObserver             uint32
-	currentEpoch                  uint32
-	shardConsensusGroupSize       int
-	metaConsensusGroupSize        int
-	numTotalEligible              uint64
-	selfPubKey                    []byte
-	hasher                        hashing.Hasher
-	epochStartRegistrationHandler EpochStartEventNotifier
-	nodesConfig                   map[uint32]*EpochNodesConfig
-	mutNodesConfig                sync.RWMutex
-	nodesCoordinatorHelper        NodesCoordinatorHelper
-	consensusGroupCacher          Cacher
-	startEpoch                    uint32
-	publicKeyToValidatorMap       map[string]*ValidatorWithShardID
-	waitingListFixEnableEpoch     uint32
-	isFullArchive                 bool
-	chanStopNode                  chan endProcess.ArgEndProcess
-	flagWaitingListFix            atomicFlags.Flag
-	nodeTypeProvider              NodeTypeProviderHandler
+	shardIDAsObserver         uint32
+	currentEpoch              uint32
+	shardConsensusGroupSize   int
+	metaConsensusGroupSize    int
+	numTotalEligible          uint64
+	selfPubKey                []byte
+	hasher                    hashing.Hasher
+	nodesConfig               map[uint32]*EpochNodesConfig
+	mutNodesConfig            sync.RWMutex
+	nodesCoordinatorHelper    NodesCoordinatorHelper
+	consensusGroupCacher      Cacher
+	publicKeyToValidatorMap   map[string]*ValidatorWithShardID
+	waitingListFixEnableEpoch uint32
+	isFullArchive             bool
+	chanStopNode              chan endProcess.ArgEndProcess
+	nodeTypeProvider          NodeTypeProviderHandler
 }
 
 // NewIndexHashedNodesCoordinatorLite creates a new index hashed group selector
@@ -87,21 +82,19 @@ func NewIndexHashedNodesCoordinatorLite(arguments ArgNodesCoordinatorLite) (*Ind
 	}
 
 	ihgs := &IndexHashedNodesCoordinatorLite{
-		hasher:                        arguments.Hasher,
-		epochStartRegistrationHandler: arguments.EpochStartNotifier,
-		selfPubKey:                    arguments.SelfPublicKey,
-		nodesConfig:                   nodesConfig,
-		currentEpoch:                  arguments.Epoch,
-		shardConsensusGroupSize:       arguments.ShardConsensusGroupSize,
-		metaConsensusGroupSize:        arguments.MetaConsensusGroupSize,
-		consensusGroupCacher:          arguments.ConsensusGroupCache,
-		shardIDAsObserver:             arguments.ShardIDAsObserver,
-		startEpoch:                    arguments.StartEpoch,
-		publicKeyToValidatorMap:       make(map[string]*ValidatorWithShardID),
-		waitingListFixEnableEpoch:     arguments.WaitingListFixEnabledEpoch,
-		chanStopNode:                  arguments.ChanStopNode,
-		nodeTypeProvider:              arguments.NodeTypeProvider,
-		isFullArchive:                 arguments.IsFullArchive,
+		hasher:                    arguments.Hasher,
+		selfPubKey:                arguments.SelfPublicKey,
+		nodesConfig:               nodesConfig,
+		currentEpoch:              arguments.Epoch,
+		shardConsensusGroupSize:   arguments.ShardConsensusGroupSize,
+		metaConsensusGroupSize:    arguments.MetaConsensusGroupSize,
+		consensusGroupCacher:      arguments.ConsensusGroupCache,
+		shardIDAsObserver:         arguments.ShardIDAsObserver,
+		publicKeyToValidatorMap:   make(map[string]*ValidatorWithShardID),
+		waitingListFixEnableEpoch: arguments.WaitingListFixEnabledEpoch,
+		chanStopNode:              arguments.ChanStopNode,
+		nodeTypeProvider:          arguments.NodeTypeProvider,
+		isFullArchive:             arguments.IsFullArchive,
 	}
 	log.Debug("indexHashedNodesCoordinator: enable epoch for waiting waiting list", "epoch", ihgs.waitingListFixEnableEpoch)
 
@@ -112,11 +105,7 @@ func NewIndexHashedNodesCoordinatorLite(arguments ArgNodesCoordinatorLite) (*Ind
 	}
 
 	ihgs.FillPublicKeyToValidatorMap()
-	// err = ihgs.saveState(ihgs.savedStateKey)
-	// if err != nil {
-	// 	log.Error("saving initial nodes coordinator config failed",
-	// 		"error", err.Error())
-	// }
+
 	log.Info("new nodes config is set for epoch", "epoch", arguments.Epoch)
 	currentNodesConfig := ihgs.nodesConfig[arguments.Epoch]
 	if currentNodesConfig == nil {
@@ -134,8 +123,6 @@ func NewIndexHashedNodesCoordinatorLite(arguments ArgNodesCoordinatorLite) (*Ind
 		currentConfig.LeavingMap,
 		make(map[uint32][]Validator),
 		currentConfig.NbShards)
-
-	ihgs.epochStartRegistrationHandler.RegisterHandler(ihgs)
 
 	return ihgs, nil
 }
@@ -156,9 +143,6 @@ func checkArguments(arguments ArgNodesCoordinatorLite) error {
 	}
 	if len(arguments.SelfPublicKey) == 0 {
 		return ErrNilPubKey
-	}
-	if check.IfNil(arguments.BootStorer) {
-		return ErrNilBootStorer
 	}
 	if check.IfNilReflect(arguments.ConsensusGroupCache) {
 		return ErrNilCacher
@@ -495,126 +479,6 @@ func (ihgs *IndexHashedNodesCoordinatorLite) GetValidatorsIndexes(
 	return signersIndexes, nil
 }
 
-// EpochStartPrepare is called when an epoch start event is observed, but not yet confirmed/committed.
-// Some components may need to do some initialisation on this event
-// no need - set new epoch validators instead
-func (ihgs *IndexHashedNodesCoordinatorLite) EpochStartPrepare(metaHdr data.HeaderHandler, body data.BodyHandler) {
-	//if !metaHdr.IsStartOfEpochBlock() {
-	//	log.Error("could not process EpochStartPrepare on nodesCoordinator - not epoch start block")
-	//	return
-	//}
-
-	//if _, ok := metaHdr.(*block.MetaBlock); !ok {
-	//	log.Error("could not process EpochStartPrepare on nodesCoordinator - not metaBlock")
-	//	return
-	//}
-
-	//randomness := metaHdr.GetPrevRandSeed()
-	//newEpoch := metaHdr.GetEpoch()
-
-	//if check.IfNil(body) && newEpoch == ihgs.currentEpoch {
-	//	log.Debug("nil body provided for epoch start prepare, it is normal in case of revertStateToBlock")
-	//	return
-	//}
-
-	//allValidatorInfo, err := createValidatorInfoFromBody(body, ihgs.marshalizer, ihgs.numTotalEligible)
-	//if err != nil {
-	//	log.Error("could not create validator info from body - do nothing on nodesCoordinator epochStartPrepare")
-	//	return
-	//}
-
-	//ihgs.updateEpochFlags(newEpoch)
-
-	//ihgs.mutNodesConfig.RLock()
-	//previousConfig := ihgs.nodesConfig[ihgs.currentEpoch]
-	//if previousConfig == nil {
-	//	log.Error("previous nodes config is nil")
-	//	ihgs.mutNodesConfig.RUnlock()
-	//	return
-	//}
-
-	////TODO: remove the copy if no changes are done to the maps
-	//copiedPrevious := &epochNodesConfig{}
-	//copiedPrevious.eligibleMap = copyValidatorMap(previousConfig.eligibleMap)
-	//copiedPrevious.waitingMap = copyValidatorMap(previousConfig.waitingMap)
-	//copiedPrevious.nbShards = previousConfig.nbShards
-
-	//ihgs.mutNodesConfig.RUnlock()
-
-	//// TODO: compare with previous nodesConfig if exists
-	//newNodesConfig, err := ihgs.computeNodesConfigFromList(copiedPrevious, allValidatorInfo)
-	//if err != nil {
-	//	log.Error("could not compute nodes config from list - do nothing on nodesCoordinator epochStartPrepare")
-	//	return
-	//}
-
-	//if copiedPrevious.nbShards != newNodesConfig.nbShards {
-	//	log.Warn("number of shards does not match",
-	//		"previous epoch", ihgs.currentEpoch,
-	//		"previous number of shards", copiedPrevious.nbShards,
-	//		"new epoch", newEpoch,
-	//		"new number of shards", newNodesConfig.nbShards)
-	//}
-
-	//additionalLeavingMap, err := ihgs.nodesCoordinatorHelper.ComputeAdditionalLeaving(allValidatorInfo)
-	//if err != nil {
-	//	log.Error("could not compute additionalLeaving Nodes  - do nothing on nodesCoordinator epochStartPrepare")
-	//	return
-	//}
-
-	//unStakeLeavingList := ihgs.createSortedListFromMap(newNodesConfig.leavingMap)
-	//additionalLeavingList := ihgs.createSortedListFromMap(additionalLeavingMap)
-
-	//shufflerArgs := ArgsUpdateNodes{
-	//	Eligible:          newNodesConfig.eligibleMap,
-	//	Waiting:           newNodesConfig.waitingMap,
-	//	NewNodes:          newNodesConfig.newList,
-	//	UnStakeLeaving:    unStakeLeavingList,
-	//	AdditionalLeaving: additionalLeavingList,
-	//	Rand:              randomness,
-	//	NbShards:          newNodesConfig.nbShards,
-	//	Epoch:             newEpoch,
-	//}
-
-	//resUpdateNodes, err := ihgs.shuffler.UpdateNodeLists(shufflerArgs)
-	//if err != nil {
-	//	log.Error("could not compute UpdateNodeLists - do nothing on nodesCoordinator epochStartPrepare", "err", err.Error())
-	//	return
-	//}
-
-	//leavingNodesMap, stillRemainingNodesMap := createActuallyLeavingPerShards(
-	//	newNodesConfig.leavingMap,
-	//	additionalLeavingMap,
-	//	resUpdateNodes.Leaving,
-	//)
-
-	//err = ihgs.setNodesPerShards(resUpdateNodes.Eligible, resUpdateNodes.Waiting, leavingNodesMap, newEpoch)
-	//if err != nil {
-	//	log.Error("set nodes per shard failed", "error", err.Error())
-	//}
-
-	//ihgs.fillPublicKeyToValidatorMap()
-	//err = ihgs.saveState(randomness)
-	//if err != nil {
-	//	log.Error("saving nodes coordinator config failed", "error", err.Error())
-	//}
-
-	//displayNodesConfiguration(
-	//	resUpdateNodes.Eligible,
-	//	resUpdateNodes.Waiting,
-	//	leavingNodesMap,
-	//	stillRemainingNodesMap,
-	//	newNodesConfig.nbShards)
-
-	//ihgs.mutSavedStateKey.Lock()
-	//ihgs.savedStateKey = randomness
-	//ihgs.mutSavedStateKey.Unlock()
-
-	//ihgs.consensusGroupCacher.Clear()
-
-	panic("method not implemented in this lite version")
-}
-
 func (ihgs *IndexHashedNodesCoordinatorLite) FillPublicKeyToValidatorMap() {
 	ihgs.mutNodesConfig.Lock()
 	defer ihgs.mutNodesConfig.Unlock()
@@ -649,156 +513,6 @@ func (ihgs *IndexHashedNodesCoordinatorLite) GetChance(_ uint32) uint32 {
 	return DefaultSelectionChances
 }
 
-// func (ihgs *IndexHashedNodesCoordinatorLite) computeNodesConfigFromList(
-// 	previousEpochConfig *EpochNodesConfig,
-// 	validatorInfos []*state.ShardValidatorInfo,
-// ) (*EpochNodesConfig, error) {
-// 	eligibleMap := make(map[uint32][]Validator)
-// 	waitingMap := make(map[uint32][]Validator)
-// 	leavingMap := make(map[uint32][]Validator)
-// 	newNodesList := make([]Validator, 0)
-
-// 	if ihgs.flagWaitingListFix.IsSet() && previousEpochConfig == nil {
-// 		return nil, ErrNilPreviousEpochConfig
-// 	}
-
-// 	if len(validatorInfos) == 0 {
-// 		log.Warn("computeNodesConfigFromList - validatorInfos len is 0")
-// 	}
-
-// 	for _, validatorInfo := range validatorInfos {
-// 		chance := ihgs.nodesCoordinatorHelper.GetChance(validatorInfo.TempRating)
-// 		currentValidator, err := NewValidator(validatorInfo.PublicKey, chance, validatorInfo.Index)
-// 		if err != nil {
-// 			return nil, err
-// 		}
-
-// 		switch validatorInfo.List {
-// 		case string(common.WaitingList):
-// 			waitingMap[validatorInfo.ShardId] = append(waitingMap[validatorInfo.ShardId], currentValidator)
-// 		case string(common.EligibleList):
-// 			eligibleMap[validatorInfo.ShardId] = append(eligibleMap[validatorInfo.ShardId], currentValidator)
-// 		case string(common.LeavingList):
-// 			log.Debug("leaving node validatorInfo", "pk", validatorInfo.PublicKey)
-// 			leavingMap[validatorInfo.ShardId] = append(leavingMap[validatorInfo.ShardId], currentValidator)
-// 			ihgs.addValidatorToPreviousMap(
-// 				previousEpochConfig,
-// 				eligibleMap,
-// 				waitingMap,
-// 				currentValidator,
-// 				validatorInfo.ShardId)
-// 		case string(common.NewList):
-// 			log.Debug("new node registered", "pk", validatorInfo.PublicKey)
-// 			newNodesList = append(newNodesList, currentValidator)
-// 		case string(common.InactiveList):
-// 			log.Debug("inactive validator", "pk", validatorInfo.PublicKey)
-// 		case string(common.JailedList):
-// 			log.Debug("jailed validator", "pk", validatorInfo.PublicKey)
-// 		}
-// 	}
-
-// 	sort.Sort(validatorList(newNodesList))
-// 	for _, eligibleList := range eligibleMap {
-// 		sort.Sort(validatorList(eligibleList))
-// 	}
-// 	for _, waitingList := range waitingMap {
-// 		sort.Sort(validatorList(waitingList))
-// 	}
-// 	for _, leavingList := range leavingMap {
-// 		sort.Sort(validatorList(leavingList))
-// 	}
-
-// 	if len(eligibleMap) == 0 {
-// 		return nil, fmt.Errorf("%w eligible map size is zero. No validators found", ErrMapSizeZero)
-// 	}
-
-// 	nbShards := len(eligibleMap) - 1
-
-// 	newNodesConfig := &EpochNodesConfig{
-// 		EligibleMap: eligibleMap,
-// 		WaitingMap:  waitingMap,
-// 		LeavingMap:  leavingMap,
-// 		NewList:     newNodesList,
-// 		NbShards:    uint32(nbShards),
-// 	}
-
-// 	return newNodesConfig, nil
-// }
-
-// func (ihgs *IndexHashedNodesCoordinatorLite) addValidatorToPreviousMap(
-// 	previousEpochConfig *EpochNodesConfig,
-// 	eligibleMap map[uint32][]Validator,
-// 	waitingMap map[uint32][]Validator,
-// 	currentValidator Validator,
-// 	currentValidatorShardId uint32) {
-
-// 	if !ihgs.flagWaitingListFix.IsSet() {
-// 		eligibleMap[currentValidatorShardId] = append(eligibleMap[currentValidatorShardId], currentValidator)
-// 		return
-// 	}
-
-// 	found, shardId := searchInMap(previousEpochConfig.EligibleMap, currentValidator.PubKey())
-// 	if found {
-// 		log.Debug("leaving node found in", "list", "eligible", "shardId", shardId)
-// 		eligibleMap[shardId] = append(eligibleMap[currentValidatorShardId], currentValidator)
-// 		return
-// 	}
-
-// 	found, shardId = searchInMap(previousEpochConfig.WaitingMap, currentValidator.PubKey())
-// 	if found {
-// 		log.Debug("leaving node found in", "list", "waiting", "shardId", shardId)
-// 		waitingMap[shardId] = append(waitingMap[currentValidatorShardId], currentValidator)
-// 		return
-// 	}
-// }
-
-// EpochStartAction is called upon a start of epoch event.
-// NodeCoordinator has to get the nodes assignment to shards using the shuffler.
-// no need
-func (ihgs *IndexHashedNodesCoordinatorLite) EpochStartAction(hdr data.HeaderHandler) {
-	// newEpoch := hdr.GetEpoch()
-	// epochToRemove := int32(newEpoch) - nodesCoordinatorStoredEpochs
-	// needToRemove := epochToRemove >= 0
-	// ihgs.currentEpoch = newEpoch
-
-	// err := ihgs.saveState(ihgs.savedStateKey)
-	// if err != nil {
-	// 	log.Error("saving nodes coordinator config failed", "error", err.Error())
-	// }
-
-	// ihgs.mutNodesConfig.Lock()
-	// if needToRemove {
-	// 	for epoch := range ihgs.nodesConfig {
-	// 		if epoch <= uint32(epochToRemove) {
-	// 			delete(ihgs.nodesConfig, epoch)
-	// 		}
-	// 	}
-	// }
-	// ihgs.mutNodesConfig.Unlock()
-
-	panic("method not implemented in this lite version")
-}
-
-// NotifyOrder returns the notification order for a start of epoch event
-// no need
-func (ihgs *IndexHashedNodesCoordinatorLite) NotifyOrder() uint32 {
-	// return common.NodesCoordinatorOrder
-
-	panic("method not implemented in this lite version")
-}
-
-// GetSavedStateKey returns the key for the last nodes coordinator saved state
-// no
-func (ihgs *IndexHashedNodesCoordinatorLite) GetSavedStateKey() []byte {
-	// ihgs.mutSavedStateKey.RLock()
-	// key := ihgs.savedStateKey
-	// ihgs.mutSavedStateKey.RUnlock()
-
-	// return key
-
-	panic("method not implemented in this lite version")
-}
-
 // ShardIdForEpoch returns the nodesCoordinator configured ShardId for specified epoch if epoch configuration exists,
 // otherwise error
 func (ihgs *IndexHashedNodesCoordinatorLite) ShardIdForEpoch(epoch uint32) (uint32, error) {
@@ -813,32 +527,6 @@ func (ihgs *IndexHashedNodesCoordinatorLite) ShardIdForEpoch(epoch uint32) (uint
 	return nodesConfig.ShardID, nil
 }
 
-// ShuffleOutForEpoch verifies if the shards changed in the new epoch and calls the shuffleOutHandler
-// no
-func (ihgs *IndexHashedNodesCoordinatorLite) ShuffleOutForEpoch(epoch uint32) {
-	// log.Debug("shuffle out called for", "epoch", epoch)
-
-	// ihgs.mutNodesConfig.Lock()
-	// nodesConfig := ihgs.nodesConfig[epoch]
-	// ihgs.mutNodesConfig.Unlock()
-
-	// if nodesConfig == nil {
-	// 	log.Warn("shuffleOutForEpoch failed",
-	// 		"epoch", epoch,
-	// 		"error", ErrEpochNodesConfigDoesNotExist)
-	// 	return
-	// }
-
-	// if isValidator(nodesConfig, ihgs.selfPubKey) {
-	// 	err := ihgs.shuffledOutHandler.Process(nodesConfig.shardID)
-	// 	if err != nil {
-	// 		log.Warn("shuffle out process failed", "err", err)
-	// 	}
-	// }
-
-	panic("method not implemented in this lite version")
-}
-
 func searchInMap(validatorMap map[uint32][]Validator, pk []byte) (bool, uint32) {
 	for shardId, validatorsInShard := range validatorMap {
 		for _, val := range validatorsInShard {
@@ -848,54 +536,6 @@ func searchInMap(validatorMap map[uint32][]Validator, pk []byte) (bool, uint32) 
 		}
 	}
 	return false, 0
-}
-
-// GetConsensusWhitelistedNodes return the whitelisted nodes allowed to send consensus messages, for each of the shards
-// no
-func (ihgs *IndexHashedNodesCoordinatorLite) GetConsensusWhitelistedNodes(
-	epoch uint32,
-) (map[string]struct{}, error) {
-	var err error
-	shardEligible := make(map[string]struct{})
-	publicKeysPrevEpoch := make(map[uint32][][]byte)
-	prevEpochConfigExists := false
-
-	if epoch > ihgs.startEpoch {
-		publicKeysPrevEpoch, err = ihgs.GetAllEligibleValidatorsPublicKeys(epoch - 1)
-		if err == nil {
-			prevEpochConfigExists = true
-		} else {
-			log.Warn("get consensus whitelisted nodes", "error", err.Error())
-		}
-	}
-
-	var prevEpochShardId uint32
-	if prevEpochConfigExists {
-		prevEpochShardId, err = ihgs.ShardIdForEpoch(epoch - 1)
-		if err == nil {
-			for _, pubKey := range publicKeysPrevEpoch[prevEpochShardId] {
-				shardEligible[string(pubKey)] = struct{}{}
-			}
-		} else {
-			log.Trace("not critical error getting shardID for epoch", "epoch", epoch-1, "error", err)
-		}
-	}
-
-	publicKeysNewEpoch, errGetEligible := ihgs.GetAllEligibleValidatorsPublicKeys(epoch)
-	if errGetEligible != nil {
-		return nil, errGetEligible
-	}
-
-	epochShardId, errShardIdForEpoch := ihgs.ShardIdForEpoch(epoch)
-	if errShardIdForEpoch != nil {
-		return nil, errShardIdForEpoch
-	}
-
-	for _, pubKey := range publicKeysNewEpoch[epochShardId] {
-		shardEligible[string(pubKey)] = struct{}{}
-	}
-
-	return shardEligible, nil
 }
 
 func (ihgs *IndexHashedNodesCoordinatorLite) createPublicKeyToValidatorMap(
@@ -991,14 +631,6 @@ func (ihgs *IndexHashedNodesCoordinatorLite) GetCurrentEpoch() uint32 {
 	return ihgs.currentEpoch
 }
 
-func (ihgs *IndexHashedNodesCoordinatorLite) GetStartEpoch() uint32 {
-	return ihgs.startEpoch
-}
-
-func (ihgs *IndexHashedNodesCoordinatorLite) GetSelfPubKey() []byte {
-	return ihgs.selfPubKey
-}
-
 func (ihgs *IndexHashedNodesCoordinatorLite) SetCurrentEpoch(epoch uint32) {
 	ihgs.currentEpoch = epoch
 }
@@ -1059,20 +691,12 @@ func (ihgs *IndexHashedNodesCoordinatorLite) GetShardIDAsObserver() uint32 {
 	return ihgs.shardIDAsObserver
 }
 
-func (ihgs *IndexHashedNodesCoordinatorLite) GetConsensusGroupHasher() Cacher {
-	return ihgs.consensusGroupCacher
-}
-
-func (ihgs *IndexHashedNodesCoordinatorLite) GetFalWaitingListFix() atomicFlags.Flag {
-	return ihgs.flagWaitingListFix
+func (ihgs *IndexHashedNodesCoordinatorLite) ClearConsensusGroupCacher() {
+	ihgs.consensusGroupCacher.Clear()
 }
 
 func (ihgs *IndexHashedNodesCoordinatorLite) GetWaitingListFixEnableEpoch() uint32 {
 	return ihgs.waitingListFixEnableEpoch
-}
-
-func (ihgs *IndexHashedNodesCoordinatorLite) GetEpochRegistrationHandler() EpochStartEventNotifier {
-	return ihgs.epochStartRegistrationHandler
 }
 
 // GetOwnPublicKey will return current node public key  for block sign

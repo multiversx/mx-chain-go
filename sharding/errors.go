@@ -61,9 +61,6 @@ var ErrNilInputNodesMap = errors.New("nil input nodes map")
 // ErrSmallShardEligibleListSize signals that the eligible validators list's size is less than the consensus size
 var ErrSmallShardEligibleListSize = errors.New("small shard eligible list size")
 
-// ErrSmallMetachainEligibleListSize signals that the eligible validators list's size is less than the consensus size
-var ErrSmallMetachainEligibleListSize = errors.New("small metachain eligible list size")
-
 // ErrMapSizeZero signals that there are no elements in the map
 var ErrMapSizeZero = errors.New("map size zero")
 
@@ -91,23 +88,11 @@ var ErrNilBootStorer = errors.New("nil boot storer provided")
 // ErrValidatorNotFound signals that the validator has not been found
 var ErrValidatorNotFound = errors.New("validator not found")
 
-// ErrNilWeights signals that nil weights list was provided
-var ErrNilWeights = errors.New("nil weights")
-
 // ErrNotImplemented signals a call of a non implemented functionality
 var ErrNotImplemented = errors.New("feature not implemented")
 
 // ErrNilCacher signals that a nil cacher has been provided
 var ErrNilCacher = errors.New("nil cacher")
-
-// ErrInvalidSampleSize signals that an invalid sample size was provided
-var ErrInvalidSampleSize = errors.New("invalid sample size")
-
-// ErrInvalidWeight signals an invalid weight was provided
-var ErrInvalidWeight = errors.New("invalid weight")
-
-// ErrNilRandomSelector signals that a nil selector was provided
-var ErrNilRandomSelector = errors.New("nil selector")
 
 // ErrNilChanceComputer signals that a nil chance computer was provided
 var ErrNilChanceComputer = errors.New("nil chance computer")
@@ -138,9 +123,6 @@ var ErrNilNodeShufflerArguments = errors.New("nil arguments for the creation of 
 
 // ErrNilNodeStopChannel signals that a nil node stop channel has been provided
 var ErrNilNodeStopChannel = errors.New("nil node stop channel")
-
-// ErrValidatorCannotBeFullArchive signals a configuration issue because a validator cannot be a full archive node
-var ErrValidatorCannotBeFullArchive = errors.New("validator cannot be a full archive node")
 
 // ErrNilNodeTypeProvider signals that a nil node type provider has been given
 var ErrNilNodeTypeProvider = errors.New("nil node type provider")

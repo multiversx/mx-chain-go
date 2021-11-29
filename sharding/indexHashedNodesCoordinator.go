@@ -7,6 +7,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	atomicFlags "github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -79,6 +80,7 @@ type indexHashedNodesCoordinator struct {
 	flagWaitingListFix            atomicFlags.Flag
 	loadingFromDisk               atomic.Value
 	bootStorer                    storage.Storer
+	startEpoch                    uint32
 	savedStateKey                 []byte
 	marshalizer                   marshal.Marshalizer
 	shuffler                      NodesShuffler
@@ -89,13 +91,15 @@ type indexHashedNodesCoordinator struct {
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
 func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashedNodesCoordinator, error) {
+	err := checkArguments(arguments)
+	if err != nil {
+		return nil, err
+	}
 
 	argumentsNodesCoordinatorLite := nodesCoordinator.ArgNodesCoordinatorLite{
 		ShardConsensusGroupSize:    arguments.ShardConsensusGroupSize,
 		MetaConsensusGroupSize:     arguments.MetaConsensusGroupSize,
 		Hasher:                     arguments.Hasher,
-		EpochStartNotifier:         arguments.EpochStartNotifier,
-		BootStorer:                 arguments.BootStorer,
 		ShardIDAsObserver:          arguments.ShardIDAsObserver,
 		NbShards:                   arguments.NbShards,
 		EligibleNodes:              arguments.EligibleNodes,
@@ -110,11 +114,6 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		IsFullArchive:              arguments.IsFullArchive,
 	}
 
-	err := checkArguments(arguments)
-	if err != nil {
-		return nil, err
-	}
-
 	ihgsLite, err := nodesCoordinator.NewIndexHashedNodesCoordinatorLite(argumentsNodesCoordinatorLite)
 	if err != nil {
 		return nil, err
@@ -124,14 +123,16 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 
 	ihgs := &indexHashedNodesCoordinator{
 		IndexHashedNodesCoordinatorLite: ihgsLite,
-		epochStartRegistrationHandler:   ihgsLite.GetEpochRegistrationHandler(),
-		flagWaitingListFix:              ihgsLite.GetFalWaitingListFix(),
+		epochStartRegistrationHandler:   arguments.EpochStartNotifier,
 		bootStorer:                      arguments.BootStorer,
+		startEpoch:                      arguments.StartEpoch,
 		savedStateKey:                   savedKey,
 		marshalizer:                     arguments.Marshalizer,
 		shuffler:                        arguments.Shuffler,
 		shuffledOutHandler:              arguments.ShuffledOutHandler,
 	}
+
+	ihgs.SetNodesCoordinatorHelper(ihgs)
 
 	ihgs.loadingFromDisk.Store(false)
 
@@ -141,22 +142,47 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 			"error", err.Error())
 	}
 
-	ihgs.epochStartRegistrationHandler.UnregisterHandler(ihgsLite)
 	ihgs.epochStartRegistrationHandler.RegisterHandler(ihgs)
 
 	return ihgs, nil
 }
 
-// TODO: check if list of arguments is still accurate
 func checkArguments(arguments ArgNodesCoordinator) error {
+	if arguments.ShardConsensusGroupSize < 1 || arguments.MetaConsensusGroupSize < 1 {
+		return ErrInvalidConsensusGroupSize
+	}
+	if arguments.NbShards < 1 {
+		return ErrInvalidNumberOfShards
+	}
+	if arguments.ShardIDAsObserver >= arguments.NbShards && arguments.ShardIDAsObserver != core.MetachainShardId {
+		return ErrInvalidShardId
+	}
+	if check.IfNil(arguments.Hasher) {
+		return ErrNilHasher
+	}
+	if len(arguments.SelfPublicKey) == 0 {
+		return ErrNilPubKey
+	}
 	if check.IfNil(arguments.Shuffler) {
 		return ErrNilShuffler
+	}
+	if check.IfNil(arguments.BootStorer) {
+		return ErrNilBootStorer
+	}
+	if check.IfNilReflect(arguments.ConsensusGroupCache) {
+		return ErrNilCacher
 	}
 	if check.IfNil(arguments.Marshalizer) {
 		return ErrNilMarshalizer
 	}
 	if check.IfNil(arguments.ShuffledOutHandler) {
 		return ErrNilShuffledOutHandler
+	}
+	if check.IfNil(arguments.NodeTypeProvider) {
+		return ErrNilNodeTypeProvider
+	}
+	if nil == arguments.ChanStopNode {
+		return ErrNilNodeStopChannel
 	}
 
 	return nil
@@ -333,7 +359,7 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 	ihgs.savedStateKey = randomness
 	ihgs.mutSavedStateKey.Unlock()
 
-	ihgs.GetConsensusGroupHasher().Clear()
+	ihgs.ClearConsensusGroupCacher()
 }
 
 func (ihgs *indexHashedNodesCoordinator) createSortedListFromMap(validatorsMap map[uint32][]Validator) []Validator {
@@ -493,7 +519,7 @@ func (ihgs *indexHashedNodesCoordinator) ShuffleOutForEpoch(epoch uint32) {
 		return
 	}
 
-	if isValidator(nodesConfig, ihgs.GetSelfPubKey()) {
+	if isValidator(nodesConfig, ihgs.GetOwnPublicKey()) {
 		err := ihgs.shuffledOutHandler.Process(nodesConfig.ShardID)
 		if err != nil {
 			log.Warn("shuffle out process failed", "err", err)
@@ -539,7 +565,7 @@ func (ihgs *indexHashedNodesCoordinator) GetConsensusWhitelistedNodes(
 	publicKeysPrevEpoch := make(map[uint32][][]byte)
 	prevEpochConfigExists := false
 
-	if epoch > ihgs.GetStartEpoch() {
+	if epoch > ihgs.startEpoch {
 		publicKeysPrevEpoch, err = ihgs.GetAllEligibleValidatorsPublicKeys(epoch - 1)
 		if err == nil {
 			prevEpochConfigExists = true
@@ -577,33 +603,8 @@ func (ihgs *indexHashedNodesCoordinator) GetConsensusWhitelistedNodes(
 	return shardEligible, nil
 }
 
-func (ihgs *indexHashedNodesCoordinator) createPublicKeyToValidatorMap(
-	eligible map[uint32][]Validator,
-	waiting map[uint32][]Validator,
-) map[string]*ValidatorWithShardID {
-	publicKeyToValidatorMap := make(map[string]*ValidatorWithShardID)
-	for shardId, shardEligible := range eligible {
-		for i := 0; i < len(shardEligible); i++ {
-			publicKeyToValidatorMap[string(shardEligible[i].PubKey())] = &ValidatorWithShardID{
-				Validator: shardEligible[i],
-				ShardID:   shardId,
-			}
-		}
-	}
-	for shardId, shardWaiting := range waiting {
-		for i := 0; i < len(shardWaiting); i++ {
-			publicKeyToValidatorMap[string(shardWaiting[i].PubKey())] = &ValidatorWithShardID{
-				Validator: shardWaiting[i],
-				ShardID:   shardId,
-			}
-		}
-	}
-
-	return publicKeyToValidatorMap
-}
-
 func (ihgs *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfig *nodesCoordinator.EpochNodesConfig) (uint32, bool) {
-	pubKey := ihgs.GetSelfPubKey()
+	pubKey := ihgs.GetOwnPublicKey()
 	selfShard := ihgs.GetShardIDAsObserver()
 	epNodesConfig, ok := ihgs.GetNodesConfigPerEpoch(ihgs.GetCurrentEpoch())
 	if ok {
