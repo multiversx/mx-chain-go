@@ -22,13 +22,8 @@ var log = logger.GetOrCreate("process/slash/detector/multipleHeaderSigning")
 
 // MultipleHeaderSigningDetectorArgs is a a struct containing all arguments required to create a new multipleHeaderSigningDetector
 type MultipleHeaderSigningDetectorArgs struct {
-	NodesCoordinator  sharding.NodesCoordinator
-	RoundHandler      process.RoundHandler
-	Hasher            hashing.Hasher
-	Marshaller        marshal.Marshalizer
-	SlashingCache     RoundValidatorHeadersCache
-	RoundHashCache    RoundHashCache
-	HeaderSigVerifier consensus.HeaderSigVerifier
+	MultipleHeaderDetectorArgs
+	RoundHashCache RoundHashCache
 }
 
 // multipleHeaderSigningDetector - checks for slashable events in case one(or more)

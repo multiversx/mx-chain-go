@@ -17,12 +17,7 @@ import (
 
 // MultipleHeaderProposalDetectorArgs is a a struct containing all arguments required to create a new multipleHeaderProposalsDetector
 type MultipleHeaderProposalDetectorArgs struct {
-	NodesCoordinator  sharding.NodesCoordinator
-	RoundHandler      process.RoundHandler
-	Cache             RoundValidatorHeadersCache
-	Hasher            hashing.Hasher
-	Marshaller        marshal.Marshalizer
-	HeaderSigVerifier consensus.HeaderSigVerifier
+	MultipleHeaderDetectorArgs
 }
 
 // multipleHeaderProposalsDetector - checks slashable events in case a validator proposes multiple(possibly) malicious headers.
@@ -53,7 +48,7 @@ func NewMultipleHeaderProposalsDetector(args *MultipleHeaderProposalDetectorArgs
 	if check.IfNil(args.Marshaller) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if check.IfNil(args.Cache) {
+	if check.IfNil(args.SlashingCache) {
 		return nil, process.ErrNilRoundDetectorCache
 	}
 	if check.IfNil(args.HeaderSigVerifier) {
@@ -63,7 +58,7 @@ func NewMultipleHeaderProposalsDetector(args *MultipleHeaderProposalDetectorArgs
 	baseDetector := baseSlashingDetector{roundHandler: args.RoundHandler}
 
 	return &multipleHeaderProposalsDetector{
-		cache:                args.Cache,
+		cache:                args.SlashingCache,
 		nodesCoordinator:     args.NodesCoordinator,
 		hasher:               args.Hasher,
 		marshaller:           args.Marshaller,

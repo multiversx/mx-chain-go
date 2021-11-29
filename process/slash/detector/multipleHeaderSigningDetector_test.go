@@ -18,12 +18,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/slash/detector"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/slashMocks"
 	"github.com/stretchr/testify/require"
 )
-
-var validatorPubKey = []byte("validator pub key")
 
 func TestNewSigningSlashingDetector(t *testing.T) {
 	t.Parallel()
@@ -714,20 +711,8 @@ func TestMultipleHeaderSigningDetector_SignedHeader_CannotVerifySignature_Expect
 }
 
 func generateMultipleHeaderSigningDetectorArgs() *detector.MultipleHeaderSigningDetectorArgs {
-	nodesCoordinator := &mockEpochStart.NodesCoordinatorStub{
-		ComputeConsensusGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
-			validator := mock.NewValidatorMock(validatorPubKey)
-			return []sharding.Validator{validator}, nil
-		},
-	}
-
 	return &detector.MultipleHeaderSigningDetectorArgs{
-		NodesCoordinator:  nodesCoordinator,
-		RoundHandler:      &mock.RoundHandlerMock{},
-		Hasher:            &hashingMocks.HasherMock{},
-		Marshaller:        &mock.MarshalizerMock{},
-		SlashingCache:     &slashMocks.RoundDetectorCacheStub{},
-		RoundHashCache:    &slashMocks.HeadersCacheStub{},
-		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
+		RoundHashCache:             &slashMocks.HeadersCacheStub{},
+		MultipleHeaderDetectorArgs: generateMultipleHeaderDetectorArgs(),
 	}
 }

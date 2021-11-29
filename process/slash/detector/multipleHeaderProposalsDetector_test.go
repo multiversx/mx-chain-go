@@ -16,7 +16,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/slash/detector"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/slashMocks"
 	"github.com/stretchr/testify/require"
 )
@@ -54,7 +53,7 @@ func TestNewMultipleHeaderProposalsDetector(t *testing.T) {
 		{
 			args: func() *detector.MultipleHeaderProposalDetectorArgs {
 				args := generateMultipleHeaderProposalDetectorArgs()
-				args.Cache = nil
+				args.SlashingCache = nil
 				return args
 			},
 			expectedErr: process.ErrNilRoundDetectorCache,
@@ -164,7 +163,7 @@ func TestMultipleHeaderProposalsDetector_VerifyData_MultipleHeaders_SameHash_Exp
 			return []sharding.Validator{mock.NewValidatorMock(pubKey)}, nil
 		},
 	}
-	args.Cache = &slashMocks.RoundDetectorCacheStub{
+	args.SlashingCache = &slashMocks.RoundDetectorCacheStub{
 		AddCalled: func(r uint64, pk []byte, header data.HeaderInfoHandler) error {
 			if r == round && bytes.Equal(pk, pubKey) {
 				return process.ErrHeadersNotDifferentHashes
@@ -204,7 +203,7 @@ func TestMultipleHeaderProposalsDetector_VerifyData_MultipleProposedHeadersSameR
 	getCalledCt := 0
 	addCalledCt := 0
 	args := generateMultipleHeaderProposalDetectorArgs()
-	args.Cache = &slashMocks.RoundDetectorCacheStub{
+	args.SlashingCache = &slashMocks.RoundDetectorCacheStub{
 		AddCalled: func(_ uint64, _ []byte, header data.HeaderInfoHandler) error {
 			addCalledCt++
 			if bytes.Equal(header.GetHash(), hData2.Hash()) && addCalledCt == 3 {
@@ -546,7 +545,7 @@ func TestMultipleHeaderProposalsDetector_CheckHeaderHasSameProposerAndRound_Cann
 	sd, _ := detector.NewMultipleHeaderProposalsDetector(args)
 
 	header := &block.Header{Round: 1}
-	err := sd.CheckHeaderHasSameProposerAndRound(header, 1, []byte("proposer"))
+	err := sd.CheckHeaderHasSameProposerAndRound(header, 1, validatorPubKey)
 	require.Equal(t, errGetProposer, err)
 }
 
@@ -557,7 +556,7 @@ func TestMultipleHeaderProposalsDetector_CheckHeaderHasSameProposerAndRound_NotS
 	sd, _ := detector.NewMultipleHeaderProposalsDetector(args)
 
 	header := &block.Header{Round: 100}
-	err := sd.CheckHeaderHasSameProposerAndRound(header, 99, []byte("proposer"))
+	err := sd.CheckHeaderHasSameProposerAndRound(header, 99, validatorPubKey)
 	require.Equal(t, process.ErrHeadersNotSameRound, err)
 }
 
@@ -585,24 +584,12 @@ func TestMultipleHeaderProposalsDetector_CheckHeaderHasSameProposerAndRound_Lead
 	sd, _ := detector.NewMultipleHeaderProposalsDetector(args)
 
 	header := &block.Header{Round: 1}
-	err := sd.CheckHeaderHasSameProposerAndRound(header, 1, []byte("proposer"))
+	err := sd.CheckHeaderHasSameProposerAndRound(header, 1, validatorPubKey)
 	require.Equal(t, errSignature, err)
 }
 
 func generateMultipleHeaderProposalDetectorArgs() *detector.MultipleHeaderProposalDetectorArgs {
-	nodesCoordinator := &mockEpochStart.NodesCoordinatorStub{
-		ComputeConsensusGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
-			validator := mock.NewValidatorMock([]byte("proposer"))
-			return []sharding.Validator{validator}, nil
-		},
-	}
-
 	return &detector.MultipleHeaderProposalDetectorArgs{
-		NodesCoordinator:  nodesCoordinator,
-		RoundHandler:      &mock.RoundHandlerMock{},
-		Cache:             &slashMocks.RoundDetectorCacheStub{},
-		Hasher:            &hashingMocks.HasherMock{},
-		Marshaller:        &testscommon.MarshalizerMock{},
-		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
+		MultipleHeaderDetectorArgs: generateMultipleHeaderDetectorArgs(),
 	}
 }

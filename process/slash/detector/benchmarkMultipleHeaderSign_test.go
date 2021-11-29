@@ -35,7 +35,7 @@ const (
 	hysteresis              = float32(0.2)
 	defaultSelectionChances = uint32(1)
 	hashSize                = 16
-	metaConsensusGroupSize  = 400
+	metaConsensusGroupSize  = 100
 	shardConsensusGroupSize = 63
 	leaderGroupIndex        = 0
 )
@@ -205,14 +205,18 @@ func createHeaderSigningDetectorArgs(
 	headerSigVerifier, err := headerCheck.NewHeaderSigVerifier(&headerSigVerifierArgs)
 	require.Nil(b, err)
 
-	return &detector.MultipleHeaderSigningDetectorArgs{
+	detectorArgs := detector.MultipleHeaderDetectorArgs{
 		NodesCoordinator:  nodesCoordinator,
 		RoundHandler:      &mock.RoundHandlerMock{},
 		Hasher:            hasher,
 		Marshaller:        &marshal.GogoProtoMarshalizer{},
 		SlashingCache:     detector.NewRoundValidatorHeaderCache(3),
-		RoundHashCache:    detector.NewRoundHashCache(3),
 		HeaderSigVerifier: headerSigVerifier,
+	}
+
+	return &detector.MultipleHeaderSigningDetectorArgs{
+		MultipleHeaderDetectorArgs: detectorArgs,
+		RoundHashCache:             detector.NewRoundHashCache(3),
 	}
 }
 func createHeaderSigVerifierArgs(

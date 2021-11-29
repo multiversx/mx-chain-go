@@ -4,8 +4,23 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
+
+// MultipleHeaderDetectorArgs is a a struct containing all common arguments required
+// to create a new multiple header proposal/signing detector
+type MultipleHeaderDetectorArgs struct {
+	NodesCoordinator  sharding.NodesCoordinator
+	RoundHandler      process.RoundHandler
+	SlashingCache     RoundValidatorHeadersCache
+	Hasher            hashing.Hasher
+	Marshaller        marshal.Marshalizer
+	HeaderSigVerifier consensus.HeaderSigVerifier
+}
 
 // minSlashableNoOfHeaders represents the min number of headers required for a
 // proof to be considered slashable
