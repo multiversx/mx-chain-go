@@ -104,7 +104,7 @@ func (ses *startInEpochWithScheduledDataSyncer) getRequiredHeaderByHash(
 	//TODO: Remove this for
 	for hash, hdr := range headers {
 		log.Debug("startInEpochWithScheduledDataSyncer.getRequiredHeaderByHash: syncHeaders -> headers",
-			"hash", hash,
+			"hash", []byte(hash),
 			"epoch", hdr.GetEpoch(),
 			"shard", hdr.GetChainID(),
 			"round", hdr.GetRound(),
@@ -122,6 +122,7 @@ func (ses *startInEpochWithScheduledDataSyncer) getRequiredHeaderByHash(
 			"round", notarizedShardHeader.GetRound(),
 			"nonce", notarizedShardHeader.GetNonce(),
 		)
+
 		return nil, nil, epochStart.ErrMissingHeader
 	}
 
@@ -155,7 +156,7 @@ func (ses *startInEpochWithScheduledDataSyncer) getRequiredHeaderByHash(
 	//TODO: Remove this for
 	for hash, hdr := range prevHeaders {
 		log.Debug("startInEpochWithScheduledDataSyncer.getRequiredHeaderByHash: syncHeaders -> prevHeaders",
-			"hash", hash,
+			"hash", []byte(hash),
 			"epoch", hdr.GetEpoch(),
 			"shard", hdr.GetChainID(),
 			"round", hdr.GetRound(),
@@ -177,6 +178,7 @@ func (ses *startInEpochWithScheduledDataSyncer) getRequiredHeaderByHash(
 			log.Debug("startInEpochWithScheduledDataSyncer.getRequiredHeaderByHash: prevHeaders[hashesToRequest[0]]",
 				"hash to request", hashesToRequest[0],
 			)
+
 			return nil, nil, epochStart.ErrMissingHeader
 		}
 

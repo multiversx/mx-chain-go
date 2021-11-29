@@ -147,7 +147,7 @@ func (sp *scheduledProcessorWrapper) StartScheduledProcessing(header data.Header
 		defer sp.oneInstance.Unlock()
 		errSchExec := sp.processScheduledMiniBlocks(header, body)
 		if errSchExec != nil {
-			log.Error("scheduledProcessorWrapper.processScheduledMiniBlocks",
+			log.Debug("scheduledProcessorWrapper.processScheduledMiniBlocks",
 				"err", errSchExec.Error())
 			sp.setStatus(processingError)
 			return

@@ -295,9 +295,59 @@ func (ssh *shardStorageHandler) getProcessedAndPendingMiniBlocks(
 
 	neededMeta, ok := headers[string(shardData.GetFirstPendingMetaBlock())].(*block.MetaBlock)
 	if !ok {
+		//TODO: Remove these logs
+		for hash, header := range headers {
+			log.Debug("shardStorageHandler.getProcessedAndPendingMiniBlocks: headers",
+				"epoch", header.GetEpoch(),
+				"shard", header.GetShardID(),
+				"round", header.GetRound(),
+				"nonce", header.GetNonce(),
+				"hash", []byte(hash),
+			)
+		}
+		log.Debug("shardStorageHandler.getProcessedAndPendingMiniBlocks: meta",
+			"epoch", meta.GetEpoch(),
+			"shard", meta.GetShardID(),
+			"round", meta.GetRound(),
+			"nonce", meta.GetNonce(),
+		)
+		log.Debug("shardStorageHandler.getProcessedAndPendingMiniBlocks: shardData",
+			"epoch", shardData.GetEpoch(),
+			"shard", shardData.GetShardID(),
+			"round", shardData.GetRound(),
+			"nonce", shardData.GetNonce(),
+			"hash", shardData.GetHeaderHash(),
+			"first pending meta block hash", shardData.GetFirstPendingMetaBlock(),
+		)
+
 		return nil, nil, epochStart.ErrMissingHeader
 	}
 	if check.IfNil(neededMeta) {
+		//TODO: Remove these logs
+		for hash, header := range headers {
+			log.Debug("shardStorageHandler.getProcessedAndPendingMiniBlocks: headers",
+				"epoch", header.GetEpoch(),
+				"shard", header.GetShardID(),
+				"round", header.GetRound(),
+				"nonce", header.GetNonce(),
+				"hash", []byte(hash),
+			)
+		}
+		log.Debug("shardStorageHandler.getProcessedAndPendingMiniBlocks: meta",
+			"epoch", meta.GetEpoch(),
+			"shard", meta.GetShardID(),
+			"round", meta.GetRound(),
+			"nonce", meta.GetNonce(),
+		)
+		log.Debug("shardStorageHandler.getProcessedAndPendingMiniBlocks: shardData",
+			"epoch", shardData.GetEpoch(),
+			"shard", shardData.GetShardID(),
+			"round", shardData.GetRound(),
+			"nonce", shardData.GetNonce(),
+			"hash", shardData.GetHeaderHash(),
+			"first pending meta block hash", shardData.GetFirstPendingMetaBlock(),
+		)
+
 		return nil, nil, epochStart.ErrMissingHeader
 	}
 
@@ -366,6 +416,30 @@ func (ssh *shardStorageHandler) saveLastCrossNotarizedHeaders(
 
 	neededHdr, ok := headers[string(lastCrossMetaHdrHash)]
 	if !ok {
+		//TODO: Remove these logs
+		for hash, header := range headers {
+			log.Debug("shardStorageHandler.saveLastCrossNotarizedHeaders: headers",
+				"epoch", header.GetEpoch(),
+				"shard", header.GetShardID(),
+				"round", header.GetRound(),
+				"nonce", header.GetNonce(),
+				"hash", []byte(hash),
+			)
+		}
+		log.Debug("shardStorageHandler.saveLastCrossNotarizedHeaders: meta",
+			"epoch", meta.GetEpoch(),
+			"shard", meta.GetShardID(),
+			"round", meta.GetRound(),
+			"nonce", meta.GetNonce(),
+		)
+		log.Debug("shardStorageHandler.saveLastCrossNotarizedHeaders: shardData",
+			"epoch", shardData.GetEpoch(),
+			"shard", shardData.GetShardID(),
+			"round", shardData.GetRound(),
+			"nonce", shardData.GetNonce(),
+			"hash", shardData.GetHeaderHash(),
+			"lastCrossMetaHdrHash", lastCrossMetaHdrHash)
+
 		return nil, epochStart.ErrMissingHeader
 	}
 
@@ -404,6 +478,30 @@ func updateLastCrossMetaHdrHashIfNeeded(
 
 	metaHdr, found := headers[string(metaBlockHashes[0])]
 	if !found {
+		//TODO: Remove these logs
+		for hash, header := range headers {
+			log.Debug("updateLastCrossMetaHdrHashIfNeeded: headers",
+				"epoch", header.GetEpoch(),
+				"shard", header.GetShardID(),
+				"round", header.GetRound(),
+				"nonce", header.GetNonce(),
+				"hash", []byte(hash),
+			)
+		}
+		log.Debug("updateLastCrossMetaHdrHashIfNeeded: shardData",
+			"epoch", shardData.GetEpoch(),
+			"shard", shardData.GetShardID(),
+			"round", shardData.GetRound(),
+			"nonce", shardData.GetNonce(),
+			"hash", shardData.GetHeaderHash(),
+			"lastCrossMetaHdrHash", lastCrossMetaHdrHash,
+		)
+		for _, hash := range metaBlockHashes {
+			log.Debug("updateLastCrossMetaHdrHashIfNeeded: metaBlockHashes",
+				"hash", hash,
+			)
+		}
+
 		return nil, epochStart.ErrMissingHeader
 	}
 
@@ -415,6 +513,18 @@ func updateLastCrossMetaHdrHashIfNeeded(
 func getShardHeaderAndMetaHashes(headers map[string]data.HeaderHandler, headerHash []byte) (data.ShardHeaderHandler, [][]byte, error) {
 	header, ok := headers[string(headerHash)]
 	if !ok {
+		//TODO: Remove these logs
+		for hash, hdr := range headers {
+			log.Debug("getShardHeaderAndMetaHashes: headers",
+				"epoch", hdr.GetEpoch(),
+				"shard", hdr.GetShardID(),
+				"round", hdr.GetRound(),
+				"nonce", hdr.GetNonce(),
+				"hash", []byte(hash),
+			)
+		}
+		log.Debug("getShardHeaderAndMetaHashes", "headerHash", headerHash)
+
 		return nil, nil, epochStart.ErrMissingHeader
 	}
 

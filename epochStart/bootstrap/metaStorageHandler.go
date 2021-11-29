@@ -171,6 +171,30 @@ func (msh *metaStorageHandler) saveLastCrossNotarizedHeaders(
 
 		hdr, ok := mapHeaders[string(epochStartShardData.GetHeaderHash())]
 		if !ok {
+			//TODO: Remove these logs
+			for hash, header := range mapHeaders {
+				log.Debug("metaStorageHandler.saveLastCrossNotarizedHeaders: mapHeaders",
+					"epoch", header.GetEpoch(),
+					"shard", header.GetShardID(),
+					"round", header.GetRound(),
+					"nonce", header.GetNonce(),
+					"hash", []byte(hash),
+				)
+			}
+			log.Debug("metaStorageHandler.saveLastCrossNotarizedHeaders: meta",
+				"epoch", meta.GetEpoch(),
+				"shard", meta.GetShardID(),
+				"round", meta.GetRound(),
+				"nonce", meta.GetNonce(),
+			)
+			log.Debug("metaStorageHandler.saveLastCrossNotarizedHeaders: epochStartShardData",
+				"epoch", epochStartShardData.GetEpoch(),
+				"shard", epochStartShardData.GetShardID(),
+				"round", epochStartShardData.GetRound(),
+				"nonce", epochStartShardData.GetNonce(),
+				"hash", epochStartShardData.GetHeaderHash(),
+			)
+
 			return nil, epochStart.ErrMissingHeader
 		}
 
