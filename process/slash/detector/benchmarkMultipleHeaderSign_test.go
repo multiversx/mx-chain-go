@@ -35,9 +35,10 @@ const (
 	hysteresis              = float32(0.2)
 	defaultSelectionChances = uint32(1)
 	hashSize                = 16
-	metaConsensusGroupSize  = 100
+	metaConsensusGroupSize  = 400
 	shardConsensusGroupSize = 63
 	leaderGroupIndex        = 0
+	cacheSize               = 3
 )
 
 func BenchmarkMultipleHeaderSigningDetector_VerifyData(b *testing.B) {
@@ -52,7 +53,7 @@ func BenchmarkMultipleHeaderSigningDetector_VerifyData(b *testing.B) {
 	// Worst case scenario: 1/4 * metaConsensusGroupSize + 1 sign the same 3 headers
 	noOfMaliciousSigners := uint32(float32(0.25*metaConsensusGroupSize)) + 1
 	noOfSignedHeaders := uint64(3)
-	headersInfo, _ := generateSlashableHeaders(b, hasher, noOfMaliciousSigners, noOfSignedHeaders, args.NodesCoordinator, blsSigners)
+	headersInfo, _ := generateSlashableHeaders(b, hasher, noOfMaliciousSigners, noOfSignedHeaders, args.NodesCoordinator, blsSigners, false)
 	interceptedHeaders := createInterceptedHeaders(headersInfo)
 
 	b.ResetTimer()
@@ -186,6 +187,20 @@ func createHeaderSigningDetectorArgs(
 	keyGenerator crypto.KeyGenerator,
 	multiSignersData map[string]multiSignerData,
 ) *detector.MultipleHeaderSigningDetectorArgs {
+	detectorArgs := createMultipleHeaderDetectorArgs(b, hasher, keyGenerator, multiSignersData)
+
+	return &detector.MultipleHeaderSigningDetectorArgs{
+		MultipleHeaderDetectorArgs: detectorArgs,
+		RoundHashCache:             detector.NewRoundHashCache(cacheSize),
+	}
+}
+
+func createMultipleHeaderDetectorArgs(
+	b *testing.B,
+	hasher hashing.Hasher,
+	keyGenerator crypto.KeyGenerator,
+	multiSignersData map[string]multiSignerData,
+) detector.MultipleHeaderDetectorArgs {
 	var multiSigVerifier crypto.MultiSigVerifier
 	for pubKey := range multiSignersData {
 		multiSigVerifier = multiSignersData[pubKey].multiSigner
@@ -205,20 +220,16 @@ func createHeaderSigningDetectorArgs(
 	headerSigVerifier, err := headerCheck.NewHeaderSigVerifier(&headerSigVerifierArgs)
 	require.Nil(b, err)
 
-	detectorArgs := detector.MultipleHeaderDetectorArgs{
+	return detector.MultipleHeaderDetectorArgs{
 		NodesCoordinator:  nodesCoordinator,
 		RoundHandler:      &mock.RoundHandlerMock{},
 		Hasher:            hasher,
 		Marshaller:        &marshal.GogoProtoMarshalizer{},
-		SlashingCache:     detector.NewRoundValidatorHeaderCache(3),
+		SlashingCache:     detector.NewRoundValidatorHeaderCache(cacheSize),
 		HeaderSigVerifier: headerSigVerifier,
 	}
-
-	return &detector.MultipleHeaderSigningDetectorArgs{
-		MultipleHeaderDetectorArgs: detectorArgs,
-		RoundHashCache:             detector.NewRoundHashCache(3),
-	}
 }
+
 func createHeaderSigVerifierArgs(
 	hasher hashing.Hasher,
 	multiSigVerifier crypto.MultiSigVerifier,

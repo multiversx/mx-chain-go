@@ -713,6 +713,6 @@ func TestMultipleHeaderSigningDetector_SignedHeader_CannotVerifySignature_Expect
 func generateMultipleHeaderSigningDetectorArgs() *detector.MultipleHeaderSigningDetectorArgs {
 	return &detector.MultipleHeaderSigningDetectorArgs{
 		RoundHashCache:             &slashMocks.HeadersCacheStub{},
-		MultipleHeaderDetectorArgs: generateMultipleHeaderDetectorArgs(),
+		MultipleHeaderDetectorArgs: generateMockMultipleHeaderDetectorArgs(),
 	}
 }

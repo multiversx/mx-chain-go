@@ -30,7 +30,7 @@ func generateSlashResults(
 	nodesCoordinator sharding.NodesCoordinator,
 	allMultiSigners map[string]multiSignerData,
 ) map[string]coreSlash.SlashingResult {
-	headersInfo, maliciousSigners := generateSlashableHeaders(b, hasher, noOfMaliciousSigners, noOfHeaders, nodesCoordinator, allMultiSigners)
+	headersInfo, maliciousSigners := generateSlashableHeaders(b, hasher, noOfMaliciousSigners, noOfHeaders, nodesCoordinator, allMultiSigners, false)
 
 	slashRes := make(map[string]coreSlash.SlashingResult, noOfMaliciousSigners)
 	for maliciousSigner := range maliciousSigners {
@@ -47,6 +47,8 @@ func generateSlashResults(
 // selected noOfMaliciousSigners, from allMultiSigners.
 // If noOfMaliciousSigners < minRequiredSigners in a consensus group, then
 // the rest of the signers are randomly selected from allMultiSigners
+// If allHeadersSameConsensusGroup == true, then the same consensus group
+// will sign all the headers, otherwise validators within consensus groups are shuffled
 func generateSlashableHeaders(
 	b *testing.B,
 	hasher hashing.Hasher,
@@ -54,6 +56,7 @@ func generateSlashableHeaders(
 	noOfHeaders uint64,
 	nodesCoordinator sharding.NodesCoordinator,
 	allMultiSigners map[string]multiSignerData,
+	allHeadersSameConsensusGroup bool,
 ) (headers []data.HeaderInfoHandler, signers map[string]struct{}) {
 	consensusGroupSize := len(allMultiSigners)
 	minRequiredSignatures := calcMinRequiredSignatures(consensusGroupSize)
@@ -63,8 +66,11 @@ func generateSlashableHeaders(
 	round := uint64(1)
 	epoch := uint32(0)
 	headersInfo := make([]data.HeaderInfoHandler, 0, noOfHeaders)
+	randomness := []byte("rnd")
 	for i := uint64(0); i < noOfHeaders; i++ {
-		randomness := []byte(strconv.Itoa(int(i)))
+		if !allHeadersSameConsensusGroup {
+			randomness = []byte(strconv.Itoa(int(i)))
+		}
 		header := createMetaHeader(i, round, epoch, randomness)
 		publicKeys, err := nodesCoordinator.GetConsensusValidatorsPublicKeys(randomness, round, core.MetachainShardId, epoch)
 		require.Nil(b, err)
@@ -178,14 +184,15 @@ func signHeader(
 	leaderPrivateKey crypto.PrivateKey) {
 	aggregatedSig, err := calcAggregatedSignature(signers, sigSharesData, bitmap)
 	require.Nil(b, err)
-	leaderSignature, err := calcLeaderSignature(leaderPrivateKey, header)
-	require.Nil(b, err)
 
 	err = header.SetSignature(aggregatedSig)
 	require.Nil(b, err)
-	err = header.SetLeaderSignature(leaderSignature)
-	require.Nil(b, err)
 	err = header.SetPubKeysBitmap(bitmap)
+	require.Nil(b, err)
+
+	leaderSignature, err := calcLeaderSignature(leaderPrivateKey, header)
+	require.Nil(b, err)
+	err = header.SetLeaderSignature(leaderSignature)
 	require.Nil(b, err)
 }
 

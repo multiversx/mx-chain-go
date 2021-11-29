@@ -12,7 +12,7 @@ import (
 
 var validatorPubKey = []byte("validator pub key")
 
-func generateMultipleHeaderDetectorArgs() detector.MultipleHeaderDetectorArgs {
+func generateMockMultipleHeaderDetectorArgs() detector.MultipleHeaderDetectorArgs {
 	nodesCoordinator := &mockEpochStart.NodesCoordinatorStub{
 		ComputeConsensusGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
 			validator := mock.NewValidatorMock(validatorPubKey)

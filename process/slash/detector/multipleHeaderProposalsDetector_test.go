@@ -590,6 +590,6 @@ func TestMultipleHeaderProposalsDetector_CheckHeaderHasSameProposerAndRound_Lead
 
 func generateMultipleHeaderProposalDetectorArgs() *detector.MultipleHeaderProposalDetectorArgs {
 	return &detector.MultipleHeaderProposalDetectorArgs{
-		MultipleHeaderDetectorArgs: generateMultipleHeaderDetectorArgs(),
+		MultipleHeaderDetectorArgs: generateMockMultipleHeaderDetectorArgs(),
 	}
 }
