@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/dblookupext/esdtSupply"
 )
 
 var errorDisabledHistoryRepository = errors.New("history repository is disabled")
@@ -47,8 +48,8 @@ func (nhr *nilHistoryRepository) RevertBlock(_ data.HeaderHandler, _ data.BodyHa
 }
 
 // GetESDTSupply -
-func (nhr *nilHistoryRepository) GetESDTSupply(_ string) (string, error) {
-	return "", errorDisabledHistoryRepository
+func (nhr *nilHistoryRepository) GetESDTSupply(_ string) (*esdtSupply.SupplyESDT, error) {
+	return nil, errorDisabledHistoryRepository
 }
 
 // GetResultsHashesByTxHash -

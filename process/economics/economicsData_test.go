@@ -679,29 +679,34 @@ func TestEconomicsData_TxWithWithMoreGasLimitThanMaximumPerMiniBlockForSafeCross
 	args.Economics.FeeSettings.GasLimitSettings[0].MinGasLimit = fmt.Sprintf("%d", minGasLimit)
 	economicsData, _ := economics.NewEconomicsData(args)
 
-	tx := &transaction.Transaction{
-		GasPrice: minGasPrice + 1,
-		GasLimit: maxGasLimitPerBlock,
-		Value:    big.NewInt(0),
-	}
-	err := economicsData.CheckValidityTxValues(tx)
-	require.Equal(t, process.ErrMoreGasThanGasLimitPerMiniBlockForSafeCrossShard, err)
-
-	tx = &transaction.Transaction{
-		GasPrice: minGasPrice + 1,
-		GasLimit: maxGasLimitPerBlock + 1,
-		Value:    big.NewInt(0),
-	}
-	err = economicsData.CheckValidityTxValues(tx)
-	require.Equal(t, process.ErrMoreGasThanGasLimitPerMiniBlockForSafeCrossShard, err)
-
-	tx = &transaction.Transaction{
-		GasPrice: minGasPrice + 1,
-		GasLimit: maxGasLimitPerBlock - 1,
-		Value:    big.NewInt(0),
-	}
-	err = economicsData.CheckValidityTxValues(tx)
-	require.Nil(t, err)
+	t.Run("maximum gas limit as defined should work", func(t *testing.T) {
+		// do not change this behavior: backwards compatibility reasons
+		tx := &transaction.Transaction{
+			GasPrice: minGasPrice + 1,
+			GasLimit: maxGasLimitPerBlock,
+			Value:    big.NewInt(0),
+		}
+		err := economicsData.CheckValidityTxValues(tx)
+		require.Nil(t, err)
+	})
+	t.Run("maximum gas limit + 1 as defined should error", func(t *testing.T) {
+		tx := &transaction.Transaction{
+			GasPrice: minGasPrice + 1,
+			GasLimit: maxGasLimitPerBlock + 1,
+			Value:    big.NewInt(0),
+		}
+		err := economicsData.CheckValidityTxValues(tx)
+		require.Equal(t, process.ErrMoreGasThanGasLimitPerMiniBlockForSafeCrossShard, err)
+	})
+	t.Run("maximum gas limit - 1 as defined should work", func(t *testing.T) {
+		tx := &transaction.Transaction{
+			GasPrice: minGasPrice + 1,
+			GasLimit: maxGasLimitPerBlock - 1,
+			Value:    big.NewInt(0),
+		}
+		err := economicsData.CheckValidityTxValues(tx)
+		require.Nil(t, err)
+	})
 }
 
 func TestEconomicsData_TxWithWithMoreValueThanGenesisSupplyShouldError(t *testing.T) {
