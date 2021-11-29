@@ -486,7 +486,6 @@ func TestCreateTriesForNewShardID(t *testing.T) {
 	coreComp, cryptoComp := createComponentsForEpochStart()
 	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 	args.GeneralConfig = testscommon.GetGeneralConfig()
-	epochStartProvider, _ := NewEpochStartBootstrap(args)
 
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
 		args.GeneralConfig,
@@ -497,9 +496,8 @@ func TestCreateTriesForNewShardID(t *testing.T) {
 		coreComp.EpochNotifier(),
 	)
 	assert.Nil(t, err)
-	epochStartProvider.trieContainer = triesContainer
-	epochStartProvider.trieStorageManagers = trieStorageManagers
-	assert.Nil(t, err)
+	assert.Equal(t, 2, len(triesContainer.GetAll()))
+	assert.Equal(t, 2, len(trieStorageManagers))
 }
 
 func TestSyncUserAccountsState(t *testing.T) {
