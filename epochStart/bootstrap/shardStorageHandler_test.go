@@ -327,7 +327,7 @@ func createDefaultShardStorageArgs() shardStorageArgs {
 		shardCoordinator:   &mock.ShardCoordinatorStub{},
 		pathManagerHandler: &testscommon.PathManagerStub{},
 		marshalizer:        &mock.MarshalizerMock{},
-		hasher:             &testscommon.HasherMock{},
+		hasher:             &hashingMocks.HasherMock{},
 		currentEpoch:       0,
 		uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
 		nodeTypeProvider:   &nodeTypeProviderMock.NodeTypeProviderStub{},
@@ -348,11 +348,11 @@ func createDefaultEpochStartShardData(lastFinishedMetaBlockHash []byte, shardHea
 }
 
 type scenarioData struct {
-	shardHeader                       *block.Header
-	headers                           map[string]data.HeaderHandler
-	metaBlock                         *block.MetaBlock
-	expectedPendingMbs                []bootstrapStorage.PendingMiniBlocksInfo
-	expectedProcessedMbs              []bootstrapStorage.MiniBlocksInMeta
+	shardHeader          *block.Header
+	headers              map[string]data.HeaderHandler
+	metaBlock            *block.MetaBlock
+	expectedPendingMbs   []bootstrapStorage.PendingMiniBlocksInfo
+	expectedProcessedMbs []bootstrapStorage.MiniBlocksInMeta
 }
 
 func createPendingAndProcessedMiniBlocksScenario() scenarioData {
@@ -425,11 +425,10 @@ func createPendingAndProcessedMiniBlocksScenario() scenarioData {
 	}
 
 	return scenarioData{
-		shardHeader:                       shardHeader,
-		headers:                           headers,
-		metaBlock:                         meta,
-		expectedPendingMbs:                expectedPendingMiniBlocks,
-		expectedProcessedMbs:              expectedProcessedMiniBlocks,
+		shardHeader:          shardHeader,
+		headers:              headers,
+		metaBlock:            meta,
+		expectedPendingMbs:   expectedPendingMiniBlocks,
+		expectedProcessedMbs: expectedProcessedMiniBlocks,
 	}
 }
-
