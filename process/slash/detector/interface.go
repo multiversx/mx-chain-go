@@ -4,7 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 )
 
-// RoundValidatorHeadersCache defines what a <round, <pubKey, headers>> (<key1, <key2, val>>) cache should do.
+// RoundValidatorHeadersCache defines what a <round, <pubKey, headers>> (<key1, <key2, val>>) cache should do
 type RoundValidatorHeadersCache interface {
 	// Add should add in cache a header info data for a public key, in a given round.
 	// If the public key already has the header cached in the given round OR the round is
