@@ -27,7 +27,7 @@
     UnJail                = 5000000
     DelegationOps         = 1000000
     DelegationMgrOps      = 50000000
-    ValidatorToDelegation = 500000000
+    ValidatorToDelegation = 400000000
     ESDTIssue             = 50000000
     ESDTOperations        = 50000000
     Proposal              = 50000000
@@ -38,7 +38,7 @@
     GetAllNodeStates      = 20000000
     UnstakeTokens         = 5000000
     UnbondTokens          = 5000000
-    FixWaitingListSize    = 500000000
+    FixWaitingListSize    = 400000000
 
 [BaseOperationCost]
     StorePerByte      = 10000
@@ -255,7 +255,7 @@
     I64Store16 = 5
     I64Store32 = 5
     MemorySize = 5
-    MemoryGrow = 5
+    MemoryGrow = 1000000
     I32Const = 5
     I64Const = 5
     F32Const = 5
@@ -660,4 +660,4 @@
     LocalAllocate = 5
     LocalsUnmetered = 100
     MaxMemoryGrowDelta = 1
-    MaxMemoryGrow = 100
+    MaxMemoryGrow = 10
