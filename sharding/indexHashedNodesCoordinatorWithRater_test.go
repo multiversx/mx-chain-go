@@ -183,6 +183,7 @@ func BenchmarkIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup63of400(b 
 		WaitingNodes:               waitingMap,
 		SelfPublicKey:              []byte("key"),
 		ConsensusGroupCache:        &mock.NodesCoordinatorCacheMock{},
+		ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
 		WaitingListFixEnabledEpoch: 0,
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
