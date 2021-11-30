@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	"github.com/ElrondNetwork/elrond-go/process"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
 
@@ -146,9 +147,9 @@ func TestScDeployOutOfGasShouldConsumeGas(t *testing.T) {
 	txDeployData := []byte(arwen.CreateDeployTxData(scCode))
 	tx := vm.CreateTransaction(senderNonce, big.NewInt(0), sndAddr, vm.CreateEmptyAddress(), gasPrice, gasLimit, txDeployData)
 
-	_, err = testContext.TxProcessor.ProcessTransaction(tx)
+	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
-	require.Equal(t, "not enough gas", testContext.GetLatestError().Error())
+	require.Equal(t, vmcommon.UserError, returnCode)
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)

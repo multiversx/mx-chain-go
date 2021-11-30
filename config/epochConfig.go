@@ -66,6 +66,7 @@ type EnableEpochs struct {
 	StopDecreasingValidatorRatingWhenStuckEnableEpoch uint32
 	IsPayableBySCEnableEpoch                          uint32
 	CleanUpInformativeSCRsEnableEpoch                 uint32
+	StorageAPICostOptimizationEnableEpoch             uint32
 }
 
 // GasScheduleByEpochs represents a gas schedule toml entry that will be applied from the provided epoch
