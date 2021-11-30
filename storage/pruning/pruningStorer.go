@@ -81,8 +81,9 @@ type PruningStorer struct {
 	shardCoordinator storage.ShardCoordinator
 	activePersisters []*persisterData
 	// it is mandatory to keep map of pointers for persistersMapByEpoch as a loaded pointer might get modified in inner functions
-	persistersMapByEpoch   map[uint32]*persisterData
-	cacher                 storage.Cacher
+	persistersMapByEpoch map[uint32]*persisterData
+	cacher               storage.Cacher
+	// TODO remove bloom filter
 	bloomFilter            storage.BloomFilter
 	pathManager            storage.PathManagerHandler
 	dbPath                 string
@@ -248,20 +249,45 @@ func initPersistersInEpoch(
 func (ps *PruningStorer) Put(key, data []byte) error {
 	ps.cacher.Put(key, data, len(data))
 
-	ps.lock.RLock()
-	persisterToUse := ps.activePersisters[0]
-	if ps.pruningEnabled {
-		persisterInSetEpoch, ok := ps.persistersMapByEpoch[ps.epochForPutOperation]
-		if ok && !persisterInSetEpoch.getIsClosed() {
-			persisterToUse = persisterInSetEpoch
-		} else {
-			log.Debug("active persister not found",
-				"epoch", ps.epochForPutOperation,
-				"used", persisterToUse.epoch)
-		}
-	}
-	ps.lock.RUnlock()
+	persisterToUse := ps.getPersisterToUse()
 	return ps.doPutInPersister(key, data, persisterToUse.getPersister())
+}
+
+// PutWithoutCache adds data to persistence medium and updates the bloom filter
+func (ps *PruningStorer) PutWithoutCache(key, data []byte) error {
+	persisterToUse := ps.getPersisterToUse()
+
+	err := persisterToUse.getPersister().Put(key, data)
+	if err != nil {
+		return err
+	}
+
+	if ps.bloomFilter != nil {
+		ps.bloomFilter.Add(key)
+	}
+
+	return nil
+}
+
+func (ps *PruningStorer) getPersisterToUse() *persisterData {
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+
+	persisterToUse := ps.activePersisters[0]
+	if !ps.pruningEnabled {
+		return persisterToUse
+	}
+
+	persisterInSetEpoch, ok := ps.persistersMapByEpoch[ps.epochForPutOperation]
+	if ok && !persisterInSetEpoch.getIsClosed() {
+		persisterToUse = persisterInSetEpoch
+	} else {
+		log.Debug("active persister not found",
+			"epoch", ps.epochForPutOperation,
+			"used", persisterToUse.epoch)
+	}
+
+	return persisterToUse
 }
 
 func (ps *PruningStorer) doPutInPersister(key, data []byte, persister storage.Persister) error {
@@ -371,6 +397,27 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 	return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
 }
 
+// GetFromOldEpochsWithoutCache searches the old epochs for the given key without updating the cache
+func (ps *PruningStorer) GetFromOldEpochsWithoutCache(key []byte) ([]byte, error) {
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+
+	if ps.bloomFilter != nil && !ps.bloomFilter.MayContain(key) {
+		return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
+	}
+
+	for idx := uint32(1); (idx < ps.numOfActivePersisters) && (idx < uint32(len(ps.activePersisters))); idx++ {
+		val, err := ps.activePersisters[idx].persister.Get(key)
+		if err != nil {
+			continue
+		}
+
+		return val, nil
+	}
+
+	return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
+}
+
 // Close will close PruningStorer
 func (ps *PruningStorer) Close() error {
 	closedSuccessfully := true
@@ -383,7 +430,10 @@ func (ps *PruningStorer) Close() error {
 		}
 	}
 
+	ps.cacher.Clear()
+
 	if closedSuccessfully {
+		log.Debug("successfully closed pruningStorer", "identifier", ps.identifier)
 		return nil
 	}
 
@@ -649,7 +699,7 @@ func (ps *PruningStorer) changeEpoch(header data.HeaderHandler) error {
 	defer ps.lock.Unlock()
 
 	epoch := header.GetEpoch()
-	log.Debug("PruningStorer - change epoch", "unit", ps.identifier, "epoch", epoch)
+	log.Debug("PruningStorer - change epoch", "unit", ps.identifier, "epoch", epoch, "bytes in cache", ps.cacher.SizeInBytesContained())
 	// if pruning is not enabled, don't create new persisters, but use the same one instead
 	if !ps.pruningEnabled {
 		log.Debug("PruningStorer - change epoch - pruning is disabled")
