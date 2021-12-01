@@ -1163,7 +1163,7 @@ func (mp *metaProcessor) CommitBlock(
 	mp.saveMetaHeader(header, headerHash, marshalizedHeader)
 	mp.saveBody(body, header)
 
-	err = mp.commitAll()
+	err = mp.commitAll(headerHandler)
 	if err != nil {
 		return err
 	}

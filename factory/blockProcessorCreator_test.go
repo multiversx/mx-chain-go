@@ -113,7 +113,7 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 		AccountsAdapterCalled: func() state.AccountsAdapter {
 			return accounts
 		},
-		TriesContainerCalled: func() state.TriesHolder {
+		TriesContainerCalled: func() common.TriesHolder {
 			return &mock.TriesHolderStub{}
 		},
 		TrieStorageManagersCalled: func() map[string]common.StorageManager {
@@ -168,7 +168,7 @@ func createAccountAdapter(
 		return nil, err
 	}
 
-	adb, err := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory, disabled.NewDisabledStoragePruningManager())
+	adb, err := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory, disabled.NewDisabledStoragePruningManager(), common.Normal)
 	if err != nil {
 		return nil, err
 	}

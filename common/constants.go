@@ -660,3 +660,14 @@ const TimeoutGettingTrieNodesInHardfork = time.Minute * 10
 
 // RetrialIntervalForOutportDriver is the interval in which the outport driver should try to call the driver again
 const RetrialIntervalForOutportDriver = time.Second * 10
+
+// NodeProcessingMode represents the processing mode in which the node was started
+type NodeProcessingMode int
+
+const (
+	// Normal means that the node has started in the normal processing mode
+	Normal NodeProcessingMode = iota
+
+	// ImportDb means that the node has started in the import-db mode
+	ImportDb
+)

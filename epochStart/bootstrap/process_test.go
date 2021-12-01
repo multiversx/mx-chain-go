@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -25,6 +26,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
+	"github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -69,26 +71,40 @@ func createMockEpochStartBootstrapArgs(
 	coreMock *mock.CoreComponentsMock,
 	cryptoMock *mock.CryptoComponentsMock,
 ) ArgsEpochStartBootstrap {
+	generalCfg := testscommon.GetGeneralConfig()
 	return ArgsEpochStartBootstrap{
 		CoreComponentsHolder:   coreMock,
 		CryptoComponentsHolder: cryptoMock,
 		Messenger:              &mock.MessengerStub{},
 		GeneralConfig: config.Config{
-			WhiteListPool: config.CacheConfig{
-				Type:     "LRU",
-				Capacity: 10,
-				Shards:   10,
-			},
-			EpochStartConfig: config.EpochStartConfig{
-				MinNumConnectedPeersToStart:       2,
-				MinNumOfPeersToConsiderBlockValid: 2,
-			},
-			StateTriesConfig: config.StateTriesConfig{
-				CheckpointRoundsModulus:     5,
-				AccountsStatePruningEnabled: true,
-				PeerStatePruningEnabled:     true,
-				MaxStateTrieLevelInMemory:   5,
-				MaxPeerTrieLevelInMemory:    5,
+			MiniBlocksStorage:                  generalCfg.MiniBlocksStorage,
+			PeerBlockBodyStorage:               generalCfg.PeerBlockBodyStorage,
+			BlockHeaderStorage:                 generalCfg.BlockHeaderStorage,
+			TxStorage:                          generalCfg.TxStorage,
+			UnsignedTransactionStorage:         generalCfg.UnsignedTransactionStorage,
+			RewardTxStorage:                    generalCfg.RewardTxStorage,
+			ShardHdrNonceHashStorage:           generalCfg.ShardHdrNonceHashStorage,
+			MetaHdrNonceHashStorage:            generalCfg.MetaHdrNonceHashStorage,
+			StatusMetricsStorage:               generalCfg.StatusMetricsStorage,
+			ReceiptsStorage:                    generalCfg.ReceiptsStorage,
+			SmartContractsStorage:              generalCfg.SmartContractsStorage,
+			SmartContractsStorageForSCQuery:    generalCfg.SmartContractsStorageForSCQuery,
+			TrieEpochRootHashStorage:           generalCfg.TrieEpochRootHashStorage,
+			BootstrapStorage:                   generalCfg.BootstrapStorage,
+			MetaBlockStorage:                   generalCfg.MetaBlockStorage,
+			AccountsTrieStorageOld:             generalCfg.AccountsTrieStorageOld,
+			PeerAccountsTrieStorageOld:         generalCfg.PeerAccountsTrieStorageOld,
+			AccountsTrieStorage:                generalCfg.AccountsTrieStorage,
+			PeerAccountsTrieStorage:            generalCfg.PeerAccountsTrieStorage,
+			AccountsTrieCheckpointsStorage:     generalCfg.AccountsTrieCheckpointsStorage,
+			PeerAccountsTrieCheckpointsStorage: generalCfg.PeerAccountsTrieCheckpointsStorage,
+			Heartbeat:                          generalCfg.Heartbeat,
+			TrieSnapshotDB: config.DBConfig{
+				FilePath:          "TrieSnapshot",
+				Type:              "MemoryDB",
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
 			},
 			EvictionWaitingList: config.EvictionWaitingListConfig{
 				HashesSize:     100,
@@ -101,45 +117,34 @@ func createMockEpochStartBootstrapArgs(
 					MaxOpenFiles:      10,
 				},
 			},
-			TrieSnapshotDB: config.DBConfig{
-				FilePath:          "TrieSnapshot",
-				Type:              "MemoryDB",
-				BatchDelaySeconds: 30,
-				MaxBatchSize:      6,
-				MaxOpenFiles:      10,
-			},
-			AccountsTrieStorage: config.StorageConfig{
-				Cache: config.CacheConfig{
-					Capacity: 10000,
-					Type:     "LRU",
-					Shards:   1,
-				},
-				DB: config.DBConfig{
-					FilePath:          "AccountsTrie/MainDB",
-					Type:              "MemoryDB",
-					BatchDelaySeconds: 30,
-					MaxBatchSize:      6,
-					MaxOpenFiles:      10,
-				},
-			},
-			PeerAccountsTrieStorage: config.StorageConfig{
-				Cache: config.CacheConfig{
-					Capacity: 10000,
-					Type:     "LRU",
-					Shards:   1,
-				},
-				DB: config.DBConfig{
-					FilePath:          "PeerAccountsTrie/MainDB",
-					Type:              "MemoryDB",
-					BatchDelaySeconds: 30,
-					MaxBatchSize:      6,
-					MaxOpenFiles:      10,
-				},
+			StateTriesConfig: config.StateTriesConfig{
+				CheckpointRoundsModulus:     5,
+				AccountsStatePruningEnabled: true,
+				PeerStatePruningEnabled:     true,
+				MaxStateTrieLevelInMemory:   5,
+				MaxPeerTrieLevelInMemory:    5,
 			},
 			TrieStorageManagerConfig: config.TrieStorageManagerConfig{
-				PruningBufferLen:   1000,
-				SnapshotsBufferLen: 10,
-				MaxSnapshots:       2,
+				PruningBufferLen:      1000,
+				SnapshotsBufferLen:    10,
+				MaxSnapshots:          2,
+				SnapshotsGoroutineNum: 1,
+			},
+			WhiteListPool: config.CacheConfig{
+				Type:     "LRU",
+				Capacity: 10,
+				Shards:   10,
+			},
+			EpochStartConfig: config.EpochStartConfig{
+				MinNumConnectedPeersToStart:       2,
+				MinNumOfPeersToConsiderBlockValid: 2,
+			},
+			StoragePruning: config.StoragePruningConfig{
+				Enabled:                     true,
+				ValidatorCleanOldEpochsData: true,
+				ObserverCleanOldEpochsData:  true,
+				NumEpochsToKeep:             2,
+				NumActivePersisters:         2,
 			},
 			TrieSync: config.TrieSyncConfig{
 				NumConcurrentTrieSyncers:  50,
@@ -317,6 +322,9 @@ func TestPrepareForEpochZero_NodeInGenesisShouldNotAlterShardID(t *testing.T) {
 		SelfIdCalled: func() uint32 {
 			return shardIDAsValidator
 		},
+		NumberOfShardsCalled: func() uint32 {
+			return 2
+		},
 	}
 
 	args.DestinationShardAsObserver = uint32(7)
@@ -349,6 +357,9 @@ func TestPrepareForEpochZero_NodeNotInGenesisShouldAlterShardID(t *testing.T) {
 	args.GenesisShardCoordinator = &mock.ShardCoordinatorStub{
 		SelfIdCalled: func() uint32 {
 			return uint32(1)
+		},
+		NumberOfShardsCalled: func() uint32 {
+			return 2
 		},
 	}
 	args.DestinationShardAsObserver = desiredShardAsObserver
@@ -454,9 +465,20 @@ func TestSyncValidatorAccountsState_NilRequestHandlerErr(t *testing.T) {
 			}
 		},
 	}
-	_ = epochStartProvider.createTriesComponentsForShardId(args.GenesisShardCoordinator.SelfId())
+	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
+		args.GeneralConfig,
+		coreComp,
+		args.GenesisShardCoordinator.SelfId(),
+		disabled.NewChainStorer(),
+		0,
+		coreComp.EpochNotifier(),
+	)
+	assert.Nil(t, err)
+	epochStartProvider.trieContainer = triesContainer
+	epochStartProvider.trieStorageManagers = trieStorageManagers
+
 	rootHash := []byte("rootHash")
-	err := epochStartProvider.syncValidatorAccountsState(rootHash)
+	err = epochStartProvider.syncValidatorAccountsState(rootHash)
 	assert.Equal(t, state.ErrNilRequestHandler, err)
 }
 
@@ -464,10 +486,18 @@ func TestCreateTriesForNewShardID(t *testing.T) {
 	coreComp, cryptoComp := createComponentsForEpochStart()
 	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 	args.GeneralConfig = testscommon.GetGeneralConfig()
-	epochStartProvider, _ := NewEpochStartBootstrap(args)
 
-	err := epochStartProvider.createTriesComponentsForShardId(1)
+	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
+		args.GeneralConfig,
+		coreComp,
+		1,
+		disabled.NewChainStorer(),
+		0,
+		coreComp.EpochNotifier(),
+	)
 	assert.Nil(t, err)
+	assert.Equal(t, 2, len(triesContainer.GetAll()))
+	assert.Equal(t, 2, len(trieStorageManagers))
 }
 
 func TestSyncUserAccountsState(t *testing.T) {
@@ -485,9 +515,21 @@ func TestSyncUserAccountsState(t *testing.T) {
 			}
 		},
 	}
-	_ = epochStartProvider.createTriesComponentsForShardId(args.GenesisShardCoordinator.SelfId())
+
+	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
+		args.GeneralConfig,
+		coreComp,
+		args.GenesisShardCoordinator.SelfId(),
+		disabled.NewChainStorer(),
+		0,
+		coreComp.EpochNotifier(),
+	)
+	assert.Nil(t, err)
+	epochStartProvider.trieContainer = triesContainer
+	epochStartProvider.trieStorageManagers = trieStorageManagers
+
 	rootHash := []byte("rootHash")
-	err := epochStartProvider.syncUserAccountsState(rootHash)
+	err = epochStartProvider.syncUserAccountsState(rootHash)
 	assert.Equal(t, state.ErrNilRequestHandler, err)
 }
 
@@ -531,8 +573,19 @@ func TestRequestAndProcessForShard(t *testing.T) {
 
 	epochStartProvider.shardCoordinator = shardCoordinator
 	epochStartProvider.epochStartMeta = metaBlock
-	_ = epochStartProvider.createTriesComponentsForShardId(shardCoordinator.SelfId())
-	err := epochStartProvider.requestAndProcessForShard()
+	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
+		args.GeneralConfig,
+		coreComp,
+		shardCoordinator.SelfId(),
+		disabled.NewChainStorer(),
+		0,
+		coreComp.EpochNotifier(),
+	)
+	assert.Nil(t, err)
+	epochStartProvider.trieContainer = triesContainer
+	epochStartProvider.trieStorageManagers = trieStorageManagers
+
+	err = epochStartProvider.requestAndProcessForShard()
 	assert.Equal(t, state.ErrNilRequestHandler, err)
 }
 
@@ -577,6 +630,7 @@ func TestRequestAndProcessing(t *testing.T) {
 	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 	args.GeneralConfig.StoragePruning.ObserverCleanOldEpochsData = true
 	args.GeneralConfig.StoragePruning.ValidatorCleanOldEpochsData = true
+	args.GeneralConfig.StoragePruning.NumActivePersisters = 0
 	args.GenesisNodesConfig = getNodesConfigMock(1)
 
 	hdrHash1 := []byte("hdrHash1")

@@ -272,6 +272,32 @@
         MaxBatchSize = 100
         MaxOpenFiles = 10
 
+[AccountsTrieStorageOld]
+    [AccountsTrieStorageOld.Cache]
+        Name = "AccountsTrieStorage"
+        Capacity = 500000
+        Type = "SizeLRU"
+        SizeInBytes = 52428800 #50MB
+    [AccountsTrieStorageOld.DB]
+        FilePath = "AccountsTrie/MainDB"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 45000
+        MaxOpenFiles = 10
+
+[PeerAccountsTrieStorageOld]
+    [PeerAccountsTrieStorageOld.Cache]
+        Name = "PeerAccountsTrieStorage"
+        Capacity = 5000
+        Type = "SizeLRU"
+        SizeInBytes = 52428800 #50MB
+    [PeerAccountsTrieStorageOld.DB]
+        FilePath = "PeerAccountsTrie/MainDB"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 1000
+        MaxOpenFiles = 10
+
 [AccountsTrieStorage]
     [AccountsTrieStorage.Cache]
         Name = "AccountsTrieStorage"
@@ -279,10 +305,49 @@
         Type = "SizeLRU"
         SizeInBytes = 314572800 #300MB
     [AccountsTrieStorage.DB]
-        FilePath = "AccountsTrie/MainDB"
+        FilePath = "AccountsTrie"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 45000
+        MaxOpenFiles = 10
+
+[PeerAccountsTrieStorage]
+    [PeerAccountsTrieStorage.Cache]
+        Name = "PeerAccountsTrieStorage"
+        Capacity = 5000
+        Type = "SizeLRU"
+        SizeInBytes = 104857600 #100MB
+    [PeerAccountsTrieStorage.DB]
+        FilePath = "PeerAccountsTrie"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 1000
+        MaxOpenFiles = 10
+
+[AccountsTrieCheckpointsStorage]
+    [AccountsTrieCheckpointsStorage.Cache]
+        Name = "AccountsTrieCheckpointsStorage"
+        Capacity = 100000
+        Type = "SizeLRU"
+        SizeInBytes = 52428800 #50MB
+    [AccountsTrieCheckpointsStorage.DB]
+        FilePath = "AccountsTrieCheckpoints"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 45000
+        MaxOpenFiles = 10
+
+[PeerAccountsTrieCheckpointsStorage]
+    [PeerAccountsTrieCheckpointsStorage.Cache]
+        Name = "PeerAccountsTrieCheckpointsStorage"
+        Capacity = 10000
+        Type = "SizeLRU"
+        SizeInBytes = 52428800 #50MB
+    [PeerAccountsTrieCheckpointsStorage.DB]
+        FilePath = "PeerAccountsTrieCheckpoints"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 1000
         MaxOpenFiles = 10
 
 [EvictionWaitingList]
@@ -306,22 +371,10 @@
 [TrieStorageManagerConfig]
     PruningBufferLen = 100000
     SnapshotsBufferLen = 1000000
+    SnapshotsGoroutineNum = 10
     MaxSnapshots = 3
     KeepSnapshots = false
     CheckpointHashesHolderMaxSize = 52428800 #50MB
-
-[PeerAccountsTrieStorage]
-    [PeerAccountsTrieStorage.Cache]
-        Name = "PeerAccountsTrieStorage"
-        Capacity = 5000
-        Type = "SizeLRU"
-        SizeInBytes = 104857600 #100MB
-    [PeerAccountsTrieStorage.DB]
-        FilePath = "PeerAccountsTrie/MainDB"
-        Type = "LvlDBSerial"
-        BatchDelaySeconds = 2
-        MaxBatchSize = 1000
-        MaxOpenFiles = 10
 
 [HeadersPoolConfig]
     MaxHeadersPerShard = 1000
