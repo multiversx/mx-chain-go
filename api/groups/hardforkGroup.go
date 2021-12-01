@@ -26,7 +26,7 @@ type hardforkFacadeHandler interface {
 
 type hardforkGroup struct {
 	*baseGroup
-	facade hardforkFacadeHandler
+	facade    hardforkFacadeHandler
 	mutFacade sync.RWMutex
 }
 
