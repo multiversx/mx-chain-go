@@ -2385,7 +2385,7 @@ func (sc *scProcessor) createSCRForSenderAndRelayer(
 		addReturnDataToSCR(vmOutput, scTx)
 	}
 
-	log.Trace("createSCRForSenderAndRelayer ", "data", string(scTx.Data), "snd", scTx.SndAddr, "rcv", scTx.RcvAddr)
+	log.Trace("createSCRForSenderAndRelayer ", "data", string(scTx.Data), "snd", scTx.SndAddr, "rcv", scTx.RcvAddr, "gasRemaining", vmOutput.GasRemaining)
 	return scTx, refundGasToRelayerSCR
 }
 
