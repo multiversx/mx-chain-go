@@ -735,7 +735,7 @@ func (txs *transactions) getAllTxsFromMiniBlock(
 }
 
 func (txs *transactions) getRemainingGasPerBlock() uint64 {
-	gasConsumed := txs.gasHandler.TotalGasConsumed()
+	gasConsumed := txs.getTotalGasConsumed()
 	maxGasPerBlock := txs.economicsFee.MaxGasLimitPerBlock(txs.shardCoordinator.SelfId())
 	gasBandwidth := uint64(0)
 	if gasConsumed < maxGasPerBlock {
