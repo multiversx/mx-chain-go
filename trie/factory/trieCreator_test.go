@@ -1,10 +1,12 @@
 package factory_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -16,19 +18,23 @@ import (
 
 func getArgs() factory.TrieFactoryArgs {
 	return factory.TrieFactoryArgs{
-		Marshalizer: &testscommon.MarshalizerMock{},
-		Hasher:      &testscommon.HasherMock{},
-		PathManager: &testscommon.PathManagerStub{},
+		Marshalizer:              &testscommon.MarshalizerMock{},
+		Hasher:                   &testscommon.HasherMock{},
+		PathManager:              &testscommon.PathManagerStub{},
+		TrieStorageManagerConfig: config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
 	}
 }
 
 func getCreateArgs() factory.TrieCreateArgs {
 	return factory.TrieCreateArgs{
 		TrieStorageConfig:  createTrieStorageCfg(),
+		MainStorer:         testscommon.CreateMemUnit(),
+		CheckpointsStorer:  testscommon.CreateMemUnit(),
 		ShardID:            "0",
 		PruningEnabled:     false,
 		CheckpointsEnabled: false,
 		MaxTrieLevelInMem:  5,
+		EpochStartNotifier: &mock.EpochNotifierStub{},
 	}
 }
 
@@ -132,4 +138,32 @@ func TestTrieCreator_CreateWithoutCheckpointShouldWork(t *testing.T) {
 	_, tr, err := tf.Create(createArgs)
 	require.NotNil(t, tr)
 	require.Nil(t, err)
+}
+
+func TestTrieCreator_CreateWithNilMainStorerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgs()
+	tf, _ := factory.NewTrieFactory(args)
+
+	createArgs := getCreateArgs()
+	createArgs.PruningEnabled = true
+	createArgs.MainStorer = nil
+	_, tr, err := tf.Create(createArgs)
+	require.Nil(t, tr)
+	require.True(t, strings.Contains(err.Error(), trie.ErrNilStorer.Error()))
+}
+
+func TestTrieCreator_CreateWithNilCheckpointsStorerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgs()
+	tf, _ := factory.NewTrieFactory(args)
+
+	createArgs := getCreateArgs()
+	createArgs.PruningEnabled = true
+	createArgs.CheckpointsStorer = nil
+	_, tr, err := tf.Create(createArgs)
+	require.Nil(t, tr)
+	require.True(t, strings.Contains(err.Error(), trie.ErrNilStorer.Error()))
 }

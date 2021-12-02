@@ -961,7 +961,7 @@ func TestScrsPreprocessor_ProcessBlockTransactionsShouldWork(t *testing.T) {
 
 	scrPreproc.scrForBlock.txHashAndInfo["txHash"] = &txInfo{&scr, &txshardInfo}
 
-	err := scrPreproc.ProcessBlockTransactions(body, haveTimeTrue)
+	err := scrPreproc.ProcessBlockTransactions(body, haveTimeTrue, []byte("randomness"))
 
 	assert.Nil(t, err)
 }
@@ -1021,12 +1021,12 @@ func TestScrsPreprocessor_ProcessBlockTransactionsShouldErrMaxGasLimitPerBlockIn
 
 	scrPreproc.scrForBlock.txHashAndInfo["txHash"] = &txInfo{&scr, &txshardInfo}
 
-	err := scrPreproc.ProcessBlockTransactions(body, haveTimeTrue)
+	err := scrPreproc.ProcessBlockTransactions(body, haveTimeTrue, []byte("randomness"))
 	assert.Nil(t, err)
 
 	scrPreproc.EpochConfirmed(2, 0)
 
-	err = scrPreproc.ProcessBlockTransactions(body, haveTimeTrue)
+	err = scrPreproc.ProcessBlockTransactions(body, haveTimeTrue, []byte("randomness"))
 	assert.Equal(t, process.ErrMaxGasLimitPerBlockInSelfShardIsReached, err)
 }
 

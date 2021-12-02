@@ -3,11 +3,14 @@ package disabled
 import (
 	"sync"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 var _ dataRetriever.StorageService = (*chainStorer)(nil)
+
+var log = logger.GetOrCreate("disabledChainStorer")
 
 // ChainStorer is a mock implementation of the ChainStorer interface
 type chainStorer struct {
@@ -27,6 +30,7 @@ func (c *chainStorer) CloseAll() error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
+	log.Debug("closeAll storers")
 	for _, store := range c.mapStorages {
 		err := store.Close()
 		if err != nil {
@@ -42,6 +46,8 @@ func (c *chainStorer) AddStorer(key dataRetriever.UnitType, s storage.Storer) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
+	log.Debug("added new storer", "key", key)
+
 	c.mapStorages[key] = s
 }
 
@@ -52,6 +58,7 @@ func (c *chainStorer) GetStorer(unitType dataRetriever.UnitType) storage.Storer 
 
 	_, ok := c.mapStorages[unitType]
 	if !ok {
+		log.Debug("created new mem storer", "key", unitType)
 		c.mapStorages[unitType] = CreateMemUnit()
 	}
 
@@ -123,6 +130,7 @@ func (c *chainStorer) Destroy() error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
+	log.Debug("destroy unit")
 	for _, store := range c.mapStorages {
 		err := store.DestroyUnit()
 		if err != nil {

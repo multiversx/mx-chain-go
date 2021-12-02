@@ -22,20 +22,22 @@ func NewShardResolversContainerFactory(
 ) (*shardResolversContainerFactory, error) {
 	container := containers.NewResolversContainer()
 	base := &baseResolversContainerFactory{
-		container:                container,
-		shardCoordinator:         args.ShardCoordinator,
-		messenger:                args.Messenger,
-		store:                    args.Store,
-		marshalizer:              args.Marshalizer,
-		hasher:                   args.Hasher,
-		uint64ByteSliceConverter: args.Uint64ByteSliceConverter,
-		dataPacker:               args.DataPacker,
-		manualEpochStartNotifier: args.ManualEpochStartNotifier,
-		chanGracefullyClose:      args.ChanGracefullyClose,
-		generalConfig:            args.GeneralConfig,
-		shardIDForTries:          args.ShardIDForTries,
-		chainID:                  args.ChainID,
-		workingDir:               args.WorkingDirectory,
+		container:                  container,
+		shardCoordinator:           args.ShardCoordinator,
+		messenger:                  args.Messenger,
+		store:                      args.Store,
+		marshalizer:                args.Marshalizer,
+		hasher:                     args.Hasher,
+		uint64ByteSliceConverter:   args.Uint64ByteSliceConverter,
+		dataPacker:                 args.DataPacker,
+		manualEpochStartNotifier:   args.ManualEpochStartNotifier,
+		chanGracefullyClose:        args.ChanGracefullyClose,
+		generalConfig:              args.GeneralConfig,
+		shardIDForTries:            args.ShardIDForTries,
+		chainID:                    args.ChainID,
+		workingDir:                 args.WorkingDirectory,
+		disableOldTrieStorageEpoch: args.DisableOldTrieStorageEpoch,
+		epochNotifier:              args.EpochNotifier,
 	}
 
 	err := base.checkParams()
@@ -161,7 +163,11 @@ func (srcf *shardResolversContainerFactory) generateTrieNodesResolvers() error {
 	resolversSlice := make([]dataRetriever.Resolver, 0)
 
 	identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
-	storageManager, userAccountsDataTrie, err := srcf.newImportDBTrieStorage(srcf.generalConfig.AccountsTrieStorage)
+	storageManager, userAccountsDataTrie, err := srcf.newImportDBTrieStorage(
+		srcf.generalConfig.AccountsTrieStorageOld,
+		srcf.store.GetStorer(dataRetriever.UserAccountsUnit),
+		srcf.store.GetStorer(dataRetriever.UserAccountsCheckpointsUnit),
+	)
 	if err != nil {
 		return fmt.Errorf("%w while creating user accounts data trie storage getter", err)
 	}
