@@ -9,9 +9,46 @@ import (
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/slash/detector"
 	"github.com/stretchr/testify/require"
 )
+
+func BenchmarkMultipleHeaderProposalsDetector_VerifyData(b *testing.B) {
+	hasher, err := blake2b.NewBlake2bWithSize(hashSize)
+	require.Nil(b, err)
+
+	blsSuite := mcl.NewSuiteBLS12()
+	keyGenerator := signing.NewKeyGenerator(blsSuite)
+	blsSigners := createMultiSignersBls(metaConsensusGroupSize, hasher, keyGenerator)
+
+	args := createHeaderProposalDetectorArgs(b, hasher, keyGenerator, blsSigners)
+	// Worst case scenario: 1/4 * metaConsensusGroupSize + 1 sign the same 3 headers
+	noOfSignedHeaders := uint64(3)
+	slashableHeaders, _ := generateSlashableHeaders(b, hasher, maxNoOfMaliciousValidatorsOnMetaChain, noOfSignedHeaders, args.NodesCoordinator, blsSigners, true)
+	interceptedHeaders := createInterceptedHeaders(slashableHeaders)
+
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		b.Run("", func(b *testing.B) {
+			benchmarkVerifyDataMultipleHeaderProposal(b, hasher, keyGenerator, blsSigners, interceptedHeaders)
+		})
+	}
+}
+
+func benchmarkVerifyDataMultipleHeaderProposal(
+	b *testing.B,
+	hasher hashing.Hasher,
+	keyGenerator crypto.KeyGenerator,
+	blsSigners map[string]multiSignerData,
+	interceptedHeaders []process.InterceptedHeader) {
+	args := createHeaderProposalDetectorArgs(b, hasher, keyGenerator, blsSigners)
+	ssd, err := detector.NewMultipleHeaderProposalsDetector(args)
+	require.Nil(b, err)
+
+	b.ResetTimer()
+	verifyInterceptedHeaders(b, interceptedHeaders, ssd)
+}
 
 func BenchmarkMultipleHeaderProposalDetector_ValidateProof(b *testing.B) {
 	hasher, err := blake2b.NewBlake2bWithSize(hashSize)

@@ -31,36 +31,23 @@ func BenchmarkMultipleHeaderSigningDetector_VerifyData(b *testing.B) {
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 		b.Run("", func(b *testing.B) {
-			benchMarkVerifyData(b, hasher, keyGenerator, blsSigners, interceptedHeaders)
+			benchmarkVerifyDataMultipleHeaderSigning(b, hasher, keyGenerator, blsSigners, interceptedHeaders)
 		})
 	}
 }
 
-func benchMarkVerifyData(
+func benchmarkVerifyDataMultipleHeaderSigning(
 	b *testing.B,
 	hasher hashing.Hasher,
 	keyGenerator crypto.KeyGenerator,
 	blsSigners map[string]multiSignerData,
 	interceptedHeaders []process.InterceptedHeader) {
-	var proof coreSlash.SlashingProofHandler
-	var err error
-
 	args := createHeaderSigningDetectorArgs(b, hasher, keyGenerator, blsSigners)
 	ssd, err := detector.NewMultipleHeaderSigningDetector(args)
 	require.Nil(b, err)
 
 	b.ResetTimer()
-	for idx, interceptedHeader := range interceptedHeaders {
-		if idx == 0 {
-			proof, err = ssd.VerifyData(interceptedHeader)
-			require.Nil(b, proof)
-			require.Equal(b, process.ErrNoSlashingEventDetected, err)
-			continue
-		}
-		proof, err = ssd.VerifyData(interceptedHeader)
-		require.NotNil(b, proof)
-		require.Nil(b, err)
-	}
+	verifyInterceptedHeaders(b, interceptedHeaders, ssd)
 }
 
 func BenchmarkMultipleHeaderSigningDetector_ValidateProof(b *testing.B) {

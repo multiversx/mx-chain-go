@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
+	coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
@@ -16,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/process/slash"
 	"github.com/ElrondNetwork/elrond-go/process/slash/detector"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	shardingMock "github.com/ElrondNetwork/elrond-go/sharding/mock"
@@ -83,6 +85,23 @@ func createInterceptedHeaders(headersInfo []data.HeaderInfoHandler) []process.In
 	}
 
 	return interceptedHeaders
+}
+
+func verifyInterceptedHeaders(b *testing.B, interceptedHeaders []process.InterceptedHeader, ssd slash.SlashingDetector) {
+	var proof coreSlash.SlashingProofHandler
+	var err error
+
+	for idx, interceptedHeader := range interceptedHeaders {
+		if idx == 0 {
+			proof, err = ssd.VerifyData(interceptedHeader)
+			require.Equal(b, process.ErrNoSlashingEventDetected, err)
+			require.Nil(b, proof)
+			continue
+		}
+		proof, err = ssd.VerifyData(interceptedHeader)
+		require.Nil(b, err)
+		require.NotNil(b, proof)
+	}
 }
 
 type multiSignerData struct {
