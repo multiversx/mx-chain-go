@@ -15,6 +15,10 @@ import (
 )
 
 func BenchmarkMultipleHeaderProposalDetector_VerifyData(b *testing.B) {
+	if testing.Short() {
+		b.Skip("this is not a short test")
+	}
+
 	hasher, err := blake2b.NewBlake2bWithSize(hashSize)
 	require.Nil(b, err)
 
@@ -50,6 +54,10 @@ func benchmarkVerifyDataMultipleHeaderProposal(
 }
 
 func BenchmarkMultipleHeaderProposalDetector_ValidateProof(b *testing.B) {
+	if testing.Short() {
+		b.Skip("this is not a short test")
+	}
+
 	hasher, err := blake2b.NewBlake2bWithSize(hashSize)
 	require.Nil(b, err)
 
