@@ -347,11 +347,11 @@ func createDefaultEpochStartShardData(lastFinishedMetaBlockHash []byte, shardHea
 }
 
 type scenarioData struct {
-	shardHeader                       *block.Header
-	headers                           map[string]data.HeaderHandler
-	metaBlock                         *block.MetaBlock
-	expectedPendingMbs                []bootstrapStorage.PendingMiniBlocksInfo
-	expectedProcessedMbs              []bootstrapStorage.MiniBlocksInMeta
+	shardHeader          *block.Header
+	headers              map[string]data.HeaderHandler
+	metaBlock            *block.MetaBlock
+	expectedPendingMbs   []bootstrapStorage.PendingMiniBlocksInfo
+	expectedProcessedMbs []bootstrapStorage.MiniBlocksInMeta
 }
 
 func createPendingAndProcessedMiniBlocksScenario() scenarioData {
@@ -424,11 +424,10 @@ func createPendingAndProcessedMiniBlocksScenario() scenarioData {
 	}
 
 	return scenarioData{
-		shardHeader:                       shardHeader,
-		headers:                           headers,
-		metaBlock:                         meta,
-		expectedPendingMbs:                expectedPendingMiniBlocks,
-		expectedProcessedMbs:              expectedProcessedMiniBlocks,
+		shardHeader:          shardHeader,
+		headers:              headers,
+		metaBlock:            meta,
+		expectedPendingMbs:   expectedPendingMiniBlocks,
+		expectedProcessedMbs: expectedProcessedMiniBlocks,
 	}
 }
-
