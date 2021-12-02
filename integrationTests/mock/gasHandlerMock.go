@@ -65,7 +65,7 @@ func (ghm *GasHandlerMock) GasPenalized(hash []byte) uint64 {
 }
 
 // TotalGasConsumed -
-func (ghm *GasHandlerMock) TotalGasConsumed() uint64 {
+func (ghm *GasHandlerMock) TotalGasProvided() uint64 {
 	return ghm.TotalGasConsumedCalled()
 }
 

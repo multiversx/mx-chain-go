@@ -125,7 +125,7 @@ func (gc *gasComputation) GasPenalized(hash []byte) uint64 {
 }
 
 // TotalGasConsumed gets the total gas consumed
-func (gc *gasComputation) TotalGasConsumed() uint64 {
+func (gc *gasComputation) TotalGasProvided() uint64 {
 	totalGasConsumed := uint64(0)
 
 	gc.mutGasConsumed.RLock()

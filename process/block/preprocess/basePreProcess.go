@@ -425,22 +425,22 @@ func (bpp *basePreProcess) getTxMaxTotalCost(txHandler data.TransactionHandler) 
 
 func (bpp *basePreProcess) getTotalGasConsumed() uint64 {
 	if !bpp.flagOptimizeGasUsedInCrossMiniBlocks.IsSet() {
-		return bpp.gasHandler.TotalGasConsumed()
+		return bpp.gasHandler.TotalGasProvided()
 	}
 
 	totalGasToBeSubtracted := bpp.gasHandler.TotalGasRefunded() + bpp.gasHandler.TotalGasPenalized()
-	totalGasConsumed := bpp.gasHandler.TotalGasConsumed()
-	if totalGasToBeSubtracted > totalGasConsumed {
+	totalGasProvided := bpp.gasHandler.TotalGasProvided()
+	if totalGasToBeSubtracted > totalGasProvided {
 		log.Warn("basePreProcess.getTotalGasConsumed: too much gas to be subtracted",
 			"totalGasRefunded", bpp.gasHandler.TotalGasRefunded(),
 			"totalGasPenalized", bpp.gasHandler.TotalGasPenalized(),
 			"totalGasToBeSubtracted", totalGasToBeSubtracted,
-			"totalGasConsumed", totalGasConsumed,
+			"totalGasProvided", totalGasProvided,
 		)
-		return totalGasConsumed
+		return totalGasProvided
 	}
 
-	return totalGasConsumed - totalGasToBeSubtracted
+	return totalGasProvided - totalGasToBeSubtracted
 }
 
 func (bpp *basePreProcess) updateGasConsumedWithGasRefundedAndGasPenalized(
