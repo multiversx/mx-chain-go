@@ -245,7 +245,7 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleProposalProof(t
 	}
 
 	expectedData := []byte(fmt.Sprintf("%s@%s@%d@%d@%s@%s", notifier.BuiltInFunctionSlashCommitmentProof,
-		[]byte{byte(coreSlash.MultipleProposalProofID)}, shardID, round, []byte{byte('c'), byte('d')}, []byte("signature")))
+		[]byte{coreSlash.MultipleProposalProofID}, shardID, round, []byte{byte('c'), byte('d')}, []byte("signature")))
 
 	expectedTx := &transaction.Transaction{
 		Data:      expectedData,
@@ -283,7 +283,7 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleSignProof(t *te
 	}
 
 	expectedData := []byte(fmt.Sprintf("%s@%s@%d@%d@%s@%s", notifier.BuiltInFunctionSlashCommitmentProof,
-		[]byte{byte(coreSlash.MultipleSigningProofID)}, shardID, round, []byte{byte('c'), byte('d')}, []byte("signature")))
+		[]byte{coreSlash.MultipleSigningProofID}, shardID, round, []byte{byte('c'), byte('d')}, []byte("signature")))
 	expectedTx := &transaction.Transaction{
 		Data:      expectedData,
 		Nonce:     444,

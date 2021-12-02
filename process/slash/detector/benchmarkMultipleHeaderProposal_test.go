@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func BenchmarkMultipleHeaderProposalsDetector_VerifyData(b *testing.B) {
+func BenchmarkMultipleHeaderProposalDetector_VerifyData(b *testing.B) {
 	hasher, err := blake2b.NewBlake2bWithSize(hashSize)
 	require.Nil(b, err)
 
@@ -22,9 +22,8 @@ func BenchmarkMultipleHeaderProposalsDetector_VerifyData(b *testing.B) {
 	keyGenerator := signing.NewKeyGenerator(blsSuite)
 	blsSigners := createMultiSignersBls(metaConsensusGroupSize, hasher, keyGenerator)
 
-	args := createHeaderProposalDetectorArgs(b, hasher, keyGenerator, blsSigners)
-	// Worst case scenario: 1/4 * metaConsensusGroupSize + 1 sign the same 3 headers
 	noOfSignedHeaders := uint64(3)
+	args := createHeaderProposalDetectorArgs(b, hasher, keyGenerator, blsSigners)
 	slashableHeaders, _ := generateSlashableHeaders(b, hasher, maxNoOfMaliciousValidatorsOnMetaChain, noOfSignedHeaders, args.NodesCoordinator, blsSigners, true)
 	interceptedHeaders := createInterceptedHeaders(slashableHeaders)
 

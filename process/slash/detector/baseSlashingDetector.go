@@ -64,7 +64,7 @@ func checkAndGetHeader(interceptedData process.InterceptedData) (data.HeaderHand
 	return header, nil
 }
 
-func checkProofType(proof coreSlash.SlashingProofHandler, expectedType coreSlash.ProofID) error {
+func checkProofType(proof coreSlash.SlashingProofHandler, expectedType byte) error {
 	if proof == nil {
 		return process.ErrNilProof
 	}

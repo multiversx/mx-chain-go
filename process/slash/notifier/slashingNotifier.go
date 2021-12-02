@@ -156,7 +156,7 @@ func (sn *slashingNotifier) computeTxData(proof coreSlash.SlashingProofHandler) 
 	}
 
 	dataStr := fmt.Sprintf("%s@%s@%d@%d@%s@%s", BuiltInFunctionSlashCommitmentProof,
-		[]byte{byte(proofData.ProofID)}, proofData.ShardID, proofData.Round, proofCRC, proofSignature)
+		[]byte{proofData.ProofID}, proofData.ShardID, proofData.Round, proofCRC, proofSignature)
 
 	return []byte(dataStr), nil
 }

@@ -23,7 +23,7 @@ func BenchmarkMultipleHeaderSigningDetector_VerifyData(b *testing.B) {
 	blsSigners := createMultiSignersBls(metaConsensusGroupSize, hasher, keyGenerator)
 
 	args := createHeaderSigningDetectorArgs(b, hasher, keyGenerator, blsSigners)
-	// Worst case scenario: 1/4 * metaConsensusGroupSize + 1 sign the same 3 headers
+	// Worst case scenario: same (1/4 * metaConsensusGroupSize + 1) validators sign 3 different headers
 	noOfSignedHeaders := uint64(3)
 	slashableHeaders, _ := generateSlashableHeaders(b, hasher, maxNoOfMaliciousValidatorsOnMetaChain, noOfSignedHeaders, args.NodesCoordinator, blsSigners, false)
 	interceptedHeaders := createInterceptedHeaders(slashableHeaders)

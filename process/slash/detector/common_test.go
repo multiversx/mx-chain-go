@@ -37,7 +37,7 @@ const (
 	hysteresis              = float32(0.2)
 	defaultSelectionChances = uint32(1)
 	hashSize                = 16
-	metaConsensusGroupSize  = 101
+	metaConsensusGroupSize  = 400
 	shardConsensusGroupSize = 63
 	leaderGroupIndex        = 0
 	cacheSize               = 3
