@@ -22,7 +22,23 @@ type sigShareData struct {
 	index     uint32
 }
 
-func generateSlashResults(
+func generateMultipleHeaderProposalSlashResult(
+	b *testing.B,
+	hasher hashing.Hasher,
+	noOfMaliciousSigners uint32,
+	noOfHeaders uint64,
+	nodesCoordinator sharding.NodesCoordinator,
+	allMultiSigners map[string]multiSignerData,
+) *coreSlash.SlashingResult {
+	slashableHeaders, _ := generateSlashableHeaders(b, hasher, noOfMaliciousSigners, noOfHeaders, nodesCoordinator, allMultiSigners, true)
+
+	return &coreSlash.SlashingResult{
+		SlashingLevel: calcThreatLevel(noOfHeaders),
+		Headers:       slashableHeaders,
+	}
+}
+
+func generateMultipleHeaderSigningSlashResult(
 	b *testing.B,
 	hasher hashing.Hasher,
 	noOfMaliciousSigners uint32,
@@ -30,12 +46,12 @@ func generateSlashResults(
 	nodesCoordinator sharding.NodesCoordinator,
 	allMultiSigners map[string]multiSignerData,
 ) map[string]coreSlash.SlashingResult {
-	headersInfo, maliciousSigners := generateSlashableHeaders(b, hasher, noOfMaliciousSigners, noOfHeaders, nodesCoordinator, allMultiSigners, false)
+	slashableHeaders, maliciousSigners := generateSlashableHeaders(b, hasher, noOfMaliciousSigners, noOfHeaders, nodesCoordinator, allMultiSigners, false)
 
 	slashRes := make(map[string]coreSlash.SlashingResult, noOfMaliciousSigners)
 	for maliciousSigner := range maliciousSigners {
 		slashRes[maliciousSigner] = coreSlash.SlashingResult{
-			Headers:       headersInfo,
+			Headers:       slashableHeaders,
 			SlashingLevel: calcThreatLevel(noOfHeaders),
 		}
 	}
@@ -71,7 +87,7 @@ func generateSlashableHeaders(
 		if !allHeadersSameConsensusGroup {
 			randomness = []byte(strconv.Itoa(int(i)))
 		}
-		header := createMetaHeader(i, round, epoch, randomness)
+		header := createHeaderV2(i, round, epoch, randomness)
 		publicKeys, err := nodesCoordinator.GetConsensusValidatorsPublicKeys(randomness, round, core.MetachainShardId, epoch)
 		require.Nil(b, err)
 
@@ -128,14 +144,15 @@ func selectMaliciousSigners(noOfMaliciousSigners uint32, allMultiSigData map[str
 	return maliciousSigners
 }
 
-func createMetaHeader(timeStamp uint64, round uint64, epoch uint32, prevRandSeed []byte) data.HeaderHandler {
+func createHeaderV2(timeStamp uint64, round uint64, epoch uint32, prevRandSeed []byte) data.HeaderHandler {
 	return &block.HeaderV2{
 		Header: &block.Header{
-			TimeStamp:    timeStamp,
-			Round:        round,
-			ShardID:      core.MetachainShardId,
-			Epoch:        epoch,
-			PrevRandSeed: prevRandSeed,
+			TimeStamp:        timeStamp,
+			Round:            round,
+			ShardID:          core.MetachainShardId,
+			Epoch:            epoch,
+			PrevRandSeed:     prevRandSeed,
+			MiniBlockHeaders: []block.MiniBlockHeader{},
 		},
 	}
 }

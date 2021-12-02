@@ -4,7 +4,9 @@ import (
 	"testing"
 
 	coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
 	"github.com/ElrondNetwork/elrond-go/process/slash/detector"
@@ -19,27 +21,15 @@ func BenchmarkMultipleHeaderProposalDetector_ValidateProof(b *testing.B) {
 	keyGenerator := signing.NewKeyGenerator(blsSuite)
 	blsSigners := createMultiSignersBls(metaConsensusGroupSize, hasher, keyGenerator)
 
-	args := createMultipleHeaderDetectorArgs(b, hasher, keyGenerator, blsSigners)
-	ssd, err := detector.NewMultipleHeaderProposalsDetector(
-		&detector.MultipleHeaderProposalDetectorArgs{
-			MultipleHeaderDetectorArgs: args,
-		},
-	)
-	require.NotNil(b, ssd)
+	args := createHeaderProposalDetectorArgs(b, hasher, keyGenerator, blsSigners)
+	ssd, err := detector.NewMultipleHeaderProposalsDetector(args)
 	require.Nil(b, err)
 
-	// Worst case scenario: (1/4 * metaConsensusGroupSize + 1) sign the same 3 headers
-	noOfMaliciousSigners := uint32(float32(0.25*metaConsensusGroupSize)) + 1
-	// For 3 headers, we should have around 8 ms
-	// For 3 headers, we should have around 6 ms
-	// For 2 headers, we should have around 4 ms
-	noOfSignedHeaders := uint64(3)
-	slashableHeaders, _ := generateSlashableHeaders(b, hasher, noOfMaliciousSigners, noOfSignedHeaders, args.NodesCoordinator, blsSigners, true)
-
-	slashRes := &coreSlash.SlashingResult{
-		SlashingLevel: calcThreatLevel(noOfSignedHeaders),
-		Headers:       slashableHeaders,
-	}
+	// For 4 headers, it should take around 8 ms to verify the proof
+	// For 3 headers, it should take around 6 ms to verify the proof
+	// For 2 headers, it should take around 4 ms to verify the proof
+	noOfSlashableHeaders := uint64(3)
+	slashRes := generateMultipleHeaderProposalSlashResult(b, hasher, maxNoOfMaliciousValidatorsOnMetaChain, noOfSlashableHeaders, args.NodesCoordinator, blsSigners)
 
 	proof, err := coreSlash.NewMultipleProposalProof(slashRes)
 	require.NotNil(b, proof)
@@ -49,5 +39,16 @@ func BenchmarkMultipleHeaderProposalDetector_ValidateProof(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		err = ssd.ValidateProof(proof)
 		require.Nil(b, err)
+	}
+}
+
+func createHeaderProposalDetectorArgs(
+	b *testing.B,
+	hasher hashing.Hasher,
+	keyGenerator crypto.KeyGenerator,
+	multiSignersData map[string]multiSignerData,
+) *detector.MultipleHeaderProposalDetectorArgs {
+	return &detector.MultipleHeaderProposalDetectorArgs{
+		MultipleHeaderDetectorArgs: createMultipleHeaderDetectorArgs(b, hasher, keyGenerator, multiSignersData),
 	}
 }
