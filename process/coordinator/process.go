@@ -1003,7 +1003,8 @@ func (tc *transactionCoordinator) revertProcessedTxsResults(txHashes [][]byte) {
 		if !ok {
 			continue
 		}
-		interProc.RemoveProcessedResults()
+		resultHashes := interProc.RemoveProcessedResults()
+		tc.feeHandler.RevertFees(resultHashes)
 	}
 	tc.feeHandler.RevertFees(txHashes)
 }
