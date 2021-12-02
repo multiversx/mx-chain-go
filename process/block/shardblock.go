@@ -596,7 +596,7 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		return
 	}
 
-	gasConsumedInHeader := sp.baseProcessor.gasConsumedProvider.TotalGasConsumed()
+	gasConsumedInHeader := sp.baseProcessor.gasConsumedProvider.TotalGasProvided()
 	gasPenalizedInheader := sp.baseProcessor.gasConsumedProvider.TotalGasPenalized()
 	gasRefundedInHeader := sp.baseProcessor.gasConsumedProvider.TotalGasRefunded()
 	maxGasInHeader := sp.baseProcessor.economicsData.MaxGasLimitPerBlock(sp.shardCoordinator.SelfId())

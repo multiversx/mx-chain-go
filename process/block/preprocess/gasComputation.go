@@ -124,7 +124,7 @@ func (gc *gasComputation) GasPenalized(hash []byte) uint64 {
 	return gasPenalized
 }
 
-// TotalGasConsumed gets the total gas consumed
+// TotalGasProvided gets the total gas consumed
 func (gc *gasComputation) TotalGasProvided() uint64 {
 	totalGasConsumed := uint64(0)
 
