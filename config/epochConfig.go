@@ -64,6 +64,7 @@ type EnableEpochs struct {
 	OptimizeNFTStoreEnableEpoch                       uint32
 	CreateNFTThroughExecByCallerEnableEpoch           uint32
 	StopDecreasingValidatorRatingWhenStuckEnableEpoch uint32
+	FrontRunningProtectionEnableEpoch                 uint32
 	DisableOldTrieStorageEpoch                        uint32
 }
 

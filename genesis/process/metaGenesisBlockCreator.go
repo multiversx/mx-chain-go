@@ -415,6 +415,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		disabledBalanceComputationHandler,
 		epochNotifier,
 		enableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
+		enableEpochs.FrontRunningProtectionEnableEpoch,
 	)
 	if err != nil {
 		return nil, err
