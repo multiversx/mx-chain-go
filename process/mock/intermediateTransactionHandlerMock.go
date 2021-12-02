@@ -22,10 +22,11 @@ type IntermediateTransactionHandlerMock struct {
 }
 
 // RemoveProcessedResults -
-func (ith *IntermediateTransactionHandlerMock) RemoveProcessedResults() {
+func (ith *IntermediateTransactionHandlerMock) RemoveProcessedResults() [][]byte {
 	if ith.RemoveProcessedResultsCalled != nil {
 		ith.RemoveProcessedResultsCalled()
 	}
+	return nil
 }
 
 // InitProcessedResults -

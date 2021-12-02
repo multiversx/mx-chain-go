@@ -21,10 +21,11 @@ type IntermediateTransactionHandlerStub struct {
 }
 
 // RemoveProcessedResults -
-func (ith *IntermediateTransactionHandlerStub) RemoveProcessedResults() {
+func (ith *IntermediateTransactionHandlerStub) RemoveProcessedResults() [][]byte {
 	if ith.RemoveProcessedResultsCalled != nil {
 		ith.RemoveProcessedResultsCalled()
 	}
+	return nil
 }
 
 // InitProcessedResults -
