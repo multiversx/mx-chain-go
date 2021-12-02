@@ -82,14 +82,14 @@ func NewIndexHashedNodesCoordinatorLite(arguments ArgNodesCoordinatorLite) (*Ind
 	}
 
 	ihgs := &IndexHashedNodesCoordinatorLite{
+		shardConsensusGroupSize:   arguments.ShardConsensusGroupSize,
+		metaConsensusGroupSize:    arguments.MetaConsensusGroupSize,
 		hasher:                    arguments.Hasher,
+		shardIDAsObserver:         arguments.ShardIDAsObserver,
 		selfPubKey:                arguments.SelfPublicKey,
 		nodesConfig:               nodesConfig,
 		currentEpoch:              arguments.Epoch,
-		shardConsensusGroupSize:   arguments.ShardConsensusGroupSize,
-		metaConsensusGroupSize:    arguments.MetaConsensusGroupSize,
 		consensusGroupCacher:      arguments.ConsensusGroupCache,
-		shardIDAsObserver:         arguments.ShardIDAsObserver,
 		publicKeyToValidatorMap:   make(map[string]*ValidatorWithShardID),
 		waitingListFixEnableEpoch: arguments.WaitingListFixEnabledEpoch,
 		chanStopNode:              arguments.ChanStopNode,
@@ -621,30 +621,7 @@ func (ihgs *IndexHashedNodesCoordinatorLite) ConsensusGroupSize(
 	return ihgs.shardConsensusGroupSize
 }
 
-// GetNumTotalEligible returns the number of total eligible accross all shards from current setup
-func (ihgs *IndexHashedNodesCoordinatorLite) GetNumTotalEligible() uint64 {
-	return ihgs.numTotalEligible
-}
-
-// GetCurrentEpoch
-func (ihgs *IndexHashedNodesCoordinatorLite) GetCurrentEpoch() uint32 {
-	return ihgs.currentEpoch
-}
-
-func (ihgs *IndexHashedNodesCoordinatorLite) SetCurrentEpoch(epoch uint32) {
-	ihgs.currentEpoch = epoch
-}
-
-func (ihgs *IndexHashedNodesCoordinatorLite) GetMutNodesConfig() *sync.RWMutex {
-	return &ihgs.mutNodesConfig
-}
-
-func (ihgs *IndexHashedNodesCoordinatorLite) SetNodesConfig(nodesConfig map[uint32]*EpochNodesConfig) {
-	ihgs.mutNodesConfig.Lock()
-	ihgs.nodesConfig = nodesConfig
-	ihgs.mutNodesConfig.Unlock()
-}
-
+// GetLastEpochConfig returns the last epoch from nodes config
 func (ihgs *IndexHashedNodesCoordinatorLite) GetLastEpochConfig() uint32 {
 	ihgs.mutNodesConfig.Lock()
 	defer ihgs.mutNodesConfig.Unlock()
@@ -659,6 +636,29 @@ func (ihgs *IndexHashedNodesCoordinatorLite) GetLastEpochConfig() uint32 {
 	return lastEpoch
 }
 
+// GetNumTotalEligible returns the number of total eligible accross all shards from current setup
+func (ihgs *IndexHashedNodesCoordinatorLite) GetNumTotalEligible() uint64 {
+	return ihgs.numTotalEligible
+}
+
+// GetCurrentEpoch returns current epoch
+func (ihgs *IndexHashedNodesCoordinatorLite) GetCurrentEpoch() uint32 {
+	return ihgs.currentEpoch
+}
+
+// SetCurrentEpoch updates current epoch
+func (ihgs *IndexHashedNodesCoordinatorLite) SetCurrentEpoch(epoch uint32) {
+	ihgs.currentEpoch = epoch
+}
+
+// SetNodesConfig updates nodes config in a concurrent safe way
+func (ihgs *IndexHashedNodesCoordinatorLite) SetNodesConfig(nodesConfig map[uint32]*EpochNodesConfig) {
+	ihgs.mutNodesConfig.Lock()
+	ihgs.nodesConfig = nodesConfig
+	ihgs.mutNodesConfig.Unlock()
+}
+
+// GetNodesConfig returns nodes config for all epochs
 func (ihgs *IndexHashedNodesCoordinatorLite) GetNodesConfig() map[uint32]*EpochNodesConfig {
 	ihgs.mutNodesConfig.RLock()
 	defer ihgs.mutNodesConfig.RUnlock()
@@ -666,6 +666,7 @@ func (ihgs *IndexHashedNodesCoordinatorLite) GetNodesConfig() map[uint32]*EpochN
 	return ihgs.nodesConfig
 }
 
+// GetNodesConfigPerEpoch returns nodes config for the specified epoch
 func (ihgs *IndexHashedNodesCoordinatorLite) GetNodesConfigPerEpoch(epoch uint32) (*EpochNodesConfig, bool) {
 	ihgs.mutNodesConfig.RLock()
 	nodesConfig, ok := ihgs.nodesConfig[epoch]
@@ -674,33 +675,39 @@ func (ihgs *IndexHashedNodesCoordinatorLite) GetNodesConfigPerEpoch(epoch uint32
 	return nodesConfig, ok
 }
 
+// SetNodesConfigPerEpoch sets nodes config for the specified epoch
 func (ihgs *IndexHashedNodesCoordinatorLite) SetNodesConfigPerEpoch(epoch uint32, nodeConfig *EpochNodesConfig) {
 	ihgs.mutNodesConfig.RLock()
 	ihgs.nodesConfig[epoch] = nodeConfig
 	ihgs.mutNodesConfig.RUnlock()
 }
 
+// GetNodesCoordinatorHelper
 func (ihgs *IndexHashedNodesCoordinatorLite) GetNodesCoordinatorHelper() NodesCoordinatorHelper {
 	return ihgs.nodesCoordinatorHelper
 }
+
+// SetNodesCoordinatorHelper
 func (ihgs *IndexHashedNodesCoordinatorLite) SetNodesCoordinatorHelper(nch NodesCoordinatorHelper) {
 	ihgs.nodesCoordinatorHelper = nch
 }
 
-func (ihgs *IndexHashedNodesCoordinatorLite) GetShardIDAsObserver() uint32 {
+// ShardIDAsObserver
+func (ihgs *IndexHashedNodesCoordinatorLite) ShardIDAsObserver() uint32 {
 	return ihgs.shardIDAsObserver
 }
 
+// ClearConsensusGroupCacher will clear the consensus group cacher
 func (ihgs *IndexHashedNodesCoordinatorLite) ClearConsensusGroupCacher() {
 	ihgs.consensusGroupCacher.Clear()
 }
 
+// GetWaitingListFixEnableEpoch
 func (ihgs *IndexHashedNodesCoordinatorLite) GetWaitingListFixEnableEpoch() uint32 {
 	return ihgs.waitingListFixEnableEpoch
 }
 
 // GetOwnPublicKey will return current node public key  for block sign
-// p no
 func (ihgs *IndexHashedNodesCoordinatorLite) GetOwnPublicKey() []byte {
 	return ihgs.selfPubKey
 }

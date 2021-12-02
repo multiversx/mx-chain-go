@@ -44,35 +44,6 @@ func (v validatorList) Less(i, j int) bool {
 	return v[i].Index() < v[j].Index()
 }
 
-// type indexHashedNodesCoordinator struct {
-// 	shardIDAsObserver             uint32
-// 	currentEpoch                  uint32
-// 	shardConsensusGroupSize       int
-// 	metaConsensusGroupSize        int
-// 	numTotalEligible              uint64
-// 	selfPubKey                    []byte
-// 	savedStateKey                 []byte
-// 	marshalizer                   marshal.Marshalizer
-// 	hasher                        hashing.Hasher
-// 	shuffler                      NodesShuffler
-// 	epochStartRegistrationHandler EpochStartEventNotifier
-// 	bootStorer                    storage.Storer
-// 	nodesConfig                   map[uint32]*epochNodesConfig
-// 	mutNodesConfig                sync.RWMutex
-// 	mutSavedStateKey              sync.RWMutex
-// 	nodesCoordinatorHelper        NodesCoordinatorHelper
-// 	consensusGroupCacher          Cacher
-// 	loadingFromDisk               atomic.Value
-// 	shuffledOutHandler            ShuffledOutHandler
-// 	startEpoch                    uint32
-// 	publicKeyToValidatorMap       map[string]*validatorWithShardID
-// 	waitingListFixEnableEpoch     uint32
-// 	isFullArchive                 bool
-// 	chanStopNode                  chan endProcess.ArgEndProcess
-// 	flagWaitingListFix            atomicFlags.Flag
-// 	nodeTypeProvider              NodeTypeProviderHandler
-// }
-
 type indexHashedNodesCoordinator struct {
 	*nodesCoordinator.IndexHashedNodesCoordinatorLite
 
@@ -605,7 +576,7 @@ func (ihgs *indexHashedNodesCoordinator) GetConsensusWhitelistedNodes(
 
 func (ihgs *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfig *nodesCoordinator.EpochNodesConfig) (uint32, bool) {
 	pubKey := ihgs.GetOwnPublicKey()
-	selfShard := ihgs.GetShardIDAsObserver()
+	selfShard := ihgs.ShardIDAsObserver()
 	epNodesConfig, ok := ihgs.GetNodesConfigPerEpoch(ihgs.GetCurrentEpoch())
 	if ok {
 		log.Trace("computeShardForSelfPublicKey found existing config",

@@ -20,12 +20,10 @@ type NodesCoordinatorLite interface {
 	NodesCoordinatorHelper
 	PublicKeysSelector
 	ComputeConsensusGroup(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []Validator, err error)
-	ShardIdForEpoch(epoch uint32) (uint32, error)
 	ConsensusGroupSize(uint32) int
+	ShardIdForEpoch(epoch uint32) (uint32, error)
 	GetNumTotalEligible() uint64
 	IsInterfaceNil() bool
-
-	// more to add
 }
 
 // EpochStartEventNotifier provides Register and Unregister functionality for the end of epoch events
