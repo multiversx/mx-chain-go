@@ -39,6 +39,7 @@ func TestNewPreProcessorsContainerFactory_NilShardCoordinator(t *testing.T) {
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		2,
+		2,
 	)
 
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
@@ -67,6 +68,7 @@ func TestNewPreProcessorsContainerFactory_NilStore(t *testing.T) {
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
+		2,
 		2,
 	)
 
@@ -97,6 +99,7 @@ func TestNewPreProcessorsContainerFactory_NilMarshalizer(t *testing.T) {
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		2,
+		2,
 	)
 
 	assert.Equal(t, process.ErrNilMarshalizer, err)
@@ -125,6 +128,7 @@ func TestNewPreProcessorsContainerFactory_NilHasher(t *testing.T) {
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
+		2,
 		2,
 	)
 
@@ -155,6 +159,7 @@ func TestNewPreProcessorsContainerFactory_NilDataPool(t *testing.T) {
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		2,
+		2,
 	)
 
 	assert.Equal(t, process.ErrNilDataPoolHolder, err)
@@ -183,6 +188,7 @@ func TestNewPreProcessorsContainerFactory_NilAddrConv(t *testing.T) {
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
+		2,
 		2,
 	)
 
@@ -213,6 +219,7 @@ func TestNewPreProcessorsContainerFactory_NilAccounts(t *testing.T) {
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		2,
+		2,
 	)
 
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
@@ -241,6 +248,7 @@ func TestNewPreProcessorsContainerFactory_NilTxProcessor(t *testing.T) {
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
+		2,
 		2,
 	)
 
@@ -271,6 +279,7 @@ func TestNewPreProcessorsContainerFactory_NilSCProcessor(t *testing.T) {
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		2,
+		2,
 	)
 
 	assert.Equal(t, process.ErrNilSmartContractProcessor, err)
@@ -299,6 +308,7 @@ func TestNewPreProcessorsContainerFactory_NilSCR(t *testing.T) {
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
+		2,
 		2,
 	)
 
@@ -329,6 +339,7 @@ func TestNewPreProcessorsContainerFactory_NilRewardTxProcessor(t *testing.T) {
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		2,
+		2,
 	)
 
 	assert.Equal(t, process.ErrNilRewardsTxProcessor, err)
@@ -357,6 +368,7 @@ func TestNewPreProcessorsContainerFactory_NilRequestHandler(t *testing.T) {
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
+		2,
 		2,
 	)
 
@@ -387,6 +399,7 @@ func TestNewPreProcessorsContainerFactory_NilFeeHandler(t *testing.T) {
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		2,
+		2,
 	)
 
 	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
@@ -415,6 +428,7 @@ func TestNewPreProcessorsContainerFactory_NilGasHandler(t *testing.T) {
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
+		2,
 		2,
 	)
 
@@ -445,6 +459,7 @@ func TestNewPreProcessorsContainerFactory_NilBlockTracker(t *testing.T) {
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		2,
+		2,
 	)
 
 	assert.Equal(t, process.ErrNilBlockTracker, err)
@@ -473,6 +488,7 @@ func TestNewPreProcessorsContainerFactory_NilBlockSizeComputationHandler(t *test
 		nil,
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
+		2,
 		2,
 	)
 
@@ -503,6 +519,7 @@ func TestNewPreProcessorsContainerFactory_NilBalanceComputationHandler(t *testin
 		nil,
 		&mock.EpochNotifierStub{},
 		2,
+		2,
 	)
 
 	assert.Equal(t, process.ErrNilBalanceComputationHandler, err)
@@ -532,6 +549,7 @@ func TestNewPreProcessorsContainerFactory_NilEpochNotifier(t *testing.T) {
 		&mock.BalanceComputationStub{},
 		nil,
 		2,
+		2,
 	)
 
 	assert.Equal(t, process.ErrNilEpochNotifier, err)
@@ -560,6 +578,7 @@ func TestNewPreProcessorsContainerFactory(t *testing.T) {
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
+		2,
 		2,
 	)
 
@@ -594,6 +613,7 @@ func TestPreProcessorsContainerFactory_CreateErrTxPreproc(t *testing.T) {
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
+		2,
 		2,
 	)
 
@@ -634,6 +654,7 @@ func TestPreProcessorsContainerFactory_CreateErrScrPreproc(t *testing.T) {
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
+		2,
 		2,
 	)
 
@@ -677,6 +698,7 @@ func TestPreProcessorsContainerFactory_Create(t *testing.T) {
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
+		2,
 		2,
 	)
 

@@ -2,10 +2,10 @@ package storagePruningManager
 
 import (
 	"testing"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/state/factory"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
@@ -15,62 +15,35 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const trieDbOperationDelay = time.Second
-
 func getDefaultTrieAndAccountsDbAndStoragePruningManager() (common.Trie, *state.AccountsDB, *storagePruningManager) {
 	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:   1000,
-		SnapshotsBufferLen: 10,
-		MaxSnapshots:       2,
+		PruningBufferLen:      1000,
+		SnapshotsBufferLen:    10,
+		MaxSnapshots:          2,
+		SnapshotsGoroutineNum: 1,
 	}
 	marshalizer := &testscommon.MarshalizerMock{}
 	hsh := testscommon.HasherMock{}
 	args := trie.NewTrieStorageManagerArgs{
-		DB:          testscommon.NewMemDbMock(),
-		Marshalizer: marshalizer,
-		Hasher:      hsh,
+		DB:                testscommon.NewMemDbMock(),
+		MainStorer:        testscommon.CreateMemUnit(),
+		CheckpointsStorer: testscommon.CreateMemUnit(),
+		Marshalizer:       marshalizer,
+		Hasher:            hsh,
 		SnapshotDbConfig: config.DBConfig{
 			Type: "MemoryDB",
 		},
 		GeneralConfig:          generalCfg,
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, testscommon.HashSize),
+		EpochNotifier:          &mock.EpochNotifierStub{},
 	}
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 	tr, _ := trie.NewTrie(trieStorage, marshalizer, hsh, 5)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, testscommon.NewMemDbMock(), marshalizer)
 	spm, _ := NewStoragePruningManager(ewl, generalCfg.PruningBufferLen)
-	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, factory.NewAccountCreator(), spm)
+	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, factory.NewAccountCreator(), spm, common.Normal)
 
 	return tr, adb, spm
-}
-
-func TestAccountsDB_PruningIsDoneAfterSnapshotIsFinished(t *testing.T) {
-	t.Parallel()
-
-	tr, adb, spm := getDefaultTrieAndAccountsDbAndStoragePruningManager()
-	_ = tr.Update([]byte("doe"), []byte("reindeer"))
-	_ = tr.Update([]byte("dog"), []byte("puppy"))
-	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
-
-	_, _ = adb.Commit()
-	rootHash, _ := tr.RootHash()
-
-	trieStorage := tr.GetStorageManager()
-	trieStorage.TakeSnapshot(rootHash, true, nil)
-	time.Sleep(trieDbOperationDelay)
-	spm.PruneTrie(rootHash, state.NewRoot, trieStorage)
-	time.Sleep(trieDbOperationDelay)
-
-	val, err := trieStorage.Database().Get(rootHash)
-	assert.Nil(t, val)
-	assert.NotNil(t, err)
-
-	snapshotDb := trieStorage.GetSnapshotThatContainsHash(rootHash)
-	assert.NotNil(t, snapshotDb)
-
-	val, err = snapshotDb.Get(rootHash)
-	assert.NotNil(t, val)
-	assert.Nil(t, err)
 }
 
 func TestAccountsDB_TriePruneAndCancelPruneWhileSnapshotInProgressAddsToPruningBuffer(t *testing.T) {

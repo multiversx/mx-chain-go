@@ -382,6 +382,7 @@ func TestRewardTxPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 	t.Parallel()
 
 	txHash := testTxHash
+
 	tdp := initDataPool()
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
@@ -612,7 +613,7 @@ func TestRewardTxPreprocessor_ProcessBlockTransactions(t *testing.T) {
 	var blockBody block.Body
 	blockBody.MiniBlocks = append(blockBody.MiniBlocks, &mb1, &mb2)
 
-	err := rtp.ProcessBlockTransactions(&blockBody, haveTimeTrue)
+	err := rtp.ProcessBlockTransactions(&blockBody, haveTimeTrue, []byte("randomness"))
 	assert.Nil(t, err)
 }
 
@@ -748,7 +749,7 @@ func TestRewardTxPreprocessor_CreateAndProcessMiniBlocksShouldWork(t *testing.T)
 		&mock.BalanceComputationStub{},
 	)
 
-	mBlocksSlice, err := rtp.CreateAndProcessMiniBlocks(haveTimeTrue)
+	mBlocksSlice, err := rtp.CreateAndProcessMiniBlocks(haveTimeTrue, []byte("randomness"))
 	assert.NotNil(t, mBlocksSlice)
 	assert.Nil(t, err)
 }

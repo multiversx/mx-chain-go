@@ -73,6 +73,7 @@ func createGenesisConfig() config.EnableEpochs {
 		RemoveNonUpdatedStorageEnableEpoch:          unreachableEpoch,
 		OptimizeNFTStoreEnableEpoch:                 unreachableEpoch,
 		CreateNFTThroughExecByCallerEnableEpoch:     unreachableEpoch,
+		DisableOldTrieStorageEpoch:                  unreachableEpoch,
 	}
 }
 
@@ -490,6 +491,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		disabledBalanceComputationHandler,
 		epochNotifier,
 		enableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
+		enableEpochs.FrontRunningProtectionEnableEpoch,
 	)
 	if err != nil {
 		return nil, err

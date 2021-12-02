@@ -238,7 +238,7 @@ type TestProcessorNode struct {
 	PeerState           state.AccountsAdapter
 	AccntState          state.AccountsAdapter
 	TrieStorageManagers map[string]common.StorageManager
-	TrieContainer       state.TriesHolder
+	TrieContainer       common.TriesHolder
 	BlockChain          data.ChainHandler
 	GenesisBlocks       map[uint32]data.HeaderHandler
 
@@ -494,7 +494,8 @@ func NewTestProcessorNodeWithFullGenesis(
 	tpn.initRoundHandler()
 	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
 	tpn.initStorage()
-	tpn.initAccountDBs(CreateMemUnit())
+	tpn.EpochStartNotifier = notifier.NewEpochStartSubscriptionHandler()
+	tpn.initAccountDBsWithPruningStorer(CreateMemUnit())
 	economicsConfig := tpn.createDefaultEconomicsConfig()
 	economicsConfig.GlobalSettings.YearSettings = append(
 		economicsConfig.GlobalSettings.YearSettings,
@@ -617,6 +618,24 @@ func (tpn *TestProcessorNode) GetConnectableAddress() string {
 	}
 
 	return GetConnectableAddress(tpn.Messenger)
+}
+
+func (tpn *TestProcessorNode) initAccountDBsWithPruningStorer(
+	store storage.Storer,
+) {
+	trieStorageManager := CreateTrieStorageManagerWithPruningStorer(store, tpn.ShardCoordinator, tpn.EpochStartNotifier)
+	tpn.TrieContainer = state.NewDataTriesHolder()
+	var stateTrie common.Trie
+	tpn.AccntState, stateTrie = CreateAccountsDB(UserAccount, trieStorageManager)
+	tpn.TrieContainer.Put([]byte(trieFactory.UserAccountTrie), stateTrie)
+
+	var peerTrie common.Trie
+	tpn.PeerState, peerTrie = CreateAccountsDB(ValidatorAccount, trieStorageManager)
+	tpn.TrieContainer.Put([]byte(trieFactory.PeerAccountTrie), peerTrie)
+
+	tpn.TrieStorageManagers = make(map[string]common.StorageManager)
+	tpn.TrieStorageManagers[trieFactory.UserAccountTrie] = trieStorageManager
+	tpn.TrieStorageManagers[trieFactory.PeerAccountTrie] = trieStorageManager
 }
 
 func (tpn *TestProcessorNode) initAccountDBs(store storage.Storer) {
@@ -1499,6 +1518,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		TestBalanceComputationHandler,
 		tpn.EpochNotifier,
 		tpn.EnableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
+		tpn.EnableEpochs.FrontRunningProtectionEnableEpoch,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
@@ -1718,6 +1738,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		TestBalanceComputationHandler,
 		tpn.EpochNotifier,
 		tpn.EnableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
+		tpn.EnableEpochs.FrontRunningProtectionEnableEpoch,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
