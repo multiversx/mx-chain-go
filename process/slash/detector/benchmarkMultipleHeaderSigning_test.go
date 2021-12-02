@@ -24,7 +24,7 @@ func BenchmarkMultipleHeaderSigningDetector_VerifyData(b *testing.B) {
 
 	args := createHeaderSigningDetectorArgs(b, hasher, keyGenerator, blsSigners)
 	// Worst case scenario: same (1/4 * metaConsensusGroupSize + 1) validators sign 3 different headers
-	noOfSignedHeaders := uint64(3)
+	noOfSignedHeaders := uint32(3)
 	slashableHeaders, _ := generateSlashableHeaders(b, hasher, maxNoOfMaliciousValidatorsOnMetaChain, noOfSignedHeaders, args.NodesCoordinator, blsSigners, false)
 	interceptedHeaders := createInterceptedHeaders(slashableHeaders)
 
@@ -63,7 +63,7 @@ func BenchmarkMultipleHeaderSigningDetector_ValidateProof(b *testing.B) {
 	require.Nil(b, err)
 
 	// Worst case scenario: same (1/4 * metaConsensusGroupSize + 1) validators sign 3 different headers
-	noOfSignedHeaders := uint64(3)
+	noOfSignedHeaders := uint32(3)
 	slashRes := generateMultipleHeaderSigningSlashResult(b, hasher, maxNoOfMaliciousValidatorsOnMetaChain, noOfSignedHeaders, args.NodesCoordinator, blsSigners)
 	proof, err := coreSlash.NewMultipleSigningProof(slashRes)
 	require.NotNil(b, proof)

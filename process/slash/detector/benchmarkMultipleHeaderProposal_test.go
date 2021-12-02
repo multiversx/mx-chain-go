@@ -22,7 +22,7 @@ func BenchmarkMultipleHeaderProposalDetector_VerifyData(b *testing.B) {
 	keyGenerator := signing.NewKeyGenerator(blsSuite)
 	blsSigners := createMultiSignersBls(metaConsensusGroupSize, hasher, keyGenerator)
 
-	noOfSignedHeaders := uint64(3)
+	noOfSignedHeaders := uint32(3)
 	args := createHeaderProposalDetectorArgs(b, hasher, keyGenerator, blsSigners)
 	slashableHeaders, _ := generateSlashableHeaders(b, hasher, maxNoOfMaliciousValidatorsOnMetaChain, noOfSignedHeaders, args.NodesCoordinator, blsSigners, true)
 	interceptedHeaders := createInterceptedHeaders(slashableHeaders)
@@ -64,7 +64,7 @@ func BenchmarkMultipleHeaderProposalDetector_ValidateProof(b *testing.B) {
 	// For 4 headers, it should take around 8 ms to verify the proof
 	// For 3 headers, it should take around 6 ms to verify the proof
 	// For 2 headers, it should take around 4 ms to verify the proof
-	noOfSlashableHeaders := uint64(3)
+	noOfSlashableHeaders := uint32(3)
 	slashRes := generateMultipleHeaderProposalSlashResult(b, hasher, maxNoOfMaliciousValidatorsOnMetaChain, noOfSlashableHeaders, args.NodesCoordinator, blsSigners)
 
 	proof, err := coreSlash.NewMultipleProposalProof(slashRes)

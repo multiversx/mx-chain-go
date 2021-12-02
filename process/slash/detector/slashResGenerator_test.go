@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	coreDataMock "github.com/ElrondNetwork/elrond-go-core/data/mock"
 	coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
+	"github.com/ElrondNetwork/elrond-go-core/data/testscommon/slash"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
@@ -26,14 +27,14 @@ func generateMultipleHeaderProposalSlashResult(
 	b *testing.B,
 	hasher hashing.Hasher,
 	noOfMaliciousSigners uint32,
-	noOfHeaders uint64,
+	noOfHeaders uint32,
 	nodesCoordinator sharding.NodesCoordinator,
 	allMultiSigners map[string]multiSignerData,
 ) *coreSlash.SlashingResult {
 	slashableHeaders, _ := generateSlashableHeaders(b, hasher, noOfMaliciousSigners, noOfHeaders, nodesCoordinator, allMultiSigners, true)
 
 	return &coreSlash.SlashingResult{
-		SlashingLevel: calcThreatLevel(noOfHeaders),
+		SlashingLevel: slash.CalcThreatLevel(noOfHeaders),
 		Headers:       slashableHeaders,
 	}
 }
@@ -42,7 +43,7 @@ func generateMultipleHeaderSigningSlashResult(
 	b *testing.B,
 	hasher hashing.Hasher,
 	noOfMaliciousSigners uint32,
-	noOfHeaders uint64,
+	noOfHeaders uint32,
 	nodesCoordinator sharding.NodesCoordinator,
 	allMultiSigners map[string]multiSignerData,
 ) map[string]coreSlash.SlashingResult {
@@ -52,7 +53,7 @@ func generateMultipleHeaderSigningSlashResult(
 	for maliciousSigner := range maliciousSigners {
 		slashRes[maliciousSigner] = coreSlash.SlashingResult{
 			Headers:       slashableHeaders,
-			SlashingLevel: calcThreatLevel(noOfHeaders),
+			SlashingLevel: slash.CalcThreatLevel(noOfHeaders),
 		}
 	}
 
@@ -69,7 +70,7 @@ func generateSlashableHeaders(
 	b *testing.B,
 	hasher hashing.Hasher,
 	noOfMaliciousSigners uint32,
-	noOfHeaders uint64,
+	noOfHeaders uint32,
 	nodesCoordinator sharding.NodesCoordinator,
 	allMultiSigners map[string]multiSignerData,
 	allHeadersSameConsensusGroup bool,
@@ -83,11 +84,11 @@ func generateSlashableHeaders(
 	epoch := uint32(0)
 	headersInfo := make([]data.HeaderInfoHandler, 0, noOfHeaders)
 	randomness := []byte("rnd")
-	for i := uint64(0); i < noOfHeaders; i++ {
+	for i := uint32(0); i < noOfHeaders; i++ {
 		if !allHeadersSameConsensusGroup {
 			randomness = []byte(strconv.Itoa(int(i)))
 		}
-		header := createHeaderV2(i, round, epoch, randomness)
+		header := createHeaderV2(uint64(i), round, epoch, randomness)
 		publicKeys, err := nodesCoordinator.GetConsensusValidatorsPublicKeys(randomness, round, core.MetachainShardId, epoch)
 		require.Nil(b, err)
 
@@ -250,15 +251,4 @@ func calcLeaderSignature(leaderPrivateKey crypto.PrivateKey, header data.HeaderH
 	}
 
 	return leader.Sign(leaderPrivateKey, headerBytes)
-}
-
-func calcThreatLevel(noOfHeaders uint64) coreSlash.ThreatLevel {
-	threatLevel := coreSlash.Zero
-	if noOfHeaders == coreSlash.MinSlashableNoOfHeaders {
-		threatLevel = coreSlash.Medium
-	} else if noOfHeaders >= coreSlash.MinSlashableNoOfHeaders {
-		threatLevel = coreSlash.High
-	}
-
-	return threatLevel
 }
