@@ -303,6 +303,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		balanceComputationHandler,
 		pcf.epochNotifier,
 		enableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
+		enableEpochs.FrontRunningProtectionEnableEpoch,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -558,6 +559,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		balanceComputationHandler,
 		pcf.epochNotifier,
 		enableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
+		enableEpochs.FrontRunningProtectionEnableEpoch,
 	)
 	if err != nil {
 		return nil, nil, err

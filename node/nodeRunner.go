@@ -263,8 +263,18 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 
 	nr.logInformation(managedCoreComponents, managedCryptoComponents, managedBootstrapComponents)
 
+	log.Debug("creating data components")
+	managedDataComponents, err := nr.CreateManagedDataComponents(managedCoreComponents, managedBootstrapComponents)
+	if err != nil {
+		return true, err
+	}
+
 	log.Debug("creating state components")
-	managedStateComponents, err := nr.CreateManagedStateComponents(managedCoreComponents, managedBootstrapComponents)
+	managedStateComponents, err := nr.CreateManagedStateComponents(
+		managedCoreComponents,
+		managedBootstrapComponents,
+		managedDataComponents,
+	)
 	if err != nil {
 		return true, err
 	}
@@ -272,12 +282,6 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	log.Trace("creating metrics")
 	// this should be called before setting the storer (done in the managedDataComponents creation)
 	err = nr.createMetrics(managedCoreComponents, managedCryptoComponents, managedBootstrapComponents)
-	if err != nil {
-		return true, err
-	}
-
-	log.Debug("creating data components")
-	managedDataComponents, err := nr.CreateManagedDataComponents(managedCoreComponents, managedBootstrapComponents)
 	if err != nil {
 		return true, err
 	}
@@ -1038,14 +1042,19 @@ func (nr *nodeRunner) CreateManagedDataComponents(
 func (nr *nodeRunner) CreateManagedStateComponents(
 	managedCoreComponents mainFactory.CoreComponentsHandler,
 	managedBootstrapComponents mainFactory.BootstrapComponentsHandler,
+	managedDataComponents mainFactory.DataComponentsHandler,
 ) (mainFactory.StateComponentsHandler, error) {
-	triesComponents, trieStorageManagers := managedBootstrapComponents.EpochStartBootstrapper().GetTriesComponents()
+	processingMode := common.Normal
+	if nr.configs.ImportDbConfig.IsImportDBMode {
+		processingMode = common.ImportDb
+	}
 	stateArgs := mainFactory.StateComponentsFactoryArgs{
-		Config:              *nr.configs.GeneralConfig,
-		ShardCoordinator:    managedBootstrapComponents.ShardCoordinator(),
-		Core:                managedCoreComponents,
-		TriesContainer:      triesComponents,
-		TrieStorageManagers: trieStorageManagers,
+		Config:           *nr.configs.GeneralConfig,
+		EnableEpochs:     nr.configs.EpochConfig.EnableEpochs,
+		ShardCoordinator: managedBootstrapComponents.ShardCoordinator(),
+		Core:             managedCoreComponents,
+		StorageService:   managedDataComponents.StorageService(),
+		ProcessingMode:   processingMode,
 	}
 
 	stateComponentsFactory, err := mainFactory.NewStateComponentsFactory(stateArgs)

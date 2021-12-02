@@ -46,6 +46,8 @@ type basePreProcess struct {
 	pubkeyConverter                             core.PubkeyConverter
 	optimizeGasUsedInCrossMiniBlocksEnableEpoch uint32
 	flagOptimizeGasUsedInCrossMiniBlocks        atomic.Flag
+	frontRunningProtectionEnableEpoch           uint32
+	flagFrontRunningProtection                  atomic.Flag
 }
 
 func (bpp *basePreProcess) removeBlockDataFromPools(
@@ -474,4 +476,6 @@ func (bpp *basePreProcess) updateGasConsumedWithGasRefundedAndGasPenalized(
 func (bpp *basePreProcess) EpochConfirmed(epoch uint32, _ uint64) {
 	bpp.flagOptimizeGasUsedInCrossMiniBlocks.Toggle(epoch >= bpp.optimizeGasUsedInCrossMiniBlocksEnableEpoch)
 	log.Debug("basePreProcess: optimize gas used in cross mini blocks", "enabled", bpp.flagOptimizeGasUsedInCrossMiniBlocks.IsSet())
+	bpp.flagFrontRunningProtection.Toggle(epoch >= bpp.frontRunningProtectionEnableEpoch)
+	log.Debug("basePreProcess: front running protection", "enabled", bpp.flagFrontRunningProtection.IsSet())
 }

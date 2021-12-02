@@ -125,7 +125,7 @@ func (ihgs *indexHashedNodesCoordinator) NodesCoordinatorToRegistry() *NodesCoor
 	return registry
 }
 
-func(ihgs *indexHashedNodesCoordinator) getLastEpochConfig() uint32 {
+func (ihgs *indexHashedNodesCoordinator) getLastEpochConfig() uint32 {
 	lastEpoch := uint32(0)
 	for epoch := range ihgs.nodesConfig {
 		if lastEpoch < epoch {
