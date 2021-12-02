@@ -225,6 +225,7 @@ func (scr *smartContractResults) RestoreBlockDataIntoPools(
 func (scr *smartContractResults) ProcessBlockTransactions(
 	body *block.Body,
 	haveTime func() bool,
+	_ []byte,
 ) error {
 	if check.IfNil(body) {
 		return process.ErrNilBlockBody
@@ -460,7 +461,7 @@ func (scr *smartContractResults) getAllScrsFromMiniBlock(
 
 // CreateAndProcessMiniBlocks creates miniblocks from storage and processes the reward transactions added into the miniblocks
 // as long as it has time
-func (scr *smartContractResults) CreateAndProcessMiniBlocks(_ func() bool) (block.MiniBlockSlice, error) {
+func (scr *smartContractResults) CreateAndProcessMiniBlocks(_ func() bool, _ []byte) (block.MiniBlockSlice, error) {
 	return make(block.MiniBlockSlice, 0), nil
 }
 

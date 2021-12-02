@@ -217,3 +217,6 @@ var ErrNilTrieStorageManager = errors.New("nil trie storage manager")
 
 // ErrNilPathManager signals that a nil path manager has been provided
 var ErrNilPathManager = errors.New("nil path manager")
+
+// ErrNilEpochNotifier signals that the provided EpochNotifier is nil
+var ErrNilEpochNotifier = errors.New("nil EpochNotifier")

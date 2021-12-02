@@ -132,6 +132,7 @@ func (ln *leafNode) commitCheckpoint(
 	checkpointHashes CheckpointHashesHolder,
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
+	stats common.SnapshotStatisticsHandler,
 ) error {
 	if shouldStopIfContextDone(ctx) {
 		return ErrContextClosing
@@ -159,19 +160,21 @@ func (ln *leafNode) commitCheckpoint(
 
 	checkpointHashes.Remove(hash)
 
-	_, err = encodeNodeAndCommitToDB(ln, targetDb)
+	nodeSize, err := encodeNodeAndCommitToDB(ln, targetDb)
 	if err != nil {
 		return err
 	}
+
+	stats.AddSize(uint64(nodeSize))
 
 	return nil
 }
 
 func (ln *leafNode) commitSnapshot(
-	_ common.DBWriteCacher,
-	targetDb common.DBWriteCacher,
+	db common.DBWriteCacher,
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
+	stats common.SnapshotStatisticsHandler,
 ) error {
 	if shouldStopIfContextDone(ctx) {
 		return ErrContextClosing
@@ -187,10 +190,12 @@ func (ln *leafNode) commitSnapshot(
 		return err
 	}
 
-	_, err = encodeNodeAndCommitToDB(ln, targetDb)
+	nodeSize, err := encodeNodeAndCommitToDB(ln, db)
 	if err != nil {
 		return err
 	}
+
+	stats.AddSize(uint64(nodeSize))
 
 	return nil
 }
