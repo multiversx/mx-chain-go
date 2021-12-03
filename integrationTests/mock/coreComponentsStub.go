@@ -43,6 +43,7 @@ type CoreComponentsStub struct {
 	GenesisNodesSetupField             sharding.GenesisNodesSetupHandler
 	NodesShufflerField                 sharding.NodesShuffler
 	EpochNotifierField                 process.EpochNotifier
+	RoundNotifierField                 process.RoundNotifier
 	EpochStartNotifierWithConfirmField factory.EpochStartNotifierWithConfirm
 	ChanStopNodeProcessField           chan endProcess.ArgEndProcess
 	GenesisTimeField                   time.Time
@@ -130,6 +131,11 @@ func (ccs *CoreComponentsStub) NodesShuffler() sharding.NodesShuffler {
 // EpochNotifier -
 func (ccs *CoreComponentsStub) EpochNotifier() process.EpochNotifier {
 	return ccs.EpochNotifierField
+}
+
+// RoundNotifier -
+func (ccs *CoreComponentsStub) RoundNotifier() process.RoundNotifier {
+	return ccs.RoundNotifierField
 }
 
 // EpochStartNotifierWithConfirm -

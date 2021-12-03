@@ -9,12 +9,13 @@ import (
 )
 
 type roundActivation struct {
-	mutex          sync.RWMutex
 	roundByNameMap map[string]uint64
+	round          uint64
+	mutex          sync.RWMutex
 }
 
 // NewRoundActivation creates a new round activation handler component
-func NewRoundActivation(config config.RoundConfig) (process.RoundActivationHandler, error) {
+func NewRoundActivation(config config.RoundConfig) (*roundActivation, error) {
 	configMap, err := getRoundsByNameMap(config)
 	if err != nil {
 		return nil, err
@@ -26,17 +27,37 @@ func NewRoundActivation(config config.RoundConfig) (process.RoundActivationHandl
 	}, nil
 }
 
-// IsEnabled checks if the queried round flag name is enabled in the queried round
-func (ra *roundActivation) IsEnabled(name string, round uint64) bool {
+// IsEnabledInRound checks if the queried round flag name is enabled in the queried round
+func (ra *roundActivation) IsEnabledInRound(name string, round uint64) bool {
 	ra.mutex.RLock()
-	r, exists := ra.roundByNameMap[name]
-	ra.mutex.RUnlock()
+	defer ra.mutex.RUnlock()
 
+	return ra.isEnabledInRound(name, round)
+}
+
+func (ra *roundActivation) isEnabledInRound(name string, round uint64) bool {
+	r, exists := ra.roundByNameMap[name]
 	if exists {
 		return round >= r
 	}
 
 	return false
+}
+
+// IsEnabled checks if the queried round flag name is enabled in the current processed round
+func (ra *roundActivation) IsEnabled(name string) bool {
+	ra.mutex.RLock()
+	defer ra.mutex.RUnlock()
+
+	currRound := ra.round
+	return ra.isEnabledInRound(name, currRound)
+}
+
+// RoundConfirmed resets the current stored round
+func (ra *roundActivation) RoundConfirmed(round uint64) {
+	ra.mutex.Lock()
+	ra.round = round
+	ra.mutex.Unlock()
 }
 
 // IsInterfaceNil checks if the underlying pointer receiver is nil

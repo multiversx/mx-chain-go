@@ -8,13 +8,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRoundActivation_IsEnabled(t *testing.T) {
+func TestRoundActivation_IsEnabledInRound_IsEnabled(t *testing.T) {
 	t.Parallel()
 
 	ra, err := roundActivation.NewRoundActivation(config.RoundConfig{})
 	require.Nil(t, err)
-	require.False(t, ra.IsEnabled("Fix1", 100))
-	require.False(t, ra.IsEnabled("Fix2", 1000))
+	require.False(t, ra.IsEnabledInRound("Fix1", 100))
+	require.False(t, ra.IsEnabledInRound("Fix2", 1000))
+	require.False(t, ra.IsEnabled("Fix1"))
+	require.False(t, ra.IsEnabled("Fix2"))
 }
 
 func TestRoundActivation_IsInterfaceNil(t *testing.T) {

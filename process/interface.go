@@ -1000,6 +1000,19 @@ type EpochNotifier interface {
 	IsInterfaceNil() bool
 }
 
+// RoundSubscriberHandler defines the behavior of a component that can be notified if a new round was confirmed
+type RoundSubscriberHandler interface {
+	RoundConfirmed(round uint64)
+	IsInterfaceNil() bool
+}
+
+// RoundNotifier can notify upon round change in current processed block
+type RoundNotifier interface {
+	RegisterNotifyHandler(handler RoundSubscriberHandler)
+	CheckRound(round uint64)
+	IsInterfaceNil() bool
+}
+
 // ESDTPauseHandler provides IsPaused function for an ESDT token
 type ESDTPauseHandler interface {
 	IsPaused(token []byte) bool
@@ -1026,7 +1039,8 @@ type FallbackHeaderValidator interface {
 
 // RoundActivationHandler is a component which can be queried to check for round activation features/fixes
 type RoundActivationHandler interface {
-	IsEnabled(name string, round uint64) bool
+	IsEnabledInRound(name string, round uint64) bool
+	IsEnabled(name string) bool
 	IsInterfaceNil() bool
 }
 
