@@ -124,17 +124,17 @@ func (gc *gasComputation) GasPenalized(hash []byte) uint64 {
 	return gasPenalized
 }
 
-// TotalGasProvided gets the total gas consumed
+// TotalGasProvided gets the total gas provided
 func (gc *gasComputation) TotalGasProvided() uint64 {
-	totalGasConsumed := uint64(0)
+	totalGasProvided := uint64(0)
 
 	gc.mutGasConsumed.RLock()
 	for _, gasConsumed := range gc.gasConsumed {
-		totalGasConsumed += gasConsumed
+		totalGasProvided += gasConsumed
 	}
 	gc.mutGasConsumed.RUnlock()
 
-	return totalGasConsumed
+	return totalGasProvided
 }
 
 // TotalGasRefunded gets the total gas refunded

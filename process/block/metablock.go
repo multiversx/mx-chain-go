@@ -621,7 +621,7 @@ func (mp *metaProcessor) indexBlock(
 		Header:         metaBlock,
 		SignersIndexes: signersIndexes,
 		HeaderGasConsumption: indexer.HeaderGasConsumption{
-			GasConsumed:    gasConsumedInHeader,
+			GasProvided:    gasConsumedInHeader,
 			GasRefunded:    gasRefundedInHeader,
 			GasPenalized:   gasPenalizedInHeader,
 			MaxGasPerBlock: maxGasInHeader,
