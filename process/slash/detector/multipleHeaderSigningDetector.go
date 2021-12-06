@@ -200,6 +200,18 @@ func (mhs *multipleHeaderSigningDetector) ValidateProof(proof coreSlash.Slashing
 		return process.ErrNotEnoughPublicKeysProvided
 	}
 
+	headers := multipleSigningProof.GetAllHeaders()
+	for _, header := range headers {
+		err = mhs.headerSigVerifier.VerifySignature(header)
+		if err != nil {
+			return err
+		}
+		err = mhs.headerSigVerifier.VerifyLeaderSignature(header)
+		if err != nil {
+			return err
+		}
+	}
+
 	for _, signer := range signers {
 		err := mhs.checkSlashLevel(multipleSigningProof.GetHeaders(signer), multipleSigningProof.GetLevel(signer))
 		if err != nil {
@@ -279,13 +291,7 @@ func (mhs *multipleHeaderSigningDetector) signedHeader(pubKey []byte, header dat
 	for idx, validator := range group {
 		if bytes.Equal(validator.PubKey(), pubKey) {
 			if sliceUtil.IsIndexSetInBitmap(uint32(idx), header.GetPubKeysBitmap()) {
-				err = mhs.headerSigVerifier.VerifySignature(header)
-				log.LogIfError(err)
-				err = mhs.headerSigVerifier.VerifyLeaderSignature(header)
-				log.LogIfError(err)
-				if err == nil {
-					return true
-				}
+				return true
 			}
 		}
 	}

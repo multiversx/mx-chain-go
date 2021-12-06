@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/slash/detector"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	shardingMock "github.com/ElrondNetwork/elrond-go/sharding/mock"
+	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
@@ -198,6 +199,7 @@ func createNodesCoordinatorArgs(hasher hashing.Hasher, pubKeys []string) shardin
 	eligibleMap := createShardValidatorMap(metaConsensusGroupSize, noOfShards, pubKeys)
 	waitingMap := createShardValidatorMap(1, noOfShards, pubKeys)
 	nodeShuffler := createNodesShuffler()
+	consensusGroupCache, _ := lrucache.NewCache(1000)
 
 	return sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize:    shardConsensusGroupSize,
@@ -211,7 +213,7 @@ func createNodesCoordinatorArgs(hasher hashing.Hasher, pubKeys []string) shardin
 		EligibleNodes:              eligibleMap,
 		WaitingNodes:               waitingMap,
 		SelfPublicKey:              []byte("test"),
-		ConsensusGroupCache:        &shardingMock.NodesCoordinatorCacheMock{},
+		ConsensusGroupCache:        consensusGroupCache,
 		ShuffledOutHandler:         &shardingMock.ShuffledOutHandlerStub{},
 		WaitingListFixEnabledEpoch: 0,
 		IsFullArchive:              false,
