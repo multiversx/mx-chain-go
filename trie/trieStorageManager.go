@@ -464,7 +464,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 		return
 	}
 
-	if !checkIfActiveDb(stsm) {
+	if !isActiveDb(stsm) {
 		return
 	}
 
@@ -502,7 +502,7 @@ func (tsm *trieStorageManager) takeCheckpoint(checkpointEntry *snapshotsQueueEnt
 	}
 }
 
-func checkIfActiveDb(stsm *snapshotTrieStorageManager) bool {
+func isActiveDb(stsm *snapshotTrieStorageManager) bool {
 	val, err := stsm.Get([]byte(activeDBKey))
 	if bytes.Equal(val, []byte(activeDBVal)) {
 		return true
