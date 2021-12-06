@@ -23,5 +23,4 @@ func (tbm *testBootstrapperMock) RollBack(_ bool) error {
 
 // SetProbableHighestNonce -
 func (tbm *testBootstrapperMock) SetProbableHighestNonce(_ uint64) {
-	return
 }
