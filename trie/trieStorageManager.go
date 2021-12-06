@@ -25,6 +25,11 @@ import (
 	"github.com/ElrondNetwork/elrond-vm-common/atomic"
 )
 
+const (
+	activeDBKey = "activeDB"
+	activeDBVal = "yes"
+)
+
 // trieStorageManager manages all the storage operations of the trie (commit, snapshot, checkpoint, pruning)
 type trieStorageManager struct {
 	mainStorer             common.DBWriteCacher
@@ -459,6 +464,10 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 		return
 	}
 
+	if !checkIfActiveDb(stsm) {
+		return
+	}
+
 	err = newRoot.commitSnapshot(stsm, snapshotEntry.leavesChan, ctx, snapshotEntry.stats)
 	if err == ErrContextClosing {
 		log.Debug("context closing while in commitSnapshot operation")
@@ -491,6 +500,19 @@ func (tsm *trieStorageManager) takeCheckpoint(checkpointEntry *snapshotsQueueEnt
 	if err != nil {
 		log.Error("trie storage manager: takeCheckpoint commit", "error", err.Error())
 	}
+}
+
+func checkIfActiveDb(stsm *snapshotTrieStorageManager) bool {
+	val, err := stsm.Get([]byte(activeDBKey))
+	if bytes.Equal(val, []byte(activeDBVal)) {
+		return true
+	}
+
+	log.Debug("snapshotTrieStorageManager get",
+		"err", err.Error(),
+		"value", val,
+	)
+	return false
 }
 
 func newSnapshotNode(
@@ -613,9 +635,13 @@ func (tsm *trieStorageManager) SetEpochForPutOperation(epoch uint32) {
 	storer.SetEpochForPutOperation(epoch)
 }
 
+// EpochConfirmed is called whenever a new epoch is confirmed
 func (tsm *trieStorageManager) EpochConfirmed(epoch uint32, _ uint64) {
 	tsm.flagDisableOldStorage.Toggle(epoch >= tsm.disableOldStorageEpoch)
 	log.Debug("old trie storage", "disabled", tsm.flagDisableOldStorage.IsSet())
+
+	err := tsm.mainStorer.Put([]byte(activeDBKey), []byte(activeDBVal))
+	log.LogIfError(err, "error", "set db as activeDB error")
 
 	if tsm.flagDisableOldStorage.IsSet() && !tsm.oldStorageClosed {
 		err := tsm.closeOldTrieStorage()
