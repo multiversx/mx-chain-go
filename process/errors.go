@@ -470,9 +470,6 @@ var ErrOverflow = errors.New("type overflow occured")
 // ErrNilTxValidator signals that a nil tx validator has been provided
 var ErrNilTxValidator = errors.New("nil transaction validator")
 
-// ErrNilHdrValidator signals that a nil header validator has been provided
-var ErrNilHdrValidator = errors.New("nil header validator")
-
 // ErrNilPendingMiniBlocksHandler signals that a nil pending miniblocks handler has been provided
 var ErrNilPendingMiniBlocksHandler = errors.New("nil pending miniblocks handler")
 
@@ -937,6 +934,9 @@ var ErrMoreGasConsumedThanProvided = errors.New("more gas used than provided")
 
 // ErrInvalidGasModifier signals that provided gas modifier is invalid
 var ErrInvalidGasModifier = errors.New("invalid gas modifier")
+
+// ErrMoreGasThanGasLimitPerBlock signals that more gas was provided than gas limit per block
+var ErrMoreGasThanGasLimitPerBlock = errors.New("more gas was provided than gas limit per block")
 
 // ErrMoreGasThanGasLimitPerMiniBlockForSafeCrossShard signals that more gas was provided than gas limit per mini block for safe cross shard
 var ErrMoreGasThanGasLimitPerMiniBlockForSafeCrossShard = errors.New("more gas was provided than gas limit per mini block for safe cross shard")

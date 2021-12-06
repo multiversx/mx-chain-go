@@ -85,6 +85,7 @@ type coreComponents struct {
 	watchdog                      core.WatchdogTimer
 	nodesSetupHandler             sharding.GenesisNodesSetupHandler
 	economicsData                 process.EconomicsDataHandler
+	apiEconomicsData              process.EconomicsDataHandler
 	ratingsData                   process.RatingsInfoHandler
 	rater                         sharding.PeerAccountListAndRatingHandler
 	nodesShuffler                 sharding.NodesShuffler
@@ -256,6 +257,11 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
+	apiEconomicsData, err := economics.NewAPIEconomicsData(economicsData)
+	if err != nil {
+		return nil, err
+	}
+
 	log.Trace("creating ratings data")
 	ratingDataArgs := rating.RatingsDataArg{
 		Config:                   ccf.ratingsConfig,
@@ -333,6 +339,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		watchdog:                      watchdogTimer,
 		nodesSetupHandler:             genesisNodesConfig,
 		economicsData:                 economicsData,
+		apiEconomicsData:              apiEconomicsData,
 		ratingsData:                   ratingsData,
 		rater:                         rater,
 		nodesShuffler:                 nodesShuffler,
