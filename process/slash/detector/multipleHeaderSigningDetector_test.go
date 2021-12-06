@@ -505,6 +505,73 @@ func TestMultipleHeaderSigningDetector_ValidateProof_NotEnoughHeaders_ExpectErro
 	require.Equal(t, process.ErrNotEnoughHeadersProvided, err)
 }
 
+func TestMultipleHeaderSigningDetector_ValidateProof_NilHeader_ExpectError(t *testing.T) {
+	t.Parallel()
+
+	args := generateMultipleHeaderSigningDetectorArgs()
+	ssd, _ := detector.NewMultipleHeaderSigningDetector(args)
+	proof := &slashMocks.MultipleHeaderSigningProofStub{
+		GetPubKeysCalled: func() [][]byte {
+			return [][]byte{validatorPubKey}
+		},
+		GetAllHeadersCalled: func() []data.HeaderHandler {
+			return slash.HeaderList{nil, nil}
+		},
+	}
+	err := ssd.ValidateProof(proof)
+	require.Equal(t, process.ErrNilHeaderHandler, err)
+}
+
+func TestMultipleHeaderSigningDetector_ValidateProof_InvalidSignature_ExpectError(t *testing.T) {
+	t.Parallel()
+
+	args := generateMultipleHeaderSigningDetectorArgs()
+	errVerifySignature := errors.New("invalid signature")
+	args.HeaderSigVerifier = &mock.HeaderSigVerifierStub{
+		VerifySignatureCalled: func(data.HeaderHandler) error {
+			return errVerifySignature
+		},
+	}
+	ssd, _ := detector.NewMultipleHeaderSigningDetector(args)
+
+	proof := &slashMocks.MultipleHeaderSigningProofStub{
+		GetPubKeysCalled: func() [][]byte {
+			return [][]byte{validatorPubKey}
+		},
+		GetAllHeadersCalled: func() []data.HeaderHandler {
+			return slash.HeaderList{&block.Header{}, &block.Header{}}
+		},
+	}
+
+	err := ssd.ValidateProof(proof)
+	require.Equal(t, errVerifySignature, err)
+}
+
+func TestMultipleHeaderSigningDetector_ValidateProof_InvalidLeaderSignature_ExpectError(t *testing.T) {
+	t.Parallel()
+
+	args := generateMultipleHeaderSigningDetectorArgs()
+	errLeaderSignature := errors.New("invalid leader signature")
+	args.HeaderSigVerifier = &mock.HeaderSigVerifierStub{
+		VerifyLeaderSignatureCalled: func(data.HeaderHandler) error {
+			return errLeaderSignature
+		},
+	}
+	ssd, _ := detector.NewMultipleHeaderSigningDetector(args)
+
+	proof := &slashMocks.MultipleHeaderSigningProofStub{
+		GetPubKeysCalled: func() [][]byte {
+			return [][]byte{validatorPubKey}
+		},
+		GetAllHeadersCalled: func() []data.HeaderHandler {
+			return slash.HeaderList{&block.Header{}, &block.Header{}}
+		},
+	}
+
+	err := ssd.ValidateProof(proof)
+	require.Equal(t, errLeaderSignature, err)
+}
+
 func TestMultipleHeaderSigningDetector_ValidateProof_SignedHeadersHaveDifferentRound_ExpectError(t *testing.T) {
 	t.Parallel()
 
@@ -514,6 +581,9 @@ func TestMultipleHeaderSigningDetector_ValidateProof_SignedHeadersHaveDifferentR
 	h1 := &block.HeaderV2{Header: &block.Header{Round: 1, PubKeysBitmap: []byte{byte(0x1)}}}
 	h2 := &block.HeaderV2{Header: &block.Header{Round: 2, PubKeysBitmap: []byte{byte(0x1)}}}
 	proof := &slashMocks.MultipleHeaderSigningProofStub{
+		GetAllHeadersCalled: func() []data.HeaderHandler {
+			return []data.HeaderHandler{h1, h2}
+		},
 		GetHeadersCalled: func([]byte) []data.HeaderHandler {
 			return []data.HeaderHandler{h1, h2}
 		},
@@ -541,6 +611,9 @@ func TestMultipleHeaderSigningDetector_ValidateProof_InvalidMarshaller_ExpectErr
 	h1 := &block.HeaderV2{Header: &block.Header{Round: 1, PubKeysBitmap: []byte{byte(0x1)}}}
 	h2 := &block.HeaderV2{Header: &block.Header{Round: 2, PubKeysBitmap: []byte{byte(0x1)}}}
 	proof := &slashMocks.MultipleHeaderSigningProofStub{
+		GetAllHeadersCalled: func() []data.HeaderHandler {
+			return []data.HeaderHandler{h1, h2}
+		},
 		GetHeadersCalled: func([]byte) []data.HeaderHandler {
 			return []data.HeaderHandler{h1, h2}
 		},
@@ -562,6 +635,9 @@ func TestMultipleHeaderSigningDetector_ValidateProof_SignedHeadersHaveSameHash_E
 	h1 := &block.HeaderV2{Header: &block.Header{Round: 1, PubKeysBitmap: []byte{byte(0x1)}}}
 	h2 := &block.HeaderV2{Header: &block.Header{Round: 1, PubKeysBitmap: []byte{byte(0x1)}}}
 	proof := &slashMocks.MultipleHeaderSigningProofStub{
+		GetAllHeadersCalled: func() []data.HeaderHandler {
+			return []data.HeaderHandler{h1, h2}
+		},
 		GetHeadersCalled: func([]byte) []data.HeaderHandler {
 			return []data.HeaderHandler{h1, h2}
 		},
@@ -588,6 +664,9 @@ func TestMultipleHeaderSigningDetector_ValidateProof_HeadersNotSignedByTheSameVa
 	h1 := &block.HeaderV2{Header: &block.Header{Round: 1, PubKeysBitmap: []byte{byte(0x1)}}}
 	h2 := &block.HeaderV2{Header: &block.Header{Round: 1, PubKeysBitmap: []byte{byte(0x2)}}}
 	proof := &slashMocks.MultipleHeaderSigningProofStub{
+		GetAllHeadersCalled: func() []data.HeaderHandler {
+			return []data.HeaderHandler{h1, h2}
+		},
 		GetHeadersCalled: func([]byte) []data.HeaderHandler {
 			return []data.HeaderHandler{h1, h2}
 		},
@@ -609,6 +688,9 @@ func TestMultipleHeaderSigningDetector_ValidateProof_InvalidSlashLevel_ExpectErr
 	h1 := &block.HeaderV2{Header: &block.Header{Round: 1}}
 	h2 := &block.HeaderV2{Header: &block.Header{Round: 1}}
 	proof := &slashMocks.MultipleHeaderSigningProofStub{
+		GetAllHeadersCalled: func() []data.HeaderHandler {
+			return []data.HeaderHandler{h1, h2}
+		},
 		GetHeadersCalled: func([]byte) []data.HeaderHandler {
 			return []data.HeaderHandler{h1, h2}
 		},
@@ -685,22 +767,6 @@ func TestMultipleHeaderSigningDetector_SignedHeader_ValidatorNotInConsensusGroup
 	args.NodesCoordinator = &mockEpochStart.NodesCoordinatorStub{
 		ComputeConsensusGroupCalled: func([]byte, uint64, uint32, uint32) ([]sharding.Validator, error) {
 			return []sharding.Validator{}, nil
-		},
-	}
-	ssd, _ := detector.NewMultipleHeaderSigningDetector(args)
-
-	header := &block.Header{Round: 1}
-	signedHeader := ssd.SignedHeader(validatorPubKey, header)
-	require.False(t, signedHeader)
-}
-
-func TestMultipleHeaderSigningDetector_SignedHeader_CannotVerifySignature_ExpectFalse(t *testing.T) {
-	t.Parallel()
-
-	args := generateMultipleHeaderSigningDetectorArgs()
-	args.HeaderSigVerifier = &mock.HeaderSigVerifierStub{
-		VerifySignatureCalled: func(data.HeaderHandler) error {
-			return errors.New("cannot verify signature")
 		},
 	}
 	ssd, _ := detector.NewMultipleHeaderSigningDetector(args)

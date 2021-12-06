@@ -200,25 +200,41 @@ func (mhs *multipleHeaderSigningDetector) ValidateProof(proof coreSlash.Slashing
 		return process.ErrNotEnoughPublicKeysProvided
 	}
 
-	headers := multipleSigningProof.GetAllHeaders()
-	for _, header := range headers {
-		err = mhs.headerSigVerifier.VerifySignature(header)
-		if err != nil {
-			return err
-		}
-		err = mhs.headerSigVerifier.VerifyLeaderSignature(header)
-		if err != nil {
-			return err
-		}
+	err = mhs.checkSignatures(multipleSigningProof.GetAllHeaders())
+	if err != nil {
+		return err
 	}
 
 	for _, signer := range signers {
-		err := mhs.checkSlashLevel(multipleSigningProof.GetHeaders(signer), multipleSigningProof.GetLevel(signer))
+		err = mhs.checkSlashLevel(multipleSigningProof.GetHeaders(signer), multipleSigningProof.GetLevel(signer))
 		if err != nil {
 			return err
 		}
 
 		err = mhs.checkSignedHeaders(signer, multipleSigningProof.GetHeaders(signer))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (mhs *multipleHeaderSigningDetector) checkSignatures(headers []data.HeaderHandler) error {
+	if len(headers) < minNoOfSlashableHeaders {
+		return process.ErrNotEnoughHeadersProvided
+	}
+
+	for _, header := range headers {
+		if check.IfNil(header) {
+			return process.ErrNilHeaderHandler
+		}
+
+		err := mhs.headerSigVerifier.VerifySignature(header)
+		if err != nil {
+			return err
+		}
+		err = mhs.headerSigVerifier.VerifyLeaderSignature(header)
 		if err != nil {
 			return err
 		}
@@ -233,7 +249,7 @@ func (mhs *multipleHeaderSigningDetector) checkSlashLevel(headers slash.HeaderLi
 }
 
 func (mhs *multipleHeaderSigningDetector) checkSignedHeaders(pubKey []byte, headers slash.HeaderList) error {
-	if len(headers) < minSlashableNoOfHeaders {
+	if len(headers) < minNoOfSlashableHeaders {
 		return process.ErrNotEnoughHeadersProvided
 	}
 	if check.IfNil(headers[0]) {
