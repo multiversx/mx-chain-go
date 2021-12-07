@@ -1300,7 +1300,7 @@ func (tc *transactionCoordinator) checkGasConsumedByMiniBlockInReceiverShard(
 		}
 	}
 
-	if gasConsumedByMiniBlockInReceiverShard > tc.economicsFee.MaxGasLimitPerMiniBlockForSafeCrossShard() {
+	if gasConsumedByMiniBlockInReceiverShard > core.MaxUint64(process.MaxGasLimitPerTxForSafeCrossShard, tc.economicsFee.MaxGasLimitPerMiniBlockForSafeCrossShard()) {
 		return process.ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached
 	}
 

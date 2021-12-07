@@ -2,6 +2,7 @@ package txScenarios
 
 import (
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"math/big"
 	"testing"
 
@@ -35,10 +36,15 @@ func createGeneralSetupForTxTest(initialBalance *big.Int) (
 	nodesPerShard := 1
 	numMetachainNodes := 1
 
-	nodes := integrationTests.CreateNodes(
+	enableEpochs := config.EnableEpochs{
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 10,
+	}
+
+	nodes := integrationTests.CreateNodesWithEnableEpochs(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
+		enableEpochs,
 	)
 
 	idxProposers := make([]int, numOfShards+1)

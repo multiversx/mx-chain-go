@@ -2789,9 +2789,9 @@ func TestTransactionCoordinator_GetAllTransactionsShouldWork(t *testing.T) {
 func TestTransactionCoordinator_VerifyGasLimitShouldErrMaxGasLimitPerMiniBlockInReceiverShardIsReached(t *testing.T) {
 	t.Parallel()
 
-	tx1GasLimit := uint64(100)
-	tx2GasLimit := uint64(200)
-	tx3GasLimit := uint64(300)
+	tx1GasLimit := uint64(100000000)
+	tx2GasLimit := uint64(200000000)
+	tx3GasLimit := uint64(300000001)
 
 	dataPool := initDataPool(txHash)
 	txCoordinatorArgs := ArgTransactionCoordinator{
@@ -3112,9 +3112,9 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShouldErrMaxGasLimitPerMiniBlockInReceiverShardIsReached(t *testing.T) {
 	t.Parallel()
 
-	tx1GasLimit := uint64(100)
-	tx2GasLimit := uint64(200)
-	tx3GasLimit := uint64(300)
+	tx1GasLimit := uint64(100000000)
+	tx2GasLimit := uint64(200000000)
+	tx3GasLimit := uint64(300000001)
 
 	dataPool := initDataPool(txHash)
 	txCoordinatorArgs := ArgTransactionCoordinator{

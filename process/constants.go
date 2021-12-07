@@ -84,7 +84,7 @@ const MinForkRound = uint64(0)
 
 // MaxNumPendingMiniBlocksPerShard defines the maximum number of pending miniblocks per shard, after which a shard
 // could be considered stuck if this value multiplied by the number of shards is reached
-const MaxNumPendingMiniBlocksPerShard = 10
+const MaxNumPendingMiniBlocksPerShard = 60
 
 // MaxMetaNoncesBehind defines the maximum difference between the current meta block nonce and the processed meta block
 // nonce before a shard is considered stuck
@@ -124,3 +124,6 @@ const MaxHeadersToWhitelistInAdvance = 300
 // the real gas used, after which the transaction will be considered an attack and all the gas will be consumed and
 // nothing will be refunded to the sender
 const MaxGasFeeHigherFactorAccepted = 10
+
+// MaxGasLimitPerTxForSafeCrossShard defines the maximum gas limit per transaction for safe cross-shard execution
+const MaxGasLimitPerTxForSafeCrossShard = 600000000
