@@ -1000,3 +1000,12 @@ var ErrNotAllowedToWriteUnderProtectedKey = errors.New("not allowed to write und
 
 // ErrNilNFTStorageHandler signals that nil NFT storage handler has been provided
 var ErrNilNFTStorageHandler = errors.New("nil NFT storage handler")
+
+// ErrNilBootstrapper signals that a nil bootstraper has been provided
+var ErrNilBootstrapper = errors.New("nil bootstrapper")
+
+// ErrNodeIsNotSynced signals that the VM query cannot be executed because the node is not synced and the request required this
+var ErrNodeIsNotSynced = errors.New("node is not synced")
+
+// ErrStateChangedWhileExecutingVmQuery signals that the state has been changed while executing a vm query and the request required not to
+var ErrStateChangedWhileExecutingVmQuery = errors.New("state changed while executing vm query")
