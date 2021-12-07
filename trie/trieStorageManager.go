@@ -504,14 +504,16 @@ func (tsm *trieStorageManager) takeCheckpoint(checkpointEntry *snapshotsQueueEnt
 
 func isActiveDb(stsm *snapshotTrieStorageManager) bool {
 	val, err := stsm.Get([]byte(activeDBKey))
+	if err != nil {
+		log.Debug("snapshotTrieStorageManager get error", "err", err.Error())
+		return false
+	}
+
 	if bytes.Equal(val, []byte(activeDBVal)) {
 		return true
 	}
 
-	log.Debug("snapshotTrieStorageManager get",
-		"err", err.Error(),
-		"value", val,
-	)
+	log.Debug("snapshotTrieStorageManager invalid value for activeDBKey", "value", val)
 	return false
 }
 
@@ -641,7 +643,9 @@ func (tsm *trieStorageManager) EpochConfirmed(epoch uint32, _ uint64) {
 	log.Debug("old trie storage", "disabled", tsm.flagDisableOldStorage.IsSet())
 
 	err := tsm.mainStorer.Put([]byte(activeDBKey), []byte(activeDBVal))
-	log.LogIfError(err, "error", "set db as activeDB error")
+	if err != nil {
+		log.Error("error while putting active DB value into main storer", "error", err)
+	}
 
 	if tsm.flagDisableOldStorage.IsSet() && !tsm.oldStorageClosed {
 		err := tsm.closeOldTrieStorage()
