@@ -2,11 +2,11 @@ package txScenarios
 
 import (
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/config"
 	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/state"
 )

@@ -709,6 +709,8 @@ func (ed *economicsData) setGasLimitConfig(currentEpoch uint32) {
 		"minGasLimit", ed.minGasLimit,
 	)
 
+	// the max gas limit per tx to be set, should be the maximum value between max gas limit per mini block and max gas limit per tx. If max gas limit per tx
+	// would be higher than max gas limit per mini block, then the first one would be used in processing, to assure that at least one transaction will be added in the mini block
 	ed.statusHandler.SetUInt64Value(common.MetricMaxGasPerTransaction, core.MaxUint64(process.MaxGasLimitPerTxForSafeCrossShard, core.MinUint64(ed.maxGasLimitPerMiniBlock, ed.maxGasLimitPerMetaMiniBlock)))
 }
 

@@ -559,7 +559,11 @@ func (nr *nodeRunner) createMetrics(
 	metrics.SaveStringMetric(managedCoreComponents.StatusHandler(), common.MetricRewardsTopUpGradientPoint, managedCoreComponents.EconomicsData().RewardsTopUpGradientPoint().String())
 	metrics.SaveStringMetric(managedCoreComponents.StatusHandler(), common.MetricTopUpFactor, fmt.Sprintf("%g", managedCoreComponents.EconomicsData().RewardsTopUpFactor()))
 	metrics.SaveStringMetric(managedCoreComponents.StatusHandler(), common.MetricGasPriceModifier, fmt.Sprintf("%g", managedCoreComponents.EconomicsData().GasPriceModifier()))
+
+	// the max gas limit per tx to be set, should be the maximum value between max gas limit per mini block and max gas limit per tx. If max gas limit per tx
+	// would be higher than max gas limit per mini block, then the first one would be used in processing, to assure that at least one transaction will be added in the mini block
 	metrics.SaveUint64Metric(managedCoreComponents.StatusHandler(), common.MetricMaxGasPerTransaction, core.MaxUint64(process.MaxGasLimitPerTxForSafeCrossShard, managedCoreComponents.EconomicsData().MaxGasLimitPerMiniBlockForSafeCrossShard()))
+
 	return nil
 }
 

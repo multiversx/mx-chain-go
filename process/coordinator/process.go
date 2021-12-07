@@ -1300,6 +1300,8 @@ func (tc *transactionCoordinator) checkGasConsumedByMiniBlockInReceiverShard(
 		}
 	}
 
+	// the max gas limit to be compared with, should be the maximum value between max gas limit per mini block and max gas limit per tx. If max gas limit per tx
+	// would be higher than max gas limit per mini block, then the first one should be selected, to assure that at least one transaction will be added in the mini block
 	if gasConsumedByMiniBlockInReceiverShard > core.MaxUint64(process.MaxGasLimitPerTxForSafeCrossShard, tc.economicsFee.MaxGasLimitPerMiniBlockForSafeCrossShard()) {
 		return process.ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached
 	}
