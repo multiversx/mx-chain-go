@@ -1003,7 +1003,14 @@ func (tc *transactionCoordinator) revertProcessedTxsResults(txHashes [][]byte) {
 		if !ok {
 			continue
 		}
-		interProc.RemoveProcessedResults()
+		resultHashes := interProc.RemoveProcessedResults()
+		currentAccFee := tc.feeHandler.GetAccumulatedFees()
+		tc.feeHandler.RevertFees(resultHashes)
+		accFeesAfterRevert := tc.feeHandler.GetAccumulatedFees()
+
+		if currentAccFee.Cmp(accFeesAfterRevert) != 0 {
+			log.Debug("revertProcessedTxsResults reverted accumulated fees from postProcessor", "value", big.NewInt(0).Sub(currentAccFee, accFeesAfterRevert))
+		}
 	}
 	tc.feeHandler.RevertFees(txHashes)
 }
