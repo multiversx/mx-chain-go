@@ -824,7 +824,7 @@ func (pcf *processComponentsFactory) prepareGenesisBlock(genesisBlocks map[uint3
 	return nil
 }
 
-func getGenesisBlockForCurrentShard(miniBlocks []*dataBlock.MiniBlock, shardId uint32) *dataBlock.Body {
+func getGenesisBlockForShard(miniBlocks []*dataBlock.MiniBlock, shardId uint32) *dataBlock.Body {
 	var indexMiniBlocks = make([]*dataBlock.MiniBlock, 0)
 
 	for _, miniBlock := range miniBlocks {
@@ -857,7 +857,7 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32
 			return err
 		}
 
-		genesisBody := getGenesisBlockForCurrentShard(miniBlocks, currentShardId)
+		genesisBody := getGenesisBlockForShard(miniBlocks, currentShardId)
 
 		arg := &indexer.ArgsSaveBlockData{
 			HeaderHash: genesisBlockHash,
@@ -875,6 +875,7 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32
 	}
 
 	log.Info("indexGenesisBlocks(): historyRepo.RecordBlock", "shardID", currentShardId, "hash", genesisBlockHash)
+	// TODO: save also genesis body transactions into node storage
 	err = pcf.historyRepo.RecordBlock(genesisBlockHash, genesisBlockHeader, &dataBlock.Body{}, nil, nil, nil)
 	if err != nil {
 		return err

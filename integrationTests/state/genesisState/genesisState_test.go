@@ -39,7 +39,7 @@ func TestCreationOfTheGenesisState(t *testing.T) {
 	accountsParser, err := parsing.NewAccountsParser(
 		genesisFile,
 		big.NewInt(6000000000),
-		"erd1lllllllllllllllllllllllllllllllllllllllllllllllllllsckry7t",
+		"erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcq4288pn",
 		integrationTests.TestAddressPubkeyConverter,
 		&mock.KeyGenMock{},
 		&testscommon.HasherMock{},
