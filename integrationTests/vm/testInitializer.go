@@ -1,5 +1,3 @@
-// +build cgo
-
 package vm
 
 import (
@@ -42,6 +40,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	syncDisabled "github.com/ElrondNetwork/elrond-go/process/sync/disabled"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
@@ -80,7 +79,7 @@ var log = logger.GetOrCreate("integrationtests")
 
 const maxTrieLevelInMemory = uint(5)
 
-// ArgEnableEpoch will specify the enable epoch values for certain flags
+// ArgEnableEpoch will specify enable epoch values for certain flags
 type ArgEnableEpoch struct {
 	PenalizedTooMuchGasEnableEpoch      uint32
 	BuiltinEnableEpoch                  uint32
@@ -243,6 +242,7 @@ func (vmTestContext *VMTestContext) GetVMOutputWithTransientVM(funcName string, 
 		BlockChainHook:    blockChainHook,
 		BlockChain:        &mock.BlockChainMock{},
 		ArwenChangeLocker: &sync.RWMutex{},
+		Bootstrapper:      syncDisabled.NewDisabledBootstrapper(),
 	}
 	scQueryService, _ := smartContract.NewSCQueryService(argsNewSCQueryService)
 
@@ -352,7 +352,7 @@ func CreateAccount(accnts state.AccountsAdapter, pubKey []byte, nonce uint64, ba
 }
 
 func createEconomicsData(penalizedTooMuchGasEnableEpoch uint32) (process.EconomicsDataHandler, error) {
-	maxGasLimitPerBlock := strconv.FormatUint(math.MaxUint64-1, 10)
+	maxGasLimitPerBlock := strconv.FormatUint(math.MaxUint64, 10)
 	minGasPrice := strconv.FormatUint(1, 10)
 	minGasLimit := strconv.FormatUint(1, 10)
 	testProtocolSustainabilityAddress := "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp"
@@ -764,6 +764,7 @@ func createDefaultVMConfig() *config.VirtualMachineConfig {
 	}
 }
 
+// ResultsCreateTxProcessor is the struct that will hold all needed processor instances
 type ResultsCreateTxProcessor struct {
 	TxProc             process.TransactionProcessor
 	SCProc             *smartContract.TestScProcessor
@@ -1330,6 +1331,7 @@ func GetVmOutput(gasSchedule map[string]map[string]uint64, accnts state.Accounts
 		BlockChainHook:    blockChainHook,
 		BlockChain:        &mock.BlockChainMock{},
 		ArwenChangeLocker: &sync.RWMutex{},
+		Bootstrapper:      syncDisabled.NewDisabledBootstrapper(),
 	}
 	scQueryService, _ := smartContract.NewSCQueryService(argsNewSCQueryService)
 
@@ -1368,6 +1370,7 @@ func ComputeGasLimit(gasSchedule map[string]map[string]uint64, testContext *VMTe
 			},
 		},
 		ArwenChangeLocker: &sync.RWMutex{},
+		Bootstrapper:      syncDisabled.NewDisabledBootstrapper(),
 	}
 	scQueryService, _ := smartContract.NewSCQueryService(argsNewSCQueryService)
 

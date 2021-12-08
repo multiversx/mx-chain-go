@@ -69,6 +69,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor: logsProcessor,
+		Bootstrapper:            mock.NewTestBootstrapperMock(),
 	}
 
 	tpn.NodeKeys = cp.Keys[nodeShardId][keyIndex]
