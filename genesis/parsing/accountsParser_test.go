@@ -204,7 +204,7 @@ func TestNewAccountsParser_WrongMinterAddressFormatShouldErr(t *testing.T) {
 	)
 
 	assert.True(t, check.IfNil(ap))
-	assert.Equal(t, genesis.ErrInvalidAddress, err)
+	assert.True(t, errors.Is(err, genesis.ErrInvalidAddress))
 }
 
 func TestNewAccountsParser_BadJsonShouldErr(t *testing.T) {

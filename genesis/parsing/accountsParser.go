@@ -64,7 +64,7 @@ func NewAccountsParser(
 
 	minterAddressBytes, err := pubkeyConverter.Decode(minterAddress)
 	if err != nil {
-		return nil, genesis.ErrInvalidAddress
+		return nil, fmt.Errorf("%w while decoding minter address. error: %s", genesis.ErrInvalidAddress, err.Error())
 	}
 
 	initialAccounts := make([]*data.InitialAccount, 0)
@@ -402,14 +402,14 @@ func (ap *accountsParser) setScrsTxsPool(
 			senderShardID := shardCoordinator.ComputeId(tx.GetSndAddr())
 			receiverShardID := shardCoordinator.ComputeId(tx.GetRcvAddr())
 
-			scrsTx, ok := tx.(*scrData.SmartContractResult)
+			scrTx, ok := tx.(*scrData.SmartContractResult)
 			if !ok {
 				continue
 			}
-			scrsTx.GasLimit = uint64(0)
+			scrTx.GasLimit = uint64(0)
 
-			txsPoolPerShard[senderShardID].Scrs[txHash] = scrsTx
-			txsPoolPerShard[receiverShardID].Scrs[txHash] = scrsTx
+			txsPoolPerShard[senderShardID].Scrs[txHash] = scrTx
+			txsPoolPerShard[receiverShardID].Scrs[txHash] = scrTx
 		}
 	}
 }
@@ -481,7 +481,7 @@ func (ap *accountsParser) GenerateInitialTransactions(
 	return miniBlocks, txsPoolPerShard, nil
 }
 
-// IsInterfaceNil returns if underlying object is true
+// IsInterfaceNil returns true if the underlying object is nil
 func (ap *accountsParser) IsInterfaceNil() bool {
 	return ap == nil
 }

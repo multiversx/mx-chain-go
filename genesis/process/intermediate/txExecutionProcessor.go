@@ -64,6 +64,7 @@ func (tep *txExecutionProcessor) ExecuteTransaction(
 	return err
 }
 
+// GetTransactions will return the cached transactions
 func (tep *txExecutionProcessor) GetTransactions() []data.TransactionHandler {
 	return tep.txs
 }
