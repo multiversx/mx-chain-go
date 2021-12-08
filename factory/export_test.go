@@ -92,6 +92,6 @@ func SetShardCoordinator(shardCoordinator sharding.Coordinator, holder Bootstrap
 }
 
 // IndexGenesisBlocks -
-func (pcf *processComponentsFactory) IndexGenesisBlocks(genesisBlocks map[uint32]data.HeaderHandler, indexingData map[uint32]genesis.InitialIndexingDataHandler) error {
+func (pcf *processComponentsFactory) IndexGenesisBlocks(genesisBlocks map[uint32]data.HeaderHandler, indexingData map[uint32]*genesis.IndexingData) error {
 	return pcf.indexGenesisBlocks(genesisBlocks, indexingData)
 }

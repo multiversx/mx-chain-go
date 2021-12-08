@@ -15,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/genesis"
-	genesisData "github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/intermediate"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -82,12 +81,18 @@ func CreateShardGenesisBlock(
 	body *block.Body,
 	nodesListSplitter genesis.NodesListSplitter,
 	hardForkBlockProcessor update.HardForkBlockProcessor,
-) (data.HeaderHandler, [][]byte, genesis.InitialIndexingDataHandler, error) {
+) (data.HeaderHandler, [][]byte, *genesis.IndexingData, error) {
 	if mustDoHardForkImportProcess(arg) {
 		return createShardGenesisBlockAfterHardFork(arg, body, hardForkBlockProcessor)
 	}
 
-	indexingData := genesisData.NewIndexingData()
+	indexingData := &genesis.IndexingData{
+		DelegationTxs:      make([]data.TransactionHandler, 0),
+		ScrsTxs:            make(map[string]data.TransactionHandler),
+		StakingTxs:         make([]data.TransactionHandler, 0),
+		DeploySystemScTxs:  make([]data.TransactionHandler, 0),
+		DeployInitialScTxs: make([]data.TransactionHandler, 0),
+	}
 
 	processors, err := createProcessorsForShardGenesisBlock(arg, createGenesisConfig())
 	if err != nil {
@@ -100,7 +105,7 @@ func CreateShardGenesisBlock(
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	indexingData.DeployInitialSCTxs = scTxs
+	indexingData.DeployInitialScTxs = scTxs
 
 	numSetBalances, err := setBalancesToTrie(arg)
 	if err != nil {
@@ -183,7 +188,7 @@ func createShardGenesisBlockAfterHardFork(
 	arg ArgsGenesisBlockCreator,
 	body *block.Body,
 	hardForkBlockProcessor update.HardForkBlockProcessor,
-) (data.HeaderHandler, [][]byte, genesis.InitialIndexingDataHandler, error) {
+) (data.HeaderHandler, [][]byte, *genesis.IndexingData, error) {
 	if check.IfNil(hardForkBlockProcessor) {
 		return nil, nil, nil, update.ErrNilHardForkBlockProcessor
 	}
@@ -205,7 +210,15 @@ func createShardGenesisBlockAfterHardFork(
 		return nil, nil, nil, err
 	}
 
-	return hdrHandler, make([][]byte, 0), genesisData.NewIndexingData(), nil
+	indexingData := &genesis.IndexingData{
+		DelegationTxs:      make([]data.TransactionHandler, 0),
+		ScrsTxs:            make(map[string]data.TransactionHandler),
+		StakingTxs:         make([]data.TransactionHandler, 0),
+		DeploySystemScTxs:  make([]data.TransactionHandler, 0),
+		DeployInitialScTxs: make([]data.TransactionHandler, 0),
+	}
+
+	return hdrHandler, make([][]byte, 0), indexingData, nil
 }
 
 func createArgsShardBlockCreatorAfterHardFork(

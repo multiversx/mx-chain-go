@@ -19,7 +19,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/genesis"
-	genesisData "github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
@@ -46,12 +45,18 @@ func CreateMetaGenesisBlock(
 	body *block.Body,
 	nodesListSplitter genesis.NodesListSplitter,
 	hardForkBlockProcessor update.HardForkBlockProcessor,
-) (data.HeaderHandler, [][]byte, genesis.InitialIndexingDataHandler, error) {
+) (data.HeaderHandler, [][]byte, *genesis.IndexingData, error) {
 	if mustDoHardForkImportProcess(arg) {
 		return createMetaGenesisBlockAfterHardFork(arg, body, hardForkBlockProcessor)
 	}
 
-	indexingData := genesisData.NewIndexingData()
+	indexingData := &genesis.IndexingData{
+		DelegationTxs:      make([]data.TransactionHandler, 0),
+		ScrsTxs:            make(map[string]data.TransactionHandler),
+		StakingTxs:         make([]data.TransactionHandler, 0),
+		DeploySystemScTxs:  make([]data.TransactionHandler, 0),
+		DeployInitialScTxs: make([]data.TransactionHandler, 0),
+	}
 
 	processors, err := createProcessorsForMetaGenesisBlock(arg, createGenesisConfig())
 	if err != nil {
@@ -136,7 +141,7 @@ func createMetaGenesisBlockAfterHardFork(
 	arg ArgsGenesisBlockCreator,
 	body *block.Body,
 	hardForkBlockProcessor update.HardForkBlockProcessor,
-) (data.HeaderHandler, [][]byte, genesis.InitialIndexingDataHandler, error) {
+) (data.HeaderHandler, [][]byte, *genesis.IndexingData, error) {
 	if check.IfNil(hardForkBlockProcessor) {
 		return nil, nil, nil, update.ErrNilHardForkBlockProcessor
 	}
@@ -168,7 +173,15 @@ func createMetaGenesisBlockAfterHardFork(
 		return nil, nil, nil, err
 	}
 
-	return metaHdr, make([][]byte, 0), genesisData.NewIndexingData(), nil
+	indexingData := &genesis.IndexingData{
+		DelegationTxs:      make([]data.TransactionHandler, 0),
+		ScrsTxs:            make(map[string]data.TransactionHandler),
+		StakingTxs:         make([]data.TransactionHandler, 0),
+		DeploySystemScTxs:  make([]data.TransactionHandler, 0),
+		DeployInitialScTxs: make([]data.TransactionHandler, 0),
+	}
+
+	return metaHdr, make([][]byte, 0), indexingData, nil
 }
 
 func createArgsMetaBlockCreatorAfterHardFork(

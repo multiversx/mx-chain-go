@@ -26,13 +26,22 @@ type DelegationResult struct {
 	NumTotalDelegated int
 }
 
+// IndexingData specifies transactions sets that will be used for indexing
+type IndexingData struct {
+	DelegationTxs      []data.TransactionHandler
+	ScrsTxs            map[string]data.TransactionHandler
+	StakingTxs         []data.TransactionHandler
+	DeploySystemScTxs  []data.TransactionHandler
+	DeployInitialScTxs []data.TransactionHandler
+}
+
 // AccountsParser contains the parsed genesis json file and has some functionality regarding processed data
 type AccountsParser interface {
 	InitialAccountsSplitOnAddressesShards(shardCoordinator sharding.Coordinator) (map[uint32][]InitialAccountHandler, error)
 	InitialAccounts() []InitialAccountHandler
 	GetTotalStakedForDelegationAddress(delegationAddress string) *big.Int
 	GetInitialAccountsForDelegated(addressBytes []byte) []InitialAccountHandler
-	GenerateInitialTransactions(shardCoordinator sharding.Coordinator, initialIndexingData map[uint32]InitialIndexingDataHandler) ([]*block.MiniBlock, map[uint32]*indexer.Pool, error)
+	GenerateInitialTransactions(shardCoordinator sharding.Coordinator, initialIndexingData map[uint32]*IndexingData) ([]*block.MiniBlock, map[uint32]*indexer.Pool, error)
 	IsInterfaceNil() bool
 }
 
@@ -111,15 +120,5 @@ type NodesListSplitter interface {
 // DeployProcessor is able to deploy a smart contract
 type DeployProcessor interface {
 	Deploy(sc InitialSmartContractHandler) ([][]byte, error)
-	IsInterfaceNil() bool
-}
-
-// InitialIndexingDataHandler represents the interface that describes the data held by initial indexing data
-type InitialIndexingDataHandler interface {
-	GetScrsTxs() map[string]data.TransactionHandler
-	GetDelegationTxs() []data.TransactionHandler
-	GetStakingTxs() []data.TransactionHandler
-	GetDeploySystemScTxs() []data.TransactionHandler
-	GetDeployInitialSCTxs() []data.TransactionHandler
 	IsInterfaceNil() bool
 }

@@ -619,8 +619,14 @@ func TestAccountsParser_GenerateInitialTransactionsTxsPool(t *testing.T) {
 		SelfShardId: 0,
 	}
 
-	indexingDataMap := make(map[uint32]genesis.InitialIndexingDataHandler)
-	indexingData := data.NewIndexingData()
+	indexingDataMap := make(map[uint32]*genesis.IndexingData)
+	indexingData := &genesis.IndexingData{
+		DelegationTxs:      make([]coreData.TransactionHandler, 0),
+		ScrsTxs:            make(map[string]coreData.TransactionHandler),
+		StakingTxs:         make([]coreData.TransactionHandler, 0),
+		DeploySystemScTxs:  make([]coreData.TransactionHandler, 0),
+		DeployInitialScTxs: make([]coreData.TransactionHandler, 0),
+	}
 	for i := uint32(0); i < sharder.NumOfShards; i++ {
 		indexingDataMap[i] = indexingData
 	}
@@ -673,8 +679,8 @@ func TestAccountsParser_GenerateInitialTransactionsTx(t *testing.T) {
 	txHash, err := hex.DecodeString(hashHex)
 	require.Nil(t, err)
 
-	indexingDataMap := make(map[uint32]genesis.InitialIndexingDataHandler)
-	indexingData := &data.IndexingData{
+	indexingDataMap := make(map[uint32]*genesis.IndexingData)
+	indexingData := &genesis.IndexingData{
 		DelegationTxs: []coreData.TransactionHandler{tx},
 	}
 	indexingDataMap[0] = indexingData

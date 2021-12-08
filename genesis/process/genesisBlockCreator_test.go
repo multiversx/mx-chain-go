@@ -447,23 +447,23 @@ func TestGenesisBlockCreator_GetIndexingDataShouldWork(t *testing.T) {
 
 	indexingData := gbc.GetIndexingData()
 
-	assert.Equal(t, 257, len(indexingData[0].GetDeployInitialSCTxs()))
-	assert.Equal(t, 0, len(indexingData[0].GetDeploySystemScTxs()))
-	assert.Equal(t, 4, len(indexingData[0].GetDelegationTxs()))
-	assert.Equal(t, 0, len(indexingData[0].GetStakingTxs()))
-	assert.Equal(t, 522, len(indexingData[0].GetScrsTxs()))
+	assert.Equal(t, 257, len(indexingData[0].DeployInitialScTxs))
+	assert.Equal(t, 0, len(indexingData[0].DeploySystemScTxs))
+	assert.Equal(t, 4, len(indexingData[0].DelegationTxs))
+	assert.Equal(t, 0, len(indexingData[0].StakingTxs))
+	assert.Equal(t, 522, len(indexingData[0].ScrsTxs))
 
-	assert.Equal(t, 256, len(indexingData[1].GetDeployInitialSCTxs()))
-	assert.Equal(t, 0, len(indexingData[1].GetDeploySystemScTxs()))
-	assert.Equal(t, 0, len(indexingData[1].GetDelegationTxs()))
-	assert.Equal(t, 0, len(indexingData[1].GetStakingTxs()))
-	assert.Equal(t, 512, len(indexingData[1].GetScrsTxs()))
+	assert.Equal(t, 256, len(indexingData[1].DeployInitialScTxs))
+	assert.Equal(t, 0, len(indexingData[1].DeploySystemScTxs))
+	assert.Equal(t, 0, len(indexingData[1].DelegationTxs))
+	assert.Equal(t, 0, len(indexingData[1].StakingTxs))
+	assert.Equal(t, 512, len(indexingData[1].ScrsTxs))
 
-	assert.Equal(t, 0, len(indexingData[core.MetachainShardId].GetDeployInitialSCTxs()))
-	assert.Equal(t, 4, len(indexingData[core.MetachainShardId].GetDeploySystemScTxs()))
-	assert.Equal(t, 0, len(indexingData[core.MetachainShardId].GetDelegationTxs()))
-	assert.Equal(t, 8, len(indexingData[core.MetachainShardId].GetStakingTxs()))
-	assert.Equal(t, 32, len(indexingData[core.MetachainShardId].GetScrsTxs()))
+	assert.Equal(t, 0, len(indexingData[core.MetachainShardId].DeployInitialScTxs))
+	assert.Equal(t, 4, len(indexingData[core.MetachainShardId].DeploySystemScTxs))
+	assert.Equal(t, 0, len(indexingData[core.MetachainShardId].DelegationTxs))
+	assert.Equal(t, 8, len(indexingData[core.MetachainShardId].StakingTxs))
+	assert.Equal(t, 32, len(indexingData[core.MetachainShardId].ScrsTxs))
 }
 
 func TestCreateArgsGenesisBlockCreator_ShouldErrWhenGetNewArgForShardFails(t *testing.T) {

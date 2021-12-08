@@ -374,14 +374,17 @@ func createMiniBlocks(shardIDs []uint32, blockType block.Type) []*block.MiniBloc
 	return miniBlocks
 }
 
-func (ap *accountsParser) getAllTxs(indexingData map[uint32]genesis.InitialIndexingDataHandler, mintTxs []coreData.TransactionHandler) []coreData.TransactionHandler {
+func (ap *accountsParser) getAllTxs(
+	indexingData map[uint32]*genesis.IndexingData,
+	mintTxs []coreData.TransactionHandler,
+) []coreData.TransactionHandler {
 	allTxs := make([]coreData.TransactionHandler, 0)
 
 	for _, txs := range indexingData {
-		allTxs = append(allTxs, txs.GetDelegationTxs()...)
-		allTxs = append(allTxs, txs.GetStakingTxs()...)
-		allTxs = append(allTxs, txs.GetDeploySystemScTxs()...)
-		allTxs = append(allTxs, txs.GetDeployInitialSCTxs()...)
+		allTxs = append(allTxs, txs.DelegationTxs...)
+		allTxs = append(allTxs, txs.StakingTxs...)
+		allTxs = append(allTxs, txs.DeploySystemScTxs...)
+		allTxs = append(allTxs, txs.DeployInitialScTxs...)
 	}
 
 	allTxs = append(allTxs, mintTxs...)
@@ -391,11 +394,11 @@ func (ap *accountsParser) getAllTxs(indexingData map[uint32]genesis.InitialIndex
 
 func (ap *accountsParser) setScrsTxsPool(
 	shardCoordinator sharding.Coordinator,
-	indexingData map[uint32]genesis.InitialIndexingDataHandler,
+	indexingData map[uint32]*genesis.IndexingData,
 	txsPoolPerShard map[uint32]*indexer.Pool,
 ) {
 	for _, id := range indexingData {
-		for txHash, tx := range id.GetScrsTxs() {
+		for txHash, tx := range id.ScrsTxs {
 			senderShardID := shardCoordinator.ComputeId(tx.GetSndAddr())
 			receiverShardID := shardCoordinator.ComputeId(tx.GetRcvAddr())
 
@@ -455,7 +458,7 @@ func (ap *accountsParser) setTxsPoolAndMiniBlocks(
 // GenerateInitialTransactions will generate initial transactions pool and the miniblocks for the generated transactions
 func (ap *accountsParser) GenerateInitialTransactions(
 	shardCoordinator sharding.Coordinator,
-	indexingData map[uint32]genesis.InitialIndexingDataHandler,
+	indexingData map[uint32]*genesis.IndexingData,
 ) ([]*block.MiniBlock, map[uint32]*indexer.Pool, error) {
 	if check.IfNil(shardCoordinator) {
 		return nil, nil, genesis.ErrNilShardCoordinator

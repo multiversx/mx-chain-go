@@ -38,7 +38,7 @@ const accountStartNonce = uint64(0)
 
 type genesisBlockCreator struct {
 	arg                 ArgsGenesisBlockCreator
-	initialIndexingData map[uint32]genesis.InitialIndexingDataHandler
+	initialIndexingData map[uint32]*genesis.IndexingData
 }
 
 // NewGenesisBlockCreator creates a new genesis block creator instance able to create genesis blocks on all initial shards
@@ -48,7 +48,7 @@ func NewGenesisBlockCreator(arg ArgsGenesisBlockCreator) (*genesisBlockCreator, 
 		return nil, fmt.Errorf("%w while creating NewGenesisBlockCreator", err)
 	}
 
-	indexingData := make(map[uint32]genesis.InitialIndexingDataHandler)
+	indexingData := make(map[uint32]*genesis.IndexingData)
 
 	gbc := &genesisBlockCreator{
 		arg:                 arg,
@@ -247,7 +247,7 @@ func (gbc *genesisBlockCreator) createEmptyGenesisBlocks() (map[uint32]data.Head
 }
 
 // GetIndexingData will return the initial data used for indexing
-func (gbc *genesisBlockCreator) GetIndexingData() map[uint32]genesis.InitialIndexingDataHandler {
+func (gbc *genesisBlockCreator) GetIndexingData() map[uint32]*genesis.IndexingData {
 	return gbc.initialIndexingData
 }
 
