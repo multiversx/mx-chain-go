@@ -25,11 +25,6 @@ import (
 	"github.com/ElrondNetwork/elrond-vm-common/atomic"
 )
 
-const (
-	activeDBKey = "activeDB"
-	activeDBVal = "yes"
-)
-
 // trieStorageManager manages all the storage operations of the trie (commit, snapshot, checkpoint, pruning)
 type trieStorageManager struct {
 	mainStorer             common.DBWriteCacher
@@ -124,6 +119,11 @@ func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager,
 
 	log.Debug("epoch for disabling old trie storage", "epoch", tsm.disableOldStorageEpoch)
 	args.EpochNotifier.RegisterNotifyHandler(tsm)
+
+	err = tsm.mainStorer.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
+	if err != nil {
+		log.Warn("newTrieStorageManager error while putting active DB value into main storer", "error", err)
+	}
 
 	if tsm.flagDisableOldStorage.IsSet() {
 		err := tsm.db.Close()
@@ -474,7 +474,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 		return
 	}
 	if err != nil {
-		log.Error("trie storage manager: takeSnapshot commit", "error", err.Error())
+		log.Error("trie storage manager: takeSnapshot commit", "error", err.Error(), "rootHash", snapshotEntry.rootHash)
 	}
 }
 
@@ -503,13 +503,13 @@ func (tsm *trieStorageManager) takeCheckpoint(checkpointEntry *snapshotsQueueEnt
 }
 
 func isActiveDb(stsm *snapshotTrieStorageManager) bool {
-	val, err := stsm.Get([]byte(activeDBKey))
+	val, err := stsm.Get([]byte(common.ActiveDBKey))
 	if err != nil {
 		log.Debug("snapshotTrieStorageManager get error", "err", err.Error())
 		return false
 	}
 
-	if bytes.Equal(val, []byte(activeDBVal)) {
+	if bytes.Equal(val, []byte(common.ActiveDBVal)) {
 		return true
 	}
 
@@ -641,11 +641,6 @@ func (tsm *trieStorageManager) SetEpochForPutOperation(epoch uint32) {
 func (tsm *trieStorageManager) EpochConfirmed(epoch uint32, _ uint64) {
 	tsm.flagDisableOldStorage.Toggle(epoch >= tsm.disableOldStorageEpoch)
 	log.Debug("old trie storage", "disabled", tsm.flagDisableOldStorage.IsSet())
-
-	err := tsm.mainStorer.Put([]byte(activeDBKey), []byte(activeDBVal))
-	if err != nil {
-		log.Error("error while putting active DB value into main storer", "error", err)
-	}
 
 	if tsm.flagDisableOldStorage.IsSet() && !tsm.oldStorageClosed {
 		err := tsm.closeOldTrieStorage()
