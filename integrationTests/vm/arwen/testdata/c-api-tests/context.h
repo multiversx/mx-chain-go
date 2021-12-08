@@ -24,6 +24,26 @@ int getCurveLengthEC(int ecHandle);
 int getPrivKeyByteLengthEC(int ecHandle);
 int ellipticCurveGetValues(int ecHandle, int fieldOrderHandle, int basePointOrderHandle, int eqConstantHandle, int xBasePointHandle, int yBasePointHandle);
 
+// Managed Buffers
+int	mBufferNew();
+int mBufferNewFromBytes(byte*dataOffset, int dataLength);
+int mBufferSetRandom(int mBufferHandle, int length);
+int	mBufferSetBytes(int mBufferHandle, byte*dataOffset, int dataLength);
+int mBufferGetLength(int mBufferHandle);
+int	mBufferGetBytes(int mBufferHandle, byte *resultOffset);
+int	mBufferAppend(int mBufferHandle, int otherHandle);
+int	mBufferAppendBytes(int mBufferHandle, byte*dataOffset, int dataLength);
+int	mBufferToBigIntUnsigned(int mBufferHandle, int bigIntHandle);
+int mBufferToBigIntSigned(int mBufferHandle, int bigIntHandle);
+int	mBufferFromBigIntUnsigned(int mBufferHandle, int bigIntHandle);
+int	mBufferFromBigIntSigned(int mBufferHandle, int bigIntHandle);
+int	mBufferStorageStore(int keyHandle, int mBufferHandle);
+int	mBufferStorageLoad(int keyHandle, int mBufferHandle);
+int	mBufferGetArgument(int id, int mBufferHandle);
+int	mBufferFinish(int mBufferHandle);
+int	mBufferToBigFloat(int mBufferHandle, int bigFloatHandle);
+int	mBufferFromBigFloat(int mBufferHandle, int bigFloatHandle);
+
 // Call-related functions
 void getCaller(byte *callerAddress);
 int getFunction(byte *function);
