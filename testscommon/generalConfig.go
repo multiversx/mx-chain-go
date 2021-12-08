@@ -264,6 +264,16 @@ func GetGeneralConfig() config.Config {
 				MaxOpenFiles:      10,
 			},
 		},
+		SmartContractsStorageSimulate: config.StorageConfig{
+			Cache: getLRUCacheConfig(),
+			DB: config.DBConfig{
+				FilePath:          AddTimestampSuffix("SmartContractsStorageSimulate"),
+				Type:              string(storageUnit.MemoryDB),
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
 		PeerBlockBodyStorage: config.StorageConfig{
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{

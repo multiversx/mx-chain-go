@@ -64,8 +64,6 @@ type StatusHandlersUtils interface {
 	StatusHandler() core.AppStatusHandler
 	Metrics() external.StatusMetricsHandler
 	UpdateStorerAndMetricsForPersistentHandler(store storage.Storer) error
-	SignalStartViews()
-	SignalLogRewrite()
 	IsInterfaceNil() bool
 }
 

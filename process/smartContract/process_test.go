@@ -25,9 +25,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/pkg/errors"
@@ -99,11 +99,10 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 		GasHandler: &testscommon.GasHandlerStub{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
-		GasSchedule:          mock.NewGasScheduleNotifierMock(gasSchedule),
-		EpochNotifier:        &epochNotifier.EpochNotifierStub{},
-		StakingV2EnableEpoch: 0,
-		ArwenChangeLocker:    &sync.RWMutex{},
-		VMOutputCacher:       txcache.NewDisabledCache(),
+		GasSchedule:       mock.NewGasScheduleNotifierMock(gasSchedule),
+		EpochNotifier:     &epochNotifier.EpochNotifierStub{},
+		ArwenChangeLocker: &sync.RWMutex{},
+		VMOutputCacher:    txcache.NewDisabledCache(),
 	}
 }
 
@@ -369,6 +368,7 @@ func TestNewSmartContractProcessorVerifyAllMembers(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockSmartContractProcessorArguments()
+	arguments.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch = 10
 	sc, _ := NewSmartContractProcessor(arguments)
 
 	assert.Equal(t, arguments.VmContainer, sc.vmContainer)
@@ -384,9 +384,7 @@ func TestNewSmartContractProcessorVerifyAllMembers(t *testing.T) {
 	assert.Equal(t, arguments.TxTypeHandler, sc.txTypeHandler)
 	assert.Equal(t, arguments.TxLogsProcessor, sc.txLogsProcessor)
 	assert.Equal(t, arguments.BadTxForwarder, sc.badTxForwarder)
-	assert.Equal(t, arguments.DeployEnableEpoch, sc.deployEnableEpoch)
-	assert.Equal(t, arguments.BuiltinEnableEpoch, sc.builtinEnableEpoch)
-	assert.Equal(t, arguments.PenalizedTooMuchGasEnableEpoch, sc.penalizedTooMuchGasEnableEpoch)
+	assert.Equal(t, arguments.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch, sc.builtInFunctionOnMetachainEnableEpoch)
 }
 
 // ===================== TestGasScheduleChange =====================
@@ -524,7 +522,7 @@ func TestScProcessor_DeploySmartContractDisabled(t *testing.T) {
 	}}
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
-	arguments.DeployEnableEpoch = maxEpoch
+	arguments.EnableEpochs.SCDeployEnableEpoch = maxEpoch
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -558,7 +556,7 @@ func TestScProcessor_BuiltInCallSmartContractDisabled(t *testing.T) {
 	}}
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
-	arguments.BuiltinEnableEpoch = maxEpoch
+	arguments.EnableEpochs.BuiltInFunctionsEnableEpoch = maxEpoch
 	funcName := "builtIn"
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
@@ -592,7 +590,7 @@ func TestScProcessor_BuiltInCallSmartContractSenderFailed(t *testing.T) {
 	}}
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
-	arguments.BuiltinEnableEpoch = maxEpoch
+	arguments.EnableEpochs.BuiltInFunctionsEnableEpoch = maxEpoch
 	funcName := "builtIn"
 	localError := errors.New("failed built in call")
 	arguments.BlockChainHook = &mock.BlockChainHookHandlerMock{ProcessBuiltInFunctionCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
@@ -654,7 +652,7 @@ func TestScProcessor_ExecuteBuiltInFunctionSCResultCallSelfShard(t *testing.T) {
 	arguments.AccountsDB = accountState
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
-	arguments.BuiltinEnableEpoch = maxEpoch
+	arguments.EnableEpochs.BuiltInFunctionsEnableEpoch = maxEpoch
 	funcName := "builtIn"
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
@@ -713,7 +711,7 @@ func TestScProcessor_ExecuteBuiltInFunctionSCResultCallSelfShardCannotSaveLog(t 
 	arguments.AccountsDB = accountState
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
-	arguments.BuiltinEnableEpoch = maxEpoch
+	arguments.EnableEpochs.BuiltInFunctionsEnableEpoch = maxEpoch
 	funcName := "builtIn"
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
@@ -763,7 +761,7 @@ func TestScProcessor_ExecuteBuiltInFunction(t *testing.T) {
 	arguments.AccountsDB = accountState
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
-	arguments.BuiltinEnableEpoch = maxEpoch
+	arguments.EnableEpochs.BuiltInFunctionsEnableEpoch = maxEpoch
 	funcName := "builtIn"
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
@@ -2420,7 +2418,7 @@ func TestScProcessor_RefundGasToSender(t *testing.T) {
 	arguments.EconomicsFee = &mock.FeeHandlerStub{MinGasPriceCalled: func() uint64 {
 		return minGasPrice
 	}}
-	arguments.DeployEnableEpoch = 10
+	arguments.EnableEpochs.SCDeployEnableEpoch = 10
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -2460,7 +2458,7 @@ func TestScProcessor_DoNotRefundGasToSenderForAsyncCall(t *testing.T) {
 	arguments.EconomicsFee = &mock.FeeHandlerStub{MinGasPriceCalled: func() uint64 {
 		return minGasPrice
 	}}
-	arguments.DeployEnableEpoch = 10
+	arguments.EnableEpochs.SCDeployEnableEpoch = 10
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -2715,6 +2713,9 @@ func TestScProcessor_CreateCrossShardTransactionsWithAsyncCalls(t *testing.T) {
 		GasUsed:         0,
 	}
 	outputAccounts = append(outputAccounts, outAccBackTransfer)
+	shardCoordinator.ComputeIdCalled = func(_ []byte) uint32 {
+		return shardCoordinator.SelfId() + 1
+	}
 	createdAsyncSCR, scTxs, err = sc.processSCOutputAccounts(&vmcommon.VMOutput{GasRemaining: 1000}, vmData.AsynchronousCall, outputAccounts, tx, txHash)
 	require.Nil(t, err)
 	require.Equal(t, len(outputAccounts), len(scTxs))
@@ -2729,6 +2730,65 @@ func TestScProcessor_CreateCrossShardTransactionsWithAsyncCalls(t *testing.T) {
 	require.Equal(t, 1, len(scTxs))
 	lastScTx = scTxs[len(scTxs)-1].(*smartContractResult.SmartContractResult)
 	require.Equal(t, vmData.AsynchronousCallBack, lastScTx.CallType)
+}
+
+func TestScProcessor_CreateIntraShardTransactionsWithAsyncCalls(t *testing.T) {
+	t.Parallel()
+
+	testAccounts, _ := state.NewUserAccount([]byte("address"))
+	accountsDB := &stateMock.AccountsStub{
+		LoadAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, err error) {
+			return testAccounts, nil
+		},
+		SaveAccountCalled: func(accountHandler vmcommon.AccountHandler) error {
+			return nil
+		},
+	}
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.AccountsDB = accountsDB
+	arguments.ShardCoordinator = shardCoordinator
+	sc, err := NewSmartContractProcessor(arguments)
+	require.NotNil(t, sc)
+	require.Nil(t, err)
+
+	outputAccounts := make([]*vmcommon.OutputAccount, 0)
+	outaddress := []byte("newsmartcontract")
+	outacc1 := &vmcommon.OutputAccount{}
+	outacc1.Address = outaddress
+	outacc1.Nonce = 0
+	outacc1.Balance = big.NewInt(5)
+	outacc1.BalanceDelta = big.NewInt(15)
+	outTransfer := vmcommon.OutputTransfer{Value: big.NewInt(5)}
+	outacc1.OutputTransfers = append(outacc1.OutputTransfers, outTransfer)
+	outputAccounts = append(outputAccounts, outacc1, outacc1, outacc1)
+
+	tx := &transaction.Transaction{}
+	tx.Nonce = 1
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = []byte("DST")
+
+	tx.Value = big.NewInt(45)
+	tx.GasPrice = 10
+	tx.GasLimit = 15
+	txHash := []byte("txHash")
+
+	outAccBackTransfer := &vmcommon.OutputAccount{
+		Address:         tx.SndAddr,
+		Nonce:           0,
+		Balance:         big.NewInt(0),
+		BalanceDelta:    big.NewInt(0),
+		OutputTransfers: []vmcommon.OutputTransfer{outTransfer},
+		GasUsed:         0,
+	}
+	outputAccounts = append(outputAccounts, outAccBackTransfer)
+	shardCoordinator.ComputeIdCalled = func(_ []byte) uint32 {
+		return shardCoordinator.SelfId()
+	}
+	createdAsyncSCR, scTxs, err := sc.processSCOutputAccounts(&vmcommon.VMOutput{GasRemaining: 1000}, vmData.AsynchronousCall, outputAccounts, tx, txHash)
+	require.Nil(t, err)
+	require.Equal(t, len(outputAccounts), len(scTxs))
+	require.False(t, createdAsyncSCR)
 }
 
 func TestScProcessor_ProcessSmartContractResultNilScr(t *testing.T) {
@@ -3394,6 +3454,11 @@ func TestSCProcessor_createSCRWhenError(t *testing.T) {
 func TestGasLockedInSmartContractProcessor(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.ArgsParser = NewArgumentParser()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
+	shardCoordinator.ComputeIdCalled = func(_ []byte) uint32 {
+		return shardCoordinator.SelfId() + 1
+	}
+	arguments.ShardCoordinator = shardCoordinator
 	sc, _ := NewSmartContractProcessor(arguments)
 
 	outaddress := []byte("newsmartcontract")
@@ -3430,6 +3495,17 @@ func TestGasLockedInSmartContractProcessor(t *testing.T) {
 	finalArguments, gasLocked := sc.getAsyncCallGasLockFromTxData(scr.CallType, args)
 	require.Equal(t, 0, len(finalArguments))
 	require.Equal(t, gasLocked, outTransfer.GasLocked)
+
+	shardCoordinator.ComputeIdCalled = func(_ []byte) uint32 {
+		return shardCoordinator.SelfId()
+	}
+	asyncCallback, results = sc.createSmartContractResults(vmOutput, vmData.DirectCall, outacc1, &transaction.Transaction{}, []byte("hash"))
+	require.False(t, asyncCallback)
+	require.Equal(t, 1, len(results))
+
+	scr = results[0].(*smartContractResult.SmartContractResult)
+	gasLocked = sc.getGasLockedFromSCR(scr)
+	require.Equal(t, gasLocked, uint64(0))
 }
 
 func TestSmartContractProcessor_computeTotalConsumedFeeAndDevRwd(t *testing.T) {
@@ -3811,6 +3887,27 @@ func TestProcessIfErrorCheckBackwardsCompatibilityProcessTransactionFeeCalledSho
 	require.False(t, called)
 }
 
+func TestProcessSCRSizeTooBig(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	sc.flagSCRSizeInvariantCheck.Unset()
+
+	scrTooBig := &smartContractResult.SmartContractResult{Data: bytes.Repeat([]byte{1}, core.MegabyteSize)}
+	scrs := make([]data.TransactionHandler, 0)
+	scrs = append(scrs, scrTooBig)
+
+	err := sc.checkSCRSizeInvariant(scrs)
+	assert.Nil(t, err)
+
+	sc.flagSCRSizeInvariantCheck.Toggle(true)
+
+	err = sc.checkSCRSizeInvariant(scrs)
+	assert.Equal(t, err, process.ErrResultingSCRIsTooBig)
+}
+
 func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
 	return &economics.ArgsNewEconomicsData{
 		Economics: &config.EconomicsConfig{
@@ -3835,12 +3932,18 @@ func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
 				},
 			},
 			FeeSettings: config.FeeSettings{
-				MaxGasLimitPerBlock:     "1500000000",
-				MaxGasLimitPerMetaBlock: "15000000000",
-				GasPerDataByte:          "1500",
-				MinGasPrice:             "1000000000",
-				MinGasLimit:             "50000",
-				GasPriceModifier:        0.01,
+				GasLimitSettings: []config.GasLimitSetting{
+					{
+						MaxGasLimitPerBlock:         "1500000000",
+						MaxGasLimitPerMiniBlock:     "1500000000",
+						MaxGasLimitPerMetaBlock:     "15000000000",
+						MaxGasLimitPerMetaMiniBlock: "15000000000",
+						MinGasLimit:                 "50000",
+					},
+				},
+				GasPerDataByte:   "1500",
+				MinGasPrice:      "1000000000",
+				GasPriceModifier: 0.01,
 			},
 		},
 		EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
@@ -3857,7 +3960,7 @@ func computeExpectedResults(
 	vmoutput *vmcommon.VMOutput,
 	stakingV2Enabled bool,
 ) (*big.Int, *big.Int) {
-	minGasLimitBigInt, _ := big.NewInt(0).SetString(args.Economics.FeeSettings.MinGasLimit, 10)
+	minGasLimitBigInt, _ := big.NewInt(0).SetString(args.Economics.FeeSettings.GasLimitSettings[0].MinGasLimit, 10)
 	gasPerByteBigInt, _ := big.NewInt(0).SetString(args.Economics.FeeSettings.GasPerDataByte, 10)
 	minGasLimit := minGasLimitBigInt.Uint64()
 	gasPerByte := gasPerByteBigInt.Uint64()

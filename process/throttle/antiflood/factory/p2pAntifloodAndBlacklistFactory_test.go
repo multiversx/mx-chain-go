@@ -8,8 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/mock"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/disabled"
+	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -33,7 +33,7 @@ func TestNewP2PAntiFloodAndBlackList_ShouldWorkAndReturnDisabledImplementations(
 			Enabled: false,
 		},
 	}
-	ash := &mock.AppStatusHandlerMock{}
+	ash := statusHandler.NewAppStatusHandlerMock()
 	ctx := context.Background()
 	components, err := NewP2PAntiFloodComponents(ctx, cfg, ash, currentPid)
 	assert.NotNil(t, components)
@@ -67,7 +67,7 @@ func TestNewP2PAntiFloodAndBlackList_ShouldWorkAndReturnOkImplementations(t *tes
 		},
 	}
 
-	ash := mock.NewAppStatusHandlerMock()
+	ash := statusHandler.NewAppStatusHandlerMock()
 	ctx := context.Background()
 	components, err := NewP2PAntiFloodComponents(ctx, cfg, ash, currentPid)
 	assert.Nil(t, err)

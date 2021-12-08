@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -683,7 +684,7 @@ func TestRewardTxPreprocessor_RestoreBlockDataIntoPools(t *testing.T) {
 			return retMap, nil
 		},
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &testscommon.StorerStub{
+			return &storageStubs.StorerStub{
 				RemoveCalled: func(key []byte) error {
 					return nil
 				},

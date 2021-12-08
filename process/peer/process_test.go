@@ -22,10 +22,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
@@ -76,12 +76,18 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 				},
 			},
 			FeeSettings: config.FeeSettings{
-				MaxGasLimitPerBlock:     "10000000",
-				MaxGasLimitPerMetaBlock: "10000000",
-				MinGasPrice:             "10",
-				MinGasLimit:             "10",
-				GasPerDataByte:          "1",
-				GasPriceModifier:        1.0,
+				GasLimitSettings: []config.GasLimitSetting{
+					{
+						MaxGasLimitPerBlock:         "10000000",
+						MaxGasLimitPerMiniBlock:     "10000000",
+						MaxGasLimitPerMetaBlock:     "10000000",
+						MaxGasLimitPerMetaMiniBlock: "10000000",
+						MinGasLimit:                 "10",
+					},
+				},
+				MinGasPrice:      "10",
+				GasPerDataByte:   "1",
+				GasPriceModifier: 1.0,
 			},
 		},
 		PenalizedTooMuchGasEnableEpoch: 0,
@@ -503,7 +509,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderError(t *testing.T
 	}
 	arguments.StorageService = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &testscommon.StorerStub{
+			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) (bytes []byte, e error) {
 					return nil, getHeaderError
 				},
@@ -559,7 +565,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsIncrease(t *testing.T)
 	}
 	arguments.StorageService = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &testscommon.StorerStub{
+			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) (bytes []byte, e error) {
 					return nil, nil
 				},
@@ -1231,7 +1237,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCheckForMissedBlocksErr(t *
 	}
 	arguments.StorageService = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &testscommon.StorerStub{
+			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) (bytes []byte, e error) {
 					return nil, nil
 				},

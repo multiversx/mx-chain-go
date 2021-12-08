@@ -82,6 +82,7 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 		GasScheduleConfig: configs.EpochConfig.GasSchedule,
 		ConfigDir:         configs.ConfigurationPathsHolder.GasScheduleDirectoryName,
 		EpochNotifier:     managedCoreComponents.EpochNotifier(),
+		ArwenChangeLocker: managedCoreComponents.ArwenChangeLocker(),
 	}
 	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
 	require.Nil(t, err)

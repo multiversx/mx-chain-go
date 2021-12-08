@@ -11,22 +11,26 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/gin-gonic/gin"
 )
 
 const (
 	getProofCurrentRootHashEndpoint = "/proof/address/:address"
 	getProofEndpoint                = "/proof/root-hash/:roothash/address/:address"
+	getProofDataTrieEndpoint        = "/proof/root-hash/:roothash/address/:address/key/:key"
 	verifyProofEndpoint             = "/proof/verify"
 	getProofCurrentRootHashPath     = "/address/:address"
 	getProofPath                    = "/root-hash/:roothash/address/:address"
+	getProofDataTriePath            = "/root-hash/:roothash/address/:address/key/:key"
 	verifyProofPath                 = "/verify"
 )
 
 // proofFacadeHandler defines the methods to be implemented by a facade for proof requests
 type proofFacadeHandler interface {
-	GetProof(rootHash string, address string) ([][]byte, error)
-	GetProofCurrentRootHash(address string) ([][]byte, []byte, error)
+	GetProof(rootHash string, address string) (*common.GetProofResponse, error)
+	GetProofDataTrie(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error)
+	GetProofCurrentRootHash(address string) (*common.GetProofResponse, error)
 	VerifyProof(rootHash string, address string, proof [][]byte) (bool, error)
 	GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool)
 	IsInterfaceNil() bool
@@ -57,6 +61,17 @@ func NewProofGroup(facade proofFacadeHandler) (*proofGroup, error) {
 			AdditionalMiddlewares: []shared.AdditionalMiddleware{
 				{
 					Middleware: middleware.CreateEndpointThrottlerFromFacade(getProofEndpoint, facade),
+					Position:   shared.Before,
+				},
+			},
+		},
+		{
+			Path:    getProofDataTriePath,
+			Method:  http.MethodGet,
+			Handler: pg.getProofDataTrie,
+			AdditionalMiddlewares: []shared.AdditionalMiddleware{
+				{
+					Middleware: middleware.CreateEndpointThrottlerFromFacade(getProofDataTrieEndpoint, facade),
 					Position:   shared.Before,
 				},
 			},
@@ -124,7 +139,7 @@ func (pg *proofGroup) getProof(c *gin.Context) {
 		return
 	}
 
-	proof, err := pg.getFacade().GetProof(rootHash, address)
+	response, err := pg.getFacade().GetProof(rootHash, address)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -137,19 +152,101 @@ func (pg *proofGroup) getProof(c *gin.Context) {
 		return
 	}
 
-	hexProof := make([]string, 0)
-	for _, byteProof := range proof {
-		hexProof = append(hexProof, hex.EncodeToString(byteProof))
-	}
+	hexProof := bytesToHex(response.Proof)
 
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
-			Data:  gin.H{"proof": hexProof},
+			Data: gin.H{
+				"proof": hexProof,
+				"value": hex.EncodeToString(response.Value),
+			},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},
 	)
+}
+
+// getProofDataTrie will receive a rootHash, a key and an address from the client, and it will return the Merkle proofs
+// for the address and key
+func (pg *proofGroup) getProofDataTrie(c *gin.Context) {
+	rootHash := c.Param("roothash")
+	if rootHash == "" {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrValidationEmptyRootHash.Error()),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
+	}
+
+	address := c.Param("address")
+	if address == "" {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrValidationEmptyAddress.Error()),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
+	}
+
+	key := c.Param("key")
+	if key == "" {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrValidationEmptyKey.Error()),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
+	}
+
+	mainTrieResponse, dataTrieResponse, err := pg.getFacade().GetProofDataTrie(rootHash, address, key)
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetProof.Error(), err.Error()),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	proofs := make(map[string]interface{})
+	proofs["mainProof"] = bytesToHex(mainTrieResponse.Proof)
+	proofs["dataTrieProof"] = bytesToHex(dataTrieResponse.Proof)
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data: gin.H{
+				"proofs":           proofs,
+				"value":            hex.EncodeToString(dataTrieResponse.Value),
+				"dataTrieRootHash": dataTrieResponse.RootHash,
+			},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+func bytesToHex(bytesValue [][]byte) []string {
+	hexValue := make([]string, 0)
+	for _, byteValue := range bytesValue {
+		hexValue = append(hexValue, hex.EncodeToString(byteValue))
+	}
+
+	return hexValue
 }
 
 // getProofCurrentRootHash will receive an address from the client, and it will return the
@@ -168,7 +265,7 @@ func (pg *proofGroup) getProofCurrentRootHash(c *gin.Context) {
 		return
 	}
 
-	proof, rootHash, err := pg.getFacade().GetProofCurrentRootHash(address)
+	response, err := pg.getFacade().GetProofCurrentRootHash(address)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -181,17 +278,15 @@ func (pg *proofGroup) getProofCurrentRootHash(c *gin.Context) {
 		return
 	}
 
-	hexProof := make([]string, 0)
-	for _, byteProof := range proof {
-		hexProof = append(hexProof, hex.EncodeToString(byteProof))
-	}
+	hexProof := bytesToHex(response.Proof)
 
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
 			Data: gin.H{
 				"proof":    hexProof,
-				"rootHash": hex.EncodeToString(rootHash),
+				"value":    hex.EncodeToString(response.Value),
+				"rootHash": response.RootHash,
 			},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,

@@ -137,7 +137,6 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		parentDir,
 		common.DefaultEpochString,
 		common.DefaultShardString,
-		bcf.prefConfig.Preferences.FullArchive,
 	)
 	if err != nil {
 		return nil, err
@@ -152,6 +151,8 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	dataSyncerFactory := bootstrap.NewScheduledDataSyncerFactory()
 
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
 		CoreComponentsHolder:       bcf.coreComponents,
@@ -172,6 +173,8 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		ArgumentsParser:            smartContract.NewArgumentParser(),
 		StatusHandler:              bcf.coreComponents.StatusHandler(),
 		HeaderIntegrityVerifier:    headerIntegrityVerifier,
+		DataSyncerCreator:          dataSyncerFactory,
+		ScheduledSCRsStorer:        nil, // will be updated after sync from network
 	}
 
 	var epochStartBootstrapper EpochStartBootstrapper
@@ -279,7 +282,6 @@ func createLatestStorageDataProvider(
 	parentDir string,
 	defaultEpochString string,
 	defaultShardString string,
-	fullHistoryObserver bool,
 ) (storage.LatestStorageDataProviderHandler, error) {
 	directoryReader := directoryhandler.NewDirectoryReader()
 
@@ -292,9 +294,6 @@ func createLatestStorageDataProvider(
 		DefaultShardString:    defaultShardString,
 	}
 
-	if fullHistoryObserver {
-		return latestData.NewFullHistoryLatestDataProvider(latestStorageDataArgs)
-	}
 	return latestData.NewLatestDataProvider(latestStorageDataArgs)
 }
 

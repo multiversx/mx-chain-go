@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,7 +25,7 @@ func createMockArgTxResolver() resolvers.ArgTxResolver {
 	return resolvers.ArgTxResolver{
 		SenderResolver:   &mock.TopicResolverSenderStub{},
 		TxPool:           testscommon.NewShardedDataStub(),
-		TxStorage:        &testscommon.StorerStub{},
+		TxStorage:        &storageStubs.StorerStub{},
 		Marshalizer:      &mock.MarshalizerMock{},
 		DataPacker:       &mock.DataPackerStub{},
 		AntifloodHandler: &mock.P2PAntifloodHandlerStub{},
@@ -292,7 +293,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxStorageShouldRetValAndSend(t 
 		Nonce: 10,
 	}
 	txReturnedAsBuffer, _ := marshalizer.Marshal(txReturned)
-	txStorage := &testscommon.StorerStub{}
+	txStorage := &storageStubs.StorerStub{}
 	txStorage.SearchFirstCalled = func(key []byte) (i []byte, e error) {
 		if bytes.Equal([]byte("aaa"), key) {
 			searchWasCalled = true
@@ -339,7 +340,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxStorageCheckRetError(t *testi
 
 	errExpected := errors.New("expected error")
 
-	txStorage := &testscommon.StorerStub{}
+	txStorage := &storageStubs.StorerStub{}
 	txStorage.SearchFirstCalled = func(key []byte) (i []byte, e error) {
 		if bytes.Equal([]byte("aaa"), key) {
 			return nil, errExpected
@@ -455,7 +456,7 @@ func TestTxResolver_ProcessReceivedMessageRequestedTwoSmallTransactionsFoundOnly
 			return nil
 		},
 	}
-	arg.TxStorage = &testscommon.StorerStub{
+	arg.TxStorage = &storageStubs.StorerStub{
 		SearchFirstCalled: func(key []byte) (i []byte, err error) {
 			return nil, errors.New("not found")
 		},

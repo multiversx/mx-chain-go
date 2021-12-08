@@ -3,6 +3,7 @@ package node
 import (
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/factory"
 )
@@ -34,4 +35,9 @@ func (n *Node) ComputeTimestampForRound(round uint64) int64 {
 // GetClosableComponentName -
 func (n *Node) GetClosableComponentName(component factory.Closer, index int) string {
 	return n.getClosableComponentName(component, index)
+}
+
+// ComputeProof -
+func (n *Node) ComputeProof(rootHash []byte, key []byte) (*common.GetProofResponse, error) {
+	return n.getProof(rootHash, key)
 }

@@ -126,6 +126,7 @@ type Config struct {
 	SmartContractsStorage           StorageConfig
 	SmartContractsStorageForSCQuery StorageConfig
 	TrieEpochRootHashStorage        StorageConfig
+	SmartContractsStorageSimulate   StorageConfig
 
 	BootstrapStorage StorageConfig
 	MetaBlockStorage StorageConfig
@@ -401,11 +402,13 @@ type LogsAndEventsConfig struct {
 // DbLookupExtensionsConfig holds the configuration for the db lookup extensions
 type DbLookupExtensionsConfig struct {
 	Enabled                            bool
+	DbLookupMaxActivePersisters        uint32
 	MiniblocksMetadataStorageConfig    StorageConfig
 	MiniblockHashByTxHashStorageConfig StorageConfig
 	EpochByHashStorageConfig           StorageConfig
 	ResultsHashesByTxHashStorageConfig StorageConfig
 	ESDTSuppliesStorageConfig          StorageConfig
+	RoundHashStorageConfig             StorageConfig
 }
 
 // DebugConfig will hold debugging configuration

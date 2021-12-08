@@ -326,8 +326,8 @@ var ErrResetLastUnJailedFromQueue = errors.New("reset last unjailed from queue f
 // ErrEmptyESDTOwnerAddress signals that an empty ESDT owner address was provided
 var ErrEmptyESDTOwnerAddress = errors.New("empty ESDT owner address")
 
-// ErrNilCurrentNetworkEpochSetter signals that a nil current network epoch setter has been provided
-var ErrNilCurrentNetworkEpochSetter = errors.New("nil current network epoch setter")
-
 // ErrNilScheduledTxsHandler signals that a nil scheduled transactions handler has been provided
 var ErrNilScheduledTxsHandler = errors.New("nil scheduled transactions handler")
+
+// ErrNilScheduledDataSyncerFactory signals that a nil scheduled data syncer factory was provided
+var ErrNilScheduledDataSyncerFactory = errors.New("nil scheduled data syncer factory")
