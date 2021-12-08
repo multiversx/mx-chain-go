@@ -610,7 +610,7 @@ func (mp *metaProcessor) indexBlock(
 		return
 	}
 
-	gasConsumedInHeader := mp.baseProcessor.gasConsumedProvider.TotalGasConsumed()
+	gasConsumedInHeader := mp.baseProcessor.gasConsumedProvider.TotalGasProvided()
 	gasPenalizedInHeader := mp.baseProcessor.gasConsumedProvider.TotalGasPenalized()
 	gasRefundedInHeader := mp.baseProcessor.gasConsumedProvider.TotalGasRefunded()
 	maxGasInHeader := mp.baseProcessor.economicsData.MaxGasLimitPerBlock(mp.shardCoordinator.SelfId())
@@ -621,7 +621,7 @@ func (mp *metaProcessor) indexBlock(
 		Header:         metaBlock,
 		SignersIndexes: signersIndexes,
 		HeaderGasConsumption: indexer.HeaderGasConsumption{
-			GasConsumed:    gasConsumedInHeader,
+			GasProvided:    gasConsumedInHeader,
 			GasRefunded:    gasRefundedInHeader,
 			GasPenalized:   gasPenalizedInHeader,
 			MaxGasPerBlock: maxGasInHeader,
