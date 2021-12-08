@@ -345,6 +345,7 @@ func (ap *accountsParser) createMintTransaction(ia genesis.InitialAccountHandler
 	return tx
 }
 
+// TODO: extend sharding Coordinator with a similar function, GetShardIDs
 func getShardIDs(shardCoordinator sharding.Coordinator) []uint32 {
 	shardIDs := make([]uint32, shardCoordinator.NumberOfShards()+1)
 	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
