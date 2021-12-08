@@ -28,6 +28,7 @@ import (
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/scheduledDataSyncer"
@@ -79,6 +80,7 @@ func createMockEpochStartBootstrapArgs(
 	cryptoMock *mock.CryptoComponentsMock,
 ) ArgsEpochStartBootstrap {
 	return ArgsEpochStartBootstrap{
+		ScheduledSCRsStorer: genericMocks.NewStorerMock("path", 0),
 		CoreComponentsHolder:   coreMock,
 		CryptoComponentsHolder: cryptoMock,
 		Messenger:              &mock.MessengerStub{},

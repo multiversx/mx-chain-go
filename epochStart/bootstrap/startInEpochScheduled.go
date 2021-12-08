@@ -51,6 +51,8 @@ func newStartInEpochShardHeaderDataSyncerWithScheduled(
 	}, nil
 }
 
+// UpdateSyncDataIfNeeded checks if according to the header, there is additional or different data required to be synchronized
+// and returns that data.
 func (ses *startInEpochWithScheduledDataSyncer) UpdateSyncDataIfNeeded(
 	notarizedShardHeader data.ShardHeaderHandler,
 ) (data.ShardHeaderHandler, map[string]data.HeaderHandler, error) {
@@ -180,6 +182,7 @@ func (ses *startInEpochWithScheduledDataSyncer) getRequiredMiniBlocksByMbHeader(
 	return ses.scheduledMiniBlocksSyncer.GetMiniBlocks()
 }
 
+// GetRootHashToSync checks according to the header what root hash is required to be synchronized
 func (ses *startInEpochWithScheduledDataSyncer) GetRootHashToSync(notarizedShardHeader data.ShardHeaderHandler) []byte {
 	if ses.scheduledEnableEpoch > notarizedShardHeader.GetEpoch() {
 		return notarizedShardHeader.GetRootHash()

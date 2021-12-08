@@ -213,7 +213,7 @@ func (sr *subroundBlock) ReceivedBlockHeader(cnsDta *consensus.Message) bool {
 	return sr.receivedBlockHeader(cnsDta)
 }
 
-// ReceivedBlockBodyAndHeader is called when both a header and block body have been received t
+// ReceivedBlockBodyAndHeader is called when both a header and block body have been received
 func (sr *subroundBlock) ReceivedBlockBodyAndHeader(cnsDta *consensus.Message) bool {
 	return sr.receivedBlockBodyAndHeader(cnsDta)
 }
