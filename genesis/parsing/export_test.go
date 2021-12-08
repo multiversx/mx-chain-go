@@ -4,7 +4,8 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/genesis/mock"
 )
@@ -21,6 +22,10 @@ func (ap *accountsParser) Process() error {
 	return ap.process()
 }
 
+func (ap *accountsParser) GenerateInShardMiniBlocks(txsHashesPerShard map[uint32][][]byte) []*block.MiniBlock {
+	return ap.generateIntraShardMiniBlocks(txsHashesPerShard)
+}
+
 func (ap *accountsParser) SetPukeyConverter(pubkeyConverter core.PubkeyConverter) {
 	ap.pubkeyConverter = pubkeyConverter
 }
@@ -31,9 +36,12 @@ func (ap *accountsParser) SetKeyGenerator(keyGen crypto.KeyGenerator) {
 
 func NewTestAccountsParser(pubkeyConverter core.PubkeyConverter) *accountsParser {
 	return &accountsParser{
-		pubkeyConverter: pubkeyConverter,
-		initialAccounts: make([]*data.InitialAccount, 0),
-		keyGenerator:    &mock.KeyGeneratorStub{},
+		pubkeyConverter:    pubkeyConverter,
+		initialAccounts:    make([]*data.InitialAccount, 0),
+		minterAddressBytes: []byte{},
+		keyGenerator:       &mock.KeyGeneratorStub{},
+		hasher:             &mock.HasherMock{},
+		marshalizer:        &mock.MarshalizerMock{},
 	}
 }
 

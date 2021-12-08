@@ -73,8 +73,11 @@ func TestNewAccountsParser_NilEntireBalanceShouldErr(t *testing.T) {
 	ap, err := parsing.NewAccountsParser(
 		"./testdata/genesis_ok.json",
 		nil,
+		"",
 		createMockHexPubkeyConverter(),
 		&mock.KeyGeneratorStub{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
 	)
 
 	assert.True(t, check.IfNil(ap))
@@ -87,8 +90,11 @@ func TestNewAccountsParser_ZeroEntireBalanceShouldErr(t *testing.T) {
 	ap, err := parsing.NewAccountsParser(
 		"./testdata/genesis_ok.json",
 		big.NewInt(0),
+		"",
 		createMockHexPubkeyConverter(),
 		&mock.KeyGeneratorStub{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
 	)
 
 	assert.True(t, check.IfNil(ap))
@@ -101,8 +107,11 @@ func TestNewAccountsParser_BadFilenameShouldErr(t *testing.T) {
 	ap, err := parsing.NewAccountsParser(
 		"inexistent file",
 		big.NewInt(1),
+		"",
 		createMockHexPubkeyConverter(),
 		&mock.KeyGeneratorStub{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
 	)
 
 	assert.True(t, check.IfNil(ap))
@@ -115,8 +124,11 @@ func TestNewAccountsParser_NilPubkeyConverterShouldErr(t *testing.T) {
 	ap, err := parsing.NewAccountsParser(
 		"inexistent file",
 		big.NewInt(1),
+		"",
 		nil,
 		&mock.KeyGeneratorStub{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
 	)
 
 	assert.True(t, check.IfNil(ap))
@@ -129,8 +141,11 @@ func TestNewAccountsParser_NilKeyGeneratorShouldErr(t *testing.T) {
 	ap, err := parsing.NewAccountsParser(
 		"inexistent file",
 		big.NewInt(1),
+		"",
 		createMockHexPubkeyConverter(),
 		nil,
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
 	)
 
 	assert.True(t, check.IfNil(ap))
@@ -143,8 +158,11 @@ func TestNewAccountsParser_BadJsonShouldErr(t *testing.T) {
 	ap, err := parsing.NewAccountsParser(
 		"testdata/genesis_bad.json",
 		big.NewInt(1),
+		"",
 		createMockHexPubkeyConverter(),
 		&mock.KeyGeneratorStub{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
 	)
 
 	assert.True(t, check.IfNil(ap))
@@ -157,8 +175,11 @@ func TestNewAccountsParser_ShouldWork(t *testing.T) {
 	ap, err := parsing.NewAccountsParser(
 		"testdata/genesis_ok.json",
 		big.NewInt(30),
+		"",
 		createMockHexPubkeyConverter(),
 		&mock.KeyGeneratorStub{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
 	)
 
 	assert.False(t, check.IfNil(ap))
@@ -434,4 +455,84 @@ func TestAccountsParser_GetInitialAccountsForDelegated(t *testing.T) {
 	require.Equal(t, 0, len(list))
 	delegated = ap.GetTotalStakedForDelegationAddress(hex.EncodeToString([]byte("not delegated")))
 	assert.Equal(t, big.NewInt(0), delegated)
+}
+
+//------- GetMintTransactions
+
+func TestAccountsParser_GetMintTransactionsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
+	miniBlocks, txsPoolPerShard, err := ap.GenerateInitialTransactions(
+		nil,
+	)
+
+	assert.Nil(t, miniBlocks)
+	assert.Nil(t, txsPoolPerShard)
+	assert.Equal(t, genesis.ErrNilShardCoordinator, err)
+}
+
+func TestAccountsParser_generateInShardMiniBlocks(t *testing.T) {
+	t.Parallel()
+
+	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
+	balance := int64(1)
+	ibs := []*data.InitialAccount{
+		createSimpleInitialAccount("0001", balance),
+		createSimpleInitialAccount("0002", balance),
+		createSimpleInitialAccount("0003", balance),
+		createSimpleInitialAccount("0104", balance),
+	}
+
+	ap.SetEntireSupply(big.NewInt(int64(len(ibs)) * balance))
+	ap.SetInitialAccounts(ibs)
+
+	err := ap.Process()
+	require.Nil(t, err)
+
+	var txsHashesPerShard = make(map[uint32][][]byte)
+	txsHashesPerShard[0] = [][]byte{ibs[0].AddressBytes()}
+	txsHashesPerShard[1] = [][]byte{ibs[1].AddressBytes()}
+	txsHashesPerShard[2] = [][]byte{ibs[2].AddressBytes()}
+	txsHashesPerShard[3] = [][]byte{ibs[3].AddressBytes()}
+
+	miniBlocks := ap.GenerateInShardMiniBlocks(txsHashesPerShard)
+
+	assert.Equal(t, 4, len(miniBlocks))
+}
+
+func TestAccountsParser_GenerateInitialTransactions(t *testing.T) {
+	t.Parallel()
+
+	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
+	balance := int64(1)
+	ibs := []*data.InitialAccount{
+		createSimpleInitialAccount("0001", balance),
+		createSimpleInitialAccount("0002", balance),
+		createSimpleInitialAccount("0000", balance),
+		createSimpleInitialAccount("0103", balance),
+	}
+
+	ap.SetEntireSupply(big.NewInt(int64(len(ibs)) * balance))
+	ap.SetInitialAccounts(ibs)
+
+	err := ap.Process()
+	require.Nil(t, err)
+
+	sharder := &mock.ShardCoordinatorMock{
+		NumOfShards: 4,
+		SelfShardId: 0,
+	}
+
+	miniBlocks, txsPoolPerShard, err := ap.GenerateInitialTransactions(sharder)
+	require.Nil(t, err)
+
+	assert.Equal(t, 4, len(miniBlocks))
+	assert.Equal(t, 1, len(miniBlocks[0].GetTxHashes()))
+	assert.Equal(t, 1, len(miniBlocks[1].GetTxHashes()))
+	assert.Equal(t, 1, len(miniBlocks[2].GetTxHashes()))
+	assert.Equal(t, 1, len(miniBlocks[3].GetTxHashes()))
+
+	assert.Equal(t, 1, len(txsPoolPerShard[0].Txs))
+	assert.Equal(t, 1, len(txsPoolPerShard[1].Txs))
 }
