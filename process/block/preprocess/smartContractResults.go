@@ -519,9 +519,11 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[index])
 
 		if scr.flagOptimizeGasUsedInCrossMiniBlocks.IsSet() {
-			if totalGasConsumedInSelfShard > maxGasLimitUsedForDestMeTxs {
-				err = process.ErrMaxGasLimitUsedForDestMeTxsIsReached
-				return processedTxHashes, index, err
+			if scr.shardCoordinator.SelfId() != core.MetachainShardId {
+				if totalGasConsumedInSelfShard > maxGasLimitUsedForDestMeTxs {
+					err = process.ErrMaxGasLimitUsedForDestMeTxsIsReached
+					return processedTxHashes, index, err
+				}
 			}
 		}
 

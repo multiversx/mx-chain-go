@@ -1270,9 +1270,11 @@ func (txs *transactions) ProcessMiniBlock(
 		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[index])
 
 		if txs.flagOptimizeGasUsedInCrossMiniBlocks.IsSet() {
-			if totalGasConsumedInSelfShard > maxGasLimitUsedForDestMeTxs {
-				err = process.ErrMaxGasLimitUsedForDestMeTxsIsReached
-				return processedTxHashes, index, err
+			if txs.shardCoordinator.SelfId() != core.MetachainShardId {
+				if totalGasConsumedInSelfShard > maxGasLimitUsedForDestMeTxs {
+					err = process.ErrMaxGasLimitUsedForDestMeTxsIsReached
+					return processedTxHashes, index, err
+				}
 			}
 		}
 
