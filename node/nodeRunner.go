@@ -470,6 +470,7 @@ func (nr *nodeRunner) createApiFacade(
 		CryptoComponents:    currentNode.cryptoComponents,
 		ProcessComponents:   currentNode.processComponents,
 		GasScheduleNotifier: gasScheduleNotifier,
+		Bootstrapper:        currentNode.consensusComponents.Bootstrapper(),
 	}
 
 	apiResolver, err := mainFactory.CreateApiResolver(apiResolverArgs)
