@@ -528,9 +528,12 @@ func TestLibp2pMessenger_BroadcastOnChannelBlockingShouldLimitNumberOfGoRoutines
 	}
 
 	msg := []byte("test message")
-	numBroadcasts := libp2p.BroadcastGoRoutines + 1
+	numBroadcasts := libp2p.BroadcastGoRoutines + 5
 
 	ch := make(chan *p2p.SendableData)
+
+	wg := sync.WaitGroup{}
+	wg.Add(numBroadcasts)
 
 	mes, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
 	mes.SetLoadBalancer(&mock.ChannelLoadBalancerStub{
@@ -538,14 +541,13 @@ func TestLibp2pMessenger_BroadcastOnChannelBlockingShouldLimitNumberOfGoRoutines
 			return nil
 		},
 		GetChannelOrDefaultCalled: func(pipe string) chan *p2p.SendableData {
+			wg.Done()
 			return ch
 		},
 	})
 
 	numErrors := uint32(0)
 
-	wg := sync.WaitGroup{}
-	wg.Add(numBroadcasts - libp2p.BroadcastGoRoutines)
 	for i := 0; i < numBroadcasts; i++ {
 		go func() {
 			err := mes.BroadcastOnChannelBlocking("test", "test", msg)
@@ -560,10 +562,13 @@ func TestLibp2pMessenger_BroadcastOnChannelBlockingShouldLimitNumberOfGoRoutines
 
 	// cleanup stuck go routines that are trying to write on the ch channel
 	for i := 0; i < libp2p.BroadcastGoRoutines; i++ {
-		<-ch
+		select {
+		case <-ch:
+		default:
+		}
 	}
 
-	assert.Equal(t, atomic.LoadUint32(&numErrors), uint32(numBroadcasts-libp2p.BroadcastGoRoutines))
+	assert.True(t, atomic.LoadUint32(&numErrors) > 0)
 
 	_ = mes.Close()
 }
