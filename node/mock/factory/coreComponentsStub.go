@@ -38,6 +38,7 @@ type CoreComponentsMock struct {
 	NtpTimer                    ntp.SyncTimer
 	RoundHandlerField           consensus.RoundHandler
 	EconomicsHandler            process.EconomicsDataHandler
+	APIEconomicsHandler         process.EconomicsDataHandler
 	RatingsConfig               process.RatingsInfoHandler
 	RatingHandler               sharding.PeerAccountListAndRatingHandler
 	NodesConfig                 sharding.GenesisNodesSetupHandler
@@ -104,6 +105,11 @@ func (ccm *CoreComponentsMock) RoundHandler() consensus.RoundHandler {
 // EconomicsData -
 func (ccm *CoreComponentsMock) EconomicsData() process.EconomicsDataHandler {
 	return ccm.EconomicsHandler
+}
+
+// APIEconomicsData -
+func (ccm *CoreComponentsMock) APIEconomicsData() process.EconomicsDataHandler {
+	return ccm.APIEconomicsHandler
 }
 
 // RatingsData -
