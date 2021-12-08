@@ -110,6 +110,7 @@ type CoreComponentsHolder interface {
 	SyncTimer() ntp.SyncTimer
 	RoundHandler() consensus.RoundHandler
 	EconomicsData() process.EconomicsDataHandler
+	APIEconomicsData() process.EconomicsDataHandler
 	RatingsData() process.RatingsInfoHandler
 	Rater() sharding.PeerAccountListAndRatingHandler
 	GenesisNodesSetup() sharding.GenesisNodesSetupHandler
@@ -383,6 +384,7 @@ type ConsensusComponentsHolder interface {
 	BroadcastMessenger() consensus.BroadcastMessenger
 	ConsensusGroupSize() (int, error)
 	HardforkTrigger() HardforkTrigger
+	Bootstrapper() process.Bootstrapper
 	IsInterfaceNil() bool
 }
 

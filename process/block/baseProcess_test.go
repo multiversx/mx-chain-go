@@ -47,8 +47,8 @@ func haveTime() time.Duration {
 	return 2000 * time.Millisecond
 }
 
-func createTestBlockchain() *mock.BlockChainMock {
-	return &mock.BlockChainMock{GetGenesisHeaderCalled: func() data.HeaderHandler {
+func createTestBlockchain() *mock.BlockChainStub {
+	return &mock.BlockChainStub{GetGenesisHeaderCalled: func() data.HeaderHandler {
 		return &block.Header{Nonce: 0}
 	}}
 }
@@ -762,7 +762,7 @@ func TestBaseProcessor_SaveLastNotarizedHdrMetaGood(t *testing.T) {
 
 func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr(t *testing.T) {
 	t.Parallel()
-	blockChain := &mock.BlockChainMock{
+	blockChain := &mock.BlockChainStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{
 				Epoch: 2,
@@ -788,7 +788,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr2(t *testing.T) {
 	t.Parallel()
 
 	randSeed := []byte("randseed")
-	blockChain := &mock.BlockChainMock{
+	blockChain := &mock.BlockChainStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{
 				Epoch:           1,
@@ -824,7 +824,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr3(t *testing.T) {
 	t.Parallel()
 
 	randSeed := []byte("randseed")
-	blockChain := &mock.BlockChainMock{
+	blockChain := &mock.BlockChainStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{
 				Epoch:    3,
@@ -861,7 +861,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMat
 	t.Parallel()
 
 	randSeed := []byte("randseed")
-	chain := &mock.BlockChainMock{
+	chain := &mock.BlockChainStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{
 				Epoch:    2,
@@ -927,7 +927,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMat
 	t.Parallel()
 
 	randSeed := []byte("randseed")
-	chain := &mock.BlockChainMock{
+	chain := &mock.BlockChainStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{
 				Epoch:    2,

@@ -34,7 +34,7 @@ func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 		},
 		PubkeyConv:         mock.NewPubkeyConverterMock(32),
 		StorageService:     &mock.ChainStorerMock{},
-		BlockChain:         &mock.BlockChainMock{},
+		BlockChain:         &mock.BlockChainStub{},
 		ShardCoordinator:   mock.NewOneShardCoordinatorMock(),
 		Marshalizer:        &mock.MarshalizerMock{},
 		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
@@ -325,7 +325,7 @@ func TestBlockChainHookImpl_GetBlockhashShouldReturnCurrentBlockHeaderHash(t *te
 	hdrToRet := &block.Header{Nonce: 2}
 	hashToRet := []byte("hash")
 	args := createMockVMAccountsArguments()
-	args.BlockChain = &mock.BlockChainMock{
+	args.BlockChain = &mock.BlockChainStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return hdrToRet
 		},
@@ -349,7 +349,7 @@ func TestBlockChainHookImpl_GetBlockhashFromOldEpoch(t *testing.T) {
 
 	marshaledData, _ := args.Marshalizer.Marshal(hdrToRet)
 
-	args.BlockChain = &mock.BlockChainMock{
+	args.BlockChain = &mock.BlockChainStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{Nonce: 10, Epoch: 10}
 		},
@@ -396,7 +396,7 @@ func TestBlockChainHookImpl_GettersFromBlockchainCurrentHeader(t *testing.T) {
 	}
 
 	args := createMockVMAccountsArguments()
-	args.BlockChain = &mock.BlockChainMock{
+	args.BlockChain = &mock.BlockChainStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return hdrToRet
 		},
