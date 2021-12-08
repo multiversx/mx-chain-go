@@ -6,13 +6,13 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestHas_ErrorWhenStorerIsMissing(t *testing.T) {
-	s := &testscommon.StorerStub{}
+	s := &storageStubs.StorerStub{}
 
 	b := dataRetriever.NewChainStorer()
 	assert.False(t, b.IsInterfaceNil())
@@ -23,7 +23,7 @@ func TestHas_ErrorWhenStorerIsMissing(t *testing.T) {
 }
 
 func TestHas_ReturnsCorrectly(t *testing.T) {
-	s := &testscommon.StorerStub{}
+	s := &storageStubs.StorerStub{}
 	s.HasCalled = func(key []byte) error {
 		return nil
 	}
@@ -35,7 +35,7 @@ func TestHas_ReturnsCorrectly(t *testing.T) {
 }
 
 func TestGet_ErrorWhenStorerIsMissing(t *testing.T) {
-	s := &testscommon.StorerStub{}
+	s := &storageStubs.StorerStub{}
 
 	b := dataRetriever.NewChainStorer()
 	b.AddStorer(1, s)
@@ -45,7 +45,7 @@ func TestGet_ErrorWhenStorerIsMissing(t *testing.T) {
 }
 
 func TestGet_ReturnsCorrectly(t *testing.T) {
-	s := &testscommon.StorerStub{}
+	s := &storageStubs.StorerStub{}
 	getResult := []byte("get called")
 	s.GetCalled = func(key []byte) (b []byte, e error) {
 		return getResult, nil
@@ -59,7 +59,7 @@ func TestGet_ReturnsCorrectly(t *testing.T) {
 }
 
 func TestPut_ErrorWhenStorerIsMissing(t *testing.T) {
-	s := &testscommon.StorerStub{}
+	s := &storageStubs.StorerStub{}
 
 	b := dataRetriever.NewChainStorer()
 	b.AddStorer(1, s)
@@ -69,7 +69,7 @@ func TestPut_ErrorWhenStorerIsMissing(t *testing.T) {
 }
 
 func TestPut_ReturnsCorrectly(t *testing.T) {
-	s := &testscommon.StorerStub{}
+	s := &storageStubs.StorerStub{}
 	putErr := errors.New("error")
 	s.PutCalled = func(key, data []byte) error {
 		return putErr
@@ -82,7 +82,7 @@ func TestPut_ReturnsCorrectly(t *testing.T) {
 }
 
 func TestGetAll_ErrorWhenStorerIsMissing(t *testing.T) {
-	s := &testscommon.StorerStub{}
+	s := &storageStubs.StorerStub{}
 
 	b := dataRetriever.NewChainStorer()
 	b.AddStorer(1, s)
@@ -93,7 +93,7 @@ func TestGetAll_ErrorWhenStorerIsMissing(t *testing.T) {
 }
 
 func TestGetAll_ErrorWhenStorersGetErrors(t *testing.T) {
-	s := &testscommon.StorerStub{}
+	s := &storageStubs.StorerStub{}
 	getErr := errors.New("error")
 	s.GetCalled = func(key []byte) (bytes []byte, e error) {
 		return nil, getErr
@@ -118,7 +118,7 @@ func TestGetAll_ReturnsCorrectly(t *testing.T) {
 		key2: val2,
 	}
 
-	s := &testscommon.StorerStub{}
+	s := &storageStubs.StorerStub{}
 	s.GetCalled = func(key []byte) (bytes []byte, e error) {
 		return m[string(key)], nil
 	}
@@ -135,7 +135,7 @@ func TestGetAll_ReturnsCorrectly(t *testing.T) {
 }
 
 func TestDestroy_ErrorsWhenStorerDestroyErrors(t *testing.T) {
-	s := &testscommon.StorerStub{}
+	s := &storageStubs.StorerStub{}
 	destroyError := errors.New("error")
 	s.DestroyUnitCalled = func() error {
 		return destroyError
@@ -147,7 +147,7 @@ func TestDestroy_ErrorsWhenStorerDestroyErrors(t *testing.T) {
 }
 
 func TestDestroy_ReturnsCorrectly(t *testing.T) {
-	s := &testscommon.StorerStub{}
+	s := &storageStubs.StorerStub{}
 	destroyCalled := false
 	s.DestroyUnitCalled = func() error {
 		destroyCalled = true
@@ -163,7 +163,7 @@ func TestDestroy_ReturnsCorrectly(t *testing.T) {
 }
 
 type extendedStub struct {
-	*testscommon.StorerStub
+	*storageStubs.StorerStub
 	SetEpochForPutOperationCalled func(epoch uint32)
 }
 
@@ -181,7 +181,7 @@ func TestBlockChain_SetEpochForPutOperation(t *testing.T) {
 		assert.Equal(t, expectedEpoch, epoch)
 		setEpochWasCalled = true
 	}
-	txUnit := &testscommon.StorerStub{}
+	txUnit := &storageStubs.StorerStub{}
 
 	b := dataRetriever.NewChainStorer()
 	b.AddStorer(0, headerUnit)
@@ -194,11 +194,11 @@ func TestBlockChain_SetEpochForPutOperation(t *testing.T) {
 func TestBlockChain_GetStorer(t *testing.T) {
 	t.Parallel()
 
-	txUnit := &testscommon.StorerStub{}
-	txBlockUnit := &testscommon.StorerStub{}
-	stateBlockUnit := &testscommon.StorerStub{}
-	peerBlockUnit := &testscommon.StorerStub{}
-	headerUnit := &testscommon.StorerStub{}
+	txUnit := &storageStubs.StorerStub{}
+	txBlockUnit := &storageStubs.StorerStub{}
+	stateBlockUnit := &storageStubs.StorerStub{}
+	peerBlockUnit := &storageStubs.StorerStub{}
+	headerUnit := &storageStubs.StorerStub{}
 
 	b := dataRetriever.NewChainStorer()
 	b.AddStorer(0, txUnit)
@@ -217,8 +217,8 @@ func TestBlockChain_GetStorer(t *testing.T) {
 func TestBlockChain_GetAllStorers(t *testing.T) {
 	t.Parallel()
 
-	txUnit := &testscommon.StorerStub{}
-	txBlockUnit := &testscommon.StorerStub{}
+	txUnit := &storageStubs.StorerStub{}
+	txBlockUnit := &storageStubs.StorerStub{}
 
 	b := dataRetriever.NewChainStorer()
 	b.AddStorer(0, txUnit)
@@ -234,7 +234,7 @@ func TestCloseAll_Error(t *testing.T) {
 	t.Parallel()
 
 	closeErr := errors.New("error")
-	s := &testscommon.StorerStub{
+	s := &storageStubs.StorerStub{
 		CloseCalled: func() error {
 			return closeErr
 		},
@@ -250,7 +250,7 @@ func TestCloseAll_Error(t *testing.T) {
 func TestCloseAll_Ok(t *testing.T) {
 	t.Parallel()
 
-	s := &testscommon.StorerStub{}
+	s := &storageStubs.StorerStub{}
 
 	b := dataRetriever.NewChainStorer()
 	b.AddStorer(1, s)

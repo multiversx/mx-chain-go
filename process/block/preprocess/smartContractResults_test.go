@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
@@ -1140,7 +1141,7 @@ func TestScrsPreprocessor_RestoreBlockDataIntoPools(t *testing.T) {
 
 	txHash := []byte("txHash")
 	scrstorage := mock.ChainStorerMock{}
-	scrstorage.AddStorer(1, &testscommon.StorerStub{})
+	scrstorage.AddStorer(1, &storageStubs.StorerStub{})
 	err := scrstorage.Put(1, txHash, txHash)
 	assert.Nil(t, err)
 
@@ -1151,7 +1152,7 @@ func TestScrsPreprocessor_RestoreBlockDataIntoPools(t *testing.T) {
 		return par, nil
 	}
 	scrstorage.GetStorerCalled = func(unitType dataRetriever.UnitType) storage.Storer {
-		return &testscommon.StorerStub{
+		return &storageStubs.StorerStub{
 			RemoveCalled: func(key []byte) error {
 				return nil
 			},

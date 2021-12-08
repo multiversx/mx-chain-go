@@ -25,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	factoryInterceptors "github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/factory"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/types"
 	factoryDisabled "github.com/ElrondNetwork/elrond-go/factory/disabled"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
@@ -116,8 +117,9 @@ type epochStartBootstrap struct {
 	latestStorageDataProvider storage.LatestStorageDataProviderHandler
 	argumentsParser           process.ArgumentsParser
 	enableEpochs              config.EnableEpochs
+	dataSyncerFactory         types.ScheduledDataSyncerCreator
 
-	dataSyncerWithScheduled *startInEpochWithScheduledDataSyncer
+	dataSyncerWithScheduled types.ScheduledDataSyncer
 
 	// gathered data
 	epochStartMeta     data.MetaHeaderHandler
@@ -160,6 +162,8 @@ type ArgsEpochStartBootstrap struct {
 	ArgumentsParser            process.ArgumentsParser
 	StatusHandler              core.AppStatusHandler
 	HeaderIntegrityVerifier    process.HeaderIntegrityVerifier
+	DataSyncerCreator          types.ScheduledDataSyncerCreator
+	ScheduledSCRsStorer        storage.Storer
 }
 
 type dataToSync struct {
@@ -201,6 +205,9 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		maxHardCapForMissingNodes:  args.GeneralConfig.TrieSync.MaxHardCapForMissingNodes,
 		trieSyncerVersion:          args.GeneralConfig.TrieSync.TrieSyncerVersion,
 		enableEpochs:               args.EnableEpochs,
+		dataSyncerFactory:          args.DataSyncerCreator,
+		storerScheduledSCRs:        args.ScheduledSCRsStorer,
+		shardCoordinator:           args.GenesisShardCoordinator,
 	}
 
 	log.Debug("process: enable epoch for transaction signed with tx hash", "epoch", epochStartProvider.enableEpochs.TransactionSignedWithTxHashEnableEpoch)
@@ -475,7 +482,7 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 	}
 
 	epochStartConfig := e.generalConfig.EpochStartConfig
-	metablockProcessor, err := NewEpochStartMetaBlockProcessor(
+	metaBlockProcessor, err := NewEpochStartMetaBlockProcessor(
 		e.messenger,
 		e.requestHandler,
 		e.coreComponentsHolder.InternalMarshalizer(),
@@ -498,7 +505,7 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		WhitelistHandler:        e.whiteListHandler,
 		StartInEpochConfig:      epochStartConfig,
 		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
-		MetaBlockProcessor:      metablockProcessor,
+		MetaBlockProcessor:      metaBlockProcessor,
 	}
 	e.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)
 	if err != nil {
@@ -923,13 +930,15 @@ func (e *epochStartBootstrap) updateDataForScheduled(
 		return nil, err
 	}
 
-	e.dataSyncerWithScheduled, err = newStartInEpochShardHeaderDataSyncerWithScheduled(
-		scheduledTxsHandler,
-		e.headersSyncer,
-		e.miniBlocksSyncer,
-		e.txSyncerForScheduled,
-		e.enableEpochs.ScheduledMiniBlocksEnableEpoch,
-	)
+	argsScheduledDataSyncer := &types.ScheduledDataSyncerCreateArgs{
+		ScheduledTxsHandler:  scheduledTxsHandler,
+		HeadersSyncer:        e.headersSyncer,
+		MiniBlocksSyncer:     e.miniBlocksSyncer,
+		TxSyncer:             e.txSyncerForScheduled,
+		ScheduledEnableEpoch: e.enableEpochs.ScheduledMiniBlocksEnableEpoch,
+	}
+
+	e.dataSyncerWithScheduled, err = e.dataSyncerFactory.Create(argsScheduledDataSyncer)
 	if err != nil {
 		return nil, err
 	}
@@ -941,12 +950,12 @@ func (e *epochStartBootstrap) updateDataForScheduled(
 		additionalHeaders: nil,
 	}
 
-	res.ownShardHdr, res.additionalHeaders, err = e.dataSyncerWithScheduled.updateSyncDataIfNeeded(shardNotarizedHeader)
+	res.ownShardHdr, res.additionalHeaders, err = e.dataSyncerWithScheduled.UpdateSyncDataIfNeeded(shardNotarizedHeader)
 	if err != nil {
 		return nil, err
 	}
 
-	res.rootHashToSync = e.dataSyncerWithScheduled.getRootHashToSync(shardNotarizedHeader)
+	res.rootHashToSync = e.dataSyncerWithScheduled.GetRootHashToSync(shardNotarizedHeader)
 
 	return res, nil
 }
