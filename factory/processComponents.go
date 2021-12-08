@@ -836,7 +836,7 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32
 			Body:       &dataBlock.Body{},
 			Header:     genesisBlockHeader,
 			HeaderGasConsumption: indexer.HeaderGasConsumption{
-				GasConsumed:    0,
+				GasProvided:    0,
 				GasRefunded:    0,
 				GasPenalized:   0,
 				MaxGasPerBlock: pcf.coreData.EconomicsData().MaxGasLimitPerBlock(core.MetachainShardId),

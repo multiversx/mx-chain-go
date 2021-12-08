@@ -619,6 +619,7 @@ func TestEconomicsData_TxWithLowerGasLimitShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrInsufficientGasLimitInTx, err)
 }
 
+// This test should not be modified due to backwards compatibility reasons
 func TestEconomicsData_TxWithHigherGasLimitShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -626,7 +627,7 @@ func TestEconomicsData_TxWithHigherGasLimitShouldErr(t *testing.T) {
 	minGasPrice := uint64(500)
 	minGasLimit := uint64(12)
 	maxGasLimitPerBlock := minGasLimit
-	args.Economics.FeeSettings.GasLimitSettings[0].MaxGasLimitPerMiniBlock = fmt.Sprintf("%d", maxGasLimitPerBlock)
+	args.Economics.FeeSettings.GasLimitSettings[0].MaxGasLimitPerBlock = fmt.Sprintf("%d", maxGasLimitPerBlock)
 	args.Economics.FeeSettings.GasLimitSettings[0].MaxGasLimitPerMetaMiniBlock = fmt.Sprintf("%d", maxGasLimitPerBlock*10)
 	args.Economics.FeeSettings.MinGasPrice = fmt.Sprintf("%d", minGasPrice)
 	args.Economics.FeeSettings.GasLimitSettings[0].MinGasLimit = fmt.Sprintf("%d", minGasLimit)
@@ -640,7 +641,7 @@ func TestEconomicsData_TxWithHigherGasLimitShouldErr(t *testing.T) {
 
 	err := economicsData.CheckValidityTxValues(tx)
 
-	assert.Equal(t, process.ErrMoreGasThanGasLimitPerMiniBlockForSafeCrossShard, err)
+	assert.Equal(t, process.ErrMoreGasThanGasLimitPerBlock, err)
 }
 
 func TestEconomicsData_TxWithWithMinGasPriceAndLimitShouldWork(t *testing.T) {
@@ -672,7 +673,7 @@ func TestEconomicsData_TxWithWithMoreGasLimitThanMaximumPerMiniBlockForSafeCross
 	minGasPrice := uint64(500)
 	minGasLimit := uint64(12)
 	maxGasLimitPerBlock := uint64(42)
-	args.Economics.FeeSettings.GasLimitSettings[0].MaxGasLimitPerMiniBlock = fmt.Sprintf("%d", maxGasLimitPerBlock)
+	args.Economics.FeeSettings.GasLimitSettings[0].MaxGasLimitPerBlock = fmt.Sprintf("%d", maxGasLimitPerBlock)
 	args.Economics.FeeSettings.GasLimitSettings[0].MaxGasLimitPerMetaMiniBlock = fmt.Sprintf("%d", maxGasLimitPerBlock*10)
 	args.Economics.FeeSettings.MinGasPrice = fmt.Sprintf("%d", minGasPrice)
 	args.Economics.FeeSettings.GasLimitSettings[0].MinGasLimit = fmt.Sprintf("%d", minGasLimit)
@@ -686,7 +687,7 @@ func TestEconomicsData_TxWithWithMoreGasLimitThanMaximumPerMiniBlockForSafeCross
 			Value:    big.NewInt(0),
 		}
 		err := economicsData.CheckValidityTxValues(tx)
-		require.Nil(t, err)
+		require.Equal(t, process.ErrMoreGasThanGasLimitPerBlock, err)
 	})
 	t.Run("maximum gas limit + 1 as defined should error", func(t *testing.T) {
 		tx := &transaction.Transaction{
@@ -695,7 +696,7 @@ func TestEconomicsData_TxWithWithMoreGasLimitThanMaximumPerMiniBlockForSafeCross
 			Value:    big.NewInt(0),
 		}
 		err := economicsData.CheckValidityTxValues(tx)
-		require.Equal(t, process.ErrMoreGasThanGasLimitPerMiniBlockForSafeCrossShard, err)
+		require.Equal(t, process.ErrMoreGasThanGasLimitPerBlock, err)
 	})
 	t.Run("maximum gas limit - 1 as defined should work", func(t *testing.T) {
 		tx := &transaction.Transaction{

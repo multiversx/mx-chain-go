@@ -501,9 +501,9 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 		numMiniBlocksProcessed += len(separatedBodies[blockType].MiniBlocks)
 	}
 
-	log.Debug("transactionCoordinator.processMiniBlocksFromMe: gas consumed, refunded and penalized info",
+	log.Debug("transactionCoordinator.processMiniBlocksFromMe: gas provided, refunded and penalized info",
 		"num mini blocks processed", numMiniBlocksProcessed,
-		"total gas consumed", tc.gasHandler.TotalGasConsumed(),
+		"total gas provided", tc.gasHandler.TotalGasProvided(),
 		"total gas refunded", tc.gasHandler.TotalGasRefunded(),
 		"total gas penalized", tc.gasHandler.TotalGasPenalized())
 
@@ -535,9 +535,9 @@ func (tc *transactionCoordinator) processMiniBlocksToMe(
 		}
 	}
 
-	log.Debug("transactionCoordinator.processMiniBlocksToMe: gas consumed, refunded and penalized info",
+	log.Debug("transactionCoordinator.processMiniBlocksToMe: gas provided, refunded and penalized info",
 		"num mini blocks processed", len(body.MiniBlocks),
-		"total gas consumed", tc.gasHandler.TotalGasConsumed(),
+		"total gas provided", tc.gasHandler.TotalGasProvided(),
 		"total gas refunded", tc.gasHandler.TotalGasRefunded(),
 		"total gas penalized", tc.gasHandler.TotalGasPenalized())
 
@@ -655,12 +655,12 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 
 	allMBsProcessed := nrMiniBlocksProcessed == len(crossMiniBlockInfos)
 
-	log.Debug("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: gas consumed, refunded and penalized info",
+	log.Debug("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: gas provided, refunded and penalized info",
 		"header round", hdr.GetRound(),
 		"header nonce", hdr.GetNonce(),
 		"num mini blocks to be processed", len(crossMiniBlockInfos),
 		"num mini blocks processed", nrMiniBlocksProcessed,
-		"total gas consumed", tc.gasHandler.TotalGasConsumed(),
+		"total gas provided", tc.gasHandler.TotalGasProvided(),
 		"total gas refunded", tc.gasHandler.TotalGasRefunded(),
 		"total gas penalized", tc.gasHandler.TotalGasPenalized())
 
@@ -698,9 +698,9 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 		miniBlocks = append(miniBlocks, interMBs...)
 	}
 
-	log.Debug("transactionCoordinator.CreateMbsAndProcessTransactionsFromMe: gas consumed, refunded and penalized info",
+	log.Debug("transactionCoordinator.CreateMbsAndProcessTransactionsFromMe: gas provided, refunded and penalized info",
 		"num mini blocks processed", numMiniBlocksProcessed,
-		"total gas consumed", tc.gasHandler.TotalGasConsumed(),
+		"total gas provided", tc.gasHandler.TotalGasProvided(),
 		"total gas refunded", tc.gasHandler.TotalGasRefunded(),
 		"total gas penalized", tc.gasHandler.TotalGasPenalized())
 
