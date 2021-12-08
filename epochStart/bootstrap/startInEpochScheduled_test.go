@@ -124,15 +124,25 @@ func TestStartInEpochWithScheduledDataSyncer_UpdateSyncDataIfNeededScheduledEnab
 	t.Parallel()
 
 	args := createDefaultDataSyncerFactoryArgs()
-	ds, _ := newStartInEpochShardHeaderDataSyncerWithScheduled(args.ScheduledTxsHandler, args.HeadersSyncer, args.MiniBlocksSyncer, args.TxSyncer, 0)
-
 	notarizedShardHeader := createTestHeader()
 	notarizedShardHeader.Epoch = 2
+	prevHeader := &block.Header{Nonce: 2}
+	expectedHeadersMap := map[string]data.HeaderHandler{
+		"hash1": notarizedShardHeader,
+		string(notarizedShardHeader.GetPrevHash()): prevHeader,
+	}
+	args.HeadersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
+		GetHeadersCalled: func() (map[string]data.HeaderHandler, error) {
+			return expectedHeadersMap, nil
+		},
+	}
+
+	ds, _ := newStartInEpochShardHeaderDataSyncerWithScheduled(args.ScheduledTxsHandler, args.HeadersSyncer, args.MiniBlocksSyncer, args.TxSyncer, 0)
 
 	header, headersMap, err := ds.UpdateSyncDataIfNeeded(notarizedShardHeader)
 	require.Nil(t, err)
-	require.Nil(t, headersMap)
-	require.Equal(t, notarizedShardHeader, header)
+	require.Equal(t, expectedHeadersMap, headersMap)
+	require.Equal(t, prevHeader, header)
 }
 
 func TestStartInEpochWithScheduledDataSyncer_getRequiredHeaderByHash(t *testing.T) {
