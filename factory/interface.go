@@ -384,6 +384,7 @@ type ConsensusComponentsHolder interface {
 	BroadcastMessenger() consensus.BroadcastMessenger
 	ConsensusGroupSize() (int, error)
 	HardforkTrigger() HardforkTrigger
+	Bootstrapper() process.Bootstrapper
 	IsInterfaceNil() bool
 }
 
