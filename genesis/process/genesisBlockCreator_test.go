@@ -387,46 +387,47 @@ func TestGenesisBlockCreator_GetIndexingDataShouldWork(t *testing.T) {
 	scAddressBytes, _ := hex.DecodeString("00000000000000000500761b8c4a25d3979359223208b412285f635e71300102")
 	stakedAddr, _ := hex.DecodeString("b00102030405060708090001020304050607080900010203040506070809000b")
 	stakedAddr2, _ := hex.DecodeString("d00102030405060708090001020304050607080900010203040506070809000d")
+	initialGenesisNodes := map[uint32][]sharding.GenesisNodeInfoHandler{
+		0: {
+			&mock.GenesisNodeInfoHandlerMock{
+				AddressBytesValue: scAddressBytes,
+				PubKeyBytesValue:  bytes.Repeat([]byte{1}, 96),
+			},
+			&mock.GenesisNodeInfoHandlerMock{
+				AddressBytesValue: stakedAddr,
+				PubKeyBytesValue:  bytes.Repeat([]byte{2}, 96),
+			},
+			&mock.GenesisNodeInfoHandlerMock{
+				AddressBytesValue: scAddressBytes,
+				PubKeyBytesValue:  bytes.Repeat([]byte{3}, 96),
+			},
+			&mock.GenesisNodeInfoHandlerMock{
+				AddressBytesValue: stakedAddr2,
+				PubKeyBytesValue:  bytes.Repeat([]byte{8}, 96),
+			},
+		},
+		1: {
+			&mock.GenesisNodeInfoHandlerMock{
+				AddressBytesValue: scAddressBytes,
+				PubKeyBytesValue:  bytes.Repeat([]byte{4}, 96),
+			},
+			&mock.GenesisNodeInfoHandlerMock{
+				AddressBytesValue: scAddressBytes,
+				PubKeyBytesValue:  bytes.Repeat([]byte{5}, 96),
+			},
+			&mock.GenesisNodeInfoHandlerMock{
+				AddressBytesValue: stakedAddr2,
+				PubKeyBytesValue:  bytes.Repeat([]byte{6}, 96),
+			},
+			&mock.GenesisNodeInfoHandlerMock{
+				AddressBytesValue: stakedAddr2,
+				PubKeyBytesValue:  bytes.Repeat([]byte{7}, 96),
+			},
+		},
+	}
 	initialNodesSetup := &mock.InitialNodesHandlerStub{
 		InitialNodesInfoCalled: func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler) {
-			return map[uint32][]sharding.GenesisNodeInfoHandler{
-				0: {
-					&mock.GenesisNodeInfoHandlerMock{
-						AddressBytesValue: scAddressBytes,
-						PubKeyBytesValue:  bytes.Repeat([]byte{1}, 96),
-					},
-					&mock.GenesisNodeInfoHandlerMock{
-						AddressBytesValue: stakedAddr,
-						PubKeyBytesValue:  bytes.Repeat([]byte{2}, 96),
-					},
-					&mock.GenesisNodeInfoHandlerMock{
-						AddressBytesValue: scAddressBytes,
-						PubKeyBytesValue:  bytes.Repeat([]byte{3}, 96),
-					},
-					&mock.GenesisNodeInfoHandlerMock{
-						AddressBytesValue: stakedAddr2,
-						PubKeyBytesValue:  bytes.Repeat([]byte{8}, 96),
-					},
-				},
-				1: {
-					&mock.GenesisNodeInfoHandlerMock{
-						AddressBytesValue: scAddressBytes,
-						PubKeyBytesValue:  bytes.Repeat([]byte{4}, 96),
-					},
-					&mock.GenesisNodeInfoHandlerMock{
-						AddressBytesValue: scAddressBytes,
-						PubKeyBytesValue:  bytes.Repeat([]byte{5}, 96),
-					},
-					&mock.GenesisNodeInfoHandlerMock{
-						AddressBytesValue: stakedAddr2,
-						PubKeyBytesValue:  bytes.Repeat([]byte{6}, 96),
-					},
-					&mock.GenesisNodeInfoHandlerMock{
-						AddressBytesValue: stakedAddr2,
-						PubKeyBytesValue:  bytes.Repeat([]byte{7}, 96),
-					},
-				},
-			}, make(map[uint32][]sharding.GenesisNodeInfoHandler)
+			return initialGenesisNodes, make(map[uint32][]sharding.GenesisNodeInfoHandler)
 		},
 		MinNumberOfNodesCalled: func() uint32 {
 			return 1
@@ -447,23 +448,44 @@ func TestGenesisBlockCreator_GetIndexingDataShouldWork(t *testing.T) {
 
 	indexingData := gbc.GetIndexingData()
 
-	assert.Equal(t, 257, len(indexingData[0].DeployInitialScTxs))
-	assert.Equal(t, 0, len(indexingData[0].DeploySystemScTxs))
-	assert.Equal(t, 4, len(indexingData[0].DelegationTxs))
-	assert.Equal(t, 0, len(indexingData[0].StakingTxs))
-	assert.Equal(t, 522, len(indexingData[0].ScrsTxs))
+	numDNSTypeScTxs := 256
+	numDefaultTypeScTxs := 1
+	numSystemSC := 4
 
-	assert.Equal(t, 256, len(indexingData[1].DeployInitialScTxs))
+	numInitialNodes := 0
+	for k, _ := range initialGenesisNodes {
+		numInitialNodes += len(initialGenesisNodes[k])
+	}
+
+	reqNumDeployInitialScTxs := numDNSTypeScTxs + numDefaultTypeScTxs
+	reqNumScrs := getRequiredNumScrsTxs(indexingData, 0)
+	reqNumDelegationTxs := 4
+	assert.Equal(t, reqNumDeployInitialScTxs, len(indexingData[0].DeployInitialScTxs))
+	assert.Equal(t, 0, len(indexingData[0].DeploySystemScTxs))
+	assert.Equal(t, reqNumDelegationTxs, len(indexingData[0].DelegationTxs))
+	assert.Equal(t, 0, len(indexingData[0].StakingTxs))
+	assert.Equal(t, reqNumScrs, len(indexingData[0].ScrsTxs))
+
+	reqNumDeployInitialScTxs = numDNSTypeScTxs
+	reqNumScrs = getRequiredNumScrsTxs(indexingData, 1)
+	assert.Equal(t, reqNumDeployInitialScTxs, len(indexingData[1].DeployInitialScTxs))
 	assert.Equal(t, 0, len(indexingData[1].DeploySystemScTxs))
 	assert.Equal(t, 0, len(indexingData[1].DelegationTxs))
 	assert.Equal(t, 0, len(indexingData[1].StakingTxs))
-	assert.Equal(t, 512, len(indexingData[1].ScrsTxs))
+	assert.Equal(t, reqNumScrs, len(indexingData[1].ScrsTxs))
 
+	reqNumScrs = getRequiredNumScrsTxs(indexingData, core.MetachainShardId)
 	assert.Equal(t, 0, len(indexingData[core.MetachainShardId].DeployInitialScTxs))
-	assert.Equal(t, 4, len(indexingData[core.MetachainShardId].DeploySystemScTxs))
+	assert.Equal(t, numSystemSC, len(indexingData[core.MetachainShardId].DeploySystemScTxs))
 	assert.Equal(t, 0, len(indexingData[core.MetachainShardId].DelegationTxs))
-	assert.Equal(t, 8, len(indexingData[core.MetachainShardId].StakingTxs))
-	assert.Equal(t, 32, len(indexingData[core.MetachainShardId].ScrsTxs))
+	assert.Equal(t, numInitialNodes, len(indexingData[core.MetachainShardId].StakingTxs))
+	assert.Equal(t, reqNumScrs, len(indexingData[core.MetachainShardId].ScrsTxs))
+}
+
+func getRequiredNumScrsTxs(idata map[uint32]*genesis.IndexingData, shardId uint32) int {
+	n := 2 * (len(idata[shardId].DeployInitialScTxs) + len(idata[shardId].DeploySystemScTxs) + len(idata[shardId].DelegationTxs))
+	n += 3 * len(idata[shardId].StakingTxs)
+	return n
 }
 
 func TestCreateArgsGenesisBlockCreator_ShouldErrWhenGetNewArgForShardFails(t *testing.T) {
