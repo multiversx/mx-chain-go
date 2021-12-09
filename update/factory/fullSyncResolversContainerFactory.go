@@ -14,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/genesis"
 )
@@ -29,7 +28,7 @@ type resolversContainerFactory struct {
 	messenger              dataRetriever.TopicMessageHandler
 	marshalizer            marshal.Marshalizer
 	intRandomizer          dataRetriever.IntRandomizer
-	dataTrieContainer      state.TriesHolder
+	dataTrieContainer      common.TriesHolder
 	container              dataRetriever.ResolversContainer
 	inputAntifloodHandler  dataRetriever.P2PAntifloodHandler
 	outputAntifloodHandler dataRetriever.P2PAntifloodHandler
@@ -41,7 +40,7 @@ type ArgsNewResolversContainerFactory struct {
 	ShardCoordinator           sharding.Coordinator
 	Messenger                  dataRetriever.TopicMessageHandler
 	Marshalizer                marshal.Marshalizer
-	DataTrieContainer          state.TriesHolder
+	DataTrieContainer          common.TriesHolder
 	ExistingResolvers          dataRetriever.ResolversContainer
 	InputAntifloodHandler      dataRetriever.P2PAntifloodHandler
 	OutputAntifloodHandler     dataRetriever.P2PAntifloodHandler

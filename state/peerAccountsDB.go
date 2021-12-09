@@ -62,9 +62,18 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 	log.Trace("peerAccountsDB.SnapshotState", "root hash", rootHash)
 	trieStorageManager := adb.mainTrie.GetStorageManager()
 
+	stats := newSnapshotStatistics(0)
+
 	trieStorageManager.EnterPruningBufferingMode()
-	trieStorageManager.TakeSnapshot(rootHash, true, nil)
+	stats.NewSnapshotStarted()
+	trieStorageManager.TakeSnapshot(rootHash, nil, stats)
 	trieStorageManager.ExitPruningBufferingMode()
+
+	go printStats(stats, "snapshotState peer trie", rootHash)
+
+	if adb.processingMode == common.ImportDb {
+		stats.WaitForSnapshotsToFinish()
+	}
 
 	adb.increaseNumCheckpoints()
 }
@@ -74,9 +83,18 @@ func (adb *PeerAccountsDB) SetStateCheckpoint(rootHash []byte) {
 	log.Trace("peerAccountsDB.SetStateCheckpoint", "root hash", rootHash)
 	trieStorageManager := adb.mainTrie.GetStorageManager()
 
+	stats := newSnapshotStatistics(0)
+
 	trieStorageManager.EnterPruningBufferingMode()
-	trieStorageManager.SetCheckpoint(rootHash, nil)
+	stats.NewSnapshotStarted()
+	trieStorageManager.SetCheckpoint(rootHash, nil, stats)
 	trieStorageManager.ExitPruningBufferingMode()
+
+	go printStats(stats, "snapshotState peer trie", rootHash)
+
+	if adb.processingMode == common.ImportDb {
+		stats.WaitForSnapshotsToFinish()
+	}
 
 	adb.increaseNumCheckpoints()
 }

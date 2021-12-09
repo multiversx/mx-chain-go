@@ -6,8 +6,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 )
 
-// BootstrapperMock mocks the implementation for a Bootstrapper
-type BootstrapperMock struct {
+// BootstrapperStub mocks the implementation for a Bootstrapper
+type BootstrapperStub struct {
 	CreateAndCommitEmptyBlockCalled func(uint32) (data.BodyHandler, data.HeaderHandler, error)
 	AddSyncStateListenerCalled      func(func(bool))
 	GetNodeStateCalled              func() common.NodeState
@@ -15,7 +15,7 @@ type BootstrapperMock struct {
 }
 
 // CreateAndCommitEmptyBlock -
-func (boot *BootstrapperMock) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (data.BodyHandler, data.HeaderHandler, error) {
+func (boot *BootstrapperStub) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (data.BodyHandler, data.HeaderHandler, error) {
 	if boot.CreateAndCommitEmptyBlockCalled != nil {
 		return boot.CreateAndCommitEmptyBlockCalled(shardForCurrentNode)
 	}
@@ -24,14 +24,14 @@ func (boot *BootstrapperMock) CreateAndCommitEmptyBlock(shardForCurrentNode uint
 }
 
 // AddSyncStateListener -
-func (boot *BootstrapperMock) AddSyncStateListener(syncStateNotifier func(isSyncing bool)) {
+func (boot *BootstrapperStub) AddSyncStateListener(syncStateNotifier func(isSyncing bool)) {
 	if boot.AddSyncStateListenerCalled != nil {
 		boot.AddSyncStateListenerCalled(syncStateNotifier)
 	}
 }
 
 // GetNodeState -
-func (boot *BootstrapperMock) GetNodeState() common.NodeState {
+func (boot *BootstrapperStub) GetNodeState() common.NodeState {
 	if boot.GetNodeStateCalled != nil {
 		return boot.GetNodeStateCalled()
 	}
@@ -40,16 +40,16 @@ func (boot *BootstrapperMock) GetNodeState() common.NodeState {
 }
 
 // StartSyncingBlocks -
-func (boot *BootstrapperMock) StartSyncingBlocks() {
+func (boot *BootstrapperStub) StartSyncingBlocks() {
 	boot.StartSyncingBlocksCalled()
 }
 
 // Close -
-func (boot *BootstrapperMock) Close() error {
+func (boot *BootstrapperStub) Close() error {
 	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (boot *BootstrapperMock) IsInterfaceNil() bool {
+func (boot *BootstrapperStub) IsInterfaceNil() bool {
 	return boot == nil
 }

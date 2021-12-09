@@ -73,7 +73,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
-	sync2 "github.com/ElrondNetwork/elrond-go/process/sync"
+	processSync "github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
@@ -238,7 +238,7 @@ type TestProcessorNode struct {
 	PeerState           state.AccountsAdapter
 	AccntState          state.AccountsAdapter
 	TrieStorageManagers map[string]common.StorageManager
-	TrieContainer       state.TriesHolder
+	TrieContainer       common.TriesHolder
 	BlockChain          data.ChainHandler
 	GenesisBlocks       map[uint32]data.HeaderHandler
 
@@ -406,6 +406,7 @@ func newBaseTestProcessorNode(
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor: transactionLog.NewPrintTxLogProcessor(),
+		Bootstrapper:            mock.NewTestBootstrapperMock(),
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -494,7 +495,8 @@ func NewTestProcessorNodeWithFullGenesis(
 	tpn.initRoundHandler()
 	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
 	tpn.initStorage()
-	tpn.initAccountDBs(CreateMemUnit())
+	tpn.EpochStartNotifier = notifier.NewEpochStartSubscriptionHandler()
+	tpn.initAccountDBsWithPruningStorer(CreateMemUnit())
 	economicsConfig := tpn.createDefaultEconomicsConfig()
 	economicsConfig.GlobalSettings.YearSettings = append(
 		economicsConfig.GlobalSettings.YearSettings,
@@ -532,6 +534,7 @@ func NewTestProcessorNodeWithFullGenesis(
 		BlockChainHook:    tpn.BlockchainHook,
 		BlockChain:        tpn.BlockChain,
 		ArwenChangeLocker: tpn.ArwenChangeLocker,
+		Bootstrapper:      tpn.Bootstrapper,
 	}
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
 	tpn.initBlockProcessor(stateCheckpointModulus)
@@ -619,6 +622,24 @@ func (tpn *TestProcessorNode) GetConnectableAddress() string {
 	return GetConnectableAddress(tpn.Messenger)
 }
 
+func (tpn *TestProcessorNode) initAccountDBsWithPruningStorer(
+	store storage.Storer,
+) {
+	trieStorageManager := CreateTrieStorageManagerWithPruningStorer(store, tpn.ShardCoordinator, tpn.EpochStartNotifier)
+	tpn.TrieContainer = state.NewDataTriesHolder()
+	var stateTrie common.Trie
+	tpn.AccntState, stateTrie = CreateAccountsDB(UserAccount, trieStorageManager)
+	tpn.TrieContainer.Put([]byte(trieFactory.UserAccountTrie), stateTrie)
+
+	var peerTrie common.Trie
+	tpn.PeerState, peerTrie = CreateAccountsDB(ValidatorAccount, trieStorageManager)
+	tpn.TrieContainer.Put([]byte(trieFactory.PeerAccountTrie), peerTrie)
+
+	tpn.TrieStorageManagers = make(map[string]common.StorageManager)
+	tpn.TrieStorageManagers[trieFactory.UserAccountTrie] = trieStorageManager
+	tpn.TrieStorageManagers[trieFactory.PeerAccountTrie] = trieStorageManager
+}
+
 func (tpn *TestProcessorNode) initAccountDBs(store storage.Storer) {
 	trieStorageManager, _ := CreateTrieStorageManager(store)
 	tpn.TrieContainer = state.NewDataTriesHolder()
@@ -647,20 +668,21 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 	}
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
-		PeerAdapter:          tpn.PeerState,
-		PubkeyConv:           TestValidatorPubkeyConverter,
-		NodesCoordinator:     tpn.NodesCoordinator,
-		ShardCoordinator:     tpn.ShardCoordinator,
-		DataPool:             tpn.DataPool,
-		StorageService:       tpn.Storage,
-		Marshalizer:          TestMarshalizer,
-		Rater:                rater,
-		MaxComputableRounds:  1000,
-		RewardsHandler:       tpn.EconomicsData,
-		NodesSetup:           tpn.NodesSetup,
-		GenesisNonce:         tpn.BlockChain.GetGenesisHeader().GetNonce(),
-		EpochNotifier:        &mock.EpochNotifierStub{},
-		StakingV2EnableEpoch: StakingV2Epoch,
+		PeerAdapter:                          tpn.PeerState,
+		PubkeyConv:                           TestValidatorPubkeyConverter,
+		NodesCoordinator:                     tpn.NodesCoordinator,
+		ShardCoordinator:                     tpn.ShardCoordinator,
+		DataPool:                             tpn.DataPool,
+		StorageService:                       tpn.Storage,
+		Marshalizer:                          TestMarshalizer,
+		Rater:                                rater,
+		MaxComputableRounds:                  1000,
+		MaxConsecutiveRoundsOfRatingDecrease: 2000,
+		RewardsHandler:                       tpn.EconomicsData,
+		NodesSetup:                           tpn.NodesSetup,
+		GenesisNonce:                         tpn.BlockChain.GetGenesisHeader().GetNonce(),
+		EpochNotifier:                        &mock.EpochNotifierStub{},
+		StakingV2EnableEpoch:                 StakingV2Epoch,
 	}
 
 	tpn.ValidatorStatisticsProcessor, _ = peer.NewValidatorStatisticsProcessor(arguments)
@@ -703,6 +725,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 		BlockChainHook:    tpn.BlockchainHook,
 		BlockChain:        tpn.BlockChain,
 		ArwenChangeLocker: tpn.ArwenChangeLocker,
+		Bootstrapper:      tpn.Bootstrapper,
 	}
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
 	tpn.initBlockProcessor(stateCheckpointModulus)
@@ -903,6 +926,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 		BlockChainHook:    vmFactory.BlockChainHookImpl(),
 		BlockChain:        tpn.BlockChain,
 		ArwenChangeLocker: tpn.ArwenChangeLocker,
+		Bootstrapper:      tpn.Bootstrapper,
 	}
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
 }
@@ -918,6 +942,7 @@ func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]
 		BlockChainHook:    tpn.BlockchainHook,
 		BlockChain:        tpn.BlockChain,
 		ArwenChangeLocker: tpn.ArwenChangeLocker,
+		Bootstrapper:      tpn.Bootstrapper,
 	}
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
 	tpn.initBlockProcessor(stateCheckpointModulus)
@@ -1498,6 +1523,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		TestBalanceComputationHandler,
 		tpn.EpochNotifier,
 		tpn.EnableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
+		tpn.EnableEpochs.FrontRunningProtectionEnableEpoch,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
@@ -1717,6 +1743,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		TestBalanceComputationHandler,
 		tpn.EpochNotifier,
 		tpn.EnableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
+		tpn.EnableEpochs.FrontRunningProtectionEnableEpoch,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
@@ -1853,9 +1880,9 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 	var err error
 
 	if tpn.ShardCoordinator.SelfId() != core.MetachainShardId {
-		tpn.ForkDetector, _ = sync2.NewShardForkDetector(tpn.RoundHandler, tpn.BlockBlackListHandler, tpn.BlockTracker, tpn.NodesSetup.GetStartTime())
+		tpn.ForkDetector, _ = processSync.NewShardForkDetector(tpn.RoundHandler, tpn.BlockBlackListHandler, tpn.BlockTracker, tpn.NodesSetup.GetStartTime())
 	} else {
-		tpn.ForkDetector, _ = sync2.NewMetaForkDetector(tpn.RoundHandler, tpn.BlockBlackListHandler, tpn.BlockTracker, tpn.NodesSetup.GetStartTime())
+		tpn.ForkDetector, _ = processSync.NewMetaForkDetector(tpn.RoundHandler, tpn.BlockBlackListHandler, tpn.BlockTracker, tpn.NodesSetup.GetStartTime())
 	}
 
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
@@ -2128,6 +2155,7 @@ func (tpn *TestProcessorNode) initNode() {
 	coreComponents.TxVersionCheckField = versioning.NewTxVersionChecker(tpn.MinTransactionVersion)
 	coreComponents.Uint64ByteSliceConverterField = TestUint64Converter
 	coreComponents.EconomicsDataField = tpn.EconomicsData
+	coreComponents.APIEconomicsHandler = tpn.EconomicsData
 	coreComponents.SyncTimerField = &mock.SyncTimerMock{}
 	coreComponents.EpochNotifierField = tpn.EpochNotifier
 	coreComponents.ArwenChangeLockerInternal = tpn.ArwenChangeLocker
@@ -2261,7 +2289,7 @@ func (tpn *TestProcessorNode) addHandlersForCounters() {
 
 // StartSync calls Bootstrapper.StartSync. Errors if bootstrapper is not set
 func (tpn *TestProcessorNode) StartSync() error {
-	if tpn.Bootstrapper == nil {
+	if tpn.Bootstrapper == nil || fmt.Sprintf("%T", tpn.Bootstrapper) == "*mock.testBootstrapperMock" {
 		return errors.New("no bootstrapper available")
 	}
 

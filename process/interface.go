@@ -131,16 +131,15 @@ type TransactionCoordinator interface {
 	RemoveBlockDataFromPool(body *block.Body) error
 	RemoveTxsFromPool(body *block.Body) error
 
-	ProcessBlockTransaction(body *block.Body, haveTime func() time.Duration) error
+	ProcessBlockTransaction(body *block.Body, haveTime func() time.Duration, randomness []byte) error
 
 	CreateBlockStarted()
 	CreateMbsAndProcessCrossShardTransactionsDstMe(
 		header data.HeaderHandler,
 		processedMiniBlocksHashes map[string]struct{},
-
 		haveTime func() bool,
 	) (block.MiniBlockSlice, uint32, bool, error)
-	CreateMbsAndProcessTransactionsFromMe(haveTime func() bool) block.MiniBlockSlice
+	CreateMbsAndProcessTransactionsFromMe(haveTime func() bool, randomness []byte) block.MiniBlockSlice
 	CreatePostProcessMiniBlocks() block.MiniBlockSlice
 	CreateMarshalizedData(body *block.Body) map[string][][]byte
 	GetAllCurrentUsedTxs(blockType block.Type) map[string]data.TransactionHandler
@@ -173,7 +172,7 @@ type IntermediateTransactionHandler interface {
 	GetAllCurrentFinishedTxs() map[string]data.TransactionHandler
 	CreateBlockStarted()
 	GetCreatedInShardMiniBlock() *block.MiniBlock
-	RemoveProcessedResults()
+	RemoveProcessedResults() [][]byte
 	InitProcessedResults()
 	IsInterfaceNil() bool
 }
@@ -208,12 +207,12 @@ type PreProcessor interface {
 	RestoreBlockDataIntoPools(body *block.Body, miniBlockPool storage.Cacher) (int, error)
 	SaveTxsToStorage(body *block.Body) error
 
-	ProcessBlockTransactions(body *block.Body, haveTime func() bool) error
+	ProcessBlockTransactions(body *block.Body, haveTime func() bool, randomness []byte) error
 	RequestBlockTransactions(body *block.Body) int
 
 	RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int
 	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, getNumOfCrossInterMbsAndTxs func() (int, int)) ([][]byte, int, error)
-	CreateAndProcessMiniBlocks(haveTime func() bool) (block.MiniBlockSlice, error)
+	CreateAndProcessMiniBlocks(haveTime func() bool, randomness []byte) (block.MiniBlockSlice, error)
 
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
 	IsInterfaceNil() bool
@@ -675,11 +674,13 @@ type NetworkConnectionWatcher interface {
 
 // SCQuery represents a prepared query for executing a function of the smart contract
 type SCQuery struct {
-	ScAddress  []byte
-	FuncName   string
-	CallerAddr []byte
-	CallValue  *big.Int
-	Arguments  [][]byte
+	ScAddress      []byte
+	FuncName       string
+	CallerAddr     []byte
+	CallValue      *big.Int
+	Arguments      [][]byte
+	SameScState    bool
+	ShouldBeSynced bool
 }
 
 // GasHandler is able to perform some gas calculation
@@ -691,7 +692,7 @@ type GasHandler interface {
 	GasConsumed(hash []byte) uint64
 	GasRefunded(hash []byte) uint64
 	GasPenalized(hash []byte) uint64
-	TotalGasConsumed() uint64
+	TotalGasProvided() uint64
 	TotalGasRefunded() uint64
 	TotalGasPenalized() uint64
 	RemoveGasConsumed(hashes [][]byte)
