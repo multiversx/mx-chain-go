@@ -123,7 +123,15 @@ func (ti *testIndexer) createElasticProcessor(
 	mp, _ := miniblocks.NewMiniblocksProcessor(shardCoordinator.SelfId(), testHasher, testMarshalizer)
 	sp := statistics.NewStatisticsProcessor()
 	vp, _ := validators.NewValidatorsProcessor(pubkeyConv)
-	lp, _ := logsevents.NewLogsAndEventsProcessor(shardCoordinator, pubkeyConv, testMarshalizer, balanceConverter, testHasher, transactionFeeCalculator)
+	args := &logsevents.ArgsLogsAndEventsProcessor{
+		ShardCoordinator: shardCoordinator,
+		PubKeyConverter:  pubkeyConv,
+		Marshalizer:      testMarshalizer,
+		BalanceConverter: balanceConverter,
+		TxFeeCalculator:  transactionFeeCalculator,
+		Hasher:           testHasher,
+	}
+	lp, _ := logsevents.NewLogsAndEventsProcessor(args)
 
 	esIndexerArgs := &elasticProcessor.ArgElasticProcessor{
 		UseKibana:         false,
