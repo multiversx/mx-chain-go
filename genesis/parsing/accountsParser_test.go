@@ -643,6 +643,34 @@ func TestAccountsParser_GenerateInitialTransactionsTxsPool(t *testing.T) {
 	assert.Equal(t, 0, len(txsPoolPerShard[0].Scrs))
 	assert.Equal(t, 0, len(txsPoolPerShard[1].Scrs))
 	assert.Equal(t, 0, len(txsPoolPerShard[core.MetachainShardId].Scrs))
+}
+
+func TestAccountsParser_GenerateInitialTransactionsZeroGasLimitShouldWork(t *testing.T) {
+	t.Parallel()
+
+	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
+	balance := int64(1)
+	ibs := []*data.InitialAccount{
+		createSimpleInitialAccount("0001", balance),
+		createSimpleInitialAccount("0002", balance),
+		createSimpleInitialAccount("0000", balance),
+		createSimpleInitialAccount("0103", balance),
+	}
+
+	ap.SetEntireSupply(big.NewInt(int64(len(ibs)) * balance))
+	ap.SetInitialAccounts(ibs)
+
+	err := ap.Process()
+	require.Nil(t, err)
+
+	sharder := &mock.ShardCoordinatorMock{
+		NumOfShards: 2,
+		SelfShardId: 0,
+	}
+
+	indexingDataMap := make(map[uint32]*genesis.IndexingData)
+	_, txsPoolPerShard, err := ap.GenerateInitialTransactions(sharder, indexingDataMap)
+	require.Nil(t, err)
 
 	for i := uint32(0); i < sharder.NumberOfShards(); i++ {
 		for _, tx := range txsPoolPerShard[i].Txs {
@@ -651,7 +679,7 @@ func TestAccountsParser_GenerateInitialTransactionsTxsPool(t *testing.T) {
 	}
 }
 
-func TestAccountsParser_GenerateInitialTransactionsTx(t *testing.T) {
+func TestAccountsParser_GenerateInitialTransactionsVerifyTxsHashes(t *testing.T) {
 	t.Parallel()
 
 	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
