@@ -72,16 +72,12 @@ func NewMultipleHeaderProposalsDetector(args *MultipleHeaderProposalDetectorArgs
 // slash.MultipleProposal is provided, otherwise a nil proof, along with an error is provided indicating that
 // no slashing event has been detected or an error occurred verifying the data.
 func (mhp *multipleHeaderProposalsDetector) VerifyData(interceptedData process.InterceptedData) (coreSlash.SlashingProofHandler, error) {
-	header, err := checkAndGetHeader(interceptedData)
+	header, err := mhp.checkAndGetHeader(interceptedData)
 	if err != nil {
 		return nil, err
 	}
 
 	round := header.GetRound()
-	if !mhp.isRoundRelevant(round) {
-		return nil, process.ErrHeaderRoundNotRelevant
-	}
-
 	proposer, err := mhp.getProposerPubKey(header)
 	if err != nil {
 		return nil, err

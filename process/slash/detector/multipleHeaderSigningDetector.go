@@ -82,16 +82,12 @@ func NewMultipleHeaderSigningDetector(args *MultipleHeaderSigningDetectorArgs) (
 
 // VerifyData - checks if an intercepted data represents a slashable event
 func (mhs *multipleHeaderSigningDetector) VerifyData(interceptedData process.InterceptedData) (coreSlash.SlashingProofHandler, error) {
-	header, err := checkAndGetHeader(interceptedData)
+	header, err := mhs.checkAndGetHeader(interceptedData)
 	if err != nil {
 		return nil, err
 	}
 
 	round := header.GetRound()
-	if !mhs.isRoundRelevant(round) {
-		return nil, process.ErrHeaderRoundNotRelevant
-	}
-
 	mhs.cachesMutex.Lock()
 	defer mhs.cachesMutex.Unlock()
 

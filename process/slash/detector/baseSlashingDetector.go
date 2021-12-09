@@ -46,7 +46,7 @@ func absDiff(x, y uint64) uint64 {
 	return x - y
 }
 
-func checkAndGetHeader(interceptedData process.InterceptedData) (data.HeaderHandler, error) {
+func (bsd *baseSlashingDetector) checkAndGetHeader(interceptedData process.InterceptedData) (data.HeaderHandler, error) {
 	if check.IfNil(interceptedData) {
 		return nil, process.ErrNilInterceptedData
 	}
@@ -59,6 +59,11 @@ func checkAndGetHeader(interceptedData process.InterceptedData) (data.HeaderHand
 	header := interceptedHeader.HeaderHandler()
 	if check.IfNil(header) {
 		return nil, process.ErrNilHeaderHandler
+	}
+
+	round := header.GetRound()
+	if !bsd.isRoundRelevant(round) {
+		return nil, process.ErrHeaderRoundNotRelevant
 	}
 
 	return header, nil

@@ -1,12 +1,13 @@
 package detector
 
 import (
+	"errors"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/slash"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -18,9 +19,8 @@ func TestBaseSlashingDetector_IsRoundRelevant_DifferentRelevantAndIrrelevantRoun
 	t.Parallel()
 
 	round := uint64(100)
-	bsd := baseSlashingDetector{roundHandler: &mock.RoundHandlerMock{
-		RoundIndex: int64(round),
-	}}
+	roundHandler := &mock.RoundHandlerMock{RoundIndex: int64(round)}
+	bsd := baseSlashingDetector{roundHandler: roundHandler}
 
 	tests := []struct {
 		round    func() uint64
@@ -76,23 +76,47 @@ func TestBaseSlashingDetector_IsRoundRelevant_DifferentRelevantAndIrrelevantRoun
 }
 
 func TestBaseSlashingDetector_CheckAndGetHeader(t *testing.T) {
-	header, err := checkAndGetHeader(nil)
-	require.Nil(t, header)
-	require.Equal(t, process.ErrNilInterceptedData, err)
+	round := uint64(10000)
+	roundHandler := &mock.RoundHandlerMock{RoundIndex: int64(round)}
+	bsd := baseSlashingDetector{roundHandler: roundHandler}
 
-	header, err = checkAndGetHeader(&testscommon.InterceptedDataStub{})
-	require.Nil(t, header)
-	require.Equal(t, process.ErrCannotCastInterceptedDataToHeader, err)
+	tests := []struct {
+		data           process.InterceptedData
+		expectedHeader data.HeaderHandler
+		expectedError  error
+	}{
+		{
+			data:           nil,
+			expectedHeader: nil,
+			expectedError:  process.ErrNilInterceptedData,
+		},
+		{
+			data:           &testscommon.InterceptedDataStub{},
+			expectedHeader: nil,
+			expectedError:  process.ErrCannotCastInterceptedDataToHeader,
+		},
+		{
+			data:           &testscommon.InterceptedHeaderStub{},
+			expectedHeader: nil,
+			expectedError:  process.ErrNilHeaderHandler,
+		},
+		{
+			data:           slashMocks.CreateInterceptedHeaderData(&block.Header{Round: round - 2*MaxDeltaToCurrentRound}),
+			expectedHeader: nil,
+			expectedError:  process.ErrHeaderRoundNotRelevant,
+		},
+		{
+			data:           slashMocks.CreateInterceptedHeaderData(&block.Header{Round: round}),
+			expectedHeader: &block.Header{Round: round},
+			expectedError:  nil,
+		},
+	}
 
-	header, err = checkAndGetHeader(&interceptedBlocks.InterceptedHeader{})
-	require.Nil(t, header)
-	require.Equal(t, process.ErrNilHeaderHandler, err)
-
-	blockHeader := &block.Header{Round: 1}
-	interceptedHeader := slashMocks.CreateInterceptedHeaderData(blockHeader)
-	header, err = checkAndGetHeader(interceptedHeader)
-	require.Equal(t, blockHeader, header)
-	require.Nil(t, err)
+	for _, test := range tests {
+		header, err := bsd.checkAndGetHeader(test.data)
+		require.Equal(t, test.expectedHeader, header)
+		require.Equal(t, test.expectedError, err)
+	}
 }
 
 func TestBaseSlashingDetector_CheckSlashLevelBasedOnHeadersCount_DifferentSlashLevelsAndTypes(t *testing.T) {
@@ -165,19 +189,42 @@ func TestBaseSlashingDetector_CheckSlashLevelBasedOnHeadersCount_DifferentSlashL
 }
 
 func TestBaseSlashingDetector_CheckProofType(t *testing.T) {
-	err := checkProofType(nil, coreSlash.MultipleProposalProofID)
-	require.Equal(t, process.ErrNilProof, err)
+	t.Parallel()
 
-	proof := &slashMocks.SlashingProofStub{
-		GetProofTxDataCalled: func() (*coreSlash.ProofTxData, error) {
-			return &coreSlash.ProofTxData{
-				ProofID: coreSlash.MultipleProposalProofID,
-			}, nil
+	errGetProofData := errors.New("error get proof tx data")
+	tests := []struct {
+		proof         coreSlash.SlashingProofHandler
+		expectedType  byte
+		expectedError error
+	}{
+		{
+			proof:         nil,
+			expectedType:  coreSlash.MultipleProposalProofID,
+			expectedError: process.ErrNilProof,
+		},
+		{
+			proof: &slashMocks.SlashingProofStub{
+				GetProofTxDataCalled: func() (*coreSlash.ProofTxData, error) {
+					return nil, errGetProofData
+				},
+			},
+			expectedType:  coreSlash.MultipleProposalProofID,
+			expectedError: errGetProofData,
+		},
+		{
+			proof:         &slashMocks.MultipleHeaderProposalProofStub{},
+			expectedType:  coreSlash.MultipleSigningProofID,
+			expectedError: process.ErrInvalidSlashType,
+		},
+		{
+			proof:         &slashMocks.MultipleHeaderProposalProofStub{},
+			expectedType:  coreSlash.MultipleProposalProofID,
+			expectedError: nil,
 		},
 	}
-	err = checkProofType(proof, coreSlash.MultipleSigningProofID)
-	require.Equal(t, process.ErrInvalidSlashType, err)
 
-	err = checkProofType(proof, coreSlash.MultipleProposalProofID)
-	require.Nil(t, err)
+	for _, test := range tests {
+		err := checkProofType(test.proof, test.expectedType)
+		require.Equal(t, test.expectedError, err)
+	}
 }
