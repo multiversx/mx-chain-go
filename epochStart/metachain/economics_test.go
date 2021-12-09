@@ -16,8 +16,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -363,7 +363,7 @@ func TestEconomics_ComputeEndOfEpochEconomics(t *testing.T) {
 	}
 	args.Store = &mock.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &testscommon.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
+			return &storageStubs.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
 				hdr := mbPrevStartEpoch
 				hdrBytes, _ := json.Marshal(hdr)
 				return hdrBytes, nil
@@ -448,7 +448,7 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 	args.Store = &mock.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			// this will be the previous epoch meta block. It has initial 0 values so it can be considered at genesis
-			return &testscommon.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
+			return &storageStubs.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
 				hdrBytes, _ := json.Marshal(hdrPrevEpochStart)
 				return hdrBytes, nil
 			}}
@@ -566,7 +566,7 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentFees(t *testing.T) {
 	args.Store = &mock.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			// this will be the previous epoch meta block. It has initial 0 values so it can be considered at genesis
-			return &testscommon.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
+			return &storageStubs.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
 				hdrBytes, _ := json.Marshal(hdrPrevEpochStart)
 				return hdrBytes, nil
 			}}
@@ -783,7 +783,7 @@ func TestEconomics_VerifyRewardsPerBlock_MoreFeesThanInflation(t *testing.T) {
 	args.Store = &mock.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			// this will be the previous epoch meta block. It has initial 0 values so it can be considered at genesis
-			return &testscommon.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
+			return &storageStubs.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
 				hdrBytes, _ := json.Marshal(hdrPrevEpochStart)
 				return hdrBytes, nil
 			}}
@@ -981,7 +981,7 @@ func TestEconomics_VerifyRewardsPerBlock_InflationZero(t *testing.T) {
 	args.Store = &mock.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			// this will be the previous epoch meta block. It has initial 0 values so it can be considered at genesis
-			return &testscommon.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
+			return &storageStubs.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
 				hdrBytes, _ := json.Marshal(hdrPrevEpochStart)
 				return hdrBytes, nil
 			}}
@@ -1628,7 +1628,7 @@ func createArgsForComputeEndOfEpochEconomics(
 	args.Store = &mock.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			// this will be the previous epoch meta block. It has initial 0 values so it can be considered at genesis
-			return &testscommon.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
+			return &storageStubs.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
 				hdrBytes, _ := json.Marshal(hdrPrevEpochStart)
 				return hdrBytes, nil
 			}}

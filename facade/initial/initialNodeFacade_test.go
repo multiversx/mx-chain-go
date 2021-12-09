@@ -132,6 +132,10 @@ func TestDisabledNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	assert.Nil(t, ab)
 	assert.Equal(t, errNodeStarting, err)
 
+	ab, err = inf.GetBlockByRound(0, false)
+	assert.Nil(t, ab)
+	assert.Equal(t, errNodeStarting, err)
+
 	err = inf.Close()
 	assert.Equal(t, errNodeStarting, err)
 
@@ -145,9 +149,8 @@ func TestDisabledNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	assert.Nil(t, proof)
 	assert.Equal(t, errNodeStarting, err)
 
-	proof, rootHash, err := inf.GetProofCurrentRootHash("")
+	proof, err = inf.GetProofCurrentRootHash("")
 	assert.Nil(t, proof)
-	assert.Nil(t, rootHash)
 	assert.Equal(t, errNodeStarting, err)
 
 	b, err = inf.VerifyProof("", "", nil)

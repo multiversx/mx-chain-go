@@ -68,6 +68,16 @@ func (sbp *shardAPIBlockProcessor) GetBlockByHash(hash []byte, withTxs bool) (*a
 	return sbp.computeStatusAndPutInBlock(blockAPI, storerUnit)
 }
 
+// GetBlockByRound will return a shard APIBlock by round
+func (sbp *shardAPIBlockProcessor) GetBlockByRound(round uint64, withTxs bool) (*api.Block, error) {
+	headerHash, blockBytes, err := sbp.getBlockHeaderHashAndBytesByRound(round, dataRetriever.BlockHeaderUnit)
+	if err != nil {
+		return nil, err
+	}
+
+	return sbp.convertShardBlockBytesToAPIBlock(headerHash, blockBytes, withTxs)
+}
+
 func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte, blockBytes []byte, withTxs bool) (*api.Block, error) {
 	blockHeader, err := process.CreateShardHeader(sbp.marshalizer, blockBytes)
 	if err != nil {

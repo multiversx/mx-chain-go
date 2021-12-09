@@ -36,7 +36,7 @@ func TestCreateEndpointThrottler_NoThrottlerShouldExecute(t *testing.T) {
 		c.JSON(200, "ok")
 	}
 
-	ws := startNodeServerEndpointThrottler(handlerFunc, &mock.Facade{}, "test")
+	ws := startNodeServerEndpointThrottler(handlerFunc, &mock.FacadeStub{}, "test")
 	mutResponses := sync.Mutex{}
 	responses := make(map[int]int)
 
@@ -53,7 +53,7 @@ func TestCreateEndpointThrottler_ThrottlerCanNotProcessShouldNotExecute(t *testi
 	t.Parallel()
 
 	numCalls := uint32(0)
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetThrottlerForEndpointCalled: func(endpoint string) (core.Throttler, bool) {
 			return &mock.ThrottlerStub{
 				CanProcessCalled: func() bool {
@@ -85,7 +85,7 @@ func TestCreateEndpointThrottler_ThrottlerStartShouldExecute(t *testing.T) {
 	numCalls := uint32(0)
 	numStart := uint32(0)
 	numEnd := uint32(0)
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetThrottlerForEndpointCalled: func(endpoint string) (core.Throttler, bool) {
 			return &mock.ThrottlerStub{
 				CanProcessCalled: func() bool {

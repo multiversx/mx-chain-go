@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -85,7 +86,7 @@ func createShardDataPools() dataRetriever.PoolsHolder {
 func createShardStore() *mock.ChainStorerMock {
 	return &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &testscommon.StorerStub{}
+			return &storageStubs.StorerStub{}
 		},
 	}
 }

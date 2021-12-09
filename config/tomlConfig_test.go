@@ -269,9 +269,13 @@ func TestTomlEconomicsParser(t *testing.T) {
 			},
 		},
 		FeeSettings: FeeSettings{
-			MaxGasLimitPerBlock: maxGasLimitPerBlock,
-			MinGasPrice:         minGasPrice,
-			MinGasLimit:         minGasLimit,
+			GasLimitSettings: []GasLimitSetting{
+				{
+					MaxGasLimitPerBlock: maxGasLimitPerBlock,
+					MinGasLimit:         minGasLimit,
+				},
+			},
+			MinGasPrice: minGasPrice,
 		},
 	}
 
@@ -294,11 +298,9 @@ func TestTomlEconomicsParser(t *testing.T) {
     ProtocolSustainabilityAddress = "` + protocolSustainabilityAddress + `"
 
 [FeeSettings]
-	MaxGasLimitPerBlock = "` + maxGasLimitPerBlock + `"
+	GasLimitSettings = [{EnableEpoch = 0, MaxGasLimitPerBlock = "` + maxGasLimitPerBlock + `", MaxGasLimitPerMiniBlock = "", MaxGasLimitPerMetaBlock = "", MaxGasLimitPerMetaMiniBlock = "", MinGasLimit = "` + minGasLimit + `"}] 
     MinGasPrice = "` + minGasPrice + `"
-    MinGasLimit = "` + minGasLimit + `"
 `
-
 	cfg := EconomicsConfig{}
 
 	err := toml.Unmarshal([]byte(testString), &cfg)
@@ -610,19 +612,43 @@ func TestEnableEpochConfig(t *testing.T) {
     # ComputeRewardCheckpointEnableEpoch represents the epoch when compute rewards checkpoint epoch is enabled
     ComputeRewardCheckpointEnableEpoch = 36
 
+    # SCRSizeInvariantCheckEnableEpoch represents the epoch when the scr size invariant check is enabled
+    SCRSizeInvariantCheckEnableEpoch = 37
+
+    # BackwardCompSaveKeyValueEnableEpoch represents the epoch when backward compatibility save key value is enabled
+    BackwardCompSaveKeyValueEnableEpoch = 38
+
     # ESDTNFTCreateOnMultiShardEnableEpoch represents the epoch when esdt nft creation on multiple shards is enabled
-    ESDTNFTCreateOnMultiShardEnableEpoch = 37
+    ESDTNFTCreateOnMultiShardEnableEpoch = 39
+
+    # MetaESDTSetEnableEpoch represents the epoch when the backward compatibility for save key value error is enabled
+    MetaESDTSetEnableEpoch = 40
+
+    # AddTokensToDelegationEnableEpoch represents the epoch when adding tokens to delegation is enabled for whitelisted address
+    AddTokensToDelegationEnableEpoch = 41
+
+    # MultiESDTTransferFixOnCallBackOnEnableEpoch represents the epoch when multi esdt transfer on callback fix is enabled
+    MultiESDTTransferFixOnCallBackOnEnableEpoch = 42
+
+    # OptimizeGasUsedInCrossMiniBlocksEnableEpoch represents the epoch when gas used in cross shard mini blocks will be optimized
+    OptimizeGasUsedInCrossMiniBlocksEnableEpoch = 43
+
+    # FixOOGReturnCodeEnableEpoch represents the epoch when the backward compatibility returning out of gas error is enabled
+    FixOOGReturnCodeEnableEpoch = 44
+
+    # RemoveNonUpdatedStorageEnableEpoch represents the epoch when the backward compatibility for removing non updated storage is enabled
+    RemoveNonUpdatedStorageEnableEpoch = 45
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
-        { EpochEnable = 36, MaxNumNodes = 37, NodesToShufflePerShard = 38 },
-        { EpochEnable = 39, MaxNumNodes = 40, NodesToShufflePerShard = 41 }
+        { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
+        { EpochEnable = 45, MaxNumNodes = 3200, NodesToShufflePerShard = 80 }
     ]
 
 [GasSchedule]
     GasScheduleByEpochs = [
-        { StartEpoch = 42, FileName = "gasScheduleV1.toml" },
-        { StartEpoch = 43, FileName = "gasScheduleV3.toml" },
+        { StartEpoch = 46, FileName = "gasScheduleV1.toml" },
+        { StartEpoch = 47, FileName = "gasScheduleV3.toml" },
     ]
 `
 
@@ -642,14 +668,14 @@ func TestEnableEpochConfig(t *testing.T) {
 			RepairCallbackEnableEpoch:              12,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
-					EpochEnable:            36,
-					MaxNumNodes:            37,
-					NodesToShufflePerShard: 38,
+					EpochEnable:            44,
+					MaxNumNodes:            2169,
+					NodesToShufflePerShard: 80,
 				},
 				{
-					EpochEnable:            39,
-					MaxNumNodes:            40,
-					NodesToShufflePerShard: 41,
+					EpochEnable:            45,
+					MaxNumNodes:            3200,
+					NodesToShufflePerShard: 80,
 				},
 			},
 			BlockGasAndFeesReCheckEnableEpoch:           13,
@@ -676,16 +702,24 @@ func TestEnableEpochConfig(t *testing.T) {
 			ESDTTransferRoleEnableEpoch:                 34,
 			BuiltInFunctionOnMetaEnableEpoch:            35,
 			ComputeRewardCheckpointEnableEpoch:          36,
-			ESDTNFTCreateOnMultiShardEnableEpoch:        37,
+			SCRSizeInvariantCheckEnableEpoch:            37,
+			BackwardCompSaveKeyValueEnableEpoch:         38,
+			ESDTNFTCreateOnMultiShardEnableEpoch:        39,
+			MetaESDTSetEnableEpoch:                      40,
+			AddTokensToDelegationEnableEpoch:            41,
+			MultiESDTTransferFixOnCallBackOnEnableEpoch: 42,
+			OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 43,
+			FixOOGReturnCodeEnableEpoch:                 44,
+			RemoveNonUpdatedStorageEnableEpoch:          45,
 		},
 		GasSchedule: GasScheduleConfig{
 			GasScheduleByEpochs: []GasScheduleByEpochs{
 				{
-					StartEpoch: 42,
+					StartEpoch: 46,
 					FileName:   "gasScheduleV1.toml",
 				},
 				{
-					StartEpoch: 43,
+					StartEpoch: 47,
 					FileName:   "gasScheduleV3.toml",
 				},
 			},

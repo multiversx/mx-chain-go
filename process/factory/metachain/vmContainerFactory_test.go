@@ -279,12 +279,18 @@ func TestVmContainerFactory_Create(t *testing.T) {
 				},
 			},
 			FeeSettings: config.FeeSettings{
-				MaxGasLimitPerBlock:     "10000000000",
-				MaxGasLimitPerMetaBlock: "10000000000",
-				MinGasPrice:             "10",
-				MinGasLimit:             "10",
-				GasPerDataByte:          "1",
-				GasPriceModifier:        1.0,
+				GasLimitSettings: []config.GasLimitSetting{
+					{
+						MaxGasLimitPerBlock:         "10000000000",
+						MaxGasLimitPerMiniBlock:     "10000000000",
+						MaxGasLimitPerMetaBlock:     "10000000000",
+						MaxGasLimitPerMetaMiniBlock: "10000000000",
+						MinGasLimit:                 "10",
+					},
+				},
+				MinGasPrice:      "10",
+				GasPerDataByte:   "1",
+				GasPriceModifier: 1.0,
 			},
 		},
 		PenalizedTooMuchGasEnableEpoch: 0,
@@ -421,6 +427,7 @@ func FillGasMapMetaChainSystemSCsCosts(value uint64) map[string]uint64 {
 	gasMap["DelegationMgrOps"] = value
 	gasMap["GetAllNodeStates"] = value
 	gasMap["ValidatorToDelegation"] = value
+	gasMap["FixWaitingListSize"] = value
 
 	return gasMap
 }

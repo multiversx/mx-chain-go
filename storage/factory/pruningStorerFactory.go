@@ -537,6 +537,20 @@ func (psf *StorageServiceFactory) setupDbLookupExtensions(chainStorer *dataRetri
 	createdStorers = append(createdStorers, miniblockHashByTxHashUnit)
 	chainStorer.AddStorer(dataRetriever.MiniblockHashByTxHashUnit, miniblockHashByTxHashUnit)
 
+	// Create the blockHashByRound (STATIC) storer
+	blockHashByRoundConfig := psf.generalConfig.DbLookupExtensions.RoundHashStorageConfig
+	blockHashByRoundDBConfig := GetDBFromConfig(blockHashByRoundConfig.DB)
+	blockHashByRoundDBConfig.FilePath = psf.pathManager.PathForStatic(shardID, blockHashByRoundConfig.DB.FilePath)
+	blockHashByRoundCacherConfig := GetCacherFromConfig(blockHashByRoundConfig.Cache)
+	blockHashByRoundBloomFilter := GetBloomFromConfig(blockHashByRoundConfig.Bloom)
+	blockHashByRoundUnit, err := storageUnit.NewStorageUnitFromConf(blockHashByRoundCacherConfig, blockHashByRoundDBConfig, blockHashByRoundBloomFilter)
+	if err != nil {
+		return createdStorers, err
+	}
+
+	createdStorers = append(createdStorers, blockHashByRoundUnit)
+	chainStorer.AddStorer(dataRetriever.RoundHdrHashDataUnit, blockHashByRoundUnit)
+
 	// Create the epochByHash (STATIC) storer
 	epochByHashConfig := psf.generalConfig.DbLookupExtensions.EpochByHashStorageConfig
 	epochByHashDbConfig := GetDBFromConfig(epochByHashConfig.DB)
@@ -615,16 +629,36 @@ func (psf *StorageServiceFactory) createTrieEpochRootHashStorerIfNeeded() (stora
 }
 
 func (psf *StorageServiceFactory) createPruningPersister(arg *pruning.StorerArgs) (storage.Storer, error) {
-	if !psf.prefsConfig.FullArchive {
+	isFullArchive := psf.prefsConfig.FullArchive
+	isDBLookupExtenstion := psf.generalConfig.DbLookupExtensions.Enabled
+	if !isFullArchive && !isDBLookupExtenstion {
 		return pruning.NewPruningStorer(arg)
 	}
 
+	numOldActivePersisters := psf.getNumActivePersistersForFullHistoryStorer(isFullArchive, isDBLookupExtenstion)
 	historyArgs := &pruning.FullHistoryStorerArgs{
 		StorerArgs:               arg,
-		NumOfOldActivePersisters: psf.generalConfig.StoragePruning.FullArchiveNumActivePersisters,
+		NumOfOldActivePersisters: numOldActivePersisters,
 	}
 
 	return pruning.NewFullHistoryPruningStorer(historyArgs)
+}
+
+func (psf *StorageServiceFactory) getNumActivePersistersForFullHistoryStorer(isFullArchive bool, isDBLookupExtension bool) uint32 {
+	if isFullArchive && !isDBLookupExtension {
+		return psf.generalConfig.StoragePruning.FullArchiveNumActivePersisters
+	}
+
+	if !isFullArchive && isDBLookupExtension {
+		return psf.generalConfig.DbLookupExtensions.DbLookupMaxActivePersisters
+	}
+
+	if psf.generalConfig.DbLookupExtensions.DbLookupMaxActivePersisters != psf.generalConfig.StoragePruning.FullArchiveNumActivePersisters {
+		log.Warn("node is started with both Full Archive and DB Lookup Extension modes and have different values " +
+			"for the number of active persisters. It will use NumOfOldActivePersisters from full archive's settings")
+	}
+
+	return psf.generalConfig.StoragePruning.FullArchiveNumActivePersisters
 }
 
 func (psf *StorageServiceFactory) initOldDatabasesCleaningIfNeeded(store dataRetriever.StorageService) error {

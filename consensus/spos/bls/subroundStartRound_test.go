@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -56,7 +57,7 @@ func defaultSubround(
 		container,
 		chainID,
 		currentPid,
-		&mock.AppStatusHandlerStub{},
+		&statusHandler.AppStatusHandlerStub{},
 	)
 }
 

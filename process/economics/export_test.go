@@ -1,6 +1,8 @@
 package economics
 
 import (
+	"strconv"
+
 	"github.com/ElrondNetwork/elrond-go/config"
 )
 
@@ -20,4 +22,21 @@ func (ed *economicsData) GetRewardsActiveConfig() *config.EpochRewardSettings {
 	rewardsParams.TopUpGradientPoint = ed.topUpGradientPoint.String()
 
 	return rewardsParams
+}
+
+// GetGasLimitSetting -
+func (ed *economicsData) GetGasLimitSetting() *config.GasLimitSetting {
+	gasLimitSetting := &config.GasLimitSetting{}
+
+	ed.mutGasLimitSettings.RLock()
+	defer ed.mutGasLimitSettings.RUnlock()
+
+	gasLimitSetting.EnableEpoch = ed.gasLimitSettingEpoch
+	gasLimitSetting.MaxGasLimitPerBlock = strconv.FormatUint(ed.maxGasLimitPerBlock, 10)
+	gasLimitSetting.MaxGasLimitPerMiniBlock = strconv.FormatUint(ed.maxGasLimitPerMiniBlock, 10)
+	gasLimitSetting.MaxGasLimitPerMetaBlock = strconv.FormatUint(ed.maxGasLimitPerMetaBlock, 10)
+	gasLimitSetting.MaxGasLimitPerMetaMiniBlock = strconv.FormatUint(ed.maxGasLimitPerMetaMiniBlock, 10)
+	gasLimitSetting.MinGasLimit = strconv.FormatUint(ed.minGasLimit, 10)
+
+	return gasLimitSetting
 }

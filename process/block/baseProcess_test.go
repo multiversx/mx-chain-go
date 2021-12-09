@@ -40,6 +40,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -291,14 +293,14 @@ func createComponentHolderMocks() (
 	*mock.BootstrapComponentsMock,
 	*mock.StatusComponentsMock,
 ) {
-	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
+	blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
 	_ = blkc.SetGenesisHeader(&block.Header{Nonce: 0})
 
 	coreComponents := &mock.CoreComponentsMock{
 		IntMarsh:            &mock.MarshalizerMock{},
 		Hash:                &mock.HasherStub{},
 		UInt64ByteSliceConv: &mock.Uint64ByteSliceConverterMock{},
-		StatusField:         &mock.AppStatusHandlerStub{},
+		StatusField:         &statusHandlerMock.AppStatusHandlerStub{},
 		RoundField:          &mock.RoundHandlerMock{},
 	}
 
@@ -365,6 +367,7 @@ func CreateMockArguments(
 			Version:                        "softwareVersion",
 			HistoryRepository:              &dblookupext.HistoryRepositoryStub{},
 			EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
+			GasHandler:                     &mock.GasHandlerMock{},
 			ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
 			ScheduledMiniBlocksEnableEpoch: 2,
 		},
@@ -1355,7 +1358,7 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldWork(t *testing.T) {
 	coreComponents.UInt64ByteSliceConv = uint64ByteSlice.NewBigEndianConverter()
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.TrieEpochRootHashUnit,
-		&testscommon.StorerStub{
+		&storageStubs.StorerStub{
 			PutCalled: func(key, data []byte) error {
 				restoredEpoch, err := coreComponents.UInt64ByteSliceConv.ToUint64(key)
 				require.NoError(t, err)
@@ -1414,7 +1417,7 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldUseDataTrieIfNeededW
 
 		store := dataRetriever.NewChainStorer()
 		store.AddStorer(dataRetriever.TrieEpochRootHashUnit,
-			&testscommon.StorerStub{
+			&storageStubs.StorerStub{
 				PutCalled: func(key, data []byte) error {
 					restoredEpoch, err := coreComponents.UInt64ByteSliceConv.ToUint64(key)
 					require.NoError(t, err)
@@ -1471,7 +1474,7 @@ func TestBaseProcessor_updateState(t *testing.T) {
 		headers[i] = block.Header{Nonce: uint64(i), RootHash: []byte(strconv.Itoa(i))}
 	}
 
-	hdrStore := &testscommon.StorerStub{
+	hdrStore := &storageStubs.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			if len(headers) != 0 {
 				header := headers[0]
