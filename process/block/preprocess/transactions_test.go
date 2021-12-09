@@ -1166,6 +1166,62 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 	assert.Equal(t, 3, numTxsProcessed)
 }
 
+func TestTransactionsPreprocessor_ProcessMiniBlockShouldErrMaxGasLimitUsedForDestMeTxsIsReached(t *testing.T) {
+	t.Parallel()
+
+	tdp := &dataRetrieverMock.PoolsHolderStub{
+		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return &testscommon.ShardedDataStub{
+				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
+					return &testscommon.CacherStub{
+						PeekCalled: func(key []byte) (value interface{}, ok bool) {
+							if reflect.DeepEqual(key, []byte("tx_hash1")) {
+								return &transaction.Transaction{}, true
+							}
+							return nil, false
+						},
+					}
+				},
+			}
+		},
+	}
+
+	args := createDefaultTransactionsProcessorArgs()
+	args.TxDataPool = tdp.Transactions()
+	args.GasHandler = &mock.GasHandlerMock{
+		ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+			return 0, MaxGasLimitPerBlock*maxGasLimitPercentUsedForDestMeTxs/100 + 1, nil
+		},
+	}
+
+	txs, err := NewTransactionPreprocessor(args)
+	require.Nil(t, err)
+
+	txHashes := make([][]byte, 0)
+	txHashes = append(txHashes, []byte("tx_hash1"))
+
+	miniBlock := &block.MiniBlock{
+		ReceiverShardID: 0,
+		SenderShardID:   1,
+		TxHashes:        txHashes,
+		Type:            block.TxBlock,
+	}
+
+	txsToBeReverted, numTxsProcessed, err := txs.ProcessMiniBlock(miniBlock, haveTimeTrue, getNumOfCrossInterMbsAndTxsZero)
+
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(txsToBeReverted))
+	assert.Equal(t, 1, numTxsProcessed)
+
+	txs.EpochConfirmed(2, 0)
+
+	txsToBeReverted, numTxsProcessed, err = txs.ProcessMiniBlock(miniBlock, haveTimeTrue, getNumOfCrossInterMbsAndTxsZero)
+
+	assert.Equal(t, process.ErrMaxGasLimitUsedForDestMeTxsIsReached, err)
+	assert.Equal(t, 1, len(txsToBeReverted))
+	assert.Equal(t, 0, numTxsProcessed)
+}
+
 func TestTransactionsPreprocessor_ComputeGasConsumedShouldWork(t *testing.T) {
 	t.Parallel()
 

@@ -18,6 +18,8 @@ import (
 	"github.com/ElrondNetwork/elrond-vm-common/atomic"
 )
 
+const maxGasLimitPercentUsedForDestMeTxs = 50
+
 type txShardInfo struct {
 	senderShardID   uint32
 	receiverShardID uint32
@@ -329,7 +331,9 @@ func (bpp *basePreProcess) computeGasConsumed(
 	if bpp.shardCoordinator.SelfId() == senderShardId {
 		gasConsumedByTxInSelfShard = gasConsumedByTxInSenderShard
 
-		if gasConsumedByTxInReceiverShard > bpp.economicsFee.MaxGasLimitPerMiniBlockForSafeCrossShard() {
+		// the max gas limit to be compared with, should be the maximum value between max gas limit per mini block and max gas limit per tx,
+		// just to keep the backward compatibility with previous versions of GasLimitSettings, where tx gas limit (1.5 bil.) was higher than current constant value (600 mil.)
+		if gasConsumedByTxInReceiverShard > core.MaxUint64(process.MaxGasLimitPerTxForSafeCrossShard, bpp.economicsFee.MaxGasLimitPerMiniBlockForSafeCrossShard()) {
 			return process.ErrMaxGasLimitPerOneTxInReceiverShardIsReached
 		}
 
