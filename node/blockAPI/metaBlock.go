@@ -50,7 +50,7 @@ func (mbp *metaAPIBlockProcessor) GetBlockByNonce(nonce uint64, withTxs bool) (*
 	return mbp.convertMetaBlockBytesToAPIBlock(headerHash, blockBytes, withTxs)
 }
 
-// GetBlockByHash will return a shard APIBlock by hash
+// GetBlockByHash will return a meta APIBlock by hash
 func (mbp *metaAPIBlockProcessor) GetBlockByHash(hash []byte, withTxs bool) (*api.Block, error) {
 	blockBytes, err := mbp.getFromStorer(dataRetriever.MetaBlockUnit, hash)
 	if err != nil {
@@ -63,6 +63,16 @@ func (mbp *metaAPIBlockProcessor) GetBlockByHash(hash []byte, withTxs bool) (*ap
 	}
 
 	return mbp.computeStatusAndPutInBlock(blockAPI, dataRetriever.MetaHdrNonceHashDataUnit)
+}
+
+// GetBlockByRound will return a meta APIBlock by round
+func (mbp *metaAPIBlockProcessor) GetBlockByRound(round uint64, withTxs bool) (*api.Block, error) {
+	headerHash, blockBytes, err := mbp.getBlockHeaderHashAndBytesByRound(round, dataRetriever.MetaBlockUnit)
+	if err != nil {
+		return nil, err
+	}
+
+	return mbp.convertMetaBlockBytesToAPIBlock(headerHash, blockBytes, withTxs)
 }
 
 func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, blockBytes []byte, withTxs bool) (*api.Block, error) {

@@ -31,7 +31,7 @@ func TestRelayedAsyncESDTCallShouldWork(t *testing.T) {
 
 	esdtBalance := big.NewInt(100000000)
 	token := []byte("miiutoken")
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), token, esdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), token, 0, esdtBalance)
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, egldBalance)
 
 	// deploy 2 contracts
@@ -98,7 +98,7 @@ func TestRelayedAsyncESDTCall_InvalidCallFirstContract(t *testing.T) {
 
 	esdtBalance := big.NewInt(100000000)
 	token := []byte("miiutoken")
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), token, esdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), token, 0, esdtBalance)
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, egldBalance)
 
 	// deploy 2 contracts
@@ -165,7 +165,7 @@ func TestRelayedAsyncESDTCall_InvalidOutOfGas(t *testing.T) {
 
 	esdtBalance := big.NewInt(100000000)
 	token := []byte("miiutoken")
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), token, esdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), token, 0, esdtBalance)
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, egldBalance)
 
 	// deploy 2 contracts

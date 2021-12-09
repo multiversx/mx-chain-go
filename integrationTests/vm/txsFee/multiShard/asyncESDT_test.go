@@ -41,7 +41,7 @@ func TestAsyncESDTTransferWithSCCallShouldWork(t *testing.T) {
 	token := []byte("miiutoken")
 	egldBalance := big.NewInt(10000000)
 	esdtBalance := big.NewInt(10000000)
-	utils.CreateAccountWithESDTBalance(t, testContextSender.Accounts, senderAddr, egldBalance, token, esdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContextSender.Accounts, senderAddr, egldBalance, token, 0, esdtBalance)
 
 	// create accounts for owners
 	_, _ = vm.CreateAccount(testContextFirstContract.Accounts, firstContractOwner, 0, egldBalance)
@@ -161,7 +161,7 @@ func TestAsyncESDTTransferWithSCCallSecondContractAnotherToken(t *testing.T) {
 	token := []byte("miiutoken")
 	egldBalance := big.NewInt(10000000)
 	esdtBalance := big.NewInt(10000000)
-	utils.CreateAccountWithESDTBalance(t, testContextSender.Accounts, senderAddr, egldBalance, token, esdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContextSender.Accounts, senderAddr, egldBalance, token, 0, esdtBalance)
 
 	// create accounts for owners
 	_, _ = vm.CreateAccount(testContextFirstContract.Accounts, firstContractOwner, 0, egldBalance)

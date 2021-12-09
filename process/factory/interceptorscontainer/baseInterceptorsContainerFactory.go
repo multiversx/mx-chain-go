@@ -14,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	interceptorFactory "github.com/ElrondNetwork/elrond-go/process/interceptors/factory"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
@@ -256,15 +255,10 @@ func (bicf *baseInterceptorsContainerFactory) createOneUnsignedTxInterceptor(top
 	if check.IfNil(bicf.argInterceptorFactory.CoreComponents) {
 		return nil, process.ErrNilCoreComponentsHolder
 	}
-	//TODO replace the nil tx validator with white list validator
-	txValidator, err := mock.NewNilTxValidator()
-	if err != nil {
-		return nil, err
-	}
 
 	argProcessor := &processor.ArgTxInterceptorProcessor{
 		ShardedDataCache: bicf.dataPool.UnsignedTransactions(),
-		TxValidator:      txValidator,
+		TxValidator:      dataValidators.NewDisabledTxValidator(),
 	}
 	txProcessor, err := processor.NewTxInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -304,15 +298,10 @@ func (bicf *baseInterceptorsContainerFactory) createOneRewardTxInterceptor(topic
 	if check.IfNil(bicf.argInterceptorFactory.CoreComponents) {
 		return nil, process.ErrNilCoreComponentsHolder
 	}
-	//TODO replace the nil tx validator with white list validator
-	txValidator, err := mock.NewNilTxValidator()
-	if err != nil {
-		return nil, err
-	}
 
 	argProcessor := &processor.ArgTxInterceptorProcessor{
 		ShardedDataCache: bicf.dataPool.RewardTransactions(),
-		TxValidator:      txValidator,
+		TxValidator:      dataValidators.NewDisabledTxValidator(),
 	}
 	txProcessor, err := processor.NewTxInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -349,12 +338,6 @@ func (bicf *baseInterceptorsContainerFactory) createOneRewardTxInterceptor(topic
 
 func (bicf *baseInterceptorsContainerFactory) generateHeaderInterceptors() error {
 	shardC := bicf.shardCoordinator
-	//TODO implement other HeaderHandlerProcessValidator that will check the header's nonce
-	// against blockchain's latest nonce - k finality
-	hdrValidator, err := dataValidators.NewNilHeaderValidator()
-	if err != nil {
-		return err
-	}
 
 	hdrFactory, err := interceptorFactory.NewInterceptedShardHeaderDataFactory(bicf.argInterceptorFactory)
 	if err != nil {
@@ -363,7 +346,6 @@ func (bicf *baseInterceptorsContainerFactory) generateHeaderInterceptors() error
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
 		Headers:        bicf.dataPool.Headers(),
-		HdrValidator:   hdrValidator,
 		BlockBlackList: bicf.blockBlackList,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
@@ -486,12 +468,6 @@ func (bicf *baseInterceptorsContainerFactory) createOneMiniBlocksInterceptor(top
 
 func (bicf *baseInterceptorsContainerFactory) generateMetachainHeaderInterceptors() error {
 	identifierHdr := factory.MetachainBlocksTopic
-	//TODO implement other HeaderHandlerProcessValidator that will check the header's nonce
-	// against blockchain's latest nonce - k finality
-	hdrValidator, err := dataValidators.NewNilHeaderValidator()
-	if err != nil {
-		return err
-	}
 
 	hdrFactory, err := interceptorFactory.NewInterceptedMetaHeaderDataFactory(bicf.argInterceptorFactory)
 	if err != nil {
@@ -500,7 +476,6 @@ func (bicf *baseInterceptorsContainerFactory) generateMetachainHeaderInterceptor
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
 		Headers:        bicf.dataPool.Headers(),
-		HdrValidator:   hdrValidator,
 		BlockBlackList: bicf.blockBlackList,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)

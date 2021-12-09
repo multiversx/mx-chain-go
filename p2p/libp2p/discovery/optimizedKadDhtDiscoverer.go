@@ -86,7 +86,7 @@ func (okdd *optimizedKadDhtDiscoverer) processLoop(ctx context.Context) {
 	for {
 		select {
 		case <-okdd.chanInit:
-			okdd.processInit(ctx)
+			chTimeSeedersReconnect = okdd.processInit(ctx)
 
 		case <-chTimeSeedersReconnect:
 			chTimeSeedersReconnect = okdd.processSeedersReconnect(ctx)
@@ -107,15 +107,17 @@ func (okdd *optimizedKadDhtDiscoverer) processLoop(ctx context.Context) {
 	}
 }
 
-func (okdd *optimizedKadDhtDiscoverer) processInit(ctx context.Context) {
+func (okdd *optimizedKadDhtDiscoverer) processInit(ctx context.Context) <-chan time.Time {
 	err := okdd.init(ctx)
 	okdd.errChanInit <- err
 	if err != nil {
-		return
+		return okdd.createChTimeSeedersReconnect(false)
 	}
 
-	okdd.tryToReconnectAtLeastToASeeder(ctx)
+	ch := okdd.processSeedersReconnect(ctx)
 	okdd.findPeers(ctx)
+
+	return ch
 }
 
 func (okdd *optimizedKadDhtDiscoverer) processSeedersReconnect(ctx context.Context) <-chan time.Time {
@@ -180,7 +182,7 @@ func (okdd *optimizedKadDhtDiscoverer) tryToReconnectAtLeastToASeeder(ctx contex
 	for _, seederAddress := range okdd.initialPeersList {
 		err := okdd.connectToSeeder(ctx, seederAddress)
 		if err != nil {
-			log.Debug("error connecting to seeder", "seeder", seederAddress, "error", err.Error())
+			printConnectionErrorToSeeder(seederAddress, err)
 		} else {
 			connectedToOneSeeder = true
 		}

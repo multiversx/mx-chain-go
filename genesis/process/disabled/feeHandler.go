@@ -26,7 +26,7 @@ func (fh *FeeHandler) GenesisTotalSupply() *big.Int {
 	return big.NewInt(0)
 }
 
-// ComputeGasLimitBasedOnBalance return 0 and nil
+// ComputeGasLimitBasedOnBalance returns 0 and nil
 func (fh *FeeHandler) ComputeGasLimitBasedOnBalance(_ data.TransactionWithFeeHandler, _ *big.Int) (uint64, error) {
 	return 0, nil
 }
@@ -41,8 +41,23 @@ func (fh *FeeHandler) MinGasLimit() uint64 {
 	return 0
 }
 
-// MaxGasLimitPerBlock return max uint64
+// MaxGasLimitPerBlock returns max uint64
 func (fh *FeeHandler) MaxGasLimitPerBlock(uint32) uint64 {
+	return math.MaxUint64
+}
+
+// MaxGasLimitPerMiniBlock returns max uint64
+func (fh *FeeHandler) MaxGasLimitPerMiniBlock(uint32) uint64 {
+	return math.MaxUint64
+}
+
+// MaxGasLimitPerBlockForSafeCrossShard returns max uint64
+func (fh *FeeHandler) MaxGasLimitPerBlockForSafeCrossShard() uint64 {
+	return math.MaxUint64
+}
+
+// MaxGasLimitPerMiniBlockForSafeCrossShard returns max uint64
+func (fh *FeeHandler) MaxGasLimitPerMiniBlockForSafeCrossShard() uint64 {
 	return math.MaxUint64
 }
 
@@ -103,7 +118,7 @@ func (fh *FeeHandler) SplitTxGasInCategories(_ data.TransactionWithFeeHandler) (
 	return 0, 0
 }
 
-// GasPriceForProcessing return 0
+// GasPriceForProcessing returns 0
 func (fh *FeeHandler) GasPriceForProcessing(_ data.TransactionWithFeeHandler) uint64 {
 	return 0
 }

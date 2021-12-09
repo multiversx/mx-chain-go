@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/vm"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
@@ -38,13 +39,18 @@ func NewInitialNodeFacade(apiInterface string, pprofEnabled bool) *initialNodeFa
 }
 
 // GetProof -
-func (inf *initialNodeFacade) GetProof(_ string, _ string) ([][]byte, error) {
+func (inf *initialNodeFacade) GetProof(_ string, _ string) (*common.GetProofResponse, error) {
 	return nil, errNodeStarting
 }
 
-// GetProofCurrentRootHash -
-func (inf *initialNodeFacade) GetProofCurrentRootHash(_ string) ([][]byte, []byte, error) {
+// GetProofDataTrie -
+func (inf *initialNodeFacade) GetProofDataTrie(_ string, _ string, _ string) (*common.GetProofResponse, *common.GetProofResponse, error) {
 	return nil, nil, errNodeStarting
+}
+
+// GetProofCurrentRootHash -
+func (inf *initialNodeFacade) GetProofCurrentRootHash(_ string) (*common.GetProofResponse, error) {
+	return nil, errNodeStarting
 }
 
 // VerifyProof -
@@ -237,6 +243,11 @@ func (inf *initialNodeFacade) GetBlockByHash(_ string, _ bool) (*api.Block, erro
 
 // GetBlockByNonce returns nil and error
 func (inf *initialNodeFacade) GetBlockByNonce(_ uint64, _ bool) (*api.Block, error) {
+	return nil, errNodeStarting
+}
+
+// GetBlockByRound returns nil and error
+func (inf *initialNodeFacade) GetBlockByRound(_ uint64, _ bool) (*api.Block, error) {
 	return nil, errNodeStarting
 }
 
