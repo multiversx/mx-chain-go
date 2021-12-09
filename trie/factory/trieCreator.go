@@ -4,12 +4,15 @@ import (
 	"path"
 	"path/filepath"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -19,11 +22,15 @@ import (
 
 // TrieCreateArgs holds arguments for calling the Create method on the TrieFactory
 type TrieCreateArgs struct {
-	TrieStorageConfig  config.StorageConfig
-	ShardID            string
-	PruningEnabled     bool
-	CheckpointsEnabled bool
-	MaxTrieLevelInMem  uint
+	TrieStorageConfig          config.StorageConfig
+	MainStorer                 storage.Storer
+	CheckpointsStorer          storage.Storer
+	ShardID                    string
+	PruningEnabled             bool
+	CheckpointsEnabled         bool
+	MaxTrieLevelInMem          uint
+	DisableOldTrieStorageEpoch uint32
+	EpochStartNotifier         trie.EpochNotifier
 }
 
 type trieCreator struct {
@@ -92,12 +99,16 @@ func (tc *trieCreator) Create(args TrieCreateArgs) (common.StorageManager, commo
 		uint64(tc.hasher.Size()),
 	)
 	storageManagerArgs := trie.NewTrieStorageManagerArgs{
-		DB:                     accountsTrieStorage,
-		Marshalizer:            tc.marshalizer,
-		Hasher:                 tc.hasher,
-		SnapshotDbConfig:       snapshotDbCfg,
-		GeneralConfig:          tc.trieStorageManagerConfig,
-		CheckpointHashesHolder: checkpointHashesHolder,
+		EpochNotifier:              args.EpochStartNotifier,
+		DisableOldTrieStorageEpoch: args.DisableOldTrieStorageEpoch,
+		DB:                         accountsTrieStorage,
+		MainStorer:                 args.MainStorer,
+		CheckpointsStorer:          args.CheckpointsStorer,
+		Marshalizer:                tc.marshalizer,
+		Hasher:                     tc.hasher,
+		SnapshotDbConfig:           snapshotDbCfg,
+		GeneralConfig:              tc.trieStorageManagerConfig,
+		CheckpointHashesHolder:     checkpointHashesHolder,
 	}
 
 	log.Debug("trie checkpoints status", "enabled", args.CheckpointsEnabled)
@@ -162,4 +173,69 @@ func (tc *trieCreator) newTrieAndTrieStorageWithoutPruning(
 // IsInterfaceNil returns true if there is no value under the interface
 func (tc *trieCreator) IsInterfaceNil() bool {
 	return tc == nil
+}
+
+// CreateTriesComponentsForShardId creates the user and peer tries and trieStorageManagers
+func CreateTriesComponentsForShardId(
+	generalConfig config.Config,
+	coreComponentsHolder coreComponentsHandler,
+	shardId uint32,
+	storageService dataRetriever.StorageService,
+	disableoOldTrieStorageEpoch uint32,
+	notifier trie.EpochNotifier,
+) (common.TriesHolder, map[string]common.StorageManager, error) {
+	trieFactoryArgs := TrieFactoryArgs{
+		SnapshotDbCfg:            generalConfig.TrieSnapshotDB,
+		Marshalizer:              coreComponentsHolder.InternalMarshalizer(),
+		Hasher:                   coreComponentsHolder.Hasher(),
+		PathManager:              coreComponentsHolder.PathHandler(),
+		TrieStorageManagerConfig: generalConfig.TrieStorageManagerConfig,
+	}
+	trFactory, err := NewTrieFactory(trieFactoryArgs)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	args := TrieCreateArgs{
+		TrieStorageConfig:          generalConfig.AccountsTrieStorageOld,
+		MainStorer:                 storageService.GetStorer(dataRetriever.UserAccountsUnit),
+		CheckpointsStorer:          storageService.GetStorer(dataRetriever.UserAccountsCheckpointsUnit),
+		ShardID:                    core.GetShardIDString(shardId),
+		PruningEnabled:             generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
+		CheckpointsEnabled:         generalConfig.StateTriesConfig.CheckpointsEnabled,
+		MaxTrieLevelInMem:          generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
+		DisableOldTrieStorageEpoch: disableoOldTrieStorageEpoch,
+		EpochStartNotifier:         notifier,
+	}
+	userStorageManager, userAccountTrie, err := trFactory.Create(args)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	trieContainer := state.NewDataTriesHolder()
+	trieStorageManagers := make(map[string]common.StorageManager)
+
+	trieContainer.Put([]byte(UserAccountTrie), userAccountTrie)
+	trieStorageManagers[UserAccountTrie] = userStorageManager
+
+	args = TrieCreateArgs{
+		TrieStorageConfig:          generalConfig.PeerAccountsTrieStorageOld,
+		MainStorer:                 storageService.GetStorer(dataRetriever.PeerAccountsUnit),
+		CheckpointsStorer:          storageService.GetStorer(dataRetriever.PeerAccountsCheckpointsUnit),
+		ShardID:                    core.GetShardIDString(shardId),
+		PruningEnabled:             generalConfig.StateTriesConfig.PeerStatePruningEnabled,
+		CheckpointsEnabled:         generalConfig.StateTriesConfig.CheckpointsEnabled,
+		MaxTrieLevelInMem:          generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
+		DisableOldTrieStorageEpoch: disableoOldTrieStorageEpoch,
+		EpochStartNotifier:         notifier,
+	}
+	peerStorageManager, peerAccountsTrie, err := trFactory.Create(args)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	trieContainer.Put([]byte(PeerAccountTrie), peerAccountsTrie)
+	trieStorageManagers[PeerAccountTrie] = peerStorageManager
+
+	return trieContainer, trieStorageManagers, nil
 }

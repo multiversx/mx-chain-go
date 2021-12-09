@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/dblookupext/esdtSupply"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
@@ -471,7 +472,7 @@ func (hr *historyRepository) RevertBlock(blockHeader data.HeaderHandler, blockBo
 }
 
 // GetESDTSupply will return the supply from the storage for the given token
-func (hr *historyRepository) GetESDTSupply(token string) (string, error) {
+func (hr *historyRepository) GetESDTSupply(token string) (*esdtSupply.SupplyESDT, error) {
 	return hr.esdtSuppliesHandler.GetESDTSupply(token)
 }
 

@@ -38,6 +38,7 @@ type CoreComponentsStub struct {
 	SyncTimerField                     ntp.SyncTimer
 	RoundHandlerField                  consensus.RoundHandler
 	EconomicsDataField                 process.EconomicsDataHandler
+	APIEconomicsHandler                process.EconomicsDataHandler
 	RatingsDataField                   process.RatingsInfoHandler
 	RaterField                         sharding.PeerAccountListAndRatingHandler
 	GenesisNodesSetupField             sharding.GenesisNodesSetupHandler
@@ -105,6 +106,11 @@ func (ccs *CoreComponentsStub) RoundHandler() consensus.RoundHandler {
 // EconomicsData -
 func (ccs *CoreComponentsStub) EconomicsData() process.EconomicsDataHandler {
 	return ccs.EconomicsDataField
+}
+
+// APIEconomicsData -
+func (ccs *CoreComponentsStub) APIEconomicsData() process.EconomicsDataHandler {
+	return ccs.APIEconomicsHandler
 }
 
 // RatingsData -
