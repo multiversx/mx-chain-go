@@ -120,6 +120,11 @@ func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager,
 	log.Debug("epoch for disabling old trie storage", "epoch", tsm.disableOldStorageEpoch)
 	args.EpochNotifier.RegisterNotifyHandler(tsm)
 
+	err = tsm.mainStorer.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
+	if err != nil {
+		log.Warn("newTrieStorageManager error while putting active DB value into main storer", "error", err)
+	}
+
 	if tsm.flagDisableOldStorage.IsSet() {
 		err := tsm.db.Close()
 		if err != nil {
@@ -459,13 +464,17 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 		return
 	}
 
+	if !isActiveDb(stsm) {
+		return
+	}
+
 	err = newRoot.commitSnapshot(stsm, snapshotEntry.leavesChan, ctx, snapshotEntry.stats)
 	if err == ErrContextClosing {
 		log.Debug("context closing while in commitSnapshot operation")
 		return
 	}
 	if err != nil {
-		log.Error("trie storage manager: takeSnapshot commit", "error", err.Error())
+		log.Error("trie storage manager: takeSnapshot commit", "error", err.Error(), "rootHash", snapshotEntry.rootHash)
 	}
 }
 
@@ -491,6 +500,21 @@ func (tsm *trieStorageManager) takeCheckpoint(checkpointEntry *snapshotsQueueEnt
 	if err != nil {
 		log.Error("trie storage manager: takeCheckpoint commit", "error", err.Error())
 	}
+}
+
+func isActiveDb(stsm *snapshotTrieStorageManager) bool {
+	val, err := stsm.Get([]byte(common.ActiveDBKey))
+	if err != nil {
+		log.Debug("snapshotTrieStorageManager get error", "err", err.Error())
+		return false
+	}
+
+	if bytes.Equal(val, []byte(common.ActiveDBVal)) {
+		return true
+	}
+
+	log.Debug("snapshotTrieStorageManager invalid value for activeDBKey", "value", val)
+	return false
 }
 
 func newSnapshotNode(
@@ -613,6 +637,7 @@ func (tsm *trieStorageManager) SetEpochForPutOperation(epoch uint32) {
 	storer.SetEpochForPutOperation(epoch)
 }
 
+// EpochConfirmed is called whenever a new epoch is confirmed
 func (tsm *trieStorageManager) EpochConfirmed(epoch uint32, _ uint64) {
 	tsm.flagDisableOldStorage.Toggle(epoch >= tsm.disableOldStorageEpoch)
 	log.Debug("old trie storage", "disabled", tsm.flagDisableOldStorage.IsSet())
