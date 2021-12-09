@@ -317,7 +317,7 @@ func (ap *accountsParser) createIndexerPools(shardIDs []uint32) map[uint32]*inde
 }
 
 func (ap *accountsParser) createMintTransactions() []coreData.TransactionHandler {
-	txs := make([]coreData.TransactionHandler, 0)
+	txs := make([]coreData.TransactionHandler, 0, len(ap.initialAccounts))
 
 	var nonce uint64 = 0
 	for _, ia := range ap.initialAccounts {
@@ -421,9 +421,12 @@ func (ap *accountsParser) setTxsPoolAndMiniBlocks(
 	txsPoolPerShard map[uint32]*indexer.Pool,
 	miniBlocks []*block.MiniBlock,
 ) error {
+	var senderShardID uint32
+
 	for _, txHandler := range allTxs {
 		receiverShardID := shardCoordinator.ComputeId(txHandler.GetRcvAddr())
-		var senderShardID uint32
+
+		// treat minting transactions as intra shard
 		if bytes.Equal(txHandler.GetSndAddr(), ap.minterAddressBytes) {
 			senderShardID = receiverShardID
 		} else {

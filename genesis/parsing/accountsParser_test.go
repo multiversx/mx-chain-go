@@ -559,7 +559,7 @@ func TestAccountsParser_createMintTransaction(t *testing.T) {
 	assert.Equal(t, uint64(0), tx.GetNonce())
 	assert.Equal(t, ia[0].AddressBytes(), tx.GetRcvAddr())
 	assert.Equal(t, ia[0].GetSupply(), tx.GetValue())
-	assert.Equal(t, []byte{}, tx.GetSndAddr())
+	assert.Equal(t, []byte("erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3"), tx.GetSndAddr())
 	assert.Equal(t, []byte(common.GenesisTxSignatureString), tx.GetSignature())
 	assert.Equal(t, uint64(0), tx.GetGasLimit())
 	assert.Equal(t, uint64(0), tx.GetGasPrice())

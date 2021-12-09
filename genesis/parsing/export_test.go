@@ -46,7 +46,7 @@ func NewTestAccountsParser(pubkeyConverter core.PubkeyConverter) *accountsParser
 	return &accountsParser{
 		pubkeyConverter:    pubkeyConverter,
 		initialAccounts:    make([]*data.InitialAccount, 0),
-		minterAddressBytes: []byte{},
+		minterAddressBytes: []byte("erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3"),
 		keyGenerator:       &mock.KeyGeneratorStub{},
 		hasher:             &mock.HasherMock{},
 		marshalizer:        &mock.MarshalizerMock{},
