@@ -24,7 +24,7 @@ func TestESDTLocalMintShouldWork(t *testing.T) {
 	esdtBalance := big.NewInt(100000000)
 	token := []byte("miiutoken")
 	roles := [][]byte{[]byte(core.ESDTRoleLocalMint), []byte(core.ESDTRoleLocalBurn)}
-	utils.CreateAccountWithESDTBalanceAndRoles(t, testContext.Accounts, sndAddr, egldBalance, token, esdtBalance, roles)
+	utils.CreateAccountWithESDTBalanceAndRoles(t, testContext.Accounts, sndAddr, egldBalance, token, 0, esdtBalance, roles)
 
 	gasPrice := uint64(10)
 	gasLimit := uint64(40)
@@ -63,7 +63,7 @@ func TestESDTLocalMintNotAllowedShouldErr(t *testing.T) {
 	egldBalance := big.NewInt(100000000)
 	esdtBalance := big.NewInt(100000000)
 	token := []byte("miiutoken")
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, egldBalance, token, esdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, egldBalance, token, 0, esdtBalance)
 
 	gasPrice := uint64(10)
 	gasLimit := uint64(40)

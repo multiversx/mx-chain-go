@@ -32,7 +32,7 @@ func TestNewVmValuesGroup(t *testing.T) {
 	})
 
 	t.Run("should work", func(t *testing.T) {
-		hg, err := groups.NewVmValuesGroup(&mock.Facade{})
+		hg, err := groups.NewVmValuesGroup(&mock.FacadeStub{})
 		require.NoError(t, err)
 		require.NotNil(t, hg)
 	})
@@ -59,7 +59,7 @@ func TestGetHex_ShouldWork(t *testing.T) {
 
 	valueBuff, _ := hex.DecodeString("DEADBEEF")
 
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vm.VMOutputApi, e error) {
 			return &vm.VMOutputApi{
 				ReturnData: [][]byte{valueBuff},
@@ -86,7 +86,7 @@ func TestGetString_ShouldWork(t *testing.T) {
 
 	valueBuff := "DEADBEEF"
 
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vm.VMOutputApi, e error) {
 			return &vm.VMOutputApi{
 				ReturnData: [][]byte{[]byte(valueBuff)},
@@ -113,7 +113,7 @@ func TestGetInt_ShouldWork(t *testing.T) {
 
 	value := "1234567"
 
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vm.VMOutputApi, e error) {
 			returnData := big.NewInt(0)
 			returnData.SetString(value, 10)
@@ -140,7 +140,7 @@ func TestGetInt_ShouldWork(t *testing.T) {
 func TestQuery_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vm.VMOutputApi, e error) {
 
 			return &vm.VMOutputApi{
@@ -170,7 +170,7 @@ func TestCreateSCQuery_ArgumentIsNotHexShouldErr(t *testing.T) {
 		Args:      []string{"bad arg"},
 	}
 
-	group, _ := groups.NewVmValuesGroup(&mock.Facade{})
+	group, _ := groups.NewVmValuesGroup(&mock.FacadeStub{})
 	_, err := group.CreateSCQuery(&request)
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), "'bad arg' is not a valid hex string")
@@ -180,7 +180,7 @@ func TestAllRoutes_FacadeErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	errExpected := errors.New("some random error")
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vm.VMOutputApi, e error) {
 			return nil, errExpected
 		},
@@ -199,7 +199,7 @@ func TestAllRoutes_WhenBadAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
 	errExpected := errors.New("not a valid address")
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vm.VMOutputApi, e error) {
 			return &vm.VMOutputApi{}, nil
 		},
@@ -218,7 +218,7 @@ func TestAllRoutes_WhenBadArgumentsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	errExpected := errors.New("not a valid hex string")
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vm.VMOutputApi, e error) {
 			return &vm.VMOutputApi{}, nil
 		},
@@ -237,7 +237,7 @@ func TestAllRoutes_WhenNoVMReturnDataShouldErr(t *testing.T) {
 	t.Parallel()
 
 	errExpected := errors.New("no return data")
-	facade := &mock.Facade{
+	facade := &mock.FacadeStub{
 		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vm.VMOutputApi, e error) {
 			return &vm.VMOutputApi{}, nil
 		},
@@ -267,7 +267,7 @@ func TestAllRoutes_WhenNoVMReturnDataShouldErr(t *testing.T) {
 func TestAllRoutes_WhenBadJsonShouldErr(t *testing.T) {
 	t.Parallel()
 
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vm.VMOutputApi, e error) {
 			return &vm.VMOutputApi{}, nil
 		},

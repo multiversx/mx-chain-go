@@ -60,6 +60,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -409,7 +410,7 @@ func getAccountFactory(accountType Type) state.AccountFactory {
 
 // CreateShardChain creates a blockchain implementation used by the shard nodes
 func CreateShardChain() data.ChainHandler {
-	blockChain, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
+	blockChain, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
 	_ = blockChain.SetGenesisHeader(&dataBlock.Header{})
 	genesisHeaderM, _ := TestMarshalizer.Marshal(blockChain.GetGenesisHeader())
 
@@ -420,7 +421,7 @@ func CreateShardChain() data.ChainHandler {
 
 // CreateMetaChain creates a blockchain implementation used by the meta nodes
 func CreateMetaChain() data.ChainHandler {
-	metaChain, _ := blockchain.NewMetaChain(&mock.AppStatusHandlerStub{})
+	metaChain, _ := blockchain.NewMetaChain(&statusHandlerMock.AppStatusHandlerStub{})
 	_ = metaChain.SetGenesisHeader(&dataBlock.MetaBlock{})
 	genesisHeaderHash, _ := core.CalculateHash(TestMarshalizer, TestHasher, metaChain.GetGenesisHeader())
 	metaChain.SetGenesisHeaderHash(genesisHeaderHash)
@@ -754,7 +755,7 @@ func CreateGenesisMetaBlock(
 
 		newDataPool := dataRetrieverMock.CreatePoolsHolder(1, shardCoordinator.SelfId())
 
-		newBlkc, _ := blockchain.NewMetaChain(&mock.AppStatusHandlerStub{})
+		newBlkc, _ := blockchain.NewMetaChain(&statusHandlerMock.AppStatusHandlerStub{})
 		trieStorage, _ := CreateTrieStorageManager(CreateMemUnit())
 		newAccounts, _ := CreateAccountsDB(UserAccount, trieStorage)
 

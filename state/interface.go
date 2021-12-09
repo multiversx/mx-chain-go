@@ -102,6 +102,7 @@ type DataTrieTracker interface {
 // implementation
 type AccountsAdapter interface {
 	GetExistingAccount(address []byte) (vmcommon.AccountHandler, error)
+	GetAccountFromBytes(address []byte, accountBytes []byte) (vmcommon.AccountHandler, error)
 	LoadAccount(address []byte) (vmcommon.AccountHandler, error)
 	SaveAccount(account vmcommon.AccountHandler) error
 	RemoveAccount(address []byte) error
@@ -120,6 +121,7 @@ type AccountsAdapter interface {
 	GetAllLeaves(rootHash []byte) (chan core.KeyValueHolder, error)
 	RecreateAllTries(rootHash []byte) (map[string]common.Trie, error)
 	GetTrie(rootHash []byte) (common.Trie, error)
+	GetStackDebugFirstEntry() []byte
 	Close() error
 	IsInterfaceNil() bool
 }

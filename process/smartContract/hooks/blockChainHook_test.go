@@ -14,9 +14,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/pkg/errors"
@@ -355,14 +355,14 @@ func TestBlockChainHookImpl_GetBlockhashFromOldEpoch(t *testing.T) {
 	args.StorageService = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			if uint8(unitType) >= uint8(dataRetriever.ShardHdrNonceHashDataUnit) {
-				return &testscommon.StorerStub{
+				return &storageStubs.StorerStub{
 					GetCalled: func(key []byte) ([]byte, error) {
 						return hashToRet, nil
 					},
 				}
 			}
 
-			return &testscommon.StorerStub{
+			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					return marshaledData, nil
 				},

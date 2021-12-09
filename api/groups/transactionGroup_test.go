@@ -34,7 +34,7 @@ func TestNewTransactionGroup(t *testing.T) {
 	})
 
 	t.Run("should work", func(t *testing.T) {
-		hg, err := groups.NewTransactionGroup(&mock.Facade{})
+		hg, err := groups.NewTransactionGroup(&mock.FacadeStub{})
 		require.NoError(t, err)
 		require.NotNil(t, hg)
 	})
@@ -93,7 +93,7 @@ func TestGetTransaction_WithCorrectHashShouldReturnTransaction(t *testing.T) {
 	value := "10"
 	txData := []byte("data")
 	hash := "hash"
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetTransactionHandler: func(hash string, withEvents bool) (i *dataTx.ApiTransactionResult, e error) {
 			return &dataTx.ApiTransactionResult{
 				Sender:   sender,
@@ -130,7 +130,7 @@ func TestGetTransaction_WithUnknownHashShouldReturnNil(t *testing.T) {
 	value := "10"
 	txData := []byte("data")
 	wrongHash := "wronghash"
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetTransactionHandler: func(hash string, withEvents bool) (*dataTx.ApiTransactionResult, error) {
 			if hash == wrongHash {
 				return nil, errors.New("local error")
@@ -163,7 +163,7 @@ func TestGetTransaction_WithUnknownHashShouldReturnNil(t *testing.T) {
 func TestGetTransaction_ErrorWithExceededNumGoRoutines(t *testing.T) {
 	t.Parallel()
 
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetThrottlerForEndpointCalled: func(_ string) (core.Throttler, bool) {
 			return &mock.ThrottlerStub{
 				CanProcessCalled: func() bool { return false },
@@ -193,7 +193,7 @@ func TestGetTransaction_ErrorWithExceededNumGoRoutines(t *testing.T) {
 func TestSendTransaction_ErrorWithExceededNumGoRoutines(t *testing.T) {
 	t.Parallel()
 
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetThrottlerForEndpointCalled: func(_ string) (core.Throttler, bool) {
 			return &mock.ThrottlerStub{
 				CanProcessCalled: func() bool { return false },
@@ -230,7 +230,7 @@ func TestSendTransaction_WrongParametersShouldErrorOnValidation(t *testing.T) {
 	value := "ishouldbeint"
 	data := "data"
 
-	facade := mock.Facade{}
+	facade := mock.FacadeStub{}
 
 	transactionGroup, err := groups.NewTransactionGroup(&facade)
 	require.NoError(t, err)
@@ -266,7 +266,7 @@ func TestSendTransaction_ErrorWhenFacadeSendTransactionError(t *testing.T) {
 	signature := "aabbccdd"
 	errorString := "send transaction error"
 
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		CreateTransactionHandler: func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*dataTx.Transaction, []byte, error) {
 			return nil, nil, nil
 		},
@@ -314,7 +314,7 @@ func TestSendTransaction_ReturnsSuccessfully(t *testing.T) {
 	signature := "aabbccdd"
 	hexTxHash := "deadbeef"
 
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		CreateTransactionHandler: func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*dataTx.Transaction, []byte, error) {
 			txHash, _ := hex.DecodeString(hexTxHash)
 			return nil, txHash, nil
@@ -358,7 +358,7 @@ func TestSendTransaction_ReturnsSuccessfully(t *testing.T) {
 func TestSendMultipleTransactions_ErrorWithExceededNumGoRoutines(t *testing.T) {
 	t.Parallel()
 
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		GetThrottlerForEndpointCalled: func(_ string) (core.Throttler, bool) {
 			return &mock.ThrottlerStub{
 				CanProcessCalled: func() bool { return false },
@@ -392,7 +392,7 @@ func TestSendMultipleTransactions_ErrorWithExceededNumGoRoutines(t *testing.T) {
 func TestSendMultipleTransactions_WrongPayloadShouldErrorOnValidation(t *testing.T) {
 	t.Parallel()
 
-	facade := mock.Facade{}
+	facade := mock.FacadeStub{}
 
 	transactionGroup, err := groups.NewTransactionGroup(&facade)
 	require.NoError(t, err)
@@ -420,7 +420,7 @@ func TestSendMultipleTransactions_OkPayloadShouldWork(t *testing.T) {
 	createTxWasCalled := false
 	sendBulkTxsWasCalled := false
 
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		CreateTransactionHandler: func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*dataTx.Transaction, []byte, error) {
 			createTxWasCalled = true
 			return &dataTx.Transaction{}, make([]byte, 0), nil
@@ -473,7 +473,7 @@ func TestComputeTransactionGasLimit(t *testing.T) {
 
 	expectedGasLimit := uint64(37)
 
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		CreateTransactionHandler: func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*dataTx.Transaction, []byte, error) {
 			return &dataTx.Transaction{}, nil, nil
 		},
@@ -518,7 +518,7 @@ func TestComputeTransactionGasLimit(t *testing.T) {
 func TestSimulateTransaction_BadRequestShouldErr(t *testing.T) {
 	t.Parallel()
 
-	facade := mock.Facade{}
+	facade := mock.FacadeStub{}
 
 	transactionGroup, err := groups.NewTransactionGroup(&facade)
 	require.NoError(t, err)
@@ -542,7 +542,7 @@ func TestSimulateTransaction_CreateErrorsShouldErr(t *testing.T) {
 	processTxWasCalled := false
 
 	expectedErr := errors.New("expected error")
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		SimulateTransactionExecutionHandler: func(tx *dataTx.Transaction) (*txSimData.SimulationResults, error) {
 			processTxWasCalled = true
 			return &txSimData.SimulationResults{
@@ -597,7 +597,7 @@ func TestSimulateTransaction_ValidateErrorsShouldErr(t *testing.T) {
 	processTxWasCalled := false
 
 	expectedErr := errors.New("expected error")
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		SimulateTransactionExecutionHandler: func(tx *dataTx.Transaction) (*txSimData.SimulationResults, error) {
 			processTxWasCalled = true
 			return &txSimData.SimulationResults{
@@ -649,7 +649,7 @@ func TestSimulateTransaction_ValidateErrorsShouldErr(t *testing.T) {
 func TestSimulateTransaction_CannotParseParameterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	facade := mock.Facade{}
+	facade := mock.FacadeStub{}
 
 	transactionGroup, err := groups.NewTransactionGroup(&facade)
 	require.NoError(t, err)
@@ -683,7 +683,7 @@ func TestSimulateTransaction_CannotParseParameterShouldErr(t *testing.T) {
 func TestSimulateTransaction_UseQueryParameterShouldWork(t *testing.T) {
 	t.Parallel()
 
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		ValidateTransactionForSimulationHandler: func(tx *dataTx.Transaction, bypassSignature bool) error {
 			assert.True(t, bypassSignature)
 			return nil
@@ -728,7 +728,7 @@ func TestSimulateTransaction_ProcessErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("expected error")
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		SimulateTransactionExecutionHandler: func(tx *dataTx.Transaction) (*txSimData.SimulationResults, error) {
 			return nil, expectedErr
 		},
@@ -774,7 +774,7 @@ func TestSimulateTransaction(t *testing.T) {
 
 	processTxWasCalled := false
 
-	facade := mock.Facade{
+	facade := mock.FacadeStub{
 		SimulateTransactionExecutionHandler: func(tx *dataTx.Transaction) (*txSimData.SimulationResults, error) {
 			processTxWasCalled = true
 			return &txSimData.SimulationResults{
@@ -839,4 +839,3 @@ func getTransactionRoutesConfig() config.ApiRoutesConfig {
 		},
 	}
 }
-
