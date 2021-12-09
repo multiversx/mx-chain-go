@@ -47,7 +47,7 @@ func (ab *arwenBenchmark) Run() (time.Duration, error) {
 		return 0, fmt.Errorf("%w, file %s", ErrFileDoesNotExist, ab.scFilename)
 	}
 
-	result, err := arwenvm.RunTest(ab.scFilename, ab.testingValue, ab.function, ab.arguments, ab.numRuns, createTestGasMap())
+	result, err := arwenvm.RunTest(ab.scFilename, ab.testingValue, ab.function, ab.arguments, ab.numRuns, createTestGasMap(), 0)
 	if err != nil {
 		return 0, err
 	}

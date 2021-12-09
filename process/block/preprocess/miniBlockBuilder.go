@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -28,6 +29,8 @@ type miniBlocksBuilderArgs struct {
 	isShardStuck              func(uint32) bool
 	isMaxBlockSizeReached     func(int, int) bool
 	getTxMaxTotalCost         func(txHandler data.TransactionHandler) *big.Int
+	getTotalGasConsumed       func() uint64
+	txPool                    dataRetriever.ShardedDataCacherNotifier
 }
 
 type miniBlockBuilderStats struct {
@@ -37,6 +40,7 @@ type miniBlockBuilderStats struct {
 	numTxsFailed                          uint32
 	numTxsWithInitialBalanceConsumed      uint32
 	numCrossShardSCCallsOrSpecialTxs      uint32
+	numCrossShardTxsWithTooMuchGas        uint32
 	totalProcessingTime                   time.Duration
 	totalGasComputeTime                   time.Duration
 	firstInvalidTxFound                   bool
@@ -59,6 +63,7 @@ type miniBlocksBuilder struct {
 	isMaxBlockSizeReached      func(int, int) bool
 	getTxMaxTotalCost          func(txHandler data.TransactionHandler) *big.Int
 	stats                      miniBlockBuilderStats
+	txPool                     dataRetriever.ShardedDataCacherNotifier
 }
 
 func newMiniBlockBuilder(args miniBlocksBuilderArgs) (*miniBlocksBuilder, error) {
@@ -82,10 +87,11 @@ func newMiniBlockBuilder(args miniBlocksBuilderArgs) (*miniBlocksBuilder, error)
 		gasInfo: gasConsumedInfo{
 			gasConsumedByMiniBlocksInSenderShard:  0,
 			gasConsumedByMiniBlockInReceiverShard: 0,
-			totalGasConsumedInSelfShard:           args.gasTracker.gasHandler.TotalGasConsumed(),
+			totalGasConsumedInSelfShard:           args.getTotalGasConsumed(),
 		},
 		stats:        miniBlockBuilderStats{},
 		senderToSkip: []byte(""),
+		txPool:       args.txPool,
 	}, nil
 }
 
@@ -107,6 +113,9 @@ func checkMiniBlocksBuilderArgs(args miniBlocksBuilderArgs) error {
 	}
 	if check.IfNil(args.blockSizeComputation) {
 		return process.ErrNilBlockSizeComputationHandler
+	}
+	if check.IfNil(args.txPool) {
+		return process.ErrNilTransactionPool
 	}
 	if args.accountTxsShards == nil {
 		return process.ErrNilAccountTxsPerShard
@@ -275,6 +284,12 @@ func (mbb *miniBlocksBuilder) accountGasForTx(tx *transaction.Transaction, wtx *
 	mbb.stats.totalGasComputeTime += elapsedTime
 	if err != nil {
 		log.Trace("miniBlocksBuilder.accountGasForTx", "error", err)
+		isTxTargetedForDeletion := errors.Is(err, process.ErrMaxGasLimitPerOneTxInReceiverShardIsReached)
+		if isTxTargetedForDeletion {
+			mbb.stats.numCrossShardTxsWithTooMuchGas++
+			strCache := process.ShardCacherIdentifier(wtx.SenderShardID, wtx.ReceiverShardID)
+			mbb.txPool.RemoveData(wtx.TxHash, strCache)
+		}
 		return err
 	}
 
@@ -290,17 +305,24 @@ func (mbb *miniBlocksBuilder) handleBadTransaction(err error, wtx *txcache.Wrapp
 
 	mbb.gasHandler.RemoveGasConsumed([][]byte{wtx.TxHash})
 	mbb.gasHandler.RemoveGasRefunded([][]byte{wtx.TxHash})
+	mbb.gasHandler.RemoveGasPenalized([][]byte{wtx.TxHash})
 
 	mbb.gasInfo = mbb.prevGasInfo
 	mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID] = mbb.prevGasInfo.gasConsumedByMiniBlockInReceiverShard
 	mbb.stats.numTxsBad++
 }
 
-func (mbb *miniBlocksBuilder) handleGasRefund(wtx *txcache.WrappedTransaction, gasRefunded uint64) {
+func (mbb *miniBlocksBuilder) handleGasRefund(wtx *txcache.WrappedTransaction, gasRefunded uint64, gasPenalized uint64) {
 	if wtx.SenderShardID == wtx.ReceiverShardID {
-		mbb.gasInfo.gasConsumedByMiniBlocksInSenderShard -= gasRefunded
-		mbb.gasInfo.totalGasConsumedInSelfShard -= gasRefunded
-		mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID] -= gasRefunded
+		gasToBeSubtracted := gasRefunded + gasPenalized
+		shouldDoTheSubtraction := gasToBeSubtracted <= mbb.gasInfo.gasConsumedByMiniBlocksInSenderShard &&
+			gasToBeSubtracted <= mbb.gasInfo.totalGasConsumedInSelfShard &&
+			gasToBeSubtracted <= mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID]
+		if shouldDoTheSubtraction {
+			mbb.gasInfo.gasConsumedByMiniBlocksInSenderShard -= gasToBeSubtracted
+			mbb.gasInfo.totalGasConsumedInSelfShard -= gasToBeSubtracted
+			mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID] -= gasToBeSubtracted
+		}
 	}
 }
 

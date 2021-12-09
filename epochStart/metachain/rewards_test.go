@@ -13,8 +13,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -525,13 +525,13 @@ func TestRewardsCreator_SaveTxBlockToStorage(t *testing.T) {
 	putMbWasCalled := false
 
 	args := getRewardsArguments()
-	args.RewardsStorage = &testscommon.StorerStub{
+	args.RewardsStorage = &storageStubs.StorerStub{
 		PutCalled: func(_, _ []byte) error {
 			putRwdTxWasCalled = true
 			return nil
 		},
 	}
-	args.MiniBlockStorage = &testscommon.StorerStub{
+	args.MiniBlockStorage = &storageStubs.StorerStub{
 		PutCalled: func(_, _ []byte) error {
 			putMbWasCalled = true
 			return nil

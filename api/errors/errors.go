@@ -64,6 +64,9 @@ var ErrValidationEmptyTxHash = errors.New("TxHash is empty")
 // ErrInvalidBlockNonce signals that an invalid block nonce was provided
 var ErrInvalidBlockNonce = errors.New("invalid block nonce")
 
+// ErrInvalidBlockRound signals that an invalid block round was provided
+var ErrInvalidBlockRound = errors.New("invalid block round")
+
 // ErrInvalidQueryParameter signals and invalid query parameter was provided
 var ErrInvalidQueryParameter = errors.New("invalid query parameter")
 
@@ -93,6 +96,9 @@ var ErrValidationEmptyRootHash = errors.New("rootHash is empty")
 
 // ErrValidationEmptyAddress signals that an empty address was provided
 var ErrValidationEmptyAddress = errors.New("address is empty")
+
+// ErrValidationEmptyKey signals that an empty key was provided
+var ErrValidationEmptyKey = errors.New("key is empty")
 
 // ErrGetProof signals an error happening when trying to compute a Merkle proof
 var ErrGetProof = errors.New("getting proof failed")

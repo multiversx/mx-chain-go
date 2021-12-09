@@ -168,6 +168,43 @@ func TestOptimizedKadDhtDiscoverer_BootstrapErrorsShouldKeepRetrying(t *testing.
 	cancelFunc()
 }
 
+func TestOptimizedKadDhtDiscoverer_BootstrapErrorsForSeedersShouldRetryFast(t *testing.T) {
+	t.Parallel()
+
+	numConnectCalls := uint32(0)
+	arg := createTestArgument()
+	arg.Host = &mock.ConnectableHostStub{
+		ConnectCalled: func(ctx context.Context, pi peer.AddrInfo) error {
+			atomic.AddUint32(&numConnectCalls, 1)
+			return errors.New("cannot connect")
+		},
+	}
+	arg.InitialPeersList = []string{"/ip4/127.0.0.1/tcp/9999/p2p/16Uiu2HAkw5SNNtSvH1zJiQ6Gc3WoGNSxiyNueRKe6fuAuh57G3Bk"}
+	var cancelFunc func()
+	arg.Context, cancelFunc = context.WithCancel(context.Background())
+	kadDhtStub := &mock.KadDhtHandlerStub{
+		BootstrapCalled: func(ctx context.Context) error {
+			return nil
+		},
+	}
+
+	okdd, _ := discovery.NewOptimizedKadDhtDiscovererWithInitFunc(
+		arg,
+		func(ctx context.Context) (discovery.KadDhtHandler, error) {
+			return kadDhtStub, nil
+		},
+	)
+
+	err := okdd.Bootstrap()
+	//a little delay as the bootstrap returns immediately after init. The seeder reconnection and bootstrap part
+	//are called async
+	time.Sleep(time.Second*4 + time.Millisecond*500) //the value is chosen as such as to avoid edgecases on select statement
+
+	assert.Nil(t, err)
+	assert.True(t, atomic.LoadUint32(&numConnectCalls) > 1)
+	cancelFunc()
+}
+
 func TestOptimizedKadDhtDiscoverer_ReconnectToNetwork(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")

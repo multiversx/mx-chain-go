@@ -159,3 +159,18 @@ func (bap *baseAPIBlockProcessor) computeStatusAndPutInBlock(blockAPI *api.Block
 
 	return blockAPI, nil
 }
+
+func (bap *baseAPIBlockProcessor) getBlockHeaderHashAndBytesByRound(round uint64, blockUnitType dataRetriever.UnitType) (headerHash []byte, blockBytes []byte, err error) {
+	roundToByteSlice := bap.uint64ByteSliceConverter.ToByteSlice(round)
+	headerHash, err = bap.store.Get(dataRetriever.RoundHdrHashDataUnit, roundToByteSlice)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	blockBytes, err = bap.getFromStorer(blockUnitType, headerHash)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return headerHash, blockBytes, nil
+}

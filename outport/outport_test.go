@@ -25,12 +25,12 @@ func TestOutport_SaveAccounts(t *testing.T) {
 	called1 := false
 	called2 := false
 	driver1 := &mock.DriverStub{
-		SaveAccountsCalled: func(_ uint64, acc []data.UserAccountHandler) {
+		SaveAccountsCalled: func(blockTimestamp uint64, acc []data.UserAccountHandler) {
 			called1 = true
 		},
 	}
 	driver2 := &mock.DriverStub{
-		SaveAccountsCalled: func(_ uint64, acc []data.UserAccountHandler) {
+		SaveAccountsCalled: func(blockTimestamp uint64, acc []data.UserAccountHandler) {
 			called2 = true
 		},
 	}
@@ -120,6 +120,22 @@ func TestOutport_RevertBlock(t *testing.T) {
 	_ = outportHandler.SubscribeDriver(driver)
 
 	outportHandler.RevertIndexedBlock(nil, nil)
+	require.True(t, called)
+}
+
+func TestOutport_FinalizedBlock(t *testing.T) {
+	t.Parallel()
+
+	called := false
+	driver := &mock.DriverStub{
+		FinalizedBlockCalled: func(headerHash []byte) {
+			called = true
+		},
+	}
+	outportHandler := NewOutport()
+	_ = outportHandler.SubscribeDriver(driver)
+
+	outportHandler.FinalizedBlock(nil)
 	require.True(t, called)
 }
 

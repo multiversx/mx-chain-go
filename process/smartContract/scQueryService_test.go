@@ -162,7 +162,7 @@ func TestExecuteQuery_ShouldReceiveQueryCorrectly(t *testing.T) {
 		},
 	}
 	argsNewSCQuery.EconomicsFee = &mock.FeeHandlerStub{
-		MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
+		MaxGasLimitPerBlockCalled: func() uint64 {
 			return uint64(math.MaxUint64)
 		},
 	}
@@ -204,7 +204,7 @@ func TestExecuteQuery_ReturnsCorrectly(t *testing.T) {
 		},
 	}
 	argsNewSCQuery.EconomicsFee = &mock.FeeHandlerStub{
-		MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
+		MaxGasLimitPerBlockCalled: func() uint64 {
 			return uint64(math.MaxUint64)
 		},
 	}
@@ -242,7 +242,7 @@ func TestExecuteQuery_WhenNotOkCodeShouldNotErr(t *testing.T) {
 		},
 	}
 	argsNewSCQuery.EconomicsFee = &mock.FeeHandlerStub{
-		MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
+		MaxGasLimitPerBlockCalled: func() uint64 {
 			return uint64(math.MaxUint64)
 		},
 	}
@@ -290,7 +290,7 @@ func TestExecuteQuery_ShouldCallRunScSequentially(t *testing.T) {
 		},
 	}
 	argsNewSCQuery.EconomicsFee = &mock.FeeHandlerStub{
-		MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
+		MaxGasLimitPerBlockCalled: func() uint64 {
 			return uint64(math.MaxUint64)
 		},
 	}
@@ -338,7 +338,7 @@ func TestSCQueryService_ExecuteQueryShouldNotIncludeCallerAddressAndValue(t *tes
 		},
 	}
 	argsNewSCQuery.EconomicsFee = &mock.FeeHandlerStub{
-		MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
+		MaxGasLimitPerBlockCalled: func() uint64 {
 			return uint64(math.MaxUint64)
 		},
 	}
@@ -380,7 +380,7 @@ func TestSCQueryService_ExecuteQueryShouldIncludeCallerAddressAndValue(t *testin
 		},
 	}
 	argsNewSCQuery.EconomicsFee = &mock.FeeHandlerStub{
-		MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
+		MaxGasLimitPerBlockCalled: func() uint64 {
 			return uint64(math.MaxUint64)
 		},
 	}
@@ -419,7 +419,7 @@ func TestSCQueryService_ComputeTxCostScCall(t *testing.T) {
 		},
 	}
 	argsNewSCQuery.EconomicsFee = &mock.FeeHandlerStub{
-		MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
+		MaxGasLimitPerBlockCalled: func() uint64 {
 			return uint64(math.MaxUint64)
 		},
 	}
@@ -456,7 +456,7 @@ func TestSCQueryService_ComputeScCallGasLimitRetCodeNotOK(t *testing.T) {
 		},
 	}
 	argsNewSCQuery.EconomicsFee = &mock.FeeHandlerStub{
-		MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
+		MaxGasLimitPerBlockCalled: func() uint64 {
 			return uint64(math.MaxUint64)
 		},
 	}

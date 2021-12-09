@@ -13,7 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,8 +21,8 @@ func createMockArgHeaderResolver() resolvers.ArgHeaderResolver {
 	return resolvers.ArgHeaderResolver{
 		SenderResolver:       &mock.TopicResolverSenderStub{},
 		Headers:              &mock.HeadersCacherStub{},
-		HdrStorage:           &testscommon.StorerStub{},
-		HeadersNoncesStorage: &testscommon.StorerStub{},
+		HdrStorage:           &storageStubs.StorerStub{},
+		HeadersNoncesStorage: &storageStubs.StorerStub{},
 		Marshalizer:          &mock.MarshalizerMock{},
 		NonceConverter:       mock.NewNonceHashConverterMock(),
 		ShardCoordinator:     mock.NewOneShardCoordinatorMock(),
@@ -195,7 +195,7 @@ func TestHeaderResolver_ProcessReceivedMessage_Ok(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgHeaderResolver()
-	arg.HdrStorage = &testscommon.StorerStub{
+	arg.HdrStorage = &storageStubs.StorerStub{
 		SearchFirstCalled: func(key []byte) (i []byte, err error) {
 			return nil, nil
 		},
@@ -220,7 +220,7 @@ func TestHeaderResolver_RequestDataFromEpoch(t *testing.T) {
 			return nil
 		},
 	}
-	arg.HdrStorage = &testscommon.StorerStub{
+	arg.HdrStorage = &storageStubs.StorerStub{
 		GetCalled: func(key []byte) (i []byte, err error) {
 			return nil, nil
 		},
@@ -335,7 +335,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestRetFromStorageShouldRetValA
 	wasGotFromStorage := false
 	wasSent := false
 
-	store := &testscommon.StorerStub{}
+	store := &storageStubs.StorerStub{}
 	store.SearchFirstCalled = func(key []byte) (i []byte, e error) {
 		if bytes.Equal(key, requestedData) {
 			wasGotFromStorage = true
@@ -368,7 +368,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeInvalidSliceShould
 	t.Parallel()
 
 	arg := createMockArgHeaderResolver()
-	arg.HdrStorage = &testscommon.StorerStub{
+	arg.HdrStorage = &storageStubs.StorerStub{
 		GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 			return nil, errKeyNotFound
 		},
@@ -386,7 +386,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceShouldCallWithTheCorre
 
 	expectedEpoch := uint32(7)
 	arg := createMockArgHeaderResolver()
-	arg.HeadersNoncesStorage = &testscommon.StorerStub{
+	arg.HeadersNoncesStorage = &storageStubs.StorerStub{
 		GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 			assert.Equal(t, expectedEpoch, epoch)
 			return nil, nil
@@ -430,12 +430,12 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeNotFoundInHdrNonce
 			return nil, nil, expectedErr
 		},
 	}
-	arg.HdrStorage = &testscommon.StorerStub{
+	arg.HdrStorage = &storageStubs.StorerStub{
 		SearchFirstCalled: func(key []byte) (i []byte, e error) {
 			return nil, errKeyNotFound
 		},
 	}
-	arg.HeadersNoncesStorage = &testscommon.StorerStub{
+	arg.HeadersNoncesStorage = &storageStubs.StorerStub{
 		GetFromEpochCalled: func(key []byte, epoch uint32) (i []byte, e error) {
 			return nil, errKeyNotFound
 		},
@@ -480,7 +480,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 		},
 	}
 	arg.Headers = headers
-	arg.HeadersNoncesStorage = &testscommon.StorerStub{
+	arg.HeadersNoncesStorage = &storageStubs.StorerStub{
 		GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 			return nil, errKeyNotFound
 		},
@@ -520,7 +520,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 		return []data.HeaderHandler{&block.Header{}, &block.Header{}}, [][]byte{[]byte("1"), []byte("2")}, nil
 	}
 
-	store := &testscommon.StorerStub{}
+	store := &storageStubs.StorerStub{}
 	store.GetFromEpochCalled = func(key []byte, epoch uint32) (i []byte, e error) {
 		if bytes.Equal(key, hash) {
 			wasResolved = true
@@ -542,7 +542,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 	}
 	arg.Headers = headers
 	arg.HdrStorage = store
-	arg.HeadersNoncesStorage = &testscommon.StorerStub{
+	arg.HeadersNoncesStorage = &storageStubs.StorerStub{
 		GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 			return nil, errKeyNotFound
 		},
@@ -579,7 +579,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 		return nil, nil, errExpected
 	}
 
-	store := &testscommon.StorerStub{}
+	store := &storageStubs.StorerStub{}
 	store.GetFromEpochCalled = func(key []byte, epoch uint32) (i []byte, e error) {
 		if bytes.Equal(key, []byte("aaaa")) {
 			return nil, errExpected
@@ -599,7 +599,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 	}
 	arg.Headers = headers
 	arg.HdrStorage = store
-	arg.HeadersNoncesStorage = &testscommon.StorerStub{
+	arg.HeadersNoncesStorage = &storageStubs.StorerStub{
 		GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 			return nil, errKeyNotFound
 		},
