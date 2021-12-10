@@ -170,14 +170,14 @@ func (ed *economicsData) setGasLimitSetting(gasLimitSetting config.GasLimitSetti
 		return process.ErrInvalidMaxGasLimitPerMetaBlock
 	}
 
-	ed.maxGasLimitPerTx, err = strconv.ParseUint(gasLimitSetting.MaxGasLimitPerTx, conversionBase, bitConversionSize)
-	if err != nil {
-		return process.ErrInvalidMaxGasLimitPerTx
-	}
-
 	ed.maxGasLimitPerMetaMiniBlock, err = strconv.ParseUint(gasLimitSetting.MaxGasLimitPerMetaMiniBlock, conversionBase, bitConversionSize)
 	if err != nil {
 		return process.ErrInvalidMaxGasLimitPerMetaMiniBlock
+	}
+
+	ed.maxGasLimitPerTx, err = strconv.ParseUint(gasLimitSetting.MaxGasLimitPerTx, conversionBase, bitConversionSize)
+	if err != nil {
+		return process.ErrInvalidMaxGasLimitPerTx
 	}
 
 	ed.minGasLimit, err = strconv.ParseUint(gasLimitSetting.MinGasLimit, conversionBase, bitConversionSize)
@@ -729,6 +729,7 @@ func (ed *economicsData) setGasLimitConfig(currentEpoch uint32) {
 		"maxGasLimitPerMiniBlock", ed.maxGasLimitPerMiniBlock,
 		"maxGasLimitPerMetaBlock", ed.maxGasLimitPerMetaBlock,
 		"maxGasLimitPerMetaMiniBlock", ed.maxGasLimitPerMetaMiniBlock,
+		"maxGasLimitPerTx", ed.maxGasLimitPerTx,
 		"minGasLimit", ed.minGasLimit,
 	)
 
