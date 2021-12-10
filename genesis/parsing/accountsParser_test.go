@@ -604,8 +604,6 @@ func TestAccountsParser_GenerateInitialTransactionsTxsPool(t *testing.T) {
 	ibs := []*data.InitialAccount{
 		createSimpleInitialAccount("0001", balance),
 		createSimpleInitialAccount("0002", balance),
-		createSimpleInitialAccount("0000", balance),
-		createSimpleInitialAccount("0103", balance),
 	}
 
 	ap.SetEntireSupply(big.NewInt(int64(len(ibs)) * balance))
@@ -637,12 +635,23 @@ func TestAccountsParser_GenerateInitialTransactionsTxsPool(t *testing.T) {
 	assert.Equal(t, 9, len(miniBlocks))
 
 	assert.Equal(t, 3, len(txsPoolPerShard))
-	assert.Equal(t, 2, len(txsPoolPerShard[0].Txs))
-	assert.Equal(t, 2, len(txsPoolPerShard[1].Txs))
+	assert.Equal(t, 1, len(txsPoolPerShard[0].Txs))
+	assert.Equal(t, 1, len(txsPoolPerShard[1].Txs))
 	assert.Equal(t, 0, len(txsPoolPerShard[core.MetachainShardId].Txs))
 	assert.Equal(t, 0, len(txsPoolPerShard[0].Scrs))
 	assert.Equal(t, 0, len(txsPoolPerShard[1].Scrs))
 	assert.Equal(t, 0, len(txsPoolPerShard[core.MetachainShardId].Scrs))
+
+	for _, tx := range txsPoolPerShard[1].Txs {
+		assert.Equal(t, ibs[0].GetSupply(), tx.GetValue())
+		assert.Equal(t, ibs[0].AddressBytes(), tx.GetRcvAddr())
+	}
+
+	for _, tx := range txsPoolPerShard[0].Txs {
+		assert.Equal(t, ibs[1].GetSupply(), tx.GetValue())
+		assert.Equal(t, ibs[1].AddressBytes(), tx.GetRcvAddr())
+	}
+
 }
 
 func TestAccountsParser_GenerateInitialTransactionsZeroGasLimitShouldWork(t *testing.T) {
