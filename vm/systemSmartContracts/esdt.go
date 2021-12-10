@@ -1330,6 +1330,18 @@ func (e *esdt) checkSpecialRolesAccordingToTokenType(args [][]byte, token *ESDTD
 	return nil
 }
 
+func getFirstAddressWithGivenRole(token *ESDTDataV2, definedRole []byte) ([]byte, error) {
+	for _, esdtRole := range token.SpecialRoles {
+		for _, role := range esdtRole.Roles {
+			if bytes.Equal(role, definedRole) {
+				return esdtRole.Address, nil
+			}
+		}
+	}
+
+	return nil, vm.ErrElementNotFound
+}
+
 func (e *esdt) changeToMultiShardCreate(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !e.flagTransformToMultiShardCreate.IsSet() {
 		e.eei.AddReturnMessage("invalid method to call")
@@ -1352,12 +1364,21 @@ func (e *esdt) changeToMultiShardCreate(args *vmcommon.ContractCallInput) vmcomm
 		return vmcommon.UserError
 	}
 
-	token.CanCreateMultiShard = true
-	multiCreateRoleOnly := [][]byte{[]byte(core.ESDTRoleNFTCreateMultiShard)}
-	err := e.sendRoleChangeData(args.Arguments[0], args.CallerAddr, multiCreateRoleOnly, core.BuiltInFunctionSetESDTRole)
+	addressWithCreateRole, err := getFirstAddressWithGivenRole(token, []byte(core.ESDTRoleNFTCreate))
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
+	}
+
+	isAddressLastByteZero := addressWithCreateRole[len(addressWithCreateRole)-1] == 0
+	if !isAddressLastByteZero {
+		token.CanCreateMultiShard = true
+		multiCreateRoleOnly := [][]byte{[]byte(core.ESDTRoleNFTCreateMultiShard)}
+		err = e.sendRoleChangeData(args.Arguments[0], addressWithCreateRole, multiCreateRoleOnly, core.BuiltInFunctionSetESDTRole)
+		if err != nil {
+			e.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
 	}
 
 	err = e.saveToken(args.Arguments[0], token)
