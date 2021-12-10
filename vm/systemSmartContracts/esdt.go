@@ -214,6 +214,8 @@ func (e *esdt) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return e.getAllAddressesAndRoles(args)
 	case "getContractConfig":
 		return e.getContractConfig(args)
+	case "changeToMultiShardCreate":
+		return e.changeToMultiShardCreate(args)
 	}
 
 	e.eei.AddReturnMessage("invalid method to call")
@@ -1370,9 +1372,9 @@ func (e *esdt) changeToMultiShardCreate(args *vmcommon.ContractCallInput) vmcomm
 		return vmcommon.UserError
 	}
 
+	token.CanCreateMultiShard = true
 	isAddressLastByteZero := addressWithCreateRole[len(addressWithCreateRole)-1] == 0
 	if !isAddressLastByteZero {
-		token.CanCreateMultiShard = true
 		multiCreateRoleOnly := [][]byte{[]byte(core.ESDTRoleNFTCreateMultiShard)}
 		err = e.sendRoleChangeData(args.Arguments[0], addressWithCreateRole, multiCreateRoleOnly, core.BuiltInFunctionSetESDTRole)
 		if err != nil {
