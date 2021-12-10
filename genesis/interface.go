@@ -26,15 +26,6 @@ type DelegationResult struct {
 	NumTotalDelegated int
 }
 
-// IndexingData specifies transactions sets that will be used for indexing
-type IndexingData struct {
-	DelegationTxs      []data.TransactionHandler
-	ScrsTxs            map[string]data.TransactionHandler
-	StakingTxs         []data.TransactionHandler
-	DeploySystemScTxs  []data.TransactionHandler
-	DeployInitialScTxs []data.TransactionHandler
-}
-
 // AccountsParser contains the parsed genesis json file and has some functionality regarding processed data
 type AccountsParser interface {
 	InitialAccountsSplitOnAddressesShards(shardCoordinator sharding.Coordinator) (map[uint32][]InitialAccountHandler, error)
