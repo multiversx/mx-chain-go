@@ -1034,6 +1034,7 @@ func (tpn *TestProcessorNode) createDefaultEconomicsConfig() *config.EconomicsCo
 					MaxGasLimitPerMiniBlock:     maxGasLimitPerBlock,
 					MaxGasLimitPerMetaBlock:     maxGasLimitPerBlock,
 					MaxGasLimitPerMetaMiniBlock: maxGasLimitPerBlock,
+					MaxGasLimitPerTx:            maxGasLimitPerBlock,
 					MinGasLimit:                 minGasLimit,
 				},
 			},

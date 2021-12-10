@@ -331,9 +331,7 @@ func (bpp *basePreProcess) computeGasConsumed(
 	if bpp.shardCoordinator.SelfId() == senderShardId {
 		gasConsumedByTxInSelfShard = gasConsumedByTxInSenderShard
 
-		// the max gas limit to be compared with, should be the maximum value between max gas limit per mini block and max gas limit per tx,
-		// just to keep the backward compatibility with previous versions of GasLimitSettings, where tx gas limit (1.5 bil.) was higher than current constant value (600 mil.)
-		if gasConsumedByTxInReceiverShard > core.MaxUint64(process.MaxGasLimitPerTxForSafeCrossShard, bpp.economicsFee.MaxGasLimitPerMiniBlockForSafeCrossShard()) {
+		if gasConsumedByTxInReceiverShard > bpp.economicsFee.MaxGasLimitPerTx() {
 			return process.ErrMaxGasLimitPerOneTxInReceiverShardIsReached
 		}
 

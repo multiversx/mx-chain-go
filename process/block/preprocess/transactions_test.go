@@ -53,6 +53,9 @@ func feeHandlerMock() *mock.FeeHandlerStub {
 		MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
 			return MaxGasLimitPerBlock
 		},
+		MaxGasLimitPerTxCalled: func() uint64 {
+			return MaxGasLimitPerBlock
+		},
 	}
 }
 
@@ -1273,6 +1276,9 @@ func TestTransactionsPreprocessor_SplitMiniBlocksIfNeededShouldWork(t *testing.T
 	args := createDefaultTransactionsProcessorArgs()
 	args.EconomicsFee = &mock.FeeHandlerStub{
 		MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
+			return gasLimitPerMiniBlock
+		},
+		MaxGasLimitPerTxCalled: func() uint64 {
 			return gasLimitPerMiniBlock
 		},
 	}

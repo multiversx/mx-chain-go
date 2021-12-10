@@ -124,6 +124,3 @@ const MaxHeadersToWhitelistInAdvance = 300
 // the real gas used, after which the transaction will be considered an attack and all the gas will be consumed and
 // nothing will be refunded to the sender
 const MaxGasFeeHigherFactorAccepted = 10
-
-// MaxGasLimitPerTxForSafeCrossShard defines the maximum gas limit per transaction for safe cross-shard execution
-const MaxGasLimitPerTxForSafeCrossShard = 600000000

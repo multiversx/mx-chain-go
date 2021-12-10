@@ -56,6 +56,9 @@ func FeeHandlerMock() *mock.FeeHandlerStub {
 		MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
 			return MaxGasLimitPerBlock
 		},
+		MaxGasLimitPerTxCalled: func() uint64 {
+			return MaxGasLimitPerBlock
+		},
 	}
 }
 
@@ -1234,6 +1237,9 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 			MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
 				return MaxGasLimitPerBlock
 			},
+			MaxGasLimitPerTxCalled: func() uint64 {
+				return MaxGasLimitPerBlock
+			},
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return gasLimit / uint64(numMiniBlocks)
 			},
@@ -1292,6 +1298,9 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 				return MaxGasLimitPerBlock
 			},
 			MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
+				return MaxGasLimitPerBlock
+			},
+			MaxGasLimitPerTxCalled: func() uint64 {
 				return MaxGasLimitPerBlock
 			},
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
@@ -2551,6 +2560,9 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxAccumulatedFe
 			MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
 				return maxGasLimitPerBlock
 			},
+			MaxGasLimitPerTxCalled: func() uint64 {
+				return maxGasLimitPerBlock
+			},
 			DeveloperPercentageCalled: func() float64 {
 				return 0.1
 			},
@@ -2620,6 +2632,9 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxDeveloperFees
 			MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
 				return maxGasLimitPerBlock
 			},
+			MaxGasLimitPerTxCalled: func() uint64 {
+				return maxGasLimitPerBlock
+			},
 			DeveloperPercentageCalled: func() float64 {
 				return 0.1
 			},
@@ -2687,6 +2702,9 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldWork(t *testing.T) 
 				return maxGasLimitPerBlock
 			},
 			MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
+				return maxGasLimitPerBlock
+			},
+			MaxGasLimitPerTxCalled: func() uint64 {
 				return maxGasLimitPerBlock
 			},
 			DeveloperPercentageCalled: func() float64 {
