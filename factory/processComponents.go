@@ -277,7 +277,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	pcf.txLogsProcessor = txLogsProcessor
-	genesisBlocks, err := pcf.generateGenesisHeadersAndApplyInitialBalances()
+	genesisBlocks, initialTxs, err := pcf.generateGenesisHeadersAndApplyInitialBalances()
 	if err != nil {
 		return nil, err
 	}
@@ -289,7 +289,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 
 	startEpochNum := pcf.bootstrapComponents.EpochBootstrapParams().Epoch()
 	if startEpochNum == 0 {
-		err = pcf.indexGenesisBlocks(genesisBlocks)
+		err = pcf.indexGenesisBlocks(genesisBlocks, initialTxs)
 		if err != nil {
 			return nil, err
 		}
@@ -670,12 +670,12 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler process
 	return nil, errors.New("error creating new start of epoch trigger because of invalid shard id")
 }
 
-func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalances() (map[uint32]data.HeaderHandler, error) {
+func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalances() (map[uint32]data.HeaderHandler, map[uint32]*genesis.IndexingData, error) {
 	genesisVmConfig := pcf.config.VirtualMachine.Execution
 	conversionBase := 10
 	genesisNodePrice, ok := big.NewInt(0).SetString(pcf.systemSCConfig.StakingSystemSCConfig.GenesisNodePrice, conversionBase)
 	if !ok {
-		return nil, errors.New("invalid genesis node price")
+		return nil, nil, errors.New("invalid genesis node price")
 	}
 
 	arg := processGenesis.ArgsGenesisBlockCreator{
@@ -706,11 +706,17 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 
 	gbc, err := processGenesis.NewGenesisBlockCreator(arg)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	pcf.importHandler = gbc.ImportHandler()
 
-	return gbc.CreateGenesisBlocks()
+	genesisBlocks, err := gbc.CreateGenesisBlocks()
+	if err != nil {
+		return nil, nil, err
+	}
+	indexingData := gbc.GetIndexingData()
+
+	return genesisBlocks, indexingData, nil
 }
 
 func (pcf *processComponentsFactory) indexGenesisAccounts() error {
@@ -822,7 +828,8 @@ func getGenesisBlockForShard(miniBlocks []*dataBlock.MiniBlock, shardId uint32) 
 	var indexMiniBlocks = make([]*dataBlock.MiniBlock, 0)
 
 	for _, miniBlock := range miniBlocks {
-		if miniBlock.GetSenderShardID() == shardId {
+		if (miniBlock.GetSenderShardID() == shardId) ||
+			(miniBlock.GetReceiverShardID() == shardId) {
 			indexMiniBlocks = append(indexMiniBlocks, miniBlock)
 		}
 	}
@@ -834,7 +841,7 @@ func getGenesisBlockForShard(miniBlocks []*dataBlock.MiniBlock, shardId uint32) 
 	return genesisMiniBlocks
 }
 
-func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32]data.HeaderHandler) error {
+func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32]data.HeaderHandler, initialIndexingData map[uint32]*genesis.IndexingData) error {
 	currentShardId := pcf.bootstrapComponents.ShardCoordinator().SelfId()
 	genesisBlockHeader := genesisBlocks[currentShardId]
 	genesisBlockHash, err := core.CalculateHash(pcf.coreData.InternalMarshalizer(), pcf.coreData.Hasher(), genesisBlockHeader)
@@ -845,7 +852,7 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32
 	if pcf.statusComponents.OutportHandler().HasDrivers() {
 		log.Info("indexGenesisBlocks(): indexer.SaveBlock", "hash", genesisBlockHash)
 
-		miniBlocks, txsPoolPerShard, err := pcf.accountsParser.GenerateInitialTransactions(pcf.bootstrapComponents.ShardCoordinator())
+		miniBlocks, txsPoolPerShard, err := pcf.accountsParser.GenerateInitialTransactions(pcf.bootstrapComponents.ShardCoordinator(), initialIndexingData)
 		if err != nil {
 			return err
 		}

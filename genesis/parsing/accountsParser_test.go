@@ -9,6 +9,10 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	coreData "github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	transactionData "github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/genesis/mock"
@@ -150,6 +154,57 @@ func TestNewAccountsParser_NilKeyGeneratorShouldErr(t *testing.T) {
 
 	assert.True(t, check.IfNil(ap))
 	assert.Equal(t, genesis.ErrNilKeyGenerator, err)
+}
+
+func TestNewAccountsParser_NilHasherShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ap, err := parsing.NewAccountsParser(
+		"inexistent file",
+		big.NewInt(1),
+		"",
+		createMockHexPubkeyConverter(),
+		&mock.KeyGeneratorStub{},
+		nil,
+		&mock.MarshalizerMock{},
+	)
+
+	assert.True(t, check.IfNil(ap))
+	assert.Equal(t, genesis.ErrNilHasher, err)
+}
+
+func TestNewAccountsParser_NilMarshalizerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ap, err := parsing.NewAccountsParser(
+		"inexistent file",
+		big.NewInt(1),
+		"",
+		createMockHexPubkeyConverter(),
+		&mock.KeyGeneratorStub{},
+		&mock.HasherMock{},
+		nil,
+	)
+
+	assert.True(t, check.IfNil(ap))
+	assert.Equal(t, genesis.ErrNilMarshalizer, err)
+}
+
+func TestNewAccountsParser_WrongMinterAddressFormatShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ap, err := parsing.NewAccountsParser(
+		"./testdata/genesis_ok.json",
+		big.NewInt(1),
+		"wrongaddressformat",
+		createMockHexPubkeyConverter(),
+		&mock.KeyGeneratorStub{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+	)
+
+	assert.True(t, check.IfNil(ap))
+	assert.True(t, errors.Is(err, genesis.ErrInvalidAddress))
 }
 
 func TestNewAccountsParser_BadJsonShouldErr(t *testing.T) {
@@ -459,11 +514,12 @@ func TestAccountsParser_GetInitialAccountsForDelegated(t *testing.T) {
 
 //------- GetMintTransactions
 
-func TestAccountsParser_GetMintTransactionsShouldErr(t *testing.T) {
+func TestAccountsParser_GenerateInitialTransactionsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
 	miniBlocks, txsPoolPerShard, err := ap.GenerateInitialTransactions(
+		nil,
 		nil,
 	)
 
@@ -472,16 +528,23 @@ func TestAccountsParser_GetMintTransactionsShouldErr(t *testing.T) {
 	assert.Equal(t, genesis.ErrNilShardCoordinator, err)
 }
 
-func TestAccountsParser_generateInShardMiniBlocks(t *testing.T) {
+func TestAccountsParser_getShardIDs(t *testing.T) {
 	t.Parallel()
 
+	sharder := &mock.ShardCoordinatorMock{
+		NumOfShards: 2,
+		SelfShardId: 0,
+	}
+
+	shardIDs := parsing.GetShardIDs(sharder)
+	assert.Equal(t, 3, len(shardIDs))
+}
+
+func TestAccountsParser_createMintTransaction(t *testing.T) {
 	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
 	balance := int64(1)
 	ibs := []*data.InitialAccount{
 		createSimpleInitialAccount("0001", balance),
-		createSimpleInitialAccount("0002", balance),
-		createSimpleInitialAccount("0003", balance),
-		createSimpleInitialAccount("0104", balance),
 	}
 
 	ap.SetEntireSupply(big.NewInt(int64(len(ibs)) * balance))
@@ -490,18 +553,108 @@ func TestAccountsParser_generateInShardMiniBlocks(t *testing.T) {
 	err := ap.Process()
 	require.Nil(t, err)
 
-	var txsHashesPerShard = make(map[uint32][][]byte)
-	txsHashesPerShard[0] = [][]byte{ibs[0].AddressBytes()}
-	txsHashesPerShard[1] = [][]byte{ibs[1].AddressBytes()}
-	txsHashesPerShard[2] = [][]byte{ibs[2].AddressBytes()}
-	txsHashesPerShard[3] = [][]byte{ibs[3].AddressBytes()}
+	ia := ap.InitialAccounts()
 
-	miniBlocks := ap.GenerateInShardMiniBlocks(txsHashesPerShard)
+	tx := ap.CreateMintTransaction(ia[0], uint64(0))
+	assert.Equal(t, uint64(0), tx.GetNonce())
+	assert.Equal(t, ia[0].AddressBytes(), tx.GetRcvAddr())
+	assert.Equal(t, ia[0].GetSupply(), tx.GetValue())
+	assert.Equal(t, []byte("erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3"), tx.GetSndAddr())
+	assert.Equal(t, []byte(common.GenesisTxSignatureString), tx.GetSignature())
+	assert.Equal(t, uint64(0), tx.GetGasLimit())
+	assert.Equal(t, uint64(0), tx.GetGasPrice())
+}
 
+func TestAccountsParser_createMintTransactions(t *testing.T) {
+	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
+	balance := int64(1)
+	ibs := []*data.InitialAccount{
+		createSimpleInitialAccount("0001", balance),
+		createSimpleInitialAccount("0002", balance),
+		createSimpleInitialAccount("0000", balance),
+		createSimpleInitialAccount("0103", balance),
+	}
+
+	ap.SetEntireSupply(big.NewInt(int64(len(ibs)) * balance))
+	ap.SetInitialAccounts(ibs)
+
+	err := ap.Process()
+	require.Nil(t, err)
+
+	txs := ap.CreateMintTransactions()
+	assert.Equal(t, 4, len(txs))
+	assert.Equal(t, uint64(0), txs[0].GetNonce())
+	assert.Equal(t, uint64(3), txs[3].GetNonce())
+}
+
+func TestAccountsParser_createMiniBlocks(t *testing.T) {
+	t.Parallel()
+
+	shardIDs := []uint32{0, 1}
+
+	miniBlocks := parsing.CreateMiniBlocks(shardIDs, block.TxBlock)
 	assert.Equal(t, 4, len(miniBlocks))
 }
 
-func TestAccountsParser_GenerateInitialTransactions(t *testing.T) {
+func TestAccountsParser_GenerateInitialTransactionsTxsPool(t *testing.T) {
+	t.Parallel()
+
+	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
+	balance := int64(1)
+	ibs := []*data.InitialAccount{
+		createSimpleInitialAccount("0001", balance),
+		createSimpleInitialAccount("0002", balance),
+	}
+
+	ap.SetEntireSupply(big.NewInt(int64(len(ibs)) * balance))
+	ap.SetInitialAccounts(ibs)
+
+	err := ap.Process()
+	require.Nil(t, err)
+
+	sharder := &mock.ShardCoordinatorMock{
+		NumOfShards: 2,
+		SelfShardId: 0,
+	}
+
+	indexingDataMap := make(map[uint32]*genesis.IndexingData)
+	indexingData := &genesis.IndexingData{
+		DelegationTxs:      make([]coreData.TransactionHandler, 0),
+		ScrsTxs:            make(map[string]coreData.TransactionHandler),
+		StakingTxs:         make([]coreData.TransactionHandler, 0),
+		DeploySystemScTxs:  make([]coreData.TransactionHandler, 0),
+		DeployInitialScTxs: make([]coreData.TransactionHandler, 0),
+	}
+	for i := uint32(0); i < sharder.NumOfShards; i++ {
+		indexingDataMap[i] = indexingData
+	}
+
+	miniBlocks, txsPoolPerShard, err := ap.GenerateInitialTransactions(sharder, indexingDataMap)
+	require.Nil(t, err)
+
+	assert.Equal(t, 9, len(miniBlocks))
+
+	assert.Equal(t, 3, len(txsPoolPerShard))
+	assert.Equal(t, 1, len(txsPoolPerShard[0].Txs))
+	assert.Equal(t, 1, len(txsPoolPerShard[1].Txs))
+	assert.Equal(t, 0, len(txsPoolPerShard[core.MetachainShardId].Txs))
+	assert.Equal(t, 0, len(txsPoolPerShard[0].Scrs))
+	assert.Equal(t, 0, len(txsPoolPerShard[1].Scrs))
+	assert.Equal(t, 0, len(txsPoolPerShard[core.MetachainShardId].Scrs))
+
+	for _, tx := range txsPoolPerShard[1].Txs {
+		assert.Equal(t, ibs[0].GetSupply(), tx.GetValue())
+		assert.Equal(t, ibs[0].AddressBytes(), tx.GetRcvAddr())
+	}
+
+	for _, tx := range txsPoolPerShard[0].Txs {
+		assert.Equal(t, ibs[1].GetSupply(), tx.GetValue())
+		assert.Equal(t, ibs[1].AddressBytes(), tx.GetRcvAddr())
+	}
+
+}
+
+func TestAccountsParser_GenerateInitialTransactionsZeroGasLimitShouldWork(t *testing.T) {
 	t.Parallel()
 
 	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
@@ -520,19 +673,64 @@ func TestAccountsParser_GenerateInitialTransactions(t *testing.T) {
 	require.Nil(t, err)
 
 	sharder := &mock.ShardCoordinatorMock{
-		NumOfShards: 4,
+		NumOfShards: 2,
 		SelfShardId: 0,
 	}
 
-	miniBlocks, txsPoolPerShard, err := ap.GenerateInitialTransactions(sharder)
+	indexingDataMap := make(map[uint32]*genesis.IndexingData)
+	_, txsPoolPerShard, err := ap.GenerateInitialTransactions(sharder, indexingDataMap)
+	require.Nil(t, err)
+
+	for i := uint32(0); i < sharder.NumberOfShards(); i++ {
+		for _, tx := range txsPoolPerShard[i].Txs {
+			assert.Equal(t, uint64(0), tx.GetGasLimit())
+		}
+	}
+}
+
+func TestAccountsParser_GenerateInitialTransactionsVerifyTxsHashes(t *testing.T) {
+	t.Parallel()
+
+	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
+	balance := int64(1)
+	ibs := []*data.InitialAccount{}
+
+	ap.SetEntireSupply(big.NewInt(int64(len(ibs)) * balance))
+	ap.SetInitialAccounts(ibs)
+
+	err := ap.Process()
+	require.Nil(t, err)
+
+	sharder := &mock.ShardCoordinatorMock{
+		NumOfShards: 1,
+		SelfShardId: 0,
+	}
+
+	tx := &transactionData.Transaction{
+		Nonce:     0,
+		GasPrice:  0,
+		GasLimit:  0,
+		Signature: []byte(common.GenesisTxSignatureString),
+	}
+	hashHex := "cef3536e36ae01d3c84c97b0e6fae577f34c12c0cfdb51a04a2668afd5f5efe7"
+	txHash, err := hex.DecodeString(hashHex)
+	require.Nil(t, err)
+
+	indexingDataMap := make(map[uint32]*genesis.IndexingData)
+	indexingData := &genesis.IndexingData{
+		DelegationTxs: []coreData.TransactionHandler{tx},
+	}
+	indexingDataMap[0] = indexingData
+
+	miniBlocks, txsPoolPerShard, err := ap.GenerateInitialTransactions(sharder, indexingDataMap)
 	require.Nil(t, err)
 
 	assert.Equal(t, 4, len(miniBlocks))
-	assert.Equal(t, 1, len(miniBlocks[0].GetTxHashes()))
-	assert.Equal(t, 1, len(miniBlocks[1].GetTxHashes()))
-	assert.Equal(t, 1, len(miniBlocks[2].GetTxHashes()))
-	assert.Equal(t, 1, len(miniBlocks[3].GetTxHashes()))
-
+	assert.Equal(t, 2, len(txsPoolPerShard))
 	assert.Equal(t, 1, len(txsPoolPerShard[0].Txs))
-	assert.Equal(t, 1, len(txsPoolPerShard[1].Txs))
+
+	for hashString, v := range txsPoolPerShard[0].Txs {
+		assert.Equal(t, txHash, []byte(hashString))
+		assert.Equal(t, tx, v)
+	}
 }

@@ -3,6 +3,7 @@ package mock
 import (
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
 
@@ -57,6 +58,11 @@ func (teps *TxExecutionProcessorStub) AddNonce(senderBytes []byte, nonce uint64)
 		return teps.AddNonceCalled(senderBytes, nonce)
 	}
 
+	return nil
+}
+
+// GetTransactions -
+func (tep *TxExecutionProcessorStub) GetTransactions() []data.TransactionHandler {
 	return nil
 }
 

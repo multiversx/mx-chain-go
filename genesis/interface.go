@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -31,7 +32,7 @@ type AccountsParser interface {
 	InitialAccounts() []InitialAccountHandler
 	GetTotalStakedForDelegationAddress(delegationAddress string) *big.Int
 	GetInitialAccountsForDelegated(addressBytes []byte) []InitialAccountHandler
-	GenerateInitialTransactions(shardCoordinator sharding.Coordinator) ([]*block.MiniBlock, map[uint32]*indexer.Pool, error)
+	GenerateInitialTransactions(shardCoordinator sharding.Coordinator, initialIndexingData map[uint32]*IndexingData) ([]*block.MiniBlock, map[uint32]*indexer.Pool, error)
 	IsInterfaceNil() bool
 }
 
@@ -96,6 +97,7 @@ type TxExecutionProcessor interface {
 	GetNonce(senderBytes []byte) (uint64, error)
 	AddBalance(senderBytes []byte, value *big.Int) error
 	AddNonce(senderBytes []byte, nonce uint64) error
+	GetTransactions() []data.TransactionHandler
 	IsInterfaceNil() bool
 }
 

@@ -10,6 +10,7 @@ import (
 	coreData "github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	scrData "github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	transactionData "github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
@@ -61,15 +62,15 @@ func NewAccountsParser(
 		return nil, genesis.ErrNilMarshalizer
 	}
 
-	initialAccounts := make([]*data.InitialAccount, 0)
-	err := core.LoadJsonFile(&initialAccounts, genesisFilePath)
-	if err != nil {
-		return nil, err
-	}
-
 	minterAddressBytes, err := pubkeyConverter.Decode(minterAddress)
 	if err != nil {
-		return nil, fmt.Errorf("%w for `%s`", genesis.ErrInvalidAddress, minterAddress)
+		return nil, fmt.Errorf("%w while decoding minter address. error: %s", genesis.ErrInvalidAddress, err.Error())
+	}
+
+	initialAccounts := make([]*data.InitialAccount, 0)
+	err = core.LoadJsonFile(&initialAccounts, genesisFilePath)
+	if err != nil {
+		return nil, err
 	}
 
 	gp := &accountsParser{
@@ -302,29 +303,35 @@ func (ap *accountsParser) GetInitialAccountsForDelegated(addressBytes []byte) []
 	return list
 }
 
-// IsInterfaceNil returns if underlying object is true
-func (ap *accountsParser) IsInterfaceNil() bool {
-	return ap == nil
-}
+func (ap *accountsParser) createIndexerPools(shardIDs []uint32) map[uint32]*indexer.Pool {
+	txsPoolPerShard := make(map[uint32]*indexer.Pool)
 
-func (ap *accountsParser) generateIntraShardMiniBlocks(txsHashesPerShard map[uint32][][]byte) []*block.MiniBlock {
-	miniBlocks := make([]*block.MiniBlock, 0)
-
-	for shardId, txsHashes := range txsHashesPerShard {
-		miniBlock := &block.MiniBlock{
-			TxHashes:        txsHashes,
-			ReceiverShardID: shardId,
-			SenderShardID:   shardId,
-			Type:            block.TxBlock,
+	for _, id := range shardIDs {
+		txsPoolPerShard[id] = &indexer.Pool{
+			Txs:  make(map[string]coreData.TransactionHandler),
+			Scrs: make(map[string]coreData.TransactionHandler),
 		}
-
-		miniBlocks = append(miniBlocks, miniBlock)
 	}
 
-	return miniBlocks
+	return txsPoolPerShard
 }
 
-func (ap *accountsParser) getMintTransaction(ia *data.InitialAccount, nonce uint64, signature []byte) *transactionData.Transaction {
+func (ap *accountsParser) createMintTransactions() []coreData.TransactionHandler {
+	txs := make([]coreData.TransactionHandler, 0, len(ap.initialAccounts))
+
+	var nonce uint64 = 0
+	for _, ia := range ap.initialAccounts {
+		tx := ap.createMintTransaction(ia, nonce)
+
+		nonce++
+
+		txs = append(txs, tx)
+	}
+
+	return txs
+}
+
+func (ap *accountsParser) createMintTransaction(ia genesis.InitialAccountHandler, nonce uint64) *transactionData.Transaction {
 	tx := &transactionData.Transaction{
 		Nonce:     nonce,
 		SndAddr:   ap.minterAddressBytes,
@@ -332,47 +339,153 @@ func (ap *accountsParser) getMintTransaction(ia *data.InitialAccount, nonce uint
 		RcvAddr:   ia.AddressBytes(),
 		GasPrice:  0,
 		GasLimit:  0,
-		Signature: signature,
+		Signature: []byte(common.GenesisTxSignatureString),
 	}
 
 	return tx
 }
 
-// GenerateInitialTransactions will generate initial transactions pool and the in shard miniblocks for the generated transactions
-func (ap *accountsParser) GenerateInitialTransactions(shardCoordinator sharding.Coordinator) ([]*block.MiniBlock, map[uint32]*indexer.Pool, error) {
+// TODO: extend sharding Coordinator with a similar function, GetShardIDs
+func getShardIDs(shardCoordinator sharding.Coordinator) []uint32 {
+	shardIDs := make([]uint32, shardCoordinator.NumberOfShards()+1)
+	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
+		shardIDs[i] = i
+	}
+	shardIDs[shardCoordinator.NumberOfShards()] = core.MetachainShardId
+
+	return shardIDs
+}
+
+func createMiniBlocks(shardIDs []uint32, blockType block.Type) []*block.MiniBlock {
+	miniBlocks := make([]*block.MiniBlock, 0)
+
+	for _, i := range shardIDs {
+		for _, j := range shardIDs {
+			miniBlock := &block.MiniBlock{
+				TxHashes:        nil,
+				ReceiverShardID: i,
+				SenderShardID:   j,
+				Type:            blockType,
+			}
+
+			miniBlocks = append(miniBlocks, miniBlock)
+		}
+	}
+
+	return miniBlocks
+}
+
+func (ap *accountsParser) getAllTxs(
+	indexingData map[uint32]*genesis.IndexingData,
+	mintTxs []coreData.TransactionHandler,
+) []coreData.TransactionHandler {
+	allTxs := make([]coreData.TransactionHandler, 0)
+
+	for _, txs := range indexingData {
+		allTxs = append(allTxs, txs.DelegationTxs...)
+		allTxs = append(allTxs, txs.StakingTxs...)
+		allTxs = append(allTxs, txs.DeploySystemScTxs...)
+		allTxs = append(allTxs, txs.DeployInitialScTxs...)
+	}
+
+	allTxs = append(allTxs, mintTxs...)
+
+	return allTxs
+}
+
+func (ap *accountsParser) setScrsTxsPool(
+	shardCoordinator sharding.Coordinator,
+	indexingData map[uint32]*genesis.IndexingData,
+	txsPoolPerShard map[uint32]*indexer.Pool,
+) {
+	for _, id := range indexingData {
+		for txHash, tx := range id.ScrsTxs {
+			senderShardID := shardCoordinator.ComputeId(tx.GetSndAddr())
+			receiverShardID := shardCoordinator.ComputeId(tx.GetRcvAddr())
+
+			scrTx, ok := tx.(*scrData.SmartContractResult)
+			if !ok {
+				continue
+			}
+			scrTx.GasLimit = uint64(0)
+
+			txsPoolPerShard[senderShardID].Scrs[txHash] = scrTx
+			txsPoolPerShard[receiverShardID].Scrs[txHash] = scrTx
+		}
+	}
+}
+
+func (ap *accountsParser) setTxsPoolAndMiniBlocks(
+	shardCoordinator sharding.Coordinator,
+	allTxs []coreData.TransactionHandler,
+	txsPoolPerShard map[uint32]*indexer.Pool,
+	miniBlocks []*block.MiniBlock,
+) error {
+	var senderShardID uint32
+
+	for _, txHandler := range allTxs {
+		receiverShardID := shardCoordinator.ComputeId(txHandler.GetRcvAddr())
+
+		// treat minting transactions as intra shard
+		if bytes.Equal(txHandler.GetSndAddr(), ap.minterAddressBytes) {
+			senderShardID = receiverShardID
+		} else {
+			senderShardID = shardCoordinator.ComputeId(txHandler.GetSndAddr())
+		}
+
+		txHash, err := core.CalculateHash(ap.marshalizer, ap.hasher, txHandler)
+		if err != nil {
+			return err
+		}
+
+		tx, ok := txHandler.(*transactionData.Transaction)
+		if !ok {
+			continue
+		}
+		tx.Signature = []byte(common.GenesisTxSignatureString)
+		tx.GasLimit = uint64(0)
+
+		txsPoolPerShard[senderShardID].Txs[string(txHash)] = tx
+		txsPoolPerShard[receiverShardID].Txs[string(txHash)] = tx
+
+		for _, miniBlock := range miniBlocks {
+			if (senderShardID == miniBlock.GetSenderShardID()) &&
+				(receiverShardID == miniBlock.GetReceiverShardID()) {
+				miniBlock.TxHashes = append(miniBlock.TxHashes, txHash)
+			}
+		}
+	}
+
+	return nil
+}
+
+// GenerateInitialTransactions will generate initial transactions pool and the miniblocks for the generated transactions
+func (ap *accountsParser) GenerateInitialTransactions(
+	shardCoordinator sharding.Coordinator,
+	indexingData map[uint32]*genesis.IndexingData,
+) ([]*block.MiniBlock, map[uint32]*indexer.Pool, error) {
 	if check.IfNil(shardCoordinator) {
 		return nil, nil, genesis.ErrNilShardCoordinator
 	}
 
-	txsHashesPerShard := make(map[uint32][][]byte)
-	txsPoolPerShard := make(map[uint32]*indexer.Pool)
+	mintTxs := ap.createMintTransactions()
+	allTxs := ap.getAllTxs(indexingData, mintTxs)
 
-	mintTxSignatureBytes := []byte(common.GenesisTxSignatureString)
+	shardIDs := getShardIDs(shardCoordinator)
+	txsPoolPerShard := ap.createIndexerPools(shardIDs)
+	miniBlocks := createMiniBlocks(shardIDs, block.TxBlock)
 
-	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
-		txsPoolPerShard[i] = &indexer.Pool{
-			Txs: make(map[string]coreData.TransactionHandler),
-		}
+	err := ap.setTxsPoolAndMiniBlocks(shardCoordinator, allTxs, txsPoolPerShard, miniBlocks)
+	if err != nil {
+		return nil, nil, err
 	}
 
-	var nonce uint64 = 0
-	for _, ia := range ap.initialAccounts {
-		shardID := shardCoordinator.ComputeId(ia.AddressBytes())
-
-		tx := ap.getMintTransaction(ia, nonce, mintTxSignatureBytes)
-
-		nonce++
-
-		txHash, err := core.CalculateHash(ap.marshalizer, ap.hasher, tx)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		txsPoolPerShard[shardID].Txs[string(txHash)] = tx
-		txsHashesPerShard[shardID] = append(txsHashesPerShard[shardID], txHash)
-	}
-
-	miniBlocks := ap.generateIntraShardMiniBlocks(txsHashesPerShard)
+	ap.setScrsTxsPool(shardCoordinator, indexingData, txsPoolPerShard)
 
 	return miniBlocks, txsPoolPerShard, nil
+}
+
+// IsInterfaceNil returns true if the underlying object is nil
+func (ap *accountsParser) IsInterfaceNil() bool {
+	return ap == nil
 }

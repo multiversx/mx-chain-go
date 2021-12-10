@@ -6,6 +6,7 @@ import (
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -91,6 +92,6 @@ func SetShardCoordinator(shardCoordinator sharding.Coordinator, holder Bootstrap
 }
 
 // IndexGenesisBlocks -
-func (pcf *processComponentsFactory) IndexGenesisBlocks(genesisBlocks map[uint32]data.HeaderHandler) error {
-	return pcf.indexGenesisBlocks(genesisBlocks)
+func (pcf *processComponentsFactory) IndexGenesisBlocks(genesisBlocks map[uint32]data.HeaderHandler, indexingData map[uint32]*genesis.IndexingData) error {
+	return pcf.indexGenesisBlocks(genesisBlocks, indexingData)
 }
