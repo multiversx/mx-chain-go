@@ -150,7 +150,6 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("esdt NFT create on multiple shards"), "epoch", enableEpochs.ESDTNFTCreateOnMultiShardEnableEpoch)
 	log.Debug(readEpochFor("SCR size invariant check"), "epoch", enableEpochs.SCRSizeInvariantCheckEnableEpoch)
 	log.Debug(readEpochFor("backward compatibility flag for save key value"), "epoch", enableEpochs.BackwardCompSaveKeyValueEnableEpoch)
-	log.Debug(readEpochFor("esdt NFT create on multiple shards"), "epoch", enableEpochs.ESDTNFTCreateOnMultiShardEnableEpoch)
 	log.Debug(readEpochFor("meta ESDT, financial SFT"), "epoch", enableEpochs.MetaESDTSetEnableEpoch)
 	log.Debug(readEpochFor("add tokens to delegation"), "epoch", enableEpochs.AddTokensToDelegationEnableEpoch)
 	log.Debug(readEpochFor("multi ESDT transfer on callback"), "epoch", enableEpochs.MultiESDTTransferFixOnCallBackOnEnableEpoch)
@@ -164,6 +163,7 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("payable by smart contract"), "epoch", enableEpochs.IsPayableBySCEnableEpoch)
 	log.Debug(readEpochFor("cleanup informative only SCRs"), "epoch", enableEpochs.CleanUpInformativeSCRsEnableEpoch)
 	log.Debug(readEpochFor("storage API cost optimization"), "epoch", enableEpochs.StorageAPICostOptimizationEnableEpoch)
+	log.Debug(readEpochFor("transform to multi shard create on esdt"), "epoch", enableEpochs.TransformToMultiShardCreateEnableEpoch)
 	gasSchedule := configs.EpochConfig.GasSchedule
 
 	log.Debug(readEpochFor("gas schedule directories paths"), "epoch", gasSchedule.GasScheduleByEpochs)
