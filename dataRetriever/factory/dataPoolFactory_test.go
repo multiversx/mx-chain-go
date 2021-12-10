@@ -1,11 +1,15 @@
 package factory
 
 import (
+	"errors"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCache"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/stretchr/testify/require"
@@ -51,26 +55,30 @@ func TestNewDataPoolFromConfig_BadConfigShouldErr(t *testing.T) {
 	args.Config.TxDataPool.Capacity = 0
 	holder, err := NewDataPoolFromConfig(args)
 	require.Nil(t, holder)
-	require.NotNil(t, err)
+	require.True(t, errors.Is(err, dataRetriever.ErrCacheConfigInvalidSize))
+	require.True(t, strings.Contains(err.Error(), "the cache for the transactions"))
 
 	args = getGoodArgs()
 	args.Config.UnsignedTransactionDataPool.Capacity = 0
 	holder, err = NewDataPoolFromConfig(args)
 	require.Nil(t, holder)
-	require.NotNil(t, err)
+	require.True(t, errors.Is(err, storage.ErrInvalidConfig))
+	require.True(t, strings.Contains(err.Error(), "the cache for the unsigned transactions"))
 
 	args = getGoodArgs()
 	args.Config.RewardTransactionDataPool.Capacity = 0
 	holder, err = NewDataPoolFromConfig(args)
 	require.Nil(t, holder)
-	require.NotNil(t, err)
+	require.True(t, errors.Is(err, storage.ErrInvalidConfig))
+	require.True(t, strings.Contains(err.Error(), "the cache for the rewards"))
 
 	args = getGoodArgs()
 	args.Config.HeadersPoolConfig.MaxHeadersPerShard = 0
 	holder, err = NewDataPoolFromConfig(args)
 	require.Nil(t, holder)
 	fmt.Println(err)
-	require.NotNil(t, err)
+	require.True(t, errors.Is(err, headersCache.ErrInvalidHeadersCacheParameter))
+	require.True(t, strings.Contains(err.Error(), "the cache for the headers"))
 
 	args = getGoodArgs()
 	args.Config.TxBlockBodyDataPool.Capacity = 0
@@ -78,6 +86,7 @@ func TestNewDataPoolFromConfig_BadConfigShouldErr(t *testing.T) {
 	require.Nil(t, holder)
 	fmt.Println(err)
 	require.NotNil(t, err)
+	require.True(t, strings.Contains(err.Error(), "Must provide a positive size while creating the cache for the miniblocks"))
 
 	args = getGoodArgs()
 	args.Config.PeerBlockBodyDataPool.Capacity = 0
@@ -85,13 +94,39 @@ func TestNewDataPoolFromConfig_BadConfigShouldErr(t *testing.T) {
 	require.Nil(t, holder)
 	fmt.Println(err)
 	require.NotNil(t, err)
+	require.True(t, strings.Contains(err.Error(), "Must provide a positive size while creating the cache for the peer mini block body"))
 
 	args = getGoodArgs()
 	args.Config.TrieSyncStorage.Capacity = 0
 	holder, err = NewDataPoolFromConfig(args)
 	require.Nil(t, holder)
 	fmt.Println(err)
-	require.NotNil(t, err)
+	require.True(t, errors.Is(err, storage.ErrCacheSizeInvalid))
+	require.True(t, strings.Contains(err.Error(), "the cache for the trie nodes"))
+
+	args = getGoodArgs()
+	args.Config.TrieSyncStorage.DB.Type = "invalid DB type"
+	holder, err = NewDataPoolFromConfig(args)
+	require.Nil(t, holder)
+	fmt.Println(err)
+	require.True(t, errors.Is(err, storage.ErrNotSupportedDBType))
+	require.True(t, strings.Contains(err.Error(), "the db for the trie nodes"))
+
+	args = getGoodArgs()
+	args.Config.TrieNodesChunksDataPool.Type = "invalid cache type"
+	holder, err = NewDataPoolFromConfig(args)
+	require.Nil(t, holder)
+	fmt.Println(err)
+	require.True(t, errors.Is(err, storage.ErrNotSupportedCacheType))
+	require.True(t, strings.Contains(err.Error(), "the cache for the trie chunks"))
+
+	args = getGoodArgs()
+	args.Config.SmartContractDataPool.Type = "invalid cache type"
+	holder, err = NewDataPoolFromConfig(args)
+	require.Nil(t, holder)
+	fmt.Println(err)
+	require.True(t, errors.Is(err, storage.ErrNotSupportedCacheType))
+	require.True(t, strings.Contains(err.Error(), "the cache for the smartcontract results"))
 }
 
 func getGoodArgs() ArgsDataPool {

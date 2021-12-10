@@ -419,6 +419,7 @@ func (tc *transactionCoordinator) RemoveTxsFromPool(body *block.Body) error {
 func (tc *transactionCoordinator) ProcessBlockTransaction(
 	body *block.Body,
 	timeRemaining func() time.Duration,
+	randomness []byte,
 ) error {
 	if check.IfNil(body) {
 		return process.ErrNilBlockBody
@@ -441,7 +442,7 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 	}
 
 	startTime := time.Now()
-	mbIndex, err := tc.processMiniBlocksToMe(body, haveTime)
+	mbIndex, err := tc.processMiniBlocksToMe(body, haveTime, randomness)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to processMiniBlocksToMe",
 		"time [s]", elapsedTime,
@@ -456,7 +457,7 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 
 	miniBlocksFromMe := body.MiniBlocks[mbIndex:]
 	startTime = time.Now()
-	err = tc.processMiniBlocksFromMe(&block.Body{MiniBlocks: miniBlocksFromMe}, haveTime)
+	err = tc.processMiniBlocksFromMe(&block.Body{MiniBlocks: miniBlocksFromMe}, haveTime, randomness)
 	elapsedTime = time.Since(startTime)
 	log.Debug("elapsed time to processMiniBlocksFromMe",
 		"time [s]", elapsedTime,
@@ -471,6 +472,7 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 func (tc *transactionCoordinator) processMiniBlocksFromMe(
 	body *block.Body,
 	haveTime func() bool,
+	randomness []byte,
 ) error {
 	for _, mb := range body.MiniBlocks {
 		if mb.SenderShardID != tc.shardCoordinator.SelfId() {
@@ -491,7 +493,7 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 			return process.ErrMissingPreProcessor
 		}
 
-		err := preProc.ProcessBlockTransactions(separatedBodies[blockType], haveTime)
+		err := preProc.ProcessBlockTransactions(separatedBodies[blockType], haveTime, randomness)
 		if err != nil {
 			return err
 		}
@@ -499,9 +501,9 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 		numMiniBlocksProcessed += len(separatedBodies[blockType].MiniBlocks)
 	}
 
-	log.Debug("transactionCoordinator.processMiniBlocksFromMe: gas consumed, refunded and penalized info",
+	log.Debug("transactionCoordinator.processMiniBlocksFromMe: gas provided, refunded and penalized info",
 		"num mini blocks processed", numMiniBlocksProcessed,
-		"total gas consumed", tc.gasHandler.TotalGasConsumed(),
+		"total gas provided", tc.gasHandler.TotalGasProvided(),
 		"total gas refunded", tc.gasHandler.TotalGasRefunded(),
 		"total gas penalized", tc.gasHandler.TotalGasPenalized())
 
@@ -511,6 +513,7 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 func (tc *transactionCoordinator) processMiniBlocksToMe(
 	body *block.Body,
 	haveTime func() bool,
+	randomness []byte,
 ) (int, error) {
 	// processing has to be done in order, as the order of different type of transactions over the same account is strict
 	// processing destination ME miniblocks first
@@ -526,15 +529,15 @@ func (tc *transactionCoordinator) processMiniBlocksToMe(
 			return mbIndex, process.ErrMissingPreProcessor
 		}
 
-		err := preProc.ProcessBlockTransactions(&block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}}, haveTime)
+		err := preProc.ProcessBlockTransactions(&block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}}, haveTime, randomness)
 		if err != nil {
 			return mbIndex, err
 		}
 	}
 
-	log.Debug("transactionCoordinator.processMiniBlocksToMe: gas consumed, refunded and penalized info",
+	log.Debug("transactionCoordinator.processMiniBlocksToMe: gas provided, refunded and penalized info",
 		"num mini blocks processed", len(body.MiniBlocks),
-		"total gas consumed", tc.gasHandler.TotalGasConsumed(),
+		"total gas provided", tc.gasHandler.TotalGasProvided(),
 		"total gas refunded", tc.gasHandler.TotalGasRefunded(),
 		"total gas penalized", tc.gasHandler.TotalGasPenalized())
 
@@ -652,12 +655,12 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 
 	allMBsProcessed := nrMiniBlocksProcessed == len(crossMiniBlockInfos)
 
-	log.Debug("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: gas consumed, refunded and penalized info",
+	log.Debug("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: gas provided, refunded and penalized info",
 		"header round", hdr.GetRound(),
 		"header nonce", hdr.GetNonce(),
 		"num mini blocks to be processed", len(crossMiniBlockInfos),
 		"num mini blocks processed", nrMiniBlocksProcessed,
-		"total gas consumed", tc.gasHandler.TotalGasConsumed(),
+		"total gas provided", tc.gasHandler.TotalGasProvided(),
 		"total gas refunded", tc.gasHandler.TotalGasRefunded(),
 		"total gas penalized", tc.gasHandler.TotalGasPenalized())
 
@@ -667,6 +670,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 // CreateMbsAndProcessTransactionsFromMe creates miniblocks and processes transactions from pool
 func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 	haveTime func() bool,
+	randomness []byte,
 ) block.MiniBlockSlice {
 
 	numMiniBlocksProcessed := 0
@@ -677,7 +681,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 			return nil
 		}
 
-		mbs, err := txPreProc.CreateAndProcessMiniBlocks(haveTime)
+		mbs, err := txPreProc.CreateAndProcessMiniBlocks(haveTime, randomness)
 		if err != nil {
 			log.Debug("CreateAndProcessMiniBlocks", "error", err.Error())
 		}
@@ -694,9 +698,9 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 		miniBlocks = append(miniBlocks, interMBs...)
 	}
 
-	log.Debug("transactionCoordinator.CreateMbsAndProcessTransactionsFromMe: gas consumed, refunded and penalized info",
+	log.Debug("transactionCoordinator.CreateMbsAndProcessTransactionsFromMe: gas provided, refunded and penalized info",
 		"num mini blocks processed", numMiniBlocksProcessed,
-		"total gas consumed", tc.gasHandler.TotalGasConsumed(),
+		"total gas provided", tc.gasHandler.TotalGasProvided(),
 		"total gas refunded", tc.gasHandler.TotalGasRefunded(),
 		"total gas penalized", tc.gasHandler.TotalGasPenalized())
 
@@ -999,7 +1003,14 @@ func (tc *transactionCoordinator) revertProcessedTxsResults(txHashes [][]byte) {
 		if !ok {
 			continue
 		}
-		interProc.RemoveProcessedResults()
+		resultHashes := interProc.RemoveProcessedResults()
+		currentAccFee := tc.feeHandler.GetAccumulatedFees()
+		tc.feeHandler.RevertFees(resultHashes)
+		accFeesAfterRevert := tc.feeHandler.GetAccumulatedFees()
+
+		if currentAccFee.Cmp(accFeesAfterRevert) != 0 {
+			log.Debug("revertProcessedTxsResults reverted accumulated fees from postProcessor", "value", big.NewInt(0).Sub(currentAccFee, accFeesAfterRevert))
+		}
 	}
 	tc.feeHandler.RevertFees(txHashes)
 }

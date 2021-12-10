@@ -553,37 +553,6 @@ func TestPatriciaMerkleTrie_GetAllLeavesCollapsedTrie(t *testing.T) {
 	assert.Equal(t, []byte("cat"), leaves["ddog"])
 }
 
-func TestPatriciaMerkleTrie_RecreateFromSnapshotSavesStateToMainDb(t *testing.T) {
-	t.Parallel()
-
-	tr, tsm := newEmptyTrie()
-	_ = tr.Update([]byte("dog"), []byte("dog"))
-	_ = tr.Update([]byte("doe"), []byte("doe"))
-	_ = tr.Update([]byte("ddog"), []byte("ddog"))
-	_ = tr.Commit()
-
-	rootHash, _ := tr.RootHash()
-	tsm.TakeSnapshot(rootHash, true, nil)
-	WaitForOperationToComplete(tsm)
-
-	err := tsm.db.Remove(rootHash)
-	assert.Nil(t, err)
-
-	val, err := tsm.db.Get(rootHash)
-	assert.Nil(t, val)
-	assert.NotNil(t, err)
-
-	newTr, err := tr.Recreate(rootHash)
-	assert.Nil(t, err)
-	newPmt, _ := newTr.(*patriciaMerkleTrie)
-	newTsm, _ := newPmt.trieStorage.(*trieStorageManager)
-
-	assert.True(t, tsm.Database() != newTsm.snapshots[0])
-	val, err = tsm.Database().Get(rootHash)
-	assert.Nil(t, err)
-	assert.NotNil(t, val)
-}
-
 func TestPatriciaMerkleTrie_oldRootAndoldHashesAreResetAfterEveryCommit(t *testing.T) {
 	t.Parallel()
 

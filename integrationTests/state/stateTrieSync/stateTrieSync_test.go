@@ -135,7 +135,7 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	arg := trie.ArgTrieSyncer{
 		RequestHandler:            nRequester.RequestHandler,
 		InterceptedNodes:          nRequester.DataPool.TrieNodes(),
-		DB:                        requesterTrie.GetStorageManager().Database(),
+		DB:                        requesterTrie.GetStorageManager(),
 		Marshalizer:               integrationTests.TestMarshalizer,
 		Hasher:                    integrationTests.TestHasher,
 		ShardId:                   shardID,
@@ -263,7 +263,7 @@ func TestNode_RequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t *testi
 	arg := trie.ArgTrieSyncer{
 		RequestHandler:            nRequester.RequestHandler,
 		InterceptedNodes:          nRequester.DataPool.TrieNodes(),
-		DB:                        requesterTrie.GetStorageManager().Database(),
+		DB:                        requesterTrie.GetStorageManager(),
 		Marshalizer:               integrationTests.TestMarshalizer,
 		Hasher:                    integrationTests.TestHasher,
 		ShardId:                   shardID,
@@ -376,8 +376,9 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 			MaxHardCapForMissingNodes: 5000,
 			TrieSyncerVersion:         2,
 		},
-		ShardId:   shardID,
-		Throttler: thr,
+		ShardId:                shardID,
+		Throttler:              thr,
+		AddressPubKeyConverter: integrationTests.TestAddressPubkeyConverter,
 	}
 
 	userAccSyncer, err := syncer.NewUserAccountsSyncer(syncerArgs)
