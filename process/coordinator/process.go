@@ -555,12 +555,17 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	nrTxAdded := uint32(0)
 	nrMiniBlocksProcessed := 0
+	processedTxHashes := make([][]byte, 0)
 
 	if check.IfNil(hdr) {
 		return miniBlocks, nrTxAdded, false, nil
 	}
 
 	shouldSkipShard := make(map[uint32]bool)
+
+	if tc.shardCoordinator.SelfId() == core.MetachainShardId {
+		tc.initProcessedTxsResults()
+	}
 
 	crossMiniBlockInfos := hdr.GetOrderedCrossMiniblocksWithDst(tc.shardCoordinator.SelfId())
 	for _, miniBlockInfo := range crossMiniBlockInfos {
@@ -647,6 +652,8 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			continue
 		}
 
+		processedTxHashes = append(processedTxHashes, miniBlock.TxHashes...)
+
 		// all txs processed, add to processed miniblocks
 		miniBlocks = append(miniBlocks, miniBlock)
 		nrTxAdded = nrTxAdded + uint32(len(miniBlock.TxHashes))
@@ -654,6 +661,9 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 	}
 
 	allMBsProcessed := nrMiniBlocksProcessed == len(crossMiniBlockInfos)
+	if !allMBsProcessed {
+		tc.revertIfNeeded(processedTxHashes)
+	}
 
 	log.Debug("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: gas provided, refunded and penalized info",
 		"header round", hdr.GetRound(),
@@ -665,6 +675,19 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		"total gas penalized", tc.gasHandler.TotalGasPenalized())
 
 	return miniBlocks, nrTxAdded, allMBsProcessed, nil
+}
+
+func (tc *transactionCoordinator) revertIfNeeded(txsToBeReverted [][]byte) {
+	shouldRevert := tc.shardCoordinator.SelfId() == core.MetachainShardId && len(txsToBeReverted) > 0
+	if !shouldRevert {
+		return
+	}
+
+	tc.gasHandler.RemoveGasConsumed(txsToBeReverted)
+	tc.gasHandler.RemoveGasRefunded(txsToBeReverted)
+	tc.gasHandler.RemoveGasPenalized(txsToBeReverted)
+
+	tc.revertProcessedTxsResults(txsToBeReverted)
 }
 
 // CreateMbsAndProcessTransactionsFromMe creates miniblocks and processes transactions from pool
@@ -950,7 +973,9 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 ) error {
 
 	snapshot := tc.accounts.JournalLen()
-	tc.initProcessedTxsResults()
+	if tc.shardCoordinator.SelfId() != core.MetachainShardId {
+		tc.initProcessedTxsResults()
+	}
 
 	txsToBeReverted, numTxsProcessed, err := preproc.ProcessMiniBlock(miniBlock, haveTime, tc.getNumOfCrossInterMbsAndTxs)
 	if err != nil {

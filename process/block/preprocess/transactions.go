@@ -1278,12 +1278,13 @@ func (txs *transactions) ProcessMiniBlock(
 		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[index])
 
 		if txs.flagOptimizeGasUsedInCrossMiniBlocks.IsSet() {
-			if txs.shardCoordinator.SelfId() != core.MetachainShardId {
-				if totalGasConsumedInSelfShard > maxGasLimitUsedForDestMeTxs {
-					err = process.ErrMaxGasLimitUsedForDestMeTxsIsReached
-					return processedTxHashes, index, err
-				}
+			//TODO: Remove the commented code if the meta-chain revert problem is fixed
+			//if txs.shardCoordinator.SelfId() != core.MetachainShardId {
+			if totalGasConsumedInSelfShard > maxGasLimitUsedForDestMeTxs {
+				err = process.ErrMaxGasLimitUsedForDestMeTxsIsReached
+				return processedTxHashes, index, err
 			}
+			//}
 		}
 
 		txs.saveAccountBalanceForAddress(miniBlockTxs[index].GetRcvAddr())

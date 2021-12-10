@@ -3599,3 +3599,85 @@ func TestTransactionCoordinator_GetMaxAccumulatedAndDeveloperFeesShouldWork(t *t
 	assert.Equal(t, big.NewInt(600), accumulatedFees)
 	assert.Equal(t, big.NewInt(60), developerFees)
 }
+
+func TestTransactionCoordinator_RevertIfNeededShouldWork(t *testing.T) {
+	t.Parallel()
+
+	removeGasConsumedWasCalled := false
+	removeGasRefundedWasCalled := false
+	removeGasPenalizedWasCalled := false
+	numTxsFeesReverted := 0
+
+	dataPool := initDataPool(txHash)
+	txCoordinatorArgs := ArgTransactionCoordinator{
+		Hasher:           &mock.HasherMock{},
+		Marshalizer:      &mock.MarshalizerMock{},
+		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(3),
+		Accounts:         initAccountsMock(),
+		MiniBlockPool:    dataPool.MiniBlocks(),
+		RequestHandler:   &testscommon.RequestHandlerStub{},
+		PreProcessors:    createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
+		InterProcessors:  createInterimProcessorContainer(),
+		GasHandler: &mock.GasHandlerMock{
+			RemoveGasConsumedCalled: func(hashes [][]byte) {
+				removeGasConsumedWasCalled = true
+			},
+			RemoveGasRefundedCalled: func(hashes [][]byte) {
+				removeGasRefundedWasCalled = true
+			},
+			RemoveGasPenalizedCalled: func(hashes [][]byte) {
+				removeGasPenalizedWasCalled = true
+			},
+		},
+		FeeHandler: &mock.FeeAccumulatorStub{
+			RevertFeesCalled: func(txHashes [][]byte) {
+				numTxsFeesReverted += len(txHashes)
+			},
+		},
+		BlockSizeComputation:              &mock.BlockSizeComputationStub{},
+		BalanceComputation:                &mock.BalanceComputationStub{},
+		EconomicsFee:                      &mock.FeeHandlerStub{},
+		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
+		BlockGasAndFeesReCheckEnableEpoch: 0,
+		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
+	}
+
+	txHashes := make([][]byte, 0)
+
+	txCoordinatorArgs.ShardCoordinator = &mock.CoordinatorStub{
+		SelfIdCalled: func() uint32 {
+			return 0
+		},
+	}
+	tc, _ := NewTransactionCoordinator(txCoordinatorArgs)
+
+	tc.revertIfNeeded(txHashes)
+	assert.False(t, removeGasConsumedWasCalled)
+	assert.False(t, removeGasRefundedWasCalled)
+	assert.False(t, removeGasPenalizedWasCalled)
+	assert.Equal(t, 0, numTxsFeesReverted)
+
+	txCoordinatorArgs.ShardCoordinator = &mock.CoordinatorStub{
+		SelfIdCalled: func() uint32 {
+			return core.MetachainShardId
+		},
+	}
+	tc, _ = NewTransactionCoordinator(txCoordinatorArgs)
+
+	tc.revertIfNeeded(txHashes)
+	assert.False(t, removeGasConsumedWasCalled)
+	assert.False(t, removeGasRefundedWasCalled)
+	assert.False(t, removeGasPenalizedWasCalled)
+	assert.Equal(t, 0, numTxsFeesReverted)
+
+	txHash1 := []byte("txHash1")
+	txHash2 := []byte("txHash2")
+	txHashes = append(txHashes, txHash1)
+	txHashes = append(txHashes, txHash2)
+
+	tc.revertIfNeeded(txHashes)
+	assert.True(t, removeGasConsumedWasCalled)
+	assert.True(t, removeGasRefundedWasCalled)
+	assert.True(t, removeGasPenalizedWasCalled)
+	assert.Equal(t, len(txHashes), numTxsFeesReverted)
+}

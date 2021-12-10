@@ -520,12 +520,13 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[index])
 
 		if scr.flagOptimizeGasUsedInCrossMiniBlocks.IsSet() {
-			if scr.shardCoordinator.SelfId() != core.MetachainShardId {
-				if totalGasConsumedInSelfShard > maxGasLimitUsedForDestMeTxs {
-					err = process.ErrMaxGasLimitUsedForDestMeTxsIsReached
-					return processedTxHashes, index, err
-				}
+			//TODO: Remove the commented code if the meta-chain revert problem is fixed
+			//if scr.shardCoordinator.SelfId() != core.MetachainShardId {
+			if totalGasConsumedInSelfShard > maxGasLimitUsedForDestMeTxs {
+				err = process.ErrMaxGasLimitUsedForDestMeTxsIsReached
+				return processedTxHashes, index, err
 			}
+			//}
 		}
 
 		scr.saveAccountBalanceForAddress(miniBlockScrs[index].GetRcvAddr())
