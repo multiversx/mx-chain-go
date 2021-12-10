@@ -13,9 +13,10 @@ import (
 var log = logger.GetOrCreate("storageCacherAdapter")
 
 type storageCacherAdapter struct {
-	cacher storage.AdaptedSizedLRUCache
-	db     storage.Persister
-	lock   sync.RWMutex
+	cacher     storage.AdaptedSizedLRUCache
+	db         storage.Persister
+	lock       sync.RWMutex
+	dbIsClosed bool
 
 	storedDataFactory  storage.StoredDataFactory
 	marshalizer        marshal.Marshalizer
@@ -66,6 +67,11 @@ func (c *storageCacherAdapter) Put(key []byte, value interface{}, sizeInBytes in
 	defer c.lock.Unlock()
 
 	evictedValues := c.cacher.AddSizedAndReturnEvicted(string(key), value, int64(sizeInBytes))
+
+	if c.dbIsClosed {
+		return len(evictedValues) != 0
+	}
+
 	for evictedKey, evictedVal := range evictedValues {
 		evictedKeyStr, ok := evictedKey.(string)
 		if !ok {
@@ -115,6 +121,10 @@ func (c *storageCacherAdapter) Get(key []byte) (interface{}, bool) {
 		return val, true
 	}
 
+	if c.dbIsClosed {
+		return nil, false
+	}
+
 	valBytes, err := c.db.Get(key)
 	if err != nil {
 		return nil, false
@@ -155,6 +165,10 @@ func (c *storageCacherAdapter) Has(key []byte) bool {
 		return true
 	}
 
+	if c.dbIsClosed {
+		return false
+	}
+
 	err := c.db.Has(key)
 	return err == nil
 }
@@ -185,7 +199,7 @@ func (c *storageCacherAdapter) Remove(key []byte) {
 	defer c.lock.Unlock()
 
 	removed := c.cacher.Remove(string(key))
-	if removed {
+	if removed || c.dbIsClosed {
 		return
 	}
 
@@ -209,6 +223,10 @@ func (c *storageCacherAdapter) Keys() [][]byte {
 		}
 
 		storedKeys = append(storedKeys, []byte(key))
+	}
+
+	if c.dbIsClosed {
+		return storedKeys
 	}
 
 	getKeys := func(key []byte, _ []byte) bool {
@@ -255,6 +273,8 @@ func (c *storageCacherAdapter) Close() error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
+	c.dbIsClosed = true
+	c.numValuesInStorage = 0
 	return c.db.Close()
 }
 

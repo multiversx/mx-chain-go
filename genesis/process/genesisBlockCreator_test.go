@@ -453,7 +453,7 @@ func TestGenesisBlockCreator_GetIndexingDataShouldWork(t *testing.T) {
 	numSystemSC := 4
 
 	numInitialNodes := 0
-	for k, _ := range initialGenesisNodes {
+	for k := range initialGenesisNodes {
 		numInitialNodes += len(initialGenesisNodes[k])
 	}
 

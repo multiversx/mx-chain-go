@@ -41,6 +41,7 @@ type ApiResolverArgs struct {
 	CryptoComponents    CryptoComponentsHolder
 	ProcessComponents   ProcessComponentsHolder
 	GasScheduleNotifier core.GasScheduleNotifier
+	Bootstrapper        process.Bootstrapper
 }
 
 type scQueryServiceArgs struct {
@@ -53,6 +54,7 @@ type scQueryServiceArgs struct {
 	gasScheduleNotifier core.GasScheduleNotifier
 	messageSigVerifier  vm.MessageSignVerifier
 	systemSCConfig      *config.SystemSmartContractsConfig
+	bootstrapper        process.Bootstrapper
 	workingDir          string
 }
 
@@ -66,6 +68,7 @@ type scQueryElementArgs struct {
 	gasScheduleNotifier core.GasScheduleNotifier
 	messageSigVerifier  vm.MessageSignVerifier
 	systemSCConfig      *config.SystemSmartContractsConfig
+	bootstrapper        process.Bootstrapper
 	workingDir          string
 	index               int
 }
@@ -84,6 +87,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		gasScheduleNotifier: args.GasScheduleNotifier,
 		messageSigVerifier:  args.CryptoComponents.MessageSignVerifier(),
 		systemSCConfig:      args.Configs.SystemSCConfig,
+		bootstrapper:        args.Bootstrapper,
 		workingDir:          apiWorkingDir,
 	}
 
@@ -196,6 +200,7 @@ func createScQueryService(
 		messageSigVerifier:  args.messageSigVerifier,
 		systemSCConfig:      args.systemSCConfig,
 		workingDir:          args.workingDir,
+		bootstrapper:        args.bootstrapper,
 		index:               0,
 	}
 
@@ -331,6 +336,7 @@ func createScQueryElement(
 		BlockChainHook:    vmFactory.BlockChainHookImpl(),
 		BlockChain:        args.dataComponents.Blockchain(),
 		ArwenChangeLocker: args.coreComponents.ArwenChangeLocker(),
+		Bootstrapper:      args.bootstrapper,
 	}
 	scQueryService, err := smartContract.NewSCQueryService(argsNewSCQueryService)
 

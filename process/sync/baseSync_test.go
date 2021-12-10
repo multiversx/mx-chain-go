@@ -17,7 +17,7 @@ import (
 )
 
 func getMockChainHandler() data.ChainHandler {
-	return &mock.BlockChainMock{
+	return &mock.BlockChainStub{
 		GetGenesisHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{
 				Epoch: 0,
@@ -187,7 +187,7 @@ func TestBaseSync_getEpochOfCurrentBlockGenesis(t *testing.T) {
 
 	genesisEpoch := uint32(1123)
 	boot := &baseBootstrap{
-		chainHandler: &mock.BlockChainMock{
+		chainHandler: &mock.BlockChainStub{
 			GetGenesisHeaderCalled: func() data.HeaderHandler {
 				return &block.Header{
 					Epoch: genesisEpoch,
@@ -209,7 +209,7 @@ func TestBaseSync_getEpochOfCurrentBlockHeader(t *testing.T) {
 	genesisEpoch := uint32(1123)
 	headerEpoch := uint32(97493)
 	boot := &baseBootstrap{
-		chainHandler: &mock.BlockChainMock{
+		chainHandler: &mock.BlockChainStub{
 			GetGenesisHeaderCalled: func() data.HeaderHandler {
 				return &block.Header{
 					Epoch: genesisEpoch,

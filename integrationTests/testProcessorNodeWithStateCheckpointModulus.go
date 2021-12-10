@@ -121,6 +121,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		BlockChainHook:    tpn.BlockchainHook,
 		BlockChain:        tpn.BlockChain,
 		ArwenChangeLocker: tpn.ArwenChangeLocker,
+		Bootstrapper:      tpn.Bootstrapper,
 	}
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
 	tpn.initBlockProcessor(stateCheckpointModulus)

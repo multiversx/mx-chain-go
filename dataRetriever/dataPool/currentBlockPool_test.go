@@ -13,8 +13,7 @@ func TestCurrentBlockPool_AddGetCleanTx(t *testing.T) {
 
 	txHash := []byte("hash")
 	tx := &transaction.Transaction{}
-	currentBlockPool, err := NewCurrentBlockPool()
-	require.Nil(t, err)
+	currentBlockPool := NewCurrentBlockPool()
 	require.False(t, currentBlockPool.IsInterfaceNil())
 
 	currentBlockPool.AddTx(txHash, tx)

@@ -81,11 +81,7 @@ func NewBaseRewardsCreator(args BaseRewardsCreatorArgs) (*baseRewardsCreator, er
 		return nil, epochStart.ErrProtocolSustainabilityAddressInMetachain
 	}
 
-	currTxsCache, err := dataPool.NewCurrentBlockPool()
-	if err != nil {
-		return nil, err
-	}
-
+	currTxsCache := dataPool.NewCurrentBlockPool()
 	brc := &baseRewardsCreator{
 		currTxs:                            currTxsCache,
 		shardCoordinator:                   args.ShardCoordinator,

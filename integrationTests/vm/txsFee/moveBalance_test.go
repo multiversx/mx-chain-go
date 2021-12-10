@@ -50,7 +50,7 @@ func TestMoveBalanceSelfShouldWorkAndConsumeTxFee(t *testing.T) {
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, big.NewInt(50), accumulatedFees)
 
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, false)
 	testIndexer.SaveTransaction(tx, block.TxBlock, nil)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -117,7 +117,7 @@ func TestMoveBalanceShouldWork(t *testing.T) {
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, big.NewInt(50), accumulatedFees)
 
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, false)
 	testIndexer.SaveTransaction(tx, block.TxBlock, nil)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -153,7 +153,7 @@ func TestMoveBalanceInvalidHasGasButNoValueShouldConsumeGas(t *testing.T) {
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, big.NewInt(20), accumulatedFees)
 
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, false)
 	testIndexer.SaveTransaction(tx, block.InvalidBlock, nil)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -192,7 +192,7 @@ func TestMoveBalanceHigherNonceShouldNotConsumeGas(t *testing.T) {
 	require.Equal(t, big.NewInt(0), accumulatedFees)
 }
 
-func TestMoveBalanceMoreGasThanGasLimitPerBlock(t *testing.T) {
+func TestMoveBalanceMoreGasThanGasLimitPerMiniBlockForSafeCrossShard(t *testing.T) {
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
 	require.Nil(t, err)
 	defer testContext.Close()
