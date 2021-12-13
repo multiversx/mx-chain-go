@@ -120,6 +120,11 @@ func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager,
 	log.Debug("epoch for disabling old trie storage", "epoch", tsm.disableOldStorageEpoch)
 	args.EpochNotifier.RegisterNotifyHandler(tsm)
 
+	err = tsm.mainStorer.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
+	if err != nil {
+		log.Warn("newTrieStorageManager error while putting active DB value into main storer", "error", err)
+	}
+
 	if tsm.flagDisableOldStorage.IsSet() {
 		err := tsm.db.Close()
 		if err != nil {
@@ -449,13 +454,13 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 
 	newRoot, err := newSnapshotNode(tsm, msh, hsh, snapshotEntry.rootHash)
 	if err != nil {
-		log.Error("takeSnapshot: trie storage manager: newSnapshotTrie", "hash", snapshotEntry.rootHash, "error", err.Error())
+		log.Error("takeSnapshot: trie storage manager: newSnapshotTrie", "rootHash", snapshotEntry.rootHash, "error", err.Error())
 		return
 	}
 
 	stsm, err := newSnapshotTrieStorageManager(tsm)
 	if err != nil {
-		log.Error("takeSnapshot: trie storage manager: newSnapshotTrieStorageManager", "err", err.Error())
+		log.Error("takeSnapshot: trie storage manager: newSnapshotTrieStorageManager", "rootHash", snapshotEntry.rootHash, "err", err.Error())
 		return
 	}
 
@@ -465,7 +470,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 		return
 	}
 	if err != nil {
-		log.Error("trie storage manager: takeSnapshot commit", "error", err.Error())
+		log.Error("trie storage manager: takeSnapshot commit", "rootHash", snapshotEntry.rootHash, "error", err.Error())
 	}
 }
 
@@ -479,7 +484,7 @@ func (tsm *trieStorageManager) takeCheckpoint(checkpointEntry *snapshotsQueueEnt
 
 	newRoot, err := newSnapshotNode(tsm, msh, hsh, checkpointEntry.rootHash)
 	if err != nil {
-		log.Error("takeCheckpoint: trie storage manager: newSnapshotTrie", "hash", checkpointEntry.rootHash, "error", err.Error())
+		log.Error("takeCheckpoint: trie storage manager: newSnapshotTrie", "rootHash", checkpointEntry.rootHash, "error", err.Error())
 		return
 	}
 
@@ -489,7 +494,7 @@ func (tsm *trieStorageManager) takeCheckpoint(checkpointEntry *snapshotsQueueEnt
 		return
 	}
 	if err != nil {
-		log.Error("trie storage manager: takeCheckpoint commit", "error", err.Error())
+		log.Error("trie storage manager: takeCheckpoint commit", "rootHash", checkpointEntry.rootHash, "error", err.Error())
 	}
 }
 
@@ -613,6 +618,29 @@ func (tsm *trieStorageManager) SetEpochForPutOperation(epoch uint32) {
 	storer.SetEpochForPutOperation(epoch)
 }
 
+// ShouldTakeSnapshot returns true if the conditions for a new snapshot are met
+func (tsm *trieStorageManager) ShouldTakeSnapshot() bool {
+	stsm, err := newSnapshotTrieStorageManager(tsm)
+	if err != nil {
+		log.Error("shouldTakeSnapshot error", "err", err.Error())
+		return false
+	}
+
+	val, err := stsm.Get([]byte(common.ActiveDBKey))
+	if err != nil {
+		log.Debug("shouldTakeSnapshot get error", "err", err.Error())
+		return false
+	}
+
+	if bytes.Equal(val, []byte(common.ActiveDBVal)) {
+		return true
+	}
+
+	log.Debug("shouldTakeSnapshot invalid value for activeDBKey", "value", val)
+	return false
+}
+
+// EpochConfirmed is called whenever a new epoch is confirmed
 func (tsm *trieStorageManager) EpochConfirmed(epoch uint32, _ uint64) {
 	tsm.flagDisableOldStorage.Toggle(epoch >= tsm.disableOldStorageEpoch)
 	log.Debug("old trie storage", "disabled", tsm.flagDisableOldStorage.IsSet())

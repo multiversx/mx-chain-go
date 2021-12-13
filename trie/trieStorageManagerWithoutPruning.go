@@ -66,6 +66,11 @@ func (tsm *trieStorageManagerWithoutPruning) AddDirtyCheckpointHashes(_ []byte, 
 	return false
 }
 
+// ShouldTakeSnapshot returns false
+func (tsm *trieStorageManagerWithoutPruning) ShouldTakeSnapshot() bool {
+	return false
+}
+
 // Remove does nothing for this implementation
 func (tsm *trieStorageManagerWithoutPruning) Remove(_ []byte) error {
 	return nil
