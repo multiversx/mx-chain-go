@@ -69,6 +69,7 @@ func NewTestSyncNode(
 
 	messenger := CreateMessengerWithNoDiscovery()
 
+	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
 	tpn := &TestProcessorNode{
 		ShardCoordinator: shardCoordinator,
 		Messenger:        messenger,
@@ -88,7 +89,7 @@ func NewTestSyncNode(
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker:       &syncGo.RWMutex{},
-		TransactionLogProcessor: transactionLog.NewPrintTxLogProcessor(),
+		TransactionLogProcessor: logsProcessor,
 	}
 
 	kg := &mock.KeyGenMock{}

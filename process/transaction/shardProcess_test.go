@@ -3030,7 +3030,7 @@ func TestTxProcessor_ProcessUserTxErrNotPayableShouldFailRelayTx(t *testing.T) {
 			return core.RelayedTransaction, [][]byte{userTxMarshalled}, nil
 		}}
 
-	args.ScProcessor = &testscommon.SCProcessorMock{IsPayableCalled: func(address []byte) (bool, error) {
+	args.ScProcessor = &testscommon.SCProcessorMock{IsPayableCalled: func(_, _ []byte) (bool, error) {
 		return false, process.ErrAccountNotPayable
 	}}
 

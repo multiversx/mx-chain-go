@@ -46,6 +46,7 @@ func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 		NFTStorageHandler:  &testscommon.SimpleNFTStorageHandlerStub{},
 		DataPool:           datapool,
 		CompiledSCPool:     datapool.SmartContracts(),
+		EpochNotifier:      &mock.EpochNotifierStub{},
 		NilCompiledSCStore: true,
 	}
 	return arguments

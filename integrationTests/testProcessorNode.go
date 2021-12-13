@@ -392,6 +392,7 @@ func newBaseTestProcessorNode(
 
 	messenger := CreateMessengerWithNoDiscovery()
 
+	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
 	tpn := &TestProcessorNode{
 		ShardCoordinator:        shardCoordinator,
 		Messenger:               messenger,
@@ -404,7 +405,7 @@ func newBaseTestProcessorNode(
 		HistoryRepository:       &dblookupextMock.HistoryRepositoryStub{},
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker:       &sync.RWMutex{},
-		TransactionLogProcessor: transactionLog.NewPrintTxLogProcessor(),
+		TransactionLogProcessor: logsProcessor,
 		Bootstrapper:            mock.NewTestBootstrapperMock(),
 	}
 
@@ -567,6 +568,7 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 	kg := &mock.KeyGenMock{}
 	sk, pk := kg.GeneratePair()
 
+	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
 	tpn := &TestProcessorNode{
 		ShardCoordinator:        shardCoordinator,
 		Messenger:               messenger,
@@ -583,7 +585,7 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 		HistoryRepository:       &dblookupextMock.HistoryRepositoryStub{},
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker:       &sync.RWMutex{},
-		TransactionLogProcessor: transactionLog.NewPrintTxLogProcessor(),
+		TransactionLogProcessor: logsProcessor,
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -825,6 +827,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 		NFTStorageHandler:  nftStorageHandler,
 		DataPool:           tpn.DataPool,
 		CompiledSCPool:     smartContractsCache,
+		EpochNotifier:      tpn.EpochNotifier,
 		NilCompiledSCStore: true,
 	}
 
@@ -1407,6 +1410,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		NFTStorageHandler:  nftStorageHandler,
 		DataPool:           tpn.DataPool,
 		CompiledSCPool:     tpn.DataPool.SmartContracts(),
+		EpochNotifier:      tpn.EpochNotifier,
 		NilCompiledSCStore: true,
 	}
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
@@ -1462,6 +1466,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		Marshalizer:       TestMarshalizer,
 		AccountsDB:        tpn.AccntState,
 		BlockChainHook:    vmFactory.BlockChainHookImpl(),
+		BuiltInFunctions:  builtInFuncs,
 		PubkeyConv:        TestAddressPubkeyConverter,
 		ShardCoordinator:  tpn.ShardCoordinator,
 		ScrForwarder:      tpn.ScrForwarder,
@@ -1598,6 +1603,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		NFTStorageHandler:  nftStorageHandler,
 		DataPool:           tpn.DataPool,
 		CompiledSCPool:     tpn.DataPool.SmartContracts(),
+		EpochNotifier:      tpn.EpochNotifier,
 		NilCompiledSCStore: true,
 	}
 
@@ -1692,6 +1698,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		Marshalizer:       TestMarshalizer,
 		AccountsDB:        tpn.AccntState,
 		BlockChainHook:    vmFactory.BlockChainHookImpl(),
+		BuiltInFunctions:  builtInFuncs,
 		PubkeyConv:        TestAddressPubkeyConverter,
 		ShardCoordinator:  tpn.ShardCoordinator,
 		ScrForwarder:      tpn.ScrForwarder,

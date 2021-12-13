@@ -158,7 +158,7 @@ type SmartContractProcessor interface {
 	ExecuteBuiltInFunction(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error)
 	DeploySmartContract(tx data.TransactionHandler, acntSrc state.UserAccountHandler) (vmcommon.ReturnCode, error)
 	ProcessIfError(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, returnMessage []byte, snapshot int, gasLocked uint64) error
-	IsPayable(address []byte) (bool, error)
+	IsPayable(sndAddress []byte, recvAddress []byte) (bool, error)
 	IsInterfaceNil() bool
 }
 
@@ -451,7 +451,7 @@ type PendingMiniBlocksHandler interface {
 
 // BlockChainHookHandler defines the actions which should be performed by implementation
 type BlockChainHookHandler interface {
-	IsPayable(address []byte) (bool, error)
+	IsPayable(sndAddress []byte, recvAddress []byte) (bool, error)
 	SetCurrentHeader(hdr data.HeaderHandler)
 	NewAddress(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error)
 	DeleteCompiledCode(codeHash []byte)
@@ -1015,7 +1015,7 @@ type ESDTRoleHandler interface {
 
 // PayableHandler provides IsPayable function which returns if an account is payable or not
 type PayableHandler interface {
-	IsPayable(address []byte) (bool, error)
+	IsPayable(sndAddress []byte, recvAddress []byte) (bool, error)
 	IsInterfaceNil() bool
 }
 

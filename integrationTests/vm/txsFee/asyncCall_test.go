@@ -1,3 +1,4 @@
+//go:build !race
 // +build !race
 
 // TODO remove build condition above to allow -race -short, after Arwen fix
@@ -47,7 +48,6 @@ func TestAsyncCallShouldWork(t *testing.T) {
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -61,7 +61,7 @@ func TestAsyncCallShouldWork(t *testing.T) {
 	require.Equal(t, big.NewInt(50000000), testContext.TxFeeHandler.GetAccumulatedFees())
 	require.Equal(t, big.NewInt(4999988), testContext.TxFeeHandler.GetDeveloperFees())
 
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, false, testContext.TxsLogsProcessor)
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
