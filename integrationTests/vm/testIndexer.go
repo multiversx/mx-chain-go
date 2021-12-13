@@ -43,10 +43,11 @@ type testIndexer struct {
 	shardCoordinator sharding.Coordinator
 	mutex            sync.RWMutex
 	saveDoneChan     chan struct{}
+	txsLogsProcessor process.TransactionLogProcessor
 	t                testing.TB
 }
 
-const timeoutSave = 100 * time.Second
+const timeoutSave = 3 * time.Second
 
 // CreateTestIndexer -
 func CreateTestIndexer(
@@ -54,6 +55,7 @@ func CreateTestIndexer(
 	coordinator sharding.Coordinator,
 	economicsDataHandler process.EconomicsDataHandler,
 	hasResults bool,
+	txsLogsProcessor process.TransactionLogProcessor,
 ) *testIndexer {
 	ti := &testIndexer{
 		indexerData: map[string]*bytes.Buffer{},
@@ -78,14 +80,17 @@ func CreateTestIndexer(
 	}
 
 	te, err := elasticIndexer.NewDataIndexer(arguments)
+	outPutDriver, err := elasticIndexer.NewDataIndexer(arguments)
 	require.Nil(t, err)
 
 	ti.outportDriver = te
+	ti.outportDriver = outPutDriver
 	ti.shardCoordinator = coordinator
 	ti.marshalizer = testMarshalizer
 	ti.hasher = testHasher
 	ti.t = t
 	ti.saveDoneChan = make(chan struct{})
+	ti.txsLogsProcessor = txsLogsProcessor
 
 	return ti
 }
@@ -118,7 +123,15 @@ func (ti *testIndexer) createElasticProcessor(
 	mp, _ := miniblocks.NewMiniblocksProcessor(shardCoordinator.SelfId(), testHasher, testMarshalizer)
 	sp := statistics.NewStatisticsProcessor()
 	vp, _ := validators.NewValidatorsProcessor(pubkeyConv)
-	lp, _ := logsevents.NewLogsAndEventsProcessor(shardCoordinator, pubkeyConv, testMarshalizer, balanceConverter, testHasher)
+	args := &logsevents.ArgsLogsAndEventsProcessor{
+		ShardCoordinator: shardCoordinator,
+		PubKeyConverter:  pubkeyConv,
+		Marshalizer:      testMarshalizer,
+		BalanceConverter: balanceConverter,
+		TxFeeCalculator:  transactionFeeCalculator,
+		Hasher:           testHasher,
+	}
+	lp, _ := logsevents.NewLogsAndEventsProcessor(args)
 
 	esIndexerArgs := &elasticProcessor.ArgElasticProcessor{
 		UseKibana:         false,
@@ -171,6 +184,7 @@ func (ti *testIndexer) SaveTransaction(
 		Rewards:  nil,
 		Invalid:  make(map[string]data.TransactionHandler),
 		Receipts: make(map[string]data.TransactionHandler),
+		Logs:     ti.txsLogsProcessor.GetAllCurrentLogs(),
 	}
 
 	if mbType == block.InvalidBlock {

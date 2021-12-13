@@ -88,6 +88,7 @@ type ArgEnableEpoch struct {
 	RelayedTxEnableEpoch                uint32
 	UnbondTokensV2EnableEpoch           uint32
 	BackwardCompSaveKeyValueEnableEpoch uint32
+	CleanUpInformativeSCRsEnableEpoch   uint32
 }
 
 // VMTestAccount -
@@ -432,6 +433,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		CompiledSCPool:     datapool.SmartContracts(),
 		NilCompiledSCStore: true,
 		ConfigSCStorage:    *defaultStorageConfig(),
+		EpochNotifier:      &mock.EpochNotifierStub{},
 	}
 
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
@@ -473,6 +475,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		Marshalizer:      testMarshalizer,
 		AccountsDB:       accnts,
 		BlockChainHook:   blockChainHook,
+		BuiltInFunctions: builtInFuncs,
 		PubkeyConv:       pubkeyConv,
 		ShardCoordinator: oneShardCoordinator,
 		ScrForwarder:     &mock.IntermediateTransactionHandlerMock{},
@@ -533,6 +536,7 @@ func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutio
 		CompiledSCPool:     datapool.SmartContracts(),
 		NilCompiledSCStore: true,
 		ConfigSCStorage:    *defaultStorageConfig(),
+		EpochNotifier:      &mock.EpochNotifierStub{},
 	}
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
 	vm, _ := mock.NewOneSCExecutorMockVM(blockChainHook, testHasher)
@@ -581,6 +585,7 @@ func CreateVMAndBlockchainHookAndDataPool(
 		CompiledSCPool:     datapool.SmartContracts(),
 		NilCompiledSCStore: true,
 		ConfigSCStorage:    *defaultStorageConfig(),
+		EpochNotifier:      &mock.EpochNotifierStub{},
 	}
 
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(testMarshalizer)
@@ -650,6 +655,7 @@ func CreateVMAndBlockchainHookMeta(
 		DataPool:           datapool,
 		CompiledSCPool:     datapool.SmartContracts(),
 		NilCompiledSCStore: true,
+		EpochNotifier:      &mock.EpochNotifierStub{},
 	}
 
 	economicsData, err := createEconomicsData(0)
@@ -812,6 +818,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		BuiltInFunctionsEnableEpoch:         argEnableEpoch.BuiltinEnableEpoch,
 		SCDeployEnableEpoch:                 argEnableEpoch.DeployEnableEpoch,
 		BackwardCompSaveKeyValueEnableEpoch: argEnableEpoch.BackwardCompSaveKeyValueEnableEpoch,
+		CleanUpInformativeSCRsEnableEpoch:   argEnableEpoch.CleanUpInformativeSCRsEnableEpoch,
 	}
 	logProc, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
 		SaveInStorageEnabled: false,
@@ -825,6 +832,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		Marshalizer:       testMarshalizer,
 		AccountsDB:        accnts,
 		BlockChainHook:    blockChainHook,
+		BuiltInFunctions:  blockChainHook.GetBuiltinFunctionsContainer(),
 		PubkeyConv:        pubkeyConv,
 		ShardCoordinator:  shardCoordinator,
 		ScrForwarder:      intermediateTxHandler,
@@ -1471,6 +1479,7 @@ func CreatePreparedTxProcessorWithVMsMultiShard(selfShardID uint32, argEnableEpo
 		ScForwarder:      res.IntermediateTxProc,
 		EconomicsData:    res.EconomicsHandler,
 		Marshalizer:      testMarshalizer,
+		TxsLogsProcessor: res.TxLogProc,
 	}, nil
 }
 
