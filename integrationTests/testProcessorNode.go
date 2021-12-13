@@ -2627,6 +2627,7 @@ func (tpn *TestProcessorNode) initBlockTracker() {
 		StartHeaders:     tpn.GenesisBlocks,
 		PoolsHolder:      tpn.DataPool,
 		WhitelistHandler: tpn.WhiteListHandler,
+		FeeHandler:       tpn.EconomicsData,
 	}
 
 	if tpn.ShardCoordinator.SelfId() != core.MetachainShardId {
