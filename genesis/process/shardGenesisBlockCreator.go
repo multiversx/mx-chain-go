@@ -76,6 +76,7 @@ func createGenesisConfig() config.EnableEpochs {
 		CreateNFTThroughExecByCallerEnableEpoch:     unreachableEpoch,
 		DisableOldTrieStorageEpoch:                  unreachableEpoch,
 		StorageAPICostOptimizationEnableEpoch:       unreachableEpoch,
+		TransformToMultiShardCreateEnableEpoch:      unreachableEpoch,
 	}
 }
 

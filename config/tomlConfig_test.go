@@ -628,6 +628,9 @@ func TestEnableEpochConfig(t *testing.T) {
     # StorageAPICostOptimizationEnableEpoch represents the epoch when new storage helper functions are enabled and cost is reduced in Arwen
     StorageAPICostOptimizationEnableEpoch = 50
 
+    # TransformToMultiShardCreateEnableEpoch represents the epoch when the new function on esdt system sc is enabled to transfer create role into multishard
+	TransformToMultiShardCreateEnableEpoch = 51
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -705,6 +708,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			IsPayableBySCEnableEpoch:                    48,
 			CleanUpInformativeSCRsEnableEpoch:           49,
 			StorageAPICostOptimizationEnableEpoch:       50,
+			TransformToMultiShardCreateEnableEpoch:      51,
 		},
 		GasSchedule: GasScheduleConfig{
 			GasScheduleByEpochs: []GasScheduleByEpochs{
