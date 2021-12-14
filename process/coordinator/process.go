@@ -519,7 +519,7 @@ func (tc *transactionCoordinator) processMiniBlocksToMe(
 	defer func() {
 		log.Debug("transactionCoordinator.processMiniBlocksToMe: gas consumed, refunded and penalized info",
 			"num mini blocks processed", len(body.MiniBlocks),
-			"total gas consumed", tc.gasHandler.TotalGasConsumed(),
+			"total gas consumed", tc.gasHandler.TotalGasProvided(),
 			"total gas refunded", tc.gasHandler.TotalGasRefunded(),
 			"total gas penalized", tc.gasHandler.TotalGasPenalized())
 	}()
@@ -660,7 +660,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		log.Debug("transactionsCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: process mini block",
 			"hash", miniBlockInfo.Hash,
 			"mb type", miniBlock.Type,
-			"total gas consumed", tc.gasHandler.TotalGasConsumed(),
+			"total gas consumed", tc.gasHandler.TotalGasProvided(),
 			"total gas refunded", tc.gasHandler.TotalGasRefunded(),
 			"total gas penalized", tc.gasHandler.TotalGasPenalized(),
 		)
