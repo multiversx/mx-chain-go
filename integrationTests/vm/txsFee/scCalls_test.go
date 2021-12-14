@@ -7,7 +7,6 @@ package txsFee
 
 import (
 	"encoding/hex"
-	"fmt"
 	"math/big"
 	"testing"
 
@@ -45,15 +44,15 @@ func TestScCallShouldWork(t *testing.T) {
 		calculatedGasLimit := vm.ComputeGasLimit(nil, testContext, tx)
 		require.Equal(t, uint64(387), calculatedGasLimit)
 
-		_, err = testContext.TxProcessor.ProcessTransaction(tx)
+		returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 		require.Nil(t, err)
-		require.Nil(t, testContext.GetLatestError())
+		require.Equal(t, vmcommon.Ok, returnCode)
 
 		_, err = testContext.Accounts.Commit()
 		require.Nil(t, err)
 
 		intermediateTxs := testContext.GetIntermediateTransactions(t)
-		testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true)
+		testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true, testContext.TxsLogsProcessor)
 		testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 		indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -93,7 +92,6 @@ func TestScCallContractNotFoundShouldConsumeGas(t *testing.T) {
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Nil(t, err)
-	require.Equal(t, fmt.Errorf("contract not found"), testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -106,7 +104,7 @@ func TestScCallContractNotFoundShouldConsumeGas(t *testing.T) {
 	require.Equal(t, big.NewInt(10000), accumulatedFees)
 
 	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, false, testContext.TxsLogsProcessor)
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -133,7 +131,6 @@ func TestScCallInvalidMethodToCallShouldConsumeGas(t *testing.T) {
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Nil(t, err)
-	require.Equal(t, fmt.Errorf(vmcommon.FunctionNotFound.String()), testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -149,7 +146,7 @@ func TestScCallInvalidMethodToCallShouldConsumeGas(t *testing.T) {
 	require.Equal(t, big.NewInt(20970), accumulatedFees)
 
 	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, false, testContext.TxsLogsProcessor)
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -174,7 +171,6 @@ func TestScCallInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
 	tx := vm.CreateTransaction(0, big.NewInt(0), sndAddr, scAddress, gasPrice, gasLimit, []byte("increment"))
 	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, process.ErrInsufficientGasLimitInTx, err)
-	require.Nil(t, testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -212,7 +208,6 @@ func TestScCallOutOfGasShouldConsumeGas(t *testing.T) {
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Nil(t, err)
-	require.Equal(t, fmt.Errorf("out of gas"), testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -228,7 +223,7 @@ func TestScCallOutOfGasShouldConsumeGas(t *testing.T) {
 	require.Equal(t, big.NewInt(11170), accumulatedFees)
 
 	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, false, testContext.TxsLogsProcessor)
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -256,15 +251,15 @@ func TestScCallAndGasChangeShouldWork(t *testing.T) {
 	for idx := uint64(0); idx < numIterations; idx++ {
 		tx := vm.CreateTransaction(idx, big.NewInt(0), sndAddr, scAddress, gasPrice, gasLimit, []byte("increment"))
 
-		_, err = testContext.TxProcessor.ProcessTransaction(tx)
+		returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 		require.Nil(t, err)
-		require.Nil(t, testContext.GetLatestError())
+		require.Equal(t, vmcommon.Ok, returnCode)
 
 		_, err = testContext.Accounts.Commit()
 		require.Nil(t, err)
 
 		intermediateTxs := testContext.GetIntermediateTransactions(t)
-		testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true)
+		testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true, testContext.TxsLogsProcessor)
 		testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 		indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -278,15 +273,15 @@ func TestScCallAndGasChangeShouldWork(t *testing.T) {
 	for idx := uint64(0); idx < numIterations; idx++ {
 		tx := vm.CreateTransaction(numIterations+idx, big.NewInt(0), sndAddr, scAddress, gasPrice, gasLimit, []byte("increment"))
 
-		_, err = testContext.TxProcessor.ProcessTransaction(tx)
+		returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 		require.Nil(t, err)
-		require.Nil(t, testContext.GetLatestError())
+		require.Equal(t, vmcommon.Ok, returnCode)
 
 		_, err = testContext.Accounts.Commit()
 		require.Nil(t, err)
 
 		intermediateTxs := testContext.GetIntermediateTransactions(t)
-		testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true)
+		testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true, testContext.TxsLogsProcessor)
 		testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 		indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -325,15 +320,15 @@ func TestESDTScCallAndGasChangeShouldWork(t *testing.T) {
 	for idx := uint64(0); idx < numIterations; idx++ {
 		tx := vm.CreateTransaction(idx, big.NewInt(0), sndAddr, scAddress, gasPrice, gasLimit, txData.ToBytes())
 
-		_, err = testContext.TxProcessor.ProcessTransaction(tx)
+		returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 		require.Nil(t, err)
-		require.Nil(t, testContext.GetLatestError())
+		require.Equal(t, vmcommon.Ok, returnCode)
 
 		_, err = testContext.Accounts.Commit()
 		require.Nil(t, err)
 
 		intermediateTxs := testContext.GetIntermediateTransactions(t)
-		testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true)
+		testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true, testContext.TxsLogsProcessor)
 		testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 		indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -350,15 +345,15 @@ func TestESDTScCallAndGasChangeShouldWork(t *testing.T) {
 	for idx := uint64(0); idx < numIterations; idx++ {
 		tx := vm.CreateTransaction(numIterations+idx, big.NewInt(0), sndAddr, scAddress, gasPrice, gasLimit, txData.ToBytes())
 
-		_, err = testContext.TxProcessor.ProcessTransaction(tx)
+		returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 		require.Nil(t, err)
-		require.Nil(t, testContext.GetLatestError())
+		require.Equal(t, vmcommon.Ok, returnCode)
 
 		_, err = testContext.Accounts.Commit()
 		require.Nil(t, err)
 
 		intermediateTxs := testContext.GetIntermediateTransactions(t)
-		testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true)
+		testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true, testContext.TxsLogsProcessor)
 		testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 		indexerTx := testIndexer.GetIndexerPreparedTransaction(t)

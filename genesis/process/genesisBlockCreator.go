@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
@@ -404,7 +405,12 @@ func (gbc *genesisBlockCreator) computeDNSAddresses() error {
 	if dnsSC == nil || check.IfNil(dnsSC) {
 		return nil
 	}
-
+	epochNotifier := forking.NewGenericEpochNotifier()
+	temporaryMetaHeader := &block.MetaBlock{
+		Epoch:     gbc.arg.StartEpochNum,
+		TimeStamp: gbc.arg.GenesisTime,
+	}
+	epochNotifier.CheckEpoch(temporaryMetaHeader)
 	builtInFuncs := vmcommonBuiltInFunctions.NewBuiltInFunctionContainer()
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:           gbc.arg.Accounts,
@@ -418,6 +424,7 @@ func (gbc *genesisBlockCreator) computeDNSAddresses() error {
 		NFTStorageHandler:  &disabled.SimpleNFTStorage{},
 		DataPool:           gbc.arg.Data.Datapool(),
 		CompiledSCPool:     gbc.arg.Data.Datapool().SmartContracts(),
+		EpochNotifier:      epochNotifier,
 		NilCompiledSCStore: true,
 	}
 	blockChainHook, err := hooks.NewBlockChainHookImpl(argsHook)
