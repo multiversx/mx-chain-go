@@ -228,7 +228,6 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 	_ data.HeaderHandler,
 	body *block.Body,
 	haveTime func() bool,
-	_ []byte,
 ) error {
 	if check.IfNil(body) {
 		return process.ErrNilBlockBody

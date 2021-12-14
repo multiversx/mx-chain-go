@@ -16,7 +16,7 @@ type GasHandlerStub struct {
 	GasConsumedAsScheduledCalled        func(hash []byte) uint64
 	GasRefundedCalled                   func(hash []byte) uint64
 	GasPenalizedCalled                  func(hash []byte) uint64
-	TotalGasConsumedCalled              func() uint64
+	TotalGasProvidedCalled              func() uint64
 	TotalGasConsumedAsScheduledCalled   func() uint64
 	TotalGasRefundedCalled              func() uint64
 	TotalGasPenalizedCalled             func() uint64
@@ -96,9 +96,9 @@ func (ghs *GasHandlerStub) GasPenalized(hash []byte) uint64 {
 }
 
 // TotalGasConsumed -
-func (ghs *GasHandlerStub) TotalGasConsumed() uint64 {
-	if ghs.TotalGasConsumedCalled != nil {
-		return ghs.TotalGasConsumedCalled()
+func (ghs *GasHandlerStub) TotalGasProvided() uint64 {
+	if ghs.TotalGasProvidedCalled != nil {
+		return ghs.TotalGasProvidedCalled()
 	}
 	return 0
 }

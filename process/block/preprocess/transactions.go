@@ -297,7 +297,7 @@ func (txs *transactions) ProcessBlockTransactions(
 	}
 
 	if txs.isBodyFromMe(body) {
-		return txs.processTxsFromMe(body, haveTime, header.GetPrevRandomness())
+		return txs.processTxsFromMe(body, haveTime, header.GetPrevRandSeed())
 	}
 
 	return process.ErrInvalidBody
@@ -574,6 +574,7 @@ func (txs *transactions) processTxsFromMe(
 		isShardStuckFalse,
 		isMaxBlockSizeReachedFalse,
 		mapSCTxs,
+		randomness,
 	)
 	if err != nil {
 		return err
@@ -625,6 +626,7 @@ func (txs *transactions) createAndProcessScheduledMiniBlocksFromMeAsValidator(
 	isShardStuck func(uint32) bool,
 	isMaxBlockSizeReached func(int, int) bool,
 	mapSCTxs map[string]struct{},
+	randomness []byte,
 ) (block.MiniBlockSlice, error) {
 
 	if !txs.flagScheduledMiniBlocks.IsSet() {
@@ -636,7 +638,7 @@ func (txs *transactions) createAndProcessScheduledMiniBlocksFromMeAsValidator(
 		return nil, err
 	}
 
-	txs.sortTransactionsBySenderAndNonce(scheduledTxsFromMe)
+	txs.sortTransactionsBySenderAndNonce(scheduledTxsFromMe, randomness)
 
 	scheduledMiniBlocks := txs.createScheduledMiniBlocks(
 		haveTime,
