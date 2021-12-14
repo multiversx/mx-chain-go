@@ -65,6 +65,7 @@ import (
 	metaProcess "github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
+	processMock "github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/peer"
 	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
@@ -1945,6 +1946,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		BlockSizeThrottler: TestBlockSizeThrottler,
 		HistoryRepository:  tpn.HistoryRepository,
 		EpochNotifier:      tpn.EpochNotifier,
+		RoundNotifier:      coreComponents.RoundNotifier(),
 		GasHandler:         tpn.GasHandler,
 	}
 
@@ -2808,6 +2810,7 @@ func GetDefaultCoreComponents() *mock.CoreComponentsStub {
 		GenesisNodesSetupField: &testscommon.NodesSetupStub{},
 		GenesisTimeField:       time.Time{},
 		EpochNotifierField:     &mock.EpochNotifierStub{},
+		RoundNotifierField:     &processMock.RoundNotifierStub{},
 		TxVersionCheckField:    versioning.NewTxVersionChecker(MinTransactionVersion),
 	}
 }
