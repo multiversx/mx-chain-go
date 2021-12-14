@@ -69,6 +69,7 @@ type ArgBaseProcessor struct {
 	Version             string
 	HistoryRepository   dblookupext.HistoryRepository
 	EpochNotifier       process.EpochNotifier
+	RoundNotifier       process.RoundNotifier
 	VMContainersFactory process.VirtualMachinesContainerFactory
 	VmContainer         process.VirtualMachinesContainer
 	GasHandler          gasConsumedProvider
