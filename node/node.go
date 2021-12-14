@@ -828,7 +828,7 @@ func (n *Node) commonTransactionValidation(
 		txSingleSigner,
 		n.coreComponents.AddressPubKeyConverter(),
 		n.processComponents.ShardCoordinator(),
-		n.coreComponents.EconomicsData(),
+		n.coreComponents.APIEconomicsData(),
 		whiteListerVerifiedTxs,
 		argumentParser,
 		[]byte(n.coreComponents.ChainID()),

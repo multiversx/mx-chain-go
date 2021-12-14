@@ -34,6 +34,7 @@ func TestNewPreProcessorsContainerFactory_NilShardCoordinator(t *testing.T) {
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		2,
+		2,
 	)
 
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
@@ -60,6 +61,7 @@ func TestNewPreProcessorsContainerFactory_NilStore(t *testing.T) {
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
+		2,
 		2,
 	)
 
@@ -88,6 +90,7 @@ func TestNewPreProcessorsContainerFactory_NilMarshalizer(t *testing.T) {
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		2,
+		2,
 	)
 
 	assert.Equal(t, process.ErrNilMarshalizer, err)
@@ -114,6 +117,7 @@ func TestNewPreProcessorsContainerFactory_NilHasher(t *testing.T) {
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
+		2,
 		2,
 	)
 
@@ -142,6 +146,7 @@ func TestNewPreProcessorsContainerFactory_NilDataPool(t *testing.T) {
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		2,
+		2,
 	)
 
 	assert.Equal(t, process.ErrNilDataPoolHolder, err)
@@ -168,6 +173,7 @@ func TestNewPreProcessorsContainerFactory_NilAccounts(t *testing.T) {
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
+		2,
 		2,
 	)
 
@@ -196,6 +202,7 @@ func TestNewPreProcessorsContainerFactory_NilFeeHandler(t *testing.T) {
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		2,
+		2,
 	)
 
 	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
@@ -222,6 +229,7 @@ func TestNewPreProcessorsContainerFactory_NilTxProcessor(t *testing.T) {
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
+		2,
 		2,
 	)
 
@@ -250,6 +258,7 @@ func TestNewPreProcessorsContainerFactory_NilRequestHandler(t *testing.T) {
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		2,
+		2,
 	)
 	assert.Equal(t, process.ErrNilRequestHandler, err)
 	assert.Nil(t, ppcm)
@@ -275,6 +284,7 @@ func TestNewPreProcessorsContainerFactory_NilGasHandler(t *testing.T) {
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
+		2,
 		2,
 	)
 	assert.Equal(t, process.ErrNilGasHandler, err)
@@ -302,6 +312,7 @@ func TestNewPreProcessorsContainerFactory_NilBlockTracker(t *testing.T) {
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		2,
+		2,
 	)
 	assert.Equal(t, process.ErrNilBlockTracker, err)
 	assert.Nil(t, ppcm)
@@ -327,6 +338,7 @@ func TestNewPreProcessorsContainerFactory_NilPubkeyConverter(t *testing.T) {
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
+		2,
 		2,
 	)
 	assert.Equal(t, process.ErrNilPubkeyConverter, err)
@@ -354,6 +366,7 @@ func TestNewPreProcessorsContainerFactory_NilBlockSizeComputationHandler(t *test
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		2,
+		2,
 	)
 	assert.Equal(t, process.ErrNilBlockSizeComputationHandler, err)
 	assert.Nil(t, ppcm)
@@ -379,6 +392,7 @@ func TestNewPreProcessorsContainerFactory_NilBalanceComputationHandler(t *testin
 		&mock.BlockSizeComputationStub{},
 		nil,
 		&mock.EpochNotifierStub{},
+		2,
 		2,
 	)
 	assert.Equal(t, process.ErrNilBalanceComputationHandler, err)
@@ -406,6 +420,7 @@ func TestNewPreProcessorsContainerFactory_NilEpochNotifier(t *testing.T) {
 		&mock.BalanceComputationStub{},
 		nil,
 		2,
+		2,
 	)
 	assert.Equal(t, process.ErrNilEpochNotifier, err)
 	assert.Nil(t, ppcm)
@@ -431,6 +446,7 @@ func TestNewPreProcessorsContainerFactory(t *testing.T) {
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
+		2,
 		2,
 	)
 
@@ -465,6 +481,7 @@ func TestPreProcessorsContainerFactory_CreateErrTxPreproc(t *testing.T) {
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		2,
+		2,
 	)
 
 	assert.Nil(t, err)
@@ -495,6 +512,7 @@ func TestPreProcessorsContainerFactory_Create(t *testing.T) {
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
+		2,
 		2,
 	)
 

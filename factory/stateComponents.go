@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -19,19 +20,21 @@ import (
 
 // StateComponentsFactoryArgs holds the arguments needed for creating a state components factory
 type StateComponentsFactoryArgs struct {
-	Config              config.Config
-	ShardCoordinator    sharding.Coordinator
-	Core                CoreComponentsHolder
-	TriesContainer      state.TriesHolder
-	TrieStorageManagers map[string]common.StorageManager
+	Config           config.Config
+	EnableEpochs     config.EnableEpochs
+	ShardCoordinator sharding.Coordinator
+	Core             CoreComponentsHolder
+	StorageService   dataRetriever.StorageService
+	ProcessingMode   common.NodeProcessingMode
 }
 
 type stateComponentsFactory struct {
-	config              config.Config
-	shardCoordinator    sharding.Coordinator
-	core                CoreComponentsHolder
-	triesContainer      state.TriesHolder
-	trieStorageManagers map[string]common.StorageManager
+	config           config.Config
+	shardCoordinator sharding.Coordinator
+	core             CoreComponentsHolder
+	storageService   dataRetriever.StorageService
+	enableEpochs     config.EnableEpochs
+	processingMode   common.NodeProcessingMode
 }
 
 // stateComponents struct holds the state components of the Elrond protocol
@@ -39,7 +42,7 @@ type stateComponents struct {
 	peerAccounts        state.AccountsAdapter
 	accountsAdapter     state.AccountsAdapter
 	accountsAdapterAPI  state.AccountsAdapter
-	triesContainer      state.TriesHolder
+	triesContainer      common.TriesHolder
 	trieStorageManagers map[string]common.StorageManager
 }
 
@@ -60,35 +63,40 @@ func NewStateComponentsFactory(args StateComponentsFactoryArgs) (*stateComponent
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, errors.ErrNilShardCoordinator
 	}
-	if check.IfNil(args.TriesContainer) {
-		return nil, errors.ErrNilTriesContainer
-	}
-	if len(args.TrieStorageManagers) == 0 {
-		return nil, errors.ErrNilTriesStorageManagers
-	}
-	for _, storageManager := range args.TrieStorageManagers {
-		if check.IfNil(storageManager) {
-			return nil, errors.ErrNilTrieStorageManager
-		}
+	if check.IfNil(args.StorageService) {
+		return nil, errors.ErrNilStorageService
 	}
 
 	return &stateComponentsFactory{
-		config:              args.Config,
-		shardCoordinator:    args.ShardCoordinator,
-		core:                args.Core,
-		triesContainer:      args.TriesContainer,
-		trieStorageManagers: args.TrieStorageManagers,
+		config:           args.Config,
+		shardCoordinator: args.ShardCoordinator,
+		core:             args.Core,
+		storageService:   args.StorageService,
+		enableEpochs:     args.EnableEpochs,
+		processingMode:   args.ProcessingMode,
 	}, nil
 }
 
 // Create creates the state components
 func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
-	accountsAdapter, accountsAdapterAPI, err := scf.createAccountsAdapters()
+	triesContainer, trieStorageManagers, err := trieFactory.CreateTriesComponentsForShardId(
+		scf.config,
+		scf.core,
+		scf.shardCoordinator.SelfId(),
+		scf.storageService,
+		scf.enableEpochs.DisableOldTrieStorageEpoch,
+		scf.core.EpochNotifier(),
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	peerAdapter, err := scf.createPeerAdapter()
+	accountsAdapter, accountsAdapterAPI, err := scf.createAccountsAdapters(triesContainer)
+	if err != nil {
+		return nil, err
+	}
+
+	peerAdapter, err := scf.createPeerAdapter(triesContainer)
 	if err != nil {
 		return nil, err
 	}
@@ -97,14 +105,14 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 		peerAccounts:        peerAdapter,
 		accountsAdapter:     accountsAdapter,
 		accountsAdapterAPI:  accountsAdapterAPI,
-		triesContainer:      scf.triesContainer,
-		trieStorageManagers: scf.trieStorageManagers,
+		triesContainer:      triesContainer,
+		trieStorageManagers: trieStorageManagers,
 	}, nil
 }
 
-func (scf *stateComponentsFactory) createAccountsAdapters() (state.AccountsAdapter, state.AccountsAdapter, error) {
+func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.TriesHolder) (state.AccountsAdapter, state.AccountsAdapter, error) {
 	accountFactory := factoryState.NewAccountCreator()
-	merkleTrie := scf.triesContainer.Get([]byte(trieFactory.UserAccountTrie))
+	merkleTrie := triesContainer.Get([]byte(trieFactory.UserAccountTrie))
 	storagePruning, err := scf.newStoragePruningManager()
 	if err != nil {
 		return nil, nil, err
@@ -116,6 +124,7 @@ func (scf *stateComponentsFactory) createAccountsAdapters() (state.AccountsAdapt
 		scf.core.InternalMarshalizer(),
 		accountFactory,
 		storagePruning,
+		scf.processingMode,
 	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("%w: %s", errors.ErrAccountsAdapterCreation, err.Error())
@@ -127,6 +136,7 @@ func (scf *stateComponentsFactory) createAccountsAdapters() (state.AccountsAdapt
 		scf.core.InternalMarshalizer(),
 		accountFactory,
 		storagePruning,
+		scf.processingMode,
 	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("accounts adapter API: %w: %s", errors.ErrAccountsAdapterCreation, err.Error())
@@ -135,9 +145,9 @@ func (scf *stateComponentsFactory) createAccountsAdapters() (state.AccountsAdapt
 	return accountsAdapter, accountsAdapterAPI, nil
 }
 
-func (scf *stateComponentsFactory) createPeerAdapter() (state.AccountsAdapter, error) {
+func (scf *stateComponentsFactory) createPeerAdapter(triesContainer common.TriesHolder) (state.AccountsAdapter, error) {
 	accountFactory := factoryState.NewPeerAccountCreator()
-	merkleTrie := scf.triesContainer.Get([]byte(trieFactory.PeerAccountTrie))
+	merkleTrie := triesContainer.Get([]byte(trieFactory.PeerAccountTrie))
 	storagePruning, err := scf.newStoragePruningManager()
 	if err != nil {
 		return nil, err
@@ -195,6 +205,21 @@ func (pc *stateComponents) Close() error {
 	err = pc.peerAccounts.Close()
 	if err != nil {
 		errString += fmt.Errorf("peerAccounts close failed: %w ", err).Error()
+	}
+
+	tries := pc.triesContainer.GetAll()
+	for _, trie := range tries {
+		err = trie.Close()
+		if err != nil {
+			errString += fmt.Errorf("trie close failed: %w ", err).Error()
+		}
+	}
+
+	for _, trieStorageManager := range pc.trieStorageManagers {
+		err = trieStorageManager.Close()
+		if err != nil {
+			errString += fmt.Errorf("trieStorageManager close failed: %w ", err).Error()
+		}
 	}
 
 	if len(errString) != 0 {

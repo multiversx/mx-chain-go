@@ -72,15 +72,16 @@ func NewShardStorageHandler(
 	return &shardStorageHandler{baseStorageHandler: base}, nil
 }
 
+// CloseStorageService closes the containing storage service
+func (ssh *shardStorageHandler) CloseStorageService() {
+	err := ssh.storageService.CloseAll()
+	if err != nil {
+		log.Warn("error while closing storers", "error", err)
+	}
+}
+
 // SaveDataToStorage will save the fetched data to storage so it will be used by the storage bootstrap component
 func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededForBootstrap) error {
-	defer func() {
-		err := ssh.storageService.CloseAll()
-		if err != nil {
-			log.Warn("error while closing storers", "error", err)
-		}
-	}()
-
 	bootStorer := ssh.storageService.GetStorer(dataRetriever.BootstrapUnit)
 
 	lastHeader, err := ssh.saveLastHeader(components.ShardHeader)

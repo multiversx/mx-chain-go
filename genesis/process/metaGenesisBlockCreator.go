@@ -27,6 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	syncDisabled "github.com/ElrondNetwork/elrond-go/process/sync/disabled"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -239,6 +240,13 @@ func saveGenesisMetaToStorage(
 }
 
 func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpochs config.EnableEpochs) (*genesisProcessors, error) {
+	epochNotifier := forking.NewGenericEpochNotifier()
+	temporaryMetaHeader := &block.MetaBlock{
+		Epoch:     arg.StartEpochNum,
+		TimeStamp: arg.GenesisTime,
+	}
+	epochNotifier.CheckEpoch(temporaryMetaHeader)
+
 	builtInFuncs := vmcommonBuiltInFunctions.NewBuiltInFunctionContainer()
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:           arg.Accounts,
@@ -252,15 +260,9 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		NFTStorageHandler:  &disabled.SimpleNFTStorage{},
 		DataPool:           arg.Data.Datapool(),
 		CompiledSCPool:     arg.Data.Datapool().SmartContracts(),
+		EpochNotifier:      epochNotifier,
 		NilCompiledSCStore: true,
 	}
-
-	epochNotifier := forking.NewGenericEpochNotifier()
-	temporaryMetaHeader := &block.MetaBlock{
-		Epoch:     arg.StartEpochNum,
-		TimeStamp: arg.GenesisTime,
-	}
-	epochNotifier.CheckEpoch(temporaryMetaHeader)
 
 	pubKeyVerifier, err := disabled.NewMessageSignVerifier(arg.BlockSignKeyGen)
 	if err != nil {
@@ -352,6 +354,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		Marshalizer:         arg.Core.InternalMarshalizer(),
 		AccountsDB:          arg.Accounts,
 		BlockChainHook:      virtualMachineFactory.BlockChainHookImpl(),
+		BuiltInFunctions:    builtInFuncs,
 		PubkeyConv:          arg.Core.AddressPubKeyConverter(),
 		ShardCoordinator:    arg.ShardCoordinator,
 		ScrForwarder:        scForwarder,
@@ -414,6 +417,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		disabledBalanceComputationHandler,
 		epochNotifier,
 		enableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
+		enableEpochs.FrontRunningProtectionEnableEpoch,
 	)
 	if err != nil {
 		return nil, err
@@ -453,6 +457,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		BlockChainHook:    virtualMachineFactory.BlockChainHookImpl(),
 		BlockChain:        arg.Data.Blockchain(),
 		ArwenChangeLocker: &sync.RWMutex{},
+		Bootstrapper:      syncDisabled.NewDisabledBootstrapper(),
 	}
 	queryService, err := smartContract.NewSCQueryService(argsNewSCQueryService)
 	if err != nil {

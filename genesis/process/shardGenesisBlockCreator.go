@@ -25,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	syncDisabled "github.com/ElrondNetwork/elrond-go/process/sync/disabled"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
@@ -73,6 +74,9 @@ func createGenesisConfig() config.EnableEpochs {
 		RemoveNonUpdatedStorageEnableEpoch:          unreachableEpoch,
 		OptimizeNFTStoreEnableEpoch:                 unreachableEpoch,
 		CreateNFTThroughExecByCallerEnableEpoch:     unreachableEpoch,
+		DisableOldTrieStorageEpoch:                  unreachableEpoch,
+		StorageAPICostOptimizationEnableEpoch:       unreachableEpoch,
+		TransformToMultiShardCreateEnableEpoch:      unreachableEpoch,
 	}
 }
 
@@ -311,6 +315,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		NFTStorageHandler:  nftStorageHandler,
 		DataPool:           arg.Data.Datapool(),
 		CompiledSCPool:     arg.Data.Datapool().SmartContracts(),
+		EpochNotifier:      epochNotifier,
 		NilCompiledSCStore: true,
 	}
 	esdtTransferParser, err := parsers.NewESDTTransferParser(arg.Core.InternalMarshalizer())
@@ -409,6 +414,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		Marshalizer:         arg.Core.InternalMarshalizer(),
 		AccountsDB:          arg.Accounts,
 		BlockChainHook:      vmFactoryImpl.BlockChainHookImpl(),
+		BuiltInFunctions:    builtInFuncs,
 		PubkeyConv:          arg.Core.AddressPubKeyConverter(),
 		ShardCoordinator:    arg.ShardCoordinator,
 		ScrForwarder:        scForwarder,
@@ -490,6 +496,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		disabledBalanceComputationHandler,
 		epochNotifier,
 		enableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
+		enableEpochs.FrontRunningProtectionEnableEpoch,
 	)
 	if err != nil {
 		return nil, err
@@ -529,6 +536,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		BlockChainHook:    vmFactoryImpl.BlockChainHookImpl(),
 		BlockChain:        arg.Data.Blockchain(),
 		ArwenChangeLocker: genesisArwenLocker,
+		Bootstrapper:      syncDisabled.NewDisabledBootstrapper(),
 	}
 	queryService, err := smartContract.NewSCQueryService(argsNewSCQueryService)
 	if err != nil {

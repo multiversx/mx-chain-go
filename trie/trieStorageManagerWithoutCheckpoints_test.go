@@ -5,23 +5,10 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/trie"
-	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
 	"github.com/stretchr/testify/assert"
 )
-
-func getNewTrieStorageManagerArgs() trie.NewTrieStorageManagerArgs {
-	return trie.NewTrieStorageManagerArgs{
-		DB:                     testscommon.NewMemDbMock(),
-		Marshalizer:            &testscommon.MarshalizerMock{},
-		Hasher:                 &testscommon.HasherMock{},
-		SnapshotDbConfig:       config.DBConfig{},
-		GeneralConfig:          config.TrieStorageManagerConfig{},
-		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, 32),
-	}
-}
 
 func TestNewTrieStorageManagerWithoutCheckpointsNilDb(t *testing.T) {
 	t.Parallel()
@@ -68,11 +55,11 @@ func TestTrieStorageManagerWithoutCheckpoints_SetCheckpoint(t *testing.T) {
 	args := getNewTrieStorageManagerArgs()
 	ts, _ := trie.NewTrieStorageManagerWithoutCheckpoints(args)
 
-	ts.SetCheckpoint([]byte("rootHash"), nil)
+	ts.SetCheckpoint([]byte("rootHash"), nil, &trieMock.MockStatistics{})
 	assert.Equal(t, uint32(0), ts.PruningBlockingOperations())
 
 	chLeaves := make(chan core.KeyValueHolder)
-	ts.SetCheckpoint([]byte("rootHash"), chLeaves)
+	ts.SetCheckpoint([]byte("rootHash"), chLeaves, &trieMock.MockStatistics{})
 	assert.Equal(t, uint32(0), ts.PruningBlockingOperations())
 
 	select {
@@ -100,19 +87,19 @@ func TestTrieStorageManagerWithoutCheckpoints_Remove(t *testing.T) {
 	key := []byte("key")
 	value := []byte("value")
 
-	_ = args.DB.Put(key, value)
+	_ = args.MainStorer.Put(key, value)
 	hashes := make(common.ModifiedHashes)
 	hashes[string(value)] = struct{}{}
 	hashes[string(key)] = struct{}{}
 
-	val, err := args.DB.Get(key)
+	val, err := args.MainStorer.Get(key)
 	assert.Nil(t, err)
 	assert.NotNil(t, val)
 
 	err = ts.Remove(key)
 	assert.Nil(t, err)
 
-	val, err = args.DB.Get(key)
+	val, err = args.MainStorer.Get(key)
 	assert.Nil(t, val)
 	assert.NotNil(t, err)
 }

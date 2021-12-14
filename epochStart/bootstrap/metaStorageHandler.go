@@ -71,15 +71,16 @@ func NewMetaStorageHandler(
 	return &metaStorageHandler{baseStorageHandler: base}, nil
 }
 
+// CloseStorageService closes the containing storage service
+func (msh *metaStorageHandler) CloseStorageService() {
+	err := msh.storageService.CloseAll()
+	if err != nil {
+		log.Warn("error while closing storers", "error", err)
+	}
+}
+
 // SaveDataToStorage will save the fetched data to storage so it will be used by the storage bootstrap component
 func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededForBootstrap) error {
-	defer func() {
-		err := msh.storageService.CloseAll()
-		if err != nil {
-			log.Debug("error while closing storers", "error", err)
-		}
-	}()
-
 	bootStorer := msh.storageService.GetStorer(dataRetriever.BootstrapUnit)
 
 	lastHeader, err := msh.saveLastHeader(components.EpochStartMetaBlock)

@@ -110,6 +110,7 @@ type CoreComponentsHolder interface {
 	SyncTimer() ntp.SyncTimer
 	RoundHandler() consensus.RoundHandler
 	EconomicsData() process.EconomicsDataHandler
+	APIEconomicsData() process.EconomicsDataHandler
 	RatingsData() process.RatingsInfoHandler
 	Rater() sharding.PeerAccountListAndRatingHandler
 	GenesisNodesSetup() sharding.GenesisNodesSetupHandler
@@ -276,7 +277,7 @@ type StateComponentsHolder interface {
 	PeerAccounts() state.AccountsAdapter
 	AccountsAdapter() state.AccountsAdapter
 	AccountsAdapterAPI() state.AccountsAdapter
-	TriesContainer() state.TriesHolder
+	TriesContainer() common.TriesHolder
 	TrieStorageManagers() map[string]common.StorageManager
 	IsInterfaceNil() bool
 }
@@ -383,6 +384,7 @@ type ConsensusComponentsHolder interface {
 	BroadcastMessenger() consensus.BroadcastMessenger
 	ConsensusGroupSize() (int, error)
 	HardforkTrigger() HardforkTrigger
+	Bootstrapper() process.Bootstrapper
 	IsInterfaceNil() bool
 }
 
@@ -403,7 +405,6 @@ type BootstrapParamsHolder interface {
 
 // EpochStartBootstrapper defines the epoch start bootstrap functionality
 type EpochStartBootstrapper interface {
-	GetTriesComponents() (state.TriesHolder, map[string]common.StorageManager)
 	Bootstrap() (bootstrap.Parameters, error)
 	IsInterfaceNil() bool
 	Close() error
