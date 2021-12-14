@@ -270,6 +270,7 @@ func createScQueryElement(
 		ConfigSCStorage:    scStorage,
 		CompiledSCPool:     smartContractsCache,
 		WorkingDir:         args.workingDir,
+		EpochNotifier:      args.coreComponents.EpochNotifier(),
 		NilCompiledSCStore: true,
 	}
 

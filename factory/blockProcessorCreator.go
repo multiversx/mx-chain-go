@@ -199,6 +199,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		Marshalizer:         pcf.coreData.InternalMarshalizer(),
 		AccountsDB:          pcf.state.AccountsAdapter(),
 		BlockChainHook:      vmFactory.BlockChainHookImpl(),
+		BuiltInFunctions:    builtInFuncs,
 		PubkeyConv:          pcf.coreData.AddressPubKeyConverter(),
 		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
 		ScrForwarder:        scForwarder,
@@ -476,6 +477,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		Marshalizer:         pcf.coreData.InternalMarshalizer(),
 		AccountsDB:          pcf.state.AccountsAdapter(),
 		BlockChainHook:      vmFactory.BlockChainHookImpl(),
+		BuiltInFunctions:    builtInFuncs,
 		PubkeyConv:          pcf.coreData.AddressPubKeyConverter(),
 		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
 		ScrForwarder:        scForwarder,
@@ -982,6 +984,7 @@ func (pcf *processComponentsFactory) createVMFactoryShard(
 		CompiledSCPool:     pcf.data.Datapool().SmartContracts(),
 		WorkingDir:         pcf.workingDir,
 		NFTStorageHandler:  nftStorageHandler,
+		EpochNotifier:      pcf.coreData.EpochNotifier(),
 		NilCompiledSCStore: false,
 		ConfigSCStorage:    configSCStorage,
 	}
@@ -1020,6 +1023,7 @@ func (pcf *processComponentsFactory) createVMFactoryMeta(
 		ConfigSCStorage:    configSCStorage,
 		WorkingDir:         pcf.workingDir,
 		NFTStorageHandler:  nftStorageHandler,
+		EpochNotifier:      pcf.coreData.EpochNotifier(),
 		NilCompiledSCStore: false,
 	}
 
