@@ -465,7 +465,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 	}
 
 	err = newRoot.commitSnapshot(stsm, snapshotEntry.leavesChan, ctx, snapshotEntry.stats)
-	if err == ErrContextClosing {
+	if err == ErrContextClosing || err == storage.ErrSerialDBIsClosed {
 		log.Debug("context closing while in commitSnapshot operation")
 		return
 	}
@@ -626,7 +626,7 @@ func (tsm *trieStorageManager) ShouldTakeSnapshot() bool {
 		return false
 	}
 
-	val, err := stsm.Get([]byte(common.ActiveDBKey))
+	val, err := stsm.GetFromLastEpoch([]byte(common.ActiveDBKey))
 	if err != nil {
 		log.Debug("shouldTakeSnapshot get error", "err", err.Error())
 		return false
