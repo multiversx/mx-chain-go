@@ -235,6 +235,8 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 	gasConsumedByMiniBlockInReceiverShard := uint64(0)
 	totalGasConsumedInSelfShard := scr.getTotalGasConsumed()
 
+	log.Debug("smartContractResults.ProcessBlockTransactions", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
+
 	// basic validation already done in interceptors
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniBlock := body.MiniBlocks[i]
@@ -293,6 +295,12 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 			scr.updateGasConsumedWithGasRefundedAndGasPenalized(txHash, &gasConsumedByMiniBlockInReceiverShard, &totalGasConsumedInSelfShard)
 		}
 	}
+
+	log.Debug("smartContractResults.ProcessBlockTransactions after processing",
+	 "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard,
+	 "gasConsumedByMiniBlockInReceiverShard", gasConsumedByMiniBlockInReceiverShard,
+	 )
+
 	return nil
 }
 
