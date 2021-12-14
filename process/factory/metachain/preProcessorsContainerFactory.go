@@ -34,6 +34,7 @@ type preProcessorsContainerFactory struct {
 	balanceComputation                          preprocess.BalanceComputationHandler
 	epochNotifier                               process.EpochNotifier
 	optimizeGasUsedInCrossMiniBlocksEnableEpoch uint32
+	frontRunningProtectionEnableEpoch           uint32
 	scheduledMiniBlocksEnableEpoch              uint32
 	txTypeHandler                               process.TxTypeHandler
 	scheduledTxsExecutionHandler                process.ScheduledTxsExecutionHandler
@@ -58,6 +59,7 @@ func NewPreProcessorsContainerFactory(
 	balanceComputation preprocess.BalanceComputationHandler,
 	epochNotifier process.EpochNotifier,
 	optimizeGasUsedInCrossMiniBlocksEnableEpoch uint32,
+	frontRunningProtectionEnableEpoch uint32,
 	scheduledMiniBlocksEnableEpoch uint32,
 	txTypeHandler process.TxTypeHandler,
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
@@ -136,6 +138,7 @@ func NewPreProcessorsContainerFactory(
 		balanceComputation:   balanceComputation,
 		epochNotifier:        epochNotifier,
 		optimizeGasUsedInCrossMiniBlocksEnableEpoch: optimizeGasUsedInCrossMiniBlocksEnableEpoch,
+		frontRunningProtectionEnableEpoch:           frontRunningProtectionEnableEpoch,
 		scheduledMiniBlocksEnableEpoch:              scheduledMiniBlocksEnableEpoch,
 		txTypeHandler:                               txTypeHandler,
 		scheduledTxsExecutionHandler:                scheduledTxsExecutionHandler,
@@ -170,28 +173,31 @@ func (ppcm *preProcessorsContainerFactory) Create() (process.PreProcessorsContai
 }
 
 func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PreProcessor, error) {
-	txPreprocessor, err := preprocess.NewTransactionPreprocessor(
-		ppcm.dataPool.Transactions(),
-		ppcm.store,
-		ppcm.hasher,
-		ppcm.marshalizer,
-		ppcm.txProcessor,
-		ppcm.shardCoordinator,
-		ppcm.accounts,
-		ppcm.requestHandler.RequestTransaction,
-		ppcm.economicsFee,
-		ppcm.gasHandler,
-		ppcm.blockTracker,
-		block.TxBlock,
-		ppcm.pubkeyConverter,
-		ppcm.blockSizeComputation,
-		ppcm.balanceComputation,
-		ppcm.epochNotifier,
-		ppcm.optimizeGasUsedInCrossMiniBlocksEnableEpoch,
+	args := preprocess.ArgsTransactionPreProcessor{
+		TxDataPool:           ppcm.dataPool.Transactions(),
+		Store:                ppcm.store,
+		Hasher:               ppcm.hasher,
+		Marshalizer:          ppcm.marshalizer,
+		TxProcessor:          ppcm.txProcessor,
+		ShardCoordinator:     ppcm.shardCoordinator,
+		Accounts:             ppcm.accounts,
+		OnRequestTransaction: ppcm.requestHandler.RequestTransaction,
+		EconomicsFee:         ppcm.economicsFee,
+		GasHandler:           ppcm.gasHandler,
+		BlockTracker:         ppcm.blockTracker,
+		BlockType:            block.TxBlock,
+		PubkeyConverter:      ppcm.pubkeyConverter,
+		BlockSizeComputation: ppcm.blockSizeComputation,
+		BalanceComputation:   ppcm.balanceComputation,
+		EpochNotifier:        ppcm.epochNotifier,
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: ppcm.optimizeGasUsedInCrossMiniBlocksEnableEpoch,
+		FrontRunningProtectionEnableEpoch:           ppcm.frontRunningProtectionEnableEpoch,
 		ppcm.scheduledMiniBlocksEnableEpoch,
 		ppcm.txTypeHandler,
 		ppcm.scheduledTxsExecutionHandler,
-	)
+	}
+
+	txPreprocessor, err := preprocess.NewTransactionPreprocessor(args)
 
 	return txPreprocessor, err
 }

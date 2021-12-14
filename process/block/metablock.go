@@ -624,7 +624,7 @@ func (mp *metaProcessor) indexBlock(
 		return
 	}
 
-	gasConsumedInHeader := mp.baseProcessor.gasConsumedProvider.TotalGasConsumed()
+	gasConsumedInHeader := mp.baseProcessor.gasConsumedProvider.TotalGasProvided()
 	gasPenalizedInHeader := mp.baseProcessor.gasConsumedProvider.TotalGasPenalized()
 	gasRefundedInHeader := mp.baseProcessor.gasConsumedProvider.TotalGasRefunded()
 	maxGasInHeader := mp.baseProcessor.economicsData.MaxGasLimitPerBlock(mp.shardCoordinator.SelfId())
@@ -635,7 +635,7 @@ func (mp *metaProcessor) indexBlock(
 		Header:         metaBlock,
 		SignersIndexes: signersIndexes,
 		HeaderGasConsumption: indexer.HeaderGasConsumption{
-			GasConsumed:    gasConsumedInHeader,
+			GasProvided:    gasConsumedInHeader,
 			GasRefunded:    gasRefundedInHeader,
 			GasPenalized:   gasPenalizedInHeader,
 			MaxGasPerBlock: maxGasInHeader,
@@ -922,7 +922,7 @@ func (mp *metaProcessor) createBlockBody(metaBlock data.HeaderHandler, haveTime 
 		"nonce", metaBlock.GetNonce(),
 	)
 
-	miniBlocks, err := mp.createMiniBlocks(haveTime)
+	miniBlocks, err := mp.createMiniBlocks(haveTime, metaBlock.GetPrevRandSeed())
 	if err != nil {
 		return nil, err
 	}
@@ -937,6 +937,7 @@ func (mp *metaProcessor) createBlockBody(metaBlock data.HeaderHandler, haveTime 
 
 func (mp *metaProcessor) createMiniBlocks(
 	haveTime func() bool,
+	randomness []byte,
 ) (*block.Body, error) {
 	var miniBlocks block.MiniBlockSlice
 
@@ -960,7 +961,7 @@ func (mp *metaProcessor) createMiniBlocks(
 		)
 	}
 
-	mbsFromMe := mp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(haveTime)
+	mbsFromMe := mp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(haveTime, randomness)
 	if len(mbsFromMe) > 0 {
 		miniBlocks = append(miniBlocks, mbsFromMe...)
 

@@ -52,7 +52,7 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 			return nil
 		},
 	}
-	bootstrapperMock := &mock.BootstrapperMock{}
+	bootstrapperMock := &mock.BootstrapperStub{}
 	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
 	consensusState := initConsensusState()
 	forkDetectorMock := &mock.ForkDetectorMock{}
@@ -1385,7 +1385,7 @@ func TestWorker_ExtendShouldReturnWhenRoundIsCanceled(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
 	executed := false
-	bootstrapperMock := &mock.BootstrapperMock{
+	bootstrapperMock := &mock.BootstrapperStub{
 		GetNodeStateCalled: func() common.NodeState {
 			return common.NsNotSynchronized
 		},
@@ -1405,7 +1405,7 @@ func TestWorker_ExtendShouldReturnWhenGetNodeStateNotReturnSynchronized(t *testi
 	t.Parallel()
 	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
 	executed := false
-	bootstrapperMock := &mock.BootstrapperMock{
+	bootstrapperMock := &mock.BootstrapperStub{
 		GetNodeStateCalled: func() common.NodeState {
 			return common.NsNotSynchronized
 		},
@@ -1431,7 +1431,7 @@ func TestWorker_ExtendShouldReturnWhenCreateEmptyBlockFail(t *testing.T) {
 		},
 	}
 	wrk.SetBroadcastMessenger(bmm)
-	bootstrapperMock := &mock.BootstrapperMock{
+	bootstrapperMock := &mock.BootstrapperStub{
 		CreateAndCommitEmptyBlockCalled: func(shardForCurrentNode uint32) (data.BodyHandler, data.HeaderHandler, error) {
 			return nil, nil, errors.New("error")
 		}}

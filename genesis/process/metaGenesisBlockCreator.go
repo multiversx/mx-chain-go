@@ -27,6 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	syncDisabled "github.com/ElrondNetwork/elrond-go/process/sync/disabled"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -257,6 +258,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		Marshalizer:        arg.Core.InternalMarshalizer(),
 		Uint64Converter:    arg.Core.Uint64ByteSliceConverter(),
 		BuiltInFunctions:   builtInFuncs,
+		NFTStorageHandler:  &disabled.SimpleNFTStorage{},
 		DataPool:           arg.Data.Datapool(),
 		CompiledSCPool:     arg.Data.Datapool().SmartContracts(),
 		NilCompiledSCStore: true,
@@ -422,6 +424,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		disabledBalanceComputationHandler,
 		epochNotifier,
 		enableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
+		enableEpochs.FrontRunningProtectionEnableEpoch,
 		enableEpochs.ScheduledMiniBlocksEnableEpoch,
 		txTypeHandler,
 		disabledScheduledTxsExecutionHandler,
@@ -464,6 +467,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		BlockChainHook:    virtualMachineFactory.BlockChainHookImpl(),
 		BlockChain:        arg.Data.Blockchain(),
 		ArwenChangeLocker: &sync.RWMutex{},
+		Bootstrapper:      syncDisabled.NewDisabledBootstrapper(),
 	}
 	queryService, err := smartContract.NewSCQueryService(argsNewSCQueryService)
 	if err != nil {

@@ -15,8 +15,6 @@ type Persister interface {
 	Get(key []byte) ([]byte, error)
 	// Has returns true if the given key is present in the persistence medium
 	Has(key []byte) error
-	// Init initializes the persistence medium and prepares it for usage
-	Init() error
 	// Close closes the files/resources associated to the persistence medium
 	Close() error
 	// Remove removes the data associated to the given key

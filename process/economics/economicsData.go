@@ -69,7 +69,7 @@ type ArgsNewEconomicsData struct {
 	GasPriceModifierEnableEpoch    uint32
 }
 
-// NewEconomicsData will create and object with information about economics parameters
+// NewEconomicsData will create an object with information about economics parameters
 func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
 	if check.IfNil(args.BuiltInFunctionsCostHandler) {
 		return nil, process.ErrNilBuiltInFunctionsCostHandler
@@ -461,6 +461,7 @@ func (ed *economicsData) CheckValidityTxValues(tx data.TransactionWithFeeHandler
 		}
 	}
 
+	//The following check should be kept as it is in order to avoid backwards compatibility issues
 	if tx.GetGasLimit() >= ed.maxGasLimitPerBlock {
 		return process.ErrMoreGasThanGasLimitPerBlock
 	}

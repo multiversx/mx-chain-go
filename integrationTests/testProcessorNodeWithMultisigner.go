@@ -66,6 +66,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor: transactionLog.NewPrintTxLogProcessor(),
+		Bootstrapper:            mock.NewTestBootstrapperMock(),
 	}
 
 	tpn.ScheduledMiniBlocksEnableEpoch = uint32(1000000)

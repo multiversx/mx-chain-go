@@ -16,13 +16,11 @@ type transactionMapCacher struct {
 }
 
 // NewCurrentBlockPool returns a new pool to be used for current block
-func NewCurrentBlockPool() (*transactionMapCacher, error) {
-	tmc := &transactionMapCacher{
+func NewCurrentBlockPool() *transactionMapCacher {
+	return &transactionMapCacher{
 		mutTxs:      sync.RWMutex{},
 		txsForBlock: make(map[string]data.TransactionHandler),
 	}
-
-	return tmc, nil
 }
 
 // Clean creates a new pool

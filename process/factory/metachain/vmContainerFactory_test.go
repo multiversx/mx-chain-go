@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
@@ -36,11 +37,12 @@ func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 		},
 		PubkeyConv:         mock.NewPubkeyConverterMock(32),
 		StorageService:     &mock.ChainStorerMock{},
-		BlockChain:         &mock.BlockChainMock{},
+		BlockChain:         &mock.BlockChainStub{},
 		ShardCoordinator:   mock.NewOneShardCoordinatorMock(),
 		Marshalizer:        &mock.MarshalizerMock{},
 		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
 		BuiltInFunctions:   vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
+		NFTStorageHandler:  &testscommon.SimpleNFTStorageHandlerStub{},
 		DataPool:           datapool,
 		CompiledSCPool:     datapool.SmartContracts(),
 		NilCompiledSCStore: true,

@@ -233,7 +233,7 @@ func TestDelayedBlockBroadcaster_HeaderReceivedForRegisteredDelayedDataShouldBro
 	dbb.HeaderReceived(metaBlock, []byte("meta hash"))
 	sleepTime := common.ExtraDelayForBroadcastBlockInfo +
 		common.ExtraDelayBetweenBroadcastMbsAndTxs +
-		10*time.Millisecond
+		100*time.Millisecond
 	time.Sleep(sleepTime)
 	assert.True(t, mbBroadcastCalled.IsSet())
 	assert.True(t, txBroadcastCalled.IsSet())

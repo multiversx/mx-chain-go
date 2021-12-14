@@ -2299,7 +2299,7 @@ func TestMetaProcessor_DecodeBlockHeader(t *testing.T) {
 
 	marshalizerMock := &mock.MarshalizerMock{}
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
-	dataComponents.BlockChain = &mock.BlockChainMock{
+	dataComponents.BlockChain = &mock.BlockChainStub{
 		GetGenesisHeaderCalled: func() data.HeaderHandler {
 			return &block.MetaBlock{Nonce: 0}
 		},
@@ -2710,7 +2710,7 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 		},
 	}
 
-	blkc := &mock.BlockChainMock{
+	blkc := &mock.BlockChainStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.MetaBlock{Nonce: 0, AccumulatedFeesInEpoch: big.NewInt(0), DevFeesInEpoch: big.NewInt(0)}
 		},
@@ -2855,7 +2855,7 @@ func TestMetaProcessor_CreateAndProcessBlockCallsProcessAfterFirstEpoch(t *testi
 		},
 	}
 
-	blkc := &mock.BlockChainMock{
+	blkc := &mock.BlockChainStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.MetaBlock{
 				Nonce:                  0,

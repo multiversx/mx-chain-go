@@ -115,7 +115,7 @@ func (ppm *PreProcessorMock) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTi
 
 // CreateAndProcessMiniBlocks creates miniblocks from storage and processes the reward transactions added into the miniblocks
 // as long as it has time
-func (ppm *PreProcessorMock) CreateAndProcessMiniBlocks(haveTime func() bool) (block.MiniBlockSlice, error) {
+func (ppm *PreProcessorMock) CreateAndProcessMiniBlocks(haveTime func() bool, _ []byte) (block.MiniBlockSlice, error) {
 	if ppm.CreateAndProcessMiniBlocksCalled == nil {
 		return nil, nil
 	}

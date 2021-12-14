@@ -31,6 +31,7 @@ type ArgsNewAccountsDBSyncersContainerFactory struct {
 	NumConcurrentTrieSyncers  int
 	MaxHardCapForMissingNodes int
 	TrieSyncerVersion         int
+	AddressPubKeyConverter    core.PubkeyConverter
 }
 
 type accountDBSyncersContainerFactory struct {
@@ -46,6 +47,7 @@ type accountDBSyncersContainerFactory struct {
 	numConcurrentTrieSyncers  int
 	maxHardCapForMissingNodes int
 	trieSyncerVersion         int
+	addressPubKeyConverter    core.PubkeyConverter
 }
 
 // NewAccountsDBSContainerFactory creates a factory for trie syncers container
@@ -78,6 +80,9 @@ func NewAccountsDBSContainerFactory(args ArgsNewAccountsDBSyncersContainerFactor
 	if err != nil {
 		return nil, err
 	}
+	if check.IfNil(args.AddressPubKeyConverter) {
+		return nil, update.ErrNilPubKeyConverter
+	}
 
 	t := &accountDBSyncersContainerFactory{
 		shardCoordinator:          args.ShardCoordinator,
@@ -91,6 +96,7 @@ func NewAccountsDBSContainerFactory(args ArgsNewAccountsDBSyncersContainerFactor
 		numConcurrentTrieSyncers:  args.NumConcurrentTrieSyncers,
 		maxHardCapForMissingNodes: args.MaxHardCapForMissingNodes,
 		trieSyncerVersion:         args.TrieSyncerVersion,
+		addressPubKeyConverter:    args.AddressPubKeyConverter,
 	}
 
 	return t, nil
@@ -138,8 +144,9 @@ func (a *accountDBSyncersContainerFactory) createUserAccountsSyncer(shardId uint
 			MaxHardCapForMissingNodes: a.maxHardCapForMissingNodes,
 			TrieSyncerVersion:         a.trieSyncerVersion,
 		},
-		ShardId:   shardId,
-		Throttler: thr,
+		ShardId:                shardId,
+		Throttler:              thr,
+		AddressPubKeyConverter: a.addressPubKeyConverter,
 	}
 	accountSyncer, err := syncer.NewUserAccountsSyncer(args)
 	if err != nil {

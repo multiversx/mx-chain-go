@@ -37,6 +37,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/process/sync/disabled"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
@@ -146,6 +147,7 @@ func SetupTestContext(t *testing.T) *TestContext {
 		BlockChainHook:    context.BlockchainHook,
 		BlockChain:        &mock.BlockChainMock{},
 		ArwenChangeLocker: &sync.RWMutex{},
+		Bootstrapper:      disabled.NewDisabledBootstrapper(),
 	}
 	context.QueryService, _ = smartContract.NewSCQueryService(argsNewSCQueryService)
 
@@ -228,7 +230,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		ShardCoordinator: oneShardCoordinator,
 		EpochNotifier:    context.EpochNotifier,
 	}
-	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	builtInFuncs, nftStorageHandler, err := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 	require.Nil(context.T, err)
 
 	blockchainMock := &mock.BlockChainMock{}
@@ -243,6 +245,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		Marshalizer:        marshalizer,
 		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
 		BuiltInFunctions:   builtInFuncs,
+		NFTStorageHandler:  nftStorageHandler,
 		DataPool:           datapool,
 		CompiledSCPool:     datapool.SmartContracts(),
 		NilCompiledSCStore: true,

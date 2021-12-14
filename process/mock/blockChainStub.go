@@ -5,8 +5,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 )
 
-// BlockChainMock is a mock implementation of the blockchain interface
-type BlockChainMock struct {
+// BlockChainStub is a mock implementation of the blockchain interface
+type BlockChainStub struct {
 	GetGenesisHeaderCalled          func() data.HeaderHandler
 	SetGenesisHeaderCalled          func(handler data.HeaderHandler) error
 	GetGenesisHeaderHashCalled      func() []byte
@@ -24,7 +24,7 @@ type BlockChainMock struct {
 }
 
 // GetGenesisHeader returns the genesis block header pointer
-func (bc *BlockChainMock) GetGenesisHeader() data.HeaderHandler {
+func (bc *BlockChainStub) GetGenesisHeader() data.HeaderHandler {
 	if bc.GetGenesisHeaderCalled != nil {
 		return bc.GetGenesisHeaderCalled()
 	}
@@ -32,7 +32,7 @@ func (bc *BlockChainMock) GetGenesisHeader() data.HeaderHandler {
 }
 
 // SetGenesisHeader sets the genesis block header pointer
-func (bc *BlockChainMock) SetGenesisHeader(genesisBlock data.HeaderHandler) error {
+func (bc *BlockChainStub) SetGenesisHeader(genesisBlock data.HeaderHandler) error {
 	if bc.SetGenesisHeaderCalled != nil {
 		return bc.SetGenesisHeaderCalled(genesisBlock)
 	}
@@ -40,7 +40,7 @@ func (bc *BlockChainMock) SetGenesisHeader(genesisBlock data.HeaderHandler) erro
 }
 
 // GetGenesisHeaderHash returns the genesis block header hash
-func (bc *BlockChainMock) GetGenesisHeaderHash() []byte {
+func (bc *BlockChainStub) GetGenesisHeaderHash() []byte {
 	if bc.GetGenesisHeaderHashCalled != nil {
 		return bc.GetGenesisHeaderHashCalled()
 	}
@@ -48,14 +48,14 @@ func (bc *BlockChainMock) GetGenesisHeaderHash() []byte {
 }
 
 // SetGenesisHeaderHash sets the genesis block header hash
-func (bc *BlockChainMock) SetGenesisHeaderHash(hash []byte) {
+func (bc *BlockChainStub) SetGenesisHeaderHash(hash []byte) {
 	if bc.SetGenesisHeaderHashCalled != nil {
 		bc.SetGenesisHeaderHashCalled(hash)
 	}
 }
 
 // GetCurrentBlockHeader returns current block header pointer
-func (bc *BlockChainMock) GetCurrentBlockHeader() data.HeaderHandler {
+func (bc *BlockChainStub) GetCurrentBlockHeader() data.HeaderHandler {
 	if bc.GetCurrentBlockHeaderCalled != nil {
 		return bc.GetCurrentBlockHeaderCalled()
 	}
@@ -63,7 +63,7 @@ func (bc *BlockChainMock) GetCurrentBlockHeader() data.HeaderHandler {
 }
 
 // SetCurrentBlockHeader sets current block header pointer
-func (bc *BlockChainMock) SetCurrentBlockHeader(header data.HeaderHandler) error {
+func (bc *BlockChainStub) SetCurrentBlockHeader(header data.HeaderHandler) error {
 	if bc.SetCurrentBlockHeaderCalled != nil {
 		return bc.SetCurrentBlockHeaderCalled(header)
 	}
@@ -71,7 +71,7 @@ func (bc *BlockChainMock) SetCurrentBlockHeader(header data.HeaderHandler) error
 }
 
 // GetCurrentBlockHeaderHash returns the current block header hash
-func (bc *BlockChainMock) GetCurrentBlockHeaderHash() []byte {
+func (bc *BlockChainStub) GetCurrentBlockHeaderHash() []byte {
 	if bc.GetCurrentBlockHeaderHashCalled != nil {
 		return bc.GetCurrentBlockHeaderHashCalled()
 	}
@@ -79,13 +79,13 @@ func (bc *BlockChainMock) GetCurrentBlockHeaderHash() []byte {
 }
 
 // SetCurrentBlockHeaderHash returns the current block header hash
-func (bc *BlockChainMock) SetCurrentBlockHeaderHash(hash []byte) {
+func (bc *BlockChainStub) SetCurrentBlockHeaderHash(hash []byte) {
 	if bc.SetCurrentBlockHeaderHashCalled != nil {
 		bc.SetCurrentBlockHeaderHashCalled(hash)
 	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (bc *BlockChainMock) IsInterfaceNil() bool {
+func (bc *BlockChainStub) IsInterfaceNil() bool {
 	return bc == nil
 }

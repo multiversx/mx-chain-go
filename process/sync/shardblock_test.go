@@ -140,8 +140,8 @@ func createForkDetector(removedNonce uint64, remFlags *removedFlags) process.For
 	}
 }
 
-func initBlockchain() *mock.BlockChainMock {
-	blkc := &mock.BlockChainMock{
+func initBlockchain() *mock.BlockChainStub {
+	blkc := &mock.BlockChainStub{
 		GetGenesisHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{
 				Nonce:     uint64(0),
@@ -519,7 +519,7 @@ func TestBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 	args := CreateShardBootstrapMockArguments()
 
 	hdr := block.Header{Nonce: 1}
-	blkc := &mock.BlockChainMock{}
+	blkc := &mock.BlockChainStub{}
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &hdr
 	}
@@ -557,7 +557,7 @@ func TestBootstrap_ShouldReturnTimeIsOutWhenMissingBody(t *testing.T) {
 	args := CreateShardBootstrapMockArguments()
 
 	hdr := block.Header{Nonce: 1, PubKeysBitmap: []byte("X")}
-	blkc := &mock.BlockChainMock{}
+	blkc := &mock.BlockChainStub{}
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &hdr
 	}
@@ -614,7 +614,7 @@ func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
 	args := CreateShardBootstrapMockArguments()
 
 	hdr := block.Header{Nonce: 1, Round: 0}
-	blkc := &mock.BlockChainMock{}
+	blkc := &mock.BlockChainStub{}
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &hdr
 	}
@@ -650,7 +650,7 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 	args := CreateShardBootstrapMockArguments()
 
 	hdr := block.Header{Nonce: 1, Round: 0}
-	blkc := &mock.BlockChainMock{}
+	blkc := &mock.BlockChainStub{}
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &hdr
 	}
@@ -749,7 +749,7 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 	args := CreateShardBootstrapMockArguments()
 
 	hdr := block.Header{Nonce: 1}
-	blkc := &mock.BlockChainMock{}
+	blkc := &mock.BlockChainStub{}
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &hdr
 	}
@@ -823,7 +823,7 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 	args := CreateShardBootstrapMockArguments()
 
 	hdr := block.Header{Nonce: 1, PubKeysBitmap: []byte("X")}
-	blkc := &mock.BlockChainMock{}
+	blkc := &mock.BlockChainStub{}
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &hdr
 	}
@@ -954,7 +954,7 @@ func TestBootstrap_GetNodeStateShouldReturnSynchronizedWhenNodeIsSynced(t *testi
 	args := CreateShardBootstrapMockArguments()
 
 	hdr := block.Header{Nonce: 0}
-	blkc := &mock.BlockChainMock{}
+	blkc := &mock.BlockChainStub{}
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &hdr
 	}
@@ -982,7 +982,7 @@ func TestBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenNodeIsNotSynced(t 
 	args := CreateShardBootstrapMockArguments()
 
 	hdr := block.Header{Nonce: 0}
-	blkc := &mock.BlockChainMock{}
+	blkc := &mock.BlockChainStub{}
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &hdr
 	}
@@ -1021,7 +1021,7 @@ func TestBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenForkIsDetectedAndI
 	hdr2 := block.Header{Nonce: 1, Round: 1, PubKeysBitmap: []byte("B")}
 	hash2 := []byte("hash2")
 
-	blkc := &mock.BlockChainMock{}
+	blkc := &mock.BlockChainStub{}
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &hdr1
 	}
@@ -1091,7 +1091,7 @@ func TestBootstrap_GetNodeStateShouldReturnSynchronizedWhenForkIsDetectedAndItRe
 	hdr2 := block.Header{Nonce: 1, Round: 1, PubKeysBitmap: []byte("B")}
 	hash2 := []byte("hash2")
 
-	blkc := &mock.BlockChainMock{}
+	blkc := &mock.BlockChainStub{}
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &hdr2
 	}
@@ -1392,7 +1392,7 @@ func TestBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *testin
 	args.PoolsHolder = pools
 
 	// a mock blockchain with special header and tx block bodies stubs (defined above)
-	blkc := &mock.BlockChainMock{}
+	blkc := &mock.BlockChainStub{}
 	hdr := &block.Header{
 		Nonce: currentHdrNonce,
 		// empty bitmap
@@ -1528,7 +1528,7 @@ func TestBootstrap_RollbackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t *tes
 	args.PoolsHolder = pools
 
 	// a mock blockchain with special header and tx block bodies stubs (defined above)
-	blkc := &mock.BlockChainMock{
+	blkc := &mock.BlockChainStub{
 		GetGenesisHeaderCalled: func() data.HeaderHandler {
 			return prevHdr
 		},
@@ -1885,7 +1885,7 @@ func TestShardBootstrap_DoJobOnSyncBlockFailShouldNotResetProbableHighestNonceWh
 		},
 	}
 	args.ForkDetector = forkDetectorMock
-	args.ChainHandler = &mock.BlockChainMock{
+	args.ChainHandler = &mock.BlockChainStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{Nonce: 1}
 		},
@@ -1910,7 +1910,7 @@ func TestShardBootstrap_DoJobOnSyncBlockFailShouldNotResetProbableHighestNonceWh
 		},
 	}
 	args.ForkDetector = forkDetectorMock
-	args.ChainHandler = &mock.BlockChainMock{
+	args.ChainHandler = &mock.BlockChainStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{Nonce: 1}
 		},
@@ -1942,7 +1942,7 @@ func TestShardBootstrap_DoJobOnSyncBlockFailShouldResetProbableHighestNonce(t *t
 		},
 	}
 	args.ForkDetector = forkDetectorMock
-	args.ChainHandler = &mock.BlockChainMock{
+	args.ChainHandler = &mock.BlockChainStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{Nonce: 1}
 		},
@@ -1985,7 +1985,7 @@ func TestShardBootstrap_SyncBlockGetNodeDBErrorShouldSync(t *testing.T) {
 	args := CreateShardBootstrapMockArguments()
 
 	hdr := block.Header{Nonce: 1, PubKeysBitmap: []byte("X")}
-	blkc := &mock.BlockChainMock{}
+	blkc := &mock.BlockChainStub{}
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &hdr
 	}

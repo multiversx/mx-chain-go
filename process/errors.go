@@ -470,9 +470,6 @@ var ErrOverflow = errors.New("type overflow occured")
 // ErrNilTxValidator signals that a nil tx validator has been provided
 var ErrNilTxValidator = errors.New("nil transaction validator")
 
-// ErrNilHdrValidator signals that a nil header validator has been provided
-var ErrNilHdrValidator = errors.New("nil header validator")
-
 // ErrNilPendingMiniBlocksHandler signals that a nil pending miniblocks handler has been provided
 var ErrNilPendingMiniBlocksHandler = errors.New("nil pending miniblocks handler")
 
@@ -568,6 +565,9 @@ var ErrNilEconomicsData = errors.New("nil economics data")
 
 // ErrZeroMaxComputableRounds signals that a value of zero was provided on the maxComputableRounds
 var ErrZeroMaxComputableRounds = errors.New("max computable rounds is zero")
+
+// ErrZeroMaxConsecutiveRoundsOfRatingDecrease signals that a value of zero was provided on the MaxConsecutiveRoundsOfRatingDecrease
+var ErrZeroMaxConsecutiveRoundsOfRatingDecrease = errors.New("max consecutive number of rounds, in which we can decrease a validator rating, is zero")
 
 // ErrNilRater signals that nil rater has been provided
 var ErrNilRater = errors.New("nil rater")
@@ -938,6 +938,9 @@ var ErrInvalidGasModifier = errors.New("invalid gas modifier")
 // ErrMoreGasThanGasLimitPerBlock signals that more gas was provided than gas limit per block
 var ErrMoreGasThanGasLimitPerBlock = errors.New("more gas was provided than gas limit per block")
 
+// ErrMoreGasThanGasLimitPerMiniBlockForSafeCrossShard signals that more gas was provided than gas limit per mini block for safe cross shard
+var ErrMoreGasThanGasLimitPerMiniBlockForSafeCrossShard = errors.New("more gas was provided than gas limit per mini block for safe cross shard")
+
 // ErrNotEnoughGasInUserTx signals that not enough gas was provided in user tx
 var ErrNotEnoughGasInUserTx = errors.New("not enough gas provided in user tx")
 
@@ -986,7 +989,7 @@ var ErrNilAccountsDBSyncer = errors.New("nil accounts DB syncer")
 // ErrNilCurrentNetworkEpochProvider signals that a nil CurrentNetworkEpochProvider handler has been provided
 var ErrNilCurrentNetworkEpochProvider = errors.New("nil current network epoch provider")
 
-// ErrNilESDTTransferParser signals that a nil ESDT transfer parser has been provider
+// ErrNilESDTTransferParser signals that a nil ESDT transfer parser has been provided
 var ErrNilESDTTransferParser = errors.New("nil esdt transfer parser")
 
 // ErrResultingSCRIsTooBig signals that resulting smart contract result is too big
@@ -994,6 +997,18 @@ var ErrResultingSCRIsTooBig = errors.New("resulting SCR is too big")
 
 // ErrNotAllowedToWriteUnderProtectedKey signals that writing under protected key is not allowed
 var ErrNotAllowedToWriteUnderProtectedKey = errors.New("not allowed to write under protected key")
+
+// ErrNilNFTStorageHandler signals that nil NFT storage handler has been provided
+var ErrNilNFTStorageHandler = errors.New("nil NFT storage handler")
+
+// ErrNilBootstrapper signals that a nil bootstraper has been provided
+var ErrNilBootstrapper = errors.New("nil bootstrapper")
+
+// ErrNodeIsNotSynced signals that the VM query cannot be executed because the node is not synced and the request required this
+var ErrNodeIsNotSynced = errors.New("node is not synced")
+
+// ErrStateChangedWhileExecutingVmQuery signals that the state has been changed while executing a vm query and the request required not to
+var ErrStateChangedWhileExecutingVmQuery = errors.New("state changed while executing vm query")
 
 // ErrNilScheduledTxsExecutionHandler signals that scheduled txs execution handler is nil
 var ErrNilScheduledTxsExecutionHandler = errors.New("nil scheduled txs execution handler")

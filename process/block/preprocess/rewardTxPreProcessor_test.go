@@ -750,7 +750,7 @@ func TestRewardTxPreprocessor_CreateAndProcessMiniBlocksShouldWork(t *testing.T)
 		&testscommon.BalanceComputationStub{},
 	)
 
-	mBlocksSlice, err := rtp.CreateAndProcessMiniBlocks(haveTimeTrue)
+	mBlocksSlice, err := rtp.CreateAndProcessMiniBlocks(haveTimeTrue, []byte("randomness"))
 	assert.NotNil(t, mBlocksSlice)
 	assert.Nil(t, err)
 }

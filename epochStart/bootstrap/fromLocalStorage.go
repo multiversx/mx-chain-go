@@ -12,9 +12,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/trie/factory"
 )
 
 func (e *epochStartBootstrap) initializeFromLocalStorage() {
@@ -93,11 +95,6 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	err = e.createTriesComponentsForShardId(newShardId)
-	if err != nil {
-		return Parameters{}, err
-	}
-
 	if !isShuffledOut {
 		parameters := Parameters{
 			Epoch:       e.baseData.lastEpoch,
@@ -109,6 +106,23 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 
 		return parameters, nil
 	}
+
+	e.closeTrieComponents()
+	e.storageService = disabled.NewChainStorer()
+	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
+		e.generalConfig,
+		e.coreComponentsHolder,
+		newShardId,
+		e.storageService,
+		e.disableOldTrieStorageEpoch,
+		e.epochNotifier,
+	)
+	if err != nil {
+		return Parameters{}, err
+	}
+
+	e.trieContainer = triesContainer
+	e.trieStorageManagers = trieStorageManagers
 
 	e.shuffledOut = isShuffledOut
 	log.Debug("prepareEpochFromStorage for shuffled out", "initial shard id", e.baseData.shardId, "new shard id", newShardId)

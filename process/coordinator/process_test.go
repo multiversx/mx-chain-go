@@ -476,6 +476,7 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		&epochNotifier.EpochNotifierStub{},
 		2,
 		2,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -570,6 +571,7 @@ func createPreProcessorContainerWithDataPool(
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
+		2,
 		2,
 		2,
 		&testscommon.TxTypeHandlerMock{},
@@ -841,6 +843,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		&epochNotifier.EpochNotifierStub{},
 		2,
 		2,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -981,6 +984,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 		&epochNotifier.EpochNotifierStub{},
 		2,
 		2,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -1090,6 +1094,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		&epochNotifier.EpochNotifierStub{},
 		2,
 		2,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -1105,7 +1110,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 	haveTime := func() bool {
 		return true
 	}
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime, []byte("randomness"))
 
 	assert.Equal(t, 0, len(mbs))
 }
@@ -1123,7 +1128,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNoTime(t *t
 	haveTime := func() bool {
 		return false
 	}
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime, []byte("randomness"))
 
 	assert.Equal(t, 0, len(mbs))
 }
@@ -1147,7 +1152,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNoSpace(t *
 	haveTime := func() bool {
 		return true
 	}
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime, []byte("randomness"))
 
 	assert.Equal(t, 0, len(mbs))
 }
@@ -1185,7 +1190,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMe(t *testing
 	}
 
 	// we have one tx per shard.
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime, []byte("randomness"))
 
 	assert.Equal(t, int(nrShards), len(mbs))
 }
@@ -1233,7 +1238,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	}
 
 	// we have one tx per shard.
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime, []byte("randomness"))
 
 	assert.Equal(t, 1, len(mbs))
 }
@@ -1294,7 +1299,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	}
 
 	// we have one tx per shard.
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime, []byte("randomness"))
 
 	assert.Equal(t, 1, len(mbs))
 }
@@ -1359,7 +1364,7 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 		}
 	}
 
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime, []byte("randomness"))
 
 	assert.Equal(t, 1, len(mbs))
 }
@@ -1405,7 +1410,7 @@ func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
 		txPool.AddData(computedTxHash, newTx, newTx.Size(), strCache)
 	}
 
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime, []byte("randomness"))
 	require.Equal(t, 5, len(mbs))
 
 	usedTxs = tc.GetAllCurrentUsedTxs(block.TxBlock)
@@ -1621,6 +1626,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		&epochNotifier.EpochNotifierStub{},
 		2,
 		2,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -1742,6 +1748,7 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
+		2,
 		2,
 		2,
 		&testscommon.TxTypeHandlerMock{},
@@ -1884,6 +1891,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		&epochNotifier.EpochNotifierStub{},
 		2,
 		2,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -2019,6 +2027,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
+		2,
 		2,
 		2,
 		&testscommon.TxTypeHandlerMock{},

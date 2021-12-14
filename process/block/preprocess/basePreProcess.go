@@ -120,6 +120,8 @@ type basePreProcess struct {
 	pubkeyConverter                             core.PubkeyConverter
 	optimizeGasUsedInCrossMiniBlocksEnableEpoch uint32
 	flagOptimizeGasUsedInCrossMiniBlocks        atomic.Flag
+	frontRunningProtectionEnableEpoch           uint32
+	flagFrontRunningProtection                  atomic.Flag
 }
 
 func (bpp *basePreProcess) removeBlockDataFromPools(
@@ -451,22 +453,22 @@ func getTxMaxTotalCost(txHandler data.TransactionHandler) *big.Int {
 
 func (bpp *basePreProcess) getTotalGasConsumed() uint64 {
 	if !bpp.flagOptimizeGasUsedInCrossMiniBlocks.IsSet() {
-		return bpp.gasHandler.TotalGasConsumed()
+		return bpp.gasHandler.TotalGasProvided()
 	}
 
 	totalGasToBeSubtracted := bpp.gasHandler.TotalGasRefunded() + bpp.gasHandler.TotalGasPenalized()
-	totalGasConsumed := bpp.gasHandler.TotalGasConsumed()
-	if totalGasToBeSubtracted > totalGasConsumed {
+	totalGasProvided := bpp.gasHandler.TotalGasProvided()
+	if totalGasToBeSubtracted > totalGasProvided {
 		log.Warn("basePreProcess.getTotalGasConsumed: too much gas to be subtracted",
 			"totalGasRefunded", bpp.gasHandler.TotalGasRefunded(),
 			"totalGasPenalized", bpp.gasHandler.TotalGasPenalized(),
 			"totalGasToBeSubtracted", totalGasToBeSubtracted,
-			"totalGasConsumed", totalGasConsumed,
+			"totalGasProvided", totalGasProvided,
 		)
-		return totalGasConsumed
+		return totalGasProvided
 	}
 
-	return totalGasConsumed - totalGasToBeSubtracted
+	return totalGasProvided - totalGasToBeSubtracted
 }
 
 func (bpp *basePreProcess) updateGasConsumedWithGasRefundedAndGasPenalized(
@@ -495,4 +497,12 @@ func (bpp *basePreProcess) updateGasConsumedWithGasRefundedAndGasPenalized(
 
 	gasInfo.gasConsumedByMiniBlockInReceiverShard -= gasToBeSubtracted
 	gasInfo.totalGasConsumedInSelfShard -= gasToBeSubtracted
+}
+
+// EpochConfirmed is called whenever a new epoch is confirmed
+func (bpp *basePreProcess) EpochConfirmed(epoch uint32, _ uint64) {
+	bpp.flagOptimizeGasUsedInCrossMiniBlocks.Toggle(epoch >= bpp.optimizeGasUsedInCrossMiniBlocksEnableEpoch)
+	log.Debug("basePreProcess: optimize gas used in cross mini blocks", "enabled", bpp.flagOptimizeGasUsedInCrossMiniBlocks.IsSet())
+	bpp.flagFrontRunningProtection.Toggle(epoch >= bpp.frontRunningProtectionEnableEpoch)
+	log.Debug("basePreProcess: front running protection", "enabled", bpp.flagFrontRunningProtection.IsSet())
 }

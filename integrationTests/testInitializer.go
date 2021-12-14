@@ -56,6 +56,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
+	storageMock "github.com/ElrondNetwork/elrond-go/storage/mock"
+	"github.com/ElrondNetwork/elrond-go/storage/pruning"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
@@ -353,6 +355,47 @@ func CreateStore(numOfShards uint32) dataRetriever.StorageService {
 	return store
 }
 
+// CreateTrieStorageManagerWithPruningStorer creates the trie storage manager for the tests
+func CreateTrieStorageManagerWithPruningStorer(store storage.Storer, coordinator sharding.Coordinator, notifier pruning.EpochStartNotifier) common.StorageManager {
+	tempDir, _ := ioutil.TempDir("", "integrationTests")
+	cfg := config.DBConfig{
+		FilePath:          tempDir,
+		Type:              string(storageUnit.LvlDBSerial),
+		BatchDelaySeconds: 4,
+		MaxBatchSize:      10000,
+		MaxOpenFiles:      10,
+	}
+	generalCfg := config.TrieStorageManagerConfig{
+		PruningBufferLen:      1000,
+		SnapshotsBufferLen:    10,
+		MaxSnapshots:          3,
+		SnapshotsGoroutineNum: 1,
+	}
+
+	mainStorer, err := createPruningStorer(coordinator, notifier)
+	if err != nil {
+		fmt.Println("err creating main storer" + err.Error())
+	}
+	checkpointsStorer, err := createPruningStorer(coordinator, notifier)
+	if err != nil {
+		fmt.Println("err creating checkpoints storer" + err.Error())
+	}
+	args := trie.NewTrieStorageManagerArgs{
+		DB:                     store,
+		MainStorer:             mainStorer,
+		CheckpointsStorer:      checkpointsStorer,
+		Marshalizer:            TestMarshalizer,
+		Hasher:                 TestHasher,
+		SnapshotDbConfig:       cfg,
+		GeneralConfig:          generalCfg,
+		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(TestHasher.Size())),
+		EpochNotifier:          &mock.EpochNotifierStub{},
+	}
+	trieStorageManager, _ := trie.NewTrieStorageManager(args)
+
+	return trieStorageManager
+}
+
 // CreateTrieStorageManager creates the trie storage manager for the tests
 func CreateTrieStorageManager(store storage.Storer) (common.StorageManager, storage.Storer) {
 	// TODO change this implementation with a factory
@@ -365,21 +408,80 @@ func CreateTrieStorageManager(store storage.Storer) (common.StorageManager, stor
 		MaxOpenFiles:      10,
 	}
 	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:   1000,
-		SnapshotsBufferLen: 10,
-		MaxSnapshots:       3,
+		PruningBufferLen:      1000,
+		SnapshotsBufferLen:    10,
+		MaxSnapshots:          3,
+		SnapshotsGoroutineNum: 1,
 	}
 	args := trie.NewTrieStorageManagerArgs{
 		DB:                     store,
+		MainStorer:             CreateMemUnit(),
+		CheckpointsStorer:      CreateMemUnit(),
 		Marshalizer:            TestMarshalizer,
 		Hasher:                 TestHasher,
 		SnapshotDbConfig:       cfg,
 		GeneralConfig:          generalCfg,
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(TestHasher.Size())),
+		EpochNotifier:          &mock.EpochNotifierStub{},
 	}
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
 
 	return trieStorageManager, store
+}
+
+func createPruningStorer(coordinator sharding.Coordinator, notifier pruning.EpochStartNotifier) (storage.Storer, error) {
+	cacheConf, dbConf, blConf := getDummyConfig()
+
+	lockPersisterMap := sync.Mutex{}
+	persistersMap := make(map[string]storage.Persister)
+	persisterFactory := &storageMock.PersisterFactoryStub{
+		CreateCalled: func(path string) (storage.Persister, error) {
+			lockPersisterMap.Lock()
+			defer lockPersisterMap.Unlock()
+
+			persister, exists := persistersMap[path]
+			if !exists {
+				persister = memorydb.New()
+				persistersMap[path] = persister
+			}
+
+			return persister, nil
+		},
+	}
+	args := &pruning.StorerArgs{
+		PruningEnabled:         true,
+		Identifier:             "id",
+		ShardCoordinator:       coordinator,
+		PathManager:            &testscommon.PathManagerStub{},
+		CacheConf:              cacheConf,
+		DbPath:                 dbConf.FilePath,
+		PersisterFactory:       persisterFactory,
+		BloomFilterConf:        blConf,
+		NumOfEpochsToKeep:      4,
+		NumOfActivePersisters:  4,
+		Notifier:               notifier,
+		OldDataCleanerProvider: &testscommon.OldDataCleanerProviderStub{},
+		MaxBatchSize:           10,
+	}
+
+	return pruning.NewPruningStorer(args)
+}
+
+func getDummyConfig() (storageUnit.CacheConfig, storageUnit.DBConfig, storageUnit.BloomConfig) {
+	cacheConf := storageUnit.CacheConfig{
+		Capacity: 10,
+		Type:     "LRU",
+		Shards:   3,
+	}
+	dbConf := storageUnit.DBConfig{
+		FilePath:          "path/Epoch_0/Shard_1",
+		Type:              "LvlDBSerial",
+		BatchDelaySeconds: 500,
+		MaxBatchSize:      1,
+		MaxOpenFiles:      1000,
+	}
+	blConf := storageUnit.BloomConfig{}
+	return cacheConf, dbConf, blConf
 }
 
 // CreateAccountsDB creates an account state with a valid trie implementation but with a memory storage
@@ -392,7 +494,7 @@ func CreateAccountsDB(
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), TestMarshalizer)
 	accountFactory := getAccountFactory(accountType)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
-	adb, _ := state.NewAccountsDB(tr, sha256.NewSha256(), TestMarshalizer, accountFactory, spm)
+	adb, _ := state.NewAccountsDB(tr, sha256.NewSha256(), TestMarshalizer, accountFactory, spm, common.Normal)
 
 	return adb, tr
 }
@@ -951,17 +1053,21 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 // CreateNewDefaultTrie returns a new trie with test hasher and marsahalizer
 func CreateNewDefaultTrie() common.Trie {
 	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:   1000,
-		SnapshotsBufferLen: 10,
-		MaxSnapshots:       2,
+		PruningBufferLen:      1000,
+		SnapshotsBufferLen:    10,
+		MaxSnapshots:          2,
+		SnapshotsGoroutineNum: 1,
 	}
 	args := trie.NewTrieStorageManagerArgs{
 		DB:                     CreateMemUnit(),
+		MainStorer:             CreateMemUnit(),
+		CheckpointsStorer:      CreateMemUnit(),
 		Marshalizer:            TestMarshalizer,
 		Hasher:                 TestHasher,
 		SnapshotDbConfig:       config.DBConfig{},
 		GeneralConfig:          generalCfg,
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(TestHasher.Size())),
+		EpochNotifier:          &mock.EpochNotifierStub{},
 	}
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 
