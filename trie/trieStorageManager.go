@@ -296,6 +296,11 @@ func (tsm *trieStorageManager) Get(key []byte) ([]byte, error) {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
 
+	if tsm.closed {
+		log.Debug("trieStorageManager get context closing", "key", key)
+		return nil, ErrContextClosing
+	}
+
 	val, _ := tsm.mainStorer.Get(key)
 	if len(val) != 0 {
 		return val, nil
@@ -334,6 +339,11 @@ func (tsm *trieStorageManager) Put(key []byte, val []byte) error {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
 	log.Trace("put hash in tsm", "hash", key)
+
+	if tsm.closed {
+		log.Debug("trieStorageManager put context closing", "key", key, "value", val)
+		return ErrContextClosing
+	}
 
 	return tsm.mainStorer.Put(key, val)
 }
@@ -453,6 +463,10 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 	log.Trace("trie snapshot started", "rootHash", snapshotEntry.rootHash)
 
 	newRoot, err := newSnapshotNode(tsm, msh, hsh, snapshotEntry.rootHash)
+	if err == ErrContextClosing {
+		log.Debug("context closing when creating a new snapshot node")
+		return
+	}
 	if err != nil {
 		log.Error("takeSnapshot: trie storage manager: newSnapshotTrie", "rootHash", snapshotEntry.rootHash, "error", err.Error())
 		return
