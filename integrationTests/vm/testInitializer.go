@@ -434,7 +434,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		CompiledSCPool:     datapool.SmartContracts(),
 		NilCompiledSCStore: true,
 		ConfigSCStorage:    *defaultStorageConfig(),
-		EpochNotifier:      &mock.EpochNotifierStub{},
+		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 	}
 
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
@@ -537,7 +537,7 @@ func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutio
 		CompiledSCPool:     datapool.SmartContracts(),
 		NilCompiledSCStore: true,
 		ConfigSCStorage:    *defaultStorageConfig(),
-		EpochNotifier:      &mock.EpochNotifierStub{},
+		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 	}
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
 	vm, _ := mock.NewOneSCExecutorMockVM(blockChainHook, testHasher)
@@ -586,7 +586,7 @@ func CreateVMAndBlockchainHookAndDataPool(
 		CompiledSCPool:     datapool.SmartContracts(),
 		NilCompiledSCStore: true,
 		ConfigSCStorage:    *defaultStorageConfig(),
-		EpochNotifier:      &mock.EpochNotifierStub{},
+		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 	}
 
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(testMarshalizer)
@@ -656,7 +656,7 @@ func CreateVMAndBlockchainHookMeta(
 		DataPool:           datapool,
 		CompiledSCPool:     datapool.SmartContracts(),
 		NilCompiledSCStore: true,
-		EpochNotifier:      &mock.EpochNotifierStub{},
+		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 	}
 
 	economicsData, err := createEconomicsData(0)

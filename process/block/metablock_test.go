@@ -58,7 +58,11 @@ func createMockComponentHolders() (
 	boostrapComponents := &mock.BootstrapComponentsMock{
 		Coordinator:          mock.NewOneShardCoordinatorMock(),
 		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
-		VersionedHdrFactory:  &testscommon.VersionedHeaderFactoryStub{},
+		VersionedHdrFactory: &testscommon.VersionedHeaderFactoryStub{
+			CreateCalled: func(epoch uint32) data.HeaderHandler {
+				return &block.MetaBlock{}
+			},
+		},
 	}
 
 	statusComponents := &mock.StatusComponentsMock{
@@ -95,6 +99,9 @@ func createMockMetaArguments(
 		CommitCalled: func() ([]byte, error) {
 			return nil, nil
 		},
+		RootHashCalled: func() ([]byte, error) {
+			return nil, nil
+		},
 	}
 
 	arguments := blproc.ArgMetaProcessor{
@@ -122,7 +129,7 @@ func createMockMetaArguments(
 			BlockSizeThrottler:             &mock.BlockSizeThrottlerStub{},
 			HistoryRepository:              &dblookupext.HistoryRepositoryStub{},
 			EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
-			RoundNotifier:      &mock.RoundNotifierStub{},
+			RoundNotifier:                  &mock.RoundNotifierStub{},
 			ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
 			ScheduledMiniBlocksEnableEpoch: 2,
 		},
@@ -2693,7 +2700,7 @@ func TestMetaProcess_CreateNewBlockHeaderProcessHeaderExpectCheckRoundCalled(t *
 	metaHeader := &block.MetaBlock{Round: round}
 	bodyHandler, _ := metaProcessor.CreateBlockBody(metaHeader, func() bool { return true })
 
-	headerHandler := metaProcessor.CreateNewHeader(round, 1)
+	headerHandler, _ := metaProcessor.CreateNewHeader(round, 1)
 	require.Equal(t, int64(1), checkRoundCt.Get())
 
 	_ = metaProcessor.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })

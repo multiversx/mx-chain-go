@@ -239,10 +239,10 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 		totalGasConsumedInSelfShard:           scr.getTotalGasConsumed(),
 	}
 
-	log.Debug("smartContractResults.ProcessBlockTransactions", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
+	log.Debug("smartContractResults.ProcessBlockTransactions", "totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard)
 	defer func() {
-		log.Debug("smartContractResults.ProcessBlockTransactions after processing", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard,
-			"gasConsumedByMiniBlockInReceiverShard", gasConsumedByMiniBlockInReceiverShard,
+		log.Debug("smartContractResults.ProcessBlockTransactions after processing", "totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
+			"gasConsumedByMiniBlockInReceiverShard", gasInfo.gasConsumedByMiniBlockInReceiverShard,
 		)
 	}()
 
@@ -533,7 +533,7 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[index])
 
 		if scr.flagOptimizeGasUsedInCrossMiniBlocks.IsSet() {
-			if totalGasConsumedInSelfShard > maxGasLimitUsedForDestMeTxs {
+			if gasInfo.totalGasConsumedInSelfShard > maxGasLimitUsedForDestMeTxs {
 				err = process.ErrMaxGasLimitUsedForDestMeTxsIsReached
 				return processedTxHashes, index, err
 			}

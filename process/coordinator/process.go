@@ -567,7 +567,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	numTxAdded := uint32(0)
 	numMiniBlocksProcessed := 0
-	var crossMiniBlockInfos []*data.MiniBlockInfo
+	processedTxHashes := make([][]byte, 0)
 
 	if check.IfNil(hdr) {
 		return miniBlocks, numTxAdded, false, nil
@@ -715,7 +715,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		}
 	}
 
-	allMBsProcessed := nrMiniBlocksProcessed == len(crossMiniBlockInfos)
+	allMBsProcessed := numMiniBlocksProcessed == len(crossMiniBlockInfos)
 	if !allMBsProcessed {
 		tc.revertIfNeeded(processedTxHashes)
 	}

@@ -1240,7 +1240,7 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldErrMaxGasLimitUsedForDes
 		Type:            block.TxBlock,
 	}
 
-	txsToBeReverted, numTxsProcessed, err := txs.ProcessMiniBlock(miniBlock, haveTimeTrue, getNumOfCrossInterMbsAndTxsZero)
+	txsToBeReverted, numTxsProcessed, err := txs.ProcessMiniBlock(miniBlock, haveTimeTrue, haveAdditionalTimeFalse, getNumOfCrossInterMbsAndTxsZero, false)
 
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(txsToBeReverted))
@@ -1248,7 +1248,7 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldErrMaxGasLimitUsedForDes
 
 	txs.EpochConfirmed(2, 0)
 
-	txsToBeReverted, numTxsProcessed, err = txs.ProcessMiniBlock(miniBlock, haveTimeTrue, getNumOfCrossInterMbsAndTxsZero)
+	txsToBeReverted, numTxsProcessed, err = txs.ProcessMiniBlock(miniBlock, haveTimeTrue, haveAdditionalTimeFalse, getNumOfCrossInterMbsAndTxsZero, false)
 
 	assert.Equal(t, process.ErrMaxGasLimitUsedForDestMeTxsIsReached, err)
 	assert.Equal(t, 1, len(txsToBeReverted))

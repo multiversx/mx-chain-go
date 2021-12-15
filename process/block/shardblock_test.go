@@ -374,7 +374,7 @@ func TestShardProcess_CreateNewBlockHeaderProcessHeaderExpectCheckRoundCalled(t 
 		},
 	}
 
-	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 	arguments.RoundNotifier = roundNotifier
@@ -383,10 +383,12 @@ func TestShardProcess_CreateNewBlockHeaderProcessHeaderExpectCheckRoundCalled(t 
 	header := &block.Header{Round: round}
 	bodyHandler, _ := shardProcessor.CreateBlockBody(header, func() bool { return true })
 
-	headerHandler := shardProcessor.CreateNewHeader(round, 1)
+	headerHandler, err := shardProcessor.CreateNewHeader(round, 1)
+	require.Nil(t, err)
 	require.Equal(t, int64(1), checkRoundCt.Get())
 
-	_ = shardProcessor.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
+	err = shardProcessor.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
+	require.Nil(t, err)
 	require.Equal(t, int64(2), checkRoundCt.Get())
 }
 
