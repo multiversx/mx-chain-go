@@ -171,22 +171,24 @@
     CopyPerByteForTooBig        = 1000
 
 [BigFloatAPICost]
-    BigFloatNewFromParts = 2000
-    BigFloatAdd          = 2000
-    BigFloatSub          = 2000
-    BigFloatMul          = 2000
-    BigFloatDiv          = 2000
-    BigFloatTruncate     = 2000
-    BigFloatNeg          = 2000
-    BigFloatClone        = 2000
-    BigFloatCmp          = 2000
-    BigFloatAbs          = 2000
-    BigFloatSqrt         = 2000
-    BigFloatFloor        = 2000
-    BigFloatCeil         = 2000
-    BigFloatIsInt        = 2000
-    BigFloatSetBigInt    = 2000
-    BigFloatSetInt64     = 2000
+    BigFloatNewFromParts = 3000
+    BigFloatAdd          = 10000
+    BigFloatSub          = 10000
+    BigFloatMul          = 10000
+    BigFloatDiv          = 10000
+    BigFloatTruncate     = 7000
+    BigFloatNeg          = 7000
+    BigFloatClone        = 7000
+    BigFloatCmp          = 4500
+    BigFloatAbs          = 7000
+    BigFloatSqrt         = 10000
+    BigFloatPow          = 10000
+    BigFloatFloor        = 7000
+    BigFloatCeil         = 7000
+    BigFloatIsInt        = 4000
+    BigFloatSetBigInt    = 3000
+    BigFloatSetInt64     = 1000
+    BigFloatGetConst     = 1000
     
 [CryptoAPICost]
     SHA256                 = 1000000
@@ -209,7 +211,7 @@
 
 [ManagedBufferAPICost]
     MBufferNew                   = 2000
-    MBufferNewFromBytes          = 2000
+    MBufferNewFromBytes          = 4000
     MBufferGetLength             = 2000
     MBufferGetBytes              = 2000
     MBufferGetByteSlice          = 2000
@@ -217,10 +219,10 @@
     MBufferSetBytes              = 2000
     MBufferAppend                = 2000
     MBufferAppendBytes           = 2000
-    MBufferToBigIntUnsigned      = 2000
-    MBufferToBigIntSigned        = 5000
-    MBufferFromBigIntUnsigned    = 2000
-    MBufferFromBigIntSigned      = 5000
+    MBufferToBigIntUnsigned      = 4000
+    MBufferToBigIntSigned        = 10000
+    MBufferFromBigIntUnsigned    = 4000
+    MBufferFromBigIntSigned      = 10000
     MBufferToBigFloat            = 4000
     MBufferFromBigFloat          = 4000
     MBufferStorageStore          = 75000

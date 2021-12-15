@@ -170,13 +170,33 @@
     BigIntGetExternalBalance    = 10000
     CopyPerByteForTooBig        = 1000
 
+[BigFloatAPICost]
+    BigFloatNewFromParts = 3000
+    BigFloatAdd          = 10000
+    BigFloatSub          = 10000
+    BigFloatMul          = 10000
+    BigFloatDiv          = 10000
+    BigFloatTruncate     = 7000
+    BigFloatNeg          = 7000
+    BigFloatClone        = 7000
+    BigFloatCmp          = 4500
+    BigFloatAbs          = 7000
+    BigFloatSqrt         = 10000
+    BigFloatPow          = 10000
+    BigFloatFloor        = 7000
+    BigFloatCeil         = 7000
+    BigFloatIsInt        = 4000
+    BigFloatSetBigInt    = 3000
+    BigFloatSetInt64     = 1000
+    BigFloatGetConst     = 1000
+    
 [CryptoAPICost]
-    SHA256          = 1000000
-    Keccak256       = 1000000
-    Ripemd160       = 1000000
-    VerifyBLS       = 5000000
-    VerifyEd25519   = 2000000
-    VerifySecp256k1 = 2000000
+    SHA256                 = 1000000
+    Keccak256              = 1000000
+    Ripemd160              = 1000000
+    VerifyBLS              = 5000000
+    VerifyEd25519          = 2000000
+    VerifySecp256k1        = 2000000
     EllipticCurveNew       = 10000
     AddECC                 = 75000
     DoubleECC              = 65000
@@ -203,8 +223,10 @@
     MBufferToBigIntSigned        = 10000
     MBufferFromBigIntUnsigned    = 4000
     MBufferFromBigIntSigned      = 10000
-    MBufferStorageStore          = 250000
-    MBufferStorageLoad           = 100000
+    MBufferToBigFloat            = 4000
+    MBufferFromBigFloat          = 4000
+    MBufferStorageStore          = 75000
+    MBufferStorageLoad           = 50000
     MBufferGetArgument           = 1000
     MBufferFinish                = 1000
     MBufferSetRandom             = 6000
