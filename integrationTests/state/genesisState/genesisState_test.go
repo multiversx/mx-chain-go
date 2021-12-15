@@ -36,15 +36,17 @@ func TestCreationOfTheGenesisState(t *testing.T) {
 
 	genesisFile := "genesisEdgeCase.json"
 
-	accountsParser, err := parsing.NewAccountsParser(
-		genesisFile,
-		big.NewInt(6000000000),
-		"erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3",
-		integrationTests.TestAddressPubkeyConverter,
-		&mock.KeyGenMock{},
-		&testscommon.HasherMock{},
-		&testscommon.MarshalizerMock{},
-	)
+	args := genesis.AccountsParserArgs{
+		GenesisFilePath: genesisFile,
+		EntireSupply:    big.NewInt(6000000000),
+		MinterAddress:   "erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3",
+		PubkeyConverter: integrationTests.TestAddressPubkeyConverter,
+		KeyGenerator:    &mock.KeyGenMock{},
+		Hasher:          &testscommon.HasherMock{},
+		Marshalizer:     &testscommon.MarshalizerMock{},
+	}
+
+	accountsParser, err := parsing.NewAccountsParser(args)
 	assert.Nil(t, err)
 
 	fmt.Printf("Loaded %d entries...\n", len(accountsParser.InitialAccounts()))

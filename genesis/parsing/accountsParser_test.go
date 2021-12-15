@@ -74,15 +74,17 @@ func createDelegatedInitialAccount(address string, delegatedBytes []byte, delega
 func TestNewAccountsParser_NilEntireBalanceShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ap, err := parsing.NewAccountsParser(
-		"./testdata/genesis_ok.json",
-		nil,
-		"",
-		createMockHexPubkeyConverter(),
-		&mock.KeyGeneratorStub{},
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-	)
+	args := genesis.AccountsParserArgs{
+		GenesisFilePath: "./testdata/genesis_ok.json",
+		EntireSupply:    nil,
+		MinterAddress:   "",
+		PubkeyConverter: createMockHexPubkeyConverter(),
+		KeyGenerator:    &mock.KeyGeneratorStub{},
+		Hasher:          &mock.HasherMock{},
+		Marshalizer:     &mock.MarshalizerMock{},
+	}
+
+	ap, err := parsing.NewAccountsParser(args)
 
 	assert.True(t, check.IfNil(ap))
 	assert.True(t, errors.Is(err, genesis.ErrNilEntireSupply))
@@ -91,15 +93,17 @@ func TestNewAccountsParser_NilEntireBalanceShouldErr(t *testing.T) {
 func TestNewAccountsParser_ZeroEntireBalanceShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ap, err := parsing.NewAccountsParser(
-		"./testdata/genesis_ok.json",
-		big.NewInt(0),
-		"",
-		createMockHexPubkeyConverter(),
-		&mock.KeyGeneratorStub{},
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-	)
+	args := genesis.AccountsParserArgs{
+		GenesisFilePath: "./testdata/genesis_ok.json",
+		EntireSupply:    big.NewInt(0),
+		MinterAddress:   "",
+		PubkeyConverter: createMockHexPubkeyConverter(),
+		KeyGenerator:    &mock.KeyGeneratorStub{},
+		Hasher:          &mock.HasherMock{},
+		Marshalizer:     &mock.MarshalizerMock{},
+	}
+
+	ap, err := parsing.NewAccountsParser(args)
 
 	assert.True(t, check.IfNil(ap))
 	assert.True(t, errors.Is(err, genesis.ErrInvalidEntireSupply))
@@ -108,15 +112,17 @@ func TestNewAccountsParser_ZeroEntireBalanceShouldErr(t *testing.T) {
 func TestNewAccountsParser_BadFilenameShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ap, err := parsing.NewAccountsParser(
-		"inexistent file",
-		big.NewInt(1),
-		"",
-		createMockHexPubkeyConverter(),
-		&mock.KeyGeneratorStub{},
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-	)
+	args := genesis.AccountsParserArgs{
+		GenesisFilePath: "inexistent file",
+		EntireSupply:    big.NewInt(1),
+		MinterAddress:   "",
+		PubkeyConverter: createMockHexPubkeyConverter(),
+		KeyGenerator:    &mock.KeyGeneratorStub{},
+		Hasher:          &mock.HasherMock{},
+		Marshalizer:     &mock.MarshalizerMock{},
+	}
+
+	ap, err := parsing.NewAccountsParser(args)
 
 	assert.True(t, check.IfNil(ap))
 	assert.NotNil(t, err)
@@ -125,15 +131,17 @@ func TestNewAccountsParser_BadFilenameShouldErr(t *testing.T) {
 func TestNewAccountsParser_NilPubkeyConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ap, err := parsing.NewAccountsParser(
-		"inexistent file",
-		big.NewInt(1),
-		"",
-		nil,
-		&mock.KeyGeneratorStub{},
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-	)
+	args := genesis.AccountsParserArgs{
+		GenesisFilePath: "inexistent file",
+		EntireSupply:    big.NewInt(1),
+		MinterAddress:   "",
+		PubkeyConverter: nil,
+		KeyGenerator:    &mock.KeyGeneratorStub{},
+		Hasher:          &mock.HasherMock{},
+		Marshalizer:     &mock.MarshalizerMock{},
+	}
+
+	ap, err := parsing.NewAccountsParser(args)
 
 	assert.True(t, check.IfNil(ap))
 	assert.Equal(t, genesis.ErrNilPubkeyConverter, err)
@@ -142,15 +150,17 @@ func TestNewAccountsParser_NilPubkeyConverterShouldErr(t *testing.T) {
 func TestNewAccountsParser_NilKeyGeneratorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ap, err := parsing.NewAccountsParser(
-		"inexistent file",
-		big.NewInt(1),
-		"",
-		createMockHexPubkeyConverter(),
-		nil,
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-	)
+	args := genesis.AccountsParserArgs{
+		GenesisFilePath: "inexistent file",
+		EntireSupply:    big.NewInt(1),
+		MinterAddress:   "",
+		PubkeyConverter: createMockHexPubkeyConverter(),
+		KeyGenerator:    nil,
+		Hasher:          &mock.HasherMock{},
+		Marshalizer:     &mock.MarshalizerMock{},
+	}
+
+	ap, err := parsing.NewAccountsParser(args)
 
 	assert.True(t, check.IfNil(ap))
 	assert.Equal(t, genesis.ErrNilKeyGenerator, err)
@@ -159,15 +169,17 @@ func TestNewAccountsParser_NilKeyGeneratorShouldErr(t *testing.T) {
 func TestNewAccountsParser_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ap, err := parsing.NewAccountsParser(
-		"inexistent file",
-		big.NewInt(1),
-		"",
-		createMockHexPubkeyConverter(),
-		&mock.KeyGeneratorStub{},
-		nil,
-		&mock.MarshalizerMock{},
-	)
+	args := genesis.AccountsParserArgs{
+		GenesisFilePath: "inexistent file",
+		EntireSupply:    big.NewInt(1),
+		MinterAddress:   "",
+		PubkeyConverter: createMockHexPubkeyConverter(),
+		KeyGenerator:    &mock.KeyGeneratorStub{},
+		Hasher:          nil,
+		Marshalizer:     &mock.MarshalizerMock{},
+	}
+
+	ap, err := parsing.NewAccountsParser(args)
 
 	assert.True(t, check.IfNil(ap))
 	assert.Equal(t, genesis.ErrNilHasher, err)
@@ -176,15 +188,17 @@ func TestNewAccountsParser_NilHasherShouldErr(t *testing.T) {
 func TestNewAccountsParser_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ap, err := parsing.NewAccountsParser(
-		"inexistent file",
-		big.NewInt(1),
-		"",
-		createMockHexPubkeyConverter(),
-		&mock.KeyGeneratorStub{},
-		&mock.HasherMock{},
-		nil,
-	)
+	args := genesis.AccountsParserArgs{
+		GenesisFilePath: "inexistent file",
+		EntireSupply:    big.NewInt(1),
+		MinterAddress:   "",
+		PubkeyConverter: createMockHexPubkeyConverter(),
+		KeyGenerator:    &mock.KeyGeneratorStub{},
+		Hasher:          &mock.HasherMock{},
+		Marshalizer:     nil,
+	}
+
+	ap, err := parsing.NewAccountsParser(args)
 
 	assert.True(t, check.IfNil(ap))
 	assert.Equal(t, genesis.ErrNilMarshalizer, err)
@@ -193,15 +207,17 @@ func TestNewAccountsParser_NilMarshalizerShouldErr(t *testing.T) {
 func TestNewAccountsParser_WrongMinterAddressFormatShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ap, err := parsing.NewAccountsParser(
-		"./testdata/genesis_ok.json",
-		big.NewInt(1),
-		"wrongaddressformat",
-		createMockHexPubkeyConverter(),
-		&mock.KeyGeneratorStub{},
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-	)
+	args := genesis.AccountsParserArgs{
+		GenesisFilePath: "./testdata/genesis_ok.json",
+		EntireSupply:    big.NewInt(1),
+		MinterAddress:   "wrongaddressformat",
+		PubkeyConverter: createMockHexPubkeyConverter(),
+		KeyGenerator:    &mock.KeyGeneratorStub{},
+		Hasher:          &mock.HasherMock{},
+		Marshalizer:     &mock.MarshalizerMock{},
+	}
+
+	ap, err := parsing.NewAccountsParser(args)
 
 	assert.True(t, check.IfNil(ap))
 	assert.True(t, errors.Is(err, genesis.ErrInvalidAddress))
@@ -210,15 +226,17 @@ func TestNewAccountsParser_WrongMinterAddressFormatShouldErr(t *testing.T) {
 func TestNewAccountsParser_BadJsonShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ap, err := parsing.NewAccountsParser(
-		"testdata/genesis_bad.json",
-		big.NewInt(1),
-		"",
-		createMockHexPubkeyConverter(),
-		&mock.KeyGeneratorStub{},
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-	)
+	args := genesis.AccountsParserArgs{
+		GenesisFilePath: "testdata/genesis_bad.json",
+		EntireSupply:    big.NewInt(1),
+		MinterAddress:   "",
+		PubkeyConverter: createMockHexPubkeyConverter(),
+		KeyGenerator:    &mock.KeyGeneratorStub{},
+		Hasher:          &mock.HasherMock{},
+		Marshalizer:     &mock.MarshalizerMock{},
+	}
+
+	ap, err := parsing.NewAccountsParser(args)
 
 	assert.True(t, check.IfNil(ap))
 	assert.True(t, errors.Is(err, genesis.ErrInvalidAddress))
@@ -227,15 +245,17 @@ func TestNewAccountsParser_BadJsonShouldErr(t *testing.T) {
 func TestNewAccountsParser_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	ap, err := parsing.NewAccountsParser(
-		"testdata/genesis_ok.json",
-		big.NewInt(30),
-		"",
-		createMockHexPubkeyConverter(),
-		&mock.KeyGeneratorStub{},
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-	)
+	args := genesis.AccountsParserArgs{
+		GenesisFilePath: "testdata/genesis_ok.json",
+		EntireSupply:    big.NewInt(30),
+		MinterAddress:   "",
+		PubkeyConverter: createMockHexPubkeyConverter(),
+		KeyGenerator:    &mock.KeyGeneratorStub{},
+		Hasher:          &mock.HasherMock{},
+		Marshalizer:     &mock.MarshalizerMock{},
+	}
+
+	ap, err := parsing.NewAccountsParser(args)
 
 	assert.False(t, check.IfNil(ap))
 	assert.Nil(t, err)
