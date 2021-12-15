@@ -25,6 +25,18 @@ func TestHexAddressToBech32Address(t *testing.T) {
 	require.Equal(t, "erd14uqxan5rgucsf6537ll4vpwyc96z7us5586xhc5euv8w96rsw95sfl6a49", bech32Address)
 }
 
+func TestHexAddressToBech32GenesisMintingAddress(t *testing.T) {
+	t.Parallel()
+
+	hexEncodedAddress := "f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0"
+
+	hexEncodedAddressBytes, err := hex.DecodeString(hexEncodedAddress)
+	require.NoError(t, err)
+
+	bech32Address := addressEncoder.Encode(hexEncodedAddressBytes)
+	require.Equal(t, "erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3", bech32Address)
+}
+
 func TestBech32AddressToHexAddress(t *testing.T) {
 	t.Parallel()
 
