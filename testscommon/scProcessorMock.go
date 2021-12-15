@@ -16,13 +16,13 @@ type SCProcessorMock struct {
 	DeploySmartContractCalled             func(tx data.TransactionHandler, acntSrc state.UserAccountHandler) (vmcommon.ReturnCode, error)
 	ProcessSmartContractResultCalled      func(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error)
 	ProcessIfErrorCalled                  func(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, returnMessage []byte, snapshot int, gasLocked uint64) error
-	IsPayableCalled                       func(address []byte) (bool, error)
+	IsPayableCalled                       func(sndAddress, recvAddress []byte) (bool, error)
 }
 
 // IsPayable -
-func (sc *SCProcessorMock) IsPayable(address []byte) (bool, error) {
+func (sc *SCProcessorMock) IsPayable(sndAddress []byte, recvAddress []byte) (bool, error) {
 	if sc.IsPayableCalled != nil {
-		return sc.IsPayableCalled(address)
+		return sc.IsPayableCalled(sndAddress, recvAddress)
 	}
 	return true, nil
 }

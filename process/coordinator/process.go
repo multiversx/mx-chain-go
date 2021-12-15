@@ -474,7 +474,14 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 	body *block.Body,
 	haveTime func() bool,
 ) error {
+	for _, mb := range body.MiniBlocks {
+		if mb.SenderShardID != tc.shardCoordinator.SelfId() {
+			return process.ErrMiniBlocksInWrongOrder
+		}
+	}
+
 	numMiniBlocksProcessed := 0
+	separatedBodies := tc.separateBodyByType(body)
 
 	defer func() {
 		log.Debug("transactionCoordinator.processMiniBlocksFromMe: gas consumed, refunded and penalized info",
@@ -484,13 +491,6 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 			"total gas penalized", tc.gasHandler.TotalGasPenalized())
 	}()
 
-	for _, mb := range body.MiniBlocks {
-		if mb.SenderShardID != tc.shardCoordinator.SelfId() {
-			return process.ErrMiniBlocksInWrongOrder
-		}
-	}
-
-	separatedBodies := tc.separateBodyByType(body)
 	// processing has to be done in order, as the order of different type of transactions over the same account is strict
 	for _, blockType := range tc.keysTxPreProcs {
 		if separatedBodies[blockType] == nil {
@@ -521,7 +521,7 @@ func (tc *transactionCoordinator) processMiniBlocksToMe(
 	numMiniBlocksProcessed := 0
 
 	defer func() {
-		log.Debug("transactionCoordinator.processMiniBlocksToMe: gas consumed, refunded and penalized info",
+		log.Debug("transactionCoordinator.processMiniBlocksToMe: gas provided, refunded and penalized info",
 			"num mini blocks processed", numMiniBlocksProcessed,
 			"total gas provided", tc.gasHandler.TotalGasProvided(),
 			"total gas refunded", tc.gasHandler.TotalGasRefunded(),
@@ -542,6 +542,7 @@ func (tc *transactionCoordinator) processMiniBlocksToMe(
 			return mbIndex, process.ErrMissingPreProcessor
 		}
 
+		log.Debug("processMiniBlocksToMe: miniblock", "type", miniBlock.Type)
 		err := preProc.ProcessBlockTransactions(header, &block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}}, haveTime)
 		if err != nil {
 			return mbIndex, err
@@ -572,6 +573,14 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		return miniBlocks, numTxAdded, false, nil
 	}
 
+	shouldSkipShard := make(map[uint32]bool)
+
+	if tc.shardCoordinator.SelfId() == core.MetachainShardId {
+		tc.initProcessedTxsResults()
+	}
+
+	crossMiniBlockInfos := hdr.GetOrderedCrossMiniblocksWithDst(tc.shardCoordinator.SelfId())
+
 	defer func() {
 		log.Debug("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: gas provided, refunded and penalized info",
 			"header round", hdr.GetRound(),
@@ -582,9 +591,6 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			"total gas refunded", tc.gasHandler.TotalGasRefunded(),
 			"total gas penalized", tc.gasHandler.TotalGasPenalized())
 	}()
-
-	crossMiniBlockInfos = hdr.GetOrderedCrossMiniblocksWithDst(tc.shardCoordinator.SelfId())
-	shouldSkipShard := make(map[uint32]bool)
 
 	for _, miniBlockInfo := range crossMiniBlockInfos {
 		if !haveTime() && !haveAdditionalTime() {
@@ -690,6 +696,16 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			continue
 		}
 
+		log.Debug("transactionsCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: process mini block",
+			"hash", miniBlockInfo.Hash,
+			"mb type", miniBlock.Type,
+			"total gas provided", tc.gasHandler.TotalGasProvided(),
+			"total gas refunded", tc.gasHandler.TotalGasRefunded(),
+			"total gas penalized", tc.gasHandler.TotalGasPenalized(),
+		)
+
+		processedTxHashes = append(processedTxHashes, miniBlock.TxHashes...)
+
 		// all txs processed, add to processed miniblocks
 		miniBlocks = append(miniBlocks, miniBlock)
 		numTxAdded = numTxAdded + uint32(len(miniBlock.TxHashes))
@@ -699,9 +715,25 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		}
 	}
 
-	allMBsProcessed := numMiniBlocksProcessed == len(crossMiniBlockInfos)
+	allMBsProcessed := nrMiniBlocksProcessed == len(crossMiniBlockInfos)
+	if !allMBsProcessed {
+		tc.revertIfNeeded(processedTxHashes)
+	}
 
 	return miniBlocks, numTxAdded, allMBsProcessed, nil
+}
+
+func (tc *transactionCoordinator) revertIfNeeded(txsToBeReverted [][]byte) {
+	shouldRevert := tc.shardCoordinator.SelfId() == core.MetachainShardId && len(txsToBeReverted) > 0
+	if !shouldRevert {
+		return
+	}
+
+	tc.gasHandler.RemoveGasConsumed(txsToBeReverted)
+	tc.gasHandler.RemoveGasRefunded(txsToBeReverted)
+	tc.gasHandler.RemoveGasPenalized(txsToBeReverted)
+
+	tc.revertProcessedTxsResults(txsToBeReverted)
 }
 
 // CreateMbsAndProcessTransactionsFromMe creates miniblocks and processes transactions from pool
@@ -710,11 +742,11 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 	randomness []byte,
 ) block.MiniBlockSlice {
 
-	miniBlocks := make(block.MiniBlockSlice, 0)
 	numMiniBlocksProcessed := 0
+	miniBlocks := make(block.MiniBlockSlice, 0)
 
 	defer func() {
-		log.Debug("transactionCoordinator.CreateMbsAndProcessTransactionsFromMe: gas consumed, refunded and penalized info",
+		log.Debug("transactionCoordinator.CreateMbsAndProcessTransactionsFromMe: gas provided, refunded and penalized info",
 			"num mini blocks processed", numMiniBlocksProcessed,
 			"total gas provided", tc.gasHandler.TotalGasProvided(),
 			"total gas refunded", tc.gasHandler.TotalGasRefunded(),
@@ -992,7 +1024,9 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 ) error {
 
 	snapshot := tc.accounts.JournalLen()
-	tc.initProcessedTxsResults()
+	if tc.shardCoordinator.SelfId() != core.MetachainShardId {
+		tc.initProcessedTxsResults()
+	}
 
 	txsToBeReverted, numTxsProcessed, err := preproc.ProcessMiniBlock(miniBlock, haveTime, haveAdditionalTime, tc.getNumOfCrossInterMbsAndTxs, scheduledMode)
 	if err != nil {
@@ -1358,7 +1392,10 @@ func (tc *transactionCoordinator) checkGasConsumedByMiniBlockInReceiverShard(
 		}
 	}
 
-	if gasConsumedByMiniBlockInReceiverShard > tc.economicsFee.MaxGasLimitPerMiniBlockForSafeCrossShard() {
+	// the max gas limit to be compared with, should be the maximum value between max gas limit per mini block and max gas limit per tx,
+	// as the mini blocks with only one tx inside could have gas limit higher than gas limit per mini block but lower or equal than max gas limit per tx.
+	// This is done to accept at least one tx in each mini block, if the tx gas limit respects the max gas limit per tx, even if its gas limit is higher than gas limit per mini block.
+	if gasConsumedByMiniBlockInReceiverShard > core.MaxUint64(tc.economicsFee.MaxGasLimitPerMiniBlockForSafeCrossShard(), tc.economicsFee.MaxGasLimitPerTx()) {
 		return process.ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached
 	}
 

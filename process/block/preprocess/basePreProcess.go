@@ -18,6 +18,8 @@ import (
 	"github.com/ElrondNetwork/elrond-vm-common/atomic"
 )
 
+const maxGasLimitPercentUsedForDestMeTxs = 50
+
 type txType int32
 
 const (

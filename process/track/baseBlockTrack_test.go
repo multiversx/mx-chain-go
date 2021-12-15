@@ -26,6 +26,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const maxGasLimitPerBlock = uint64(1500000000)
+const maxGasLimitPerMiniBlock = uint64(250000000)
+
 func createGenesisBlocks(shardCoordinator sharding.Coordinator) map[uint32]data.HeaderHandler {
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
 	for ShardID := uint32(0); ShardID < shardCoordinator.NumberOfShards(); ShardID++ {
@@ -106,6 +109,14 @@ func CreateShardTrackerMockArguments() track.ArgShardTracker {
 	}
 	headerValidator, _ := processBlock.NewHeaderValidator(argsHeaderValidator)
 	whitelistHandler := &testscommon.WhiteListHandlerStub{}
+	feeHandler := &mock.FeeHandlerStub{
+		MaxGasLimitPerBlockForSafeCrossShardCalled: func() uint64 {
+			return maxGasLimitPerBlock
+		},
+		MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
+			return maxGasLimitPerMiniBlock
+		},
+	}
 
 	arguments := track.ArgShardTracker{
 		ArgBaseTracker: track.ArgBaseTracker{
@@ -119,6 +130,7 @@ func CreateShardTrackerMockArguments() track.ArgShardTracker {
 			StartHeaders:     genesisBlocks,
 			PoolsHolder:      dataRetrieverMock.NewPoolsHolderMock(),
 			WhitelistHandler: whitelistHandler,
+			FeeHandler:       feeHandler,
 		},
 	}
 
@@ -135,6 +147,14 @@ func CreateMetaTrackerMockArguments() track.ArgMetaTracker {
 	}
 	headerValidator, _ := processBlock.NewHeaderValidator(argsHeaderValidator)
 	whitelistHandler := &testscommon.WhiteListHandlerStub{}
+	feeHandler := &mock.FeeHandlerStub{
+		MaxGasLimitPerBlockForSafeCrossShardCalled: func() uint64 {
+			return maxGasLimitPerBlock
+		},
+		MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
+			return maxGasLimitPerMiniBlock
+		},
+	}
 
 	arguments := track.ArgMetaTracker{
 		ArgBaseTracker: track.ArgBaseTracker{
@@ -148,6 +168,7 @@ func CreateMetaTrackerMockArguments() track.ArgMetaTracker {
 			StartHeaders:     genesisBlocks,
 			PoolsHolder:      dataRetrieverMock.NewPoolsHolderMock(),
 			WhitelistHandler: whitelistHandler,
+			FeeHandler:       feeHandler,
 		},
 	}
 
@@ -162,6 +183,14 @@ func CreateBaseTrackerMockArguments() track.ArgBaseTracker {
 		Marshalizer: &mock.MarshalizerMock{},
 	}
 	headerValidator, _ := processBlock.NewHeaderValidator(argsHeaderValidator)
+	feeHandler := &mock.FeeHandlerStub{
+		MaxGasLimitPerBlockForSafeCrossShardCalled: func() uint64 {
+			return maxGasLimitPerBlock
+		},
+		MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
+			return maxGasLimitPerMiniBlock
+		},
+	}
 
 	arguments := track.ArgBaseTracker{
 		Hasher:           &hashingMocks.HasherMock{},
@@ -172,6 +201,7 @@ func CreateBaseTrackerMockArguments() track.ArgBaseTracker {
 		ShardCoordinator: shardCoordinatorMock,
 		Store:            initStore(),
 		StartHeaders:     genesisBlocks,
+		FeeHandler:       feeHandler,
 	}
 
 	return arguments
@@ -236,6 +266,24 @@ func TestNewBlockTrack_ShouldErrNilHeadersDataPool(t *testing.T) {
 	mbt, err := track.NewShardBlockTrack(metaArguments)
 
 	assert.Equal(t, process.ErrNilHeadersDataPool, err)
+	assert.Nil(t, mbt)
+}
+
+func TestNewBlockTrack_ShouldErrNilEconomicsData(t *testing.T) {
+	t.Parallel()
+
+	shardArguments := CreateShardTrackerMockArguments()
+	shardArguments.FeeHandler = nil
+	sbt, err := track.NewShardBlockTrack(shardArguments)
+
+	assert.Equal(t, process.ErrNilEconomicsData, err)
+	assert.Nil(t, sbt)
+
+	metaArguments := CreateShardTrackerMockArguments()
+	metaArguments.FeeHandler = nil
+	mbt, err := track.NewShardBlockTrack(metaArguments)
+
+	assert.Equal(t, process.ErrNilEconomicsData, err)
 	assert.Nil(t, mbt)
 }
 
@@ -1766,12 +1814,13 @@ func TestIsShardStuck_ShouldWork(t *testing.T) {
 	startHeader := shardArguments.StartHeaders[core.MetachainShardId]
 	startHeaderHash, _ := core.CalculateHash(shardArguments.Marshalizer, shardArguments.Hasher, startHeader)
 
+	maxNumMiniBlocksForSameReceiverInOneBlock := maxGasLimitPerBlock / maxGasLimitPerMiniBlock
 	hdr1 := &block.MetaBlock{
 		Round: 1,
 		Nonce: 1,
 		ShardInfo: []block.ShardData{
 			{
-				NumPendingMiniBlocks: process.MaxNumPendingMiniBlocksPerShard*shardArguments.ShardCoordinator.NumberOfShards() - 1,
+				NumPendingMiniBlocks: uint32(maxNumMiniBlocksForSameReceiverInOneBlock*process.MaxMetaNoncesBehind*uint64(shardArguments.ShardCoordinator.NumberOfShards()) - 1),
 			},
 		},
 		PrevHash:     startHeaderHash,
@@ -1784,7 +1833,7 @@ func TestIsShardStuck_ShouldWork(t *testing.T) {
 		Nonce: 2,
 		ShardInfo: []block.ShardData{
 			{
-				NumPendingMiniBlocks: process.MaxNumPendingMiniBlocksPerShard * shardArguments.ShardCoordinator.NumberOfShards(),
+				NumPendingMiniBlocks: uint32(maxNumMiniBlocksForSameReceiverInOneBlock * process.MaxMetaNoncesBehind * uint64(shardArguments.ShardCoordinator.NumberOfShards())),
 			},
 		},
 		PrevHash:     hdr1Hash,

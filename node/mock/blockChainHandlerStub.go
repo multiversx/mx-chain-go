@@ -9,7 +9,7 @@ import (
 type BlockChainHookHandlerStub struct {
 	SetCurrentHeaderCalled       func(hdr data.HeaderHandler)
 	NewAddressCalled             func(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error)
-	IsPayableCalled              func(address []byte) (bool, error)
+	IsPayableCalled              func(sndAddress []byte, rcvAddress []byte) (bool, error)
 	DeleteCompiledCodeCalled     func(codeHash []byte)
 	ProcessBuiltInFunctionCalled func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
 }
@@ -23,9 +23,9 @@ func (e *BlockChainHookHandlerStub) ProcessBuiltInFunction(input *vmcommon.Contr
 }
 
 // IsPayable -
-func (e *BlockChainHookHandlerStub) IsPayable(address []byte) (bool, error) {
+func (e *BlockChainHookHandlerStub) IsPayable(sndAddress []byte, recvAddress []byte) (bool, error) {
 	if e.IsPayableCalled != nil {
-		return e.IsPayableCalled(address)
+		return e.IsPayableCalled(sndAddress, recvAddress)
 	}
 	return true, nil
 }

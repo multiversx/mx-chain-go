@@ -367,6 +367,7 @@ func CreateMockArguments(
 			Version:                        "softwareVersion",
 			HistoryRepository:              &dblookupext.HistoryRepositoryStub{},
 			EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
+			RoundNotifier:                  &mock.RoundNotifierStub{},
 			GasHandler:                     &mock.GasHandlerMock{},
 			ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
 			ScheduledMiniBlocksEnableEpoch: 2,

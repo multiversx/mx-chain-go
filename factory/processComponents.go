@@ -915,6 +915,7 @@ func (pcf *processComponentsFactory) newBlockTracker(
 		StartHeaders:     genesisBlocks,
 		PoolsHolder:      pcf.data.Datapool(),
 		WhitelistHandler: pcf.whiteListHandler,
+		FeeHandler:       pcf.coreData.EconomicsData(),
 	}
 
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() < pcf.bootstrapComponents.ShardCoordinator().NumberOfShards() {

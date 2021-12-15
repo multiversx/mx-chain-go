@@ -46,6 +46,7 @@ type baseBlockTrack struct {
 	finalMetachainHeadersNotifier         blockNotifierHandler
 	blockBalancer                         blockBalancerHandler
 	whitelistHandler                      process.WhiteListHandler
+	feeHandler                            process.FeeHandler
 
 	mutHeaders                  sync.RWMutex
 	headers                     map[uint32]map[uint64][]*HeaderInfo
@@ -112,6 +113,7 @@ func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
 		blockBalancer:                         blockBalancerInstance,
 		maxNumHeadersToKeepPerShard:           maxNumHeadersToKeepPerShard,
 		whitelistHandler:                      arguments.WhitelistHandler,
+		feeHandler:                            arguments.FeeHandler,
 	}
 
 	return bbt, nil
@@ -615,7 +617,7 @@ func (bbt *baseBlockTrack) IsShardStuck(shardID uint32) bool {
 		return bbt.isMetaStuck()
 	}
 
-	numPendingMiniBlocks := bbt.blockBalancer.GetNumPendingMiniBlocks(shardID)
+	numPendingMiniBlocks := uint64(bbt.blockBalancer.GetNumPendingMiniBlocks(shardID))
 	lastShardProcessedMetaNonce := bbt.blockBalancer.GetLastShardProcessedMetaNonce(shardID)
 
 	isMetaDifferenceTooLarge := false
@@ -630,7 +632,8 @@ func (bbt *baseBlockTrack) IsShardStuck(shardID uint32) bool {
 		}
 	}
 
-	maxNumPendingMiniBlocks := process.MaxNumPendingMiniBlocksPerShard * bbt.shardCoordinator.NumberOfShards()
+	maxNumMiniBlocksForSameReceiverInOneBlock := bbt.feeHandler.MaxGasLimitPerBlockForSafeCrossShard() / bbt.feeHandler.MaxGasLimitPerMiniBlockForSafeCrossShard()
+	maxNumPendingMiniBlocks := maxNumMiniBlocksForSameReceiverInOneBlock * process.MaxMetaNoncesBehind * uint64(bbt.shardCoordinator.NumberOfShards())
 	isShardStuck := numPendingMiniBlocks >= maxNumPendingMiniBlocks || isMetaDifferenceTooLarge
 	return isShardStuck
 }
@@ -736,6 +739,9 @@ func checkTrackerNilParameters(arguments ArgBaseTracker) error {
 	}
 	if check.IfNil(arguments.PoolsHolder.Headers()) {
 		return process.ErrNilHeadersDataPool
+	}
+	if check.IfNil(arguments.FeeHandler) {
+		return process.ErrNilEconomicsData
 	}
 
 	return nil

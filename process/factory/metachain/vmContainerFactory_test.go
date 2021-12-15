@@ -45,6 +45,7 @@ func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 		NFTStorageHandler:  &testscommon.SimpleNFTStorageHandlerStub{},
 		DataPool:           datapool,
 		CompiledSCPool:     datapool.SmartContracts(),
+		EpochNotifier:      &mock.EpochNotifierStub{},
 		NilCompiledSCStore: true,
 	}
 	return arguments
@@ -287,6 +288,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 						MaxGasLimitPerMiniBlock:     "10000000000",
 						MaxGasLimitPerMetaBlock:     "10000000000",
 						MaxGasLimitPerMetaMiniBlock: "10000000000",
+						MaxGasLimitPerTx:            "10000000000",
 						MinGasLimit:                 "10",
 					},
 				},

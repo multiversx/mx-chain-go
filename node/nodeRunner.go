@@ -151,7 +151,6 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("esdt NFT create on multiple shards"), "epoch", enableEpochs.ESDTNFTCreateOnMultiShardEnableEpoch)
 	log.Debug(readEpochFor("SCR size invariant check"), "epoch", enableEpochs.SCRSizeInvariantCheckEnableEpoch)
 	log.Debug(readEpochFor("backward compatibility flag for save key value"), "epoch", enableEpochs.BackwardCompSaveKeyValueEnableEpoch)
-	log.Debug(readEpochFor("esdt NFT create on multiple shards"), "epoch", enableEpochs.ESDTNFTCreateOnMultiShardEnableEpoch)
 	log.Debug(readEpochFor("meta ESDT, financial SFT"), "epoch", enableEpochs.MetaESDTSetEnableEpoch)
 	log.Debug(readEpochFor("add tokens to delegation"), "epoch", enableEpochs.AddTokensToDelegationEnableEpoch)
 	log.Debug(readEpochFor("multi ESDT transfer on callback"), "epoch", enableEpochs.MultiESDTTransferFixOnCallBackOnEnableEpoch)
@@ -162,6 +161,10 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("delete delegator data after claim rewards"), "epoch", enableEpochs.DeleteDelegatorAfterClaimRewardsEnableEpoch)
 	log.Debug(readEpochFor("optimize nft metadata store"), "epoch", enableEpochs.OptimizeNFTStoreEnableEpoch)
 	log.Debug(readEpochFor("create nft through execute on destination by caller"), "epoch", enableEpochs.CreateNFTThroughExecByCallerEnableEpoch)
+	log.Debug(readEpochFor("payable by smart contract"), "epoch", enableEpochs.IsPayableBySCEnableEpoch)
+	log.Debug(readEpochFor("cleanup informative only SCRs"), "epoch", enableEpochs.CleanUpInformativeSCRsEnableEpoch)
+	log.Debug(readEpochFor("storage API cost optimization"), "epoch", enableEpochs.StorageAPICostOptimizationEnableEpoch)
+	log.Debug(readEpochFor("transform to multi shard create on esdt"), "epoch", enableEpochs.TransformToMultiShardCreateEnableEpoch)
 	log.Debug(readEpochFor("scheduled mini blocks"), "epoch", enableEpochs.ScheduledMiniBlocksEnableEpoch)
 
 	gasSchedule := configs.EpochConfig.GasSchedule
@@ -569,8 +572,7 @@ func (nr *nodeRunner) createMetrics(
 	metrics.SaveStringMetric(coreComponents.StatusHandler(), common.MetricRewardsTopUpGradientPoint, coreComponents.EconomicsData().RewardsTopUpGradientPoint().String())
 	metrics.SaveStringMetric(coreComponents.StatusHandler(), common.MetricTopUpFactor, fmt.Sprintf("%g", coreComponents.EconomicsData().RewardsTopUpFactor()))
 	metrics.SaveStringMetric(coreComponents.StatusHandler(), common.MetricGasPriceModifier, fmt.Sprintf("%g", coreComponents.EconomicsData().GasPriceModifier()))
-	metrics.SaveUint64Metric(coreComponents.StatusHandler(), common.MetricMaxGasPerTransaction, coreComponents.EconomicsData().MaxGasLimitPerMiniBlockForSafeCrossShard())
-
+	metrics.SaveUint64Metric(coreComponents.StatusHandler(), common.MetricMaxGasPerTransaction, coreComponents.EconomicsData().MaxGasLimitPerTx())
 	return nil
 }
 
@@ -871,6 +873,8 @@ func (nr *nodeRunner) logSessionInformation(
 			configurationPaths.ApiRoutes,
 			configurationPaths.External,
 			configurationPaths.SystemSC,
+			configurationPaths.RoundActivation,
+			configurationPaths.Epoch,
 		})
 
 	statsFile := filepath.Join(statsFolder, "session.info")
@@ -1098,6 +1102,7 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 	bootstrapComponentsFactoryArgs := mainFactory.BootstrapComponentsFactoryArgs{
 		Config:            *nr.configs.GeneralConfig,
 		EpochConfig:       *nr.configs.EpochConfig,
+		RoundConfig:       *nr.configs.RoundConfig,
 		PrefConfig:        *nr.configs.PreferencesConfig,
 		ImportDbConfig:    *nr.configs.ImportDbConfig,
 		WorkingDir:        nr.configs.FlagsConfig.WorkingDir,

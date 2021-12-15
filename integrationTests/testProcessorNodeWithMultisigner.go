@@ -51,6 +51,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 
+	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
 	messenger := CreateMessengerWithNoDiscovery()
 	tpn := &TestProcessorNode{
 		ShardCoordinator:        shardCoordinator,
@@ -65,7 +66,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker:       &sync.RWMutex{},
-		TransactionLogProcessor: transactionLog.NewPrintTxLogProcessor(),
+		TransactionLogProcessor: logsProcessor,
 		Bootstrapper:            mock.NewTestBootstrapperMock(),
 	}
 
@@ -237,6 +238,7 @@ func CreateNodeWithBLSAndTxKeys(
 
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(nbShards), shardId)
 
+	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
 	messenger := CreateMessengerWithNoDiscovery()
 	tpn := &TestProcessorNode{
 		ShardCoordinator:        shardCoordinator,
@@ -251,7 +253,7 @@ func CreateNodeWithBLSAndTxKeys(
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker:       &sync.RWMutex{},
-		TransactionLogProcessor: transactionLog.NewPrintTxLogProcessor(),
+		TransactionLogProcessor: logsProcessor,
 	}
 
 	tpn.ScheduledMiniBlocksEnableEpoch = uint32(1000000)

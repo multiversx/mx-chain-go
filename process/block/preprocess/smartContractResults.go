@@ -239,6 +239,13 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 		totalGasConsumedInSelfShard:           scr.getTotalGasConsumed(),
 	}
 
+	log.Debug("smartContractResults.ProcessBlockTransactions", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
+	defer func() {
+		log.Debug("smartContractResults.ProcessBlockTransactions after processing", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard,
+			"gasConsumedByMiniBlockInReceiverShard", gasConsumedByMiniBlockInReceiverShard,
+		)
+	}()
+
 	// basic validation already done in interceptors
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniBlock := body.MiniBlocks[i]
@@ -297,6 +304,7 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 			scr.updateGasConsumedWithGasRefundedAndGasPenalized(txHash, &gasInfo)
 		}
 	}
+
 	return nil
 }
 
@@ -500,6 +508,7 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 		gasConsumedByMiniBlocksInSenderShard:  uint64(0),
 		totalGasConsumedInSelfShard:           scr.getTotalGasConsumed(),
 	}
+	maxGasLimitUsedForDestMeTxs := scr.economicsFee.MaxGasLimitPerBlock(scr.shardCoordinator.SelfId()) * maxGasLimitPercentUsedForDestMeTxs / 100
 
 	log.Trace("smartContractResults.ProcessMiniBlock", "totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard)
 
@@ -522,6 +531,13 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 
 		scr.gasHandler.SetGasConsumed(gasConsumedByTxInSelfShard, miniBlockTxHashes[index])
 		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[index])
+
+		if scr.flagOptimizeGasUsedInCrossMiniBlocks.IsSet() {
+			if totalGasConsumedInSelfShard > maxGasLimitUsedForDestMeTxs {
+				err = process.ErrMaxGasLimitUsedForDestMeTxsIsReached
+				return processedTxHashes, index, err
+			}
+		}
 
 		scr.saveAccountBalanceForAddress(miniBlockScrs[index].GetRcvAddr())
 

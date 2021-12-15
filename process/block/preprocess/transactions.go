@@ -473,7 +473,11 @@ func (txs *transactions) processTxsToMe(
 		totalGasConsumedInSelfShard:           totalGasConsumed,
 	}
 
-	log.Trace("processTxsToMe", "scheduled mode", scheduledMode, "totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard)
+	log.Debug("processTxsToMe", "scheduled mode", scheduledMode, "totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard)
+	defer func() {
+		log.Debug("processTxsToMe after processing", "totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
+			"gasConsumedByMiniBlockInReceiverShard", gasInfo.gasConsumedByMiniBlockInReceiverShard)
+	}()
 
 	for index := range txsToMe {
 		if !haveTime() {
@@ -1316,6 +1320,7 @@ func (txs *transactions) ProcessMiniBlock(
 	} else {
 		totalGasConsumed = txs.getTotalGasConsumed()
 	}
+	maxGasLimitUsedForDestMeTxs := txs.economicsFee.MaxGasLimitPerBlock(txs.shardCoordinator.SelfId()) * maxGasLimitPercentUsedForDestMeTxs / 100
 
 	gasInfo := gasConsumedInfo{
 		gasConsumedByMiniBlockInReceiverShard: uint64(0),
@@ -1351,6 +1356,14 @@ func (txs *transactions) ProcessMiniBlock(
 		}
 
 		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[index])
+
+		if txs.flagOptimizeGasUsedInCrossMiniBlocks.IsSet() {
+			if totalGasConsumedInSelfShard > maxGasLimitUsedForDestMeTxs {
+				err = process.ErrMaxGasLimitUsedForDestMeTxsIsReached
+				return processedTxHashes, index, err
+			}
+		}
+
 		txs.saveAccountBalanceForAddress(miniBlockTxs[index].GetRcvAddr())
 
 		if !scheduledMode {
