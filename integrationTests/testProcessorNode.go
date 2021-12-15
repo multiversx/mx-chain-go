@@ -419,6 +419,9 @@ func newBaseTestProcessorNode(
 	tpn.StorageBootstrapper = &mock.StorageBootstrapperMock{}
 	tpn.BootstrapStorer = &mock.BoostrapStorerMock{}
 	tpn.initDataPools()
+	tpn.EnableEpochs = config.EnableEpochs{
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 10,
+	}
 
 	return tpn
 }
@@ -1035,6 +1038,7 @@ func (tpn *TestProcessorNode) createDefaultEconomicsConfig() *config.EconomicsCo
 					MaxGasLimitPerMiniBlock:     maxGasLimitPerBlock,
 					MaxGasLimitPerMetaBlock:     maxGasLimitPerBlock,
 					MaxGasLimitPerMetaMiniBlock: maxGasLimitPerBlock,
+					MaxGasLimitPerTx:            maxGasLimitPerBlock,
 					MinGasLimit:                 minGasLimit,
 				},
 			},
@@ -2632,6 +2636,7 @@ func (tpn *TestProcessorNode) initBlockTracker() {
 		StartHeaders:     tpn.GenesisBlocks,
 		PoolsHolder:      tpn.DataPool,
 		WhitelistHandler: tpn.WhiteListHandler,
+		FeeHandler:       tpn.EconomicsData,
 	}
 
 	if tpn.ShardCoordinator.SelfId() != core.MetachainShardId {

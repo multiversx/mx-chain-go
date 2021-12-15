@@ -577,6 +577,7 @@ type feeHandler interface {
 	MaxGasLimitPerMiniBlock(shardID uint32) uint64
 	MaxGasLimitPerBlockForSafeCrossShard() uint64
 	MaxGasLimitPerMiniBlockForSafeCrossShard() uint64
+	MaxGasLimitPerTx() uint64
 	ComputeGasLimit(tx data.TransactionWithFeeHandler) uint64
 	ComputeMoveBalanceFee(tx data.TransactionWithFeeHandler) *big.Int
 	ComputeTxFee(tx data.TransactionWithFeeHandler) *big.Int

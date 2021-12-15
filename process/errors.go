@@ -497,6 +497,9 @@ var ErrInvalidMaxGasLimitPerMetaBlock = errors.New("invalid max gas limit per me
 // ErrInvalidMaxGasLimitPerMetaMiniBlock signals that an invalid max gas limit per meta mini block has been read from config file
 var ErrInvalidMaxGasLimitPerMetaMiniBlock = errors.New("invalid max gas limit per meta mini block")
 
+// ErrInvalidMaxGasLimitPerTx signals that an invalid max gas limit per tx has been read from config file
+var ErrInvalidMaxGasLimitPerTx = errors.New("invalid max gas limit per tx")
+
 // ErrInvalidGasPerDataByte signals that an invalid gas per data byte has been read from config file
 var ErrInvalidGasPerDataByte = errors.New("invalid gas per data byte")
 
@@ -508,6 +511,9 @@ var ErrMaxGasLimitPerOneTxInReceiverShardIsReached = errors.New("max gas limit p
 
 // ErrMaxGasLimitPerBlockInSelfShardIsReached signals that max gas limit per block in self shard has been reached
 var ErrMaxGasLimitPerBlockInSelfShardIsReached = errors.New("max gas limit per block in self shard is reached")
+
+// ErrMaxGasLimitUsedForDestMeTxsIsReached signals that max gas limit used for dest me txs has been reached
+var ErrMaxGasLimitUsedForDestMeTxsIsReached = errors.New("max gas limit used for dest me txs is reached")
 
 // ErrInvalidMinimumGasPrice signals that an invalid gas price has been read from config file
 var ErrInvalidMinimumGasPrice = errors.New("invalid minimum gas price")

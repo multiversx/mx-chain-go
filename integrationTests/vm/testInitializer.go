@@ -392,6 +392,7 @@ func createEconomicsData(penalizedTooMuchGasEnableEpoch uint32) (process.Economi
 						MaxGasLimitPerMiniBlock:     maxGasLimitPerBlock,
 						MaxGasLimitPerMetaBlock:     maxGasLimitPerBlock,
 						MaxGasLimitPerMetaMiniBlock: maxGasLimitPerBlock,
+						MaxGasLimitPerTx:            maxGasLimitPerBlock,
 						MinGasLimit:                 minGasLimit,
 					},
 				},
