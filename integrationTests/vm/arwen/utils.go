@@ -204,6 +204,7 @@ func (context *TestContext) initFeeHandlers() {
 						MaxGasLimitPerMiniBlock:     maxGasLimitPerBlock,
 						MaxGasLimitPerMetaBlock:     maxGasLimitPerBlock,
 						MaxGasLimitPerMetaMiniBlock: maxGasLimitPerBlock,
+						MaxGasLimitPerTx:            maxGasLimitPerBlock,
 						MinGasLimit:                 minGasLimit,
 					},
 				},

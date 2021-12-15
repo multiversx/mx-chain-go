@@ -57,6 +57,7 @@ func feeSettingsDummy(gasModifier float64) config.FeeSettings {
 				MaxGasLimitPerMiniBlock:     "100000",
 				MaxGasLimitPerMetaBlock:     "1000000",
 				MaxGasLimitPerMetaMiniBlock: "1000000",
+				MaxGasLimitPerTx:            "100000",
 				MinGasLimit:                 "500",
 			},
 		},
@@ -74,6 +75,7 @@ func feeSettingsReal() config.FeeSettings {
 				MaxGasLimitPerMiniBlock:     "1500000000",
 				MaxGasLimitPerMetaBlock:     "15000000000",
 				MaxGasLimitPerMetaMiniBlock: "15000000000",
+				MaxGasLimitPerTx:            "1500000000",
 				MinGasLimit:                 "50000",
 			},
 		},
@@ -236,6 +238,29 @@ func TestNewEconomicsData_InvalidMaxGasLimitPerMetaMiniBlockShouldErr(t *testing
 		args.Economics.FeeSettings.GasLimitSettings[0].MaxGasLimitPerMetaMiniBlock = gasLimitPerMetaMiniBlock
 		_, err := economics.NewEconomicsData(args)
 		assert.True(t, errors.Is(err, process.ErrInvalidMaxGasLimitPerMetaMiniBlock))
+	}
+}
+
+func TestNewEconomicsData_InvalidMaxGasLimitPerTxShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForEconomicsData(1)
+	badGasLimitPerTx := []string{
+		"-1",
+		"-100000000000000000000",
+		"badValue",
+		"",
+		"#########",
+		"11112S",
+		"1111O0000",
+		"10ERD",
+		"10000000000000000000000000000000000000000000000000000000000000",
+	}
+
+	for _, gasLimitPerTx := range badGasLimitPerTx {
+		args.Economics.FeeSettings.GasLimitSettings[0].MaxGasLimitPerTx = gasLimitPerTx
+		_, err := economics.NewEconomicsData(args)
+		assert.True(t, errors.Is(err, process.ErrInvalidMaxGasLimitPerTx))
 	}
 }
 
@@ -462,6 +487,7 @@ func TestEconomicsData_ConfirmedGasLimitSettingsChangeOrderedConfigs(t *testing.
 			MaxGasLimitPerMiniBlock:     "1500000000",
 			MaxGasLimitPerMetaBlock:     "15000000000",
 			MaxGasLimitPerMetaMiniBlock: "15000000000",
+			MaxGasLimitPerTx:            "1500000000",
 			MinGasLimit:                 "50000",
 		},
 		{
@@ -470,6 +496,7 @@ func TestEconomicsData_ConfirmedGasLimitSettingsChangeOrderedConfigs(t *testing.
 			MaxGasLimitPerMiniBlock:     "500000000",
 			MaxGasLimitPerMetaBlock:     "15000000000",
 			MaxGasLimitPerMetaMiniBlock: "5000000000",
+			MaxGasLimitPerTx:            "500000000",
 			MinGasLimit:                 "50000",
 		},
 	}
@@ -548,6 +575,7 @@ func TestEconomicsData_ConfirmedGasLimitSettingsChangeUnOrderedConfigs(t *testin
 			MaxGasLimitPerMiniBlock:     "500000000",
 			MaxGasLimitPerMetaBlock:     "15000000000",
 			MaxGasLimitPerMetaMiniBlock: "5000000000",
+			MaxGasLimitPerTx:            "500000000",
 			MinGasLimit:                 "50000",
 		},
 		{
@@ -556,6 +584,7 @@ func TestEconomicsData_ConfirmedGasLimitSettingsChangeUnOrderedConfigs(t *testin
 			MaxGasLimitPerMiniBlock:     "1500000000",
 			MaxGasLimitPerMetaBlock:     "15000000000",
 			MaxGasLimitPerMetaMiniBlock: "15000000000",
+			MaxGasLimitPerTx:            "1500000000",
 			MinGasLimit:                 "50000",
 		},
 	}

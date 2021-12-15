@@ -4033,6 +4033,7 @@ func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
 						MaxGasLimitPerMiniBlock:     "1500000000",
 						MaxGasLimitPerMetaBlock:     "15000000000",
 						MaxGasLimitPerMetaMiniBlock: "15000000000",
+						MaxGasLimitPerTx:            "1500000000",
 						MinGasLimit:                 "50000",
 					},
 				},

@@ -65,6 +65,7 @@ import (
 	metaProcess "github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
+	processMock "github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/peer"
 	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
@@ -418,6 +419,9 @@ func newBaseTestProcessorNode(
 	tpn.StorageBootstrapper = &mock.StorageBootstrapperMock{}
 	tpn.BootstrapStorer = &mock.BoostrapStorerMock{}
 	tpn.initDataPools()
+	tpn.EnableEpochs = config.EnableEpochs{
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 10,
+	}
 
 	return tpn
 }
@@ -1034,6 +1038,7 @@ func (tpn *TestProcessorNode) createDefaultEconomicsConfig() *config.EconomicsCo
 					MaxGasLimitPerMiniBlock:     maxGasLimitPerBlock,
 					MaxGasLimitPerMetaBlock:     maxGasLimitPerBlock,
 					MaxGasLimitPerMetaMiniBlock: maxGasLimitPerBlock,
+					MaxGasLimitPerTx:            maxGasLimitPerBlock,
 					MinGasLimit:                 minGasLimit,
 				},
 			},
@@ -1941,6 +1946,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		BlockSizeThrottler: TestBlockSizeThrottler,
 		HistoryRepository:  tpn.HistoryRepository,
 		EpochNotifier:      tpn.EpochNotifier,
+		RoundNotifier:      coreComponents.RoundNotifier(),
 		GasHandler:         tpn.GasHandler,
 	}
 
@@ -2630,6 +2636,7 @@ func (tpn *TestProcessorNode) initBlockTracker() {
 		StartHeaders:     tpn.GenesisBlocks,
 		PoolsHolder:      tpn.DataPool,
 		WhitelistHandler: tpn.WhiteListHandler,
+		FeeHandler:       tpn.EconomicsData,
 	}
 
 	if tpn.ShardCoordinator.SelfId() != core.MetachainShardId {
@@ -2803,6 +2810,7 @@ func GetDefaultCoreComponents() *mock.CoreComponentsStub {
 		GenesisNodesSetupField: &testscommon.NodesSetupStub{},
 		GenesisTimeField:       time.Time{},
 		EpochNotifierField:     &mock.EpochNotifierStub{},
+		RoundNotifierField:     &processMock.RoundNotifierStub{},
 		TxVersionCheckField:    versioning.NewTxVersionChecker(MinTransactionVersion),
 	}
 }

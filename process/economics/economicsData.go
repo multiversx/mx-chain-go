@@ -43,6 +43,7 @@ type economicsData struct {
 	maxGasLimitPerMiniBlock          uint64
 	maxGasLimitPerMetaBlock          uint64
 	maxGasLimitPerMetaMiniBlock      uint64
+	maxGasLimitPerTx                 uint64
 	mutGasLimitSettings              sync.RWMutex
 	gasPerDataByte                   uint64
 	minGasPrice                      uint64
@@ -174,6 +175,11 @@ func (ed *economicsData) setGasLimitSetting(gasLimitSetting config.GasLimitSetti
 		return process.ErrInvalidMaxGasLimitPerMetaMiniBlock
 	}
 
+	ed.maxGasLimitPerTx, err = strconv.ParseUint(gasLimitSetting.MaxGasLimitPerTx, conversionBase, bitConversionSize)
+	if err != nil {
+		return process.ErrInvalidMaxGasLimitPerTx
+	}
+
 	ed.minGasLimit, err = strconv.ParseUint(gasLimitSetting.MinGasLimit, conversionBase, bitConversionSize)
 	if err != nil {
 		return process.ErrInvalidMinimumGasLimitForTx
@@ -278,6 +284,11 @@ func checkValues(economics *config.EconomicsConfig) error {
 			return fmt.Errorf("%w for epoch %d", process.ErrInvalidMaxGasLimitPerMetaMiniBlock, gasLimitSetting.EnableEpoch)
 		}
 
+		maxGasLimitPerTx, err := strconv.ParseUint(gasLimitSetting.MaxGasLimitPerTx, conversionBase, bitConversionSize)
+		if err != nil {
+			return fmt.Errorf("%w for epoch %d", process.ErrInvalidMaxGasLimitPerTx, gasLimitSetting.EnableEpoch)
+		}
+
 		if maxGasLimitPerBlock < minGasLimit {
 			return fmt.Errorf("%w: maxGasLimitPerBlock = %d minGasLimit = %d in epoch %d", process.ErrInvalidMaxGasLimitPerBlock, maxGasLimitPerBlock, minGasLimit, gasLimitSetting.EnableEpoch)
 		}
@@ -289,6 +300,9 @@ func checkValues(economics *config.EconomicsConfig) error {
 		}
 		if maxGasLimitPerMetaMiniBlock < minGasLimit {
 			return fmt.Errorf("%w: maxGasLimitPerMetaMiniBlock = %d minGasLimit = %d in epoch %d", process.ErrInvalidMaxGasLimitPerMetaMiniBlock, maxGasLimitPerMetaMiniBlock, minGasLimit, gasLimitSetting.EnableEpoch)
+		}
+		if maxGasLimitPerTx < minGasLimit {
+			return fmt.Errorf("%w: maxGasLimitPerTx = %d minGasLimit = %d in epoch %d", process.ErrInvalidMaxGasLimitPerTx, maxGasLimitPerTx, minGasLimit, gasLimitSetting.EnableEpoch)
 		}
 	}
 
@@ -516,6 +530,14 @@ func (ed *economicsData) MaxGasLimitPerMiniBlockForSafeCrossShard() uint64 {
 	return core.MinUint64(ed.maxGasLimitPerMiniBlock, ed.maxGasLimitPerMetaMiniBlock)
 }
 
+// MaxGasLimitPerTx will return maximum gas limit per tx
+func (ed *economicsData) MaxGasLimitPerTx() uint64 {
+	ed.mutGasLimitSettings.RLock()
+	defer ed.mutGasLimitSettings.RUnlock()
+
+	return ed.maxGasLimitPerTx
+}
+
 // DeveloperPercentage will return the developer percentage value
 func (ed *economicsData) DeveloperPercentage() float64 {
 	ed.mutRewardsSettings.RLock()
@@ -707,10 +729,11 @@ func (ed *economicsData) setGasLimitConfig(currentEpoch uint32) {
 		"maxGasLimitPerMiniBlock", ed.maxGasLimitPerMiniBlock,
 		"maxGasLimitPerMetaBlock", ed.maxGasLimitPerMetaBlock,
 		"maxGasLimitPerMetaMiniBlock", ed.maxGasLimitPerMetaMiniBlock,
+		"maxGasLimitPerTx", ed.maxGasLimitPerTx,
 		"minGasLimit", ed.minGasLimit,
 	)
 
-	ed.statusHandler.SetUInt64Value(common.MetricMaxGasPerTransaction, core.MinUint64(ed.maxGasLimitPerMiniBlock, ed.maxGasLimitPerMetaMiniBlock))
+	ed.statusHandler.SetUInt64Value(common.MetricMaxGasPerTransaction, ed.maxGasLimitPerTx)
 }
 
 // ComputeGasLimitBasedOnBalance will compute gas limit for the given transaction based on the balance
