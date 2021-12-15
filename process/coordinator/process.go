@@ -566,20 +566,15 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	numTxAdded := uint32(0)
 	numMiniBlocksProcessed := 0
+	crossMiniBlockInfos := hdr.GetOrderedCrossMiniblocksWithDst(tc.shardCoordinator.SelfId())
 
 	defer func() {
 		log.Debug("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: gas provided, refunded and penalized info",
 			"header round", hdr.GetRound(),
 			"header nonce", hdr.GetNonce(),
 			"num mini blocks to be processed", len(crossMiniBlockInfos),
-			"num mini blocks processed", nrMiniBlocksProcessed,
-			"total gas provided", tc.gasHandler.TotalGasProvided(),
-			"total gas refunded", tc.gasHandler.TotalGasRefunded(),
-			"total gas penalized", tc.gasHandler.TotalGasPenalized())
-
-		log.Debug("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: gas consumed, refunded and penalized info",
 			"num mini blocks processed", numMiniBlocksProcessed,
-			"total gas consumed", tc.gasHandler.TotalGasConsumed(),
+			"total gas provided", tc.gasHandler.TotalGasProvided(),
 			"total gas refunded", tc.gasHandler.TotalGasRefunded(),
 			"total gas penalized", tc.gasHandler.TotalGasPenalized())
 	}()
@@ -590,7 +585,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 
 	shouldSkipShard := make(map[uint32]bool)
 
-	crossMiniBlockInfos := hdr.GetOrderedCrossMiniblocksWithDst(tc.shardCoordinator.SelfId())
+
 	for _, miniBlockInfo := range crossMiniBlockInfos {
 		if !haveTime() && !haveAdditionalTime() {
 			log.Debug("CreateMbsAndProcessCrossShardTransactionsDstMe",

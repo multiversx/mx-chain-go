@@ -948,7 +948,7 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 	dataComponents.DataPool = mdp
 	dataComponents.Storage = store
-	dataComponents.BlockChain = &mock.BlockChainMock{
+	dataComponents.BlockChain = &mock.BlockChainStub{
 		GetGenesisHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{Nonce: 0}
 		},

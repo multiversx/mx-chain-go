@@ -6,10 +6,10 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/factory"
@@ -35,7 +35,7 @@ func getCreateArgs() factory.TrieCreateArgs {
 		PruningEnabled:     false,
 		CheckpointsEnabled: false,
 		MaxTrieLevelInMem:  5,
-		EpochStartNotifier: &mock.EpochNotifierStub{},
+		EpochStartNotifier: &epochNotifier.EpochNotifierStub{},
 	}
 }
 

@@ -528,7 +528,7 @@ func createPreProcessorContainerWithDataPool(
 			SetGasConsumedCalled: func(gasConsumed uint64, hash []byte) {
 				totalGasConsumed += gasConsumed
 			},
-			TotalGasConsumedCalled: func() uint64 {
+			TotalGasProvidedCalled: func() uint64 {
 				return totalGasConsumed
 			},
 			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverShardId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
@@ -591,7 +591,7 @@ func TestTransactionCoordinator_CreateBlockStarted(t *testing.T) {
 		InitCalled: func() {
 			totalGasConsumed = uint64(0)
 		},
-		TotalGasConsumedCalled: func() uint64 {
+		TotalGasProvidedCalled: func() uint64 {
 			return totalGasConsumed
 		},
 	}
@@ -829,7 +829,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
 				return 0, 0, nil
 			},
-			TotalGasConsumedCalled: func() uint64 {
+			TotalGasProvidedCalled: func() uint64 {
 				return totalGasConsumed
 			},
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
@@ -853,7 +853,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 	argsTransactionCoordinator.MiniBlockPool = tdp.MiniBlocks()
 	argsTransactionCoordinator.PreProcessors = container
 	argsTransactionCoordinator.GasHandler = &testscommon.GasHandlerStub{
-		TotalGasConsumedCalled: func() uint64 {
+		TotalGasProvidedCalled: func() uint64 {
 			return totalGasConsumed
 		},
 	}
@@ -970,7 +970,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
 				return 0, 0, nil
 			},
-			TotalGasConsumedCalled: func() uint64 {
+			TotalGasProvidedCalled: func() uint64 {
 				return totalGasConsumed
 			},
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
@@ -994,7 +994,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 	argsTransactionCoordinator.MiniBlockPool = tdp.MiniBlocks()
 	argsTransactionCoordinator.PreProcessors = container
 	argsTransactionCoordinator.GasHandler = &testscommon.GasHandlerStub{
-		TotalGasConsumedCalled: func() uint64 {
+		TotalGasProvidedCalled: func() uint64 {
 			return totalGasConsumed
 		},
 	}
@@ -1084,7 +1084,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		&testscommon.RewardTxProcessorMock{},
 		FeeHandlerMock(),
 		&testscommon.GasHandlerStub{
-			TotalGasConsumedCalled: func() uint64 {
+			TotalGasProvidedCalled: func() uint64 {
 				return totalGasConsumed
 			},
 		},
@@ -1141,7 +1141,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNoSpace(t *
 	argsTransactionCoordinator.MiniBlockPool = tdp.MiniBlocks()
 	argsTransactionCoordinator.PreProcessors = createPreProcessorContainerWithDataPool(tdp, FeeHandlerMock())
 	argsTransactionCoordinator.GasHandler = &testscommon.GasHandlerStub{
-		TotalGasConsumedCalled: func() uint64 {
+		TotalGasProvidedCalled: func() uint64 {
 			return totalGasConsumed
 		},
 	}
@@ -1615,7 +1615,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 			ComputeGasConsumedByMiniBlockCalled: func(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error) {
 				return 0, 0, nil
 			},
-			TotalGasConsumedCalled: func() uint64 {
+			TotalGasProvidedCalled: func() uint64 {
 				return 0
 			},
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
@@ -1877,7 +1877,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
 				return 0, 0, nil
 			},
-			TotalGasConsumedCalled: func() uint64 {
+			TotalGasProvidedCalled: func() uint64 {
 				return 0
 			},
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
@@ -1903,7 +1903,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 	argsTransactionCoordinator.MiniBlockPool = dataPool.MiniBlocks()
 	argsTransactionCoordinator.PreProcessors = container
 	argsTransactionCoordinator.GasHandler = &testscommon.GasHandlerStub{
-		TotalGasConsumedCalled: func() uint64 {
+		TotalGasProvidedCalled: func() uint64 {
 			return 0
 		},
 	}
@@ -2010,7 +2010,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
 				return 0, 0, nil
 			},
-			TotalGasConsumedCalled: func() uint64 {
+			TotalGasProvidedCalled: func() uint64 {
 				return 0
 			},
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
@@ -2042,7 +2042,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 	argsTransactionCoordinator.MiniBlockPool = dataPool.MiniBlocks()
 	argsTransactionCoordinator.PreProcessors = container
 	argsTransactionCoordinator.GasHandler = &testscommon.GasHandlerStub{
-		TotalGasConsumedCalled: func() uint64 {
+		TotalGasProvidedCalled: func() uint64 {
 			return totalGasConsumed
 		},
 		SetGasConsumedCalled: func(gasConsumed uint64, hash []byte) {

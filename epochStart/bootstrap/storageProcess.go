@@ -152,7 +152,7 @@ func (sesb *storageEpochStartBootstrap) prepareComponentsToSync() error {
 		sesb.coreComponentsHolder,
 		core.MetachainShardId,
 		sesb.storageService,
-		sesb.disableOldTrieStorageEpoch,
+		sesb.enableEpochs.DisableOldTrieStorageEpoch,
 		sesb.epochNotifier,
 	)
 	if err != nil {
@@ -253,7 +253,7 @@ func (sesb *storageEpochStartBootstrap) createStorageResolvers() error {
 		DataPacker:                 dataPacker,
 		ManualEpochStartNotifier:   mesn,
 		ChanGracefullyClose:        sesb.chanGracefullyClose,
-		DisableOldTrieStorageEpoch: sesb.disableOldTrieStorageEpoch,
+		DisableOldTrieStorageEpoch: sesb.enableEpochs.DisableOldTrieStorageEpoch,
 		EpochNotifier:              sesb.epochNotifier,
 	}
 

@@ -224,9 +224,9 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		EpochNotifier:        ppcm.epochNotifier,
 		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: ppcm.optimizeGasUsedInCrossMiniBlocksEnableEpoch,
 		FrontRunningProtectionEnableEpoch:           ppcm.frontRunningProtectionEnableEpoch,
-		ppcm.scheduledMiniBlocksEnableEpoch,
-		ppcm.txTypeHandler,
-		ppcm.scheduledTxsExecutionHandler,
+		ScheduledMiniBlocksEnableEpoch:              ppcm.scheduledMiniBlocksEnableEpoch,
+		TxTypeHandler:                               ppcm.txTypeHandler,
+		ScheduledTxsExecutionHandler:                ppcm.scheduledTxsExecutionHandler,
 	}
 
 	txPreprocessor, err := preprocess.NewTransactionPreprocessor(args)

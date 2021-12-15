@@ -495,6 +495,7 @@ func TestNewPreProcessorsContainerFactory_NilTxTypeHandler(t *testing.T) {
 		&epochNotifier.EpochNotifierStub{},
 		2,
 		2,
+		2,
 		nil,
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -522,6 +523,7 @@ func TestNewPreProcessorsContainerFactory_NilScheduledTxsExecutionHandler(t *tes
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
+		2,
 		2,
 		2,
 		&testscommon.TxTypeHandlerMock{},

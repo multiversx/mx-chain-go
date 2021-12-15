@@ -25,16 +25,16 @@ import (
 func createTransactionPreprocessor() *transactions {
 	dataPool := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	preprocessor, _ := NewTransactionPreprocessor(
-		dataPool.Transactions(),
-		&mock.ChainStorerMock{},
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		&testscommon.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&stateMock.AccountsStub{},
-		requestTransaction,
-		&mock.FeeHandlerStub{
+	txPreProcArgs := ArgsTransactionPreProcessor{
+		TxDataPool:           dataPool.Transactions(),
+		Store:                &mock.ChainStorerMock{},
+		Hasher:               &hashingMocks.HasherMock{},
+		Marshalizer:          &mock.MarshalizerMock{},
+		TxProcessor:          &testscommon.TxProcessorMock{},
+		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(3),
+		Accounts:             &stateMock.AccountsStub{},
+		OnRequestTransaction: requestTransaction,
+		EconomicsFee: &mock.FeeHandlerStub{
 			MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
 				return MaxGasLimitPerBlock
 			},
@@ -45,12 +45,12 @@ func createTransactionPreprocessor() *transactions {
 				return MaxGasLimitPerBlock
 			},
 		},
-		&mock.GasHandlerMock{},
-		&mock.BlockTrackerMock{},
-		block.TxBlock,
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{
+		GasHandler:           &mock.GasHandlerMock{},
+		BlockTracker:         &mock.BlockTrackerMock{},
+		BlockType:            block.TxBlock,
+		PubkeyConverter:      createMockPubkeyConverter(),
+		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
+		BalanceComputation: &testscommon.BalanceComputationStub{
 			IsAddressSetCalled: func(address []byte) bool {
 				return true
 			},
@@ -58,10 +58,11 @@ func createTransactionPreprocessor() *transactions {
 				return false
 			},
 		},
-		&epochNotifier.EpochNotifierStub{},
-		2,
-		2,
-		&testscommon.TxTypeHandlerMock{
+		EpochNotifier: &epochNotifier.EpochNotifierStub{},
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 2,
+		FrontRunningProtectionEnableEpoch:           2,
+		ScheduledMiniBlocksEnableEpoch:              2,
+		TxTypeHandler: &testscommon.TxTypeHandlerMock{
 			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 				if bytes.Equal(tx.GetRcvAddr(), []byte("smart contract address")) {
 					return process.MoveBalance, process.SCInvoking
@@ -69,8 +70,10 @@ func createTransactionPreprocessor() *transactions {
 				return process.MoveBalance, process.MoveBalance
 			},
 		},
-		&testscommon.ScheduledTxsExecutionStub{},
-	)
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+	}
+
+	preprocessor, _ := NewTransactionPreprocessor(txPreProcArgs)
 
 	return preprocessor
 }

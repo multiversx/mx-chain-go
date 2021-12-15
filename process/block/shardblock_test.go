@@ -518,7 +518,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 			ComputeGasConsumedByMiniBlockCalled: func(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error) {
 				return 0, 0, nil
 			},
-			TotalGasConsumedCalled: func() uint64 {
+			TotalGasProvidedCalled: func() uint64 {
 				return 0
 			},
 			SetGasRefundedCalled:    func(gasRefunded uint64, hash []byte) {},
@@ -741,7 +741,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 			ComputeGasConsumedByMiniBlockCalled: func(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error) {
 				return 0, 0, nil
 			},
-			TotalGasConsumedCalled: func() uint64 {
+			TotalGasProvidedCalled: func() uint64 {
 				return 0
 			},
 			SetGasRefundedCalled:    func(gasRefunded uint64, hash []byte) {},
@@ -766,7 +766,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		InitCalled: func() {
 			totalGasConsumed = 0
 		},
-		TotalGasConsumedCalled: func() uint64 {
+		TotalGasProvidedCalled: func() uint64 {
 			return totalGasConsumed
 		},
 	}
@@ -2818,7 +2818,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 			SetGasConsumedCalled: func(gasConsumed uint64, hash []byte) {
 				totalGasConsumed += gasConsumed
 			},
-			TotalGasConsumedCalled: func() uint64 {
+			TotalGasProvidedCalled: func() uint64 {
 				return totalGasConsumed
 			},
 			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {

@@ -466,7 +466,7 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		e.coreComponentsHolder,
 		core.MetachainShardId,
 		e.storageService,
-		e.disableOldTrieStorageEpoch,
+		e.enableEpochs.DisableOldTrieStorageEpoch,
 		e.epochNotifier,
 	)
 	if err != nil {
@@ -748,7 +748,7 @@ func (e *epochStartBootstrap) requestAndProcessForMeta() error {
 		e.coreComponentsHolder,
 		core.MetachainShardId,
 		storageHandlerComponent.storageService,
-		e.disableOldTrieStorageEpoch,
+		e.enableEpochs.DisableOldTrieStorageEpoch,
 		e.epochNotifier,
 	)
 	if err != nil {
@@ -885,7 +885,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 		e.coreComponentsHolder,
 		e.shardCoordinator.SelfId(),
 		storageHandlerComponent.storageService,
-		e.disableOldTrieStorageEpoch,
+		e.enableEpochs.DisableOldTrieStorageEpoch,
 		e.epochNotifier,
 	)
 	if err != nil {

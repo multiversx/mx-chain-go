@@ -197,7 +197,7 @@ func createDefaultTransactionsProcessorArgs() ArgsTransactionPreProcessor {
 	return ArgsTransactionPreProcessor{
 		TxDataPool:           tdp.Transactions(),
 		Store:                &mock.ChainStorerMock{},
-		Hasher:               &mock.HasherMock{},
+		Hasher:               &hashingMocks.HasherMock{},
 		Marshalizer:          &mock.MarshalizerMock{},
 		TxProcessor:          &testscommon.TxProcessorMock{},
 		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(3),
@@ -210,7 +210,7 @@ func createDefaultTransactionsProcessorArgs() ArgsTransactionPreProcessor {
 		PubkeyConverter:      createMockPubkeyConverter(),
 		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:   &testscommon.BalanceComputationStub{},
-		EpochNotifier:        &mock.EpochNotifierStub{},
+		EpochNotifier:        &epochNotifier.EpochNotifierStub{},
 		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 2,
 		FrontRunningProtectionEnableEpoch:           30,
 		ScheduledMiniBlocksEnableEpoch: 2,
@@ -854,6 +854,7 @@ func TestTransactions_UpdateGasConsumedWithGasRefundedAndGasPenalizedShouldWork(
 	args.OptimizeGasUsedInCrossMiniBlocksEnableEpoch = 2
 
 	preprocessor, _ := NewTransactionPreprocessor(args)
+	gasInfo := gasConsumedInfo{}
 
 	gasRefunded = 2
 	gasPenalized = 1
@@ -1145,7 +1146,7 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 			return vmcommon.Ok, nil
 		},
 	}
-	args.BlockSizeComputation = &mock.BlockSizeComputationStub{
+	args.BlockSizeComputation = &testscommon.BlockSizeComputationStub{
 		IsMaxBlockSizeWithoutThrottleReachedCalled: func(mbs int, txs int) bool {
 			return mbs+txs > maxBlockSize
 		},
@@ -1313,10 +1314,14 @@ func TestTransactionsPreProcessor_preFilterTransactionsNoBandwidth(t *testing.T)
 			return 10
 		},
 	}
+
 	txsProcessor := &transactions{
 		basePreProcess: &basePreProcess{
-			gasHandler:   gasHandler,
-			economicsFee: economicsFee,
+			gasTracker: gasTracker{
+				shardCoordinator: mock.NewMultiShardsCoordinatorMock(3),
+				economicsFee:     economicsFee,
+				gasHandler:       gasHandler,
+			},
 		},
 	}
 
@@ -1361,8 +1366,11 @@ func TestTransactionsPreProcessor_preFilterTransactionsLimitedBandwidthMultipleT
 	}
 	txsProcessor := &transactions{
 		basePreProcess: &basePreProcess{
-			gasHandler:   gasHandler,
-			economicsFee: economicsFee,
+			gasTracker: gasTracker{
+				shardCoordinator: mock.NewMultiShardsCoordinatorMock(3),
+				economicsFee:     economicsFee,
+				gasHandler:       gasHandler,
+			},
 		},
 	}
 
@@ -1419,8 +1427,11 @@ func TestTransactionsPreProcessor_preFilterTransactionsLimitedBandwidthMultipleT
 	}
 	txsProcessor := &transactions{
 		basePreProcess: &basePreProcess{
-			gasHandler:   gasHandler,
-			economicsFee: economicsFee,
+			gasTracker: gasTracker{
+				shardCoordinator: mock.NewMultiShardsCoordinatorMock(3),
+				economicsFee:     economicsFee,
+				gasHandler:       gasHandler,
+			},
 		},
 	}
 
@@ -1485,8 +1496,11 @@ func TestTransactionsPreProcessor_preFilterTransactionsHighBandwidth(t *testing.
 	}
 	txsProcessor := &transactions{
 		basePreProcess: &basePreProcess{
-			gasHandler:   gasHandler,
-			economicsFee: economicsFee,
+			gasTracker: gasTracker{
+				shardCoordinator: mock.NewMultiShardsCoordinatorMock(3),
+				economicsFee:     economicsFee,
+				gasHandler:       gasHandler,
+			},
 		},
 	}
 

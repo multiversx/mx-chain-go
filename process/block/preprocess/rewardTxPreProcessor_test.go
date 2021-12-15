@@ -741,7 +741,7 @@ func TestRewardTxPreprocessor_CreateAndProcessMiniBlocksShouldWork(t *testing.T)
 			InitCalled: func() {
 				totalGasConsumed = 0
 			},
-			TotalGasConsumedCalled: func() uint64 {
+			TotalGasProvidedCalled: func() uint64 {
 				return totalGasConsumed
 			},
 		},

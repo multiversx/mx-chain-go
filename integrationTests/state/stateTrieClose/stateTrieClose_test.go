@@ -10,8 +10,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/goroutines"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
@@ -99,7 +99,7 @@ func TestTrieStorageManager_Close(t *testing.T) {
 		SnapshotDbConfig:       config.DBConfig{},
 		GeneralConfig:          config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, 32),
-		EpochNotifier:          &mock.EpochNotifierStub{},
+		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
 	}
 
 	gc := goroutines.NewGoCounter(goroutines.TestsRelevantGoRoutines)
@@ -136,7 +136,7 @@ func TestTrieStorageManager_CloseErr(t *testing.T) {
 		GeneralConfig:              config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
 		CheckpointHashesHolder:     hashesHolder.NewCheckpointHashesHolder(10, 32),
 		DisableOldTrieStorageEpoch: 1,
-		EpochNotifier:              &mock.EpochNotifierStub{},
+		EpochNotifier:              &epochNotifier.EpochNotifierStub{},
 	}
 	gc := goroutines.NewGoCounter(goroutines.TestsRelevantGoRoutines)
 	idxInitial, _ := gc.Snapshot()
