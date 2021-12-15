@@ -319,12 +319,8 @@ func (ap *accountsParser) createIndexerPools(shardIDs []uint32) map[uint32]*inde
 func (ap *accountsParser) createMintTransactions() []coreData.TransactionHandler {
 	txs := make([]coreData.TransactionHandler, 0, len(ap.initialAccounts))
 
-	var nonce uint64 = 0
-	for _, ia := range ap.initialAccounts {
-		tx := ap.createMintTransaction(ia, nonce)
-
-		nonce++
-
+	for nonce, ia := range ap.initialAccounts {
+		tx := ap.createMintTransaction(ia, uint64(nonce))
 		txs = append(txs, tx)
 	}
 
@@ -449,8 +445,8 @@ func (ap *accountsParser) setTxsPoolAndMiniBlocks(
 		txsPoolPerShard[receiverShardID].Txs[string(txHash)] = tx
 
 		for _, miniBlock := range miniBlocks {
-			if (senderShardID == miniBlock.GetSenderShardID()) &&
-				(receiverShardID == miniBlock.GetReceiverShardID()) {
+			if senderShardID == miniBlock.GetSenderShardID() &&
+				receiverShardID == miniBlock.GetReceiverShardID() {
 				miniBlock.TxHashes = append(miniBlock.TxHashes, txHash)
 			}
 		}

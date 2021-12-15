@@ -830,8 +830,8 @@ func getGenesisBlockForShard(miniBlocks []*dataBlock.MiniBlock, shardId uint32) 
 	var indexMiniBlocks = make([]*dataBlock.MiniBlock, 0)
 
 	for _, miniBlock := range miniBlocks {
-		if (miniBlock.GetSenderShardID() == shardId) ||
-			(miniBlock.GetReceiverShardID() == shardId) {
+		if miniBlock.GetSenderShardID() == shardId ||
+			miniBlock.GetReceiverShardID() == shardId {
 			indexMiniBlocks = append(indexMiniBlocks, miniBlock)
 		}
 	}

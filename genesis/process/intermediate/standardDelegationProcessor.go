@@ -121,7 +121,7 @@ func (sdp *standardDelegationProcessor) ExecuteDelegation() (genesis.DelegationR
 		return genesis.DelegationResult{}, nil, err
 	}
 
-	delegationTxs := sdp.TxExecutionProcessor.GetTransactions()
+	delegationTxs := sdp.TxExecutionProcessor.GetExecutedTransactions()
 
 	return dr, delegationTxs, err
 }

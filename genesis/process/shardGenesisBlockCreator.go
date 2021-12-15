@@ -647,7 +647,7 @@ func deployInitialSmartContract(
 	}
 
 	dpResult, err := deployProc.Deploy(sc)
-	return dpResult, txExecutor.GetTransactions(), err
+	return dpResult, txExecutor.GetExecutedTransactions(), err
 }
 
 func increaseStakersNonces(processors *genesisProcessors, arg ArgsGenesisBlockCreator) (int, error) {

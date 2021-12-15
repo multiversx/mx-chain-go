@@ -97,7 +97,7 @@ type TxExecutionProcessor interface {
 	GetNonce(senderBytes []byte) (uint64, error)
 	AddBalance(senderBytes []byte, value *big.Int) error
 	AddNonce(senderBytes []byte, nonce uint64) error
-	GetTransactions() []data.TransactionHandler
+	GetExecutedTransactions() []data.TransactionHandler
 	IsInterfaceNil() bool
 }
 
