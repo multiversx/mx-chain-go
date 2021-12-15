@@ -854,7 +854,11 @@ func TestTransactions_UpdateGasConsumedWithGasRefundedAndGasPenalizedShouldWork(
 	args.OptimizeGasUsedInCrossMiniBlocksEnableEpoch = 2
 
 	preprocessor, _ := NewTransactionPreprocessor(args)
-	gasInfo := gasConsumedInfo{}
+	gasInfo := gasConsumedInfo{
+		gasConsumedByMiniBlocksInSenderShard:  0,
+		gasConsumedByMiniBlockInReceiverShard: 5,
+		totalGasConsumedInSelfShard: 10,
+	}
 
 	gasRefunded = 2
 	gasPenalized = 1

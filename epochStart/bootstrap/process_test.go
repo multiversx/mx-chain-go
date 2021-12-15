@@ -83,7 +83,7 @@ func createMockEpochStartBootstrapArgs(
 ) ArgsEpochStartBootstrap {
 	generalCfg := testscommon.GetGeneralConfig()
 	return ArgsEpochStartBootstrap{
-		ScheduledSCRsStorer: genericMocks.NewStorerMock("path", 0),
+		ScheduledSCRsStorer:    genericMocks.NewStorerMock("path", 0),
 		CoreComponentsHolder:   coreMock,
 		CryptoComponentsHolder: cryptoMock,
 		Messenger:              &mock.MessengerStub{},
@@ -163,8 +163,23 @@ func createMockEpochStartBootstrapArgs(
 				TrieSyncerVersion:         2,
 			},
 			ScheduledSCRsStorage: config.StorageConfig{
-				Cache: config.CacheConfig{},
-				DB:    config.DBConfig{},
+				Cache: config.CacheConfig{
+					Type:     "LRU",
+					Capacity: 10,
+					Shards:   10,
+				},
+				DB: config.DBConfig{
+					FilePath:          "scheduledSCRs",
+					Type:              "MemoryDB",
+					BatchDelaySeconds: 30,
+					MaxBatchSize:      6,
+					MaxOpenFiles:      10,
+				},
+			},
+			TxDataPool: config.CacheConfig{
+				Type:     "LRU",
+				Capacity: 10,
+				Shards:   10,
 			},
 		},
 		EconomicsData: &economicsmocks.EconomicsHandlerStub{
