@@ -37,6 +37,7 @@ func (gt *gasTracker) computeGasConsumed(
 			return 0, process.ErrMaxGasLimitPerOneTxInReceiverShardIsReached
 		}
 
+		// TODO: should this be checked against gt.economicsFee.MaxGasLimitPerTx() ?
 		if gasInfo.gasConsumedByMiniBlockInReceiverShard+gasConsumedByTxInReceiverShard > gt.economicsFee.MaxGasLimitPerBlockForSafeCrossShard() {
 			return 0, process.ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached
 		}
