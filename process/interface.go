@@ -158,7 +158,7 @@ type SmartContractProcessor interface {
 	ExecuteBuiltInFunction(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error)
 	DeploySmartContract(tx data.TransactionHandler, acntSrc state.UserAccountHandler) (vmcommon.ReturnCode, error)
 	ProcessIfError(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, returnMessage []byte, snapshot int, gasLocked uint64) error
-	IsPayable(address []byte) (bool, error)
+	IsPayable(sndAddress []byte, recvAddress []byte) (bool, error)
 	IsInterfaceNil() bool
 }
 
@@ -451,7 +451,7 @@ type PendingMiniBlocksHandler interface {
 
 // BlockChainHookHandler defines the actions which should be performed by implementation
 type BlockChainHookHandler interface {
-	IsPayable(address []byte) (bool, error)
+	IsPayable(sndAddress []byte, recvAddress []byte) (bool, error)
 	SetCurrentHeader(hdr data.HeaderHandler)
 	NewAddress(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error)
 	DeleteCompiledCode(codeHash []byte)
@@ -577,6 +577,7 @@ type feeHandler interface {
 	MaxGasLimitPerMiniBlock(shardID uint32) uint64
 	MaxGasLimitPerBlockForSafeCrossShard() uint64
 	MaxGasLimitPerMiniBlockForSafeCrossShard() uint64
+	MaxGasLimitPerTx() uint64
 	ComputeGasLimit(tx data.TransactionWithFeeHandler) uint64
 	ComputeMoveBalanceFee(tx data.TransactionWithFeeHandler) *big.Int
 	ComputeTxFee(tx data.TransactionWithFeeHandler) *big.Int
@@ -1001,6 +1002,19 @@ type EpochNotifier interface {
 	IsInterfaceNil() bool
 }
 
+// RoundSubscriberHandler defines the behavior of a component that can be notified if a new round was confirmed
+type RoundSubscriberHandler interface {
+	RoundConfirmed(round uint64)
+	IsInterfaceNil() bool
+}
+
+// RoundNotifier can notify upon round change in current processed block
+type RoundNotifier interface {
+	RegisterNotifyHandler(handler RoundSubscriberHandler)
+	CheckRound(round uint64)
+	IsInterfaceNil() bool
+}
+
 // ESDTPauseHandler provides IsPaused function for an ESDT token
 type ESDTPauseHandler interface {
 	IsPaused(token []byte) bool
@@ -1015,13 +1029,20 @@ type ESDTRoleHandler interface {
 
 // PayableHandler provides IsPayable function which returns if an account is payable or not
 type PayableHandler interface {
-	IsPayable(address []byte) (bool, error)
+	IsPayable(sndAddress []byte, recvAddress []byte) (bool, error)
 	IsInterfaceNil() bool
 }
 
 // FallbackHeaderValidator defines the behaviour of a component able to signal when a fallback header validation could be applied
 type FallbackHeaderValidator interface {
 	ShouldApplyFallbackValidation(headerHandler data.HeaderHandler) bool
+	IsInterfaceNil() bool
+}
+
+// RoundActivationHandler is a component which can be queried to check for round activation features/fixes
+type RoundActivationHandler interface {
+	IsEnabledInRound(name string, round uint64) bool
+	IsEnabled(name string) bool
 	IsInterfaceNil() bool
 }
 

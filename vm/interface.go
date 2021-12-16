@@ -117,7 +117,7 @@ type BlockchainHook interface {
 	GetCode(account vmcommon.UserAccountHandler) []byte
 	GetShardOfAddress(address []byte) uint32
 	IsSmartContract(address []byte) bool
-	IsPayable(address []byte) (bool, error)
+	IsPayable(sndAddress []byte, recvAddress []byte) (bool, error)
 	NumberOfShards() uint32
 	CurrentRandomSeed() []byte
 	Close() error

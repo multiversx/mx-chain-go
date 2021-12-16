@@ -1039,14 +1039,7 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 		stats.wg.Done()
 	}()
 
-	go func() {
-		printStats(stats, "snapshotState user trie", rootHash)
-
-		err := trieStorageManager.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
-		if err != nil {
-			log.Warn("error while putting active DB value into main storer", "error", err)
-		}
-	}()
+	go printStats(stats, "snapshotState user trie", rootHash)
 
 	if adb.processingMode == common.ImportDb {
 		stats.WaitForSnapshotsToFinish()
