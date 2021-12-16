@@ -915,6 +915,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 		NFTStorageHandler:  &testscommon.SimpleNFTStorageHandlerStub{},
 		DataPool:           testDataPool,
 		CompiledSCPool:     testDataPool.SmartContracts(),
+		EpochNotifier:      &mock.EpochNotifierStub{},
 		NilCompiledSCStore: true,
 	}
 
@@ -1058,6 +1059,7 @@ func createEconomicsData() process.EconomicsDataHandler {
 						MaxGasLimitPerMiniBlock:     maxGasLimitPerBlock,
 						MaxGasLimitPerMetaBlock:     maxGasLimitPerBlock,
 						MaxGasLimitPerMetaMiniBlock: maxGasLimitPerBlock,
+						MaxGasLimitPerTx:            maxGasLimitPerBlock,
 						MinGasLimit:                 minGasLimit,
 					},
 				},

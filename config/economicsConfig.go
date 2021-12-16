@@ -38,6 +38,7 @@ type GasLimitSetting struct {
 	MaxGasLimitPerMiniBlock     string
 	MaxGasLimitPerMetaBlock     string
 	MaxGasLimitPerMetaMiniBlock string
+	MaxGasLimitPerTx            string
 	MinGasLimit                 string
 }
 

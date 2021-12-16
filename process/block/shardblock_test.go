@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	atomicCore "github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
@@ -328,6 +329,35 @@ func TestShardProcessor_ProcessBlockWithNilHaveTimeFuncShouldErr(t *testing.T) {
 	err := sp.ProcessBlock(&block.Header{}, blk, nil)
 
 	assert.Equal(t, process.ErrNilHaveTimeHandler, err)
+}
+
+func TestShardProcess_CreateNewBlockHeaderProcessHeaderExpectCheckRoundCalled(t *testing.T) {
+	t.Parallel()
+
+	round := uint64(4)
+	checkRoundCt := atomicCore.Counter{}
+
+	roundNotifier := &mock.RoundNotifierStub{
+		CheckRoundCalled: func(r uint64) {
+			checkRoundCt.Increment()
+			require.Equal(t, round, r)
+		},
+	}
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+	arguments.RoundNotifier = roundNotifier
+
+	shardProcessor, _ := blproc.NewShardProcessor(arguments)
+	header := &block.Header{Round: round}
+	bodyHandler, _ := shardProcessor.CreateBlockBody(header, func() bool { return true })
+
+	headerHandler := shardProcessor.CreateNewHeader(round, 1)
+	require.Equal(t, int64(1), checkRoundCt.Get())
+
+	_ = shardProcessor.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
+	require.Equal(t, int64(2), checkRoundCt.Get())
 }
 
 func TestShardProcessor_ProcessWithDirtyAccountShouldErr(t *testing.T) {

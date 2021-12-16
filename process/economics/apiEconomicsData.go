@@ -21,9 +21,9 @@ func NewAPIEconomicsData(data *economicsData) (*apiEconomicsData, error) {
 }
 
 // CheckValidityTxValues checks if the provided transaction is economically correct. It overloads the original method
-// as the check in this instance for the gas limit should be done on the MaxGasLimitPerMiniBlockForSafeCrossShard value
+// as the check in this instance for the gas limit should be done on the MaxGasLimitPerTx value
 func (ed *apiEconomicsData) CheckValidityTxValues(tx data.TransactionWithFeeHandler) error {
-	if tx.GetGasLimit() > ed.MaxGasLimitPerMiniBlockForSafeCrossShard() {
+	if tx.GetGasLimit() > ed.MaxGasLimitPerTx() {
 		return process.ErrMoreGasThanGasLimitPerMiniBlockForSafeCrossShard
 	}
 

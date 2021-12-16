@@ -1,3 +1,4 @@
+//go:build !race
 // +build !race
 
 package multiShard
@@ -72,11 +73,10 @@ func TestAsyncCallShouldWork(t *testing.T) {
 	retCode, err := testContextSender.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContextSender.GetLatestError())
 
 	require.Equal(t, big.NewInt(120), testContextSender.TxFeeHandler.GetAccumulatedFees())
 
-	testIndexer := vm.CreateTestIndexer(t, testContextSender.ShardCoordinator, testContextSender.EconomicsData, false)
+	testIndexer := vm.CreateTestIndexer(t, testContextSender.ShardCoordinator, testContextSender.EconomicsData, false, testContextSender.TxsLogsProcessor)
 	testIndexer.SaveTransaction(tx, block.TxBlock, nil)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -90,13 +90,12 @@ func TestAsyncCallShouldWork(t *testing.T) {
 	retCode, err = testContextSecondContract.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContextSender.GetLatestError())
 
 	require.Equal(t, big.NewInt(3830), testContextSecondContract.TxFeeHandler.GetAccumulatedFees())
 	require.Equal(t, big.NewInt(383), testContextSecondContract.TxFeeHandler.GetDeveloperFees())
 
 	intermediateTxs := testContextSecondContract.GetIntermediateTransactions(t)
-	testIndexer = vm.CreateTestIndexer(t, testContextSecondContract.ShardCoordinator, testContextSecondContract.EconomicsData, true)
+	testIndexer = vm.CreateTestIndexer(t, testContextSecondContract.ShardCoordinator, testContextSecondContract.EconomicsData, true, testContextSecondContract.TxsLogsProcessor)
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
