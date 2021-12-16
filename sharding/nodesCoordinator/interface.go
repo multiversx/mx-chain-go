@@ -23,6 +23,7 @@ type NodesCoordinatorLite interface {
 	ConsensusGroupSize(uint32) int
 	ShardIdForEpoch(epoch uint32) (uint32, error)
 	GetNumTotalEligible() uint64
+	SetNodesConfig(nodesConfig map[uint32]*EpochNodesConfig)
 	IsInterfaceNil() bool
 }
 

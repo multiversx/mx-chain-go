@@ -123,6 +123,11 @@ func (ncs *nodesCoordinatorStub) ValidatorsWeights(validators []Validator) ([]ui
 	return weights, nil
 }
 
+// SetNodesConfig --
+func (ncs *nodesCoordinatorStub) SetNodesConfig(nodesConfig map[uint32]*nodesCoordinator.EpochNodesConfig) {
+	panic("implement me")
+}
+
 // IsInterfaceNil -
 func (ncs *nodesCoordinatorStub) IsInterfaceNil() bool {
 	return ncs == nil

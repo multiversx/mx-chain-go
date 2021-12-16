@@ -21,6 +21,7 @@ type NodesCoordinatorMock struct {
 	GetValidatorsPublicKeysCalled            func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
 	GetValidatorsRewardsAddressesCalled      func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
 	SetNodesPerShardsCalled                  func(nodes map[uint32][]nodesCoordinator.Validator, epoch uint32) error
+	SetNodesConfigCalled                     func(nodesConfig map[uint32]*nodesCoordinator.EpochNodesConfig)
 	ComputeValidatorsGroupCalled             func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error)
 	GetValidatorWithPublicKeyCalled          func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error)
 	GetAllEligibleValidatorsPublicKeysCalled func() (map[uint32][][]byte, error)
@@ -167,6 +168,10 @@ func (ncm *NodesCoordinatorMock) SetNodesPerShards(
 	ncm.Validators = eligible
 
 	return nil
+}
+
+func (ncm *NodesCoordinatorMock) SetNodesConfig(nodesConfig map[uint32]*nodesCoordinator.EpochNodesConfig) {
+	panic("not implemented")
 }
 
 // ComputeAdditionalLeaving -

@@ -149,6 +149,11 @@ func (ncm *NodesCoordinatorMock) GetOwnPublicKey() []byte {
 	panic("implement me")
 }
 
+// SetNodesConfig --
+func (ncs *NodesCoordinatorMock) SetNodesConfig(nodesConfig map[uint32]*nodesCoordinator.EpochNodesConfig) {
+	panic("not implemented")
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (ncm *NodesCoordinatorMock) IsInterfaceNil() bool {
 	return ncm == nil

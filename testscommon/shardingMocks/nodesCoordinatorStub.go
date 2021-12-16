@@ -1,4 +1,4 @@
-package mock
+package shardingMocks
 
 import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -158,6 +158,11 @@ func (ncm *NodesCoordinatorStub) GetValidatorWithPublicKey(publicKey []byte) (no
 // GetOwnPublicKey -
 func (ncm *NodesCoordinatorStub) GetOwnPublicKey() []byte {
 	return []byte("key")
+}
+
+// SetNodesConfig --
+func (ncs *NodesCoordinatorStub) SetNodesConfig(nodesConfig map[uint32]*nodesCoordinator.EpochNodesConfig) {
+	panic("implement me")
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

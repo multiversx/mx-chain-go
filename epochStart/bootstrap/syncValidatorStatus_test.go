@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -104,7 +105,7 @@ func getSyncValidatorStatusArgs() ArgsNewSyncValidatorStatus {
 		Marshalizer:    &mock.MarshalizerMock{},
 		Hasher:         &mock.HasherMock{},
 		RequestHandler: &testscommon.RequestHandlerStub{},
-		ChanceComputer: &mock.NodesCoordinatorStub{},
+		ChanceComputer: &shardingMocks.NodesCoordinatorStub{},
 		GenesisNodesConfig: &mock.NodesSetupStub{
 			NumberOfShardsCalled: func() uint32 {
 				return 1
