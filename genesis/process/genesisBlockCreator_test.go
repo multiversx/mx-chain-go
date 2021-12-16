@@ -172,15 +172,17 @@ func createMockArgument(
 	}
 	arg.Economics = ted
 
-	arg.AccountsParser, err = parsing.NewAccountsParser(
-		genesisFilename,
-		arg.Economics.GenesisTotalSupply(),
-		"",
-		arg.Core.AddressPubKeyConverter(),
-		&mock.KeyGeneratorStub{},
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-	)
+	args := genesis.AccountsParserArgs{
+		GenesisFilePath: genesisFilename,
+		EntireSupply:    arg.Economics.GenesisTotalSupply(),
+		MinterAddress:   "",
+		PubkeyConverter: arg.Core.AddressPubKeyConverter(),
+		KeyGenerator:    &mock.KeyGeneratorStub{},
+		Hasher:          &mock.HasherMock{},
+		Marshalizer:     &mock.MarshalizerMock{},
+	}
+
+	arg.AccountsParser, err = parsing.NewAccountsParser(args)
 	require.Nil(t, err)
 
 	arg.SmartContractParser, err = parsing.NewSmartContractsParser(

@@ -33,54 +33,45 @@ type accountsParser struct {
 }
 
 // NewAccountsParser creates a new decoded accounts genesis structure from json config file
-func NewAccountsParser(
-	genesisFilePath string,
-	entireSupply *big.Int,
-	minterAddress string,
-	pubkeyConverter core.PubkeyConverter,
-	keyGenerator crypto.KeyGenerator,
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-) (*accountsParser, error) {
-
-	if entireSupply == nil {
+func NewAccountsParser(args genesis.AccountsParserArgs) (*accountsParser, error) {
+	if args.EntireSupply == nil {
 		return nil, genesis.ErrNilEntireSupply
 	}
-	if big.NewInt(0).Cmp(entireSupply) >= 0 {
+	if big.NewInt(0).Cmp(args.EntireSupply) >= 0 {
 		return nil, genesis.ErrInvalidEntireSupply
 	}
-	if check.IfNil(pubkeyConverter) {
+	if check.IfNil(args.PubkeyConverter) {
 		return nil, genesis.ErrNilPubkeyConverter
 	}
-	if check.IfNil(keyGenerator) {
+	if check.IfNil(args.KeyGenerator) {
 		return nil, genesis.ErrNilKeyGenerator
 	}
-	if check.IfNil(hasher) {
+	if check.IfNil(args.Hasher) {
 		return nil, genesis.ErrNilHasher
 	}
-	if check.IfNil(marshalizer) {
+	if check.IfNil(args.Marshalizer) {
 		return nil, genesis.ErrNilMarshalizer
 	}
 
-	minterAddressBytes, err := pubkeyConverter.Decode(minterAddress)
+	minterAddressBytes, err := args.PubkeyConverter.Decode(args.MinterAddress)
 	if err != nil {
 		return nil, fmt.Errorf("%w while decoding minter address. error: %s", genesis.ErrInvalidAddress, err.Error())
 	}
 
 	initialAccounts := make([]*data.InitialAccount, 0)
-	err = core.LoadJsonFile(&initialAccounts, genesisFilePath)
+	err = core.LoadJsonFile(&initialAccounts, args.GenesisFilePath)
 	if err != nil {
 		return nil, err
 	}
 
 	gp := &accountsParser{
 		initialAccounts:    initialAccounts,
-		entireSupply:       entireSupply,
+		entireSupply:       args.EntireSupply,
 		minterAddressBytes: minterAddressBytes,
-		pubkeyConverter:    pubkeyConverter,
-		keyGenerator:       keyGenerator,
-		hasher:             hasher,
-		marshalizer:        marshalizer,
+		pubkeyConverter:    args.PubkeyConverter,
+		keyGenerator:       args.KeyGenerator,
+		hasher:             args.Hasher,
+		marshalizer:        args.Marshalizer,
 	}
 
 	err = gp.process()
@@ -319,12 +310,8 @@ func (ap *accountsParser) createIndexerPools(shardIDs []uint32) map[uint32]*inde
 func (ap *accountsParser) createMintTransactions() []coreData.TransactionHandler {
 	txs := make([]coreData.TransactionHandler, 0, len(ap.initialAccounts))
 
-	var nonce uint64 = 0
-	for _, ia := range ap.initialAccounts {
-		tx := ap.createMintTransaction(ia, nonce)
-
-		nonce++
-
+	for nonce, ia := range ap.initialAccounts {
+		tx := ap.createMintTransaction(ia, uint64(nonce))
 		txs = append(txs, tx)
 	}
 
@@ -449,8 +436,8 @@ func (ap *accountsParser) setTxsPoolAndMiniBlocks(
 		txsPoolPerShard[receiverShardID].Txs[string(txHash)] = tx
 
 		for _, miniBlock := range miniBlocks {
-			if (senderShardID == miniBlock.GetSenderShardID()) &&
-				(receiverShardID == miniBlock.GetReceiverShardID()) {
+			if senderShardID == miniBlock.GetSenderShardID() &&
+				receiverShardID == miniBlock.GetReceiverShardID() {
 				miniBlock.TxHashes = append(miniBlock.TxHashes, txHash)
 			}
 		}

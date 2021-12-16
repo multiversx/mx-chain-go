@@ -30,6 +30,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/facade/initial"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
+	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
 	"github.com/ElrondNetwork/elrond-go/health"
 	"github.com/ElrondNetwork/elrond-go/node/metrics"
@@ -892,15 +893,17 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 
 	mintingSenderAddress := configs.EconomicsConfig.GlobalSettings.GenesisMintingSenderAddress
 
-	accountsParser, err := parsing.NewAccountsParser(
-		configurationPaths.Genesis,
-		totalSupply,
-		mintingSenderAddress,
-		managedCoreComponents.AddressPubKeyConverter(),
-		managedCryptoComponents.TxSignKeyGen(),
-		managedCoreComponents.Hasher(),
-		managedCoreComponents.InternalMarshalizer(),
-	)
+	args := genesis.AccountsParserArgs{
+		GenesisFilePath: configurationPaths.Genesis,
+		EntireSupply:    totalSupply,
+		MinterAddress:   mintingSenderAddress,
+		PubkeyConverter: managedCoreComponents.AddressPubKeyConverter(),
+		KeyGenerator:    managedCryptoComponents.TxSignKeyGen(),
+		Hasher:          managedCoreComponents.Hasher(),
+		Marshalizer:     managedCoreComponents.InternalMarshalizer(),
+	}
+
+	accountsParser, err := parsing.NewAccountsParser(args)
 	if err != nil {
 		return nil, err
 	}

@@ -138,6 +138,7 @@ func CreateMetaGenesisBlock(
 	return header, make([][]byte, 0), indexingData, nil
 }
 
+// TODO: index the resulted transactions after a hardfork
 func createMetaGenesisBlockAfterHardFork(
 	arg ArgsGenesisBlockCreator,
 	body *block.Body,
