@@ -22,6 +22,7 @@ type ArgBaseTracker struct {
 	StartHeaders     map[uint32]data.HeaderHandler
 	PoolsHolder      dataRetriever.PoolsHolder
 	WhitelistHandler process.WhiteListHandler
+	FeeHandler       process.FeeHandler
 }
 
 // ArgShardTracker holds all dependencies required by the process data factory in order to create

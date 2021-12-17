@@ -1036,6 +1036,9 @@ func TestIntermediateResultsProcessor_SplitMiniBlocksIfNeededShouldWork(t *testi
 			MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
 				return gasLimit
 			},
+			MaxGasLimitPerTxCalled: func() uint64 {
+				return gasLimit
+			},
 		},
 	)
 

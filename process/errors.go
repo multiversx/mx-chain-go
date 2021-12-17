@@ -497,6 +497,9 @@ var ErrInvalidMaxGasLimitPerMetaBlock = errors.New("invalid max gas limit per me
 // ErrInvalidMaxGasLimitPerMetaMiniBlock signals that an invalid max gas limit per meta mini block has been read from config file
 var ErrInvalidMaxGasLimitPerMetaMiniBlock = errors.New("invalid max gas limit per meta mini block")
 
+// ErrInvalidMaxGasLimitPerTx signals that an invalid max gas limit per tx has been read from config file
+var ErrInvalidMaxGasLimitPerTx = errors.New("invalid max gas limit per tx")
+
 // ErrInvalidGasPerDataByte signals that an invalid gas per data byte has been read from config file
 var ErrInvalidGasPerDataByte = errors.New("invalid gas per data byte")
 
@@ -508,6 +511,9 @@ var ErrMaxGasLimitPerOneTxInReceiverShardIsReached = errors.New("max gas limit p
 
 // ErrMaxGasLimitPerBlockInSelfShardIsReached signals that max gas limit per block in self shard has been reached
 var ErrMaxGasLimitPerBlockInSelfShardIsReached = errors.New("max gas limit per block in self shard is reached")
+
+// ErrMaxGasLimitUsedForDestMeTxsIsReached signals that max gas limit used for dest me txs has been reached
+var ErrMaxGasLimitUsedForDestMeTxsIsReached = errors.New("max gas limit used for dest me txs is reached")
 
 // ErrInvalidMinimumGasPrice signals that an invalid gas price has been read from config file
 var ErrInvalidMinimumGasPrice = errors.New("invalid minimum gas price")
@@ -1009,3 +1015,15 @@ var ErrNodeIsNotSynced = errors.New("node is not synced")
 
 // ErrStateChangedWhileExecutingVmQuery signals that the state has been changed while executing a vm query and the request required not to
 var ErrStateChangedWhileExecutingVmQuery = errors.New("state changed while executing vm query")
+
+// ErrDuplicateRoundActivationName signals a round activation name is already taken
+var ErrDuplicateRoundActivationName = errors.New("round activation name already exists in config file")
+
+// ErrNilActivationRoundName signals an empty activation round name has been set in config file
+var ErrNilActivationRoundName = errors.New("round activation name is empty in config file")
+
+// ErrInvalidRoundActivationConfig signals that RoundConfig struct is invalid
+var ErrInvalidRoundActivationConfig = errors.New("invalid round config struct; should be of type config.ActivationRoundByName")
+
+// ErrNilRoundNotifier signals a nil round notifier has been provided
+var ErrNilRoundNotifier = errors.New("nil round notifier has been provided")

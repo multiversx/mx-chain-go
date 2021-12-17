@@ -48,6 +48,7 @@ func CreateDefaultConfig() *config.Configs {
 	externalConfig, _ := common.LoadExternalConfig(configPathsHolder.External)
 	systemSCConfig, _ := common.LoadSystemSmartContractsConfig(configPathsHolder.SystemSC)
 	epochConfig, _ := common.LoadEpochConfig(configPathsHolder.Epoch)
+	roundConfig, _ := common.LoadRoundConfig(configPathsHolder.RoundActivation)
 
 	p2pConfig.KadDhtPeerDiscovery.Enabled = false
 	prefsConfig.Preferences.DestinationShardAsObserver = "0"
@@ -61,6 +62,7 @@ func CreateDefaultConfig() *config.Configs {
 	configs.P2pConfig = p2pConfig
 	configs.ExternalConfig = externalConfig
 	configs.EpochConfig = epochConfig
+	configs.RoundConfig = roundConfig
 	configs.FlagsConfig = &config.ContextFlagsConfig{
 		WorkingDir: "workingDir",
 		UseLogView: true,
@@ -87,6 +89,7 @@ func createConfigurationsPathsHolder() *config.ConfigurationPathsHolder {
 		Epoch:                    concatPath(EpochPath),
 		SystemSC:                 concatPath(SystemSCConfigPath),
 		GasScheduleDirectoryName: concatPath(GasSchedule),
+		RoundActivation:          concatPath(RoundActivationPath),
 		Nodes:                    NodesSetupPath,
 		Genesis:                  GenesisPath,
 		SmartContracts:           GenesisSmartContracts,

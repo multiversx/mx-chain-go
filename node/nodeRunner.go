@@ -569,7 +569,8 @@ func (nr *nodeRunner) createMetrics(
 	metrics.SaveStringMetric(managedCoreComponents.StatusHandler(), common.MetricRewardsTopUpGradientPoint, managedCoreComponents.EconomicsData().RewardsTopUpGradientPoint().String())
 	metrics.SaveStringMetric(managedCoreComponents.StatusHandler(), common.MetricTopUpFactor, fmt.Sprintf("%g", managedCoreComponents.EconomicsData().RewardsTopUpFactor()))
 	metrics.SaveStringMetric(managedCoreComponents.StatusHandler(), common.MetricGasPriceModifier, fmt.Sprintf("%g", managedCoreComponents.EconomicsData().GasPriceModifier()))
-	metrics.SaveUint64Metric(managedCoreComponents.StatusHandler(), common.MetricMaxGasPerTransaction, managedCoreComponents.EconomicsData().MaxGasLimitPerMiniBlockForSafeCrossShard())
+	metrics.SaveUint64Metric(managedCoreComponents.StatusHandler(), common.MetricMaxGasPerTransaction, managedCoreComponents.EconomicsData().MaxGasLimitPerTx())
+
 	return nil
 }
 
@@ -858,6 +859,8 @@ func (nr *nodeRunner) logSessionInformation(
 			configurationPaths.ApiRoutes,
 			configurationPaths.External,
 			configurationPaths.SystemSC,
+			configurationPaths.RoundActivation,
+			configurationPaths.Epoch,
 		})
 
 	statsFile := filepath.Join(statsFolder, "session.info")
@@ -1085,6 +1088,7 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 	bootstrapComponentsFactoryArgs := mainFactory.BootstrapComponentsFactoryArgs{
 		Config:            *nr.configs.GeneralConfig,
 		EpochConfig:       *nr.configs.EpochConfig,
+		RoundConfig:       *nr.configs.RoundConfig,
 		PrefConfig:        *nr.configs.PreferencesConfig,
 		ImportDbConfig:    *nr.configs.ImportDbConfig,
 		WorkingDir:        nr.configs.FlagsConfig.WorkingDir,
