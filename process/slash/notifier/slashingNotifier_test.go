@@ -39,22 +39,6 @@ func TestNewSlashingNotifier(t *testing.T) {
 		{
 			args: func() *notifier.SlashingNotifierArgs {
 				args := generateSlashingNotifierArgs()
-				args.PrivateKey = nil
-				return args
-			},
-			expectedErr: crypto.ErrNilPrivateKey,
-		},
-		{
-			args: func() *notifier.SlashingNotifierArgs {
-				args := generateSlashingNotifierArgs()
-				args.PublicKey = nil
-				return args
-			},
-			expectedErr: crypto.ErrNilPublicKey,
-		},
-		{
-			args: func() *notifier.SlashingNotifierArgs {
-				args := generateSlashingNotifierArgs()
 				args.PubKeyConverter = nil
 				return args
 			},
@@ -109,12 +93,20 @@ func TestNewSlashingNotifier(t *testing.T) {
 func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidPubKey_ExpectError(t *testing.T) {
 	args := generateSlashingNotifierArgs()
 	errPubKey := errors.New("pub key error")
-	args.PublicKey = &cryptoMocks.PublicKeyStub{
+
+	pubKey := &cryptoMocks.PublicKeyStub{
 		ToByteArrayStub: func() ([]byte, error) {
 			return nil, errPubKey
 		},
 	}
-
+	keyPair := notifier.KeyPair{
+		PublicKey:  pubKey,
+		PrivateKey: &mock.PrivateKeyMock{},
+	}
+	keyPairs := map[uint32]notifier.KeyPair{
+		0: keyPair,
+	}
+	args.KeyPairs = keyPairs
 	sn, _ := notifier.NewSlashingNotifier(args)
 	tx, err := sn.CreateShardSlashingTransaction(&slashMocks.MultipleHeaderProposalProofStub{})
 	require.Nil(t, tx)
@@ -313,14 +305,27 @@ func generateSlashingNotifierArgs() *notifier.SlashingNotifierArgs {
 			return nil, nil
 		},
 	}
+	shardID := uint32(0)
+	shardCoordinatorMock := &testscommon.ShardsCoordinatorMock{
+		SelfIDCalled: func() uint32 {
+			return shardID
+		},
+	}
+	keyPair := notifier.KeyPair{
+		PrivateKey: &mock.PrivateKeyMock{},
+		PublicKey:  &mock.PublicKeyMock{},
+	}
+	keyPairs := map[uint32]notifier.KeyPair{
+		shardID: keyPair,
+	}
 
 	return &notifier.SlashingNotifierArgs{
-		PrivateKey:      &mock.PrivateKeyMock{},
-		PublicKey:       &mock.PublicKeyMock{},
-		PubKeyConverter: &testscommon.PubkeyConverterMock{},
-		Signer:          &mockIntegration.SignerMock{},
-		AccountAdapter:  accountsAdapter,
-		Hasher:          &hashingMocks.HasherMock{},
-		Marshaller:      marshaller,
+		KeyPairs:         keyPairs,
+		PubKeyConverter:  &testscommon.PubkeyConverterMock{},
+		Signer:           &mockIntegration.SignerMock{},
+		AccountAdapter:   accountsAdapter,
+		Hasher:           &hashingMocks.HasherMock{},
+		Marshaller:       marshaller,
+		ShardCoordinator: shardCoordinatorMock,
 	}
 }
