@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	coreData "github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	transactionData "github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/genesis"
@@ -36,6 +37,14 @@ func (ap *accountsParser) SetKeyGenerator(keyGen crypto.KeyGenerator) {
 
 func (ap *accountsParser) CreateMintTransactions() []coreData.TransactionHandler {
 	return ap.createMintTransactions()
+}
+
+func (ap *accountsParser) SetScrsTxsPool(
+	shardCoordinator sharding.Coordinator,
+	indexingData map[uint32]*genesis.IndexingData,
+	txsPoolPerShard map[uint32]*indexer.Pool,
+) {
+	ap.setScrsTxsPool(shardCoordinator, indexingData, txsPoolPerShard)
 }
 
 func (ap *accountsParser) CreateMintTransaction(ia genesis.InitialAccountHandler, nonce uint64) *transactionData.Transaction {
