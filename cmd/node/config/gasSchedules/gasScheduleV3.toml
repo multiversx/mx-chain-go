@@ -171,24 +171,24 @@
     CopyPerByteForTooBig        = 1000
 
 [BigFloatAPICost]
-    BigFloatNewFromParts = 3000
-    BigFloatAdd          = 10000
-    BigFloatSub          = 10000
-    BigFloatMul          = 10000
-    BigFloatDiv          = 10000
-    BigFloatTruncate     = 7000
-    BigFloatNeg          = 7000
-    BigFloatClone        = 7000
-    BigFloatCmp          = 4500
-    BigFloatAbs          = 7000
-    BigFloatSqrt         = 10000
-    BigFloatPow          = 10000
-    BigFloatFloor        = 7000
-    BigFloatCeil         = 7000
-    BigFloatIsInt        = 4000
-    BigFloatSetBigInt    = 3000
-    BigFloatSetInt64     = 1000
-    BigFloatGetConst     = 1000
+    BigFloatNewFromParts = 1500
+    BigFloatAdd          = 5000
+    BigFloatSub          = 5000
+    BigFloatMul          = 5000
+    BigFloatDiv          = 5000
+    BigFloatTruncate     = 3500
+    BigFloatNeg          = 3500
+    BigFloatClone        = 3500
+    BigFloatCmp          = 2500
+    BigFloatAbs          = 3500
+    BigFloatSqrt         = 5000
+    BigFloatPow          = 5000
+    BigFloatFloor        = 3500
+    BigFloatCeil         = 3500
+    BigFloatIsInt        = 2000
+    BigFloatSetBigInt    = 1500
+    BigFloatSetInt64     = 500
+    BigFloatGetConst     = 500
     
 [CryptoAPICost]
     SHA256                 = 1000000
@@ -223,8 +223,8 @@
     MBufferToBigIntSigned        = 10000
     MBufferFromBigIntUnsigned    = 4000
     MBufferFromBigIntSigned      = 10000
-    MBufferToBigFloat            = 4000
-    MBufferFromBigFloat          = 4000
+    MBufferToBigFloat            = 2000
+    MBufferFromBigFloat          = 2000
     MBufferStorageStore          = 75000
     MBufferStorageLoad           = 50000
     MBufferGetArgument           = 1000
