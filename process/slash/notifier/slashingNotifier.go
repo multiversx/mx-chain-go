@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/slash"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
@@ -33,25 +34,35 @@ const CommitmentProofGasPrice = 1000000000
 // CommitmentProofGasLimit = gas limit to issue a commitment tx proof
 const CommitmentProofGasLimit = 70000
 
+// KeyPair defines a crypto.PrivateKey <-> crypto.PublicKey pair
+type KeyPair struct {
+	PrivateKey crypto.PrivateKey
+	PublicKey  crypto.PublicKey
+}
+
 // SlashingNotifierArgs is a struct containing all arguments required to create a new slash.SlashingNotifier
 type SlashingNotifierArgs struct {
-	PrivateKey      crypto.PrivateKey
-	PublicKey       crypto.PublicKey
-	PubKeyConverter core.PubkeyConverter
-	Signer          crypto.SingleSigner
-	AccountAdapter  state.AccountsAdapter
-	Hasher          hashing.Hasher
-	Marshaller      marshal.Marshalizer
+	KeyPairs         map[uint32]KeyPair
+	PrivateKey       crypto.PrivateKey
+	PublicKey        crypto.PublicKey
+	PubKeyConverter  core.PubkeyConverter
+	Signer           crypto.SingleSigner
+	AccountAdapter   state.AccountsAdapter
+	Hasher           hashing.Hasher
+	Marshaller       marshal.Marshalizer
+	ShardCoordinator storage.ShardCoordinator
 }
 
 type slashingNotifier struct {
-	privateKey      crypto.PrivateKey
-	publicKey       crypto.PublicKey
-	pubKeyConverter core.PubkeyConverter
-	signer          crypto.SingleSigner
-	accountAdapter  state.AccountsAdapter
-	hasher          hashing.Hasher
-	marshaller      marshal.Marshalizer
+	privateKey       crypto.PrivateKey
+	publicKey        crypto.PublicKey
+	pubKeyConverter  core.PubkeyConverter
+	signer           crypto.SingleSigner
+	accountAdapter   state.AccountsAdapter
+	hasher           hashing.Hasher
+	marshaller       marshal.Marshalizer
+	shardCoordinator storage.ShardCoordinator
+	keyPairs         map[uint32]KeyPair
 }
 
 // NewSlashingNotifier creates a new instance of a slash.SlashingNotifier
@@ -159,6 +170,20 @@ func (sn *slashingNotifier) computeTxData(proof coreSlash.SlashingProofHandler) 
 		[]byte{proofData.ProofID}, proofData.ShardID, proofData.Round, proofCRC, proofSignature)
 
 	return []byte(dataStr), nil
+}
+
+func (sn *slashingNotifier) selectKeyPair() KeyPair {
+	selfID := sn.shardCoordinator.SelfId()
+	shardID := selfID
+
+	for currShardID := range sn.keyPairs {
+		if currShardID != selfID {
+			shardID = currShardID
+			break
+		}
+	}
+
+	return sn.keyPairs[shardID]
 }
 
 func (sn *slashingNotifier) signTx(tx *transaction.Transaction) error {
