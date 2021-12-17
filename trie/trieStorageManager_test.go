@@ -279,3 +279,23 @@ func TestTrieStorageManager_Remove(t *testing.T) {
 	ok = args.CheckpointHashesHolder.ShouldCommit(key)
 	assert.False(t, ok)
 }
+
+func TestTrieStorageManager_ShouldTakeSnapshotInvalidStorer(t *testing.T) {
+	t.Parallel()
+
+	args := getNewTrieStorageManagerArgs()
+	ts, _ := trie.NewTrieStorageManager(args)
+
+	assert.False(t, ts.ShouldTakeSnapshot())
+}
+
+func TestTrieStorageManager_ShouldTakeSnapshot(t *testing.T) {
+	t.Parallel()
+
+	mainStorer := testscommon.NewSnapshotPruningStorerMock()
+	args := getNewTrieStorageManagerArgs()
+	args.MainStorer = mainStorer
+	ts, _ := trie.NewTrieStorageManager(args)
+
+	assert.True(t, ts.ShouldTakeSnapshot())
+}

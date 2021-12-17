@@ -24,6 +24,11 @@ func (stsm *snapshotTrieStorageManager) Get(key []byte) ([]byte, error) {
 	stsm.storageOperationMutex.Lock()
 	defer stsm.storageOperationMutex.Unlock()
 
+	if stsm.closed {
+		log.Debug("snapshotTrieStorageManager get context closing", "key", key)
+		return nil, ErrContextClosing
+	}
+
 	val, _ := stsm.mainSnapshotStorer.GetFromOldEpochsWithoutCache(key)
 	if len(val) != 0 {
 		return val, nil
@@ -37,5 +42,23 @@ func (stsm *snapshotTrieStorageManager) Put(key, data []byte) error {
 	stsm.storageOperationMutex.Lock()
 	defer stsm.storageOperationMutex.Unlock()
 
+	if stsm.closed {
+		log.Debug("snapshotTrieStorageManager put context closing", "key", key, "data", data)
+		return ErrContextClosing
+	}
+
 	return stsm.mainSnapshotStorer.PutWithoutCache(key, data)
+}
+
+// GetFromLastEpoch searches only the last epoch storer for the given key
+func (stsm *snapshotTrieStorageManager) GetFromLastEpoch(key []byte) ([]byte, error) {
+	stsm.storageOperationMutex.Lock()
+	defer stsm.storageOperationMutex.Unlock()
+
+	if stsm.closed {
+		log.Debug("snapshotTrieStorageManager getFromLastEpoch context closing", "key", key)
+		return nil, ErrContextClosing
+	}
+
+	return stsm.mainSnapshotStorer.GetFromLastEpoch(key)
 }
