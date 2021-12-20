@@ -45,6 +45,7 @@ func TestApiEconomicsData_CheckValidityTxValues(t *testing.T) {
 	maxGasLimitPerBlock := uint64(42)
 	args.Economics.FeeSettings.GasLimitSettings[0].MaxGasLimitPerMiniBlock = fmt.Sprintf("%d", maxGasLimitPerBlock)
 	args.Economics.FeeSettings.GasLimitSettings[0].MaxGasLimitPerMetaMiniBlock = fmt.Sprintf("%d", maxGasLimitPerBlock*10)
+	args.Economics.FeeSettings.GasLimitSettings[0].MaxGasLimitPerTx = fmt.Sprintf("%d", maxGasLimitPerBlock)
 	args.Economics.FeeSettings.MinGasPrice = fmt.Sprintf("%d", minGasPrice)
 	args.Economics.FeeSettings.GasLimitSettings[0].MinGasLimit = fmt.Sprintf("%d", minGasLimit)
 	economicsData, _ := economics.NewEconomicsData(args)

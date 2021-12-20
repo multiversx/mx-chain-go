@@ -17,4 +17,5 @@ const (
 	ValidatorKeyPemPath   = "../validatorKey.pem"
 	Version               = "v1.1.6.1-0-gbae61225f/go1.14.2/linux-amd64/a72b5f2eff"
 	WorkingDir            = "workingDir"
+	RoundActivationPath   = "enableRounds.toml"
 )

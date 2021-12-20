@@ -63,18 +63,13 @@ func TestValidatorsSC_DoStakePutInQueueUnStakeAndUnBondShouldRefund(t *testing.T
 	tx := vm.CreateTransaction(0, value2500EGLD, sndAddr, vmAddr.ValidatorSCAddress, gasPrice, gasLimit, []byte(validatorStakeData))
 	executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
 
-	intermediateTxs := testContextMeta.GetIntermediateTransactions(t)
-	scrWithMessage := intermediateTxs[1].(*smartContractResult.SmartContractResult)
-	// validator is in waiting queue
-	require.True(t, strings.Contains(string(scrWithMessage.ReturnMessage), stakingIsFullMessage))
-
 	utils.CleanAccumulatedIntermediateTransactions(t, testContextMeta)
 
 	tx = vm.CreateTransaction(0, big.NewInt(0), sndAddr, vmAddr.ValidatorSCAddress, gasPrice, gasLimit, []byte("unStake@"+validatorBLSKey))
 	executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
 
-	intermediateTxs = testContextMeta.GetIntermediateTransactions(t)
-	require.Equal(t, 2, len(intermediateTxs))
+	intermediateTxs := testContextMeta.GetIntermediateTransactions(t)
+	require.Equal(t, 1, len(intermediateTxs))
 
 	utils.CleanAccumulatedIntermediateTransactions(t, testContextMeta)
 
@@ -82,10 +77,31 @@ func TestValidatorsSC_DoStakePutInQueueUnStakeAndUnBondShouldRefund(t *testing.T
 	executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
 
 	intermediateTxs = testContextMeta.GetIntermediateTransactions(t)
-	require.Equal(t, 3, len(intermediateTxs))
+	require.Equal(t, 2, len(intermediateTxs))
 
 	scr := intermediateTxs[1].(*smartContractResult.SmartContractResult)
 	require.Equal(t, value2500EGLD, scr.Value)
+}
+
+func checkReturnLog(t *testing.T, testContextMeta *vm.VMTestContext, subStr string, isError bool) {
+	allLogs := testContextMeta.TxsLogsProcessor.GetAllCurrentLogs()
+	testContextMeta.TxsLogsProcessor.Clean()
+
+	identifierStr := "writeLog"
+	if isError {
+		identifierStr = "signalError"
+	}
+
+	found := false
+	for _, log := range allLogs {
+		for _, event := range log.GetLogEvents() {
+			if string(event.GetIdentifier()) == identifierStr {
+				require.True(t, strings.Contains(string(event.GetTopics()[1]), subStr))
+				found = true
+			}
+		}
+	}
+	require.True(t, found)
 }
 
 func TestValidatorsSC_DoStakePutInQueueUnStakeAndUnBondTokensShouldRefund(t *testing.T) {
@@ -104,29 +120,19 @@ func TestValidatorsSC_DoStakePutInQueueUnStakeAndUnBondTokensShouldRefund(t *tes
 	tx := vm.CreateTransaction(0, value2500EGLD, sndAddr, vmAddr.ValidatorSCAddress, gasPrice, gasLimit, []byte(validatorStakeData))
 	executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
 
-	intermediateTxs := testContextMeta.GetIntermediateTransactions(t)
-	scrWithMessage := intermediateTxs[1].(*smartContractResult.SmartContractResult)
-	// validator is in waiting queue
-	require.True(t, strings.Contains(string(scrWithMessage.ReturnMessage), "staking is full key put into waiting list "))
+	checkReturnLog(t, testContextMeta, "staking is full key put into waiting list ", false)
 
 	utils.CleanAccumulatedIntermediateTransactions(t, testContextMeta)
 
 	tx = vm.CreateTransaction(0, big.NewInt(0), sndAddr, vmAddr.ValidatorSCAddress, gasPrice, gasLimit, []byte("unStake@"+validatorBLSKey))
 	executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
 
-	intermediateTxs = testContextMeta.GetIntermediateTransactions(t)
-	require.Equal(t, 2, len(intermediateTxs))
-
 	utils.CleanAccumulatedIntermediateTransactions(t, testContextMeta)
 
 	tx = vm.CreateTransaction(0, big.NewInt(0), sndAddr, vmAddr.ValidatorSCAddress, gasPrice, gasLimit, []byte("unBondTokens@"+hex.EncodeToString(value2500EGLD.Bytes())))
 	executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.UserError, nil)
 
-	intermediateTxs = testContextMeta.GetIntermediateTransactions(t)
-	require.Equal(t, 1, len(intermediateTxs))
-
-	scrWithMessage = intermediateTxs[0].(*smartContractResult.SmartContractResult)
-	require.True(t, strings.Contains(string(scrWithMessage.ReturnMessage), cannotUnBondTokensMessage))
+	checkReturnLog(t, testContextMeta, cannotUnBondTokensMessage, true)
 }
 
 func TestValidatorsSC_DoStakeWithTopUpValueTryToUnStakeTokensAndUnBondTokens(t *testing.T) {
@@ -157,29 +163,16 @@ func testValidatorsSC_DoStakeWithTopUpValueTryToUnStakeTokensAndUnBondTokens(t *
 	tx := vm.CreateTransaction(0, value2700EGLD, sndAddr, vmAddr.ValidatorSCAddress, gasPrice, gasLimit, []byte(validatorStakeData))
 	executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
 
-	intermediateTxs := testContextMeta.GetIntermediateTransactions(t)
-	scrWithMessage := intermediateTxs[1].(*smartContractResult.SmartContractResult)
-	// validator is in waiting queue
-	require.True(t, strings.Contains(string(scrWithMessage.ReturnMessage), stakingIsFullMessage))
-
-	utils.CleanAccumulatedIntermediateTransactions(t, testContextMeta)
+	checkReturnLog(t, testContextMeta, stakingIsFullMessage, false)
 
 	tx = vm.CreateTransaction(0, big.NewInt(0), sndAddr, vmAddr.ValidatorSCAddress, gasPrice, gasLimit, []byte("unStakeTokens@"+hex.EncodeToString(value200EGLD.Bytes())))
 	executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
-
-	intermediateTxs = testContextMeta.GetIntermediateTransactions(t)
-	require.Equal(t, 1, len(intermediateTxs))
-
-	utils.CleanAccumulatedIntermediateTransactions(t, testContextMeta)
+	testContextMeta.TxsLogsProcessor.Clean()
 
 	tx = vm.CreateTransaction(0, big.NewInt(0), sndAddr, vmAddr.ValidatorSCAddress, gasPrice, gasLimit, []byte("unBondTokens@"+hex.EncodeToString(value200EGLD.Bytes())))
 	executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
 
-	intermediateTxs = testContextMeta.GetIntermediateTransactions(t)
-	require.Equal(t, 1, len(intermediateTxs))
-
-	scrWithMessage = intermediateTxs[0].(*smartContractResult.SmartContractResult)
-	require.True(t, strings.Contains(string(scrWithMessage.ReturnMessage), noTokensToUnBondMessage))
+	checkReturnLog(t, testContextMeta, noTokensToUnBondMessage, false)
 }
 
 func TestValidatorsSC_ToStakePutInQueueUnStakeAndUnBondShouldRefundUnBondTokens(t *testing.T) {
@@ -198,26 +191,18 @@ func TestValidatorsSC_ToStakePutInQueueUnStakeAndUnBondShouldRefundUnBondTokens(
 	tx := vm.CreateTransaction(0, value2700EGLD, sndAddr, vmAddr.ValidatorSCAddress, gasPrice, gasLimit, []byte(validatorStakeData))
 	executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
 
-	intermediateTxs := testContextMeta.GetIntermediateTransactions(t)
-	scrWithMessage := intermediateTxs[1].(*smartContractResult.SmartContractResult)
-	// validator is in waiting queue
-	require.True(t, strings.Contains(string(scrWithMessage.ReturnMessage), "staking is full key put into waiting list "))
-
-	utils.CleanAccumulatedIntermediateTransactions(t, testContextMeta)
+	checkReturnLog(t, testContextMeta, stakingIsFullMessage, false)
 
 	tx = vm.CreateTransaction(0, big.NewInt(0), sndAddr, vmAddr.ValidatorSCAddress, gasPrice, gasLimit, []byte("unStake@"+validatorBLSKey))
 	executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
-
-	intermediateTxs = testContextMeta.GetIntermediateTransactions(t)
-	require.Equal(t, 2, len(intermediateTxs))
 
 	utils.CleanAccumulatedIntermediateTransactions(t, testContextMeta)
 
 	tx = vm.CreateTransaction(0, big.NewInt(0), sndAddr, vmAddr.ValidatorSCAddress, gasPrice, gasLimit, []byte("unBond@"+validatorBLSKey))
 	executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
 
-	intermediateTxs = testContextMeta.GetIntermediateTransactions(t)
-	require.Equal(t, 3, len(intermediateTxs))
+	intermediateTxs := testContextMeta.GetIntermediateTransactions(t)
+	require.Equal(t, 2, len(intermediateTxs))
 
 	scr := intermediateTxs[1].(*smartContractResult.SmartContractResult)
 	require.Equal(t, value2500EGLD, scr.Value)
@@ -227,18 +212,13 @@ func TestValidatorsSC_ToStakePutInQueueUnStakeAndUnBondShouldRefundUnBondTokens(
 	tx = vm.CreateTransaction(0, big.NewInt(0), sndAddr, vmAddr.ValidatorSCAddress, gasPrice, gasLimit, []byte("unStakeTokens@"+hex.EncodeToString(value200EGLD.Bytes())))
 	executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
 
-	intermediateTxs = testContextMeta.GetIntermediateTransactions(t)
-	require.Equal(t, 1, len(intermediateTxs))
-
-	utils.CleanAccumulatedIntermediateTransactions(t, testContextMeta)
-
 	tx = vm.CreateTransaction(0, big.NewInt(0), sndAddr, vmAddr.ValidatorSCAddress, gasPrice, gasLimit, []byte("unBondTokens@"+hex.EncodeToString(value200EGLD.Bytes())))
 	executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
 
 	intermediateTxs = testContextMeta.GetIntermediateTransactions(t)
-	require.Equal(t, 2, len(intermediateTxs))
+	require.Equal(t, 1, len(intermediateTxs))
 
-	scrWithMessage = intermediateTxs[0].(*smartContractResult.SmartContractResult)
+	scrWithMessage := intermediateTxs[0].(*smartContractResult.SmartContractResult)
 	require.Equal(t, value200EGLD, scrWithMessage.Value)
 }
 
@@ -258,35 +238,26 @@ func TestValidatorsSC_ToStakePutInQueueUnStakeNodesAndUnBondNodesShouldRefund(t 
 	tx := vm.CreateTransaction(0, value2700EGLD, sndAddr, vmAddr.ValidatorSCAddress, gasPrice, gasLimit, []byte(validatorStakeData))
 	executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
 
-	intermediateTxs := testContextMeta.GetIntermediateTransactions(t)
-	scrWithMessage := intermediateTxs[1].(*smartContractResult.SmartContractResult)
-	// validator is in waiting queue
-	require.True(t, strings.Contains(string(scrWithMessage.ReturnMessage), stakingIsFullMessage))
+	checkReturnLog(t, testContextMeta, stakingIsFullMessage, false)
 
 	utils.CleanAccumulatedIntermediateTransactions(t, testContextMeta)
 
 	tx = vm.CreateTransaction(0, big.NewInt(0), sndAddr, vmAddr.ValidatorSCAddress, gasPrice, gasLimit, []byte("unStakeNodes@"+validatorBLSKey))
 	executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
 
-	intermediateTxs = testContextMeta.GetIntermediateTransactions(t)
-	require.Equal(t, 2, len(intermediateTxs))
-
 	utils.CleanAccumulatedIntermediateTransactions(t, testContextMeta)
 
 	tx = vm.CreateTransaction(0, big.NewInt(0), sndAddr, vmAddr.ValidatorSCAddress, gasPrice, gasLimit, []byte("unBondNodes@"+validatorBLSKey))
 	executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
 
-	intermediateTxs = testContextMeta.GetIntermediateTransactions(t)
-	require.Equal(t, 2, len(intermediateTxs))
+	intermediateTxs := testContextMeta.GetIntermediateTransactions(t)
+	require.Equal(t, 1, len(intermediateTxs))
 
-	scr := intermediateTxs[1].(*smartContractResult.SmartContractResult)
+	scr := intermediateTxs[0].(*smartContractResult.SmartContractResult)
 	require.Equal(t, big.NewInt(0), scr.Value)
 
 	tx = vm.CreateTransaction(0, big.NewInt(0), sndAddr, vmAddr.ValidatorSCAddress, gasPrice, gasLimit, []byte("unStakeTokens@"+hex.EncodeToString(value2500EGLD.Bytes())))
 	executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
-
-	intermediateTxs = testContextMeta.GetIntermediateTransactions(t)
-	require.Equal(t, 3, len(intermediateTxs))
 
 	utils.CleanAccumulatedIntermediateTransactions(t, testContextMeta)
 
@@ -294,9 +265,9 @@ func TestValidatorsSC_ToStakePutInQueueUnStakeNodesAndUnBondNodesShouldRefund(t 
 	executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
 
 	intermediateTxs = testContextMeta.GetIntermediateTransactions(t)
-	require.Equal(t, 2, len(intermediateTxs))
+	require.Equal(t, 1, len(intermediateTxs))
 
-	scrWithMessage = intermediateTxs[0].(*smartContractResult.SmartContractResult)
+	scrWithMessage := intermediateTxs[0].(*smartContractResult.SmartContractResult)
 	require.Equal(t, value2500EGLD, scrWithMessage.Value)
 }
 

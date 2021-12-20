@@ -51,12 +51,12 @@ func TestRelayedTxDnsTransaction_ShouldWork(t *testing.T) {
 	require.Nil(t, err)
 
 	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true, testContext.TxsLogsProcessor)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(70477), indexerTx.GasUsed)
-	require.Equal(t, "704770", indexerTx.Fee)
+	require.Equal(t, uint64(70324), indexerTx.GasUsed)
+	require.Equal(t, "703240", indexerTx.Fee)
 
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
@@ -85,12 +85,12 @@ func TestRelayedTxDnsTransaction_ShouldWork(t *testing.T) {
 	require.Equal(t, rcvAddr, dnsUserNameAddr)
 
 	intermediateTxs = testContext.GetIntermediateTransactions(t)
-	testIndexer = vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true)
+	testIndexer = vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true, testContext.TxsLogsProcessor)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(70477), indexerTx.GasUsed)
-	require.Equal(t, "704770", indexerTx.Fee)
+	require.Equal(t, uint64(70324), indexerTx.GasUsed)
+	require.Equal(t, "703240", indexerTx.Fee)
 
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
@@ -111,7 +111,7 @@ func TestRelayedTxDnsTransaction_ShouldWork(t *testing.T) {
 	require.Nil(t, err)
 
 	intermediateTxs = testContext.GetIntermediateTransactions(t)
-	testIndexer = vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true)
+	testIndexer = vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true, testContext.TxsLogsProcessor)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)

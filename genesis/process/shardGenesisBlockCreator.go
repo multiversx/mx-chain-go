@@ -75,6 +75,8 @@ func createGenesisConfig() config.EnableEpochs {
 		OptimizeNFTStoreEnableEpoch:                 unreachableEpoch,
 		CreateNFTThroughExecByCallerEnableEpoch:     unreachableEpoch,
 		DisableOldTrieStorageEpoch:                  unreachableEpoch,
+		StorageAPICostOptimizationEnableEpoch:       unreachableEpoch,
+		TransformToMultiShardCreateEnableEpoch:      unreachableEpoch,
 	}
 }
 
@@ -334,6 +336,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		NFTStorageHandler:  nftStorageHandler,
 		DataPool:           arg.Data.Datapool(),
 		CompiledSCPool:     arg.Data.Datapool().SmartContracts(),
+		EpochNotifier:      epochNotifier,
 		NilCompiledSCStore: true,
 	}
 	esdtTransferParser, err := parsers.NewESDTTransferParser(arg.Core.InternalMarshalizer())
@@ -433,6 +436,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		Marshalizer:         arg.Core.InternalMarshalizer(),
 		AccountsDB:          arg.Accounts,
 		BlockChainHook:      vmFactoryImpl.BlockChainHookImpl(),
+		BuiltInFunctions:    builtInFuncs,
 		PubkeyConv:          arg.Core.AddressPubKeyConverter(),
 		ShardCoordinator:    arg.ShardCoordinator,
 		ScrForwarder:        scForwarder,

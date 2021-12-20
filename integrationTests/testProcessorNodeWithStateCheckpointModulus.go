@@ -63,6 +63,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		},
 	}
 
+	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
 	messenger := CreateMessengerWithNoDiscovery()
 	tpn := &TestProcessorNode{
 		ShardCoordinator:        shardCoordinator,
@@ -75,7 +76,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker:       &sync.RWMutex{},
-		TransactionLogProcessor: transactionLog.NewPrintTxLogProcessor(),
+		TransactionLogProcessor: logsProcessor,
 	}
 	tpn.NodesSetup = nodesSetup
 

@@ -12,6 +12,7 @@ type EconomicsHandlerStub struct {
 	MaxGasLimitPerMiniBlockCalled                  func() uint64
 	MaxGasLimitPerBlockForSafeCrossShardCalled     func() uint64
 	MaxGasLimitPerMiniBlockForSafeCrossShardCalled func() uint64
+	MaxGasLimitPerTxCalled                         func() uint64
 	ComputeGasLimitCalled                          func(tx data.TransactionWithFeeHandler) uint64
 	ComputeMoveBalanceFeeCalled                    func(tx data.TransactionWithFeeHandler) *big.Int
 	ComputeTxFeeCalled                             func(tx data.TransactionWithFeeHandler) *big.Int
@@ -172,6 +173,14 @@ func (e *EconomicsHandlerStub) MaxGasLimitPerBlockForSafeCrossShard() uint64 {
 func (e *EconomicsHandlerStub) MaxGasLimitPerMiniBlockForSafeCrossShard() uint64 {
 	if e.MaxGasLimitPerMiniBlockForSafeCrossShardCalled != nil {
 		return e.MaxGasLimitPerMiniBlockForSafeCrossShardCalled()
+	}
+	return 1000000
+}
+
+// MaxGasLimitPerTx -
+func (e *EconomicsHandlerStub) MaxGasLimitPerTx() uint64 {
+	if e.MaxGasLimitPerTxCalled != nil {
+		return e.MaxGasLimitPerTxCalled()
 	}
 	return 1000000
 }
