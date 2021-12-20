@@ -1024,6 +1024,11 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 	defer adb.mutOp.Unlock()
 
 	trieStorageManager := adb.mainTrie.GetStorageManager()
+	if !trieStorageManager.ShouldTakeSnapshot() {
+		log.Debug("skipping snapshot for rootHash", "hash", rootHash)
+		return
+	}
+
 	log.Trace("accountsDB.SnapshotState", "root hash", rootHash)
 	trieStorageManager.EnterPruningBufferingMode()
 
@@ -1039,7 +1044,14 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 		stats.wg.Done()
 	}()
 
-	go printStats(stats, "snapshotState user trie", rootHash)
+	go func() {
+		printStats(stats, "snapshotState user trie", rootHash)
+
+		err := trieStorageManager.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
+		if err != nil {
+			log.Warn("error while putting active DB value into main storer", "error", err)
+		}
+	}()
 
 	if adb.processingMode == common.ImportDb {
 		stats.WaitForSnapshotsToFinish()

@@ -674,3 +674,11 @@ const (
 	// ImportDb means that the node has started in the import-db mode
 	ImportDb
 )
+
+const (
+	// ActiveDBKey is the key at which ActiveDBVal will be saved
+	ActiveDBKey = "activeDB"
+
+	// ActiveDBVal is the value that will be saved at ActiveDBKey
+	ActiveDBVal = "yes"
+)
