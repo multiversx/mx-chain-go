@@ -1,6 +1,7 @@
 package parsing_test
 
 import (
+	"bytes"
 	"encoding/hex"
 	"errors"
 	"math/big"
@@ -11,6 +12,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	coreData "github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	scrData "github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	transactionData "github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/genesis"
@@ -560,6 +563,45 @@ func TestAccountsParser_createMiniBlocks(t *testing.T) {
 
 	miniBlocks := parsing.CreateMiniBlocks(shardIDs, block.TxBlock)
 	assert.Equal(t, 4, len(miniBlocks))
+}
+
+func TestAccountsParser_setScrsTxsPool(t *testing.T) {
+	t.Parallel()
+
+	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
+
+	sharder := &mock.ShardCoordinatorMock{
+		NumOfShards: 1,
+		SelfShardId: 0,
+	}
+
+	scrsTxs := make(map[string]coreData.TransactionHandler)
+	scrsTxs["hash"] = &scrData.SmartContractResult{
+		Nonce:    1,
+		RcvAddr:  bytes.Repeat([]byte{0}, 32),
+		SndAddr:  bytes.Repeat([]byte{1}, 32),
+		GasLimit: 10000,
+	}
+
+	indexingDataMap := make(map[uint32]*genesis.IndexingData)
+	indexingData := &genesis.IndexingData{
+		ScrsTxs: scrsTxs,
+	}
+	for i := uint32(0); i < sharder.NumOfShards; i++ {
+		indexingDataMap[i] = indexingData
+	}
+
+	txsPoolPerShard := make(map[uint32]*indexer.Pool)
+	for i := uint32(0); i < sharder.NumOfShards; i++ {
+		txsPoolPerShard[i] = &indexer.Pool{
+			Scrs: map[string]coreData.TransactionHandler{},
+		}
+	}
+
+	ap.SetScrsTxsPool(sharder, indexingDataMap, txsPoolPerShard)
+	assert.Equal(t, 1, len(txsPoolPerShard))
+	assert.Equal(t, uint64(0), txsPoolPerShard[0].Scrs["hash"].GetGasLimit())
+	assert.Equal(t, uint64(1), txsPoolPerShard[0].Scrs["hash"].GetNonce())
 }
 
 func TestAccountsParser_GenerateInitialTransactionsTxsPool(t *testing.T) {
