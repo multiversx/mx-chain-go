@@ -674,3 +674,11 @@ const (
 
 // ScheduledMode represents the name used to differentiate normal vs. scheduled mini blocks / transactions execution mode
 const ScheduledMode = "Scheduled"
+
+const (
+	// ActiveDBKey is the key at which ActiveDBVal will be saved
+	ActiveDBKey = "activeDB"
+
+	// ActiveDBVal is the value that will be saved at ActiveDBKey
+	ActiveDBVal = "yes"
+)
