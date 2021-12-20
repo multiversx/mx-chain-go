@@ -111,8 +111,8 @@ func TestAsyncESDTTransferWithSCCallShouldWork(t *testing.T) {
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(500000), indexerTx.GasUsed)
-	require.Equal(t, "5000000", indexerTx.Fee)
+	require.Equal(t, uint64(0x5e), indexerTx.GasUsed)
+	require.Equal(t, "940", indexerTx.Fee)
 
 	scrForSecondContract := intermediateTxs[1]
 	require.Equal(t, scrForSecondContract.GetSndAddr(), firstSCAddress)
@@ -229,8 +229,8 @@ func TestAsyncESDTTransferWithSCCallSecondContractAnotherToken(t *testing.T) {
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(500000), indexerTx.GasUsed)
-	require.Equal(t, "5000000", indexerTx.Fee)
+	require.Equal(t, uint64(0x5e), indexerTx.GasUsed)
+	require.Equal(t, "940", indexerTx.Fee)
 
 	scrForSecondContract := intermediateTxs[1]
 	require.Equal(t, scrForSecondContract.GetSndAddr(), firstSCAddress)

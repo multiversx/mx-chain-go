@@ -67,8 +67,8 @@ func TestMultiESDTTransferShouldWork(t *testing.T) {
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(4000), indexerTx.GasUsed)
-	require.Equal(t, "40000", indexerTx.Fee)
+	require.Equal(t, uint64(0x85), indexerTx.GasUsed)
+	require.Equal(t, "1330", indexerTx.Fee)
 
 	allLogs := testContext.TxsLogsProcessor.GetAllCurrentLogs()
 	require.NotNil(t, allLogs)

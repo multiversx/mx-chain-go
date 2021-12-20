@@ -101,7 +101,7 @@ func TestAsyncCallShouldWork(t *testing.T) {
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
 	require.Equal(t, tx.GasLimit, indexerTx.GasUsed)
 	require.Equal(t, "50000000", indexerTx.Fee)
-	require.Equal(t, transaction.TxStatusSuccess.String(), indexerTx.Status)
+	require.Equal(t, transaction.TxStatusFail.String(), indexerTx.Status)
 
 	// execute async call first contract shard
 	scr := intermediateTxs[0]

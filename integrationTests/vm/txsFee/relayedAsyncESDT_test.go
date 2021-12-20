@@ -147,8 +147,8 @@ func TestRelayedAsyncESDTCall_InvalidCallFirstContract(t *testing.T) {
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(400374), indexerTx.GasUsed)
-	require.Equal(t, "4003740", indexerTx.Fee)
+	require.Equal(t, uint64(0x7a295), indexerTx.GasUsed)
+	require.Equal(t, "5003730", indexerTx.Fee)
 }
 
 func TestRelayedAsyncESDTCall_InvalidOutOfGas(t *testing.T) {
@@ -215,6 +215,6 @@ func TestRelayedAsyncESDTCall_InvalidOutOfGas(t *testing.T) {
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, rtx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "23550", indexerTx.Fee)
+	require.Equal(t, uint64(0x163), indexerTx.GasUsed)
+	require.Equal(t, "3550", indexerTx.Fee)
 }

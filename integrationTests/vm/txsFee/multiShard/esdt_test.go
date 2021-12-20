@@ -45,6 +45,6 @@ func TestESDTTransferShouldWork(t *testing.T) {
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(36), indexerTx.GasUsed)
-	require.Equal(t, "360", indexerTx.Fee)
+	require.Equal(t, uint64(0x23), indexerTx.GasUsed)
+	require.Equal(t, "350", indexerTx.Fee)
 }

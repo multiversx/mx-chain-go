@@ -87,8 +87,8 @@ func TestESDTLocalBurnMoreThanTotalBalanceShouldErr(t *testing.T) {
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(60), indexerTx.GasUsed)
-	require.Equal(t, "600", indexerTx.Fee)
+	require.Equal(t, uint64(0x2a), indexerTx.GasUsed)
+	require.Equal(t, "420", indexerTx.Fee)
 }
 
 func TestESDTLocalBurnNotAllowedShouldErr(t *testing.T) {
@@ -125,6 +125,6 @@ func TestESDTLocalBurnNotAllowedShouldErr(t *testing.T) {
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(40), indexerTx.GasUsed)
-	require.Equal(t, "400", indexerTx.Fee)
+	require.Equal(t, uint64(0x24), indexerTx.GasUsed)
+	require.Equal(t, "360", indexerTx.Fee)
 }

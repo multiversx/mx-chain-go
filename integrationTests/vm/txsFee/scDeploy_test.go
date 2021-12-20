@@ -94,8 +94,8 @@ func TestScDeployInvalidContractCodeShouldConsumeGas(t *testing.T) {
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, tx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "10000", indexerTx.Fee)
+	require.Equal(t, uint64(0x23c), indexerTx.GasUsed)
+	require.Equal(t, "5720", indexerTx.Fee)
 }
 
 func TestScDeployInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
@@ -166,6 +166,6 @@ func TestScDeployOutOfGasShouldConsumeGas(t *testing.T) {
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, tx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "5700", indexerTx.Fee)
+	require.Equal(t, uint64(0x239), indexerTx.GasUsed)
+	require.Equal(t, "5690", indexerTx.Fee)
 }

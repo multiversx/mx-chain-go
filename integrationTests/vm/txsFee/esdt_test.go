@@ -103,8 +103,8 @@ func TestESDTTransferShouldWorkToMuchGasShouldConsumeAllGas(t *testing.T) {
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, tx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "10000", indexerTx.Fee)
+	require.Equal(t, uint64(0x23), indexerTx.GasUsed)
+	require.Equal(t, "350", indexerTx.Fee)
 }
 
 func TestESDTTransferInvalidESDTValueShouldConsumeGas(t *testing.T) {
@@ -148,8 +148,8 @@ func TestESDTTransferInvalidESDTValueShouldConsumeGas(t *testing.T) {
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, tx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "10000", indexerTx.Fee)
+	require.Equal(t, uint64(0x29), indexerTx.GasUsed)
+	require.Equal(t, "410", indexerTx.Fee)
 }
 
 func TestESDTTransferCallBackOnErrorShouldNotGenerateSCRsFurther(t *testing.T) {

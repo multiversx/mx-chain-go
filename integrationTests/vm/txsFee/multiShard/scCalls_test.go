@@ -187,9 +187,9 @@ func TestScCallExecuteOnSourceAndDstShardInvalidOnDst(t *testing.T) {
 	testIndexer.SaveTransaction(tx, block.TxBlock, txs)
 
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, tx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "5000", indexerTx.Fee)
-	require.Equal(t, transaction.TxStatusFail.String(), indexerTx.Status)
+	require.Equal(t, uint64(0xa), indexerTx.GasUsed)
+	require.Equal(t, "100", indexerTx.Fee)
+	require.Equal(t, transaction.TxStatusSuccess.String(), indexerTx.Status)
 
 	// check sender balance after refund
 	expectedBalance = big.NewInt(5000)

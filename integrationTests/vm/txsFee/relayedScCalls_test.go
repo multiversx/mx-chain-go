@@ -1,3 +1,4 @@
+//go:build !race
 // +build !race
 
 // TODO remove build condition above to allow -race -short, after Arwen fix
@@ -63,8 +64,8 @@ func TestRelayedScCallShouldWork(t *testing.T) {
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(574), indexerTx.GasUsed)
-	require.Equal(t, "5740", indexerTx.Fee)
+	require.Equal(t, uint64(0x4a3), indexerTx.GasUsed)
+	require.Equal(t, "11870", indexerTx.Fee)
 }
 
 func TestRelayedScCallContractNotFoundShouldConsumeGas(t *testing.T) {

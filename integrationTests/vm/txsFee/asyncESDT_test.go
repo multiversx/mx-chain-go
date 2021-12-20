@@ -75,8 +75,8 @@ func TestAsyncESDTCallShouldWork(t *testing.T) {
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, tx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "5000000", indexerTx.Fee)
+	require.Equal(t, uint64(0x5e), indexerTx.GasUsed)
+	require.Equal(t, "940", indexerTx.Fee)
 }
 
 func TestAsyncESDTCallSecondScRefusesPayment(t *testing.T) {
@@ -198,8 +198,8 @@ func TestAsyncESDTCallsOutOfGas(t *testing.T) {
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, tx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "20000", indexerTx.Fee)
+	require.Equal(t, uint64(0x66), indexerTx.GasUsed)
+	require.Equal(t, "1020", indexerTx.Fee)
 }
 
 func TestAsyncMultiTransferOnCallback(t *testing.T) {

@@ -62,8 +62,8 @@ func TestRelayedScDeployShouldWork(t *testing.T) {
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(2156), indexerTx.GasUsed)
-	require.Equal(t, "21560", indexerTx.Fee)
+	require.Equal(t, uint64(0x903), indexerTx.GasUsed)
+	require.Equal(t, "23070", indexerTx.Fee)
 }
 
 func TestRelayedScDeployInvalidCodeShouldConsumeGas(t *testing.T) {
@@ -209,6 +209,6 @@ func TestRelayedScDeployOutOfGasShouldConsumeGas(t *testing.T) {
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, rtx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "18770", indexerTx.Fee)
+	require.Equal(t, uint64(0x51b), indexerTx.GasUsed)
+	require.Equal(t, "13070", indexerTx.Fee)
 }

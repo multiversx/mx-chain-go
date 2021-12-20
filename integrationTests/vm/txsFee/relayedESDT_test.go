@@ -1,3 +1,4 @@
+//go:build !race
 // +build !race
 
 // TODO remove build condition above to allow -race -short, after Arwen fix
@@ -65,8 +66,8 @@ func TestRelayedESDTTransferShouldWork(t *testing.T) {
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(271), indexerTx.GasUsed)
-	require.Equal(t, "2710", indexerTx.Fee)
+	require.Equal(t, uint64(0x113), indexerTx.GasUsed)
+	require.Equal(t, "2750", indexerTx.Fee)
 }
 
 func TestTestRelayedESTTransferNotEnoughESTValueShouldConsumeGas(t *testing.T) {

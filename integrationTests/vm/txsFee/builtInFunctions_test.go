@@ -110,8 +110,8 @@ func TestBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *testing.T) 
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(1000), indexerTx.GasUsed)
-	require.Equal(t, "10000", indexerTx.Fee)
+	require.Equal(t, uint64(0x54), indexerTx.GasUsed)
+	require.Equal(t, "840", indexerTx.Fee)
 }
 
 func TestBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *testing.T) {
@@ -153,8 +153,8 @@ func TestBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *testing.T) 
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(1000), indexerTx.GasUsed)
-	require.Equal(t, "10000", indexerTx.Fee)
+	require.Equal(t, uint64(0x30), indexerTx.GasUsed)
+	require.Equal(t, "480", indexerTx.Fee)
 }
 
 func TestBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
@@ -301,6 +301,6 @@ func TestBuildInFunctionSaveKeyValue_NotEnoughGasFor3rdSave(t *testing.T) {
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, tx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "860", indexerTx.Fee)
+	require.Equal(t, uint64(0x43), indexerTx.GasUsed)
+	require.Equal(t, "670", indexerTx.Fee)
 }

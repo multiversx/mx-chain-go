@@ -65,6 +65,6 @@ func TestAsyncCallShouldWork(t *testing.T) {
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, tx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "50000000", indexerTx.Fee)
+	require.Equal(t, uint64(12), indexerTx.GasUsed)
+	require.Equal(t, "120", indexerTx.Fee)
 }

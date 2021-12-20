@@ -108,8 +108,8 @@ func TestScCallContractNotFoundShouldConsumeGas(t *testing.T) {
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, tx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "10000", indexerTx.Fee)
+	require.Equal(t, uint64(0xa), indexerTx.GasUsed)
+	require.Equal(t, "100", indexerTx.Fee)
 }
 
 func TestScCallInvalidMethodToCallShouldConsumeGas(t *testing.T) {
@@ -150,8 +150,8 @@ func TestScCallInvalidMethodToCallShouldConsumeGas(t *testing.T) {
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, tx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "10000", indexerTx.Fee)
+	require.Equal(t, uint64(0xe), indexerTx.GasUsed)
+	require.Equal(t, "140", indexerTx.Fee)
 }
 
 func TestScCallInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
@@ -227,8 +227,8 @@ func TestScCallOutOfGasShouldConsumeGas(t *testing.T) {
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, tx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "200", indexerTx.Fee)
+	require.Equal(t, uint64(0xa), indexerTx.GasUsed)
+	require.Equal(t, "100", indexerTx.Fee)
 }
 
 func TestScCallAndGasChangeShouldWork(t *testing.T) {

@@ -162,7 +162,7 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
 	require.Equal(t, uint64(500), indexerTx.GasUsed)
 	require.Equal(t, "5000", indexerTx.Fee)
-	require.Equal(t, transaction.TxStatusSuccess.String(), indexerTx.Status)
+	require.Equal(t, transaction.TxStatusFail.String(), indexerTx.Status)
 
 	utils.ProcessSCRResult(t, testContextSource, scr, vmcommon.Ok, nil)
 

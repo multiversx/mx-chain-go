@@ -86,6 +86,6 @@ func TestESDTLocalMintNotAllowedShouldErr(t *testing.T) {
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(40), indexerTx.GasUsed)
-	require.Equal(t, "400", indexerTx.Fee)
+	require.Equal(t, uint64(0x24), indexerTx.GasUsed)
+	require.Equal(t, "360", indexerTx.Fee)
 }
