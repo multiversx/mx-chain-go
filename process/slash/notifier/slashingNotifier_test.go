@@ -48,6 +48,14 @@ func TestNewSlashingNotifier(t *testing.T) {
 		{
 			args: func() *notifier.SlashingNotifierArgs {
 				args := generateSlashingNotifierArgs()
+				args.KeyPairs = make(map[uint32]notifier.KeyPair)
+				return args
+			},
+			expectedErr: process.ErrNotEnoughKeyPairs,
+		},
+		{
+			args: func() *notifier.SlashingNotifierArgs {
+				args := generateSlashingNotifierArgs()
 				args.PubKeyConverter = nil
 				return args
 			},
@@ -283,16 +291,14 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_SelectKeyPairFromDiffer
 		},
 	}
 
-	expectedAccountAddr := []byte("accPubKey2")
-	expectedNonce := uint64(123456)
-	accountPubKey2 := &mockGenesis.BaseAccountMock{
-		Nonce:             expectedNonce,
-		AddressBytesField: expectedAccountAddr,
+	expectedAccount := &mockGenesis.BaseAccountMock{
+		Nonce:             123456,
+		AddressBytesField: []byte("accPubKey2"),
 	}
 	accountAdapter := &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 			require.Equal(t, pubKey2, addressContainer)
-			return accountPubKey2, nil
+			return expectedAccount, nil
 		},
 	}
 
@@ -305,8 +311,8 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_SelectKeyPairFromDiffer
 	sn, _ := notifier.NewSlashingNotifier(args)
 	tx, err := sn.CreateShardSlashingTransaction(&slashMocks.MultipleHeaderProposalProofStub{})
 	require.Nil(t, err)
-	require.Equal(t, expectedNonce, tx.GetNonce())
-	require.Equal(t, expectedAccountAddr, tx.GetSndAddr())
+	require.Equal(t, expectedAccount.GetNonce(), tx.GetNonce())
+	require.Equal(t, expectedAccount.AddressBytes(), tx.GetSndAddr())
 	require.False(t, flagPublicKey1.IsSet())
 	require.True(t, flagPublicKey2.IsSet())
 }

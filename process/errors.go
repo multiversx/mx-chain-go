@@ -941,6 +941,9 @@ var ErrNilSlashingNotifierArgs = errors.New("nil arguments have been provided to
 // ErrNilKeyPairs signals that nil public/private key pairs have been provided
 var ErrNilKeyPairs = errors.New("nil public/private key pairs have been provided")
 
+// ErrNotEnoughKeyPairs signals that nil not enough public/private key pairs have been provided
+var ErrNotEnoughKeyPairs = errors.New("not enough public/private key pairs have been provided; expected at least one")
+
 // ErrAccountNotPayable will be sent when trying to send money to a non-payable account
 var ErrAccountNotPayable = errors.New("sending value to non payable contract")
 

@@ -69,6 +69,9 @@ func NewSlashingNotifier(args *SlashingNotifierArgs) (slash.SlashingNotifier, er
 	if args.KeyPairs == nil {
 		return nil, process.ErrNilKeyPairs
 	}
+	if len(args.KeyPairs) < 1 {
+		return nil, process.ErrNotEnoughKeyPairs
+	}
 	if check.IfNil(args.PubKeyConverter) {
 		return nil, update.ErrNilPubKeyConverter
 	}
@@ -170,7 +173,6 @@ func (sn *slashingNotifier) computeTxData(proof coreSlash.SlashingProofHandler, 
 	return []byte(dataStr), nil
 }
 
-//todo: check how many keys in pair
 // Selects first KeyPair that is not in the same shard
 // where the slashing event has been detected
 func (sn *slashingNotifier) selectKeyPair() KeyPair {
