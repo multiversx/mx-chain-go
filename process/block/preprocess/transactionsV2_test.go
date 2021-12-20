@@ -44,6 +44,9 @@ func createTransactionPreprocessor() *transactions {
 			MaxGasLimitPerBlockCalled: func() uint64 {
 				return MaxGasLimitPerBlock
 			},
+			MaxGasLimitPerTxCalled: func() uint64 {
+				return MaxGasLimitPerBlock
+			},
 		},
 		GasHandler:           &mock.GasHandlerMock{},
 		BlockTracker:         &mock.BlockTrackerMock{},
