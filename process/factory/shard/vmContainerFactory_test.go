@@ -39,13 +39,15 @@ func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 		},
 		PubkeyConv:         mock.NewPubkeyConverterMock(32),
 		StorageService:     &mock.ChainStorerMock{},
-		BlockChain:         &mock.BlockChainMock{},
+		BlockChain:         &mock.BlockChainStub{},
 		ShardCoordinator:   mock.NewOneShardCoordinatorMock(),
 		Marshalizer:        &mock.MarshalizerMock{},
 		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
 		BuiltInFunctions:   vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
+		NFTStorageHandler:  &testscommon.SimpleNFTStorageHandlerStub{},
 		DataPool:           datapool,
 		CompiledSCPool:     datapool.SmartContracts(),
+		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 		NilCompiledSCStore: true,
 	}
 	return arguments

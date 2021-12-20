@@ -58,6 +58,9 @@ func FeeHandlerMock() *mock.FeeHandlerStub {
 		MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
 			return MaxGasLimitPerBlock
 		},
+		MaxGasLimitPerTxCalled: func() uint64 {
+			return MaxGasLimitPerBlock
+		},
 	}
 }
 
@@ -476,6 +479,7 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		&epochNotifier.EpochNotifierStub{},
 		2,
 		2,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -527,7 +531,7 @@ func createPreProcessorContainerWithDataPool(
 			SetGasConsumedCalled: func(gasConsumed uint64, hash []byte) {
 				totalGasConsumed += gasConsumed
 			},
-			TotalGasConsumedCalled: func() uint64 {
+			TotalGasProvidedCalled: func() uint64 {
 				return totalGasConsumed
 			},
 			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverShardId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
@@ -572,6 +576,7 @@ func createPreProcessorContainerWithDataPool(
 		&epochNotifier.EpochNotifierStub{},
 		2,
 		2,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -589,7 +594,7 @@ func TestTransactionCoordinator_CreateBlockStarted(t *testing.T) {
 		InitCalled: func() {
 			totalGasConsumed = uint64(0)
 		},
-		TotalGasConsumedCalled: func() uint64 {
+		TotalGasProvidedCalled: func() uint64 {
 			return totalGasConsumed
 		},
 	}
@@ -827,7 +832,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
 				return 0, 0, nil
 			},
-			TotalGasConsumedCalled: func() uint64 {
+			TotalGasProvidedCalled: func() uint64 {
 				return totalGasConsumed
 			},
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
@@ -841,6 +846,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		&epochNotifier.EpochNotifierStub{},
 		2,
 		2,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -850,7 +856,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 	argsTransactionCoordinator.MiniBlockPool = tdp.MiniBlocks()
 	argsTransactionCoordinator.PreProcessors = container
 	argsTransactionCoordinator.GasHandler = &testscommon.GasHandlerStub{
-		TotalGasConsumedCalled: func() uint64 {
+		TotalGasProvidedCalled: func() uint64 {
 			return totalGasConsumed
 		},
 	}
@@ -967,7 +973,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
 				return 0, 0, nil
 			},
-			TotalGasConsumedCalled: func() uint64 {
+			TotalGasProvidedCalled: func() uint64 {
 				return totalGasConsumed
 			},
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
@@ -981,6 +987,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 		&epochNotifier.EpochNotifierStub{},
 		2,
 		2,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -990,7 +997,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 	argsTransactionCoordinator.MiniBlockPool = tdp.MiniBlocks()
 	argsTransactionCoordinator.PreProcessors = container
 	argsTransactionCoordinator.GasHandler = &testscommon.GasHandlerStub{
-		TotalGasConsumedCalled: func() uint64 {
+		TotalGasProvidedCalled: func() uint64 {
 			return totalGasConsumed
 		},
 	}
@@ -1080,7 +1087,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		&testscommon.RewardTxProcessorMock{},
 		FeeHandlerMock(),
 		&testscommon.GasHandlerStub{
-			TotalGasConsumedCalled: func() uint64 {
+			TotalGasProvidedCalled: func() uint64 {
 				return totalGasConsumed
 			},
 		},
@@ -1088,6 +1095,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
+		2,
 		2,
 		2,
 		&testscommon.TxTypeHandlerMock{},
@@ -1105,7 +1113,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 	haveTime := func() bool {
 		return true
 	}
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime, []byte("randomness"))
 
 	assert.Equal(t, 0, len(mbs))
 }
@@ -1123,7 +1131,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNoTime(t *t
 	haveTime := func() bool {
 		return false
 	}
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime, []byte("randomness"))
 
 	assert.Equal(t, 0, len(mbs))
 }
@@ -1136,7 +1144,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNoSpace(t *
 	argsTransactionCoordinator.MiniBlockPool = tdp.MiniBlocks()
 	argsTransactionCoordinator.PreProcessors = createPreProcessorContainerWithDataPool(tdp, FeeHandlerMock())
 	argsTransactionCoordinator.GasHandler = &testscommon.GasHandlerStub{
-		TotalGasConsumedCalled: func() uint64 {
+		TotalGasProvidedCalled: func() uint64 {
 			return totalGasConsumed
 		},
 	}
@@ -1147,7 +1155,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNoSpace(t *
 	haveTime := func() bool {
 		return true
 	}
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime, []byte("randomness"))
 
 	assert.Equal(t, 0, len(mbs))
 }
@@ -1185,7 +1193,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMe(t *testing
 	}
 
 	// we have one tx per shard.
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime, []byte("randomness"))
 
 	assert.Equal(t, int(nrShards), len(mbs))
 }
@@ -1233,7 +1241,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	}
 
 	// we have one tx per shard.
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime, []byte("randomness"))
 
 	assert.Equal(t, 1, len(mbs))
 }
@@ -1265,6 +1273,9 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 			MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
 				return MaxGasLimitPerBlock
 			},
+			MaxGasLimitPerTxCalled: func() uint64 {
+				return MaxGasLimitPerBlock
+			},
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return gasLimit / uint64(numMiniBlocks)
 			},
@@ -1294,7 +1305,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	}
 
 	// we have one tx per shard.
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime, []byte("randomness"))
 
 	assert.Equal(t, 1, len(mbs))
 }
@@ -1323,6 +1334,9 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 				return MaxGasLimitPerBlock
 			},
 			MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
+				return MaxGasLimitPerBlock
+			},
+			MaxGasLimitPerTxCalled: func() uint64 {
 				return MaxGasLimitPerBlock
 			},
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
@@ -1359,7 +1373,7 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 		}
 	}
 
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime, []byte("randomness"))
 
 	assert.Equal(t, 1, len(mbs))
 }
@@ -1405,7 +1419,7 @@ func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
 		txPool.AddData(computedTxHash, newTx, newTx.Size(), strCache)
 	}
 
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime, []byte("randomness"))
 	require.Equal(t, 5, len(mbs))
 
 	usedTxs = tc.GetAllCurrentUsedTxs(block.TxBlock)
@@ -1610,7 +1624,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 			ComputeGasConsumedByMiniBlockCalled: func(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error) {
 				return 0, 0, nil
 			},
-			TotalGasConsumedCalled: func() uint64 {
+			TotalGasProvidedCalled: func() uint64 {
 				return 0
 			},
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
@@ -1619,6 +1633,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
+		2,
 		2,
 		2,
 		&testscommon.TxTypeHandlerMock{},
@@ -1742,6 +1757,7 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
+		2,
 		2,
 		2,
 		&testscommon.TxTypeHandlerMock{},
@@ -1870,7 +1886,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
 				return 0, 0, nil
 			},
-			TotalGasConsumedCalled: func() uint64 {
+			TotalGasProvidedCalled: func() uint64 {
 				return 0
 			},
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
@@ -1884,6 +1900,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		&epochNotifier.EpochNotifierStub{},
 		2,
 		2,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -1895,7 +1912,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 	argsTransactionCoordinator.MiniBlockPool = dataPool.MiniBlocks()
 	argsTransactionCoordinator.PreProcessors = container
 	argsTransactionCoordinator.GasHandler = &testscommon.GasHandlerStub{
-		TotalGasConsumedCalled: func() uint64 {
+		TotalGasProvidedCalled: func() uint64 {
 			return 0
 		},
 	}
@@ -2002,7 +2019,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
 				return 0, 0, nil
 			},
-			TotalGasConsumedCalled: func() uint64 {
+			TotalGasProvidedCalled: func() uint64 {
 				return 0
 			},
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
@@ -2021,6 +2038,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		&epochNotifier.EpochNotifierStub{},
 		2,
 		2,
+		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
@@ -2033,7 +2051,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 	argsTransactionCoordinator.MiniBlockPool = dataPool.MiniBlocks()
 	argsTransactionCoordinator.PreProcessors = container
 	argsTransactionCoordinator.GasHandler = &testscommon.GasHandlerStub{
-		TotalGasConsumedCalled: func() uint64 {
+		TotalGasProvidedCalled: func() uint64 {
 			return totalGasConsumed
 		},
 		SetGasConsumedCalled: func(gasConsumed uint64, hash []byte) {
@@ -2596,6 +2614,9 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxAccumulatedFe
 			MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
 				return maxGasLimitPerBlock
 			},
+			MaxGasLimitPerTxCalled: func() uint64 {
+				return maxGasLimitPerBlock
+			},
 			DeveloperPercentageCalled: func() float64 {
 				return 0.1
 			},
@@ -2665,6 +2686,9 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxDeveloperFees
 			MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
 				return maxGasLimitPerBlock
 			},
+			MaxGasLimitPerTxCalled: func() uint64 {
+				return maxGasLimitPerBlock
+			},
 			DeveloperPercentageCalled: func() float64 {
 				return 0.1
 			},
@@ -2732,6 +2756,9 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldWork(t *testing.T) 
 				return maxGasLimitPerBlock
 			},
 			MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
+				return maxGasLimitPerBlock
+			},
+			MaxGasLimitPerTxCalled: func() uint64 {
 				return maxGasLimitPerBlock
 			},
 			DeveloperPercentageCalled: func() float64 {
@@ -2843,9 +2870,9 @@ func TestTransactionCoordinator_GetAllTransactionsShouldWork(t *testing.T) {
 func TestTransactionCoordinator_VerifyGasLimitShouldErrMaxGasLimitPerMiniBlockInReceiverShardIsReached(t *testing.T) {
 	t.Parallel()
 
-	tx1GasLimit := uint64(100)
-	tx2GasLimit := uint64(200)
-	tx3GasLimit := uint64(300)
+	tx1GasLimit := uint64(100000000)
+	tx2GasLimit := uint64(200000000)
+	tx3GasLimit := uint64(300000001)
 
 	dataPool := initDataPool(txHash)
 	txCoordinatorArgs := ArgTransactionCoordinator{
@@ -3166,9 +3193,9 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShouldErrMaxGasLimitPerMiniBlockInReceiverShardIsReached(t *testing.T) {
 	t.Parallel()
 
-	tx1GasLimit := uint64(100)
-	tx2GasLimit := uint64(200)
-	tx3GasLimit := uint64(300)
+	tx1GasLimit := uint64(100000000)
+	tx2GasLimit := uint64(200000000)
+	tx3GasLimit := uint64(300000001)
 
 	dataPool := initDataPool(txHash)
 	txCoordinatorArgs := ArgTransactionCoordinator{
@@ -3625,6 +3652,88 @@ func TestTransactionCoordinator_GetMaxAccumulatedAndDeveloperFeesShouldWork(t *t
 	assert.Nil(t, errGetMaxFees)
 	assert.Equal(t, big.NewInt(600), accumulatedFees)
 	assert.Equal(t, big.NewInt(60), developerFees)
+}
+
+func TestTransactionCoordinator_RevertIfNeededShouldWork(t *testing.T) {
+	t.Parallel()
+
+	removeGasConsumedWasCalled := false
+	removeGasRefundedWasCalled := false
+	removeGasPenalizedWasCalled := false
+	numTxsFeesReverted := 0
+
+	dataPool := initDataPool(txHash)
+	txCoordinatorArgs := ArgTransactionCoordinator{
+		Hasher:           &hashingMocks.HasherMock{},
+		Marshalizer:      &mock.MarshalizerMock{},
+		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(3),
+		Accounts:         initAccountsMock(),
+		MiniBlockPool:    dataPool.MiniBlocks(),
+		RequestHandler:   &testscommon.RequestHandlerStub{},
+		PreProcessors:    createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
+		InterProcessors:  createInterimProcessorContainer(),
+		GasHandler: &mock.GasHandlerMock{
+			RemoveGasConsumedCalled: func(hashes [][]byte) {
+				removeGasConsumedWasCalled = true
+			},
+			RemoveGasRefundedCalled: func(hashes [][]byte) {
+				removeGasRefundedWasCalled = true
+			},
+			RemoveGasPenalizedCalled: func(hashes [][]byte) {
+				removeGasPenalizedWasCalled = true
+			},
+		},
+		FeeHandler: &mock.FeeAccumulatorStub{
+			RevertFeesCalled: func(txHashes [][]byte) {
+				numTxsFeesReverted += len(txHashes)
+			},
+		},
+		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
+		BalanceComputation:                &testscommon.BalanceComputationStub{},
+		EconomicsFee:                      &mock.FeeHandlerStub{},
+		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
+		BlockGasAndFeesReCheckEnableEpoch: 0,
+		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
+	}
+
+	txHashes := make([][]byte, 0)
+
+	txCoordinatorArgs.ShardCoordinator = &mock.CoordinatorStub{
+		SelfIdCalled: func() uint32 {
+			return 0
+		},
+	}
+	tc, _ := NewTransactionCoordinator(txCoordinatorArgs)
+
+	tc.revertIfNeeded(txHashes)
+	assert.False(t, removeGasConsumedWasCalled)
+	assert.False(t, removeGasRefundedWasCalled)
+	assert.False(t, removeGasPenalizedWasCalled)
+	assert.Equal(t, 0, numTxsFeesReverted)
+
+	txCoordinatorArgs.ShardCoordinator = &mock.CoordinatorStub{
+		SelfIdCalled: func() uint32 {
+			return core.MetachainShardId
+		},
+	}
+	tc, _ = NewTransactionCoordinator(txCoordinatorArgs)
+
+	tc.revertIfNeeded(txHashes)
+	assert.False(t, removeGasConsumedWasCalled)
+	assert.False(t, removeGasRefundedWasCalled)
+	assert.False(t, removeGasPenalizedWasCalled)
+	assert.Equal(t, 0, numTxsFeesReverted)
+
+	txHash1 := []byte("txHash1")
+	txHash2 := []byte("txHash2")
+	txHashes = append(txHashes, txHash1)
+	txHashes = append(txHashes, txHash2)
+
+	tc.revertIfNeeded(txHashes)
+	assert.True(t, removeGasConsumedWasCalled)
+	assert.True(t, removeGasRefundedWasCalled)
+	assert.True(t, removeGasPenalizedWasCalled)
+	assert.Equal(t, len(txHashes), numTxsFeesReverted)
 }
 
 //TODO: Add unit tests for AddIntermediateTransactions and GetAllIntermediateTxs methods

@@ -50,8 +50,8 @@ func haveTime() time.Duration {
 	return 2000 * time.Millisecond
 }
 
-func createTestBlockchain() *mock.BlockChainMock {
-	return &mock.BlockChainMock{GetGenesisHeaderCalled: func() data.HeaderHandler {
+func createTestBlockchain() *mock.BlockChainStub {
+	return &mock.BlockChainStub{GetGenesisHeaderCalled: func() data.HeaderHandler {
 		return &block.Header{Nonce: 0}
 	}}
 }
@@ -313,7 +313,11 @@ func createComponentHolderMocks() (
 	boostrapComponents := &mock.BootstrapComponentsMock{
 		Coordinator:          mock.NewOneShardCoordinatorMock(),
 		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
-		VersionedHdrFactory:  &testscommon.VersionedHeaderFactoryStub{},
+		VersionedHdrFactory: &testscommon.VersionedHeaderFactoryStub{
+			CreateCalled: func(epoch uint32) data.HeaderHandler {
+				return &block.Header{}
+			},
+		},
 	}
 
 	statusComponents := &mock.StatusComponentsMock{
@@ -339,7 +343,11 @@ func CreateMockArguments(
 	startHeaders := createGenesisBlocks(mock.NewOneShardCoordinatorMock())
 
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
-	accountsDb[state.UserAccountsState] = &stateMock.AccountsStub{}
+	accountsDb[state.UserAccountsState] = &stateMock.AccountsStub{
+		RootHashCalled: func() ([]byte, error) {
+			return nil, nil
+		},
+	}
 
 	arguments := blproc.ArgShardProcessor{
 		ArgBaseProcessor: blproc.ArgBaseProcessor{
@@ -367,6 +375,7 @@ func CreateMockArguments(
 			Version:                        "softwareVersion",
 			HistoryRepository:              &dblookupext.HistoryRepositoryStub{},
 			EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
+			RoundNotifier:                  &mock.RoundNotifierStub{},
 			GasHandler:                     &mock.GasHandlerMock{},
 			ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
 			ScheduledMiniBlocksEnableEpoch: 2,
@@ -773,7 +782,7 @@ func TestBaseProcessor_SaveLastNotarizedHdrMetaGood(t *testing.T) {
 
 func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr(t *testing.T) {
 	t.Parallel()
-	blockChain := &mock.BlockChainMock{
+	blockChain := &mock.BlockChainStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{
 				Epoch: 2,
@@ -799,7 +808,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr2(t *testing.T) {
 	t.Parallel()
 
 	randSeed := []byte("randseed")
-	blockChain := &mock.BlockChainMock{
+	blockChain := &mock.BlockChainStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{
 				Epoch:           1,
@@ -835,7 +844,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr3(t *testing.T) {
 	t.Parallel()
 
 	randSeed := []byte("randseed")
-	blockChain := &mock.BlockChainMock{
+	blockChain := &mock.BlockChainStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{
 				Epoch:    3,
@@ -872,7 +881,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMat
 	t.Parallel()
 
 	randSeed := []byte("randseed")
-	chain := &mock.BlockChainMock{
+	chain := &mock.BlockChainStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{
 				Epoch:    2,
@@ -938,7 +947,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMat
 	t.Parallel()
 
 	randSeed := []byte("randseed")
-	chain := &mock.BlockChainMock{
+	chain := &mock.BlockChainStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{
 				Epoch:    2,

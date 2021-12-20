@@ -60,13 +60,13 @@ func TestGasConsumed_ShouldWork(t *testing.T) {
 	gc.SetGasConsumed(3, []byte("hash2"))
 	assert.Equal(t, uint64(3), gc.GasConsumed([]byte("hash2")))
 
-	assert.Equal(t, uint64(5), gc.TotalGasConsumed())
+	assert.Equal(t, uint64(5), gc.TotalGasProvided())
 
 	gc.RemoveGasConsumed([][]byte{[]byte("hash1")})
-	assert.Equal(t, uint64(3), gc.TotalGasConsumed())
+	assert.Equal(t, uint64(3), gc.TotalGasProvided())
 
 	gc.Init()
-	assert.Equal(t, uint64(0), gc.TotalGasConsumed())
+	assert.Equal(t, uint64(0), gc.TotalGasProvided())
 }
 
 func TestGasRefunded_ShouldWork(t *testing.T) {

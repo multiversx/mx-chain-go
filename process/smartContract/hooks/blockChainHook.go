@@ -27,6 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/atomic"
 )
 
 var _ process.BlockChainHookHandler = (*BlockChainHookImpl)(nil)
@@ -47,22 +48,26 @@ type ArgBlockChainHook struct {
 	Marshalizer        marshal.Marshalizer
 	Uint64Converter    typeConverters.Uint64ByteSliceConverter
 	BuiltInFunctions   vmcommon.BuiltInFunctionContainer
+	NFTStorageHandler  vmcommon.SimpleESDTNFTStorageHandler
 	CompiledSCPool     storage.Cacher
 	ConfigSCStorage    config.StorageConfig
+	EnableEpochs       config.EnableEpochs
+	EpochNotifier      vmcommon.EpochNotifier
 	WorkingDir         string
 	NilCompiledSCStore bool
 }
 
 // BlockChainHookImpl is a wrapper over AccountsAdapter that satisfy vmcommon.BlockchainHook interface
 type BlockChainHookImpl struct {
-	accounts         state.AccountsAdapter
-	pubkeyConv       core.PubkeyConverter
-	storageService   dataRetriever.StorageService
-	blockChain       data.ChainHandler
-	shardCoordinator sharding.Coordinator
-	marshalizer      marshal.Marshalizer
-	uint64Converter  typeConverters.Uint64ByteSliceConverter
-	builtInFunctions vmcommon.BuiltInFunctionContainer
+	accounts          state.AccountsAdapter
+	pubkeyConv        core.PubkeyConverter
+	storageService    dataRetriever.StorageService
+	blockChain        data.ChainHandler
+	shardCoordinator  sharding.Coordinator
+	marshalizer       marshal.Marshalizer
+	uint64Converter   typeConverters.Uint64ByteSliceConverter
+	builtInFunctions  vmcommon.BuiltInFunctionContainer
+	nftStorageHandler vmcommon.SimpleESDTNFTStorageHandler
 
 	mutCurrentHdr sync.RWMutex
 	currentHdr    data.HeaderHandler
@@ -72,6 +77,9 @@ type BlockChainHookImpl struct {
 	configSCStorage    config.StorageConfig
 	workingDir         string
 	nilCompiledSCStore bool
+
+	isPayableBySCEnableEpoch uint32
+	flagIsPayableBySC        atomic.Flag
 }
 
 // NewBlockChainHookImpl creates a new BlockChainHookImpl instance
@@ -84,19 +92,23 @@ func NewBlockChainHookImpl(
 	}
 
 	blockChainHookImpl := &BlockChainHookImpl{
-		accounts:           args.Accounts,
-		pubkeyConv:         args.PubkeyConv,
-		storageService:     args.StorageService,
-		blockChain:         args.BlockChain,
-		shardCoordinator:   args.ShardCoordinator,
-		marshalizer:        args.Marshalizer,
-		uint64Converter:    args.Uint64Converter,
-		builtInFunctions:   args.BuiltInFunctions,
-		compiledScPool:     args.CompiledSCPool,
-		configSCStorage:    args.ConfigSCStorage,
-		workingDir:         args.WorkingDir,
-		nilCompiledSCStore: args.NilCompiledSCStore,
+		accounts:                 args.Accounts,
+		pubkeyConv:               args.PubkeyConv,
+		storageService:           args.StorageService,
+		blockChain:               args.BlockChain,
+		shardCoordinator:         args.ShardCoordinator,
+		marshalizer:              args.Marshalizer,
+		uint64Converter:          args.Uint64Converter,
+		builtInFunctions:         args.BuiltInFunctions,
+		compiledScPool:           args.CompiledSCPool,
+		configSCStorage:          args.ConfigSCStorage,
+		workingDir:               args.WorkingDir,
+		nilCompiledSCStore:       args.NilCompiledSCStore,
+		nftStorageHandler:        args.NFTStorageHandler,
+		isPayableBySCEnableEpoch: args.EnableEpochs.IsPayableBySCEnableEpoch,
 	}
+
+	log.Debug("blockchainHook: payable by SC", "epoch", blockChainHookImpl.isPayableBySCEnableEpoch)
 
 	err = blockChainHookImpl.makeCompiledSCStorage()
 	if err != nil {
@@ -105,6 +117,8 @@ func NewBlockChainHookImpl(
 
 	blockChainHookImpl.ClearCompiledCodes()
 	blockChainHookImpl.currentHdr = &block.Header{}
+
+	args.EpochNotifier.RegisterNotifyHandler(blockChainHookImpl)
 
 	return blockChainHookImpl, nil
 }
@@ -136,6 +150,12 @@ func checkForNil(args ArgBlockChainHook) error {
 	}
 	if check.IfNil(args.CompiledSCPool) {
 		return process.ErrNilCacher
+	}
+	if check.IfNil(args.NFTStorageHandler) {
+		return process.ErrNilNFTStorageHandler
+	}
+	if check.IfNil(args.EpochNotifier) {
+		return process.ErrNilEpochNotifier
 	}
 
 	return nil
@@ -381,6 +401,11 @@ func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCal
 	return vmOutput, nil
 }
 
+// SaveNFTMetaDataToSystemAccount will save NFT meta data to system account for the given transaction
+func (bh *BlockChainHookImpl) SaveNFTMetaDataToSystemAccount(tx data.TransactionHandler) error {
+	return bh.nftStorageHandler.SaveNFTMetaDataToSystemAccount(tx)
+}
+
 // GetShardOfAddress is the hook that returns the shard of a given address
 func (bh *BlockChainHookImpl) GetShardOfAddress(address []byte) uint32 {
 	return bh.shardCoordinator.ComputeId(address)
@@ -392,20 +417,20 @@ func (bh *BlockChainHookImpl) IsSmartContract(address []byte) bool {
 }
 
 // IsPayable checks whether the provided address can receive ERD or not
-func (bh *BlockChainHookImpl) IsPayable(address []byte) (bool, error) {
-	if core.IsSystemAccountAddress(address) {
+func (bh *BlockChainHookImpl) IsPayable(sndAddress []byte, recvAddress []byte) (bool, error) {
+	if core.IsSystemAccountAddress(recvAddress) {
 		return false, nil
 	}
 
-	if !bh.IsSmartContract(address) {
+	if !bh.IsSmartContract(recvAddress) {
 		return true, nil
 	}
 
-	if bh.isNotSystemAccountAndCrossShard(address) {
+	if bh.isNotSystemAccountAndCrossShard(recvAddress) {
 		return true, nil
 	}
 
-	userAcc, err := bh.GetUserAccount(address)
+	userAcc, err := bh.GetUserAccount(recvAddress)
 	if err == state.ErrAccNotFound {
 		return false, nil
 	}
@@ -414,6 +439,10 @@ func (bh *BlockChainHookImpl) IsPayable(address []byte) (bool, error) {
 	}
 
 	metadata := vmcommon.CodeMetadataFromBytes(userAcc.GetCodeMetadata())
+	if bh.flagIsPayableBySC.IsSet() && bh.IsSmartContract(sndAddress) {
+		return metadata.Payable || metadata.PayableBySC, nil
+	}
+
 	return metadata.Payable, nil
 }
 
@@ -485,19 +514,7 @@ func (bh *BlockChainHookImpl) GetESDTToken(address []byte, tokenID []byte, nonce
 	}
 
 	esdtTokenKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + string(tokenID))
-	if nonce > 0 {
-		esdtTokenKey = append(esdtTokenKey, big.NewInt(0).SetUint64(nonce).Bytes()...)
-	}
-
-	value, err := userAcc.AccountDataHandler().RetrieveValue(esdtTokenKey)
-	if err != nil {
-		return nil, err
-	}
-	if len(value) == 0 {
-		return esdtData, nil
-	}
-
-	err = bh.marshalizer.Unmarshal(esdtData, value)
+	esdtData, _, err = bh.nftStorageHandler.GetESDTNFTTokenOnDestination(userAcc, esdtTokenKey, nonce)
 	if err != nil {
 		return nil, err
 	}
@@ -628,6 +645,12 @@ func (bh *BlockChainHookImpl) GetSnapshot() int {
 // RevertToSnapshot reverts snapshots up to the specified one
 func (bh *BlockChainHookImpl) RevertToSnapshot(snapshot int) error {
 	return bh.accounts.RevertToSnapshot(snapshot)
+}
+
+// EpochConfirmed is called whenever a new epoch is confirmed
+func (bh *BlockChainHookImpl) EpochConfirmed(epoch uint32, _ uint64) {
+	bh.flagIsPayableBySC.Toggle(epoch >= bh.isPayableBySCEnableEpoch)
+	log.Debug("blockchainHookImpl is payable by SC", "enabled", bh.flagIsPayableBySC.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

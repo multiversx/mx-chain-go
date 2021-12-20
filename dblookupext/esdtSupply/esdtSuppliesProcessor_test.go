@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
@@ -105,5 +106,7 @@ func TestSupplyESDT_GetSupply(t *testing.T) {
 
 	res, err := proc.GetESDTSupply("my-token")
 	require.Nil(t, err)
-	require.Equal(t, "123456", res)
+	require.Equal(t, &SupplyESDT{
+		Supply: big.NewInt(123456),
+	}, res)
 }

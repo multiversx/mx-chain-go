@@ -85,6 +85,7 @@ type baseProcessor struct {
 	outportHandler      outport.OutportHandler
 	historyRepo         dblookupext.HistoryRepository
 	epochNotifier       process.EpochNotifier
+	roundNotifier       process.RoundNotifier
 	vmContainerFactory  process.VirtualMachinesContainerFactory
 	vmContainer         process.VirtualMachinesContainer
 	gasConsumedProvider gasConsumedProvider
@@ -481,6 +482,9 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.EpochNotifier) {
 		return process.ErrNilEpochNotifier
+	}
+	if check.IfNil(arguments.RoundNotifier) {
+		return process.ErrNilRoundNotifier
 	}
 	if check.IfNil(arguments.CoreComponents.StatusHandler()) {
 		return process.ErrNilAppStatusHandler
@@ -1234,9 +1238,37 @@ func (bp *baseProcessor) RevertAccountsDBToSnapshot(accountsSnapshot map[state.A
 	}
 }
 
-func (bp *baseProcessor) commitAll() error {
+func (bp *baseProcessor) commitAll(headerHandler data.HeaderHandler) error {
+	if headerHandler.IsStartOfEpochBlock() {
+		return bp.commitInLastEpoch(headerHandler.GetEpoch())
+	}
+
+	return bp.commit()
+}
+
+func (bp *baseProcessor) commitInLastEpoch(currentEpoch uint32) error {
+	lastEpoch := uint32(0)
+	if currentEpoch > 0 {
+		lastEpoch = currentEpoch - 1
+	}
+
+	return bp.commitInEpoch(currentEpoch, lastEpoch)
+}
+
+func (bp *baseProcessor) commit() error {
 	for key := range bp.accountsDB {
 		_, err := bp.accountsDB[key].Commit()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (bp *baseProcessor) commitInEpoch(currentEpoch uint32, epochToCommit uint32) error {
+	for key := range bp.accountsDB {
+		_, err := bp.accountsDB[key].CommitInEpoch(currentEpoch, epochToCommit)
 		if err != nil {
 			return err
 		}

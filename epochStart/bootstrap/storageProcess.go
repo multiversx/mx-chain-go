@@ -19,10 +19,12 @@ import (
 	storageResolversContainers "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/storageResolversContainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/ElrondNetwork/elrond-go/trie/factory"
 )
 
 // ArgsStorageEpochStartBootstrap holds the arguments needed for creating an epoch start data provider component
@@ -69,6 +71,8 @@ func NewStorageEpochStartBootstrap(args ArgsStorageEpochStartBootstrap) (*storag
 
 // Bootstrap runs the fast bootstrap method from local storage or from import-db directory
 func (sesb *storageEpochStartBootstrap) Bootstrap() (Parameters, error) {
+	defer sesb.closeTrieComponents()
+
 	if !sesb.generalConfig.GeneralSettings.StartInEpochEnabled {
 		return sesb.bootstrapFromLocalStorage()
 	}
@@ -78,12 +82,16 @@ func (sesb *storageEpochStartBootstrap) Bootstrap() (Parameters, error) {
 
 		if !check.IfNil(sesb.resolvers) {
 			err := sesb.resolvers.Close()
-			log.Debug("non critical error closing resolvers", "error", err)
+			if err != nil {
+				log.Debug("non critical error closing resolvers", "error", err)
+			}
 		}
 
 		if !check.IfNil(sesb.store) {
 			err := sesb.store.CloseAll()
-			log.Debug("non critical error closing resolvers", "error", err)
+			if err != nil {
+				log.Debug("non critical error closing storage service", "error", err)
+			}
 		}
 	}()
 
@@ -137,10 +145,22 @@ func (sesb *storageEpochStartBootstrap) Bootstrap() (Parameters, error) {
 }
 
 func (sesb *storageEpochStartBootstrap) prepareComponentsToSync() error {
-	err := sesb.createTriesComponentsForShardId(core.MetachainShardId)
+	sesb.closeTrieComponents()
+	sesb.storageService = disabled.NewChainStorer()
+	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
+		sesb.generalConfig,
+		sesb.coreComponentsHolder,
+		core.MetachainShardId,
+		sesb.storageService,
+		sesb.enableEpochs.DisableOldTrieStorageEpoch,
+		sesb.epochNotifier,
+	)
 	if err != nil {
 		return err
 	}
+
+	sesb.trieContainer = triesContainer
+	sesb.trieStorageManagers = trieStorageManagers
 
 	err = sesb.createStorageRequestHandler()
 	if err != nil {
@@ -220,19 +240,21 @@ func (sesb *storageEpochStartBootstrap) createStorageResolvers() error {
 	}
 
 	resolversContainerFactoryArgs := storageResolversContainers.FactoryArgs{
-		GeneralConfig:            sesb.generalConfig,
-		ShardIDForTries:          sesb.importDbConfig.ImportDBTargetShardID,
-		ChainID:                  sesb.chainID,
-		WorkingDirectory:         sesb.importDbConfig.ImportDBWorkingDir,
-		Hasher:                   sesb.coreComponentsHolder.Hasher(),
-		ShardCoordinator:         shardCoordinator,
-		Messenger:                sesb.messenger,
-		Store:                    sesb.store,
-		Marshalizer:              sesb.coreComponentsHolder.InternalMarshalizer(),
-		Uint64ByteSliceConverter: sesb.coreComponentsHolder.Uint64ByteSliceConverter(),
-		DataPacker:               dataPacker,
-		ManualEpochStartNotifier: mesn,
-		ChanGracefullyClose:      sesb.chanGracefullyClose,
+		GeneralConfig:              sesb.generalConfig,
+		ShardIDForTries:            sesb.importDbConfig.ImportDBTargetShardID,
+		ChainID:                    sesb.chainID,
+		WorkingDirectory:           sesb.importDbConfig.ImportDBWorkingDir,
+		Hasher:                     sesb.coreComponentsHolder.Hasher(),
+		ShardCoordinator:           shardCoordinator,
+		Messenger:                  sesb.messenger,
+		Store:                      sesb.store,
+		Marshalizer:                sesb.coreComponentsHolder.InternalMarshalizer(),
+		Uint64ByteSliceConverter:   sesb.coreComponentsHolder.Uint64ByteSliceConverter(),
+		DataPacker:                 dataPacker,
+		ManualEpochStartNotifier:   mesn,
+		ChanGracefullyClose:        sesb.chanGracefullyClose,
+		DisableOldTrieStorageEpoch: sesb.enableEpochs.DisableOldTrieStorageEpoch,
+		EpochNotifier:              sesb.epochNotifier,
 	}
 
 	var resolversContainerFactory dataRetriever.ResolversContainerFactory
@@ -262,25 +284,14 @@ func (sesb *storageEpochStartBootstrap) createStoreForStorageResolvers(shardCoor
 		return nil, err
 	}
 
-	storageServiceCreator, err := storageFactory.NewStorageServiceFactory(
-		&sesb.generalConfig,
-		&sesb.prefsConfig,
+	return sesb.createStorageService(
 		shardCoordinator,
 		pathManager,
 		mesn,
-		sesb.coreComponentsHolder.NodeTypeProvider(),
 		sesb.importDbConfig.ImportDBStartInEpoch,
 		sesb.importDbConfig.ImportDbSaveTrieEpochRootHash,
+		sesb.importDbConfig.ImportDBTargetShardID,
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	if sesb.importDbConfig.ImportDBTargetShardID == core.MetachainShardId {
-		return storageServiceCreator.CreateForMeta()
-	} else {
-		return storageServiceCreator.CreateForShard()
-	}
 }
 
 func (sesb *storageEpochStartBootstrap) requestAndProcessFromStorage() (Parameters, error) {
@@ -330,11 +341,6 @@ func (sesb *storageEpochStartBootstrap) requestAndProcessFromStorage() (Paramete
 			return Parameters{}, err
 		}
 	} else {
-		err = sesb.createTriesComponentsForShardId(sesb.shardCoordinator.SelfId())
-		if err != nil {
-			return Parameters{}, err
-		}
-
 		err = sesb.requestAndProcessForShard()
 		if err != nil {
 			return Parameters{}, err

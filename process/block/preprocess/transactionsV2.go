@@ -538,7 +538,7 @@ func (txs *transactions) shouldContinueProcessingTx(
 	senderShardID := wrappedTx.SenderShardID
 	receiverShardID := wrappedTx.ReceiverShardID
 
-	if isShardStuck != nil && isShardStuck(receiverShardID) {
+	if senderShardID != receiverShardID && isShardStuck != nil && isShardStuck(receiverShardID) {
 		log.Trace("shard is stuck", "shard", receiverShardID)
 		return nil, nil, false
 	}
@@ -727,7 +727,7 @@ func (txs *transactions) shouldContinueProcessingScheduledTx(
 		return nil, nil, false
 	}
 
-	if isShardStuck != nil && isShardStuck(receiverShardID) {
+	if senderShardID != receiverShardID && isShardStuck != nil && isShardStuck(receiverShardID) {
 		log.Trace("shard is stuck", "shard", receiverShardID)
 		return nil, nil, false
 	}

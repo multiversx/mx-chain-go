@@ -147,7 +147,7 @@ func (tcm *TransactionCoordinatorMock) CreateMbsAndProcessCrossShardTransactions
 }
 
 // CreateMbsAndProcessTransactionsFromMe -
-func (tcm *TransactionCoordinatorMock) CreateMbsAndProcessTransactionsFromMe(haveTime func() bool) block.MiniBlockSlice {
+func (tcm *TransactionCoordinatorMock) CreateMbsAndProcessTransactionsFromMe(haveTime func() bool, _ []byte) block.MiniBlockSlice {
 	if tcm.CreateMbsAndProcessTransactionsFromMeCalled == nil {
 		return nil
 	}

@@ -143,7 +143,7 @@ func (vip *validatorInfoPreprocessor) RequestTransactionsForMiniBlock(_ *block.M
 }
 
 // CreateAndProcessMiniBlocks does nothing
-func (vip *validatorInfoPreprocessor) CreateAndProcessMiniBlocks(_ func() bool) (block.MiniBlockSlice, error) {
+func (vip *validatorInfoPreprocessor) CreateAndProcessMiniBlocks(_ func() bool, _ []byte) (block.MiniBlockSlice, error) {
 	// validatorsInfo are created only by meta
 	return make(block.MiniBlockSlice, 0), nil
 }

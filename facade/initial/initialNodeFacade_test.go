@@ -188,8 +188,8 @@ func TestDisabledNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	assert.Nil(t, sa)
 	assert.Equal(t, errNodeStarting, err)
 
-	s1, err = inf.GetTokenSupply("")
-	assert.Empty(t, s1)
+	supply, err := inf.GetTokenSupply("")
+	assert.Nil(t, supply)
 	assert.Equal(t, errNodeStarting, err)
 
 	assert.False(t, check.IfNil(inf))

@@ -196,7 +196,7 @@ func (fhps *FullHistoryPruningStorer) getOrOpenPersister(epoch uint32) (storage.
 
 		return newPdata.getPersister(), nil
 	}
-	persister, _, err := fhps.createAndInitPersisterIfClosed(pdata)
+	persister, _, err := fhps.createAndInitPersisterIfClosedUnprotected(pdata)
 	if err != nil {
 		return nil, err
 	}
@@ -215,9 +215,10 @@ func (fhps *FullHistoryPruningStorer) getPersisterData(epochString string, epoch
 		return pdata.(*persisterData), true
 	}
 
-	pdata, exists = fhps.persistersMapByEpoch[epoch]
+	var pDataObj *persisterData
+	pDataObj, exists = fhps.persistersMapByEpoch[epoch]
 	if exists {
-		return pdata.(*persisterData), true
+		return pDataObj, true
 	}
 
 	return nil, false

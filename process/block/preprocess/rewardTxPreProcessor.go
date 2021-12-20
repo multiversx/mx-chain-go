@@ -419,6 +419,7 @@ func (rtp *rewardTxPreprocessor) getAllRewardTxsFromMiniBlock(
 // as long as it has time
 func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlocks(
 	_ func() bool,
+	_ []byte,
 ) (block.MiniBlockSlice, error) {
 	// rewards are created only by meta
 	return make(block.MiniBlockSlice, 0), nil

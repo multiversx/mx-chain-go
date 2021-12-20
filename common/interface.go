@@ -1,6 +1,9 @@
 package common
 
-import "github.com/ElrondNetwork/elrond-go-core/core"
+import (
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+)
 
 // NumNodesDTO represents the DTO structure that will hold the number of nodes split by category and other
 // trie structure relevant data such as maximum number of trie levels including the roothash node and all leaves
@@ -11,7 +14,7 @@ type NumNodesDTO struct {
 	MaxLevel   int
 }
 
-//Trie is an interface for Merkle Trees implementations
+// Trie is an interface for Merkle Trees implementations
 type Trie interface {
 	Get(key []byte) ([]byte, error)
 	Update(key, value []byte) error
@@ -37,10 +40,10 @@ type Trie interface {
 
 // StorageManager manages all trie storage operations
 type StorageManager interface {
-	Database() DBWriteCacher
-	TakeSnapshot([]byte, bool, chan core.KeyValueHolder)
-	SetCheckpoint([]byte, chan core.KeyValueHolder)
-	GetSnapshotThatContainsHash(rootHash []byte) SnapshotDbHandler
+	Get(key []byte) ([]byte, error)
+	Put(key []byte, val []byte) error
+	TakeSnapshot([]byte, chan core.KeyValueHolder, SnapshotStatisticsHandler)
+	SetCheckpoint([]byte, chan core.KeyValueHolder, SnapshotStatisticsHandler)
 	IsPruningEnabled() bool
 	IsPruningBlocked() bool
 	EnterPruningBufferingMode()
@@ -48,6 +51,8 @@ type StorageManager interface {
 	GetSnapshotDbBatchDelay() int
 	AddDirtyCheckpointHashes([]byte, ModifiedHashes) bool
 	Remove(hash []byte) error
+	SetEpochForPutOperation(uint32)
+	ShouldTakeSnapshot() bool
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -72,6 +77,16 @@ type SnapshotDbHandler interface {
 	SetPath(string)
 }
 
+// TriesHolder is used to store multiple tries
+type TriesHolder interface {
+	Put([]byte, Trie)
+	Replace(key []byte, tr Trie)
+	Get([]byte) Trie
+	GetAll() []Trie
+	Reset()
+	IsInterfaceNil() bool
+}
+
 // Locker defines the operations used to lock different critical areas. Implemented by the RWMutex.
 type Locker interface {
 	Lock()
@@ -83,4 +98,21 @@ type Locker interface {
 // MerkleProofVerifier is used to verify merkle proofs
 type MerkleProofVerifier interface {
 	VerifyProof(rootHash []byte, key []byte, proof [][]byte) (bool, error)
+}
+
+// SizeSyncStatisticsHandler extends the SyncStatisticsHandler interface by allowing setting up the trie node size
+type SizeSyncStatisticsHandler interface {
+	data.SyncStatisticsHandler
+	AddNumBytesReceived(bytes uint64)
+	NumBytesReceived() uint64
+	NumTries() int
+}
+
+// SnapshotStatisticsHandler is used to measure different statistics for the trie snapshot
+type SnapshotStatisticsHandler interface {
+	AddSize(uint64)
+	SnapshotFinished()
+	NewSnapshotStarted()
+	NewDataTrie()
+	WaitForSnapshotsToFinish()
 }

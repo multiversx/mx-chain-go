@@ -96,6 +96,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		headerIntegrityVerifier:        arguments.BootstrapComponents.HeaderIntegrityVerifier(),
 		historyRepo:                    arguments.HistoryRepository,
 		epochNotifier:                  arguments.EpochNotifier,
+		roundNotifier:                 arguments.RoundNotifier,
 		vmContainerFactory:             arguments.VMContainersFactory,
 		vmContainer:                    arguments.VmContainer,
 		processDataTriesOnCommitEpoch:  arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
@@ -163,6 +164,7 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
+	sp.roundNotifier.CheckRound(headerHandler.GetRound())
 	sp.epochNotifier.CheckEpoch(headerHandler)
 	sp.requestHandler.SetEpoch(headerHandler.GetEpoch())
 
@@ -411,6 +413,10 @@ func (sp *shardProcessor) checkEpochCorrectness(
 	incorrectStartOfEpochBlock := header.GetEpoch() != currentBlockHeader.GetEpoch() &&
 		sp.epochStartTrigger.MetaEpoch() == currentBlockHeader.GetEpoch()
 	if incorrectStartOfEpochBlock {
+		if header.IsStartOfEpochBlock() {
+			sp.dataPool.Headers().RemoveHeaderByHash(header.GetEpochStartMetaHash())
+			go sp.requestHandler.RequestMetaHeader(header.GetEpochStartMetaHash())
+		}
 		return fmt.Errorf("%w proposed header with new epoch %d with trigger still in last epoch %d",
 			process.ErrEpochDoesNotMatch, header.GetEpoch(), sp.epochStartTrigger.MetaEpoch())
 	}
@@ -627,7 +633,7 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		return
 	}
 
-	gasConsumedInHeader := sp.baseProcessor.gasConsumedProvider.TotalGasConsumed()
+	gasProvidedInHeader := sp.baseProcessor.gasConsumedProvider.TotalGasProvided()
 	gasPenalizedInheader := sp.baseProcessor.gasConsumedProvider.TotalGasPenalized()
 	gasRefundedInHeader := sp.baseProcessor.gasConsumedProvider.TotalGasRefunded()
 	maxGasInHeader := sp.baseProcessor.economicsData.MaxGasLimitPerBlock(sp.shardCoordinator.SelfId())
@@ -638,7 +644,7 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		Header:         header,
 		SignersIndexes: signersIndexes,
 		HeaderGasConsumption: indexer.HeaderGasConsumption{
-			GasConsumed:    gasConsumedInHeader,
+			GasProvided:    gasProvidedInHeader,
 			GasRefunded:    gasRefundedInHeader,
 			GasPenalized:   gasPenalizedInheader,
 			MaxGasPerBlock: maxGasInHeader,
@@ -791,7 +797,7 @@ func (sp *shardProcessor) createBlockBody(shardHdr data.HeaderHandler, haveTime 
 		"nonce", shardHdr.GetNonce(),
 	)
 
-	miniBlocks, err := sp.createMiniBlocks(haveTime)
+	miniBlocks, err := sp.createMiniBlocks(haveTime, shardHdr.GetPrevRandSeed())
 	if err != nil {
 		return nil, err
 	}
@@ -883,7 +889,7 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	err = sp.commitAll()
+	err = sp.commitAll(headerHandler)
 	if err != nil {
 		return err
 	}
@@ -1258,6 +1264,7 @@ func (sp *shardProcessor) ApplyProcessedMiniBlocks(processedMiniBlocks *processe
 
 // CreateNewHeader creates a new header
 func (sp *shardProcessor) CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error) {
+	sp.roundNotifier.CheckRound(round)
 	epoch := sp.epochStartTrigger.MetaEpoch()
 	header := sp.versionedHeaderFactory.Create(epoch)
 
@@ -1856,7 +1863,7 @@ func (sp *shardProcessor) requestMetaHeadersIfNeeded(hdrsAdded uint32, lastMetaH
 	}
 }
 
-func (sp *shardProcessor) createMiniBlocks(haveTime func() bool) (*block.Body, error) {
+func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []byte) (*block.Body, error) {
 	var miniBlocks block.MiniBlockSlice
 
 	if sp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
@@ -1904,7 +1911,7 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool) (*block.Body, e
 	}
 
 	startTime = time.Now()
-	mbsFromMe := sp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(haveTime)
+	mbsFromMe := sp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(haveTime, randomness)
 	elapsedTime = time.Since(startTime)
 	log.Debug("elapsed time to create mbs from me",
 		"time [s]", elapsedTime,

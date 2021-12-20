@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -57,7 +58,11 @@ func createMockComponentHolders() (
 	boostrapComponents := &mock.BootstrapComponentsMock{
 		Coordinator:          mock.NewOneShardCoordinatorMock(),
 		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
-		VersionedHdrFactory:  &testscommon.VersionedHeaderFactoryStub{},
+		VersionedHdrFactory: &testscommon.VersionedHeaderFactoryStub{
+			CreateCalled: func(epoch uint32) data.HeaderHandler {
+				return &block.MetaBlock{}
+			},
+		},
 	}
 
 	statusComponents := &mock.StatusComponentsMock{
@@ -94,6 +99,9 @@ func createMockMetaArguments(
 		CommitCalled: func() ([]byte, error) {
 			return nil, nil
 		},
+		RootHashCalled: func() ([]byte, error) {
+			return nil, nil
+		},
 	}
 
 	arguments := blproc.ArgMetaProcessor{
@@ -121,6 +129,7 @@ func createMockMetaArguments(
 			BlockSizeThrottler:             &mock.BlockSizeThrottlerStub{},
 			HistoryRepository:              &dblookupext.HistoryRepositoryStub{},
 			EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
+			RoundNotifier:                  &mock.RoundNotifierStub{},
 			ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
 			ScheduledMiniBlocksEnableEpoch: 2,
 		},
@@ -451,6 +460,17 @@ func TestNewMetaProcessor_NilEpochStartShouldErr(t *testing.T) {
 
 	be, err := blproc.NewMetaProcessor(arguments)
 	assert.Equal(t, process.ErrNilEpochStartTrigger, err)
+	assert.Nil(t, be)
+}
+
+func TestNewMetaProcessor_NilRoundNotifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockMetaArguments(createMockComponentHolders())
+	arguments.RoundNotifier = nil
+
+	be, err := blproc.NewMetaProcessor(arguments)
+	assert.Equal(t, process.ErrNilRoundNotifier, err)
 	assert.Nil(t, be)
 }
 
@@ -948,7 +968,7 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 	dataComponents.DataPool = mdp
 	dataComponents.Storage = store
-	dataComponents.BlockChain = &mock.BlockChainMock{
+	dataComponents.BlockChain = &mock.BlockChainStub{
 		GetGenesisHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{Nonce: 0}
 		},
@@ -2299,7 +2319,7 @@ func TestMetaProcessor_DecodeBlockHeader(t *testing.T) {
 
 	marshalizerMock := &mock.MarshalizerMock{}
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
-	dataComponents.BlockChain = &mock.BlockChainMock{
+	dataComponents.BlockChain = &mock.BlockChainStub{
 		GetGenesisHeaderCalled: func() data.HeaderHandler {
 			return &block.MetaBlock{Nonce: 0}
 		},
@@ -2658,6 +2678,35 @@ func TestMetaProcessor_VerifyCrossShardMiniBlocksDstMe(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestMetaProcess_CreateNewBlockHeaderProcessHeaderExpectCheckRoundCalled(t *testing.T) {
+	t.Parallel()
+
+	round := uint64(4)
+	checkRoundCt := atomic.Counter{}
+
+	roundNotifier := &mock.RoundNotifierStub{
+		CheckRoundCalled: func(r uint64) {
+			checkRoundCt.Increment()
+			require.Equal(t, round, r)
+		},
+	}
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+	arguments.RoundNotifier = roundNotifier
+
+	metaProcessor, _ := blproc.NewMetaProcessor(arguments)
+	metaHeader := &block.MetaBlock{Round: round}
+	bodyHandler, _ := metaProcessor.CreateBlockBody(metaHeader, func() bool { return true })
+
+	headerHandler, _ := metaProcessor.CreateNewHeader(round, 1)
+	require.Equal(t, int64(1), checkRoundCt.Get())
+
+	_ = metaProcessor.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
+	require.Equal(t, int64(2), checkRoundCt.Get())
+}
+
 func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 	t.Parallel()
 
@@ -2710,7 +2759,7 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 		},
 	}
 
-	blkc := &mock.BlockChainMock{
+	blkc := &mock.BlockChainStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.MetaBlock{Nonce: 0, AccumulatedFeesInEpoch: big.NewInt(0), DevFeesInEpoch: big.NewInt(0)}
 		},
@@ -2721,6 +2770,7 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 			return &block.Header{Nonce: 0}
 		},
 	}
+
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 	coreComponents.Hash = hasher
 	dataComponents.DataPool = dPool
@@ -2855,7 +2905,7 @@ func TestMetaProcessor_CreateAndProcessBlockCallsProcessAfterFirstEpoch(t *testi
 		},
 	}
 
-	blkc := &mock.BlockChainMock{
+	blkc := &mock.BlockChainStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.MetaBlock{
 				Nonce:                  0,

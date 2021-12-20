@@ -42,11 +42,13 @@ type CoreComponentsMock struct {
 	mutIntMarshalizer           sync.RWMutex
 	RoundHandlerField           consensus.RoundHandler
 	EconomicsHandler            process.EconomicsDataHandler
+	APIEconomicsHandler         process.EconomicsDataHandler
 	RatingsConfig               process.RatingsInfoHandler
 	RatingHandler               sharding.PeerAccountListAndRatingHandler
 	NodesConfig                 sharding.GenesisNodesSetupHandler
 	Shuffler                    sharding.NodesShuffler
 	EpochChangeNotifier         process.EpochNotifier
+	RoundChangeNotifier         process.RoundNotifier
 	EpochNotifierWithConfirm    factory.EpochStartNotifierWithConfirm
 	TxVersionCheckHandler       process.TxVersionCheckerHandler
 	ChanStopProcess             chan endProcess.ArgEndProcess
@@ -184,6 +186,11 @@ func (ccm *CoreComponentsMock) EconomicsData() process.EconomicsDataHandler {
 	return ccm.EconomicsHandler
 }
 
+// APIEconomicsData -
+func (ccm *CoreComponentsMock) APIEconomicsData() process.EconomicsDataHandler {
+	return ccm.APIEconomicsHandler
+}
+
 // RatingsData -
 func (ccm *CoreComponentsMock) RatingsData() process.RatingsInfoHandler {
 	return ccm.RatingsConfig
@@ -207,6 +214,11 @@ func (ccm *CoreComponentsMock) NodesShuffler() sharding.NodesShuffler {
 // EpochNotifier -
 func (ccm *CoreComponentsMock) EpochNotifier() process.EpochNotifier {
 	return ccm.EpochChangeNotifier
+}
+
+// RoundNotifier -
+func (ccm *CoreComponentsMock) RoundNotifier() process.RoundNotifier {
+	return ccm.RoundChangeNotifier
 }
 
 // EpochStartNotifierWithConfirm -

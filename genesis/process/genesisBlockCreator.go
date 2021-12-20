@@ -11,10 +11,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
 	"github.com/ElrondNetwork/elrond-go/genesis"
+	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/intermediate"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
@@ -403,7 +405,12 @@ func (gbc *genesisBlockCreator) computeDNSAddresses() error {
 	if dnsSC == nil || check.IfNil(dnsSC) {
 		return nil
 	}
-
+	epochNotifier := forking.NewGenericEpochNotifier()
+	temporaryMetaHeader := &block.MetaBlock{
+		Epoch:     gbc.arg.StartEpochNum,
+		TimeStamp: gbc.arg.GenesisTime,
+	}
+	epochNotifier.CheckEpoch(temporaryMetaHeader)
 	builtInFuncs := vmcommonBuiltInFunctions.NewBuiltInFunctionContainer()
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:           gbc.arg.Accounts,
@@ -414,8 +421,10 @@ func (gbc *genesisBlockCreator) computeDNSAddresses() error {
 		Marshalizer:        gbc.arg.Core.InternalMarshalizer(),
 		Uint64Converter:    gbc.arg.Core.Uint64ByteSliceConverter(),
 		BuiltInFunctions:   builtInFuncs,
+		NFTStorageHandler:  &disabled.SimpleNFTStorage{},
 		DataPool:           gbc.arg.Data.Datapool(),
 		CompiledSCPool:     gbc.arg.Data.Datapool().SmartContracts(),
+		EpochNotifier:      epochNotifier,
 		NilCompiledSCStore: true,
 	}
 	blockChainHook, err := hooks.NewBlockChainHookImpl(argsHook)

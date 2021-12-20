@@ -151,7 +151,6 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("esdt NFT create on multiple shards"), "epoch", enableEpochs.ESDTNFTCreateOnMultiShardEnableEpoch)
 	log.Debug(readEpochFor("SCR size invariant check"), "epoch", enableEpochs.SCRSizeInvariantCheckEnableEpoch)
 	log.Debug(readEpochFor("backward compatibility flag for save key value"), "epoch", enableEpochs.BackwardCompSaveKeyValueEnableEpoch)
-	log.Debug(readEpochFor("esdt NFT create on multiple shards"), "epoch", enableEpochs.ESDTNFTCreateOnMultiShardEnableEpoch)
 	log.Debug(readEpochFor("meta ESDT, financial SFT"), "epoch", enableEpochs.MetaESDTSetEnableEpoch)
 	log.Debug(readEpochFor("add tokens to delegation"), "epoch", enableEpochs.AddTokensToDelegationEnableEpoch)
 	log.Debug(readEpochFor("multi ESDT transfer on callback"), "epoch", enableEpochs.MultiESDTTransferFixOnCallBackOnEnableEpoch)
@@ -160,7 +159,12 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("fix out of gas return code"), "epoch", enableEpochs.FixOOGReturnCodeEnableEpoch)
 	log.Debug(readEpochFor("remove non updated storage"), "epoch", enableEpochs.RemoveNonUpdatedStorageEnableEpoch)
 	log.Debug(readEpochFor("delete delegator data after claim rewards"), "epoch", enableEpochs.DeleteDelegatorAfterClaimRewardsEnableEpoch)
-	log.Debug(readEpochFor("built in functions on metachain"), "epoch", enableEpochs.BuiltInFunctionOnMetaEnableEpoch)
+	log.Debug(readEpochFor("optimize nft metadata store"), "epoch", enableEpochs.OptimizeNFTStoreEnableEpoch)
+	log.Debug(readEpochFor("create nft through execute on destination by caller"), "epoch", enableEpochs.CreateNFTThroughExecByCallerEnableEpoch)
+	log.Debug(readEpochFor("payable by smart contract"), "epoch", enableEpochs.IsPayableBySCEnableEpoch)
+	log.Debug(readEpochFor("cleanup informative only SCRs"), "epoch", enableEpochs.CleanUpInformativeSCRsEnableEpoch)
+	log.Debug(readEpochFor("storage API cost optimization"), "epoch", enableEpochs.StorageAPICostOptimizationEnableEpoch)
+	log.Debug(readEpochFor("transform to multi shard create on esdt"), "epoch", enableEpochs.TransformToMultiShardCreateEnableEpoch)
 	log.Debug(readEpochFor("scheduled mini blocks"), "epoch", enableEpochs.ScheduledMiniBlocksEnableEpoch)
 
 	gasSchedule := configs.EpochConfig.GasSchedule
@@ -262,8 +266,18 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 
 	nr.logInformation(managedCoreComponents, managedCryptoComponents, managedBootstrapComponents)
 
+	log.Debug("creating data components")
+	managedDataComponents, err := nr.CreateManagedDataComponents(managedCoreComponents, managedBootstrapComponents)
+	if err != nil {
+		return true, err
+	}
+
 	log.Debug("creating state components")
-	managedStateComponents, err := nr.CreateManagedStateComponents(managedCoreComponents, managedBootstrapComponents)
+	managedStateComponents, err := nr.CreateManagedStateComponents(
+		managedCoreComponents,
+		managedBootstrapComponents,
+		managedDataComponents,
+	)
 	if err != nil {
 		return true, err
 	}
@@ -271,12 +285,6 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	log.Trace("creating metrics")
 	// this should be called before setting the storer (done in the managedDataComponents creation)
 	err = nr.createMetrics(managedCoreComponents, managedCryptoComponents, managedBootstrapComponents)
-	if err != nil {
-		return true, err
-	}
-
-	log.Debug("creating data components")
-	managedDataComponents, err := nr.CreateManagedDataComponents(managedCoreComponents, managedBootstrapComponents)
 	if err != nil {
 		return true, err
 	}
@@ -468,6 +476,7 @@ func (nr *nodeRunner) createApiFacade(
 		CryptoComponents:    currentNode.cryptoComponents,
 		ProcessComponents:   currentNode.processComponents,
 		GasScheduleNotifier: gasScheduleNotifier,
+		Bootstrapper:        currentNode.consensusComponents.Bootstrapper(),
 	}
 
 	apiResolver, err := mainFactory.CreateApiResolver(apiResolverArgs)
@@ -563,8 +572,7 @@ func (nr *nodeRunner) createMetrics(
 	metrics.SaveStringMetric(coreComponents.StatusHandler(), common.MetricRewardsTopUpGradientPoint, coreComponents.EconomicsData().RewardsTopUpGradientPoint().String())
 	metrics.SaveStringMetric(coreComponents.StatusHandler(), common.MetricTopUpFactor, fmt.Sprintf("%g", coreComponents.EconomicsData().RewardsTopUpFactor()))
 	metrics.SaveStringMetric(coreComponents.StatusHandler(), common.MetricGasPriceModifier, fmt.Sprintf("%g", coreComponents.EconomicsData().GasPriceModifier()))
-	metrics.SaveUint64Metric(coreComponents.StatusHandler(), common.MetricMaxGasPerTransaction, coreComponents.EconomicsData().MaxGasLimitPerMiniBlockForSafeCrossShard())
-
+	metrics.SaveUint64Metric(coreComponents.StatusHandler(), common.MetricMaxGasPerTransaction, coreComponents.EconomicsData().MaxGasLimitPerTx())
 	return nil
 }
 
@@ -865,6 +873,8 @@ func (nr *nodeRunner) logSessionInformation(
 			configurationPaths.ApiRoutes,
 			configurationPaths.External,
 			configurationPaths.SystemSC,
+			configurationPaths.RoundActivation,
+			configurationPaths.Epoch,
 		})
 
 	statsFile := filepath.Join(statsFolder, "session.info")
@@ -1050,14 +1060,19 @@ func (nr *nodeRunner) CreateManagedDataComponents(
 func (nr *nodeRunner) CreateManagedStateComponents(
 	coreComponents mainFactory.CoreComponentsHolder,
 	bootstrapComponents mainFactory.BootstrapComponentsHolder,
+	dataComponents mainFactory.DataComponentsHandler,
 ) (mainFactory.StateComponentsHandler, error) {
-	triesComponents, trieStorageManagers := bootstrapComponents.EpochStartBootstrapper().GetTriesComponents()
+	processingMode := common.Normal
+	if nr.configs.ImportDbConfig.IsImportDBMode {
+		processingMode = common.ImportDb
+	}
 	stateArgs := mainFactory.StateComponentsFactoryArgs{
-		Config:              *nr.configs.GeneralConfig,
-		ShardCoordinator:    bootstrapComponents.ShardCoordinator(),
-		Core:                coreComponents,
-		TriesContainer:      triesComponents,
-		TrieStorageManagers: trieStorageManagers,
+		Config:           *nr.configs.GeneralConfig,
+		EnableEpochs:     nr.configs.EpochConfig.EnableEpochs,
+		ShardCoordinator: bootstrapComponents.ShardCoordinator(),
+		Core:             coreComponents,
+		StorageService:   dataComponents.StorageService(),
+		ProcessingMode:   processingMode,
 	}
 
 	stateComponentsFactory, err := mainFactory.NewStateComponentsFactory(stateArgs)
@@ -1087,6 +1102,7 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 	bootstrapComponentsFactoryArgs := mainFactory.BootstrapComponentsFactoryArgs{
 		Config:            *nr.configs.GeneralConfig,
 		EpochConfig:       *nr.configs.EpochConfig,
+		RoundConfig:       *nr.configs.RoundConfig,
 		PrefConfig:        *nr.configs.PreferencesConfig,
 		ImportDbConfig:    *nr.configs.ImportDbConfig,
 		WorkingDir:        nr.configs.FlagsConfig.WorkingDir,

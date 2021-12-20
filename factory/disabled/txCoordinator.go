@@ -81,7 +81,7 @@ func (txCoordinator *TxCoordinator) CreateMbsAndProcessCrossShardTransactionsDst
 }
 
 // CreateMbsAndProcessTransactionsFromMe does nothing as it is disabled
-func (txCoordinator *TxCoordinator) CreateMbsAndProcessTransactionsFromMe(_ func() bool) block.MiniBlockSlice {
+func (txCoordinator *TxCoordinator) CreateMbsAndProcessTransactionsFromMe(_ func() bool, _ []byte) block.MiniBlockSlice {
 	return make(block.MiniBlockSlice, 0)
 }
 

@@ -16,6 +16,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
 	"github.com/stretchr/testify/assert"
@@ -45,17 +47,21 @@ func getDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, has
 		MaxOpenFiles:      10,
 	}
 	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:   1000,
-		SnapshotsBufferLen: 10,
-		MaxSnapshots:       2,
+		PruningBufferLen:      1000,
+		SnapshotsBufferLen:    10,
+		MaxSnapshots:          2,
+		SnapshotsGoroutineNum: 1,
 	}
 	args := trie.NewTrieStorageManagerArgs{
 		DB:                     db,
+		MainStorer:             testscommon.CreateMemUnit(),
+		CheckpointsStorer:      testscommon.CreateMemUnit(),
 		Marshalizer:            marshalizer,
 		Hasher:                 hasher,
 		SnapshotDbConfig:       cfg,
 		GeneralConfig:          generalCfg,
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, testscommon.HashSize),
+		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
 	}
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
 	maxTrieLevelInMemory := uint(5)
@@ -421,7 +427,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodesTinyBufferShouldNotGetAllNodes(t *
 	assert.Equal(t, expectedNodes, len(serializedNodes))
 }
 
-func TestPatriciaMerkleTrie_GetSerializedNodesGetFromSnapshot(t *testing.T) {
+func TestPatriciaMerkleTrie_GetSerializedNodesGetFromCheckpoint(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
@@ -429,10 +435,12 @@ func TestPatriciaMerkleTrie_GetSerializedNodesGetFromSnapshot(t *testing.T) {
 	rootHash, _ := tr.RootHash()
 
 	storageManager := tr.GetStorageManager()
-	storageManager.TakeSnapshot(rootHash, true, nil)
+	dirtyHashes := trie.GetDirtyHashes(tr)
+	storageManager.AddDirtyCheckpointHashes(rootHash, dirtyHashes)
+	storageManager.SetCheckpoint(rootHash, nil, &trieMock.MockStatistics{})
 	trie.WaitForOperationToComplete(storageManager)
 
-	err := storageManager.Database().Remove(rootHash)
+	err := storageManager.Remove(rootHash)
 	assert.Nil(t, err)
 
 	maxBuffToSend := uint64(500)
@@ -474,62 +482,6 @@ func TestPatriciaMerkleTree_reduceBranchNodeReturnsOldHashesCorrectly(t *testing
 	newHashes, _ := tr.GetDirtyHashes()
 
 	assert.Equal(t, len(oldHashes), len(newHashes))
-}
-
-func TestPatriciaMerkleTrie_GetSerializedNodesFromSnapshotShouldNotCommitToMainDB(t *testing.T) {
-	t.Parallel()
-
-	tr := initTrie()
-	_ = tr.Commit()
-	storageManager := tr.GetStorageManager()
-
-	rootHash, _ := tr.RootHash()
-	storageManager.TakeSnapshot(rootHash, true, nil)
-	trie.WaitForOperationToComplete(storageManager)
-
-	err := storageManager.Database().Remove(rootHash)
-	assert.Nil(t, err)
-
-	val, err := storageManager.Database().Get(rootHash)
-	assert.NotNil(t, err)
-	assert.Nil(t, val)
-
-	nodes, _, _ := tr.GetSerializedNodes(rootHash, 2000)
-	assert.NotEqual(t, 0, len(nodes))
-
-	val, err = storageManager.Database().Get(rootHash)
-	assert.NotNil(t, err)
-	assert.Nil(t, val)
-}
-
-func TestPatriciaMerkleTrie_GetSerializedNodesShouldCheckFirstInSnapshotsDB(t *testing.T) {
-	t.Parallel()
-
-	marshalizer := &testscommon.ProtobufMarshalizerMock{}
-	hasher := &testscommon.KeccakMock{}
-
-	getDbCalled := false
-	getSnapshotCalled := false
-
-	trieStorageManager := &testscommon.StorageManagerStub{
-		GetDbThatContainsHashCalled: func(bytes []byte) common.DBWriteCacher {
-			getDbCalled = true
-			return nil
-		},
-		DatabaseCalled: func() common.DBWriteCacher {
-			getSnapshotCalled = true
-			return testscommon.NewMemDbMock()
-		},
-	}
-	maxTrieLevelInMemory := uint(5)
-
-	tr, _ := trie.NewTrie(trieStorageManager, marshalizer, hasher, maxTrieLevelInMemory)
-
-	rootHash := []byte("rootHash")
-	_, _, _ = tr.GetSerializedNodes(rootHash, 2000)
-
-	assert.False(t, getDbCalled)
-	assert.True(t, getSnapshotCalled)
 }
 
 func TestPatriciaMerkleTrie_GetAllHashesSetsHashes(t *testing.T) {

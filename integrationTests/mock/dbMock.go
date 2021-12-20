@@ -19,11 +19,6 @@ func (MockDB) Has(_ []byte) error {
 	return nil
 }
 
-// Init -
-func (MockDB) Init() error {
-	return nil
-}
-
 // Close -
 func (MockDB) Close() error {
 	return nil

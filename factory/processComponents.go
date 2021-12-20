@@ -600,23 +600,25 @@ func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.
 		ratingEnabledEpoch = hardForkConfig.StartEpoch + hardForkConfig.ValidatorGracePeriodInEpochs
 	}
 	arguments := peer.ArgValidatorStatisticsProcessor{
-		PeerAdapter:                     pcf.state.PeerAccounts(),
-		PubkeyConv:                      pcf.coreData.ValidatorPubKeyConverter(),
-		NodesCoordinator:                pcf.nodesCoordinator,
-		ShardCoordinator:                pcf.bootstrapComponents.ShardCoordinator(),
-		DataPool:                        peerDataPool,
-		StorageService:                  storageService,
-		Marshalizer:                     pcf.coreData.InternalMarshalizer(),
-		Rater:                           pcf.coreData.Rater(),
-		MaxComputableRounds:             pcf.config.GeneralSettings.MaxComputableRounds,
-		RewardsHandler:                  pcf.coreData.EconomicsData(),
-		NodesSetup:                      pcf.coreData.GenesisNodesSetup(),
-		RatingEnableEpoch:               ratingEnabledEpoch,
-		GenesisNonce:                    pcf.data.Blockchain().GetGenesisHeader().GetNonce(),
-		EpochNotifier:                   pcf.coreData.EpochNotifier(),
-		SwitchJailWaitingEnableEpoch:    pcf.epochConfig.EnableEpochs.SwitchJailWaitingEnableEpoch,
-		BelowSignedThresholdEnableEpoch: pcf.epochConfig.EnableEpochs.BelowSignedThresholdEnableEpoch,
-		StakingV2EnableEpoch:            pcf.epochConfig.EnableEpochs.StakingV2EnableEpoch,
+		PeerAdapter:                          pcf.state.PeerAccounts(),
+		PubkeyConv:                           pcf.coreData.ValidatorPubKeyConverter(),
+		NodesCoordinator:                     pcf.nodesCoordinator,
+		ShardCoordinator:                     pcf.bootstrapComponents.ShardCoordinator(),
+		DataPool:                             peerDataPool,
+		StorageService:                       storageService,
+		Marshalizer:                          pcf.coreData.InternalMarshalizer(),
+		Rater:                                pcf.coreData.Rater(),
+		MaxComputableRounds:                  pcf.config.GeneralSettings.MaxComputableRounds,
+		MaxConsecutiveRoundsOfRatingDecrease: pcf.config.GeneralSettings.MaxConsecutiveRoundsOfRatingDecrease,
+		RewardsHandler:                       pcf.coreData.EconomicsData(),
+		NodesSetup:                           pcf.coreData.GenesisNodesSetup(),
+		RatingEnableEpoch:                    ratingEnabledEpoch,
+		GenesisNonce:                         pcf.data.Blockchain().GetGenesisHeader().GetNonce(),
+		EpochNotifier:                        pcf.coreData.EpochNotifier(),
+		SwitchJailWaitingEnableEpoch:         pcf.epochConfig.EnableEpochs.SwitchJailWaitingEnableEpoch,
+		BelowSignedThresholdEnableEpoch:      pcf.epochConfig.EnableEpochs.BelowSignedThresholdEnableEpoch,
+		StakingV2EnableEpoch:                 pcf.epochConfig.EnableEpochs.StakingV2EnableEpoch,
+		StopDecreasingValidatorRatingWhenStuckEnableEpoch: pcf.epochConfig.EnableEpochs.StopDecreasingValidatorRatingWhenStuckEnableEpoch,
 	}
 
 	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)
@@ -859,7 +861,7 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32
 			Body:       &dataBlock.Body{},
 			Header:     genesisBlockHeader,
 			HeaderGasConsumption: indexer.HeaderGasConsumption{
-				GasConsumed:    0,
+				GasProvided:    0,
 				GasRefunded:    0,
 				GasPenalized:   0,
 				MaxGasPerBlock: pcf.coreData.EconomicsData().MaxGasLimitPerBlock(core.MetachainShardId),
@@ -913,6 +915,7 @@ func (pcf *processComponentsFactory) newBlockTracker(
 		StartHeaders:     genesisBlocks,
 		PoolsHolder:      pcf.data.Datapool(),
 		WhitelistHandler: pcf.whiteListHandler,
+		FeeHandler:       pcf.coreData.EconomicsData(),
 	}
 
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() < pcf.bootstrapComponents.ShardCoordinator().NumberOfShards() {
@@ -1117,19 +1120,21 @@ func (pcf *processComponentsFactory) createStorageResolversForMeta(
 	}
 
 	resolversContainerFactoryArgs := storageResolversContainers.FactoryArgs{
-		ShardCoordinator:         pcf.bootstrapComponents.ShardCoordinator(),
-		Messenger:                pcf.network.NetworkMessenger(),
-		Store:                    store,
-		Marshalizer:              pcf.coreData.InternalMarshalizer(),
-		Uint64ByteSliceConverter: pcf.coreData.Uint64ByteSliceConverter(),
-		DataPacker:               dataPacker,
-		ManualEpochStartNotifier: manualEpochStartNotifier,
-		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
-		Hasher:                   pcf.coreData.Hasher(),
-		GeneralConfig:            pcf.config,
-		ShardIDForTries:          pcf.importDBConfig.ImportDBTargetShardID,
-		WorkingDirectory:         pcf.importDBConfig.ImportDBWorkingDir,
-		ChainID:                  pcf.coreData.ChainID(),
+		GeneralConfig:              pcf.config,
+		ShardIDForTries:            pcf.importDBConfig.ImportDBTargetShardID,
+		ChainID:                    pcf.coreData.ChainID(),
+		WorkingDirectory:           pcf.importDBConfig.ImportDBWorkingDir,
+		Hasher:                     pcf.coreData.Hasher(),
+		ShardCoordinator:           pcf.bootstrapComponents.ShardCoordinator(),
+		Messenger:                  pcf.network.NetworkMessenger(),
+		Store:                      store,
+		Marshalizer:                pcf.coreData.InternalMarshalizer(),
+		Uint64ByteSliceConverter:   pcf.coreData.Uint64ByteSliceConverter(),
+		DataPacker:                 dataPacker,
+		ManualEpochStartNotifier:   manualEpochStartNotifier,
+		ChanGracefullyClose:        pcf.coreData.ChanStopNodeProcess(),
+		DisableOldTrieStorageEpoch: pcf.epochConfig.EnableEpochs.DisableOldTrieStorageEpoch,
+		EpochNotifier:              pcf.epochNotifier,
 	}
 	resolversContainerFactory, err := storageResolversContainers.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
@@ -1149,19 +1154,21 @@ func (pcf *processComponentsFactory) createStorageResolversForShard(
 	}
 
 	resolversContainerFactoryArgs := storageResolversContainers.FactoryArgs{
-		ShardCoordinator:         pcf.bootstrapComponents.ShardCoordinator(),
-		Messenger:                pcf.network.NetworkMessenger(),
-		Store:                    store,
-		Marshalizer:              pcf.coreData.InternalMarshalizer(),
-		Uint64ByteSliceConverter: pcf.coreData.Uint64ByteSliceConverter(),
-		DataPacker:               dataPacker,
-		ManualEpochStartNotifier: manualEpochStartNotifier,
-		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
-		Hasher:                   pcf.coreData.Hasher(),
-		GeneralConfig:            pcf.config,
-		ShardIDForTries:          pcf.importDBConfig.ImportDBTargetShardID,
-		WorkingDirectory:         pcf.importDBConfig.ImportDBWorkingDir,
-		ChainID:                  pcf.coreData.ChainID(),
+		GeneralConfig:              pcf.config,
+		ShardIDForTries:            pcf.importDBConfig.ImportDBTargetShardID,
+		ChainID:                    pcf.coreData.ChainID(),
+		WorkingDirectory:           pcf.importDBConfig.ImportDBWorkingDir,
+		Hasher:                     pcf.coreData.Hasher(),
+		ShardCoordinator:           pcf.bootstrapComponents.ShardCoordinator(),
+		Messenger:                  pcf.network.NetworkMessenger(),
+		Store:                      store,
+		Marshalizer:                pcf.coreData.InternalMarshalizer(),
+		Uint64ByteSliceConverter:   pcf.coreData.Uint64ByteSliceConverter(),
+		DataPacker:                 dataPacker,
+		ManualEpochStartNotifier:   manualEpochStartNotifier,
+		ChanGracefullyClose:        pcf.coreData.ChanStopNodeProcess(),
+		DisableOldTrieStorageEpoch: pcf.epochConfig.EnableEpochs.DisableOldTrieStorageEpoch,
+		EpochNotifier:              pcf.epochNotifier,
 	}
 	resolversContainerFactory, err := storageResolversContainers.NewShardResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {

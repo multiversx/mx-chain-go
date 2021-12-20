@@ -207,7 +207,7 @@ func (nf *nodeFacade) GetAllESDTTokens(address string) (map[string]*esdt.ESDigit
 }
 
 // GetTokenSupply returns the provided token supply
-func (nf *nodeFacade) GetTokenSupply(token string) (string, error) {
+func (nf *nodeFacade) GetTokenSupply(token string) (*apiData.ESDTSupply, error) {
 	return nf.node.GetTokenSupply(token)
 }
 

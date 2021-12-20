@@ -14,7 +14,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -34,13 +36,15 @@ func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 		},
 		PubkeyConv:         mock.NewPubkeyConverterMock(32),
 		StorageService:     &mock.ChainStorerMock{},
-		BlockChain:         &mock.BlockChainMock{},
+		BlockChain:         &mock.BlockChainStub{},
 		ShardCoordinator:   mock.NewOneShardCoordinatorMock(),
 		Marshalizer:        &mock.MarshalizerMock{},
 		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
 		BuiltInFunctions:   vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
+		NFTStorageHandler:  &testscommon.SimpleNFTStorageHandlerStub{},
 		DataPool:           datapool,
 		CompiledSCPool:     datapool.SmartContracts(),
+		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 		NilCompiledSCStore: true,
 	}
 	return arguments
@@ -323,7 +327,7 @@ func TestBlockChainHookImpl_GetBlockhashShouldReturnCurrentBlockHeaderHash(t *te
 	hdrToRet := &block.Header{Nonce: 2}
 	hashToRet := []byte("hash")
 	args := createMockVMAccountsArguments()
-	args.BlockChain = &mock.BlockChainMock{
+	args.BlockChain = &mock.BlockChainStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return hdrToRet
 		},
@@ -347,7 +351,7 @@ func TestBlockChainHookImpl_GetBlockhashFromOldEpoch(t *testing.T) {
 
 	marshaledData, _ := args.Marshalizer.Marshal(hdrToRet)
 
-	args.BlockChain = &mock.BlockChainMock{
+	args.BlockChain = &mock.BlockChainStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{Nonce: 10, Epoch: 10}
 		},
@@ -394,7 +398,7 @@ func TestBlockChainHookImpl_GettersFromBlockchainCurrentHeader(t *testing.T) {
 	}
 
 	args := createMockVMAccountsArguments()
-	args.BlockChain = &mock.BlockChainMock{
+	args.BlockChain = &mock.BlockChainStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return hdrToRet
 		},
@@ -443,7 +447,7 @@ func TestBlockChainHookImpl_IsPayableNormalAccount(t *testing.T) {
 
 	args := createMockVMAccountsArguments()
 	bh, _ := hooks.NewBlockChainHookImpl(args)
-	isPayable, err := bh.IsPayable([]byte("address"))
+	isPayable, err := bh.IsPayable([]byte("address"), []byte("address"))
 	assert.True(t, isPayable)
 	assert.Nil(t, err)
 }
@@ -460,7 +464,7 @@ func TestBlockChainHookImpl_IsPayableSCNonPayable(t *testing.T) {
 		},
 	}
 	bh, _ := hooks.NewBlockChainHookImpl(args)
-	isPayable, err := bh.IsPayable(make([]byte, 32))
+	isPayable, err := bh.IsPayable([]byte("address"), make([]byte, 32))
 	assert.False(t, isPayable)
 	assert.Nil(t, err)
 }
@@ -478,7 +482,29 @@ func TestBlockChainHookImpl_IsPayablePayable(t *testing.T) {
 	}
 
 	bh, _ := hooks.NewBlockChainHookImpl(args)
-	isPayable, err := bh.IsPayable(make([]byte, 32))
+	isPayable, err := bh.IsPayable([]byte("address"), make([]byte, 32))
+	assert.True(t, isPayable)
+	assert.Nil(t, err)
+
+	isPayable, err = bh.IsPayable(make([]byte, 32), make([]byte, 32))
+	assert.True(t, isPayable)
+	assert.Nil(t, err)
+}
+
+func TestBlockChainHookImpl_IsPayablePayableBySC(t *testing.T) {
+	t.Parallel()
+
+	args := createMockVMAccountsArguments()
+	args.Accounts = &stateMock.AccountsStub{
+		GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
+			acc := &mock.AccountWrapMock{}
+			acc.SetCodeMetadata([]byte{0, vmcommon.MetadataPayableBySC})
+			return acc, nil
+		},
+	}
+
+	bh, _ := hooks.NewBlockChainHookImpl(args)
+	isPayable, err := bh.IsPayable(make([]byte, 32), make([]byte, 32))
 	assert.True(t, isPayable)
 	assert.Nil(t, err)
 }
