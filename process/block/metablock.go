@@ -111,6 +111,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		headerIntegrityVerifier:       arguments.BootstrapComponents.HeaderIntegrityVerifier(),
 		historyRepo:                   arguments.HistoryRepository,
 		epochNotifier:                 arguments.EpochNotifier,
+		roundNotifier:                 arguments.RoundNotifier,
 		vmContainerFactory:            arguments.VMContainersFactory,
 		vmContainer:                   arguments.VmContainer,
 		processDataTriesOnCommitEpoch: arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
@@ -183,6 +184,7 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
+	mp.roundNotifier.CheckRound(headerHandler.GetRound())
 	mp.epochNotifier.CheckEpoch(headerHandler)
 	mp.requestHandler.SetEpoch(headerHandler.GetEpoch())
 
@@ -323,7 +325,7 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	err = mp.txCoordinator.ProcessBlockTransaction(body, haveTime)
+	err = mp.txCoordinator.ProcessBlockTransaction(body, haveTime, headerHandler.GetPrevRandSeed())
 	if err != nil {
 		return err
 	}
@@ -610,7 +612,7 @@ func (mp *metaProcessor) indexBlock(
 		return
 	}
 
-	gasConsumedInHeader := mp.baseProcessor.gasConsumedProvider.TotalGasConsumed()
+	gasConsumedInHeader := mp.baseProcessor.gasConsumedProvider.TotalGasProvided()
 	gasPenalizedInHeader := mp.baseProcessor.gasConsumedProvider.TotalGasPenalized()
 	gasRefundedInHeader := mp.baseProcessor.gasConsumedProvider.TotalGasRefunded()
 	maxGasInHeader := mp.baseProcessor.economicsData.MaxGasLimitPerBlock(mp.shardCoordinator.SelfId())
@@ -621,7 +623,7 @@ func (mp *metaProcessor) indexBlock(
 		Header:         metaBlock,
 		SignersIndexes: signersIndexes,
 		HeaderGasConsumption: indexer.HeaderGasConsumption{
-			GasConsumed:    gasConsumedInHeader,
+			GasProvided:    gasConsumedInHeader,
 			GasRefunded:    gasRefundedInHeader,
 			GasPenalized:   gasPenalizedInHeader,
 			MaxGasPerBlock: maxGasInHeader,
@@ -903,7 +905,7 @@ func (mp *metaProcessor) createBlockBody(metaBlock *block.MetaBlock, haveTime fu
 		"nonce", metaBlock.GetNonce(),
 	)
 
-	miniBlocks, err := mp.createMiniBlocks(haveTime)
+	miniBlocks, err := mp.createMiniBlocks(haveTime, metaBlock.GetPrevRandSeed())
 	if err != nil {
 		return nil, err
 	}
@@ -918,6 +920,7 @@ func (mp *metaProcessor) createBlockBody(metaBlock *block.MetaBlock, haveTime fu
 
 func (mp *metaProcessor) createMiniBlocks(
 	haveTime func() bool,
+	randomness []byte,
 ) (*block.Body, error) {
 	var miniBlocks block.MiniBlockSlice
 
@@ -941,7 +944,7 @@ func (mp *metaProcessor) createMiniBlocks(
 		)
 	}
 
-	mbsFromMe := mp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(haveTime)
+	mbsFromMe := mp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(haveTime, randomness)
 	if len(mbsFromMe) > 0 {
 		miniBlocks = append(miniBlocks, mbsFromMe...)
 
@@ -1162,7 +1165,7 @@ func (mp *metaProcessor) CommitBlock(
 	mp.saveMetaHeader(header, headerHash, marshalizedHeader)
 	mp.saveBody(body, header)
 
-	err = mp.commitAll()
+	err = mp.commitAll(headerHandler)
 	if err != nil {
 		return err
 	}
@@ -2116,6 +2119,8 @@ func (mp *metaProcessor) waitForBlockHeaders(waitTime time.Duration) error {
 
 // CreateNewHeader creates a new header
 func (mp *metaProcessor) CreateNewHeader(round uint64, nonce uint64) data.HeaderHandler {
+	mp.roundNotifier.CheckRound(round)
+
 	metaHeader := &block.MetaBlock{
 		Nonce:                  nonce,
 		Round:                  round,

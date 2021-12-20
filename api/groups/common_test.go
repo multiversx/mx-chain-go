@@ -29,7 +29,6 @@ func loadResponse(rsp io.Reader, destination interface{}) {
 	logError(err)
 }
 
-
 func logError(err error) {
 	if err != nil {
 		fmt.Println(err)

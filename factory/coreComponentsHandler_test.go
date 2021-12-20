@@ -43,6 +43,7 @@ func TestManagedCoreComponents_Create_ShouldWork(t *testing.T) {
 	require.Nil(t, managedCoreComponents.PathHandler())
 	require.Equal(t, "", managedCoreComponents.ChainID())
 	require.Nil(t, managedCoreComponents.AddressPubKeyConverter())
+	require.Nil(t, managedCoreComponents.RoundNotifier())
 
 	err = managedCoreComponents.Create()
 	require.NoError(t, err)
@@ -57,6 +58,7 @@ func TestManagedCoreComponents_Create_ShouldWork(t *testing.T) {
 	require.NotNil(t, managedCoreComponents.PathHandler())
 	require.NotEqual(t, "", managedCoreComponents.ChainID())
 	require.NotNil(t, managedCoreComponents.AddressPubKeyConverter())
+	require.NotNil(t, managedCoreComponents.RoundNotifier())
 }
 
 func TestManagedCoreComponents_Close(t *testing.T) {

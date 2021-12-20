@@ -109,7 +109,7 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *Consensus
 		},
 	}
 	blockProcessorMock := InitBlockProcessorMock()
-	bootstrapperMock := &BootstrapperMock{}
+	bootstrapperMock := &BootstrapperStub{}
 	broadcastMessengerMock := &BroadcastMessengerMock{
 		BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
 			return nil

@@ -82,6 +82,7 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 						MaxGasLimitPerMiniBlock:     "10000000",
 						MaxGasLimitPerMetaBlock:     "10000000",
 						MaxGasLimitPerMetaMiniBlock: "10000000",
+						MaxGasLimitPerTx:            "10000000",
 						MinGasLimit:                 "10",
 					},
 				},

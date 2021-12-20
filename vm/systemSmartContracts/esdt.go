@@ -56,18 +56,20 @@ type esdt struct {
 	mutExecution           sync.RWMutex
 	addressPubKeyConverter core.PubkeyConverter
 
-	enabledEpoch                      uint32
-	flagEnabled                       atomic.Flag
-	globalMintBurnDisableEpoch        uint32
-	flagGlobalMintBurn                atomic.Flag
-	transferRoleEnableEpoch           uint32
-	flagTransferRole                  atomic.Flag
-	nftCreateONMultiShardEnableEpoch  uint32
-	flagNFTCreateONMultiShard         atomic.Flag
-	metaESDTEnableEpoch               uint32
-	flagMetaESDT                      atomic.Flag
-	registerAndSetAllRolesEnableEpoch uint32
-	flagRegisterAndSetAllRoles        atomic.Flag
+	enabledEpoch                           uint32
+	flagEnabled                            atomic.Flag
+	globalMintBurnDisableEpoch             uint32
+	flagGlobalMintBurn                     atomic.Flag
+	transferRoleEnableEpoch                uint32
+	flagTransferRole                       atomic.Flag
+	nftCreateONMultiShardEnableEpoch       uint32
+	flagNFTCreateONMultiShard              atomic.Flag
+	metaESDTEnableEpoch                    uint32
+	flagMetaESDT                           atomic.Flag
+	transformToMultiShardCreateEnableEpoch uint32
+	flagTransformToMultiShardCreate        atomic.Flag
+	registerAndSetAllRolesEnableEpoch      uint32
+	flagRegisterAndSetAllRoles             atomic.Flag
 }
 
 // ArgsNewESDTSmartContract defines the arguments needed for the esdt contract
@@ -134,6 +136,7 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 	log.Debug("esdt: enable epoch for contract transfer role", "epoch", e.transferRoleEnableEpoch)
 	log.Debug("esdt: enable epoch for esdt NFT create on multiple shards", "epoch", e.nftCreateONMultiShardEnableEpoch)
 	log.Debug("esdt: enable epoch for meta tokens, financial SFTs", "epoch", e.metaESDTEnableEpoch)
+	log.Debug("esdt: enable epoch for transferm to multi shard create", "epoch", e.transformToMultiShardCreateEnableEpoch)
 	log.Debug("esdt: enable epoch for esdt register and set all roles function", "epoch", e.registerAndSetAllRolesEnableEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(e)
@@ -216,6 +219,8 @@ func (e *esdt) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return e.getAllAddressesAndRoles(args)
 	case "getContractConfig":
 		return e.getContractConfig(args)
+	case "changeToMultiShardCreate":
+		return e.changeToMultiShardCreate(args)
 	}
 
 	e.eei.AddReturnMessage("invalid method to call")
@@ -1443,6 +1448,66 @@ func (e *esdt) checkSpecialRolesAccordingToTokenType(args [][]byte, token *ESDTD
 type rolesProperties struct {
 	transferRoleExists       bool
 	isMultiShardNFTCreateSet bool
+}
+
+func getFirstAddressWithGivenRole(token *ESDTDataV2, definedRole []byte) ([]byte, error) {
+	for _, esdtRole := range token.SpecialRoles {
+		for _, role := range esdtRole.Roles {
+			if bytes.Equal(role, definedRole) {
+				return esdtRole.Address, nil
+			}
+		}
+	}
+
+	return nil, vm.ErrElementNotFound
+}
+
+func (e *esdt) changeToMultiShardCreate(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !e.flagTransformToMultiShardCreate.IsSet() {
+		e.eei.AddReturnMessage("invalid method to call")
+		return vmcommon.FunctionNotFound
+	}
+	if len(args.Arguments) != 1 {
+		e.eei.AddReturnMessage("invalid number of arguments")
+		return vmcommon.UserError
+	}
+	token, returnCode := e.basicOwnershipChecks(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+	if !token.CanAddSpecialRoles {
+		e.eei.AddReturnMessage("cannot add special roles")
+		return vmcommon.UserError
+	}
+	if token.CanCreateMultiShard {
+		e.eei.AddReturnMessage("it is already multi shard create")
+		return vmcommon.UserError
+	}
+
+	addressWithCreateRole, err := getFirstAddressWithGivenRole(token, []byte(core.ESDTRoleNFTCreate))
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	token.CanCreateMultiShard = true
+	isAddressLastByteZero := addressWithCreateRole[len(addressWithCreateRole)-1] == 0
+	if !isAddressLastByteZero {
+		multiCreateRoleOnly := [][]byte{[]byte(core.ESDTRoleNFTCreateMultiShard)}
+		err = e.sendRoleChangeData(args.Arguments[0], addressWithCreateRole, multiCreateRoleOnly, core.BuiltInFunctionSetESDTRole)
+		if err != nil {
+			e.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
+	}
+
+	err = e.saveToken(args.Arguments[0], token)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
 }
 
 func (e *esdt) setRolesForTokenAndAddress(

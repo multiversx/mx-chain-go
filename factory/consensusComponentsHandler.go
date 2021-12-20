@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 var _ ComponentHandler = (*managedConsensusComponents)(nil)
@@ -142,6 +143,18 @@ func (mcc *managedConsensusComponents) HardforkTrigger() HardforkTrigger {
 	}
 
 	return mcc.consensusComponents.hardforkTrigger
+}
+
+// Bootstrapper returns the bootstrapper instance
+func (mcc *managedConsensusComponents) Bootstrapper() process.Bootstrapper {
+	mcc.mutConsensusComponents.RLock()
+	defer mcc.mutConsensusComponents.RUnlock()
+
+	if mcc.consensusComponents == nil {
+		return nil
+	}
+
+	return mcc.consensusComponents.bootstrapper
 }
 
 // IsInterfaceNil returns true if the underlying object is nil

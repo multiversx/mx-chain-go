@@ -38,11 +38,13 @@ type CoreComponentsStub struct {
 	SyncTimerField                     ntp.SyncTimer
 	RoundHandlerField                  consensus.RoundHandler
 	EconomicsDataField                 process.EconomicsDataHandler
+	APIEconomicsHandler                process.EconomicsDataHandler
 	RatingsDataField                   process.RatingsInfoHandler
 	RaterField                         sharding.PeerAccountListAndRatingHandler
 	GenesisNodesSetupField             sharding.GenesisNodesSetupHandler
 	NodesShufflerField                 sharding.NodesShuffler
 	EpochNotifierField                 process.EpochNotifier
+	RoundNotifierField                 process.RoundNotifier
 	EpochStartNotifierWithConfirmField factory.EpochStartNotifierWithConfirm
 	ChanStopNodeProcessField           chan endProcess.ArgEndProcess
 	GenesisTimeField                   time.Time
@@ -106,6 +108,11 @@ func (ccs *CoreComponentsStub) EconomicsData() process.EconomicsDataHandler {
 	return ccs.EconomicsDataField
 }
 
+// APIEconomicsData -
+func (ccs *CoreComponentsStub) APIEconomicsData() process.EconomicsDataHandler {
+	return ccs.APIEconomicsHandler
+}
+
 // RatingsData -
 func (ccs *CoreComponentsStub) RatingsData() process.RatingsInfoHandler {
 	return ccs.RatingsDataField
@@ -130,6 +137,11 @@ func (ccs *CoreComponentsStub) NodesShuffler() sharding.NodesShuffler {
 // EpochNotifier -
 func (ccs *CoreComponentsStub) EpochNotifier() process.EpochNotifier {
 	return ccs.EpochNotifierField
+}
+
+// RoundNotifier -
+func (ccs *CoreComponentsStub) RoundNotifier() process.RoundNotifier {
+	return ccs.RoundNotifierField
 }
 
 // EpochStartNotifierWithConfirm -

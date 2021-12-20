@@ -871,7 +871,7 @@ func createAccountsDB(
 	tr, _ := trie.NewTrie(trieStorageManager, marshalizer, hasher, 5)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(10, testscommon.NewMemDbMock(), marshalizer)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
-	adb, _ := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory, spm)
+	adb, _ := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory, spm, common.Normal)
 	return adb
 }
 
@@ -915,6 +915,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 		NFTStorageHandler:  &testscommon.SimpleNFTStorageHandlerStub{},
 		DataPool:           testDataPool,
 		CompiledSCPool:     testDataPool.SmartContracts(),
+		EpochNotifier:      &mock.EpochNotifierStub{},
 		NilCompiledSCStore: true,
 	}
 
@@ -1058,6 +1059,7 @@ func createEconomicsData() process.EconomicsDataHandler {
 						MaxGasLimitPerMiniBlock:     maxGasLimitPerBlock,
 						MaxGasLimitPerMetaBlock:     maxGasLimitPerBlock,
 						MaxGasLimitPerMetaMiniBlock: maxGasLimitPerBlock,
+						MaxGasLimitPerTx:            maxGasLimitPerBlock,
 						MinGasLimit:                 minGasLimit,
 					},
 				},

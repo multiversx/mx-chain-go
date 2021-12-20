@@ -123,3 +123,14 @@ func LoadEpochConfig(filepath string) (*config.EpochConfig, error) {
 
 	return cfg, nil
 }
+
+// LoadRoundConfig returns a RoundConfig by reading from provided config file
+func LoadRoundConfig(filePath string) (*config.RoundConfig, error) {
+	cfg := &config.RoundConfig{}
+	err := core.LoadTomlFile(cfg, filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
+}
