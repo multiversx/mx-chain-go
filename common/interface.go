@@ -52,6 +52,7 @@ type StorageManager interface {
 	AddDirtyCheckpointHashes([]byte, ModifiedHashes) bool
 	Remove(hash []byte) error
 	SetEpochForPutOperation(uint32)
+	ShouldTakeSnapshot() bool
 	Close() error
 	IsInterfaceNil() bool
 }
