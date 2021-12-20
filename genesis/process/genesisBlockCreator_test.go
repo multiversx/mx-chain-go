@@ -122,10 +122,12 @@ func createMockArgument(
 		GenesisNodePrice:    nodePrice,
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: config.EnableEpochs{
-				BuiltInFunctionsEnableEpoch:    0,
-				SCDeployEnableEpoch:            0,
-				RelayedTransactionsEnableEpoch: 0,
-				PenalizedTooMuchGasEnableEpoch: 0,
+				BuiltInFunctionsEnableEpoch:       0,
+				SCDeployEnableEpoch:               0,
+				RelayedTransactionsEnableEpoch:    0,
+				PenalizedTooMuchGasEnableEpoch:    0,
+				CleanUpInformativeSCRsEnableEpoch: 1,
+				SCRSizeInvariantCheckEnableEpoch:  1,
 			},
 		},
 	}
