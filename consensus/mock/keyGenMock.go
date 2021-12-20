@@ -7,16 +7,16 @@ import (
 // PrivateKeyMock mocks a private key implementation
 type PrivateKeyMock struct {
 	GeneratePublicMock func() crypto.PublicKey
-	ToByteArrayMock    func() ([]byte, error)
+	ToByteArrayCalled  func() ([]byte, error)
 	SuiteMock          func() crypto.Suite
 	ScalarMock         func() crypto.Scalar
 }
 
 // PublicKeyMock mocks a public key implementation
 type PublicKeyMock struct {
-	ToByteArrayMock func() ([]byte, error)
-	SuiteMock       func() crypto.Suite
-	PointMock       func() crypto.Point
+	ToByteArrayCalled func() ([]byte, error)
+	SuiteMock         func() crypto.Suite
+	PointMock         func() crypto.Point
 }
 
 // KeyGenMock mocks a key generation implementation
@@ -39,6 +39,9 @@ func (privKey *PrivateKeyMock) GeneratePublic() crypto.PublicKey {
 
 // ToByteArray mocks converting the private key to a byte array
 func (privKey *PrivateKeyMock) ToByteArray() ([]byte, error) {
+	if privKey.ToByteArrayCalled != nil {
+		return privKey.ToByteArray()
+	}
 	return []byte("privateKeyMock"), nil
 }
 
@@ -59,6 +62,9 @@ func (privKey *PrivateKeyMock) IsInterfaceNil() bool {
 
 // ToByteArray mocks converting a public key to a byte array
 func (pubKey *PublicKeyMock) ToByteArray() ([]byte, error) {
+	if pubKey.ToByteArrayCalled != nil {
+		return pubKey.ToByteArrayCalled()
+	}
 	return []byte("publicKeyMock"), nil
 }
 
