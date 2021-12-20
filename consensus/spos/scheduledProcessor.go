@@ -209,13 +209,6 @@ func (sp *scheduledProcessorWrapper) setStatus(status processingStatus) {
 	sp.status = status
 }
 
-func (sp *scheduledProcessorWrapper) getStartTime() time.Time {
-	sp.RLock()
-	defer sp.RUnlock()
-
-	return sp.startTime
-}
-
 func (sp *scheduledProcessorWrapper) processScheduledMiniBlocks(header data.HeaderHandler, body data.BodyHandler) error {
 	sp.Lock()
 	sp.startTime = sp.syncTimer.CurrentTime()

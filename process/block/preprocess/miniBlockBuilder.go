@@ -256,10 +256,9 @@ func createEmptyMiniBlock(
 }
 
 func (mbb *miniBlocksBuilder) accountHasEnoughBalance(tx *transaction.Transaction) bool {
-	txMaxTotalCost := big.NewInt(0)
 	isAddressSet := mbb.balanceComputationHandler.IsAddressSet(tx.GetSndAddr())
 	if isAddressSet {
-		txMaxTotalCost = mbb.getTxMaxTotalCost(tx)
+		txMaxTotalCost := mbb.getTxMaxTotalCost(tx)
 		addressHasEnoughBalance := mbb.balanceComputationHandler.AddressHasEnoughBalance(tx.GetSndAddr(), txMaxTotalCost)
 		if !addressHasEnoughBalance {
 			mbb.stats.numTxsWithInitialBalanceConsumed++

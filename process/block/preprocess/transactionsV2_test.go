@@ -767,7 +767,6 @@ func TestTransactions_CreateAndProcessMiniBlocksFromMeV2ShouldWork(t *testing.T)
 	isShardStuckMethodReturn = false
 	isMaxBlockSizeReachedMethodReturn = true
 	sortedTxs = make([]*txcache.WrappedTransaction, 0)
-	mapSCTxs = make(map[string]struct{})
 	tx = &txcache.WrappedTransaction{
 		Tx: &transaction.Transaction{RcvAddr: []byte("smart contract address")},
 	}
@@ -783,7 +782,6 @@ func TestTransactions_CreateAndProcessMiniBlocksFromMeV2ShouldWork(t *testing.T)
 	isShardStuckMethodReturn = false
 	isMaxBlockSizeReachedMethodReturn = false
 	sortedTxs = make([]*txcache.WrappedTransaction, 0)
-	mapSCTxs = make(map[string]struct{})
 	tx = &txcache.WrappedTransaction{
 		Tx: &transaction.Transaction{RcvAddr: []byte("smart contract address")},
 	}
