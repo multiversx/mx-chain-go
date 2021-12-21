@@ -111,9 +111,7 @@ func (tlp *txLogProcessor) GetLogFromCache(txHash []byte) (indexer.LogData, bool
 func (tlp *txLogProcessor) GetAllCurrentLogs() []indexer.LogData {
 	tlp.mut.RLock()
 	logsSlice := make([]indexer.LogData, 0, len(tlp.logs))
-	for _, value := range tlp.logs {
-		logsSlice = append(logsSlice, value)
-	}
+	logsSlice = append(logsSlice, tlp.logs...)
 	tlp.mut.RUnlock()
 
 	return logsSlice
