@@ -59,7 +59,7 @@ func (lp *logsProcessor) processLogs(blockNonce uint64, logs []indexer.LogData, 
 			continue
 		}
 
-		errProc := lp.processLog(logHandler, supplies, isRevert)
+		errProc := lp.processLog(logHandler.LogHandler, supplies, isRevert)
 		if errProc != nil {
 			return errProc
 		}

@@ -44,7 +44,7 @@ func (lg *logsGetter) getLogsBasedOnBody(blockBody data.BodyHandler) ([]indexer.
 			return nil, err
 		}
 
-		logsDB = mergeLogsMap(logsDB, dbLogsMb)
+		logsDB = mergeLogsSlices(logsDB, dbLogsMb)
 	}
 
 	return logsDB, nil
@@ -91,7 +91,7 @@ func (lg *logsGetter) getTxLog(txHash []byte) (data.LogHandler, bool, error) {
 	return logFromDB, true, nil
 }
 
-func mergeLogsMap(m1, m2 []indexer.LogData) []indexer.LogData {
+func mergeLogsSlices(m1, m2 []indexer.LogData) []indexer.LogData {
 	logsMap := make(map[string]indexer.LogData, len(m1)+len(m2))
 
 	for _, value := range m1 {
