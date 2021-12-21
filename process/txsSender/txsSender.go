@@ -2,41 +2,72 @@ package txsSender
 
 import (
 	"context"
-	"io"
 	"sync/atomic"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/accumulator"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 var log = logger.GetOrCreate("txsSender")
-
-type NetworkMessenger interface {
-	io.Closer
-	// BroadcastOnChannelBlocking asynchronously waits until it can send a
-	// message on the channel, but once it is able to, it synchronously sends the
-	// message, blocking until sending is completed.
-	BroadcastOnChannelBlocking(channel string, topic string, buff []byte) error
-	// IsInterfaceNil returns true if there is no value under the interface
-	IsInterfaceNil() bool
-}
+var numSecondsBetweenPrints = 20
 
 type txsSender struct {
 	marshaller       marshal.Marshalizer
 	shardCoordinator storage.ShardCoordinator
 	networkMessenger NetworkMessenger
 
+	ctx                      context.Context
+	cancelFunc               context.CancelFunc
 	txSentCounter            uint32
-	txAcumulator             core.Accumulator
+	txAccumulator            core.Accumulator
 	currentSendingGoRoutines int32
+}
+
+// ArgsTxsSenderWithAccumulator is a holder struct for all necessary arguments to create a NewTxsSenderWithAccumulator
+type ArgsTxsSenderWithAccumulator struct {
+	Marshaller        marshal.Marshalizer
+	ShardCoordinator  storage.ShardCoordinator
+	NetworkMessenger  NetworkMessenger
+	AccumulatorConfig config.TxAccumulatorConfig
+}
+
+// NewTxsSenderWithAccumulator creates a new instance of TxsSender, which initializes internally a accumulator.NewTimeAccumulator
+func NewTxsSenderWithAccumulator(args ArgsTxsSenderWithAccumulator) (TxsSender, error) {
+	txAccumulator, err := accumulator.NewTimeAccumulator(
+		time.Duration(args.AccumulatorConfig.MaxAllowedTimeInMilliseconds)*time.Millisecond,
+		time.Duration(args.AccumulatorConfig.MaxDeviationTimeInMilliseconds)*time.Millisecond,
+		log,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	ret := &txsSender{
+		marshaller:               args.Marshaller,
+		shardCoordinator:         args.ShardCoordinator,
+		networkMessenger:         args.NetworkMessenger,
+		ctx:                      ctx,
+		cancelFunc:               cancelFunc,
+		txAccumulator:            txAccumulator,
+		txSentCounter:            0,
+		currentSendingGoRoutines: 0,
+	}
+	go ret.sendFromTxAccumulator(ret.ctx)
+	go ret.printTxSentCounter(ret.ctx)
+
+	return ret, nil
 }
 
 // SendBulkTransactions sends the provided transactions as a bulk, optimizing transfer between nodes
@@ -51,18 +82,18 @@ func (ts *txsSender) SendBulkTransactions(txs []*transaction.Transaction) (uint6
 }
 
 func (ts *txsSender) addTransactionsToSendPipe(txs []*transaction.Transaction) {
-	if check.IfNil(ts.txAcumulator) {
+	if check.IfNil(ts.txAccumulator) {
 		log.Error("node has a nil tx accumulator instance")
 		return
 	}
 
 	for _, tx := range txs {
-		ts.txAcumulator.AddData(tx)
+		ts.txAccumulator.AddData(tx)
 	}
 }
 
 func (ts *txsSender) sendFromTxAccumulator(ctx context.Context) {
-	outputChannel := ts.txAcumulator.OutputChannel()
+	outputChannel := ts.txAccumulator.OutputChannel()
 
 	for {
 		select {
@@ -101,15 +132,15 @@ func (ts *txsSender) sendBulkTransactions(txs []*transaction.Transaction) {
 	for _, tx := range txs {
 		senderShardId := ts.shardCoordinator.ComputeId(tx.SndAddr)
 
-		marshalizedTx, err := ts.marshaller.Marshal(tx)
+		marshalledTx, err := ts.marshaller.Marshal(tx)
 		if err != nil {
 			log.Warn("txsSender.sendBulkTransactions",
-				"marshalizer error", err,
+				"marshaller error", err,
 			)
 			continue
 		}
 
-		transactionsByShards[senderShardId] = append(transactionsByShards[senderShardId], marshalizedTx)
+		transactionsByShards[senderShardId] = append(transactionsByShards[senderShardId], marshalledTx)
 	}
 
 	numOfSentTxs := uint64(0)
@@ -158,4 +189,51 @@ func (ts *txsSender) sendBulkTransactionsFromShard(transactions [][]byte, sender
 	}
 
 	return nil
+}
+
+// printTxSentCounter prints the peak transaction counter from a time frame of about 'numSecondsBetweenPrints' seconds
+// if this peak value is 0 (no transaction was sent through the REST API interface), the print will not be done
+// the peak counter resets after each print. There is also a total number of transactions sent to p2p
+// TODO make this function testable. Refactor if necessary.
+func (ts *txsSender) printTxSentCounter(ctx context.Context) {
+	maxTxCounter := uint32(0)
+	totalTxCounter := uint64(0)
+	counterSeconds := 0
+
+	for {
+		select {
+		case <-time.After(time.Second):
+			txSent := atomic.SwapUint32(&ts.txSentCounter, 0)
+			if txSent > maxTxCounter {
+				maxTxCounter = txSent
+			}
+			totalTxCounter += uint64(txSent)
+
+			counterSeconds++
+			if counterSeconds > numSecondsBetweenPrints {
+				counterSeconds = 0
+
+				if maxTxCounter > 0 {
+					log.Info("sent transactions on network",
+						"max/sec", maxTxCounter,
+						"total", totalTxCounter,
+					)
+				}
+				maxTxCounter = 0
+			}
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+// IsInterfaceNil checks if the underlying pointer is nil
+func (ts *txsSender) IsInterfaceNil() bool {
+	return ts == nil
+}
+
+// Close calls the cancel function of the background context and closes the network messenger
+func (ts *txsSender) Close() error {
+	ts.cancelFunc()
+	return ts.networkMessenger.Close()
 }
