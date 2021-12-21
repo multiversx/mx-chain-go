@@ -26,7 +26,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
 	ed25519SingleSig "github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519/singlesig"
@@ -61,6 +61,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/testscommon/genesisMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/trie"
@@ -870,7 +871,7 @@ func CreateGenesisMetaBlock(
 	nodesHandler, err := mock.NewNodesHandlerMock(nodesSetup)
 	log.LogIfError(err)
 
-	metaHdr, _, err := genesisProcess.CreateMetaGenesisBlock(argsMetaGenesis, nil, nodesHandler, nil)
+	metaHdr, _, _, err := genesisProcess.CreateMetaGenesisBlock(argsMetaGenesis, nil, nodesHandler, nil)
 	log.LogIfError(err)
 
 	log.Info("meta genesis root hash", "hash", hex.EncodeToString(metaHdr.GetRootHash()))
@@ -1491,7 +1492,7 @@ func createGenesisNode(
 	shardId uint32,
 	hardforkPk crypto.PublicKey,
 ) *TestProcessorNode {
-	accountParser := &mock.AccountsParserStub{}
+	accountParser := &genesisMocks.AccountsParserStub{}
 	smartContractParser, _ := parsing.NewSmartContractsParser(
 		genesisFile,
 		TestAddressPubkeyConverter,
