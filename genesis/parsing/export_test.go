@@ -4,9 +4,15 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	coreData "github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	transactionData "github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/genesis/mock"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 func (ap *accountsParser) SetInitialAccounts(initialAccounts []*data.InitialAccount) {
@@ -29,11 +35,30 @@ func (ap *accountsParser) SetKeyGenerator(keyGen crypto.KeyGenerator) {
 	ap.keyGenerator = keyGen
 }
 
+func (ap *accountsParser) CreateMintTransactions() []coreData.TransactionHandler {
+	return ap.createMintTransactions()
+}
+
+func (ap *accountsParser) SetScrsTxsPool(
+	shardCoordinator sharding.Coordinator,
+	indexingData map[uint32]*genesis.IndexingData,
+	txsPoolPerShard map[uint32]*indexer.Pool,
+) {
+	ap.setScrsTxsPool(shardCoordinator, indexingData, txsPoolPerShard)
+}
+
+func (ap *accountsParser) CreateMintTransaction(ia genesis.InitialAccountHandler, nonce uint64) *transactionData.Transaction {
+	return ap.createMintTransaction(ia, nonce)
+}
+
 func NewTestAccountsParser(pubkeyConverter core.PubkeyConverter) *accountsParser {
 	return &accountsParser{
-		pubkeyConverter: pubkeyConverter,
-		initialAccounts: make([]*data.InitialAccount, 0),
-		keyGenerator:    &mock.KeyGeneratorStub{},
+		pubkeyConverter:    pubkeyConverter,
+		initialAccounts:    make([]*data.InitialAccount, 0),
+		minterAddressBytes: []byte("erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3"),
+		keyGenerator:       &mock.KeyGeneratorStub{},
+		hasher:             &mock.HasherMock{},
+		marshalizer:        &mock.MarshalizerMock{},
 	}
 }
 
@@ -65,4 +90,12 @@ func (scp *smartContractParser) SetFileHandler(handler func(string) error) {
 
 func (scp *smartContractParser) SetKeyGenerator(keyGen crypto.KeyGenerator) {
 	scp.keyGenerator = keyGen
+}
+
+func CreateMiniBlocks(shardIDs []uint32, blockType block.Type) []*block.MiniBlock {
+	return createMiniBlocks(shardIDs, blockType)
+}
+
+func GetShardIDs(shardCoordinator sharding.Coordinator) []uint32 {
+	return getShardIDs(shardCoordinator)
 }
