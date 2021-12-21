@@ -45,6 +45,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
+	"github.com/ElrondNetwork/elrond-go/process/txsSender"
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
 	"github.com/ElrondNetwork/elrond-go/redundancy"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -98,6 +99,7 @@ type processComponents struct {
 	nodeRedundancyHandler       consensus.NodeRedundancyHandler
 	currentEpochProvider        dataRetriever.CurrentNetworkEpochProviderHandler
 	vmFactoryForTxSimulator     process.VirtualMachinesContainerFactory
+	txsSender                   process.TxsSenderHandler
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -522,6 +524,17 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
+	args := txsSender.ArgsTxsSenderWithAccumulator{
+		Marshaller:        pcf.coreData.InternalMarshalizer(),
+		ShardCoordinator:  pcf.bootstrapComponents.ShardCoordinator(),
+		NetworkMessenger:  pcf.network.NetworkMessenger(),
+		AccumulatorConfig: pcf.config.Antiflood.TxAccumulator,
+	}
+	txsSenderWithAccumulator, err := txsSender.NewTxsSenderWithAccumulator(args)
+	if err != nil {
+		return nil, err
+	}
+
 	return &processComponents{
 		nodesCoordinator:            pcf.nodesCoordinator,
 		shardCoordinator:            pcf.bootstrapComponents.ShardCoordinator(),
@@ -557,6 +570,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		nodeRedundancyHandler:       nodeRedundancyHandler,
 		currentEpochProvider:        currentEpochProvider,
 		vmFactoryForTxSimulator:     vmFactoryTxSimulator,
+		txsSender:                   txsSenderWithAccumulator,
 	}, nil
 }
 

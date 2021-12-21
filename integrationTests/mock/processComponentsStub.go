@@ -43,6 +43,7 @@ type ProcessComponentsStub struct {
 	RequestedItemsHandlerInternal  dataRetriever.RequestedItemsHandler
 	NodeRedundancyHandlerInternal  consensus.NodeRedundancyHandler
 	CurrentEpochProviderInternal   process.CurrentNetworkEpochProviderHandler
+	TxsSenderHandlerField          process.TxsSenderHandler
 }
 
 // Create -
@@ -208,6 +209,11 @@ func (pcs *ProcessComponentsStub) NodeRedundancyHandler() consensus.NodeRedundan
 // CurrentEpochProvider -
 func (pcs *ProcessComponentsStub) CurrentEpochProvider() process.CurrentNetworkEpochProviderHandler {
 	return pcs.CurrentEpochProviderInternal
+}
+
+// TxsSenderHandler -
+func (pcs *ProcessComponentsStub) TxsSenderHandler() process.TxsSenderHandler {
+	return pcs.TxsSenderHandlerField
 }
 
 // String -

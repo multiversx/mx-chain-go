@@ -258,6 +258,7 @@ type ProcessComponentsHolder interface {
 	RequestedItemsHandler() dataRetriever.RequestedItemsHandler
 	NodeRedundancyHandler() consensus.NodeRedundancyHandler
 	CurrentEpochProvider() process.CurrentNetworkEpochProviderHandler
+	TxsSenderHandler() process.TxsSenderHandler
 	IsInterfaceNil() bool
 }
 

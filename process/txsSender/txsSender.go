@@ -9,12 +9,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/accumulator"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/partitioning"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/node"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -42,8 +44,8 @@ type ArgsTxsSenderWithAccumulator struct {
 	AccumulatorConfig config.TxAccumulatorConfig
 }
 
-// NewTxsSenderWithAccumulator creates a new instance of TxsSender, which initializes internally a accumulator.NewTimeAccumulator
-func NewTxsSenderWithAccumulator(args ArgsTxsSenderWithAccumulator) (TxsSender, error) {
+// NewTxsSenderWithAccumulator creates a new instance of TxsSenderHandler, which initializes internally a accumulator.NewTimeAccumulator
+func NewTxsSenderWithAccumulator(args ArgsTxsSenderWithAccumulator) (process.TxsSenderHandler, error) {
 	txAccumulator, err := accumulator.NewTimeAccumulator(
 		time.Duration(args.AccumulatorConfig.MaxAllowedTimeInMilliseconds)*time.Millisecond,
 		time.Duration(args.AccumulatorConfig.MaxDeviationTimeInMilliseconds)*time.Millisecond,
@@ -71,7 +73,7 @@ func NewTxsSenderWithAccumulator(args ArgsTxsSenderWithAccumulator) (TxsSender, 
 }
 
 // SendBulkTransactions sends the provided transactions as a bulk, optimizing transfer between nodes
-func (ts *txsSender) SendBulkTransactions(txs []*transaction.Transaction) (uint64, error) {
+func (ts *txsSender) SendBulkTransactions(txs []data.TransactionHandler) (uint64, error) {
 	if len(txs) == 0 {
 		return 0, node.ErrNoTxToProcess
 	}
@@ -81,7 +83,7 @@ func (ts *txsSender) SendBulkTransactions(txs []*transaction.Transaction) (uint6
 	return uint64(len(txs)), nil
 }
 
-func (ts *txsSender) addTransactionsToSendPipe(txs []*transaction.Transaction) {
+func (ts *txsSender) addTransactionsToSendPipe(txs []data.TransactionHandler) {
 	if check.IfNil(ts.txAccumulator) {
 		log.Error("node has a nil tx accumulator instance")
 		return

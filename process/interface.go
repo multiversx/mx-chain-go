@@ -1112,3 +1112,10 @@ type CurrentNetworkEpochProviderHandler interface {
 	EpochIsActiveInNetwork(epoch uint32) bool
 	IsInterfaceNil() bool
 }
+
+// TxsSenderHandler handles transactions sending
+type TxsSenderHandler interface {
+	SendBulkTransactions(txs []data.TransactionHandler) (uint64, error)
+	Close() error
+	IsInterfaceNil() bool
+}

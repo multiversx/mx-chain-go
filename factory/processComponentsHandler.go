@@ -512,6 +512,18 @@ func (m *managedProcessComponents) CurrentEpochProvider() process.CurrentNetwork
 	return m.processComponents.currentEpochProvider
 }
 
+// TxsSenderHandler returns the transactions sender handler
+func (m *managedProcessComponents) TxsSenderHandler() process.TxsSenderHandler {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.txsSender
+}
+
 // IsInterfaceNil returns true if the interface is nil
 func (m *managedProcessComponents) IsInterfaceNil() bool {
 	return m == nil

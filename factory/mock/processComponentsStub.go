@@ -43,6 +43,7 @@ type ProcessComponentsMock struct {
 	RequestedItemsHandlerInternal  dataRetriever.RequestedItemsHandler
 	NodeRedundancyHandlerInternal  consensus.NodeRedundancyHandler
 	CurrentEpochProviderInternal   process.CurrentNetworkEpochProviderHandler
+	TxsSenderHandlerField          process.TxsSenderHandler
 }
 
 // Create -
@@ -208,6 +209,11 @@ func (pcm *ProcessComponentsMock) NodeRedundancyHandler() consensus.NodeRedundan
 // CurrentEpochProvider -
 func (pcm *ProcessComponentsMock) CurrentEpochProvider() process.CurrentNetworkEpochProviderHandler {
 	return pcm.CurrentEpochProviderInternal
+}
+
+// TxsSenderHandler -
+func (pcm *ProcessComponentsMock) TxsSenderHandler() process.TxsSenderHandler {
+	return pcm.TxsSenderHandlerField
 }
 
 // String -
