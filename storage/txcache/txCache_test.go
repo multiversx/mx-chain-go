@@ -272,6 +272,23 @@ func Test_SelectTransactions_Dummy(t *testing.T) {
 	require.Len(t, sorted, 8)
 }
 
+func Test_SelectTransactionsWithBandwidth_Dummy(t *testing.T) {
+	cache := newUnconstrainedCacheToTest()
+	cache.AddTx(createTxWithGasLimit([]byte("hash-alice-4"), "alice", 4, 100000))
+	cache.AddTx(createTxWithGasLimit([]byte("hash-alice-3"), "alice", 3, 100000))
+	cache.AddTx(createTxWithGasLimit([]byte("hash-alice-2"), "alice", 2, 500000))
+	cache.AddTx(createTxWithGasLimit([]byte("hash-alice-1"), "alice", 1, 200000))
+	cache.AddTx(createTxWithGasLimit([]byte("hash-bob-7"), "bob", 7, 100000))
+	cache.AddTx(createTxWithGasLimit([]byte("hash-bob-6"), "bob", 6, 50000))
+	cache.AddTx(createTxWithGasLimit([]byte("hash-bob-5"), "bob", 5, 50000))
+	cache.AddTx(createTxWithGasLimit([]byte("hash-carol-1"), "carol", 1, 50000))
+
+	sorted := cache.SelectTransactionsWithBandwidth(5, 2, 200000)
+	numSelected := 1+1+3 // 1 alice, 1 carol, 3 bob
+
+	require.Len(t, sorted, numSelected)
+}
+
 func Test_SelectTransactions_BreaksAtNonceGaps(t *testing.T) {
 	cache := newUnconstrainedCacheToTest()
 

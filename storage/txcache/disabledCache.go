@@ -30,6 +30,11 @@ func (cache *DisabledCache) SelectTransactions(_ int, _ int) []*WrappedTransacti
 	return make([]*WrappedTransaction, 0)
 }
 
+// SelectTransactionsWithBandwidth returns an empty slice
+func (cache *DisabledCache) SelectTransactionsWithBandwidth(_ int, _ int, _ uint64) []*WrappedTransaction  {
+	return make([]*WrappedTransaction, 0)
+}
+
 // RemoveTxByHash does nothing
 func (cache *DisabledCache) RemoveTxByHash(_ []byte) bool {
 	return false

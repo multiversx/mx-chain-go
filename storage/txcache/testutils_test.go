@@ -105,6 +105,20 @@ func createTx(hash []byte, sender string, nonce uint64) *WrappedTransaction {
 		Size:   int64(estimatedSizeOfBoundedTxFields),
 	}
 }
+func createTxWithGasLimit(hash []byte, sender string, nonce uint64, gasLimit uint64) *WrappedTransaction {
+	tx := &transaction.Transaction{
+		SndAddr: []byte(sender),
+		Nonce:   nonce,
+		GasLimit: gasLimit,
+	}
+
+	return &WrappedTransaction{
+		Tx:     tx,
+		TxHash: hash,
+		Size:   int64(estimatedSizeOfBoundedTxFields),
+	}
+}
+
 
 func createTxWithParams(hash []byte, sender string, nonce uint64, size uint64, gasLimit uint64, gasPrice uint64) *WrappedTransaction {
 	dataLength := int(size) - int(estimatedSizeOfBoundedTxFields)
