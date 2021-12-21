@@ -20,6 +20,7 @@ type StorageManagerStub struct {
 	RemoveCalled                    func([]byte) error
 	IsInterfaceNilCalled            func() bool
 	SetEpochForPutOperationCalled   func(uint32)
+	ShouldTakeSnapshotCalled        func() bool
 }
 
 // Put -
@@ -112,6 +113,15 @@ func (sms *StorageManagerStub) SetEpochForPutOperation(epoch uint32) {
 	if sms.SetEpochForPutOperationCalled != nil {
 		sms.SetEpochForPutOperationCalled(epoch)
 	}
+}
+
+// ShouldTakeSnapshot -
+func (sms *StorageManagerStub) ShouldTakeSnapshot() bool {
+	if sms.ShouldTakeSnapshotCalled != nil {
+		return sms.ShouldTakeSnapshotCalled()
+	}
+
+	return true
 }
 
 // Close -

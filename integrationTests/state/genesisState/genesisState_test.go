@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -35,12 +36,17 @@ func TestCreationOfTheGenesisState(t *testing.T) {
 
 	genesisFile := "genesisEdgeCase.json"
 
-	accountsParser, err := parsing.NewAccountsParser(
-		genesisFile,
-		big.NewInt(6000000000),
-		integrationTests.TestAddressPubkeyConverter,
-		&mock.KeyGenMock{},
-	)
+	args := genesis.AccountsParserArgs{
+		GenesisFilePath: genesisFile,
+		EntireSupply:    big.NewInt(6000000000),
+		MinterAddress:   "erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3",
+		PubkeyConverter: integrationTests.TestAddressPubkeyConverter,
+		KeyGenerator:    &mock.KeyGenMock{},
+		Hasher:          &testscommon.HasherMock{},
+		Marshalizer:     &testscommon.MarshalizerMock{},
+	}
+
+	accountsParser, err := parsing.NewAccountsParser(args)
 	assert.Nil(t, err)
 
 	fmt.Printf("Loaded %d entries...\n", len(accountsParser.InitialAccounts()))
