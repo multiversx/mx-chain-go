@@ -16,6 +16,7 @@
          {Year = 11, MaximumInflation = 0.0},
     ]
     Denomination = 18 # represents the smallest eGLD subdivision (10^-X eGLD for a denomination of X)
+    GenesisMintingSenderAddress = "erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3"
 
 [RewardsSettings]
     [[RewardsSettings.RewardsConfigByEpoch]]

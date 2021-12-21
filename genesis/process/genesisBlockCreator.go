@@ -38,7 +38,8 @@ import (
 const accountStartNonce = uint64(0)
 
 type genesisBlockCreator struct {
-	arg ArgsGenesisBlockCreator
+	arg                 ArgsGenesisBlockCreator
+	initialIndexingData map[uint32]*genesis.IndexingData
 }
 
 // NewGenesisBlockCreator creates a new genesis block creator instance able to create genesis blocks on all initial shards
@@ -48,8 +49,11 @@ func NewGenesisBlockCreator(arg ArgsGenesisBlockCreator) (*genesisBlockCreator, 
 		return nil, fmt.Errorf("%w while creating NewGenesisBlockCreator", err)
 	}
 
+	indexingData := make(map[uint32]*genesis.IndexingData)
+
 	gbc := &genesisBlockCreator{
-		arg: arg,
+		arg:                 arg,
+		initialIndexingData: indexingData,
 	}
 
 	conversionBase := 10
@@ -243,6 +247,11 @@ func (gbc *genesisBlockCreator) createEmptyGenesisBlocks() (map[uint32]data.Head
 	return mapEmptyGenesisBlocks, nil
 }
 
+// GetIndexingData will return the initial data used for indexing
+func (gbc *genesisBlockCreator) GetIndexingData() map[uint32]*genesis.IndexingData {
+	return gbc.initialIndexingData
+}
+
 // CreateGenesisBlocks will try to create the genesis blocks for all shards
 func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHandler, error) {
 	var err error
@@ -347,14 +356,14 @@ func (gbc *genesisBlockCreator) createHeaders(
 			}
 
 			metaArgsGenesisBlockCreator.Data.SetBlockchain(chain)
-			genesisBlock, scResults, err = CreateMetaGenesisBlock(
+			genesisBlock, scResults, gbc.initialIndexingData[shardID], err = CreateMetaGenesisBlock(
 				metaArgsGenesisBlockCreator,
 				mapBodies[core.MetachainShardId],
 				nodesListSplitter,
 				mapHardForkBlockProcessor[core.MetachainShardId],
 			)
 		} else {
-			genesisBlock, scResults, err = CreateShardGenesisBlock(
+			genesisBlock, scResults, gbc.initialIndexingData[shardID], err = CreateShardGenesisBlock(
 				mapArgsGenesisBlockCreator[shardID],
 				mapBodies[shardID],
 				nodesListSplitter,
