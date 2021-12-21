@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -43,7 +44,7 @@ func newLogsProcessor(
 	}
 }
 
-func (lp *logsProcessor) processLogs(blockNonce uint64, logs map[string]data.LogHandler, isRevert bool) error {
+func (lp *logsProcessor) processLogs(blockNonce uint64, logs []indexer.LogData, isRevert bool) error {
 	shouldProcess, err := lp.nonceProc.shouldProcessLog(blockNonce, isRevert)
 	if err != nil {
 		return err
@@ -54,7 +55,7 @@ func (lp *logsProcessor) processLogs(blockNonce uint64, logs map[string]data.Log
 
 	supplies := make(map[string]*SupplyESDT)
 	for _, logHandler := range logs {
-		if check.IfNil(logHandler) {
+		if check.IfNil(logHandler.LogHandler) {
 			continue
 		}
 

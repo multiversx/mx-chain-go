@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -34,7 +35,7 @@ type TransactionCoordinatorMock struct {
 }
 
 // GetAllCurrentLogs -
-func (tcm *TransactionCoordinatorMock) GetAllCurrentLogs() map[string]data.LogHandler {
+func (tcm *TransactionCoordinatorMock) GetAllCurrentLogs() []indexer.LogData {
 	return nil
 }
 

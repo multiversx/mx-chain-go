@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -36,33 +36,38 @@ func TestProcessLogsSaveSupply(t *testing.T) {
 	t.Parallel()
 
 	token := []byte("nft-0001")
-	logs := map[string]data.LogHandler{
-		"txLog": &transaction.Log{
-			Events: []*transaction.Event{
-				{
-					Identifier: []byte("something"),
-				},
-				{
-					Identifier: []byte(core.BuiltInFunctionESDTNFTCreate),
-					Topics: [][]byte{
-						token, big.NewInt(2).Bytes(), big.NewInt(10).Bytes(),
+	logs := []indexer.LogData{
+		{
+			TxHash: "txLog",
+			LogHandler: &transaction.Log{
+				Events: []*transaction.Event{
+					{
+						Identifier: []byte("something"),
 					},
-				},
-				{
-					Identifier: []byte(core.BuiltInFunctionESDTNFTAddQuantity),
-					Topics: [][]byte{
-						token, big.NewInt(2).Bytes(), big.NewInt(50).Bytes(),
+					{
+						Identifier: []byte(core.BuiltInFunctionESDTNFTCreate),
+						Topics: [][]byte{
+							token, big.NewInt(2).Bytes(), big.NewInt(10).Bytes(),
+						},
 					},
-				},
-				{
-					Identifier: []byte(core.BuiltInFunctionESDTNFTBurn),
-					Topics: [][]byte{
-						token, big.NewInt(2).Bytes(), big.NewInt(30).Bytes(),
+					{
+						Identifier: []byte(core.BuiltInFunctionESDTNFTAddQuantity),
+						Topics: [][]byte{
+							token, big.NewInt(2).Bytes(), big.NewInt(50).Bytes(),
+						},
+					},
+					{
+						Identifier: []byte(core.BuiltInFunctionESDTNFTBurn),
+						Topics: [][]byte{
+							token, big.NewInt(2).Bytes(), big.NewInt(30).Bytes(),
+						},
 					},
 				},
 			},
 		},
-		"log": nil,
+		{
+			TxHash: "log",
+		},
 	}
 
 	marshalizer := testscommon.MarshalizerMock{}

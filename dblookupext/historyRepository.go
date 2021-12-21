@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/container"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
@@ -128,7 +129,7 @@ func (hr *historyRepository) RecordBlock(
 	blockBody data.BodyHandler,
 	scrResultsFromPool map[string]data.TransactionHandler,
 	receiptsFromPool map[string]data.TransactionHandler,
-	logs map[string]data.LogHandler,
+	logs []indexer.LogData,
 ) error {
 	hr.recordBlockMutex.Lock()
 	defer hr.recordBlockMutex.Unlock()

@@ -2,6 +2,7 @@ package mock
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -39,6 +40,6 @@ func (txls *TxLogsProcessorStub) IsInterfaceNil() bool {
 }
 
 // GetAllCurrentLogs -
-func (txls *TxLogsProcessorStub) GetAllCurrentLogs() map[string]data.LogHandler {
+func (txls *TxLogsProcessorStub) GetAllCurrentLogs() []indexer.LogData {
 	return nil
 }

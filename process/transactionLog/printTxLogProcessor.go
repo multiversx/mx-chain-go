@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -22,8 +23,8 @@ func (tlp *printTxLogProcessor) GetLog(_ []byte) (data.LogHandler, error) {
 }
 
 // GetLogFromCache -
-func (tlp *printTxLogProcessor) GetLogFromCache(_ []byte) (data.LogHandler, bool) {
-	return nil, false
+func (tlp *printTxLogProcessor) GetLogFromCache(_ []byte) (indexer.LogData, bool) {
+	return indexer.LogData{}, false
 }
 
 // EnableLogToBeSavedInCache -
@@ -35,8 +36,8 @@ func (tlp *printTxLogProcessor) Clean() {
 }
 
 // GetAllCurrentLogs -
-func (tlp *printTxLogProcessor) GetAllCurrentLogs() map[string]data.LogHandler {
-	return map[string]data.LogHandler{}
+func (tlp *printTxLogProcessor) GetAllCurrentLogs() []indexer.LogData {
+	return []indexer.LogData{}
 }
 
 // SaveLog -

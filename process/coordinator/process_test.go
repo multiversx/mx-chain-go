@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
@@ -416,8 +417,8 @@ func TestTransactionCoordinator_GetAllCurrentLogs(t *testing.T) {
 
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
 	argsTransactionCoordinator.TransactionsLogProcessor = &mock.TxLogsProcessorStub{
-		GetAllCurrentLogsCalled: func() map[string]data.LogHandler {
-			return map[string]data.LogHandler{}
+		GetAllCurrentLogsCalled: func() []indexer.LogData {
+			return []indexer.LogData{}
 		},
 	}
 

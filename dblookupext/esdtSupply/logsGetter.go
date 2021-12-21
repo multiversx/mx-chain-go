@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -25,13 +26,13 @@ func newLogsGetter(
 	}
 }
 
-func (lg *logsGetter) getLogsBasedOnBody(blockBody data.BodyHandler) (map[string]data.LogHandler, error) {
+func (lg *logsGetter) getLogsBasedOnBody(blockBody data.BodyHandler) ([]indexer.LogData, error) {
 	body, ok := blockBody.(*block.Body)
 	if !ok {
 		return nil, errCannotCastToBlockBody
 	}
 
-	logsDB := make(map[string]data.LogHandler)
+	logsDB := make([]indexer.LogData, 0)
 	for _, mb := range body.MiniBlocks {
 		shouldIgnore := mb.Type != block.TxBlock && mb.Type != block.SmartContractResultBlock
 		if shouldIgnore {
@@ -49,8 +50,8 @@ func (lg *logsGetter) getLogsBasedOnBody(blockBody data.BodyHandler) (map[string
 	return logsDB, nil
 }
 
-func (lg *logsGetter) getLogsBasedOnMB(mb *block.MiniBlock) (map[string]data.LogHandler, error) {
-	dbLogs := make(map[string]data.LogHandler)
+func (lg *logsGetter) getLogsBasedOnMB(mb *block.MiniBlock) ([]indexer.LogData, error) {
+	dbLogs := make([]indexer.LogData, 0)
 	for _, txHash := range mb.TxHashes {
 		txLog, ok, err := lg.getTxLog(txHash)
 		if err != nil {
@@ -61,7 +62,10 @@ func (lg *logsGetter) getLogsBasedOnMB(mb *block.MiniBlock) (map[string]data.Log
 			continue
 		}
 
-		dbLogs[string(txHash)] = txLog
+		dbLogs = append(dbLogs, indexer.LogData{
+			LogHandler: txLog,
+			TxHash: string(txHash),
+		})
 	}
 
 	return dbLogs, nil
@@ -87,16 +91,21 @@ func (lg *logsGetter) getTxLog(txHash []byte) (data.LogHandler, bool, error) {
 	return logFromDB, true, nil
 }
 
-func mergeLogsMap(m1, m2 map[string]data.LogHandler) map[string]data.LogHandler {
-	finalMap := make(map[string]data.LogHandler, len(m1)+len(m2))
+func mergeLogsMap(m1, m2 []indexer.LogData) []indexer.LogData {
+	logsMap := make(map[string]indexer.LogData, len(m1)+len(m2))
 
-	for key, value := range m1 {
-		finalMap[key] = value
+	for _, value := range m1 {
+		logsMap[value.TxHash] = value
 	}
 
-	for key, value := range m2 {
-		finalMap[key] = value
+	for _, value := range m2 {
+		logsMap[value.TxHash] = value
 	}
 
-	return finalMap
+	finalSlice := make([]indexer.LogData, 0)
+	for _, logData := range logsMap {
+		finalSlice = append(finalSlice, logData)
+	}
+
+	return finalSlice
 }

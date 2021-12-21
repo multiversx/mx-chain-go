@@ -2,6 +2,7 @@ package dblookupext
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/dblookupext/esdtSupply"
 )
 
@@ -18,7 +19,7 @@ type HistoryRepository interface {
 		blockBody data.BodyHandler,
 		scrResultsFromPool map[string]data.TransactionHandler,
 		receiptsFromPool map[string]data.TransactionHandler,
-		logs map[string]data.LogHandler,
+		logs []indexer.LogData,
 	) error
 
 	OnNotarizedBlocks(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)
@@ -42,7 +43,7 @@ type BlockTracker interface {
 
 // SuppliesHandler defines the interface of a supplies processor
 type SuppliesHandler interface {
-	ProcessLogs(blockNonce uint64, logs map[string]data.LogHandler) error
+	ProcessLogs(blockNonce uint64, logs []indexer.LogData) error
 	RevertChanges(header data.HeaderHandler, body data.BodyHandler) error
 	GetESDTSupply(token string) (*esdtSupply.SupplyESDT, error)
 	IsInterfaceNil() bool
