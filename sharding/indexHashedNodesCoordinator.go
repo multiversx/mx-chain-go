@@ -7,7 +7,6 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	atomicFlags "github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -62,11 +61,6 @@ type indexHashedNodesCoordinator struct {
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
 func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashedNodesCoordinator, error) {
-	err := checkArguments(arguments)
-	if err != nil {
-		return nil, err
-	}
-
 	argumentsNodesCoordinatorLite := nodesCoordinator.ArgNodesCoordinatorLite{
 		ShardConsensusGroupSize:    arguments.ShardConsensusGroupSize,
 		MetaConsensusGroupSize:     arguments.MetaConsensusGroupSize,
@@ -86,6 +80,11 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 	}
 
 	ihgsLite, err := nodesCoordinator.NewIndexHashedNodesCoordinatorLite(argumentsNodesCoordinatorLite)
+	if err != nil {
+		return nil, err
+	}
+
+	err = checkArguments(arguments)
 	if err != nil {
 		return nil, err
 	}
@@ -119,41 +118,17 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 }
 
 func checkArguments(arguments ArgNodesCoordinator) error {
-	if arguments.ShardConsensusGroupSize < 1 || arguments.MetaConsensusGroupSize < 1 {
-		return ErrInvalidConsensusGroupSize
-	}
-	if arguments.NbShards < 1 {
-		return ErrInvalidNumberOfShards
-	}
-	if arguments.ShardIDAsObserver >= arguments.NbShards && arguments.ShardIDAsObserver != core.MetachainShardId {
-		return ErrInvalidShardId
-	}
-	if check.IfNil(arguments.Hasher) {
-		return ErrNilHasher
-	}
-	if len(arguments.SelfPublicKey) == 0 {
-		return ErrNilPubKey
-	}
 	if check.IfNil(arguments.Shuffler) {
 		return ErrNilShuffler
 	}
 	if check.IfNil(arguments.BootStorer) {
 		return ErrNilBootStorer
 	}
-	if check.IfNilReflect(arguments.ConsensusGroupCache) {
-		return ErrNilCacher
-	}
 	if check.IfNil(arguments.Marshalizer) {
 		return ErrNilMarshalizer
 	}
 	if check.IfNil(arguments.ShuffledOutHandler) {
 		return ErrNilShuffledOutHandler
-	}
-	if check.IfNil(arguments.NodeTypeProvider) {
-		return ErrNilNodeTypeProvider
-	}
-	if nil == arguments.ChanStopNode {
-		return ErrNilNodeStopChannel
 	}
 
 	return nil

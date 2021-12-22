@@ -127,7 +127,6 @@ func NewIndexHashedNodesCoordinatorLite(arguments ArgNodesCoordinatorLite) (*Ind
 	return ihgs, nil
 }
 
-// TODO: check if list of arguments is still accurate
 func checkArguments(arguments ArgNodesCoordinatorLite) error {
 	if arguments.ShardConsensusGroupSize < 1 || arguments.MetaConsensusGroupSize < 1 {
 		return ErrInvalidConsensusGroupSize
@@ -380,7 +379,6 @@ func (ihgs *IndexHashedNodesCoordinatorLite) GetAllEligibleValidatorsPublicKeys(
 }
 
 // GetAllWaitingValidatorsPublicKeys will return all validators public keys for all shards
-// no need
 func (ihgs *IndexHashedNodesCoordinatorLite) GetAllWaitingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error) {
 	validatorsPubKeys := make(map[uint32][][]byte)
 
@@ -407,7 +405,6 @@ func (ihgs *IndexHashedNodesCoordinatorLite) GetAllWaitingValidatorsPublicKeys(e
 }
 
 // GetAllLeavingValidatorsPublicKeys will return all leaving validators public keys for all shards
-// no need
 func (ihgs *IndexHashedNodesCoordinatorLite) GetAllLeavingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error) {
 	validatorsPubKeys := make(map[uint32][][]byte)
 
