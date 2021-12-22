@@ -29,7 +29,10 @@ func (stsm *snapshotTrieStorageManager) Get(key []byte) ([]byte, error) {
 		return nil, ErrContextClosing
 	}
 
-	val, _ := stsm.mainSnapshotStorer.GetFromOldEpochsWithoutCache(key)
+	val, err := stsm.mainSnapshotStorer.GetFromOldEpochsWithoutCache(key)
+	if checkIfClosingError(err) {
+		return nil, err
+	}
 	if len(val) != 0 {
 		return val, nil
 	}
