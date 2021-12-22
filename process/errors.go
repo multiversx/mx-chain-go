@@ -1027,3 +1027,6 @@ var ErrInvalidRoundActivationConfig = errors.New("invalid round config struct; s
 
 // ErrNilRoundNotifier signals a nil round notifier has been provided
 var ErrNilRoundNotifier = errors.New("nil round notifier has been provided")
+
+// ErrNoTxToProcess signals that no transaction were sent for processing
+var ErrNoTxToProcess = errors.New("no transaction to process")

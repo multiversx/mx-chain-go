@@ -198,6 +198,10 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 	}, nil
 }
 
+//--------------
+//TODO: Think if it would make sense here to create an array of interfaces
+// and on CheckSubcomp && Close -> call them there
+
 // Create will create and return a struct containing process components
 func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	currentEpochProvider, err := epochProviders.CreateCurrentEpochProvider(
@@ -1444,6 +1448,9 @@ func (pc *processComponents) Close() error {
 	}
 	if !check.IfNil(pc.vmFactoryForTxSimulator) {
 		log.LogIfError(pc.vmFactoryForTxSimulator.Close())
+	}
+	if !check.IfNil(pc.txsSender) {
+		log.LogIfError(pc.txsSender.Close())
 	}
 
 	return nil

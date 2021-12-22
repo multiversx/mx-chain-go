@@ -15,7 +15,6 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -23,6 +22,9 @@ import (
 
 var log = logger.GetOrCreate("txsSender")
 var numSecondsBetweenPrints = 20
+
+// SendTransactionsPipe is the pipe used for sending new transactions
+const SendTransactionsPipe = "send transactions pipe"
 
 type txsSender struct {
 	marshaller       marshal.Marshalizer
@@ -75,7 +77,7 @@ func NewTxsSenderWithAccumulator(args ArgsTxsSenderWithAccumulator) (process.Txs
 // SendBulkTransactions sends the provided transactions as a bulk, optimizing transfer between nodes
 func (ts *txsSender) SendBulkTransactions(txs []data.TransactionHandler) (uint64, error) {
 	if len(txs) == 0 {
-		return 0, node.ErrNoTxToProcess
+		return 0, process.ErrNoTxToProcess
 	}
 
 	ts.addTransactionsToSendPipe(txs)
@@ -178,7 +180,7 @@ func (ts *txsSender) sendBulkTransactionsFromShard(transactions [][]byte, sender
 				"size", len(bufferToSend),
 			)
 			err = ts.networkMessenger.BroadcastOnChannelBlocking(
-				node.SendTransactionsPipe,
+				SendTransactionsPipe,
 				identifier,
 				bufferToSend,
 			)

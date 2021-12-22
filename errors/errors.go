@@ -460,3 +460,6 @@ var ErrNilLocker = errors.New("nil locker")
 
 // ErrNilCurrentEpochProvider signals that a nil current epoch provider was provided
 var ErrNilCurrentEpochProvider = errors.New("nil current epoch provider")
+
+// ErrNilTxsSender signals that a nil transactions sender has been provided
+var ErrNilTxsSender = errors.New("nil transactions sender has been provided")

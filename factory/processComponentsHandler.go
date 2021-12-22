@@ -148,6 +148,9 @@ func (m *managedProcessComponents) CheckSubcomponents() error {
 	if check.IfNil(m.processComponents.currentEpochProvider) {
 		return errors.ErrNilCurrentEpochProvider
 	}
+	if check.IfNil(m.processComponents.txsSender) {
+		return errors.ErrNilTxsSender
+	}
 
 	return nil
 }
