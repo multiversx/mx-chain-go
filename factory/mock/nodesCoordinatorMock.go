@@ -235,6 +235,11 @@ func (ncm *NodesCoordinatorMock) ValidatorsWeights(validators []nodesCoordinator
 	return weights, nil
 }
 
+// SetNodesConfig -
+func (ncm *NodesCoordinatorMock) SetNodesConfig(nodesConfig map[uint32]*nodesCoordinator.EpochNodesConfig) {
+	panic("not implemented")
+}
+
 // IsInterfaceNil -
 func (ncm *NodesCoordinatorMock) IsInterfaceNil() bool {
 	return ncm == nil

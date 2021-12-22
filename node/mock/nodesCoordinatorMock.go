@@ -160,6 +160,11 @@ func (ncm *NodesCoordinatorMock) GetOwnPublicKey() []byte {
 	panic("implement me")
 }
 
+// SetNodesConfig -
+func (ncm *NodesCoordinatorMock) SetNodesConfig(nodesConfig map[uint32]*nodesCoordinator.EpochNodesConfig) {
+	panic("not implemented")
+}
+
 // ValidatorsWeights -
 func (ncm *NodesCoordinatorMock) ValidatorsWeights(validators []nodesCoordinator.Validator) ([]uint32, error) {
 	weights := make([]uint32, len(validators))
