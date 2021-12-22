@@ -13,7 +13,12 @@ type HistoryRepositoryFactory interface {
 
 // HistoryRepository provides methods needed for the history data processing
 type HistoryRepository interface {
-	RecordBlock(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler, scrResultsFromPool map[string]data.TransactionHandler, receiptsFromPool map[string]data.TransactionHandler, logs []*data.LogData, ) error
+	RecordBlock(blockHeaderHash []byte,
+		blockHeader data.HeaderHandler,
+		blockBody data.BodyHandler,
+		scrResultsFromPool map[string]data.TransactionHandler,
+		receiptsFromPool map[string]data.TransactionHandler,
+		logs []*data.LogData) error
 	OnNotarizedBlocks(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)
 	GetMiniblockMetadataByTxHash(hash []byte) (*MiniblockMetadata, error)
 	GetEpochByHash(hash []byte) (uint32, error)
