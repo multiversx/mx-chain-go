@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/container"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
@@ -123,7 +122,7 @@ func NewHistoryRepository(arguments HistoryRepositoryArguments) (*historyReposit
 
 // RecordBlock records a block
 // This function is not called on a goroutine, but synchronously instead, right after committing a block
-func (hr *historyRepository) RecordBlock(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler, scrResultsFromPool map[string]data.TransactionHandler, receiptsFromPool map[string]data.TransactionHandler, logs []*indexer.LogData, ) error {
+func (hr *historyRepository) RecordBlock(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler, scrResultsFromPool map[string]data.TransactionHandler, receiptsFromPool map[string]data.TransactionHandler, logs []*data.LogData, ) error {
 	hr.recordBlockMutex.Lock()
 	defer hr.recordBlockMutex.Unlock()
 

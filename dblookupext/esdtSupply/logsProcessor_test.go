@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -17,7 +17,7 @@ func TestProcessLogsSaveSupplyNothingInStorage(t *testing.T) {
 	t.Parallel()
 
 	token := []byte("nft-0001")
-	logs := map[string]*indexer.LogData{
+	logs := map[string]*data.LogData{
 		"txLog": {
 			LogHandler: &transaction.Log{
 				Events: []*transaction.Event{
@@ -80,7 +80,7 @@ func TestTestProcessLogsSaveSupplyExistsInStorage(t *testing.T) {
 
 	token := []byte("esdt-miiu")
 
-	logs := map[string]*indexer.LogData{
+	logs := map[string]*data.LogData{
 		"txLog": {
 			LogHandler: &transaction.Log{
 				Events: []*transaction.Event{

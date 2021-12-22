@@ -2,7 +2,6 @@ package mock
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -10,7 +9,7 @@ import (
 type TxLogsProcessorStub struct {
 	GetLogCalled            func(txHash []byte) (data.LogHandler, error)
 	SaveLogCalled           func(txHash []byte, tx data.TransactionHandler, vmLogs []*vmcommon.LogEntry) error
-	GetAllCurrentLogsCalled func() []*indexer.LogData
+	GetAllCurrentLogsCalled func() []*data.LogData
 }
 
 // GetLog -
@@ -36,7 +35,7 @@ func (txls *TxLogsProcessorStub) SaveLog(txHash []byte, tx data.TransactionHandl
 }
 
 // GetAllCurrentLogs -
-func (txls *TxLogsProcessorStub) GetAllCurrentLogs() []*indexer.LogData {
+func (txls *TxLogsProcessorStub) GetAllCurrentLogs() []*data.LogData {
 	if txls.GetAllCurrentLogsCalled != nil {
 		return txls.GetAllCurrentLogsCalled()
 	}

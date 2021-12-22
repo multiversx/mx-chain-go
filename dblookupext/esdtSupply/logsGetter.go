@@ -5,7 +5,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -26,13 +25,13 @@ func newLogsGetter(
 	}
 }
 
-func (lg *logsGetter) getLogsBasedOnBody(blockBody data.BodyHandler) (map[string]*indexer.LogData, error) {
+func (lg *logsGetter) getLogsBasedOnBody(blockBody data.BodyHandler) (map[string]*data.LogData, error) {
 	body, ok := blockBody.(*block.Body)
 	if !ok {
 		return nil, errCannotCastToBlockBody
 	}
 
-	logsDB := make(map[string]*indexer.LogData)
+	logsDB := make(map[string]*data.LogData)
 	for _, mb := range body.MiniBlocks {
 		shouldIgnore := mb.Type != block.TxBlock && mb.Type != block.SmartContractResultBlock
 		if shouldIgnore {
@@ -52,8 +51,8 @@ func (lg *logsGetter) getLogsBasedOnBody(blockBody data.BodyHandler) (map[string
 	return logsDB, nil
 }
 
-func (lg *logsGetter) getLogsBasedOnMB(mb *block.MiniBlock) ([]*indexer.LogData, error) {
-	dbLogs := make([]*indexer.LogData, 0)
+func (lg *logsGetter) getLogsBasedOnMB(mb *block.MiniBlock) ([]*data.LogData, error) {
+	dbLogs := make([]*data.LogData, 0)
 	for _, txHash := range mb.TxHashes {
 		txLog, ok, err := lg.getTxLog(txHash)
 		if err != nil {
@@ -64,7 +63,7 @@ func (lg *logsGetter) getLogsBasedOnMB(mb *block.MiniBlock) ([]*indexer.LogData,
 			continue
 		}
 
-		dbLogs = append(dbLogs, &indexer.LogData{
+		dbLogs = append(dbLogs, &data.LogData{
 			LogHandler: txLog,
 			TxHash:     string(txHash),
 		})

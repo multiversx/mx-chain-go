@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -44,7 +43,7 @@ func newLogsProcessor(
 	}
 }
 
-func (lp *logsProcessor) processLogs(blockNonce uint64, logs map[string]*indexer.LogData, isRevert bool) error {
+func (lp *logsProcessor) processLogs(blockNonce uint64, logs map[string]*data.LogData, isRevert bool) error {
 	shouldProcess, err := lp.nonceProc.shouldProcessLog(blockNonce, isRevert)
 	if err != nil {
 		return err

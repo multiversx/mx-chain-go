@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go-logger"
@@ -933,7 +932,7 @@ func (tc *transactionCoordinator) GetAllCurrentUsedTxs(blockType block.Type) map
 }
 
 // GetAllCurrentLogs return the cached logs data from current round
-func (tc *transactionCoordinator) GetAllCurrentLogs() []*indexer.LogData {
+func (tc *transactionCoordinator) GetAllCurrentLogs() []*data.LogData {
 	return tc.transactionsLogProcessor.GetAllCurrentLogs()
 }
 

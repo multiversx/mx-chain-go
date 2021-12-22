@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -48,11 +47,11 @@ func NewSuppliesProcessor(
 }
 
 // ProcessLogs will process the provided logs
-func (sp *suppliesProcessor) ProcessLogs(blockNonce uint64, logs []*indexer.LogData) error {
+func (sp *suppliesProcessor) ProcessLogs(blockNonce uint64, logs []*data.LogData) error {
 	sp.mutex.Lock()
 	defer sp.mutex.Unlock()
 
-	logsMap := make(map[string]*indexer.LogData)
+	logsMap := make(map[string]*data.LogData)
 	for _, logData := range logs {
 		logsMap[logData.TxHash] = logData
 	}

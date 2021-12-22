@@ -1,7 +1,7 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -12,8 +12,8 @@ type TxLogProcessorMock struct {
 }
 
 // GetLogFromCache -
-func (t *TxLogProcessorMock) GetLogFromCache(_ []byte) (*indexer.LogData, bool) {
-	return &indexer.LogData{}, false
+func (t *TxLogProcessorMock) GetLogFromCache(_ []byte) (*data.LogData, bool) {
+	return &data.LogData{}, false
 }
 
 // EnableLogToBeSavedInCache -

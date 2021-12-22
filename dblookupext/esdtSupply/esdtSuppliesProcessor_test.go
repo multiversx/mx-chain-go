@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -36,7 +36,7 @@ func TestProcessLogsSaveSupply(t *testing.T) {
 	t.Parallel()
 
 	token := []byte("nft-0001")
-	logs := []*indexer.LogData{
+	logs := []*data.LogData{
 		{
 			TxHash: "txLog",
 			LogHandler: &transaction.Log{

@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -32,6 +31,6 @@ func (tlpm *TxLogProcessorMock) IsInterfaceNil() bool {
 }
 
 // GetAllCurrentLogs -
-func (tlpm *TxLogProcessorMock) GetAllCurrentLogs() []*indexer.LogData {
+func (tlpm *TxLogProcessorMock) GetAllCurrentLogs() []*data.LogData {
 	return nil
 }
