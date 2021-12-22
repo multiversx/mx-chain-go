@@ -403,7 +403,7 @@ func (t *trigger) changeEpochFinalityAttestingRoundIfNeeded(
 		metaHdrWithFinalityAttestingRound, err := t.getHeaderWithNonceAndHash(epochStartMetaHdr.Nonce+t.finality, metaHdr.PrevHash)
 		if err != nil {
 			log.Debug("searched metaHeader was not found")
-			t.requestedFinalityAttestingBlock.Set()
+			_ = t.requestedFinalityAttestingBlock.SetReturningPrevious()
 			return
 		}
 
@@ -428,7 +428,7 @@ func (t *trigger) changeEpochFinalityAttestingRoundIfNeeded(
 		}
 
 		t.epochFinalityAttestingRound = metaHdr.GetRound()
-		t.requestedFinalityAttestingBlock.Unset()
+		t.requestedFinalityAttestingBlock.Reset()
 		return
 	}
 

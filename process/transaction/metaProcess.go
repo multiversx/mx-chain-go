@@ -76,7 +76,7 @@ func NewMetaTxProcessor(args ArgsNewMetaTxProcessor) (*metaTxProcessor, error) {
 		flagPenalizedTooMuchGas: atomic.Flag{},
 	}
 	// backwards compatibility
-	baseTxProcess.flagPenalizedTooMuchGas.Unset()
+	baseTxProcess.flagPenalizedTooMuchGas.Reset()
 
 	txProc := &metaTxProcessor{
 		baseTxProcessor:            baseTxProcess,
