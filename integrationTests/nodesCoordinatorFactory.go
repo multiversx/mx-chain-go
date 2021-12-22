@@ -26,7 +26,7 @@ type ArgIndexHashedNodesCoordinatorFactory struct {
 	cp                      *CryptoParams
 	epochStartSubscriber    nodesCoordinator.EpochStartEventNotifier
 	hasher                  hashing.Hasher
-	consensusGroupCache     sharding.Cacher
+	consensusGroupCache     nodesCoordinator.Cacher
 	bootStorer              storage.Storer
 }
 
