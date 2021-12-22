@@ -302,7 +302,7 @@ func (tsm *trieStorageManager) Get(key []byte) ([]byte, error) {
 	}
 
 	val, err := tsm.mainStorer.Get(key)
-	if checkIfClosingError(err) {
+	if isClosingError(err) {
 		return nil, err
 	}
 	if len(val) != 0 {
@@ -314,7 +314,7 @@ func (tsm *trieStorageManager) Get(key []byte) ([]byte, error) {
 
 func (tsm *trieStorageManager) getFromOtherStorers(key []byte) ([]byte, error) {
 	val, err := tsm.checkpointsStorer.Get(key)
-	if checkIfClosingError(err) {
+	if isClosingError(err) {
 		return nil, err
 	}
 	if len(val) != 0 {
@@ -326,7 +326,7 @@ func (tsm *trieStorageManager) getFromOtherStorers(key []byte) ([]byte, error) {
 	}
 
 	val, err = tsm.db.Get(key)
-	if checkIfClosingError(err) {
+	if isClosingError(err) {
 		return nil, err
 	}
 	if len(val) != 0 {
@@ -343,7 +343,7 @@ func (tsm *trieStorageManager) getFromOtherStorers(key []byte) ([]byte, error) {
 	return nil, ErrKeyNotFound
 }
 
-func checkIfClosingError(err error) bool {
+func isClosingError(err error) bool {
 	if err == ErrContextClosing || err == storage.ErrSerialDBIsClosed {
 		return true
 	}
@@ -496,7 +496,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 	}
 
 	err = newRoot.commitSnapshot(stsm, snapshotEntry.leavesChan, ctx, snapshotEntry.stats)
-	if checkIfClosingError(err) {
+	if isClosingError(err) {
 		log.Debug("context closing while in commitSnapshot operation")
 		return
 	}

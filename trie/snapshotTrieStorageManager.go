@@ -30,7 +30,7 @@ func (stsm *snapshotTrieStorageManager) Get(key []byte) ([]byte, error) {
 	}
 
 	val, err := stsm.mainSnapshotStorer.GetFromOldEpochsWithoutCache(key)
-	if checkIfClosingError(err) {
+	if isClosingError(err) {
 		return nil, err
 	}
 	if len(val) != 0 {
