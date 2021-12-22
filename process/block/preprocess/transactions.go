@@ -1372,7 +1372,8 @@ func (txs *transactions) sortTransactionsBySenderAndNonceWithFrontRunningProtect
 	xoredAddresses := make(map[string][]byte)
 
 	for _, tx := range transactions {
-		xoredAddresses[string(tx.Tx.GetSndAddr())] = txs.hasher.Compute(string(xorBytes(tx.Tx.GetSndAddr(), randSeed)))
+		xoredBytes := xorBytes(tx.Tx.GetSndAddr(), randSeed)
+		xoredAddresses[string(tx.Tx.GetSndAddr())] = txs.hasher.Compute(string(xoredBytes))
 	}
 
 	sorter := func(i, j int) bool {
