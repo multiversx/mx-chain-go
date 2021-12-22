@@ -128,7 +128,13 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte, shardId uint32) error
 
 	log.Debug("main trie synced, starting to sync data tries", "num data tries", len(u.dataTries))
 
-	return u.syncAccountDataTries(mainTrie, tss, ctx)
+	accAdapterIdentifier := genesis.CreateTrieIdentifier(shardId, genesis.UserAccount)
+	_, err = u.trieExporter.ExportMainTrie(accAdapterIdentifier, mainTrie)
+	if err != nil {
+		return err
+	}
+
+	return u.syncAccountDataTries(mainTrie, tss, ctx, shardId)
 }
 
 func (u *userAccountsSyncer) syncDataTrie(
@@ -218,6 +224,7 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 	mainTrie common.Trie,
 	ssh common.SizeSyncStatisticsHandler,
 	ctx context.Context,
+	shardID uint32,
 ) error {
 	defer u.printDataTrieStatistics()
 
@@ -262,7 +269,7 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 			defer u.throttler.EndProcessing()
 
 			log.Trace("sync data trie", "roothash", trieRootHash)
-			newErr := u.syncDataTrie(trieRootHash, ssh, address, ctx)
+			newErr := u.syncDataTrie(trieRootHash, ssh, address, ctx, shardID)
 			if newErr != nil {
 				errMutex.Lock()
 				errFound = newErr

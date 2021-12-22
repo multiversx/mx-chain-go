@@ -478,7 +478,7 @@ func TestSyncValidatorAccountsState_NilRequestHandlerErr(t *testing.T) {
 	epochStartProvider.trieStorageManagers = trieStorageManagers
 
 	rootHash := []byte("rootHash")
-	err = epochStartProvider.syncPeerAccountsState(rootHash)
+	err = epochStartProvider.syncValidatorAccountsState(rootHash)
 	assert.Equal(t, state.ErrNilRequestHandler, err)
 }
 

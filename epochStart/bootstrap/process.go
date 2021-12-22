@@ -733,7 +733,7 @@ func (e *epochStartBootstrap) requestAndProcessForMeta() error {
 	e.trieStorageManagers = trieStorageManagers
 
 	log.Debug("start in epoch bootstrap: started syncValidatorAccountsState")
-	err = e.syncPeerAccountsState(e.epochStartMeta.ValidatorStatsRootHash)
+	err = e.syncValidatorAccountsState(e.epochStartMeta.ValidatorStatsRootHash)
 	if err != nil {
 		return err
 	}
@@ -954,6 +954,11 @@ func (e *epochStartBootstrap) createStorageService(
 }
 
 func (e *epochStartBootstrap) syncValidatorAccountsState(rootHash []byte) error {
+	inactiveTrieExporter, err := trieExport.NewInactiveTrieExporter(e.coreComponentsHolder.InternalMarshalizer())
+	if err != nil {
+		return err
+	}
+
 	e.mutTrieStorageManagers.RLock()
 	peerTrieStorageManager := e.trieStorageManagers[factory.PeerAccountTrie]
 	e.mutTrieStorageManagers.RUnlock()
@@ -962,7 +967,7 @@ func (e *epochStartBootstrap) syncValidatorAccountsState(rootHash []byte) error 
 		ArgsNewBaseAccountsSyncer: syncer.ArgsNewBaseAccountsSyncer{
 			Hasher:                    e.coreComponentsHolder.Hasher(),
 			Marshalizer:               e.coreComponentsHolder.InternalMarshalizer(),
-			TrieStorageManager:        e.trieStorageManagers[factory.PeerAccountTrie],
+			TrieStorageManager:        peerTrieStorageManager,
 			RequestHandler:            e.requestHandler,
 			Timeout:                   common.TimeoutGettingTrieNodes,
 			Cacher:                    e.dataPool.TrieNodes(),

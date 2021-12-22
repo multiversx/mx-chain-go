@@ -22,9 +22,6 @@ func (e *ErrMissingTrie) Error() string {
 	return "trie was not found for hash " + hex.EncodeToString(e.rootHash)
 }
 
-// ErrNilAccountsAdapter defines the error when trying to revert on nil accounts
-var ErrNilAccountsAdapter = errors.New("nil AccountsAdapter")
-
 // ErrNilAddress defines the error when trying to work with a nil address
 var ErrNilAddress = errors.New("nil address")
 
@@ -64,9 +61,6 @@ var ErrNilTrackableDataTrie = errors.New("nil trackable data trie")
 // ErrAccNotFound signals that account was not found in state trie
 var ErrAccNotFound = errors.New("account was not found")
 
-//ErrBech32ConvertError signals that conversion the 5bit alphabet to 8bit failed
-var ErrBech32ConvertError = errors.New("can't convert bech32 string")
-
 // ErrNilBLSPublicKey signals that the provided BLS public key is nil
 var ErrNilBLSPublicKey = errors.New("bls public key is nil")
 
@@ -94,12 +88,6 @@ var ErrNilCacher = errors.New("nil cacher")
 
 // ErrSnapshotValueOutOfBounds signals that the snapshot value is out of bounds
 var ErrSnapshotValueOutOfBounds = errors.New("snapshot value out of bounds")
-
-// ErrWrongSize signals that a wrong size occurred
-var ErrWrongSize = errors.New("wrong size")
-
-// ErrInvalidErdAddress signals that the provided address is not an ERD address
-var ErrInvalidErdAddress = errors.New("invalid ERD address")
 
 // ErrInvalidPubkeyConverterType signals that the provided pubkey converter type is invalid
 var ErrInvalidPubkeyConverterType = errors.New("invalid pubkey converter type")
