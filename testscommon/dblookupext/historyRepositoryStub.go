@@ -11,7 +11,7 @@ import (
 
 // HistoryRepositoryStub -
 type HistoryRepositoryStub struct {
-	RecordBlockCalled                  func(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler, scrsPool map[string]data.TransactionHandler, receipts map[string]data.TransactionHandler, logs []indexer.LogData) error
+	RecordBlockCalled                  func(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler, scrsPool map[string]data.TransactionHandler, receipts map[string]data.TransactionHandler, logs []*indexer.LogData) error
 	OnNotarizedBlocksCalled            func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)
 	GetMiniblockMetadataByTxHashCalled func(hash []byte) (*dblookupext.MiniblockMetadata, error)
 	GetEpochByHashCalled               func(hash []byte) (uint32, error)
@@ -27,7 +27,7 @@ func (hp *HistoryRepositoryStub) RecordBlock(
 	blockBody data.BodyHandler,
 	scrsPool map[string]data.TransactionHandler,
 	receipts map[string]data.TransactionHandler,
-	logs []indexer.LogData,
+	logs []*indexer.LogData,
 ) error {
 	if hp.RecordBlockCalled != nil {
 		return hp.RecordBlockCalled(blockHeaderHash, blockHeader, blockBody, scrsPool, receipts, logs)

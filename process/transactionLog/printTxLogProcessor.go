@@ -36,8 +36,8 @@ func (tlp *printTxLogProcessor) Clean() {
 }
 
 // GetAllCurrentLogs -
-func (tlp *printTxLogProcessor) GetAllCurrentLogs() []indexer.LogData {
-	return []indexer.LogData{}
+func (tlp *printTxLogProcessor) GetAllCurrentLogs() []*indexer.LogData {
+	return []*indexer.LogData{}
 }
 
 // SaveLog -

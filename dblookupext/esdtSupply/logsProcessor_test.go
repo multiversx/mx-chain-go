@@ -17,9 +17,8 @@ func TestProcessLogsSaveSupplyNothingInStorage(t *testing.T) {
 	t.Parallel()
 
 	token := []byte("nft-0001")
-	logs := []indexer.LogData{
-		{
-			TxHash: "txLog",
+	logs := map[string]*indexer.LogData{
+		"txLog": {
 			LogHandler: &transaction.Log{
 				Events: []*transaction.Event{
 					{
@@ -46,9 +45,7 @@ func TestProcessLogsSaveSupplyNothingInStorage(t *testing.T) {
 				},
 			},
 		},
-		{
-			TxHash: "log",
-		},
+		"log": nil,
 	}
 
 	marshalizer := testscommon.MarshalizerMock{}
@@ -83,9 +80,8 @@ func TestTestProcessLogsSaveSupplyExistsInStorage(t *testing.T) {
 
 	token := []byte("esdt-miiu")
 
-	logs := []indexer.LogData{
-		{
-			TxHash: "txLog",
+	logs := map[string]*indexer.LogData{
+		"txLog": {
 			LogHandler: &transaction.Log{
 				Events: []*transaction.Event{
 					{

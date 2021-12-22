@@ -44,7 +44,7 @@ func newLogsProcessor(
 	}
 }
 
-func (lp *logsProcessor) processLogs(blockNonce uint64, logs []indexer.LogData, isRevert bool) error {
+func (lp *logsProcessor) processLogs(blockNonce uint64, logs map[string]*indexer.LogData, isRevert bool) error {
 	shouldProcess, err := lp.nonceProc.shouldProcessLog(blockNonce, isRevert)
 	if err != nil {
 		return err
@@ -55,6 +55,9 @@ func (lp *logsProcessor) processLogs(blockNonce uint64, logs []indexer.LogData, 
 
 	supplies := make(map[string]*SupplyESDT)
 	for _, logHandler := range logs {
+		if logHandler == nil {
+			continue
+		}
 		if check.IfNil(logHandler.LogHandler) {
 			continue
 		}

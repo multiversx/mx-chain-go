@@ -417,8 +417,8 @@ func TestTransactionCoordinator_GetAllCurrentLogs(t *testing.T) {
 
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
 	argsTransactionCoordinator.TransactionsLogProcessor = &mock.TxLogsProcessorStub{
-		GetAllCurrentLogsCalled: func() []indexer.LogData {
-			return []indexer.LogData{}
+		GetAllCurrentLogsCalled: func() []*indexer.LogData {
+			return []*indexer.LogData{}
 		},
 	}
 

@@ -26,13 +26,13 @@ func newLogsGetter(
 	}
 }
 
-func (lg *logsGetter) getLogsBasedOnBody(blockBody data.BodyHandler) ([]indexer.LogData, error) {
+func (lg *logsGetter) getLogsBasedOnBody(blockBody data.BodyHandler) (map[string]*indexer.LogData, error) {
 	body, ok := blockBody.(*block.Body)
 	if !ok {
 		return nil, errCannotCastToBlockBody
 	}
 
-	logsDB := make([]indexer.LogData, 0)
+	logsDB := make(map[string]*indexer.LogData)
 	for _, mb := range body.MiniBlocks {
 		shouldIgnore := mb.Type != block.TxBlock && mb.Type != block.SmartContractResultBlock
 		if shouldIgnore {
@@ -44,14 +44,16 @@ func (lg *logsGetter) getLogsBasedOnBody(blockBody data.BodyHandler) ([]indexer.
 			return nil, err
 		}
 
-		logsDB = mergeLogsSlices(logsDB, dbLogsMb)
+		for _, logData := range dbLogsMb {
+			logsDB[logData.TxHash] = logData
+		}
 	}
 
 	return logsDB, nil
 }
 
-func (lg *logsGetter) getLogsBasedOnMB(mb *block.MiniBlock) ([]indexer.LogData, error) {
-	dbLogs := make([]indexer.LogData, 0)
+func (lg *logsGetter) getLogsBasedOnMB(mb *block.MiniBlock) ([]*indexer.LogData, error) {
+	dbLogs := make([]*indexer.LogData, 0)
 	for _, txHash := range mb.TxHashes {
 		txLog, ok, err := lg.getTxLog(txHash)
 		if err != nil {
@@ -62,9 +64,9 @@ func (lg *logsGetter) getLogsBasedOnMB(mb *block.MiniBlock) ([]indexer.LogData, 
 			continue
 		}
 
-		dbLogs = append(dbLogs, indexer.LogData{
+		dbLogs = append(dbLogs, &indexer.LogData{
 			LogHandler: txLog,
-			TxHash: string(txHash),
+			TxHash:     string(txHash),
 		})
 	}
 
@@ -89,23 +91,4 @@ func (lg *logsGetter) getTxLog(txHash []byte) (data.LogHandler, bool, error) {
 	}
 
 	return logFromDB, true, nil
-}
-
-func mergeLogsSlices(m1, m2 []indexer.LogData) []indexer.LogData {
-	logsMap := make(map[string]indexer.LogData, len(m1)+len(m2))
-
-	for _, value := range m1 {
-		logsMap[value.TxHash] = value
-	}
-
-	for _, value := range m2 {
-		logsMap[value.TxHash] = value
-	}
-
-	finalSlice := make([]indexer.LogData, 0)
-	for _, logData := range logsMap {
-		finalSlice = append(finalSlice, logData)
-	}
-
-	return finalSlice
 }

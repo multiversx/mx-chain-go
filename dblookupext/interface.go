@@ -14,14 +14,7 @@ type HistoryRepositoryFactory interface {
 
 // HistoryRepository provides methods needed for the history data processing
 type HistoryRepository interface {
-	RecordBlock(blockHeaderHash []byte,
-		blockHeader data.HeaderHandler,
-		blockBody data.BodyHandler,
-		scrResultsFromPool map[string]data.TransactionHandler,
-		receiptsFromPool map[string]data.TransactionHandler,
-		logs []indexer.LogData,
-	) error
-
+	RecordBlock(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler, scrResultsFromPool map[string]data.TransactionHandler, receiptsFromPool map[string]data.TransactionHandler, logs []*indexer.LogData, ) error
 	OnNotarizedBlocks(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)
 	GetMiniblockMetadataByTxHash(hash []byte) (*MiniblockMetadata, error)
 	GetEpochByHash(hash []byte) (uint32, error)
@@ -43,7 +36,7 @@ type BlockTracker interface {
 
 // SuppliesHandler defines the interface of a supplies processor
 type SuppliesHandler interface {
-	ProcessLogs(blockNonce uint64, logs []indexer.LogData) error
+	ProcessLogs(blockNonce uint64, logs []*indexer.LogData) error
 	RevertChanges(header data.HeaderHandler, body data.BodyHandler) error
 	GetESDTSupply(token string) (*esdtSupply.SupplyESDT, error)
 	IsInterfaceNil() bool

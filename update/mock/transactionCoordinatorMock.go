@@ -35,7 +35,7 @@ type TransactionCoordinatorMock struct {
 }
 
 // GetAllCurrentLogs -
-func (tcm *TransactionCoordinatorMock) GetAllCurrentLogs() []indexer.LogData {
+func (tcm *TransactionCoordinatorMock) GetAllCurrentLogs() []*indexer.LogData {
 	return nil
 }
 

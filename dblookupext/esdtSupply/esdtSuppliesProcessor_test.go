@@ -36,7 +36,7 @@ func TestProcessLogsSaveSupply(t *testing.T) {
 	t.Parallel()
 
 	token := []byte("nft-0001")
-	logs := []indexer.LogData{
+	logs := []*indexer.LogData{
 		{
 			TxHash: "txLog",
 			LogHandler: &transaction.Log{

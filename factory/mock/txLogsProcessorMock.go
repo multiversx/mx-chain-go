@@ -12,8 +12,8 @@ type TxLogProcessorMock struct {
 }
 
 // GetLogFromCache -
-func (t *TxLogProcessorMock) GetLogFromCache(_ []byte) (indexer.LogData, bool) {
-	return indexer.LogData{}, false
+func (t *TxLogProcessorMock) GetLogFromCache(_ []byte) (*indexer.LogData, bool) {
+	return &indexer.LogData{}, false
 }
 
 // EnableLogToBeSavedInCache -
