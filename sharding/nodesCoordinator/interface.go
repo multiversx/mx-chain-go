@@ -15,7 +15,7 @@ type Validator interface {
 	Size() int
 }
 
-// NodesCoordinatorLite defines the behaviour of a struct able to do validator group selection
+// NodesCoordinatorLite defines the minimum behaviour of a struct able to do validator group selection
 type NodesCoordinatorLite interface {
 	NodesCoordinatorHelper
 	PublicKeysSelector

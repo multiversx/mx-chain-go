@@ -702,7 +702,7 @@ func BenchmarkIndexHashedNodesCoordinator_CopyMaps(b *testing.B) {
 	}
 }
 
-func runBenchmark(consensusGroupCache Cacher, consensusGroupSize int, nodesMap map[uint32][]Validator, b *testing.B) {
+func runBenchmark(consensusGroupCache nodesCoordinator.Cacher, consensusGroupSize int, nodesMap map[uint32][]Validator, b *testing.B) {
 	waitingMap := make(map[uint32][]Validator)
 	shufflerArgs := &NodesShufflerArgs{
 		NodesShard:           10,
@@ -750,7 +750,7 @@ func runBenchmark(consensusGroupCache Cacher, consensusGroupSize int, nodesMap m
 	}
 }
 
-func computeMemoryRequirements(consensusGroupCache Cacher, consensusGroupSize int, nodesMap map[uint32][]Validator, b *testing.B) {
+func computeMemoryRequirements(consensusGroupCache nodesCoordinator.Cacher, consensusGroupSize int, nodesMap map[uint32][]Validator, b *testing.B) {
 	waitingMap := make(map[uint32][]Validator)
 	shufflerArgs := &NodesShufflerArgs{
 		NodesShard:           10,

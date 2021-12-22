@@ -24,7 +24,7 @@ type ArgNodesCoordinator struct {
 	SelfPublicKey              []byte
 	Epoch                      uint32
 	StartEpoch                 uint32
-	ConsensusGroupCache        Cacher
+	ConsensusGroupCache        nodesCoordinator.Cacher
 	ShuffledOutHandler         ShuffledOutHandler
 	WaitingListFixEnabledEpoch uint32
 	ChanStopNode               chan endProcess.ArgEndProcess
