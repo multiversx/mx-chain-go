@@ -94,6 +94,7 @@ type epochStorer interface {
 type snapshotPruningStorer interface {
 	common.DBWriteCacher
 	GetFromOldEpochsWithoutCache(key []byte) ([]byte, error)
+	GetFromLastEpoch(key []byte) ([]byte, error)
 	PutWithoutCache(key, data []byte) error
 }
 
