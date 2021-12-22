@@ -1,6 +1,7 @@
 package forking
 
 import (
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common/mock"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createGasScheduleNotifierArgs() ArgsNewGasScheduleNotifier {
@@ -25,8 +27,9 @@ func createGasScheduleNotifierArgs() ArgsNewGasScheduleNotifier {
 					FileName:   "gasScheduleV2.toml",
 				},
 			}},
-		ConfigDir:     "../../cmd/node/config/gasSchedules",
-		EpochNotifier: NewGenericEpochNotifier(),
+		ConfigDir:         "../../cmd/node/config/gasSchedules",
+		EpochNotifier:     NewGenericEpochNotifier(),
+		ArwenChangeLocker: &sync.RWMutex{},
 	}
 }
 
@@ -179,4 +182,40 @@ func TestGasScheduleNotifier_CheckEpochInSyncShouldWork(t *testing.T) {
 
 	assert.Equal(t, uint32(2), atomic.LoadUint32(&numCalls))
 	assert.True(t, end.Sub(start) >= handlerWait)
+}
+
+func TestGasScheduleNotifier_EpochConfirmedShouldNotCauseDeadlock(t *testing.T) {
+	t.Parallel()
+
+	for i := 0; i < 100; i++ {
+		testGasScheduleNotifierDeadlock(t)
+	}
+}
+
+func testGasScheduleNotifierDeadlock(t *testing.T) {
+	args := createGasScheduleNotifierArgs()
+	g, _ := NewGasScheduleNotifier(args)
+
+	chFinish := make(chan struct{})
+	go func() {
+		time.Sleep(time.Millisecond * 10)
+
+		args.ArwenChangeLocker.Lock()
+		_ = g.LatestGasSchedule()
+		args.ArwenChangeLocker.Unlock()
+
+		close(chFinish)
+	}()
+
+	go func() {
+		time.Sleep(time.Millisecond * 10)
+
+		g.EpochConfirmed(2, 0)
+	}()
+
+	select {
+	case <-chFinish:
+	case <-time.After(time.Second):
+		require.Fail(t, "deadlock detected in EpochConfirmed function")
+	}
 }

@@ -87,7 +87,7 @@ type epochStartBootstrap struct {
 	genesisNodesConfig         sharding.GenesisNodesSetupHandler
 	genesisShardCoordinator    sharding.Coordinator
 	rater                      sharding.ChanceComputer
-	trieContainer              state.TriesHolder
+	trieContainer              common.TriesHolder
 	trieStorageManagers        map[string]common.StorageManager
 	mutTrieStorageManagers     sync.RWMutex
 	nodeShuffler               sharding.NodesShuffler
@@ -101,19 +101,21 @@ type epochStartBootstrap struct {
 	trieSyncerVersion          int
 
 	// created components
-	requestHandler            process.RequestHandler
-	interceptorContainer      process.InterceptorsContainer
-	dataPool                  dataRetriever.PoolsHolder
-	miniBlocksSyncer          epochStart.PendingMiniBlocksSyncHandler
-	headersSyncer             epochStart.HeadersByHashSyncer
-	epochStartMetaBlockSyncer epochStart.StartOfEpochMetaSyncer
-	nodesConfigHandler        StartOfEpochNodesConfigHandler
-	whiteListHandler          update.WhiteListHandler
-	whiteListerVerifiedTxs    update.WhiteListHandler
-	storageOpenerHandler      storage.UnitOpenerHandler
-	latestStorageDataProvider storage.LatestStorageDataProviderHandler
-	argumentsParser           process.ArgumentsParser
-	waitingListFixEnableEpoch uint32
+	requestHandler             process.RequestHandler
+	interceptorContainer       process.InterceptorsContainer
+	dataPool                   dataRetriever.PoolsHolder
+	miniBlocksSyncer           epochStart.PendingMiniBlocksSyncHandler
+	headersSyncer              epochStart.HeadersByHashSyncer
+	epochStartMetaBlockSyncer  epochStart.StartOfEpochMetaSyncer
+	nodesConfigHandler         StartOfEpochNodesConfigHandler
+	whiteListHandler           update.WhiteListHandler
+	whiteListerVerifiedTxs     update.WhiteListHandler
+	storageOpenerHandler       storage.UnitOpenerHandler
+	latestStorageDataProvider  storage.LatestStorageDataProviderHandler
+	argumentsParser            process.ArgumentsParser
+	waitingListFixEnableEpoch  uint32
+	disableOldTrieStorageEpoch uint32
+	storageService             dataRetriever.StorageService
 
 	// gathered data
 	epochStartMeta     *block.MetaBlock
@@ -191,6 +193,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		maxHardCapForMissingNodes:  args.GeneralConfig.TrieSync.MaxHardCapForMissingNodes,
 		trieSyncerVersion:          args.GeneralConfig.TrieSync.TrieSyncerVersion,
 		waitingListFixEnableEpoch:  args.EpochConfig.EnableEpochs.WaitingListFixEnableEpoch,
+		disableOldTrieStorageEpoch: args.EpochConfig.EnableEpochs.DisableOldTrieStorageEpoch,
 	}
 
 	log.Debug("process: enable epoch for transaction signed with tx hash", "epoch", epochStartProvider.enableSignTxWithHashEpoch)
@@ -238,11 +241,6 @@ func (e *epochStartBootstrap) isStartInEpochZero() bool {
 }
 
 func (e *epochStartBootstrap) prepareEpochZero() (Parameters, error) {
-	err := e.createTriesComponentsForShardId(e.genesisShardCoordinator.SelfId())
-	if err != nil {
-		return Parameters{}, err
-	}
-
 	shardIDToReturn := e.genesisShardCoordinator.SelfId()
 	if !e.isNodeInGenesisNodesConfig() {
 		shardIDToReturn = e.applyShardIDAsObserverIfNeeded(e.genesisShardCoordinator.SelfId())
@@ -282,21 +280,10 @@ func (e *epochStartBootstrap) isNodeInGenesisNodesConfig() bool {
 	return false
 }
 
-// GetTriesComponents returns the created tries components according to the shardID for the current epoch
-func (e *epochStartBootstrap) GetTriesComponents() (state.TriesHolder, map[string]common.StorageManager) {
-	e.mutTrieStorageManagers.RLock()
-	defer e.mutTrieStorageManagers.RUnlock()
-
-	storageManagers := make(map[string]common.StorageManager)
-	for k, v := range e.trieStorageManagers {
-		storageManagers[k] = v
-	}
-
-	return e.trieContainer, storageManagers
-}
-
 // Bootstrap runs the fast bootstrap method from the network or local storage
 func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
+	defer e.closeTrieComponents()
+
 	if !e.generalConfig.GeneralSettings.StartInEpochEnabled {
 		return e.bootstrapFromLocalStorage()
 	}
@@ -364,11 +351,6 @@ func (e *epochStartBootstrap) bootstrapFromLocalStorage() (Parameters, error) {
 
 	e.initializeFromLocalStorage()
 	if !e.baseData.storageExists {
-		err := e.createTriesComponentsForShardId(e.genesisShardCoordinator.SelfId())
-		if err != nil {
-			return Parameters{}, err
-		}
-
 		return Parameters{
 			Epoch:       e.startEpoch,
 			SelfShardId: e.genesisShardCoordinator.SelfId(),
@@ -377,11 +359,6 @@ func (e *epochStartBootstrap) bootstrapFromLocalStorage() (Parameters, error) {
 	}
 
 	newShardId, shuffledOut, err := e.getShardIDForLatestEpoch()
-	if err != nil {
-		return Parameters{}, err
-	}
-
-	err = e.createTriesComponentsForShardId(newShardId)
 	if err != nil {
 		return Parameters{}, err
 	}
@@ -407,6 +384,20 @@ func (e *epochStartBootstrap) cleanupOnBootstrapFinish() {
 
 	errMessenger = e.messenger.UnjoinAllTopics()
 	log.LogIfError(errMessenger)
+
+	e.closeTrieNodes()
+}
+
+func (e *epochStartBootstrap) closeTrieNodes() {
+	if check.IfNil(e.dataPool) {
+		return
+	}
+	if check.IfNil(e.dataPool.TrieNodes()) {
+		return
+	}
+
+	errTrieNodesClosed := e.dataPool.TrieNodes().Close()
+	log.LogIfError(errTrieNodesClosed)
 }
 
 func (e *epochStartBootstrap) startFromSavedEpoch() (Parameters, bool, error) {
@@ -454,10 +445,22 @@ func (e *epochStartBootstrap) computeIfCurrentEpochIsSaved() bool {
 }
 
 func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
-	err := e.createTriesComponentsForShardId(core.MetachainShardId)
+	e.closeTrieComponents()
+	e.storageService = disabled.NewChainStorer()
+	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
+		e.generalConfig,
+		e.coreComponentsHolder,
+		core.MetachainShardId,
+		e.storageService,
+		e.disableOldTrieStorageEpoch,
+		e.epochNotifier,
+	)
 	if err != nil {
 		return err
 	}
+
+	e.trieContainer = triesContainer
+	e.trieStorageManagers = trieStorageManagers
 
 	err = e.createRequestHandler()
 	if err != nil {
@@ -628,11 +631,6 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 			return Parameters{}, err
 		}
 	} else {
-		err = e.createTriesComponentsForShardId(e.shardCoordinator.SelfId())
-		if err != nil {
-			return Parameters{}, err
-		}
-
 		err = e.requestAndProcessForShard()
 		if err != nil {
 			return Parameters{}, err
@@ -701,6 +699,39 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
 func (e *epochStartBootstrap) requestAndProcessForMeta() error {
 	var err error
 
+	storageHandlerComponent, err := NewMetaStorageHandler(
+		e.generalConfig,
+		e.prefsConfig,
+		e.shardCoordinator,
+		e.coreComponentsHolder.PathHandler(),
+		e.coreComponentsHolder.InternalMarshalizer(),
+		e.coreComponentsHolder.Hasher(),
+		e.epochStartMeta.Epoch,
+		e.coreComponentsHolder.Uint64ByteSliceConverter(),
+		e.coreComponentsHolder.NodeTypeProvider(),
+	)
+	if err != nil {
+		return err
+	}
+
+	defer storageHandlerComponent.CloseStorageService()
+
+	e.closeTrieComponents()
+	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
+		e.generalConfig,
+		e.coreComponentsHolder,
+		core.MetachainShardId,
+		storageHandlerComponent.storageService,
+		e.disableOldTrieStorageEpoch,
+		e.epochNotifier,
+	)
+	if err != nil {
+		return err
+	}
+
+	e.trieContainer = triesContainer
+	e.trieStorageManagers = trieStorageManagers
+
 	log.Debug("start in epoch bootstrap: started syncValidatorAccountsState")
 	err = e.syncPeerAccountsState(e.epochStartMeta.ValidatorStatsRootHash)
 	if err != nil {
@@ -719,21 +750,6 @@ func (e *epochStartBootstrap) requestAndProcessForMeta() error {
 		NodesConfig:         e.nodesConfig,
 		Headers:             e.syncedHeaders,
 		ShardCoordinator:    e.shardCoordinator,
-	}
-
-	storageHandlerComponent, err := NewMetaStorageHandler(
-		e.generalConfig,
-		e.prefsConfig,
-		e.shardCoordinator,
-		e.coreComponentsHolder.PathHandler(),
-		e.coreComponentsHolder.InternalMarshalizer(),
-		e.coreComponentsHolder.Hasher(),
-		e.epochStartMeta.Epoch,
-		e.coreComponentsHolder.Uint64ByteSliceConverter(),
-		e.coreComponentsHolder.NodeTypeProvider(),
-	)
-	if err != nil {
-		return err
 	}
 
 	errSavingToStorage := storageHandlerComponent.SaveDataToStorage(components)
@@ -805,6 +821,39 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 		return epochStart.ErrWrongTypeAssertion
 	}
 
+	storageHandlerComponent, err := NewShardStorageHandler(
+		e.generalConfig,
+		e.prefsConfig,
+		e.shardCoordinator,
+		e.coreComponentsHolder.PathHandler(),
+		e.coreComponentsHolder.InternalMarshalizer(),
+		e.coreComponentsHolder.Hasher(),
+		e.baseData.lastEpoch,
+		e.coreComponentsHolder.Uint64ByteSliceConverter(),
+		e.coreComponentsHolder.NodeTypeProvider(),
+	)
+	if err != nil {
+		return err
+	}
+
+	defer storageHandlerComponent.CloseStorageService()
+
+	e.closeTrieComponents()
+	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
+		e.generalConfig,
+		e.coreComponentsHolder,
+		e.shardCoordinator.SelfId(),
+		storageHandlerComponent.storageService,
+		e.disableOldTrieStorageEpoch,
+		e.epochNotifier,
+	)
+	if err != nil {
+		return err
+	}
+
+	e.trieContainer = triesContainer
+	e.trieStorageManagers = trieStorageManagers
+
 	log.Debug("start in epoch bootstrap: started syncUserAccountsState")
 	err = e.syncUserAccountsState(ownShardHdr.RootHash)
 	if err != nil {
@@ -820,21 +869,6 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 		Headers:             e.syncedHeaders,
 		ShardCoordinator:    e.shardCoordinator,
 		PendingMiniBlocks:   pendingMiniBlocks,
-	}
-
-	storageHandlerComponent, err := NewShardStorageHandler(
-		e.generalConfig,
-		e.prefsConfig,
-		e.shardCoordinator,
-		e.coreComponentsHolder.PathHandler(),
-		e.coreComponentsHolder.InternalMarshalizer(),
-		e.coreComponentsHolder.Hasher(),
-		e.baseData.lastEpoch,
-		e.coreComponentsHolder.Uint64ByteSliceConverter(),
-		e.coreComponentsHolder.NodeTypeProvider(),
-	)
-	if err != nil {
-		return err
 	}
 
 	errSavingToStorage := storageHandlerComponent.SaveDataToStorage(components)
@@ -873,8 +907,9 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 			TrieSyncerVersion:         e.trieSyncerVersion,
 			TrieExporter:              inactiveTrieExporter,
 		},
-		ShardId:   e.shardCoordinator.SelfId(),
-		Throttler: thr,
+		ShardId:                e.shardCoordinator.SelfId(),
+		Throttler:              thr,
+		AddressPubKeyConverter: e.coreComponentsHolder.AddressPubKeyConverter(),
 	}
 	accountsDBSyncer, err := syncer.NewUserAccountsSyncer(argsUserAccountsSyncer)
 	if err != nil {
@@ -889,61 +924,39 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 	return nil
 }
 
-func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) error {
-	trieFactoryArgs := factory.TrieFactoryArgs{
-		SnapshotDbCfg:            e.generalConfig.TrieSnapshotDB,
-		Marshalizer:              e.coreComponentsHolder.InternalMarshalizer(),
-		Hasher:                   e.coreComponentsHolder.Hasher(),
-		PathManager:              e.coreComponentsHolder.PathHandler(),
-		TrieStorageManagerConfig: e.generalConfig.TrieStorageManagerConfig,
-	}
-	trieFactory, err := factory.NewTrieFactory(trieFactoryArgs)
+func (e *epochStartBootstrap) createStorageService(
+	shardCoordinator sharding.Coordinator,
+	pathManager storage.PathManagerHandler,
+	epochStartNotifier storage.EpochStartNotifier,
+	startEpoch uint32,
+	createTrieEpochRootHashStorer bool,
+	targetShardId uint32,
+) (dataRetriever.StorageService, error) {
+	storageServiceCreator, err := storageFactory.NewStorageServiceFactory(
+		&e.generalConfig,
+		&e.prefsConfig,
+		shardCoordinator,
+		pathManager,
+		epochStartNotifier,
+		e.coreComponentsHolder.NodeTypeProvider(),
+		startEpoch,
+		createTrieEpochRootHashStorer,
+	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	args := factory.TrieCreateArgs{
-		TrieStorageConfig:  e.generalConfig.AccountsTrieStorage,
-		ShardID:            core.GetShardIDString(shardId),
-		PruningEnabled:     e.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
-		CheckpointsEnabled: e.generalConfig.StateTriesConfig.CheckpointsEnabled,
-		MaxTrieLevelInMem:  e.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
-	}
-	userStorageManager, userAccountTrie, err := trieFactory.Create(args)
-	if err != nil {
-		return err
+	if targetShardId == core.MetachainShardId {
+		return storageServiceCreator.CreateForMeta()
 	}
 
-	e.trieContainer.Put([]byte(factory.UserAccountTrie), userAccountTrie)
-	e.mutTrieStorageManagers.Lock()
-	e.trieStorageManagers[factory.UserAccountTrie] = userStorageManager
-	e.mutTrieStorageManagers.Unlock()
-
-	args = factory.TrieCreateArgs{
-		TrieStorageConfig:  e.generalConfig.PeerAccountsTrieStorage,
-		ShardID:            core.GetShardIDString(shardId),
-		PruningEnabled:     e.generalConfig.StateTriesConfig.PeerStatePruningEnabled,
-		CheckpointsEnabled: e.generalConfig.StateTriesConfig.CheckpointsEnabled,
-		MaxTrieLevelInMem:  e.generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
-	}
-	peerStorageManager, peerAccountsTrie, err := trieFactory.Create(args)
-	if err != nil {
-		return err
-	}
-
-	e.mutTrieStorageManagers.Lock()
-	e.trieContainer.Put([]byte(factory.PeerAccountTrie), peerAccountsTrie)
-	e.trieStorageManagers[factory.PeerAccountTrie] = peerStorageManager
-	e.mutTrieStorageManagers.Unlock()
-
-	return nil
+	return storageServiceCreator.CreateForShard()
 }
 
-func (e *epochStartBootstrap) syncPeerAccountsState(rootHash []byte) error {
-	inactiveTrieExporter, err := trieExport.NewInactiveTrieExporter(e.coreComponentsHolder.InternalMarshalizer())
-	if err != nil {
-		return err
-	}
+func (e *epochStartBootstrap) syncValidatorAccountsState(rootHash []byte) error {
+	e.mutTrieStorageManagers.RLock()
+	peerTrieStorageManager := e.trieStorageManagers[factory.PeerAccountTrie]
+	e.mutTrieStorageManagers.RUnlock()
 
 	argsValidatorAccountsSyncer := syncer.ArgsNewValidatorAccountsSyncer{
 		ArgsNewBaseAccountsSyncer: syncer.ArgsNewBaseAccountsSyncer{
@@ -1053,18 +1066,36 @@ func (e *epochStartBootstrap) applyShardIDAsObserverIfNeeded(receivedShardID uin
 	return receivedShardID
 }
 
-// Close closes the component's opened storage services/started go-routines
-func (e *epochStartBootstrap) Close() error {
-	e.mutTrieStorageManagers.RLock()
-	defer e.mutTrieStorageManagers.RUnlock()
-
+func (e *epochStartBootstrap) closeTrieComponents() {
 	if e.trieStorageManagers != nil {
-		log.Debug("closing all trieStorageManagers....")
+		log.Debug("closing all trieStorageManagers", "num", len(e.trieStorageManagers))
 		for _, tsm := range e.trieStorageManagers {
 			err := tsm.Close()
 			log.LogIfError(err)
 		}
 	}
+
+	if !check.IfNil(e.trieContainer) {
+		tries := e.trieContainer.GetAll()
+		log.Debug("closing all tries", "num", len(tries))
+		for _, trie := range tries {
+			err := trie.Close()
+			log.LogIfError(err)
+		}
+	}
+
+	if !check.IfNil(e.storageService) {
+		err := e.storageService.Destroy()
+		log.LogIfError(err)
+	}
+}
+
+// Close closes the component's opened storage services/started go-routines
+func (e *epochStartBootstrap) Close() error {
+	e.mutTrieStorageManagers.RLock()
+	defer e.mutTrieStorageManagers.RUnlock()
+
+	e.closeTrieComponents()
 
 	if !check.IfNil(e.dataPool) && !check.IfNil(e.dataPool.TrieNodes()) {
 		log.Debug("closing trie nodes data pool....")

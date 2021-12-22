@@ -1,6 +1,7 @@
 package trie
 
 import (
+	"github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -29,10 +30,10 @@ func TestTrieStorageManagerWithoutPruning_TakeSnapshotShouldWork(t *testing.T) {
 	t.Parallel()
 
 	ts, _ := NewTrieStorageManagerWithoutPruning(testscommon.NewMemDbMock())
-	ts.TakeSnapshot([]byte{}, true, nil)
+	ts.TakeSnapshot([]byte{}, nil, &trie.MockStatistics{})
 
 	chLeaves := make(chan core.KeyValueHolder)
-	ts.TakeSnapshot([]byte("rootHash"), true, chLeaves)
+	ts.TakeSnapshot([]byte("rootHash"), chLeaves, &trie.MockStatistics{})
 
 	select {
 	case <-chLeaves:
@@ -45,10 +46,10 @@ func TestTrieStorageManagerWithoutPruning_SetCheckpointShouldWork(t *testing.T) 
 	t.Parallel()
 
 	ts, _ := NewTrieStorageManagerWithoutPruning(testscommon.NewMemDbMock())
-	ts.SetCheckpoint([]byte{}, nil)
+	ts.SetCheckpoint([]byte{}, nil, &trie.MockStatistics{})
 
 	chLeaves := make(chan core.KeyValueHolder)
-	ts.SetCheckpoint([]byte("rootHash"), chLeaves)
+	ts.SetCheckpoint([]byte("rootHash"), chLeaves, &trie.MockStatistics{})
 
 	select {
 	case <-chLeaves:
@@ -91,4 +92,11 @@ func TestTrieStorageManagerWithoutPruning_Remove(t *testing.T) {
 
 	ts, _ := NewTrieStorageManagerWithoutPruning(testscommon.NewMemDbMock())
 	assert.Nil(t, ts.Remove([]byte("key")))
+}
+
+func TestTrieStorageManagerWithoutPruning_ShouldTakeSnapshot(t *testing.T) {
+	t.Parallel()
+
+	ts, _ := NewTrieStorageManagerWithoutPruning(testscommon.NewMemDbMock())
+	assert.False(t, ts.ShouldTakeSnapshot())
 }

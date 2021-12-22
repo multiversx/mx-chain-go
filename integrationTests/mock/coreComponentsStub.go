@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/ntp"
@@ -37,16 +38,19 @@ type CoreComponentsStub struct {
 	SyncTimerField                     ntp.SyncTimer
 	RoundHandlerField                  consensus.RoundHandler
 	EconomicsDataField                 process.EconomicsDataHandler
+	APIEconomicsHandler                process.EconomicsDataHandler
 	RatingsDataField                   process.RatingsInfoHandler
 	RaterField                         sharding.PeerAccountListAndRatingHandler
 	GenesisNodesSetupField             sharding.GenesisNodesSetupHandler
 	NodesShufflerField                 sharding.NodesShuffler
 	EpochNotifierField                 process.EpochNotifier
+	RoundNotifierField                 process.RoundNotifier
 	EpochStartNotifierWithConfirmField factory.EpochStartNotifierWithConfirm
 	ChanStopNodeProcessField           chan endProcess.ArgEndProcess
 	GenesisTimeField                   time.Time
 	TxVersionCheckField                process.TxVersionCheckerHandler
 	NodeTypeProviderField              core.NodeTypeProviderHandler
+	ArwenChangeLockerInternal          common.Locker
 }
 
 // Create -
@@ -104,6 +108,11 @@ func (ccs *CoreComponentsStub) EconomicsData() process.EconomicsDataHandler {
 	return ccs.EconomicsDataField
 }
 
+// APIEconomicsData -
+func (ccs *CoreComponentsStub) APIEconomicsData() process.EconomicsDataHandler {
+	return ccs.APIEconomicsHandler
+}
+
 // RatingsData -
 func (ccs *CoreComponentsStub) RatingsData() process.RatingsInfoHandler {
 	return ccs.RatingsDataField
@@ -128,6 +137,11 @@ func (ccs *CoreComponentsStub) NodesShuffler() sharding.NodesShuffler {
 // EpochNotifier -
 func (ccs *CoreComponentsStub) EpochNotifier() process.EpochNotifier {
 	return ccs.EpochNotifierField
+}
+
+// RoundNotifier -
+func (ccs *CoreComponentsStub) RoundNotifier() process.RoundNotifier {
+	return ccs.RoundNotifierField
 }
 
 // EpochStartNotifierWithConfirm -
@@ -220,6 +234,11 @@ func (ccs *CoreComponentsStub) ChanStopNodeProcess() chan endProcess.ArgEndProce
 // NodeTypeProvider -
 func (ccs *CoreComponentsStub) NodeTypeProvider() core.NodeTypeProviderHandler {
 	return ccs.NodeTypeProviderField
+}
+
+// ArwenChangeLocker -
+func (ccs *CoreComponentsStub) ArwenChangeLocker() common.Locker {
+	return ccs.ArwenChangeLockerInternal
 }
 
 // String -

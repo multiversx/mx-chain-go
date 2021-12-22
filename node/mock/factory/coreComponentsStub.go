@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/ntp"
@@ -37,16 +38,19 @@ type CoreComponentsMock struct {
 	NtpTimer                    ntp.SyncTimer
 	RoundHandlerField           consensus.RoundHandler
 	EconomicsHandler            process.EconomicsDataHandler
+	APIEconomicsHandler         process.EconomicsDataHandler
 	RatingsConfig               process.RatingsInfoHandler
 	RatingHandler               sharding.PeerAccountListAndRatingHandler
 	NodesConfig                 sharding.GenesisNodesSetupHandler
 	EpochChangeNotifier         process.EpochNotifier
+	RoundChangeNotifier         process.RoundNotifier
 	EpochNotifierWithConfirm    factory.EpochStartNotifierWithConfirm
 	ChanStopProcess             chan endProcess.ArgEndProcess
 	Shuffler                    sharding.NodesShuffler
 	TxVersionCheckHandler       process.TxVersionCheckerHandler
 	StartTime                   time.Time
 	NodeTypeProviderField       core.NodeTypeProviderHandler
+	ArwenChangeLockerInternal   common.Locker
 }
 
 // Create -
@@ -104,6 +108,11 @@ func (ccm *CoreComponentsMock) EconomicsData() process.EconomicsDataHandler {
 	return ccm.EconomicsHandler
 }
 
+// APIEconomicsData -
+func (ccm *CoreComponentsMock) APIEconomicsData() process.EconomicsDataHandler {
+	return ccm.APIEconomicsHandler
+}
+
 // RatingsData -
 func (ccm *CoreComponentsMock) RatingsData() process.RatingsInfoHandler {
 	return ccm.RatingsConfig
@@ -128,6 +137,11 @@ func (ccm *CoreComponentsMock) NodesShuffler() sharding.NodesShuffler {
 // EpochNotifier -
 func (ccm *CoreComponentsMock) EpochNotifier() process.EpochNotifier {
 	return ccm.EpochChangeNotifier
+}
+
+// RoundNotifier -
+func (ccm *CoreComponentsMock) RoundNotifier() process.RoundNotifier {
+	return ccm.RoundChangeNotifier
 }
 
 // EpochStartNotifierWithConfirm -
@@ -220,6 +234,11 @@ func (ccm *CoreComponentsMock) ChanStopNodeProcess() chan endProcess.ArgEndProce
 // NodeTypeProvider -
 func (ccm *CoreComponentsMock) NodeTypeProvider() core.NodeTypeProviderHandler {
 	return ccm.NodeTypeProviderField
+}
+
+// ArwenChangeLocker -
+func (ccm *CoreComponentsMock) ArwenChangeLocker() common.Locker {
+	return ccm.ArwenChangeLockerInternal
 }
 
 // String -

@@ -43,7 +43,6 @@ func DoDeploy(t *testing.T, testContext *vm.VMTestContext, pathToContract string
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -63,6 +62,7 @@ func DoDeploy(t *testing.T, testContext *vm.VMTestContext, pathToContract string
 	return scAddr, owner
 }
 
+// DoDeployNoChecks -
 func DoDeployNoChecks(t *testing.T, testContext *vm.VMTestContext, pathToContract string) (scAddr []byte, owner []byte) {
 	owner = []byte("12345678901234567890123456789011")
 	senderNonce := uint64(0)
@@ -78,7 +78,6 @@ func DoDeployNoChecks(t *testing.T, testContext *vm.VMTestContext, pathToContrac
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -113,7 +112,6 @@ func DoDeploySecond(
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -142,7 +140,6 @@ func DoDeployDNS(t *testing.T, testContext *vm.VMTestContext, pathToContract str
 	tx := vm.CreateTransaction(senderNonce, big.NewInt(0), owner, vm.CreateEmptyAddress(), gasPrice, gasLimit, txData)
 
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
-	require.Nil(t, testContext.GetLatestError())
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
 
@@ -196,6 +193,7 @@ func TestAccount(
 	return senderRecovShardAccount.GetBalance()
 }
 
+// CreateSmartContractCall -
 func CreateSmartContractCall(
 	nonce uint64,
 	sndAddr []byte,

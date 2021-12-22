@@ -2,6 +2,7 @@ package mock
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
@@ -10,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 )
 
 // CoreComponentsMock -
@@ -31,6 +33,7 @@ type CoreComponentsMock struct {
 	StatusField                 core.AppStatusHandler
 	ChanStopNode                chan endProcess.ArgEndProcess
 	NodeTypeProviderField       core.NodeTypeProviderHandler
+	EconomicsDataField          process.EconomicsDataHandler
 }
 
 // ChanStopNodeProcess -
@@ -135,6 +138,15 @@ func (ccm *CoreComponentsMock) StatusHandler() core.AppStatusHandler {
 // NodeTypeProvider -
 func (ccm *CoreComponentsMock) NodeTypeProvider() core.NodeTypeProviderHandler {
 	return ccm.NodeTypeProviderField
+}
+
+// EconomicsData -
+func (ccm *CoreComponentsMock) EconomicsData() process.EconomicsDataHandler {
+	if !check.IfNil(ccm.EconomicsDataField) {
+		return ccm.EconomicsDataField
+	}
+
+	return &economicsmocks.EconomicsHandlerStub{}
 }
 
 // IsInterfaceNil -

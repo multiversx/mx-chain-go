@@ -77,11 +77,14 @@ type baseProcessor struct {
 	blockProcessor         blockProcessor
 	txCounter              *transactionCounter
 
-	outportHandler     outport.OutportHandler
-	historyRepo        dblookupext.HistoryRepository
-	epochNotifier      process.EpochNotifier
-	vmContainerFactory process.VirtualMachinesContainerFactory
-	vmContainer        process.VirtualMachinesContainer
+	outportHandler      outport.OutportHandler
+	historyRepo         dblookupext.HistoryRepository
+	epochNotifier       process.EpochNotifier
+	roundNotifier       process.RoundNotifier
+	vmContainerFactory  process.VirtualMachinesContainerFactory
+	vmContainer         process.VirtualMachinesContainer
+	gasConsumedProvider gasConsumedProvider
+	economicsData       process.EconomicsDataHandler
 
 	processDataTriesOnCommitEpoch bool
 }
@@ -430,8 +433,17 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.EpochNotifier) {
 		return process.ErrNilEpochNotifier
 	}
+	if check.IfNil(arguments.RoundNotifier) {
+		return process.ErrNilRoundNotifier
+	}
 	if check.IfNil(arguments.CoreComponents.StatusHandler()) {
 		return process.ErrNilAppStatusHandler
+	}
+	if check.IfNil(arguments.GasHandler) {
+		return process.ErrNilGasHandler
+	}
+	if check.IfNil(arguments.CoreComponents.EconomicsData()) {
+		return process.ErrNilEconomicsData
 	}
 
 	return nil
@@ -1079,6 +1091,12 @@ func getLastSelfNotarizedHeaderByItself(chainHandler data.ChainHandler) (data.He
 	return currentHeader, currentBlockHash
 }
 
+func (bp *baseProcessor) setFinalizedHeaderHashInIndexer(hdrHash []byte) {
+	log.Debug("baseProcessor.setFinalizedBlockInIndexer", "finalized header hash", hdrHash)
+
+	bp.outportHandler.FinalizedBlock(hdrHash)
+}
+
 func (bp *baseProcessor) updateStateStorage(
 	finalHeader data.HeaderHandler,
 	rootHash []byte,
@@ -1121,9 +1139,37 @@ func (bp *baseProcessor) RevertAccountState(_ data.HeaderHandler) {
 	}
 }
 
-func (bp *baseProcessor) commitAll() error {
+func (bp *baseProcessor) commitAll(headerHandler data.HeaderHandler) error {
+	if headerHandler.IsStartOfEpochBlock() {
+		return bp.commitInLastEpoch(headerHandler.GetEpoch())
+	}
+
+	return bp.commit()
+}
+
+func (bp *baseProcessor) commitInLastEpoch(currentEpoch uint32) error {
+	lastEpoch := uint32(0)
+	if currentEpoch > 0 {
+		lastEpoch = currentEpoch - 1
+	}
+
+	return bp.commitInEpoch(currentEpoch, lastEpoch)
+}
+
+func (bp *baseProcessor) commit() error {
 	for key := range bp.accountsDB {
 		_, err := bp.accountsDB[key].Commit()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (bp *baseProcessor) commitInEpoch(currentEpoch uint32, epochToCommit uint32) error {
+	for key := range bp.accountsDB {
+		_, err := bp.accountsDB[key].CommitInEpoch(currentEpoch, epochToCommit)
 		if err != nil {
 			return err
 		}

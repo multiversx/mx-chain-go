@@ -87,12 +87,6 @@ type HdrValidatorHandler interface {
 	HeaderHandler() data.HeaderHandler
 }
 
-// HeaderValidator can determine if a provided header handler is valid or not from the process point of view
-type HeaderValidator interface {
-	HeaderValidForProcessing(headerHandler HdrValidatorHandler) error
-	IsInterfaceNil() bool
-}
-
 // InterceptedDataFactory can create new instances of InterceptedData
 type InterceptedDataFactory interface {
 	Create(buff []byte) (InterceptedData, error)
@@ -137,16 +131,15 @@ type TransactionCoordinator interface {
 	RemoveBlockDataFromPool(body *block.Body) error
 	RemoveTxsFromPool(body *block.Body) error
 
-	ProcessBlockTransaction(body *block.Body, haveTime func() time.Duration) error
+	ProcessBlockTransaction(body *block.Body, haveTime func() time.Duration, randomness []byte) error
 
 	CreateBlockStarted()
 	CreateMbsAndProcessCrossShardTransactionsDstMe(
 		header data.HeaderHandler,
 		processedMiniBlocksHashes map[string]struct{},
-
 		haveTime func() bool,
 	) (block.MiniBlockSlice, uint32, bool, error)
-	CreateMbsAndProcessTransactionsFromMe(haveTime func() bool) block.MiniBlockSlice
+	CreateMbsAndProcessTransactionsFromMe(haveTime func() bool, randomness []byte) block.MiniBlockSlice
 	CreatePostProcessMiniBlocks() block.MiniBlockSlice
 	CreateMarshalizedData(body *block.Body) map[string][][]byte
 	GetAllCurrentUsedTxs(blockType block.Type) map[string]data.TransactionHandler
@@ -165,7 +158,7 @@ type SmartContractProcessor interface {
 	ExecuteBuiltInFunction(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error)
 	DeploySmartContract(tx data.TransactionHandler, acntSrc state.UserAccountHandler) (vmcommon.ReturnCode, error)
 	ProcessIfError(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, returnMessage []byte, snapshot int, gasLocked uint64) error
-	IsPayable(address []byte) (bool, error)
+	IsPayable(sndAddress []byte, recvAddress []byte) (bool, error)
 	IsInterfaceNil() bool
 }
 
@@ -179,7 +172,8 @@ type IntermediateTransactionHandler interface {
 	GetAllCurrentFinishedTxs() map[string]data.TransactionHandler
 	CreateBlockStarted()
 	GetCreatedInShardMiniBlock() *block.MiniBlock
-	RemoveProcessedResultsFor(txHashes [][]byte)
+	RemoveProcessedResults() [][]byte
+	InitProcessedResults()
 	IsInterfaceNil() bool
 }
 
@@ -213,12 +207,12 @@ type PreProcessor interface {
 	RestoreBlockDataIntoPools(body *block.Body, miniBlockPool storage.Cacher) (int, error)
 	SaveTxsToStorage(body *block.Body) error
 
-	ProcessBlockTransactions(body *block.Body, haveTime func() bool) error
+	ProcessBlockTransactions(body *block.Body, haveTime func() bool, randomness []byte) error
 	RequestBlockTransactions(body *block.Body) int
 
 	RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int
 	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, getNumOfCrossInterMbsAndTxs func() (int, int)) ([][]byte, int, error)
-	CreateAndProcessMiniBlocks(haveTime func() bool) (block.MiniBlockSlice, error)
+	CreateAndProcessMiniBlocks(haveTime func() bool, randomness []byte) (block.MiniBlockSlice, error)
 
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
 	IsInterfaceNil() bool
@@ -457,11 +451,12 @@ type PendingMiniBlocksHandler interface {
 
 // BlockChainHookHandler defines the actions which should be performed by implementation
 type BlockChainHookHandler interface {
-	IsPayable(address []byte) (bool, error)
+	IsPayable(sndAddress []byte, recvAddress []byte) (bool, error)
 	SetCurrentHeader(hdr data.HeaderHandler)
 	NewAddress(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error)
 	DeleteCompiledCode(codeHash []byte)
 	ProcessBuiltInFunction(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
+	SaveNFTMetaDataToSystemAccount(tx data.TransactionHandler) error
 	IsInterfaceNil() bool
 }
 
@@ -579,6 +574,10 @@ type feeHandler interface {
 	DeveloperPercentage() float64
 	GasPerDataByte() uint64
 	MaxGasLimitPerBlock(shardID uint32) uint64
+	MaxGasLimitPerMiniBlock(shardID uint32) uint64
+	MaxGasLimitPerBlockForSafeCrossShard() uint64
+	MaxGasLimitPerMiniBlockForSafeCrossShard() uint64
+	MaxGasLimitPerTx() uint64
 	ComputeGasLimit(tx data.TransactionWithFeeHandler) uint64
 	ComputeMoveBalanceFee(tx data.TransactionWithFeeHandler) *big.Int
 	ComputeTxFee(tx data.TransactionWithFeeHandler) *big.Int
@@ -676,11 +675,13 @@ type NetworkConnectionWatcher interface {
 
 // SCQuery represents a prepared query for executing a function of the smart contract
 type SCQuery struct {
-	ScAddress  []byte
-	FuncName   string
-	CallerAddr []byte
-	CallValue  *big.Int
-	Arguments  [][]byte
+	ScAddress      []byte
+	FuncName       string
+	CallerAddr     []byte
+	CallValue      *big.Int
+	Arguments      [][]byte
+	SameScState    bool
+	ShouldBeSynced bool
 }
 
 // GasHandler is able to perform some gas calculation
@@ -688,12 +689,16 @@ type GasHandler interface {
 	Init()
 	SetGasConsumed(gasConsumed uint64, hash []byte)
 	SetGasRefunded(gasRefunded uint64, hash []byte)
+	SetGasPenalized(gasPenalized uint64, hash []byte)
 	GasConsumed(hash []byte) uint64
 	GasRefunded(hash []byte) uint64
-	TotalGasConsumed() uint64
+	GasPenalized(hash []byte) uint64
+	TotalGasProvided() uint64
 	TotalGasRefunded() uint64
+	TotalGasPenalized() uint64
 	RemoveGasConsumed(hashes [][]byte)
 	RemoveGasRefunded(hashes [][]byte)
+	RemoveGasPenalized(hashes [][]byte)
 	ComputeGasConsumedByMiniBlock(*block.MiniBlock, map[string]data.TransactionHandler) (uint64, uint64, error)
 	ComputeGasConsumedByTx(txSenderShardId uint32, txReceiverShardId uint32, txHandler data.TransactionHandler) (uint64, uint64, error)
 	IsInterfaceNil() bool
@@ -997,6 +1002,19 @@ type EpochNotifier interface {
 	IsInterfaceNil() bool
 }
 
+// RoundSubscriberHandler defines the behavior of a component that can be notified if a new round was confirmed
+type RoundSubscriberHandler interface {
+	RoundConfirmed(round uint64)
+	IsInterfaceNil() bool
+}
+
+// RoundNotifier can notify upon round change in current processed block
+type RoundNotifier interface {
+	RegisterNotifyHandler(handler RoundSubscriberHandler)
+	CheckRound(round uint64)
+	IsInterfaceNil() bool
+}
+
 // ESDTPauseHandler provides IsPaused function for an ESDT token
 type ESDTPauseHandler interface {
 	IsPaused(token []byte) bool
@@ -1011,13 +1029,20 @@ type ESDTRoleHandler interface {
 
 // PayableHandler provides IsPayable function which returns if an account is payable or not
 type PayableHandler interface {
-	IsPayable(address []byte) (bool, error)
+	IsPayable(sndAddress []byte, recvAddress []byte) (bool, error)
 	IsInterfaceNil() bool
 }
 
 // FallbackHeaderValidator defines the behaviour of a component able to signal when a fallback header validation could be applied
 type FallbackHeaderValidator interface {
 	ShouldApplyFallbackValidation(headerHandler data.HeaderHandler) bool
+	IsInterfaceNil() bool
+}
+
+// RoundActivationHandler is a component which can be queried to check for round activation features/fixes
+type RoundActivationHandler interface {
+	IsEnabledInRound(name string, round uint64) bool
+	IsEnabled(name string) bool
 	IsInterfaceNil() bool
 }
 
@@ -1060,14 +1085,6 @@ type CryptoComponentsHolder interface {
 type NumConnectedPeersProvider interface {
 	ConnectedPeers() []core.PeerID
 	IsInterfaceNil() bool
-}
-
-// Locker defines the operations used to lock different critical areas. Implemented by the RWMutex.
-type Locker interface {
-	Lock()
-	Unlock()
-	RLock()
-	RUnlock()
 }
 
 // CheckedChunkResult is the DTO used to hold the results after checking a chunk of intercepted data

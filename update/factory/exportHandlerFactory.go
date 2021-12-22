@@ -396,6 +396,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		MaxHardCapForMissingNodes: e.maxHardCapForMissingNodes,
 		NumConcurrentTrieSyncers:  e.numConcurrentTrieSyncers,
 		TrieSyncerVersion:         e.trieSyncerVersion,
+		AddressPubKeyConverter:    e.CoreComponents.AddressPubKeyConverter(),
 		TrieExporter:              trieExporter,
 	}
 	accountsDBSyncerFactory, err := NewAccountsDBSContainerFactory(argsAccountsSyncers)

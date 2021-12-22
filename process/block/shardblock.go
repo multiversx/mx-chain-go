@@ -81,9 +81,12 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		headerIntegrityVerifier:       arguments.BootstrapComponents.HeaderIntegrityVerifier(),
 		historyRepo:                   arguments.HistoryRepository,
 		epochNotifier:                 arguments.EpochNotifier,
+		roundNotifier:                 arguments.RoundNotifier,
 		vmContainerFactory:            arguments.VMContainersFactory,
 		vmContainer:                   arguments.VmContainer,
 		processDataTriesOnCommitEpoch: arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
+		gasConsumedProvider:           arguments.GasHandler,
+		economicsData:                 arguments.CoreComponents.EconomicsData(),
 	}
 
 	sp := shardProcessor{
@@ -133,6 +136,7 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
+	sp.roundNotifier.CheckRound(headerHandler.GetRound())
 	sp.epochNotifier.CheckEpoch(headerHandler)
 	sp.requestHandler.SetEpoch(headerHandler.GetEpoch())
 
@@ -219,6 +223,7 @@ func (sp *shardProcessor) ProcessBlock(
 	}
 
 	if sp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
+		log.Error("shardProcessor.ProcessBlock first entry", "stack", string(sp.accountsDB[state.UserAccountsState].GetStackDebugFirstEntry()))
 		return process.ErrAccountStateDirty
 	}
 
@@ -253,7 +258,7 @@ func (sp *shardProcessor) ProcessBlock(
 	}()
 
 	startTime := time.Now()
-	err = sp.txCoordinator.ProcessBlockTransaction(body, haveTime)
+	err = sp.txCoordinator.ProcessBlockTransaction(body, haveTime, headerHandler.GetPrevRandSeed())
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to process block transaction",
 		"time [s]", elapsedTime,
@@ -375,6 +380,10 @@ func (sp *shardProcessor) checkEpochCorrectness(
 	incorrectStartOfEpochBlock := header.GetEpoch() != currentBlockHeader.GetEpoch() &&
 		sp.epochStartTrigger.MetaEpoch() == currentBlockHeader.GetEpoch()
 	if incorrectStartOfEpochBlock {
+		if header.IsStartOfEpochBlock() {
+			sp.dataPool.Headers().RemoveHeaderByHash(header.EpochStartMetaHash)
+			go sp.requestHandler.RequestMetaHeader(header.EpochStartMetaHash)
+		}
 		return fmt.Errorf("%w proposed header with new epoch %d with trigger still in last epoch %d",
 			process.ErrEpochDoesNotMatch, header.GetEpoch(), sp.epochStartTrigger.MetaEpoch())
 	}
@@ -589,11 +598,22 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		return
 	}
 
+	gasProvidedInHeader := sp.baseProcessor.gasConsumedProvider.TotalGasProvided()
+	gasPenalizedInheader := sp.baseProcessor.gasConsumedProvider.TotalGasPenalized()
+	gasRefundedInHeader := sp.baseProcessor.gasConsumedProvider.TotalGasRefunded()
+	maxGasInHeader := sp.baseProcessor.economicsData.MaxGasLimitPerBlock(sp.shardCoordinator.SelfId())
+
 	args := &indexer.ArgsSaveBlockData{
-		HeaderHash:             headerHash,
-		Body:                   body,
-		Header:                 header,
-		SignersIndexes:         signersIndexes,
+		HeaderHash:     headerHash,
+		Body:           body,
+		Header:         header,
+		SignersIndexes: signersIndexes,
+		HeaderGasConsumption: indexer.HeaderGasConsumption{
+			GasProvided:    gasProvidedInHeader,
+			GasRefunded:    gasRefundedInHeader,
+			GasPenalized:   gasPenalizedInheader,
+			MaxGasPerBlock: maxGasInHeader,
+		},
 		NotarizedHeadersHashes: nil,
 		TransactionsPool:       pool,
 	}
@@ -738,7 +758,7 @@ func (sp *shardProcessor) createBlockBody(shardHdr *block.Header, haveTime func(
 		"nonce", shardHdr.GetNonce(),
 	)
 
-	miniBlocks, err := sp.createMiniBlocks(haveTime)
+	miniBlocks, err := sp.createMiniBlocks(haveTime, shardHdr.PrevRandSeed)
 	if err != nil {
 		return nil, err
 	}
@@ -830,7 +850,7 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	err = sp.commitAll()
+	err = sp.commitAll(headerHandler)
 	if err != nil {
 		return err
 	}
@@ -1031,6 +1051,8 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 			sp.accountsDB[state.UserAccountsState],
 			sp.userStatePruningQueue,
 		)
+
+		sp.setFinalizedHeaderHashInIndexer(hdr.GetPrevHash())
 	}
 }
 
@@ -1170,6 +1192,8 @@ func (sp *shardProcessor) ApplyProcessedMiniBlocks(processedMiniBlocks *processe
 
 // CreateNewHeader creates a new header
 func (sp *shardProcessor) CreateNewHeader(round uint64, nonce uint64) data.HeaderHandler {
+	sp.roundNotifier.CheckRound(round)
+
 	header := &block.Header{
 		Nonce:           nonce,
 		Round:           round,
@@ -1679,11 +1703,14 @@ func (sp *shardProcessor) requestMetaHeadersIfNeeded(hdrsAdded uint32, lastMetaH
 	}
 }
 
-func (sp *shardProcessor) createMiniBlocks(haveTime func() bool) (*block.Body, error) {
+func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []byte) (*block.Body, error) {
 	var miniBlocks block.MiniBlockSlice
 
 	if sp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
-		log.Error("shardProcessor.createMiniBlocks", "error", process.ErrAccountStateDirty)
+		log.Error("shardProcessor.createMiniBlocks", "error", process.ErrAccountStateDirty,
+			"stack", string(sp.accountsDB[state.UserAccountsState].GetStackDebugFirstEntry()),
+		)
+
 		return &block.Body{MiniBlocks: miniBlocks}, nil
 	}
 
@@ -1724,7 +1751,7 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool) (*block.Body, e
 	}
 
 	startTime = time.Now()
-	mbsFromMe := sp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(haveTime)
+	mbsFromMe := sp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(haveTime, randomness)
 	elapsedTime = time.Since(startTime)
 	log.Debug("elapsed time to create mbs from me",
 		"time [s]", elapsedTime,

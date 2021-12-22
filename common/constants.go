@@ -57,6 +57,9 @@ const NodesSetupJsonFileName = "nodesSetup.json"
 // ConsensusTopic is the topic used in consensus algorithm
 const ConsensusTopic = "consensus"
 
+// GenesisTxSignatureString is the string used to generate genesis transaction signature as 128 hex characters
+const GenesisTxSignatureString = "GENESISGENESISGENESISGENESISGENESISGENESISGENESISGENESISGENESISG"
+
 // HeartbeatTopic is the topic used for heartbeat signaling
 const HeartbeatTopic = "heartbeat"
 
@@ -308,6 +311,9 @@ const MetricMinTransactionVersion = "erd_min_transaction_version"
 
 // MetricGasPerDataByte is the metric that specifies the required gas for a data byte
 const MetricGasPerDataByte = "erd_gas_per_data_byte"
+
+// MetricMaxGasPerTransaction is the metric that specifies the maximum gas limit for a transaction
+const MetricMaxGasPerTransaction = "erd_max_gas_per_transaction"
 
 // MetricChainId is the metric that specifies current chain id
 const MetricChainId = "erd_chain_id"
@@ -654,3 +660,25 @@ const TimeoutGettingTrieNodes = 2 * time.Minute //to consider syncing a very lar
 // TimeoutGettingTrieNodesInHardfork represents the maximum time allowed between 2 nodes fetches (and commits)
 // during the hardfork process
 const TimeoutGettingTrieNodesInHardfork = time.Minute * 10
+
+// RetrialIntervalForOutportDriver is the interval in which the outport driver should try to call the driver again
+const RetrialIntervalForOutportDriver = time.Second * 10
+
+// NodeProcessingMode represents the processing mode in which the node was started
+type NodeProcessingMode int
+
+const (
+	// Normal means that the node has started in the normal processing mode
+	Normal NodeProcessingMode = iota
+
+	// ImportDb means that the node has started in the import-db mode
+	ImportDb
+)
+
+const (
+	// ActiveDBKey is the key at which ActiveDBVal will be saved
+	ActiveDBKey = "activeDB"
+
+	// ActiveDBVal is the value that will be saved at ActiveDBKey
+	ActiveDBVal = "yes"
+)

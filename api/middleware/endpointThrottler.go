@@ -55,4 +55,3 @@ func CreateEndpointThrottlerFromFacade(throttlerName string, facade interface{})
 		c.Next()
 	}
 }
-

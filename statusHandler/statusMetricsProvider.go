@@ -171,6 +171,7 @@ func (sm *statusMetrics) ConfigMetrics() map[string]interface{} {
 	configMetrics[common.MetricRewardsTopUpGradientPoint] = sm.loadStringMetric(common.MetricRewardsTopUpGradientPoint)
 	configMetrics[common.MetricGasPerDataByte] = sm.loadUint64Metric(common.MetricGasPerDataByte)
 	configMetrics[common.MetricChainId] = sm.loadStringMetric(common.MetricChainId)
+	configMetrics[common.MetricMaxGasPerTransaction] = sm.loadUint64Metric(common.MetricMaxGasPerTransaction)
 	configMetrics[common.MetricRoundDuration] = sm.loadUint64Metric(common.MetricRoundDuration)
 	configMetrics[common.MetricStartTime] = sm.loadUint64Metric(common.MetricStartTime)
 	configMetrics[common.MetricLatestTagSoftwareVersion] = sm.loadStringMetric(common.MetricLatestTagSoftwareVersion)

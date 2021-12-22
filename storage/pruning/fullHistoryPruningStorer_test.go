@@ -1,11 +1,21 @@
 package pruning_test
 
 import (
+	"fmt"
+	"io/ioutil"
 	"math"
+	"path/filepath"
+	"sync"
 	"testing"
+	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/random"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
+	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 	"github.com/ElrondNetwork/elrond-go/storage/pruning"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -166,6 +176,64 @@ func TestNewFullHistoryPruningStorer_GetFromEpochShouldSearchAlsoInNext(t *testi
 	assert.Equal(t, testVal, res2)
 }
 
+func TestNewFullHistoryPruningStorer_GetBulkFromEpoch(t *testing.T) {
+	t.Parallel()
+
+	args := getDefaultArgs()
+	fhArgs := &pruning.FullHistoryStorerArgs{
+		StorerArgs:               args,
+		NumOfOldActivePersisters: 5,
+	}
+	fhps, _ := pruning.NewFullHistoryPruningStorer(fhArgs)
+	testVal0, testVal1 := []byte("value0"), []byte("value1")
+	testKey0, testKey1 := []byte("key0"), []byte("key1")
+	testKey2, testVal2 := []byte("key0"), []byte("value0")
+	testEpoch := uint32(7)
+
+	_ = fhps.PutInEpoch(testKey0, testVal0, testEpoch)
+	_ = fhps.PutInEpoch(testKey1, testVal1, testEpoch)
+	_ = fhps.PutInEpoch(testKey2, testVal2, testEpoch)
+
+	res, err := fhps.GetBulkFromEpoch([][]byte{testKey0, testKey1, testKey2}, testEpoch)
+	assert.Nil(t, err)
+
+	expectedMap := map[string][]byte{
+		string(testKey0): testVal0,
+		string(testKey1): testVal1,
+	}
+	assert.Equal(t, expectedMap, res)
+}
+
+func TestNewFullHistoryPruningStorer_GetBulkFromEpochShouldNotLoadFromCache(t *testing.T) {
+	t.Parallel()
+
+	args := getDefaultArgs()
+	fhArgs := &pruning.FullHistoryStorerArgs{
+		StorerArgs:               args,
+		NumOfOldActivePersisters: 5,
+	}
+	fhps, _ := pruning.NewFullHistoryPruningStorer(fhArgs)
+	testVal0, testVal1 := []byte("value0"), []byte("value1")
+	testKey0, testKey1 := []byte("key0"), []byte("key1")
+	testKey2, testVal2 := []byte("key0"), []byte("value0")
+	testEpoch := uint32(7)
+
+	_ = fhps.PutInEpoch(testKey0, testVal0, testEpoch)
+	_ = fhps.PutInEpoch(testKey1, testVal1, testEpoch)
+	_ = fhps.PutInEpoch(testKey2, testVal2, testEpoch)
+
+	fhps.ClearCache()
+
+	res, err := fhps.GetBulkFromEpoch([][]byte{testKey0, testKey1, testKey2}, testEpoch)
+	assert.Nil(t, err)
+
+	expectedMap := map[string][]byte{
+		string(testKey0): testVal0,
+		string(testKey1): testVal1,
+	}
+	assert.Equal(t, expectedMap, res)
+}
+
 func TestFullHistoryPruningStorer_IsEpochActive(t *testing.T) {
 	t.Parallel()
 
@@ -197,4 +265,69 @@ func TestNewFullHistoryShardedPruningStorer_ShouldWork(t *testing.T) {
 
 	require.Nil(t, err)
 	require.NotNil(t, fhps)
+}
+
+func TestFullHistoryPruningStorer_ConcurrentOperations(t *testing.T) {
+	t.Skip("this test should be run only when troubleshooting pruning storer concurrent operations")
+
+	startTime := time.Now()
+
+	_ = logger.SetLogLevel("*:DEBUG")
+	dbName := "db-concurrent-test"
+	testDir, err := ioutil.TempDir("", "")
+	require.NoError(t, err)
+
+	fmt.Println(testDir)
+	args := getDefaultArgs()
+	args.PersisterFactory = factory.NewPersisterFactory(config.DBConfig{
+		FilePath:          filepath.Join(testDir, dbName),
+		Type:              "LvlDBSerial",
+		MaxBatchSize:      100,
+		MaxOpenFiles:      10,
+		BatchDelaySeconds: 2,
+	})
+	args.PathManager, err = pathmanager.NewPathManager(testDir+"/epoch_[E]/shard_[S]/[I]", "shard_[S]/[I]", "db")
+	require.NoError(t, err)
+	fhArgs := &pruning.FullHistoryStorerArgs{
+		StorerArgs:               args,
+		NumOfOldActivePersisters: 2,
+	}
+
+	fhps, _ := pruning.NewFullHistoryPruningStorer(fhArgs)
+	require.NotNil(t, fhps)
+
+	rnd := random.ConcurrentSafeIntRandomizer{}
+	numOperations := 5000
+	wg := sync.WaitGroup{}
+	wg.Add(numOperations)
+	for idx := 0; idx < numOperations; idx++ {
+		go func(index int) {
+			time.Sleep(time.Duration(index) * 1 * time.Millisecond)
+			switch index % 7 {
+			case 0:
+				_ = fhps.ChangeEpochSimple(uint32(index))
+			case 1:
+				_, _ = fhps.GetFromEpoch([]byte("key"), uint32(index-1))
+			case 2:
+				_ = fhps.Put([]byte("key"), []byte("value"))
+			case 3:
+				_, _ = fhps.Get([]byte("key"))
+			case 4:
+				_, _ = fhps.GetFromEpoch([]byte("key"), uint32(rnd.Intn(100)))
+			case 5:
+				_, _ = fhps.GetBulkFromEpoch([][]byte{[]byte("key")}, uint32(rnd.Intn(100)))
+			case 6:
+				epoch := uint32(rnd.Intn(100))
+				err = fhps.ChangeEpochSimple(epoch)
+				require.NoError(t, err)
+			}
+			wg.Done()
+		}(idx)
+	}
+
+	wg.Wait()
+
+	elapsedTime := time.Since(startTime)
+	// if the "resource temporary unavailable" occurs, this test will take longer than this to execute
+	require.True(t, elapsedTime < 100*time.Second)
 }

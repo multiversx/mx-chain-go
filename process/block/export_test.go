@@ -52,7 +52,7 @@ func (sp *shardProcessor) ReceivedMetaBlock(header data.HeaderHandler, metaBlock
 }
 
 func (sp *shardProcessor) CreateMiniBlocks(haveTime func() bool) (*block.Body, error) {
-	return sp.createMiniBlocks(haveTime)
+	return sp.createMiniBlocks(haveTime, []byte("random"))
 }
 
 func (sp *shardProcessor) GetOrderedProcessedMetaBlocksFromHeader(header *block.Header) ([]data.HeaderHandler, error) {
@@ -129,6 +129,8 @@ func NewShardProcessorEmptyWith3shards(
 			Version:            "softwareVersion",
 			HistoryRepository:  &dblookupext.HistoryRepositoryStub{},
 			EpochNotifier:      &mock.EpochNotifierStub{},
+			RoundNotifier:      &mock.RoundNotifierStub{},
+			GasHandler:         &mock.GasHandlerMock{},
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)
@@ -370,6 +372,10 @@ func (sp *shardProcessor) CreateBlockBody(shardHdr *block.Header, haveTime func(
 
 func (sp *shardProcessor) CheckEpochCorrectnessCrossChain() error {
 	return sp.checkEpochCorrectnessCrossChain()
+}
+
+func (sp *shardProcessor) CheckEpochCorrectness(header *block.Header) error {
+	return sp.checkEpochCorrectness(header)
 }
 
 func (sp *shardProcessor) GetBootstrapHeadersInfo(

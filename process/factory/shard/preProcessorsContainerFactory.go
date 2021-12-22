@@ -17,23 +17,26 @@ import (
 var _ process.PreProcessorsContainerFactory = (*preProcessorsContainerFactory)(nil)
 
 type preProcessorsContainerFactory struct {
-	shardCoordinator     sharding.Coordinator
-	store                dataRetriever.StorageService
-	marshalizer          marshal.Marshalizer
-	hasher               hashing.Hasher
-	dataPool             dataRetriever.PoolsHolder
-	pubkeyConverter      core.PubkeyConverter
-	txProcessor          process.TransactionProcessor
-	scProcessor          process.SmartContractProcessor
-	scResultProcessor    process.SmartContractResultProcessor
-	rewardsTxProcessor   process.RewardTransactionProcessor
-	accounts             state.AccountsAdapter
-	requestHandler       process.RequestHandler
-	economicsFee         process.FeeHandler
-	gasHandler           process.GasHandler
-	blockTracker         preprocess.BlockTracker
-	blockSizeComputation preprocess.BlockSizeComputationHandler
-	balanceComputation   preprocess.BalanceComputationHandler
+	shardCoordinator                            sharding.Coordinator
+	store                                       dataRetriever.StorageService
+	marshalizer                                 marshal.Marshalizer
+	hasher                                      hashing.Hasher
+	dataPool                                    dataRetriever.PoolsHolder
+	pubkeyConverter                             core.PubkeyConverter
+	txProcessor                                 process.TransactionProcessor
+	scProcessor                                 process.SmartContractProcessor
+	scResultProcessor                           process.SmartContractResultProcessor
+	rewardsTxProcessor                          process.RewardTransactionProcessor
+	accounts                                    state.AccountsAdapter
+	requestHandler                              process.RequestHandler
+	economicsFee                                process.FeeHandler
+	gasHandler                                  process.GasHandler
+	blockTracker                                preprocess.BlockTracker
+	blockSizeComputation                        preprocess.BlockSizeComputationHandler
+	balanceComputation                          preprocess.BalanceComputationHandler
+	epochNotifier                               process.EpochNotifier
+	optimizeGasUsedInCrossMiniBlocksEnableEpoch uint32
+	frontRunningProtectionEnableEpoch           uint32
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -55,6 +58,9 @@ func NewPreProcessorsContainerFactory(
 	blockTracker preprocess.BlockTracker,
 	blockSizeComputation preprocess.BlockSizeComputationHandler,
 	balanceComputation preprocess.BalanceComputationHandler,
+	epochNotifier process.EpochNotifier,
+	optimizeGasUsedInCrossMiniBlocksEnableEpoch uint32,
+	frontRunningProtectionEnableEpoch uint32,
 ) (*preProcessorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -108,6 +114,9 @@ func NewPreProcessorsContainerFactory(
 	if check.IfNil(balanceComputation) {
 		return nil, process.ErrNilBalanceComputationHandler
 	}
+	if check.IfNil(epochNotifier) {
+		return nil, process.ErrNilEpochNotifier
+	}
 
 	return &preProcessorsContainerFactory{
 		shardCoordinator:     shardCoordinator,
@@ -127,6 +136,9 @@ func NewPreProcessorsContainerFactory(
 		blockTracker:         blockTracker,
 		blockSizeComputation: blockSizeComputation,
 		balanceComputation:   balanceComputation,
+		epochNotifier:        epochNotifier,
+		optimizeGasUsedInCrossMiniBlocksEnableEpoch: optimizeGasUsedInCrossMiniBlocksEnableEpoch,
+		frontRunningProtectionEnableEpoch:           frontRunningProtectionEnableEpoch,
 	}, nil
 }
 
@@ -178,23 +190,28 @@ func (ppcm *preProcessorsContainerFactory) Create() (process.PreProcessorsContai
 }
 
 func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PreProcessor, error) {
-	txPreprocessor, err := preprocess.NewTransactionPreprocessor(
-		ppcm.dataPool.Transactions(),
-		ppcm.store,
-		ppcm.hasher,
-		ppcm.marshalizer,
-		ppcm.txProcessor,
-		ppcm.shardCoordinator,
-		ppcm.accounts,
-		ppcm.requestHandler.RequestTransaction,
-		ppcm.economicsFee,
-		ppcm.gasHandler,
-		ppcm.blockTracker,
-		block.TxBlock,
-		ppcm.pubkeyConverter,
-		ppcm.blockSizeComputation,
-		ppcm.balanceComputation,
-	)
+	args := preprocess.ArgsTransactionPreProcessor{
+		TxDataPool:           ppcm.dataPool.Transactions(),
+		Store:                ppcm.store,
+		Hasher:               ppcm.hasher,
+		Marshalizer:          ppcm.marshalizer,
+		TxProcessor:          ppcm.txProcessor,
+		ShardCoordinator:     ppcm.shardCoordinator,
+		Accounts:             ppcm.accounts,
+		OnRequestTransaction: ppcm.requestHandler.RequestTransaction,
+		EconomicsFee:         ppcm.economicsFee,
+		GasHandler:           ppcm.gasHandler,
+		BlockTracker:         ppcm.blockTracker,
+		BlockType:            block.TxBlock,
+		PubkeyConverter:      ppcm.pubkeyConverter,
+		BlockSizeComputation: ppcm.blockSizeComputation,
+		BalanceComputation:   ppcm.balanceComputation,
+		EpochNotifier:        ppcm.epochNotifier,
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: ppcm.optimizeGasUsedInCrossMiniBlocksEnableEpoch,
+		FrontRunningProtectionEnableEpoch:           ppcm.frontRunningProtectionEnableEpoch,
+	}
+
+	txPreprocessor, err := preprocess.NewTransactionPreprocessor(args)
 
 	return txPreprocessor, err
 }
@@ -214,6 +231,8 @@ func (ppcm *preProcessorsContainerFactory) createSmartContractResultPreProcessor
 		ppcm.pubkeyConverter,
 		ppcm.blockSizeComputation,
 		ppcm.balanceComputation,
+		ppcm.epochNotifier,
+		ppcm.optimizeGasUsedInCrossMiniBlocksEnableEpoch,
 	)
 
 	return scrPreprocessor, err

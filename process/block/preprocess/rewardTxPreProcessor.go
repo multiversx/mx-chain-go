@@ -207,6 +207,7 @@ func (rtp *rewardTxPreprocessor) RestoreBlockDataIntoPools(
 func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 	body *block.Body,
 	haveTime func() bool,
+	_ []byte,
 ) error {
 	if check.IfNil(body) {
 		return process.ErrNilBlockBody
@@ -415,6 +416,7 @@ func (rtp *rewardTxPreprocessor) getAllRewardTxsFromMiniBlock(
 // as long as it has time
 func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlocks(
 	_ func() bool,
+	_ []byte,
 ) (block.MiniBlockSlice, error) {
 	// rewards are created only by meta
 	return make(block.MiniBlockSlice, 0), nil
@@ -446,14 +448,14 @@ func (rtp *rewardTxPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 			return processedTxHashes, index, process.ErrTimeIsOut
 		}
 
+		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[index])
+
 		rtp.saveAccountBalanceForAddress(miniBlockRewardTxs[index].GetRcvAddr())
 
 		err = rtp.rewardsProcessor.ProcessRewardTransaction(miniBlockRewardTxs[index])
 		if err != nil {
 			return processedTxHashes, index, err
 		}
-
-		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[index])
 	}
 
 	txShardData := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}

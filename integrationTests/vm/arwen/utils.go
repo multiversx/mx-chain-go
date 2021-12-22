@@ -37,7 +37,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/process/sync/disabled"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -87,7 +89,7 @@ type TestContext struct {
 	UnsignexTxHandler process.TransactionFeeHandler
 	EconomicsFee      process.FeeHandler
 	LastConsumedFee   uint64
-	ArwenChangeLocker process.Locker
+	ArwenChangeLocker common.Locker
 
 	ScAddress        []byte
 	ScCodeMetadata   vmcommon.CodeMetadata
@@ -145,6 +147,7 @@ func SetupTestContext(t *testing.T) *TestContext {
 		BlockChainHook:    context.BlockchainHook,
 		BlockChain:        &mock.BlockChainMock{},
 		ArwenChangeLocker: &sync.RWMutex{},
+		Bootstrapper:      disabled.NewDisabledBootstrapper(),
 	}
 	context.QueryService, _ = smartContract.NewSCQueryService(argsNewSCQueryService)
 
@@ -195,12 +198,19 @@ func (context *TestContext) initFeeHandlers() {
 				},
 			},
 			FeeSettings: config.FeeSettings{
-				MaxGasLimitPerBlock:     maxGasLimitPerBlock,
-				MaxGasLimitPerMetaBlock: maxGasLimitPerBlock,
-				MinGasPrice:             minGasPrice,
-				MinGasLimit:             minGasLimit,
-				GasPerDataByte:          "1",
-				GasPriceModifier:        1.0,
+				GasLimitSettings: []config.GasLimitSetting{
+					{
+						MaxGasLimitPerBlock:         maxGasLimitPerBlock,
+						MaxGasLimitPerMiniBlock:     maxGasLimitPerBlock,
+						MaxGasLimitPerMetaBlock:     maxGasLimitPerBlock,
+						MaxGasLimitPerMetaMiniBlock: maxGasLimitPerBlock,
+						MaxGasLimitPerTx:            maxGasLimitPerBlock,
+						MinGasLimit:                 minGasLimit,
+					},
+				},
+				MinGasPrice:      minGasPrice,
+				GasPerDataByte:   "1",
+				GasPriceModifier: 1.0,
 			},
 		},
 		PenalizedTooMuchGasEnableEpoch: 0,
@@ -221,7 +231,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		ShardCoordinator: oneShardCoordinator,
 		EpochNotifier:    context.EpochNotifier,
 	}
-	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	builtInFuncs, nftStorageHandler, err := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 	require.Nil(context.T, err)
 
 	blockchainMock := &mock.BlockChainMock{}
@@ -236,8 +246,10 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		Marshalizer:        marshalizer,
 		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
 		BuiltInFunctions:   builtInFuncs,
+		NFTStorageHandler:  nftStorageHandler,
 		DataPool:           datapool,
 		CompiledSCPool:     datapool.SmartContracts(),
+		EpochNotifier:      context.EpochNotifier,
 		NilCompiledSCStore: true,
 		ConfigSCStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
@@ -298,6 +310,8 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 	gasSchedule := make(map[string]map[string]uint64)
 	defaults.FillGasMapInternal(gasSchedule, 1)
 
+	argsLogProcessor := transactionLog.ArgTxLogProcessor{Marshalizer: marshalizer}
+	logsProcessor, _ := transactionLog.NewTxLogProcessor(argsLogProcessor)
 	context.SCRForwarder = &mock.IntermediateTransactionHandlerMock{}
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:      context.VMContainer,
@@ -306,6 +320,7 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		Marshalizer:      marshalizer,
 		AccountsDB:       context.Accounts,
 		BlockChainHook:   context.BlockchainHook,
+		BuiltInFunctions: context.BlockchainHook.GetBuiltinFunctionsContainer(),
 		PubkeyConv:       pkConverter,
 		ShardCoordinator: oneShardCoordinator,
 		ScrForwarder:     context.SCRForwarder,
@@ -317,7 +332,7 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 		GasSchedule:       mock.NewGasScheduleNotifierMock(gasSchedule),
-		TxLogsProcessor:   &mock.TxLogsProcessorStub{},
+		TxLogsProcessor:   logsProcessor,
 		EpochNotifier:     forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker: context.ArwenChangeLocker,
 		VMOutputCacher:    txcache.NewDisabledCache(),

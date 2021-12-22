@@ -2810,6 +2810,59 @@ func TestDelegation_ExecuteClaimRewards(t *testing.T) {
 	assert.Equal(t, big.NewInt(0).SetBytes(lastValue).Uint64(), uint64(180))
 }
 
+func TestDelegation_ExecuteClaimRewardsShouldDeleteDelegator(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForDelegation()
+	blockChainHook := &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return 10
+		},
+	}
+	eei, _ := NewVMContext(
+		blockChainHook,
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&stateMock.AccountsStub{},
+		&mock.RaterMock{},
+	)
+	args.Eei = eei
+
+	args.DelegationSCConfig.MaxServiceFee = 10000
+	vmInput := getDefaultVmInputForFunc("claimRewards", [][]byte{})
+	d, _ := NewDelegationSystemSC(args)
+
+	_ = d.saveDelegatorData(vmInput.CallerAddr, &DelegatorData{
+		ActiveFund:            nil,
+		RewardsCheckpoint:     0,
+		UnClaimedRewards:      big.NewInt(135),
+		TotalCumulatedRewards: big.NewInt(0),
+	})
+
+	_ = d.saveDelegationStatus(&DelegationContractStatus{
+		NumUsers: 10,
+	})
+
+	output := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	destAcc, exists := eei.outputAccounts[string(vmInput.CallerAddr)]
+	assert.True(t, exists)
+	_, exists = eei.outputAccounts[string(vmInput.RecipientAddr)]
+	assert.True(t, exists)
+
+	assert.Equal(t, 1, len(destAcc.OutputTransfers))
+	outputTransfer := destAcc.OutputTransfers[0]
+	assert.Equal(t, big.NewInt(135), outputTransfer.Value)
+
+	vmInput = getDefaultVmInputForFunc("getTotalCumulatedRewardsForUser", [][]byte{vmInput.CallerAddr})
+	output = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+
+	res := d.eei.GetStorage(vmInput.CallerAddr)
+	require.Len(t, res, 0)
+}
+
 func TestDelegation_ExecuteReDelegateRewardsNoExtraCheck(t *testing.T) {
 	t.Parallel()
 

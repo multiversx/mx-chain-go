@@ -33,6 +33,9 @@ var _ process.PreProcessor = (*transactions)(nil)
 
 var log = logger.GetOrCreate("process/block/preprocess")
 
+// 200% bandwidth to allow also 100% overshooting estimations
+const selectionGasBandwidthIncrease = 2
+
 // TODO: increase code coverage with unit test
 
 type transactions struct {
@@ -53,88 +56,100 @@ type transactions struct {
 	emptyAddress         []byte
 }
 
+// ArgsTransactionPreProcessor holds the arguments to create a txs pre processor
+type ArgsTransactionPreProcessor struct {
+	TxDataPool                                  dataRetriever.ShardedDataCacherNotifier
+	Store                                       dataRetriever.StorageService
+	Hasher                                      hashing.Hasher
+	Marshalizer                                 marshal.Marshalizer
+	TxProcessor                                 process.TransactionProcessor
+	ShardCoordinator                            sharding.Coordinator
+	Accounts                                    state.AccountsAdapter
+	OnRequestTransaction                        func(shardID uint32, txHashes [][]byte)
+	EconomicsFee                                process.FeeHandler
+	GasHandler                                  process.GasHandler
+	BlockTracker                                BlockTracker
+	BlockType                                   block.Type
+	PubkeyConverter                             core.PubkeyConverter
+	BlockSizeComputation                        BlockSizeComputationHandler
+	BalanceComputation                          BalanceComputationHandler
+	EpochNotifier                               process.EpochNotifier
+	OptimizeGasUsedInCrossMiniBlocksEnableEpoch uint32
+	FrontRunningProtectionEnableEpoch           uint32
+}
+
 // NewTransactionPreprocessor creates a new transaction preprocessor object
 func NewTransactionPreprocessor(
-	txDataPool dataRetriever.ShardedDataCacherNotifier,
-	store dataRetriever.StorageService,
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-	txProcessor process.TransactionProcessor,
-	shardCoordinator sharding.Coordinator,
-	accounts state.AccountsAdapter,
-	onRequestTransaction func(shardID uint32, txHashes [][]byte),
-	economicsFee process.FeeHandler,
-	gasHandler process.GasHandler,
-	blockTracker BlockTracker,
-	blockType block.Type,
-	pubkeyConverter core.PubkeyConverter,
-	blockSizeComputation BlockSizeComputationHandler,
-	balanceComputation BalanceComputationHandler,
+	args ArgsTransactionPreProcessor,
 ) (*transactions, error) {
-
-	if check.IfNil(hasher) {
+	if check.IfNil(args.Hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if check.IfNil(marshalizer) {
+	if check.IfNil(args.Marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if check.IfNil(txDataPool) {
+	if check.IfNil(args.TxDataPool) {
 		return nil, process.ErrNilTransactionPool
 	}
-	if check.IfNil(store) {
+	if check.IfNil(args.Store) {
 		return nil, process.ErrNilTxStorage
 	}
-	if check.IfNil(txProcessor) {
+	if check.IfNil(args.TxProcessor) {
 		return nil, process.ErrNilTxProcessor
 	}
-	if check.IfNil(shardCoordinator) {
+	if check.IfNil(args.ShardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if check.IfNil(accounts) {
+	if check.IfNil(args.Accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if onRequestTransaction == nil {
+	if args.OnRequestTransaction == nil {
 		return nil, process.ErrNilRequestHandler
 	}
-	if check.IfNil(economicsFee) {
+	if check.IfNil(args.EconomicsFee) {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
-	if check.IfNil(gasHandler) {
+	if check.IfNil(args.GasHandler) {
 		return nil, process.ErrNilGasHandler
 	}
-	if check.IfNil(blockTracker) {
+	if check.IfNil(args.BlockTracker) {
 		return nil, process.ErrNilBlockTracker
 	}
-	if check.IfNil(pubkeyConverter) {
+	if check.IfNil(args.PubkeyConverter) {
 		return nil, process.ErrNilPubkeyConverter
 	}
-	if check.IfNil(blockSizeComputation) {
+	if check.IfNil(args.BlockSizeComputation) {
 		return nil, process.ErrNilBlockSizeComputationHandler
 	}
-	if check.IfNil(balanceComputation) {
+	if check.IfNil(args.BalanceComputation) {
 		return nil, process.ErrNilBalanceComputationHandler
+	}
+	if check.IfNil(args.EpochNotifier) {
+		return nil, process.ErrNilEpochNotifier
 	}
 
 	bpp := basePreProcess{
-		hasher:               hasher,
-		marshalizer:          marshalizer,
-		shardCoordinator:     shardCoordinator,
-		gasHandler:           gasHandler,
-		economicsFee:         economicsFee,
-		blockSizeComputation: blockSizeComputation,
-		balanceComputation:   balanceComputation,
-		accounts:             accounts,
-		pubkeyConverter:      pubkeyConverter,
+		hasher:               args.Hasher,
+		marshalizer:          args.Marshalizer,
+		shardCoordinator:     args.ShardCoordinator,
+		gasHandler:           args.GasHandler,
+		economicsFee:         args.EconomicsFee,
+		blockSizeComputation: args.BlockSizeComputation,
+		balanceComputation:   args.BalanceComputation,
+		accounts:             args.Accounts,
+		pubkeyConverter:      args.PubkeyConverter,
+		optimizeGasUsedInCrossMiniBlocksEnableEpoch: args.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
+		frontRunningProtectionEnableEpoch:           args.FrontRunningProtectionEnableEpoch,
 	}
 
-	txs := transactions{
+	txs := &transactions{
 		basePreProcess:       &bpp,
-		storage:              store,
-		txPool:               txDataPool,
-		onRequestTransaction: onRequestTransaction,
-		txProcessor:          txProcessor,
-		blockTracker:         blockTracker,
-		blockType:            blockType,
+		storage:              args.Store,
+		txPool:               args.TxDataPool,
+		onRequestTransaction: args.OnRequestTransaction,
+		txProcessor:          args.TxProcessor,
+		blockTracker:         args.BlockTracker,
+		blockType:            args.BlockType,
 	}
 
 	txs.chRcvAllTxs = make(chan bool)
@@ -147,7 +162,12 @@ func NewTransactionPreprocessor(
 
 	txs.emptyAddress = make([]byte, txs.pubkeyConverter.Len())
 
-	return &txs, nil
+	log.Debug("transactions: enable epoch for optimize gas used in cross shard mini blocks", "epoch", txs.optimizeGasUsedInCrossMiniBlocksEnableEpoch)
+	log.Debug("transactions: enable epoch for front running protection", "epoch", txs.frontRunningProtectionEnableEpoch)
+
+	args.EpochNotifier.RegisterNotifyHandler(txs)
+
+	return txs, nil
 }
 
 // waitForTxHashes waits for a call whether all the requested transactions appeared
@@ -229,8 +249,6 @@ func (txs *transactions) RestoreBlockDataIntoPools(
 			txs.txPool.AddData([]byte(txHash), &tx, tx.Size(), strCache)
 		}
 
-		//TODO: Should be analyzed if restoring into pool only cross-shard miniblocks with destination in self shard,
-		//would create problems or not
 		if miniBlock.SenderShardID != txs.shardCoordinator.SelfId() {
 			miniBlockHash, errHash := core.CalculateHash(txs.marshalizer, txs.hasher, miniBlock)
 			if errHash != nil {
@@ -250,14 +268,14 @@ func (txs *transactions) RestoreBlockDataIntoPools(
 func (txs *transactions) ProcessBlockTransactions(
 	body *block.Body,
 	haveTime func() bool,
+	randomness []byte,
 ) error {
-
 	if txs.isBodyToMe(body) {
 		return txs.processTxsToMe(body, haveTime)
 	}
 
 	if txs.isBodyFromMe(body) {
-		return txs.processTxsFromMe(body, haveTime)
+		return txs.processTxsFromMe(body, haveTime, randomness)
 	}
 
 	return process.ErrInvalidBody
@@ -382,9 +400,13 @@ func (txs *transactions) processTxsToMe(
 
 	gasConsumedByMiniBlockInSenderShard := uint64(0)
 	gasConsumedByMiniBlockInReceiverShard := uint64(0)
-	totalGasConsumedInSelfShard := txs.gasHandler.TotalGasConsumed()
+	totalGasConsumedInSelfShard := txs.getTotalGasConsumed()
 
-	log.Trace("processTxsToMe", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
+	log.Debug("processTxsToMe", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
+	defer func() {
+		log.Debug("processTxsToMe after processing", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard,
+			"gasConsumedByMiniBlockInReceiverShard", gasConsumedByMiniBlockInReceiverShard)
+	}()
 
 	for index := range txsToMe {
 		if !haveTime() {
@@ -400,6 +422,19 @@ func (txs *transactions) processTxsToMe(
 		senderShardID := txsToMe[index].SenderShardID
 		receiverShardID := txsToMe[index].ReceiverShardID
 
+		err = txs.computeGasConsumed(
+			senderShardID,
+			receiverShardID,
+			tx,
+			txHash,
+			&gasConsumedByMiniBlockInSenderShard,
+			&gasConsumedByMiniBlockInReceiverShard,
+			&totalGasConsumedInSelfShard,
+		)
+		if err != nil {
+			return err
+		}
+
 		txs.saveAccountBalanceForAddress(tx.GetRcvAddr())
 
 		err = txs.processAndRemoveBadTransaction(
@@ -411,17 +446,7 @@ func (txs *transactions) processTxsToMe(
 			return err
 		}
 
-		err = txs.computeGasConsumed(
-			senderShardID,
-			receiverShardID,
-			tx,
-			txHash,
-			&gasConsumedByMiniBlockInSenderShard,
-			&gasConsumedByMiniBlockInReceiverShard,
-			&totalGasConsumedInSelfShard)
-		if err != nil {
-			return err
-		}
+		txs.updateGasConsumedWithGasRefundedAndGasPenalized(txHash, &gasConsumedByMiniBlockInReceiverShard, &totalGasConsumedInSelfShard)
 	}
 
 	return nil
@@ -430,6 +455,7 @@ func (txs *transactions) processTxsToMe(
 func (txs *transactions) processTxsFromMe(
 	body *block.Body,
 	haveTime func() bool,
+	randomness []byte,
 ) error {
 	if check.IfNil(body) {
 		return process.ErrNilBlockBody
@@ -440,7 +466,7 @@ func (txs *transactions) processTxsFromMe(
 		return err
 	}
 
-	SortTransactionsBySenderAndNonce(txsFromMe)
+	txs.sortTransactionsBySenderAndNonce(txsFromMe, randomness)
 
 	isShardStuckFalse := func(uint32) bool {
 		return false
@@ -717,11 +743,25 @@ func (txs *transactions) getAllTxsFromMiniBlock(
 	return txsSlice, txHashes, nil
 }
 
-// CreateAndProcessMiniBlocks creates miniblocks from storage and processes the transactions added into the miniblocks
+func (txs *transactions) getRemainingGasPerBlock() uint64 {
+	gasConsumed := txs.getTotalGasConsumed()
+	maxGasPerBlock := txs.economicsFee.MaxGasLimitPerBlock(txs.shardCoordinator.SelfId())
+	gasBandwidth := uint64(0)
+	if gasConsumed < maxGasPerBlock {
+		gasBandwidth = maxGasPerBlock - gasConsumed
+	}
+	return gasBandwidth
+}
+
+// CreateAndProcessMiniBlocks creates miniBlocks from storage and processes the transactions added into the miniblocks
 // as long as it has time
-func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool) (block.MiniBlockSlice, error) {
+// TODO: check if possible for transaction pre processor to receive a blockChainHook and use it to get the randomness instead
+func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, randomness []byte) (block.MiniBlockSlice, error) {
 	startTime := time.Now()
-	sortedTxs, err := txs.computeSortedTxs(txs.shardCoordinator.SelfId(), txs.shardCoordinator.SelfId())
+
+	gasBandwidth := txs.getRemainingGasPerBlock() * selectionGasBandwidthIncrease
+
+	sortedTxs, err := txs.computeSortedTxs(txs.shardCoordinator.SelfId(), txs.shardCoordinator.SelfId(), gasBandwidth, randomness)
 	elapsedTime := time.Since(startTime)
 	if err != nil {
 		log.Debug("computeSortedTxs", "error", err.Error())
@@ -784,6 +824,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 	numTxsFailed := 0
 	numTxsWithInitialBalanceConsumed := 0
 	numCrossShardScCallsOrSpecialTxs := 0
+	numCrossShardTxsWithTooMuchGas := 0
 
 	totalTimeUsedForProcesss := time.Duration(0)
 	totalTimeUsedForComputeGasConsumed := time.Duration(0)
@@ -793,7 +834,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 
 	gasConsumedByMiniBlocksInSenderShard := uint64(0)
 	mapGasConsumedByMiniBlockInReceiverShard := make(map[uint32]uint64)
-	totalGasConsumedInSelfShard := txs.gasHandler.TotalGasConsumed()
+	totalGasConsumedInSelfShard := txs.getTotalGasConsumed()
 
 	log.Debug("createAndProcessMiniBlocksFromMe", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
 
@@ -856,7 +897,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 			break
 		}
 
-		if isShardStuck != nil && isShardStuck(receiverShardID) {
+		if senderShardID != receiverShardID && isShardStuck != nil && isShardStuck(receiverShardID) {
 			log.Trace("shard is stuck", "shard", receiverShardID)
 			continue
 		}
@@ -901,6 +942,12 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 		totalTimeUsedForComputeGasConsumed += elapsedTime
 		if err != nil {
 			log.Trace("createAndProcessMiniBlocksFromMe.computeGasConsumed", "error", err)
+			isTxTargetedForDeletion := errors.Is(err, process.ErrMaxGasLimitPerOneTxInReceiverShardIsReached)
+			if isTxTargetedForDeletion {
+				numCrossShardTxsWithTooMuchGas++
+				strCache := process.ShardCacherIdentifier(senderShardID, receiverShardID)
+				txs.txPool.RemoveData(txHash, strCache)
+			}
 			continue
 		}
 
@@ -939,6 +986,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 
 			txs.gasHandler.RemoveGasConsumed([][]byte{txHash})
 			txs.gasHandler.RemoveGasRefunded([][]byte{txHash})
+			txs.gasHandler.RemoveGasPenalized([][]byte{txHash})
 
 			gasConsumedByMiniBlocksInSenderShard = oldGasConsumedByMiniBlocksInSenderShard
 			mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] = oldGasConsumedByMiniBlockInReceiverShard
@@ -948,11 +996,18 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 
 		senderAddressToSkip = []byte("")
 
-		gasRefunded := txs.gasHandler.GasRefunded(txHash)
 		if senderShardID == receiverShardID {
-			gasConsumedByMiniBlocksInSenderShard -= gasRefunded
-			totalGasConsumedInSelfShard -= gasRefunded
-			mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] -= gasRefunded
+			gasRefunded := txs.gasHandler.GasRefunded(txHash)
+			gasPenalized := txs.gasHandler.GasPenalized(txHash)
+			gasToBeSubtracted := gasRefunded + gasPenalized
+			shouldDoTheSubtraction := gasToBeSubtracted <= gasConsumedByMiniBlocksInSenderShard &&
+				gasToBeSubtracted <= totalGasConsumedInSelfShard &&
+				gasToBeSubtracted <= mapGasConsumedByMiniBlockInReceiverShard[receiverShardID]
+			if shouldDoTheSubtraction {
+				gasConsumedByMiniBlocksInSenderShard -= gasToBeSubtracted
+				totalGasConsumedInSelfShard -= gasToBeSubtracted
+				mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] -= gasToBeSubtracted
+			}
 		}
 
 		if errors.Is(err, process.ErrFailedTransaction) {
@@ -1018,6 +1073,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 		"num txs skipped", numTxsSkipped,
 		"num txs with initial balance consumed", numTxsWithInitialBalanceConsumed,
 		"num cross shard sc calls or special txs", numCrossShardScCallsOrSpecialTxs,
+		"num cross shard txs with too much gas", numCrossShardTxsWithTooMuchGas,
 		"used time for computeGasConsumed", totalTimeUsedForComputeGasConsumed,
 		"used time for processAndRemoveBadTransaction", totalTimeUsedForProcesss)
 
@@ -1057,12 +1113,95 @@ func (txs *transactions) getMiniBlockSliceFromMap(mapMiniBlocks map[uint32]*bloc
 		}
 	}
 
-	return miniBlocks
+	return txs.splitMiniBlocksIfNeeded(miniBlocks)
+}
+
+func (txs *transactions) splitMiniBlocksIfNeeded(miniBlocks block.MiniBlockSlice) block.MiniBlockSlice {
+	if !txs.flagOptimizeGasUsedInCrossMiniBlocks.IsSet() {
+		return miniBlocks
+	}
+
+	splitMiniBlocks := make(block.MiniBlockSlice, 0)
+	for _, miniBlock := range miniBlocks {
+		if miniBlock.ReceiverShardID == txs.shardCoordinator.SelfId() {
+			splitMiniBlocks = append(splitMiniBlocks, miniBlock)
+			continue
+		}
+
+		splitMiniBlocks = append(splitMiniBlocks, txs.splitMiniBlockIfNeeded(miniBlock)...)
+	}
+
+	return splitMiniBlocks
+}
+
+func (txs *transactions) splitMiniBlockIfNeeded(miniBlock *block.MiniBlock) block.MiniBlockSlice {
+	splitMiniBlocks := make(block.MiniBlockSlice, 0)
+	currentMiniBlock := createEmptyMiniBlock(miniBlock)
+	gasLimitInReceiverShard := uint64(0)
+
+	for _, txHash := range miniBlock.TxHashes {
+		txInfo, ok := txs.txsForCurrBlock.txHashAndInfo[string(txHash)]
+		if !ok {
+			log.Warn("transactions.splitMiniBlockIfNeeded: missing tx", "hash", txHash)
+			currentMiniBlock.TxHashes = append(currentMiniBlock.TxHashes, txHash)
+			continue
+		}
+
+		_, gasConsumedByTxInReceiverShard, err := txs.computeGasConsumedByTx(
+			miniBlock.SenderShardID,
+			miniBlock.ReceiverShardID,
+			txInfo.tx,
+			txHash)
+		if err != nil {
+			log.Warn("transactions.splitMiniBlockIfNeeded: failed to compute gas consumed by tx", "hash", txHash, "error", err.Error())
+			currentMiniBlock.TxHashes = append(currentMiniBlock.TxHashes, txHash)
+			continue
+		}
+
+		isGasLimitExceeded := gasLimitInReceiverShard+gasConsumedByTxInReceiverShard > txs.economicsFee.MaxGasLimitPerMiniBlockForSafeCrossShard()
+		if isGasLimitExceeded {
+			log.Debug("transactions.splitMiniBlockIfNeeded: gas limit exceeded",
+				"mb type", currentMiniBlock.Type,
+				"sender shard", currentMiniBlock.SenderShardID,
+				"receiver shard", currentMiniBlock.ReceiverShardID,
+				"initial num txs", len(miniBlock.TxHashes),
+				"adjusted num txs", len(currentMiniBlock.TxHashes),
+			)
+
+			if len(currentMiniBlock.TxHashes) > 0 {
+				splitMiniBlocks = append(splitMiniBlocks, currentMiniBlock)
+			}
+
+			currentMiniBlock = createEmptyMiniBlock(miniBlock)
+			gasLimitInReceiverShard = 0
+		}
+
+		gasLimitInReceiverShard += gasConsumedByTxInReceiverShard
+		currentMiniBlock.TxHashes = append(currentMiniBlock.TxHashes, txHash)
+	}
+
+	if len(currentMiniBlock.TxHashes) > 0 {
+		splitMiniBlocks = append(splitMiniBlocks, currentMiniBlock)
+	}
+
+	return splitMiniBlocks
+}
+
+func createEmptyMiniBlock(miniBlock *block.MiniBlock) *block.MiniBlock {
+	return &block.MiniBlock{
+		SenderShardID:   miniBlock.SenderShardID,
+		ReceiverShardID: miniBlock.ReceiverShardID,
+		Type:            miniBlock.Type,
+		Reserved:        miniBlock.Reserved,
+		TxHashes:        make([][]byte, 0),
+	}
 }
 
 func (txs *transactions) computeSortedTxs(
 	sndShardId uint32,
 	dstShardId uint32,
+	gasBandwidth uint64,
+	randomness []byte,
 ) ([]*txcache.WrappedTransaction, error) {
 	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 	txShardPool := txs.txPool.ShardDataStore(strCache)
@@ -1075,8 +1214,11 @@ func (txs *transactions) computeSortedTxs(
 	log.Debug("computeSortedTxs.GetSortedTransactions")
 	sortedTxs := sortedTransactionsProvider.GetSortedTransactions()
 
-	SortTransactionsBySenderAndNonce(sortedTxs)
-	return sortedTxs, nil
+	// TODO: this could be moved to SortedTransactionsProvider
+	selectedTxs := txs.preFilterTransactions(sortedTxs, gasBandwidth)
+	txs.sortTransactionsBySenderAndNonce(selectedTxs, randomness)
+
+	return selectedTxs, nil
 }
 
 // ProcessMiniBlock processes all the transactions from a and saves the processed transactions in local cache complete miniblock
@@ -1105,19 +1247,23 @@ func (txs *transactions) ProcessMiniBlock(
 		if err != nil {
 			txs.gasHandler.RemoveGasConsumed(processedTxHashes)
 			txs.gasHandler.RemoveGasRefunded(processedTxHashes)
+			txs.gasHandler.RemoveGasPenalized(processedTxHashes)
 		}
 	}()
 
 	gasConsumedByMiniBlockInSenderShard := uint64(0)
 	gasConsumedByMiniBlockInReceiverShard := uint64(0)
-	totalGasConsumedInSelfShard := txs.gasHandler.TotalGasConsumed()
+	totalGasConsumedInSelfShard := txs.getTotalGasConsumed()
+	maxGasLimitUsedForDestMeTxs := txs.economicsFee.MaxGasLimitPerBlock(txs.shardCoordinator.SelfId()) * maxGasLimitPercentUsedForDestMeTxs / 100
 
 	log.Trace("transactions.ProcessMiniBlock", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
+
+	numOfOldCrossInterMbs, numOfOldCrossInterTxs := getNumOfCrossInterMbsAndTxs()
 
 	for index := range miniBlockTxs {
 		if !haveTime() {
 			err = process.ErrTimeIsOut
-			return processedTxHashes, 0, err
+			return processedTxHashes, index, err
 		}
 
 		err = txs.computeGasConsumed(
@@ -1128,19 +1274,18 @@ func (txs *transactions) ProcessMiniBlock(
 			&gasConsumedByMiniBlockInSenderShard,
 			&gasConsumedByMiniBlockInReceiverShard,
 			&totalGasConsumedInSelfShard)
+
 		if err != nil {
-			return processedTxHashes, 0, err
+			return processedTxHashes, index, err
 		}
 
 		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[index])
-	}
 
-	numOfOldCrossInterMbs, numOfOldCrossInterTxs := getNumOfCrossInterMbsAndTxs()
-
-	for index := range miniBlockTxs {
-		if !haveTime() {
-			err = process.ErrTimeIsOut
-			return processedTxHashes, index, err
+		if txs.flagOptimizeGasUsedInCrossMiniBlocks.IsSet() {
+			if totalGasConsumedInSelfShard > maxGasLimitUsedForDestMeTxs {
+				err = process.ErrMaxGasLimitUsedForDestMeTxsIsReached
+				return processedTxHashes, index, err
+			}
 		}
 
 		txs.saveAccountBalanceForAddress(miniBlockTxs[index].GetRcvAddr())
@@ -1149,6 +1294,8 @@ func (txs *transactions) ProcessMiniBlock(
 		if err != nil {
 			return processedTxHashes, index, err
 		}
+
+		txs.updateGasConsumedWithGasRefundedAndGasPenalized(miniBlockTxHashes[index], &gasConsumedByMiniBlockInReceiverShard, &totalGasConsumedInSelfShard)
 	}
 
 	numOfCrtCrossInterMbs, numOfCrtCrossInterTxs := getNumOfCrossInterMbsAndTxs()
@@ -1209,8 +1356,41 @@ func (txs *transactions) IsInterfaceNil() bool {
 	return txs == nil
 }
 
-// SortTransactionsBySenderAndNonce sorts the provided transactions and hashes simultaneously
-func SortTransactionsBySenderAndNonce(transactions []*txcache.WrappedTransaction) {
+// sortTransactionsBySenderAndNonce sorts the provided transactions and hashes simultaneously
+func (txs *transactions) sortTransactionsBySenderAndNonce(transactions []*txcache.WrappedTransaction, randomness []byte) {
+	if !txs.flagFrontRunningProtection.IsSet() {
+		sortTransactionsBySenderAndNonceLegacy(transactions)
+		return
+	}
+
+	txs.sortTransactionsBySenderAndNonceWithFrontRunningProtection(transactions, randomness)
+}
+
+func (txs *transactions) sortTransactionsBySenderAndNonceWithFrontRunningProtection(transactions []*txcache.WrappedTransaction, randomness []byte) {
+	// make sure randomness is 32bytes and uniform
+	randSeed := txs.hasher.Compute(string(randomness))
+	xoredAddresses := make(map[string][]byte)
+
+	for _, tx := range transactions {
+		xoredAddresses[string(tx.Tx.GetSndAddr())] = xorBytes(tx.Tx.GetSndAddr(), randSeed)
+	}
+
+	sorter := func(i, j int) bool {
+		txI := transactions[i].Tx
+		txJ := transactions[j].Tx
+
+		delta := bytes.Compare(xoredAddresses[string(txI.GetSndAddr())], xoredAddresses[string(txJ.GetSndAddr())])
+		if delta == 0 {
+			delta = int(txI.GetNonce()) - int(txJ.GetNonce())
+		}
+
+		return delta < 0
+	}
+
+	sort.Slice(transactions, sorter)
+}
+
+func sortTransactionsBySenderAndNonceLegacy(transactions []*txcache.WrappedTransaction) {
 	sorter := func(i, j int) bool {
 		txI := transactions[i].Tx
 		txJ := transactions[j].Tx
@@ -1224,6 +1404,68 @@ func SortTransactionsBySenderAndNonce(transactions []*txcache.WrappedTransaction
 	}
 
 	sort.Slice(transactions, sorter)
+}
+
+// parameters need to be of the same len, otherwise it will panic (if second slice shorter)
+func xorBytes(a, b []byte) []byte {
+	res := make([]byte, len(a))
+	for i := range a {
+		res[i] = a[i] ^ b[i]
+	}
+	return res
+}
+
+// preFilterTransactions filters the transactions prioritising the move balance operations
+func (txs *transactions) preFilterTransactions(
+	transactions []*txcache.WrappedTransaction,
+	gasBandwidth uint64,
+) []*txcache.WrappedTransaction {
+	selectedTxs := make([]*txcache.WrappedTransaction, 0, len(transactions))
+	skippedTxs := make([]*txcache.WrappedTransaction, 0, len(transactions))
+	skippedAddresses := make(map[string]struct{})
+
+	skipped := 0
+	gasEstimation := uint64(0)
+	for i, tx := range transactions {
+		// prioritize move balance operations
+		// and don't care about gas cost for them
+		if len(tx.Tx.GetData()) > 0 {
+			skippedTxs = append(skippedTxs, transactions[i])
+			skippedAddresses[string(tx.Tx.GetSndAddr())] = struct{}{}
+			skipped++
+			continue
+		}
+
+		if shouldSkipTransactionIfMarkedAddress(tx, skippedAddresses) {
+			skippedTxs = append(skippedTxs, transactions[i])
+			continue
+		}
+
+		selectedTxs = append(selectedTxs, transactions[i])
+		gasEstimation += txs.economicsFee.MinGasLimit()
+	}
+
+	for i, tx := range skippedTxs {
+		gasInShard, _, err := txs.gasHandler.ComputeGasConsumedByTx(tx.SenderShardID, tx.ReceiverShardID, tx.Tx)
+		if err != nil {
+			continue
+		}
+		if gasEstimation+gasInShard > gasBandwidth {
+			break
+		}
+
+		selectedTxs = append(selectedTxs, skippedTxs[i])
+		gasEstimation += gasInShard
+	}
+
+	log.Debug("preFilterTransactions estimation", "gasCost", gasEstimation, "selected", len(selectedTxs), "skipped", len(transactions)-len(selectedTxs))
+
+	return selectedTxs
+}
+
+func shouldSkipTransactionIfMarkedAddress(tx *txcache.WrappedTransaction, addressesToSkip map[string]struct{}) bool {
+	_, ok := addressesToSkip[string(tx.Tx.GetSndAddr())]
+	return ok
 }
 
 func (txs *transactions) isBodyToMe(body *block.Body) bool {

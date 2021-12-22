@@ -11,9 +11,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/container"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/dblookupext/esdtSupply"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 )
@@ -27,6 +30,8 @@ type HistoryRepositoryArguments struct {
 	SelfShardID                 uint32
 	MiniblocksMetadataStorer    storage.Storer
 	MiniblockHashByTxHashStorer storage.Storer
+	BlockHashByRound            storage.Storer
+	Uint64ByteSliceConverter    typeConverters.Uint64ByteSliceConverter
 	EpochByHashStorer           storage.Storer
 	EventsHashesByTxHashStorer  storage.Storer
 	Marshalizer                 marshal.Marshalizer
@@ -38,6 +43,8 @@ type historyRepository struct {
 	selfShardID                uint32
 	miniblocksMetadataStorer   storage.Storer
 	miniblockHashByTxHashIndex storage.Storer
+	blockHashByRound           storage.Storer
+	uint64ByteSliceConverter   typeConverters.Uint64ByteSliceConverter
 	epochByHashIndex           *epochByHashIndex
 	eventsHashesByTxHashIndex  *eventsHashesByTxHash
 	marshalizer                marshal.Marshalizer
@@ -86,6 +93,9 @@ func NewHistoryRepository(arguments HistoryRepositoryArguments) (*historyReposit
 	if check.IfNil(arguments.ESDTSuppliesHandler) {
 		return nil, errNilESDTSuppliesHandler
 	}
+	if check.IfNil(arguments.Uint64ByteSliceConverter) {
+		return nil, process.ErrNilUint64Converter
+	}
 
 	hashToEpochIndex := newHashToEpochIndex(arguments.EpochByHashStorer, arguments.Marshalizer)
 	deduplicationCacheForInsertMiniblockMetadata, _ := lrucache.NewCache(sizeOfDeduplicationCache)
@@ -95,6 +105,7 @@ func NewHistoryRepository(arguments HistoryRepositoryArguments) (*historyReposit
 	return &historyRepository{
 		selfShardID:                           arguments.SelfShardID,
 		miniblocksMetadataStorer:              arguments.MiniblocksMetadataStorer,
+		blockHashByRound:                      arguments.BlockHashByRound,
 		marshalizer:                           arguments.Marshalizer,
 		hasher:                                arguments.Hasher,
 		epochByHashIndex:                      hashToEpochIndex,
@@ -105,6 +116,7 @@ func NewHistoryRepository(arguments HistoryRepositoryArguments) (*historyReposit
 		deduplicationCacheForInsertMiniblockMetadata: deduplicationCacheForInsertMiniblockMetadata,
 		eventsHashesByTxHashIndex:                    eventsHashesToTxHashIndex,
 		esdtSuppliesHandler:                          arguments.ESDTSuppliesHandler,
+		uint64ByteSliceConverter:                     arguments.Uint64ByteSliceConverter,
 	}, nil
 }
 
@@ -156,7 +168,17 @@ func (hr *historyRepository) RecordBlock(
 		return err
 	}
 
+	err = hr.putHashByRound(blockHeaderHash, blockHeader)
+	if err != nil {
+		return err
+	}
+
 	return nil
+}
+
+func (hr *historyRepository) putHashByRound(blockHeaderHash []byte, header data.HeaderHandler) error {
+	roundToByteSlice := hr.uint64ByteSliceConverter.ToByteSlice(header.GetRound())
+	return hr.blockHashByRound.Put(roundToByteSlice, blockHeaderHash)
 }
 
 func (hr *historyRepository) recordMiniblock(blockHeaderHash []byte, blockHeader data.HeaderHandler, miniblock *block.MiniBlock, epoch uint32) error {
@@ -450,7 +472,7 @@ func (hr *historyRepository) RevertBlock(blockHeader data.HeaderHandler, blockBo
 }
 
 // GetESDTSupply will return the supply from the storage for the given token
-func (hr *historyRepository) GetESDTSupply(token string) (string, error) {
+func (hr *historyRepository) GetESDTSupply(token string) (*esdtSupply.SupplyESDT, error) {
 	return hr.esdtSuppliesHandler.GetESDTSupply(token)
 }
 

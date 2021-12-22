@@ -27,6 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	syncDisabled "github.com/ElrondNetwork/elrond-go/process/sync/disabled"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -45,36 +46,49 @@ func CreateMetaGenesisBlock(
 	body *block.Body,
 	nodesListSplitter genesis.NodesListSplitter,
 	hardForkBlockProcessor update.HardForkBlockProcessor,
-) (data.HeaderHandler, [][]byte, error) {
+) (data.HeaderHandler, [][]byte, *genesis.IndexingData, error) {
 	if mustDoHardForkImportProcess(arg) {
 		return createMetaGenesisBlockAfterHardFork(arg, body, hardForkBlockProcessor)
 	}
 
+	indexingData := &genesis.IndexingData{
+		DelegationTxs:      make([]data.TransactionHandler, 0),
+		ScrsTxs:            make(map[string]data.TransactionHandler),
+		StakingTxs:         make([]data.TransactionHandler, 0),
+		DeploySystemScTxs:  make([]data.TransactionHandler, 0),
+		DeployInitialScTxs: make([]data.TransactionHandler, 0),
+	}
+
 	processors, err := createProcessorsForMetaGenesisBlock(arg, createGenesisConfig())
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	err = deploySystemSmartContracts(arg, processors.txProcessor, processors.systemSCs)
+	deploySystemSCTxs, err := deploySystemSmartContracts(arg, processors.txProcessor, processors.systemSCs)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
+	indexingData.DeploySystemScTxs = deploySystemSCTxs
 
-	err = setStakedData(arg, processors, nodesListSplitter)
+	stakingTxs, err := setStakedData(arg, processors, nodesListSplitter)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
+	indexingData.StakingTxs = stakingTxs
 
 	rootHash, err := arg.Accounts.Commit()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
+
+	scrsTxs := processors.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
+	indexingData.ScrsTxs = scrsTxs
 
 	round, nonce, epoch := getGenesisBlocksRoundNonceEpoch(arg)
 
 	magicDecoded, err := hex.DecodeString(arg.GenesisString)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	prevHash := arg.Core.Hasher().Compute(arg.GenesisString)
 
@@ -107,30 +121,31 @@ func CreateMetaGenesisBlock(
 
 	validatorRootHash, err := arg.ValidatorAccounts.RootHash()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	header.SetValidatorStatsRootHash(validatorRootHash)
 
 	err = saveGenesisMetaToStorage(arg.Data.StorageService(), arg.Core.InternalMarshalizer(), header)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	err = processors.vmContainer.Close()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	return header, make([][]byte, 0), nil
+	return header, make([][]byte, 0), indexingData, nil
 }
 
+// TODO: index the resulted transactions after a hardfork
 func createMetaGenesisBlockAfterHardFork(
 	arg ArgsGenesisBlockCreator,
 	body *block.Body,
 	hardForkBlockProcessor update.HardForkBlockProcessor,
-) (data.HeaderHandler, [][]byte, error) {
+) (data.HeaderHandler, [][]byte, *genesis.IndexingData, error) {
 	if check.IfNil(hardForkBlockProcessor) {
-		return nil, nil, update.ErrNilHardForkBlockProcessor
+		return nil, nil, nil, update.ErrNilHardForkBlockProcessor
 	}
 
 	hdrHandler, err := hardForkBlockProcessor.CreateBlock(
@@ -141,26 +156,34 @@ func createMetaGenesisBlockAfterHardFork(
 		arg.HardForkConfig.StartEpoch,
 	)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	hdrHandler.SetTimeStamp(arg.GenesisTime)
 
 	metaHdr, ok := hdrHandler.(*block.MetaBlock)
 	if !ok {
-		return nil, nil, process.ErrWrongTypeAssertion
+		return nil, nil, nil, process.ErrWrongTypeAssertion
 	}
 
 	err = arg.Accounts.RecreateTrie(hdrHandler.GetRootHash())
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	err = saveGenesisMetaToStorage(arg.Data.StorageService(), arg.Core.InternalMarshalizer(), metaHdr)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	return metaHdr, make([][]byte, 0), nil
+	indexingData := &genesis.IndexingData{
+		DelegationTxs:      make([]data.TransactionHandler, 0),
+		ScrsTxs:            make(map[string]data.TransactionHandler),
+		StakingTxs:         make([]data.TransactionHandler, 0),
+		DeploySystemScTxs:  make([]data.TransactionHandler, 0),
+		DeployInitialScTxs: make([]data.TransactionHandler, 0),
+	}
+
+	return metaHdr, make([][]byte, 0), indexingData, nil
 }
 
 func createArgsMetaBlockCreatorAfterHardFork(
@@ -239,6 +262,13 @@ func saveGenesisMetaToStorage(
 }
 
 func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpochs config.EnableEpochs) (*genesisProcessors, error) {
+	epochNotifier := forking.NewGenericEpochNotifier()
+	temporaryMetaHeader := &block.MetaBlock{
+		Epoch:     arg.StartEpochNum,
+		TimeStamp: arg.GenesisTime,
+	}
+	epochNotifier.CheckEpoch(temporaryMetaHeader)
+
 	builtInFuncs := vmcommonBuiltInFunctions.NewBuiltInFunctionContainer()
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:           arg.Accounts,
@@ -249,17 +279,12 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		Marshalizer:        arg.Core.InternalMarshalizer(),
 		Uint64Converter:    arg.Core.Uint64ByteSliceConverter(),
 		BuiltInFunctions:   builtInFuncs,
+		NFTStorageHandler:  &disabled.SimpleNFTStorage{},
 		DataPool:           arg.Data.Datapool(),
 		CompiledSCPool:     arg.Data.Datapool().SmartContracts(),
+		EpochNotifier:      epochNotifier,
 		NilCompiledSCStore: true,
 	}
-
-	epochNotifier := forking.NewGenericEpochNotifier()
-	temporaryMetaHeader := &block.MetaBlock{
-		Epoch:     arg.StartEpochNum,
-		TimeStamp: arg.GenesisTime,
-	}
-	epochNotifier.CheckEpoch(temporaryMetaHeader)
 
 	pubKeyVerifier, err := disabled.NewMessageSignVerifier(arg.BlockSignKeyGen)
 	if err != nil {
@@ -351,6 +376,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		Marshalizer:         arg.Core.InternalMarshalizer(),
 		AccountsDB:          arg.Accounts,
 		BlockChainHook:      virtualMachineFactory.BlockChainHookImpl(),
+		BuiltInFunctions:    builtInFuncs,
 		PubkeyConv:          arg.Core.AddressPubKeyConverter(),
 		ShardCoordinator:    arg.ShardCoordinator,
 		ScrForwarder:        scForwarder,
@@ -411,6 +437,9 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		arg.Core.AddressPubKeyConverter(),
 		disabledBlockSizeComputationHandler,
 		disabledBalanceComputationHandler,
+		epochNotifier,
+		enableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
+		enableEpochs.FrontRunningProtectionEnableEpoch,
 	)
 	if err != nil {
 		return nil, err
@@ -450,6 +479,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		BlockChainHook:    virtualMachineFactory.BlockChainHookImpl(),
 		BlockChain:        arg.Data.Blockchain(),
 		ArwenChangeLocker: &sync.RWMutex{},
+		Bootstrapper:      syncDisabled.NewDisabledBootstrapper(),
 	}
 	queryService, err := smartContract.NewSCQueryService(argsNewSCQueryService)
 	if err != nil {
@@ -474,21 +504,12 @@ func deploySystemSmartContracts(
 	arg ArgsGenesisBlockCreator,
 	txProcessor process.TransactionProcessor,
 	systemSCs vm.SystemSCContainer,
-) error {
+) ([]data.TransactionHandler, error) {
 	code := hex.EncodeToString([]byte("deploy"))
 	vmType := hex.EncodeToString(factory.SystemVirtualMachine)
 	codeMetadata := hex.EncodeToString((&vmcommon.CodeMetadata{}).ToBytes())
 	deployTxData := strings.Join([]string{code, vmType, codeMetadata}, "@")
-
-	tx := &transaction.Transaction{
-		Nonce:     0,
-		Value:     big.NewInt(0),
-		RcvAddr:   make([]byte, arg.Core.AddressPubKeyConverter().Len()),
-		GasPrice:  0,
-		GasLimit:  math.MaxUint64,
-		Data:      []byte(deployTxData),
-		Signature: nil,
-	}
+	rcvAddress := make([]byte, arg.Core.AddressPubKeyConverter().Len())
 
 	systemSCAddresses := make([][]byte, 0)
 	systemSCAddresses = append(systemSCAddresses, systemSCs.Keys()...)
@@ -497,15 +518,29 @@ func deploySystemSmartContracts(
 		return bytes.Compare(systemSCAddresses[i], systemSCAddresses[j]) < 0
 	})
 
+	deploySystemSCTxs := make([]data.TransactionHandler, 0)
+
 	for _, address := range systemSCAddresses {
-		tx.SndAddr = address
+		tx := &transaction.Transaction{
+			Nonce:     0,
+			Value:     big.NewInt(0),
+			RcvAddr:   rcvAddress,
+			SndAddr:   address,
+			GasPrice:  0,
+			GasLimit:  math.MaxUint64,
+			Data:      []byte(deployTxData),
+			Signature: nil,
+		}
+
+		deploySystemSCTxs = append(deploySystemSCTxs, tx)
+
 		_, err := txProcessor.ProcessTransaction(tx)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	return nil
+	return deploySystemSCTxs, nil
 }
 
 // setStakedData sets the initial staked values to the staking smart contract
@@ -516,12 +551,14 @@ func setStakedData(
 	arg ArgsGenesisBlockCreator,
 	processors *genesisProcessors,
 	nodesListSplitter genesis.NodesListSplitter,
-) error {
+) ([]data.TransactionHandler, error) {
 
 	scQueryBlsKeys := &process.SCQuery{
 		ScAddress: vm.StakingSCAddress,
 		FuncName:  "isStaked",
 	}
+
+	stakingTxs := make([]data.TransactionHandler, 0)
 
 	// create staking smart contract state for genesis - update fixed stake value from all
 	oneEncoded := hex.EncodeToString(big.NewInt(1).Bytes())
@@ -540,19 +577,21 @@ func setStakedData(
 			Signature: nil,
 		}
 
+		stakingTxs = append(stakingTxs, tx)
+
 		_, err := processors.txProcessor.ProcessTransaction(tx)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		scQueryBlsKeys.Arguments = [][]byte{nodeInfo.PubKeyBytes()}
 		vmOutput, err := processors.queryService.ExecuteQuery(scQueryBlsKeys)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		if vmOutput.ReturnCode != vmcommon.Ok {
-			return genesis.ErrBLSKeyNotStaked
+			return nil, genesis.ErrBLSKeyNotStaked
 		}
 	}
 
@@ -560,5 +599,5 @@ func setStakedData(
 		"num nodes staked", len(stakedNodes),
 	)
 
-	return nil
+	return stakingTxs, nil
 }

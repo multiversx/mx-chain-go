@@ -6,6 +6,7 @@ package arwenvm
 
 import (
 	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"testing"
@@ -22,6 +23,21 @@ func Benchmark_VmDeployWithBadContractAndExecute(b *testing.B) {
 	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV4.toml")
 
 	result, err := RunTest("../testdata/misc/bad.wasm", 0, "bigLoop", nil, b.N, gasSchedule, 1500000000)
+	require.Nil(b, err)
+
+	log.Info("test completed",
+		"function", result.FunctionName,
+		"consumed gas", result.GasUsed,
+		"time took", result.ExecutionTimeSpan,
+		"numRun", b.N,
+	)
+}
+
+func Benchmark_VmDeployWithBadContractAndExecute2(b *testing.B) {
+	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV4.toml")
+
+	arg, _ := hex.DecodeString("012c")
+	result, err := RunTest("../testdata/misc/bad.wasm", 0, "stressBigInts", [][]byte{arg}, b.N, gasSchedule, 1500000000)
 	require.Nil(b, err)
 
 	log.Info("test completed",

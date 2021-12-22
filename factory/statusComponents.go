@@ -208,6 +208,7 @@ func (pc *statusComponents) Close() error {
 func (scf *statusComponentsFactory) createOutportDriver() (outport.OutportHandler, error) {
 
 	outportFactoryArgs := &outportDriverFactory.OutportFactoryArgs{
+		RetrialInterval:            common.RetrialIntervalForOutportDriver,
 		ElasticIndexerFactoryArgs:  scf.makeElasticIndexerArgs(),
 		EventNotifierFactoryArgs:   scf.makeEventNotifierArgs(),
 		CovalentIndexerFactoryArgs: scf.makeCovalentIndexerArgs(),
@@ -247,6 +248,7 @@ func (scf *statusComponentsFactory) makeEventNotifierArgs() *notifierFactory.Eve
 		Username:         eventNotifierConfig.Username,
 		Password:         eventNotifierConfig.Password,
 		Marshalizer:      scf.coreComponents.InternalMarshalizer(),
+		Hasher:           scf.coreComponents.Hasher(),
 	}
 }
 
