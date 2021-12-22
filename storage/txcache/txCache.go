@@ -1,7 +1,6 @@
 package txcache
 
 import (
-	"math"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
@@ -96,15 +95,6 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 func (cache *TxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
 	tx, ok := cache.txByHash.getTx(string(txHash))
 	return tx, ok
-}
-
-// SelectTransactions selects a reasonably fair list of transactions to be included in the next miniblock
-// It returns at most "numRequested" transactions
-// Each sender gets the chance to give at least "batchSizePerSender" transactions, unless "numRequested" limit is reached before iterating over all senders
-func (cache *TxCache) SelectTransactions(numRequested int, batchSizePerSender int) []*WrappedTransaction {
-	result := cache.doSelectTransactions(numRequested, batchSizePerSender, math.MaxUint64)
-	go cache.doAfterSelection()
-	return result
 }
 
 // SelectTransactionsWithBandwidth selects a reasonably fair list of transactions to be included in the next miniblock
