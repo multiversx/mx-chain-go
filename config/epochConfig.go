@@ -70,6 +70,7 @@ type EnableEpochs struct {
 	CleanUpInformativeSCRsEnableEpoch                 uint32
 	StorageAPICostOptimizationEnableEpoch             uint32
 	TransformToMultiShardCreateEnableEpoch            uint32
+	ESDTRegisterAndSetAllRolesEnableEpoch             uint32
 }
 
 // GasScheduleByEpochs represents a gas schedule toml entry that will be applied from the provided epoch
