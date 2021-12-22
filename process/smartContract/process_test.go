@@ -972,7 +972,7 @@ func TestScProcessor_DeploySmartContractEconomicsWithFlagPenalizeTooMuchGasEnabl
 
 	sc, _ := NewSmartContractProcessor(arguments)
 
-	sc.flagPenalizedTooMuchGas.Toggle(false)
+	sc.flagPenalizedTooMuchGas.SetValue(false)
 
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
@@ -2345,7 +2345,7 @@ func TestScProcessor_ProcessSCPaymentWithNewFlags(t *testing.T) {
 
 	acntSrc, _ = createAccounts(tx)
 	modifiedBalance = currBalance - tx.Value.Uint64() - tx.GasLimit*tx.GasLimit
-	sc.flagPenalizedTooMuchGas.Toggle(false)
+	sc.flagPenalizedTooMuchGas.SetValue(false)
 	err = sc.processSCPayment(tx, acntSrc)
 	require.Nil(t, err)
 	require.Equal(t, modifiedBalance, acntSrc.GetBalance().Uint64())
@@ -3915,7 +3915,7 @@ func TestProcessSCRSizeTooBig(t *testing.T) {
 	err := sc.checkSCRSizeInvariant(scrs)
 	assert.Nil(t, err)
 
-	sc.flagSCRSizeInvariantCheck.Toggle(true)
+	sc.flagSCRSizeInvariantCheck.SetValue(true)
 
 	err = sc.checkSCRSizeInvariant(scrs)
 	assert.Equal(t, err, process.ErrResultingSCRIsTooBig)

@@ -3037,25 +3037,25 @@ func (d *delegation) SetNewGasCost(gasCost vm.GasCost) {
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (d *delegation) EpochConfirmed(epoch uint32, _ uint64) {
-	d.delegationEnabled.Toggle(epoch >= d.enableDelegationEpoch)
+	d.delegationEnabled.SetValue(epoch >= d.enableDelegationEpoch)
 	log.Debug("delegationSC: delegation", "enabled", d.delegationEnabled.IsSet())
 
-	d.stakingV2Enabled.Toggle(epoch > d.stakingV2EnableEpoch)
+	d.stakingV2Enabled.SetValue(epoch > d.stakingV2EnableEpoch)
 	log.Debug("delegationSC: stakingV2", "enabled", d.stakingV2Enabled.IsSet())
 
-	d.flagValidatorToDelegation.Toggle(epoch >= d.validatorToDelegationEnableEpoch)
+	d.flagValidatorToDelegation.SetValue(epoch >= d.validatorToDelegationEnableEpoch)
 	log.Debug("delegationSC: validator to delegation", "enabled", d.flagValidatorToDelegation.IsSet())
 
-	d.flagReDelegateBelowMinCheck.Toggle(epoch >= d.reDelegateBelowMinCheckEnableEpoch)
+	d.flagReDelegateBelowMinCheck.SetValue(epoch >= d.reDelegateBelowMinCheckEnableEpoch)
 	log.Debug("delegationSC: re-delegate below minimum check", "enabled", d.flagReDelegateBelowMinCheck.IsSet())
 
-	d.flagComputeRewardCheckpoint.Toggle(epoch >= d.computeRewardCheckpointEnableEpoch)
+	d.flagComputeRewardCheckpoint.SetValue(epoch >= d.computeRewardCheckpointEnableEpoch)
 	log.Debug("delegationSC: compute rewards checkpoint", "enabled", d.flagComputeRewardCheckpoint.IsSet())
 
-	d.flagAddTokens.Toggle(epoch >= d.addTokensEnableEpoch)
+	d.flagAddTokens.SetValue(epoch >= d.addTokensEnableEpoch)
 	log.Debug("delegationSC: add tokens", "enabled", d.flagAddTokens.IsSet())
 
-	d.flagDeleteDelegatorDataAfterClaimRewards.Toggle(epoch >= d.deleteDelegatorDataAfterClaimRewardsEnableEpoch)
+	d.flagDeleteDelegatorDataAfterClaimRewards.SetValue(epoch >= d.deleteDelegatorDataAfterClaimRewardsEnableEpoch)
 	log.Debug("delegationSC: delete delegator data after claim rewards", "enabled", d.flagDeleteDelegatorDataAfterClaimRewards.IsSet())
 }
 
