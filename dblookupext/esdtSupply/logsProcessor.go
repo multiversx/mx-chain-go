@@ -54,10 +54,7 @@ func (lp *logsProcessor) processLogs(blockNonce uint64, logs map[string]*data.Lo
 
 	supplies := make(map[string]*SupplyESDT)
 	for _, logHandler := range logs {
-		if logHandler == nil {
-			continue
-		}
-		if check.IfNil(logHandler.LogHandler) {
+		if logHandler == nil || check.IfNil(logHandler.LogHandler) {
 			continue
 		}
 

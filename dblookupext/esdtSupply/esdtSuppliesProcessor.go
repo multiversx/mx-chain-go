@@ -53,8 +53,11 @@ func (sp *suppliesProcessor) ProcessLogs(blockNonce uint64, logs []*data.LogData
 
 	logsMap := make(map[string]*data.LogData)
 	for _, logData := range logs {
-		logsMap[logData.TxHash] = logData
+		if logData != nil {
+			logsMap[logData.TxHash] = logData
+		}
 	}
+
 	return sp.logsProc.processLogs(blockNonce, logsMap, false)
 }
 
