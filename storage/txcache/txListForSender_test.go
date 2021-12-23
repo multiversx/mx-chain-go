@@ -4,6 +4,7 @@ import (
 	"math"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txcachemocks"
 	"github.com/stretchr/testify/require"
 )
@@ -181,23 +182,57 @@ func TestListForSender_SelectBatchTo(t *testing.T) {
 	destination := make([]*WrappedTransaction, 1000)
 
 	// First batch
-	journal := list.selectBatchTo(true, destination, 50)
+	journal := list.selectBatchTo(true, destination, 50, math.MaxUint64)
 	require.Equal(t, 50, journal.copied)
 	require.NotNil(t, destination[49])
 	require.Nil(t, destination[50])
 
 	// Second batch
-	journal = list.selectBatchTo(false, destination[50:], 50)
+	journal = list.selectBatchTo(false, destination[50:], 50, math.MaxUint64)
 	require.Equal(t, 50, journal.copied)
 	require.NotNil(t, destination[99])
 
 	// No third batch
-	journal = list.selectBatchTo(false, destination, 50)
+	journal = list.selectBatchTo(false, destination, 50, math.MaxUint64)
 	require.Equal(t, 0, journal.copied)
 
 	// Restart copy
-	journal = list.selectBatchTo(true, destination, 12345)
+	journal = list.selectBatchTo(true, destination, 12345, math.MaxUint64)
 	require.Equal(t, 100, journal.copied)
+}
+
+func TestListForSender_SelectBatchToWithLimitedGasBandwidth(t *testing.T) {
+	list := newUnconstrainedListToTest()
+	txGasHandler, txFeeHelper := dummyParams()
+
+	for index := 0; index < 40; index++ {
+		wtx := createTx([]byte{byte(index)},".", uint64(index))
+		tx, _ := wtx.Tx.(*transaction.Transaction)
+		tx.GasLimit = 1000000
+		list.AddTx(wtx, txGasHandler, txFeeHelper)
+	}
+
+	destination := make([]*WrappedTransaction, 1000)
+
+	// First batch
+	journal := list.selectBatchTo(true, destination, 50, 500000)
+	require.Equal(t, 1, journal.copied)
+	require.NotNil(t, destination[0])
+	require.Nil(t, destination[1])
+
+	// Second batch
+	journal = list.selectBatchTo(false, destination[1:], 50,20000000)
+	require.Equal(t, 20, journal.copied)
+	require.NotNil(t, destination[20])
+	require.Nil(t, destination[21])
+
+	// third batch
+	journal = list.selectBatchTo(false, destination[21:], 20, math.MaxUint64)
+	require.Equal(t, 19, journal.copied)
+
+	// Restart copy
+	journal = list.selectBatchTo(true, destination[41:], 12345, math.MaxUint64)
+	require.Equal(t, 40, journal.copied)
 }
 
 func TestListForSender_SelectBatchTo_NoPanicWhenCornerCases(t *testing.T) {
@@ -210,12 +245,12 @@ func TestListForSender_SelectBatchTo_NoPanicWhenCornerCases(t *testing.T) {
 
 	// When empty destination
 	destination := make([]*WrappedTransaction, 0)
-	journal := list.selectBatchTo(true, destination, 10)
+	journal := list.selectBatchTo(true, destination, 10, math.MaxUint64)
 	require.Equal(t, 0, journal.copied)
 
 	// When small destination
 	destination = make([]*WrappedTransaction, 5)
-	journal = list.selectBatchTo(false, destination, 10)
+	journal = list.selectBatchTo(false, destination, 10, math.MaxUint64)
 	require.Equal(t, 5, journal.copied)
 }
 
@@ -231,19 +266,19 @@ func TestListForSender_SelectBatchTo_WhenInitialGap(t *testing.T) {
 	destination := make([]*WrappedTransaction, 1000)
 
 	// First batch of selection, first failure
-	journal := list.selectBatchTo(true, destination, 50)
+	journal := list.selectBatchTo(true, destination, 50, math.MaxUint64)
 	require.Equal(t, 0, journal.copied)
 	require.Nil(t, destination[0])
 	require.Equal(t, int64(1), list.numFailedSelections.Get())
 
 	// Second batch of selection, don't count failure again
-	journal = list.selectBatchTo(false, destination, 50)
+	journal = list.selectBatchTo(false, destination, 50, math.MaxUint64)
 	require.Equal(t, 0, journal.copied)
 	require.Nil(t, destination[0])
 	require.Equal(t, int64(1), list.numFailedSelections.Get())
 
 	// First batch of another selection, second failure, enters grace period
-	journal = list.selectBatchTo(true, destination, 50)
+	journal = list.selectBatchTo(true, destination, 50, math.MaxUint64)
 	require.Equal(t, 1, journal.copied)
 	require.NotNil(t, destination[0])
 	require.Nil(t, destination[1])
@@ -263,13 +298,13 @@ func TestListForSender_SelectBatchTo_WhenGracePeriodWithGapResolve(t *testing.T)
 
 	// Try a number of selections with failure, reach close to grace period
 	for i := 1; i < senderGracePeriodLowerBound; i++ {
-		journal := list.selectBatchTo(true, destination, math.MaxInt32)
+		journal := list.selectBatchTo(true, destination, math.MaxInt32, math.MaxUint64)
 		require.Equal(t, 0, journal.copied)
 		require.Equal(t, int64(i), list.numFailedSelections.Get())
 	}
 
 	// Try selection again. Failure will move the sender to grace period and return 1 transaction
-	journal := list.selectBatchTo(true, destination, math.MaxInt32)
+	journal := list.selectBatchTo(true, destination, math.MaxInt32, math.MaxUint64)
 	require.Equal(t, 1, journal.copied)
 	require.Equal(t, int64(senderGracePeriodLowerBound), list.numFailedSelections.Get())
 	require.False(t, list.sweepable.IsSet())
@@ -277,7 +312,7 @@ func TestListForSender_SelectBatchTo_WhenGracePeriodWithGapResolve(t *testing.T)
 	// Now resolve the gap
 	list.AddTx(createTx([]byte("resolving-tx"), ".", 1), txGasHandler, txFeeHelper)
 	// Selection will be successful
-	journal = list.selectBatchTo(true, destination, math.MaxInt32)
+	journal = list.selectBatchTo(true, destination, math.MaxInt32, math.MaxUint64)
 	require.Equal(t, 19, journal.copied)
 	require.Equal(t, int64(0), list.numFailedSelections.Get())
 	require.False(t, list.sweepable.IsSet())
@@ -296,20 +331,20 @@ func TestListForSender_SelectBatchTo_WhenGracePeriodWithNoGapResolve(t *testing.
 
 	// Try a number of selections with failure, reach close to grace period
 	for i := 1; i < senderGracePeriodLowerBound; i++ {
-		journal := list.selectBatchTo(true, destination, math.MaxInt32)
+		journal := list.selectBatchTo(true, destination, math.MaxInt32, math.MaxUint64)
 		require.Equal(t, 0, journal.copied)
 		require.Equal(t, int64(i), list.numFailedSelections.Get())
 	}
 
 	// Try a number of selections with failure, within the grace period
 	for i := senderGracePeriodLowerBound; i <= senderGracePeriodUpperBound; i++ {
-		journal := list.selectBatchTo(true, destination, math.MaxInt32)
+		journal := list.selectBatchTo(true, destination, math.MaxInt32, math.MaxUint64)
 		require.Equal(t, 1, journal.copied)
 		require.Equal(t, int64(i), list.numFailedSelections.Get())
 	}
 
 	// Grace period exceeded now
-	journal := list.selectBatchTo(true, destination, math.MaxInt32)
+	journal := list.selectBatchTo(true, destination, math.MaxInt32, math.MaxUint64)
 	require.Equal(t, 0, journal.copied)
 	require.Equal(t, int64(senderGracePeriodUpperBound+1), list.numFailedSelections.Get())
 	require.True(t, list.sweepable.IsSet())
@@ -370,11 +405,10 @@ func TestListForSender_DetectRaceConditions(t *testing.T) {
 	}()
 }
 
-func dummyParamsWithGasPrice(minGasPrice uint64) (TxGasHandler, feeHelper) {
+func dummyParamsWithGasPriceAndGasLimit(minGasPrice uint64, minGasLimit uint64) (TxGasHandler, feeHelper) {
 	minPrice := minGasPrice
 	divisor := uint64(100)
 	minPriceProcessing := minGasPrice / divisor
-	minGasLimit := uint64(50000)
 	txFeeHelper := newFeeComputationHelper(minPrice, minGasLimit, minPriceProcessing)
 	txGasHandler := &txcachemocks.TxGasHandlerMock{
 		MinimumGasMove:       minGasLimit,
@@ -384,9 +418,14 @@ func dummyParamsWithGasPrice(minGasPrice uint64) (TxGasHandler, feeHelper) {
 	return txGasHandler, txFeeHelper
 }
 
+func dummyParamsWithGasPrice(minGasPrice uint64)(TxGasHandler, feeHelper) {
+	return dummyParamsWithGasPriceAndGasLimit(minGasPrice, 50000)
+}
+
 func dummyParams() (TxGasHandler, feeHelper) {
 	minPrice := uint64(1000000000)
-	return dummyParamsWithGasPrice(minPrice)
+	minGasLimit := uint64(50000)
+	return dummyParamsWithGasPriceAndGasLimit(minPrice, minGasLimit)
 }
 
 func newUnconstrainedListToTest() *txListForSender {
