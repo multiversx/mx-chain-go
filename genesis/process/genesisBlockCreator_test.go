@@ -179,7 +179,7 @@ func createMockArgument(
 		MinterAddress:   "",
 		PubkeyConverter: arg.Core.AddressPubKeyConverter(),
 		KeyGenerator:    &mock.KeyGeneratorStub{},
-		Hasher:          &mock.HasherMock{},
+		Hasher:          &hashingMocks.HasherMock{},
 		Marshalizer:     &mock.MarshalizerMock{},
 	}
 
