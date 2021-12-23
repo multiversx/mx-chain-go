@@ -268,8 +268,25 @@ func Test_SelectTransactions_Dummy(t *testing.T) {
 	cache.AddTx(createTx([]byte("hash-bob-5"), "bob", 5))
 	cache.AddTx(createTx([]byte("hash-carol-1"), "carol", 1))
 
-	sorted := cache.SelectTransactions(10, 2)
+	sorted := cache.SelectTransactionsWithBandwidth(10, 2, math.MaxUint64)
 	require.Len(t, sorted, 8)
+}
+
+func Test_SelectTransactionsWithBandwidth_Dummy(t *testing.T) {
+	cache := newUnconstrainedCacheToTest()
+	cache.AddTx(createTxWithGasLimit([]byte("hash-alice-4"), "alice", 4, 100000))
+	cache.AddTx(createTxWithGasLimit([]byte("hash-alice-3"), "alice", 3, 100000))
+	cache.AddTx(createTxWithGasLimit([]byte("hash-alice-2"), "alice", 2, 500000))
+	cache.AddTx(createTxWithGasLimit([]byte("hash-alice-1"), "alice", 1, 200000))
+	cache.AddTx(createTxWithGasLimit([]byte("hash-bob-7"), "bob", 7, 100000))
+	cache.AddTx(createTxWithGasLimit([]byte("hash-bob-6"), "bob", 6, 50000))
+	cache.AddTx(createTxWithGasLimit([]byte("hash-bob-5"), "bob", 5, 50000))
+	cache.AddTx(createTxWithGasLimit([]byte("hash-carol-1"), "carol", 1, 50000))
+
+	sorted := cache.SelectTransactionsWithBandwidth(5, 2, 200000)
+	numSelected := 1+1+3 // 1 alice, 1 carol, 3 bob
+
+	require.Len(t, sorted, numSelected)
 }
 
 func Test_SelectTransactions_BreaksAtNonceGaps(t *testing.T) {
@@ -289,7 +306,7 @@ func Test_SelectTransactions_BreaksAtNonceGaps(t *testing.T) {
 
 	numSelected := 3 + 1 + 2 // 3 alice + 1 bob + 2 carol
 
-	sorted := cache.SelectTransactions(10, 2)
+	sorted := cache.SelectTransactionsWithBandwidth(10, 2, math.MaxUint64)
 	require.Len(t, sorted, numSelected)
 }
 
@@ -314,7 +331,7 @@ func Test_SelectTransactions(t *testing.T) {
 
 	require.Equal(t, uint64(nTotalTransactions), cache.CountTx())
 
-	sorted := cache.SelectTransactions(nRequestedTransactions, 2)
+	sorted := cache.SelectTransactionsWithBandwidth(nRequestedTransactions, 2, math.MaxUint64)
 
 	require.Len(t, sorted, core.MinInt(nRequestedTransactions, nTotalTransactions))
 
@@ -432,7 +449,7 @@ func TestTxCache_ConcurrentMutationAndSelection(t *testing.T) {
 	go func() {
 		for i := 0; i < 100; i++ {
 			fmt.Println("Selection", i)
-			cache.SelectTransactions(100, 100)
+			cache.SelectTransactionsWithBandwidth(100, 100, math.MaxUint64)
 		}
 
 		wg.Done()
