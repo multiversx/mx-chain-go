@@ -1,6 +1,7 @@
 package txcache
 
 import (
+	"math"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -14,7 +15,7 @@ func TestSweeping_CollectSweepable(t *testing.T) {
 	cache.AddTx(createTx([]byte("carol-42"), "carol", 42))
 
 	// Senders have no initial gaps
-	selection := cache.doSelectTransactions(1000, 1000)
+	selection := cache.doSelectTransactions(1000, 1000, math.MaxUint64)
 	require.Equal(t, 3, len(selection))
 	require.Equal(t, 0, len(cache.sweepingListOfSenders))
 
@@ -23,7 +24,7 @@ func TestSweeping_CollectSweepable(t *testing.T) {
 	cache.NotifyAccountNonce([]byte("bob"), 20)
 
 	// 1st fail
-	selection = cache.doSelectTransactions(1000, 1000)
+	selection = cache.doSelectTransactions(1000, 1000, math.MaxUint64)
 	require.Equal(t, 1, len(selection))
 	require.Equal(t, 0, len(cache.sweepingListOfSenders))
 	require.Equal(t, 1, cache.getNumFailedSelectionsOfSender("alice"))
@@ -31,7 +32,7 @@ func TestSweeping_CollectSweepable(t *testing.T) {
 	require.Equal(t, 0, cache.getNumFailedSelectionsOfSender("carol"))
 
 	// 2nd fail, grace period, one grace transaction for Alice and Bob
-	selection = cache.doSelectTransactions(1000, 1000)
+	selection = cache.doSelectTransactions(1000, 1000, math.MaxUint64)
 	require.Equal(t, 3, len(selection))
 	require.Equal(t, 0, len(cache.sweepingListOfSenders))
 	require.Equal(t, 2, cache.getNumFailedSelectionsOfSender("alice"))
@@ -39,7 +40,7 @@ func TestSweeping_CollectSweepable(t *testing.T) {
 	require.Equal(t, 0, cache.getNumFailedSelectionsOfSender("carol"))
 
 	// 3nd fail, collect Alice and Bob as sweepables
-	selection = cache.doSelectTransactions(1000, 1000)
+	selection = cache.doSelectTransactions(1000, 1000, math.MaxUint64)
 	require.Equal(t, 1, len(selection))
 	require.Equal(t, 2, len(cache.sweepingListOfSenders))
 	require.True(t, cache.isSenderSweepable("alice"))
@@ -57,7 +58,7 @@ func TestSweeping_WhenSendersEscapeCollection(t *testing.T) {
 	cache.AddTx(createTx([]byte("carol-42"), "carol", 42))
 
 	// Senders have no initial gaps
-	selection := cache.doSelectTransactions(1000, 1000)
+	selection := cache.doSelectTransactions(1000, 1000, math.MaxUint64)
 	require.Equal(t, 3, len(selection))
 	require.Equal(t, 0, len(cache.sweepingListOfSenders))
 
@@ -66,7 +67,7 @@ func TestSweeping_WhenSendersEscapeCollection(t *testing.T) {
 	cache.NotifyAccountNonce([]byte("bob"), 20)
 
 	// 1st fail
-	selection = cache.doSelectTransactions(1000, 1000)
+	selection = cache.doSelectTransactions(1000, 1000, math.MaxUint64)
 	require.Equal(t, 1, len(selection))
 	require.Equal(t, 0, len(cache.sweepingListOfSenders))
 	require.Equal(t, 1, cache.getNumFailedSelectionsOfSender("alice"))
@@ -74,7 +75,7 @@ func TestSweeping_WhenSendersEscapeCollection(t *testing.T) {
 	require.Equal(t, 0, cache.getNumFailedSelectionsOfSender("carol"))
 
 	// 2nd fail, grace period, one grace transaction for Alice and Bob
-	selection = cache.doSelectTransactions(1000, 1000)
+	selection = cache.doSelectTransactions(1000, 1000, math.MaxUint64)
 	require.Equal(t, 3, len(selection))
 	require.Equal(t, 0, len(cache.sweepingListOfSenders))
 	require.Equal(t, 2, cache.getNumFailedSelectionsOfSender("alice"))
@@ -86,7 +87,7 @@ func TestSweeping_WhenSendersEscapeCollection(t *testing.T) {
 	cache.NotifyAccountNonce([]byte("alice"), 42)
 	cache.NotifyAccountNonce([]byte("bob"), 42)
 
-	selection = cache.doSelectTransactions(1000, 1000)
+	selection = cache.doSelectTransactions(1000, 1000, math.MaxUint64)
 	require.Equal(t, 3, len(selection))
 	require.Equal(t, 0, len(cache.sweepingListOfSenders))
 	require.Equal(t, 0, cache.getNumFailedSelectionsOfSender("alice"))
