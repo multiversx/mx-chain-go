@@ -101,22 +101,6 @@ func (ti *testIndexer) createElasticProcessor(
 		enabledIndexesMap[index] = struct{}{}
 	}
 
-	balanceConverter, _ := converters.NewBalanceConverter(18)
-	ap, _ := accounts.NewAccountsProcessor(testMarshalizer, pubkeyConv, &stateMock.AccountsStub{}, balanceConverter)
-	bp, _ := blockProc.NewBlockProcessor(testHasher, testMarshalizer)
-	mp, _ := miniblocks.NewMiniblocksProcessor(shardCoordinator.SelfId(), testHasher, testMarshalizer, false)
-	sp := statistics.NewStatisticsProcessor()
-	vp, _ := validators.NewValidatorsProcessor(pubkeyConv)
-	args := &logsevents.ArgsLogsAndEventsProcessor{
-		ShardCoordinator: shardCoordinator,
-		PubKeyConverter:  pubkeyConv,
-		Marshalizer:      testMarshalizer,
-		BalanceConverter: balanceConverter,
-		TxFeeCalculator:  transactionFeeCalculator,
-		Hasher:           testHasher,
-	}
-	lp, _ := logsevents.NewLogsAndEventsProcessor(args)
-
 	esIndexerArgs := elasticIndexer.ArgElasticProcessor{
 		IndexTemplates:           indexTemplates,
 		IndexPolicies:            indexPolicies,
