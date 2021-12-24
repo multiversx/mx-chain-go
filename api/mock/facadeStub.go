@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/vm"
@@ -54,6 +55,9 @@ type FacadeStub struct {
 	GetBlockByHashCalled                    func(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonceCalled                   func(nonce uint64, withTxs bool) (*api.Block, error)
 	GetBlockByRoundCalled                   func(round uint64, withTxs bool) (*api.Block, error)
+	GetRawBlockByHashCalled                 func(hash string, withTxs bool) (*block.MetaBlock, error)
+	GetRawBlockByNonceCalled                func(nonce uint64, withTxs bool) (*block.MetaBlock, error)
+	GetRawBlockByRoundCalled                func(round uint64, withTxs bool) (*block.MetaBlock, error)
 	GetTotalStakedValueHandler              func() (*api.StakeValues, error)
 	GetAllIssuedESDTsCalled                 func(tokenType string) ([]string, error)
 	GetDirectStakedListHandler              func() ([]*api.DirectStakedValue, error)
@@ -366,6 +370,24 @@ func (f *FacadeStub) GetBlockByHash(hash string, withTxs bool) (*api.Block, erro
 func (f *FacadeStub) GetBlockByRound(round uint64, withTxs bool) (*api.Block, error) {
 	if f.GetBlockByRoundCalled != nil {
 		return f.GetBlockByRoundCalled(round, withTxs)
+	}
+	return nil, nil
+}
+
+// GetRawBlockByNonce -
+func (f *FacadeStub) GetRawBlockByNonce(nonce uint64, withTxs bool) (*block.MetaBlock, error) {
+	return f.GetRawBlockByNonceCalled(nonce, withTxs)
+}
+
+// GetRawBlockByHash -
+func (f *FacadeStub) GetRawBlockByHash(hash string, withTxs bool) (*block.MetaBlock, error) {
+	return f.GetRawBlockByHashCalled(hash, withTxs)
+}
+
+// GetRawBlockByRound -
+func (f *FacadeStub) GetRawBlockByRound(round uint64, withTxs bool) (*block.MetaBlock, error) {
+	if f.GetRawBlockByRoundCalled != nil {
+		return f.GetRawBlockByRoundCalled(round, withTxs)
 	}
 	return nil, nil
 }

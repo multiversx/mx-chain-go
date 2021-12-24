@@ -127,3 +127,56 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 		Status:          BlockStatusOnChain,
 	}, nil
 }
+
+/////////////////////////////////////////////
+
+// GetBlockByNonce will return a shard APIBlock by nonce
+func (sbp *shardAPIBlockProcessor) GetRawBlockByNonce(nonce uint64, withTxs bool) (*block.Header, error) {
+	storerUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(sbp.selfShardID)
+
+	nonceToByteSlice := sbp.uint64ByteSliceConverter.ToByteSlice(nonce)
+	headerHash, err := sbp.store.Get(storerUnit, nonceToByteSlice)
+	if err != nil {
+		return nil, err
+	}
+
+	blockBytes, err := sbp.getFromStorer(dataRetriever.BlockHeaderUnit, headerHash)
+	if err != nil {
+		return nil, err
+	}
+
+	return sbp.convertShardBlockBytesToAPIRawBlock(headerHash, blockBytes, withTxs)
+	//return blockBytes, nil
+}
+
+// GetBlockByHash will return a shard APIBlock by hash
+func (sbp *shardAPIBlockProcessor) GetRawBlockByHash(hash []byte, withTxs bool) (*block.Header, error) {
+	blockBytes, err := sbp.getFromStorer(dataRetriever.BlockHeaderUnit, hash)
+	if err != nil {
+		return nil, err
+	}
+
+	return sbp.convertShardBlockBytesToAPIRawBlock(hash, blockBytes, withTxs)
+	//return blockBytes, nil
+}
+
+// GetBlockByRound will return a shard APIBlock by round
+func (sbp *shardAPIBlockProcessor) GetRawBlockByRound(round uint64, withTxs bool) (*block.Header, error) {
+	headerHash, blockBytes, err := sbp.getBlockHeaderHashAndBytesByRound(round, dataRetriever.BlockHeaderUnit)
+	if err != nil {
+		return nil, err
+	}
+
+	return sbp.convertShardBlockBytesToAPIRawBlock(headerHash, blockBytes, withTxs)
+	//return blockBytes, nil
+}
+
+func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIRawBlock(hash []byte, blockBytes []byte, withTxs bool) (*block.Header, error) {
+	blockHeader := &block.Header{}
+	err := sbp.marshalizer.Unmarshal(blockHeader, blockBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return blockHeader, nil
+}

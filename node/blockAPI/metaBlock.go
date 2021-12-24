@@ -154,3 +154,53 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 
 	return metaBlock, nil
 }
+
+////////////////////////////////
+
+// GetBlockByNonce wil return a meta APIBlock by nonce
+func (mbp *metaAPIBlockProcessor) GetRawBlockByNonce(nonce uint64, withTxs bool) (*block.MetaBlock, error) {
+	storerUnit := dataRetriever.MetaHdrNonceHashDataUnit
+
+	nonceToByteSlice := mbp.uint64ByteSliceConverter.ToByteSlice(nonce)
+	headerHash, err := mbp.store.Get(storerUnit, nonceToByteSlice)
+	if err != nil {
+		return nil, err
+	}
+
+	blockBytes, err := mbp.getFromStorer(dataRetriever.MetaBlockUnit, headerHash)
+	if err != nil {
+		return nil, err
+	}
+
+	return mbp.convertMetaBlockBytesToAPIRawBlock(headerHash, blockBytes, withTxs)
+}
+
+// GetBlockByHash will return a meta APIBlock by hash
+func (mbp *metaAPIBlockProcessor) GetRawBlockByHash(hash []byte, withTxs bool) (*block.MetaBlock, error) {
+	blockBytes, err := mbp.getFromStorer(dataRetriever.MetaBlockUnit, hash)
+	if err != nil {
+		return nil, err
+	}
+
+	return mbp.convertMetaBlockBytesToAPIRawBlock(hash, blockBytes, withTxs)
+}
+
+// GetBlockByRound will return a meta APIBlock by round
+func (mbp *metaAPIBlockProcessor) GetRawBlockByRound(round uint64, withTxs bool) (*block.MetaBlock, error) {
+	headerHash, blockBytes, err := mbp.getBlockHeaderHashAndBytesByRound(round, dataRetriever.MetaBlockUnit)
+	if err != nil {
+		return nil, err
+	}
+
+	return mbp.convertMetaBlockBytesToAPIRawBlock(headerHash, blockBytes, withTxs)
+}
+
+func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIRawBlock(hash []byte, blockBytes []byte, withTxs bool) (*block.MetaBlock, error) {
+	blockHeader := &block.MetaBlock{}
+	err := mbp.marshalizer.Unmarshal(blockHeader, blockBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return blockHeader, nil
+}
