@@ -19,8 +19,8 @@ type ArgNodesCoordinator struct {
 	BootStorer                 storage.Storer
 	ShardIDAsObserver          uint32
 	NbShards                   uint32
-	EligibleNodes              map[uint32][]Validator
-	WaitingNodes               map[uint32][]Validator
+	EligibleNodes              map[uint32][]validator
+	WaitingNodes               map[uint32][]validator
 	SelfPublicKey              []byte
 	Epoch                      uint32
 	StartEpoch                 uint32

@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func sameValidatorsMaps(map1, map2 map[uint32][]Validator) bool {
+func sameValidatorsMaps(map1, map2 map[uint32][]validator) bool {
 	if len(map1) != len(map2) {
 		return false
 	}
@@ -25,7 +25,7 @@ func sameValidatorsMaps(map1, map2 map[uint32][]Validator) bool {
 	return true
 }
 
-func sameValidatorsDifferentMapTypes(map1 map[uint32][]Validator, map2 map[string][]*SerializableValidator) bool {
+func sameValidatorsDifferentMapTypes(map1 map[uint32][]validator, map2 map[string][]*SerializableValidator) bool {
 	if len(map1) != len(map2) {
 		return false
 	}
@@ -39,7 +39,7 @@ func sameValidatorsDifferentMapTypes(map1 map[uint32][]Validator, map2 map[strin
 	return true
 }
 
-func sameValidators(list1 []Validator, list2 []Validator) bool {
+func sameValidators(list1 []validator, list2 []validator) bool {
 	if len(list1) != len(list2) {
 		return false
 	}
@@ -59,7 +59,7 @@ func sameValidators(list1 []Validator, list2 []Validator) bool {
 	return true
 }
 
-func validatorsEqualSerializableValidators(validators []Validator, sValidators []*SerializableValidator) bool {
+func validatorsEqualSerializableValidators(validators []validator, sValidators []*SerializableValidator) bool {
 	if len(validators) != len(sValidators) {
 		return false
 	}
@@ -143,8 +143,8 @@ func TestIndexHashedNodesCooridinator_nodesCoordinatorToRegistryLimitNumEpochsIn
 			EligibleMap: eligibleMap,
 			WaitingMap:  waitingMap,
 			Selectors:   make(map[uint32]nodesCoordinator.RandomSelector),
-			LeavingMap:  make(map[uint32][]Validator),
-			NewList:     make([]Validator, 0),
+			LeavingMap:  make(map[uint32][]validator),
+			NewList:     make([]validator, 0),
 		})
 	}
 

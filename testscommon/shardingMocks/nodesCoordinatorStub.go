@@ -160,8 +160,8 @@ func (ncm *NodesCoordinatorStub) GetOwnPublicKey() []byte {
 	return []byte("key")
 }
 
-// SetNodesConfig --
-func (ncs *NodesCoordinatorStub) SetNodesConfig(nodesConfig map[uint32]*nodesCoordinator.EpochNodesConfig) {
+// SetNodesConfig -
+func (ncs *NodesCoordinatorStub) SetNodesConfig(_ map[uint32]*nodesCoordinator.EpochNodesConfig) {
 	panic("implement me")
 }
 

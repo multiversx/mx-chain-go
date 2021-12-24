@@ -56,8 +56,8 @@ func NewIndexHashedNodesCoordinatorWithRater(
 }
 
 // ComputeAdditionalLeaving - computes the extra leaving validators that have a threshold below the minimum rating
-func (ihgs *indexHashedNodesCoordinatorWithRater) ComputeAdditionalLeaving(allValidators []*state.ShardValidatorInfo) (map[uint32][]Validator, error) {
-	extraLeavingNodesMap := make(map[uint32][]Validator)
+func (ihgs *indexHashedNodesCoordinatorWithRater) ComputeAdditionalLeaving(allValidators []*state.ShardValidatorInfo) (map[uint32][]validator, error) {
+	extraLeavingNodesMap := make(map[uint32][]validator)
 	minChances := ihgs.GetChance(0)
 	for _, vInfo := range allValidators {
 		if vInfo.List == string(common.InactiveList) || vInfo.List == string(common.JailedList) {
@@ -88,7 +88,7 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) GetChance(rating uint32) uint3
 }
 
 // ValidatorsWeights returns the weights/chances for each given validator
-func (ihgs *indexHashedNodesCoordinatorWithRater) ValidatorsWeights(validators []Validator) ([]uint32, error) {
+func (ihgs *indexHashedNodesCoordinatorWithRater) ValidatorsWeights(validators []validator) ([]uint32, error) {
 	minChance := ihgs.GetChance(0)
 	weights := make([]uint32, len(validators))
 

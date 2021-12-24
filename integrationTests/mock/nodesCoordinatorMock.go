@@ -161,8 +161,8 @@ func (ncm *NodesCoordinatorMock) ValidatorsWeights(validators []nodesCoordinator
 	return weights, nil
 }
 
-// SetNodesConfig --
-func (ncs *NodesCoordinatorMock) SetNodesConfig(nodesConfig map[uint32]*nodesCoordinator.EpochNodesConfig) {
+// SetNodesConfig -
+func (ncs *NodesCoordinatorMock) SetNodesConfig(_ map[uint32]*nodesCoordinator.EpochNodesConfig) {
 	panic("not implemented")
 }
 

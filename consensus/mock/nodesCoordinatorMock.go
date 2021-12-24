@@ -149,8 +149,8 @@ func (ncm *NodesCoordinatorMock) GetOwnPublicKey() []byte {
 	panic("implement me")
 }
 
-// SetNodesConfig --
-func (ncs *NodesCoordinatorMock) SetNodesConfig(nodesConfig map[uint32]*nodesCoordinator.EpochNodesConfig) {
+// SetNodesConfig -
+func (ncm *NodesCoordinatorMock) SetNodesConfig(_ map[uint32]*nodesCoordinator.EpochNodesConfig) {
 	panic("not implemented")
 }
 

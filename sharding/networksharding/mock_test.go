@@ -123,7 +123,7 @@ func (ncs *nodesCoordinatorStub) ValidatorsWeights(validators []Validator) ([]ui
 	return weights, nil
 }
 
-// SetNodesConfig --
+// SetNodesConfig -
 func (ncs *nodesCoordinatorStub) SetNodesConfig(nodesConfig map[uint32]*nodesCoordinator.EpochNodesConfig) {
 	panic("implement me")
 }

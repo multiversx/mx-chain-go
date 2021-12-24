@@ -5,7 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
-type Validator = nodesCoordinator.Validator
+type validator = nodesCoordinator.Validator
 
 // Coordinator defines what a shard state coordinator should hold
 type Coordinator interface {
@@ -23,7 +23,7 @@ type NodesCoordinator interface {
 	ShuffleOutForEpoch(_ uint32)
 	LoadState(key []byte) error
 	GetConsensusWhitelistedNodes(epoch uint32) (map[string]struct{}, error)
-	GetValidatorWithPublicKey(publicKey []byte) (validator Validator, shardId uint32, err error)
+	GetValidatorWithPublicKey(publicKey []byte) (validator validator, shardId uint32, err error)
 	GetSavedStateKey() []byte
 }
 
@@ -35,11 +35,11 @@ type EpochHandler interface {
 
 // ArgsUpdateNodes holds the parameters required by the shuffler to generate a new nodes configuration
 type ArgsUpdateNodes struct {
-	Eligible          map[uint32][]Validator
-	Waiting           map[uint32][]Validator
-	NewNodes          []Validator
-	UnStakeLeaving    []Validator
-	AdditionalLeaving []Validator
+	Eligible          map[uint32][]validator
+	Waiting           map[uint32][]validator
+	NewNodes          []validator
+	UnStakeLeaving    []validator
+	AdditionalLeaving []validator
 	Rand              []byte
 	NbShards          uint32
 	Epoch             uint32
@@ -47,10 +47,10 @@ type ArgsUpdateNodes struct {
 
 // ResUpdateNodes holds the result of the UpdateNodes method
 type ResUpdateNodes struct {
-	Eligible       map[uint32][]Validator
-	Waiting        map[uint32][]Validator
-	Leaving        []Validator
-	StillRemaining []Validator
+	Eligible       map[uint32][]validator
+	Waiting        map[uint32][]validator
+	Leaving        []validator
+	StillRemaining []validator
 }
 
 // NodesShuffler provides shuffling functionality for nodes
@@ -138,6 +138,6 @@ type GenesisNodeInfoHandler interface {
 
 // ValidatorsDistributor distributes validators across shards
 type ValidatorsDistributor interface {
-	DistributeValidators(destination map[uint32][]Validator, source map[uint32][]Validator, rand []byte, balanced bool) error
+	DistributeValidators(destination map[uint32][]validator, source map[uint32][]validator, rand []byte, balanced bool) error
 	IsInterfaceNil() bool
 }

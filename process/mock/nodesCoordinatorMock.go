@@ -171,7 +171,7 @@ func (ncm *NodesCoordinatorMock) SetNodesPerShards(
 }
 
 // SetNodesConfig -
-func (ncm *NodesCoordinatorMock) SetNodesConfig(nodesConfig map[uint32]*nodesCoordinator.EpochNodesConfig) {
+func (ncm *NodesCoordinatorMock) SetNodesConfig(_ map[uint32]*nodesCoordinator.EpochNodesConfig) {
 	panic("not implemented")
 }
 
