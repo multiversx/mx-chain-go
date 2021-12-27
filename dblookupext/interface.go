@@ -18,9 +18,7 @@ type HistoryRepository interface {
 		blockBody data.BodyHandler,
 		scrResultsFromPool map[string]data.TransactionHandler,
 		receiptsFromPool map[string]data.TransactionHandler,
-		logs map[string]data.LogHandler,
-	) error
-
+		logs []*data.LogData) error
 	OnNotarizedBlocks(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)
 	GetMiniblockMetadataByTxHash(hash []byte) (*MiniblockMetadata, error)
 	GetEpochByHash(hash []byte) (uint32, error)
@@ -42,7 +40,7 @@ type BlockTracker interface {
 
 // SuppliesHandler defines the interface of a supplies processor
 type SuppliesHandler interface {
-	ProcessLogs(blockNonce uint64, logs map[string]data.LogHandler) error
+	ProcessLogs(blockNonce uint64, logs []*data.LogData) error
 	RevertChanges(header data.HeaderHandler, body data.BodyHandler) error
 	GetESDTSupply(token string) (*esdtSupply.SupplyESDT, error)
 	IsInterfaceNil() bool
