@@ -921,19 +921,24 @@ func Example_sortTransactionsBySenderAndNonce2() {
 }
 
 func Example_sortTransactionsBySenderAndNonceWithFrontRunningProtection() {
+	randomness := "randomness"
 	txPreproc := transactions{
 		basePreProcess: &basePreProcess{
 			hasher: &mock.HasherStub{
 				ComputeCalled: func(s string) []byte {
-					return []byte{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
+					if s == randomness {
+						return []byte{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
+					}
+
+					return []byte(s)
 				},
 			},
 		},
 	}
 
 	nbSenders := 5
-	randomness := "randomness"
-	usedRandomness := txPreproc.hasher.Compute("randomness")
+
+	usedRandomness := txPreproc.hasher.Compute(randomness)
 	senders := make([][]byte, 0)
 	for i := 0; i < nbSenders; i++ {
 		sender := make([]byte, len(usedRandomness))
