@@ -32,8 +32,11 @@ var _ process.PreProcessor = (*transactions)(nil)
 
 var log = logger.GetOrCreate("process/block/preprocess")
 
-// 200% bandwidth to allow also 100% overshooting estimations
-const selectionGasBandwidthIncrease = 2
+// 200% bandwidth to allow 100% overshooting estimations
+const selectionGasBandwidthIncreasePercent = 200
+
+// 130% to allow 30% overshooting estimations for scheduled SC calls
+const selectionGasBandwidthIncreaseScheduledPercent = 130
 
 type accountTxsShards struct {
 	accountsInfo map[string]*txShardInfo
@@ -83,9 +86,9 @@ type ArgsTransactionPreProcessor struct {
 	EpochNotifier                               process.EpochNotifier
 	OptimizeGasUsedInCrossMiniBlocksEnableEpoch uint32
 	FrontRunningProtectionEnableEpoch           uint32
-	ScheduledMiniBlocksEnableEpoch uint32
-	TxTypeHandler process.TxTypeHandler
-	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
+	ScheduledMiniBlocksEnableEpoch              uint32
+	TxTypeHandler                               process.TxTypeHandler
+	ScheduledTxsExecutionHandler                process.ScheduledTxsExecutionHandler
 }
 
 // NewTransactionPreprocessor creates a new transaction preprocessor object
@@ -557,7 +560,7 @@ func (txs *transactions) processTxsFromMe(
 		return false
 	}
 
-	calculatedMiniBlocks, mapSCTxs, err := txs.createAndProcessMiniBlocksFromMe(
+	calculatedMiniBlocks, _, mapSCTxs, err := txs.createAndProcessMiniBlocksFromMe(
 		haveTime,
 		isShardStuckFalse,
 		isMaxBlockSizeReachedFalse,
@@ -896,9 +899,13 @@ func (txs *transactions) getRemainingGasPerBlock() uint64 {
 func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, randomness []byte) (block.MiniBlockSlice, error) {
 	startTime := time.Now()
 
-	gasBandwidth := txs.getRemainingGasPerBlock() * selectionGasBandwidthIncrease
+	gasBandwidth := txs.getRemainingGasPerBlock() * selectionGasBandwidthIncreasePercent / 100
+	gasBandwidthForScheduled := uint64(0)
+	if txs.flagScheduledMiniBlocks.IsSet() {
+		gasBandwidthForScheduled = txs.economicsFee.MaxGasLimitPerBlock(txs.shardCoordinator.SelfId()) * selectionGasBandwidthIncreaseScheduledPercent / 100
+	}
 
-	sortedTxs, err := txs.computeSortedTxs(txs.shardCoordinator.SelfId(), txs.shardCoordinator.SelfId(), gasBandwidth, randomness)
+	sortedTxs, remainingTxsForScheduled, err := txs.computeSortedTxs(txs.shardCoordinator.SelfId(), txs.shardCoordinator.SelfId(), gasBandwidth, randomness)
 	elapsedTime := time.Since(startTime)
 	if err != nil {
 		log.Debug("computeSortedTxs", "error", err.Error())
@@ -926,7 +933,7 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, random
 	)
 
 	startTime = time.Now()
-	miniBlocks, mapSCTxs, err := txs.createAndProcessMiniBlocksFromMe(
+	miniBlocks, remainingTxs, mapSCTxs, err := txs.createAndProcessMiniBlocksFromMe(
 		haveTime,
 		txs.blockTracker.IsShardStuck,
 		txs.blockSizeComputation.IsMaxBlockSizeReached,
@@ -942,11 +949,15 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, random
 		return make(block.MiniBlockSlice, 0), nil
 	}
 
+	sortedTxsForScheduled := append(remainingTxs, remainingTxsForScheduled...)
+	sortedTxsForScheduled, _ = txs.prefilterTransactions(nil, sortedTxsForScheduled, 0, gasBandwidthForScheduled)
+	txs.sortTransactionsBySenderAndNonce(sortedTxsForScheduled, randomness)
+
 	haveAdditionalTime := process.HaveAdditionalTime()
 	scheduledMiniBlocks, err := txs.createAndProcessScheduledMiniBlocksFromMeAsProposer(
 		haveTime,
 		haveAdditionalTime,
-		sortedTxs,
+		sortedTxsForScheduled,
 		mapSCTxs,
 	)
 	if err != nil {
@@ -992,7 +1003,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV1(
 	isShardStuck func(uint32) bool,
 	isMaxBlockSizeReached func(int, int) bool,
 	sortedTxs []*txcache.WrappedTransaction,
-) (block.MiniBlockSlice, error) {
+) (block.MiniBlockSlice, []*txcache.WrappedTransaction, error) {
 	log.Debug("createAndProcessMiniBlocksFromMeV1 has been started")
 
 	args := miniBlocksBuilderArgs{
@@ -1011,16 +1022,18 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV1(
 
 	mbBuilder, err := newMiniBlockBuilder(args)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	defer func() {
 		go txs.notifyTransactionProviderIfNeeded()
 	}()
 
-	for _, wtx := range sortedTxs {
+	remainingTxs := make([]*txcache.WrappedTransaction, 0)
+	for idx, wtx := range sortedTxs {
 		canAddTx, canContinue, tx := mbBuilder.checkAddTransaction(wtx)
 		if !canContinue {
+			remainingTxs = sortedTxs[idx:]
 			break
 		}
 
@@ -1040,7 +1053,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV1(
 
 	logCreatedMiniBlocksStats(miniBlocks, txs.shardCoordinator.SelfId(), mbBuilder, len(sortedTxs))
 
-	return miniBlocks, nil
+	return miniBlocks, remainingTxs, nil
 }
 
 func logCreatedMiniBlocksStats(
@@ -1259,12 +1272,12 @@ func (txs *transactions) computeSortedTxs(
 	dstShardId uint32,
 	gasBandwidth uint64,
 	randomness []byte,
-) ([]*txcache.WrappedTransaction, error) {
+) ([]*txcache.WrappedTransaction, []*txcache.WrappedTransaction, error) {
 	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 	txShardPool := txs.txPool.ShardDataStore(strCache)
 
 	if check.IfNil(txShardPool) {
-		return nil, process.ErrNilTxDataPool
+		return nil, nil, process.ErrNilTxDataPool
 	}
 
 	sortedTransactionsProvider := createSortedTransactionsProvider(txShardPool)
@@ -1272,10 +1285,10 @@ func (txs *transactions) computeSortedTxs(
 	sortedTxs := sortedTransactionsProvider.GetSortedTransactions()
 
 	// TODO: this could be moved to SortedTransactionsProvider
-	selectedTxs := txs.preFilterTransactions(sortedTxs, gasBandwidth)
+	selectedTxs, remainingTxs := txs.preFilterTransactionsWithMoveBalancePriority(sortedTxs, gasBandwidth)
 	txs.sortTransactionsBySenderAndNonce(selectedTxs, randomness)
 
-	return selectedTxs, nil
+	return selectedTxs, remainingTxs, nil
 }
 
 // ProcessMiniBlock processes all the transactions from a and saves the processed transactions in local cache complete miniblock
@@ -1510,11 +1523,7 @@ func xorBytes(a, b []byte) []byte {
 	return res
 }
 
-// preFilterTransactions filters the transactions prioritising the move balance operations
-func (txs *transactions) preFilterTransactions(
-	transactions []*txcache.WrappedTransaction,
-	gasBandwidth uint64,
-) []*txcache.WrappedTransaction {
+func (txs *transactions) filterMoveBalance(transactions []*txcache.WrappedTransaction) ([]*txcache.WrappedTransaction, []*txcache.WrappedTransaction, uint64) {
 	selectedTxs := make([]*txcache.WrappedTransaction, 0, len(transactions))
 	skippedTxs := make([]*txcache.WrappedTransaction, 0, len(transactions))
 	skippedAddresses := make(map[string]struct{})
@@ -1539,23 +1548,64 @@ func (txs *transactions) preFilterTransactions(
 		selectedTxs = append(selectedTxs, transactions[i])
 		gasEstimation += txs.economicsFee.MinGasLimit()
 	}
+	return selectedTxs, skippedTxs, gasEstimation
+}
 
-	for i, tx := range skippedTxs {
+// preFilterTransactions filters the transactions prioritising the move balance operations
+func (txs *transactions) preFilterTransactionsWithMoveBalancePriority(
+	transactions []*txcache.WrappedTransaction,
+	gasBandwidth uint64,
+) ([]*txcache.WrappedTransaction, []*txcache.WrappedTransaction) {
+	selectedTxs, skippedTxs, gasEstimation := txs.filterMoveBalance(transactions)
+
+	return txs.prefilterTransactions(selectedTxs, skippedTxs, gasEstimation, gasBandwidth)
+}
+
+func (txs *transactions) prefilterTransactions(
+	initialTxs []*txcache.WrappedTransaction,
+	additionalTxs []*txcache.WrappedTransaction,
+	initialTxsGasEstimation uint64,
+	gasBandwidth uint64,
+) ([]*txcache.WrappedTransaction, []*txcache.WrappedTransaction) {
+
+	selectedTxs, remainingTxs, gasEstimation := txs.addTxsWithinBandwidth(initialTxs, additionalTxs, initialTxsGasEstimation, gasBandwidth)
+
+	log.Debug("preFilterTransactions estimation",
+		"initialTxs", len(initialTxs),
+		"gasCost initialTxs", initialTxsGasEstimation,
+		"additionalTxs", len(additionalTxs),
+		"gasCostEstimation", gasEstimation,
+		"selected", len(selectedTxs),
+		"skipped", len(remainingTxs))
+
+	return selectedTxs, remainingTxs
+}
+
+func (txs *transactions) addTxsWithinBandwidth(
+	initialTxs []*txcache.WrappedTransaction,
+	additionalTxs []*txcache.WrappedTransaction,
+	initialTxsGasEstimation uint64,
+	totalGasBandwidth uint64,
+) ([]*txcache.WrappedTransaction, []*txcache.WrappedTransaction, uint64) {
+	remainingTxs := make([]*txcache.WrappedTransaction, 0, len(additionalTxs))
+	resultedTxs := make([]*txcache.WrappedTransaction, 0, len(initialTxs))
+	resultedTxs = append(resultedTxs, initialTxs...)
+
+	gasEstimation := initialTxsGasEstimation
+	for i, tx := range additionalTxs {
 		gasInShard, _, err := txs.gasHandler.ComputeGasConsumedByTx(tx.SenderShardID, tx.ReceiverShardID, tx.Tx)
 		if err != nil {
 			continue
 		}
-		if gasEstimation+gasInShard > gasBandwidth {
+		if gasEstimation+gasInShard > totalGasBandwidth {
+			remainingTxs = append(remainingTxs, additionalTxs[i:]...)
 			break
 		}
 
-		selectedTxs = append(selectedTxs, skippedTxs[i])
+		resultedTxs = append(resultedTxs, additionalTxs[i])
 		gasEstimation += gasInShard
 	}
-
-	log.Debug("preFilterTransactions estimation", "gasCost", gasEstimation, "selected", len(selectedTxs), "skipped", len(transactions)-len(selectedTxs))
-
-	return selectedTxs
+	return resultedTxs, remainingTxs, gasEstimation
 }
 
 func shouldSkipTransactionIfMarkedAddress(tx *txcache.WrappedTransaction, addressesToSkip map[string]struct{}) bool {
@@ -1590,20 +1640,21 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 	isShardStuck func(uint32) bool,
 	isMaxBlockSizeReached func(int, int) bool,
 	sortedTxs []*txcache.WrappedTransaction,
-) (block.MiniBlockSlice, map[string]struct{}, error) {
+) (block.MiniBlockSlice, []*txcache.WrappedTransaction, map[string]struct{}, error) {
 	var miniBlocks block.MiniBlockSlice
 	var err error
 	var mapSCTxs map[string]struct{}
+	var remainingTxs []*txcache.WrappedTransaction
 
 	if txs.flagScheduledMiniBlocks.IsSet() {
-		miniBlocks, mapSCTxs, err = txs.createAndProcessMiniBlocksFromMeV2(
+		miniBlocks, remainingTxs, mapSCTxs, err = txs.createAndProcessMiniBlocksFromMeV2(
 			haveTime,
 			isShardStuck,
 			isMaxBlockSizeReached,
 			sortedTxs,
 		)
 	} else {
-		miniBlocks, err = txs.createAndProcessMiniBlocksFromMeV1(
+		miniBlocks, remainingTxs, err = txs.createAndProcessMiniBlocksFromMeV1(
 			haveTime,
 			isShardStuck,
 			isMaxBlockSizeReached,
@@ -1611,5 +1662,5 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 		)
 	}
 
-	return miniBlocks, mapSCTxs, err
+	return miniBlocks, remainingTxs, mapSCTxs, err
 }
