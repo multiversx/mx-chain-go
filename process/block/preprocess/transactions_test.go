@@ -633,8 +633,8 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testi
 		addedTxs = append(addedTxs, newTx)
 	}
 
-	sortedTxsAndHashes, _ := txs.computeSortedTxs(sndShardId, dstShardId, MaxGasLimitPerBlock, []byte("randomness"))
-	miniBlocks, err := txs.createAndProcessMiniBlocksFromMeV1(haveTimeTrue, isShardStuckFalse, isMaxBlockSizeReachedFalse, sortedTxsAndHashes)
+	sortedTxsAndHashes, _, _ := txs.computeSortedTxs(sndShardId, dstShardId, MaxGasLimitPerBlock, []byte("randomness"))
+	miniBlocks, _, err := txs.createAndProcessMiniBlocksFromMeV1(haveTimeTrue, isShardStuckFalse, isMaxBlockSizeReachedFalse, sortedTxsAndHashes)
 	assert.Nil(t, err)
 
 	txHashes := 0
@@ -689,8 +689,8 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCal
 		addedTxs = append(addedTxs, newTx)
 	}
 
-	sortedTxsAndHashes, _ := txs.computeSortedTxs(sndShardId, dstShardId, MaxGasLimitPerBlock, []byte("randomness"))
-	miniBlocks, err := txs.createAndProcessMiniBlocksFromMeV1(haveTimeTrue, isShardStuckFalse, isMaxBlockSizeReachedFalse, sortedTxsAndHashes)
+	sortedTxsAndHashes, _, _ := txs.computeSortedTxs(sndShardId, dstShardId, MaxGasLimitPerBlock, []byte("randomness"))
+	miniBlocks, _, err := txs.createAndProcessMiniBlocksFromMeV1(haveTimeTrue, isShardStuckFalse, isMaxBlockSizeReachedFalse, sortedTxsAndHashes)
 	assert.Nil(t, err)
 
 	txHashes := 0
@@ -751,8 +751,8 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 		args.TxDataPool.AddData(txHash, newTx, newTx.Size(), strCache)
 	}
 
-	sortedTxsAndHashes, _ := txs.computeSortedTxs(sndShardId, dstShardId, MaxGasLimitPerBlock, []byte("randomness"))
-	miniBlocks, err := txs.createAndProcessMiniBlocksFromMeV1(haveTimeTrue, isShardStuckFalse, isMaxBlockSizeReachedFalse, sortedTxsAndHashes)
+	sortedTxsAndHashes, _, _ := txs.computeSortedTxs(sndShardId, dstShardId, MaxGasLimitPerBlock, []byte("randomness"))
+	miniBlocks, _, err := txs.createAndProcessMiniBlocksFromMeV1(haveTimeTrue, isShardStuckFalse, isMaxBlockSizeReachedFalse, sortedTxsAndHashes)
 	assert.Nil(t, err)
 
 	txHashes := 0
@@ -1419,7 +1419,7 @@ func TestTransactionsPreProcessor_preFilterTransactionsNoBandwidth(t *testing.T)
 	expectedPreFiltered = append(expectedPreFiltered, txsMoveSender0...)
 	expectedPreFiltered = append(expectedPreFiltered, txsMoveSender1...)
 
-	filteredTxs := txsProcessor.preFilterTransactions(txs, bandwidth)
+	filteredTxs, _ := txsProcessor.preFilterTransactionsWithMoveBalancePriority(txs, bandwidth)
 	require.Len(t, filteredTxs, 4)
 	require.Equal(t, expectedPreFiltered, filteredTxs)
 }
@@ -1468,19 +1468,19 @@ func TestTransactionsPreProcessor_preFilterTransactionsLimitedBandwidthMultipleT
 	expectedPreFiltered = append(expectedPreFiltered, txsMoveSender0...)
 	expectedPreFiltered = append(expectedPreFiltered, txsMoveSender1...)
 
-	filteredTxs := txsProcessor.preFilterTransactions(txs, bandwidth)
+	filteredTxs, _ := txsProcessor.preFilterTransactionsWithMoveBalancePriority(txs, bandwidth)
 	require.Len(t, filteredTxs, 4)
 	require.Equal(t, expectedPreFiltered, filteredTxs)
 
 	bandwidth = uint64(2000)
 	expectedPreFiltered = append(expectedPreFiltered, txsSCCallsSender0[0])
-	filteredTxs = txsProcessor.preFilterTransactions(txs, bandwidth)
+	filteredTxs, _ = txsProcessor.preFilterTransactionsWithMoveBalancePriority(txs, bandwidth)
 	require.Len(t, filteredTxs, 5)
 	require.Equal(t, expectedPreFiltered, filteredTxs)
 
 	bandwidth = uint64(4000)
 	expectedPreFiltered = append(expectedPreFiltered, txsSCCallsSender0[1], txsSCCallsSender1[0])
-	filteredTxs = txsProcessor.preFilterTransactions(txs, bandwidth)
+	filteredTxs, _ = txsProcessor.preFilterTransactionsWithMoveBalancePriority(txs, bandwidth)
 	require.Len(t, filteredTxs, 7)
 	require.Equal(t, expectedPreFiltered, filteredTxs)
 }
@@ -1531,13 +1531,13 @@ func TestTransactionsPreProcessor_preFilterTransactionsLimitedBandwidthMultipleT
 	var expectedPreFiltered []*txcache.WrappedTransaction
 	expectedPreFiltered = append(expectedPreFiltered, txsMoveSender0...)
 
-	filteredTxs := txsProcessor.preFilterTransactions(txs, bandwidth)
+	filteredTxs, _ := txsProcessor.preFilterTransactionsWithMoveBalancePriority(txs, bandwidth)
 	require.Len(t, filteredTxs, 2)
 	require.Equal(t, expectedPreFiltered, filteredTxs)
 
 	bandwidth = uint64(2000)
 	expectedPreFiltered = append(expectedPreFiltered, txsSCCallsSender0[0])
-	filteredTxs = txsProcessor.preFilterTransactions(txs, bandwidth)
+	filteredTxs, _ = txsProcessor.preFilterTransactionsWithMoveBalancePriority(txs, bandwidth)
 	require.Len(t, filteredTxs, 3)
 	require.Equal(t, expectedPreFiltered, filteredTxs)
 
@@ -1549,7 +1549,7 @@ func TestTransactionsPreProcessor_preFilterTransactionsLimitedBandwidthMultipleT
 		txsMoveBatch2Sender0[1],
 		txsSCCallsSender1[0],
 	)
-	filteredTxs = txsProcessor.preFilterTransactions(txs, bandwidth)
+	filteredTxs, _ = txsProcessor.preFilterTransactionsWithMoveBalancePriority(txs, bandwidth)
 	require.Len(t, filteredTxs, 7)
 	require.Equal(t, expectedPreFiltered, filteredTxs)
 }
@@ -1606,7 +1606,7 @@ func TestTransactionsPreProcessor_preFilterTransactionsHighBandwidth(t *testing.
 	expectedPreFiltered = append(expectedPreFiltered, txsSCCallsSender1...)
 	expectedPreFiltered = append(expectedPreFiltered, txsMoveBatch2Sender1...)
 
-	filteredTxs := txsProcessor.preFilterTransactions(txs, bandwidth)
+	filteredTxs, _ := txsProcessor.preFilterTransactionsWithMoveBalancePriority(txs, bandwidth)
 	require.Len(t, filteredTxs, 12)
 	require.Equal(t, expectedPreFiltered, filteredTxs)
 }
