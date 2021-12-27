@@ -27,7 +27,7 @@ github.com/ElrondNetwork/covalent-indexer-go v1.0.6-0.20211227105811-1bb2fd3e272
 github.com/ElrondNetwork/elastic-indexer-go v1.1.31-0.20211227103611-caa8ea935230 h1:5kvyDFFK0IM2hKP+tl2AHv2h0YFhG1zZtusS2lSoI8A=
 github.com/ElrondNetwork/elastic-indexer-go v1.1.31-0.20211227103611-caa8ea935230/go.mod h1:18QxxhoBb0i1gY+fCaCfdVDHbuqmhUpdlm3szE1VsaU=
 github.com/ElrondNetwork/elrond-go-core v1.0.0/go.mod h1:FQMem7fFF4+8pQ6lVsBZq6yO+smD0nV23P4bJpmPjTo=
-github.com/ElrondNetwork/elrond-go-core v1.0.1-0.20210721164025-65cf7f169349/go.mod h1:O9FkkTT2H9kxCzfn40TbhoCDXzGmUrRVusMomhK/Y3g=
+github.com/ElrondNetwork/elrond-go-core v1.1.6/go.mod h1:O9FkkTT2H9kxCzfn40TbhoCDXzGmUrRVusMomhK/Y3g=
 github.com/ElrondNetwork/elrond-go-core v1.1.7 h1:pusBmtsS7lUzrDovW7XKWwhXIt3xRQg5hsB5bV8GkZQ=
 github.com/ElrondNetwork/elrond-go-core v1.1.7/go.mod h1:O9FkkTT2H9kxCzfn40TbhoCDXzGmUrRVusMomhK/Y3g=
 github.com/ElrondNetwork/elrond-go-crypto v1.0.0/go.mod h1:DGiR7/j1xv729Xg8SsjYaUzWXL5svMd44REXjWS/gAc=
