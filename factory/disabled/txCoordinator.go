@@ -121,8 +121,8 @@ func (txCoordinator *TxCoordinator) GetAllIntermediateTxs() map[block.Type]map[s
 }
 
 // GetAllCurrentLogs returns empty logs map
-func (txCoordinator *TxCoordinator) GetAllCurrentLogs() map[string]data.LogHandler {
-	return make(map[string]data.LogHandler)
+func (txCoordinator *TxCoordinator) GetAllCurrentLogs() []*data.LogData {
+	return make([]*data.LogData, 0)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
