@@ -22,8 +22,8 @@ func (tlp *printTxLogProcessor) GetLog(_ []byte) (data.LogHandler, error) {
 }
 
 // GetLogFromCache -
-func (tlp *printTxLogProcessor) GetLogFromCache(_ []byte) (data.LogHandler, bool) {
-	return nil, false
+func (tlp *printTxLogProcessor) GetLogFromCache(_ []byte) (*data.LogData, bool) {
+	return &data.LogData{}, false
 }
 
 // EnableLogToBeSavedInCache -
@@ -35,8 +35,8 @@ func (tlp *printTxLogProcessor) Clean() {
 }
 
 // GetAllCurrentLogs -
-func (tlp *printTxLogProcessor) GetAllCurrentLogs() map[string]data.LogHandler {
-	return map[string]data.LogHandler{}
+func (tlp *printTxLogProcessor) GetAllCurrentLogs() []*data.LogData {
+	return []*data.LogData{}
 }
 
 // SaveLog -
