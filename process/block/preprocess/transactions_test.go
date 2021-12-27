@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
@@ -29,7 +30,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	atomic2 "github.com/ElrondNetwork/elrond-vm-common/atomic"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -1007,8 +1007,8 @@ func BenchmarkSortTransactionsByNonceAndSender_WhenReversedNoncesWithFrontRunnin
 		}
 	}
 
-	var frontRunProtection atomic2.Flag
-	frontRunProtection.Set()
+	var frontRunProtection atomic.Flag
+	_ = frontRunProtection.SetReturningPrevious()
 	txpreproc := &transactions{
 		basePreProcess: &basePreProcess{
 			hasher:                     hasher,
