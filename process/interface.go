@@ -1115,7 +1115,7 @@ type CurrentNetworkEpochProviderHandler interface {
 
 // TxsSenderHandler handles transactions sending
 type TxsSenderHandler interface {
-	SendBulkTransactions(txs []data.TransactionHandler) (uint64, error)
+	SendBulkTransactions(txs []*transaction.Transaction) (uint64, error)
 	Close() error
 	IsInterfaceNil() bool
 }

@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -20,6 +20,70 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestNewTxsSenderWithAccumulator(t *testing.T) {
+	tests := []struct {
+		args          func() ArgsTxsSenderWithAccumulator
+		expectedError error
+	}{
+		{
+			args: func() ArgsTxsSenderWithAccumulator {
+				args := generateMockArgsTxsSender()
+				args.Marshaller = nil
+				return args
+			},
+			expectedError: process.ErrNilMarshalizer,
+		},
+		{
+			args: func() ArgsTxsSenderWithAccumulator {
+				args := generateMockArgsTxsSender()
+				args.ShardCoordinator = nil
+				return args
+			},
+			expectedError: process.ErrNilShardCoordinator,
+		},
+		{
+			args: func() ArgsTxsSenderWithAccumulator {
+				args := generateMockArgsTxsSender()
+				args.NetworkMessenger = nil
+				return args
+			},
+			expectedError: process.ErrNilMessenger,
+		},
+		{
+			args: func() ArgsTxsSenderWithAccumulator {
+				args := generateMockArgsTxsSender()
+				args.AccumulatorConfig = config.TxAccumulatorConfig{
+					MaxAllowedTimeInMilliseconds:   0,
+					MaxDeviationTimeInMilliseconds: 0,
+				}
+				return args
+			},
+			expectedError: core.ErrInvalidValue,
+		},
+		{
+			args: func() ArgsTxsSenderWithAccumulator {
+				return generateMockArgsTxsSender()
+			},
+			expectedError: nil,
+		},
+	}
+
+	for _, test := range tests {
+		instance, err := NewTxsSenderWithAccumulator(test.args())
+		if test.expectedError == nil {
+			require.NoError(t, err)
+			require.NotNil(t, instance)
+
+			err = instance.Close()
+			require.Nil(t, err)
+		} else {
+			require.Nil(t, instance)
+			require.Error(t, err)
+			require.True(t, strings.Contains(err.Error(), test.expectedError.Error()))
+		}
+	}
+}
 
 func TestTxsSender_SendBulkTransactions(t *testing.T) {
 	t.Parallel()
@@ -112,15 +176,11 @@ func TestTxsSender_SendBulkTransactions(t *testing.T) {
 		},
 	})
 
-	transactions := make([]data.TransactionHandler, 0)
-	for _, tx := range txsToSend {
-		transactions = append(transactions, tx)
-	}
-	numTxs, err := sender.SendBulkTransactions(transactions)
+	numTxs, err := sender.SendBulkTransactions(txsToSend)
 	assert.Equal(t, len(txsToSend), int(numTxs))
 	assert.Nil(t, err)
 
-	// we need to wait a little bit as the node.printTxSentCounter should iterate and avoid different code coverage computation
+	// we need to wait a little bit as the txsSender.printTxSentCounter should iterate and avoid different code coverage computation
 	time.Sleep(time.Second + time.Millisecond*500)
 	var timeoutWait = time.Second
 	select {
@@ -146,7 +206,7 @@ func TestTxsSender_SendBulkTransactions(t *testing.T) {
 	mutRecoveredTransactions.RUnlock()
 }
 
-func TestTxsSender_SendBulkTransactions2(t *testing.T) {
+func TestTxsSender_SendBulkTransactionsNoTxToProcessExpectError(t *testing.T) {
 	sender, _ := NewTxsSenderWithAccumulator(ArgsTxsSenderWithAccumulator{
 		Marshaller:       &testscommon.MarshalizerMock{},
 		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
@@ -157,9 +217,19 @@ func TestTxsSender_SendBulkTransactions2(t *testing.T) {
 		},
 	})
 
-	txs := make([]data.TransactionHandler, 0)
-
-	numOfTxsProcessed, err := sender.SendBulkTransactions(txs)
+	numOfTxsProcessed, err := sender.SendBulkTransactions([]*transaction.Transaction{})
 	assert.Equal(t, uint64(0), numOfTxsProcessed)
 	assert.Equal(t, process.ErrNoTxToProcess, err)
+}
+
+func generateMockArgsTxsSender() ArgsTxsSenderWithAccumulator {
+	return ArgsTxsSenderWithAccumulator{
+		Marshaller:       testscommon.MarshalizerMock{},
+		ShardCoordinator: &mock.ShardCoordinatorMock{},
+		NetworkMessenger: &p2pmocks.MessengerStub{},
+		AccumulatorConfig: config.TxAccumulatorConfig{
+			MaxAllowedTimeInMilliseconds:   10,
+			MaxDeviationTimeInMilliseconds: 1,
+		},
+	}
 }

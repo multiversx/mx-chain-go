@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/accumulator"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/partitioning"
-	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -26,6 +25,14 @@ var numSecondsBetweenPrints = 20
 // SendTransactionsPipe is the pipe used for sending new transactions
 const SendTransactionsPipe = "send transactions pipe"
 
+// ArgsTxsSenderWithAccumulator is a holder struct for all necessary arguments to create a NewTxsSenderWithAccumulator
+type ArgsTxsSenderWithAccumulator struct {
+	Marshaller        marshal.Marshalizer
+	ShardCoordinator  storage.ShardCoordinator
+	NetworkMessenger  NetworkMessenger
+	AccumulatorConfig config.TxAccumulatorConfig
+}
+
 type txsSender struct {
 	marshaller       marshal.Marshalizer
 	shardCoordinator storage.ShardCoordinator
@@ -38,16 +45,18 @@ type txsSender struct {
 	currentSendingGoRoutines int32
 }
 
-// ArgsTxsSenderWithAccumulator is a holder struct for all necessary arguments to create a NewTxsSenderWithAccumulator
-type ArgsTxsSenderWithAccumulator struct {
-	Marshaller        marshal.Marshalizer
-	ShardCoordinator  storage.ShardCoordinator
-	NetworkMessenger  NetworkMessenger
-	AccumulatorConfig config.TxAccumulatorConfig
-}
-
 // NewTxsSenderWithAccumulator creates a new instance of TxsSenderHandler, which initializes internally a accumulator.NewTimeAccumulator
 func NewTxsSenderWithAccumulator(args ArgsTxsSenderWithAccumulator) (process.TxsSenderHandler, error) {
+	if check.IfNil(args.Marshaller) {
+		return nil, process.ErrNilMarshalizer
+	}
+	if check.IfNil(args.ShardCoordinator) {
+		return nil, process.ErrNilShardCoordinator
+	}
+	if check.IfNil(args.NetworkMessenger) {
+		return nil, process.ErrNilMessenger
+	}
+
 	txAccumulator, err := accumulator.NewTimeAccumulator(
 		time.Duration(args.AccumulatorConfig.MaxAllowedTimeInMilliseconds)*time.Millisecond,
 		time.Duration(args.AccumulatorConfig.MaxDeviationTimeInMilliseconds)*time.Millisecond,
@@ -75,7 +84,7 @@ func NewTxsSenderWithAccumulator(args ArgsTxsSenderWithAccumulator) (process.Txs
 }
 
 // SendBulkTransactions sends the provided transactions as a bulk, optimizing transfer between nodes
-func (ts *txsSender) SendBulkTransactions(txs []data.TransactionHandler) (uint64, error) {
+func (ts *txsSender) SendBulkTransactions(txs []*transaction.Transaction) (uint64, error) {
 	if len(txs) == 0 {
 		return 0, process.ErrNoTxToProcess
 	}
@@ -85,7 +94,7 @@ func (ts *txsSender) SendBulkTransactions(txs []data.TransactionHandler) (uint64
 	return uint64(len(txs)), nil
 }
 
-func (ts *txsSender) addTransactionsToSendPipe(txs []data.TransactionHandler) {
+func (ts *txsSender) addTransactionsToSendPipe(txs []*transaction.Transaction) {
 	if check.IfNil(ts.txAccumulator) {
 		log.Error("node has a nil tx accumulator instance")
 		return

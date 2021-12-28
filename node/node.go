@@ -13,7 +13,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
@@ -617,12 +616,7 @@ func (n *Node) castAccountToUserAccount(ah vmcommon.AccountHandler) (state.UserA
 
 // SendBulkTransactions sends the provided transactions as a bulk, optimizing transfer between nodes
 func (n *Node) SendBulkTransactions(txs []*transaction.Transaction) (uint64, error) {
-	//TODO: MAYBE REFACTOR TO GET HERE interfacaces
-	transactions := make([]data.TransactionHandler, 0)
-	for _, tx := range txs {
-		transactions = append(transactions, tx)
-	}
-	return n.processComponents.TxsSenderHandler().SendBulkTransactions(transactions)
+	return n.processComponents.TxsSenderHandler().SendBulkTransactions(txs)
 }
 
 // ValidateTransaction will validate a transaction
