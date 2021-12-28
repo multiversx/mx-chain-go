@@ -2177,9 +2177,6 @@ func (tpn *TestProcessorNode) initNode() {
 
 	bootstrapComponents := GetDefaultBootstrapComponents(tpn.ShardCoordinator)
 
-	networkComponents := GetDefaultNetworkComponents()
-	networkComponents.Messenger = tpn.Messenger
-
 	processComponents := GetDefaultProcessComponents()
 	processComponents.BlockProcess = tpn.BlockProcessor
 	processComponents.ResFinder = tpn.ResolverFinder
@@ -2192,18 +2189,7 @@ func (tpn *TestProcessorNode) initNode() {
 	processComponents.HistoryRepositoryInternal = tpn.HistoryRepository
 	processComponents.WhiteListHandlerInternal = tpn.WhiteListHandler
 	processComponents.WhiteListerVerifiedTxsInternal = tpn.WhiteListerVerifiedTxs
-	argsTxsSender := txsSender.ArgsTxsSenderWithAccumulator{
-		Marshaller:       coreComponents.InternalMarshalizer(),
-		ShardCoordinator: tpn.ShardCoordinator,
-		NetworkMessenger: tpn.Messenger,
-		AccumulatorConfig: config.TxAccumulatorConfig{
-			MaxAllowedTimeInMilliseconds:   10,
-			MaxDeviationTimeInMilliseconds: 1,
-		},
-	}
-	txsSenderHandler, err := txsSender.NewTxsSenderWithAccumulator(argsTxsSender)
-	log.LogIfError(err)
-	processComponents.TxsSenderHandlerField = txsSenderHandler
+	processComponents.TxsSenderHandlerField = createTxsSender(tpn.ShardCoordinator, tpn.Messenger)
 
 	cryptoComponents := GetDefaultCryptoComponents()
 	cryptoComponents.PrivKey = tpn.NodeKeys.Sk
@@ -2216,6 +2202,9 @@ func (tpn *TestProcessorNode) initNode() {
 
 	stateComponents := GetDefaultStateComponents()
 	stateComponents.Accounts = tpn.AccntState
+
+	networkComponents := GetDefaultNetworkComponents()
+	networkComponents.Messenger = tpn.Messenger
 
 	tpn.Node, err = node.NewNode(
 		node.WithAddressSignatureSize(64),
@@ -2742,6 +2731,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger(heartbeatPk str
 	processComponents.WhiteListerVerifiedTxsInternal = tpn.WhiteListerVerifiedTxs
 	processComponents.WhiteListHandlerInternal = tpn.WhiteListHandler
 	processComponents.HistoryRepositoryInternal = tpn.HistoryRepository
+	processComponents.TxsSenderHandlerField = createTxsSender(tpn.ShardCoordinator, tpn.Messenger)
 
 	redundancyHandler := &mock.RedundancyHandlerStub{}
 
@@ -2972,4 +2962,22 @@ func GetTokenIdentifier(nodes []*TestProcessorNode, ticker []byte) []byte {
 	}
 
 	return nil
+}
+
+func createTxsSender(shardCoordinator storage.ShardCoordinator, messenger txsSender.NetworkMessenger) process.TxsSenderHandler {
+	txAccumulatorConfig := config.TxAccumulatorConfig{
+		MaxAllowedTimeInMilliseconds:   10,
+		MaxDeviationTimeInMilliseconds: 1,
+	}
+
+	argsTxsSender := txsSender.ArgsTxsSenderWithAccumulator{
+		Marshaller:        TestMarshalizer,
+		ShardCoordinator:  shardCoordinator,
+		NetworkMessenger:  messenger,
+		AccumulatorConfig: txAccumulatorConfig,
+	}
+	txsSenderHandler, err := txsSender.NewTxsSenderWithAccumulator(argsTxsSender)
+	log.LogIfError(err)
+
+	return txsSenderHandler
 }
