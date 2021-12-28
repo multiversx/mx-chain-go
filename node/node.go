@@ -54,7 +54,6 @@ type filter interface {
 	filter(tokenIdentifier string, esdtData *systemSmartContracts.ESDTDataV2) bool
 }
 
-//TODO: ADD CHECK SUBCOMP FOR TXSSENDER
 // Node is a structure that holds all managed components
 type Node struct {
 	initialNodesPubkeys map[uint32][]string

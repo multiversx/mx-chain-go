@@ -27,6 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
+	"github.com/ElrondNetwork/elrond-go/testscommon/txsSenderMock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -588,7 +589,7 @@ func getDefaultProcessComponents() *factoryMock.ProcessComponentsMock {
 		PeerMapper:                     &p2pmocks.NetworkShardingCollectorStub{},
 		WhiteListHandlerInternal:       &testscommon.WhiteListHandlerStub{},
 		WhiteListerVerifiedTxsInternal: &testscommon.WhiteListHandlerStub{},
-		// TODO: TxsSenderHandlerField:
+		TxsSenderHandlerField:          &txsSenderMock.TxsSenderHandlerMock{},
 	}
 }
 

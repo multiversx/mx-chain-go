@@ -198,9 +198,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 	}, nil
 }
 
-//--------------
-//TODO: Think if it would make sense here to create an array of interfaces
-// and on CheckSubcomp && Close -> call them there
+//TODO: Think if it would make sense here to create an array of closable interfaces
 
 // Create will create and return a struct containing process components
 func (pcf *processComponentsFactory) Create() (*processComponents, error) {

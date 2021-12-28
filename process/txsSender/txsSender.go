@@ -248,5 +248,7 @@ func (ts *txsSender) IsInterfaceNil() bool {
 // Close calls the cancel function of the background context and closes the network messenger
 func (ts *txsSender) Close() error {
 	ts.cancelFunc()
+	err := ts.txAccumulator.Close()
+	log.LogIfError(err)
 	return ts.networkMessenger.Close()
 }
