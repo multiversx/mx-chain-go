@@ -76,6 +76,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
+	"github.com/ElrondNetwork/elrond-go/process/txsSender"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -2176,6 +2177,9 @@ func (tpn *TestProcessorNode) initNode() {
 
 	bootstrapComponents := GetDefaultBootstrapComponents(tpn.ShardCoordinator)
 
+	networkComponents := GetDefaultNetworkComponents()
+	networkComponents.Messenger = tpn.Messenger
+
 	processComponents := GetDefaultProcessComponents()
 	processComponents.BlockProcess = tpn.BlockProcessor
 	processComponents.ResFinder = tpn.ResolverFinder
@@ -2188,6 +2192,18 @@ func (tpn *TestProcessorNode) initNode() {
 	processComponents.HistoryRepositoryInternal = tpn.HistoryRepository
 	processComponents.WhiteListHandlerInternal = tpn.WhiteListHandler
 	processComponents.WhiteListerVerifiedTxsInternal = tpn.WhiteListerVerifiedTxs
+	argsTxsSender := txsSender.ArgsTxsSenderWithAccumulator{
+		Marshaller:       coreComponents.InternalMarshalizer(),
+		ShardCoordinator: tpn.ShardCoordinator,
+		NetworkMessenger: tpn.Messenger,
+		AccumulatorConfig: config.TxAccumulatorConfig{
+			MaxAllowedTimeInMilliseconds:   10,
+			MaxDeviationTimeInMilliseconds: 1,
+		},
+	}
+	txsSenderHandler, err := txsSender.NewTxsSenderWithAccumulator(argsTxsSender)
+	log.LogIfError(err)
+	processComponents.TxsSenderHandlerField = txsSenderHandler
 
 	cryptoComponents := GetDefaultCryptoComponents()
 	cryptoComponents.PrivKey = tpn.NodeKeys.Sk
@@ -2197,9 +2213,6 @@ func (tpn *TestProcessorNode) initNode() {
 	cryptoComponents.MultiSig = tpn.MultiSigner
 	cryptoComponents.BlKeyGen = tpn.OwnAccount.KeygenTxSign
 	cryptoComponents.TxKeyGen = TestKeyGenForAccounts
-
-	networkComponents := GetDefaultNetworkComponents()
-	networkComponents.Messenger = tpn.Messenger
 
 	stateComponents := GetDefaultStateComponents()
 	stateComponents.Accounts = tpn.AccntState

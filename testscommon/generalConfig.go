@@ -381,6 +381,10 @@ func GetGeneralConfig() config.Config {
 		},
 		Antiflood: config.AntifloodConfig{
 			NumConcurrentResolverJobs: 2,
+			TxAccumulator: config.TxAccumulatorConfig{
+				MaxAllowedTimeInMilliseconds:   10,
+				MaxDeviationTimeInMilliseconds: 1,
+			},
 		},
 		Resolvers: config.ResolverConfig{
 			NumCrossShardPeers:  2,
