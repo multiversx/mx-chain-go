@@ -19,7 +19,7 @@ func NewNilHistoryRepository() (*nilHistoryRepository, error) {
 }
 
 // RecordBlock returns a not implemented error
-func (nhr *nilHistoryRepository) RecordBlock(_ []byte, _ data.HeaderHandler, _ data.BodyHandler, _, _ map[string]data.TransactionHandler, _ map[string]data.LogHandler) error {
+func (nhr *nilHistoryRepository) RecordBlock(_ []byte, _ data.HeaderHandler, _ data.BodyHandler, _, _ map[string]data.TransactionHandler, _ []*data.LogData) error {
 	return nil
 }
 
