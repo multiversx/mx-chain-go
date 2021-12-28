@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
@@ -35,33 +36,38 @@ func TestProcessLogsSaveSupply(t *testing.T) {
 	t.Parallel()
 
 	token := []byte("nft-0001")
-	logs := map[string]data.LogHandler{
-		"txLog": &transaction.Log{
-			Events: []*transaction.Event{
-				{
-					Identifier: []byte("something"),
-				},
-				{
-					Identifier: []byte(core.BuiltInFunctionESDTNFTCreate),
-					Topics: [][]byte{
-						token, big.NewInt(2).Bytes(), big.NewInt(10).Bytes(),
+	logs := []*data.LogData{
+		{
+			TxHash: "txLog",
+			LogHandler: &transaction.Log{
+				Events: []*transaction.Event{
+					{
+						Identifier: []byte("something"),
 					},
-				},
-				{
-					Identifier: []byte(core.BuiltInFunctionESDTNFTAddQuantity),
-					Topics: [][]byte{
-						token, big.NewInt(2).Bytes(), big.NewInt(50).Bytes(),
+					{
+						Identifier: []byte(core.BuiltInFunctionESDTNFTCreate),
+						Topics: [][]byte{
+							token, big.NewInt(2).Bytes(), big.NewInt(10).Bytes(),
+						},
 					},
-				},
-				{
-					Identifier: []byte(core.BuiltInFunctionESDTNFTBurn),
-					Topics: [][]byte{
-						token, big.NewInt(2).Bytes(), big.NewInt(30).Bytes(),
+					{
+						Identifier: []byte(core.BuiltInFunctionESDTNFTAddQuantity),
+						Topics: [][]byte{
+							token, big.NewInt(2).Bytes(), big.NewInt(50).Bytes(),
+						},
+					},
+					{
+						Identifier: []byte(core.BuiltInFunctionESDTNFTBurn),
+						Topics: [][]byte{
+							token, big.NewInt(2).Bytes(), big.NewInt(30).Bytes(),
+						},
 					},
 				},
 			},
 		},
-		"log": nil,
+		{
+			TxHash: "log",
+		},
 	}
 
 	marshalizer := testscommon.MarshalizerMock{}
@@ -104,5 +110,7 @@ func TestSupplyESDT_GetSupply(t *testing.T) {
 
 	res, err := proc.GetESDTSupply("my-token")
 	require.Nil(t, err)
-	require.Equal(t, "123456", res)
+	require.Equal(t, &SupplyESDT{
+		Supply: big.NewInt(123456),
+	}, res)
 }

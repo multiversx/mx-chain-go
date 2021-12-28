@@ -1,0 +1,11 @@
+# Since we do not have yet any round based enable flag, this file is empty for now.
+# Below, there is an example of how a new flag shall be defined. Please notice the following:
+# 1. It is mandatory that each flag is a separate table, e.g.: [ActivationDummyFlag1]
+# 2. It is mandatory that each table contains Name and Round keys ONLY
+# 3. It is NOT mandatory for table name to be the same as key Name, e.g.: [ActivationDummyFlag1] & Name = "Fix1" is fine
+
+# Example:
+#[ActivationDummyFlag1]
+#   Name = "Fix1"
+#   Round = 444
+

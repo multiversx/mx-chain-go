@@ -18,7 +18,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-
 type TriggerResponse struct {
 	Status string `json:"status"`
 }

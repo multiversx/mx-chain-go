@@ -97,16 +97,16 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
 	return tx, ok
 }
 
-// SelectTransactions selects a reasonably fair list of transactions to be included in the next miniblock
+// SelectTransactionsWithBandwidth selects a reasonably fair list of transactions to be included in the next miniblock
 // It returns at most "numRequested" transactions
-// Each sender gets the chance to give at least "batchSizePerSender" transactions, unless "numRequested" limit is reached before iterating over all senders
-func (cache *TxCache) SelectTransactions(numRequested int, batchSizePerSender int) []*WrappedTransaction {
-	result := cache.doSelectTransactions(numRequested, batchSizePerSender)
+// Each sender gets the chance to give at least bandwidthPerSender gas worth of transactions, unless "numRequested" limit is reached before iterating over all senders
+func (cache *TxCache) SelectTransactionsWithBandwidth(numRequested int, batchSizePerSender int, bandwidthPerSender uint64) []*WrappedTransaction {
+	result := cache.doSelectTransactions(numRequested, batchSizePerSender, bandwidthPerSender)
 	go cache.doAfterSelection()
 	return result
 }
 
-func (cache *TxCache) doSelectTransactions(numRequested int, batchSizePerSender int) []*WrappedTransaction {
+func (cache *TxCache) doSelectTransactions(numRequested int, batchSizePerSender int, bandwidthPerSender uint64) []*WrappedTransaction {
 	stopWatch := cache.monitorSelectionStart()
 
 	result := make([]*WrappedTransaction, numRequested)
@@ -122,7 +122,7 @@ func (cache *TxCache) doSelectTransactions(numRequested int, batchSizePerSender 
 			batchSizeWithScoreCoefficient := batchSizePerSender * int(txList.getLastComputedScore()+1)
 			// Reset happens on first pass only
 			isFirstBatch := pass == 0
-			journal := txList.selectBatchTo(isFirstBatch, result[resultFillIndex:], batchSizeWithScoreCoefficient)
+			journal := txList.selectBatchTo(isFirstBatch, result[resultFillIndex:], batchSizeWithScoreCoefficient, bandwidthPerSender)
 			cache.monitorBatchSelectionEnd(journal)
 
 			if isFirstBatch {

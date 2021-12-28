@@ -225,10 +225,22 @@ func (scr *smartContractResults) RestoreBlockDataIntoPools(
 func (scr *smartContractResults) ProcessBlockTransactions(
 	body *block.Body,
 	haveTime func() bool,
+	_ []byte,
 ) error {
 	if check.IfNil(body) {
 		return process.ErrNilBlockBody
 	}
+
+	gasConsumedByMiniBlockInSenderShard := uint64(0)
+	gasConsumedByMiniBlockInReceiverShard := uint64(0)
+	totalGasConsumedInSelfShard := scr.getTotalGasConsumed()
+
+	log.Debug("smartContractResults.ProcessBlockTransactions", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
+	defer func() {
+		log.Debug("smartContractResults.ProcessBlockTransactions after processing", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard,
+			"gasConsumedByMiniBlockInReceiverShard", gasConsumedByMiniBlockInReceiverShard,
+		)
+	}()
 
 	// basic validation already done in interceptors
 	for i := 0; i < len(body.MiniBlocks); i++ {
@@ -263,14 +275,32 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 				return process.ErrWrongTypeAssertion
 			}
 
+			if scr.flagOptimizeGasUsedInCrossMiniBlocks.IsSet() {
+				err := scr.computeGasConsumed(
+					miniBlock.SenderShardID,
+					miniBlock.ReceiverShardID,
+					currScr,
+					txHash,
+					&gasConsumedByMiniBlockInSenderShard,
+					&gasConsumedByMiniBlockInReceiverShard,
+					&totalGasConsumedInSelfShard)
+
+				if err != nil {
+					return err
+				}
+			}
+
 			scr.saveAccountBalanceForAddress(currScr.GetRcvAddr())
 
 			_, err := scr.scrProcessor.ProcessSmartContractResult(currScr)
 			if err != nil {
 				return err
 			}
+
+			scr.updateGasConsumedWithGasRefundedAndGasPenalized(txHash, &gasConsumedByMiniBlockInReceiverShard, &totalGasConsumedInSelfShard)
 		}
 	}
+
 	return nil
 }
 
@@ -439,7 +469,7 @@ func (scr *smartContractResults) getAllScrsFromMiniBlock(
 
 // CreateAndProcessMiniBlocks creates miniblocks from storage and processes the reward transactions added into the miniblocks
 // as long as it has time
-func (scr *smartContractResults) CreateAndProcessMiniBlocks(_ func() bool) (block.MiniBlockSlice, error) {
+func (scr *smartContractResults) CreateAndProcessMiniBlocks(_ func() bool, _ []byte) (block.MiniBlockSlice, error) {
 	return make(block.MiniBlockSlice, 0), nil
 }
 
@@ -472,6 +502,7 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 	gasConsumedByMiniBlockInSenderShard := uint64(0)
 	gasConsumedByMiniBlockInReceiverShard := uint64(0)
 	totalGasConsumedInSelfShard := scr.getTotalGasConsumed()
+	maxGasLimitUsedForDestMeTxs := scr.economicsFee.MaxGasLimitPerBlock(scr.shardCoordinator.SelfId()) * maxGasLimitPercentUsedForDestMeTxs / 100
 
 	log.Trace("smartContractResults.ProcessMiniBlock", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
 
@@ -495,6 +526,13 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 		}
 
 		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[index])
+
+		if scr.flagOptimizeGasUsedInCrossMiniBlocks.IsSet() {
+			if totalGasConsumedInSelfShard > maxGasLimitUsedForDestMeTxs {
+				err = process.ErrMaxGasLimitUsedForDestMeTxsIsReached
+				return processedTxHashes, index, err
+			}
+		}
 
 		scr.saveAccountBalanceForAddress(miniBlockScrs[index].GetRcvAddr())
 

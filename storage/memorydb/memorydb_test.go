@@ -7,13 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestInitNoError(t *testing.T) {
-	mdb := memorydb.New()
-
-	err := mdb.Init()
-	assert.Nil(t, err, "error initializing db")
-}
-
 func TestPutNoError(t *testing.T) {
 	key, val := []byte("key"), []byte("value")
 	mdb := memorydb.New()

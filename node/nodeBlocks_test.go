@@ -550,6 +550,7 @@ func getDefaultCoreComponents() *factory.CoreComponentsMock {
 		NtpTimer:              &testscommon.SyncTimerStub{},
 		RoundHandlerField:     &testscommon.RoundHandlerMock{},
 		EconomicsHandler:      &economicsmocks.EconomicsHandlerMock{},
+		APIEconomicsHandler:   &economicsmocks.EconomicsHandlerMock{},
 		RatingsConfig:         &testscommon.RatingsInfoMock{},
 		RatingHandler:         &testscommon.RaterMock{},
 		NodesConfig:           &testscommon.NodesSetupStub{},

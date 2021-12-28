@@ -272,7 +272,7 @@ func TestTomlEconomicsParser(t *testing.T) {
     ProtocolSustainabilityAddress = "` + protocolSustainabilityAddress + `"
 
 [FeeSettings]
-	GasLimitSettings = [{EnableEpoch = 0, MaxGasLimitPerBlock = "` + maxGasLimitPerBlock + `", MaxGasLimitPerMiniBlock = "", MaxGasLimitPerMetaBlock = "", MaxGasLimitPerMetaMiniBlock = "", MinGasLimit = "` + minGasLimit + `"}] 
+	GasLimitSettings = [{EnableEpoch = 0, MaxGasLimitPerBlock = "` + maxGasLimitPerBlock + `", MaxGasLimitPerMiniBlock = "", MaxGasLimitPerMetaBlock = "", MaxGasLimitPerMetaMiniBlock = "", MaxGasLimitPerTx = "", MinGasLimit = "` + minGasLimit + `"}] 
     MinGasPrice = "` + minGasPrice + `"
 `
 	cfg := EconomicsConfig{}
@@ -613,6 +613,27 @@ func TestEnableEpochConfig(t *testing.T) {
     # RemoveNonUpdatedStorageEnableEpoch represents the epoch when the backward compatibility for removing non updated storage is enabled
     RemoveNonUpdatedStorageEnableEpoch = 45
 
+    # OptimizeNFTStoreEnableEpoch represents the epoch when optimizations on NFT metadata store and send are enabled
+    OptimizeNFTStoreEnableEpoch = 46
+
+    # CreateNFTThroughExecByCallerEnableEpoch represents the epoch when nft creation through execution on destination by caller is enabled
+    CreateNFTThroughExecByCallerEnableEpoch = 47
+
+    # IsPayableBySCEnableEpoch represents the epoch when a new flag isPayable by SC is enabled
+    IsPayableBySCEnableEpoch = 48
+
+	# CleanUpInformativeSCRsEnableEpoch represents the epoch when the scrs which contain only information are cleaned from miniblocks and logs are created from it
+	CleanUpInformativeSCRsEnableEpoch = 49
+
+    # StorageAPICostOptimizationEnableEpoch represents the epoch when new storage helper functions are enabled and cost is reduced in Arwen
+    StorageAPICostOptimizationEnableEpoch = 50
+
+    # TransformToMultiShardCreateEnableEpoch represents the epoch when the new function on esdt system sc is enabled to transfer create role into multishard
+	TransformToMultiShardCreateEnableEpoch = 51
+
+    # ESDTRegisterAndSetAllRolesEnableEpoch represents the epoch when new function to register tickerID and set all roles is enabled
+    ESDTRegisterAndSetAllRolesEnableEpoch = 52
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -685,6 +706,13 @@ func TestEnableEpochConfig(t *testing.T) {
 			OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 43,
 			FixOOGReturnCodeEnableEpoch:                 44,
 			RemoveNonUpdatedStorageEnableEpoch:          45,
+			OptimizeNFTStoreEnableEpoch:                 46,
+			CreateNFTThroughExecByCallerEnableEpoch:     47,
+			IsPayableBySCEnableEpoch:                    48,
+			CleanUpInformativeSCRsEnableEpoch:           49,
+			StorageAPICostOptimizationEnableEpoch:       50,
+			TransformToMultiShardCreateEnableEpoch:      51,
+			ESDTRegisterAndSetAllRolesEnableEpoch:       52,
 		},
 		GasSchedule: GasScheduleConfig{
 			GasScheduleByEpochs: []GasScheduleByEpochs{

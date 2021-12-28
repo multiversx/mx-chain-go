@@ -502,6 +502,7 @@ func (ccf *consensusComponentsFactory) createUserAccountsSyncer() (process.Accou
 		ArgsNewBaseAccountsSyncer: ccf.createArgsBaseAccountsSyncer(trieStorageManager),
 		ShardId:                   ccf.processComponents.ShardCoordinator().SelfId(),
 		Throttler:                 thr,
+		AddressPubKeyConverter:    ccf.coreComponents.AddressPubKeyConverter(),
 	}
 	return syncer.NewUserAccountsSyncer(argsUserAccountsSyncer)
 }

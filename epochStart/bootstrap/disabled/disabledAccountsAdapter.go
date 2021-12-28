@@ -116,6 +116,16 @@ func (a *accountsAdapter) GetNumCheckpoints() uint32 {
 	return 0
 }
 
+// CommitInEpoch -
+func (a *accountsAdapter) CommitInEpoch(_ uint32, _ uint32) ([]byte, error) {
+	return nil, nil
+}
+
+// GetStackDebugFirstEntry -
+func (a *accountsAdapter) GetStackDebugFirstEntry() []byte {
+	return nil
+}
+
 // Close -
 func (a *accountsAdapter) Close() error {
 	return nil

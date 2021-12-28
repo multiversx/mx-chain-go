@@ -6,7 +6,7 @@ import (
 
 // StatusComponentsMock -
 type StatusComponentsMock struct {
-	Outport      outport.OutportHandler
+	Outport outport.OutportHandler
 }
 
 // OutportHandler -

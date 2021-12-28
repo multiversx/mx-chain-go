@@ -452,7 +452,7 @@ func (txProc *txProcessor) processMoveBalance(
 		}
 	}
 
-	isPayable, err := txProc.scProcessor.IsPayable(tx.RcvAddr)
+	isPayable, err := txProc.scProcessor.IsPayable(tx.SndAddr, tx.RcvAddr)
 	if err != nil {
 		return err
 	}

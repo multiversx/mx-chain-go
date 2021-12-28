@@ -9,7 +9,7 @@ import (
 type TxLogsProcessorStub struct {
 	GetLogCalled            func(txHash []byte) (data.LogHandler, error)
 	SaveLogCalled           func(txHash []byte, tx data.TransactionHandler, vmLogs []*vmcommon.LogEntry) error
-	GetAllCurrentLogsCalled func() map[string]data.LogHandler
+	GetAllCurrentLogsCalled func() []*data.LogData
 }
 
 // GetLog -
@@ -35,7 +35,7 @@ func (txls *TxLogsProcessorStub) SaveLog(txHash []byte, tx data.TransactionHandl
 }
 
 // GetAllCurrentLogs -
-func (txls *TxLogsProcessorStub) GetAllCurrentLogs() map[string]data.LogHandler {
+func (txls *TxLogsProcessorStub) GetAllCurrentLogs() []*data.LogData {
 	if txls.GetAllCurrentLogsCalled != nil {
 		return txls.GetAllCurrentLogsCalled()
 	}

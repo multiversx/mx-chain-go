@@ -5,15 +5,17 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/dblookupext/esdtSupply"
 )
 
 // HistoryRepositoryStub -
 type HistoryRepositoryStub struct {
-	RecordBlockCalled                  func(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler, scrsPool map[string]data.TransactionHandler, receipts map[string]data.TransactionHandler, logs map[string]data.LogHandler) error
+	RecordBlockCalled                  func(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler, scrsPool map[string]data.TransactionHandler, receipts map[string]data.TransactionHandler, logs []*data.LogData) error
 	OnNotarizedBlocksCalled            func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)
 	GetMiniblockMetadataByTxHashCalled func(hash []byte) (*dblookupext.MiniblockMetadata, error)
 	GetEpochByHashCalled               func(hash []byte) (uint32, error)
 	GetEventsHashesByTxHashCalled      func(hash []byte, epoch uint32) (*dblookupext.ResultsHashesByTxHash, error)
+	GetESDTSupplyCalled                func(token string) (*esdtSupply.SupplyESDT, error)
 	IsEnabledCalled                    func() bool
 }
 
@@ -24,7 +26,7 @@ func (hp *HistoryRepositoryStub) RecordBlock(
 	blockBody data.BodyHandler,
 	scrsPool map[string]data.TransactionHandler,
 	receipts map[string]data.TransactionHandler,
-	logs map[string]data.LogHandler,
+	logs []*data.LogData,
 ) error {
 	if hp.RecordBlockCalled != nil {
 		return hp.RecordBlockCalled(blockHeaderHash, blockHeader, blockBody, scrsPool, receipts, logs)
@@ -74,8 +76,12 @@ func (hp *HistoryRepositoryStub) RevertBlock(_ data.HeaderHandler, _ data.BodyHa
 }
 
 // GetESDTSupply -
-func (hp *HistoryRepositoryStub) GetESDTSupply(_ string) (string, error) {
-	return "", nil
+func (hp *HistoryRepositoryStub) GetESDTSupply(token string) (*esdtSupply.SupplyESDT, error) {
+	if hp.GetESDTSupplyCalled != nil {
+		return hp.GetESDTSupplyCalled(token)
+	}
+
+	return nil, nil
 }
 
 // IsInterfaceNil -
