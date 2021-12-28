@@ -33,7 +33,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 	for index := range sortedTxs {
 		if !haveTime() {
 			log.Debug("time is out in createAndProcessMiniBlocksFromMeV2")
-			remainingTxs = sortedTxs[index:]
+			remainingTxs = append(remainingTxs, sortedTxs[index:]...)
 			break
 		}
 
@@ -42,6 +42,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 			sortedTxs[index],
 			mbInfo)
 		if !shouldContinue {
+			remainingTxs = append(remainingTxs, sortedTxs[index])
 			continue
 		}
 
@@ -60,7 +61,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 			log.Debug("max txs accepted in one block is reached",
 				"num txs added", mbInfo.processingInfo.numTxsAdded,
 				"total txs", len(sortedTxs))
-			remainingTxs = sortedTxs[index:]
+			remainingTxs = append(remainingTxs, sortedTxs[index:]...)
 			break
 		}
 
@@ -72,6 +73,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 			receiverShardID,
 			mbInfo)
 		if err != nil {
+			remainingTxs = append(remainingTxs, sortedTxs[index])
 			continue
 		}
 
