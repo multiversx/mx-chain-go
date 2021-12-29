@@ -76,7 +76,7 @@ func NewMetaTxProcessor(args ArgsNewMetaTxProcessor) (*metaTxProcessor, error) {
 		flagPenalizedTooMuchGas: atomic.Flag{},
 	}
 	// backwards compatibility
-	baseTxProcess.flagPenalizedTooMuchGas.Unset()
+	baseTxProcess.flagPenalizedTooMuchGas.Reset()
 
 	txProc := &metaTxProcessor{
 		baseTxProcessor:            baseTxProcess,
@@ -188,10 +188,10 @@ func (txProc *metaTxProcessor) processBuiltInFunctionCall(
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (txProc *metaTxProcessor) EpochConfirmed(epoch uint32, _ uint64) {
-	txProc.flagESDTEnabled.Toggle(epoch >= txProc.esdtEnableEpoch)
+	txProc.flagESDTEnabled.SetValue(epoch >= txProc.esdtEnableEpoch)
 	log.Debug("txProcessor: esdt", "enabled", txProc.flagESDTEnabled.IsSet())
 
-	txProc.flagBuiltInFunction.Toggle(epoch >= txProc.builtInFunctionEnableEpoch)
+	txProc.flagBuiltInFunction.SetValue(epoch >= txProc.builtInFunctionEnableEpoch)
 	log.Debug("txProcessor: built in function on metachain", "enabled", txProc.flagBuiltInFunction.IsSet())
 }
 
