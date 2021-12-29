@@ -210,11 +210,11 @@ func TestEsdt_ExecuteIssueWithMultiNFTCreate(t *testing.T) {
 	ticker := []byte("TICKER")
 	vmInput.Arguments = [][]byte{[]byte("name"), ticker, []byte(canCreateMultiShard), []byte("true")}
 
-	e.flagNFTCreateONMultiShard.Unset()
+	e.flagNFTCreateONMultiShard.Reset()
 	returnCode := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 
-	e.flagNFTCreateONMultiShard.Set()
+	_ = e.flagNFTCreateONMultiShard.SetReturningPrevious()
 	returnCode = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 
@@ -298,8 +298,8 @@ func TestEsdt_ExecuteIssueWithZero(t *testing.T) {
 	vmInput.CallValue, _ = big.NewInt(0).SetString(args.ESDTSCConfig.BaseIssuingCost, 10)
 	vmInput.GasProvided = args.GasCost.MetaChainSystemSCsCost.ESDTIssue
 
-	e.flagGlobalMintBurn.Unset()
-	e.flagNFTCreateONMultiShard.Unset()
+	e.flagGlobalMintBurn.Reset()
+	e.flagNFTCreateONMultiShard.Reset()
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
 }
@@ -3394,7 +3394,7 @@ func TestEsdt_SetSpecialRoleTransferNotEnabledShouldErr(t *testing.T) {
 	retCode = e.Execute(vmInput)
 	require.Equal(t, vmcommon.UserError, retCode)
 
-	e.flagTransferRole.Set()
+	_ = e.flagTransferRole.SetReturningPrevious()
 	called = false
 	token.TokenType = []byte(core.NonFungibleESDT)
 	retCode = e.Execute(vmInput)
@@ -4232,7 +4232,7 @@ func TestEsdt_ExecuteIssueMetaESDT(t *testing.T) {
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
 
-	e.flagMetaESDT.Unset()
+	e.flagMetaESDT.Reset()
 	vmInput := getDefaultVmInputForFunc("registerMetaESDT", nil)
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
@@ -4240,7 +4240,7 @@ func TestEsdt_ExecuteIssueMetaESDT(t *testing.T) {
 
 	eei.returnMessage = ""
 	eei.gasRemaining = 9999
-	e.flagMetaESDT.Set()
+	_ = e.flagMetaESDT.SetReturningPrevious()
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.Equal(t, eei.returnMessage, "not enough arguments")
@@ -4285,7 +4285,7 @@ func TestEsdt_ExecuteChangeSFTToMetaESDT(t *testing.T) {
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
 
-	e.flagMetaESDT.Unset()
+	e.flagMetaESDT.Reset()
 	vmInput := getDefaultVmInputForFunc("changeSFTToMetaESDT", nil)
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
@@ -4293,7 +4293,7 @@ func TestEsdt_ExecuteChangeSFTToMetaESDT(t *testing.T) {
 
 	eei.returnMessage = ""
 	eei.gasRemaining = 9999
-	e.flagMetaESDT.Set()
+	_ = e.flagMetaESDT.SetReturningPrevious()
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.Equal(t, eei.returnMessage, "not enough arguments")
@@ -4340,7 +4340,7 @@ func TestEsdt_ExecuteIssueSFTAndChangeSFTToMetaESDT(t *testing.T) {
 
 	eei.returnMessage = ""
 	eei.gasRemaining = 9999
-	e.flagMetaESDT.Set()
+	_ = e.flagMetaESDT.SetReturningPrevious()
 
 	vmInput := getDefaultVmInputForFunc("issueSemiFungible", nil)
 	vmInput.CallValue = e.baseIssuingCost
@@ -4382,7 +4382,7 @@ func TestEsdt_ExecuteTransformToMultiShardCreate(t *testing.T) {
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
 
-	e.flagTransformToMultiShardCreate.Unset()
+	e.flagTransformToMultiShardCreate.Reset()
 	vmInput := getDefaultVmInputForFunc("changeToMultiShardCreate", nil)
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.FunctionNotFound, output)
@@ -4390,7 +4390,7 @@ func TestEsdt_ExecuteTransformToMultiShardCreate(t *testing.T) {
 
 	eei.returnMessage = ""
 	eei.gasRemaining = 9999
-	e.flagTransformToMultiShardCreate.Set()
+	_ = e.flagTransformToMultiShardCreate.SetReturningPrevious()
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.Equal(t, eei.returnMessage, "invalid number of arguments")
@@ -4468,7 +4468,7 @@ func TestEsdt_ExecuteRegisterAndSetErrors(t *testing.T) {
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
 
-	e.flagRegisterAndSetAllRoles.Unset()
+	e.flagRegisterAndSetAllRoles.Reset()
 	vmInput := getDefaultVmInputForFunc("registerAndSetAllRoles", nil)
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.FunctionNotFound, output)
@@ -4476,7 +4476,7 @@ func TestEsdt_ExecuteRegisterAndSetErrors(t *testing.T) {
 
 	eei.returnMessage = ""
 	eei.gasRemaining = 9999
-	e.flagRegisterAndSetAllRoles.Set()
+	_ = e.flagRegisterAndSetAllRoles.SetReturningPrevious()
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.Equal(t, eei.returnMessage, "not enough arguments")
