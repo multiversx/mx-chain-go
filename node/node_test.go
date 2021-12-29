@@ -43,6 +43,7 @@ import (
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
+	txsSenderMock "github.com/ElrondNetwork/elrond-go/testscommon/txsSenderMock"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
@@ -3486,4 +3487,31 @@ func TestGetESDTSupply(t *testing.T) {
 		Burned: "0",
 		Minted: "15",
 	}, supply)
+}
+
+func TestNode_SendBulkTransactions(t *testing.T) {
+	t.Parallel()
+
+	flag := atomicCore.Flag{}
+	expectedNoOfTxs := uint64(444)
+	tx1 := &transaction.Transaction{Nonce: 123}
+	tx2 := &transaction.Transaction{Nonce: 321}
+	expectedTxs := []*transaction.Transaction{tx1, tx2}
+	txsSender := &txsSenderMock.TxsSenderHandlerMock{
+		SendBulkTransactionsCalled: func(txs []*transaction.Transaction) (uint64, error) {
+			flag.Set()
+			require.Equal(t, expectedTxs, txs)
+			return expectedNoOfTxs, nil
+		},
+	}
+
+	processComponentsMock := getDefaultProcessComponents()
+	processComponentsMock.TxsSenderHandlerField = txsSender
+	n, err := node.NewNode(node.WithProcessComponents(processComponentsMock))
+	require.Nil(t, err)
+
+	actualNoOfTxs, err := n.SendBulkTransactions(expectedTxs)
+	require.True(t, flag.IsSet())
+	require.Equal(t, expectedNoOfTxs, actualNoOfTxs)
+	require.Nil(t, err)
 }
