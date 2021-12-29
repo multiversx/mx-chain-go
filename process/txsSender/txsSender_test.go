@@ -10,11 +10,18 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
+	"github.com/ElrondNetwork/elrond-go-core/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
+	scrData "github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
+	epochStartMock "github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
@@ -22,6 +29,8 @@ import (
 )
 
 func TestNewTxsSenderWithAccumulator(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		args          func() ArgsTxsSenderWithAccumulator
 		expectedError error
@@ -63,6 +72,14 @@ func TestNewTxsSenderWithAccumulator(t *testing.T) {
 		},
 		{
 			args: func() ArgsTxsSenderWithAccumulator {
+				args := generateMockArgsTxsSender()
+				args.DataPacker = nil
+				return args
+			},
+			expectedError: dataRetriever.ErrNilDataPacker,
+		},
+		{
+			args: func() ArgsTxsSenderWithAccumulator {
 				return generateMockArgsTxsSender()
 			},
 			expectedError: nil,
@@ -88,7 +105,7 @@ func TestNewTxsSenderWithAccumulator(t *testing.T) {
 func TestTxsSender_SendBulkTransactions(t *testing.T) {
 	t.Parallel()
 
-	marshalizer := &mock.MarshalizerFake{}
+	marshaller := &mock.MarshalizerFake{}
 
 	mutRecoveredTransactions := &sync.RWMutex{}
 	recoveredTransactions := make(map[uint32][]*transaction.Transaction)
@@ -146,13 +163,13 @@ func TestTxsSender_SendBulkTransactions(t *testing.T) {
 		BroadcastOnChannelBlockingCalled: func(pipe string, topic string, buff []byte) error {
 
 			b := &batch.Batch{}
-			err := marshalizer.Unmarshal(b, buff)
+			err := marshaller.Unmarshal(b, buff)
 			if err != nil {
 				assert.Fail(t, err.Error())
 			}
 			for _, txBuff := range b.Data {
 				tx := transaction.Transaction{}
-				errMarshal := marshalizer.Unmarshal(&tx, txBuff)
+				errMarshal := marshaller.Unmarshal(&tx, txBuff)
 				require.Nil(t, errMarshal)
 
 				mutRecoveredTransactions.Lock()
@@ -165,16 +182,18 @@ func TestTxsSender_SendBulkTransactions(t *testing.T) {
 			return nil
 		},
 	}
-
-	sender, _ := NewTxsSenderWithAccumulator(ArgsTxsSenderWithAccumulator{
+	dataPacker, _ := partitioning.NewSimpleDataPacker(&testscommon.MarshalizerMock{})
+	args := ArgsTxsSenderWithAccumulator{
 		Marshaller:       &testscommon.MarshalizerMock{},
 		ShardCoordinator: shardCoordinator,
 		NetworkMessenger: mes,
+		DataPacker:       dataPacker,
 		AccumulatorConfig: config.TxAccumulatorConfig{
 			MaxAllowedTimeInMilliseconds:   250,
 			MaxDeviationTimeInMilliseconds: 25,
 		},
-	})
+	}
+	sender, _ := NewTxsSenderWithAccumulator(args)
 
 	numTxs, err := sender.SendBulkTransactions(txsToSend)
 	assert.Equal(t, len(txsToSend), int(numTxs))
@@ -206,30 +225,108 @@ func TestTxsSender_SendBulkTransactions(t *testing.T) {
 	mutRecoveredTransactions.RUnlock()
 }
 
-func TestTxsSender_SendBulkTransactionsNoTxToProcessExpectError(t *testing.T) {
-	sender, _ := NewTxsSenderWithAccumulator(ArgsTxsSenderWithAccumulator{
-		Marshaller:       &testscommon.MarshalizerMock{},
-		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
-		NetworkMessenger: &p2pmocks.MessengerStub{},
-		AccumulatorConfig: config.TxAccumulatorConfig{
-			MaxAllowedTimeInMilliseconds:   250,
-			MaxDeviationTimeInMilliseconds: 25,
-		},
-	})
+func TestTxsSender_sendFromTxAccumulatorSendOneTxOneSCRExpectOnlyTxToBeSent(t *testing.T) {
+	t.Parallel()
 
-	numOfTxsProcessed, err := sender.SendBulkTransactions([]*transaction.Transaction{})
-	assert.Equal(t, uint64(0), numOfTxsProcessed)
+	senderAddrTx := []byte("senderAddrTx")
+	senderAddrSCR := []byte("senderAddrSCR")
+	tx := &transaction.Transaction{SndAddr: senderAddrTx}
+	scr := &scrData.SmartContractResult{SndAddr: senderAddrSCR}
+
+	ctMarshallCalled := atomic.Counter{}
+	ctComputeIdCalled := atomic.Counter{}
+	ctCommunicationIdCalled := atomic.Counter{}
+	ctPackDataCalled := atomic.Counter{}
+	ctBroadCastCalled := atomic.Counter{}
+
+	shardIDSenderAddrTx := uint32(1234)
+	communicationIdentifier := "idTx"
+	shardCoordinator := &epochStartMock.ShardCoordinatorStub{
+		ComputeIdCalled: func(address []byte) uint32 {
+			ctComputeIdCalled.Increment()
+			require.Equal(t, senderAddrTx, address)
+			return shardIDSenderAddrTx
+		},
+		CommunicationIdentifierCalled: func(destShardID uint32) string {
+			ctCommunicationIdCalled.Increment()
+			require.Equal(t, shardIDSenderAddrTx, destShardID)
+			return communicationIdentifier
+		},
+	}
+
+	txMarshalled := []byte("txMarshalled")
+	marshaller := &testscommon.MarshalizerStub{
+		MarshalCalled: func(obj interface{}) ([]byte, error) {
+			ctMarshallCalled.Increment()
+			require.Equal(t, tx, obj)
+			return txMarshalled, nil
+
+		},
+	}
+
+	txChunk := []byte("txChunk")
+	dataPacker := &dataRetrieverMock.DataPackerStub{
+		PackDataInChunksCalled: func(data [][]byte, limit int) ([][]byte, error) {
+			ctPackDataCalled.Increment()
+			require.Equal(t, [][]byte{txMarshalled}, data)
+			return [][]byte{txChunk}, nil
+		},
+	}
+	messenger := &p2pmocks.MessengerStub{
+		BroadcastOnChannelBlockingCalled: func(channel string, topic string, buff []byte) error {
+			ctBroadCastCalled.Increment()
+			require.Equal(t, SendTransactionsPipe, channel)
+			require.Equal(t, factory.TransactionTopic+communicationIdentifier, topic)
+			require.Equal(t, txChunk, buff)
+			return nil
+		},
+	}
+
+	args := generateMockArgsTxsSender()
+	args.ShardCoordinator = shardCoordinator
+	args.Marshaller = marshaller
+	args.NetworkMessenger = messenger
+	args.DataPacker = dataPacker
+	txsHandler, _ := NewTxsSenderWithAccumulator(args)
+	defer func() {
+		err := txsHandler.Close()
+		require.Nil(t, err)
+	}()
+
+	txsHandler.txAccumulator.AddData(tx)
+	txsHandler.txAccumulator.AddData(scr)
+
+	time.Sleep(20 * time.Millisecond)
+	require.Equal(t, int64(1), ctMarshallCalled.Get())
+	require.Equal(t, int64(1), ctComputeIdCalled.Get())
+	require.Equal(t, int64(1), ctCommunicationIdCalled.Get())
+	require.Equal(t, int64(1), ctPackDataCalled.Get())
+	require.Equal(t, int64(1), ctBroadCastCalled.Get())
+}
+
+func TestTxsSender_SendBulkTransactionsNoTxToProcessExpectError(t *testing.T) {
+	t.Parallel()
+
+	args := generateMockArgsTxsSender()
+	txsHandler, _ := NewTxsSenderWithAccumulator(args)
+
+	numOfProcessedTxs, err := txsHandler.SendBulkTransactions([]*transaction.Transaction{})
+	assert.Equal(t, uint64(0), numOfProcessedTxs)
 	assert.Equal(t, process.ErrNoTxToProcess, err)
 }
 
 func generateMockArgsTxsSender() ArgsTxsSenderWithAccumulator {
+	marshaller := testscommon.MarshalizerMock{}
+	dataPacker, _ := partitioning.NewSimpleDataPacker(marshaller)
+	accumulatorConfig := config.TxAccumulatorConfig{
+		MaxAllowedTimeInMilliseconds:   10,
+		MaxDeviationTimeInMilliseconds: 1,
+	}
 	return ArgsTxsSenderWithAccumulator{
-		Marshaller:       testscommon.MarshalizerMock{},
-		ShardCoordinator: &mock.ShardCoordinatorMock{},
-		NetworkMessenger: &p2pmocks.MessengerStub{},
-		AccumulatorConfig: config.TxAccumulatorConfig{
-			MaxAllowedTimeInMilliseconds:   10,
-			MaxDeviationTimeInMilliseconds: 1,
-		},
+		Marshaller:        marshaller,
+		ShardCoordinator:  &mock.ShardCoordinatorMock{},
+		NetworkMessenger:  &p2pmocks.MessengerStub{},
+		DataPacker:        dataPacker,
+		AccumulatorConfig: accumulatorConfig,
 	}
 }

@@ -8,12 +8,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/accumulator"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -31,6 +31,7 @@ type ArgsTxsSenderWithAccumulator struct {
 	ShardCoordinator  storage.ShardCoordinator
 	NetworkMessenger  NetworkMessenger
 	AccumulatorConfig config.TxAccumulatorConfig
+	DataPacker        process.DataPacker
 }
 
 type txsSender struct {
@@ -40,13 +41,14 @@ type txsSender struct {
 
 	ctx                      context.Context
 	cancelFunc               context.CancelFunc
-	txSentCounter            uint32
 	txAccumulator            core.Accumulator
+	dataPacker               process.DataPacker
+	txSentCounter            uint32
 	currentSendingGoRoutines int32
 }
 
-// NewTxsSenderWithAccumulator creates a new instance of TxsSenderHandler, which initializes internally a accumulator.NewTimeAccumulator
-func NewTxsSenderWithAccumulator(args ArgsTxsSenderWithAccumulator) (process.TxsSenderHandler, error) {
+// NewTxsSenderWithAccumulator creates a new instance of TxsSenderHandler, which initializes internally an accumulator.NewTimeAccumulator
+func NewTxsSenderWithAccumulator(args ArgsTxsSenderWithAccumulator) (*txsSender, error) {
 	if check.IfNil(args.Marshaller) {
 		return nil, process.ErrNilMarshalizer
 	}
@@ -55,6 +57,9 @@ func NewTxsSenderWithAccumulator(args ArgsTxsSenderWithAccumulator) (process.Txs
 	}
 	if check.IfNil(args.NetworkMessenger) {
 		return nil, process.ErrNilMessenger
+	}
+	if check.IfNil(args.DataPacker) {
+		return nil, dataRetriever.ErrNilDataPacker
 	}
 
 	txAccumulator, err := accumulator.NewTimeAccumulator(
@@ -71,6 +76,7 @@ func NewTxsSenderWithAccumulator(args ArgsTxsSenderWithAccumulator) (process.Txs
 		marshaller:               args.Marshaller,
 		shardCoordinator:         args.ShardCoordinator,
 		networkMessenger:         args.NetworkMessenger,
+		dataPacker:               args.DataPacker,
 		ctx:                      ctx,
 		cancelFunc:               cancelFunc,
 		txAccumulator:            txAccumulator,
@@ -95,11 +101,6 @@ func (ts *txsSender) SendBulkTransactions(txs []*transaction.Transaction) (uint6
 }
 
 func (ts *txsSender) addTransactionsToSendPipe(txs []*transaction.Transaction) {
-	if check.IfNil(ts.txAccumulator) {
-		log.Error("node has a nil tx accumulator instance")
-		return
-	}
-
 	for _, tx := range txs {
 		ts.txAccumulator.AddData(tx)
 	}
@@ -168,15 +169,10 @@ func (ts *txsSender) sendBulkTransactions(txs []*transaction.Transaction) {
 }
 
 func (ts *txsSender) sendBulkTransactionsFromShard(transactions [][]byte, senderShardId uint32) error {
-	dataPacker, err := partitioning.NewSimpleDataPacker(ts.marshaller)
-	if err != nil {
-		return err
-	}
-
 	// the topic identifier is made of the current shard id and sender's shard id
 	identifier := factory.TransactionTopic + ts.shardCoordinator.CommunicationIdentifier(senderShardId)
 
-	packets, err := dataPacker.PackDataInChunks(transactions, common.MaxBulkTransactionSize)
+	packets, err := ts.dataPacker.PackDataInChunks(transactions, common.MaxBulkTransactionSize)
 	if err != nil {
 		return err
 	}

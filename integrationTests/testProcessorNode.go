@@ -2969,12 +2969,15 @@ func createTxsSender(shardCoordinator storage.ShardCoordinator, messenger txsSen
 		MaxAllowedTimeInMilliseconds:   10,
 		MaxDeviationTimeInMilliseconds: 1,
 	}
+	dataPacker, err := partitioning.NewSimpleDataPacker(TestMarshalizer)
+	log.LogIfError(err)
 
 	argsTxsSender := txsSender.ArgsTxsSenderWithAccumulator{
 		Marshaller:        TestMarshalizer,
 		ShardCoordinator:  shardCoordinator,
 		NetworkMessenger:  messenger,
 		AccumulatorConfig: txAccumulatorConfig,
+		DataPacker:        dataPacker,
 	}
 	txsSenderHandler, err := txsSender.NewTxsSenderWithAccumulator(argsTxsSender)
 	log.LogIfError(err)

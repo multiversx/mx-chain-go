@@ -526,11 +526,16 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
+	dataPacker, err := partitioning.NewSimpleDataPacker(pcf.coreData.InternalMarshalizer())
+	if err != nil {
+		return nil, err
+	}
 	args := txsSender.ArgsTxsSenderWithAccumulator{
 		Marshaller:        pcf.coreData.InternalMarshalizer(),
 		ShardCoordinator:  pcf.bootstrapComponents.ShardCoordinator(),
 		NetworkMessenger:  pcf.network.NetworkMessenger(),
 		AccumulatorConfig: pcf.config.Antiflood.TxAccumulator,
+		DataPacker:        dataPacker,
 	}
 	txsSenderWithAccumulator, err := txsSender.NewTxsSenderWithAccumulator(args)
 	if err != nil {
