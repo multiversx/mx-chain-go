@@ -1,6 +1,7 @@
 package txsSender
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -90,14 +91,12 @@ func TestNewTxsSenderWithAccumulator(t *testing.T) {
 		instance, err := NewTxsSenderWithAccumulator(test.args())
 		if test.expectedError == nil {
 			require.NoError(t, err)
-			require.NotNil(t, instance)
-
-			err = instance.Close()
-			require.Nil(t, err)
+			require.False(t, instance.IsInterfaceNil())
+			require.NoError(t, instance.Close())
 		} else {
-			require.Nil(t, instance)
 			require.Error(t, err)
 			require.True(t, strings.Contains(err.Error(), test.expectedError.Error()))
+			require.True(t, instance.IsInterfaceNil())
 		}
 	}
 }
@@ -302,6 +301,119 @@ func TestTxsSender_sendFromTxAccumulatorSendOneTxOneSCRExpectOnlyTxToBeSent(t *t
 	require.Equal(t, int64(1), ctCommunicationIdCalled.Get())
 	require.Equal(t, int64(1), ctPackDataCalled.Get())
 	require.Equal(t, int64(1), ctBroadCastCalled.Get())
+}
+
+func TestTxsSender_sendBulkTransactionsSendTwoTxsFailToMarshallOneExpectOnlyOneTxSend(t *testing.T) {
+	t.Parallel()
+
+	senderAddrTx1 := []byte("senderAddrTx1")
+	senderAddrTx2 := []byte("senderAddrTx2")
+	tx1 := &transaction.Transaction{SndAddr: senderAddrTx1}
+	tx2 := &transaction.Transaction{SndAddr: senderAddrTx2}
+	txs := []*transaction.Transaction{tx1, tx2}
+
+	ctMarshallCalled := atomic.Counter{}
+	ctComputeIdCalled := atomic.Counter{}
+	ctCommunicationIdCalled := atomic.Counter{}
+	ctPackDataCalled := atomic.Counter{}
+	ctBroadCastCalled := atomic.Counter{}
+
+	communicationIdentifierTx1 := "idTx1"
+	shardIdTx1 := uint32(1234)
+	shardCoordinator := &epochStartMock.ShardCoordinatorStub{
+		ComputeIdCalled: func(address []byte) uint32 {
+			ctComputeIdCalled.Increment()
+			require.Equal(t, senderAddrTx1, address)
+			return shardIdTx1
+		},
+		CommunicationIdentifierCalled: func(destShardID uint32) string {
+			ctCommunicationIdCalled.Increment()
+			require.Equal(t, shardIdTx1, destShardID)
+			return communicationIdentifierTx1
+		},
+	}
+
+	tx1Marshalled := []byte("tx1Marshalled")
+	marshaller := &testscommon.MarshalizerStub{
+		MarshalCalled: func(obj interface{}) ([]byte, error) {
+			switch ctMarshallCalled.Get() {
+			case 0:
+				ctMarshallCalled.Increment()
+				require.Equal(t, tx1, obj)
+				return tx1Marshalled, nil
+
+			case 1:
+				ctMarshallCalled.Increment()
+				require.Equal(t, tx2, obj)
+				return nil, errors.New("error marshal tx2")
+			default:
+				require.Fail(t, "this marshaller should not be called for more than 2 txs")
+				return nil, nil
+			}
+		},
+	}
+
+	tx1Chunk := []byte("tx1Chunk")
+	dataPacker := &dataRetrieverMock.DataPackerStub{
+		PackDataInChunksCalled: func(data [][]byte, limit int) ([][]byte, error) {
+			ctPackDataCalled.Increment()
+			require.Equal(t, [][]byte{tx1Marshalled}, data)
+			return [][]byte{tx1Chunk}, nil
+		},
+	}
+	messenger := &p2pmocks.MessengerStub{
+		BroadcastOnChannelBlockingCalled: func(channel string, topic string, buff []byte) error {
+			ctBroadCastCalled.Increment()
+			require.Equal(t, SendTransactionsPipe, channel)
+			require.Equal(t, factory.TransactionTopic+communicationIdentifierTx1, topic)
+			require.Equal(t, tx1Chunk, buff)
+			return nil
+		},
+	}
+
+	args := generateMockArgsTxsSender()
+	args.DataPacker = dataPacker
+	args.NetworkMessenger = messenger
+	args.Marshaller = marshaller
+	args.ShardCoordinator = shardCoordinator
+
+	txsHandler, _ := NewTxsSenderWithAccumulator(args)
+	defer func() {
+		err := txsHandler.Close()
+		require.Nil(t, err)
+	}()
+
+	txsHandler.sendBulkTransactions(txs)
+	time.Sleep(20 * time.Millisecond)
+	require.Equal(t, int64(2), ctMarshallCalled.Get())
+	require.Equal(t, int64(1), ctComputeIdCalled.Get())
+	require.Equal(t, int64(1), ctCommunicationIdCalled.Get())
+	require.Equal(t, int64(1), ctPackDataCalled.Get())
+	require.Equal(t, int64(1), ctBroadCastCalled.Get())
+}
+
+func TestTxsSender_sendBulkTransactionsFromShardCannotPackDataExpectError(t *testing.T) {
+	t.Parallel()
+
+	txs := [][]byte{[]byte("tx")}
+	errPackData := errors.New("error packing data in chunks")
+	dataPacker := &dataRetrieverMock.DataPackerStub{
+		PackDataInChunksCalled: func(data [][]byte, limit int) ([][]byte, error) {
+			require.Equal(t, txs, data)
+			return nil, errPackData
+		},
+	}
+
+	args := generateMockArgsTxsSender()
+	args.DataPacker = dataPacker
+	txsHandler, _ := NewTxsSenderWithAccumulator(args)
+	defer func() {
+		err := txsHandler.Close()
+		require.Nil(t, err)
+	}()
+
+	err := txsHandler.sendBulkTransactionsFromShard(txs, 0)
+	require.Equal(t, errPackData, err)
 }
 
 func TestTxsSender_SendBulkTransactionsNoTxToProcessExpectError(t *testing.T) {

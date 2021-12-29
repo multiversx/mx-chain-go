@@ -39,12 +39,11 @@ type txsSender struct {
 	shardCoordinator storage.ShardCoordinator
 	networkMessenger NetworkMessenger
 
-	ctx                      context.Context
-	cancelFunc               context.CancelFunc
-	txAccumulator            core.Accumulator
-	dataPacker               process.DataPacker
-	txSentCounter            uint32
-	currentSendingGoRoutines int32
+	ctx           context.Context
+	cancelFunc    context.CancelFunc
+	txAccumulator core.Accumulator
+	dataPacker    process.DataPacker
+	txSentCounter uint32
 }
 
 // NewTxsSenderWithAccumulator creates a new instance of TxsSenderHandler, which initializes internally an accumulator.NewTimeAccumulator
@@ -73,15 +72,14 @@ func NewTxsSenderWithAccumulator(args ArgsTxsSenderWithAccumulator) (*txsSender,
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	ret := &txsSender{
-		marshaller:               args.Marshaller,
-		shardCoordinator:         args.ShardCoordinator,
-		networkMessenger:         args.NetworkMessenger,
-		dataPacker:               args.DataPacker,
-		ctx:                      ctx,
-		cancelFunc:               cancelFunc,
-		txAccumulator:            txAccumulator,
-		txSentCounter:            0,
-		currentSendingGoRoutines: 0,
+		marshaller:       args.Marshaller,
+		shardCoordinator: args.ShardCoordinator,
+		networkMessenger: args.NetworkMessenger,
+		dataPacker:       args.DataPacker,
+		ctx:              ctx,
+		cancelFunc:       cancelFunc,
+		txAccumulator:    txAccumulator,
+		txSentCounter:    0,
 	}
 	go ret.sendFromTxAccumulator(ret.ctx)
 	go ret.printTxSentCounter(ret.ctx)
@@ -144,8 +142,6 @@ func (ts *txsSender) sendBulkTransactions(txs []*transaction.Transaction) {
 	)
 
 	for _, tx := range txs {
-		senderShardId := ts.shardCoordinator.ComputeId(tx.SndAddr)
-
 		marshalledTx, err := ts.marshaller.Marshal(tx)
 		if err != nil {
 			log.Warn("txsSender.sendBulkTransactions",
@@ -154,14 +150,13 @@ func (ts *txsSender) sendBulkTransactions(txs []*transaction.Transaction) {
 			continue
 		}
 
+		senderShardId := ts.shardCoordinator.ComputeId(tx.SndAddr)
 		transactionsByShards[senderShardId] = append(transactionsByShards[senderShardId], marshalledTx)
 	}
 
 	for shardId, txsForShard := range transactionsByShards {
 		err := ts.sendBulkTransactionsFromShard(txsForShard, shardId)
-		if err != nil {
-			log.Debug("sendBulkTransactionsFromShard", "error", err.Error())
-		}
+		log.LogIfError(err)
 	}
 }
 
@@ -174,7 +169,6 @@ func (ts *txsSender) sendBulkTransactionsFromShard(transactions [][]byte, sender
 		return err
 	}
 
-	atomic.AddInt32(&ts.currentSendingGoRoutines, int32(len(packets)))
 	for _, buff := range packets {
 		go func(bufferToSend []byte) {
 			log.Trace("txsSender.sendBulkTransactionsFromShard",
@@ -186,11 +180,7 @@ func (ts *txsSender) sendBulkTransactionsFromShard(transactions [][]byte, sender
 				identifier,
 				bufferToSend,
 			)
-			if err != nil {
-				log.Debug("txsSender.BroadcastOnChannelBlocking", "error", err.Error())
-			}
-
-			atomic.AddInt32(&ts.currentSendingGoRoutines, -1)
+			log.LogIfError(err)
 		}(buff)
 	}
 
