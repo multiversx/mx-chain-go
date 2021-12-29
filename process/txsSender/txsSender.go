@@ -157,13 +157,10 @@ func (ts *txsSender) sendBulkTransactions(txs []*transaction.Transaction) {
 		transactionsByShards[senderShardId] = append(transactionsByShards[senderShardId], marshalledTx)
 	}
 
-	numOfSentTxs := uint64(0)
 	for shardId, txsForShard := range transactionsByShards {
 		err := ts.sendBulkTransactionsFromShard(txsForShard, shardId)
 		if err != nil {
 			log.Debug("sendBulkTransactionsFromShard", "error", err.Error())
-		} else {
-			numOfSentTxs += uint64(len(txsForShard))
 		}
 	}
 }

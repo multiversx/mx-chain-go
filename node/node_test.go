@@ -3499,7 +3499,7 @@ func TestNode_SendBulkTransactions(t *testing.T) {
 	expectedTxs := []*transaction.Transaction{tx1, tx2}
 	txsSender := &txsSenderMock.TxsSenderHandlerMock{
 		SendBulkTransactionsCalled: func(txs []*transaction.Transaction) (uint64, error) {
-			flag.Set()
+			flag.SetValue(true)
 			require.Equal(t, expectedTxs, txs)
 			return expectedNoOfTxs, nil
 		},
