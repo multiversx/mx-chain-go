@@ -38,8 +38,8 @@ type shuffleNodesArg struct {
 	nodesPerShard           uint32
 	nbShards                uint32
 	maxNodesToSwapPerShard  uint32
-	flagBalanceWaitingLists atomic.Flag
-	flagWaitingListFix      atomic.Flag
+	flagBalanceWaitingLists bool
+	flagWaitingListFix      bool
 }
 
 // TODO: Decide if transaction load statistics will be used for limiting the number of shards
@@ -182,8 +182,8 @@ func (rhs *randHashShuffler) UpdateNodeLists(args ArgsUpdateNodes) (*ResUpdateNo
 		nbShards:                args.NbShards,
 		distributor:             rhs.validatorDistributor,
 		maxNodesToSwapPerShard:  rhs.activeNodesConfig.NodesToShufflePerShard,
-		flagBalanceWaitingLists: rhs.flagBalanceWaitingLists,
-		flagWaitingListFix:      rhs.flagWaitingListFix,
+		flagBalanceWaitingLists: rhs.flagBalanceWaitingLists.IsSet(),
+		flagWaitingListFix:      rhs.flagWaitingListFix.IsSet(),
 	})
 }
 
@@ -264,7 +264,7 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 		remainingUnstakeLeaving,
 		int(arg.nodesMeta),
 		int(arg.nodesPerShard),
-		arg.flagWaitingListFix.IsSet())
+		arg.flagWaitingListFix)
 	newEligible, newWaiting, stillRemainingAdditionalLeaving := removeLeavingNodesFromValidatorMaps(
 		newEligible,
 		newWaiting,
@@ -272,7 +272,7 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 		remainingAdditionalLeaving,
 		int(arg.nodesMeta),
 		int(arg.nodesPerShard),
-		arg.flagWaitingListFix.IsSet())
+		arg.flagWaitingListFix)
 
 	stillRemainingInLeaving := append(stillRemainingUnstakeLeaving, stillRemainingAdditionalLeaving...)
 
@@ -288,7 +288,7 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 		log.Warn("distributeValidators newNodes failed", "error", err)
 	}
 
-	err = arg.distributor.DistributeValidators(newWaiting, shuffledOutMap, arg.randomness, arg.flagBalanceWaitingLists.IsSet())
+	err = arg.distributor.DistributeValidators(newWaiting, shuffledOutMap, arg.randomness, arg.flagBalanceWaitingLists)
 	if err != nil {
 		log.Warn("distributeValidators shuffledOut failed", "error", err)
 	}
@@ -777,9 +777,9 @@ func (rhs *randHashShuffler) UpdateShufflerConfig(epoch uint32) {
 		"maxNodesToShufflePerShard", rhs.activeNodesConfig.NodesToShufflePerShard,
 	)
 
-	rhs.flagBalanceWaitingLists.Toggle(epoch >= rhs.balanceWaitingListsEnableEpoch)
+	rhs.flagBalanceWaitingLists.SetValue(epoch >= rhs.balanceWaitingListsEnableEpoch)
 	log.Debug("balanced waiting lists", "enabled", rhs.flagBalanceWaitingLists.IsSet())
-	rhs.flagWaitingListFix.Toggle(epoch >= rhs.waitingListFixEnableEpoch)
+	rhs.flagWaitingListFix.SetValue(epoch >= rhs.waitingListFixEnableEpoch)
 	log.Debug("waiting list fix", "enabled", rhs.flagWaitingListFix.IsSet())
 }
 

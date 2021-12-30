@@ -71,6 +71,8 @@ func CreateTestIndexer(
 	}
 
 	te, err := elasticIndexer.NewDataIndexer(arguments)
+	require.Nil(t, err)
+
 	outPutDriver, err := elasticIndexer.NewDataIndexer(arguments)
 	require.Nil(t, err)
 

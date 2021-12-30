@@ -312,7 +312,7 @@ func approximatelyCountTxInLists(lists []*txListForSender) uint64 {
 // since the notification comes at a time when we cannot actually detect whether the initial gap still exists or it was resolved.
 func (listForSender *txListForSender) notifyAccountNonce(nonce uint64) {
 	listForSender.accountNonce.Set(nonce)
-	listForSender.accountNonceKnown.Set()
+	_ = listForSender.accountNonceKnown.SetReturningPrevious()
 }
 
 // This function should only be used in critical section (listForSender.mutex)
@@ -323,7 +323,7 @@ func (listForSender *txListForSender) verifyInitialGapOnSelectionStart() bool {
 		listForSender.numFailedSelections.Increment()
 
 		if listForSender.isGracePeriodExceeded() {
-			listForSender.sweepable.Set()
+			_ = listForSender.sweepable.SetReturningPrevious()
 		}
 	} else {
 		listForSender.numFailedSelections.Reset()
