@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
 	"github.com/ElrondNetwork/elrond-go/process"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -30,9 +31,9 @@ func TestMoveBalanceSelfShouldWorkAndConsumeTxFee(t *testing.T) {
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
 	tx := vm.CreateTransaction(senderNonce, big.NewInt(100), sndAddr, sndAddr, gasPrice, gasLimit, []byte("aaaa"))
 
-	_, err = testContext.TxProcessor.ProcessTransaction(tx)
+	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetLatestError())
+	require.Equal(t, vmcommon.Ok, returnCode)
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -50,7 +51,7 @@ func TestMoveBalanceSelfShouldWorkAndConsumeTxFee(t *testing.T) {
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, big.NewInt(50), accumulatedFees)
 
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, false, testContext.TxsLogsProcessor)
 	testIndexer.SaveTransaction(tx, block.TxBlock, nil)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -92,9 +93,9 @@ func TestMoveBalanceShouldWork(t *testing.T) {
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
 	tx := vm.CreateTransaction(senderNonce, big.NewInt(100), sndAddr, rcvAddr, gasPrice, gasLimit, []byte("aaaa"))
 
-	_, err = testContext.TxProcessor.ProcessTransaction(tx)
+	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetLatestError())
+	require.Equal(t, vmcommon.Ok, returnCode)
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -117,7 +118,7 @@ func TestMoveBalanceShouldWork(t *testing.T) {
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, big.NewInt(50), accumulatedFees)
 
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, false, testContext.TxsLogsProcessor)
 	testIndexer.SaveTransaction(tx, block.TxBlock, nil)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -138,9 +139,9 @@ func TestMoveBalanceInvalidHasGasButNoValueShouldConsumeGas(t *testing.T) {
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
 	tx := vm.CreateTransaction(0, big.NewInt(100), sndAddr, rcvAddr, gasPrice, gasLimit, []byte("aaaa"))
 
-	_, err = testContext.TxProcessor.ProcessTransaction(tx)
+	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, process.ErrFailedTransaction, err)
-	require.Nil(t, testContext.GetLatestError())
+	require.Equal(t, vmcommon.Ok, returnCode)
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -153,7 +154,7 @@ func TestMoveBalanceInvalidHasGasButNoValueShouldConsumeGas(t *testing.T) {
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, big.NewInt(20), accumulatedFees)
 
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, false, testContext.TxsLogsProcessor)
 	testIndexer.SaveTransaction(tx, block.InvalidBlock, nil)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -178,7 +179,6 @@ func TestMoveBalanceHigherNonceShouldNotConsumeGas(t *testing.T) {
 
 	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, process.ErrHigherNonceInTransaction, err)
-	require.Nil(t, testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -207,9 +207,9 @@ func TestMoveBalanceMoreGasThanGasLimitPerMiniBlockForSafeCrossShard(t *testing.
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
 	tx := vm.CreateTransaction(0, big.NewInt(500), sndAddr, rcvAddr, gasPrice, gasLimit, []byte("aaaa"))
 
-	_, err = testContext.TxProcessor.ProcessTransaction(tx)
-	require.Equal(t, process.ErrMoreGasThanGasLimitPerMiniBlockForSafeCrossShard, err)
-	require.Nil(t, testContext.GetLatestError())
+	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
+	require.Equal(t, process.ErrMoreGasThanGasLimitPerBlock, err)
+	require.Equal(t, vmcommon.UserError, returnCode)
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -242,7 +242,6 @@ func TestMoveBalanceInvalidUserNames(t *testing.T) {
 
 	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, process.ErrFailedTransaction, err)
-	require.Nil(t, testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)

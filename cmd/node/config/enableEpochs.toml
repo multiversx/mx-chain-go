@@ -150,6 +150,30 @@
     # CreateNFTThroughExecByCallerEnableEpoch represents the epoch when nft creation through execution on destination by caller is enabled
     CreateNFTThroughExecByCallerEnableEpoch = 3
 
+    # StopDecreasingValidatorRatingWhenStuckEnableEpoch represents the epoch when we should stop decreasing validator's rating if, for instance, a shard gets stuck
+    StopDecreasingValidatorRatingWhenStuckEnableEpoch = 2
+
+    # FrontRunningProtectionEnableEpoch represents the epoch when the first version of protection against front running is enabled
+    FrontRunningProtectionEnableEpoch = 4
+
+    # DisableOldTrieStorageEpoch represents the epoch when the old trie storage implementation will be disabled
+    DisableOldTrieStorageEpoch = 4
+
+    # IsPayableBySCEnableEpoch represents the epoch when a new flag isPayable by SC is enabled
+    IsPayableBySCEnableEpoch = 3
+
+    # CleanUpInformativeSCRsEnableEpoch represents the epoch when the informative-only scrs are cleaned from miniblocks and logs are created from them
+    CleanUpInformativeSCRsEnableEpoch = 3
+
+    # StorageAPICostOptimizationEnableEpoch represents the epoch when new storage helper functions are enabled and cost is reduced in Arwen
+    StorageAPICostOptimizationEnableEpoch = 3
+
+    # TransformToMultiShardCreateEnableEpoch represents the epoch when the new function on esdt system sc is enabled to transfer create role into multishard
+    TransformToMultiShardCreateEnableEpoch = 3
+
+    # ESDTRegisterAndSetAllRolesEnableEpoch represents the epoch when new function to register tickerID and set all roles is enabled
+    ESDTRegisterAndSetAllRolesEnableEpoch = 3
+
     # CorrectJailedNotUnstakedEpoch represents the epoch when the jailed validators will also be unstaked if the queue is empty
     CorrectJailedNotUnstakedEmptyQueueEpoch = 2
 

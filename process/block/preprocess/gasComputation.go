@@ -124,17 +124,17 @@ func (gc *gasComputation) GasPenalized(hash []byte) uint64 {
 	return gasPenalized
 }
 
-// TotalGasConsumed gets the total gas consumed
-func (gc *gasComputation) TotalGasConsumed() uint64 {
-	totalGasConsumed := uint64(0)
+// TotalGasProvided gets the total gas provided
+func (gc *gasComputation) TotalGasProvided() uint64 {
+	totalGasProvided := uint64(0)
 
 	gc.mutGasConsumed.RLock()
 	for _, gasConsumed := range gc.gasConsumed {
-		totalGasConsumed += gasConsumed
+		totalGasProvided += gasConsumed
 	}
 	gc.mutGasConsumed.RUnlock()
 
-	return totalGasConsumed
+	return totalGasProvided
 }
 
 // TotalGasRefunded gets the total gas refunded
@@ -301,7 +301,7 @@ func (gc *gasComputation) isRelayedTx(txType process.TransactionType) bool {
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (gc *gasComputation) EpochConfirmed(epoch uint32, _ uint64) {
-	gc.flagGasComputeV2.Toggle(epoch >= gc.gasComputeV2EnableEpoch)
+	gc.flagGasComputeV2.SetValue(epoch >= gc.gasComputeV2EnableEpoch)
 	log.Debug("gasComputation: compute v2", "enabled", gc.flagGasComputeV2.IsSet())
 }
 

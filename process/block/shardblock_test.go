@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	atomicCore "github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
@@ -330,6 +331,35 @@ func TestShardProcessor_ProcessBlockWithNilHaveTimeFuncShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilHaveTimeHandler, err)
 }
 
+func TestShardProcess_CreateNewBlockHeaderProcessHeaderExpectCheckRoundCalled(t *testing.T) {
+	t.Parallel()
+
+	round := uint64(4)
+	checkRoundCt := atomicCore.Counter{}
+
+	roundNotifier := &mock.RoundNotifierStub{
+		CheckRoundCalled: func(r uint64) {
+			checkRoundCt.Increment()
+			require.Equal(t, round, r)
+		},
+	}
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+	arguments.RoundNotifier = roundNotifier
+
+	shardProcessor, _ := blproc.NewShardProcessor(arguments)
+	header := &block.Header{Round: round}
+	bodyHandler, _ := shardProcessor.CreateBlockBody(header, func() bool { return true })
+
+	headerHandler := shardProcessor.CreateNewHeader(round, 1)
+	require.Equal(t, int64(1), checkRoundCt.Get())
+
+	_ = shardProcessor.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
+	require.Equal(t, int64(2), checkRoundCt.Get())
+}
+
 func TestShardProcessor_ProcessWithDirtyAccountShouldErr(t *testing.T) {
 	t.Parallel()
 	// set accounts dirty
@@ -499,6 +529,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
+		2,
 		2,
 	)
 	container, _ := factory.Create()
@@ -718,6 +749,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
+		2,
 		2,
 	)
 	container, _ := factory.Create()
@@ -1506,7 +1538,7 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityShouldReturnNilWhenNo
 	sp, _ := blproc.NewShardProcessorEmptyWith3shards(
 		tdp,
 		genesisBlocks,
-		&mock.BlockChainMock{
+		&mock.BlockChainStub{
 			GetGenesisHeaderCalled: func() data.HeaderHandler {
 				return &block.Header{Nonce: 0}
 			},
@@ -2292,6 +2324,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		2,
+		2,
 	)
 	container, _ := factory.Create()
 
@@ -2397,6 +2430,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
+		2,
 		2,
 	)
 	container, _ := factory.Create()
@@ -2788,6 +2822,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		2,
+		2,
 	)
 	container, _ := factory.Create()
 
@@ -2966,6 +3001,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
+		2,
 		2,
 	)
 	container, _ := factory.Create()
@@ -4193,7 +4229,7 @@ func TestShardProcessor_updateStateStorage(t *testing.T) {
 func TestShardProcessor_checkEpochCorrectnessCrossChainNilCurrentBlock(t *testing.T) {
 	t.Parallel()
 
-	chain := &mock.BlockChainMock{
+	chain := &mock.BlockChainStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return nil
 		},
@@ -4221,7 +4257,7 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainCorrectEpoch(t *testing.T
 			return 1
 		},
 	}
-	blockChain := &mock.BlockChainMock{
+	blockChain := &mock.BlockChainStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{Epoch: 1}
 		},
@@ -4260,7 +4296,7 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochStorageErro
 	}
 
 	header := &block.Header{Epoch: epochStartTrigger.Epoch() - 1, Round: epochStartTrigger.EpochFinalityAttestingRound() + process.EpochChangeGracePeriod + 1}
-	blockChain := &mock.BlockChainMock{
+	blockChain := &mock.BlockChainStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return header
 		},
@@ -4314,7 +4350,7 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochRollback1Bl
 		Round:    epochStartTrigger.EpochFinalityAttestingRound() + process.EpochChangeGracePeriod + 1,
 		PrevHash: prevHash}
 
-	blockChain := &mock.BlockChainMock{
+	blockChain := &mock.BlockChainStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return currHeader
 		},
@@ -4377,7 +4413,7 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochRollback2Bl
 		Round:    epochStartTrigger.EpochFinalityAttestingRound() + process.EpochChangeGracePeriod + 2,
 		PrevHash: prevHash}
 
-	blockChain := &mock.BlockChainMock{
+	blockChain := &mock.BlockChainStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return header
 		},
@@ -4574,7 +4610,7 @@ func TestShardProcessor_CheckEpochCorrectnessShouldRemoveAndRequestStartOfEpochM
 		EpochStartMetaHash: epochStartMetaHash,
 	}
 
-	blockChainMock := &mock.BlockChainMock{
+	blockChainMock := &mock.BlockChainStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return currentHeader
 		},

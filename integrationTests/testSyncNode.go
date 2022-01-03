@@ -69,6 +69,7 @@ func NewTestSyncNode(
 
 	messenger := CreateMessengerWithNoDiscovery()
 
+	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
 	tpn := &TestProcessorNode{
 		ShardCoordinator: shardCoordinator,
 		Messenger:        messenger,
@@ -88,7 +89,7 @@ func NewTestSyncNode(
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker:       &syncGo.RWMutex{},
-		TransactionLogProcessor: transactionLog.NewPrintTxLogProcessor(),
+		TransactionLogProcessor: logsProcessor,
 	}
 
 	kg := &mock.KeyGenMock{}
@@ -142,6 +143,7 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 		BlockChainHook:    tpn.BlockchainHook,
 		BlockChain:        tpn.BlockChain,
 		ArwenChangeLocker: tpn.ArwenChangeLocker,
+		Bootstrapper:      tpn.Bootstrapper,
 	}
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
 	tpn.addHandlersForCounters()
@@ -214,6 +216,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		BlockSizeThrottler: TestBlockSizeThrottler,
 		HistoryRepository:  tpn.HistoryRepository,
 		EpochNotifier:      tpn.EpochNotifier,
+		RoundNotifier:      coreComponents.RoundNotifier(),
 		GasHandler:         tpn.GasHandler,
 	}
 

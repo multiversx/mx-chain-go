@@ -31,6 +31,6 @@ func (tlpm *TxLogProcessorMock) IsInterfaceNil() bool {
 }
 
 // GetAllCurrentLogs -
-func (tlpm *TxLogProcessorMock) GetAllCurrentLogs() map[string]data.LogHandler {
+func (tlpm *TxLogProcessorMock) GetAllCurrentLogs() []*data.LogData {
 	return nil
 }

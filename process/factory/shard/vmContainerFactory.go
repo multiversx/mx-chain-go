@@ -302,10 +302,11 @@ func (vmf *vmContainerFactory) createInProcessArwenVMV14() (vmcommon.VMExecution
 		ElrondProtectedKeyPrefix: []byte(core.ElrondProtectedKeyPrefix),
 		ESDTTransferParser:       vmf.esdtTransferParser,
 		EpochNotifier:            vmf.epochNotifier,
-		MultiESDTTransferAsyncCallBackEnableEpoch: vmf.epochConfig.MultiESDTTransferFixOnCallBackOnEnableEpoch,
-		FixOOGReturnCodeEnableEpoch:               vmf.epochConfig.FixOOGReturnCodeEnableEpoch,
-		RemoveNonUpdatedStorageEnableEpoch:        vmf.epochConfig.RemoveNonUpdatedStorageEnableEpoch,
-		CreateNFTThroughExecByCallerEnableEpoch:   vmf.epochConfig.CreateNFTThroughExecByCallerEnableEpoch,
+		MultiESDTTransferAsyncCallBackEnableEpoch:       vmf.epochConfig.MultiESDTTransferFixOnCallBackOnEnableEpoch,
+		FixOOGReturnCodeEnableEpoch:                     vmf.epochConfig.FixOOGReturnCodeEnableEpoch,
+		RemoveNonUpdatedStorageEnableEpoch:              vmf.epochConfig.RemoveNonUpdatedStorageEnableEpoch,
+		CreateNFTThroughExecByCallerEnableEpoch:         vmf.epochConfig.CreateNFTThroughExecByCallerEnableEpoch,
+		UseDifferentGasCostForReadingCachedStorageEpoch: vmf.epochConfig.StorageAPICostOptimizationEnableEpoch,
 	}
 	return arwenHost14.NewArwenVM(vmf.blockChainHookImpl, hostParameters)
 }

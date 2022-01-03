@@ -17,28 +17,30 @@ func TestProcessLogsSaveSupplyNothingInStorage(t *testing.T) {
 	t.Parallel()
 
 	token := []byte("nft-0001")
-	logs := map[string]data.LogHandler{
-		"txLog": &transaction.Log{
-			Events: []*transaction.Event{
-				{
-					Identifier: []byte("something"),
-				},
-				{
-					Identifier: []byte(core.BuiltInFunctionESDTNFTCreate),
-					Topics: [][]byte{
-						token, big.NewInt(2).Bytes(), big.NewInt(10).Bytes(),
+	logs := map[string]*data.LogData{
+		"txLog": {
+			LogHandler: &transaction.Log{
+				Events: []*transaction.Event{
+					{
+						Identifier: []byte("something"),
 					},
-				},
-				{
-					Identifier: []byte(core.BuiltInFunctionESDTNFTAddQuantity),
-					Topics: [][]byte{
-						token, big.NewInt(2).Bytes(), big.NewInt(50).Bytes(),
+					{
+						Identifier: []byte(core.BuiltInFunctionESDTNFTCreate),
+						Topics: [][]byte{
+							token, big.NewInt(2).Bytes(), big.NewInt(10).Bytes(),
+						},
 					},
-				},
-				{
-					Identifier: []byte(core.BuiltInFunctionESDTNFTBurn),
-					Topics: [][]byte{
-						token, big.NewInt(2).Bytes(), big.NewInt(30).Bytes(),
+					{
+						Identifier: []byte(core.BuiltInFunctionESDTNFTAddQuantity),
+						Topics: [][]byte{
+							token, big.NewInt(2).Bytes(), big.NewInt(50).Bytes(),
+						},
+					},
+					{
+						Identifier: []byte(core.BuiltInFunctionESDTNFTBurn),
+						Topics: [][]byte{
+							token, big.NewInt(2).Bytes(), big.NewInt(30).Bytes(),
+						},
 					},
 				},
 			},
@@ -78,22 +80,24 @@ func TestTestProcessLogsSaveSupplyExistsInStorage(t *testing.T) {
 
 	token := []byte("esdt-miiu")
 
-	logs := map[string]data.LogHandler{
-		"txLog": &transaction.Log{
-			Events: []*transaction.Event{
-				{
-					Identifier: []byte(core.BuiltInFunctionESDTLocalBurn),
-					Topics: [][]byte{
-						token, big.NewInt(0).Bytes(), big.NewInt(20).Bytes(),
+	logs := map[string]*data.LogData{
+		"txLog": {
+			LogHandler: &transaction.Log{
+				Events: []*transaction.Event{
+					{
+						Identifier: []byte(core.BuiltInFunctionESDTLocalBurn),
+						Topics: [][]byte{
+							token, big.NewInt(0).Bytes(), big.NewInt(20).Bytes(),
+						},
 					},
-				},
-				{
-					Identifier: []byte(core.BuiltInFunctionESDTLocalMint),
-					Topics: [][]byte{
-						token, big.NewInt(0).Bytes(), big.NewInt(25).Bytes(),
+					{
+						Identifier: []byte(core.BuiltInFunctionESDTLocalMint),
+						Topics: [][]byte{
+							token, big.NewInt(0).Bytes(), big.NewInt(25).Bytes(),
+						},
 					},
+					nil,
 				},
-				nil,
 			},
 		},
 	}

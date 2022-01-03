@@ -5,7 +5,9 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLoadP2PConfig_InvalidFileShouldErr(t *testing.T) {
@@ -67,4 +69,23 @@ func TestLoadGasScheduleConfig(t *testing.T) {
 	expectedGasSchedule["MemoryCopy"] = 14623
 
 	assert.Equal(t, expectedGasSchedule, gasSchedule["GasSchedule"])
+}
+
+func TestLoadRoundConfig(t *testing.T) {
+	testString := ""
+
+	file, err := os.Create("testEnableRounds.toml")
+	assert.Nil(t, err)
+
+	_, _ = file.WriteString(testString)
+	_ = file.Close()
+
+	roundActivationConfig, err := common.LoadRoundConfig("testEnableRounds.toml")
+	assert.Nil(t, err)
+
+	if _, err = os.Stat("testEnableRounds.toml"); err == nil {
+		_ = os.Remove("testEnableRounds.toml")
+	}
+
+	require.Equal(t, &config.RoundConfig{}, roundActivationConfig)
 }

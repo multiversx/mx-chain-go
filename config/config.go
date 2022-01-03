@@ -129,13 +129,17 @@ type Config struct {
 	BootstrapStorage StorageConfig
 	MetaBlockStorage StorageConfig
 
-	AccountsTrieStorage      StorageConfig
-	PeerAccountsTrieStorage  StorageConfig
-	TrieSnapshotDB           DBConfig
-	EvictionWaitingList      EvictionWaitingListConfig
-	StateTriesConfig         StateTriesConfig
-	TrieStorageManagerConfig TrieStorageManagerConfig
-	BadBlocksCache           CacheConfig
+	AccountsTrieStorageOld             StorageConfig
+	PeerAccountsTrieStorageOld         StorageConfig
+	AccountsTrieStorage                StorageConfig
+	PeerAccountsTrieStorage            StorageConfig
+	AccountsTrieCheckpointsStorage     StorageConfig
+	PeerAccountsTrieCheckpointsStorage StorageConfig
+	TrieSnapshotDB                     DBConfig
+	EvictionWaitingList                EvictionWaitingListConfig
+	StateTriesConfig                   StateTriesConfig
+	TrieStorageManagerConfig           TrieStorageManagerConfig
+	BadBlocksCache                     CacheConfig
 
 	TxBlockBodyDataPool         CacheConfig
 	PeerBlockBodyDataPool       CacheConfig
@@ -235,13 +239,14 @@ type MaxNodesChangeConfig struct {
 
 // GeneralSettingsConfig will hold the general settings for a node
 type GeneralSettingsConfig struct {
-	StatusPollingIntervalSec int
-	MaxComputableRounds      uint64
-	StartInEpochEnabled      bool
-	ChainID                  string
-	MinTransactionVersion    uint32
-	GenesisString            string
-	GenesisMaxNumberOfShards uint32
+	StatusPollingIntervalSec             int
+	MaxComputableRounds                  uint64
+	MaxConsecutiveRoundsOfRatingDecrease uint64
+	StartInEpochEnabled                  bool
+	ChainID                              string
+	MinTransactionVersion                uint32
+	GenesisString                        string
+	GenesisMaxNumberOfShards             uint32
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade
@@ -266,6 +271,7 @@ type StateTriesConfig struct {
 type TrieStorageManagerConfig struct {
 	PruningBufferLen              uint32
 	SnapshotsBufferLen            uint32
+	SnapshotsGoroutineNum         uint32
 	MaxSnapshots                  uint32
 	KeepSnapshots                 bool
 	CheckpointHashesHolderMaxSize uint64
@@ -508,6 +514,7 @@ type Configs struct {
 	ImportDbConfig           *ImportDbConfig
 	ConfigurationPathsHolder *ConfigurationPathsHolder
 	EpochConfig              *EpochConfig
+	RoundConfig              *RoundConfig
 }
 
 // ConfigurationPathsHolder holds all configuration filenames and configuration paths used to start the node
@@ -526,6 +533,7 @@ type ConfigurationPathsHolder struct {
 	SmartContracts           string
 	ValidatorKey             string
 	Epoch                    string
+	RoundActivation          string
 }
 
 // TrieSyncConfig represents the trie synchronization configuration area

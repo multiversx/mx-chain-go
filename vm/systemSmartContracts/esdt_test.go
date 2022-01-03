@@ -1,6 +1,7 @@
 package systemSmartContracts
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
@@ -209,11 +210,11 @@ func TestEsdt_ExecuteIssueWithMultiNFTCreate(t *testing.T) {
 	ticker := []byte("TICKER")
 	vmInput.Arguments = [][]byte{[]byte("name"), ticker, []byte(canCreateMultiShard), []byte("true")}
 
-	e.flagNFTCreateONMultiShard.Unset()
+	e.flagNFTCreateONMultiShard.Reset()
 	returnCode := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 
-	e.flagNFTCreateONMultiShard.Set()
+	_ = e.flagNFTCreateONMultiShard.SetReturningPrevious()
 	returnCode = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 
@@ -297,8 +298,8 @@ func TestEsdt_ExecuteIssueWithZero(t *testing.T) {
 	vmInput.CallValue, _ = big.NewInt(0).SetString(args.ESDTSCConfig.BaseIssuingCost, 10)
 	vmInput.GasProvided = args.GasCost.MetaChainSystemSCsCost.ESDTIssue
 
-	e.flagGlobalMintBurn.Unset()
-	e.flagNFTCreateONMultiShard.Unset()
+	e.flagGlobalMintBurn.Reset()
+	e.flagNFTCreateONMultiShard.Reset()
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
 }
@@ -3393,7 +3394,7 @@ func TestEsdt_SetSpecialRoleTransferNotEnabledShouldErr(t *testing.T) {
 	retCode = e.Execute(vmInput)
 	require.Equal(t, vmcommon.UserError, retCode)
 
-	e.flagTransferRole.Set()
+	_ = e.flagTransferRole.SetReturningPrevious()
 	called = false
 	token.TokenType = []byte(core.NonFungibleESDT)
 	retCode = e.Execute(vmInput)
@@ -4231,7 +4232,7 @@ func TestEsdt_ExecuteIssueMetaESDT(t *testing.T) {
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
 
-	e.flagMetaESDT.Unset()
+	e.flagMetaESDT.Reset()
 	vmInput := getDefaultVmInputForFunc("registerMetaESDT", nil)
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
@@ -4239,7 +4240,7 @@ func TestEsdt_ExecuteIssueMetaESDT(t *testing.T) {
 
 	eei.returnMessage = ""
 	eei.gasRemaining = 9999
-	e.flagMetaESDT.Set()
+	_ = e.flagMetaESDT.SetReturningPrevious()
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.Equal(t, eei.returnMessage, "not enough arguments")
@@ -4284,7 +4285,7 @@ func TestEsdt_ExecuteChangeSFTToMetaESDT(t *testing.T) {
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
 
-	e.flagMetaESDT.Unset()
+	e.flagMetaESDT.Reset()
 	vmInput := getDefaultVmInputForFunc("changeSFTToMetaESDT", nil)
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
@@ -4292,7 +4293,7 @@ func TestEsdt_ExecuteChangeSFTToMetaESDT(t *testing.T) {
 
 	eei.returnMessage = ""
 	eei.gasRemaining = 9999
-	e.flagMetaESDT.Set()
+	_ = e.flagMetaESDT.SetReturningPrevious()
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.Equal(t, eei.returnMessage, "not enough arguments")
@@ -4339,7 +4340,7 @@ func TestEsdt_ExecuteIssueSFTAndChangeSFTToMetaESDT(t *testing.T) {
 
 	eei.returnMessage = ""
 	eei.gasRemaining = 9999
-	e.flagMetaESDT.Set()
+	_ = e.flagMetaESDT.SetReturningPrevious()
 
 	vmInput := getDefaultVmInputForFunc("issueSemiFungible", nil)
 	vmInput.CallValue = e.baseIssuingCost
@@ -4366,4 +4367,254 @@ func TestEsdt_ExecuteIssueSFTAndChangeSFTToMetaESDT(t *testing.T) {
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "change can happen to semi fungible tokens only"))
+}
+
+func TestEsdt_ExecuteTransformToMultiShardCreate(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&stateMock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+	e, _ := NewESDTSmartContract(args)
+
+	e.flagTransformToMultiShardCreate.Reset()
+	vmInput := getDefaultVmInputForFunc("changeToMultiShardCreate", nil)
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.FunctionNotFound, output)
+	assert.Equal(t, eei.returnMessage, "invalid method to call")
+
+	eei.returnMessage = ""
+	eei.gasRemaining = 9999
+	_ = e.flagTransformToMultiShardCreate.SetReturningPrevious()
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.Equal(t, eei.returnMessage, "invalid number of arguments")
+
+	vmInput.Arguments = [][]byte{[]byte("tokenName")}
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "no ticker with given name"))
+
+	token := &ESDTDataV2{TokenType: []byte(metaESDT), OwnerAddress: vmInput.CallerAddr, CanAddSpecialRoles: false}
+	_ = e.saveToken(vmInput.Arguments[0], token)
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "cannot add special roles"))
+
+	token.CanAddSpecialRoles = true
+	token.CanCreateMultiShard = true
+	_ = e.saveToken(vmInput.Arguments[0], token)
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "it is already multi shard create"))
+
+	token.CanCreateMultiShard = false
+	_ = e.saveToken(vmInput.Arguments[0], token)
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrElementNotFound.Error()))
+
+	token.SpecialRoles = []*ESDTRoles{{Address: bytes.Repeat([]byte{0}, 32), Roles: [][]byte{[]byte(core.ESDTRoleNFTCreate)}}}
+	_ = e.saveToken(vmInput.Arguments[0], token)
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	for _, outAcc := range eei.outputAccounts {
+		assert.Equal(t, len(outAcc.OutputTransfers), 0)
+	}
+	token, _ = e.getExistingToken(vmInput.Arguments[0])
+	assert.True(t, token.CanCreateMultiShard)
+
+	token.CanCreateMultiShard = false
+	token.SpecialRoles = []*ESDTRoles{{Address: bytes.Repeat([]byte{1}, 32), Roles: [][]byte{[]byte(core.ESDTRoleNFTCreate)}}}
+	_ = e.saveToken(vmInput.Arguments[0], token)
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	expectedData := core.BuiltInFunctionSetESDTRole + "@" + hex.EncodeToString(vmInput.Arguments[0]) + "@" + hex.EncodeToString([]byte(core.ESDTRoleNFTCreateMultiShard))
+	foundTransfer := false
+	for _, outAcc := range eei.outputAccounts {
+		for _, transfer := range outAcc.OutputTransfers {
+			assert.Equal(t, transfer.Data, []byte(expectedData))
+			foundTransfer = true
+		}
+	}
+	assert.True(t, foundTransfer)
+	token, _ = e.getExistingToken(vmInput.Arguments[0])
+	assert.True(t, token.CanCreateMultiShard)
+}
+
+func TestEsdt_ExecuteRegisterAndSetErrors(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&stateMock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+	e, _ := NewESDTSmartContract(args)
+
+	e.flagRegisterAndSetAllRoles.Reset()
+	vmInput := getDefaultVmInputForFunc("registerAndSetAllRoles", nil)
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.FunctionNotFound, output)
+	assert.Equal(t, eei.returnMessage, "invalid method to call")
+
+	eei.returnMessage = ""
+	eei.gasRemaining = 9999
+	_ = e.flagRegisterAndSetAllRoles.SetReturningPrevious()
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.Equal(t, eei.returnMessage, "not enough arguments")
+
+	vmInput.CallValue = big.NewInt(0).Set(e.baseIssuingCost)
+	vmInput.Arguments = [][]byte{[]byte("tokenName")}
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.Equal(t, eei.returnMessage, "arguments length mismatch")
+
+	vmInput.Arguments = [][]byte{[]byte("tokenName"), []byte("ticker"), []byte("VAL"), big.NewInt(20).Bytes()}
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidArgument.Error()))
+
+	vmInput.Arguments = [][]byte{[]byte("tokenName"), []byte("ticker"), []byte("FNG"), big.NewInt(10).Bytes()}
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "ticker name is not valid"))
+
+	vmInput.Arguments = [][]byte{[]byte("tokenName"), []byte("ticker"), []byte("FNG"), big.NewInt(20).Bytes()}
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "invalid number of decimals"))
+}
+
+func TestEsdt_ExecuteRegisterAndSetFungible(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&stateMock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := getDefaultVmInputForFunc("registerAndSetAllRoles", nil)
+	vmInput.CallValue = big.NewInt(0).Set(e.baseIssuingCost)
+
+	vmInput.Arguments = [][]byte{[]byte("tokenName"), []byte("TICKER"), []byte("FNG"), big.NewInt(10).Bytes()}
+	eei.gasRemaining = 9999
+	eei.returnMessage = ""
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+	assert.Equal(t, len(eei.output), 1)
+	assert.True(t, strings.Contains(string(eei.output[0]), "TICKER-"))
+
+	token, _ := e.getExistingToken(eei.output[0])
+	assert.Equal(t, token.TokenType, []byte(core.FungibleESDT))
+}
+
+func TestEsdt_ExecuteRegisterAndSetNonFungible(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&stateMock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := getDefaultVmInputForFunc("registerAndSetAllRoles", nil)
+	vmInput.CallValue = big.NewInt(0).Set(e.baseIssuingCost)
+
+	vmInput.Arguments = [][]byte{[]byte("tokenName"), []byte("TICKER"), []byte("NFT"), big.NewInt(10).Bytes()}
+	eei.gasRemaining = 9999
+	eei.returnMessage = ""
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+	assert.Equal(t, len(eei.output), 1)
+	assert.True(t, strings.Contains(string(eei.output[0]), "TICKER-"))
+
+	token, _ := e.getExistingToken(eei.output[0])
+	assert.Equal(t, token.TokenType, []byte(core.NonFungibleESDT))
+}
+
+func TestEsdt_ExecuteRegisterAndSetSemiFungible(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&stateMock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := getDefaultVmInputForFunc("registerAndSetAllRoles", nil)
+	vmInput.CallValue = big.NewInt(0).Set(e.baseIssuingCost)
+
+	vmInput.Arguments = [][]byte{[]byte("tokenName"), []byte("TICKER"), []byte("SFT"), big.NewInt(10).Bytes()}
+	eei.gasRemaining = 9999
+	eei.returnMessage = ""
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+	assert.Equal(t, len(eei.output), 1)
+	assert.True(t, strings.Contains(string(eei.output[0]), "TICKER-"))
+
+	token, _ := e.getExistingToken(eei.output[0])
+	assert.Equal(t, token.TokenType, []byte(core.SemiFungibleESDT))
+}
+
+func TestEsdt_ExecuteRegisterAndSetMetaESDT(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&stateMock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := getDefaultVmInputForFunc("registerAndSetAllRoles", nil)
+	vmInput.CallValue = big.NewInt(0).Set(e.baseIssuingCost)
+
+	vmInput.Arguments = [][]byte{[]byte("tokenName"), []byte("TICKER"), []byte("META"), big.NewInt(10).Bytes()}
+	eei.gasRemaining = 9999
+	eei.returnMessage = ""
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+	assert.Equal(t, len(eei.output), 1)
+	assert.True(t, strings.Contains(string(eei.output[0]), "TICKER-"))
+
+	token, _ := e.getExistingToken(eei.output[0])
+	assert.Equal(t, token.TokenType, []byte(metaESDT))
 }
