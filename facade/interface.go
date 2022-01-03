@@ -98,6 +98,10 @@ type NodeHandler interface {
 	GetRawMetaBlockByNonce(nonce uint64, withTxs bool) ([]byte, error)
 	GetRawMetaBlockByRound(round uint64, withTxs bool) ([]byte, error)
 
+	GetRawShardBlockByHash(hash string, withTxs bool) ([]byte, error)
+	GetRawShardBlockByNonce(nonce uint64, withTxs bool) ([]byte, error)
+	GetRawShardBlockByRound(round uint64, withTxs bool) ([]byte, error)
+
 	GetProof(rootHash string, key string) (*common.GetProofResponse, error)
 	GetProofDataTrie(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error)
 	VerifyProof(rootHash string, address string, proof [][]byte) (bool, error)

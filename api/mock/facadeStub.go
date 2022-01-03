@@ -57,6 +57,9 @@ type FacadeStub struct {
 	GetRawMetaBlockByHashCalled             func(hash string, withTxs bool) ([]byte, error)
 	GetRawMetaBlockByNonceCalled            func(nonce uint64, withTxs bool) ([]byte, error)
 	GetRawMetaBlockByRoundCalled            func(round uint64, withTxs bool) ([]byte, error)
+	GetRawShardBlockByHashCalled            func(hash string, withTxs bool) ([]byte, error)
+	GetRawShardBlockByNonceCalled           func(nonce uint64, withTxs bool) ([]byte, error)
+	GetRawShardBlockByRoundCalled           func(round uint64, withTxs bool) ([]byte, error)
 	GetTotalStakedValueHandler              func() (*api.StakeValues, error)
 	GetAllIssuedESDTsCalled                 func(tokenType string) ([]string, error)
 	GetDirectStakedListHandler              func() ([]*api.DirectStakedValue, error)
@@ -373,20 +376,38 @@ func (f *FacadeStub) GetBlockByRound(round uint64, withTxs bool) (*api.Block, er
 	return nil, nil
 }
 
-// GetRawBlockByNonce -
+// GetRawMetaBlockByNonce -
 func (f *FacadeStub) GetRawMetaBlockByNonce(nonce uint64, withTxs bool) ([]byte, error) {
 	return f.GetRawMetaBlockByNonceCalled(nonce, withTxs)
 }
 
-// GetRawBlockByHash -
+// GetRawMetaBlockByHash -
 func (f *FacadeStub) GetRawMetaBlockByHash(hash string, withTxs bool) ([]byte, error) {
 	return f.GetRawMetaBlockByHashCalled(hash, withTxs)
 }
 
-// GetRawBlockByRound -
+// GetRawMetaBlockByRound -
 func (f *FacadeStub) GetRawMetaBlockByRound(round uint64, withTxs bool) ([]byte, error) {
 	if f.GetRawMetaBlockByRoundCalled != nil {
 		return f.GetRawMetaBlockByRoundCalled(round, withTxs)
+	}
+	return nil, nil
+}
+
+// GetRawShardBlockByNonce -
+func (f *FacadeStub) GetRawShardBlockByNonce(nonce uint64, withTxs bool) ([]byte, error) {
+	return f.GetRawShardBlockByNonceCalled(nonce, withTxs)
+}
+
+// GetRawShardBlockByHash -
+func (f *FacadeStub) GetRawShardBlockByHash(hash string, withTxs bool) ([]byte, error) {
+	return f.GetRawShardBlockByHashCalled(hash, withTxs)
+}
+
+// GetRawShardBlockByRound -
+func (f *FacadeStub) GetRawShardBlockByRound(round uint64, withTxs bool) ([]byte, error) {
+	if f.GetRawShardBlockByRoundCalled != nil {
+		return f.GetRawShardBlockByRoundCalled(round, withTxs)
 	}
 	return nil, nil
 }

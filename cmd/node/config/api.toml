@@ -183,6 +183,15 @@
 
         # /raw/block/by-round/:round will return the block in JSON format based on round
         { Name = "/metablock/by-round/:round", Open = true },
+
+        # /raw/block/by-nonce/:nonce will return the block in JSON format based on its nonce
+        { Name = "/shardblock/by-nonce/:nonce", Open = true },
+
+        # /raw/block/by-hash/:hash will return the block in JSON format based on its hash
+        { Name = "/shardblock/by-hash/:hash", Open = true },
+
+        # /raw/block/by-round/:round will return the block in JSON format based on round
+        { Name = "/shardblock/by-round/:round", Open = true },
     ]
 
 [APIPackages.proof]

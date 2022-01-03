@@ -382,19 +382,34 @@ func (nf *nodeFacade) GetBlockByRound(round uint64, withTxs bool) (*apiData.Bloc
 	return nf.node.GetBlockByRound(round, withTxs)
 }
 
-// GetRawBlockByHash return the block for a given hash
+// GetRawMetaBlockByHash return the meta block for a given hash
 func (nf *nodeFacade) GetRawMetaBlockByHash(hash string, withTxs bool) ([]byte, error) {
 	return nf.node.GetRawMetaBlockByHash(hash, withTxs)
 }
 
-// GetRawBlockByNonce returns the block for a given nonce
+// GetRawMetaBlockByNonce returns the meta block for a given nonce
 func (nf *nodeFacade) GetRawMetaBlockByNonce(nonce uint64, withTxs bool) ([]byte, error) {
 	return nf.node.GetRawMetaBlockByNonce(nonce, withTxs)
 }
 
-// GetRawBlockByRound returns the block for a given round
+// GetRawMetaBlockByRound returns the meta block for a given round
 func (nf *nodeFacade) GetRawMetaBlockByRound(round uint64, withTxs bool) ([]byte, error) {
 	return nf.node.GetRawMetaBlockByRound(round, withTxs)
+}
+
+// GetRawShardBlockByHash return the shard block for a given hash
+func (nf *nodeFacade) GetRawShardBlockByHash(hash string, withTxs bool) ([]byte, error) {
+	return nf.node.GetRawShardBlockByHash(hash, withTxs)
+}
+
+// GetRawShardBlockByNonce returns the shard block for a given nonce
+func (nf *nodeFacade) GetRawShardBlockByNonce(nonce uint64, withTxs bool) ([]byte, error) {
+	return nf.node.GetRawShardBlockByNonce(nonce, withTxs)
+}
+
+// GetRawShardBlockByRound returns the shard block for a given round
+func (nf *nodeFacade) GetRawShardBlockByRound(round uint64, withTxs bool) ([]byte, error) {
+	return nf.node.GetRawShardBlockByRound(round, withTxs)
 }
 
 // Close will cleanup started go routines

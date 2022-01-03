@@ -13,16 +13,24 @@ import (
 )
 
 const (
-	getRawMetaBlockByNoncePath = "/metablock/by-nonce/:nonce"
-	getRawMetaBlockByHashPath  = "/metablock/by-hash/:hash"
-	getRawMetaBlockByRoundPath = "/metablock/by-round/:round"
+	getRawMetaBlockByNoncePath  = "/metablock/by-nonce/:nonce"
+	getRawMetaBlockByHashPath   = "/metablock/by-hash/:hash"
+	getRawMetaBlockByRoundPath  = "/metablock/by-round/:round"
+	getRawShardBlockByNoncePath = "/shardblock/by-nonce/:nonce"
+	getRawShardBlockByHashPath  = "/shardblock/by-hash/:hash"
+	getRawShardBlockByRoundPath = "/shardblock/by-round/:round"
 )
+
+// TODO: comments update
 
 // rawBlockFacadeHandler defines the methods to be implemented by a facade for handling block requests
 type rawBlockFacadeHandler interface {
 	GetRawMetaBlockByHash(hash string, withTxs bool) ([]byte, error)
 	GetRawMetaBlockByNonce(nonce uint64, withTxs bool) ([]byte, error)
 	GetRawMetaBlockByRound(round uint64, withTxs bool) ([]byte, error)
+	GetRawShardBlockByHash(hash string, withTxs bool) ([]byte, error)
+	GetRawShardBlockByNonce(nonce uint64, withTxs bool) ([]byte, error)
+	GetRawShardBlockByRound(round uint64, withTxs bool) ([]byte, error)
 	IsInterfaceNil() bool
 }
 
@@ -58,6 +66,21 @@ func NewRawBlockGroup(facade rawBlockFacadeHandler) (*rawBlockGroup, error) {
 			Path:    getRawMetaBlockByRoundPath,
 			Method:  http.MethodGet,
 			Handler: bg.getRawMetaBlockByRound,
+		},
+		{
+			Path:    getRawShardBlockByNoncePath,
+			Method:  http.MethodGet,
+			Handler: bg.getRawShardBlockByNonce,
+		},
+		{
+			Path:    getRawShardBlockByHashPath,
+			Method:  http.MethodGet,
+			Handler: bg.getRawShardBlockByHash,
+		},
+		{
+			Path:    getRawShardBlockByRoundPath,
+			Method:  http.MethodGet,
+			Handler: bg.getRawShardBlockByRound,
 		},
 	}
 	bg.endpoints = endpoints
@@ -188,6 +211,110 @@ func (bg *rawBlockGroup) getRawMetaBlockByRound(c *gin.Context) {
 	// 		Code:  shared.ReturnCodeSuccess,
 	// 	},
 	// )
+}
+
+// --------------------------- shard block -----------------------------
+
+func (bg *rawBlockGroup) getRawShardBlockByNonce(c *gin.Context) {
+	nonce, err := getQueryParamNonce(c)
+	if err != nil {
+		shared.RespondWithValidationError(
+			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidBlockNonce.Error()),
+		)
+		return
+	}
+
+	withTxs, err := getQueryParamWithTxs(c)
+	if err != nil {
+		shared.RespondWithValidationError(
+			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidQueryParameter.Error()),
+		)
+		return
+	}
+
+	start := time.Now()
+	block, err := bg.getFacade().GetRawShardBlockByNonce(nonce, withTxs)
+	log.Debug(fmt.Sprintf("GetBlockByNonce took %s", time.Since(start)))
+	if err != nil {
+		shared.RespondWith(
+			c,
+			http.StatusInternalServerError,
+			nil,
+			fmt.Sprintf("%s: %s", errors.ErrGetBlock.Error(), err.Error()),
+			shared.ReturnCodeInternalError,
+		)
+		return
+	}
+
+	shared.RespondWith(c, http.StatusOK, gin.H{"block": block}, "", shared.ReturnCodeSuccess)
+}
+
+func (bg *rawBlockGroup) getRawShardBlockByHash(c *gin.Context) {
+	hash := c.Param("hash")
+	if hash == "" {
+		shared.RespondWithValidationError(
+			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrValidationEmptyBlockHash.Error()),
+		)
+		return
+	}
+
+	withTxs, err := getQueryParamWithTxs(c)
+	if err != nil {
+		shared.RespondWithValidationError(
+			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidBlockNonce.Error()),
+		)
+		return
+	}
+
+	start := time.Now()
+	block, err := bg.getFacade().GetRawShardBlockByHash(hash, withTxs)
+	log.Debug(fmt.Sprintf("GetBlockByHash took %s", time.Since(start)))
+	if err != nil {
+		shared.RespondWith(
+			c,
+			http.StatusInternalServerError,
+			nil,
+			fmt.Sprintf("%s: %s", errors.ErrGetBlock.Error(), err.Error()),
+			shared.ReturnCodeInternalError,
+		)
+		return
+	}
+
+	shared.RespondWith(c, http.StatusOK, gin.H{"block": block}, "", shared.ReturnCodeSuccess)
+}
+
+func (bg *rawBlockGroup) getRawShardBlockByRound(c *gin.Context) {
+	round, err := getQueryParamRound(c)
+	if err != nil {
+		shared.RespondWithValidationError(
+			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidBlockRound.Error()),
+		)
+		return
+	}
+
+	withTxs, err := getQueryParamWithTxs(c)
+	if err != nil {
+		shared.RespondWithValidationError(
+			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidQueryParameter.Error()),
+		)
+		return
+	}
+
+	start := time.Now()
+	block, err := bg.getFacade().GetRawShardBlockByRound(round, withTxs)
+	log.Debug(fmt.Sprintf("GetBlockByRound took %s", time.Since(start)))
+	if err != nil {
+		shared.RespondWith(
+			c,
+			http.StatusInternalServerError,
+			nil,
+			fmt.Sprintf("%s: %s", errors.ErrGetBlock.Error(), err.Error()),
+			shared.ReturnCodeInternalError,
+		)
+		return
+	}
+
+	shared.RespondWith(c, http.StatusOK, gin.H{"block": block}, "", shared.ReturnCodeSuccess)
 }
 
 func (ng *rawBlockGroup) getFacade() rawBlockFacadeHandler {

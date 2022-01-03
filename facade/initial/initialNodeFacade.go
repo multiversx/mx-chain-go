@@ -251,18 +251,33 @@ func (inf *initialNodeFacade) GetBlockByRound(_ uint64, _ bool) (*api.Block, err
 	return nil, errNodeStarting
 }
 
-// GetBlockByHash return nil and error
+// GetRawMetaBlockByHash return nil and error
 func (inf *initialNodeFacade) GetRawMetaBlockByHash(_ string, _ bool) ([]byte, error) {
 	return nil, errNodeStarting
 }
 
-// GetBlockByNonce returns nil and error
+// GetRawMetaBlockByNonce returns nil and error
 func (inf *initialNodeFacade) GetRawMetaBlockByNonce(_ uint64, _ bool) ([]byte, error) {
 	return nil, errNodeStarting
 }
 
-// GetBlockByRound returns nil and error
+// GetRawMetaBlockByRound returns nil and error
 func (inf *initialNodeFacade) GetRawMetaBlockByRound(_ uint64, _ bool) ([]byte, error) {
+	return nil, errNodeStarting
+}
+
+// GetRawShardBlockByHash return nil and error
+func (inf *initialNodeFacade) GetRawShardBlockByHash(_ string, _ bool) ([]byte, error) {
+	return nil, errNodeStarting
+}
+
+// GetRawShardBlockByNonce returns nil and error
+func (inf *initialNodeFacade) GetRawShardBlockByNonce(_ uint64, _ bool) ([]byte, error) {
+	return nil, errNodeStarting
+}
+
+// GetRawShardBlockByRound returns nil and error
+func (inf *initialNodeFacade) GetRawShardBlockByRound(_ uint64, _ bool) ([]byte, error) {
 	return nil, errNodeStarting
 }
 

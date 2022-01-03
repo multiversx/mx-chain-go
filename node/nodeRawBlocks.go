@@ -67,6 +67,40 @@ func (n *Node) createAPIMetaBlockProcessor() (blockAPI.APIRawBlockHandler, error
 	return blockAPI.NewMetaApiBlockProcessor(blockApiArgs), nil
 }
 
+// GetBlockByHash return the block for a given hash
+func (n *Node) GetRawShardBlockByHash(hash string, withTxs bool) ([]byte, error) {
+	decodedHash, err := hex.DecodeString(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	apiBlockProcessor, err := n.createAPIShardBlockProcessor()
+	if err != nil {
+		return nil, err
+	}
+
+	return apiBlockProcessor.GetRawBlockByHash(decodedHash, withTxs)
+}
+
+// GetBlockByNonce returns the block for a given nonce
+func (n *Node) GetRawShardBlockByNonce(nonce uint64, withTxs bool) ([]byte, error) {
+	apiBlockProcessor, err := n.createAPIShardBlockProcessor()
+	if err != nil {
+		return nil, err
+	}
+
+	return apiBlockProcessor.GetRawBlockByNonce(nonce, withTxs)
+}
+
+func (n *Node) GetRawShardBlockByRound(round uint64, withTxs bool) ([]byte, error) {
+	apiBlockProcessor, err := n.createAPIShardBlockProcessor()
+	if err != nil {
+		return nil, err
+	}
+
+	return apiBlockProcessor.GetRawBlockByRound(round, withTxs)
+}
+
 func (n *Node) createAPIShardBlockProcessor() (blockAPI.APIRawBlockHandler, error) {
 	statusComputer, err := txstatus.NewStatusComputer(n.processComponents.ShardCoordinator().SelfId(), n.coreComponents.Uint64ByteSliceConverter(), n.dataComponents.StorageService())
 	if err != nil {
