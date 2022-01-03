@@ -5,7 +5,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/vm"
@@ -74,9 +73,9 @@ type FacadeHandler interface {
 	GetBlockByHash(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error)
 	GetBlockByRound(round uint64, withTxs bool) (*api.Block, error)
-	GetRawBlockByHash(hash string, withTxs bool) (*block.MetaBlock, error)
-	GetRawBlockByNonce(nonce uint64, withTxs bool) (*block.MetaBlock, error)
-	GetRawBlockByRound(round uint64, withTxs bool) (*block.MetaBlock, error)
+	GetRawBlockByHash(hash string, withTxs bool) ([]byte, error)
+	GetRawBlockByNonce(nonce uint64, withTxs bool) ([]byte, error)
+	GetRawBlockByRound(round uint64, withTxs bool) ([]byte, error)
 	Trigger(epoch uint32, withEarlyEndOfEpoch bool) error
 	IsSelfTrigger() bool
 	GetTotalStakedValue() (*api.StakeValues, error)

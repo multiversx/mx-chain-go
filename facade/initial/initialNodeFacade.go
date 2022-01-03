@@ -6,7 +6,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/vm"
@@ -253,17 +252,17 @@ func (inf *initialNodeFacade) GetBlockByRound(_ uint64, _ bool) (*api.Block, err
 }
 
 // GetBlockByHash return nil and error
-func (inf *initialNodeFacade) GetRawBlockByHash(_ string, _ bool) (*block.MetaBlock, error) {
+func (inf *initialNodeFacade) GetRawBlockByHash(_ string, _ bool) ([]byte, error) {
 	return nil, errNodeStarting
 }
 
 // GetBlockByNonce returns nil and error
-func (inf *initialNodeFacade) GetRawBlockByNonce(_ uint64, _ bool) (*block.MetaBlock, error) {
+func (inf *initialNodeFacade) GetRawBlockByNonce(_ uint64, _ bool) ([]byte, error) {
 	return nil, errNodeStarting
 }
 
 // GetBlockByRound returns nil and error
-func (inf *initialNodeFacade) GetRawBlockByRound(_ uint64, _ bool) (*block.MetaBlock, error) {
+func (inf *initialNodeFacade) GetRawBlockByRound(_ uint64, _ bool) ([]byte, error) {
 	return nil, errNodeStarting
 }
 

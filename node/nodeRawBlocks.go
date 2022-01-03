@@ -4,13 +4,12 @@ import (
 	"encoding/hex"
 	"errors"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/node/blockAPI"
 	"github.com/ElrondNetwork/elrond-go/process/txstatus"
 )
 
 // GetBlockByHash return the block for a given hash
-func (n *Node) GetRawBlockByHash(hash string, withTxs bool) (*block.MetaBlock, error) {
+func (n *Node) GetRawBlockByHash(hash string, withTxs bool) ([]byte, error) {
 	decodedHash, err := hex.DecodeString(hash)
 	if err != nil {
 		return nil, err
@@ -25,7 +24,7 @@ func (n *Node) GetRawBlockByHash(hash string, withTxs bool) (*block.MetaBlock, e
 }
 
 // GetBlockByNonce returns the block for a given nonce
-func (n *Node) GetRawBlockByNonce(nonce uint64, withTxs bool) (*block.MetaBlock, error) {
+func (n *Node) GetRawBlockByNonce(nonce uint64, withTxs bool) ([]byte, error) {
 	apiBlockProcessor, err := n.createAPIMetaBlockProcessor()
 	if err != nil {
 		return nil, err
@@ -34,7 +33,7 @@ func (n *Node) GetRawBlockByNonce(nonce uint64, withTxs bool) (*block.MetaBlock,
 	return apiBlockProcessor.GetRawBlockByNonce(nonce, withTxs)
 }
 
-func (n *Node) GetRawBlockByRound(round uint64, withTxs bool) (*block.MetaBlock, error) {
+func (n *Node) GetRawBlockByRound(round uint64, withTxs bool) ([]byte, error) {
 	apiBlockProcessor, err := n.createAPIMetaBlockProcessor()
 	if err != nil {
 		return nil, err

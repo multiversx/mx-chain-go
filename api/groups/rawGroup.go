@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/gin-gonic/gin"
@@ -21,9 +20,9 @@ const (
 
 // rawBlockFacadeHandler defines the methods to be implemented by a facade for handling block requests
 type rawBlockFacadeHandler interface {
-	GetRawBlockByHash(hash string, withTxs bool) (*block.MetaBlock, error)
-	GetRawBlockByNonce(nonce uint64, withTxs bool) (*block.MetaBlock, error)
-	GetRawBlockByRound(round uint64, withTxs bool) (*block.MetaBlock, error)
+	GetRawBlockByHash(hash string, withTxs bool) ([]byte, error)
+	GetRawBlockByNonce(nonce uint64, withTxs bool) ([]byte, error)
+	GetRawBlockByRound(round uint64, withTxs bool) ([]byte, error)
 	IsInterfaceNil() bool
 }
 
@@ -97,12 +96,12 @@ func (bg *rawBlockGroup) getRawBlockByNonce(c *gin.Context) {
 		return
 	}
 
-	//shared.RespondWith(c, http.StatusOK, gin.H{"block": block}, "", shared.ReturnCodeSuccess)
+	shared.RespondWith(c, http.StatusOK, gin.H{"block": block}, "", shared.ReturnCodeSuccess)
 
-	c.ProtoBuf(
-		http.StatusOK,
-		block,
-	)
+	// c.ProtoBuf(
+	// 	http.StatusOK,
+	// 	block,
+	// )
 }
 
 func (bg *rawBlockGroup) getRawBlockByHash(c *gin.Context) {

@@ -1,12 +1,14 @@
 package groups_test
 
 import (
+	"bytes"
 	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	marshalizerFactory "github.com/ElrondNetwork/elrond-go-core/marshal/factory"
 	apiErrors "github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/groups"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
@@ -35,8 +37,8 @@ func TestGetRawBlockByNonce_EmptyNonceUrlParameterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	facade := mock.FacadeStub{
-		GetRawBlockByNonceCalled: func(_ uint64, _ bool) (*block.MetaBlock, error) {
-			return &block.MetaBlock{}, nil
+		GetRawBlockByNonceCalled: func(_ uint64, _ bool) ([]byte, error) {
+			return []byte{}, nil
 		},
 	}
 
@@ -58,8 +60,8 @@ func TestGetRawBlockByNonce_InvalidNonceShouldErr(t *testing.T) {
 	t.Parallel()
 
 	facade := mock.FacadeStub{
-		GetRawBlockByNonceCalled: func(_ uint64, _ bool) (*block.MetaBlock, error) {
-			return &block.MetaBlock{}, nil
+		GetRawBlockByNonceCalled: func(_ uint64, _ bool) ([]byte, error) {
+			return []byte{}, nil
 		},
 	}
 
@@ -74,20 +76,25 @@ func TestGetRawBlockByNonce_InvalidNonceShouldErr(t *testing.T) {
 
 	response := blockResponse{}
 	loadResponse(resp.Body, &response)
-	assert.Equal(t, http.StatusNotFound, resp.Code)
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
 }
 
 func TestGetRawBlockByNonce_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	expectedBlock := block.MetaBlock{
-		Nonce: 15,
-		Round: 17,
-	}
+	// metaBlock := block.MetaBlock{
+	// 	Nonce: 15,
+	// 	Round: 17,
+	// }
+
+	// marshalizer := mock.MarshalizerStub{}
+
+	// expectedBlock, err := marshalizer.Marshal(metaBlock)
+	// require.NoError(t, err)
 
 	facade := mock.FacadeStub{
-		GetRawBlockByNonceCalled: func(_ uint64, _ bool) (*block.MetaBlock, error) {
-			return &expectedBlock, nil
+		GetRawBlockByNonceCalled: func(_ uint64, _ bool) ([]byte, error) {
+			return bytes.Repeat([]byte("1"), 10), nil
 		},
 	}
 
@@ -100,11 +107,54 @@ func TestGetRawBlockByNonce_ShouldWork(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	response := blockResponse{}
+	response := rawBlockResponse{}
 	loadResponse(resp.Body, &response)
 	assert.Equal(t, http.StatusOK, resp.Code)
 
-	assert.Equal(t, expectedBlock, response.Data.Block)
+	assert.Equal(t, bytes.Repeat([]byte("1"), 10), response.Data.Block)
+}
+
+func TestGetRawBlockByNonceMetaBlockCheck_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	metaBlock := block.MetaBlock{
+		Nonce: 15,
+		Round: 17,
+	}
+
+	marshalizer, err := marshalizerFactory.NewMarshalizer("gogo protobuf")
+	require.NoError(t, err)
+
+	// expectedBlock, err := marshalizer.Marshal(metaBlock)
+	// require.NoError(t, err)
+
+	facade := mock.FacadeStub{
+		GetRawBlockByNonceCalled: func(_ uint64, _ bool) ([]byte, error) {
+			//return bytes.Repeat([]byte("1"), 10), nil
+			return []byte{}, nil
+		},
+	}
+
+	blockGroup, err := groups.NewRawBlockGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(blockGroup, "raw", getRawBlockRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/raw/block/by-nonce/15", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := rawBlockResponse{}
+	loadResponse(resp.Body, &response)
+	assert.Equal(t, http.StatusOK, resp.Code)
+
+	blockHeader := &block.MetaBlock{}
+	err = marshalizer.Unmarshal(blockHeader, response.Data.Block)
+	require.NoError(t, err)
+
+	assert.Equal(t, metaBlock, blockHeader)
+
+	assert.Equal(t, bytes.Repeat([]byte("1"), 10), response.Data.Block)
 }
 
 func getRawBlockRoutesConfig() config.ApiRoutesConfig {

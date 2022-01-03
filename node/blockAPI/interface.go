@@ -13,9 +13,9 @@ type APIBlockHandler interface {
 }
 
 type APIRawMetaBlockHandler interface {
-	GetRawBlockByNonce(nonce uint64, withTxs bool) (*block.MetaBlock, error)
-	GetRawBlockByHash(hash []byte, withTxs bool) (*block.MetaBlock, error)
-	GetRawBlockByRound(round uint64, withTxs bool) (*block.MetaBlock, error)
+	GetRawBlockByNonce(nonce uint64, withTxs bool) ([]byte, error)
+	GetRawBlockByHash(hash []byte, withTxs bool) ([]byte, error)
+	GetRawBlockByRound(round uint64, withTxs bool) ([]byte, error)
 }
 
 type APIRawHeaderHandler interface {

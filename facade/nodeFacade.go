@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
 	chainData "github.com/ElrondNetwork/elrond-go-core/data"
 	apiData "github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/vm"
@@ -383,18 +382,18 @@ func (nf *nodeFacade) GetBlockByRound(round uint64, withTxs bool) (*apiData.Bloc
 	return nf.node.GetBlockByRound(round, withTxs)
 }
 
-// GetBlockByHash return the block for a given hash
-func (nf *nodeFacade) GetRawBlockByHash(hash string, withTxs bool) (*block.MetaBlock, error) {
+// GetRawBlockByHash return the block for a given hash
+func (nf *nodeFacade) GetRawBlockByHash(hash string, withTxs bool) ([]byte, error) {
 	return nf.node.GetRawBlockByHash(hash, withTxs)
 }
 
-// GetBlockByNonce returns the block for a given nonce
-func (nf *nodeFacade) GetRawBlockByNonce(nonce uint64, withTxs bool) (*block.MetaBlock, error) {
+// GetRawBlockByNonce returns the block for a given nonce
+func (nf *nodeFacade) GetRawBlockByNonce(nonce uint64, withTxs bool) ([]byte, error) {
 	return nf.node.GetRawBlockByNonce(nonce, withTxs)
 }
 
-// GetBlockByRound returns the block for a given round
-func (nf *nodeFacade) GetRawBlockByRound(round uint64, withTxs bool) (*block.MetaBlock, error) {
+// GetRawBlockByRound returns the block for a given round
+func (nf *nodeFacade) GetRawBlockByRound(round uint64, withTxs bool) ([]byte, error) {
 	return nf.node.GetRawBlockByRound(round, withTxs)
 }
 
