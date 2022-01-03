@@ -94,9 +94,9 @@ type NodeHandler interface {
 	GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error)
 	GetBlockByRound(round uint64, withTxs bool) (*api.Block, error)
 
-	GetRawBlockByHash(hash string, withTxs bool) ([]byte, error)
-	GetRawBlockByNonce(nonce uint64, withTxs bool) ([]byte, error)
-	GetRawBlockByRound(round uint64, withTxs bool) ([]byte, error)
+	GetRawMetaBlockByHash(hash string, withTxs bool) ([]byte, error)
+	GetRawMetaBlockByNonce(nonce uint64, withTxs bool) ([]byte, error)
+	GetRawMetaBlockByRound(round uint64, withTxs bool) ([]byte, error)
 
 	GetProof(rootHash string, key string) (*common.GetProofResponse, error)
 	GetProofDataTrie(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error)

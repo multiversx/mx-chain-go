@@ -37,7 +37,7 @@ func TestGetRawBlockByNonce_EmptyNonceUrlParameterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	facade := mock.FacadeStub{
-		GetRawBlockByNonceCalled: func(_ uint64, _ bool) ([]byte, error) {
+		GetRawMetaBlockByNonceCalled: func(_ uint64, _ bool) ([]byte, error) {
 			return []byte{}, nil
 		},
 	}
@@ -60,7 +60,7 @@ func TestGetRawBlockByNonce_InvalidNonceShouldErr(t *testing.T) {
 	t.Parallel()
 
 	facade := mock.FacadeStub{
-		GetRawBlockByNonceCalled: func(_ uint64, _ bool) ([]byte, error) {
+		GetRawMetaBlockByNonceCalled: func(_ uint64, _ bool) ([]byte, error) {
 			return []byte{}, nil
 		},
 	}
@@ -93,7 +93,7 @@ func TestGetRawBlockByNonce_ShouldWork(t *testing.T) {
 	// require.NoError(t, err)
 
 	facade := mock.FacadeStub{
-		GetRawBlockByNonceCalled: func(_ uint64, _ bool) ([]byte, error) {
+		GetRawMetaBlockByNonceCalled: func(_ uint64, _ bool) ([]byte, error) {
 			return bytes.Repeat([]byte("1"), 10), nil
 		},
 	}
@@ -129,7 +129,7 @@ func TestGetRawBlockByNonceMetaBlockCheck_ShouldWork(t *testing.T) {
 	// require.NoError(t, err)
 
 	facade := mock.FacadeStub{
-		GetRawBlockByNonceCalled: func(_ uint64, _ bool) ([]byte, error) {
+		GetRawMetaBlockByNonceCalled: func(_ uint64, _ bool) ([]byte, error) {
 			//return bytes.Repeat([]byte("1"), 10), nil
 			return []byte{}, nil
 		},

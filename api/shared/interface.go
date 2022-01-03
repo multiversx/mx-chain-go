@@ -73,9 +73,9 @@ type FacadeHandler interface {
 	GetBlockByHash(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error)
 	GetBlockByRound(round uint64, withTxs bool) (*api.Block, error)
-	GetRawBlockByHash(hash string, withTxs bool) ([]byte, error)
-	GetRawBlockByNonce(nonce uint64, withTxs bool) ([]byte, error)
-	GetRawBlockByRound(round uint64, withTxs bool) ([]byte, error)
+	GetRawMetaBlockByHash(hash string, withTxs bool) ([]byte, error)
+	GetRawMetaBlockByNonce(nonce uint64, withTxs bool) ([]byte, error)
+	GetRawMetaBlockByRound(round uint64, withTxs bool) ([]byte, error)
 	Trigger(epoch uint32, withEarlyEndOfEpoch bool) error
 	IsSelfTrigger() bool
 	GetTotalStakedValue() (*api.StakeValues, error)

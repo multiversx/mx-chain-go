@@ -13,16 +13,16 @@ import (
 )
 
 const (
-	getRawBlockByNoncePath = "/block/by-nonce/:nonce"
-	getRawBlockByHashPath  = "/block/by-hash/:hash"
-	getRawBlockByRoundPath = "/block/by-round/:round"
+	getRawMetaBlockByNoncePath = "/metablock/by-nonce/:nonce"
+	getRawMetaBlockByHashPath  = "/metablock/by-hash/:hash"
+	getRawMetaBlockByRoundPath = "/metablock/by-round/:round"
 )
 
 // rawBlockFacadeHandler defines the methods to be implemented by a facade for handling block requests
 type rawBlockFacadeHandler interface {
-	GetRawBlockByHash(hash string, withTxs bool) ([]byte, error)
-	GetRawBlockByNonce(nonce uint64, withTxs bool) ([]byte, error)
-	GetRawBlockByRound(round uint64, withTxs bool) ([]byte, error)
+	GetRawMetaBlockByHash(hash string, withTxs bool) ([]byte, error)
+	GetRawMetaBlockByNonce(nonce uint64, withTxs bool) ([]byte, error)
+	GetRawMetaBlockByRound(round uint64, withTxs bool) ([]byte, error)
 	IsInterfaceNil() bool
 }
 
@@ -45,19 +45,19 @@ func NewRawBlockGroup(facade rawBlockFacadeHandler) (*rawBlockGroup, error) {
 
 	endpoints := []*shared.EndpointHandlerData{
 		{
-			Path:    getRawBlockByNoncePath,
+			Path:    getRawMetaBlockByNoncePath,
 			Method:  http.MethodGet,
-			Handler: bg.getRawBlockByNonce,
+			Handler: bg.getRawMetaBlockByNonce,
 		},
 		{
-			Path:    getRawBlockByHashPath,
+			Path:    getRawMetaBlockByHashPath,
 			Method:  http.MethodGet,
-			Handler: bg.getRawBlockByHash,
+			Handler: bg.getRawMetaBlockByHash,
 		},
 		{
-			Path:    getRawBlockByRoundPath,
+			Path:    getRawMetaBlockByRoundPath,
 			Method:  http.MethodGet,
-			Handler: bg.getRawBlockByRound,
+			Handler: bg.getRawMetaBlockByRound,
 		},
 	}
 	bg.endpoints = endpoints
@@ -65,7 +65,7 @@ func NewRawBlockGroup(facade rawBlockFacadeHandler) (*rawBlockGroup, error) {
 	return bg, nil
 }
 
-func (bg *rawBlockGroup) getRawBlockByNonce(c *gin.Context) {
+func (bg *rawBlockGroup) getRawMetaBlockByNonce(c *gin.Context) {
 	nonce, err := getQueryParamNonce(c)
 	if err != nil {
 		shared.RespondWithValidationError(
@@ -83,7 +83,7 @@ func (bg *rawBlockGroup) getRawBlockByNonce(c *gin.Context) {
 	}
 
 	start := time.Now()
-	block, err := bg.getFacade().GetRawBlockByNonce(nonce, withTxs)
+	block, err := bg.getFacade().GetRawMetaBlockByNonce(nonce, withTxs)
 	log.Debug(fmt.Sprintf("GetBlockByNonce took %s", time.Since(start)))
 	if err != nil {
 		shared.RespondWith(
@@ -104,7 +104,7 @@ func (bg *rawBlockGroup) getRawBlockByNonce(c *gin.Context) {
 	// )
 }
 
-func (bg *rawBlockGroup) getRawBlockByHash(c *gin.Context) {
+func (bg *rawBlockGroup) getRawMetaBlockByHash(c *gin.Context) {
 	hash := c.Param("hash")
 	if hash == "" {
 		shared.RespondWithValidationError(
@@ -122,7 +122,7 @@ func (bg *rawBlockGroup) getRawBlockByHash(c *gin.Context) {
 	}
 
 	start := time.Now()
-	block, err := bg.getFacade().GetRawBlockByHash(hash, withTxs)
+	block, err := bg.getFacade().GetRawMetaBlockByHash(hash, withTxs)
 	log.Debug(fmt.Sprintf("GetBlockByHash took %s", time.Since(start)))
 	if err != nil {
 		shared.RespondWith(
@@ -147,7 +147,7 @@ func (bg *rawBlockGroup) getRawBlockByHash(c *gin.Context) {
 	// )
 }
 
-func (bg *rawBlockGroup) getRawBlockByRound(c *gin.Context) {
+func (bg *rawBlockGroup) getRawMetaBlockByRound(c *gin.Context) {
 	round, err := getQueryParamRound(c)
 	if err != nil {
 		shared.RespondWithValidationError(
@@ -165,7 +165,7 @@ func (bg *rawBlockGroup) getRawBlockByRound(c *gin.Context) {
 	}
 
 	start := time.Now()
-	block, err := bg.getFacade().GetRawBlockByRound(round, withTxs)
+	block, err := bg.getFacade().GetRawMetaBlockByRound(round, withTxs)
 	log.Debug(fmt.Sprintf("GetBlockByRound took %s", time.Since(start)))
 	if err != nil {
 		shared.RespondWith(

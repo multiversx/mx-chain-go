@@ -8,8 +8,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/txstatus"
 )
 
+// TODO: comments update
+
 // GetBlockByHash return the block for a given hash
-func (n *Node) GetRawBlockByHash(hash string, withTxs bool) ([]byte, error) {
+func (n *Node) GetRawMetaBlockByHash(hash string, withTxs bool) ([]byte, error) {
 	decodedHash, err := hex.DecodeString(hash)
 	if err != nil {
 		return nil, err
@@ -24,7 +26,7 @@ func (n *Node) GetRawBlockByHash(hash string, withTxs bool) ([]byte, error) {
 }
 
 // GetBlockByNonce returns the block for a given nonce
-func (n *Node) GetRawBlockByNonce(nonce uint64, withTxs bool) ([]byte, error) {
+func (n *Node) GetRawMetaBlockByNonce(nonce uint64, withTxs bool) ([]byte, error) {
 	apiBlockProcessor, err := n.createAPIMetaBlockProcessor()
 	if err != nil {
 		return nil, err
@@ -33,7 +35,7 @@ func (n *Node) GetRawBlockByNonce(nonce uint64, withTxs bool) ([]byte, error) {
 	return apiBlockProcessor.GetRawBlockByNonce(nonce, withTxs)
 }
 
-func (n *Node) GetRawBlockByRound(round uint64, withTxs bool) ([]byte, error) {
+func (n *Node) GetRawMetaBlockByRound(round uint64, withTxs bool) ([]byte, error) {
 	apiBlockProcessor, err := n.createAPIMetaBlockProcessor()
 	if err != nil {
 		return nil, err
@@ -42,7 +44,7 @@ func (n *Node) GetRawBlockByRound(round uint64, withTxs bool) ([]byte, error) {
 	return apiBlockProcessor.GetRawBlockByRound(round, withTxs)
 }
 
-func (n *Node) createAPIMetaBlockProcessor() (blockAPI.APIRawMetaBlockHandler, error) {
+func (n *Node) createAPIMetaBlockProcessor() (blockAPI.APIRawBlockHandler, error) {
 	statusComputer, err := txstatus.NewStatusComputer(n.processComponents.ShardCoordinator().SelfId(), n.coreComponents.Uint64ByteSliceConverter(), n.dataComponents.StorageService())
 	if err != nil {
 		return nil, errors.New("error creating transaction status computer " + err.Error())
@@ -63,4 +65,23 @@ func (n *Node) createAPIMetaBlockProcessor() (blockAPI.APIRawMetaBlockHandler, e
 	// }
 
 	return blockAPI.NewMetaApiBlockProcessor(blockApiArgs), nil
+}
+
+func (n *Node) createAPIShardBlockProcessor() (blockAPI.APIRawBlockHandler, error) {
+	statusComputer, err := txstatus.NewStatusComputer(n.processComponents.ShardCoordinator().SelfId(), n.coreComponents.Uint64ByteSliceConverter(), n.dataComponents.StorageService())
+	if err != nil {
+		return nil, errors.New("error creating transaction status computer " + err.Error())
+	}
+
+	blockApiArgs := &blockAPI.APIBlockProcessorArg{
+		SelfShardID:              n.processComponents.ShardCoordinator().SelfId(),
+		Store:                    n.dataComponents.StorageService(),
+		Marshalizer:              n.coreComponents.InternalMarshalizer(),
+		Uint64ByteSliceConverter: n.coreComponents.Uint64ByteSliceConverter(),
+		HistoryRepo:              n.processComponents.HistoryRepository(),
+		UnmarshalTx:              n.unmarshalTransaction,
+		StatusComputer:           statusComputer,
+	}
+
+	return blockAPI.NewShardApiBlockProcessor(blockApiArgs), nil
 }

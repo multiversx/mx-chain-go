@@ -176,13 +176,13 @@
 [APIPackages.raw]
     Routes = [
         # /raw/block/by-nonce/:nonce will return the block in JSON format based on its nonce
-        { Name = "/block/by-nonce/:nonce", Open = true },
+        { Name = "/metablock/by-nonce/:nonce", Open = true },
 
         # /raw/block/by-hash/:hash will return the block in JSON format based on its hash
-        { Name = "/block/by-hash/:hash", Open = true },
+        { Name = "/metablock/by-hash/:hash", Open = true },
 
         # /raw/block/by-round/:round will return the block in JSON format based on round
-        { Name = "/block/by-round/:round", Open = true },
+        { Name = "/metablock/by-round/:round", Open = true },
     ]
 
 [APIPackages.proof]

@@ -54,9 +54,9 @@ type FacadeStub struct {
 	GetBlockByHashCalled                    func(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonceCalled                   func(nonce uint64, withTxs bool) (*api.Block, error)
 	GetBlockByRoundCalled                   func(round uint64, withTxs bool) (*api.Block, error)
-	GetRawBlockByHashCalled                 func(hash string, withTxs bool) ([]byte, error)
-	GetRawBlockByNonceCalled                func(nonce uint64, withTxs bool) ([]byte, error)
-	GetRawBlockByRoundCalled                func(round uint64, withTxs bool) ([]byte, error)
+	GetRawMetaBlockByHashCalled             func(hash string, withTxs bool) ([]byte, error)
+	GetRawMetaBlockByNonceCalled            func(nonce uint64, withTxs bool) ([]byte, error)
+	GetRawMetaBlockByRoundCalled            func(round uint64, withTxs bool) ([]byte, error)
 	GetTotalStakedValueHandler              func() (*api.StakeValues, error)
 	GetAllIssuedESDTsCalled                 func(tokenType string) ([]string, error)
 	GetDirectStakedListHandler              func() ([]*api.DirectStakedValue, error)
@@ -374,19 +374,19 @@ func (f *FacadeStub) GetBlockByRound(round uint64, withTxs bool) (*api.Block, er
 }
 
 // GetRawBlockByNonce -
-func (f *FacadeStub) GetRawBlockByNonce(nonce uint64, withTxs bool) ([]byte, error) {
-	return f.GetRawBlockByNonceCalled(nonce, withTxs)
+func (f *FacadeStub) GetRawMetaBlockByNonce(nonce uint64, withTxs bool) ([]byte, error) {
+	return f.GetRawMetaBlockByNonceCalled(nonce, withTxs)
 }
 
 // GetRawBlockByHash -
-func (f *FacadeStub) GetRawBlockByHash(hash string, withTxs bool) ([]byte, error) {
-	return f.GetRawBlockByHashCalled(hash, withTxs)
+func (f *FacadeStub) GetRawMetaBlockByHash(hash string, withTxs bool) ([]byte, error) {
+	return f.GetRawMetaBlockByHashCalled(hash, withTxs)
 }
 
 // GetRawBlockByRound -
-func (f *FacadeStub) GetRawBlockByRound(round uint64, withTxs bool) ([]byte, error) {
-	if f.GetRawBlockByRoundCalled != nil {
-		return f.GetRawBlockByRoundCalled(round, withTxs)
+func (f *FacadeStub) GetRawMetaBlockByRound(round uint64, withTxs bool) ([]byte, error) {
+	if f.GetRawMetaBlockByRoundCalled != nil {
+		return f.GetRawMetaBlockByRoundCalled(round, withTxs)
 	}
 	return nil, nil
 }

@@ -131,7 +131,7 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 /////////////////////////////////////////////
 
 // GetBlockByNonce will return a shard APIBlock by nonce
-func (sbp *shardAPIBlockProcessor) GetRawBlockByNonce(nonce uint64, withTxs bool) (*block.Header, error) {
+func (sbp *shardAPIBlockProcessor) GetRawBlockByNonce(nonce uint64, withTxs bool) ([]byte, error) {
 	storerUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(sbp.selfShardID)
 
 	nonceToByteSlice := sbp.uint64ByteSliceConverter.ToByteSlice(nonce)
@@ -145,30 +145,30 @@ func (sbp *shardAPIBlockProcessor) GetRawBlockByNonce(nonce uint64, withTxs bool
 		return nil, err
 	}
 
-	return sbp.convertShardBlockBytesToAPIRawBlock(headerHash, blockBytes, withTxs)
-	//return blockBytes, nil
+	//return sbp.convertShardBlockBytesToAPIRawBlock(headerHash, blockBytes, withTxs)
+	return blockBytes, nil
 }
 
 // GetBlockByHash will return a shard APIBlock by hash
-func (sbp *shardAPIBlockProcessor) GetRawBlockByHash(hash []byte, withTxs bool) (*block.Header, error) {
+func (sbp *shardAPIBlockProcessor) GetRawBlockByHash(hash []byte, withTxs bool) ([]byte, error) {
 	blockBytes, err := sbp.getFromStorer(dataRetriever.BlockHeaderUnit, hash)
 	if err != nil {
 		return nil, err
 	}
 
-	return sbp.convertShardBlockBytesToAPIRawBlock(hash, blockBytes, withTxs)
-	//return blockBytes, nil
+	//return sbp.convertShardBlockBytesToAPIRawBlock(hash, blockBytes, withTxs)
+	return blockBytes, nil
 }
 
 // GetBlockByRound will return a shard APIBlock by round
-func (sbp *shardAPIBlockProcessor) GetRawBlockByRound(round uint64, withTxs bool) (*block.Header, error) {
-	headerHash, blockBytes, err := sbp.getBlockHeaderHashAndBytesByRound(round, dataRetriever.BlockHeaderUnit)
+func (sbp *shardAPIBlockProcessor) GetRawBlockByRound(round uint64, withTxs bool) ([]byte, error) {
+	_, blockBytes, err := sbp.getBlockHeaderHashAndBytesByRound(round, dataRetriever.BlockHeaderUnit)
 	if err != nil {
 		return nil, err
 	}
 
-	return sbp.convertShardBlockBytesToAPIRawBlock(headerHash, blockBytes, withTxs)
-	//return blockBytes, nil
+	//return sbp.convertShardBlockBytesToAPIRawBlock(headerHash, blockBytes, withTxs)
+	return blockBytes, nil
 }
 
 func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIRawBlock(hash []byte, blockBytes []byte, withTxs bool) (*block.Header, error) {
