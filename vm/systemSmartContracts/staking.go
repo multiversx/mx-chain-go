@@ -2112,7 +2112,7 @@ func (s *stakingSC) EpochConfirmed(epoch uint32, _ uint64) {
 	s.flagCorrectFirstQueued.SetValue(epoch >= s.correctFirstQueuedEpoch)
 	log.Debug("stakingSC: correct first queued", "enabled", s.flagCorrectFirstQueued.IsSet())
 
-	s.flagCorrectJailedNotUnstakedEmptyQueue.Toggle(epoch >= s.correctJailedNotUnstakedEmptyQueueEpoch)
+	s.flagCorrectJailedNotUnstakedEmptyQueue.SetValue(epoch >= s.correctJailedNotUnstakedEmptyQueueEpoch)
 	log.Debug("stakingSC: correct jailed not unstaked with empty queue", "enabled", s.flagCorrectJailedNotUnstakedEmptyQueue.IsSet())
 }
 

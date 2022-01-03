@@ -1097,7 +1097,7 @@ func TestStakingSc_ExecuteStakeStakeJailAndSwitch(t *testing.T) {
 	args.Eei = eei
 	stakingSmartContract, _ := NewStakingSmartContract(args)
 
-	stakingSmartContract.flagCorrectJailedNotUnstakedEmptyQueue.Unset()
+	stakingSmartContract.flagCorrectJailedNotUnstakedEmptyQueue.Reset()
 
 	stakerAddress := []byte("stakerAddr")
 	stakerPubKey := []byte("stakerPublicKey")
@@ -1236,7 +1236,7 @@ func TestStakingSc_ExecuteStakeStakeJailAndSwitchWithBoundaries(t *testing.T) {
 			args := createStakingSCArgs(eei, stakingAccessAddress, stakeValue, maxStakedNodesNumber)
 			stakingSmartContract, _ := NewStakingSmartContract(args)
 
-			stakingSmartContract.flagCorrectJailedNotUnstakedEmptyQueue.Toggle(tt.flagJailedRemoveEnabled)
+			stakingSmartContract.flagCorrectJailedNotUnstakedEmptyQueue.SetValue(tt.flagJailedRemoveEnabled)
 
 			for i := 0; i < tt.stakedNodesNumber; i++ {
 				doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte(fmt.Sprintf("staked_%v", i)))
