@@ -111,28 +111,31 @@ func (ts *txsSender) sendFromTxAccumulator(ctx context.Context) {
 		select {
 		case objs := <-outputChannel:
 			{
-				if len(objs) == 0 {
-					break
-				}
-
-				txs := make([]*transaction.Transaction, 0, len(objs))
-				for _, obj := range objs {
-					tx, ok := obj.(*transaction.Transaction)
-					if !ok {
-						continue
-					}
-
-					txs = append(txs, tx)
-				}
-
-				atomic.AddUint32(&ts.txSentCounter, uint32(len(txs)))
-
-				ts.sendBulkTransactions(txs)
+				ts.sendTxObjsFromChannel(objs)
 			}
 		case <-ctx.Done():
 			return
 		}
 	}
+}
+
+func (ts *txsSender) sendTxObjsFromChannel(objs []interface{}) {
+	if len(objs) == 0 {
+		return
+	}
+
+	txs := make([]*transaction.Transaction, 0, len(objs))
+	for _, obj := range objs {
+		tx, ok := obj.(*transaction.Transaction)
+		if !ok {
+			continue
+		}
+
+		txs = append(txs, tx)
+	}
+
+	atomic.AddUint32(&ts.txSentCounter, uint32(len(txs)))
+	ts.sendBulkTransactions(txs)
 }
 
 func (ts *txsSender) sendBulkTransactions(txs []*transaction.Transaction) {
