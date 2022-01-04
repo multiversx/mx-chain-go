@@ -761,7 +761,7 @@ func TestTransactions_CreateAndProcessMiniBlocksFromMeV2ShouldWork(t *testing.T)
 	tx := &txcache.WrappedTransaction{}
 	sortedTxs = append(sortedTxs, tx)
 
-	mbs, mapSCTxs, _ := preprocessor.createAndProcessMiniBlocksFromMeV2(haveTimeMethod, isShardStuckMethod, isMaxBlockSizeReachedMethod, sortedTxs)
+	mbs, _, mapSCTxs, _ := preprocessor.createAndProcessMiniBlocksFromMeV2(haveTimeMethod, isShardStuckMethod, isMaxBlockSizeReachedMethod, sortedTxs)
 	assert.Equal(t, 0, len(mbs))
 	assert.Equal(t, 0, len(mapSCTxs))
 
@@ -775,7 +775,7 @@ func TestTransactions_CreateAndProcessMiniBlocksFromMeV2ShouldWork(t *testing.T)
 	}
 	sortedTxs = append(sortedTxs, tx)
 
-	mbs, mapSCTxs, _ = preprocessor.createAndProcessMiniBlocksFromMeV2(haveTimeMethod, isShardStuckMethod, isMaxBlockSizeReachedMethod, sortedTxs)
+	mbs, _, mapSCTxs, _ = preprocessor.createAndProcessMiniBlocksFromMeV2(haveTimeMethod, isShardStuckMethod, isMaxBlockSizeReachedMethod, sortedTxs)
 	assert.Equal(t, 0, len(mbs))
 	assert.Equal(t, 0, len(mapSCTxs))
 
@@ -790,7 +790,7 @@ func TestTransactions_CreateAndProcessMiniBlocksFromMeV2ShouldWork(t *testing.T)
 	}
 	sortedTxs = append(sortedTxs, tx)
 
-	mbs, mapSCTxs, _ = preprocessor.createAndProcessMiniBlocksFromMeV2(haveTimeMethod, isShardStuckMethod, isMaxBlockSizeReachedMethod, sortedTxs)
+	mbs, _, mapSCTxs, _ = preprocessor.createAndProcessMiniBlocksFromMeV2(haveTimeMethod, isShardStuckMethod, isMaxBlockSizeReachedMethod, sortedTxs)
 	assert.Equal(t, 0, len(mbs))
 	assert.Equal(t, 0, len(mapSCTxs))
 
@@ -821,7 +821,7 @@ func TestTransactions_CreateAndProcessMiniBlocksFromMeV2ShouldWork(t *testing.T)
 	sortedTxs = append(sortedTxs, tx3)
 	mapSCTxs["hash1"] = struct{}{}
 
-	mbs, mapSCTxs, _ = preprocessor.createAndProcessMiniBlocksFromMeV2(haveTimeMethod, isShardStuckMethod, isMaxBlockSizeReachedMethod, sortedTxs)
+	mbs, _, mapSCTxs, _ = preprocessor.createAndProcessMiniBlocksFromMeV2(haveTimeMethod, isShardStuckMethod, isMaxBlockSizeReachedMethod, sortedTxs)
 	assert.Equal(t, 3, len(mbs))
 	assert.Equal(t, 2, len(mapSCTxs))
 }

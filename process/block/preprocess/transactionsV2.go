@@ -18,7 +18,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 	isShardStuck func(uint32) bool,
 	isMaxBlockSizeReached func(int, int) bool,
 	sortedTxs []*txcache.WrappedTransaction,
-) (block.MiniBlockSlice, map[string]struct{}, error) {
+) (block.MiniBlockSlice, []*txcache.WrappedTransaction, map[string]struct{}, error) {
 	log.Debug("createAndProcessMiniBlocksFromMeV2 has been started")
 
 	mbInfo := txs.initCreateAndProcessMiniBlocks()
@@ -29,9 +29,11 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 		go txs.notifyTransactionProviderIfNeeded()
 	}()
 
+	remainingTxs := make([]*txcache.WrappedTransaction, 0)
 	for index := range sortedTxs {
 		if !haveTime() {
 			log.Debug("time is out in createAndProcessMiniBlocksFromMeV2")
+			remainingTxs = append(remainingTxs, sortedTxs[index:]...)
 			break
 		}
 
@@ -40,6 +42,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 			sortedTxs[index],
 			mbInfo)
 		if !shouldContinue {
+			remainingTxs = append(remainingTxs, sortedTxs[index])
 			continue
 		}
 
@@ -58,6 +61,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 			log.Debug("max txs accepted in one block is reached",
 				"num txs added", mbInfo.processingInfo.numTxsAdded,
 				"total txs", len(sortedTxs))
+			remainingTxs = append(remainingTxs, sortedTxs[index:]...)
 			break
 		}
 
@@ -69,6 +73,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 			receiverShardID,
 			mbInfo)
 		if err != nil {
+			remainingTxs = append(remainingTxs, sortedTxs[index])
 			continue
 		}
 
@@ -86,7 +91,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 
 	log.Debug("createAndProcessMiniBlocksFromMeV2 has been finished")
 
-	return miniBlocks, mbInfo.mapSCTxs, nil
+	return miniBlocks, remainingTxs, mbInfo.mapSCTxs, nil
 }
 
 func (txs *transactions) initGasConsumed() map[uint32]map[txType]uint64 {
@@ -299,7 +304,6 @@ func (txs *transactions) createScheduledMiniBlocks(
 	log.Debug("createScheduledMiniBlocks has been started")
 
 	mbInfo := txs.initCreateScheduledMiniBlocks()
-
 	for index := range sortedTxs {
 		if !haveTime() && !haveAdditionalTime() {
 			log.Debug("time is out in createScheduledMiniBlocks")
