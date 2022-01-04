@@ -397,8 +397,13 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 	return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
 }
 
-// GetFromOldEpochsWithoutCache searches the old epochs for the given key without updating the cache
-func (ps *PruningStorer) GetFromOldEpochsWithoutCache(key []byte) ([]byte, error) {
+// GetFromOldEpochsWithoutAddingToCache searches the old epochs for the given key without adding to the cache
+func (ps *PruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte) ([]byte, error) {
+	v, ok := ps.cacher.Get(key)
+	if ok {
+		return v.([]byte), nil
+	}
+
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 
