@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
@@ -27,7 +28,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm-common/atomic"
 )
 
 var _ process.BlockChainHookHandler = (*BlockChainHookImpl)(nil)
@@ -649,7 +649,7 @@ func (bh *BlockChainHookImpl) RevertToSnapshot(snapshot int) error {
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (bh *BlockChainHookImpl) EpochConfirmed(epoch uint32, _ uint64) {
-	bh.flagIsPayableBySC.Toggle(epoch >= bh.isPayableBySCEnableEpoch)
+	bh.flagIsPayableBySC.SetValue(epoch >= bh.isPayableBySCEnableEpoch)
 	log.Debug("blockchainHookImpl is payable by SC", "enabled", bh.flagIsPayableBySC.IsSet())
 }
 
