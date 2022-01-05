@@ -30,10 +30,10 @@ func TestTrieStorageManagerWithoutPruning_TakeSnapshotShouldWork(t *testing.T) {
 	t.Parallel()
 
 	ts, _ := NewTrieStorageManagerWithoutPruning(testscommon.NewMemDbMock())
-	ts.TakeSnapshot([]byte{}, nil, &trie.MockStatistics{})
+	ts.TakeSnapshot([]byte{}, []byte{}, nil, &trie.MockStatistics{})
 
 	chLeaves := make(chan core.KeyValueHolder)
-	ts.TakeSnapshot([]byte("rootHash"), chLeaves, &trie.MockStatistics{})
+	ts.TakeSnapshot([]byte("rootHash"), []byte{}, chLeaves, &trie.MockStatistics{})
 
 	select {
 	case <-chLeaves:
@@ -46,10 +46,10 @@ func TestTrieStorageManagerWithoutPruning_SetCheckpointShouldWork(t *testing.T) 
 	t.Parallel()
 
 	ts, _ := NewTrieStorageManagerWithoutPruning(testscommon.NewMemDbMock())
-	ts.SetCheckpoint([]byte{}, nil, &trie.MockStatistics{})
+	ts.SetCheckpoint([]byte{}, []byte{}, nil, &trie.MockStatistics{})
 
 	chLeaves := make(chan core.KeyValueHolder)
-	ts.SetCheckpoint([]byte("rootHash"), chLeaves, &trie.MockStatistics{})
+	ts.SetCheckpoint([]byte("rootHash"), []byte{}, chLeaves, &trie.MockStatistics{})
 
 	select {
 	case <-chLeaves:

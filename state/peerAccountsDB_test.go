@@ -116,7 +116,7 @@ func TestNewPeerAccountsDB_SnapshotState(t *testing.T) {
 		&trieMock.TrieStub{
 			GetStorageManagerCalled: func() common.StorageManager {
 				return &testscommon.StorageManagerStub{
-					TakeSnapshotCalled: func(_ []byte, _ chan core.KeyValueHolder, _ common.SnapshotStatisticsHandler) {
+					TakeSnapshotCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ common.SnapshotStatisticsHandler) {
 						snapshotCalled = true
 					},
 				}
@@ -143,7 +143,7 @@ func TestNewPeerAccountsDB_SetStateCheckpoint(t *testing.T) {
 		&trieMock.TrieStub{
 			GetStorageManagerCalled: func() common.StorageManager {
 				return &testscommon.StorageManagerStub{
-					SetCheckpointCalled: func(_ []byte, _ chan core.KeyValueHolder, _ common.SnapshotStatisticsHandler) {
+					SetCheckpointCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ common.SnapshotStatisticsHandler) {
 						checkpointCalled = true
 					},
 				}

@@ -259,7 +259,7 @@ func TestAccountsDB_SetStateCheckpointSavesNumCheckpoints(t *testing.T) {
 
 						return nil
 					},
-					SetCheckpointCalled: func(_ []byte, leavesChan chan core.KeyValueHolder, _ common.SnapshotStatisticsHandler) {
+					SetCheckpointCalled: func(_ []byte, _ []byte, leavesChan chan core.KeyValueHolder, _ common.SnapshotStatisticsHandler) {
 						close(leavesChan)
 					},
 					ExitPruningBufferingModeCalled: func() {
@@ -1031,7 +1031,7 @@ func TestAccountsDB_SnapshotState(t *testing.T) {
 	trieStub := &trieMock.TrieStub{
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &testscommon.StorageManagerStub{
-				TakeSnapshotCalled: func(rootHash []byte, _ chan core.KeyValueHolder, _ common.SnapshotStatisticsHandler) {
+				TakeSnapshotCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ common.SnapshotStatisticsHandler) {
 					snapshotMut.Lock()
 					takeSnapshotWasCalled = true
 					snapshotMut.Unlock()
@@ -1087,7 +1087,7 @@ func TestAccountsDB_SetStateCheckpoint(t *testing.T) {
 	trieStub := &trieMock.TrieStub{
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &testscommon.StorageManagerStub{
-				SetCheckpointCalled: func(rootHash []byte, _ chan core.KeyValueHolder, _ common.SnapshotStatisticsHandler) {
+				SetCheckpointCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ common.SnapshotStatisticsHandler) {
 					snapshotMut.Lock()
 					setCheckPointWasCalled = true
 					snapshotMut.Unlock()

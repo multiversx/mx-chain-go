@@ -437,7 +437,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodesGetFromCheckpoint(t *testing.T) {
 	storageManager := tr.GetStorageManager()
 	dirtyHashes := trie.GetDirtyHashes(tr)
 	storageManager.AddDirtyCheckpointHashes(rootHash, dirtyHashes)
-	storageManager.SetCheckpoint(rootHash, nil, &trieMock.MockStatistics{})
+	storageManager.SetCheckpoint(rootHash, []byte{}, nil, &trieMock.MockStatistics{})
 	trie.WaitForOperationToComplete(storageManager)
 
 	err := storageManager.Remove(rootHash)

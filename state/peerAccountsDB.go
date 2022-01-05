@@ -70,7 +70,7 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 
 	trieStorageManager.EnterPruningBufferingMode()
 	stats.NewSnapshotStarted()
-	trieStorageManager.TakeSnapshot(rootHash, nil, stats)
+	trieStorageManager.TakeSnapshot(rootHash, rootHash, nil, stats)
 	trieStorageManager.ExitPruningBufferingMode()
 
 	go func() {
@@ -98,7 +98,7 @@ func (adb *PeerAccountsDB) SetStateCheckpoint(rootHash []byte) {
 
 	trieStorageManager.EnterPruningBufferingMode()
 	stats.NewSnapshotStarted()
-	trieStorageManager.SetCheckpoint(rootHash, nil, stats)
+	trieStorageManager.SetCheckpoint(rootHash, rootHash, nil, stats)
 	trieStorageManager.ExitPruningBufferingMode()
 
 	go printStats(stats, "snapshotState peer trie", rootHash)

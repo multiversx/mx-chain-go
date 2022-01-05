@@ -51,9 +51,10 @@ type trieStorageManager struct {
 }
 
 type snapshotsQueueEntry struct {
-	rootHash   []byte
-	leavesChan chan core.KeyValueHolder
-	stats      common.SnapshotStatisticsHandler
+	rootHash         []byte
+	mainTrieRootHash []byte
+	leavesChan       chan core.KeyValueHolder
+	stats            common.SnapshotStatisticsHandler
 }
 
 // NewTrieStorageManagerArgs holds the arguments needed for creating a new trieStorageManager
@@ -394,7 +395,7 @@ func (tsm *trieStorageManager) ExitPruningBufferingMode() {
 
 // TakeSnapshot creates a new snapshot, or if there is another snapshot or checkpoint in progress,
 // it adds this snapshot in the queue.
-func (tsm *trieStorageManager) TakeSnapshot(rootHash []byte, leavesChan chan core.KeyValueHolder, stats common.SnapshotStatisticsHandler) {
+func (tsm *trieStorageManager) TakeSnapshot(rootHash []byte, mainTrieRootHash []byte, leavesChan chan core.KeyValueHolder, stats common.SnapshotStatisticsHandler) {
 	if tsm.isClosed() {
 		tsm.safelyCloseChan(leavesChan)
 		stats.SnapshotFinished()
@@ -412,9 +413,10 @@ func (tsm *trieStorageManager) TakeSnapshot(rootHash []byte, leavesChan chan cor
 	tsm.checkpointHashesHolder.RemoveCommitted(rootHash)
 
 	snapshotEntry := &snapshotsQueueEntry{
-		rootHash:   rootHash,
-		leavesChan: leavesChan,
-		stats:      stats,
+		rootHash:         rootHash,
+		mainTrieRootHash: mainTrieRootHash,
+		leavesChan:       leavesChan,
+		stats:            stats,
 	}
 	select {
 	case tsm.snapshotReq <- snapshotEntry:
@@ -428,7 +430,7 @@ func (tsm *trieStorageManager) TakeSnapshot(rootHash []byte, leavesChan chan cor
 // SetCheckpoint creates a new checkpoint, or if there is another snapshot or checkpoint in progress,
 // it adds this checkpoint in the queue. The checkpoint operation creates a new snapshot file
 // only if there was no snapshot done prior to this
-func (tsm *trieStorageManager) SetCheckpoint(rootHash []byte, leavesChan chan core.KeyValueHolder, stats common.SnapshotStatisticsHandler) {
+func (tsm *trieStorageManager) SetCheckpoint(rootHash []byte, mainTrieRootHash []byte, leavesChan chan core.KeyValueHolder, stats common.SnapshotStatisticsHandler) {
 	if tsm.isClosed() {
 		tsm.safelyCloseChan(leavesChan)
 		stats.SnapshotFinished()
@@ -445,9 +447,10 @@ func (tsm *trieStorageManager) SetCheckpoint(rootHash []byte, leavesChan chan co
 	tsm.EnterPruningBufferingMode()
 
 	checkpointEntry := &snapshotsQueueEntry{
-		rootHash:   rootHash,
-		leavesChan: leavesChan,
-		stats:      stats,
+		rootHash:         rootHash,
+		mainTrieRootHash: mainTrieRootHash,
+		leavesChan:       leavesChan,
+		stats:            stats,
 	}
 	select {
 	case tsm.checkpointReq <- checkpointEntry:
@@ -480,18 +483,24 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 	log.Trace("trie snapshot started", "rootHash", snapshotEntry.rootHash)
 
 	newRoot, err := newSnapshotNode(tsm, msh, hsh, snapshotEntry.rootHash)
-	if err == ErrContextClosing {
+	if isClosingError(err) {
 		log.Debug("context closing when creating a new snapshot node")
 		return
 	}
 	if err != nil {
-		log.Error("takeSnapshot: trie storage manager: newSnapshotTrie", "rootHash", snapshotEntry.rootHash, "error", err.Error())
+		log.Error("takeSnapshot: trie storage manager: newSnapshotTrie",
+			"rootHash", snapshotEntry.rootHash,
+			"main trie rootHash", snapshotEntry.mainTrieRootHash,
+			"error", err.Error())
 		return
 	}
 
 	stsm, err := newSnapshotTrieStorageManager(tsm)
 	if err != nil {
-		log.Error("takeSnapshot: trie storage manager: newSnapshotTrieStorageManager", "rootHash", snapshotEntry.rootHash, "err", err.Error())
+		log.Error("takeSnapshot: trie storage manager: newSnapshotTrieStorageManager",
+			"rootHash", snapshotEntry.rootHash,
+			"main trie rootHash", snapshotEntry.mainTrieRootHash,
+			"err", err.Error())
 		return
 	}
 
@@ -501,7 +510,10 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 		return
 	}
 	if err != nil {
-		log.Error("trie storage manager: takeSnapshot commit", "rootHash", snapshotEntry.rootHash, "error", err.Error())
+		log.Error("trie storage manager: takeSnapshot commit",
+			"rootHash", snapshotEntry.rootHash,
+			"main trie rootHash", snapshotEntry.mainTrieRootHash,
+			"error", err.Error())
 	}
 }
 
@@ -514,18 +526,28 @@ func (tsm *trieStorageManager) takeCheckpoint(checkpointEntry *snapshotsQueueEnt
 	log.Trace("trie checkpoint started", "rootHash", checkpointEntry.rootHash)
 
 	newRoot, err := newSnapshotNode(tsm, msh, hsh, checkpointEntry.rootHash)
+	if isClosingError(err) {
+		log.Debug("context closing when creating a new snapshot node")
+		return
+	}
 	if err != nil {
-		log.Error("takeCheckpoint: trie storage manager: newSnapshotTrie", "rootHash", checkpointEntry.rootHash, "error", err.Error())
+		log.Error("takeCheckpoint: trie storage manager: newSnapshotTrie",
+			"rootHash", checkpointEntry.rootHash,
+			"main trie rootHash", checkpointEntry.mainTrieRootHash,
+			"error", err.Error())
 		return
 	}
 
 	err = newRoot.commitCheckpoint(tsm, tsm.checkpointsStorer, tsm.checkpointHashesHolder, checkpointEntry.leavesChan, ctx, checkpointEntry.stats)
-	if err == ErrContextClosing {
+	if isClosingError(err) {
 		log.Debug("context closing while in commitCheckpoint operation")
 		return
 	}
 	if err != nil {
-		log.Error("trie storage manager: takeCheckpoint commit", "rootHash", checkpointEntry.rootHash, "error", err.Error())
+		log.Error("trie storage manager: takeCheckpoint commit",
+			"rootHash", checkpointEntry.rootHash,
+			"main trie rootHash", checkpointEntry.mainTrieRootHash,
+			"error", err.Error())
 	}
 }
 

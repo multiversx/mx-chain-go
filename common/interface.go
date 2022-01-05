@@ -42,8 +42,8 @@ type Trie interface {
 type StorageManager interface {
 	Get(key []byte) ([]byte, error)
 	Put(key []byte, val []byte) error
-	TakeSnapshot([]byte, chan core.KeyValueHolder, SnapshotStatisticsHandler)
-	SetCheckpoint([]byte, chan core.KeyValueHolder, SnapshotStatisticsHandler)
+	TakeSnapshot([]byte, []byte, chan core.KeyValueHolder, SnapshotStatisticsHandler)
+	SetCheckpoint([]byte, []byte, chan core.KeyValueHolder, SnapshotStatisticsHandler)
 	IsPruningEnabled() bool
 	IsPruningBlocked() bool
 	EnterPruningBufferingMode()

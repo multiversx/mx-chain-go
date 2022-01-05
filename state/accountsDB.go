@@ -1036,8 +1036,8 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 	go func() {
 		leavesChannel := make(chan core.KeyValueHolder, leavesChannelSize)
 		stats.NewSnapshotStarted()
-		trieStorageManager.TakeSnapshot(rootHash, leavesChannel, stats)
-		adb.snapshotUserAccountDataTrie(true, leavesChannel, stats)
+		trieStorageManager.TakeSnapshot(rootHash, rootHash, leavesChannel, stats)
+		adb.snapshotUserAccountDataTrie(true, rootHash, leavesChannel, stats)
 		trieStorageManager.ExitPruningBufferingMode()
 
 		adb.increaseNumCheckpoints()
@@ -1074,7 +1074,7 @@ func printStats(stats *snapshotStatistics, identifier string, rootHash []byte) {
 	)
 }
 
-func (adb *AccountsDB) snapshotUserAccountDataTrie(isSnapshot bool, leavesChannel chan core.KeyValueHolder, stats common.SnapshotStatisticsHandler) {
+func (adb *AccountsDB) snapshotUserAccountDataTrie(isSnapshot bool, mainTrieRootHash []byte, leavesChannel chan core.KeyValueHolder, stats common.SnapshotStatisticsHandler) {
 	for leaf := range leavesChannel {
 		account := &userAccount{}
 		err := adb.marshalizer.Unmarshal(account, leaf.Value())
@@ -1091,11 +1091,11 @@ func (adb *AccountsDB) snapshotUserAccountDataTrie(isSnapshot bool, leavesChanne
 		stats.NewDataTrie()
 
 		if isSnapshot {
-			adb.mainTrie.GetStorageManager().TakeSnapshot(account.RootHash, nil, stats)
+			adb.mainTrie.GetStorageManager().TakeSnapshot(account.RootHash, mainTrieRootHash, nil, stats)
 			continue
 		}
 
-		adb.mainTrie.GetStorageManager().SetCheckpoint(account.RootHash, nil, stats)
+		adb.mainTrie.GetStorageManager().SetCheckpoint(account.RootHash, mainTrieRootHash, nil, stats)
 	}
 }
 
@@ -1116,8 +1116,8 @@ func (adb *AccountsDB) setStateCheckpoint(rootHash []byte) {
 	go func() {
 		leavesChannel := make(chan core.KeyValueHolder, leavesChannelSize)
 		stats.NewSnapshotStarted()
-		trieStorageManager.SetCheckpoint(rootHash, leavesChannel, stats)
-		adb.snapshotUserAccountDataTrie(false, leavesChannel, stats)
+		trieStorageManager.SetCheckpoint(rootHash, rootHash, leavesChannel, stats)
+		adb.snapshotUserAccountDataTrie(false, rootHash, leavesChannel, stats)
 		trieStorageManager.ExitPruningBufferingMode()
 
 		adb.increaseNumCheckpoints()

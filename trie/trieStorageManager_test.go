@@ -186,7 +186,7 @@ func TestTrieCheckpoint(t *testing.T) {
 	dirtyHashes := trie.GetDirtyHashes(tr)
 
 	trieStorage.AddDirtyCheckpointHashes(rootHash, dirtyHashes)
-	trieStorage.SetCheckpoint(rootHash, nil, &trieMock.MockStatistics{})
+	trieStorage.SetCheckpoint(rootHash, []byte{}, nil, &trieMock.MockStatistics{})
 	trie.WaitForOperationToComplete(trieStorage)
 
 	val, err = trieStorage.GetFromCheckpoint(rootHash)
@@ -204,7 +204,7 @@ func TestTrieCheckpoint_DoesNotSaveToCheckpointStorageIfNotDirty(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Nil(t, val)
 
-	trieStorage.SetCheckpoint(rootHash, nil, &trieMock.MockStatistics{})
+	trieStorage.SetCheckpoint(rootHash, []byte{}, nil, &trieMock.MockStatistics{})
 	trie.WaitForOperationToComplete(trieStorage)
 
 	val, err = trieStorage.GetFromCheckpoint(rootHash)
