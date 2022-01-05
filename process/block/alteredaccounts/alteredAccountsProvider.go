@@ -19,6 +19,16 @@ var (
 	zeroBigInt = big.NewInt(0)
 )
 
+type markedAlteredAccountToken struct {
+	identifier string
+	nonce      uint64
+}
+
+type markedAlteredAccount struct {
+	address string
+	tokens  []*markedAlteredAccountToken
+}
+
 // ArgsAlteredAccountsProvider
 type ArgsAlteredAccountsProvider struct {
 	ShardCoordinator sharding.Coordinator
@@ -76,43 +86,36 @@ func NewAlteredAccountsProvider(args ArgsAlteredAccountsProvider) (*alteredAccou
 
 // ExtractAlteredAccountsFromPool will extract and return altered accounts from the pool
 func (aap *alteredAccountsProvider) ExtractAlteredAccountsFromPool(txPool *indexer.Pool) (map[string]*indexer.AlteredAccount, error) {
-	alteredAccountsInSelfShard := make(map[string]*indexer.AlteredAccount, 0)
+	// TODO: treat errors - return them instead of log warns
+	markedAccounts := make(map[string]*markedAlteredAccount)
+	aap.extractMoveBalanceAddresses(txPool, markedAccounts)
+	aap.extractESDTAccounts(txPool, markedAccounts)
 
-	// TODO: analyze if it's better to mark all the altered accounts and read the balance/esdt data only at the end
-	// this way, it wouldn't matter if the transactions or logs are processed in order
-
-	aap.extractMoveBalanceAddresses(txPool, alteredAccountsInSelfShard)
-	aap.extractESDTAccounts(txPool, alteredAccountsInSelfShard)
-
-	return alteredAccountsInSelfShard, nil
+	alteredAccounts := aap.fetchDataForMarkedAccounts(markedAccounts)
+	return alteredAccounts, nil
 }
 
-func (aap *alteredAccountsProvider) extractMoveBalanceAddresses(txPool *indexer.Pool, alteredAccountsInSelfShard map[string]*indexer.AlteredAccount) {
-	selfShardID := aap.shardCoordinator.SelfId()
-	for _, regularTx := range txPool.Txs {
-		senderShardID := aap.shardCoordinator.ComputeId(regularTx.GetSndAddr())
-		receiverShardID := aap.shardCoordinator.ComputeId(regularTx.GetRcvAddr())
-		if senderShardID != selfShardID && receiverShardID != selfShardID {
-			continue
-		}
-
-		if senderShardID == selfShardID {
-			aap.addMoveBalanceAddressInMap(regularTx.GetSndAddr(), alteredAccountsInSelfShard)
-		}
-		if receiverShardID == selfShardID {
-			aap.addMoveBalanceAddressInMap(regularTx.GetRcvAddr(), alteredAccountsInSelfShard)
-		}
+func (aap *alteredAccountsProvider) fetchDataForMarkedAccounts(markedAccounts map[string]*markedAlteredAccount) map[string]*indexer.AlteredAccount {
+	alteredAccounts := make(map[string]*indexer.AlteredAccount)
+	for address, markedAccount := range markedAccounts {
+		aap.processMarkedAccountData(address, markedAccount.tokens, alteredAccounts)
 	}
+
+	return alteredAccounts
 }
 
-func (aap *alteredAccountsProvider) addMoveBalanceAddressInMap(address []byte, alteredAccountsInSelfShard map[string]*indexer.AlteredAccount) {
-	encodedAddress := aap.addressConverter.Encode(address)
-	_, addressAlreadySelected := alteredAccountsInSelfShard[encodedAddress]
-	if addressAlreadySelected {
+func (aap *alteredAccountsProvider) processMarkedAccountData(
+	encodedAddress string,
+	markedAccountTokens []*markedAlteredAccountToken,
+	alteredAccounts map[string]*indexer.AlteredAccount,
+) {
+	addressBytes, err := aap.addressConverter.Decode(encodedAddress)
+	if err != nil {
+		log.Warn("cannot decode marked altered account address", "error", err)
 		return
 	}
 
-	account, err := aap.accountsDB.LoadAccount(address)
+	account, err := aap.accountsDB.LoadAccount(addressBytes)
 	if err != nil {
 		log.Warn("cannot load account when computing altered accounts",
 			"address", encodedAddress,
@@ -126,61 +129,43 @@ func (aap *alteredAccountsProvider) addMoveBalanceAddressInMap(address []byte, a
 		return
 	}
 
-	alteredAccountsInSelfShard[encodedAddress] = &indexer.AlteredAccount{
+	alteredAccounts[encodedAddress] = &indexer.AlteredAccount{
 		Address: encodedAddress,
 		Balance: userAccount.GetBalance().String(),
 		Nonce:   userAccount.GetNonce(),
 	}
-}
 
-func (aap *alteredAccountsProvider) extractESDTAccounts(txPool *indexer.Pool, alteredAccountsInSelfShard map[string]*indexer.AlteredAccount) {
-	for _, txLog := range txPool.Logs {
-		for _, event := range txLog.LogHandler.GetLogEvents() {
-			aap.processEvent(event, alteredAccountsInSelfShard)
+	if len(markedAccountTokens) > 0 {
+		for _, tokenData := range markedAccountTokens {
+			err = aap.fetchTokensDataForMarkedAccount(encodedAddress, tokenData, alteredAccounts)
+			if err != nil {
+				log.Warn("cannot fetch token data for marked account", "error", err)
+				continue
+			}
 		}
 	}
 }
 
-func (aap *alteredAccountsProvider) processEvent(event data.EventHandler, alteredAccountsInSelfShard map[string]*indexer.AlteredAccount) {
-	_, isEsdtOperation := aap.fungibleTokensIdentifier[string(event.GetIdentifier())]
-	if isEsdtOperation {
-		err := aap.extractEsdtData(event, zeroBigInt, alteredAccountsInSelfShard)
-		if err != nil {
-			log.Debug("cannot extract esdt data", "error", err)
-			return
-		}
-	}
+func (aap *alteredAccountsProvider) fetchTokensDataForMarkedAccount(
+	encodedAddress string,
+	markedAccountToken *markedAlteredAccountToken,
+	alteredAccounts map[string]*indexer.AlteredAccount,
+) error {
+	nonce := markedAccountToken.nonce
+	nonceBigInt := big.NewInt(0).SetUint64(nonce)
 
-	_, isNftOperation := aap.nonFungibleTokensIdentifier[string(event.GetIdentifier())]
-	if isNftOperation {
-		topics := event.GetTopics()
-		if len(topics) == 0 {
-			return
-		}
-
-		nonce := topics[1]
-		nonceBigInt := big.NewInt(0).SetBytes(nonce)
-		err := aap.extractEsdtData(event, nonceBigInt, alteredAccountsInSelfShard)
-		if err != nil {
-			log.Debug("cannot extract nft data", "error", err)
-			return
-		}
-	}
-}
-
-func (aap *alteredAccountsProvider) extractEsdtData(event data.EventHandler, nonce *big.Int, alteredAccountsInSelfShard map[string]*indexer.AlteredAccount) error {
-	address := event.GetAddress()
-	topics := event.GetTopics()
-	if len(topics) == 0 {
-		return nil
-	}
-
-	tokenID := topics[0]
+	tokenID := markedAccountToken.identifier
 
 	storageKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier)
-	storageKey = append(storageKey, tokenID...)
-	if nonce.Uint64() > 0 {
-		storageKey = append(storageKey, nonce.Bytes()...)
+	storageKey = append(storageKey, []byte(tokenID)...)
+	if nonce > 0 {
+		storageKey = append(storageKey, nonceBigInt.Bytes()...)
+	}
+
+	address, err := aap.addressConverter.Decode(encodedAddress)
+	if err != nil {
+		log.Warn("cannot decode encoded address", "error", err)
+		return err
 	}
 
 	account, err := aap.accountsDB.LoadAccount(address)
@@ -204,40 +189,132 @@ func (aap *alteredAccountsProvider) extractEsdtData(event data.EventHandler, non
 		return err
 	}
 
-	encodedAddress := aap.addressConverter.Encode(address)
-	aap.addTokenDataToAccount(encodedAddress, userAccount, esdtToken, string(tokenID), nonce.Uint64(), alteredAccountsInSelfShard)
+	alteredAccount := alteredAccounts[encodedAddress]
+
+	if alteredAccount.Tokens == nil {
+		alteredAccount.Tokens = make([]*indexer.AccountTokenData, 0)
+	}
+
+	alteredAccount.Tokens = append(alteredAccount.Tokens, &indexer.AccountTokenData{
+		Identifier: tokenID,
+		Balance:    esdtToken.Value.String(),
+		Nonce:      nonce,
+		MetaData:   esdtToken.TokenMetaData,
+	})
+
+	alteredAccounts[encodedAddress] = alteredAccount
 
 	return nil
 }
 
-func (aap *alteredAccountsProvider) addTokenDataToAccount(
-	address string,
-	accountHandler state.UserAccountHandler,
-	esdtToken esdt.ESDigitalToken,
-	tokenID string,
-	nonce uint64,
-	alteredAccountsInSelfShard map[string]*indexer.AlteredAccount) {
-	alteredAccount, exists := alteredAccountsInSelfShard[address]
-	if !exists {
-		alteredAccount = &indexer.AlteredAccount{
-			Address: address,
-			Balance: accountHandler.GetBalance().String(),
-			Nonce:   accountHandler.GetNonce(),
+func (aap *alteredAccountsProvider) extractMoveBalanceAddresses(
+	txPool *indexer.Pool,
+	markedAlteredAccounts map[string]*markedAlteredAccount,
+) {
+	selfShardID := aap.shardCoordinator.SelfId()
+	for _, regularTx := range txPool.Txs {
+		senderShardID := aap.shardCoordinator.ComputeId(regularTx.GetSndAddr())
+		receiverShardID := aap.shardCoordinator.ComputeId(regularTx.GetRcvAddr())
+		if senderShardID != selfShardID && receiverShardID != selfShardID {
+			continue
+		}
+
+		if senderShardID == selfShardID {
+			aap.addMoveBalanceAddressInMap(regularTx.GetSndAddr(), markedAlteredAccounts)
+		}
+		if receiverShardID == selfShardID {
+			aap.addMoveBalanceAddressInMap(regularTx.GetRcvAddr(), markedAlteredAccounts)
+		}
+	}
+}
+
+func (aap *alteredAccountsProvider) addMoveBalanceAddressInMap(
+	address []byte,
+	markedAlteredAccounts map[string]*markedAlteredAccount,
+) {
+	encodedAddress := aap.addressConverter.Encode(address)
+	_, addressAlreadySelected := markedAlteredAccounts[encodedAddress]
+	if addressAlreadySelected {
+		return
+	}
+
+	markedAlteredAccounts[encodedAddress] = &markedAlteredAccount{}
+}
+
+func (aap *alteredAccountsProvider) extractESDTAccounts(
+	txPool *indexer.Pool,
+	markedAlteredAccounts map[string]*markedAlteredAccount,
+) {
+	for _, txLog := range txPool.Logs {
+		for _, event := range txLog.LogHandler.GetLogEvents() {
+			aap.processEvent(event, markedAlteredAccounts)
+		}
+	}
+}
+
+func (aap *alteredAccountsProvider) processEvent(
+	event data.EventHandler,
+	markedAlteredAccounts map[string]*markedAlteredAccount,
+) {
+	_, isEsdtOperation := aap.fungibleTokensIdentifier[string(event.GetIdentifier())]
+	if isEsdtOperation {
+		err := aap.extractEsdtData(event, zeroBigInt, markedAlteredAccounts)
+		if err != nil {
+			log.Debug("cannot extract esdt data", "error", err)
+			return
 		}
 	}
 
-	tokenData := indexer.AccountTokenData{}
-	tokenData.Balance = esdtToken.Value.String()
-	tokenData.Identifier = tokenID
-	tokenData.Nonce = nonce
-	tokenData.MetaData = esdtToken.TokenMetaData
+	_, isNftOperation := aap.nonFungibleTokensIdentifier[string(event.GetIdentifier())]
+	if isNftOperation {
+		topics := event.GetTopics()
+		if len(topics) == 0 {
+			return
+		}
 
-	if len(alteredAccount.Tokens) == 0 {
-		alteredAccount.Tokens = make([]*indexer.AccountTokenData, 0)
+		nonce := topics[1]
+		nonceBigInt := big.NewInt(0).SetBytes(nonce)
+		err := aap.extractEsdtData(event, nonceBigInt, markedAlteredAccounts)
+		if err != nil {
+			log.Debug("cannot extract nft data", "error", err)
+			return
+		}
 	}
-	alteredAccount.Tokens = append(alteredAccount.Tokens, &tokenData)
+}
 
-	alteredAccountsInSelfShard[address] = alteredAccount
+func (aap *alteredAccountsProvider) extractEsdtData(
+	event data.EventHandler,
+	nonce *big.Int,
+	markedAlteredAccounts map[string]*markedAlteredAccount,
+) error {
+
+	// TODO: check if the same token exists already in marked accounts - don't add twice
+
+	address := event.GetAddress()
+	topics := event.GetTopics()
+	if len(topics) == 0 {
+		return nil
+	}
+
+	tokenID := topics[0]
+
+	encodedAddress := aap.addressConverter.Encode(address)
+	_, exists := markedAlteredAccounts[encodedAddress]
+	if !exists {
+		markedAlteredAccounts[encodedAddress] = &markedAlteredAccount{}
+	}
+
+	markedAccount := markedAlteredAccounts[encodedAddress]
+	if len(markedAccount.tokens) == 0 {
+		markedAccount.tokens = make([]*markedAlteredAccountToken, 0)
+	}
+
+	markedAccount.tokens = append(markedAccount.tokens, &markedAlteredAccountToken{
+		identifier: string(tokenID),
+		nonce:      nonce.Uint64(),
+	})
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
