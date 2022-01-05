@@ -117,6 +117,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		processDataTriesOnCommitEpoch: arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
 		gasConsumedProvider:           arguments.GasHandler,
 		economicsData:                 arguments.CoreComponents.EconomicsData(),
+		alteredAccountsProvider:       arguments.AlteredAccountsProvider,
 	}
 
 	mp := metaProcessor{
@@ -617,6 +618,11 @@ func (mp *metaProcessor) indexBlock(
 	gasRefundedInHeader := mp.baseProcessor.gasConsumedProvider.TotalGasRefunded()
 	maxGasInHeader := mp.baseProcessor.economicsData.MaxGasLimitPerBlock(mp.shardCoordinator.SelfId())
 
+	alteredAccounts, err := mp.baseProcessor.alteredAccountsProvider.ExtractAlteredAccountsFromPool(pool)
+	if err != nil {
+		log.Warn("cannot get altered accounts", "error", err)
+	}
+
 	args := &indexer.ArgsSaveBlockData{
 		HeaderHash:     headerHash,
 		Body:           body,
@@ -630,6 +636,7 @@ func (mp *metaProcessor) indexBlock(
 		},
 		NotarizedHeadersHashes: notarizedHeadersHashes,
 		TransactionsPool:       pool,
+		AlteredAccounts:        alteredAccounts,
 	}
 	mp.outportHandler.SaveBlock(args)
 	log.Debug("indexed block", "hash", headerHash, "nonce", metaBlock.GetNonce(), "round", metaBlock.GetRound())

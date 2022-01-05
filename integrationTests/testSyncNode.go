@@ -218,6 +218,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		EpochNotifier:      tpn.EpochNotifier,
 		RoundNotifier:      coreComponents.RoundNotifier(),
 		GasHandler:         tpn.GasHandler,
+		AlteredAccountsProvider: &testscommon.AlteredAccountsProviderStub{},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {

@@ -87,6 +87,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		processDataTriesOnCommitEpoch: arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
 		gasConsumedProvider:           arguments.GasHandler,
 		economicsData:                 arguments.CoreComponents.EconomicsData(),
+		alteredAccountsProvider:       arguments.AlteredAccountsProvider,
 	}
 
 	sp := shardProcessor{
@@ -603,6 +604,12 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 	gasRefundedInHeader := sp.baseProcessor.gasConsumedProvider.TotalGasRefunded()
 	maxGasInHeader := sp.baseProcessor.economicsData.MaxGasLimitPerBlock(sp.shardCoordinator.SelfId())
 
+	alteredAccounts, err := sp.baseProcessor.alteredAccountsProvider.ExtractAlteredAccountsFromPool(pool)
+	if err != nil {
+		log.Warn("cannot get altered accounts", "error", err)
+		return
+	}
+
 	args := &indexer.ArgsSaveBlockData{
 		HeaderHash:     headerHash,
 		Body:           body,
@@ -616,6 +623,7 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		},
 		NotarizedHeadersHashes: nil,
 		TransactionsPool:       pool,
+		AlteredAccounts:        alteredAccounts,
 	}
 
 	sp.outportHandler.SaveBlock(args)

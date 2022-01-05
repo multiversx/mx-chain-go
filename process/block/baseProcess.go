@@ -77,14 +77,15 @@ type baseProcessor struct {
 	blockProcessor         blockProcessor
 	txCounter              *transactionCounter
 
-	outportHandler      outport.OutportHandler
-	historyRepo         dblookupext.HistoryRepository
-	epochNotifier       process.EpochNotifier
-	roundNotifier       process.RoundNotifier
-	vmContainerFactory  process.VirtualMachinesContainerFactory
-	vmContainer         process.VirtualMachinesContainer
-	gasConsumedProvider gasConsumedProvider
-	economicsData       process.EconomicsDataHandler
+	outportHandler          outport.OutportHandler
+	alteredAccountsProvider process.AlteredAccountsProviderHandler
+	historyRepo             dblookupext.HistoryRepository
+	epochNotifier           process.EpochNotifier
+	roundNotifier           process.RoundNotifier
+	vmContainerFactory      process.VirtualMachinesContainerFactory
+	vmContainer             process.VirtualMachinesContainer
+	gasConsumedProvider     gasConsumedProvider
+	economicsData           process.EconomicsDataHandler
 
 	processDataTriesOnCommitEpoch bool
 }
@@ -444,6 +445,9 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.CoreComponents.EconomicsData()) {
 		return process.ErrNilEconomicsData
+	}
+	if check.IfNil(arguments.AlteredAccountsProvider) {
+		return process.ErrNilAlteredAccountsProvider
 	}
 
 	return nil

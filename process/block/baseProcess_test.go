@@ -364,6 +364,7 @@ func CreateMockArguments(
 			EpochNotifier:      &mock.EpochNotifierStub{},
 			RoundNotifier:      &mock.RoundNotifierStub{},
 			GasHandler:         &mock.GasHandlerMock{},
+			AlteredAccountsProvider: &testscommon.AlteredAccountsProviderStub{},
 		},
 	}
 

@@ -53,26 +53,27 @@ type ArgBaseProcessor struct {
 	BootstrapComponents bootstrapComponentsHolder
 	StatusComponents    statusComponentsHolder
 
-	Config              config.Config
-	AccountsDB          map[state.AccountsDbIdentifier]state.AccountsAdapter
-	ForkDetector        process.ForkDetector
-	NodesCoordinator    sharding.NodesCoordinator
-	FeeHandler          process.TransactionFeeHandler
-	RequestHandler      process.RequestHandler
-	BlockChainHook      process.BlockChainHookHandler
-	TxCoordinator       process.TransactionCoordinator
-	EpochStartTrigger   process.EpochStartTriggerHandler
-	HeaderValidator     process.HeaderConstructionValidator
-	BootStorer          process.BootStorer
-	BlockTracker        process.BlockTracker
-	BlockSizeThrottler  process.BlockSizeThrottler
-	Version             string
-	HistoryRepository   dblookupext.HistoryRepository
-	EpochNotifier       process.EpochNotifier
-	RoundNotifier       process.RoundNotifier
-	VMContainersFactory process.VirtualMachinesContainerFactory
-	VmContainer         process.VirtualMachinesContainer
-	GasHandler          gasConsumedProvider
+	Config                  config.Config
+	AccountsDB              map[state.AccountsDbIdentifier]state.AccountsAdapter
+	ForkDetector            process.ForkDetector
+	NodesCoordinator        sharding.NodesCoordinator
+	FeeHandler              process.TransactionFeeHandler
+	RequestHandler          process.RequestHandler
+	BlockChainHook          process.BlockChainHookHandler
+	TxCoordinator           process.TransactionCoordinator
+	EpochStartTrigger       process.EpochStartTriggerHandler
+	HeaderValidator         process.HeaderConstructionValidator
+	BootStorer              process.BootStorer
+	BlockTracker            process.BlockTracker
+	BlockSizeThrottler      process.BlockSizeThrottler
+	Version                 string
+	HistoryRepository       dblookupext.HistoryRepository
+	EpochNotifier           process.EpochNotifier
+	RoundNotifier           process.RoundNotifier
+	VMContainersFactory     process.VirtualMachinesContainerFactory
+	VmContainer             process.VirtualMachinesContainer
+	GasHandler              gasConsumedProvider
+	AlteredAccountsProvider process.AlteredAccountsProviderHandler
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create
