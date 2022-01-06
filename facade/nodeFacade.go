@@ -383,33 +383,33 @@ func (nf *nodeFacade) GetBlockByRound(round uint64, withTxs bool) (*apiData.Bloc
 }
 
 // GetRawMetaBlockByHash return the meta block for a given hash
-func (nf *nodeFacade) GetRawMetaBlockByHash(hash string, withTxs bool) ([]byte, error) {
-	return nf.node.GetRawMetaBlockByHash(hash, withTxs)
+func (nf *nodeFacade) GetRawMetaBlockByHash(hash string, asJson bool) ([]byte, error) {
+	return nf.node.GetRawMetaBlockByHash(hash, asJson)
 }
 
 // GetRawMetaBlockByNonce returns the meta block for a given nonce
-func (nf *nodeFacade) GetRawMetaBlockByNonce(nonce uint64, withTxs bool) ([]byte, error) {
-	return nf.node.GetRawMetaBlockByNonce(nonce, withTxs)
+func (nf *nodeFacade) GetRawMetaBlockByNonce(nonce uint64, asJson bool) ([]byte, error) {
+	return nf.node.GetRawMetaBlockByNonce(nonce, asJson)
 }
 
 // GetRawMetaBlockByRound returns the meta block for a given round
-func (nf *nodeFacade) GetRawMetaBlockByRound(round uint64, withTxs bool) ([]byte, error) {
-	return nf.node.GetRawMetaBlockByRound(round, withTxs)
+func (nf *nodeFacade) GetRawMetaBlockByRound(round uint64, asJson bool) ([]byte, error) {
+	return nf.node.GetRawMetaBlockByRound(round, asJson)
 }
 
 // GetRawShardBlockByHash return the shard block for a given hash
-func (nf *nodeFacade) GetRawShardBlockByHash(hash string, withTxs bool) ([]byte, error) {
-	return nf.node.GetRawShardBlockByHash(hash, withTxs)
+func (nf *nodeFacade) GetRawShardBlockByHash(hash string, asJson bool) ([]byte, error) {
+	return nf.node.GetRawShardBlockByHash(hash, asJson)
 }
 
 // GetRawShardBlockByNonce returns the shard block for a given nonce
-func (nf *nodeFacade) GetRawShardBlockByNonce(nonce uint64, withTxs bool) ([]byte, error) {
-	return nf.node.GetRawShardBlockByNonce(nonce, withTxs)
+func (nf *nodeFacade) GetRawShardBlockByNonce(nonce uint64, asJson bool) ([]byte, error) {
+	return nf.node.GetRawShardBlockByNonce(nonce, asJson)
 }
 
 // GetRawShardBlockByRound returns the shard block for a given round
-func (nf *nodeFacade) GetRawShardBlockByRound(round uint64, withTxs bool) ([]byte, error) {
-	return nf.node.GetRawShardBlockByRound(round, withTxs)
+func (nf *nodeFacade) GetRawShardBlockByRound(round uint64, asJson bool) ([]byte, error) {
+	return nf.node.GetRawShardBlockByRound(round, asJson)
 }
 
 // GetMiniBlock return the miniblock for a given hash

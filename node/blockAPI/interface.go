@@ -12,7 +12,7 @@ type APIBlockHandler interface {
 }
 
 type APIRawBlockHandler interface {
-	GetRawBlockByNonce(nonce uint64, withTxs bool) ([]byte, error)
-	GetRawBlockByHash(hash []byte, withTxs bool) ([]byte, error)
-	GetRawBlockByRound(round uint64, withTxs bool) ([]byte, error)
+	GetRawBlockByNonce(nonce uint64, asJson bool) ([]byte, error)
+	GetRawBlockByHash(hash []byte, asJson bool) ([]byte, error)
+	GetRawBlockByRound(round uint64, asJson bool) ([]byte, error)
 }

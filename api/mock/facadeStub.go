@@ -54,12 +54,12 @@ type FacadeStub struct {
 	GetBlockByHashCalled                    func(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonceCalled                   func(nonce uint64, withTxs bool) (*api.Block, error)
 	GetBlockByRoundCalled                   func(round uint64, withTxs bool) (*api.Block, error)
-	GetRawMetaBlockByHashCalled             func(hash string, withTxs bool) ([]byte, error)
-	GetRawMetaBlockByNonceCalled            func(nonce uint64, withTxs bool) ([]byte, error)
-	GetRawMetaBlockByRoundCalled            func(round uint64, withTxs bool) ([]byte, error)
-	GetRawShardBlockByHashCalled            func(hash string, withTxs bool) ([]byte, error)
-	GetRawShardBlockByNonceCalled           func(nonce uint64, withTxs bool) ([]byte, error)
-	GetRawShardBlockByRoundCalled           func(round uint64, withTxs bool) ([]byte, error)
+	GetRawMetaBlockByHashCalled             func(hash string, asJson bool) ([]byte, error)
+	GetRawMetaBlockByNonceCalled            func(nonce uint64, asJson bool) ([]byte, error)
+	GetRawMetaBlockByRoundCalled            func(round uint64, asJson bool) ([]byte, error)
+	GetRawShardBlockByHashCalled            func(hash string, asJson bool) ([]byte, error)
+	GetRawShardBlockByNonceCalled           func(nonce uint64, asJson bool) ([]byte, error)
+	GetRawShardBlockByRoundCalled           func(round uint64, asJson bool) ([]byte, error)
 	GetRawMiniBlockByHashCalled             func(hash string) ([]byte, error)
 	GetTotalStakedValueHandler              func() (*api.StakeValues, error)
 	GetAllIssuedESDTsCalled                 func(tokenType string) ([]string, error)
@@ -378,37 +378,37 @@ func (f *FacadeStub) GetBlockByRound(round uint64, withTxs bool) (*api.Block, er
 }
 
 // GetRawMetaBlockByNonce -
-func (f *FacadeStub) GetRawMetaBlockByNonce(nonce uint64, withTxs bool) ([]byte, error) {
-	return f.GetRawMetaBlockByNonceCalled(nonce, withTxs)
+func (f *FacadeStub) GetRawMetaBlockByNonce(nonce uint64, asJson bool) ([]byte, error) {
+	return f.GetRawMetaBlockByNonceCalled(nonce, asJson)
 }
 
 // GetRawMetaBlockByHash -
-func (f *FacadeStub) GetRawMetaBlockByHash(hash string, withTxs bool) ([]byte, error) {
-	return f.GetRawMetaBlockByHashCalled(hash, withTxs)
+func (f *FacadeStub) GetRawMetaBlockByHash(hash string, asJson bool) ([]byte, error) {
+	return f.GetRawMetaBlockByHashCalled(hash, asJson)
 }
 
 // GetRawMetaBlockByRound -
-func (f *FacadeStub) GetRawMetaBlockByRound(round uint64, withTxs bool) ([]byte, error) {
+func (f *FacadeStub) GetRawMetaBlockByRound(round uint64, asJson bool) ([]byte, error) {
 	if f.GetRawMetaBlockByRoundCalled != nil {
-		return f.GetRawMetaBlockByRoundCalled(round, withTxs)
+		return f.GetRawMetaBlockByRoundCalled(round, asJson)
 	}
 	return nil, nil
 }
 
 // GetRawShardBlockByNonce -
-func (f *FacadeStub) GetRawShardBlockByNonce(nonce uint64, withTxs bool) ([]byte, error) {
-	return f.GetRawShardBlockByNonceCalled(nonce, withTxs)
+func (f *FacadeStub) GetRawShardBlockByNonce(nonce uint64, asJson bool) ([]byte, error) {
+	return f.GetRawShardBlockByNonceCalled(nonce, asJson)
 }
 
 // GetRawShardBlockByHash -
-func (f *FacadeStub) GetRawShardBlockByHash(hash string, withTxs bool) ([]byte, error) {
-	return f.GetRawShardBlockByHashCalled(hash, withTxs)
+func (f *FacadeStub) GetRawShardBlockByHash(hash string, asJson bool) ([]byte, error) {
+	return f.GetRawShardBlockByHashCalled(hash, asJson)
 }
 
 // GetRawShardBlockByRound -
-func (f *FacadeStub) GetRawShardBlockByRound(round uint64, withTxs bool) ([]byte, error) {
+func (f *FacadeStub) GetRawShardBlockByRound(round uint64, asJson bool) ([]byte, error) {
 	if f.GetRawShardBlockByRoundCalled != nil {
-		return f.GetRawShardBlockByRoundCalled(round, withTxs)
+		return f.GetRawShardBlockByRoundCalled(round, asJson)
 	}
 	return nil, nil
 }

@@ -2,6 +2,7 @@ package blockAPI
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -158,7 +159,7 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 ////////////////////////////////
 
 // GetBlockByNonce wil return a meta APIBlock by nonce
-func (mbp *metaAPIBlockProcessor) GetRawBlockByNonce(nonce uint64, withTxs bool) ([]byte, error) {
+func (mbp *metaAPIBlockProcessor) GetRawBlockByNonce(nonce uint64, asJson bool) ([]byte, error) {
 	storerUnit := dataRetriever.MetaHdrNonceHashDataUnit
 
 	nonceToByteSlice := mbp.uint64ByteSliceConverter.ToByteSlice(nonce)
@@ -172,38 +173,44 @@ func (mbp *metaAPIBlockProcessor) GetRawBlockByNonce(nonce uint64, withTxs bool)
 		return nil, err
 	}
 
-	//return mbp.convertMetaBlockBytesToAPIRawBlock(headerHash, blockBytes, withTxs)
-	return blockBytes, nil
+	return mbp.convertMetaBlockBytesToAPIRawBlock(blockBytes, asJson)
 }
 
 // GetBlockByHash will return a meta APIBlock by hash
-func (mbp *metaAPIBlockProcessor) GetRawBlockByHash(hash []byte, withTxs bool) ([]byte, error) {
+func (mbp *metaAPIBlockProcessor) GetRawBlockByHash(hash []byte, asJson bool) ([]byte, error) {
 	blockBytes, err := mbp.getFromStorer(dataRetriever.MetaBlockUnit, hash)
 	if err != nil {
 		return nil, err
 	}
 
-	//return mbp.convertMetaBlockBytesToAPIRawBlock(hash, blockBytes, withTxs)
-	return blockBytes, nil
+	return mbp.convertMetaBlockBytesToAPIRawBlock(blockBytes, asJson)
 }
 
 // GetBlockByRound will return a meta APIBlock by round
-func (mbp *metaAPIBlockProcessor) GetRawBlockByRound(round uint64, withTxs bool) ([]byte, error) {
+func (mbp *metaAPIBlockProcessor) GetRawBlockByRound(round uint64, asJson bool) ([]byte, error) {
 	_, blockBytes, err := mbp.getBlockHeaderHashAndBytesByRound(round, dataRetriever.MetaBlockUnit)
 	if err != nil {
 		return nil, err
 	}
 
-	//return mbp.convertMetaBlockBytesToAPIRawBlock(headerHash, blockBytes, withTxs)
-	return blockBytes, nil
+	return mbp.convertMetaBlockBytesToAPIRawBlock(blockBytes, asJson)
 }
 
-func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIRawBlock(hash []byte, blockBytes []byte, withTxs bool) (*block.MetaBlock, error) {
+func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIRawBlock(blockBytes []byte, asJson bool) ([]byte, error) {
+	if !asJson {
+		return blockBytes, nil
+	}
+
 	blockHeader := &block.MetaBlock{}
 	err := mbp.marshalizer.Unmarshal(blockHeader, blockBytes)
 	if err != nil {
 		return nil, err
 	}
 
-	return blockHeader, nil
+	jsonBlockBytes, err := json.Marshal(blockHeader)
+	if err != nil {
+		return nil, err
+	}
+
+	return jsonBlockBytes, nil
 }

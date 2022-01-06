@@ -73,12 +73,12 @@ type FacadeHandler interface {
 	GetBlockByHash(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error)
 	GetBlockByRound(round uint64, withTxs bool) (*api.Block, error)
-	GetRawMetaBlockByHash(hash string, withTxs bool) ([]byte, error)
-	GetRawMetaBlockByNonce(nonce uint64, withTxs bool) ([]byte, error)
-	GetRawMetaBlockByRound(round uint64, withTxs bool) ([]byte, error)
-	GetRawShardBlockByHash(hash string, withTxs bool) ([]byte, error)
-	GetRawShardBlockByNonce(nonce uint64, withTxs bool) ([]byte, error)
-	GetRawShardBlockByRound(round uint64, withTxs bool) ([]byte, error)
+	GetRawMetaBlockByHash(hash string, asJson bool) ([]byte, error)
+	GetRawMetaBlockByNonce(nonce uint64, asJson bool) ([]byte, error)
+	GetRawMetaBlockByRound(round uint64, asJson bool) ([]byte, error)
+	GetRawShardBlockByHash(hash string, asJson bool) ([]byte, error)
+	GetRawShardBlockByNonce(nonce uint64, asJson bool) ([]byte, error)
+	GetRawShardBlockByRound(round uint64, asJson bool) ([]byte, error)
 	GetRawMiniBlockByHash(hash string) ([]byte, error)
 	Trigger(epoch uint32, withEarlyEndOfEpoch bool) error
 	IsSelfTrigger() bool

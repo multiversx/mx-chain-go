@@ -11,7 +11,7 @@ import (
 // TODO: comments update
 
 // GetBlockByHash return the block for a given hash
-func (n *Node) GetRawMetaBlockByHash(hash string, withTxs bool) ([]byte, error) {
+func (n *Node) GetRawMetaBlockByHash(hash string, asJson bool) ([]byte, error) {
 	decodedHash, err := hex.DecodeString(hash)
 	if err != nil {
 		return nil, err
@@ -22,26 +22,26 @@ func (n *Node) GetRawMetaBlockByHash(hash string, withTxs bool) ([]byte, error) 
 		return nil, err
 	}
 
-	return apiBlockProcessor.GetRawBlockByHash(decodedHash, withTxs)
+	return apiBlockProcessor.GetRawBlockByHash(decodedHash, asJson)
 }
 
 // GetBlockByNonce returns the block for a given nonce
-func (n *Node) GetRawMetaBlockByNonce(nonce uint64, withTxs bool) ([]byte, error) {
+func (n *Node) GetRawMetaBlockByNonce(nonce uint64, asJson bool) ([]byte, error) {
 	apiBlockProcessor, err := n.createAPIMetaBlockProcessor()
 	if err != nil {
 		return nil, err
 	}
 
-	return apiBlockProcessor.GetRawBlockByNonce(nonce, withTxs)
+	return apiBlockProcessor.GetRawBlockByNonce(nonce, asJson)
 }
 
-func (n *Node) GetRawMetaBlockByRound(round uint64, withTxs bool) ([]byte, error) {
+func (n *Node) GetRawMetaBlockByRound(round uint64, asJson bool) ([]byte, error) {
 	apiBlockProcessor, err := n.createAPIMetaBlockProcessor()
 	if err != nil {
 		return nil, err
 	}
 
-	return apiBlockProcessor.GetRawBlockByRound(round, withTxs)
+	return apiBlockProcessor.GetRawBlockByRound(round, asJson)
 }
 
 func (n *Node) createAPIMetaBlockProcessor() (blockAPI.APIRawBlockHandler, error) {
@@ -68,7 +68,7 @@ func (n *Node) createAPIMetaBlockProcessor() (blockAPI.APIRawBlockHandler, error
 }
 
 // GetBlockByHash return the block for a given hash
-func (n *Node) GetRawShardBlockByHash(hash string, withTxs bool) ([]byte, error) {
+func (n *Node) GetRawShardBlockByHash(hash string, asJson bool) ([]byte, error) {
 	decodedHash, err := hex.DecodeString(hash)
 	if err != nil {
 		return nil, err
@@ -79,26 +79,26 @@ func (n *Node) GetRawShardBlockByHash(hash string, withTxs bool) ([]byte, error)
 		return nil, err
 	}
 
-	return apiBlockProcessor.GetRawBlockByHash(decodedHash, withTxs)
+	return apiBlockProcessor.GetRawBlockByHash(decodedHash, asJson)
 }
 
 // GetBlockByNonce returns the block for a given nonce
-func (n *Node) GetRawShardBlockByNonce(nonce uint64, withTxs bool) ([]byte, error) {
+func (n *Node) GetRawShardBlockByNonce(nonce uint64, asJson bool) ([]byte, error) {
 	apiBlockProcessor, err := n.createAPIShardBlockProcessor()
 	if err != nil {
 		return nil, err
 	}
 
-	return apiBlockProcessor.GetRawBlockByNonce(nonce, withTxs)
+	return apiBlockProcessor.GetRawBlockByNonce(nonce, asJson)
 }
 
-func (n *Node) GetRawShardBlockByRound(round uint64, withTxs bool) ([]byte, error) {
+func (n *Node) GetRawShardBlockByRound(round uint64, asJson bool) ([]byte, error) {
 	apiBlockProcessor, err := n.createAPIShardBlockProcessor()
 	if err != nil {
 		return nil, err
 	}
 
-	return apiBlockProcessor.GetRawBlockByRound(round, withTxs)
+	return apiBlockProcessor.GetRawBlockByRound(round, asJson)
 }
 
 func (n *Node) createAPIShardBlockProcessor() (blockAPI.APIRawBlockHandler, error) {

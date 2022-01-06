@@ -2,6 +2,7 @@ package blockAPI
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
@@ -131,7 +132,7 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 /////////////////////////////////////////////
 
 // GetBlockByNonce will return a shard APIBlock by nonce
-func (sbp *shardAPIBlockProcessor) GetRawBlockByNonce(nonce uint64, withTxs bool) ([]byte, error) {
+func (sbp *shardAPIBlockProcessor) GetRawBlockByNonce(nonce uint64, asJson bool) ([]byte, error) {
 	storerUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(sbp.selfShardID)
 
 	nonceToByteSlice := sbp.uint64ByteSliceConverter.ToByteSlice(nonce)
@@ -145,38 +146,44 @@ func (sbp *shardAPIBlockProcessor) GetRawBlockByNonce(nonce uint64, withTxs bool
 		return nil, err
 	}
 
-	//return sbp.convertShardBlockBytesToAPIRawBlock(headerHash, blockBytes, withTxs)
-	return blockBytes, nil
+	return sbp.convertShardBlockBytesToAPIRawBlock(blockBytes, asJson)
 }
 
 // GetBlockByHash will return a shard APIBlock by hash
-func (sbp *shardAPIBlockProcessor) GetRawBlockByHash(hash []byte, withTxs bool) ([]byte, error) {
+func (sbp *shardAPIBlockProcessor) GetRawBlockByHash(hash []byte, asJson bool) ([]byte, error) {
 	blockBytes, err := sbp.getFromStorer(dataRetriever.BlockHeaderUnit, hash)
 	if err != nil {
 		return nil, err
 	}
 
-	//return sbp.convertShardBlockBytesToAPIRawBlock(hash, blockBytes, withTxs)
-	return blockBytes, nil
+	return sbp.convertShardBlockBytesToAPIRawBlock(blockBytes, asJson)
 }
 
 // GetBlockByRound will return a shard APIBlock by round
-func (sbp *shardAPIBlockProcessor) GetRawBlockByRound(round uint64, withTxs bool) ([]byte, error) {
+func (sbp *shardAPIBlockProcessor) GetRawBlockByRound(round uint64, asJson bool) ([]byte, error) {
 	_, blockBytes, err := sbp.getBlockHeaderHashAndBytesByRound(round, dataRetriever.BlockHeaderUnit)
 	if err != nil {
 		return nil, err
 	}
 
-	//return sbp.convertShardBlockBytesToAPIRawBlock(headerHash, blockBytes, withTxs)
-	return blockBytes, nil
+	return sbp.convertShardBlockBytesToAPIRawBlock(blockBytes, asJson)
 }
 
-func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIRawBlock(hash []byte, blockBytes []byte, withTxs bool) (*block.Header, error) {
+func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIRawBlock(blockBytes []byte, asJson bool) ([]byte, error) {
+	if !asJson {
+		return blockBytes, nil
+	}
+
 	blockHeader := &block.Header{}
 	err := sbp.marshalizer.Unmarshal(blockHeader, blockBytes)
 	if err != nil {
 		return nil, err
 	}
 
-	return blockHeader, nil
+	jsonBlockBytes, err := json.Marshal(blockHeader)
+	if err != nil {
+		return nil, err
+	}
+
+	return jsonBlockBytes, nil
 }
