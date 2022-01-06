@@ -79,6 +79,7 @@ type FacadeHandler interface {
 	GetRawShardBlockByHash(hash string, withTxs bool) ([]byte, error)
 	GetRawShardBlockByNonce(nonce uint64, withTxs bool) ([]byte, error)
 	GetRawShardBlockByRound(round uint64, withTxs bool) ([]byte, error)
+	GetRawMiniBlockByHash(hash string) ([]byte, error)
 	Trigger(epoch uint32, withEarlyEndOfEpoch bool) error
 	IsSelfTrigger() bool
 	GetTotalStakedValue() (*api.StakeValues, error)

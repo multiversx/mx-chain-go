@@ -175,23 +175,28 @@
 
 [APIPackages.raw]
     Routes = [
-        # /raw/block/by-nonce/:nonce will return the block in JSON format based on its nonce
+        # TODO: comments update
+
+        # /raw/metablock/by-nonce/:nonce will return the block in JSON format based on its nonce
         { Name = "/metablock/by-nonce/:nonce", Open = true },
 
-        # /raw/block/by-hash/:hash will return the block in JSON format based on its hash
+        # /raw/metablock/by-hash/:hash will return the block in JSON format based on its hash
         { Name = "/metablock/by-hash/:hash", Open = true },
 
-        # /raw/block/by-round/:round will return the block in JSON format based on round
+        # /raw/metablock/by-round/:round will return the block in JSON format based on round
         { Name = "/metablock/by-round/:round", Open = true },
 
-        # /raw/block/by-nonce/:nonce will return the block in JSON format based on its nonce
+        # /raw/shardblock/by-nonce/:nonce will return the block in JSON format based on its nonce
         { Name = "/shardblock/by-nonce/:nonce", Open = true },
 
-        # /raw/block/by-hash/:hash will return the block in JSON format based on its hash
+        # /raw/shardblock/by-hash/:hash will return the block in JSON format based on its hash
         { Name = "/shardblock/by-hash/:hash", Open = true },
 
-        # /raw/block/by-round/:round will return the block in JSON format based on round
+        # /raw/shardblock/by-round/:round will return the block in JSON format based on round
         { Name = "/shardblock/by-round/:round", Open = true },
+
+        # /raw/miniblock/by-hash/:hash will return the block in JSON format based on its hash
+        { Name = "/miniblock/by-hash/:hash", Open = true },
     ]
 
 [APIPackages.proof]

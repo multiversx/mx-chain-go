@@ -60,6 +60,7 @@ type FacadeStub struct {
 	GetRawShardBlockByHashCalled            func(hash string, withTxs bool) ([]byte, error)
 	GetRawShardBlockByNonceCalled           func(nonce uint64, withTxs bool) ([]byte, error)
 	GetRawShardBlockByRoundCalled           func(round uint64, withTxs bool) ([]byte, error)
+	GetRawMiniBlockByHashCalled             func(hash string) ([]byte, error)
 	GetTotalStakedValueHandler              func() (*api.StakeValues, error)
 	GetAllIssuedESDTsCalled                 func(tokenType string) ([]string, error)
 	GetDirectStakedListHandler              func() ([]*api.DirectStakedValue, error)
@@ -410,6 +411,11 @@ func (f *FacadeStub) GetRawShardBlockByRound(round uint64, withTxs bool) ([]byte
 		return f.GetRawShardBlockByRoundCalled(round, withTxs)
 	}
 	return nil, nil
+}
+
+// GetRawMiniBlockByHash -
+func (f *FacadeStub) GetRawMiniBlockByHash(hash string) ([]byte, error) {
+	return f.GetRawMiniBlockByHashCalled(hash)
 }
 
 // Trigger -

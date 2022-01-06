@@ -412,6 +412,11 @@ func (nf *nodeFacade) GetRawShardBlockByRound(round uint64, withTxs bool) ([]byt
 	return nf.node.GetRawShardBlockByRound(round, withTxs)
 }
 
+// GetMiniBlock return the miniblock for a given hash
+func (nf *nodeFacade) GetRawMiniBlockByHash(txHash string) ([]byte, error) {
+	return nf.node.GetMiniBlock(txHash)
+}
+
 // Close will cleanup started go routines
 func (nf *nodeFacade) Close() error {
 	log.LogIfError(nf.apiResolver.Close())

@@ -279,6 +279,56 @@ func TestGetRawShardBlockByNonceMetaBlockCheck_ShouldWork(t *testing.T) {
 	assert.Equal(t, bytes.Repeat([]byte("1"), 10), response.Data.Block)
 }
 
+// ---- MiniBlock
+
+func TestGetRawMiniBlockByHash_EmptyHashUrlParameterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	facade := mock.FacadeStub{
+		GetRawMiniBlockByHashCalled: func(_ string) ([]byte, error) {
+			return []byte{}, nil
+		},
+	}
+
+	blockGroup, err := groups.NewRawBlockGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(blockGroup, "raw", getRawBlockRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/raw/miniblock/by-hash", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := rawBlockResponse{}
+	loadResponse(resp.Body, &response)
+	assert.Equal(t, http.StatusNotFound, resp.Code)
+}
+
+func TestGetRawMiniBlockByHash_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	facade := mock.FacadeStub{
+		GetRawMiniBlockByHashCalled: func(_ string) ([]byte, error) {
+			return []byte{}, nil
+		},
+	}
+
+	blockGroup, err := groups.NewRawBlockGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(blockGroup, "raw", getRawBlockRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/raw/miniblock/by-hash/dummyhash", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := rawBlockResponse{}
+	loadResponse(resp.Body, &response)
+	assert.Equal(t, http.StatusOK, resp.Code)
+
+	assert.Equal(t, []byte{}, response.Data.Block)
+}
+
 func getRawBlockRoutesConfig() config.ApiRoutesConfig {
 	return config.ApiRoutesConfig{
 		APIPackages: map[string]config.APIPackageConfig{
@@ -290,6 +340,7 @@ func getRawBlockRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/shardblock/by-nonce/:nonce", Open: true},
 					{Name: "/shardblock/by-hash/:hash", Open: true},
 					{Name: "/shardblock/by-round/:round", Open: true},
+					{Name: "/miniblock/by-hash/:hash", Open: true},
 				},
 			},
 		},

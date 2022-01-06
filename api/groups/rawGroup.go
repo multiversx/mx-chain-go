@@ -19,6 +19,7 @@ const (
 	getRawShardBlockByNoncePath = "/shardblock/by-nonce/:nonce"
 	getRawShardBlockByHashPath  = "/shardblock/by-hash/:hash"
 	getRawShardBlockByRoundPath = "/shardblock/by-round/:round"
+	getRawMiniBlockByHashPath   = "/miniblock/by-hash/:hash"
 )
 
 // TODO: comments update
@@ -31,6 +32,7 @@ type rawBlockFacadeHandler interface {
 	GetRawShardBlockByHash(hash string, withTxs bool) ([]byte, error)
 	GetRawShardBlockByNonce(nonce uint64, withTxs bool) ([]byte, error)
 	GetRawShardBlockByRound(round uint64, withTxs bool) ([]byte, error)
+	GetRawMiniBlockByHash(hash string) ([]byte, error)
 	IsInterfaceNil() bool
 }
 
@@ -81,6 +83,11 @@ func NewRawBlockGroup(facade rawBlockFacadeHandler) (*rawBlockGroup, error) {
 			Path:    getRawShardBlockByRoundPath,
 			Method:  http.MethodGet,
 			Handler: bg.getRawShardBlockByRound,
+		},
+		{
+			Path:    getRawMiniBlockByHashPath,
+			Method:  http.MethodGet,
+			Handler: bg.getRawMiniBlockByHash,
 		},
 	}
 	bg.endpoints = endpoints
@@ -315,6 +322,32 @@ func (bg *rawBlockGroup) getRawShardBlockByRound(c *gin.Context) {
 	}
 
 	shared.RespondWith(c, http.StatusOK, gin.H{"block": block}, "", shared.ReturnCodeSuccess)
+}
+
+func (bg *rawBlockGroup) getRawMiniBlockByHash(c *gin.Context) {
+	hash := c.Param("hash")
+	if hash == "" {
+		shared.RespondWithValidationError(
+			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrValidationEmptyBlockHash.Error()),
+		)
+		return
+	}
+
+	start := time.Now()
+	miniBlock, err := bg.getFacade().GetRawMiniBlockByHash(hash)
+	log.Debug(fmt.Sprintf("GetBlockByHash took %s", time.Since(start)))
+	if err != nil {
+		shared.RespondWith(
+			c,
+			http.StatusInternalServerError,
+			nil,
+			fmt.Sprintf("%s: %s", errors.ErrGetBlock.Error(), err.Error()),
+			shared.ReturnCodeInternalError,
+		)
+		return
+	}
+
+	shared.RespondWith(c, http.StatusOK, gin.H{"block": miniBlock}, "", shared.ReturnCodeSuccess)
 }
 
 func (ng *rawBlockGroup) getFacade() rawBlockFacadeHandler {

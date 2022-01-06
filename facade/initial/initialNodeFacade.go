@@ -281,6 +281,11 @@ func (inf *initialNodeFacade) GetRawShardBlockByRound(_ uint64, _ bool) ([]byte,
 	return nil, errNodeStarting
 }
 
+// GetRawMiniBlockByHash return nil and error
+func (inf *initialNodeFacade) GetRawMiniBlockByHash(_ string) ([]byte, error) {
+	return nil, errNodeStarting
+}
+
 // Close returns error
 func (inf *initialNodeFacade) Close() error {
 	return errNodeStarting
