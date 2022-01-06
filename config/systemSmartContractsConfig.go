@@ -7,6 +7,7 @@ type SystemSmartContractsConfig struct {
 	StakingSystemSCConfig           StakingSystemSCConfig
 	DelegationManagerSystemSCConfig DelegationManagerSystemSCConfig
 	DelegationSystemSCConfig        DelegationSystemSCConfig
+	AccountFreezerSCConfig          AccountFreezerSCConfig
 }
 
 // StakingSystemSCConfig will hold the staking system smart contract settings
@@ -69,4 +70,9 @@ type DelegationSystemSCConfig struct {
 	MinServiceFee               uint64
 	MaxServiceFee               uint64
 	AddTokensWhitelistedAddress string
+}
+
+// AccountFreezerSCConfig defines a set of constants to initialize the account freezer system smart contract
+type AccountFreezerSCConfig struct {
+	GuardianEnableEpochs uint32
 }

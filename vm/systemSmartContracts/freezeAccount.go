@@ -1,21 +1,25 @@
 package systemSmartContracts
 
 import (
+	"bytes"
 	"fmt"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
-var logFreezeAccount = logger.GetOrCreate("systemSmartContracts/freezeAccount")
+var logAccountFreezer = logger.GetOrCreate("systemSmartContracts/freezeAccount")
 
 // Key prefixes
 const (
-	keyGuardian = "guardians"
+	GuardiansKey = "guardians"
 )
 
 // Functions
@@ -32,12 +36,49 @@ type Guardians struct {
 	Data []*Guardian
 }
 
+type ArgsFreezeAccountSC struct {
+	GasCost              vm.GasCost
+	Marshaller           marshal.Marshalizer
+	SystemEI             vm.SystemEI
+	PubKeyConverter      core.PubkeyConverter
+	AccountFreezerConfig config.AccountFreezerSCConfig
+	EpochConfig          config.EpochConfig
+	EpochNotifier        vm.EpochNotifier
+}
+
 type freezeAccount struct {
-	blockChainHook  vmcommon.BlockchainHook
-	gasCost         vm.GasCost
-	marshaller      marshal.Marshalizer
-	systemEI        vm.SystemEI
-	pubKeyConverter core.PubkeyConverter
+	gasCost              vm.GasCost
+	marshaller           marshal.Marshalizer
+	systemEI             vm.SystemEI
+	pubKeyConverter      core.PubkeyConverter
+	guardianEnableEpochs uint32
+
+	enableEpoch             uint32
+	flagEnableFreezeAccount atomic.Flag
+}
+
+func NewFreezeAccountSmartContract(args ArgsFreezeAccountSC) (*freezeAccount, error) {
+	if check.IfNil(args.Marshaller) {
+		return nil, core.ErrNilMarshalizer
+	}
+	if check.IfNil(args.SystemEI) {
+		return nil, vm.ErrNilSystemEnvironmentInterface
+	}
+	if check.IfNil(args.PubKeyConverter) {
+		return nil, vm.ErrNilAddressPubKeyConverter
+	}
+
+	accountFreezer := &freezeAccount{
+		gasCost:              args.GasCost,
+		marshaller:           args.Marshaller,
+		systemEI:             args.SystemEI,
+		pubKeyConverter:      args.PubKeyConverter,
+		guardianEnableEpochs: args.AccountFreezerConfig.GuardianEnableEpochs,
+	}
+	logAccountFreezer.Debug("account freezer enable epoch", accountFreezer.enableEpoch)
+	args.EpochNotifier.RegisterNotifyHandler(accountFreezer)
+
+	return accountFreezer, nil
 }
 
 func (fa *freezeAccount) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -68,16 +109,17 @@ func (fa *freezeAccount) setGuardian(args *vmcommon.ContractCallInput) vmcommon.
 		fa.systemEI.AddReturnMessage(fmt.Sprintf("invalid number of arguments, expected 1, got %d ", len(args.Arguments)))
 		return vmcommon.FunctionWrongSignature
 	}
-
-	err := fa.systemEI.UseGas(uint64(len(args.Arguments)) * fa.gasCost.MetaChainSystemSCsCost.Stake)
+	err := fa.systemEI.UseGas(fa.gasCost.BuiltInCost.SetGuardian)
 	if err != nil {
 		fa.systemEI.AddReturnMessage(err.Error())
 		return vmcommon.OutOfGas
 	}
-	//TODO: Cannot bet owner a guardian
-
 	if !fa.isAddressValid(args.Arguments[0]) {
 		fa.systemEI.AddReturnMessage("invalid address")
+		return vmcommon.UserError
+	}
+	if bytes.Equal(args.CallerAddr, args.Arguments[0]) {
+		fa.systemEI.AddReturnMessage("cannot set own address as guardian")
 		return vmcommon.UserError
 	}
 
@@ -129,15 +171,15 @@ func (fa *freezeAccount) setGuardian(args *vmcommon.ContractCallInput) vmcommon.
 }
 
 func (fa *freezeAccount) pending(guardian *Guardian) bool {
-	currEpoch := fa.blockChainHook.CurrentEpoch()
+	currEpoch := fa.systemEI.BlockChainHook().CurrentEpoch()
 	remaining := currEpoch - guardian.ActivationEpoch // any edge case here for which we should use abs?
-	return remaining < 20
+	return remaining < fa.guardianEnableEpochs
 }
 
 func (fa *freezeAccount) addGuardian(address []byte, guardianAddress []byte, guardians Guardians) error {
 	guardian := &Guardian{
 		Address:         guardianAddress,
-		ActivationEpoch: fa.blockChainHook.CurrentEpoch() + 20,
+		ActivationEpoch: fa.systemEI.BlockChainHook().CurrentEpoch() + fa.guardianEnableEpochs,
 	}
 
 	guardians.Data = append(guardians.Data, guardian)
@@ -146,15 +188,25 @@ func (fa *freezeAccount) addGuardian(address []byte, guardianAddress []byte, gua
 		return err
 	}
 
-	fa.systemEI.SetStorageForAddress(address, []byte(keyGuardian), marshalledData)
-	return nil
+	account, err := fa.systemEI.BlockChainHook().GetUserAccount(address)
+	if err != nil {
+		return err
+	}
+	key := append([]byte(core.ElrondProtectedKeyPrefix), []byte(GuardiansKey)...)
+
+	return account.AccountDataHandler().SaveKeyValue(key, marshalledData)
 }
 
 func (fa *freezeAccount) getGuardians(address []byte) (Guardians, error) {
-	marshalledData := fa.systemEI.GetStorageFromAddress(address, []byte(keyGuardian))
+	account, err := fa.systemEI.BlockChainHook().GetUserAccount(address)
+	if err != nil {
+		return Guardians{}, err
+	}
 
+	key := append([]byte(core.ElrondProtectedKeyPrefix), []byte(GuardiansKey)...)
+	marshalledData, err := account.AccountDataHandler().RetrieveValue(key)
 	guardians := Guardians{}
-	err := fa.marshaller.Unmarshal(guardians, marshalledData)
+	err = fa.marshaller.Unmarshal(guardians, marshalledData)
 	if err != nil {
 		return Guardians{}, err
 	}
@@ -176,6 +228,10 @@ func (fa *freezeAccount) isAddressValid(addressBytes []byte) bool {
 	encodedAddress := fa.pubKeyConverter.Encode(addressBytes)
 
 	return encodedAddress != ""
+}
+
+func (fa *freezeAccount) EpochConfirmed(epoch uint32, timestamp uint64) {
+
 }
 
 func (fa *freezeAccount) CanUseContract() bool {
