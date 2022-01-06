@@ -697,7 +697,7 @@ func TestScProcessor_ExecuteBuiltInFunctionSCResultCallSelfShard(t *testing.T) {
 		return nil, nil
 	}
 
-	sc.flagBuiltin.Set()
+	_ = sc.flagBuiltin.SetReturningPrevious()
 	retCode, err := sc.ExecuteBuiltInFunction(tx, acntSrc, actDst)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
@@ -756,7 +756,7 @@ func TestScProcessor_ExecuteBuiltInFunctionSCResultCallSelfShardCannotSaveLog(t 
 		return nil, nil
 	}
 
-	sc.flagBuiltin.Set()
+	_ = sc.flagBuiltin.SetReturningPrevious()
 	retCode, err := sc.ExecuteBuiltInFunction(tx, acntSrc, actDst)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
@@ -799,7 +799,7 @@ func TestScProcessor_ExecuteBuiltInFunction(t *testing.T) {
 		return acntSrc, nil
 	}
 
-	sc.flagBuiltin.Set()
+	_ = sc.flagBuiltin.SetReturningPrevious()
 	retCode, err := sc.ExecuteBuiltInFunction(tx, acntSrc, nil)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
@@ -974,7 +974,7 @@ func TestScProcessor_DeploySmartContractEconomicsWithFlagPenalizeTooMuchGasEnabl
 
 	sc, _ := NewSmartContractProcessor(arguments)
 
-	sc.flagPenalizedTooMuchGas.Toggle(false)
+	sc.flagPenalizedTooMuchGas.SetValue(false)
 
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
@@ -2347,7 +2347,7 @@ func TestScProcessor_ProcessSCPaymentWithNewFlags(t *testing.T) {
 
 	acntSrc, _ = createAccounts(tx)
 	modifiedBalance = currBalance - tx.Value.Uint64() - tx.GasLimit*tx.GasLimit
-	sc.flagPenalizedTooMuchGas.Toggle(false)
+	sc.flagPenalizedTooMuchGas.SetValue(false)
 	err = sc.processSCPayment(tx, acntSrc)
 	require.Nil(t, err)
 	require.Equal(t, modifiedBalance, acntSrc.GetBalance().Uint64())
@@ -3196,7 +3196,7 @@ func TestScProcessor_ProcessSmartContractResultExecuteSCIfMetaAndBuiltIn(t *test
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
-	sc.flagBuiltInFunctionOnMetachain.Unset()
+	sc.flagBuiltInFunctionOnMetachain.Reset()
 	scr := smartContractResult.SmartContractResult{
 		SndAddr: []byte("snd addr"),
 		RcvAddr: scAddress,
@@ -3208,7 +3208,7 @@ func TestScProcessor_ProcessSmartContractResultExecuteSCIfMetaAndBuiltIn(t *test
 	require.True(t, executeCalled)
 
 	executeCalled = false
-	sc.flagBuiltInFunctionOnMetachain.Set()
+	_ = sc.flagBuiltInFunctionOnMetachain.SetReturningPrevious()
 	_, err = sc.ProcessSmartContractResult(&scr)
 	require.Nil(t, err)
 	require.False(t, executeCalled)
@@ -3908,7 +3908,7 @@ func TestProcessSCRSizeTooBig(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	sc, _ := NewSmartContractProcessor(arguments)
 
-	sc.flagSCRSizeInvariantCheck.Unset()
+	sc.flagSCRSizeInvariantCheck.Reset()
 
 	scrTooBig := &smartContractResult.SmartContractResult{Data: bytes.Repeat([]byte{1}, core.MegabyteSize)}
 	scrs := make([]data.TransactionHandler, 0)
@@ -3917,7 +3917,7 @@ func TestProcessSCRSizeTooBig(t *testing.T) {
 	err := sc.checkSCRSizeInvariant(scrs)
 	assert.Nil(t, err)
 
-	sc.flagSCRSizeInvariantCheck.Toggle(true)
+	sc.flagSCRSizeInvariantCheck.SetValue(true)
 
 	err = sc.checkSCRSizeInvariant(scrs)
 	assert.Equal(t, err, process.ErrResultingSCRIsTooBig)
@@ -3967,12 +3967,12 @@ func TestCleanInformativeOnlySCRs(t *testing.T) {
 	scrs = append(scrs, &smartContractResult.SmartContractResult{Value: big.NewInt(1)})
 	scrs = append(scrs, &smartContractResult.SmartContractResult{Value: big.NewInt(0), Data: []byte("@6b6f")})
 
-	sc.flagCleanUpInformativeSCRs.Unset()
+	sc.flagCleanUpInformativeSCRs.Reset()
 	finalSCRs, logs := sc.cleanInformativeOnlySCRs(scrs)
 	assert.Equal(t, len(finalSCRs), len(scrs))
 	assert.Equal(t, 1, len(logs))
 
-	sc.flagCleanUpInformativeSCRs.Set()
+	_ = sc.flagCleanUpInformativeSCRs.SetReturningPrevious()
 	finalSCRs, logs = sc.cleanInformativeOnlySCRs(scrs)
 	assert.Equal(t, 1, len(finalSCRs))
 	assert.Equal(t, 1, len(logs))

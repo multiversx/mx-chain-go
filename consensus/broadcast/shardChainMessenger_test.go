@@ -353,7 +353,7 @@ func TestShardChainMessenger_BroadcastBlockDataLeaderShouldTriggerWaitingDelayed
 	wasCalled := atomic.Flag{}
 	messenger := &mock.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
-			wasCalled.Set()
+			_ = wasCalled.SetReturningPrevious()
 		},
 	}
 	args := createDefaultShardChainArgs()
@@ -366,7 +366,7 @@ func TestShardChainMessenger_BroadcastBlockDataLeaderShouldTriggerWaitingDelayed
 	assert.Nil(t, err)
 	assert.False(t, wasCalled.IsSet())
 
-	wasCalled.Unset()
+	wasCalled.Reset()
 	_, header2, miniBlocksMarshalled2, transactions2 := createDelayData("2")
 	err = scm.BroadcastBlockDataLeader(header2, miniBlocksMarshalled2, transactions2)
 	time.Sleep(10 * time.Millisecond)
