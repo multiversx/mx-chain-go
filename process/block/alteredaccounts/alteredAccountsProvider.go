@@ -25,7 +25,6 @@ type markedAlteredAccountToken struct {
 }
 
 type markedAlteredAccount struct {
-	address string
 	tokens  []*markedAlteredAccountToken
 }
 
@@ -86,33 +85,38 @@ func NewAlteredAccountsProvider(args ArgsAlteredAccountsProvider) (*alteredAccou
 
 // ExtractAlteredAccountsFromPool will extract and return altered accounts from the pool
 func (aap *alteredAccountsProvider) ExtractAlteredAccountsFromPool(txPool *indexer.Pool) (map[string]*indexer.AlteredAccount, error) {
-	// TODO: treat errors - return them instead of log warns
 	markedAccounts := make(map[string]*markedAlteredAccount)
 	aap.extractMoveBalanceAddresses(txPool, markedAccounts)
-	aap.extractESDTAccounts(txPool, markedAccounts)
-
-	alteredAccounts := aap.fetchDataForMarkedAccounts(markedAccounts)
-	return alteredAccounts, nil
-}
-
-func (aap *alteredAccountsProvider) fetchDataForMarkedAccounts(markedAccounts map[string]*markedAlteredAccount) map[string]*indexer.AlteredAccount {
-	alteredAccounts := make(map[string]*indexer.AlteredAccount)
-	for address, markedAccount := range markedAccounts {
-		aap.processMarkedAccountData(address, markedAccount.tokens, alteredAccounts)
+	err := aap.extractESDTAccounts(txPool, markedAccounts)
+	if err != nil {
+		return nil, err
 	}
 
-	return alteredAccounts
+	return aap.fetchDataForMarkedAccounts(markedAccounts)
+}
+
+func (aap *alteredAccountsProvider) fetchDataForMarkedAccounts(markedAccounts map[string]*markedAlteredAccount) (map[string]*indexer.AlteredAccount, error) {
+	alteredAccounts := make(map[string]*indexer.AlteredAccount)
+	var err error
+	for address, markedAccount := range markedAccounts {
+		err = aap.processMarkedAccountData(address, markedAccount.tokens, alteredAccounts)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return alteredAccounts, nil
 }
 
 func (aap *alteredAccountsProvider) processMarkedAccountData(
 	encodedAddress string,
 	markedAccountTokens []*markedAlteredAccountToken,
 	alteredAccounts map[string]*indexer.AlteredAccount,
-) {
+) error {
 	addressBytes, err := aap.addressConverter.Decode(encodedAddress)
 	if err != nil {
 		log.Warn("cannot decode marked altered account address", "error", err)
-		return
+		return err
 	}
 
 	account, err := aap.accountsDB.LoadAccount(addressBytes)
@@ -120,13 +124,13 @@ func (aap *alteredAccountsProvider) processMarkedAccountData(
 		log.Warn("cannot load account when computing altered accounts",
 			"address", encodedAddress,
 			"error", err)
-		return
+		return err
 	}
 
 	userAccount, ok := account.(state.UserAccountHandler)
 	if !ok {
 		log.Warn("cannot cast AccountHandler to UserAccountHandler", "address", encodedAddress)
-		return
+		return err
 	}
 
 	alteredAccounts[encodedAddress] = &indexer.AlteredAccount{
@@ -140,10 +144,12 @@ func (aap *alteredAccountsProvider) processMarkedAccountData(
 			err = aap.fetchTokensDataForMarkedAccount(encodedAddress, tokenData, alteredAccounts)
 			if err != nil {
 				log.Warn("cannot fetch token data for marked account", "error", err)
-				continue
+				return err
 			}
 		}
 	}
+
+	return nil
 }
 
 func (aap *alteredAccountsProvider) fetchTokensDataForMarkedAccount(
@@ -244,24 +250,30 @@ func (aap *alteredAccountsProvider) addMoveBalanceAddressInMap(
 func (aap *alteredAccountsProvider) extractESDTAccounts(
 	txPool *indexer.Pool,
 	markedAlteredAccounts map[string]*markedAlteredAccount,
-) {
+) error {
+	var err error
 	for _, txLog := range txPool.Logs {
 		for _, event := range txLog.LogHandler.GetLogEvents() {
-			aap.processEvent(event, markedAlteredAccounts)
+			err = aap.processEvent(event, markedAlteredAccounts)
+			if err != nil {
+				return err
+			}
 		}
 	}
+
+	return nil
 }
 
 func (aap *alteredAccountsProvider) processEvent(
 	event data.EventHandler,
 	markedAlteredAccounts map[string]*markedAlteredAccount,
-) {
+) error {
 	_, isEsdtOperation := aap.fungibleTokensIdentifier[string(event.GetIdentifier())]
 	if isEsdtOperation {
 		err := aap.extractEsdtData(event, zeroBigInt, markedAlteredAccounts)
 		if err != nil {
 			log.Debug("cannot extract esdt data", "error", err)
-			return
+			return err
 		}
 	}
 
@@ -269,7 +281,7 @@ func (aap *alteredAccountsProvider) processEvent(
 	if isNftOperation {
 		topics := event.GetTopics()
 		if len(topics) == 0 {
-			return
+			return nil
 		}
 
 		nonce := topics[1]
@@ -277,9 +289,11 @@ func (aap *alteredAccountsProvider) processEvent(
 		err := aap.extractEsdtData(event, nonceBigInt, markedAlteredAccounts)
 		if err != nil {
 			log.Debug("cannot extract nft data", "error", err)
-			return
+			return nil
 		}
 	}
+
+	return nil
 }
 
 func (aap *alteredAccountsProvider) extractEsdtData(
@@ -287,9 +301,6 @@ func (aap *alteredAccountsProvider) extractEsdtData(
 	nonce *big.Int,
 	markedAlteredAccounts map[string]*markedAlteredAccount,
 ) error {
-
-	// TODO: check if the same token exists already in marked accounts - don't add twice
-
 	address := event.GetAddress()
 	topics := event.GetTopics()
 	if len(topics) == 0 {
@@ -309,12 +320,26 @@ func (aap *alteredAccountsProvider) extractEsdtData(
 		markedAccount.tokens = make([]*markedAlteredAccountToken, 0)
 	}
 
+	if aap.isTokenAlreadyMarked(markedAccount, string(tokenID), nonce.Uint64()) {
+		return nil
+	}
+
 	markedAccount.tokens = append(markedAccount.tokens, &markedAlteredAccountToken{
 		identifier: string(tokenID),
 		nonce:      nonce.Uint64(),
 	})
 
 	return nil
+}
+
+func (aap *alteredAccountsProvider) isTokenAlreadyMarked(markedAccount *markedAlteredAccount, identifier string, nonce uint64) bool {
+	for _, tokenData := range markedAccount.tokens {
+		if tokenData.identifier == identifier && tokenData.nonce == nonce {
+			return true
+		}
+	}
+
+	return false
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
