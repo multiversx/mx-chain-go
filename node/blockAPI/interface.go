@@ -13,16 +13,16 @@ type APIBlockHandler interface {
 }
 
 type APIRawBlockHandler interface {
-	GetRawShardBlockByNonce(nonce uint64, asJson bool) ([]byte, error)
-	GetRawShardBlockByHash(hash []byte, asJson bool) ([]byte, error)
-	GetRawShardBlockByRound(round uint64, asJson bool) ([]byte, error)
-	GetRawMetaBlockByNonce(nonce uint64, asJson bool) ([]byte, error)
-	GetRawMetaBlockByHash(hash []byte, asJson bool) ([]byte, error)
-	GetRawMetaBlockByRound(round uint64, asJson bool) ([]byte, error)
-	GetInternalShardBlockByNonce(nonce uint64, asJson bool) (*block.Header, error)
-	GetInternalShardBlockByHash(hash []byte, asJson bool) (*block.Header, error)
-	GetInternalShardBlockByRound(round uint64, asJson bool) (*block.Header, error)
-	GetInternalMetaBlockByNonce(nonce uint64, asJson bool) (*block.MetaBlock, error)
-	GetInternalMetaBlockByHash(hash []byte, asJson bool) (*block.MetaBlock, error)
-	GetInternalMetaBlockByRound(round uint64, asJson bool) (*block.MetaBlock, error)
+	GetRawShardBlockByNonce(nonce uint64) ([]byte, error)
+	GetRawShardBlockByHash(hash []byte) ([]byte, error)
+	GetRawShardBlockByRound(round uint64) ([]byte, error)
+	GetRawMetaBlockByNonce(nonce uint64) ([]byte, error)
+	GetRawMetaBlockByHash(hash []byte) ([]byte, error)
+	GetRawMetaBlockByRound(round uint64) ([]byte, error)
+	GetInternalShardBlockByNonce(nonce uint64) (*block.Header, error)
+	GetInternalShardBlockByHash(hash []byte) (*block.Header, error)
+	GetInternalShardBlockByRound(round uint64) (*block.Header, error)
+	GetInternalMetaBlockByNonce(nonce uint64) (*block.MetaBlock, error)
+	GetInternalMetaBlockByHash(hash []byte) (*block.MetaBlock, error)
+	GetInternalMetaBlockByRound(round uint64) (*block.MetaBlock, error)
 }

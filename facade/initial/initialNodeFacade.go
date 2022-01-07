@@ -282,33 +282,33 @@ func (inf *initialNodeFacade) GetRawShardBlockByRound(_ uint64) ([]byte, error) 
 	return nil, errNodeStarting
 }
 
-// GetJsonMetaBlockByHash return nil and error
-func (inf *initialNodeFacade) GetJsonMetaBlockByHash(_ string) (*block.MetaBlock, error) {
+// GetInternalMetaBlockByHash return nil and error
+func (inf *initialNodeFacade) GetInternalMetaBlockByHash(_ string) (*block.MetaBlock, error) {
 	return nil, errNodeStarting
 }
 
-// GetJsonMetaBlockByNonce returns nil and error
-func (inf *initialNodeFacade) GetJsonMetaBlockByNonce(_ uint64) (*block.MetaBlock, error) {
+// GetInternalMetaBlockByNonce returns nil and error
+func (inf *initialNodeFacade) GetInternalMetaBlockByNonce(_ uint64) (*block.MetaBlock, error) {
 	return nil, errNodeStarting
 }
 
-// GetJsonMetaBlockByRound returns nil and error
-func (inf *initialNodeFacade) GetJsonMetaBlockByRound(_ uint64) (*block.MetaBlock, error) {
+// GetInternalMetaBlockByRound returns nil and error
+func (inf *initialNodeFacade) GetInternalMetaBlockByRound(_ uint64) (*block.MetaBlock, error) {
 	return nil, errNodeStarting
 }
 
-// GetJsonShardBlockByHash return nil and error
-func (inf *initialNodeFacade) GetJsonShardBlockByHash(_ string) (*block.Header, error) {
+// GetInternalShardBlockByHash return nil and error
+func (inf *initialNodeFacade) GetInternalShardBlockByHash(_ string) (*block.Header, error) {
 	return nil, errNodeStarting
 }
 
-// GetJsonShardBlockByNonce returns nil and error
-func (inf *initialNodeFacade) GetJsonShardBlockByNonce(_ uint64) (*block.Header, error) {
+// GetInternalShardBlockByNonce returns nil and error
+func (inf *initialNodeFacade) GetInternalShardBlockByNonce(_ uint64) (*block.Header, error) {
 	return nil, errNodeStarting
 }
 
-// GetJsonShardBlockByRound returns nil and error
-func (inf *initialNodeFacade) GetJsonShardBlockByRound(_ uint64) (*block.Header, error) {
+// GetInternalShardBlockByRound returns nil and error
+func (inf *initialNodeFacade) GetInternalShardBlockByRound(_ uint64) (*block.Header, error) {
 	return nil, errNodeStarting
 }
 

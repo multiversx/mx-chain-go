@@ -40,12 +40,12 @@ type rawBlockFacadeHandler interface {
 	GetRawShardBlockByHash(hash string) ([]byte, error)
 	GetRawShardBlockByNonce(nonce uint64) ([]byte, error)
 	GetRawShardBlockByRound(round uint64) ([]byte, error)
-	GetJsonMetaBlockByHash(hash string) (*block.MetaBlock, error)
-	GetJsonMetaBlockByNonce(nonce uint64) (*block.MetaBlock, error)
-	GetJsonMetaBlockByRound(round uint64) (*block.MetaBlock, error)
-	GetJsonShardBlockByHash(hash string) (*block.Header, error)
-	GetJsonShardBlockByNonce(nonce uint64) (*block.Header, error)
-	GetJsonShardBlockByRound(round uint64) (*block.Header, error)
+	GetInternalMetaBlockByHash(hash string) (*block.MetaBlock, error)
+	GetInternalMetaBlockByNonce(nonce uint64) (*block.MetaBlock, error)
+	GetInternalMetaBlockByRound(round uint64) (*block.MetaBlock, error)
+	GetInternalShardBlockByHash(hash string) (*block.Header, error)
+	GetInternalShardBlockByNonce(nonce uint64) (*block.Header, error)
+	GetInternalShardBlockByRound(round uint64) (*block.Header, error)
 	GetRawMiniBlockByHash(hash string) ([]byte, error)
 	IsInterfaceNil() bool
 }
@@ -312,8 +312,8 @@ func (rb *rawBlockGroup) getJsonMetaBlockByNonce(c *gin.Context) {
 	}
 
 	start := time.Now()
-	block, err := rb.getFacade().GetJsonMetaBlockByNonce(nonce)
-	log.Debug(fmt.Sprintf("GetJsonMetaBlockByNonce took %s", time.Since(start)))
+	block, err := rb.getFacade().GetInternalMetaBlockByNonce(nonce)
+	log.Debug(fmt.Sprintf("GetInternalMetaBlockByNonce took %s", time.Since(start)))
 	if err != nil {
 		shared.RespondWith(
 			c,
@@ -338,8 +338,8 @@ func (rb *rawBlockGroup) getJsonMetaBlockByHash(c *gin.Context) {
 	}
 
 	start := time.Now()
-	block, err := rb.getFacade().GetJsonMetaBlockByHash(hash)
-	log.Debug(fmt.Sprintf("GetJsonMetaBlockByHash took %s", time.Since(start)))
+	block, err := rb.getFacade().GetInternalMetaBlockByHash(hash)
+	log.Debug(fmt.Sprintf("GetInternalMetaBlockByHash took %s", time.Since(start)))
 	if err != nil {
 		shared.RespondWith(
 			c,
@@ -364,8 +364,8 @@ func (rb *rawBlockGroup) getJsonMetaBlockByRound(c *gin.Context) {
 	}
 
 	start := time.Now()
-	block, err := rb.getFacade().GetJsonMetaBlockByRound(round)
-	log.Debug(fmt.Sprintf("GetJsonMetaBlockByRound took %s", time.Since(start)))
+	block, err := rb.getFacade().GetInternalMetaBlockByRound(round)
+	log.Debug(fmt.Sprintf("GetInternalMetaBlockByRound took %s", time.Since(start)))
 	if err != nil {
 		shared.RespondWith(
 			c,
@@ -392,8 +392,8 @@ func (rb *rawBlockGroup) getJsonShardBlockByNonce(c *gin.Context) {
 	}
 
 	start := time.Now()
-	block, err := rb.getFacade().GetJsonShardBlockByNonce(nonce)
-	log.Debug(fmt.Sprintf("GetJsonShardBlockByNonce took %s", time.Since(start)))
+	block, err := rb.getFacade().GetInternalShardBlockByNonce(nonce)
+	log.Debug(fmt.Sprintf("GetInternalShardBlockByNonce took %s", time.Since(start)))
 	if err != nil {
 		shared.RespondWith(
 			c,
@@ -418,8 +418,8 @@ func (rb *rawBlockGroup) getJsonShardBlockByHash(c *gin.Context) {
 	}
 
 	start := time.Now()
-	block, err := rb.getFacade().GetJsonShardBlockByHash(hash)
-	log.Debug(fmt.Sprintf("GetJsonShardBlockByHash took %s", time.Since(start)))
+	block, err := rb.getFacade().GetInternalShardBlockByHash(hash)
+	log.Debug(fmt.Sprintf("GetInternalShardBlockByHash took %s", time.Since(start)))
 	if err != nil {
 		shared.RespondWith(
 			c,
@@ -444,8 +444,8 @@ func (rb *rawBlockGroup) getJsonShardBlockByRound(c *gin.Context) {
 	}
 
 	start := time.Now()
-	block, err := rb.getFacade().GetJsonShardBlockByRound(round)
-	log.Debug(fmt.Sprintf("GetJsonShardBlockByRound took %s", time.Since(start)))
+	block, err := rb.getFacade().GetInternalShardBlockByRound(round)
+	log.Debug(fmt.Sprintf("GetInternalShardBlockByRound took %s", time.Since(start)))
 	if err != nil {
 		shared.RespondWith(
 			c,

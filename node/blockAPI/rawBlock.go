@@ -30,7 +30,7 @@ func NewRawBlockProcessor(arg *APIBlockProcessorArg) *rawBlockProcessor {
 }
 
 // GetBlockByNonce wil return a meta APIBlock by nonce
-func (rbp *rawBlockProcessor) GetRawShardBlockByNonce(nonce uint64, asJson bool) ([]byte, error) {
+func (rbp *rawBlockProcessor) GetRawShardBlockByNonce(nonce uint64) ([]byte, error) {
 	storerUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(rbp.selfShardID)
 
 	nonceToByteSlice := rbp.uint64ByteSliceConverter.ToByteSlice(nonce)
@@ -48,7 +48,7 @@ func (rbp *rawBlockProcessor) GetRawShardBlockByNonce(nonce uint64, asJson bool)
 }
 
 // GetBlockByHash will return a meta APIBlock by hash
-func (rbp *rawBlockProcessor) GetRawShardBlockByHash(hash []byte, asJson bool) ([]byte, error) {
+func (rbp *rawBlockProcessor) GetRawShardBlockByHash(hash []byte) ([]byte, error) {
 	blockBytes, err := rbp.getFromStorer(dataRetriever.BlockHeaderUnit, hash)
 	if err != nil {
 		return nil, err
@@ -58,7 +58,7 @@ func (rbp *rawBlockProcessor) GetRawShardBlockByHash(hash []byte, asJson bool) (
 }
 
 // GetBlockByRound will return a meta APIBlock by round
-func (rbp *rawBlockProcessor) GetRawShardBlockByRound(round uint64, asJson bool) ([]byte, error) {
+func (rbp *rawBlockProcessor) GetRawShardBlockByRound(round uint64) ([]byte, error) {
 	_, blockBytes, err := rbp.getBlockHeaderHashAndBytesByRound(round, dataRetriever.BlockHeaderUnit)
 	if err != nil {
 		return nil, err
@@ -70,7 +70,7 @@ func (rbp *rawBlockProcessor) GetRawShardBlockByRound(round uint64, asJson bool)
 // Meta
 
 // GetBlockByNonce will return a shard APIBlock by nonce
-func (rbp *rawBlockProcessor) GetRawMetaBlockByNonce(nonce uint64, asJson bool) ([]byte, error) {
+func (rbp *rawBlockProcessor) GetRawMetaBlockByNonce(nonce uint64) ([]byte, error) {
 	storerUnit := dataRetriever.MetaHdrNonceHashDataUnit
 
 	nonceToByteSlice := rbp.uint64ByteSliceConverter.ToByteSlice(nonce)
@@ -88,7 +88,7 @@ func (rbp *rawBlockProcessor) GetRawMetaBlockByNonce(nonce uint64, asJson bool) 
 }
 
 // GetBlockByHash will return a shard APIBlock by hash
-func (rbp *rawBlockProcessor) GetRawMetaBlockByHash(hash []byte, asJson bool) ([]byte, error) {
+func (rbp *rawBlockProcessor) GetRawMetaBlockByHash(hash []byte) ([]byte, error) {
 	blockBytes, err := rbp.getFromStorer(dataRetriever.MetaBlockUnit, hash)
 	if err != nil {
 		return nil, err
@@ -98,7 +98,7 @@ func (rbp *rawBlockProcessor) GetRawMetaBlockByHash(hash []byte, asJson bool) ([
 }
 
 // GetBlockByRound will return a shard APIBlock by round
-func (rbp *rawBlockProcessor) GetRawMetaBlockByRound(round uint64, asJson bool) ([]byte, error) {
+func (rbp *rawBlockProcessor) GetRawMetaBlockByRound(round uint64) ([]byte, error) {
 	_, blockBytes, err := rbp.getBlockHeaderHashAndBytesByRound(round, dataRetriever.MetaBlockUnit)
 	if err != nil {
 		return nil, err
@@ -110,7 +110,7 @@ func (rbp *rawBlockProcessor) GetRawMetaBlockByRound(round uint64, asJson bool) 
 // JSON
 
 // GetBlockByNonce wil return a meta APIBlock by nonce
-func (rbp *rawBlockProcessor) GetInternalShardBlockByNonce(nonce uint64, asJson bool) (*block.Header, error) {
+func (rbp *rawBlockProcessor) GetInternalShardBlockByNonce(nonce uint64) (*block.Header, error) {
 	storerUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(rbp.selfShardID)
 
 	nonceToByteSlice := rbp.uint64ByteSliceConverter.ToByteSlice(nonce)
@@ -128,7 +128,7 @@ func (rbp *rawBlockProcessor) GetInternalShardBlockByNonce(nonce uint64, asJson 
 }
 
 // GetBlockByHash will return a meta APIBlock by hash
-func (rbp *rawBlockProcessor) GetInternalShardBlockByHash(hash []byte, asJson bool) (*block.Header, error) {
+func (rbp *rawBlockProcessor) GetInternalShardBlockByHash(hash []byte) (*block.Header, error) {
 	blockBytes, err := rbp.getFromStorer(dataRetriever.BlockHeaderUnit, hash)
 	if err != nil {
 		return nil, err
@@ -138,7 +138,7 @@ func (rbp *rawBlockProcessor) GetInternalShardBlockByHash(hash []byte, asJson bo
 }
 
 // GetBlockByRound will return a meta APIBlock by round
-func (rbp *rawBlockProcessor) GetInternalShardBlockByRound(round uint64, asJson bool) (*block.Header, error) {
+func (rbp *rawBlockProcessor) GetInternalShardBlockByRound(round uint64) (*block.Header, error) {
 	_, blockBytes, err := rbp.getBlockHeaderHashAndBytesByRound(round, dataRetriever.BlockHeaderUnit)
 	if err != nil {
 		return nil, err
@@ -160,7 +160,7 @@ func (rbp *rawBlockProcessor) convertShardBlockBytesToInternalBlock(blockBytes [
 // Meta
 
 // GetBlockByNonce will return a shard APIBlock by nonce
-func (rbp *rawBlockProcessor) GetInternalMetaBlockByNonce(nonce uint64, asJson bool) (*block.MetaBlock, error) {
+func (rbp *rawBlockProcessor) GetInternalMetaBlockByNonce(nonce uint64) (*block.MetaBlock, error) {
 	storerUnit := dataRetriever.MetaHdrNonceHashDataUnit
 
 	nonceToByteSlice := rbp.uint64ByteSliceConverter.ToByteSlice(nonce)
@@ -178,7 +178,7 @@ func (rbp *rawBlockProcessor) GetInternalMetaBlockByNonce(nonce uint64, asJson b
 }
 
 // GetBlockByHash will return a shard APIBlock by hash
-func (rbp *rawBlockProcessor) GetInternalMetaBlockByHash(hash []byte, asJson bool) (*block.MetaBlock, error) {
+func (rbp *rawBlockProcessor) GetInternalMetaBlockByHash(hash []byte) (*block.MetaBlock, error) {
 	blockBytes, err := rbp.getFromStorer(dataRetriever.MetaBlockUnit, hash)
 	if err != nil {
 		return nil, err
@@ -188,7 +188,7 @@ func (rbp *rawBlockProcessor) GetInternalMetaBlockByHash(hash []byte, asJson boo
 }
 
 // GetBlockByRound will return a shard APIBlock by round
-func (rbp *rawBlockProcessor) GetInternalMetaBlockByRound(round uint64, asJson bool) (*block.MetaBlock, error) {
+func (rbp *rawBlockProcessor) GetInternalMetaBlockByRound(round uint64) (*block.MetaBlock, error) {
 	_, blockBytes, err := rbp.getBlockHeaderHashAndBytesByRound(round, dataRetriever.MetaBlockUnit)
 	if err != nil {
 		return nil, err

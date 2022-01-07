@@ -80,12 +80,12 @@ type FacadeHandler interface {
 	GetRawShardBlockByHash(hash string) ([]byte, error)
 	GetRawShardBlockByNonce(nonce uint64) ([]byte, error)
 	GetRawShardBlockByRound(round uint64) ([]byte, error)
-	GetJsonMetaBlockByHash(hash string) (*block.MetaBlock, error)
-	GetJsonMetaBlockByNonce(nonce uint64) (*block.MetaBlock, error)
-	GetJsonMetaBlockByRound(round uint64) (*block.MetaBlock, error)
-	GetJsonShardBlockByHash(hash string) (*block.Header, error)
-	GetJsonShardBlockByNonce(nonce uint64) (*block.Header, error)
-	GetJsonShardBlockByRound(round uint64) (*block.Header, error)
+	GetInternalMetaBlockByHash(hash string) (*block.MetaBlock, error)
+	GetInternalMetaBlockByNonce(nonce uint64) (*block.MetaBlock, error)
+	GetInternalMetaBlockByRound(round uint64) (*block.MetaBlock, error)
+	GetInternalShardBlockByHash(hash string) (*block.Header, error)
+	GetInternalShardBlockByNonce(nonce uint64) (*block.Header, error)
+	GetInternalShardBlockByRound(round uint64) (*block.Header, error)
 	GetRawMiniBlockByHash(hash string) ([]byte, error)
 	Trigger(epoch uint32, withEarlyEndOfEpoch bool) error
 	IsSelfTrigger() bool
