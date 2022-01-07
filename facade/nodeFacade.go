@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
 	chainData "github.com/ElrondNetwork/elrond-go-core/data"
 	apiData "github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/vm"
@@ -383,33 +384,76 @@ func (nf *nodeFacade) GetBlockByRound(round uint64, withTxs bool) (*apiData.Bloc
 }
 
 // GetRawMetaBlockByHash return the meta block for a given hash
-func (nf *nodeFacade) GetRawMetaBlockByHash(hash string, asJson bool) ([]byte, error) {
+func (nf *nodeFacade) GetRawMetaBlockByHash(hash string) ([]byte, error) {
+	asJson := false
 	return nf.node.GetRawMetaBlockByHash(hash, asJson)
 }
 
 // GetRawMetaBlockByNonce returns the meta block for a given nonce
-func (nf *nodeFacade) GetRawMetaBlockByNonce(nonce uint64, asJson bool) ([]byte, error) {
+func (nf *nodeFacade) GetRawMetaBlockByNonce(nonce uint64) ([]byte, error) {
+	asJson := false
 	return nf.node.GetRawMetaBlockByNonce(nonce, asJson)
 }
 
 // GetRawMetaBlockByRound returns the meta block for a given round
-func (nf *nodeFacade) GetRawMetaBlockByRound(round uint64, asJson bool) ([]byte, error) {
+func (nf *nodeFacade) GetRawMetaBlockByRound(round uint64) ([]byte, error) {
+	asJson := false
 	return nf.node.GetRawMetaBlockByRound(round, asJson)
 }
 
 // GetRawShardBlockByHash return the shard block for a given hash
-func (nf *nodeFacade) GetRawShardBlockByHash(hash string, asJson bool) ([]byte, error) {
+func (nf *nodeFacade) GetRawShardBlockByHash(hash string) ([]byte, error) {
+	asJson := false
 	return nf.node.GetRawShardBlockByHash(hash, asJson)
 }
 
 // GetRawShardBlockByNonce returns the shard block for a given nonce
-func (nf *nodeFacade) GetRawShardBlockByNonce(nonce uint64, asJson bool) ([]byte, error) {
+func (nf *nodeFacade) GetRawShardBlockByNonce(nonce uint64) ([]byte, error) {
+	asJson := false
 	return nf.node.GetRawShardBlockByNonce(nonce, asJson)
 }
 
 // GetRawShardBlockByRound returns the shard block for a given round
-func (nf *nodeFacade) GetRawShardBlockByRound(round uint64, asJson bool) ([]byte, error) {
+func (nf *nodeFacade) GetRawShardBlockByRound(round uint64) ([]byte, error) {
+	asJson := false
 	return nf.node.GetRawShardBlockByRound(round, asJson)
+}
+
+// GetJsonMetaBlockByHash return the meta block for a given hash
+func (nf *nodeFacade) GetJsonMetaBlockByHash(hash string) (*block.MetaBlock, error) {
+	asJson := true
+	return nf.node.GetInternalMetaBlockByHash(hash, asJson)
+}
+
+// GetJsonMetaBlockByNonce returns the meta block for a given nonce
+func (nf *nodeFacade) GetJsonMetaBlockByNonce(nonce uint64) (*block.MetaBlock, error) {
+	asJson := true
+	return nf.node.GetInternalMetaBlockByNonce(nonce, asJson)
+}
+
+// GetJsonMetaBlockByRound returns the meta block for a given round
+func (nf *nodeFacade) GetJsonMetaBlockByRound(round uint64) (*block.MetaBlock, error) {
+	asJson := true
+	return nf.node.GetInternalMetaBlockByRound(round, asJson)
+}
+
+// GetJsonShardBlockByHash return the shard block for a given hash
+func (nf *nodeFacade) GetJsonShardBlockByHash(hash string) (*block.Header, error) {
+	asJson := true
+	return nf.node.GetInternalShardBlockByHash(hash, asJson)
+}
+
+// GetJsonShardBlockByNonce returns the shard block for a given nonce
+func (nf *nodeFacade) GetJsonShardBlockByNonce(nonce uint64) (*block.Header, error) {
+	asJson := true
+	return nf.node.GetInternalShardBlockByNonce(nonce, asJson)
+}
+
+// GetJsonShardBlockByRound returns the shard block for a given round
+func (nf *nodeFacade) GetJsonShardBlockByRound(round uint64) (*block.Header, error) {
+	asJson := true
+
+	return nf.node.GetInternalShardBlockByRound(round, asJson)
 }
 
 // GetMiniBlock return the miniblock for a given hash

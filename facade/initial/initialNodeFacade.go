@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/vm"
@@ -252,32 +253,62 @@ func (inf *initialNodeFacade) GetBlockByRound(_ uint64, _ bool) (*api.Block, err
 }
 
 // GetRawMetaBlockByHash return nil and error
-func (inf *initialNodeFacade) GetRawMetaBlockByHash(_ string, _ bool) ([]byte, error) {
+func (inf *initialNodeFacade) GetRawMetaBlockByHash(_ string) ([]byte, error) {
 	return nil, errNodeStarting
 }
 
 // GetRawMetaBlockByNonce returns nil and error
-func (inf *initialNodeFacade) GetRawMetaBlockByNonce(_ uint64, _ bool) ([]byte, error) {
+func (inf *initialNodeFacade) GetRawMetaBlockByNonce(_ uint64) ([]byte, error) {
 	return nil, errNodeStarting
 }
 
 // GetRawMetaBlockByRound returns nil and error
-func (inf *initialNodeFacade) GetRawMetaBlockByRound(_ uint64, _ bool) ([]byte, error) {
+func (inf *initialNodeFacade) GetRawMetaBlockByRound(_ uint64) ([]byte, error) {
 	return nil, errNodeStarting
 }
 
 // GetRawShardBlockByHash return nil and error
-func (inf *initialNodeFacade) GetRawShardBlockByHash(_ string, _ bool) ([]byte, error) {
+func (inf *initialNodeFacade) GetRawShardBlockByHash(_ string) ([]byte, error) {
 	return nil, errNodeStarting
 }
 
 // GetRawShardBlockByNonce returns nil and error
-func (inf *initialNodeFacade) GetRawShardBlockByNonce(_ uint64, _ bool) ([]byte, error) {
+func (inf *initialNodeFacade) GetRawShardBlockByNonce(_ uint64) ([]byte, error) {
 	return nil, errNodeStarting
 }
 
 // GetRawShardBlockByRound returns nil and error
-func (inf *initialNodeFacade) GetRawShardBlockByRound(_ uint64, _ bool) ([]byte, error) {
+func (inf *initialNodeFacade) GetRawShardBlockByRound(_ uint64) ([]byte, error) {
+	return nil, errNodeStarting
+}
+
+// GetJsonMetaBlockByHash return nil and error
+func (inf *initialNodeFacade) GetJsonMetaBlockByHash(_ string) (*block.MetaBlock, error) {
+	return nil, errNodeStarting
+}
+
+// GetJsonMetaBlockByNonce returns nil and error
+func (inf *initialNodeFacade) GetJsonMetaBlockByNonce(_ uint64) (*block.MetaBlock, error) {
+	return nil, errNodeStarting
+}
+
+// GetJsonMetaBlockByRound returns nil and error
+func (inf *initialNodeFacade) GetJsonMetaBlockByRound(_ uint64) (*block.MetaBlock, error) {
+	return nil, errNodeStarting
+}
+
+// GetJsonShardBlockByHash return nil and error
+func (inf *initialNodeFacade) GetJsonShardBlockByHash(_ string) (*block.Header, error) {
+	return nil, errNodeStarting
+}
+
+// GetJsonShardBlockByNonce returns nil and error
+func (inf *initialNodeFacade) GetJsonShardBlockByNonce(_ uint64) (*block.Header, error) {
+	return nil, errNodeStarting
+}
+
+// GetJsonShardBlockByRound returns nil and error
+func (inf *initialNodeFacade) GetJsonShardBlockByRound(_ uint64) (*block.Header, error) {
 	return nil, errNodeStarting
 }
 

@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -97,10 +98,16 @@ type NodeHandler interface {
 	GetRawMetaBlockByHash(hash string, asJson bool) ([]byte, error)
 	GetRawMetaBlockByNonce(nonce uint64, asJson bool) ([]byte, error)
 	GetRawMetaBlockByRound(round uint64, asJson bool) ([]byte, error)
-
 	GetRawShardBlockByHash(hash string, asJson bool) ([]byte, error)
 	GetRawShardBlockByNonce(nonce uint64, asJson bool) ([]byte, error)
 	GetRawShardBlockByRound(round uint64, asJson bool) ([]byte, error)
+
+	GetInternalShardBlockByNonce(nonce uint64, asJson bool) (*block.Header, error)
+	GetInternalShardBlockByHash(hash string, asJson bool) (*block.Header, error)
+	GetInternalShardBlockByRound(round uint64, asJson bool) (*block.Header, error)
+	GetInternalMetaBlockByNonce(nonce uint64, asJson bool) (*block.MetaBlock, error)
+	GetInternalMetaBlockByHash(hash string, asJson bool) (*block.MetaBlock, error)
+	GetInternalMetaBlockByRound(round uint64, asJson bool) (*block.MetaBlock, error)
 
 	GetMiniBlock(txHash string) ([]byte, error)
 

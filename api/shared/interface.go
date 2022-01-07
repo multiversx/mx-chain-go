@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/vm"
@@ -73,12 +74,18 @@ type FacadeHandler interface {
 	GetBlockByHash(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error)
 	GetBlockByRound(round uint64, withTxs bool) (*api.Block, error)
-	GetRawMetaBlockByHash(hash string, asJson bool) ([]byte, error)
-	GetRawMetaBlockByNonce(nonce uint64, asJson bool) ([]byte, error)
-	GetRawMetaBlockByRound(round uint64, asJson bool) ([]byte, error)
-	GetRawShardBlockByHash(hash string, asJson bool) ([]byte, error)
-	GetRawShardBlockByNonce(nonce uint64, asJson bool) ([]byte, error)
-	GetRawShardBlockByRound(round uint64, asJson bool) ([]byte, error)
+	GetRawMetaBlockByHash(hash string) ([]byte, error)
+	GetRawMetaBlockByNonce(nonce uint64) ([]byte, error)
+	GetRawMetaBlockByRound(round uint64) ([]byte, error)
+	GetRawShardBlockByHash(hash string) ([]byte, error)
+	GetRawShardBlockByNonce(nonce uint64) ([]byte, error)
+	GetRawShardBlockByRound(round uint64) ([]byte, error)
+	GetJsonMetaBlockByHash(hash string) (*block.MetaBlock, error)
+	GetJsonMetaBlockByNonce(nonce uint64) (*block.MetaBlock, error)
+	GetJsonMetaBlockByRound(round uint64) (*block.MetaBlock, error)
+	GetJsonShardBlockByHash(hash string) (*block.Header, error)
+	GetJsonShardBlockByNonce(nonce uint64) (*block.Header, error)
+	GetJsonShardBlockByRound(round uint64) (*block.Header, error)
 	GetRawMiniBlockByHash(hash string) ([]byte, error)
 	Trigger(epoch uint32, withEarlyEndOfEpoch bool) error
 	IsSelfTrigger() bool
