@@ -253,10 +253,14 @@ func (sm *statusMetrics) RatingsMetrics() map[string]interface{} {
 	ratingsMetrics[common.MetricRatingsGeneralMaxRating] = sm.loadUint64Metric(common.MetricRatingsGeneralMaxRating)
 	ratingsMetrics[common.MetricRatingsGeneralMinRating] = sm.loadUint64Metric(common.MetricRatingsGeneralMinRating)
 	ratingsMetrics[common.MetricRatingsGeneralSignedBlocksThreshold] = sm.loadStringMetric(common.MetricRatingsGeneralSignedBlocksThreshold)
-	// for i, selectionChance := range ratingsConfig.General.SelectionChances {
-	// 	appStatusHandler.SetUInt64Value(common.MetricRatingsGeneralSelectionChances+string(i)+"MaxThreshold", uint64(selectionChance.MaxThreshold))
-	// 	appStatusHandler.SetUInt64Value(common.MetricRatingsGeneralSelectionChances+string(i)+"ChancePercent", uint64(selectionChance.ChancePercent))
-	// }
+
+	numSelectionChances := sm.loadUint64Metric(common.MetricRatingsGeneralSelectionChances + "_count")
+	for i := uint64(0); i < numSelectionChances; i++ {
+		maxThresholdStr := fmt.Sprintf("%s%d%s", common.MetricRatingsGeneralSelectionChances, i, common.SelectionChancesMaxThresholdSuffix)
+		ratingsMetrics[maxThresholdStr] = sm.loadUint64Metric(maxThresholdStr)
+		chancePercentStr := fmt.Sprintf("%s%d%s", common.MetricRatingsGeneralSelectionChances, i, common.SelectionChancesChancePercentSuffix)
+		ratingsMetrics[chancePercentStr] = sm.loadUint64Metric(chancePercentStr)
+	}
 
 	ratingsMetrics[common.MetricRatingsShardChainHoursToMaxRatingFromStartRating] = sm.loadUint64Metric(common.MetricRatingsShardChainHoursToMaxRatingFromStartRating)
 	ratingsMetrics[common.MetricRatingsShardChainProposerValidatorImportance] = sm.loadStringMetric(common.MetricRatingsShardChainProposerValidatorImportance)

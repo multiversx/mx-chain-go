@@ -481,6 +481,8 @@ const (
 	MetricRatingsGeneralMinRating             = "erd_ratings_general_min_rating"
 	MetricRatingsGeneralSignedBlocksThreshold = "erd_ratings_general_signed_blocks_threshold"
 	MetricRatingsGeneralSelectionChances      = "erd_ratings_general_selection_chances"
+	SelectionChancesMaxThresholdSuffix        = "_max_threshold"
+	SelectionChancesChancePercentSuffix       = "_chance_percent"
 
 	MetricRatingsShardChain                                = "erd_ratings_general_selection_chances"
 	MetricRatingsShardChainHoursToMaxRatingFromStartRating = "erd_ratings_shardchain_hours_to_max_rating_from_start_rating"

@@ -134,9 +134,12 @@ func InitRatingsMetrics(statusHandlerUtils StatusHandlersUtils, ratingsConfig co
 	appStatusHandler.SetUInt64Value(common.MetricRatingsGeneralMinRating, uint64(ratingsConfig.General.MinRating))
 	appStatusHandler.SetStringValue(common.MetricRatingsGeneralSignedBlocksThreshold, fmt.Sprintf("%f", ratingsConfig.General.SignedBlocksThreshold))
 	for i, selectionChance := range ratingsConfig.General.SelectionChances {
-		appStatusHandler.SetUInt64Value(common.MetricRatingsGeneralSelectionChances+string(i)+"MaxThreshold", uint64(selectionChance.MaxThreshold))
-		appStatusHandler.SetUInt64Value(common.MetricRatingsGeneralSelectionChances+string(i)+"ChancePercent", uint64(selectionChance.ChancePercent))
+		maxThresholdStr := fmt.Sprintf("%s%d%s", common.MetricRatingsGeneralSelectionChances, i, common.SelectionChancesMaxThresholdSuffix)
+		appStatusHandler.SetUInt64Value(maxThresholdStr, uint64(selectionChance.MaxThreshold))
+		chancePercentStr := fmt.Sprintf("%s%d%s", common.MetricRatingsGeneralSelectionChances, i, common.SelectionChancesChancePercentSuffix)
+		appStatusHandler.SetUInt64Value(chancePercentStr, uint64(selectionChance.ChancePercent))
 	}
+	appStatusHandler.SetUInt64Value(common.MetricRatingsGeneralSelectionChances+"_count", uint64(len(ratingsConfig.General.SelectionChances)))
 
 	appStatusHandler.SetUInt64Value(common.MetricRatingsShardChainHoursToMaxRatingFromStartRating, uint64(ratingsConfig.ShardChain.HoursToMaxRatingFromStartRating))
 	appStatusHandler.SetStringValue(common.MetricRatingsShardChainProposerValidatorImportance, fmt.Sprintf("%f", ratingsConfig.ShardChain.ProposerValidatorImportance))
