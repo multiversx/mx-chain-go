@@ -180,23 +180,36 @@
     Routes = [
         # TODO: comments update
 
-        # /internal/metablock/by-nonce/:nonce will return the block in JSON format based on its nonce
-        { Name = "/metablock/by-nonce/:nonce", Open = true },
+        # /internal/raw/metablock/by-nonce/:nonce will return the block in JSON format based on its nonce
+        { Name = "/raw/metablock/by-nonce/:nonce", Open = true },
 
-        # /internal/metablock/by-hash/:hash will return the block in JSON format based on its hash
-        { Name = "/metablock/by-hash/:hash", Open = true },
+        # /internal/raw/metablock/by-hash/:hash will return the block in JSON format based on its hash
+        { Name = "/raw/metablock/by-hash/:hash", Open = true },
 
-        # /internal/metablock/by-round/:round will return the block in JSON format based on round
-        { Name = "/metablock/by-round/:round", Open = true },
+        # /internal/raw/metablock/by-round/:round will return the block in JSON format based on round
+        { Name = "/raw/metablock/by-round/:round", Open = true },
 
-        # /internal/shardblock/by-nonce/:nonce will return the block in JSON format based on its nonce
-        { Name = "/shardblock/by-nonce/:nonce", Open = true },
+        # /internal/raw/shardblock/by-nonce/:nonce will return the block in JSON format based on its nonce
+        { Name = "/raw/shardblock/by-nonce/:nonce", Open = true },
 
-        # /internal/shardblock/by-hash/:hash will return the block in JSON format based on its hash
-        { Name = "/shardblock/by-hash/:hash", Open = true },
+        # /internal/raw/shardblock/by-hash/:hash will return the block in JSON format based on its hash
+        { Name = "/raw/shardblock/by-hash/:hash", Open = true },
 
-        # /internal/shardblock/by-round/:round will return the block in JSON format based on round
-        { Name = "/shardblock/by-round/:round", Open = true },
+        # /internal/raw/shardblock/by-round/:round will return the block in JSON format based on round
+        { Name = "/raw/shardblock/by-round/:round", Open = true },
+
+
+        { Name = "/json/metablock/by-nonce/:nonce", Open = true },
+
+        { Name = "/json/metablock/by-hash/:hash", Open = true },
+
+        { Name = "/json/metablock/by-round/:round", Open = true },
+
+        { Name = "/json/shardblock/by-nonce/:nonce", Open = true },
+
+        { Name = "/json/shardblock/by-hash/:hash", Open = true },
+
+        { Name = "/json/shardblock/by-round/:round", Open = true },
 
         # /internal/miniblock/by-hash/:hash will return the block in JSON format based on its hash
         { Name = "/miniblock/by-hash/:hash", Open = true },
