@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
@@ -28,7 +29,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-vm-common/atomic"
 )
 
 var log = logger.GetOrCreate("process/block")
@@ -1590,6 +1590,6 @@ func (bp *baseProcessor) ProcessScheduledBlock(_ data.HeaderHandler, _ data.Body
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (bp *baseProcessor) EpochConfirmed(epoch uint32, _ uint64) {
-	bp.flagScheduledMiniBlocks.Toggle(epoch >= bp.scheduledMiniBlocksEnableEpoch)
+	bp.flagScheduledMiniBlocks.SetValue(epoch >= bp.scheduledMiniBlocksEnableEpoch)
 	log.Debug("baseProcessor: scheduled mini blocks", "enabled", bp.flagScheduledMiniBlocks.IsSet())
 }

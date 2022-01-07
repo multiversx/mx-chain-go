@@ -1439,7 +1439,7 @@ func (g *governanceContract) convertV2Config(config config.GovernanceSystemSCCon
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (g *governanceContract) EpochConfirmed(epoch uint32, _ uint64) {
-	g.flagEnabled.Toggle(epoch >= g.enabledEpoch)
+	g.flagEnabled.SetValue(epoch >= g.enabledEpoch)
 	log.Debug("governance contract", "enabled", g.flagEnabled.IsSet())
 }
 

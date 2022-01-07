@@ -1453,10 +1453,10 @@ func (txs *transactions) GetAllCurrentUsedTxs() map[string]data.TransactionHandl
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (txs *transactions) EpochConfirmed(epoch uint32, _ uint64) {
-	txs.flagOptimizeGasUsedInCrossMiniBlocks.Toggle(epoch >= txs.optimizeGasUsedInCrossMiniBlocksEnableEpoch)
+	txs.flagOptimizeGasUsedInCrossMiniBlocks.SetValue(epoch >= txs.optimizeGasUsedInCrossMiniBlocksEnableEpoch)
 	log.Debug("transactions: optimize gas used in cross mini blocks", "enabled", txs.flagOptimizeGasUsedInCrossMiniBlocks.IsSet())
 
-	txs.flagScheduledMiniBlocks.Toggle(epoch >= txs.scheduledMiniBlocksEnableEpoch)
+	txs.flagScheduledMiniBlocks.SetValue(epoch >= txs.scheduledMiniBlocksEnableEpoch)
 	log.Debug("transactions: scheduled mini blocks", "enabled", txs.flagScheduledMiniBlocks.IsSet())
 }
 

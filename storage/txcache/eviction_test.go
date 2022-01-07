@@ -184,7 +184,7 @@ func TestEviction_doEvictionDoesNothingWhenAlreadyInProgress(t *testing.T) {
 
 	cache.AddTx(createTx([]byte("hash-alice"), "alice", uint64(1)))
 
-	cache.isEvictionInProgress.Set()
+	_ = cache.isEvictionInProgress.SetReturningPrevious()
 	cache.doEviction()
 
 	require.False(t, cache.evictionJournal.evictionPerformed)
