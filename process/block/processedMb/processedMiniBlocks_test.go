@@ -18,13 +18,13 @@ func TestProcessedMiniBlocks_AddMiniBlockHashShouldWork(t *testing.T) {
 	mtbHash1 := "meta1"
 	mtbHash2 := "meta2"
 
-	pmb.AddMiniBlockHash(mtbHash1, mbHash1)
+	pmb.AddMiniBlockHash(mtbHash1, mbHash1, nil)
 	assert.True(t, pmb.IsMiniBlockProcessed(mtbHash1, mbHash1))
 
-	pmb.AddMiniBlockHash(mtbHash2, mbHash1)
+	pmb.AddMiniBlockHash(mtbHash2, mbHash1, nil)
 	assert.True(t, pmb.IsMiniBlockProcessed(mtbHash2, mbHash1))
 
-	pmb.AddMiniBlockHash(mtbHash1, mbHash2)
+	pmb.AddMiniBlockHash(mtbHash1, mbHash2, nil)
 	assert.True(t, pmb.IsMiniBlockProcessed(mtbHash1, mbHash2))
 
 	pmb.RemoveMiniBlockHash(mbHash1)
@@ -47,9 +47,9 @@ func TestProcessedMiniBlocks_GetProcessedMiniBlocksHashes(t *testing.T) {
 	mtbHash1 := "meta1"
 	mtbHash2 := "meta2"
 
-	pmb.AddMiniBlockHash(mtbHash1, mbHash1)
-	pmb.AddMiniBlockHash(mtbHash1, mbHash2)
-	pmb.AddMiniBlockHash(mtbHash2, mbHash2)
+	pmb.AddMiniBlockHash(mtbHash1, mbHash1, nil)
+	pmb.AddMiniBlockHash(mtbHash1, mbHash2, nil)
+	pmb.AddMiniBlockHash(mtbHash2, mbHash2, nil)
 
 	mapData := pmb.GetProcessedMiniBlocksHashes(mtbHash1)
 	assert.NotNil(t, mapData[mbHash1])
