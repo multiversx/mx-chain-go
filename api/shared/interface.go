@@ -87,6 +87,7 @@ type FacadeHandler interface {
 	GetInternalShardBlockByNonce(nonce uint64) (*block.Header, error)
 	GetInternalShardBlockByRound(round uint64) (*block.Header, error)
 	GetRawMiniBlockByHash(hash string) ([]byte, error)
+	GetInternalMiniBlockByHash(hash string) (*block.MiniBlock, error)
 	Trigger(epoch uint32, withEarlyEndOfEpoch bool) error
 	IsSelfTrigger() bool
 	GetTotalStakedValue() (*api.StakeValues, error)

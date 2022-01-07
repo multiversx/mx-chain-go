@@ -443,9 +443,14 @@ func (nf *nodeFacade) GetInternalShardBlockByRound(round uint64) (*block.Header,
 	return nf.node.GetInternalShardBlockByRound(round)
 }
 
-// GetMiniBlock return the miniblock for a given hash
+// GetRawMiniBlock return the miniblock as raw data for a given hash
 func (nf *nodeFacade) GetRawMiniBlockByHash(txHash string) ([]byte, error) {
-	return nf.node.GetMiniBlock(txHash)
+	return nf.node.GetRawMiniBlock(txHash)
+}
+
+// GetInternalMiniBlock return the miniblock for a given hash
+func (nf *nodeFacade) GetInternalMiniBlockByHash(txHash string) (*block.MiniBlock, error) {
+	return nf.node.GetInternalMiniBlock(txHash)
 }
 
 // Close will cleanup started go routines

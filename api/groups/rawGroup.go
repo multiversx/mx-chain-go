@@ -15,19 +15,20 @@ import (
 )
 
 const (
-	getRawMetaBlockByNoncePath   = "/raw/metablock/by-nonce/:nonce"
-	getRawMetaBlockByHashPath    = "/raw/metablock/by-hash/:hash"
-	getRawMetaBlockByRoundPath   = "/raw/metablock/by-round/:round"
-	getRawShardBlockByNoncePath  = "/raw/shardblock/by-nonce/:nonce"
-	getRawShardBlockByHashPath   = "/raw/shardblock/by-hash/:hash"
-	getRawShardBlockByRoundPath  = "/raw/shardblock/by-round/:round"
-	getJsonMetaBlockByNoncePath  = "/json/metablock/by-nonce/:nonce"
-	getJsonMetaBlockByHashPath   = "/json/metablock/by-hash/:hash"
-	getJsonMetaBlockByRoundPath  = "/json/metablock/by-round/:round"
-	getJsonShardBlockByNoncePath = "/json/shardblock/by-nonce/:nonce"
-	getJsonShardBlockByHashPath  = "/json/shardblock/by-hash/:hash"
-	getJsonShardBlockByRoundPath = "/json/shardblock/by-round/:round"
-	getRawMiniBlockByHashPath    = "/miniblock/by-hash/:hash"
+	getRawMetaBlockByNoncePath       = "/raw/metablock/by-nonce/:nonce"
+	getRawMetaBlockByHashPath        = "/raw/metablock/by-hash/:hash"
+	getRawMetaBlockByRoundPath       = "/raw/metablock/by-round/:round"
+	getRawShardBlockByNoncePath      = "/raw/shardblock/by-nonce/:nonce"
+	getRawShardBlockByHashPath       = "/raw/shardblock/by-hash/:hash"
+	getRawShardBlockByRoundPath      = "/raw/shardblock/by-round/:round"
+	getInternalMetaBlockByNoncePath  = "/json/metablock/by-nonce/:nonce"
+	getInternalMetaBlockByHashPath   = "/json/metablock/by-hash/:hash"
+	getInternalMetaBlockByRoundPath  = "/json/metablock/by-round/:round"
+	getInternalShardBlockByNoncePath = "/json/shardblock/by-nonce/:nonce"
+	getInternalShardBlockByHashPath  = "/json/shardblock/by-hash/:hash"
+	getInternalShardBlockByRoundPath = "/json/shardblock/by-round/:round"
+	getRawMiniBlockByHashPath        = "/raw/miniblock/by-hash/:hash"
+	getInternalMiniBlockByHashPath   = "/json/miniblock/by-hash/:hash"
 )
 
 // TODO: comments update
@@ -47,6 +48,7 @@ type rawBlockFacadeHandler interface {
 	GetInternalShardBlockByNonce(nonce uint64) (*block.Header, error)
 	GetInternalShardBlockByRound(round uint64) (*block.Header, error)
 	GetRawMiniBlockByHash(hash string) ([]byte, error)
+	GetInternalMiniBlockByHash(hash string) (*block.MiniBlock, error)
 	IsInterfaceNil() bool
 }
 
@@ -98,41 +100,45 @@ func NewRawBlockGroup(facade rawBlockFacadeHandler) (*rawBlockGroup, error) {
 			Method:  http.MethodGet,
 			Handler: rb.getRawShardBlockByRound,
 		},
-		// JSON
 		{
-			Path:    getJsonMetaBlockByNoncePath,
+			Path:    getInternalMetaBlockByNoncePath,
 			Method:  http.MethodGet,
-			Handler: rb.getJsonMetaBlockByNonce,
+			Handler: rb.getInternalMetaBlockByNonce,
 		},
 		{
-			Path:    getJsonMetaBlockByHashPath,
+			Path:    getInternalMetaBlockByHashPath,
 			Method:  http.MethodGet,
-			Handler: rb.getJsonMetaBlockByHash,
+			Handler: rb.getInternalMetaBlockByHash,
 		},
 		{
-			Path:    getJsonMetaBlockByRoundPath,
+			Path:    getInternalMetaBlockByRoundPath,
 			Method:  http.MethodGet,
-			Handler: rb.getJsonMetaBlockByRound,
+			Handler: rb.getInternalMetaBlockByRound,
 		},
 		{
-			Path:    getJsonShardBlockByNoncePath,
+			Path:    getInternalShardBlockByNoncePath,
 			Method:  http.MethodGet,
-			Handler: rb.getJsonShardBlockByNonce,
+			Handler: rb.getInternalShardBlockByNonce,
 		},
 		{
-			Path:    getJsonShardBlockByHashPath,
+			Path:    getInternalShardBlockByHashPath,
 			Method:  http.MethodGet,
-			Handler: rb.getJsonShardBlockByHash,
+			Handler: rb.getInternalShardBlockByHash,
 		},
 		{
-			Path:    getJsonShardBlockByRoundPath,
+			Path:    getInternalShardBlockByRoundPath,
 			Method:  http.MethodGet,
-			Handler: rb.getJsonShardBlockByRound,
+			Handler: rb.getInternalShardBlockByRound,
 		},
 		{
 			Path:    getRawMiniBlockByHashPath,
 			Method:  http.MethodGet,
 			Handler: rb.getRawMiniBlockByHash,
+		},
+		{
+			Path:    getInternalMiniBlockByHashPath,
+			Method:  http.MethodGet,
+			Handler: rb.getInternalMiniBlockByHash,
 		},
 	}
 	rb.endpoints = endpoints
@@ -302,7 +308,7 @@ func (rb *rawBlockGroup) getRawShardBlockByRound(c *gin.Context) {
 
 // ---- Json Blocks
 
-func (rb *rawBlockGroup) getJsonMetaBlockByNonce(c *gin.Context) {
+func (rb *rawBlockGroup) getInternalMetaBlockByNonce(c *gin.Context) {
 	nonce, err := getQueryParamNonce(c)
 	if err != nil {
 		shared.RespondWithValidationError(
@@ -328,7 +334,7 @@ func (rb *rawBlockGroup) getJsonMetaBlockByNonce(c *gin.Context) {
 	shared.RespondWith(c, http.StatusOK, gin.H{"block": block}, "", shared.ReturnCodeSuccess)
 }
 
-func (rb *rawBlockGroup) getJsonMetaBlockByHash(c *gin.Context) {
+func (rb *rawBlockGroup) getInternalMetaBlockByHash(c *gin.Context) {
 	hash := c.Param("hash")
 	if hash == "" {
 		shared.RespondWithValidationError(
@@ -354,7 +360,7 @@ func (rb *rawBlockGroup) getJsonMetaBlockByHash(c *gin.Context) {
 	shared.RespondWith(c, http.StatusOK, gin.H{"block": block}, "", shared.ReturnCodeSuccess)
 }
 
-func (rb *rawBlockGroup) getJsonMetaBlockByRound(c *gin.Context) {
+func (rb *rawBlockGroup) getInternalMetaBlockByRound(c *gin.Context) {
 	round, err := getQueryParamRound(c)
 	if err != nil {
 		shared.RespondWithValidationError(
@@ -382,7 +388,7 @@ func (rb *rawBlockGroup) getJsonMetaBlockByRound(c *gin.Context) {
 
 // --------------------------- shard block -----------------------------
 
-func (rb *rawBlockGroup) getJsonShardBlockByNonce(c *gin.Context) {
+func (rb *rawBlockGroup) getInternalShardBlockByNonce(c *gin.Context) {
 	nonce, err := getQueryParamNonce(c)
 	if err != nil {
 		shared.RespondWithValidationError(
@@ -408,7 +414,7 @@ func (rb *rawBlockGroup) getJsonShardBlockByNonce(c *gin.Context) {
 	shared.RespondWith(c, http.StatusOK, gin.H{"block": block}, "", shared.ReturnCodeSuccess)
 }
 
-func (rb *rawBlockGroup) getJsonShardBlockByHash(c *gin.Context) {
+func (rb *rawBlockGroup) getInternalShardBlockByHash(c *gin.Context) {
 	hash := c.Param("hash")
 	if hash == "" {
 		shared.RespondWithValidationError(
@@ -434,7 +440,7 @@ func (rb *rawBlockGroup) getJsonShardBlockByHash(c *gin.Context) {
 	shared.RespondWith(c, http.StatusOK, gin.H{"block": block}, "", shared.ReturnCodeSuccess)
 }
 
-func (rb *rawBlockGroup) getJsonShardBlockByRound(c *gin.Context) {
+func (rb *rawBlockGroup) getInternalShardBlockByRound(c *gin.Context) {
 	round, err := getQueryParamRound(c)
 	if err != nil {
 		shared.RespondWithValidationError(
@@ -473,6 +479,32 @@ func (rb *rawBlockGroup) getRawMiniBlockByHash(c *gin.Context) {
 
 	start := time.Now()
 	miniBlock, err := rb.getFacade().GetRawMiniBlockByHash(hash)
+	log.Debug(fmt.Sprintf("GetRawMiniBlockByHash took %s", time.Since(start)))
+	if err != nil {
+		shared.RespondWith(
+			c,
+			http.StatusInternalServerError,
+			nil,
+			fmt.Sprintf("%s: %s", errors.ErrGetBlock.Error(), err.Error()),
+			shared.ReturnCodeInternalError,
+		)
+		return
+	}
+
+	shared.RespondWith(c, http.StatusOK, gin.H{"block": miniBlock}, "", shared.ReturnCodeSuccess)
+}
+
+func (rb *rawBlockGroup) getInternalMiniBlockByHash(c *gin.Context) {
+	hash := c.Param("hash")
+	if hash == "" {
+		shared.RespondWithValidationError(
+			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrValidationEmptyBlockHash.Error()),
+		)
+		return
+	}
+
+	start := time.Now()
+	miniBlock, err := rb.getFacade().GetInternalMiniBlockByHash(hash)
 	log.Debug(fmt.Sprintf("GetRawMiniBlockByHash took %s", time.Since(start)))
 	if err != nil {
 		shared.RespondWith(

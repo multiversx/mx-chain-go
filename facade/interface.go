@@ -109,7 +109,8 @@ type NodeHandler interface {
 	GetInternalMetaBlockByHash(hash string) (*block.MetaBlock, error)
 	GetInternalMetaBlockByRound(round uint64) (*block.MetaBlock, error)
 
-	GetMiniBlock(txHash string) ([]byte, error)
+	GetRawMiniBlock(txHash string) ([]byte, error)
+	GetInternalMiniBlock(txHash string) (*block.MiniBlock, error)
 
 	GetProof(rootHash string, key string) (*common.GetProofResponse, error)
 	GetProofDataTrie(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error)

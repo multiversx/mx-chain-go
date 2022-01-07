@@ -317,6 +317,11 @@ func (inf *initialNodeFacade) GetRawMiniBlockByHash(_ string) ([]byte, error) {
 	return nil, errNodeStarting
 }
 
+// GetInternalMiniBlockByHash return nil and error
+func (inf *initialNodeFacade) GetInternalMiniBlockByHash(_ string) (*block.MiniBlock, error) {
+	return nil, errNodeStarting
+}
+
 // Close returns error
 func (inf *initialNodeFacade) Close() error {
 	return errNodeStarting

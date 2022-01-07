@@ -212,7 +212,9 @@
         { Name = "/json/shardblock/by-round/:round", Open = true },
 
         # /internal/miniblock/by-hash/:hash will return the block in JSON format based on its hash
-        { Name = "/miniblock/by-hash/:hash", Open = true },
+        { Name = "/raw/miniblock/by-hash/:hash", Open = true },
+
+        { Name = "/json/miniblock/by-hash/:hash", Open = true },
     ]
 
 [APIPackages.proof]
