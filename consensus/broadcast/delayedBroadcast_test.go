@@ -167,11 +167,11 @@ func TestDelayedBlockBroadcaster_HeaderReceivedNoDelayedDataRegistered(t *testin
 	txBroadcastCalled := atomic.Flag{}
 
 	broadcastMiniBlocks := func(mbData map[uint32][]byte) error {
-		mbBroadcastCalled.Set()
+		_ = mbBroadcastCalled.SetReturningPrevious()
 		return nil
 	}
 	broadcastTransactions := func(txData map[string][][]byte) error {
-		txBroadcastCalled.Set()
+		_ = txBroadcastCalled.SetReturningPrevious()
 		return nil
 	}
 	broadcastHeader := func(header data.HeaderHandler) error {
@@ -200,11 +200,11 @@ func TestDelayedBlockBroadcaster_HeaderReceivedForRegisteredDelayedDataShouldBro
 	txBroadcastCalled := atomic.Flag{}
 
 	broadcastMiniBlocks := func(mbData map[uint32][]byte) error {
-		mbBroadcastCalled.Set()
+		_ = mbBroadcastCalled.SetReturningPrevious()
 		return nil
 	}
 	broadcastTransactions := func(txData map[string][][]byte) error {
-		txBroadcastCalled.Set()
+		_ = txBroadcastCalled.SetReturningPrevious()
 		return nil
 	}
 	broadcastHeader := func(header data.HeaderHandler) error {
@@ -246,11 +246,11 @@ func TestDelayedBlockBroadcaster_HeaderReceivedForNotRegisteredDelayedDataShould
 	txBroadcastCalled := atomic.Flag{}
 
 	broadcastMiniBlocks := func(mbData map[uint32][]byte) error {
-		mbBroadcastCalled.Set()
+		_ = mbBroadcastCalled.SetReturningPrevious()
 		return nil
 	}
 	broadcastTransactions := func(txData map[string][][]byte) error {
-		txBroadcastCalled.Set()
+		_ = txBroadcastCalled.SetReturningPrevious()
 		return nil
 	}
 	broadcastHeader := func(header data.HeaderHandler) error {
