@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"math/big"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
@@ -16,6 +17,10 @@ import (
 )
 
 var logAccountFreezer = logger.GetOrCreate("systemSmartContracts/freezeAccount")
+
+// TODO:
+// 1. Add builtin function
+// 2. Move Guardian structs to elrond-go-core
 
 // Key prefixes
 const (
@@ -52,9 +57,10 @@ type freezeAccount struct {
 	systemEI             vm.SystemEI
 	pubKeyConverter      core.PubkeyConverter
 	guardianEnableEpochs uint32
+	mutExecution         sync.RWMutex
 
-	enableEpoch             uint32
-	flagEnableFreezeAccount atomic.Flag
+	enableEpoch uint32
+	flagEnabled atomic.Flag
 }
 
 func NewFreezeAccountSmartContract(args ArgsFreezeAccountSC) (*freezeAccount, error) {
@@ -74,6 +80,8 @@ func NewFreezeAccountSmartContract(args ArgsFreezeAccountSC) (*freezeAccount, er
 		systemEI:             args.SystemEI,
 		pubKeyConverter:      args.PubKeyConverter,
 		guardianEnableEpochs: args.AccountFreezerConfig.GuardianEnableEpochs,
+		enableEpoch:          args.EpochConfig.EnableEpochs.AccountFreezerEnableEpoch,
+		mutExecution:         sync.RWMutex{},
 	}
 	logAccountFreezer.Debug("account freezer enable epoch", accountFreezer.enableEpoch)
 	args.EpochNotifier.RegisterNotifyHandler(accountFreezer)
@@ -82,7 +90,14 @@ func NewFreezeAccountSmartContract(args ArgsFreezeAccountSC) (*freezeAccount, er
 }
 
 func (fa *freezeAccount) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	fa.mutExecution.RLock()
+	defer fa.mutExecution.RUnlock()
+
 	if CheckIfNil(args) != nil {
+		return vmcommon.UserError
+	}
+	if !fa.flagEnabled.IsSet() {
+		fa.systemEI.AddReturnMessage(fmt.Sprintf("account freezer not enabled yet, enable epoch: %d", fa.enableEpoch))
 		return vmcommon.UserError
 	}
 
@@ -99,10 +114,9 @@ func (fa *freezeAccount) Execute(args *vmcommon.ContractCallInput) vmcommon.Retu
 // 3. User has ONE guardian enabled => add it
 // 4. User has TWO guardians. FIRST is enabled, SECOND is pending => change pending with current one / does nothing until it is set
 // 5. User has TWO guardians. FIRST is enabled, SECOND is enabled => replace oldest one
-
 func (fa *freezeAccount) setGuardian(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !isZero(args.CallValue) {
-		fa.systemEI.AddReturnMessage(fmt.Sprintf("expected value must be zero, got %v instead", args.CallValue))
+		fa.systemEI.AddReturnMessage(fmt.Sprintf("expected value must be zero, got %v", args.CallValue))
 		return vmcommon.UserError
 	}
 	if len(args.Arguments) != 1 {
@@ -192,8 +206,8 @@ func (fa *freezeAccount) addGuardian(address []byte, guardianAddress []byte, gua
 	if err != nil {
 		return err
 	}
-	key := append([]byte(core.ElrondProtectedKeyPrefix), []byte(GuardiansKey)...)
 
+	key := append([]byte(core.ElrondProtectedKeyPrefix), []byte(GuardiansKey)...)
 	return account.AccountDataHandler().SaveKeyValue(key, marshalledData)
 }
 
@@ -205,6 +219,15 @@ func (fa *freezeAccount) getGuardians(address []byte) (Guardians, error) {
 
 	key := append([]byte(core.ElrondProtectedKeyPrefix), []byte(GuardiansKey)...)
 	marshalledData, err := account.AccountDataHandler().RetrieveValue(key)
+	if err != nil {
+		return Guardians{}, err
+	}
+
+	// Fine, address has no guardian set
+	if len(marshalledData) == 0 {
+		return Guardians{}, nil
+	}
+
 	guardians := Guardians{}
 	err = fa.marshaller.Unmarshal(guardians, marshalledData)
 	if err != nil {
@@ -230,16 +253,19 @@ func (fa *freezeAccount) isAddressValid(addressBytes []byte) bool {
 	return encodedAddress != ""
 }
 
-func (fa *freezeAccount) EpochConfirmed(epoch uint32, timestamp uint64) {
-
+func (fa *freezeAccount) EpochConfirmed(epoch uint32, _ uint64) {
+	fa.flagEnabled.SetValue(epoch >= fa.enableEpoch)
+	log.Debug("account freezer", "enabled", fa.flagEnabled.IsSet())
 }
 
 func (fa *freezeAccount) CanUseContract() bool {
-	return true
+	return false
 }
 
 func (fa *freezeAccount) SetNewGasCost(gasCost vm.GasCost) {
-
+	fa.mutExecution.Lock()
+	fa.gasCost = gasCost
+	fa.mutExecution.Unlock()
 }
 
 func (fa *freezeAccount) IsInterfaceNil() bool {
